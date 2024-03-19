@@ -1,5 +1,18 @@
 Version 6.7
 
+3/19/24   [EDGcpfe/27107]
+Clang compatibility: allow floating-point types in some atomic builtins
+
+It appears that Clang version 13.0.0 and later now allow certain floating-point
+types as the first argument to the __atomic_add_fetch, __atomic_sub_fetch,
+__atomic_fetch_add, and __atomic_fetch_sub builtins.  The front end now
+emulates that when clang_version >= 130000.  For example:
+
+  double f(double* addr, double value) {
+    return __atomic_fetch_add(addr, value, 0);
+  }
+
+
 3/14/24   [EDGcpfe/27103]
 GNU compatibility: builtin signatures for the "cmpccxadd" target
 

@@ -5930,6 +5930,7 @@ indicated type.
       goto done;
     }  /* if */
     /* Check that the type under the pointer is appropriate. */
+    a_boolean float_allowed = FALSE;
     if (template_case) {
       /* The top type is a template parameter type, not a pointer, so we
          can't check the type under the pointer. */
@@ -5943,10 +5944,24 @@ indicated type.
       err = TRUE;
     } else if (is_sync_or_atomic && !bcap->is_generic &&
                !is_integral_or_enum_type(dispatch_type) &&
-               !is_pointer_type(dispatch_type)) {
+               !is_pointer_type(dispatch_type) &&
+               !((float_allowed =
+                  (clang_version_is(>=130000) &&
+                   (bfk == bfk_atomic_add_fetch ||
+                    bfk == bfk_atomic_sub_fetch ||
+                    bfk == bfk_atomic_fetch_add ||
+                    bfk == bfk_atomic_fetch_sub))) &&
+                  is_floating_type(dispatch_type))) {
       /* For the __sync_* and __atomic_* builtins, the first argument must be a
-         pointer to an integral type (or enum) or a pointer to a pointer. */
-      expr_pos_error(ec_bad_type_for_gnu_sync_function, &first_arg_pos);
+         pointer to an integral type (or enum) or a pointer to a pointer.
+         Certain __atomic_*fetch* operations allow a pointer to "supported"
+         floating-point types in Clang version 13.0.0 and later.  It appears
+         that only float and double types are currently accepted, but allow
+         all floating-point types in anticipation of other floating-point
+         types being allowed in different architectures. */
+      expr_pos_error(float_allowed ? ec_bad_type_for_atomic_fetch :
+                                     ec_bad_type_for_gnu_sync_function,
+                     &first_arg_pos);
       err = TRUE;
     } else if (is_template_dependent_type(dispatch_type)) {
       /* This catches cases like "pointer to pointer to T".  Note that the
