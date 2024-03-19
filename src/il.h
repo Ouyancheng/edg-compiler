@@ -30,7 +30,7 @@ namespace detail {
 
 /*
 The following specializations provide Is_trivially_copyable and
-Is_trivially_destructible support for a_tagged_pointer.  This is declared
+Is_trivially_destructible support for a_tagged_pointer.  These are declared
 here to keep il_def.h free from C++ specializations.
 */
 

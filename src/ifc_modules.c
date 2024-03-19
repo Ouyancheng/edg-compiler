@@ -5543,6 +5543,12 @@ static a_symbol_ptr resolve_ifc_template_member_reference(
                                                 an_ifc_expr_index syntax_expr,
                                                 a_type_ptr        class_type)
 /*
+This function takes an IFC ExprIndex (syntax_expr) and a class type.  The IFC
+ExprIndex should point to an IFC ExprSort::TemplateReference that has been
+retrieved from an IFC TypeSort::Syntactic node.  The class type should be the
+type where the expression is valid.  The template reference is resolved for
+the given class and the associated symbol is returned.  If an error occurs,
+a NULL pointer is instead returned.
 */
 {
   a_symbol_ptr result = NULL;
@@ -5643,8 +5649,10 @@ static a_type_ptr find_template_reference_true_type(an_ifc_type_index type_idx)
 /*
 The MSVC IFC encoding represents template member references (e.g. A<X>::K and
 A<X>::Z<B>) strangely.  To properly process this we have to go to the deepest
-node where we'll find (e.g., A<X>) with a member name (e.g., K).  If that
-member name (e.g., K) is a type, we use that combination as the type.
+node where we'll find a qualifying type (e.g., A<X>) with a member name
+(e.g., K).  If the referenced member (e.g., A<X>::K) is a type, said type
+(e.g., A<X>::K) is returned; otherwise, the qualifying type (e.g., A<X>) is
+returned.
 */
 {
   a_type_ptr result = NULL;
@@ -13039,9 +13047,13 @@ corresponding integer type.
 }  /* get_edg_int_kind */
 
 
-static a_type_ptr parse_type_name_specifier_cache(an_ifc_module        *mod,
+static a_type_ptr parse_typename_specifier_cache(an_ifc_module        *mod,
                                                   a_module_token_cache *cache)
 /*
+Given a typename specifier token cache and the associated module that formed
+the token cache, parse the typename specifier and return the associated type.
+If the initial token is not a typename token, instead issue an IFC unexpected
+error and return NULL.
 */
 {
   a_type_ptr             result = NULL;
@@ -13060,7 +13072,7 @@ static a_type_ptr parse_type_name_specifier_cache(an_ifc_module        *mod,
     ifc_unexpected(mod, "expected a typename token");
   }  /* if */
   return result;
-}  /* parse_type_name_specifier_cache */
+}  /* parse_typename_specifier_cache */
 
 
 static void associate_mep_with_type(a_module_entity_ptr mep)
@@ -13634,7 +13646,7 @@ with the module entity pointer.
                 goto invalid;
               }  /* if */
 
-              result = parse_type_name_specifier_cache(mod, &cache);
+              result = parse_typename_specifier_cache(mod, &cache);
               if (result == NULL) {
                 goto invalid;
               }  /* if */
@@ -13689,7 +13701,7 @@ with the module entity pointer.
           goto invalid;
         }  /* if */
 
-        result = parse_type_name_specifier_cache(mod, &cache);
+        result = parse_typename_specifier_cache(mod, &cache);
         if (result == NULL) {
           goto invalid;
         }  /* if */
@@ -17131,7 +17143,7 @@ expr.  If caching succeeds return TRUE; otherwise, return FALSE.
       if (first_expr.sort != ifc_es_expr_literal) {
         a_string err_msg("Unexpected first sub-expression (",
                          str_for(first_expr.sort),
-                         ") for MSVC-defined constant value  described by ",
+                         ") for MSVC-defined constant value described by ",
                          index_to_str(expr));
 
         ifc_unexpected(module_of(expr), err_msg);
@@ -17140,7 +17152,7 @@ expr.  If caching succeeds return TRUE; otherwise, return FALSE.
       if (second_expr.sort != ifc_es_expr_unqualified_id) {
         a_string err_msg("Unexpected second sub-expression (",
                          str_for(second_expr.sort),
-                         ") for MSVC-defined constant value  described by ",
+                         ") for MSVC-defined constant value described by ",
                          index_to_str(expr));
 
         ifc_unexpected(module_of(expr), err_msg);
@@ -17166,7 +17178,8 @@ expr.  If caching succeeds return TRUE; otherwise, return FALSE.
         goto invalid;
       }  /* if */
 
-      /* Load the literal suffix name, typically stylized: operator""_X. */
+      /* Load the literal suffix identifier from the IFC "name" encoding; the
+         encoding is typically stylized: operator""_X. */
       an_ifc_expr_unqualified_id unqual_id = *opt_unqual_id;
       an_ifc_name_index          name_idx = get_ifc_name(unqual_id);
       Opt<a_string>              opt_name = name_from_index(name_idx);
@@ -17187,13 +17200,15 @@ expr.  If caching succeeds return TRUE; otherwise, return FALSE.
       }  /* if */
 
       /* Create a persistent copy of the string. */
-      FE_allocator<char> alloc;
-      char               *constant_str = name.to_allocated_storage(alloc);
+      FE_allocator<char>
+                alloc;
+      char      *constant_str = name.to_allocated_storage(alloc);
       /* Create a constant representing the literal spelling.  As an example,
          in the user-defined literal 42_u, this would be 42_. */
       /* FIXME: Do we actually need to create this constant?  It seems to be
          used for raw-string literals.  Do they appear here? */
-      a_constant_ptr lit_spelling_constant = alloc_error_constant();
+      a_constant_ptr
+                lit_spelling_constant = alloc_error_constant();
       /* Cache and form the user-defined literal token. */
       cache_token(cache, tok_ud_literal);
 
@@ -17207,7 +17222,7 @@ expr.  If caching succeeds return TRUE; otherwise, return FALSE.
     } else {
       a_string err_msg("Unexpected number of expr values (",
                        sequence.length(),
-                       ") for MSVC-defined constant value  described by ",
+                       ") for MSVC-defined constant value described by ",
                        index_to_str(expr));
 
       ifc_unexpected(module_of(expr), err_msg);
@@ -19099,9 +19114,9 @@ static void maybe_cache_var_initializer(a_module_token_cache_ptr   cache,
                                         const an_ifc_decl_variable &decl,
                                         const an_ifc_cache_info    &cinfo)
 /*
-Cache the initializer for the given variable declaration.  cinfo contains
-information about the current cache context to help inform decisions about what
-to cache.
+Cache the initializer for the given variable declaration if the variable's
+initializer cannot be deferred.  cinfo contains information about the current
+cache context to help inform decisions about what to cache.
 */
 {
   if (!var_init_can_be_deferred(decl, cinfo)) {

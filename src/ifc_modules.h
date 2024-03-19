@@ -134,7 +134,7 @@ struct an_ifc_cache_info_zero_bits {
                         /* TRUE if the entities being cached are part of a
                            block scope. */
   a_bit_field   is_specialization:1;
-                        /* TRUE if the entities being cached is a template
+                        /* TRUE if the entity being cached is a template
                            specialization. */
   a_bit_field   inline_data_member_type:1;
                         /* TRUE if the entity being cached is a data member
