@@ -14688,7 +14688,8 @@ Return TRUE if processing succeeded, otherwise return FALSE.
 }  /* an_ifc_module::source_position_from_locus */
 
 
-using a_bad_operator_name_encoding_array = Small_dyn_array<a_const_char*, 42>;
+using a_bad_operator_name_encoding_array = Dyn_array<a_const_char*,
+                                                     General_allocator>;
                         /* The type for an array of bad operator name
                            encodings.  These operators have been represented
                            directly in the IFC via a TextOffset (which in the
@@ -26501,7 +26502,34 @@ required).
 }  /* finish_mep_processing */
 
 
-void ifc_modules_one_time_init(void)
+void ifc_modules_cleanup()
+/*
+This routine is called at the end of compilation.  It runs any necessary
+destructors.
+*/
+{
+  delete_fe(bad_operator_name_encodings);
+}  /* ifc_modules_cleanup */
+
+
+void ifc_modules_wrapup()
+/*
+This routine is called at the end of primary and secondary translation units.
+It closes any open module files and run any necessary destructors.
+*/
+{
+  delete_fe(ifc_decl_template_lookup_table);
+  delete_fe(ifc_decl_lookup_table);
+  delete_fe(ifc_tag_definitions);
+  delete_fe(ifc_template_specializations);
+  delete_fe(ifc_template_definitions);
+  delete_fe(ifc_function_bodies);
+  delete_fe(ifc_var_inits);
+  delete_fe(ifc_parameterized_entities);
+}  /* ifc_modules_wrapup */
+
+
+void ifc_modules_one_time_init()
 /*
 Do one-time initialization of static variables defined in this file.
 */
@@ -26521,33 +26549,8 @@ Do one-time initialization of static variables defined in this file.
     };
     register_pch_saved_variables(saved_vars);
   }  /* if */
-}  /* ifc_modules_one_time_init */
-
-
-void ifc_modules_init(void)
-/*
-Initialize static variables related to this file that must be initialized
-for each compilation.
-*/
-{
-#if DEBUG
-#if EXPENSIVE_CHECKING
-  debug_partition = NULL;
-#endif /* EXPENSIVE_CHECKING */
-  decl_nesting_level = 0;
-#endif /* DEBUG */
-  ifc_parameterized_entities = new_fe<an_ifc_parameterized_entity_map>(
-                                                            /*mask_width=*/10);
-  ifc_var_inits = new_fe<a_lazy_entity_part>();
-  ifc_function_bodies = new_fe<a_lazy_entity_part>();
-  ifc_template_definitions = new_fe<a_lazy_entity_part>();
-  ifc_template_specializations = new_fe<an_ifc_template_spec_map>(
-                                                            /*mask_width=*/10);
-  ifc_tag_definitions = new_fe<a_lazy_entity_part>();
-  ifc_decl_lookup_table = new_fe<an_ifc_decl_lookup_table>(/*mask_width=*/10);
-  ifc_decl_template_lookup_table = new_fe<an_ifc_template_lookup_table>(
-                                                            /*mask_width=*/10);
-  bad_operator_name_encodings = new_fe<a_bad_operator_name_encoding_array>();
+  bad_operator_name_encodings =
+                            new_general<a_bad_operator_name_encoding_array>();
   bad_operator_name_encodings->push_back("new");
   bad_operator_name_encodings->push_back("delete");
   bad_operator_name_encodings->push_back("new[]");
@@ -26591,6 +26594,32 @@ for each compilation.
   bad_operator_name_encodings->push_back("++");
   bad_operator_name_encodings->push_back("--");
   bad_operator_name_encodings->push_back(",");
+}  /* ifc_modules_one_time_init */
+
+
+void ifc_modules_init()
+/*
+Initialize static variables related to this file that must be initialized
+for each compilation.
+*/
+{
+#if DEBUG
+#if EXPENSIVE_CHECKING
+  debug_partition = NULL;
+#endif /* EXPENSIVE_CHECKING */
+  decl_nesting_level = 0;
+#endif /* DEBUG */
+  ifc_parameterized_entities = new_fe<an_ifc_parameterized_entity_map>(
+                                                            /*mask_width=*/10);
+  ifc_var_inits = new_fe<a_lazy_entity_part>();
+  ifc_function_bodies = new_fe<a_lazy_entity_part>();
+  ifc_template_definitions = new_fe<a_lazy_entity_part>();
+  ifc_template_specializations = new_fe<an_ifc_template_spec_map>(
+                                                            /*mask_width=*/10);
+  ifc_tag_definitions = new_fe<a_lazy_entity_part>();
+  ifc_decl_lookup_table = new_fe<an_ifc_decl_lookup_table>(/*mask_width=*/10);
+  ifc_decl_template_lookup_table = new_fe<an_ifc_template_lookup_table>(
+                                                            /*mask_width=*/10);
 }  /* ifc_modules_init */
 
 /*lint -restore*/ /* FIXME: temporary */

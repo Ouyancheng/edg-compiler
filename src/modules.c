@@ -1431,22 +1431,28 @@ for suppressed errors while processing the module.
 
 void modules_cleanup()
 /*
-Called to ensure files are closed after a (possibly aborted) compilation.
+This routine is called at the end of compilation, or if compilation is
+terminated prematurely for some reason.  It performs any cleanup operations
+required.  In particular, it closes any files that may have been open at
+the point at which the compilation was terminated and makes sure any required
+destructors are invoked.
 */
 {
   modules_wrapup();
+  ifc_modules_cleanup();
 }  /* modules_cleanup */
 
 #endif /* MAKE_FRONT_END_CALLABLE */
 
 void modules_wrapup()
 /*
-Close any open module files.  Invoked at the end of primary and secondary
-translation units.
+This routine is called at the end of primary and secondary translation units.
+It closes any open module files and run any necessary destructors.
 */
 {
   a_module_import_decl_ptr midp;
 
+  ifc_modules_wrapup();
   for (midp = il_header.imported_modules; midp != NULL; midp = midp->next) {
     if (midp->module_info->module_interface != NULL) {
       midp->module_info->module_interface->close();

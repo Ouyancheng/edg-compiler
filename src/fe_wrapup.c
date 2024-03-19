@@ -554,9 +554,6 @@ already been copied over.
   }  /* if */
   /* Pop the file scope. */
   pop_scope();
-  /* Close any open module files (for primary or secondary translation
-     units). */
-  modules_wrapup();
   if (is_primary_translation_unit) {
     /* Do needed-flag processing for the primary translation unit.
        The needed-flag processing for secondary translation units
@@ -621,6 +618,10 @@ already been copied over.
       clear_parent_information();
     }  /* if */
 #endif /* DO_IL_LOWERING */
+  }  /* if */
+  /* Close any open module files and run any necessary destructors. */
+  modules_wrapup();
+  if (is_primary_translation_unit) {
 #if CHECKING
     /* Ensure that unexpected situations did not occur without at least one
        error being issued (otherwise, abort compilation).  This is done

@@ -4984,8 +4984,10 @@ Destruct the Ptr_multi_map tearing down any allocated multi-values.
 {
   using an_entry = Ptr_map_entry<a_Ptr_key, a_multi_value*>;
   /* Deallocate the underlying allocated multi-value objects. */
-  for (an_entry entry : this->backing_map) {
-    this->dealloc(entry.value);
+  for (const an_entry &entry : this->backing_map) {
+    if (entry.has_value()) {
+      this->dealloc(entry.value());
+    }  /* if */
   }  /* for */
 }  /* Ptr_multi_map::~Ptr_multi_map */
 
