@@ -2235,7 +2235,7 @@ Free the general memory specified by *map.
 */
 {
   /* Free the allocated memory. */
-  for (a_memory_allocation_map::an_entry &entry : **map) {
+  for (const a_memory_allocation_map::an_entry &entry : **map) {
     if (!entry.has_value()) {
       continue;
     }  /* if */
