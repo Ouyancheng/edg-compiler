@@ -1132,12 +1132,9 @@ return TRUE.  Otherwise, return FALSE.
 
 a_boolean load_variable_initializer_from_module(a_variable_ptr vp)
 /*
-If the given variable has an initializer available in an imported module, load
-and process that initializer now, and return TRUE.  Otherwise, return FALSE.
-
-The presence of an initializer should be checked for via
-has_variable_initializer_from_module prior to attempting to load the
-initializer.
+The given variable has an initializer available in an imported module (i.e.,
+has_variable_initializer_from_module(vp) has returned TRUE); load and process
+that initializer now and return TRUE. If an error occurs, return FALSE.
 */
 {
   return load_variable_initializer_from_ifc_module(vp);
@@ -1156,12 +1153,9 @@ TRUE.  Otherwise, return FALSE.
 
 a_boolean load_routine_definition_from_module(a_routine_ptr rp)
 /*
-If the given routine has a definition available in an imported module, load and
-process that definition now, and return TRUE.  Otherwise, return FALSE.
-
-The presence of a routine definition should be checked for via
-has_routine_definition_from_module prior to attempting to load the routine
-definition.
+The given routine has a definition available in an imported module (i.e.,
+has_routine_definition_from_module(rp) has returned TRUE); load and process
+that definition now and return TRUE. If an error occurs, return FALSE.
 */
 {
   return load_routine_definition_from_ifc_module(rp);
@@ -1198,9 +1192,9 @@ must refer to the canonical template.
 
 a_boolean load_template_definition_from_module(a_template_ptr templ)
 /*
-If the given template has a definition available in an imported module, process
-its definition now, and return TRUE.  Otherwise, return FALSE.  Note that templ
-must refer to the canonical template.
+The given template has a definition available in an imported module (i.e.,
+has_template_definition_from_module(templ) has returned TRUE); load and process
+that definition now and return TRUE. If an error occurs, return FALSE.
 */
 {
   return load_template_definition_from_ifc_module(templ);
@@ -1227,9 +1221,10 @@ canonical template.
 
 a_boolean load_template_specializations_from_module(a_template_ptr templ)
 /*
-If the given template has specializations available in an imported module,
-process those specializations now, and return TRUE.  Otherwise, return FALSE.
-Note that templ must refer to the canonical template.
+The given template has one or more specializations available in an imported
+module (i.e., has_pending_template_specializations_from_module(templ) has
+returned TRUE); load and process those specializations now and return TRUE. If
+an error occurs, return FALSE.
 */
 {
   return load_template_specializations_from_ifc_module(templ);
@@ -1248,12 +1243,9 @@ TRUE.  Otherwise, return FALSE.
 
 a_boolean load_type_definition_from_module(a_type_ptr ty)
 /*
-If the given type has a definition available in an imported module, load and
-process that definition now, and return TRUE.  Otherwise, return FALSE.
-
-The presence of a type definition should be checked for via
-has_type_definition_from_module prior to attempting to load the type
-definition.
+The given type has a definition available in an imported module (i.e.,
+has_type_definition_from_module(ty) has returned TRUE); load and process that
+definition now and return TRUE. If an error occurs, return FALSE.
 */
 {
   a_boolean  result = FALSE;
