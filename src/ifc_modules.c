@@ -5546,8 +5546,8 @@ static a_symbol_ptr resolve_ifc_template_member_reference(
 This function takes an IFC ExprIndex (syntax_expr) and a class type.  The IFC
 ExprIndex should point to an IFC ExprSort::TemplateReference that has been
 retrieved from an IFC TypeSort::Syntactic node.  The class type should be the
-type where the expression is valid.  The template reference is resolved for
-the given class and the associated symbol is returned.  If an error occurs,
+class scope where the expression is parsed.  The template reference is resolved
+for the given class and the associated symbol is returned.  If an error occurs,
 a NULL pointer is instead returned.
 */
 {
@@ -13048,7 +13048,7 @@ corresponding integer type.
 
 
 static a_type_ptr parse_typename_specifier_cache(an_ifc_module        *mod,
-                                                  a_module_token_cache *cache)
+                                                 a_module_token_cache *cache)
 /*
 Given a typename specifier token cache and the associated module that formed
 the token cache, parse the typename specifier and return the associated type.
@@ -17178,8 +17178,9 @@ expr.  If caching succeeds return TRUE; otherwise, return FALSE.
         goto invalid;
       }  /* if */
 
-      /* Load the literal suffix identifier from the IFC "name" encoding; the
-         encoding is typically stylized: operator""_X. */
+      /* Load the suffix spelling (e.g., _X) from the IFC operator name.  This
+         code assumes the IFC operator name is encoded in the typical fashion,
+         e.g.: operator""_X. */
       an_ifc_expr_unqualified_id unqual_id = *opt_unqual_id;
       an_ifc_name_index          name_idx = get_ifc_name(unqual_id);
       Opt<a_string>              opt_name = name_from_index(name_idx);
@@ -17203,10 +17204,13 @@ expr.  If caching succeeds return TRUE; otherwise, return FALSE.
       FE_allocator<char>
                 alloc;
       char      *constant_str = name.to_allocated_storage(alloc);
-      /* Create a constant representing the literal spelling.  As an example,
-         in the user-defined literal 42_u, this would be 42_. */
-      /* FIXME: Do we actually need to create this constant?  It seems to be
-         used for raw-string literals.  Do they appear here? */
+      /* Raw literal operators have not (yet) been observed with this encoding.
+         However, if they're observed we will need to create a constant
+         representing the literal spelling for raw literal operator.  As an
+         example, in the user-defined literal 42_u, this would be 42.  Until
+         there's a proven need for this additional complexity (and thus an
+         example encoding to work with), do the easy thing and use an error
+         constant instead. */
       a_constant_ptr
                 lit_spelling_constant = alloc_error_constant();
       /* Cache and form the user-defined literal token. */
