@@ -29,6 +29,11 @@ native_path()
   echo "$path"
 }
 
+#
+# These variables are used to check front end exit status.
+#
+any_errors=0
+max_status=0
 
 #
 # Initialize EDG_BASE.  This needs to be done before looking for the
@@ -2532,8 +2537,6 @@ fi
 #
 # Run through the list of .c files and compile.
 #
-any_errors=0
-max_status=0
 for cfile in $cfiles
 do
   instantiation_command_suffix=
