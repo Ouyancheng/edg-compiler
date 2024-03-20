@@ -20735,7 +20735,13 @@ modules are then enabled, as presumably the user had neglected to enable
 modules.
 */
 {
-  if (!modules_enabled) {
+  if (modules_enabled) {
+#if COMPILE_MULTIPLE_TRANSLATION_UNITS
+    if (export_template_allowed || more_than_one_non_export_translation_unit) {
+      pos_catastrophe(ec_module_use_in_multi_tu_mode, &pos_curr_token);
+    }  /* if */
+#endif /* COMPILE_MULTIPLE_TRANSLATION_UNITS */
+  } else {
     pos_error(ec_modules_not_enabled, &pos_curr_token);
     modules_enabled = TRUE;
   }  /* if */
