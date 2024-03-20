@@ -17206,7 +17206,7 @@ expr.  If caching succeeds return TRUE; otherwise, return FALSE.
       char      *constant_str = name.to_allocated_storage(alloc);
       /* Raw literal operators have not (yet) been observed with this encoding.
          However, if they're observed we will need to create a constant
-         representing the literal spelling for raw literal operator.  As an
+         representing the literal spelling for the raw literal operator.  As an
          example, in the user-defined literal 42_u, this would be 42.  Until
          there's a proven need for this additional complexity (and thus an
          example encoding to work with), do the easy thing and use an error
