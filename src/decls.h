@@ -91,7 +91,7 @@ seen.
 {
   return (in_module_unit() && tu_stage_is(tud_module_unit) &&
           curr_module_sym->variant.module_info.is_interface_unit);
-}  /* in_module_interface_unit*/
+}  /* in_module_interface_unit */
 
 
 inline a_boolean in_module_implementation_unit()

@@ -401,7 +401,7 @@ to output to the indicated buffer.
   octl.gen_pcc_code = (C_dialect == C_dialect_pcc);
   octl.debug_output = TRUE;
   return octl;
-}  /* set_up_for_output_to_buffer */
+}  /* set_up_il_to_str_octl */
 
 
 static a_const_char *str_access(an_access_specifier access)
@@ -11070,7 +11070,7 @@ header.
   clear_specific_symbol(*locator);
   hdr_ptr = find_ms_attr_alt_name_header(locator->symbol_header);
   locator->symbol_header = hdr_ptr;
-}  /* change_locator_into_ms_attribute_alternate_name_locator */
+}  /* change_ms_attr_locator_into_alt_name_locator */
 
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
 
@@ -14267,7 +14267,7 @@ be reported when access deferral is ended by the enclosing context.
       scope_stack_top().in_decltype_context = saved_in_decltype_context;
     }  /* if */
   }  /* if */
-}  /* perform_deferred_access_checks */
+}  /* perform_deferred_access_checks_at_depth */
 
 
 void perform_deferred_access_checks_for_function(a_routine_ptr rp)

@@ -982,7 +982,7 @@ that C++/CLI-mode handles, interior_ptr, and pin_ptr types are not included.)
          !tp->variant.pointer.is_pin_ptr &&
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
          !tp->variant.pointer.is_reference;
-}  /* is_pointer_type */
+}  /* is_plain_pointer_type */
 
 
 a_boolean is_pointer_to_object_type(a_type_ptr tp)
@@ -1431,7 +1431,7 @@ instance (C++/CX mode).
     }  /* if */
   }  /* if */
   return result;
-}  /* is_handle_to_nonconst_cppcx_array_type */
+}  /* is_handle_to_nonconst_cppcx_plain_array_type */
 
 
 a_type_ptr cli_array_element_type(a_type_ptr tp)
@@ -2904,7 +2904,7 @@ Return TRUE if the given type is a GNU C transparent union.
 {
   tp = skip_typerefs(tp);
   return is_union(tp) && tp->variant.class_struct_union.is_transparent;
-}  /*is_transparent_union_type */
+}  /* is_transparent_union_type */
 
 #if !STANDALONE_UTILITY_PROGRAM
 
@@ -3101,7 +3101,7 @@ kind.
   return is_template_param(tp) &&
          tp->variant.template_param.kind ==
                                      (a_template_param_type_kind)tptk_unknown;
-}  /* is_template_param_type */
+}  /* is_unknown_template_param_type */
 
 #if MICROSOFT_EXTENSIONS_ALLOWED
 

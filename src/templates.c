@@ -30649,7 +30649,7 @@ records additional position information.
      for the appropriate scope. */
   complete_il_template_entry(decl_state, dps->sym);
   done_with_func_info(func_info);
-}  /* scan_nested_deduction_guide */
+}  /* scan_nested_deduction_guide_template */
 
 
 static a_symbol_ptr function_template_declaration(
@@ -34801,7 +34801,7 @@ Do the prototype instantiation of the template template parameter tpp.
     discard_token_cache(&tpp->default_arg_cache.tokens);
     clear_template_cache(&tpp->default_arg_cache, /*reusable=*/TRUE);
   }  /* if */
-}  /* template_template_type_param_default_arg_prototype_instantiation */
+}  /* template_template_param_default_arg_prototype_instantiation */
 
 
 /* Forward declaration. */
@@ -35560,7 +35560,7 @@ for a lambda call operator.  Perform final actions needed for that declaration
 */
 {
   wrapup_templ_decl_state(templ_state);
-}  /* wrap_up_generic_lambda_declarator_scan */
+}  /* wrap_up_generic_lambda_scan */
 
 
 static a_can_instantiate_entry_ptr alloc_can_instantiate_entry(void)
@@ -40178,7 +40178,7 @@ TRUE if in-class instantiation is allowed, otherwise return FALSE.
     result = FALSE;
   }  /* if */
   return result;
-}  /* is_in_class_instantiation */
+}  /* check_in_class_instantiation */
 
 
 static void check_instantiation_scope(a_symbol_ptr sym)
@@ -42206,7 +42206,7 @@ NULL.
     }  /* if */
   }  /* if */
   return result;
-}  /* is_or_derived_from_specialization_of_class_template */
+}  /* is_or_derived_from_instance_of_class_template */
 
 
 a_template_param_ptr copy_template_param_list(a_template_param_ptr  tpl)

@@ -4375,7 +4375,7 @@ Display the indicated accessible base class entry.
       disp_ptr("  base_class", (char *)abcp->base_class, iek_base_class);
     }  /* for */
   }  /* if */
-}  /* disp_accessible_base_class */
+}  /* disp_accessible_base_classes */
 
 #endif /* !ABI_CHANGES_FOR_RTTI */
 

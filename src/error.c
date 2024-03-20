@@ -4703,7 +4703,7 @@ and column numbers to the write_diagnositic_buffer.
                               num_buffer.as_temp_characters());
   }  /* if */
   add_char_to_text_buffer(write_diagnostic_buffer, '}');
-}  /* write_sarif_artifact_location */
+}  /* write_sarif_region */
 
 
 static void write_sarif_physical_location(a_source_position_ptr error_pos)
@@ -5140,7 +5140,7 @@ diag_ptr.
 */
 {
   add_symbol_fill_in_with_depth(diag_ptr, symbol, NO_SCOPE_DEPTH);
-}  /* add_string_fill_in */
+}  /* add_symbol_fill_in */
 
 
 static inline void add_template_arg_list_fill_in(a_diagnostic_ptr   diag_ptr,
@@ -5270,7 +5270,7 @@ scope_depth is a scope depth associated with the symbol or NO_SCOPE_DEPTH.
                                es_none);
   add_symbol_fill_in_with_depth(dp, symbol, scope_depth);
   add_position_fill_in(dp, position);
-}  /* add_symbol_context_pos_diag */
+}  /* add_symbol_pos_context_diag */
 
 
 static void add_number_context_diag(a_diagnostic_ptr	primary_dp,
@@ -7586,7 +7586,7 @@ insert_after is NULL.
     src->tail->next = dst->head;
     dst->head = src->head;
   }  /* if */
-}  /* insert_diag_list */
+}  /* splice_diag_list */
 
 
 void discard_more_info_list(a_diag_list_ptr	dlp)
@@ -7713,7 +7713,7 @@ diagnostics pointed to by diag_list.  The given symbols are used to replace
                      (a_type_ptr)NULL, (a_type_ptr)NULL,
                      (a_template_arg_ptr)NULL, (a_template_arg_ptr)NULL,
                      (a_source_position*)NULL, diag_list);
-}  /* more_info_sym_diagnostic */
+}  /* more_info_sym2_diagnostic */
 
 
 void more_info_num_diagnostic(an_error_code     error_code,

@@ -957,9 +957,9 @@ EXTERN a_const_char *il_entry_kind_names[(int)iek_last + 1]
 /* iek_module */			"module",
 /* iek_module_import_decl */		"mod-import-decl",
 /* iek_last */				"last"
-} /* il_entry_kind_names */
+}
 #endif /* VAR_INITIALIZERS */
-;
+;  /* il_entry_kind_names */
 #endif /* NEED_IL_DISPLAY || DEBUG */
 
 /*
@@ -6497,9 +6497,9 @@ EXTERN a_const_char *pragma_ids[(int)pk_last + 1]
 /* pk_unrecognized */		"unrecognized",
 #endif /* INCLUDE_UNRECOGNIZED_PRAGMAS_IN_IL */
 /* pk_last */			"last"
-} /* pragma_ids */
+}
 #endif /* VAR_INITIALIZERS */
-;
+;  /* pragma_ids */
 
 
 #if MICROSOFT_EXTENSIONS_ALLOWED
@@ -6531,9 +6531,9 @@ EXTERN a_const_char *microsoft_pragma_comment_ids[(int)mpct_last + 1]
 /* mpct_linker */	"linker",
 /* mpct_user */		"user",
 /* mpct_last */		"last"
-} /* microsoft_pragma_comment_ids */
+}
 #endif /* VAR_INITIALIZERS */
-;
+;  /* microsoft_pragma_comment_ids */
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
 
 
@@ -6904,9 +6904,9 @@ EXTERN a_const_char *decl_modifier_names[(int)dmt_last + 1]
   /* dmt_hidden_link_scope, */	"__hidden",
 #endif /* SUN_EXTENSIONS_ALLOWED */
   /* dmt_last */		"last"
-} /* decl_modifier_names */
+}
 #endif /* VAR_INITIALIZERS */
-;
+;  /* decl_modifier_names */
 #endif /* DECL_MODIFIERS_IN_USE */
 
 /*

@@ -260,7 +260,7 @@ This function is defined for easily checking if there was at least one warning.
 */
 {
   return diagnostic_counters.total.warnings > 0;
-}  /* is_at_least_one_error */
+}  /* is_at_least_one_warning */
 
 
 EXTERN an_error_severity

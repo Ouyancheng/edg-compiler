@@ -2250,7 +2250,7 @@ configuration.)
     }  /* if */
   }  /* for */
 #endif /* CHECKING */
-}  /* initialize_opname_kinds */
+}  /* initialize_opname_names */
 
 /* Conditionally close the "edg" namespace. */
 END_EDG_NAMESPACE

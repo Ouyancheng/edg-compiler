@@ -440,8 +440,8 @@ IDL_PROJ_SYMBOL_ALLOWED is specified in options.
 
 #if CFRONT_GLOBAL_VS_MEMBER_NAME_LOOKUP_BUG
 
-static a_symbol_ptr check_for_cfront_name_lookup_bug
-					(a_type_ptr                class_type,
+static a_symbol_ptr check_for_cfront_name_lookup_bug(
+					 a_type_ptr                class_type,
 					 a_symbol_ptr	           sym,
                                          a_symbol_locator          *locator,
 					 an_id_lookup_options_set  options)

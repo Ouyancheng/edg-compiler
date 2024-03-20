@@ -8101,7 +8101,7 @@ checking is needed (see microsoft_has_assign_predicate).
   }  /* for */
 done:
   return result;
-}  /*  compute_has_nothrow_assign */
+}  /* compute_has_nothrow_assign */
 
 
 static a_boolean compute_has_nothrow_copy(a_type_ptr  class_type)
@@ -8183,7 +8183,7 @@ is needed (see microsoft_has_copy_predicate).
   }  /* for */
 done:
   return result;
-}  /*  compute_has_nothrow_copy */
+}  /* compute_has_nothrow_copy */
 
 #if MICROSOFT_EXTENSIONS_ALLOWED
 

@@ -18039,7 +18039,7 @@ general information about the class.
     result = in_class_instantiation(ssep->class_def_state);
   }  /* if */
   return result;
-}  /* curr_scope_is_class_template_definition */
+}  /* curr_scope_is_class_instantiation */
 
 
 static void record_inclass_initializer_fixup(

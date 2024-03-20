@@ -3359,7 +3359,7 @@ for each element.
 
   memzero((char *)validation_bits, size);
   return validation_bits;
-}  /* allocate_validation_bit_array */
+}  /* alloc_validation_bit_array */
 
 
 static void invalidate_all_validation_bits(uint32_t *validation_bits,
@@ -3909,7 +3909,7 @@ Mark the part as complete for the given entity.
 {
   this->remove_from_pending_set(ptr);
   this->availible_definitions.unmap(ptr);
-}  /* a_lazy_entity_part::mark_failure */
+}  /* a_lazy_entity_part::mark_finished */
 
 
 void a_lazy_entity_part::mark_failure(a_tagged_pointer ptr)
@@ -4182,7 +4182,7 @@ associated IL entity to its pending initializer (if an initializer is present).
   if (!is_null_index(initializer)) {
     record_pending_ifc_variable_init(vp, decl_idx);
   }  /* if */
-}  /* try_map_routine_initializer */
+}  /* try_map_variable_initializer */
 
 
 static void map_pending_variable_initializers(an_ifc_decl_index decl_idx,
@@ -5884,7 +5884,7 @@ from a tok_ifc_entity_ref or tok_ifc_decl_ref).
 
   add_partition_element_diag_info(diag, ec_ifc_entity_ref_failure_info, idx);
   end_diagnostic(diag);
-}  /* diagnose_entity_load_failure */
+}  /* diagnose_ifc_entity_load_failure */
 
 
 a_symbol_ptr load_tok_ifc_entity_ref()
@@ -7837,7 +7837,7 @@ check_and_set_redeclaration.
     }  /* if */
   }  /* while */
   return result;
-}  /* find_redeclared_basic_symbol_in_list */
+}  /* find_redeclared_basic_entity_in_list */
 
 
 static a_boolean
@@ -14610,7 +14610,7 @@ valid; otherwise, return NULL.
     }  /* if */
   }  /* if */
   return result;
-}  /* get_template_from_args */
+}  /* get_template_from_id_expr */
 
 
 a_type_ptr an_ifc_module::type_for_template_id(
@@ -18967,7 +18967,7 @@ Cache the linkage-specification for the given named-declaration (decl).
     cache_token(cache, tok_extern);
     cache_string_literal(cache, mod, "C");
   }  /* if */
-}  /* cache_func_decl_specifier_seq */
+}  /* cache_linkage_specification */
 
 
 static void cache_var_storage_class_specifier(
@@ -18991,7 +18991,7 @@ about what to cache.
        var_init_can_be_deferred(decl, cinfo))) {
     cache_token(cache, tok_extern);
   }  /* if */
-}  /* cache_func_decl_specifier */
+}  /* cache_var_storage_class_specifier */
 
 
 template<typename an_ifc_Node_type>
@@ -20139,7 +20139,7 @@ parameter context.
                     get_msvc_trait_func_param_chart_idx(parameterizing_entity))
 {
   this->num_params = this->determine_param_count();
-}  /* an_ifc_func_param_context:an_ifc_func_param_context */
+}  /* an_ifc_func_param_context::an_ifc_func_param_context */
 
 
 an_ifc_index_type an_ifc_func_param_context::determine_param_count()
@@ -20345,7 +20345,7 @@ expr index.
      results? */
 done:
   return result;
-}  /* an_ifc_func_param_context::get_param_type */
+}  /* an_ifc_func_param_context::get_default_arg_expr */
 
 }  /* namespace */
 
@@ -22575,7 +22575,7 @@ Cache the declarator-id for the given specialized constructor declaration.
      constructor syntax (i.e., constructors cannot have a template argument
      list), so cache the declarator for the specialized entity. */
   cache_func_declarator_id(cache, specialized_entity, cinfo);
-}  /* cache_func_declarator_id */
+}  /* cache_specialized_func_declarator_id */
 
 
 void an_ifc_module::cache_decl_specialization(
@@ -26091,7 +26091,7 @@ encountered invalid sort value.
 
   add_backtrace(diag_ptr, trace);
   end_diagnostic(diag_ptr);
-}  /* invalid_partition */
+}  /* invalid_sort */
 
 
 void invalid_partition(an_ifc_module_file            *file,
@@ -26125,7 +26125,7 @@ partition.
                                           part_name);
   add_backtrace(diag_ptr, trace);
   end_diagnostic(diag_ptr);
-}  /* undefined_partition */
+}  /* diag_undefined_partition */
 
 
 static void diag_unrepresentable_partition(
@@ -26170,7 +26170,7 @@ partition.
                                           relative_offset);
   add_backtrace(diag_ptr, trace);
   end_diagnostic(diag_ptr);
-}  /* diag_overflowing_partition */
+}  /* diag_partition_position */
 
 
 a_boolean validate_element_exists(an_ifc_module_file            *file,

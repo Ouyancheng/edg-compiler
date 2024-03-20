@@ -299,7 +299,7 @@ flags to be set (in that case, issue a warning).
       }  /* if */
     }  /* if */
   }  /* for */
-}  /* flags_from_dll_attributes */
+}  /* add_flags_from_dll_attributes */
 
 
 void update_dll_info_for_class(a_type_ptr           class_type,
@@ -2157,7 +2157,7 @@ previous specification.  For example:
   }  /* if */
   ctsp->decl_modifiers &= ~DM_ANY_SUN_LINK_SCOPE;
   ctsp->decl_modifiers |= link_scope;
-}  /* record_sun_linker_scope_for_class */
+}  /* record_sun_link_scope_for_class */
 
 #endif /* SUN_EXTENSIONS_ALLOWED */
 

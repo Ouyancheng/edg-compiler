@@ -99,7 +99,7 @@ a nested construct.
 #define remove_matching_stop_token(token)                             \
 { remove_stop_token(token);                                           \
   expr_stack->nested_construct_depth--;                               \
-}  /* remove_matching_closing_token */
+}  /* remove_matching_stop_token */
 
 
 /* Define the categories of expressions that are allowed. */

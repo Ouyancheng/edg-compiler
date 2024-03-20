@@ -87,7 +87,7 @@ Immediately restore the variable given during construction to its saved state.
 */
 {
   *saved_var = saved_value;
-}  /* Value_saver::~Value_saver */
+}  /* Value_saver::restore_now */
 
 
 /*
@@ -204,7 +204,7 @@ Return TRUE if this optional is storing a value, otherwise return FALSE.
   const_cast<Opt<a_Value_type>*>(this)->value_presence_checked = TRUE;
 #endif /* CHECKING */
   return storing_value;
-}  /* ~Opt */
+}  /* has_value */
 
 
 template<typename a_Value_type>

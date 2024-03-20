@@ -319,7 +319,7 @@ Dump the name of a template.
 */
 {
   db_name(&tp->source_corresp);
-}  /* db_template */
+}  /* db_template_name */
 
 
 void db_type_name(a_type_ptr  tp)
@@ -9953,7 +9953,7 @@ Set the given constant to the given boolean value and to type bool.
 {
   set_integer_constant(con, (a_host_large_integer)val, BOOL_INT_KIND);
   con->type = bool_type();
-}  /* make_bool_constant */
+}  /* make_bool_constant_value */
 
 
 a_boolean make_value_initialized_constant(a_type_ptr type,
@@ -15628,7 +15628,7 @@ Return TRUE if and only if the given routine is a move constructor.
                              /*include_move_ctors=*/TRUE,
                              /*is_declarative_context=*/TRUE) &&
          copy_ctor_is_move_ctor(rp);
-}  /* routine_is_move_ctor */
+}  /* routine_is_move_constructor */
 
 
 a_boolean is_copy_assignment_operator_type(
@@ -25626,7 +25626,7 @@ Called from traverse_expr to check whether the constant is an error constant.
     tblock->result = TRUE;
     tblock->terminate = TRUE;
   }  /* if */
-}  /* examine_expr_for_error */
+}  /* examine_constant_for_error */
 
 
 static void examine_expr_for_error(an_expr_node_ptr                    expr,

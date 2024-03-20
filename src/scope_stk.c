@@ -7325,7 +7325,7 @@ deduction, potentially entering an exponential-time process).
     }  /* while */
     pos_error(ec_excessive_rescan_depth, &error_position);
   }  /* if */
-}  /* report_excessive_deduction_depth */
+}  /* report_excessive_rescan_depth */
 
 
 static void nested_class_anachronism_processing(a_symbol_ptr symbol_list,
@@ -12320,7 +12320,7 @@ entries.
     pesep->is_suppression = TRUE;
   }  /* if */
   *p_pesep = pesep;
-}  /* push_pack_suppression */
+}  /* push_expansion_suppression */
 
 
 void pop_expansion_suppression(
@@ -12335,7 +12335,7 @@ will be NULL outside of template dependent contexts.
                     pesep->is_suppression);
     pop_pack_expansion_stack();
   }  /* if */
-}  /* push_pack_suppression */
+}  /* pop_expansion_suppression */
 
 
 void begin_prescan_context(

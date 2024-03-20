@@ -2348,7 +2348,7 @@ stack.  Use the given reflection to replace fill-ins.
     ips->diag_list.append(dp);
     info_call_stack(ips);
   }  /* if */
-}  /* info_with_pos_type */
+}  /* info_with_pos_refl */
 
 
 static void info_with_pos_type(an_error_code         err_code,
@@ -8124,7 +8124,7 @@ The routine returns FALSE if a negation is required and the negation fails.
     }  /* if */
   }  /* if */
   return result;
-}  /* do_constexpr_builtin_fptest */
+}  /* do_constexpr_builtin_copysign */
 
 #endif /* C99_IL_EXTENSIONS_SUPPORTED && TARG_HAS_IEEE_FLOATING_POINT */
 
@@ -10294,7 +10294,7 @@ See do_constexpr_intrinsic_call for the meaning of the parameters.
     result = TRUE;
   }  /* if */
   return result;
-}  /* do_constexpr_std_meta_make_reflect_value */
+}  /* do_constexpr_std_meta_reflect_value */
 
 
 static a_boolean handle_pm_case_for_value_of(
@@ -10500,7 +10500,7 @@ See do_constexpr_intrinsic_call for the meaning of the parameters.
     }  /* if */
   }  /* if */
   return result;
-}  /* do_constexpr_std_meta_make_value_of */
+}  /* do_constexpr_std_meta_value_of */
 
 
 static inline void set_bool_value(a_boolean  value,
@@ -13485,7 +13485,7 @@ Release the given allocation.
     allocation->next->prev = allocation->prev;
   }  /* if */
   free_for_interpreter((a_byte*)allocation, (sizeof_t)allocation->total_size);
-}  /* free_constexpr_allocation */
+}  /* free_allocation */
 
 
 static a_boolean do_constexpr_std_allocator_deallocate(
@@ -13660,7 +13660,7 @@ See do_constexpr_std_allocator_allocate for the meaning of the parameters.
     valid_placement_new_type = NULL;
   }  /* if */
   return result;
-}  /* do_constexpr_std_allocator_construct_at */
+}  /* do_constexpr_std_construct_at */
 
 
 static a_boolean do_constexpr_std_destroy_at(

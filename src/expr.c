@@ -38693,7 +38693,7 @@ These cases are handled here by coalescing two tokens.
     }  /* if */
 #endif /* C_ANACHRONISMS_ALLOWED */
   }  /* if */        
-}  /* check_for_pcc_compound_assignment_operator */
+}  /* check_for_pcc_compound_assignment_operators */
 
 
 static void add_template_arg_to_decorated_name(

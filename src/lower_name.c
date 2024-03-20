@@ -14775,7 +14775,7 @@ elsewhere.
        _ZTT<mangled-type-name>
   */
   return mangled_prefixed_type_encoding("TT", type);
-}  /* mangled_typeinfo_string_name */
+}  /* mangled_virtual_table_table_name */
 
 #endif /* IA64_ABI */
 

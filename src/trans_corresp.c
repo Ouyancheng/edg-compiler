@@ -6468,7 +6468,7 @@ symbols when looking up a correspondence: if none is found, return NULL.
     }  /* if */
   }  /* if */
   return corresp_templ;
-}  /* find_corresp_variable_template */
+}  /* find_corresp_var_template */
 
 
 static a_template_ptr find_corresp_function_template(a_template_ptr  templ,

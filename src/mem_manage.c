@@ -1884,7 +1884,7 @@ Add the specified string to a text buffer.  This version can be called
 
   length = strlen(string);
   add_to_text_buffer(buffer, string, length);
-}  /* add_to_text_buffer */
+}  /* f_add_string_to_text_buffer */
 
 
 void truncate_text_buffer_to(a_text_buffer_ptr buffer,

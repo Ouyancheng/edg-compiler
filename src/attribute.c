@@ -3130,7 +3130,7 @@ attribute ap applied to the given statement matches those constraints.
 */
 {
   check_assertion(constr[0] == 's');
-}  /* check_simple_label_constraints */
+}  /* check_simple_statement_constraints */
 
 
 static void check_simple_variable_constraints(a_const_char      *constr,
@@ -4263,7 +4263,7 @@ Currently, this is just the concatenation of copies of those lists.
     }  /* if */
   }  /* if */
   return result;
-}  /* set_composite_type_attributes */
+}  /* composite_attributes */
 
 
 an_attribute_ptr get_param_variable_attr_copies(a_param_type_ptr  ptp)

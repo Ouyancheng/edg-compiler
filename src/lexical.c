@@ -2750,7 +2750,7 @@ Increment the number of token scans depending on the current reusable cache.
 {
   check_assertion(reusable_cache_stack != NULL);
   reusable_cache_stack->dependent_scans++;
-}  /* dependent_scans_for_reusable_cache */
+}  /* increment_dependent_scans_for_reusable_cache */
 
 
 void decrement_dependent_scans_for_reusable_cache(void)
@@ -4548,7 +4548,7 @@ Return whether tokens are being rescanned from a cache.
 */
 {
   return rescanning_cached_tokens();
-}  /* f_rescanning_cached_tokens */
+}  /* scanning_from_token_cache */
 
 
 static an_orig_line_modif_ptr add_orig_line_modif(
@@ -5825,7 +5825,7 @@ Add a character to the raw listing buffer.  Expand the buffer if necessary.
     expand_raw_listing_buffer();                                      \
   }  /* if */                                                         \
   *loc_in_raw_listing_buffer++ = ch;                                  \
-}  /* add_char_to_raw_listing_buffer. */
+}  /* add_char_to_raw_listing_buffer */
 
 
 void gen_expanded_raw_listing_output_for_curr_line(a_boolean do_inserted_text)
@@ -25191,7 +25191,7 @@ list.
     if (*ptr) ptr++;
   }  /* while */
   return list_fsp;
-}   /* conv_string_to_file_suffix_list */
+}  /* conv_string_to_file_suffix_list */
 
 
 static void cache_to_compound_stmt(a_token_cache	*p_token_cache,

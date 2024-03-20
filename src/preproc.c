@@ -2475,7 +2475,7 @@ string will be in the pp_dir_string_buffer.
   expand_macros = pkdp->expand_macros;
   convert_pp_directive_to_string(is_microsoft_pragma_operator);
   expand_macros = save_expand_macros;
-}  /*  convert_pp_token_pragma_to_string */
+}  /* convert_pp_token_pragma_to_string */
 
 
 static void enter_pending_pragma(

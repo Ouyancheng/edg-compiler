@@ -448,7 +448,7 @@ even if the associated expression is discarded.)
   for (; rep != NULL; rep = rep->next_operand_ref) {
     record_reference(rep);
   }  /* for */
-}  /*  record_operand_ref_entries */
+}  /* record_operand_ref_entries */
 
 
 void flush_ref_entries_except(a_ref_entry_ptr keep_list1,
@@ -7431,7 +7431,7 @@ context.
   if (expr_diagnostic_should_be_issued(sev, error_code, error_pos)) {
     pos_sy_diagnostic(sev, error_code, error_pos, sym);
   }  /* if */
-}  /* expr_pos_diagnostic */
+}  /* expr_pos_sy_diagnostic */
 
 
 void expr_pos_ty_diagnostic(an_error_severity sev,
@@ -17000,7 +17000,7 @@ variable.
     }  /* if */
   }  /* if */
   return result;
-}  /* operand_is_lvalue_for_variable */
+}  /* operand_is_lvalue_for_rref_variable */
 
 
 void make_lvalue_variable_operand(a_variable_ptr               variable,
@@ -17754,7 +17754,7 @@ the appropriate value instead.
     operand->state = (an_operand_state)os_prvalue;
     set_operand_position_to_pos_curr_token(operand);
   }  /* if */
-}  /* make_upc_threads_operand */
+}  /* make_upc_thread_operand */
 
 #endif /* UPC_EXTENSIONS_ALLOWED */
 
@@ -18262,7 +18262,7 @@ FALSE.
     }  /* if */
   }  /* if */
   return err;
-}  /* error_on_abstract_class */
+}  /* error_on_abstract_class_object */
 
 
 an_expr_node_ptr create_expr_temporary(
@@ -23763,7 +23763,7 @@ selector expression used to designate the event.
       }  /* if */
     }  /* if */
   }  /* if */
-}  /* rewrite_event_for_call */
+}  /* rewrite_event_ref_for_call */
 
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
 

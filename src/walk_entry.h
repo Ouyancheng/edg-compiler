@@ -493,7 +493,7 @@ parent scope pointer is remapped. */
       set_proper_definition_needed_flag(scp_parent_class(&ptr)); \
     }  /* if */  \
   }  /* if */  \
-}  /* remap_parent */
+}  /* walk_or_remap_parent */
 #else /* !(NEEDED_FLAG_WALK || KEEP_IN_IL_WALK) */
 /*lint -emacro(506,walk_or_remap_parent)*/
 #define walk_or_remap_parent(ptr, walk) \

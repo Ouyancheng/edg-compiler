@@ -18585,7 +18585,7 @@ embedded struct declaration.
     }  /* if */
     add_end_of_construct_source_sequence_entry((char *)rp, iek_routine);
   }  /* if */
-}  /* add_src_seq_end_of_routine */
+}  /* add_src_seq_end_of_routine_if_needed */
 
 
 static void add_src_seq_end_of_type_alias_if_needed(a_decl_parse_state *dps)

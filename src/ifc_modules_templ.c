@@ -89,7 +89,7 @@ Return the partition kind associated with the given index.
 */
 {
   return idx.partition_kind;
-}  /* get_partition_kind */
+}  /* resolve_partition_kind */
 
 
 /* Macro used to explicitly specialize resolve_partition_kind for a node offset

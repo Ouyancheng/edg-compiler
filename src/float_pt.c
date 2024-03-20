@@ -3125,7 +3125,7 @@ number of characters this value might use (plus a temporary null character).
     underlying_array.push_back('.');
     underlying_array.push_back('0');
   }  /* if */
-}  /* append_float_host_routines */
+}  /* append_float_using_host_routines */
 
 #else /* !USE_HOST_FP_CONVERSION_ROUTINES */
 

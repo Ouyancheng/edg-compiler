@@ -1784,7 +1784,7 @@ Do the output in the way described by octl.
     modifier_put_out = TRUE;                                                 \
     octl->output_str(string, octl);                                          \
   }  /* if */                                                                \
-}  /* output_qualifier */
+}  /* output_modifier */
     output_modifier(PM_PTR32, "__ptr32");
     output_modifier(PM_PTR64, "__ptr64");
     output_modifier(PM_SPTR, "__sptr");

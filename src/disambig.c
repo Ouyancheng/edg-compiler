@@ -655,7 +655,7 @@ finalizer definition.  The locator must refer to a qualified name.
     }  /* if */
   }  /* if */
   return result;
-}  /* is_ctor_or_dtor */
+}  /* is_ctor_dtor_or_finalizer */
 
 
 static void prescan_decl_specifiers(a_disambig_state_ptr       state,

@@ -178,7 +178,7 @@ and should be copied if it's wanted to be kept long-term.
                        module_partition_name_buffer->size);
   }  /* if */
   return module_file_name_buffer->buffer;
-}  /* get_module_file_name */
+}  /* get_module_file_base_name */
 
 
 static a_module_kind determine_module_file_kind(FILE *file)
@@ -1148,7 +1148,7 @@ TRUE.  Otherwise, return FALSE.
 */
 {
   return has_routine_definition_from_ifc_module(rp);
-}  /* load_routine_definition_from_module */
+}  /* has_routine_definition_from_module */
 
 
 a_boolean load_routine_definition_from_module(a_routine_ptr rp)
@@ -1216,7 +1216,7 @@ canonical template.
     result = TRUE;
   }  /* if */
   return result;
-}  /* has_pending_template_definition_from_module */
+}  /* has_pending_template_specializations_from_module */
 
 
 a_boolean load_template_specializations_from_module(a_template_ptr templ)
@@ -1238,7 +1238,7 @@ TRUE.  Otherwise, return FALSE.
 */
 {
   return has_type_definition_from_ifc_module(ty);
-}  /* load_routine_definition_from_module */
+}  /* has_type_definition_from_module */
 
 
 a_boolean load_type_definition_from_module(a_type_ptr ty)
@@ -1257,7 +1257,7 @@ definition now and return TRUE. If an error occurs, return FALSE.
     ty->definition_pending = FALSE;
   }  /* if */
   return result;
-}  /* load_routine_definition_from_module */
+}  /* load_type_definition_from_module */
 
 #if DEBUG
 
@@ -1417,7 +1417,7 @@ for suppressed errors while processing the module.
       iface->report_suppressed_diagnostics();
     }  /* if */
   }  /* for */
-}  /* modules_pch_reset */
+}  /* modules_check_for_suppressed_errors */
 
 
 void modules_one_time_init()

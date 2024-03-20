@@ -19132,7 +19132,7 @@ stmk_init statements.
       }  /* if */
     }  /* if */
   }  /* for */
-}  /* make_lower_init_statements_for_entity_list */
+}  /* make_init_statements_for_entity_list */
 
 
 static void lower_condition(a_statement_ptr statement)

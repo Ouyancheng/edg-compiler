@@ -1931,7 +1931,7 @@ extra care (since it is created after the declaration is fully scanned).
     move_src_seq_entry(sp->source_sequence_entry, depth_scope_stack,
                        move_to_point, depth_scope_stack);
   }  /* if */
-}  /* record_sse_for_decl_stmt */
+}  /* record_sse_for_decl_statement */
 
 #endif /* GENERATE_SOURCE_SEQUENCE_LISTS */
 
@@ -8361,7 +8361,7 @@ is being parsed within the context of the __extension__ keyword.
 #endif /* DEBUG */
   db_exit();
   return block;
-}  /* compound_statement */
+}  /* compound_statement_full */
 
 
 void start_of_function_try_block(void)

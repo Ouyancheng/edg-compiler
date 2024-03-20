@@ -18255,7 +18255,7 @@ directive when the #pragma form is used.
   {
     end_pp_directive();
   }  /* if */
-}  /* gen_pragma_start */
+}  /* gen_pragma_end */
 
 
 static void gen_stdc_pragma(a_pragma_ptr pp)

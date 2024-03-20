@@ -2438,7 +2438,7 @@ routines is reported as part of the symbol table memory used.
 
   db_space_used("PCH events", num_pch_events_allocated, a_pch_event);
   return grand_total;
-}  /* db_show_template_space_used */
+}  /* db_show_pch_space_used */
 #endif /* DEBUG */
 
 

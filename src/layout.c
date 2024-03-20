@@ -341,7 +341,7 @@ list.
   pack_alignment_stack = pasep->next;
   pasep->next = avail_pack_alignment_stack_entries;
   avail_pack_alignment_stack_entries = pasep;
-}  /* if */
+}  /* pop_pack_alignment */
 
 
 static a_pack_alignment_stack_entry_ptr find_pack_alignment_stack_entry(
@@ -4107,7 +4107,7 @@ base classes, direct and indirect, and allocate pointers as needed for them.
                                          lob, bcp, use_decl_order, base_class);
     }  /* if */
   }  /* if */
-}  /* set_pointer_offsets_for_direct_virtual_base_class */
+}  /* set_pointer_offset_for_direct_virtual_base_class */
 
 #endif /* CFRONT_OBJECT_CODE_COMPATIBILITY */
 

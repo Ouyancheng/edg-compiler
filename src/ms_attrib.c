@@ -1769,7 +1769,7 @@ TRUE.  Note that "err" is not TRUE for an unexpected token kind.
   if (result != NULL) result = alloc_shareable_constant(result);
   release_local_constant(&constant);
   return result;
-}  /* get_string_consant_for_token */
+}  /* get_string_constant_for_token */
 
 
 static long scan_ms_attribute_integer_arg(void)

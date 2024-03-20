@@ -10092,7 +10092,7 @@ constructor are initialized in the normal way.
                                 /*fields_only=*/TRUE);
   check_assertion(inits.length() > 0);
   return ctor_inits;
-}  /* class_initializers_for_inherited_ctor */
+}  /* ctor_inits_for_inheriting_ctor */
 
 
 a_constructor_init_ptr dtor_initializer(a_routine_ptr  dtor_rout)

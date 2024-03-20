@@ -1023,7 +1023,7 @@ state.  Return the corresponding IFC source location.
   set_ifc_line(&result, ifc_line_offset);
   set_ifc_column(&result, ifc_column);
   return result;
-}  /* an_ifc_il_map::find_or_enter_pos */
+}  /* an_ifc_il_map::enter_pos */
 
 
 an_ifc_type_index an_ifc_il_map::find_or_enter_type(a_type_ptr type)

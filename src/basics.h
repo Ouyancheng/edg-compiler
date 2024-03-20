@@ -891,12 +891,12 @@ following, indicating something special:
 { (to).seq = (to).orig_seq = (from).seq;                \
   (to).column = (to).orig_column = (from).column;       \
   set_macro_context_to_no_parent((to));                 \
-}
+}  /* copy_simple_position_to_full_position */
 #define set_position_to(pos, seqno, col)      \
 { (pos).seq = (pos).orig_seq = (seqno);       \
   (pos).column = (pos).orig_column = (col);   \
   set_macro_context_to_no_parent((pos));      \
-}
+}  /* set_position_to */
 
 /* Macro to extract the macro context from a source position. */
 #if RECORD_MACRO_INVOCATIONS
