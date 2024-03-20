@@ -20728,16 +20728,23 @@ is not used.*/
 
 static inline a_boolean check_modules_enabled(void)
 /*
-This is a utility routine that is called when a modules-related declaration
-is about to be scanned.  The handling of this case may vary from emulation
-to emulation, but currently an error is issued for the first case and
-modules are then enabled, as presumably the user had neglected to enable
+This is a utility routine that is called when a modules-related declaration is
+about to be scanned.  The handling of this case may vary from emulation to
+emulation, but currently an error is issued for the first case and modules are
+then enabled (if supported), as presumably the user had neglected to enable
 modules.
 */
 {
   if (modules_enabled) {
+#if EXPORT_ENABLING_POSSIBLE
+    /* This case can only be triggered if normal command line processing is
+       skipped. */
+    if (export_template_allowed) {
+      pos_catastrophe(ec_module_use_with_export_template, &pos_curr_token);
+    }  /* if */
+#endif /* EXPORT_ENABLING_POSSIBLE */
 #if COMPILE_MULTIPLE_TRANSLATION_UNITS
-    if (export_template_allowed || more_than_one_non_export_translation_unit) {
+    if (more_than_one_non_export_translation_unit) {
       pos_catastrophe(ec_module_use_in_multi_tu_mode, &pos_curr_token);
     }  /* if */
 #endif /* COMPILE_MULTIPLE_TRANSLATION_UNITS */
