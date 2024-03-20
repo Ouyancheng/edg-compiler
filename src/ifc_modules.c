@@ -26517,33 +26517,6 @@ required).
 }  /* finish_mep_processing */
 
 
-void ifc_modules_cleanup()
-/*
-This routine is called at the end of compilation.  It runs any necessary
-destructors.
-*/
-{
-  delete_fe(bad_operator_name_encodings);
-}  /* ifc_modules_cleanup */
-
-
-void ifc_modules_wrapup()
-/*
-This routine is called at the end of primary and secondary translation units.
-It closes any open module files and run any necessary destructors.
-*/
-{
-  delete_fe(ifc_decl_template_lookup_table);
-  delete_fe(ifc_decl_lookup_table);
-  delete_fe(ifc_tag_definitions);
-  delete_fe(ifc_template_specializations);
-  delete_fe(ifc_template_definitions);
-  delete_fe(ifc_function_bodies);
-  delete_fe(ifc_var_inits);
-  delete_fe(ifc_parameterized_entities);
-}  /* ifc_modules_wrapup */
-
-
 void ifc_modules_one_time_init()
 /*
 Do one-time initialization of static variables defined in this file.
@@ -26609,13 +26582,23 @@ Do one-time initialization of static variables defined in this file.
   bad_operator_name_encodings->push_back("++");
   bad_operator_name_encodings->push_back("--");
   bad_operator_name_encodings->push_back(",");
+  /* Register variables that have distinct copies for distinct translation
+     units. */
+  register_trans_unit_variable(ifc_parameterized_entities);
+  register_trans_unit_variable(ifc_var_inits);
+  register_trans_unit_variable(ifc_function_bodies);
+  register_trans_unit_variable(ifc_template_definitions);
+  register_trans_unit_variable(ifc_template_specializations);
+  register_trans_unit_variable(ifc_tag_definitions);
+  register_trans_unit_variable(ifc_decl_lookup_table);
+  register_trans_unit_variable(ifc_decl_template_lookup_table);
 }  /* ifc_modules_one_time_init */
 
 
-void ifc_modules_init()
+void ifc_modules_trans_unit_init()
 /*
-Initialize static variables related to this file that must be initialized
-for each compilation.
+Initialization of things related to IFC modules that must be repeated for every
+translation unit.
 */
 {
 #if DEBUG
@@ -26635,7 +26618,38 @@ for each compilation.
   ifc_decl_lookup_table = new_fe<an_ifc_decl_lookup_table>(/*mask_width=*/10);
   ifc_decl_template_lookup_table = new_fe<an_ifc_template_lookup_table>(
                                                             /*mask_width=*/10);
-}  /* ifc_modules_init */
+}  /* ifc_modules_trans_unit_init */
+
+
+void ifc_modules_trans_unit_wrapup()
+/*
+Perform any wrapup operations needed for the translation unit.  This is
+called after all processing for the translation unit (including template
+instantiations, etc.) has been done.
+*/
+{
+  delete_fe(ifc_decl_template_lookup_table);
+  delete_fe(ifc_decl_lookup_table);
+  delete_fe(ifc_tag_definitions);
+  delete_fe(ifc_template_specializations);
+  delete_fe(ifc_template_definitions);
+  delete_fe(ifc_function_bodies);
+  delete_fe(ifc_var_inits);
+  delete_fe(ifc_parameterized_entities);
+}  /* ifc_modules_trans_unit_wrapup */
+
+#if MAKE_FRONT_END_CALLABLE
+
+void ifc_modules_cleanup()
+/*
+This routine is called at the end of compilation, or if compilation is
+terminated prematurely for some reason.  It runs any necessary destructors.
+*/
+{
+  delete_fe(bad_operator_name_encodings);
+}  /* ifc_modules_cleanup */
+
+#endif /* MAKE_FRONT_END_CALLABLE */
 
 /*lint -restore*/ /* FIXME: temporary */
 /*lint -restore*/

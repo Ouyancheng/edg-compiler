@@ -1427,6 +1427,50 @@ for suppressed errors while processing the module.
   }  /* for */
 }  /* modules_pch_reset */
 
+
+void modules_one_time_init()
+/*
+Do one-time initialization of static variables defined in this file.
+*/
+{
+  module_search_buffer = alloc_text_buffer(256);
+  module_file_name_buffer = alloc_text_buffer(64);
+  module_primary_name_buffer = alloc_text_buffer(64);
+  module_partition_name_buffer = alloc_text_buffer(64);
+  ifc_modules_one_time_init();
+}  /* modules_one_time_init */
+
+
+/* FIXME: PCH interactions? */
+void modules_trans_unit_init()
+/*
+Initialization of things related to modules that must be repeated for every
+translation unit.
+*/
+{
+#if DEBUG
+  num_module_decls_attempted = 0;
+  num_module_decls_failed = 0;
+#endif /* DEBUG */
+  curr_module_sym = NULL;
+  curr_mep_state = NULL;
+  lazy_symbols_may_be_visible = FALSE;
+  module_entity_hash_table = NULL;
+  ifc_modules_trans_unit_init();
+}  /* modules_trans_unit_init */
+
+
+void modules_trans_unit_wrapup()
+/*
+Perform any wrapup operations needed for the translation unit.  This is
+called after all processing for the translation unit (including template
+instantiations, etc.) has been done.
+*/
+{
+  ifc_modules_trans_unit_wrapup();
+  lazy_symbols_may_be_visible = FALSE;
+}  /* modules_trans_unit_wrapup */
+
 #if MAKE_FRONT_END_CALLABLE
 
 void modules_cleanup()
@@ -1438,21 +1482,9 @@ the point at which the compilation was terminated and makes sure any required
 destructors are invoked.
 */
 {
-  modules_wrapup();
-  ifc_modules_cleanup();
-}  /* modules_cleanup */
-
-#endif /* MAKE_FRONT_END_CALLABLE */
-
-void modules_wrapup()
-/*
-This routine is called at the end of primary and secondary translation units.
-It closes any open module files and run any necessary destructors.
-*/
-{
   a_module_import_decl_ptr midp;
 
-  ifc_modules_wrapup();
+  ifc_modules_cleanup();
   for (midp = il_header.imported_modules; midp != NULL; midp = midp->next) {
     if (midp->module_info->module_interface != NULL) {
       midp->module_info->module_interface->close();
@@ -1460,53 +1492,9 @@ It closes any open module files and run any necessary destructors.
       midp->module_info->module_interface = NULL;
     }  /* if */
   }  /* for */
-}  /* modules_wrapup */
+}  /* modules_cleanup */
 
-
-void modules_one_time_init()
-/*
-Do one-time initialization of static variables defined in this file.
-*/
-{
-  module_search_buffer = alloc_text_buffer(256);
-  module_file_name_buffer = alloc_text_buffer(64);
-  module_primary_name_buffer = alloc_text_buffer(64);
-  module_partition_name_buffer = alloc_text_buffer(64);
-#if MICROSOFT_EXTENSIONS_ALLOWED
-  ifc_modules_one_time_init();
-#endif /* MICROSOFT_EXTENSIONS_ALLOWED */
-}  /* modules_one_time_init */
-
-
-/* FIXME: PCH interactions? */
-void modules_init()
-/*
-Initialize static variables related to this file that must be initialized
-for each compilation.
-*/
-{
-#if DEBUG
-  num_module_decls_attempted = 0;
-  num_module_decls_failed = 0;
-#endif /* DEBUG */
-  curr_module_sym = NULL;
-  curr_mep_state = NULL;
-  lazy_symbols_may_be_visible = FALSE;
-  module_entity_hash_table = NULL;
-  ifc_modules_init();
-}  /* modules_init */
-
-
-void modules_trans_unit_wrapup()
-/*
-Perform any wrapup operations needed for the translation unit.  This is
-called after all processing for the translation unit (including template
-instantiations, etc.) has been done.
-*/
-{
-  lazy_symbols_may_be_visible = FALSE;
-}  /* modules_trans_unit_wrapup */
-
+#endif /* MAKE_FRONT_END_CALLABLE */
 
 void modules_write_out()
 /*

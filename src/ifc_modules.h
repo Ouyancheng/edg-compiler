@@ -842,13 +842,15 @@ extern a_symbol_ptr load_tok_ifc_entity_ref();
 
 extern a_symbol_ptr load_tok_ifc_decl_ref();
 
-extern void ifc_modules_cleanup();
-
-extern void ifc_modules_wrapup();
-
 extern void ifc_modules_one_time_init();
 
-extern void ifc_modules_init();
+extern void ifc_modules_trans_unit_init();
+
+extern void ifc_modules_trans_unit_wrapup();
+
+#if MAKE_FRONT_END_CALLABLE
+extern void ifc_modules_cleanup();
+#endif /* MAKE_FRONT_END_CALLABLE */
 
 extern void ifc_modules_write_out();
 

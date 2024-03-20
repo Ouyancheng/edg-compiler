@@ -1885,7 +1885,6 @@ source file's compilation.
 #if MICROSOFT_EXTENSIONS_ALLOWED
   ms_attrib_init();
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
-  modules_init();
 #if DO_IL_LOWERING
   if (!C_mode() && make_all_functions_unprototyped) {
     /* <stdarg.h> cannot be treated as a builtin if IL lowering will
@@ -2142,6 +2141,7 @@ when it is a secondary file.
   layout_trans_unit_init();
   macro_trans_unit_init();
   preproc_trans_unit_init();
+  modules_trans_unit_init();
 #if DO_IL_LOWERING
   il_lower_trans_unit_init();
   lower_c99_trans_unit_init();

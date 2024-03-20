@@ -582,17 +582,15 @@ extern void modules_pch_reset();
 
 extern void modules_check_for_suppressed_errors();
 
+extern void modules_one_time_init();
+
+extern void modules_trans_unit_init();
+
+extern void modules_trans_unit_wrapup();
+
 #if MAKE_FRONT_END_CALLABLE
 extern void modules_cleanup();
 #endif /* MAKE_FRONT_END_CALLABLE */
-
-extern void modules_wrapup();
-
-extern void modules_one_time_init();
-
-extern void modules_init();
-
-extern void modules_trans_unit_wrapup();
 
 extern void modules_write_out();
 
