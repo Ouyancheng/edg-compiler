@@ -5514,7 +5514,7 @@ outer_loop:;
     }  /* if */
   }  /* if */
   return has_override;
-}  /*  base_class_has_override_on_virtual_step */
+}  /* base_class_has_override_on_virtual_step */
 
 #else /* IA64_ABI */
 

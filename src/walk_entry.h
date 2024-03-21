@@ -249,11 +249,11 @@ other than "next".
 #undef walk_list_on_link_field
 #if DO_SUBTREE_WALK
 #define walk_list_on_link_field(ptr, ptr_type, entry_kind, link_field) \
-[] (ptr_type *ptr_ptr) { \
-  for (; *ptr_ptr != NULL; ptr_ptr = &(*ptr_ptr)->link_field) { \
-    walk_list_ptr(*ptr_ptr, ptr_type, (entry_kind)); \
-  }  /* for */ \
-} (&(ptr))  /* walk_list_on_link_field */
+  [] (ptr_type *ptr_ptr) {                                             \
+    for (; *ptr_ptr != NULL; ptr_ptr = &(*ptr_ptr)->link_field) {      \
+      walk_list_ptr(*ptr_ptr, ptr_type, (entry_kind));                 \
+    }  /* for */                                                       \
+  } (&(ptr))  /* walk_list_on_link_field */
 #else /* !DO_SUBTREE_WALK */
 #define walk_list_on_link_field(ptr, ptr_type, entry_kind, link_field) \
   remap_list_ptr((ptr), ptr_type, (entry_kind))

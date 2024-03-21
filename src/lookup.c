@@ -450,26 +450,26 @@ Cfront 2.1 has a bug that causes a global identifier to be found when
 a member of a class or one of its base classes should actually be found.
 The following code illustrates an instance in which the bug occurs:
 
-struct B   {
-	void func(const char*);	// Needs to be here
-};
+  struct B   {
+          void func(const char*);	// Needs to be here
+  };
 
-struct D : public B {
-public:
-	D();
-	void Init(const char* );
-};
+  struct D : public B {
+  public:
+          D();
+          void Init(const char* );
+  };
 
-struct func {
-	func( const char* msg);
-};
+  struct func {
+          func( const char* msg);
+  };
 
-D::D(){}
+  D::D(){}
 
-void D::Init(const char* t)
-{
-	new func(t);
-}
+  void D::Init(const char* t)
+  {
+          new func(t);
+  }
 
 For the bad lookup to occur:
 
@@ -1342,18 +1342,18 @@ This is an SVR4 compatibility feature that is now a default ANSI C
 mode feature.  This routine is used to make external symbol declarations
 from other scopes visible in the current scope.  For example
 
-int f1(void)
-{
-  extern void f();
-  extern int i;
-}
+  int f1(void)
+  {
+    extern void f();
+    extern int i;
+  }
 
-int f2()
-{
-  int j;
-  f();
-  j = i;
-}
+  int f2()
+  {
+    int j;
+    f();
+    j = i;
+  }
 
 In this example, symbols for f and i are entered in function f2.  They
 refer to the external entities declared by the declarations in f1.

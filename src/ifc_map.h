@@ -73,7 +73,7 @@ struct a_byte_buffer_indirect_ptr {
     {}
 
   char          **start;
-                        /* A an indirect pointer to the start of the byte
+                        /* An indirect pointer to the start of the byte
                            buffer. */
   size_t        byte_offset;
                         /* The offset into the buffer for this element. */
@@ -20384,9 +20384,9 @@ EXTERN an_ifc_partition_map ifc_partition_map[IFC_PARTITION_COUNT]
   { "type.tuple", ifc_pk_type_tuple },
   { "type.typename", ifc_pk_type_typename },
   { "type.unaligned", ifc_pk_type_unaligned }
-}  /* ifc_partition_map */
+}
 #endif /* VAR_INITIALIZERS */
-;
+;  /* ifc_partition_map */
 
 
 /* End the suppression of GCC warnings. */

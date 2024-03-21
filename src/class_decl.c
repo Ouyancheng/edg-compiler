@@ -32392,11 +32392,11 @@ alignment of those fields).
 
 static inline void remove_spurious_member_semicolons()
 /*
-This function is called by scan_class_definition when there is no declaration
--- just a semicolon.  That is valid in C++14 mode.  In earlier C++ modes, issue
-a warning (or error in strict ANSI mode).  Note: in C mode we bypass the "extra
-';'" diagnostic when there are no fields in the struct -- i.e., "struct S { ;
-};" is treated just like "struct S { };". */
+This function is called by scan_class_definition when there is no
+declaration -- just a semicolon.  That is valid in C++14 mode.  In earlier
+C++ modes, issue a warning (or error in strict ANSI mode).  Note: in C mode
+we bypass the "extra ';'" diagnostic when there are no fields in the struct
+-- i.e., "struct S { ; };" is treated just like "struct S { };". */
 {
   while (curr_token == tok_semicolon) {
     if (!cpp14_mode) {

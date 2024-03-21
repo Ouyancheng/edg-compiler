@@ -3030,7 +3030,7 @@ struct an_il_hex_fp_value {
 
 #endif /* IA64_ABI */
 
-} /* namespace */
+}  /* namespace */
 
 #if USE_HOST_FP_CONVERSION_ROUTINES
 

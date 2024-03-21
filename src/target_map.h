@@ -61,6 +61,7 @@ index properly into those arrays.
 /*lint -esym(755,_UNSIGNED_SHORT_FRACT)*/
 #endif /* FIXED_POINT_ALLOWED */
 
+static void TARGET_MAP_ROUTINE_NAME(TARGET_CONFIGURATION)
 /*
 Generic function to invoke the specified TARGET_MAP_MACRO for each
 configuration macro that makes up a target configuration.
@@ -76,7 +77,7 @@ The minimum criteria for a configuration macro to be included in this list are:
     before the target configuration has been set (in both the front end
     and any back ends when STANDALONE_UTILITY_PROGRAM is TRUE).
 */
-static void TARGET_MAP_ROUTINE_NAME(TARGET_CONFIGURATION) {
+{
   TARGET_MAP_MACRO(TARG_ALIGNOF_DOUBLE, targ_alignof_double, _TC)
 #if NEAR_AND_FAR_ALLOWED
   TARGET_MAP_MACRO(TARG_ALIGNOF_FAR_POINTER, targ_alignof_far_pointer, _TC)

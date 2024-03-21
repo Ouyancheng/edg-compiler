@@ -4224,7 +4224,7 @@ struct Is_trivially_destructible_edg_impl<a_subst_pairs_descr> :
                                                 Integral_constant<bool, true> {
 };  /* Is_trivially_destructible_edg_impl */
 
-}  /* detail */
+}  /* namespace detail */
 
 /* Conditionally close the "edg" namespace. */
 END_EDG_NAMESPACE
