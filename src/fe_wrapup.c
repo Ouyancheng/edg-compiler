@@ -893,8 +893,6 @@ memory used by the compilation.
   cmd_line_cleanup();
   macro_cleanup();
   templates_cleanup();
-#if BACK_END_IS_C_GEN_BE
-#endif /* BACK_END_IS_C_GEN_BE */
 #if BACK_END_IS_CP_GEN_BE
   cp_gen_be_cleanup();
 #endif /* BACK_END_IS_CP_GEN_BE */
