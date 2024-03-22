@@ -149,8 +149,9 @@ EXTERN unsigned long
 
 #endif /* DEBUG */
 
-/* If in a module unit, the current module symbol. */
-EXTERN a_symbol_ptr    curr_module_sym;
+EXTERN a_symbol_ptr
+                curr_module_sym;
+                        /* If in a module unit, the current module symbol. */
 
 struct a_module_entity_stack_state;
 
@@ -162,8 +163,9 @@ EXTERN a_module_entity_stack_state
 
 EXTERN a_boolean
                 lazy_symbols_may_be_visible;
-                        /* TRUE if symbols may be "lazily loaded" (i.e.,
-                           because modules are being imported). */
+                        /* TRUE if symbols (and their definitions) may be
+                           "lazily loaded" (i.e., because at least one module
+                           has been imported). */
 
 /*
 A class used to represent an element on the module entity state stack.  This is

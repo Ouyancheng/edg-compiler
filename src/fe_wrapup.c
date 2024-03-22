@@ -326,6 +326,8 @@ it needs to be executed after all templates have been instantiated.
 
   il_scope = curr_translation_unit->primary_scope;
 
+  /* Do any modules cleanup that may be needed for this translation unit. */
+  modules_trans_unit_wrapup();
   /* Do any lexical cleanup that may be needed for this translation unit. */
   lexical_trans_unit_wrapup();
   if (is_primary_translation_unit && !do_preprocessing_only) {
@@ -616,10 +618,6 @@ already been copied over.
       clear_parent_information();
     }  /* if */
 #endif /* DO_IL_LOWERING */
-  }  /* if */
-  /* Do any modules cleanup that may be needed for this translation unit. */
-  modules_trans_unit_wrapup();
-  if (is_primary_translation_unit) {
 #if CHECKING
     /* Ensure that unexpected situations did not occur without at least one
        error being issued (otherwise, abort compilation).  This is done

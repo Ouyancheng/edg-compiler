@@ -1126,7 +1126,8 @@ If the given variable has an initializer available in an imported module,
 return TRUE.  Otherwise, return FALSE.
 */
 {
-  return has_variable_initializer_from_ifc_module(vp);
+  return (lazy_symbols_may_be_visible &&
+          has_variable_initializer_from_ifc_module(vp));
 }  /* has_variable_initializer_from_module */
 
 
@@ -1147,7 +1148,8 @@ If the given routine has a definition available in an imported module, return
 TRUE.  Otherwise, return FALSE.
 */
 {
-  return has_routine_definition_from_ifc_module(rp);
+  return (lazy_symbols_may_be_visible &&
+          has_routine_definition_from_ifc_module(rp));
 }  /* has_routine_definition_from_module */
 
 
@@ -1168,7 +1170,8 @@ If the given template has a definition available in an imported module, return
 TRUE.  Otherwise, return FALSE.
 */
 {
-  return has_template_definition_from_ifc_module(templ);
+  return (lazy_symbols_may_be_visible &&
+          has_template_definition_from_ifc_module(templ));
 }  /* has_template_definition_from_module */
 
 
@@ -1179,14 +1182,9 @@ an imported module, return TRUE.  Otherwise, return FALSE.  Note that templ
 must refer to the canonical template.
 */
 {
-  a_boolean  result = FALSE;
-
   check_assertion(templ != NULL);
-  if (!symbol_for(templ)->defined &&
-      has_template_definition_from_ifc_module(templ)) {
-    result = TRUE;
-  }  /* if */
-  return result;
+  return (!symbol_for(templ)->defined &&
+          has_template_definition_from_module(templ));
 }  /* has_pending_template_definition_from_module */
 
 
@@ -1209,13 +1207,9 @@ return TRUE.  Otherwise, return FALSE.  Note that templ must refer to the
 canonical template.
 */
 {
-  a_boolean  result = FALSE;
-
   check_assertion(templ != NULL);
-  if (has_template_specializations_from_ifc_module(templ)) {
-    result = TRUE;
-  }  /* if */
-  return result;
+  return (lazy_symbols_may_be_visible &&
+          has_template_specializations_from_ifc_module(templ));
 }  /* has_pending_template_specializations_from_module */
 
 
@@ -1237,7 +1231,8 @@ If the given type has a definition available in an imported module, return
 TRUE.  Otherwise, return FALSE.
 */
 {
-  return has_type_definition_from_ifc_module(ty);
+  return (lazy_symbols_may_be_visible &&
+          has_type_definition_from_ifc_module(ty));
 }  /* has_type_definition_from_module */
 
 
@@ -1430,6 +1425,16 @@ Do one-time initialization of static variables defined in this file.
   module_primary_name_buffer = alloc_text_buffer(64);
   module_partition_name_buffer = alloc_text_buffer(64);
   ifc_modules_one_time_init();
+  /* Register variables that have distinct copies for distinct translation
+     units. */
+#if DEBUG
+  register_trans_unit_variable(num_module_decls_attempted);
+  register_trans_unit_variable(num_module_decls_failed);
+#endif /* DEBUG */
+  register_trans_unit_variable(curr_module_sym);
+  register_trans_unit_variable(curr_mep_state);
+  register_trans_unit_variable(lazy_symbols_may_be_visible);
+  register_trans_unit_variable(module_entity_hash_table);
 }  /* modules_one_time_init */
 
 
