@@ -588,7 +588,7 @@ escaped by the 'escape_ch' character, or 'last' if the search was unsuccessful.
 {
   auto is_equal_char = [ch](wchar_t current_ch) { return ch == current_ch; };
   return find_escaped_character_if(is_equal_char, first, last, escape_ch);
-}  /* find_unescaped_character */
+}  /* find_escaped_character */
 
 
 template<typename condition_pred>
@@ -635,7 +635,7 @@ API reference: http://msdn.microsoft.com/en-us/library/yfsftwz6.aspx.
   unescape_escaped_character_if(identifier,
                                 is_escaped_cli_identifier_char,
                                 identifier.begin(), identifier.end());
-}  /* unescape_cli_identifier */
+}  /* unmangle_cli_identifier */
 
 
 static bool is_cli_identifier_char(wchar_t ch,
@@ -3107,7 +3107,7 @@ const a_type_definition *a_class_type_wrapper::type_definition() const
     type_definition = &import_scope_->get_type_definition(token_);
   }  /* if */
   return type_definition;
-}  /* a_class_type_wrapper::get_type_definition */
+}  /* a_class_type_wrapper::type_definition */
 
 
 void a_class_type_wrapper::write_first_part(
@@ -4543,7 +4543,7 @@ bool an_accessibility::is_publically_accessible() const
   return access_ == access_public &&
          (enclosing_type_ == nullptr ||
           enclosing_type_->accessibility().is_publically_accessible());
-}  /* an_accessibility::is_accessible */
+}  /* an_accessibility::is_publically_accessible */
 
 
 wstring name_from_method_semantics(DWORD method_semantics)
@@ -7087,7 +7087,7 @@ a_method_parameter::a_method_parameter(const an_import_scope &import_scope,
       }  /* if */
     }  /* if */
   }  /* if */
-}  /* a_method_parameter::a_method_parameter. */
+}  /* a_method_parameter::a_method_parameter */
 
 
 a_boolean a_method_parameter::is_parameter_array(
@@ -9124,7 +9124,7 @@ a_type_wrapper_ptr a_custom_attribute_data::read_serialized_type_and_advance()
       break;
   }  /* switch */
   return type;
-}  /* a_custom_attribute_data::read_serialized_type_and_advance. */
+}  /* a_custom_attribute_data::read_serialized_type_and_advance */
 
 
 a_const_class_type_wrapper_ptr
