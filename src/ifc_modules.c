@@ -7139,6 +7139,445 @@ done:
 }  /* add_function_def_parameters */
 
 
+static a_constant_ptr load_enumerator_constant(an_ifc_expr_index expr_idx,
+                                               a_type_ptr        enum_type)
+/*
+Load and return the constant corresponding to the given IFC expression (to be
+used as the value of an enumerator) with the given enumeration type.  If an
+error occurs, instead return an error constant.
+*/
+{
+  a_constant_ptr
+                result = NULL;
+  a_module_token_cache
+                expr_cache;
+
+  cache_expr(&expr_cache, expr_idx, /*cinfo=*/{});
+  if (expr_cache.is_valid()) {
+    a_module_entity_rescan rescan(&expr_cache);
+    a_boolean              is_template_param = FALSE;
+    a_constant_ptr         constant = local_constant();
+
+    if (!scan_enumerator_constant(constant, enum_type, &is_template_param,
+                                  /*source_range=*/NULL)) {
+      result = alloc_unshared_constant(constant);
+      /* It should not be possible for a template parameter to be referenced
+         while loading an enumerator constant from the IFC. */
+      check_assertion(!is_template_param);
+    }  /* if */
+    release_local_constant(&constant);
+  }  /* if */
+  if (result == NULL) {
+    result = alloc_error_constant();
+  }  /* if */
+  return result;
+}  /* load_enumerator_constant */
+
+
+static a_constant_ptr load_dimension_constant(an_ifc_expr_index expr_idx)
+/*
+Load and return the constant corresponding to the given IFC expression (to be
+used as the value of array dimension bound).  If an error occurs, instead return
+an error constant.
+*/
+{
+  a_constant_ptr
+                result = NULL;
+  a_module_token_cache
+                expr_cache;
+
+  cache_expr(&expr_cache, expr_idx, /*cinfo=*/{});
+  if (expr_cache.is_valid()) {
+    a_module_entity_rescan rescan(&expr_cache);
+    a_constant_ptr         constant = local_constant();
+
+    scan_constant_dimension_expression(constant);
+    result = alloc_unshared_constant(constant);
+    release_local_constant(&constant);
+  }  /* if */
+  if (result == NULL) {
+    result = alloc_error_constant();
+  }  /* if */
+  return result;
+}  /* load_enumerator_constant */
+
+
+static a_boolean unsigned_integer_for_literal(an_integer_value *value,
+                                              an_ifc_lit_index lit_index)
+/*
+Given a pointer to a front end integer value and a lit index, convert the given
+lit index into an integer value and store the result in *value.  If the
+conversion is successful, return TRUE; otherwise, return FALSE.
+*/
+{
+  a_boolean result = TRUE;
+
+  switch (lit_index.sort) {
+    case ifc_ls_immediate:
+      { /* An immediate literal (30 bits or less). */
+        a_host_large_unsigned encoded = (a_host_large_unsigned)lit_index.value;
+
+        set_unsigned_integer_value(value, encoded);
+      }
+      break;
+    case ifc_ls_integer:
+      { /* An integer larger than 30 bits. */
+        Opt<an_ifc_const_i64>       opt_ici64;
+        an_ifc_partition_kind_index int_idx{lit_index.file, ifc_pk_const_i64,
+                                            lit_index.value};
+
+        construct_node(&opt_ici64, int_idx);
+        if (!opt_ici64.has_value()) {
+          goto invalid;
+        }  /* if */
+
+        char               raw_val[8];
+        an_ifc_u64_storage raw_value = get_ifc_value(*opt_ici64);
+        static_assert(sizeof(raw_val) == sizeof(raw_value),
+                      "Generated storage doesn't match expected byte size.");
+        static_assert(sizeof(raw_val) == sizeof(uint64_t),
+                      "Expected byte size isn't 64 bits wide.");
+        memcpy(&raw_val, &raw_value, 8);
+        if (!conv_bytes_to_integer_value(value, raw_val, sizeof(raw_val))) {
+          a_string err_msg("Failed to get a 64-bit integer from ",
+                           str_for(lit_index.sort));
+
+          ifc_unexpected(module_of(lit_index), err_msg);
+          goto invalid;
+        }  /* if */
+      }
+      break;
+    case ifc_ls_floating_point:
+      { a_string err_msg("Unexpected ", str_for(lit_index.sort));
+
+        ifc_unexpected(module_of(lit_index), err_msg);
+      }
+      goto invalid;
+    default_is_unexpected();
+  }  /* switch */
+  goto done;
+invalid:
+  result = FALSE;
+done:
+  return result;
+}  /* unsigned_integer_for_literal */
+
+
+static a_constant_ptr constant_for_literal(
+                                         an_ifc_type_index type,
+                                         an_ifc_lit_index  lit_index,
+                                         a_type_ptr        default_type = NULL)
+/*
+Attempt to form a constant (allocated in the current IL memory region) with the
+given type (or default type if type is a null index) and the value specified by
+the given lit index.  If a constant was successfully formed it is returned;
+otherwise, NULL is returned.
+*/
+{
+  a_constant_ptr result = NULL;
+
+  switch (lit_index.sort) {
+    case ifc_ls_immediate:
+    case ifc_ls_integer:
+      /* An integer. */
+      { an_integer_value value;
+
+        /* Retrieve the unsigned value of the integer. */
+        if (!unsigned_integer_for_literal(&value, lit_index)) {
+          goto invalid;
+        }  /* if */
+        result = alloc_constant(ck_integer);
+        if (is_null_index(type) && default_type == NULL) {
+          /* FIXME: not sure why the type is zero in some cases. */
+          set_unsigned_integer_constant(result,
+                                        (a_host_large_unsigned)lit_index.value,
+                                        (an_integer_kind)ik_unsigned_int);
+        } else {
+          a_type_ptr constant_type = default_type;
+
+          if (!is_null_index(type)) {
+            constant_type = type_for_type_index(type);
+          }  /* if */
+          if (is_error_type(constant_type)) {
+            goto invalid;
+          }  /* if */
+          if (is_pointer_type(constant_type)) {
+            /* Pointer literal. */
+            set_unsigned_integer_constant(result, value, targ_size_t_int_kind);
+          } else if (is_nullptr_type(constant_type)) {
+            /* nullptr.  Make an integer zero and convert its type to
+               nullptr_t. */
+            a_boolean did_not_fold;
+
+            set_integer_constant(result, (a_host_large_integer)0,
+                                 (an_integer_kind)ik_int);
+            type_change_constant(result, constant_type,
+                                 /*is_implicit_cast=*/TRUE,
+                                 /*maintain_expression=*/FALSE,
+                                 &did_not_fold, &error_position);
+            if (did_not_fold) {
+              ifc_unexpected(module_of(lit_index), "could not fold nullptr");
+              goto invalid;
+            }  /* if */
+          } else if (is_integral_or_enum_type(constant_type)) {
+            a_type_ptr stripped_type = skip_typerefs(constant_type);
+
+            if (int_type_is_signed(stripped_type)) {
+              sign_extend_integer_value(&value,
+                                   (int)(stripped_type->size * targ_char_bit));
+              set_integer_constant(result, value,
+                                   stripped_type->variant.integer.int_kind);
+            } else {
+              set_unsigned_integer_constant(result, value,
+                                      stripped_type->variant.integer.int_kind);
+            }  /* if */
+          } else {
+            ifc_unexpected(module_of(lit_index), "expected an integer type");
+            goto invalid;
+          }  /* if */
+          result->type = constant_type;
+        }  /* if */
+      }
+      break;
+    case ifc_ls_floating_point:
+      { Opt<an_ifc_const_f64>       opt_icf;
+        an_ifc_partition_kind_index float_index{lit_index.file,
+                                                ifc_pk_const_f64,
+                                                lit_index.value};
+        construct_node(&opt_icf, float_index);
+        if (!opt_icf.has_value()) {
+          goto invalid;
+        }  /* if */
+
+        /* FIXME: Find a better way to do the float conversion. */
+        an_ifc_ieeele_float value = get_ifc_value(*opt_icf);
+        double              float_value;
+        static_assert(sizeof(an_ifc_ieeele_float_storage) == sizeof(double),
+                      "Float storage bytes were not 64 bits wide.");
+        memcpy(&float_value, value.get_storage(), sizeof(double));
+
+        /* Create a relatively small stack buffer to handle common cases, but
+           fallback to a dynamically-allocated full-sized buffer. */
+        constexpr int default_buffer_size = 30;
+        char          stack_buf[default_buffer_size];
+        char          *buf;
+        int           num_written = snprintf(stack_buf, default_buffer_size,
+                                             "%f", float_value);
+        int           num_bytes_allocated = 0;
+        if (num_written < 0) {
+          /* There was an issue with the encoding. */
+          a_string err_msg("bad floating point encoding");
+
+          ifc_unexpected(module_of(lit_index), err_msg);
+          goto invalid;
+        } else if (num_written < default_buffer_size) {
+          /* The stack buffer was sufficient. */
+          buf = stack_buf;
+        } else {
+          /* The stack buffer overflowed. */
+          num_bytes_allocated = num_written + 1;
+          buf = alloc_general(num_bytes_allocated);
+
+          LOCAL_UNUSED int final_count = snprintf(buf, num_bytes_allocated,
+                                                  "%f", float_value);
+          /* At this point, there should be no encoding issues or overflows. */
+          check_assertion(0 <= final_count &&
+                          final_count < num_bytes_allocated);
+        }  /* if */
+        /* Allocate the result constant. */
+        result = alloc_constant(ck_float);
+        result->type = float_type(fk_double);
+
+        /* Convert the buffer representation of the float into a constant. */
+        a_boolean err = FALSE;
+        fp_string_to_float(fk_double, buf, &result->variant.float_value, &err);
+        /* Free the buffer. */
+        if (num_bytes_allocated != 0) {
+          /* An allocated buffer was used. */
+          free_general(buf, num_bytes_allocated);
+        }  /* if */
+        /* Check for any conversion errors. */
+        if (err) {
+          ifc_unexpected(module_of(lit_index),
+                         "floating point conversion failure");
+          goto invalid;
+        }  /* if */
+      }
+      break;
+    default_is_unexpected();
+  }  /* switch */
+  goto done;
+invalid:
+  result = NULL;
+done:
+  return result;
+}  /* constant_for_literal */
+
+
+static a_constant_ptr load_product_type_value_constant(
+                                                   an_ifc_expr_index expr_idx)
+/*
+Load and return the constant corresponding to the given IFC ProductTypeValue
+expression.  If an error occurs, instead return an error constant.
+
+The ProductTypeValue expression is a bit of a special case, this expression only
+represents the folded result of a constant evaluation producing a class type
+constant.  Thus, since there's no expression (in the C++ sense) to reevaluate
+the front end must directly construct a constant from the encoding.
+*/
+{
+  a_constant_ptr result = NULL;
+
+  switch (expr_idx.sort) {
+    case ifc_es_expr_dyad:
+      { Opt<an_ifc_expr_dyad> opt_ied;
+
+        construct_node(&opt_ied, expr_idx);
+        if (!opt_ied.has_value()) {
+          goto invalid;
+        }  /* if */
+
+        an_ifc_expr_dyad     ied = *opt_ied;
+        an_ifc_type_index    type = get_ifc_type(ied);
+        a_module_token_cache cache;
+        a_type_ptr           tp = type_for_type_index(type);
+        complete_type_is_needed(tp);
+        cache_expr(&cache, expr_idx, /*cinfo=*/{});
+        if (!cache.is_valid()) {
+          goto invalid;
+        }  /* if */
+
+        a_decl_parse_state     dps;
+        a_module_entity_rescan rescan(&cache);
+        result = alloc_constant(ck_error);
+        init_decl_parse_state(&dps);
+        scan_constant_initializer_expression(tp, &dps, result);
+      }
+      break;
+    case ifc_es_expr_literal:
+      { Opt<an_ifc_expr_literal> opt_literal_expr;
+
+        construct_node(&opt_literal_expr, expr_idx);
+        if (!opt_literal_expr.has_value()) {
+          goto invalid;
+        }  /* if */
+
+        an_ifc_expr_literal literal_expr = *opt_literal_expr;
+        an_ifc_type_index   type = get_ifc_type(literal_expr);
+        an_ifc_lit_index    value = get_ifc_value(literal_expr);
+        result = constant_for_literal(type, value);
+      }
+      break;
+    case ifc_es_expr_product_type_value:
+      { Opt<an_ifc_expr_product_type_value> opt_ptv_expr;
+
+        construct_node(&opt_ptv_expr, expr_idx);
+        if (!opt_ptv_expr.has_value()) {
+          goto invalid;
+        }  /* if */
+
+        an_ifc_expr_product_type_value ptv_expr = *opt_ptv_expr;
+        an_ifc_type_index              type = get_ifc_type(ptv_expr);
+        a_type_ptr                     tp = type_for_type_index(type);
+        if (is_error_type(tp)) {
+          goto invalid;
+        }  /* if */
+        complete_type_is_needed(tp);
+        result = alloc_constant(ck_aggregate);
+#if DO_IL_LOWERING
+        /* This will be changed later if there are any actual fields that get
+           initialized. */
+        result->initializes_empty_object = TRUE;
+#endif /* DO_IL_LOWERING */
+        result->type = tp;
+
+        an_ifc_expr_index base_subobjects = get_ifc_base_subobjects(ptv_expr);
+        if (!is_null_index(base_subobjects)) {
+          a_constant_ptr sub_con = load_product_type_value_constant(
+                                                             base_subobjects);
+
+          add_constant_to_aggregate(sub_con, result, NULL, NULL);
+#if DO_IL_LOWERING
+          if (!sub_con->initializes_empty_object) {
+            result->initializes_empty_object = FALSE;
+          }  /* if */
+#endif /* DO_IL_LOWERING */
+        }  /* if */
+
+        an_ifc_expr_index members = get_ifc_members(ptv_expr);
+        if (!is_null_index(members)) {
+          a_constant_ptr mem_con = load_product_type_value_constant(members);
+
+          if (mem_con == NULL) {
+            goto invalid;
+          }  /* if */
+          add_constant_to_aggregate(mem_con, result, NULL, NULL);
+#if DO_IL_LOWERING
+          if (!mem_con->initializes_empty_object) {
+            result->initializes_empty_object = FALSE;
+          }  /* if */
+#endif /* DO_IL_LOWERING */
+        }  /* if */
+      }
+      break;
+    case ifc_es_expr_subobject_value:
+      { Opt<an_ifc_expr_subobject_value> opt_subobj_val_expr;
+
+        construct_node(&opt_subobj_val_expr, expr_idx);
+        if (!opt_subobj_val_expr.has_value()) {
+          goto invalid;
+        }  /* if */
+
+        an_ifc_expr_subobject_value subobj_val_expr = *opt_subobj_val_expr;
+        an_ifc_expr_index           value = get_ifc_value(subobj_val_expr);
+        result = load_product_type_value_constant(value);
+      }
+      break;
+    case ifc_es_expr_tuple:
+      { Opt<an_ifc_expr_tuple> opt_tuple_expr;
+
+        construct_node(&opt_tuple_expr, expr_idx);
+        if (!opt_tuple_expr.has_value()) {
+          goto invalid;
+        }  /* if */
+
+        an_ifc_expr_tuple     tuple_expr = *opt_tuple_expr;
+        an_expr_heap_sequence sequence(tuple_expr);
+        a_constant_ptr        *curr_const_ptr = &result;
+        for (Indexed<an_ifc_heap_expr> traversed_ihe : sequence) {
+          if (!traversed_ihe.has_value()) {
+            goto invalid;
+          }  /* if */
+
+          an_ifc_expr_index heap_idx = get_ifc_value(*traversed_ihe);
+          *curr_const_ptr = load_product_type_value_constant(heap_idx);
+          if (*curr_const_ptr == NULL) {
+            goto invalid;
+          }  /* if */
+          curr_const_ptr = &((*curr_const_ptr)->next);
+        }  /* for */
+      }
+      break;
+    default:
+      { a_string err_msg("Unexpected ", index_to_str(expr_idx),
+                         " encountered during reconstruction of"
+                         " a ProductTypeValue expression");
+
+        ifc_unexpected(module_of(expr_idx), err_msg);
+      }
+      break;
+  }  /* switch */
+  goto done;
+invalid:
+  result = alloc_error_constant();
+done:
+  if (result == NULL) {
+    result = alloc_error_constant();
+  }  /* if */
+  return result;
+}  /* load_product_type_value_constant */
+
+
 a_boolean has_variable_initializer_from_ifc_module(a_variable_ptr vp)
 /*
 If the given variable has an initializer in a currently-imported IFC module
@@ -7242,9 +7681,7 @@ variable initializer.
 
         /* Load the constant itself. */
         a_constant_ptr
-                init_constant = module_of(init)->constant_for_expr_index(
-                                                                     init,
-                                                                     vp->type);
+                init_constant = load_product_type_value_constant(init);
         if (!is_error_constant(init_constant)) {
           /* Configure the variable for the given initializing constant. */
           vp->init_kind = initk_static;
@@ -9822,69 +10259,6 @@ The caller is responsible for managing the scope stack, including:
   add_to_namespaces_list(nsp);
   return result;
 }  /* declare_new_namespace */
-
-
-static a_constant_ptr load_enumerator_constant(an_ifc_expr_index expr,
-                                               a_type_ptr        enum_type)
-/*
-Load and return the constant corresponding to the given IFC expression (to be
-used as the value of an enumerator) with the given enumeration type.  If an
-error occurs, instead return an error constant.
-*/
-{
-  a_constant_ptr
-                result = NULL;
-  a_module_token_cache
-                expr_cache;
-
-  cache_expr(&expr_cache, expr, /*cinfo=*/{});
-  if (expr_cache.is_valid()) {
-    a_module_entity_rescan rescan(&expr_cache);
-    a_boolean              is_template_param = FALSE;
-    a_constant_ptr         constant = local_constant();
-
-    if (!scan_enumerator_constant(constant, enum_type, &is_template_param,
-                                  /*source_range=*/NULL)) {
-      result = alloc_unshared_constant(constant);
-      /* It should not be possible for a template parameter to be referenced
-         while loading an enumerator constant from the IFC. */
-      check_assertion(!is_template_param);
-    }  /* if */
-    release_local_constant(&constant);
-  }  /* if */
-  if (result == NULL) {
-    result = alloc_error_constant();
-  }  /* if */
-  return result;
-}  /* load_enumerator_constant */
-
-
-static a_constant_ptr load_dimension_constant(an_ifc_expr_index expr)
-/*
-Load and return the constant corresponding to the given IFC expression (to be
-used as the value of array dimension bound).  If an error occurs, instead return
-an error constant.
-*/
-{
-  a_constant_ptr
-                result = NULL;
-  a_module_token_cache
-                expr_cache;
-
-  cache_expr(&expr_cache, expr, /*cinfo=*/{});
-  if (expr_cache.is_valid()) {
-    a_module_entity_rescan rescan(&expr_cache);
-    a_constant_ptr         constant = local_constant();
-
-    scan_constant_dimension_expression(constant);
-    result = alloc_unshared_constant(constant);
-    release_local_constant(&constant);
-  }  /* if */
-  if (result == NULL) {
-    result = alloc_error_constant();
-  }  /* if */
-  return result;
-}  /* load_enumerator_constant */
 
 
 static void process_decl_to_il_entity(a_module_entity_ptr mep,
@@ -15753,67 +16127,6 @@ succeeded, otherwise return FALSE.
 }  /* an_ifc_module::init_decl_locator */
 
 
-static a_boolean unsigned_integer_for_literal(an_integer_value *value,
-                                              an_ifc_lit_index lit_index)
-/*
-Given a pointer to a front end integer value and a lit index, convert the given
-lit index into an integer value and store the result in *value.  If the
-conversion is successful, return TRUE; otherwise, return FALSE.
-*/
-{
-  a_boolean result = TRUE;
-
-  switch (lit_index.sort) {
-    case ifc_ls_immediate:
-      { /* An immediate literal (30 bits or less). */
-        a_host_large_unsigned encoded = (a_host_large_unsigned)lit_index.value;
-
-        set_unsigned_integer_value(value, encoded);
-      }
-      break;
-    case ifc_ls_integer:
-      { /* An integer larger than 30 bits. */
-        Opt<an_ifc_const_i64>       opt_ici64;
-        an_ifc_partition_kind_index int_idx{lit_index.file, ifc_pk_const_i64,
-                                            lit_index.value};
-
-        construct_node(&opt_ici64, int_idx);
-        if (!opt_ici64.has_value()) {
-          goto invalid;
-        }  /* if */
-
-        char               raw_val[8];
-        an_ifc_u64_storage raw_value = get_ifc_value(*opt_ici64);
-        static_assert(sizeof(raw_val) == sizeof(raw_value),
-                      "Generated storage doesn't match expected byte size.");
-        static_assert(sizeof(raw_val) == sizeof(uint64_t),
-                      "Expected byte size isn't 64 bits wide.");
-        memcpy(&raw_val, &raw_value, 8);
-        if (!conv_bytes_to_integer_value(value, raw_val, sizeof(raw_val))) {
-          a_string err_msg("Failed to get a 64-bit integer from ",
-                           str_for(lit_index.sort));
-
-          ifc_unexpected(module_of(lit_index), err_msg);
-          goto invalid;
-        }  /* if */
-      }
-      break;
-    case ifc_ls_floating_point:
-      { a_string err_msg("Unexpected ", str_for(lit_index.sort));
-
-        ifc_unexpected(module_of(lit_index), err_msg);
-      }
-      goto invalid;
-    default_is_unexpected();
-  }  /* switch */
-  goto done;
-invalid:
-  result = FALSE;
-done:
-  return result;
-}  /* unsigned_integer_for_literal */
-
-
 void an_ifc_module::unsigned_integer_for_expr_index(
                                                   an_ifc_expr_index expr_index,
                                                   an_integer_value  *value)
@@ -15841,156 +16154,6 @@ invalid:
 done:;
 }  /* an_ifc_module::unsigned_integer_for_expr_index */
 
-
-static a_constant_ptr constant_for_literal(
-                                         an_ifc_type_index type,
-                                         an_ifc_lit_index  lit_index,
-                                         a_type_ptr        default_type = NULL)
-/*
-Attempt to form a constant (allocated in the current IL memory region) with the
-given type (or default type if type is a null index) and the value specified by
-the given lit index.  If a constant was successfully formed it is returned;
-otherwise, NULL is returned.
-*/
-{
-  a_constant_ptr result = NULL;
-
-  switch (lit_index.sort) {
-    case ifc_ls_immediate:
-    case ifc_ls_integer:
-      /* An integer. */
-      { an_integer_value value;
-
-        /* Retrieve the unsigned value of the integer. */
-        if (!unsigned_integer_for_literal(&value, lit_index)) {
-          goto invalid;
-        }  /* if */
-        result = alloc_constant(ck_integer);
-        if (is_null_index(type) && default_type == NULL) {
-          /* FIXME: not sure why the type is zero in some cases. */
-          set_unsigned_integer_constant(result,
-                                        (a_host_large_unsigned)lit_index.value,
-                                        (an_integer_kind)ik_unsigned_int);
-        } else {
-          a_type_ptr constant_type = default_type;
-
-          if (!is_null_index(type)) {
-            constant_type = type_for_type_index(type);
-          }  /* if */
-          if (is_error_type(constant_type)) {
-            goto invalid;
-          }  /* if */
-          if (is_pointer_type(constant_type)) {
-            /* Pointer literal. */
-            set_unsigned_integer_constant(result, value, targ_size_t_int_kind);
-          } else if (is_nullptr_type(constant_type)) {
-            /* nullptr.  Make an integer zero and convert its type to
-               nullptr_t. */
-            a_boolean did_not_fold;
-
-            set_integer_constant(result, (a_host_large_integer)0,
-                                 (an_integer_kind)ik_int);
-            type_change_constant(result, constant_type,
-                                 /*is_implicit_cast=*/TRUE,
-                                 /*maintain_expression=*/FALSE,
-                                 &did_not_fold, &error_position);
-            if (did_not_fold) {
-              ifc_unexpected(module_of(lit_index), "could not fold nullptr");
-              goto invalid;
-            }  /* if */
-          } else if (is_integral_or_enum_type(constant_type)) {
-            a_type_ptr stripped_type = skip_typerefs(constant_type);
-
-            if (int_type_is_signed(stripped_type)) {
-              sign_extend_integer_value(&value,
-                                   (int)(stripped_type->size * targ_char_bit));
-              set_integer_constant(result, value,
-                                   stripped_type->variant.integer.int_kind);
-            } else {
-              set_unsigned_integer_constant(result, value,
-                                      stripped_type->variant.integer.int_kind);
-            }  /* if */
-          } else {
-            ifc_unexpected(module_of(lit_index), "expected an integer type");
-            goto invalid;
-          }  /* if */
-          result->type = constant_type;
-        }  /* if */
-      }
-      break;
-    case ifc_ls_floating_point:
-      { Opt<an_ifc_const_f64>       opt_icf;
-        an_ifc_partition_kind_index float_index{lit_index.file,
-                                                ifc_pk_const_f64,
-                                                lit_index.value};
-        construct_node(&opt_icf, float_index);
-        if (!opt_icf.has_value()) {
-          goto invalid;
-        }  /* if */
-
-        /* FIXME: Find a better way to do the float conversion. */
-        an_ifc_ieeele_float value = get_ifc_value(*opt_icf);
-        double              float_value;
-        static_assert(sizeof(an_ifc_ieeele_float_storage) == sizeof(double),
-                      "Float storage bytes were not 64 bits wide.");
-        memcpy(&float_value, value.get_storage(), sizeof(double));
-
-        /* Create a relatively small stack buffer to handle common cases, but
-           fallback to a dynamically-allocated full-sized buffer. */
-        constexpr int default_buffer_size = 30;
-        char          stack_buf[default_buffer_size];
-        char          *buf;
-        int           num_written = snprintf(stack_buf, default_buffer_size,
-                                             "%f", float_value);
-        int           num_bytes_allocated = 0;
-        if (num_written < 0) {
-          /* There was an issue with the encoding. */
-          a_string err_msg("bad floating point encoding");
-
-          ifc_unexpected(module_of(lit_index), err_msg);
-          goto invalid;
-        } else if (num_written < default_buffer_size) {
-          /* The stack buffer was sufficient. */
-          buf = stack_buf;
-        } else {
-          /* The stack buffer overflowed. */
-          num_bytes_allocated = num_written + 1;
-          buf = alloc_general(num_bytes_allocated);
-
-          LOCAL_UNUSED int final_count = snprintf(buf, num_bytes_allocated,
-                                                  "%f", float_value);
-          /* At this point, there should be no encoding issues or overflows. */
-          check_assertion(0 <= final_count &&
-                          final_count < num_bytes_allocated);
-        }  /* if */
-        /* Allocate the result constant. */
-        result = alloc_constant(ck_float);
-        result->type = float_type(fk_double);
-
-        /* Convert the buffer representation of the float into a constant. */
-        a_boolean err = FALSE;
-        fp_string_to_float(fk_double, buf, &result->variant.float_value, &err);
-        /* Free the buffer. */
-        if (num_bytes_allocated != 0) {
-          /* An allocated buffer was used. */
-          free_general(buf, num_bytes_allocated);
-        }  /* if */
-        /* Check for any conversion errors. */
-        if (err) {
-          ifc_unexpected(module_of(lit_index),
-                         "floating point conversion failure");
-          goto invalid;
-        }  /* if */
-      }
-      break;
-    default_is_unexpected();
-  }  /* switch */
-  goto done;
-invalid:
-  result = NULL;
-done:
-  return result;
-}  /* constant_for_literal */
 
 namespace {
 
@@ -16164,388 +16327,6 @@ with all null characters (except the terminating null character) removed.
                                        char_kind_to_str_literal_kind(str.kind);
   return result;
 }  /* alloc_string_literal_constant */
-
-
-a_constant_ptr an_ifc_module::constant_for_expr_index(
-                                                an_ifc_expr_index expr_idx,
-                                                a_type_ptr        default_type)
-/*
-Return a constant (allocated in the current IL memory region) with the value
-specified by expr_idx.  This function assumes the expression is constant.  If
-the expression's type is null, use default_type as the expression's type.
-FIXME: shared or unshared?  FIXME: what other expressions can we get here?
-*/
-{
-  a_constant_ptr result = NULL;
-  an_ifc_module  *mod = module_of(expr_idx);
-
-  /* FIXME: Can this entire thing be replaced via caching the expression and
-     then calling scan_expr_or_braced_init_list, as is done for
-     ifc_ExprSort_Tokens below? */
-  switch (expr_idx.sort) {
-    case ifc_es_expr_array_value:
-      { Opt<an_ifc_expr_array_value> opt_ieav;
-
-        construct_node(&opt_ieav, expr_idx);
-        if (!opt_ieav.has_value()) {
-          goto invalid;
-        }  /* if */
-        /* FIXME: Currently unsupported. */
-        issue_unsupported_construct_error(this, "ExprSort::ArrayValue",
-                                          &error_position);
-        goto invalid;
-      }
-    case ifc_es_expr_dyad:
-      { Opt<an_ifc_expr_dyad> opt_ied;
-
-        construct_node(&opt_ied, expr_idx);
-        if (!opt_ied.has_value()) {
-          goto invalid;
-        }  /* if */
-
-        an_ifc_expr_dyad     ied = *opt_ied;
-        an_ifc_type_index    type = get_ifc_type(ied);
-        a_module_token_cache cache;
-        a_type_ptr           tp = type_for_type_index(type);
-        complete_type_is_needed(tp);
-        cache_expr(&cache, expr_idx, /*cinfo=*/{});
-        if (!cache.is_valid()) {
-          goto invalid;
-        }  /* if */
-
-        a_decl_parse_state     dps;
-        a_module_entity_rescan rescan(&cache);
-        result = alloc_constant(ck_error);
-        init_decl_parse_state(&dps);
-        scan_constant_initializer_expression(tp, &dps, result);
-      }
-      break;
-    case ifc_es_expr_literal:
-      { Opt<an_ifc_expr_literal> opt_iel;
-
-        construct_node(&opt_iel, expr_idx);
-        if (!opt_iel.has_value()) {
-          goto invalid;
-        }  /* if */
-
-        an_ifc_expr_literal iel = *opt_iel;
-        an_ifc_type_index   type = get_ifc_type(iel);
-        an_ifc_lit_index    value = get_ifc_value(iel);
-        result = constant_for_literal(type, value, default_type);
-      }
-      break;
-    case ifc_es_expr_named_decl:
-      { Opt<an_ifc_expr_named_decl> opt_iend;
-
-        construct_node(&opt_iend, expr_idx);
-        if (!opt_iend.has_value()) {
-          goto invalid;
-        }  /* if */
-        result = constant_for_named_decl(*opt_iend);
-      }
-      break;
-    case ifc_es_expr_product_type_value:
-      { Opt<an_ifc_expr_product_type_value> opt_ieptv;
-
-        construct_node(&opt_ieptv, expr_idx);
-        if (!opt_ieptv.has_value()) {
-          goto invalid;
-        }  /* if */
-
-        an_ifc_expr_product_type_value ieptv = *opt_ieptv;
-        an_ifc_type_index              type = get_ifc_type(ieptv);
-        a_type_ptr                     tp = type_for_type_index(type);
-        if (is_error_type(tp)) {
-          goto invalid;
-        }  /* if */
-        complete_type_is_needed(tp);
-        result = alloc_constant(ck_aggregate);
-#if DO_IL_LOWERING
-        /* This will be changed later if there are any actual fields that get
-           initialized. */
-        result->initializes_empty_object = TRUE;
-#endif /* DO_IL_LOWERING */
-        result->type = tp;
-
-        an_ifc_expr_index base_subobjects = get_ifc_base_subobjects(ieptv);
-        if (!is_null_index(base_subobjects)) {
-          a_constant_ptr sub_con = constant_for_expr_index(
-                                                        base_subobjects,
-                                                        /*default_type=*/NULL);
-
-          add_constant_to_aggregate(sub_con, result, NULL, NULL);
-#if DO_IL_LOWERING
-          if (!sub_con->initializes_empty_object) {
-            result->initializes_empty_object = FALSE;
-          }  /* if */
-#endif /* DO_IL_LOWERING */
-        }  /* if */
-
-        an_ifc_expr_index members = get_ifc_members(ieptv);
-        if (!is_null_index(members)) {
-          a_constant_ptr mem_con = constant_for_expr_index(
-                                                        members,
-                                                        /*default_type=*/NULL);
-
-          if (mem_con == NULL) {
-            goto invalid;
-          }  /* if */
-          add_constant_to_aggregate(mem_con, result, NULL, NULL);
-#if DO_IL_LOWERING
-          if (!mem_con->initializes_empty_object) {
-            result->initializes_empty_object = FALSE;
-          }  /* if */
-#endif /* DO_IL_LOWERING */
-        }  /* if */
-      }
-      break;
-    case ifc_es_expr_read:
-      { Opt<an_ifc_expr_read> opt_read_expr;
-
-        construct_node(&opt_read_expr, expr_idx);
-        if (!opt_read_expr.has_value()) {
-          goto invalid;
-        }  /* if */
-
-        an_ifc_expr_read  read_expr = *opt_read_expr;
-        an_ifc_expr_index address = get_ifc_address(read_expr);
-        result = constant_for_expr_index(address, /*default_type=*/NULL);
-        /* FIXME: Update the constant with the appropriate read sort
-           transformation applied (i.e., perform things like LvalueToRvalue
-           conversion on the non-type constant).
-
-           Note: This code is largely shared (the only difference is the
-           function used for recursion) with
-           create_nontype_template_arg_from_expr. */
-      }
-      break;
-    case ifc_es_expr_string:
-      { Opt<an_ifc_expr_string> opt_ies;
-
-        construct_node(&opt_ies, expr_idx);
-        if (!opt_ies.has_value()) {
-          goto invalid;
-        }  /* if */
-
-        an_ifc_expr_string    ies = *opt_ies;
-        Opt<an_ifc_const_str> opt_ics;
-        an_ifc_string_index   raw_str_index = get_ifc_string_index(ies);
-        Opt<an_ifc_string>    opt_ifc_str = get_encoded_string(raw_str_index);
-        if (!opt_ifc_str.has_value()) {
-          goto invalid;
-        }  /* if */
-
-        an_ifc_string ifc_str = *opt_ifc_str;
-        result = alloc_string_literal_constant(ifc_str);
-#if EXTRA_SOURCE_POSITIONS_IN_IL
-        source_position_from_locus(&result->end_position, get_ifc_locus(ies));
-#endif /* EXTRA_SOURCE_POSITIONS_IN_IL */
-      }
-      break;
-    case ifc_es_expr_subobject_value:
-      { Opt<an_ifc_expr_subobject_value> opt_subobj_val_expr;
-
-        construct_node(&opt_subobj_val_expr, expr_idx);
-        if (!opt_subobj_val_expr.has_value()) {
-          goto invalid;
-        }  /* if */
-
-        an_ifc_expr_subobject_value subobj_val_expr = *opt_subobj_val_expr;
-        an_ifc_expr_index           value = get_ifc_value(subobj_val_expr);
-        result = constant_for_expr_index(value, default_type);
-      }
-      break;
-    case ifc_es_expr_tuple:
-      { Opt<an_ifc_expr_tuple> opt_iet;
-
-        construct_node(&opt_iet, expr_idx);
-        if (!opt_iet.has_value()) {
-          goto invalid;
-        }  /* if */
-
-        an_ifc_expr_tuple     iet = *opt_iet;
-        an_expr_heap_sequence sequence(iet);
-        a_constant_ptr        *curr_const_ptr = &result;
-        for (Indexed<an_ifc_heap_expr> traversed_ihe : sequence) {
-          if (!traversed_ihe.has_value()) {
-            goto invalid;
-          }  /* if */
-
-          an_ifc_expr_index heap_idx = get_ifc_value(*traversed_ihe);
-          *curr_const_ptr = constant_for_expr_index(heap_idx,
-                                                    /*default_type=*/NULL);
-          if (*curr_const_ptr == NULL) {
-            goto invalid;
-          }  /* if */
-          curr_const_ptr = &((*curr_const_ptr)->next);
-        }  /* for */
-      }
-      break;
-    case ifc_es_expr_tokens:
-      { Opt<an_ifc_expr_tokens> opt_iet;
-
-        construct_node(&opt_iet, expr_idx);
-        if (!opt_iet.has_value()) {
-          goto invalid;
-        }  /* if */
-
-        an_ifc_expr_tokens    iet = *opt_iet;
-        an_ifc_type_index     type = get_ifc_type(iet);
-        a_module_token_cache  cache;
-        a_decl_parse_state    dps;
-        a_type_ptr            tp;
-        an_init_component_ptr icp;
-        an_expr_stack_entry   expr_stack_entry, *saved_expr_stack;
-        init_decl_parse_state(&dps);
-        if (!is_null_index(type)) {
-          tp = type_for_type_index(type);
-        } else {
-          tp = default_type;
-        }  /* if */
-        check_assertion(tp != NULL);
-        complete_type_is_needed(tp);
-        (void)cache_sentence(&cache, get_ifc_words(iet));
-        if (!cache.is_valid()) {
-          goto invalid;
-        }  /* if */
-        {
-          a_module_entity_rescan rescan(&cache);
-
-          result = alloc_constant(ck_error);
-          if (curr_token == tok_assign) {
-            dps.init_state.direct_init = FALSE;
-            (void)get_token();
-          } else {
-            dps.init_state.direct_init = TRUE;
-          }  /* if */
-          dps.type = tp;
-          dps.init_state.initializer_must_be_constant = TRUE;
-          push_expr_stack_for_initializer(&expr_stack_entry, &saved_expr_stack,
-                                          ek_integral_constant,
-                                          /*is_full_expr=*/TRUE, &dps,
-                                          &dps.init_state);
-          icp = scan_expr_or_braced_init_list(/*bundle=*/FALSE,
-                                              /*always_allow_braced=*/TRUE);
-          an_operand_ptr operand = is_expression_component(icp) ?
-                                  operand_of_arg_list_elem(icp) : NULL;
-          /* FIXME: This is done to work around initializing array types with
-             string literals, as we run into "initializing an array with an
-             array" errors.  It's possible it's better to use initializer()
-             directly, however, surgery is required to make that work. */
-          if (operand != NULL && operand->kind == ok_constant &&
-              identical_types(tp, operand->type)) {
-            copy_constant(&operand->variant.constant, result);
-          } else {
-            /* is_var_init is set to FALSE here, as otherwise it expects
-               dps.sym to be non-NULL and point to a variable symbol, which we
-               do not have available here. */
-            convert_initializer(icp, dps.type, /*is_var_init=*/FALSE,
-                                /*fill_in_dtor=*/FALSE, &dps.init_state);
-            if (dps.init_state.init_error) {
-              set_error_constant(result);
-            } else if (dps.init_state.init_dip != NULL) {
-              a_diag_list diag_list;
-
-              clear_diag_list(&diag_list);
-              if (!interpret_dynamic_init(dps.init_state.init_dip,
-                                          init_component_pos(icp), dps.type,
-                                          /*is_constant_evaluated=*/TRUE,
-                                          result, &diag_list)) {
-                set_error_constant(result);
-              }  /* if */
-              discard_more_info_list(&diag_list);
-            } else {
-              check_assertion(dps.init_state.init_con != NULL);
-              copy_constant(dps.init_state.init_con, result);
-            }  /* if */
-          }  /* if */
-          free_init_component_list(icp);
-          pop_expr_stack_for_initializer(saved_expr_stack,
-                                         /*is_full_expr=*/TRUE, &dps,
-                                         (an_init_state *)NULL);
-        }
-      }
-      break;
-    default:
-      { a_string err_msg("Unexpected ", str_for(expr_idx.sort),
-                         " for constant synthesis");
-
-        ifc_unexpected(mod, err_msg);
-      }
-      goto invalid;
-  }  /* switch */
-  goto done;
-invalid:
-  result = alloc_error_constant();
-  expect_error_str("expected errors for bad constant");
-done:
-  return result;
-}  /* an_ifc_module::constant_for_expr_index */
-
-
-a_constant_ptr an_ifc_module::constant_for_named_decl(
-                                           const an_ifc_expr_named_decl &iendp)
-/*
-Return a constant (allocated in the current IL memory region) with the value
-corresponding to the provided named declaration.  Assumes the expression is
-constant.
-FIXME: shared or unshared?
-FIXME: what other types of named declarations can we get here?
-*/
-{
-  a_constant_ptr    result = NULL;
-  an_ifc_decl_index decl_idx = get_ifc_resolution(iendp);
-
-  switch (decl_idx.sort) {
-    case ifc_ds_decl_enumerator:
-      { a_module_entity_ptr mep = process_decl_at_index(decl_idx);
-
-        if (mep->invalid) {
-          goto invalid;
-        }  /* if */
-
-        /* The IL entity corresponding to an enumerator should be either
-           invalid, or an iek_constant. */
-        check_assertion(mep->entity.kind == iek_constant);
-        result = (a_constant_ptr)mep->entity.ptr;
-      }
-      break;
-    case ifc_ds_decl_parameter:
-      { Opt<an_ifc_decl_parameter> opt_decl_param;
-
-        construct_node(&opt_decl_param, decl_idx);
-        if (!opt_decl_param.has_value()) {
-          goto invalid;
-        }  /* if */
-
-        an_ifc_decl_parameter decl_param = *opt_decl_param;
-        an_ifc_parameter_sort sort = get_ifc_sort(decl_param);
-        if (sort == ifc_ps_non_type) {
-          result = alloc_detached_nontype_templ_param(decl_param);
-        } else {
-          a_string err_msg("Cannot form constant from unexpected parameter "
-                           "sort ", str_for(sort), " from ",
-                           index_to_str(decl_idx));
-
-          ifc_unexpected(module_of(decl_param), err_msg);
-        }  /* if */
-      }
-      break;
-    default:
-      { a_string err_msg("Unexpected ", str_for(decl_idx.sort),
-                         " for ExprSort::NamedDecl");
-
-        ifc_unexpected(module_of(decl_idx), err_msg);
-      }
-      goto invalid;
-  }  /* switch */
-  goto done;
-invalid:
-  result = alloc_error_constant();
-  expect_error_str("expected errors for bad constant");
-done:
-  return result;
-}  /* an_ifc_module::constant_for_named_decl */
 
 
 a_boolean an_ifc_module::fill_in_routine_parameter_defaults(
@@ -24548,18 +24329,11 @@ common_cast:
       }
       break;
     case ifc_es_expr_product_type_value:
-      { Opt<an_ifc_expr_product_type_value> opt_ieptv;
+      { a_constant_ptr cp = load_product_type_value_constant(expr);
 
-        construct_node(&opt_ieptv, expr);
-        if (!opt_ieptv.has_value()) {
+        if (is_error_constant(cp)) {
           goto invalid;
         }  /* if */
-
-        an_ifc_expr_product_type_value ieptv = *opt_ieptv;
-        a_type_ptr                     tp;
-        a_constant_ptr                 cp;
-        tp = type_for_type_index(get_ifc_type(ieptv));
-        cp = mod->constant_for_expr_index(expr, tp);
         cache_aggr_constant(cache, cp);
       }
       break;

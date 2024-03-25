@@ -504,9 +504,6 @@ public:
                                      a_symbol_locator       *loc);
   void unsigned_integer_for_expr_index(an_ifc_expr_index expr_index,
                                        an_integer_value  *value);
-  a_constant_ptr constant_for_expr_index(an_ifc_expr_index expr_index,
-                                         a_type_ptr        default_type);
-  a_constant_ptr constant_for_named_decl(const an_ifc_expr_named_decl &iesndp);
   a_boolean fill_in_routine_parameter_defaults(
                                               an_ifc_chart_index params,
                                               a_type_ptr         rout_type,
