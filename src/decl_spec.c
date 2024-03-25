@@ -5382,10 +5382,10 @@ there was an error; otherwise, return FALSE.
       if (conversion_allowed &&
           (f_skip_typerefs(constant->type)->size <= targ_sizeof_int ||
            ms_compat)) {
-        /* In non-strict mode, allow unsigned constants that can be coerced into
-           an int.  (Microsoft compilers appear to even permit cases like:
-             enum { e = static_cast<unsigned long>(-1) };
-           with unsigned long a larger type than int. */
+        /* In non-strict mode, allow unsigned constants that can be coerced
+           into an int.  (Microsoft compilers appear to even permit cases like:
+           enum { e = static_cast<unsigned long>(-1) }; with unsigned long a
+           larger type than int. */
         a_boolean  did_not_fold = FALSE;
         type_change_constant(constant, integer_type(ik_int),
                              /*is_implicit_cast=*/TRUE,
@@ -5557,10 +5557,9 @@ is updated to reflect relevant positions of this definition.
 #if MICROSOFT_EXTENSIONS_ALLOWED
       an_ms_attribute_ptr          ms_attributes = NULL;
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
+      a_source_range               enum_value_range = null_source_range;
 #if EXTRA_SOURCE_POSITIONS_IN_IL
-      a_source_range               enum_id_range, enum_value_range;
-      enum_id_range = null_source_range;
-      enum_value_range = null_source_range;
+      a_source_range               enum_id_range = null_source_range;
 #endif /* EXTRA_SOURCE_POSITIONS_IN_IL */
       add_stop_token(tok_comma);
       add_stop_token(tok_assign);
