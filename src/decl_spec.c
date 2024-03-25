@@ -5557,9 +5557,10 @@ is updated to reflect relevant positions of this definition.
 #if MICROSOFT_EXTENSIONS_ALLOWED
       an_ms_attribute_ptr          ms_attributes = NULL;
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
-      a_source_range               enum_value_range = null_source_range;
+      a_source_range               enum_value_range;
 #if EXTRA_SOURCE_POSITIONS_IN_IL
       a_source_range               enum_id_range = null_source_range;
+      enum_value_range = null_source_range;
 #endif /* EXTRA_SOURCE_POSITIONS_IN_IL */
       add_stop_token(tok_comma);
       add_stop_token(tok_assign);
