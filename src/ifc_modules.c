@@ -7177,8 +7177,8 @@ error occurs, instead return an error constant.
 static a_constant_ptr load_dimension_constant(an_ifc_expr_index expr_idx)
 /*
 Load and return the constant corresponding to the given IFC expression (to be
-used as the value of array dimension bound).  If an error occurs, instead return
-an error constant.
+used as the value of array dimension bound).  If an error occurs, instead
+return an error constant.
 */
 {
   a_constant_ptr
@@ -7199,7 +7199,7 @@ an error constant.
     result = alloc_error_constant();
   }  /* if */
   return result;
-}  /* load_enumerator_constant */
+}  /* load_dimension_constant */
 
 
 static a_boolean unsigned_integer_for_literal(an_integer_value *value,
@@ -7420,10 +7420,10 @@ static a_constant_ptr load_product_type_value_constant(
 Load and return the constant corresponding to the given IFC ProductTypeValue
 expression.  If an error occurs, instead return an error constant.
 
-The ProductTypeValue expression is a bit of a special case, this expression only
-represents the folded result of a constant evaluation producing a class type
-constant.  Thus, since there's no expression (in the C++ sense) to reevaluate
-the front end must directly construct a constant from the encoding.
+The ProductTypeValue expression is a bit of a special case, this expression
+only represents the folded result of a constant evaluation producing a class
+type constant.  Thus, since there's no expression (in the C++ sense) to
+reevaluate the front end must directly construct a constant from the encoding.
 */
 {
   a_constant_ptr result = NULL;
