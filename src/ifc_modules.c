@@ -9859,6 +9859,34 @@ error occurs, instead return an error constant.
 }  /* load_enumerator_constant */
 
 
+static a_constant_ptr load_dimension_constant(an_ifc_expr_index expr)
+/*
+Load and return the constant corresponding to the given IFC expression (to be
+used as the value of array dimension bound).  If an error occurs, instead return
+an error constant.
+*/
+{
+  a_constant_ptr
+                result = NULL;
+  a_module_token_cache
+                expr_cache;
+
+  cache_expr(&expr_cache, expr, /*cinfo=*/{});
+  if (expr_cache.is_valid()) {
+    a_module_entity_rescan rescan(&expr_cache);
+    a_constant_ptr         constant = local_constant();
+
+    scan_constant_dimension_expression(constant);
+    result = alloc_unshared_constant(constant);
+    release_local_constant(&constant);
+  }  /* if */
+  if (result == NULL) {
+    result = alloc_error_constant();
+  }  /* if */
+  return result;
+}  /* load_enumerator_constant */
+
+
 static void process_decl_to_il_entity(a_module_entity_ptr mep,
                                       a_boolean           defer)
 /*
@@ -13360,9 +13388,7 @@ with the module entity pointer.
              incomplete-type case). */
           result->variant.array.variant.number_of_elements = 0;
         } else {
-          a_constant_ptr elem_count = mod->constant_for_expr_index(
-                                                        extent,
-                                                        /*default_type=*/NULL);
+          a_constant_ptr elem_count = load_dimension_constant(extent);
 
           if (elem_count != NULL && elem_count->kind == ck_integer) {
             a_boolean err = FALSE;
