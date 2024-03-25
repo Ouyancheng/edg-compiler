@@ -5288,6 +5288,123 @@ integer type and adjust the associated integer values if needed.
 }  /* change_enum_constants_type */
 
 
+static an_integer_kind explicit_base_kind_of_enumeration(a_type_ptr enum_type)
+/*
+Return the integer kind associated with the given enumeration's explicit base.
+If no explicit base was specified, return ik_none.
+*/
+{
+  an_integer_kind result;
+  a_type_ptr      explicit_base = integer_type_supp(enum_type)->base_type;
+
+  if (explicit_base == NULL) {
+    result = ik_none;
+  } else if (is_template_dependent_type(explicit_base)) {
+    result = largest_enum_int_kind;
+  } else {
+    result = skip_typerefs(explicit_base)->variant.integer.int_kind;
+  }  /* if */
+  return result;
+}  /* explicit_base_kind_of_enumeration */
+
+
+a_boolean scan_enumerator_constant(
+                                 a_constant_ptr            constant,
+                                 a_type_ptr                enum_type,
+                                 a_boolean                 *is_template_param,
+                                 ARG_UNUSED a_source_range *source_range)
+/*
+Scan the tokens forming an enumerator constant.  The constant will be returned
+in *constant, which will be subsequently allocated in the file scope memory
+region.  *is_template_param will be set to TRUE if the enumerator constant
+refers to a template parameter.  *source_range if set will be updated to mark
+the start and end source positions of the enumerator constant.  Return TRUE if
+there was an error; otherwise, return FALSE.
+*/
+{
+  a_boolean result = FALSE;
+
+#if EXTRA_SOURCE_POSITIONS_IN_IL
+  if (source_range != NULL) {
+    source_range->start = pos_curr_token;
+  }  /* if */
+#endif /* EXTRA_SOURCE_POSITIONS_IN_IL */
+
+  a_boolean       is_scoped_enum = enum_type->variant.integer.is_scoped_enum;
+  a_type_ptr      explicit_base = integer_type_supp(enum_type)->base_type;
+  an_integer_kind explicit_base_kind =
+                                 explicit_base_kind_of_enumeration(enum_type);
+  a_type_ptr      fixed_type = explicit_base;
+  /* The underlying type of a C++11 enumeration type is said to be fixed
+     if it is explicitly specified or if the enumeration type is scoped.
+     This is used to scan the enumerator constant definitions as "converted
+     constant expressions". */
+  if (explicit_base == NULL && is_scoped_enum) {
+    fixed_type = integer_type(ik_int);
+  }  /* if */
+  /* Scan the constant expression.  (If fixed_type is non-NULL, scan it as a
+     "converted constant expression" for that type in C++11 mode.) */
+  scan_fs_integral_constant_expression(fixed_type, /*is_enum=*/TRUE,
+                                       constant);
+  add_backing_expression_for_named_constant(constant);
+  /* Even though the constant may just be "0", that property should
+     not be carried into the enumerators derived from it. */
+  constant->is_simple_zero = FALSE;
+#if EXTRA_SOURCE_POSITIONS_IN_IL
+  if (source_range != NULL) {
+    source_range->end = curr_construct_end_position;
+  }  /* if */
+#endif /* EXTRA_SOURCE_POSITIONS_IN_IL */
+  if (is_error_constant(constant)) {
+    result = TRUE;
+  } else if (constant->kind == ck_template_param) {
+    /* We are doing a prototype instantiation and we have a case like this:
+         template <int N> class A { enum e { e1 = 2*N }; };
+     */
+    *is_template_param = TRUE;
+  } else if (is_scoped_enum || explicit_base_kind != ik_none) {
+    /* The underlying type is fixed. */
+    check_enum_value_for_fixed_underlying_type(constant, explicit_base_kind,
+                                               /*implicit_value=*/FALSE,
+                                               &result);
+  } else if (enum_types_can_be_larger_than_int) {
+    /* No need to check, since the largest integer kind will be used if
+       needed. */
+  } else {
+    check_assertion(constant->kind == ck_integer);
+    /* Check the value to see if it is out of range. */
+    if (!in_range_for_integer_kind(constant, constant,
+                                   largest_enum_int_kind)) {
+      a_boolean  conversion_allowed = TRUE;
+      if (strict_ansi_mode) {
+        conversion_allowed = strict_ansi_error_severity != es_error;
+      }  /* if */
+      if (conversion_allowed &&
+          (f_skip_typerefs(constant->type)->size <= targ_sizeof_int ||
+           ms_compat)) {
+        /* In non-strict mode, allow unsigned constants that can be coerced into
+           an int.  (Microsoft compilers appear to even permit cases like:
+             enum { e = static_cast<unsigned long>(-1) };
+           with unsigned long a larger type than int. */
+        a_boolean  did_not_fold = FALSE;
+        type_change_constant(constant, integer_type(ik_int),
+                             /*is_implicit_cast=*/TRUE,
+                             /*maintain_expression=*/TRUE,
+                             &did_not_fold,
+                             &error_position);
+        if (strict_ansi_mode) {
+          pos_warning(ec_enum_value_out_of_int_range, &error_position);
+        }  /* if */
+      } else {
+        pos_error(ec_enum_value_out_of_int_range, &error_position);
+        result = TRUE;
+      }  /* if */
+    }  /* if */
+  }  /* if */
+  return result;
+}  /* scan_enumerator_constant */
+
+
 void scan_enumerator_list(
                         a_type_ptr                     enum_type,
                         ARG_UNUSED a_decl_parse_state  *dps,
@@ -5356,14 +5473,7 @@ is updated to reflect relevant positions of this definition.
   }  /* if */
   check_assertion_or_expect_error(curr_token == tok_lbrace);
   essp = tag_sym->variant.enumeration.extra_info;
-  if (explicit_base == NULL) {
-    explicit_base_kind = (an_integer_kind)ik_none;
-  } else if (is_template_dependent_type(explicit_base)) {
-    explicit_base_kind = largest_enum_int_kind;
-  } else {
-    explicit_base_kind =
-                       skip_typerefs(explicit_base)->variant.integer.int_kind;
-  }  /* if */
+  explicit_base_kind = explicit_base_kind_of_enumeration(enum_type);
   definition_pos = pos_curr_token;
   /* We associate a curr-construct pragma with this enum type only if this
      is a definition.  Otherwise this is assumed to be part of a declaration
@@ -5435,14 +5545,6 @@ is updated to reflect relevant positions of this definition.
     /* An enumerator constant list is optional in C++ and Microsoft C. */
   } else {
     a_boolean   cppcli_enum_init_error_issued = FALSE;
-    a_type_ptr  fixed_type = explicit_base;
-    /* The underlying type of a C++11 enumeration type is said to be fixed
-       if it is explicitly specified or if the enumeration type is scoped.
-       This is used to scan the enumerator constant definitions as "converted
-       constant expressions". */
-    if (explicit_base == NULL && is_scoped_enum) {
-      fixed_type = integer_type((an_integer_kind)ik_int);
-    }  /* if */
     add_stop_token(tok_rbrace);
     end_of_enum_con_list = NULL;
     /* Scan the list of enumerated constants. */
@@ -5512,70 +5614,9 @@ is updated to reflect relevant positions of this definition.
       /* See if "= constant-expression" follows. */
       if (curr_token == tok_assign) {
         (void)get_token();
-#if EXTRA_SOURCE_POSITIONS_IN_IL
-        enum_value_range.start = pos_curr_token;
-#endif /* EXTRA_SOURCE_POSITIONS_IN_IL */
-        /* Scan the constant expression.  (If fixed_type is non-NULL, scan
-           it as a "converted constant expression" for that type in C++11
-           mode.) */
-        scan_fs_integral_constant_expression(fixed_type, /*is_enum=*/TRUE,
-                                             constant);
-        add_backing_expression_for_named_constant(constant);
-        /* Even though the constant may just be "0", that property should
-           not be carried into the enumerators derived from it. */
-        constant->is_simple_zero = FALSE;
-#if EXTRA_SOURCE_POSITIONS_IN_IL
-        enum_value_range.end = curr_construct_end_position;
-#endif /* EXTRA_SOURCE_POSITIONS_IN_IL */
-        if (is_error_constant(constant)) {
+        if (scan_enumerator_constant(constant, enum_type, &template_param,
+                                     &enum_value_range)) {
           err = TRUE;
-        } else if (constant->kind == (a_constant_repr_kind)ck_template_param) {
-          /* We are doing a prototype instantiation and we have a case like
-             this:
-               template <int N> class A { enum e { e1 = 2*N }; };
-          */
-          template_param = TRUE;
-        } else if (is_scoped_enum ||
-                   explicit_base_kind != (an_integer_kind)ik_none) {
-          /* The underlying type is fixed. */
-          check_enum_value_for_fixed_underlying_type(
-                                            constant, explicit_base_kind,
-                                            /*implicit_value=*/FALSE, &err);
-        } else if (enum_types_can_be_larger_than_int) {
-          /* No need to check, since the largest integer kind will be
-             used if needed. */
-        } else {
-          check_assertion(constant->kind == (a_constant_repr_kind)ck_integer);
-          /* Check the value to see if it is out of range. */
-          if (!in_range_for_integer_kind(constant, constant,
-                                         largest_enum_int_kind)) {
-            a_boolean  conversion_allowed = TRUE;
-            if (strict_ansi_mode) {
-              conversion_allowed = strict_ansi_error_severity != es_error;
-            }  /* if */
-            if (conversion_allowed &&
-                (f_skip_typerefs(constant->type)->size <= targ_sizeof_int ||
-                 ms_compat)) {
-              /* In non-strict mode, allow unsigned constants that can be
-                 coerced into an int.  (Microsoft compilers appear to even
-                 permit cases like:
-                    enum { e = static_cast<unsigned long>(-1) };
-                 with unsigned long a larger type than int. */
-              a_boolean  did_not_fold = FALSE;
-              type_change_constant(constant,
-                                   integer_type((an_integer_kind)ik_int),
-                                   /*is_implicit_cast=*/TRUE,
-                                   /*maintain_expression=*/TRUE,
-                                   &did_not_fold,
-                                   &error_position);
-              if (strict_ansi_mode) {
-                pos_warning(ec_enum_value_out_of_int_range, &error_position);
-              }  /* if */
-            } else {
-              pos_error(ec_enum_value_out_of_int_range, &error_position);
-              err = TRUE;
-            }  /* if */
-          }  /* if */
         }  /* if */
       } else {
         /* No explicit value. */

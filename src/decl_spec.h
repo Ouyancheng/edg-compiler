@@ -113,6 +113,11 @@ extern void add_flags_from_dll_attributes(a_decl_modifier_set  *p_flags,
                                           an_attribute_ptr     ap);
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
 
+extern a_boolean scan_enumerator_constant(a_constant_ptr constant,
+                                          a_type_ptr     enum_type,
+                                          a_boolean      *is_template_param,
+                                          a_source_range *source_range);
+
 extern void scan_enumerator_list(a_type_ptr           enum_type,
                                  a_decl_parse_state   *dps,
                                  a_decl_flag_set      dsi_flags,

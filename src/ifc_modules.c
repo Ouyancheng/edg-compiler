@@ -9824,6 +9824,41 @@ The caller is responsible for managing the scope stack, including:
 }  /* declare_new_namespace */
 
 
+static a_constant_ptr load_enumerator_constant(an_ifc_expr_index expr,
+                                               a_type_ptr        enum_type)
+/*
+Load and return the constant corresponding to the given IFC expression (to be
+used as the value of an enumerator) with the given enumeration type.  If an
+error occurs, instead return an error constant.
+*/
+{
+  a_constant_ptr
+                result = NULL;
+  a_module_token_cache
+                expr_cache;
+
+  cache_expr(&expr_cache, expr, /*cinfo=*/{});
+  if (expr_cache.is_valid()) {
+    a_module_entity_rescan rescan(&expr_cache);
+    a_boolean              is_template_param = FALSE;
+    a_constant_ptr         constant = local_constant();
+
+    if (!scan_enumerator_constant(constant, enum_type, &is_template_param,
+                                  /*source_range=*/NULL)) {
+      result = alloc_unshared_constant(constant);
+      /* It should not be possible for a template parameter to be referenced
+         while loading an enumerator constant from the IFC. */
+      check_assertion(!is_template_param);
+    }  /* if */
+    release_local_constant(&constant);
+  }  /* if */
+  if (result == NULL) {
+    result = alloc_error_constant();
+  }  /* if */
+  return result;
+}  /* load_enumerator_constant */
+
+
 static void process_decl_to_il_entity(a_module_entity_ptr mep,
                                       a_boolean           defer)
 /*
@@ -10593,9 +10628,6 @@ strongly preferred over calling this function directly.
           defer_symbol_creation(mep, &loc);
         } else {
           an_ifc_decl_enumerator ide = *opt_ide;
-          a_symbol_ptr           enum_con_sym;
-          a_constant_ptr         enum_con;
-          a_memory_region_number region_to_switch_back_to;
 
           if (is_from_gmf(ide)) {
             mep->global_module = TRUE;
@@ -10613,18 +10645,23 @@ strongly preferred over calling this function directly.
                                           iek_constant, &il_entity, &kind)){
             break;
           }  /* if */
-          switch_to_file_scope_region(&region_to_switch_back_to);
-          enum_con = mod->constant_for_expr_index(get_ifc_initializer(ide),
-                                                  enum_type);
-          switch_back_to_original_region(region_to_switch_back_to);
+
+          an_ifc_expr_index initializer = get_ifc_initializer(ide);
+          a_constant_ptr    enum_con = load_enumerator_constant(initializer,
+                                                                enum_type);
+          if (is_error_constant(enum_con)) {
+            goto invalid;
+          }  /* if */
           enum_con->type = enum_type;
           enum_con->is_named_constant_definition = TRUE;
           enum_con->source_corresp.parent_scope = mep->scope;
           enum_con->source_corresp.name_linkage =
                                         enum_type->source_corresp.name_linkage;
-          enum_con_sym = enter_local_symbol((a_symbol_kind)sk_constant, &loc,
-                                            mep->scope->depth_in_scope_stack,
-                                            /*suppress_redecl_error=*/FALSE);
+
+          a_symbol_ptr enum_con_sym = enter_local_symbol(
+                                              sk_constant, &loc,
+                                              mep->scope->depth_in_scope_stack,
+                                              /*suppress_redecl_error=*/FALSE);
           set_source_corresp(&(enum_con->source_corresp), enum_con_sym);
           enum_con_sym->variant.constant = enum_con;
           if (!enum_type->variant.integer.is_scoped_enum &&
