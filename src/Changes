@@ -1,5 +1,15 @@
 Version 6.7
 
+3/26/24  [EDGcpfe/27116]
+C++-generating back end: unbounded recursion with cv-qualified template
+argument
+
+In certain complex cases involving cv-qualified template type arguments,
+the C++-generating back end could enter an unbounded recursion.  (In
+configurations with EXPENSIVE_CHECKING set to TRUE, a "Recursive qualifier"
+internal error was issued instead.)  This is now fixed.
+
+
 3/19/24   [EDGcpfe/27107]
 Clang compatibility: allow floating-point types in some atomic builtins
 

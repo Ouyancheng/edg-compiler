@@ -2291,7 +2291,8 @@ Pass for_all_scopes through to entity_name_is_accessible.
 
   switch (argp->kind) {
   case tak_type:
-    scp = &argp->variant.type->source_corresp;
+    scp = &skip_typerefs_not_typedefs_or_type_operators(argp->variant.type)->
+                                                                source_corresp;
     is_accessible = entity_name_is_accessible(scp, iek_type, ignore_context,
                                               for_all_scopes);
     if (!is_accessible) {
