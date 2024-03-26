@@ -7205,9 +7205,9 @@ return an error constant.
 static a_boolean unsigned_integer_for_literal(an_integer_value *value,
                                               an_ifc_lit_index lit_index)
 /*
-Given a pointer to a front end integer value and a lit index, convert the given
-lit index into an integer value and store the result in *value.  If the
-conversion is successful, return TRUE; otherwise, return FALSE.
+Given a pointer to a front end integer value and a literal index, convert the
+given literal index into an integer value and store the result in *value.  If
+the conversion is successful, return TRUE; otherwise, return FALSE.
 */
 {
   a_boolean result = TRUE;
@@ -7270,7 +7270,7 @@ static a_constant_ptr constant_for_literal(
 /*
 Attempt to form a constant (allocated in the current IL memory region) with the
 given type (or default type if type is a null index) and the value specified by
-the given lit index.  If a constant was successfully formed it is returned;
+the given literal index.  If a constant was successfully formed it is returned;
 otherwise, NULL is returned.
 */
 {
