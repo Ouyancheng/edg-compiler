@@ -7420,7 +7420,7 @@ static a_constant_ptr load_product_type_value_constant(
 Load and return the constant corresponding to the given IFC ProductTypeValue
 expression.  If an error occurs, instead return an error constant.
 
-The ProductTypeValue expression is a bit of a special case, this expression
+The ProductTypeValue expression is a bit of a special case.  This expression
 only represents the folded result of a constant evaluation producing a class
 type constant.  Thus, since there's no expression (in the C++ sense) to
 reevaluate the front end must directly construct a constant from the encoding.
