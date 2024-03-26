@@ -12260,12 +12260,20 @@ a common (unsigned) type.
       *operation_type = error_type();
       *op = (an_expr_operator_kind)eok_error;
     } else if (!identical_types_ignoring_qualifiers(el1_type, el2_type) &&
+               !((op1_type->variant.vector.is_boolean_vector ||
+                  op2_type->variant.vector.is_boolean_vector) &&
+                 num_vector_elements(op1_type) ==
+                                              num_vector_elements(op2_type) &&
+                 size_of_type(op1_type) == size_of_type(op2_type)) &&
                !(is_integral_type(el1_type) && is_integral_type(el2_type) &&
                  (mixed_signedness =
                    integral_types_the_same_except_for_signedness(
                                                       el1_type, el2_type)))) {
       /* Either the element types must be identical, or they must be integer
-         types that differ only in signedness. */
+         types that differ only in signedness.  An additional permitted
+         combination is one where at least one of the vectors is the result
+         of a comparison (making it "boolean") and the number of elements in
+         both vectors is equal. */
       expr_pos_error(ec_vector_element_type_mismatch, err_pos);
       *operation_type = error_type();
       *op = (an_expr_operator_kind)eok_error;
