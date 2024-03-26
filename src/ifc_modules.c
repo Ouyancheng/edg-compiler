@@ -7177,7 +7177,7 @@ error occurs, instead return an error constant.
 static a_constant_ptr load_dimension_constant(an_ifc_expr_index expr_idx)
 /*
 Load and return the constant corresponding to the given IFC expression (to be
-used as the value of array dimension bound).  If an error occurs, instead
+used as the value of an array dimension bound).  If an error occurs, instead
 return an error constant.
 */
 {
