@@ -16494,6 +16494,11 @@ conversion to an rvalue is forced externally.
       result = constexpr_copy_object(ips, tp, &expr->position,
                                      cap->address, cap->complete_object,
                                      result_storage, complete_object);
+      if (type_is(tp, tk_struct) || type_is(tp, tk_class)) {
+        /* We may have copied a proper subobject, but the copied object has no
+           enclosing derivation. */
+        record_subobject_derivation(result_storage, NULL);
+      }  /* if */
     } else {
       result = TRUE;
       (void)memcpy(result_storage, value_bytes_at(cap), size_t_arg(n_bytes));

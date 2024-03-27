@@ -1,5 +1,14 @@
 Version 6.7
 
+3/27/24  [EDGcpfe/27111]
+Abort in subobject_is_initialized
+
+In some fairly complex cases involving a cast to a base class lvalue, followed
+by a copy of that lvalue and an attempt to cast the result prvalue back to the
+derived class, the constant evaluation interpreter could abort in the function
+subobject_is_initialized.  That is now fixed.
+
+
 3/26/24  [EDGcpfe/27120]
 C++-generating back end: CTAD, lambdas, and constexpr constructors
 
