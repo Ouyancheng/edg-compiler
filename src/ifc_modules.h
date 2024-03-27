@@ -90,6 +90,11 @@ struct Is_trivially_copyable_edg_impl<an_ifc_decl_index> :
 };  /* Is_trivially_copyable_edg_impl */
 
 template<>
+struct Is_trivially_copyable_edg_impl<an_ifc_edg_complex_token_index> :
+                                                Integral_constant<bool, true> {
+};  /* Is_trivially_destructible_edg_impl */
+
+template<>
 struct Is_trivially_copyable_edg_impl<an_ifc_type_index> :
                                                 Integral_constant<bool, true> {
 };  /* Is_trivially_copyable_edg_impl */
@@ -101,6 +106,11 @@ struct Is_trivially_destructible_edg_impl<an_ifc_attr_index> :
 
 template<>
 struct Is_trivially_destructible_edg_impl<an_ifc_decl_index> :
+                                                Integral_constant<bool, true> {
+};  /* Is_trivially_destructible_edg_impl */
+
+template<>
+struct Is_trivially_destructible_edg_impl<an_ifc_edg_complex_token_index> :
                                                 Integral_constant<bool, true> {
 };  /* Is_trivially_destructible_edg_impl */
 

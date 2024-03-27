@@ -18124,12 +18124,8 @@ Add tokens corresponding to keyword (from the given module) to cache.
       cache_token(cache, tok_is_sealed);
       break;
     case ifc_sks_msvc_has_finalizer:
-#if MICROSOFT_EXTENSIONS_ALLOWED
       cache_token(cache, tok_has_finalizer);
       break;
-#else /* !MICROSOFT_EXTENSIONS_ALLOWED */
-      goto missing_token;
-#endif /* MICROSOFT_EXTENSIONS_ALLOWED */
     case ifc_sks_msvc_has_copy:
       cache_token(cache, tok_has_copy);
       break;
@@ -23968,10 +23964,18 @@ Cache the given basic token into the given front end token cache.
 #endif /* GNU_VECTOR_TYPES_ALLOWED */
       break;
     case ifc_ebts_builtin_shufflevector:
+#if GNU_VECTOR_TYPES_ALLOWED
       cache_token(cache, tok_builtin_shufflevector);
+#else /* !GNU_VECTOR_TYPES_ALLOWED */
+      config_missing_token_error(cache, basic_token);
+#endif /* GNU_VECTOR_TYPES_ALLOWED */
       break;
     case ifc_ebts_builtin_types_compatible:
+#if GNU_EXTENSIONS_ALLOWED
       cache_token(cache, tok_builtin_types_compatible);
+#else /* !GNU_EXTENSIONS_ALLOWED */
+      config_missing_token_error(cache, basic_token);
+#endif /* GNU_EXTENSIONS_ALLOWED */
       break;
     case ifc_ebts_c11_atomic:
       cache_token(cache, tok_c11_atomic);
@@ -24319,7 +24323,11 @@ Cache the given basic token into the given front end token cache.
       cache_token(cache, tok_gnu_min);
       break;
     case ifc_ebts_gnu_real:
+#if GNU_VECTOR_TYPES_ALLOWED
       cache_token(cache, tok_gnu_real);
+#else /* !GNU_VECTOR_TYPES_ALLOWED */
+      config_missing_token_error(cache, basic_token);
+#endif /* GNU_VECTOR_TYPES_ALLOWED */
       break;
     case ifc_ebts_gnu_restrict:
       cache_token(cache, tok_gnu_restrict);
@@ -24337,7 +24345,11 @@ Cache the given basic token into the given front end token cache.
       cache_token(cache, tok_has_copy);
       break;
     case ifc_ebts_has_finalizer:
+#if MICROSOFT_EXTENSIONS_ALLOWED
       cache_token(cache, tok_has_finalizer);
+#else /* !MICROSOFT_EXTENSIONS_ALLOWED */
+      config_missing_token_error(cache, basic_token);
+#endif /* MICROSOFT_EXTENSIONS_ALLOWED */
       break;
     case ifc_ebts_has_nothrow_assign:
       cache_token(cache, tok_has_nothrow_assign);
@@ -24802,7 +24814,11 @@ Cache the given basic token into the given front end token cache.
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
       break;
     case ifc_ebts_microsoft_inline:
+#if MICROSOFT_EXTENSIONS_ALLOWED
       cache_token(cache, tok_microsoft_inline);
+#else /* !MICROSOFT_EXTENSIONS_ALLOWED */
+      config_missing_token_error(cache, basic_token);
+#endif /* MICROSOFT_EXTENSIONS_ALLOWED */
       break;
     case ifc_ebts_microsoft_lprefix:
 #if MICROSOFT_EXTENSIONS_ALLOWED
