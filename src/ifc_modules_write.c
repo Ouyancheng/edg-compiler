@@ -825,7 +825,10 @@ cache as it is constructed.  To form the token cache represented by its current
 state it should be passed to an_ifc_output_state::alloc_token_cache.
 */
 struct an_ifc_output_token_cache {
+#if 0
+  /* FIXME: See the definition below. */
   void add_basic(an_ifc_edg_basic_token_sort basic_token);
+#endif /* 0 */
   void add_complex(an_ifc_edg_complex_token_index complex_token);
 
   size_t get_num_basic_tokens() const
