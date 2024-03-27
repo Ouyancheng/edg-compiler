@@ -430,8 +430,8 @@ of this object expires (whichever is sooner).
 template<typename an_ifc_Index_type>
 static inline a_boolean index_has_locus(an_ifc_Index_type idx)
 /*
-Given an IFC index, return TRUE if index has an associated locus; otherwise,
-return FALSE.
+Given an IFC index, return TRUE if the index has an associated locus;
+otherwise, return FALSE.
 */
 {
   a_boolean result = TRUE;
