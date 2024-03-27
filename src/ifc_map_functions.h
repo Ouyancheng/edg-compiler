@@ -38,6 +38,12 @@ extern size_t get_ifc_buffer_size(an_ifc_module_file *file) DELETED_FN_DEF
 
 
 template<>
+size_t get_ifc_buffer_size<an_ifc_edg_constant_word_storage>(
+                                                     an_ifc_module_file *file);
+
+
+
+template<>
 size_t get_ifc_buffer_size<an_ifc_ieeele_float_storage>(
                                                      an_ifc_module_file *file);
 
@@ -248,6 +254,82 @@ extern a_boolean validate_sort(an_ifc_module_file               *file,
 
 extern an_ifc_dyadic_operator_sort to_universal_sort(
                                    an_ifc_dyadic_operator_sort_0_43 versioned);
+
+/*
+Functions for interacting with IFC EdgBasicTokenSort sorts.
+*/
+
+extern a_const_char* str_for(an_ifc_edg_basic_token_sort universal);
+
+extern an_ifc_encoded_edg_basic_token_sort to_encoded(
+                                        an_ifc_module_file          *file,
+                                        an_ifc_edg_basic_token_sort universal);
+
+extern a_boolean is_known_sort(an_ifc_edg_basic_token_sort_0_43 versioned);
+
+extern a_boolean validate_sort(an_ifc_module_file               *file,
+                               an_ifc_edg_basic_token_sort_0_43 versioned,
+                               const an_ifc_validation_trace    *parent);
+
+extern an_ifc_edg_basic_token_sort to_universal_sort(
+                                   an_ifc_edg_basic_token_sort_0_43 versioned);
+
+/*
+Functions for interacting with IFC EdgComplexTokenSort sorts.
+*/
+
+extern a_const_char* str_for(an_ifc_edg_complex_token_sort universal);
+
+extern an_ifc_encoded_edg_complex_token_sort to_encoded(
+                                      an_ifc_module_file            *file,
+                                      an_ifc_edg_complex_token_sort universal);
+
+extern a_boolean is_known_sort(an_ifc_edg_complex_token_sort_0_43 versioned);
+
+extern a_boolean validate_sort(an_ifc_module_file                 *file,
+                               an_ifc_edg_complex_token_sort_0_43 versioned,
+                               const an_ifc_validation_trace      *parent);
+
+extern an_ifc_edg_complex_token_sort to_universal_sort(
+                                 an_ifc_edg_complex_token_sort_0_43 versioned);
+
+/*
+Functions for interacting with IFC EdgConstantSort sorts.
+*/
+
+extern a_const_char* str_for(an_ifc_edg_constant_sort universal);
+
+extern an_ifc_encoded_edg_constant_sort to_encoded(
+                                           an_ifc_module_file       *file,
+                                           an_ifc_edg_constant_sort universal);
+
+extern a_boolean is_known_sort(an_ifc_edg_constant_sort_0_43 versioned);
+
+extern a_boolean validate_sort(an_ifc_module_file            *file,
+                               an_ifc_edg_constant_sort_0_43 versioned,
+                               const an_ifc_validation_trace *parent);
+
+extern an_ifc_edg_constant_sort to_universal_sort(
+                                      an_ifc_edg_constant_sort_0_43 versioned);
+
+/*
+Functions for interacting with IFC EdgConstantTokenSort sorts.
+*/
+
+extern a_const_char* str_for(an_ifc_edg_constant_token_sort universal);
+
+extern an_ifc_encoded_edg_constant_token_sort to_encoded(
+                                     an_ifc_module_file             *file,
+                                     an_ifc_edg_constant_token_sort universal);
+
+extern a_boolean is_known_sort(an_ifc_edg_constant_token_sort_0_43 versioned);
+
+extern a_boolean validate_sort(an_ifc_module_file                  *file,
+                               an_ifc_edg_constant_token_sort_0_43 versioned,
+                               const an_ifc_validation_trace       *parent);
+
+extern an_ifc_edg_constant_token_sort to_universal_sort(
+                                an_ifc_edg_constant_token_sort_0_43 versioned);
 
 /*
 Functions for interacting with IFC ExpansionModeSort sorts.
@@ -1079,6 +1161,53 @@ extern an_ifc_encoded_dir_index to_encoded(an_ifc_module_file *file,
                                            an_ifc_dir_index   universal);
 
 extern a_boolean is_null_index(an_ifc_dir_index universal);
+
+/*
+Functions for interacting with IFC EdgComplexTokenIndex indexes.
+*/
+
+extern an_ifc_edg_complex_token_sort_0_43 edg_complex_token_sort(
+                                an_ifc_edg_complex_token_index_0_43 versioned);
+
+extern uint32_t edg_complex_token_value(
+                                an_ifc_edg_complex_token_index_0_43 versioned);
+
+extern a_boolean validate_index(an_ifc_module_file                  *file,
+                                an_ifc_edg_complex_token_index_0_43 versioned,
+                                const an_ifc_validation_trace       *parent);
+
+extern an_ifc_edg_complex_token_index to_universal_index(
+                                an_ifc_module_file                  *file,
+                                an_ifc_edg_complex_token_index_0_43 versioned);
+
+extern an_ifc_encoded_edg_complex_token_index to_encoded(
+                                     an_ifc_module_file             *file,
+                                     an_ifc_edg_complex_token_index universal);
+
+extern a_boolean is_null_index(an_ifc_edg_complex_token_index universal);
+
+/*
+Functions for interacting with IFC EdgConstantIndex indexes.
+*/
+
+extern an_ifc_edg_constant_sort_0_43 edg_constant_sort(
+                                     an_ifc_edg_constant_index_0_43 versioned);
+
+extern uint32_t edg_constant_value(an_ifc_edg_constant_index_0_43 versioned);
+
+extern a_boolean validate_index(an_ifc_module_file             *file,
+                                an_ifc_edg_constant_index_0_43 versioned,
+                                const an_ifc_validation_trace  *parent);
+
+extern an_ifc_edg_constant_index to_universal_index(
+                                     an_ifc_module_file             *file,
+                                     an_ifc_edg_constant_index_0_43 versioned);
+
+extern an_ifc_encoded_edg_constant_index to_encoded(
+                                          an_ifc_module_file        *file,
+                                          an_ifc_edg_constant_index universal);
+
+extern a_boolean is_null_index(an_ifc_edg_constant_index universal);
 
 /*
 Functions for interacting with IFC ExprIndex indexes.
@@ -3794,6 +3923,16 @@ struct an_ifc_index_metadata<an_ifc_decl_reference> {
 
 /*
 The IFC index field has multiple return types.  This type is a metadata type
+that allows resolution of the return type for EdgHeapComplexToken nodes.
+*/
+template<>
+struct an_ifc_index_metadata<an_ifc_edg_heap_complex_token> {
+  using return_type = an_ifc_edg_complex_token_index;
+};  /* an_ifc_index_metadata */
+
+
+/*
+The IFC index field has multiple return types.  This type is a metadata type
 that allows resolution of the return type for NestableWord nodes.
 */
 template<>
@@ -4159,6 +4298,34 @@ template<>
 struct an_ifc_initializers_metadata<an_ifc_trait_function_definition> {
   using return_type = an_ifc_expr_index;
 };  /* an_ifc_initializers_metadata */
+
+
+/*
+The IFC kind field has multiple return types.  This type is a metadata type
+that allows resolution of those return types based on the respective node type.
+*/
+template<typename an_ifc_Node_type>
+struct an_ifc_kind_metadata;
+
+
+/*
+The IFC kind field has multiple return types.  This type is a metadata type
+that allows resolution of the return type for EdgTokenBasic nodes.
+*/
+template<>
+struct an_ifc_kind_metadata<an_ifc_edg_token_basic> {
+  using return_type = an_ifc_edg_basic_token_sort;
+};  /* an_ifc_kind_metadata */
+
+
+/*
+The IFC kind field has multiple return types.  This type is a metadata type
+that allows resolution of the return type for EdgTokenConstant nodes.
+*/
+template<>
+struct an_ifc_kind_metadata<an_ifc_edg_token_constant> {
+  using return_type = an_ifc_edg_constant_token_sort;
+};  /* an_ifc_kind_metadata */
 
 
 /*
@@ -7984,6 +8151,16 @@ struct an_ifc_start_metadata<an_ifc_dir_tuple> {
 
 /*
 The IFC start field has multiple return types.  This type is a metadata type
+that allows resolution of the return type for EdgConstantInteger nodes.
+*/
+template<>
+struct an_ifc_start_metadata<an_ifc_edg_constant_integer> {
+  using return_type = an_ifc_edg_constant_integer_word_offset;
+};  /* an_ifc_start_metadata */
+
+
+/*
+The IFC start field has multiple return types.  This type is a metadata type
 that allows resolution of the return type for ExprTuple nodes.
 */
 template<>
@@ -8255,6 +8432,45 @@ template<>
 struct an_ifc_target_metadata<an_ifc_type_method> {
   using return_type = an_ifc_type_index;
 };  /* an_ifc_target_metadata */
+
+
+/*
+The IFC tokens field has multiple return types.  This type is a metadata type
+that allows resolution of those return types based on the respective node type.
+*/
+template<typename an_ifc_Node_type>
+struct an_ifc_tokens_metadata;
+
+
+/*
+The IFC tokens field has multiple return types.  This type is a metadata type
+that allows resolution of the return type for EdgTokenCache nodes.
+*/
+template<>
+struct an_ifc_tokens_metadata<an_ifc_edg_token_cache> {
+  using return_type = an_ifc_edg_token_basic_offset;
+};  /* an_ifc_tokens_metadata */
+
+
+/*
+The IFC tokens field has multiple return types.  This type is a metadata type
+that allows resolution of the return type for SyntaxAsmStatement nodes.
+*/
+template<>
+struct an_ifc_tokens_metadata<an_ifc_syntax_asm_statement> {
+  using return_type = an_ifc_sentence_index;
+};  /* an_ifc_tokens_metadata */
+
+
+/*
+The IFC tokens field has multiple return types.  This type is a metadata type
+that allows resolution of the return type for SyntaxAttributeArgumentClause
+nodes.
+*/
+template<>
+struct an_ifc_tokens_metadata<an_ifc_syntax_attribute_argument_clause> {
+  using return_type = an_ifc_sentence_index;
+};  /* an_ifc_tokens_metadata */
 
 
 /*
@@ -8677,6 +8893,16 @@ that allows resolution of the return type for DeclVariable nodes.
 */
 template<>
 struct an_ifc_type_metadata<an_ifc_decl_variable> {
+  using return_type = an_ifc_type_index;
+};  /* an_ifc_type_metadata */
+
+
+/*
+The IFC type field has multiple return types.  This type is a metadata type
+that allows resolution of the return type for EdgConstantInteger nodes.
+*/
+template<>
+struct an_ifc_type_metadata<an_ifc_edg_constant_integer> {
   using return_type = an_ifc_type_index;
 };  /* an_ifc_type_metadata */
 
@@ -9874,6 +10100,16 @@ extern an_ifc_bool get_ifc_by_ref(
 
 
 template<typename an_ifc_Node_type>
+extern a_boolean has_ifc_bytes(
+                              const an_ifc_Node_type &universal) DELETED_FN_DEF
+
+
+template<typename an_ifc_Node_type>
+extern an_ifc_edg_constant_word get_ifc_bytes(
+                              const an_ifc_Node_type &universal) DELETED_FN_DEF
+
+
+template<typename an_ifc_Node_type>
 extern a_boolean has_ifc_callable(
                               const an_ifc_Node_type &universal) DELETED_FN_DEF
 
@@ -10024,6 +10260,16 @@ extern an_ifc_source_location get_ifc_comma(
 
 
 template<typename an_ifc_Node_type>
+extern a_boolean has_ifc_complex_tokens(
+                              const an_ifc_Node_type &universal) DELETED_FN_DEF
+
+
+template<typename an_ifc_Node_type>
+extern an_ifc_edg_heap_complex_token_offset get_ifc_complex_tokens(
+                              const an_ifc_Node_type &universal) DELETED_FN_DEF
+
+
+template<typename an_ifc_Node_type>
 extern a_boolean has_ifc_concept_keyword(
                               const an_ifc_Node_type &universal) DELETED_FN_DEF
 
@@ -10051,6 +10297,16 @@ extern a_boolean has_ifc_consequence(
 template<typename an_ifc_Node_type>
 extern typename an_ifc_consequence_metadata<an_ifc_Node_type>::return_type
 get_ifc_consequence(const an_ifc_Node_type &universal) DELETED_FN_DEF
+
+
+template<typename an_ifc_Node_type>
+extern a_boolean has_ifc_constant(
+                              const an_ifc_Node_type &universal) DELETED_FN_DEF
+
+
+template<typename an_ifc_Node_type>
+extern an_ifc_edg_constant_index get_ifc_constant(
+                              const an_ifc_Node_type &universal) DELETED_FN_DEF
 
 
 template<typename an_ifc_Node_type>
@@ -10920,6 +11176,15 @@ extern an_ifc_source_location get_ifc_keyword(
 
 
 template<typename an_ifc_Node_type>
+extern a_boolean has_ifc_kind(const an_ifc_Node_type &universal) DELETED_FN_DEF
+
+
+template<typename an_ifc_Node_type>
+extern typename an_ifc_kind_metadata<an_ifc_Node_type>::return_type
+get_ifc_kind(const an_ifc_Node_type &universal) DELETED_FN_DEF
+
+
+template<typename an_ifc_Node_type>
 extern a_boolean has_ifc_label(
                               const an_ifc_Node_type &universal) DELETED_FN_DEF
 
@@ -11241,6 +11506,26 @@ extern a_boolean has_ifc_nominated(
 
 template<typename an_ifc_Node_type>
 extern an_ifc_expr_index get_ifc_nominated(
+                              const an_ifc_Node_type &universal) DELETED_FN_DEF
+
+
+template<typename an_ifc_Node_type>
+extern a_boolean has_ifc_num_complex_tokens(
+                              const an_ifc_Node_type &universal) DELETED_FN_DEF
+
+
+template<typename an_ifc_Node_type>
+extern an_ifc_cardinality get_ifc_num_complex_tokens(
+                              const an_ifc_Node_type &universal) DELETED_FN_DEF
+
+
+template<typename an_ifc_Node_type>
+extern a_boolean has_ifc_num_tokens(
+                              const an_ifc_Node_type &universal) DELETED_FN_DEF
+
+
+template<typename an_ifc_Node_type>
+extern an_ifc_cardinality get_ifc_num_tokens(
                               const an_ifc_Node_type &universal) DELETED_FN_DEF
 
 
@@ -12047,6 +12332,15 @@ extern an_ifc_attr_index get_ifc_terms(
 
 
 template<typename an_ifc_Node_type>
+extern a_boolean has_ifc_text(const an_ifc_Node_type &universal) DELETED_FN_DEF
+
+
+template<typename an_ifc_Node_type>
+extern an_ifc_text_offset get_ifc_text(
+                              const an_ifc_Node_type &universal) DELETED_FN_DEF
+
+
+template<typename an_ifc_Node_type>
 extern a_boolean has_ifc_throw(
                               const an_ifc_Node_type &universal) DELETED_FN_DEF
 
@@ -12071,8 +12365,8 @@ extern a_boolean has_ifc_tokens(
 
 
 template<typename an_ifc_Node_type>
-extern an_ifc_sentence_index get_ifc_tokens(
-                              const an_ifc_Node_type &universal) DELETED_FN_DEF
+extern typename an_ifc_tokens_metadata<an_ifc_Node_type>::return_type
+get_ifc_tokens(const an_ifc_Node_type &universal) DELETED_FN_DEF
 
 
 template<typename an_ifc_Node_type>
@@ -12578,6 +12872,11 @@ extern void set_ifc_by_ref(an_ifc_Node_type        *universal,
 
 
 template<typename an_ifc_Node_type, typename an_ifc_Value_type>
+extern void set_ifc_bytes(an_ifc_Node_type        *universal,
+                          const an_ifc_Value_type &value) DELETED_FN_DEF
+
+
+template<typename an_ifc_Node_type, typename an_ifc_Value_type>
 extern void set_ifc_callable(an_ifc_Node_type        *universal,
                              const an_ifc_Value_type &value) DELETED_FN_DEF
 
@@ -12656,6 +12955,12 @@ extern void set_ifc_comma(an_ifc_Node_type        *universal,
 
 
 template<typename an_ifc_Node_type, typename an_ifc_Value_type>
+extern void set_ifc_complex_tokens(
+                             an_ifc_Node_type        *universal,
+                             const an_ifc_Value_type &value) DELETED_FN_DEF
+
+
+template<typename an_ifc_Node_type, typename an_ifc_Value_type>
 extern void set_ifc_concept_keyword(
                              an_ifc_Node_type        *universal,
                              const an_ifc_Value_type &value) DELETED_FN_DEF
@@ -12670,6 +12975,11 @@ extern void set_ifc_condition(
 template<typename an_ifc_Node_type, typename an_ifc_Value_type>
 extern void set_ifc_consequence(
                              an_ifc_Node_type        *universal,
+                             const an_ifc_Value_type &value) DELETED_FN_DEF
+
+
+template<typename an_ifc_Node_type, typename an_ifc_Value_type>
+extern void set_ifc_constant(an_ifc_Node_type        *universal,
                              const an_ifc_Value_type &value) DELETED_FN_DEF
 
 
@@ -13160,6 +13470,11 @@ extern void set_ifc_keyword(an_ifc_Node_type        *universal,
 
 
 template<typename an_ifc_Node_type, typename an_ifc_Value_type>
+extern void set_ifc_kind(an_ifc_Node_type        *universal,
+                         const an_ifc_Value_type &value) DELETED_FN_DEF
+
+
+template<typename an_ifc_Node_type, typename an_ifc_Value_type>
 extern void set_ifc_label(an_ifc_Node_type        *universal,
                           const an_ifc_Value_type &value) DELETED_FN_DEF
 
@@ -13336,6 +13651,18 @@ extern void set_ifc_noexcept_loc(
 
 template<typename an_ifc_Node_type, typename an_ifc_Value_type>
 extern void set_ifc_nominated(
+                             an_ifc_Node_type        *universal,
+                             const an_ifc_Value_type &value) DELETED_FN_DEF
+
+
+template<typename an_ifc_Node_type, typename an_ifc_Value_type>
+extern void set_ifc_num_complex_tokens(
+                             an_ifc_Node_type        *universal,
+                             const an_ifc_Value_type &value) DELETED_FN_DEF
+
+
+template<typename an_ifc_Node_type, typename an_ifc_Value_type>
+extern void set_ifc_num_tokens(
                              an_ifc_Node_type        *universal,
                              const an_ifc_Value_type &value) DELETED_FN_DEF
 
@@ -13778,6 +14105,11 @@ extern void set_ifc_template_parameters(
 template<typename an_ifc_Node_type, typename an_ifc_Value_type>
 extern void set_ifc_terms(an_ifc_Node_type        *universal,
                           const an_ifc_Value_type &value) DELETED_FN_DEF
+
+
+template<typename an_ifc_Node_type, typename an_ifc_Value_type>
+extern void set_ifc_text(an_ifc_Node_type        *universal,
+                         const an_ifc_Value_type &value) DELETED_FN_DEF
 
 
 template<typename an_ifc_Node_type, typename an_ifc_Value_type>
@@ -18701,6 +19033,358 @@ an_ifc_dir_using_storage* get<an_ifc_dir_using_storage>(
 
 template<>
 an_ifc_partition_kind get_ifc_partition_kind<an_ifc_dir_using>();
+
+
+
+template<>
+size_t get_ifc_buffer_size<an_ifc_edg_constant_integer_storage>(
+                                                     an_ifc_module_file *file);
+
+/*
+Functions for interacting with IFC EdgConstantInteger nodes.
+*/
+
+template<>
+a_boolean has_ifc_cardinality(const an_ifc_edg_constant_integer &universal);
+
+template<>
+an_ifc_cardinality get_ifc_cardinality(
+                                 const an_ifc_edg_constant_integer &universal);
+
+template<>
+a_boolean has_ifc_start(const an_ifc_edg_constant_integer &universal);
+
+template<>
+an_ifc_edg_constant_integer_word_offset get_ifc_start(
+                                 const an_ifc_edg_constant_integer &universal);
+
+template<>
+a_boolean has_ifc_type(const an_ifc_edg_constant_integer &universal);
+
+template<>
+an_ifc_type_index get_ifc_type(const an_ifc_edg_constant_integer &universal);
+
+template<>
+void set_ifc_cardinality(an_ifc_edg_constant_integer *universal,
+                         const an_ifc_cardinality    &value);
+
+template<>
+void set_ifc_start(an_ifc_edg_constant_integer                   *universal,
+                   const an_ifc_edg_constant_integer_word_offset &value);
+
+template<>
+void set_ifc_type(an_ifc_edg_constant_integer *universal,
+                  const an_ifc_type_index     &value);
+
+template<>
+a_boolean validate(const an_ifc_edg_constant_integer &universal,
+                   const an_ifc_validation_trace     *parent);
+
+#if DEBUG
+extern void db_node(const an_ifc_edg_constant_integer &universal,
+                    unsigned                          indent);
+
+extern void db_node(const an_ifc_edg_constant_integer &universal);
+#endif /* DEBUG */
+
+template<>
+an_ifc_edg_constant_integer_storage* get<an_ifc_edg_constant_integer_storage>(
+                             an_ifc_module_file                  *file,
+                             an_ifc_edg_constant_integer_storage *storage,
+                             a_boolean                           fill_storage);
+
+template<>
+an_ifc_partition_kind get_ifc_partition_kind<an_ifc_edg_constant_integer>();
+
+
+
+template<>
+size_t get_ifc_buffer_size<an_ifc_edg_constant_integer_word_storage>(
+                                                     an_ifc_module_file *file);
+
+/*
+Functions for interacting with IFC EdgConstantIntegerWord nodes.
+*/
+
+template<>
+a_boolean has_ifc_bytes(const an_ifc_edg_constant_integer_word &universal);
+
+template<>
+an_ifc_edg_constant_word get_ifc_bytes(
+                            const an_ifc_edg_constant_integer_word &universal);
+
+template<>
+void set_ifc_bytes(an_ifc_edg_constant_integer_word *universal,
+                   const an_ifc_edg_constant_word   &value);
+
+template<>
+a_boolean validate(const an_ifc_edg_constant_integer_word &universal,
+                   const an_ifc_validation_trace          *parent);
+
+#if DEBUG
+extern void db_node(const an_ifc_edg_constant_integer_word &universal,
+                    unsigned                               indent);
+
+extern void db_node(const an_ifc_edg_constant_integer_word &universal);
+#endif /* DEBUG */
+
+template<>
+an_ifc_edg_constant_integer_word_storage*
+get<an_ifc_edg_constant_integer_word_storage>(
+                        an_ifc_module_file                       *file,
+                        an_ifc_edg_constant_integer_word_storage *storage,
+                        a_boolean                                fill_storage);
+
+template<>
+an_ifc_partition_kind
+get_ifc_partition_kind<an_ifc_edg_constant_integer_word>();
+
+
+
+template<>
+size_t get_ifc_buffer_size<an_ifc_edg_heap_complex_token_storage>(
+                                                     an_ifc_module_file *file);
+
+/*
+Functions for interacting with IFC EdgHeapComplexToken nodes.
+*/
+
+template<>
+a_boolean has_ifc_index(const an_ifc_edg_heap_complex_token &universal);
+
+template<>
+an_ifc_edg_complex_token_index get_ifc_index(
+                               const an_ifc_edg_heap_complex_token &universal);
+
+template<>
+void set_ifc_index(an_ifc_edg_heap_complex_token        *universal,
+                   const an_ifc_edg_complex_token_index &value);
+
+template<>
+a_boolean validate(const an_ifc_edg_heap_complex_token &universal,
+                   const an_ifc_validation_trace       *parent);
+
+#if DEBUG
+extern void db_node(const an_ifc_edg_heap_complex_token &universal,
+                    unsigned                            indent);
+
+extern void db_node(const an_ifc_edg_heap_complex_token &universal);
+#endif /* DEBUG */
+
+template<>
+an_ifc_edg_heap_complex_token_storage*
+get<an_ifc_edg_heap_complex_token_storage>(
+                           an_ifc_module_file                    *file,
+                           an_ifc_edg_heap_complex_token_storage *storage,
+                           a_boolean                             fill_storage);
+
+template<>
+an_ifc_partition_kind get_ifc_partition_kind<an_ifc_edg_heap_complex_token>();
+
+
+
+template<>
+size_t get_ifc_buffer_size<an_ifc_edg_token_basic_storage>(
+                                                     an_ifc_module_file *file);
+
+/*
+Functions for interacting with IFC EdgTokenBasic nodes.
+*/
+
+template<>
+a_boolean has_ifc_kind(const an_ifc_edg_token_basic &universal);
+
+template<>
+an_ifc_edg_basic_token_sort get_ifc_kind(
+                                      const an_ifc_edg_token_basic &universal);
+
+template<>
+void set_ifc_kind(an_ifc_edg_token_basic            *universal,
+                  const an_ifc_edg_basic_token_sort &value);
+
+template<>
+a_boolean validate(const an_ifc_edg_token_basic  &universal,
+                   const an_ifc_validation_trace *parent);
+
+#if DEBUG
+extern void db_node(const an_ifc_edg_token_basic &universal, unsigned indent);
+
+extern void db_node(const an_ifc_edg_token_basic &universal);
+#endif /* DEBUG */
+
+template<>
+an_ifc_edg_token_basic_storage* get<an_ifc_edg_token_basic_storage>(
+                                  an_ifc_module_file             *file,
+                                  an_ifc_edg_token_basic_storage *storage,
+                                  a_boolean                      fill_storage);
+
+template<>
+an_ifc_partition_kind get_ifc_partition_kind<an_ifc_edg_token_basic>();
+
+
+
+template<>
+size_t get_ifc_buffer_size<an_ifc_edg_token_cache_storage>(
+                                                     an_ifc_module_file *file);
+
+/*
+Functions for interacting with IFC EdgTokenCache nodes.
+*/
+
+template<>
+a_boolean has_ifc_complex_tokens(const an_ifc_edg_token_cache &universal);
+
+template<>
+an_ifc_edg_heap_complex_token_offset get_ifc_complex_tokens(
+                                      const an_ifc_edg_token_cache &universal);
+
+template<>
+a_boolean has_ifc_num_complex_tokens(const an_ifc_edg_token_cache &universal);
+
+template<>
+an_ifc_cardinality get_ifc_num_complex_tokens(
+                                      const an_ifc_edg_token_cache &universal);
+
+template<>
+a_boolean has_ifc_num_tokens(const an_ifc_edg_token_cache &universal);
+
+template<>
+an_ifc_cardinality get_ifc_num_tokens(const an_ifc_edg_token_cache &universal);
+
+template<>
+a_boolean has_ifc_tokens(const an_ifc_edg_token_cache &universal);
+
+template<>
+an_ifc_edg_token_basic_offset get_ifc_tokens(
+                                      const an_ifc_edg_token_cache &universal);
+
+template<>
+void set_ifc_complex_tokens(
+                        an_ifc_edg_token_cache                     *universal,
+                        const an_ifc_edg_heap_complex_token_offset &value);
+
+template<>
+void set_ifc_num_complex_tokens(an_ifc_edg_token_cache   *universal,
+                                const an_ifc_cardinality &value);
+
+template<>
+void set_ifc_num_tokens(an_ifc_edg_token_cache   *universal,
+                        const an_ifc_cardinality &value);
+
+template<>
+void set_ifc_tokens(an_ifc_edg_token_cache              *universal,
+                    const an_ifc_edg_token_basic_offset &value);
+
+template<>
+a_boolean validate(const an_ifc_edg_token_cache  &universal,
+                   const an_ifc_validation_trace *parent);
+
+#if DEBUG
+extern void db_node(const an_ifc_edg_token_cache &universal, unsigned indent);
+
+extern void db_node(const an_ifc_edg_token_cache &universal);
+#endif /* DEBUG */
+
+template<>
+an_ifc_edg_token_cache_storage* get<an_ifc_edg_token_cache_storage>(
+                                  an_ifc_module_file             *file,
+                                  an_ifc_edg_token_cache_storage *storage,
+                                  a_boolean                      fill_storage);
+
+template<>
+an_ifc_partition_kind get_ifc_partition_kind<an_ifc_edg_token_cache>();
+
+
+
+template<>
+size_t get_ifc_buffer_size<an_ifc_edg_token_constant_storage>(
+                                                     an_ifc_module_file *file);
+
+/*
+Functions for interacting with IFC EdgTokenConstant nodes.
+*/
+
+template<>
+a_boolean has_ifc_constant(const an_ifc_edg_token_constant &universal);
+
+template<>
+an_ifc_edg_constant_index get_ifc_constant(
+                                   const an_ifc_edg_token_constant &universal);
+
+template<>
+a_boolean has_ifc_kind(const an_ifc_edg_token_constant &universal);
+
+template<>
+an_ifc_edg_constant_token_sort get_ifc_kind(
+                                   const an_ifc_edg_token_constant &universal);
+
+template<>
+void set_ifc_constant(an_ifc_edg_token_constant       *universal,
+                      const an_ifc_edg_constant_index &value);
+
+template<>
+void set_ifc_kind(an_ifc_edg_token_constant            *universal,
+                  const an_ifc_edg_constant_token_sort &value);
+
+template<>
+a_boolean validate(const an_ifc_edg_token_constant &universal,
+                   const an_ifc_validation_trace   *parent);
+
+#if DEBUG
+extern void db_node(const an_ifc_edg_token_constant &universal,
+                    unsigned                        indent);
+
+extern void db_node(const an_ifc_edg_token_constant &universal);
+#endif /* DEBUG */
+
+template<>
+an_ifc_edg_token_constant_storage* get<an_ifc_edg_token_constant_storage>(
+                               an_ifc_module_file                *file,
+                               an_ifc_edg_token_constant_storage *storage,
+                               a_boolean                         fill_storage);
+
+template<>
+an_ifc_partition_kind get_ifc_partition_kind<an_ifc_edg_token_constant>();
+
+
+
+template<>
+size_t get_ifc_buffer_size<an_ifc_edg_token_identifier_storage>(
+                                                     an_ifc_module_file *file);
+
+/*
+Functions for interacting with IFC EdgTokenIdentifier nodes.
+*/
+
+template<>
+a_boolean has_ifc_text(const an_ifc_edg_token_identifier &universal);
+
+template<>
+an_ifc_text_offset get_ifc_text(const an_ifc_edg_token_identifier &universal);
+
+template<>
+void set_ifc_text(an_ifc_edg_token_identifier *universal,
+                  const an_ifc_text_offset    &value);
+
+template<>
+a_boolean validate(const an_ifc_edg_token_identifier &universal,
+                   const an_ifc_validation_trace     *parent);
+
+#if DEBUG
+extern void db_node(const an_ifc_edg_token_identifier &universal,
+                    unsigned                          indent);
+
+extern void db_node(const an_ifc_edg_token_identifier &universal);
+#endif /* DEBUG */
+
+template<>
+an_ifc_edg_token_identifier_storage* get<an_ifc_edg_token_identifier_storage>(
+                             an_ifc_module_file                  *file,
+                             an_ifc_edg_token_identifier_storage *storage,
+                             a_boolean                           fill_storage);
+
+template<>
+an_ifc_partition_kind get_ifc_partition_kind<an_ifc_edg_token_identifier>();
 
 
 
@@ -35951,6 +36635,95 @@ template<>
 an_ifc_partition_kind get_ifc_partition_kind<an_ifc_type_unaligned>();
 
 /*
+Functions for interacting with IFC EdgConstantIntegerWordOffset offsets.
+*/
+
+extern an_ifc_encoded_edg_constant_integer_word_offset to_encoded(
+                            an_ifc_module_file                      *file,
+                            an_ifc_edg_constant_integer_word_offset universal);
+
+extern a_boolean is_null_index(
+                            an_ifc_edg_constant_integer_word_offset universal);
+
+template<>
+an_ifc_partition_kind
+get_ifc_partition_kind<an_ifc_edg_constant_integer_word_offset>();
+
+extern a_boolean validate_offset(
+                       an_ifc_module_file                           *file,
+                       an_ifc_edg_constant_integer_word_offset_0_43 versioned,
+                       const an_ifc_validation_trace                *parent);
+
+extern an_ifc_edg_constant_integer_word_offset to_universal_offset(
+                       an_ifc_module_file                           *file,
+                       an_ifc_edg_constant_integer_word_offset_0_43 versioned);
+
+/*
+Functions for interacting with IFC EdgHeapComplexTokenOffset offsets.
+*/
+
+extern an_ifc_encoded_edg_heap_complex_token_offset to_encoded(
+                               an_ifc_module_file                   *file,
+                               an_ifc_edg_heap_complex_token_offset universal);
+
+extern a_boolean is_null_index(an_ifc_edg_heap_complex_token_offset universal);
+
+template<>
+an_ifc_partition_kind
+get_ifc_partition_kind<an_ifc_edg_heap_complex_token_offset>();
+
+extern a_boolean validate_offset(
+                          an_ifc_module_file                        *file,
+                          an_ifc_edg_heap_complex_token_offset_0_43 versioned,
+                          const an_ifc_validation_trace             *parent);
+
+extern an_ifc_edg_heap_complex_token_offset to_universal_offset(
+                          an_ifc_module_file                        *file,
+                          an_ifc_edg_heap_complex_token_offset_0_43 versioned);
+
+/*
+Functions for interacting with IFC EdgTokenBasicOffset offsets.
+*/
+
+extern an_ifc_encoded_edg_token_basic_offset to_encoded(
+                                      an_ifc_module_file            *file,
+                                      an_ifc_edg_token_basic_offset universal);
+
+extern a_boolean is_null_index(an_ifc_edg_token_basic_offset universal);
+
+template<>
+an_ifc_partition_kind get_ifc_partition_kind<an_ifc_edg_token_basic_offset>();
+
+extern a_boolean validate_offset(an_ifc_module_file                 *file,
+                                 an_ifc_edg_token_basic_offset_0_43 versioned,
+                                 const an_ifc_validation_trace      *parent);
+
+extern an_ifc_edg_token_basic_offset to_universal_offset(
+                                 an_ifc_module_file                 *file,
+                                 an_ifc_edg_token_basic_offset_0_43 versioned);
+
+/*
+Functions for interacting with IFC EdgTokenCacheOffset offsets.
+*/
+
+extern an_ifc_encoded_edg_token_cache_offset to_encoded(
+                                      an_ifc_module_file            *file,
+                                      an_ifc_edg_token_cache_offset universal);
+
+extern a_boolean is_null_index(an_ifc_edg_token_cache_offset universal);
+
+template<>
+an_ifc_partition_kind get_ifc_partition_kind<an_ifc_edg_token_cache_offset>();
+
+extern a_boolean validate_offset(an_ifc_module_file                 *file,
+                                 an_ifc_edg_token_cache_offset_0_43 versioned,
+                                 const an_ifc_validation_trace      *parent);
+
+extern an_ifc_edg_token_cache_offset to_universal_offset(
+                                 an_ifc_module_file                 *file,
+                                 an_ifc_edg_token_cache_offset_0_43 versioned);
+
+/*
 Functions for interacting with IFC ExprNamedDeclOffset offsets.
 */
 
@@ -36056,6 +36829,16 @@ extern a_boolean is_dir_sort(an_ifc_partition_kind kind);
 
 extern an_ifc_dir_sort to_dir_sort(an_ifc_partition_kind kind);
 
+extern a_boolean is_edg_complex_token_sort(an_ifc_partition_kind kind);
+
+extern an_ifc_edg_complex_token_sort to_edg_complex_token_sort(
+                                                   an_ifc_partition_kind kind);
+
+extern a_boolean is_edg_constant_sort(an_ifc_partition_kind kind);
+
+extern an_ifc_edg_constant_sort to_edg_constant_sort(
+                                                   an_ifc_partition_kind kind);
+
 extern a_boolean is_expr_sort(an_ifc_partition_kind kind);
 
 extern an_ifc_expr_sort to_expr_sort(an_ifc_partition_kind kind);
@@ -36103,6 +36886,15 @@ extern an_ifc_partition_kind to_partition_kind(an_ifc_decl_sort sort);
 extern a_boolean has_partition_kind(an_ifc_dir_sort sort);
 
 extern an_ifc_partition_kind to_partition_kind(an_ifc_dir_sort sort);
+
+extern a_boolean has_partition_kind(an_ifc_edg_complex_token_sort sort);
+
+extern an_ifc_partition_kind to_partition_kind(
+                                           an_ifc_edg_complex_token_sort sort);
+
+extern a_boolean has_partition_kind(an_ifc_edg_constant_sort sort);
+
+extern an_ifc_partition_kind to_partition_kind(an_ifc_edg_constant_sort sort);
 
 extern a_boolean has_partition_kind(an_ifc_expr_sort sort);
 
@@ -36232,6 +37024,18 @@ extern void db_node_at_idx(an_ifc_chart_index idx);
 extern void db_node_at_idx(an_ifc_decl_index idx);
 
 extern void db_node_at_idx(an_ifc_dir_index idx);
+
+extern void db_node_at_idx(an_ifc_edg_complex_token_index idx);
+
+extern void db_node_at_idx(an_ifc_edg_constant_index idx);
+
+extern void db_node_at_idx(an_ifc_edg_constant_integer_word_offset idx);
+
+extern void db_node_at_idx(an_ifc_edg_heap_complex_token_offset idx);
+
+extern void db_node_at_idx(an_ifc_edg_token_basic_offset idx);
+
+extern void db_node_at_idx(an_ifc_edg_token_cache_offset idx);
 
 extern void db_node_at_idx(an_ifc_expr_index idx);
 

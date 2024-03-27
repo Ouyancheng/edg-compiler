@@ -30,6 +30,34 @@ BEGIN_DISABLE_GCC_WARNING_MAYBE_UNITIALIZED
 
 
 /*
+Explicit specializations of functions for EdgConstantIntegerWordOffset.
+*/
+SPEC_OFFSET_PARTITION_KIND(an_ifc_edg_constant_integer_word_offset)
+SPEC_OFFSET_PARTITION_INDEX(an_ifc_edg_constant_integer_word_offset)
+
+
+/*
+Explicit specializations of functions for EdgHeapComplexTokenOffset.
+*/
+SPEC_OFFSET_PARTITION_KIND(an_ifc_edg_heap_complex_token_offset)
+SPEC_OFFSET_PARTITION_INDEX(an_ifc_edg_heap_complex_token_offset)
+
+
+/*
+Explicit specializations of functions for EdgTokenBasicOffset.
+*/
+SPEC_OFFSET_PARTITION_KIND(an_ifc_edg_token_basic_offset)
+SPEC_OFFSET_PARTITION_INDEX(an_ifc_edg_token_basic_offset)
+
+
+/*
+Explicit specializations of functions for EdgTokenCacheOffset.
+*/
+SPEC_OFFSET_PARTITION_KIND(an_ifc_edg_token_cache_offset)
+SPEC_OFFSET_PARTITION_INDEX(an_ifc_edg_token_cache_offset)
+
+
+/*
 Explicit specializations of functions for ExprNamedDeclOffset.
 */
 SPEC_OFFSET_PARTITION_KIND(an_ifc_expr_named_decl_offset)

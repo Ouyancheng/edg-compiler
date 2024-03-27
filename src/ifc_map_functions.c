@@ -68,6 +68,21 @@ supported, otherwise return FALSE.
 
 
 template<>
+size_t get_ifc_buffer_size<an_ifc_edg_constant_word_storage>(
+                                                      an_ifc_module_file *file)
+/*
+Given the associated module file, return the number of bytes required for an
+IFC EdgConstantWord node.
+*/
+{
+  size_t result;
+
+  result = 4;
+  return result;
+}  /* get_ifc_buffer_size */
+
+
+template<>
 size_t get_ifc_buffer_size<an_ifc_ieeele_float_storage>(
                                                       an_ifc_module_file *file)
 /*
@@ -3114,6 +3129,3945 @@ corresponding universal representation.
       break;
     default:
       unexpected_condition_str("Invalid value for a DyadicOperatorSort.");
+      break;
+  }  /* switch */
+  return result;
+}  /* to_universal_sort */
+
+
+/*
+Functions for interacting with IFC EdgBasicTokenSort sorts.
+*/
+
+
+a_const_char* str_for(an_ifc_edg_basic_token_sort universal)
+/*
+Given the universal representation of EdgBasicTokenSort, return the textual
+name in the form of a c-string.
+*/
+{
+  a_const_char *result;
+
+  switch (universal) {
+    case ifc_ebts_abstract:
+      result = "EdgBasicTokenSort::Abstract";
+      break;
+    case ifc_ebts_accum:
+      result = "EdgBasicTokenSort::Accum";
+      break;
+    case ifc_ebts_add_lvalue_reference:
+      result = "EdgBasicTokenSort::AddLvalueReference";
+      break;
+    case ifc_ebts_add_pointer:
+      result = "EdgBasicTokenSort::AddPointer";
+      break;
+    case ifc_ebts_add_rvalue_reference:
+      result = "EdgBasicTokenSort::AddRvalueReference";
+      break;
+    case ifc_ebts_alignas:
+      result = "EdgBasicTokenSort::Alignas";
+      break;
+    case ifc_ebts_alignof:
+      result = "EdgBasicTokenSort::Alignof";
+      break;
+    case ifc_ebts_ampersand:
+      result = "EdgBasicTokenSort::Ampersand";
+      break;
+    case ifc_ebts_and_and:
+      result = "EdgBasicTokenSort::AndAnd";
+      break;
+    case ifc_ebts_and_assign:
+      result = "EdgBasicTokenSort::AndAssign";
+      break;
+    case ifc_ebts_array_extent:
+      result = "EdgBasicTokenSort::ArrayExtent";
+      break;
+    case ifc_ebts_array_rank:
+      result = "EdgBasicTokenSort::ArrayRank";
+      break;
+    case ifc_ebts_arrow:
+      result = "EdgBasicTokenSort::Arrow";
+      break;
+    case ifc_ebts_arrow_star:
+      result = "EdgBasicTokenSort::ArrowStar";
+      break;
+    case ifc_ebts_asm:
+      result = "EdgBasicTokenSort::Asm";
+      break;
+    case ifc_ebts_assign:
+      result = "EdgBasicTokenSort::Assign";
+      break;
+    case ifc_ebts_assume:
+      result = "EdgBasicTokenSort::Assume";
+      break;
+    case ifc_ebts_attribute:
+      result = "EdgBasicTokenSort::Attribute";
+      break;
+    case ifc_ebts_auto:
+      result = "EdgBasicTokenSort::Auto";
+      break;
+    case ifc_ebts_auto_type:
+      result = "EdgBasicTokenSort::AutoType";
+      break;
+    case ifc_ebts_based:
+      result = "EdgBasicTokenSort::Based";
+      break;
+    case ifc_ebts_bases:
+      result = "EdgBasicTokenSort::Bases";
+      break;
+    case ifc_ebts_bool:
+      result = "EdgBasicTokenSort::Bool";
+      break;
+    case ifc_ebts_break:
+      result = "EdgBasicTokenSort::Break";
+      break;
+    case ifc_ebts_builtin_addressof:
+      result = "EdgBasicTokenSort::BuiltinAddressof";
+      break;
+    case ifc_ebts_builtin_bit_cast:
+      result = "EdgBasicTokenSort::BuiltinBitCast";
+      break;
+    case ifc_ebts_builtin_complex:
+      result = "EdgBasicTokenSort::BuiltinComplex";
+      break;
+    case ifc_ebts_builtin_convertvector:
+      result = "EdgBasicTokenSort::BuiltinConvertvector";
+      break;
+    case ifc_ebts_builtin_has_attribute:
+      result = "EdgBasicTokenSort::BuiltinHasAttribute";
+      break;
+    case ifc_ebts_builtin_is_corresponding_member:
+      result = "EdgBasicTokenSort::BuiltinIsCorrespondingMember";
+      break;
+    case ifc_ebts_builtin_is_pointer_interconvertible_with_class:
+      result = "EdgBasicTokenSort::BuiltinIsPointerInterconvertibleWithClass";
+      break;
+    case ifc_ebts_builtin_offsetof:
+      result = "EdgBasicTokenSort::BuiltinOffsetof";
+      break;
+    case ifc_ebts_builtin_shuffle:
+      result = "EdgBasicTokenSort::BuiltinShuffle";
+      break;
+    case ifc_ebts_builtin_shufflevector:
+      result = "EdgBasicTokenSort::BuiltinShufflevector";
+      break;
+    case ifc_ebts_builtin_types_compatible:
+      result = "EdgBasicTokenSort::BuiltinTypesCompatible";
+      break;
+    case ifc_ebts_c11_atomic:
+      result = "EdgBasicTokenSort::C11Atomic";
+      break;
+    case ifc_ebts_c11_generic:
+      result = "EdgBasicTokenSort::C11Generic";
+      break;
+    case ifc_ebts_c11_thread_local:
+      result = "EdgBasicTokenSort::C11ThreadLocal";
+      break;
+    case ifc_ebts_c99_bool:
+      result = "EdgBasicTokenSort::C99Bool";
+      break;
+    case ifc_ebts_c99_complex:
+      result = "EdgBasicTokenSort::C99Complex";
+      break;
+    case ifc_ebts_c99_generic:
+      result = "EdgBasicTokenSort::C99Generic";
+      break;
+    case ifc_ebts_c99_genericfx:
+      result = "EdgBasicTokenSort::C99Genericfx";
+      break;
+    case ifc_ebts_c99_imaginary:
+      result = "EdgBasicTokenSort::C99Imaginary";
+      break;
+    case ifc_ebts_case:
+      result = "EdgBasicTokenSort::Case";
+      break;
+    case ifc_ebts_catch:
+      result = "EdgBasicTokenSort::Catch";
+      break;
+    case ifc_ebts_cdecl:
+      result = "EdgBasicTokenSort::Cdecl";
+      break;
+    case ifc_ebts_char:
+      result = "EdgBasicTokenSort::Char";
+      break;
+    case ifc_ebts_char16_t:
+      result = "EdgBasicTokenSort::Char16T";
+      break;
+    case ifc_ebts_char32_t:
+      result = "EdgBasicTokenSort::Char32T";
+      break;
+    case ifc_ebts_char8_t:
+      result = "EdgBasicTokenSort::Char8T";
+      break;
+    case ifc_ebts_charize:
+      result = "EdgBasicTokenSort::Charize";
+      break;
+    case ifc_ebts_clang_version:
+      result = "EdgBasicTokenSort::ClangVersion";
+      break;
+    case ifc_ebts_class:
+      result = "EdgBasicTokenSort::Class";
+      break;
+    case ifc_ebts_clrcall:
+      result = "EdgBasicTokenSort::Clrcall";
+      break;
+    case ifc_ebts_colon:
+      result = "EdgBasicTokenSort::Colon";
+      break;
+    case ifc_ebts_colon_colon:
+      result = "EdgBasicTokenSort::ColonColon";
+      break;
+    case ifc_ebts_comma:
+      result = "EdgBasicTokenSort::Comma";
+      break;
+    case ifc_ebts_compl:
+      result = "EdgBasicTokenSort::Compl";
+      break;
+    case ifc_ebts_complex:
+      result = "EdgBasicTokenSort::Complex";
+      break;
+    case ifc_ebts_concept:
+      result = "EdgBasicTokenSort::Concept";
+      break;
+    case ifc_ebts_const:
+      result = "EdgBasicTokenSort::Const";
+      break;
+    case ifc_ebts_const_cast:
+      result = "EdgBasicTokenSort::ConstCast";
+      break;
+    case ifc_ebts_consteval:
+      result = "EdgBasicTokenSort::Consteval";
+      break;
+    case ifc_ebts_constexpr:
+      result = "EdgBasicTokenSort::Constexpr";
+      break;
+    case ifc_ebts_constinit:
+      result = "EdgBasicTokenSort::Constinit";
+      break;
+    case ifc_ebts_continue:
+      result = "EdgBasicTokenSort::Continue";
+      break;
+    case ifc_ebts_coroutine_await:
+      result = "EdgBasicTokenSort::CoroutineAwait";
+      break;
+    case ifc_ebts_coroutine_return:
+      result = "EdgBasicTokenSort::CoroutineReturn";
+      break;
+    case ifc_ebts_coroutine_yield:
+      result = "EdgBasicTokenSort::CoroutineYield";
+      break;
+    case ifc_ebts_cpp98_export:
+      result = "EdgBasicTokenSort::Cpp98Export";
+      break;
+    case ifc_ebts_decay:
+      result = "EdgBasicTokenSort::Decay";
+      break;
+    case ifc_ebts_decltype:
+      result = "EdgBasicTokenSort::Decltype";
+      break;
+    case ifc_ebts_decorated_function_name:
+      result = "EdgBasicTokenSort::DecoratedFunctionName";
+      break;
+    case ifc_ebts_default:
+      result = "EdgBasicTokenSort::Default";
+      break;
+    case ifc_ebts_delete:
+      result = "EdgBasicTokenSort::Delete";
+      break;
+    case ifc_ebts_direct_bases:
+      result = "EdgBasicTokenSort::DirectBases";
+      break;
+    case ifc_ebts_divide:
+      result = "EdgBasicTokenSort::Divide";
+      break;
+    case ifc_ebts_divide_assign:
+      result = "EdgBasicTokenSort::DivideAssign";
+      break;
+    case ifc_ebts_do:
+      result = "EdgBasicTokenSort::Do";
+      break;
+    case ifc_ebts_double:
+      result = "EdgBasicTokenSort::Double";
+      break;
+    case ifc_ebts_dynamic_cast:
+      result = "EdgBasicTokenSort::DynamicCast";
+      break;
+    case ifc_ebts_edg_bool_type:
+      result = "EdgBasicTokenSort::EdgBoolType";
+      break;
+    case ifc_ebts_edg_internal_opnd:
+      result = "EdgBasicTokenSort::EdgInternalOpnd";
+      break;
+    case ifc_ebts_edg_internal_type:
+      result = "EdgBasicTokenSort::EdgInternalType";
+      break;
+    case ifc_ebts_edg_is_deducible:
+      result = "EdgBasicTokenSort::EdgIsDeducible";
+      break;
+    case ifc_ebts_edg_ptrdiff_type:
+      result = "EdgBasicTokenSort::EdgPtrdiffType";
+      break;
+    case ifc_ebts_edg_size_type:
+      result = "EdgBasicTokenSort::EdgSizeType";
+      break;
+    case ifc_ebts_edg_throw:
+      result = "EdgBasicTokenSort::EdgThrow";
+      break;
+    case ifc_ebts_edg_vector_type:
+      result = "EdgBasicTokenSort::EdgVectorType";
+      break;
+    case ifc_ebts_edg_wchar_type:
+      result = "EdgBasicTokenSort::EdgWcharType";
+      break;
+    case ifc_ebts_ellipsis:
+      result = "EdgBasicTokenSort::Ellipsis";
+      break;
+    case ifc_ebts_else:
+      result = "EdgBasicTokenSort::Else";
+      break;
+    case ifc_ebts_end_of_if_exists:
+      result = "EdgBasicTokenSort::EndOfIfExists";
+      break;
+    case ifc_ebts_enum:
+      result = "EdgBasicTokenSort::Enum";
+      break;
+    case ifc_ebts_enum_class:
+      result = "EdgBasicTokenSort::EnumClass";
+      break;
+    case ifc_ebts_enum_struct:
+      result = "EdgBasicTokenSort::EnumStruct";
+      break;
+    case ifc_ebts_eq:
+      result = "EdgBasicTokenSort::Eq";
+      break;
+    case ifc_ebts_event:
+      result = "EdgBasicTokenSort::Event";
+      break;
+    case ifc_ebts_except:
+      result = "EdgBasicTokenSort::Except";
+      break;
+    case ifc_ebts_excl_or:
+      result = "EdgBasicTokenSort::ExclOr";
+      break;
+    case ifc_ebts_excl_or_assign:
+      result = "EdgBasicTokenSort::ExclOrAssign";
+      break;
+    case ifc_ebts_explicit:
+      result = "EdgBasicTokenSort::Explicit";
+      break;
+    case ifc_ebts_export:
+      result = "EdgBasicTokenSort::Export";
+      break;
+    case ifc_ebts_export_keyword:
+      result = "EdgBasicTokenSort::ExportKeyword";
+      break;
+    case ifc_ebts_ext_alignof:
+      result = "EdgBasicTokenSort::ExtAlignof";
+      break;
+    case ifc_ebts_extension:
+      result = "EdgBasicTokenSort::Extension";
+      break;
+    case ifc_ebts_extern:
+      result = "EdgBasicTokenSort::Extern";
+      break;
+    case ifc_ebts_false:
+      result = "EdgBasicTokenSort::False";
+      break;
+    case ifc_ebts_far:
+      result = "EdgBasicTokenSort::Far";
+      break;
+    case ifc_ebts_fastcall:
+      result = "EdgBasicTokenSort::Fastcall";
+      break;
+    case ifc_ebts_final:
+      result = "EdgBasicTokenSort::Final";
+      break;
+    case ifc_ebts_finally:
+      result = "EdgBasicTokenSort::Finally";
+      break;
+    case ifc_ebts_float:
+      result = "EdgBasicTokenSort::Float";
+      break;
+    case ifc_ebts_float128:
+      result = "EdgBasicTokenSort::Float128";
+      break;
+    case ifc_ebts_float32:
+      result = "EdgBasicTokenSort::Float32";
+      break;
+    case ifc_ebts_float32x:
+      result = "EdgBasicTokenSort::Float32x";
+      break;
+    case ifc_ebts_float64:
+      result = "EdgBasicTokenSort::Float64";
+      break;
+    case ifc_ebts_float64x:
+      result = "EdgBasicTokenSort::Float64x";
+      break;
+    case ifc_ebts_for:
+      result = "EdgBasicTokenSort::For";
+      break;
+    case ifc_ebts_for_each:
+      result = "EdgBasicTokenSort::ForEach";
+      break;
+    case ifc_ebts_forceinline:
+      result = "EdgBasicTokenSort::Forceinline";
+      break;
+    case ifc_ebts_fract:
+      result = "EdgBasicTokenSort::Fract";
+      break;
+    case ifc_ebts_friend:
+      result = "EdgBasicTokenSort::Friend";
+      break;
+    case ifc_ebts_func_name:
+      result = "EdgBasicTokenSort::FuncName";
+      break;
+    case ifc_ebts_function_name:
+      result = "EdgBasicTokenSort::FunctionName";
+      break;
+    case ifc_ebts_gcnew:
+      result = "EdgBasicTokenSort::Gcnew";
+      break;
+    case ifc_ebts_ge:
+      result = "EdgBasicTokenSort::Ge";
+      break;
+    case ifc_ebts_global_link_scope:
+      result = "EdgBasicTokenSort::GlobalLinkScope";
+      break;
+    case ifc_ebts_gnu_imag:
+      result = "EdgBasicTokenSort::GnuImag";
+      break;
+    case ifc_ebts_gnu_max:
+      result = "EdgBasicTokenSort::GnuMax";
+      break;
+    case ifc_ebts_gnu_min:
+      result = "EdgBasicTokenSort::GnuMin";
+      break;
+    case ifc_ebts_gnu_real:
+      result = "EdgBasicTokenSort::GnuReal";
+      break;
+    case ifc_ebts_gnu_restrict:
+      result = "EdgBasicTokenSort::GnuRestrict";
+      break;
+    case ifc_ebts_goto:
+      result = "EdgBasicTokenSort::Goto";
+      break;
+    case ifc_ebts_gt:
+      result = "EdgBasicTokenSort::Gt";
+      break;
+    case ifc_ebts_has_assign:
+      result = "EdgBasicTokenSort::HasAssign";
+      break;
+    case ifc_ebts_has_copy:
+      result = "EdgBasicTokenSort::HasCopy";
+      break;
+    case ifc_ebts_has_finalizer:
+      result = "EdgBasicTokenSort::HasFinalizer";
+      break;
+    case ifc_ebts_has_nothrow_assign:
+      result = "EdgBasicTokenSort::HasNothrowAssign";
+      break;
+    case ifc_ebts_has_nothrow_constructor:
+      result = "EdgBasicTokenSort::HasNothrowConstructor";
+      break;
+    case ifc_ebts_has_nothrow_copy:
+      result = "EdgBasicTokenSort::HasNothrowCopy";
+      break;
+    case ifc_ebts_has_nothrow_move_assign:
+      result = "EdgBasicTokenSort::HasNothrowMoveAssign";
+      break;
+    case ifc_ebts_has_trivial_assign:
+      result = "EdgBasicTokenSort::HasTrivialAssign";
+      break;
+    case ifc_ebts_has_trivial_constructor:
+      result = "EdgBasicTokenSort::HasTrivialConstructor";
+      break;
+    case ifc_ebts_has_trivial_copy:
+      result = "EdgBasicTokenSort::HasTrivialCopy";
+      break;
+    case ifc_ebts_has_trivial_destructor:
+      result = "EdgBasicTokenSort::HasTrivialDestructor";
+      break;
+    case ifc_ebts_has_trivial_move_assign:
+      result = "EdgBasicTokenSort::HasTrivialMoveAssign";
+      break;
+    case ifc_ebts_has_trivial_move_constructor:
+      result = "EdgBasicTokenSort::HasTrivialMoveConstructor";
+      break;
+    case ifc_ebts_has_unique_object_representations:
+      result = "EdgBasicTokenSort::HasUniqueObjectRepresentations";
+      break;
+    case ifc_ebts_has_user_destructor:
+      result = "EdgBasicTokenSort::HasUserDestructor";
+      break;
+    case ifc_ebts_has_virtual_destructor:
+      result = "EdgBasicTokenSort::HasVirtualDestructor";
+      break;
+    case ifc_ebts_hidden_link_scope:
+      result = "EdgBasicTokenSort::HiddenLinkScope";
+      break;
+    case ifc_ebts_if:
+      result = "EdgBasicTokenSort::If";
+      break;
+    case ifc_ebts_if_exists:
+      result = "EdgBasicTokenSort::IfExists";
+      break;
+    case ifc_ebts_if_not_exists:
+      result = "EdgBasicTokenSort::IfNotExists";
+      break;
+    case ifc_ebts_imaginary_unit:
+      result = "EdgBasicTokenSort::ImaginaryUnit";
+      break;
+    case ifc_ebts_implements:
+      result = "EdgBasicTokenSort::Implements";
+      break;
+    case ifc_ebts_import:
+      result = "EdgBasicTokenSort::Import";
+      break;
+    case ifc_ebts_in:
+      result = "EdgBasicTokenSort::In";
+      break;
+    case ifc_ebts_infinity:
+      result = "EdgBasicTokenSort::Infinity";
+      break;
+    case ifc_ebts_inline:
+      result = "EdgBasicTokenSort::Inline";
+      break;
+    case ifc_ebts_int:
+      result = "EdgBasicTokenSort::Int";
+      break;
+    case ifc_ebts_int128:
+      result = "EdgBasicTokenSort::Int128";
+      break;
+    case ifc_ebts_int16:
+      result = "EdgBasicTokenSort::Int16";
+      break;
+    case ifc_ebts_int32:
+      result = "EdgBasicTokenSort::Int32";
+      break;
+    case ifc_ebts_int64:
+      result = "EdgBasicTokenSort::Int64";
+      break;
+    case ifc_ebts_int8:
+      result = "EdgBasicTokenSort::Int8";
+      break;
+    case ifc_ebts_intaddr:
+      result = "EdgBasicTokenSort::Intaddr";
+      break;
+    case ifc_ebts_integer_pack:
+      result = "EdgBasicTokenSort::IntegerPack";
+      break;
+    case ifc_ebts_interface:
+      result = "EdgBasicTokenSort::Interface";
+      break;
+    case ifc_ebts_interface_class:
+      result = "EdgBasicTokenSort::InterfaceClass";
+      break;
+    case ifc_ebts_interface_struct:
+      result = "EdgBasicTokenSort::InterfaceStruct";
+      break;
+    case ifc_ebts_internal_alias_decl:
+      result = "EdgBasicTokenSort::InternalAliasDecl";
+      break;
+    case ifc_ebts_is_abstract:
+      result = "EdgBasicTokenSort::IsAbstract";
+      break;
+    case ifc_ebts_is_aggregate:
+      result = "EdgBasicTokenSort::IsAggregate";
+      break;
+    case ifc_ebts_is_arithmetic:
+      result = "EdgBasicTokenSort::IsArithmetic";
+      break;
+    case ifc_ebts_is_array:
+      result = "EdgBasicTokenSort::IsArray";
+      break;
+    case ifc_ebts_is_assignable:
+      result = "EdgBasicTokenSort::IsAssignable";
+      break;
+    case ifc_ebts_is_assignable_no_precondition_check:
+      result = "EdgBasicTokenSort::IsAssignableNoPreconditionCheck";
+      break;
+    case ifc_ebts_is_base_of:
+      result = "EdgBasicTokenSort::IsBaseOf";
+      break;
+    case ifc_ebts_is_bounded_array:
+      result = "EdgBasicTokenSort::IsBoundedArray";
+      break;
+    case ifc_ebts_is_class:
+      result = "EdgBasicTokenSort::IsClass";
+      break;
+    case ifc_ebts_is_complete_type:
+      result = "EdgBasicTokenSort::IsCompleteType";
+      break;
+    case ifc_ebts_is_compound:
+      result = "EdgBasicTokenSort::IsCompound";
+      break;
+    case ifc_ebts_is_const:
+      result = "EdgBasicTokenSort::IsConst";
+      break;
+    case ifc_ebts_is_constructible:
+      result = "EdgBasicTokenSort::IsConstructible";
+      break;
+    case ifc_ebts_is_convertible:
+      result = "EdgBasicTokenSort::IsConvertible";
+      break;
+    case ifc_ebts_is_convertible_to:
+      result = "EdgBasicTokenSort::IsConvertibleTo";
+      break;
+    case ifc_ebts_is_corresponding_member:
+      result = "EdgBasicTokenSort::IsCorrespondingMember";
+      break;
+    case ifc_ebts_is_delegate:
+      result = "EdgBasicTokenSort::IsDelegate";
+      break;
+    case ifc_ebts_is_destructible:
+      result = "EdgBasicTokenSort::IsDestructible";
+      break;
+    case ifc_ebts_is_empty:
+      result = "EdgBasicTokenSort::IsEmpty";
+      break;
+    case ifc_ebts_is_enum:
+      result = "EdgBasicTokenSort::IsEnum";
+      break;
+    case ifc_ebts_is_final:
+      result = "EdgBasicTokenSort::IsFinal";
+      break;
+    case ifc_ebts_is_floating_point:
+      result = "EdgBasicTokenSort::IsFloatingPoint";
+      break;
+    case ifc_ebts_is_function:
+      result = "EdgBasicTokenSort::IsFunction";
+      break;
+    case ifc_ebts_is_fundamental:
+      result = "EdgBasicTokenSort::IsFundamental";
+      break;
+    case ifc_ebts_is_integral:
+      result = "EdgBasicTokenSort::IsIntegral";
+      break;
+    case ifc_ebts_is_interface_class:
+      result = "EdgBasicTokenSort::IsInterfaceClass";
+      break;
+    case ifc_ebts_is_layout_compatible:
+      result = "EdgBasicTokenSort::IsLayoutCompatible";
+      break;
+    case ifc_ebts_is_literal_type:
+      result = "EdgBasicTokenSort::IsLiteralType";
+      break;
+    case ifc_ebts_is_lvalue_reference:
+      result = "EdgBasicTokenSort::IsLvalueReference";
+      break;
+    case ifc_ebts_is_member_function_pointer:
+      result = "EdgBasicTokenSort::IsMemberFunctionPointer";
+      break;
+    case ifc_ebts_is_member_object_pointer:
+      result = "EdgBasicTokenSort::IsMemberObjectPointer";
+      break;
+    case ifc_ebts_is_member_pointer:
+      result = "EdgBasicTokenSort::IsMemberPointer";
+      break;
+    case ifc_ebts_is_nothrow_assignable:
+      result = "EdgBasicTokenSort::IsNothrowAssignable";
+      break;
+    case ifc_ebts_is_nothrow_constructible:
+      result = "EdgBasicTokenSort::IsNothrowConstructible";
+      break;
+    case ifc_ebts_is_nothrow_convertible:
+      result = "EdgBasicTokenSort::IsNothrowConvertible";
+      break;
+    case ifc_ebts_is_nothrow_destructible:
+      result = "EdgBasicTokenSort::IsNothrowDestructible";
+      break;
+    case ifc_ebts_is_object:
+      result = "EdgBasicTokenSort::IsObject";
+      break;
+    case ifc_ebts_is_pod:
+      result = "EdgBasicTokenSort::IsPod";
+      break;
+    case ifc_ebts_is_pointer:
+      result = "EdgBasicTokenSort::IsPointer";
+      break;
+    case ifc_ebts_is_pointer_interconvertible_base_of:
+      result = "EdgBasicTokenSort::IsPointerInterconvertibleBaseOf";
+      break;
+    case ifc_ebts_is_pointer_interconvertible_with_class:
+      result = "EdgBasicTokenSort::IsPointerInterconvertibleWithClass";
+      break;
+    case ifc_ebts_is_polymorphic:
+      result = "EdgBasicTokenSort::IsPolymorphic";
+      break;
+    case ifc_ebts_is_ref_array:
+      result = "EdgBasicTokenSort::IsRefArray";
+      break;
+    case ifc_ebts_is_ref_class:
+      result = "EdgBasicTokenSort::IsRefClass";
+      break;
+    case ifc_ebts_is_reference:
+      result = "EdgBasicTokenSort::IsReference";
+      break;
+    case ifc_ebts_is_referenceable:
+      result = "EdgBasicTokenSort::IsReferenceable";
+      break;
+    case ifc_ebts_is_rvalue_reference:
+      result = "EdgBasicTokenSort::IsRvalueReference";
+      break;
+    case ifc_ebts_is_same:
+      result = "EdgBasicTokenSort::IsSame";
+      break;
+    case ifc_ebts_is_same_as:
+      result = "EdgBasicTokenSort::IsSameAs";
+      break;
+    case ifc_ebts_is_scalar:
+      result = "EdgBasicTokenSort::IsScalar";
+      break;
+    case ifc_ebts_is_sealed:
+      result = "EdgBasicTokenSort::IsSealed";
+      break;
+    case ifc_ebts_is_signed:
+      result = "EdgBasicTokenSort::IsSigned";
+      break;
+    case ifc_ebts_is_simple_value_class:
+      result = "EdgBasicTokenSort::IsSimpleValueClass";
+      break;
+    case ifc_ebts_is_standard_layout:
+      result = "EdgBasicTokenSort::IsStandardLayout";
+      break;
+    case ifc_ebts_is_trivial:
+      result = "EdgBasicTokenSort::IsTrivial";
+      break;
+    case ifc_ebts_is_trivially_assignable:
+      result = "EdgBasicTokenSort::IsTriviallyAssignable";
+      break;
+    case ifc_ebts_is_trivially_constructible:
+      result = "EdgBasicTokenSort::IsTriviallyConstructible";
+      break;
+    case ifc_ebts_is_trivially_copy_assignable:
+      result = "EdgBasicTokenSort::IsTriviallyCopyAssignable";
+      break;
+    case ifc_ebts_is_trivially_copyable:
+      result = "EdgBasicTokenSort::IsTriviallyCopyable";
+      break;
+    case ifc_ebts_is_trivially_destructible:
+      result = "EdgBasicTokenSort::IsTriviallyDestructible";
+      break;
+    case ifc_ebts_is_trivially_equality_comparable:
+      result = "EdgBasicTokenSort::IsTriviallyEqualityComparable";
+      break;
+    case ifc_ebts_is_unbounded_array:
+      result = "EdgBasicTokenSort::IsUnboundedArray";
+      break;
+    case ifc_ebts_is_union:
+      result = "EdgBasicTokenSort::IsUnion";
+      break;
+    case ifc_ebts_is_unsigned:
+      result = "EdgBasicTokenSort::IsUnsigned";
+      break;
+    case ifc_ebts_is_valid_winrt_type:
+      result = "EdgBasicTokenSort::IsValidWinrtType";
+      break;
+    case ifc_ebts_is_value_class:
+      result = "EdgBasicTokenSort::IsValueClass";
+      break;
+    case ifc_ebts_is_void:
+      result = "EdgBasicTokenSort::IsVoid";
+      break;
+    case ifc_ebts_is_volatile:
+      result = "EdgBasicTokenSort::IsVolatile";
+      break;
+    case ifc_ebts_is_win_class:
+      result = "EdgBasicTokenSort::IsWinClass";
+      break;
+    case ifc_ebts_is_win_interface:
+      result = "EdgBasicTokenSort::IsWinInterface";
+      break;
+    case ifc_ebts_last_whitespace_token:
+      result = "EdgBasicTokenSort::LastWhitespaceToken";
+      break;
+    case ifc_ebts_lbrace:
+      result = "EdgBasicTokenSort::Lbrace";
+      break;
+    case ifc_ebts_lbracket:
+      result = "EdgBasicTokenSort::Lbracket";
+      break;
+    case ifc_ebts_le:
+      result = "EdgBasicTokenSort::Le";
+      break;
+    case ifc_ebts_leave:
+      result = "EdgBasicTokenSort::Leave";
+      break;
+    case ifc_ebts_long:
+      result = "EdgBasicTokenSort::Long";
+      break;
+    case ifc_ebts_lparen:
+      result = "EdgBasicTokenSort::Lparen";
+      break;
+    case ifc_ebts_lsplice:
+      result = "EdgBasicTokenSort::Lsplice";
+      break;
+    case ifc_ebts_lt:
+      result = "EdgBasicTokenSort::Lt";
+      break;
+    case ifc_ebts_make_signed:
+      result = "EdgBasicTokenSort::MakeSigned";
+      break;
+    case ifc_ebts_make_unsigned:
+      result = "EdgBasicTokenSort::MakeUnsigned";
+      break;
+    case ifc_ebts_microsoft_asm:
+      result = "EdgBasicTokenSort::MicrosoftAsm";
+      break;
+    case ifc_ebts_microsoft_identifier:
+      result = "EdgBasicTokenSort::MicrosoftIdentifier";
+      break;
+    case ifc_ebts_microsoft_inline:
+      result = "EdgBasicTokenSort::MicrosoftInline";
+      break;
+    case ifc_ebts_microsoft_lprefix:
+      result = "EdgBasicTokenSort::MicrosoftLprefix";
+      break;
+    case ifc_ebts_microsoft_ptr32:
+      result = "EdgBasicTokenSort::MicrosoftPtr32";
+      break;
+    case ifc_ebts_microsoft_ptr64:
+      result = "EdgBasicTokenSort::MicrosoftPtr64";
+      break;
+    case ifc_ebts_microsoft_sptr:
+      result = "EdgBasicTokenSort::MicrosoftSptr";
+      break;
+    case ifc_ebts_microsoft_try:
+      result = "EdgBasicTokenSort::MicrosoftTry";
+      break;
+    case ifc_ebts_microsoft_uprefix:
+      result = "EdgBasicTokenSort::MicrosoftUprefix";
+      break;
+    case ifc_ebts_microsoft_uptr:
+      result = "EdgBasicTokenSort::MicrosoftUptr";
+      break;
+    case ifc_ebts_microsoft_w64:
+      result = "EdgBasicTokenSort::MicrosoftW64";
+      break;
+    case ifc_ebts_minus:
+      result = "EdgBasicTokenSort::Minus";
+      break;
+    case ifc_ebts_minus_assign:
+      result = "EdgBasicTokenSort::MinusAssign";
+      break;
+    case ifc_ebts_minus_minus:
+      result = "EdgBasicTokenSort::MinusMinus";
+      break;
+    case ifc_ebts_module:
+      result = "EdgBasicTokenSort::Module";
+      break;
+    case ifc_ebts_mutable:
+      result = "EdgBasicTokenSort::Mutable";
+      break;
+    case ifc_ebts_namespace:
+      result = "EdgBasicTokenSort::Namespace";
+      break;
+    case ifc_ebts_nan:
+      result = "EdgBasicTokenSort::Nan";
+      break;
+    case ifc_ebts_native_nullptr:
+      result = "EdgBasicTokenSort::NativeNullptr";
+      break;
+    case ifc_ebts_ne:
+      result = "EdgBasicTokenSort::Ne";
+      break;
+    case ifc_ebts_near:
+      result = "EdgBasicTokenSort::Near";
+      break;
+    case ifc_ebts_new:
+      result = "EdgBasicTokenSort::New";
+      break;
+    case ifc_ebts_noexcept:
+      result = "EdgBasicTokenSort::Noexcept";
+      break;
+    case ifc_ebts_nonnull:
+      result = "EdgBasicTokenSort::Nonnull";
+      break;
+    case ifc_ebts_noop:
+      result = "EdgBasicTokenSort::Noop";
+      break;
+    case ifc_ebts_noreturn:
+      result = "EdgBasicTokenSort::Noreturn";
+      break;
+    case ifc_ebts_not:
+      result = "EdgBasicTokenSort::Not";
+      break;
+    case ifc_ebts_null:
+      result = "EdgBasicTokenSort::Null";
+      break;
+    case ifc_ebts_null_unspecified:
+      result = "EdgBasicTokenSort::NullUnspecified";
+      break;
+    case ifc_ebts_nullable:
+      result = "EdgBasicTokenSort::Nullable";
+      break;
+    case ifc_ebts_nullptr:
+      result = "EdgBasicTokenSort::Nullptr";
+      break;
+    case ifc_ebts_operator:
+      result = "EdgBasicTokenSort::Operator";
+      break;
+    case ifc_ebts_or:
+      result = "EdgBasicTokenSort::Or";
+      break;
+    case ifc_ebts_or_assign:
+      result = "EdgBasicTokenSort::OrAssign";
+      break;
+    case ifc_ebts_or_or:
+      result = "EdgBasicTokenSort::OrOr";
+      break;
+    case ifc_ebts_overload:
+      result = "EdgBasicTokenSort::Overload";
+      break;
+    case ifc_ebts_override:
+      result = "EdgBasicTokenSort::Override";
+      break;
+    case ifc_ebts_partial_ref_class:
+      result = "EdgBasicTokenSort::PartialRefClass";
+      break;
+    case ifc_ebts_partial_ref_struct:
+      result = "EdgBasicTokenSort::PartialRefStruct";
+      break;
+    case ifc_ebts_paste:
+      result = "EdgBasicTokenSort::Paste";
+      break;
+    case ifc_ebts_period:
+      result = "EdgBasicTokenSort::Period";
+      break;
+    case ifc_ebts_period_star:
+      result = "EdgBasicTokenSort::PeriodStar";
+      break;
+    case ifc_ebts_plus:
+      result = "EdgBasicTokenSort::Plus";
+      break;
+    case ifc_ebts_plus_assign:
+      result = "EdgBasicTokenSort::PlusAssign";
+      break;
+    case ifc_ebts_plus_plus:
+      result = "EdgBasicTokenSort::PlusPlus";
+      break;
+    case ifc_ebts_prefix_enum:
+      result = "EdgBasicTokenSort::PrefixEnum";
+      break;
+    case ifc_ebts_prefix_for:
+      result = "EdgBasicTokenSort::PrefixFor";
+      break;
+    case ifc_ebts_prefix_interface:
+      result = "EdgBasicTokenSort::PrefixInterface";
+      break;
+    case ifc_ebts_prefix_partial:
+      result = "EdgBasicTokenSort::PrefixPartial";
+      break;
+    case ifc_ebts_prefix_ref:
+      result = "EdgBasicTokenSort::PrefixRef";
+      break;
+    case ifc_ebts_prefix_value:
+      result = "EdgBasicTokenSort::PrefixValue";
+      break;
+    case ifc_ebts_pretty_function_name:
+      result = "EdgBasicTokenSort::PrettyFunctionName";
+      break;
+    case ifc_ebts_private:
+      result = "EdgBasicTokenSort::Private";
+      break;
+    case ifc_ebts_protected:
+      result = "EdgBasicTokenSort::Protected";
+      break;
+    case ifc_ebts_public:
+      result = "EdgBasicTokenSort::Public";
+      break;
+    case ifc_ebts_quest_mark:
+      result = "EdgBasicTokenSort::QuestMark";
+      break;
+    case ifc_ebts_rbrace:
+      result = "EdgBasicTokenSort::Rbrace";
+      break;
+    case ifc_ebts_rbracket:
+      result = "EdgBasicTokenSort::Rbracket";
+      break;
+    case ifc_ebts_ref_class:
+      result = "EdgBasicTokenSort::RefClass";
+      break;
+    case ifc_ebts_ref_new:
+      result = "EdgBasicTokenSort::RefNew";
+      break;
+    case ifc_ebts_ref_struct:
+      result = "EdgBasicTokenSort::RefStruct";
+      break;
+    case ifc_ebts_reference_binds_to_temporary:
+      result = "EdgBasicTokenSort::ReferenceBindsToTemporary";
+      break;
+    case ifc_ebts_reference_constructs_from_temporary:
+      result = "EdgBasicTokenSort::ReferenceConstructsFromTemporary";
+      break;
+    case ifc_ebts_reference_converts_from_temporary:
+      result = "EdgBasicTokenSort::ReferenceConvertsFromTemporary";
+      break;
+    case ifc_ebts_register:
+      result = "EdgBasicTokenSort::Register";
+      break;
+    case ifc_ebts_reinterpret_cast:
+      result = "EdgBasicTokenSort::ReinterpretCast";
+      break;
+    case ifc_ebts_remainder:
+      result = "EdgBasicTokenSort::Remainder";
+      break;
+    case ifc_ebts_remainder_assign:
+      result = "EdgBasicTokenSort::RemainderAssign";
+      break;
+    case ifc_ebts_remove_all_extents:
+      result = "EdgBasicTokenSort::RemoveAllExtents";
+      break;
+    case ifc_ebts_remove_const:
+      result = "EdgBasicTokenSort::RemoveConst";
+      break;
+    case ifc_ebts_remove_cv:
+      result = "EdgBasicTokenSort::RemoveCv";
+      break;
+    case ifc_ebts_remove_cvref:
+      result = "EdgBasicTokenSort::RemoveCvref";
+      break;
+    case ifc_ebts_remove_extent:
+      result = "EdgBasicTokenSort::RemoveExtent";
+      break;
+    case ifc_ebts_remove_pointer:
+      result = "EdgBasicTokenSort::RemovePointer";
+      break;
+    case ifc_ebts_remove_reference:
+      result = "EdgBasicTokenSort::RemoveReference";
+      break;
+    case ifc_ebts_remove_reference_t:
+      result = "EdgBasicTokenSort::RemoveReferenceT";
+      break;
+    case ifc_ebts_remove_restrict:
+      result = "EdgBasicTokenSort::RemoveRestrict";
+      break;
+    case ifc_ebts_remove_volatile:
+      result = "EdgBasicTokenSort::RemoveVolatile";
+      break;
+    case ifc_ebts_requires:
+      result = "EdgBasicTokenSort::Requires";
+      break;
+    case ifc_ebts_restrict:
+      result = "EdgBasicTokenSort::Restrict";
+      break;
+    case ifc_ebts_return:
+      result = "EdgBasicTokenSort::Return";
+      break;
+    case ifc_ebts_rparen:
+      result = "EdgBasicTokenSort::Rparen";
+      break;
+    case ifc_ebts_rsplice:
+      result = "EdgBasicTokenSort::Rsplice";
+      break;
+    case ifc_ebts_safe_cast:
+      result = "EdgBasicTokenSort::SafeCast";
+      break;
+    case ifc_ebts_sat:
+      result = "EdgBasicTokenSort::Sat";
+      break;
+    case ifc_ebts_sealed:
+      result = "EdgBasicTokenSort::Sealed";
+      break;
+    case ifc_ebts_semicolon:
+      result = "EdgBasicTokenSort::Semicolon";
+      break;
+    case ifc_ebts_sharp:
+      result = "EdgBasicTokenSort::Sharp";
+      break;
+    case ifc_ebts_shift_left:
+      result = "EdgBasicTokenSort::ShiftLeft";
+      break;
+    case ifc_ebts_shift_left_assign:
+      result = "EdgBasicTokenSort::ShiftLeftAssign";
+      break;
+    case ifc_ebts_shift_right:
+      result = "EdgBasicTokenSort::ShiftRight";
+      break;
+    case ifc_ebts_shift_right_assign:
+      result = "EdgBasicTokenSort::ShiftRightAssign";
+      break;
+    case ifc_ebts_short:
+      result = "EdgBasicTokenSort::Short";
+      break;
+    case ifc_ebts_signed:
+      result = "EdgBasicTokenSort::Signed";
+      break;
+    case ifc_ebts_sizeof:
+      result = "EdgBasicTokenSort::Sizeof";
+      break;
+    case ifc_ebts_spaceship:
+      result = "EdgBasicTokenSort::Spaceship";
+      break;
+    case ifc_ebts_star:
+      result = "EdgBasicTokenSort::Star";
+      break;
+    case ifc_ebts_static:
+      result = "EdgBasicTokenSort::Static";
+      break;
+    case ifc_ebts_static_assert:
+      result = "EdgBasicTokenSort::StaticAssert";
+      break;
+    case ifc_ebts_static_cast:
+      result = "EdgBasicTokenSort::StaticCast";
+      break;
+    case ifc_ebts_stdcall:
+      result = "EdgBasicTokenSort::Stdcall";
+      break;
+    case ifc_ebts_struct:
+      result = "EdgBasicTokenSort::Struct";
+      break;
+    case ifc_ebts_super:
+      result = "EdgBasicTokenSort::Super";
+      break;
+    case ifc_ebts_switch:
+      result = "EdgBasicTokenSort::Switch";
+      break;
+    case ifc_ebts_symbolic_link_scope:
+      result = "EdgBasicTokenSort::SymbolicLinkScope";
+      break;
+    case ifc_ebts_template:
+      result = "EdgBasicTokenSort::Template";
+      break;
+    case ifc_ebts_this:
+      result = "EdgBasicTokenSort::This";
+      break;
+    case ifc_ebts_thiscall:
+      result = "EdgBasicTokenSort::Thiscall";
+      break;
+    case ifc_ebts_thread:
+      result = "EdgBasicTokenSort::Thread";
+      break;
+    case ifc_ebts_thread_local:
+      result = "EdgBasicTokenSort::ThreadLocal";
+      break;
+    case ifc_ebts_throw:
+      result = "EdgBasicTokenSort::Throw";
+      break;
+    case ifc_ebts_times_assign:
+      result = "EdgBasicTokenSort::TimesAssign";
+      break;
+    case ifc_ebts_true:
+      result = "EdgBasicTokenSort::True";
+      break;
+    case ifc_ebts_try:
+      result = "EdgBasicTokenSort::Try";
+      break;
+    case ifc_ebts_typedef:
+      result = "EdgBasicTokenSort::Typedef";
+      break;
+    case ifc_ebts_typeid:
+      result = "EdgBasicTokenSort::Typeid";
+      break;
+    case ifc_ebts_typename:
+      result = "EdgBasicTokenSort::Typename";
+      break;
+    case ifc_ebts_typeof:
+      result = "EdgBasicTokenSort::Typeof";
+      break;
+    case ifc_ebts_typeof_unqual:
+      result = "EdgBasicTokenSort::TypeofUnqual";
+      break;
+    case ifc_ebts_unaligned:
+      result = "EdgBasicTokenSort::Unaligned";
+      break;
+    case ifc_ebts_underlying_type:
+      result = "EdgBasicTokenSort::UnderlyingType";
+      break;
+    case ifc_ebts_union:
+      result = "EdgBasicTokenSort::Union";
+      break;
+    case ifc_ebts_unresolved_type:
+      result = "EdgBasicTokenSort::UnresolvedType";
+      break;
+    case ifc_ebts_unsigned:
+      result = "EdgBasicTokenSort::Unsigned";
+      break;
+    case ifc_ebts_upc_barrier:
+      result = "EdgBasicTokenSort::UpcBarrier";
+      break;
+    case ifc_ebts_upc_blocksizeof:
+      result = "EdgBasicTokenSort::UpcBlocksizeof";
+      break;
+    case ifc_ebts_upc_elemsizeof:
+      result = "EdgBasicTokenSort::UpcElemsizeof";
+      break;
+    case ifc_ebts_upc_fence:
+      result = "EdgBasicTokenSort::UpcFence";
+      break;
+    case ifc_ebts_upc_forall:
+      result = "EdgBasicTokenSort::UpcForall";
+      break;
+    case ifc_ebts_upc_localsizeof:
+      result = "EdgBasicTokenSort::UpcLocalsizeof";
+      break;
+    case ifc_ebts_upc_mythread:
+      result = "EdgBasicTokenSort::UpcMythread";
+      break;
+    case ifc_ebts_upc_notify:
+      result = "EdgBasicTokenSort::UpcNotify";
+      break;
+    case ifc_ebts_upc_relaxed:
+      result = "EdgBasicTokenSort::UpcRelaxed";
+      break;
+    case ifc_ebts_upc_shared:
+      result = "EdgBasicTokenSort::UpcShared";
+      break;
+    case ifc_ebts_upc_strict:
+      result = "EdgBasicTokenSort::UpcStrict";
+      break;
+    case ifc_ebts_upc_threads:
+      result = "EdgBasicTokenSort::UpcThreads";
+      break;
+    case ifc_ebts_upc_wait:
+      result = "EdgBasicTokenSort::UpcWait";
+      break;
+    case ifc_ebts_using:
+      result = "EdgBasicTokenSort::Using";
+      break;
+    case ifc_ebts_uuid:
+      result = "EdgBasicTokenSort::Uuid";
+      break;
+    case ifc_ebts_uuidof:
+      result = "EdgBasicTokenSort::Uuidof";
+      break;
+    case ifc_ebts_va_copy:
+      result = "EdgBasicTokenSort::VaCopy";
+      break;
+    case ifc_ebts_value_class:
+      result = "EdgBasicTokenSort::ValueClass";
+      break;
+    case ifc_ebts_value_struct:
+      result = "EdgBasicTokenSort::ValueStruct";
+      break;
+    case ifc_ebts_vectorcall:
+      result = "EdgBasicTokenSort::Vectorcall";
+      break;
+    case ifc_ebts_virtual:
+      result = "EdgBasicTokenSort::Virtual";
+      break;
+    case ifc_ebts_void:
+      result = "EdgBasicTokenSort::Void";
+      break;
+    case ifc_ebts_volatile:
+      result = "EdgBasicTokenSort::Volatile";
+      break;
+    case ifc_ebts_wchar_t:
+      result = "EdgBasicTokenSort::WcharT";
+      break;
+    case ifc_ebts_while:
+      result = "EdgBasicTokenSort::While";
+      break;
+    default:
+      unexpected_condition_str("Invalid value for a EdgBasicTokenSort.");
+      break;
+  }  /* switch */
+  return result;
+}  /* str_for */
+
+
+an_ifc_encoded_edg_basic_token_sort to_encoded(
+                                         an_ifc_module_file          *file,
+                                         an_ifc_edg_basic_token_sort universal)
+/*
+Given the universal representation of EdgBasicTokenSort and the destination
+module, return a reencoded sort value.
+*/
+{
+  using ue_ty = an_ifc_encoded_edg_basic_token_sort_storage;
+  an_ifc_encoded_edg_basic_token_sort_storage result;
+
+  switch (universal) {
+    case ifc_ebts_complex:
+      result = (ue_ty)ifc_0_43_ebts_complex;
+      break;
+    case ifc_ebts_lbracket:
+      result = (ue_ty)ifc_0_43_ebts_lbracket;
+      break;
+    case ifc_ebts_rbracket:
+      result = (ue_ty)ifc_0_43_ebts_rbracket;
+      break;
+    case ifc_ebts_lparen:
+      result = (ue_ty)ifc_0_43_ebts_lparen;
+      break;
+    case ifc_ebts_rparen:
+      result = (ue_ty)ifc_0_43_ebts_rparen;
+      break;
+    case ifc_ebts_period:
+      result = (ue_ty)ifc_0_43_ebts_period;
+      break;
+    case ifc_ebts_arrow:
+      result = (ue_ty)ifc_0_43_ebts_arrow;
+      break;
+    case ifc_ebts_plus_plus:
+      result = (ue_ty)ifc_0_43_ebts_plus_plus;
+      break;
+    case ifc_ebts_minus_minus:
+      result = (ue_ty)ifc_0_43_ebts_minus_minus;
+      break;
+    case ifc_ebts_ampersand:
+      result = (ue_ty)ifc_0_43_ebts_ampersand;
+      break;
+    case ifc_ebts_star:
+      result = (ue_ty)ifc_0_43_ebts_star;
+      break;
+    case ifc_ebts_plus:
+      result = (ue_ty)ifc_0_43_ebts_plus;
+      break;
+    case ifc_ebts_minus:
+      result = (ue_ty)ifc_0_43_ebts_minus;
+      break;
+    case ifc_ebts_compl:
+      result = (ue_ty)ifc_0_43_ebts_compl;
+      break;
+    case ifc_ebts_not:
+      result = (ue_ty)ifc_0_43_ebts_not;
+      break;
+    case ifc_ebts_divide:
+      result = (ue_ty)ifc_0_43_ebts_divide;
+      break;
+    case ifc_ebts_remainder:
+      result = (ue_ty)ifc_0_43_ebts_remainder;
+      break;
+    case ifc_ebts_shift_left:
+      result = (ue_ty)ifc_0_43_ebts_shift_left;
+      break;
+    case ifc_ebts_shift_right:
+      result = (ue_ty)ifc_0_43_ebts_shift_right;
+      break;
+    case ifc_ebts_lt:
+      result = (ue_ty)ifc_0_43_ebts_lt;
+      break;
+    case ifc_ebts_gt:
+      result = (ue_ty)ifc_0_43_ebts_gt;
+      break;
+    case ifc_ebts_le:
+      result = (ue_ty)ifc_0_43_ebts_le;
+      break;
+    case ifc_ebts_ge:
+      result = (ue_ty)ifc_0_43_ebts_ge;
+      break;
+    case ifc_ebts_eq:
+      result = (ue_ty)ifc_0_43_ebts_eq;
+      break;
+    case ifc_ebts_ne:
+      result = (ue_ty)ifc_0_43_ebts_ne;
+      break;
+    case ifc_ebts_spaceship:
+      result = (ue_ty)ifc_0_43_ebts_spaceship;
+      break;
+    case ifc_ebts_excl_or:
+      result = (ue_ty)ifc_0_43_ebts_excl_or;
+      break;
+    case ifc_ebts_or:
+      result = (ue_ty)ifc_0_43_ebts_or;
+      break;
+    case ifc_ebts_and_and:
+      result = (ue_ty)ifc_0_43_ebts_and_and;
+      break;
+    case ifc_ebts_or_or:
+      result = (ue_ty)ifc_0_43_ebts_or_or;
+      break;
+    case ifc_ebts_quest_mark:
+      result = (ue_ty)ifc_0_43_ebts_quest_mark;
+      break;
+    case ifc_ebts_colon:
+      result = (ue_ty)ifc_0_43_ebts_colon;
+      break;
+    case ifc_ebts_assign:
+      result = (ue_ty)ifc_0_43_ebts_assign;
+      break;
+    case ifc_ebts_times_assign:
+      result = (ue_ty)ifc_0_43_ebts_times_assign;
+      break;
+    case ifc_ebts_divide_assign:
+      result = (ue_ty)ifc_0_43_ebts_divide_assign;
+      break;
+    case ifc_ebts_remainder_assign:
+      result = (ue_ty)ifc_0_43_ebts_remainder_assign;
+      break;
+    case ifc_ebts_plus_assign:
+      result = (ue_ty)ifc_0_43_ebts_plus_assign;
+      break;
+    case ifc_ebts_minus_assign:
+      result = (ue_ty)ifc_0_43_ebts_minus_assign;
+      break;
+    case ifc_ebts_shift_left_assign:
+      result = (ue_ty)ifc_0_43_ebts_shift_left_assign;
+      break;
+    case ifc_ebts_shift_right_assign:
+      result = (ue_ty)ifc_0_43_ebts_shift_right_assign;
+      break;
+    case ifc_ebts_and_assign:
+      result = (ue_ty)ifc_0_43_ebts_and_assign;
+      break;
+    case ifc_ebts_excl_or_assign:
+      result = (ue_ty)ifc_0_43_ebts_excl_or_assign;
+      break;
+    case ifc_ebts_or_assign:
+      result = (ue_ty)ifc_0_43_ebts_or_assign;
+      break;
+    case ifc_ebts_comma:
+      result = (ue_ty)ifc_0_43_ebts_comma;
+      break;
+    case ifc_ebts_sharp:
+      result = (ue_ty)ifc_0_43_ebts_sharp;
+      break;
+    case ifc_ebts_paste:
+      result = (ue_ty)ifc_0_43_ebts_paste;
+      break;
+    case ifc_ebts_gnu_min:
+      result = (ue_ty)ifc_0_43_ebts_gnu_min;
+      break;
+    case ifc_ebts_gnu_max:
+      result = (ue_ty)ifc_0_43_ebts_gnu_max;
+      break;
+    case ifc_ebts_lbrace:
+      result = (ue_ty)ifc_0_43_ebts_lbrace;
+      break;
+    case ifc_ebts_rbrace:
+      result = (ue_ty)ifc_0_43_ebts_rbrace;
+      break;
+    case ifc_ebts_lsplice:
+      result = (ue_ty)ifc_0_43_ebts_lsplice;
+      break;
+    case ifc_ebts_rsplice:
+      result = (ue_ty)ifc_0_43_ebts_rsplice;
+      break;
+    case ifc_ebts_semicolon:
+      result = (ue_ty)ifc_0_43_ebts_semicolon;
+      break;
+    case ifc_ebts_ellipsis:
+      result = (ue_ty)ifc_0_43_ebts_ellipsis;
+      break;
+    case ifc_ebts_auto:
+      result = (ue_ty)ifc_0_43_ebts_auto;
+      break;
+    case ifc_ebts_break:
+      result = (ue_ty)ifc_0_43_ebts_break;
+      break;
+    case ifc_ebts_case:
+      result = (ue_ty)ifc_0_43_ebts_case;
+      break;
+    case ifc_ebts_char:
+      result = (ue_ty)ifc_0_43_ebts_char;
+      break;
+    case ifc_ebts_const:
+      result = (ue_ty)ifc_0_43_ebts_const;
+      break;
+    case ifc_ebts_continue:
+      result = (ue_ty)ifc_0_43_ebts_continue;
+      break;
+    case ifc_ebts_default:
+      result = (ue_ty)ifc_0_43_ebts_default;
+      break;
+    case ifc_ebts_do:
+      result = (ue_ty)ifc_0_43_ebts_do;
+      break;
+    case ifc_ebts_double:
+      result = (ue_ty)ifc_0_43_ebts_double;
+      break;
+    case ifc_ebts_else:
+      result = (ue_ty)ifc_0_43_ebts_else;
+      break;
+    case ifc_ebts_enum:
+      result = (ue_ty)ifc_0_43_ebts_enum;
+      break;
+    case ifc_ebts_extern:
+      result = (ue_ty)ifc_0_43_ebts_extern;
+      break;
+    case ifc_ebts_float:
+      result = (ue_ty)ifc_0_43_ebts_float;
+      break;
+    case ifc_ebts_for:
+      result = (ue_ty)ifc_0_43_ebts_for;
+      break;
+    case ifc_ebts_goto:
+      result = (ue_ty)ifc_0_43_ebts_goto;
+      break;
+    case ifc_ebts_if:
+      result = (ue_ty)ifc_0_43_ebts_if;
+      break;
+    case ifc_ebts_int:
+      result = (ue_ty)ifc_0_43_ebts_int;
+      break;
+    case ifc_ebts_long:
+      result = (ue_ty)ifc_0_43_ebts_long;
+      break;
+    case ifc_ebts_register:
+      result = (ue_ty)ifc_0_43_ebts_register;
+      break;
+    case ifc_ebts_return:
+      result = (ue_ty)ifc_0_43_ebts_return;
+      break;
+    case ifc_ebts_short:
+      result = (ue_ty)ifc_0_43_ebts_short;
+      break;
+    case ifc_ebts_signed:
+      result = (ue_ty)ifc_0_43_ebts_signed;
+      break;
+    case ifc_ebts_sizeof:
+      result = (ue_ty)ifc_0_43_ebts_sizeof;
+      break;
+    case ifc_ebts_static:
+      result = (ue_ty)ifc_0_43_ebts_static;
+      break;
+    case ifc_ebts_struct:
+      result = (ue_ty)ifc_0_43_ebts_struct;
+      break;
+    case ifc_ebts_switch:
+      result = (ue_ty)ifc_0_43_ebts_switch;
+      break;
+    case ifc_ebts_typedef:
+      result = (ue_ty)ifc_0_43_ebts_typedef;
+      break;
+    case ifc_ebts_union:
+      result = (ue_ty)ifc_0_43_ebts_union;
+      break;
+    case ifc_ebts_unsigned:
+      result = (ue_ty)ifc_0_43_ebts_unsigned;
+      break;
+    case ifc_ebts_void:
+      result = (ue_ty)ifc_0_43_ebts_void;
+      break;
+    case ifc_ebts_volatile:
+      result = (ue_ty)ifc_0_43_ebts_volatile;
+      break;
+    case ifc_ebts_while:
+      result = (ue_ty)ifc_0_43_ebts_while;
+      break;
+    case ifc_ebts_c99_generic:
+      result = (ue_ty)ifc_0_43_ebts_c99_generic;
+      break;
+    case ifc_ebts_c99_genericfx:
+      result = (ue_ty)ifc_0_43_ebts_c99_genericfx;
+      break;
+    case ifc_ebts_alignof:
+      result = (ue_ty)ifc_0_43_ebts_alignof;
+      break;
+    case ifc_ebts_ext_alignof:
+      result = (ue_ty)ifc_0_43_ebts_ext_alignof;
+      break;
+    case ifc_ebts_intaddr:
+      result = (ue_ty)ifc_0_43_ebts_intaddr;
+      break;
+    case ifc_ebts_va_copy:
+      result = (ue_ty)ifc_0_43_ebts_va_copy;
+      break;
+    case ifc_ebts_builtin_offsetof:
+      result = (ue_ty)ifc_0_43_ebts_builtin_offsetof;
+      break;
+    case ifc_ebts_restrict:
+      result = (ue_ty)ifc_0_43_ebts_restrict;
+      break;
+    case ifc_ebts_gnu_restrict:
+      result = (ue_ty)ifc_0_43_ebts_gnu_restrict;
+      break;
+    case ifc_ebts_c99_bool:
+      result = (ue_ty)ifc_0_43_ebts_c99_bool;
+      break;
+    case ifc_ebts_c99_complex:
+      result = (ue_ty)ifc_0_43_ebts_c99_complex;
+      break;
+    case ifc_ebts_c99_imaginary:
+      result = (ue_ty)ifc_0_43_ebts_c99_imaginary;
+      break;
+    case ifc_ebts_imaginary_unit:
+      result = (ue_ty)ifc_0_43_ebts_imaginary_unit;
+      break;
+    case ifc_ebts_nan:
+      result = (ue_ty)ifc_0_43_ebts_nan;
+      break;
+    case ifc_ebts_infinity:
+      result = (ue_ty)ifc_0_43_ebts_infinity;
+      break;
+    case ifc_ebts_char16_t:
+      result = (ue_ty)ifc_0_43_ebts_char16_t;
+      break;
+    case ifc_ebts_char32_t:
+      result = (ue_ty)ifc_0_43_ebts_char32_t;
+      break;
+    case ifc_ebts_char8_t:
+      result = (ue_ty)ifc_0_43_ebts_char8_t;
+      break;
+    case ifc_ebts_fract:
+      result = (ue_ty)ifc_0_43_ebts_fract;
+      break;
+    case ifc_ebts_accum:
+      result = (ue_ty)ifc_0_43_ebts_accum;
+      break;
+    case ifc_ebts_sat:
+      result = (ue_ty)ifc_0_43_ebts_sat;
+      break;
+    case ifc_ebts_abstract:
+      result = (ue_ty)ifc_0_43_ebts_abstract;
+      break;
+    case ifc_ebts_sealed:
+      result = (ue_ty)ifc_0_43_ebts_sealed;
+      break;
+    case ifc_ebts_cdecl:
+      result = (ue_ty)ifc_0_43_ebts_cdecl;
+      break;
+    case ifc_ebts_fastcall:
+      result = (ue_ty)ifc_0_43_ebts_fastcall;
+      break;
+    case ifc_ebts_stdcall:
+      result = (ue_ty)ifc_0_43_ebts_stdcall;
+      break;
+    case ifc_ebts_thiscall:
+      result = (ue_ty)ifc_0_43_ebts_thiscall;
+      break;
+    case ifc_ebts_vectorcall:
+      result = (ue_ty)ifc_0_43_ebts_vectorcall;
+      break;
+    case ifc_ebts_clrcall:
+      result = (ue_ty)ifc_0_43_ebts_clrcall;
+      break;
+    case ifc_ebts_microsoft_inline:
+      result = (ue_ty)ifc_0_43_ebts_microsoft_inline;
+      break;
+    case ifc_ebts_forceinline:
+      result = (ue_ty)ifc_0_43_ebts_forceinline;
+      break;
+    case ifc_ebts_unaligned:
+      result = (ue_ty)ifc_0_43_ebts_unaligned;
+      break;
+    case ifc_ebts_microsoft_try:
+      result = (ue_ty)ifc_0_43_ebts_microsoft_try;
+      break;
+    case ifc_ebts_finally:
+      result = (ue_ty)ifc_0_43_ebts_finally;
+      break;
+    case ifc_ebts_leave:
+      result = (ue_ty)ifc_0_43_ebts_leave;
+      break;
+    case ifc_ebts_except:
+      result = (ue_ty)ifc_0_43_ebts_except;
+      break;
+    case ifc_ebts_int8:
+      result = (ue_ty)ifc_0_43_ebts_int8;
+      break;
+    case ifc_ebts_int16:
+      result = (ue_ty)ifc_0_43_ebts_int16;
+      break;
+    case ifc_ebts_int32:
+      result = (ue_ty)ifc_0_43_ebts_int32;
+      break;
+    case ifc_ebts_int64:
+      result = (ue_ty)ifc_0_43_ebts_int64;
+      break;
+    case ifc_ebts_based:
+      result = (ue_ty)ifc_0_43_ebts_based;
+      break;
+    case ifc_ebts_uuidof:
+      result = (ue_ty)ifc_0_43_ebts_uuidof;
+      break;
+    case ifc_ebts_assume:
+      result = (ue_ty)ifc_0_43_ebts_assume;
+      break;
+    case ifc_ebts_charize:
+      result = (ue_ty)ifc_0_43_ebts_charize;
+      break;
+    case ifc_ebts_if_exists:
+      result = (ue_ty)ifc_0_43_ebts_if_exists;
+      break;
+    case ifc_ebts_if_not_exists:
+      result = (ue_ty)ifc_0_43_ebts_if_not_exists;
+      break;
+    case ifc_ebts_end_of_if_exists:
+      result = (ue_ty)ifc_0_43_ebts_end_of_if_exists;
+      break;
+    case ifc_ebts_super:
+      result = (ue_ty)ifc_0_43_ebts_super;
+      break;
+    case ifc_ebts_noop:
+      result = (ue_ty)ifc_0_43_ebts_noop;
+      break;
+    case ifc_ebts_interface:
+      result = (ue_ty)ifc_0_43_ebts_interface;
+      break;
+    case ifc_ebts_event:
+      result = (ue_ty)ifc_0_43_ebts_event;
+      break;
+    case ifc_ebts_microsoft_ptr32:
+      result = (ue_ty)ifc_0_43_ebts_microsoft_ptr32;
+      break;
+    case ifc_ebts_microsoft_ptr64:
+      result = (ue_ty)ifc_0_43_ebts_microsoft_ptr64;
+      break;
+    case ifc_ebts_microsoft_sptr:
+      result = (ue_ty)ifc_0_43_ebts_microsoft_sptr;
+      break;
+    case ifc_ebts_microsoft_uptr:
+      result = (ue_ty)ifc_0_43_ebts_microsoft_uptr;
+      break;
+    case ifc_ebts_microsoft_w64:
+      result = (ue_ty)ifc_0_43_ebts_microsoft_w64;
+      break;
+    case ifc_ebts_microsoft_lprefix:
+      result = (ue_ty)ifc_0_43_ebts_microsoft_lprefix;
+      break;
+    case ifc_ebts_microsoft_uprefix:
+      result = (ue_ty)ifc_0_43_ebts_microsoft_uprefix;
+      break;
+    case ifc_ebts_microsoft_identifier:
+      result = (ue_ty)ifc_0_43_ebts_microsoft_identifier;
+      break;
+    case ifc_ebts_uuid:
+      result = (ue_ty)ifc_0_43_ebts_uuid;
+      break;
+    case ifc_ebts_in:
+      result = (ue_ty)ifc_0_43_ebts_in;
+      break;
+    case ifc_ebts_gcnew:
+      result = (ue_ty)ifc_0_43_ebts_gcnew;
+      break;
+    case ifc_ebts_safe_cast:
+      result = (ue_ty)ifc_0_43_ebts_safe_cast;
+      break;
+    case ifc_ebts_implements:
+      result = (ue_ty)ifc_0_43_ebts_implements;
+      break;
+    case ifc_ebts_unresolved_type:
+      result = (ue_ty)ifc_0_43_ebts_unresolved_type;
+      break;
+    case ifc_ebts_for_each:
+      result = (ue_ty)ifc_0_43_ebts_for_each;
+      break;
+    case ifc_ebts_last_whitespace_token:
+      result = (ue_ty)ifc_0_43_ebts_last_whitespace_token;
+      break;
+    case ifc_ebts_ref_class:
+      result = (ue_ty)ifc_0_43_ebts_ref_class;
+      break;
+    case ifc_ebts_ref_struct:
+      result = (ue_ty)ifc_0_43_ebts_ref_struct;
+      break;
+    case ifc_ebts_value_class:
+      result = (ue_ty)ifc_0_43_ebts_value_class;
+      break;
+    case ifc_ebts_value_struct:
+      result = (ue_ty)ifc_0_43_ebts_value_struct;
+      break;
+    case ifc_ebts_enum_class:
+      result = (ue_ty)ifc_0_43_ebts_enum_class;
+      break;
+    case ifc_ebts_enum_struct:
+      result = (ue_ty)ifc_0_43_ebts_enum_struct;
+      break;
+    case ifc_ebts_interface_class:
+      result = (ue_ty)ifc_0_43_ebts_interface_class;
+      break;
+    case ifc_ebts_interface_struct:
+      result = (ue_ty)ifc_0_43_ebts_interface_struct;
+      break;
+    case ifc_ebts_ref_new:
+      result = (ue_ty)ifc_0_43_ebts_ref_new;
+      break;
+    case ifc_ebts_partial_ref_class:
+      result = (ue_ty)ifc_0_43_ebts_partial_ref_class;
+      break;
+    case ifc_ebts_partial_ref_struct:
+      result = (ue_ty)ifc_0_43_ebts_partial_ref_struct;
+      break;
+    case ifc_ebts_prefix_ref:
+      result = (ue_ty)ifc_0_43_ebts_prefix_ref;
+      break;
+    case ifc_ebts_prefix_value:
+      result = (ue_ty)ifc_0_43_ebts_prefix_value;
+      break;
+    case ifc_ebts_prefix_interface:
+      result = (ue_ty)ifc_0_43_ebts_prefix_interface;
+      break;
+    case ifc_ebts_prefix_for:
+      result = (ue_ty)ifc_0_43_ebts_prefix_for;
+      break;
+    case ifc_ebts_prefix_enum:
+      result = (ue_ty)ifc_0_43_ebts_prefix_enum;
+      break;
+    case ifc_ebts_prefix_partial:
+      result = (ue_ty)ifc_0_43_ebts_prefix_partial;
+      break;
+    case ifc_ebts_microsoft_asm:
+      result = (ue_ty)ifc_0_43_ebts_microsoft_asm;
+      break;
+    case ifc_ebts_func_name:
+      result = (ue_ty)ifc_0_43_ebts_func_name;
+      break;
+    case ifc_ebts_function_name:
+      result = (ue_ty)ifc_0_43_ebts_function_name;
+      break;
+    case ifc_ebts_pretty_function_name:
+      result = (ue_ty)ifc_0_43_ebts_pretty_function_name;
+      break;
+    case ifc_ebts_decorated_function_name:
+      result = (ue_ty)ifc_0_43_ebts_decorated_function_name;
+      break;
+    case ifc_ebts_near:
+      result = (ue_ty)ifc_0_43_ebts_near;
+      break;
+    case ifc_ebts_far:
+      result = (ue_ty)ifc_0_43_ebts_far;
+      break;
+    case ifc_ebts_attribute:
+      result = (ue_ty)ifc_0_43_ebts_attribute;
+      break;
+    case ifc_ebts_builtin_types_compatible:
+      result = (ue_ty)ifc_0_43_ebts_builtin_types_compatible;
+      break;
+    case ifc_ebts_gnu_real:
+      result = (ue_ty)ifc_0_43_ebts_gnu_real;
+      break;
+    case ifc_ebts_gnu_imag:
+      result = (ue_ty)ifc_0_43_ebts_gnu_imag;
+      break;
+    case ifc_ebts_colon_colon:
+      result = (ue_ty)ifc_0_43_ebts_colon_colon;
+      break;
+    case ifc_ebts_period_star:
+      result = (ue_ty)ifc_0_43_ebts_period_star;
+      break;
+    case ifc_ebts_arrow_star:
+      result = (ue_ty)ifc_0_43_ebts_arrow_star;
+      break;
+    case ifc_ebts_asm:
+      result = (ue_ty)ifc_0_43_ebts_asm;
+      break;
+    case ifc_ebts_catch:
+      result = (ue_ty)ifc_0_43_ebts_catch;
+      break;
+    case ifc_ebts_class:
+      result = (ue_ty)ifc_0_43_ebts_class;
+      break;
+    case ifc_ebts_delete:
+      result = (ue_ty)ifc_0_43_ebts_delete;
+      break;
+    case ifc_ebts_friend:
+      result = (ue_ty)ifc_0_43_ebts_friend;
+      break;
+    case ifc_ebts_inline:
+      result = (ue_ty)ifc_0_43_ebts_inline;
+      break;
+    case ifc_ebts_new:
+      result = (ue_ty)ifc_0_43_ebts_new;
+      break;
+    case ifc_ebts_operator:
+      result = (ue_ty)ifc_0_43_ebts_operator;
+      break;
+    case ifc_ebts_private:
+      result = (ue_ty)ifc_0_43_ebts_private;
+      break;
+    case ifc_ebts_protected:
+      result = (ue_ty)ifc_0_43_ebts_protected;
+      break;
+    case ifc_ebts_public:
+      result = (ue_ty)ifc_0_43_ebts_public;
+      break;
+    case ifc_ebts_template:
+      result = (ue_ty)ifc_0_43_ebts_template;
+      break;
+    case ifc_ebts_this:
+      result = (ue_ty)ifc_0_43_ebts_this;
+      break;
+    case ifc_ebts_throw:
+      result = (ue_ty)ifc_0_43_ebts_throw;
+      break;
+    case ifc_ebts_try:
+      result = (ue_ty)ifc_0_43_ebts_try;
+      break;
+    case ifc_ebts_virtual:
+      result = (ue_ty)ifc_0_43_ebts_virtual;
+      break;
+    case ifc_ebts_wchar_t:
+      result = (ue_ty)ifc_0_43_ebts_wchar_t;
+      break;
+    case ifc_ebts_const_cast:
+      result = (ue_ty)ifc_0_43_ebts_const_cast;
+      break;
+    case ifc_ebts_dynamic_cast:
+      result = (ue_ty)ifc_0_43_ebts_dynamic_cast;
+      break;
+    case ifc_ebts_explicit:
+      result = (ue_ty)ifc_0_43_ebts_explicit;
+      break;
+    case ifc_ebts_cpp98_export:
+      result = (ue_ty)ifc_0_43_ebts_cpp98_export;
+      break;
+    case ifc_ebts_export:
+      result = (ue_ty)ifc_0_43_ebts_export;
+      break;
+    case ifc_ebts_export_keyword:
+      result = (ue_ty)ifc_0_43_ebts_export_keyword;
+      break;
+    case ifc_ebts_import:
+      result = (ue_ty)ifc_0_43_ebts_import;
+      break;
+    case ifc_ebts_module:
+      result = (ue_ty)ifc_0_43_ebts_module;
+      break;
+    case ifc_ebts_mutable:
+      result = (ue_ty)ifc_0_43_ebts_mutable;
+      break;
+    case ifc_ebts_namespace:
+      result = (ue_ty)ifc_0_43_ebts_namespace;
+      break;
+    case ifc_ebts_reinterpret_cast:
+      result = (ue_ty)ifc_0_43_ebts_reinterpret_cast;
+      break;
+    case ifc_ebts_static_cast:
+      result = (ue_ty)ifc_0_43_ebts_static_cast;
+      break;
+    case ifc_ebts_typeid:
+      result = (ue_ty)ifc_0_43_ebts_typeid;
+      break;
+    case ifc_ebts_using:
+      result = (ue_ty)ifc_0_43_ebts_using;
+      break;
+    case ifc_ebts_bool:
+      result = (ue_ty)ifc_0_43_ebts_bool;
+      break;
+    case ifc_ebts_false:
+      result = (ue_ty)ifc_0_43_ebts_false;
+      break;
+    case ifc_ebts_true:
+      result = (ue_ty)ifc_0_43_ebts_true;
+      break;
+    case ifc_ebts_typename:
+      result = (ue_ty)ifc_0_43_ebts_typename;
+      break;
+    case ifc_ebts_static_assert:
+      result = (ue_ty)ifc_0_43_ebts_static_assert;
+      break;
+    case ifc_ebts_decltype:
+      result = (ue_ty)ifc_0_43_ebts_decltype;
+      break;
+    case ifc_ebts_auto_type:
+      result = (ue_ty)ifc_0_43_ebts_auto_type;
+      break;
+    case ifc_ebts_extension:
+      result = (ue_ty)ifc_0_43_ebts_extension;
+      break;
+    case ifc_ebts_null:
+      result = (ue_ty)ifc_0_43_ebts_null;
+      break;
+    case ifc_ebts_typeof:
+      result = (ue_ty)ifc_0_43_ebts_typeof;
+      break;
+    case ifc_ebts_typeof_unqual:
+      result = (ue_ty)ifc_0_43_ebts_typeof_unqual;
+      break;
+    case ifc_ebts_overload:
+      result = (ue_ty)ifc_0_43_ebts_overload;
+      break;
+    case ifc_ebts_global_link_scope:
+      result = (ue_ty)ifc_0_43_ebts_global_link_scope;
+      break;
+    case ifc_ebts_symbolic_link_scope:
+      result = (ue_ty)ifc_0_43_ebts_symbolic_link_scope;
+      break;
+    case ifc_ebts_hidden_link_scope:
+      result = (ue_ty)ifc_0_43_ebts_hidden_link_scope;
+      break;
+    case ifc_ebts_thread:
+      result = (ue_ty)ifc_0_43_ebts_thread;
+      break;
+    case ifc_ebts_thread_local:
+      result = (ue_ty)ifc_0_43_ebts_thread_local;
+      break;
+    case ifc_ebts_c11_thread_local:
+      result = (ue_ty)ifc_0_43_ebts_c11_thread_local;
+      break;
+    case ifc_ebts_upc_strict:
+      result = (ue_ty)ifc_0_43_ebts_upc_strict;
+      break;
+    case ifc_ebts_upc_relaxed:
+      result = (ue_ty)ifc_0_43_ebts_upc_relaxed;
+      break;
+    case ifc_ebts_upc_shared:
+      result = (ue_ty)ifc_0_43_ebts_upc_shared;
+      break;
+    case ifc_ebts_upc_forall:
+      result = (ue_ty)ifc_0_43_ebts_upc_forall;
+      break;
+    case ifc_ebts_upc_barrier:
+      result = (ue_ty)ifc_0_43_ebts_upc_barrier;
+      break;
+    case ifc_ebts_upc_notify:
+      result = (ue_ty)ifc_0_43_ebts_upc_notify;
+      break;
+    case ifc_ebts_upc_wait:
+      result = (ue_ty)ifc_0_43_ebts_upc_wait;
+      break;
+    case ifc_ebts_upc_fence:
+      result = (ue_ty)ifc_0_43_ebts_upc_fence;
+      break;
+    case ifc_ebts_upc_threads:
+      result = (ue_ty)ifc_0_43_ebts_upc_threads;
+      break;
+    case ifc_ebts_upc_mythread:
+      result = (ue_ty)ifc_0_43_ebts_upc_mythread;
+      break;
+    case ifc_ebts_upc_blocksizeof:
+      result = (ue_ty)ifc_0_43_ebts_upc_blocksizeof;
+      break;
+    case ifc_ebts_upc_localsizeof:
+      result = (ue_ty)ifc_0_43_ebts_upc_localsizeof;
+      break;
+    case ifc_ebts_upc_elemsizeof:
+      result = (ue_ty)ifc_0_43_ebts_upc_elemsizeof;
+      break;
+    case ifc_ebts_has_assign:
+      result = (ue_ty)ifc_0_43_ebts_has_assign;
+      break;
+    case ifc_ebts_has_copy:
+      result = (ue_ty)ifc_0_43_ebts_has_copy;
+      break;
+    case ifc_ebts_has_nothrow_assign:
+      result = (ue_ty)ifc_0_43_ebts_has_nothrow_assign;
+      break;
+    case ifc_ebts_has_nothrow_constructor:
+      result = (ue_ty)ifc_0_43_ebts_has_nothrow_constructor;
+      break;
+    case ifc_ebts_has_nothrow_copy:
+      result = (ue_ty)ifc_0_43_ebts_has_nothrow_copy;
+      break;
+    case ifc_ebts_has_trivial_assign:
+      result = (ue_ty)ifc_0_43_ebts_has_trivial_assign;
+      break;
+    case ifc_ebts_has_trivial_constructor:
+      result = (ue_ty)ifc_0_43_ebts_has_trivial_constructor;
+      break;
+    case ifc_ebts_has_trivial_copy:
+      result = (ue_ty)ifc_0_43_ebts_has_trivial_copy;
+      break;
+    case ifc_ebts_has_trivial_destructor:
+      result = (ue_ty)ifc_0_43_ebts_has_trivial_destructor;
+      break;
+    case ifc_ebts_has_user_destructor:
+      result = (ue_ty)ifc_0_43_ebts_has_user_destructor;
+      break;
+    case ifc_ebts_has_virtual_destructor:
+      result = (ue_ty)ifc_0_43_ebts_has_virtual_destructor;
+      break;
+    case ifc_ebts_is_abstract:
+      result = (ue_ty)ifc_0_43_ebts_is_abstract;
+      break;
+    case ifc_ebts_is_base_of:
+      result = (ue_ty)ifc_0_43_ebts_is_base_of;
+      break;
+    case ifc_ebts_is_class:
+      result = (ue_ty)ifc_0_43_ebts_is_class;
+      break;
+    case ifc_ebts_is_convertible_to:
+      result = (ue_ty)ifc_0_43_ebts_is_convertible_to;
+      break;
+    case ifc_ebts_is_convertible:
+      result = (ue_ty)ifc_0_43_ebts_is_convertible;
+      break;
+    case ifc_ebts_is_nothrow_convertible:
+      result = (ue_ty)ifc_0_43_ebts_is_nothrow_convertible;
+      break;
+    case ifc_ebts_is_empty:
+      result = (ue_ty)ifc_0_43_ebts_is_empty;
+      break;
+    case ifc_ebts_is_enum:
+      result = (ue_ty)ifc_0_43_ebts_is_enum;
+      break;
+    case ifc_ebts_is_pod:
+      result = (ue_ty)ifc_0_43_ebts_is_pod;
+      break;
+    case ifc_ebts_is_polymorphic:
+      result = (ue_ty)ifc_0_43_ebts_is_polymorphic;
+      break;
+    case ifc_ebts_is_union:
+      result = (ue_ty)ifc_0_43_ebts_is_union;
+      break;
+    case ifc_ebts_is_trivial:
+      result = (ue_ty)ifc_0_43_ebts_is_trivial;
+      break;
+    case ifc_ebts_is_standard_layout:
+      result = (ue_ty)ifc_0_43_ebts_is_standard_layout;
+      break;
+    case ifc_ebts_is_trivially_copyable:
+      result = (ue_ty)ifc_0_43_ebts_is_trivially_copyable;
+      break;
+    case ifc_ebts_is_literal_type:
+      result = (ue_ty)ifc_0_43_ebts_is_literal_type;
+      break;
+    case ifc_ebts_has_trivial_move_constructor:
+      result = (ue_ty)ifc_0_43_ebts_has_trivial_move_constructor;
+      break;
+    case ifc_ebts_has_trivial_move_assign:
+      result = (ue_ty)ifc_0_43_ebts_has_trivial_move_assign;
+      break;
+    case ifc_ebts_has_nothrow_move_assign:
+      result = (ue_ty)ifc_0_43_ebts_has_nothrow_move_assign;
+      break;
+    case ifc_ebts_is_constructible:
+      result = (ue_ty)ifc_0_43_ebts_is_constructible;
+      break;
+    case ifc_ebts_is_nothrow_constructible:
+      result = (ue_ty)ifc_0_43_ebts_is_nothrow_constructible;
+      break;
+    case ifc_ebts_is_trivially_constructible:
+      result = (ue_ty)ifc_0_43_ebts_is_trivially_constructible;
+      break;
+    case ifc_ebts_is_destructible:
+      result = (ue_ty)ifc_0_43_ebts_is_destructible;
+      break;
+    case ifc_ebts_is_nothrow_destructible:
+      result = (ue_ty)ifc_0_43_ebts_is_nothrow_destructible;
+      break;
+    case ifc_ebts_is_trivially_destructible:
+      result = (ue_ty)ifc_0_43_ebts_is_trivially_destructible;
+      break;
+    case ifc_ebts_is_nothrow_assignable:
+      result = (ue_ty)ifc_0_43_ebts_is_nothrow_assignable;
+      break;
+    case ifc_ebts_is_trivially_assignable:
+      result = (ue_ty)ifc_0_43_ebts_is_trivially_assignable;
+      break;
+    case ifc_ebts_is_valid_winrt_type:
+      result = (ue_ty)ifc_0_43_ebts_is_valid_winrt_type;
+      break;
+    case ifc_ebts_underlying_type:
+      result = (ue_ty)ifc_0_43_ebts_underlying_type;
+      break;
+    case ifc_ebts_has_finalizer:
+      result = (ue_ty)ifc_0_43_ebts_has_finalizer;
+      break;
+    case ifc_ebts_is_delegate:
+      result = (ue_ty)ifc_0_43_ebts_is_delegate;
+      break;
+    case ifc_ebts_is_interface_class:
+      result = (ue_ty)ifc_0_43_ebts_is_interface_class;
+      break;
+    case ifc_ebts_is_ref_array:
+      result = (ue_ty)ifc_0_43_ebts_is_ref_array;
+      break;
+    case ifc_ebts_is_ref_class:
+      result = (ue_ty)ifc_0_43_ebts_is_ref_class;
+      break;
+    case ifc_ebts_is_sealed:
+      result = (ue_ty)ifc_0_43_ebts_is_sealed;
+      break;
+    case ifc_ebts_is_simple_value_class:
+      result = (ue_ty)ifc_0_43_ebts_is_simple_value_class;
+      break;
+    case ifc_ebts_is_value_class:
+      result = (ue_ty)ifc_0_43_ebts_is_value_class;
+      break;
+    case ifc_ebts_is_win_class:
+      result = (ue_ty)ifc_0_43_ebts_is_win_class;
+      break;
+    case ifc_ebts_is_win_interface:
+      result = (ue_ty)ifc_0_43_ebts_is_win_interface;
+      break;
+    case ifc_ebts_nullptr:
+      result = (ue_ty)ifc_0_43_ebts_nullptr;
+      break;
+    case ifc_ebts_native_nullptr:
+      result = (ue_ty)ifc_0_43_ebts_native_nullptr;
+      break;
+    case ifc_ebts_internal_alias_decl:
+      result = (ue_ty)ifc_0_43_ebts_internal_alias_decl;
+      break;
+    case ifc_ebts_int128:
+      result = (ue_ty)ifc_0_43_ebts_int128;
+      break;
+    case ifc_ebts_override:
+      result = (ue_ty)ifc_0_43_ebts_override;
+      break;
+    case ifc_ebts_final:
+      result = (ue_ty)ifc_0_43_ebts_final;
+      break;
+    case ifc_ebts_is_final:
+      result = (ue_ty)ifc_0_43_ebts_is_final;
+      break;
+    case ifc_ebts_noexcept:
+      result = (ue_ty)ifc_0_43_ebts_noexcept;
+      break;
+    case ifc_ebts_constexpr:
+      result = (ue_ty)ifc_0_43_ebts_constexpr;
+      break;
+    case ifc_ebts_consteval:
+      result = (ue_ty)ifc_0_43_ebts_consteval;
+      break;
+    case ifc_ebts_constinit:
+      result = (ue_ty)ifc_0_43_ebts_constinit;
+      break;
+    case ifc_ebts_alignas:
+      result = (ue_ty)ifc_0_43_ebts_alignas;
+      break;
+    case ifc_ebts_bases:
+      result = (ue_ty)ifc_0_43_ebts_bases;
+      break;
+    case ifc_ebts_direct_bases:
+      result = (ue_ty)ifc_0_43_ebts_direct_bases;
+      break;
+    case ifc_ebts_builtin_shuffle:
+      result = (ue_ty)ifc_0_43_ebts_builtin_shuffle;
+      break;
+    case ifc_ebts_builtin_shufflevector:
+      result = (ue_ty)ifc_0_43_ebts_builtin_shufflevector;
+      break;
+    case ifc_ebts_builtin_convertvector:
+      result = (ue_ty)ifc_0_43_ebts_builtin_convertvector;
+      break;
+    case ifc_ebts_noreturn:
+      result = (ue_ty)ifc_0_43_ebts_noreturn;
+      break;
+    case ifc_ebts_builtin_complex:
+      result = (ue_ty)ifc_0_43_ebts_builtin_complex;
+      break;
+    case ifc_ebts_c11_generic:
+      result = (ue_ty)ifc_0_43_ebts_c11_generic;
+      break;
+    case ifc_ebts_c11_atomic:
+      result = (ue_ty)ifc_0_43_ebts_c11_atomic;
+      break;
+    case ifc_ebts_nullable:
+      result = (ue_ty)ifc_0_43_ebts_nullable;
+      break;
+    case ifc_ebts_nonnull:
+      result = (ue_ty)ifc_0_43_ebts_nonnull;
+      break;
+    case ifc_ebts_null_unspecified:
+      result = (ue_ty)ifc_0_43_ebts_null_unspecified;
+      break;
+    case ifc_ebts_coroutine_yield:
+      result = (ue_ty)ifc_0_43_ebts_coroutine_yield;
+      break;
+    case ifc_ebts_coroutine_return:
+      result = (ue_ty)ifc_0_43_ebts_coroutine_return;
+      break;
+    case ifc_ebts_coroutine_await:
+      result = (ue_ty)ifc_0_43_ebts_coroutine_await;
+      break;
+    case ifc_ebts_is_assignable:
+      result = (ue_ty)ifc_0_43_ebts_is_assignable;
+      break;
+    case ifc_ebts_is_trivially_copy_assignable:
+      result = (ue_ty)ifc_0_43_ebts_is_trivially_copy_assignable;
+      break;
+    case ifc_ebts_is_assignable_no_precondition_check:
+      result = (ue_ty)ifc_0_43_ebts_is_assignable_no_precondition_check;
+      break;
+    case ifc_ebts_builtin_addressof:
+      result = (ue_ty)ifc_0_43_ebts_builtin_addressof;
+      break;
+    case ifc_ebts_edg_internal_type:
+      result = (ue_ty)ifc_0_43_ebts_edg_internal_type;
+      break;
+    case ifc_ebts_edg_vector_type:
+      result = (ue_ty)ifc_0_43_ebts_edg_vector_type;
+      break;
+    case ifc_ebts_edg_size_type:
+      result = (ue_ty)ifc_0_43_ebts_edg_size_type;
+      break;
+    case ifc_ebts_edg_ptrdiff_type:
+      result = (ue_ty)ifc_0_43_ebts_edg_ptrdiff_type;
+      break;
+    case ifc_ebts_edg_bool_type:
+      result = (ue_ty)ifc_0_43_ebts_edg_bool_type;
+      break;
+    case ifc_ebts_edg_wchar_type:
+      result = (ue_ty)ifc_0_43_ebts_edg_wchar_type;
+      break;
+    case ifc_ebts_edg_throw:
+      result = (ue_ty)ifc_0_43_ebts_edg_throw;
+      break;
+    case ifc_ebts_edg_internal_opnd:
+      result = (ue_ty)ifc_0_43_ebts_edg_internal_opnd;
+      break;
+    case ifc_ebts_clang_version:
+      result = (ue_ty)ifc_0_43_ebts_clang_version;
+      break;
+    case ifc_ebts_has_unique_object_representations:
+      result = (ue_ty)ifc_0_43_ebts_has_unique_object_representations;
+      break;
+    case ifc_ebts_is_aggregate:
+      result = (ue_ty)ifc_0_43_ebts_is_aggregate;
+      break;
+    case ifc_ebts_integer_pack:
+      result = (ue_ty)ifc_0_43_ebts_integer_pack;
+      break;
+    case ifc_ebts_reference_binds_to_temporary:
+      result = (ue_ty)ifc_0_43_ebts_reference_binds_to_temporary;
+      break;
+    case ifc_ebts_reference_constructs_from_temporary:
+      result = (ue_ty)ifc_0_43_ebts_reference_constructs_from_temporary;
+      break;
+    case ifc_ebts_reference_converts_from_temporary:
+      result = (ue_ty)ifc_0_43_ebts_reference_converts_from_temporary;
+      break;
+    case ifc_ebts_is_same:
+      result = (ue_ty)ifc_0_43_ebts_is_same;
+      break;
+    case ifc_ebts_is_same_as:
+      result = (ue_ty)ifc_0_43_ebts_is_same_as;
+      break;
+    case ifc_ebts_is_function:
+      result = (ue_ty)ifc_0_43_ebts_is_function;
+      break;
+    case ifc_ebts_requires:
+      result = (ue_ty)ifc_0_43_ebts_requires;
+      break;
+    case ifc_ebts_concept:
+      result = (ue_ty)ifc_0_43_ebts_concept;
+      break;
+    case ifc_ebts_builtin_has_attribute:
+      result = (ue_ty)ifc_0_43_ebts_builtin_has_attribute;
+      break;
+    case ifc_ebts_builtin_bit_cast:
+      result = (ue_ty)ifc_0_43_ebts_builtin_bit_cast;
+      break;
+    case ifc_ebts_is_layout_compatible:
+      result = (ue_ty)ifc_0_43_ebts_is_layout_compatible;
+      break;
+    case ifc_ebts_is_pointer_interconvertible_base_of:
+      result = (ue_ty)ifc_0_43_ebts_is_pointer_interconvertible_base_of;
+      break;
+    case ifc_ebts_is_pointer_interconvertible_with_class:
+      result = (ue_ty)ifc_0_43_ebts_is_pointer_interconvertible_with_class;
+      break;
+    case ifc_ebts_builtin_is_pointer_interconvertible_with_class:
+      result =
+           (ue_ty)ifc_0_43_ebts_builtin_is_pointer_interconvertible_with_class;
+      break;
+    case ifc_ebts_is_corresponding_member:
+      result = (ue_ty)ifc_0_43_ebts_is_corresponding_member;
+      break;
+    case ifc_ebts_builtin_is_corresponding_member:
+      result = (ue_ty)ifc_0_43_ebts_builtin_is_corresponding_member;
+      break;
+    case ifc_ebts_edg_is_deducible:
+      result = (ue_ty)ifc_0_43_ebts_edg_is_deducible;
+      break;
+    case ifc_ebts_is_array:
+      result = (ue_ty)ifc_0_43_ebts_is_array;
+      break;
+    case ifc_ebts_array_rank:
+      result = (ue_ty)ifc_0_43_ebts_array_rank;
+      break;
+    case ifc_ebts_array_extent:
+      result = (ue_ty)ifc_0_43_ebts_array_extent;
+      break;
+    case ifc_ebts_is_arithmetic:
+      result = (ue_ty)ifc_0_43_ebts_is_arithmetic;
+      break;
+    case ifc_ebts_is_complete_type:
+      result = (ue_ty)ifc_0_43_ebts_is_complete_type;
+      break;
+    case ifc_ebts_is_compound:
+      result = (ue_ty)ifc_0_43_ebts_is_compound;
+      break;
+    case ifc_ebts_is_const:
+      result = (ue_ty)ifc_0_43_ebts_is_const;
+      break;
+    case ifc_ebts_is_floating_point:
+      result = (ue_ty)ifc_0_43_ebts_is_floating_point;
+      break;
+    case ifc_ebts_is_fundamental:
+      result = (ue_ty)ifc_0_43_ebts_is_fundamental;
+      break;
+    case ifc_ebts_is_integral:
+      result = (ue_ty)ifc_0_43_ebts_is_integral;
+      break;
+    case ifc_ebts_is_lvalue_reference:
+      result = (ue_ty)ifc_0_43_ebts_is_lvalue_reference;
+      break;
+    case ifc_ebts_is_member_function_pointer:
+      result = (ue_ty)ifc_0_43_ebts_is_member_function_pointer;
+      break;
+    case ifc_ebts_is_member_object_pointer:
+      result = (ue_ty)ifc_0_43_ebts_is_member_object_pointer;
+      break;
+    case ifc_ebts_is_member_pointer:
+      result = (ue_ty)ifc_0_43_ebts_is_member_pointer;
+      break;
+    case ifc_ebts_is_object:
+      result = (ue_ty)ifc_0_43_ebts_is_object;
+      break;
+    case ifc_ebts_is_pointer:
+      result = (ue_ty)ifc_0_43_ebts_is_pointer;
+      break;
+    case ifc_ebts_is_reference:
+      result = (ue_ty)ifc_0_43_ebts_is_reference;
+      break;
+    case ifc_ebts_is_rvalue_reference:
+      result = (ue_ty)ifc_0_43_ebts_is_rvalue_reference;
+      break;
+    case ifc_ebts_is_scalar:
+      result = (ue_ty)ifc_0_43_ebts_is_scalar;
+      break;
+    case ifc_ebts_is_signed:
+      result = (ue_ty)ifc_0_43_ebts_is_signed;
+      break;
+    case ifc_ebts_is_unsigned:
+      result = (ue_ty)ifc_0_43_ebts_is_unsigned;
+      break;
+    case ifc_ebts_is_void:
+      result = (ue_ty)ifc_0_43_ebts_is_void;
+      break;
+    case ifc_ebts_is_volatile:
+      result = (ue_ty)ifc_0_43_ebts_is_volatile;
+      break;
+    case ifc_ebts_float32:
+      result = (ue_ty)ifc_0_43_ebts_float32;
+      break;
+    case ifc_ebts_float32x:
+      result = (ue_ty)ifc_0_43_ebts_float32x;
+      break;
+    case ifc_ebts_float64:
+      result = (ue_ty)ifc_0_43_ebts_float64;
+      break;
+    case ifc_ebts_float64x:
+      result = (ue_ty)ifc_0_43_ebts_float64x;
+      break;
+    case ifc_ebts_float128:
+      result = (ue_ty)ifc_0_43_ebts_float128;
+      break;
+    case ifc_ebts_is_bounded_array:
+      result = (ue_ty)ifc_0_43_ebts_is_bounded_array;
+      break;
+    case ifc_ebts_is_unbounded_array:
+      result = (ue_ty)ifc_0_43_ebts_is_unbounded_array;
+      break;
+    case ifc_ebts_is_referenceable:
+      result = (ue_ty)ifc_0_43_ebts_is_referenceable;
+      break;
+    case ifc_ebts_add_lvalue_reference:
+      result = (ue_ty)ifc_0_43_ebts_add_lvalue_reference;
+      break;
+    case ifc_ebts_add_pointer:
+      result = (ue_ty)ifc_0_43_ebts_add_pointer;
+      break;
+    case ifc_ebts_add_rvalue_reference:
+      result = (ue_ty)ifc_0_43_ebts_add_rvalue_reference;
+      break;
+    case ifc_ebts_decay:
+      result = (ue_ty)ifc_0_43_ebts_decay;
+      break;
+    case ifc_ebts_make_signed:
+      result = (ue_ty)ifc_0_43_ebts_make_signed;
+      break;
+    case ifc_ebts_make_unsigned:
+      result = (ue_ty)ifc_0_43_ebts_make_unsigned;
+      break;
+    case ifc_ebts_remove_all_extents:
+      result = (ue_ty)ifc_0_43_ebts_remove_all_extents;
+      break;
+    case ifc_ebts_remove_const:
+      result = (ue_ty)ifc_0_43_ebts_remove_const;
+      break;
+    case ifc_ebts_remove_cv:
+      result = (ue_ty)ifc_0_43_ebts_remove_cv;
+      break;
+    case ifc_ebts_remove_cvref:
+      result = (ue_ty)ifc_0_43_ebts_remove_cvref;
+      break;
+    case ifc_ebts_remove_extent:
+      result = (ue_ty)ifc_0_43_ebts_remove_extent;
+      break;
+    case ifc_ebts_remove_pointer:
+      result = (ue_ty)ifc_0_43_ebts_remove_pointer;
+      break;
+    case ifc_ebts_remove_reference:
+      result = (ue_ty)ifc_0_43_ebts_remove_reference;
+      break;
+    case ifc_ebts_remove_reference_t:
+      result = (ue_ty)ifc_0_43_ebts_remove_reference_t;
+      break;
+    case ifc_ebts_remove_restrict:
+      result = (ue_ty)ifc_0_43_ebts_remove_restrict;
+      break;
+    case ifc_ebts_remove_volatile:
+      result = (ue_ty)ifc_0_43_ebts_remove_volatile;
+      break;
+    case ifc_ebts_is_trivially_equality_comparable:
+      result = (ue_ty)ifc_0_43_ebts_is_trivially_equality_comparable;
+      break;
+    default:
+      unexpected_condition_str("Invalid value for a EdgBasicTokenSort.");
+      break;
+  }  /* switch */
+  return an_ifc_encoded_edg_basic_token_sort{file, result};
+}  /* to_encoded */
+
+
+an_ifc_edg_basic_token_sort to_universal_sort(
+                                    an_ifc_edg_basic_token_sort_0_43 versioned)
+/*
+Given the versioned representation of EdgBasicTokenSort, return the
+corresponding universal representation.
+*/
+{
+  an_ifc_edg_basic_token_sort result;
+
+  switch (versioned) {
+    case ifc_0_43_ebts_complex:
+      result = ifc_ebts_complex;
+      break;
+    case ifc_0_43_ebts_lbracket:
+      result = ifc_ebts_lbracket;
+      break;
+    case ifc_0_43_ebts_rbracket:
+      result = ifc_ebts_rbracket;
+      break;
+    case ifc_0_43_ebts_lparen:
+      result = ifc_ebts_lparen;
+      break;
+    case ifc_0_43_ebts_rparen:
+      result = ifc_ebts_rparen;
+      break;
+    case ifc_0_43_ebts_period:
+      result = ifc_ebts_period;
+      break;
+    case ifc_0_43_ebts_arrow:
+      result = ifc_ebts_arrow;
+      break;
+    case ifc_0_43_ebts_plus_plus:
+      result = ifc_ebts_plus_plus;
+      break;
+    case ifc_0_43_ebts_minus_minus:
+      result = ifc_ebts_minus_minus;
+      break;
+    case ifc_0_43_ebts_ampersand:
+      result = ifc_ebts_ampersand;
+      break;
+    case ifc_0_43_ebts_star:
+      result = ifc_ebts_star;
+      break;
+    case ifc_0_43_ebts_plus:
+      result = ifc_ebts_plus;
+      break;
+    case ifc_0_43_ebts_minus:
+      result = ifc_ebts_minus;
+      break;
+    case ifc_0_43_ebts_compl:
+      result = ifc_ebts_compl;
+      break;
+    case ifc_0_43_ebts_not:
+      result = ifc_ebts_not;
+      break;
+    case ifc_0_43_ebts_divide:
+      result = ifc_ebts_divide;
+      break;
+    case ifc_0_43_ebts_remainder:
+      result = ifc_ebts_remainder;
+      break;
+    case ifc_0_43_ebts_shift_left:
+      result = ifc_ebts_shift_left;
+      break;
+    case ifc_0_43_ebts_shift_right:
+      result = ifc_ebts_shift_right;
+      break;
+    case ifc_0_43_ebts_lt:
+      result = ifc_ebts_lt;
+      break;
+    case ifc_0_43_ebts_gt:
+      result = ifc_ebts_gt;
+      break;
+    case ifc_0_43_ebts_le:
+      result = ifc_ebts_le;
+      break;
+    case ifc_0_43_ebts_ge:
+      result = ifc_ebts_ge;
+      break;
+    case ifc_0_43_ebts_eq:
+      result = ifc_ebts_eq;
+      break;
+    case ifc_0_43_ebts_ne:
+      result = ifc_ebts_ne;
+      break;
+    case ifc_0_43_ebts_spaceship:
+      result = ifc_ebts_spaceship;
+      break;
+    case ifc_0_43_ebts_excl_or:
+      result = ifc_ebts_excl_or;
+      break;
+    case ifc_0_43_ebts_or:
+      result = ifc_ebts_or;
+      break;
+    case ifc_0_43_ebts_and_and:
+      result = ifc_ebts_and_and;
+      break;
+    case ifc_0_43_ebts_or_or:
+      result = ifc_ebts_or_or;
+      break;
+    case ifc_0_43_ebts_quest_mark:
+      result = ifc_ebts_quest_mark;
+      break;
+    case ifc_0_43_ebts_colon:
+      result = ifc_ebts_colon;
+      break;
+    case ifc_0_43_ebts_assign:
+      result = ifc_ebts_assign;
+      break;
+    case ifc_0_43_ebts_times_assign:
+      result = ifc_ebts_times_assign;
+      break;
+    case ifc_0_43_ebts_divide_assign:
+      result = ifc_ebts_divide_assign;
+      break;
+    case ifc_0_43_ebts_remainder_assign:
+      result = ifc_ebts_remainder_assign;
+      break;
+    case ifc_0_43_ebts_plus_assign:
+      result = ifc_ebts_plus_assign;
+      break;
+    case ifc_0_43_ebts_minus_assign:
+      result = ifc_ebts_minus_assign;
+      break;
+    case ifc_0_43_ebts_shift_left_assign:
+      result = ifc_ebts_shift_left_assign;
+      break;
+    case ifc_0_43_ebts_shift_right_assign:
+      result = ifc_ebts_shift_right_assign;
+      break;
+    case ifc_0_43_ebts_and_assign:
+      result = ifc_ebts_and_assign;
+      break;
+    case ifc_0_43_ebts_excl_or_assign:
+      result = ifc_ebts_excl_or_assign;
+      break;
+    case ifc_0_43_ebts_or_assign:
+      result = ifc_ebts_or_assign;
+      break;
+    case ifc_0_43_ebts_comma:
+      result = ifc_ebts_comma;
+      break;
+    case ifc_0_43_ebts_sharp:
+      result = ifc_ebts_sharp;
+      break;
+    case ifc_0_43_ebts_paste:
+      result = ifc_ebts_paste;
+      break;
+    case ifc_0_43_ebts_gnu_min:
+      result = ifc_ebts_gnu_min;
+      break;
+    case ifc_0_43_ebts_gnu_max:
+      result = ifc_ebts_gnu_max;
+      break;
+    case ifc_0_43_ebts_lbrace:
+      result = ifc_ebts_lbrace;
+      break;
+    case ifc_0_43_ebts_rbrace:
+      result = ifc_ebts_rbrace;
+      break;
+    case ifc_0_43_ebts_lsplice:
+      result = ifc_ebts_lsplice;
+      break;
+    case ifc_0_43_ebts_rsplice:
+      result = ifc_ebts_rsplice;
+      break;
+    case ifc_0_43_ebts_semicolon:
+      result = ifc_ebts_semicolon;
+      break;
+    case ifc_0_43_ebts_ellipsis:
+      result = ifc_ebts_ellipsis;
+      break;
+    case ifc_0_43_ebts_auto:
+      result = ifc_ebts_auto;
+      break;
+    case ifc_0_43_ebts_break:
+      result = ifc_ebts_break;
+      break;
+    case ifc_0_43_ebts_case:
+      result = ifc_ebts_case;
+      break;
+    case ifc_0_43_ebts_char:
+      result = ifc_ebts_char;
+      break;
+    case ifc_0_43_ebts_const:
+      result = ifc_ebts_const;
+      break;
+    case ifc_0_43_ebts_continue:
+      result = ifc_ebts_continue;
+      break;
+    case ifc_0_43_ebts_default:
+      result = ifc_ebts_default;
+      break;
+    case ifc_0_43_ebts_do:
+      result = ifc_ebts_do;
+      break;
+    case ifc_0_43_ebts_double:
+      result = ifc_ebts_double;
+      break;
+    case ifc_0_43_ebts_else:
+      result = ifc_ebts_else;
+      break;
+    case ifc_0_43_ebts_enum:
+      result = ifc_ebts_enum;
+      break;
+    case ifc_0_43_ebts_extern:
+      result = ifc_ebts_extern;
+      break;
+    case ifc_0_43_ebts_float:
+      result = ifc_ebts_float;
+      break;
+    case ifc_0_43_ebts_for:
+      result = ifc_ebts_for;
+      break;
+    case ifc_0_43_ebts_goto:
+      result = ifc_ebts_goto;
+      break;
+    case ifc_0_43_ebts_if:
+      result = ifc_ebts_if;
+      break;
+    case ifc_0_43_ebts_int:
+      result = ifc_ebts_int;
+      break;
+    case ifc_0_43_ebts_long:
+      result = ifc_ebts_long;
+      break;
+    case ifc_0_43_ebts_register:
+      result = ifc_ebts_register;
+      break;
+    case ifc_0_43_ebts_return:
+      result = ifc_ebts_return;
+      break;
+    case ifc_0_43_ebts_short:
+      result = ifc_ebts_short;
+      break;
+    case ifc_0_43_ebts_signed:
+      result = ifc_ebts_signed;
+      break;
+    case ifc_0_43_ebts_sizeof:
+      result = ifc_ebts_sizeof;
+      break;
+    case ifc_0_43_ebts_static:
+      result = ifc_ebts_static;
+      break;
+    case ifc_0_43_ebts_struct:
+      result = ifc_ebts_struct;
+      break;
+    case ifc_0_43_ebts_switch:
+      result = ifc_ebts_switch;
+      break;
+    case ifc_0_43_ebts_typedef:
+      result = ifc_ebts_typedef;
+      break;
+    case ifc_0_43_ebts_union:
+      result = ifc_ebts_union;
+      break;
+    case ifc_0_43_ebts_unsigned:
+      result = ifc_ebts_unsigned;
+      break;
+    case ifc_0_43_ebts_void:
+      result = ifc_ebts_void;
+      break;
+    case ifc_0_43_ebts_volatile:
+      result = ifc_ebts_volatile;
+      break;
+    case ifc_0_43_ebts_while:
+      result = ifc_ebts_while;
+      break;
+    case ifc_0_43_ebts_c99_generic:
+      result = ifc_ebts_c99_generic;
+      break;
+    case ifc_0_43_ebts_c99_genericfx:
+      result = ifc_ebts_c99_genericfx;
+      break;
+    case ifc_0_43_ebts_alignof:
+      result = ifc_ebts_alignof;
+      break;
+    case ifc_0_43_ebts_ext_alignof:
+      result = ifc_ebts_ext_alignof;
+      break;
+    case ifc_0_43_ebts_intaddr:
+      result = ifc_ebts_intaddr;
+      break;
+    case ifc_0_43_ebts_va_copy:
+      result = ifc_ebts_va_copy;
+      break;
+    case ifc_0_43_ebts_builtin_offsetof:
+      result = ifc_ebts_builtin_offsetof;
+      break;
+    case ifc_0_43_ebts_restrict:
+      result = ifc_ebts_restrict;
+      break;
+    case ifc_0_43_ebts_gnu_restrict:
+      result = ifc_ebts_gnu_restrict;
+      break;
+    case ifc_0_43_ebts_c99_bool:
+      result = ifc_ebts_c99_bool;
+      break;
+    case ifc_0_43_ebts_c99_complex:
+      result = ifc_ebts_c99_complex;
+      break;
+    case ifc_0_43_ebts_c99_imaginary:
+      result = ifc_ebts_c99_imaginary;
+      break;
+    case ifc_0_43_ebts_imaginary_unit:
+      result = ifc_ebts_imaginary_unit;
+      break;
+    case ifc_0_43_ebts_nan:
+      result = ifc_ebts_nan;
+      break;
+    case ifc_0_43_ebts_infinity:
+      result = ifc_ebts_infinity;
+      break;
+    case ifc_0_43_ebts_char16_t:
+      result = ifc_ebts_char16_t;
+      break;
+    case ifc_0_43_ebts_char32_t:
+      result = ifc_ebts_char32_t;
+      break;
+    case ifc_0_43_ebts_char8_t:
+      result = ifc_ebts_char8_t;
+      break;
+    case ifc_0_43_ebts_fract:
+      result = ifc_ebts_fract;
+      break;
+    case ifc_0_43_ebts_accum:
+      result = ifc_ebts_accum;
+      break;
+    case ifc_0_43_ebts_sat:
+      result = ifc_ebts_sat;
+      break;
+    case ifc_0_43_ebts_abstract:
+      result = ifc_ebts_abstract;
+      break;
+    case ifc_0_43_ebts_sealed:
+      result = ifc_ebts_sealed;
+      break;
+    case ifc_0_43_ebts_cdecl:
+      result = ifc_ebts_cdecl;
+      break;
+    case ifc_0_43_ebts_fastcall:
+      result = ifc_ebts_fastcall;
+      break;
+    case ifc_0_43_ebts_stdcall:
+      result = ifc_ebts_stdcall;
+      break;
+    case ifc_0_43_ebts_thiscall:
+      result = ifc_ebts_thiscall;
+      break;
+    case ifc_0_43_ebts_vectorcall:
+      result = ifc_ebts_vectorcall;
+      break;
+    case ifc_0_43_ebts_clrcall:
+      result = ifc_ebts_clrcall;
+      break;
+    case ifc_0_43_ebts_microsoft_inline:
+      result = ifc_ebts_microsoft_inline;
+      break;
+    case ifc_0_43_ebts_forceinline:
+      result = ifc_ebts_forceinline;
+      break;
+    case ifc_0_43_ebts_unaligned:
+      result = ifc_ebts_unaligned;
+      break;
+    case ifc_0_43_ebts_microsoft_try:
+      result = ifc_ebts_microsoft_try;
+      break;
+    case ifc_0_43_ebts_finally:
+      result = ifc_ebts_finally;
+      break;
+    case ifc_0_43_ebts_leave:
+      result = ifc_ebts_leave;
+      break;
+    case ifc_0_43_ebts_except:
+      result = ifc_ebts_except;
+      break;
+    case ifc_0_43_ebts_int8:
+      result = ifc_ebts_int8;
+      break;
+    case ifc_0_43_ebts_int16:
+      result = ifc_ebts_int16;
+      break;
+    case ifc_0_43_ebts_int32:
+      result = ifc_ebts_int32;
+      break;
+    case ifc_0_43_ebts_int64:
+      result = ifc_ebts_int64;
+      break;
+    case ifc_0_43_ebts_based:
+      result = ifc_ebts_based;
+      break;
+    case ifc_0_43_ebts_uuidof:
+      result = ifc_ebts_uuidof;
+      break;
+    case ifc_0_43_ebts_assume:
+      result = ifc_ebts_assume;
+      break;
+    case ifc_0_43_ebts_charize:
+      result = ifc_ebts_charize;
+      break;
+    case ifc_0_43_ebts_if_exists:
+      result = ifc_ebts_if_exists;
+      break;
+    case ifc_0_43_ebts_if_not_exists:
+      result = ifc_ebts_if_not_exists;
+      break;
+    case ifc_0_43_ebts_end_of_if_exists:
+      result = ifc_ebts_end_of_if_exists;
+      break;
+    case ifc_0_43_ebts_super:
+      result = ifc_ebts_super;
+      break;
+    case ifc_0_43_ebts_noop:
+      result = ifc_ebts_noop;
+      break;
+    case ifc_0_43_ebts_interface:
+      result = ifc_ebts_interface;
+      break;
+    case ifc_0_43_ebts_event:
+      result = ifc_ebts_event;
+      break;
+    case ifc_0_43_ebts_microsoft_ptr32:
+      result = ifc_ebts_microsoft_ptr32;
+      break;
+    case ifc_0_43_ebts_microsoft_ptr64:
+      result = ifc_ebts_microsoft_ptr64;
+      break;
+    case ifc_0_43_ebts_microsoft_sptr:
+      result = ifc_ebts_microsoft_sptr;
+      break;
+    case ifc_0_43_ebts_microsoft_uptr:
+      result = ifc_ebts_microsoft_uptr;
+      break;
+    case ifc_0_43_ebts_microsoft_w64:
+      result = ifc_ebts_microsoft_w64;
+      break;
+    case ifc_0_43_ebts_microsoft_lprefix:
+      result = ifc_ebts_microsoft_lprefix;
+      break;
+    case ifc_0_43_ebts_microsoft_uprefix:
+      result = ifc_ebts_microsoft_uprefix;
+      break;
+    case ifc_0_43_ebts_microsoft_identifier:
+      result = ifc_ebts_microsoft_identifier;
+      break;
+    case ifc_0_43_ebts_uuid:
+      result = ifc_ebts_uuid;
+      break;
+    case ifc_0_43_ebts_in:
+      result = ifc_ebts_in;
+      break;
+    case ifc_0_43_ebts_gcnew:
+      result = ifc_ebts_gcnew;
+      break;
+    case ifc_0_43_ebts_safe_cast:
+      result = ifc_ebts_safe_cast;
+      break;
+    case ifc_0_43_ebts_implements:
+      result = ifc_ebts_implements;
+      break;
+    case ifc_0_43_ebts_unresolved_type:
+      result = ifc_ebts_unresolved_type;
+      break;
+    case ifc_0_43_ebts_for_each:
+      result = ifc_ebts_for_each;
+      break;
+    case ifc_0_43_ebts_last_whitespace_token:
+      result = ifc_ebts_last_whitespace_token;
+      break;
+    case ifc_0_43_ebts_ref_class:
+      result = ifc_ebts_ref_class;
+      break;
+    case ifc_0_43_ebts_ref_struct:
+      result = ifc_ebts_ref_struct;
+      break;
+    case ifc_0_43_ebts_value_class:
+      result = ifc_ebts_value_class;
+      break;
+    case ifc_0_43_ebts_value_struct:
+      result = ifc_ebts_value_struct;
+      break;
+    case ifc_0_43_ebts_enum_class:
+      result = ifc_ebts_enum_class;
+      break;
+    case ifc_0_43_ebts_enum_struct:
+      result = ifc_ebts_enum_struct;
+      break;
+    case ifc_0_43_ebts_interface_class:
+      result = ifc_ebts_interface_class;
+      break;
+    case ifc_0_43_ebts_interface_struct:
+      result = ifc_ebts_interface_struct;
+      break;
+    case ifc_0_43_ebts_ref_new:
+      result = ifc_ebts_ref_new;
+      break;
+    case ifc_0_43_ebts_partial_ref_class:
+      result = ifc_ebts_partial_ref_class;
+      break;
+    case ifc_0_43_ebts_partial_ref_struct:
+      result = ifc_ebts_partial_ref_struct;
+      break;
+    case ifc_0_43_ebts_prefix_ref:
+      result = ifc_ebts_prefix_ref;
+      break;
+    case ifc_0_43_ebts_prefix_value:
+      result = ifc_ebts_prefix_value;
+      break;
+    case ifc_0_43_ebts_prefix_interface:
+      result = ifc_ebts_prefix_interface;
+      break;
+    case ifc_0_43_ebts_prefix_for:
+      result = ifc_ebts_prefix_for;
+      break;
+    case ifc_0_43_ebts_prefix_enum:
+      result = ifc_ebts_prefix_enum;
+      break;
+    case ifc_0_43_ebts_prefix_partial:
+      result = ifc_ebts_prefix_partial;
+      break;
+    case ifc_0_43_ebts_microsoft_asm:
+      result = ifc_ebts_microsoft_asm;
+      break;
+    case ifc_0_43_ebts_func_name:
+      result = ifc_ebts_func_name;
+      break;
+    case ifc_0_43_ebts_function_name:
+      result = ifc_ebts_function_name;
+      break;
+    case ifc_0_43_ebts_pretty_function_name:
+      result = ifc_ebts_pretty_function_name;
+      break;
+    case ifc_0_43_ebts_decorated_function_name:
+      result = ifc_ebts_decorated_function_name;
+      break;
+    case ifc_0_43_ebts_near:
+      result = ifc_ebts_near;
+      break;
+    case ifc_0_43_ebts_far:
+      result = ifc_ebts_far;
+      break;
+    case ifc_0_43_ebts_attribute:
+      result = ifc_ebts_attribute;
+      break;
+    case ifc_0_43_ebts_builtin_types_compatible:
+      result = ifc_ebts_builtin_types_compatible;
+      break;
+    case ifc_0_43_ebts_gnu_real:
+      result = ifc_ebts_gnu_real;
+      break;
+    case ifc_0_43_ebts_gnu_imag:
+      result = ifc_ebts_gnu_imag;
+      break;
+    case ifc_0_43_ebts_colon_colon:
+      result = ifc_ebts_colon_colon;
+      break;
+    case ifc_0_43_ebts_period_star:
+      result = ifc_ebts_period_star;
+      break;
+    case ifc_0_43_ebts_arrow_star:
+      result = ifc_ebts_arrow_star;
+      break;
+    case ifc_0_43_ebts_asm:
+      result = ifc_ebts_asm;
+      break;
+    case ifc_0_43_ebts_catch:
+      result = ifc_ebts_catch;
+      break;
+    case ifc_0_43_ebts_class:
+      result = ifc_ebts_class;
+      break;
+    case ifc_0_43_ebts_delete:
+      result = ifc_ebts_delete;
+      break;
+    case ifc_0_43_ebts_friend:
+      result = ifc_ebts_friend;
+      break;
+    case ifc_0_43_ebts_inline:
+      result = ifc_ebts_inline;
+      break;
+    case ifc_0_43_ebts_new:
+      result = ifc_ebts_new;
+      break;
+    case ifc_0_43_ebts_operator:
+      result = ifc_ebts_operator;
+      break;
+    case ifc_0_43_ebts_private:
+      result = ifc_ebts_private;
+      break;
+    case ifc_0_43_ebts_protected:
+      result = ifc_ebts_protected;
+      break;
+    case ifc_0_43_ebts_public:
+      result = ifc_ebts_public;
+      break;
+    case ifc_0_43_ebts_template:
+      result = ifc_ebts_template;
+      break;
+    case ifc_0_43_ebts_this:
+      result = ifc_ebts_this;
+      break;
+    case ifc_0_43_ebts_throw:
+      result = ifc_ebts_throw;
+      break;
+    case ifc_0_43_ebts_try:
+      result = ifc_ebts_try;
+      break;
+    case ifc_0_43_ebts_virtual:
+      result = ifc_ebts_virtual;
+      break;
+    case ifc_0_43_ebts_wchar_t:
+      result = ifc_ebts_wchar_t;
+      break;
+    case ifc_0_43_ebts_const_cast:
+      result = ifc_ebts_const_cast;
+      break;
+    case ifc_0_43_ebts_dynamic_cast:
+      result = ifc_ebts_dynamic_cast;
+      break;
+    case ifc_0_43_ebts_explicit:
+      result = ifc_ebts_explicit;
+      break;
+    case ifc_0_43_ebts_cpp98_export:
+      result = ifc_ebts_cpp98_export;
+      break;
+    case ifc_0_43_ebts_export:
+      result = ifc_ebts_export;
+      break;
+    case ifc_0_43_ebts_export_keyword:
+      result = ifc_ebts_export_keyword;
+      break;
+    case ifc_0_43_ebts_import:
+      result = ifc_ebts_import;
+      break;
+    case ifc_0_43_ebts_module:
+      result = ifc_ebts_module;
+      break;
+    case ifc_0_43_ebts_mutable:
+      result = ifc_ebts_mutable;
+      break;
+    case ifc_0_43_ebts_namespace:
+      result = ifc_ebts_namespace;
+      break;
+    case ifc_0_43_ebts_reinterpret_cast:
+      result = ifc_ebts_reinterpret_cast;
+      break;
+    case ifc_0_43_ebts_static_cast:
+      result = ifc_ebts_static_cast;
+      break;
+    case ifc_0_43_ebts_typeid:
+      result = ifc_ebts_typeid;
+      break;
+    case ifc_0_43_ebts_using:
+      result = ifc_ebts_using;
+      break;
+    case ifc_0_43_ebts_bool:
+      result = ifc_ebts_bool;
+      break;
+    case ifc_0_43_ebts_false:
+      result = ifc_ebts_false;
+      break;
+    case ifc_0_43_ebts_true:
+      result = ifc_ebts_true;
+      break;
+    case ifc_0_43_ebts_typename:
+      result = ifc_ebts_typename;
+      break;
+    case ifc_0_43_ebts_static_assert:
+      result = ifc_ebts_static_assert;
+      break;
+    case ifc_0_43_ebts_decltype:
+      result = ifc_ebts_decltype;
+      break;
+    case ifc_0_43_ebts_auto_type:
+      result = ifc_ebts_auto_type;
+      break;
+    case ifc_0_43_ebts_extension:
+      result = ifc_ebts_extension;
+      break;
+    case ifc_0_43_ebts_null:
+      result = ifc_ebts_null;
+      break;
+    case ifc_0_43_ebts_typeof:
+      result = ifc_ebts_typeof;
+      break;
+    case ifc_0_43_ebts_typeof_unqual:
+      result = ifc_ebts_typeof_unqual;
+      break;
+    case ifc_0_43_ebts_overload:
+      result = ifc_ebts_overload;
+      break;
+    case ifc_0_43_ebts_global_link_scope:
+      result = ifc_ebts_global_link_scope;
+      break;
+    case ifc_0_43_ebts_symbolic_link_scope:
+      result = ifc_ebts_symbolic_link_scope;
+      break;
+    case ifc_0_43_ebts_hidden_link_scope:
+      result = ifc_ebts_hidden_link_scope;
+      break;
+    case ifc_0_43_ebts_thread:
+      result = ifc_ebts_thread;
+      break;
+    case ifc_0_43_ebts_thread_local:
+      result = ifc_ebts_thread_local;
+      break;
+    case ifc_0_43_ebts_c11_thread_local:
+      result = ifc_ebts_c11_thread_local;
+      break;
+    case ifc_0_43_ebts_upc_strict:
+      result = ifc_ebts_upc_strict;
+      break;
+    case ifc_0_43_ebts_upc_relaxed:
+      result = ifc_ebts_upc_relaxed;
+      break;
+    case ifc_0_43_ebts_upc_shared:
+      result = ifc_ebts_upc_shared;
+      break;
+    case ifc_0_43_ebts_upc_forall:
+      result = ifc_ebts_upc_forall;
+      break;
+    case ifc_0_43_ebts_upc_barrier:
+      result = ifc_ebts_upc_barrier;
+      break;
+    case ifc_0_43_ebts_upc_notify:
+      result = ifc_ebts_upc_notify;
+      break;
+    case ifc_0_43_ebts_upc_wait:
+      result = ifc_ebts_upc_wait;
+      break;
+    case ifc_0_43_ebts_upc_fence:
+      result = ifc_ebts_upc_fence;
+      break;
+    case ifc_0_43_ebts_upc_threads:
+      result = ifc_ebts_upc_threads;
+      break;
+    case ifc_0_43_ebts_upc_mythread:
+      result = ifc_ebts_upc_mythread;
+      break;
+    case ifc_0_43_ebts_upc_blocksizeof:
+      result = ifc_ebts_upc_blocksizeof;
+      break;
+    case ifc_0_43_ebts_upc_localsizeof:
+      result = ifc_ebts_upc_localsizeof;
+      break;
+    case ifc_0_43_ebts_upc_elemsizeof:
+      result = ifc_ebts_upc_elemsizeof;
+      break;
+    case ifc_0_43_ebts_has_assign:
+      result = ifc_ebts_has_assign;
+      break;
+    case ifc_0_43_ebts_has_copy:
+      result = ifc_ebts_has_copy;
+      break;
+    case ifc_0_43_ebts_has_nothrow_assign:
+      result = ifc_ebts_has_nothrow_assign;
+      break;
+    case ifc_0_43_ebts_has_nothrow_constructor:
+      result = ifc_ebts_has_nothrow_constructor;
+      break;
+    case ifc_0_43_ebts_has_nothrow_copy:
+      result = ifc_ebts_has_nothrow_copy;
+      break;
+    case ifc_0_43_ebts_has_trivial_assign:
+      result = ifc_ebts_has_trivial_assign;
+      break;
+    case ifc_0_43_ebts_has_trivial_constructor:
+      result = ifc_ebts_has_trivial_constructor;
+      break;
+    case ifc_0_43_ebts_has_trivial_copy:
+      result = ifc_ebts_has_trivial_copy;
+      break;
+    case ifc_0_43_ebts_has_trivial_destructor:
+      result = ifc_ebts_has_trivial_destructor;
+      break;
+    case ifc_0_43_ebts_has_user_destructor:
+      result = ifc_ebts_has_user_destructor;
+      break;
+    case ifc_0_43_ebts_has_virtual_destructor:
+      result = ifc_ebts_has_virtual_destructor;
+      break;
+    case ifc_0_43_ebts_is_abstract:
+      result = ifc_ebts_is_abstract;
+      break;
+    case ifc_0_43_ebts_is_base_of:
+      result = ifc_ebts_is_base_of;
+      break;
+    case ifc_0_43_ebts_is_class:
+      result = ifc_ebts_is_class;
+      break;
+    case ifc_0_43_ebts_is_convertible_to:
+      result = ifc_ebts_is_convertible_to;
+      break;
+    case ifc_0_43_ebts_is_convertible:
+      result = ifc_ebts_is_convertible;
+      break;
+    case ifc_0_43_ebts_is_nothrow_convertible:
+      result = ifc_ebts_is_nothrow_convertible;
+      break;
+    case ifc_0_43_ebts_is_empty:
+      result = ifc_ebts_is_empty;
+      break;
+    case ifc_0_43_ebts_is_enum:
+      result = ifc_ebts_is_enum;
+      break;
+    case ifc_0_43_ebts_is_pod:
+      result = ifc_ebts_is_pod;
+      break;
+    case ifc_0_43_ebts_is_polymorphic:
+      result = ifc_ebts_is_polymorphic;
+      break;
+    case ifc_0_43_ebts_is_union:
+      result = ifc_ebts_is_union;
+      break;
+    case ifc_0_43_ebts_is_trivial:
+      result = ifc_ebts_is_trivial;
+      break;
+    case ifc_0_43_ebts_is_standard_layout:
+      result = ifc_ebts_is_standard_layout;
+      break;
+    case ifc_0_43_ebts_is_trivially_copyable:
+      result = ifc_ebts_is_trivially_copyable;
+      break;
+    case ifc_0_43_ebts_is_literal_type:
+      result = ifc_ebts_is_literal_type;
+      break;
+    case ifc_0_43_ebts_has_trivial_move_constructor:
+      result = ifc_ebts_has_trivial_move_constructor;
+      break;
+    case ifc_0_43_ebts_has_trivial_move_assign:
+      result = ifc_ebts_has_trivial_move_assign;
+      break;
+    case ifc_0_43_ebts_has_nothrow_move_assign:
+      result = ifc_ebts_has_nothrow_move_assign;
+      break;
+    case ifc_0_43_ebts_is_constructible:
+      result = ifc_ebts_is_constructible;
+      break;
+    case ifc_0_43_ebts_is_nothrow_constructible:
+      result = ifc_ebts_is_nothrow_constructible;
+      break;
+    case ifc_0_43_ebts_is_trivially_constructible:
+      result = ifc_ebts_is_trivially_constructible;
+      break;
+    case ifc_0_43_ebts_is_destructible:
+      result = ifc_ebts_is_destructible;
+      break;
+    case ifc_0_43_ebts_is_nothrow_destructible:
+      result = ifc_ebts_is_nothrow_destructible;
+      break;
+    case ifc_0_43_ebts_is_trivially_destructible:
+      result = ifc_ebts_is_trivially_destructible;
+      break;
+    case ifc_0_43_ebts_is_nothrow_assignable:
+      result = ifc_ebts_is_nothrow_assignable;
+      break;
+    case ifc_0_43_ebts_is_trivially_assignable:
+      result = ifc_ebts_is_trivially_assignable;
+      break;
+    case ifc_0_43_ebts_is_valid_winrt_type:
+      result = ifc_ebts_is_valid_winrt_type;
+      break;
+    case ifc_0_43_ebts_underlying_type:
+      result = ifc_ebts_underlying_type;
+      break;
+    case ifc_0_43_ebts_has_finalizer:
+      result = ifc_ebts_has_finalizer;
+      break;
+    case ifc_0_43_ebts_is_delegate:
+      result = ifc_ebts_is_delegate;
+      break;
+    case ifc_0_43_ebts_is_interface_class:
+      result = ifc_ebts_is_interface_class;
+      break;
+    case ifc_0_43_ebts_is_ref_array:
+      result = ifc_ebts_is_ref_array;
+      break;
+    case ifc_0_43_ebts_is_ref_class:
+      result = ifc_ebts_is_ref_class;
+      break;
+    case ifc_0_43_ebts_is_sealed:
+      result = ifc_ebts_is_sealed;
+      break;
+    case ifc_0_43_ebts_is_simple_value_class:
+      result = ifc_ebts_is_simple_value_class;
+      break;
+    case ifc_0_43_ebts_is_value_class:
+      result = ifc_ebts_is_value_class;
+      break;
+    case ifc_0_43_ebts_is_win_class:
+      result = ifc_ebts_is_win_class;
+      break;
+    case ifc_0_43_ebts_is_win_interface:
+      result = ifc_ebts_is_win_interface;
+      break;
+    case ifc_0_43_ebts_nullptr:
+      result = ifc_ebts_nullptr;
+      break;
+    case ifc_0_43_ebts_native_nullptr:
+      result = ifc_ebts_native_nullptr;
+      break;
+    case ifc_0_43_ebts_internal_alias_decl:
+      result = ifc_ebts_internal_alias_decl;
+      break;
+    case ifc_0_43_ebts_int128:
+      result = ifc_ebts_int128;
+      break;
+    case ifc_0_43_ebts_override:
+      result = ifc_ebts_override;
+      break;
+    case ifc_0_43_ebts_final:
+      result = ifc_ebts_final;
+      break;
+    case ifc_0_43_ebts_is_final:
+      result = ifc_ebts_is_final;
+      break;
+    case ifc_0_43_ebts_noexcept:
+      result = ifc_ebts_noexcept;
+      break;
+    case ifc_0_43_ebts_constexpr:
+      result = ifc_ebts_constexpr;
+      break;
+    case ifc_0_43_ebts_consteval:
+      result = ifc_ebts_consteval;
+      break;
+    case ifc_0_43_ebts_constinit:
+      result = ifc_ebts_constinit;
+      break;
+    case ifc_0_43_ebts_alignas:
+      result = ifc_ebts_alignas;
+      break;
+    case ifc_0_43_ebts_bases:
+      result = ifc_ebts_bases;
+      break;
+    case ifc_0_43_ebts_direct_bases:
+      result = ifc_ebts_direct_bases;
+      break;
+    case ifc_0_43_ebts_builtin_shuffle:
+      result = ifc_ebts_builtin_shuffle;
+      break;
+    case ifc_0_43_ebts_builtin_shufflevector:
+      result = ifc_ebts_builtin_shufflevector;
+      break;
+    case ifc_0_43_ebts_builtin_convertvector:
+      result = ifc_ebts_builtin_convertvector;
+      break;
+    case ifc_0_43_ebts_noreturn:
+      result = ifc_ebts_noreturn;
+      break;
+    case ifc_0_43_ebts_builtin_complex:
+      result = ifc_ebts_builtin_complex;
+      break;
+    case ifc_0_43_ebts_c11_generic:
+      result = ifc_ebts_c11_generic;
+      break;
+    case ifc_0_43_ebts_c11_atomic:
+      result = ifc_ebts_c11_atomic;
+      break;
+    case ifc_0_43_ebts_nullable:
+      result = ifc_ebts_nullable;
+      break;
+    case ifc_0_43_ebts_nonnull:
+      result = ifc_ebts_nonnull;
+      break;
+    case ifc_0_43_ebts_null_unspecified:
+      result = ifc_ebts_null_unspecified;
+      break;
+    case ifc_0_43_ebts_coroutine_yield:
+      result = ifc_ebts_coroutine_yield;
+      break;
+    case ifc_0_43_ebts_coroutine_return:
+      result = ifc_ebts_coroutine_return;
+      break;
+    case ifc_0_43_ebts_coroutine_await:
+      result = ifc_ebts_coroutine_await;
+      break;
+    case ifc_0_43_ebts_is_assignable:
+      result = ifc_ebts_is_assignable;
+      break;
+    case ifc_0_43_ebts_is_trivially_copy_assignable:
+      result = ifc_ebts_is_trivially_copy_assignable;
+      break;
+    case ifc_0_43_ebts_is_assignable_no_precondition_check:
+      result = ifc_ebts_is_assignable_no_precondition_check;
+      break;
+    case ifc_0_43_ebts_builtin_addressof:
+      result = ifc_ebts_builtin_addressof;
+      break;
+    case ifc_0_43_ebts_edg_internal_type:
+      result = ifc_ebts_edg_internal_type;
+      break;
+    case ifc_0_43_ebts_edg_vector_type:
+      result = ifc_ebts_edg_vector_type;
+      break;
+    case ifc_0_43_ebts_edg_size_type:
+      result = ifc_ebts_edg_size_type;
+      break;
+    case ifc_0_43_ebts_edg_ptrdiff_type:
+      result = ifc_ebts_edg_ptrdiff_type;
+      break;
+    case ifc_0_43_ebts_edg_bool_type:
+      result = ifc_ebts_edg_bool_type;
+      break;
+    case ifc_0_43_ebts_edg_wchar_type:
+      result = ifc_ebts_edg_wchar_type;
+      break;
+    case ifc_0_43_ebts_edg_throw:
+      result = ifc_ebts_edg_throw;
+      break;
+    case ifc_0_43_ebts_edg_internal_opnd:
+      result = ifc_ebts_edg_internal_opnd;
+      break;
+    case ifc_0_43_ebts_clang_version:
+      result = ifc_ebts_clang_version;
+      break;
+    case ifc_0_43_ebts_has_unique_object_representations:
+      result = ifc_ebts_has_unique_object_representations;
+      break;
+    case ifc_0_43_ebts_is_aggregate:
+      result = ifc_ebts_is_aggregate;
+      break;
+    case ifc_0_43_ebts_integer_pack:
+      result = ifc_ebts_integer_pack;
+      break;
+    case ifc_0_43_ebts_reference_binds_to_temporary:
+      result = ifc_ebts_reference_binds_to_temporary;
+      break;
+    case ifc_0_43_ebts_reference_constructs_from_temporary:
+      result = ifc_ebts_reference_constructs_from_temporary;
+      break;
+    case ifc_0_43_ebts_reference_converts_from_temporary:
+      result = ifc_ebts_reference_converts_from_temporary;
+      break;
+    case ifc_0_43_ebts_is_same:
+      result = ifc_ebts_is_same;
+      break;
+    case ifc_0_43_ebts_is_same_as:
+      result = ifc_ebts_is_same_as;
+      break;
+    case ifc_0_43_ebts_is_function:
+      result = ifc_ebts_is_function;
+      break;
+    case ifc_0_43_ebts_requires:
+      result = ifc_ebts_requires;
+      break;
+    case ifc_0_43_ebts_concept:
+      result = ifc_ebts_concept;
+      break;
+    case ifc_0_43_ebts_builtin_has_attribute:
+      result = ifc_ebts_builtin_has_attribute;
+      break;
+    case ifc_0_43_ebts_builtin_bit_cast:
+      result = ifc_ebts_builtin_bit_cast;
+      break;
+    case ifc_0_43_ebts_is_layout_compatible:
+      result = ifc_ebts_is_layout_compatible;
+      break;
+    case ifc_0_43_ebts_is_pointer_interconvertible_base_of:
+      result = ifc_ebts_is_pointer_interconvertible_base_of;
+      break;
+    case ifc_0_43_ebts_is_pointer_interconvertible_with_class:
+      result = ifc_ebts_is_pointer_interconvertible_with_class;
+      break;
+    case ifc_0_43_ebts_builtin_is_pointer_interconvertible_with_class:
+      result = ifc_ebts_builtin_is_pointer_interconvertible_with_class;
+      break;
+    case ifc_0_43_ebts_is_corresponding_member:
+      result = ifc_ebts_is_corresponding_member;
+      break;
+    case ifc_0_43_ebts_builtin_is_corresponding_member:
+      result = ifc_ebts_builtin_is_corresponding_member;
+      break;
+    case ifc_0_43_ebts_edg_is_deducible:
+      result = ifc_ebts_edg_is_deducible;
+      break;
+    case ifc_0_43_ebts_is_array:
+      result = ifc_ebts_is_array;
+      break;
+    case ifc_0_43_ebts_array_rank:
+      result = ifc_ebts_array_rank;
+      break;
+    case ifc_0_43_ebts_array_extent:
+      result = ifc_ebts_array_extent;
+      break;
+    case ifc_0_43_ebts_is_arithmetic:
+      result = ifc_ebts_is_arithmetic;
+      break;
+    case ifc_0_43_ebts_is_complete_type:
+      result = ifc_ebts_is_complete_type;
+      break;
+    case ifc_0_43_ebts_is_compound:
+      result = ifc_ebts_is_compound;
+      break;
+    case ifc_0_43_ebts_is_const:
+      result = ifc_ebts_is_const;
+      break;
+    case ifc_0_43_ebts_is_floating_point:
+      result = ifc_ebts_is_floating_point;
+      break;
+    case ifc_0_43_ebts_is_fundamental:
+      result = ifc_ebts_is_fundamental;
+      break;
+    case ifc_0_43_ebts_is_integral:
+      result = ifc_ebts_is_integral;
+      break;
+    case ifc_0_43_ebts_is_lvalue_reference:
+      result = ifc_ebts_is_lvalue_reference;
+      break;
+    case ifc_0_43_ebts_is_member_function_pointer:
+      result = ifc_ebts_is_member_function_pointer;
+      break;
+    case ifc_0_43_ebts_is_member_object_pointer:
+      result = ifc_ebts_is_member_object_pointer;
+      break;
+    case ifc_0_43_ebts_is_member_pointer:
+      result = ifc_ebts_is_member_pointer;
+      break;
+    case ifc_0_43_ebts_is_object:
+      result = ifc_ebts_is_object;
+      break;
+    case ifc_0_43_ebts_is_pointer:
+      result = ifc_ebts_is_pointer;
+      break;
+    case ifc_0_43_ebts_is_reference:
+      result = ifc_ebts_is_reference;
+      break;
+    case ifc_0_43_ebts_is_rvalue_reference:
+      result = ifc_ebts_is_rvalue_reference;
+      break;
+    case ifc_0_43_ebts_is_scalar:
+      result = ifc_ebts_is_scalar;
+      break;
+    case ifc_0_43_ebts_is_signed:
+      result = ifc_ebts_is_signed;
+      break;
+    case ifc_0_43_ebts_is_unsigned:
+      result = ifc_ebts_is_unsigned;
+      break;
+    case ifc_0_43_ebts_is_void:
+      result = ifc_ebts_is_void;
+      break;
+    case ifc_0_43_ebts_is_volatile:
+      result = ifc_ebts_is_volatile;
+      break;
+    case ifc_0_43_ebts_float32:
+      result = ifc_ebts_float32;
+      break;
+    case ifc_0_43_ebts_float32x:
+      result = ifc_ebts_float32x;
+      break;
+    case ifc_0_43_ebts_float64:
+      result = ifc_ebts_float64;
+      break;
+    case ifc_0_43_ebts_float64x:
+      result = ifc_ebts_float64x;
+      break;
+    case ifc_0_43_ebts_float128:
+      result = ifc_ebts_float128;
+      break;
+    case ifc_0_43_ebts_is_bounded_array:
+      result = ifc_ebts_is_bounded_array;
+      break;
+    case ifc_0_43_ebts_is_unbounded_array:
+      result = ifc_ebts_is_unbounded_array;
+      break;
+    case ifc_0_43_ebts_is_referenceable:
+      result = ifc_ebts_is_referenceable;
+      break;
+    case ifc_0_43_ebts_add_lvalue_reference:
+      result = ifc_ebts_add_lvalue_reference;
+      break;
+    case ifc_0_43_ebts_add_pointer:
+      result = ifc_ebts_add_pointer;
+      break;
+    case ifc_0_43_ebts_add_rvalue_reference:
+      result = ifc_ebts_add_rvalue_reference;
+      break;
+    case ifc_0_43_ebts_decay:
+      result = ifc_ebts_decay;
+      break;
+    case ifc_0_43_ebts_make_signed:
+      result = ifc_ebts_make_signed;
+      break;
+    case ifc_0_43_ebts_make_unsigned:
+      result = ifc_ebts_make_unsigned;
+      break;
+    case ifc_0_43_ebts_remove_all_extents:
+      result = ifc_ebts_remove_all_extents;
+      break;
+    case ifc_0_43_ebts_remove_const:
+      result = ifc_ebts_remove_const;
+      break;
+    case ifc_0_43_ebts_remove_cv:
+      result = ifc_ebts_remove_cv;
+      break;
+    case ifc_0_43_ebts_remove_cvref:
+      result = ifc_ebts_remove_cvref;
+      break;
+    case ifc_0_43_ebts_remove_extent:
+      result = ifc_ebts_remove_extent;
+      break;
+    case ifc_0_43_ebts_remove_pointer:
+      result = ifc_ebts_remove_pointer;
+      break;
+    case ifc_0_43_ebts_remove_reference:
+      result = ifc_ebts_remove_reference;
+      break;
+    case ifc_0_43_ebts_remove_reference_t:
+      result = ifc_ebts_remove_reference_t;
+      break;
+    case ifc_0_43_ebts_remove_restrict:
+      result = ifc_ebts_remove_restrict;
+      break;
+    case ifc_0_43_ebts_remove_volatile:
+      result = ifc_ebts_remove_volatile;
+      break;
+    case ifc_0_43_ebts_is_trivially_equality_comparable:
+      result = ifc_ebts_is_trivially_equality_comparable;
+      break;
+    default:
+      unexpected_condition_str("Invalid value for a EdgBasicTokenSort.");
+      break;
+  }  /* switch */
+  return result;
+}  /* to_universal_sort */
+
+
+/*
+Functions for interacting with IFC EdgComplexTokenSort sorts.
+*/
+
+
+a_const_char* str_for(an_ifc_edg_complex_token_sort universal)
+/*
+Given the universal representation of EdgComplexTokenSort, return the textual
+name in the form of a c-string.
+*/
+{
+  a_const_char *result;
+
+  switch (universal) {
+    case ifc_ects_edg_token_constant:
+      result = "EdgComplexTokenSort::EdgTokenConstant";
+      break;
+    case ifc_ects_edg_token_identifier:
+      result = "EdgComplexTokenSort::EdgTokenIdentifier";
+      break;
+    default:
+      unexpected_condition_str("Invalid value for a EdgComplexTokenSort.");
+      break;
+  }  /* switch */
+  return result;
+}  /* str_for */
+
+
+an_ifc_encoded_edg_complex_token_sort to_encoded(
+                                       an_ifc_module_file            *file,
+                                       an_ifc_edg_complex_token_sort universal)
+/*
+Given the universal representation of EdgComplexTokenSort and the destination
+module, return a reencoded sort value.
+*/
+{
+  using ue_ty = an_ifc_encoded_edg_complex_token_sort_storage;
+  an_ifc_encoded_edg_complex_token_sort_storage result;
+
+  switch (universal) {
+    case ifc_ects_edg_token_constant:
+      result = (ue_ty)ifc_0_43_ects_edg_token_constant;
+      break;
+    case ifc_ects_edg_token_identifier:
+      result = (ue_ty)ifc_0_43_ects_edg_token_identifier;
+      break;
+    default:
+      unexpected_condition_str("Invalid value for a EdgComplexTokenSort.");
+      break;
+  }  /* switch */
+  return an_ifc_encoded_edg_complex_token_sort{file, result};
+}  /* to_encoded */
+
+
+an_ifc_edg_complex_token_sort to_universal_sort(
+                                  an_ifc_edg_complex_token_sort_0_43 versioned)
+/*
+Given the versioned representation of EdgComplexTokenSort, return the
+corresponding universal representation.
+*/
+{
+  an_ifc_edg_complex_token_sort result;
+
+  switch (versioned) {
+    case ifc_0_43_ects_edg_token_constant:
+      result = ifc_ects_edg_token_constant;
+      break;
+    case ifc_0_43_ects_edg_token_identifier:
+      result = ifc_ects_edg_token_identifier;
+      break;
+    default:
+      unexpected_condition_str("Invalid value for a EdgComplexTokenSort.");
+      break;
+  }  /* switch */
+  return result;
+}  /* to_universal_sort */
+
+
+/*
+Functions for interacting with IFC EdgConstantSort sorts.
+*/
+
+
+a_const_char* str_for(an_ifc_edg_constant_sort universal)
+/*
+Given the universal representation of EdgConstantSort, return the textual name
+in the form of a c-string.
+*/
+{
+  a_const_char *result;
+
+  switch (universal) {
+    case ifc_ecs_edg_constant_integer:
+      result = "EdgConstantSort::EdgConstantInteger";
+      break;
+    default:
+      unexpected_condition_str("Invalid value for a EdgConstantSort.");
+      break;
+  }  /* switch */
+  return result;
+}  /* str_for */
+
+
+an_ifc_encoded_edg_constant_sort to_encoded(an_ifc_module_file       *file,
+                                            an_ifc_edg_constant_sort universal)
+/*
+Given the universal representation of EdgConstantSort and the destination
+module, return a reencoded sort value.
+*/
+{
+  using ue_ty = an_ifc_encoded_edg_constant_sort_storage;
+  an_ifc_encoded_edg_constant_sort_storage result;
+
+  switch (universal) {
+    case ifc_ecs_edg_constant_integer:
+      result = (ue_ty)ifc_0_43_ecs_edg_constant_integer;
+      break;
+    default:
+      unexpected_condition_str("Invalid value for a EdgConstantSort.");
+      break;
+  }  /* switch */
+  return an_ifc_encoded_edg_constant_sort{file, result};
+}  /* to_encoded */
+
+
+an_ifc_edg_constant_sort to_universal_sort(
+                                       an_ifc_edg_constant_sort_0_43 versioned)
+/*
+Given the versioned representation of EdgConstantSort, return the corresponding
+universal representation.
+*/
+{
+  an_ifc_edg_constant_sort result;
+
+  switch (versioned) {
+    case ifc_0_43_ecs_edg_constant_integer:
+      result = ifc_ecs_edg_constant_integer;
+      break;
+    default:
+      unexpected_condition_str("Invalid value for a EdgConstantSort.");
+      break;
+  }  /* switch */
+  return result;
+}  /* to_universal_sort */
+
+
+/*
+Functions for interacting with IFC EdgConstantTokenSort sorts.
+*/
+
+
+a_const_char* str_for(an_ifc_edg_constant_token_sort universal)
+/*
+Given the universal representation of EdgConstantTokenSort, return the textual
+name in the form of a c-string.
+*/
+{
+  a_const_char *result;
+
+  switch (universal) {
+    case ifc_ects_aggr_constant:
+      result = "EdgConstantTokenSort::AggrConstant";
+      break;
+    case ifc_ects_char_constant:
+      result = "EdgConstantTokenSort::CharConstant";
+      break;
+    case ifc_ects_float_constant:
+      result = "EdgConstantTokenSort::FloatConstant";
+      break;
+    case ifc_ects_int_constant:
+      result = "EdgConstantTokenSort::IntConstant";
+      break;
+    case ifc_ects_string_literal:
+      result = "EdgConstantTokenSort::StringLiteral";
+      break;
+    default:
+      unexpected_condition_str("Invalid value for a EdgConstantTokenSort.");
+      break;
+  }  /* switch */
+  return result;
+}  /* str_for */
+
+
+an_ifc_encoded_edg_constant_token_sort to_encoded(
+                                      an_ifc_module_file             *file,
+                                      an_ifc_edg_constant_token_sort universal)
+/*
+Given the universal representation of EdgConstantTokenSort and the destination
+module, return a reencoded sort value.
+*/
+{
+  using ue_ty = an_ifc_encoded_edg_constant_token_sort_storage;
+  an_ifc_encoded_edg_constant_token_sort_storage result;
+
+  switch (universal) {
+    case ifc_ects_int_constant:
+      result = (ue_ty)ifc_0_43_ects_int_constant;
+      break;
+    case ifc_ects_float_constant:
+      result = (ue_ty)ifc_0_43_ects_float_constant;
+      break;
+    case ifc_ects_char_constant:
+      result = (ue_ty)ifc_0_43_ects_char_constant;
+      break;
+    case ifc_ects_string_literal:
+      result = (ue_ty)ifc_0_43_ects_string_literal;
+      break;
+    case ifc_ects_aggr_constant:
+      result = (ue_ty)ifc_0_43_ects_aggr_constant;
+      break;
+    default:
+      unexpected_condition_str("Invalid value for a EdgConstantTokenSort.");
+      break;
+  }  /* switch */
+  return an_ifc_encoded_edg_constant_token_sort{file, result};
+}  /* to_encoded */
+
+
+an_ifc_edg_constant_token_sort to_universal_sort(
+                                 an_ifc_edg_constant_token_sort_0_43 versioned)
+/*
+Given the versioned representation of EdgConstantTokenSort, return the
+corresponding universal representation.
+*/
+{
+  an_ifc_edg_constant_token_sort result;
+
+  switch (versioned) {
+    case ifc_0_43_ects_int_constant:
+      result = ifc_ects_int_constant;
+      break;
+    case ifc_0_43_ects_float_constant:
+      result = ifc_ects_float_constant;
+      break;
+    case ifc_0_43_ects_char_constant:
+      result = ifc_ects_char_constant;
+      break;
+    case ifc_0_43_ects_string_literal:
+      result = ifc_ects_string_literal;
+      break;
+    case ifc_0_43_ects_aggr_constant:
+      result = ifc_ects_aggr_constant;
+      break;
+    default:
+      unexpected_condition_str("Invalid value for a EdgConstantTokenSort.");
       break;
   }  /* switch */
   return result;
@@ -13921,6 +17875,176 @@ is considered a null index; otherwise, return FALSE.
 
 
 /*
+Functions for interacting with IFC EdgComplexTokenIndex indexes.
+*/
+
+
+an_ifc_edg_complex_token_sort_0_43 edg_complex_token_sort(
+                                 an_ifc_edg_complex_token_index_0_43 versioned)
+/*
+Given the versioned representation of EdgComplexTokenIndex, return the
+extracted versioned representation of EdgComplexTokenSort.
+*/
+{
+  return (an_ifc_edg_complex_token_sort_0_43)(0x3f & (uint32_t)versioned);
+
+}  /* edg_complex_token_sort */
+
+
+uint32_t edg_complex_token_value(an_ifc_edg_complex_token_index_0_43 versioned)
+/*
+Given the versioned representation of EdgComplexTokenIndex, return the
+extracted value.
+*/
+{
+  return versioned >> 6;
+}  /* edg_complex_token_value */
+
+
+an_ifc_edg_complex_token_index to_universal_index(
+                                 an_ifc_module_file                  *file,
+                                 an_ifc_edg_complex_token_index_0_43 versioned)
+/*
+Given the versioned representation of EdgComplexTokenIndex and the associated
+module, return the corresponding universal representation.
+*/
+{
+  an_ifc_edg_complex_token_sort sort =
+                          to_universal_sort(edg_complex_token_sort(versioned));
+  uint32_t                      index = edg_complex_token_value(versioned);
+
+  return an_ifc_edg_complex_token_index{file, sort, index};
+}  /* to_universal_index */
+
+
+an_ifc_encoded_edg_complex_token_index to_encoded(
+                                      an_ifc_module_file             *file,
+                                      an_ifc_edg_complex_token_index universal)
+/*
+Given the universal representation of EdgComplexTokenIndex and the destination
+module file, return a reencoded index value.
+*/
+{
+  an_ifc_encoded_edg_complex_token_index result = {file, universal.value};
+
+  if (universal.file == NULL) {
+    result.value = 0;
+  } else {
+    an_ifc_encoded_edg_complex_token_sort encoded_sort =
+                                              to_encoded(file, universal.sort);
+
+    result.value <<= 6;
+    result.value |= encoded_sort;
+  }  /* if */
+  return result;
+}  /* to_encoded */
+
+
+a_boolean is_null_index(an_ifc_edg_complex_token_index universal)
+/*
+Given the universal representation of EdgComplexTokenIndex, return TRUE if the
+given index is considered a null index; otherwise, return FALSE.
+*/
+{
+  a_boolean          result = FALSE;
+  an_ifc_module_file *file = universal.file;
+
+  if (file == NULL) {
+    result = TRUE;
+  } else {
+    /* Never null by encoding. */
+    result = FALSE;
+  }  /* if */
+  return result;
+}  /* is_null_index */
+
+
+/*
+Functions for interacting with IFC EdgConstantIndex indexes.
+*/
+
+
+an_ifc_edg_constant_sort_0_43 edg_constant_sort(
+                                      an_ifc_edg_constant_index_0_43 versioned)
+/*
+Given the versioned representation of EdgConstantIndex, return the extracted
+versioned representation of EdgConstantSort.
+*/
+{
+  return (an_ifc_edg_constant_sort_0_43)(0x3f & (uint32_t)versioned);
+
+}  /* edg_constant_sort */
+
+
+uint32_t edg_constant_value(an_ifc_edg_constant_index_0_43 versioned)
+/*
+Given the versioned representation of EdgConstantIndex, return the extracted
+value.
+*/
+{
+  return versioned >> 6;
+}  /* edg_constant_value */
+
+
+an_ifc_edg_constant_index to_universal_index(
+                                      an_ifc_module_file             *file,
+                                      an_ifc_edg_constant_index_0_43 versioned)
+/*
+Given the versioned representation of EdgConstantIndex and the associated
+module, return the corresponding universal representation.
+*/
+{
+  an_ifc_edg_constant_sort sort =
+                               to_universal_sort(edg_constant_sort(versioned));
+  uint32_t                 index = edg_constant_value(versioned);
+
+  return an_ifc_edg_constant_index{file, sort, index};
+}  /* to_universal_index */
+
+
+an_ifc_encoded_edg_constant_index to_encoded(
+                                           an_ifc_module_file        *file,
+                                           an_ifc_edg_constant_index universal)
+/*
+Given the universal representation of EdgConstantIndex and the destination
+module file, return a reencoded index value.
+*/
+{
+  an_ifc_encoded_edg_constant_index result = {file, universal.value};
+
+  if (universal.file == NULL) {
+    result.value = 0;
+  } else {
+    an_ifc_encoded_edg_constant_sort encoded_sort =
+                                              to_encoded(file, universal.sort);
+
+    result.value <<= 6;
+    result.value |= encoded_sort;
+  }  /* if */
+  return result;
+}  /* to_encoded */
+
+
+a_boolean is_null_index(an_ifc_edg_constant_index universal)
+/*
+Given the universal representation of EdgConstantIndex, return TRUE if the
+given index is considered a null index; otherwise, return FALSE.
+*/
+{
+  a_boolean          result = FALSE;
+  an_ifc_module_file *file = universal.file;
+
+  if (file == NULL) {
+    result = TRUE;
+  } else {
+    /* Never null by encoding. */
+    result = FALSE;
+  }  /* if */
+  return result;
+}  /* is_null_index */
+
+
+/*
 Functions for interacting with IFC ExprIndex indexes.
 */
 
@@ -20609,6 +24733,483 @@ Return the corresponding partition kind for DirUsing.
 */
 {
   return ifc_pk_dir_using;
+}  /* get_ifc_partition_kind */
+
+
+template<>
+size_t get_ifc_buffer_size<an_ifc_edg_constant_integer_storage>(
+                                                      an_ifc_module_file *file)
+/*
+Given the associated module file, return the number of bytes required for an
+IFC EdgConstantInteger node.
+*/
+{
+  size_t result;
+
+  result = 12;
+  return result;
+}  /* get_ifc_buffer_size */
+
+
+template<>
+an_ifc_edg_constant_integer_storage* get<an_ifc_edg_constant_integer_storage>(
+                              an_ifc_module_file                  *file,
+                              an_ifc_edg_constant_integer_storage *storage,
+                              a_boolean                           fill_storage)
+/*
+Retrieve an instance of EdgConstantInteger from the IFC module file.
+
+If memory mapping is used and both the host and the target have the same
+endianness, then the file layout and the alignment/padding of the host must
+have exactly the same characteristics.  In this case, simply return a pointer
+to a suitably-cast byte_buffer and increment it as appropriate (the storage
+argument is unused in this scenario).
+
+Otherwise, the storage passed in to the function is used to store copies of
+each field of the structure and each field is individually copied (and
+byte-swapped if necessary).
+
+If fill_storage is TRUE, always copy the data into the passed storage (i.e.,
+the storage specified by the storage argument).
+*/
+{
+#if USE_MMAP_FOR_MODULES
+  using storage_type = an_ifc_edg_constant_integer_storage;
+  if (has_matching_endianness(file)) {
+    if (fill_storage) {
+      memcpy(*storage, get_byte_buffer(file), /*size=*/12);
+    } else {
+      storage = (storage_type*)(get_byte_buffer(file));
+    }  /* if */
+  } else
+#endif /* USE_MMAP_FOR_MODULES */
+  /* Do not put code here. */
+  {
+    /* type */
+    get_bytes(file, (*storage) + 0, /*num_bytes=*/4, /*from_header=*/FALSE);
+    /* start */
+    get_bytes(file, (*storage) + 4, /*num_bytes=*/4, /*from_header=*/FALSE);
+    /* cardinality */
+    get_bytes(file, (*storage) + 8, /*num_bytes=*/4, /*from_header=*/FALSE);
+  }  /* if */
+  return storage;
+}  /* get<an_ifc_edg_constant_integer_storage> */
+
+
+template<>
+an_ifc_partition_kind get_ifc_partition_kind<an_ifc_edg_constant_integer>()
+/*
+Return the corresponding partition kind for EdgConstantInteger.
+*/
+{
+  return ifc_pk_edg_constant_integer;
+}  /* get_ifc_partition_kind */
+
+
+template<>
+size_t get_ifc_buffer_size<an_ifc_edg_constant_integer_word_storage>(
+                                                      an_ifc_module_file *file)
+/*
+Given the associated module file, return the number of bytes required for an
+IFC EdgConstantIntegerWord node.
+*/
+{
+  size_t result;
+
+  result = 4;
+  return result;
+}  /* get_ifc_buffer_size */
+
+
+template<>
+an_ifc_edg_constant_integer_word_storage*
+get<an_ifc_edg_constant_integer_word_storage>(
+                         an_ifc_module_file                       *file,
+                         an_ifc_edg_constant_integer_word_storage *storage,
+                         a_boolean                                fill_storage)
+/*
+Retrieve an instance of EdgConstantIntegerWord from the IFC module file.
+
+If memory mapping is used and both the host and the target have the same
+endianness, then the file layout and the alignment/padding of the host must
+have exactly the same characteristics.  In this case, simply return a pointer
+to a suitably-cast byte_buffer and increment it as appropriate (the storage
+argument is unused in this scenario).
+
+Otherwise, the storage passed in to the function is used to store copies of
+each field of the structure and each field is individually copied (and
+byte-swapped if necessary).
+
+If fill_storage is TRUE, always copy the data into the passed storage (i.e.,
+the storage specified by the storage argument).
+*/
+{
+#if USE_MMAP_FOR_MODULES
+  using storage_type = an_ifc_edg_constant_integer_word_storage;
+  if (has_matching_endianness(file)) {
+    if (fill_storage) {
+      memcpy(*storage, get_byte_buffer(file), /*size=*/4);
+    } else {
+      storage = (storage_type*)(get_byte_buffer(file));
+    }  /* if */
+  } else
+#endif /* USE_MMAP_FOR_MODULES */
+  /* Do not put code here. */
+  {
+    /* bytes */
+    get_bytes(file, (*storage) + 0, /*num_bytes=*/4, /*from_header=*/FALSE);
+  }  /* if */
+  return storage;
+}  /* get<an_ifc_edg_constant_integer_word_storage> */
+
+
+template<>
+an_ifc_partition_kind
+get_ifc_partition_kind<an_ifc_edg_constant_integer_word>()
+/*
+Return the corresponding partition kind for EdgConstantIntegerWord.
+*/
+{
+  return ifc_pk_edg_constant_integer_word;
+}  /* get_ifc_partition_kind */
+
+
+template<>
+size_t get_ifc_buffer_size<an_ifc_edg_heap_complex_token_storage>(
+                                                      an_ifc_module_file *file)
+/*
+Given the associated module file, return the number of bytes required for an
+IFC EdgHeapComplexToken node.
+*/
+{
+  size_t result;
+
+  result = 4;
+  return result;
+}  /* get_ifc_buffer_size */
+
+
+template<>
+an_ifc_edg_heap_complex_token_storage*
+get<an_ifc_edg_heap_complex_token_storage>(
+                            an_ifc_module_file                    *file,
+                            an_ifc_edg_heap_complex_token_storage *storage,
+                            a_boolean                             fill_storage)
+/*
+Retrieve an instance of EdgHeapComplexToken from the IFC module file.
+
+If memory mapping is used and both the host and the target have the same
+endianness, then the file layout and the alignment/padding of the host must
+have exactly the same characteristics.  In this case, simply return a pointer
+to a suitably-cast byte_buffer and increment it as appropriate (the storage
+argument is unused in this scenario).
+
+Otherwise, the storage passed in to the function is used to store copies of
+each field of the structure and each field is individually copied (and
+byte-swapped if necessary).
+
+If fill_storage is TRUE, always copy the data into the passed storage (i.e.,
+the storage specified by the storage argument).
+*/
+{
+#if USE_MMAP_FOR_MODULES
+  using storage_type = an_ifc_edg_heap_complex_token_storage;
+  if (has_matching_endianness(file)) {
+    if (fill_storage) {
+      memcpy(*storage, get_byte_buffer(file), /*size=*/4);
+    } else {
+      storage = (storage_type*)(get_byte_buffer(file));
+    }  /* if */
+  } else
+#endif /* USE_MMAP_FOR_MODULES */
+  /* Do not put code here. */
+  {
+    /* index */
+    get_bytes(file, (*storage) + 0, /*num_bytes=*/4, /*from_header=*/FALSE);
+  }  /* if */
+  return storage;
+}  /* get<an_ifc_edg_heap_complex_token_storage> */
+
+
+template<>
+an_ifc_partition_kind get_ifc_partition_kind<an_ifc_edg_heap_complex_token>()
+/*
+Return the corresponding partition kind for EdgHeapComplexToken.
+*/
+{
+  return ifc_pk_edg_heap_complex_token;
+}  /* get_ifc_partition_kind */
+
+
+template<>
+size_t get_ifc_buffer_size<an_ifc_edg_token_basic_storage>(
+                                                      an_ifc_module_file *file)
+/*
+Given the associated module file, return the number of bytes required for an
+IFC EdgTokenBasic node.
+*/
+{
+  size_t result;
+
+  result = 4;
+  return result;
+}  /* get_ifc_buffer_size */
+
+
+template<>
+an_ifc_edg_token_basic_storage* get<an_ifc_edg_token_basic_storage>(
+                                   an_ifc_module_file             *file,
+                                   an_ifc_edg_token_basic_storage *storage,
+                                   a_boolean                      fill_storage)
+/*
+Retrieve an instance of EdgTokenBasic from the IFC module file.
+
+If memory mapping is used and both the host and the target have the same
+endianness, then the file layout and the alignment/padding of the host must
+have exactly the same characteristics.  In this case, simply return a pointer
+to a suitably-cast byte_buffer and increment it as appropriate (the storage
+argument is unused in this scenario).
+
+Otherwise, the storage passed in to the function is used to store copies of
+each field of the structure and each field is individually copied (and
+byte-swapped if necessary).
+
+If fill_storage is TRUE, always copy the data into the passed storage (i.e.,
+the storage specified by the storage argument).
+*/
+{
+#if USE_MMAP_FOR_MODULES
+  using storage_type = an_ifc_edg_token_basic_storage;
+  if (has_matching_endianness(file)) {
+    if (fill_storage) {
+      memcpy(*storage, get_byte_buffer(file), /*size=*/4);
+    } else {
+      storage = (storage_type*)(get_byte_buffer(file));
+    }  /* if */
+  } else
+#endif /* USE_MMAP_FOR_MODULES */
+  /* Do not put code here. */
+  {
+    /* kind */
+    get_bytes(file, (*storage) + 0, /*num_bytes=*/4, /*from_header=*/FALSE);
+  }  /* if */
+  return storage;
+}  /* get<an_ifc_edg_token_basic_storage> */
+
+
+template<>
+an_ifc_partition_kind get_ifc_partition_kind<an_ifc_edg_token_basic>()
+/*
+Return the corresponding partition kind for EdgTokenBasic.
+*/
+{
+  return ifc_pk_edg_token_basic;
+}  /* get_ifc_partition_kind */
+
+
+template<>
+size_t get_ifc_buffer_size<an_ifc_edg_token_cache_storage>(
+                                                      an_ifc_module_file *file)
+/*
+Given the associated module file, return the number of bytes required for an
+IFC EdgTokenCache node.
+*/
+{
+  size_t result;
+
+  result = 16;
+  return result;
+}  /* get_ifc_buffer_size */
+
+
+template<>
+an_ifc_edg_token_cache_storage* get<an_ifc_edg_token_cache_storage>(
+                                   an_ifc_module_file             *file,
+                                   an_ifc_edg_token_cache_storage *storage,
+                                   a_boolean                      fill_storage)
+/*
+Retrieve an instance of EdgTokenCache from the IFC module file.
+
+If memory mapping is used and both the host and the target have the same
+endianness, then the file layout and the alignment/padding of the host must
+have exactly the same characteristics.  In this case, simply return a pointer
+to a suitably-cast byte_buffer and increment it as appropriate (the storage
+argument is unused in this scenario).
+
+Otherwise, the storage passed in to the function is used to store copies of
+each field of the structure and each field is individually copied (and
+byte-swapped if necessary).
+
+If fill_storage is TRUE, always copy the data into the passed storage (i.e.,
+the storage specified by the storage argument).
+*/
+{
+#if USE_MMAP_FOR_MODULES
+  using storage_type = an_ifc_edg_token_cache_storage;
+  if (has_matching_endianness(file)) {
+    if (fill_storage) {
+      memcpy(*storage, get_byte_buffer(file), /*size=*/16);
+    } else {
+      storage = (storage_type*)(get_byte_buffer(file));
+    }  /* if */
+  } else
+#endif /* USE_MMAP_FOR_MODULES */
+  /* Do not put code here. */
+  {
+    /* tokens */
+    get_bytes(file, (*storage) + 0, /*num_bytes=*/4, /*from_header=*/FALSE);
+    /* num_tokens */
+    get_bytes(file, (*storage) + 4, /*num_bytes=*/4, /*from_header=*/FALSE);
+    /* complex_tokens */
+    get_bytes(file, (*storage) + 8, /*num_bytes=*/4, /*from_header=*/FALSE);
+    /* num_complex_tokens */
+    get_bytes(file, (*storage) + 12, /*num_bytes=*/4, /*from_header=*/FALSE);
+  }  /* if */
+  return storage;
+}  /* get<an_ifc_edg_token_cache_storage> */
+
+
+template<>
+an_ifc_partition_kind get_ifc_partition_kind<an_ifc_edg_token_cache>()
+/*
+Return the corresponding partition kind for EdgTokenCache.
+*/
+{
+  return ifc_pk_edg_token_cache;
+}  /* get_ifc_partition_kind */
+
+
+template<>
+size_t get_ifc_buffer_size<an_ifc_edg_token_constant_storage>(
+                                                      an_ifc_module_file *file)
+/*
+Given the associated module file, return the number of bytes required for an
+IFC EdgTokenConstant node.
+*/
+{
+  size_t result;
+
+  result = 8;
+  return result;
+}  /* get_ifc_buffer_size */
+
+
+template<>
+an_ifc_edg_token_constant_storage* get<an_ifc_edg_token_constant_storage>(
+                                an_ifc_module_file                *file,
+                                an_ifc_edg_token_constant_storage *storage,
+                                a_boolean                         fill_storage)
+/*
+Retrieve an instance of EdgTokenConstant from the IFC module file.
+
+If memory mapping is used and both the host and the target have the same
+endianness, then the file layout and the alignment/padding of the host must
+have exactly the same characteristics.  In this case, simply return a pointer
+to a suitably-cast byte_buffer and increment it as appropriate (the storage
+argument is unused in this scenario).
+
+Otherwise, the storage passed in to the function is used to store copies of
+each field of the structure and each field is individually copied (and
+byte-swapped if necessary).
+
+If fill_storage is TRUE, always copy the data into the passed storage (i.e.,
+the storage specified by the storage argument).
+*/
+{
+#if USE_MMAP_FOR_MODULES
+  using storage_type = an_ifc_edg_token_constant_storage;
+  if (has_matching_endianness(file)) {
+    if (fill_storage) {
+      memcpy(*storage, get_byte_buffer(file), /*size=*/8);
+    } else {
+      storage = (storage_type*)(get_byte_buffer(file));
+    }  /* if */
+  } else
+#endif /* USE_MMAP_FOR_MODULES */
+  /* Do not put code here. */
+  {
+    /* kind */
+    get_bytes(file, (*storage) + 0, /*num_bytes=*/4, /*from_header=*/FALSE);
+    /* constant */
+    get_bytes(file, (*storage) + 4, /*num_bytes=*/4, /*from_header=*/FALSE);
+  }  /* if */
+  return storage;
+}  /* get<an_ifc_edg_token_constant_storage> */
+
+
+template<>
+an_ifc_partition_kind get_ifc_partition_kind<an_ifc_edg_token_constant>()
+/*
+Return the corresponding partition kind for EdgTokenConstant.
+*/
+{
+  return ifc_pk_edg_token_complex_constant;
+}  /* get_ifc_partition_kind */
+
+
+template<>
+size_t get_ifc_buffer_size<an_ifc_edg_token_identifier_storage>(
+                                                      an_ifc_module_file *file)
+/*
+Given the associated module file, return the number of bytes required for an
+IFC EdgTokenIdentifier node.
+*/
+{
+  size_t result;
+
+  result = 4;
+  return result;
+}  /* get_ifc_buffer_size */
+
+
+template<>
+an_ifc_edg_token_identifier_storage* get<an_ifc_edg_token_identifier_storage>(
+                              an_ifc_module_file                  *file,
+                              an_ifc_edg_token_identifier_storage *storage,
+                              a_boolean                           fill_storage)
+/*
+Retrieve an instance of EdgTokenIdentifier from the IFC module file.
+
+If memory mapping is used and both the host and the target have the same
+endianness, then the file layout and the alignment/padding of the host must
+have exactly the same characteristics.  In this case, simply return a pointer
+to a suitably-cast byte_buffer and increment it as appropriate (the storage
+argument is unused in this scenario).
+
+Otherwise, the storage passed in to the function is used to store copies of
+each field of the structure and each field is individually copied (and
+byte-swapped if necessary).
+
+If fill_storage is TRUE, always copy the data into the passed storage (i.e.,
+the storage specified by the storage argument).
+*/
+{
+#if USE_MMAP_FOR_MODULES
+  using storage_type = an_ifc_edg_token_identifier_storage;
+  if (has_matching_endianness(file)) {
+    if (fill_storage) {
+      memcpy(*storage, get_byte_buffer(file), /*size=*/4);
+    } else {
+      storage = (storage_type*)(get_byte_buffer(file));
+    }  /* if */
+  } else
+#endif /* USE_MMAP_FOR_MODULES */
+  /* Do not put code here. */
+  {
+    /* text */
+    get_bytes(file, (*storage) + 0, /*num_bytes=*/4, /*from_header=*/FALSE);
+  }  /* if */
+  return storage;
+}  /* get<an_ifc_edg_token_identifier_storage> */
+
+
+template<>
+an_ifc_partition_kind get_ifc_partition_kind<an_ifc_edg_token_identifier>()
+/*
+Return the corresponding partition kind for EdgTokenIdentifier.
+*/
+{
+  return ifc_pk_edg_token_complex_identifier;
 }  /* get_ifc_partition_kind */
 
 
@@ -40109,6 +44710,235 @@ Return the corresponding partition kind for TypeUnaligned.
 
 
 /*
+Functions for interacting with IFC EdgConstantIntegerWordOffset offsets.
+*/
+
+
+an_ifc_encoded_edg_constant_integer_word_offset to_encoded(
+                             an_ifc_module_file                      *file,
+                             an_ifc_edg_constant_integer_word_offset universal)
+/*
+Given the universal representation of EdgConstantIntegerWordOffset and the
+destination module file, return a reencoded index value.
+*/
+{
+  an_ifc_encoded_edg_constant_integer_word_offset result =
+                                                       {file, universal.value};
+
+  /* This offset contains a null value in its encoded form, do not modify its
+     value. */
+  return result;
+}  /* to_encoded */
+
+
+a_boolean is_null_index(an_ifc_edg_constant_integer_word_offset universal)
+/*
+Given the universal representation of EdgConstantIntegerWordOffset, return TRUE
+if the given offset is considered a null index; otherwise, return FALSE.
+*/
+{
+  return universal.value == 0;
+}  /* is_null_index */
+
+
+template<>
+an_ifc_partition_kind
+get_ifc_partition_kind<an_ifc_edg_constant_integer_word_offset>()
+/*
+Return the corresponding partition kind for EdgConstantIntegerWordOffset.
+*/
+{
+  return ifc_pk_edg_constant_integer_word;
+}  /* get_ifc_partition_kind */
+
+
+an_ifc_edg_constant_integer_word_offset to_universal_offset(
+                        an_ifc_module_file                           *file,
+                        an_ifc_edg_constant_integer_word_offset_0_43 versioned)
+/*
+Given the versioned representation of EdgConstantIntegerWordOffset and the
+associated module, return the corresponding universal representation.
+*/
+{
+  uint32_t index = versioned;
+
+  return an_ifc_edg_constant_integer_word_offset{file, index};
+}  /* to_universal_offset */
+
+
+/*
+Functions for interacting with IFC EdgHeapComplexTokenOffset offsets.
+*/
+
+
+an_ifc_encoded_edg_heap_complex_token_offset to_encoded(
+                                an_ifc_module_file                   *file,
+                                an_ifc_edg_heap_complex_token_offset universal)
+/*
+Given the universal representation of EdgHeapComplexTokenOffset and the
+destination module file, return a reencoded index value.
+*/
+{
+  an_ifc_encoded_edg_heap_complex_token_offset result =
+                                                       {file, universal.value};
+
+  /* This offset contains a null value in its encoded form, do not modify its
+     value. */
+  return result;
+}  /* to_encoded */
+
+
+a_boolean is_null_index(an_ifc_edg_heap_complex_token_offset universal)
+/*
+Given the universal representation of EdgHeapComplexTokenOffset, return TRUE if
+the given offset is considered a null index; otherwise, return FALSE.
+*/
+{
+  return universal.value == 0;
+}  /* is_null_index */
+
+
+template<>
+an_ifc_partition_kind
+get_ifc_partition_kind<an_ifc_edg_heap_complex_token_offset>()
+/*
+Return the corresponding partition kind for EdgHeapComplexTokenOffset.
+*/
+{
+  return ifc_pk_edg_heap_complex_token;
+}  /* get_ifc_partition_kind */
+
+
+an_ifc_edg_heap_complex_token_offset to_universal_offset(
+                           an_ifc_module_file                        *file,
+                           an_ifc_edg_heap_complex_token_offset_0_43 versioned)
+/*
+Given the versioned representation of EdgHeapComplexTokenOffset and the
+associated module, return the corresponding universal representation.
+*/
+{
+  uint32_t index = versioned;
+
+  return an_ifc_edg_heap_complex_token_offset{file, index};
+}  /* to_universal_offset */
+
+
+/*
+Functions for interacting with IFC EdgTokenBasicOffset offsets.
+*/
+
+
+an_ifc_encoded_edg_token_basic_offset to_encoded(
+                                       an_ifc_module_file            *file,
+                                       an_ifc_edg_token_basic_offset universal)
+/*
+Given the universal representation of EdgTokenBasicOffset and the destination
+module file, return a reencoded index value.
+*/
+{
+  an_ifc_encoded_edg_token_basic_offset result = {file, universal.value};
+
+  /* This offset contains a null value in its encoded form, do not modify its
+     value. */
+  return result;
+}  /* to_encoded */
+
+
+a_boolean is_null_index(an_ifc_edg_token_basic_offset universal)
+/*
+Given the universal representation of EdgTokenBasicOffset, return TRUE if the
+given offset is considered a null index; otherwise, return FALSE.
+*/
+{
+  return universal.value == 0;
+}  /* is_null_index */
+
+
+template<>
+an_ifc_partition_kind get_ifc_partition_kind<an_ifc_edg_token_basic_offset>()
+/*
+Return the corresponding partition kind for EdgTokenBasicOffset.
+*/
+{
+  return ifc_pk_edg_token_basic;
+}  /* get_ifc_partition_kind */
+
+
+an_ifc_edg_token_basic_offset to_universal_offset(
+                                  an_ifc_module_file                 *file,
+                                  an_ifc_edg_token_basic_offset_0_43 versioned)
+/*
+Given the versioned representation of EdgTokenBasicOffset and the associated
+module, return the corresponding universal representation.
+*/
+{
+  uint32_t index = versioned;
+
+  return an_ifc_edg_token_basic_offset{file, index};
+}  /* to_universal_offset */
+
+
+/*
+Functions for interacting with IFC EdgTokenCacheOffset offsets.
+*/
+
+
+an_ifc_encoded_edg_token_cache_offset to_encoded(
+                                       an_ifc_module_file            *file,
+                                       an_ifc_edg_token_cache_offset universal)
+/*
+Given the universal representation of EdgTokenCacheOffset and the destination
+module file, return a reencoded index value.
+*/
+{
+  an_ifc_encoded_edg_token_cache_offset result = {file, universal.value};
+
+  /* This offset never contains a null value in its encoded form, decrease all
+     values by one. */
+  check_assertion(result.value != 0);
+  --result.value;
+  return result;
+}  /* to_encoded */
+
+
+a_boolean is_null_index(an_ifc_edg_token_cache_offset universal)
+/*
+Given the universal representation of EdgTokenCacheOffset, return TRUE if the
+given offset is considered a null index; otherwise, return FALSE.
+*/
+{
+  return universal.value == 0;
+}  /* is_null_index */
+
+
+template<>
+an_ifc_partition_kind get_ifc_partition_kind<an_ifc_edg_token_cache_offset>()
+/*
+Return the corresponding partition kind for EdgTokenCacheOffset.
+*/
+{
+  return ifc_pk_edg_token_cache;
+}  /* get_ifc_partition_kind */
+
+
+an_ifc_edg_token_cache_offset to_universal_offset(
+                                  an_ifc_module_file                 *file,
+                                  an_ifc_edg_token_cache_offset_0_43 versioned)
+/*
+Given the versioned representation of EdgTokenCacheOffset and the associated
+module, return the corresponding universal representation.
+*/
+{
+  uint32_t index = versioned;
+
+  /* This offset never contains a null value in its encoded form, normalize it
+     by increasing all values by one. */
+  index += 1;
+  return an_ifc_edg_token_cache_offset{file, index};
+}  /* to_universal_offset */
+
+
+/*
 Functions for interacting with IFC ExprNamedDeclOffset offsets.
 */
 
@@ -40344,6 +45174,27 @@ corresponding expected partition element size.
   an_ifc_entity_size_storage result;
 
   switch (kind) {
+    case ifc_pk_edg_constant_integer:
+      result = 12;
+      break;
+    case ifc_pk_edg_constant_integer_word:
+      result = 4;
+      break;
+    case ifc_pk_edg_heap_complex_token:
+      result = 4;
+      break;
+    case ifc_pk_edg_token_basic:
+      result = 4;
+      break;
+    case ifc_pk_edg_token_cache:
+      result = 16;
+      break;
+    case ifc_pk_edg_token_complex_constant:
+      result = 8;
+      break;
+    case ifc_pk_edg_token_complex_identifier:
+      result = 4;
+      break;
     case ifc_pk_msvc_trait_decl_attrs:
       result = 8;
       break;
@@ -41655,6 +46506,93 @@ DirSort.  If no corresponding sort kind exists for DirSort, abort.
   }  /* switch */
   return result;
 }  /* to_dir_sort */
+
+
+a_boolean is_edg_complex_token_sort(an_ifc_partition_kind kind)
+/*
+Given the partition kind, return TRUE if there is a corresponding universal
+representation of EdgComplexTokenSort; otherwise, return FALSE.
+*/
+{
+  a_boolean result;
+
+  switch (kind) {
+    case ifc_pk_edg_token_complex_constant:
+    case ifc_pk_edg_token_complex_identifier:
+      result = TRUE;
+      break;
+    default:
+      result = FALSE;
+      break;
+  }  /* switch */
+  return result;
+}  /* is_edg_complex_token_sort */
+
+
+an_ifc_edg_complex_token_sort to_edg_complex_token_sort(
+                                                    an_ifc_partition_kind kind)
+/*
+Given the partition kind, return the corresponding universal representation of
+EdgComplexTokenSort.  If no corresponding sort kind exists for
+EdgComplexTokenSort, abort.
+*/
+{
+  an_ifc_edg_complex_token_sort result;
+
+  switch (kind) {
+    case ifc_pk_edg_token_complex_constant:
+      result = ifc_ects_edg_token_constant;
+      break;
+    case ifc_pk_edg_token_complex_identifier:
+      result = ifc_ects_edg_token_identifier;
+      break;
+    default:
+      unexpected_condition_str("No known conversion to EdgComplexTokenSort.");
+      break;
+  }  /* switch */
+  return result;
+}  /* to_edg_complex_token_sort */
+
+
+a_boolean is_edg_constant_sort(an_ifc_partition_kind kind)
+/*
+Given the partition kind, return TRUE if there is a corresponding universal
+representation of EdgConstantSort; otherwise, return FALSE.
+*/
+{
+  a_boolean result;
+
+  switch (kind) {
+    case ifc_pk_edg_constant_integer:
+      result = TRUE;
+      break;
+    default:
+      result = FALSE;
+      break;
+  }  /* switch */
+  return result;
+}  /* is_edg_constant_sort */
+
+
+an_ifc_edg_constant_sort to_edg_constant_sort(an_ifc_partition_kind kind)
+/*
+Given the partition kind, return the corresponding universal representation of
+EdgConstantSort.  If no corresponding sort kind exists for EdgConstantSort,
+abort.
+*/
+{
+  an_ifc_edg_constant_sort result;
+
+  switch (kind) {
+    case ifc_pk_edg_constant_integer:
+      result = ifc_ecs_edg_constant_integer;
+      break;
+    default:
+      unexpected_condition_str("No known conversion to EdgConstantSort.");
+      break;
+  }  /* switch */
+  return result;
+}  /* to_edg_constant_sort */
 
 
 a_boolean is_expr_sort(an_ifc_partition_kind kind)
@@ -43177,6 +48115,91 @@ partition kind.  If no corresponding partition kind exists, abort.
       break;
     case ifc_ds_dir_using:
       result = ifc_pk_dir_using;
+      break;
+    default:
+      unexpected_condition_str("No known conversion to a partition kind.");
+      break;
+  }  /* switch */
+  return result;
+}  /* to_partition_kind */
+
+
+a_boolean has_partition_kind(an_ifc_edg_complex_token_sort sort)
+/*
+Given the universal representation of EdgComplexTokenSort, return TRUE if there
+is a corresponding partition kind; otherwise, return FALSE.
+*/
+{
+  a_boolean result;
+
+  switch (sort) {
+    case ifc_ects_edg_token_constant:
+    case ifc_ects_edg_token_identifier:
+      result = TRUE;
+      break;
+    default:
+      result = FALSE;
+      break;
+  }  /* switch */
+  return result;
+}  /* has_partition_kind */
+
+
+an_ifc_partition_kind to_partition_kind(an_ifc_edg_complex_token_sort sort)
+/*
+Given the universal representation of EdgComplexTokenSort, return the
+corresponding partition kind.  If no corresponding partition kind exists,
+abort.
+*/
+{
+  an_ifc_partition_kind result;
+
+  switch (sort) {
+    case ifc_ects_edg_token_constant:
+      result = ifc_pk_edg_token_complex_constant;
+      break;
+    case ifc_ects_edg_token_identifier:
+      result = ifc_pk_edg_token_complex_identifier;
+      break;
+    default:
+      unexpected_condition_str("No known conversion to a partition kind.");
+      break;
+  }  /* switch */
+  return result;
+}  /* to_partition_kind */
+
+
+a_boolean has_partition_kind(an_ifc_edg_constant_sort sort)
+/*
+Given the universal representation of EdgConstantSort, return TRUE if there is
+a corresponding partition kind; otherwise, return FALSE.
+*/
+{
+  a_boolean result;
+
+  switch (sort) {
+    case ifc_ecs_edg_constant_integer:
+      result = TRUE;
+      break;
+    default:
+      result = FALSE;
+      break;
+  }  /* switch */
+  return result;
+}  /* has_partition_kind */
+
+
+an_ifc_partition_kind to_partition_kind(an_ifc_edg_constant_sort sort)
+/*
+Given the universal representation of EdgConstantSort, return the corresponding
+partition kind.  If no corresponding partition kind exists, abort.
+*/
+{
+  an_ifc_partition_kind result;
+
+  switch (sort) {
+    case ifc_ecs_edg_constant_integer:
+      result = ifc_pk_edg_constant_integer;
       break;
     default:
       unexpected_condition_str("No known conversion to a partition kind.");

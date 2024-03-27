@@ -7360,6 +7360,331 @@ Given the universal representation of DirUsing update the value of the field
 
 
 /*
+Functions for writing data to IFC EdgConstantInteger nodes.
+*/
+
+
+template<>
+void set_ifc_cardinality(an_ifc_edg_constant_integer *universal,
+                         const an_ifc_cardinality    &value)
+/*
+Given the universal representation of EdgConstantInteger update the value of
+the field "cardinality" to the given Cardinality value.
+*/
+{
+  /* Ensure the cardinality field exists in the current module version. */
+  check_assertion(has_ifc_cardinality(*universal));
+  an_ifc_cardinality_0_33 stage_0;
+
+  stage_0 = (an_ifc_cardinality_0_33)value.value;
+  /* Copy from version-specific storage into the field
+     (EdgConstantInteger::cardinality - Cardinality). */
+  static_assert(sizeof(stage_0) == 4,
+                "stage_0 is not properly sized storage!");
+  copy_to_node_field(&stage_0, universal->get_storage(), /*offset=*/8);
+}  /* set_ifc_cardinality */
+
+
+template<>
+void set_ifc_start(an_ifc_edg_constant_integer                   *universal,
+                   const an_ifc_edg_constant_integer_word_offset &value)
+/*
+Given the universal representation of EdgConstantInteger update the value of
+the field "start" to the given EdgConstantIntegerWordOffset value.
+*/
+{
+  /* Ensure the start field exists in the current module version. */
+  check_assertion(has_ifc_start(*universal));
+  an_ifc_encoded_edg_constant_integer_word_offset stage_0;
+  an_ifc_edg_constant_integer_word_offset_0_43    stage_1;
+
+  stage_0 = to_encoded(universal->get_file(), value);
+  stage_1 = (an_ifc_edg_constant_integer_word_offset_0_43)stage_0.value;
+  /* Copy from version-specific storage into the field
+     (EdgConstantInteger::start - EdgConstantIntegerWordOffset). */
+  static_assert(sizeof(stage_1) == 4,
+                "stage_1 is not properly sized storage!");
+  copy_to_node_field(&stage_1, universal->get_storage(), /*offset=*/4);
+}  /* set_ifc_start */
+
+
+template<>
+void set_ifc_type(an_ifc_edg_constant_integer *universal,
+                  const an_ifc_type_index     &value)
+/*
+Given the universal representation of EdgConstantInteger update the value of
+the field "type" to the given TypeIndex value.
+*/
+{
+  /* Ensure the type field exists in the current module version. */
+  check_assertion(has_ifc_type(*universal));
+  an_ifc_encoded_type_index stage_0;
+  an_ifc_type_index_0_33    stage_1;
+
+  stage_0 = to_encoded(universal->get_file(), value);
+  stage_1 = (an_ifc_type_index_0_33)stage_0.value;
+  /* Copy from version-specific storage into the field
+     (EdgConstantInteger::type - TypeIndex). */
+  static_assert(sizeof(stage_1) == 4,
+                "stage_1 is not properly sized storage!");
+  copy_to_node_field(&stage_1, universal->get_storage(), /*offset=*/0);
+}  /* set_ifc_type */
+
+
+/*
+Functions for writing data to IFC EdgConstantIntegerWord nodes.
+*/
+
+
+template<>
+void set_ifc_bytes(an_ifc_edg_constant_integer_word *universal,
+                   const an_ifc_edg_constant_word   &value)
+/*
+Given the universal representation of EdgConstantIntegerWord update the value
+of the field "bytes" to the given EdgConstantWord value.
+*/
+{
+  /* Ensure the bytes field exists in the current module version. */
+  check_assertion(has_ifc_bytes(*universal));
+  an_ifc_edg_constant_word_storage *stage_0;
+
+  stage_0 = (an_ifc_edg_constant_word_storage*)(value.get_storage());
+  /* Copy from universal storage into the field (EdgConstantIntegerWord::bytes
+     - EdgConstantWord). */
+  copy_to_node_field(stage_0, universal->get_storage(), /*offset=*/0,
+                     /*size=*/4);
+}  /* set_ifc_bytes */
+
+
+/*
+Functions for writing data to IFC EdgHeapComplexToken nodes.
+*/
+
+
+template<>
+void set_ifc_index(an_ifc_edg_heap_complex_token        *universal,
+                   const an_ifc_edg_complex_token_index &value)
+/*
+Given the universal representation of EdgHeapComplexToken update the value of
+the field "index" to the given EdgComplexTokenIndex value.
+*/
+{
+  /* Ensure the index field exists in the current module version. */
+  check_assertion(has_ifc_index(*universal));
+  an_ifc_encoded_edg_complex_token_index stage_0;
+  an_ifc_edg_complex_token_index_0_43    stage_1;
+
+  stage_0 = to_encoded(universal->get_file(), value);
+  stage_1 = (an_ifc_edg_complex_token_index_0_43)stage_0.value;
+  /* Copy from version-specific storage into the field
+     (EdgHeapComplexToken::index - EdgComplexTokenIndex). */
+  static_assert(sizeof(stage_1) == 4,
+                "stage_1 is not properly sized storage!");
+  copy_to_node_field(&stage_1, universal->get_storage(), /*offset=*/0);
+}  /* set_ifc_index */
+
+
+/*
+Functions for writing data to IFC EdgTokenBasic nodes.
+*/
+
+
+template<>
+void set_ifc_kind(an_ifc_edg_token_basic            *universal,
+                  const an_ifc_edg_basic_token_sort &value)
+/*
+Given the universal representation of EdgTokenBasic update the value of the
+field "kind" to the given EdgBasicTokenSort value.
+*/
+{
+  /* Ensure the kind field exists in the current module version. */
+  check_assertion(has_ifc_kind(*universal));
+  an_ifc_encoded_edg_basic_token_sort stage_0;
+  an_ifc_edg_basic_token_sort_0_43    stage_1;
+
+  stage_0 = to_encoded(universal->get_file(), value);
+  stage_1 = (an_ifc_edg_basic_token_sort_0_43)stage_0.value;
+  /* Copy from version-specific storage into the field (EdgTokenBasic::kind -
+     EdgBasicTokenSort). */
+  static_assert(sizeof(stage_1) == 4,
+                "stage_1 is not properly sized storage!");
+  copy_to_node_field(&stage_1, universal->get_storage(), /*offset=*/0);
+}  /* set_ifc_kind */
+
+
+/*
+Functions for writing data to IFC EdgTokenCache nodes.
+*/
+
+
+template<>
+void set_ifc_complex_tokens(
+                         an_ifc_edg_token_cache                     *universal,
+                         const an_ifc_edg_heap_complex_token_offset &value)
+/*
+Given the universal representation of EdgTokenCache update the value of the
+field "complex_tokens" to the given EdgHeapComplexTokenOffset value.
+*/
+{
+  /* Ensure the complex_tokens field exists in the current module version. */
+  check_assertion(has_ifc_complex_tokens(*universal));
+  an_ifc_encoded_edg_heap_complex_token_offset stage_0;
+  an_ifc_edg_heap_complex_token_offset_0_43    stage_1;
+
+  stage_0 = to_encoded(universal->get_file(), value);
+  stage_1 = (an_ifc_edg_heap_complex_token_offset_0_43)stage_0.value;
+  /* Copy from version-specific storage into the field
+     (EdgTokenCache::complex_tokens - EdgHeapComplexTokenOffset). */
+  static_assert(sizeof(stage_1) == 4,
+                "stage_1 is not properly sized storage!");
+  copy_to_node_field(&stage_1, universal->get_storage(), /*offset=*/8);
+}  /* set_ifc_complex_tokens */
+
+
+template<>
+void set_ifc_num_complex_tokens(an_ifc_edg_token_cache   *universal,
+                                const an_ifc_cardinality &value)
+/*
+Given the universal representation of EdgTokenCache update the value of the
+field "num_complex_tokens" to the given Cardinality value.
+*/
+{
+  /* Ensure the num_complex_tokens field exists in the current module
+     version. */
+  check_assertion(has_ifc_num_complex_tokens(*universal));
+  an_ifc_cardinality_0_33 stage_0;
+
+  stage_0 = (an_ifc_cardinality_0_33)value.value;
+  /* Copy from version-specific storage into the field
+     (EdgTokenCache::num_complex_tokens - Cardinality). */
+  static_assert(sizeof(stage_0) == 4,
+                "stage_0 is not properly sized storage!");
+  copy_to_node_field(&stage_0, universal->get_storage(), /*offset=*/12);
+}  /* set_ifc_num_complex_tokens */
+
+
+template<>
+void set_ifc_num_tokens(an_ifc_edg_token_cache   *universal,
+                        const an_ifc_cardinality &value)
+/*
+Given the universal representation of EdgTokenCache update the value of the
+field "num_tokens" to the given Cardinality value.
+*/
+{
+  /* Ensure the num_tokens field exists in the current module version. */
+  check_assertion(has_ifc_num_tokens(*universal));
+  an_ifc_cardinality_0_33 stage_0;
+
+  stage_0 = (an_ifc_cardinality_0_33)value.value;
+  /* Copy from version-specific storage into the field
+     (EdgTokenCache::num_tokens - Cardinality). */
+  static_assert(sizeof(stage_0) == 4,
+                "stage_0 is not properly sized storage!");
+  copy_to_node_field(&stage_0, universal->get_storage(), /*offset=*/4);
+}  /* set_ifc_num_tokens */
+
+
+template<>
+void set_ifc_tokens(an_ifc_edg_token_cache              *universal,
+                    const an_ifc_edg_token_basic_offset &value)
+/*
+Given the universal representation of EdgTokenCache update the value of the
+field "tokens" to the given EdgTokenBasicOffset value.
+*/
+{
+  /* Ensure the tokens field exists in the current module version. */
+  check_assertion(has_ifc_tokens(*universal));
+  an_ifc_encoded_edg_token_basic_offset stage_0;
+  an_ifc_edg_token_basic_offset_0_43    stage_1;
+
+  stage_0 = to_encoded(universal->get_file(), value);
+  stage_1 = (an_ifc_edg_token_basic_offset_0_43)stage_0.value;
+  /* Copy from version-specific storage into the field (EdgTokenCache::tokens -
+     EdgTokenBasicOffset). */
+  static_assert(sizeof(stage_1) == 4,
+                "stage_1 is not properly sized storage!");
+  copy_to_node_field(&stage_1, universal->get_storage(), /*offset=*/0);
+}  /* set_ifc_tokens */
+
+
+/*
+Functions for writing data to IFC EdgTokenConstant nodes.
+*/
+
+
+template<>
+void set_ifc_constant(an_ifc_edg_token_constant       *universal,
+                      const an_ifc_edg_constant_index &value)
+/*
+Given the universal representation of EdgTokenConstant update the value of the
+field "constant" to the given EdgConstantIndex value.
+*/
+{
+  /* Ensure the constant field exists in the current module version. */
+  check_assertion(has_ifc_constant(*universal));
+  an_ifc_encoded_edg_constant_index stage_0;
+  an_ifc_edg_constant_index_0_43    stage_1;
+
+  stage_0 = to_encoded(universal->get_file(), value);
+  stage_1 = (an_ifc_edg_constant_index_0_43)stage_0.value;
+  /* Copy from version-specific storage into the field
+     (EdgTokenConstant::constant - EdgConstantIndex). */
+  static_assert(sizeof(stage_1) == 4,
+                "stage_1 is not properly sized storage!");
+  copy_to_node_field(&stage_1, universal->get_storage(), /*offset=*/4);
+}  /* set_ifc_constant */
+
+
+template<>
+void set_ifc_kind(an_ifc_edg_token_constant            *universal,
+                  const an_ifc_edg_constant_token_sort &value)
+/*
+Given the universal representation of EdgTokenConstant update the value of the
+field "kind" to the given EdgConstantTokenSort value.
+*/
+{
+  /* Ensure the kind field exists in the current module version. */
+  check_assertion(has_ifc_kind(*universal));
+  an_ifc_encoded_edg_constant_token_sort stage_0;
+  an_ifc_edg_constant_token_sort_0_43    stage_1;
+
+  stage_0 = to_encoded(universal->get_file(), value);
+  stage_1 = (an_ifc_edg_constant_token_sort_0_43)stage_0.value;
+  /* Copy from version-specific storage into the field (EdgTokenConstant::kind
+     - EdgConstantTokenSort). */
+  static_assert(sizeof(stage_1) == 4,
+                "stage_1 is not properly sized storage!");
+  copy_to_node_field(&stage_1, universal->get_storage(), /*offset=*/0);
+}  /* set_ifc_kind */
+
+
+/*
+Functions for writing data to IFC EdgTokenIdentifier nodes.
+*/
+
+
+template<>
+void set_ifc_text(an_ifc_edg_token_identifier *universal,
+                  const an_ifc_text_offset    &value)
+/*
+Given the universal representation of EdgTokenIdentifier update the value of
+the field "text" to the given TextOffset value.
+*/
+{
+  /* Ensure the text field exists in the current module version. */
+  check_assertion(has_ifc_text(*universal));
+  an_ifc_text_offset_0_33 stage_0;
+
+  stage_0 = (an_ifc_text_offset_0_33)value.value;
+  /* Copy from version-specific storage into the field
+     (EdgTokenIdentifier::text - TextOffset). */
+  static_assert(sizeof(stage_0) == 4,
+                "stage_0 is not properly sized storage!");
+  copy_to_node_field(&stage_0, universal->get_storage(), /*offset=*/0);
+}  /* set_ifc_text */
+
+
+/*
 Functions for writing data to IFC ExprAlignof nodes.
 */
 

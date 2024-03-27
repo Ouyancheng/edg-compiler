@@ -150,7 +150,7 @@ Byte_buffer_entity<an_ifc_Storage_type>::Byte_buffer_entity(
 Given a module file and a pointer to associated storage this constructor
 creates a direct pointer reference in file read modes and a memory copy in file
 write modes (to prevent issues that would otherwise occur if the bytes are
-relocated due to a reallocation of underlying buffer).
+relocated due to a reallocation of the underlying buffer).
 */
   : an_ifc_module_entity(mod_val)
 {
@@ -292,6 +292,34 @@ struct Offset_entity : public an_ifc_module_entity {
                            this offset.  Represented as the largest common
                            underlying type. */
 };  /* Offset_entity */
+
+
+/*
+  |----------------|
+  | Version | Size |
+  |---------|------|
+  | 0.43    | 4    |
+  |---------|------|
+*/
+enum an_ifc_edg_constant_word_part : uint8_t {};
+using an_ifc_edg_constant_word_storage = an_ifc_edg_constant_word_part[4];
+#if USE_MMAP_FOR_MODULES
+using an_ifc_edg_constant_word_bytes = const an_ifc_edg_constant_word_storage*;
+#else /* !USE_MMAP_FOR_MODULES */
+using an_ifc_edg_constant_word_bytes = an_ifc_edg_constant_word_storage;
+#endif /* USE_MMAP_FOR_MODULES */
+/*
+The universal representation of an IFC EdgConstantWord node.
+
+The representation is declared as a derived struct of Byte_buffer_entity rather
+than simply an alias of the instantiation to improve the debugger experience.
+*/
+struct an_ifc_edg_constant_word :
+                         Byte_buffer_entity<an_ifc_edg_constant_word_storage> {
+  using storage_type = an_ifc_edg_constant_word_storage;
+  using base_type = Byte_buffer_entity<storage_type>;
+  using base_type::Byte_buffer_entity;
+};  /* an_ifc_edg_constant_word */
 
 
 /*
@@ -741,6 +769,157 @@ struct an_ifc_encoded_dyadic_operator_sort : Implicit_numeric_entity<
   using base_type = Implicit_numeric_entity<storage_type>;
   using base_type::Implicit_numeric_entity;
 };  /* an_ifc_encoded_dyadic_operator_sort */
+
+
+enum an_ifc_encoded_edg_basic_token_sort_0_43 : uint32_t;
+using an_ifc_encoded_edg_basic_token_sort_storage = uint32_t;
+
+
+/*
+The universal representation for an IFC EncodedEdgBasicTokenSort.
+*/
+struct an_ifc_encoded_edg_basic_token_sort : Implicit_numeric_entity<
+                                 an_ifc_encoded_edg_basic_token_sort_storage> {
+  using storage_type = an_ifc_encoded_edg_basic_token_sort_storage;
+  using base_type = Implicit_numeric_entity<storage_type>;
+  using base_type::Implicit_numeric_entity;
+};  /* an_ifc_encoded_edg_basic_token_sort */
+
+
+enum an_ifc_encoded_edg_complex_token_index_0_43 : uint32_t;
+using an_ifc_encoded_edg_complex_token_index_storage = uint32_t;
+
+
+/*
+The universal representation for an IFC EncodedEdgComplexTokenIndex.
+*/
+struct an_ifc_encoded_edg_complex_token_index : Implicit_numeric_entity<
+                              an_ifc_encoded_edg_complex_token_index_storage> {
+  using storage_type = an_ifc_encoded_edg_complex_token_index_storage;
+  using base_type = Implicit_numeric_entity<storage_type>;
+  using base_type::Implicit_numeric_entity;
+};  /* an_ifc_encoded_edg_complex_token_index */
+
+
+enum an_ifc_encoded_edg_complex_token_sort_0_43 : uint32_t;
+using an_ifc_encoded_edg_complex_token_sort_storage = uint32_t;
+
+
+/*
+The universal representation for an IFC EncodedEdgComplexTokenSort.
+*/
+struct an_ifc_encoded_edg_complex_token_sort : Implicit_numeric_entity<
+                               an_ifc_encoded_edg_complex_token_sort_storage> {
+  using storage_type = an_ifc_encoded_edg_complex_token_sort_storage;
+  using base_type = Implicit_numeric_entity<storage_type>;
+  using base_type::Implicit_numeric_entity;
+};  /* an_ifc_encoded_edg_complex_token_sort */
+
+
+enum an_ifc_encoded_edg_constant_index_0_43 : uint32_t;
+using an_ifc_encoded_edg_constant_index_storage = uint32_t;
+
+
+/*
+The universal representation for an IFC EncodedEdgConstantIndex.
+*/
+struct an_ifc_encoded_edg_constant_index : Implicit_numeric_entity<
+                                   an_ifc_encoded_edg_constant_index_storage> {
+  using storage_type = an_ifc_encoded_edg_constant_index_storage;
+  using base_type = Implicit_numeric_entity<storage_type>;
+  using base_type::Implicit_numeric_entity;
+};  /* an_ifc_encoded_edg_constant_index */
+
+
+enum an_ifc_encoded_edg_constant_integer_word_offset_0_43 : uint32_t;
+using an_ifc_encoded_edg_constant_integer_word_offset_storage = uint32_t;
+
+
+/*
+The universal representation for an IFC EncodedEdgConstantIntegerWordOffset.
+*/
+struct an_ifc_encoded_edg_constant_integer_word_offset :
+                                                       Implicit_numeric_entity<
+                     an_ifc_encoded_edg_constant_integer_word_offset_storage> {
+  using storage_type = an_ifc_encoded_edg_constant_integer_word_offset_storage;
+  using base_type = Implicit_numeric_entity<storage_type>;
+  using base_type::Implicit_numeric_entity;
+};  /* an_ifc_encoded_edg_constant_integer_word_offset */
+
+
+enum an_ifc_encoded_edg_constant_sort_0_43 : uint32_t;
+using an_ifc_encoded_edg_constant_sort_storage = uint32_t;
+
+
+/*
+The universal representation for an IFC EncodedEdgConstantSort.
+*/
+struct an_ifc_encoded_edg_constant_sort : Implicit_numeric_entity<
+                                    an_ifc_encoded_edg_constant_sort_storage> {
+  using storage_type = an_ifc_encoded_edg_constant_sort_storage;
+  using base_type = Implicit_numeric_entity<storage_type>;
+  using base_type::Implicit_numeric_entity;
+};  /* an_ifc_encoded_edg_constant_sort */
+
+
+enum an_ifc_encoded_edg_constant_token_sort_0_43 : uint32_t;
+using an_ifc_encoded_edg_constant_token_sort_storage = uint32_t;
+
+
+/*
+The universal representation for an IFC EncodedEdgConstantTokenSort.
+*/
+struct an_ifc_encoded_edg_constant_token_sort : Implicit_numeric_entity<
+                              an_ifc_encoded_edg_constant_token_sort_storage> {
+  using storage_type = an_ifc_encoded_edg_constant_token_sort_storage;
+  using base_type = Implicit_numeric_entity<storage_type>;
+  using base_type::Implicit_numeric_entity;
+};  /* an_ifc_encoded_edg_constant_token_sort */
+
+
+enum an_ifc_encoded_edg_heap_complex_token_offset_0_43 : uint32_t;
+using an_ifc_encoded_edg_heap_complex_token_offset_storage = uint32_t;
+
+
+/*
+The universal representation for an IFC EncodedEdgHeapComplexTokenOffset.
+*/
+struct an_ifc_encoded_edg_heap_complex_token_offset : Implicit_numeric_entity<
+                        an_ifc_encoded_edg_heap_complex_token_offset_storage> {
+  using storage_type = an_ifc_encoded_edg_heap_complex_token_offset_storage;
+  using base_type = Implicit_numeric_entity<storage_type>;
+  using base_type::Implicit_numeric_entity;
+};  /* an_ifc_encoded_edg_heap_complex_token_offset */
+
+
+enum an_ifc_encoded_edg_token_basic_offset_0_43 : uint32_t;
+using an_ifc_encoded_edg_token_basic_offset_storage = uint32_t;
+
+
+/*
+The universal representation for an IFC EncodedEdgTokenBasicOffset.
+*/
+struct an_ifc_encoded_edg_token_basic_offset : Implicit_numeric_entity<
+                               an_ifc_encoded_edg_token_basic_offset_storage> {
+  using storage_type = an_ifc_encoded_edg_token_basic_offset_storage;
+  using base_type = Implicit_numeric_entity<storage_type>;
+  using base_type::Implicit_numeric_entity;
+};  /* an_ifc_encoded_edg_token_basic_offset */
+
+
+enum an_ifc_encoded_edg_token_cache_offset_0_43 : uint32_t;
+using an_ifc_encoded_edg_token_cache_offset_storage = uint32_t;
+
+
+/*
+The universal representation for an IFC EncodedEdgTokenCacheOffset.
+*/
+struct an_ifc_encoded_edg_token_cache_offset : Implicit_numeric_entity<
+                               an_ifc_encoded_edg_token_cache_offset_storage> {
+  using storage_type = an_ifc_encoded_edg_token_cache_offset_storage;
+  using base_type = Implicit_numeric_entity<storage_type>;
+  using base_type::Implicit_numeric_entity;
+};  /* an_ifc_encoded_edg_token_cache_offset */
 
 
 enum an_ifc_encoded_expansion_mode_sort_0_33 : uint8_t;
@@ -2393,6 +2572,860 @@ enum an_ifc_dyadic_operator_sort : uint32_t {
   ifc_dos_widen,
   ifc_dos_zero_initialize
 };  /* an_ifc_dyadic_operator_sort */
+
+
+enum an_ifc_edg_basic_token_sort_0_43 : uint32_t {
+  ifc_0_43_ebts_complex                                        = 0,
+  ifc_0_43_ebts_lbracket                                       = 1,
+  ifc_0_43_ebts_rbracket                                       = 2,
+  ifc_0_43_ebts_lparen                                         = 3,
+  ifc_0_43_ebts_rparen                                         = 4,
+  ifc_0_43_ebts_period                                         = 5,
+  ifc_0_43_ebts_arrow                                          = 6,
+  ifc_0_43_ebts_plus_plus                                      = 7,
+  ifc_0_43_ebts_minus_minus                                    = 8,
+  ifc_0_43_ebts_ampersand                                      = 9,
+  ifc_0_43_ebts_star                                           = 10,
+  ifc_0_43_ebts_plus                                           = 11,
+  ifc_0_43_ebts_minus                                          = 12,
+  ifc_0_43_ebts_compl                                          = 13,
+  ifc_0_43_ebts_not                                            = 14,
+  ifc_0_43_ebts_divide                                         = 15,
+  ifc_0_43_ebts_remainder                                      = 16,
+  ifc_0_43_ebts_shift_left                                     = 17,
+  ifc_0_43_ebts_shift_right                                    = 18,
+  ifc_0_43_ebts_lt                                             = 19,
+  ifc_0_43_ebts_gt                                             = 20,
+  ifc_0_43_ebts_le                                             = 21,
+  ifc_0_43_ebts_ge                                             = 22,
+  ifc_0_43_ebts_eq                                             = 23,
+  ifc_0_43_ebts_ne                                             = 24,
+  ifc_0_43_ebts_spaceship                                      = 25,
+  ifc_0_43_ebts_excl_or                                        = 26,
+  ifc_0_43_ebts_or                                             = 27,
+  ifc_0_43_ebts_and_and                                        = 28,
+  ifc_0_43_ebts_or_or                                          = 29,
+  ifc_0_43_ebts_quest_mark                                     = 30,
+  ifc_0_43_ebts_colon                                          = 31,
+  ifc_0_43_ebts_assign                                         = 32,
+  ifc_0_43_ebts_times_assign                                   = 33,
+  ifc_0_43_ebts_divide_assign                                  = 34,
+  ifc_0_43_ebts_remainder_assign                               = 35,
+  ifc_0_43_ebts_plus_assign                                    = 36,
+  ifc_0_43_ebts_minus_assign                                   = 37,
+  ifc_0_43_ebts_shift_left_assign                              = 38,
+  ifc_0_43_ebts_shift_right_assign                             = 39,
+  ifc_0_43_ebts_and_assign                                     = 40,
+  ifc_0_43_ebts_excl_or_assign                                 = 41,
+  ifc_0_43_ebts_or_assign                                      = 42,
+  ifc_0_43_ebts_comma                                          = 43,
+  ifc_0_43_ebts_sharp                                          = 44,
+  ifc_0_43_ebts_paste                                          = 45,
+  ifc_0_43_ebts_gnu_min                                        = 46,
+  ifc_0_43_ebts_gnu_max                                        = 47,
+  ifc_0_43_ebts_lbrace                                         = 48,
+  ifc_0_43_ebts_rbrace                                         = 49,
+  ifc_0_43_ebts_lsplice                                        = 50,
+  ifc_0_43_ebts_rsplice                                        = 51,
+  ifc_0_43_ebts_semicolon                                      = 52,
+  ifc_0_43_ebts_ellipsis                                       = 53,
+  ifc_0_43_ebts_auto                                           = 54,
+  ifc_0_43_ebts_break                                          = 55,
+  ifc_0_43_ebts_case                                           = 56,
+  ifc_0_43_ebts_char                                           = 57,
+  ifc_0_43_ebts_const                                          = 58,
+  ifc_0_43_ebts_continue                                       = 59,
+  ifc_0_43_ebts_default                                        = 60,
+  ifc_0_43_ebts_do                                             = 61,
+  ifc_0_43_ebts_double                                         = 62,
+  ifc_0_43_ebts_else                                           = 63,
+  ifc_0_43_ebts_enum                                           = 64,
+  ifc_0_43_ebts_extern                                         = 65,
+  ifc_0_43_ebts_float                                          = 66,
+  ifc_0_43_ebts_for                                            = 67,
+  ifc_0_43_ebts_goto                                           = 68,
+  ifc_0_43_ebts_if                                             = 69,
+  ifc_0_43_ebts_int                                            = 70,
+  ifc_0_43_ebts_long                                           = 71,
+  ifc_0_43_ebts_register                                       = 72,
+  ifc_0_43_ebts_return                                         = 73,
+  ifc_0_43_ebts_short                                          = 74,
+  ifc_0_43_ebts_signed                                         = 75,
+  ifc_0_43_ebts_sizeof                                         = 76,
+  ifc_0_43_ebts_static                                         = 77,
+  ifc_0_43_ebts_struct                                         = 78,
+  ifc_0_43_ebts_switch                                         = 79,
+  ifc_0_43_ebts_typedef                                        = 80,
+  ifc_0_43_ebts_union                                          = 81,
+  ifc_0_43_ebts_unsigned                                       = 82,
+  ifc_0_43_ebts_void                                           = 83,
+  ifc_0_43_ebts_volatile                                       = 84,
+  ifc_0_43_ebts_while                                          = 85,
+  ifc_0_43_ebts_c99_generic                                    = 86,
+  ifc_0_43_ebts_c99_genericfx                                  = 87,
+  ifc_0_43_ebts_alignof                                        = 88,
+  ifc_0_43_ebts_ext_alignof                                    = 89,
+  ifc_0_43_ebts_intaddr                                        = 90,
+  ifc_0_43_ebts_va_copy                                        = 91,
+  ifc_0_43_ebts_builtin_offsetof                               = 92,
+  ifc_0_43_ebts_restrict                                       = 93,
+  ifc_0_43_ebts_gnu_restrict                                   = 94,
+  ifc_0_43_ebts_c99_bool                                       = 95,
+  ifc_0_43_ebts_c99_complex                                    = 96,
+  ifc_0_43_ebts_c99_imaginary                                  = 97,
+  ifc_0_43_ebts_imaginary_unit                                 = 98,
+  ifc_0_43_ebts_nan                                            = 99,
+  ifc_0_43_ebts_infinity                                       = 100,
+  ifc_0_43_ebts_char16_t                                       = 101,
+  ifc_0_43_ebts_char32_t                                       = 102,
+  ifc_0_43_ebts_char8_t                                        = 103,
+  ifc_0_43_ebts_fract                                          = 104,
+  ifc_0_43_ebts_accum                                          = 105,
+  ifc_0_43_ebts_sat                                            = 106,
+  ifc_0_43_ebts_abstract                                       = 107,
+  ifc_0_43_ebts_sealed                                         = 108,
+  ifc_0_43_ebts_cdecl                                          = 109,
+  ifc_0_43_ebts_fastcall                                       = 110,
+  ifc_0_43_ebts_stdcall                                        = 111,
+  ifc_0_43_ebts_thiscall                                       = 112,
+  ifc_0_43_ebts_vectorcall                                     = 113,
+  ifc_0_43_ebts_clrcall                                        = 114,
+  ifc_0_43_ebts_microsoft_inline                               = 115,
+  ifc_0_43_ebts_forceinline                                    = 116,
+  ifc_0_43_ebts_unaligned                                      = 117,
+  ifc_0_43_ebts_microsoft_try                                  = 118,
+  ifc_0_43_ebts_finally                                        = 119,
+  ifc_0_43_ebts_leave                                          = 120,
+  ifc_0_43_ebts_except                                         = 121,
+  ifc_0_43_ebts_int8                                           = 122,
+  ifc_0_43_ebts_int16                                          = 123,
+  ifc_0_43_ebts_int32                                          = 124,
+  ifc_0_43_ebts_int64                                          = 125,
+  ifc_0_43_ebts_based                                          = 126,
+  ifc_0_43_ebts_uuidof                                         = 127,
+  ifc_0_43_ebts_assume                                         = 128,
+  ifc_0_43_ebts_charize                                        = 129,
+  ifc_0_43_ebts_if_exists                                      = 130,
+  ifc_0_43_ebts_if_not_exists                                  = 131,
+  ifc_0_43_ebts_end_of_if_exists                               = 132,
+  ifc_0_43_ebts_super                                          = 133,
+  ifc_0_43_ebts_noop                                           = 134,
+  ifc_0_43_ebts_interface                                      = 135,
+  ifc_0_43_ebts_event                                          = 136,
+  ifc_0_43_ebts_microsoft_ptr32                                = 137,
+  ifc_0_43_ebts_microsoft_ptr64                                = 138,
+  ifc_0_43_ebts_microsoft_sptr                                 = 139,
+  ifc_0_43_ebts_microsoft_uptr                                 = 140,
+  ifc_0_43_ebts_microsoft_w64                                  = 141,
+  ifc_0_43_ebts_microsoft_lprefix                              = 142,
+  ifc_0_43_ebts_microsoft_uprefix                              = 143,
+  ifc_0_43_ebts_microsoft_identifier                           = 144,
+  ifc_0_43_ebts_uuid                                           = 145,
+  ifc_0_43_ebts_in                                             = 146,
+  ifc_0_43_ebts_gcnew                                          = 147,
+  ifc_0_43_ebts_safe_cast                                      = 148,
+  ifc_0_43_ebts_implements                                     = 149,
+  ifc_0_43_ebts_unresolved_type                                = 150,
+  ifc_0_43_ebts_for_each                                       = 151,
+  ifc_0_43_ebts_last_whitespace_token                          = 152,
+  ifc_0_43_ebts_ref_class                                      = 153,
+  ifc_0_43_ebts_ref_struct                                     = 154,
+  ifc_0_43_ebts_value_class                                    = 155,
+  ifc_0_43_ebts_value_struct                                   = 156,
+  ifc_0_43_ebts_enum_class                                     = 157,
+  ifc_0_43_ebts_enum_struct                                    = 158,
+  ifc_0_43_ebts_interface_class                                = 159,
+  ifc_0_43_ebts_interface_struct                               = 160,
+  ifc_0_43_ebts_ref_new                                        = 161,
+  ifc_0_43_ebts_partial_ref_class                              = 162,
+  ifc_0_43_ebts_partial_ref_struct                             = 163,
+  ifc_0_43_ebts_prefix_ref                                     = 164,
+  ifc_0_43_ebts_prefix_value                                   = 165,
+  ifc_0_43_ebts_prefix_interface                               = 166,
+  ifc_0_43_ebts_prefix_for                                     = 167,
+  ifc_0_43_ebts_prefix_enum                                    = 168,
+  ifc_0_43_ebts_prefix_partial                                 = 169,
+  ifc_0_43_ebts_microsoft_asm                                  = 170,
+  ifc_0_43_ebts_func_name                                      = 171,
+  ifc_0_43_ebts_function_name                                  = 172,
+  ifc_0_43_ebts_pretty_function_name                           = 173,
+  ifc_0_43_ebts_decorated_function_name                        = 174,
+  ifc_0_43_ebts_near                                           = 175,
+  ifc_0_43_ebts_far                                            = 176,
+  ifc_0_43_ebts_attribute                                      = 177,
+  ifc_0_43_ebts_builtin_types_compatible                       = 178,
+  ifc_0_43_ebts_gnu_real                                       = 179,
+  ifc_0_43_ebts_gnu_imag                                       = 180,
+  ifc_0_43_ebts_colon_colon                                    = 181,
+  ifc_0_43_ebts_period_star                                    = 182,
+  ifc_0_43_ebts_arrow_star                                     = 183,
+  ifc_0_43_ebts_asm                                            = 184,
+  ifc_0_43_ebts_catch                                          = 185,
+  ifc_0_43_ebts_class                                          = 186,
+  ifc_0_43_ebts_delete                                         = 187,
+  ifc_0_43_ebts_friend                                         = 188,
+  ifc_0_43_ebts_inline                                         = 189,
+  ifc_0_43_ebts_new                                            = 190,
+  ifc_0_43_ebts_operator                                       = 191,
+  ifc_0_43_ebts_private                                        = 192,
+  ifc_0_43_ebts_protected                                      = 193,
+  ifc_0_43_ebts_public                                         = 194,
+  ifc_0_43_ebts_template                                       = 195,
+  ifc_0_43_ebts_this                                           = 196,
+  ifc_0_43_ebts_throw                                          = 197,
+  ifc_0_43_ebts_try                                            = 198,
+  ifc_0_43_ebts_virtual                                        = 199,
+  ifc_0_43_ebts_wchar_t                                        = 200,
+  ifc_0_43_ebts_const_cast                                     = 201,
+  ifc_0_43_ebts_dynamic_cast                                   = 202,
+  ifc_0_43_ebts_explicit                                       = 203,
+  ifc_0_43_ebts_cpp98_export                                   = 204,
+  ifc_0_43_ebts_export                                         = 205,
+  ifc_0_43_ebts_export_keyword                                 = 206,
+  ifc_0_43_ebts_import                                         = 207,
+  ifc_0_43_ebts_module                                         = 208,
+  ifc_0_43_ebts_mutable                                        = 209,
+  ifc_0_43_ebts_namespace                                      = 210,
+  ifc_0_43_ebts_reinterpret_cast                               = 211,
+  ifc_0_43_ebts_static_cast                                    = 212,
+  ifc_0_43_ebts_typeid                                         = 213,
+  ifc_0_43_ebts_using                                          = 214,
+  ifc_0_43_ebts_bool                                           = 215,
+  ifc_0_43_ebts_false                                          = 216,
+  ifc_0_43_ebts_true                                           = 217,
+  ifc_0_43_ebts_typename                                       = 218,
+  ifc_0_43_ebts_static_assert                                  = 219,
+  ifc_0_43_ebts_decltype                                       = 220,
+  ifc_0_43_ebts_auto_type                                      = 221,
+  ifc_0_43_ebts_extension                                      = 222,
+  ifc_0_43_ebts_null                                           = 223,
+  ifc_0_43_ebts_typeof                                         = 224,
+  ifc_0_43_ebts_typeof_unqual                                  = 225,
+  ifc_0_43_ebts_overload                                       = 226,
+  ifc_0_43_ebts_global_link_scope                              = 227,
+  ifc_0_43_ebts_symbolic_link_scope                            = 228,
+  ifc_0_43_ebts_hidden_link_scope                              = 229,
+  ifc_0_43_ebts_thread                                         = 230,
+  ifc_0_43_ebts_thread_local                                   = 231,
+  ifc_0_43_ebts_c11_thread_local                               = 232,
+  ifc_0_43_ebts_upc_strict                                     = 233,
+  ifc_0_43_ebts_upc_relaxed                                    = 234,
+  ifc_0_43_ebts_upc_shared                                     = 235,
+  ifc_0_43_ebts_upc_forall                                     = 236,
+  ifc_0_43_ebts_upc_barrier                                    = 237,
+  ifc_0_43_ebts_upc_notify                                     = 238,
+  ifc_0_43_ebts_upc_wait                                       = 239,
+  ifc_0_43_ebts_upc_fence                                      = 240,
+  ifc_0_43_ebts_upc_threads                                    = 241,
+  ifc_0_43_ebts_upc_mythread                                   = 242,
+  ifc_0_43_ebts_upc_blocksizeof                                = 243,
+  ifc_0_43_ebts_upc_localsizeof                                = 244,
+  ifc_0_43_ebts_upc_elemsizeof                                 = 245,
+  ifc_0_43_ebts_has_assign                                     = 246,
+  ifc_0_43_ebts_has_copy                                       = 247,
+  ifc_0_43_ebts_has_nothrow_assign                             = 248,
+  ifc_0_43_ebts_has_nothrow_constructor                        = 249,
+  ifc_0_43_ebts_has_nothrow_copy                               = 250,
+  ifc_0_43_ebts_has_trivial_assign                             = 251,
+  ifc_0_43_ebts_has_trivial_constructor                        = 252,
+  ifc_0_43_ebts_has_trivial_copy                               = 253,
+  ifc_0_43_ebts_has_trivial_destructor                         = 254,
+  ifc_0_43_ebts_has_user_destructor                            = 255,
+  ifc_0_43_ebts_has_virtual_destructor                         = 256,
+  ifc_0_43_ebts_is_abstract                                    = 257,
+  ifc_0_43_ebts_is_base_of                                     = 258,
+  ifc_0_43_ebts_is_class                                       = 259,
+  ifc_0_43_ebts_is_convertible_to                              = 260,
+  ifc_0_43_ebts_is_convertible                                 = 261,
+  ifc_0_43_ebts_is_nothrow_convertible                         = 262,
+  ifc_0_43_ebts_is_empty                                       = 263,
+  ifc_0_43_ebts_is_enum                                        = 264,
+  ifc_0_43_ebts_is_pod                                         = 265,
+  ifc_0_43_ebts_is_polymorphic                                 = 266,
+  ifc_0_43_ebts_is_union                                       = 267,
+  ifc_0_43_ebts_is_trivial                                     = 268,
+  ifc_0_43_ebts_is_standard_layout                             = 269,
+  ifc_0_43_ebts_is_trivially_copyable                          = 270,
+  ifc_0_43_ebts_is_literal_type                                = 271,
+  ifc_0_43_ebts_has_trivial_move_constructor                   = 272,
+  ifc_0_43_ebts_has_trivial_move_assign                        = 273,
+  ifc_0_43_ebts_has_nothrow_move_assign                        = 274,
+  ifc_0_43_ebts_is_constructible                               = 275,
+  ifc_0_43_ebts_is_nothrow_constructible                       = 276,
+  ifc_0_43_ebts_is_trivially_constructible                     = 277,
+  ifc_0_43_ebts_is_destructible                                = 278,
+  ifc_0_43_ebts_is_nothrow_destructible                        = 279,
+  ifc_0_43_ebts_is_trivially_destructible                      = 280,
+  ifc_0_43_ebts_is_nothrow_assignable                          = 281,
+  ifc_0_43_ebts_is_trivially_assignable                        = 282,
+  ifc_0_43_ebts_is_valid_winrt_type                            = 283,
+  ifc_0_43_ebts_underlying_type                                = 284,
+  ifc_0_43_ebts_has_finalizer                                  = 285,
+  ifc_0_43_ebts_is_delegate                                    = 286,
+  ifc_0_43_ebts_is_interface_class                             = 287,
+  ifc_0_43_ebts_is_ref_array                                   = 288,
+  ifc_0_43_ebts_is_ref_class                                   = 289,
+  ifc_0_43_ebts_is_sealed                                      = 290,
+  ifc_0_43_ebts_is_simple_value_class                          = 291,
+  ifc_0_43_ebts_is_value_class                                 = 292,
+  ifc_0_43_ebts_is_win_class                                   = 293,
+  ifc_0_43_ebts_is_win_interface                               = 294,
+  ifc_0_43_ebts_nullptr                                        = 295,
+  ifc_0_43_ebts_native_nullptr                                 = 296,
+  ifc_0_43_ebts_internal_alias_decl                            = 297,
+  ifc_0_43_ebts_int128                                         = 298,
+  ifc_0_43_ebts_override                                       = 299,
+  ifc_0_43_ebts_final                                          = 300,
+  ifc_0_43_ebts_is_final                                       = 301,
+  ifc_0_43_ebts_noexcept                                       = 302,
+  ifc_0_43_ebts_constexpr                                      = 303,
+  ifc_0_43_ebts_consteval                                      = 304,
+  ifc_0_43_ebts_constinit                                      = 305,
+  ifc_0_43_ebts_alignas                                        = 306,
+  ifc_0_43_ebts_bases                                          = 307,
+  ifc_0_43_ebts_direct_bases                                   = 308,
+  ifc_0_43_ebts_builtin_shuffle                                = 309,
+  ifc_0_43_ebts_builtin_shufflevector                          = 310,
+  ifc_0_43_ebts_builtin_convertvector                          = 311,
+  ifc_0_43_ebts_noreturn                                       = 312,
+  ifc_0_43_ebts_builtin_complex                                = 313,
+  ifc_0_43_ebts_c11_generic                                    = 314,
+  ifc_0_43_ebts_c11_atomic                                     = 315,
+  ifc_0_43_ebts_nullable                                       = 316,
+  ifc_0_43_ebts_nonnull                                        = 317,
+  ifc_0_43_ebts_null_unspecified                               = 318,
+  ifc_0_43_ebts_coroutine_yield                                = 319,
+  ifc_0_43_ebts_coroutine_return                               = 320,
+  ifc_0_43_ebts_coroutine_await                                = 321,
+  ifc_0_43_ebts_is_assignable                                  = 322,
+  ifc_0_43_ebts_is_trivially_copy_assignable                   = 323,
+  ifc_0_43_ebts_is_assignable_no_precondition_check            = 324,
+  ifc_0_43_ebts_builtin_addressof                              = 325,
+  ifc_0_43_ebts_edg_internal_type                              = 326,
+  ifc_0_43_ebts_edg_vector_type                                = 327,
+  ifc_0_43_ebts_edg_size_type                                  = 328,
+  ifc_0_43_ebts_edg_ptrdiff_type                               = 329,
+  ifc_0_43_ebts_edg_bool_type                                  = 330,
+  ifc_0_43_ebts_edg_wchar_type                                 = 331,
+  ifc_0_43_ebts_edg_throw                                      = 332,
+  ifc_0_43_ebts_edg_internal_opnd                              = 333,
+  ifc_0_43_ebts_clang_version                                  = 334,
+  ifc_0_43_ebts_has_unique_object_representations              = 335,
+  ifc_0_43_ebts_is_aggregate                                   = 336,
+  ifc_0_43_ebts_integer_pack                                   = 337,
+  ifc_0_43_ebts_reference_binds_to_temporary                   = 338,
+  ifc_0_43_ebts_reference_constructs_from_temporary            = 339,
+  ifc_0_43_ebts_reference_converts_from_temporary              = 340,
+  ifc_0_43_ebts_is_same                                        = 341,
+  ifc_0_43_ebts_is_same_as                                     = 342,
+  ifc_0_43_ebts_is_function                                    = 343,
+  ifc_0_43_ebts_requires                                       = 344,
+  ifc_0_43_ebts_concept                                        = 345,
+  ifc_0_43_ebts_builtin_has_attribute                          = 346,
+  ifc_0_43_ebts_builtin_bit_cast                               = 347,
+  ifc_0_43_ebts_is_layout_compatible                           = 348,
+  ifc_0_43_ebts_is_pointer_interconvertible_base_of            = 349,
+  ifc_0_43_ebts_is_pointer_interconvertible_with_class         = 350,
+  ifc_0_43_ebts_builtin_is_pointer_interconvertible_with_class = 351,
+  ifc_0_43_ebts_is_corresponding_member                        = 352,
+  ifc_0_43_ebts_builtin_is_corresponding_member                = 353,
+  ifc_0_43_ebts_edg_is_deducible                               = 354,
+  ifc_0_43_ebts_is_array                                       = 355,
+  ifc_0_43_ebts_array_rank                                     = 356,
+  ifc_0_43_ebts_array_extent                                   = 357,
+  ifc_0_43_ebts_is_arithmetic                                  = 358,
+  ifc_0_43_ebts_is_complete_type                               = 359,
+  ifc_0_43_ebts_is_compound                                    = 360,
+  ifc_0_43_ebts_is_const                                       = 361,
+  ifc_0_43_ebts_is_floating_point                              = 362,
+  ifc_0_43_ebts_is_fundamental                                 = 363,
+  ifc_0_43_ebts_is_integral                                    = 364,
+  ifc_0_43_ebts_is_lvalue_reference                            = 365,
+  ifc_0_43_ebts_is_member_function_pointer                     = 366,
+  ifc_0_43_ebts_is_member_object_pointer                       = 367,
+  ifc_0_43_ebts_is_member_pointer                              = 368,
+  ifc_0_43_ebts_is_object                                      = 369,
+  ifc_0_43_ebts_is_pointer                                     = 370,
+  ifc_0_43_ebts_is_reference                                   = 371,
+  ifc_0_43_ebts_is_rvalue_reference                            = 372,
+  ifc_0_43_ebts_is_scalar                                      = 373,
+  ifc_0_43_ebts_is_signed                                      = 374,
+  ifc_0_43_ebts_is_unsigned                                    = 375,
+  ifc_0_43_ebts_is_void                                        = 376,
+  ifc_0_43_ebts_is_volatile                                    = 377,
+  ifc_0_43_ebts_float32                                        = 378,
+  ifc_0_43_ebts_float32x                                       = 379,
+  ifc_0_43_ebts_float64                                        = 380,
+  ifc_0_43_ebts_float64x                                       = 381,
+  ifc_0_43_ebts_float128                                       = 382,
+  ifc_0_43_ebts_is_bounded_array                               = 383,
+  ifc_0_43_ebts_is_unbounded_array                             = 384,
+  ifc_0_43_ebts_is_referenceable                               = 385,
+  ifc_0_43_ebts_add_lvalue_reference                           = 386,
+  ifc_0_43_ebts_add_pointer                                    = 387,
+  ifc_0_43_ebts_add_rvalue_reference                           = 388,
+  ifc_0_43_ebts_decay                                          = 389,
+  ifc_0_43_ebts_make_signed                                    = 390,
+  ifc_0_43_ebts_make_unsigned                                  = 391,
+  ifc_0_43_ebts_remove_all_extents                             = 392,
+  ifc_0_43_ebts_remove_const                                   = 393,
+  ifc_0_43_ebts_remove_cv                                      = 394,
+  ifc_0_43_ebts_remove_cvref                                   = 395,
+  ifc_0_43_ebts_remove_extent                                  = 396,
+  ifc_0_43_ebts_remove_pointer                                 = 397,
+  ifc_0_43_ebts_remove_reference                               = 398,
+  ifc_0_43_ebts_remove_reference_t                             = 399,
+  ifc_0_43_ebts_remove_restrict                                = 400,
+  ifc_0_43_ebts_remove_volatile                                = 401,
+  ifc_0_43_ebts_is_trivially_equality_comparable               = 402
+};  /* an_ifc_edg_basic_token_sort_0_43 */
+
+
+enum an_ifc_edg_basic_token_sort : uint32_t {
+  ifc_ebts_abstract,
+  ifc_ebts_accum,
+  ifc_ebts_add_lvalue_reference,
+  ifc_ebts_add_pointer,
+  ifc_ebts_add_rvalue_reference,
+  ifc_ebts_alignas,
+  ifc_ebts_alignof,
+  ifc_ebts_ampersand,
+  ifc_ebts_and_and,
+  ifc_ebts_and_assign,
+  ifc_ebts_array_extent,
+  ifc_ebts_array_rank,
+  ifc_ebts_arrow,
+  ifc_ebts_arrow_star,
+  ifc_ebts_asm,
+  ifc_ebts_assign,
+  ifc_ebts_assume,
+  ifc_ebts_attribute,
+  ifc_ebts_auto,
+  ifc_ebts_auto_type,
+  ifc_ebts_based,
+  ifc_ebts_bases,
+  ifc_ebts_bool,
+  ifc_ebts_break,
+  ifc_ebts_builtin_addressof,
+  ifc_ebts_builtin_bit_cast,
+  ifc_ebts_builtin_complex,
+  ifc_ebts_builtin_convertvector,
+  ifc_ebts_builtin_has_attribute,
+  ifc_ebts_builtin_is_corresponding_member,
+  ifc_ebts_builtin_is_pointer_interconvertible_with_class,
+  ifc_ebts_builtin_offsetof,
+  ifc_ebts_builtin_shuffle,
+  ifc_ebts_builtin_shufflevector,
+  ifc_ebts_builtin_types_compatible,
+  ifc_ebts_c11_atomic,
+  ifc_ebts_c11_generic,
+  ifc_ebts_c11_thread_local,
+  ifc_ebts_c99_bool,
+  ifc_ebts_c99_complex,
+  ifc_ebts_c99_generic,
+  ifc_ebts_c99_genericfx,
+  ifc_ebts_c99_imaginary,
+  ifc_ebts_case,
+  ifc_ebts_catch,
+  ifc_ebts_cdecl,
+  ifc_ebts_char,
+  ifc_ebts_char16_t,
+  ifc_ebts_char32_t,
+  ifc_ebts_char8_t,
+  ifc_ebts_charize,
+  ifc_ebts_clang_version,
+  ifc_ebts_class,
+  ifc_ebts_clrcall,
+  ifc_ebts_colon,
+  ifc_ebts_colon_colon,
+  ifc_ebts_comma,
+  ifc_ebts_compl,
+  ifc_ebts_complex,
+  ifc_ebts_concept,
+  ifc_ebts_const,
+  ifc_ebts_const_cast,
+  ifc_ebts_consteval,
+  ifc_ebts_constexpr,
+  ifc_ebts_constinit,
+  ifc_ebts_continue,
+  ifc_ebts_coroutine_await,
+  ifc_ebts_coroutine_return,
+  ifc_ebts_coroutine_yield,
+  ifc_ebts_cpp98_export,
+  ifc_ebts_decay,
+  ifc_ebts_decltype,
+  ifc_ebts_decorated_function_name,
+  ifc_ebts_default,
+  ifc_ebts_delete,
+  ifc_ebts_direct_bases,
+  ifc_ebts_divide,
+  ifc_ebts_divide_assign,
+  ifc_ebts_do,
+  ifc_ebts_double,
+  ifc_ebts_dynamic_cast,
+  ifc_ebts_edg_bool_type,
+  ifc_ebts_edg_internal_opnd,
+  ifc_ebts_edg_internal_type,
+  ifc_ebts_edg_is_deducible,
+  ifc_ebts_edg_ptrdiff_type,
+  ifc_ebts_edg_size_type,
+  ifc_ebts_edg_throw,
+  ifc_ebts_edg_vector_type,
+  ifc_ebts_edg_wchar_type,
+  ifc_ebts_ellipsis,
+  ifc_ebts_else,
+  ifc_ebts_end_of_if_exists,
+  ifc_ebts_enum,
+  ifc_ebts_enum_class,
+  ifc_ebts_enum_struct,
+  ifc_ebts_eq,
+  ifc_ebts_event,
+  ifc_ebts_except,
+  ifc_ebts_excl_or,
+  ifc_ebts_excl_or_assign,
+  ifc_ebts_explicit,
+  ifc_ebts_export,
+  ifc_ebts_export_keyword,
+  ifc_ebts_ext_alignof,
+  ifc_ebts_extension,
+  ifc_ebts_extern,
+  ifc_ebts_false,
+  ifc_ebts_far,
+  ifc_ebts_fastcall,
+  ifc_ebts_final,
+  ifc_ebts_finally,
+  ifc_ebts_float,
+  ifc_ebts_float128,
+  ifc_ebts_float32,
+  ifc_ebts_float32x,
+  ifc_ebts_float64,
+  ifc_ebts_float64x,
+  ifc_ebts_for,
+  ifc_ebts_for_each,
+  ifc_ebts_forceinline,
+  ifc_ebts_fract,
+  ifc_ebts_friend,
+  ifc_ebts_func_name,
+  ifc_ebts_function_name,
+  ifc_ebts_gcnew,
+  ifc_ebts_ge,
+  ifc_ebts_global_link_scope,
+  ifc_ebts_gnu_imag,
+  ifc_ebts_gnu_max,
+  ifc_ebts_gnu_min,
+  ifc_ebts_gnu_real,
+  ifc_ebts_gnu_restrict,
+  ifc_ebts_goto,
+  ifc_ebts_gt,
+  ifc_ebts_has_assign,
+  ifc_ebts_has_copy,
+  ifc_ebts_has_finalizer,
+  ifc_ebts_has_nothrow_assign,
+  ifc_ebts_has_nothrow_constructor,
+  ifc_ebts_has_nothrow_copy,
+  ifc_ebts_has_nothrow_move_assign,
+  ifc_ebts_has_trivial_assign,
+  ifc_ebts_has_trivial_constructor,
+  ifc_ebts_has_trivial_copy,
+  ifc_ebts_has_trivial_destructor,
+  ifc_ebts_has_trivial_move_assign,
+  ifc_ebts_has_trivial_move_constructor,
+  ifc_ebts_has_unique_object_representations,
+  ifc_ebts_has_user_destructor,
+  ifc_ebts_has_virtual_destructor,
+  ifc_ebts_hidden_link_scope,
+  ifc_ebts_if,
+  ifc_ebts_if_exists,
+  ifc_ebts_if_not_exists,
+  ifc_ebts_imaginary_unit,
+  ifc_ebts_implements,
+  ifc_ebts_import,
+  ifc_ebts_in,
+  ifc_ebts_infinity,
+  ifc_ebts_inline,
+  ifc_ebts_int,
+  ifc_ebts_int128,
+  ifc_ebts_int16,
+  ifc_ebts_int32,
+  ifc_ebts_int64,
+  ifc_ebts_int8,
+  ifc_ebts_intaddr,
+  ifc_ebts_integer_pack,
+  ifc_ebts_interface,
+  ifc_ebts_interface_class,
+  ifc_ebts_interface_struct,
+  ifc_ebts_internal_alias_decl,
+  ifc_ebts_is_abstract,
+  ifc_ebts_is_aggregate,
+  ifc_ebts_is_arithmetic,
+  ifc_ebts_is_array,
+  ifc_ebts_is_assignable,
+  ifc_ebts_is_assignable_no_precondition_check,
+  ifc_ebts_is_base_of,
+  ifc_ebts_is_bounded_array,
+  ifc_ebts_is_class,
+  ifc_ebts_is_complete_type,
+  ifc_ebts_is_compound,
+  ifc_ebts_is_const,
+  ifc_ebts_is_constructible,
+  ifc_ebts_is_convertible,
+  ifc_ebts_is_convertible_to,
+  ifc_ebts_is_corresponding_member,
+  ifc_ebts_is_delegate,
+  ifc_ebts_is_destructible,
+  ifc_ebts_is_empty,
+  ifc_ebts_is_enum,
+  ifc_ebts_is_final,
+  ifc_ebts_is_floating_point,
+  ifc_ebts_is_function,
+  ifc_ebts_is_fundamental,
+  ifc_ebts_is_integral,
+  ifc_ebts_is_interface_class,
+  ifc_ebts_is_layout_compatible,
+  ifc_ebts_is_literal_type,
+  ifc_ebts_is_lvalue_reference,
+  ifc_ebts_is_member_function_pointer,
+  ifc_ebts_is_member_object_pointer,
+  ifc_ebts_is_member_pointer,
+  ifc_ebts_is_nothrow_assignable,
+  ifc_ebts_is_nothrow_constructible,
+  ifc_ebts_is_nothrow_convertible,
+  ifc_ebts_is_nothrow_destructible,
+  ifc_ebts_is_object,
+  ifc_ebts_is_pod,
+  ifc_ebts_is_pointer,
+  ifc_ebts_is_pointer_interconvertible_base_of,
+  ifc_ebts_is_pointer_interconvertible_with_class,
+  ifc_ebts_is_polymorphic,
+  ifc_ebts_is_ref_array,
+  ifc_ebts_is_ref_class,
+  ifc_ebts_is_reference,
+  ifc_ebts_is_referenceable,
+  ifc_ebts_is_rvalue_reference,
+  ifc_ebts_is_same,
+  ifc_ebts_is_same_as,
+  ifc_ebts_is_scalar,
+  ifc_ebts_is_sealed,
+  ifc_ebts_is_signed,
+  ifc_ebts_is_simple_value_class,
+  ifc_ebts_is_standard_layout,
+  ifc_ebts_is_trivial,
+  ifc_ebts_is_trivially_assignable,
+  ifc_ebts_is_trivially_constructible,
+  ifc_ebts_is_trivially_copy_assignable,
+  ifc_ebts_is_trivially_copyable,
+  ifc_ebts_is_trivially_destructible,
+  ifc_ebts_is_trivially_equality_comparable,
+  ifc_ebts_is_unbounded_array,
+  ifc_ebts_is_union,
+  ifc_ebts_is_unsigned,
+  ifc_ebts_is_valid_winrt_type,
+  ifc_ebts_is_value_class,
+  ifc_ebts_is_void,
+  ifc_ebts_is_volatile,
+  ifc_ebts_is_win_class,
+  ifc_ebts_is_win_interface,
+  ifc_ebts_last_whitespace_token,
+  ifc_ebts_lbrace,
+  ifc_ebts_lbracket,
+  ifc_ebts_le,
+  ifc_ebts_leave,
+  ifc_ebts_long,
+  ifc_ebts_lparen,
+  ifc_ebts_lsplice,
+  ifc_ebts_lt,
+  ifc_ebts_make_signed,
+  ifc_ebts_make_unsigned,
+  ifc_ebts_microsoft_asm,
+  ifc_ebts_microsoft_identifier,
+  ifc_ebts_microsoft_inline,
+  ifc_ebts_microsoft_lprefix,
+  ifc_ebts_microsoft_ptr32,
+  ifc_ebts_microsoft_ptr64,
+  ifc_ebts_microsoft_sptr,
+  ifc_ebts_microsoft_try,
+  ifc_ebts_microsoft_uprefix,
+  ifc_ebts_microsoft_uptr,
+  ifc_ebts_microsoft_w64,
+  ifc_ebts_minus,
+  ifc_ebts_minus_assign,
+  ifc_ebts_minus_minus,
+  ifc_ebts_module,
+  ifc_ebts_mutable,
+  ifc_ebts_namespace,
+  ifc_ebts_nan,
+  ifc_ebts_native_nullptr,
+  ifc_ebts_ne,
+  ifc_ebts_near,
+  ifc_ebts_new,
+  ifc_ebts_noexcept,
+  ifc_ebts_nonnull,
+  ifc_ebts_noop,
+  ifc_ebts_noreturn,
+  ifc_ebts_not,
+  ifc_ebts_null,
+  ifc_ebts_null_unspecified,
+  ifc_ebts_nullable,
+  ifc_ebts_nullptr,
+  ifc_ebts_operator,
+  ifc_ebts_or,
+  ifc_ebts_or_assign,
+  ifc_ebts_or_or,
+  ifc_ebts_overload,
+  ifc_ebts_override,
+  ifc_ebts_partial_ref_class,
+  ifc_ebts_partial_ref_struct,
+  ifc_ebts_paste,
+  ifc_ebts_period,
+  ifc_ebts_period_star,
+  ifc_ebts_plus,
+  ifc_ebts_plus_assign,
+  ifc_ebts_plus_plus,
+  ifc_ebts_prefix_enum,
+  ifc_ebts_prefix_for,
+  ifc_ebts_prefix_interface,
+  ifc_ebts_prefix_partial,
+  ifc_ebts_prefix_ref,
+  ifc_ebts_prefix_value,
+  ifc_ebts_pretty_function_name,
+  ifc_ebts_private,
+  ifc_ebts_protected,
+  ifc_ebts_public,
+  ifc_ebts_quest_mark,
+  ifc_ebts_rbrace,
+  ifc_ebts_rbracket,
+  ifc_ebts_ref_class,
+  ifc_ebts_ref_new,
+  ifc_ebts_ref_struct,
+  ifc_ebts_reference_binds_to_temporary,
+  ifc_ebts_reference_constructs_from_temporary,
+  ifc_ebts_reference_converts_from_temporary,
+  ifc_ebts_register,
+  ifc_ebts_reinterpret_cast,
+  ifc_ebts_remainder,
+  ifc_ebts_remainder_assign,
+  ifc_ebts_remove_all_extents,
+  ifc_ebts_remove_const,
+  ifc_ebts_remove_cv,
+  ifc_ebts_remove_cvref,
+  ifc_ebts_remove_extent,
+  ifc_ebts_remove_pointer,
+  ifc_ebts_remove_reference,
+  ifc_ebts_remove_reference_t,
+  ifc_ebts_remove_restrict,
+  ifc_ebts_remove_volatile,
+  ifc_ebts_requires,
+  ifc_ebts_restrict,
+  ifc_ebts_return,
+  ifc_ebts_rparen,
+  ifc_ebts_rsplice,
+  ifc_ebts_safe_cast,
+  ifc_ebts_sat,
+  ifc_ebts_sealed,
+  ifc_ebts_semicolon,
+  ifc_ebts_sharp,
+  ifc_ebts_shift_left,
+  ifc_ebts_shift_left_assign,
+  ifc_ebts_shift_right,
+  ifc_ebts_shift_right_assign,
+  ifc_ebts_short,
+  ifc_ebts_signed,
+  ifc_ebts_sizeof,
+  ifc_ebts_spaceship,
+  ifc_ebts_star,
+  ifc_ebts_static,
+  ifc_ebts_static_assert,
+  ifc_ebts_static_cast,
+  ifc_ebts_stdcall,
+  ifc_ebts_struct,
+  ifc_ebts_super,
+  ifc_ebts_switch,
+  ifc_ebts_symbolic_link_scope,
+  ifc_ebts_template,
+  ifc_ebts_this,
+  ifc_ebts_thiscall,
+  ifc_ebts_thread,
+  ifc_ebts_thread_local,
+  ifc_ebts_throw,
+  ifc_ebts_times_assign,
+  ifc_ebts_true,
+  ifc_ebts_try,
+  ifc_ebts_typedef,
+  ifc_ebts_typeid,
+  ifc_ebts_typename,
+  ifc_ebts_typeof,
+  ifc_ebts_typeof_unqual,
+  ifc_ebts_unaligned,
+  ifc_ebts_underlying_type,
+  ifc_ebts_union,
+  ifc_ebts_unresolved_type,
+  ifc_ebts_unsigned,
+  ifc_ebts_upc_barrier,
+  ifc_ebts_upc_blocksizeof,
+  ifc_ebts_upc_elemsizeof,
+  ifc_ebts_upc_fence,
+  ifc_ebts_upc_forall,
+  ifc_ebts_upc_localsizeof,
+  ifc_ebts_upc_mythread,
+  ifc_ebts_upc_notify,
+  ifc_ebts_upc_relaxed,
+  ifc_ebts_upc_shared,
+  ifc_ebts_upc_strict,
+  ifc_ebts_upc_threads,
+  ifc_ebts_upc_wait,
+  ifc_ebts_using,
+  ifc_ebts_uuid,
+  ifc_ebts_uuidof,
+  ifc_ebts_va_copy,
+  ifc_ebts_value_class,
+  ifc_ebts_value_struct,
+  ifc_ebts_vectorcall,
+  ifc_ebts_virtual,
+  ifc_ebts_void,
+  ifc_ebts_volatile,
+  ifc_ebts_wchar_t,
+  ifc_ebts_while
+};  /* an_ifc_edg_basic_token_sort */
+
+
+enum an_ifc_edg_complex_token_sort_0_43 : uint32_t {
+  ifc_0_43_ects_edg_token_constant   = 0,
+  ifc_0_43_ects_edg_token_identifier = 1
+};  /* an_ifc_edg_complex_token_sort_0_43 */
+
+
+enum an_ifc_edg_complex_token_sort : uint32_t {
+  ifc_ects_edg_token_constant,
+  ifc_ects_edg_token_identifier
+};  /* an_ifc_edg_complex_token_sort */
+
+
+enum an_ifc_edg_constant_sort_0_43 : uint32_t {
+  ifc_0_43_ecs_edg_constant_integer = 0
+};  /* an_ifc_edg_constant_sort_0_43 */
+
+
+enum an_ifc_edg_constant_sort : uint32_t {
+  ifc_ecs_edg_constant_integer
+};  /* an_ifc_edg_constant_sort */
+
+
+enum an_ifc_edg_constant_token_sort_0_43 : uint32_t {
+  ifc_0_43_ects_int_constant   = 0,
+  ifc_0_43_ects_float_constant = 1,
+  ifc_0_43_ects_char_constant  = 2,
+  ifc_0_43_ects_string_literal = 3,
+  ifc_0_43_ects_aggr_constant  = 4
+};  /* an_ifc_edg_constant_token_sort_0_43 */
+
+
+enum an_ifc_edg_constant_token_sort : uint32_t {
+  ifc_ects_aggr_constant,
+  ifc_ects_char_constant,
+  ifc_ects_float_constant,
+  ifc_ects_int_constant,
+  ifc_ects_string_literal
+};  /* an_ifc_edg_constant_token_sort */
 
 
 enum an_ifc_expansion_mode_sort_0_33 : uint8_t {
@@ -4641,6 +5674,102 @@ inline a_boolean operator!=(const an_ifc_dir_index &lhs,
 /*
 Compare two instances of this DirIndex (lhs and rhs).  If the two instances are
 equivalent, return FALSE; otherwise return TRUE.
+*/
+{
+  return !(lhs == rhs);
+}  /* operator!= */
+
+
+enum an_ifc_edg_complex_token_index_0_43 : uint32_t {};
+
+
+/*
+The universal representation for an IFC EdgComplexTokenIndex.
+*/
+struct an_ifc_edg_complex_token_index : Index_entity<
+                                     an_ifc_edg_complex_token_sort, uint32_t> {
+  using sort_type = an_ifc_edg_complex_token_sort;
+  using native_size_type = uint32_t;
+  using base_type = Index_entity<sort_type, native_size_type>;
+  using base_type::Index_entity;
+};  /* an_ifc_edg_complex_token_index */
+
+
+inline a_boolean operator==(const an_ifc_edg_complex_token_index &lhs,
+                            const an_ifc_edg_complex_token_index &rhs)
+/*
+Compare two instances of this EdgComplexTokenIndex (lhs and rhs).  If the two
+instances are equivalent, return TRUE; otherwise return FALSE.
+*/
+{
+  a_boolean result = TRUE;
+
+  /* Check members that are more likely to be unique first.  This allows the
+     logic to short circuit in common negative cases. */
+  if (lhs.value != rhs.value) {
+    result = FALSE;
+  } else if (lhs.sort != rhs.sort) {
+    result = FALSE;
+  } else if (lhs.file != rhs.file) {
+    result = FALSE;
+  }  /* if */
+  return result;
+}  /* operator== */
+
+
+inline a_boolean operator!=(const an_ifc_edg_complex_token_index &lhs,
+                            const an_ifc_edg_complex_token_index &rhs)
+/*
+Compare two instances of this EdgComplexTokenIndex (lhs and rhs).  If the two
+instances are equivalent, return FALSE; otherwise return TRUE.
+*/
+{
+  return !(lhs == rhs);
+}  /* operator!= */
+
+
+enum an_ifc_edg_constant_index_0_43 : uint32_t {};
+
+
+/*
+The universal representation for an IFC EdgConstantIndex.
+*/
+struct an_ifc_edg_constant_index : Index_entity<
+                                          an_ifc_edg_constant_sort, uint32_t> {
+  using sort_type = an_ifc_edg_constant_sort;
+  using native_size_type = uint32_t;
+  using base_type = Index_entity<sort_type, native_size_type>;
+  using base_type::Index_entity;
+};  /* an_ifc_edg_constant_index */
+
+
+inline a_boolean operator==(const an_ifc_edg_constant_index &lhs,
+                            const an_ifc_edg_constant_index &rhs)
+/*
+Compare two instances of this EdgConstantIndex (lhs and rhs).  If the two
+instances are equivalent, return TRUE; otherwise return FALSE.
+*/
+{
+  a_boolean result = TRUE;
+
+  /* Check members that are more likely to be unique first.  This allows the
+     logic to short circuit in common negative cases. */
+  if (lhs.value != rhs.value) {
+    result = FALSE;
+  } else if (lhs.sort != rhs.sort) {
+    result = FALSE;
+  } else if (lhs.file != rhs.file) {
+    result = FALSE;
+  }  /* if */
+  return result;
+}  /* operator== */
+
+
+inline a_boolean operator!=(const an_ifc_edg_constant_index &lhs,
+                            const an_ifc_edg_constant_index &rhs)
+/*
+Compare two instances of this EdgConstantIndex (lhs and rhs).  If the two
+instances are equivalent, return FALSE; otherwise return TRUE.
 */
 {
   return !(lhs == rhs);
@@ -8920,6 +10049,233 @@ struct an_ifc_dir_using : Byte_buffer_entity<an_ifc_dir_using_storage> {
   using base_type = Byte_buffer_entity<storage_type>;
   using base_type::Byte_buffer_entity;
 };  /* an_ifc_dir_using */
+
+
+/*
+  |-------------------------------------------------------------|
+  |            EdgConstantInteger - 0.43 (12 bytes)             |
+  |-------------|------------------------------|---------|------|
+  | Name        | Type                         | Version | Size |
+  |-------------|------------------------------|---------|------|
+  | type        | TypeIndex                    | 0.33    | 4    |
+  | start       | EdgConstantIntegerWordOffset | 0.43    | 4    |
+  | cardinality | Cardinality                  | 0.33    | 4    |
+  |-------------|------------------------------|---------|------|
+*/
+enum an_ifc_edg_constant_integer_part : uint8_t {};
+using an_ifc_edg_constant_integer_storage =
+                                          an_ifc_edg_constant_integer_part[12];
+#if USE_MMAP_FOR_MODULES
+using an_ifc_edg_constant_integer_bytes =
+                                    const an_ifc_edg_constant_integer_storage*;
+#else /* !USE_MMAP_FOR_MODULES */
+using an_ifc_edg_constant_integer_bytes = an_ifc_edg_constant_integer_storage;
+#endif /* USE_MMAP_FOR_MODULES */
+/*
+The universal representation of an IFC EdgConstantInteger node.
+
+The representation is declared as a derived struct of Byte_buffer_entity rather
+than simply an alias of the instantiation to improve the debugger experience.
+*/
+struct an_ifc_edg_constant_integer :
+                      Byte_buffer_entity<an_ifc_edg_constant_integer_storage> {
+  using storage_type = an_ifc_edg_constant_integer_storage;
+  using base_type = Byte_buffer_entity<storage_type>;
+  using base_type::Byte_buffer_entity;
+};  /* an_ifc_edg_constant_integer */
+
+
+/*
+  |------------------------------------------|
+  | EdgConstantIntegerWord - 0.43 (4 bytes)  |
+  |-------|-----------------|---------|------|
+  | Name  | Type            | Version | Size |
+  |-------|-----------------|---------|------|
+  | bytes | EdgConstantWord | 0.43    | 4    |
+  |-------|-----------------|---------|------|
+*/
+enum an_ifc_edg_constant_integer_word_part : uint8_t {};
+using an_ifc_edg_constant_integer_word_storage =
+                                      an_ifc_edg_constant_integer_word_part[4];
+#if USE_MMAP_FOR_MODULES
+using an_ifc_edg_constant_integer_word_bytes =
+                               const an_ifc_edg_constant_integer_word_storage*;
+#else /* !USE_MMAP_FOR_MODULES */
+using an_ifc_edg_constant_integer_word_bytes =
+                                      an_ifc_edg_constant_integer_word_storage;
+#endif /* USE_MMAP_FOR_MODULES */
+/*
+The universal representation of an IFC EdgConstantIntegerWord node.
+
+The representation is declared as a derived struct of Byte_buffer_entity rather
+than simply an alias of the instantiation to improve the debugger experience.
+*/
+struct an_ifc_edg_constant_integer_word :
+                 Byte_buffer_entity<an_ifc_edg_constant_integer_word_storage> {
+  using storage_type = an_ifc_edg_constant_integer_word_storage;
+  using base_type = Byte_buffer_entity<storage_type>;
+  using base_type::Byte_buffer_entity;
+};  /* an_ifc_edg_constant_integer_word */
+
+
+/*
+  |-----------------------------------------------|
+  |     EdgHeapComplexToken - 0.43 (4 bytes)      |
+  |-------|----------------------|---------|------|
+  | Name  | Type                 | Version | Size |
+  |-------|----------------------|---------|------|
+  | index | EdgComplexTokenIndex | 0.43    | 4    |
+  |-------|----------------------|---------|------|
+*/
+enum an_ifc_edg_heap_complex_token_part : uint8_t {};
+using an_ifc_edg_heap_complex_token_storage =
+                                         an_ifc_edg_heap_complex_token_part[4];
+#if USE_MMAP_FOR_MODULES
+using an_ifc_edg_heap_complex_token_bytes =
+                                  const an_ifc_edg_heap_complex_token_storage*;
+#else /* !USE_MMAP_FOR_MODULES */
+using an_ifc_edg_heap_complex_token_bytes =
+                                         an_ifc_edg_heap_complex_token_storage;
+#endif /* USE_MMAP_FOR_MODULES */
+/*
+The universal representation of an IFC EdgHeapComplexToken node.
+
+The representation is declared as a derived struct of Byte_buffer_entity rather
+than simply an alias of the instantiation to improve the debugger experience.
+*/
+struct an_ifc_edg_heap_complex_token :
+                    Byte_buffer_entity<an_ifc_edg_heap_complex_token_storage> {
+  using storage_type = an_ifc_edg_heap_complex_token_storage;
+  using base_type = Byte_buffer_entity<storage_type>;
+  using base_type::Byte_buffer_entity;
+};  /* an_ifc_edg_heap_complex_token */
+
+
+/*
+  |-------------------------------------------|
+  |      EdgTokenBasic - 0.43 (4 bytes)       |
+  |------|-------------------|---------|------|
+  | Name | Type              | Version | Size |
+  |------|-------------------|---------|------|
+  | kind | EdgBasicTokenSort | 0.43    | 4    |
+  |------|-------------------|---------|------|
+*/
+enum an_ifc_edg_token_basic_part : uint8_t {};
+using an_ifc_edg_token_basic_storage = an_ifc_edg_token_basic_part[4];
+#if USE_MMAP_FOR_MODULES
+using an_ifc_edg_token_basic_bytes = const an_ifc_edg_token_basic_storage*;
+#else /* !USE_MMAP_FOR_MODULES */
+using an_ifc_edg_token_basic_bytes = an_ifc_edg_token_basic_storage;
+#endif /* USE_MMAP_FOR_MODULES */
+/*
+The universal representation of an IFC EdgTokenBasic node.
+
+The representation is declared as a derived struct of Byte_buffer_entity rather
+than simply an alias of the instantiation to improve the debugger experience.
+*/
+struct an_ifc_edg_token_basic :
+                           Byte_buffer_entity<an_ifc_edg_token_basic_storage> {
+  using storage_type = an_ifc_edg_token_basic_storage;
+  using base_type = Byte_buffer_entity<storage_type>;
+  using base_type::Byte_buffer_entity;
+};  /* an_ifc_edg_token_basic */
+
+
+/*
+  |-----------------------------------------------------------------|
+  |                 EdgTokenCache - 0.43 (16 bytes)                 |
+  |--------------------|---------------------------|---------|------|
+  | Name               | Type                      | Version | Size |
+  |--------------------|---------------------------|---------|------|
+  | tokens             | EdgTokenBasicOffset       | 0.43    | 4    |
+  | num_tokens         | Cardinality               | 0.33    | 4    |
+  | complex_tokens     | EdgHeapComplexTokenOffset | 0.43    | 4    |
+  | num_complex_tokens | Cardinality               | 0.33    | 4    |
+  |--------------------|---------------------------|---------|------|
+*/
+enum an_ifc_edg_token_cache_part : uint8_t {};
+using an_ifc_edg_token_cache_storage = an_ifc_edg_token_cache_part[16];
+#if USE_MMAP_FOR_MODULES
+using an_ifc_edg_token_cache_bytes = const an_ifc_edg_token_cache_storage*;
+#else /* !USE_MMAP_FOR_MODULES */
+using an_ifc_edg_token_cache_bytes = an_ifc_edg_token_cache_storage;
+#endif /* USE_MMAP_FOR_MODULES */
+/*
+The universal representation of an IFC EdgTokenCache node.
+
+The representation is declared as a derived struct of Byte_buffer_entity rather
+than simply an alias of the instantiation to improve the debugger experience.
+*/
+struct an_ifc_edg_token_cache :
+                           Byte_buffer_entity<an_ifc_edg_token_cache_storage> {
+  using storage_type = an_ifc_edg_token_cache_storage;
+  using base_type = Byte_buffer_entity<storage_type>;
+  using base_type::Byte_buffer_entity;
+};  /* an_ifc_edg_token_cache */
+
+
+/*
+  |--------------------------------------------------|
+  |        EdgTokenConstant - 0.43 (8 bytes)         |
+  |----------|----------------------|---------|------|
+  | Name     | Type                 | Version | Size |
+  |----------|----------------------|---------|------|
+  | kind     | EdgConstantTokenSort | 0.43    | 4    |
+  | constant | EdgConstantIndex     | 0.43    | 4    |
+  |----------|----------------------|---------|------|
+*/
+enum an_ifc_edg_token_constant_part : uint8_t {};
+using an_ifc_edg_token_constant_storage = an_ifc_edg_token_constant_part[8];
+#if USE_MMAP_FOR_MODULES
+using an_ifc_edg_token_constant_bytes =
+                                      const an_ifc_edg_token_constant_storage*;
+#else /* !USE_MMAP_FOR_MODULES */
+using an_ifc_edg_token_constant_bytes = an_ifc_edg_token_constant_storage;
+#endif /* USE_MMAP_FOR_MODULES */
+/*
+The universal representation of an IFC EdgTokenConstant node.
+
+The representation is declared as a derived struct of Byte_buffer_entity rather
+than simply an alias of the instantiation to improve the debugger experience.
+*/
+struct an_ifc_edg_token_constant :
+                        Byte_buffer_entity<an_ifc_edg_token_constant_storage> {
+  using storage_type = an_ifc_edg_token_constant_storage;
+  using base_type = Byte_buffer_entity<storage_type>;
+  using base_type::Byte_buffer_entity;
+};  /* an_ifc_edg_token_constant */
+
+
+/*
+  |-------------------------------------|
+  | EdgTokenIdentifier - 0.43 (4 bytes) |
+  |-------|------------|---------|------|
+  | Name  | Type       | Version | Size |
+  |-------|------------|---------|------|
+  | text  | TextOffset | 0.33    | 4    |
+  |-------|------------|---------|------|
+*/
+enum an_ifc_edg_token_identifier_part : uint8_t {};
+using an_ifc_edg_token_identifier_storage =
+                                           an_ifc_edg_token_identifier_part[4];
+#if USE_MMAP_FOR_MODULES
+using an_ifc_edg_token_identifier_bytes =
+                                    const an_ifc_edg_token_identifier_storage*;
+#else /* !USE_MMAP_FOR_MODULES */
+using an_ifc_edg_token_identifier_bytes = an_ifc_edg_token_identifier_storage;
+#endif /* USE_MMAP_FOR_MODULES */
+/*
+The universal representation of an IFC EdgTokenIdentifier node.
+
+The representation is declared as a derived struct of Byte_buffer_entity rather
+than simply an alias of the instantiation to improve the debugger experience.
+*/
+struct an_ifc_edg_token_identifier :
+                      Byte_buffer_entity<an_ifc_edg_token_identifier_storage> {
+  using storage_type = an_ifc_edg_token_identifier_storage;
+  using base_type = Byte_buffer_entity<storage_type>;
+  using base_type::Byte_buffer_entity;
+};  /* an_ifc_edg_token_identifier */
 
 
 /*
@@ -19535,6 +20891,194 @@ struct an_ifc_type_unaligned :
 };  /* an_ifc_type_unaligned */
 
 
+enum an_ifc_edg_constant_integer_word_offset_0_43 : uint32_t {};
+
+
+/*
+The universal representation for an IFC EdgConstantIntegerWordOffset.
+*/
+struct an_ifc_edg_constant_integer_word_offset : Offset_entity<
+                                  an_ifc_edg_constant_integer_word, uint32_t> {
+  using node_type = an_ifc_edg_constant_integer_word;
+
+  using native_size_type = uint32_t;
+  using base_type = Offset_entity<node_type, native_size_type>;
+  using base_type::Offset_entity;
+};  /* an_ifc_edg_constant_integer_word_offset */
+
+
+inline a_boolean operator==(const an_ifc_edg_constant_integer_word_offset &lhs,
+                            const an_ifc_edg_constant_integer_word_offset &rhs)
+/*
+Compare two instances of this EdgConstantIntegerWordOffset (lhs and rhs).  If
+the two instances are equivalent, return TRUE; otherwise return FALSE.
+*/
+{
+  a_boolean result = TRUE;
+
+  /* Check members that are more likely to be unique first.  This allows the
+     logic to short circuit in common negative cases. */
+  if (lhs.value != rhs.value) {
+    result = FALSE;
+  } else if (lhs.file != rhs.file) {
+    result = FALSE;
+  }  /* if */
+  return result;
+}  /* operator== */
+
+
+inline a_boolean operator!=(const an_ifc_edg_constant_integer_word_offset &lhs,
+                            const an_ifc_edg_constant_integer_word_offset &rhs)
+/*
+Compare two instances of this EdgConstantIntegerWordOffset (lhs and rhs).  If
+the two instances are equivalent, return FALSE; otherwise return TRUE.
+*/
+{
+  return !(lhs == rhs);
+}  /* operator!= */
+
+
+enum an_ifc_edg_heap_complex_token_offset_0_43 : uint32_t {};
+
+
+/*
+The universal representation for an IFC EdgHeapComplexTokenOffset.
+*/
+struct an_ifc_edg_heap_complex_token_offset : Offset_entity<
+                                     an_ifc_edg_heap_complex_token, uint32_t> {
+  using node_type = an_ifc_edg_heap_complex_token;
+
+  using native_size_type = uint32_t;
+  using base_type = Offset_entity<node_type, native_size_type>;
+  using base_type::Offset_entity;
+};  /* an_ifc_edg_heap_complex_token_offset */
+
+
+inline a_boolean operator==(const an_ifc_edg_heap_complex_token_offset &lhs,
+                            const an_ifc_edg_heap_complex_token_offset &rhs)
+/*
+Compare two instances of this EdgHeapComplexTokenOffset (lhs and rhs).  If the
+two instances are equivalent, return TRUE; otherwise return FALSE.
+*/
+{
+  a_boolean result = TRUE;
+
+  /* Check members that are more likely to be unique first.  This allows the
+     logic to short circuit in common negative cases. */
+  if (lhs.value != rhs.value) {
+    result = FALSE;
+  } else if (lhs.file != rhs.file) {
+    result = FALSE;
+  }  /* if */
+  return result;
+}  /* operator== */
+
+
+inline a_boolean operator!=(const an_ifc_edg_heap_complex_token_offset &lhs,
+                            const an_ifc_edg_heap_complex_token_offset &rhs)
+/*
+Compare two instances of this EdgHeapComplexTokenOffset (lhs and rhs).  If the
+two instances are equivalent, return FALSE; otherwise return TRUE.
+*/
+{
+  return !(lhs == rhs);
+}  /* operator!= */
+
+
+enum an_ifc_edg_token_basic_offset_0_43 : uint32_t {};
+
+
+/*
+The universal representation for an IFC EdgTokenBasicOffset.
+*/
+struct an_ifc_edg_token_basic_offset : Offset_entity<
+                                            an_ifc_edg_token_basic, uint32_t> {
+  using node_type = an_ifc_edg_token_basic;
+
+  using native_size_type = uint32_t;
+  using base_type = Offset_entity<node_type, native_size_type>;
+  using base_type::Offset_entity;
+};  /* an_ifc_edg_token_basic_offset */
+
+
+inline a_boolean operator==(const an_ifc_edg_token_basic_offset &lhs,
+                            const an_ifc_edg_token_basic_offset &rhs)
+/*
+Compare two instances of this EdgTokenBasicOffset (lhs and rhs).  If the two
+instances are equivalent, return TRUE; otherwise return FALSE.
+*/
+{
+  a_boolean result = TRUE;
+
+  /* Check members that are more likely to be unique first.  This allows the
+     logic to short circuit in common negative cases. */
+  if (lhs.value != rhs.value) {
+    result = FALSE;
+  } else if (lhs.file != rhs.file) {
+    result = FALSE;
+  }  /* if */
+  return result;
+}  /* operator== */
+
+
+inline a_boolean operator!=(const an_ifc_edg_token_basic_offset &lhs,
+                            const an_ifc_edg_token_basic_offset &rhs)
+/*
+Compare two instances of this EdgTokenBasicOffset (lhs and rhs).  If the two
+instances are equivalent, return FALSE; otherwise return TRUE.
+*/
+{
+  return !(lhs == rhs);
+}  /* operator!= */
+
+
+enum an_ifc_edg_token_cache_offset_0_43 : uint32_t {};
+
+
+/*
+The universal representation for an IFC EdgTokenCacheOffset.
+*/
+struct an_ifc_edg_token_cache_offset : Offset_entity<
+                                            an_ifc_edg_token_cache, uint32_t> {
+  using node_type = an_ifc_edg_token_cache;
+
+  using native_size_type = uint32_t;
+  using base_type = Offset_entity<node_type, native_size_type>;
+  using base_type::Offset_entity;
+};  /* an_ifc_edg_token_cache_offset */
+
+
+inline a_boolean operator==(const an_ifc_edg_token_cache_offset &lhs,
+                            const an_ifc_edg_token_cache_offset &rhs)
+/*
+Compare two instances of this EdgTokenCacheOffset (lhs and rhs).  If the two
+instances are equivalent, return TRUE; otherwise return FALSE.
+*/
+{
+  a_boolean result = TRUE;
+
+  /* Check members that are more likely to be unique first.  This allows the
+     logic to short circuit in common negative cases. */
+  if (lhs.value != rhs.value) {
+    result = FALSE;
+  } else if (lhs.file != rhs.file) {
+    result = FALSE;
+  }  /* if */
+  return result;
+}  /* operator== */
+
+
+inline a_boolean operator!=(const an_ifc_edg_token_cache_offset &lhs,
+                            const an_ifc_edg_token_cache_offset &rhs)
+/*
+Compare two instances of this EdgTokenCacheOffset (lhs and rhs).  If the two
+instances are equivalent, return FALSE; otherwise return TRUE.
+*/
+{
+  return !(lhs == rhs);
+}  /* operator!= */
+
+
 enum an_ifc_expr_named_decl_offset_0_43 : uint32_t {};
 
 
@@ -19722,6 +21266,13 @@ are equivalent, return FALSE; otherwise return TRUE.
 
 enum an_ifc_partition_kind : uint32_t {
   ifc_pk_none,
+  ifc_pk_edg_constant_integer,
+  ifc_pk_edg_constant_integer_word,
+  ifc_pk_edg_heap_complex_token,
+  ifc_pk_edg_token_basic,
+  ifc_pk_edg_token_cache,
+  ifc_pk_edg_token_complex_constant,
+  ifc_pk_edg_token_complex_identifier,
   ifc_pk_msvc_trait_decl_attrs,
   ifc_pk_msvc_trait_named_function_parameters,
   ifc_pk_msvc_trait_uuid,
@@ -20039,7 +21590,7 @@ enum an_ifc_partition_kind : uint32_t {
 };  /* an_ifc_partition_kind */
 
 
-#define IFC_PARTITION_COUNT 314
+#define IFC_PARTITION_COUNT 321
 
 /*
 A method for mapping partition names to an_ifc_partition_kind values.  Used
@@ -20057,6 +21608,13 @@ struct an_ifc_partition_map {
 EXTERN an_ifc_partition_map ifc_partition_map[IFC_PARTITION_COUNT]
 #if VAR_INITIALIZERS
 = {
+  { ".edg.constant.integer", ifc_pk_edg_constant_integer },
+  { ".edg.constant.integer-word", ifc_pk_edg_constant_integer_word },
+  { ".edg.heap.complex-token", ifc_pk_edg_heap_complex_token },
+  { ".edg.token.basic", ifc_pk_edg_token_basic },
+  { ".edg.token.cache", ifc_pk_edg_token_cache },
+  { ".edg.token.complex.constant", ifc_pk_edg_token_complex_constant },
+  { ".edg.token.complex.identifier", ifc_pk_edg_token_complex_identifier },
   { ".msvc.trait.decl-attrs", ifc_pk_msvc_trait_decl_attrs },
   { ".msvc.trait.named-function-parameters",
                                  ifc_pk_msvc_trait_named_function_parameters },

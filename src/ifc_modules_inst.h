@@ -27,6 +27,7 @@ BEGIN_EDG_NAMESPACE
 
 /* Disable spurious GCC warnings in generated code. */
 BEGIN_DISABLE_GCC_WARNING_MAYBE_UNITIALIZED
+INST_NODE_DECL(an_ifc_edg_constant_word_storage)
 INST_NODE_DECL(an_ifc_ieeele_float_storage)
 INST_NODE_DECL(an_ifc_sha256_storage)
 INST_NODE_DECL(an_ifc_storage_class_storage)
@@ -56,6 +57,18 @@ INST_PARTITION_ALL(an_ifc_decl_index)
 Explicit instantiations of functions for DirIndex.
 */
 INST_PARTITION_ALL(an_ifc_dir_index)
+
+
+/*
+Explicit instantiations of functions for EdgComplexTokenIndex.
+*/
+INST_PARTITION_ALL(an_ifc_edg_complex_token_index)
+
+
+/*
+Explicit instantiations of functions for EdgConstantIndex.
+*/
+INST_PARTITION_ALL(an_ifc_edg_constant_index)
 
 
 /*
@@ -455,6 +468,60 @@ INST_NODE_DECL(an_ifc_dir_using_storage)
 Explicit instantiations of functions for DirUsing.
 */
 INST_CONSTRUCT_NODE_ALL(an_ifc_dir_using, an_ifc_dir_index)
+INST_NODE_DECL(an_ifc_edg_constant_integer_storage)
+
+
+/*
+Explicit instantiations of functions for EdgConstantInteger.
+*/
+INST_CONSTRUCT_NODE_ALL(an_ifc_edg_constant_integer,
+                        an_ifc_edg_constant_index)
+INST_NODE_DECL(an_ifc_edg_constant_integer_word_storage)
+
+
+/*
+Explicit instantiations of functions for EdgConstantIntegerWord.
+*/
+INST_CONSTRUCT_NODE_ALL(an_ifc_edg_constant_integer_word,
+                        an_ifc_edg_constant_integer_word_offset)
+INST_NODE_DECL(an_ifc_edg_heap_complex_token_storage)
+
+
+/*
+Explicit instantiations of functions for EdgHeapComplexToken.
+*/
+INST_CONSTRUCT_NODE_ALL(an_ifc_edg_heap_complex_token,
+                        an_ifc_edg_heap_complex_token_offset)
+INST_NODE_DECL(an_ifc_edg_token_basic_storage)
+
+
+/*
+Explicit instantiations of functions for EdgTokenBasic.
+*/
+INST_CONSTRUCT_NODE_ALL(an_ifc_edg_token_basic, an_ifc_edg_token_basic_offset)
+INST_NODE_DECL(an_ifc_edg_token_cache_storage)
+
+
+/*
+Explicit instantiations of functions for EdgTokenCache.
+*/
+INST_CONSTRUCT_NODE_ALL(an_ifc_edg_token_cache, an_ifc_edg_token_cache_offset)
+INST_NODE_DECL(an_ifc_edg_token_constant_storage)
+
+
+/*
+Explicit instantiations of functions for EdgTokenConstant.
+*/
+INST_CONSTRUCT_NODE_ALL(an_ifc_edg_token_constant,
+                        an_ifc_edg_complex_token_index)
+INST_NODE_DECL(an_ifc_edg_token_identifier_storage)
+
+
+/*
+Explicit instantiations of functions for EdgTokenIdentifier.
+*/
+INST_CONSTRUCT_NODE_ALL(an_ifc_edg_token_identifier,
+                        an_ifc_edg_complex_token_index)
 INST_NODE_DECL(an_ifc_expr_alignof_storage)
 
 
@@ -2179,6 +2246,30 @@ INST_NODE_DECL(an_ifc_type_unaligned_storage)
 Explicit instantiations of functions for TypeUnaligned.
 */
 INST_CONSTRUCT_NODE_ALL(an_ifc_type_unaligned, an_ifc_type_index)
+
+
+/*
+Explicit instantiations of functions for EdgConstantIntegerWordOffset.
+*/
+INST_PARTITION_ALL(an_ifc_edg_constant_integer_word_offset)
+
+
+/*
+Explicit instantiations of functions for EdgHeapComplexTokenOffset.
+*/
+INST_PARTITION_ALL(an_ifc_edg_heap_complex_token_offset)
+
+
+/*
+Explicit instantiations of functions for EdgTokenBasicOffset.
+*/
+INST_PARTITION_ALL(an_ifc_edg_token_basic_offset)
+
+
+/*
+Explicit instantiations of functions for EdgTokenCacheOffset.
+*/
+INST_PARTITION_ALL(an_ifc_edg_token_cache_offset)
 
 
 /*

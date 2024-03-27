@@ -782,6 +782,561 @@ value represents a valid sort value; otherwise, return FALSE.
 }  /* validate_sort */
 
 
+a_boolean is_known_sort(an_ifc_edg_basic_token_sort_0_43 versioned)
+/*
+Given the versioned representation of EdgBasicTokenSort, return TRUE if the
+value represents a valid sort value; otherwise, return FALSE.
+*/
+{
+  a_boolean result = FALSE;
+
+  switch (versioned) {
+    case ifc_0_43_ebts_complex:
+    case ifc_0_43_ebts_lbracket:
+    case ifc_0_43_ebts_rbracket:
+    case ifc_0_43_ebts_lparen:
+    case ifc_0_43_ebts_rparen:
+    case ifc_0_43_ebts_period:
+    case ifc_0_43_ebts_arrow:
+    case ifc_0_43_ebts_plus_plus:
+    case ifc_0_43_ebts_minus_minus:
+    case ifc_0_43_ebts_ampersand:
+    case ifc_0_43_ebts_star:
+    case ifc_0_43_ebts_plus:
+    case ifc_0_43_ebts_minus:
+    case ifc_0_43_ebts_compl:
+    case ifc_0_43_ebts_not:
+    case ifc_0_43_ebts_divide:
+    case ifc_0_43_ebts_remainder:
+    case ifc_0_43_ebts_shift_left:
+    case ifc_0_43_ebts_shift_right:
+    case ifc_0_43_ebts_lt:
+    case ifc_0_43_ebts_gt:
+    case ifc_0_43_ebts_le:
+    case ifc_0_43_ebts_ge:
+    case ifc_0_43_ebts_eq:
+    case ifc_0_43_ebts_ne:
+    case ifc_0_43_ebts_spaceship:
+    case ifc_0_43_ebts_excl_or:
+    case ifc_0_43_ebts_or:
+    case ifc_0_43_ebts_and_and:
+    case ifc_0_43_ebts_or_or:
+    case ifc_0_43_ebts_quest_mark:
+    case ifc_0_43_ebts_colon:
+    case ifc_0_43_ebts_assign:
+    case ifc_0_43_ebts_times_assign:
+    case ifc_0_43_ebts_divide_assign:
+    case ifc_0_43_ebts_remainder_assign:
+    case ifc_0_43_ebts_plus_assign:
+    case ifc_0_43_ebts_minus_assign:
+    case ifc_0_43_ebts_shift_left_assign:
+    case ifc_0_43_ebts_shift_right_assign:
+    case ifc_0_43_ebts_and_assign:
+    case ifc_0_43_ebts_excl_or_assign:
+    case ifc_0_43_ebts_or_assign:
+    case ifc_0_43_ebts_comma:
+    case ifc_0_43_ebts_sharp:
+    case ifc_0_43_ebts_paste:
+    case ifc_0_43_ebts_gnu_min:
+    case ifc_0_43_ebts_gnu_max:
+    case ifc_0_43_ebts_lbrace:
+    case ifc_0_43_ebts_rbrace:
+    case ifc_0_43_ebts_lsplice:
+    case ifc_0_43_ebts_rsplice:
+    case ifc_0_43_ebts_semicolon:
+    case ifc_0_43_ebts_ellipsis:
+    case ifc_0_43_ebts_auto:
+    case ifc_0_43_ebts_break:
+    case ifc_0_43_ebts_case:
+    case ifc_0_43_ebts_char:
+    case ifc_0_43_ebts_const:
+    case ifc_0_43_ebts_continue:
+    case ifc_0_43_ebts_default:
+    case ifc_0_43_ebts_do:
+    case ifc_0_43_ebts_double:
+    case ifc_0_43_ebts_else:
+    case ifc_0_43_ebts_enum:
+    case ifc_0_43_ebts_extern:
+    case ifc_0_43_ebts_float:
+    case ifc_0_43_ebts_for:
+    case ifc_0_43_ebts_goto:
+    case ifc_0_43_ebts_if:
+    case ifc_0_43_ebts_int:
+    case ifc_0_43_ebts_long:
+    case ifc_0_43_ebts_register:
+    case ifc_0_43_ebts_return:
+    case ifc_0_43_ebts_short:
+    case ifc_0_43_ebts_signed:
+    case ifc_0_43_ebts_sizeof:
+    case ifc_0_43_ebts_static:
+    case ifc_0_43_ebts_struct:
+    case ifc_0_43_ebts_switch:
+    case ifc_0_43_ebts_typedef:
+    case ifc_0_43_ebts_union:
+    case ifc_0_43_ebts_unsigned:
+    case ifc_0_43_ebts_void:
+    case ifc_0_43_ebts_volatile:
+    case ifc_0_43_ebts_while:
+    case ifc_0_43_ebts_c99_generic:
+    case ifc_0_43_ebts_c99_genericfx:
+    case ifc_0_43_ebts_alignof:
+    case ifc_0_43_ebts_ext_alignof:
+    case ifc_0_43_ebts_intaddr:
+    case ifc_0_43_ebts_va_copy:
+    case ifc_0_43_ebts_builtin_offsetof:
+    case ifc_0_43_ebts_restrict:
+    case ifc_0_43_ebts_gnu_restrict:
+    case ifc_0_43_ebts_c99_bool:
+    case ifc_0_43_ebts_c99_complex:
+    case ifc_0_43_ebts_c99_imaginary:
+    case ifc_0_43_ebts_imaginary_unit:
+    case ifc_0_43_ebts_nan:
+    case ifc_0_43_ebts_infinity:
+    case ifc_0_43_ebts_char16_t:
+    case ifc_0_43_ebts_char32_t:
+    case ifc_0_43_ebts_char8_t:
+    case ifc_0_43_ebts_fract:
+    case ifc_0_43_ebts_accum:
+    case ifc_0_43_ebts_sat:
+    case ifc_0_43_ebts_abstract:
+    case ifc_0_43_ebts_sealed:
+    case ifc_0_43_ebts_cdecl:
+    case ifc_0_43_ebts_fastcall:
+    case ifc_0_43_ebts_stdcall:
+    case ifc_0_43_ebts_thiscall:
+    case ifc_0_43_ebts_vectorcall:
+    case ifc_0_43_ebts_clrcall:
+    case ifc_0_43_ebts_microsoft_inline:
+    case ifc_0_43_ebts_forceinline:
+    case ifc_0_43_ebts_unaligned:
+    case ifc_0_43_ebts_microsoft_try:
+    case ifc_0_43_ebts_finally:
+    case ifc_0_43_ebts_leave:
+    case ifc_0_43_ebts_except:
+    case ifc_0_43_ebts_int8:
+    case ifc_0_43_ebts_int16:
+    case ifc_0_43_ebts_int32:
+    case ifc_0_43_ebts_int64:
+    case ifc_0_43_ebts_based:
+    case ifc_0_43_ebts_uuidof:
+    case ifc_0_43_ebts_assume:
+    case ifc_0_43_ebts_charize:
+    case ifc_0_43_ebts_if_exists:
+    case ifc_0_43_ebts_if_not_exists:
+    case ifc_0_43_ebts_end_of_if_exists:
+    case ifc_0_43_ebts_super:
+    case ifc_0_43_ebts_noop:
+    case ifc_0_43_ebts_interface:
+    case ifc_0_43_ebts_event:
+    case ifc_0_43_ebts_microsoft_ptr32:
+    case ifc_0_43_ebts_microsoft_ptr64:
+    case ifc_0_43_ebts_microsoft_sptr:
+    case ifc_0_43_ebts_microsoft_uptr:
+    case ifc_0_43_ebts_microsoft_w64:
+    case ifc_0_43_ebts_microsoft_lprefix:
+    case ifc_0_43_ebts_microsoft_uprefix:
+    case ifc_0_43_ebts_microsoft_identifier:
+    case ifc_0_43_ebts_uuid:
+    case ifc_0_43_ebts_in:
+    case ifc_0_43_ebts_gcnew:
+    case ifc_0_43_ebts_safe_cast:
+    case ifc_0_43_ebts_implements:
+    case ifc_0_43_ebts_unresolved_type:
+    case ifc_0_43_ebts_for_each:
+    case ifc_0_43_ebts_last_whitespace_token:
+    case ifc_0_43_ebts_ref_class:
+    case ifc_0_43_ebts_ref_struct:
+    case ifc_0_43_ebts_value_class:
+    case ifc_0_43_ebts_value_struct:
+    case ifc_0_43_ebts_enum_class:
+    case ifc_0_43_ebts_enum_struct:
+    case ifc_0_43_ebts_interface_class:
+    case ifc_0_43_ebts_interface_struct:
+    case ifc_0_43_ebts_ref_new:
+    case ifc_0_43_ebts_partial_ref_class:
+    case ifc_0_43_ebts_partial_ref_struct:
+    case ifc_0_43_ebts_prefix_ref:
+    case ifc_0_43_ebts_prefix_value:
+    case ifc_0_43_ebts_prefix_interface:
+    case ifc_0_43_ebts_prefix_for:
+    case ifc_0_43_ebts_prefix_enum:
+    case ifc_0_43_ebts_prefix_partial:
+    case ifc_0_43_ebts_microsoft_asm:
+    case ifc_0_43_ebts_func_name:
+    case ifc_0_43_ebts_function_name:
+    case ifc_0_43_ebts_pretty_function_name:
+    case ifc_0_43_ebts_decorated_function_name:
+    case ifc_0_43_ebts_near:
+    case ifc_0_43_ebts_far:
+    case ifc_0_43_ebts_attribute:
+    case ifc_0_43_ebts_builtin_types_compatible:
+    case ifc_0_43_ebts_gnu_real:
+    case ifc_0_43_ebts_gnu_imag:
+    case ifc_0_43_ebts_colon_colon:
+    case ifc_0_43_ebts_period_star:
+    case ifc_0_43_ebts_arrow_star:
+    case ifc_0_43_ebts_asm:
+    case ifc_0_43_ebts_catch:
+    case ifc_0_43_ebts_class:
+    case ifc_0_43_ebts_delete:
+    case ifc_0_43_ebts_friend:
+    case ifc_0_43_ebts_inline:
+    case ifc_0_43_ebts_new:
+    case ifc_0_43_ebts_operator:
+    case ifc_0_43_ebts_private:
+    case ifc_0_43_ebts_protected:
+    case ifc_0_43_ebts_public:
+    case ifc_0_43_ebts_template:
+    case ifc_0_43_ebts_this:
+    case ifc_0_43_ebts_throw:
+    case ifc_0_43_ebts_try:
+    case ifc_0_43_ebts_virtual:
+    case ifc_0_43_ebts_wchar_t:
+    case ifc_0_43_ebts_const_cast:
+    case ifc_0_43_ebts_dynamic_cast:
+    case ifc_0_43_ebts_explicit:
+    case ifc_0_43_ebts_cpp98_export:
+    case ifc_0_43_ebts_export:
+    case ifc_0_43_ebts_export_keyword:
+    case ifc_0_43_ebts_import:
+    case ifc_0_43_ebts_module:
+    case ifc_0_43_ebts_mutable:
+    case ifc_0_43_ebts_namespace:
+    case ifc_0_43_ebts_reinterpret_cast:
+    case ifc_0_43_ebts_static_cast:
+    case ifc_0_43_ebts_typeid:
+    case ifc_0_43_ebts_using:
+    case ifc_0_43_ebts_bool:
+    case ifc_0_43_ebts_false:
+    case ifc_0_43_ebts_true:
+    case ifc_0_43_ebts_typename:
+    case ifc_0_43_ebts_static_assert:
+    case ifc_0_43_ebts_decltype:
+    case ifc_0_43_ebts_auto_type:
+    case ifc_0_43_ebts_extension:
+    case ifc_0_43_ebts_null:
+    case ifc_0_43_ebts_typeof:
+    case ifc_0_43_ebts_typeof_unqual:
+    case ifc_0_43_ebts_overload:
+    case ifc_0_43_ebts_global_link_scope:
+    case ifc_0_43_ebts_symbolic_link_scope:
+    case ifc_0_43_ebts_hidden_link_scope:
+    case ifc_0_43_ebts_thread:
+    case ifc_0_43_ebts_thread_local:
+    case ifc_0_43_ebts_c11_thread_local:
+    case ifc_0_43_ebts_upc_strict:
+    case ifc_0_43_ebts_upc_relaxed:
+    case ifc_0_43_ebts_upc_shared:
+    case ifc_0_43_ebts_upc_forall:
+    case ifc_0_43_ebts_upc_barrier:
+    case ifc_0_43_ebts_upc_notify:
+    case ifc_0_43_ebts_upc_wait:
+    case ifc_0_43_ebts_upc_fence:
+    case ifc_0_43_ebts_upc_threads:
+    case ifc_0_43_ebts_upc_mythread:
+    case ifc_0_43_ebts_upc_blocksizeof:
+    case ifc_0_43_ebts_upc_localsizeof:
+    case ifc_0_43_ebts_upc_elemsizeof:
+    case ifc_0_43_ebts_has_assign:
+    case ifc_0_43_ebts_has_copy:
+    case ifc_0_43_ebts_has_nothrow_assign:
+    case ifc_0_43_ebts_has_nothrow_constructor:
+    case ifc_0_43_ebts_has_nothrow_copy:
+    case ifc_0_43_ebts_has_trivial_assign:
+    case ifc_0_43_ebts_has_trivial_constructor:
+    case ifc_0_43_ebts_has_trivial_copy:
+    case ifc_0_43_ebts_has_trivial_destructor:
+    case ifc_0_43_ebts_has_user_destructor:
+    case ifc_0_43_ebts_has_virtual_destructor:
+    case ifc_0_43_ebts_is_abstract:
+    case ifc_0_43_ebts_is_base_of:
+    case ifc_0_43_ebts_is_class:
+    case ifc_0_43_ebts_is_convertible_to:
+    case ifc_0_43_ebts_is_convertible:
+    case ifc_0_43_ebts_is_nothrow_convertible:
+    case ifc_0_43_ebts_is_empty:
+    case ifc_0_43_ebts_is_enum:
+    case ifc_0_43_ebts_is_pod:
+    case ifc_0_43_ebts_is_polymorphic:
+    case ifc_0_43_ebts_is_union:
+    case ifc_0_43_ebts_is_trivial:
+    case ifc_0_43_ebts_is_standard_layout:
+    case ifc_0_43_ebts_is_trivially_copyable:
+    case ifc_0_43_ebts_is_literal_type:
+    case ifc_0_43_ebts_has_trivial_move_constructor:
+    case ifc_0_43_ebts_has_trivial_move_assign:
+    case ifc_0_43_ebts_has_nothrow_move_assign:
+    case ifc_0_43_ebts_is_constructible:
+    case ifc_0_43_ebts_is_nothrow_constructible:
+    case ifc_0_43_ebts_is_trivially_constructible:
+    case ifc_0_43_ebts_is_destructible:
+    case ifc_0_43_ebts_is_nothrow_destructible:
+    case ifc_0_43_ebts_is_trivially_destructible:
+    case ifc_0_43_ebts_is_nothrow_assignable:
+    case ifc_0_43_ebts_is_trivially_assignable:
+    case ifc_0_43_ebts_is_valid_winrt_type:
+    case ifc_0_43_ebts_underlying_type:
+    case ifc_0_43_ebts_has_finalizer:
+    case ifc_0_43_ebts_is_delegate:
+    case ifc_0_43_ebts_is_interface_class:
+    case ifc_0_43_ebts_is_ref_array:
+    case ifc_0_43_ebts_is_ref_class:
+    case ifc_0_43_ebts_is_sealed:
+    case ifc_0_43_ebts_is_simple_value_class:
+    case ifc_0_43_ebts_is_value_class:
+    case ifc_0_43_ebts_is_win_class:
+    case ifc_0_43_ebts_is_win_interface:
+    case ifc_0_43_ebts_nullptr:
+    case ifc_0_43_ebts_native_nullptr:
+    case ifc_0_43_ebts_internal_alias_decl:
+    case ifc_0_43_ebts_int128:
+    case ifc_0_43_ebts_override:
+    case ifc_0_43_ebts_final:
+    case ifc_0_43_ebts_is_final:
+    case ifc_0_43_ebts_noexcept:
+    case ifc_0_43_ebts_constexpr:
+    case ifc_0_43_ebts_consteval:
+    case ifc_0_43_ebts_constinit:
+    case ifc_0_43_ebts_alignas:
+    case ifc_0_43_ebts_bases:
+    case ifc_0_43_ebts_direct_bases:
+    case ifc_0_43_ebts_builtin_shuffle:
+    case ifc_0_43_ebts_builtin_shufflevector:
+    case ifc_0_43_ebts_builtin_convertvector:
+    case ifc_0_43_ebts_noreturn:
+    case ifc_0_43_ebts_builtin_complex:
+    case ifc_0_43_ebts_c11_generic:
+    case ifc_0_43_ebts_c11_atomic:
+    case ifc_0_43_ebts_nullable:
+    case ifc_0_43_ebts_nonnull:
+    case ifc_0_43_ebts_null_unspecified:
+    case ifc_0_43_ebts_coroutine_yield:
+    case ifc_0_43_ebts_coroutine_return:
+    case ifc_0_43_ebts_coroutine_await:
+    case ifc_0_43_ebts_is_assignable:
+    case ifc_0_43_ebts_is_trivially_copy_assignable:
+    case ifc_0_43_ebts_is_assignable_no_precondition_check:
+    case ifc_0_43_ebts_builtin_addressof:
+    case ifc_0_43_ebts_edg_internal_type:
+    case ifc_0_43_ebts_edg_vector_type:
+    case ifc_0_43_ebts_edg_size_type:
+    case ifc_0_43_ebts_edg_ptrdiff_type:
+    case ifc_0_43_ebts_edg_bool_type:
+    case ifc_0_43_ebts_edg_wchar_type:
+    case ifc_0_43_ebts_edg_throw:
+    case ifc_0_43_ebts_edg_internal_opnd:
+    case ifc_0_43_ebts_clang_version:
+    case ifc_0_43_ebts_has_unique_object_representations:
+    case ifc_0_43_ebts_is_aggregate:
+    case ifc_0_43_ebts_integer_pack:
+    case ifc_0_43_ebts_reference_binds_to_temporary:
+    case ifc_0_43_ebts_reference_constructs_from_temporary:
+    case ifc_0_43_ebts_reference_converts_from_temporary:
+    case ifc_0_43_ebts_is_same:
+    case ifc_0_43_ebts_is_same_as:
+    case ifc_0_43_ebts_is_function:
+    case ifc_0_43_ebts_requires:
+    case ifc_0_43_ebts_concept:
+    case ifc_0_43_ebts_builtin_has_attribute:
+    case ifc_0_43_ebts_builtin_bit_cast:
+    case ifc_0_43_ebts_is_layout_compatible:
+    case ifc_0_43_ebts_is_pointer_interconvertible_base_of:
+    case ifc_0_43_ebts_is_pointer_interconvertible_with_class:
+    case ifc_0_43_ebts_builtin_is_pointer_interconvertible_with_class:
+    case ifc_0_43_ebts_is_corresponding_member:
+    case ifc_0_43_ebts_builtin_is_corresponding_member:
+    case ifc_0_43_ebts_edg_is_deducible:
+    case ifc_0_43_ebts_is_array:
+    case ifc_0_43_ebts_array_rank:
+    case ifc_0_43_ebts_array_extent:
+    case ifc_0_43_ebts_is_arithmetic:
+    case ifc_0_43_ebts_is_complete_type:
+    case ifc_0_43_ebts_is_compound:
+    case ifc_0_43_ebts_is_const:
+    case ifc_0_43_ebts_is_floating_point:
+    case ifc_0_43_ebts_is_fundamental:
+    case ifc_0_43_ebts_is_integral:
+    case ifc_0_43_ebts_is_lvalue_reference:
+    case ifc_0_43_ebts_is_member_function_pointer:
+    case ifc_0_43_ebts_is_member_object_pointer:
+    case ifc_0_43_ebts_is_member_pointer:
+    case ifc_0_43_ebts_is_object:
+    case ifc_0_43_ebts_is_pointer:
+    case ifc_0_43_ebts_is_reference:
+    case ifc_0_43_ebts_is_rvalue_reference:
+    case ifc_0_43_ebts_is_scalar:
+    case ifc_0_43_ebts_is_signed:
+    case ifc_0_43_ebts_is_unsigned:
+    case ifc_0_43_ebts_is_void:
+    case ifc_0_43_ebts_is_volatile:
+    case ifc_0_43_ebts_float32:
+    case ifc_0_43_ebts_float32x:
+    case ifc_0_43_ebts_float64:
+    case ifc_0_43_ebts_float64x:
+    case ifc_0_43_ebts_float128:
+    case ifc_0_43_ebts_is_bounded_array:
+    case ifc_0_43_ebts_is_unbounded_array:
+    case ifc_0_43_ebts_is_referenceable:
+    case ifc_0_43_ebts_add_lvalue_reference:
+    case ifc_0_43_ebts_add_pointer:
+    case ifc_0_43_ebts_add_rvalue_reference:
+    case ifc_0_43_ebts_decay:
+    case ifc_0_43_ebts_make_signed:
+    case ifc_0_43_ebts_make_unsigned:
+    case ifc_0_43_ebts_remove_all_extents:
+    case ifc_0_43_ebts_remove_const:
+    case ifc_0_43_ebts_remove_cv:
+    case ifc_0_43_ebts_remove_cvref:
+    case ifc_0_43_ebts_remove_extent:
+    case ifc_0_43_ebts_remove_pointer:
+    case ifc_0_43_ebts_remove_reference:
+    case ifc_0_43_ebts_remove_reference_t:
+    case ifc_0_43_ebts_remove_restrict:
+    case ifc_0_43_ebts_remove_volatile:
+    case ifc_0_43_ebts_is_trivially_equality_comparable:
+      result = TRUE;
+      break;
+    default:
+      break;
+  }  /* switch */
+  return result;
+}  /* is_known_sort */
+
+
+a_boolean validate_sort(an_ifc_module_file               *file,
+                        an_ifc_edg_basic_token_sort_0_43 versioned,
+                        const an_ifc_validation_trace    *parent)
+/*
+Given the versioned representation of EdgBasicTokenSort, return TRUE if the
+value represents a valid sort value; otherwise, return FALSE.
+*/
+{
+  a_boolean result = TRUE;
+
+  if (!is_known_sort(versioned)) {
+    invalid_sort(file, parent);
+    result = FALSE;
+  }  /* if */
+  return result;
+}  /* validate_sort */
+
+
+a_boolean is_known_sort(an_ifc_edg_complex_token_sort_0_43 versioned)
+/*
+Given the versioned representation of EdgComplexTokenSort, return TRUE if the
+value represents a valid sort value; otherwise, return FALSE.
+*/
+{
+  a_boolean result = FALSE;
+
+  switch (versioned) {
+    case ifc_0_43_ects_edg_token_constant:
+    case ifc_0_43_ects_edg_token_identifier:
+      result = TRUE;
+      break;
+    default:
+      break;
+  }  /* switch */
+  return result;
+}  /* is_known_sort */
+
+
+a_boolean validate_sort(an_ifc_module_file                 *file,
+                        an_ifc_edg_complex_token_sort_0_43 versioned,
+                        const an_ifc_validation_trace      *parent)
+/*
+Given the versioned representation of EdgComplexTokenSort, return TRUE if the
+value represents a valid sort value; otherwise, return FALSE.
+*/
+{
+  a_boolean result = TRUE;
+
+  if (!is_known_sort(versioned)) {
+    invalid_sort(file, parent);
+    result = FALSE;
+  }  /* if */
+  return result;
+}  /* validate_sort */
+
+
+a_boolean is_known_sort(an_ifc_edg_constant_sort_0_43 versioned)
+/*
+Given the versioned representation of EdgConstantSort, return TRUE if the value
+represents a valid sort value; otherwise, return FALSE.
+*/
+{
+  a_boolean result = FALSE;
+
+  switch (versioned) {
+    case ifc_0_43_ecs_edg_constant_integer:
+      result = TRUE;
+      break;
+    default:
+      break;
+  }  /* switch */
+  return result;
+}  /* is_known_sort */
+
+
+a_boolean validate_sort(an_ifc_module_file            *file,
+                        an_ifc_edg_constant_sort_0_43 versioned,
+                        const an_ifc_validation_trace *parent)
+/*
+Given the versioned representation of EdgConstantSort, return TRUE if the value
+represents a valid sort value; otherwise, return FALSE.
+*/
+{
+  a_boolean result = TRUE;
+
+  if (!is_known_sort(versioned)) {
+    invalid_sort(file, parent);
+    result = FALSE;
+  }  /* if */
+  return result;
+}  /* validate_sort */
+
+
+a_boolean is_known_sort(an_ifc_edg_constant_token_sort_0_43 versioned)
+/*
+Given the versioned representation of EdgConstantTokenSort, return TRUE if the
+value represents a valid sort value; otherwise, return FALSE.
+*/
+{
+  a_boolean result = FALSE;
+
+  switch (versioned) {
+    case ifc_0_43_ects_int_constant:
+    case ifc_0_43_ects_float_constant:
+    case ifc_0_43_ects_char_constant:
+    case ifc_0_43_ects_string_literal:
+    case ifc_0_43_ects_aggr_constant:
+      result = TRUE;
+      break;
+    default:
+      break;
+  }  /* switch */
+  return result;
+}  /* is_known_sort */
+
+
+a_boolean validate_sort(an_ifc_module_file                  *file,
+                        an_ifc_edg_constant_token_sort_0_43 versioned,
+                        const an_ifc_validation_trace       *parent)
+/*
+Given the versioned representation of EdgConstantTokenSort, return TRUE if the
+value represents a valid sort value; otherwise, return FALSE.
+*/
+{
+  a_boolean result = TRUE;
+
+  if (!is_known_sort(versioned)) {
+    invalid_sort(file, parent);
+    result = FALSE;
+  }  /* if */
+  return result;
+}  /* validate_sort */
+
+
 a_boolean is_known_sort(an_ifc_expansion_mode_sort_0_33 versioned)
 /*
 Given the versioned representation of ExpansionModeSort, return TRUE if the
@@ -3479,6 +4034,85 @@ FALSE.
 }  /* validate_index */
 
 
+a_boolean validate_index(an_ifc_module_file                  *file,
+                         an_ifc_edg_complex_token_index_0_43 versioned,
+                         const an_ifc_validation_trace       *parent)
+/*
+Given the versioned representation of EdgComplexTokenIndex and the associated
+module file, return TRUE if the value represents a valid node position;
+otherwise, return FALSE.
+*/
+{
+  a_boolean                          result = TRUE;
+  an_ifc_edg_complex_token_sort_0_43 sort = edg_complex_token_sort(versioned);
+
+  if (!is_known_sort(sort)) {
+    invalid_partition(file, parent);
+    result = FALSE;
+  } else {
+    an_ifc_edg_complex_token_sort univ_sort = to_universal_sort(sort);
+
+    if (has_partition_kind(univ_sort)) {
+      an_ifc_partition_kind kind = to_partition_kind(univ_sort);
+      uint32_t              value = edg_complex_token_value(versioned);
+
+      if (!validate_element_exists(file, kind, value, parent)) {
+        result = FALSE;
+      }  /* if */
+    } else {
+      an_ifc_edg_complex_token_index univ_idx =
+                                           to_universal_index(file, versioned);
+
+      if (!is_null_index(univ_idx)) {
+        unknown_partition_conversion(file, str_for(univ_sort), univ_idx.value,
+                                     parent);
+        result = FALSE;
+      }  /* if */
+    }  /* if */
+  }  /* if */
+  return result;
+}  /* validate_index */
+
+
+a_boolean validate_index(an_ifc_module_file             *file,
+                         an_ifc_edg_constant_index_0_43 versioned,
+                         const an_ifc_validation_trace  *parent)
+/*
+Given the versioned representation of EdgConstantIndex and the associated
+module file, return TRUE if the value represents a valid node position;
+otherwise, return FALSE.
+*/
+{
+  a_boolean                     result = TRUE;
+  an_ifc_edg_constant_sort_0_43 sort = edg_constant_sort(versioned);
+
+  if (!is_known_sort(sort)) {
+    invalid_partition(file, parent);
+    result = FALSE;
+  } else {
+    an_ifc_edg_constant_sort univ_sort = to_universal_sort(sort);
+
+    if (has_partition_kind(univ_sort)) {
+      an_ifc_partition_kind kind = to_partition_kind(univ_sort);
+      uint32_t              value = edg_constant_value(versioned);
+
+      if (!validate_element_exists(file, kind, value, parent)) {
+        result = FALSE;
+      }  /* if */
+    } else {
+      an_ifc_edg_constant_index univ_idx = to_universal_index(file, versioned);
+
+      if (!is_null_index(univ_idx)) {
+        unknown_partition_conversion(file, str_for(univ_sort), univ_idx.value,
+                                     parent);
+        result = FALSE;
+      }  /* if */
+    }  /* if */
+  }  /* if */
+  return result;
+}  /* validate_index */
+
+
 a_boolean validate_index(an_ifc_module_file            *file,
                          an_ifc_expr_index_0_33        versioned,
                          const an_ifc_validation_trace *parent)
@@ -3507,7 +4141,8 @@ FALSE.
     } else {
       an_ifc_expr_index univ_idx = to_universal_index(file, versioned);
 
-      if (!is_null_index(univ_idx)) {
+      if (univ_idx.sort == ifc_es_expr_vendor_extension) {
+      } else if (!is_null_index(univ_idx)) {
         unknown_partition_conversion(file, str_for(univ_sort), univ_idx.value,
                                      parent);
         result = FALSE;
@@ -3546,7 +4181,8 @@ FALSE.
     } else {
       an_ifc_expr_index univ_idx = to_universal_index(file, versioned);
 
-      if (!is_null_index(univ_idx)) {
+      if (univ_idx.sort == ifc_es_expr_vendor_extension) {
+      } else if (!is_null_index(univ_idx)) {
         unknown_partition_conversion(file, str_for(univ_sort), univ_idx.value,
                                      parent);
         result = FALSE;
@@ -11605,6 +12241,228 @@ representation is valid; otherwise, return FALSE.
     }  /* if */
   }  /* if */
 done:
+  return result;
+}  /* validate */
+
+
+template<>
+a_boolean validate(const an_ifc_edg_constant_integer &universal,
+                   const an_ifc_validation_trace     *parent)
+/*
+Given the universal representation of EdgConstantInteger, return TRUE if the
+representation is valid; otherwise, return FALSE.
+*/
+{
+  a_boolean result = TRUE;
+
+  if (has_ifc_start(universal)) {
+    an_ifc_edg_constant_integer_word_offset_0_43 stage_0;
+    an_ifc_validation_trace                      stage_0_trace =
+                                               {"start", /*offset=*/4, parent};
+
+    /* Copy the field (EdgConstantInteger::start -
+       EdgConstantIntegerWordOffset) into version-specific storage. */
+    static_assert(sizeof(stage_0) == 4,
+                  "stage_0 is not properly sized storage!");
+    copy_from_node_field(&stage_0, universal.get_storage(), /*offset=*/4);
+    if (!validate_offset(universal.get_file(), stage_0, &stage_0_trace)) {
+      result = FALSE;
+      goto done;
+    }  /* if */
+  }  /* if */
+  if (has_ifc_type(universal)) {
+    an_ifc_type_index_0_33  stage_0;
+    an_ifc_validation_trace stage_0_trace = {"type", /*offset=*/0, parent};
+
+    /* Copy the field (EdgConstantInteger::type - TypeIndex) into
+       version-specific storage. */
+    static_assert(sizeof(stage_0) == 4,
+                  "stage_0 is not properly sized storage!");
+    copy_from_node_field(&stage_0, universal.get_storage(), /*offset=*/0);
+    if (!validate_index(universal.get_file(), stage_0, &stage_0_trace)) {
+      result = FALSE;
+      goto done;
+    }  /* if */
+  }  /* if */
+done:
+  return result;
+}  /* validate */
+
+
+template<>
+a_boolean validate(const an_ifc_edg_constant_integer_word &universal,
+                   const an_ifc_validation_trace          *parent)
+/*
+Given the universal representation of EdgConstantIntegerWord, return TRUE if
+the representation is valid; otherwise, return FALSE.
+*/
+{
+  a_boolean result = TRUE;
+
+  return result;
+}  /* validate */
+
+
+template<>
+a_boolean validate(const an_ifc_edg_heap_complex_token &universal,
+                   const an_ifc_validation_trace       *parent)
+/*
+Given the universal representation of EdgHeapComplexToken, return TRUE if the
+representation is valid; otherwise, return FALSE.
+*/
+{
+  a_boolean result = TRUE;
+
+  if (has_ifc_index(universal)) {
+    an_ifc_edg_complex_token_index_0_43 stage_0;
+    an_ifc_validation_trace             stage_0_trace =
+                                               {"index", /*offset=*/0, parent};
+
+    /* Copy the field (EdgHeapComplexToken::index - EdgComplexTokenIndex) into
+       version-specific storage. */
+    static_assert(sizeof(stage_0) == 4,
+                  "stage_0 is not properly sized storage!");
+    copy_from_node_field(&stage_0, universal.get_storage(), /*offset=*/0);
+    if (!validate_index(universal.get_file(), stage_0, &stage_0_trace)) {
+      result = FALSE;
+      goto done;
+    }  /* if */
+  }  /* if */
+done:
+  return result;
+}  /* validate */
+
+
+template<>
+a_boolean validate(const an_ifc_edg_token_basic  &universal,
+                   const an_ifc_validation_trace *parent)
+/*
+Given the universal representation of EdgTokenBasic, return TRUE if the
+representation is valid; otherwise, return FALSE.
+*/
+{
+  a_boolean result = TRUE;
+
+  if (has_ifc_kind(universal)) {
+    an_ifc_edg_basic_token_sort_0_43 stage_0;
+    an_ifc_validation_trace          stage_0_trace =
+                                                {"kind", /*offset=*/0, parent};
+
+    /* Copy the field (EdgTokenBasic::kind - EdgBasicTokenSort) into
+       version-specific storage. */
+    static_assert(sizeof(stage_0) == 4,
+                  "stage_0 is not properly sized storage!");
+    copy_from_node_field(&stage_0, universal.get_storage(), /*offset=*/0);
+    if (!validate_sort(universal.get_file(), stage_0, &stage_0_trace)) {
+      result = FALSE;
+      goto done;
+    }  /* if */
+  }  /* if */
+done:
+  return result;
+}  /* validate */
+
+
+template<>
+a_boolean validate(const an_ifc_edg_token_cache  &universal,
+                   const an_ifc_validation_trace *parent)
+/*
+Given the universal representation of EdgTokenCache, return TRUE if the
+representation is valid; otherwise, return FALSE.
+*/
+{
+  a_boolean result = TRUE;
+
+  if (has_ifc_complex_tokens(universal)) {
+    an_ifc_edg_heap_complex_token_offset_0_43 stage_0;
+    an_ifc_validation_trace                   stage_0_trace =
+                                      {"complex_tokens", /*offset=*/8, parent};
+
+    /* Copy the field (EdgTokenCache::complex_tokens -
+       EdgHeapComplexTokenOffset) into version-specific storage. */
+    static_assert(sizeof(stage_0) == 4,
+                  "stage_0 is not properly sized storage!");
+    copy_from_node_field(&stage_0, universal.get_storage(), /*offset=*/8);
+    if (!validate_offset(universal.get_file(), stage_0, &stage_0_trace)) {
+      result = FALSE;
+      goto done;
+    }  /* if */
+  }  /* if */
+  if (has_ifc_tokens(universal)) {
+    an_ifc_edg_token_basic_offset_0_43 stage_0;
+    an_ifc_validation_trace            stage_0_trace =
+                                              {"tokens", /*offset=*/0, parent};
+
+    /* Copy the field (EdgTokenCache::tokens - EdgTokenBasicOffset) into
+       version-specific storage. */
+    static_assert(sizeof(stage_0) == 4,
+                  "stage_0 is not properly sized storage!");
+    copy_from_node_field(&stage_0, universal.get_storage(), /*offset=*/0);
+    if (!validate_offset(universal.get_file(), stage_0, &stage_0_trace)) {
+      result = FALSE;
+      goto done;
+    }  /* if */
+  }  /* if */
+done:
+  return result;
+}  /* validate */
+
+
+template<>
+a_boolean validate(const an_ifc_edg_token_constant &universal,
+                   const an_ifc_validation_trace   *parent)
+/*
+Given the universal representation of EdgTokenConstant, return TRUE if the
+representation is valid; otherwise, return FALSE.
+*/
+{
+  a_boolean result = TRUE;
+
+  if (has_ifc_constant(universal)) {
+    an_ifc_edg_constant_index_0_43 stage_0;
+    an_ifc_validation_trace        stage_0_trace =
+                                            {"constant", /*offset=*/4, parent};
+
+    /* Copy the field (EdgTokenConstant::constant - EdgConstantIndex) into
+       version-specific storage. */
+    static_assert(sizeof(stage_0) == 4,
+                  "stage_0 is not properly sized storage!");
+    copy_from_node_field(&stage_0, universal.get_storage(), /*offset=*/4);
+    if (!validate_index(universal.get_file(), stage_0, &stage_0_trace)) {
+      result = FALSE;
+      goto done;
+    }  /* if */
+  }  /* if */
+  if (has_ifc_kind(universal)) {
+    an_ifc_edg_constant_token_sort_0_43 stage_0;
+    an_ifc_validation_trace             stage_0_trace =
+                                                {"kind", /*offset=*/0, parent};
+
+    /* Copy the field (EdgTokenConstant::kind - EdgConstantTokenSort) into
+       version-specific storage. */
+    static_assert(sizeof(stage_0) == 4,
+                  "stage_0 is not properly sized storage!");
+    copy_from_node_field(&stage_0, universal.get_storage(), /*offset=*/0);
+    if (!validate_sort(universal.get_file(), stage_0, &stage_0_trace)) {
+      result = FALSE;
+      goto done;
+    }  /* if */
+  }  /* if */
+done:
+  return result;
+}  /* validate */
+
+
+template<>
+a_boolean validate(const an_ifc_edg_token_identifier &universal,
+                   const an_ifc_validation_trace     *parent)
+/*
+Given the universal representation of EdgTokenIdentifier, return TRUE if the
+representation is valid; otherwise, return FALSE.
+*/
+{
+  a_boolean result = TRUE;
+
   return result;
 }  /* validate */
 
@@ -32194,6 +33052,111 @@ representation is valid; otherwise, return FALSE.
 done:
   return result;
 }  /* validate */
+
+
+a_boolean validate_offset(
+                        an_ifc_module_file                           *file,
+                        an_ifc_edg_constant_integer_word_offset_0_43 versioned,
+                        const an_ifc_validation_trace                *parent)
+/*
+Given the versioned representation of EdgConstantIntegerWordOffset and the
+associated module file, return TRUE if the value represents a valid node
+position; otherwise, return FALSE.
+*/
+{
+  a_boolean                               result = TRUE;
+  an_ifc_edg_constant_integer_word_offset univ_offset =
+                                          to_universal_offset(file, versioned);
+
+  if (!is_null_index(univ_offset)) {
+    an_ifc_partition_kind kind =
+             get_ifc_partition_kind<an_ifc_edg_constant_integer_word_offset>();
+    uint32_t              value = univ_offset.value - 1;
+
+    if (!validate_element_exists(file, kind, value, parent)) {
+      result = FALSE;
+    }  /* if */
+  }  /* if */
+  return result;
+}  /* validate_offset */
+
+
+a_boolean validate_offset(an_ifc_module_file                        *file,
+                          an_ifc_edg_heap_complex_token_offset_0_43 versioned,
+                          const an_ifc_validation_trace             *parent)
+/*
+Given the versioned representation of EdgHeapComplexTokenOffset and the
+associated module file, return TRUE if the value represents a valid node
+position; otherwise, return FALSE.
+*/
+{
+  a_boolean                            result = TRUE;
+  an_ifc_edg_heap_complex_token_offset univ_offset =
+                                          to_universal_offset(file, versioned);
+
+  if (!is_null_index(univ_offset)) {
+    an_ifc_partition_kind kind =
+                get_ifc_partition_kind<an_ifc_edg_heap_complex_token_offset>();
+    uint32_t              value = univ_offset.value - 1;
+
+    if (!validate_element_exists(file, kind, value, parent)) {
+      result = FALSE;
+    }  /* if */
+  }  /* if */
+  return result;
+}  /* validate_offset */
+
+
+a_boolean validate_offset(an_ifc_module_file                 *file,
+                          an_ifc_edg_token_basic_offset_0_43 versioned,
+                          const an_ifc_validation_trace      *parent)
+/*
+Given the versioned representation of EdgTokenBasicOffset and the associated
+module file, return TRUE if the value represents a valid node position;
+otherwise, return FALSE.
+*/
+{
+  a_boolean                     result = TRUE;
+  an_ifc_edg_token_basic_offset univ_offset =
+                                          to_universal_offset(file, versioned);
+
+  if (!is_null_index(univ_offset)) {
+    an_ifc_partition_kind kind =
+                       get_ifc_partition_kind<an_ifc_edg_token_basic_offset>();
+    uint32_t              value = univ_offset.value - 1;
+
+    if (!validate_element_exists(file, kind, value, parent)) {
+      result = FALSE;
+    }  /* if */
+  }  /* if */
+  return result;
+}  /* validate_offset */
+
+
+a_boolean validate_offset(an_ifc_module_file                 *file,
+                          an_ifc_edg_token_cache_offset_0_43 versioned,
+                          const an_ifc_validation_trace      *parent)
+/*
+Given the versioned representation of EdgTokenCacheOffset and the associated
+module file, return TRUE if the value represents a valid node position;
+otherwise, return FALSE.
+*/
+{
+  a_boolean                     result = TRUE;
+  an_ifc_edg_token_cache_offset univ_offset =
+                                          to_universal_offset(file, versioned);
+
+  if (!is_null_index(univ_offset)) {
+    an_ifc_partition_kind kind =
+                       get_ifc_partition_kind<an_ifc_edg_token_cache_offset>();
+    uint32_t              value = univ_offset.value - 1;
+
+    if (!validate_element_exists(file, kind, value, parent)) {
+      result = FALSE;
+    }  /* if */
+  }  /* if */
+  return result;
+}  /* validate_offset */
 
 
 a_boolean validate_offset(an_ifc_module_file                 *file,

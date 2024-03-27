@@ -5850,6 +5850,267 @@ representation.
 }  /* db_node */
 
 
+void db_node(const an_ifc_edg_constant_integer &universal, unsigned indent)
+/*
+Given the universal representation of EdgConstantInteger, print a diagnostic
+textual representation with the given indent.
+*/
+{
+  if (has_ifc_cardinality(universal)) {
+    an_ifc_cardinality field = get_ifc_cardinality(universal);
+
+    db_print_indent(indent);
+    fprintf(f_debug, "cardinality: %llu\n", (unsigned long long)field.value);
+  }  /* if */
+  if (has_ifc_start(universal)) {
+    an_ifc_edg_constant_integer_word_offset field = get_ifc_start(universal);
+
+    db_print_indent(indent);
+    fprintf(f_debug, "start: %llu\n", (unsigned long long)field.value);
+  }  /* if */
+  if (has_ifc_type(universal)) {
+    an_ifc_type_index field = get_ifc_type(universal);
+
+    db_print_indent(indent);
+    fprintf(f_debug, "type:");
+    if (is_null_index(field)) {
+      fprintf(f_debug, " NULL\n");
+    } else {
+      fprintf(f_debug, "\n");
+      db_print_indent(indent);
+      fprintf(f_debug, "  sort: %s\n", str_for(field.sort));
+      db_print_indent(indent);
+      fprintf(f_debug, "  value: %llu\n", (unsigned long long)field.value);
+    }  /* if */
+  }  /* if */
+}  /* db_node */
+
+
+void db_node(const an_ifc_edg_constant_integer &universal)
+/*
+Given the universal representation of EdgConstantInteger, print a diagnostic
+textual representation.
+*/
+{
+  fprintf(f_debug, "============================== ");
+  fprintf(f_debug, "EdgConstantInteger ");
+  fprintf(f_debug, "==============================\n");
+  db_node(universal, 0);
+}  /* db_node */
+
+
+void db_node(const an_ifc_edg_constant_integer_word &universal,
+             unsigned                               indent)
+/*
+Given the universal representation of EdgConstantIntegerWord, print a
+diagnostic textual representation with the given indent.
+*/
+{
+  if (has_ifc_bytes(universal)) {
+    db_print_indent(indent);
+    fprintf(f_debug, "bytes: UNIMPLEMENTED\n");
+  }  /* if */
+}  /* db_node */
+
+
+void db_node(const an_ifc_edg_constant_integer_word &universal)
+/*
+Given the universal representation of EdgConstantIntegerWord, print a
+diagnostic textual representation.
+*/
+{
+  fprintf(f_debug, "============================ ");
+  fprintf(f_debug, "EdgConstantIntegerWord ");
+  fprintf(f_debug, "============================\n");
+  db_node(universal, 0);
+}  /* db_node */
+
+
+void db_node(const an_ifc_edg_heap_complex_token &universal, unsigned indent)
+/*
+Given the universal representation of EdgHeapComplexToken, print a diagnostic
+textual representation with the given indent.
+*/
+{
+  if (has_ifc_index(universal)) {
+    an_ifc_edg_complex_token_index field = get_ifc_index(universal);
+
+    db_print_indent(indent);
+    fprintf(f_debug, "index:");
+    if (is_null_index(field)) {
+      fprintf(f_debug, " NULL\n");
+    } else {
+      fprintf(f_debug, "\n");
+      db_print_indent(indent);
+      fprintf(f_debug, "  sort: %s\n", str_for(field.sort));
+      db_print_indent(indent);
+      fprintf(f_debug, "  value: %llu\n", (unsigned long long)field.value);
+    }  /* if */
+  }  /* if */
+}  /* db_node */
+
+
+void db_node(const an_ifc_edg_heap_complex_token &universal)
+/*
+Given the universal representation of EdgHeapComplexToken, print a diagnostic
+textual representation.
+*/
+{
+  fprintf(f_debug, "============================= ");
+  fprintf(f_debug, "EdgHeapComplexToken ");
+  fprintf(f_debug, "==============================\n");
+  db_node(universal, 0);
+}  /* db_node */
+
+
+void db_node(const an_ifc_edg_token_basic &universal, unsigned indent)
+/*
+Given the universal representation of EdgTokenBasic, print a diagnostic textual
+representation with the given indent.
+*/
+{
+  if (has_ifc_kind(universal)) {
+    an_ifc_edg_basic_token_sort field = get_ifc_kind(universal);
+
+    db_print_indent(indent);
+    fprintf(f_debug, "kind: %s\n", str_for(field));
+  }  /* if */
+}  /* db_node */
+
+
+void db_node(const an_ifc_edg_token_basic &universal)
+/*
+Given the universal representation of EdgTokenBasic, print a diagnostic textual
+representation.
+*/
+{
+  fprintf(f_debug, "================================ ");
+  fprintf(f_debug, "EdgTokenBasic ");
+  fprintf(f_debug, "=================================\n");
+  db_node(universal, 0);
+}  /* db_node */
+
+
+void db_node(const an_ifc_edg_token_cache &universal, unsigned indent)
+/*
+Given the universal representation of EdgTokenCache, print a diagnostic textual
+representation with the given indent.
+*/
+{
+  if (has_ifc_complex_tokens(universal)) {
+    an_ifc_edg_heap_complex_token_offset field =
+                                             get_ifc_complex_tokens(universal);
+
+    db_print_indent(indent);
+    fprintf(f_debug, "complex_tokens: %llu\n",
+            (unsigned long long)field.value);
+  }  /* if */
+  if (has_ifc_num_complex_tokens(universal)) {
+    an_ifc_cardinality field = get_ifc_num_complex_tokens(universal);
+
+    db_print_indent(indent);
+    fprintf(f_debug, "num_complex_tokens: %llu\n",
+            (unsigned long long)field.value);
+  }  /* if */
+  if (has_ifc_num_tokens(universal)) {
+    an_ifc_cardinality field = get_ifc_num_tokens(universal);
+
+    db_print_indent(indent);
+    fprintf(f_debug, "num_tokens: %llu\n", (unsigned long long)field.value);
+  }  /* if */
+  if (has_ifc_tokens(universal)) {
+    an_ifc_edg_token_basic_offset field = get_ifc_tokens(universal);
+
+    db_print_indent(indent);
+    fprintf(f_debug, "tokens: %llu\n", (unsigned long long)field.value);
+  }  /* if */
+}  /* db_node */
+
+
+void db_node(const an_ifc_edg_token_cache &universal)
+/*
+Given the universal representation of EdgTokenCache, print a diagnostic textual
+representation.
+*/
+{
+  fprintf(f_debug, "================================ ");
+  fprintf(f_debug, "EdgTokenCache ");
+  fprintf(f_debug, "=================================\n");
+  db_node(universal, 0);
+}  /* db_node */
+
+
+void db_node(const an_ifc_edg_token_constant &universal, unsigned indent)
+/*
+Given the universal representation of EdgTokenConstant, print a diagnostic
+textual representation with the given indent.
+*/
+{
+  if (has_ifc_constant(universal)) {
+    an_ifc_edg_constant_index field = get_ifc_constant(universal);
+
+    db_print_indent(indent);
+    fprintf(f_debug, "constant:");
+    if (is_null_index(field)) {
+      fprintf(f_debug, " NULL\n");
+    } else {
+      fprintf(f_debug, "\n");
+      db_print_indent(indent);
+      fprintf(f_debug, "  sort: %s\n", str_for(field.sort));
+      db_print_indent(indent);
+      fprintf(f_debug, "  value: %llu\n", (unsigned long long)field.value);
+    }  /* if */
+  }  /* if */
+  if (has_ifc_kind(universal)) {
+    an_ifc_edg_constant_token_sort field = get_ifc_kind(universal);
+
+    db_print_indent(indent);
+    fprintf(f_debug, "kind: %s\n", str_for(field));
+  }  /* if */
+}  /* db_node */
+
+
+void db_node(const an_ifc_edg_token_constant &universal)
+/*
+Given the universal representation of EdgTokenConstant, print a diagnostic
+textual representation.
+*/
+{
+  fprintf(f_debug, "=============================== ");
+  fprintf(f_debug, "EdgTokenConstant ");
+  fprintf(f_debug, "===============================\n");
+  db_node(universal, 0);
+}  /* db_node */
+
+
+void db_node(const an_ifc_edg_token_identifier &universal, unsigned indent)
+/*
+Given the universal representation of EdgTokenIdentifier, print a diagnostic
+textual representation with the given indent.
+*/
+{
+  if (has_ifc_text(universal)) {
+    an_ifc_text_offset field = get_ifc_text(universal);
+
+    db_print_indent(indent);
+    fprintf(f_debug, "text: %llu\n", (unsigned long long)field.value);
+  }  /* if */
+}  /* db_node */
+
+
+void db_node(const an_ifc_edg_token_identifier &universal)
+/*
+Given the universal representation of EdgTokenIdentifier, print a diagnostic
+textual representation.
+*/
+{
+  fprintf(f_debug, "============================== ");
+  fprintf(f_debug, "EdgTokenIdentifier ");
+  fprintf(f_debug, "==============================\n");
+  db_node(universal, 0);
+}  /* db_node */
+
+
 void db_node(const an_ifc_expr_alignof &universal, unsigned indent)
 /*
 Given the universal representation of ExprAlignof, print a diagnostic textual
@@ -21960,6 +22221,107 @@ node.
       fprintf(f_debug, "Node not found.");
       break;
   }  /* switch */
+}  /* db_node_at_idx */
+
+
+void db_node_at_idx(an_ifc_edg_complex_token_index idx)
+/*
+Given the EdgComplexTokenIndex, print a diagnostic textual representation of
+the associated node.
+*/
+{
+  switch (idx.sort) {
+    case ifc_ects_edg_token_constant:
+      { an_ifc_edg_token_constant universal;
+
+        construct_node_prechecked(&universal, idx);
+        db_node(universal);
+      }
+      break;
+    case ifc_ects_edg_token_identifier:
+      { an_ifc_edg_token_identifier universal;
+
+        construct_node_prechecked(&universal, idx);
+        db_node(universal);
+      }
+      break;
+    default:
+      fprintf(f_debug, "Node not found.");
+      break;
+  }  /* switch */
+}  /* db_node_at_idx */
+
+
+void db_node_at_idx(an_ifc_edg_constant_index idx)
+/*
+Given the EdgConstantIndex, print a diagnostic textual representation of the
+associated node.
+*/
+{
+  switch (idx.sort) {
+    case ifc_ecs_edg_constant_integer:
+      { an_ifc_edg_constant_integer universal;
+
+        construct_node_prechecked(&universal, idx);
+        db_node(universal);
+      }
+      break;
+    default:
+      fprintf(f_debug, "Node not found.");
+      break;
+  }  /* switch */
+}  /* db_node_at_idx */
+
+
+void db_node_at_idx(an_ifc_edg_constant_integer_word_offset idx)
+/*
+Given the EdgConstantIntegerWordOffset, print a diagnostic textual
+representation of the associated node.
+*/
+{
+  an_ifc_edg_constant_integer_word universal;
+
+  construct_node_prechecked(&universal, idx);
+  db_node(universal);
+}  /* db_node_at_idx */
+
+
+void db_node_at_idx(an_ifc_edg_heap_complex_token_offset idx)
+/*
+Given the EdgHeapComplexTokenOffset, print a diagnostic textual representation
+of the associated node.
+*/
+{
+  an_ifc_edg_heap_complex_token universal;
+
+  construct_node_prechecked(&universal, idx);
+  db_node(universal);
+}  /* db_node_at_idx */
+
+
+void db_node_at_idx(an_ifc_edg_token_basic_offset idx)
+/*
+Given the EdgTokenBasicOffset, print a diagnostic textual representation of the
+associated node.
+*/
+{
+  an_ifc_edg_token_basic universal;
+
+  construct_node_prechecked(&universal, idx);
+  db_node(universal);
+}  /* db_node_at_idx */
+
+
+void db_node_at_idx(an_ifc_edg_token_cache_offset idx)
+/*
+Given the EdgTokenCacheOffset, print a diagnostic textual representation of the
+associated node.
+*/
+{
+  an_ifc_edg_token_cache universal;
+
+  construct_node_prechecked(&universal, idx);
+  db_node(universal);
 }  /* db_node_at_idx */
 
 

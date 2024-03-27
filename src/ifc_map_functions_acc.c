@@ -15505,6 +15505,603 @@ representation of the field "resolution".
 
 
 /*
+Functions for reading data from IFC EdgConstantInteger nodes.
+*/
+
+
+template<>
+a_boolean has_ifc_cardinality(const an_ifc_edg_constant_integer &universal)
+/*
+Return TRUE if the given universal representation has the field "cardinality";
+otherwise, return FALSE.
+*/
+{
+  an_ifc_module_file *file = universal.get_file();
+  a_boolean          result = FALSE;
+
+  if (is_at_least(file, 0, 43)) {
+    result = TRUE;
+  }  /* if */
+  return result;
+}  /* has_ifc_cardinality */
+
+
+template<>
+an_ifc_cardinality get_ifc_cardinality(
+                                  const an_ifc_edg_constant_integer &universal)
+/*
+Given the universal representation of EdgConstantInteger, return the universal
+representation of the field "cardinality".
+*/
+{
+  an_ifc_cardinality result;
+
+  /* Ensure the cardinality field exists in the current module version. */
+  check_assertion(has_ifc_cardinality(universal));
+  an_ifc_cardinality_0_33 stage_0;
+  an_ifc_cardinality      stage_1;
+
+  /* Copy the field (EdgConstantInteger::cardinality - Cardinality) into
+     version-specific storage. */
+  static_assert(sizeof(stage_0) == 4,
+                "stage_0 is not properly sized storage!");
+  copy_from_node_field(&stage_0, universal.get_storage(), /*offset=*/8);
+  stage_1 = {universal.get_file(), (an_ifc_cardinality_storage)stage_0};
+  result = stage_1;
+  return result;
+}  /* get_ifc_cardinality */
+
+
+template<>
+a_boolean has_ifc_start(const an_ifc_edg_constant_integer &universal)
+/*
+Return TRUE if the given universal representation has the field "start";
+otherwise, return FALSE.
+*/
+{
+  an_ifc_module_file *file = universal.get_file();
+  a_boolean          result = FALSE;
+
+  if (is_at_least(file, 0, 43)) {
+    result = TRUE;
+  }  /* if */
+  return result;
+}  /* has_ifc_start */
+
+
+template<>
+an_ifc_edg_constant_integer_word_offset get_ifc_start(
+                                  const an_ifc_edg_constant_integer &universal)
+/*
+Given the universal representation of EdgConstantInteger, return the universal
+representation of the field "start".
+*/
+{
+  an_ifc_edg_constant_integer_word_offset result;
+
+  /* Ensure the start field exists in the current module version. */
+  check_assertion(has_ifc_start(universal));
+  an_ifc_edg_constant_integer_word_offset_0_43 stage_0;
+  an_ifc_edg_constant_integer_word_offset      stage_1;
+
+  /* Copy the field (EdgConstantInteger::start - EdgConstantIntegerWordOffset)
+     into version-specific storage. */
+  static_assert(sizeof(stage_0) == 4,
+                "stage_0 is not properly sized storage!");
+  copy_from_node_field(&stage_0, universal.get_storage(), /*offset=*/4);
+  stage_1 = to_universal_offset(universal.get_file(), stage_0);
+  result = stage_1;
+  return result;
+}  /* get_ifc_start */
+
+
+template<>
+a_boolean has_ifc_type(const an_ifc_edg_constant_integer &universal)
+/*
+Return TRUE if the given universal representation has the field "type";
+otherwise, return FALSE.
+*/
+{
+  an_ifc_module_file *file = universal.get_file();
+  a_boolean          result = FALSE;
+
+  if (is_at_least(file, 0, 43)) {
+    result = TRUE;
+  }  /* if */
+  return result;
+}  /* has_ifc_type */
+
+
+template<>
+an_ifc_type_index get_ifc_type(const an_ifc_edg_constant_integer &universal)
+/*
+Given the universal representation of EdgConstantInteger, return the universal
+representation of the field "type".
+*/
+{
+  an_ifc_type_index result;
+
+  /* Ensure the type field exists in the current module version. */
+  check_assertion(has_ifc_type(universal));
+  an_ifc_type_index_0_33 stage_0;
+  an_ifc_type_index      stage_1;
+
+  /* Copy the field (EdgConstantInteger::type - TypeIndex) into
+     version-specific storage. */
+  static_assert(sizeof(stage_0) == 4,
+                "stage_0 is not properly sized storage!");
+  copy_from_node_field(&stage_0, universal.get_storage(), /*offset=*/0);
+  stage_1 = to_universal_index(universal.get_file(), stage_0);
+  result = stage_1;
+  return result;
+}  /* get_ifc_type */
+
+
+/*
+Functions for reading data from IFC EdgConstantIntegerWord nodes.
+*/
+
+
+template<>
+a_boolean has_ifc_bytes(const an_ifc_edg_constant_integer_word &universal)
+/*
+Return TRUE if the given universal representation has the field "bytes";
+otherwise, return FALSE.
+*/
+{
+  an_ifc_module_file *file = universal.get_file();
+  a_boolean          result = FALSE;
+
+  if (is_at_least(file, 0, 43)) {
+    result = TRUE;
+  }  /* if */
+  return result;
+}  /* has_ifc_bytes */
+
+
+template<>
+an_ifc_edg_constant_word get_ifc_bytes(
+                             const an_ifc_edg_constant_integer_word &universal)
+/*
+Given the universal representation of EdgConstantIntegerWord, return the
+universal representation of the field "bytes".
+*/
+{
+  an_ifc_edg_constant_word result;
+
+  /* Ensure the bytes field exists in the current module version. */
+  check_assertion(has_ifc_bytes(universal));
+  an_ifc_edg_constant_word_bytes stage_0;
+  an_ifc_edg_constant_word       stage_1;
+
+#if USE_MMAP_FOR_MODULES
+  /* Update the universal storage pointer to the start of the field
+     (EdgConstantIntegerWord::bytes - EdgConstantWord). */
+  stage_0 = (an_ifc_edg_constant_word_bytes)((*universal.get_storage()) + 0);
+#else /* !USE_MMAP_FOR_MODULES */
+  /* Copy the field (EdgConstantIntegerWord::bytes - EdgConstantWord) into
+     universal storage. */
+  copy_from_node_field(&stage_0, universal.get_storage(), /*offset=*/0,
+                       /*size=*/4);
+#endif /* USE_MMAP_FOR_MODULES */
+  stage_1 = {universal.get_file(), stage_0};
+  result = stage_1;
+  return result;
+}  /* get_ifc_bytes */
+
+
+/*
+Functions for reading data from IFC EdgHeapComplexToken nodes.
+*/
+
+
+template<>
+a_boolean has_ifc_index(const an_ifc_edg_heap_complex_token &universal)
+/*
+Return TRUE if the given universal representation has the field "index";
+otherwise, return FALSE.
+*/
+{
+  an_ifc_module_file *file = universal.get_file();
+  a_boolean          result = FALSE;
+
+  if (is_at_least(file, 0, 43)) {
+    result = TRUE;
+  }  /* if */
+  return result;
+}  /* has_ifc_index */
+
+
+template<>
+an_ifc_edg_complex_token_index get_ifc_index(
+                                const an_ifc_edg_heap_complex_token &universal)
+/*
+Given the universal representation of EdgHeapComplexToken, return the universal
+representation of the field "index".
+*/
+{
+  an_ifc_edg_complex_token_index result;
+
+  /* Ensure the index field exists in the current module version. */
+  check_assertion(has_ifc_index(universal));
+  an_ifc_edg_complex_token_index_0_43 stage_0;
+  an_ifc_edg_complex_token_index      stage_1;
+
+  /* Copy the field (EdgHeapComplexToken::index - EdgComplexTokenIndex) into
+     version-specific storage. */
+  static_assert(sizeof(stage_0) == 4,
+                "stage_0 is not properly sized storage!");
+  copy_from_node_field(&stage_0, universal.get_storage(), /*offset=*/0);
+  stage_1 = to_universal_index(universal.get_file(), stage_0);
+  result = stage_1;
+  return result;
+}  /* get_ifc_index */
+
+
+/*
+Functions for reading data from IFC EdgTokenBasic nodes.
+*/
+
+
+template<>
+a_boolean has_ifc_kind(const an_ifc_edg_token_basic &universal)
+/*
+Return TRUE if the given universal representation has the field "kind";
+otherwise, return FALSE.
+*/
+{
+  an_ifc_module_file *file = universal.get_file();
+  a_boolean          result = FALSE;
+
+  if (is_at_least(file, 0, 43)) {
+    result = TRUE;
+  }  /* if */
+  return result;
+}  /* has_ifc_kind */
+
+
+template<>
+an_ifc_edg_basic_token_sort get_ifc_kind(
+                                       const an_ifc_edg_token_basic &universal)
+/*
+Given the universal representation of EdgTokenBasic, return the universal
+representation of the field "kind".
+*/
+{
+  an_ifc_edg_basic_token_sort result;
+
+  /* Ensure the kind field exists in the current module version. */
+  check_assertion(has_ifc_kind(universal));
+  an_ifc_edg_basic_token_sort_0_43 stage_0;
+  an_ifc_edg_basic_token_sort      stage_1;
+
+  /* Copy the field (EdgTokenBasic::kind - EdgBasicTokenSort) into
+     version-specific storage. */
+  static_assert(sizeof(stage_0) == 4,
+                "stage_0 is not properly sized storage!");
+  copy_from_node_field(&stage_0, universal.get_storage(), /*offset=*/0);
+  stage_1 = to_universal_sort(stage_0);
+  result = stage_1;
+  return result;
+}  /* get_ifc_kind */
+
+
+/*
+Functions for reading data from IFC EdgTokenCache nodes.
+*/
+
+
+template<>
+a_boolean has_ifc_complex_tokens(const an_ifc_edg_token_cache &universal)
+/*
+Return TRUE if the given universal representation has the field
+"complex_tokens"; otherwise, return FALSE.
+*/
+{
+  an_ifc_module_file *file = universal.get_file();
+  a_boolean          result = FALSE;
+
+  if (is_at_least(file, 0, 43)) {
+    result = TRUE;
+  }  /* if */
+  return result;
+}  /* has_ifc_complex_tokens */
+
+
+template<>
+an_ifc_edg_heap_complex_token_offset get_ifc_complex_tokens(
+                                       const an_ifc_edg_token_cache &universal)
+/*
+Given the universal representation of EdgTokenCache, return the universal
+representation of the field "complex_tokens".
+*/
+{
+  an_ifc_edg_heap_complex_token_offset result;
+
+  /* Ensure the complex_tokens field exists in the current module version. */
+  check_assertion(has_ifc_complex_tokens(universal));
+  an_ifc_edg_heap_complex_token_offset_0_43 stage_0;
+  an_ifc_edg_heap_complex_token_offset      stage_1;
+
+  /* Copy the field (EdgTokenCache::complex_tokens - EdgHeapComplexTokenOffset)
+     into version-specific storage. */
+  static_assert(sizeof(stage_0) == 4,
+                "stage_0 is not properly sized storage!");
+  copy_from_node_field(&stage_0, universal.get_storage(), /*offset=*/8);
+  stage_1 = to_universal_offset(universal.get_file(), stage_0);
+  result = stage_1;
+  return result;
+}  /* get_ifc_complex_tokens */
+
+
+template<>
+a_boolean has_ifc_num_complex_tokens(const an_ifc_edg_token_cache &universal)
+/*
+Return TRUE if the given universal representation has the field
+"num_complex_tokens"; otherwise, return FALSE.
+*/
+{
+  an_ifc_module_file *file = universal.get_file();
+  a_boolean          result = FALSE;
+
+  if (is_at_least(file, 0, 43)) {
+    result = TRUE;
+  }  /* if */
+  return result;
+}  /* has_ifc_num_complex_tokens */
+
+
+template<>
+an_ifc_cardinality get_ifc_num_complex_tokens(
+                                       const an_ifc_edg_token_cache &universal)
+/*
+Given the universal representation of EdgTokenCache, return the universal
+representation of the field "num_complex_tokens".
+*/
+{
+  an_ifc_cardinality result;
+
+  /* Ensure the num_complex_tokens field exists in the current module
+     version. */
+  check_assertion(has_ifc_num_complex_tokens(universal));
+  an_ifc_cardinality_0_33 stage_0;
+  an_ifc_cardinality      stage_1;
+
+  /* Copy the field (EdgTokenCache::num_complex_tokens - Cardinality) into
+     version-specific storage. */
+  static_assert(sizeof(stage_0) == 4,
+                "stage_0 is not properly sized storage!");
+  copy_from_node_field(&stage_0, universal.get_storage(), /*offset=*/12);
+  stage_1 = {universal.get_file(), (an_ifc_cardinality_storage)stage_0};
+  result = stage_1;
+  return result;
+}  /* get_ifc_num_complex_tokens */
+
+
+template<>
+a_boolean has_ifc_num_tokens(const an_ifc_edg_token_cache &universal)
+/*
+Return TRUE if the given universal representation has the field "num_tokens";
+otherwise, return FALSE.
+*/
+{
+  an_ifc_module_file *file = universal.get_file();
+  a_boolean          result = FALSE;
+
+  if (is_at_least(file, 0, 43)) {
+    result = TRUE;
+  }  /* if */
+  return result;
+}  /* has_ifc_num_tokens */
+
+
+template<>
+an_ifc_cardinality get_ifc_num_tokens(const an_ifc_edg_token_cache &universal)
+/*
+Given the universal representation of EdgTokenCache, return the universal
+representation of the field "num_tokens".
+*/
+{
+  an_ifc_cardinality result;
+
+  /* Ensure the num_tokens field exists in the current module version. */
+  check_assertion(has_ifc_num_tokens(universal));
+  an_ifc_cardinality_0_33 stage_0;
+  an_ifc_cardinality      stage_1;
+
+  /* Copy the field (EdgTokenCache::num_tokens - Cardinality) into
+     version-specific storage. */
+  static_assert(sizeof(stage_0) == 4,
+                "stage_0 is not properly sized storage!");
+  copy_from_node_field(&stage_0, universal.get_storage(), /*offset=*/4);
+  stage_1 = {universal.get_file(), (an_ifc_cardinality_storage)stage_0};
+  result = stage_1;
+  return result;
+}  /* get_ifc_num_tokens */
+
+
+template<>
+a_boolean has_ifc_tokens(const an_ifc_edg_token_cache &universal)
+/*
+Return TRUE if the given universal representation has the field "tokens";
+otherwise, return FALSE.
+*/
+{
+  an_ifc_module_file *file = universal.get_file();
+  a_boolean          result = FALSE;
+
+  if (is_at_least(file, 0, 43)) {
+    result = TRUE;
+  }  /* if */
+  return result;
+}  /* has_ifc_tokens */
+
+
+template<>
+an_ifc_edg_token_basic_offset get_ifc_tokens(
+                                       const an_ifc_edg_token_cache &universal)
+/*
+Given the universal representation of EdgTokenCache, return the universal
+representation of the field "tokens".
+*/
+{
+  an_ifc_edg_token_basic_offset result;
+
+  /* Ensure the tokens field exists in the current module version. */
+  check_assertion(has_ifc_tokens(universal));
+  an_ifc_edg_token_basic_offset_0_43 stage_0;
+  an_ifc_edg_token_basic_offset      stage_1;
+
+  /* Copy the field (EdgTokenCache::tokens - EdgTokenBasicOffset) into
+     version-specific storage. */
+  static_assert(sizeof(stage_0) == 4,
+                "stage_0 is not properly sized storage!");
+  copy_from_node_field(&stage_0, universal.get_storage(), /*offset=*/0);
+  stage_1 = to_universal_offset(universal.get_file(), stage_0);
+  result = stage_1;
+  return result;
+}  /* get_ifc_tokens */
+
+
+/*
+Functions for reading data from IFC EdgTokenConstant nodes.
+*/
+
+
+template<>
+a_boolean has_ifc_constant(const an_ifc_edg_token_constant &universal)
+/*
+Return TRUE if the given universal representation has the field "constant";
+otherwise, return FALSE.
+*/
+{
+  an_ifc_module_file *file = universal.get_file();
+  a_boolean          result = FALSE;
+
+  if (is_at_least(file, 0, 43)) {
+    result = TRUE;
+  }  /* if */
+  return result;
+}  /* has_ifc_constant */
+
+
+template<>
+an_ifc_edg_constant_index get_ifc_constant(
+                                    const an_ifc_edg_token_constant &universal)
+/*
+Given the universal representation of EdgTokenConstant, return the universal
+representation of the field "constant".
+*/
+{
+  an_ifc_edg_constant_index result;
+
+  /* Ensure the constant field exists in the current module version. */
+  check_assertion(has_ifc_constant(universal));
+  an_ifc_edg_constant_index_0_43 stage_0;
+  an_ifc_edg_constant_index      stage_1;
+
+  /* Copy the field (EdgTokenConstant::constant - EdgConstantIndex) into
+     version-specific storage. */
+  static_assert(sizeof(stage_0) == 4,
+                "stage_0 is not properly sized storage!");
+  copy_from_node_field(&stage_0, universal.get_storage(), /*offset=*/4);
+  stage_1 = to_universal_index(universal.get_file(), stage_0);
+  result = stage_1;
+  return result;
+}  /* get_ifc_constant */
+
+
+template<>
+a_boolean has_ifc_kind(const an_ifc_edg_token_constant &universal)
+/*
+Return TRUE if the given universal representation has the field "kind";
+otherwise, return FALSE.
+*/
+{
+  an_ifc_module_file *file = universal.get_file();
+  a_boolean          result = FALSE;
+
+  if (is_at_least(file, 0, 43)) {
+    result = TRUE;
+  }  /* if */
+  return result;
+}  /* has_ifc_kind */
+
+
+template<>
+an_ifc_edg_constant_token_sort get_ifc_kind(
+                                    const an_ifc_edg_token_constant &universal)
+/*
+Given the universal representation of EdgTokenConstant, return the universal
+representation of the field "kind".
+*/
+{
+  an_ifc_edg_constant_token_sort result;
+
+  /* Ensure the kind field exists in the current module version. */
+  check_assertion(has_ifc_kind(universal));
+  an_ifc_edg_constant_token_sort_0_43 stage_0;
+  an_ifc_edg_constant_token_sort      stage_1;
+
+  /* Copy the field (EdgTokenConstant::kind - EdgConstantTokenSort) into
+     version-specific storage. */
+  static_assert(sizeof(stage_0) == 4,
+                "stage_0 is not properly sized storage!");
+  copy_from_node_field(&stage_0, universal.get_storage(), /*offset=*/0);
+  stage_1 = to_universal_sort(stage_0);
+  result = stage_1;
+  return result;
+}  /* get_ifc_kind */
+
+
+/*
+Functions for reading data from IFC EdgTokenIdentifier nodes.
+*/
+
+
+template<>
+a_boolean has_ifc_text(const an_ifc_edg_token_identifier &universal)
+/*
+Return TRUE if the given universal representation has the field "text";
+otherwise, return FALSE.
+*/
+{
+  an_ifc_module_file *file = universal.get_file();
+  a_boolean          result = FALSE;
+
+  if (is_at_least(file, 0, 43)) {
+    result = TRUE;
+  }  /* if */
+  return result;
+}  /* has_ifc_text */
+
+
+template<>
+an_ifc_text_offset get_ifc_text(const an_ifc_edg_token_identifier &universal)
+/*
+Given the universal representation of EdgTokenIdentifier, return the universal
+representation of the field "text".
+*/
+{
+  an_ifc_text_offset result;
+
+  /* Ensure the text field exists in the current module version. */
+  check_assertion(has_ifc_text(universal));
+  an_ifc_text_offset_0_33 stage_0;
+  an_ifc_text_offset      stage_1;
+
+  /* Copy the field (EdgTokenIdentifier::text - TextOffset) into
+     version-specific storage. */
+  static_assert(sizeof(stage_0) == 4,
+                "stage_0 is not properly sized storage!");
+  copy_from_node_field(&stage_0, universal.get_storage(), /*offset=*/0);
+  stage_1 = {universal.get_file(), (an_ifc_text_offset_storage)stage_0};
+  result = stage_1;
+  return result;
+}  /* get_ifc_text */
+
+
+/*
 Functions for reading data from IFC ExprAlignof nodes.
 */
 
