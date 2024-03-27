@@ -873,8 +873,8 @@ static an_ifc_index_type to_partition_index(an_ifc_module         *mod,
                                             an_ifc_partition_kind partition,
                                             size_t                file_offset)
 /*
-Give a partition kind and an offset into the give module's file for an element,
-return the respective partition index.
+Given a partition kind and an offset into the given module's file for an
+element, return the respective partition index.
 */
 {
   /* Compute the index into the partition by first subtracting the start of the
@@ -25579,7 +25579,7 @@ static a_boolean cache_edg_complex_token(
                                       a_module_token_cache_ptr       cache,
                                       an_ifc_edg_complex_token_index token_idx)
 /*
-Given a token cache and an EDG IFC token index, cache the give complex token.
+Given a token cache and an EDG IFC token index, cache the given complex token.
 */
 {
   a_boolean result = TRUE;
