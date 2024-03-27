@@ -25740,7 +25740,7 @@ tuple elements by '::' instead of ','.
         an_ifc_index_type expected_offset = expr.value - 1;
 
         /* The offset is going to be manually constructed (and thus isn't
-           subject to the normal protection of the IFC validator), explicitly
+           subject to the normal protection of the IFC validator): Explicitly
            perform presence checking. */
         if (!validate_element_exists(expr.file, ifc_pk_edg_token_cache,
                                      expected_offset, /*trace=*/NULL)) {
