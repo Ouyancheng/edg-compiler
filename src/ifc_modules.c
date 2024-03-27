@@ -23920,7 +23920,11 @@ Cache the given basic token into the given front end token cache.
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
       break;
     case ifc_ebts_bases:
+#if GNU_EXTENSIONS_ALLOWED
       cache_token(cache, tok_bases);
+#else /* !GNU_EXTENSIONS_ALLOWED */
+      config_missing_token_error(cache, basic_token);
+#endif /* GNU_EXTENSIONS_ALLOWED */
       break;
     case ifc_ebts_bool:
       cache_token(cache, tok_bool);
@@ -24107,7 +24111,11 @@ Cache the given basic token into the given front end token cache.
       cache_token(cache, tok_delete);
       break;
     case ifc_ebts_direct_bases:
+#if GNU_EXTENSIONS_ALLOWED
       cache_token(cache, tok_direct_bases);
+#else /* !GNU_EXTENSIONS_ALLOWED */
+      config_missing_token_error(cache, basic_token);
+#endif /* GNU_EXTENSIONS_ALLOWED */
       break;
     case ifc_ebts_divide:
       cache_token(cache, tok_divide);
@@ -24314,7 +24322,11 @@ Cache the given basic token into the given front end token cache.
 #endif /* SUN_EXTENSIONS_ALLOWED */
       break;
     case ifc_ebts_gnu_imag:
+#if GNU_EXTENSIONS_ALLOWED
       cache_token(cache, tok_gnu_imag);
+#else /* !GNU_EXTENSIONS_ALLOWED */
+      config_missing_token_error(cache, basic_token);
+#endif /* GNU_EXTENSIONS_ALLOWED */
       break;
     case ifc_ebts_gnu_max:
       cache_token(cache, tok_gnu_max);

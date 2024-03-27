@@ -2271,13 +2271,20 @@ the expr index for the constant.
 #if FIXED_POINT_ALLOWED
     case ck_fixed_point:
 #endif /* FIXED_POINT_ALLOWED */
+#if DO_IL_LOWERING && GENERATE_EH_TABLES && !DO_FULL_PORTABLE_EH_LOWERING
+    case ck_stack_offset:
+#endif /* DO_IL_LOWERING && ... */
     case ck_string:
     case ck_float:
+#if C99_IL_EXTENSIONS_SUPPORTED
     case ck_complex:
     case ck_imaginary:
+#endif /* C99_IL_EXTENSIONS_SUPPORTED */
     case ck_address:
     case ck_ptr_to_member:
+#if GNU_EXTENSIONS_ALLOWED
     case ck_label_difference:
+#endif /* GNU_EXTENSIONS_ALLOWED */
     case ck_dynamic_init:
     case ck_aggregate:
     case ck_init_repeat:
