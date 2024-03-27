@@ -2249,9 +2249,10 @@ the expr index for the constant.
         a_type_ptr
                 constant_type = cp->type;
         if (is_enum_type(constant_type)) {
-          /* Enum constants need to be converted back to their vanilla integer
-             constant representation.  The reader will take care of restoring
-             associating enum type after parsing. */
+          /* The IFC reading code expects an integer constant with a
+             fundamental integral type.  The constant's enumeration type will
+             be restored automatically as part of the reconstruction
+             process. */
           an_integer_kind
                 underlying_int_kind = constant_type->variant.integer.int_kind;
 
@@ -2312,8 +2313,8 @@ an_ifc_edg_complex_token_index an_ifc_il_map::enter_constant_token(
                                    an_ifc_edg_constant_index      constant_idx)
 
 /*
-For the given constant and constant token kind, enter the constant into the IFC
-output state.  Return the complex token index the token.
+For the given constant and constant token kind, enter a complex constant token
+into the IFC output state.  Return the index of the token.
 */
 {
   an_ifc_edg_token_constant
