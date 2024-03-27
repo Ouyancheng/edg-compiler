@@ -247,7 +247,7 @@ CTOI    (__c99_cfloat16_to_ifloat16, _Float16, _Complex_float16)
 CTOR    (__c99_cfloat16_to_float16, _Float16, _Complex_float16)
 #if __EDG_HAS_BFLOAT16_TYPE
 CAST    (__c99_cfloat16_to_cbfloat16, _Complex_bfloat16, _Complex_float16,
-                                      _EDG_bfloat16)
+                                      _EDG_bfloat16_t)
 #endif /* __EDG_HAS_BFLOAT16_TYPE */
 CAST    (__c99_cfloat16_to_cfloat, _Complex_float, _Complex_float16, float)
 CAST    (__c99_cfloat16_to_cdouble, _Complex_double, _Complex_float16, double)

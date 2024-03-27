@@ -1,3 +1,12 @@
+3/27/24  [EDGcpfe/27124]
+Build error in c99_complex.c with _EDG_bfloat16
+
+The changes for EDGcpfe/26466 in version 6.6 introduced a build error in
+which the type _EDG_bfloat16_t was misspelled as _EDG_bfloat16 in one
+reference.  This is now fixed.
+
+
+-------------------------------------------------------------------------------
 Version 6.6, December 18, 2023
 
 9/19/23  [EDGcpfe/26466]
