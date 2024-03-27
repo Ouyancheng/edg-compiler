@@ -32,7 +32,7 @@ configurations with EXPENSIVE_CHECKING set to TRUE, a "Recursive qualifier"
 internal error was issued instead.)  This is now fixed.
 
 
-3/19/24   [EDGcpfe/27107]
+3/19/24  [EDGcpfe/27107]
 Clang compatibility: allow floating-point types in some atomic builtins
 
 It appears that Clang versions 13.0.0 and later now allow certain
@@ -45,15 +45,15 @@ The front end now emulates that when clang_version >= 130000.  For example:
   }
 
 
-3/14/24   [EDGcpfe/27103]
+3/14/24  [EDGcpfe/27103]
 GNU compatibility: builtin signatures for the "cmpccxadd" target
 
 Builtin signatures were added for the "cmpccxadd" target (which affects
 only GNU emulation modes when gnu_version >= 130100).
 
 
-3/14/24   [EDGcpfe/24511,EDGcpfe/25768,EDGcpfe/26155,EDGcpfe/26885,
-           EDGcpfe/26911,EDGcpfe/27099]
+3/14/24  [EDGcpfe/24511,EDGcpfe/25768,EDGcpfe/26155,EDGcpfe/26885,
+          EDGcpfe/26911,EDGcpfe/27099]
 GNU compatibility: Comparison of integer vector types
 
 Consider, in GNU C++ mode:
