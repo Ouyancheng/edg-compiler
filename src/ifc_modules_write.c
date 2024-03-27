@@ -2249,7 +2249,7 @@ the expr index for the constant.
         a_type_ptr
                 constant_type = cp->type;
         if (is_enum_type(constant_type)) {
-          /* Enum constants need converted back to their vanilla integer
+          /* Enum constants need to be converted back to their vanilla integer
              constant representation.  The reader will take care of restoring
              associating enum type after parsing. */
           an_integer_kind
