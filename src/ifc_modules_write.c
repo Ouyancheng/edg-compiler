@@ -2033,7 +2033,7 @@ sequence representing the IFC DeclSort::Enumerators.
        block. */
     size_t      start = this->output_state->
                        alloc_node_block<an_ifc_decl_enumerator>(num_constants);
-    /* Associate the preallocated enumerators nodes with the sequence. */
+    /* Associate the preallocated enumerator nodes with the sequence. */
     an_ifc_index
                 ifc_start(this->get_default_file(), start);
     an_ifc_cardinality
