@@ -129,6 +129,9 @@ partition byte buffer where the node starts.
 }  /* an_ifc_output_partition::fetch_element */
 
 
+struct an_ifc_output_token_cache;
+
+
 /*
 This structure represents the IFC file we're building up in memory.
 */
@@ -155,6 +158,14 @@ struct an_ifc_output_state {
   inline an_ifc_type_index alloc_type(an_ifc_Node_type *result);
   template<typename an_ifc_Node_type>
   inline an_ifc_name_index alloc_name(an_ifc_Node_type *result);
+  template<typename an_ifc_Node_type>
+  inline an_ifc_edg_constant_index alloc_constant(an_ifc_Node_type *result);
+
+  template<typename an_ifc_Node_type>
+  inline an_ifc_edg_complex_token_index alloc_complex_token(
+                                                     an_ifc_Node_type *result);
+  inline an_ifc_expr_index alloc_token_cache(
+                                const an_ifc_output_token_cache &output_cache);
 
   template<typename an_ifc_Node_type>
   inline void fetch_node(an_ifc_Node_type *result, size_t index);
@@ -351,8 +362,46 @@ allocated node.  Return the node's name index.
 
 
 template<typename an_ifc_Node_type>
-inline void an_ifc_output_state::fetch_node(an_ifc_Node_type *result,
-                                            size_t           index)
+an_ifc_edg_constant_index an_ifc_output_state::alloc_constant(
+                                                      an_ifc_Node_type *result)
+/*
+Allocate a constant node in its corresponding output partition.  Set *result to
+the allocated node.  Return the node's constant index.
+*/
+{
+  an_ifc_partition_kind
+                part_kind = get_ifc_partition_kind<an_ifc_Node_type>();
+  size_t        part_offset = this->alloc_node(result);
+  an_ifc_edg_constant_sort
+                constant_sort = to_edg_constant_sort(part_kind);
+
+  return an_ifc_edg_constant_index(result->get_file(), constant_sort,
+                                   part_offset);
+}  /* an_ifc_output_state::alloc_constant */
+
+
+template<typename an_ifc_Node_type>
+an_ifc_edg_complex_token_index an_ifc_output_state::alloc_complex_token(
+                                                      an_ifc_Node_type *result)
+/*
+Allocate a complex token node in its corresponding output partition.  Set
+*result to the allocated node.  Return the node's complex token index.
+*/
+{
+  an_ifc_partition_kind
+                part_kind = get_ifc_partition_kind<an_ifc_Node_type>();
+  size_t        part_offset = this->alloc_node(result);
+  an_ifc_edg_complex_token_sort
+                token_sort = to_edg_complex_token_sort(part_kind);
+
+  return an_ifc_edg_complex_token_index(result->get_file(), token_sort,
+                                        part_offset);
+}  /* an_ifc_output_state::alloc_complex_token */
+
+
+template<typename an_ifc_Node_type>
+void an_ifc_output_state::fetch_node(an_ifc_Node_type *result,
+                                     size_t           index)
 /*
 Fetch a node from its corresponding output partition at the given index.  Set
 *result to the fetched node.
@@ -770,6 +819,131 @@ using a_scope_member_array = Dyn_array<an_ifc_decl_index, General_allocator>;
                            members for an_ifc_il_map::scope_members. */
 
 /*
+A structure used to represent a token cache to be added to the IFC.  This
+structure does not itself create any IFC nodes; instead it represents the token
+cache as it is constructed.  To form the token cache represented by its current
+state it should be passed to an_ifc_output_state::alloc_token_cache.
+*/
+struct an_ifc_output_token_cache {
+  void add_basic(an_ifc_edg_basic_token_sort basic_token);
+  void add_complex(an_ifc_edg_complex_token_index complex_token);
+
+  size_t get_num_basic_tokens() const
+    { return this->basic_tokens.length(); }
+  size_t get_num_complex_tokens() const
+    { return this->complex_tokens.length(); }
+
+  an_ifc_edg_basic_token_sort get_basic_token(size_t i) const
+    { return this->basic_tokens[i]; }
+  an_ifc_edg_complex_token_index get_complex_token(size_t i) const
+    { return this->complex_tokens[i]; }
+private:
+  Dyn_array<an_ifc_edg_basic_token_sort, General_allocator>
+                basic_tokens = {};
+                        /* This is the array of EDG IFC basic tokens that will
+                           be converted to a block of EDG IFC TokenBasic
+                           nodes. */
+  Dyn_array<an_ifc_edg_complex_token_index, General_allocator>
+                complex_tokens = {};
+                        /* This is the array of EDG IFC complex token indexes
+                           that will be converted to a block of EDG IFC
+                           TokenComplex nodes. */
+};  /* an_ifc_output_token_cache */
+
+
+an_ifc_expr_index an_ifc_output_state::alloc_token_cache(
+                                 const an_ifc_output_token_cache &output_cache)
+/*
+Allocate and populate the token cache with the information tracked by the given
+IFC output token cache.  Return the IFC expression index of the created token
+cache.
+*/
+{
+  /* Allocate the token cache. */
+  an_ifc_edg_token_cache
+                token_cache;
+  size_t        token_cache_offset = this->alloc_node(&token_cache);
+  an_ifc_expr_index
+                result(token_cache.get_file(), ifc_es_expr_vendor_extension,
+                       token_cache_offset + 1);
+  /* Allocate the basic and complex token blocks. */
+  size_t        num_basic_tokens = output_cache.get_num_basic_tokens();
+  size_t        basic_tokens_start = this->
+                                      alloc_node_block<an_ifc_edg_token_basic>(
+                                                             num_basic_tokens);
+  size_t        num_complex_tokens = output_cache.get_num_complex_tokens();
+  size_t        complex_tokens_start = this->
+                               alloc_node_block<an_ifc_edg_heap_complex_token>(
+                                                           num_complex_tokens);
+  /* Associate the basic tokens with the token cache. */
+  an_ifc_edg_token_basic_offset
+                ifc_basic_tokens_start(token_cache.get_file(),
+                                       basic_tokens_start);
+  an_ifc_cardinality
+                ifc_num_basic_tokens(token_cache.get_file(), num_basic_tokens);
+  set_ifc_tokens(&token_cache, ifc_basic_tokens_start);
+  set_ifc_num_tokens(&token_cache, ifc_num_basic_tokens);
+
+  /* Associate the complex tokens with the token cache. */
+  an_ifc_edg_heap_complex_token_offset
+                ifc_complex_tokens_start(token_cache.get_file(),
+                                         complex_tokens_start);
+  an_ifc_cardinality
+                ifc_num_complex_tokens(token_cache.get_file(),
+                                       num_complex_tokens);
+  set_ifc_complex_tokens(&token_cache, ifc_complex_tokens_start);
+  set_ifc_num_complex_tokens(&token_cache, ifc_num_complex_tokens);
+
+  /* Complete the basic tokens. */
+  for (size_t i = 0; i < num_basic_tokens; ++i) {
+    an_ifc_edg_token_basic basic_token;
+
+    this->fetch_node(&basic_token, basic_tokens_start + i);
+    set_ifc_kind(&basic_token, output_cache.get_basic_token(i));
+  }  /* for */
+  /* Complete the complex tokens. */
+  for (size_t i = 0; i < num_complex_tokens; ++i) {
+    an_ifc_edg_heap_complex_token complex_token;
+
+    this->fetch_node(&complex_token, complex_tokens_start + i);
+    set_ifc_index(&complex_token, output_cache.get_complex_token(i));
+  }  /* for */
+  return result;
+}  /* an_ifc_output_state::alloc_token_cache */
+
+
+/*
+FIXME: This is disabled to suppress build warnings about an unused function
+with internal linkage.  Re-enable this function when we're ready to use it.
+*/
+#if 0
+
+void an_ifc_output_token_cache::add_basic(
+                                       an_ifc_edg_basic_token_sort basic_token)
+/*
+Add the given basic token to the end of the token cache.
+*/
+{
+  /* Complex tokens should be added via add_complex not add_basic to ensure
+     the complex token and basic token arrays are properly managed. */
+  check_assertion(basic_token != ifc_ebts_complex);
+  this->basic_tokens.push_back(basic_token);
+}  /* an_ifc_output_token_cache::add_basic */
+
+#endif /* 0 */
+
+void an_ifc_output_token_cache::add_complex(
+                                      an_ifc_edg_complex_token_index token_idx)
+/*
+Add the given complex token to the end of the token cache.
+*/
+{
+  this->basic_tokens.push_back(ifc_ebts_complex);
+  this->complex_tokens.push_back(token_idx);
+}  /* an_ifc_output_token_cache::add_complex */
+
+
+/*
 This structure maps IL entries to their IFC entries.
 */
 struct an_ifc_il_map {
@@ -817,10 +991,19 @@ private:
   an_ifc_type_index enter_typedef_type(a_type_ptr type);
   an_ifc_type_index enter_void_type(a_type_ptr type);
 
+  an_ifc_sequence enter_enumerators(a_type_ptr type);
   an_ifc_chart_index enter_routine_params(a_routine_ptr rp);
+
+  an_ifc_edg_constant_index enter_constant(a_constant_ptr cp);
+
+  an_ifc_edg_complex_token_index enter_constant_token(
+                                  an_ifc_edg_constant_token_sort token_kind,
+                                  an_ifc_edg_constant_index      constant_idx);
 
   an_ifc_type_index find_or_enter_namespace_scope_type();
   an_ifc_type_index find_or_enter_alias_typedef_type();
+  an_ifc_type_index find_or_enter_scoped_enum_type();
+  an_ifc_type_index find_or_enter_unscoped_enum_type();
 
   an_ifc_decl_index enter_namespace(a_scope_ptr scope);
   an_ifc_decl_index enter_typedef(a_type_ptr type);
@@ -857,6 +1040,14 @@ private:
                 fund_alias_typedef_type;
                         /* The fundamental type used to represent a typedef
                            DeclSort::Alias. */
+  an_ifc_type_index
+                fund_scoped_enum_type;
+                        /* The fundamental type used to represent a scoped
+                           DeclSort::Enumeration. */
+  an_ifc_type_index
+                fund_unscoped_enum_type;
+                        /* The fundamental type used to represent an unscoped
+                           DeclSort::Enumeration. */
   Dyn_array<a_scope_member_array, General_allocator>
                 scope_members;
                         /* Each scope offset maps to an array in scope members
@@ -1287,8 +1478,25 @@ Return the declaration index for the enumeration.
 
   /* Set the type information. */
   an_ifc_type_index
-                type_idx = this->find_or_enter_type(type);
+                type_idx;
+  if (type->variant.integer.is_scoped_enum) {
+    type_idx = this->find_or_enter_scoped_enum_type();
+  } else {
+    type_idx = this->find_or_enter_unscoped_enum_type();
+  }  /* if */
   set_ifc_type(&enum_decl, type_idx);
+
+  /* Set the base type. */
+  an_integer_kind
+                base_int_kind = type->variant.integer.int_kind;
+  a_type_ptr    base_type = integer_type(base_int_kind);
+  an_ifc_type_index
+                base_type_idx = this->find_or_enter_type(base_type);
+  set_ifc_base(&enum_decl, base_type_idx);
+
+  /* Construct and set the initializer to provide the enumerators. */
+  an_ifc_sequence seq = this->enter_enumerators(type);
+  set_ifc_initializer(&enum_decl, seq);
 
   /* Set the scope information. */
   a_source_correspondence_ptr
@@ -1297,6 +1505,10 @@ Return the declaration index for the enumeration.
                 scope_decl_idx = this->find_or_enter_home_scope(scp);
   this->map_scope_member(scp, result);
   set_ifc_home_scope(&enum_decl, scope_decl_idx);
+  /* FIXME: Set alignment. */
+  /* FIXME: Set specifiers. */
+  /* FIXME: Set access. */
+  /* FIXME: Set properties. */
   return result;
 }  /* an_ifc_il_map::enter_enum */
 
@@ -1777,6 +1989,111 @@ for the void type.
 }  /* an_ifc_il_map::enter_void_type */
 
 
+static a_constant_ptr enumerator_constants_for_type(a_type_ptr type)
+/*
+Return the list of constants representing the enumerators of the given
+enumeration type.
+*/
+{
+  check_assertion(type->kind == tk_enum && type->variant.integer.enum_type);
+  a_constant_ptr result = NULL;
+
+  if (type->variant.integer.is_scoped_enum) {
+    /* Scoped enumerators use a scope with a constant list rather than
+       storing the constants directly on the integer type.  Check for
+       said scope and then read the constants from it if it exists. */
+    a_scope_ptr scope = type->variant.integer.enum_info.assoc_scope;
+
+    if (scope != NULL) {
+      result = scope->constants;
+    }  /* if */
+  } else {
+    result = type->variant.integer.enum_info.constant_list;
+  }  /* if */
+  return result;
+}  /* enumerator_constants_for_type */
+
+
+an_ifc_sequence an_ifc_il_map::enter_enumerators(a_type_ptr type)
+/*
+Given a enumeration type, enter the type's enumerators.  Return the IFC
+sequence representing the IFC DeclSort::Enumerators.
+*/
+{
+  check_assertion(type->kind == tk_enum && type->variant.integer.enum_type);
+  an_ifc_sequence result(this->get_default_file());
+  a_constant_ptr  constants = enumerator_constants_for_type(type);
+  size_t          num_constants = count_list_elements(constants);
+
+  if (num_constants > 0) {
+    /* Preallocate all the enumerators to ensure we get one contiguous
+       block. */
+    size_t      start = this->output_state->
+                       alloc_node_block<an_ifc_decl_enumerator>(num_constants);
+    /* Associate the preallocated enumerators nodes with the sequence. */
+    an_ifc_index
+                ifc_start(this->get_default_file(), start);
+    an_ifc_cardinality
+                ifc_cardinality(this->get_default_file(), num_constants);
+
+    set_ifc_start(&result, ifc_start);
+    set_ifc_cardinality(&result, ifc_cardinality);
+
+    /* Find or enter the enumeration type. */
+    an_ifc_type_index
+                enumeration_type = this->find_or_enter_type(type);
+    /* Complete the enumerator declarations. */
+    a_constant_ptr curr_constant = constants;
+    for (size_t i = 0; i < num_constants; ++i) {
+      size_t                 curr_enumerator_offset = start + i;
+      an_ifc_decl_enumerator curr_enumerator;
+
+      this->output_state->fetch_node(&curr_enumerator,
+                                     curr_enumerator_offset);
+
+      /* Set the enumerator name. */
+      size_t    name_offset = add_name_to_string_table(this->output_state,
+                                                     curr_constant);
+      an_ifc_text_offset
+                ifc_name_offset(curr_enumerator.get_file(), name_offset);
+      set_ifc_name(&curr_enumerator, ifc_name_offset);
+
+      /* Set the source location information. */
+      a_source_position
+                src_pos = curr_constant->source_corresp.decl_position;
+      an_ifc_source_location
+                ifc_src_pos = this->find_or_enter_pos(src_pos);
+      set_ifc_locus(&curr_enumerator, ifc_src_pos);
+      /* Associate the enumeration type with the enumerator. */
+      set_ifc_type(&curr_enumerator, enumeration_type);
+
+      /* Create a token cache representation of the initializing constant. */
+      an_ifc_output_token_cache
+                init_token_cache;
+      /* FIXME: We probably eventually want to have a find_or_enter_constant
+         to hash and deduplicate constants. */
+      an_ifc_edg_constant_index
+                ifc_constant = this->enter_constant(curr_constant);
+      an_ifc_edg_complex_token_index
+                ifc_constant_token = this->enter_constant_token(
+                                                         ifc_ects_int_constant,
+                                                         ifc_constant);
+      init_token_cache.add_complex(ifc_constant_token);
+
+      /* Set the initializing expression. */
+      an_ifc_expr_index init_idx = this->output_state->alloc_token_cache(
+                                                             init_token_cache);
+      set_ifc_initializer(&curr_enumerator, init_idx);
+      /* FIXME: Set specifier. */
+      /* FIXME: Set access. */
+      /* Advance to the next parameter. */
+      curr_constant = curr_constant->next;
+    }  /* for */
+  }  /* if */
+  return result;
+}  /* an_ifc_il_map::enter_enumerators */
+
+
 an_ifc_chart_index an_ifc_il_map::enter_routine_params(a_routine_ptr rp)
 /*
 Given a routine, enter the routine's parameters.  Return the IFC chart index of
@@ -1871,6 +2188,131 @@ the parameters.
 }  /* an_ifc_il_map::enter_routine_params */
 
 
+an_ifc_edg_constant_index an_ifc_il_map::enter_constant(a_constant_ptr cp)
+/*
+For the given constant enter the constant into the IFC output state.  Return
+the expr index for the constant.
+*/
+{
+  an_ifc_edg_constant_index
+                result;
+
+  switch (cp->kind) {
+    case ck_error:
+    case ck_last:
+      header_unit_catastrophe();
+      break;
+    case ck_integer:
+      { const an_integer_value
+                &int_val = cp->variant.integer_value;
+        Integer_translator<uint32_t, 2>
+                output_int;
+
+        /* Figure out and create the necessary number of EDG IFC integer
+           constant words. */
+#if INTEGER_VALUE_REPR_IS_A_HOST_INTEGER
+        output_int.add_part(int_val);
+#else /* !INTEGER_VALUE_REPR_IS_A_HOST_INTEGER */
+        for (size_t i = 0; i < INT_VALUE_PARTS_PER_INTEGER_VALUE; ++i) {
+          output_int.add_part(int_val.part[i]);
+        }  /* for */
+#endif /* INTEGER_VALUE_REPR_IS_A_HOST_INTEGER */
+
+        /* Allocate the integer constant word block and populate it with
+           the computed values. */
+        size_t  num_parts_required = output_int.parts.length();
+        size_t  start = this->output_state->
+                            alloc_node_block<an_ifc_edg_constant_integer_word>(
+                                                           num_parts_required);
+        for (size_t i = 0; i < num_parts_required; ++i) {
+          an_ifc_edg_constant_integer_word int_word;
+
+          this->output_state->fetch_node(&int_word, start + i);
+
+          an_ifc_edg_constant_word_storage word_bytes;
+          memcpy(word_bytes, (void*)(&output_int.parts[i]), /*num_bytes=*/4);
+
+          an_ifc_edg_constant_word word_contents(int_word.get_file(),
+                                                 word_bytes);
+          set_ifc_bytes(&int_word, word_contents);
+        }  /* for */
+
+        /* Create the integer constant itself. */
+        an_ifc_edg_constant_integer
+                int_constant;
+        result = this->output_state->alloc_constant(&int_constant);
+
+        /* Associate the constant's type. */
+        a_type_ptr
+                constant_type = cp->type;
+        if (is_enum_type(constant_type)) {
+          /* Enum constants need converted back to their vanilla integer
+             constant representation.  The reader will take care of restoring
+             associating enum type after parsing. */
+          an_integer_kind
+                underlying_int_kind = constant_type->variant.integer.int_kind;
+
+          constant_type = integer_type(underlying_int_kind);
+        }  /* if */
+
+        an_ifc_type_index
+                ifc_constant_type = this->find_or_enter_type(constant_type);
+        set_ifc_type(&int_constant, ifc_constant_type);
+
+        /* Reference the created words. */
+        an_ifc_edg_constant_integer_word_offset
+                ifc_start(int_constant.get_file(), start);
+        an_ifc_cardinality
+                ifc_cardinality(int_constant.get_file(), num_parts_required);
+        set_ifc_start(&int_constant, ifc_start);
+        set_ifc_cardinality(&int_constant, ifc_cardinality);
+      }
+      break;
+    case ck_fixed_point:
+    case ck_string:
+    case ck_float:
+    case ck_complex:
+    case ck_imaginary:
+    case ck_address:
+    case ck_ptr_to_member:
+    case ck_label_difference:
+    case ck_dynamic_init:
+    case ck_aggregate:
+    case ck_init_repeat:
+    case ck_template_param:
+    case ck_designator:
+    case ck_upc_threads:
+    case ck_upc_mythread:
+    case ck_void:
+    case ck_reflection:
+      header_unit_catastrophe();
+      break;
+  } /* switch */
+  return result;
+}  /* an_ifc_il_map::enter_constant */
+
+
+an_ifc_edg_complex_token_index an_ifc_il_map::enter_constant_token(
+                                   an_ifc_edg_constant_token_sort token_kind,
+                                   an_ifc_edg_constant_index      constant_idx)
+
+/*
+For the given constant and constant token kind, enter the constant into the IFC
+output state.  Return the complex token index the token.
+*/
+{
+  an_ifc_edg_token_constant
+                constant_token;
+  an_ifc_edg_complex_token_index
+                result = this->output_state->alloc_complex_token(
+                                                              &constant_token);
+
+  set_ifc_kind(&constant_token, token_kind);
+  set_ifc_constant(&constant_token, constant_idx);
+  return result;
+}  /* an_ifc_il_map::enter_constant_token */
+
+
 an_ifc_type_index an_ifc_il_map::find_or_enter_namespace_scope_type()
 /*
 Find or enter the fundamental type used by the IFC to indicate a given IFC
@@ -1905,6 +2347,44 @@ DeclSort::Alias is a typedef.  Return the index for the fundamental type.
   }  /* if */
   return this->fund_alias_typedef_type;
 }  /* an_ifc_il_map::find_or_enter_alias_typedef_type */
+
+
+an_ifc_type_index an_ifc_il_map::find_or_enter_scoped_enum_type()
+/*
+Find or enter the fundamental type used by the IFC to indicate a given IFC
+DeclSort::Enumeration is a scoped enum type.  Return the index for the
+fundamental type.
+*/
+{
+  if (is_null_index(this->fund_scoped_enum_type)) {
+    an_ifc_type_fundamental fund_type;
+
+    this->fund_scoped_enum_type = this->output_state->alloc_type(&fund_type);
+    set_ifc_basis(&fund_type, ifc_tbs_class);
+    set_ifc_precision(&fund_type, ifc_tps_default);
+    set_ifc_sign(&fund_type, ifc_tss_plain);
+  }  /* if */
+  return this->fund_scoped_enum_type;
+}  /* an_ifc_il_map::find_or_enter_scoped_enum_type */
+
+
+an_ifc_type_index an_ifc_il_map::find_or_enter_unscoped_enum_type()
+/*
+Find or enter the fundamental type used by the IFC to indicate a given IFC
+DeclSort::Enumeration is an unscoped enum type.  Return the index for the
+fundamental type.
+*/
+{
+  if (is_null_index(this->fund_unscoped_enum_type)) {
+    an_ifc_type_fundamental fund_type;
+
+    this->fund_unscoped_enum_type = this->output_state->alloc_type(&fund_type);
+    set_ifc_basis(&fund_type, ifc_tbs_enum);
+    set_ifc_precision(&fund_type, ifc_tps_default);
+    set_ifc_sign(&fund_type, ifc_tss_plain);
+  }  /* if */
+  return this->fund_unscoped_enum_type;
+}  /* an_ifc_il_map::find_or_enter_unscoped_enum_type */
 
 
 an_ifc_decl_index an_ifc_il_map::enter_namespace(a_scope_ptr scope)

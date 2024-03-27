@@ -428,6 +428,32 @@ of this object expires (whichever is sooner).
 
 
 template<typename an_ifc_Index_type>
+static inline a_boolean index_has_locus(an_ifc_Index_type idx)
+/*
+Given an IFC index, return TRUE if index has an associated locus; otherwise,
+return FALSE.
+*/
+{
+  a_boolean result = TRUE;
+
+  if (is_null_index(idx)) {
+    result = FALSE;
+  } else {
+    auto sort = idx.sort;
+
+    if (!has_partition_kind(sort)) {
+      result = FALSE;
+    } else if (!validate(idx)) {
+      result = FALSE;
+    } else if (!has_ifc_locus(idx)) {
+      result = FALSE;
+    }  /* if */
+  }  /* if */
+  return result;
+}  /* index_has_locus */
+
+
+template<typename an_ifc_Index_type>
 an_ifc_source_position_hint::an_ifc_source_position_hint(
                                                 a_module_token_cache_ptr cache,
                                                 an_ifc_Index_type        idx)
@@ -439,7 +465,7 @@ lifetime of this object expires (whichever is sooner).
 */
   : cache_ptr(cache), pos(null_source_position), hint_given(TRUE)
 {
-  if (!is_null_index(idx) && validate(idx) && has_ifc_locus(idx)) {
+  if (index_has_locus(idx)) {
     an_ifc_source_location locus = get_ifc_locus(idx);
 
     source_position_from_locus(&this->pos, locus);
@@ -1729,6 +1755,11 @@ using a_decl_partial_specialization_sequence =
 using a_decl_specialization_sequence =
                                      Node_sequence<an_ifc_decl_specialization>;
 using a_decl_temploid_sequence = Node_sequence<an_ifc_decl_temploid>;
+using an_edg_constant_integer_word_sequence =
+                               Node_sequence<an_ifc_edg_constant_integer_word>;
+using an_edg_token_basic_sequence = Node_sequence<an_ifc_edg_token_basic>;
+using an_edg_heap_complex_token_sequence =
+                                  Node_sequence<an_ifc_edg_heap_complex_token>;
 using an_expr_heap_sequence = Node_sequence<an_ifc_heap_expr>;
 using a_pp_heap_sequence = Node_sequence<an_ifc_heap_pp_form>;
 using a_scope_member_sequence = Node_sequence<an_ifc_scope_member>;
@@ -7576,6 +7607,152 @@ done:
   }  /* if */
   return result;
 }  /* load_product_type_value_constant */
+
+
+/*
+This function is specialized to implement the loading of the EDG IFC constant
+representation into front end constants.
+*/
+template<typename an_ifc_Node_type>
+static a_constant_ptr load_edg_constant(const an_ifc_Node_type &node)
+                                                                 DELETED_FN_DEF
+
+template<>
+a_constant_ptr load_edg_constant(const an_ifc_edg_constant_integer &node)
+/*
+Given an EDG IFC constant integer, load and return the corresponding front end
+integer constant.
+*/
+{
+  a_constant_ptr
+                result = NULL;
+  {
+    an_ifc_index_type
+                start = get_ifc_start(node).value;
+    an_ifc_cardinality
+                cardinality = get_ifc_cardinality(node);
+    an_edg_constant_integer_word_sequence
+                word_seq(module_of(node), start, cardinality);
+#if INTEGER_VALUE_REPR_IS_A_HOST_INTEGER
+    Integer_translator<an_integer_value, 1>
+#else /* !INTEGER_VALUE_REPR_IS_A_HOST_INTEGER */
+    Integer_translator<an_int_value_part, INT_VALUE_PARTS_PER_INTEGER_VALUE>
+#endif /* INTEGER_VALUE_REPR_IS_A_HOST_INTEGER */
+                dest_int;
+    for (Indexed<an_ifc_edg_constant_integer_word> indexed_word : word_seq) {
+      if (!indexed_word.has_value()) {
+        goto invalid;
+      }
+
+      /* Load the stored integer word into an integral type. */
+      an_ifc_edg_constant_integer_word
+                  word = *indexed_word;
+      an_ifc_edg_constant_word
+                  bytes = get_ifc_bytes(word);
+      uint32_t    num_part;
+      memcpy(&num_part, bytes.get_storage(), /*num_bytes=*/4);
+      dest_int.add_part(num_part);
+    }  /* for */
+
+    /* Check to see if the IFC representation is too large for this build of
+       the front end. */
+    a_boolean is_overflow = FALSE;
+#if INTEGER_VALUE_REPR_IS_A_HOST_INTEGER
+    if (dest_int.parts.length() > 1) {
+      is_overflow = TRUE;
+    }  /* if */
+#else /* !INTEGER_VALUE_REPR_IS_A_HOST_INTEGER */
+    if ((unsigned)dest_int.parts.length() >
+        INT_VALUE_PARTS_PER_INTEGER_VALUE) {
+      is_overflow = TRUE;
+    }  /* if */
+#endif /* INTEGER_VALUE_REPR_IS_A_HOST_INTEGER */
+    if (is_overflow) {
+      /* FIXME: Use a real error message. */
+      a_string err_msg("Unexpected overflow while processing "
+                       "integer constant");
+
+      ifc_unexpected(module_of(node), err_msg);
+      goto invalid;
+    }  /* if */
+
+    /* Form the result constant. */
+    a_constant_ptr
+                constant = alloc_constant(ck_integer);
+    /* Set the constant type. */
+    an_ifc_type_index
+                constant_type_idx = get_ifc_type(node);
+    a_type_ptr  constant_type = type_for_type_index(constant_type_idx);
+    constant->type = constant_type;
+
+    /* Set the constant value. */
+    an_integer_value
+                &int_value = constant->variant.integer_value;
+#if INTEGER_VALUE_REPR_IS_A_HOST_INTEGER
+    int_value = dest_int.parts.back_elem();
+#else /* !INTEGER_VALUE_REPR_IS_A_HOST_INTEGER */
+    set_unsigned_integer_value(&int_value, (a_host_large_unsigned)0);
+
+    size_t assignment_idx = 0;
+    for (an_int_value_part part : dest_int.parts) {
+      int_value.part[assignment_idx++] = part;
+    }  /* for */
+#endif /* INTEGER_VALUE_REPR_IS_A_HOST_INTEGER */
+    result = constant;
+  }
+  goto done;
+invalid:
+  result = alloc_error_constant();
+done:
+  return result;
+}  /* load_edg_constant */
+
+
+template<typename an_ifc_Node_type>
+static inline a_constant_ptr load_edg_constant_case(
+                                        an_ifc_edg_constant_index constant_idx)
+/*
+Load and return the constant at the given index of the given node type.
+*/
+{
+  a_constant_ptr        result;
+  Opt<an_ifc_Node_type> opt_constant_node;
+
+  construct_node(&opt_constant_node, constant_idx);
+  if (opt_constant_node.has_value()) {
+    an_ifc_Node_type constant_node = *opt_constant_node;
+
+    result = load_edg_constant(constant_node);
+  } else {
+    result = alloc_error_constant();
+  }  /* if */
+  return result;
+}  /* load_edg_constant_case */
+
+
+static a_constant_ptr load_edg_constant(an_ifc_edg_constant_index constant_idx)
+/*
+Given an EDG IFC constant index, load and return the constant.
+*/
+{
+  a_constant_ptr result = NULL;
+
+  switch (constant_idx.sort) {
+    /* Define a macro to write the switch cases. */
+#define ADD_SWITCH_CASE(case_name)                                          \
+    case ifc_ecs_ ## case_name:                                             \
+      result = load_edg_constant_case<an_ifc_ ## case_name>(constant_idx);  \
+      break;
+    /* Add the switch cases. */
+    ADD_SWITCH_CASE(edg_constant_integer)
+#undef ADD_SWITCH_CASE
+    default_is_unexpected();
+  } /* switch */
+  /* The result should not be NULL at this point.  If an error occurred,
+     an error constant is expected. */
+  check_assertion(result != NULL);
+  return result;
+}  /* load_edg_constant */
 
 
 a_boolean has_variable_initializer_from_ifc_module(a_variable_ptr vp)
@@ -16458,6 +16635,30 @@ with no known special meaning and iir_error will be returned.
 }  /* get_ident_res */
 
 
+static void cache_pure_identifier(a_module_token_cache *cache,
+                                  a_const_char         *name,
+                                  sizeof_t             name_len,
+                                  a_source_position    *pos)
+/*
+Add a tok_identifier at the given position for name to cache.  This function
+does not perform any correction or source position inference.
+
+Generally speaking, this function should not be used directly.  Instead, prefer
+cache_identifer for general IFC identifier token caching.
+*/
+{
+  a_symbol_locator loc;
+
+  clear_locator(&loc, pos);
+  (void)find_symbol(name, name_len, &loc);
+  cache_token(cache, tok_identifier, pos);
+
+  a_cached_token_ptr last_token = cache->get_last_token();
+  last_token->extra_info_kind = teik_identifier;
+  last_token->variant.locator = loc;
+}  /* cache_pure_identifier */
+
+
 static void cache_identifier(a_module_token_cache_ptr cache,
                              a_const_char             *name,
                              a_source_position_ptr    pos)
@@ -16493,14 +16694,7 @@ rules of position inference).
              we produce
                void f(int, int); */
         } else {
-          a_symbol_locator loc;
-          clear_locator(&loc, pos);
-          (void)find_symbol(name, len, &loc);
-          cache_token(cache, tok_identifier, pos);
-
-          a_cached_token_ptr last_token = cache->get_last_token();
-          last_token->extra_info_kind = teik_identifier;
-          last_token->variant.locator = loc;
+          cache_pure_identifier(cache, name, len, pos);
         }  /* if */
       }
       break;
@@ -23587,6 +23781,1470 @@ done:
 }  /* is_broken_indirect_reference_to_template_parameter */
 
 
+static an_edg_token_basic_sequence get_edg_basic_token_sequence(
+                                     const an_ifc_edg_token_cache &token_cache)
+/*
+Given an EDG token cache return the basic token sequence.
+*/
+{
+  an_ifc_edg_token_basic_offset
+                basic_token_offset = get_ifc_tokens(token_cache);
+  an_ifc_cardinality
+                num_basic_tokens = get_ifc_num_tokens(token_cache);
+  an_edg_token_basic_sequence
+                basic_token_sequence(module_of(basic_token_offset),
+                                     basic_token_offset.value,
+                                     num_basic_tokens);
+
+  return basic_token_sequence;
+}  /* get_edg_basic_token_sequence */
+
+
+static an_edg_heap_complex_token_sequence get_edg_complex_token_sequence(
+                                     const an_ifc_edg_token_cache &token_cache)
+/*
+Given an EDG token cache return the complex token sequence.
+*/
+{
+  an_ifc_edg_heap_complex_token_offset
+                complex_token_offset = get_ifc_complex_tokens(token_cache);
+  an_ifc_cardinality
+                num_complex_tokens = get_ifc_num_complex_tokens(token_cache);
+  an_edg_heap_complex_token_sequence
+                heap_token_sequence(module_of(complex_token_offset),
+                                    complex_token_offset.value,
+                                    num_complex_tokens);
+  return heap_token_sequence;
+}  /* get_edg_complex_token_sequence */
+
+
+static inline void cache_edg_basic_token(
+                                       a_module_token_cache_ptr    cache,
+                                       an_ifc_edg_basic_token_sort basic_token)
+/*
+Cache the given basic token into the given front end token cache.
+*/
+{
+  switch (basic_token) {
+    case ifc_ebts_complex:
+      /* Complex tokens must be handled by cache_edg_complex_token. */
+      unexpected_condition();
+    case ifc_ebts_abstract:
+      cache_token(cache, tok_abstract);
+      break;
+    case ifc_ebts_accum:
+      cache_token(cache, tok_accum);
+      break;
+    case ifc_ebts_add_lvalue_reference:
+      cache_token(cache, tok_add_lvalue_reference);
+      break;
+    case ifc_ebts_add_pointer:
+      cache_token(cache, tok_add_pointer);
+      break;
+    case ifc_ebts_add_rvalue_reference:
+      cache_token(cache, tok_add_rvalue_reference);
+      break;
+    case ifc_ebts_alignas:
+      cache_token(cache, tok_alignas);
+      break;
+    case ifc_ebts_alignof:
+      cache_token(cache, tok_alignof);
+      break;
+    case ifc_ebts_ampersand:
+      cache_token(cache, tok_ampersand);
+      break;
+    case ifc_ebts_and_and:
+      cache_token(cache, tok_and_and);
+      break;
+    case ifc_ebts_and_assign:
+      cache_token(cache, tok_and_assign);
+      break;
+    case ifc_ebts_array_extent:
+      cache_token(cache, tok_array_extent);
+      break;
+    case ifc_ebts_array_rank:
+      cache_token(cache, tok_array_rank);
+      break;
+    case ifc_ebts_arrow:
+      cache_token(cache, tok_arrow);
+      break;
+    case ifc_ebts_arrow_star:
+      cache_token(cache, tok_arrow_star);
+      break;
+    case ifc_ebts_asm:
+      cache_token(cache, tok_asm);
+      break;
+    case ifc_ebts_assign:
+      cache_token(cache, tok_assign);
+      break;
+    case ifc_ebts_assume:
+      cache_token(cache, tok_assume);
+      break;
+    case ifc_ebts_attribute:
+      cache_token(cache, tok_attribute);
+      break;
+    case ifc_ebts_auto:
+      cache_token(cache, tok_auto);
+      break;
+    case ifc_ebts_auto_type:
+      cache_token(cache, tok_auto_type);
+      break;
+    case ifc_ebts_based:
+      cache_token(cache, tok_based);
+      break;
+    case ifc_ebts_bases:
+      cache_token(cache, tok_bases);
+      break;
+    case ifc_ebts_bool:
+      cache_token(cache, tok_bool);
+      break;
+    case ifc_ebts_break:
+      cache_token(cache, tok_break);
+      break;
+    case ifc_ebts_builtin_addressof:
+      cache_token(cache, tok_builtin_addressof);
+      break;
+    case ifc_ebts_builtin_bit_cast:
+      cache_token(cache, tok_builtin_bit_cast);
+      break;
+    case ifc_ebts_builtin_complex:
+      cache_token(cache, tok_builtin_complex);
+      break;
+    case ifc_ebts_builtin_convertvector:
+      cache_token(cache, tok_builtin_convertvector);
+      break;
+    case ifc_ebts_builtin_has_attribute:
+      cache_token(cache, tok_builtin_has_attribute);
+      break;
+    case ifc_ebts_builtin_is_corresponding_member:
+      cache_token(cache, tok_builtin_is_corresponding_member);
+      break;
+    case ifc_ebts_builtin_is_pointer_interconvertible_with_class:
+      cache_token(cache, tok_builtin_is_pointer_interconvertible_with_class);
+      break;
+    case ifc_ebts_builtin_offsetof:
+      cache_token(cache, tok_builtin_offsetof);
+      break;
+    case ifc_ebts_builtin_shuffle:
+      cache_token(cache, tok_builtin_shuffle);
+      break;
+    case ifc_ebts_builtin_shufflevector:
+      cache_token(cache, tok_builtin_shufflevector);
+      break;
+    case ifc_ebts_builtin_types_compatible:
+      cache_token(cache, tok_builtin_types_compatible);
+      break;
+    case ifc_ebts_c11_atomic:
+      cache_token(cache, tok_c11_atomic);
+      break;
+    case ifc_ebts_c11_generic:
+      cache_token(cache, tok_c11_generic);
+      break;
+    case ifc_ebts_c11_thread_local:
+      cache_token(cache, tok_c11_thread_local);
+      break;
+    case ifc_ebts_c99_bool:
+      cache_token(cache, tok_c99_bool);
+      break;
+    case ifc_ebts_c99_complex:
+      cache_token(cache, tok_c99_complex);
+      break;
+    case ifc_ebts_c99_generic:
+      cache_token(cache, tok_c99_generic);
+      break;
+    case ifc_ebts_c99_genericfx:
+      cache_token(cache, tok_c99_genericfx);
+      break;
+    case ifc_ebts_c99_imaginary:
+      cache_token(cache, tok_c99_imaginary);
+      break;
+    case ifc_ebts_case:
+      cache_token(cache, tok_case);
+      break;
+    case ifc_ebts_catch:
+      cache_token(cache, tok_catch);
+      break;
+    case ifc_ebts_cdecl:
+      cache_token(cache, tok_cdecl);
+      break;
+    case ifc_ebts_char:
+      cache_token(cache, tok_char);
+      break;
+    case ifc_ebts_char16_t:
+      cache_token(cache, tok_char16_t);
+      break;
+    case ifc_ebts_char32_t:
+      cache_token(cache, tok_char32_t);
+      break;
+    case ifc_ebts_char8_t:
+      cache_token(cache, tok_char8_t);
+      break;
+    case ifc_ebts_charize:
+      cache_token(cache, tok_charize);
+      break;
+    case ifc_ebts_clang_version:
+      cache_token(cache, tok_clang_version);
+      break;
+    case ifc_ebts_class:
+      cache_token(cache, tok_class);
+      break;
+    case ifc_ebts_clrcall:
+      cache_token(cache, tok_clrcall);
+      break;
+    case ifc_ebts_colon:
+      cache_token(cache, tok_colon);
+      break;
+    case ifc_ebts_colon_colon:
+      cache_token(cache, tok_colon_colon);
+      break;
+    case ifc_ebts_comma:
+      cache_token(cache, tok_comma);
+      break;
+    case ifc_ebts_compl:
+      cache_token(cache, tok_compl);
+      break;
+    case ifc_ebts_concept:
+      cache_token(cache, tok_concept);
+      break;
+    case ifc_ebts_const:
+      cache_token(cache, tok_const);
+      break;
+    case ifc_ebts_const_cast:
+      cache_token(cache, tok_const_cast);
+      break;
+    case ifc_ebts_consteval:
+      cache_token(cache, tok_consteval);
+      break;
+    case ifc_ebts_constexpr:
+      cache_token(cache, tok_constexpr);
+      break;
+    case ifc_ebts_constinit:
+      cache_token(cache, tok_constinit);
+      break;
+    case ifc_ebts_continue:
+      cache_token(cache, tok_continue);
+      break;
+    case ifc_ebts_coroutine_await:
+      cache_token(cache, tok_coroutine_await);
+      break;
+    case ifc_ebts_coroutine_return:
+      cache_token(cache, tok_coroutine_return);
+      break;
+    case ifc_ebts_coroutine_yield:
+      cache_token(cache, tok_coroutine_yield);
+      break;
+    case ifc_ebts_cpp98_export:
+      cache_token(cache, tok_cpp98_export);
+      break;
+    case ifc_ebts_decay:
+      cache_token(cache, tok_decay);
+      break;
+    case ifc_ebts_decltype:
+      cache_token(cache, tok_decltype);
+      break;
+    case ifc_ebts_decorated_function_name:
+      cache_token(cache, tok_decorated_function_name);
+      break;
+    case ifc_ebts_default:
+      cache_token(cache, tok_default);
+      break;
+    case ifc_ebts_delete:
+      cache_token(cache, tok_delete);
+      break;
+    case ifc_ebts_direct_bases:
+      cache_token(cache, tok_direct_bases);
+      break;
+    case ifc_ebts_divide:
+      cache_token(cache, tok_divide);
+      break;
+    case ifc_ebts_divide_assign:
+      cache_token(cache, tok_divide_assign);
+      break;
+    case ifc_ebts_do:
+      cache_token(cache, tok_do);
+      break;
+    case ifc_ebts_double:
+      cache_token(cache, tok_double);
+      break;
+    case ifc_ebts_dynamic_cast:
+      cache_token(cache, tok_dynamic_cast);
+      break;
+    case ifc_ebts_edg_bool_type:
+      cache_token(cache, tok_edg_bool_type);
+      break;
+    case ifc_ebts_edg_internal_opnd:
+      cache_token(cache, tok_edg_internal_opnd);
+      break;
+    case ifc_ebts_edg_internal_type:
+      cache_token(cache, tok_edg_internal_type);
+      break;
+    case ifc_ebts_edg_is_deducible:
+      cache_token(cache, tok_edg_is_deducible);
+      break;
+    case ifc_ebts_edg_ptrdiff_type:
+      cache_token(cache, tok_edg_ptrdiff_type);
+      break;
+    case ifc_ebts_edg_size_type:
+      cache_token(cache, tok_edg_size_type);
+      break;
+    case ifc_ebts_edg_throw:
+      cache_token(cache, tok_edg_throw);
+      break;
+    case ifc_ebts_edg_vector_type:
+      cache_token(cache, tok_edg_vector_type);
+      break;
+    case ifc_ebts_edg_wchar_type:
+      cache_token(cache, tok_edg_wchar_type);
+      break;
+    case ifc_ebts_ellipsis:
+      cache_token(cache, tok_ellipsis);
+      break;
+    case ifc_ebts_else:
+      cache_token(cache, tok_else);
+      break;
+    case ifc_ebts_end_of_if_exists:
+      cache_token(cache, tok_end_of_if_exists);
+      break;
+    case ifc_ebts_enum:
+      cache_token(cache, tok_enum);
+      break;
+    case ifc_ebts_enum_class:
+      cache_token(cache, tok_enum_class);
+      break;
+    case ifc_ebts_enum_struct:
+      cache_token(cache, tok_enum_struct);
+      break;
+    case ifc_ebts_eq:
+      cache_token(cache, tok_eq);
+      break;
+    case ifc_ebts_event:
+      cache_token(cache, tok_event);
+      break;
+    case ifc_ebts_except:
+      cache_token(cache, tok_except);
+      break;
+    case ifc_ebts_excl_or:
+      cache_token(cache, tok_excl_or);
+      break;
+    case ifc_ebts_excl_or_assign:
+      cache_token(cache, tok_excl_or_assign);
+      break;
+    case ifc_ebts_explicit:
+      cache_token(cache, tok_explicit);
+      break;
+    case ifc_ebts_export:
+      cache_token(cache, tok_export);
+      break;
+    case ifc_ebts_export_keyword:
+      cache_token(cache, tok_export_keyword);
+      break;
+    case ifc_ebts_ext_alignof:
+      cache_token(cache, tok_ext_alignof);
+      break;
+    case ifc_ebts_extension:
+      cache_token(cache, tok_extension);
+      break;
+    case ifc_ebts_extern:
+      cache_token(cache, tok_extern);
+      break;
+    case ifc_ebts_false:
+      cache_token(cache, tok_false);
+      break;
+    case ifc_ebts_far:
+      cache_token(cache, tok_far);
+      break;
+    case ifc_ebts_fastcall:
+      cache_token(cache, tok_fastcall);
+      break;
+    case ifc_ebts_final:
+      cache_token(cache, tok_final);
+      break;
+    case ifc_ebts_finally:
+      cache_token(cache, tok_finally);
+      break;
+    case ifc_ebts_float:
+      cache_token(cache, tok_float);
+      break;
+    case ifc_ebts_float128:
+      cache_token(cache, tok_float128);
+      break;
+    case ifc_ebts_float32:
+      cache_token(cache, tok_float32);
+      break;
+    case ifc_ebts_float32x:
+      cache_token(cache, tok_float32x);
+      break;
+    case ifc_ebts_float64:
+      cache_token(cache, tok_float64);
+      break;
+    case ifc_ebts_float64x:
+      cache_token(cache, tok_float64x);
+      break;
+    case ifc_ebts_for:
+      cache_token(cache, tok_for);
+      break;
+    case ifc_ebts_for_each:
+      cache_token(cache, tok_for_each);
+      break;
+    case ifc_ebts_forceinline:
+      cache_token(cache, tok_forceinline);
+      break;
+    case ifc_ebts_fract:
+      cache_token(cache, tok_fract);
+      break;
+    case ifc_ebts_friend:
+      cache_token(cache, tok_friend);
+      break;
+    case ifc_ebts_func_name:
+      cache_token(cache, tok_func_name);
+      break;
+    case ifc_ebts_function_name:
+      cache_token(cache, tok_function_name);
+      break;
+    case ifc_ebts_gcnew:
+      cache_token(cache, tok_gcnew);
+      break;
+    case ifc_ebts_ge:
+      cache_token(cache, tok_ge);
+      break;
+    case ifc_ebts_global_link_scope:
+      cache_token(cache, tok_global_link_scope);
+      break;
+    case ifc_ebts_gnu_imag:
+      cache_token(cache, tok_gnu_imag);
+      break;
+    case ifc_ebts_gnu_max:
+      cache_token(cache, tok_gnu_max);
+      break;
+    case ifc_ebts_gnu_min:
+      cache_token(cache, tok_gnu_min);
+      break;
+    case ifc_ebts_gnu_real:
+      cache_token(cache, tok_gnu_real);
+      break;
+    case ifc_ebts_gnu_restrict:
+      cache_token(cache, tok_gnu_restrict);
+      break;
+    case ifc_ebts_goto:
+      cache_token(cache, tok_goto);
+      break;
+    case ifc_ebts_gt:
+      cache_token(cache, tok_gt);
+      break;
+    case ifc_ebts_has_assign:
+      cache_token(cache, tok_has_assign);
+      break;
+    case ifc_ebts_has_copy:
+      cache_token(cache, tok_has_copy);
+      break;
+    case ifc_ebts_has_finalizer:
+      cache_token(cache, tok_has_finalizer);
+      break;
+    case ifc_ebts_has_nothrow_assign:
+      cache_token(cache, tok_has_nothrow_assign);
+      break;
+    case ifc_ebts_has_nothrow_constructor:
+      cache_token(cache, tok_has_nothrow_constructor);
+      break;
+    case ifc_ebts_has_nothrow_copy:
+      cache_token(cache, tok_has_nothrow_copy);
+      break;
+    case ifc_ebts_has_nothrow_move_assign:
+      cache_token(cache, tok_has_nothrow_move_assign);
+      break;
+    case ifc_ebts_has_trivial_assign:
+      cache_token(cache, tok_has_trivial_assign);
+      break;
+    case ifc_ebts_has_trivial_constructor:
+      cache_token(cache, tok_has_trivial_constructor);
+      break;
+    case ifc_ebts_has_trivial_copy:
+      cache_token(cache, tok_has_trivial_copy);
+      break;
+    case ifc_ebts_has_trivial_destructor:
+      cache_token(cache, tok_has_trivial_destructor);
+      break;
+    case ifc_ebts_has_trivial_move_assign:
+      cache_token(cache, tok_has_trivial_move_assign);
+      break;
+    case ifc_ebts_has_trivial_move_constructor:
+      cache_token(cache, tok_has_trivial_move_constructor);
+      break;
+    case ifc_ebts_has_unique_object_representations:
+      cache_token(cache, tok_has_unique_object_representations);
+      break;
+    case ifc_ebts_has_user_destructor:
+      cache_token(cache, tok_has_user_destructor);
+      break;
+    case ifc_ebts_has_virtual_destructor:
+      cache_token(cache, tok_has_virtual_destructor);
+      break;
+    case ifc_ebts_hidden_link_scope:
+      cache_token(cache, tok_hidden_link_scope);
+      break;
+    case ifc_ebts_if:
+      cache_token(cache, tok_if);
+      break;
+    case ifc_ebts_if_exists:
+      cache_token(cache, tok_if_exists);
+      break;
+    case ifc_ebts_if_not_exists:
+      cache_token(cache, tok_if_not_exists);
+      break;
+    case ifc_ebts_imaginary_unit:
+      cache_token(cache, tok_imaginary_unit);
+      break;
+    case ifc_ebts_implements:
+      cache_token(cache, tok_implements);
+      break;
+    case ifc_ebts_import:
+      cache_token(cache, tok_import);
+      break;
+    case ifc_ebts_in:
+      cache_token(cache, tok_in);
+      break;
+    case ifc_ebts_infinity:
+      cache_token(cache, tok_infinity);
+      break;
+    case ifc_ebts_inline:
+      cache_token(cache, tok_inline);
+      break;
+    case ifc_ebts_int:
+      cache_token(cache, tok_int);
+      break;
+    case ifc_ebts_int128:
+      cache_token(cache, tok_int128);
+      break;
+    case ifc_ebts_int16:
+      cache_token(cache, tok_int16);
+      break;
+    case ifc_ebts_int32:
+      cache_token(cache, tok_int32);
+      break;
+    case ifc_ebts_int64:
+      cache_token(cache, tok_int64);
+      break;
+    case ifc_ebts_int8:
+      cache_token(cache, tok_int8);
+      break;
+    case ifc_ebts_intaddr:
+      cache_token(cache, tok_intaddr);
+      break;
+    case ifc_ebts_integer_pack:
+      cache_token(cache, tok_integer_pack);
+      break;
+    case ifc_ebts_interface:
+      cache_token(cache, tok_interface);
+      break;
+    case ifc_ebts_interface_class:
+      cache_token(cache, tok_interface_class);
+      break;
+    case ifc_ebts_interface_struct:
+      cache_token(cache, tok_interface_struct);
+      break;
+    case ifc_ebts_internal_alias_decl:
+      cache_token(cache, tok_internal_alias_decl);
+      break;
+    case ifc_ebts_is_abstract:
+      cache_token(cache, tok_is_abstract);
+      break;
+    case ifc_ebts_is_aggregate:
+      cache_token(cache, tok_is_aggregate);
+      break;
+    case ifc_ebts_is_arithmetic:
+      cache_token(cache, tok_is_arithmetic);
+      break;
+    case ifc_ebts_is_array:
+      cache_token(cache, tok_is_array);
+      break;
+    case ifc_ebts_is_assignable:
+      cache_token(cache, tok_is_assignable);
+      break;
+    case ifc_ebts_is_assignable_no_precondition_check:
+      cache_token(cache, tok_is_assignable_no_precondition_check);
+      break;
+    case ifc_ebts_is_base_of:
+      cache_token(cache, tok_is_base_of);
+      break;
+    case ifc_ebts_is_bounded_array:
+      cache_token(cache, tok_is_bounded_array);
+      break;
+    case ifc_ebts_is_class:
+      cache_token(cache, tok_is_class);
+      break;
+    case ifc_ebts_is_complete_type:
+      cache_token(cache, tok_is_complete_type);
+      break;
+    case ifc_ebts_is_compound:
+      cache_token(cache, tok_is_compound);
+      break;
+    case ifc_ebts_is_const:
+      cache_token(cache, tok_is_const);
+      break;
+    case ifc_ebts_is_constructible:
+      cache_token(cache, tok_is_constructible);
+      break;
+    case ifc_ebts_is_convertible:
+      cache_token(cache, tok_is_convertible);
+      break;
+    case ifc_ebts_is_convertible_to:
+      cache_token(cache, tok_is_convertible_to);
+      break;
+    case ifc_ebts_is_corresponding_member:
+      cache_token(cache, tok_is_corresponding_member);
+      break;
+    case ifc_ebts_is_delegate:
+      cache_token(cache, tok_is_delegate);
+      break;
+    case ifc_ebts_is_destructible:
+      cache_token(cache, tok_is_destructible);
+      break;
+    case ifc_ebts_is_empty:
+      cache_token(cache, tok_is_empty);
+      break;
+    case ifc_ebts_is_enum:
+      cache_token(cache, tok_is_enum);
+      break;
+    case ifc_ebts_is_final:
+      cache_token(cache, tok_is_final);
+      break;
+    case ifc_ebts_is_floating_point:
+      cache_token(cache, tok_is_floating_point);
+      break;
+    case ifc_ebts_is_function:
+      cache_token(cache, tok_is_function);
+      break;
+    case ifc_ebts_is_fundamental:
+      cache_token(cache, tok_is_fundamental);
+      break;
+    case ifc_ebts_is_integral:
+      cache_token(cache, tok_is_integral);
+      break;
+    case ifc_ebts_is_interface_class:
+      cache_token(cache, tok_is_interface_class);
+      break;
+    case ifc_ebts_is_layout_compatible:
+      cache_token(cache, tok_is_layout_compatible);
+      break;
+    case ifc_ebts_is_literal_type:
+      cache_token(cache, tok_is_literal_type);
+      break;
+    case ifc_ebts_is_lvalue_reference:
+      cache_token(cache, tok_is_lvalue_reference);
+      break;
+    case ifc_ebts_is_member_function_pointer:
+      cache_token(cache, tok_is_member_function_pointer);
+      break;
+    case ifc_ebts_is_member_object_pointer:
+      cache_token(cache, tok_is_member_object_pointer);
+      break;
+    case ifc_ebts_is_member_pointer:
+      cache_token(cache, tok_is_member_pointer);
+      break;
+    case ifc_ebts_is_nothrow_assignable:
+      cache_token(cache, tok_is_nothrow_assignable);
+      break;
+    case ifc_ebts_is_nothrow_constructible:
+      cache_token(cache, tok_is_nothrow_constructible);
+      break;
+    case ifc_ebts_is_nothrow_convertible:
+      cache_token(cache, tok_is_nothrow_convertible);
+      break;
+    case ifc_ebts_is_nothrow_destructible:
+      cache_token(cache, tok_is_nothrow_destructible);
+      break;
+    case ifc_ebts_is_object:
+      cache_token(cache, tok_is_object);
+      break;
+    case ifc_ebts_is_pod:
+      cache_token(cache, tok_is_pod);
+      break;
+    case ifc_ebts_is_pointer:
+      cache_token(cache, tok_is_pointer);
+      break;
+    case ifc_ebts_is_pointer_interconvertible_base_of:
+      cache_token(cache, tok_is_pointer_interconvertible_base_of);
+      break;
+    case ifc_ebts_is_pointer_interconvertible_with_class:
+      cache_token(cache, tok_is_pointer_interconvertible_with_class);
+      break;
+    case ifc_ebts_is_polymorphic:
+      cache_token(cache, tok_is_polymorphic);
+      break;
+    case ifc_ebts_is_ref_array:
+      cache_token(cache, tok_is_ref_array);
+      break;
+    case ifc_ebts_is_ref_class:
+      cache_token(cache, tok_is_ref_class);
+      break;
+    case ifc_ebts_is_reference:
+      cache_token(cache, tok_is_reference);
+      break;
+    case ifc_ebts_is_referenceable:
+      cache_token(cache, tok_is_referenceable);
+      break;
+    case ifc_ebts_is_rvalue_reference:
+      cache_token(cache, tok_is_rvalue_reference);
+      break;
+    case ifc_ebts_is_same:
+      cache_token(cache, tok_is_same);
+      break;
+    case ifc_ebts_is_same_as:
+      cache_token(cache, tok_is_same_as);
+      break;
+    case ifc_ebts_is_scalar:
+      cache_token(cache, tok_is_scalar);
+      break;
+    case ifc_ebts_is_sealed:
+      cache_token(cache, tok_is_sealed);
+      break;
+    case ifc_ebts_is_signed:
+      cache_token(cache, tok_is_signed);
+      break;
+    case ifc_ebts_is_simple_value_class:
+      cache_token(cache, tok_is_simple_value_class);
+      break;
+    case ifc_ebts_is_standard_layout:
+      cache_token(cache, tok_is_standard_layout);
+      break;
+    case ifc_ebts_is_trivial:
+      cache_token(cache, tok_is_trivial);
+      break;
+    case ifc_ebts_is_trivially_assignable:
+      cache_token(cache, tok_is_trivially_assignable);
+      break;
+    case ifc_ebts_is_trivially_constructible:
+      cache_token(cache, tok_is_trivially_constructible);
+      break;
+    case ifc_ebts_is_trivially_copy_assignable:
+      cache_token(cache, tok_is_trivially_copy_assignable);
+      break;
+    case ifc_ebts_is_trivially_copyable:
+      cache_token(cache, tok_is_trivially_copyable);
+      break;
+    case ifc_ebts_is_trivially_destructible:
+      cache_token(cache, tok_is_trivially_destructible);
+      break;
+    case ifc_ebts_is_trivially_equality_comparable:
+      cache_token(cache, tok_is_trivially_equality_comparable);
+      break;
+    case ifc_ebts_is_unbounded_array:
+      cache_token(cache, tok_is_unbounded_array);
+      break;
+    case ifc_ebts_is_union:
+      cache_token(cache, tok_is_union);
+      break;
+    case ifc_ebts_is_unsigned:
+      cache_token(cache, tok_is_unsigned);
+      break;
+    case ifc_ebts_is_valid_winrt_type:
+      cache_token(cache, tok_is_valid_winrt_type);
+      break;
+    case ifc_ebts_is_value_class:
+      cache_token(cache, tok_is_value_class);
+      break;
+    case ifc_ebts_is_void:
+      cache_token(cache, tok_is_void);
+      break;
+    case ifc_ebts_is_volatile:
+      cache_token(cache, tok_is_volatile);
+      break;
+    case ifc_ebts_is_win_class:
+      cache_token(cache, tok_is_win_class);
+      break;
+    case ifc_ebts_is_win_interface:
+      cache_token(cache, tok_is_win_interface);
+      break;
+    case ifc_ebts_last_whitespace_token:
+      cache_token(cache, tok_last_whitespace_token);
+      break;
+    case ifc_ebts_lbrace:
+      cache_token(cache, tok_lbrace);
+      break;
+    case ifc_ebts_lbracket:
+      cache_token(cache, tok_lbracket);
+      break;
+    case ifc_ebts_le:
+      cache_token(cache, tok_le);
+      break;
+    case ifc_ebts_leave:
+      cache_token(cache, tok_leave);
+      break;
+    case ifc_ebts_long:
+      cache_token(cache, tok_long);
+      break;
+    case ifc_ebts_lparen:
+      cache_token(cache, tok_lparen);
+      break;
+    case ifc_ebts_lsplice:
+      cache_token(cache, tok_lsplice);
+      break;
+    case ifc_ebts_lt:
+      cache_token(cache, tok_lt);
+      break;
+    case ifc_ebts_make_signed:
+      cache_token(cache, tok_make_signed);
+      break;
+    case ifc_ebts_make_unsigned:
+      cache_token(cache, tok_make_unsigned);
+      break;
+    case ifc_ebts_microsoft_asm:
+      cache_token(cache, tok_microsoft_asm);
+      break;
+    case ifc_ebts_microsoft_identifier:
+      cache_token(cache, tok_microsoft_identifier);
+      break;
+    case ifc_ebts_microsoft_inline:
+      cache_token(cache, tok_microsoft_inline);
+      break;
+    case ifc_ebts_microsoft_lprefix:
+      cache_token(cache, tok_microsoft_lprefix);
+      break;
+    case ifc_ebts_microsoft_ptr32:
+      cache_token(cache, tok_microsoft_ptr32);
+      break;
+    case ifc_ebts_microsoft_ptr64:
+      cache_token(cache, tok_microsoft_ptr64);
+      break;
+    case ifc_ebts_microsoft_sptr:
+      cache_token(cache, tok_microsoft_sptr);
+      break;
+    case ifc_ebts_microsoft_try:
+      cache_token(cache, tok_microsoft_try);
+      break;
+    case ifc_ebts_microsoft_uprefix:
+      cache_token(cache, tok_microsoft_uprefix);
+      break;
+    case ifc_ebts_microsoft_uptr:
+      cache_token(cache, tok_microsoft_uptr);
+      break;
+    case ifc_ebts_microsoft_w64:
+      cache_token(cache, tok_microsoft_w64);
+      break;
+    case ifc_ebts_minus:
+      cache_token(cache, tok_minus);
+      break;
+    case ifc_ebts_minus_assign:
+      cache_token(cache, tok_minus_assign);
+      break;
+    case ifc_ebts_minus_minus:
+      cache_token(cache, tok_minus_minus);
+      break;
+    case ifc_ebts_module:
+      cache_token(cache, tok_module);
+      break;
+    case ifc_ebts_mutable:
+      cache_token(cache, tok_mutable);
+      break;
+    case ifc_ebts_namespace:
+      cache_token(cache, tok_namespace);
+      break;
+    case ifc_ebts_nan:
+      cache_token(cache, tok_nan);
+      break;
+    case ifc_ebts_native_nullptr:
+      cache_token(cache, tok_native_nullptr);
+      break;
+    case ifc_ebts_ne:
+      cache_token(cache, tok_ne);
+      break;
+    case ifc_ebts_near:
+      cache_token(cache, tok_near);
+      break;
+    case ifc_ebts_new:
+      cache_token(cache, tok_new);
+      break;
+    case ifc_ebts_noexcept:
+      cache_token(cache, tok_noexcept);
+      break;
+    case ifc_ebts_nonnull:
+      cache_token(cache, tok_nonnull);
+      break;
+    case ifc_ebts_noop:
+      cache_token(cache, tok_noop);
+      break;
+    case ifc_ebts_noreturn:
+      cache_token(cache, tok_noreturn);
+      break;
+    case ifc_ebts_not:
+      cache_token(cache, tok_not);
+      break;
+    case ifc_ebts_null:
+      cache_token(cache, tok_null);
+      break;
+    case ifc_ebts_null_unspecified:
+      cache_token(cache, tok_null_unspecified);
+      break;
+    case ifc_ebts_nullable:
+      cache_token(cache, tok_nullable);
+      break;
+    case ifc_ebts_nullptr:
+      cache_token(cache, tok_nullptr);
+      break;
+    case ifc_ebts_operator:
+      cache_token(cache, tok_operator);
+      break;
+    case ifc_ebts_or:
+      cache_token(cache, tok_or);
+      break;
+    case ifc_ebts_or_assign:
+      cache_token(cache, tok_or_assign);
+      break;
+    case ifc_ebts_or_or:
+      cache_token(cache, tok_or_or);
+      break;
+    case ifc_ebts_overload:
+      cache_token(cache, tok_overload);
+      break;
+    case ifc_ebts_override:
+      cache_token(cache, tok_override);
+      break;
+    case ifc_ebts_partial_ref_class:
+      cache_token(cache, tok_partial_ref_class);
+      break;
+    case ifc_ebts_partial_ref_struct:
+      cache_token(cache, tok_partial_ref_struct);
+      break;
+    case ifc_ebts_paste:
+      cache_token(cache, tok_paste);
+      break;
+    case ifc_ebts_period:
+      cache_token(cache, tok_period);
+      break;
+    case ifc_ebts_period_star:
+      cache_token(cache, tok_period_star);
+      break;
+    case ifc_ebts_plus:
+      cache_token(cache, tok_plus);
+      break;
+    case ifc_ebts_plus_assign:
+      cache_token(cache, tok_plus_assign);
+      break;
+    case ifc_ebts_plus_plus:
+      cache_token(cache, tok_plus_plus);
+      break;
+    case ifc_ebts_prefix_enum:
+      cache_token(cache, tok_prefix_enum);
+      break;
+    case ifc_ebts_prefix_for:
+      cache_token(cache, tok_prefix_for);
+      break;
+    case ifc_ebts_prefix_interface:
+      cache_token(cache, tok_prefix_interface);
+      break;
+    case ifc_ebts_prefix_partial:
+      cache_token(cache, tok_prefix_partial);
+      break;
+    case ifc_ebts_prefix_ref:
+      cache_token(cache, tok_prefix_ref);
+      break;
+    case ifc_ebts_prefix_value:
+      cache_token(cache, tok_prefix_value);
+      break;
+    case ifc_ebts_pretty_function_name:
+      cache_token(cache, tok_pretty_function_name);
+      break;
+    case ifc_ebts_private:
+      cache_token(cache, tok_private);
+      break;
+    case ifc_ebts_protected:
+      cache_token(cache, tok_protected);
+      break;
+    case ifc_ebts_public:
+      cache_token(cache, tok_public);
+      break;
+    case ifc_ebts_quest_mark:
+      cache_token(cache, tok_quest_mark);
+      break;
+    case ifc_ebts_rbrace:
+      cache_token(cache, tok_rbrace);
+      break;
+    case ifc_ebts_rbracket:
+      cache_token(cache, tok_rbracket);
+      break;
+    case ifc_ebts_ref_class:
+      cache_token(cache, tok_ref_class);
+      break;
+    case ifc_ebts_ref_new:
+      cache_token(cache, tok_ref_new);
+      break;
+    case ifc_ebts_ref_struct:
+      cache_token(cache, tok_ref_struct);
+      break;
+    case ifc_ebts_reference_binds_to_temporary:
+      cache_token(cache, tok_reference_binds_to_temporary);
+      break;
+    case ifc_ebts_reference_constructs_from_temporary:
+      cache_token(cache, tok_reference_constructs_from_temporary);
+      break;
+    case ifc_ebts_reference_converts_from_temporary:
+      cache_token(cache, tok_reference_converts_from_temporary);
+      break;
+    case ifc_ebts_register:
+      cache_token(cache, tok_register);
+      break;
+    case ifc_ebts_reinterpret_cast:
+      cache_token(cache, tok_reinterpret_cast);
+      break;
+    case ifc_ebts_remainder:
+      cache_token(cache, tok_remainder);
+      break;
+    case ifc_ebts_remainder_assign:
+      cache_token(cache, tok_remainder_assign);
+      break;
+    case ifc_ebts_remove_all_extents:
+      cache_token(cache, tok_remove_all_extents);
+      break;
+    case ifc_ebts_remove_const:
+      cache_token(cache, tok_remove_const);
+      break;
+    case ifc_ebts_remove_cv:
+      cache_token(cache, tok_remove_cv);
+      break;
+    case ifc_ebts_remove_cvref:
+      cache_token(cache, tok_remove_cvref);
+      break;
+    case ifc_ebts_remove_extent:
+      cache_token(cache, tok_remove_extent);
+      break;
+    case ifc_ebts_remove_pointer:
+      cache_token(cache, tok_remove_pointer);
+      break;
+    case ifc_ebts_remove_reference:
+      cache_token(cache, tok_remove_reference);
+      break;
+    case ifc_ebts_remove_reference_t:
+      cache_token(cache, tok_remove_reference_t);
+      break;
+    case ifc_ebts_remove_restrict:
+      cache_token(cache, tok_remove_restrict);
+      break;
+    case ifc_ebts_remove_volatile:
+      cache_token(cache, tok_remove_volatile);
+      break;
+    case ifc_ebts_requires:
+      cache_token(cache, tok_requires);
+      break;
+    case ifc_ebts_restrict:
+      cache_token(cache, tok_restrict);
+      break;
+    case ifc_ebts_return:
+      cache_token(cache, tok_return);
+      break;
+    case ifc_ebts_rparen:
+      cache_token(cache, tok_rparen);
+      break;
+    case ifc_ebts_rsplice:
+      cache_token(cache, tok_rsplice);
+      break;
+    case ifc_ebts_safe_cast:
+      cache_token(cache, tok_safe_cast);
+      break;
+    case ifc_ebts_sat:
+      cache_token(cache, tok_sat);
+      break;
+    case ifc_ebts_sealed:
+      cache_token(cache, tok_sealed);
+      break;
+    case ifc_ebts_semicolon:
+      cache_token(cache, tok_semicolon);
+      break;
+    case ifc_ebts_sharp:
+      cache_token(cache, tok_sharp);
+      break;
+    case ifc_ebts_shift_left:
+      cache_token(cache, tok_shift_left);
+      break;
+    case ifc_ebts_shift_left_assign:
+      cache_token(cache, tok_shift_left_assign);
+      break;
+    case ifc_ebts_shift_right:
+      cache_token(cache, tok_shift_right);
+      break;
+    case ifc_ebts_shift_right_assign:
+      cache_token(cache, tok_shift_right_assign);
+      break;
+    case ifc_ebts_short:
+      cache_token(cache, tok_short);
+      break;
+    case ifc_ebts_signed:
+      cache_token(cache, tok_signed);
+      break;
+    case ifc_ebts_sizeof:
+      cache_token(cache, tok_sizeof);
+      break;
+    case ifc_ebts_spaceship:
+      cache_token(cache, tok_spaceship);
+      break;
+    case ifc_ebts_star:
+      cache_token(cache, tok_star);
+      break;
+    case ifc_ebts_static:
+      cache_token(cache, tok_static);
+      break;
+    case ifc_ebts_static_assert:
+      cache_token(cache, tok_static_assert);
+      break;
+    case ifc_ebts_static_cast:
+      cache_token(cache, tok_static_cast);
+      break;
+    case ifc_ebts_stdcall:
+      cache_token(cache, tok_stdcall);
+      break;
+    case ifc_ebts_struct:
+      cache_token(cache, tok_struct);
+      break;
+    case ifc_ebts_super:
+      cache_token(cache, tok_super);
+      break;
+    case ifc_ebts_switch:
+      cache_token(cache, tok_switch);
+      break;
+    case ifc_ebts_symbolic_link_scope:
+      cache_token(cache, tok_symbolic_link_scope);
+      break;
+    case ifc_ebts_template:
+      cache_token(cache, tok_template);
+      break;
+    case ifc_ebts_this:
+      cache_token(cache, tok_this);
+      break;
+    case ifc_ebts_thiscall:
+      cache_token(cache, tok_thiscall);
+      break;
+    case ifc_ebts_thread:
+      cache_token(cache, tok_thread);
+      break;
+    case ifc_ebts_thread_local:
+      cache_token(cache, tok_thread_local);
+      break;
+    case ifc_ebts_throw:
+      cache_token(cache, tok_throw);
+      break;
+    case ifc_ebts_times_assign:
+      cache_token(cache, tok_times_assign);
+      break;
+    case ifc_ebts_true:
+      cache_token(cache, tok_true);
+      break;
+    case ifc_ebts_try:
+      cache_token(cache, tok_try);
+      break;
+    case ifc_ebts_typedef:
+      cache_token(cache, tok_typedef);
+      break;
+    case ifc_ebts_typeid:
+      cache_token(cache, tok_typeid);
+      break;
+    case ifc_ebts_typename:
+      cache_token(cache, tok_typename);
+      break;
+    case ifc_ebts_typeof:
+      cache_token(cache, tok_typeof);
+      break;
+    case ifc_ebts_typeof_unqual:
+      cache_token(cache, tok_typeof_unqual);
+      break;
+    case ifc_ebts_unaligned:
+      cache_token(cache, tok_unaligned);
+      break;
+    case ifc_ebts_underlying_type:
+      cache_token(cache, tok_underlying_type);
+      break;
+    case ifc_ebts_union:
+      cache_token(cache, tok_union);
+      break;
+    case ifc_ebts_unresolved_type:
+      cache_token(cache, tok_unresolved_type);
+      break;
+    case ifc_ebts_unsigned:
+      cache_token(cache, tok_unsigned);
+      break;
+    case ifc_ebts_upc_barrier:
+      cache_token(cache, tok_upc_barrier);
+      break;
+    case ifc_ebts_upc_blocksizeof:
+      cache_token(cache, tok_upc_blocksizeof);
+      break;
+    case ifc_ebts_upc_elemsizeof:
+      cache_token(cache, tok_upc_elemsizeof);
+      break;
+    case ifc_ebts_upc_fence:
+      cache_token(cache, tok_upc_fence);
+      break;
+    case ifc_ebts_upc_forall:
+      cache_token(cache, tok_upc_forall);
+      break;
+    case ifc_ebts_upc_localsizeof:
+      cache_token(cache, tok_upc_localsizeof);
+      break;
+    case ifc_ebts_upc_mythread:
+      cache_token(cache, tok_upc_mythread);
+      break;
+    case ifc_ebts_upc_notify:
+      cache_token(cache, tok_upc_notify);
+      break;
+    case ifc_ebts_upc_relaxed:
+      cache_token(cache, tok_upc_relaxed);
+      break;
+    case ifc_ebts_upc_shared:
+      cache_token(cache, tok_upc_shared);
+      break;
+    case ifc_ebts_upc_strict:
+      cache_token(cache, tok_upc_strict);
+      break;
+    case ifc_ebts_upc_threads:
+      cache_token(cache, tok_upc_threads);
+      break;
+    case ifc_ebts_upc_wait:
+      cache_token(cache, tok_upc_wait);
+      break;
+    case ifc_ebts_using:
+      cache_token(cache, tok_using);
+      break;
+    case ifc_ebts_uuid:
+      cache_token(cache, tok_uuid);
+      break;
+    case ifc_ebts_uuidof:
+      cache_token(cache, tok_uuidof);
+      break;
+    case ifc_ebts_va_copy:
+      cache_token(cache, tok_va_copy);
+      break;
+    case ifc_ebts_value_class:
+      cache_token(cache, tok_value_class);
+      break;
+    case ifc_ebts_value_struct:
+      cache_token(cache, tok_value_struct);
+      break;
+    case ifc_ebts_vectorcall:
+      cache_token(cache, tok_vectorcall);
+      break;
+    case ifc_ebts_virtual:
+      cache_token(cache, tok_virtual);
+      break;
+    case ifc_ebts_void:
+      cache_token(cache, tok_void);
+      break;
+    case ifc_ebts_volatile:
+      cache_token(cache, tok_volatile);
+      break;
+    case ifc_ebts_wchar_t:
+      cache_token(cache, tok_wchar_t);
+      break;
+    case ifc_ebts_while:
+      cache_token(cache, tok_while);
+      break;
+    default_is_unexpected();
+  } /* switch */
+}  /* cache_edg_basic_token */
+
+
+/*
+This function is specialized to implement the caching of the EDG IFC token
+representation's "complex" tokens.
+*/
+template<typename an_ifc_Node_type>
+static a_boolean cache_edg_complex_token(a_module_token_cache_ptr cache,
+                                         const an_ifc_Node_type   &node)
+                                                                 DELETED_FN_DEF
+
+template<>
+inline a_boolean cache_edg_complex_token(a_module_token_cache_ptr        cache,
+                                         const an_ifc_edg_token_constant &node)
+/*
+Cache the given constant token into the given token cache.
+*/
+{
+  /* Cache a token with the corresponding token kind. */
+  an_ifc_edg_constant_token_sort
+                token_sort = get_ifc_kind(node);
+  Opt<a_token_kind>
+                opt_token_kind;
+
+  switch (token_sort) {
+    case ifc_ects_aggr_constant:
+      opt_token_kind = tok_aggr_constant;
+      break;
+    case ifc_ects_char_constant:
+      opt_token_kind = tok_char_constant;
+      break;
+    case ifc_ects_float_constant:
+      opt_token_kind = tok_float_constant;
+      break;
+    case ifc_ects_int_constant:
+      opt_token_kind = tok_int_constant;
+      break;
+    case ifc_ects_string_literal:
+      opt_token_kind = tok_string_literal;
+      break;
+    default_is_unexpected();
+  }  /* switch */
+  check_assertion(opt_token_kind.has_value());
+  cache_token(cache, *opt_token_kind);
+
+  /* Associate the constant. */
+  an_ifc_edg_constant_index
+                constant_idx = get_ifc_constant(node);
+  a_constant_ptr
+                constant = load_edg_constant(constant_idx);
+  a_cached_token_ptr
+                last_token = cache->get_last_token();
+  last_token->extra_info_kind = teik_constant;
+  last_token->variant.constant = constant;
+  return TRUE;
+}  /* cache_edg_complex_token */
+
+
+template<>
+inline a_boolean cache_edg_complex_token(
+                                       a_module_token_cache_ptr          cache,
+                                       const an_ifc_edg_token_identifier &node)
+/*
+Cache the given identifier token into the given token cache.
+*/
+{
+  an_ifc_text_offset text_offset = get_ifc_text(node);
+  a_string           text = get_string_at_offset(text_offset);
+  a_source_position  *pos = infer_next_source_position(cache);
+
+  cache_pure_identifier(cache, text.as_temp_characters(), text.length(), pos);
+  return TRUE;
+}  /* cache_edg_complex_token */
+
+
+template<typename an_ifc_Node_type>
+static inline a_boolean cache_edg_complex_token_case(
+                                      a_module_token_cache_ptr       cache,
+                                      an_ifc_edg_complex_token_index token_idx)
+/*
+Cache the complex token at the given index, of the given node type, into the
+given token cache.
+*/
+{
+  a_boolean             result = FALSE;
+  Opt<an_ifc_Node_type> opt_complex_token;
+
+  construct_node(&opt_complex_token, token_idx);
+  if (opt_complex_token.has_value()) {
+    an_ifc_Node_type complex_token = *opt_complex_token;
+
+    if (cache_edg_complex_token(cache, complex_token)) {
+      result = TRUE;
+    }  /* if */
+  }  /* if */
+  return result;
+}  /* cache_edg_complex_token_case */
+
+
+static a_boolean cache_edg_complex_token(
+                                      a_module_token_cache_ptr       cache,
+                                      an_ifc_edg_complex_token_index token_idx)
+/*
+Given a token cache and an EDG IFC token index, cache the give complex token.
+*/
+{
+  a_boolean result = TRUE;
+
+  switch (token_idx.sort) {
+    /* Define a macro to write the switch cases. */
+#define ADD_SWITCH_CASE(case_name)                                          \
+    case ifc_ects_ ## case_name:                                            \
+      if (!cache_edg_complex_token_case<an_ifc_ ## case_name>(cache,        \
+                                                              token_idx)) { \
+        goto invalid;                                                       \
+      }  /* if */                                                           \
+      break;
+    /* Add the switch cases. */
+    ADD_SWITCH_CASE(edg_token_constant)
+    ADD_SWITCH_CASE(edg_token_identifier)
+#undef ADD_SWITCH_CASE
+    default_is_unexpected();
+  } /* switch */
+  goto done;
+invalid:
+  result = FALSE;
+done:
+  return result;
+}  /* cache_edg_complex_token */
+
+
+static a_boolean cache_edg_token_cache(
+                                    a_module_token_cache_ptr      cache,
+                                    an_ifc_edg_token_cache_offset cache_offset)
+/*
+Cache the EDG IFC token cache referenced by the given token cache offset into
+the given cache.  Return TRUE if caching completed without error; otherwise,
+return FALSE.
+*/
+{
+  Opt<an_ifc_edg_token_cache> opt_token_cache;
+  a_boolean                   result = TRUE;
+
+  construct_node(&opt_token_cache, cache_offset);
+  if (opt_token_cache.has_value()) {
+    an_ifc_edg_token_cache
+                token_cache = *opt_token_cache;
+    an_edg_token_basic_sequence
+                basic_token_sequence =
+                                     get_edg_basic_token_sequence(token_cache);
+    an_edg_heap_complex_token_sequence
+                heap_token_sequence =
+                                   get_edg_complex_token_sequence(token_cache);
+    auto        heap_token_iter = heap_token_sequence.begin();
+
+    for (Indexed<an_ifc_edg_token_basic> opt_token : basic_token_sequence) {
+      if (!opt_token.has_value()) {
+        goto invalid;
+      }  /* if */
+
+      an_ifc_edg_token_basic      token = *opt_token;
+      an_ifc_edg_basic_token_sort token_kind = get_ifc_kind(token);
+      if (token_kind == ifc_ebts_complex) {
+        /* This is a complex token, read from the complex token iterator. */
+        if (heap_token_iter == heap_token_sequence.end()) {
+          an_ifc_edg_token_basic_offset
+                basic_token_offset = get_ifc_tokens(token_cache);
+          an_ifc_cardinality
+                num_basic_tokens = get_ifc_num_tokens(token_cache);
+          a_string
+                err_msg("Ran out of complex tokens while attempting to "
+                        "process ", num_basic_tokens.value, " basic token(s) "
+                        "starting at ", basic_token_offset.value);
+
+          ifc_unexpected(module_of(token_cache), err_msg);
+          goto invalid;
+        }  /* if */
+
+        Indexed<an_ifc_edg_heap_complex_token>
+                opt_complex_tok = *heap_token_iter;
+        if (!opt_complex_tok.has_value()) {
+          goto invalid;
+        }  /* if */
+
+        /* Cache the complex token. */
+        an_ifc_edg_heap_complex_token
+                complex_tok = *opt_complex_tok;
+        an_ifc_edg_complex_token_index
+                complex_tok_idx = get_ifc_index(complex_tok);
+        if (!cache_edg_complex_token(cache, complex_tok_idx)) {
+          goto invalid;
+        }  /* if */
+        /* Advance the complex token iterator. */
+        ++heap_token_iter;
+      } else {
+        cache_edg_basic_token(cache, token_kind);
+      }  /* if */
+    }  /* for */
+    goto done;
+  }  /* if */
+invalid:
+  result = FALSE;
+done:
+  return result;
+}  /* cache_edg_token_cache */
+
+
 static void cache_expr(a_module_token_cache_ptr cache,
                        an_ifc_expr_index        expr,
                        const an_ifc_cache_info  &cinfo)
@@ -23630,11 +25288,41 @@ tuple elements by '::' instead of ','.
     case ifc_es_expr_type_trait_intrinsic:
     case ifc_es_expr_typeid:
     case ifc_es_expr_unary_fold:
-    case ifc_es_expr_vendor_extension:
     case ifc_es_expr_virtual_function_conversion:
       issue_unsupported_construct_error(mod, str_for(expr.sort),
                                         &error_position);
       goto invalid;
+    case ifc_es_expr_vendor_extension:
+      if (expr.file->module_kind == mk_edg_ifc) {
+        /* This is the EDG variant of the IFC, the expression vendor extension
+           is always an EDG token cache offset.  When written an additional
+           value of one is added to the true partition offset to allow for the
+           null index case to be distinguished; subtract the extra value
+           now. */
+        an_ifc_index_type expected_offset = expr.value - 1;
+
+        /* The offset is going to be manually constructed (and thus isn't
+           subject to the normal protection of the IFC validator), explicitly
+           perform presence checking. */
+        if (!validate_element_exists(expr.file, ifc_pk_edg_token_cache,
+                                     expected_offset, /*trace=*/NULL)) {
+          goto invalid;
+        }  /* if */
+
+        /* Cache the tokens (from the EDG IFC token representation) into the
+           front end token cache.  Add one to the expected offset's raw value
+           to normalize it. */
+        an_ifc_edg_token_cache_offset cache_offset(expr.file,
+                                                   expected_offset + 1);
+        if (!cache_edg_token_cache(cache, cache_offset)) {
+          goto invalid;
+        }  /* if */
+      } else {
+        issue_unsupported_construct_error(mod, str_for(expr.sort),
+                                          &error_position);
+        goto invalid;
+      }  /* else if */
+      break;
     case ifc_es_expr_empty:
       /* Nothing to cache here - literally an empty expression. */
       break;

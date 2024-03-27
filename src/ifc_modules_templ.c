@@ -527,6 +527,10 @@ INST_CONSTRUCT_NODE(an_ifc_decl_partial_specialization,
 INST_CONSTRUCT_NODE(an_ifc_decl_template, an_ifc_partition_kind_index)
 INST_CONSTRUCT_NODE(an_ifc_decl_temploid, an_ifc_partition_kind_index)
 INST_CONSTRUCT_NODE(an_ifc_decl_specialization, an_ifc_partition_kind_index)
+INST_CONSTRUCT_NODE(an_ifc_edg_constant_integer_word,
+                    an_ifc_partition_kind_index)
+INST_CONSTRUCT_NODE(an_ifc_edg_heap_complex_token, an_ifc_partition_kind_index)
+INST_CONSTRUCT_NODE(an_ifc_edg_token_basic, an_ifc_partition_kind_index)
 INST_CONSTRUCT_NODE(an_ifc_heap_attr, an_ifc_partition_kind_index)
 INST_CONSTRUCT_NODE(an_ifc_heap_decl, an_ifc_partition_kind_index)
 INST_CONSTRUCT_NODE(an_ifc_heap_expr, an_ifc_partition_kind_index)
