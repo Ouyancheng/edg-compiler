@@ -217,7 +217,7 @@ struct Is_trivially_destructible_edg_impl<a_Type*> :
   template<>                                                                  \
   struct Is_trivially_destructible_edg_impl<type> :                           \
                                               Integral_constant<bool, true> { \
-  };  /* Is_trivially_copyable_edg_impl */
+  };  /* Is_trivially_destructible_edg_impl */
 
 MARK_TRIVIALLY_DESTRUCTIBLE(bool)
 MARK_TRIVIALLY_DESTRUCTIBLE(wchar_t)
