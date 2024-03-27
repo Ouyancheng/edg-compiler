@@ -125,9 +125,29 @@ template<typename a_Type>
 struct Is_trivially_copyable_edg_impl : Integral_constant<bool, false> {
 };  /* Is_trivially_copyable_edg_impl */
 
-template<>
-struct Is_trivially_copyable_edg_impl<char> : Integral_constant<bool, true> {
-};  /* Is_trivially_copyable_edg_impl */
+#define MARK_TRIVIALLY_COPYABLE(type)                                         \
+  template<>                                                                  \
+  struct Is_trivially_copyable_edg_impl<type> :                               \
+                                              Integral_constant<bool, true> { \
+  };  /* Is_trivially_copyable_edg_impl */
+
+MARK_TRIVIALLY_COPYABLE(bool)
+MARK_TRIVIALLY_COPYABLE(wchar_t)
+MARK_TRIVIALLY_COPYABLE(char16_t)
+MARK_TRIVIALLY_COPYABLE(char32_t)
+MARK_TRIVIALLY_COPYABLE(char)
+MARK_TRIVIALLY_COPYABLE(signed char)
+MARK_TRIVIALLY_COPYABLE(unsigned char)
+MARK_TRIVIALLY_COPYABLE(short)
+MARK_TRIVIALLY_COPYABLE(unsigned short)
+MARK_TRIVIALLY_COPYABLE(int)
+MARK_TRIVIALLY_COPYABLE(unsigned int)
+MARK_TRIVIALLY_COPYABLE(long)
+MARK_TRIVIALLY_COPYABLE(unsigned long)
+MARK_TRIVIALLY_COPYABLE(long long)
+MARK_TRIVIALLY_COPYABLE(unsigned long long)
+
+#undef MARK_TRIVIALLY_COPYABLE
 
 /*
 This is an implementation of Is_trivially_copyable that uses the EDG
@@ -193,15 +213,29 @@ struct Is_trivially_destructible_edg_impl<a_Type*> :
                                                 Integral_constant<bool, true> {
 };  /* Is_trivially_destructible_edg_impl */
 
-template<>
-struct Is_trivially_destructible_edg_impl<char> :
-                                                Integral_constant<bool, true> {
-};  /* Is_trivially_destructible_edg_impl */
+#define MARK_TRIVIALLY_DESTRUCTIBLE(type)                                     \
+  template<>                                                                  \
+  struct Is_trivially_destructible_edg_impl<type> :                           \
+                                              Integral_constant<bool, true> { \
+  };  /* Is_trivially_copyable_edg_impl */
 
-template<>
-struct Is_trivially_destructible_edg_impl<int> :
-                                                Integral_constant<bool, true> {
-};  /* Is_trivially_destructible_edg_impl */
+MARK_TRIVIALLY_DESTRUCTIBLE(bool)
+MARK_TRIVIALLY_DESTRUCTIBLE(wchar_t)
+MARK_TRIVIALLY_DESTRUCTIBLE(char16_t)
+MARK_TRIVIALLY_DESTRUCTIBLE(char32_t)
+MARK_TRIVIALLY_DESTRUCTIBLE(char)
+MARK_TRIVIALLY_DESTRUCTIBLE(signed char)
+MARK_TRIVIALLY_DESTRUCTIBLE(unsigned char)
+MARK_TRIVIALLY_DESTRUCTIBLE(short)
+MARK_TRIVIALLY_DESTRUCTIBLE(unsigned short)
+MARK_TRIVIALLY_DESTRUCTIBLE(int)
+MARK_TRIVIALLY_DESTRUCTIBLE(unsigned int)
+MARK_TRIVIALLY_DESTRUCTIBLE(long)
+MARK_TRIVIALLY_DESTRUCTIBLE(unsigned long)
+MARK_TRIVIALLY_DESTRUCTIBLE(long long)
+MARK_TRIVIALLY_DESTRUCTIBLE(unsigned long long)
+
+#undef MARK_TRIVIALLY_DESTRUCTIBLE
 
 /*
 This is an implementation of Is_trivially_destructible that uses the EDG
