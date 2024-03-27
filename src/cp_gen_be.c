@@ -4209,7 +4209,7 @@ bare name and the explicit template argument list and to FALSE otherwise.
         check_assertion(type->variant.class_struct_union.is_nonreal_class);
         result = TRUE;
       } else {
-        result = (tap != NULL && tap->explicitly_specified);
+        result = (tap != NULL);
       }  /* if */
     } else if (type->kind == (a_type_kind)tk_typeref) {
       tap = type->variant.typeref.extra_info->template_arg_list;
