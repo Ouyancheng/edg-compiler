@@ -4209,7 +4209,7 @@ bare name and the explicit template argument list and to FALSE otherwise.
         check_assertion(type->variant.class_struct_union.is_nonreal_class);
         result = TRUE;
       } else {
-        result = (tap != NULL);
+        result = (tap != NULL && tap->explicitly_specified);
       }  /* if */
     } else if (type->kind == (a_type_kind)tk_typeref) {
       tap = type->variant.typeref.extra_info->template_arg_list;
@@ -20716,11 +20716,11 @@ when possible.
   a_type_ptr       bare_init_entity_type;
   a_boolean        suppress_delims = FALSE;
   a_boolean        saved_suppress_template_args = octl.suppress_template_args;
-  a_boolean        suppress_template_args =
-                                     dip->suppress_template_arguments_for_cast;
+  a_boolean        suppress_template_args;
 
   dip = skip_constexpr_init_folding(dip);
   braced_init = dip->is_braced_initializer;
+  suppress_template_args = dip->suppress_template_arguments_for_cast;
   if (dip->is_creation_of_initializer_list_object) {
     /* For a dynamic init that is a generated constructor call for the
        creation of a std::initializer_list object, skip down to the
