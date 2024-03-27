@@ -3487,6 +3487,7 @@ ec_nonstandard_explicit_bool;;"'explicit(bool)' is a C++20 feature"
 ec_bad_type_for_atomic_fetch;;"first argument must be a pointer to integer, enum, or supported floating-point type"
 ec_module_use_in_multi_tu_mode;;"C++ modules cannot be used when compiling multiple translation units"
 ec_module_use_with_export_template;;"C++ modules cannot be used with the pre-C++11 \"export\" feature"
+ec_ifc_unsupported_token;;"the IFC token %sq is not supported"
 ###############################################################################
 #                                                             \  ___  /       #
 #                                                               /   \         #

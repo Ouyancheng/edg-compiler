@@ -2268,7 +2268,9 @@ the expr index for the constant.
         set_ifc_cardinality(&int_constant, ifc_cardinality);
       }
       break;
+#if FIXED_POINT_ALLOWED
     case ck_fixed_point:
+#endif /* FIXED_POINT_ALLOWED */
     case ck_string:
     case ck_float:
     case ck_complex:
@@ -2281,12 +2283,15 @@ the expr index for the constant.
     case ck_init_repeat:
     case ck_template_param:
     case ck_designator:
+#if UPC_EXTENSIONS_ALLOWED
     case ck_upc_threads:
     case ck_upc_mythread:
+#endif /* UPC_EXTENSIONS_ALLOWED */
     case ck_void:
     case ck_reflection:
       header_unit_catastrophe();
       break;
+    default_is_unexpected();
   } /* switch */
   return result;
 }  /* an_ifc_il_map::enter_constant */

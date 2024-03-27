@@ -18124,8 +18124,12 @@ Add tokens corresponding to keyword (from the given module) to cache.
       cache_token(cache, tok_is_sealed);
       break;
     case ifc_sks_msvc_has_finalizer:
+#if MICROSOFT_EXTENSIONS_ALLOWED
       cache_token(cache, tok_has_finalizer);
       break;
+#else /* !MICROSOFT_EXTENSIONS_ALLOWED */
+      goto missing_token;
+#endif /* MICROSOFT_EXTENSIONS_ALLOWED */
     case ifc_sks_msvc_has_copy:
       cache_token(cache, tok_has_copy);
       break;
@@ -23818,6 +23822,21 @@ Given an EDG token cache return the complex token sequence.
 }  /* get_edg_complex_token_sequence */
 
 
+template<typename a_Token_sort>
+static void config_missing_token_error(a_module_token_cache_ptr cache,
+                                       a_Token_sort             token_sort)
+/*
+Emit an error for a missing token in the current front end configuration
+required by the given IFC.
+*/
+{
+  a_const_char *token_name = str_for(token_sort);
+
+  error(ec_ifc_unsupported_token, token_name);
+  cache->invalidate();
+}  /* config_missing_token_error */
+
+
 static inline void cache_edg_basic_token(
                                        a_module_token_cache_ptr    cache,
                                        an_ifc_edg_basic_token_sort basic_token)
@@ -23830,7 +23849,11 @@ Cache the given basic token into the given front end token cache.
       /* Complex tokens must be handled by cache_edg_complex_token. */
       unexpected_condition();
     case ifc_ebts_abstract:
+#if MICROSOFT_EXTENSIONS_ALLOWED
       cache_token(cache, tok_abstract);
+#else /* !MICROSOFT_EXTENSIONS_ALLOWED */
+      config_missing_token_error(cache, basic_token);
+#endif /* MICROSOFT_EXTENSIONS_ALLOWED */
       break;
     case ifc_ebts_accum:
       cache_token(cache, tok_accum);
@@ -23878,7 +23901,11 @@ Cache the given basic token into the given front end token cache.
       cache_token(cache, tok_assign);
       break;
     case ifc_ebts_assume:
+#if MICROSOFT_EXTENSIONS_ALLOWED
       cache_token(cache, tok_assume);
+#else /* !MICROSOFT_EXTENSIONS_ALLOWED */
+      config_missing_token_error(cache, basic_token);
+#endif /* MICROSOFT_EXTENSIONS_ALLOWED */
       break;
     case ifc_ebts_attribute:
       cache_token(cache, tok_attribute);
@@ -23890,7 +23917,11 @@ Cache the given basic token into the given front end token cache.
       cache_token(cache, tok_auto_type);
       break;
     case ifc_ebts_based:
+#if MICROSOFT_EXTENSIONS_ALLOWED
       cache_token(cache, tok_based);
+#else /* !MICROSOFT_EXTENSIONS_ALLOWED */
+      config_missing_token_error(cache, basic_token);
+#endif /* MICROSOFT_EXTENSIONS_ALLOWED */
       break;
     case ifc_ebts_bases:
       cache_token(cache, tok_bases);
@@ -23911,7 +23942,11 @@ Cache the given basic token into the given front end token cache.
       cache_token(cache, tok_builtin_complex);
       break;
     case ifc_ebts_builtin_convertvector:
+#if GNU_VECTOR_TYPES_ALLOWED
       cache_token(cache, tok_builtin_convertvector);
+#else /* !GNU_VECTOR_TYPES_ALLOWED */
+      config_missing_token_error(cache, basic_token);
+#endif /* GNU_VECTOR_TYPES_ALLOWED */
       break;
     case ifc_ebts_builtin_has_attribute:
       cache_token(cache, tok_builtin_has_attribute);
@@ -23926,7 +23961,11 @@ Cache the given basic token into the given front end token cache.
       cache_token(cache, tok_builtin_offsetof);
       break;
     case ifc_ebts_builtin_shuffle:
+#if GNU_VECTOR_TYPES_ALLOWED
       cache_token(cache, tok_builtin_shuffle);
+#else /* !GNU_VECTOR_TYPES_ALLOWED */
+      config_missing_token_error(cache, basic_token);
+#endif /* GNU_VECTOR_TYPES_ALLOWED */
       break;
     case ifc_ebts_builtin_shufflevector:
       cache_token(cache, tok_builtin_shufflevector);
@@ -23965,7 +24004,11 @@ Cache the given basic token into the given front end token cache.
       cache_token(cache, tok_catch);
       break;
     case ifc_ebts_cdecl:
+#if MICROSOFT_EXTENSIONS_ALLOWED
       cache_token(cache, tok_cdecl);
+#else /* !MICROSOFT_EXTENSIONS_ALLOWED */
+      config_missing_token_error(cache, basic_token);
+#endif /* MICROSOFT_EXTENSIONS_ALLOWED */
       break;
     case ifc_ebts_char:
       cache_token(cache, tok_char);
@@ -23980,7 +24023,11 @@ Cache the given basic token into the given front end token cache.
       cache_token(cache, tok_char8_t);
       break;
     case ifc_ebts_charize:
+#if MICROSOFT_EXTENSIONS_ALLOWED
       cache_token(cache, tok_charize);
+#else /* !MICROSOFT_EXTENSIONS_ALLOWED */
+      config_missing_token_error(cache, basic_token);
+#endif /* MICROSOFT_EXTENSIONS_ALLOWED */
       break;
     case ifc_ebts_clang_version:
       cache_token(cache, tok_clang_version);
@@ -23989,7 +24036,11 @@ Cache the given basic token into the given front end token cache.
       cache_token(cache, tok_class);
       break;
     case ifc_ebts_clrcall:
+#if MICROSOFT_EXTENSIONS_ALLOWED
       cache_token(cache, tok_clrcall);
+#else /* !MICROSOFT_EXTENSIONS_ALLOWED */
+      config_missing_token_error(cache, basic_token);
+#endif /* MICROSOFT_EXTENSIONS_ALLOWED */
       break;
     case ifc_ebts_colon:
       cache_token(cache, tok_colon);
@@ -24103,25 +24154,45 @@ Cache the given basic token into the given front end token cache.
       cache_token(cache, tok_else);
       break;
     case ifc_ebts_end_of_if_exists:
+#if MICROSOFT_EXTENSIONS_ALLOWED
       cache_token(cache, tok_end_of_if_exists);
+#else /* !MICROSOFT_EXTENSIONS_ALLOWED */
+      config_missing_token_error(cache, basic_token);
+#endif /* MICROSOFT_EXTENSIONS_ALLOWED */
       break;
     case ifc_ebts_enum:
       cache_token(cache, tok_enum);
       break;
     case ifc_ebts_enum_class:
+#if MICROSOFT_EXTENSIONS_ALLOWED
       cache_token(cache, tok_enum_class);
+#else /* !MICROSOFT_EXTENSIONS_ALLOWED */
+      config_missing_token_error(cache, basic_token);
+#endif /* MICROSOFT_EXTENSIONS_ALLOWED */
       break;
     case ifc_ebts_enum_struct:
+#if MICROSOFT_EXTENSIONS_ALLOWED
       cache_token(cache, tok_enum_struct);
+#else /* !MICROSOFT_EXTENSIONS_ALLOWED */
+      config_missing_token_error(cache, basic_token);
+#endif /* MICROSOFT_EXTENSIONS_ALLOWED */
       break;
     case ifc_ebts_eq:
       cache_token(cache, tok_eq);
       break;
     case ifc_ebts_event:
+#if MICROSOFT_EXTENSIONS_ALLOWED
       cache_token(cache, tok_event);
+#else /* !MICROSOFT_EXTENSIONS_ALLOWED */
+      config_missing_token_error(cache, basic_token);
+#endif /* MICROSOFT_EXTENSIONS_ALLOWED */
       break;
     case ifc_ebts_except:
+#if MICROSOFT_EXTENSIONS_ALLOWED
       cache_token(cache, tok_except);
+#else /* !MICROSOFT_EXTENSIONS_ALLOWED */
+      config_missing_token_error(cache, basic_token);
+#endif /* MICROSOFT_EXTENSIONS_ALLOWED */
       break;
     case ifc_ebts_excl_or:
       cache_token(cache, tok_excl_or);
@@ -24151,16 +24222,28 @@ Cache the given basic token into the given front end token cache.
       cache_token(cache, tok_false);
       break;
     case ifc_ebts_far:
+#if NEAR_AND_FAR_ALLOWED
       cache_token(cache, tok_far);
+#else /* !NEAR_AND_FAR_ALLOWED */
+      config_missing_token_error(cache, basic_token);
+#endif /* NEAR_AND_FAR_ALLOWED */
       break;
     case ifc_ebts_fastcall:
+#if MICROSOFT_EXTENSIONS_ALLOWED
       cache_token(cache, tok_fastcall);
+#else /* !MICROSOFT_EXTENSIONS_ALLOWED */
+      config_missing_token_error(cache, basic_token);
+#endif /* MICROSOFT_EXTENSIONS_ALLOWED */
       break;
     case ifc_ebts_final:
       cache_token(cache, tok_final);
       break;
     case ifc_ebts_finally:
+#if MICROSOFT_EXTENSIONS_ALLOWED
       cache_token(cache, tok_finally);
+#else /* !MICROSOFT_EXTENSIONS_ALLOWED */
+      config_missing_token_error(cache, basic_token);
+#endif /* MICROSOFT_EXTENSIONS_ALLOWED */
       break;
     case ifc_ebts_float:
       cache_token(cache, tok_float);
@@ -24184,10 +24267,18 @@ Cache the given basic token into the given front end token cache.
       cache_token(cache, tok_for);
       break;
     case ifc_ebts_for_each:
+#if MICROSOFT_EXTENSIONS_ALLOWED
       cache_token(cache, tok_for_each);
+#else /* !MICROSOFT_EXTENSIONS_ALLOWED */
+      config_missing_token_error(cache, basic_token);
+#endif /* MICROSOFT_EXTENSIONS_ALLOWED */
       break;
     case ifc_ebts_forceinline:
+#if MICROSOFT_EXTENSIONS_ALLOWED
       cache_token(cache, tok_forceinline);
+#else /* !MICROSOFT_EXTENSIONS_ALLOWED */
+      config_missing_token_error(cache, basic_token);
+#endif /* MICROSOFT_EXTENSIONS_ALLOWED */
       break;
     case ifc_ebts_fract:
       cache_token(cache, tok_fract);
@@ -24202,13 +24293,21 @@ Cache the given basic token into the given front end token cache.
       cache_token(cache, tok_function_name);
       break;
     case ifc_ebts_gcnew:
+#if MICROSOFT_EXTENSIONS_ALLOWED
       cache_token(cache, tok_gcnew);
+#else /* !MICROSOFT_EXTENSIONS_ALLOWED */
+      config_missing_token_error(cache, basic_token);
+#endif /* MICROSOFT_EXTENSIONS_ALLOWED */
       break;
     case ifc_ebts_ge:
       cache_token(cache, tok_ge);
       break;
     case ifc_ebts_global_link_scope:
+#if SUN_EXTENSIONS_ALLOWED
       cache_token(cache, tok_global_link_scope);
+#else /* !SUN_EXTENSIONS_ALLOWED */
+      config_missing_token_error(cache, basic_token);
+#endif /* SUN_EXTENSIONS_ALLOWED */
       break;
     case ifc_ebts_gnu_imag:
       cache_token(cache, tok_gnu_imag);
@@ -24280,28 +24379,48 @@ Cache the given basic token into the given front end token cache.
       cache_token(cache, tok_has_virtual_destructor);
       break;
     case ifc_ebts_hidden_link_scope:
+#if SUN_EXTENSIONS_ALLOWED
       cache_token(cache, tok_hidden_link_scope);
+#else /* !SUN_EXTENSIONS_ALLOWED */
+      config_missing_token_error(cache, basic_token);
+#endif /* SUN_EXTENSIONS_ALLOWED */
       break;
     case ifc_ebts_if:
       cache_token(cache, tok_if);
       break;
     case ifc_ebts_if_exists:
+#if MICROSOFT_EXTENSIONS_ALLOWED
       cache_token(cache, tok_if_exists);
+#else /* !MICROSOFT_EXTENSIONS_ALLOWED */
+      config_missing_token_error(cache, basic_token);
+#endif /* MICROSOFT_EXTENSIONS_ALLOWED */
       break;
     case ifc_ebts_if_not_exists:
+#if MICROSOFT_EXTENSIONS_ALLOWED
       cache_token(cache, tok_if_not_exists);
+#else /* !MICROSOFT_EXTENSIONS_ALLOWED */
+      config_missing_token_error(cache, basic_token);
+#endif /* MICROSOFT_EXTENSIONS_ALLOWED */
       break;
     case ifc_ebts_imaginary_unit:
       cache_token(cache, tok_imaginary_unit);
       break;
     case ifc_ebts_implements:
+#if MICROSOFT_EXTENSIONS_ALLOWED
       cache_token(cache, tok_implements);
+#else /* !MICROSOFT_EXTENSIONS_ALLOWED */
+      config_missing_token_error(cache, basic_token);
+#endif /* MICROSOFT_EXTENSIONS_ALLOWED */
       break;
     case ifc_ebts_import:
       cache_token(cache, tok_import);
       break;
     case ifc_ebts_in:
+#if MICROSOFT_EXTENSIONS_ALLOWED
       cache_token(cache, tok_in);
+#else /* !MICROSOFT_EXTENSIONS_ALLOWED */
+      config_missing_token_error(cache, basic_token);
+#endif /* MICROSOFT_EXTENSIONS_ALLOWED */
       break;
     case ifc_ebts_infinity:
       cache_token(cache, tok_infinity);
@@ -24313,19 +24432,39 @@ Cache the given basic token into the given front end token cache.
       cache_token(cache, tok_int);
       break;
     case ifc_ebts_int128:
+#if INT128_EXTENSIONS_ALLOWED
       cache_token(cache, tok_int128);
+#else /* !INT128_EXTENSIONS_ALLOWED */
+      config_missing_token_error(cache, basic_token);
+#endif /* INT128_EXTENSIONS_ALLOWED */
       break;
     case ifc_ebts_int16:
+#if MICROSOFT_EXTENSIONS_ALLOWED
       cache_token(cache, tok_int16);
+#else /* !MICROSOFT_EXTENSIONS_ALLOWED */
+      config_missing_token_error(cache, basic_token);
+#endif /* MICROSOFT_EXTENSIONS_ALLOWED */
       break;
     case ifc_ebts_int32:
+#if MICROSOFT_EXTENSIONS_ALLOWED
       cache_token(cache, tok_int32);
+#else /* !MICROSOFT_EXTENSIONS_ALLOWED */
+      config_missing_token_error(cache, basic_token);
+#endif /* MICROSOFT_EXTENSIONS_ALLOWED */
       break;
     case ifc_ebts_int64:
+#if MICROSOFT_EXTENSIONS_ALLOWED
       cache_token(cache, tok_int64);
+#else /* !MICROSOFT_EXTENSIONS_ALLOWED */
+      config_missing_token_error(cache, basic_token);
+#endif /* MICROSOFT_EXTENSIONS_ALLOWED */
       break;
     case ifc_ebts_int8:
+#if MICROSOFT_EXTENSIONS_ALLOWED
       cache_token(cache, tok_int8);
+#else /* !MICROSOFT_EXTENSIONS_ALLOWED */
+      config_missing_token_error(cache, basic_token);
+#endif /* MICROSOFT_EXTENSIONS_ALLOWED */
       break;
     case ifc_ebts_intaddr:
       cache_token(cache, tok_intaddr);
@@ -24334,13 +24473,25 @@ Cache the given basic token into the given front end token cache.
       cache_token(cache, tok_integer_pack);
       break;
     case ifc_ebts_interface:
+#if MICROSOFT_EXTENSIONS_ALLOWED
       cache_token(cache, tok_interface);
+#else /* !MICROSOFT_EXTENSIONS_ALLOWED */
+      config_missing_token_error(cache, basic_token);
+#endif /* MICROSOFT_EXTENSIONS_ALLOWED */
       break;
     case ifc_ebts_interface_class:
+#if MICROSOFT_EXTENSIONS_ALLOWED
       cache_token(cache, tok_interface_class);
+#else /* !MICROSOFT_EXTENSIONS_ALLOWED */
+      config_missing_token_error(cache, basic_token);
+#endif /* MICROSOFT_EXTENSIONS_ALLOWED */
       break;
     case ifc_ebts_interface_struct:
+#if MICROSOFT_EXTENSIONS_ALLOWED
       cache_token(cache, tok_interface_struct);
+#else /* !MICROSOFT_EXTENSIONS_ALLOWED */
+      config_missing_token_error(cache, basic_token);
+#endif /* MICROSOFT_EXTENSIONS_ALLOWED */
       break;
     case ifc_ebts_internal_alias_decl:
       cache_token(cache, tok_internal_alias_decl);
@@ -24361,7 +24512,11 @@ Cache the given basic token into the given front end token cache.
       cache_token(cache, tok_is_assignable);
       break;
     case ifc_ebts_is_assignable_no_precondition_check:
+#if MICROSOFT_EXTENSIONS_ALLOWED
       cache_token(cache, tok_is_assignable_no_precondition_check);
+#else /* !MICROSOFT_EXTENSIONS_ALLOWED */
+      config_missing_token_error(cache, basic_token);
+#endif /* MICROSOFT_EXTENSIONS_ALLOWED */
       break;
     case ifc_ebts_is_base_of:
       cache_token(cache, tok_is_base_of);
@@ -24394,7 +24549,11 @@ Cache the given basic token into the given front end token cache.
       cache_token(cache, tok_is_corresponding_member);
       break;
     case ifc_ebts_is_delegate:
+#if MICROSOFT_EXTENSIONS_ALLOWED
       cache_token(cache, tok_is_delegate);
+#else /* !MICROSOFT_EXTENSIONS_ALLOWED */
+      config_missing_token_error(cache, basic_token);
+#endif /* MICROSOFT_EXTENSIONS_ALLOWED */
       break;
     case ifc_ebts_is_destructible:
       cache_token(cache, tok_is_destructible);
@@ -24421,7 +24580,11 @@ Cache the given basic token into the given front end token cache.
       cache_token(cache, tok_is_integral);
       break;
     case ifc_ebts_is_interface_class:
+#if MICROSOFT_EXTENSIONS_ALLOWED
       cache_token(cache, tok_is_interface_class);
+#else /* !MICROSOFT_EXTENSIONS_ALLOWED */
+      config_missing_token_error(cache, basic_token);
+#endif /* MICROSOFT_EXTENSIONS_ALLOWED */
       break;
     case ifc_ebts_is_layout_compatible:
       cache_token(cache, tok_is_layout_compatible);
@@ -24472,10 +24635,18 @@ Cache the given basic token into the given front end token cache.
       cache_token(cache, tok_is_polymorphic);
       break;
     case ifc_ebts_is_ref_array:
+#if MICROSOFT_EXTENSIONS_ALLOWED
       cache_token(cache, tok_is_ref_array);
+#else /* !MICROSOFT_EXTENSIONS_ALLOWED */
+      config_missing_token_error(cache, basic_token);
+#endif /* MICROSOFT_EXTENSIONS_ALLOWED */
       break;
     case ifc_ebts_is_ref_class:
+#if MICROSOFT_EXTENSIONS_ALLOWED
       cache_token(cache, tok_is_ref_class);
+#else /* !MICROSOFT_EXTENSIONS_ALLOWED */
+      config_missing_token_error(cache, basic_token);
+#endif /* MICROSOFT_EXTENSIONS_ALLOWED */
       break;
     case ifc_ebts_is_reference:
       cache_token(cache, tok_is_reference);
@@ -24496,13 +24667,21 @@ Cache the given basic token into the given front end token cache.
       cache_token(cache, tok_is_scalar);
       break;
     case ifc_ebts_is_sealed:
+#if MICROSOFT_EXTENSIONS_ALLOWED
       cache_token(cache, tok_is_sealed);
+#else /* !MICROSOFT_EXTENSIONS_ALLOWED */
+      config_missing_token_error(cache, basic_token);
+#endif /* MICROSOFT_EXTENSIONS_ALLOWED */
       break;
     case ifc_ebts_is_signed:
       cache_token(cache, tok_is_signed);
       break;
     case ifc_ebts_is_simple_value_class:
+#if MICROSOFT_EXTENSIONS_ALLOWED
       cache_token(cache, tok_is_simple_value_class);
+#else /* !MICROSOFT_EXTENSIONS_ALLOWED */
+      config_missing_token_error(cache, basic_token);
+#endif /* MICROSOFT_EXTENSIONS_ALLOWED */
       break;
     case ifc_ebts_is_standard_layout:
       cache_token(cache, tok_is_standard_layout);
@@ -24517,7 +24696,11 @@ Cache the given basic token into the given front end token cache.
       cache_token(cache, tok_is_trivially_constructible);
       break;
     case ifc_ebts_is_trivially_copy_assignable:
+#if MICROSOFT_EXTENSIONS_ALLOWED
       cache_token(cache, tok_is_trivially_copy_assignable);
+#else /* !MICROSOFT_EXTENSIONS_ALLOWED */
+      config_missing_token_error(cache, basic_token);
+#endif /* MICROSOFT_EXTENSIONS_ALLOWED */
       break;
     case ifc_ebts_is_trivially_copyable:
       cache_token(cache, tok_is_trivially_copyable);
@@ -24541,7 +24724,11 @@ Cache the given basic token into the given front end token cache.
       cache_token(cache, tok_is_valid_winrt_type);
       break;
     case ifc_ebts_is_value_class:
+#if MICROSOFT_EXTENSIONS_ALLOWED
       cache_token(cache, tok_is_value_class);
+#else /* !MICROSOFT_EXTENSIONS_ALLOWED */
+      config_missing_token_error(cache, basic_token);
+#endif /* MICROSOFT_EXTENSIONS_ALLOWED */
       break;
     case ifc_ebts_is_void:
       cache_token(cache, tok_is_void);
@@ -24550,13 +24737,25 @@ Cache the given basic token into the given front end token cache.
       cache_token(cache, tok_is_volatile);
       break;
     case ifc_ebts_is_win_class:
+#if MICROSOFT_EXTENSIONS_ALLOWED
       cache_token(cache, tok_is_win_class);
+#else /* !MICROSOFT_EXTENSIONS_ALLOWED */
+      config_missing_token_error(cache, basic_token);
+#endif /* MICROSOFT_EXTENSIONS_ALLOWED */
       break;
     case ifc_ebts_is_win_interface:
+#if MICROSOFT_EXTENSIONS_ALLOWED
       cache_token(cache, tok_is_win_interface);
+#else /* !MICROSOFT_EXTENSIONS_ALLOWED */
+      config_missing_token_error(cache, basic_token);
+#endif /* MICROSOFT_EXTENSIONS_ALLOWED */
       break;
     case ifc_ebts_last_whitespace_token:
+#if MICROSOFT_EXTENSIONS_ALLOWED
       cache_token(cache, tok_last_whitespace_token);
+#else /* !MICROSOFT_EXTENSIONS_ALLOWED */
+      config_missing_token_error(cache, basic_token);
+#endif /* MICROSOFT_EXTENSIONS_ALLOWED */
       break;
     case ifc_ebts_lbrace:
       cache_token(cache, tok_lbrace);
@@ -24568,7 +24767,11 @@ Cache the given basic token into the given front end token cache.
       cache_token(cache, tok_le);
       break;
     case ifc_ebts_leave:
+#if MICROSOFT_EXTENSIONS_ALLOWED
       cache_token(cache, tok_leave);
+#else /* !MICROSOFT_EXTENSIONS_ALLOWED */
+      config_missing_token_error(cache, basic_token);
+#endif /* MICROSOFT_EXTENSIONS_ALLOWED */
       break;
     case ifc_ebts_long:
       cache_token(cache, tok_long);
@@ -24592,34 +24795,70 @@ Cache the given basic token into the given front end token cache.
       cache_token(cache, tok_microsoft_asm);
       break;
     case ifc_ebts_microsoft_identifier:
+#if MICROSOFT_EXTENSIONS_ALLOWED
       cache_token(cache, tok_microsoft_identifier);
+#else /* !MICROSOFT_EXTENSIONS_ALLOWED */
+      config_missing_token_error(cache, basic_token);
+#endif /* MICROSOFT_EXTENSIONS_ALLOWED */
       break;
     case ifc_ebts_microsoft_inline:
       cache_token(cache, tok_microsoft_inline);
       break;
     case ifc_ebts_microsoft_lprefix:
+#if MICROSOFT_EXTENSIONS_ALLOWED
       cache_token(cache, tok_microsoft_lprefix);
+#else /* !MICROSOFT_EXTENSIONS_ALLOWED */
+      config_missing_token_error(cache, basic_token);
+#endif /* MICROSOFT_EXTENSIONS_ALLOWED */
       break;
     case ifc_ebts_microsoft_ptr32:
+#if MICROSOFT_EXTENSIONS_ALLOWED
       cache_token(cache, tok_microsoft_ptr32);
+#else /* !MICROSOFT_EXTENSIONS_ALLOWED */
+      config_missing_token_error(cache, basic_token);
+#endif /* MICROSOFT_EXTENSIONS_ALLOWED */
       break;
     case ifc_ebts_microsoft_ptr64:
+#if MICROSOFT_EXTENSIONS_ALLOWED
       cache_token(cache, tok_microsoft_ptr64);
+#else /* !MICROSOFT_EXTENSIONS_ALLOWED */
+      config_missing_token_error(cache, basic_token);
+#endif /* MICROSOFT_EXTENSIONS_ALLOWED */
       break;
     case ifc_ebts_microsoft_sptr:
+#if MICROSOFT_EXTENSIONS_ALLOWED
       cache_token(cache, tok_microsoft_sptr);
+#else /* !MICROSOFT_EXTENSIONS_ALLOWED */
+      config_missing_token_error(cache, basic_token);
+#endif /* MICROSOFT_EXTENSIONS_ALLOWED */
       break;
     case ifc_ebts_microsoft_try:
+#if MICROSOFT_EXTENSIONS_ALLOWED
       cache_token(cache, tok_microsoft_try);
+#else /* !MICROSOFT_EXTENSIONS_ALLOWED */
+      config_missing_token_error(cache, basic_token);
+#endif /* MICROSOFT_EXTENSIONS_ALLOWED */
       break;
     case ifc_ebts_microsoft_uprefix:
+#if MICROSOFT_EXTENSIONS_ALLOWED
       cache_token(cache, tok_microsoft_uprefix);
+#else /* !MICROSOFT_EXTENSIONS_ALLOWED */
+      config_missing_token_error(cache, basic_token);
+#endif /* MICROSOFT_EXTENSIONS_ALLOWED */
       break;
     case ifc_ebts_microsoft_uptr:
+#if MICROSOFT_EXTENSIONS_ALLOWED
       cache_token(cache, tok_microsoft_uptr);
+#else /* !MICROSOFT_EXTENSIONS_ALLOWED */
+      config_missing_token_error(cache, basic_token);
+#endif /* MICROSOFT_EXTENSIONS_ALLOWED */
       break;
     case ifc_ebts_microsoft_w64:
+#if MICROSOFT_EXTENSIONS_ALLOWED
       cache_token(cache, tok_microsoft_w64);
+#else /* !MICROSOFT_EXTENSIONS_ALLOWED */
+      config_missing_token_error(cache, basic_token);
+#endif /* MICROSOFT_EXTENSIONS_ALLOWED */
       break;
     case ifc_ebts_minus:
       cache_token(cache, tok_minus);
@@ -24643,13 +24882,21 @@ Cache the given basic token into the given front end token cache.
       cache_token(cache, tok_nan);
       break;
     case ifc_ebts_native_nullptr:
+#if MICROSOFT_EXTENSIONS_ALLOWED
       cache_token(cache, tok_native_nullptr);
+#else /* !MICROSOFT_EXTENSIONS_ALLOWED */
+      config_missing_token_error(cache, basic_token);
+#endif /* MICROSOFT_EXTENSIONS_ALLOWED */
       break;
     case ifc_ebts_ne:
       cache_token(cache, tok_ne);
       break;
     case ifc_ebts_near:
+#if NEAR_AND_FAR_ALLOWED
       cache_token(cache, tok_near);
+#else /* !NEAR_AND_FAR_ALLOWED */
+      config_missing_token_error(cache, basic_token);
+#endif /* NEAR_AND_FAR_ALLOWED */
       break;
     case ifc_ebts_new:
       cache_token(cache, tok_new);
@@ -24661,7 +24908,11 @@ Cache the given basic token into the given front end token cache.
       cache_token(cache, tok_nonnull);
       break;
     case ifc_ebts_noop:
+#if MICROSOFT_EXTENSIONS_ALLOWED
       cache_token(cache, tok_noop);
+#else /* !MICROSOFT_EXTENSIONS_ALLOWED */
+      config_missing_token_error(cache, basic_token);
+#endif /* MICROSOFT_EXTENSIONS_ALLOWED */
       break;
     case ifc_ebts_noreturn:
       cache_token(cache, tok_noreturn);
@@ -24700,10 +24951,18 @@ Cache the given basic token into the given front end token cache.
       cache_token(cache, tok_override);
       break;
     case ifc_ebts_partial_ref_class:
+#if MICROSOFT_EXTENSIONS_ALLOWED
       cache_token(cache, tok_partial_ref_class);
+#else /* !MICROSOFT_EXTENSIONS_ALLOWED */
+      config_missing_token_error(cache, basic_token);
+#endif /* MICROSOFT_EXTENSIONS_ALLOWED */
       break;
     case ifc_ebts_partial_ref_struct:
+#if MICROSOFT_EXTENSIONS_ALLOWED
       cache_token(cache, tok_partial_ref_struct);
+#else /* !MICROSOFT_EXTENSIONS_ALLOWED */
+      config_missing_token_error(cache, basic_token);
+#endif /* MICROSOFT_EXTENSIONS_ALLOWED */
       break;
     case ifc_ebts_paste:
       cache_token(cache, tok_paste);
@@ -24724,22 +24983,46 @@ Cache the given basic token into the given front end token cache.
       cache_token(cache, tok_plus_plus);
       break;
     case ifc_ebts_prefix_enum:
+#if MICROSOFT_EXTENSIONS_ALLOWED
       cache_token(cache, tok_prefix_enum);
+#else /* !MICROSOFT_EXTENSIONS_ALLOWED */
+      config_missing_token_error(cache, basic_token);
+#endif /* MICROSOFT_EXTENSIONS_ALLOWED */
       break;
     case ifc_ebts_prefix_for:
+#if MICROSOFT_EXTENSIONS_ALLOWED
       cache_token(cache, tok_prefix_for);
+#else /* !MICROSOFT_EXTENSIONS_ALLOWED */
+      config_missing_token_error(cache, basic_token);
+#endif /* MICROSOFT_EXTENSIONS_ALLOWED */
       break;
     case ifc_ebts_prefix_interface:
+#if MICROSOFT_EXTENSIONS_ALLOWED
       cache_token(cache, tok_prefix_interface);
+#else /* !MICROSOFT_EXTENSIONS_ALLOWED */
+      config_missing_token_error(cache, basic_token);
+#endif /* MICROSOFT_EXTENSIONS_ALLOWED */
       break;
     case ifc_ebts_prefix_partial:
+#if MICROSOFT_EXTENSIONS_ALLOWED
       cache_token(cache, tok_prefix_partial);
+#else /* !MICROSOFT_EXTENSIONS_ALLOWED */
+      config_missing_token_error(cache, basic_token);
+#endif /* MICROSOFT_EXTENSIONS_ALLOWED */
       break;
     case ifc_ebts_prefix_ref:
+#if MICROSOFT_EXTENSIONS_ALLOWED
       cache_token(cache, tok_prefix_ref);
+#else /* !MICROSOFT_EXTENSIONS_ALLOWED */
+      config_missing_token_error(cache, basic_token);
+#endif /* MICROSOFT_EXTENSIONS_ALLOWED */
       break;
     case ifc_ebts_prefix_value:
+#if MICROSOFT_EXTENSIONS_ALLOWED
       cache_token(cache, tok_prefix_value);
+#else /* !MICROSOFT_EXTENSIONS_ALLOWED */
+      config_missing_token_error(cache, basic_token);
+#endif /* MICROSOFT_EXTENSIONS_ALLOWED */
       break;
     case ifc_ebts_pretty_function_name:
       cache_token(cache, tok_pretty_function_name);
@@ -24763,13 +25046,25 @@ Cache the given basic token into the given front end token cache.
       cache_token(cache, tok_rbracket);
       break;
     case ifc_ebts_ref_class:
+#if MICROSOFT_EXTENSIONS_ALLOWED
       cache_token(cache, tok_ref_class);
+#else /* !MICROSOFT_EXTENSIONS_ALLOWED */
+      config_missing_token_error(cache, basic_token);
+#endif /* MICROSOFT_EXTENSIONS_ALLOWED */
       break;
     case ifc_ebts_ref_new:
+#if MICROSOFT_EXTENSIONS_ALLOWED
       cache_token(cache, tok_ref_new);
+#else /* !MICROSOFT_EXTENSIONS_ALLOWED */
+      config_missing_token_error(cache, basic_token);
+#endif /* MICROSOFT_EXTENSIONS_ALLOWED */
       break;
     case ifc_ebts_ref_struct:
+#if MICROSOFT_EXTENSIONS_ALLOWED
       cache_token(cache, tok_ref_struct);
+#else /* !MICROSOFT_EXTENSIONS_ALLOWED */
+      config_missing_token_error(cache, basic_token);
+#endif /* MICROSOFT_EXTENSIONS_ALLOWED */
       break;
     case ifc_ebts_reference_binds_to_temporary:
       cache_token(cache, tok_reference_binds_to_temporary);
@@ -24838,13 +25133,21 @@ Cache the given basic token into the given front end token cache.
       cache_token(cache, tok_rsplice);
       break;
     case ifc_ebts_safe_cast:
+#if MICROSOFT_EXTENSIONS_ALLOWED
       cache_token(cache, tok_safe_cast);
+#else /* !MICROSOFT_EXTENSIONS_ALLOWED */
+      config_missing_token_error(cache, basic_token);
+#endif /* MICROSOFT_EXTENSIONS_ALLOWED */
       break;
     case ifc_ebts_sat:
       cache_token(cache, tok_sat);
       break;
     case ifc_ebts_sealed:
+#if MICROSOFT_EXTENSIONS_ALLOWED
       cache_token(cache, tok_sealed);
+#else /* !MICROSOFT_EXTENSIONS_ALLOWED */
+      config_missing_token_error(cache, basic_token);
+#endif /* MICROSOFT_EXTENSIONS_ALLOWED */
       break;
     case ifc_ebts_semicolon:
       cache_token(cache, tok_semicolon);
@@ -24889,19 +25192,31 @@ Cache the given basic token into the given front end token cache.
       cache_token(cache, tok_static_cast);
       break;
     case ifc_ebts_stdcall:
+#if MICROSOFT_EXTENSIONS_ALLOWED
       cache_token(cache, tok_stdcall);
+#else /* !MICROSOFT_EXTENSIONS_ALLOWED */
+      config_missing_token_error(cache, basic_token);
+#endif /* MICROSOFT_EXTENSIONS_ALLOWED */
       break;
     case ifc_ebts_struct:
       cache_token(cache, tok_struct);
       break;
     case ifc_ebts_super:
+#if MICROSOFT_EXTENSIONS_ALLOWED
       cache_token(cache, tok_super);
+#else /* !MICROSOFT_EXTENSIONS_ALLOWED */
+      config_missing_token_error(cache, basic_token);
+#endif /* MICROSOFT_EXTENSIONS_ALLOWED */
       break;
     case ifc_ebts_switch:
       cache_token(cache, tok_switch);
       break;
     case ifc_ebts_symbolic_link_scope:
+#if SUN_EXTENSIONS_ALLOWED
       cache_token(cache, tok_symbolic_link_scope);
+#else /* !SUN_EXTENSIONS_ALLOWED */
+      config_missing_token_error(cache, basic_token);
+#endif /* SUN_EXTENSIONS_ALLOWED */
       break;
     case ifc_ebts_template:
       cache_token(cache, tok_template);
@@ -24910,7 +25225,11 @@ Cache the given basic token into the given front end token cache.
       cache_token(cache, tok_this);
       break;
     case ifc_ebts_thiscall:
+#if MICROSOFT_EXTENSIONS_ALLOWED
       cache_token(cache, tok_thiscall);
+#else /* !MICROSOFT_EXTENSIONS_ALLOWED */
+      config_missing_token_error(cache, basic_token);
+#endif /* MICROSOFT_EXTENSIONS_ALLOWED */
       break;
     case ifc_ebts_thread:
       cache_token(cache, tok_thread);
@@ -24946,7 +25265,11 @@ Cache the given basic token into the given front end token cache.
       cache_token(cache, tok_typeof_unqual);
       break;
     case ifc_ebts_unaligned:
+#if MICROSOFT_EXTENSIONS_ALLOWED
       cache_token(cache, tok_unaligned);
+#else /* !MICROSOFT_EXTENSIONS_ALLOWED */
+      config_missing_token_error(cache, basic_token);
+#endif /* MICROSOFT_EXTENSIONS_ALLOWED */
       break;
     case ifc_ebts_underlying_type:
       cache_token(cache, tok_underlying_type);
@@ -24955,70 +25278,146 @@ Cache the given basic token into the given front end token cache.
       cache_token(cache, tok_union);
       break;
     case ifc_ebts_unresolved_type:
+#if MICROSOFT_EXTENSIONS_ALLOWED
       cache_token(cache, tok_unresolved_type);
+#else /* !MICROSOFT_EXTENSIONS_ALLOWED */
+      config_missing_token_error(cache, basic_token);
+#endif /* MICROSOFT_EXTENSIONS_ALLOWED */
       break;
     case ifc_ebts_unsigned:
       cache_token(cache, tok_unsigned);
       break;
     case ifc_ebts_upc_barrier:
+#if UPC_EXTENSIONS_ALLOWED
       cache_token(cache, tok_upc_barrier);
+#else /* !UPC_EXTENSIONS_ALLOWED */
+      config_missing_token_error(cache, basic_token);
+#endif /* UPC_EXTENSIONS_ALLOWED */
       break;
     case ifc_ebts_upc_blocksizeof:
+#if UPC_EXTENSIONS_ALLOWED
       cache_token(cache, tok_upc_blocksizeof);
+#else /* !UPC_EXTENSIONS_ALLOWED */
+      config_missing_token_error(cache, basic_token);
+#endif /* UPC_EXTENSIONS_ALLOWED */
       break;
     case ifc_ebts_upc_elemsizeof:
+#if UPC_EXTENSIONS_ALLOWED
       cache_token(cache, tok_upc_elemsizeof);
+#else /* !UPC_EXTENSIONS_ALLOWED */
+      config_missing_token_error(cache, basic_token);
+#endif /* UPC_EXTENSIONS_ALLOWED */
       break;
     case ifc_ebts_upc_fence:
+#if UPC_EXTENSIONS_ALLOWED
       cache_token(cache, tok_upc_fence);
+#else /* !UPC_EXTENSIONS_ALLOWED */
+      config_missing_token_error(cache, basic_token);
+#endif /* UPC_EXTENSIONS_ALLOWED */
       break;
     case ifc_ebts_upc_forall:
+#if UPC_EXTENSIONS_ALLOWED
       cache_token(cache, tok_upc_forall);
+#else /* !UPC_EXTENSIONS_ALLOWED */
+      config_missing_token_error(cache, basic_token);
+#endif /* UPC_EXTENSIONS_ALLOWED */
       break;
     case ifc_ebts_upc_localsizeof:
+#if UPC_EXTENSIONS_ALLOWED
       cache_token(cache, tok_upc_localsizeof);
+#else /* !UPC_EXTENSIONS_ALLOWED */
+      config_missing_token_error(cache, basic_token);
+#endif /* UPC_EXTENSIONS_ALLOWED */
       break;
     case ifc_ebts_upc_mythread:
+#if UPC_EXTENSIONS_ALLOWED
       cache_token(cache, tok_upc_mythread);
+#else /* !UPC_EXTENSIONS_ALLOWED */
+      config_missing_token_error(cache, basic_token);
+#endif /* UPC_EXTENSIONS_ALLOWED */
       break;
     case ifc_ebts_upc_notify:
+#if UPC_EXTENSIONS_ALLOWED
       cache_token(cache, tok_upc_notify);
+#else /* !UPC_EXTENSIONS_ALLOWED */
+      config_missing_token_error(cache, basic_token);
+#endif /* UPC_EXTENSIONS_ALLOWED */
       break;
     case ifc_ebts_upc_relaxed:
+#if UPC_EXTENSIONS_ALLOWED
       cache_token(cache, tok_upc_relaxed);
+#else /* !UPC_EXTENSIONS_ALLOWED */
+      config_missing_token_error(cache, basic_token);
+#endif /* UPC_EXTENSIONS_ALLOWED */
       break;
     case ifc_ebts_upc_shared:
+#if UPC_EXTENSIONS_ALLOWED
       cache_token(cache, tok_upc_shared);
+#else /* !UPC_EXTENSIONS_ALLOWED */
+      config_missing_token_error(cache, basic_token);
+#endif /* UPC_EXTENSIONS_ALLOWED */
       break;
     case ifc_ebts_upc_strict:
+#if UPC_EXTENSIONS_ALLOWED
       cache_token(cache, tok_upc_strict);
+#else /* !UPC_EXTENSIONS_ALLOWED */
+      config_missing_token_error(cache, basic_token);
+#endif /* UPC_EXTENSIONS_ALLOWED */
       break;
     case ifc_ebts_upc_threads:
+#if UPC_EXTENSIONS_ALLOWED
       cache_token(cache, tok_upc_threads);
+#else /* !UPC_EXTENSIONS_ALLOWED */
+      config_missing_token_error(cache, basic_token);
+#endif /* UPC_EXTENSIONS_ALLOWED */
       break;
     case ifc_ebts_upc_wait:
+#if UPC_EXTENSIONS_ALLOWED
       cache_token(cache, tok_upc_wait);
+#else /* !UPC_EXTENSIONS_ALLOWED */
+      config_missing_token_error(cache, basic_token);
+#endif /* UPC_EXTENSIONS_ALLOWED */
       break;
     case ifc_ebts_using:
       cache_token(cache, tok_using);
       break;
     case ifc_ebts_uuid:
+#if MICROSOFT_EXTENSIONS_ALLOWED
       cache_token(cache, tok_uuid);
+#else /* !MICROSOFT_EXTENSIONS_ALLOWED */
+      config_missing_token_error(cache, basic_token);
+#endif /* MICROSOFT_EXTENSIONS_ALLOWED */
       break;
     case ifc_ebts_uuidof:
+#if MICROSOFT_EXTENSIONS_ALLOWED
       cache_token(cache, tok_uuidof);
+#else /* !MICROSOFT_EXTENSIONS_ALLOWED */
+      config_missing_token_error(cache, basic_token);
+#endif /* MICROSOFT_EXTENSIONS_ALLOWED */
       break;
     case ifc_ebts_va_copy:
       cache_token(cache, tok_va_copy);
       break;
     case ifc_ebts_value_class:
+#if MICROSOFT_EXTENSIONS_ALLOWED
       cache_token(cache, tok_value_class);
+#else /* !MICROSOFT_EXTENSIONS_ALLOWED */
+      config_missing_token_error(cache, basic_token);
+#endif /* MICROSOFT_EXTENSIONS_ALLOWED */
       break;
     case ifc_ebts_value_struct:
+#if MICROSOFT_EXTENSIONS_ALLOWED
       cache_token(cache, tok_value_struct);
+#else /* !MICROSOFT_EXTENSIONS_ALLOWED */
+      config_missing_token_error(cache, basic_token);
+#endif /* MICROSOFT_EXTENSIONS_ALLOWED */
       break;
     case ifc_ebts_vectorcall:
+#if MICROSOFT_EXTENSIONS_ALLOWED
       cache_token(cache, tok_vectorcall);
+#else /* !MICROSOFT_EXTENSIONS_ALLOWED */
+      config_missing_token_error(cache, basic_token);
+#endif /* MICROSOFT_EXTENSIONS_ALLOWED */
       break;
     case ifc_ebts_virtual:
       cache_token(cache, tok_virtual);
