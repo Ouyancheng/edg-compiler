@@ -25476,6 +25476,40 @@ static a_boolean cache_edg_complex_token(a_module_token_cache_ptr cache,
                                          const an_ifc_Node_type   &node)
                                                                  DELETED_FN_DEF
 
+
+static inline a_token_kind token_kind_for_constant_token(
+                                         const an_ifc_edg_token_constant &node)
+/*
+Given a constant token, return the corresponding front end token kind.
+*/
+{
+  a_token_kind                   result = tok_error;
+  an_ifc_edg_constant_token_sort token_sort = get_ifc_kind(node);
+
+  switch (token_sort) {
+    case ifc_ects_aggr_constant:
+      result = tok_aggr_constant;
+      break;
+    case ifc_ects_char_constant:
+      result = tok_char_constant;
+      break;
+    case ifc_ects_float_constant:
+      result = tok_float_constant;
+      break;
+    case ifc_ects_int_constant:
+      result = tok_int_constant;
+      break;
+    case ifc_ects_string_literal:
+      result = tok_string_literal;
+      break;
+    default_is_unexpected();
+  }  /* switch */
+  /* There should always be a valid corresponding constant. */
+  check_assertion(result != tok_error);
+  return result;
+}  /* token_kind_for_constant_token */
+
+
 template<>
 inline a_boolean cache_edg_complex_token(a_module_token_cache_ptr        cache,
                                          const an_ifc_edg_token_constant &node)
@@ -25484,31 +25518,8 @@ Cache the given constant token into the given token cache.
 */
 {
   /* Cache a token with the corresponding token kind. */
-  an_ifc_edg_constant_token_sort
-                token_sort = get_ifc_kind(node);
-  Opt<a_token_kind>
-                opt_token_kind;
-
-  switch (token_sort) {
-    case ifc_ects_aggr_constant:
-      opt_token_kind = tok_aggr_constant;
-      break;
-    case ifc_ects_char_constant:
-      opt_token_kind = tok_char_constant;
-      break;
-    case ifc_ects_float_constant:
-      opt_token_kind = tok_float_constant;
-      break;
-    case ifc_ects_int_constant:
-      opt_token_kind = tok_int_constant;
-      break;
-    case ifc_ects_string_literal:
-      opt_token_kind = tok_string_literal;
-      break;
-    default_is_unexpected();
-  }  /* switch */
-  check_assertion(opt_token_kind.has_value());
-  cache_token(cache, *opt_token_kind);
+  a_token_kind token_kind = token_kind_for_constant_token(node);
+  cache_token(cache, token_kind);
 
   /* Associate the constant. */
   an_ifc_edg_constant_index
