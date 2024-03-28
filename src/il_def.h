@@ -13826,8 +13826,8 @@ enum a_builtin_operation_kind : a_byte {
 			/* __is_nothrow_convertible.  Two operands, both
 			   types. */
   bok_reference_constructs_from_temporary,
-			/* GCC's __reference_constructs_from_temporary.  Two
-			   type operands. */
+			/* __reference_constructs_from_temporary (GNU and
+			   Clang). Two type operands. */
   bok_reference_converts_from_temporary,
 			/* GCC's __reference_converts_from_temporary.  Two type
 			   operands. */

@@ -803,6 +803,10 @@ modes.
       enter_keyword(tok_is_trivially_equality_comparable,
                     "__is_trivially_equality_comparable");
     }  /* if */
+    if (clang_version >= 180000) {
+      enter_keyword(tok_reference_constructs_from_temporary,
+                    "__reference_constructs_from_temporary");
+    }  /* if */
   }  /* if */
   if (gnu_version_is(>=130000)) {
     enter_keyword(tok_is_convertible, "__is_convertible");
