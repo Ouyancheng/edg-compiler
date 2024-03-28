@@ -1893,7 +1893,7 @@ Return TRUE if sym is a template parameter pack or function parameter pack.
   switch (sym->kind) {
     case sk_type:
       /* For a type, check for a template parameter type that is marked as
-         a pack,  but don't look through typedefs. */
+         a pack, but don't look through typedefs. */
       { a_type_ptr  tp = sym->variant.type.ptr;
         check_assertion(tp != NULL);
         if (!type_is(tp, tk_typeref) || !typeref_is_typedef(tp)) {
