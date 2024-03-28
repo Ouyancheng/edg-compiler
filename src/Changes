@@ -1,5 +1,24 @@
 Version 6.7
 
+3/28/24  [EDGcpfe/27030]
+Spurious "pack not expanded" error on use of type alias
+
+In some cases, the use of a type alias that refers to an alias template
+containing an expansion of an enclosing template parameter pack could result in
+a spurious "parameter pack ... was referenced but not expanded" error.  For
+example, with --c++11:
+
+  template<int> struct D {
+    template<typename T, typename ... TT> using B = T;
+  };
+  template<int I, typename ... TT> using B = typename D<I>::template B<TT ...>;
+  template<typename> struct X;
+  template<typename ... TT> struct C {
+    using BB = B<0, TT ..., void>;
+    X<BB> *x;  // Previously a spurious error.  Now okay.
+  };
+
+
 3/28/24  [EDGcpfe/27126]
 Clang compatibility: __reference_constructs_from_temporary builtin
 

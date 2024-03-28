@@ -1893,14 +1893,14 @@ Return TRUE if sym is a template parameter pack or function parameter pack.
   switch (sym->kind) {
     case sk_type:
       /* For a type, check for a template parameter type that is marked as
-         a pack.  Don't look through a typedef that is from an instantiation
-         of an alias template. */
-      if (!is_template_alias_instance_symbol(sym)) {
-        a_type_ptr	tp = sym->variant.type.ptr;
+         a pack,  but don't look through typedefs. */
+      { a_type_ptr  tp = sym->variant.type.ptr;
         check_assertion(tp != NULL);
-        tp = skip_typerefs(tp);
-        result = type_is_pack(tp);
-      }  /* if */
+        if (!type_is(tp, tk_typeref) || !typeref_is_typedef(tp)) {
+          tp = skip_typerefs(tp);
+          result = type_is_pack(tp);
+        }  /* if */
+      }
       break;
     case sk_constant:
       /* For a constant, check for a template parameter constant that is
