@@ -1,3 +1,5 @@
+Version 6.7
+
 3/27/24  [EDGcpfe/27124]
 Build error in c99_complex.c with _EDG_bfloat16
 

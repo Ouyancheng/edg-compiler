@@ -266,7 +266,7 @@ SUBTRACT(__c99_complex_bfloat16_subtract, _Complex_bfloat16, _Complex_bfloat16,
 MULTIPLY(__c99_complex_bfloat16_multiply, _Complex_bfloat16, _Complex_bfloat16,
                                           _Complex_bfloat16)
 DIVIDE  (__c99_complex_bfloat16_divide, _Complex_bfloat16, _Complex_bfloat16,
-                                        _Complexb_float16, _EDG_bfloat16_t)
+                                        _Complex_bfloat16, _EDG_bfloat16_t)
 EQ      (__c99_complex_bfloat16_eq, int, _Complex_bfloat16, _Complex_bfloat16)
 NE      (__c99_complex_bfloat16_ne, int, _Complex_bfloat16, _Complex_bfloat16)
 ITOC    (__c99_ibfloat16_to_cbfloat16, _Complex_bfloat16, _EDG_bfloat16_t)
