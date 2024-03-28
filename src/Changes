@@ -1,10 +1,10 @@
 Version 6.7
 
 3/28/24  [EDGcpfe/27126]
-Clang compatibility: __reference_binds_to_temporary builtin
+Clang compatibility: __reference_constructs_from_temporary builtin
 
-The __reference_binds_to_temporary builtin is now available in Clang emulation
-mode when clang_version >= 180000.
+The __reference_constructs_from_temporary builtin is now available in Clang
+emulation mode when clang_version >= 180000.
 
 
 3/27/24  [EDGcpfe/27111]
