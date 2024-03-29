@@ -21389,7 +21389,8 @@ and the output of the type name.
           }  /* if */
         }  /* if */
         if (is_deduced_type_var_init &&
-            has_name_before_mangling(init_entity_type)) {
+            has_name_before_mangling(
+                               skip_typerefs_not_typedefs(init_entity_type))) {
           /* We need to put out the class type, not just the constructor
              arguments, to allow deduction of the variable type. */
           a_boolean need_closing_paren;
@@ -21406,7 +21407,7 @@ and the output of the type name.
           } else {
             need_closing_paren = FALSE;
           }  /* if */
-          gen_type_reference(init_entity_type);
+          gen_type_reference(skip_typerefs_not_typedefs(init_entity_type));
           (void)gen_argument_list(args, (ctor == NULL) ? NULL : ctor->type,
                                   /*skip_num=*/0);
           if (need_closing_paren) {
@@ -21576,6 +21577,9 @@ Output the initializer, if any, for the indicated variable.
 handle_dynamic_init:
           if (parenthesized_init || braced_init) {
             /* Use a parenthesized or brace-enclosed initializer. */
+            if (dip->variable == NULL) {
+              dip->variable = var;
+            }  /* if */
             gen_paren_or_brace_dynamic_init(dip, var->type,
                                             parenthesized_init,
                                             /*is_var_init=*/TRUE);
