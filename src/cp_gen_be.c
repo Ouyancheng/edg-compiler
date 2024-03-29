@@ -21306,6 +21306,7 @@ and the output of the type name.
         an_expr_node_ptr args = dip->variant.constructor.args;
         a_boolean        no_args = FALSE;
         a_boolean        is_deduced_type_var_init;
+        a_boolean        processed = FALSE;
         is_deduced_type_var_init =
                            (dip->is_explicit_cast && dip->variable != NULL &&
                             var_declared_with_placeholder_type(dip->variable));
@@ -21351,6 +21352,7 @@ and the output of the type name.
                 write_tok_str("()");
               }  /* if */
               no_args = TRUE;
+              processed = TRUE;
             } else if (args != NULL && args->next == NULL &&
                        !args->generated_default_arg &&
                        expr_may_look_like_type(args)) {
@@ -21388,7 +21390,7 @@ and the output of the type name.
             }  /* if */
           }  /* if */
         }  /* if */
-        if (is_deduced_type_var_init &&
+        if (!processed && is_deduced_type_var_init &&
             has_name_before_mangling(
                                skip_typerefs_not_typedefs(init_entity_type))) {
           /* We need to put out the class type, not just the constructor
