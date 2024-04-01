@@ -19085,6 +19085,18 @@ the corresponding IFC version 0.33 representation of the bitmask.
 }  /* to_bitmask_0_33 */
 
 
+uint8_t to_bitmask(an_ifc_module_file                     *file,
+                   an_ifc_basic_specifiers_bitfield_query query)
+/*
+Given the universal bitmask specified by query, return the corresponding
+matching encoded bits for the given module file.
+*/
+{
+  uint8_t result;
+
+  result = to_bitmask_0_33(query);
+  return result;
+}  /* to_bitmask */
 
 
 /*
@@ -19155,6 +19167,18 @@ the corresponding IFC version 0.33 representation of the bitmask.
 }  /* to_bitmask_0_33 */
 
 
+uint16_t to_bitmask(an_ifc_module_file                    *file,
+                    an_ifc_function_traits_bitfield_query query)
+/*
+Given the universal bitmask specified by query, return the corresponding
+matching encoded bits for the given module file.
+*/
+{
+  uint16_t result;
+
+  result = to_bitmask_0_33(query);
+  return result;
+}  /* to_bitmask */
 
 
 /*
@@ -19204,6 +19228,18 @@ return the corresponding IFC version 0.33 representation of the bitmask.
 }  /* to_bitmask_0_33 */
 
 
+uint8_t to_bitmask(an_ifc_module_file                         *file,
+                   an_ifc_function_type_traits_bitfield_query query)
+/*
+Given the universal bitmask specified by query, return the corresponding
+matching encoded bits for the given module file.
+*/
+{
+  uint8_t result;
+
+  result = to_bitmask_0_33(query);
+  return result;
+}  /* to_bitmask */
 
 
 /*
@@ -19292,6 +19328,18 @@ corresponding IFC version 0.33 representation of the bitmask.
 }  /* to_bitmask_0_33 */
 
 
+uint32_t to_bitmask(an_ifc_module_file                *file,
+                    an_ifc_msvc_traits_bitfield_query query)
+/*
+Given the universal bitmask specified by query, return the corresponding
+matching encoded bits for the given module file.
+*/
+{
+  uint32_t result;
+
+  result = to_bitmask_0_33(query);
+  return result;
+}  /* to_bitmask */
 
 
 /*
@@ -19347,6 +19395,18 @@ the corresponding IFC version 0.33 representation of the bitmask.
 }  /* to_bitmask_0_33 */
 
 
+uint8_t to_bitmask(an_ifc_module_file                  *file,
+                   an_ifc_object_traits_bitfield_query query)
+/*
+Given the universal bitmask specified by query, return the corresponding
+matching encoded bits for the given module file.
+*/
+{
+  uint8_t result;
+
+  result = to_bitmask_0_33(query);
+  return result;
+}  /* to_bitmask */
 
 
 /*
@@ -19426,6 +19486,18 @@ corresponding IFC version 0.43 representation of the bitmask.
 }  /* to_bitmask_0_43 */
 
 
+uint32_t to_bitmask(an_ifc_module_file           *file,
+                    an_ifc_phases_bitfield_query query)
+/*
+Given the universal bitmask specified by query, return the corresponding
+matching encoded bits for the given module file.
+*/
+{
+  uint32_t result;
+
+  result = to_bitmask_0_43(query);
+  return result;
+}  /* to_bitmask */
 
 
 /*
@@ -19472,6 +19544,18 @@ corresponding IFC version 0.33 representation of the bitmask.
 }  /* to_bitmask_0_33 */
 
 
+uint8_t to_bitmask(an_ifc_module_file              *file,
+                   an_ifc_qualifier_bitfield_query query)
+/*
+Given the universal bitmask specified by query, return the corresponding
+matching encoded bits for the given module file.
+*/
+{
+  uint8_t result;
+
+  result = to_bitmask_0_33(query);
+  return result;
+}  /* to_bitmask */
 
 
 /*
@@ -19521,6 +19605,18 @@ return the corresponding IFC version 0.33 representation of the bitmask.
 }  /* to_bitmask_0_33 */
 
 
+uint8_t to_bitmask(an_ifc_module_file                         *file,
+                   an_ifc_reachable_properties_bitfield_query query)
+/*
+Given the universal bitmask specified by query, return the corresponding
+matching encoded bits for the given module file.
+*/
+{
+  uint8_t result;
+
+  result = to_bitmask_0_33(query);
+  return result;
+}  /* to_bitmask */
 
 
 /*
@@ -19576,6 +19672,18 @@ corresponding IFC version 0.33 representation of the bitmask.
 }  /* to_bitmask_0_33 */
 
 
+uint8_t to_bitmask(an_ifc_module_file                 *file,
+                   an_ifc_scope_traits_bitfield_query query)
+/*
+Given the universal bitmask specified by query, return the corresponding
+matching encoded bits for the given module file.
+*/
+{
+  uint8_t result;
+
+  result = to_bitmask_0_33(query);
+  return result;
+}  /* to_bitmask */
 
 
 /*
@@ -44893,10 +45001,8 @@ module file, return a reencoded index value.
 {
   an_ifc_encoded_edg_token_cache_offset result = {file, universal.value};
 
-  /* This offset never contains a null value in its encoded form, decrease all
-     values by one. */
-  check_assertion(result.value != 0);
-  --result.value;
+  /* This offset contains a null value in its encoded form, do not modify its
+     value. */
   return result;
 }  /* to_encoded */
 
@@ -44931,9 +45037,6 @@ module, return the corresponding universal representation.
 {
   uint32_t index = versioned;
 
-  /* This offset never contains a null value in its encoded form, normalize it
-     by increasing all values by one. */
-  index += 1;
   return an_ifc_edg_token_cache_offset{file, index};
 }  /* to_universal_offset */
 
