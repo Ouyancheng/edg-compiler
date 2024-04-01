@@ -3498,6 +3498,7 @@ ec_invalid_scalable_vector_tuple_elements;;"invalid number of tuple elements for
 ec_invalid_neon_vector_size;;"a NEON vector or polyvector must be either 64 or 128 bits wide"
 ec_sizeless_type_not_allowed;;"sizeless type %t is not allowed"
 ec_value_init_of_sizeless_type;;"an object of the sizeless type %t cannot be value-initialized"
+ec_ifc_unexpected_null_scope_member;;"unexpected null declaration index found as part of scope %u"
 ###############################################################################
 #                                                             \  ___  /       #
 #                                                               /   \         #

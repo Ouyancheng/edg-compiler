@@ -13208,6 +13208,10 @@ be deferred until they are referenced.
         continue;
       }  /* if */
 
+      if (is_null_index(decl_idx)) {
+        error(ec_ifc_unexpected_null_scope_member, scope_offset.value);
+        continue;
+      }  /* if */
       a_module_entity_ptr dmep = get_ifc_module_entity_ptr(decl_idx);
       dmep->scope = scope;
 #if EXPENSIVE_CHECKING
