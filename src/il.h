@@ -127,12 +127,42 @@ inline a_tagged_pointer make_tagged_ptr(an_IL_type val) DELETED_FN_DEF
 
 
 template<>
+inline a_tagged_pointer make_tagged_ptr(a_field_ptr val)
+/*
+Convert the given IL field pointer into a tagged pointer.
+*/
+{
+  return canonicalize_tagged_ptr(iek_field, (char*)val);
+}  /* make_tagged_ptr */
+
+
+template<>
+inline a_tagged_pointer make_tagged_ptr(a_namespace_ptr val)
+/*
+Convert the given IL namespace pointer into a tagged pointer.
+*/
+{
+  return canonicalize_tagged_ptr(iek_namespace, (char*)val);
+}  /* make_tagged_ptr */
+
+
+template<>
 inline a_tagged_pointer make_tagged_ptr(a_routine_ptr val)
 /*
 Convert the given IL routine pointer into a tagged pointer.
 */
 {
   return canonicalize_tagged_ptr(iek_routine, (char*)val);
+}  /* make_tagged_ptr */
+
+
+template<>
+inline a_tagged_pointer make_tagged_ptr(a_scope_ptr val)
+/*
+Convert the given IL scope pointer into a tagged pointer.
+*/
+{
+  return canonicalize_tagged_ptr(iek_scope, (char*)val);
 }  /* make_tagged_ptr */
 
 
