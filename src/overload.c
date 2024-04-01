@@ -8816,6 +8816,28 @@ done:
 }  /* compare_enable_if_attributes */
 
 
+static int compare_pass_object_size_attributes(a_candidate_function_ptr cfp1,
+                                        a_candidate_function_ptr cfp2)
+/*
+If cfp1 has a pass_object_size parameter attribute and cfp2 doesn't return +1.
+If the converse is true, return -1.  Otherwise, return 0.
+*/
+{
+  int          result = 0;
+  a_symbol_ptr csym1 = cfp1->function_symbol, csym2 = cfp2->function_symbol;
+  
+  if (csym1 != NULL && csym2 != NULL) {
+    a_symbol_ptr   sym1 = fundamental_symbol_of(csym1);
+    a_symbol_ptr   sym2 = fundamental_symbol_of(csym2);
+    a_routine_ptr  rp1 = func_sym_routine(sym1), rp2 = func_sym_routine(sym2);
+    if (rp1->has_pass_object_size_attr != rp2->has_pass_object_size_attr) {
+      result = rp1->has_pass_object_size_attr ? 1 : -1;
+    }  /* if */
+  }  /* if */
+  return result;
+}  /* compare_pass_object_size_attributes */
+
+
 static int compare_for_using_declaration(a_candidate_function_ptr cfp1,
                                          a_candidate_function_ptr cfp2)
 /*
@@ -9254,6 +9276,8 @@ other.  Return
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
   } else if ((cmp = compare_enable_if_attributes(cfp1, cfp2)) != 0) {
     /* Clang's enable_if attributes can distinguish candidates. */
+  } else if ((cmp = compare_pass_object_size_attributes(cfp1, cfp2)) != 0) {
+    /* Clang's pass_object_size attributes can distinguish candidates. */
   } else if (gpp_version_is(>= 70000) &&
              (cmp = compare_for_using_declaration(cfp1, cfp2)) != 0) {
     /* GCC has a nonstandard behavior for member using-declarations that refer

@@ -3488,6 +3488,8 @@ ec_bad_type_for_atomic_fetch;;"first argument must be a pointer to integer, enum
 ec_module_use_in_multi_tu_mode;;"C++ modules cannot be used when compiling multiple translation units"
 ec_module_use_with_export_template;;"C++ modules cannot be used with the pre-C++11 \"export\" feature"
 ec_ifc_unsupported_token;;"the IFC token %sq is not supported"
+ec_pass_object_size_not_in_function_decl;;"the \"pass_object_size\" attribute is only valid on parameters of function declarations"
+ec_attr_arg_out_of_small_integer_range;;"the argument of the %sq attribute %d1 must be a value between 0 and %d2"
 ###############################################################################
 #                                                             \  ___  /       #
 #                                                               /   \         #

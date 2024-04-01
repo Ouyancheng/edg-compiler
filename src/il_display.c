@@ -3972,6 +3972,9 @@ Display the indicated routine.
   if (ptr->is_ineligible) {
     disp_boolean("is_ineligible", TRUE);
   }  /* if */
+  if (ptr->has_pass_object_size_attr) {
+    disp_boolean("has_pass_object_size_attr", TRUE);
+  }  /* if */
 #if MAINTAIN_NEEDED_FLAGS
   disp_boolean("definition_needed", (a_boolean)ptr->definition_needed);
   /* Note: the keep_definition_in_il flag is not displayed, since it is

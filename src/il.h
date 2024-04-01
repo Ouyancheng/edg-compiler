@@ -3935,6 +3935,9 @@ extern a_targ_alignment alignment_of_variable(a_variable_ptr  vp);
 extern an_attribute_ptr find_attribute(an_attribute_kind  kind,
                                        an_attribute_ptr   attributes);
 
+#define has_attr(kind, list)                                                 \
+  (list != NULL && find_attribute(kind, list) != NULL)
+
 #if GNU_FUNCTION_MULTIVERSIONING
 extern an_attribute_ptr find_last_target_attribute(
                                                   an_attribute_ptr attributes);
