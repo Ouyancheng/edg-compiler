@@ -953,22 +953,20 @@ struct an_ifc_il_map {
   an_ifc_il_map(an_ifc_output_state *output_state_val)
     : output_state(output_state_val)
     {}
-  an_ifc_name_index find_or_enter_src_file(a_source_file_ptr file);
-  an_ifc_name_index enter_src_file(a_source_file_ptr file);
-  an_ifc_source_location find_or_enter_null_pos();
-  an_ifc_source_location find_or_enter_pos(const a_source_position &pos);
-  an_ifc_source_location enter_pos(const a_source_position &pos);
+
+  /* General functions for entering entities into the IFC. */
   an_ifc_type_index find_or_enter_type(a_type_ptr type);
   an_ifc_type_index enter_type(a_type_ptr type);
   an_ifc_scope_offset find_or_enter_scope(a_scope_ptr scope);
   an_ifc_scope_offset enter_scope(a_scope_ptr scope);
-  an_ifc_decl_index find_or_enter_home_scope(a_source_correspondence_ptr scp);
-  an_ifc_decl_index enter_home_scope(a_scope_ptr scope);
+  an_ifc_decl_index find_or_enter_class(a_type_ptr type);
+  an_ifc_decl_index enter_class(a_type_ptr type);
   an_ifc_decl_index find_or_enter_enum(a_type_ptr type);
   an_ifc_decl_index enter_enum(a_type_ptr type);
   an_ifc_decl_index find_or_enter_routine(a_routine_ptr rp);
   an_ifc_decl_index enter_routine(a_routine_ptr rp);
 
+  /* Functions for retrieving scope member state. */
   size_t get_number_of_scopes() const
     { return this->scope_members.length(); }
   const a_scope_member_array& get_scope_members(size_t scope_idx) const
@@ -977,16 +975,40 @@ private:
   an_ifc_module_file* get_default_file() const
     { return this->output_state->get_file(); }
 
+  /* Functions for adding/referencing names and text. */
+  an_ifc_text_offset string_as_text_offset(a_const_char *str);
+  an_ifc_name_index string_as_name_index(a_const_char *str);
+  template<typename a_Type>
+  an_ifc_text_offset entity_name_as_text_offset(a_Type *il_entity);
+  template<typename a_Type>
+  an_ifc_name_index entity_name_as_name_index(a_Type *il_entity);
+
+  /* Functions for entering source position information. */
+  an_ifc_name_index find_or_enter_src_file(a_source_file_ptr file);
+  an_ifc_name_index enter_src_file(a_source_file_ptr file);
+  an_ifc_source_location find_or_enter_null_pos();
+  an_ifc_source_location find_or_enter_pos(const a_source_position &pos);
+  an_ifc_source_location enter_pos(const a_source_position &pos);
+  template<typename a_Type>
+  an_ifc_source_location find_or_enter_entity_pos(a_Type *il_entity);
+
+  /* Functions for entering new nodes in the output state with a memoized
+     association and an expected returned index type. */
   template<typename an_ifc_Node_type>
   inline an_ifc_type_index map_new_type(a_type_ptr       type,
                                         an_ifc_Node_type *node);
-  template<typename an_ifc_Node_type>
-  inline an_ifc_decl_index map_new_home_scope(a_scope_ptr      scope,
-                                              an_ifc_Node_type *node);
+  template<typename a_Type, typename an_ifc_Node_type>
+  inline an_ifc_decl_index map_new_decl(a_Type           *il_entity,
+                                        an_ifc_Node_type *node);
 
+  /* Functions for entering specific type kinds. */
+  an_ifc_type_index enter_class_type(a_type_ptr type);
+  an_ifc_type_index enter_constructor_type(a_type_ptr type);
   an_ifc_type_index enter_enum_type(a_type_ptr type);
   an_ifc_type_index enter_float_type(a_type_ptr type);
+  an_ifc_type_index enter_free_function_type(a_type_ptr type);
   an_ifc_type_index enter_integer_type(a_type_ptr type);
+  an_ifc_type_index enter_member_function_type(a_type_ptr type);
   an_ifc_type_index enter_nullptr_type(a_type_ptr type);
   an_ifc_type_index enter_pointer_type(a_type_ptr type);
   an_ifc_type_index enter_routine_params_type(a_type_ptr type);
@@ -994,30 +1016,50 @@ private:
   an_ifc_type_index enter_typedef_type(a_type_ptr type);
   an_ifc_type_index enter_void_type(a_type_ptr type);
 
+  /* Functions for entering portions of other larger entities. */
   an_ifc_sequence enter_enumerators(a_type_ptr type);
   an_ifc_chart_index enter_routine_params(a_routine_ptr rp);
 
+  /* Functions for entering constants. */
   an_ifc_edg_constant_index enter_constant(a_constant_ptr cp);
 
+  /* Functions for adding complex tokens. */
   an_ifc_edg_complex_token_index enter_constant_token(
                                   an_ifc_edg_constant_token_sort token_kind,
                                   an_ifc_edg_constant_index      constant_idx);
 
+  /* Functions for entering special IFC fundamental types. */
+  an_ifc_type_index find_or_enter_class_scope_type();
   an_ifc_type_index find_or_enter_namespace_scope_type();
   an_ifc_type_index find_or_enter_alias_typedef_type();
   an_ifc_type_index find_or_enter_scoped_enum_type();
   an_ifc_type_index find_or_enter_unscoped_enum_type();
 
+  /* Functions for entering declarations that are invoked by proxy (e.g.,
+     enter_typedef is called when needed by enter_type). */
+  an_ifc_decl_index enter_constructor(a_routine_ptr rp);
+  an_ifc_decl_index enter_destructor(a_routine_ptr rp);
+  an_ifc_decl_index enter_field(a_field_ptr field);
+  an_ifc_decl_index enter_free_function(a_routine_ptr rp);
+  an_ifc_decl_index enter_member_function(a_routine_ptr rp);
   an_ifc_decl_index enter_namespace(a_scope_ptr scope);
   an_ifc_decl_index enter_typedef(a_type_ptr type);
 
+  /* Functions associating entities with their corresponding scopes. */
+  an_ifc_decl_index enter_home_scope(a_scope_ptr scope);
   void map_scope_member(a_scope_ptr scope, an_ifc_decl_index decl);
-  void map_scope_member(a_source_correspondence_ptr scp,
-                        an_ifc_decl_index           decl);
+  template<typename a_Type>
+  an_ifc_decl_index associate_entity_home_scope(a_Type *il_entity);
 
   an_ifc_output_state
                 *output_state;
                         /* The associated IFC output state. */
+  Ptr_map<a_C_str_handle, size_t, General_allocator>
+                string_table_map = {/*mask_width=*/10};
+                        /* A map of string values to their given offsets
+                           in the string table.  This is used to deduplicate
+                           strings as they're added to the IFC reducing the
+                           overall file size. */
   Ptr_map<a_source_file_ptr, an_ifc_name_index, General_allocator>
                 src_file_map = {/*mask_width=*/10};
                         /* A map of IL source files to IFC source file
@@ -1032,9 +1074,10 @@ private:
   Ptr_map<a_scope_ptr, an_ifc_scope_offset, General_allocator>
                 scope_map = {/*mask_width=*/10};
                         /* A map of IL scopes to IFC decl indexes. */
-  Ptr_map<a_scope_ptr, an_ifc_decl_index, General_allocator>
-                home_scope_map = {/*mask_width=*/10};
-                        /* A map of IL scopes to IFC decl indexes. */
+  an_ifc_type_index
+                fund_class_type;
+                        /* The fundamental type used to represent a class
+                           DeclSort::Scope. */
   an_ifc_type_index
                 fund_namespace_type;
                         /* The fundamental type used to represent a namespace
@@ -1057,17 +1100,558 @@ private:
                            containing the members of that scope.  This data is
                            then used to generate the scope membership IFC
                            information after declarations are mapped. */
-  Ptr_map<a_type_ptr, an_ifc_decl_index, General_allocator>
-                enum_map = {/*mask_width=*/10};
-                        /* A map of IL enum types to IFC decl indexes. */
-  Ptr_map<a_routine_ptr, an_ifc_decl_index, General_allocator>
-                routine_map = {/*mask_width=*/10};
-                        /* A map of IL routines to IFC decl indexes. */
+  Ptr_map<a_tagged_pointer, an_ifc_decl_index, General_allocator>
+                il_entry_to_decl = {/*mask_width=*/10};
+                        /* A map of IL entries to their associated IFC decl
+                           indexes. */
 };  /* an_ifc_il_map */
 
 }  /* namespace */
 
+static void dump_scope_recursively(an_ifc_il_map *il_map,
+                                   a_scope_ptr   scope);
+
 namespace {
+
+an_ifc_type_index an_ifc_il_map::find_or_enter_type(a_type_ptr type)
+/*
+For the given type find or enter the type into the IFC output state.  Return
+the type index for the type file.
+*/
+{
+  an_ifc_type_index result = this->type_map.get(type);
+
+  if (is_null_index(result)) {
+    result = this->enter_type(type);
+  }  /* if */
+  return result;
+}  /* an_ifc_il_map::find_or_enter_type */
+
+
+static constexpr a_type_qualifier_set
+                ifc_common_qualifiers = TQ_CONST | TQ_VOLATILE | TQ_RESTRICT;
+                        /* These are the qualifiers natively representable by
+                           the IFC TypeSort::Qualified type. */
+
+
+static inline a_boolean typeref_has_any_common_qualifiers(a_type_ptr type)
+/*
+If the type has any of the common type qualifiers supported natively by the IFC
+format (const, volatile, or __restrict) return TRUE; otherwise, return FALSE.
+*/
+{
+  check_assertion(type->kind == tk_typeref);
+
+  return (type->variant.typeref.qualifiers & ifc_common_qualifiers) != 0;
+}  /* typeref_has_any_common_qualifiers */
+
+
+static inline a_boolean typeref_has_any_extended_qualifiers(a_type_ptr type)
+/*
+If the type has any of type qualifiers supported by EDG but not natively by the
+IFC format return TRUE; otherwise, return FALSE.
+*/
+{
+  return (type->variant.typeref.qualifiers & ~ifc_common_qualifiers) != 0;
+}  /* typeref_has_any_extended_qualifiers */
+
+
+an_ifc_type_index an_ifc_il_map::enter_type(a_type_ptr type)
+/*
+For the given type enter the type into the IFC output state.  Return the type
+index for the type file.
+*/
+{
+  check_assertion(is_null_index(this->type_map.get(type)));
+  an_ifc_type_index result;
+
+  switch (type->kind) {
+    case tk_float:
+      result = this->enter_float_type(type);
+      break;
+    case tk_integer:
+      if (is_enum_type(type)) {
+        result = this->enter_enum_type(type);
+      } else {
+        result = this->enter_integer_type(type);
+      }  /* if */
+      break;
+    case tk_nullptr:
+      result = this->enter_nullptr_type(type);
+      break;
+    case tk_pointer:
+      result = this->enter_pointer_type(type);
+      break;
+    case tk_routine:
+      result = this->enter_routine_type(type);
+      break;
+    case tk_struct:
+      result = this->enter_class_type(type);
+      break;
+    case tk_typeref:
+      if (typeref_is_typedef(type)) {
+        /* If a typedef has its own qualifiers the IL type will be mapped to
+           two distinct IFC types.  Thus, if this case is encountered either
+           the typedef shouldn't have been directly given qualifiers or the
+           this code needs updated. */
+        check_assertion(type->variant.typeref.qualifiers == TQ_NONE);
+        result = this->enter_typedef_type(type);
+      } else if (is_typeref_kind(type, trk_is_decltype)) {
+        /* FIXME: This is almost definitely incomplete (e.g., dependent cases).
+           The IFC has a decltype type node for representing decltype
+           expressions (presumably we only need this in dependent cases?). */
+        a_type_ptr underlying_type = type->variant.typeref.type;
+
+        result = this->find_or_enter_type(underlying_type);
+      } else if (is_typeref_kind(type, trk_none)) {
+        a_type_ptr underlying_type = type->variant.typeref.type;
+
+        result = this->find_or_enter_type(underlying_type);
+      } else {
+        /* FIXME: Handle other kinds of typerefs. */
+        header_unit_catastrophe();
+      }  /* if */
+      /* If the typeref adds qualifiers, add a qualifying type. */
+      if (typeref_has_any_extended_qualifiers(type)) {
+        /* FIXME: Handle the extended qualifiers. */
+        header_unit_catastrophe();
+      } else if (typeref_has_any_common_qualifiers(type)) {
+        an_ifc_type_qualified
+                qualified_type;
+        an_ifc_type_index
+                unqualified_type = result;
+
+        /* Update the result and type mapping to include the qualifiers. */
+        result = this->map_new_type(type, &qualified_type);
+        set_ifc_unqualified(&qualified_type, unqualified_type);
+
+        /* Apply the appropriate qualifiers. */
+        an_ifc_qualifier_bitfield_query
+                qualifers = (an_ifc_qualifier_bitfield_query)0;
+        if (type->variant.typeref.qualifiers & TQ_CONST) {
+          qualifers = qualifers | ifc_qb_const;
+        }  /* if */
+        if (type->variant.typeref.qualifiers & TQ_VOLATILE) {
+          qualifers = qualifers | ifc_qb_volatile;
+        }  /* if */
+        if (type->variant.typeref.qualifiers & TQ_RESTRICT) {
+          qualifers = qualifers | ifc_qb_restrict;
+        }  /* if */
+
+        an_ifc_qualifier_bitfield_storage
+                ifc_raw_qualifiers = to_bitmask(qualified_type.get_file(),
+                                                qualifers);
+        an_ifc_qualifier_bitfield
+                ifc_qualifiers(qualified_type.get_file(), ifc_raw_qualifiers);
+        set_ifc_qualifiers(&qualified_type, ifc_qualifiers);
+      }  /* if */
+      break;
+    case tk_void:
+      result = this->enter_void_type(type);
+      break;
+    case tk_union:
+    case tk_error:
+#if FIXED_POINT_ALLOWED
+    case tk_fixed_point:
+#endif /* FIXED_POINT_ALLOWED */
+#if C99_IL_EXTENSIONS_SUPPORTED
+    case tk_imaginary:
+    case tk_complex:
+#endif /* C99_IL_EXTENSIONS_SUPPORTED */
+    case tk_array:
+    case tk_class:
+    case tk_ptr_to_member:
+    case tk_template_param:
+#if GNU_VECTOR_TYPES_ALLOWED
+    case tk_vector:
+    case tk_scalable_vector:
+    case tk_scalable_vector_count:
+#endif /* GNU_VECTOR_TYPES_ALLOWED */
+    case tk_reflection:
+    case tk_unknown:
+      break;
+    default_is_unexpected();
+  }  /* switch */
+  return result;
+}  /* an_ifc_il_map::enter_type */
+
+
+an_ifc_scope_offset an_ifc_il_map::find_or_enter_scope(a_scope_ptr scope)
+/*
+For the given scope enter the scope into the IFC output state.  Return the
+scope offset for the type file.
+*/
+{
+  an_ifc_scope_offset result = this->scope_map.get(scope);
+
+  if (is_null_index(result)) {
+    result = this->enter_scope(scope);
+  }  /* if */
+  return result;
+}  /* an_ifc_il_map::find_or_enter_scope */
+
+
+an_ifc_scope_offset an_ifc_il_map::enter_scope(a_scope_ptr scope)
+/*
+For the given scope enter the scope into the IFC output state.  Return the
+scope offset for the type file.
+*/
+{
+  check_assertion(is_null_index(this->scope_map.get(scope)));
+  an_ifc_scope_descriptor
+                descriptor;
+  size_t        part_offset = this->output_state->alloc_node(&descriptor);
+  an_ifc_scope_offset
+                result(descriptor.get_file(), part_offset + 1);
+
+  this->scope_map.map(scope, result);
+  this->scope_members.push_back(a_scope_member_array());
+  /* If this assertion fails a scope member array is missing for one or more
+     IFC scope descriptors. */
+  check_assertion((size_t)this->scope_members.length() == (part_offset + 1));
+  return result;
+}  /* an_ifc_il_map::enter_scope */
+
+}  /* namespace */
+
+static inline an_ifc_access_sort convert_access_specifier(
+                                                    an_access_specifier access)
+/*
+Give a front end access specifier return the corresponding IFC access sort.
+*/
+{
+  an_ifc_access_sort result = ifc_as_none;
+
+  switch (access) {
+    case as_public:
+      result = ifc_as_public;
+      break;
+    case as_protected:
+      result = ifc_as_protected;
+      break;
+    case as_private:
+      result = ifc_as_private;
+      break;
+    case as_inaccessible:
+      /* The inaccessible access level should not make it to IFC writing.  If
+         an inaccessible access level needs written to the IFC this would
+         require a vendor extension (most likely in the form of some sort of
+         optional IFC trait) to be implemented for both the writer and
+         reader. */
+      unexpected_condition();
+    default_is_unexpected();
+  }  /* switch */
+  return result;
+}  /* convert_access_specifier */
+
+
+static inline an_ifc_access_sort access_specifier_of(
+                                                  a_source_correspondence *scp)
+/*
+Give a front end source correspondence return the corresponding IFC access
+sort.
+*/
+{
+  return convert_access_specifier((an_access_specifier)scp->access);
+}  /* access_specifier_of */
+
+
+template<typename a_Type>
+static inline an_ifc_access_sort access_specifier_of(a_Type *il_entity)
+/*
+Return the IFC access sort representing the access of the given IL entity.
+*/
+{
+  return access_specifier_of(&il_entity->source_corresp);
+}  /* access_specifier_of */
+
+namespace {
+
+an_ifc_decl_index an_ifc_il_map::find_or_enter_class(a_type_ptr type)
+/*
+For the given class type find or enter the class into the IFC output state.
+Return the declaration index for the class.
+*/
+{
+  an_ifc_decl_index result = this->il_entry_to_decl.get(make_tagged_ptr(type));
+
+  if (is_null_index(result)) {
+    result = this->enter_class(type);
+  }  /* if */
+  return result;
+}  /* an_ifc_il_map::find_or_enter_class */
+
+
+an_ifc_decl_index an_ifc_il_map::enter_class(a_type_ptr type)
+/*
+Enter the given class type into the IFC output state.  Return the decl index
+for the class type.
+*/
+{
+  check_assertion(type->kind == tk_struct);
+  an_ifc_decl_scope
+                scope_decl;
+  an_ifc_decl_index
+                result = this->map_new_decl(type, &scope_decl);
+
+  /* Set the name information. */
+  an_ifc_name_index
+                ifc_name_index = this->entity_name_as_name_index(type);
+  set_ifc_name(&scope_decl, ifc_name_index);
+
+  /* Set the source location information. */
+  an_ifc_source_location
+                ifc_src_pos = this->find_or_enter_entity_pos(type);
+  set_ifc_locus(&scope_decl, ifc_src_pos);
+
+  /* Set the IFC fundamental type to indicate this is a namespace scope. */
+  an_ifc_type_index
+                ifc_scope_type = this->find_or_enter_class_scope_type();
+  set_ifc_type(&scope_decl, ifc_scope_type);
+
+  /* FIXME: Set base. */
+  /* Associate the class scope decl with its contents. */
+  a_scope_ptr   class_scope = class_type_supp(type)->assoc_scope;
+  an_ifc_scope_offset
+                initializer = this->find_or_enter_scope(class_scope);
+  set_ifc_initializer(&scope_decl, initializer);
+  for (a_field_ptr fp = fields_of(type); fp != NULL; fp = fp->next) {
+    (void)this->enter_field(fp);
+  }  /* for */
+  /* Traverse the class scope's contents. */
+  dump_scope_recursively(this, class_scope);
+
+  /* Set the scope information. */
+  an_ifc_decl_index
+                scope_decl_idx = this->associate_entity_home_scope(type);
+  set_ifc_home_scope(&scope_decl, scope_decl_idx);
+  /* FIXME: Set alignment. */
+  /* FIXME: Set pack size. */
+  /* FIXME: Set specifiers. */
+  /* FIXME: Set traits. */
+
+  /* Set the access specifier. */
+  an_ifc_access_sort ifc_access = access_specifier_of(type);
+  set_ifc_access(&scope_decl, ifc_access);
+
+  /* Set the properties. */
+  an_ifc_reachable_properties_bitfield_query
+                properties = (an_ifc_reachable_properties_bitfield_query)0;
+  if (!type->incomplete) {
+    properties = properties | ifc_rpb_initializer;
+  }  /* if */
+
+  an_ifc_reachable_properties_bitfield_storage
+                ifc_raw_properties = to_bitmask(scope_decl.get_file(),
+                                                properties);
+  an_ifc_reachable_properties_bitfield
+                ifc_properties(scope_decl.get_file(), ifc_raw_properties);
+  set_ifc_properties(&scope_decl, ifc_properties);
+  return result;
+}  /* an_ifc_il_map::enter_class */
+
+
+an_ifc_decl_index an_ifc_il_map::find_or_enter_enum(a_type_ptr type)
+/*
+For the given enumeration type find or enter the enumeration into the IFC
+output state.  Return the declaration index for the enumeration.
+*/
+{
+  an_ifc_decl_index result = this->il_entry_to_decl.get(make_tagged_ptr(type));
+
+  if (is_null_index(result)) {
+    result = this->enter_enum(type);
+  }  /* if */
+  return result;
+}  /* an_ifc_il_map::find_or_enter_enum */
+
+
+an_ifc_decl_index an_ifc_il_map::enter_enum(a_type_ptr type)
+/*
+For the given enumeration type enter the enumeration into the IFC output state.
+Return the declaration index for the enumeration.
+*/
+{
+  check_assertion(type->kind == tk_enum && type->variant.integer.enum_type);
+  an_ifc_decl_enumeration
+                enum_decl;
+  an_ifc_decl_index
+                result = this->map_new_decl(type, &enum_decl);
+  /* Set the name information. */
+  an_ifc_text_offset
+                ifc_name_offset = this->entity_name_as_text_offset(type);
+
+  set_ifc_name(&enum_decl, ifc_name_offset);
+
+  /* Set the source location information. */
+  an_ifc_source_location
+                ifc_src_pos = this->find_or_enter_entity_pos(type);
+  set_ifc_locus(&enum_decl, ifc_src_pos);
+
+  /* Set the type information. */
+  an_ifc_type_index
+                type_idx;
+  if (type->variant.integer.is_scoped_enum) {
+    type_idx = this->find_or_enter_scoped_enum_type();
+  } else {
+    type_idx = this->find_or_enter_unscoped_enum_type();
+  }  /* if */
+  set_ifc_type(&enum_decl, type_idx);
+
+  /* Set the base type. */
+  an_integer_kind
+                base_int_kind = type->variant.integer.int_kind;
+  a_type_ptr    base_type = integer_type(base_int_kind);
+  an_ifc_type_index
+                base_type_idx = this->find_or_enter_type(base_type);
+  set_ifc_base(&enum_decl, base_type_idx);
+
+  /* Construct and set the initializer to provide the enumerators. */
+  an_ifc_sequence seq = this->enter_enumerators(type);
+  set_ifc_initializer(&enum_decl, seq);
+
+  /* Set the scope information. */
+  an_ifc_decl_index
+                scope_decl_idx = this->associate_entity_home_scope(type);
+  set_ifc_home_scope(&enum_decl, scope_decl_idx);
+  /* FIXME: Set alignment. */
+  /* FIXME: Set specifiers. */
+
+  /* Set the access specifier. */
+  an_ifc_access_sort ifc_access = access_specifier_of(type);
+  set_ifc_access(&enum_decl, ifc_access);
+  /* FIXME: Set properties. */
+  return result;
+}  /* an_ifc_il_map::enter_enum */
+
+
+an_ifc_decl_index an_ifc_il_map::find_or_enter_routine(a_routine_ptr rp)
+/*
+For the given routine find or enter the function declaration into the IFC
+output state.  Return the declaration index for the routine.
+*/
+{
+  an_ifc_decl_index result = this->il_entry_to_decl.get(make_tagged_ptr(rp));
+
+  if (is_null_index(result)) {
+    result = this->enter_routine(rp);
+  }  /* if */
+  return result;
+}  /* an_ifc_il_map::find_or_enter_routine */
+
+
+an_ifc_decl_index an_ifc_il_map::enter_routine(a_routine_ptr rp)
+/*
+For the given routine enter the function declaration into the IFC output state.
+Return the declaration index for the routine.
+*/
+{
+  an_ifc_decl_index result;
+
+  switch (rp->special_kind) {
+    case sfk_none:
+      if (routine_type_is_nonstatic_member_function(rp->type)) {
+        result = this->enter_member_function(rp);
+      } else {
+        result = this->enter_free_function(rp);
+      }  /* if */
+      break;
+    case sfk_constructor:
+      result = this->enter_constructor(rp);
+      break;
+    case sfk_conversion:
+      /* FIXME: Implement these. */
+      break;
+    case sfk_destructor:
+      result = this->enter_destructor(rp);
+      break;
+    case sfk_operator:
+      /* FIXME: Implement these. */
+      break;
+    case sfk_udl_operator:
+    case sfk_lambda_entry_point:
+    case sfk_deduction_guide:
+    case sfk_static_constructor:
+    case sfk_finalizer:
+    case sfk_idisposable_dispose:
+    case sfk_dispose_bool:
+    case sfk_object_finalize:
+    case sfk_property_get:
+    case sfk_property_set:
+    case sfk_event_add:
+    case sfk_event_remove:
+    case sfk_event_raise:
+    case sfk_gnu_sync_concrete_function:
+    case sfk_gnu_atomic_nongeneric_function:
+    case sfk_gnu_atomic_generic_function:
+    case sfk_builtin_operator_new:
+    case sfk_builtin_operator_delete:
+      header_unit_catastrophe();
+      break;
+    case sfk_last:
+      /* sfk_last should not appear in the IL. */
+      unexpected_condition();
+    default_is_unexpected();
+  } /* switch */
+  return result;
+}  /* an_ifc_il_map::enter_routine */
+
+
+an_ifc_text_offset an_ifc_il_map::string_as_text_offset(a_const_char *str)
+/*
+Return the text offset representing the given string.  The lifetime of the
+given string must be at least as long as the lifetime of the IFC IL map.
+*/
+{
+  size_t name_offset = 0;
+
+  if (str != NULL && str[0] != '\0') {
+    a_C_str_handle str_handle(str);
+    uintptr_t      hash = hash_ptr(str_handle);
+
+    name_offset = this->string_table_map.get_with_hash(str_handle, hash);
+    if (name_offset == 0) {
+      /* The name does not yet exist in the string table, add it now. */
+      name_offset = this->output_state->add_to_string_table(str);
+      this->string_table_map.map_with_hash(str_handle, name_offset, hash);
+    }  /* if */
+  }  /* if */
+  return an_ifc_text_offset(this->get_default_file(), name_offset);
+}  /* an_ifc_il_map::string_as_text_offset */
+
+
+an_ifc_name_index an_ifc_il_map::string_as_name_index(a_const_char *str)
+/*
+Return the name index representing the given string.  The lifetime of the given
+string must be at least as long as the lifetime of the IFC IL map.
+*/
+{
+  an_ifc_text_offset text_offset = this->string_as_text_offset(str);
+
+  return an_ifc_name_index(this->get_default_file(), ifc_ns_text_offset,
+                           text_offset);
+}  /* an_ifc_il_map::string_as_name_index */
+
+
+template<typename a_Type>
+an_ifc_text_offset an_ifc_il_map::entity_name_as_text_offset(a_Type *il_entity)
+/*
+Return the text offset representing the name of the given entity.
+*/
+{
+  return this->string_as_text_offset(il_entity->source_corresp.name);
+}  /* an_ifc_il_map::entity_name_as_text_offset */
+
+
+template<typename a_Type>
+an_ifc_name_index an_ifc_il_map::entity_name_as_name_index(a_Type *il_entity)
+/*
+Return the name index representing the name of the given entity.
+*/
+{
+  return this->string_as_name_index(il_entity->source_corresp.name);
+}  /* an_ifc_il_map::entity_name_as_name_index */
+
 
 an_ifc_name_index an_ifc_il_map::find_or_enter_src_file(
                                                        a_source_file_ptr file)
@@ -1220,367 +1804,18 @@ state.  Return the corresponding IFC source location.
 }  /* an_ifc_il_map::enter_pos */
 
 
-an_ifc_type_index an_ifc_il_map::find_or_enter_type(a_type_ptr type)
-/*
-For the given type find or enter the type into the IFC output state.  Return
-the type index for the type file.
-*/
-{
-  an_ifc_type_index result = this->type_map.get(type);
-
-  if (is_null_index(result)) {
-    result = this->enter_type(type);
-  }  /* if */
-  return result;
-}  /* an_ifc_il_map::find_or_enter_type */
-
-
-an_ifc_type_index an_ifc_il_map::enter_type(a_type_ptr type)
-/*
-For the given type enter the type into the IFC output state.  Return the type
-index for the type file.
-*/
-{
-  check_assertion(is_null_index(this->type_map.get(type)));
-  an_ifc_type_index result;
-
-  switch (type->kind) {
-    case tk_float:
-      result = this->enter_float_type(type);
-      break;
-    case tk_integer:
-      if (is_enum_type(type)) {
-        result = this->enter_enum_type(type);
-      } else {
-        result = this->enter_integer_type(type);
-      }  /* if */
-      break;
-    case tk_nullptr:
-      result = this->enter_nullptr_type(type);
-      break;
-    case tk_pointer:
-      result = this->enter_pointer_type(type);
-      break;
-    case tk_routine:
-      result = this->enter_routine_type(type);
-      break;
-    case tk_typeref:
-      if (typeref_is_typedef(type)) {
-        result = this->enter_typedef_type(type);
-      } else if (is_typeref_kind(type, trk_is_decltype)) {
-        /* FIXME: This is almost definitely incomplete (e.g., dependent cases).
-           The IFC has a decltype type node for representing decltype
-           expressions (presumably we only need this in dependent cases?). */
-        a_type_ptr underlying_type = type->variant.typeref.type;
-
-        result = this->enter_type(underlying_type);
-      } else {
-        /* FIXME: Handle other kinds of typerefs. */
-        header_unit_catastrophe();
-      }  /* if */
-      break;
-    case tk_void:
-      result = this->enter_void_type(type);
-      break;
-    case tk_struct:
-    case tk_union:
-    case tk_error:
-#if FIXED_POINT_ALLOWED
-    case tk_fixed_point:
-#endif /* FIXED_POINT_ALLOWED */
-#if C99_IL_EXTENSIONS_SUPPORTED
-    case tk_imaginary:
-    case tk_complex:
-#endif /* C99_IL_EXTENSIONS_SUPPORTED */
-    case tk_array:
-    case tk_class:
-    case tk_ptr_to_member:
-    case tk_template_param:
-#if GNU_VECTOR_TYPES_ALLOWED
-    case tk_vector:
-    case tk_scalable_vector:
-    case tk_scalable_vector_count:
-#endif /* GNU_VECTOR_TYPES_ALLOWED */
-    case tk_reflection:
-    case tk_unknown:
-      break;
-    default_is_unexpected();
-  }  /* switch */
-  return result;
-}  /* an_ifc_il_map::enter_type */
-
-
-an_ifc_scope_offset an_ifc_il_map::find_or_enter_scope(a_scope_ptr scope)
-/*
-For the given scope enter the scope into the IFC output state.  Return the
-scope offset for the type file.
-*/
-{
-  an_ifc_scope_offset result = this->scope_map.get(scope);
-
-  if (is_null_index(result)) {
-    result = this->enter_scope(scope);
-  }  /* if */
-  return result;
-}  /* an_ifc_il_map::find_or_enter_scope */
-
-
-an_ifc_scope_offset an_ifc_il_map::enter_scope(a_scope_ptr scope)
-/*
-For the given scope enter the scope into the IFC output state.  Return the
-scope offset for the type file.
-*/
-{
-  check_assertion(is_null_index(this->scope_map.get(scope)));
-  an_ifc_scope_descriptor
-                descriptor;
-  size_t        part_offset = this->output_state->alloc_node(&descriptor);
-  an_ifc_scope_offset
-                result(descriptor.get_file(), part_offset + 1);
-
-  this->scope_map.map(scope, result);
-  this->scope_members.push_back(a_scope_member_array());
-  /* If this assertion fails a scope member array is missing for one or more
-     IFC scope descriptors. */
-  check_assertion((size_t)this->scope_members.length() == (part_offset + 1));
-  return result;
-}  /* an_ifc_il_map::enter_scope */
-
-
-an_ifc_decl_index an_ifc_il_map::find_or_enter_home_scope(
-                                              a_source_correspondence_ptr scp)
-/*
-For the given source correspondence find or enter the associated parent scope
-declaration into the IFC output state.  Return the declaration index for the
-scope.
-*/
-{
-  a_scope_ptr       scope = scp->parent_scope;
-  (void)this->find_or_enter_scope(scope);
-  an_ifc_decl_index result = this->home_scope_map.get(scope);
-
-  if (is_null_index(result)) {
-    result = this->enter_home_scope(scope);
-  }  /* if */
-  return result;
-}  /* an_ifc_il_map::find_or_enter_home_scope */
-
-
-an_ifc_decl_index an_ifc_il_map::enter_home_scope(a_scope_ptr scope)
-/*
-For the given scope enter the associated parent scope declaration into the IFC
-output state.  Return the declaration index for the scope.
-*/
-{
-  check_assertion(is_null_index(this->home_scope_map.get(scope)));
-  an_ifc_decl_index result;
-
-  switch (scope->kind) {
-    case sck_file:
-      /* Use a null index to indicate the primary scope. */
-      /* Additionally ensure this scope is entered in the scope table. */
-      (void)this->find_or_enter_scope(scope);
-      break;
-    case sck_namespace:
-    case sck_namespace_extension:
-    case sck_namespace_reactivation:
-      result = this->enter_namespace(scope);
-      break;
-    case sck_func_prototype:
-    case sck_block:
-    case sck_class_struct_union:
-    case sck_class_reactivation:
-    case sck_template_declaration:
-    case sck_template_instantiation:
-    case sck_instantiation_context:
-    case sck_module_decl_import:
-    case sck_module_isolated:
-    case sck_pragma:
-    case sck_function_access:
-    case sck_condition:
-    case sck_enum:
-    case sck_function:
-    case sck_none:
-      break;
-    default_is_unexpected();
-  }  /* switch */
-  return result;
-}  /* an_ifc_il_map::enter_home_scope */
-
-
-an_ifc_decl_index an_ifc_il_map::find_or_enter_enum(a_type_ptr type)
-/*
-For the given enumeration type find or enter the enumeration into the IFC
-output state.  Return the declaration index for the enumeration.
-*/
-{
-  an_ifc_decl_index result = this->enum_map.get(type);
-
-  if (is_null_index(result)) {
-    result = this->enter_enum(type);
-  }  /* if */
-  return result;
-}  /* an_ifc_il_map::find_or_enter_enum */
-
-}  /* namespace */
-
-static size_t add_name_to_string_table(an_ifc_output_state     *output_state,
-                                       a_source_correspondence *scp)
-/*
-Add the name for the given source correspondence entry to the string table of
-the given output state.  Return the offset into the string table where the name
-has been placed.
-*/
-{
-  size_t result = 0;
-
-  if (scp->name != NULL) {
-    result = output_state->add_to_string_table(scp->name);
-  }  /* if */
-  return result;
-}  /* add_name_to_string_table */
-
-
 template<typename a_Type>
-static size_t add_name_to_string_table(an_ifc_output_state *output_state,
-                                       a_Type              *il_entity)
+an_ifc_source_location an_ifc_il_map::find_or_enter_entity_pos(
+                                                             a_Type *il_entity)
 /*
-Add the name for the given IL entity to the string table of the given output
-state.  Return the offset into the string table where the name has been placed.
+For the given entity find or enter the declaration source position into the IFC
+output state.  Return the corresponding IFC source location.
 */
 {
-  return add_name_to_string_table(output_state, &il_entity->source_corresp);
-}  /* add_name_to_string_table */
+  a_source_position src_pos = il_entity->source_corresp.decl_position;
 
-namespace {
-
-an_ifc_decl_index an_ifc_il_map::enter_enum(a_type_ptr type)
-/*
-For the given enumeration type enter the enumeration into the IFC output state.
-Return the declaration index for the enumeration.
-*/
-{
-  check_assertion(is_null_index(this->enum_map.get(type)) &&
-                  type->kind == tk_enum && type->variant.integer.enum_type);
-  an_ifc_decl_enumeration
-                enum_decl;
-  an_ifc_decl_index
-                result = this->output_state->alloc_decl(&enum_decl);
-  /* Set the name information. */
-  size_t        name_offset = add_name_to_string_table(this->output_state,
-                                                       type);
-  an_ifc_text_offset
-                ifc_name_offset(enum_decl.get_file(), name_offset);
-
-  set_ifc_name(&enum_decl, ifc_name_offset);
-
-  /* Set the source location information. */
-  a_source_position
-                src_pos = type->source_corresp.decl_position;
-  an_ifc_source_location
-                ifc_src_pos = this->find_or_enter_pos(src_pos);
-  set_ifc_locus(&enum_decl, ifc_src_pos);
-
-  /* Set the type information. */
-  an_ifc_type_index
-                type_idx;
-  if (type->variant.integer.is_scoped_enum) {
-    type_idx = this->find_or_enter_scoped_enum_type();
-  } else {
-    type_idx = this->find_or_enter_unscoped_enum_type();
-  }  /* if */
-  set_ifc_type(&enum_decl, type_idx);
-
-  /* Set the base type. */
-  an_integer_kind
-                base_int_kind = type->variant.integer.int_kind;
-  a_type_ptr    base_type = integer_type(base_int_kind);
-  an_ifc_type_index
-                base_type_idx = this->find_or_enter_type(base_type);
-  set_ifc_base(&enum_decl, base_type_idx);
-
-  /* Construct and set the initializer to provide the enumerators. */
-  an_ifc_sequence seq = this->enter_enumerators(type);
-  set_ifc_initializer(&enum_decl, seq);
-
-  /* Set the scope information. */
-  a_source_correspondence_ptr
-                scp = &type->source_corresp;
-  an_ifc_decl_index
-                scope_decl_idx = this->find_or_enter_home_scope(scp);
-  this->map_scope_member(scp, result);
-  set_ifc_home_scope(&enum_decl, scope_decl_idx);
-  /* FIXME: Set alignment. */
-  /* FIXME: Set specifiers. */
-  /* FIXME: Set access. */
-  /* FIXME: Set properties. */
-  return result;
-}  /* an_ifc_il_map::enter_enum */
-
-
-an_ifc_decl_index an_ifc_il_map::find_or_enter_routine(a_routine_ptr rp)
-/*
-For the given routine find or enter the function declaration into the IFC
-output state.  Return the declaration index for the routine.
-*/
-{
-  an_ifc_decl_index result = this->routine_map.get(rp);
-
-  if (is_null_index(result)) {
-    result = this->enter_routine(rp);
-  }  /* if */
-  return result;
-}  /* an_ifc_il_map::find_or_enter_routine */
-
-
-an_ifc_decl_index an_ifc_il_map::enter_routine(a_routine_ptr rp)
-/*
-For the given routine enter the function declaration into the IFC output state.
-Return the declaration index for the routine.
-*/
-{
-  check_assertion(is_null_index(this->routine_map.get(rp)));
-  an_ifc_decl_function
-                func_decl;
-  an_ifc_decl_index
-                result = this->output_state->alloc_decl(&func_decl);
-
-  this->routine_map.map(rp, result);
-
-  /* Set the name information. */
-  size_t        name_offset = add_name_to_string_table(this->output_state, rp);
-  an_ifc_name_index
-                ifc_name_offset(func_decl.get_file(), ifc_ns_text_offset,
-                                name_offset);
-  set_ifc_name(&func_decl, ifc_name_offset);
-
-  /* Set the source location information. */
-  a_source_position
-                src_pos = rp->source_corresp.decl_position;
-  an_ifc_source_location
-                ifc_src_pos = this->find_or_enter_pos(src_pos);
-  set_ifc_locus(&func_decl, ifc_src_pos);
-
-  /* Set the type information. */
-  a_type_ptr    type = rp->type;
-  an_ifc_type_index
-                type_idx = this->find_or_enter_type(type);
-  set_ifc_type(&func_decl, type_idx);
-
-  /* Set the scope information. */
-  a_source_correspondence_ptr
-                scp = &rp->source_corresp;
-  an_ifc_decl_index
-                scope_decl_idx = this->find_or_enter_home_scope(scp);
-  this->map_scope_member(scp, result);
-  set_ifc_home_scope(&func_decl, scope_decl_idx);
-
-  /* Set the parameter information. */
-  an_ifc_chart_index
-                param_chart_idx = this->enter_routine_params(rp);
-  set_ifc_chart(&func_decl, param_chart_idx);
-  return result;
-}  /* an_ifc_il_map::enter_routine */
+  return this->find_or_enter_pos(src_pos);
+}  /* an_ifc_il_map::find_or_enter_entity_pos */
 
 
 template<typename an_ifc_Node_type>
@@ -1598,20 +1833,60 @@ output state.  Return the type index for the constructed type node.
 }  /* an_ifc_il_map::map_new_type */
 
 
-template<typename an_ifc_Node_type>
-an_ifc_decl_index an_ifc_il_map::map_new_home_scope(a_scope_ptr      scope,
-                                                    an_ifc_Node_type *node)
+template<typename a_Type, typename an_ifc_Node_type>
+an_ifc_decl_index an_ifc_il_map::map_new_decl(a_Type           *il_entity,
+                                              an_ifc_Node_type *node)
 /*
-For the given IL scope, construct a corresponding IFC declaration node in the
+For the given IL entity, construct a corresponding IFC declaration node in the
 IFC output state.  Return the declaration index for the constructed declaration
 node.
 */
 {
   an_ifc_decl_index result = this->output_state->alloc_decl(node);
 
-  this->home_scope_map.map(scope, result);
+  this->il_entry_to_decl.map(make_tagged_ptr(il_entity), result);
   return result;
-}  /* an_ifc_il_map::map_new_home_scope */
+}  /* an_ifc_il_map::map_new_decl */
+
+
+an_ifc_type_index an_ifc_il_map::enter_class_type(a_type_ptr type)
+/*
+Enter the given class type into the IFC output state.  Return the type index
+for the class type.
+*/
+{
+  check_assertion(type->kind == tk_struct);
+  an_ifc_type_designated
+                designated_type;
+  an_ifc_type_index
+                result = this->map_new_type(type, &designated_type);
+  an_ifc_decl_index
+                decl_idx = this->find_or_enter_class(type);
+
+  set_ifc_decl(&designated_type, decl_idx);
+  return result;
+}  /* an_ifc_il_map::enter_class_type */
+
+
+an_ifc_type_index an_ifc_il_map::enter_constructor_type(a_type_ptr type)
+/*
+Enter the a type for the given constructor type into the IFC output state.
+Return the type index for the constructor type.
+*/
+{
+  an_ifc_type_tor
+                tor_type;
+  an_ifc_type_index
+                result = this->output_state->alloc_type(&tor_type);
+
+  an_ifc_type_index
+                ifc_param_types = this->enter_routine_params_type(type);
+  set_ifc_source(&tor_type, ifc_param_types);
+
+  /* FIXME: Set eh_spec. */
+  /* FIXME: Set convention. */
+  return result;
+}  /* an_ifc_il_map::enter_constructor_type */
 
 
 an_ifc_type_index an_ifc_il_map::enter_enum_type(a_type_ptr type)
@@ -1680,6 +1955,33 @@ for the float type.
   set_ifc_sign(&fund_type, ifc_tss_signed);
   return result;
 }  /* an_ifc_il_map::enter_float_type */
+
+
+an_ifc_type_index an_ifc_il_map::enter_free_function_type(a_type_ptr type)
+/*
+Enter the given free function (routine) type into the IFC output state.  Return
+the type index for the function type.
+*/
+{
+  check_assertion(type->kind == tk_routine);
+  an_ifc_type_function
+                func_type;
+  an_ifc_type_index
+                result = this->map_new_type(type, &func_type);
+  a_type_ptr    return_type = type->variant.routine.return_type;
+  an_ifc_type_index
+                ifc_return_type = this->find_or_enter_type(return_type);
+
+  set_ifc_target(&func_type, ifc_return_type);
+
+  an_ifc_type_index
+                ifc_param_types = this->enter_routine_params_type(type);
+  set_ifc_source(&func_type, ifc_param_types);
+  /* FIXME: Set eh_spec. */
+  /* FIXME: Set convention. */
+  /* FIXME: Set traits. */
+  return result;
+}  /* an_ifc_il_map::enter_free_function_type */
 
 }  /* namespace */
 
@@ -1828,6 +2130,40 @@ for the integer type.
 }  /* an_ifc_il_map::enter_integer_type */
 
 
+an_ifc_type_index an_ifc_il_map::enter_member_function_type(a_type_ptr type)
+/*
+Enter the given member function (routine) type into the IFC output state.
+Return the type index for the function type.
+*/
+{
+  check_assertion(type->kind == tk_routine);
+  an_ifc_type_method
+                func_type;
+  an_ifc_type_index
+                result = this->map_new_type(type, &func_type);
+  a_type_ptr    return_type = type->variant.routine.return_type;
+  an_ifc_type_index
+                ifc_return_type = this->find_or_enter_type(return_type);
+
+  set_ifc_target(&func_type, ifc_return_type);
+
+  an_ifc_type_index
+                ifc_param_types = this->enter_routine_params_type(type);
+  set_ifc_source(&func_type, ifc_param_types);
+
+  a_routine_type_supplement_ptr
+                rtsp = type->variant.routine.extra_info;
+  a_type_ptr    class_type = rtsp->this_class;
+  an_ifc_type_index
+                ifc_class_type  = this->find_or_enter_type(class_type);
+  set_ifc_scope(&func_type, ifc_class_type);
+  /* FIXME: Set eh_spec. */
+  /* FIXME: Set convention. */
+  /* FIXME: Set traits. */
+  return result;
+}  /* an_ifc_il_map::enter_member_function_type */
+
+
 an_ifc_type_index an_ifc_il_map::enter_nullptr_type(a_type_ptr type)
 /*
 Enter the given nullptr type into the IFC output state.  Return the type index
@@ -1942,19 +2278,54 @@ for the function type.
 */
 {
   check_assertion(type->kind == tk_routine);
-  an_ifc_type_function
-                func_type;
-  an_ifc_type_index
-                result = this->map_new_type(type, &func_type);
-  a_type_ptr    return_type = type->variant.routine.return_type;
-  an_ifc_type_index
-                ifc_return_type = this->find_or_enter_type(return_type);
+  an_ifc_type_index result;
 
-  set_ifc_target(&func_type, ifc_return_type);
+  if (type->source_corresp.is_class_member) {
+    a_routine_type_supplement_ptr
+                rtsp = type->variant.routine.extra_info;
+    a_routine_ptr
+                rp = rtsp->assoc_routine;
 
-  an_ifc_type_index
-                ifc_param_types = this->enter_routine_params_type(type);
-  set_ifc_source(&func_type, ifc_param_types);
+    switch (rp->special_kind) {
+      case sfk_none:
+        result = this->enter_member_function_type(type);
+        break;
+      case sfk_constructor:
+        result = this->enter_constructor_type(type);
+        break;
+      case sfk_conversion:
+      case sfk_destructor:
+      case sfk_operator:
+        /* FIXME: Implement these. */
+        break;
+      case sfk_udl_operator:
+      case sfk_lambda_entry_point:
+      case sfk_deduction_guide:
+      case sfk_static_constructor:
+      case sfk_finalizer:
+      case sfk_idisposable_dispose:
+      case sfk_dispose_bool:
+      case sfk_object_finalize:
+      case sfk_property_get:
+      case sfk_property_set:
+      case sfk_event_add:
+      case sfk_event_remove:
+      case sfk_event_raise:
+      case sfk_gnu_sync_concrete_function:
+      case sfk_gnu_atomic_nongeneric_function:
+      case sfk_gnu_atomic_generic_function:
+      case sfk_builtin_operator_new:
+      case sfk_builtin_operator_delete:
+        header_unit_catastrophe();
+        break;
+      case sfk_last:
+        /* sfk_last should not appear in the IL. */
+        unexpected_condition();
+      default_is_unexpected();
+    } /* switch */
+  } else {
+    result = this->enter_free_function_type(type);
+  }  /* if */
   return result;
 }  /* an_ifc_il_map::enter_routine_type */
 
@@ -2057,17 +2428,14 @@ sequence representing the IFC DeclSort::Enumerators.
                                      curr_enumerator_offset);
 
       /* Set the enumerator name. */
-      size_t    name_offset = add_name_to_string_table(this->output_state,
-                                                     curr_constant);
       an_ifc_text_offset
-                ifc_name_offset(curr_enumerator.get_file(), name_offset);
+                ifc_name_offset =
+                               this->entity_name_as_text_offset(curr_constant);
       set_ifc_name(&curr_enumerator, ifc_name_offset);
 
       /* Set the source location information. */
-      a_source_position
-                src_pos = curr_constant->source_corresp.decl_position;
       an_ifc_source_location
-                ifc_src_pos = this->find_or_enter_pos(src_pos);
+                ifc_src_pos = this->find_or_enter_entity_pos(curr_constant);
       set_ifc_locus(&curr_enumerator, ifc_src_pos);
       /* Associate the enumeration type with the enumerator. */
       set_ifc_type(&curr_enumerator, enumeration_type);
@@ -2090,7 +2458,11 @@ sequence representing the IFC DeclSort::Enumerators.
                                                              init_token_cache);
       set_ifc_initializer(&curr_enumerator, init_idx);
       /* FIXME: Set specifier. */
-      /* FIXME: Set access. */
+
+      /* Set the access specifier. */
+      an_ifc_access_sort ifc_access = access_specifier_of(curr_constant);
+      set_ifc_access(&curr_enumerator, ifc_access);
+
       /* Advance to the next parameter. */
       curr_constant = curr_constant->next;
     }  /* for */
@@ -2331,6 +2703,24 @@ into the IFC output state.  Return the index of the token.
 }  /* an_ifc_il_map::enter_constant_token */
 
 
+an_ifc_type_index an_ifc_il_map::find_or_enter_class_scope_type()
+/*
+Find or enter the fundamental type used by the IFC to indicate a given IFC
+DeclSort::Scope is a class.  Return the index for the fundamental type.
+*/
+{
+  if (is_null_index(this->fund_class_type)) {
+    an_ifc_type_fundamental fund_type;
+
+    this->fund_class_type = this->output_state->alloc_type(&fund_type);
+    set_ifc_basis(&fund_type, ifc_tbs_class);
+    set_ifc_precision(&fund_type, ifc_tps_default);
+    set_ifc_sign(&fund_type, ifc_tss_plain);
+  }  /* if */
+  return this->fund_class_type;
+}  /* an_ifc_il_map::find_or_enter_class_scope_type */
+
+
 an_ifc_type_index an_ifc_il_map::find_or_enter_namespace_scope_type()
 /*
 Find or enter the fundamental type used by the IFC to indicate a given IFC
@@ -2405,6 +2795,240 @@ fundamental type.
 }  /* an_ifc_il_map::find_or_enter_unscoped_enum_type */
 
 
+an_ifc_decl_index an_ifc_il_map::enter_constructor(a_routine_ptr rp)
+/*
+Enter the given constructor (routine) into the IFC output state.  Return the
+declaration index of the constructor declaration.
+*/
+{
+  an_ifc_decl_constructor
+                func_decl;
+  an_ifc_decl_index
+                result = this->map_new_decl(rp, &func_decl);
+
+  /* Set the name information. */
+  an_ifc_text_offset
+                ifc_name_offset = this->entity_name_as_text_offset(rp);
+  set_ifc_name(&func_decl, ifc_name_offset);
+
+  /* Set the source location information. */
+  an_ifc_source_location
+                ifc_src_pos = this->find_or_enter_entity_pos(rp);
+  set_ifc_locus(&func_decl, ifc_src_pos);
+
+  /* Set the type information. */
+  a_type_ptr    type = rp->type;
+  an_ifc_type_index
+                type_idx = this->find_or_enter_type(type);
+  set_ifc_type(&func_decl, type_idx);
+
+  /* Set the scope information. */
+  an_ifc_decl_index
+                scope_decl_idx = this->associate_entity_home_scope(rp);
+  set_ifc_home_scope(&func_decl, scope_decl_idx);
+
+  /* Set the parameter information. */
+  an_ifc_chart_index
+                param_chart_idx = this->enter_routine_params(rp);
+  set_ifc_chart(&func_decl, param_chart_idx);
+  /* FIXME: Set traits. */
+  /* FIXME: Set specifiers. */
+
+  /* Set the access specifier. */
+  an_ifc_access_sort
+                ifc_access = access_specifier_of(rp);
+  set_ifc_access(&func_decl, ifc_access);
+  /* FIXME: Set properties. */
+  return result;
+}  /* an_ifc_il_map::enter_constructor */
+
+
+an_ifc_decl_index an_ifc_il_map::enter_destructor(a_routine_ptr rp)
+/*
+Enter the given constructor (routine) into the IFC output state.  Return the
+declaration index of the constructor declaration.
+*/
+{
+  an_ifc_decl_destructor
+                func_decl;
+  an_ifc_decl_index
+                result = this->map_new_decl(rp, &func_decl);
+
+  /* Set the name information. */
+  an_ifc_text_offset
+                ifc_name_offset = this->entity_name_as_text_offset(rp);
+  set_ifc_name(&func_decl, ifc_name_offset);
+
+  /* Set the source location information. */
+  an_ifc_source_location
+                ifc_src_pos = this->find_or_enter_entity_pos(rp);
+  set_ifc_locus(&func_decl, ifc_src_pos);
+
+  /* Set the scope information. */
+  an_ifc_decl_index
+                scope_decl_idx = this->associate_entity_home_scope(rp);
+  set_ifc_home_scope(&func_decl, scope_decl_idx);
+
+  /* FIXME: Set eh_spec. */
+  /* FIXME: Set traits. */
+  /* FIXME: Set specifiers. */
+
+  /* Set the access specifier. */
+  an_ifc_access_sort
+                ifc_access = access_specifier_of(rp);
+  set_ifc_access(&func_decl, ifc_access);
+  /* FIXME: Set convention. */
+  /* FIXME: Set properties. */
+  return result;
+}  /* an_ifc_il_map::enter_destructor */
+
+
+an_ifc_decl_index an_ifc_il_map::enter_field(a_field_ptr field)
+/*
+Enter the given field into the IFC output state.  Return the declaration index
+of the field declaration.
+*/
+{
+  an_ifc_decl_index result;
+
+  if (field->bit_size == 0) {
+    an_ifc_decl_field
+                field_decl;
+
+    result = this->map_new_decl(field, &field_decl);
+
+    /* Set the name information. */
+    an_ifc_text_offset
+                ifc_name_offset = this->entity_name_as_text_offset(field);
+    set_ifc_name(&field_decl, ifc_name_offset);
+
+    /* Set the source location information. */
+    an_ifc_source_location
+                ifc_src_pos = this->find_or_enter_entity_pos(field);
+    set_ifc_locus(&field_decl, ifc_src_pos);
+
+    /* Set the type information. */
+    an_ifc_type_index
+                type_idx = this->find_or_enter_type(field->type);
+    set_ifc_type(&field_decl, type_idx);
+
+    /* Set the scope information. */
+    an_ifc_decl_index
+                scope_decl_idx = this->associate_entity_home_scope(field);
+    set_ifc_home_scope(&field_decl, scope_decl_idx);
+    /* FIXME: Set initializer. */
+    /* FIXME: Set alignment. */
+    /* FIXME: Set traits. */
+    /* FIXME: Set specifier. */
+
+    /* Set the access specifier. */
+    an_ifc_access_sort ifc_access = access_specifier_of(field);
+    set_ifc_access(&field_decl, ifc_access);
+    /* FIXME: Set properties. */
+  } else {
+    /* FIXME: Implement bitfields. */
+    header_unit_catastrophe();
+  }  /* if */
+  return result;
+}  /* an_ifc_il_map::enter_field */
+
+
+an_ifc_decl_index an_ifc_il_map::enter_free_function(a_routine_ptr rp)
+/*
+Enter the given free function (routine) into the IFC output state.  Return the
+declaration index of the free function declaration.
+*/
+{
+  an_ifc_decl_function
+                func_decl;
+  an_ifc_decl_index
+                result = this->map_new_decl(rp, &func_decl);
+
+  /* Set the name information. */
+  an_ifc_name_index
+                ifc_name_index = this->entity_name_as_name_index(rp);
+  set_ifc_name(&func_decl, ifc_name_index);
+
+  /* Set the source location information. */
+  an_ifc_source_location
+                ifc_src_pos = this->find_or_enter_entity_pos(rp);
+  set_ifc_locus(&func_decl, ifc_src_pos);
+
+  /* Set the type information. */
+  a_type_ptr    type = rp->type;
+  an_ifc_type_index
+                type_idx = this->find_or_enter_type(type);
+  set_ifc_type(&func_decl, type_idx);
+
+  /* Set the scope information. */
+  an_ifc_decl_index
+                scope_decl_idx = this->associate_entity_home_scope(rp);
+  set_ifc_home_scope(&func_decl, scope_decl_idx);
+
+  /* Set the parameter information. */
+  an_ifc_chart_index
+                param_chart_idx = this->enter_routine_params(rp);
+  set_ifc_chart(&func_decl, param_chart_idx);
+  /* FIXME: Set traits. */
+  /* FIXME: Set specifiers. */
+
+  /* Set the access specifier. */
+  an_ifc_access_sort
+                ifc_access = access_specifier_of(type);
+  set_ifc_access(&func_decl, ifc_access);
+  /* FIXME: Set properties. */
+  return result;
+}  /* an_ifc_il_map::enter_free_function */
+
+
+an_ifc_decl_index an_ifc_il_map::enter_member_function(a_routine_ptr rp)
+/*
+Enter the given member function (routine) into the IFC output state.  Return
+the declaration index of the member function declaration.
+*/
+{
+  an_ifc_decl_method
+                func_decl;
+  an_ifc_decl_index
+                result = this->map_new_decl(rp, &func_decl);
+
+  /* Set the name information. */
+  an_ifc_name_index
+                ifc_name_index = this->entity_name_as_name_index(rp);
+  set_ifc_name(&func_decl, ifc_name_index);
+
+  /* Set the source location information. */
+  an_ifc_source_location
+                ifc_src_pos = this->find_or_enter_entity_pos(rp);
+  set_ifc_locus(&func_decl, ifc_src_pos);
+
+  /* Set the type information. */
+  a_type_ptr    type = rp->type;
+  an_ifc_type_index
+                type_idx = this->find_or_enter_type(type);
+  set_ifc_type(&func_decl, type_idx);
+
+  /* Set the scope information. */
+  an_ifc_decl_index
+                scope_decl_idx = this->associate_entity_home_scope(rp);
+  set_ifc_home_scope(&func_decl, scope_decl_idx);
+
+  /* Set the parameter information. */
+  an_ifc_chart_index
+                param_chart_idx = this->enter_routine_params(rp);
+  set_ifc_chart(&func_decl, param_chart_idx);
+  /* FIXME: Set traits. */
+  /* FIXME: Set specifiers. */
+
+  /* Set the access specifier. */
+  an_ifc_access_sort
+                ifc_access = access_specifier_of(type);
+  set_ifc_access(&func_decl, ifc_access);
+  /* FIXME: Set properties. */
+  return result;
+}  /* an_ifc_il_map::enter_member_function */
+
+
 an_ifc_decl_index an_ifc_il_map::enter_namespace(a_scope_ptr scope)
 /*
 Enter the namespace corresponding to the given scope into the IFC output state.
@@ -2416,30 +3040,29 @@ Return the declaration index of the scope declaration.
                   scope->kind == sck_namespace_reactivation);
   an_ifc_decl_scope
                 scope_decl;
-  an_ifc_decl_index
-                result = this->map_new_home_scope(scope, &scope_decl);
   a_namespace_ptr
                 nsp = scope->variant.assoc_namespace;
-  /* Set the name information. */
-  size_t        name_offset = add_name_to_string_table(this->output_state,
-                                                       nsp);
-  an_ifc_name_index
-                ifc_name_index(scope_decl.get_file(), ifc_ns_text_offset,
-                               name_offset);
+  an_ifc_decl_index
+                result = this->map_new_decl(nsp, &scope_decl);
 
+  /* Additionally resolve the scope to this DeclIndex to resolve the scope for
+     find_or_enter_home_scope. */
+  this->il_entry_to_decl.map(make_tagged_ptr(scope), result);
+
+  /* Set the name information. */
+  an_ifc_name_index
+                ifc_name_index = this->entity_name_as_name_index(nsp);
   set_ifc_name(&scope_decl, ifc_name_index);
 
   /* Set the source location information. */
-  a_source_position
-                src_pos = nsp->source_corresp.decl_position;
   an_ifc_source_location
-                ifc_src_pos = this->find_or_enter_pos(src_pos);
+                ifc_src_pos = this->find_or_enter_entity_pos(nsp);
   set_ifc_locus(&scope_decl, ifc_src_pos);
 
   /* Set the IFC fundamental type to indicate this is a namespace scope. */
   an_ifc_type_index
-                type = this->find_or_enter_namespace_scope_type();
-  set_ifc_type(&scope_decl, type);
+                ifc_scope_type = this->find_or_enter_namespace_scope_type();
+  set_ifc_type(&scope_decl, ifc_scope_type);
 
   /* Namespaces do not have a base type, so use a null type. */
   an_ifc_type_index
@@ -2452,12 +3075,17 @@ Return the declaration index of the scope declaration.
   set_ifc_initializer(&scope_decl, initializer);
 
   /* Set the scope information. */
-  a_source_correspondence_ptr
-                scp = &nsp->source_corresp;
   an_ifc_decl_index
-                scope_decl_idx = this->find_or_enter_home_scope(scp);
-  this->map_scope_member(scp, result);
+                scope_decl_idx = this->associate_entity_home_scope(nsp);
   set_ifc_home_scope(&scope_decl, scope_decl_idx);
+  /* FIXME: Set alignment. */
+  /* FIXME: Set pack_size. */
+  /* FIXME: Set specifiers. */
+  /* FIXME: Set traits. */
+
+  /* Set the access specifier. */
+  set_ifc_access(&scope_decl, ifc_as_none);
+  /* FIXME: Set properties. */
   return result;
 }  /* an_ifc_il_map::enter_namespace */
 
@@ -2473,20 +3101,15 @@ representation of the typedef).
   an_ifc_decl_alias
                 alias_decl;
   an_ifc_decl_index
-                result = this->output_state->alloc_decl(&alias_decl);
+                result = this->map_new_decl(type, &alias_decl);
   /* Set the name information. */
-  size_t        name_offset = add_name_to_string_table(this->output_state,
-                                                       type);
   an_ifc_text_offset
-                ifc_name_offset(alias_decl.get_file(), name_offset);
-
+                ifc_name_offset = this->entity_name_as_text_offset(type);
   set_ifc_name(&alias_decl, ifc_name_offset);
 
   /* Set the source location information. */
-  a_source_position
-                src_pos = type->source_corresp.decl_position;
   an_ifc_source_location
-                ifc_src_pos = this->find_or_enter_pos(src_pos);
+                ifc_src_pos = this->find_or_enter_entity_pos(type);
   set_ifc_locus(&alias_decl, ifc_src_pos);
 
   /* Set the IFC fundamental type to indicate this is a typedef
@@ -2496,11 +3119,8 @@ representation of the typedef).
   set_ifc_type(&alias_decl, type_kind_type);
 
   /* Set the scope information. */
-  a_source_correspondence_ptr
-                scp = &type->source_corresp;
   an_ifc_decl_index
-                scope_decl_idx = this->find_or_enter_home_scope(scp);
-  this->map_scope_member(scp, result);
+                scope_decl_idx = this->associate_entity_home_scope(type);
   set_ifc_home_scope(&alias_decl, scope_decl_idx);
 
   /* Set the aliasee type. */
@@ -2508,9 +3128,62 @@ representation of the typedef).
                 aliasee = this->find_or_enter_type(type->variant.typeref.type);
   set_ifc_aliasee(&alias_decl, aliasee);
   /* FIXME: Set specifiers. */
-  /* FIXME: Set access. */
+
+  /* Set the access specifier. */
+  an_ifc_access_sort ifc_access = access_specifier_of(type);
+  set_ifc_access(&alias_decl, ifc_access);
   return result;
 }  /* an_ifc_il_map::enter_typedef */
+
+
+an_ifc_decl_index an_ifc_il_map::enter_home_scope(a_scope_ptr scope)
+/*
+For the given scope enter the associated parent scope declaration into the IFC
+output state.  Return the declaration index for the scope.
+*/
+{
+  check_assertion(is_null_index(
+                          this->il_entry_to_decl.get(make_tagged_ptr(scope))));
+  an_ifc_decl_index result;
+
+  switch (scope->kind) {
+    case sck_class_struct_union:
+      if (is_class_struct_type(scope->variant.assoc_type)) {
+        result = this->find_or_enter_class(scope->variant.assoc_type);
+      } else {
+        /* FIXME: Implement unions. */
+        header_unit_catastrophe();
+      }  /* if */
+      break;
+    case sck_file:
+      /* Use a null index to indicate the primary scope. */
+      /* Additionally ensure this scope is entered in the scope table. */
+      (void)this->find_or_enter_scope(scope);
+      break;
+    case sck_namespace:
+    case sck_namespace_extension:
+    case sck_namespace_reactivation:
+      result = this->enter_namespace(scope);
+      break;
+    case sck_func_prototype:
+    case sck_block:
+    case sck_class_reactivation:
+    case sck_template_declaration:
+    case sck_template_instantiation:
+    case sck_instantiation_context:
+    case sck_module_decl_import:
+    case sck_module_isolated:
+    case sck_pragma:
+    case sck_function_access:
+    case sck_condition:
+    case sck_enum:
+    case sck_function:
+    case sck_none:
+      break;
+    default_is_unexpected();
+  }  /* switch */
+  return result;
+}  /* an_ifc_il_map::enter_home_scope */
 
 
 void an_ifc_il_map::map_scope_member(a_scope_ptr       scope,
@@ -2522,27 +3195,43 @@ members.
 {
   an_ifc_scope_offset offset = this->find_or_enter_scope(scope);
 
+  /* A null index should never be mapped as a member of a scope. */
+  check_assertion(!is_null_index(decl));
   this->scope_members[offset.value - 1].push_back(decl);
 }  /* an_ifc_il_map::map_scope_member */
 
 
-void an_ifc_il_map::map_scope_member(a_source_correspondence_ptr scp,
-                                     an_ifc_decl_index           decl)
+template<typename a_Type>
+an_ifc_decl_index an_ifc_il_map::associate_entity_home_scope(a_Type *il_entity)
 /*
-Map the given declaration index to the associated array of scope members for
-the given source correspondent.
+For the given IL entity associate the parent scope and the corresponding IFC
+declaration in the IFC output state.  Return the declaration index for the
+entity's scope.
 */
 {
-  a_scope_ptr scope = scp->parent_scope;
+  /* First fetch the entity's IL scope and its IFC DeclIndex.  Then associate
+     the scope and DeclIndex. */
+  a_tagged_pointer
+                tagged_entity = make_tagged_ptr(il_entity);
+  an_ifc_decl_index
+                entity_idx = this->il_entry_to_decl.get(tagged_entity);
+  a_scope_ptr   scope = il_entity->source_corresp.parent_scope;
 
-  this->map_scope_member(scope, decl);
-}  /* an_ifc_il_map::map_scope_member */
+  this->map_scope_member(scope, entity_idx);
+
+  /* Finally, enter the home scope declaration itself if not already
+     entered. */
+  a_tagged_pointer
+                tagged_scope = make_tagged_ptr(scope);
+  an_ifc_decl_index
+                result = this->il_entry_to_decl.get(tagged_scope);
+  if (is_null_index(result)) {
+    result = this->enter_home_scope(scope);
+  }  /* if */
+  return result;
+}  /* an_ifc_il_map::associate_entity_home_scope */
 
 }  /* namespace */
-
-static void dump_scope_recursively(an_ifc_il_map *il_map,
-                                   a_scope_ptr   scope);
-
 
 static void dump_scope_types(an_ifc_il_map *il_map,
                              a_scope_ptr   scope)

@@ -21112,7 +21112,12 @@ this is needed.
           cache_type(cache, get_ifc_target(itm), cinfo);
           cache_token(cache, tok_lparen);
 #if MICROSOFT_EXTENSIONS_ALLOWED
-          cache_calling_convention(cache, get_ifc_convention(itm));
+          if (microsoft_mode) {
+            an_ifc_calling_convention_sort
+                calling_convention = get_ifc_convention(itm);
+
+            cache_calling_convention(cache, calling_convention);
+          }  /* if */
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
           cache_type(cache, get_ifc_scope(itm), cinfo);
           cache_token(cache, tok_colon_colon);
@@ -22755,7 +22760,9 @@ current cache context to help inform decisions about what to cache.
         cache_func_vendor_decl_specifier_seq(cache, templated_decl_idx);
         cache_func_decl_specifier_seq(cache, idf);
 #if MICROSOFT_EXTENSIONS_ALLOWED
-        cache_func_calling_convention(cache, idf);
+        if (microsoft_mode) {
+          cache_func_calling_convention(cache, idf);
+        }  /* if */
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
         cache_specialized_func_declarator_id(cache, decl, idf, cinfo);
         cache_func_parameters_and_qualifiers(cache, templated_decl_idx, idf,
@@ -22784,7 +22791,9 @@ current cache context to help inform decisions about what to cache.
           cache_token(cache, tok_auto);
         }  /* if */
 #if MICROSOFT_EXTENSIONS_ALLOWED
-        cache_func_calling_convention(cache, idm);
+        if (microsoft_mode) {
+          cache_func_calling_convention(cache, idm);
+        }  /* if */
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
         cache_specialized_func_declarator_id(cache, decl, idm, cinfo);
         cache_func_parameters_and_qualifiers(cache, templated_decl_idx, idm,
@@ -22811,7 +22820,9 @@ current cache context to help inform decisions about what to cache.
         cache_func_vendor_decl_specifier_seq(cache, templated_decl_idx);
         cache_func_decl_specifier_seq(cache, idc);
 #if MICROSOFT_EXTENSIONS_ALLOWED
-        cache_func_calling_convention(cache, idc);
+        if (microsoft_mode) {
+          cache_func_calling_convention(cache, idc);
+        }  /* if */
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
         cache_specialized_func_declarator_id(cache, decl, idc, cinfo);
         cache_func_parameters_and_qualifiers(cache, templated_decl_idx, idc,
@@ -23444,7 +23455,9 @@ about what to cache.
         cache_func_decl_specifier_seq(cache, idf);
         cache_token(cache, tok_auto);
 #if MICROSOFT_EXTENSIONS_ALLOWED
-        cache_func_calling_convention(cache, idf);
+        if (microsoft_mode) {
+          cache_func_calling_convention(cache, idf);
+        }  /* if */
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
         cache_func_declarator_id(cache, idf, cinfo);
         cache_func_parameters_and_qualifiers(cache, decl, idf, cinfo);
@@ -23466,7 +23479,9 @@ about what to cache.
           cache_token(cache, tok_auto);
         }  /* if */
 #if MICROSOFT_EXTENSIONS_ALLOWED
-        cache_func_calling_convention(cache, idm);
+        if (microsoft_mode) {
+          cache_func_calling_convention(cache, idm);
+        }  /* if */
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
         cache_func_declarator_id(cache, idm, cinfo);
         cache_func_parameters_and_qualifiers(cache, decl, idm, cinfo);
@@ -23486,7 +23501,9 @@ about what to cache.
         cache_func_vendor_decl_specifier_seq(cache, decl);
         cache_func_decl_specifier_seq(cache, idc);
 #if MICROSOFT_EXTENSIONS_ALLOWED
-        cache_func_calling_convention(cache, idc);
+        if (microsoft_mode) {
+          cache_func_calling_convention(cache, idc);
+        }  /* if */
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
         cache_func_declarator_id(cache, idc, cinfo);
         cache_func_parameters_and_qualifiers(cache, decl, idc, cinfo);
@@ -23515,7 +23532,9 @@ about what to cache.
         cache_func_vendor_decl_specifier_seq(cache, decl);
         cache_func_decl_specifier_seq(cache, idd);
 #if MICROSOFT_EXTENSIONS_ALLOWED
-        cache_func_calling_convention(cache, idd);
+        if (microsoft_mode) {
+          cache_func_calling_convention(cache, idd);
+        }  /* if */
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
         cache_func_declarator_id(cache, idd, cinfo);
         cache_token(cache, tok_lparen);
