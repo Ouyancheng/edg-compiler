@@ -8817,9 +8817,9 @@ done:
 
 
 static int compare_pass_object_size_attributes(a_candidate_function_ptr cfp1,
-                                        a_candidate_function_ptr cfp2)
+                                               a_candidate_function_ptr cfp2)
 /*
-If cfp1 has a pass_object_size parameter attribute and cfp2 doesn't return +1.
+If cfp1 has a pass_object_size parameter attribute and cfp2 doesn't, return +1.
 If the converse is true, return -1.  Otherwise, return 0.
 */
 {
