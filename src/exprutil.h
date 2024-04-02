@@ -2940,6 +2940,9 @@ extern void expr_issue_incomplete_type_diag(
                                         a_type            *type,
                                         an_error_severity severity = es_error);
 
+extern void expr_issue_sizeless_type_error(a_source_position *pos,
+                                           a_type            *type);
+
 extern void expr_expect_error(void);
 
 extern a_boolean expr_access_checking_should_be_done(void);

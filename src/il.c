@@ -95,6 +95,7 @@ static a_type_ptr il_bool_type;
 static a_type_ptr il_standard_nullptr_type;
 static a_type_ptr il_managed_nullptr_type;
 static a_type_ptr il_std_string_view;
+static a_type_ptr il_scalable_vector_count_type;
 
 /* Conditionally close the "edg" namespace. */
 END_EDG_NAMESPACE
@@ -1873,6 +1874,15 @@ Dump the contents of the indicated type entry, for debug purposes.
           fprintf(f_debug, "%lu", (unsigned long)tp->size);
         }  /* if */
         fputs(" )", f_debug);
+        break;
+      case tk_scalable_vector:
+        fputs("scalable vector of ", f_debug);
+        db_abbreviated_type(tp->variant.scalable_vector.element_type);
+        fprintf(f_debug, " (tuple elements = %u)",
+                tp->variant.scalable_vector.tuple_elements);
+        break;
+      case tk_scalable_vector_count:
+        fputs("scalable vector count", f_debug);
         break;
 #endif /* GNU_VECTOR_TYPES_ALLOWED */
       case tk_nullptr:
@@ -10437,7 +10447,8 @@ The updated routine type is returned.
 #if GNU_VECTOR_TYPES_ALLOWED
 
 a_type_ptr make_vector_type(a_type_ptr     element_type,
-                            a_targ_size_t  n_elements)
+                            a_targ_size_t  n_elements,
+          /* Defaulted: */  a_vector_kind  kind)
 /*
 Return a tk_vector type representing a vector of length n_elements with
 elements of type element_type.
@@ -10450,9 +10461,40 @@ elements of type element_type.
                     vtype->size < (a_targ_size_t)targ_maximum_pack_alignment);
   vtype->alignment = (a_targ_alignment)vtype->size;
   vtype->variant.vector.element_type = element_type;
+  vtype->variant.vector.kind = kind;
   return vtype;
 }  /* make_vector_type */
 
+a_type_ptr make_scalable_vector_type(a_type_ptr     element_type,
+                                     uint8_t        n_tuple_elements)
+/*
+Return a tk_scalable_vector type representing a vector of n_tuple_elements.
+*/
+{
+  a_type_ptr  vtype = alloc_type(tk_scalable_vector);
+
+  /* Scalable vector types are sizeless. */
+  vtype->size = 0;
+  vtype->alignment = 0;
+  vtype->variant.scalable_vector.element_type = element_type;
+  vtype->variant.scalable_vector.tuple_elements = n_tuple_elements;
+  return vtype;
+}  /* make_scalable_vector_type */
+
+
+a_type_ptr scalable_vector_count_type(void)
+{
+  a_type_ptr pit;
+
+  if (il_scalable_vector_count_type != NULL) {
+    /* The type has previously been created, and can be reused. */
+    pit = il_scalable_vector_count_type;
+  } else {
+    /* The type must be created. */
+    il_scalable_vector_count_type = pit = alloc_type(tk_scalable_vector_count);
+  }  /* if */
+  return pit;
+}  /* scalable_vector_count_type */
 
 void eliminate_boolean_vector(a_type_ptr  *p_type)
 /*
@@ -20509,6 +20551,12 @@ instantiation dependent, set *p_template_case to TRUE.
       }  /* if */
       if (diag_pos != NULL) {
         expr_pos_diagnostic(severity, ec_alignof_incomplete_type, diag_pos);
+      }  /* if */
+    } else if (is_sizeless_type(skip_array_types(alignof_type))) {
+      is_error = TRUE;
+      if (diag_pos != NULL) {
+        expr_pos_ty_diagnostic(es_error, ec_sizeless_type_not_allowed,
+                               diag_pos, alignof_type);
       }  /* if */
     }  /* if */
     /* Force building a template-dependent representation for cases that
@@ -31974,6 +32022,7 @@ in il_init.)
       pch_saved_var_array_elem(il_char16_t_type),
       pch_saved_var_array_elem(il_char32_t_type),
       pch_saved_var_array_elem(il_bool_type),
+      pch_saved_var_array_elem(il_scalable_vector_count_type),
       pch_saved_var_array_elem(il_standard_nullptr_type),
       pch_saved_var_array_elem(il_managed_nullptr_type),
       pch_saved_var_array_elem(il_strong_ordering_type),
@@ -32085,6 +32134,7 @@ in il_init.)
   register_trans_unit_variable(il_char16_t_type);
   register_trans_unit_variable(il_char32_t_type);
   register_trans_unit_variable(il_bool_type);
+  register_trans_unit_variable(il_scalable_vector_count_type);
   register_trans_unit_variable(il_standard_nullptr_type);
   register_trans_unit_variable(il_managed_nullptr_type);
   register_trans_unit_variable(il_strong_ordering_type),
@@ -32232,6 +32282,7 @@ need initialization for every (primary and secondary) translation unit.
   il_strong_equality_type = NULL;
   il_weak_equality_type = NULL;
   il_std_string_view = NULL;
+  il_scalable_vector_count_type = NULL;
   il_source_location_impl_type = NULL;
   il_source_location_fields = {};
 #if MICROSOFT_EXTENSIONS_ALLOWED

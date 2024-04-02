@@ -1160,6 +1160,9 @@ handle_next_entry:
           case tk_complex:
           case tk_imaginary:
 #endif /* C99_IL_EXTENSIONS_SUPPORTED */
+#if GNU_EXTENSIONS_ALLOWED && GNU_VECTOR_TYPES_ALLOWED
+          case tk_scalable_vector_count:
+#endif /* GNU_EXTENSIONS_ALLOWED && GNU_VECTOR_TYPES_ALLOWED */
           case tk_nullptr:
           case tk_reflection:
             /* No pointers. */
@@ -1277,6 +1280,9 @@ handle_next_entry:
             walk_ptr(eptr->variant.vector.element_type, a_type_ptr, iek_type);
             walk_ptr(eptr->variant.vector.size_constant, a_constant_ptr,
                      iek_constant);
+            break;
+          case tk_scalable_vector:
+            walk_ptr(eptr->variant.vector.element_type, a_type_ptr, iek_type);
             break;
 #endif /* GNU_EXTENSIONS_ALLOWED && GNU_VECTOR_TYPES_ALLOWED */
           default:

@@ -2276,7 +2276,13 @@ to default values.
       pte->variant.vector.element_type = NULL;
       pte->variant.vector.size_constant = NULL;
       pte->variant.vector.is_boolean_vector = FALSE;
-      pte->variant.vector.is_ext_vector_type = FALSE;
+      pte->variant.vector.kind = vk_gnu;
+      break;
+    case tk_scalable_vector:
+      pte->variant.scalable_vector.element_type = NULL;
+      pte->variant.scalable_vector.tuple_elements = 0;
+      break;
+    case tk_scalable_vector_count:
       break;
 #endif /* GNU_VECTOR_TYPES_ALLOWED */
     default:

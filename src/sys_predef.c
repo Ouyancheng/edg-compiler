@@ -1104,6 +1104,56 @@ unsigned 128-bit integer types, respectively.
 
 #endif /* GNU_EXTENSIONS_ALLOWED && INT128_EXTENSIONS_ALLOWED */
 
+#if GNU_EXTENSIONS_ALLOWED && GNU_VECTOR_TYPES_ALLOWED
+
+static void enter_neon_vector_types(
+                              a_type_ptr                       element_type,
+                              a_targ_size_t                    vector_elements,
+                              const a_const_char_ptr_array<2>  &names,
+                              a_vector_kind                    vector_kind)
+/*
+Enter predefined typedefs for 64-bit and 128-bit wide NEON vectors of the
+specified element type.  vector_elements specifies the number of elements for a
+64-bit wide vector.  The typedef name is supplied in the array names for 64-bit
+and 128-bit wide vectors.
+*/
+{
+  check_assertion(vector_kind == vk_neon || vector_kind == vk_neon_poly);
+  (void)enter_predefined_typedef(names[0],
+                                 make_vector_type(element_type,
+                                                  vector_elements,
+                                                  vector_kind));
+  (void)enter_predefined_typedef(names[1],
+                                 make_vector_type(element_type,
+                                                  2*vector_elements,
+                                                  vector_kind));
+}  /* enter_neon_vector_types */
+
+
+static void enter_scalable_vector_types(
+                                 a_type_ptr                       element_type,
+                                 const a_const_char_ptr_array<4>  &names)
+/*
+Enter predefined typedefs for scalable vector types of the specified element
+type.  A typedef for tuple size 1 is always entered, typedefs for tuple sizes
+between 2 and 4 are only entered for Clang versions 11.0 and higher.  The
+typedef name is supplied for each tuple size in the array names.
+*/
+{
+  (void)enter_predefined_typedef(names[0],
+                                 make_scalable_vector_type(element_type, 1));
+  if (clang_version_is(>=110000)) {
+    for (uint8_t  tuple_elements = 2; tuple_elements <= 4; ++tuple_elements) {
+      a_const_char  *name = names[tuple_elements - 1];
+      a_type_ptr    vector_type = make_scalable_vector_type(element_type,
+                                                            tuple_elements);
+      (void)enter_predefined_typedef(name, vector_type);
+    }  /* for */
+  }  /* if */
+}  /* enter_scalable_vector_types */
+
+#endif /* GNU_EXTENSIONS_ALLOWED && GNU_VECTOR_TYPES_ALLOWED */
+
 void enter_system_specific_predeclared_symbols(void)
 /*
 Enter predeclared symbols as required by the implementation.
@@ -1211,6 +1261,146 @@ Enter predeclared symbols as required by the implementation.
          The type is available in both C and C++ modes. */
       (void)enter_predefined_typedef("__bf16", float_type(fk_std_bfloat16));
     }  /* if */
+#if GNU_VECTOR_TYPES_ALLOWED
+    if (targ_supports_arm64) {
+      if (gnu_version_is(>=50000)) {
+        enter_neon_vector_types(float_type(fk_std_bfloat16), 4,
+                                {"__Bfloat16x4_t", "__Bfloat16x8_t"},
+                                vk_neon);
+        enter_neon_vector_types(float_type(fk_fp16), 4,
+                                {"__Float16x4_t", "__Float16x8_t"},
+                                vk_neon);
+        enter_neon_vector_types(float_type(fk_float), 2,
+                                {"__Float32x2_t", "__Float32x4_t"},
+                                vk_neon);
+        enter_neon_vector_types(float_type(fk_double), 1,
+                                {"__Float64x1_t", "__Float64x2_t"},
+                                vk_neon);
+        enter_neon_vector_types(integer_type(ik_signed_char), 8,
+                                {"__Int8x8_t", "__Int8x16_t"},
+                                vk_neon);
+        enter_neon_vector_types(integer_type(ik_unsigned_char), 8,
+                                {"__Uint8x8_t", "__Uint8x16_t"},
+                                vk_neon);
+        enter_neon_vector_types(integer_type(ik_short), 4,
+                                {"__Int16x4_t", "__Int16x8_t"},
+                                vk_neon);
+        enter_neon_vector_types(integer_type(ik_unsigned_short), 4,
+                                {"__Uint16x4_t", "__Uint16x8_t"},
+                                vk_neon);
+        enter_neon_vector_types(integer_type(ik_int), 2,
+                                {"__Int32x2_t", "__Int32x4_t"},
+                                vk_neon);
+        enter_neon_vector_types(integer_type(ik_unsigned_int), 2,
+                                {"__Uint32x2_t", "__Uint32x4_t"},
+                                vk_neon);
+        enter_neon_vector_types(integer_type(ik_long), 1,
+                                {"__Int64x1_t", "__Int64x2_t"},
+                                vk_neon);
+        enter_neon_vector_types(integer_type(ik_unsigned_long), 1,
+                                {"__Uint64x1_t", "__Uint64x2_t"},
+                                vk_neon);
+        (void)enter_predefined_typedef("__Poly8_t",
+                                       integer_type(ik_unsigned_char));
+        (void)enter_predefined_typedef("__Poly16_t",
+                                       integer_type(ik_unsigned_short));
+        (void)enter_predefined_typedef("__Poly64_t",
+                                       integer_type(ik_unsigned_long));
+#if INT128_EXTENSIONS_ALLOWED
+        (void)enter_predefined_typedef("__Poly128_t",
+                                       integer_type(ik_unsigned_int128));
+#endif /* INT128_EXTENSIONS_ALLOWED */
+        enter_neon_vector_types(integer_type(ik_unsigned_char), 8,
+                                {"__Poly8x8_t", "__Poly8x16_t"},
+                                vk_neon_poly);
+        enter_neon_vector_types(integer_type(ik_unsigned_short), 4,
+                                {"__Poly16x4_t", "__Poly16x8_t"},
+                                vk_neon_poly);
+        enter_neon_vector_types(integer_type(ik_unsigned_long), 1,
+                                {"__Poly64x1_t", "__Poly64x2_t"},
+                                vk_neon_poly);
+      }  /* if */
+      if (clang_version_is(>10000) || gnu_version_is(>=10000)) {
+        /* Both Clang and GNU have added support for scalable vector types on
+           ARM64 starting with version 10.x.  Clang 11.x and later also
+           predefine scalable vector types with 2, 3, and 4 tuple elements. */
+        enter_scalable_vector_types(integer_type(ik_signed_char),
+                                    {"__SVInt8_t",
+                                      "__clang_svint8x2_t",
+                                      "__clang_svint8x3_t",
+                                      "__clang_svint8x4_t"});
+        enter_scalable_vector_types(integer_type(ik_unsigned_char),
+                                    {"__SVUint8_t",
+                                      "__clang_svuint8x2_t",
+                                      "__clang_svuint8x3_t",
+                                      "__clang_svuint8x4_t"});
+        enter_scalable_vector_types(integer_type(ik_short),
+                                    {"__SVInt16_t",
+                                      "__clang_svint16x2_t",
+                                      "__clang_svint16x3_t",
+                                      "__clang_svint16x4_t"});
+        enter_scalable_vector_types(integer_type(ik_unsigned_short),
+                                    {"__SVUint16_t",
+                                      "__clang_svuint16x2_t",
+                                      "__clang_svuint16x3_t",
+                                      "__clang_svuint16x4_t"});
+        enter_scalable_vector_types(integer_type(ik_int),
+                                    {"__SVInt32_t",
+                                      "__clang_svint32x2_t",
+                                      "__clang_svint32x3_t",
+                                      "__clang_svint32x4_t"});
+        enter_scalable_vector_types(integer_type(ik_unsigned_int),
+                                    {"__SVUint32_t",
+                                      "__clang_svuint32x2_t",
+                                      "__clang_svuint32x3_t",
+                                      "__clang_svuint32x4_t"});
+        enter_scalable_vector_types(integer_type(ik_long),
+                                    {"__SVInt64_t",
+                                      "__clang_svint64x2_t",
+                                      "__clang_svint64x3_t",
+                                      "__clang_svint64x4_t"});
+        enter_scalable_vector_types(integer_type(ik_unsigned_long),
+                                    {"__SVUint64_t",
+                                      "__clang_svuint64x2_t",
+                                      "__clang_svuint64x3_t",
+                                      "__clang_svuint64x4_t"});
+        enter_scalable_vector_types(float_type(fk_fp16),
+                                    {"__SVFloat16_t",
+                                      "__clang_svfloat16x2_t",
+                                      "__clang_svfloat16x3_t",
+                                      "__clang_svfloat16x4_t"});
+        enter_scalable_vector_types(float_type(fk_std_bfloat16),
+                                    { (clang_version_is(<180000) ?
+                                      "__SVBFloat16_t" : "__SVBfloat16_t"),
+                                      "__clang_svbfloat16x2_t",
+                                      "__clang_svbfloat16x3_t",
+                                      "__clang_svbfloat16x4_t"});
+        enter_scalable_vector_types(float_type(fk_float),
+                                    {"__SVFloat32_t",
+                                      "__clang_svfloat32x2_t",
+                                      "__clang_svfloat32x3_t",
+                                      "__clang_svfloat32x4_t"});
+        enter_scalable_vector_types(float_type(fk_double),
+                                    {"__SVFloat64_t",
+                                      "__clang_svfloat64x2_t",
+                                      "__clang_svfloat64x3_t",
+                                      "__clang_svfloat64x4_t"});
+        (void)enter_predefined_typedef("__SVBool_t",
+                                       make_scalable_vector_type(bool_type(),
+                                                                 1));
+        if (clang_version_is(>=170000)) {
+          (void)enter_predefined_typedef("__clang_svboolx2_t",
+                                         make_scalable_vector_type(bool_type(),
+                                                                   2));
+          (void)enter_predefined_typedef("__clang_svboolx4_t",
+                                         make_scalable_vector_type(bool_type(),
+                                                                   4));
+          (void)enter_predefined_typedef("__SVCount_t",
+                                         scalable_vector_count_type());
+        }  /* if */
+      }  /* if */
+    }  /* if */
+#endif /* GNU_VECTOR_TYPES_ALLOWED */
   }  /* if */
 #endif /* GNU_EXTENSIONS_ALLOWED */
 #if BUILTIN_FUNCTIONS_ENABLED

@@ -271,10 +271,13 @@ extensions.
 Macro to be used in conjunction with is_type_keyword to check for EDG-specific
 extension keywords that construct a type specifier.
 */
-#define or_is_edg_type_keyword(tok)                                       \
-  || ((tok) == tok_edg_size_type || (tok) == tok_edg_ptrdiff_type ||      \
-      (tok) == tok_edg_bool_type || (tok) == tok_edg_vector_type ||       \
-      (tok) == tok_edg_wchar_type || (tok) == tok_edg_internal_type)
+#define or_is_edg_type_keyword(tok)                                        \
+  || ((tok) == tok_edg_size_type || (tok) == tok_edg_ptrdiff_type ||       \
+      (tok) == tok_edg_bool_type || (tok) == tok_edg_wchar_type ||         \
+      (tok) == tok_edg_vector_type || (tok) == tok_edg_neon_vector_type || \
+      (tok) == tok_edg_neon_polyvector_type ||                             \
+      (tok) == tok_edg_scalable_vector_type ||                             \
+      (tok) == tok_edg_internal_type)
 
 /*
 Macro to be used in conjunction with is_type_keyword to check for Clang-

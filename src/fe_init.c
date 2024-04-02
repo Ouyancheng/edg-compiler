@@ -1278,10 +1278,16 @@ Install the keywords in the symbol table.
                     "__builtin_convertvector");
     }  /* if */
 #endif /* GNU_VECTOR_TYPES_ALLOWED */
-    /* Note that the __edg_vector_type__ is defined even when
-       GNU_VECTOR_TYPES_ALLOWED is FALSE; it will become an error type in that
-       case. */
-    enter_keyword((a_token_kind)tok_edg_vector_type, "__edg_vector_type__");
+    /* Note that the __edg_vector_type__, __edg_neon_vector_type__,
+       __edg_neon_polyvector_type__, and __edg_scalable_vector_type__ are
+       defined even when GNU_VECTOR_TYPES_ALLOWED is FALSE; they will become
+       error types in that case. */
+    enter_keyword(tok_edg_vector_type, "__edg_vector_type__");
+    enter_keyword(tok_edg_neon_vector_type, "__edg_neon_vector_type__");
+    enter_keyword(tok_edg_neon_polyvector_type,
+                  "__edg_neon_polyvector_type__");
+    enter_keyword(tok_edg_scalable_vector_type,
+                  "__edg_scalable_vector_type__");
   }  /* if */
   if (ms_extensions || clang_mode || gnu_version_is(>=70000)) {
     enter_keyword((a_token_kind)tok_builtin_addressof, "__builtin_addressof");

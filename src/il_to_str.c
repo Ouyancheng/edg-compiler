@@ -2118,27 +2118,55 @@ void form_vector_type_attribute(
                      a_boolean                             *need_leading_space,
                      an_il_to_str_output_control_block_ptr octl)
 /*
-Output a GNU "vector_size" or "ext_vector_type" attribute as required by the
-specified type, which must be a tk_vector, in the way described by octl.  If
-*need_leading_space is TRUE, precede the attribute with a leading space.
-*need_leading_space is set to TRUE to indicate that a space will be needed
-after the attribute.
+Output a GNU "vector_size", "ext_vector_type", "neon_vector_type", or
+"neon_polyvector_type" attribute as required by the specified type, which must
+be a tk_vector, in the way described by octl.  If *need_leading_space is TRUE,
+precede the attribute with a leading space.  *need_leading_space is set to TRUE
+to indicate that a space will be needed after the attribute.
 */
 {
+  a_vector_kind  kind;
   check_assertion(type->kind == (a_type_kind)tk_vector);
+  kind = type->variant.vector.kind;
   if (*need_leading_space) {
     octl->output_str(" ", octl);
   }  /* if */
-  if (type->variant.vector.is_ext_vector_type) {
-    octl->output_str("__attribute((ext_vector_type(", octl);
-  } else {
-    octl->output_str("__attribute((vector_size(", octl);
-  }  /* if */
+  switch (kind) {
+    case vk_gnu:
+      octl->output_str("__attribute((vector_size(", octl);
+      break;
+    case vk_ext:
+      octl->output_str("__attribute((ext_vector_type(", octl);
+      break;
+    case vk_neon:
+      octl->output_str("__attribute((neon_vector_type(", octl);
+      break;
+    case vk_neon_poly:
+      octl->output_str("__attribute((neon_polyvector_type(", octl);
+      break;
+    default:
+#if DEBUG
+      if (octl->debug_output) {
+        octl->output_str("**BAD-VECTOR-KIND**", octl);
+        break;
+      }  /* if */
+#endif /* DEBUG */
+      unexpected_condition_str("form_type_specifier: bad vector kind");
+      break;
+  }  /* switch */
   if (type->variant.vector.size_constant != NULL) {
     form_constant(type->variant.vector.size_constant,
                   /*need_parens=*/FALSE, octl);
   } else {
-    form_unsigned_num((a_host_large_unsigned)type->size, octl);
+    a_host_large_unsigned  num;
+    /* Output the type size for a GNU "vector_size" attribute, otherwise output
+       the number of elements. */
+    if (kind == vk_gnu) {
+      num = type->size;
+    } else {
+      num = type->size/skip_typerefs(type->variant.vector.element_type)->size;
+    }
+    form_unsigned_num(num, octl);
   }  /* if */
   octl->output_str(")))", octl);
   *need_leading_space = TRUE;
@@ -2534,6 +2562,19 @@ by octl.
         }  /* if */
         form_type(type->variant.vector.element_type, octl);
       }  /* if */
+      break;
+    case tk_scalable_vector:
+      {
+        a_type_ptr  etype = type->variant.scalable_vector.element_type;
+        octl->output_str("__edg_scalable_vector_type__(", octl);
+        form_type(etype, octl);
+        octl->output_str(", ", octl);
+        form_unsigned_num(type->variant.scalable_vector.tuple_elements, octl);
+        octl->output_str(")", octl);
+      }
+      break;
+    case tk_scalable_vector_count:
+      octl->output_str("__SVCount_t", octl);
       break;
 #endif /* GNU_VECTOR_TYPES_ALLOWED */
 #if MICROSOFT_EXTENSIONS_ALLOWED

@@ -342,6 +342,8 @@ static an_attr_descr known_attr_table[] = {
   { "used", "", "gx", ak_used },
 #if GNU_VECTOR_TYPES_ALLOWED
   { "vector_size", "(ci)", "gx", ak_vector_size },
+  { "neon_vector_type", "(ci)", "lx", ak_neon_vector_type },
+  { "neon_polyvector_type", "(ci)", "lx", ak_neon_polyvector_type },
 #endif /* GNU_VECTOR_TYPES_ALLOWED */
 #if GNU_VISIBILITY_ATTRIBUTE_ALLOWED
   { "visibility", "(sn)", "gx", ak_visibility },
@@ -619,6 +621,7 @@ static an_attr_application_fn apply_unused_attr;
 static an_attr_application_fn apply_used_attr;
 #if GNU_VECTOR_TYPES_ALLOWED
 static an_attr_application_fn apply_vector_size_attr;
+static an_attr_application_fn apply_neon_vector_type_attr;
 static an_attr_application_fn apply_ext_vector_type_attr;
 #endif /* GNU_VECTOR_TYPES_ALLOWED */
 #if GNU_VISIBILITY_ATTRIBUTE_ALLOWED
@@ -765,6 +768,8 @@ static an_attr_appl_descr known_attr_appl_table[(int)ak_last+1] = {
   { ak_used, "r|v:-a|Wc|We|Wt|Wp|Wd|Wl|Wn", apply_used_attr },
 #if GNU_VECTOR_TYPES_ALLOWED
   { ak_vector_size, "T", apply_vector_size_attr },
+  { ak_neon_vector_type, "T", apply_neon_vector_type_attr },
+  { ak_neon_polyvector_type, "T", apply_neon_vector_type_attr },
 #endif /* GNU_VECTOR_TYPES_ALLOWED */
 #if GNU_VISIBILITY_ATTRIBUTE_ALLOWED
   { ak_visibility, "r:+x|v:+x|c|n|e", apply_visibility_attr },
@@ -895,6 +900,10 @@ static an_attr_corresp_descr attr_corresp_table[] = {
   { ak_used, af_gnu, iek_last, ACF_MATCH_OPTIONAL, NO_CHECKING_FN },
 #if GNU_VECTOR_TYPES_ALLOWED
   { ak_vector_size, af_gnu, iek_last, ACF_MATCH_OPTIONAL, NO_CHECKING_FN },
+  { ak_neon_vector_type, af_gnu, iek_last, ACF_MATCH_OPTIONAL,
+            NO_CHECKING_FN },
+  { ak_neon_polyvector_type, af_gnu, iek_last, ACF_MATCH_OPTIONAL,
+            NO_CHECKING_FN },
 #endif /* GNU_VECTOR_TYPES_ALLOWED */
   { ak_weak, af_gnu, iek_last, ACF_MATCH_OPTIONAL, NO_CHECKING_FN },
   { ak_weakref, af_gnu, iek_last, ACF_MATCH_OPTIONAL, NO_CHECKING_FN },
@@ -4545,6 +4554,10 @@ and C11 _Alignas specifiers.
             issue_incomplete_type_diag(&aap->position, tp);
             apply_value = FALSE;
             make_attr_unrecognized(ap);
+          } else if (is_sizeless_type(tp)) {
+            pos_ty_error(ec_sizeless_type_not_allowed, &aap->position, tp);
+            apply_value = FALSE;
+            make_attr_unrecognized(ap);
           } else {
             alignment = alignment_of_type(aap->variant.type);
           }  /* if */
@@ -7786,6 +7799,117 @@ error type.
 }  /* apply_vector_size_attr */
 
 
+static char* apply_neon_vector_type_attr(an_attribute_ptr  ap,
+                                         char              *entity,
+                                         an_il_entry_kind  entity_kind)
+/*
+The given entity must be a type (entity_kind is iek_type).  Apply the Clang
+"neon_vector_type" or "neon_polyvector_type" attribute to it and return the
+resulting vector type.  If the attribute doesn't apply to the given type, issue
+an error and return an error type.
+*/
+{
+  a_type_ptr             elem_type = (a_type_ptr)entity,
+                         utp = skip_typerefs(elem_type),
+                         vector_type, result;
+  an_attribute_arg_ptr   aap = ap->arguments;
+  a_constant_ptr         elems_con;
+  a_boolean              ovflo = FALSE, err = FALSE;
+  a_host_large_unsigned  elem_size, elems = 0;
+  a_decl_parse_state     *dps = NULL;
+
+  /* Simple table-based constraint checking ensures that we can make a number
+     of assumptions here. */
+  check_assertion(entity_kind == iek_type &&
+                  aap != NULL && aap->next == NULL &&
+                  aap->kind == aak_constant);
+  /* Validate the element type. */
+  if (is_error_type(elem_type)) {
+    err = TRUE;
+  } else if (ap->kind == ak_neon_vector_type) {
+    if (type_is(utp, tk_integer) && !is_enum_type(utp)) {
+      an_integer_kind  int_kind = utp->variant.integer.int_kind;
+      if (int_kind != ik_signed_char && int_kind != ik_unsigned_char &&
+          int_kind != ik_short && int_kind != ik_unsigned_short &&
+          int_kind != ik_int && int_kind != ik_unsigned_int &&
+          int_kind != ik_long && int_kind != ik_unsigned_long) {
+        err = TRUE;
+      }  /* if */
+    } else if (type_is(utp, tk_float)) {
+      a_float_kind  float_kind = utp->variant.float_kind;
+      if (float_kind != fk_std_bfloat16 && float_kind != fk_fp16 &&
+          float_kind != fk_float && float_kind != fk_double) {
+        err = TRUE;
+      }  /* if */
+    } else {
+      err = TRUE;
+    }  /* if */
+    if (err) {
+      pos_error(ec_invalid_neon_vector_element_type, &ap->position,
+                elem_type);
+    }  /* if */
+  } else if (ap->kind == ak_neon_polyvector_type) {
+    if (type_is(utp, tk_integer) && !is_enum_type(utp)) {
+      an_integer_kind  int_kind = utp->variant.integer.int_kind;
+      if (int_kind != ik_unsigned_char && int_kind != ik_unsigned_short &&
+          int_kind != ik_unsigned_long) {
+        err = TRUE;
+      }  /* if */
+    } else {
+      err = TRUE;
+    }  /* if */
+    if (err) {
+      pos_error(ec_invalid_neon_polyvector_element_type, &ap->position,
+                elem_type);
+    }  /* if */
+  } else {
+    check_assertion(!is_incomplete_type(utp));
+  }  /* if */
+  /* Validate the vector size. */
+  elems_con = aap->variant.constant;
+  elem_size = utp->size;
+  if (elems_con->kind == ck_template_param) {
+    /* Issue an error for a dependent vector size. */
+    pos_error(ec_dependent_vector_size, &ap->position);
+    err = TRUE;
+  } else {
+    check_assertion(elems_con->kind == ck_integer);
+    elems = unsigned_value_of_integer_constant(elems_con, &ovflo);
+    if (ovflo || (elems * elem_size != 8 && elems * elem_size != 16)) {
+      pos_error(ec_invalid_neon_vector_size, &ap->position);
+      err = TRUE;
+    }  /* if */
+  }  /* if */
+  if (err) {
+    /* Make sure the attribute is marked as "unrecognized" so further stages
+       of processing don't treat it as a valid vector_size attribute. */
+    make_attr_unrecognized(ap);
+    result = error_type();
+  } else {
+    vector_type = alloc_type(tk_vector);
+    vector_type->source_corresp.decl_position = ap->position;
+    vector_type->size = elems * elem_size;
+    vector_type->alignment = (a_targ_alignment)(elems * elem_size);
+    vector_type->variant.vector.element_type = elem_type;
+    vector_type->variant.vector.size_constant = elems_con;
+    vector_type->variant.vector.kind = ap->kind == ak_neon_polyvector_type ?
+                                                        vk_neon_poly : vk_neon;
+    if (dps != NULL) {
+      /* The attribute appeared on a function or array declarator.  Don't
+         modify the function or array type directly, but the return type or
+         element type.  At this point in the processing
+         (add_to_derived_types_list has not yet been called) this is achieved
+         by updating dps->declared_type. */
+      dps->declared_type = vector_type;
+      result = (a_type_ptr)entity;
+    } else {
+      result = vector_type;
+    }  /* if */
+  }  /* if */
+  return (char*)result;
+}  /* apply_neon_vector_type_attr */
+
+
 static char* apply_ext_vector_type_attr(an_attribute_ptr  ap,
                                         char              *entity,
                                         an_il_entry_kind  entity_kind)
@@ -7862,7 +7986,7 @@ error type.
     vector_type->alignment = (a_targ_alignment)size;
     vector_type->variant.vector.element_type = elem_type;
     vector_type->variant.vector.size_constant = size_con;
-    vector_type->variant.vector.is_ext_vector_type = TRUE;
+    vector_type->variant.vector.kind = vk_ext;
     result = vector_type;
   }  /* if */
   return (char*)result;

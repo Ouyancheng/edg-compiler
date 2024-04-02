@@ -100,6 +100,7 @@ extern a_boolean is_function_type(a_type_ptr tp);
 extern a_boolean is_pointer_to_function_type(a_type_ptr tp);
 extern a_boolean is_incomplete_type(a_type_ptr tp);
 extern a_boolean is_incomplete_array_type(a_type_ptr tp);
+extern a_boolean is_sizeless_type(a_type_ptr tp);
 extern a_boolean is_flexible_array_type(a_type_ptr tp);
 extern a_boolean class_type_has_body(a_type_ptr tp);
 extern a_boolean class_type_has_variant_member(a_type_ptr tp);
@@ -147,11 +148,13 @@ extern a_boolean is_complex_type(a_type_ptr tp);
 #define type_is_float_like(tp)  type_kind_is_float_like((tp)->kind)
 #if GNU_VECTOR_TYPES_ALLOWED
 extern a_boolean is_vector_type(a_type_ptr tp);
+extern a_boolean is_scalable_type(a_type_ptr tp);
 #if !STANDALONE_UTILITY_PROGRAM
 extern a_boolean vector_type_is_template_dependent(a_type_ptr  tp);
 #endif /* !STANDALONE_UTILITY_PROGRAM */
 #else /* !GNU_VECTOR_TYPES_ALLOWED */
 #define is_vector_type(tp)  (/*lint --e(506)*/FALSE)
+#define is_scalable_type(tp)  (/*lint --e(506)*/FALSE)
 #endif /* GNU_VECTOR_TYPES_ALLOWED */
 extern a_boolean is_arithmetic_or_enum_type(a_type_ptr tp);
 extern a_boolean is_arithmetic_or_unscoped_enum_type(a_type_ptr tp);

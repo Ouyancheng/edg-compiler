@@ -2733,7 +2733,7 @@ otherwise.
 }  /* scan_edg_internal_type */
 
 
-static a_type_ptr scan_edg_vector_type(void)
+static a_type_ptr scan_edg_vector_type(a_vector_kind  kind)
 /*
 Scan a construct of the form
 
@@ -2794,8 +2794,13 @@ type.
     } else if (!err) {
       a_boolean  ovflo;
       n_elems = (a_targ_size_t)unsigned_value_of_integer_constant(con, &ovflo);
-      if (ovflo ||
-          (n_elems * esize) > (a_targ_size_t)targ_maximum_pack_alignment) {
+      if ((kind == vk_neon || kind == vk_neon_poly) &&
+          (ovflo || (n_elems * esize != 8 && n_elems * esize != 16))) {
+        pos_error(ec_invalid_neon_vector_size, &pos);
+        err = TRUE;
+      } else if (ovflo ||
+                 (n_elems * esize) >
+                                  (a_targ_size_t)targ_maximum_pack_alignment) {
         pos_error(ec_vector_length_too_large, &pos);
         err = TRUE;
       } else if ((n_elems & (n_elems-1)) != 0) {
@@ -2812,7 +2817,7 @@ type.
   }  /* if */
 #if GNU_VECTOR_TYPES_ALLOWED
   if (!err) {
-    vtype = make_vector_type(etype, n_elems);
+    vtype = make_vector_type(etype, n_elems, kind);
     vtype->variant.vector.size_constant = size_con;
   } else
 #endif /* GNU_VECTOR_TYPES_ALLOWED */
@@ -2822,6 +2827,85 @@ type.
   }  /* if */
   return vtype;
 }  /* scan_edg_vector_type */
+
+
+static a_type_ptr scan_edg_scalable_vector_type(void)
+/*
+Scan a construct of the form
+
+        __edg_scalable_vector_type__(<element type>, <integral constant N>)
+
+and return a tk_scalable_vector type representing a vector of N tuple elements
+of the given type.
+*/
+{
+  a_type_ptr      etype, vtype;
+  a_boolean       err = FALSE;
+#if GNU_VECTOR_TYPES_ALLOWED
+  a_targ_size_t   n_tuple_elems = 0;
+#endif /* GNU_VECTOR_TYPES_ALLOWED */
+
+  (void)get_token();
+  /* A '(' should be next. */
+  if (required_token(tok_lparen, ec_exp_lparen)) {
+    a_source_position  pos;
+    pos = pos_curr_token;
+    add_stop_token(tok_rparen);
+    add_stop_token(tok_comma);
+    type_name(&etype);
+    if (type_is(etype, tk_integer) && is_enum_type(etype)) {
+      if (!is_bool_type(etype)) {
+        an_integer_kind  int_kind = etype->variant.integer.int_kind;
+        err = int_kind != ik_signed_char && int_kind != ik_unsigned_char &&
+              int_kind != ik_short && int_kind != ik_unsigned_short &&
+              int_kind != ik_int && int_kind != ik_unsigned_int &&
+              int_kind != ik_long && int_kind != ik_unsigned_long;
+      }  /* if */
+    } else if (type_is(etype, tk_float)) {
+      a_float_kind  float_kind = etype->variant.float_kind;
+      err = float_kind != fk_fp16 && float_kind != fk_std_bfloat16 &&
+            float_kind != fk_float && float_kind != fk_double;
+    } else {
+      /* Other type kinds are invalid. */
+      err = TRUE;
+    }  /* if */
+    if (err && !is_error_type(etype)) {
+      pos_ty_error(ec_invalid_scalable_vector_element_type, &pos, etype);
+    }  /* if */
+    (void)required_token(tok_comma, ec_exp_comma);
+    if (required_token(tok_int_constant, ec_exp_int_constant)) {
+      a_host_large_integer  val;
+      conv_integer_value_to_host_large_integer(
+                                   &const_for_curr_token.variant.integer_value,
+                                   /*is_signed=*/FALSE, &val, &err);
+      if (!err) {
+        if ((val < 1 || val > 4) || (is_bool_type(etype) && val == 3)) {
+          pos_error(ec_invalid_scalable_vector_tuple_elements, &pos);
+          err = TRUE;
+#if GNU_VECTOR_TYPES_ALLOWED
+        } else {
+          n_tuple_elems = val;
+#endif /* GNU_VECTOR_TYPES_ALLOWED */
+        }  /* if */
+      }  /* if */
+    }  /* if */
+    (void)required_token(tok_rparen, ec_exp_rparen);
+    remove_stop_token(tok_comma);
+    remove_stop_token(tok_rparen);
+  } else {
+    err = TRUE;
+  }  /* if */
+#if GNU_VECTOR_TYPES_ALLOWED
+  if (!err) {
+    vtype = make_scalable_vector_type(etype, (uint8_t)n_tuple_elems);
+  } else
+#endif /* GNU_VECTOR_TYPES_ALLOWED */
+  /* Do not insert code here. */
+  {
+    vtype = error_type();
+  }  /* if */
+  return vtype;
+}  /* scan_edg_scalable_vector_type */
 
 
 void update_membership_of_class(
@@ -11748,7 +11832,22 @@ process_enum_specifier:
         basic_type = bt_typedef;
         break;
       case tok_edg_vector_type:
-        *type_ptr = scan_edg_vector_type();
+        *type_ptr = scan_edg_vector_type(vk_gnu);
+        decl_specifiers_seen |= DS_TYPE;
+        basic_type = bt_typedef;
+        goto no_get_token;
+      case tok_edg_neon_vector_type:
+        *type_ptr = scan_edg_vector_type(vk_neon);
+        decl_specifiers_seen |= DS_TYPE;
+        basic_type = bt_typedef;
+        goto no_get_token;
+      case tok_edg_neon_polyvector_type:
+        *type_ptr = scan_edg_vector_type(vk_neon_poly);
+        decl_specifiers_seen |= DS_TYPE;
+        basic_type = bt_typedef;
+        goto no_get_token;
+      case tok_edg_scalable_vector_type:
+        *type_ptr = scan_edg_scalable_vector_type();
         decl_specifiers_seen |= DS_TYPE;
         basic_type = bt_typedef;
         goto no_get_token;

@@ -13288,6 +13288,9 @@ scanned sizeof or __datasizeof expression, and return the result in *result
       expr_issue_incomplete_type_diag(&type_position, sizeof_type);
       sizeof_type = error_type();
     }  /* if */
+  } else if (is_sizeless_type(sizeof_type)) {
+    expr_issue_sizeless_type_error(&type_position, sizeof_type);
+    sizeof_type = error_type();
   }  /* if */
   /* Force building a template-dependent representation for cases that
      involve a dependent expression even though the result type is not
@@ -22085,6 +22088,9 @@ Validate the type obtained for a new statement.
        typedefs, because new_type_name will not scan a VLA directly. */
     expr_pos_error(ec_vla_not_allowed, &nps->type_position);
     nps->err = nps->type_err = TRUE;
+  } else if (is_sizeless_type(nps->base_new_type)) {
+    expr_pos_ty_error(ec_sizeless_type_not_allowed, &nps->type_position,
+                      nps->base_new_type);
   } else {
     /* Valid type. */
   }  /* if */
@@ -24100,6 +24106,9 @@ in *rcblock).
         } else {
           pos_warning(ec_expr_not_object_pointer, &operand.position);
         }  /* if */
+      } else if (is_sizeless_type(delete_type)) {
+        pos_ty_error(ec_sizeless_type_not_allowed, &operand.position,
+                     delete_type);
       }  /* if */
     }  /* if */
   }  /* if */
@@ -28906,7 +28915,8 @@ empty_parentheses:
           make_expression_operand(temp_init_node, result);
           make_template_param_expr_constant_operand(result);
 #if GNU_VECTOR_TYPES_ALLOWED
-        } else if (is_vector_type(type_cast_to)) {
+        } else if (is_vector_type(type_cast_to) ||
+                   is_scalable_type(type_cast_to)) {
           temp_init_node = alloc_empty_parens_func_cast(
                                                  type_cast_to,
                                                  (a_dynamic_init_kind)dik_zero,

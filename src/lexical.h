@@ -677,6 +677,9 @@ EXTERN an_opname_kind opname_kind_for_token[(int)tok_last+1]
    onk_none,           /* tok_builtin_addressof */
    onk_none,           /* tok_edg_internal_type */
    onk_none,           /* tok_edg_vector_type */
+   onk_none,           /* tok_edg_neon_vector_type */
+   onk_none,           /* tok_edg_neon_polyvector_type */
+   onk_none,           /* tok_edg_scalable_vector_type */
    onk_none,           /* tok_edg_size_type */
    onk_none,           /* tok_edg_ptrdiff_type */
    onk_none,           /* tok_edg_bool_type */

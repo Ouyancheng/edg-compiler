@@ -7563,6 +7563,20 @@ a template deduction context.
 }  /* expr_issue_incomplete_type_diag */
 
 
+void expr_issue_sizeless_type_error(a_source_position *pos,
+                                   a_type            *type)
+/*
+Emit an error diagnostic given the position where the sizeless type is used and
+the type that's sizeless.  Suppress the diagnostic if we're in a context where
+diagnostics should be suppressed, e.g., a template deduction context.
+*/
+{
+  if (expr_error_should_be_issued()) {
+    pos_ty_error(ec_sizeless_type_not_allowed, pos, type);
+  }  /* if */
+}  /* expr_issue_sizeless_type_error */
+
+
 void expr_expect_error(void)
 /*
 Interface to expect_error for use in the expression routines.  Does
@@ -14146,6 +14160,10 @@ If there is an error, change "operand" to an error operand.
         error_in_operand(ec_expr_not_object_pointer, operand);
         okay = FALSE;
       }  /* if */
+    } else if (is_sizeless_type(underlying_type)) {
+      type_error_in_operand(ec_sizeless_type_not_allowed, operand,
+                            underlying_type);
+      okay = FALSE;
     }  /* if */
   }  /* if */
   return okay;
@@ -14174,7 +14192,13 @@ the pointer to incomplete array case in strict ANSI mode.
     /* Instantiate the underlying type if it is a template class. */
     complete_type_is_needed(underlying_type);
     if (is_complete_object_type(underlying_type)) {
-      /* okay = TRUE; -- Already set. */
+      if (is_sizeless_type(underlying_type)) {
+        type_error_in_operand(ec_sizeless_type_not_allowed, operand,
+                              underlying_type);
+        okay = FALSE;
+      } else {
+        /* okay = TRUE; -- Already set. */
+      }  /* if */
     } else if ((!strict_ansi_mode ||
                strict_ansi_error_severity == es_warning) &&
                is_array_type(underlying_type) &&

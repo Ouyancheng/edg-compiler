@@ -8998,7 +8998,7 @@ and, if pos is not NULL, an error will be reported.
           result = is_object_type(type);
           break;
         case bok_is_standard_layout:
-          result = is_object_type(type) ||
+          result = (is_object_type(type) && !is_sizeless_type(type)) ||
                    (microsoft_mode && is_function_type(type));
           break;
         case bok_is_literal_type:

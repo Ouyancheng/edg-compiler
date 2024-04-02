@@ -3491,6 +3491,13 @@ ec_ifc_unsupported_token;;"the IFC token %sq is not supported"
 ec_pass_object_size_not_in_function_decl;;"the \"pass_object_size\" attribute is only valid on parameters of function declarations"
 ec_attr_arg_out_of_small_integer_range;;"the argument of the %sq attribute %d1 must be a value between 0 and %d2"
 ec_ref_qualifier_ignored;;"a ref-qualifier here is ignored"
+ec_invalid_neon_vector_element_type;;"invalid NEON vector element type %t"
+ec_invalid_neon_polyvector_element_type;;"invalid NEON polyvector element type %t"
+ec_invalid_scalable_vector_element_type;;"invalid scalable vector element type %t"
+ec_invalid_scalable_vector_tuple_elements;;"invalid number of tuple elements for scalable vector type"
+ec_invalid_neon_vector_size;;"a NEON vector or polyvector must be either 64 or 128 bits wide"
+ec_sizeless_type_not_allowed;;"sizeless type %t is not allowed"
+ec_value_init_of_sizeless_type;;"an object of the sizeless type %t cannot be value-initialized"
 ###############################################################################
 #                                                             \  ___  /       #
 #                                                               /   \         #

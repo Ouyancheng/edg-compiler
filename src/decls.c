@@ -20108,6 +20108,12 @@ if one is present.
                                      strict_ansi_discretionary_severity);
         }  /* if */
       }  /* if */
+    } else if (is_sizeless_type(var_ptr->type) &&
+               var_ptr->storage_class != sc_auto &&
+               var_ptr->storage_class != sc_register) {
+      pos_ty_error(ec_sizeless_type_not_allowed, &locator->source_position,
+                   var_ptr->type);
+      var_ptr->type = error_type();
     }  /* if */
     if (relaxed_constexpr_enabled && innermost_function_scope != NULL &&
         innermost_function_scope->variant.routine.ptr->is_constexpr &&

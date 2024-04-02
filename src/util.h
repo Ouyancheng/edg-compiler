@@ -48,6 +48,13 @@ typedef decltype(nullptr) a_nullptr;
 
 
 /*
+A template alias used to form array types of pointer to a_const_char.
+*/
+template<size_t size>
+using a_const_char_ptr_array = a_const_char *[size];
+
+
+/*
 Enable_if<cond, T> is invalid (causing deduction failure) if cond is FALSE.
 Otherwise, it produces T.
 */

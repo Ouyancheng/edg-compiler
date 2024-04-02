@@ -9521,6 +9521,12 @@ Do IL lowering of the indicated type and everything under it.
       case tk_vector:
         lower_type(type->variant.vector.element_type);
         break;
+      case tk_scalable_vector:
+        lower_type(type->variant.scalable_vector.element_type);
+        break;
+      case tk_scalable_vector_count:
+        /* No processing required. */
+        break;
 #endif /* GNU_VECTOR_TYPES_ALLOWED */
       case tk_nullptr:
       case tk_reflection:

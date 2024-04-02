@@ -25412,6 +25412,12 @@ TRUE, the result *p_dip and *p_constant are not constructed.
       pos_ty_error(ec_value_init_of_incomplete, pos, dest_type);
     }  /* if */
     err = TRUE;
+  } else if (is_sizeless_type(dest_type)) {
+    /* Can't value-initialize a sizeless type. */
+    if (issue_errors && expr_error_should_be_issued()) {
+      pos_ty_error(ec_value_init_of_sizeless_type, pos, dest_type);
+    }  /* if */
+    err = TRUE;
   } else if (is_reference_type(dest_type)) {
     /* Can't value-initialize a reference type. */
     if (issue_errors) {

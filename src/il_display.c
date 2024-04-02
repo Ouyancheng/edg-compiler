@@ -2013,6 +2013,12 @@ Return a string corresponding to the indicated type kind.
     case tk_vector:
       str = "tk_vector";
       break;
+    case tk_scalable_vector:
+      str = "tk_scalable_vector";
+      break;
+    case tk_scalable_vector_count:
+      str = "tk_scalable_vector_count";
+      break;
 #endif /* GNU_VECTOR_TYPES_ALLOWED */
     case tk_nullptr:
       str = "tk_nullptr";
@@ -2625,9 +2631,14 @@ Display the indicated type entry.
       if (ptr->variant.vector.is_boolean_vector) {
         disp_boolean("is_boolean_vector", TRUE);
       }  /* if */
-      if (ptr->variant.vector.is_ext_vector_type) {
-        disp_boolean("is_ext_vector_type", TRUE);
-      }  /* if */
+      disp_unsigned_long("vector_kind", ptr->variant.vector.kind);
+      break;
+    case tk_scalable_vector:
+      disp_ptr("element_type",
+               (char *)ptr->variant.scalable_vector.element_type,
+               iek_type);
+      disp_unsigned_long("tuple_elements",
+                         ptr->variant.scalable_vector.tuple_elements);
       break;
 #endif /* GNU_VECTOR_TYPES_ALLOWED */
     default:

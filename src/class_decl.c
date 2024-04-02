@@ -20546,7 +20546,9 @@ declarations.
        current ("last") member is not a flexible array member. */
     class_type->variant.class_struct_union
                        .contains_flexible_array_member = FALSE;
-    
+  } else if (is_sizeless_type(ufield_type)) {
+    pos_ty_error(ec_sizeless_type_not_allowed, &locator->source_position,
+                 field_type);
   }  /* if */
 #if MICROSOFT_EXTENSIONS_ALLOWED
   if (cli_or_cx_enabled && !err) {

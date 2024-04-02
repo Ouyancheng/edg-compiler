@@ -1367,7 +1367,11 @@ extern a_type_ptr add_param_type(a_type_ptr  rout_type,
 
 #if GNU_VECTOR_TYPES_ALLOWED
 extern a_type_ptr make_vector_type(a_type_ptr     element_type,
-                                   a_targ_size_t  n_elements);
+                                   a_targ_size_t  n_elements,
+                                   a_vector_kind  kind = vk_gnu);
+extern a_type_ptr make_scalable_vector_type(a_type_ptr  element_type,
+                                            uint8_t     n_tuple_elements);
+extern a_type_ptr scalable_vector_count_type(void);
 
 extern void eliminate_boolean_vector(a_type_ptr  *p_type);
 #endif /* GNU_VECTOR_TYPES_ALLOWED */

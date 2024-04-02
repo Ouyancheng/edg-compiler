@@ -107,6 +107,7 @@ BEGIN_EDG_NAMESPACE
 #define MANGLING_STRING_FOR_ARRAY "A"
 #if GNU_VECTOR_TYPES_ALLOWED
 #define MANGLING_STRING_FOR_VECTOR "U8__vector"
+#define MANGLING_STRING_FOR_SCALABLE_VECTOR_COUNT "u11__SVCount_t"
 #endif /* GNU_VECTOR_TYPES_ALLOWED */
 #define MANGLING_STRING_FOR_META_INFO "U10__metainfo"
 #define MANGLING_STRING_FOR_OPERATOR_NEW "nw"
@@ -248,6 +249,10 @@ S = signed
 U = unsigned
 Y = decltype(expr)
 a = GNU vector_size attribute
+DN = neon_vector_type attribute
+DP = neon_polyvector_type attribute
+DS = scalable_vector_type attribute
+DC = scalable_vector_count_type
 b = bool
 c = char
 d = double
@@ -377,6 +382,10 @@ type in the std namespace.
 #define MANGLING_STRING_FOR_ARRAY "A"
 #if GNU_VECTOR_TYPES_ALLOWED
 #define MANGLING_STRING_FOR_VECTOR "a"
+#define MANGLING_STRING_FOR_NEON_VECTOR "DN"
+#define MANGLING_STRING_FOR_NEON_POLYVECTOR "DP"
+#define MANGLING_STRING_FOR_SCALABLE_VECTOR "DS"
+#define MANGLING_STRING_FOR_SCALABLE_VECTOR_COUNT "DC"
 #endif /* GNU_VECTOR_TYPES_ALLOWED */
 #define MANGLING_STRING_FOR_META_INFO "mxi"
 #define MANGLING_STRING_FOR_OPERATOR_NEW "nw"
@@ -10107,6 +10116,8 @@ specified type.  Substitutions are not allocated for <builtin-type>s
       break;
 #if GNU_VECTOR_TYPES_ALLOWED
     case tk_vector:
+    case tk_scalable_vector:
+    case tk_scalable_vector_count:
       /* The original mangling for vector types used a vendor extension
          (which required a substitution).  The newer mangling (i.e., "Dv")
          seems to also record a substitution (even though the "Dv" string
@@ -10244,6 +10255,38 @@ demangling __remove_cv(T) will look more like __remove_cv<T>).
 #endif /* IA64_ABI */
 }  /* add_str_for_type_returing_type_trait */
 
+#if GNU_VECTOR_TYPES_ALLOWED
+
+static a_const_char *choose_scalable_vector_name_for_tuple_elements(
+                               uint8_t                          tuple_elements,
+                               const a_const_char_ptr_array<4>  &names)
+/*
+Returns the name of a scalable vector type for the specified number of tuple
+elements.  The names for each possible number of tuple elements are supplied in
+the array names.
+*/
+{
+  check_assertion(tuple_elements >= 1 && tuple_elements <= 4);
+  return names[tuple_elements - 1];
+}  /* choose_scalable_vector_name_for_tuple_elements */
+
+#if IA64_ABI
+
+static a_const_char *choose_neon_vector_name_for_size(
+                                       a_targ_size_t                    size,
+                                       const a_const_char_ptr_array<2>  &names)
+/*
+Returns the name of a NEON vector type for the specified vector size.  The
+names for 64-bit and 128-bit wide vectors are supplied in the array names.
+*/
+{
+  check_assertion(size == 8 || size == 16);
+  return size == 16 ? names[1] : names[0];
+}  /* choose_neon_vector_name_for_size */
+
+#endif /* IA64_ABI */
+
+#endif /* GNU_VECTOR_TYPES_ALLOWED */
 
 static void mangled_encoding_for_type_full(
                                 a_type_ptr               type,
@@ -10784,16 +10827,253 @@ top_of_loop:
         break;
 #if GNU_VECTOR_TYPES_ALLOWED
       case tk_vector:
-        s = MANGLING_STRING_FOR_VECTOR;
+        if (type->variant.vector.kind == vk_neon) {
+#if IA64_ABI
+          a_type_ptr     element_type = skip_typerefs(type->variant.vector.
+                                                                 element_type);
+          a_targ_size_t  vector_elements = num_vector_elements(type);
+          a_targ_size_t  vector_size = vector_elements * element_type->size;
+          s = NULL;
+          if (is_integral_type(element_type) && !is_bool_type(element_type) &&
+              !is_plain_char_type(element_type)) {
+            bool  is_signed = is_signed_integral_type(element_type);
+            switch (element_type->size) {
+              case 1:
+                s = is_signed ?
+                    choose_neon_vector_name_for_size(vector_size,
+                                                     {"__Int8x8_t",
+                                                      "__Int8x16_t"}) :
+                    choose_neon_vector_name_for_size(vector_size,
+                                                     {"__Uint8x8_t",
+                                                      "__Uint8x16_t"});
+                break;
+              case 2:
+                s = is_signed ?
+                    choose_neon_vector_name_for_size(vector_size,
+                                                     {"__Int16x4_t",
+                                                      "__Int16x8_t"}) :
+                    choose_neon_vector_name_for_size(vector_size,
+                                                     {"__Uint16x4_t",
+                                                      "__Uint16x8_t"});
+                break;
+              case 4:
+                s = is_signed ?
+                    choose_neon_vector_name_for_size(vector_size,
+                                                     {"__Int32x2_t",
+                                                      "__Int32x4_t"}) :
+                    choose_neon_vector_name_for_size(vector_size,
+                                                     {"__Uint32x2_t",
+                                                      "__Uint32x4_t"});
+                break;
+              case 8:
+                s = is_signed ?
+                    choose_neon_vector_name_for_size(vector_size,
+                                                     {"__Int64x1_t",
+                                                      "__Int64x2_t"}) :
+                    choose_neon_vector_name_for_size(vector_size,
+                                                     {"__Uint64x1_t",
+                                                      "__Uint64x2_t"});
+                break;
+              default:
+                unexpected_condition();
+            }  /* switch */
+          } else if (is_real_floating_type(element_type)) {
+            switch (skip_typerefs(element_type)->variant.float_kind) {
+              case fk_std_bfloat16:
+                s = choose_neon_vector_name_for_size(vector_size,
+                                                     {"__Bfloat16x4_t",
+                                                      "__Bfloat16x8_t"});
+                break;
+              case fk_fp16:
+                s = choose_neon_vector_name_for_size(vector_size,
+                                                     {"__Float16x4_t",
+                                                      "__Float16x8_t"});
+                break;
+              case fk_float:
+                s = choose_neon_vector_name_for_size(vector_size,
+                                                     {"__Float32x2_t",
+                                                      "__Float32x4_t"});
+                break;
+              case fk_double:
+                s = choose_neon_vector_name_for_size(vector_size,
+                                                     {"__Float64x1_t",
+                                                      "__Float64x2_t"});
+                break;
+              default:
+                unexpected_condition();
+            }  /* switch */
+          } else {
+            unexpected_condition();
+          }  /* if */
+          check_assertion(s != NULL);
+          mangled_name_with_length(s, mctl);
+          goto have_whole_mangled_name;
+#else /* !IA64_ABI */
+          s = MANGLING_STRING_FOR_NEON_VECTOR;
+#endif /* IA64_ABI */
+        } else if (type->variant.vector.kind == vk_neon_poly) {
+#if IA64_ABI
+          a_type_ptr     element_type = skip_typerefs(type->variant.vector.
+                                                                 element_type);
+          a_targ_size_t  vector_elements = num_vector_elements(type);
+          a_targ_size_t  vector_size = vector_elements * element_type->size;
+          s = NULL;
+          if (is_integral_type(element_type) && !is_bool_type(element_type) &&
+              !is_plain_char_type(element_type)) {
+            switch (element_type->size) {
+              case 1:
+                s = choose_neon_vector_name_for_size(vector_size,
+                                                     {"__Poly8x8_t",
+                                                      "__Poly8x16_t"});
+                break;
+              case 2:
+                s = choose_neon_vector_name_for_size(vector_size,
+                                                     {"__Poly16x4_t",
+                                                      "__Poly16x8_t"});
+                break;
+              case 8:
+                s = choose_neon_vector_name_for_size(vector_size,
+                                                     {"__Poly64x1_t",
+                                                      "__Poly64x2_t"});
+                break;
+              default:
+                unexpected_condition();
+            }  /* switch */
+          } else {
+            unexpected_condition();
+          }  /* if */
+          check_assertion(s != NULL);
+          mangled_name_with_length(s, mctl);
+          goto have_whole_mangled_name;
+#else /* !IA64_ABI */
+          s = MANGLING_STRING_FOR_NEON_POLYVECTOR;
+#endif /* IA64_ABI */
+        } else {
+          s = MANGLING_STRING_FOR_VECTOR;
 #if ABI_COMPATIBILITY_VERSION >= 415 && IA64_ABI
-        if (!(gnu_mode && !clang_mode && gnu_abi_version < 50000)) {
-          /* Later versions of GCC use the IA-64 ABI standard way to mangle
-             a vector type. */
-          s = "Dv";
-        }  /* if */
+          if (!(gnu_mode && !clang_mode && gnu_abi_version < 50000)) {
+            /* Later versions of GCC use the IA-64 ABI standard way to mangle
+               a vector type. */
+            s = "Dv";
+          }  /* if */
 #endif /* ABI_COMPATIBILITY_VERSION >= 415 && IA64_ABI */
-        /* More of this below. */
+          /* More of this below. */
+        }  /* if */
         break;
+      case tk_scalable_vector_count:
+        s = MANGLING_STRING_FOR_SCALABLE_VECTOR_COUNT;
+        break;
+      case tk_scalable_vector:
+      {
+        a_type_ptr  element_type = type->variant.scalable_vector.element_type;
+        uint8_t     tuple_elements;
+        tuple_elements = type->variant.scalable_vector.tuple_elements;
+        if (tuple_elements == 1) {
+          add_to_mangled_name('u', mctl);
+        }  /* if */
+        switch (element_type->kind) {
+          case tk_integer:
+          {
+            an_integer_kind  int_kind = element_type->variant.integer.int_kind;
+            if (is_bool_type(element_type)) {
+              s = choose_scalable_vector_name_for_tuple_elements(
+                                           tuple_elements,
+                                           {"__SVBool_t", "svboolx2_t",
+                                            NULL, "svboolx4_t"});
+            } else {
+              switch (int_kind) {
+                case ik_signed_char:
+                  s = choose_scalable_vector_name_for_tuple_elements(
+                                           tuple_elements,
+                                           {"__SVInt8_t", "svint8x2_t",
+                                            "svint8x3_t", "svint8x4_t"});
+                  break;
+                case ik_unsigned_char:
+                  s = choose_scalable_vector_name_for_tuple_elements(
+                                           tuple_elements,
+                                           {"__SVUint8_t", "svuint8x2_t",
+                                            "svuint8x3_t", "svuint8x4_t"});
+                  break;
+                case ik_short:
+                  s = choose_scalable_vector_name_for_tuple_elements(
+                                           tuple_elements,
+                                           {"__SVInt16_t", "svint16x2_t",
+                                            "svint16x3_t", "svint16x4_t"});
+                  break;
+                case ik_unsigned_short:
+                  s = choose_scalable_vector_name_for_tuple_elements(
+                                           tuple_elements,
+                                           {"__SVUint16_t", "svuint16x2_t",
+                                            "svuint16x3_t", "svuint16x4_t"});
+                  break;
+                case ik_int:
+                  s = choose_scalable_vector_name_for_tuple_elements(
+                                           tuple_elements,
+                                           {"__SVInt32_t", "svint32x2_t",
+                                            "svint32x3_t", "svint32x4_t"});
+                  break;
+                case ik_unsigned_int:
+                  s = choose_scalable_vector_name_for_tuple_elements(
+                                           tuple_elements,
+                                           {"__SVUint32_t", "svuint32x2_t",
+                                            "svuint32x3_t", "svuint32x4_t"});
+                  break;
+                case ik_long:
+                  s = choose_scalable_vector_name_for_tuple_elements(
+                                           tuple_elements,
+                                           {"__SVInt64_t", "svint64x2_t",
+                                            "svint64x3_t", "svint64x4_t"});
+                  break;
+                case ik_unsigned_long:
+                  s = choose_scalable_vector_name_for_tuple_elements(
+                                           tuple_elements,
+                                           {"__SVUint64_t", "svuint64x2_t",
+                                            "svuint64x3_t", "svuint64x4_t"});
+                  break;
+                default:
+                  unexpected_condition();
+                  break;
+              }  /* switch */
+            }  /* if */
+          } break;
+          case tk_float:
+            switch (element_type->variant.float_kind) {
+              case fk_fp16:
+                s = choose_scalable_vector_name_for_tuple_elements(
+                                         tuple_elements,
+                                         {"__SVFloat16_t", "svfloat16x2_t",
+                                          "svfloat16x3_t", "svfloat16x4_t"});
+                break;
+              case fk_std_bfloat16:
+                s = choose_scalable_vector_name_for_tuple_elements(
+                                         tuple_elements,
+                                         {"__SVBfloat16_t", "svbfloat16x2_t",
+                                          "svbfloat16x3_t", "svbfloat16x4_t"});
+                break;
+              case fk_float:
+                s = choose_scalable_vector_name_for_tuple_elements(
+                                         tuple_elements,
+                                         {"__SVFloat32_t", "svfloat32x2_t",
+                                          "svfloat32x3_t", "svfloat32x4_t"});
+                break;
+              case fk_double:
+                s = choose_scalable_vector_name_for_tuple_elements(
+                                         tuple_elements,
+                                         {"__SVFloat64_t", "svfloat64x2_t",
+                                          "svfloat64x3_t", "svfloat64x4_t"});
+                break;
+              default:
+                unexpected_condition();
+            }  /* switch */
+            break;
+          default:
+            unexpected_condition_str(
+                  "mangled_encoding_for_type_full: bad type kind for scalable "
+                  "vector element type");
+        }  /* switch */
+        mangled_name_with_length(s, mctl);
+        goto have_whole_mangled_name;
+      } break;
 #endif /* GNU_VECTOR_TYPES_ALLOWED */
       case tk_nullptr:
 #if MICROSOFT_EXTENSIONS_ALLOWED

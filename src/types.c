@@ -449,6 +449,16 @@ element type.  If the type is not an array type, FALSE is returned.
 }  /* is_incomplete_array_type */
 
 
+a_boolean is_sizeless_type(a_type_ptr tp)
+/*
+Return TRUE if the given type is sizeless (i.e., a scalable vector or scalable
+vector count type).
+*/
+{
+  return is_scalable_type(tp);
+}  /* is_sizeless_type */
+
+
 a_boolean is_flexible_array_type(a_type_ptr tp)
 /*
 Return TRUE if the given type could be the type of a flexible array member.
@@ -879,6 +889,18 @@ consider the underlying type.
 {
   return skip_typerefs(tp)->kind == (a_type_kind)tk_vector;
 }  /* is_vector_type */
+
+a_boolean is_scalable_type(a_type_ptr  tp)
+/*
+Return TRUE if the given type is a scalable vector type (tk_scalable_vector) or
+a scalable vector count type (tk_scalable_vector_count).  For typerefs,
+consider the underlying type.
+*/
+{
+  tp = skip_typerefs(tp);
+  return type_is(tp, tk_scalable_vector) ||
+         type_is(tp, tk_scalable_vector_count);
+}  /* is_scaleble_vector_type */
 
 #if !STANDALONE_UTILITY_PROGRAM
 
@@ -2218,7 +2240,7 @@ Return TRUE if the given type is trivially copyable.
         result = FALSE;
       }  /* if */
 #if GNU_VECTOR_TYPES_ALLOWED
-    } else if (type_is(tp, tk_vector)) {
+    } else if (type_is(tp, tk_vector) || type_is(tp, tk_scalable_vector)) {
       result = TRUE;
 #endif /* GNU_VECTOR_TYPES_ALLOWED */
     } else {
@@ -5569,6 +5591,10 @@ set, leave it alone.  Also compute and set the alignment requirement.
       case tk_routine:
       case tk_void:
       case tk_typeref:
+#if GNU_VECTOR_TYPES_ALLOWED
+      case tk_scalable_vector:
+      case tk_scalable_vector_count:
+#endif /* GNU_VECTOR_TYPES_ALLOWED */
         /* These stay zero; they have no size directly.  However, a function
            type is considered complete. */
         break;
@@ -7997,8 +8023,19 @@ check_typerefs:
                               type_2->variant.vector.element_type,
                               flags) &&
             type_1->size == type_2->size &&
-            type_1->variant.vector.is_ext_vector_type ==
-                                   type_2->variant.vector.is_ext_vector_type &&
+            type_1->variant.vector.kind == type_2->variant.vector.kind &&
+            type_1->alignment == type_2->alignment) {
+          identical = TRUE;
+        }  /* if */
+        break;
+      case tk_scalable_vector:
+        /* For scalable vectors, the number of tuple elements must be the same
+           and the element types must be identical. */
+        if (f_identical_types(type_1->variant.scalable_vector.element_type,
+                              type_2->variant.scalable_vector.element_type,
+                              flags) &&
+            type_1->variant.scalable_vector.tuple_elements ==
+                              type_2->variant.scalable_vector.tuple_elements &&
             type_1->alignment == type_2->alignment) {
           identical = TRUE;
         }  /* if */
@@ -8866,12 +8903,22 @@ check_typerefs:
           if (f_identical_types(type_1->variant.vector.element_type,
                                 type_2->variant.vector.element_type,
                                 flags) &&
-              type_1->variant.vector.is_ext_vector_type ==
-                                   type_2->variant.vector.is_ext_vector_type &&
+              type_1->variant.vector.kind == type_2->variant.vector.kind &&
               type_1->size == type_2->size) {
             compat = TRUE;
           }  /* if */
           break;
+      case tk_scalable_vector:
+        /* For scalable vectors, the number of tuple elements must be the same
+           and the element types must be identical. */
+        if (f_identical_types(type_1->variant.scalable_vector.element_type,
+                              type_2->variant.scalable_vector.element_type,
+                              flags) &&
+            type_1->variant.scalable_vector.tuple_elements ==
+                              type_2->variant.scalable_vector.tuple_elements) {
+          compat = TRUE;
+        }  /* if */
+        break;
 #endif /* GNU_VECTOR_TYPES_ALLOWED */
         default:
           unexpected_condition_str("f_types_are_compatible_full: bad type");
@@ -9290,12 +9337,20 @@ that are not present in standalone back ends and utilities.
 #if GNU_VECTOR_TYPES_ALLOWED
     case tk_vector:
       identical = (type_1->size == type_2->size &&
-                   type_1->variant.vector.is_ext_vector_type ==
-                                   type_2->variant.vector.is_ext_vector_type &&
+                   type_1->variant.vector.kind ==
+                                                 type_2->variant.vector.kind &&
                    standalone_identical_types(type_1->
                                                  variant.vector.element_type,
                                               type_2->
                                                  variant.vector.element_type));
+      break;
+    case tk_scalable_vector:
+      identical = (type_1->variant.scalable_vector.tuple_elements ==
+                              type_2->variant.scalable_vector.tuple_elements &&
+                   standalone_identical_types(type_1->
+                                        variant.scalable_vector.element_type,
+                                              type_2->
+                                        variant.scalable_vector.element_type));
       break;
 #endif /* GNU_VECTOR_TYPES_ALLOWED */
     case tk_typeref:
@@ -12125,12 +12180,15 @@ See conversion_possible.
       }  /* if */
     }  /* if */
   } else if (clang_mode && type_is(dest_type, tk_vector) &&
-             dest_type->variant.vector.is_ext_vector_type &&
+             dest_type->variant.vector.kind == vk_ext &&
              is_arithmetic_or_enum(source_type)) {
     /* Clang appears to allow converting any arithmetic or enum type to an
        "ext_vector_type". */
     okay = TRUE;
     std_conv->promotion = TRUE;
+  } else if (is_scalable_type(dest_type) &&
+             identical_types(dest_type, source_type)) {
+    okay = TRUE;
 #endif /* GNU_VECTOR_TYPES_ALLOWED */
   } else if (is_arithmetic_or_enum(dest_type)) {
     /* Destination type is arithmetic or enum. */
@@ -14351,6 +14409,8 @@ calling disentangle_default_args).
         case tk_union:
 #if GNU_VECTOR_TYPES_ALLOWED
         case tk_vector:
+        case tk_scalable_vector:
+        case tk_scalable_vector_count:
 #endif /* GNU_VECTOR_TYPES_ALLOWED */
         case tk_nullptr:
           /* Simple types.  The composite type is either of the types. */
@@ -15839,6 +15899,9 @@ return type be examined? what about its parameters?).
       case tk_complex:
       case tk_imaginary:
 #endif /* C99_IL_EXTENSIONS_SUPPORTED */
+#if GNU_VECTOR_TYPES_ALLOWED
+      case tk_scalable_vector_count:
+#endif /* GNU_VECTOR_TYPES_ALLOWED */
       case tk_nullptr:
       case tk_unknown:
         /* Leaf nodes -- no further traversal required. */
@@ -15986,6 +16049,12 @@ return type be examined? what about its parameters?).
 #if GNU_VECTOR_TYPES_ALLOWED
       case tk_vector:
         tp = type_ptr->variant.vector.element_type;
+        if (tp != NULL) {
+          status = traverse_type_tree_full(tp, func, pofunc, flags);
+        }  /* if */
+        break;
+      case tk_scalable_vector:
+        tp = type_ptr->variant.scalable_vector.element_type;
         if (tp != NULL) {
           status = traverse_type_tree_full(tp, func, pofunc, flags);
         }  /* if */
@@ -17637,6 +17706,15 @@ make_new_type:
         new_type = alloc_type((a_type_kind)tk_vector);
         copy_type(type, new_type);
         new_type->variant.vector.element_type = tp;
+      }  /* if */
+      break;
+    case tk_scalable_vector:
+      /* The scalable vector case is similar to the array case. */
+      if (func(type->variant.scalable_vector.element_type, flags, &tp)) {
+        /* Create a new scalable vector type. */
+        new_type = alloc_type(tk_scalable_vector);
+        copy_type(type, new_type);
+        new_type->variant.scalable_vector.element_type = tp;
       }  /* if */
       break;
 #endif /* GNU_VECTOR_TYPES_ALLOWED */

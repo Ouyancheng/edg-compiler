@@ -1409,6 +1409,9 @@ enum a_token_kind : unsigned short {
   tok_builtin_addressof,
   tok_edg_internal_type,
   tok_edg_vector_type,
+  tok_edg_neon_vector_type,
+  tok_edg_neon_polyvector_type,
+  tok_edg_scalable_vector_type,
   tok_edg_size_type,
   tok_edg_ptrdiff_type,
   tok_edg_bool_type,
@@ -1666,6 +1669,9 @@ EXTERN a_const_char
    "__builtin_addressof",
    "__edg_type__",
    "__edg_vector_type__",
+   "__edg_neon_vector_type__",
+   "__edg_neon_polyvector_type__",
+   "__edg_scalable_vector_type__",
    "__edg_size_type__",
    "__edg_ptrdiff_type__",
    "__edg_bool_type__",
@@ -1791,6 +1797,18 @@ enum an_element_position_kind : a_byte {
 #endif /* EXTRA_SOURCE_POSITIONS_IN_IL */
   epk_noreturn,			/* C11 "_Noreturn" position. */
   epk_last
+};
+
+
+/*
+An enumeration of vector kinds.
+*/
+enum a_vector_kind : a_byte {
+  vk_gnu,			/* GNU vector type. */
+  vk_ext,			/* vector has the ext_vector_type attribute. */
+  vk_neon,			/* ARM NEON vector type. */
+  vk_neon_poly,			/* ARM NEON polyvector type. */
+  vk_last
 };
 
 
@@ -2904,6 +2922,9 @@ enum an_attribute_kind : a_byte {
   ak_used,		/* "used" (gnu). */
 #if GNU_VECTOR_TYPES_ALLOWED
   ak_vector_size,	/* "vector_size" (gnu). */
+  ak_neon_vector_type,	/* "neon_vector_type" (clang). */
+  ak_neon_polyvector_type,
+			/* "neon_polyvector_type" (clang). */
 #endif /* GNU_VECTOR_TYPES_ALLOWED */
 #if GNU_VISIBILITY_ATTRIBUTE_ALLOWED
   ak_visibility,	/* "visibility" (gnu). */
@@ -5284,6 +5305,9 @@ enum a_type_kind : a_byte {
 			   back end). */
 #if GNU_VECTOR_TYPES_ALLOWED
   tk_vector,		/* GNU vector types. */
+  tk_scalable_vector,	/* Scalable vector types. */
+  tk_scalable_vector_count,
+			/* Opaque scalable vector count type. */
 #endif /* GNU_VECTOR_TYPES_ALLOWED */
   tk_nullptr,		/* Type of the C++ or C++/CLI nullptr and __nullptr
 			   keywords.  There are two nullptr types that have
@@ -10432,11 +10456,18 @@ typedef struct a_type {
 			   mode.  Such vectors permit more implicit
 			   conversions.  This property is volatile; e.g., it
 			   is not carried through decltype or deduction. */
-      a_bit_field
-		is_ext_vector_type:1;
-			/* TRUE if this vector type has the ext_vector_type
-			   attribute. */
+      a_vector_kind
+		kind;
+			/* The kind of the vector. */
     } vector;
+    /* When kind is tk_scalable_vector. */
+    struct {
+      a_type_ptr
+		element_type;
+			/* Type of the vector elements. */
+      uint8_t	tuple_elements;
+			/* Number of tuple elements. */
+    } scalable_vector;
 #endif /* GNU_EXTENSIONS_ALLOWED && GNU_VECTOR_TYPES_ALLOWED */
   } variant;
 } a_type;

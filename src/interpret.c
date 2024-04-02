@@ -2963,6 +2963,18 @@ redo:
         }  /* if */
       }
       break;
+    case tk_scalable_vector:
+    case tk_scalable_vector_count:
+      { a_source_position  *pos = &tp->source_corresp.decl_position;
+#if DEBUG
+        check_assertion(ips != NULL);
+#endif /* DEBUG */
+        if (pos->seq == 0) pos = &ips->position;
+        info_with_pos_type(ec_constexpr_type_invalid, pos, tp, ips);
+        do_constexpr_fail(*p_result);
+        result = MAX_CONSTEXPR_TYPE_SIZE+1;
+      }
+      break;
 #endif /* GNU_VECTOR_TYPES_ALLOWED */
 #if FIXED_POINT_ALLOWED
     case tk_fixed_point:       /* All fixed-point types. */

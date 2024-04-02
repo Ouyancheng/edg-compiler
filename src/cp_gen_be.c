@@ -5110,7 +5110,9 @@ been defined.
          parent_class_of(type)->variant.class_struct_union.is_specialized);
   }  /* if */
 #endif /* CLASS_TEMPLATE_INSTANTIATIONS_IN_SOURCE_SEQUENCE_LISTS */
-  if (type->variant.typeref.added_to_record_name) {
+  if (type->variant.typeref.added_to_record_name ||
+      (type->variant.typeref.predeclared &&
+       is_scalable_type(type->variant.typeref.type))) {
     /* These types are always usable. */
   } else if (!type->typedef_definition_has_been_put_out &&
              !typedef_will_be_implicitly_instantiated_if_referenced) {

@@ -166,6 +166,9 @@ static a_target_configuration target_configurations[] = {
 #ifdef TARGET_CONFIGURATION_4
   DEFINE_TARGET_CONFIGURATION(TARGET_CONFIGURATION_4),
 #endif /* defined(TARGET_CONFIGURATION_4) */
+#ifdef TARGET_CONFIGURATION_5
+  DEFINE_TARGET_CONFIGURATION(TARGET_CONFIGURATION_5),
+#endif /* defined(TARGET_CONFIGURATION_5) */
   /* More can be added if needed (ensure target_cfg.h is included above). */
 };
 

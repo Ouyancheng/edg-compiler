@@ -1005,6 +1005,10 @@ the specifiers and declarator that formed the new type.
                they are always transformed into pointer types). */
             abstract_class_diagnostic(es_error, ec_array_of_abstract_class,
                                       temp_type, &error_position);
+          } else if (is_sizeless_type(temp_type)) {
+            pos_ty_error(ec_sizeless_type_not_allowed, &error_position,
+                         temp_type);
+            err = TRUE;
           }  /* if */
         } else if (is_pointer_type(temp_type)) {
           /* Partial pointer type: Okay. */

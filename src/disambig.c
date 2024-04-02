@@ -577,8 +577,9 @@ static void prescan_type_operator(a_disambig_state_ptr       state,
 				  a_disambig_flag_set        flags)
 /*
 Scan past (and cache) a decltype, alignas, __underlying_type, typeof,
-__edg_type__, or __edg_vector_type__ specifier.  (alignas isn't strictly a
-type operator, but it is syntactically similar.)
+__edg_type__, __edg_vector_type__, __edg_neon_vector_type__,
+__edg_neon_polyvector_type__, or __edg_scalable_vector_type__ specifier.
+(alignas isn't strictly a type operator, but it is syntactically similar.)
 */
 {
   a_boolean	is_typeof = curr_token == tok_typeof;
@@ -945,6 +946,9 @@ elaborated_type_case:
       case tok_typeof:
       case tok_typeof_unqual:
       case tok_edg_vector_type:
+      case tok_edg_neon_vector_type:
+      case tok_edg_neon_polyvector_type:
+      case tok_edg_scalable_vector_type:
       case tok_edg_internal_type:
       case tok_add_lvalue_reference:
       case tok_add_pointer:
