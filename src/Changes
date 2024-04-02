@@ -5,11 +5,12 @@ Microsoft compatibility: Missing "template" prefix in member selection
 
 In Microsoft modes, the prototype instantiations of templates are frequently
 deferred to approximate MSVC's behavior of not parsing templates in their
-generic form.  However, that is possible in some configurations that require
-that prototype instantiations be recorded in the IL.  In Microsoft bugs mode,
-the front end now also uses a simple heuristic to recognize some cases when a
-member selection of the form "x.m<args>" should have been "x.template m<args>";
-in such cases it accepts the former as if it were the latter.
+generic form.  However, that is not possible in some configurations that
+require that prototype instantiations be recorded in the IL.  In Microsoft bugs
+mode, the front end now also uses a simple heuristic to recognize some common
+cases where a member selection of the form "x.m<args>" should have been
+"x.template m<args>"; in such cases it accepts the former as if it were the
+latter.
 
 
 4/2/24   [EDGcpfe/27027]
