@@ -8137,6 +8137,51 @@ type whose member being accessed is incomplete.
 }  /* field_selection_class_can_be_incomplete */
 
 
+static a_boolean looks_like_template_id_selection(void)
+/*
+The caller has determined that we are in a template context and that the
+current token is the first token of a member name followed by a "<" token.
+Return TRUE if that "<" can only be valid as the introducer for a template
+argument list (as opposed to a "less than" operator).  This is used in some
+modes to handle a missing "template" keyword (as, e.g., in "x.template Y<Z>").
+*/
+{
+  a_boolean      result = FALSE;
+  a_token_sequence_number
+                 reparse_tsn = NO_TOKEN_SEQUENCE_NUMBER;
+  a_token_cache  cache;
+  a_token_kind   tok_kind;
+
+  reparse_tsn = curr_token_sequence_number;
+  begin_caching_fetched_tokens(/*include_curr_token=*/TRUE);
+  do {
+    tok_kind = curr_token;
+    (void)get_token();
+  } while (tok_kind != tok_lt);
+  /* For now, our heuristic is a typename followed by ">", ",", "*", "&" or
+     "&&". */
+  if (curr_type_symbol(/*is_new_type_name=*/FALSE,
+                       /*in_prescan=*/TRUE,
+                       /*in_type_check=*/TRUE,
+                       /*is_implicit_type_context=*/FALSE,
+                       /*is_sizeof_context=*/FALSE) != NULL) {
+    (void)get_token();
+    if (curr_token == tok_gt || curr_token == tok_comma ||
+        curr_token == tok_star || curr_token == tok_ampersand ||
+        curr_token == tok_and_and) {
+      result = TRUE;
+    }  /* if */
+  }  /* if */
+  clear_token_cache(&cache, /*reusable=*/FALSE);
+  copy_tokens_from_cache(curr_lexical_state_cache(),
+                         reparse_tsn, curr_token_sequence_number,
+                         /*include_last_token=*/FALSE, &cache);
+  rescan_cached_tokens(&cache);
+  end_caching_fetched_tokens();
+  return result;
+}  /* looks_like_template_id_selection */
+
+
 static void make_generic_splicer_selection(an_operand    *opnd1,
                                            an_expr_node  *splicer,
                                            a_boolean     is_arrow,
@@ -8217,6 +8262,15 @@ an error.
         gid_flags |= GID_FOLLOWS_TEMPLATE;
       }  /* if */
       (void)get_token();
+    } else if (microsoft_bugs && 
+               scope_stack_top().in_prototype_instantiation &&
+               curr_token == tok_identifier && next_token() == tok_lt) {
+      /* MSVC doesn't parse templates in their generic form and therefore
+         doesn't require a template prefix.  We cannot reliably emulate that
+         but we can handle many cases with a heuristic. */
+      if (looks_like_template_id_selection()) {
+        gid_flags |= GID_FOLLOWS_TEMPLATE;
+      }  /* if */
     }  /* if */
     /* In C++, explicit calls of destructors are allowed for simple types
        and classes without destructors.  For example, p->int::~int(). */
