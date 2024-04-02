@@ -16521,9 +16521,13 @@ successful, FALSE if any errors were encountered.
       if (ptp == NULL) {
         /* This should only be possible to encounter when the function has
            an ellipsis parameter. */
-        check_assertion((get_relative_index(sequence, indexed_param) ==
-                         get_ifc_cardinality(icu) - 1) &&
-                        rtsp->has_ellipsis);
+        if ((get_relative_index(sequence, indexed_param) !=
+             (get_ifc_cardinality(icu) - 1)) || !rtsp->has_ellipsis) {
+          a_string err_msg("Unexpected parameter declaration for parameters "
+                           "specified by ", index_to_str(params));
+
+          ifc_unexpected(module_of(params), err_msg);
+        }  /* if */
         break;
       }  /* if */
       if (!indexed_param.has_value()) {
