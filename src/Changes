@@ -1,5 +1,16 @@
 Version 6.7
 
+4/2/24   [EDGcpfe/27025]
+GNU compatibility: Ref-qualifiers on parameter declarations
+
+GCC accepts declarations such as:
+
+  void g(int () &&);  // Invalid (and meaningless) ref-qualifiers.  Now
+                      // accepted in GNU C++ mode with a warning.
+
+In GNU C++ mode, the front end now emulates this behavior with a warning.
+
+
 4/1/24   [EDGcpfe/19533,EDGcpfe/22944,EDGcpfe/26964]
 Clang compatibility: Attributes pass_object_size and diagnose_if
 

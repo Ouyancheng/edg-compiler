@@ -2810,6 +2810,9 @@ this is a helper function.
       ref_qualifiers = (a_ref_qualifier_kind)
                                    (curr_token == tok_ampersand ? rqk_lvalue
                                                                 : rqk_rvalue);
+    } else if (gpp_mode && state->is_param_decl) {
+      /* GCC accepts "void f(int () &&);". */
+      pos_warning(ec_ref_qualifier_ignored, &pos_curr_token);
     } else {
       pos_error(ec_ref_qualifier_not_allowed, &pos_curr_token);
       qualifier_err = TRUE;
