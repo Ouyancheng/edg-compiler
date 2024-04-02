@@ -1602,7 +1602,7 @@ Return the declaration index for the routine.
       /* sfk_last should not appear in the IL. */
       unexpected_condition();
     default_is_unexpected();
-  } /* switch */
+  }  /* switch */
   return result;
 }  /* an_ifc_il_map::enter_routine */
 
@@ -2288,53 +2288,77 @@ for the function type.
 */
 {
   check_assertion(type->kind == tk_routine);
-  an_ifc_type_index result;
-
-  if (type->source_corresp.is_class_member) {
-    a_routine_type_supplement_ptr
+  an_ifc_type_index
+                result;
+  a_routine_type_supplement_ptr
                 rtsp = type->variant.routine.extra_info;
-    a_routine_ptr
-                rp = rtsp->assoc_routine;
+  a_routine_ptr rp = rtsp->assoc_routine;
 
+  if (rp == NULL) {
+    /* Sometimes there's no associated routine (e.g., this a type corresponding
+       to a function pointer). */
+    if (routine_type_is_nonstatic_member_function(type)) {
+      result = this->enter_member_function_type(type);
+    } else {
+      result = this->enter_free_function_type(type);
+    }  /* if */
+  } else {
     switch (rp->special_kind) {
       case sfk_none:
-        result = this->enter_member_function_type(type);
+        if (routine_type_is_nonstatic_member_function(type)) {
+          result = this->enter_member_function_type(type);
+        } else {
+          result = this->enter_free_function_type(type);
+        }  /* if */
         break;
       case sfk_constructor:
         result = this->enter_constructor_type(type);
         break;
       case sfk_conversion:
+        /* FIXME: Implement these. */
+        break;
       case sfk_destructor:
+        /* Destructors do not have types in the IFC and should not appear
+           here. */
+        unexpected_condition();
       case sfk_operator:
         /* FIXME: Implement these. */
         break;
-      case sfk_udl_operator:
-      case sfk_lambda_entry_point:
+  #if BUILTIN_FUNCTIONS_ENABLED
+      case sfk_builtin_operator_delete:
+      case sfk_builtin_operator_new:
+  #endif /* BUILTIN_FUNCTIONS_ENABLED */
       case sfk_deduction_guide:
-      case sfk_static_constructor:
-      case sfk_finalizer:
-      case sfk_idisposable_dispose:
+  #if MICROSOFT_EXTENSIONS_ALLOWED
       case sfk_dispose_bool:
+      case sfk_event_add:
+      case sfk_event_raise:
+      case sfk_event_remove:
+      case sfk_finalizer:
+  #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
+  #if BUILTIN_FUNCTIONS_ENABLED
+      case sfk_gnu_atomic_generic_function:
+      case sfk_gnu_atomic_nongeneric_function:
+      case sfk_gnu_sync_concrete_function:
+  #endif /* BUILTIN_FUNCTIONS_ENABLED */
+  #if MICROSOFT_EXTENSIONS_ALLOWED
+      case sfk_idisposable_dispose:
+  #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
+      case sfk_lambda_entry_point:
+  #if MICROSOFT_EXTENSIONS_ALLOWED
       case sfk_object_finalize:
       case sfk_property_get:
       case sfk_property_set:
-      case sfk_event_add:
-      case sfk_event_remove:
-      case sfk_event_raise:
-      case sfk_gnu_sync_concrete_function:
-      case sfk_gnu_atomic_nongeneric_function:
-      case sfk_gnu_atomic_generic_function:
-      case sfk_builtin_operator_new:
-      case sfk_builtin_operator_delete:
+      case sfk_static_constructor:
+  #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
+      case sfk_udl_operator:
         header_unit_catastrophe();
         break;
       case sfk_last:
         /* sfk_last should not appear in the IL. */
         unexpected_condition();
       default_is_unexpected();
-    } /* switch */
-  } else {
-    result = this->enter_free_function_type(type);
+    }  /* switch */
   }  /* if */
   return result;
 }  /* an_ifc_il_map::enter_routine_type */
