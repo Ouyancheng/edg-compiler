@@ -1,5 +1,22 @@
 Version 6.7
 
+4/2/24   [EDGcpfe/27027]
+C++-generating back end: deduced-type constexpr initialization
+
+In some cases involving a variable declared with a deduced type in which the
+initialization is performed by a constexpr constructor call, the
+C++-generating back end put out an incorrect form of the initializer.  This
+is now fixed.  For example, with --c++11:
+
+  struct A {
+    int x;
+    constexpr A(int xx) : x(xx) { }
+  };
+  void f() {
+    static constexpr auto a{A{15}};   // Previously generated as "a{15}"
+  }
+
+
 4/2/24   [EDGcpfe/27025]
 GNU compatibility: Ref-qualifiers on parameter declarations
 
