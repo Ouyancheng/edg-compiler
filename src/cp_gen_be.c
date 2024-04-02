@@ -21582,6 +21582,12 @@ handle_dynamic_init:
           if (parenthesized_init || braced_init) {
             /* Use a parenthesized or brace-enclosed initializer. */
             if (dip->variable == NULL) {
+              /* In some cases the front end folds a dynamic initializer to
+                 a constant before it is associated with the variable it
+                 initializes and the association is not made.  That
+                 association is needed for correct code generation when the
+                 variable's type is deduced from the initializer, so add it
+                 now. */
               dip->variable = var;
             }  /* if */
             gen_paren_or_brace_dynamic_init(dip, var->type,
