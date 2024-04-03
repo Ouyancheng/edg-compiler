@@ -1621,7 +1621,7 @@ given string must be at least as long as the lifetime of the IFC IL map.
 
     name_offset = this->string_table_map.get_with_hash(str_handle, hash);
     if (name_offset == 0) {
-      /* The name does not yet exist in the string table, add it now. */
+      /* The name does not yet exist in the string table.  Add it now. */
       name_offset = this->output_state->add_to_string_table(str);
       this->string_table_map.map_with_hash(str_handle, name_offset, hash);
     }  /* if */
