@@ -47,11 +47,12 @@ BEGIN_EDG_NAMESPACE
 /* Forward declarations. */
 static void fix_up_dynamic_init_dtors(void);
 static a_boolean cast_type_pre_check(
-                                 a_type_ptr        *p_type_cast_to,
-                                 a_source_position *type_position,
-                                 a_boolean         has_explicit_cv_qualifiers,
-                                 a_boolean         allow_array,
-                                 a_boolean         allow_unk_bound_array);
+                             a_type_ptr        *p_type_cast_to,
+                             a_source_position *type_position,
+                             a_boolean         has_explicit_cv_qualifiers,
+                             a_boolean         allow_array,
+                             a_boolean         allow_unk_bound_array,
+                             a_boolean         allow_incomplete_type = FALSE);
 static an_init_component_ptr parse_braced_init_list(a_boolean bundle);
 static void scan_braced_init_list_as_operand(an_operand *operand);
 static
@@ -19667,12 +19668,15 @@ indication in *rcblock).
              *bound_function_selector = NULL;
   a_local_expr_options_set
              options = EOPT_OPERAND_OF_CAST;
-  a_boolean  saved_allow_call_with_incomplete_return_type;
+  a_boolean  saved_allow_call_with_incomplete_return_type,
+             late_check_completeness;
 
   /* Don't permit a call with incomplete type to be cast. */
   saved_allow_call_with_incomplete_return_type =
                            expr_stack->allow_call_with_incomplete_return_type;
   expr_stack->allow_call_with_incomplete_return_type = FALSE;
+  late_check_completeness = saved_allow_call_with_incomplete_return_type &&
+                            is_template_context();
   if (gpp_mode && gnu_version >= 40400 &&
       source_form == csf_reinterpret_cast) {
     /* g++ 4.4 and beyond allow a cast of a bound function to some
@@ -19726,7 +19730,8 @@ indication in *rcblock).
   /* Do initial checking on the type. */
   err = cast_type_pre_check(cast_type, type_position,
                             explicit_cv_qualifiers, allow_array,
-                            allow_parenthesized_aggregate_init);
+                            allow_parenthesized_aggregate_init,
+                            late_check_completeness);
   if (rcblock == NULL) {
     /* Check for and pass over the ">". */
     (void)required_token(tok_gt, ec_exp_gt);
@@ -19737,6 +19742,18 @@ indication in *rcblock).
     add_matching_stop_token(tok_rparen);
     /* Scan the expression. */
     scan_expr_full(operand, bound_function_selector, PREC_LOWEST, options);
+  }  /* if */
+  if (late_check_completeness && is_incomplete_type(*cast_type) &&
+      !is_void_type(*cast_type)) {
+    /* A cast to incomplete type in a decltype is not always diagnosed in
+       template contexts.  MSVC and early GCC versions do not diagnose it at
+       all.  Clang and newer versions of GCC do not diagnose the cast if the
+       operand is template-dependent. */
+    if (!microsoft_mode && !gpp_version_is(<110000) &&
+        !((gpp_mode || clang_mode) &&
+          operand_is_instantiation_dependent(operand))) {
+      expr_issue_incomplete_type_diag(type_position, *cast_type);
+    }  /* if */
   }  /* if */
   if (operand->bound_function) {
     /* For the g++ reinterpret_cast cases, make sure the bound function is
@@ -24408,7 +24425,8 @@ static a_boolean cast_type_pre_check(
                                  a_source_position *type_position,
                                  a_boolean         has_explicit_cv_qualifiers,
                                  a_boolean         allow_array,
-                                 a_boolean         allow_unk_bound_array)
+                                 a_boolean         allow_unk_bound_array,
+               /* Defaulted: */  a_boolean         allow_incomplete_type)
 /*
 Do a first check on the destination type of a cast to see if it is legal.
 This is very top-level checking applicable to all casts.  Return TRUE if
@@ -24435,7 +24453,7 @@ C++ functional-notation type conversions, and C++ new-style casts.
     /* We are in a prototype instantiation of a template.  The type is
        a template parameter type, i.e., we don't know what it is.  Assume
        it's okay and go on. */
-  } else if (incomplete &&
+  } else if (incomplete && !allow_incomplete_type &&
              !is_void_type(type_cast_to) &&
              !is_managed_nullptr_type(type_cast_to) &&
              !is_array_type(type_cast_to) &&
@@ -27879,7 +27897,10 @@ just an expression in parentheses.  Return the scanned expression in
                              DFS_SINGLE_TYPE_REQUIRED |
                              DFS_IS_CAST)) {
       /* This is a cast operation. */
-      a_boolean explicit_cv_qualifiers, type_defined;
+      a_boolean  explicit_cv_qualifiers, type_defined,
+                 late_check_completeness =
+                         expr_stack->allow_call_with_incomplete_return_type &&
+                         is_template_context();
       abandon_potential_pack_expansion_context(pesep);
       if ((local_options & EOPT_REQUIRES_CLAUSE) != 0) {
         pos_error(ec_cast_in_requires_clause, &start_position);
@@ -27947,7 +27968,8 @@ just an expression in parentheses.  Return the scanned expression in
         /* Check the type to see if it is valid in general terms. */
         err = cast_type_pre_check(&type_cast_to, &type_position,
                                   explicit_cv_qualifiers, allow_array,
-                                  allow_parenthesized_aggregate_init);
+                                  allow_parenthesized_aggregate_init,
+                                  late_check_completeness);
         if (type_defined && !C_mode() && (!gpp_mode || gnu_version >= 30400)) {
           /* Only g++ versions earlier than 3.4 allow type definitions as part
              of casts. */
@@ -27959,6 +27981,18 @@ just an expression in parentheses.  Return the scanned expression in
                              /*is_expr_list=*/FALSE, PREC_CAST,
                              result, &local_bound_function_selector,
                              (a_boolean *)NULL);
+        if (late_check_completeness && is_incomplete_type(type_cast_to) &&
+            !is_void_type(type_cast_to)) {
+          /* A cast to incomplete type in a decltype is not always diagnosed in
+             template contexts.  MSVC and early GCC versions do not diagnose it
+             at all.  Clang and newer versions of GCC do not diagnose the cast
+             if the operand is template-dependent. */
+          if (!microsoft_mode && !gpp_version_is(<110000) &&
+              !((gpp_mode || clang_mode) &&
+                operand_is_instantiation_dependent(result))) {
+            expr_issue_incomplete_type_diag(&type_position, type_cast_to);
+          }  /* if */
+        }  /* if */
 #if EXTRA_SOURCE_POSITIONS_IN_IL
         end_position = result->end_position;
 #endif /* EXTRA_SOURCE_POSITIONS_IN_IL */
@@ -28442,7 +28476,8 @@ freed by this routine.
   a_boolean                     uses_class_templ_arg_deduction = FALSE;
 #endif /* BACK_END_IS_CP_GEN_BE */
   an_init_component_ptr         braced_init_list = NULL;
-  a_boolean                     saved_allow_call_with_incomplete_return_type;
+  a_boolean                     saved_allow_call_with_incomplete_return_type,
+                                late_check_completeness;
   an_initializer_cache          *saved_initializer_cache = NULL;
   a_decl_parse_state            dps;
 
@@ -28452,6 +28487,8 @@ freed by this routine.
   saved_allow_call_with_incomplete_return_type =
                            expr_stack->allow_call_with_incomplete_return_type;
   expr_stack->allow_call_with_incomplete_return_type = FALSE;
+  late_check_completeness = saved_allow_call_with_incomplete_return_type &&
+                            is_template_context();
   if (rcblock != NULL) {
     /* Redoing semantic analysis on a previously-scanned expression. */
     check_assertion(rcblock->operator_token == tok_typename);
@@ -28572,7 +28609,8 @@ freed by this routine.
   err = cast_type_pre_check(&type_cast_to, &type_position,
                             /*explicit_cv_qualifiers=*/FALSE,
                             allow_ms_array || list_init_enabled,
-                            /*allow_unk_bound_array=*/list_init_enabled);
+                            /*allow_unk_bound_array=*/list_init_enabled,
+                            late_check_completeness);
   if (list_init_enabled && !parenthesized &&
       (scanning_source ? curr_token == tok_lbrace :
                          braced_init_list != NULL)) {
@@ -29094,6 +29132,19 @@ non_ctor_case_after_expr_scan:
 have_result:
   expr = expr_node_from_operand(result);
   if (expr != NULL) {
+    if (late_check_completeness && is_incomplete_type(type_cast_to) &&
+        !is_void_type(type_cast_to) &&
+        !is_template_dependent_type(type_cast_to)) {
+      /* A cast to incomplete type in a decltype is not always diagnosed in
+         template contexts.  MSVC and early GCC versions do not diagnose it at
+         all.  Clang and newer versions of GCC do not diagnose the cast if the
+         operand is template-dependent. */
+      if (!microsoft_mode && !gpp_version_is(<110000) &&
+          !((gpp_mode || clang_mode) &&
+            expr_is_instantiation_dependent(expr))) {
+        expr_issue_incomplete_type_diag(&type_position, type_cast_to);
+      }  /* if */
+    }  /* if */
     expr->is_functional_notation_cast = TRUE;
     if (expr->kind == (an_expr_node_kind)enk_temp_init) {
       dip = expr->variant.init.dynamic_init;
