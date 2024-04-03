@@ -1326,65 +1326,65 @@ Enter predeclared symbols as required by the implementation.
            predefine scalable vector types with 2, 3, and 4 tuple elements. */
         enter_scalable_vector_types(integer_type(ik_signed_char),
                                     {"__SVInt8_t",
-                                      "__clang_svint8x2_t",
-                                      "__clang_svint8x3_t",
-                                      "__clang_svint8x4_t"});
+                                     "__clang_svint8x2_t",
+                                     "__clang_svint8x3_t",
+                                     "__clang_svint8x4_t"});
         enter_scalable_vector_types(integer_type(ik_unsigned_char),
                                     {"__SVUint8_t",
-                                      "__clang_svuint8x2_t",
-                                      "__clang_svuint8x3_t",
-                                      "__clang_svuint8x4_t"});
+                                     "__clang_svuint8x2_t",
+                                     "__clang_svuint8x3_t",
+                                     "__clang_svuint8x4_t"});
         enter_scalable_vector_types(integer_type(ik_short),
                                     {"__SVInt16_t",
-                                      "__clang_svint16x2_t",
-                                      "__clang_svint16x3_t",
-                                      "__clang_svint16x4_t"});
+                                     "__clang_svint16x2_t",
+                                     "__clang_svint16x3_t",
+                                     "__clang_svint16x4_t"});
         enter_scalable_vector_types(integer_type(ik_unsigned_short),
                                     {"__SVUint16_t",
-                                      "__clang_svuint16x2_t",
-                                      "__clang_svuint16x3_t",
-                                      "__clang_svuint16x4_t"});
+                                     "__clang_svuint16x2_t",
+                                     "__clang_svuint16x3_t",
+                                     "__clang_svuint16x4_t"});
         enter_scalable_vector_types(integer_type(ik_int),
                                     {"__SVInt32_t",
-                                      "__clang_svint32x2_t",
-                                      "__clang_svint32x3_t",
-                                      "__clang_svint32x4_t"});
+                                     "__clang_svint32x2_t",
+                                     "__clang_svint32x3_t",
+                                     "__clang_svint32x4_t"});
         enter_scalable_vector_types(integer_type(ik_unsigned_int),
                                     {"__SVUint32_t",
-                                      "__clang_svuint32x2_t",
-                                      "__clang_svuint32x3_t",
-                                      "__clang_svuint32x4_t"});
+                                     "__clang_svuint32x2_t",
+                                     "__clang_svuint32x3_t",
+                                     "__clang_svuint32x4_t"});
         enter_scalable_vector_types(integer_type(ik_long),
                                     {"__SVInt64_t",
-                                      "__clang_svint64x2_t",
-                                      "__clang_svint64x3_t",
-                                      "__clang_svint64x4_t"});
+                                     "__clang_svint64x2_t",
+                                     "__clang_svint64x3_t",
+                                     "__clang_svint64x4_t"});
         enter_scalable_vector_types(integer_type(ik_unsigned_long),
                                     {"__SVUint64_t",
-                                      "__clang_svuint64x2_t",
-                                      "__clang_svuint64x3_t",
-                                      "__clang_svuint64x4_t"});
+                                     "__clang_svuint64x2_t",
+                                     "__clang_svuint64x3_t",
+                                     "__clang_svuint64x4_t"});
         enter_scalable_vector_types(float_type(fk_fp16),
                                     {"__SVFloat16_t",
-                                      "__clang_svfloat16x2_t",
-                                      "__clang_svfloat16x3_t",
-                                      "__clang_svfloat16x4_t"});
+                                     "__clang_svfloat16x2_t",
+                                     "__clang_svfloat16x3_t",
+                                     "__clang_svfloat16x4_t"});
         enter_scalable_vector_types(float_type(fk_std_bfloat16),
-                                    { (clang_version_is(<180000) ?
-                                      "__SVBFloat16_t" : "__SVBfloat16_t"),
-                                      "__clang_svbfloat16x2_t",
-                                      "__clang_svbfloat16x3_t",
-                                      "__clang_svbfloat16x4_t"});
+                                    {clang_version_is(<180000) ?
+                                           "__SVBFloat16_t" : "__SVBfloat16_t",
+                                     "__clang_svbfloat16x2_t",
+                                     "__clang_svbfloat16x3_t",
+                                     "__clang_svbfloat16x4_t"});
         enter_scalable_vector_types(float_type(fk_float),
                                     {"__SVFloat32_t",
-                                      "__clang_svfloat32x2_t",
-                                      "__clang_svfloat32x3_t",
-                                      "__clang_svfloat32x4_t"});
+                                     "__clang_svfloat32x2_t",
+                                     "__clang_svfloat32x3_t",
+                                     "__clang_svfloat32x4_t"});
         enter_scalable_vector_types(float_type(fk_double),
                                     {"__SVFloat64_t",
-                                      "__clang_svfloat64x2_t",
-                                      "__clang_svfloat64x3_t",
-                                      "__clang_svfloat64x4_t"});
+                                     "__clang_svfloat64x2_t",
+                                     "__clang_svfloat64x3_t",
+                                     "__clang_svfloat64x4_t"});
         (void)enter_predefined_typedef("__SVBool_t",
                                        make_scalable_vector_type(bool_type(),
                                                                  1));
