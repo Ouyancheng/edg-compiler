@@ -22941,6 +22941,7 @@ TRUE if the declaration following this one is such a continuation.
 #if NONCLASS_TEMPLATE_INSTANTIATIONS_IN_SOURCE_SEQUENCE_LISTS
   a_type_ptr                    replacement_ret_type = NULL;
 #endif /* NONCLASS_TEMPLATE_INSTANTIATIONS_IN_SOURCE_SEQUENC_LISTS */
+  a_func_prototype_stack_entry  fpse;
   a_boolean                     saved_suppress_nontype_expr =
                                              octl.suppress_expr_in_nontype_arg;
 
@@ -23748,6 +23749,11 @@ handle_as_definition:
   if (decl_within_class) {
     gen_member_function_modifiers(rout, &abstract_generated);
   }  /* if */
+  /* Attributes that follow might include enk_param_ref nodes.  Set up the
+     function prototype stack to resolve such nodes. */
+  fpse.params = rtsp->param_type_list;
+  fpse.outside_parameter_list = TRUE;
+  push_function_prototype(&fpse, &octl);
   if (rout->is_deleted && !rout->is_defaulted &&
       (!friend_decl || rout->defined_in_friend_decl)) {
     /* A deleted function definition.  (Note that an explicitly-defaulted
@@ -23844,6 +23850,7 @@ handle_as_definition:
          the latter case. */
       gen_attributes(attributes, al_postfix, is_definition);
     }  /* if */
+    pop_function_prototype(&octl);
     write_space();
     if (rout->special_kind == (a_special_function_kind)sfk_constructor &&
         scope->assoc_block->kind != (a_statement_kind)stmk_try_block) {
