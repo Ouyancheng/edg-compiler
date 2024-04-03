@@ -2811,7 +2811,7 @@ type.
     (void)required_token(tok_rparen, ec_exp_rparen);
     remove_stop_token(tok_comma);
     remove_stop_token(tok_rparen);
-    if (con != NULL) release_local_constant(&con);
+    release_local_constant(&con);
   } else {
     err = TRUE;
   }  /* if */

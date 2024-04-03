@@ -7811,12 +7811,11 @@ an error and return an error type.
 {
   a_type_ptr             elem_type = (a_type_ptr)entity,
                          utp = skip_typerefs(elem_type),
-                         vector_type, result;
+                         result;
   an_attribute_arg_ptr   aap = ap->arguments;
   a_constant_ptr         elems_con;
   a_boolean              ovflo = FALSE, err = FALSE;
   a_host_large_unsigned  elem_size, elems = 0;
-  a_decl_parse_state     *dps = NULL;
 
   /* Simple table-based constraint checking ensures that we can make a number
      of assumptions here. */
@@ -7845,8 +7844,7 @@ an error and return an error type.
       err = TRUE;
     }  /* if */
     if (err) {
-      pos_error(ec_invalid_neon_vector_element_type, &ap->position,
-                elem_type);
+      pos_error(ec_invalid_neon_vector_element_type, &ap->position, elem_type);
     }  /* if */
   } else if (ap->kind == ak_neon_polyvector_type) {
     if (type_is(utp, tk_integer) && !is_enum_type(utp)) {
@@ -7886,25 +7884,14 @@ an error and return an error type.
     make_attr_unrecognized(ap);
     result = error_type();
   } else {
-    vector_type = alloc_type(tk_vector);
-    vector_type->source_corresp.decl_position = ap->position;
-    vector_type->size = elems * elem_size;
-    vector_type->alignment = (a_targ_alignment)(elems * elem_size);
-    vector_type->variant.vector.element_type = elem_type;
-    vector_type->variant.vector.size_constant = elems_con;
-    vector_type->variant.vector.kind = ap->kind == ak_neon_polyvector_type ?
+    result = alloc_type(tk_vector);
+    result->source_corresp.decl_position = ap->position;
+    result->size = elems * elem_size;
+    result->alignment = (a_targ_alignment)(elems * elem_size);
+    result->variant.vector.element_type = elem_type;
+    result->variant.vector.size_constant = elems_con;
+    result->variant.vector.kind = ap->kind == ak_neon_polyvector_type ?
                                                         vk_neon_poly : vk_neon;
-    if (dps != NULL) {
-      /* The attribute appeared on a function or array declarator.  Don't
-         modify the function or array type directly, but the return type or
-         element type.  At this point in the processing
-         (add_to_derived_types_list has not yet been called) this is achieved
-         by updating dps->declared_type. */
-      dps->declared_type = vector_type;
-      result = (a_type_ptr)entity;
-    } else {
-      result = vector_type;
-    }  /* if */
   }  /* if */
   return (char*)result;
 }  /* apply_neon_vector_type_attr */
