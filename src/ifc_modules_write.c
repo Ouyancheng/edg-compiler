@@ -1033,6 +1033,7 @@ private:
   an_ifc_type_index find_or_enter_namespace_scope_type();
   an_ifc_type_index find_or_enter_alias_typedef_type();
   an_ifc_type_index find_or_enter_scoped_enum_type();
+  an_ifc_type_index find_or_enter_struct_scope_type();
   an_ifc_type_index find_or_enter_unscoped_enum_type();
 
   /* Functions for entering declarations that are invoked by proxy (e.g.,
@@ -1091,6 +1092,10 @@ private:
                 fund_scoped_enum_type;
                         /* The fundamental type used to represent a scoped
                            DeclSort::Enumeration. */
+  an_ifc_type_index
+                fund_struct_type;
+                        /* The fundamental type used to represent a struct
+                           DeclSort::Scope. */
   an_ifc_type_index
                 fund_unscoped_enum_type;
                         /* The fundamental type used to represent an unscoped
@@ -1389,7 +1394,7 @@ Enter the given class type into the IFC output state.  Return the declaration
 index for the class type.
 */
 {
-  check_assertion(type->kind == tk_struct);
+  check_assertion(is_class_or_struct(type));
   an_ifc_decl_scope
                 scope_decl;
   an_ifc_decl_index
@@ -1405,9 +1410,14 @@ index for the class type.
                 ifc_src_pos = this->find_or_enter_entity_pos(type);
   set_ifc_locus(&scope_decl, ifc_src_pos);
 
-  /* Set the IFC fundamental type to indicate this is a namespace scope. */
+  /* Set the IFC fundamental type to indicate this is a class scope. */
   an_ifc_type_index
-                ifc_scope_type = this->find_or_enter_class_scope_type();
+                ifc_scope_type;
+  if (type->kind == tk_class) {
+    ifc_scope_type = this->find_or_enter_class_scope_type();
+  } else {
+    ifc_scope_type = this->find_or_enter_struct_scope_type();
+  }  /* else */
   set_ifc_type(&scope_decl, ifc_scope_type);
 
   /* FIXME: Set base. */
@@ -1866,7 +1876,7 @@ Enter the given class type into the IFC output state.  Return the type index
 for the class type.
 */
 {
-  check_assertion(type->kind == tk_struct);
+  check_assertion(is_class_or_struct(type));
   an_ifc_type_designated
                 designated_type;
   an_ifc_type_index
@@ -2811,6 +2821,24 @@ fundamental type.
 }  /* an_ifc_il_map::find_or_enter_scoped_enum_type */
 
 
+an_ifc_type_index an_ifc_il_map::find_or_enter_struct_scope_type()
+/*
+Find or enter the fundamental type used by the IFC to indicate a given IFC
+DeclSort::Scope is a struct.  Return the index for the fundamental type.
+*/
+{
+  if (is_null_index(this->fund_unscoped_enum_type)) {
+    an_ifc_type_fundamental fund_type;
+
+    this->fund_struct_type = this->output_state->alloc_type(&fund_type);
+    set_ifc_basis(&fund_type, ifc_tbs_struct);
+    set_ifc_precision(&fund_type, ifc_tps_default);
+    set_ifc_sign(&fund_type, ifc_tss_plain);
+  }  /* if */
+  return this->fund_struct_type;
+}  /* an_ifc_il_map::find_or_enter_struct_scope_type */
+
+
 an_ifc_type_index an_ifc_il_map::find_or_enter_unscoped_enum_type()
 /*
 Find or enter the fundamental type used by the IFC to indicate a given IFC
@@ -2880,8 +2908,8 @@ declaration index of the constructor declaration.
 
 an_ifc_decl_index an_ifc_il_map::enter_destructor(a_routine_ptr rp)
 /*
-Enter the given constructor (routine) into the IFC output state.  Return the
-declaration index of the constructor declaration.
+Enter the given destructor (routine) into the IFC output state.  Return the
+declaration index of the destructor declaration.
 */
 {
   an_ifc_decl_destructor
@@ -3183,7 +3211,7 @@ output state.  Return the declaration index for the scope.
 
   switch (scope->kind) {
     case sck_class_struct_union:
-      if (is_class_struct_type(scope->variant.assoc_type)) {
+      if (is_class_or_struct(scope->variant.assoc_type)) {
         result = this->find_or_enter_class(scope->variant.assoc_type);
       } else {
         /* FIXME: Implement unions. */
