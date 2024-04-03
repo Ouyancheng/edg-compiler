@@ -1,6 +1,6 @@
 Version 6.7
 
-4/2/24   [EDGcpfe/26835]
+4/2/24   [EDGcpfe/19116,EDGcpfe/26835]
 Microsoft compatibility: Missing "template" prefix in member selection
 
 In Microsoft modes, the prototype instantiations of templates are frequently
