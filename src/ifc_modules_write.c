@@ -1317,7 +1317,7 @@ scope offset for the type file.
 static inline an_ifc_access_sort convert_access_specifier(
                                                     an_access_specifier access)
 /*
-Give a front end access specifier return the corresponding IFC access sort.
+Given a front end access specifier return the corresponding IFC access sort.
 */
 {
   an_ifc_access_sort result = ifc_as_none;
@@ -1348,7 +1348,7 @@ Give a front end access specifier return the corresponding IFC access sort.
 static inline an_ifc_access_sort access_specifier_of(
                                                   a_source_correspondence *scp)
 /*
-Give a front end source correspondence return the corresponding IFC access
+Given a front end source correspondence return the corresponding IFC access
 sort.
 */
 {
