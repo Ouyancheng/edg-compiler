@@ -11269,23 +11269,6 @@ strongly preferred over calling this function directly.
             goto invalid;
           }  /* if */
         }  /* if */
-#if CHECKING
-        {
-          an_ifc_type_index ifc_type = get_ifc_type(idt);
-          a_boolean         is_deduction_guide = FALSE;
-
-          if (is_null_index(ifc_type)) {
-            /* Deduction guide templates have no associated type.  They are
-               driven by the IFC "traits" system instead of by lookup (which
-               means they are never "deferred"). */
-            is_deduction_guide = TRUE;
-            check_assertion(!defer);
-          }  /* if */
-          /* FIXME: This should be a soft failure. */
-          check_assertion(!is_null_index(get_ifc_name(idt)) ||
-                          is_deduction_guide);
-        }
-#endif /* CHECKING */
         if (defer) {
           defer_symbol_creation(mep, &loc);
         } else {
@@ -22323,8 +22306,14 @@ there is no offset/the offset is not needed.
     /* Function or variable template. */
     an_ifc_decl_index entity_idx = get_ifc_decl(entity);
 
-    if (entity_idx.sort == ifc_ds_decl_variable ||
-        entity_idx.sort == ifc_ds_decl_deduction_guide) {
+    if (is_null_index(entity_idx)) {
+      a_string err_msg("Unexpected null value for entity.decl of ",
+                       index_to_str(decl_idx));
+
+      cache->invalidate();
+      ifc_unexpected(module_of(entity), err_msg);
+    } else if (entity_idx.sort == ifc_ds_decl_variable ||
+               entity_idx.sort == ifc_ds_decl_deduction_guide) {
       /* FIXME: Cache the entity corresponding to decl->entity.decl instead (as
          was done for functions below).  Variable template declarations are
          still a mess, and deduction guides are unimplemented, but we can avoid
