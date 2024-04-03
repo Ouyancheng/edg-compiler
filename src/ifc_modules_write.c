@@ -1073,7 +1073,8 @@ private:
                         /* A map of IL types to IFC type indexes. */
   Ptr_map<a_scope_ptr, an_ifc_scope_offset, General_allocator>
                 scope_map = {/*mask_width=*/10};
-                        /* A map of IL scopes to IFC decl indexes. */
+                        /* A map of IL scopes to their corresponding IFC scope
+                           offsets. */
   an_ifc_type_index
                 fund_class_type;
                         /* The fundamental type used to represent a class
@@ -1384,8 +1385,8 @@ Return the declaration index for the class.
 
 an_ifc_decl_index an_ifc_il_map::enter_class(a_type_ptr type)
 /*
-Enter the given class type into the IFC output state.  Return the decl index
-for the class type.
+Enter the given class type into the IFC output state.  Return the declaration
+index for the class type.
 */
 {
   check_assertion(type->kind == tk_struct);
