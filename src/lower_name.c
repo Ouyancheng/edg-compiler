@@ -249,10 +249,6 @@ S = signed
 U = unsigned
 Y = decltype(expr)
 a = GNU vector_size attribute
-DN = neon_vector_type attribute
-DP = neon_polyvector_type attribute
-DS = scalable_vector_type attribute
-DC = scalable_vector_count_type
 b = bool
 c = char
 d = double
@@ -382,10 +378,7 @@ type in the std namespace.
 #define MANGLING_STRING_FOR_ARRAY "A"
 #if GNU_VECTOR_TYPES_ALLOWED
 #define MANGLING_STRING_FOR_VECTOR "a"
-#define MANGLING_STRING_FOR_NEON_VECTOR "DN"
-#define MANGLING_STRING_FOR_NEON_POLYVECTOR "DP"
-#define MANGLING_STRING_FOR_SCALABLE_VECTOR "DS"
-#define MANGLING_STRING_FOR_SCALABLE_VECTOR_COUNT "DC"
+#define MANGLING_STRING_FOR_SCALABLE_VECTOR_COUNT "11__SVCount_t"
 #endif /* GNU_VECTOR_TYPES_ALLOWED */
 #define MANGLING_STRING_FOR_META_INFO "mxi"
 #define MANGLING_STRING_FOR_OPERATOR_NEW "nw"
@@ -10270,8 +10263,6 @@ the array names.
   return names[tuple_elements - 1];
 }  /* choose_scalable_vector_name_for_tuple_elements */
 
-#if IA64_ABI
-
 static a_const_char *choose_neon_vector_name_for_size(
                                        a_targ_size_t                    size,
                                        const a_const_char_ptr_array<2>  &names)
@@ -10283,8 +10274,6 @@ names for 64-bit and 128-bit wide vectors are supplied in the array names.
   check_assertion(size == 8 || size == 16);
   return size == 16 ? names[1] : names[0];
 }  /* choose_neon_vector_name_for_size */
-
-#endif /* IA64_ABI */
 
 #endif /* GNU_VECTOR_TYPES_ALLOWED */
 
@@ -10828,7 +10817,6 @@ top_of_loop:
 #if GNU_VECTOR_TYPES_ALLOWED
       case tk_vector:
         if (type->variant.vector.kind == vk_neon) {
-#if IA64_ABI
           a_type_ptr     element_type = skip_typerefs(type->variant.vector.
                                                                  element_type);
           a_targ_size_t  vector_elements = num_vector_elements(type);
@@ -10908,11 +10896,7 @@ top_of_loop:
           check_assertion(s != NULL);
           mangled_name_with_length(s, mctl);
           goto have_whole_mangled_name;
-#else /* !IA64_ABI */
-          s = MANGLING_STRING_FOR_NEON_VECTOR;
-#endif /* IA64_ABI */
         } else if (type->variant.vector.kind == vk_neon_poly) {
-#if IA64_ABI
           a_type_ptr     element_type = skip_typerefs(type->variant.vector.
                                                                  element_type);
           a_targ_size_t  vector_elements = num_vector_elements(type);
@@ -10945,9 +10929,6 @@ top_of_loop:
           check_assertion(s != NULL);
           mangled_name_with_length(s, mctl);
           goto have_whole_mangled_name;
-#else /* !IA64_ABI */
-          s = MANGLING_STRING_FOR_NEON_POLYVECTOR;
-#endif /* IA64_ABI */
         } else {
           s = MANGLING_STRING_FOR_VECTOR;
 #if ABI_COMPATIBILITY_VERSION >= 415 && IA64_ABI
@@ -10968,9 +10949,11 @@ top_of_loop:
         a_type_ptr  element_type = type->variant.scalable_vector.element_type;
         uint8_t     tuple_elements;
         tuple_elements = type->variant.scalable_vector.tuple_elements;
+#if IA64_ABI
         if (tuple_elements == 1) {
           add_to_mangled_name('u', mctl);
         }  /* if */
+#endif /* IA64_ABI */
         switch (element_type->kind) {
           case tk_integer:
           {
