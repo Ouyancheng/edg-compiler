@@ -1192,8 +1192,8 @@ index for the type file.
       if (typeref_is_typedef(type)) {
         /* If a typedef has its own qualifiers the IL type will be mapped to
            two distinct IFC types.  Thus, if this case is encountered either
-           the typedef shouldn't have been directly given qualifiers or the
-           this code needs updated. */
+           the typedef shouldn't have been directly given qualifiers or this
+           code needs to be updated. */
         check_assertion(type->variant.typeref.qualifiers == TQ_NONE);
         result = this->enter_typedef_type(type);
       } else if (is_typeref_kind(type, trk_is_decltype)) {
@@ -1880,7 +1880,7 @@ for the class type.
 
 an_ifc_type_index an_ifc_il_map::enter_constructor_type(a_type_ptr type)
 /*
-Enter the a type for the given constructor type into the IFC output state.
+Enter the type for the given constructor type into the IFC output state.
 Return the type index for the constructor type.
 */
 {
