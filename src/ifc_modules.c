@@ -5846,20 +5846,6 @@ error occurs, return NULL.
         result = resolve_ifc_template_member_reference(expr_idx, type);
       }
       break;
-    case ifc_es_expr_type:
-      { Opt<an_ifc_expr_type> opt_type_expr;
-
-        construct_node(&opt_type_expr, expr_idx);
-        if (!opt_type_expr.has_value()) {
-          goto invalid;
-        }  /* if */
-
-        an_ifc_expr_type  type_expr = *opt_type_expr;
-        an_ifc_type_index type_idx = get_ifc_denotation(type_expr);
-        a_type_ptr        type = type_for_type_index(type_idx);
-        result = symbol_for(type);
-      }
-      break;
     default:
       { a_string err_msg("Unsupported entity for lazy loading ",
                          index_to_str(expr_idx));
@@ -25813,7 +25799,16 @@ tuple elements by '::' instead of ','.
       }
       break;
     case ifc_es_expr_type:
-      cache_token_with_index(cache, tok_ifc_entity_ref, expr);
+      { Opt<an_ifc_expr_type> opt_iet;
+
+        construct_node(&opt_iet, expr);
+        if (!opt_iet.has_value()) {
+          goto invalid;
+        }  /* if */
+
+        an_ifc_expr_type iet = *opt_iet;
+        cache_type(cache, get_ifc_denotation(iet), cinfo);
+      }
       break;
     case ifc_es_expr_named_decl:
       if (cinfo.dependent_name) {
