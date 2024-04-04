@@ -283,6 +283,7 @@ D = "escape"
 Dp = pack expansion
 Dr = restrict
 DR = type splice (expression)
+DX = Clang's pass_object_size attribute
 E = rvalue reference
 F = function type
 G = global scope (i.e., ::)
@@ -483,7 +484,7 @@ type in the std namespace.
 #define MANGLING_STRING_FOR_SAFE_CAST "sf"
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
 
-#define MANGLING_STRING_FOR_PASS_OBJECT_SIZE "DX17pass_object_size"
+#define MANGLING_STRING_FOR_PASS_OBJECT_SIZE "DX"
 #define MANGLING_STRING_FOR_SPLICE "SP"
 #define MANGLING_STRING_FOR_TYPE_SPLICE "DR"
 
