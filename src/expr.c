@@ -19660,6 +19660,7 @@ call to cast_type_pre_check.)
       !((gpp_mode || clang_mode) &&
         operand_is_instantiation_dependent(operand))) {
     expr_issue_incomplete_type_diag(diag_pos, cast_type);
+    make_error_operand(operand);
   }  /* if */
 }  /* late_check_incomplete_cast_type */
 
@@ -29142,13 +29143,13 @@ non_ctor_case_after_expr_scan:
     }  /* if */
   }  /* if */
 have_result:
+  if (late_check_completeness && is_incomplete_type(type_cast_to)) {
+    /* A cast to incomplete type in a decltype is not always diagnosed in
+       template contexts. */
+    late_check_incomplete_cast_type(type_cast_to, result, &type_position);
+  }  /* if */
   expr = expr_node_from_operand(result);
   if (expr != NULL) {
-    if (late_check_completeness && is_incomplete_type(type_cast_to)) {
-      /* A cast to incomplete type in a decltype is not always diagnosed in
-         template contexts. */
-      late_check_incomplete_cast_type(type_cast_to, result, &type_position);
-    }  /* if */
     expr->is_functional_notation_cast = TRUE;
     if (expr->kind == (an_expr_node_kind)enk_temp_init) {
       dip = expr->variant.init.dynamic_init;
