@@ -22941,6 +22941,7 @@ TRUE if the declaration following this one is such a continuation.
 #if NONCLASS_TEMPLATE_INSTANTIATIONS_IN_SOURCE_SEQUENCE_LISTS
   a_type_ptr                    replacement_ret_type = NULL;
 #endif /* NONCLASS_TEMPLATE_INSTANTIATIONS_IN_SOURCE_SEQUENC_LISTS */
+  a_func_prototype_stack_entry  fpse;
   a_boolean                     saved_suppress_nontype_expr =
                                              octl.suppress_expr_in_nontype_arg;
 
@@ -23784,11 +23785,17 @@ handle_as_definition:
       gnu_routine_supp(rout)->asm_name = saved_asm_name;
     }  /* if */
 #endif /* GNU_EXTENSIONS_ALLOWED */
+    /* Attributes that follow might include enk_param_ref nodes.  Set up the
+       function prototype stack to resolve such nodes. */
+    fpse.params = rtsp->param_type_list;
+    fpse.outside_parameter_list = TRUE;
+    push_function_prototype(&fpse, &octl);
     gen_attributes(attributes, al_postfix, is_definition);
     /* "Id-equivalent attributes" are best rendered at the end of a
        declarator, except for function definitions (where such attributes
        are not allowed). */
     gen_attributes(attributes, al_id_equivalent_as_postfix, is_definition);
+    pop_function_prototype(&octl);
 #if MICROSOFT_EXTENSIONS_ALLOWED
     if (rout->overridden_functions != NULL &&
         is_immediate_managed_class_type(parent_class)) {
@@ -23842,7 +23849,13 @@ handle_as_definition:
          acceptable on a member function definition inside a class
          definition but not on an out-of-class definition, so we suppress
          the latter case. */
+      /* Some attributes might include enk_param_ref nodes.  Set up the
+         function prototype stack to resolve such nodes. */
+      fpse.params = rtsp->param_type_list;
+      fpse.outside_parameter_list = TRUE;
+      push_function_prototype(&fpse, &octl);
       gen_attributes(attributes, al_postfix, is_definition);
+      pop_function_prototype(&octl);
     }  /* if */
     write_space();
     if (rout->special_kind == (a_special_function_kind)sfk_constructor &&

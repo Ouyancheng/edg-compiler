@@ -3471,10 +3471,16 @@ not empty, because it contains a name or a derived type).
                                  /*need_trailing_space=*/FALSE, dctl);
   } else if (kind == 'D' && get_char(p+1, dctl) == 'R') {
     /* A type splice. */
-      dctl->suppress_id_output++;
-      p = demangle_expression(p+2, /*need_parens=*/FALSE, dctl);
-      dctl->suppress_id_output--;
+    dctl->suppress_id_output++;
+    p = demangle_expression(p+2, /*need_parens=*/FALSE, dctl);
+    dctl->suppress_id_output--;
   } else {
+    if (kind == 'D' && get_char(p+1, dctl) == 'X') {
+      /* Skip over Clang's pass_object_size attribute in the first part of
+         type demangling (it will be handled in the second part). */
+      p+=3;
+      qualp = p;
+    }  /* if */
     /* No declarator part to process.  Handle the specifier type. */
     p = demangle_type_specifier(qualp, dctl);
     if (need_trailing_space) write_id_ch(' ', dctl);
@@ -3616,6 +3622,11 @@ use of parentheses around parts of the declarator.)
     write_id_str("[:", dctl);
     p = demangle_expression(p+2, /*need_parens=*/FALSE, dctl);
     write_id_str(":]", dctl);
+  } else if (kind == 'D' && get_char(p+1, dctl) == 'X') {
+    write_id_str(" __attribute((pass_object_size(", dctl);
+    /* A digit (with value 0-3) follows. */
+    write_id_ch(p[2], dctl);
+    write_id_str(")))", dctl);
   } else {
     /* No declarator part to process.  No need to scan the specifiers type --
        it was done by demangle_type_first_part. */
@@ -5526,6 +5537,8 @@ to be on top of the type.  If parse_template_args is TRUE then any
         write_id_str("__underlying_type(", dctl);
         vendor_ext = ")";
         need_space = FALSE;
+      } else if (num == 17 && start_of_id_is("pass_object_size", p)) {
+        /* Ignore this here and handle it in the "second part". */
       } else {
         /* This is a vendor string that we don't recognize; simply emit the
            string. */
@@ -5724,10 +5737,18 @@ to be on top of the type.
     p++;
     if (kind == 'U') {
       /* This is a vendor extended type qualifier that is being used
-         by the front end as a declarator; skip over it. */
-      dctl->suppress_id_output++;
-      p = demangle_source_name(p, /*is_module_id=*/FALSE, dctl);
-      dctl->suppress_id_output--;
+         by the front end as a declarator; skip over it (except for Clang's
+         pass_object_size attribute). */
+      if (start_of_id_is("17pass_object_size", p)) {
+        write_id_str("__attribute((pass_object_size(", dctl);
+        /* A digit (with value 0-3) follows (and is included in the count). */
+        write_id_ch(p[18], dctl);
+        write_id_str(")))", dctl);
+      } else {
+        dctl->suppress_id_output++;
+        p = demangle_source_name(p, /*is_module_id=*/FALSE, dctl);
+        dctl->suppress_id_output--;
+      }  /* if */
     }  /* if */
     demangle_type_second_part(p, CVQ_NONE, /*under_lhs_declarator=*/TRUE,
                               dctl);

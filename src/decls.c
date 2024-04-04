@@ -3618,9 +3618,11 @@ when the declaration is a friend declaration within a class.
        was an sk_overloaded_function symbol, we need to look for a type
        match amongst the instances of the name.  Even if it was an
        sk_routine symbol, we may want to overload the two functions. */
-    if ((!C_mode() ||
-         (clang_mode && is_overloadable_c_sym(other_decl, idlbp))) &&
-        is_function && kind != (a_symbol_kind)sk_variable) {
+    if (is_function && kind != sk_variable &&
+        (!C_mode() ||
+         (clang_mode &&
+          (is_overloadable_c_sym(other_decl, idlbp) ||
+           find_decl_attribute(ak_overloadable, dps) != NULL)))) {
       /* C++ function or function template -- type compatibility check is
          required. */
       a_template_param_ptr   params = NULL;
@@ -3970,8 +3972,7 @@ information in the specified id-linkage block.
              is_local_scope_kind(scope_stack_top().kind) &&
              local_storage_class != (a_storage_class)sc_extern) {
     /* Local variable declaration. */
-  } else if (scope_stack[decl_scope_level].kind ==
-                                     (a_scope_kind)sck_func_prototype) {
+  } else if (scope_stack[decl_scope_level].kind == sck_func_prototype) {
     /* Function parameters have no linkage. */
   } else {
     /* Set default linkage, based on the environment of the current

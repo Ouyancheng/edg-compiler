@@ -259,6 +259,8 @@ static an_attr_descr known_attr_table[] = {
   /* Nonstandard attributes. */
   { "enable_if", "(X,sn)", "lx(30500-)", ak_enable_if },
   { "overloadable", "", "lx", ak_overloadable },
+  { "pass_object_size", "(ci)", "lx", ak_pass_object_size },
+  { "diagnose_if", "(X,sn,sn)", "lx", ak_diagnose_if },
 
 #if GNU_EXTENSIONS_ALLOWED
   /* GNU Attributes. */
@@ -559,6 +561,7 @@ static an_attr_application_fn apply_conditional_explicit;
 
 /* Other attributes. */
 static an_attr_application_fn apply_enable_if_attr;
+static an_attr_application_fn apply_pass_object_size_attr;
 
 #if GNU_EXTENSIONS_ALLOWED || MICROSOFT_EXTENSIONS_ALLOWED
 /* Application functions for nonstandard attributes available in both GNU and
@@ -695,6 +698,8 @@ static an_attr_appl_descr known_attr_appl_table[(int)ak_last+1] = {
   /* Nonstandard attributes. */
   { ak_enable_if, "t", apply_enable_if_attr },
   { ak_overloadable, "r", NO_APPL_FN },
+  { ak_pass_object_size, "p", apply_pass_object_size_attr },
+  { ak_diagnose_if, "r", NO_APPL_FN },
   { ak_unavailable, "t|p|c|e|r|v|d|n|E", apply_deprecated_or_unavailable_attr},
   /* Nonstandard attributes available in both GNU and Microsoft
      configurations. */
@@ -5503,6 +5508,54 @@ to it and return the entity.
   }  /* if */
   return entity;
 }  /* apply_enable_if_attr */
+
+
+static void check_pass_object_size_attr(a_decl_parse_state_ptr  dps)
+/*
+dps should represent a function or function declaration.  If it doesn't, issue
+an error; otherwise, record the presence of the Clang "pass_object_size"
+attribute on at least one of the parameters.
+*/
+{
+  if (dps->sym == NULL || !is_simple_function_symbol(dps->sym)) {
+    pos_error(ec_pass_object_size_not_in_function_decl, &dps->declarator_pos);
+  } else {
+    func_sym_routine(dps->sym)->has_pass_object_size_attr = TRUE;
+  }  /* if */
+}  /* check_pass_object_size_attr */
+
+
+static char* apply_pass_object_size_attr(an_attribute_ptr  ap,
+                                         char              *entity,
+                                         an_il_entry_kind  entity_kind)
+/*
+The given entity must be a parameter.  Apply the Clang "pass_object_size"
+attribute to it and return the entity.
+*/
+{
+  an_attribute_arg_ptr  aap = ap->arguments;
+  a_constant_ptr        arg;
+  a_host_large_integer  flags = 0;
+  a_decl_parse_state    *dps = (a_decl_parse_state*)ap->assoc_info;
+  a_boolean             ovflo;
+
+  check_assertion(entity_kind == iek_param_type &&
+                  aap != NULL && aap->kind == aak_constant &&
+                  aap->next == NULL);
+  arg = aap->variant.constant;
+  check_assertion(constant_is(arg, ck_integer));
+  flags = value_of_integer_constant(arg, &ovflo);
+  if (ovflo || flags < 0 || flags > 3) {
+    pos_st_num2_diagnostic(es_error, ec_attr_arg_out_of_small_integer_range,
+                           &ap->position, "pass_object_size", flags, 3);
+    make_attr_unrecognized(ap);
+  } else {
+    add_end_of_parse_action(check_pass_object_size_attr,
+                            dps->assoc_func_decl_state,
+                            /*secondary_decls=*/TRUE);
+  }  /* if */
+  return entity;
+}  /* apply_pass_object_size_attr */
 
 #if GNU_EXTENSIONS_ALLOWED || MICROSOFT_EXTENSIONS_ALLOWED
 #if GNU_NAKED_ATTRIBUTE_ALLOWED || MICROSOFT_EXTENSIONS_ALLOWED

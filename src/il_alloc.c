@@ -3204,6 +3204,7 @@ to it.  The entry is allocated in the file scope memory region.
   rp->is_top_level_in_mem_region  = FALSE;
   rp->friend_defined_in_instantiation = FALSE;
   rp->is_ineligible               = FALSE;
+  rp->has_pass_object_size_attr   = FALSE;
 #if DECL_MODIFIERS_IN_USE
   rp->decl_modifiers              = DM_NONE;
 #endif /* DECL_MODIFIERS_IN_USE */
