@@ -19640,6 +19640,30 @@ Return TRUE for okay, FALSE for an error.
   return okay;
 }  /* check_array_cast */
 
+
+static void late_check_incomplete_cast_type(a_type             *cast_type,
+                                            an_operand         *operand,
+                                            a_source_position  *diag_pos)
+/*
+The caller has determined that the given type is an incomplete type used for a
+cast in the given operand.  If needed, issue a diagnostic at the given source
+position.  MSVC and early GCC versions do not diagnose it at all.  Clang and
+newer versions of GCC do not diagnose the cast if the operand is template-
+dependent.  (This is a "late" check in the sense that it is performed after
+scanning the source operand of the cast.  The type was previously checked in a
+call to cast_type_pre_check.)
+*/
+{
+  if (!is_void_type(cast_type) && !is_error_type(cast_type) &&
+      !is_array_type(type_cast_to) && !is_template_dependent_type(cast_type) &&
+      !microsoft_mode && !gpp_version_is(<110000) &&
+      !((gpp_mode || clang_mode) &&
+        operand_is_instantiation_dependent(operand))) {
+    expr_issue_incomplete_type_diag(diag_pos, cast_type);
+  }  /* if */
+}  /* late_check_incomplete_cast_type */
+
+
 static a_boolean scan_new_style_cast(
                                   a_cast_source_form           source_form,
                                   a_rescan_control_block       *rcblock,
@@ -19743,17 +19767,10 @@ indication in *rcblock).
     /* Scan the expression. */
     scan_expr_full(operand, bound_function_selector, PREC_LOWEST, options);
   }  /* if */
-  if (late_check_completeness && is_incomplete_type(*cast_type) &&
-      !is_void_type(*cast_type)) {
+  if (late_check_completeness && is_incomplete_type(*cast_type)) {
     /* A cast to incomplete type in a decltype is not always diagnosed in
-       template contexts.  MSVC and early GCC versions do not diagnose it at
-       all.  Clang and newer versions of GCC do not diagnose the cast if the
-       operand is template-dependent. */
-    if (!microsoft_mode && !gpp_version_is(<110000) &&
-        !((gpp_mode || clang_mode) &&
-          operand_is_instantiation_dependent(operand))) {
-      expr_issue_incomplete_type_diag(type_position, *cast_type);
-    }  /* if */
+       template contexts. */
+    late_check_incomplete_cast_type(*cast_type, operand, type_position);
   }  /* if */
   if (operand->bound_function) {
     /* For the g++ reinterpret_cast cases, make sure the bound function is
@@ -27982,17 +27999,11 @@ just an expression in parentheses.  Return the scanned expression in
                              /*is_expr_list=*/FALSE, PREC_CAST,
                              result, &local_bound_function_selector,
                              (a_boolean *)NULL);
-        if (late_check_completeness && is_incomplete_type(type_cast_to) &&
-            !is_void_type(type_cast_to)) {
-          /* A cast to incomplete type in a decltype is not always diagnosed in
-             template contexts.  MSVC and early GCC versions do not diagnose it
-             at all.  Clang and newer versions of GCC do not diagnose the cast
-             if the operand is template-dependent. */
-          if (!microsoft_mode && !gpp_version_is(<110000) &&
-              !((gpp_mode || clang_mode) &&
-                operand_is_instantiation_dependent(result))) {
-            expr_issue_incomplete_type_diag(&type_position, type_cast_to);
-          }  /* if */
+        if (late_check_completeness && is_incomplete_type(type_cast_to)) {
+          /* A cast to incomplete type in a decltype is not always diagnosed
+             in template contexts. */
+          late_check_incomplete_cast_type(type_cast_to, result,
+                                          &type_position);
         }  /* if */
 #if EXTRA_SOURCE_POSITIONS_IN_IL
         end_position = result->end_position;
@@ -29133,18 +29144,10 @@ non_ctor_case_after_expr_scan:
 have_result:
   expr = expr_node_from_operand(result);
   if (expr != NULL) {
-    if (late_check_completeness && is_incomplete_type(type_cast_to) &&
-        !is_void_type(type_cast_to) &&
-        !is_template_dependent_type(type_cast_to)) {
+    if (late_check_completeness && is_incomplete_type(type_cast_to)) {
       /* A cast to incomplete type in a decltype is not always diagnosed in
-         template contexts.  MSVC and early GCC versions do not diagnose it at
-         all.  Clang and newer versions of GCC do not diagnose the cast if the
-         operand is template-dependent. */
-      if (!microsoft_mode && !gpp_version_is(<110000) &&
-          !((gpp_mode || clang_mode) &&
-            expr_is_instantiation_dependent(expr))) {
-        expr_issue_incomplete_type_diag(&type_position, type_cast_to);
-      }  /* if */
+         template contexts. */
+      late_check_incomplete_cast_type(type_cast_to, result, &type_position);
     }  /* if */
     expr->is_functional_notation_cast = TRUE;
     if (expr->kind == (an_expr_node_kind)enk_temp_init) {
