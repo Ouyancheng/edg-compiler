@@ -19655,7 +19655,7 @@ call to cast_type_pre_check.)
 */
 {
   if (!is_void_type(cast_type) && !is_error_type(cast_type) &&
-      !is_array_type(type_cast_to) && !is_template_dependent_type(cast_type) &&
+      !is_array_type(cast_type) && !is_template_dependent_type(cast_type) &&
       !microsoft_mode && !gpp_version_is(<110000) &&
       !((gpp_mode || clang_mode) &&
         operand_is_instantiation_dependent(operand))) {
