@@ -222,7 +222,6 @@ differs (see the IA-64 ABI spec for details).
 #define MANGLING_STRING_FOR_OPERATOR_GCNEW "gc"
 #define MANGLING_STRING_FOR_SAFE_CAST "v112clisafe_cast"
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
-#define MANGLING_STRING_FOR_PASS_OBJECT_SIZE "U17pass_object_size"
 #define MANGLING_STRING_FOR_SPLICE "v16splice"
 #define MANGLING_STRING_FOR_TYPE_SPLICE "Dr"  /* An EDG extension. */
 
@@ -283,7 +282,6 @@ D = "escape"
 Dp = pack expansion
 Dr = restrict
 DR = type splice (expression)
-DX = Clang's pass_object_size attribute
 E = rvalue reference
 F = function type
 G = global scope (i.e., ::)
@@ -484,7 +482,6 @@ type in the std namespace.
 #define MANGLING_STRING_FOR_SAFE_CAST "sf"
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
 
-#define MANGLING_STRING_FOR_PASS_OBJECT_SIZE "DX"
 #define MANGLING_STRING_FOR_SPLICE "SP"
 #define MANGLING_STRING_FOR_TYPE_SPLICE "DR"
 
@@ -2341,19 +2338,6 @@ type "type".
       mangled_encoding_for_type_with_pack_expansion(param->type,
                               (a_boolean)(param->pack_expansion_descr != NULL),
                               mctl);
-      if (has_attr(ak_pass_object_size, param->attributes)) {
-        a_constant    *cp;
-        a_boolean     ovflo;
-        an_attribute  *ap = find_attribute(ak_pass_object_size,
-                                           param->attributes);
-        add_str_to_mangled_name(MANGLING_STRING_FOR_PASS_OBJECT_SIZE, mctl);
-        check_assertion(ap != NULL && ap->arguments != NULL &&
-                        ap->arguments->kind == aak_constant);
-        cp = ap->arguments->variant.constant;
-        check_assertion(constant_is(cp, ck_integer));
-        add_number_to_mangled_name(
-                  (unsigned long)value_of_integer_constant(cp, &ovflo), mctl);
-      }  /* if */
 #if !IA64_ABI
 arg_done:;
 #endif /* !IA64_ABI */

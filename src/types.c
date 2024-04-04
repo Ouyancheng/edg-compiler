@@ -8252,14 +8252,6 @@ TCF_RECORD_DIRECT_CALLING_CONVENTION_DIFFS).
         compatible = FALSE;
         goto done;
       }  /* if */
-      if (clang_mode &&
-          has_attr(ak_pass_object_size, list1->attributes) !=
-                           has_attr(ak_pass_object_size, list2->attributes)) {
-        /* The Clang attribute "pass_object_size" triggers function type
-           incompatibilities. */
-        compatible = FALSE;
-        goto done;
-      }  /* if */
     }  /* for */
     /* The parameter lists are compatible if they both ended together. */
     compatible = (list1 == NULL && list2 == NULL);
@@ -14671,14 +14663,6 @@ C++ mode.
                            new_param->is_parameter_pack) ||
             !f_types_are_compatible(old_param->type, new_param->type,
                                     TCF_EXACT_DECLTYPE_EXPR_MATCH_REQUIRED)) {
-          distinguishable = TRUE;
-          goto distinguishable_determined;
-        }  /* if */
-        if (clang_mode &&
-            has_attr(ak_pass_object_size, old_param->attributes) !=
-                       has_attr(ak_pass_object_size, new_param->attributes)) {
-          /* The Clang attribute "pass_object_size" triggers function type
-             incompatibilities. */
           distinguishable = TRUE;
           goto distinguishable_determined;
         }  /* if */

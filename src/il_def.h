@@ -2847,8 +2847,6 @@ enum an_attribute_kind : a_byte {
      flags. */
   ak_enable_if,		/* "enable_if" (clang). */
   ak_overloadable,	/* "overloadable" (clang). */
-  ak_pass_object_size,	/* "pass_object_size" (clang). */
-  ak_diagnose_if,	/* "diagnose_if" (clang). */
   ak_unavailable,	/* "unavailable" (gnu, clang). */
 
 #if GNU_EXTENSIONS_ALLOWED || MICROSOFT_EXTENSIONS_ALLOWED
@@ -12234,11 +12232,12 @@ typedef struct a_routine {
 			/* Some compilers have bugs that require explicit
 			   template argument lists to be put out for some
 			   explicit specializations to be matched with the
-			   correct template; however, there are also cases in
-			   which explicit template arguments cannot appear.
-			   The function args_needed_for_compiler_bugs does the
-			   requisite analysis.  A TRUE value of this flag
-			   indicates that the template_args_required flag below
+			   correct template; however, there are also cases
+			   in which explicit template arguments cannot
+			   appear.  The function
+			   args_needed_for_compiler_bugs does the requisite
+			   analysis.  A TRUE value of this flag indicates
+			   that the template_args_required flag below
 			   reflects the result of that analysis and the
 			   function need not be called again. */
   a_bit_field	template_args_required:1;
@@ -12493,9 +12492,6 @@ typedef struct a_routine {
 			   satisfied.  This flag is set on-demand and should
 			   therefore always be queried through the function
 			   is_ineligible. */
-  a_bit_field	has_pass_object_size_attr:1;
-			/* TRUE if any parameter was declared with the Clang
-			   pass_object_size attribute. */
 #if DECL_MODIFIERS_IN_USE
   a_decl_modifier_set
 		decl_modifiers;
