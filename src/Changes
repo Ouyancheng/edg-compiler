@@ -39,7 +39,7 @@ cases where a member selection of the form "x.m<args>" should have been
 latter.
 
 
-4/2/24   [EDGcpfe/27027]
+4/2/24   [EDGcpfe/27037]
 C++-generating back end: deduced-type constexpr initialization
 
 In some cases involving a variable declared with a deduced type in which the
