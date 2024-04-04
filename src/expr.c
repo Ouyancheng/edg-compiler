@@ -24436,8 +24436,9 @@ type_position is its source position.  If explicit_cv_qualifiers is
 set, warn about those qualifiers being useless when the type cast to
 is a nonclass type.  If allow_array is TRUE, do not issue an error for
 a cast to a (complete) array type.  If allow_unk_bound_array is TRUE, allow
-an unknown-bound array type as well.  This routine is called for C-style casts,
-C++ functional-notation type conversions, and C++ new-style casts.
+an unknown-bound array type as well.  If allow_incomplete_type is TRUE, allow
+casts to incomplete types.  This routine is called for C-style casts, C++
+functional-notation type conversions, and C++ new-style casts.
 */
 {
   a_boolean  err = FALSE, incomplete;
