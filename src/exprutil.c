@@ -7564,7 +7564,7 @@ a template deduction context.
 
 
 void expr_issue_sizeless_type_error(a_source_position *pos,
-                                   a_type            *type)
+                                    a_type            *type)
 /*
 Emit an error diagnostic given the position where the sizeless type is used and
 the type that's sizeless.  Suppress the diagnostic if we're in a context where
