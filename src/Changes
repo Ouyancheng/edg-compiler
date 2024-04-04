@@ -1,5 +1,17 @@
 Version 6.7
 
+4/4/24   [EDGcpfe/27093]
+Support for ARM scalable and NEON vector types (IL CHANGE)
+
+Support for ARM's scalable and NEON vector types has been added.  For ARM64
+targets, GNU makes NEON vector and polyvector types available as predefined
+typedefs, while Clang supports them via the "neon_vector_type" and
+"neon_polyvector_type" attributes.  These NEON vector types are represented as
+tk_vector types with a kind field to distinguish between the different vector
+kinds (the is_ext_vector_type flag has been replaced with a kind of vk_ext).
+Scalable vector types are represented as tk_scalable_vector types.
+
+
 4/3/24   [EDGcpfe/19086,EDGcpfe/26821,EDGcpfe/26870,EDGcpfe/26896]
 Cast to incomplete type in decltype construct
 

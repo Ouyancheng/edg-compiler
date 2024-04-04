@@ -1264,6 +1264,9 @@ Enter predeclared symbols as required by the implementation.
 #if GNU_VECTOR_TYPES_ALLOWED
     if (targ_supports_arm64) {
       if (gnu_version_is(>=50000)) {
+        /* GNU makes ARM NEON vector and polyvector types available as
+           predefined typedefs; Clang supports them via the "neon_vector_type"
+           and "neon_polyvector_type" attributes. */
         enter_neon_vector_types(float_type(fk_std_bfloat16), 4,
                                 {"__Bfloat16x4_t", "__Bfloat16x8_t"},
                                 vk_neon);
