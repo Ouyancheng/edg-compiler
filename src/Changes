@@ -67,7 +67,7 @@ GCC accepts declarations such as:
 In GNU C++ mode, the front end now emulates this behavior with a warning.
 
 
-4/1/24   [EDGcpfe/19533,EDGcpfe/22944,EDGcpfe/26964]
+4/1/24   [EDGcpfe/19533,EDGcpfe/22944,EDGcpfe/26974]
 Clang compatibility: Attributes pass_object_size and diagnose_if
 
 The front end now provides limited support for the Clang attributes diagnose_if
