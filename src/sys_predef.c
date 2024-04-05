@@ -1115,7 +1115,8 @@ static void enter_neon_vector_types(
 Enter predefined typedefs for 64-bit and 128-bit wide NEON vectors of the
 specified element type.  vector_elements specifies the number of elements for a
 64-bit wide vector.  The typedef name is supplied in the array names for 64-bit
-and 128-bit wide vectors.
+and 128-bit wide vectors.  vector_kind is the kind of the vector (either
+vk_neon or vk_neon_poly).
 */
 {
   check_assertion(vector_kind == vk_neon || vector_kind == vk_neon_poly);

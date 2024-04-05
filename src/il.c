@@ -10451,7 +10451,8 @@ a_type_ptr make_vector_type(a_type_ptr     element_type,
           /* Defaulted: */  a_vector_kind  kind)
 /*
 Return a tk_vector type representing a vector of length n_elements with
-elements of type element_type.
+elements of type element_type.  kind is the kind of the vector (it is defaulted
+to vk_gnu).
 */
 {
   a_type_ptr  vtype = alloc_type((a_type_kind)tk_vector);
@@ -10465,10 +10466,12 @@ elements of type element_type.
   return vtype;
 }  /* make_vector_type */
 
+
 a_type_ptr make_scalable_vector_type(a_type_ptr     element_type,
                                      uint8_t        n_tuple_elements)
 /*
-Return a tk_scalable_vector type representing a vector of n_tuple_elements.
+Return a tk_scalable_vector type representing a vector of n_tuple_elements with
+elements of type element_type.
 */
 {
   a_type_ptr  vtype = alloc_type(tk_scalable_vector);
@@ -10483,6 +10486,10 @@ Return a tk_scalable_vector type representing a vector of n_tuple_elements.
 
 
 a_type_ptr scalable_vector_count_type(void)
+/*
+Make or find a type entry for a scalable vector count type and return a pointer
+to it.
+*/
 {
   a_type_ptr pit;
 
@@ -10495,6 +10502,7 @@ a_type_ptr scalable_vector_count_type(void)
   }  /* if */
   return pit;
 }  /* scalable_vector_count_type */
+
 
 void eliminate_boolean_vector(a_type_ptr  *p_type)
 /*

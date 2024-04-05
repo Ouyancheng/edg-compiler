@@ -10264,6 +10264,7 @@ the array names.
   return names[tuple_elements - 1];
 }  /* choose_scalable_vector_name_for_tuple_elements */
 
+
 static a_const_char *choose_neon_vector_name_for_size(
                                        a_targ_size_t                    size,
                                        const a_const_char_ptr_array<2>  &names)
