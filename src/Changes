@@ -4,7 +4,7 @@ Version 6.7
 Unbounded loop in Microsoft mode
 
 In some cases involving a cast applied to a comma expression, the front end
-create an expression node using itself as an operand, which in turn was likely
+created an expression node using itself as an operand, which in turn was likely
 to trigger an unbounded loop during IL traversal.  For example:
 
   char* g(unsigned long &x, char *str) {
