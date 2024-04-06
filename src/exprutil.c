@@ -10167,7 +10167,12 @@ user-defined conversions.
                       /*within_expr_processing=*/TRUE,
                       err_pos);
             if (con_expr != orig_con_expr) {
-              overwrite_node(orig_con_expr, con_expr);
+              /* Replace the original node with the node incorporating the
+                 cast.  Be sure to use a copy of the expression tree including
+                 the cast because we could end up with a loop in the node
+                 graph otherwise. */
+              overwrite_node(orig_con_expr,
+                             copy_expr_tree(con_expr, CE_NO_OPTIONS));
             }  /* if */
             { an_expr_node_ptr tnode = node;
               while (tnode != orig_con_expr) {
