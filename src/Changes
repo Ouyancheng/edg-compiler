@@ -1,5 +1,19 @@
 Version 6.7
 
+4/6/24   [EDGcpfe/27132]
+Unbounded loop in Microsoft mode
+
+In some cases involving a cast applied to a comma expression, the front end
+create an expression node using itself as an operand, which in turn was likely
+to trigger an unbounded loop during IL traversal.  For example:
+
+  char* g(unsigned long &x, char *str) {
+    return str ? str : (char*)(x = 0, 0);  // Previously triggered an unbounded
+  }                                        // loop in Microsoft mode.
+
+This is now fixed.
+
+
 4/4/24   [EDGcpfe/27093]
 Support for ARM scalable and NEON vector types (IL CHANGE)
 
