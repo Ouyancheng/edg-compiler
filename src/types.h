@@ -504,6 +504,13 @@ not been specialized.
    (tp)->variant.class_struct_union.is_template_class &&		\
    !(tp)->variant.class_struct_union.is_specialized)
 
+/*
+Return a pointer to the associated typeref type supplement.
+*/
+#define typeref_supp(tp)                                                   \
+  ((tp)->variant.typeref.extra_info)
+
+
 inline a_boolean typeref_is_typedef(a_type_ptr  tp)
 /*
 Return TRUE if a tk_typeref type represents a typedef-name.

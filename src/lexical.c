@@ -21191,6 +21191,26 @@ a routine to lookup the appropriate instance (or generate one if needed).
          prescan.  During the prescan, this code will be used because of the
          GID_USE_PROTOTYPE_NOT_NONREAL flag. */
       a_type_ptr  new_tp = type_symbol_type(new_sym);
+      if (gpp_version_is(any_version) && type_is(new_tp, tk_typeref) &&
+          scope_stack_top().in_prototype_instantiation &&
+          !scope_stack_top().in_template_deduction_context &&
+          !scope_is(&scope_stack_top(), sck_class_struct_union) &&
+          new_tp->variant.typeref.kind == trk_is_template_alias &&
+          new_tp->variant.typeref.is_dependent) {
+        /* GCC does not look through alias templates while parsing templates.
+           We cannot easily emulate that in contexts that might be redeclared
+           later on (most deduction contexts and class member declarations),
+           but in other prototype instantiation contexts we can replace a
+           dependent alias template instance by a proxy class so that the
+           front end will not try to verify the underlying type.  For example:
+               struct S {};
+               template<typename> using A = S;
+               template<typename T> struct D: A<T>::B {}; 
+           This example is an error because A<T> is known not to have a member
+           B, but GCC ignores that. */
+        new_tp = proxy_class_for_template_param(new_tp);
+        new_sym = symbol_for(new_tp);
+      }  /* if */
       new_tp = skip_typerefs(new_tp);
       if (is_immediate_class_type(new_tp) &&
           new_tp->variant.class_struct_union.is_nonreal_class) {

@@ -6748,8 +6748,7 @@ Macro wrapper for f_symbol_is_pack to avoid calls in most contexts.
    class template, alias template, function template, or variable template. */
 #define template_arg_list_for_symbol(sym)				\
   ((sym)->kind == (a_symbol_kind)sk_type				\
-    ? (sym)->variant.type.ptr->						\
-                     variant.typeref.extra_info->template_arg_list	\
+    ? typeref_supp((sym)->variant.type.ptr)->template_arg_list          \
     : is_class_struct_union_symbol(sym)                                 \
       ? (sym)->variant.class_struct_union.type->			\
                      variant.class_struct_union.extra_info->template_arg_list \
@@ -6763,8 +6762,7 @@ Macro wrapper for f_symbol_is_pack to avoid calls in most contexts.
    is returned. */
 #define orig_template_arg_list_for_symbol(sym)				\
   ((sym)->kind == (a_symbol_kind)sk_type				\
-    ? (sym)->variant.type.ptr->						\
-                     variant.typeref.extra_info->orig_template_arg_list	\
+    ? typeref_supp((sym)->variant.type.ptr)->orig_template_arg_list     \
     : is_class_struct_union_symbol(sym)                                 \
       ? (sym)->variant.class_struct_union.type->			\
                      variant.class_struct_union.extra_info->template_arg_list \

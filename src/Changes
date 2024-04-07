@@ -1,5 +1,20 @@
 Version 6.7
 
+4/7/24   [EDGcpfe/26857]
+GCC compatibility: Treat some alias templates as opaque
+
+Consider:
+
+  struct S {};
+  template<typename> using A = S;
+  template<typename T> struct D: A<T>::B {};  // Now accepted in GNU C++ modes.
+
+This example is invalid because A<T> has no member B.  However, GCC appears not
+to diagnose such cases (presumably because it treats A<T> as opaque).  The
+front end now emulates that behavior to some extent in GNU C++ modes (but not
+Clang modes).
+
+
 4/6/24   [EDGcpfe/27132]
 Unbounded loop in Microsoft mode
 
