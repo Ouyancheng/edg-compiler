@@ -1,5 +1,23 @@
 Version 6.7
 
+4/8/24   [EDGcpfe/22609,EDGcpfe/27086]
+Type deduction fails for GNU template static data member with unspecified bound
+
+Consider:
+
+  template<typename T> struct X {
+    static constexpr int arr[] = { 1, 2, 3 };
+  };
+  int main() {
+      for(auto i: X<int>::arr) {}  // Previously failed in GNU C++ mode.
+  }                                // Now okay.
+
+In GNU C++ modes, a static data member initializer in a template class is not
+instantiated until the member is used.  This caused deduction to fail in the
+example above.  That is now fixed by instantiating the initializer for a case
+like this a little earlier.
+
+
 4/8/24   [EDGcpfe/25484]
 GNU C compatibility: Constant aggregate variables in initializers
 

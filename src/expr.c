@@ -37627,6 +37627,16 @@ if rescan_is_template_id is TRUE, and return the result in *operand
                The definition of S<int>::x is not required here (though in
                standard C++17 mode S<int>::x is, in fact, defined already). */
             expr_stack->fold_prvalue_if_possible = TRUE;
+            if (gpp_version_is(any_version) &&
+                var_ptr->is_constexpr && var_ptr->is_template_variable &&
+                is_incomplete_array_type(var_ptr->type)) {
+              /* In GNU C++ mode, the initializer may not have been
+                 instantiated yet.  If the type of the variable is an array
+                 of unspecified size, it must be done now to ensure we have
+                 the correct type for the expression. */
+              ensure_inclass_static_member_constant_initializer_is_scanned(
+                                                                     var_ptr);
+            }  /* if */
           }  /* if */
           goto variable;
         case sk_variable:
