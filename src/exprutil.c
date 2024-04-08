@@ -17098,7 +17098,8 @@ initializer, is done in var_constant_value[_full].
   a_boolean  is_const = FALSE;
   a_type_ptr var_type = var->type;
 
-  if ((is_integral_or_enum_type(var_type) &&
+  if (((is_integral_or_enum_type(var_type) ||
+        (gcc_version_is(>=80000) && gcc_const_variables_allowed)) &&
        is_const_qualified_type(var_type)) ||
       is_template_param_type(var_type)) {
     is_const = TRUE;
@@ -17260,9 +17261,11 @@ be returned for a C mode const variable.
           (var->is_constexpr || is_any_reference_type(var->type))) {
         /* C++11 allows more kinds of constants for variables declared
            "constexpr" (e.g., class types) and for references. */
-      } else if (con_val->kind == (a_constant_repr_kind)ck_aggregate) {
+      } else if (constant_is(con_val, ck_aggregate) &&
+                 !(gcc_version_is(>=80000) && gcc_const_variables_allowed)) {
         /* An aggregate cannot be considered a constant value in pre-C++11
-           code. */
+           code.  In some GNU C modes, however, they are usable as  constant
+           values. */
         con_val = NULL;
       } else if (con_val->kind == (a_constant_repr_kind)ck_address) {
         /* The address of a variable, routine, or string literal cannot

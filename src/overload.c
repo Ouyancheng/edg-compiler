@@ -27275,7 +27275,7 @@ will be an lvalue instead of the usual prvalue.
     if (dip != NULL) {
       if (dip->kind == (a_dynamic_init_kind)dik_constant) {
         constant = dip->variant.constant.ptr;
-        if (!is_generated_dynamic_init(dip) &&
+        if (!is_generated_dynamic_init(dip) && constant->expr == NULL &&
             curr_expr_kind_is_one_in_which_const_exprs_are_recorded()) {
           /* Save the dynamic init as a backing expression for the
              constant.  We have to make a second copy of the constant. */

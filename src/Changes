@@ -1,5 +1,15 @@
 Version 6.7
 
+4/8/24   [EDGcpfe/25484]
+GNU C compatibility: Constant aggregate variables in initializers
+
+In C mode, initializers for static-lifetime variables must be constant.  GCC
+treats as constant some uses of const variables and the front end already
+emulated this to an extent (see, e.g., the entry for EDGcpfe/14216).  Now, in
+GNU C modes with gnu_version >= 80000, this behavior extends to more const
+variable types, including aggregate variables.
+
+
 4/7/24   [EDGcpfe/26857]
 GCC compatibility: Treat some alias templates as opaque
 
