@@ -10,7 +10,7 @@ Consider:
   };
   int main() {
     for(auto i: X<int>::arr) {}  // Previously failed in GNU C++ mode.
-  }                                // Now okay.
+  }                              // Now okay.
 
 In GNU C++ modes, a static data member initializer in a template class is not
 instantiated until the member is used.  This caused deduction to fail in the
