@@ -13154,7 +13154,9 @@ well as C++ mode.
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
     /* Do not insert code here. */
     if (is_template_param(source_type_pointed_to) ||
-        is_template_param(dest_type_pointed_to)) {
+        is_proxy_class(source_type_pointed_to) ||
+        is_template_param(dest_type_pointed_to) ||
+        is_proxy_class(dest_type_pointed_to)) {
       /* Cast involving template parameter types, in a prototype
          instantiation. */
       okay = TRUE;
@@ -13239,14 +13241,17 @@ well as C++ mode.
   }  /* if */
   if (!okay) {
     /* No normal conversion.  Look for error and template matches. */
-    if (is_error(dest_type) || is_template_param_type(dest_type)) {
-      if (is_error(source_type) || is_template_param_type(source_type) ||
+    if (is_error(dest_type) ||
+        is_template_param_or_proxy_type(dest_type)) {
+      if (is_error(source_type) ||
+          is_template_param_or_proxy_type(source_type) ||
           is_integral_or_enum(source_type) ||
           is_pointer_or_handle(source_type) ||
           is_ptr_to_member(source_type)) {
         okay = TRUE;
       }  /* if */
-    } else if (is_error(source_type) || is_template_param_type(source_type)) {
+    } else if (is_error(source_type) ||
+               is_template_param_or_proxy_type(source_type)) {
       if (is_integral_or_enum(dest_type) ||
           is_pointer_or_handle(dest_type) ||
           is_ptr_to_member(dest_type)) {
