@@ -378,6 +378,57 @@ Reset the optional to an empty state.
 
 
 /*
+A struct representing a char*-based string of a given length.
+*/
+struct a_string_view {
+  a_const_char * const
+                start;  /* The start of the string. */
+  const size_t  length; /* The length of the string (not including the null
+                           terminator). */
+  a_string_view()
+    : start(""), length(0)
+    {}
+  a_string_view(a_const_char *start_val)
+    : start(start_val), length(strlen(start_val))
+    { check_assertion(start_val != NULL); }
+  a_string_view(a_const_char *start_val, size_t length_val)
+    : start(start_val), length(length_val)
+    { check_assertion(start_val != NULL); }
+};  /* a_string_view */
+
+
+inline a_boolean operator==(const a_string_view str1,
+                            const a_string_view str2)
+/*
+Return TRUE if the string represented by str1 is the same as the string
+represented by str2.  If both handles contain empty strings then the "strings"
+are considered the same.
+*/
+{
+  a_boolean result;
+
+  if (str1.length != str2.length) {
+    result = FALSE;
+  } else {
+    result = (strncmp(str1.start, str2.start, str1.length) == 0);
+  }  /* if */
+  return result;
+}  /* operator== */
+
+
+inline a_boolean operator!=(const a_string_view str1,
+                            const a_string_view str2)
+/*
+Return TRUE if the string represented by str1 is not the same as the string
+represented by str2.  If both handles contain empty strings then the "strings"
+are considered the same.
+*/
+{
+  return !(str1 == str2);
+}  /* operator!= */
+
+
+/*
 Pack expand the given void type expression with each expanded expression
 guaranteed to evaluate at runtime in the order of expansion.
 

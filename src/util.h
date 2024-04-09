@@ -3148,20 +3148,6 @@ such element is found.
 template<template<typename> class Allocator>
 struct Allocated_string;
 
-
-/*
-A struct representing a char*-based string of a given length.
-*/
-struct a_string_view {
-  a_const_char * const
-                start;  /* The start of the string. */
-  const size_t  length; /* The length of the string (not including the null
-                           terminator). */
-  a_string_view(a_const_char *start_val, size_t length_val)
-    : start(start_val), length(length_val)
-    {}
-};  /* a_string_view */
-
 namespace detail {
 
 /*
@@ -5126,49 +5112,6 @@ Given the multi-value, deconstruct and deallocate the multi-value list.
   this->multi_value_allocator.dealloc(values_alloc);
 }  /* Ptr_multi_map::dealloc */
 
-
-/*
-A structure that wraps a C-string to enable operations such as equality and
-hashing to operate with string semantics as opposed to raw pointer semantics.
-*/
-struct a_C_str_handle {
-  a_const_char
-		*ptr = NULL;
-			/* Pointer to the C-string. */
-  a_C_str_handle() = default;
-  a_C_str_handle(a_const_char *str) : ptr(str) {}
-};
-
-
-inline a_boolean operator==(const a_C_str_handle str1,
-                            const a_C_str_handle str2)
-/*
-Return TRUE if the string contained by str1 is the same as the string contained
-by str2.  If both handles contain NULL pointers then the "strings" are
-considered the same.
-*/
-{
-  a_boolean result;
-  if (str1.ptr == NULL || str2.ptr == NULL) {
-      result = (str1.ptr == str2.ptr);
-  } else {
-    result = (strcmp(str1.ptr, str2.ptr) == 0);
-  }  /* if */
-  return result;
-}  /* operator== */
-
-
-inline a_boolean operator!=(const a_C_str_handle str1,
-                            const a_C_str_handle str2)
-/*
-Return TRUE if the string contained by str1 is not the same as the string
-contained by str2.  If both handles contain NULL pointers then the "strings"
-are considered the same.
-*/
-{
-  return !(str1 == str2);
-}  /* operator!= */
-
 #if !STANDALONE_UTILITY_PROGRAM
 
 /*
@@ -5233,13 +5176,13 @@ Compute a hash for the given string.  The hash must be appropriate for Ptr_map.
 }  /* hash_ptr */
 
 
-inline uintptr_t hash_ptr(const a_C_str_handle str)
+inline uintptr_t hash_ptr(a_string_view str)
 /*
-Compute a hash for the given C-string.  The hash must be appropriate for
+Compute a hash for the given string view.  The hash must be appropriate for
 Ptr_map.
 */
 {
-  return (uintptr_t)hash_source_string((a_void_ptr)str.ptr);
+  return (uintptr_t)hash_source_string((a_void_ptr)str.start);
 }  /* hash_ptr */
 
 #if !STANDALONE_UTILITY_PROGRAM

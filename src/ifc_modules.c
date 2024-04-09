@@ -3359,7 +3359,8 @@ otherwise.
   Opt<a_string> opt_mod_name = get_name_of_ifc_module(module_file);
 
   if (opt_mod_name.has_value()) {
-    a_C_str_handle mod_name(opt_mod_name->as_temp_characters());
+    a_string_view mod_name(opt_mod_name->as_temp_characters(),
+                           opt_mod_name->length());
 
     result = (mod_name == module_name);
   }  /* if */

@@ -10395,12 +10395,13 @@ Process the arguments on the command line that invoked the compiler.
             lazy_mod_map_arr->push_back(path);
           } else {
             /* Split the parts to get the module name and path. */
-            a_C_str_handle module_name(part_1);
+            a_string_view  module_name(part_1);
             a_const_char   *path = file_name_from_opt_arg(part_2);
 
             /* Add this module name to the map. */
             if (mod_map->get(module_name) != NULL) {
-              str_command_line_error(ec_duplicate_module_map, module_name.ptr);
+              str_command_line_error(ec_duplicate_module_map,
+                                     module_name.start);
             } else {
               mod_map->map(module_name, path);
             }  /* if */

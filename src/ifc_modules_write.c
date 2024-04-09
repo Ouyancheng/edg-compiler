@@ -1055,7 +1055,7 @@ private:
   an_ifc_output_state
                 *output_state;
                         /* The associated IFC output state. */
-  Ptr_map<a_C_str_handle, size_t, General_allocator>
+  Ptr_map<a_string_view, size_t, General_allocator>
                 string_table_map = {/*mask_width=*/10};
                         /* A map of string values to their given offsets
                            in the string table.  This is used to deduplicate
@@ -1627,8 +1627,8 @@ given string must be at least as long as the lifetime of the IFC IL map.
   size_t name_offset = 0;
 
   if (str != NULL && str[0] != '\0') {
-    a_C_str_handle str_handle(str);
-    uintptr_t      hash = hash_ptr(str_handle);
+    a_string_view str_handle(str);
+    uintptr_t     hash = hash_ptr(str_handle);
 
     name_offset = this->string_table_map.get_with_hash(str_handle, hash);
     if (name_offset == 0) {

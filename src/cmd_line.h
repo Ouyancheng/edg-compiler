@@ -521,7 +521,7 @@ EXTERN a_boolean
 			   (binary) IL file is still written. */
 #endif /* IL_SHOULD_BE_WRITTEN_TO_FILE */
 using a_module_file_map =
-		     Ptr_map<a_C_str_handle, a_const_char*, General_allocator>;
+		      Ptr_map<a_string_view, a_const_char*, General_allocator>;
 EXTERN a_module_file_map
 		*mod_map;
 			/* A map for modules to find the corresponding module

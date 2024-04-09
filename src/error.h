@@ -1100,6 +1100,16 @@ struct Fill_in<char*> {
 };  /* Fill_in */
 
 /*
+A diagnostic fill-in for string view values.
+*/
+template<>
+struct Fill_in<a_string_view> {
+  static void add(a_diagnostic_ptr diag,
+                  a_string_view    value)
+    { Fill_in<a_const_char*>::add(diag, value.start); }
+};  /* Fill_in */
+
+/*
 A diagnostic fill-in for symbols.
 */
 template<>

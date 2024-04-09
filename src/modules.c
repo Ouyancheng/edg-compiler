@@ -363,8 +363,8 @@ ignored.
       }  /* if */
       if (strcmp(entry.value(), module_file) == 0) {
         /* A mapping for this file exists, add it to the diagnostic. */
-        a_const_char *module_name = entry.key().ptr;
-        str_add_diag_info(dp, ec_found_from_module_map, module_name);
+        a_string_view module_name = entry.key();
+        add_diag_info(dp, ec_found_from_module_map, module_name);
       }  /* if */
     }  /* for */
     /* FIXME: Should lazy_mod_map_arr elements be reported here? */
@@ -507,21 +507,22 @@ already exists, it takes priority and this element is silently ignored.
   Opt<a_string>  opt_mod_name = get_name_of_module(mod_path);
 
   if (opt_mod_name.has_value()) {
-    a_C_str_handle tmp_mod_handle(opt_mod_name->as_temp_characters());
+    a_string_view tmp_mod_handle(opt_mod_name->as_temp_characters(),
+                                 opt_mod_name->length());
 
     /* Using a temporary module handle, allocate a "permanent" module name
        string. */
     if (mod_map->get(tmp_mod_handle) == NULL) {
       General_allocator<char>
-                      allocator;
-      a_const_char    *mod_name_chars =
+                    allocator;
+      a_const_char  *mod_name_chars =
                                  opt_mod_name->to_allocated_storage(allocator);
-      a_C_str_handle  mod_handle(mod_name_chars);
+      a_string_view mod_handle(mod_name_chars, opt_mod_name->length());
 
       mod_map->map(mod_handle, mod_path);
     } else {
-      pos_st_catastrophe(ec_multiple_module_matches, &error_position,
-                         tmp_mod_handle.ptr);
+      pos_catastrophe(ec_multiple_module_matches, &error_position,
+                      tmp_mod_handle);
     }  /* if */
   }  /* if */
   lazy_mod_map_arr->pop_back();
