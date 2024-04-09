@@ -6739,7 +6739,19 @@ done_with_operation:
       if (need_parens) m_write_tok_ch(')');
       break;
     case enk_constant:
-      dump_constant(node_constant(expr));
+      { a_constant  *cp = node_constant(expr);
+        if (il_header.source_language == sl_C &&
+            constant_is(cp, ck_aggregate)) {
+          /* In some modes, const aggregate variables may be folded to
+             ck_aggregate constants (and sometimes the associated variable is
+             removed from the IL afterwards).  If this happens in an expression
+             context, render it as a compound literal (otherwise, it will be
+             rendered as an initializer list, which is not valid in a C
+             expression context). */
+          cp->is_compound_literal = TRUE;
+        }  /* if */
+        dump_constant(cp);
+      }
       break;
     case enk_variable:
 #if CHECKING && !STANDALONE_C_GEN_BE
