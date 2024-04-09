@@ -26332,7 +26332,7 @@ indication in *rcblock).
         /* Casting to a pointer to member of an object type. */
         cast_type_okay = TRUE;
       }  /* if */
-    } else if (is_template_param_type(cast_type)) {
+    } else if (is_template_param_or_proxy_type(cast_type)) {
       /* A cast to a template parameter type is assumed to be okay. */
       template_param_case = TRUE;
       cast_type_okay = TRUE;

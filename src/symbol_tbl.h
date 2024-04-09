@@ -6688,7 +6688,6 @@ class definition.
    (sym)->variant.class_struct_union.type->			      \
                    variant.class_struct_union.is_nonreal_class)
 
-#if MICROSOFT_EXTENSIONS_ALLOWED
 /*
 If type is a proxy class, return the associated template parameter,
 otherwise return NULL.
@@ -6699,6 +6698,7 @@ otherwise return NULL.
    ? class_type_supp(type)->proxy_of_type                               \
    : NULL)
 
+#if MICROSOFT_EXTENSIONS_ALLOWED
 /* Return TRUE if the symbol is a template class symbol for a Microsoft mode
    instantiated nonreal class. */
 #define is_ms_instantiated_nonreal_class_symbol(sym)                  \
@@ -7401,8 +7401,7 @@ extern a_symbol_ptr find_literal_operator(a_const_char      *name,
 Return TRUE if "tp" is a proxy class.
 */
 #define is_proxy_class(tp)						\
-  (is_immediate_class_type(tp) &&					\
-   class_type_supp(tp)->proxy_of_type != NULL)
+  (type_is(tp, tk_class) && class_type_supp(tp)->proxy_of_type != NULL)
 
 extern a_scope_number take_next_scope_number(void);
 

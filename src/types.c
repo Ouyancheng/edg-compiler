@@ -3099,6 +3099,17 @@ Return TRUE if the given type is a template parameter type.
 }  /* is_template_param_type */
 
 
+a_boolean is_template_param_or_proxy_type(a_type_ptr tp)
+/*
+Return TRUE if the given type is a template parameter type or a proxy class
+type.
+*/
+{
+  tp = skip_typerefs(tp);
+  return is_template_param(tp) || is_proxy_class(tp);
+}  /* is_template_param_type */
+
+
 a_boolean is_template_param_type_or_ref_thereto(a_type_ptr  tp)
 /*
 Return TRUE if the given type is a template parameter type or a reference to
