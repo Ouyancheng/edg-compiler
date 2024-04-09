@@ -10947,118 +10947,122 @@ top_of_loop:
         s = MANGLING_STRING_FOR_SCALABLE_VECTOR_COUNT;
         break;
       case tk_scalable_vector:
-      {
-        a_type_ptr  element_type = type->variant.scalable_vector.element_type;
-        uint8_t     tuple_elements;
-        tuple_elements = type->variant.scalable_vector.tuple_elements;
+        {
+          a_type_ptr  element_type =
+                                    type->variant.scalable_vector.element_type;
+          uint8_t     tuple_elements;
+          tuple_elements = type->variant.scalable_vector.tuple_elements;
 #if IA64_ABI
-        if (tuple_elements == 1) {
-          add_to_mangled_name('u', mctl);
-        }  /* if */
+          if (tuple_elements == 1) {
+            add_to_mangled_name('u', mctl);
+          }  /* if */
 #endif /* IA64_ABI */
-        switch (element_type->kind) {
-          case tk_integer:
-          {
-            an_integer_kind  int_kind = element_type->variant.integer.int_kind;
-            if (is_bool_type(element_type)) {
-              s = choose_scalable_vector_name_for_tuple_elements(
-                                           tuple_elements,
-                                           {"__SVBool_t", "svboolx2_t",
-                                            NULL, "svboolx4_t"});
-            } else {
-              switch (int_kind) {
-                case ik_signed_char:
+          switch (element_type->kind) {
+            case tk_integer:
+              {
+                an_integer_kind  int_kind =
+                                        element_type->variant.integer.int_kind;
+                if (is_bool_type(element_type)) {
+                  s = choose_scalable_vector_name_for_tuple_elements(
+                                               tuple_elements,
+                                               {"__SVBool_t", "svboolx2_t",
+                                                NULL, "svboolx4_t"});
+                } else {
+                  switch (int_kind) {
+                    case ik_signed_char:
+                      s = choose_scalable_vector_name_for_tuple_elements(
+                                               tuple_elements,
+                                               {"__SVInt8_t", "svint8x2_t",
+                                                "svint8x3_t", "svint8x4_t"});
+                      break;
+                    case ik_unsigned_char:
+                      s = choose_scalable_vector_name_for_tuple_elements(
+                                               tuple_elements,
+                                               {"__SVUint8_t", "svuint8x2_t",
+                                                "svuint8x3_t", "svuint8x4_t"});
+                      break;
+                    case ik_short:
+                      s = choose_scalable_vector_name_for_tuple_elements(
+                                               tuple_elements,
+                                               {"__SVInt16_t", "svint16x2_t",
+                                                "svint16x3_t", "svint16x4_t"});
+                      break;
+                    case ik_unsigned_short:
+                      s = choose_scalable_vector_name_for_tuple_elements(
+                                             tuple_elements,
+                                             {"__SVUint16_t", "svuint16x2_t",
+                                              "svuint16x3_t", "svuint16x4_t"});
+                      break;
+                    case ik_int:
+                      s = choose_scalable_vector_name_for_tuple_elements(
+                                               tuple_elements,
+                                               {"__SVInt32_t", "svint32x2_t",
+                                                "svint32x3_t", "svint32x4_t"});
+                      break;
+                    case ik_unsigned_int:
+                      s = choose_scalable_vector_name_for_tuple_elements(
+                                             tuple_elements,
+                                             {"__SVUint32_t", "svuint32x2_t",
+                                              "svuint32x3_t", "svuint32x4_t"});
+                      break;
+                    case ik_long:
+                      s = choose_scalable_vector_name_for_tuple_elements(
+                                               tuple_elements,
+                                               {"__SVInt64_t", "svint64x2_t",
+                                                "svint64x3_t", "svint64x4_t"});
+                      break;
+                    case ik_unsigned_long:
+                      s = choose_scalable_vector_name_for_tuple_elements(
+                                             tuple_elements,
+                                             {"__SVUint64_t", "svuint64x2_t",
+                                              "svuint64x3_t", "svuint64x4_t"});
+                      break;
+                    default:
+                      unexpected_condition();
+                      break;
+                  }  /* switch */
+                }  /* if */
+              }
+              break;
+            case tk_float:
+              switch (element_type->variant.float_kind) {
+                case fk_fp16:
                   s = choose_scalable_vector_name_for_tuple_elements(
                                            tuple_elements,
-                                           {"__SVInt8_t", "svint8x2_t",
-                                            "svint8x3_t", "svint8x4_t"});
+                                           {"__SVFloat16_t", "svfloat16x2_t",
+                                            "svfloat16x3_t", "svfloat16x4_t"});
                   break;
-                case ik_unsigned_char:
+                case fk_std_bfloat16:
                   s = choose_scalable_vector_name_for_tuple_elements(
-                                           tuple_elements,
-                                           {"__SVUint8_t", "svuint8x2_t",
-                                            "svuint8x3_t", "svuint8x4_t"});
-                  break;
-                case ik_short:
-                  s = choose_scalable_vector_name_for_tuple_elements(
-                                           tuple_elements,
-                                           {"__SVInt16_t", "svint16x2_t",
-                                            "svint16x3_t", "svint16x4_t"});
-                  break;
-                case ik_unsigned_short:
-                  s = choose_scalable_vector_name_for_tuple_elements(
-                                           tuple_elements,
-                                           {"__SVUint16_t", "svuint16x2_t",
-                                            "svuint16x3_t", "svuint16x4_t"});
-                  break;
-                case ik_int:
-                  s = choose_scalable_vector_name_for_tuple_elements(
-                                           tuple_elements,
-                                           {"__SVInt32_t", "svint32x2_t",
-                                            "svint32x3_t", "svint32x4_t"});
-                  break;
-                case ik_unsigned_int:
-                  s = choose_scalable_vector_name_for_tuple_elements(
-                                           tuple_elements,
-                                           {"__SVUint32_t", "svuint32x2_t",
-                                            "svuint32x3_t", "svuint32x4_t"});
-                  break;
-                case ik_long:
-                  s = choose_scalable_vector_name_for_tuple_elements(
-                                           tuple_elements,
-                                           {"__SVInt64_t", "svint64x2_t",
-                                            "svint64x3_t", "svint64x4_t"});
-                  break;
-                case ik_unsigned_long:
-                  s = choose_scalable_vector_name_for_tuple_elements(
-                                           tuple_elements,
-                                           {"__SVUint64_t", "svuint64x2_t",
-                                            "svuint64x3_t", "svuint64x4_t"});
-                  break;
-                default:
-                  unexpected_condition();
-                  break;
-              }  /* switch */
-            }  /* if */
-          } break;
-          case tk_float:
-            switch (element_type->variant.float_kind) {
-              case fk_fp16:
-                s = choose_scalable_vector_name_for_tuple_elements(
-                                         tuple_elements,
-                                         {"__SVFloat16_t", "svfloat16x2_t",
-                                          "svfloat16x3_t", "svfloat16x4_t"});
-                break;
-              case fk_std_bfloat16:
-                s = choose_scalable_vector_name_for_tuple_elements(
                                          tuple_elements,
                                          {"__SVBfloat16_t", "svbfloat16x2_t",
                                           "svbfloat16x3_t", "svbfloat16x4_t"});
-                break;
-              case fk_float:
-                s = choose_scalable_vector_name_for_tuple_elements(
-                                         tuple_elements,
-                                         {"__SVFloat32_t", "svfloat32x2_t",
-                                          "svfloat32x3_t", "svfloat32x4_t"});
-                break;
-              case fk_double:
-                s = choose_scalable_vector_name_for_tuple_elements(
-                                         tuple_elements,
-                                         {"__SVFloat64_t", "svfloat64x2_t",
-                                          "svfloat64x3_t", "svfloat64x4_t"});
-                break;
-              default:
-                unexpected_condition();
-            }  /* switch */
-            break;
-          default:
-            unexpected_condition_str(
+                  break;
+                case fk_float:
+                  s = choose_scalable_vector_name_for_tuple_elements(
+                                           tuple_elements,
+                                           {"__SVFloat32_t", "svfloat32x2_t",
+                                            "svfloat32x3_t", "svfloat32x4_t"});
+                  break;
+                case fk_double:
+                  s = choose_scalable_vector_name_for_tuple_elements(
+                                           tuple_elements,
+                                           {"__SVFloat64_t", "svfloat64x2_t",
+                                            "svfloat64x3_t", "svfloat64x4_t"});
+                  break;
+                default:
+                  unexpected_condition();
+              }  /* switch */
+              break;
+            default:
+              unexpected_condition_str(
                   "mangled_encoding_for_type_full: bad type kind for scalable "
                   "vector element type");
-        }  /* switch */
-        mangled_name_with_length(s, mctl);
-        goto have_whole_mangled_name;
-      } break;
+          }  /* switch */
+          mangled_name_with_length(s, mctl);
+          goto have_whole_mangled_name;
+        }
+        break;
 #endif /* GNU_VECTOR_TYPES_ALLOWED */
       case tk_nullptr:
 #if MICROSOFT_EXTENSIONS_ALLOWED

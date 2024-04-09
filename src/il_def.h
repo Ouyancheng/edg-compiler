@@ -10457,10 +10457,9 @@ typedef struct a_type {
 			   conversions.  This property is volatile; e.g., it
 			   is not carried through decltype or deduction. */
       a_vector_kind
-		kind;
-			/* The kind of the vector. */
+		kind;	/* The kind of the vector. */
     } vector;
-    /* When kind is tk_scalable_vector. */
+    /* When kind is tk_scalable_vector: */
     struct {
       a_type_ptr
 		element_type;
