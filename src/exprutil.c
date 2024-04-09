@@ -17264,7 +17264,7 @@ be returned for a C mode const variable.
       } else if (constant_is(con_val, ck_aggregate) &&
                  !(gcc_version_is(>=80000) && gcc_const_variables_allowed)) {
         /* An aggregate cannot be considered a constant value in pre-C++11
-           code.  In some GNU C modes, however, they are usable as  constant
+           code.  In some GNU C modes, however, they are usable as constant
            values. */
         con_val = NULL;
       } else if (con_val->kind == (a_constant_repr_kind)ck_address) {
