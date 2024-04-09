@@ -497,14 +497,19 @@ call).
     if (!is_marked_invalid(idx)) {
       *result = read_value;
     }  /* if */
+  } else if (is_null_index(idx)) {
+    a_const_char *node_part_name =
+                                  get_partition_name_from_kind(node_part_kind);
+
+    /* FIXME: Use a better source position. */
+    error(ec_ifc_partition_missing_element, node_part_name);
   } else {
     a_const_char *idx_part_name = get_partition_name_from_kind(idx_part_kind);
     a_const_char *node_part_name =
                                   get_partition_name_from_kind(node_part_kind);
 
     /* FIXME: Use a better source position. */
-    pos_st2_error(ec_ifc_partition_mismatch, &null_source_position,
-                  node_part_name, idx_part_name);
+    error(ec_ifc_partition_mismatch, node_part_name, idx_part_name);
   }  /* if */
 }  /* construct_node */
 

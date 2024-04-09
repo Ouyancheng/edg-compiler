@@ -3500,6 +3500,7 @@ ec_sizeless_type_not_allowed;;"sizeless type %t is not allowed"
 ec_value_init_of_sizeless_type;;"an object of the sizeless type %t cannot be value-initialized"
 ec_ifc_unexpected_null_scope_member;;"unexpected null declaration index found as part of scope %u"
 ec_cl_unnamed_module_map;;"a module name must be specified for the module file map referencing the file %sq"
+ec_ifc_partition_missing_element;;"a null index value was received where a node in the IFC partition %sq was expected"
 ###############################################################################
 #                                                             \  ___  /       #
 #                                                               /   \         #
