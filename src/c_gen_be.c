@@ -3047,16 +3047,6 @@ only if the Microsoft compiler is the generated code target.
 }  /* track_microsoft_bit_field_allocation */
 
 
-static a_targ_size_t data_extent(a_type_ptr  class_type)
-/*
-Return the number of bytes occupied by the data members of class_type.
-This excludes padding.
-*/
-{
-  return 
-}  /* data_extent */
-
-
 static a_targ_size_t offset_after_field(a_field_ptr field)
 /*
 Return the byte offset following the end of the indicated field.
