@@ -360,6 +360,149 @@ extern a_boolean conv_bytes_to_integer_value(an_integer_value *value,
                                              char             *bytes,
                                              size_t           num_bytes);
 
+/*
+This structure is used to restructure an integer represented as one or more K
+byte integer (a_Part_type) values into an integer represented as one or more of
+N byte integer (an_Integral_type) values.  The given capacity value is the
+pre-allocated storage capacity available for use by the dynamic array of
+an_Integral_type values.
+*/
+template<typename an_Integral_type, unsigned a_Capacity>
+struct Integer_translator {
+  template<typename a_Part_type>
+  inline void add_part(a_Part_type part);
+  const an_Integral_type& operator[](size_t idx) const
+    { return this->parts[idx]; }
+  size_t length() const
+    { return this->parts.length(); }
+private:
+  Small_dyn_array<an_Integral_type, a_Capacity, General_allocator>
+                parts = {};
+                        /* These are the new integer values representing
+                           the bytes added via add_part.
+
+                           For instance (assuming no prior state) if
+                           an_Integral_type is a 4 byte integer and a 2 byte
+                           integer was just given to add_part, the value of
+                           parts is one an_Integral_type value.  This value has
+                           its first 2 bytes set equal to the 2 bytes of the
+                           integer given to add_prat. */
+  size_t        remainder = 0;
+                        /* This is the number of unused bytes in the most
+                           recently appended part in the parts data member.
+
+                           For instance (assuming no prior state) if
+                           an_Integral_type is a 4 byte integer and a 2 byte
+                           integer was just given to add_part, the value of
+                           remainder is 2 (as there are 2 unused bytes in the 4
+                           byte integer). */
+};  /* Integer_translator */
+
+
+template<typename an_Integral_type, unsigned a_Capacity>
+template<typename a_Part_type>
+void Integer_translator<an_Integral_type, a_Capacity>::add_part(
+                                                              a_Part_type part)
+/*
+Add the given integer part to the parts of the output integer stream.
+
+See the documentation of Integer_translator::parts and
+Integer_translator::remainder to understand the semantics of the operation.
+*/
+{
+  constexpr size_t num_src_bytes = sizeof(a_Part_type);
+  constexpr size_t num_dst_bytes = sizeof(an_Integral_type);
+
+  for (ptrdiff_t i = num_src_bytes - 1; i >= 0; --i) {
+    if (this->remainder == 0) {
+      this->parts.push_back(0);
+      this->remainder = num_dst_bytes;
+    }  /* if */
+    --this->remainder;
+
+    an_Integral_type
+                &dest_part = this->parts.back_elem();
+    size_t      bit_adjustment = (((num_dst_bytes - 1) - this->remainder) * 8);
+    dest_part |= (part & 0xFF) << bit_adjustment;
+    part = part >> 8;
+  }  /* for */
+}  /* Integer_translator::add_part */
+
+
+using an_integer_value_translator =
+#if INTEGER_VALUE_REPR_IS_A_HOST_INTEGER
+                Integer_translator<an_integer_value, 1>;
+#else /* !INTEGER_VALUE_REPR_IS_A_HOST_INTEGER */
+                Integer_translator<an_int_value_part,
+                                   INT_VALUE_PARTS_PER_INTEGER_VALUE>;
+#endif /* INTEGER_VALUE_REPR_IS_A_HOST_INTEGER */
+                        /* This is the type of an Integer_translator targeting
+                           the current front end an_integer_value
+                           representation. */
+
+inline a_boolean has_translator_overflowed(
+                                        an_integer_value_translator translator)
+/*
+Return TRUE if the given an_integer_value translator has overflowed what can be
+represented in the current front end configuration; otherwise, return FALSE.
+*/
+{
+  a_boolean        result = FALSE;
+  constexpr size_t max_length =
+#if INTEGER_VALUE_REPR_IS_A_HOST_INTEGER
+                1;
+#else /* !INTEGER_VALUE_REPR_IS_A_HOST_INTEGER */
+                INT_VALUE_PARTS_PER_INTEGER_VALUE;
+#endif /* INTEGER_VALUE_REPR_IS_A_HOST_INTEGER */
+  if (translator.length() > max_length) {
+    result = TRUE;
+  }  /* if */
+  return result;
+}  /* has_translator_overflowed */
+
+
+inline an_integer_value as_integer_value(
+                                        an_integer_value_translator translator)
+/*
+Return the given an_integer_value translator's current state as
+an_integer_value.
+*/
+{
+  check_assertion(!has_translator_overflowed(translator));
+  an_integer_value result;
+
+#if INTEGER_VALUE_REPR_IS_A_HOST_INTEGER
+  result = translator[0];
+#else /* !INTEGER_VALUE_REPR_IS_A_HOST_INTEGER */
+  set_unsigned_integer_value(&result, (a_host_large_unsigned)0);
+  for (size_t i = 0; i < translator.length(); ++i) {
+    result.part[i] = translator[i];
+  }  /* for */
+#endif /* INTEGER_VALUE_REPR_IS_A_HOST_INTEGER */
+  return result;
+}  /* as_integer_value */
+
+
+template<typename an_Integral_type, unsigned a_Capacity>
+inline Integer_translator<an_Integral_type, a_Capacity>
+integer_value_as_translator(const an_integer_value &value)
+/*
+Return the given an_integer_value represented as an Integer_translator value
+with the given initial given integral type and capacity.
+*/
+{
+  Integer_translator<an_Integral_type, a_Capacity> result;
+
+#if INTEGER_VALUE_REPR_IS_A_HOST_INTEGER
+  result.add_part(value);
+#else /* !INTEGER_VALUE_REPR_IS_A_HOST_INTEGER */
+  for (size_t i = 0; i < INT_VALUE_PARTS_PER_INTEGER_VALUE; ++i) {
+    result.add_part(value.part[i]);
+  }  /* for */
+#endif /* INTEGER_VALUE_REPR_IS_A_HOST_INTEGER */
+ return result;
+}  /* integer_value_as_translator */
+
 /* Conditionally close the "edg" namespace. */
 END_EDG_NAMESPACE
 

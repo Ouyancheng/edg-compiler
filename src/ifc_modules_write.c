@@ -2627,22 +2627,12 @@ the expr index for the constant.
     case ck_integer:
       { const an_integer_value
                 &int_val = cp->variant.integer_value;
-        Integer_translator<uint32_t, 2>
-                output_int;
-
-        /* Figure out and create the necessary number of EDG IFC integer
-           constant words. */
-#if INTEGER_VALUE_REPR_IS_A_HOST_INTEGER
-        output_int.add_part(int_val);
-#else /* !INTEGER_VALUE_REPR_IS_A_HOST_INTEGER */
-        for (size_t i = 0; i < INT_VALUE_PARTS_PER_INTEGER_VALUE; ++i) {
-          output_int.add_part(int_val.part[i]);
-        }  /* for */
-#endif /* INTEGER_VALUE_REPR_IS_A_HOST_INTEGER */
-
+        /* Convert the front end integer value into the necessary number of EDG
+           IFC integer constant words. */
+        auto    output_int = integer_value_as_translator<uint32_t, 2>(int_val);
         /* Allocate the integer constant word block and populate it with
            the computed values. */
-        size_t  num_parts_required = output_int.parts.length();
+        size_t  num_parts_required = output_int.length();
         size_t  start = this->output_state->
                             alloc_node_block<an_ifc_edg_constant_integer_word>(
                                                            num_parts_required);
@@ -2652,7 +2642,7 @@ the expr index for the constant.
           this->output_state->fetch_node(&int_word, start + i);
 
           an_ifc_edg_constant_word_storage word_bytes;
-          memcpy(word_bytes, (void*)(&output_int.parts[i]), /*num_bytes=*/4);
+          memcpy(word_bytes, (void*)(&output_int[i]), /*num_bytes=*/4);
 
           an_ifc_edg_constant_word word_contents(int_word.get_file(),
                                                  word_bytes);

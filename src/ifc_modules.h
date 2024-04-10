@@ -972,48 +972,6 @@ extern void db_locus(const an_ifc_source_location &locus);
 
 #endif /* DEBUG */
 
-/*
-This structure is used to translate from parts of the given part type(s)
-to the required number of part values.
-*/
-template<typename an_Integral_type, unsigned a_Capacity>
-struct Integer_translator {
-  template<typename a_Part_type>
-  inline void add_part(a_Part_type part);
-  Small_dyn_array<an_Integral_type, a_Capacity, General_allocator>
-                parts = {};
-                        /* */
-  size_t        remainder = 0;
-};  /* an_ifc_output_integer */
-
-
-template<typename an_Integral_type, unsigned a_Capacity>
-template<typename a_Part_type>
-void Integer_translator<an_Integral_type, a_Capacity>::add_part(
-                                                              a_Part_type part)
-/*
-Add the given integer part to the parts of the output integer stream.
-*/
-{
-  constexpr size_t num_src_bytes = sizeof(a_Part_type);
-  constexpr size_t num_dst_bytes = sizeof(an_Integral_type);
-
-  for (ptrdiff_t i = num_src_bytes - 1; i >= 0; --i) {
-    if (this->remainder == 0) {
-      this->parts.push_back(0);
-      this->remainder = num_dst_bytes;
-    }  /* if */
-    --this->remainder;
-
-    an_Integral_type
-                &dest_part = this->parts.back_elem();
-    size_t      bit_adjustment = (((num_dst_bytes - 1) - this->remainder) * 8);
-    dest_part |= (part & 0xFF) << bit_adjustment;
-    part = part >> 8;
-  }  /* for */
-}  /* Integer_translator<an_Integral_type, a_Capacity>::add_part */
-
-
 /*lint -restore*/ /* FIXME: temporary. */
 
 /* Conditionally close the "edg" namespace. */

@@ -7634,11 +7634,7 @@ integer constant.
                 cardinality = get_ifc_cardinality(node);
     an_edg_constant_integer_word_sequence
                 word_seq(module_of(node), start, cardinality);
-#if INTEGER_VALUE_REPR_IS_A_HOST_INTEGER
-    Integer_translator<an_integer_value, 1>
-#else /* !INTEGER_VALUE_REPR_IS_A_HOST_INTEGER */
-    Integer_translator<an_int_value_part, INT_VALUE_PARTS_PER_INTEGER_VALUE>
-#endif /* INTEGER_VALUE_REPR_IS_A_HOST_INTEGER */
+    an_integer_value_translator
                 dest_int;
     for (Indexed<an_ifc_edg_constant_integer_word> indexed_word : word_seq) {
       if (!indexed_word.has_value()) {
@@ -7657,18 +7653,7 @@ integer constant.
 
     /* Check to see if the IFC representation is too large for this build of
        the front end. */
-    a_boolean is_overflow = FALSE;
-#if INTEGER_VALUE_REPR_IS_A_HOST_INTEGER
-    if (dest_int.parts.length() > 1) {
-      is_overflow = TRUE;
-    }  /* if */
-#else /* !INTEGER_VALUE_REPR_IS_A_HOST_INTEGER */
-    if ((unsigned)dest_int.parts.length() >
-        INT_VALUE_PARTS_PER_INTEGER_VALUE) {
-      is_overflow = TRUE;
-    }  /* if */
-#endif /* INTEGER_VALUE_REPR_IS_A_HOST_INTEGER */
-    if (is_overflow) {
+    if (has_translator_overflowed(dest_int)) {
       /* FIXME: Use a real error message. */
       a_string err_msg("Unexpected overflow while processing "
                        "integer constant");
@@ -7687,18 +7672,7 @@ integer constant.
     constant->type = constant_type;
 
     /* Set the constant value. */
-    an_integer_value
-                &int_value = constant->variant.integer_value;
-#if INTEGER_VALUE_REPR_IS_A_HOST_INTEGER
-    int_value = dest_int.parts.back_elem();
-#else /* !INTEGER_VALUE_REPR_IS_A_HOST_INTEGER */
-    set_unsigned_integer_value(&int_value, (a_host_large_unsigned)0);
-
-    size_t assignment_idx = 0;
-    for (an_int_value_part part : dest_int.parts) {
-      int_value.part[assignment_idx++] = part;
-    }  /* for */
-#endif /* INTEGER_VALUE_REPR_IS_A_HOST_INTEGER */
+    constant->variant.integer_value = as_integer_value(dest_int);
     result = constant;
   }
   goto done;
