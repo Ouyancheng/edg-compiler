@@ -948,6 +948,8 @@ extern void find_inclass_sdm_initializer_for_instance(
                                       a_symbol_ptr  sdm_sym,
                                       a_symbol_ptr  corresp_prototype_tag_sym);
 
+extern a_boolean is_transparent_alias_template(a_template_ptr  templ);
+
 extern a_boolean has_default_template_arguments(a_template_ptr templ);
 
 extern void find_enum_member(a_symbol_ptr		alias_sym,

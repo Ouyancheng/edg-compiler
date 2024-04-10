@@ -7407,13 +7407,13 @@ for more information.
   /* First, check if the types are the same.  This repeats the test in the
      identical_types macro, but it needs to be done here, too, since this
      function is called directly when the flags must be specified. */
+check_typerefs:
   if (type_1 == type_2) {
     identical = TRUE;
     goto done;
   }  /* if */
   /* Now check for typeref equivalence: This includes type qualifiers and
      decltype/typeof constructs. */
-check_typerefs:
   if (type_1->kind == (a_type_kind)tk_typeref ||
       type_2->kind == (a_type_kind)tk_typeref) {
     a_type_qualifier_set  tqs1 = TQ_NONE, tqs2 = TQ_NONE;
@@ -7452,11 +7452,30 @@ check_typerefs:
       tp2 = tp2->variant.typeref.type;
     }  /* while */
     if (tp2->kind == (a_type_kind)tk_template_param) is_nonreal2 = TRUE;
-    if (type_1->kind == (a_type_kind)tk_typeref &&
-        type_2->kind == (a_type_kind)tk_typeref) {
-      if (is_nonreal1 != is_nonreal2) {
-        goto done;
-      } else if (type_intrinsic) {
+    if (is_nonreal1 && type_is(type_1, tk_typeref) &&
+        is_typeref_kind(type_1, trk_is_template_alias) &&
+        type_1->variant.typeref.is_dependent &&
+        is_transparent_alias_template(type_1->variant.typeref.extra_info
+                                                           ->assoc_template)) {
+      /* Skip a transparent alias template and continue with the underlying
+         type. */
+      type_1 = type_1->variant.typeref.type;
+      goto check_typerefs;
+    }  /* if */
+    if (is_nonreal2 && type_is(type_2, tk_typeref) &&
+        is_typeref_kind(type_2, trk_is_template_alias) &&
+        type_2->variant.typeref.is_dependent &&
+        is_transparent_alias_template(type_2->variant.typeref.extra_info
+                                                           ->assoc_template)) {
+      /* Skip a transparent alias template and continue with the underlying
+         type. */
+      type_2 = type_2->variant.typeref.type;
+      goto check_typerefs;
+    }  /* if */
+    if (is_nonreal1 != is_nonreal2) {
+      goto done;
+    } else if (type_is(type_1, tk_typeref) && type_is(type_2, tk_typeref)) {
+      if (type_intrinsic) {
         if (!(flags & ITF_IGNORE_TOP_LEVEL_QUALIFIERS) &&
             !matching_type_qualifier_sets(tqs1, tqs2)) {
           /* The type qualifiers do not match, so the types are not
@@ -7487,23 +7506,33 @@ check_typerefs:
            In a case like this, S<int>::A<X> and S<char>::A<X> are considered
            distinct if X is dependent. */
         goto done;
-      } else if ((flags & ITF_EXACT_EQUIVALENCE) == 0 &&
-                 type_1->variant.typeref.is_dependent &&
+      } else if (type_1->variant.typeref.is_dependent &&
                  type_2->variant.typeref.is_dependent &&
                  is_typeref_kind(type_1, trk_is_template_alias) &&
                  is_typeref_kind(type_2, trk_is_template_alias)) {
-        /* Types such as void_t<T::X> and void<T::Y> should be treated as
-           distinct in most cases.  Although one might expect this to also
-           be the case when ITF_EXACT_EQUIVALENCE is specified, that flag
-           actually needs to test the type under the typeref. */
-        a_typeref_type_supplement_ptr	ttsp_1;
-        a_typeref_type_supplement_ptr	ttsp_2;
+        /* Types such as void_t<T::X> and void_t<T::Y> should be treated as
+           distinct. */
+        a_typeref_type_supplement_ptr   ttsp_1;
+        a_typeref_type_supplement_ptr   ttsp_2;
         ttsp_1 = type_1->variant.typeref.extra_info;
         ttsp_2 = type_2->variant.typeref.extra_info;
         if (!equiv_template_arg_lists(ttsp_1->template_arg_list,
                                       ttsp_2->template_arg_list,
                                       ETA_IS_NONREAL_MEMBER)) {
           goto done;
+        } else if (tp1 != tp2 &&
+                   (is_or_contains_error_type(tp1) ||
+                    is_or_contains_error_type(tp2))) {
+          /* We also need to consider them to be different if the types are
+             dependent template aliases and the underlying types contain an
+             error type.  In this case the template aliases could still refer
+             to template parameters from different template parameter lists. */
+          goto done;
+        } else {
+          /* Otherwise continue with the underlying types. */
+          type_1 = type_1->variant.typeref.type;
+          type_2 = type_2->variant.typeref.type;
+          goto check_typerefs;
         }  /* if */
       } else if (is_nonreal1 &&
                  (flags & ITF_EXACT_EQUIVALENCE) != 0) {
@@ -7513,16 +7542,6 @@ check_typerefs:
                                type_2->variant.typeref.type, flags)) {
           /* If they are not the same, then we need to consider them to be
              different. */
-          goto done;
-        } else if (type_1->variant.typeref.is_dependent &&
-                   type_2->variant.typeref.is_dependent &&
-                   is_typeref_kind(type_1, trk_is_template_alias) &&
-                   is_typeref_kind(type_2, trk_is_template_alias) &&
-                   tp1 != tp2 && is_or_contains_error_type(tp1)) {
-          /* We also need to consider them to be different if the types are
-             dependent template aliases and the underlying types contain an
-             error type.  In this case the template aliases could still refer
-             to template parameters from different template parameter lists. */
           goto done;
         }  /* if */
       }  /* if */

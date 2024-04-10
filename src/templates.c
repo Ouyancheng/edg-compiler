@@ -1984,6 +1984,27 @@ parameters 1 through param_count are checked.
 }  /* template_param_appears_in_param_list */
 
 
+extern a_boolean is_transparent_alias_template(a_template_ptr  templ)
+/*
+Return TRUE if the given template is an alias template that uses all template
+parameters in its aliased type, does not have a requires clause, and none of
+the template parameters are constrained.
+*/
+{
+  a_boolean     result = FALSE;
+  a_template_symbol_supplement_ptr
+                tssp = template_supplement_for_template(templ);
+  if (templ->kind == templk_class &&
+      tssp->variant.class_template.is_alias_template &&
+      templ->template_decl->constraint.requires_clause == NULL &&
+      !tssp->has_template_param_constraint &&
+      !tssp->variant.class_template.has_alias_params_not_in_type) {
+    result = TRUE;
+  }  /* if */
+  return result;
+}  /* is_transparent_alias_template */
+
+
 a_boolean has_default_template_arguments(a_template_ptr templ)
 /*
 Given an IL template, return TRUE if the template has default template
