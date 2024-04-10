@@ -3047,6 +3047,16 @@ only if the Microsoft compiler is the generated code target.
 }  /* track_microsoft_bit_field_allocation */
 
 
+static a_targ_size_t data_extent(a_type_ptr  class_type)
+/*
+Return the number of bytes occupied by the data members of class_type.
+This excludes padding.
+*/
+{
+  return 
+}  /* data_extent */
+
+
 static a_targ_size_t offset_after_field(a_field_ptr field)
 /*
 Return the byte offset following the end of the indicated field.
@@ -3056,7 +3066,16 @@ Return the byte offset following the end of the indicated field.
   a_type_ptr    field_type = skip_typerefs(field->type);
 
   if (!field->is_bit_field) {
-    offset_after = field->offset + field_type->size;
+    offset_after = field->offset;
+    if (field->has_no_unique_address_attribute &&
+        is_immediate_class_type(field_type)) {
+      /* A field marked with the [[no_unique_address]] attribute is allocated
+         like a base class subobject. */
+      offset_after += class_type_supp(field_type)
+                                          ->size_without_virtual_base_classes;
+    } else {
+      offset_after += field_type->size;
+    }  /* if */
   } else if (msvc_is_generated_code_target &&
              field->declared_bit_size <= field->bit_size &&
              !(field->bit_size == 0 && field->next == NULL)) {

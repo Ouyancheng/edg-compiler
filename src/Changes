@@ -1,5 +1,23 @@
 Version 6.7
 
+4/9/24   [EDGcpfe/26317,EDGcpfe/27052]
+C-generating back end abort with [[no_unique_address]] field
+
+Consider:
+
+  struct S {
+    int i;
+    bool j = true;
+  };
+  struct B {
+    [[no_unique_address]] S s;
+  };
+  struct D: B {} d;
+
+This previously aborted in the C-generating back end (a failing assertion check
+in dump_struct_union_definition).  That is now fixed.
+
+
 4/8/24   [EDGcpfe/22609,EDGcpfe/27086]
 Type deduction fails for GNU template static data member with unspecified bound
 
