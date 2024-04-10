@@ -890,6 +890,7 @@ consider the underlying type.
   return skip_typerefs(tp)->kind == (a_type_kind)tk_vector;
 }  /* is_vector_type */
 
+
 a_boolean is_scalable_type(a_type_ptr  tp)
 /*
 Return TRUE if the given type is a scalable vector type (tk_scalable_vector) or
@@ -900,7 +901,7 @@ consider the underlying type.
   tp = skip_typerefs(tp);
   return type_is(tp, tk_scalable_vector) ||
          type_is(tp, tk_scalable_vector_count);
-}  /* is_scaleble_vector_type */
+}  /* is_scalable_type */
 
 #if !STANDALONE_UTILITY_PROGRAM
 
