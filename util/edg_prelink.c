@@ -591,10 +591,9 @@ Print an error message when an assertion fails.
 /* Macro to test an assertion and generate an internal error if
    the condition is not TRUE.  The macro expands to nothing when checking
    code is not being used. */
-#define check_assertion(test)						\
-  if (!(test)) {							\
-    pl_assertion_failed(__FILE__, __LINE__, "", "");			\
-  }
+#define check_assertion(test)                                           \
+  (((test)) ? (void)0 :                                                 \
+    pl_assertion_failed(__FILE__, __LINE__, "", ""))
 #else /* CHECKING */
 #define check_assertion(test) /* Nothing */
 #endif /* CHECKING */

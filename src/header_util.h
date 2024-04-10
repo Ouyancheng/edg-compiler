@@ -378,7 +378,9 @@ Reset the optional to an empty state.
 
 
 /*
-A struct representing a char*-based string of a given length.
+A struct representing a const char*-based string of a given length.  The
+lifetime of the represented string must exceed the lifetime of the string view
+object.
 */
 struct a_string_view {
   a_const_char * const
@@ -389,8 +391,9 @@ struct a_string_view {
     : start(""), length(0)
     {}
   a_string_view(a_const_char *start_val)
-    : start(start_val), length(strlen(start_val))
-    { check_assertion(start_val != NULL); }
+    : start((check_assertion(start_val != NULL), start_val)),
+      length(strlen(start_val))
+    {}
   a_string_view(a_const_char *start_val, size_t length_val)
     : start(start_val), length(length_val)
     { check_assertion(start_val != NULL); }
