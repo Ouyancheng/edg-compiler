@@ -2330,7 +2330,7 @@ pointer to the first character of the suffix.
 
   last_dot = strrchr(name, '.');
   return last_dot;
-}  /* pl_file_suffix */
+}  /* pl_find_suffix */
 
 
 static char *pl_derived_name(a_const_char *name,
