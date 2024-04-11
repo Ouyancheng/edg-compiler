@@ -2533,8 +2533,8 @@ The IA-64 ABI layout algorithm uses "dsize" to represent the size of a
 class prior to rounding up for alignment purposes.  That value is computed
 during class layout but is not stored in the IL.  When laying out
 potentially-overlapping data members, the "dsize" value for the member
-is necessary and is computed here (by adding the offset of the last field
-of the class to the size of that field).
+is necessary and is computed here (by adding the offset of the last field or
+virtual base of the class to the size of that field or base).
 */
 {
   a_field_ptr      fp;
@@ -2550,7 +2550,7 @@ of the class to the size of that field).
   if (fp == NULL) {
     /* No fields; see if there are any base classes, and if so find the last
        one. */
-    for (bcp = class_type_supp(class_type)->base_classes;
+    for (bcp = base_classes_of(class_type);
          bcp != NULL && bcp->next != NULL;
          bcp = bcp->next) {
     }  /* for */
@@ -2560,16 +2560,24 @@ of the class to the size of that field).
         result = targ_sizeof_pointer;
       }  /* if */
     } else {
-      result = bcp->offset + skip_typedefs(bcp->type)->size;
+      result = bcp->offset + bcp->type->size;
     }  /* if */
   } else {
-    fp_type = skip_typedefs(fp->type);
+    fp_type = skip_typerefs(fp->type);
     if (is_immediate_class_type(fp_type)) {
       field_size = compute_dsize(fp_type);
     } else {
       field_size = fp_type->size;
     }  /* if */
     result = fp->offset + field_size;
+    if (class_type->variant.class_struct_union.any_virtual_base_classes) {
+      /* Virtual bases classes can be located beyond the last field. */
+      for (bcp = base_classes_of(class_type); bcp != NULL; bcp = bcp->next) {
+        if (bcp->is_virtual && bcp->offset >= result) {
+          result = bcp->offset + bcp->type->size;
+        }  /* if */
+      }  /* for */
+    }  /* if */
   }  /* if */
   return result;
 }  /* compute_dsize */

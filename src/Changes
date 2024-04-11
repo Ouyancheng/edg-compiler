@@ -1,5 +1,27 @@
 Version 6.7
 
+4/11/24  [EDGcpfe/27083]
+Layout of [[no_unique_address]] fields in the IA-64 ABI
+
+In the IA-64 ABI, a [[no_unique_address]] field of class type X allows the
+subsequent field to be allocated in the tail padding of X.  The front end, 
+however, failed to take virtual base classes into account when computing
+where the tail padding of the [[no_unique_address]] field starts.  For example:
+
+  struct V { short h;};
+  struct D : virtual V {
+    long x;
+    int y{};
+  };
+  struct X {
+    [[no_unique_address]] D n;
+    short z;
+  };
+
+Previously, member X::z was erroneously placed at the same offset as the
+virtual base V of member X::n.  That is now fixed.
+
+
 4/11/24  [EDGcpfe/26872]
 Equivalence of dependent alias template specializations
 
