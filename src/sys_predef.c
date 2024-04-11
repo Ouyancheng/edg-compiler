@@ -1324,7 +1324,7 @@ Enter predeclared symbols as required by the implementation.
                                 {"__Poly64x1_t", "__Poly64x2_t"},
                                 vk_neon_poly);
       }  /* if */
-      if (clang_version_is(>100000) || gnu_version_is(>=100000)) {
+      if (clang_version_is(>=100000) || gnu_version_is(>=100000)) {
         /* Both Clang and GNU have added support for scalable vector types on
            ARM64 starting with version 10.x.  Clang 11.x and later also
            predefine scalable vector types with 2, 3, and 4 tuple elements. */
