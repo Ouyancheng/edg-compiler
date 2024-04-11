@@ -110,7 +110,7 @@ variable types, including aggregate variables.
 
 
 4/7/24   [EDGcpfe/26857]
-GCC compatibility: Treat some alias templates as opaque
+GNU and Microsoft compatibility: Treat some alias templates as opaque
 
 Consider:
 
@@ -121,7 +121,8 @@ Consider:
 This example is invalid because A<T> has no member B.  However, GCC appears not
 to diagnose such cases (presumably because it treats A<T> as opaque).  The
 front end now emulates that behavior to some extent in GNU C++ modes (but not
-Clang modes).
+Clang modes).  This behavior also comes closer to MSVC's behavior and is
+therefore also enabled in Microsoft C++ modes.
 
 
 4/6/24   [EDGcpfe/27132]

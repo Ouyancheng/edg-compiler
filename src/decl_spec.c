@@ -7419,9 +7419,8 @@ constructor).
           } else if (!symbol_is(sym, sk_projection) ||
                      sym->variant.projection.is_using_decl) {
             /* This can only mean that another member has been declared with
-               the class name (usually represented as a field, but it could
-               also be a symbol representing a nonreal member).  Issue an
-               error. */
+               the class name (usually a field, but it could also be a symbol
+               representing a nonreal member).  Issue an error. */
             check_assertion(symbol_is(sym, sk_field) ||
                             is_nontype_template_param_symbol(sym));
             pos_error(ec_field_name_conflicts_with_class, &sym->decl_position);
