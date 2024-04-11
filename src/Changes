@@ -1,5 +1,26 @@
 Version 6.7
 
+4/10/24  [EDGcpfe/27028]
+Microsoft compatibility: Ambiguous call to extern "C" functions
+
+Consider:
+
+  struct S {};
+  typedef long (*F)();
+  extern "C" {
+     F f(S*);
+  }
+  namespace N {
+    extern "C" F f(S*);
+    void g(S *p) {
+      f(p);  // Previously ambiguous in Microsoft C++ mode.  Now okay.
+    }
+  }
+
+This previously elicited an ambiguity error in Microsoft C++ mode.  It is now
+accepted.
+
+
 4/9/24   [EDGcpfe/26317,EDGcpfe/27052]
 C-generating back end abort with [[no_unique_address]] field
 

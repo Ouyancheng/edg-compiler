@@ -10754,6 +10754,32 @@ considered dependent.
 }  /* selector_type_is_dependent */
 
 
+static a_boolean treat_two_c_linkage_symbols_as_one(a_symbol_ptr  sym1,
+                                                    a_symbol_ptr  sym2)
+/*
+Return TRUE if the given symbols are for extern "C" declarations that should
+be treated as one for overload resolution purposes.  This is the case in
+Microsoft mode when the return types are compatible.  (The first symbol was
+found by argument-dependent lookup and the second through ordinary lookup.)
+*/
+{
+  a_boolean  result = FALSE;
+
+  if (microsoft_mode) {
+    a_routine_ptr  rp1 = func_sym_routine(sym1),
+                   rp2 = func_sym_routine(sym2);
+    if (rp1->source_corresp.name_linkage == nlk_external &&
+        rp2->source_corresp.name_linkage == nlk_external) {
+      a_type_ptr  rtp1 = skip_typerefs(rp1->type),
+                  rtp2 = skip_typerefs(rp2->type);
+      result = types_are_compatible(rtp1->variant.routine.return_type,
+                                    rtp2->variant.routine.return_type);
+    }  /* if */
+  } /* if */
+  return result;
+}  /* treat_two_c_linkage_symbols_as_one */
+
+
 a_symbol_ptr select_overloaded_function(
                         a_symbol_ptr             overloaded_function_symbol,
                         a_boolean                is_template_id,
@@ -11177,9 +11203,14 @@ in_instantiation:
                                           (a_boolean *)NULL,
                                           (a_boolean *)NULL)) {
           /* This must be either the only entry on the list, or all other
-             entries on the list must be the same symbol. */
+             entries on the list must be the same symbol.  (Or, in some cases,
+             they must be sufficiently compatible extern "C" functions.)*/
           for (slep = symbol_list->next; slep != NULL; slep = slep->next) {
-            if (!same_function(slep->symbol, symbol_list->symbol)) break;
+            if (!same_function(slep->symbol, symbol_list->symbol) &&
+                !treat_two_c_linkage_symbols_as_one(slep->symbol,
+                                                    symbol_list->symbol)) {
+              break;
+            }  /* if */
           }  /* for */
           if (slep == NULL) {
             free_list_of_symbol_list_entries(symbol_list);
