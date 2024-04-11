@@ -1992,14 +1992,15 @@ the template parameters are constrained.
 */
 {
   a_boolean     result = FALSE;
-  a_template_symbol_supplement_ptr
-                tssp = template_supplement_for_template(templ);
-  if (templ->kind == templk_class &&
-      tssp->variant.class_template.is_alias_template &&
-      templ->template_decl->constraint.requires_clause == NULL &&
-      !tssp->has_template_param_constraint &&
-      !tssp->variant.class_template.has_alias_params_not_in_type) {
-    result = TRUE;
+  if (templ->kind == templk_class && in_front_end) {
+    a_template_symbol_supplement_ptr  tssp;
+    tssp = template_supplement_for_template(templ);
+    if (tssp->variant.class_template.is_alias_template &&
+        templ->template_decl->constraint.requires_clause == NULL &&
+        !tssp->has_template_param_constraint &&
+        !tssp->variant.class_template.has_alias_params_not_in_type) {
+      result = TRUE;
+    }  /* if */
   }  /* if */
   return result;
 }  /* is_transparent_alias_template */
