@@ -2857,7 +2857,7 @@ to it.
 #endif /* GNU_EXTENSIONS_ALLOWED */
 #if DO_IL_LOWERING
   fp->is_lowered_base_class = FALSE;
-  fp->base_class_subobject_with_tail_padding = FALSE;
+  fp->class_subobject_with_tail_padding = FALSE;
 #endif /* DO_IL_LOWERING */
   fp->has_initializer      = FALSE;
   fp->init_is_ctor_dependent = FALSE;

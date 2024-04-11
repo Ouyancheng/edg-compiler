@@ -4918,7 +4918,7 @@ parentheses are not needed.
     /* Loop, refining the lvalue each time around, until we get something with
        the right type and right address, or until we decide to give up. */
 #if DO_IL_LOWERING
-    a_boolean prev_field_was_base_class_subobject_with_tail_padding = FALSE;
+    a_boolean prev_field_was_class_subobject_with_tail_padding = FALSE;
 #endif /* DO_IL_LOWERING */
     for (;;) {
       a_type_ptr unqual_type = skip_typerefs(type);
@@ -4956,7 +4956,7 @@ parentheses are not needed.
           *offset -= idx * element_size;
         }  /* if */
 #if DO_IL_LOWERING
-        prev_field_was_base_class_subobject_with_tail_padding = FALSE;
+        prev_field_was_class_subobject_with_tail_padding = FALSE;
 #endif /* DO_IL_LOWERING */
       } else if (unqual_type->kind == (a_type_kind)tk_class ||
                  unqual_type->kind == (a_type_kind)tk_struct) {
@@ -4998,9 +4998,9 @@ parentheses are not needed.
           /* Put out the field selection. */
           if (gen_output) {
 #if DO_IL_LOWERING
-            if (prev_field_was_base_class_subobject_with_tail_padding) {
-              /* This field is a member of a base class subobject that was
-                 promoted by the C-generating back end into the derived
+            if (prev_field_was_class_subobject_with_tail_padding) {
+              /* This field is a member of a subobject class type that was
+                 promoted by the C-generating back end into the containing
                  class.  Instead of base_obj.base_mem, it must therefore be
                  put out as base_obj_base_mem. */
               octl->output_str("_", octl);
@@ -5013,8 +5013,8 @@ parentheses are not needed.
 #if DO_IL_LOWERING
             if (is_for_c_gen_be(octl)) {
               /* Set up for the next pass to use "_" instead of ".". */
-              prev_field_was_base_class_subobject_with_tail_padding =
-                                 field->base_class_subobject_with_tail_padding;
+              prev_field_was_class_subobject_with_tail_padding =
+                                      field->class_subobject_with_tail_padding;
             }  /* if */
 #endif /* DO_IL_LOWERING */
             form_unqualified_name(&field->source_corresp, iek_field, octl);
@@ -5039,7 +5039,7 @@ parentheses are not needed.
         }  /* if */
         type = field->type;
 #if DO_IL_LOWERING
-        prev_field_was_base_class_subobject_with_tail_padding = FALSE;
+        prev_field_was_class_subobject_with_tail_padding = FALSE;
 #endif /* DO_IL_LOWERING */
       } else {
         /* Some other type (not an aggregate); we can't adjust the offset or

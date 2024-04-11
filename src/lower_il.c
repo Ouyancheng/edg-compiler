@@ -1191,7 +1191,7 @@ offset for the field.
       (field_type->size % field_type->alignment) != 0) {
     /* There is padding at the end of the base class subobject in which
        derived class members may be allocated. */
-    field_ptr->base_class_subobject_with_tail_padding = TRUE;
+    field_ptr->class_subobject_with_tail_padding = TRUE;
   }  /* if */
 #else /* !IA64_ABI */
   field_ptr = add_field(name_ptr, field_type, field_offset, struct_type,
@@ -9914,6 +9914,23 @@ Do IL lowering of the indicated field and everything under it.
     mark_as_visited(field);
     lower_source_correspondence(&field->source_corresp);
     lower_os_type(field->type);
+#if IA64_ABI
+    if (field->has_no_unique_address_attribute &&
+        is_class_struct_union_type(field->type) &&
+        !skip_typerefs(field->type)->
+                         variant.class_struct_union.any_virtual_base_classes) {
+      /* Check to see if the type of the field has tail padding. */
+      a_type_ptr                  tp = skip_typerefs(field->type);
+      a_class_type_supplement_ptr ctsp = class_type_supp(tp);
+      if (ctsp->has_subobject_type) {
+        a_type_ptr subobj_type = ctsp->subobject_partner;
+        if ((subobj_type->size % subobj_type->alignment) != 0) {
+          /* The type has tail padding.  Mark the field accordingly. */
+          field->class_subobject_with_tail_padding = TRUE;
+        }  /* if */
+      }  /* if */
+    }  /* if */
+#endif /* IA64_ABI */
   }  /* if */
 }  /* lower_field */
 

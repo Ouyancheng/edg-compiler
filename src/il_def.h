@@ -11467,11 +11467,13 @@ typedef struct a_field {
   a_bit_field	is_lowered_base_class:1;
 			/* TRUE if this field was added by IL lowering to
 			   represent a base class subobject. */
-  a_bit_field	base_class_subobject_with_tail_padding:1;
+  a_bit_field	class_subobject_with_tail_padding:1;
 			/* TRUE if this field was added by IL lowering to
-			   represent a base class subobject and the base
-			   class has tail padding in which derived class
-			   members may be allocated. */
+			   represent a base class subobject or if the field
+			   has a class type and the [[no_unique_address]]
+			   attribute, and if the base or field class type
+			   has tail padding in which members following the
+			   subobject may be allocated. */
 #endif /* DO_IL_LOWERING */
   a_bit_field	has_initializer:1;
 			/* TRUE if a C++11-style initializer was specified for

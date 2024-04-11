@@ -529,35 +529,35 @@ static a_pending_typedef_ptr
 
 /*
 Data structures used to create the prefix for the mangled name of a data
-member that is "promoted" out of a base class subobject to become a direct
-member of the derived class.  (This is done to permit use of tail padding
-in the base class, which is not possible if the base class subobject is
-represented as a single struct member of the derived class.)  The names of
-the base class members must be mangled in order to prevent collisions with
-the names of derived class members.  Multi-level promotion, where members
-of a base of a base become members of the derived class, is possible, so
-the member name prefix components for the bases are kept on a doubly-linked
-list.
+member that is "promoted" out of a base class or no_unique_address
+subobject to become a direct member of the containing class.  (This is done
+to permit use of tail padding in the class type, which is not possible if
+the subobject is represented as a single struct member of the containing
+class.)  The names of the promoted class members must be mangled in order
+to prevent collisions with the names of containing class members.
+Multi-level promotion, where members of a subobject of a subobject become
+members of the containing class, is possible, so the member name prefix
+components for the subobject types are kept on a doubly-linked list.
 */
 typedef struct a_member_name_prefix_component
                                            *a_member_name_prefix_component_ptr;
 typedef struct a_member_name_prefix_component {
   a_member_name_prefix_component_ptr
 		next;	/* The component corresponding to the next (i.e.,
-			   less-derived) base class for the current
-			   member. */
+			   less-derived or less-nested) class type for the
+			   current member. */
   a_member_name_prefix_component_ptr
 		prev;	/* The component corresponding to the previous
-			   (i.e., more-derived) base class for the current
-			   member. */
-  a_const_char	*str;	/* The name of the base class subobject member out
-			   of which the current member is being
-			   promoted. */
+			   (i.e., more-derived or more-nested) class type
+			   for the current member. */
+  a_field_ptr	field;	/* The field whose name will be used for the
+			   current level in the mangled name. */
   a_targ_size_t	prev_subobject_offset;
-			/* The offset within the most-derived class of the
-			   previous component's subobject (to allow saving
-			   and restoring the cumulative offset when name
-			   prefix components are pushed and popped). */
+			/* The offset within the most-derived or outermost
+			   class of the previous component's subobject (to
+			   allow saving and restoring the cumulative offset
+			   when name prefix components are pushed and
+			   popped). */
 } a_member_name_prefix_component;
 
 /*
@@ -1691,7 +1691,12 @@ name generated from the field pointer will be used.
      will be no more than 32 characters long). */
   name_len = field_name != NULL ? (sizeof_t)strlen(field_name) : 32;
   for (pfxp = name_prefix_components; pfxp != NULL; pfxp = pfxp->next) {
-    name_len += (sizeof_t)strlen(pfxp->str) + 1;
+    name_len += (sizeof_t)strlen(pfxp->field->source_corresp.name) + 1;
+    if (pfxp->field->has_no_unique_address_attribute) {
+      /* We will add "__" to the promoted field name to avoid possible
+         collisions with names in the containing struct. */
+      name_len += 2;
+    }  /* if */
   }  /* for */
   if (field != NULL && field->is_captured_pack_element) {
     /* Allow for "__" plus numbering for up to 999,999 pack elements. */
@@ -1700,7 +1705,12 @@ name generated from the field pointer will be used.
   ensure_enough_room_on_line(name_len);
   /* Dump the component prefixes, followed by the field name. */
   for (pfxp = name_prefix_components; pfxp != NULL; pfxp = pfxp->next) {
-    write_str(pfxp->str);
+    if (pfxp->field->has_no_unique_address_attribute) {
+      /* Avoid collisions of promoted names with names in the containing
+         struct. */
+      write_str("__");
+    }  /* if */
+    write_str(pfxp->field->source_corresp.name);
     write_ch('_');
   }  /* for */
   if (field_name != NULL) {
@@ -3131,13 +3141,14 @@ These two fields are normally consecutive members of the given "type", but
   if (!C_mode() && type->kind != (a_type_kind)tk_union &&
       (!field->is_bit_field ||
        (prev_field != NULL &&
-        prev_field->base_class_subobject_with_tail_padding))) {
+        prev_field->class_subobject_with_tail_padding))) {
     /* Compute any required padding before the field.  This only comes up
-       for empty/promoted base class layout, so check this only when the
-       field has a class type (hence also the is_bit_field test). */
+       for empty/promoted base class layout and fields with
+       no_unique_address attributes, so check this only when the field has
+       a class type (hence also the is_bit_field test). */
     a_type_ptr  field_type = field->type;
     a_field_ptr effective_field = field;
-    while (effective_field->base_class_subobject_with_tail_padding) {
+    while (effective_field->class_subobject_with_tail_padding) {
       /* Use the first promoted field to compute the required alignment. */
       effective_field = field_type->variant.class_struct_union.field_list;
       field_type = effective_field->type;
@@ -3148,9 +3159,9 @@ These two fields are normally consecutive members of the given "type", but
     }  /* if */
     field_type = skip_typerefs(field_type);
     if (is_immediate_class_type(field_type) ||
-        field->base_class_subobject_with_tail_padding ||
+        field->class_subobject_with_tail_padding ||
         (prev_field != NULL &&
-         prev_field->base_class_subobject_with_tail_padding)) {
+         prev_field->class_subobject_with_tail_padding)) {
       a_targ_size_t     after_field, excess_bytes, rounded_after_field;
       a_targ_alignment  alignment = field_alignment_for(effective_field->type);
       if (effective_field->alignment != 0) {
@@ -3261,11 +3272,10 @@ static void push_member_name_prefix_component(
                                       a_field_ptr                        field)
 /*
 Link the specified member name prefix component at the end of the list of
-components and set its "str" member to point to the name in the specified
-field.
+components and set its "field" member to the specified field.
 */
 {
-  pfxp->str = field->source_corresp.name;
+  pfxp->field = field;
   pfxp->prev = last_name_prefix_component;
   if (name_prefix_components == NULL) {
     /* This is the first one. */
@@ -3345,21 +3355,32 @@ padding in the generated code.
       dump_microsoft_align_declspec(field->alignment);
     }  /* if */
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
-    if (field->base_class_subobject_with_tail_padding) {
-      /* This field represents a base class subobject that has tail
-         padding.  Register the name of the field for use in mangling, and
-         call this routine recursively to dump the base class members
-         instead of the subobject field declaration, to allow for reuse of
-         the tail padding. */
+    if (field->class_subobject_with_tail_padding) {
+      /* This field represents a base class subobject or a
+         no_unique_address field with a class type and that base or member
+         class type has tail padding.  Register the name of the field for
+         use in mangling, and call this routine recursively to dump the
+         base class members instead of the subobject field declaration, to
+         allow for reuse of the tail padding. */
       a_member_name_prefix_component prefix;
       a_targ_size_t                  offset_after_fields;
+      a_type_ptr                     field_type = field->type;
+      if (field->has_no_unique_address_attribute) {
+        a_class_type_supplement_ptr ctsp =
+                                    class_type_supp(skip_typerefs(field_type));
+        if (ctsp->has_subobject_type) {
+          /* Use the subobject type, which doesn't have the padding member
+             at the end. */
+          field_type = ctsp->subobject_partner;
+        }  /* if */
+      }  /* if */
       push_member_name_prefix_component(&prefix, field);
-      dump_field_list(field->type, last_field, union_alignment_needed);
+      dump_field_list(field_type, last_field, union_alignment_needed);
       offset_after_fields = offset_after_field(*last_field);
       if (offset_after_fields < field->type->size) {
         /* Add end-of-struct padding. */
         dump_field_padding(*last_field,
-                           field->type->size - offset_after_fields);
+                           field_type->size - offset_after_fields);
       }  /* if */
       if (msvc_is_generated_code_target) {
         /* A bit-field following a base class subobject will be in a new
@@ -3531,7 +3552,7 @@ padding in the generated code.
         }  /* if */
       }  /* if */
     }  /* if */
-    if (annotate && !field->base_class_subobject_with_tail_padding) {
+    if (annotate && !field->class_subobject_with_tail_padding) {
       /* Display the offset in an annotation comment. */
       dump_field_annotation_comment(field);
     }  /* if */
@@ -4412,13 +4433,14 @@ Dump the name of the specified field, recursively scanning through base
 class subobject members as needed to create the member name prefix.
 */
 {
-  if (field->base_class_subobject_with_tail_padding) {
-    /* The specified field represents the subobject for a base class with
-       tail padding.  This field does not exist in the generated derived
-       class, so we transform this reference into a reference to the
-       (mangled) name of the first member of the base class, using recursion
-       to build the mangling prefix by traversing the base class subobject
-       fields. */
+  if (field->class_subobject_with_tail_padding) {
+    /* The specified field represents the subobject for a base class or a
+       no_unique_address field of class type and that base or field class
+       type has tail padding.  This field does not exist in the generated
+       derived class, so we transform this reference into a reference to
+       the (mangled) name of the first member of the subobject class type,
+       using recursion to build the mangling prefix by traversing the
+       fields of the subobject class type. */
     a_member_name_prefix_component prefix;
     push_member_name_prefix_component(&prefix, field);
     /* Use the (mangled) name of the first non-empty member. */
@@ -4575,12 +4597,13 @@ on top of the expansion.
     object_expr = operand_1->variant.operation.operands;
     check_assertion(object_expr->next->kind == (an_expr_node_kind)enk_field);
     field = node_field(object_expr->next);
-    while (field->base_class_subobject_with_tail_padding) {
-      /* The specified field represents the subobject for a base class with
-         tail padding.  This field does not exist in the generated derived
-         class, so we transform this reference into a reference to the
-         first member of the base class (skipping empty classes). See
-         create_prefix_and_dump_field_name for details. */
+    while (field->class_subobject_with_tail_padding) {
+      /* The specified field represents the subobject for a base class or a
+         no_unique_address field of class type and that base or field class
+         type has tail padding.  This field does not exist in the generated
+         derived class, so we transform this reference into a reference to
+         the first member of the base or field class type (skipping empty
+         classes).  See create_prefix_and_dump_field_name for details. */
       sub_object_offset += field->offset;
       field = next_non_empty_initializable_field(
                            field->type->variant.class_struct_union.field_list);
@@ -4731,19 +4754,20 @@ output with parentheses if needed.
                    node_operator_is(expr, eok_points_to_field)));
   struct_expr = expr->variant.operation.operands;
   field = node_field(struct_expr->next);
-  if (field->base_class_subobject_with_tail_padding) {
-    /* The field represents a base class subobject with padding.  The
-       fields of such subobjects are promoted into the derived class, so
-       the referenced field does not exist in the generated code, so
-       dump_field_from_second_operand translates a reference to the
-       field into a reference to the first member of the base class
-       subobject.  That will be the correct offset for the member, but the
-       type will be wrong, so we need to add code that will take the
-       address of the referenced member, cast it to a pointer to the base
-       class type, and dereference that pointer, in order to make this
-       field selection equivalent to what it would have been if the base
-       class members had not been promoted into the derived class.  For
-       example, C++
+  if (field->class_subobject_with_tail_padding) {
+    /* The field represents a base class subobject or a no_unique_address
+       field of class type and the base or field class type has tail
+       padding.  The fields of such subobjects are promoted into the class
+       of which the subobject is a member, so the referenced field does not
+       exist in the generated code, so dump_field_from_second_operand
+       translates a reference to the field into a reference to the first
+       member of the class type of the subobject.  That will be the correct
+       offset for the member, but the type will be wrong, so we need to add
+       code that will take the address of the referenced member, cast it to
+       a pointer to the subobject class type, and dereference that pointer,
+       in order to make this field selection equivalent to what it would
+       have been if the class members had not been promoted into the
+       containing class.  For example, C++
 
            struct B { int i; };
            struct D: B { };
@@ -4772,17 +4796,17 @@ output with parentheses if needed.
 
            (*(struct B*)(((char*)&x)+N))
        */
-    a_type_ptr  base_class = field->type;
-    a_field_ptr first_base_field;
-    while ((first_base_field =
-                  base_class->variant.class_struct_union.field_list) != NULL) {
-      if (first_base_field->base_class_subobject_with_tail_padding) {
-        /* The field is an indirect base class subobject whose members have
-           also been promoted into the derived class object.  Look at the
-           first field of the indirect base class. */
-        base_class = first_base_field->type;
+    a_type_ptr  subobj_class = field->type;
+    a_field_ptr first_subobj_field;
+    while ((first_subobj_field =
+                subobj_class->variant.class_struct_union.field_list) != NULL) {
+      if (first_subobj_field->class_subobject_with_tail_padding) {
+        /* The field is an indirect class subobject whose members have also
+           been promoted into the containing class object.  Look at the
+           first field of the indirect class. */
+        subobj_class = first_subobj_field->type;
       } else {
-        promoted_bit_field_case = first_base_field->is_bit_field;
+        promoted_bit_field_case = first_subobj_field->is_bit_field;
         break;
       }  /* if */
     }  /* while */
@@ -4921,7 +4945,7 @@ output with parentheses if needed.
   if (need_closing_paren) {
     write_tok_ch(')');
   }  /* if */
-  if (field->base_class_subobject_with_tail_padding) {
+  if (field->class_subobject_with_tail_padding) {
     if (promoted_bit_field_case) {
       write_tok_ch(')');
       if (field->offset != 0) {
@@ -7327,11 +7351,12 @@ derived class, in which case variable will be NULL.
       write_tok_ch(']');
       ipdp = ipdp->next;
     } else {
-      if (ipdp->curr_field->base_class_subobject_with_tail_padding) {
-        /* This field represents a base class whose members were promoted
-           into the derived class.  Push a name component for the base
-           class and use recursion to put out the rest of the reference to
-           the field that's being initialized. */
+      if (ipdp->curr_field->class_subobject_with_tail_padding) {
+        /* This field represents a base class or no_unique_address field of
+           class type and the base or field class type members were
+           promoted into the containing class.  Push a name component for
+           the class and use recursion to put out the rest of the reference
+           to the field that's being initialized. */
         a_member_name_prefix_component prefix;
         push_member_name_prefix_component(&prefix, ipdp->curr_field);
         dump_var_for_init((a_variable_ptr)NULL, ipdp->next);
@@ -7977,9 +8002,9 @@ END_DISABLE_GCC_WARNING_DANGLING_PTR
     }  /* switch */
     if (outer_level_pos != NULL &&
         outer_level_pos->curr_field != NULL &&
-        outer_level_pos->curr_field->base_class_subobject_with_tail_padding) {
-      /* The base class subobject members are promoted into the derived
-         class, so we need to suppress the braces for the subobject. */
+        outer_level_pos->curr_field->class_subobject_with_tail_padding) {
+      /* The subobject members are promoted into the containing class, so
+         we need to suppress the braces for the subobject. */
       suppress_brace_for_base_class_subobject = TRUE;
     }  /* if */
     /* If generating initializer constants and this is neither a base class

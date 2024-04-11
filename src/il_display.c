@@ -3304,8 +3304,8 @@ Display the indicated field.
   if (ptr->is_lowered_base_class) {
     disp_boolean("is_lowered_base_class", TRUE);
   }  /* if */
-  if (ptr->base_class_subobject_with_tail_padding) {
-    disp_boolean("base_class_subobject_with_tail_padding", TRUE);
+  if (ptr->class_subobject_with_tail_padding) {
+    disp_boolean("class_subobject_with_tail_padding", TRUE);
   }  /* if */
 #endif /* DO_IL_LOWERING */
 #if MICROSOFT_EXTENSIONS_ALLOWED
