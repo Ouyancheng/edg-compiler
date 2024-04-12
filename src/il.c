@@ -21683,12 +21683,15 @@ cv-qualification or other non-base-class type adjustment.
   an_expr_node_ptr new_node;
 
   check_assertion(is_glvalue_node(node) || is_error_node(node));
-  new_node = make_lvalue_operator_node(
-                                   (an_expr_operator_kind)eok_lvalue_adjust,
-                                   type, node);
-  copy_node_value_category(node, new_node);
-  new_node->compiler_generated = TRUE;
-  new_node->position = node->position;
+  if (node_is_operator(node, eok_lvalue_adjust)) {
+    new_node = node;
+    new_node->type = type;
+  } else {
+    new_node = make_lvalue_operator_node(eok_lvalue_adjust, type, node);
+    copy_node_value_category(node, new_node);
+    new_node->compiler_generated = TRUE;
+    new_node->position = node->position;
+  }  /* if */
   return new_node;
 }  /* add_cast_to_glvalue */
 
@@ -31703,9 +31706,9 @@ return that.  If not, return the original expression.
      do, and the code here would have to change if those routines change. */
   /* No skip_parens needed here because the sequence we are looking for
      is compiler-generated. */
-  if (is_operation_node(texpr) &&
-      (node_operator_is(texpr, eok_class_rvalue_adjust) ||
-       (node_operator_is(texpr, eok_lvalue_adjust)))) {
+  while (is_operation_node(texpr) &&
+         (node_operator_is(texpr, eok_class_rvalue_adjust) ||
+          (node_operator_is(texpr, eok_lvalue_adjust)))) {
     a_type_ptr expr_type = skip_typerefs(texpr->type);
     a_type_ptr opnd_type =
                         skip_typerefs(texpr->variant.operation.operands->type);
@@ -31713,7 +31716,7 @@ return that.  If not, return the original expression.
       /* Drop a cv-qualification-adjusting operator. */
       texpr = texpr->variant.operation.operands;
     }  /* if */
-  }  /* if */
+  }  /* while */
   while (is_operation_node(texpr) && texpr->compiler_generated &&
          node_operator_is(texpr, eok_base_class_cast)) {
     /* Drop base class casts. */

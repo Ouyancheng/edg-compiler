@@ -1,5 +1,19 @@
 Version 6.7
 
+4/11/24  [EDGcpfe/27144]
+Temporary not lifetime-extended because of multilevel lvalue adjustment
+
+When a temporary is bound to a reference, its lifetime is extended to the scope
+of the reference.  One function involved in that is find_top_temporary (in
+overload.c) which looks in the expression tree for a potential temporary node
+whose lifetime should be extended.  That function previously considered the
+possibility that an lvalue-adjustment node appears on top of the temporary, but
+it was sometimes possible for multiple such adjustment nodes to exist.  This
+is now fixed both by avoiding known cases of multiple lvalue adjustments (they
+are now collapsed into a single adjustment) and by making find_top_temporary
+more robust (it can now skip over multiple adjustments).
+
+
 4/11/24  [EDGcpfe/27083]
 Layout of [[no_unique_address]] fields in the IA-64 ABI
 
