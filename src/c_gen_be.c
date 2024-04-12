@@ -3363,7 +3363,7 @@ padding in the generated code.
          allow for reuse of the tail padding. */
       a_member_name_prefix_component prefix;
       a_targ_size_t                  offset_after_fields;
-      a_type_ptr                     field_type = field->type;
+      a_type_ptr                     field_type = skip_typerefs(field->type);
       if (field->has_no_unique_address_attribute) {
         a_class_type_supplement_ptr ctsp =
                                     class_type_supp(skip_typerefs(field_type));
@@ -4443,9 +4443,8 @@ class subobject members as needed to create the member name prefix.
     a_member_name_prefix_component prefix;
     push_member_name_prefix_component(&prefix, field);
     /* Use the (mangled) name of the first non-empty member. */
-    create_prefix_and_dump_field_name(
-          next_non_empty_initializable_field(
-                          field->type->variant.class_struct_union.field_list));
+    create_prefix_and_dump_field_name(next_non_empty_initializable_field(
+           skip_typerefs(field->type)->variant.class_struct_union.field_list));
     pop_member_name_prefix_component(&prefix);
   } else {
     dump_field_name(field);
@@ -4605,7 +4604,7 @@ on top of the expansion.
          classes).  See create_prefix_and_dump_field_name for details. */
       sub_object_offset += field->offset;
       field = next_non_empty_initializable_field(
-                           field->type->variant.class_struct_union.field_list);
+            skip_typerefs(field->type)->variant.class_struct_union.field_list);
     }  /* if */
     if (field->is_bit_field) {
       if (!node->is_lvalue && !node->is_xvalue) {
@@ -4795,7 +4794,7 @@ output with parentheses if needed.
 
            (*(struct B*)(((char*)&x)+N))
        */
-    a_type_ptr  subobj_class = field->type;
+    a_type_ptr  subobj_class = skip_typerefs(field->type);
     a_field_ptr first_subobj_field;
     while ((first_subobj_field =
                 subobj_class->variant.class_struct_union.field_list) != NULL) {
@@ -4803,7 +4802,7 @@ output with parentheses if needed.
         /* The field is an indirect class subobject whose members have also
            been promoted into the containing class object.  Look at the
            first field of the indirect class. */
-        subobj_class = first_subobj_field->type;
+        subobj_class = skip_typerefs(first_subobj_field->type);
       } else {
         promoted_bit_field_case = first_subobj_field->is_bit_field;
         break;
