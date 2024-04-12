@@ -1529,6 +1529,9 @@ Display a_param_type entry.
   if (ptr->name != NULL) {
     disp_string_ptr("name", ptr->name, iek_id_name, (sizeof_t)0);
   }  /* if */
+  if (ptr->has_name_conflict) {
+    disp_boolean("has_name_conflict", TRUE);
+  }  /* if */
   if (ptr->passed_via_copy_constructor) {
     disp_boolean("passed_via_copy_constructor", TRUE);
   }  /* if */

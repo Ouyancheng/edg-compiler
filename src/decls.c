@@ -9092,6 +9092,12 @@ interpreter) and if so mark it as such.
             tag = cit_std_meta_has_static_storage_duration;
           } else if (strcmp(name, "has_internal_linkage") == 0) {
             tag = cit_std_meta_has_internal_linkage;
+          } else if (strcmp(name, "has_c_varargs") == 0) {
+            tag = cit_std_meta_has_c_varargs;
+          } else if (strcmp(name, "has_default_argument") == 0) {
+            tag = cit_std_meta_has_default_argument;
+          } else if (strcmp(name, "has_consistent_name") == 0) {
+            tag = cit_std_meta_has_consistent_name;
           }  /* if */
         }  /* if */
         break;
@@ -9124,6 +9130,10 @@ interpreter) and if so mark it as such.
             tag = cit_std_meta_is_variable;
           } else if (strcmp(name, "is_function") == 0) {
             tag = cit_std_meta_is_function;
+          } else if (strcmp(name, "is_function_parameter") == 0) {
+            tag = cit_std_meta_is_function_parameter;
+          } else if (strcmp(name, "is_explicit_object_parameter") == 0) {
+            tag = cit_std_meta_is_explicit_object_parameter;
           } else if (strcmp(name, "is_namespace") == 0) {
             tag = cit_std_meta_is_namespace;
           } else if (strcmp(name, "is_nsdm") == 0) {
@@ -9231,11 +9241,15 @@ interpreter) and if so mark it as such.
         }  /* if */
         break;
       case 'r':
-        if (strcmp(name, "reflect_value") == 0 &&
-            t_args != NULL && t_args->next == NULL &&
-            t_args->kind == (a_templ_arg_kind)tak_type) {
-          if (ptp != NULL && ptp->next == NULL &&
-              is_reflection_type(rtp->variant.routine.return_type)) {
+        if (ptp != NULL && ptp->next == NULL &&
+            is_reflection_type(rtp->variant.routine.return_type)) {
+          if (t_args == NULL) {
+            if (strcmp(name, "return_type_of") == 0) {
+              tag = cit_std_meta_return_type_of;
+            }  /* if */
+          } else if (strcmp(name, "reflect_value") == 0 &&
+                     t_args != NULL && t_args->next == NULL &&
+                     t_args->kind == tak_type) {
             tag = cit_std_meta_reflect_value;
           }  /* if */
         }  /* if */

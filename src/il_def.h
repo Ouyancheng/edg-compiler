@@ -6062,6 +6062,10 @@ typedef struct a_param_type {
   a_const_char  *name;
 			/* Pointer to null-terminated name, or NULL if none
 			   was declared. */
+  a_bit_field	has_name_conflict:1;
+			/* TRUE if the name was inconsistent between
+			   declarations.  Note that an unnamed parameter is
+			   not inconsistent with a named one. */
   a_bit_field	passed_via_copy_constructor:1;
 			/* If TRUE, the parameter has a type that requires
 			   a copy constructor to be called.  For a parameter

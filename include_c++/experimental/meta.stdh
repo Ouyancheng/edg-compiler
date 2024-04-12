@@ -261,6 +261,14 @@ namespace std {
       return false;  /* Dummy return.  Handled by interpreter. */
     }
 
+    consteval bool is_function_parameter(info) {
+      return false;  /* Dummy return.  Handled by interpreter. */
+    }
+
+    consteval bool is_explicit_object_parameter(info) {
+      return false;  /* Dummy return.  Handled by interpreter. */
+    }
+
     consteval bool is_namespace(info) {
       return false;  /* Dummy return.  Handled by interpreter. */
     }
@@ -341,6 +349,18 @@ namespace std {
       return false;  /* Dummy return.  Handled by interpreter. */
     }
 
+    consteval bool has_c_varargs(info) {
+      return false;  /* Dummy return.  Handled by interpreter. */
+    }
+
+    consteval bool has_default_argument(info) {
+      return false;  /* Dummy return.  Handled by interpreter. */
+    }
+
+    consteval bool has_consistent_name(info) {
+      return false;  /* Dummy return.  Handled by interpreter. */
+    }
+
     consteval bool has_template_arguments(info) {
       return false;  /* Dummy return.  Handled by interpreter. */
     }
@@ -359,6 +379,10 @@ namespace std {
     }
 
     consteval info type_of(info) {
+      return ^::;  /* Dummy return.  Handled by interpreter. */
+    }
+
+    consteval info return_type_of(info) {
       return ^::;  /* Dummy return.  Handled by interpreter. */
     }
 
@@ -453,6 +477,12 @@ namespace std {
       std::size_t alignment;
       std::size_t bit_width;
     };
+
+    consteval auto make_nsdm_description(info type,
+                                         nsdm_options options = {}) {
+      return nsdm_description(type, options);
+    }
+
 
     consteval void __define_class(info type,
                                   int  n_fields,

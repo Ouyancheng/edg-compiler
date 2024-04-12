@@ -1191,6 +1191,7 @@ in the file scope memory region.
   ptp->type = type;
   ptp->declared_type = NULL;
   ptp->name = NULL;
+  ptp->has_name_conflict = FALSE;
   ptp->passed_via_copy_constructor = FALSE;
   ptp->has_default_arg = FALSE;
   ptp->default_arg_appeared_in_class_definition = FALSE;

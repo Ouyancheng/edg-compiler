@@ -14248,6 +14248,12 @@ unique to each type (e.g., by calling disentangle_default_args).
         internal_error("composite_routine_type: unequal length param lists");
       }  /* if */
 #endif /* CHECKING */
+      if (ptp1->has_name_conflict || ptp2->has_name_conflict ||
+          (ptp1->name != NULL && ptp2->name != NULL &&
+           strcmp(ptp1->name, ptp2->name) != 0)) {
+        ptp1->has_name_conflict = TRUE;
+        ptp2->has_name_conflict = TRUE;
+      }  /* if */
       /* If attributes are present on a parameter, those attributes must be
          preserved and therefore the other type cannot be returned as the
          composite type. */
@@ -14329,6 +14335,13 @@ make_new_comp_type:
         new_ptp = make_param_type(composite_parameter_type(ptp1->type,
                                                            ptp2->type),
                                   &null_source_position);
+        if (ptp1->has_name_conflict || ptp2->has_name_conflict ||
+            (ptp1->name != NULL && ptp2->name != NULL &&
+             strcmp(ptp1->name, ptp2->name) != 0)) {
+          ptp1->has_name_conflict = TRUE;
+          ptp2->has_name_conflict = TRUE;
+          new_ptp->has_name_conflict = TRUE;
+        }  /* if */
         if (ptp1->attributes != NULL || ptp2->attributes != NULL) {
           new_ptp->attributes =
                      composite_attributes(ptp1->attributes, ptp2->attributes);

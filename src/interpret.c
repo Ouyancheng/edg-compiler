@@ -10824,6 +10824,52 @@ See do_constexpr_intrinsic_call for the meaning of the parameters.
 }  /* do_constexpr_std_meta_is_function */
 
 
+static a_boolean do_constexpr_std_meta_is_function_parameter(
+                                        an_interpreter_state  *ips,
+                                        a_routine_ptr         callee,
+                                        an_expr_node_ptr      call_node,
+                                        a_byte                **p_arg_bytes,
+                                        a_byte                *result_storage,
+                                        a_byte                *complete_obj)
+/*
+Implement std::meta::is_function_parameter(info).
+
+See do_constexpr_intrinsic_call for the meaning of the parameters.
+*/
+{
+  a_boolean           result = TRUE;
+  a_reflection_value  *rvp = (a_reflection_value*)p_arg_bytes[0];
+
+  extract_reflected_entity(rvp);
+  set_bool_value(rvp->entity.kind == iek_param_type, result_storage);
+  return result;
+}  /* do_constexpr_std_meta_is_function_parameter */
+
+
+static a_boolean do_constexpr_std_meta_is_explicit_object_parameter(
+                                        an_interpreter_state  *ips,
+                                        a_routine_ptr         callee,
+                                        an_expr_node_ptr      call_node,
+                                        a_byte                **p_arg_bytes,
+                                        a_byte                *result_storage,
+                                        a_byte                *complete_obj)
+/*
+Implement std::meta::is_explicit_object_parameter(info).
+
+See do_constexpr_intrinsic_call for the meaning of the parameters.
+*/
+{
+  a_boolean           result = TRUE;
+  a_reflection_value  *rvp = (a_reflection_value*)p_arg_bytes[0];
+
+  extract_reflected_entity(rvp);
+  set_bool_value((rvp->entity.kind == iek_param_type &&
+                  ((a_param_type*)rvp->entity.ptr)->is_explicit_this),
+                 result_storage);
+  return result;
+}  /* do_constexpr_std_meta_is_explicit_object_parameter */
+
+
 static a_boolean do_constexpr_std_meta_is_namespace(
                                         an_interpreter_state  *ips,
                                         a_routine_ptr         callee,
@@ -11382,6 +11428,7 @@ See do_constexpr_intrinsic_call for the meaning of the parameters.
   if (rvp->entity.kind == iek_variable) {
     answer = var_has_static_storage_duration((a_variable*)rvp->entity.ptr);
   } else {
+    result = FALSE;
     info_with_pos(ec_invalid_reflection_for_intrinsic,
                   &call_node->position, ips);
   }  /* if */
@@ -11416,6 +11463,98 @@ See do_constexpr_intrinsic_call for the meaning of the parameters.
   set_bool_value(answer, result_storage);
   return result;
 }  /* do_constexpr_std_meta_has_internal_linkage */
+
+
+static a_boolean do_constexpr_std_meta_has_c_varargs(
+                                        an_interpreter_state  *ips,
+                                        a_routine_ptr         callee,
+                                        an_expr_node_ptr      call_node,
+                                        a_byte                **p_arg_bytes,
+                                        a_byte                *result_storage,
+                                        a_byte                *complete_obj)
+/*
+Implement std::meta::has_c_varargs(info).
+
+See do_constexpr_intrinsic_call for the meaning of the parameters.
+*/
+{
+  a_boolean           result = TRUE;
+  a_reflection_value  *rvp = (a_reflection_value*)p_arg_bytes[0];
+  a_type              *func_type = NULL;
+
+  strip_template_arg(rvp);
+  extract_reflected_entity(rvp);
+  if (rvp->entity.kind == iek_type) {
+    func_type = skip_typerefs((a_type*)rvp->entity.ptr);
+    if (!type_is(func_type, tk_routine)) func_type = NULL;
+  } else if (rvp->entity.kind == iek_routine) {
+    func_type = skip_typerefs(((a_routine*)rvp->entity.ptr)->type);
+  }  /* if */
+  if (func_type != NULL) {
+    set_bool_value(rout_type_supp(func_type)->has_ellipsis, result_storage);
+  } else {
+    result = FALSE;
+    info_with_pos(ec_invalid_reflection_for_intrinsic,
+                  &call_node->position, ips);
+  }  /* if */
+  return result;
+}  /* do_constexpr_std_meta_has_c_varargs */
+
+
+static a_boolean do_constexpr_std_meta_has_default_argument(
+                                        an_interpreter_state  *ips,
+                                        a_routine_ptr         callee,
+                                        an_expr_node_ptr      call_node,
+                                        a_byte                **p_arg_bytes,
+                                        a_byte                *result_storage,
+                                        a_byte                *complete_obj)
+/*
+Implement std::meta::has_default_argument(info).
+
+See do_constexpr_intrinsic_call for the meaning of the parameters.
+*/
+{
+  a_boolean           result = TRUE;
+  a_reflection_value  *rvp = (a_reflection_value*)p_arg_bytes[0];
+
+  if (rvp->entity.kind == iek_param_type) {
+    set_bool_value(((a_param_type*)rvp->entity.ptr)->has_default_arg,
+                   result_storage);
+  } else {
+    result = FALSE;
+    info_with_pos(ec_invalid_reflection_for_intrinsic,
+                  &call_node->position, ips);
+  }  /* if */
+  return result;
+}  /* do_constexpr_std_meta_has_default_argument */
+
+
+static a_boolean do_constexpr_std_meta_has_consistent_name(
+                                        an_interpreter_state  *ips,
+                                        a_routine_ptr         callee,
+                                        an_expr_node_ptr      call_node,
+                                        a_byte                **p_arg_bytes,
+                                        a_byte                *result_storage,
+                                        a_byte                *complete_obj)
+/*
+Implement std::meta::has_default_argument(info).
+
+See do_constexpr_intrinsic_call for the meaning of the parameters.
+*/
+{
+  a_boolean           result = TRUE;
+  a_reflection_value  *rvp = (a_reflection_value*)p_arg_bytes[0];
+
+  if (rvp->entity.kind == iek_param_type) {
+    set_bool_value(!((a_param_type*)rvp->entity.ptr)->has_name_conflict,
+                   result_storage);
+  } else {
+    result = FALSE;
+    info_with_pos(ec_invalid_reflection_for_intrinsic,
+                  &call_node->position, ips);
+  }  /* if */
+  return result;
+}  /* do_constexpr_std_meta_has_consistent_name */
 
 
 static a_template_ptr template_for_reflection(a_reflection_value  *rvp)
@@ -11652,6 +11791,45 @@ See do_constexpr_intrinsic_call for the meaning of the parameters.
   }  /* if */
   return result;
 }  /* do_constexpr_std_meta_type_of */
+
+
+static a_boolean do_constexpr_std_meta_return_type_of(
+                                        an_interpreter_state  *ips,
+                                        a_routine_ptr         callee,
+                                        an_expr_node_ptr      call_node,
+                                        a_byte                **p_arg_bytes,
+                                        a_byte                *result_storage,
+                                        a_byte                *complete_obj)
+/*
+Implement std::meta::return_type_of(info).
+
+See do_constexpr_intrinsic_call for the meaning of the parameters.
+*/
+{
+  a_boolean           result = TRUE;
+  a_reflection_value  *rvp = (a_reflection_value*)p_arg_bytes[0],
+                      *result_rvp = (a_reflection_value*)result_storage;
+  a_type              *func_type = NULL;
+
+  strip_template_arg(rvp);
+  extract_reflected_entity(rvp);
+  if (rvp->entity.kind == iek_type) {
+    func_type = skip_typerefs((a_type*)rvp->entity.ptr);
+    if (!type_is(func_type, tk_routine)) func_type = NULL;
+  } else if (rvp->entity.kind == iek_routine) {
+    func_type = skip_typerefs(((a_routine*)rvp->entity.ptr)->type);
+  }  /* if */
+  if (func_type == NULL) {
+    info_with_pos(ec_invalid_reflection_for_intrinsic,
+                  &call_node->position, ips);
+    do_constexpr_fail(result);
+  } else {
+    result_rvp->entity.kind = iek_type;
+    result_rvp->entity.ptr = (char*)func_type->variant.routine.return_type;
+    result_rvp->local_scope_number = FILE_SCOPE_NUMBER;
+  }  /* if */
+  return result;
+}  /* do_constexpr_std_meta_return_type_of */
 
 
 static a_boolean do_constexpr_std_meta_parent_of(
@@ -13931,6 +14109,12 @@ frame when the call has completed.
     case cit_std_meta_is_function:
       evaluator = do_constexpr_std_meta_is_function;
       break;
+    case cit_std_meta_is_function_parameter:
+      evaluator = do_constexpr_std_meta_is_function_parameter;
+      break;
+    case cit_std_meta_is_explicit_object_parameter:
+      evaluator = do_constexpr_std_meta_is_explicit_object_parameter;
+      break;
     case cit_std_meta_is_namespace:
       evaluator = do_constexpr_std_meta_is_namespace;
       break;
@@ -13991,6 +14175,15 @@ frame when the call has completed.
     case cit_std_meta_has_internal_linkage:
       evaluator = do_constexpr_std_meta_has_internal_linkage;
       break;
+    case cit_std_meta_has_c_varargs:
+      evaluator = do_constexpr_std_meta_has_c_varargs;
+      break;
+    case cit_std_meta_has_default_argument:
+      evaluator = do_constexpr_std_meta_has_default_argument;
+      break;
+    case cit_std_meta_has_consistent_name:
+      evaluator = do_constexpr_std_meta_has_consistent_name;
+      break;
     case cit_std_meta_has_template_arguments:
       evaluator = do_constexpr_std_meta_has_template_arguments;
       break;
@@ -14002,6 +14195,9 @@ frame when the call has completed.
       break;
     case cit_std_meta_type_of:
       evaluator = do_constexpr_std_meta_type_of;
+      break;
+    case cit_std_meta_return_type_of:
+      evaluator = do_constexpr_std_meta_return_type_of;
       break;
     case cit_std_meta_parent_of:
       evaluator = do_constexpr_std_meta_parent_of;
