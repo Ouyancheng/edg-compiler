@@ -16102,6 +16102,147 @@ representation of the field "text".
 
 
 /*
+Functions for reading data from IFC EdgTraitFunctionDefinition nodes.
+*/
+
+
+template<>
+a_boolean has_ifc_decl(const an_ifc_edg_trait_function_definition &universal)
+/*
+Return TRUE if the given universal representation has the field "decl";
+otherwise, return FALSE.
+*/
+{
+  an_ifc_module_file *file = universal.get_file();
+  a_boolean          result = FALSE;
+
+  if (is_at_least(file, 0, 43)) {
+    result = TRUE;
+  }  /* if */
+  return result;
+}  /* has_ifc_decl */
+
+
+template<>
+an_ifc_decl_index get_ifc_decl(
+                         const an_ifc_edg_trait_function_definition &universal)
+/*
+Given the universal representation of EdgTraitFunctionDefinition, return the
+universal representation of the field "decl".
+*/
+{
+  an_ifc_decl_index result;
+
+  /* Ensure the decl field exists in the current module version. */
+  check_assertion(has_ifc_decl(universal));
+  an_ifc_decl_index_0_43 stage_0;
+  an_ifc_decl_index      stage_1;
+
+  /* Copy the field (EdgTraitFunctionDefinition::decl - DeclIndex) into
+     version-specific storage. */
+  static_assert(sizeof(stage_0) == 4,
+                "stage_0 is not properly sized storage!");
+  copy_from_node_field(&stage_0, universal.get_storage(), /*offset=*/0);
+  stage_1 = to_universal_index(universal.get_file(), stage_0);
+  result = stage_1;
+  return result;
+}  /* get_ifc_decl */
+
+
+template<>
+a_boolean has_ifc_encoded_decl(
+                         const an_ifc_edg_trait_function_definition &universal)
+/*
+Return TRUE if the given universal representation has the field "encoded_decl";
+otherwise, return FALSE.
+*/
+{
+  an_ifc_module_file *file = universal.get_file();
+  a_boolean          result = FALSE;
+
+  if (is_at_least(file, 0, 43)) {
+    result = TRUE;
+  }  /* if */
+  return result;
+}  /* has_ifc_encoded_decl */
+
+
+template<>
+an_ifc_encoded_decl_index get_ifc_encoded_decl(
+                         const an_ifc_edg_trait_function_definition &universal)
+/*
+Given the universal representation of EdgTraitFunctionDefinition, return the
+universal representation of the field "encoded_decl".
+*/
+{
+  an_ifc_encoded_decl_index result;
+
+  /* Ensure the encoded_decl field exists in the current module version. */
+  check_assertion(has_ifc_encoded_decl(universal));
+  an_ifc_decl_index_0_43    stage_0;
+  an_ifc_decl_index         stage_1;
+  an_ifc_encoded_decl_index stage_2;
+
+  /* Copy the field (EdgTraitFunctionDefinition::decl - DeclIndex) into
+     version-specific storage. */
+  static_assert(sizeof(stage_0) == 4,
+                "stage_0 is not properly sized storage!");
+  copy_from_node_field(&stage_0, universal.get_storage(), /*offset=*/0);
+  stage_1 = to_universal_index(universal.get_file(), stage_0);
+  /* Use the encoding matching the request, regardless of where we're coming
+     from, to get an encoding result that matches the source node (and is thus,
+     arguably the least surprising). */
+  stage_2 = to_encoded(universal.get_file(), stage_1);
+  result = stage_2;
+  return result;
+}  /* get_ifc_encoded_decl */
+
+
+template<>
+a_boolean has_ifc_initializer(
+                         const an_ifc_edg_trait_function_definition &universal)
+/*
+Return TRUE if the given universal representation has the field "initializer";
+otherwise, return FALSE.
+*/
+{
+  an_ifc_module_file *file = universal.get_file();
+  a_boolean          result = FALSE;
+
+  if (is_at_least(file, 0, 43)) {
+    result = TRUE;
+  }  /* if */
+  return result;
+}  /* has_ifc_initializer */
+
+
+template<>
+an_ifc_edg_token_cache_offset get_ifc_initializer(
+                         const an_ifc_edg_trait_function_definition &universal)
+/*
+Given the universal representation of EdgTraitFunctionDefinition, return the
+universal representation of the field "initializer".
+*/
+{
+  an_ifc_edg_token_cache_offset result;
+
+  /* Ensure the initializer field exists in the current module version. */
+  check_assertion(has_ifc_initializer(universal));
+  an_ifc_edg_token_cache_offset_0_43 stage_0;
+  an_ifc_edg_token_cache_offset      stage_1;
+
+  /* Copy the field (EdgTraitFunctionDefinition::initializer -
+     EdgTokenCacheOffset) into version-specific storage. */
+  static_assert(sizeof(stage_0) == 4,
+                "stage_0 is not properly sized storage!");
+  copy_from_node_field(&stage_0, universal.get_storage(), /*offset=*/4);
+  stage_1 = to_universal_offset(universal.get_file(), stage_0);
+  result = stage_1;
+  return result;
+}  /* get_ifc_initializer */
+
+
+/*
 Functions for reading data from IFC ExprAlignof nodes.
 */
 

@@ -943,7 +943,6 @@ value represents a valid sort value; otherwise, return FALSE.
     case ifc_0_43_ebts_implements:
     case ifc_0_43_ebts_unresolved_type:
     case ifc_0_43_ebts_for_each:
-    case ifc_0_43_ebts_last_whitespace_token:
     case ifc_0_43_ebts_ref_class:
     case ifc_0_43_ebts_ref_struct:
     case ifc_0_43_ebts_value_class:
@@ -12463,6 +12462,50 @@ representation is valid; otherwise, return FALSE.
 {
   a_boolean result = TRUE;
 
+  return result;
+}  /* validate */
+
+
+template<>
+a_boolean validate(const an_ifc_edg_trait_function_definition &universal,
+                   const an_ifc_validation_trace              *parent)
+/*
+Given the universal representation of EdgTraitFunctionDefinition, return TRUE
+if the representation is valid; otherwise, return FALSE.
+*/
+{
+  a_boolean result = TRUE;
+
+  if (has_ifc_decl(universal)) {
+    an_ifc_decl_index_0_43  stage_0;
+    an_ifc_validation_trace stage_0_trace = {"decl", /*offset=*/0, parent};
+
+    /* Copy the field (EdgTraitFunctionDefinition::decl - DeclIndex) into
+       version-specific storage. */
+    static_assert(sizeof(stage_0) == 4,
+                  "stage_0 is not properly sized storage!");
+    copy_from_node_field(&stage_0, universal.get_storage(), /*offset=*/0);
+    if (!validate_index(universal.get_file(), stage_0, &stage_0_trace)) {
+      result = FALSE;
+      goto done;
+    }  /* if */
+  }  /* if */
+  if (has_ifc_initializer(universal)) {
+    an_ifc_edg_token_cache_offset_0_43 stage_0;
+    an_ifc_validation_trace            stage_0_trace =
+                                         {"initializer", /*offset=*/4, parent};
+
+    /* Copy the field (EdgTraitFunctionDefinition::initializer -
+       EdgTokenCacheOffset) into version-specific storage. */
+    static_assert(sizeof(stage_0) == 4,
+                  "stage_0 is not properly sized storage!");
+    copy_from_node_field(&stage_0, universal.get_storage(), /*offset=*/4);
+    if (!validate_offset(universal.get_file(), stage_0, &stage_0_trace)) {
+      result = FALSE;
+      goto done;
+    }  /* if */
+  }  /* if */
+done:
   return result;
 }  /* validate */
 

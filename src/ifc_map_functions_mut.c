@@ -7685,6 +7685,71 @@ the field "text" to the given TextOffset value.
 
 
 /*
+Functions for writing data to IFC EdgTraitFunctionDefinition nodes.
+*/
+
+
+template<>
+void set_ifc_decl(an_ifc_edg_trait_function_definition *universal,
+                  const an_ifc_decl_index              &value)
+/*
+Given the universal representation of EdgTraitFunctionDefinition update the
+value of the field "decl" to the given DeclIndex value.
+*/
+{
+  /* Ensure the decl field exists in the current module version. */
+  check_assertion(has_ifc_decl(*universal));
+  an_ifc_encoded_decl_index stage_0;
+  an_ifc_decl_index_0_43    stage_1;
+
+  stage_0 = to_encoded(universal->get_file(), value);
+  stage_1 = (an_ifc_decl_index_0_43)stage_0.value;
+  /* Copy from version-specific storage into the field
+     (EdgTraitFunctionDefinition::decl - DeclIndex). */
+  static_assert(sizeof(stage_1) == 4,
+                "stage_1 is not properly sized storage!");
+  copy_to_node_field(&stage_1, universal->get_storage(), /*offset=*/0);
+}  /* set_ifc_decl */
+
+
+template<>
+void set_ifc_encoded_decl(an_ifc_edg_trait_function_definition *universal,
+                          const an_ifc_encoded_decl_index      &value)
+/*
+Given the universal representation of EdgTraitFunctionDefinition update the
+value of the field "encoded_decl" to the given EncodedDeclIndex value.
+*/
+{
+  /* Ensure the encoded_decl field exists in the current module version. */
+  check_assertion(has_ifc_encoded_decl(*universal));
+  unexpected_condition_str("Tacit fields are not yet supported for writing.");
+}  /* set_ifc_encoded_decl */
+
+
+template<>
+void set_ifc_initializer(an_ifc_edg_trait_function_definition *universal,
+                         const an_ifc_edg_token_cache_offset  &value)
+/*
+Given the universal representation of EdgTraitFunctionDefinition update the
+value of the field "initializer" to the given EdgTokenCacheOffset value.
+*/
+{
+  /* Ensure the initializer field exists in the current module version. */
+  check_assertion(has_ifc_initializer(*universal));
+  an_ifc_encoded_edg_token_cache_offset stage_0;
+  an_ifc_edg_token_cache_offset_0_43    stage_1;
+
+  stage_0 = to_encoded(universal->get_file(), value);
+  stage_1 = (an_ifc_edg_token_cache_offset_0_43)stage_0.value;
+  /* Copy from version-specific storage into the field
+     (EdgTraitFunctionDefinition::initializer - EdgTokenCacheOffset). */
+  static_assert(sizeof(stage_1) == 4,
+                "stage_1 is not properly sized storage!");
+  copy_to_node_field(&stage_1, universal->get_storage(), /*offset=*/4);
+}  /* set_ifc_initializer */
+
+
+/*
 Functions for writing data to IFC ExprAlignof nodes.
 */
 

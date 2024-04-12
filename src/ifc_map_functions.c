@@ -3878,9 +3878,6 @@ name in the form of a c-string.
     case ifc_ebts_is_win_interface:
       result = "EdgBasicTokenSort::IsWinInterface";
       break;
-    case ifc_ebts_last_whitespace_token:
-      result = "EdgBasicTokenSort::LastWhitespaceToken";
-      break;
     case ifc_ebts_lbrace:
       result = "EdgBasicTokenSort::Lbrace";
       break;
@@ -4833,9 +4830,6 @@ module, return a reencoded sort value.
       break;
     case ifc_ebts_for_each:
       result = (ue_ty)ifc_0_43_ebts_for_each;
-      break;
-    case ifc_ebts_last_whitespace_token:
-      result = (ue_ty)ifc_0_43_ebts_last_whitespace_token;
       break;
     case ifc_ebts_ref_class:
       result = (ue_ty)ifc_0_43_ebts_ref_class;
@@ -6061,9 +6055,6 @@ corresponding universal representation.
       break;
     case ifc_0_43_ebts_for_each:
       result = ifc_ebts_for_each;
-      break;
-    case ifc_0_43_ebts_last_whitespace_token:
-      result = ifc_ebts_last_whitespace_token;
       break;
     case ifc_0_43_ebts_ref_class:
       result = ifc_ebts_ref_class;
@@ -25318,6 +25309,76 @@ Return the corresponding partition kind for EdgTokenIdentifier.
 */
 {
   return ifc_pk_edg_token_complex_identifier;
+}  /* get_ifc_partition_kind */
+
+
+template<>
+size_t get_ifc_buffer_size<an_ifc_edg_trait_function_definition_storage>(
+                                                      an_ifc_module_file *file)
+/*
+Given the associated module file, return the number of bytes required for an
+IFC EdgTraitFunctionDefinition node.
+*/
+{
+  size_t result;
+
+  result = 8;
+  return result;
+}  /* get_ifc_buffer_size */
+
+
+template<>
+an_ifc_edg_trait_function_definition_storage*
+get<an_ifc_edg_trait_function_definition_storage>(
+                     an_ifc_module_file                           *file,
+                     an_ifc_edg_trait_function_definition_storage *storage,
+                     a_boolean                                    fill_storage)
+/*
+Retrieve an instance of EdgTraitFunctionDefinition from the IFC module file.
+
+If memory mapping is used and both the host and the target have the same
+endianness, then the file layout and the alignment/padding of the host must
+have exactly the same characteristics.  In this case, simply return a pointer
+to a suitably-cast byte_buffer and increment it as appropriate (the storage
+argument is unused in this scenario).
+
+Otherwise, the storage passed in to the function is used to store copies of
+each field of the structure and each field is individually copied (and
+byte-swapped if necessary).
+
+If fill_storage is TRUE, always copy the data into the passed storage (i.e.,
+the storage specified by the storage argument).
+*/
+{
+#if USE_MMAP_FOR_MODULES
+  using storage_type = an_ifc_edg_trait_function_definition_storage;
+  if (has_matching_endianness(file)) {
+    if (fill_storage) {
+      memcpy(*storage, get_byte_buffer(file), /*size=*/8);
+    } else {
+      storage = (storage_type*)(get_byte_buffer(file));
+    }  /* if */
+  } else
+#endif /* USE_MMAP_FOR_MODULES */
+  /* Do not put code here. */
+  {
+    /* decl */
+    get_bytes(file, (*storage) + 0, /*num_bytes=*/4, /*from_header=*/FALSE);
+    /* initializer */
+    get_bytes(file, (*storage) + 4, /*num_bytes=*/4, /*from_header=*/FALSE);
+  }  /* if */
+  return storage;
+}  /* get<an_ifc_edg_trait_function_definition_storage> */
+
+
+template<>
+an_ifc_partition_kind
+get_ifc_partition_kind<an_ifc_edg_trait_function_definition>()
+/*
+Return the corresponding partition kind for EdgTraitFunctionDefinition.
+*/
+{
+  return ifc_pk_edg_trait_function_definition;
 }  /* get_ifc_partition_kind */
 
 
@@ -45297,6 +45358,9 @@ corresponding expected partition element size.
       break;
     case ifc_pk_edg_token_complex_identifier:
       result = 4;
+      break;
+    case ifc_pk_edg_trait_function_definition:
+      result = 8;
       break;
     case ifc_pk_msvc_trait_decl_attrs:
       result = 8;
