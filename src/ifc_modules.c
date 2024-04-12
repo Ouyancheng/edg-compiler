@@ -44,6 +44,26 @@ the duration of this file.
 /*lint -save -e534 -e641 -e1576 -e1502*/
 /*lint -save -e1714*/ /* FIXME: temporarily disable "not referenced" */
 
+static a_boolean is_edg_authored(const an_ifc_module_entity &entity)
+/*
+Return TRUE if the given IFC entity is from an EDG authored IFC; otherwise,
+return FALSE.
+*/
+{
+  return entity.file->module_kind == mk_edg_ifc;
+}  /* is_edg_authored */
+
+
+static a_boolean is_msvc_authored(const an_ifc_module_entity &entity)
+/*
+Return TRUE if the given IFC entity is from an MSVC authored IFC; otherwise,
+return FALSE.
+*/
+{
+  return entity.file->module_kind == mk_ms_ifc;
+}  /* is_msvc_authored */
+
+
 static void ifc_requirement_impl(ARG_UNUSED int          line_number,
                                  ARG_UNUSED a_const_char *function,
                                  an_ifc_module           *mod,
@@ -4304,15 +4324,14 @@ that is not "= default" or "= delete"; otherwise, return FALSE.
 */
 {
   an_ifc_reachable_properties_bitfield properties = get_ifc_properties(node);
-  an_ifc_function_traits_bitfield      traits = get_ifc_traits(node);
 
-  /* For the IFC to provide a function definition, the function must be
-     constexpr and the definition must be exported (marked by the presence of a
-     reachable initializer property). */
+  /* For the IFC to provide a function definition, the definition must be
+     exported (marked by the presence of a reachable initializer property).
+
+     The definition is exported for functions that are constexpr, consteval, or
+     inline. */
   return (test_bitmask<ifc_rpb_initializer>(properties) &&
-          !function_has_generated_definition(node) &&
-          (test_bitmask<ifc_ftb_constexpr>(traits) ||
-           test_bitmask<ifc_ftb_immediate>(traits)));
+          !function_has_generated_definition(node));
 }  /* function_is_user_defined */
 
 
@@ -4401,8 +4420,17 @@ to its pending definition (if a definition is present).
 
         construct_node_prechecked(&spec_decl, decl_idx);
 
-        an_ifc_decl_index parameterized_idx = get_ifc_decl(spec_decl);
-        map_pending_routine_definitions(parameterized_idx, rp);
+        an_ifc_specialization_sort
+                specialization_sort = get_ifc_sort(spec_decl);
+        a_boolean
+                is_instantiation = specialization_sort == ifc_ss_instantiation;
+        /* Check to make sure this is not an instantiation; instantiations do
+           not have their own definitions. */
+        if (!is_instantiation) {
+          an_ifc_decl_index parameterized_idx = get_ifc_decl(spec_decl);
+
+          map_pending_routine_definitions(parameterized_idx, rp);
+        }  /* if */
       }
       break;
     case ifc_ds_decl_intrinsic:
@@ -19629,6 +19657,11 @@ Cache the virt-specifier-seq for the given function-like declaration.
 }  /* cache_func_virt_specifier_seq */
 
 
+static a_boolean cache_edg_token_cache(
+                                   a_module_token_cache_ptr      cache,
+                                   an_ifc_edg_token_cache_offset cache_offset);
+
+
 template<typename an_ifc_Node_type>
 static void cache_func_body(a_module_token_cache_ptr cache,
                             an_ifc_decl_index        decl_idx,
@@ -19639,19 +19672,42 @@ static void cache_func_body(a_module_token_cache_ptr cache,
 Cache the function-body for the given function-like declaration (identified by
 decl_idx).
 
-If the IFC provides a user-defined definition for said function, no definition
-will be cached, instead one will be associated via finish_mep_processing.
-cinfo contains information about the current cache context to help inform
-decisions about what to cache.
+If the function is a not parameterized (i.e., this is not the body for a
+function template) and the IFC provided a user-defined definition for said
+function, no definition will be cached, instead one will be associated via
+finish_mep_processing.  cinfo contains information about the current cache
+context to help inform decisions about what to cache.
 */
 {
   check_assertion(function_is_defined(decl));
   an_ifc_function_traits_bitfield traits = get_ifc_traits(decl);
 
   if (function_is_user_defined(decl)) {
-    /* As noted above, the function definition will be mapped into an IL map of
-       lazily-loadable definitions; there's nothing to cache. */
-    if (!cinfo.no_final_semicolon) {
+    /* As noted above, in the case of a non-parameterized function, the
+       definition will be mapped into an IL map of lazily-loadable definitions.
+       However, in the case of an EDG produced IFC, retrieve and cache the
+       function definition as part of the function template declaration. */
+    if (!is_null_index(cinfo.parameterizing_entity) &&
+        is_edg_authored(decl)) {
+      Opt<an_ifc_edg_trait_function_definition> opt_edg_func_def;
+
+      find_trait(&opt_edg_func_def, decl_idx);
+      if (opt_edg_func_def.has_value()) {
+        an_ifc_edg_trait_function_definition
+                edg_func_def = *opt_edg_func_def;
+        an_ifc_edg_token_cache_offset
+                cache_offset = get_ifc_initializer(edg_func_def);
+
+        (void)cache_edg_token_cache(cache, cache_offset);
+      } else {
+        /* The IFC told us there would be a definition but none was written. */
+        a_string err_msg("Unexpected missing EDG function definition for ",
+                         index_to_str(decl_idx));
+
+        /* FIXME: Migrate to ec_ifc_missing_function_definition. */
+        ifc_unexpected(module_of(decl), err_msg);
+      }  /* if */
+    } else if (!cinfo.no_final_semicolon) {
       cache_token(cache, tok_semicolon);
     }  /* if */
   } else {
@@ -20484,10 +20540,12 @@ Cache the parameter-declaration-clause for the given function-like declaration
 context to help inform decisions about what to cache.
 */
 {
-  if (cinfo.parameterizing_entity.sort == ifc_ds_decl_template) {
-    /* Templates do not currently have correct encodings of function parameters
-       in the IFC nodes.  To work around this issue, cache the IFC "head"
-       sentence, and capture the parameter-declaration-clause from it. */
+  if (cinfo.parameterizing_entity.sort == ifc_ds_decl_template &&
+      is_msvc_authored(cinfo.parameterizing_entity)) {
+    /* Templates in the MSVC IFC representation do not currently have correct
+       encodings of function parameters in the IFC nodes.  To work around this
+       issue, cache the IFC "head" sentence, and capture the
+       parameter-declaration-clause from it. */
     an_ifc_decl_index    decl_templ_idx = cinfo.parameterizing_entity;
     a_module_token_cache templ_cache(infer_next_source_position(cache));
     an_ifc_decl_template decl_templ;
@@ -22287,50 +22345,59 @@ there is no offset/the offset is not needed.
   an_ifc_source_position_hint pos_hint(cache, locus);
   uint32_t                    offset = 0;
 
-  /* Reconstruct the template-head. */
+  /* Cache the template-head. */
   cache_template_head(cache, get_ifc_chart(decl), cinfo);
-  /* FIXME: Handle attributes. */
-
-  an_ifc_type_index type_index = get_ifc_type(decl);
-  a_type_kind       type_kind = is_null_index(type_index) ?
-                             tk_unknown : type_kind_for_type_index(type_index);
-  if (type_kind == tk_class || type_kind == tk_struct ||
-      type_kind == tk_union) {
-    an_ifc_name_index     name = get_ifc_name(decl);
-    an_ifc_sentence_index body = get_ifc_body(entity);
-
-    cache_type(cache, type_index, cinfo);
-    offset = try_cache_class_attributes_from_body(cache, body);
-    cache_name(cache, name);
-  } else {
-    /* Function or variable template. */
+  /* Cache the parameterized entity. */
+  if (is_edg_authored(decl)) {
     an_ifc_decl_index entity_idx = get_ifc_decl(entity);
+    an_ifc_cache_info decl_cinfo = cinfo;
 
-    if (is_null_index(entity_idx)) {
-      a_string err_msg("Unexpected null value for entity.decl of ",
-                       index_to_str(decl_idx));
+    decl_cinfo.no_access_specifier = TRUE;
+    decl_cinfo.parameterizing_entity = decl_idx;
+    cache_decl(cache, entity_idx, decl_cinfo);
+  } else {
+    /* FIXME: Handle attributes. */
+    an_ifc_type_index type_index = get_ifc_type(decl);
+    a_type_kind       type_kind = is_null_index(type_index) ?
+                             tk_unknown : type_kind_for_type_index(type_index);
+    if (type_kind == tk_class || type_kind == tk_struct ||
+        type_kind == tk_union) {
+      an_ifc_name_index     name = get_ifc_name(decl);
+      an_ifc_sentence_index body = get_ifc_body(entity);
 
-      cache->invalidate();
-      ifc_unexpected(module_of(entity), err_msg);
-    } else if (entity_idx.sort == ifc_ds_decl_variable ||
-               entity_idx.sort == ifc_ds_decl_deduction_guide) {
-      /* FIXME: Cache the entity corresponding to decl->entity.decl instead (as
-         was done for functions below).  Variable template declarations are
-         still a mess, and deduction guides are unimplemented, but we can avoid
-         updating them for now. */
-      (void)cache_sentence(cache, get_ifc_head(entity));
+      cache_type(cache, type_index, cinfo);
+      offset = try_cache_class_attributes_from_body(cache, body);
+      cache_name(cache, name);
     } else {
-      an_ifc_cache_info decl_cinfo = cinfo;
+      /* Function or variable template. */
+      an_ifc_decl_index entity_idx = get_ifc_decl(entity);
 
-      decl_cinfo.no_access_specifier = TRUE;
-      decl_cinfo.no_final_semicolon = TRUE;
-      decl_cinfo.ignore_definition = TRUE;
-      decl_cinfo.parameterizing_entity = decl_idx;
-      cache_decl(cache, entity_idx, decl_cinfo);
+      if (is_null_index(entity_idx)) {
+        a_string err_msg("Unexpected null value for entity.decl of ",
+                         index_to_str(decl_idx));
+
+        cache->invalidate();
+        ifc_unexpected(module_of(entity), err_msg);
+      } else if (entity_idx.sort == ifc_ds_decl_variable ||
+                 entity_idx.sort == ifc_ds_decl_deduction_guide) {
+        /* FIXME: Cache the entity corresponding to decl->entity.decl instead
+           (as was done for functions below).  Variable template declarations
+           are still a mess, and deduction guides are unimplemented, but we can
+           avoid updating them for now. */
+        (void)cache_sentence(cache, get_ifc_head(entity));
+      } else {
+        an_ifc_cache_info decl_cinfo = cinfo;
+
+        decl_cinfo.no_access_specifier = TRUE;
+        decl_cinfo.no_final_semicolon = TRUE;
+        decl_cinfo.ignore_definition = TRUE;
+        decl_cinfo.parameterizing_entity = decl_idx;
+        cache_decl(cache, entity_idx, decl_cinfo);
+      }  /* if */
     }  /* if */
-  }  /* if */
-  if (!cinfo.no_final_semicolon) {
-    cache_token(cache, tok_semicolon);
+    if (!cinfo.no_final_semicolon) {
+      cache_token(cache, tok_semicolon);
+    }  /* if */
   }  /* if */
   return offset;
 }  /* an_ifc_module::cache_decl_template_declaration */
@@ -22342,9 +22409,51 @@ Return TRUE if the given IFC template is a template definition; otherwise,
 return FALSE.
 */
 {
-  an_ifc_sentence_index decl_body = get_ifc_body(get_ifc_entity(decl));
+  a_boolean     result = FALSE;
+  an_ifc_parameterized_entity
+                entity = get_ifc_entity(decl);
 
-  return decl_body != 0;
+  if (is_edg_authored(decl)) {
+    an_ifc_decl_index decl_idx = get_ifc_decl(entity);
+
+    switch (decl_idx.sort) {
+      case ifc_ds_decl_function:
+        { Opt<an_ifc_decl_function> opt_func_decl;
+
+          construct_node(&opt_func_decl, decl_idx);
+          if (!opt_func_decl.has_value()) {
+            goto invalid;
+          }  /* if */
+
+          an_ifc_decl_function func_decl = *opt_func_decl;
+          if (function_is_defined(func_decl)) {
+            result = TRUE;
+          }  /* if */
+        }
+        break;
+      default:
+        { /* FIXME: Add other cases. */
+          a_string err_msg("Unexpected parameterized entity (",
+                           index_to_str(decl_idx),
+                           ") from an EDG authored module file");
+
+          ifc_unexpected(module_of(decl), err_msg);
+        }
+        goto invalid;
+    }  /* switch */
+    result = TRUE;
+  } else {
+    an_ifc_sentence_index decl_body = get_ifc_body(entity);
+
+    if (decl_body != 0) {
+      result = TRUE;
+    }  /* if */
+  }  /* if */
+  goto done;
+invalid:
+  result = FALSE;
+done:
+  return result;
 }  /* is_template_defined */
 
 
@@ -22389,7 +22498,10 @@ context to help inform decisions about what to cache.
   /* If we're not caching a definition, the final semicolon must be cached. */
   cache_info.no_final_semicolon = cache_definition;
   offset = cache_decl_template_declaration(cache, decl_idx, decl, cache_info);
-  if (cache_definition) {
+  /* For MSVC produced IFC files, the sentence is used.  For EDG produced IFC
+     files the definition is cached as part of caching the template
+     declaration. */
+  if (cache_definition && is_msvc_authored(decl)) {
     an_ifc_sentence_index decl_body = get_ifc_body(get_ifc_entity(decl));
 
     (void)cache_sentence(cache, decl_body, offset);
@@ -24765,13 +24877,6 @@ Cache the given basic token into the given front end token cache.
       config_missing_token_error(cache, basic_token);
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
       break;
-    case ifc_ebts_last_whitespace_token:
-#if MICROSOFT_EXTENSIONS_ALLOWED
-      cache_token(cache, tok_last_whitespace_token);
-#else /* !MICROSOFT_EXTENSIONS_ALLOWED */
-      config_missing_token_error(cache, basic_token);
-#endif /* MICROSOFT_EXTENSIONS_ALLOWED */
-      break;
     case ifc_ebts_lbrace:
       cache_token(cache, tok_lbrace);
       break;
@@ -25669,6 +25774,8 @@ return FALSE.
   }  /* if */
 invalid:
   result = FALSE;
+  expect_error_str("expected errors for bad EDG IFC token cache");
+  cache->invalidate();
 done:
   return result;
 }  /* cache_edg_token_cache */
@@ -25722,7 +25829,7 @@ tuple elements by '::' instead of ','.
                                         &error_position);
       goto invalid;
     case ifc_es_expr_vendor_extension:
-      if (expr.file->module_kind == mk_edg_ifc) {
+      if (is_edg_authored(expr)) {
         /* This is the EDG variant of the IFC, the expression vendor extension
            is always an EDG token cache offset.  When written an additional
            value of one is added to the true partition offset to allow for the

@@ -718,6 +718,20 @@ extern a_boolean type_is_nonreal(a_type_ptr	type);
 extern a_boolean entity_is_nonreal(a_source_correspondence_ptr scp,
                                    an_il_entry_kind            kind);
 
+
+inline a_boolean entity_is_nonreal(a_tagged_pointer entity)
+/*
+This is a convenience overload for entity_is_nonreal that uses a_tagged_pointer
+instead of a source correspondence pointer and IL entry kind.  See the
+documentation of
+entity_is_nonreal(a_source_correspondence_ptr, an_il_entry_kind)
+for more information.
+*/
+{
+  return entity_is_nonreal((a_source_correspondence_ptr)entity.ptr,
+                           entity.kind);
+}  /* entity_is_nonreal */
+
 #if DO_IL_LOWERING
 /*
 When doing IL lowering, prototype instantiations are ignored during the

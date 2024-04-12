@@ -552,6 +552,8 @@ INST_CONSTRUCT_NODE(an_ifc_scope_member, an_ifc_partition_kind_index)
 INST_CONSTRUCT_NODE(an_ifc_source_line, an_ifc_partition_kind_index)
 INST_CONSTRUCT_NODE(an_ifc_source_sentence, an_ifc_partition_kind_index)
 INST_CONSTRUCT_NODE(an_ifc_source_word, an_ifc_partition_kind_index)
+INST_CONSTRUCT_NODE(an_ifc_edg_trait_function_definition,
+                    an_ifc_partition_kind_index)
 INST_CONSTRUCT_NODE(an_ifc_trait_function_definition,
                     an_ifc_partition_kind_index)
 INST_CONSTRUCT_NODE(an_ifc_trait_deduction_guide, an_ifc_partition_kind_index)
@@ -618,6 +620,8 @@ constructed node will not be checked for validity.
 /* Manually-defined explicit instantiations of construct_node_unchecked. */
 /* FIXME: This should be automatically handled by the codegen script,
    but it isn't. */
+INST_CONSTRUCT_NODE_UN(an_ifc_edg_trait_function_definition,
+                       an_ifc_partition_kind_index)
 INST_CONSTRUCT_NODE_UN(an_ifc_trait_function_definition,
                        an_ifc_partition_kind_index)
 INST_CONSTRUCT_NODE_UN(an_ifc_trait_deduction_guide,

@@ -24,7 +24,7 @@ ifc_modules_write.c -- IFC writing code.
 /* Conditionally open the "edg" namespace. */
 BEGIN_EDG_NAMESPACE
 
-using an_ifc_output_buffer = Dyn_array<char, General_allocator>;
+using an_ifc_output_buffer = Dyn_array<a_byte, General_allocator>;
                         /* The type used to hold the in-memory bytes. */
 
 namespace {
@@ -38,14 +38,21 @@ struct an_ifc_output_partition {
     : part_name_offset(part_name_offset_val), element_size(element_size_val)
     {}
 
-  inline size_t new_element(char ***start, size_t *byte_offset);
+  inline size_t new_element(a_byte ***start, size_t *byte_offset);
   inline size_t new_elements(size_t num_nodes);
-  inline void fetch_element(char ***start, size_t *byte_offset, size_t index);
+  inline void fetch_element(a_byte ***start,
+                            size_t *byte_offset,
+                            size_t index);
 
-  a_const_char* get_bytes() const
+  a_byte* get_bytes()
+    { return this->contents.begin(); }
+  a_byte const * get_bytes() const
     { return this->contents.begin(); }
   size_t get_num_bytes() const
     { return this->contents.length(); }
+
+  size_t get_num_elements() const
+    { return this->get_num_bytes() / this->element_size; }
 
   const size_t  part_name_offset;
                         /* The offset into the string table where this
@@ -56,12 +63,12 @@ private:
   an_ifc_output_buffer
                 contents = {};
                         /* The bytes held by the partition. */
-  char          *content_start = NULL;
+  a_byte        *content_start = NULL;
                         /* A pointer to the start of the partition bytes. */
 };  /* an_ifc_output_partition */
 
 
-size_t an_ifc_output_partition::new_element(char   ***start,
+size_t an_ifc_output_partition::new_element(a_byte ***start,
                                             size_t *byte_offset)
 /*
 Construct a new IFC output node in the current partition.  *start is updated to
@@ -114,7 +121,7 @@ Return the index into the partition.
 }  /* an_ifc_output_partition::new_elements */
 
 
-inline void an_ifc_output_partition::fetch_element(char   ***start,
+inline void an_ifc_output_partition::fetch_element(a_byte ***start,
                                                    size_t *byte_offset,
                                                    size_t index)
 /*
@@ -153,25 +160,33 @@ struct an_ifc_output_state {
   template<typename an_ifc_Node_type>
   inline an_ifc_chart_index alloc_chart(an_ifc_Node_type *result);
   template<typename an_ifc_Node_type>
+  inline an_ifc_edg_constant_index alloc_constant(an_ifc_Node_type *result);
+  template<typename an_ifc_Node_type>
   inline an_ifc_decl_index alloc_decl(an_ifc_Node_type *result);
+  template<typename an_ifc_Node_type>
+  inline void alloc_decl_trait(an_ifc_decl_index decl_idx,
+                               an_ifc_Node_type  *result);
   template<typename an_ifc_Node_type>
   inline an_ifc_type_index alloc_type(an_ifc_Node_type *result);
   template<typename an_ifc_Node_type>
   inline an_ifc_name_index alloc_name(an_ifc_Node_type *result);
-  template<typename an_ifc_Node_type>
-  inline an_ifc_edg_constant_index alloc_constant(an_ifc_Node_type *result);
 
   template<typename an_ifc_Node_type>
   inline an_ifc_edg_complex_token_index alloc_complex_token(
                                                      an_ifc_Node_type *result);
-  inline an_ifc_expr_index alloc_token_cache(
+  inline an_ifc_edg_token_cache_offset alloc_token_cache(
                                 const an_ifc_output_token_cache &output_cache);
+  inline an_ifc_expr_index alloc_token_cache_expr(
+                                const an_ifc_output_token_cache &output_cache);
+
 
   template<typename an_ifc_Node_type>
   inline void fetch_node(an_ifc_Node_type *result, size_t index);
 
   void set_global_scope(an_ifc_scope_offset scope_offset)
     { this->global_scope = scope_offset; }
+
+  void sort_traits();
 
   a_boolean write();
 private:
@@ -182,6 +197,8 @@ private:
   void set_partition(an_ifc_partition_kind   kind,
                      an_ifc_output_partition *value)
     { this->partitions[kind - 1] = value; }
+  template<typename an_ifc_Node_type>
+  void sort_trait_partition();
   an_ifc_module_file
                 *output_file;
                         /* The target IFC module file. */
@@ -269,7 +286,7 @@ allocated node.  Return the node's index into the partition.
 {
   an_ifc_output_partition
                 *output_part = this->get_or_init_partition<an_ifc_Node_type>();
-  char          **start;
+  a_byte        **start;
   size_t        byte_offset;
   size_t        index = output_part->new_element(&start, &byte_offset);
   an_ifc_Node_type
@@ -311,6 +328,25 @@ the allocated node.  Return the node's chart index.
 
 
 template<typename an_ifc_Node_type>
+an_ifc_edg_constant_index an_ifc_output_state::alloc_constant(
+                                                      an_ifc_Node_type *result)
+/*
+Allocate a constant node in its corresponding output partition.  Set *result to
+the allocated node.  Return the node's constant index.
+*/
+{
+  an_ifc_partition_kind
+                part_kind = get_ifc_partition_kind<an_ifc_Node_type>();
+  size_t        part_offset = this->alloc_node(result);
+  an_ifc_edg_constant_sort
+                constant_sort = to_edg_constant_sort(part_kind);
+
+  return an_ifc_edg_constant_index(result->get_file(), constant_sort,
+                                   part_offset);
+}  /* an_ifc_output_state::alloc_constant */
+
+
+template<typename an_ifc_Node_type>
 an_ifc_decl_index an_ifc_output_state::alloc_decl(an_ifc_Node_type *result)
 /*
 Allocate a declaration node in its corresponding output partition.  Set *result
@@ -325,6 +361,19 @@ to the allocated node.  Return the node's declaration index.
 
   return an_ifc_decl_index(result->get_file(), decl_sort, part_offset);
 }  /* an_ifc_output_state::alloc_decl */
+
+
+template<typename an_ifc_Node_type>
+void an_ifc_output_state::alloc_decl_trait(an_ifc_decl_index decl_idx,
+                                           an_ifc_Node_type  *result)
+/*
+Allocate a trait node for the given declaration in the corresponding trait
+output partition.  Set *result to the allocated node.
+*/
+{
+  (void)this->alloc_node(result);
+  set_ifc_decl(result, decl_idx);
+}  /* an_ifc_output_state::alloc_decl_trait */
 
 
 template<typename an_ifc_Node_type>
@@ -362,25 +411,6 @@ allocated node.  Return the node's name index.
 
 
 template<typename an_ifc_Node_type>
-an_ifc_edg_constant_index an_ifc_output_state::alloc_constant(
-                                                      an_ifc_Node_type *result)
-/*
-Allocate a constant node in its corresponding output partition.  Set *result to
-the allocated node.  Return the node's constant index.
-*/
-{
-  an_ifc_partition_kind
-                part_kind = get_ifc_partition_kind<an_ifc_Node_type>();
-  size_t        part_offset = this->alloc_node(result);
-  an_ifc_edg_constant_sort
-                constant_sort = to_edg_constant_sort(part_kind);
-
-  return an_ifc_edg_constant_index(result->get_file(), constant_sort,
-                                   part_offset);
-}  /* an_ifc_output_state::alloc_constant */
-
-
-template<typename an_ifc_Node_type>
 an_ifc_edg_complex_token_index an_ifc_output_state::alloc_complex_token(
                                                       an_ifc_Node_type *result)
 /*
@@ -411,7 +441,7 @@ Fetch a node from its corresponding output partition at the given index.  Set
                 part_kind = get_ifc_partition_kind<an_ifc_Node_type>();
   an_ifc_output_partition
                 *output_part = this->get_partition(part_kind);
-  char          **start;
+  a_byte        **start;
   size_t        byte_offset;
 
   output_part->fetch_element(&start, &byte_offset, index);
@@ -419,6 +449,20 @@ Fetch a node from its corresponding output partition at the given index.  Set
   an_ifc_Node_type constructed_value(this->output_file, start, byte_offset);
   *result = constructed_value;
 }  /* an_ifc_output_state::fetch_node */
+
+
+void an_ifc_output_state::sort_traits()
+/*
+Sort any trait partitions so that the reader can perform binary search.
+
+Note that no Byte_buffer_entity objects representing a trait (with non-local
+storage owned by this output state) should exist when this function is called.
+Should such any object exist, use of any said object after this call may result
+in undefined behavior.
+*/
+{
+  this->sort_trait_partition<an_ifc_edg_trait_function_definition>();
+}  /* an_ifc_output_state::sort_traits */
 
 
 /*
@@ -793,6 +837,66 @@ output partition is not already initialized, initialize it now.
 }  /* an_ifc_output_state::get_or_init_partition */
 
 
+template<typename an_ifc_Node_type>
+void an_ifc_output_state::sort_trait_partition()
+/*
+The IFC requires that traits be ordered so that binary search can be performed.
+Perform a sort on the trait contents now to correctly arrange the contents.
+*/
+{
+  an_ifc_partition_kind
+                part_kind = get_ifc_partition_kind<an_ifc_Node_type>();
+  an_ifc_output_partition
+                *output_partition = this->get_partition(part_kind);
+
+  if (output_partition != NULL) {
+    /* Create an array representing the element positions.  Then sort the array
+       of element positions without actually moving any partition elements in
+       the byte buffer.  Finally, create a new output partition and copy the
+       partition bytes from the original output partition into the new new
+       output partition at the correct position. */
+    size_t      num_traits = output_partition->get_num_elements();
+    Dyn_array<size_t, General_allocator>
+                idx_array(/*capacity=*/num_traits);
+
+    for (size_t i = 0; i < num_traits; ++i) {
+      idx_array.push_back(i);
+    }  /* for */
+
+    auto        compare_function = [this](size_t idx_a, size_t idx_b) {
+      an_ifc_Node_type node_a;
+      an_ifc_Node_type node_b;
+
+      this->fetch_node(&node_a, idx_a);
+      this->fetch_node(&node_b, idx_b);
+      return get_ifc_encoded_decl(node_a) < get_ifc_encoded_decl(node_b);
+    };
+    sort(&idx_array, compare_function);
+
+    /* Create a replacement partition. */
+    an_ifc_output_partition
+                *new_partition = new_general<an_ifc_output_partition>(
+                                            output_partition->part_name_offset,
+                                            output_partition->element_size);
+    this->set_partition(part_kind, new_partition);
+    /* Copy the elements from the original partition into the new partition
+       in the correct position. */
+    new_partition->new_elements(num_traits);
+    for (size_t i = 0; i < num_traits; ++i) {
+      size_t input_idx = idx_array[i];
+      size_t dst_offset = (i * output_partition->element_size);
+      size_t src_offset = (input_idx * output_partition->element_size);
+
+      memcpy(new_partition->get_bytes() + dst_offset,
+             output_partition->get_bytes() + src_offset,
+             output_partition->element_size);
+    }  /* for */
+    /* Free the replaced partition. */
+    delete_general(output_partition);
+  }  /* if */
+}  /* an_ifc_output_state::sort_trait_partition */
+
+
 NORETURN static void header_unit_catastrophe(
                      an_error_code reason = ec_unsupported_header_unit_feature)
 /*
@@ -825,10 +929,7 @@ cache as it is constructed.  To form the token cache represented by its current
 state it should be passed to an_ifc_output_state::alloc_token_cache.
 */
 struct an_ifc_output_token_cache {
-#if 0
-  /* FIXME: See the definition below. */
   void add_basic(an_ifc_edg_basic_token_sort basic_token);
-#endif /* 0 */
   void add_complex(an_ifc_edg_complex_token_index complex_token);
 
   size_t get_num_basic_tokens() const
@@ -854,11 +955,11 @@ private:
 };  /* an_ifc_output_token_cache */
 
 
-an_ifc_expr_index an_ifc_output_state::alloc_token_cache(
+an_ifc_edg_token_cache_offset an_ifc_output_state::alloc_token_cache(
                                  const an_ifc_output_token_cache &output_cache)
 /*
 Allocate and populate the token cache with the information tracked by the given
-IFC output token cache.  Return the IFC expression index of the created token
+IFC output token cache.  Return the IFC token cache offset of the created token
 cache.
 */
 {
@@ -866,9 +967,8 @@ cache.
   an_ifc_edg_token_cache
                 token_cache;
   size_t        token_cache_offset = this->alloc_node(&token_cache);
-  an_ifc_expr_index
-                result(token_cache.get_file(), ifc_es_expr_vendor_extension,
-                       token_cache_offset + 1);
+  an_ifc_edg_token_cache_offset
+                result(token_cache.get_file(), token_cache_offset + 1);
   /* Allocate the basic and complex token blocks. */
   size_t        num_basic_tokens = output_cache.get_num_basic_tokens();
   size_t        basic_tokens_start = this->
@@ -915,11 +1015,22 @@ cache.
 }  /* an_ifc_output_state::alloc_token_cache */
 
 
+an_ifc_expr_index an_ifc_output_state::alloc_token_cache_expr(
+                                 const an_ifc_output_token_cache &output_cache)
 /*
-FIXME: This is disabled to suppress build warnings about an unused function
-with internal linkage.  Re-enable this function when we're ready to use it.
+Allocate and populate the token cache with the information tracked by the given
+IFC output token cache.  Return the IFC expression index of the created token
+cache.
 */
-#if 0
+{
+  an_ifc_edg_token_cache_offset
+                token_cache_offset = this->alloc_token_cache(output_cache);
+
+  return an_ifc_expr_index(token_cache_offset.get_file(),
+                           ifc_es_expr_vendor_extension,
+                           token_cache_offset.value);
+}  /* an_ifc_output_state::alloc_token_cache_expr */
+
 
 void an_ifc_output_token_cache::add_basic(
                                        an_ifc_edg_basic_token_sort basic_token)
@@ -933,7 +1044,6 @@ Add the given basic token to the end of the token cache.
   this->basic_tokens.push_back(basic_token);
 }  /* an_ifc_output_token_cache::add_basic */
 
-#endif /* 0 */
 
 void an_ifc_output_token_cache::add_complex(
                                       an_ifc_edg_complex_token_index token_idx)
@@ -965,6 +1075,8 @@ struct an_ifc_il_map {
   an_ifc_decl_index enter_enum(a_type_ptr type);
   an_ifc_decl_index find_or_enter_routine(a_routine_ptr rp);
   an_ifc_decl_index enter_routine(a_routine_ptr rp);
+  an_ifc_decl_index find_or_enter_template(a_template_ptr templ);
+  an_ifc_decl_index enter_template(a_template_ptr templ);
 
   /* Functions for retrieving scope member state. */
   size_t get_number_of_scopes() const
@@ -976,6 +1088,8 @@ private:
     { return this->output_state->get_file(); }
 
   /* Functions for adding/referencing names and text. */
+  an_ifc_text_offset string_as_text_offset(a_const_char *str,
+                                           size_t       str_len);
   an_ifc_text_offset string_as_text_offset(a_const_char *str);
   an_ifc_name_index string_as_name_index(a_const_char *str);
   template<typename a_Type>
@@ -1013,20 +1127,40 @@ private:
   an_ifc_type_index enter_pointer_type(a_type_ptr type);
   an_ifc_type_index enter_routine_params_type(a_type_ptr type);
   an_ifc_type_index enter_routine_type(a_type_ptr type);
+  an_ifc_type_index enter_template_type_param_type(
+                                             a_type_ptr        type,
+                                             an_ifc_decl_index param_decl_idx);
   an_ifc_type_index enter_typedef_type(a_type_ptr type);
   an_ifc_type_index enter_void_type(a_type_ptr type);
 
   /* Functions for entering portions of other larger entities. */
   an_ifc_sequence enter_enumerators(a_type_ptr type);
   an_ifc_chart_index enter_routine_params(a_routine_ptr rp);
+  an_ifc_chart_index enter_template_params(a_template_ptr templ);
+  void set_template_param_coordinates(
+                               an_ifc_decl_parameter             *param_decl,
+                               const a_template_param_coordinate &coordinates);
+  void set_up_template_non_type_param(an_ifc_decl_parameter    *param_decl,
+                                      a_template_parameter_ptr templ_param);
+  void set_up_template_type_param(an_ifc_decl_parameter    *param_decl,
+                                  an_ifc_decl_index        curr_param_idx,
+                                  a_template_parameter_ptr templ_param);
 
   /* Functions for entering constants. */
   an_ifc_edg_constant_index enter_constant(a_constant_ptr cp);
 
-  /* Functions for adding complex tokens. */
+  /* Functions for adding tokens and manipulating token caches. */
+  void enter_basic_token_to_cache(an_ifc_output_token_cache *ifc_cache,
+                                  a_cached_token            *token);
   an_ifc_edg_complex_token_index enter_constant_token(
                                   an_ifc_edg_constant_token_sort token_kind,
                                   an_ifc_edg_constant_index      constant_idx);
+  void enter_constant_token_to_cache(an_ifc_output_token_cache *ifc_cache,
+                                     a_cached_token            *token);
+  void enter_identifier_token_to_cache(an_ifc_output_token_cache *ifc_cache,
+                                       a_cached_token            *token);
+  void enter_token_cache(an_ifc_output_token_cache *ifc_cache,
+                         a_token_cache             *fe_cache);
 
   /* Functions for entering special IFC fundamental types. */
   an_ifc_type_index find_or_enter_class_scope_type();
@@ -1042,6 +1176,7 @@ private:
   an_ifc_decl_index enter_destructor(a_routine_ptr rp);
   an_ifc_decl_index enter_field(a_field_ptr field);
   an_ifc_decl_index enter_free_function(a_routine_ptr rp);
+  an_ifc_decl_index enter_function_template(a_template_ptr templ);
   an_ifc_decl_index enter_member_function(a_routine_ptr rp);
   an_ifc_decl_index enter_namespace(a_scope_ptr scope);
   an_ifc_decl_index enter_typedef(a_type_ptr type);
@@ -1172,6 +1307,10 @@ index for the type file.
   an_ifc_type_index result;
 
   switch (type->kind) {
+    case tk_class:
+    case tk_struct:
+      result = this->enter_class_type(type);
+      break;
     case tk_float:
       result = this->enter_float_type(type);
       break;
@@ -1191,8 +1330,10 @@ index for the type file.
     case tk_routine:
       result = this->enter_routine_type(type);
       break;
-    case tk_struct:
-      result = this->enter_class_type(type);
+    case tk_template_param:
+      /* This type should be entered when the template parameter chart
+         is set up in enter_template_params. */
+      unexpected_condition();
       break;
     case tk_typeref:
       if (typeref_is_typedef(type)) {
@@ -1265,9 +1406,7 @@ index for the type file.
     case tk_complex:
 #endif /* C99_IL_EXTENSIONS_SUPPORTED */
     case tk_array:
-    case tk_class:
     case tk_ptr_to_member:
-    case tk_template_param:
 #if GNU_VECTOR_TYPES_ALLOWED
     case tk_vector:
     case tk_scalable_vector:
@@ -1618,16 +1757,66 @@ Return the declaration index for the routine.
 }  /* an_ifc_il_map::enter_routine */
 
 
-an_ifc_text_offset an_ifc_il_map::string_as_text_offset(a_const_char *str)
+an_ifc_decl_index an_ifc_il_map::find_or_enter_template(a_template_ptr templ)
 /*
-Return the text offset representing the given string.  The lifetime of the
-given string must be at least as long as the lifetime of the IFC IL map.
+For the given template find or enter the template declaration into the IFC
+output state.  Return the declaration index for the template.
+*/
+{
+  a_tagged_pointer  tagged_templ = make_tagged_ptr(templ);
+  an_ifc_decl_index result = this->il_entry_to_decl.get(tagged_templ);
+
+  if (is_null_index(result)) {
+    result = this->enter_template(templ);
+  }  /* if */
+  return result;
+}  /* an_ifc_il_map::find_or_enter_template */
+
+
+an_ifc_decl_index an_ifc_il_map::enter_template(a_template_ptr templ)
+/*
+For the given template enter the template declaration into the IFC output
+state.  Return the declaration index for the template.
+*/
+{
+  an_ifc_decl_index result;
+
+  switch (templ->kind) {
+    case templk_class:
+    case templk_concept:
+      /* FIXME: Implement these. */
+      header_unit_catastrophe();
+      break;
+    case templk_function:
+      result = this->enter_function_template(templ);
+      break;
+    case templk_member_class:
+    case templk_member_enum:
+    case templk_member_function:
+    case templk_none:
+    case templk_static_data_member:
+    case templk_template_template_param:
+    case templk_variable:
+      header_unit_catastrophe();
+      break;
+    default_is_unexpected();
+  }  /* switch */
+  return result;
+}  /* an_ifc_il_map::enter_template */
+
+
+an_ifc_text_offset an_ifc_il_map::string_as_text_offset(a_const_char *str,
+                                                        size_t       str_len)
+/*
+Return the text offset representing the given string of the given length.  The
+lifetime of the given string must be at least as long as the lifetime of the
+IFC IL map.
 */
 {
   size_t name_offset = 0;
 
   if (str != NULL && str[0] != '\0') {
-    a_string_view str_handle(str);
+    a_string_view str_handle(str, str_len);
     uintptr_t     hash = hash_ptr(str_handle);
 
     name_offset = this->string_table_map.get_with_hash(str_handle, hash);
@@ -1638,6 +1827,21 @@ given string must be at least as long as the lifetime of the IFC IL map.
     }  /* if */
   }  /* if */
   return an_ifc_text_offset(this->get_default_file(), name_offset);
+}  /* an_ifc_il_map::string_as_text_offset */
+
+
+an_ifc_text_offset an_ifc_il_map::string_as_text_offset(a_const_char *str)
+/*
+Return the text offset representing the given string.  The lifetime of the
+given string must be at least as long as the lifetime of the IFC IL map.
+*/
+{
+  an_ifc_text_offset result;
+
+  if (str != NULL && str[0] != '\0') {
+    result = this->string_as_text_offset(str, strlen(str));
+  }  /* if */
+  return result;
 }  /* an_ifc_il_map::string_as_text_offset */
 
 
@@ -2375,6 +2579,25 @@ for the function type.
 }  /* an_ifc_il_map::enter_routine_type */
 
 
+an_ifc_type_index an_ifc_il_map::enter_template_type_param_type(
+                                              a_type_ptr        type,
+                                              an_ifc_decl_index param_decl_idx)
+/*
+Enter the IFC template type parameter corresponding to the given type
+represented by the given IFC declaration index.  Return the type index for
+the template type parameter.
+*/
+{
+  an_ifc_type_designated
+                designated_type;
+  an_ifc_type_index
+                result = this->map_new_type(type, &designated_type);
+
+  set_ifc_decl(&designated_type, param_decl_idx);
+  return result;
+}  /* an_ifc_il_map::enter_template_type_param_type */
+
+
 an_ifc_type_index an_ifc_il_map::enter_typedef_type(a_type_ptr type)
 /*
 Enter the given typedef type into the IFC output state.  Return the type index
@@ -2499,7 +2722,7 @@ sequence representing the IFC DeclSort::Enumerators.
       init_token_cache.add_complex(ifc_constant_token);
 
       /* Set the initializing expression. */
-      an_ifc_expr_index init_idx = this->output_state->alloc_token_cache(
+      an_ifc_expr_index init_idx = this->output_state->alloc_token_cache_expr(
                                                              init_token_cache);
       set_ifc_initializer(&curr_enumerator, init_idx);
       /* FIXME: Set specifier. */
@@ -2610,6 +2833,191 @@ the parameters.
 }  /* an_ifc_il_map::enter_routine_params */
 
 
+an_ifc_chart_index an_ifc_il_map::enter_template_params(a_template_ptr templ)
+/*
+Enter the chart representing the given template's template parameters.  Return
+the index of the template parameter chart.
+*/
+{
+  an_ifc_chart_index
+                result;
+  a_template_decl_ptr
+                templ_decl = templ->template_decl;
+  a_template_parameter_ptr
+                param_list = templ_decl->param_list;
+  unsigned      param_count = count_list_elements(param_list);
+
+  if (param_count > 0) {
+    an_ifc_chart_unilevel
+                param_chart;
+
+    result = this->output_state->alloc_chart(&param_chart);
+
+    /* Preallocate all the parameters to ensure we get one contiguous block. */
+    size_t      start = this->output_state->
+                          alloc_node_block<an_ifc_decl_parameter>(param_count);
+    /* Associate the preallocated parameter nodes with the parameter chart. */
+    an_ifc_module_file
+                *file = this->get_default_file();
+    an_ifc_index
+                ifc_param_start(file, start);
+    an_ifc_cardinality
+                ifc_param_count(file, param_count);
+    set_ifc_start(&param_chart, ifc_param_start);
+    set_ifc_cardinality(&param_chart, ifc_param_count);
+
+    /* Complete the parameter declarations. */
+    a_template_parameter_ptr curr_templ_param = param_list;
+    for (size_t i = 0; i < param_count; ++i) {
+      size_t                curr_param_offset = start + i;
+      an_ifc_decl_parameter curr_param;
+
+
+      this->output_state->fetch_node(&curr_param, curr_param_offset);
+
+      an_ifc_decl_index
+                curr_param_idx(curr_param.get_file(), ifc_ds_decl_parameter,
+                               curr_param_offset);
+      a_template_parameter_kind
+                param_kind = curr_templ_param->kind;
+      switch (param_kind) {
+        case tpk_nontype:
+          this->set_up_template_non_type_param(&curr_param, curr_templ_param);
+          break;
+        case tpk_template:
+          header_unit_catastrophe();
+          break;
+        case tpk_type:
+          this->set_up_template_type_param(&curr_param, curr_param_idx,
+                                           curr_templ_param);
+          break;
+        case tpk_error:
+          /* An error template parameter kind should not make it to IFC
+             writing. */
+          unexpected_condition();
+        default_is_unexpected();
+      }  /* switch */
+      /* Advance to the next parameter. */
+      curr_templ_param = curr_templ_param->next;
+    }  /* for */
+  }  /* if */
+  return result;
+}  /* an_ifc_il_map::enter_template_params */
+
+
+void an_ifc_il_map::set_template_param_coordinates(
+                                an_ifc_decl_parameter             *param_decl,
+                                const a_template_param_coordinate &coordinates)
+/*
+Set the level (i.e., depth) and position information for the given IFC
+parameter declaration based on the given front end template parameter
+coordinate information.
+*/
+{
+  /* Set the level information (i.e., depth). */
+  an_ifc_parameter_level
+                ifc_param_depth(this->get_default_file(), coordinates.depth);
+  set_ifc_level(param_decl, ifc_param_depth);
+
+  /* Set the position information. */
+  an_ifc_parameter_position
+                ifc_param_position(this->get_default_file(),
+                                   coordinates.position);
+  set_ifc_position(param_decl, ifc_param_position);
+
+}  /* an_ifc_il_map::set_template_param_coordinates */
+
+
+void an_ifc_il_map::set_up_template_non_type_param(
+                                       an_ifc_decl_parameter    *param_decl,
+                                       a_template_parameter_ptr templ_param)
+/*
+The given IFC parameter declaration node is freshly allocated, set its fields
+to represent the given front end non-type template parameter.
+*/
+{
+  check_assertion(templ_param->kind == tpk_nontype);
+  /* Set the parameter name. */
+  an_ifc_text_offset
+                ifc_name_offset =
+                            this->entity_name_as_text_offset(templ_param);
+  set_ifc_name(param_decl, ifc_name_offset);
+
+  /* Set the source location information. */
+  an_ifc_source_location
+                ifc_src_pos = this->find_or_enter_entity_pos(templ_param);
+  set_ifc_locus(param_decl, ifc_src_pos);
+
+  /* Set the type information. */
+  a_constant_ptr
+                param_constant = templ_param->variant.nontype.constant;
+  /* Check some assumptions about the constant representation.  If these
+     assertions are violated either the IFC writer has been fed bad data or
+     the IFC writer needs updated to handle the new case. */
+  check_assertion(param_constant->kind == ck_template_param);
+  check_assertion(param_constant->variant.template_param.kind == tpck_param);
+  a_type_ptr    param_type = param_constant->type;
+  an_ifc_type_index
+                ifc_param_type = this->find_or_enter_type(param_type);
+  set_ifc_type(param_decl, ifc_param_type);
+
+  /* Set the level (i.e., depth) and position information. */
+  a_template_param_coordinate
+                coordinates =
+                    param_constant->variant.template_param.variant.coordinates;
+  this->set_template_param_coordinates(param_decl, coordinates);
+  /* FIXME: Set the constraint. */
+  /* FIXME: Set the initializer. */
+  /* Set the parameter sort. */
+  set_ifc_sort(param_decl, ifc_ps_non_type);
+  /* FIXME: Set the reachable properties. */
+}  /* an_ifc_il_map::set_up_template_non_type_param */
+
+
+void an_ifc_il_map::set_up_template_type_param(
+                                       an_ifc_decl_parameter    *param_decl,
+                                       an_ifc_decl_index        param_decl_idx,
+                                       a_template_parameter_ptr templ_param)
+/*
+The given IFC parameter declaration node (at the given declaration index) is
+freshly allocated, set its fields to represent the given front end type
+template parameter.
+*/
+{
+  check_assertion(templ_param->kind == tpk_type);
+  /* Link the type representing this parameter to the IFC DeclSort::Parameter
+     now.  Following the mapping, this ensures that any references to the type
+     resolve to the template parameter properly. */
+  a_type_ptr    param_type = templ_param->variant.type.ptr;
+  (void)this->enter_template_type_param_type(param_type, param_decl_idx);
+
+  /* Set the parameter name. */
+  an_ifc_text_offset
+                ifc_name_offset =
+                            this->entity_name_as_text_offset(templ_param);
+  set_ifc_name(param_decl, ifc_name_offset);
+
+  /* Set the source location information. */
+  an_ifc_source_location
+                ifc_src_pos = this->find_or_enter_entity_pos(templ_param);
+  set_ifc_locus(param_decl, ifc_src_pos);
+
+  /* Set the type information. */
+  /* FIXME: What does Microsoft put here for a type template parameter? */
+  set_ifc_type(param_decl, an_ifc_type_index());
+
+  /* Set the level (i.e., depth) and position information. */
+  a_template_param_type_supplement_ptr
+                tpts = param_type->variant.template_param.extra_info;
+  this->set_template_param_coordinates(param_decl, tpts->coordinates);
+  /* FIXME: Set the constraint. */
+  /* FIXME: Set the initializer. */
+  /* Set the parameter sort. */
+  set_ifc_sort(param_decl, ifc_ps_type);
+  /* FIXME: Set the reachable properties. */
+}  /* an_ifc_il_map::set_up_template_type_param */
+
+
 an_ifc_edg_constant_index an_ifc_il_map::enter_constant(a_constant_ptr cp)
 /*
 For the given constant enter the constant into the IFC output state.  Return
@@ -2716,6 +3124,1438 @@ the expr index for the constant.
   return result;
 }  /* an_ifc_il_map::enter_constant */
 
+}  /* namespace */
+
+static inline an_ifc_edg_basic_token_sort token_to_basic_token_kind(
+                                                            a_token_kind token)
+/*
+*/
+{
+  an_ifc_edg_basic_token_sort result;
+
+  switch (token) {
+#if MICROSOFT_EXTENSIONS_ALLOWED
+    case tok_abstract:
+      result = ifc_ebts_abstract;
+      break;
+#endif /* MICROSOFT_EXTENSIONS_ALLOWED */
+    case tok_accum:
+      result = ifc_ebts_accum;
+      break;
+    case tok_add_lvalue_reference:
+      result = ifc_ebts_add_lvalue_reference;
+      break;
+    case tok_add_pointer:
+      result = ifc_ebts_add_pointer;
+      break;
+    case tok_add_rvalue_reference:
+      result = ifc_ebts_add_rvalue_reference;
+      break;
+    case tok_alignas:
+      result = ifc_ebts_alignas;
+      break;
+    case tok_alignof:
+      result = ifc_ebts_alignof;
+      break;
+    case tok_ampersand:
+      result = ifc_ebts_ampersand;
+      break;
+    case tok_and_and:
+      result = ifc_ebts_and_and;
+      break;
+    case tok_and_assign:
+      result = ifc_ebts_and_assign;
+      break;
+    case tok_array_extent:
+      result = ifc_ebts_array_extent;
+      break;
+    case tok_array_rank:
+      result = ifc_ebts_array_rank;
+      break;
+    case tok_arrow:
+      result = ifc_ebts_arrow;
+      break;
+    case tok_arrow_star:
+      result = ifc_ebts_arrow_star;
+      break;
+    case tok_asm:
+      result = ifc_ebts_asm;
+      break;
+    case tok_assign:
+      result = ifc_ebts_assign;
+      break;
+#if MICROSOFT_EXTENSIONS_ALLOWED
+    case tok_assume:
+      result = ifc_ebts_assume;
+      break;
+#endif /* MICROSOFT_EXTENSIONS_ALLOWED */
+    case tok_attribute:
+      result = ifc_ebts_attribute;
+      break;
+    case tok_auto:
+      result = ifc_ebts_auto;
+      break;
+    case tok_auto_type:
+      result = ifc_ebts_auto_type;
+      break;
+#if MICROSOFT_EXTENSIONS_ALLOWED
+    case tok_based:
+      result = ifc_ebts_based;
+      break;
+#endif /* MICROSOFT_EXTENSIONS_ALLOWED */
+#if GNU_EXTENSIONS_ALLOWED
+    case tok_bases:
+      result = ifc_ebts_bases;
+      break;
+#endif /* GNU_EXTENSIONS_ALLOWED */
+    case tok_bool:
+      result = ifc_ebts_bool;
+      break;
+    case tok_break:
+      result = ifc_ebts_break;
+      break;
+    case tok_builtin_addressof:
+      result = ifc_ebts_builtin_addressof;
+      break;
+    case tok_builtin_bit_cast:
+      result = ifc_ebts_builtin_bit_cast;
+      break;
+    case tok_builtin_complex:
+      result = ifc_ebts_builtin_complex;
+      break;
+#if GNU_VECTOR_TYPES_ALLOWED
+    case tok_builtin_convertvector:
+      result = ifc_ebts_builtin_convertvector;
+      break;
+#endif /* GNU_VECTOR_TYPES_ALLOWED */
+    case tok_builtin_has_attribute:
+      result = ifc_ebts_builtin_has_attribute;
+      break;
+    case tok_builtin_is_corresponding_member:
+      result = ifc_ebts_builtin_is_corresponding_member;
+      break;
+    case tok_builtin_is_pointer_interconvertible_with_class:
+      result = ifc_ebts_builtin_is_pointer_interconvertible_with_class;
+      break;
+    case tok_builtin_offsetof:
+      result = ifc_ebts_builtin_offsetof;
+      break;
+#if GNU_VECTOR_TYPES_ALLOWED
+    case tok_builtin_shuffle:
+      result = ifc_ebts_builtin_shuffle;
+      break;
+    case tok_builtin_shufflevector:
+      result = ifc_ebts_builtin_shufflevector;
+      break;
+#endif /* GNU_VECTOR_TYPES_ALLOWED */
+#if GNU_EXTENSIONS_ALLOWED
+    case tok_builtin_types_compatible:
+      result = ifc_ebts_builtin_types_compatible;
+      break;
+#endif /* GNU_EXTENSIONS_ALLOWED */
+    case tok_c11_atomic:
+      result = ifc_ebts_c11_atomic;
+      break;
+    case tok_c11_generic:
+      result = ifc_ebts_c11_generic;
+      break;
+    case tok_c11_thread_local:
+      result = ifc_ebts_c11_thread_local;
+      break;
+    case tok_c99_bool:
+      result = ifc_ebts_c99_bool;
+      break;
+    case tok_c99_complex:
+      result = ifc_ebts_c99_complex;
+      break;
+    case tok_c99_generic:
+      result = ifc_ebts_c99_generic;
+      break;
+    case tok_c99_genericfx:
+      result = ifc_ebts_c99_genericfx;
+      break;
+    case tok_c99_imaginary:
+      result = ifc_ebts_c99_imaginary;
+      break;
+    case tok_case:
+      result = ifc_ebts_case;
+      break;
+    case tok_catch:
+      result = ifc_ebts_catch;
+      break;
+#if MICROSOFT_EXTENSIONS_ALLOWED
+    case tok_cdecl:
+      result = ifc_ebts_cdecl;
+      break;
+#endif /* MICROSOFT_EXTENSIONS_ALLOWED */
+    case tok_char:
+      result = ifc_ebts_char;
+      break;
+    case tok_char16_t:
+      result = ifc_ebts_char16_t;
+      break;
+    case tok_char32_t:
+      result = ifc_ebts_char32_t;
+      break;
+    case tok_char8_t:
+      result = ifc_ebts_char8_t;
+      break;
+#if MICROSOFT_EXTENSIONS_ALLOWED
+    case tok_charize:
+      result = ifc_ebts_charize;
+      break;
+#endif /* MICROSOFT_EXTENSIONS_ALLOWED */
+    case tok_clang_version:
+      result = ifc_ebts_clang_version;
+      break;
+    case tok_class:
+      result = ifc_ebts_class;
+      break;
+#if MICROSOFT_EXTENSIONS_ALLOWED
+    case tok_clrcall:
+      result = ifc_ebts_clrcall;
+      break;
+#endif /* MICROSOFT_EXTENSIONS_ALLOWED */
+    case tok_colon:
+      result = ifc_ebts_colon;
+      break;
+    case tok_colon_colon:
+      result = ifc_ebts_colon_colon;
+      break;
+    case tok_comma:
+      result = ifc_ebts_comma;
+      break;
+    case tok_compl:
+      result = ifc_ebts_compl;
+      break;
+    case tok_concept:
+      result = ifc_ebts_concept;
+      break;
+    case tok_const:
+      result = ifc_ebts_const;
+      break;
+    case tok_const_cast:
+      result = ifc_ebts_const_cast;
+      break;
+    case tok_consteval:
+      result = ifc_ebts_consteval;
+      break;
+    case tok_constexpr:
+      result = ifc_ebts_constexpr;
+      break;
+    case tok_constinit:
+      result = ifc_ebts_constinit;
+      break;
+    case tok_continue:
+      result = ifc_ebts_continue;
+      break;
+    case tok_coroutine_await:
+      result = ifc_ebts_coroutine_await;
+      break;
+    case tok_coroutine_return:
+      result = ifc_ebts_coroutine_return;
+      break;
+    case tok_coroutine_yield:
+      result = ifc_ebts_coroutine_yield;
+      break;
+    case tok_cpp98_export:
+      result = ifc_ebts_cpp98_export;
+      break;
+    case tok_decay:
+      result = ifc_ebts_decay;
+      break;
+    case tok_decltype:
+      result = ifc_ebts_decltype;
+      break;
+    case tok_decorated_function_name:
+      result = ifc_ebts_decorated_function_name;
+      break;
+    case tok_default:
+      result = ifc_ebts_default;
+      break;
+    case tok_delete:
+      result = ifc_ebts_delete;
+      break;
+#if GNU_EXTENSIONS_ALLOWED
+    case tok_direct_bases:
+      result = ifc_ebts_direct_bases;
+      break;
+#endif /* GNU_EXTENSIONS_ALLOWED */
+    case tok_divide:
+      result = ifc_ebts_divide;
+      break;
+    case tok_divide_assign:
+      result = ifc_ebts_divide_assign;
+      break;
+    case tok_do:
+      result = ifc_ebts_do;
+      break;
+    case tok_double:
+      result = ifc_ebts_double;
+      break;
+    case tok_dynamic_cast:
+      result = ifc_ebts_dynamic_cast;
+      break;
+    case tok_edg_bool_type:
+      result = ifc_ebts_edg_bool_type;
+      break;
+    case tok_edg_internal_opnd:
+      result = ifc_ebts_edg_internal_opnd;
+      break;
+    case tok_edg_internal_type:
+      result = ifc_ebts_edg_internal_type;
+      break;
+    case tok_edg_is_deducible:
+      result = ifc_ebts_edg_is_deducible;
+      break;
+    case tok_edg_ptrdiff_type:
+      result = ifc_ebts_edg_ptrdiff_type;
+      break;
+    case tok_edg_size_type:
+      result = ifc_ebts_edg_size_type;
+      break;
+    case tok_edg_throw:
+      result = ifc_ebts_edg_throw;
+      break;
+    case tok_edg_vector_type:
+      result = ifc_ebts_edg_vector_type;
+      break;
+    case tok_edg_wchar_type:
+      result = ifc_ebts_edg_wchar_type;
+      break;
+    case tok_ellipsis:
+      result = ifc_ebts_ellipsis;
+      break;
+    case tok_else:
+      result = ifc_ebts_else;
+      break;
+#if MICROSOFT_EXTENSIONS_ALLOWED
+    case tok_end_of_if_exists:
+      result = ifc_ebts_end_of_if_exists;
+      break;
+#endif /* MICROSOFT_EXTENSIONS_ALLOWED */
+    case tok_enum:
+      result = ifc_ebts_enum;
+      break;
+#if MICROSOFT_EXTENSIONS_ALLOWED
+    case tok_enum_class:
+      result = ifc_ebts_enum_class;
+      break;
+    case tok_enum_struct:
+      result = ifc_ebts_enum_struct;
+      break;
+#endif /* MICROSOFT_EXTENSIONS_ALLOWED */
+    case tok_eq:
+      result = ifc_ebts_eq;
+      break;
+#if MICROSOFT_EXTENSIONS_ALLOWED
+    case tok_event:
+      result = ifc_ebts_event;
+      break;
+    case tok_except:
+      result = ifc_ebts_except;
+      break;
+#endif /* MICROSOFT_EXTENSIONS_ALLOWED */
+    case tok_excl_or:
+      result = ifc_ebts_excl_or;
+      break;
+    case tok_excl_or_assign:
+      result = ifc_ebts_excl_or_assign;
+      break;
+    case tok_explicit:
+      result = ifc_ebts_explicit;
+      break;
+    case tok_export:
+      result = ifc_ebts_export;
+      break;
+    case tok_export_keyword:
+      result = ifc_ebts_export_keyword;
+      break;
+    case tok_ext_alignof:
+      result = ifc_ebts_ext_alignof;
+      break;
+    case tok_extension:
+      result = ifc_ebts_extension;
+      break;
+    case tok_extern:
+      result = ifc_ebts_extern;
+      break;
+    case tok_false:
+      result = ifc_ebts_false;
+      break;
+#if NEAR_AND_FAR_ALLOWED
+    case tok_far:
+      result = ifc_ebts_far;
+      break;
+#endif /* NEAR_AND_FAR_ALLOWED */
+#if MICROSOFT_EXTENSIONS_ALLOWED
+    case tok_fastcall:
+      result = ifc_ebts_fastcall;
+      break;
+#endif /* MICROSOFT_EXTENSIONS_ALLOWED */
+    case tok_final:
+      result = ifc_ebts_final;
+      break;
+#if MICROSOFT_EXTENSIONS_ALLOWED
+    case tok_finally:
+      result = ifc_ebts_finally;
+      break;
+#endif /* MICROSOFT_EXTENSIONS_ALLOWED */
+    case tok_float:
+      result = ifc_ebts_float;
+      break;
+    case tok_float128:
+      result = ifc_ebts_float128;
+      break;
+    case tok_float32:
+      result = ifc_ebts_float32;
+      break;
+    case tok_float32x:
+      result = ifc_ebts_float32x;
+      break;
+    case tok_float64:
+      result = ifc_ebts_float64;
+      break;
+    case tok_float64x:
+      result = ifc_ebts_float64x;
+      break;
+    case tok_for:
+      result = ifc_ebts_for;
+      break;
+#if MICROSOFT_EXTENSIONS_ALLOWED
+    case tok_for_each:
+      result = ifc_ebts_for_each;
+      break;
+    case tok_forceinline:
+      result = ifc_ebts_forceinline;
+      break;
+#endif /* MICROSOFT_EXTENSIONS_ALLOWED */
+    case tok_fract:
+      result = ifc_ebts_fract;
+      break;
+    case tok_friend:
+      result = ifc_ebts_friend;
+      break;
+    case tok_func_name:
+      result = ifc_ebts_func_name;
+      break;
+    case tok_function_name:
+      result = ifc_ebts_function_name;
+      break;
+#if MICROSOFT_EXTENSIONS_ALLOWED
+    case tok_gcnew:
+      result = ifc_ebts_gcnew;
+      break;
+#endif /* MICROSOFT_EXTENSIONS_ALLOWED */
+    case tok_ge:
+      result = ifc_ebts_ge;
+      break;
+#if SUN_EXTENSIONS_ALLOWED
+    case tok_global_link_scope:
+      result = ifc_ebts_global_link_scope;
+      break;
+#endif /* SUN_EXTENSIONS_ALLOWED */
+#if GNU_EXTENSIONS_ALLOWED
+    case tok_gnu_imag:
+      result = ifc_ebts_gnu_imag;
+      break;
+#endif /* GNU_EXTENSIONS_ALLOWED */
+    case tok_gnu_max:
+      result = ifc_ebts_gnu_max;
+      break;
+    case tok_gnu_min:
+      result = ifc_ebts_gnu_min;
+      break;
+#if GNU_EXTENSIONS_ALLOWED
+    case tok_gnu_real:
+      result = ifc_ebts_gnu_real;
+      break;
+#endif /* GNU_EXTENSIONS_ALLOWED */
+    case tok_gnu_restrict:
+      result = ifc_ebts_gnu_restrict;
+      break;
+    case tok_goto:
+      result = ifc_ebts_goto;
+      break;
+    case tok_gt:
+      result = ifc_ebts_gt;
+      break;
+    case tok_has_assign:
+      result = ifc_ebts_has_assign;
+      break;
+    case tok_has_copy:
+      result = ifc_ebts_has_copy;
+      break;
+#if MICROSOFT_EXTENSIONS_ALLOWED
+    case tok_has_finalizer:
+      result = ifc_ebts_has_finalizer;
+      break;
+#endif /* MICROSOFT_EXTENSIONS_ALLOWED */
+    case tok_has_nothrow_assign:
+      result = ifc_ebts_has_nothrow_assign;
+      break;
+    case tok_has_nothrow_constructor:
+      result = ifc_ebts_has_nothrow_constructor;
+      break;
+    case tok_has_nothrow_copy:
+      result = ifc_ebts_has_nothrow_copy;
+      break;
+    case tok_has_nothrow_move_assign:
+      result = ifc_ebts_has_nothrow_move_assign;
+      break;
+    case tok_has_trivial_assign:
+      result = ifc_ebts_has_trivial_assign;
+      break;
+    case tok_has_trivial_constructor:
+      result = ifc_ebts_has_trivial_constructor;
+      break;
+    case tok_has_trivial_copy:
+      result = ifc_ebts_has_trivial_copy;
+      break;
+    case tok_has_trivial_destructor:
+      result = ifc_ebts_has_trivial_destructor;
+      break;
+    case tok_has_trivial_move_assign:
+      result = ifc_ebts_has_trivial_move_assign;
+      break;
+    case tok_has_trivial_move_constructor:
+      result = ifc_ebts_has_trivial_move_constructor;
+      break;
+    case tok_has_unique_object_representations:
+      result = ifc_ebts_has_unique_object_representations;
+      break;
+    case tok_has_user_destructor:
+      result = ifc_ebts_has_user_destructor;
+      break;
+    case tok_has_virtual_destructor:
+      result = ifc_ebts_has_virtual_destructor;
+      break;
+#if SUN_EXTENSIONS_ALLOWED
+    case tok_hidden_link_scope:
+      result = ifc_ebts_hidden_link_scope;
+      break;
+#endif /* SUN_EXTENSIONS_ALLOWED */
+    case tok_if:
+      result = ifc_ebts_if;
+      break;
+#if MICROSOFT_EXTENSIONS_ALLOWED
+    case tok_if_exists:
+      result = ifc_ebts_if_exists;
+      break;
+    case tok_if_not_exists:
+      result = ifc_ebts_if_not_exists;
+      break;
+#endif /* MICROSOFT_EXTENSIONS_ALLOWED */
+    case tok_imaginary_unit:
+      result = ifc_ebts_imaginary_unit;
+      break;
+#if MICROSOFT_EXTENSIONS_ALLOWED
+    case tok_implements:
+      result = ifc_ebts_implements;
+      break;
+#endif /* MICROSOFT_EXTENSIONS_ALLOWED */
+    case tok_import:
+      result = ifc_ebts_import;
+      break;
+#if MICROSOFT_EXTENSIONS_ALLOWED
+    case tok_in:
+      result = ifc_ebts_in;
+      break;
+#endif /* MICROSOFT_EXTENSIONS_ALLOWED */
+    case tok_infinity:
+      result = ifc_ebts_infinity;
+      break;
+    case tok_inline:
+      result = ifc_ebts_inline;
+      break;
+    case tok_int:
+      result = ifc_ebts_int;
+      break;
+#if INT128_EXTENSIONS_ALLOWED
+    case tok_int128:
+      result = ifc_ebts_int128;
+      break;
+#endif /* INT128_EXTENSIONS_ALLOWED */
+#if MICROSOFT_EXTENSIONS_ALLOWED
+    case tok_int16:
+      result = ifc_ebts_int16;
+      break;
+    case tok_int32:
+      result = ifc_ebts_int32;
+      break;
+    case tok_int64:
+      result = ifc_ebts_int64;
+      break;
+    case tok_int8:
+      result = ifc_ebts_int8;
+      break;
+#endif /* MICROSOFT_EXTENSIONS_ALLOWED */
+    case tok_intaddr:
+      result = ifc_ebts_intaddr;
+      break;
+    case tok_integer_pack:
+      result = ifc_ebts_integer_pack;
+      break;
+#if MICROSOFT_EXTENSIONS_ALLOWED
+    case tok_interface:
+      result = ifc_ebts_interface;
+      break;
+    case tok_interface_class:
+      result = ifc_ebts_interface_class;
+      break;
+    case tok_interface_struct:
+      result = ifc_ebts_interface_struct;
+      break;
+#endif /* MICROSOFT_EXTENSIONS_ALLOWED */
+    case tok_internal_alias_decl:
+      result = ifc_ebts_internal_alias_decl;
+      break;
+    case tok_is_abstract:
+      result = ifc_ebts_is_abstract;
+      break;
+    case tok_is_aggregate:
+      result = ifc_ebts_is_aggregate;
+      break;
+    case tok_is_arithmetic:
+      result = ifc_ebts_is_arithmetic;
+      break;
+    case tok_is_array:
+      result = ifc_ebts_is_array;
+      break;
+    case tok_is_assignable:
+      result = ifc_ebts_is_assignable;
+      break;
+#if MICROSOFT_EXTENSIONS_ALLOWED
+    case tok_is_assignable_no_precondition_check:
+      result = ifc_ebts_is_assignable_no_precondition_check;
+      break;
+#endif /* MICROSOFT_EXTENSIONS_ALLOWED */
+    case tok_is_base_of:
+      result = ifc_ebts_is_base_of;
+      break;
+    case tok_is_bounded_array:
+      result = ifc_ebts_is_bounded_array;
+      break;
+    case tok_is_class:
+      result = ifc_ebts_is_class;
+      break;
+    case tok_is_complete_type:
+      result = ifc_ebts_is_complete_type;
+      break;
+    case tok_is_compound:
+      result = ifc_ebts_is_compound;
+      break;
+    case tok_is_const:
+      result = ifc_ebts_is_const;
+      break;
+    case tok_is_constructible:
+      result = ifc_ebts_is_constructible;
+      break;
+    case tok_is_convertible:
+      result = ifc_ebts_is_convertible;
+      break;
+    case tok_is_convertible_to:
+      result = ifc_ebts_is_convertible_to;
+      break;
+    case tok_is_corresponding_member:
+      result = ifc_ebts_is_corresponding_member;
+      break;
+#if MICROSOFT_EXTENSIONS_ALLOWED
+    case tok_is_delegate:
+      result = ifc_ebts_is_delegate;
+      break;
+#endif /* MICROSOFT_EXTENSIONS_ALLOWED */
+    case tok_is_destructible:
+      result = ifc_ebts_is_destructible;
+      break;
+    case tok_is_empty:
+      result = ifc_ebts_is_empty;
+      break;
+    case tok_is_enum:
+      result = ifc_ebts_is_enum;
+      break;
+    case tok_is_final:
+      result = ifc_ebts_is_final;
+      break;
+    case tok_is_floating_point:
+      result = ifc_ebts_is_floating_point;
+      break;
+    case tok_is_function:
+      result = ifc_ebts_is_function;
+      break;
+    case tok_is_fundamental:
+      result = ifc_ebts_is_fundamental;
+      break;
+    case tok_is_integral:
+      result = ifc_ebts_is_integral;
+      break;
+#if MICROSOFT_EXTENSIONS_ALLOWED
+    case tok_is_interface_class:
+      result = ifc_ebts_is_interface_class;
+      break;
+#endif /* MICROSOFT_EXTENSIONS_ALLOWED */
+    case tok_is_layout_compatible:
+      result = ifc_ebts_is_layout_compatible;
+      break;
+    case tok_is_literal_type:
+      result = ifc_ebts_is_literal_type;
+      break;
+    case tok_is_lvalue_reference:
+      result = ifc_ebts_is_lvalue_reference;
+      break;
+    case tok_is_member_function_pointer:
+      result = ifc_ebts_is_member_function_pointer;
+      break;
+    case tok_is_member_object_pointer:
+      result = ifc_ebts_is_member_object_pointer;
+      break;
+    case tok_is_member_pointer:
+      result = ifc_ebts_is_member_pointer;
+      break;
+    case tok_is_nothrow_assignable:
+      result = ifc_ebts_is_nothrow_assignable;
+      break;
+    case tok_is_nothrow_constructible:
+      result = ifc_ebts_is_nothrow_constructible;
+      break;
+    case tok_is_nothrow_convertible:
+      result = ifc_ebts_is_nothrow_convertible;
+      break;
+    case tok_is_nothrow_destructible:
+      result = ifc_ebts_is_nothrow_destructible;
+      break;
+    case tok_is_object:
+      result = ifc_ebts_is_object;
+      break;
+    case tok_is_pod:
+      result = ifc_ebts_is_pod;
+      break;
+    case tok_is_pointer:
+      result = ifc_ebts_is_pointer;
+      break;
+    case tok_is_pointer_interconvertible_base_of:
+      result = ifc_ebts_is_pointer_interconvertible_base_of;
+      break;
+    case tok_is_pointer_interconvertible_with_class:
+      result = ifc_ebts_is_pointer_interconvertible_with_class;
+      break;
+    case tok_is_polymorphic:
+      result = ifc_ebts_is_polymorphic;
+      break;
+#if MICROSOFT_EXTENSIONS_ALLOWED
+    case tok_is_ref_array:
+      result = ifc_ebts_is_ref_array;
+      break;
+    case tok_is_ref_class:
+      result = ifc_ebts_is_ref_class;
+      break;
+#endif /* MICROSOFT_EXTENSIONS_ALLOWED */
+    case tok_is_reference:
+      result = ifc_ebts_is_reference;
+      break;
+    case tok_is_referenceable:
+      result = ifc_ebts_is_referenceable;
+      break;
+    case tok_is_rvalue_reference:
+      result = ifc_ebts_is_rvalue_reference;
+      break;
+    case tok_is_same:
+      result = ifc_ebts_is_same;
+      break;
+    case tok_is_same_as:
+      result = ifc_ebts_is_same_as;
+      break;
+    case tok_is_scalar:
+      result = ifc_ebts_is_scalar;
+      break;
+#if MICROSOFT_EXTENSIONS_ALLOWED
+    case tok_is_sealed:
+      result = ifc_ebts_is_sealed;
+      break;
+#endif /* MICROSOFT_EXTENSIONS_ALLOWED */
+    case tok_is_signed:
+      result = ifc_ebts_is_signed;
+      break;
+#if MICROSOFT_EXTENSIONS_ALLOWED
+    case tok_is_simple_value_class:
+      result = ifc_ebts_is_simple_value_class;
+      break;
+#endif /* MICROSOFT_EXTENSIONS_ALLOWED */
+    case tok_is_standard_layout:
+      result = ifc_ebts_is_standard_layout;
+      break;
+    case tok_is_trivial:
+      result = ifc_ebts_is_trivial;
+      break;
+    case tok_is_trivially_assignable:
+      result = ifc_ebts_is_trivially_assignable;
+      break;
+    case tok_is_trivially_constructible:
+      result = ifc_ebts_is_trivially_constructible;
+      break;
+#if MICROSOFT_EXTENSIONS_ALLOWED
+    case tok_is_trivially_copy_assignable:
+      result = ifc_ebts_is_trivially_copy_assignable;
+      break;
+#endif /* MICROSOFT_EXTENSIONS_ALLOWED */
+    case tok_is_trivially_copyable:
+      result = ifc_ebts_is_trivially_copyable;
+      break;
+    case tok_is_trivially_destructible:
+      result = ifc_ebts_is_trivially_destructible;
+      break;
+    case tok_is_trivially_equality_comparable:
+      result = ifc_ebts_is_trivially_equality_comparable;
+      break;
+    case tok_is_unbounded_array:
+      result = ifc_ebts_is_unbounded_array;
+      break;
+    case tok_is_union:
+      result = ifc_ebts_is_union;
+      break;
+    case tok_is_unsigned:
+      result = ifc_ebts_is_unsigned;
+      break;
+    case tok_is_valid_winrt_type:
+      result = ifc_ebts_is_valid_winrt_type;
+      break;
+#if MICROSOFT_EXTENSIONS_ALLOWED
+    case tok_is_value_class:
+      result = ifc_ebts_is_value_class;
+      break;
+#endif /* MICROSOFT_EXTENSIONS_ALLOWED */
+    case tok_is_void:
+      result = ifc_ebts_is_void;
+      break;
+    case tok_is_volatile:
+      result = ifc_ebts_is_volatile;
+      break;
+#if MICROSOFT_EXTENSIONS_ALLOWED
+    case tok_is_win_class:
+      result = ifc_ebts_is_win_class;
+      break;
+    case tok_is_win_interface:
+      result = ifc_ebts_is_win_interface;
+      break;
+#endif /* MICROSOFT_EXTENSIONS_ALLOWED */
+    case tok_lbrace:
+      result = ifc_ebts_lbrace;
+      break;
+    case tok_lbracket:
+      result = ifc_ebts_lbracket;
+      break;
+    case tok_le:
+      result = ifc_ebts_le;
+      break;
+#if MICROSOFT_EXTENSIONS_ALLOWED
+    case tok_leave:
+      result = ifc_ebts_leave;
+      break;
+#endif /* MICROSOFT_EXTENSIONS_ALLOWED */
+    case tok_long:
+      result = ifc_ebts_long;
+      break;
+    case tok_lparen:
+      result = ifc_ebts_lparen;
+      break;
+    case tok_lsplice:
+      result = ifc_ebts_lsplice;
+      break;
+    case tok_lt:
+      result = ifc_ebts_lt;
+      break;
+    case tok_make_signed:
+      result = ifc_ebts_make_signed;
+      break;
+    case tok_make_unsigned:
+      result = ifc_ebts_make_unsigned;
+      break;
+    case tok_microsoft_asm:
+      result = ifc_ebts_microsoft_asm;
+      break;
+#if MICROSOFT_EXTENSIONS_ALLOWED
+    case tok_microsoft_identifier:
+      result = ifc_ebts_microsoft_identifier;
+      break;
+    case tok_microsoft_inline:
+      result = ifc_ebts_microsoft_inline;
+      break;
+    case tok_microsoft_lprefix:
+      result = ifc_ebts_microsoft_lprefix;
+      break;
+    case tok_microsoft_ptr32:
+      result = ifc_ebts_microsoft_ptr32;
+      break;
+    case tok_microsoft_ptr64:
+      result = ifc_ebts_microsoft_ptr64;
+      break;
+    case tok_microsoft_sptr:
+      result = ifc_ebts_microsoft_sptr;
+      break;
+    case tok_microsoft_try:
+      result = ifc_ebts_microsoft_try;
+      break;
+    case tok_microsoft_uprefix:
+      result = ifc_ebts_microsoft_uprefix;
+      break;
+    case tok_microsoft_uptr:
+      result = ifc_ebts_microsoft_uptr;
+      break;
+    case tok_microsoft_w64:
+      result = ifc_ebts_microsoft_w64;
+      break;
+#endif /* MICROSOFT_EXTENSIONS_ALLOWED */
+    case tok_minus:
+      result = ifc_ebts_minus;
+      break;
+    case tok_minus_assign:
+      result = ifc_ebts_minus_assign;
+      break;
+    case tok_minus_minus:
+      result = ifc_ebts_minus_minus;
+      break;
+    case tok_module:
+      result = ifc_ebts_module;
+      break;
+    case tok_mutable:
+      result = ifc_ebts_mutable;
+      break;
+    case tok_namespace:
+      result = ifc_ebts_namespace;
+      break;
+    case tok_nan:
+      result = ifc_ebts_nan;
+      break;
+#if MICROSOFT_EXTENSIONS_ALLOWED
+    case tok_native_nullptr:
+      result = ifc_ebts_native_nullptr;
+      break;
+#endif /* MICROSOFT_EXTENSIONS_ALLOWED */
+    case tok_ne:
+      result = ifc_ebts_ne;
+      break;
+#if NEAR_AND_FAR_ALLOWED
+    case tok_near:
+      result = ifc_ebts_near;
+      break;
+#endif /* NEAR_AND_FAR_ALLOWED */
+    case tok_new:
+      result = ifc_ebts_new;
+      break;
+    case tok_noexcept:
+      result = ifc_ebts_noexcept;
+      break;
+    case tok_nonnull:
+      result = ifc_ebts_nonnull;
+      break;
+#if MICROSOFT_EXTENSIONS_ALLOWED
+    case tok_noop:
+      result = ifc_ebts_noop;
+      break;
+#endif /* MICROSOFT_EXTENSIONS_ALLOWED */
+    case tok_noreturn:
+      result = ifc_ebts_noreturn;
+      break;
+    case tok_not:
+      result = ifc_ebts_not;
+      break;
+    case tok_null:
+      result = ifc_ebts_null;
+      break;
+    case tok_null_unspecified:
+      result = ifc_ebts_null_unspecified;
+      break;
+    case tok_nullable:
+      result = ifc_ebts_nullable;
+      break;
+    case tok_nullptr:
+      result = ifc_ebts_nullptr;
+      break;
+    case tok_operator:
+      result = ifc_ebts_operator;
+      break;
+    case tok_or:
+      result = ifc_ebts_or;
+      break;
+    case tok_or_assign:
+      result = ifc_ebts_or_assign;
+      break;
+    case tok_or_or:
+      result = ifc_ebts_or_or;
+      break;
+    case tok_overload:
+      result = ifc_ebts_overload;
+      break;
+    case tok_override:
+      result = ifc_ebts_override;
+      break;
+#if MICROSOFT_EXTENSIONS_ALLOWED
+    case tok_partial_ref_class:
+      result = ifc_ebts_partial_ref_class;
+      break;
+    case tok_partial_ref_struct:
+      result = ifc_ebts_partial_ref_struct;
+      break;
+#endif /* MICROSOFT_EXTENSIONS_ALLOWED */
+    case tok_paste:
+      result = ifc_ebts_paste;
+      break;
+    case tok_period:
+      result = ifc_ebts_period;
+      break;
+    case tok_period_star:
+      result = ifc_ebts_period_star;
+      break;
+    case tok_plus:
+      result = ifc_ebts_plus;
+      break;
+    case tok_plus_assign:
+      result = ifc_ebts_plus_assign;
+      break;
+    case tok_plus_plus:
+      result = ifc_ebts_plus_plus;
+      break;
+#if MICROSOFT_EXTENSIONS_ALLOWED
+    case tok_prefix_enum:
+      result = ifc_ebts_prefix_enum;
+      break;
+    case tok_prefix_for:
+      result = ifc_ebts_prefix_for;
+      break;
+    case tok_prefix_interface:
+      result = ifc_ebts_prefix_interface;
+      break;
+    case tok_prefix_partial:
+      result = ifc_ebts_prefix_partial;
+      break;
+    case tok_prefix_ref:
+      result = ifc_ebts_prefix_ref;
+      break;
+    case tok_prefix_value:
+      result = ifc_ebts_prefix_value;
+      break;
+#endif /* MICROSOFT_EXTENSIONS_ALLOWED */
+    case tok_pretty_function_name:
+      result = ifc_ebts_pretty_function_name;
+      break;
+    case tok_private:
+      result = ifc_ebts_private;
+      break;
+    case tok_protected:
+      result = ifc_ebts_protected;
+      break;
+    case tok_public:
+      result = ifc_ebts_public;
+      break;
+    case tok_quest_mark:
+      result = ifc_ebts_quest_mark;
+      break;
+    case tok_rbrace:
+      result = ifc_ebts_rbrace;
+      break;
+    case tok_rbracket:
+      result = ifc_ebts_rbracket;
+      break;
+#if MICROSOFT_EXTENSIONS_ALLOWED
+    case tok_ref_class:
+      result = ifc_ebts_ref_class;
+      break;
+    case tok_ref_new:
+      result = ifc_ebts_ref_new;
+      break;
+    case tok_ref_struct:
+      result = ifc_ebts_ref_struct;
+      break;
+#endif /* MICROSOFT_EXTENSIONS_ALLOWED */
+    case tok_reference_binds_to_temporary:
+      result = ifc_ebts_reference_binds_to_temporary;
+      break;
+    case tok_reference_constructs_from_temporary:
+      result = ifc_ebts_reference_constructs_from_temporary;
+      break;
+    case tok_reference_converts_from_temporary:
+      result = ifc_ebts_reference_converts_from_temporary;
+      break;
+    case tok_register:
+      result = ifc_ebts_register;
+      break;
+    case tok_reinterpret_cast:
+      result = ifc_ebts_reinterpret_cast;
+      break;
+    case tok_remainder:
+      result = ifc_ebts_remainder;
+      break;
+    case tok_remainder_assign:
+      result = ifc_ebts_remainder_assign;
+      break;
+    case tok_remove_all_extents:
+      result = ifc_ebts_remove_all_extents;
+      break;
+    case tok_remove_const:
+      result = ifc_ebts_remove_const;
+      break;
+    case tok_remove_cv:
+      result = ifc_ebts_remove_cv;
+      break;
+    case tok_remove_cvref:
+      result = ifc_ebts_remove_cvref;
+      break;
+    case tok_remove_extent:
+      result = ifc_ebts_remove_extent;
+      break;
+    case tok_remove_pointer:
+      result = ifc_ebts_remove_pointer;
+      break;
+    case tok_remove_reference:
+      result = ifc_ebts_remove_reference;
+      break;
+    case tok_remove_reference_t:
+      result = ifc_ebts_remove_reference_t;
+      break;
+    case tok_remove_restrict:
+      result = ifc_ebts_remove_restrict;
+      break;
+    case tok_remove_volatile:
+      result = ifc_ebts_remove_volatile;
+      break;
+    case tok_requires:
+      result = ifc_ebts_requires;
+      break;
+    case tok_restrict:
+      result = ifc_ebts_restrict;
+      break;
+    case tok_return:
+      result = ifc_ebts_return;
+      break;
+    case tok_rparen:
+      result = ifc_ebts_rparen;
+      break;
+    case tok_rsplice:
+      result = ifc_ebts_rsplice;
+      break;
+#if MICROSOFT_EXTENSIONS_ALLOWED
+    case tok_safe_cast:
+      result = ifc_ebts_safe_cast;
+      break;
+#endif /* MICROSOFT_EXTENSIONS_ALLOWED */
+    case tok_sat:
+      result = ifc_ebts_sat;
+      break;
+#if MICROSOFT_EXTENSIONS_ALLOWED
+    case tok_sealed:
+      result = ifc_ebts_sealed;
+      break;
+#endif /* MICROSOFT_EXTENSIONS_ALLOWED */
+    case tok_semicolon:
+      result = ifc_ebts_semicolon;
+      break;
+    case tok_sharp:
+      result = ifc_ebts_sharp;
+      break;
+    case tok_shift_left:
+      result = ifc_ebts_shift_left;
+      break;
+    case tok_shift_left_assign:
+      result = ifc_ebts_shift_left_assign;
+      break;
+    case tok_shift_right:
+      result = ifc_ebts_shift_right;
+      break;
+    case tok_shift_right_assign:
+      result = ifc_ebts_shift_right_assign;
+      break;
+    case tok_short:
+      result = ifc_ebts_short;
+      break;
+    case tok_signed:
+      result = ifc_ebts_signed;
+      break;
+    case tok_sizeof:
+      result = ifc_ebts_sizeof;
+      break;
+    case tok_spaceship:
+      result = ifc_ebts_spaceship;
+      break;
+    case tok_star:
+      result = ifc_ebts_star;
+      break;
+    case tok_static:
+      result = ifc_ebts_static;
+      break;
+    case tok_static_assert:
+      result = ifc_ebts_static_assert;
+      break;
+    case tok_static_cast:
+      result = ifc_ebts_static_cast;
+      break;
+#if MICROSOFT_EXTENSIONS_ALLOWED
+    case tok_stdcall:
+      result = ifc_ebts_stdcall;
+      break;
+#endif /* MICROSOFT_EXTENSIONS_ALLOWED */
+    case tok_struct:
+      result = ifc_ebts_struct;
+      break;
+#if MICROSOFT_EXTENSIONS_ALLOWED
+    case tok_super:
+      result = ifc_ebts_super;
+      break;
+#endif /* MICROSOFT_EXTENSIONS_ALLOWED */
+    case tok_switch:
+      result = ifc_ebts_switch;
+      break;
+#if SUN_EXTENSIONS_ALLOWED
+    case tok_symbolic_link_scope:
+      result = ifc_ebts_symbolic_link_scope;
+      break;
+#endif /* SUN_EXTENSIONS_ALLOWED */
+    case tok_template:
+      result = ifc_ebts_template;
+      break;
+    case tok_this:
+      result = ifc_ebts_this;
+      break;
+#if MICROSOFT_EXTENSIONS_ALLOWED
+    case tok_thiscall:
+      result = ifc_ebts_thiscall;
+      break;
+#endif /* MICROSOFT_EXTENSIONS_ALLOWED */
+    case tok_thread:
+      result = ifc_ebts_thread;
+      break;
+    case tok_thread_local:
+      result = ifc_ebts_thread_local;
+      break;
+    case tok_throw:
+      result = ifc_ebts_throw;
+      break;
+    case tok_times_assign:
+      result = ifc_ebts_times_assign;
+      break;
+    case tok_true:
+      result = ifc_ebts_true;
+      break;
+    case tok_try:
+      result = ifc_ebts_try;
+      break;
+    case tok_typedef:
+      result = ifc_ebts_typedef;
+      break;
+    case tok_typeid:
+      result = ifc_ebts_typeid;
+      break;
+    case tok_typename:
+      result = ifc_ebts_typename;
+      break;
+    case tok_typeof:
+      result = ifc_ebts_typeof;
+      break;
+    case tok_typeof_unqual:
+      result = ifc_ebts_typeof_unqual;
+      break;
+#if MICROSOFT_EXTENSIONS_ALLOWED
+    case tok_unaligned:
+      result = ifc_ebts_unaligned;
+      break;
+#endif /* MICROSOFT_EXTENSIONS_ALLOWED */
+    case tok_underlying_type:
+      result = ifc_ebts_underlying_type;
+      break;
+    case tok_union:
+      result = ifc_ebts_union;
+      break;
+#if MICROSOFT_EXTENSIONS_ALLOWED
+    case tok_unresolved_type:
+      result = ifc_ebts_unresolved_type;
+      break;
+#endif /* MICROSOFT_EXTENSIONS_ALLOWED */
+    case tok_unsigned:
+      result = ifc_ebts_unsigned;
+      break;
+#if UPC_EXTENSIONS_ALLOWED
+    case tok_upc_barrier:
+      result = ifc_ebts_upc_barrier;
+      break;
+    case tok_upc_blocksizeof:
+      result = ifc_ebts_upc_blocksizeof;
+      break;
+    case tok_upc_elemsizeof:
+      result = ifc_ebts_upc_elemsizeof;
+      break;
+    case tok_upc_fence:
+      result = ifc_ebts_upc_fence;
+      break;
+    case tok_upc_forall:
+      result = ifc_ebts_upc_forall;
+      break;
+    case tok_upc_localsizeof:
+      result = ifc_ebts_upc_localsizeof;
+      break;
+    case tok_upc_mythread:
+      result = ifc_ebts_upc_mythread;
+      break;
+    case tok_upc_notify:
+      result = ifc_ebts_upc_notify;
+      break;
+    case tok_upc_relaxed:
+      result = ifc_ebts_upc_relaxed;
+      break;
+    case tok_upc_shared:
+      result = ifc_ebts_upc_shared;
+      break;
+    case tok_upc_strict:
+      result = ifc_ebts_upc_strict;
+      break;
+    case tok_upc_threads:
+      result = ifc_ebts_upc_threads;
+      break;
+    case tok_upc_wait:
+      result = ifc_ebts_upc_wait;
+      break;
+#endif /* UPC_EXTENSIONS_ALLOWED */
+    case tok_using:
+      result = ifc_ebts_using;
+      break;
+#if MICROSOFT_EXTENSIONS_ALLOWED
+    case tok_uuid:
+      result = ifc_ebts_uuid;
+      break;
+    case tok_uuidof:
+      result = ifc_ebts_uuidof;
+      break;
+#endif /* MICROSOFT_EXTENSIONS_ALLOWED */
+    case tok_va_copy:
+      result = ifc_ebts_va_copy;
+      break;
+#if MICROSOFT_EXTENSIONS_ALLOWED
+    case tok_value_class:
+      result = ifc_ebts_value_class;
+      break;
+    case tok_value_struct:
+      result = ifc_ebts_value_struct;
+      break;
+    case tok_vectorcall:
+      result = ifc_ebts_vectorcall;
+      break;
+#endif /* MICROSOFT_EXTENSIONS_ALLOWED */
+    case tok_virtual:
+      result = ifc_ebts_virtual;
+      break;
+    case tok_void:
+      result = ifc_ebts_void;
+      break;
+    case tok_volatile:
+      result = ifc_ebts_volatile;
+      break;
+    case tok_wchar_t:
+      result = ifc_ebts_wchar_t;
+      break;
+    case tok_while:
+      result = ifc_ebts_while;
+      break;
+    case tok_aggr_constant:
+    case tok_char_constant:
+#if MICROSOFT_EXTENSIONS_ALLOWED
+    case tok_cli_typeid:
+#endif /* MICROSOFT_EXTENSIONS_ALLOWED */
+    case tok_cpp_quote:
+    case tok_datasizeof:
+    case tok_declspec:
+    case tok_decltype_construct:
+    case tok_digit_sequence:
+    case tok_edg_neon_polyvector_type:
+    case tok_edg_neon_vector_type:
+    case tok_edg_scalable_vector_type:
+    case tok_end_of_source:
+    case tok_error:
+    case tok_fixed_point_constant:
+    case tok_float_constant:
+    case tok_header_name:
+    case tok_identifier:
+    case tok_ifc_decl:
+    case tok_ifc_decl_ref:
+    case tok_ifc_entity_ref:
+    case tok_int_constant:
+    case tok_last:
+#if MICROSOFT_EXTENSIONS_ALLOWED
+    case tok_microsoft_Lprefix:
+    case tok_microsoft_Uprefix:
+#endif /* MICROSOFT_EXTENSIONS_ALLOWED */
+    case tok_newline:
+    case tok_pending_ifc_expr:
+    case tok_pp_number:
+    case tok_ptr_to_member:
+    case tok_removed_expr:
+    case tok_removed_template_body:
+    case tok_string_literal:
+    case tok_ud_literal:
+    case tok_unimplemented:
+    case tok_va_arg:
+    case tok_va_end:
+    case tok_va_start:
+      /* An attempt was made to convert an unsupported or complex token to an
+         EDG IFC basic token kind.  Either the token needs a case added above
+         or the wrong conversion function has been called. */
+      unexpected_condition();
+      break;
+    default_is_unexpected();
+  } /* switch */
+  return result;
+}  /* token_to_basic_token_kind */
+
+
+static inline an_ifc_edg_constant_token_sort token_to_constant_token_kind(
+                                                            a_token_kind token)
+/*
+Given a token kind that has an associated constant, return the corresponding
+EDG IFC constant token kind.
+*/
+{
+  an_ifc_edg_constant_token_sort result;
+
+  switch (token) {
+    case tok_aggr_constant:
+      result = ifc_ects_aggr_constant;
+      break;
+    case tok_char_constant:
+      result = ifc_ects_char_constant;
+      break;
+    case tok_float_constant:
+      result = ifc_ects_float_constant;
+      break;
+    case tok_int_constant:
+      result = ifc_ects_int_constant;
+      break;
+    case tok_string_literal:
+      result = ifc_ects_string_literal;
+      break;
+    default:
+      /* An unsupported token was cached as a basic token.  Either it needs
+         added above as a basic token, the token needs its own complex token
+         add method, or the caller called the wrong add function (i.e., there's
+         a corresponding complex token add function that should have instead
+         been called). */
+      header_unit_catastrophe();
+  }  /* switch */
+  return result;
+}  /* token_to_constant_token_kind */
+
+namespace {
+
+void an_ifc_il_map::enter_basic_token_to_cache(
+                                          an_ifc_output_token_cache *ifc_cache,
+                                          a_cached_token            *token)
+/*
+Add the given cached token (representing an EDG IFC basic token) to the given
+token cache.
+*/
+{
+  an_ifc_edg_basic_token_sort
+                ifc_token = token_to_basic_token_kind(token->token);
+
+  ifc_cache->add_basic(ifc_token);
+}  /* an_ifc_il_map::enter_basic_token_to_cache */
+
 
 an_ifc_edg_complex_token_index an_ifc_il_map::enter_constant_token(
                                    an_ifc_edg_constant_token_sort token_kind,
@@ -2736,6 +4576,100 @@ into the IFC output state.  Return the index of the token.
   set_ifc_constant(&constant_token, constant_idx);
   return result;
 }  /* an_ifc_il_map::enter_constant_token */
+
+
+void an_ifc_il_map::enter_constant_token_to_cache(
+                                          an_ifc_output_token_cache *ifc_cache,
+                                          a_cached_token            *token)
+/*
+Add the given cached token (representing an EDG IFC constant token) to the
+given token cache.
+*/
+{
+  check_assertion(token->extra_info_kind == teik_constant);
+  a_constant_ptr
+                constant = token->variant.constant;
+  an_ifc_edg_constant_index
+                ifc_constant = this->enter_constant(constant);
+  an_ifc_edg_constant_token_sort
+                ifc_token_kind = token_to_constant_token_kind(token->token);
+  an_ifc_edg_complex_token_index
+                complex_token_idx = this->enter_constant_token(ifc_token_kind,
+                                                               ifc_constant);
+
+  ifc_cache->add_complex(complex_token_idx);
+}  /* an_ifc_il_map::enter_constant_token_to_cache */
+
+
+void an_ifc_il_map::enter_identifier_token_to_cache(
+                                          an_ifc_output_token_cache *ifc_cache,
+                                          a_cached_token            *token)
+/*
+Add the given cached token (representing an EDG IFC identifier token) to the
+given token cache.
+*/
+{
+  check_assertion(token->extra_info_kind == teik_identifier);
+  an_ifc_edg_token_identifier
+                identifier_token;
+  an_ifc_edg_complex_token_index
+                result = this->output_state->alloc_complex_token(
+                                                            &identifier_token);
+  a_symbol_header_ptr
+                sym_header = token->variant.locator.symbol_header;
+  an_ifc_text_offset
+                ifc_identifier = this->string_as_text_offset(
+                                                sym_header->identifier,
+                                                sym_header->identifier_length);
+
+  set_ifc_text(&identifier_token, ifc_identifier);
+  ifc_cache->add_complex(result);
+}  /* an_ifc_il_map::enter_identifier_token_to_cache */
+
+
+void an_ifc_il_map::enter_token_cache(an_ifc_output_token_cache *ifc_cache,
+                                      a_token_cache             *fe_cache)
+/*
+Add the tokens in the given front end token cache to the given EDG IFC token
+cache.
+*/
+{
+  for (a_cached_token *tok = fe_cache->first_token; tok != NULL;
+       tok = tok->next) {
+    a_token_extra_info_kind
+                extra_info = tok->extra_info_kind;
+
+    switch (extra_info) {
+      case teik_constant:
+        this->enter_constant_token_to_cache(ifc_cache, tok);
+        break;
+      case teik_identifier:
+        this->enter_identifier_token_to_cache(ifc_cache, tok);
+        break;
+      case teik_none:
+        if (tok->token == tok_end_of_source) {
+          /* An end of source token should never be followed by another token.
+             If this happens, something is wrong with the token cache and the
+             authoring code should be corrected. */
+          check_assertion(tok->next == NULL);
+          break;
+        }  /* if */
+        this->enter_basic_token_to_cache(ifc_cache, tok);
+        break;
+      case teik_asm_string:
+      case teik_extracted_body:
+      case teik_ifc_index:
+      case teik_insert_string:
+      case teik_pp_token:
+      case teik_pragma:
+      case teik_ud_lit:
+        /* FIXME: Implement these. */
+        header_unit_catastrophe();
+        break;
+      default_is_unexpected();
+    } /* switch */
+  }  /* for */
+}  /* an_ifc_il_map::enter_token_cache */
 
 
 an_ifc_type_index an_ifc_il_map::find_or_enter_class_scope_type()
@@ -3029,9 +4963,98 @@ declaration index of the free function declaration.
   an_ifc_access_sort
                 ifc_access = access_specifier_of(type);
   set_ifc_access(&func_decl, ifc_access);
-  /* FIXME: Set properties. */
+
+  /* Apply the appropriate reachable property flags. */
+  an_ifc_reachable_properties_bitfield_query
+                properties = (an_ifc_reachable_properties_bitfield_query)0;
+  /* Flag that an initializer is present if relevant. */
+  if (rp->assoc_template != NULL) {
+    an_ifc_edg_trait_function_definition
+                def_trait;
+    this->output_state->alloc_decl_trait(result, &def_trait);
+
+    /* Create a token cache representation of the initializing constant. */
+    an_ifc_output_token_cache
+                init_token_cache;
+    a_template_ptr
+                templ = rp->assoc_template;
+    a_symbol_ptr
+                templ_sym = symbol_for(templ);;
+    a_template_symbol_supplement_ptr
+                tssp = templ_sym->variant.template_info;
+    this->enter_token_cache(&init_token_cache, &tssp->cache.tokens);
+
+    an_ifc_edg_token_cache_offset
+                token_cache_offset = this->output_state->alloc_token_cache(
+                                                             init_token_cache);
+    set_ifc_initializer(&def_trait, token_cache_offset);
+    /* Apply the initializer flag to indicate the presence of this
+       definition. */
+    properties = properties | ifc_rpb_initializer;
+  } else {
+    /* FIXME: Handle constexpr and inline functions. */
+  }  /* if */
+
+  an_ifc_reachable_properties_bitfield_storage
+                ifc_raw_properties = to_bitmask(func_decl.get_file(),
+                                                properties);
+  an_ifc_reachable_properties_bitfield
+                ifc_properties(func_decl.get_file(), ifc_raw_properties);
+  set_ifc_properties(&func_decl, ifc_properties);
   return result;
 }  /* an_ifc_il_map::enter_free_function */
+
+
+an_ifc_decl_index an_ifc_il_map::enter_function_template(a_template_ptr templ)
+/*
+Enter the given function template declaration into the IFC output state.
+Return the declaration index of the function template declaration.
+*/
+{
+  an_ifc_decl_template
+                func_templ;
+  an_ifc_decl_index
+                result = this->map_new_decl(templ, &func_templ);
+
+  /* Set the name information. */
+  an_ifc_name_index
+                ifc_name_index = this->entity_name_as_name_index(templ);
+  set_ifc_name(&func_templ, ifc_name_index);
+
+  /* Set the source location information. */
+  an_ifc_source_location
+                ifc_src_pos = this->find_or_enter_entity_pos(templ);
+  set_ifc_locus(&func_templ, ifc_src_pos);
+
+  /* Set the scope information. */
+  an_ifc_decl_index
+                scope_decl_idx = this->associate_entity_home_scope(templ);
+  set_ifc_home_scope(&func_templ, scope_decl_idx);
+
+  /* Set the template parameter chart. */
+  an_ifc_chart_index
+                param_chart = this->enter_template_params(templ);
+  set_ifc_chart(&func_templ, param_chart);
+
+  /* Set the parameterized entity information. */
+  an_ifc_parameterized_entity
+                ifc_entity(this->get_default_file());
+  a_routine_ptr prototype_decl = templ->prototype_instantiation.routine;
+  an_ifc_decl_index
+                prototype_decl_idx = this->enter_routine(prototype_decl);
+  set_ifc_decl(&ifc_entity, prototype_decl_idx);
+  set_ifc_entity(&func_templ, ifc_entity);
+
+  /* FIXME: Set type. */
+  /* FIXME: Set specifiers. */
+
+  /* Set the access specifier. */
+  an_ifc_access_sort
+                ifc_access = access_specifier_of(templ);
+  set_ifc_access(&func_templ, ifc_access);
+  /* FIXME: Set properties. */
+  return result;
+}  /* an_ifc_il_map::enter_function_template */
 
 
 an_ifc_decl_index an_ifc_il_map::enter_member_function(a_routine_ptr rp)
@@ -3266,11 +5289,14 @@ entity's scope.
      the scope and DeclIndex. */
   a_tagged_pointer
                 tagged_entity = make_tagged_ptr(il_entity);
-  an_ifc_decl_index
-                entity_idx = this->il_entry_to_decl.get(tagged_entity);
   a_scope_ptr   scope = il_entity->source_corresp.parent_scope;
+  /* Only include the entity in the scope member list if it's "real." */
+  if (!entity_is_nonreal(tagged_entity)) {
+    an_ifc_decl_index
+                entity_idx = this->il_entry_to_decl.get(tagged_entity);
 
-  this->map_scope_member(scope, entity_idx);
+    this->map_scope_member(scope, entity_idx);
+  }  /* if */
 
   /* Finally, enter the home scope declaration itself if not already
      entered. */
@@ -3298,6 +5324,18 @@ Add all the types in the given scope to the given IL -> IFC mapping.
 }  /* dump_scope_types */
 
 
+static void dump_scope_templates(an_ifc_il_map *il_map,
+                                 a_scope_ptr   scope)
+/*
+Add all the templates in the given scope to the given IL -> IFC mapping.
+*/
+{
+  for (a_template_ptr tp = scope->templates; tp != NULL; tp = tp->next) {
+    (void)il_map->find_or_enter_template(tp);
+  }  /* for */
+}  /* dump_scope_templates */
+
+
 static void dump_scope_routines(an_ifc_il_map *il_map,
                                 a_scope_ptr   scope)
 /*
@@ -3305,6 +5343,11 @@ Add all the routines in the given scope to the given IL -> IFC mapping.
 */
 {
   for (a_routine_ptr rp = scope->routines; rp != NULL; rp = rp->next) {
+    if (rp->is_template_function && !rp->is_specialized) {
+      /* This is a function template which will be handled when
+         dump_scope_templates is called. */
+      continue;
+    }  /* if */
     (void)il_map->find_or_enter_routine(rp);
   }  /* for */
 }  /* dump_scope_routines */
@@ -3336,6 +5379,7 @@ IFC mapping.
 */
 {
   dump_scope_types(il_map, scope);
+  dump_scope_templates(il_map, scope);
   dump_scope_routines(il_map, scope);
   dump_scope_namespaces(il_map, scope);
 }  /* dump_scope_recursively */
@@ -3435,6 +5479,7 @@ of the IFC format.
     output_state.set_global_scope(ifc_global_scope);
     dump_scope_recursively(&il_map, scope);
     complete_scope_info(&output_state, &il_map);
+    output_state.sort_traits();
     if (!output_state.write()) {
       /* FIXME: Add error? */
     }  /* if */
