@@ -1,5 +1,27 @@
 Version 6.7
 
+4/12/24  [EDGcpfe/27157]
+Crash in multi-TU CHECKING modes when remapping default initializers
+
+Previously, template code with a default member initializer could result in a
+violation of a spurious assertion in trans_copy.c:
+
+  // shared.h
+  using a_size_type = unsigned long long;
+  template<typename T>
+  struct foo {
+    a_size_type x = 0;
+  };
+  inline void bar(foo<int> x) {}
+  // tu-a.cpp
+  #include "shared.h"
+  foo<int> z;
+  // tu-b.cpp
+  #include "shared.h"
+
+This is now fixed.
+
+
 4/12/24  [EDGcpfe/27158]
 Multi-TU correspondence checking of maybe_unused and GNU unused
 

@@ -3311,6 +3311,7 @@ primary IL.
                      type->variant.integer.enum_type)) err = TRUE;
               }
               break;
+            case iek_expr_node:
             case iek_template_arg:
             case iek_attribute:
             case iek_name_reference:
