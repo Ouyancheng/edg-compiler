@@ -31715,6 +31715,8 @@ return that.  If not, return the original expression.
     if (standalone_identical_types(expr_type, opnd_type)) {
       /* Drop a cv-qualification-adjusting operator. */
       texpr = texpr->variant.operation.operands;
+    } else {
+      break;
     }  /* if */
   }  /* while */
   while (is_operation_node(texpr) && texpr->compiler_generated &&
