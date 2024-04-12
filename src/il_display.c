@@ -6109,6 +6109,8 @@ Display the indicated attribute entry.
     case ak_used:                kind_name = "used";                break;
 #if GNU_VECTOR_TYPES_ALLOWED
     case ak_vector_size:         kind_name = "vector_size";         break;
+    case ak_neon_vector_type:    kind_name = "neon_vector_type";    break;
+    case ak_neon_polyvector_type:kind_name = "neon_polyvector_type";break;
 #endif /* GNU_VECTOR_TYPES_ALLOWED */
 #if GNU_VISIBILITY_ATTRIBUTE_ALLOWED
     case ak_visibility:          kind_name = "visibility";          break;

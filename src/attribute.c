@@ -7826,36 +7826,12 @@ an error and return an error type.
   if (is_error_type(elem_type)) {
     err = TRUE;
   } else if (ap->kind == ak_neon_vector_type) {
-    if (type_is(utp, tk_integer) && !is_enum_type(utp)) {
-      an_integer_kind  int_kind = utp->variant.integer.int_kind;
-      if (int_kind != ik_signed_char && int_kind != ik_unsigned_char &&
-          int_kind != ik_short && int_kind != ik_unsigned_short &&
-          int_kind != ik_int && int_kind != ik_unsigned_int &&
-          int_kind != ik_long && int_kind != ik_unsigned_long) {
-        err = TRUE;
-      }  /* if */
-    } else if (type_is(utp, tk_float)) {
-      a_float_kind  float_kind = utp->variant.float_kind;
-      if (float_kind != fk_std_bfloat16 && float_kind != fk_fp16 &&
-          float_kind != fk_float && float_kind != fk_double) {
-        err = TRUE;
-      }  /* if */
-    } else {
-      err = TRUE;
-    }  /* if */
+    err = !is_valid_neon_vector_element_type(utp);
     if (err) {
       pos_error(ec_invalid_neon_vector_element_type, &ap->position, elem_type);
     }  /* if */
   } else if (ap->kind == ak_neon_polyvector_type) {
-    if (type_is(utp, tk_integer) && !is_enum_type(utp)) {
-      an_integer_kind  int_kind = utp->variant.integer.int_kind;
-      if (int_kind != ik_unsigned_char && int_kind != ik_unsigned_short &&
-          int_kind != ik_unsigned_long) {
-        err = TRUE;
-      }  /* if */
-    } else {
-      err = TRUE;
-    }  /* if */
+    err = !is_valid_neon_polyvector_element_type(utp);
     if (err) {
       pos_error(ec_invalid_neon_polyvector_element_type, &ap->position,
                 elem_type);

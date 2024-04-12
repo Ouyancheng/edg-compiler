@@ -616,7 +616,15 @@ extern void validate_target_argument(a_const_char         *str,
                                      a_routine_ptr        routine,
                                      a_boolean            *error_issued);
 
+#if GNU_VECTOR_TYPES_ALLOWED
+extern a_const_char *get_predefined_name_for_neon_vector_type(
+                                                a_type_ptr     element_type,
+                                                a_targ_size_t  vector_elements,
+                                                a_vector_kind  vector_kind);
+#endif /* GNU_VECTOR_TYPES_ALLOWED */
+
 #endif /* GNU_EXTENSIONS_ALLOWED */
+
 
 extern a_boolean check_availability_attr(an_attribute_ptr ap);
 

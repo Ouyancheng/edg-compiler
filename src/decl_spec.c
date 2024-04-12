@@ -2765,6 +2765,17 @@ type.
 #endif /* C99_IL_EXTENSIONS_SUPPORTED */
                                        ) {
       /* The normal case. */
+#if GNU_VECTOR_TYPES_ALLOWED
+      /* Element types for NEON vectors have additional restrictions. */
+      if (kind == vk_neon && !is_valid_neon_vector_element_type(etype)) {
+        pos_ty_error(ec_invalid_neon_vector_element_type, &pos, etype);
+        err = TRUE;
+      } else if (kind == vk_neon_poly &&
+                 !is_valid_neon_polyvector_element_type(etype)) {
+        pos_ty_error(ec_invalid_neon_polyvector_element_type, &pos, etype);
+        err = TRUE;
+      }  /* if */
+#endif /* GNU_VECTOR_TYPES_ALLOWED */
       esize = skip_typerefs(etype)->size;
     } else if (is_template_param_type(etype)) {
       /* Use an arbitrary nonzero size. */
@@ -2836,7 +2847,9 @@ Scan a construct of the form
         __edg_scalable_vector_type__(<element type>, <integral constant N>)
 
 and return a tk_scalable_vector type representing a vector of N tuple elements
-of the given type.
+of the given type.  This syntax can be used to create a scalable vector type
+irrespective of the configured compatibility mode (e.g., for builtin
+declarations that need to work across compatibility modes).
 */
 {
   a_type_ptr      etype, vtype;
@@ -2849,27 +2862,31 @@ of the given type.
   /* A '(' should be next. */
   if (required_token(tok_lparen, ec_exp_lparen)) {
     a_source_position  pos;
+    a_type_ptr         utp;
     pos = pos_curr_token;
     add_stop_token(tok_rparen);
     add_stop_token(tok_comma);
     type_name(&etype);
-    if (type_is(etype, tk_integer) && is_enum_type(etype)) {
-      if (!is_bool_type(etype)) {
-        an_integer_kind  int_kind = etype->variant.integer.int_kind;
-        err = int_kind != ik_signed_char && int_kind != ik_unsigned_char &&
-              int_kind != ik_short && int_kind != ik_unsigned_short &&
-              int_kind != ik_int && int_kind != ik_unsigned_int &&
-              int_kind != ik_long && int_kind != ik_unsigned_long;
+    utp = skip_typerefs(etype);
+    if (is_qualified_type(etype)) {
+      err = TRUE;
+    } else if (is_standard_integer_type(utp)) {
+      /* Standard integer types other than (unsigned) long long are allowed. */
+#if LONG_LONG_ALLOWED
+      if (utp->variant.integer.int_kind == ik_long_long ||
+          utp->variant.integer.int_kind == ik_unsigned_long_long) {
+        err = TRUE;
       }  /* if */
-    } else if (type_is(etype, tk_float)) {
-      a_float_kind  float_kind = etype->variant.float_kind;
-      err = float_kind != fk_fp16 && float_kind != fk_std_bfloat16 &&
+#endif /* LONG_LONG_ALLOWED */
+    } else if (is_real_floating_type(utp)) {
+      a_float_kind  float_kind = utp->variant.float_kind;
+      err = float_kind != fk_std_bfloat16 && float_kind != fk_fp16 &&
             float_kind != fk_float && float_kind != fk_double;
-    } else {
+    } else if (!is_bool_type(utp)) {
       /* Other type kinds are invalid. */
       err = TRUE;
     }  /* if */
-    if (err && !is_error_type(etype)) {
+    if (err && !is_error_type(utp)) {
       pos_ty_error(ec_invalid_scalable_vector_element_type, &pos, etype);
     }  /* if */
     (void)required_token(tok_comma, ec_exp_comma);

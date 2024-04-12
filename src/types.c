@@ -453,6 +453,12 @@ a_boolean is_sizeless_type(a_type_ptr tp)
 /*
 Return TRUE if the given type is sizeless (i.e., a scalable vector or scalable
 vector count type).
+
+Sizeless types are an extension to C and C++ and can only be used in certain
+contexts as their sizes are not known at compile time.  In particular, sizeless
+types cannot be used as array element types or data member types, and an object
+with static or thread-local storage duration cannot be declared with a sizeless
+type.
 */
 {
   return is_scalable_type(tp);
@@ -682,6 +688,41 @@ underlying type is a signed integral type.
 }  /* is_signed_integral_type */
 
 
+a_boolean is_standard_integer_type(a_type_ptr tp)
+/*
+Return TRUE if the given type is a C++ standard integer type.
+*/
+{
+  a_boolean result = FALSE;
+  tp = skip_typerefs(tp);
+  if (type_kind_is_integer(tp) &&
+      !tp->variant.integer.enum_type &&
+      !tp->variant.integer.bool_type &&
+      !tp->variant.integer.wchar_t_type &&
+      !tp->variant.integer.char8_t_type &&
+      !tp->variant.integer.char16_t_type &&
+      !tp->variant.integer.char32_t_type) {
+    switch (tp->variant.integer.int_kind) {
+      case ik_signed_char:
+      case ik_unsigned_char:
+      case ik_short:
+      case ik_unsigned_short:
+      case ik_int:
+      case ik_unsigned_int:
+      case ik_long:
+      case ik_unsigned_long:
+#if LONG_LONG_ALLOWED
+      case ik_long_long:
+      case ik_unsigned_long_long:
+#endif /* LONG_LONG_ALLOWED */
+        result = TRUE;
+      default:;
+    }  /* switch */
+  }  /* if */
+  return result;
+}  /* is_standard_integer_type */
+
+
 a_boolean is_enum_type(a_type_ptr tp)
 /*
 Return TRUE if the given type is an enum type.
@@ -902,6 +943,44 @@ consider the underlying type.
   return type_is(tp, tk_scalable_vector) ||
          type_is(tp, tk_scalable_vector_count);
 }  /* is_scalable_type */
+
+
+a_boolean is_valid_neon_vector_element_type(a_type_ptr tp)
+/*
+Return TRUE if the given type is valid as a NEON vector element type.  It must
+be a standard integer type or one of the floating point types std::bfloat16,
+__fp16, float, or double.  For typerefs, consider the underlying type.
+*/
+{
+  a_boolean  result = FALSE;
+  tp = skip_typerefs(tp);
+  if (is_standard_integer_type(tp)) {
+    result = TRUE;
+  } else if (type_is(tp, tk_float)) {
+    a_float_kind  float_kind = tp->variant.float_kind;
+    result = float_kind == fk_std_bfloat16 || float_kind == fk_fp16 ||
+             float_kind == fk_float || float_kind == fk_double;
+  }  /* if */
+  return result;
+}  /* is_valid_neon_vector_element_type */
+
+
+a_boolean is_valid_neon_polyvector_element_type(a_type_ptr tp)
+/*
+Return TRUE if the given type is valid as a NEON polyvector element type.  It
+must be one of the standard integer types unsigned char, unsigned short, or
+unsigned long.  For typerefs, consider the underlying type.
+*/
+{
+  a_boolean  result = FALSE;
+  tp = skip_typerefs(tp);
+  if (is_standard_integer_type(tp)) {
+    an_integer_kind  int_kind = tp->variant.integer.int_kind;
+    result = int_kind == ik_unsigned_char || int_kind == ik_unsigned_short ||
+             int_kind == ik_unsigned_long;
+  }  /* if */
+  return result;
+}  /* is_valid_neon_polyvector_element_type */
 
 #if !STANDALONE_UTILITY_PROGRAM
 

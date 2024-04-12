@@ -5305,9 +5305,18 @@ enum a_type_kind : a_byte {
 			   back end). */
 #if GNU_VECTOR_TYPES_ALLOWED
   tk_vector,		/* GNU vector types. */
-  tk_scalable_vector,	/* Scalable vector types. */
+  tk_scalable_vector,	/* Scalable vector types.  Unlike GNU vector types, the
+			   vector size of these types is not known at compile
+			   time (it is therefore a sizeless type).  As a
+			   consequence, these types cannot be used for objects
+			   with static or thread-local storage duration, or as
+			   data members. */
   tk_scalable_vector_count,
-			/* Opaque scalable vector count type. */
+			/* Opaque scalable vector count type.  This is similar
+			   to a scalable vector with an element type of bool,
+			   but instead of representing a boolean predicate, it
+			   represents a counter predicate (which doesn't have a
+			   corresponding C++ element type). */
 #endif /* GNU_VECTOR_TYPES_ALLOWED */
   tk_nullptr,		/* Type of the C++ or C++/CLI nullptr and __nullptr
 			   keywords.  There are two nullptr types that have

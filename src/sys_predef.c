@@ -1106,6 +1106,130 @@ unsigned 128-bit integer types, respectively.
 
 #if GNU_EXTENSIONS_ALLOWED && GNU_VECTOR_TYPES_ALLOWED
 
+/*
+Descriptor for a floating-point NEON vector element type.
+*/
+typedef struct a_float_vector_type_descr *a_float_vector_type_descr_ptr;
+typedef struct a_float_vector_type_descr {
+  a_float_kind	float_kind;
+			/* Float kind of the vector element. */
+  a_targ_size_t	elements;
+			/* Number of elements for a 64-bit wide vector of that
+			   element kind. */
+  a_const_char	*names[2];
+			/* Array of names for 64-bit and 128-bit wide
+			   vectors. */
+} a_float_vector_type_descr;
+
+/*
+Table of all floating-point NEON vector element types.
+*/
+static a_float_vector_type_descr
+		float_neon_vector_types[] = {
+  {fk_std_bfloat16, 4, {"__Bfloat16x4_t", "__Bfloat16x8_t"}},
+  {fk_fp16,         4, {"__Float16x4_t",  "__Float16x8_t"}},
+  {fk_float,        2, {"__Float32x2_t",  "__Float32x4_t"}},
+  {fk_double,       1, {"__Float64x1_t",  "__Float64x2_t"}},
+  {fk_last,         0, {NULL,             NULL}}
+};
+
+
+/*
+Descriptor for an integer NEON vector or polyvector element type.
+*/
+typedef struct an_integer_vector_type_descr *an_integer_vector_type_descr_ptr;
+typedef struct an_integer_vector_type_descr {
+  an_integer_kind
+		int_kind;
+			/* Integer kind of the vector element. */
+  a_targ_size_t	elements;
+			/* Number of elements for a 64-bit wide vector of that
+			   element type. */
+  a_const_char	*names[2];
+			/* Array of names for 64-bit and 128-bit wide
+			   vectors. */
+} an_integer_vector_type_descr;
+
+/*
+Table of all integer NEON vector element types.
+*/
+static an_integer_vector_type_descr
+		integer_neon_vector_types[] = {
+  {ik_signed_char,    8, {"__Int8x8_t",   "__Int8x16_t"}},
+  {ik_unsigned_char,  8, {"__Uint8x8_t",  "__Uint8x16_t"}},
+  {ik_short,          4, {"__Int16x4_t",  "__Int16x8_t"}},
+  {ik_unsigned_short, 4, {"__Uint16x4_t", "__Uint16x8_t"}},
+  {ik_int,            2, {"__Int32x2_t",  "__Int32x4_t"}},
+  {ik_unsigned_int,   2, {"__Uint32x2_t", "__Uint32x4_t"}},
+  {ik_long,           1, {"__Int64x1_t",  "__Int64x2_t"}},
+  {ik_unsigned_long,  1, {"__Uint64x1_t", "__Uint64x2_t"}},
+  {ik_none,           0, {NULL,           NULL}}
+};
+
+/*
+Table of all integer NEON polyvector element types.
+*/
+static an_integer_vector_type_descr
+		integer_neon_polyvector_types[] = {
+  {ik_unsigned_char,  8, {"__Poly8x8_t",  "__Poly8x16_t"}},
+  {ik_unsigned_short, 4, {"__Poly16x4_t", "__Poly16x8_t"}},
+  {ik_unsigned_long,  1, {"__Poly64x1_t", "__Poly64x2_t"}},
+  {ik_none,           0, {NULL,           NULL}},
+};
+
+
+a_const_char *get_predefined_name_for_neon_vector_type(
+                                                a_type_ptr     element_type,
+                                                a_targ_size_t  vector_elements,
+                                                a_vector_kind  vector_kind)
+/*
+Get the predefined name for a NEON vector or polyvector of the specified
+element type and number of vector elements.  vector_kind is the kind of the
+vector (either vk_neon or vk_neon_poly).
+*/
+{
+  a_const_char  *result = NULL;
+
+  element_type = skip_typerefs(element_type);
+  if (is_real_floating_type(element_type)) {
+    a_float_kind  float_kind = element_type->variant.float_kind;
+    a_float_vector_type_descr_ptr
+                  float_types = float_neon_vector_types;
+    check_assertion(vector_kind == vk_neon);
+    while (result == NULL && float_types->float_kind != fk_last) {
+      if (float_types->float_kind == float_kind) {
+        result = float_types->elements == vector_elements ?
+                                 float_types->names[0] : float_types->names[1];
+      }  /* if */
+      ++float_types;
+    }  /* while */
+  } else if (is_integral_type(element_type)) {
+    a_boolean  is_signed = is_signed_integral_type(element_type);
+    an_integer_vector_type_descr_ptr
+               integer_types;
+    if (vector_kind == vk_neon_poly) {
+      integer_types = integer_neon_polyvector_types;
+    } else {
+      check_assertion(vector_kind == vk_neon);
+      integer_types = integer_neon_vector_types;
+    }  /* if */
+    while (result == NULL && integer_types->int_kind != ik_last) {
+      /* The name is determined by the type's size and signedness, not by the
+         exact integer type kind. */
+      if (int_kind_is_signed[integer_types->int_kind] == is_signed &&
+          element_type->size == 8 / integer_types->elements) {
+        result = integer_types->elements == vector_elements ?
+                             integer_types->names[0] : integer_types->names[1];
+      }  /* if */
+      ++integer_types;
+    }  /* while */
+  } else {
+    unexpected_condition();
+  }  /* if */
+  return result;
+}  /* get_predefined_name_for_neon_vector_type */
+
+
 static void enter_neon_vector_types(
                               a_type_ptr                       element_type,
                               a_targ_size_t                    vector_elements,
@@ -1129,6 +1253,38 @@ vk_neon or vk_neon_poly).
                                                   2*vector_elements,
                                                   vector_kind));
 }  /* enter_neon_vector_types */
+
+
+static void enter_integer_neon_vector_types(
+                                 an_integer_vector_type_descr_ptr  types,
+                                 a_vector_kind                     vector_kind)
+/*
+Enter predefined typedefs for 64-bit and 128-bit NEON vectors or polyvectors of
+integer type specified in the table types (terminated by an entry with
+ik_none).  vector_kind is the kind of the vector (either vk_neon or
+vk_neon_poly).
+*/
+{
+  while (types->int_kind != ik_none) {
+    enter_neon_vector_types(integer_type(types->int_kind),
+                            types->elements, types->names, vector_kind);
+    ++types;
+  }  /* while */
+}  /* enter_integer_neon_vector_types */
+
+
+static void enter_float_neon_vector_types(a_float_vector_type_descr_ptr  types)
+/*
+Enter predefined typedefs for 64-bit and 128-bit NEON vectors of float type
+specified in the table types (terminated by an entry with fk_last).
+*/
+{
+  while (types->float_kind != fk_last) {
+    enter_neon_vector_types(float_type(types->float_kind),
+                            types->elements, types->names, vk_neon);
+    ++types;
+  }  /* while */
+}  /* enter_float_neon_vector_types */
 
 
 static void enter_scalable_vector_types(
@@ -1268,42 +1424,11 @@ Enter predeclared symbols as required by the implementation.
         /* GNU makes ARM NEON vector and polyvector types available as
            predefined typedefs; Clang supports them via the "neon_vector_type"
            and "neon_polyvector_type" attributes. */
-        enter_neon_vector_types(float_type(fk_std_bfloat16), 4,
-                                {"__Bfloat16x4_t", "__Bfloat16x8_t"},
-                                vk_neon);
-        enter_neon_vector_types(float_type(fk_fp16), 4,
-                                {"__Float16x4_t", "__Float16x8_t"},
-                                vk_neon);
-        enter_neon_vector_types(float_type(fk_float), 2,
-                                {"__Float32x2_t", "__Float32x4_t"},
-                                vk_neon);
-        enter_neon_vector_types(float_type(fk_double), 1,
-                                {"__Float64x1_t", "__Float64x2_t"},
-                                vk_neon);
-        enter_neon_vector_types(integer_type(ik_signed_char), 8,
-                                {"__Int8x8_t", "__Int8x16_t"},
-                                vk_neon);
-        enter_neon_vector_types(integer_type(ik_unsigned_char), 8,
-                                {"__Uint8x8_t", "__Uint8x16_t"},
-                                vk_neon);
-        enter_neon_vector_types(integer_type(ik_short), 4,
-                                {"__Int16x4_t", "__Int16x8_t"},
-                                vk_neon);
-        enter_neon_vector_types(integer_type(ik_unsigned_short), 4,
-                                {"__Uint16x4_t", "__Uint16x8_t"},
-                                vk_neon);
-        enter_neon_vector_types(integer_type(ik_int), 2,
-                                {"__Int32x2_t", "__Int32x4_t"},
-                                vk_neon);
-        enter_neon_vector_types(integer_type(ik_unsigned_int), 2,
-                                {"__Uint32x2_t", "__Uint32x4_t"},
-                                vk_neon);
-        enter_neon_vector_types(integer_type(ik_long), 1,
-                                {"__Int64x1_t", "__Int64x2_t"},
-                                vk_neon);
-        enter_neon_vector_types(integer_type(ik_unsigned_long), 1,
-                                {"__Uint64x1_t", "__Uint64x2_t"},
-                                vk_neon);
+        enter_float_neon_vector_types(float_neon_vector_types);
+        enter_integer_neon_vector_types(integer_neon_vector_types,
+                                        vk_neon);
+        enter_integer_neon_vector_types(integer_neon_polyvector_types,
+                                        vk_neon_poly);
         (void)enter_predefined_typedef("__Poly8_t",
                                        integer_type(ik_unsigned_char));
         (void)enter_predefined_typedef("__Poly16_t",
@@ -1314,15 +1439,6 @@ Enter predeclared symbols as required by the implementation.
         (void)enter_predefined_typedef("__Poly128_t",
                                        integer_type(ik_unsigned_int128));
 #endif /* INT128_EXTENSIONS_ALLOWED */
-        enter_neon_vector_types(integer_type(ik_unsigned_char), 8,
-                                {"__Poly8x8_t", "__Poly8x16_t"},
-                                vk_neon_poly);
-        enter_neon_vector_types(integer_type(ik_unsigned_short), 4,
-                                {"__Poly16x4_t", "__Poly16x8_t"},
-                                vk_neon_poly);
-        enter_neon_vector_types(integer_type(ik_unsigned_long), 1,
-                                {"__Poly64x1_t", "__Poly64x2_t"},
-                                vk_neon_poly);
       }  /* if */
       if (clang_version_is(>=100000) || gnu_version_is(>=100000)) {
         /* Both Clang and GNU have added support for scalable vector types on

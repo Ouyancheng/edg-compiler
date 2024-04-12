@@ -117,6 +117,7 @@ extern a_boolean is_integral_type(a_type_ptr tp);
 extern a_boolean is_signed_integral_type(a_type_ptr tp);
 #define int_type_is_signed(tp)                                               \
   (int_kind_is_signed[(int)tp->variant.integer.int_kind])
+extern a_boolean is_standard_integer_type(a_type_ptr tp);
 extern a_boolean is_enum_type(a_type_ptr tp);
 extern a_boolean is_scoped_enum_type(a_type_ptr tp);
 extern a_boolean is_unscoped_enum_type(a_type_ptr tp);
@@ -149,6 +150,8 @@ extern a_boolean is_complex_type(a_type_ptr tp);
 #if GNU_VECTOR_TYPES_ALLOWED
 extern a_boolean is_vector_type(a_type_ptr tp);
 extern a_boolean is_scalable_type(a_type_ptr tp);
+extern a_boolean is_valid_neon_vector_element_type(a_type_ptr tp);
+extern a_boolean is_valid_neon_polyvector_element_type(a_type_ptr tp);
 #if !STANDALONE_UTILITY_PROGRAM
 extern a_boolean vector_type_is_template_dependent(a_type_ptr  tp);
 #endif /* !STANDALONE_UTILITY_PROGRAM */
