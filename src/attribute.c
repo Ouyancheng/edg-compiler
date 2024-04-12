@@ -878,6 +878,7 @@ static an_attr_corresp_descr attr_corresp_table[] = {
   { ak_noreturn, af_ms_declspec, iek_last, ACF_MATCH_OPTIONAL,
             NO_CHECKING_FN },
   { ak_deprecated, af_last, iek_last, ACF_MATCH_OPTIONAL, NO_CHECKING_FN },
+  { ak_maybe_unused, af_last, iek_last, ACF_MATCH_OPTIONAL, NO_CHECKING_FN },
 #if GNU_EXTENSIONS_ALLOWED || MICROSOFT_EXTENSIONS_ALLOWED
   { ak_noinline, af_last, iek_last, ACF_MATCH_OPTIONAL, NO_CHECKING_FN },
   { ak_nothrow, af_last, iek_last, ACF_MATCH_OPTIONAL, NO_CHECKING_FN },
@@ -896,7 +897,7 @@ static an_attr_corresp_descr attr_corresp_table[] = {
   { ak_mode, af_gnu, iek_last, ACF_MATCH_OPTIONAL, NO_CHECKING_FN },
   { ak_nocommon, af_gnu, iek_last, ACF_MATCH_OPTIONAL, NO_CHECKING_FN },
   { ak_nonnull, af_gnu, iek_last, ACF_MATCH_OPTIONAL, NO_CHECKING_FN },
-  { ak_unused, af_gnu, iek_last, ACF_MATCH_OPTIONAL, NO_CHECKING_FN },
+  { ak_unused, af_last, iek_last, ACF_MATCH_OPTIONAL, NO_CHECKING_FN },
   { ak_used, af_gnu, iek_last, ACF_MATCH_OPTIONAL, NO_CHECKING_FN },
 #if GNU_VECTOR_TYPES_ALLOWED
   { ak_vector_size, af_gnu, iek_last, ACF_MATCH_OPTIONAL, NO_CHECKING_FN },

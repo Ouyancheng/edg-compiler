@@ -1,5 +1,23 @@
 Version 6.7
 
+4/12/24  [EDGcpfe/27157]
+Multi-TU correspondence checking of maybe_unused and GNU unused
+
+Previously, when considering attribute correspondence for the [[maybe_unused]]
+or [[gnu::unused]] attributes in multi-TU mode the front end would complain
+if the attribute was present in one translation unit but not another.
+
+  // shared.h
+  void foo(int);
+  // tu-a.cpp
+  #include "shared.h"
+  void foo([[maybe_unused]] int);
+  // tu-b.cpp
+  #include "shared.h"
+
+This has been changed and the front end no longer reports this as a conflict.
+
+
 4/11/24  [EDGcpfe/27144]
 Temporary not lifetime-extended because of multilevel lvalue adjustment
 
