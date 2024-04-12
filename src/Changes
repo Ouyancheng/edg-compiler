@@ -1,6 +1,6 @@
 Version 6.7
 
-4/12/24  [EDGcpfe/27157]
+4/12/24  [EDGcpfe/27158]
 Multi-TU correspondence checking of maybe_unused and GNU unused
 
 Previously, when considering attribute correspondence for the [[maybe_unused]]
