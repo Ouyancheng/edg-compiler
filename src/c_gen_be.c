@@ -3146,18 +3146,17 @@ These two fields are normally consecutive members of the given "type", but
        for empty/promoted base class layout and fields with
        no_unique_address attributes, so check this only when the field has
        a class type (hence also the is_bit_field test). */
-    a_type_ptr  field_type = field->type;
+    a_type_ptr  field_type = skip_typerefs(field->type);
     a_field_ptr effective_field = field;
     while (effective_field->class_subobject_with_tail_padding) {
       /* Use the first promoted field to compute the required alignment. */
       effective_field = field_type->variant.class_struct_union.field_list;
-      field_type = effective_field->type;
+      field_type = skip_typerefs(effective_field->type);
     }  /* while */
-    if (is_array_type(field_type)) {
+    if (type_is(field_type, tk_array)) {
       /* Arrays of class type have to be checked as well. */
       field_type = underlying_array_element_type(field_type);
     }  /* if */
-    field_type = skip_typerefs(field_type);
     if (is_immediate_class_type(field_type) ||
         field->class_subobject_with_tail_padding ||
         (prev_field != NULL &&
