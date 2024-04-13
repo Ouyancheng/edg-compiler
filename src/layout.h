@@ -78,7 +78,8 @@ extern a_boolean is_empty_class_type(a_type_ptr  type);
 extern void do_class_layout(a_type_ptr  class_type);
  
 #if IA64_ABI
-extern a_targ_size_t compute_dsize(a_type_ptr  class_type);
+extern a_targ_size_t compute_dsize(a_type_ptr  class_type,
+                                   a_boolean   include_vbases = TRUE);
 #endif /* IA64_ABI */
 
 extern void layout_one_time_init(void);
