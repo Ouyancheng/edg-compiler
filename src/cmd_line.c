@@ -1486,6 +1486,8 @@ Initialize the option information table.
                          /*arg_required=*/FALSE, pchek_command_line);
   add_option_description(optk_cpp23_mode, "c++23", '\0', /*value=*/TRUE,
                          /*arg_required=*/FALSE, pchek_command_line);
+  add_option_description(optk_cpp26_mode, "c++26", '\0', /*value=*/TRUE,
+                         /*arg_required=*/FALSE, pchek_command_line);
 #endif /* CPP11_IL_EXTENSIONS_SUPPORTED */
   add_option_description(optk_list_macros, "list_macros", '\0',
                          /*value=*/TRUE, /*arg_required=*/FALSE, pchek_none);
@@ -2424,7 +2426,8 @@ is specified.
       option_kind_used[(int)optk_cpp14_mode] ||
       option_kind_used[(int)optk_cpp17_mode] ||
       option_kind_used[(int)optk_cpp20_mode] ||
-      option_kind_used[(int)optk_cpp23_mode]) {
+      option_kind_used[(int)optk_cpp23_mode] ||
+      option_kind_used[(int)optk_cpp26_mode]) {
     /* C++ mode was enabled by a command line option. */
     result = TRUE;
   }  /* if */
@@ -5801,6 +5804,7 @@ command line switches.
     C++17               std_version >= 201703            --c++17
     C++20               std_version >= 202002            --c++20
     C++23               std_version >= 202302            --c++23
+    C++26               std_version >= 202600?           --c++26
     "normal"
       strict            strict_ansi_mode                 -A, -a, etc.
 
@@ -11437,10 +11441,15 @@ enable_microsoft_mode:
         /* Enable or disable __is_union, __has_virtual_destructor, etc. */
         type_traits_helpers_enabled = opt_value;
         break;
-      case optk_cpp23_mode:
-        /* Enable C++ features added as part of C++23.  The value used for
+      case optk_cpp26_mode:
+        /* Enable C++ features added as part of C++26.  The value used for
            std_version below is just a placeholder until the official value
            (and standard name) is known. */
+        std_version = 202600;
+        set_C_dialect(C_dialect_cplusplus);
+        break;
+      case optk_cpp23_mode:
+        /* Enable C++ features added as part of C++23. */
         std_version = 202302;
         set_C_dialect(C_dialect_cplusplus);
         break;

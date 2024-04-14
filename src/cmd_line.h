@@ -349,6 +349,7 @@ enum an_option_kind {
   optk_aligned_new,
   optk_cpp20_mode,
   optk_cpp23_mode,
+  optk_cpp26_mode,
   optk_ms_std_preproc,
   optk_char8_t,
   optk_relaxed_abstract_checking,
