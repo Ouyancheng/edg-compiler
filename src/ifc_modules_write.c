@@ -2953,7 +2953,7 @@ to represent the given front end non-type template parameter.
                 param_constant = templ_param->variant.nontype.constant;
   /* Check some assumptions about the constant representation.  If these
      assertions are violated either the IFC writer has been fed bad data or
-     the IFC writer needs updated to handle the new case. */
+     the IFC writer needs to be updated to handle the new case. */
   check_assertion(param_constant->kind == ck_template_param);
   check_assertion(param_constant->variant.template_param.kind == tpck_param);
   a_type_ptr    param_type = param_constant->type;
