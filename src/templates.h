@@ -421,7 +421,7 @@ typedef int an_equiv_templ_param_options_set;
 			/* TRUE if dependent parameters should be considered to
 			   be different.  (Used in GCC/Clang mode when
 			   comparing instantiated member function template
-			   declarations.)*/
+			   declarations.) */
 
 /*
 Flags used to specify options to set_instance_required and
