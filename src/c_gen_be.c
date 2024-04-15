@@ -10142,7 +10142,7 @@ for the definition of the indicated routine.  scope is the associated scope.
 {
   /* There can be qualifiers above the function type for Microsoft qualifiers
      like near/far. */
-  a_type_ptr qual_type = rout->type, type = skip_typerefs(qual_type);
+  a_type_ptr type = skip_typerefs(rout->type);
 
   check_assertion_str(type->kind == (a_type_kind)tk_routine,
                       "dump_func_definition_type: type not routine");
@@ -10154,7 +10154,8 @@ for the definition of the indicated routine.  scope is the associated scope.
   }  /* if */
 #endif /* GNU_EXTENSIONS_ALLOWED */
   /* Write the specifiers and the first part of the declarator. */
-  form_type_first_part_simple(qual_type, /*under_lhs_declarator=*/FALSE,
+  form_type_first_part_simple(type->variant.routine.return_type,
+                              /*under_lhs_declarator=*/FALSE,
                               /*need_trailing_space=*/TRUE, &octl);
   /* Write the name. */
   dump_routine_name(rout);

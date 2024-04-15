@@ -1,5 +1,21 @@
 Version 6.7
 
+4/15/24  [EDGcpfe/27167]
+Explicit function template specialization could lead to undefined behavior
+
+Missing skip_typerefs had caused undefined behavior when explicitly
+specializing a function template that was originally declared using an alias
+template.  For example, with --c++11:
+
+  template<typename T> using fn_t = T(T);
+  template<typename T> fn_t<T> f;
+  template<>
+  int f(int) {
+    return 0;
+  }
+  auto v = f(1);
+
+
 4/14/24  [EDGcpfe/27171]
 C++26 mode
 

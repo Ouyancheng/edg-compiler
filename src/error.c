@@ -1701,7 +1701,7 @@ specified by dp.
         tssp = template_supplement_for_symbol(template_sym);
         corresp_template_sym = template_sym;
         if (template_sym->kind == (a_symbol_kind)sk_function_template) {
-          type = tssp->variant.function.routine->type;
+          type = skip_typerefs(tssp->variant.function.routine->type);
         } else {
           type = routine_symbol_type(template_sym);
         }  /* if */
@@ -1794,7 +1794,7 @@ specified by dp.
     case sk_function_template:
       entity_kind = ec_function_template;
       routine = fund_sym->variant.template_info->variant.function.routine;
-      type = routine->type;
+      type = skip_typerefs(routine->type);
       /* Function templates can differ only by return type, so include the
          return type when also displaying the parameter types. */
       force_return_type = dfip->variant.symbol.force_function_params;

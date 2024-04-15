@@ -18447,7 +18447,6 @@ the error type is a member, or is NULL for a nonmember.
 {
   a_type_ptr			rout_type;
   a_routine_type_supplement_ptr	rtsp;
-  a_type_ptr			templ_rout_type;
   a_routine_type_supplement_ptr	templ_rtsp;
   a_param_type_ptr		ptp;
   a_param_type_ptr		last_ptp = NULL;
@@ -18456,8 +18455,7 @@ the error type is a member, or is NULL for a nonmember.
   uint32_t                      param_num = 0;
 
   error_type_ptr = error_type();
-  templ_rout_type = templ_rout->type;
-  templ_rtsp = templ_rout_type->variant.routine.extra_info;
+  templ_rtsp = rout_type_supp(skip_typerefs(templ_rout->type));
   rout_type = alloc_type((a_type_kind)tk_routine);
   rtsp = rout_type->variant.routine.extra_info;
   rtsp->prototyped = TRUE;
@@ -33871,10 +33869,11 @@ that follows.
                update the type generated from the template with qualifiers
                from the type as actually declared. */
             a_param_type_ptr  ptp, decl_ptp;
+            a_type_ptr        rtp = skip_typerefs(rp->type),
+                              decl_rtp = skip_typerefs(dps->type);
 
-            for (ptp = rp->type->variant.routine.extra_info->param_type_list,
-                 decl_ptp = dps->type->variant.routine.extra_info
-                                     ->param_type_list;
+            for (ptp = rout_type_supp(rtp)->param_type_list,
+                 decl_ptp = rout_type_supp(decl_rtp)->param_type_list;
                  ptp != NULL && decl_ptp != NULL;
                  ptp = ptp->next, decl_ptp = decl_ptp->next) {
               ptp->qualifiers = decl_ptp->qualifiers;
