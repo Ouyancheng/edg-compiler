@@ -625,7 +625,6 @@ extern a_const_char *get_predefined_name_for_neon_vector_type(
 
 #endif /* GNU_EXTENSIONS_ALLOWED */
 
-
 extern a_boolean check_availability_attr(an_attribute_ptr ap);
 
 extern void sys_predef_trans_unit_init(void);
