@@ -19674,7 +19674,7 @@ decl_idx).
 
 If the function is a not parameterized (i.e., this is not the body for a
 function template) and the IFC provided a user-defined definition for said
-function, no definition will be cached, instead one will be associated via
+function, no definition will be cached; instead, one will be associated via
 finish_mep_processing.  cinfo contains information about the current cache
 context to help inform decisions about what to cache.
 */
