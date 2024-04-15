@@ -11537,7 +11537,7 @@ static a_boolean do_constexpr_std_meta_has_consistent_name(
                                         a_byte                *result_storage,
                                         a_byte                *complete_obj)
 /*
-Implement std::meta::has_default_argument(info).
+Implement std::meta::has_consistent_name(info).
 
 See do_constexpr_intrinsic_call for the meaning of the parameters.
 */
