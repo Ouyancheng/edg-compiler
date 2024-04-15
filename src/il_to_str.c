@@ -5001,8 +5001,8 @@ parentheses are not needed.
             if (prev_field_was_class_subobject_with_tail_padding) {
               /* This field is a member of a subobject class type that was
                  promoted by the C-generating back end into the containing
-                 class.  Instead of base_obj.base_mem, it must therefore be
-                 put out as base_obj_base_mem. */
+                 class.  Instead of subobj.mem, it must therefore be put out
+                 as subobj_mem. */
               octl->output_str("_", octl);
             } else
 #endif /* DO_IL_LOWERING */
