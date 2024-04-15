@@ -11204,7 +11204,7 @@ in_instantiation:
                                           (a_boolean *)NULL)) {
           /* This must be either the only entry on the list, or all other
              entries on the list must be the same symbol.  (Or, in some cases,
-             they must be sufficiently compatible extern "C" functions.)*/
+             they must be sufficiently compatible extern "C" functions.) */
           for (slep = symbol_list->next; slep != NULL; slep = slep->next) {
             if (!same_function(slep->symbol, symbol_list->symbol) &&
                 !treat_two_c_linkage_symbols_as_one(slep->symbol,
