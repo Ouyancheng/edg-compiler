@@ -46,7 +46,7 @@ the duration of this file.
 
 static a_boolean is_edg_authored(const an_ifc_module_entity &entity)
 /*
-Return TRUE if the given IFC entity is from an EDG authored IFC; otherwise,
+Return TRUE if the given IFC entity is from an EDG-authored IFC; otherwise,
 return FALSE.
 */
 {
@@ -56,7 +56,7 @@ return FALSE.
 
 static a_boolean is_msvc_authored(const an_ifc_module_entity &entity)
 /*
-Return TRUE if the given IFC entity is from an MSVC authored IFC; otherwise,
+Return TRUE if the given IFC entity is from an MSVC-authored IFC; otherwise,
 return FALSE.
 */
 {
@@ -22435,7 +22435,7 @@ return FALSE.
         { /* FIXME: Add other cases. */
           a_string err_msg("Unexpected parameterized entity (",
                            index_to_str(decl_idx),
-                           ") from an EDG authored module file");
+                           ") from an EDG-authored module file");
 
           ifc_unexpected(module_of(decl), err_msg);
         }
