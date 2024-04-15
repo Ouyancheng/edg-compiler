@@ -2932,7 +2932,7 @@ void an_ifc_il_map::set_up_template_non_type_param(
                                        an_ifc_decl_parameter    *param_decl,
                                        a_template_parameter_ptr templ_param)
 /*
-The given IFC parameter declaration node is freshly allocated, set its fields
+The given IFC parameter declaration node is freshly allocated.  Set its fields
 to represent the given front end non-type template parameter.
 */
 {
