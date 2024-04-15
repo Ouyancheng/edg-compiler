@@ -19685,7 +19685,7 @@ context to help inform decisions about what to cache.
   if (function_is_user_defined(decl)) {
     /* As noted above, in the case of a non-parameterized function, the
        definition will be mapped into an IL map of lazily-loadable definitions.
-       However, in the case of an EDG produced IFC, retrieve and cache the
+       However, in the case of an EDG-produced IFC, retrieve and cache the
        function definition as part of the function template declaration. */
     if (!is_null_index(cinfo.parameterizing_entity) &&
         is_edg_authored(decl)) {
