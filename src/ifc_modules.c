@@ -22498,7 +22498,7 @@ context to help inform decisions about what to cache.
   /* If we're not caching a definition, the final semicolon must be cached. */
   cache_info.no_final_semicolon = cache_definition;
   offset = cache_decl_template_declaration(cache, decl_idx, decl, cache_info);
-  /* For MSVC produced IFC files, the sentence is used.  For EDG produced IFC
+  /* For MSVC-produced IFC files, the sentence is used.  For EDG produced IFC
      files the definition is cached as part of caching the template
      declaration. */
   if (cache_definition && is_msvc_authored(decl)) {
