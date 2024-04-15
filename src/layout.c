@@ -2527,16 +2527,14 @@ done:;
 }  /* emulate_gnu_bit_field_overpadding */
 
 
-a_targ_size_t compute_dsize(a_type_ptr  class_type,
-          /* Defaulted: */  a_boolean   include_vbases)
+a_targ_size_t compute_dsize(a_type_ptr  class_type)
 /*
-The IA-64 ABI layout algorithm uses "dsize" to represent the size of a class
-prior to rounding up for alignment purposes.  That value is computed during
-class layout but is not stored in the IL.  When laying out potentially-
-overlapping data members, the "dsize" value for the member is necessary and is
-computed here (by adding the offset of the last field or virtual base of the
-class to the size of that field or base).  If include_vbases is TRUE (the
-default is FALSE), virtual bases are ignored.
+The IA-64 ABI layout algorithm uses "dsize" to represent the size of a
+class prior to rounding up for alignment purposes.  That value is computed
+during class layout but is not stored in the IL.  When laying out
+potentially-overlapping data members, the "dsize" value for the member
+is necessary and is computed here (by adding the offset of the last field or
+virtual base of the class to the size of that field or base).
 */
 {
   a_field_ptr      fp;
@@ -2572,13 +2570,11 @@ default is FALSE), virtual bases are ignored.
       field_size = fp_type->size;
     }  /* if */
     result = fp->offset + field_size;
-    if (include_vbases &&
-        class_type->variant.class_struct_union.any_virtual_base_classes) {
+    if (class_type->variant.class_struct_union.any_virtual_base_classes) {
       /* Virtual bases classes can be located beyond the last field. */
       for (bcp = base_classes_of(class_type); bcp != NULL; bcp = bcp->next) {
         if (bcp->is_virtual && bcp->offset >= result) {
-          result = bcp->offset + compute_dsize(bcp->type,
-                                               /*include_vbases=*/FALSE);
+          result = bcp->offset + bcp->type->size;
         }  /* if */
       }  /* for */
     }  /* if */
