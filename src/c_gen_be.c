@@ -544,11 +544,11 @@ typedef struct a_member_name_prefix_component
 typedef struct a_member_name_prefix_component {
   a_member_name_prefix_component_ptr
 		next;	/* The component corresponding to the next (i.e.,
-			   less-derived or less-nested) class type for the
+			   less-derived or more-nested) class type for the
 			   current member. */
   a_member_name_prefix_component_ptr
 		prev;	/* The component corresponding to the previous
-			   (i.e., more-derived or more-nested) class type
+			   (i.e., more-derived or less-nested) class type
 			   for the current member. */
   a_field_ptr	field;	/* The field whose name will be used for the
 			   current level in the mangled name. */
