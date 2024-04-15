@@ -10775,7 +10775,7 @@ found by argument-dependent lookup and the second through ordinary lookup.)
       result = types_are_compatible(rtp1->variant.routine.return_type,
                                     rtp2->variant.routine.return_type);
     }  /* if */
-  } /* if */
+  }  /* if */
   return result;
 }  /* treat_two_c_linkage_symbols_as_one */
 
