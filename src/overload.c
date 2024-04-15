@@ -10766,14 +10766,19 @@ found by argument-dependent lookup and the second through ordinary lookup.)
   a_boolean  result = FALSE;
 
   if (microsoft_mode) {
-    a_routine_ptr  rp1 = func_sym_routine(sym1),
-                   rp2 = func_sym_routine(sym2);
-    if (rp1->source_corresp.name_linkage == nlk_external &&
-        rp2->source_corresp.name_linkage == nlk_external) {
-      a_type_ptr  rtp1 = skip_typerefs(rp1->type),
-                  rtp2 = skip_typerefs(rp2->type);
-      result = types_are_compatible(rtp1->variant.routine.return_type,
-                                    rtp2->variant.routine.return_type);
+    a_routine_ptr  rp1, rp2;
+    reduce_projection_symbol_to_fundamental_symbol(sym1);
+    reduce_projection_symbol_to_fundamental_symbol(sym2);
+    if (is_simple_function_symbol(sym1) && is_simple_function_symbol(sym2))  {
+      rp1 = func_sym_routine(sym1),
+      rp2 = func_sym_routine(sym2);
+      if (rp1->source_corresp.name_linkage == nlk_external &&
+          rp2->source_corresp.name_linkage == nlk_external) {
+        a_type_ptr  rtp1 = skip_typerefs(rp1->type),
+                    rtp2 = skip_typerefs(rp2->type);
+        result = types_are_compatible(rtp1->variant.routine.return_type,
+                                      rtp2->variant.routine.return_type);
+      }  /* if */
     }  /* if */
   }  /* if */
   return result;
