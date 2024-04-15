@@ -8635,8 +8635,14 @@ check_typerefs:
       /* The type qualifiers do not match, so the types are not compatible. */
       /* compat = FALSE;  -- Already set. */
     } else if (type_1 == type_2) {
-      /* If the types are now the same, they are compatible. */
-      compat = TRUE;
+      /* If we consider dependent types to be distinct, we need to consider
+         template parameter types to be distinct, even if they are
+         identical. */
+      if (type_1->kind != tk_template_param ||
+          (flags & TCF_DISTINCT_DEPENDENT_TYPES) == 0) {
+        /* If the types are now the same, they are compatible. */
+        compat = TRUE;
+      }  /* if */
     } else if (!equiv_type_kinds(type_1->kind, type_2->kind)) {
       /* The top level kinds are different, so the types are different. */
       /* compat = FALSE;  -- Already set. */
@@ -8831,6 +8837,9 @@ check_typerefs:
              type aren't compatible.  There are some exceptions with template
              classes.  Check for those. */
           if (!C_mode() &&
+              ((flags & TCF_DISTINCT_DEPENDENT_TYPES) == 0 ||
+               (!type_1->variant.class_struct_union.is_nonreal_class &&
+                !type_2->variant.class_struct_union.is_nonreal_class)) &&
               equiv_class_types(
                      type_1, type_2, error_matches_anything,
                      /*exact_templ_arg_match_required=*/FALSE,
@@ -8986,9 +8995,10 @@ check_typerefs:
           }  /* if */
           break;
         case tk_template_param:
-          /* Template parameter types are considered to be compatible if
-             their positions in the template parameter list are the same. */
-          { an_itf_flag_set  it_flags = ITF_NO_FLAGS;
+          if ((flags & TCF_DISTINCT_DEPENDENT_TYPES) == 0) {
+            /* Template parameter types are considered to be compatible if
+               their positions in the template parameter list are the same. */
+            an_itf_flag_set  it_flags = ITF_NO_FLAGS;
 #if MICROSOFT_EXTENSIONS_ALLOWED
             if (flags & TCF_CONTEXTUAL_GENERIC_PARAMETERS) {
               it_flags |= ITF_CONTEXTUAL_GENERIC_PARAMETERS;
@@ -9004,7 +9014,7 @@ check_typerefs:
               it_flags |= ITF_PLACEHOLDER_CONSTRAINT_MATCH_REQUIRED;
             }  /* if */
             compat = f_identical_types(type_1, type_2, it_flags);
-          }
+          }  /* if */
           break;
 #if GNU_VECTOR_TYPES_ALLOWED
         case tk_vector:

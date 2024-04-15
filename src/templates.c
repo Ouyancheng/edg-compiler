@@ -21687,6 +21687,9 @@ old_list can match zero or more parameters from new_list.
       /* One argument is a type and the other is a constant -- this is an
          error. */
       err = TRUE;
+    } else if ((options & ETP_DEPENDENT_PARAMS_DONT_MATCH) != 0 &&
+               (old_tpp->is_dependent || new_tpp->is_dependent)) {
+      err = TRUE;
     } else if (old_tpp->is_pack != new_tpp->is_pack &&
                (!old_tpp->is_pack || !is_templ_templ_param_match)) {
       /* One is a parameter pack and the other is not.  It is okay for

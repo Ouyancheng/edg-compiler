@@ -16953,6 +16953,9 @@ The nesting depth of the parameters is ignored for this compatibility checking.
   a_template_param_coordinate_ptr
                             tpcp1, tpcp2;
   a_template_nesting_depth  tnd1 = NO_NESTING_DEPTH, tnd2 = NO_NESTING_DEPTH;
+  an_equiv_templ_param_options_set
+                            etp_options;
+  a_type_compat_flags_set   tcf_flags;
 
   /* The actual comparison is done with equiv_template_param_lists and
      param_types_are_compatible, but the two parameter lists may be declared at
@@ -16979,10 +16982,34 @@ The nesting depth of the parameters is ignored for this compatibility checking.
   }  /* for */
   /* The depths have been updated if needed: Now do the actual compatibility
      check. */
+  if (gnu_mode && is_real_instantiation_context()) {
+    /* When comparing instantiated member function declarations, GCC/Clang
+       never consider dependent template parameters or dependent function
+       parameter types to be equivalent.  This allows functionally-equivalent
+       member function templates to be declared in the instantiated class.  For
+       example:
+
+           template<bool>
+           struct C { };
+           template<int I>
+           struct A {
+             template<bool B>
+             void f(C<I == 1 && B>);
+             template<bool B>
+             void f(C<I == 2 && B>);
+           };
+           A<0> a;
+     */
+    etp_options = ETP_DEPENDENT_PARAMS_DONT_MATCH;
+    tcf_flags = TCF_DISTINCT_DEPENDENT_TYPES;
+  } else {
+    etp_options = ETP_NO_OPTIONS;
+    tcf_flags = TCF_NO_FLAGS;
+  }  /* if */
   result = equiv_template_param_lists(tpl1, tpl2, /*issue_errors=*/FALSE,
-                                      ETP_NO_OPTIONS, (a_source_position*)NULL,
+                                      etp_options, (a_source_position*)NULL,
                                       es_error) &&
-           param_types_are_compatible(tp1, tp2, TCF_NO_FLAGS);
+           param_types_are_compatible(tp1, tp2, tcf_flags);
   if (result) {
     /* Check member function qualifiers and ref-qualifiers. */
     a_routine_type_supplement_ptr  rtsp1, rtsp2;
@@ -17170,10 +17197,17 @@ decl_member_function, which handles in-class member function declarations.)
                  enforce that unless the return type is also equivalent. */
               error_code = ec_static_nonstatic_with_same_param_types;
               pos_error(error_code, &locator->source_position);
-            } else if (routine_types_are_redecl_compatible(tp, member_type,
-                                                           TCF_NO_FLAGS)) {
-              error_code = ec_member_function_redeclaration;
-              pos_sy_error(error_code, &locator->source_position, other_sym);
+            } else {
+              a_type_compat_flags_set  tcf_flags;
+              /* When comparing instantiated member function declarations,
+                 GCC/Clang never consider dependent types to be compatible. */
+              tcf_flags = (gnu_mode && is_real_instantiation_context()) ?
+                                   TCF_DISTINCT_DEPENDENT_TYPES : TCF_NO_FLAGS;
+              if (routine_types_are_redecl_compatible(tp, member_type,
+                                                      tcf_flags)) {
+                error_code = ec_member_function_redeclaration;
+                pos_sy_error(error_code, &locator->source_position, other_sym);
+              }  /* if */
             }  /* if */
             if (error_code != ec_no_error) {
               set_to_named_error_locator(*locator);

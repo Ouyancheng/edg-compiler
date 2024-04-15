@@ -417,6 +417,11 @@ typedef int an_equiv_templ_param_options_set;
 			   parameter packs). */
 #define ETP_DEFAULT_ARGUMENT_MATCH_REQUIRED 0x8
 			/* TRUE if default arguments need to match. */
+#define ETP_DEPENDENT_PARAMS_DONT_MATCH 0x10
+			/* TRUE if dependent parameters should be considered to
+			   be different.  (Used in GCC/Clang mode when
+			   comparing instantiated member function template
+			   declarations.)*/
 
 /*
 Flags used to specify options to set_instance_required and

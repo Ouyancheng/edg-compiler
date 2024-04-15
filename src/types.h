@@ -1175,7 +1175,12 @@ Bit flags for calls of f_types_are_compatible et al.
 #define TCF_PLACEHOLDER_CONSTRAINT_MATCH_REQUIRED 0x800000
 			/* TRUE if constraints on placeholder types must
 			   match. */
-#define TCF_LAST TCF_PLACEHOLDER_CONSTRAINT_MATCH_REQUIRED
+#define TCF_DISTINCT_DEPENDENT_TYPES 0x1000000
+			/* TRUE if dependent types should always be considered
+			   to be distinct.  (Used in GCC/Clang mode when
+			   comparing instantiated member function template
+			   declarations.) */
+#define TCF_LAST TCF_DISTINCT_DEPENDENT_TYPES
 			/* Last bit in the bit vector that is in use. */
 #define TCF_NO_FLAGS 0x0
 typedef int a_type_compat_flags_set;
