@@ -3359,8 +3359,8 @@ padding in the generated code.
          no_unique_address field with a class type and that base or member
          class type has tail padding.  Register the name of the field for
          use in mangling, and call this routine recursively to dump the
-         base class members instead of the subobject field declaration, to
-         allow for reuse of the tail padding. */
+         subobject class members instead of the subobject field declaration,
+         to allow for reuse of the tail padding. */
       a_member_name_prefix_component prefix;
       a_targ_size_t                  offset_after_fields;
       a_type_ptr                     field_type = skip_typerefs(field->type);
