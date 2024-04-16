@@ -9915,16 +9915,19 @@ Do IL lowering of the indicated field and everything under it.
     lower_source_correspondence(&field->source_corresp);
     lower_os_type(field->type);
 #if IA64_ABI
-    if (field->has_no_unique_address_attribute &&
-        is_class_struct_union_type(field->type) &&
-        !skip_typerefs(field->type)->
-                         variant.class_struct_union.any_virtual_base_classes) {
-      /* Check to see if the type of the field has tail padding. */
-      a_type_ptr                  tp = skip_typerefs(field->type);
-      a_class_type_supplement_ptr ctsp = class_type_supp(tp);
-      if (ctsp->has_subobject_type) {
-        a_type_ptr subobj_type = ctsp->subobject_partner;
-        if ((subobj_type->size % subobj_type->alignment) != 0) {
+    if (field->has_no_unique_address_attribute) {
+      /* A field marked with the [[no_unique_address]] attribute is allocated
+         somewhat like a base class subobject, potentially allowing tail
+         padding to be reused.  Specifically, max(dsize, nvsize) are allocated
+         for the field, where dsize corresponds to the data size prior to
+         rounding up for alignment purposes and nvsize is the size not
+         including virtual base classes. */
+      a_type_ptr  uftp = skip_typerefs(field->type);
+      if (is_immediate_class_type(uftp)) {
+        a_class_type_supplement_ptr ctsp = class_type_supp(uftp);
+        /* Check to see if the type of the field has tail padding. */
+        if (ctsp->size_without_virtual_base_classes < uftp->size &&
+            compute_dsize(uftp) < uftp->size) {
           /* The type has tail padding.  Mark the field accordingly. */
           field->class_subobject_with_tail_padding = TRUE;
         }  /* if */
