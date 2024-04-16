@@ -1,5 +1,22 @@
 Version 6.7
 
+4/16/24  [EDGcpfe/27174]
+Spurious unbounded recursive rewrite of comparison
+
+Consider:
+
+  struct X { X(int X::*) {} };
+  struct S {
+    friend bool operator<(S, X);
+  };
+  template<class U, class V> S operator<=>(U const&, V const&);
+  int r = S{} < 0;
+
+Previously, this elicited an error due to the front end erroneously entering
+an unbounded sequence of recursive rewrites for the less-than operator.  That
+is now fixed.
+
+
 4/16/24  [EDGcpfe/27142]
 Spurious "too many arguments" error on empty pack expansion
 

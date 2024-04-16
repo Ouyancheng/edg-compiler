@@ -19199,7 +19199,7 @@ find_more_operator_candidates:
                                              &candidate_functions);
       }  /* if */
     }  /* if */
-    if (spaceship_enabled) {
+    if (spaceship_enabled && !ovl_res_stack()->top().in_comparison_rewrite) {
       /* For comparison operators, consider additional candidates: 
            (1) For relational operators, consider operator<=> candidates.
                For !=, consider operator== candidates.
@@ -19438,9 +19438,15 @@ selected, it is stored in *rewritten_candidate.
   a_boolean                folded_to_constant = FALSE;
   an_opname_kind           orig_kind = kind;
   a_diagnostic_ptr         dp = NULL;
+  an_ovl_res_stack         *ovl_stack = ovl_res_stack();
+  a_boolean                in_comparison_rewrite = FALSE;
 
   db_enter(4, "check_for_operator_overloading");
-  ovl_res_stack()->push();
+  if (!ovl_stack->is_empty()) {
+    in_comparison_rewrite = ovl_stack->top().in_comparison_rewrite;
+  }  /* if */
+  ovl_stack->push();
+  ovl_stack->top().in_comparison_rewrite = in_comparison_rewrite;
 #if DEBUG
   if (debug_level >= 4 || db_flag_is_set("overload")) {
     db_display_overload_level();
@@ -20102,9 +20108,11 @@ no_applicable_operator_function:
                   } else {
                     a_boolean  reversed = candidate_functions
                                             ->supplemental_reversed_candidate;
+                    ovl_res_stack()->top().in_comparison_rewrite = TRUE;
                     complete_comparison_rewrite(orig_kind, call_node,
                                                 operator_tok_seq_number,
                                                 result, reversed);
+                    ovl_res_stack()->top().in_comparison_rewrite = FALSE;
                   }  /* if */
                 }  /* if */
               }  /* if */

@@ -545,10 +545,13 @@ struct an_ovl_resolution_descr {
   inline an_ovl_resolution_descr();
   inline ~an_ovl_resolution_descr()
     { if (this->noted_candidates != NULL) delete_fe(this->noted_candidates); }
-  a_boolean     emit_note_diagnostics = FALSE;
+  a_bit_field   emit_note_diagnostics:1;
                         /* TRUE if we're in the "note processing" pass.
                            Currently only set in the top-most overload (i.e.,
                            the bottom of the stack). */
+  a_bit_field   in_comparison_rewrite:1;
+                        /* TRUE if we are completing a "comparison rewrite"
+                           (which inhibits recursive rewrites). */
   size_t        candidate_count = 0;
                         /* Number of candidates found. */
 private:
@@ -569,6 +572,7 @@ inline an_ovl_resolution_descr::an_ovl_resolution_descr()
 Constructor for an_ovl_resolution_descr.
 */
   : emit_note_diagnostics(FALSE)
+  , in_comparison_rewrite(FALSE)
   , candidate_count(0)
   , notes{ NULL, NULL }
 {
