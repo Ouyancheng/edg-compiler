@@ -4140,6 +4140,10 @@ a_targ_alignment compute_alignof_value(a_type_ptr         alignof_type,
                                        a_boolean          *p_is_error,
                                        a_boolean          *p_template_case);
 
+#if IA64_ABI
+extern a_targ_size_t compute_dsize(a_type_ptr  class_type);
+#endif /* IA64_ABI */
+
 /*
 The canonical form of the introductory part of an operator-function-id (i.e.,
 "operator").

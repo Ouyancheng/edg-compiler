@@ -20603,6 +20603,66 @@ instantiation dependent, set *p_template_case to TRUE.
   return alignof_value;
 }  /* compute_alignof_value */
 
+#if IA64_ABI
+
+a_targ_size_t compute_dsize(a_type_ptr  class_type)
+/*
+The IA-64 ABI layout algorithm uses "dsize" to represent the size of a class
+prior to rounding up for alignment purposes.  That value is computed during
+class layout but is not stored in the IL.  When laying out potentially-
+overlapping data members, the "dsize" value for the member is necessary and is
+computed here (by adding the offset of the last field or virtual base of the
+class to the size of that field or base).
+*/
+{
+  a_field_ptr      fp;
+  a_base_class_ptr bcp;
+  a_targ_size_t    result = 0, field_size;
+  a_type_ptr       fp_type;
+
+  check_assertion(is_immediate_class_type(class_type));
+  for (fp = class_type->variant.class_struct_union.field_list;
+       fp != NULL && fp->next != NULL;
+       fp = fp->next) {
+  }  /* for */
+  if (fp == NULL) {
+    /* No fields; see if there are any base classes, and if so find the last
+       one. */
+    for (bcp = base_classes_of(class_type);
+         bcp != NULL && bcp->next != NULL;
+         bcp = bcp->next) {
+    }  /* for */
+    if (bcp == NULL) {
+      /* No fields or base classes.  See if there is a vptr. */
+      if (needs_virtual_function_table(class_type)) {
+        result = targ_sizeof_pointer;
+      }  /* if */
+    } else {
+      result = bcp->offset + bcp->type->size;
+    }  /* if */
+  } else {
+    fp_type = skip_typerefs(fp->type);
+    if (is_immediate_class_type(fp_type)) {
+      field_size = compute_dsize(fp_type);
+    } else {
+      field_size = fp_type->size;
+    }  /* if */
+    result = fp->offset + field_size;
+    if (class_type->variant.class_struct_union.any_virtual_base_classes) {
+      /* Virtual bases classes can be located beyond the last field. */
+      for (bcp = base_classes_of(class_type); bcp != NULL; bcp = bcp->next) {
+        if (bcp->is_virtual && !bcp->is_optimized_empty_base &&
+            bcp->offset >= result) {
+          result = bcp->offset + class_type_supp(bcp->type)
+                                          ->size_without_virtual_base_classes;
+        }  /* if */
+      }  /* for */
+    }  /* if */
+  }  /* if */
+  return result;
+}  /* compute_dsize */
+
+#endif /* IA64_ABI */
 
 static a_constant_ptr copy_template_param_cast_constant(
                                   a_constant_ptr           con,

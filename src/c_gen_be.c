@@ -59,7 +59,6 @@ instead of K&R C.
 #include "il_write.h"
 #endif /* !STANDALONE_C_GEN_BE */
 #endif /* IL_SHOULD_BE_WRITTEN_TO_FILE */
-#include "layout.h"
 
 #if STANDALONE_C_GEN_BE
 #include "fe_init.h"
