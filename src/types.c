@@ -3187,7 +3187,7 @@ type.
 {
   tp = skip_typerefs(tp);
   return is_template_param(tp) || is_proxy_class(tp);
-}  /* is_template_param_type */
+}  /* is_template_param_or_proxy_type */
 
 
 a_boolean is_template_param_type_or_ref_thereto(a_type_ptr  tp)
