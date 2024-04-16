@@ -14189,6 +14189,12 @@ is not called for union initializations.
       /* Inserting after the end of the aggregate constant list.
          Add a zero constant for a skipped member. */
       a_constant_ptr zero_con = make_init_zero_constant(aggr_pos.member_type);
+      if (aggr_pos.curr_field != NULL &&
+          aggr_pos.curr_field->is_optimized_empty_class) {
+        /* If this constant was created to initialize a field that has been
+           designated as an empty class, note that. */
+        zero_con->initializes_empty_object = TRUE;
+      }  /* if */
       /* This aggregate contains a field with implicit initialization. */
       aggr_con->is_implicit_initialization = TRUE;
       if (prev_con == NULL) {
