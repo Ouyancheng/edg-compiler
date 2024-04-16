@@ -19931,13 +19931,6 @@ the <int> is matched with U and no argument is generated for V.
     a_source_position			arg_pos;
     a_pack_expansion_stack_entry_ptr	pesep;
     a_boolean				any_args;
-    if (is_template_dependent_context() &&
-        (param_ptr == NULL && orig_param_ptr == NULL)) {
-      /* In a template dependent context, if there are more arguments than
-         parameters, don't start another pack expansion. */
-      too_many_args = TRUE;
-      break;
-    }  /* if */
     /* For a template parameter declared "T... n", if T is a template parameter
        pack of an enclosing class template, and the enclosing class template
        is being instantiated with an empty T, we need to include a placeholder

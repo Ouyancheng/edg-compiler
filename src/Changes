@@ -1,5 +1,26 @@
 Version 6.7
 
+4/16/24  [EDGcpfe/27142]
+Spurious "too many arguments" error on empty pack expansion
+
+Consider, with --c++11:
+
+  template<int> struct D {
+    template<typename U> using X = U;
+  };
+  template<int I, typename ... T> struct C {
+    template<typename>
+    using A = typename D<I>::template X<int, T ...>;  // Previously a spurious
+  };                                                  // error.  Now okay.
+  C<0> c;
+
+When the member declarations for C<0> get instantiated, the template arguments
+for D<0>::X (i.e., <int, T ...>) get matched against the corresponding template
+parameter list (i.e., <typename U>).  And even though T is an empty pack in
+this instantiation, this previously elicited a spurious "too many arguments"
+error.  That is now fixed.
+
+
 4/15/24  [EDGcpfe/25261,EDGcpfe/26579]
 GCC/Clang compatibility: functionally-equivalent member templates in class
 template instantiations
