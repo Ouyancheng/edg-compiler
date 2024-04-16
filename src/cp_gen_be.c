@@ -18647,6 +18647,7 @@ instantiation is available.
 {
   a_boolean  result = FALSE;
   a_boolean  another_decl_in_comma_list;
+  a_boolean  saved_proto_context = in_prototype_instantiation_context;
 
   in_prototype_instantiation_context = TRUE;
   switch (tp->kind) {
@@ -18716,7 +18717,7 @@ instantiation is available.
                                 "bad template kind");
       break;
   }  /* switch */
-  in_prototype_instantiation_context = FALSE;
+  in_prototype_instantiation_context = saved_proto_context;
   return result;
 }  /* gen_template_from_prototype_instantiation */
 
