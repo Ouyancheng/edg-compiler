@@ -2529,12 +2529,12 @@ done:;
 
 a_targ_size_t compute_dsize(a_type_ptr  class_type)
 /*
-The IA-64 ABI layout algorithm uses "dsize" to represent the size of a
-class prior to rounding up for alignment purposes.  That value is computed
-during class layout but is not stored in the IL.  When laying out
-potentially-overlapping data members, the "dsize" value for the member
-is necessary and is computed here (by adding the offset of the last field or
-virtual base of the class to the size of that field or base).
+The IA-64 ABI layout algorithm uses "dsize" to represent the size of a class
+prior to rounding up for alignment purposes.  That value is computed during
+class layout but is not stored in the IL.  When laying out potentially-
+overlapping data members, the "dsize" value for the member is necessary and is
+computed here (by adding the offset of the last field or virtual base of the
+class to the size of that field or base).
 */
 {
   a_field_ptr      fp;
@@ -2573,8 +2573,10 @@ virtual base of the class to the size of that field or base).
     if (class_type->variant.class_struct_union.any_virtual_base_classes) {
       /* Virtual bases classes can be located beyond the last field. */
       for (bcp = base_classes_of(class_type); bcp != NULL; bcp = bcp->next) {
-        if (bcp->is_virtual && bcp->offset >= result) {
-          result = bcp->offset + bcp->type->size;
+        if (bcp->is_virtual && !bcp->is_optimized_empty_base &&
+            bcp->offset >= result) {
+          result = bcp->offset + class_type_supp(bcp->type)
+                                          ->size_without_virtual_base_classes;
         }  /* if */
       }  /* for */
     }  /* if */

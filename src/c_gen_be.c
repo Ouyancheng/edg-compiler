@@ -59,6 +59,7 @@ instead of K&R C.
 #include "il_write.h"
 #endif /* !STANDALONE_C_GEN_BE */
 #endif /* IL_SHOULD_BE_WRITTEN_TO_FILE */
+#include "layout.h"
 
 #if STANDALONE_C_GEN_BE
 #include "fe_init.h"
@@ -3067,13 +3068,23 @@ Return the byte offset following the end of the indicated field.
 
   if (!field->is_bit_field) {
     offset_after = field->offset;
+#if IA64_ABI
     if (field->has_no_unique_address_attribute &&
         is_immediate_class_type(field_type)) {
       /* A field marked with the [[no_unique_address]] attribute is allocated
-         like a base class subobject. */
-      offset_after += class_type_supp(field_type)
+         somewhat like a base class subobject, potentially allowing tail
+         padding to be reused.  Specifically, max(dsize, nvsize) are allocated
+         for the field, where dsize corresponds to the data size prior to
+         rounding up for alignment purposes and nvsize is the size not
+         including virtual base classes. */
+      a_targ_size_t dsize = compute_dsize(field_type);
+      a_targ_size_t nvsize = class_type_supp(field_type)
                                           ->size_without_virtual_base_classes;
-    } else {
+      offset_after += max_val(dsize, nvsize);
+    } else
+#endif /* IA64_ABI */
+    /* Do not insert code here. */
+    {
       offset_after += field_type->size;
     }  /* if */
   } else if (msvc_is_generated_code_target &&
