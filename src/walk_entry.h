@@ -1282,7 +1282,8 @@ handle_next_entry:
                      iek_constant);
             break;
           case tk_scalable_vector:
-            walk_ptr(eptr->variant.vector.element_type, a_type_ptr, iek_type);
+            walk_ptr(eptr->variant.scalable_vector.element_type, a_type_ptr,
+                     iek_type);
             break;
 #endif /* GNU_EXTENSIONS_ALLOWED && GNU_VECTOR_TYPES_ALLOWED */
           default:
