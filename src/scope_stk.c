@@ -2511,29 +2511,38 @@ been allocated for it.  Set the parent pointer for the IL scope entry.
              reference instead. */
           a_scope_depth            func_depth;
           a_scope_stack_entry_ptr  declssep = &scope_stack[decl_scope_level];
-          func_depth = declssep->depth_innermost_function_scope;
-          if (is_local_scope_kind(declssep->kind)) {
-            /* The normal cases. */
+          a_scope_ptr              parent_scope, func_scope;
+          if (scp->parent_via_local_scope_ref) {
+            /* A scope has been recorded already. */
+            parent_scope = f_get_parent_scope_of(scp);
+            func_scope = scope_for_routine(scp->enclosing_routine);
           } else {
-            /* An unexpected parent scope for a local class/enum.  Use the
-               enclosing function scope for error recovery purposes. */
-            expect_error_str(
+            func_depth = declssep->depth_innermost_function_scope;
+            if (is_local_scope_kind(declssep->kind)) {
+              /* The normal cases. */
+            } else {
+              /* An unexpected parent scope for a local class/enum.  Use the
+                 enclosing function scope for error recovery purposes. */
+              expect_error_str(
                  "set_parent_scope_on_push: unexpected scope for class/enum");
-            /* In some cases (these are error cases), we may have to search
-               through the scope stack to find the enclosing function scope. */
-            while (declssep->kind != (a_scope_kind)sck_function) {
-              if (declssep->depth_innermost_function_scope != NO_SCOPE_DEPTH) {
-                func_depth = declssep->depth_innermost_function_scope;
-              } else {
-                func_depth = declssep->previous_scope;
-              }  /* if */
-              check_assertion(func_depth != NO_SCOPE_DEPTH);
-              declssep = &scope_stack[func_depth];
-            }  /* while */
+              /* In some cases (these are error cases), we may have to search
+                 through the scope stack to find the enclosing function
+                 scope. */
+              while (declssep->kind != sck_function) {
+                if (declssep->depth_innermost_function_scope !=
+                                                             NO_SCOPE_DEPTH) {
+                  func_depth = declssep->depth_innermost_function_scope;
+                } else {
+                  func_depth = declssep->previous_scope;
+                }  /* if */
+                check_assertion(func_depth != NO_SCOPE_DEPTH);
+                declssep = &scope_stack[func_depth];
+              }  /* while */
+            }  /* if */
+            parent_scope = ensure_il_scope_exists(declssep);
+            func_scope = scope_stack[func_depth].il_scope;
           }  /* if */
-          make_local_scope_ref(
-                       ensure_il_scope_exists(declssep), (char*)sp, iek_scope,
-                       scope_stack[func_depth].il_scope);
+          make_local_scope_ref(parent_scope, (char*)sp, iek_scope, func_scope);
         }  /* if */
       }
       break;
