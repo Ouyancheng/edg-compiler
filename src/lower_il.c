@@ -9923,7 +9923,7 @@ Do IL lowering of the indicated field and everything under it.
          rounding up for alignment purposes and nvsize is the size not
          including virtual base classes. */
       a_type_ptr  uftp = skip_typerefs(field->type);
-      if (is_immediate_class_type(uftp)) {
+      if (is_class_or_struct(uftp)) {
         a_class_type_supplement_ptr ctsp = class_type_supp(uftp);
         /* Check to see if the type of the field has tail padding. */
         if (ctsp->size_without_virtual_base_classes < uftp->size &&

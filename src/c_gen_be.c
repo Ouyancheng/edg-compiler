@@ -3069,7 +3069,7 @@ Return the byte offset following the end of the indicated field.
     offset_after = field->offset;
 #if IA64_ABI
     if (field->has_no_unique_address_attribute &&
-        is_immediate_class_type(field_type)) {
+        is_class_or_struct(field_type)) {
       /* A field marked with the [[no_unique_address]] attribute is allocated
          somewhat like a base class subobject, potentially allowing tail
          padding to be reused.  Specifically, max(dsize, nvsize) are allocated

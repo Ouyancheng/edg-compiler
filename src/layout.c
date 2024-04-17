@@ -2582,7 +2582,7 @@ there's no overflow TRUE is returned.
 #if IA64_ABI
   is_potentially_overlapping_data_member =
                                     (field->has_no_unique_address_attribute &&
-                                     is_immediate_class_type(field_type));
+                                     is_class_or_struct(field_type));
 #endif /* IA64_ABI */
   if (is_error_type(field_type)) {
     /* Do nothing if the field has an error type. */
