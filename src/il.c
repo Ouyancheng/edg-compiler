@@ -20604,6 +20604,7 @@ instantiation dependent, set *p_template_case to TRUE.
 }  /* compute_alignof_value */
 
 #endif /* !STANDALONE_UTILITY_PROGRAM */
+
 #if IA64_ABI
 
 a_targ_size_t compute_dsize(a_type_ptr  class_type)
@@ -20664,6 +20665,7 @@ class to the size of that field or base).
 }  /* compute_dsize */
 
 #endif /* IA64_ABI */
+
 #if !STANDALONE_UTILITY_PROGRAM
 
 static a_constant_ptr copy_template_param_cast_constant(
