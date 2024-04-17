@@ -9916,12 +9916,12 @@ Do IL lowering of the indicated field and everything under it.
     lower_os_type(field->type);
 #if IA64_ABI
     if (field->has_no_unique_address_attribute) {
-      /* A field marked with the [[no_unique_address]] attribute is allocated
-         somewhat like a base class subobject, potentially allowing tail
-         padding to be reused.  Specifically, max(dsize, nvsize) are allocated
-         for the field, where dsize corresponds to the data size prior to
-         rounding up for alignment purposes and nvsize is the size not
-         including virtual base classes. */
+      /* A field marked with the [[no_unique_address]] attribute is
+         allocated somewhat like a base class subobject, potentially
+         allowing tail padding to be reused.  Specifically, max(dsize,
+         nvsize) bytes are allocated for the field, where dsize corresponds
+         to the data size prior to rounding up for alignment purposes and
+         nvsize is the size not including virtual base classes. */
       a_type_ptr  uftp = skip_typerefs(field->type);
       if (is_class_or_struct(uftp)) {
         a_class_type_supplement_ptr ctsp = class_type_supp(uftp);
