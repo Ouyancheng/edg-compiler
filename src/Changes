@@ -52,11 +52,11 @@ Consider, with --c++11:
   };                                                  // error.  Now okay.
   C<0> c;
 
-When the member declarations for C<0> get instantiated, the template arguments
-for D<0>::X (i.e., <int, T ...>) get matched against the corresponding template
-parameter list (i.e., <typename U>).  And even though T is an empty pack in
-this instantiation, this previously elicited a spurious "too many arguments"
-error.  That is now fixed.
+When the member declarations for C<0> are instantiated, the template arguments
+for D<0>::X (i.e., <int, T ...>) are matched against the corresponding template
+parameter list (i.e., <typename U>).  Even though T is an empty pack in this
+instantiation, this previously elicited a spurious "too many arguments" error.
+That is now fixed.
 
 
 4/15/24  [EDGcpfe/25261,EDGcpfe/26579]
