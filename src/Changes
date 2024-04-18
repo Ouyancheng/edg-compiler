@@ -27,6 +27,10 @@ resolution of Core issue 1518.  For example:
   };                                             // the template is parsed.
   S<int> s;  // Triggers an error due to the failing static_assert.
 
+In older Microsoft, GNU, and Clang modes, the prior behavior is preserved
+(thereby more closely emulating the behavior of the corresponding versions of
+MSVC, GCC, and Clang, respectively).
+
 
 4/16/24  [EDGcpfe/27115]
 Assertion failure when lowering some aggregate constants

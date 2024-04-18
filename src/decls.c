@@ -15485,18 +15485,31 @@ final token.
   if (!err) {
     /* Evaluate the constant expression (if it is nondependent), and (in some
        configurations) record it. */
-    /* In Microsoft mode, we do not check the assertion in "nonreal
-       instantiations" nor in function prototype instantiations (because
-       MSVC does no processing of function template definitions). */
+    /* Core issue 1518 (via paper P2593R1) clarified that a nondependent false
+       condition in a template definition is not in itself an error.  However,
+       before implementing that resolution, compilers did issue errors for
+       failing static_assert declaration encountered while parsing a template.
+       For the older behavior in Microsoft mode, we do not check the assertion
+       in "nonreal instantiations" nor in function prototype instantiations
+       (because MSVC does no processing of function template definitions). */
     if (is_error_constant(assert_con) ||
         (error_string != NULL && is_error_constant(error_string))) {
       /* An error should already have been issued. */
       expect_error();
-    } else if (assert_con->kind != (a_constant_repr_kind)ck_template_param &&
+    } else if (!constant_is(assert_con, ck_template_param) &&
                is_false_constant(assert_con) &&
-               !(scope_stack_top().in_prototype_instantiation ||
-                 (microsoft_mode &&
-                  scope_stack_top().in_nonreal_instantiation))) {
+               ((gpp_version_is(<130000) || clang_version_is(<170000) ||
+                 ms_version_is(<1940)) ?
+                  /* Old criteria (pre-CWG1518): */
+                  !(microsoft_mode &&
+                    (scope_stack_top().in_nonreal_instantiation ||
+                     (scope_stack_top().in_prototype_instantiation &&
+                      (is_local_scope_kind(scope_stack_top().kind) ||
+                       inside_local_class)))) :
+                  /* New criteria (post-CWG1518): */
+                  !(scope_stack_top().in_prototype_instantiation ||
+                    (microsoft_mode &&
+                     scope_stack_top().in_nonreal_instantiation)))) {
       /* The assertion failed: Issue an error. */
       if (error_string != NULL) {
         make_static_assert_string_for_output(error_string);
