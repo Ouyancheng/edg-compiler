@@ -21186,7 +21186,8 @@ a routine to lookup the appropriate instance (or generate one if needed).
       a_type_ptr  new_tp = type_symbol_type(new_sym);
       if (gpp_version_is(any_version) && type_is(new_tp, tk_typeref) &&
           scope_stack_top().in_prototype_instantiation &&
-          !scope_stack_top().in_template_deduction_context &&
+          (!scope_stack_top().in_template_deduction_context ||
+           scope_stack_top().in_base_specifier_list) &&
           !scope_is(&scope_stack_top(), sck_func_prototype) &&
           !scope_is(&scope_stack_top(), sck_class_struct_union) &&
           new_tp->variant.typeref.kind == trk_is_template_alias &&

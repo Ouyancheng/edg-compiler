@@ -965,6 +965,8 @@ typedef struct a_scope_stack_entry {
 			   when popped.  Specifically, this is used for
 			   function scopes of duplicate definitions of explicit
 			   specializations in some Microsoft modes. */
+  a_bit_field	in_base_specifier_list:1;
+			/* TRUE while scanning a base specifier list. */
   ENUM_TYPE_FOR_BIT_FIELD(a_stdc_pragma_value)
 		fp_contract_state:NUM_BITS_FOR_STDC_PRAGMA_VALUE;
   ENUM_TYPE_FOR_BIT_FIELD(a_stdc_pragma_value)

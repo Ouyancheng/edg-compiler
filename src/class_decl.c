@@ -10141,14 +10141,18 @@ can only contain CLI interfaces.
     fputc('\n', f_debug);
   }  /* if */
 #endif /* DEBUG */
-  if (type_ptr->kind == (a_type_kind)tk_union) {
+  scope_stack_top().in_base_specifier_list = TRUE;
+  if (type_is(type_ptr, tk_union)) {
     /* Unions cannot have base classes.  Issue an error, but go ahead and scan
        the base class specifiers (without updating the type supplement). */
     pos_error(ec_base_class_not_allowed_for_union, &error_position);
     ctsp = NULL;
   } else {
     /* Get the class type supplement entry for this class or struct. */
-    ctsp = type_ptr->variant.class_struct_union.extra_info;
+    ctsp = class_type_supp(type_ptr);
+  }  /* if */
+  if (scope_stack_top().in_prototype_instantiation) {
+    scope_stack_top().in_template_deduction_context = TRUE;
   }  /* if */
 #if MICROSOFT_EXTENSIONS_ALLOWED
   if (curr_token == tok_implements) {
@@ -10563,6 +10567,10 @@ skip_base_class:
        specifier. */
     remove_stop_token(tok_comma);
   } while (loop_token(tok_comma));
+  if (scope_stack_top().in_prototype_instantiation) {
+    scope_stack_top().in_template_deduction_context = FALSE;
+  }  /* if */
+  scope_stack_top().in_base_specifier_list = FALSE;
   db_exit();
 }  /* scan_base_specifier_list */
 
