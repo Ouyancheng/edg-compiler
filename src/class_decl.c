@@ -16934,16 +16934,19 @@ done:
 
 
 static a_boolean compatible_member_function_template_param_types(
-                                                 a_template_param_ptr  tpl1,
-                                                 a_type_ptr            tp1,
-                                                 a_template_param_ptr  tpl2,
-                                                 a_type_ptr            tp2)
+                                           a_template_param_ptr  tpl1,
+                                           a_type_ptr            tp1,
+                                           a_template_param_ptr  tpl2,
+                                           a_type_ptr            tp2,
+                                           a_boolean             is_using_decl)
 /*
 tp1 and tp2 are the (parameterized) types of member function templates with
 associated template parameter lists tpl1 and tpl2 (respectively).  Return TRUE
 if the parameter types of the members (excluding the classes underlying the
 implied "this" parameter, but including their qualifiers and ref-qualifiers)
-and their associated template parameter lists are compatible.
+and their associated template parameter lists are compatible.  is_using_decl is
+TRUE if matching is performed against a declaration brought in by a
+using-declaration.
 
 The nesting depth of the parameters is ignored for this compatibility checking.
 */
@@ -16982,12 +16985,13 @@ The nesting depth of the parameters is ignored for this compatibility checking.
   }  /* for */
   /* The depths have been updated if needed: Now do the actual compatibility
      check. */
-  if (gnu_mode && is_real_instantiation_context()) {
+  if (gnu_mode && is_real_instantiation_context() && !is_using_decl) {
     /* When comparing instantiated member function declarations, GCC/Clang
        never consider dependent template parameters or dependent function
-       parameter types to be equivalent.  This allows functionally-equivalent
-       member function templates to be declared in the instantiated class.  For
-       example:
+       parameter types to be equivalent, unless matching is performed against a
+       declaration brought in by a using-declaration.  This allows
+       functionally-equivalent member function templates to be declared in the
+       instantiated class.  For example:
 
            template<bool>
            struct C { };
@@ -17148,7 +17152,8 @@ decl_member_function, which handles in-class member function declarations.)
           other_templ_param_list =
                  other_tssp->variant.function.decl_cache.decl_info->parameters;
           if (compatible_member_function_template_param_types(
-                  other_templ_param_list, tp, templ_param_list, member_type) &&
+                  other_templ_param_list, tp, templ_param_list, member_type,
+                  other_sym != fund_sym) &&
               equiv_requires_clauses(other_rcp, rcp) &&
               equiv_requires_clauses(other_rp->trailing_requires_clause,
                                      dps->trailing_requires_clause)) {
