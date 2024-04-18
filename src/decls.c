@@ -15494,11 +15494,9 @@ final token.
       expect_error();
     } else if (assert_con->kind != (a_constant_repr_kind)ck_template_param &&
                is_false_constant(assert_con) &&
-               !(microsoft_mode &&
-                 (scope_stack_top().in_nonreal_instantiation ||
-                  (scope_stack_top().in_prototype_instantiation &&
-                   (is_local_scope_kind(scope_stack_top().kind) ||
-                    inside_local_class))))) {
+               !(scope_stack_top().in_prototype_instantiation ||
+                 (microsoft_mode &&
+                  scope_stack_top().in_nonreal_instantiation))) {
       /* The assertion failed: Issue an error. */
       if (error_string != NULL) {
         make_static_assert_string_for_output(error_string);

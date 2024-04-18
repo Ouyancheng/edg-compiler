@@ -1,5 +1,20 @@
 Version 6.7
 
+4/17/24  [EDGcpfe/26056,EDGcpfe/27168]
+Nondependent static_assert conditions in templates
+
+When a static_assert condition is nondependent and has a false value within a
+template definition, an error is no longer issued at that point.  An error will
+still be issued if the template is instantiated.  This implements the proposal
+in the standards committee's paper P2593R1, which was folded into the
+resolution of Core issue 1518.  For example:
+
+  template<typename T> struct S {
+    static_assert(false, "Do not instantiate");  // No longer an error when
+  };                                             // the template is parsed.
+  S<int> s;  // Triggers an error due to the failing static_assert.
+
+
 4/16/24  [EDGcpfe/27115]
 Assertion failure when lowering some aggregate constants
 
