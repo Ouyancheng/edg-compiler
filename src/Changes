@@ -20,7 +20,7 @@ When a static_assert condition is nondependent and has a false value within a
 template definition, an error is no longer issued at that point.  An error will
 still be issued if the template is instantiated.  This implements the proposal
 in the standards committee's paper P2593R1, which was folded into the
-resolution of Core issue 1518.  For example:
+resolution of Core issue 2518.  For example:
 
   template<typename T> struct S {
     static_assert(false, "Do not instantiate");  // No longer an error when

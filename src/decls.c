@@ -15485,7 +15485,7 @@ final token.
   if (!err) {
     /* Evaluate the constant expression (if it is nondependent), and (in some
        configurations) record it. */
-    /* Core issue 1518 (via paper P2593R1) clarified that a nondependent false
+    /* Core issue 2518 (via paper P2593R1) clarified that a nondependent false
        condition in a template definition is not in itself an error.  However,
        before implementing that resolution, compilers did issue errors for
        failing static_assert declaration encountered while parsing a template.
