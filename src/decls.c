@@ -9180,7 +9180,7 @@ interpreter) and if so mark it as such.
           if (ptp != NULL && ptp->next != NULL && ptp->next->next == NULL &&
               is_pointer_type(ptp->type) &&
               is_integral_type(ptp->next->type) &&
-              is_reflection_type(rtp->variant.routine.return_type)) {
+              is_pointer_type(rtp->variant.routine.return_type)) {
             tag = cit_std_meta_make_constexpr_array;
           }  /* if */
         } else if (strcmp(name, "members__impl") == 0 && t_args == NULL) {

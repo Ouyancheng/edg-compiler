@@ -10192,7 +10192,7 @@ static a_boolean do_constexpr_std_meta_make_constexpr_array(
 Implement std::meta::make_constexpr_array(T*, prtdiff_t n).  It creates IL for
 a constexpr namespace-scope array of n elements of type T with internal
 linkage, initialized with the values pointed to by the first argument.  A
-reflection value for the generated variable is returned.
+pointer to the first element of the generated variable is returned.
 
 See do_constexpr_intrinsic_call for the meaning of the parameters.
 */
@@ -10215,9 +10215,8 @@ See do_constexpr_intrinsic_call for the meaning of the parameters.
     an_integer_value      *param2 = (an_integer_value*)p_arg_bytes[1];
     a_host_large_integer  n_elems;
     a_boolean             ovfl;
-    a_reflection_value    *rvp = (a_reflection_value*)result_storage;
     a_variable_ptr        vp;
-    a_constant_ptr        init_cp;
+    a_constant_ptr        init_cp, result_cp;
     a_symbol_ptr          sym;
     a_symbol_locator      loc;
     static long           n = 0;
@@ -10238,11 +10237,11 @@ See do_constexpr_intrinsic_call for the meaning of the parameters.
                     &call_node->position, ips);
       goto done;
     }  /* if */
-    array_type = alloc_type((a_type_kind)tk_array);
+    array_type = alloc_type(tk_array);
     array_type->variant.array.element_type = elem_type;
     array_type->variant.array.variant.number_of_elements =
                                                        (a_targ_size_t)n_elems;
-    init_cp = fs_constant((a_constant_repr_kind)ck_aggregate);
+    init_cp = fs_constant(ck_aggregate);
     if (!copy_interpreter_object_to_constant(
               ips, cap->address, cap->complete_object, array_type, init_cp)) {
       result = FALSE;
@@ -10258,12 +10257,19 @@ See do_constexpr_intrinsic_call for the meaning of the parameters.
     Small_string<100> name("__ce_array_", ++n);
     clear_locator(&loc, &call_node->position);
     (void)find_symbol(name.as_temp_characters(), name.length(), &loc);
-    sym = make_symbol((a_symbol_kind)sk_variable, &loc);
+    sym = make_symbol(sk_variable, &loc);
     sym->variant.variable.ptr = vp;
     set_source_corresp(&vp->source_corresp, sym);
-    rvp->entity.kind = iek_variable;
-    rvp->entity.ptr = (char*)vp;
-    rvp->local_scope_number = FILE_SCOPE_NUMBER;
+    result_cp = local_constant();
+    set_variable_address_constant(vp, result_cp,
+                                  /*set_address_taken_flag=*/FALSE);
+    result_cp->type = return_type_of(callee->type);
+    result_cp->variant.address.subobject_path = alloc_subobject_path();
+    result_cp->variant.address.subobject_path->is_offset = TRUE;
+    result_cp->variant.address.subobject_path->variant.ptr_offset = 0;
+    result_cp->next = ips->constants;
+    ips->constants = result_cp;
+    clear_runtime_constant_address(result_storage, result_cp);
   }  /* if */
 done:
   return result;

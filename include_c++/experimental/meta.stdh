@@ -109,8 +109,8 @@ namespace std {
     using  __refl_ptrdiff = decltype((int*)2-(int*)1);
 
     template<typename __T>
-    consteval info make_constexpr_array(__T*, __refl_ptrdiff) {
-      return ^::;  /* Dummy return.  Handled by interpreter. */
+    consteval __T* make_constexpr_array(__T*, __refl_ptrdiff) {
+      return 0;  /* Dummy return.  Handled by interpreter. */
     }
 
     using __str = std::string_view;
