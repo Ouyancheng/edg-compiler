@@ -96,6 +96,8 @@ static a_boolean process_runtime_checked_safe_cast(
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
 static void scan_yield_expression(an_operand  *result);
 static void scan_await_expression(an_operand  *result);
+static void make_zero_operand(an_operand *opnd,
+                              a_type_ptr tp);
 
 /* Interface to scan_expr_full for the simple case where a bound function
    cannot be returned. */
@@ -6822,9 +6824,18 @@ are expected to be NULL in that case.
 #endif /* BUILTIN_FUNCTIONS_ENABLED */
   if (!call_may_be_folded && curr_expr_kind_is_const() &&
       (!constexpr_enabled || curr_expr_kind_is(ek_pp))) {
-    /* Routine calls that cannot be folded should not appear in constant-
-       expressions. */
-    error_in_operand(ec_bad_constant_function_call, operand);
+    if (microsoft_mode && curr_expr_kind_is(ek_pp)) {
+      /* MSVC just warns about apparent function calls in preprocessor
+         expressions and flushes to the end of the line. */
+      expr_pos_warning(ec_bad_constant_function_call, &operand->position);
+      flush_to_newline();
+      make_zero_operand(operand, integer_type(ik_long));
+      goto done;
+    } else {
+      /* Routine calls that cannot be folded should not appear in constant-
+         expressions. */
+      error_in_operand(ec_bad_constant_function_call, operand);
+    }  /* if */
   } else if (is_expression_operand(operand) &&
              (expr = skip_parens(operand->variant.expression),
               is_operation_node(expr)) &&

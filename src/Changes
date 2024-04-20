@@ -1,5 +1,19 @@
 Version 6.7
 
+4/20/24  [EDGcpfe/27182]
+Microsoft compatibility: apparent function call in preprocessor expression
+
+The MSVC preprocessor accepts function-call syntax in preprocessor
+expressions with only a warning, even when the "function name" is not
+defined as a function-style macro.  The front end has now been changed to
+emulate this non-standard behavior in Microsoft mode; the value of the
+putative function call is assumed to be 0L and the remaining preprocessor
+tokens following the call are discarded.  For example, with --microsoft:
+
+  #if nonexist(1)   // Previously an error, now a warning in Microsoft mode
+  #endif
+
+
 4/18/24  [EDGcpfe/27135]
 Abort on CTAD involving aggregate class with dependent base
 
