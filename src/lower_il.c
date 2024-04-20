@@ -9928,8 +9928,15 @@ Do IL lowering of the indicated field and everything under it.
         /* Check to see if the type of the field has tail padding. */
         if (ctsp->size_without_virtual_base_classes < uftp->size &&
             compute_dsize(uftp) < uftp->size) {
-          /* The type has tail padding.  Mark the field accordingly. */
+          /* The type has tail padding.  Mark the field and its subobject
+             type accordingly. */
           field->class_subobject_with_tail_padding = TRUE;
+#if MAINTAIN_NEEDED_FLAGS
+          if (ctsp->subobject_partner != NULL) {
+            ctsp->subobject_partner->
+                       variant.class_struct_union.keep_definition_in_il = TRUE;
+          }  /* if */
+#endif /* MAINTAIN_NEEDED_FLAGS */
         }  /* if */
       }  /* if */
     }  /* if */
