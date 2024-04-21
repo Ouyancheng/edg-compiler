@@ -17078,10 +17078,17 @@ end_of_id:
                  assoc_symbol->variant.keyword.is_preprocessing_op_or_punc ||
                  (caching_pragma_tokens && recognize_keywords_in_pragma) ||
                  (in_pp_if_expression &&
-                  ((a_token_kind)assoc_symbol->variant.keyword.token
-                                                                == tok_false ||
-                   (a_token_kind)assoc_symbol->variant.keyword.token
-                                                              == tok_true)))) {
+                  (assoc_symbol->variant.keyword.token == tok_false ||
+                   assoc_symbol->variant.keyword.token == tok_true ||
+                   (ms_version_is(>=1300) &&
+                    (assoc_symbol->variant.keyword.token ==
+                                                  tok_microsoft_Lprefix ||
+                     assoc_symbol->variant.keyword.token ==
+                                                  tok_microsoft_lprefix ||
+                     assoc_symbol->variant.keyword.token ==
+                                                  tok_microsoft_Uprefix ||
+                     assoc_symbol->variant.keyword.token ==
+                                                  tok_microsoft_uprefix)))))) {
               ctoken = (a_token_kind)assoc_symbol->variant.keyword.token;
               /* Check for a keyword that is not yet implemented.  If one is
                  found, issue a diagnostic and treat the keyword as an

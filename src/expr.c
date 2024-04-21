@@ -39626,7 +39626,7 @@ function-name tokens.
 
   start_position = pos_curr_token;
   if (curr_expr_kind_is(ek_pp)) {
-    /* __LPREFIX not allowed in preprocessing expression. */
+    /* __LPREFIX, etc., not allowed in preprocessing expression. */
     expr_pos_error(ec_bad_pp_operator, &start_position);
     err = TRUE;
   } else if (curr_expr_kind_is_traditional_const() &&
