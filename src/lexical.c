@@ -17079,16 +17079,19 @@ end_of_id:
                  (caching_pragma_tokens && recognize_keywords_in_pragma) ||
                  (in_pp_if_expression &&
                   (assoc_symbol->variant.keyword.token == tok_false ||
-                   assoc_symbol->variant.keyword.token == tok_true ||
-                   (ms_version_is(>=1300) &&
-                    (assoc_symbol->variant.keyword.token ==
+                   assoc_symbol->variant.keyword.token == tok_true
+#if MICROSOFT_EXTENSIONS_ALLOWED
+                   || (ms_version_is(>=1300) &&
+                       (assoc_symbol->variant.keyword.token ==
                                                   tok_microsoft_Lprefix ||
-                     assoc_symbol->variant.keyword.token ==
+                        assoc_symbol->variant.keyword.token ==
                                                   tok_microsoft_lprefix ||
-                     assoc_symbol->variant.keyword.token ==
+                        assoc_symbol->variant.keyword.token ==
                                                   tok_microsoft_Uprefix ||
-                     assoc_symbol->variant.keyword.token ==
-                                                  tok_microsoft_uprefix)))))) {
+                        assoc_symbol->variant.keyword.token ==
+                                                  tok_microsoft_uprefix))
+#endif /* MICROSOFT_EXTENSIONS_ALLOWED */
+                                                                         )))) {
               ctoken = (a_token_kind)assoc_symbol->variant.keyword.token;
               /* Check for a keyword that is not yet implemented.  If one is
                  found, issue a diagnostic and treat the keyword as an
