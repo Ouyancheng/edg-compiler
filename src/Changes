@@ -1,5 +1,22 @@
 Version 6.7
 
+4/21/24  [EDGcpfe/27179]
+Abort with multi-line raw string literal as macro argument
+
+In some cases, passing a multi-line raw string literal as a macro argument
+could result in an abort with a failed assertion in macro_invocation.  This
+is now fixed.  For example, with -E --g++:
+
+  #define M1(D) 2
+  #define cat(A, B) cat2(A, B)
+  #define cat2(A, B) A##B
+  #define M2(D)
+  #define M3(A) XXX(A)
+  #define M4(A) M3(cat(M,M1(x))(A))
+  M4(R"(X
+  )")   // Previously aborted, now okay
+
+
 4/20/24  [EDGcpfe/27182]
 Microsoft compatibility: apparent function call in preprocessor expression
 

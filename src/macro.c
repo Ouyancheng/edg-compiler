@@ -4467,7 +4467,10 @@ character, which will remain after compaction).
     /* The text being replaced is in the portion of macro_buffer that is
        subject to compaction. */
     a_source_line_modif_ptr slmp = assoc_source_line_modif(line_loc);
-    if (memchr(line_loc + 1, ATTENTION_MARKER, deletion_len - 1) != NULL) {
+    a_const_char            *attn_loc;
+    if ((attn_loc = (a_const_char *)memchr(line_loc + 1, ATTENTION_MARKER,
+                                           deletion_len - 1)) != NULL &&
+        has_nested_source_line_modif(attn_loc)) {
       /* The text being replaced already contains a replacement, so this
          replacement supersedes that one.  Remove the portion of the
          count of deleted characters in macro_buffer due to the earlier
