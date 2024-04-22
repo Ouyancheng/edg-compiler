@@ -3129,6 +3129,8 @@ the expr index for the constant.
 static inline an_ifc_edg_basic_token_sort token_to_basic_token_kind(
                                                             a_token_kind token)
 /*
+Given a front end token kind (for a token where extra_info_kind == teik_none)
+return the corresponding EDG IFC BasicToken sort value.
 */
 {
   an_ifc_edg_basic_token_sort result;
@@ -4530,8 +4532,8 @@ EDG IFC constant token kind.
       result = ifc_ects_string_literal;
       break;
     default:
-      /* An unsupported token was cached as a basic token.  Either it needs
-         added above as a basic token, the token needs its own complex token
+      /* An unsupported token was cached as a basic token.  Either it needs to
+         be added above as a basic token, the token needs its own complex token
          add method, or the caller called the wrong add function (i.e., there's
          a corresponding complex token add function that should have instead
          been called). */
