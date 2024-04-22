@@ -361,11 +361,20 @@ extern a_boolean conv_bytes_to_integer_value(an_integer_value *value,
                                              size_t           num_bytes);
 
 /*
-This structure is used to restructure an integer represented as one or more K
-byte integer (a_Part_type) values into an integer represented as one or more of
-N byte integer (an_Integral_type) values.  The given capacity value is the
+This structure is used to convert between integer representations composed of
+"chunks" (i.e., host native integral value types) to represent a potentially
+arbitrarily large integer value.
+
+an_Integral_type is the integral type used for the target integer
+representation's chunks.  a_Part_type is the integral type used for the source
+integer representation's chunks.  See the documentation of
+Integer_translator::parts and Integer_translator::remainder to understand the
+semantics of the operation.
+
+The given capacity value is the
 pre-allocated storage capacity available for use by the dynamic array of
-an_Integral_type values.
+an_Integral_type values.  This should typically correspond with the expected
+number of target integer representation chunks.
 */
 template<typename an_Integral_type, unsigned a_Capacity>
 struct Integer_translator {
@@ -386,7 +395,7 @@ private:
                            integer was just given to add_part, the value of
                            parts is one an_Integral_type value.  This value has
                            its first 2 bytes set equal to the 2 bytes of the
-                           integer given to add_prat. */
+                           integer given to add_part. */
   size_t        remainder = 0;
                         /* This is the number of unused bytes in the most
                            recently appended part in the parts data member.
@@ -488,7 +497,7 @@ inline Integer_translator<an_Integral_type, a_Capacity>
 integer_value_as_translator(const an_integer_value &value)
 /*
 Return the given an_integer_value represented as an Integer_translator value
-with the given initial given integral type and capacity.
+with the given initial integral type and capacity.
 */
 {
   Integer_translator<an_Integral_type, a_Capacity> result;
