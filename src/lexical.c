@@ -17081,6 +17081,14 @@ end_of_id:
                   (assoc_symbol->variant.keyword.token == tok_false ||
                    assoc_symbol->variant.keyword.token == tok_true
 #if MICROSOFT_EXTENSIONS_ALLOWED
+                   /* MSVC recognizes the __LPREFIX et al. keywords in
+                      preprocessor expressions - i.e., it does not give the
+                      generic warning it issues for function-call syntax
+                      with an unknown name - but issues an error saying
+                      that the expression isn't a valid integer constant
+                      expression.  We emulate that by enabling the keywords
+                      and then issuing an error on the operator in
+                      scan_microsoft_xprefix_operator. */
                    || (ms_version_is(>=1300) &&
                        (assoc_symbol->variant.keyword.token ==
                                                   tok_microsoft_Lprefix ||
