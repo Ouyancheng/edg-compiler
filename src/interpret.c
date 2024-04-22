@@ -9135,7 +9135,7 @@ future reattempt conditions.
       result = TRUE;
     }  /* if */
 
-    a_scope_stack_entry_ptr ssep = &scope_stack[decl_scope_level];
+    a_scope_stack_entry_ptr ssep = &scope_stack_top();
     if (ssep->in_field_initializer && !is_lambda_body_scope(ssep)) {
       /* This builtin appears in a field initializer reconsider this expression
          later when setting up the initializer itself.  The exception to this
