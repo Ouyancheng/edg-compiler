@@ -1808,6 +1808,16 @@ associated scope is a file or namespace scope.
    (ssep)->kind == (a_scope_kind)sck_namespace_extension)
 
 
+inline a_boolean is_lambda_body_scope(a_scope_stack_entry_ptr ssep)
+/*
+Return TRUE if the given scope stack entry represents a lambda body scope;
+otherwise, return FALSE.
+*/
+{
+  return ssep->kind == sck_function && ssep->assoc_routine->is_lambda_body;
+}  /* is_lambda_body_scope */
+
+
 inline a_boolean scope_is_null_or_placeholder(a_scope_ptr sp)
 /*
 Return TRUE if sp is either NULL or a placeholder scope, FALSE otherwise.

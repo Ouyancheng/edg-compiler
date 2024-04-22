@@ -2519,10 +2519,10 @@ IL entry in place of whatever is pointed to by the symbol.
                                                  (a_storage_class)sc_static ||
                                 (scptr != NULL &&
                                  !scptr->is_local_to_function) ||
-                                ssep->assoc_routine->is_lambda_body);
+                                is_lambda_body_scope(ssep));
                 /* We are at the outermost scope of the function.  Check for
                    a label. */
-                if (!ssep->assoc_routine->is_lambda_body ||
+                if (!is_lambda_body_scope(ssep) ||
                     ssep->number == sym_ptr->decl_scope) {
                   goto check_label_decl_seq;
                 }  /* if */

@@ -554,8 +554,7 @@ found in unexpected locations.  (It is also used for error recovery purposes.)
   while (ssep->kind == (a_scope_kind)sck_block) ssep--;
   /* If this is a lambda body, check whether the lambda was declared in
      an invalid scope.  If so, treat this as an invalid scope for a class. */
-  if (ssep->kind == (a_scope_kind)sck_function &&
-      ssep->assoc_routine->is_lambda_body) {
+  if (is_lambda_body_scope(ssep)) {
     a_scope_stack_entry  *closure_ssep = ssep-1;
     a_class_symbol_supplement_ptr
                          cssp;
