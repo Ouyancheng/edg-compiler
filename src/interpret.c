@@ -9047,6 +9047,15 @@ any problems are encountered, the pointee of p_result will be set to FALSE.
   (void)conv_seq_to_file_and_line(use_pos->seq, &file_name,
                                   &full_name, &line_number,
                                   &at_end_of_source);
+  /* When the file_name is derived from a #line directive, the file_name may
+     contain a full path.  Make a best effort to convert a potential file path
+     to only the file name path component.
+
+     There is no standard universal rule that handles all possible path
+     spellings that can be represented as a string in a #line directive.
+     However, this function is used to emulate Clang's behavior and Clang makes
+     an effort to reduce paths to only their file name path component. */
+  file_name = start_of_file_name(file_name);
   do_constexpr_write_cstring(ips, file_name, result_storage, p_result);
 }  /* do_constexpr_write_source_file_name */
 
