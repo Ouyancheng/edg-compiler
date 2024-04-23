@@ -21,7 +21,7 @@ Assertion failure on friend function redeclaration in class template
 
 In some cases where a friend function is defined in one class template and also
 declared in another class template, instantiating that friend function could
-result in a failed assertion in scan_function_body.  For example, with --c++:
+result in a failed assertion in scan_function_body.  For example, with --c++20:
 
   template<int I> struct C2;
   template<int I>
