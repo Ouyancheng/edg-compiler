@@ -527,6 +527,64 @@ the source position managed by this object.
 
 }  /* namespace */
 
+static an_ifc_type_index remove_type_qualifiers(an_ifc_type_index type_idx)
+/*
+Given an IFC type index, return the type index representing the unqualified
+type.
+*/
+{
+  switch (type_idx.sort) {
+    case ifc_ts_type_qualified:
+      { Opt<an_ifc_type_qualified> opt_qual_type;
+
+        construct_node(&opt_qual_type, type_idx);
+        if (opt_qual_type.has_value()) {
+          an_ifc_type_qualified qual_type = *opt_qual_type;
+
+          type_idx = remove_type_qualifiers(get_ifc_unqualified(qual_type));
+        }  /* if */
+      }
+      break;
+    case ifc_ts_type_pointer:
+      { Opt<an_ifc_type_pointer> opt_pointer_type;
+
+        construct_node(&opt_pointer_type, type_idx);
+        if (opt_pointer_type.has_value()) {
+          an_ifc_type_pointer pointer_type = *opt_pointer_type;
+
+          type_idx = remove_type_qualifiers(get_ifc_pointee(pointer_type));
+        }  /* if */
+      }
+      break;
+    case ifc_ts_type_lvalue_reference:
+      { Opt<an_ifc_type_lvalue_reference> opt_lvalue_ref_type;
+
+        construct_node(&opt_lvalue_ref_type, type_idx);
+        if (opt_lvalue_ref_type.has_value()) {
+          an_ifc_type_lvalue_reference lvalue_ref_type = *opt_lvalue_ref_type;
+
+          type_idx = remove_type_qualifiers(get_ifc_referee(lvalue_ref_type));
+        }  /* if */
+      }
+      break;
+    case ifc_ts_type_rvalue_reference:
+      { Opt<an_ifc_type_rvalue_reference> opt_rvalue_ref_type;
+
+        construct_node(&opt_rvalue_ref_type, type_idx);
+        if (opt_rvalue_ref_type.has_value()) {
+          an_ifc_type_rvalue_reference rvalue_ref_type = *opt_rvalue_ref_type;
+
+          type_idx = remove_type_qualifiers(get_ifc_referee(rvalue_ref_type));
+        }  /* if */
+      }
+      break;
+    default:
+      break;
+  }  /* switch */
+  return type_idx;
+}  /* remove_type_qualifiers */
+
+
 static inline void cache_token(a_module_token_cache_ptr cache,
                                a_token_kind             tok,
                                a_source_position_ptr    pos = NULL)
@@ -3252,6 +3310,19 @@ Return the kind of operator described by op in the context of the given module.
 }  /* get_operator_kind */
 
 
+static an_operator_kind get_operator_kind(
+                                     const an_ifc_name_operator &operator_name)
+/*
+Return the kind of operator described by the given operator name.
+*/
+{
+  an_ifc_module            *mod = module_of(operator_name);
+  an_ifc_operator_category op = get_ifc_operator(operator_name);
+
+  return get_operator_kind(mod, op);
+}  /* get_operator_kind */
+
+
 /*
 Structure used to hold the existing name linkage state if the name linkage
 state needs to be modified.
@@ -4069,14 +4140,59 @@ otherwise, return FALSE.
 }  /* is_closure_decl */
 
 
-static inline a_boolean is_auto_type(an_ifc_type_index type_idx)
+static inline a_boolean is_function_decl(an_ifc_decl_index decl_idx)
 /*
-Return TRUE if the type at the given IFC type index is the "auto" type;
-otherwise, return FALSE.
+Return TRUE if the given declaration index is a function.
 */
 {
   a_boolean result = FALSE;
 
+  switch (decl_idx.sort) {
+    case ifc_ds_decl_function:
+    case ifc_ds_decl_method:
+      result = TRUE;
+      break;
+    default:
+      if (is_closure_decl(decl_idx)) {
+        result = TRUE;
+      }  /* if */
+      break;
+  }  /* switch */
+  return result;
+}  /* is_function_decl */
+
+
+static inline a_boolean is_local_closure_decl(an_ifc_decl_index decl_idx)
+/*
+Return TRUE if the given IFC decl index represent a closure declaration that
+is declared in a local scope; otherwise, return FALSE.
+*/
+{
+  a_boolean result = FALSE;
+
+  if (is_closure_decl(decl_idx)) {
+    an_ifc_decl_scope scope_decl;
+
+    construct_node_prechecked(&scope_decl, decl_idx);
+
+    an_ifc_decl_index home_scope = get_ifc_home_scope(scope_decl);
+    if (is_function_decl(home_scope)) {
+      result = TRUE;
+    }  /* if */
+  }  /* if */
+  return result;
+}  /* is_local_closure_decl */
+
+
+static inline a_boolean is_var_type_auto(an_ifc_type_index type_idx)
+/*
+Return TRUE if the type at the given IFC type index when used as the type of
+variable is the "auto" type; otherwise, return FALSE.
+*/
+{
+  a_boolean result = FALSE;
+
+  type_idx = remove_type_qualifiers(type_idx);
   switch (type_idx.sort) {
     case ifc_ts_type_designated:
       { Opt<an_ifc_type_designated> opt_designated_type;
@@ -4115,7 +4231,7 @@ otherwise, return FALSE.
           an_ifc_type_qualified qual_type = *opt_qual_type;
           an_ifc_type_index     unqual_type = get_ifc_unqualified(qual_type);
 
-          result = is_auto_type(unqual_type);
+          result = is_var_type_auto(unqual_type);
         }  /* if */
       }
       break;
@@ -4123,7 +4239,7 @@ otherwise, return FALSE.
       break;
   }  /* switch */
       return result;
-}  /* is_auto_type */
+}  /* is_var_type_auto */
 
 
 static inline a_boolean is_var_in_lazy_loadable_scope(
@@ -4170,7 +4286,7 @@ context to help inform decisions about what to cache.
     result = FALSE;
   } else if (cinfo.is_specialization) {
     result = FALSE;
-  } else if (is_auto_type(type_idx)) {
+  } else if (is_var_type_auto(type_idx)) {
     result = FALSE;
   }  /* if */
   return result;
@@ -4714,7 +4830,8 @@ or template.
 }  /* overload_set_from_il_entity_list */
 
 
-static a_boolean is_template_parameter(const an_ifc_decl_parameter &decl)
+static inline
+a_boolean is_template_parameter(const an_ifc_decl_parameter &decl)
 /*
 Return TRUE if the given declaration is for a template parameter; otherwise,
 return FALSE.
@@ -4723,6 +4840,54 @@ return FALSE.
   an_ifc_parameter_sort param_sort = get_ifc_sort(decl);
 
   return param_sort != ifc_ps_object;
+}  /* is_template_parameter */
+
+
+static inline
+a_boolean is_template_parameter(an_ifc_decl_index decl_idx)
+/*
+Return TRUE if the given declaration index is for a template parameter;
+otherwise, return FALSE.
+*/
+{
+  a_boolean result = FALSE;
+
+  if (decl_idx.sort == ifc_ds_decl_parameter) {
+    Opt<an_ifc_decl_parameter> opt_param_decl;
+
+    construct_node(&opt_param_decl, decl_idx);
+    if (opt_param_decl.has_value()) {
+      an_ifc_decl_parameter param_decl = *opt_param_decl;
+
+      result = is_template_parameter(param_decl);
+    }  /* if */
+  }  /* if */
+  return result;
+}  /* is_template_parameter */
+
+
+static inline
+a_boolean is_template_parameter(an_ifc_type_index type_idx)
+/*
+Return TRUE if the given type index is for a template parameter; otherwise,
+return FALSE.
+*/
+{
+  a_boolean result = FALSE;
+
+  type_idx = remove_type_qualifiers(type_idx);
+  if (type_idx.sort == ifc_ts_type_designated) {
+    Opt<an_ifc_type_designated> opt_designated_ty;
+
+    construct_node(&opt_designated_ty, type_idx);
+    if (opt_designated_ty.has_value()) {
+      an_ifc_type_designated designated_ty = *opt_designated_ty;
+      an_ifc_decl_index      decl_idx = get_ifc_decl(designated_ty);
+
+      result = is_template_parameter(decl_idx);
+    }  /* if */
+  }  /* if */
+  return result;
 }  /* is_template_parameter */
 
 
@@ -5393,9 +5558,7 @@ can be found, return NULL.
 */
 {
   check_assertion(decl_idx.sort == ifc_ds_decl_parameter);
-  a_symbol_ptr       result = NULL;
-  Opt<an_ifc_decl_parameter>
-                     opt_param_decl;
+  a_symbol_ptr result = NULL;
 
 #if DEBUG
   if (db_flag_is_set("ifc_idx")) {
@@ -5405,31 +5568,27 @@ can be found, return NULL.
     print(dbg_msg, f_debug);
   }  /* if */
 #endif /* DEBUG */
-  construct_node(&opt_param_decl, decl_idx);
-  if (opt_param_decl.has_value()) {
-    an_ifc_decl_parameter param_decl = *opt_param_decl;
-    a_boolean             is_template_param =
-                                             is_template_parameter(param_decl);
+  if (is_template_parameter(decl_idx)) {
+    an_ifc_decl_parameter param_decl;
 
-    if (is_template_param) {
-      result = find_template_parameter(param_decl);
-    } else {
-      Opt<a_string> opt_name = name_of_decl(decl_idx);
+    construct_node_prechecked(&param_decl, decl_idx);
+    result = find_template_parameter(param_decl);
+  } else {
+    Opt<a_string> opt_name = name_of_decl(decl_idx);
 
-      if (!opt_name.has_value()) {
-        goto invalid;
-      }  /* if */
-
-      const a_string   &name = *opt_name;
-      a_symbol_locator loc;
-
-      /* FIXME: Currently the IFC position information is not present for
-         function parameters resulting in a requirement that names be looked
-         up.  There may additionally be issues with variable shadowing here. */
-      clear_locator(&loc, &null_source_position);
-      (void)find_symbol(name.as_temp_characters(), name.length(), &loc);
-      result = normal_id_lookup(&loc, IDL_NO_OPTIONS);
+    if (!opt_name.has_value()) {
+      goto invalid;
     }  /* if */
+
+    const a_string   &name = *opt_name;
+    a_symbol_locator loc;
+
+    /* FIXME: Currently the IFC position information is not present for
+       function parameters resulting in a requirement that names be looked up.
+       There may additionally be issues with variable shadowing here. */
+    clear_locator(&loc, &null_source_position);
+    (void)find_symbol(name.as_temp_characters(), name.length(), &loc);
+    result = normal_id_lookup(&loc, IDL_NO_OPTIONS);
   }  /* if */
   goto done;
 invalid:
@@ -6106,6 +6265,102 @@ FALSE.
 }  /* cache_decl_stmt */
 
 
+static a_boolean represents_redundant_block_stmt(
+                                          const a_stmt_heap_sequence &heap_seq)
+/*
+Return TRUE if the given heap statement sequence contains only one element
+and that element is a block statement; otherwise, return FALSE.
+*/
+{
+  a_boolean result = FALSE;
+
+  if (heap_seq.length() == 1) {
+    /* Check to see if the only statement within this block statement, is a
+       block statement; if so, this is definitely an extra block. */
+    Opt<an_ifc_heap_stmt> opt_stmt_heap = heap_seq[0];
+
+    if (!opt_stmt_heap.has_value()) {
+      goto done;
+    }  /* if */
+
+    an_ifc_heap_stmt  stmt_heap = *opt_stmt_heap;
+    an_ifc_stmt_index value = get_ifc_value(stmt_heap);
+    if (value.sort == ifc_ss_stmt_block) {
+      result = TRUE;
+    }  /* if */
+  }  /* if */
+done:
+  return result;
+}  /* represents_redundant_block_stmt */
+
+
+static void cache_stmt_brace_stripped(a_module_token_cache_ptr cache,
+                                      an_ifc_stmt_index        stmt_idx,
+                                      const an_ifc_cache_info  &cinfo)
+/*
+Cache the statement indexed by the given statement index into the cache with
+any enclosing braces removed.  cinfo contains information about the current
+cache context to help inform decisions about what to cache.
+*/
+{
+  if (is_null_index(stmt_idx)) {
+    /* If the statement is null, there's nothing to cache. */
+  } else if (stmt_idx.sort == ifc_ss_stmt_block) {
+    Opt<an_ifc_stmt_block> opt_block_stmt;
+
+    construct_node(&opt_block_stmt, stmt_idx);
+    if (opt_block_stmt.has_value()) {
+      an_ifc_stmt_block    block_stmt = *opt_block_stmt;
+      a_stmt_heap_sequence sequence(block_stmt);
+
+      if (represents_redundant_block_stmt(sequence)) {
+        Opt<an_ifc_heap_stmt> opt_stmt_heap = sequence[0];
+
+        check_assertion(opt_stmt_heap.has_value());
+
+        an_ifc_heap_stmt  stmt_heap = *opt_stmt_heap;
+        an_ifc_stmt_index sub_stmt_idx = get_ifc_value(stmt_heap);
+        cache_stmt_brace_stripped(cache, sub_stmt_idx, cinfo);
+      } else {
+        for (Indexed<an_ifc_heap_stmt> indexed_ihs : sequence) {
+          if (!indexed_ihs.has_value()) {
+            cache->invalidate();
+            break;
+          }  /* if */
+
+          an_ifc_stmt_index value = get_ifc_value(*indexed_ihs);
+          /* Sometimes the MSVC authored IFCs contains spuriously contain a
+             null statement index. */
+          if (is_null_index(value)) {
+            continue;
+          }  /* if */
+          module_of(value)->cache_statement(cache, value, cinfo);
+        }  /* for */
+      }  /* if */
+    } else {
+      cache->invalidate();
+    }  /* if */
+  } else {
+    module_of(stmt_idx)->cache_statement(cache, stmt_idx, cinfo);
+  }  /* if */
+}  /* cache_stmt_brace_stripped */
+
+
+static void cache_stmt_brace_wrapped(a_module_token_cache_ptr cache,
+                                     an_ifc_stmt_index        stmt_idx,
+                                     const an_ifc_cache_info  &cinfo)
+/*
+Cache the statement indexed by the given statement index into the cache
+enclosed in braces.  cinfo contains information about the current cache context
+to help inform decisions about what to cache.
+*/
+{
+  cache_token(cache, tok_lbrace);
+  cache_stmt_brace_stripped(cache, stmt_idx, cinfo);
+  cache_token(cache, tok_rbrace);
+}  /* cache_stmt_brace_wrapped */
+
+
 void an_ifc_module::cache_statement(a_module_token_cache_ptr cache,
                                     an_ifc_stmt_index        stmt_idx,
                                     const an_ifc_cache_info  &cinfo)
@@ -6158,20 +6413,13 @@ braces for a compound statement).
         cache_token(cache, tok_if);
         cache_token(cache, tok_lparen);
         if (!is_null_index(initialization)) {
-          /* FIXME: An IFC bug has these statements wrapped with an extraneous
-             StmtSort::Block.  Suppress the braces for the block.  Note that
-             this is a brittle approach that has the potential to break things,
-             so it should be removed ASAP. */
-          an_ifc_cache_info cache_info = cinfo;
-          cache_info.func_body = TRUE;
-          cache_statement(cache, initialization, cache_info);
+          cache_stmt_brace_stripped(cache, initialization, cinfo);
         }  /* if */
         { an_ifc_cache_info cache_info = cinfo;
+          an_ifc_stmt_index condition = get_ifc_condition(isi);
+
           cache_info.no_final_semicolon = TRUE;
-          /* FIXME: Temporary workaround: Suppress braces for an intervening
-             StmtSort::Block.  See the above comment for details. */
-          cache_info.func_body = TRUE;
-          cache_statement(cache, get_ifc_condition(isi), cache_info);
+          cache_stmt_brace_stripped(cache, condition, cache_info);
         }
         cache_token(cache, tok_rparen);
         /* FIXME: These also have the intervening StmtSort::Block issue, but
@@ -6231,35 +6479,7 @@ braces for a compound statement).
       }
       break;
     case ifc_ss_stmt_block:
-      { Opt<an_ifc_stmt_block> opt_isb;
-
-        construct_node(&opt_isb, stmt_idx);
-        if (!opt_isb.has_value()) {
-          goto invalid;
-        }  /* if */
-
-        a_stmt_heap_sequence sequence(*opt_isb);
-        if (!cinfo.func_body) {
-          cache_token(cache, tok_lbrace);
-        }  /* if */
-        { an_ifc_cache_info cache_info = cinfo;
-          cache_info.func_body = FALSE;
-          for (Indexed<an_ifc_heap_stmt> indexed_ihs : sequence) {
-            if (!indexed_ihs.has_value()) {
-              goto invalid;
-            }  /* if */
-
-            an_ifc_stmt_index value = get_ifc_value(*indexed_ihs);
-            /* IFC files sometimes have a NULL statement in this list - don't
-               attempt to cache these. */
-            if (is_null_index(value)) continue;
-            cache_statement(cache, value, cache_info);
-          }  /* for */
-        }
-        if (!cinfo.func_body) {
-          cache_token(cache, tok_rbrace);
-        }  /* if */
-      }
+      cache_stmt_brace_wrapped(cache, stmt_idx, cinfo);
       break;
     case ifc_ss_stmt_break:
       { Opt<an_ifc_stmt_break> opt_isb;
@@ -8013,17 +8233,7 @@ instead.
       cache_token(cache, tok_colon);
       cache_expr(cache, initializers, /*cinfo=*/{});
     }  /* if */
-    /* Cache the function body.  It appears that a single return statement is
-       represented directly rather than as a block containing the return
-       statement.  We therefore generate the braces here and inhibit them at
-       the next statement level by passing the cso_func_body flag. */
-    cache_token(cache, tok_lbrace);
-    if (!is_null_index(body)) {
-      an_ifc_cache_info cache_info;
-      cache_info.func_body = TRUE;
-      module_of(body)->cache_statement(cache, body, cache_info);
-    }  /* if */
-    cache_token(cache, tok_rbrace);
+    cache_stmt_brace_wrapped(cache, body, /*cinfo=*/{});
 #if DEBUG
     if (db_flag_is_set("ifc_def")) {
       fprintf(f_debug, "Function body cache:\n");
@@ -8106,64 +8316,6 @@ definition.
   }  /* if */
   return result;
 }  /* load_routine_definition_from_ifc_module */
-
-
-static an_ifc_type_index remove_type_qualifiers(an_ifc_type_index type_idx)
-/*
-Given an IFC type index, return the type index representing the unqualified
-type.
-*/
-{
-  switch (type_idx.sort) {
-    case ifc_ts_type_qualified:
-      { Opt<an_ifc_type_qualified> opt_qual_type;
-
-        construct_node(&opt_qual_type, type_idx);
-        if (opt_qual_type.has_value()) {
-          an_ifc_type_qualified qual_type = *opt_qual_type;
-
-          type_idx = remove_type_qualifiers(get_ifc_unqualified(qual_type));
-        }  /* if */
-      }
-      break;
-    case ifc_ts_type_pointer:
-      { Opt<an_ifc_type_pointer> opt_pointer_type;
-
-        construct_node(&opt_pointer_type, type_idx);
-        if (opt_pointer_type.has_value()) {
-          an_ifc_type_pointer pointer_type = *opt_pointer_type;
-
-          type_idx = remove_type_qualifiers(get_ifc_pointee(pointer_type));
-        }  /* if */
-      }
-      break;
-    case ifc_ts_type_lvalue_reference:
-      { Opt<an_ifc_type_lvalue_reference> opt_lvalue_ref_type;
-
-        construct_node(&opt_lvalue_ref_type, type_idx);
-        if (opt_lvalue_ref_type.has_value()) {
-          an_ifc_type_lvalue_reference lvalue_ref_type = *opt_lvalue_ref_type;
-
-          type_idx = remove_type_qualifiers(get_ifc_referee(lvalue_ref_type));
-        }  /* if */
-      }
-      break;
-    case ifc_ts_type_rvalue_reference:
-      { Opt<an_ifc_type_rvalue_reference> opt_rvalue_ref_type;
-
-        construct_node(&opt_rvalue_ref_type, type_idx);
-        if (opt_rvalue_ref_type.has_value()) {
-          an_ifc_type_rvalue_reference rvalue_ref_type = *opt_rvalue_ref_type;
-
-          type_idx = remove_type_qualifiers(get_ifc_referee(rvalue_ref_type));
-        }  /* if */
-      }
-      break;
-    default:
-      break;
-  }  /* switch */
-  return type_idx;
-}  /* remove_type_qualifiers */
 
 
 static Opt<an_ifc_decl_index> decl_index_from_type_index(
@@ -19074,6 +19226,79 @@ context to help inform decisions about what to cache.
 }  /* cache_var_decl_specifier_seq */
 
 
+static void cache_qual_type_qualifiers(a_module_token_cache_ptr    cache,
+                                       const an_ifc_type_qualified &type)
+/*
+Cache the tokens associated with the qualifiers of the given qualified type.
+*/
+{
+  an_ifc_qualifier_bitfield qualifiers = get_ifc_qualifiers(type);
+
+  if (test_bitmask<ifc_qb_const>(qualifiers)) {
+    cache_token(cache, tok_const);
+  }  /* if */
+  if (test_bitmask<ifc_qb_volatile>(qualifiers)) {
+    cache_token(cache, tok_volatile);
+  }  /* if */
+  if (test_bitmask<ifc_qb_restrict>(qualifiers)) {
+    cache_token(cache, tok_restrict);
+  }  /* if */
+}  /* cache_qual_type_qualifiers */
+
+
+static void cache_var_auto_type(a_module_token_cache_ptr cache,
+                                an_ifc_type_index        type_idx)
+/*
+Cache the tokens for the (potentially qualified) variable "auto" type
+represented by the given type index.
+*/
+{
+  switch (type_idx.sort) {
+    case ifc_ts_type_designated:
+      cache_token(cache, tok_auto);
+      break;
+    case ifc_ts_type_lvalue_reference:
+      { an_ifc_type_lvalue_reference lvalue_type;
+
+        construct_node_prechecked(&lvalue_type, type_idx);
+
+        an_ifc_type_index referee_idx = get_ifc_referee(lvalue_type);
+        cache_var_auto_type(cache, referee_idx);
+        cache_token(cache, tok_ampersand);
+      }
+      break;
+    case ifc_ts_type_qualified:
+      { an_ifc_type_qualified qual_type;
+
+        construct_node_prechecked(&qual_type, type_idx);
+
+        an_ifc_type_index unqual_idx = get_ifc_unqualified(qual_type);
+        cache_var_auto_type(cache, unqual_idx);
+        cache_qual_type_qualifiers(cache, qual_type);
+      }
+      break;
+    case ifc_ts_type_rvalue_reference:
+      { an_ifc_type_rvalue_reference rvalue_type;
+
+        construct_node_prechecked(&rvalue_type, type_idx);
+
+        an_ifc_type_index referee_idx = get_ifc_referee(rvalue_type);
+        cache_var_auto_type(cache, referee_idx);
+        cache_token(cache, tok_and_and);
+      }
+      break;
+    default:
+      { a_string err_msg("Unexpected type ", index_to_str(type_idx),
+                         " representing part of an auto type");
+
+        ifc_unexpected(module_of(type_idx), err_msg);
+        cache->invalidate();
+      }
+      break;
+  }  /* switch */
+}  /* cache_var_auto_type */
+
+
 template<typename an_ifc_Node_type>
 static void cache_var_type_declarator_lhs(a_module_token_cache_ptr cache,
                                           const an_ifc_Node_type   &decl)
@@ -19085,7 +19310,11 @@ the variable name.
 {
   an_ifc_type_index type = get_ifc_type(decl);
 
-  cache_type_first_part(cache, type, /*cinfo=*/{});
+  if (is_var_type_auto(type)) {
+    cache_var_auto_type(cache, type);
+  } else {
+    cache_type_first_part(cache, type, /*cinfo=*/{});
+  }  /* if */
 }  /* cache_var_type_declarator_lhs */
 
 
@@ -19115,8 +19344,45 @@ the variable name.
 {
   an_ifc_type_index type = get_ifc_type(decl);
 
-  cache_type_second_part(cache, type, /*cinfo=*/{});
+  if (!is_var_type_auto(type)) {
+    cache_type_second_part(cache, type, /*cinfo=*/{});
+  }  /* if */
 }  /* cache_var_type_declarator_rhs */
+
+
+template<typename an_ifc_Node_type>
+static inline a_boolean is_var_initialized_by_closure(
+                                                  const an_ifc_Node_type &decl)
+/*
+Return TRUE if the given variable-like declaration is initialized by a closure;
+otherwise, return FALSE.
+*/
+{
+  a_boolean         result = FALSE;
+  an_ifc_type_index type_idx = get_ifc_type(decl);
+
+  type_idx = remove_type_qualifiers(type_idx);
+  if (type_idx.sort == ifc_ts_type_designated) {
+    Opt<an_ifc_type_designated> opt_designated_type;
+
+    construct_node(&opt_designated_type, type_idx);
+    if (opt_designated_type.has_value()) {
+      an_ifc_type_designated designated_type = *opt_designated_type;
+      an_ifc_decl_index      decl_idx = get_ifc_decl(designated_type);
+
+      if (is_closure_decl(decl_idx)) {
+        result = TRUE;
+      }  /* if */
+    }  /* if */
+  }
+  return result;
+}  /* is_var_initialized_by_closure */
+
+
+template<typename an_ifc_Node_type>
+static void cache_var_closure_initializer(a_module_token_cache_ptr cache,
+                                          const an_ifc_Node_type   &decl,
+                                          const an_ifc_cache_info  &cinfo);
 
 
 template<typename an_ifc_Node_type>
@@ -19129,18 +19395,23 @@ information about the current cache context to help inform decisions about what
 to cache.
 */
 {
-  an_ifc_expr_index initializer = get_ifc_initializer(decl);
+  if (is_var_initialized_by_closure(decl)) {
+    cache_var_closure_initializer(cache, decl, cinfo);
+  } else {
+    an_ifc_expr_index initializer = get_ifc_initializer(decl);
 
-  if (!is_null_index(initializer)) {
-    /* An initializer where the type is ExprSort::Tokens will have the
-       braces included as part of the token stream. */
-    a_boolean cache_braces = initializer.sort != ifc_es_expr_tokens;
-    if (cache_braces) {
-      cache_token(cache, tok_lbrace);
-    }  /* if */
-    cache_expr(cache, initializer, cinfo);
-    if (cache_braces) {
-      cache_token(cache, tok_rbrace);
+    if (!is_null_index(initializer)) {
+      /* An initializer where the type is ExprSort::Tokens will have the
+         braces included as part of the token stream. */
+      a_boolean cache_braces = initializer.sort != ifc_es_expr_tokens;
+
+      if (cache_braces) {
+        cache_token(cache, tok_lbrace);
+      }  /* if */
+      cache_expr(cache, initializer, cinfo);
+      if (cache_braces) {
+        cache_token(cache, tok_rbrace);
+      }  /* if */
     }  /* if */
   }  /* if */
 }  /* cache_var_initializer */
@@ -20541,6 +20812,7 @@ context to help inform decisions about what to cache.
 */
 {
   if (cinfo.parameterizing_entity.sort == ifc_ds_decl_template &&
+      !cinfo.in_generic_lambda &&
       is_msvc_authored(cinfo.parameterizing_entity)) {
     /* Templates in the MSVC IFC representation do not currently have correct
        encodings of function parameters in the IFC nodes.  To work around this
@@ -20681,7 +20953,16 @@ context to help inform decisions about what to cache.
       if (is_null_index(arg_type)) {
         goto invalid;
       }  /* if */
-      cache_type_first_part(cache, arg_type, cinfo);
+
+      /* If this is a generic lambda referencing a template parameter, this
+         is an auto type parameter. */
+      a_boolean use_auto_type = (cinfo.in_generic_lambda &&
+                                 is_template_parameter(arg_type));
+      if (use_auto_type) {
+        cache_token(cache, tok_auto);
+      } else {
+        cache_type_first_part(cache, arg_type, cinfo);
+      }  /* if */
       if (!is_variadic_parameter_declaration_clause_type(arg_type)) {
         an_ifc_name_index name_idx = param_context.get_name(i);
 
@@ -20693,7 +20974,9 @@ context to help inform decisions about what to cache.
           cache_name(cache, name_idx);
         }  /* if */
       }  /* if */
-      cache_type_second_part(cache, arg_type, cinfo);
+      if (!use_auto_type) {
+        cache_type_second_part(cache, arg_type, cinfo);
+      }  /* if */
       /* Cache the default argument if we're not ignoring default arguments in
          this context, and a default argument is found. */
       if (!cinfo.ignore_default_arguments) {
@@ -20714,6 +20997,404 @@ invalid:
   cache->invalidate();
 done:;
 }  /* cache_func_parameter_declaration_clause */
+
+
+static a_boolean is_lambda_call_operator(an_ifc_decl_index decl_idx)
+/*
+Return TRUE if the given DeclIndex represents a lambda call operator;
+otherwise, return FALSE.
+*/
+{
+  a_boolean result = FALSE;
+
+  if (decl_idx.sort == ifc_ds_decl_method) {
+    Opt<an_ifc_decl_method> opt_method_decl;
+
+    construct_node(&opt_method_decl, decl_idx);
+    if (!opt_method_decl.has_value()) {
+      /* Invalid. */
+      goto done;
+    }  /* if */
+
+    an_ifc_decl_method method_decl = *opt_method_decl;
+    an_ifc_name_index  method_name = get_ifc_name(method_decl);
+    if (method_name.sort != ifc_ns_name_operator) {
+      /* Not a match. */
+      goto done;
+    }  /* if */
+
+    Opt<an_ifc_name_operator> opt_operator_name;
+    construct_node(&opt_operator_name, method_name);
+    if (!opt_operator_name.has_value()) {
+      /* Invalid. */
+      goto done;
+    }  /* if */
+
+    an_ifc_name_operator operator_name = *opt_operator_name;
+    an_operator_kind     operator_kind = get_operator_kind(operator_name);
+    if (operator_kind != opkind_func_like) {
+      /* Not a match. */
+      goto done;
+    }  /* if */
+
+    an_ifc_text_offset encoded = get_ifc_encoded(operator_name);
+    a_string           encoded_str = get_string_at_offset(encoded);
+    if (encoded_str != "()") {
+      /* Not a match. */
+      goto done;
+    }  /* if */
+    result = TRUE;
+  } else if (decl_idx.sort == ifc_ds_decl_template) {
+    Opt<an_ifc_decl_template> opt_template_decl;
+
+    construct_node(&opt_template_decl, decl_idx);
+    if (!opt_template_decl.has_value()) {
+      /* Invalid. */
+      goto done;
+    }  /* if */
+
+    an_ifc_decl_template        template_decl = *opt_template_decl;
+    an_ifc_parameterized_entity param_entity = get_ifc_entity(template_decl);
+    an_ifc_decl_index           entity_decl = get_ifc_decl(param_entity);
+    result = is_lambda_call_operator(entity_decl);
+  }  /* if */
+done:
+  return result;
+}  /* is_lambda_call_operator */
+
+
+static Opt<an_ifc_decl_index> find_lambda_call_operator_in_scope(
+                                         an_ifc_scope_offset class_members_idx)
+/*
+Search the given scope offset (corresponding to a DeclSort::Scope representing
+a lambda declaration) for the IFC declaration that represents the lambda call
+operator.  Return an optional containing the DeclIndex corresponding to the
+lambda call operator declaration if found; otherwise, return an empty optional.
+*/
+{
+  Opt<an_ifc_decl_index>       result;
+  Opt<an_ifc_scope_descriptor> opt_class_members;
+
+  construct_node(&opt_class_members, class_members_idx);
+  if (opt_class_members.has_value()) {
+    an_ifc_scope_descriptor class_members = *opt_class_members;
+    a_scope_member_sequence sequence(class_members);
+
+    for (Indexed<an_ifc_scope_member> indexed_scope_mem : sequence) {
+      if (!indexed_scope_mem.has_value()) {
+        break;
+      }  /* if */
+
+      an_ifc_scope_member scope_mem = *indexed_scope_mem;
+      an_ifc_decl_index   mem_idx = get_ifc_index(scope_mem);
+      if (is_lambda_call_operator(mem_idx)) {
+        result = mem_idx;
+        break;
+      }  /* if */
+    }  /* for */
+  }  /* if */
+  return result;
+}  /* find_lambda_call_operator_in_scope */
+
+
+static Dyn_array<an_ifc_decl_index> find_lambda_captures_in_scope(
+                                         an_ifc_scope_offset class_members_idx)
+/*
+Search the given scope offset (corresponding to a DeclSort::Scope representing
+a lambda declaration) for IFC declarations that represents lambda captures.
+Return a dynamic array containing the DeclIndex corresponding to any lambda
+capture declarations found.
+*/
+{
+  Dyn_array<an_ifc_decl_index> result;
+  Opt<an_ifc_scope_descriptor> opt_class_members;
+
+  construct_node(&opt_class_members, class_members_idx);
+  if (opt_class_members.has_value()) {
+    an_ifc_scope_descriptor class_members = *opt_class_members;
+    a_scope_member_sequence sequence(class_members);
+
+    for (Indexed<an_ifc_scope_member> indexed_scope_mem : sequence) {
+      if (!indexed_scope_mem.has_value()) {
+        break;
+      }  /* if */
+
+      an_ifc_scope_member scope_mem = *indexed_scope_mem;
+      an_ifc_decl_index   mem_idx = get_ifc_index(scope_mem);
+      if (mem_idx.sort == ifc_ds_decl_field) {
+        result.push_back(mem_idx);
+      }  /* if */
+    }  /* for */
+  }  /* if */
+  return result;
+}  /* find_lambda_captures_in_scope */
+
+
+static void cache_lambda_capture(a_module_token_cache_ptr cache,
+                                 an_ifc_decl_index        capture_idx)
+/*
+Cache the given lambda init-capture (represented as an IFC DeclField).
+*/
+{
+  /* If this assertion is hit, find_lambda_captures_in_scope has been extended
+     but this code has not yet been updated. */
+  check_assertion(capture_idx.sort == ifc_ds_decl_field);
+
+  Opt<an_ifc_decl_field> opt_field_decl;
+  construct_node(&opt_field_decl, capture_idx);
+  if (opt_field_decl.has_value()) {
+    an_ifc_decl_field  field_decl = *opt_field_decl;
+    an_ifc_text_offset name_offset = get_ifc_name(field_decl);
+
+    cache_name(cache, name_offset);
+
+    an_ifc_expr_index initializer = get_ifc_initializer(field_decl);
+    if (!is_null_index(initializer)) {
+      /* Copy over the initializer without any semicolons. */
+      a_module_token_cache init_cache(infer_next_source_position(cache));
+
+      cache_expr(&init_cache, initializer, /*cinfo=*/{});
+
+      a_cached_token_ptr      ctp = init_cache.get_first_token();
+      a_token_sequence_number first_param_tsn = ctp->token_sequence_number;
+      a_token_sequence_number last_param_tsn = NO_TOKEN_SEQUENCE_NUMBER;
+      for (; ctp != NULL; ctp = ctp->next) {
+        if (ctp->token == tok_semicolon) {
+          ctp = ctp->next;
+          break;
+        }  /* if */
+        last_param_tsn = ctp->token_sequence_number;
+      }  /* for */
+      if (ctp != NULL) {
+        a_string err_msg("Unexpected tokens following semicolon in ",
+                         index_to_str(initializer));
+
+        ifc_unexpected(module_of(initializer), err_msg);
+        cache->invalidate();
+      }  /* if */
+      copy_tokens_from_cache(init_cache.as_canonical(),
+                             first_param_tsn,
+                             last_param_tsn,
+                             /*include_last_token=*/TRUE,
+                             cache->as_canonical());
+    }  /* if */
+  } else {
+    cache->invalidate();
+  }  /* if */
+}  /* cache_lambda_capture */
+
+
+static void cache_lambda_captures(a_module_token_cache_ptr           cache,
+                                  const Dyn_array<an_ifc_decl_index> &captures)
+/*
+Cache the given lambda init-captures (represented as an array of IFC
+DeclFields).
+*/
+{
+  a_boolean first = TRUE;
+
+  cache_token(cache, tok_lbracket);
+  for (an_ifc_decl_index capture_idx : captures) {
+    if (!first) {
+      cache_token(cache, tok_comma);
+    }  /* if */
+    cache_lambda_capture(cache, capture_idx);
+    first = FALSE;
+  }  /* for */
+  cache_token(cache, tok_rbracket);
+}  /* cache_lambda_captures */
+
+
+static void cache_lambda_parameters(a_module_token_cache_ptr cache,
+                                    an_ifc_decl_index        call_operator_idx,
+                                    const an_ifc_cache_info  &cinfo)
+/*
+Cache the parameter-declaration-clause (and enclosing parens) for the lambda
+represented by the lambda call operator declaration (indexed by
+call_operator_idx).  cinfo contains information about the current cache context
+to help inform decisions about what to cache.
+*/
+{
+  if (call_operator_idx.sort == ifc_ds_decl_template) {
+    an_ifc_decl_template template_decl;
+
+    construct_node_prechecked(&template_decl, call_operator_idx);
+
+    an_ifc_parameterized_entity param_entity = get_ifc_entity(template_decl);
+    an_ifc_decl_index           entity_decl = get_ifc_decl(param_entity);
+    an_ifc_cache_info           entity_cinfo = cinfo;
+    entity_cinfo.parameterizing_entity = call_operator_idx;
+    entity_cinfo.in_generic_lambda = TRUE;
+    cache_lambda_parameters(cache, entity_decl, entity_cinfo);
+  } else {
+    an_ifc_decl_method method_decl;
+
+    construct_node_prechecked(&method_decl, call_operator_idx);
+    cache_token(cache, tok_lparen);
+    cache_func_parameter_declaration_clause(cache, call_operator_idx,
+                                            method_decl, cinfo);
+    cache_token(cache, tok_rparen);
+  }  /* if */
+}  /* cache_lambda_parameters */
+
+
+static void cache_lambda_specifier_seq(
+                                    a_module_token_cache_ptr cache,
+                                    an_ifc_decl_index        call_operator_idx)
+/*
+Cache the lambda-specifier-seq for the lambda represented by the lambda call
+operator declaration (index by the given call_operator_idx).
+*/
+{
+  if (call_operator_idx.sort == ifc_ds_decl_template) {
+    an_ifc_decl_template template_decl;
+
+    construct_node_prechecked(&template_decl, call_operator_idx);
+
+    an_ifc_parameterized_entity param_entity = get_ifc_entity(template_decl);
+    an_ifc_decl_index           entity_decl = get_ifc_decl(param_entity);
+    cache_lambda_specifier_seq(cache, entity_decl);
+  } else {
+    an_ifc_decl_method method_decl;
+
+    construct_node_prechecked(&method_decl, call_operator_idx);
+
+    an_ifc_function_traits_bitfield func_traits = get_ifc_traits(method_decl);
+    if (test_bitmask<ifc_ftb_immediate>(func_traits)) {
+      cache_token(cache, tok_consteval);
+    } else if (test_bitmask<ifc_ftb_constexpr>(func_traits)) {
+      cache_token(cache, tok_constexpr);
+    }  /* if */
+  }  /* if */
+}  /* cache_lambda_specifier_seq */
+
+
+static void cache_lambda_return_type(
+                                    a_module_token_cache_ptr cache,
+                                    an_ifc_decl_index        call_operator_idx)
+/*
+Cache the lambda trailing-return-type for the lambda represented by the lambda
+call operator declaration (index by the given call_operator_idx).
+*/
+{
+  if (call_operator_idx.sort == ifc_ds_decl_template) {
+    an_ifc_decl_template template_decl;
+
+    construct_node_prechecked(&template_decl, call_operator_idx);
+
+    an_ifc_parameterized_entity param_entity = get_ifc_entity(template_decl);
+    an_ifc_decl_index           entity_decl = get_ifc_decl(param_entity);
+    cache_lambda_return_type(cache, entity_decl);
+  } else {
+    an_ifc_decl_method method_decl;
+
+    construct_node_prechecked(&method_decl, call_operator_idx);
+    cache_token(cache, tok_arrow);
+    cache_func_return_type(cache, method_decl);
+  }  /* if */
+}  /* cache_lambda_return_type */
+
+
+static void cache_lambda_body(a_module_token_cache_ptr cache,
+                              an_ifc_decl_index        call_operator_idx)
+/*
+Cache the lambda body (compound-statement) for the lambda represented by the
+lambda call operator declaration (index by the given call_operator_idx).
+*/
+{
+  if (call_operator_idx.sort == ifc_ds_decl_template) {
+    an_ifc_decl_template template_decl;
+
+    construct_node_prechecked(&template_decl, call_operator_idx);
+
+    an_ifc_parameterized_entity param_entity = get_ifc_entity(template_decl);
+    an_ifc_sentence_index       decl_body = get_ifc_body(param_entity);
+
+    (void)cache_sentence(cache, decl_body, /*offset=*/0);
+  } else {
+    Opt<an_ifc_trait_function_definition> opt_func_def;
+
+    find_trait(&opt_func_def, call_operator_idx);
+    if (opt_func_def.has_value()) {
+      an_ifc_trait_function_definition func_def = *opt_func_def;
+      an_ifc_stmt_index                body = get_ifc_body(func_def);
+      an_ifc_cache_info                cache_info;
+
+      cache_info.in_lambda_body = TRUE;
+      cache_stmt_brace_wrapped(cache, body, cache_info);
+    } else {
+      a_string err_msg("Expected a function body for the lambda "
+                       "represented as ", index_to_str(call_operator_idx));
+
+      ifc_unexpected(module_of(call_operator_idx), err_msg);
+      cache->invalidate();
+    }  /* if */
+  }  /* if */
+}  /* cache_lambda_body */
+
+
+template<typename an_ifc_Node_type>
+static void cache_var_closure_initializer(a_module_token_cache_ptr cache,
+                                          const an_ifc_Node_type   &decl,
+                                          const an_ifc_cache_info  &cinfo)
+/*
+Cache the initializer for the given variable-like declaration.  cinfo contains
+information about the current cache context to help inform decisions about what
+to cache.
+*/
+{
+  an_ifc_type_index      type_idx = get_ifc_type(decl);
+  an_ifc_type_designated designated_type;
+
+  type_idx = remove_type_qualifiers(type_idx);
+  construct_node_prechecked(&designated_type, type_idx);
+  {
+    an_ifc_decl_index      decl_idx = get_ifc_decl(designated_type);
+    Opt<an_ifc_decl_scope> opt_scope_decl;
+
+    construct_node(&opt_scope_decl, decl_idx);
+    if (!opt_scope_decl.has_value()) {
+      goto invalid;
+    }  /* if */
+
+    an_ifc_decl_scope   scope_decl = *opt_scope_decl;
+    an_ifc_scope_offset class_members_idx = get_ifc_initializer(scope_decl);
+
+    if (is_null_index(class_members_idx)) {
+      a_string err_msg("Expected members for the lambda designated by ",
+                       index_to_str(decl_idx));
+
+      ifc_unexpected(module_of(scope_decl), err_msg);
+      goto invalid;
+    }  /* if */
+
+    Opt<an_ifc_decl_index> opt_call_operator_idx =
+                         find_lambda_call_operator_in_scope(class_members_idx);
+    if (!opt_call_operator_idx.has_value()) {
+      a_string err_msg("Expected operator \"()\" to be declared for the "
+                       "lambda designated by ",
+                       index_to_str(decl_idx));
+
+      ifc_unexpected(module_of(scope_decl), err_msg);
+      goto invalid;
+    }  /* if */
+
+    Dyn_array<an_ifc_decl_index> captures =
+                              find_lambda_captures_in_scope(class_members_idx);
+    an_ifc_decl_index call_operator_idx = *opt_call_operator_idx;
+    cache_token(cache, tok_assign);
+    cache_lambda_captures(cache, captures);
+    cache_lambda_parameters(cache, call_operator_idx, /*cinfo=*/{});
+    cache_lambda_specifier_seq(cache, call_operator_idx);
+    cache_lambda_return_type(cache, call_operator_idx);
+    cache_lambda_body(cache, call_operator_idx);
+  }
+  goto done;
+invalid:
+  expect_error_str("expected errors for bad lambda");
+  cache->invalidate();
+done:;
+}  /* cache_var_closure_initializer */
 
 
 template<typename a_Name_Cache_Fn, typename a_Scope_Cache_Fn>
@@ -21038,10 +21719,10 @@ this is needed.
         if (!validate(decl)) {
           goto invalid;
         }  /* if */
-        /* Check for the special case of a closure type.  Such a type cannot be
-           expressed as a normal type name, but it can appear when "auto" was
-           used as a type specifier. */
-        if (is_closure_decl(decl)) {
+        /* Check for the special case of a closure type declared in local
+           scope.  Such a type cannot be expressed as a normal type name, but
+           it can appear when "auto" was used as a type specifier. */
+        if (is_local_closure_decl(decl)) {
           cache_token(cache, tok_auto);
         } else if (cinfo.inline_data_member_type) {
           auto cache_content = [cinfo](a_module_token_cache *content_cache,
@@ -21231,18 +21912,9 @@ this is needed.
           goto invalid;
         }  /* if */
 
-        an_ifc_type_qualified     itq = *opt_itq;
-        an_ifc_qualifier_bitfield qualifiers = get_ifc_qualifiers(itq);
+        an_ifc_type_qualified itq = *opt_itq;
         cache_type_first_part(cache, get_ifc_unqualified(itq), cinfo);
-        if (test_bitmask<ifc_qb_const>(qualifiers)) {
-          cache_token(cache, tok_const);
-        }  /* if */
-        if (test_bitmask<ifc_qb_volatile>(qualifiers)) {
-          cache_token(cache, tok_volatile);
-        }  /* if */
-        if (test_bitmask<ifc_qb_restrict>(qualifiers)) {
-          cache_token(cache, tok_restrict);
-        }  /* if */
+        cache_qual_type_qualifiers(cache, itq);
       }
       break;
     case ifc_ts_type_base:
@@ -25781,6 +26453,44 @@ done:
 }  /* cache_edg_token_cache */
 
 
+static a_boolean is_member_access_expr(const an_ifc_expr_dyad &expr)
+/*
+Return TRUE if the given ExprDyad represents an access to a class member (e.g.,
+'this' '->' identifier); otherwise, return FALSE.
+*/
+{
+  a_boolean         result = FALSE;
+  an_ifc_expr_index arg_0 = get_ifc_argument_0(expr);
+
+  if (arg_0.sort == ifc_es_expr_read) {
+    Opt<an_ifc_expr_read> opt_read_expr;
+
+    construct_node(&opt_read_expr, arg_0);
+    if (opt_read_expr.has_value()) {
+      an_ifc_expr_read  read_expr = *opt_read_expr;
+      an_ifc_expr_index address_idx = get_ifc_address(read_expr);
+
+      if (address_idx.sort == ifc_es_expr_named_decl) {
+        Opt<an_ifc_expr_named_decl> opt_named_decl_expr;
+
+        construct_node(&opt_named_decl_expr, address_idx);
+        if (opt_named_decl_expr.has_value()) {
+          an_ifc_expr_named_decl named_decl_expr = *opt_named_decl_expr;
+          an_ifc_decl_index      named_decl_idx =
+                                           get_ifc_resolution(named_decl_expr);
+
+          Opt<a_string> opt_decl_name = name_of_decl(named_decl_idx);
+          if (opt_decl_name.has_value() && *opt_decl_name == "this") {
+            result = TRUE;
+          }  /* if */
+        }  /* if */
+      }  /* if */
+    }  /* if */
+  }  /* if */
+  return result;
+}  /* is_member_access_expr */
+
+
 static void cache_expr(a_module_token_cache_ptr cache,
                        an_ifc_expr_index        expr,
                        const an_ifc_cache_info  &cinfo)
@@ -26192,87 +26902,104 @@ tuple elements by '::' instead of ','.
           goto invalid;
         }  /* if */
 
-        an_ifc_expr_dyad            ied = *opt_ied;
-        an_ifc_dyadic_operator_sort assoc = get_ifc_assoc(ied);
-        an_operator_kind            opkind =
+        an_ifc_expr_dyad ied = *opt_ied;
+        if (is_member_access_expr(ied)) {
+          an_ifc_expr_index arg_1 = get_ifc_argument_1(ied);
+
+          if (!cinfo.in_lambda_body) {
+            /* The IFC at the time of writing represents lambdas as classes.
+               Captures for the lambda are represented as members.  Thus if a
+               member access expression occurs "inside of a lambda", this is a
+               capture, and only the name of the capture should be cached. */
+            cache_token(cache, tok_this);
+            cache_token(cache, tok_arrow);
+          }  /* if */
+          cache_expr(cache, arg_1, cinfo);
+        } else {
+          an_ifc_dyadic_operator_sort assoc = get_ifc_assoc(ied);
+          an_operator_kind            opkind =
                                       get_operator_kind(module_of(ied), assoc);
-        an_ifc_expr_index           arg_0 = get_ifc_argument_0(ied);
-        an_ifc_expr_index           arg_1 = get_ifc_argument_1(ied);
-        switch (opkind) {
-          case opkind_error:
-          case opkind_post:
-          case opkind_annotative:
-          case opkind_other:
-            ifc_unexpected(mod, "Unexpected operator kind");
-            goto invalid;
-          case opkind_basic:
-            { an_ifc_cache_info  cache_info = cinfo;
-              if (assoc != ifc_dos_assign) {
-                /* Parenthesize dyadic operators to capture the precedence
-                   that is implicit in the tree form, but not in the rendered
-                   form. */
-                cache_info.nested_expr = TRUE;
-              }  /* if */
-              if (cache_info.nested_expr) {
-                cache_token(cache, tok_lparen);
-              }  /* if */
-              if (!cache_info.skip_assign || assoc != ifc_dos_assign) {
-                an_ifc_cache_info lhs_cache_info = cache_info;
-                lhs_cache_info.possible_temporary_decl = TRUE;
-                cache_expr(cache, arg_0, lhs_cache_info);
+          an_ifc_expr_index           arg_0 = get_ifc_argument_0(ied);
+          an_ifc_expr_index           arg_1 = get_ifc_argument_1(ied);
+
+          switch (opkind) {
+            case opkind_error:
+            case opkind_post:
+            case opkind_annotative:
+            case opkind_other:
+              ifc_unexpected(mod, "Unexpected operator kind");
+              goto invalid;
+            case opkind_basic:
+              { an_ifc_cache_info  cache_info = cinfo;
+
+                if (assoc != ifc_dos_assign) {
+                  /* Parenthesize dyadic operators to capture the precedence
+                     that is implicit in the tree form, but not in the rendered
+                     form. */
+                  cache_info.nested_expr = TRUE;
+                }  /* if */
+                if (cache_info.nested_expr) {
+                  cache_token(cache, tok_lparen);
+                }  /* if */
+                if (!cache_info.skip_assign || assoc != ifc_dos_assign) {
+                  an_ifc_cache_info lhs_cache_info = cache_info;
+
+                  lhs_cache_info.possible_temporary_decl = TRUE;
+                  cache_expr(cache, arg_0, lhs_cache_info);
+                  mod->cache_operator(cache, assoc);
+                }  /* if */
+                cache_expr(cache, arg_1, cache_info);
+                if (cache_info.nested_expr) {
+                  cache_token(cache, tok_rparen);
+                }  /* if */
+              }
+              break;
+            case opkind_func_like:
+              if (assoc == ifc_dos_msvc_align) {
+                /* An expression like "this->i" is represented in IFC files as
+                   "this->__MsvcAlign(4, i)".  That has no equivalent in the
+                   EDG IL.  So just cache the second argument. */
+                cache_expr(cache, arg_1, cinfo);
+              } else {
                 mod->cache_operator(cache, assoc);
-              }  /* if */
-              cache_expr(cache, arg_1, cache_info);
-              if (cache_info.nested_expr) {
+                cache_token(cache, tok_lparen);
+                cache_expr(cache, arg_0, cinfo);
+                cache_token(cache, tok_comma);
+                cache_expr(cache, arg_1, cinfo);
                 cache_token(cache, tok_rparen);
               }  /* if */
-            }
-            break;
-          case opkind_func_like:
-            if (assoc == ifc_dos_msvc_align) {
-              /* An expression like "this->i" is represented in IFC files as
-                 "this->__MsvcAlign(4, i)".  That has no equivalent in the
-                 EDG IL.  So just cache the second argument. */
-              cache_expr(cache, arg_1, cinfo);
-            } else {
+              break;
+            case opkind_cpp_cast:
               mod->cache_operator(cache, assoc);
-              cache_token(cache, tok_lparen);
+              FALLTHROUGH
+            case opkind_c_cast:
+              if (opkind == opkind_c_cast) {
+                cache_token(cache, tok_lparen);
+              } else {
+                cache_token(cache, tok_lt);
+              }  /* if */
               cache_expr(cache, arg_0, cinfo);
-              cache_token(cache, tok_comma);
+              if (opkind == opkind_c_cast) {
+                cache_token(cache, tok_rparen);
+              } else {
+                cache_token(cache, tok_gt);
+              }  /* if */
+              cache_token(cache, tok_lparen);
               cache_expr(cache, arg_1, cinfo);
               cache_token(cache, tok_rparen);
-            }  /* if */
-            break;
-          case opkind_cpp_cast:
-            mod->cache_operator(cache, assoc);
-            FALLTHROUGH
-          case opkind_c_cast:
-            if (opkind == opkind_c_cast) {
-              cache_token(cache, tok_lparen);
-            } else {
-              cache_token(cache, tok_lt);
-            }  /* if */
-            cache_expr(cache, arg_0, cinfo);
-            if (opkind == opkind_c_cast) {
-              cache_token(cache, tok_rparen);
-            } else {
-              cache_token(cache, tok_gt);
-            }  /* if */
-            cache_token(cache, tok_lparen);
-            cache_expr(cache, arg_1, cinfo);
-            cache_token(cache, tok_rparen);
-            break;
-          case opkind_new:
-            cache_token(cache, tok_new);
-            cache_expr(cache, arg_0, cinfo);
-            /* FIXME: at the time of writing the parens are included in the
-               caching of arg_1; this is likely not reliable (we'll probably
-               want to apply a mechanism that caches parens unless the operand
-               has its own parens). */
-            cache_expr(cache, arg_1, cinfo);
-            break;
-          default_is_unexpected();
-        }  /* switch */
+              break;
+            case opkind_new:
+              cache_token(cache, tok_new);
+              cache_expr(cache, arg_0, cinfo);
+              /* FIXME: at the time of writing the parens are included in the
+                 caching of arg_1; this is likely not reliable (we'll probably
+                 want to apply a mechanism that caches parens unless the
+                 operand has its own parens). */
+              cache_expr(cache, arg_1, cinfo);
+              break;
+            default_is_unexpected();
+          }  /* switch */
+        }  /* if */
       }
       break;
     case ifc_es_expr_triad:
@@ -27696,8 +28423,7 @@ Add the tokens corresponding to the given name to cache.
         }  /* if */
 
         an_ifc_name_operator ino = *opt_ino;
-        an_operator_kind     opkind = get_operator_kind(module_of(ino),
-                                                        get_ifc_operator(ino));
+        an_operator_kind     opkind = get_operator_kind(ino);
         if (opkind == opkind_c_cast || opkind == opkind_cpp_cast) {
           ifc_unexpected(this, "Unexpected operator kind");
           goto invalid;

@@ -147,12 +147,13 @@ struct an_ifc_cache_info_zero_bits {
   a_bit_field   possible_temporary_decl:1;
                         /* TRUE if the entity being cached could potentially
                            be a temporary declaration. */
-  a_bit_field   func_body:1;
-                        /* TRUE if the entity being cached is the top-level
-                           function body statement. */
   a_bit_field   in_block_scope:1;
                         /* TRUE if the entities being cached are part of a
                            block scope. */
+  a_bit_field   in_lambda_body:1;
+                        /* TRUE if currently processing a lambda. */
+  a_bit_field   in_generic_lambda:1;
+                        /* TRUE if currently processing a generic lambda. */
   a_bit_field   is_specialization:1;
                         /* TRUE if the entity being cached is a template
                            specialization. */
