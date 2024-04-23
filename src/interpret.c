@@ -9146,12 +9146,13 @@ future reattempt conditions.
 
     a_scope_stack_entry_ptr ssep = &scope_stack_top();
     if (ssep->in_field_initializer && !is_lambda_body_scope(ssep)) {
-      /* This builtin appears in a field initializer reconsider this expression
-         later when setting up the initializer itself.  The exception to this
-         rule is when the builtin appears in a lambda within the field
-         initializer, in this case, there's no reason to reattempt evaluation
-         (a lambda body is one of the simple cases where the source location
-         builtin should return the source location where it was written). */
+      /* This builtin appears in a field initializer, so we will reconsider
+         this expression later when setting up the initializer itself.  The
+         exception to this rule is when the builtin appears in a lambda within
+         the field initializer; in this case, there's no reason to reattempt
+         evaluation (a lambda body is one of the simple cases where the source
+         location builtin should return the source location where it was
+         written). */
       ips->reattempt_state.default_mem_init = TRUE;
       result = TRUE;
     }  /* if */
