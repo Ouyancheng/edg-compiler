@@ -371,10 +371,9 @@ integer representation's chunks.  See the documentation of
 Integer_translator::parts and Integer_translator::remainder to understand the
 semantics of the operation.
 
-The given capacity value is the
-pre-allocated storage capacity available for use by the dynamic array of
-an_Integral_type values.  This should typically correspond with the expected
-number of target integer representation chunks.
+The given capacity value is the pre-allocated storage capacity available for
+use by the dynamic array of an_Integral_type values.  This should typically
+correspond with the expected number of target integer representation chunks.
 */
 template<typename an_Integral_type, unsigned a_Capacity>
 struct Integer_translator {
