@@ -2474,9 +2474,9 @@ extern a_statement_ptr make_call_assignment_statement(
                                             a_source_position *err_pos);
 
 extern a_boolean is_uuidof_expr(an_expr_node_ptr expr,
-                                a_boolean        *is_type,
-                                an_expr_node_ptr *op_expr,
-                                a_type_ptr       *type);
+                                a_boolean        *p_is_type = NULL,
+                                an_expr_node_ptr *p_op_expr = NULL,
+                                a_type_ptr       *p_type = NULL);
 
 extern void make_selection_rescan_operands(
                              a_rescan_control_block  *rcblock,

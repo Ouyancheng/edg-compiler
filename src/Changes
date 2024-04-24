@@ -1,5 +1,15 @@
 Version 6.7
 
+4/24/24  [EDGcpfe/27194]
+Microsoft compatibility: decltype(__uuidof(...))
+
+The Microsoft __uuidof operator produces an lvalue of type _GUID const.
+Previously, the front end therefore produced a reference type when the
+decltype operator is applied to a use of the __uuidof operator.  However,
+it appears MSVC instead produces the non-reference type _GUID const.  The
+front end now emulates that behavior.
+
+
 4/22/24  [EDGcpfe/27147]
 Crash when compiling source location builtins in default member initializers
 

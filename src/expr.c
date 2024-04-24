@@ -16233,6 +16233,12 @@ id_case:
       goto general_case;
     }  /* if */
     *no_parens_matters = TRUE;
+  } else if (microsoft_mode && expr != NULL && expr->is_lvalue &&
+             is_uuidof_expr(expr) && !expr_is_instantiation_dependent(expr)) {
+    /* Although __uuidof(expr) produces an lvalue result, MSVC produce its
+       expression type (_GUID const) as the decltype result instead of a
+       reference type as would be expected. */
+    result = operand->type;
   } else {
 general_case:
     /* General case: The type T of the expression, or T& if the expression

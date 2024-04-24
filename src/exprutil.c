@@ -5178,23 +5178,23 @@ in a __builtin_offsetof.
 
 
 a_boolean is_uuidof_expr(an_expr_node_ptr expr,
-                         a_boolean        *is_type,
-                         an_expr_node_ptr *op_expr,
-                         a_type_ptr       *type)
+       /* Defaulted: */  a_boolean        *p_is_type,
+       /* Defaulted: */  an_expr_node_ptr *p_op_expr,
+       /* Defaulted: */  a_type_ptr       *p_type)
 /*
 Return TRUE if the indicated expression is the IL that represents a
 Microsoft __uuidof construct, i.e., a "*" operator on top of a constant
-that gives the address of a GUID for a uuidof.  When TRUE if returned,
+that gives the address of a GUID for a uuidof.  When TRUE is returned,
+and if is_type, op_expr, and type are non-NULL (they default to NULL),
 *is_type is returned TRUE to indicate the __uuidof is applied to a type
 (which is returned in *type) or FALSE to indicate it is applied to an
 expression (which is returned in *op_expr).
 */
 {
-  a_boolean is_uuidof = FALSE;
+  a_boolean     is_uuidof = FALSE, is_type = FALSE;
+  a_type        *type = NULL;
+  an_expr_node  *op_expr = NULL;
 
-  *is_type = FALSE;
-  *type = NULL;
-  *op_expr = NULL;
   if (is_operation_node(expr) && expr->compiler_generated &&
       node_operator_is(expr, eok_indirect)) {
     /* The expression has a generated "*" on top.  Look underneath to
@@ -5203,24 +5203,26 @@ expression (which is returned in *op_expr).
     if (is_constant_node(expr)) {
       a_constant_ptr con = node_constant(expr);
       if (constant_is(con, ck_address)) {
-        if (con->variant.address.kind == (an_address_base_kind)abk_uuidof) {
+        if (con->variant.address.kind == abk_uuidof) {
           is_uuidof = TRUE;
-          *is_type = TRUE;
-          *type = con->variant.address.variant.type;
+          is_type = TRUE;
+          type = con->variant.address.variant.type;
         }  /* if */
       } else if (constant_is(con, ck_template_param)) {
-        if (con->variant.template_param.kind ==
-                                 (a_template_param_constant_kind)tpck_uuidof) {
+        if (con->variant.template_param.kind == tpck_uuidof) {
           is_uuidof = TRUE;
-          *op_expr = generic_sizeof_arg_expr(con);
-          *is_type = (*op_expr == NULL);
-          if (*is_type) {
-            *type = con->variant.template_param.variant.templ_sizeof.type;
+          op_expr = generic_sizeof_arg_expr(con);
+          is_type = (op_expr == NULL);
+          if (is_type) {
+            type = con->variant.template_param.variant.templ_sizeof.type;
           }  /* if */
         }  /* if */
       }  /* if */
     }  /* if */
   }  /* if */
+  if (p_is_type != NULL) *p_is_type = is_type;
+  if (p_type != NULL) *p_type = type;
+  if (p_op_expr != NULL) *p_op_expr = op_expr;
   return is_uuidof;
 }  /* is_uuidof_expr */
 
