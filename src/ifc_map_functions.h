@@ -37034,17 +37034,47 @@ extern an_ifc_partition_kind to_partition_kind(an_ifc_type_sort sort);
 Visitor functions for validating the nodes at a given index.
 */
 
+extern a_boolean validate(an_ifc_attr_index idx);
+
+extern a_boolean validate(an_ifc_chart_index idx);
+
 extern a_boolean validate(an_ifc_decl_index idx);
+
+extern a_boolean validate(an_ifc_dir_index idx);
+
+extern a_boolean validate(an_ifc_edg_complex_token_index idx);
+
+extern a_boolean validate(an_ifc_edg_constant_index idx);
+
+extern a_boolean validate(an_ifc_edg_constant_integer_word_offset idx);
+
+extern a_boolean validate(an_ifc_edg_heap_complex_token_offset idx);
+
+extern a_boolean validate(an_ifc_edg_token_basic_offset idx);
+
+extern a_boolean validate(an_ifc_edg_token_cache_offset idx);
 
 extern a_boolean validate(an_ifc_expr_index idx);
 
+extern a_boolean validate(an_ifc_expr_named_decl_offset idx);
+
 extern a_boolean validate(an_ifc_form_index idx);
 
+extern a_boolean validate(an_ifc_form_spec_offset idx);
+
+extern a_boolean validate(an_ifc_line_offset idx);
+
 extern a_boolean validate(an_ifc_macro_index idx);
+
+extern a_boolean validate(an_ifc_name_index idx);
+
+extern a_boolean validate(an_ifc_scope_offset idx);
 
 extern a_boolean validate(an_ifc_stmt_index idx);
 
 extern a_boolean validate(an_ifc_syntax_index idx);
+
+extern a_boolean validate(an_ifc_type_index idx);
 
 /*
 Visitor functions for retrieving access values from nodes on the DeclIndex.

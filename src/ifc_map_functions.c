@@ -49565,6 +49565,110 @@ Visitor functions for validating the nodes at a given index.
 */
 
 
+a_boolean validate(an_ifc_attr_index idx)
+/*
+Given the AttrIndex, validate the associated node.  Return TRUE if the node's
+representation is valid; otherwise, return FALSE.
+*/
+{
+  a_boolean result = FALSE;
+
+  switch (idx.sort) {
+    case ifc_as_attr_basic:
+      { Opt<an_ifc_attr_basic> opt_universal;
+
+        construct_node(&opt_universal, idx);
+        result = opt_universal.has_value();
+      }
+      break;
+    case ifc_as_attr_called:
+      { Opt<an_ifc_attr_called> opt_universal;
+
+        construct_node(&opt_universal, idx);
+        result = opt_universal.has_value();
+      }
+      break;
+    case ifc_as_attr_elaborated:
+      { Opt<an_ifc_attr_elaborated> opt_universal;
+
+        construct_node(&opt_universal, idx);
+        result = opt_universal.has_value();
+      }
+      break;
+    case ifc_as_attr_expanded:
+      { Opt<an_ifc_attr_expanded> opt_universal;
+
+        construct_node(&opt_universal, idx);
+        result = opt_universal.has_value();
+      }
+      break;
+    case ifc_as_attr_factored:
+      { Opt<an_ifc_attr_factored> opt_universal;
+
+        construct_node(&opt_universal, idx);
+        result = opt_universal.has_value();
+      }
+      break;
+    case ifc_as_attr_labeled:
+      { Opt<an_ifc_attr_labeled> opt_universal;
+
+        construct_node(&opt_universal, idx);
+        result = opt_universal.has_value();
+      }
+      break;
+    case ifc_as_attr_scoped:
+      { Opt<an_ifc_attr_scoped> opt_universal;
+
+        construct_node(&opt_universal, idx);
+        result = opt_universal.has_value();
+      }
+      break;
+    case ifc_as_attr_tuple:
+      { Opt<an_ifc_attr_tuple> opt_universal;
+
+        construct_node(&opt_universal, idx);
+        result = opt_universal.has_value();
+      }
+      break;
+    default:
+      unexpected_condition_str("No known way to validate partition kind.");
+      break;
+  }  /* switch */
+  return result;
+}  /* validate */
+
+
+a_boolean validate(an_ifc_chart_index idx)
+/*
+Given the ChartIndex, validate the associated node.  Return TRUE if the node's
+representation is valid; otherwise, return FALSE.
+*/
+{
+  a_boolean result = FALSE;
+
+  switch (idx.sort) {
+    case ifc_cs_chart_multilevel:
+      { Opt<an_ifc_chart_multilevel> opt_universal;
+
+        construct_node(&opt_universal, idx);
+        result = opt_universal.has_value();
+      }
+      break;
+    case ifc_cs_chart_unilevel:
+      { Opt<an_ifc_chart_unilevel> opt_universal;
+
+        construct_node(&opt_universal, idx);
+        result = opt_universal.has_value();
+      }
+      break;
+    default:
+      unexpected_condition_str("No known way to validate partition kind.");
+      break;
+  }  /* switch */
+  return result;
+}  /* validate */
+
+
 a_boolean validate(an_ifc_decl_index idx)
 /*
 Given the DeclIndex, validate the associated node.  Return TRUE if the node's
@@ -49739,13 +49843,7 @@ representation is valid; otherwise, return FALSE.
       { Opt<an_ifc_decl_reference> opt_universal;
 
         construct_node(&opt_universal, idx);
-        if (opt_universal.has_value()) {
-          an_ifc_decl_index remote_idx = get_ifc_index(*opt_universal);
-
-          if (validate(remote_idx)) {
-            result = TRUE;
-          }  /* if */
-        }  /* if */
+        result = opt_universal.has_value();
       }
       break;
     case ifc_ds_decl_scope:
@@ -49809,6 +49907,179 @@ representation is valid; otherwise, return FALSE.
       break;
   }  /* switch */
   return result;
+}  /* validate */
+
+
+a_boolean validate(an_ifc_dir_index idx)
+/*
+Given the DirIndex, validate the associated node.  Return TRUE if the node's
+representation is valid; otherwise, return FALSE.
+*/
+{
+  a_boolean result = FALSE;
+
+  switch (idx.sort) {
+    case ifc_ds_dir_attribute:
+      { Opt<an_ifc_dir_attribute> opt_universal;
+
+        construct_node(&opt_universal, idx);
+        result = opt_universal.has_value();
+      }
+      break;
+    case ifc_ds_dir_decl_use:
+      { Opt<an_ifc_dir_decl_use> opt_universal;
+
+        construct_node(&opt_universal, idx);
+        result = opt_universal.has_value();
+      }
+      break;
+    case ifc_ds_dir_empty:
+      { Opt<an_ifc_dir_empty> opt_universal;
+
+        construct_node(&opt_universal, idx);
+        result = opt_universal.has_value();
+      }
+      break;
+    case ifc_ds_dir_expr:
+      { Opt<an_ifc_dir_expr> opt_universal;
+
+        construct_node(&opt_universal, idx);
+        result = opt_universal.has_value();
+      }
+      break;
+    case ifc_ds_dir_pragma:
+      { Opt<an_ifc_dir_pragma> opt_universal;
+
+        construct_node(&opt_universal, idx);
+        result = opt_universal.has_value();
+      }
+      break;
+    case ifc_ds_dir_tuple:
+      { Opt<an_ifc_dir_tuple> opt_universal;
+
+        construct_node(&opt_universal, idx);
+        result = opt_universal.has_value();
+      }
+      break;
+    case ifc_ds_dir_using:
+      { Opt<an_ifc_dir_using> opt_universal;
+
+        construct_node(&opt_universal, idx);
+        result = opt_universal.has_value();
+      }
+      break;
+    default:
+      unexpected_condition_str("No known way to validate partition kind.");
+      break;
+  }  /* switch */
+  return result;
+}  /* validate */
+
+
+a_boolean validate(an_ifc_edg_complex_token_index idx)
+/*
+Given the EdgComplexTokenIndex, validate the associated node.  Return TRUE if
+the node's representation is valid; otherwise, return FALSE.
+*/
+{
+  a_boolean result = FALSE;
+
+  switch (idx.sort) {
+    case ifc_ects_edg_token_constant:
+      { Opt<an_ifc_edg_token_constant> opt_universal;
+
+        construct_node(&opt_universal, idx);
+        result = opt_universal.has_value();
+      }
+      break;
+    case ifc_ects_edg_token_identifier:
+      { Opt<an_ifc_edg_token_identifier> opt_universal;
+
+        construct_node(&opt_universal, idx);
+        result = opt_universal.has_value();
+      }
+      break;
+    default:
+      unexpected_condition_str("No known way to validate partition kind.");
+      break;
+  }  /* switch */
+  return result;
+}  /* validate */
+
+
+a_boolean validate(an_ifc_edg_constant_index idx)
+/*
+Given the EdgConstantIndex, validate the associated node.  Return TRUE if the
+node's representation is valid; otherwise, return FALSE.
+*/
+{
+  a_boolean result = FALSE;
+
+  switch (idx.sort) {
+    case ifc_ecs_edg_constant_integer:
+      { Opt<an_ifc_edg_constant_integer> opt_universal;
+
+        construct_node(&opt_universal, idx);
+        result = opt_universal.has_value();
+      }
+      break;
+    default:
+      unexpected_condition_str("No known way to validate partition kind.");
+      break;
+  }  /* switch */
+  return result;
+}  /* validate */
+
+
+a_boolean validate(an_ifc_edg_constant_integer_word_offset idx)
+/*
+Given the EdgConstantIntegerWordOffset, validate the associated node.  Return
+TRUE if the node's representation is valid; otherwise, return FALSE.
+*/
+{
+  Opt<an_ifc_edg_constant_integer_word> opt_universal;
+
+  construct_node(&opt_universal, idx);
+  return opt_universal.has_value();
+}  /* validate */
+
+
+a_boolean validate(an_ifc_edg_heap_complex_token_offset idx)
+/*
+Given the EdgHeapComplexTokenOffset, validate the associated node.  Return TRUE
+if the node's representation is valid; otherwise, return FALSE.
+*/
+{
+  Opt<an_ifc_edg_heap_complex_token> opt_universal;
+
+  construct_node(&opt_universal, idx);
+  return opt_universal.has_value();
+}  /* validate */
+
+
+a_boolean validate(an_ifc_edg_token_basic_offset idx)
+/*
+Given the EdgTokenBasicOffset, validate the associated node.  Return TRUE if
+the node's representation is valid; otherwise, return FALSE.
+*/
+{
+  Opt<an_ifc_edg_token_basic> opt_universal;
+
+  construct_node(&opt_universal, idx);
+  return opt_universal.has_value();
+}  /* validate */
+
+
+a_boolean validate(an_ifc_edg_token_cache_offset idx)
+/*
+Given the EdgTokenCacheOffset, validate the associated node.  Return TRUE if
+the node's representation is valid; otherwise, return FALSE.
+*/
+{
+  Opt<an_ifc_edg_token_cache> opt_universal;
+
+  construct_node(&opt_universal, idx);
+  return opt_universal.has_value();
 }  /* validate */
 
 
@@ -50235,6 +50506,19 @@ representation is valid; otherwise, return FALSE.
 }  /* validate */
 
 
+a_boolean validate(an_ifc_expr_named_decl_offset idx)
+/*
+Given the ExprNamedDeclOffset, validate the associated node.  Return TRUE if
+the node's representation is valid; otherwise, return FALSE.
+*/
+{
+  Opt<an_ifc_expr_named_decl> opt_universal;
+
+  construct_node(&opt_universal, idx);
+  return opt_universal.has_value();
+}  /* validate */
+
+
 a_boolean validate(an_ifc_form_index idx)
 /*
 Given the FormIndex, validate the associated node.  Return TRUE if the node's
@@ -50357,6 +50641,32 @@ representation is valid; otherwise, return FALSE.
 }  /* validate */
 
 
+a_boolean validate(an_ifc_form_spec_offset idx)
+/*
+Given the FormSpecOffset, validate the associated node.  Return TRUE if the
+node's representation is valid; otherwise, return FALSE.
+*/
+{
+  Opt<an_ifc_form_spec> opt_universal;
+
+  construct_node(&opt_universal, idx);
+  return opt_universal.has_value();
+}  /* validate */
+
+
+a_boolean validate(an_ifc_line_offset idx)
+/*
+Given the LineOffset, validate the associated node.  Return TRUE if the node's
+representation is valid; otherwise, return FALSE.
+*/
+{
+  Opt<an_ifc_source_line> opt_universal;
+
+  construct_node(&opt_universal, idx);
+  return opt_universal.has_value();
+}  /* validate */
+
+
 a_boolean validate(an_ifc_macro_index idx)
 /*
 Given the MacroIndex, validate the associated node.  Return TRUE if the node's
@@ -50385,6 +50695,85 @@ representation is valid; otherwise, return FALSE.
       break;
   }  /* switch */
   return result;
+}  /* validate */
+
+
+a_boolean validate(an_ifc_name_index idx)
+/*
+Given the NameIndex, validate the associated node.  Return TRUE if the node's
+representation is valid; otherwise, return FALSE.
+*/
+{
+  a_boolean result = FALSE;
+
+  switch (idx.sort) {
+    case ifc_ns_name_conversion:
+      { Opt<an_ifc_name_conversion> opt_universal;
+
+        construct_node(&opt_universal, idx);
+        result = opt_universal.has_value();
+      }
+      break;
+    case ifc_ns_name_guide:
+      { Opt<an_ifc_name_guide> opt_universal;
+
+        construct_node(&opt_universal, idx);
+        result = opt_universal.has_value();
+      }
+      break;
+    case ifc_ns_name_literal:
+      { Opt<an_ifc_name_literal> opt_universal;
+
+        construct_node(&opt_universal, idx);
+        result = opt_universal.has_value();
+      }
+      break;
+    case ifc_ns_name_operator:
+      { Opt<an_ifc_name_operator> opt_universal;
+
+        construct_node(&opt_universal, idx);
+        result = opt_universal.has_value();
+      }
+      break;
+    case ifc_ns_name_source_file:
+      { Opt<an_ifc_name_source_file> opt_universal;
+
+        construct_node(&opt_universal, idx);
+        result = opt_universal.has_value();
+      }
+      break;
+    case ifc_ns_name_specialization:
+      { Opt<an_ifc_name_specialization> opt_universal;
+
+        construct_node(&opt_universal, idx);
+        result = opt_universal.has_value();
+      }
+      break;
+    case ifc_ns_name_template:
+      { Opt<an_ifc_name_template> opt_universal;
+
+        construct_node(&opt_universal, idx);
+        result = opt_universal.has_value();
+      }
+      break;
+    default:
+      unexpected_condition_str("No known way to validate partition kind.");
+      break;
+  }  /* switch */
+  return result;
+}  /* validate */
+
+
+a_boolean validate(an_ifc_scope_offset idx)
+/*
+Given the ScopeOffset, validate the associated node.  Return TRUE if the node's
+representation is valid; otherwise, return FALSE.
+*/
+{
+  Opt<an_ifc_scope_descriptor> opt_universal;
+
+  construct_node(&opt_universal, idx);
+  return opt_universal.has_value();
 }  /* validate */
 
 
@@ -51319,6 +51708,170 @@ representation is valid; otherwise, return FALSE.
       break;
     case ifc_ss_syntax_while_statement:
       { Opt<an_ifc_syntax_while_statement> opt_universal;
+
+        construct_node(&opt_universal, idx);
+        result = opt_universal.has_value();
+      }
+      break;
+    default:
+      unexpected_condition_str("No known way to validate partition kind.");
+      break;
+  }  /* switch */
+  return result;
+}  /* validate */
+
+
+a_boolean validate(an_ifc_type_index idx)
+/*
+Given the TypeIndex, validate the associated node.  Return TRUE if the node's
+representation is valid; otherwise, return FALSE.
+*/
+{
+  a_boolean result = FALSE;
+
+  switch (idx.sort) {
+    case ifc_ts_type_array:
+      { Opt<an_ifc_type_array> opt_universal;
+
+        construct_node(&opt_universal, idx);
+        result = opt_universal.has_value();
+      }
+      break;
+    case ifc_ts_type_base:
+      { Opt<an_ifc_type_base> opt_universal;
+
+        construct_node(&opt_universal, idx);
+        result = opt_universal.has_value();
+      }
+      break;
+    case ifc_ts_type_decltype:
+      { Opt<an_ifc_type_decltype> opt_universal;
+
+        construct_node(&opt_universal, idx);
+        result = opt_universal.has_value();
+      }
+      break;
+    case ifc_ts_type_designated:
+      { Opt<an_ifc_type_designated> opt_universal;
+
+        construct_node(&opt_universal, idx);
+        result = opt_universal.has_value();
+      }
+      break;
+    case ifc_ts_type_expansion:
+      { Opt<an_ifc_type_expansion> opt_universal;
+
+        construct_node(&opt_universal, idx);
+        result = opt_universal.has_value();
+      }
+      break;
+    case ifc_ts_type_forall:
+      { Opt<an_ifc_type_forall> opt_universal;
+
+        construct_node(&opt_universal, idx);
+        result = opt_universal.has_value();
+      }
+      break;
+    case ifc_ts_type_function:
+      { Opt<an_ifc_type_function> opt_universal;
+
+        construct_node(&opt_universal, idx);
+        result = opt_universal.has_value();
+      }
+      break;
+    case ifc_ts_type_fundamental:
+      { Opt<an_ifc_type_fundamental> opt_universal;
+
+        construct_node(&opt_universal, idx);
+        result = opt_universal.has_value();
+      }
+      break;
+    case ifc_ts_type_lvalue_reference:
+      { Opt<an_ifc_type_lvalue_reference> opt_universal;
+
+        construct_node(&opt_universal, idx);
+        result = opt_universal.has_value();
+      }
+      break;
+    case ifc_ts_type_method:
+      { Opt<an_ifc_type_method> opt_universal;
+
+        construct_node(&opt_universal, idx);
+        result = opt_universal.has_value();
+      }
+      break;
+    case ifc_ts_type_placeholder:
+      { Opt<an_ifc_type_placeholder> opt_universal;
+
+        construct_node(&opt_universal, idx);
+        result = opt_universal.has_value();
+      }
+      break;
+    case ifc_ts_type_pointer:
+      { Opt<an_ifc_type_pointer> opt_universal;
+
+        construct_node(&opt_universal, idx);
+        result = opt_universal.has_value();
+      }
+      break;
+    case ifc_ts_type_pointer_to_member:
+      { Opt<an_ifc_type_pointer_to_member> opt_universal;
+
+        construct_node(&opt_universal, idx);
+        result = opt_universal.has_value();
+      }
+      break;
+    case ifc_ts_type_qualified:
+      { Opt<an_ifc_type_qualified> opt_universal;
+
+        construct_node(&opt_universal, idx);
+        result = opt_universal.has_value();
+      }
+      break;
+    case ifc_ts_type_rvalue_reference:
+      { Opt<an_ifc_type_rvalue_reference> opt_universal;
+
+        construct_node(&opt_universal, idx);
+        result = opt_universal.has_value();
+      }
+      break;
+    case ifc_ts_type_syntactic:
+      { Opt<an_ifc_type_syntactic> opt_universal;
+
+        construct_node(&opt_universal, idx);
+        result = opt_universal.has_value();
+      }
+      break;
+    case ifc_ts_type_syntax_tree:
+      { Opt<an_ifc_type_syntax_tree> opt_universal;
+
+        construct_node(&opt_universal, idx);
+        result = opt_universal.has_value();
+      }
+      break;
+    case ifc_ts_type_tor:
+      { Opt<an_ifc_type_tor> opt_universal;
+
+        construct_node(&opt_universal, idx);
+        result = opt_universal.has_value();
+      }
+      break;
+    case ifc_ts_type_tuple:
+      { Opt<an_ifc_type_tuple> opt_universal;
+
+        construct_node(&opt_universal, idx);
+        result = opt_universal.has_value();
+      }
+      break;
+    case ifc_ts_type_typename:
+      { Opt<an_ifc_type_typename> opt_universal;
+
+        construct_node(&opt_universal, idx);
+        result = opt_universal.has_value();
+      }
+      break;
+    case ifc_ts_type_unaligned:
+      { Opt<an_ifc_type_unaligned> opt_universal;
 
         construct_node(&opt_universal, idx);
         result = opt_universal.has_value();
