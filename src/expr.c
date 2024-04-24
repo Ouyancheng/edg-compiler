@@ -29046,6 +29046,10 @@ empty_parentheses:
           make_expression_operand(temp_init_node, result);
           force_operand_to_constant_if_possible(result);
 #endif /* GNU_VECTOR_TYPES_ALLOWED */
+        } else if (is_reflection_type(type_cast_to)) {
+          a_constant_ptr  refl_con = fs_constant(ck_reflection);
+          refl_con->type = type_cast_to;
+          make_constant_operand(refl_con, result);
         } else {
           /* A non-dependent scalar type followed by (); generate the value a
              static object of that type would get by default
