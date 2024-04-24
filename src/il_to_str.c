@@ -491,14 +491,23 @@ Output the indicated template argument in the way described by octl.
     case tak_type:
       /* Type argument. */
       { a_type_ptr                    tp = tap->variant.type;
-        a_routine_type_supplement_ptr rtsp;
-        /* MSVC has a bug that causes spurious errors in some cases when
-           a function declarator in a template argument uses a trailing
-           return type.  If this type would result in such a declarator,
-           temporarily turn off the trailing_return_type flag for the type
-           so the declarator will be put out in the traditional form and
-           restore it afterward. */
-        rtsp = suppress_trailing_return_type_for_msvc(tp, octl);
+        a_routine_type_supplement_ptr rtsp = NULL;
+        if (is_immediate_class_type(tp) &&
+            tp->variant.class_struct_union.proxy_class) {
+          /* Use the original dependent type and not the nonreal proxy
+             class for the display.  This matters in cases where the type
+             has a template argument list, which would not appear if the
+             proxy class were used. */
+          tp = class_type_supp(tp)->proxy_of_type;
+        } else {
+          /* MSVC has a bug that causes spurious errors in some cases when
+             a function declarator in a template argument uses a trailing
+             return type.  If this type would result in such a declarator,
+             temporarily turn off the trailing_return_type flag for the
+             type so the declarator will be put out in the traditional form
+             and restore it afterward. */
+          rtsp = suppress_trailing_return_type_for_msvc(tp, octl);
+        }  /* if */
         form_type(tp, octl);
         if (rtsp != NULL) {
           /* coverity[dead_error_line] */

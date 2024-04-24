@@ -10689,7 +10689,6 @@ Put out the list of direct base classes of the class associated with ctsp
       gen_access_specifier(bcdp->access);
     }  /* if */
     write_space();
-#if NONCLASS_TEMPLATE_INSTANTIATIONS_IN_SOURCE_SEQUENCE_LISTS
     if (bcp->orig_type != NULL && !bcp->orig_type->has_been_defined) {
       /* We cannot use the original specifier for the base class type
          because it has not yet been defined.  Use the class type, or
@@ -10702,11 +10701,10 @@ Put out the list of direct base classes of the class associated with ctsp
       }  /* if */
       gen_name(&base_type->source_corresp, iek_type,
                GN_BASE_SPECIFIER, (a_boolean *)NULL);
-    } else
-#endif /* NONCLASS_TEMPLATE_INSTANTIATIONS_IN_SOURCE_SEQUENCE_LISTS */
-    /* Do not insert code here. */
-    gen_name(&bcp->orig_type->source_corresp, iek_type,
-             GN_BASE_SPECIFIER, (a_boolean *)NULL);
+    } else {
+      gen_name(&bcp->orig_type->source_corresp, iek_type,
+               GN_BASE_SPECIFIER, (a_boolean *)NULL);
+    }  /* if */
     if (bcp->is_pack_expansion) write_tok_str("...");
   }  /* for */
 }  /* gen_base_class_list */
