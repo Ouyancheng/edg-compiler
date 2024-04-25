@@ -1,4 +1,4 @@
-/******************************************************************************
+******************************************************************************
 *                                                             \  ___  /       *
 *                                                               /   \         *
 * Edison Design Group C++/C Front End                        - | \^/ | -      *
@@ -16235,7 +16235,7 @@ id_case:
     *no_parens_matters = TRUE;
   } else if (microsoft_mode && expr != NULL && expr->is_lvalue &&
              is_uuidof_expr(expr) && !expr_is_instantiation_dependent(expr)) {
-    /* Although __uuidof(expr) produces an lvalue result, MSVC produce its
+    /* Although __uuidof(expr) produces an lvalue result, MSVC produces its
        expression type (_GUID const) as the decltype result instead of a
        reference type as would be expected. */
     result = operand->type;
