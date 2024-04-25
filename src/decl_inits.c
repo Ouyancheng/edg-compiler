@@ -5269,6 +5269,7 @@ returned set to TRUE.
   a_source_position                 pos_first_token;
   a_boolean                         class_reactivation_pushed = FALSE;
   a_decl_parse_state                *saved_decl_parse_state;
+  a_boolean                         saved_in_consteval_context;
   a_boolean                         namespace_reactivation_pushed = FALSE;
 
   db_enter(3, "initializer");
@@ -5463,6 +5464,10 @@ returned set to TRUE.
      set lambda parent entities and/or lambda discriminator values. */
   saved_decl_parse_state = scope_stack_top().decl_parse_state;
   scope_stack_top().decl_parse_state = dps;
+  saved_in_consteval_context = scope_stack_top().in_consteval_context;
+  if (vp != NULL && (vp->is_constexpr || vp->is_constinit)) {
+    scope_stack_top().in_consteval_context = TRUE;
+  }  /* if */
   /* In variable initializations, the initializer elements should each be
      treated as full expressions.  E.g., in "T x = { f(), g() };" both "f()"
      and "g()" are full expressions. */
@@ -6039,6 +6044,7 @@ returned set to TRUE.
 #endif /* EXTRA_SOURCE_POSITIONS_IN_IL */
   }  /* if */
   scope_stack_top().decl_parse_state = saved_decl_parse_state;
+  scope_stack_top().in_consteval_context = saved_in_consteval_context;
   if (symbol_ptr->is_class_member) {
     /* The initializer of a static data member was scanned with the original
        class reactivated (if we're parsing a prototype instantiation, this was

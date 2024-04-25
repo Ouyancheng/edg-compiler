@@ -3254,6 +3254,7 @@ the expr_stack).
   if (expr_stack->prev == NULL) {
     /* Full expression. */
     if (expr_stack->consteval_function_designator_seen &&
+        !expr_stack->consteval_call_need_not_fold &&
         !is_template_dependent_context()) {
       /* If a consteval function designator was recorded, make sure it hasn't
          "leaked". */
@@ -3317,6 +3318,7 @@ a previous error.
 #endif /* SEQUENCING_DIAGNOSTICS_ENABLED */
     }  /* if */
     if (expr_stack->consteval_function_designator_seen &&
+       !expr_stack->consteval_call_need_not_fold &&
         !scope_stack_top().in_field_initializer &&
         !is_template_dependent_context()) {
       diag_invalid_consteval_func_in_dyn_init(dip);

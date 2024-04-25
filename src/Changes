@@ -1,5 +1,24 @@
 Version 6.7
 
+4/25/24  [EDGcpfe/27198]
+Treat constexpr variable initializers as immediate contexts
+
+Previously, the invocation of a consteval function as subexpression of a
+constexpr variable initializer was required to be successfully constant-
+evaluated on its own.  Now, it is sufficient for that invocation to be
+successfully constant-evaluated as part of the constant-evaluation of the
+initializer as a whole.  For example:
+
+  #include <vector>
+  consteval std::vector<int> g() { return {1,2,3}; }
+  constexpr int n = g()[1];
+
+Previously, this example failed because the call "g()" on its own produces
+a vector with some dynamically allocated storage that is not deallocated as
+part of the call.  Now it succeeds because the evaluation of the initializer
+as a whole runs the destructor for the temporary produced by the call "g()".
+
+
 4/24/24  [EDGcpfe/27194]
 Microsoft compatibility: decltype(__uuidof(...))
 
