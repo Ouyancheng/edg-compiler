@@ -10476,7 +10476,7 @@ can only contain CLI interfaces.
                                                { (a_derivation_step_ptr)NULL,
                                                  (a_derivation_step_ptr)NULL },
                                                access);
-              bcp->orig_type = orig_base_class_type;
+              bcp->orig_type = skip_proxy_class(orig_base_class_type);
               bcp->direct = TRUE;
               bcp->direct_base_number = direct_base_number;
               bcp->decl_position = base_class_decl_pos;
@@ -10504,7 +10504,7 @@ can only contain CLI interfaces.
            base classes list. */
         new_direct_bcp = alloc_base_class();
         new_direct_bcp->type = base_class_type;
-        new_direct_bcp->orig_type = orig_base_class_type;
+        new_direct_bcp->orig_type = skip_proxy_class(orig_base_class_type);
         new_direct_bcp->derived_class = type_ptr;
         new_direct_bcp->decl_position = base_class_decl_pos;
         new_direct_bcp->direct = TRUE;

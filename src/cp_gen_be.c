@@ -10689,18 +10689,24 @@ Put out the list of direct base classes of the class associated with ctsp
       gen_access_specifier(bcdp->access);
     }  /* if */
     write_space();
-    if (is_immediate_class_type(bcp->orig_type) &&
-        bcp->orig_type->variant.class_struct_union.proxy_class) {
-      /* Use the original dependent type and not the nonreal proxy class
-         for the display.  This matters in cases where the type has a
-         template argument list, which would not appear if the proxy class
-         were used. */
-      gen_name(&class_type_supp(bcp->orig_type)->proxy_of_type->source_corresp,
-               iek_type, GN_BASE_SPECIFIER, (a_boolean *)NULL);
-    } else {
-      gen_name(&bcp->orig_type->source_corresp, iek_type,
+#if NONCLASS_TEMPLATE_INSTANTIATIONS_IN_SOURCE_SEQUENCE_LISTS
+    if (bcp->orig_type != NULL && !bcp->orig_type->has_been_defined) {
+      /* We cannot use the original specifier for the base class type
+         because it has not yet been defined.  Use the class type, or
+         the type for which it is a proxy, in the case of a dependent
+         type, instead. */
+      a_type_ptr base_type = class_type_supp(bcp->type)->proxy_of_type;
+      if (base_type == NULL) {
+        /* Not a proxy. */
+        base_type = bcp->type;
+      }  /* if */
+      gen_name(&base_type->source_corresp, iek_type,
                GN_BASE_SPECIFIER, (a_boolean *)NULL);
-    }  /* if */
+    } else
+#endif /* NONCLASS_TEMPLATE_INSTANTIATIONS_IN_SOURCE_SEQUENCE_LISTS */
+    /* Do not insert code here. */
+    gen_name(&bcp->orig_type->source_corresp, iek_type,
+             GN_BASE_SPECIFIER, (a_boolean *)NULL);
     if (bcp->is_pack_expansion) write_tok_str("...");
   }  /* for */
 }  /* gen_base_class_list */

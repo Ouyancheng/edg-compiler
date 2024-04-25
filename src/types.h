@@ -399,6 +399,7 @@ top of a class type).
          type_is(type, tk_union);
 }  /* is_immediate_class_type */
 
+
 inline a_boolean is_class_or_struct(a_type_ptr  type)
 /*
 Return TRUE if a type is a direct non-union class type.
@@ -407,17 +408,33 @@ Return TRUE if a type is a direct non-union class type.
   return type_is(type, tk_class) || type_is(type, tk_struct);
 }  /* is_class_or_struct */
 
-/*
-Return the list of fields of the given class, struct, or union type.
-*/
-#define fields_of(tp)                                                 \
-  ((tp)->variant.class_struct_union.field_list)
 
 /*
 Return a pointer to the associated class type supplement.
 */
 #define class_type_supp(tp)                                           \
   ((tp)->variant.class_struct_union.extra_info)
+
+
+inline a_type_ptr skip_proxy_class(a_type_ptr  type)
+/*
+If type is a proxy class, return the associated original type.  Otherwise,
+return type.
+*/
+{
+  if (type_is(type, tk_class) &&
+      type->variant.class_struct_union.proxy_class) {
+    type = class_type_supp(type)->proxy_of_type;
+    check_assertion(type != NULL);
+  }  /* if */
+  return type;
+}  /* skip_proxy_class */
+
+/*
+Return the list of fields of the given class, struct, or union type.
+*/
+#define fields_of(tp)                                                 \
+  ((tp)->variant.class_struct_union.field_list)
 
 #if MICROSOFT_EXTENSIONS_ALLOWED
 /*
