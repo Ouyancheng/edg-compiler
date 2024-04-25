@@ -5465,7 +5465,7 @@ returned set to TRUE.
   saved_decl_parse_state = scope_stack_top().decl_parse_state;
   scope_stack_top().decl_parse_state = dps;
   saved_in_consteval_context = scope_stack_top().in_consteval_context;
-  if (vp != NULL && (vp->is_constexpr || vp->is_constinit)) {
+  if (vp != NULL && (vp->is_constexpr || vp->declared_constinit)) {
     scope_stack_top().in_consteval_context = TRUE;
   }  /* if */
   /* In variable initializations, the initializer elements should each be
