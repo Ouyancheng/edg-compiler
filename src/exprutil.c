@@ -5185,10 +5185,10 @@ a_boolean is_uuidof_expr(an_expr_node_ptr expr,
 Return TRUE if the indicated expression is the IL that represents a
 Microsoft __uuidof construct, i.e., a "*" operator on top of a constant
 that gives the address of a GUID for a uuidof.  When TRUE is returned,
-and if is_type, op_expr, and type are non-NULL (they default to NULL),
-*is_type is returned TRUE to indicate the __uuidof is applied to a type
-(which is returned in *type) or FALSE to indicate it is applied to an
-expression (which is returned in *op_expr).
+and if p_is_type, p_op_expr, and p_type are non-NULL (they default to NULL),
+*p_is_type is returned TRUE to indicate the __uuidof is applied to a type
+(which is returned in *p_type) or FALSE to indicate it is applied to an
+expression (which is returned in *p_op_expr).
 */
 {
   a_boolean     is_uuidof = FALSE, is_type = FALSE;
