@@ -15500,13 +15500,13 @@ final token.
                is_false_constant(assert_con) &&
                ((gpp_version_is(<130000) || clang_version_is(<170000) ||
                  ms_version_is(<1940)) ?
-                  /* Old criteria (pre-CWG1518): */
+                  /* Old criteria (pre-CWG2518): */
                   !(microsoft_mode &&
                     (scope_stack_top().in_nonreal_instantiation ||
                      (scope_stack_top().in_prototype_instantiation &&
                       (is_local_scope_kind(scope_stack_top().kind) ||
                        inside_local_class)))) :
-                  /* New criteria (post-CWG1518): */
+                  /* New criteria (post-CWG2518): */
                   !(scope_stack_top().in_prototype_instantiation ||
                     (microsoft_mode &&
                      scope_stack_top().in_nonreal_instantiation)))) {
