@@ -11,12 +11,12 @@ front end now emulates that behavior.
 
 
 4/22/24  [EDGcpfe/27147]
-Crash when compiling source location builtins in default member initializers
+Assertion failure from source location builtins in default member initializers
 
 A regression was introduced in EDG 6.4 that results in an unevaluated source
-location builtin expression making it to lowering and a subsequent crash.  This
-occurs when the source location builtin appears in a lambda used as part of a
-default member initializer, e.g.:
+location builtin expression making it to lowering and a subsequent assertion
+failure in lower_expr.  This occurs when the source location builtin appears in
+a lambda used as part of a default member initializer, e.g.:
 
   struct function { template <typename _Functor> function(_Functor); };
   struct operators_repository {
