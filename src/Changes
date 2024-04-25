@@ -13,9 +13,9 @@ front end now emulates that behavior.
 4/22/24  [EDGcpfe/27147]
 Assertion failure from source location builtins in default member initializers
 
-A regression was introduced in EDG 6.4 that results in an unevaluated source
+A regression was introduced in EDG 6.4 that resulted in an unevaluated source
 location builtin expression making it to lowering and a subsequent assertion
-failure in lower_expr_full ("lower_expr: bad kind").  This occurs when the
+failure in lower_expr_full ("lower_expr: bad kind").  This occurred when the
 source location builtin appears in a lambda used as part of a default member
 initializer, e.g.:
 
