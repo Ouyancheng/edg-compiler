@@ -49843,7 +49843,13 @@ representation is valid; otherwise, return FALSE.
       { Opt<an_ifc_decl_reference> opt_universal;
 
         construct_node(&opt_universal, idx);
-        result = opt_universal.has_value();
+        if (opt_universal.has_value()) {
+          an_ifc_decl_index remote_idx = get_ifc_index(*opt_universal);
+
+          if (validate(remote_idx)) {
+            result = TRUE;
+          }  /* if */
+        }  /* if */
       }
       break;
     case ifc_ds_decl_scope:
