@@ -19672,7 +19672,7 @@ static void cache_func_body(a_module_token_cache_ptr cache,
 Cache the function-body for the given function-like declaration (identified by
 decl_idx).
 
-If the function is a not parameterized (i.e., this is not the body for a
+If the function is not parameterized (i.e., this is not the body for a
 function template) and the IFC provided a user-defined definition for said
 function, no definition will be cached; instead, one will be associated via
 finish_mep_processing.  cinfo contains information about the current cache

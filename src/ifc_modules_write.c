@@ -853,7 +853,7 @@ Perform a sort on the trait contents now to correctly arrange the contents.
     /* Create an array representing the element positions.  Then sort the array
        of element positions without actually moving any partition elements in
        the byte buffer.  Finally, create a new output partition and copy the
-       partition bytes from the original output partition into the new new
+       partition bytes from the original output partition into the new
        output partition at the correct position. */
     size_t      num_traits = output_partition->get_num_elements();
     Dyn_array<size_t, General_allocator>
@@ -2872,7 +2872,6 @@ the index of the template parameter chart.
       size_t                curr_param_offset = start + i;
       an_ifc_decl_parameter curr_param;
 
-
       this->output_state->fetch_node(&curr_param, curr_param_offset);
 
       an_ifc_decl_index
@@ -4501,7 +4500,7 @@ return the corresponding EDG IFC BasicToken sort value.
       unexpected_condition();
       break;
     default_is_unexpected();
-  } /* switch */
+  }  /* switch */
   return result;
 }  /* token_to_basic_token_kind */
 
@@ -4669,7 +4668,7 @@ cache.
         header_unit_catastrophe();
         break;
       default_is_unexpected();
-    } /* switch */
+    }  /* switch */
   }  /* for */
 }  /* an_ifc_il_map::enter_token_cache */
 
