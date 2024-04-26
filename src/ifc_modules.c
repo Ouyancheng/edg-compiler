@@ -25559,7 +25559,7 @@ Cache the given basic token into the given front end token cache.
       cache_token(cache, tok_while);
       break;
     default_is_unexpected();
-  } /* switch */
+  }  /* switch */
 }  /* cache_edg_basic_token */
 
 
@@ -25694,7 +25694,7 @@ Given a token cache and an EDG IFC token index, cache the given complex token.
     ADD_SWITCH_CASE(edg_token_identifier)
 #undef ADD_SWITCH_CASE
     default_is_unexpected();
-  } /* switch */
+  }  /* switch */
   goto done;
 invalid:
   result = FALSE;
