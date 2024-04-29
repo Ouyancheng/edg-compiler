@@ -1808,6 +1808,8 @@ enum a_vector_kind : a_byte {
   vk_ext,			/* vector has the ext_vector_type attribute. */
   vk_neon,			/* ARM NEON vector type. */
   vk_neon_poly,			/* ARM NEON polyvector type. */
+  vk_neon_builtin,		/* ARM NEON vector type used by some GNU
+				   builtins. */
   vk_last
 };
 

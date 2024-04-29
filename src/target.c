@@ -85,8 +85,26 @@ BEGIN_EDG_NAMESPACE  /* Conditionally open the "edg" namespace. */
 #endif /* TARGET_CONFIGURATION_4 */
 
 #ifdef TARGET_CONFIGURATION_5
- #error Need to add additional TARGET_CONFIGURATION_X entries
+#define TARGET_CONFIGURATION TARGET_CONFIGURATION_5
+END_EDG_NAMESPACE  /* Conditionally close the "edg" namespace. */
+/*lint -e451*/
+#include "target_cfg.h"
+/*lint +e451*/
+BEGIN_EDG_NAMESPACE  /* Conditionally open the "edg" namespace. */
 #endif /* TARGET_CONFIGURATION_5 */
+
+#ifdef TARGET_CONFIGURATION_6
+#define TARGET_CONFIGURATION TARGET_CONFIGURATION_6
+END_EDG_NAMESPACE  /* Conditionally close the "edg" namespace. */
+/*lint -e451*/
+#include "target_cfg.h"
+/*lint +e451*/
+BEGIN_EDG_NAMESPACE  /* Conditionally open the "edg" namespace. */
+#endif /* TARGET_CONFIGURATION_6 */
+
+#ifdef TARGET_CONFIGURATION_7
+ #error Need to add additional TARGET_CONFIGURATION_X entries
+#endif /* TARGET_CONFIGURATION_7 */
 
 /*
 This structure is used to associate a target configuration name with routines
@@ -169,6 +187,9 @@ static a_target_configuration target_configurations[] = {
 #ifdef TARGET_CONFIGURATION_5
   DEFINE_TARGET_CONFIGURATION(TARGET_CONFIGURATION_5),
 #endif /* defined(TARGET_CONFIGURATION_5) */
+#ifdef TARGET_CONFIGURATION_6
+  DEFINE_TARGET_CONFIGURATION(TARGET_CONFIGURATION_6),
+#endif /* defined(TARGET_CONFIGURATION_6) */
   /* More can be added if needed (ensure target_cfg.h is included above). */
 };
 

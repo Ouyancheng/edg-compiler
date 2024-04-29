@@ -1122,15 +1122,26 @@ typedef struct a_float_vector_type_descr {
 } a_float_vector_type_descr;
 
 /*
-Table of all floating-point NEON vector element types.
+Table of all floating-point NEON vector element types for 64-bit platforms.
 */
 static a_float_vector_type_descr
-		float_neon_vector_types[] = {
+		float_neon_vector_types_64bit[] = {
   {fk_std_bfloat16, 4, {"__Bfloat16x4_t", "__Bfloat16x8_t"}},
   {fk_fp16,         4, {"__Float16x4_t",  "__Float16x8_t"}},
   {fk_float,        2, {"__Float32x2_t",  "__Float32x4_t"}},
   {fk_double,       1, {"__Float64x1_t",  "__Float64x2_t"}},
   {fk_last,         0, {NULL,             NULL}}
+};
+
+/*
+Table of all floating-point NEON vector element types for 32-bit platforms.
+*/
+static a_float_vector_type_descr
+		float_neon_vector_types_32bit[] = {
+  {fk_std_bfloat16, 4, {"__simd64_bfloat16_t", "__simd128_bfloat16_t"}},
+  {fk_fp16,         4, {"__simd64_float16_t",  "__simd128_float16_t"}},
+  {fk_float,        2, {"__simd64_float32_t",  "__simd128_float32_t"}},
+  {fk_last,         0, {NULL,                  NULL}}
 };
 
 
@@ -1151,10 +1162,10 @@ typedef struct an_integer_vector_type_descr {
 } an_integer_vector_type_descr;
 
 /*
-Table of all integer NEON vector element types.
+Table of all integer NEON vector element types for 64-bit platforms.
 */
 static an_integer_vector_type_descr
-		integer_neon_vector_types[] = {
+		integer_neon_vector_types_64bit[] = {
   {ik_signed_char,    8, {"__Int8x8_t",   "__Int8x16_t"}},
   {ik_unsigned_char,  8, {"__Uint8x8_t",  "__Uint8x16_t"}},
   {ik_short,          4, {"__Int16x4_t",  "__Int16x8_t"}},
@@ -1167,14 +1178,80 @@ static an_integer_vector_type_descr
 };
 
 /*
-Table of all integer NEON polyvector element types.
+Table of all integer NEON vector element types for 32-bit platforms.
 */
 static an_integer_vector_type_descr
-		integer_neon_polyvector_types[] = {
+		integer_neon_vector_types_32bit[] = {
+  {ik_signed_char,         8, {"__simd64_int8_t",   "__simd128_int8_t"}},
+  {ik_unsigned_char,       8, {"__simd64_uint8_t",  "__simd128_uint8_t"}},
+  {ik_short,               4, {"__simd64_int16_t",  "__simd128_int16_t"}},
+  {ik_unsigned_short,      4, {"__simd64_uint16_t", "__simd128_uint16_t"}},
+  {ik_int,                 2, {"__simd64_int32_t",  "__simd128_int32_t"}},
+  {ik_unsigned_int,        2, {"__simd64_uint32_t", "__simd128_uint32_t"}},
+  {ik_long_long,           1, {"__simd64_int64_t",  "__simd128_int64_t"}},
+  {ik_unsigned_long_long,  1, {"__simd64_uint64_t", "__simd128_uint64_t"}},
+  {ik_none,                0, {NULL,                NULL}}
+};
+
+/*
+Table of all integer NEON polyvector element types for 64-bit platforms.
+*/
+static an_integer_vector_type_descr
+		integer_neon_polyvector_types_64bit[] = {
   {ik_unsigned_char,  8, {"__Poly8x8_t",  "__Poly8x16_t"}},
   {ik_unsigned_short, 4, {"__Poly16x4_t", "__Poly16x8_t"}},
   {ik_unsigned_long,  1, {"__Poly64x1_t", "__Poly64x2_t"}},
   {ik_none,           0, {NULL,           NULL}},
+};
+
+/*
+Table of all integer NEON polyvector element types for 32-bit platforms.
+*/
+static an_integer_vector_type_descr
+		integer_neon_polyvector_types_32bit[] = {
+  {ik_unsigned_char,  8, {"__simd64_poly8_t",  "__simd128_poly8_t"}},
+  {ik_unsigned_short, 4, {"__simd64_poly16_t", "__simd128_poly16_t"}},
+  {ik_none,           0, {NULL,                NULL}},
+};
+
+
+/*
+Descriptor for a NEON builtin vector type.
+*/
+typedef struct a_builtin_vector_type_descr *a_builtin_vector_type_descr_ptr;
+typedef struct a_builtin_vector_type_descr {
+  an_integer_kind
+		int_kind;
+			/* Integer kind of the vector element. */
+  a_targ_size_t	elements;
+			/* Number of vector elements. */
+  a_const_char	*name;	/* Name of the vector type. */
+} a_builtin_vector_type_descr;
+
+/*
+Table of all NEON builtin vector types for 32-bit platforms.
+*/
+static a_builtin_vector_type_descr
+		integer_builtin_neon_vector_types_32bit[] = {
+  {ik_long_long,          2, "__builtin_neon_ti"},
+  {ik_long_long,          3, "__builtin_neon_ei"},
+  {ik_long_long,          4, "__builtin_neon_oi"},
+  {ik_long_long,          6, "__builtin_neon_ci"},
+  {ik_long_long,          8, "__builtin_neon_xi"},
+  {ik_none,               0, NULL}
+};
+
+/*
+Table of all NEON builtin vector types for 64-bit platforms.
+*/
+static a_builtin_vector_type_descr
+		integer_builtin_neon_vector_types_64bit[] = {
+#if INT128_EXTENSIONS_ALLOWED
+  {ik_int128, 2, "__builtin_aarch64_simd_oi"},
+  {ik_int128, 3, "__builtin_aarch64_simd_ci"},
+  {ik_int128, 4, "__builtin_aarch64_simd_xi"},
+#endif /* INT128_EXTENSIONS_ALLOWED */
+  {ik_none,   0, NULL}
 };
 
 
@@ -1194,7 +1271,9 @@ vector (either vk_neon or vk_neon_poly).
   if (is_real_floating_type(element_type)) {
     a_float_kind  float_kind = element_type->variant.float_kind;
     a_float_vector_type_descr_ptr
-                  float_types = float_neon_vector_types;
+                  float_types = target_is_64_bits() ?
+                                                float_neon_vector_types_64bit :
+                                                float_neon_vector_types_32bit;
     check_assertion(vector_kind == vk_neon);
     while (result == NULL && float_types->float_kind != fk_last) {
       if (float_types->float_kind == float_kind) {
@@ -1208,10 +1287,13 @@ vector (either vk_neon or vk_neon_poly).
     an_integer_vector_type_descr_ptr
                integer_types;
     if (vector_kind == vk_neon_poly) {
-      integer_types = integer_neon_polyvector_types;
+      integer_types = target_is_64_bits() ?
+                                          integer_neon_polyvector_types_64bit :
+                                          integer_neon_polyvector_types_32bit;
     } else {
       check_assertion(vector_kind == vk_neon);
-      integer_types = integer_neon_vector_types;
+      integer_types = target_is_64_bits() ? integer_neon_vector_types_64bit :
+                                            integer_neon_vector_types_32bit;
     }  /* if */
     while (result == NULL && integer_types->int_kind != ik_last) {
       /* The name is determined by the type's size and signedness, not by the
@@ -1285,6 +1367,49 @@ specified in the table types (terminated by an entry with fk_last).
     ++types;
   }  /* while */
 }  /* enter_float_neon_vector_types */
+
+
+a_const_char *get_predefined_name_for_builtin_neon_vector_type(
+                                                a_type_ptr     element_type,
+                                                a_targ_size_t  vector_elements)
+/*
+Get the predefined name for a NEON builtin vector of the specified element type
+and number of vector elements.
+*/
+{
+  a_const_char  *result = NULL;
+  a_builtin_vector_type_descr_ptr
+                builtin_types = target_is_64_bits() ?
+                                      integer_builtin_neon_vector_types_64bit :
+                                      integer_builtin_neon_vector_types_32bit;
+
+  element_type = skip_typerefs(element_type);
+  check_assertion(is_integral_type(element_type));
+  while (result == NULL && builtin_types->int_kind != ik_none) {
+    if (builtin_types->int_kind == element_type->variant.integer.int_kind &&
+        builtin_types->elements == vector_elements) {
+      result = builtin_types->name;
+    }  /* if */
+    ++builtin_types;
+  }  /* while */
+  return result;
+}  /* get_predefined_name_for_builtin_neon_vector_type */
+
+
+static void enter_builtin_integer_neon_vector_types(
+                                        a_builtin_vector_type_descr_ptr  types)
+/*
+Enter predefined typedefs for NEON builtin vectors specified in the table types
+(terminated by an entry with ik_none).
+*/
+{
+  while (types->int_kind != ik_none) {
+    a_type_ptr  tp = make_vector_type(integer_type(types->int_kind),
+                                      types->elements, vk_neon_builtin);
+    (void)enter_predefined_typedef(types->name, tp);
+    ++types;
+  }  /* while */
+}  /* enter_builtin_integer_neon_vector_types */
 
 
 static void enter_scalable_vector_types(
@@ -1419,15 +1544,15 @@ Enter predeclared symbols as required by the implementation.
       (void)enter_predefined_typedef("__bf16", float_type(fk_std_bfloat16));
     }  /* if */
 #if GNU_VECTOR_TYPES_ALLOWED
-    if (targ_supports_arm64) {
-      if (gnu_version_is(>=50000)) {
-        /* GNU makes ARM NEON vector and polyvector types available as
-           predefined typedefs; Clang supports them via the "neon_vector_type"
-           and "neon_polyvector_type" attributes. */
-        enter_float_neon_vector_types(float_neon_vector_types);
-        enter_integer_neon_vector_types(integer_neon_vector_types,
+    if (gnu_version_is(>=50000)) {
+      /* GNU makes ARM NEON vector and polyvector types available as
+         predefined typedefs; Clang supports them via the "neon_vector_type"
+         and "neon_polyvector_type" attributes. */
+      if (targ_supports_arm64) {
+        enter_float_neon_vector_types(float_neon_vector_types_64bit);
+        enter_integer_neon_vector_types(integer_neon_vector_types_64bit,
                                         vk_neon);
-        enter_integer_neon_vector_types(integer_neon_polyvector_types,
+        enter_integer_neon_vector_types(integer_neon_polyvector_types_64bit,
                                         vk_neon_poly);
         (void)enter_predefined_typedef("__Poly8_t",
                                        integer_type(ik_unsigned_char));
@@ -1439,8 +1564,16 @@ Enter predeclared symbols as required by the implementation.
         (void)enter_predefined_typedef("__Poly128_t",
                                        integer_type(ik_unsigned_int128));
 #endif /* INT128_EXTENSIONS_ALLOWED */
+      } else if (targ_supports_arm32) {
+        enter_float_neon_vector_types(float_neon_vector_types_32bit);
+        enter_integer_neon_vector_types(integer_neon_vector_types_32bit,
+                                        vk_neon);
+        enter_integer_neon_vector_types(integer_neon_polyvector_types_32bit,
+                                        vk_neon_poly);
       }  /* if */
-      if (clang_version_is(>=100000) || gnu_version_is(>=100000)) {
+    }  /* if */
+    if (clang_version_is(>=100000) || gnu_version_is(>=100000)) {
+      if (targ_supports_arm64) {
         /* Both Clang and GNU have added support for scalable vector types on
            ARM64 starting with version 10.x.  Clang 11.x and later also
            predefine scalable vector types with 2, 3, and 4 tuple elements. */
@@ -1518,6 +1651,96 @@ Enter predeclared symbols as required by the implementation.
           (void)enter_predefined_typedef("__SVCount_t",
                                          scalable_vector_count_type());
         }  /* if */
+      }  /* if */
+    }  /* if */
+    if (gnu_version_is(>=40800)) {
+      /* GCC also predefines additional types for NEON builtins, starting with
+         version 4.8. */
+      if (targ_supports_arm32) {
+        if (gnu_version_is(>=100000)) {
+          (void)enter_predefined_typedef("__builtin_neon_bf",
+                                         float_type(fk_std_bfloat16));
+        } else if (gnu_version_is(<60000)) {
+          (void)enter_predefined_typedef("__builtin_neon_hf",
+                                         float_type(fk_fp16));
+        }  /* if */
+        (void)enter_predefined_typedef("__builtin_neon_sf",
+                                       float_type(fk_float));
+        (void)enter_predefined_typedef("__builtin_neon_df",
+                                       float_type(fk_double));
+        (void)enter_predefined_typedef("__builtin_neon_qi",
+                                       integer_type(ik_signed_char));
+        (void)enter_predefined_typedef("__builtin_neon_uqi",
+                                       integer_type(ik_unsigned_char));
+        (void)enter_predefined_typedef("__builtin_neon_hi",
+                                       integer_type(ik_short));
+        (void)enter_predefined_typedef("__builtin_neon_uhi",
+                                       integer_type(ik_unsigned_short));
+        (void)enter_predefined_typedef("__builtin_neon_si",
+                                       integer_type(ik_int));
+        (void)enter_predefined_typedef("__builtin_neon_usi",
+                                       integer_type(ik_unsigned_int));
+        (void)enter_predefined_typedef("__builtin_neon_di",
+                                       integer_type(ik_long_long));
+        (void)enter_predefined_typedef("__builtin_neon_udi",
+                                       integer_type(ik_unsigned_long_long));
+        (void)enter_predefined_typedef("__builtin_neon_poly8",
+                                       integer_type(ik_signed_char));
+        (void)enter_predefined_typedef("__builtin_neon_poly16",
+                                       integer_type(ik_short));
+        (void)enter_predefined_typedef("__builtin_neon_poly64",
+                                       integer_type(ik_unsigned_long_long));
+#if INT128_EXTENSIONS_ALLOWED
+        (void)enter_predefined_typedef("__builtin_neon_poly128",
+                                       integer_type(ik_unsigned_int128));
+        (void)enter_predefined_typedef("__builtin_neon_uti",
+                                       integer_type(ik_unsigned_int128));
+#endif /* INT128_EXTENSIONS_ALLOWED */
+        enter_builtin_integer_neon_vector_types(
+                                      integer_builtin_neon_vector_types_32bit);
+      } else if (targ_supports_arm64) {
+        if (gnu_version_is(>=100000)) {
+          (void)enter_predefined_typedef("__builtin_aarch64_simd_bf",
+                                         float_type(fk_std_bfloat16));
+        }  /* if */
+        if (gnu_version_is(>=60000)) {
+          (void)enter_predefined_typedef("__builtin_aarch64_simd_hf",
+                                         float_type(fk_fp16));
+        }  /* if */
+        (void)enter_predefined_typedef("__builtin_aarch64_simd_sf",
+                                       float_type(fk_float));
+        (void)enter_predefined_typedef("__builtin_aarch64_simd_df",
+                                       float_type(fk_double));
+        (void)enter_predefined_typedef("__builtin_aarch64_simd_qi",
+                                       integer_type(ik_signed_char));
+        (void)enter_predefined_typedef("__builtin_aarch64_simd_uqi",
+                                       integer_type(ik_unsigned_char));
+        (void)enter_predefined_typedef("__builtin_aarch64_simd_hi",
+                                       integer_type(ik_short));
+        (void)enter_predefined_typedef("__builtin_aarch64_simd_uhi",
+                                       integer_type(ik_unsigned_short));
+        (void)enter_predefined_typedef("__builtin_aarch64_simd_si",
+                                       integer_type(ik_int));
+        (void)enter_predefined_typedef("__builtin_aarch64_simd_usi",
+                                       integer_type(ik_unsigned_int));
+        (void)enter_predefined_typedef("__builtin_aarch64_simd_di",
+                                       integer_type(ik_long));
+        (void)enter_predefined_typedef("__builtin_aarch64_simd_udi",
+                                       integer_type(ik_unsigned_long));
+        (void)enter_predefined_typedef("__builtin_aarch64_simd_poly8",
+                                       integer_type(ik_unsigned_char));
+        (void)enter_predefined_typedef("__builtin_aarch64_simd_poly16",
+                                       integer_type(ik_unsigned_short));
+        (void)enter_predefined_typedef("__builtin_aarch64_simd_poly64",
+                                       integer_type(ik_unsigned_long));
+#if INT128_EXTENSIONS_ALLOWED
+        (void)enter_predefined_typedef("__builtin_aarch64_simd_poly128",
+                                       integer_type(ik_unsigned_int128));
+        (void)enter_predefined_typedef("__builtin_aarch64_simd_ti",
+                                       integer_type(ik_int128));
+#endif /* INT128_EXTENSIONS_ALLOWED */
+        enter_builtin_integer_neon_vector_types(
+                                      integer_builtin_neon_vector_types_64bit);
       }  /* if */
     }  /* if */
 #endif /* GNU_VECTOR_TYPES_ALLOWED */

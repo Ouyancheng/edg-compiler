@@ -621,6 +621,9 @@ extern a_const_char *get_predefined_name_for_neon_vector_type(
                                                 a_type_ptr     element_type,
                                                 a_targ_size_t  vector_elements,
                                                 a_vector_kind  vector_kind);
+extern a_const_char *get_predefined_name_for_builtin_neon_vector_type(
+                                               a_type_ptr     element_type,
+                                               a_targ_size_t  vector_elements);
 #endif /* GNU_VECTOR_TYPES_ALLOWED */
 
 #endif /* GNU_EXTENSIONS_ALLOWED */

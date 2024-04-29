@@ -1,5 +1,14 @@
 Version 6.7
 
+4/29/24  [EDGcpfe/27146]
+GNU compatibility: predefined types for ARM NEON builtins
+
+On ARM platforms, GCC predefines additional types to be used with ARM-specific
+builtins (named __builtin_aarch64_simd_* for 64-bit platforms and
+__builtin_neon_* for 32-bit platforms).  Additionally, NEON vector types
+__simd64_* and __simd128_* are now also predefined on ARM32 platforms.
+
+
 4/29/24  [EDGcpfe/27201]
 GNU compatibility: incorrect reuse of temporaries when lowering statement
 expressions

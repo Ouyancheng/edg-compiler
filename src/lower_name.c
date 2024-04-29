@@ -10918,8 +10918,15 @@ top_of_loop:
         break;
 #if GNU_VECTOR_TYPES_ALLOWED
       case tk_vector:
-        if (type->variant.vector.kind == vk_neon ||
-            type->variant.vector.kind == vk_neon_poly) {
+        if (type->variant.vector.kind == vk_neon_builtin) {
+          s = get_predefined_name_for_builtin_neon_vector_type(
+                                             type->variant.vector.element_type,
+                                             num_vector_elements(type));
+          check_assertion(s != NULL);
+          mangled_name_with_length(s, mctl);
+          goto have_whole_mangled_name;
+        } else if (type->variant.vector.kind == vk_neon ||
+                   type->variant.vector.kind == vk_neon_poly) {
           a_type_ptr  element_type = skip_typerefs(type->variant.vector.
                                                                  element_type);
           s = get_predefined_name_for_neon_vector_type(
