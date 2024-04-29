@@ -34395,6 +34395,15 @@ a flag that indicates whether or not the current scope is valid for a lambda.
         /* Ignore this scope.  (It might enclose a function prototype scope
            while parsing default arguments.) */
         break;
+      case sck_module_decl_import:
+        /* A module decl import scope represents an IL scope reactivation,
+           follow the chain of scopes from the module decl import. */
+        previous_scope = ssep->il_scope->depth_in_scope_stack;
+        if (previous_scope == NO_SCOPE_DEPTH) {
+          /* The scope should be currently available in the scope stack. */
+          scope_error = TRUE;
+        }  /* if */
+        break;
       case sck_template_declaration:
       case sck_enum:
         /* Prior to C++17, lambdas cannot appear in template parameter
