@@ -20578,7 +20578,6 @@ can be found, return a null name index.
     if (!is_bad_ifc_parameter(decl_param)) {
       break;
     }  /* if */
-    ++param_idx;
   }  /* for */
 
   Opt<an_ifc_decl_parameter> opt_decl_param = chart.get(param_idx + offset);
