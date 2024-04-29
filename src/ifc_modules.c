@@ -12428,8 +12428,8 @@ Complete the definition of the class referred to by mep (if needed).
           pop_template_instantiation_scope();
         }  /* if */
         free_template_decl_info(tdip);
-        pop_module_declaration_context(scope_push_status);
       }  /* if */
+      pop_module_declaration_context(scope_push_status);
       error_position = saved_error_position;
     }  /* if */
 #if DEBUG
