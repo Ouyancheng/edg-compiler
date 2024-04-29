@@ -3954,10 +3954,13 @@ mspk_unneccessary.
   /* This should always be a fresh attempt, detect unintended reuse. */
   check_assertion(*scope_push_status == mspk_unattempted);
   check_assertion(scope != NULL);
-  if (ssep->il_scope != scope) {
+  if (ssep->il_scope != scope || curr_object_lifetime != scope->lifetime) {
     /* FIXME: This pushes an instantiation context, that's not an accurate
        description in the scope stack of what's really happening.  In other
        words, no instantiation is occurring here. */
+    /* FIXME: This repushes the scope if the object lifetime doesn't match the
+       scope's object lifetime.  We should be able to just temporarily restore
+       the object lifetime. */
     push_new_top_level_declaration();
     ssep = &scope_stack_top();
     ssep->inside_local_class = inside_local_class = FALSE;
