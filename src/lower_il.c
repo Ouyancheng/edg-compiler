@@ -16046,15 +16046,16 @@ expression).  This routine is used in lowering both C and C++.
      block statement). */
   inlining_enabled = FALSE;
 #endif /* MINIMAL_INLINING */
+  /* Create a new context, unrelated to any previous contexts, in which the
+     statement expression should be lowered.  One reason for this is to ensure
+     that temporaries are not reused between expressions within the statement
+     expression and outside of it. */
+  a_context context, *saved_curr_context;
+  save_and_push_context(&context, (a_scope_ptr)NULL,
+                        (an_object_lifetime_ptr)NULL,
+                        &saved_curr_context);
   if (C_mode()) {
-    a_context context, *saved_curr_context;
-    /* Create a new context, unrelated to any previous contexts, in
-       which the statement expression should be lowered. */
-    save_and_push_context(&context, (a_scope_ptr)NULL,
-                          (an_object_lifetime_ptr)NULL,
-                          &saved_curr_context);
     lower_c99_statement(block);
-    restore_saved_context(saved_curr_context);
   } else {
     lower_block_statement(block,
                           /*is_block_of_function_try=*/FALSE,
@@ -16062,6 +16063,7 @@ expression).  This routine is used in lowering both C and C++.
                           (a_destructor_wrapper_info_block_ptr)NULL,
                           (a_statement_ptr *)NULL);
   }  /* if */
+  restore_saved_context(saved_curr_context);
 #if MINIMAL_INLINING
   inlining_enabled = saved_inlining_enabled;
 #endif /* MINIMAL_INLINING */

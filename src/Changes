@@ -1,5 +1,25 @@
 Version 6.7
 
+4/29/24  [EDGcpfe/27201]
+GNU compatibility: incorrect reuse of temporaries when lowering statement
+expressions
+
+In configurations that do lowering, the lowering of a GNU statement expression
+within a larger full expression had triggered a reuse of temporary variables
+that could result a temporary variable being reused prematurely (with undefined
+behavior at runtime).  For example, with --g++:
+
+  int same(const int& a, const int& b) {
+    return a == b;
+  }
+  int bug(int a, int b) {
+    return same(({ a; }), int(b));  // Same temporary used in some configs.
+  }
+  int main() {
+    return bug(123, 0);   // Should return 0, but had returned 1 in some cases.
+  }
+
+
 4/25/24  [EDGcpfe/27198]
 Treat constexpr variable initializers as immediate contexts
 
