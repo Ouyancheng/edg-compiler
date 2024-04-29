@@ -410,6 +410,13 @@ restrictions).
                           (*p == 'c' && C_mode()) ||
                           (*p == '+' && !C_mode()));
       p++;
+      if (*p == 'A') {
+        result = result && target_is_arm_based();
+        p++;
+      } else if (*p == 'X') {
+        result = result && target_is_x86_based();
+        p++;
+      }  /* if */
       if (*p == '4') {
         result = result && !target_is_64_bits();
         p++;
@@ -497,8 +504,8 @@ returned an error is issued (only if issue_error is TRUE).
 {
   a_boolean     result = TRUE;
   a_const_char  *restrictions = NULL;
-  
-  if (sym_hdr->is_user_builtin_function) {
+
+  if (sym_hdr->builtin_function_category == bfc_user) {
     /* For a user-defined builtin function, re-parse the condition string to
        see if there are any restrictions. */
     a_boolean primary_enabled = FALSE, secondary_enabled = FALSE;
@@ -509,7 +516,9 @@ returned an error is issued (only if issue_error is TRUE).
   } else {
     /* The restriction string (if any) has already been found for non-user
        defined builtins. */
-    a_builtin_descr *bdp = &builtin_table[sym_hdr->builtin_function_index];
+    a_builtin_descr *bdp;
+    bdp = builtin_tables[sym_hdr->builtin_function_category] +
+                                               sym_hdr->builtin_function_index;
     restrictions = builtin_condition_table[bdp->cond_index].restrictions;
   }  /* if */
   if (restrictions != NULL) {
@@ -689,7 +698,8 @@ symbol for the builtin function.
 
   check_assertion(sym_hdr->is_builtin_function);
   mark_builtin_loaded(sym_hdr);
-  if (builtin_restrictions_met(sym_hdr, /*issue_error=*/TRUE)) {
+  if (sym_hdr->builtin_function_category != bfc_keyword &&
+      builtin_restrictions_met(sym_hdr, /*issue_error=*/TRUE)) {
     /* Push a scope suitable for a new top-level declaration. */
     push_new_top_level_declaration();
     decl_scope_level = DEPTH_OF_FILE_SCOPE;
@@ -699,13 +709,15 @@ symbol for the builtin function.
       push_name_linkage((a_name_linkage_kind)nlk_external);
       name_linkage_pushed = TRUE;
     }  /* if */
-    if (sym_hdr->is_user_builtin_function) {
+    if (sym_hdr->builtin_function_category == bfc_user) {
       a_builtin_user_descr_ptr budp =
                           &builtin_user_table[sym_hdr->builtin_function_index];
       builtin_type = builtin_function_type(budp->type_string, &pos_curr_token);
       builtin_kind = budp->kind;
     } else {
-      a_builtin_descr *bdp = &builtin_table[sym_hdr->builtin_function_index];
+      a_builtin_descr *bdp;
+      bdp = builtin_tables[sym_hdr->builtin_function_category] +
+                                               sym_hdr->builtin_function_index;
       builtin_type = builtin_function_type_for_index(bdp->type_index);
       builtin_kind = bdp->kind;
     }  /* if */
@@ -760,14 +772,14 @@ as keywords and __has_builtin returns TRUE for these.
 
 
 static void preload_builtin_symbol(
-                           a_const_char               *builtin_name,
-                           unsigned short             cond_index,
-                           a_builtin_condition_string condition,
-                           a_builtin_function_index   idx,
-                           a_boolean                  is_user_builtin_function,
-                           a_builtin_function_kind    kind,
-                           unsigned short             type_index,
-                           a_builtin_type_string      type_string)
+                           a_const_char                 *builtin_name,
+                           unsigned short               cond_index,
+                           a_builtin_condition_string   condition,
+                           a_builtin_function_index     idx,
+                           a_builtin_function_category  function_category,
+                           a_builtin_function_kind      kind,
+                           unsigned short               type_index,
+                           a_builtin_type_string        type_string)
 /*
 If the builtin function named by builtin_name is enabled in the current mode,
 create a symbol header for it and mark that it is associated with a builtin
@@ -775,9 +787,9 @@ function.  If the builtin has a "secondary" declaration (i.e., one without the
 __builtin prefix), that will be entered as well, but only in C mode.  condition
 is a string that describes the conditions in which the builtin is applicable,
 if NULL, cond_index is used in its place and specifies an index into
-builtin_condition_table.  idx is the array index (into either builtin_table or
-builtin_user_table depending on the value of is_user_builtin_function) for this
-builtin function.  kind is the a_builtin_function_kind or
+builtin_condition_table.  idx is the array index (into either a system builtin
+table or the builtin_user_table depending on the value of function_category)
+for this builtin function.  kind is the a_builtin_function_kind or
 a_builtin_user_function_kind enum value that corresponds to this builtin
 function.  If type_string is non-NULL, it is a string that gives the builtin
 function's type, otherwise type_index is an index into builtin_type_table for
@@ -792,15 +804,15 @@ the builtin function's type.
     clear_locator(&loc, &null_source_position);
     (void)find_symbol(name, (sizeof_t)strlen(name), &loc);
     if (loc.symbol_header->is_builtin_function &&
-        loc.symbol_header->is_user_builtin_function &&
-        !is_user_builtin_function) {
+        loc.symbol_header->builtin_function_category == bfc_user &&
+        function_category != bfc_user) {
       /* A user builtin function has already been loaded (and that takes
          precedence over a non-user builtin function). */
       goto done;
     }  /* if */
     loc.symbol_header->is_builtin_function = TRUE;
     loc.symbol_header->builtin_function_index = idx;
-    loc.symbol_header->is_user_builtin_function = is_user_builtin_function;
+    loc.symbol_header->builtin_function_category = function_category;
     if (preload_builtin_functions &&
         builtin_restrictions_met(loc.symbol_header, /*issue_error=*/FALSE)) {
       if (type_string == NULL) {
@@ -816,13 +828,13 @@ the builtin function's type.
        redeclaring a library function. */
     if (C_mode() && strncmp(name, "__builtin_", 10) == 0) {
       name = &builtin_name[10];
-      if ((is_user_builtin_function || name[0] == '_') &&
+      if ((function_category == bfc_user || name[0] == '_') &&
           builtin_enabled(cond_index, condition, /*is_secondary=*/TRUE)) {
         clear_locator(&loc, &null_source_position);
         (void)find_symbol(name, (sizeof_t)strlen(name), &loc);
         loc.symbol_header->is_builtin_function = TRUE;
         loc.symbol_header->builtin_function_index = idx;
-        loc.symbol_header->is_user_builtin_function = is_user_builtin_function;
+        loc.symbol_header->builtin_function_category = function_category;
         if (preload_builtin_functions &&
             builtin_restrictions_met(loc.symbol_header,
                                      /*issue_error=*/FALSE)) {
@@ -843,29 +855,50 @@ create a symbol header entry for any builtin function that is enabled in the
 current emulation mode.
 */
 {
-  a_builtin_descr           *bdp;
-  a_builtin_user_descr      *budp;
-  a_builtin_function_index  i;
+  a_builtin_descr              *bdp;
+  a_builtin_user_descr         *budp;
+  a_builtin_function_index     i;
+  a_builtin_function_category  function_category;
 
   /* Load user builtin functions first (they override any non-user builtin
      functions with the same name). */
   for (budp = builtin_user_table, i = 0; budp->name != NULL; budp++, i++) {
-    preload_builtin_symbol(budp->name, 0, budp->cond, i,
-                           /*is_user_builtin_function=*/TRUE, budp->kind,
+    preload_builtin_symbol(budp->name, 0, budp->cond, i, bfc_user, budp->kind,
                            0, budp->type_string);
   }  /* for */
-  for (bdp = builtin_table, i = 0; bdp->name != NULL; bdp++, i++) {
-    if (*bdp->name != '_') {
-      /* Don't preload any non-user defined builtins whose name doesn't begin
-         with an underscore.  These names appear in the builtin_table, but
-         neither GCC nor clang preload them (though they may be used to give
-         better error messages in the absence of declarations). */
-      break;
-    }  /* if */
+  for (bdp = builtin_common_table, i = 0; bdp->name != NULL; bdp++, i++) {
     preload_builtin_symbol(bdp->name, bdp->cond_index, NULL, i,
-                           /*is_user_builtin_function=*/FALSE, bdp->kind,
-                           bdp->type_index, NULL);
+                           bfc_common, bdp->kind, bdp->type_index,
+                           NULL);
   }  /* for */
+  if (target_is_arm_based()) {
+    for (bdp = builtin_arm_table, i = 0; bdp->name != NULL; bdp++, i++) {
+      preload_builtin_symbol(bdp->name, bdp->cond_index, NULL, i,
+                             bfc_arm, bdp->kind, bdp->type_index,
+                             NULL);
+    }  /* for */
+    function_category = target_is_64_bits() ? bfc_arm_64 : bfc_arm_32;
+    bdp = builtin_tables[function_category];
+    for (i = 0; bdp->name != NULL; bdp++, i++) {
+      preload_builtin_symbol(bdp->name, bdp->cond_index, NULL, i,
+                             function_category, bdp->kind, bdp->type_index,
+                             NULL);
+    }  /* for */
+  }  /* if */
+  if (target_is_x86_based()) {
+    for (bdp = builtin_x86_table, i = 0; bdp->name != NULL; bdp++, i++) {
+      preload_builtin_symbol(bdp->name, bdp->cond_index, NULL, i,
+                             bfc_x86, bdp->kind, bdp->type_index,
+                             NULL);
+    }  /* for */
+    function_category = target_is_64_bits() ? bfc_x86_64 : bfc_x86_32;
+    bdp = builtin_tables[function_category];
+    for (i = 0; bdp->name != NULL; bdp++, i++) {
+      preload_builtin_symbol(bdp->name, bdp->cond_index, NULL, i,
+                             function_category, bdp->kind, bdp->type_index,
+                             NULL);
+    }  /* for */
+  }  /* if */
   builtin_functions_enabled = TRUE;
 }  /* preload_builtin_symbols */
 

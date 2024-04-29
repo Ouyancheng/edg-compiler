@@ -1987,7 +1987,7 @@ Allocate a new symbol header, and return a pointer to it.
 #if BUILTIN_FUNCTIONS_ENABLED
   ptr->is_builtin_function = FALSE;
   ptr->builtin_has_been_loaded = FALSE;
-  ptr->is_user_builtin_function = FALSE;
+  ptr->builtin_function_category = bfc_none;
   ptr->builtin_function_index = 0;
 #endif /* BUILTIN_FUNCTIONS_ENABLED */
   db_exit();
@@ -8281,6 +8281,7 @@ __has_builtin to return TRUE when queried for the builtin.
   sym_ptr->variant.keyword.token = token;
 #if BUILTIN_FUNCTIONS_ENABLED
   sym_ptr->header->is_builtin_function = TRUE;
+  sym_ptr->header->builtin_function_category = bfc_keyword;
 #endif /* BUILTIN_FUNCTIONS_ENABLED */
 }  /* enter_builtin_keyword */
 

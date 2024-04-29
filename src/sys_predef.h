@@ -56,14 +56,15 @@ typedef struct a_builtin_user_descr {
                 cond;
                         /* A compact encoding of the condition(s) in which this
                            builtin function is enabled.  The encoding consists
-                           of a sequence of conditions, each condition has six
-                           potential parts (in the following order):
+                           of a sequence of conditions, each condition has
+                           seven potential parts (in the following order):
 
                              - prefix ('S') [optional]
                              - emulation ('L', 'g', or 'm') or
                                "standard" ('s')
                              - mode ('c', '+', or 'x')
-                             - arch ('4' or '8') [optional]
+                             - arch ('A' or 'X') [optional]
+                             - bits ('4' or '8') [optional]
                              - version (version range in parens) [optional]
                              - restrictions ['v', 'i', 'f', 'c'][optional]
 
@@ -84,10 +85,15 @@ typedef struct a_builtin_user_descr {
                            A mode of 'c' indicates C mode, '+' indicates
                            C++ mode, and 'x' indicates both C and C++ modes.
 
+                           An 'A' indicates the function applies only to
+                           architectures where target_is_arm_based is TRUE
+                           and an 'X' indicates the function applies only to
+                           architectures where target_is_x86_based is TRUE.
+
                            A '4' indicates the function applies only to
-                           architectures where targ_supports_x86_64 is FALSE
+                           architectures where target_is_64_bits is FALSE
                            and an '8' indicates the function applies only to
-                           architectures where targ_supports_x86_64 is TRUE.
+                           architectures where target_is_64_bits is TRUE.
 
                            If a parenthesized range of applicable versions is
                            given, the function is only enabled when the version

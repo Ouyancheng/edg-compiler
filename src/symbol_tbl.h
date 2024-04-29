@@ -4408,18 +4408,19 @@ typedef struct a_symbol_header {
                         /* TRUE if this is a builtin (i.e., is_builtin_function
                            is TRUE) and the builtin has been loaded.  Relevant
                            only for the primary translation unit. */
-  a_bit_field	is_user_builtin_function:1;
-                        /* TRUE if this is a builtin (i.e., is_builtin_function
-                           is TRUE) and the information about the builtin is
-                           found in the user-defined builtin table
-                           (builtin_user_table).  Otherwise the information is
-                           found in builtin_table. */
+  a_builtin_function_category
+                builtin_function_category;
+                        /* Category of the builtin function, describing where
+                           information about the builtin is to be found (either
+                           in the user-defined builtin table
+                           (builtin_user_table) or one of the system builtin
+                           tables). */
   a_builtin_function_index
                 builtin_function_index;
                         /* When is_builtin_function is TRUE, the value is an
-                           index into either builtin_table or
+                           index into either a system builtin table or the
                            builtin_user_table depending on the value of
-                           is_user_builtin_function. */
+                           builtin_function_category. */
 #endif /* BUILTIN_FUNCTIONS_ENABLED */
 } a_symbol_header;
 

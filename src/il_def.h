@@ -11593,6 +11593,24 @@ typedef struct a_field {
 
 #if BUILTIN_FUNCTIONS_ENABLED
 
+/*
+An enumeration of the different builtin function categories.
+*/
+enum a_builtin_function_category : a_byte {
+  bfc_none,		/* No builtin function table. */
+  bfc_common,		/* Builtin function that is common for all
+			   architectures. */
+  bfc_arm,		/* ARM specific builtin function. */
+  bfc_arm_32,		/* 32-bit ARM specific builtin function. */
+  bfc_arm_64,		/* 64-bit ARM specific builtin function. */
+  bfc_x86,		/* x86 specific builtin function. */
+  bfc_x86_32,		/* 32-bit x86 specific builtin function. */
+  bfc_x86_64,		/* 64-bit x86 specific builtin function. */
+  bfc_keyword,		/* A keyword treated as a builtin function. */
+  bfc_user,		/* User-supplied builtin function. */
+  bfc_last = bfc_user
+};
+
 /* Type used to store an enumeration value used to identify the kind of
    builtin function.  Must be large enough to accommodate enum values from both
    a_builtin_function_kind_tag and a_builtin_user_function_kind.  */

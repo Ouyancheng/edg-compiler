@@ -724,14 +724,14 @@ modes.
                   "__is_assignable_no_precondition_check");
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
   }  /* if */
-  if (ms_extensions || gnu_version_is(>=120100)) {
+  if (ms_extensions || gnu_version_is(>=120000)) {
     /* Enter keywords in support of P0466R5 ("Layout-compatibility and
        Pointer-interconvertibility Traits", part of C++20). */
     enter_keyword(tok_is_layout_compatible, "__is_layout_compatible");
     enter_keyword(tok_is_pointer_interconvertible_base_of,
                   "__is_pointer_interconvertible_base_of");
     /* GCC and Visual Studio have different names and signatures for these. */
-    if (gnu_version_is(>=120100)) {
+    if (gnu_version_is(>=120000)) {
       enter_keyword(tok_builtin_is_corresponding_member,
                     "__builtin_is_corresponding_member");
       enter_keyword(tok_builtin_is_pointer_interconvertible_with_class,
