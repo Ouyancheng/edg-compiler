@@ -1,5 +1,17 @@
 Version 6.7
 
+4/30/24  [EDGcpfe/27223]
+C/C++-generating back ends: complex 128-bit floating point type
+
+The changes for EDGcpfe/26221 (in version 6.5) inadvertently resulted in
+the complex 128-bit floating point type being represented in generated code
+using the std::float128_t typedef, even in modes in which that typedef is
+not defined.  This is now fixed.  For example, with --gnu_version=100100:
+
+  using complex128 = __float128 __complex__;   // Previously generated as
+                                               // std::float128_t __complex__
+
+
 4/30/24  [EDGcpfe/27222]
 Spurious "throw()" warning on use of builtins in C++20 mode
 

@@ -8066,7 +8066,7 @@ _Sat was specified.
           } else if (basic_type == bt_float80) {
             fkind = (a_float_kind)fk_float80;
           } else if (basic_type == bt_float128) {
-            fkind = (a_float_kind)fk_std_float128;
+            fkind = (a_float_kind)fk_float128;
           } else {
             unexpected_condition();
           }  /* if */
