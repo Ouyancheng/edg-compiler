@@ -1,5 +1,17 @@
 Version 6.7
 
+4/30/24  [EDGcpfe/27222]
+Spurious "throw()" warning on use of builtins in C++20 mode
+
+Previously, the front end issued a spurious warning about the use of "throw()"
+in C++20 mode when calling non-throwing builtin functions.  For example, with
+--c++20 --clang_version 180100:
+
+  void f() {
+    __builtin_unreachable();  // Previously a spurious warning.  Now okay.
+  }
+
+
 4/29/24  [EDGcpfe/27146]
 GNU compatibility: predefined types for ARM NEON builtins
 
