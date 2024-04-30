@@ -1177,7 +1177,6 @@ static a_float_vector_type_descr
   {fk_last,         0, {NULL,                  NULL}}
 };
 
-
 /*
 Descriptor for an integer NEON vector or polyvector element type.
 */
@@ -1246,7 +1245,6 @@ static an_integer_vector_type_descr
   {ik_unsigned_short, 4, {"__simd64_poly16_t", "__simd128_poly16_t"}},
   {ik_none,           0, {NULL,                NULL}},
 };
-
 
 /*
 Descriptor for a NEON builtin vector type.
