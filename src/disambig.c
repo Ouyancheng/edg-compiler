@@ -1108,7 +1108,8 @@ part of a function declarator is found, may_be_decl is set to FALSE.
      "auto" parameters (and could trigger errors if the exception
      specification refers back to parameters, which haven't been declared
      yet). */
-  if (curr_token == tok_throw || curr_token == tok_noexcept) {
+  if (curr_token == tok_throw || curr_token == tok_edg_throw ||
+      curr_token == tok_noexcept) {
     /* Advance past the throw or noexcept keyword. */
     a_boolean  arg_optional = curr_token == tok_noexcept;
     get_token_and_coalesce_if_identifier(flags);

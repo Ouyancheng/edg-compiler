@@ -1810,14 +1810,15 @@ actually declares a function, member function, or function template).
 
   db_enter(4, "scan_exception_specification");
   is_noexcept = curr_token == tok_noexcept;
-  if (exceptions_enabled || curr_token == tok_throw || is_noexcept) {
+  if (exceptions_enabled || is_noexcept || curr_token == tok_throw ||
+      curr_token == tok_edg_throw) {
     /* Update the source position for the "throw".  Even if there is no
        "throw" this is where it would appear in the source.  If exception
        support is not enabled but a "throw" appears, we may want to issue
        a diagnostic, so save the source position for that case, too. */
     func_info->throw_position = pos_curr_token;
   }  /* if */
-  if (curr_token != tok_throw && !is_noexcept) {
+  if (curr_token != tok_throw && curr_token != tok_edg_throw && !is_noexcept) {
     /* No explicit throw specification, meaning anything may be thrown. */
     goto done;
   }  /* if */
@@ -1873,10 +1874,7 @@ actually declares a function, member function, or function template).
       (void)get_token();
       goto done;
     }  /* if */
-  } else if (locator_for_curr_id.symbol_header != NULL &&
-             locator_for_curr_id.symbol_header->identifier[0] == '_' &&
-             strcmp(locator_for_curr_id.symbol_header->identifier,
-                    "__edg_throw__") == 0) {
+  } else if (curr_token == tok_edg_throw) {
     /* Recognize the "__edg_throw__" throw token, which is equivalent to
        "throw" but should not elicit certain diagnostics. */
     is_edg_throw = TRUE;

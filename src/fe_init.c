@@ -1575,8 +1575,7 @@ Install the keywords in the symbol table.
   /* __edg_throw__ is an alias for "throw" in C++ mode and is effectively
      discarded (along with any arguments) in C mode.  This is used for builtin
      function declarations that can appear in both modes. */
-  enter_keyword(C_mode() ? (a_token_kind)tok_edg_throw :
-                           (a_token_kind)tok_throw,   "__edg_throw__");
+  enter_keyword(tok_edg_throw,                        "__edg_throw__");
   db_exit();
 }  /* keyword_init */
 
