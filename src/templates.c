@@ -20206,7 +20206,7 @@ mode in-class specialization.
   }  /* if */
   if (special_kind_is(rp, sfk_deduction_guide)) {
     /* Don't do exception specification processing for deduction guides. */
-  } else if (microsoft_mode || !rp->source_corresp.is_class_member) {
+  } else if (ms_version_is(<1920) || !rp->source_corresp.is_class_member) {
     /* Consider:
           template<typename T> struct A { static constexpr bool v = true; };
           template<typename T> int f(T&) noexcept(A<T>::v);

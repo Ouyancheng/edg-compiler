@@ -1,5 +1,13 @@
 Version 6.7
 
+5/1/24   [EDGcpfe/27199]
+Microsoft-mode instantiation point of exception specifications
+
+The changes for EDGcpfe/20840 caused exception specifications for member
+function templates to be instantiated early in Microsoft modes.  That behavior
+is now limited to modes with microsoft_version < 1920.
+
+
 4/30/24  [EDGcpfe/27223]
 C++-generating back end: complex 128-bit floating point type
 
