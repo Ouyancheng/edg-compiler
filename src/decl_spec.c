@@ -12830,11 +12830,11 @@ exit_loop:
         basic_type != bt_float32 && basic_type != bt_float32x &&
         basic_type != bt_float64 && basic_type != bt_float64x &&
         basic_type != bt_float80 && basic_type != bt_float128 &&
-        basic_type != bt_bfloat16) {
-      /* _Complex and _Imaginary usually require "float" or "double".  GNU C
-         mode is an exception: If no type specifier is mentioned, "double" is
-         implied.  In some GNU and clang versions, "_Float16" is also
-         accepted. */
+        basic_type != bt_std_float128 && basic_type != bt_bfloat16) {
+      /* _Complex and _Imaginary usually require "float" or "double".  GNU
+         C mode is an exception: If no type specifier is mentioned,
+         "double" is implied.  In some GNU and clang versions, "_Float*"
+         types are also accepted. */
       a_boolean  bad_complex_combination = TRUE;
       if (basic_type == bt_none) {
         /* No basic type was specified: Okay in GNU C mode, an error
