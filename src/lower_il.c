@@ -8545,7 +8545,33 @@ added_to_list:;
         continue;
       }  /* if */
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
-      /* Copy a field. */
+#if IA64_ABI
+      if (old_field->has_no_unique_address_attribute) {
+        /* A field marked with the [[no_unique_address]] attribute is
+           allocated somewhat like a base class subobject, potentially
+           allowing tail padding to be reused.  Specifically, max(dsize,
+           nvsize) bytes are allocated for the field, where dsize
+           corresponds to the data size prior to rounding up for alignment
+           purposes and nvsize is the size not including virtual base
+           classes. */
+        a_type_ptr ftp = skip_typerefs(old_field->type);
+        if (is_class_or_struct(ftp)) {
+          a_class_type_supplement_ptr ctsp = class_type_supp(ftp);
+          /* Check to see if the type of the field has tail padding. */
+          if (ctsp->size_without_virtual_base_classes < ftp->size &&
+              compute_dsize(ftp) < ftp->size) {
+            /* The type has tail padding.  Mark the field and the subobject
+               type accordingly. */
+            old_field->class_subobject_with_tail_padding = TRUE;
+#if MAINTAIN_NEEDED_FLAGS
+            subobject_type->
+                       variant.class_struct_union.keep_definition_in_il = TRUE;
+#endif /* MAINTAIN_NEEDED_FLAGS */
+          }  /* if */
+        }  /* if */
+      }  /* if */
+#endif /* IA64_ABI */
+      /* Copy the field. */
       copy_field(old_field, subobject_type, &last_field);
     }  /* for */
     check_assertion(!class_type->incomplete);
@@ -9914,33 +9940,6 @@ Do IL lowering of the indicated field and everything under it.
     mark_as_visited(field);
     lower_source_correspondence(&field->source_corresp);
     lower_os_type(field->type);
-#if IA64_ABI
-    if (field->has_no_unique_address_attribute) {
-      /* A field marked with the [[no_unique_address]] attribute is
-         allocated somewhat like a base class subobject, potentially
-         allowing tail padding to be reused.  Specifically, max(dsize,
-         nvsize) bytes are allocated for the field, where dsize corresponds
-         to the data size prior to rounding up for alignment purposes and
-         nvsize is the size not including virtual base classes. */
-      a_type_ptr  uftp = skip_typerefs(field->type);
-      if (is_class_or_struct(uftp)) {
-        a_class_type_supplement_ptr ctsp = class_type_supp(uftp);
-        /* Check to see if the type of the field has tail padding. */
-        if (ctsp->size_without_virtual_base_classes < uftp->size &&
-            compute_dsize(uftp) < uftp->size) {
-          /* The type has tail padding.  Mark the field and its subobject
-             type accordingly. */
-          field->class_subobject_with_tail_padding = TRUE;
-#if MAINTAIN_NEEDED_FLAGS
-          if (ctsp->subobject_partner != NULL) {
-            ctsp->subobject_partner->
-                       variant.class_struct_union.keep_definition_in_il = TRUE;
-          }  /* if */
-#endif /* MAINTAIN_NEEDED_FLAGS */
-        }  /* if */
-      }  /* if */
-    }  /* if */
-#endif /* IA64_ABI */
   }  /* if */
 }  /* lower_field */
 
