@@ -15503,24 +15503,28 @@ Return TRUE if processing succeeded, otherwise return FALSE.
 }  /* an_ifc_module::source_position_from_locus */
 
 
-using a_bad_operator_name_encoding_array = Dyn_array<a_const_char*,
-                                                     General_allocator>;
-                        /* The type for an array of bad operator name
-                           encodings.  These operators have been represented
-                           directly in the IFC via a TextOffset (which in the
-                           context of name resolution should be reserved for
-                           valid C++ identifiers) rather than a
-                           NameSort::Operator.  When the TextOffset is
-                           converted to a name in name_from_index the front end
-                           uses the array of bad operator names to check for
-                           and correct these operator encodings (by adding the
-                           missing "operator" prefix). */
+using a_bad_operator_name_encoding_map = Ptr_map<a_string_view,
+                                                 an_opname_kind,
+                                                 General_allocator>;
+                        /* The type for a mapping of of bad operator name
+                           encodings to their corresponding opname kinds.
+                           These operators have been represented directly in
+                           the IFC via a TextOffset (which in the context of
+                           name resolution should be reserved for valid C++
+                           identifiers) rather than a NameSort::Operator.  When
+                           the TextOffset is converted to a name in
+                           name_from_index the front end uses the array of bad
+                           operator names to check for and correct these
+                           operator encodings (by adding the missing "operator"
+                           prefix) or forming the appropriate operator
+                           locator. */
 
-static a_bad_operator_name_encoding_array
+static a_bad_operator_name_encoding_map
                 *bad_operator_name_encodings;
-                        /* An array containing operator names that appear
+                        /* A map that maps operator names that appear textually
                            without the operator prefix in a number of
-                           situations. */
+                           situations to the corresponding operator name
+                           kind. */
 
 
 static a_boolean identifier_is_valid(a_const_char *id_start)
@@ -15578,13 +15582,21 @@ non-NULL, fields (like is_operator_name) in *loc are updated accordingly.
 
       if (1 <= text_value.length() && text_value.length() <= 2) {
         /* Check to see if this an operator missing the operator prefix. */
-        for (a_const_char *op_str : *bad_operator_name_encodings) {
-          if (text_value == op_str) {
-            /* Add an "operator" prefix to the name. */
-            result = a_string("operator", text_value);
-            goto done;
+        a_string_view  text_val_view(text_value.as_temp_characters(),
+                                     text_value.length());
+        an_opname_kind op_kind =
+                               bad_operator_name_encodings->get(text_val_view);
+
+        if (op_kind != onk_none) {
+          /* Add an "operator" prefix to the name. */
+          if (loc != NULL) {
+            make_opname_locator(op_kind, loc, &null_source_position);
+            result = loc->symbol_header->identifier;
+          } else {
+            result = a_string("operator", text_val_view);
           }  /* if */
-        }  /* for */
+          goto done;
+        }  /* if */
       } else if (is_unnamed_tag(text_value.as_temp_characters())) {
         /* The IFC file contains synthesized names for "unnamed" types; treat
            these "as-if" the name was actually left unspecified. */
@@ -16436,7 +16448,7 @@ FIXME: Not sure if we need source location here.
       if (!loc->is_operator_name &&
           !loc->is_conversion_name &&
           !loc->is_udl_operator_name) {
-        if (TRUE || identifier_is_valid(name.as_temp_characters())) {
+        if (identifier_is_valid(name.as_temp_characters())) {
           /* Find the symbol (if not a special or error case). */
           (void)find_symbol(name.as_temp_characters(), name.length(), loc);
         } else {
@@ -29379,50 +29391,50 @@ Do one-time initialization of static variables defined in this file.
     register_pch_saved_variables(saved_vars);
   }  /* if */
   bad_operator_name_encodings =
-                            new_general<a_bad_operator_name_encoding_array>();
-  bad_operator_name_encodings->push_back("new");
-  bad_operator_name_encodings->push_back("delete");
-  bad_operator_name_encodings->push_back("new[]");
-  bad_operator_name_encodings->push_back("delete[]");
-  bad_operator_name_encodings->push_back("co_await()");
-  bad_operator_name_encodings->push_back("[]");
-  bad_operator_name_encodings->push_back("->");
-  bad_operator_name_encodings->push_back("->*");
-  bad_operator_name_encodings->push_back("~");
-  bad_operator_name_encodings->push_back("!");
-  bad_operator_name_encodings->push_back("+");
-  bad_operator_name_encodings->push_back("-");
-  bad_operator_name_encodings->push_back("*");
-  bad_operator_name_encodings->push_back("/");
-  bad_operator_name_encodings->push_back("%");
-  bad_operator_name_encodings->push_back("^");
-  bad_operator_name_encodings->push_back("&");
-  bad_operator_name_encodings->push_back("|");
-  bad_operator_name_encodings->push_back("=");
-  bad_operator_name_encodings->push_back("+=");
-  bad_operator_name_encodings->push_back("-=");
-  bad_operator_name_encodings->push_back("*=");
-  bad_operator_name_encodings->push_back("/=");
-  bad_operator_name_encodings->push_back("%=");
-  bad_operator_name_encodings->push_back("^=");
-  bad_operator_name_encodings->push_back("&=");
-  bad_operator_name_encodings->push_back("|=");
-  bad_operator_name_encodings->push_back("==");
-  bad_operator_name_encodings->push_back("!=");
-  bad_operator_name_encodings->push_back("<");
-  bad_operator_name_encodings->push_back(">");
-  bad_operator_name_encodings->push_back("<=");
-  bad_operator_name_encodings->push_back(">=");
-  bad_operator_name_encodings->push_back("<=>");
-  bad_operator_name_encodings->push_back("&&");
-  bad_operator_name_encodings->push_back("||");
-  bad_operator_name_encodings->push_back("<<");
-  bad_operator_name_encodings->push_back(">>");
-  bad_operator_name_encodings->push_back("<<=");
-  bad_operator_name_encodings->push_back(">>=");
-  bad_operator_name_encodings->push_back("++");
-  bad_operator_name_encodings->push_back("--");
-  bad_operator_name_encodings->push_back(",");
+              new_general<a_bad_operator_name_encoding_map>(/*mask_width=*/10);
+  bad_operator_name_encodings->map("new", onk_new);
+  bad_operator_name_encodings->map("delete", onk_delete);
+  bad_operator_name_encodings->map("new[]", onk_array_new);
+  bad_operator_name_encodings->map("delete[]", onk_array_delete);
+  bad_operator_name_encodings->map("co_await()", onk_await);
+  bad_operator_name_encodings->map("[]", onk_subscript);
+  bad_operator_name_encodings->map("->", onk_arrow);
+  bad_operator_name_encodings->map("->*", onk_arrow_star);
+  bad_operator_name_encodings->map("~", onk_compl);
+  bad_operator_name_encodings->map("!", onk_not);
+  bad_operator_name_encodings->map("+", onk_plus);
+  bad_operator_name_encodings->map("-", onk_minus);
+  bad_operator_name_encodings->map("*", onk_star);
+  bad_operator_name_encodings->map("/", onk_divide);
+  bad_operator_name_encodings->map("%", onk_remainder);
+  bad_operator_name_encodings->map("^", onk_excl_or);
+  bad_operator_name_encodings->map("&", onk_ampersand);
+  bad_operator_name_encodings->map("|", onk_or);
+  bad_operator_name_encodings->map("=", onk_assign);
+  bad_operator_name_encodings->map("+=", onk_plus_assign);
+  bad_operator_name_encodings->map("-=", onk_minus_assign);
+  bad_operator_name_encodings->map("*=", onk_times_assign);
+  bad_operator_name_encodings->map("/=", onk_divide_assign);
+  bad_operator_name_encodings->map("%=", onk_remainder_assign);
+  bad_operator_name_encodings->map("^=", onk_excl_or_assign);
+  bad_operator_name_encodings->map("&=", onk_and_assign);
+  bad_operator_name_encodings->map("|=", onk_or_assign);
+  bad_operator_name_encodings->map("==", onk_eq);
+  bad_operator_name_encodings->map("!=", onk_ne);
+  bad_operator_name_encodings->map("<", onk_lt);
+  bad_operator_name_encodings->map(">", onk_gt);
+  bad_operator_name_encodings->map("<=", onk_le);
+  bad_operator_name_encodings->map(">=", onk_ge);
+  bad_operator_name_encodings->map("<=>", onk_spaceship);
+  bad_operator_name_encodings->map("&&", onk_and_and);
+  bad_operator_name_encodings->map("||", onk_or_or);
+  bad_operator_name_encodings->map("<<", onk_shift_left);
+  bad_operator_name_encodings->map(">>", onk_shift_right);
+  bad_operator_name_encodings->map("<<=", onk_shift_left_assign);
+  bad_operator_name_encodings->map(">>=", onk_shift_right_assign);
+  bad_operator_name_encodings->map("++", onk_plus_plus);
+  bad_operator_name_encodings->map("--", onk_minus_minus);
+  bad_operator_name_encodings->map(",", onk_comma);
   /* Register variables that have distinct copies for distinct translation
      units. */
   register_trans_unit_variable(ifc_parameterized_entities);
