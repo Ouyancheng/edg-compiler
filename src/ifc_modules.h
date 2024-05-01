@@ -152,8 +152,6 @@ struct an_ifc_cache_info_zero_bits {
                            block scope. */
   a_bit_field   in_lambda_body:1;
                         /* TRUE if currently processing a lambda. */
-  a_bit_field   in_generic_lambda:1;
-                        /* TRUE if currently processing a generic lambda. */
   a_bit_field   is_specialization:1;
                         /* TRUE if the entity being cached is a template
                            specialization. */
@@ -551,9 +549,6 @@ public:
                   a_boolean                cache_brackets);
   void cache_attrs(a_module_token_cache_ptr cache,
                    an_ifc_decl_index        decl_idx);
-  void cache_template_head(a_module_token_cache_ptr cache,
-                           an_ifc_chart_index       chart_idx,
-                           const an_ifc_cache_info  &cinfo);
   void cache_function_parameters(a_module_token_cache_ptr     cache,
                                  an_ifc_chart_index           params,
                                  an_ifc_type_index            param_types,

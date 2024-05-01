@@ -4866,31 +4866,6 @@ otherwise, return FALSE.
 }  /* is_template_parameter */
 
 
-static inline
-a_boolean is_template_parameter(an_ifc_type_index type_idx)
-/*
-Return TRUE if the given type index is for a template parameter; otherwise,
-return FALSE.
-*/
-{
-  a_boolean result = FALSE;
-
-  type_idx = remove_type_qualifiers(type_idx);
-  if (type_idx.sort == ifc_ts_type_designated) {
-    Opt<an_ifc_type_designated> opt_designated_ty;
-
-    construct_node(&opt_designated_ty, type_idx);
-    if (opt_designated_ty.has_value()) {
-      an_ifc_type_designated designated_ty = *opt_designated_ty;
-      an_ifc_decl_index      decl_idx = get_ifc_decl(designated_ty);
-
-      result = is_template_parameter(decl_idx);
-    }  /* if */
-  }  /* if */
-  return result;
-}  /* is_template_parameter */
-
-
 static a_templ_arg_kind get_template_arg_kind(
                                              const an_ifc_decl_parameter &decl)
 /*
@@ -6622,10 +6597,6 @@ done:;
 }  /* an_ifc_module::cache_statement */
 
 
-static void cache_template_param_chart(a_module_token_cache_ptr cache,
-                                       an_ifc_chart_index       chart,
-                                       const an_ifc_cache_info  &cinfo);
-
 template<typename an_ifc_Node_type>
 static void cache_linkage_specification(a_module_token_cache_ptr cache,
                                         const an_ifc_Node_type   &decl);
@@ -6643,6 +6614,12 @@ static uint32_t cache_sentence(
                          a_boolean                look_for_stop_token = FALSE);
 
 
+template<typename an_ifc_Node_type>
+static void cache_template_parameter_list(a_module_token_cache_ptr cache,
+                                          const an_ifc_Node_type   &decl,
+                                          const an_ifc_cache_info  &cinfo);
+
+
 template<>
 a_boolean cache_direct_decl(a_module_token_cache_ptr  cache,
                             const an_ifc_decl_concept &idc,
@@ -6658,7 +6635,7 @@ TRUE if caching succeeds, FALSE otherwise.
 
   /* Generate the template parameter list. */
   cache_token(cache, tok_template);
-  cache_template_param_chart(cache, get_ifc_chart(idc), cinfo);
+  cache_template_parameter_list(cache, idc, cinfo);
   /* Generate "concept <concept-name>". */
   (void)cache_sentence(cache, get_ifc_head(idc));
   if (cinfo.ignore_definition) {
@@ -7031,85 +7008,154 @@ done:
 }  /* cache_direct_decl */
 
 
-static void cache_template_param_chart(a_module_token_cache_ptr cache,
-                                       an_ifc_chart_index       chart,
-                                       const an_ifc_cache_info  &cinfo)
+static void cache_template_parameter_list(
+                                      a_module_token_cache_ptr cache,
+                                      an_ifc_chart_index       param_chart_idx,
+                                      const an_ifc_cache_info  &cinfo)
 /*
-Add the tokens corresponding to the given chart to cache.  The caller is
-expected to have already cached the "template" keyword if it's required.  cinfo
-contains information about the current cache context to help inform decisions
-about what to cache.
+Cache template-parameter-list (and enclosing angle brackets) represented by the
+given parameter chart.  cinfo contains information about the current cache
+context to help inform decisions about what to cache.
 */
 {
-  an_ifc_expr_index constraint = {};
-
   cache_token(cache, tok_lt);
-  switch (chart.sort) {
-    case ifc_cs_chart_none:
-      /* No arguments to the template (i.e., specialization). */
-      break;
-    case ifc_cs_chart_unilevel:
-      { Opt<an_ifc_chart_unilevel> opt_icu;
+  if (!is_null_index(param_chart_idx)) {
+    switch (param_chart_idx.sort) {
+      case ifc_cs_chart_none:
+        /* No arguments to the template (i.e., specialization). */
+        break;
+      case ifc_cs_chart_unilevel:
+        { Opt<an_ifc_chart_unilevel> opt_icu;
 
-        construct_node(&opt_icu, chart);
-        if (!opt_icu.has_value()) {
-          goto invalid;
-        }  /* if */
-        constraint = get_ifc_constraint(*opt_icu);
-
-        a_decl_parameter_sequence sequence(*opt_icu);
-        a_boolean                 first = TRUE;
-        for (Indexed<an_ifc_decl_parameter> indexed_idp : sequence) {
-          if (!indexed_idp.has_value()) {
+          construct_node(&opt_icu, param_chart_idx);
+          if (!opt_icu.has_value()) {
             goto invalid;
           }  /* if */
-          if (!first) {
-            cache_token(cache, tok_comma);
-          }  /* if */
 
-          an_ifc_decl_parameter param_decl = *indexed_idp;
-          if (!cache_direct_decl(cache, param_decl, cinfo)) {
+          a_decl_parameter_sequence sequence(*opt_icu);
+          a_boolean                 first = TRUE;
+          for (Indexed<an_ifc_decl_parameter> indexed_idp : sequence) {
+            if (!indexed_idp.has_value()) {
+              goto invalid;
+            }  /* if */
+            if (!first) {
+              cache_token(cache, tok_comma);
+            }  /* if */
+
+            an_ifc_decl_parameter param_decl = *indexed_idp;
+            if (!cache_direct_decl(cache, param_decl, cinfo)) {
+              goto invalid;
+            }  /* if */
+            first = FALSE;
+          }  /* for */
+        }
+        break;
+      case ifc_cs_chart_multilevel:
+        { Opt<an_ifc_chart_multilevel> opt_icm;
+
+          construct_node(&opt_icm, param_chart_idx);
+          if (!opt_icm.has_value()) {
             goto invalid;
           }  /* if */
-          first = FALSE;
-        }  /* for */
-      }
-      break;
-    case ifc_cs_chart_multilevel:
-      { Opt<an_ifc_chart_multilevel> opt_icm;
 
-        construct_node(&opt_icm, chart);
-        if (!opt_icm.has_value()) {
-          goto invalid;
-        }  /* if */
-
-        a_decl_temploid_sequence sequence(*opt_icm);
-        a_boolean                first = TRUE;
-        for (Indexed<an_ifc_decl_temploid> indexed_idt : sequence) {
-          if (!first) {
-            cache_token(cache, tok_comma);
-          }  /* if */
-          /* FIXME: Is this correct? */
-          if (!cache_direct_decl(cache, *indexed_idt, cinfo)) {
-            goto invalid;
-          }  /* if */
-          first = FALSE;
-        }  /* for */
-      }
-      break;
-    default_is_unexpected_str("Unexpected ChartSort");
-  }  /* switch */
+          a_decl_temploid_sequence sequence(*opt_icm);
+          a_boolean                first = TRUE;
+          for (Indexed<an_ifc_decl_temploid> indexed_idt : sequence) {
+            if (!first) {
+              cache_token(cache, tok_comma);
+            }  /* if */
+            /* FIXME: Is this correct? */
+            if (!cache_direct_decl(cache, *indexed_idt, cinfo)) {
+              goto invalid;
+            }  /* if */
+            first = FALSE;
+          }  /* for */
+        }
+        break;
+      default_is_unexpected_str("Unexpected ChartSort");
+    }  /* switch */
+  }  /* if */
   cache_token(cache, tok_gt);
-  if (!is_null_index(constraint)) {
-    /* The template parameter list is followed by a requires-clause. */
-    cache_expr(cache, constraint, cinfo);
+  goto done;
+invalid:
+  expect_error_str("expected errors for bad template-parameter-list");
+  cache->invalidate();
+done:;
+}  /* cache_template_parameter_list */
+
+
+template<typename an_ifc_Node_type>
+static void cache_template_parameter_list(a_module_token_cache_ptr cache,
+                                          const an_ifc_Node_type   &decl,
+                                          const an_ifc_cache_info  &cinfo)
+/*
+Cache template-parameter-list (and enclosing angle brackets) for the given
+template-like declaration.  cinfo contains information about the current cache
+context to help inform decisions about what to cache.
+*/
+{
+  an_ifc_chart_index param_chart_idx = get_ifc_chart(decl);
+
+  cache_template_parameter_list(cache, param_chart_idx, cinfo);
+}  /* cache_template_parameter_list */
+
+
+static void cache_template_head_requires_clause(
+                                      a_module_token_cache_ptr cache,
+                                      an_ifc_chart_index       param_chart_idx,
+                                      const an_ifc_cache_info  &cinfo)
+/*
+Cache template-head's requires-clause if specified by the given parameter
+chart. cinfo contains information about the current cache context to help
+inform decisions about what to cache.
+*/
+{
+  if (!is_null_index(param_chart_idx)) {
+    an_ifc_expr_index constraint = {};
+
+    switch (param_chart_idx.sort) {
+      case ifc_cs_chart_none:
+        break;
+      case ifc_cs_chart_unilevel:
+        { Opt<an_ifc_chart_unilevel> opt_icu;
+
+          construct_node(&opt_icu, param_chart_idx);
+          if (!opt_icu.has_value()) {
+            goto invalid;
+          }  /* if */
+          constraint = get_ifc_constraint(*opt_icu);
+        }
+        break;
+      case ifc_cs_chart_multilevel:
+        break;
+      default_is_unexpected_str("Unexpected ChartSort");
+    }  /* switch */
+    if (!is_null_index(constraint)) {
+      /* The template parameter list is followed by a requires-clause. */
+      cache_expr(cache, constraint, cinfo);
+    }  /* if */
   }  /* if */
   goto done;
 invalid:
-  expect_error_str("expected errors for bad template param chart cache");
+  expect_error_str("expected errors for bad template-head requires-clause");
   cache->invalidate();
 done:;
-}  /* cache_template_param_chart */
+}  /* cache_template_head_requires_clause */
+
+
+static void cache_template_head(a_module_token_cache_ptr cache,
+                                an_ifc_chart_index       chart_idx,
+                                const an_ifc_cache_info  &cinfo)
+/*
+Add the tokens corresponding to the template head described by the given
+chart_idx to the cache.  cinfo contains information about the current cache
+context to help inform decisions about what to cache.
+*/
+{
+  cache_token(cache, tok_template);
+  cache_template_parameter_list(cache, chart_idx, cinfo);
+  cache_template_head_requires_clause(cache, chart_idx, cinfo);
+}  /* cache_template_head */
 
 
 /* FIXME: This code should be transition an_ifc_func_param_context (and
@@ -11111,9 +11157,9 @@ strongly preferred over calling this function directly.
                                             iek_template, &il_entity, &kind)) {
               break;
             }  /* if */
-            cache_token(&cache, tok_template);
-            cache_template_param_chart(&cache, get_ifc_chart(itf),
-                                       /*cinfo=*/{});
+
+            an_ifc_chart_index chart_idx = get_ifc_chart(itf);
+            cache_template_head(&cache, chart_idx, /*cinfo=*/{});
             cache_token(&cache, tok_using);
             Opt<a_string> opt_name = name_from_index(get_ifc_name(ida));
             if (!opt_name.has_value()) {
@@ -16390,13 +16436,19 @@ FIXME: Not sure if we need source location here.
       if (!loc->is_operator_name &&
           !loc->is_conversion_name &&
           !loc->is_udl_operator_name) {
-        /* Find the symbol (if not a special case). */
-        (void)find_symbol(name.as_temp_characters(), name.length(), loc);
+        if (TRUE || identifier_is_valid(name.as_temp_characters())) {
+          /* Find the symbol (if not a special or error case). */
+          (void)find_symbol(name.as_temp_characters(), name.length(), loc);
+        } else {
+          pos_error(ec_ifc_bad_identifier, &pos, name.as_temp_characters());
+          goto done;
+        }  /* if */
       }  /* if */
       /* Initialization was completed successfully. */
       result = TRUE;
     }  /* if */
   }  /* if */
+done:
   return result;
 }  /* an_ifc_module::init_locator_from_name */
 
@@ -19382,8 +19434,7 @@ otherwise, return FALSE.
 
 template<typename an_ifc_Node_type>
 static void cache_var_closure_initializer(a_module_token_cache_ptr cache,
-                                          const an_ifc_Node_type   &decl,
-                                          const an_ifc_cache_info  &cinfo);
+                                          const an_ifc_Node_type   &decl);
 
 
 template<typename an_ifc_Node_type>
@@ -19397,7 +19448,7 @@ to cache.
 */
 {
   if (is_var_initialized_by_closure(decl)) {
-    cache_var_closure_initializer(cache, decl, cinfo);
+    cache_var_closure_initializer(cache, decl);
   } else {
     an_ifc_expr_index initializer = get_ifc_initializer(decl);
 
@@ -20812,7 +20863,6 @@ context to help inform decisions about what to cache.
 */
 {
   if (cinfo.parameterizing_entity.sort == ifc_ds_decl_template &&
-      !cinfo.in_generic_lambda &&
       is_msvc_authored(cinfo.parameterizing_entity)) {
     /* Templates in the MSVC IFC representation do not currently have correct
        encodings of function parameters in the IFC nodes.  To work around this
@@ -20954,15 +21004,7 @@ context to help inform decisions about what to cache.
         goto invalid;
       }  /* if */
 
-      /* If this is a generic lambda referencing a template parameter, this
-         is an auto type parameter. */
-      a_boolean use_auto_type = (cinfo.in_generic_lambda &&
-                                 is_template_parameter(arg_type));
-      if (use_auto_type) {
-        cache_token(cache, tok_auto);
-      } else {
-        cache_type_first_part(cache, arg_type, cinfo);
-      }  /* if */
+      cache_type_first_part(cache, arg_type, cinfo);
       if (!is_variadic_parameter_declaration_clause_type(arg_type)) {
         an_ifc_name_index name_idx = param_context.get_name(i);
 
@@ -20974,9 +21016,7 @@ context to help inform decisions about what to cache.
           cache_name(cache, name_idx);
         }  /* if */
       }  /* if */
-      if (!use_auto_type) {
-        cache_type_second_part(cache, arg_type, cinfo);
-      }  /* if */
+      cache_type_second_part(cache, arg_type, cinfo);
       /* Cache the default argument if we're not ignoring default arguments in
          this context, and a default argument is found. */
       if (!cinfo.ignore_default_arguments) {
@@ -21205,6 +21245,24 @@ DeclFields).
 }  /* cache_lambda_captures */
 
 
+static void cache_lambda_template_parameters(
+                                    a_module_token_cache_ptr cache,
+                                    an_ifc_decl_index        call_operator_idx)
+/*
+Cache the template-parameter-list (and enclosing angle brackets) for the lambda
+represented by the lambda call operator declaration (indexed by
+call_operator_idx).
+*/
+{
+  if (call_operator_idx.sort == ifc_ds_decl_template) {
+    an_ifc_decl_template template_decl;
+
+    construct_node_prechecked(&template_decl, call_operator_idx);
+    cache_template_parameter_list(cache, template_decl, /*cinfo=*/{});
+  }  /* if */
+}  /* cache_lambda_template_parameters */
+
+
 static void cache_lambda_parameters(a_module_token_cache_ptr cache,
                                     an_ifc_decl_index        call_operator_idx,
                                     const an_ifc_cache_info  &cinfo)
@@ -21224,7 +21282,6 @@ to help inform decisions about what to cache.
     an_ifc_decl_index           entity_decl = get_ifc_decl(param_entity);
     an_ifc_cache_info           entity_cinfo = cinfo;
     entity_cinfo.parameterizing_entity = call_operator_idx;
-    entity_cinfo.in_generic_lambda = TRUE;
     cache_lambda_parameters(cache, entity_decl, entity_cinfo);
   } else {
     an_ifc_decl_method method_decl;
@@ -21333,33 +21390,20 @@ lambda call operator declaration (index by the given call_operator_idx).
 }  /* cache_lambda_body */
 
 
-template<typename an_ifc_Node_type>
-static void cache_var_closure_initializer(a_module_token_cache_ptr cache,
-                                          const an_ifc_Node_type   &decl,
-                                          const an_ifc_cache_info  &cinfo)
+static void cache_closure_from_scope(a_module_token_cache_ptr cache,
+                                     an_ifc_decl_index        decl_idx)
 /*
-Cache the initializer for the given variable-like declaration.  cinfo contains
-information about the current cache context to help inform decisions about what
-to cache.
+Cache a lambda represented by the IFC DeclScope (indexed by decl_idx).
 */
 {
-  an_ifc_type_index      type_idx = get_ifc_type(decl);
-  an_ifc_type_designated designated_type;
-
-  type_idx = remove_type_qualifiers(type_idx);
-  construct_node_prechecked(&designated_type, type_idx);
+  /* The given declaration index should always index a DeclScope. */
+  check_assertion(decl_idx.sort == ifc_ds_decl_scope);
   {
-    an_ifc_decl_index      decl_idx = get_ifc_decl(designated_type);
-    Opt<an_ifc_decl_scope> opt_scope_decl;
+    an_ifc_decl_scope scope_decl;
 
-    construct_node(&opt_scope_decl, decl_idx);
-    if (!opt_scope_decl.has_value()) {
-      goto invalid;
-    }  /* if */
+    construct_node_prechecked(&scope_decl, decl_idx);
 
-    an_ifc_decl_scope   scope_decl = *opt_scope_decl;
     an_ifc_scope_offset class_members_idx = get_ifc_initializer(scope_decl);
-
     if (is_null_index(class_members_idx)) {
       a_string err_msg("Expected members for the lambda designated by ",
                        index_to_str(decl_idx));
@@ -21382,8 +21426,8 @@ to cache.
     Dyn_array<an_ifc_decl_index> captures =
                               find_lambda_captures_in_scope(class_members_idx);
     an_ifc_decl_index call_operator_idx = *opt_call_operator_idx;
-    cache_token(cache, tok_assign);
     cache_lambda_captures(cache, captures);
+    cache_lambda_template_parameters(cache, call_operator_idx);
     cache_lambda_parameters(cache, call_operator_idx, /*cinfo=*/{});
     cache_lambda_specifier_seq(cache, call_operator_idx);
     cache_lambda_return_type(cache, call_operator_idx);
@@ -21394,6 +21438,25 @@ invalid:
   expect_error_str("expected errors for bad lambda");
   cache->invalidate();
 done:;
+}  /* cache_closure_from_scope */
+
+
+template<typename an_ifc_Node_type>
+static void cache_var_closure_initializer(a_module_token_cache_ptr cache,
+                                          const an_ifc_Node_type   &decl)
+/*
+Cache the closure initializer for the given variable-like declaration.
+*/
+{
+  an_ifc_type_index      type_idx = get_ifc_type(decl);
+  an_ifc_type_designated designated_type;
+
+  type_idx = remove_type_qualifiers(type_idx);
+  construct_node_prechecked(&designated_type, type_idx);
+
+  an_ifc_decl_index decl_idx = get_ifc_decl(designated_type);
+  cache_token(cache, tok_assign);
+  cache_closure_from_scope(cache, decl_idx);
 }  /* cache_var_closure_initializer */
 
 
@@ -21719,11 +21782,15 @@ this is needed.
         if (!validate(decl)) {
           goto invalid;
         }  /* if */
-        /* Check for the special case of a closure type declared in local
-           scope.  Such a type cannot be expressed as a normal type name, but
-           it can appear when "auto" was used as a type specifier. */
-        if (is_local_closure_decl(decl)) {
-          cache_token(cache, tok_auto);
+        if (is_closure_decl(decl)) {
+          /* Check for the additional closure type special case.  In this case,
+             the closure appears in a decltype construct.  It's also possible
+             to reach this case if is_var_initialized_by_closure incorrectly
+             returns FALSE. */
+          cache_token(cache, tok_decltype);
+          cache_token(cache, tok_lparen);
+          cache_closure_from_scope(cache, decl);
+          cache_token(cache, tok_rparen);
         } else if (cinfo.inline_data_member_type) {
           auto cache_content = [cinfo](a_module_token_cache *content_cache,
                                        an_ifc_decl_index    decl_idx) {
@@ -22006,8 +22073,10 @@ this is needed.
         if (!opt_itfa.has_value()) {
           goto invalid;
         }  /* if */
-        mod->cache_template_head(cache, get_ifc_chart(*opt_itfa),
-                                 /*cinfo=*/{});
+
+        an_ifc_type_forall itfa = *opt_itfa;
+        an_ifc_chart_index chart_idx = get_ifc_chart(itfa);
+        cache_template_head(cache, chart_idx, /*cinfo=*/{});
         cache_type(cache, get_ifc_subject(*opt_itfa), cinfo);
       }
       break;
@@ -23870,25 +23939,6 @@ decl_idx to the cache.
 }  /* an_ifc_module::cache_attrs */
 
 
-void an_ifc_module::cache_template_head(a_module_token_cache_ptr cache,
-                                        an_ifc_chart_index       chart_idx,
-                                        const an_ifc_cache_info  &cinfo)
-/*
-Add the tokens corresponding to the template head described by the given
-chart_idx to the cache.  cinfo contains information about the current cache
-context to help inform decisions about what to cache.
-*/
-{
-  cache_token(cache, tok_template);
-  if (is_null_index(chart_idx)) {
-    cache_token(cache, tok_lt);
-    cache_token(cache, tok_gt);
-  } else {
-    cache_template_param_chart(cache, chart_idx, cinfo);
-  }  /* if */
-}  /* an_ifc_module::cache_template_head */
-
-
 void an_ifc_module::cache_decl(a_module_token_cache_ptr cache,
                                an_ifc_decl_index        decl,
                                const an_ifc_cache_info  &cinfo)
@@ -24138,7 +24188,7 @@ about what to cache.
           an_ifc_type_forall itf = *opt_itf;
           check_assertion(get_ifc_aliasee(ida).sort == ifc_ts_type_forall);
           cache_token(cache, tok_template);
-          cache_template_param_chart(cache, get_ifc_chart(itf), cinfo);
+          cache_template_parameter_list(cache, get_ifc_chart(itf), cinfo);
           cache_token(cache, tok_using);
 
           Opt<a_string> opt_name = name_from_index(get_ifc_name(ida));
