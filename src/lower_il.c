@@ -8556,9 +8556,9 @@ added_to_list:;
            classes. */
         a_type_ptr ftp = skip_typerefs(old_field->type);
         if (is_class_or_struct(ftp)) {
-          a_class_type_supplement_ptr ctsp = class_type_supp(ftp);
           /* Check to see if the type of the field has tail padding. */
-          if (ctsp->size_without_virtual_base_classes < ftp->size &&
+          if (class_type_supp(ftp)->size_without_virtual_base_classes <
+                                                                   ftp->size &&
               compute_dsize(ftp) < ftp->size) {
             /* The type has tail padding.  Mark the field and the subobject
                type accordingly. */
