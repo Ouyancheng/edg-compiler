@@ -7500,6 +7500,7 @@ enum a_basic_type {
   bt_float64x,
   bt_float80,
   bt_float128,
+  bt_std_float128,
   bt_typedef,
   bt_struct_union,
   bt_enum,
@@ -7577,8 +7578,10 @@ Return the basic type corresponding to the given floating-point kind.
     basic_type = bt_float64x;
   } else if (fkind == fk_float80) {
     basic_type = bt_float80;
-  } else if (fkind == fk_float128 || fkind == fk_std_float128) {
+  } else if (fkind == fk_float128) {
     basic_type = bt_float128;
+  } else if (fkind == fk_std_float128) {
+    basic_type = bt_std_float128;
   }  /* if */
   return basic_type;
 }  /* basic_float_type */
@@ -8040,6 +8043,7 @@ _Sat was specified.
     case bt_float64x:
     case bt_float80:
     case bt_float128:
+    case bt_std_float128:
       if (sign != sign_none || (size != size_none && size != size_long)) {
         bad_combination = TRUE;
       } else {
@@ -8067,6 +8071,8 @@ _Sat was specified.
             fkind = (a_float_kind)fk_float80;
           } else if (basic_type == bt_float128) {
             fkind = (a_float_kind)fk_float128;
+          } else if (basic_type == bt_std_float128) {
+            fkind = (a_float_kind)fk_std_float128;
           } else {
             unexpected_condition();
           }  /* if */
@@ -11500,7 +11506,7 @@ storage_class_specifier:
             case tok_float32x: basic_type = bt_float32x; break;
             case tok_float64:  basic_type = bt_float64; break;
             case tok_float64x: basic_type = bt_float64x; break;
-            case tok_float128: basic_type = bt_float128; break;
+            case tok_float128: basic_type = bt_std_float128; break;
             default:
               unexpected_condition_str("decl_specifiers: bad type specifier");
           }  /* switch */
