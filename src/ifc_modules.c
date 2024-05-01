@@ -12694,11 +12694,11 @@ struct an_ifc_compatibility_diag_handler {
   inline an_ifc_compatibility_diag_handler(an_error_severity error_severity,
                                            a_source_position *import_pos,
                                            a_const_char      *module_name);
-  inline ~an_ifc_compatibility_diag_handler();
 
   inline void bad_version(an_ifc_version major_version,
                           an_ifc_version minor_version);
   inline void bad_architecture(an_ifc_architecture_sort arch);
+  inline void emit_diagnostic() const;
 private:
   a_diagnostic_ptr
                 diag;   /* The diagnostic that will be emitted upon
@@ -12719,15 +12719,6 @@ position, and file path.
                                     ec_ifc_file_incompatibility,
                                     import_pos, file_path);
 }  /* an_ifc_compatibility_diag_handler::an_ifc_compatibility_diag_handler */
-
-
-an_ifc_compatibility_diag_handler::~an_ifc_compatibility_diag_handler()
-/*
-Emit the constructed diagnostic.
-*/
-{
-  end_diagnostic(this->diag);
-}  /* an_ifc_compatibility_diag_handler::~an_ifc_compatibility_diag_handler */
 
 
 void an_ifc_compatibility_diag_handler::bad_version(
@@ -12751,6 +12742,15 @@ Add the diagnostic information for an architecture mismatch.
 {
   add_diag_info(this->diag, ec_unsupported_ifc_file_arch_info, str_for(arch));
 }  /* an_ifc_compatibility_diag_handler::bad_architecture */
+
+
+void an_ifc_compatibility_diag_handler::emit_diagnostic() const
+/*
+Emit the constructed diagnostic.
+*/
+{
+  end_diagnostic(this->diag);
+}  /* an_ifc_compatibility_diag_handler::emit_diagnostic */
 
 }  /* namespace */
 
@@ -12936,6 +12936,7 @@ diagnostics if issue_diag is TRUE.
                                                    mod->full_name);
 
       check_ifc_compatibility(this->header, &diagnostic);
+      diagnostic.emit_diagnostic();
       if (checker.is_error()) {
         goto invalid;
       }  /* if */
