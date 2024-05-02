@@ -5637,6 +5637,9 @@ be called to check and adjust the argument and routine types as needed.
       bcap->n_args = 3;
       break;
     case bfk_nontemporal_load:
+    case bfk_arm_ldrex:
+    case bfk_arm_ldaex:
+    case bfk_arm_ldg:
       bcap->replace_routine_type = TRUE;
       bcap->n_args = 1;
       break;
@@ -5645,6 +5648,11 @@ be called to check and adjust the argument and routine types as needed.
       bcap->result_type = void_type();
       bcap->n_args = 2;
       bcap->dispatch_arg = 2;
+      break;
+    case bfk_arm_addg:
+    case bfk_arm_irg:
+      bcap->replace_routine_type = TRUE;
+      bcap->n_args = 2;
       break;
     case bfk_operator_delete:
     case bfk_operator_new:
@@ -6060,6 +6068,8 @@ indicated type.
                                           (a_type_ptr)NULL);
             break;
           case bfk_nontemporal_load:
+          case bfk_arm_ldrex:
+          case bfk_arm_ldaex:
             rout_type = make_routine_type(orig_dispatch_type,
                                          make_pointer_type(orig_dispatch_type),
                                          (a_type_ptr)NULL, (a_type_ptr)NULL,
@@ -6069,6 +6079,16 @@ indicated type.
             rout_type = make_routine_type(void_type(), dispatch_type,
                                           make_pointer_type(dispatch_type),
                                           (a_type_ptr)NULL, (a_type_ptr)NULL);
+            break;
+          case bfk_arm_ldg:
+            rout_type = make_routine_type(ptr_type, ptr_type);
+            bcap->result_type = ptr_type;
+            break;
+          case bfk_arm_addg:
+          case bfk_arm_irg:
+            rout_type = make_routine_type(ptr_type, ptr_type,
+                                          integer_type(ik_unsigned_int));
+            bcap->result_type = ptr_type;
             break;
           default:
             unexpected_condition();
