@@ -4187,7 +4187,7 @@ is declared in a local scope; otherwise, return FALSE.
 static inline a_boolean is_var_type_auto(an_ifc_type_index type_idx)
 /*
 Return TRUE if the type at the given IFC type index when used as the type of
-variable is the "auto" type; otherwise, return FALSE.
+a variable is the "auto" type; otherwise, return FALSE.
 */
 {
   a_boolean result = FALSE;
