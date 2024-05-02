@@ -8560,13 +8560,8 @@ added_to_list:;
           if (class_type_supp(ftp)->size_without_virtual_base_classes <
                                                                    ftp->size &&
               compute_dsize(ftp) < ftp->size) {
-            /* The type has tail padding.  Mark the field and the subobject
-               type accordingly. */
+            /* The type has tail padding.  Mark the field accordingly. */
             old_field->class_subobject_with_tail_padding = TRUE;
-#if MAINTAIN_NEEDED_FLAGS
-            subobject_type->
-                       variant.class_struct_union.keep_definition_in_il = TRUE;
-#endif /* MAINTAIN_NEEDED_FLAGS */
           }  /* if */
         }  /* if */
       }  /* if */
@@ -9940,6 +9935,18 @@ Do IL lowering of the indicated field and everything under it.
     mark_as_visited(field);
     lower_source_correspondence(&field->source_corresp);
     lower_os_type(field->type);
+#if BACK_END_IS_C_GEN_BE && IA64_ABI && MAINTAIN_NEEDED_FLAGS
+    if (field->class_subobject_with_tail_padding) {
+      /* Ensure that the corresponding subobject type definition is not
+         removed from the IL, as it will be needed by the C-generating back
+         end to enable use of the tail padding. */
+      a_type_ptr ftp = skip_typerefs(field->type);
+      check_assertion(is_class_or_struct(ftp) &&
+                      class_type_supp(ftp)->subobject_partner != NULL);
+      class_type_supp(ftp)->subobject_partner->
+                       variant.class_struct_union.keep_definition_in_il = TRUE;
+    }  /* if */
+#endif /* BACK_END_IS_C_GEN_BE && IA64_ABI && MAINTAIN_NEEDED_FLAGS */
   }  /* if */
 }  /* lower_field */
 
