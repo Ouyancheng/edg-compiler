@@ -13852,11 +13852,40 @@ corresponding integer type.
 }  /* get_edg_int_kind */
 
 
+static a_type_ptr parse_decltype_specifier_cache(an_ifc_module        *mod,
+                                                 a_module_token_cache *cache)
+/*
+Given a decltype-specifier token cache and the associated module that formed
+the token cache, parse the decltype-specifier and return the associated type.
+If the initial token is not a decltype or decltype construct token, instead
+issue an IFC unexpected error and return NULL.
+*/
+{
+  a_type_ptr             result = NULL;
+  a_module_entity_rescan rescan(cache);
+
+  if (curr_token == tok_decltype) {
+    /* A decltype could be decltype(x) or decltype(x)::something.  This will
+       coalesce the decltype into a tok_decltype_construct in the first case or
+       a tok_identifier in the latter case. */
+    (void)is_generalized_identifier_start(GID_IS_EXPR_CONTEXT);
+  }  /* if */
+  if (curr_token == tok_decltype_construct) {
+    result = locator_for_curr_id.variant.decltype_type;
+  } else {
+    a_string err_msg("expected a decltype construct");
+
+    ifc_unexpected(mod, err_msg.as_temp_characters());
+  }  /* if */
+  return result;
+}  /* parse_decltype_specifier_cache */
+
+
 static a_type_ptr parse_typename_specifier_cache(an_ifc_module        *mod,
                                                  a_module_token_cache *cache)
 /*
-Given a typename specifier token cache and the associated module that formed
-the token cache, parse the typename specifier and return the associated type.
+Given a typename-specifier token cache and the associated module that formed
+the token cache, parse the typename-specifier and return the associated type.
 If the initial token is not a typename token, instead issue an IFC unexpected
 error and return NULL.
 */
@@ -14243,10 +14272,25 @@ with the module entity pointer.
         an_ifc_type_designated itd = *opt_itd;
         an_ifc_decl_index      decl = get_ifc_decl(itd);
         switch (decl.sort) {
+          case ifc_ds_decl_scope:
+            if (is_closure_decl(decl)) {
+              /* Check to see if the designated type is actually a closure
+                 type.  If so, cache the type (which should result into a
+                 decltype-specifier being cached) and then parse the
+                 decltype-specifier. */
+              a_module_token_cache cache;
+
+              cache_type(&cache, type_idx, /*cinfo=*/{});
+              result = parse_decltype_specifier_cache(mod, &cache);
+              if (result == NULL) {
+                goto invalid;
+              }  /* if */
+              break;
+            }  /* if */
+            FALLTHROUGH
           case ifc_ds_decl_alias:
           case ifc_ds_decl_enumeration:
           case ifc_ds_decl_reference:
-          case ifc_ds_decl_scope:
             /* Find the type of the scope declaration by processing it (in
                case it has been deferred). */
             { a_module_entity_ptr dmep = process_decl_at_index(decl);
@@ -14538,23 +14582,9 @@ with the module entity pointer.
       { a_module_token_cache cache;
 
         cache_type(&cache, type_idx, /*cinfo=*/{});
-
-        a_module_entity_rescan rescan(&cache);
-        if (curr_token == tok_decltype) {
-          /* A decltype could be decltype(x) or decltype(x)::something.  This
-             will coalesce the decltype into a tok_decltype_construct in the
-             first case or a tok_identifier in the latter case. */
-          (void)is_generalized_identifier_start(GID_IS_EXPR_CONTEXT);
-        }  /* if */
-
-        if (curr_token == tok_decltype_construct) {
-          result = locator_for_curr_id.variant.decltype_type;
-          (void)get_token();
-        } else {
-          a_string err_msg(index_to_str(type_idx),
-                           " does not contain a decltype expression");
-
-          ifc_unexpected(mod, err_msg.as_temp_characters());
+        result = parse_decltype_specifier_cache(mod, &cache);
+        if (result == NULL) {
+          goto invalid;
         }  /* if */
       }
       break;
