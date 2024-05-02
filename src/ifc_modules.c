@@ -4162,28 +4162,6 @@ Return TRUE if the given declaration index is a function.
 }  /* is_function_decl */
 
 
-static inline a_boolean is_local_closure_decl(an_ifc_decl_index decl_idx)
-/*
-Return TRUE if the given IFC decl index represents a closure declaration that
-is declared in a local scope; otherwise, return FALSE.
-*/
-{
-  a_boolean result = FALSE;
-
-  if (is_closure_decl(decl_idx)) {
-    an_ifc_decl_scope scope_decl;
-
-    construct_node_prechecked(&scope_decl, decl_idx);
-
-    an_ifc_decl_index home_scope = get_ifc_home_scope(scope_decl);
-    if (is_function_decl(home_scope)) {
-      result = TRUE;
-    }  /* if */
-  }  /* if */
-  return result;
-}  /* is_local_closure_decl */
-
-
 static inline a_boolean is_var_type_auto(an_ifc_type_index type_idx)
 /*
 Return TRUE if the type at the given IFC type index when used as the type of
