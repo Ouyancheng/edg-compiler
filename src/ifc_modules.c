@@ -14253,7 +14253,7 @@ with the module entity pointer.
           case ifc_ds_decl_scope:
             if (is_closure_decl(decl)) {
               /* Check to see if the designated type is actually a closure
-                 type.  If so, cache the type (which should result into a
+                 type.  If so, cache the type (which should result in a
                  decltype-specifier being cached) and then parse the
                  decltype-specifier. */
               a_module_token_cache cache;
