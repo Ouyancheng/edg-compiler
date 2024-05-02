@@ -21312,7 +21312,7 @@ static void cache_lambda_specifier_seq(
                                     an_ifc_decl_index        call_operator_idx)
 /*
 Cache the lambda-specifier-seq for the lambda represented by the lambda call
-operator declaration (index by the given call_operator_idx).
+operator declaration (indexed by the given call_operator_idx).
 */
 {
   if (call_operator_idx.sort == ifc_ds_decl_template) {
@@ -21343,7 +21343,7 @@ static void cache_lambda_return_type(
                                     an_ifc_decl_index        call_operator_idx)
 /*
 Cache the lambda trailing-return-type for the lambda represented by the lambda
-call operator declaration (index by the given call_operator_idx).
+call operator declaration (indexed by the given call_operator_idx).
 */
 {
   if (call_operator_idx.sort == ifc_ds_decl_template) {
@@ -21368,7 +21368,7 @@ static void cache_lambda_body(a_module_token_cache_ptr cache,
                               an_ifc_decl_index        call_operator_idx)
 /*
 Cache the lambda body (compound-statement) for the lambda represented by the
-lambda call operator declaration (index by the given call_operator_idx).
+lambda call operator declaration (indexed by the given call_operator_idx).
 */
 {
   if (call_operator_idx.sort == ifc_ds_decl_template) {
