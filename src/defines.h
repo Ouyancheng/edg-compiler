@@ -1172,9 +1172,9 @@ command-line when compiling system headers.
 #define TARG_JMP_BUF_ELEMENT_INT_KIND_linux_armv7 ((an_integer_kind)ik_int)
 #define TARG_JMP_BUF_NUM_ELEMENTS_linux_armv7 25
 #define TARG_SETJMP_FUNC_linux_armv7 "_setjmp"
-#define TARG_LDBL_MANT_DIG_linux_armv7 64
-#define TARG_LDBL_MAX_EXP_linux_armv7 16384
-#define TARG_LDBL_MIN_EXP_linux_armv7 (-16381)
+#define TARG_LDBL_MANT_DIG_linux_armv7 53
+#define TARG_LDBL_MAX_EXP_linux_armv7 1024
+#define TARG_LDBL_MIN_EXP_linux_armv7 (-1021)
 #define TARG_LIBGCC_CMP_RETURN_MODE_linux_armv7 ((a_type_mode_kind)tmk_SI)
 #define TARG_LIBGCC_SHIFT_COUNT_MODE_linux_armv7 ((a_type_mode_kind)tmk_SI)
 #define TARG_LITTLE_ENDIAN_linux_armv7 1
@@ -2493,9 +2493,9 @@ command-line when compiling system headers.
 #define TARG_JMP_BUF_ELEMENT_INT_KIND_linux_armv7 ((an_integer_kind)ik_int)
 #define TARG_JMP_BUF_NUM_ELEMENTS_linux_armv7 25
 #define TARG_SETJMP_FUNC_linux_armv7 "_setjmp"
-#define TARG_LDBL_MANT_DIG_linux_armv7 64
-#define TARG_LDBL_MAX_EXP_linux_armv7 16384
-#define TARG_LDBL_MIN_EXP_linux_armv7 (-16381)
+#define TARG_LDBL_MANT_DIG_linux_armv7 53
+#define TARG_LDBL_MAX_EXP_linux_armv7 1024
+#define TARG_LDBL_MIN_EXP_linux_armv7 (-1021)
 #define TARG_LIBGCC_CMP_RETURN_MODE_linux_armv7 ((a_type_mode_kind)tmk_SI)
 #define TARG_LIBGCC_SHIFT_COUNT_MODE_linux_armv7 ((a_type_mode_kind)tmk_SI)
 #define TARG_LITTLE_ENDIAN_linux_armv7 1
