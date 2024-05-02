@@ -7105,8 +7105,8 @@ static void cache_template_head_requires_clause(
                                       an_ifc_chart_index       param_chart_idx,
                                       const an_ifc_cache_info  &cinfo)
 /*
-Cache template-head's requires-clause if specified by the given parameter
-chart. cinfo contains information about the current cache context to help
+Cache the template-head's requires-clause if specified by the given parameter
+chart.  cinfo contains information about the current cache context to help
 inform decisions about what to cache.
 */
 {
