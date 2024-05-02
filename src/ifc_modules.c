@@ -4164,7 +4164,7 @@ Return TRUE if the given declaration index is a function.
 
 static inline a_boolean is_local_closure_decl(an_ifc_decl_index decl_idx)
 /*
-Return TRUE if the given IFC decl index represent a closure declaration that
+Return TRUE if the given IFC decl index represents a closure declaration that
 is declared in a local scope; otherwise, return FALSE.
 */
 {
@@ -4187,7 +4187,7 @@ is declared in a local scope; otherwise, return FALSE.
 static inline a_boolean is_var_type_auto(an_ifc_type_index type_idx)
 /*
 Return TRUE if the type at the given IFC type index when used as the type of
-variable is the "auto" type; otherwise, return FALSE.
+a variable is the "auto" type; otherwise, return FALSE.
 */
 {
   a_boolean result = FALSE;
@@ -5559,7 +5559,7 @@ can be found, return NULL.
     a_symbol_locator loc;
 
     /* FIXME: Currently the IFC position information is not present for
-       function parameters resulting in a requirement that names be looked up.
+       function parameters, resulting in a requirement that names be looked up.
        There may additionally be issues with variable shadowing here. */
     clear_locator(&loc, &null_source_position);
     (void)find_symbol(name.as_temp_characters(), name.length(), &loc);
@@ -6250,7 +6250,7 @@ and that element is a block statement; otherwise, return FALSE.
   a_boolean result = FALSE;
 
   if (heap_seq.length() == 1) {
-    /* Check to see if the only statement within this block statement, is a
+    /* Check to see if the only statement within this block statement is a
        block statement; if so, this is definitely an extra block. */
     Opt<an_ifc_heap_stmt> opt_stmt_heap = heap_seq[0];
 
@@ -6304,7 +6304,7 @@ cache context to help inform decisions about what to cache.
           }  /* if */
 
           an_ifc_stmt_index value = get_ifc_value(*indexed_ihs);
-          /* Sometimes the MSVC authored IFCs contains spuriously contain a
+          /* Sometimes the MSVC-authored IFCs contains spuriously contain a
              null statement index. */
           if (is_null_index(value)) {
             continue;
@@ -7013,9 +7013,9 @@ static void cache_template_parameter_list(
                                       an_ifc_chart_index       param_chart_idx,
                                       const an_ifc_cache_info  &cinfo)
 /*
-Cache template-parameter-list (and enclosing angle brackets) represented by the
-given parameter chart.  cinfo contains information about the current cache
-context to help inform decisions about what to cache.
+Cache the template-parameter-list (and enclosing angle brackets)
+represented by the given parameter chart.  cinfo contains information about
+the current cache context to help inform decisions about what to cache.
 */
 {
   cache_token(cache, tok_lt);
@@ -7089,7 +7089,7 @@ static void cache_template_parameter_list(a_module_token_cache_ptr cache,
                                           const an_ifc_Node_type   &decl,
                                           const an_ifc_cache_info  &cinfo)
 /*
-Cache template-parameter-list (and enclosing angle brackets) for the given
+Cache the template-parameter-list (and enclosing angle brackets) for the given
 template-like declaration.  cinfo contains information about the current cache
 context to help inform decisions about what to cache.
 */
@@ -7105,8 +7105,8 @@ static void cache_template_head_requires_clause(
                                       an_ifc_chart_index       param_chart_idx,
                                       const an_ifc_cache_info  &cinfo)
 /*
-Cache template-head's requires-clause if specified by the given parameter
-chart. cinfo contains information about the current cache context to help
+Cache the template-head's requires-clause if specified by the given parameter
+chart.  cinfo contains information about the current cache context to help
 inform decisions about what to cache.
 */
 {
@@ -15506,7 +15506,7 @@ Return TRUE if processing succeeded, otherwise return FALSE.
 using a_bad_operator_name_encoding_map = Ptr_map<a_string_view,
                                                  an_opname_kind,
                                                  General_allocator>;
-                        /* The type for a mapping of of bad operator name
+                        /* The type for a mapping of bad operator name
                            encodings to their corresponding opname kinds.
                            These operators have been represented directly in
                            the IFC via a TextOffset (which in the context of
@@ -21312,7 +21312,7 @@ static void cache_lambda_specifier_seq(
                                     an_ifc_decl_index        call_operator_idx)
 /*
 Cache the lambda-specifier-seq for the lambda represented by the lambda call
-operator declaration (index by the given call_operator_idx).
+operator declaration (indexed by the given call_operator_idx).
 */
 {
   if (call_operator_idx.sort == ifc_ds_decl_template) {
@@ -21343,7 +21343,7 @@ static void cache_lambda_return_type(
                                     an_ifc_decl_index        call_operator_idx)
 /*
 Cache the lambda trailing-return-type for the lambda represented by the lambda
-call operator declaration (index by the given call_operator_idx).
+call operator declaration (indexed by the given call_operator_idx).
 */
 {
   if (call_operator_idx.sort == ifc_ds_decl_template) {
@@ -21368,7 +21368,7 @@ static void cache_lambda_body(a_module_token_cache_ptr cache,
                               an_ifc_decl_index        call_operator_idx)
 /*
 Cache the lambda body (compound-statement) for the lambda represented by the
-lambda call operator declaration (index by the given call_operator_idx).
+lambda call operator declaration (indexed by the given call_operator_idx).
 */
 {
   if (call_operator_idx.sort == ifc_ds_decl_template) {
