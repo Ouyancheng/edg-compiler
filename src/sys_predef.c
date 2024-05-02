@@ -781,66 +781,61 @@ static void preload_builtin_symbol(
                            unsigned short               type_index,
                            a_builtin_type_string        type_string)
 /*
-If the builtin function named by builtin_name is enabled in the current mode,
-create a symbol header for it and mark that it is associated with a builtin
-function.  If the builtin has a "secondary" declaration (i.e., one without the
-__builtin prefix), that will be entered as well, but only in C mode.  condition
-is a string that describes the conditions in which the builtin is applicable,
-if NULL, cond_index is used in its place and specifies an index into
-builtin_condition_table.  idx is the array index (into either a system builtin
-table or the builtin_user_table depending on the value of function_category)
-for this builtin function.  kind is the a_builtin_function_kind or
-a_builtin_user_function_kind enum value that corresponds to this builtin
-function.  If type_string is non-NULL, it is a string that gives the builtin
-function's type, otherwise type_index is an index into builtin_type_table for
-the builtin function's type.
+Create a symbol header for the builtin function named by builtin_name and mark
+that it is associated with a builtin function.  If the builtin has a
+"secondary" declaration (i.e., one without the __builtin prefix), that will be
+entered as well, but only in C mode.  condition is a string that describes the
+conditions in which the builtin is applicable, if NULL, cond_index is used in
+its place and specifies an index into builtin_condition_table.  idx is the
+array index (into either a system builtin table or the builtin_user_table
+depending on the value of function_category) for this builtin function.  kind
+is the a_builtin_function_kind or a_builtin_user_function_kind enum value that
+corresponds to this builtin function.  If type_string is non-NULL, it is a
+string that gives the builtin function's type, otherwise type_index is an index
+into builtin_type_table for the builtin function's type.
 */
 {
   a_symbol_locator loc;
   a_type_ptr       builtin_type = NULL;
   a_const_char     *name = builtin_name;
 
-  if (builtin_enabled(cond_index, condition, /*is_secondary=*/FALSE)) {
-    clear_locator(&loc, &null_source_position);
-    (void)find_symbol(name, (sizeof_t)strlen(name), &loc);
-    if (loc.symbol_header->is_builtin_function &&
-        loc.symbol_header->builtin_function_category == bfc_user &&
-        function_category != bfc_user) {
-      /* A user builtin function has already been loaded (and that takes
-         precedence over a non-user builtin function). */
-      goto done;
+  clear_locator(&loc, &null_source_position);
+  (void)find_symbol(name, (sizeof_t)strlen(name), &loc);
+  if (loc.symbol_header->is_builtin_function &&
+      loc.symbol_header->builtin_function_category == bfc_user &&
+      function_category != bfc_user) {
+    /* A user builtin function has already been loaded (and that takes
+       precedence over a non-user builtin function). */
+    goto done;
+  }  /* if */
+  loc.symbol_header->is_builtin_function = TRUE;
+  loc.symbol_header->builtin_function_index = idx;
+  loc.symbol_header->builtin_function_category = function_category;
+  if (preload_builtin_functions &&
+      builtin_restrictions_met(loc.symbol_header, /*issue_error=*/FALSE)) {
+    if (type_string == NULL) {
+      builtin_type = builtin_function_type_for_index(type_index);
+    } else {
+      builtin_type = builtin_function_type(type_string, &null_source_position);
     }  /* if */
-    loc.symbol_header->is_builtin_function = TRUE;
-    loc.symbol_header->builtin_function_index = idx;
-    loc.symbol_header->builtin_function_category = function_category;
-    if (preload_builtin_functions &&
-        builtin_restrictions_met(loc.symbol_header, /*issue_error=*/FALSE)) {
-      if (type_string == NULL) {
-        builtin_type = builtin_function_type_for_index(type_index);
-      } else {
-        builtin_type = builtin_function_type(type_string,
-                                             &null_source_position);
-      }  /* if */
-      (void)enter_builtin_function(name, builtin_type, kind, &loc);
-    }  /* if */
-    /* Also see if there's a non-prefixed version that should be added.  These
-       seem to only be used by GCC in C mode to give diagnostics when
-       redeclaring a library function. */
-    if (C_mode() && strncmp(name, "__builtin_", 10) == 0) {
-      name = &builtin_name[10];
-      if ((function_category == bfc_user || name[0] == '_') &&
-          builtin_enabled(cond_index, condition, /*is_secondary=*/TRUE)) {
-        clear_locator(&loc, &null_source_position);
-        (void)find_symbol(name, (sizeof_t)strlen(name), &loc);
-        loc.symbol_header->is_builtin_function = TRUE;
-        loc.symbol_header->builtin_function_index = idx;
-        loc.symbol_header->builtin_function_category = function_category;
-        if (preload_builtin_functions &&
-            builtin_restrictions_met(loc.symbol_header,
-                                     /*issue_error=*/FALSE)) {
-          check_assertion(builtin_type != NULL);
-          (void)enter_builtin_function(name, builtin_type, kind, &loc);
-        }  /* if */
+    (void)enter_builtin_function(name, builtin_type, kind, &loc);
+  }  /* if */
+  /* Also see if there's a non-prefixed version that should be added.  These
+     seem to only be used by GCC in C mode to give diagnostics when
+     redeclaring a library function. */
+  if (C_mode() && strncmp(name, "__builtin_", 10) == 0) {
+    name = &builtin_name[10];
+    if ((function_category == bfc_user || name[0] == '_') &&
+        builtin_enabled(cond_index, condition, /*is_secondary=*/TRUE)) {
+      clear_locator(&loc, &null_source_position);
+      (void)find_symbol(name, (sizeof_t)strlen(name), &loc);
+      loc.symbol_header->is_builtin_function = TRUE;
+      loc.symbol_header->builtin_function_index = idx;
+      loc.symbol_header->builtin_function_category = function_category;
+      if (preload_builtin_functions &&
+          builtin_restrictions_met(loc.symbol_header, /*issue_error=*/FALSE)) {
+        check_assertion(builtin_type != NULL);
+        (void)enter_builtin_function(name, builtin_type, kind, &loc);
       }  /* if */
     }  /* if */
   }  /* if */
@@ -863,40 +858,49 @@ current emulation mode.
   /* Load user builtin functions first (they override any non-user builtin
      functions with the same name). */
   for (budp = builtin_user_table, i = 0; budp->name != NULL; budp++, i++) {
-    preload_builtin_symbol(budp->name, 0, budp->cond, i, bfc_user, budp->kind,
-                           0, budp->type_string);
+    if (builtin_enabled(0, budp->cond, /*is_secondary=*/FALSE)) {
+      preload_builtin_symbol(budp->name, 0, budp->cond, i, bfc_user,
+                             budp->kind, 0, budp->type_string);
+    }  /* if */
   }  /* for */
   for (bdp = builtin_common_table, i = 0; bdp->name != NULL; bdp++, i++) {
-    preload_builtin_symbol(bdp->name, bdp->cond_index, NULL, i,
-                           bfc_common, bdp->kind, bdp->type_index,
-                           NULL);
+    if (builtin_enabled(bdp->cond_index, NULL, /*is_secondary=*/FALSE)) {
+      preload_builtin_symbol(bdp->name, bdp->cond_index, NULL, i, bfc_common,
+                             bdp->kind, bdp->type_index, NULL);
+    }  /* if */
   }  /* for */
   if (target_is_arm_based()) {
     for (bdp = builtin_arm_table, i = 0; bdp->name != NULL; bdp++, i++) {
-      preload_builtin_symbol(bdp->name, bdp->cond_index, NULL, i,
-                             bfc_arm, bdp->kind, bdp->type_index,
-                             NULL);
+      if (builtin_enabled(bdp->cond_index, NULL, /*is_secondary=*/FALSE)) {
+        preload_builtin_symbol(bdp->name, bdp->cond_index, NULL, i, bfc_arm,
+                               bdp->kind, bdp->type_index, NULL);
+      }  /* if */
     }  /* for */
     function_category = target_is_64_bits() ? bfc_arm_64 : bfc_arm_32;
     bdp = builtin_tables[function_category];
     for (i = 0; bdp->name != NULL; bdp++, i++) {
-      preload_builtin_symbol(bdp->name, bdp->cond_index, NULL, i,
-                             function_category, bdp->kind, bdp->type_index,
-                             NULL);
+      if (builtin_enabled(bdp->cond_index, NULL, /*is_secondary=*/FALSE)) {
+        preload_builtin_symbol(bdp->name, bdp->cond_index, NULL, i,
+                               function_category, bdp->kind,
+                               bdp->type_index, NULL);
+        }  /* if */
     }  /* for */
   }  /* if */
   if (target_is_x86_based()) {
     for (bdp = builtin_x86_table, i = 0; bdp->name != NULL; bdp++, i++) {
-      preload_builtin_symbol(bdp->name, bdp->cond_index, NULL, i,
-                             bfc_x86, bdp->kind, bdp->type_index,
-                             NULL);
+      if (builtin_enabled(bdp->cond_index, NULL, /*is_secondary=*/FALSE)) {
+        preload_builtin_symbol(bdp->name, bdp->cond_index, NULL, i, bfc_x86,
+                               bdp->kind, bdp->type_index, NULL);
+      }  /* if */
     }  /* for */
     function_category = target_is_64_bits() ? bfc_x86_64 : bfc_x86_32;
     bdp = builtin_tables[function_category];
     for (i = 0; bdp->name != NULL; bdp++, i++) {
-      preload_builtin_symbol(bdp->name, bdp->cond_index, NULL, i,
-                             function_category, bdp->kind, bdp->type_index,
-                             NULL);
+      if (builtin_enabled(bdp->cond_index, NULL, /*is_secondary=*/FALSE)) {
+        preload_builtin_symbol(bdp->name, bdp->cond_index, NULL, i,
+                               function_category, bdp->kind,
+                               bdp->type_index, NULL);
+      }  /* if */
     }  /* for */
   }  /* if */
   builtin_functions_enabled = TRUE;
