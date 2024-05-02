@@ -7013,9 +7013,9 @@ static void cache_template_parameter_list(
                                       an_ifc_chart_index       param_chart_idx,
                                       const an_ifc_cache_info  &cinfo)
 /*
-Cache template-parameter-list (and enclosing angle brackets) represented by the
-given parameter chart.  cinfo contains information about the current cache
-context to help inform decisions about what to cache.
+Cache the template-parameter-list (and enclosing angle brackets)
+represented by the given parameter chart.  cinfo contains information about
+the current cache context to help inform decisions about what to cache.
 */
 {
   cache_token(cache, tok_lt);
