@@ -7158,7 +7158,7 @@ context to help inform decisions about what to cache.
 }  /* cache_template_head */
 
 
-/* FIXME: This code should be transition an_ifc_func_param_context (and
+/* FIXME: This code should be transitioned to an_ifc_func_param_context (and
    an_ifc_func_param_context updated in the process) to improve the overall
    quality of IFC parameter handling. */
 
@@ -21185,7 +21185,7 @@ capture declarations found.
 static void cache_lambda_capture(a_module_token_cache_ptr cache,
                                  an_ifc_decl_index        capture_idx)
 /*
-Cache the given lambda init-capture (represented as an IFC DeclField).
+Cache the given lambda capture (represented as an IFC DeclField).
 */
 {
   /* If this assertion is hit, find_lambda_captures_in_scope has been extended
@@ -21239,8 +21239,7 @@ Cache the given lambda init-capture (represented as an IFC DeclField).
 static void cache_lambda_captures(a_module_token_cache_ptr           cache,
                                   const Dyn_array<an_ifc_decl_index> &captures)
 /*
-Cache the given lambda init-captures (represented as an array of IFC
-DeclFields).
+Cache the given lambda captures (represented as an array of IFC DeclFields).
 */
 {
   a_boolean first = TRUE;
