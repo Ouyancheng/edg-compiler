@@ -4164,7 +4164,7 @@ Return TRUE if the given declaration index is a function.
 
 static inline a_boolean is_local_closure_decl(an_ifc_decl_index decl_idx)
 /*
-Return TRUE if the given IFC decl index represent a closure declaration that
+Return TRUE if the given IFC decl index represents a closure declaration that
 is declared in a local scope; otherwise, return FALSE.
 */
 {
@@ -15506,7 +15506,7 @@ Return TRUE if processing succeeded, otherwise return FALSE.
 using a_bad_operator_name_encoding_map = Ptr_map<a_string_view,
                                                  an_opname_kind,
                                                  General_allocator>;
-                        /* The type for a mapping of of bad operator name
+                        /* The type for a mapping of bad operator name
                            encodings to their corresponding opname kinds.
                            These operators have been represented directly in
                            the IFC via a TextOffset (which in the context of
