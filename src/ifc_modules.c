@@ -6250,7 +6250,7 @@ and that element is a block statement; otherwise, return FALSE.
   a_boolean result = FALSE;
 
   if (heap_seq.length() == 1) {
-    /* Check to see if the only statement within this block statement, is a
+    /* Check to see if the only statement within this block statement is a
        block statement; if so, this is definitely an extra block. */
     Opt<an_ifc_heap_stmt> opt_stmt_heap = heap_seq[0];
 
