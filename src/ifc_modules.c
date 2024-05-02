@@ -12747,8 +12747,8 @@ struct an_ifc_compatibility_diag_handler {
   inline void emit_diagnostic() const;
 private:
   a_diagnostic_ptr
-                diag;   /* The diagnostic that will be emitted upon
-                           destruction. */
+                diag;   /* The diagnostic that will be emitted when
+                           emit_diagnostic is called. */
 };  /* an_ifc_compatibility_diag_handler */
 
 
