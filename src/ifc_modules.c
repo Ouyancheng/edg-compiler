@@ -5559,7 +5559,7 @@ can be found, return NULL.
     a_symbol_locator loc;
 
     /* FIXME: Currently the IFC position information is not present for
-       function parameters resulting in a requirement that names be looked up.
+       function parameters, resulting in a requirement that names be looked up.
        There may additionally be issues with variable shadowing here. */
     clear_locator(&loc, &null_source_position);
     (void)find_symbol(name.as_temp_characters(), name.length(), &loc);
