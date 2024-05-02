@@ -1,5 +1,15 @@
 Version 6.7
 
+5/2/24   [EDGcpfe/26329]
+Builtins for ARM32 and ARM64 architectures
+
+The tool that generates the builtin signature table in builtin_defs.h has been
+updated to also handle ARM32 and ARM64 architectures.  To avoid any slowdown
+due to the number of architecture-specific builtins, the builtin signature
+table has been split into a common table and architecture-specific tables with
+32-bit and 64-bit variants.
+
+
 5/1/24   [EDGcpfe/27199]
 Microsoft-mode instantiation point of exception specifications
 
