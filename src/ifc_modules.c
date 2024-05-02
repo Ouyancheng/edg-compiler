@@ -7089,7 +7089,7 @@ static void cache_template_parameter_list(a_module_token_cache_ptr cache,
                                           const an_ifc_Node_type   &decl,
                                           const an_ifc_cache_info  &cinfo)
 /*
-Cache template-parameter-list (and enclosing angle brackets) for the given
+Cache the template-parameter-list (and enclosing angle brackets) for the given
 template-like declaration.  cinfo contains information about the current cache
 context to help inform decisions about what to cache.
 */
