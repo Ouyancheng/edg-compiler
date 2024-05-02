@@ -968,16 +968,17 @@ __fp16, float, or double.  For typerefs, consider the underlying type.
 a_boolean is_valid_neon_polyvector_element_type(a_type_ptr tp)
 /*
 Return TRUE if the given type is valid as a NEON polyvector element type.  It
-must be one of the standard integer types unsigned char, unsigned short, or
-unsigned long.  For typerefs, consider the underlying type.
+must be an 8-bit, 16-bit, or 64-bit standard integer type that is signed for
+32-bit platforms and unsigned for 64-bit platforms.  For typerefs, consider the
+underlying type.
 */
 {
   a_boolean  result = FALSE;
   tp = skip_typerefs(tp);
-  if (is_standard_integer_type(tp)) {
+  if (is_standard_integer_type(tp) &&
+      (tp->size == 1 || tp->size == 2 || tp->size == 8)) {
     an_integer_kind  int_kind = tp->variant.integer.int_kind;
-    result = int_kind == ik_unsigned_char || int_kind == ik_unsigned_short ||
-             int_kind == ik_unsigned_long;
+    result = int_kind_is_signed[int_kind] == !target_is_64_bits();
   }  /* if */
   return result;
 }  /* is_valid_neon_polyvector_element_type */

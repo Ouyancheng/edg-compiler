@@ -1245,9 +1245,10 @@ Table of all integer NEON polyvector element types for 32-bit platforms.
 */
 static an_integer_vector_type_descr
 		integer_neon_polyvector_types_32bit[] = {
-  {ik_unsigned_char,  8, {"__simd64_poly8_t",  "__simd128_poly8_t"}},
-  {ik_unsigned_short, 4, {"__simd64_poly16_t", "__simd128_poly16_t"}},
-  {ik_none,           0, {NULL,                NULL}},
+  {ik_signed_char, 8, {"__simd64_poly8_t",  "__simd128_poly8_t"}},
+  {ik_short,       4, {"__simd64_poly16_t", "__simd128_poly16_t"}},
+  {ik_long_long,   1, {"__simd64_poly64_t", "__simd128_poly64_t"}},
+  {ik_none,        0, {NULL,                NULL}},
 };
 
 /*
