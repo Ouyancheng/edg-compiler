@@ -6304,7 +6304,7 @@ cache context to help inform decisions about what to cache.
           }  /* if */
 
           an_ifc_stmt_index value = get_ifc_value(*indexed_ihs);
-          /* Sometimes the MSVC authored IFCs contains spuriously contain a
+          /* Sometimes the MSVC-authored IFCs contains spuriously contain a
              null statement index. */
           if (is_null_index(value)) {
             continue;
