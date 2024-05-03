@@ -1,6 +1,6 @@
 Version 6.7
 
-5/2/24   [EDGcpfe/26329]
+5/2/24   [EDGcpfe/26215,EDGcpfe/26329]
 Builtins for ARM32 and ARM64 architectures
 
 The tool that generates the builtin signature table in builtin_defs.h has been
