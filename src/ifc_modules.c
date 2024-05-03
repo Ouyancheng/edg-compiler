@@ -4140,28 +4140,6 @@ otherwise, return FALSE.
 }  /* is_closure_decl */
 
 
-static inline a_boolean is_function_decl(an_ifc_decl_index decl_idx)
-/*
-Return TRUE if the given declaration index is a function.
-*/
-{
-  a_boolean result = FALSE;
-
-  switch (decl_idx.sort) {
-    case ifc_ds_decl_function:
-    case ifc_ds_decl_method:
-      result = TRUE;
-      break;
-    default:
-      if (is_closure_decl(decl_idx)) {
-        result = TRUE;
-      }  /* if */
-      break;
-  }  /* switch */
-  return result;
-}  /* is_function_decl */
-
-
 static inline a_boolean is_var_type_auto(an_ifc_type_index type_idx)
 /*
 Return TRUE if the type at the given IFC type index when used as the type of
