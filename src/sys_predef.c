@@ -785,14 +785,14 @@ Create a symbol header for the builtin function named by builtin_name and mark
 that it is associated with a builtin function.  If the builtin has a
 "secondary" declaration (i.e., one without the __builtin prefix), that will be
 entered as well, but only in C mode.  condition is a string that describes the
-conditions in which the builtin is applicable, if NULL, cond_index is used in
-its place and specifies an index into builtin_condition_table.  idx is the
-array index (into either a system builtin table or the builtin_user_table
+conditions in which the builtin is applicable.  If it is NULL, cond_index is
+used in its place and specifies an index into builtin_condition_table.  idx is
+the array index (into either a system builtin table or the builtin_user_table
 depending on the value of function_category) for this builtin function.  kind
 is the a_builtin_function_kind or a_builtin_user_function_kind enum value that
 corresponds to this builtin function.  If type_string is non-NULL, it is a
-string that gives the builtin function's type, otherwise type_index is an index
-into builtin_type_table for the builtin function's type.
+string that gives the builtin function's type; otherwise, type_index is an
+index into builtin_type_table for the builtin function's type.
 */
 {
   a_symbol_locator loc;

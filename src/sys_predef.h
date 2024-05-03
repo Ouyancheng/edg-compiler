@@ -56,7 +56,7 @@ typedef struct a_builtin_user_descr {
                 cond;
                         /* A compact encoding of the condition(s) in which this
                            builtin function is enabled.  The encoding consists
-                           of a sequence of conditions, each condition has
+                           of a sequence of conditions; each condition has
                            seven potential parts (in the following order):
 
                              - prefix ('S') [optional]
