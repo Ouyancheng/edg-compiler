@@ -1,5 +1,12 @@
 Version 6.7
 
+5/3/24   [EDGcpfe/27229]
+Clang compatibility: --ms_compatibility issue with va_list type
+
+In Microsoft emulation mode, the default type for va_list or __builtin_va_list
+is char*, and now it's also char* when using --ms_compatibility.
+
+
 5/2/24   [EDGcpfe/26215,EDGcpfe/26329]
 Builtins for ARM32 and ARM64 architectures
 

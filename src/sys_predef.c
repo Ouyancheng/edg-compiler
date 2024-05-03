@@ -1083,7 +1083,7 @@ instead of being mapped on an actual header file.
     /* Use type_underlying_va_list if it has been configured. */
     tp = type_underlying_va_list;
   } else {
-    if (!target_is_32_bit_x86_based() && !microsoft_mode) {
+    if (!target_is_32_bit_x86_based() && !ms_compat) {
       /* The x86-64 __builtin_va_list type is defined as follows:
            struct __va_list_tag {
              unsigned int  gp_offset;
@@ -1099,7 +1099,7 @@ instead of being mapped on an actual header file.
       set_type_size(tp);
     } else {
       /* Use char* in Microsoft and GNU modes, and void* otherwise. */
-      if (microsoft_mode || gnu_mode) {
+      if (ms_compat || gnu_mode) {
         tp = make_pointer_type(integer_type((an_integer_kind)ik_char));
       } else {
         tp = make_pointer_type(void_type());
