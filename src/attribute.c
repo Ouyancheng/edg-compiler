@@ -7389,7 +7389,7 @@ attributes in C mode).
     add_to_specific_version_list(representative, target_routine);
   }  /* if */
 #if USE_X86_FUNCTION_MULTIVERSIONING && DO_IL_LOWERING
-  if (!mv_builtins_loaded) {
+  if (!mv_builtins_loaded && target_is_x86_based()) {
     /* During the lowering process, these builtins will be needed, so load
        them now.  This is done here rather than during lowering because
        lexing/parsing may be finished by the time lowering actually needs
