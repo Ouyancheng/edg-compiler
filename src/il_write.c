@@ -689,7 +689,10 @@ its length.
       (void)fwrite((char *)&orphan_ptr, sizeof(orphan_ptr), 1, f_il_output);
     }  /* if */
   }  /* if */
-  /* Write the entry itself. */
+  /* Write the entry itself.  Note this can trigger harmless errors in memory
+     checkers (e.g., valgrind) as the entry may contain bytes that are
+     uninitialized (because the entry never initialized them/doesn't use
+     them). */
   if (fwrite(entry_ptr, size_t_arg(entry_length), 1, f_il_output) != 1) {
     /* Error on write.  This check supplements the check done when the
        file is closed. */
