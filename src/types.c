@@ -716,6 +716,7 @@ Return TRUE if the given type is a C++ standard integer type.
       case ik_unsigned_long_long:
 #endif /* LONG_LONG_ALLOWED */
         result = TRUE;
+        break;
       default:;
     }  /* switch */
   }  /* if */
