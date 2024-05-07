@@ -12,7 +12,7 @@ Consider:
   };
 
 Previously, this elicited an error because S::v<int> was fully instantiated,
-this requiring a complete type.  Now, uses of variables in unevaluated contexts
+thus requiring a complete type.  Now, uses of variables in unevaluated contexts
 no longer systematically trigger full instantiation and the example above is
 accepted.
 

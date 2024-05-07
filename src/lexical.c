@@ -21610,7 +21610,7 @@ indicated by the template argument list.
       a_boolean	is_use = FALSE;
       if ((options & GID_IS_EXPR_CONTEXT) != 0) {
         /* Determine if the variable template specialization must be
-           instantiated.  That is the case when it's value is used, but also
+           instantiated.  That is the case when its value is used, but also
            if it has a type deduced from its initializer. */
         if (expr_stack != NULL && curr_expr_is_potentially_evaluated()) {
           is_use = TRUE;
