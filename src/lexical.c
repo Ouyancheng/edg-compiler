@@ -21621,7 +21621,8 @@ indicated by the template argument list.
           if (vp != NULL &&
               (vp->declared_with_auto_type_specifier ||
                vp->declared_with_decltype_auto ||
-               vp->declared_with_class_template_placeholder)) {
+               vp->declared_with_class_template_placeholder ||
+               is_incomplete_array_type(vp->type))) {
             is_use = TRUE;
           }  /* if */
         }  /* if */
