@@ -21607,7 +21607,25 @@ indicated by the template argument list.
       arg_list = NULL;
     } else {
       a_boolean	prototype_allowed;
-      a_boolean	is_use = (options & GID_IS_EXPR_CONTEXT) != 0;
+      a_boolean	is_use = FALSE;
+      if ((options & GID_IS_EXPR_CONTEXT) != 0) {
+        /* Determine if the variable template specialization must be
+           instantiated.  That is the case when it's value is used, but also
+           if it has a type deduced from its initializer. */
+        if (expr_stack != NULL && curr_expr_is_potentially_evaluated()) {
+          is_use = TRUE;
+        } else {
+          a_template  *templ = template_sym->variant.template_info
+                                           ->il_template_entry;
+          a_variable  *vp = templ->prototype_instantiation.variable;
+          if (vp != NULL &&
+              (vp->declared_with_auto_type_specifier ||
+               vp->declared_with_decltype_auto ||
+               vp->declared_with_class_template_placeholder)) {
+            is_use = TRUE;
+          }  /* if */
+        }  /* if */
+      }  /* if */
       prototype_allowed = (options & GID_USE_PROTOTYPE_NOT_NONREAL) != 0;
       check_assertion(template_sym != NULL);
       new_sym = find_template_variable(template_sym, &arg_list,

@@ -3288,6 +3288,30 @@ the expr_stack).
         }  /* if */
       }  /* if */
     }  /* if */
+    if (!C_mode() && curr_expr_is_potentially_evaluated() &&
+        !expr_stack->is_default_arg_expression) {
+      an_expr_node  *node = skip_parens(expr);
+      if (is_variable_node(node)) {
+        /* If this is a reference to a variable template specialization, make
+           sure the specialization is instantiated.  It is not clear that a
+           discarded-value expression like:
+             template<typename T> T x = (T*)0;
+             void g() { x<int>; }
+           should trigger the instantiation of the variable (an error in this
+           example), but it appears to be common practice to do so. */
+        a_variable  *vp = node_variable(node);
+        if (!vp->used && vp->template_info != NULL && !vp->is_nonreal &&
+            vp->template_info->template_arg_list != NULL &&
+            !vp->is_specialized) {
+          a_template_instance  *tip;
+          tip = template_instance_for_symbol(symbol_for(vp));
+          if (!master_instance_of(tip)->already_instantiated) {
+            instantiate_template_variable(tip, /*is_new=*/FALSE,
+                                          /*is_use=*/TRUE);
+          }  /* if */
+        }  /* if */
+      }  /* if */
+    }  /* if */
   }  /* if */
   return expr;
 }  /* wrap_up_full_expression */

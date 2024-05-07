@@ -9877,8 +9877,16 @@ make_proxy_type_if_needed:
         case sk_variable:
           /* Static data member or variable template reference. */
           { a_variable_ptr var = variable_for_symbol(member_sym);
+            if (!var->used && var->is_template_variable && !var->is_nonreal &&
+                !var->is_specialized && is_void_type(var->type)) {
+              /* Partial instantiation of a variable template can produce a
+                 void type, but that is not diagnosed right away because
+                 explicit specialization can change the type. */
+              pos_syty_error(ec_void_template_variable,
+                             &locator.source_position, member_sym, var->type);
+              make_error_operand(result);
 #if MICROSOFT_EXTENSIONS_ALLOWED
-            if (var->property_or_event_descr != NULL) {
+            } else if (var->property_or_event_descr != NULL) {
               /* A C++/CLI static event variable.  (Static properties are
                  handled via sk_property_set symbols.) */
               check_assertion(cli_or_cx_enabled &&
@@ -9886,10 +9894,8 @@ make_proxy_type_if_needed:
               make_event_ref_operand(member_sym, operand_1, is_arrow_operator,
                                      result);
               set_operand_id_details_from_locator(result, &locator);
-            } else
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
-            /* Do not insert code here. */
-            {
+            } else {
               /* A normal static data member (not an event or property). */
               make_lvalue_variable_operand(
                               var,
@@ -37699,6 +37705,16 @@ if rescan_is_template_id is TRUE, and return the result in *operand
             expect_error();
             make_error_operand(result);
             break;
+          }  /* if */
+          if (!var_ptr->used && var_ptr->is_template_variable &&
+              !var_ptr->is_nonreal && !var_ptr->is_specialized &&
+              is_void_type(var_ptr->type)) {
+            /* Partial instantiation of a variable template can produce a
+               void type, but that is not diagnosed right away because
+               explicit specialization can change the type. */
+            pos_syty_error(ec_void_template_variable,
+                           &locator.source_position, sym_ptr, var_ptr->type);
+            make_error_operand(result);
           }  /* if */
 variable:
           okay_for_integral_const_expr = TRUE;

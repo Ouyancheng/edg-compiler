@@ -36099,8 +36099,7 @@ template entities.
       template_sym = prototype_template_if_template_symbol(template_sym);
       specialized = vp->is_specialized;
       specialization_defined = tip->instance_sym->defined;
-      template_def = !vp->is_inline &&
-                     (template_sym->defined ||
+      template_def = (template_sym->defined ||
                       exported_definition_is_available(tip));
       /* Inline variables that are initialized in the class do not need
          (and cannot be) separately instantiated. */
@@ -36687,18 +36686,18 @@ data member specified by tip.
   } else if (symbol_is(tip->instance_sym, sk_static_data_member) ||
              symbol_is(tip->instance_sym, sk_variable)) {
     /* Static data member or variable template definition. */
+    if (tip->instance_sym->defined) {
+      /* The variable instance is already fully instantiated. */
 #if MICROSOFT_EXTENSIONS_ALLOWED
-    if ((variable_for_symbol(tip->instance_sym)
+    } else if ((variable_for_symbol(tip->instance_sym)
                                       ->decl_modifiers & DM_DLLIMPORT) != 0 &&
         tip->explicit_instantiation) {
       /* A static data member declared with __declspec(dllimport) that is
          subsequently named in an explicit instantiation directive should have
          its instantiations suppressed. */
       tip->suppress_instantiation = TRUE;
-    } else
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
-    /* Do not insert code here. */
-    {
+    } else {
       instantiate_template_variable(tip, /*is_new=*/FALSE, /*is_use=*/TRUE);
     }  /* if */
   } else {

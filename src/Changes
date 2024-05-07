@@ -1,5 +1,22 @@
 Version 6.7
 
+5/7/24   [EDGcpfe/20755,EDGcpfe/20905]
+Use of variable template specialization in unevaluated context
+
+Consider:
+
+  template<typename> struct I;
+  struct S {
+    template<typename T> static I<T> v;
+    using N = decltype(v<int>);
+  };
+
+Previously, this elicited an error because S::v<int> was fully instantiated,
+this requiring a complete type.  Now, uses of variables in unevaluated contexts
+no longer systematically trigger full instantiation and the example above is
+accepted.
+
+
 5/3/24   [EDGcpfe/27229]
 Clang compatibility: --ms_compatibility issue with va_list type
 
