@@ -11027,6 +11027,7 @@ pointer to it.
   pidp->pack_status = NULL;
   pidp->after_first_element = FALSE;
   pidp->is_empty = FALSE;
+  pidp->has_hybrid_pack_expansion = FALSE;
   return pidp;
 }  /* alloc_pack_instantiation_descr */
 
@@ -11777,6 +11778,7 @@ lengths) *err is set to TRUE, FALSE otherwise.
   uint32_t				elements = 0;
   a_boolean				is_first_pack = TRUE;
   a_boolean				any_errors = FALSE;
+  a_boolean				has_hybrid_pack_expansion = FALSE;
   a_pack_instantiation_descr_ptr	result_pidp = NULL;
 
   /* Go through the pack expansion references and determine the number
@@ -11976,21 +11978,25 @@ lengths) *err is set to TRUE, FALSE otherwise.
       if (is_first_pack) {
         elements = elements_for_pack;
         is_first_pack = FALSE;
-      } else if (elements != elements_for_pack &&
-                 !in_generic_lambda_in_real_instantiation()) {
-        if (!is_rescan) {
+      } else if (elements != elements_for_pack) {
+        if (in_generic_lambda_in_real_instantiation()) {
+          /* Got an expansion from an enclosing real instantiation and an
+             unexpanded pack from a nested generic lambda. */
+          has_hybrid_pack_expansion = TRUE;
+        } else if (!is_rescan) {
           pos_st2_error(ec_pack_length_mismatch, &prp->position,
                         prp->symbol->header->identifier,
                         pedp->packs_referenced->symbol->header->identifier);
+          any_errors = TRUE;
+        } else {
+          /* A pack length mismatch is not an error when preserve_deduced_packs
+             is TRUE (i.e., in rescan contexts for the first pass of
+             substitution when deduction is still to be done) or when
+             in_parent_substitution is TRUE and we found a pack reference for
+             an "inner" pack that isn't found at this level. */
+          any_errors = !(ctws_state->preserve_deduced_packs ||
+                         (not_found && ctws_state->in_parent_substitution));
         }  /* if */
-        /* A pack length mismatch is not an error when preserve_deduced_packs
-           is TRUE (i.e., in rescan contexts for the first pass of substitution
-           when deduction is still to be done) or when in_parent_substitution
-           is TRUE and we found a pack reference for an "inner" pack that isn't
-           found at this level. */
-        any_errors = !is_rescan ||
-                     !(ctws_state->preserve_deduced_packs ||
-                       (not_found && ctws_state->in_parent_substitution));
       }  /* if */
     }  /* if */
   }  /* for */
@@ -12001,6 +12007,7 @@ lengths) *err is set to TRUE, FALSE otherwise.
     result_pidp = alloc_pack_instantiation_descr();
     result_pidp->pack_status = new_pack_list;
     result_pidp->is_empty = allow_empty_list && elements == 0;
+    result_pidp->has_hybrid_pack_expansion = has_hybrid_pack_expansion;
   } else {
     /* There is no expansion to be done.  Free any pack references that may
        have been allocated. */
@@ -13153,7 +13160,10 @@ TRUE is returned if there are any more elements in the pack.  FALSE otherwise.
            to the current variable to be used. */
         a_variable_ptr	vp = arg_prp->curr_argument.variable;
         a_variable_ptr	next_vp = vp == NULL ? NULL : vp->next;
-        if (next_vp == NULL ||
+        if (vp != NULL && vp->is_parameter_pack &&
+            pesep->instantiation_descr->has_hybrid_pack_expansion) {
+          /* Don't advance past a pack in a hybrid expansion. */
+        } else if (next_vp == NULL ||
             next_vp->variant.assoc_param_type == NULL ||
             vp->variant.assoc_param_type->param_num !=
                                next_vp->variant.assoc_param_type->param_num) {
@@ -13170,7 +13180,11 @@ TRUE is returned if there are any more elements in the pack.  FALSE otherwise.
         /* Advance to the next argument, if any.  If the argument is not
            part of the pack, we are done with this expansion. */
         if (tap != NULL) {
-          tap = tap->next;
+          /* Don't advance past a pack in a hybrid expansion. */
+          if (!tap->is_pack ||
+              !pesep->instantiation_descr->has_hybrid_pack_expansion) {
+            tap = tap->next;
+          }  /* if */
           arg_prp->curr_argument.template_arg = tap;
         }  /* if */
         if (tap == NULL || !tap->is_pack_element) {
@@ -13202,7 +13216,10 @@ TRUE is returned if there are any more elements in the pack.  FALSE otherwise.
         /* A lambda init-capture. */
         a_field_ptr	fp = arg_prp->curr_argument.field;
         a_field_ptr	next_fp = fp == NULL ? NULL : fp->next;
-        if (next_fp == NULL ||
+        if (fp != NULL && fp->is_captured_pack_element &&
+            pesep->instantiation_descr->has_hybrid_pack_expansion) {
+          /* Don't advance past a pack in a hybrid expansion. */
+        } else if (next_fp == NULL ||
             fp->source_corresp.name != next_fp->source_corresp.name) {
           arg_prp->curr_argument.field = NULL;
           done = TRUE;
@@ -13221,8 +13238,12 @@ TRUE is returned if there are any more elements in the pack.  FALSE otherwise.
       } else if (param_prp->kind == prk_bases) {
         /* A template argument. */
         a_template_arg_ptr	tap = arg_prp->curr_argument.template_arg;
-        /* Advance to the next argument, if any. */
-        tap = tap->next;
+        /* Unless it's a pack in a hybrid expansion, advance to the next
+           argument, if any. */
+        if (!tap->is_pack ||
+            !pesep->instantiation_descr->has_hybrid_pack_expansion) {
+          tap = tap->next;
+        }  /* if */
         arg_prp->curr_argument.template_arg = tap;
         if (tap == NULL) done = TRUE;
       } else {
@@ -13238,7 +13259,10 @@ TRUE is returned if there are any more elements in the pack.  FALSE otherwise.
           check_assertion(arg_prp != NULL);
           ptp = arg_prp->curr_argument.param_type;
           next_ptp = ptp != NULL ? ptp->next : NULL;
-          if (next_ptp == NULL || !next_ptp->is_pack_element ||
+          if (ptp != NULL && ptp->is_parameter_pack &&
+              pesep->instantiation_descr->has_hybrid_pack_expansion) {
+            /* Don't advance past a pack in a hybrid expansion. */
+          } else if (next_ptp == NULL || !next_ptp->is_pack_element ||
               ptp->param_num != next_ptp->param_num) {
             next_ptp = NULL;
             done = TRUE;
@@ -13251,7 +13275,10 @@ TRUE is returned if there are any more elements in the pack.  FALSE otherwise.
           a_param_id_ptr	param_id = arg_prp->curr_argument.param_id;
           a_param_id_ptr	next_param_id = param_id->next;
           arg_prp->curr_argument.param_id = next_param_id;
-          if (next_param_id == NULL ||
+          if (param_id->is_parameter_pack &&
+              pesep->instantiation_descr->has_hybrid_pack_expansion) {
+            /* Don't advance past a pack in a hybrid expansion. */
+          } else if (next_param_id == NULL ||
               param_id->param_num != next_param_id->param_num) {
             done = TRUE;
           } else {

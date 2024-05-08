@@ -528,6 +528,12 @@ typedef struct a_pack_instantiation_descr {
 			/* TRUE if there were no elements in the pack(s) to
 			   be expanded.  Always FALSE for deduction
 			   contexts. */
+  a_byte_boolean
+		has_hybrid_pack_expansion;
+			/* TRUE if this is a "hybrid pack expansion" that
+			   contains both an expansion from an enclosing real
+			   instantiation and an unexpanded pack from a nested
+			   generic lambda. */
 } a_pack_instantiation_descr;
 
 
