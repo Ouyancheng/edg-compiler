@@ -19668,16 +19668,36 @@ element, but it's not okay to actually reference it.  "operand"
 can also be an xvalue.
 */
 {
-  a_boolean just_past_end = FALSE;
   
   if (is_expression_operand(operand)) {
-    /* glvalue given by an expression.  Check for a subscript just past
-       the end of an array. */
-    an_error_code err_code;
-    (void)valid_node_if_subscript(operand->variant.expression, &just_past_end,
-                                  &err_code);
-    if (just_past_end) {
-      expr_pos_warning(err_code, &operand->position);
+    /* glvalue given by an expression. */
+    an_expr_node  *node = skip_parens(operand->variant.expression);
+    if (is_variable_node(node)) {
+      /* If this is a reference to a variable template specialization, make
+         sure the specialization is instantiated. */
+      a_variable  *vp = node_variable(node);
+      if (curr_expr_is_potentially_evaluated() &&
+          !vp->used && vp->is_template_variable && !vp->is_nonreal &&
+          vp->template_info->template_arg_list != NULL &&
+          !vp->is_specialized) {
+        a_template_instance  *tip;
+        tip = template_instance_for_symbol(symbol_for(vp));
+        if (tip->master_instance != NULL &&
+            tip->template_sym->defined &&
+            !master_instance_of(tip)->already_instantiated) {
+          instantiate_template_variable(tip, /*is_new=*/FALSE,
+                                        /*is_use=*/TRUE);
+        }  /* if */
+      }  /* if */
+    } else {
+      /* Check for a subscript just past the end of an array. */
+      an_error_code  err_code;
+      a_boolean      just_past_end = FALSE;
+      (void)valid_node_if_subscript(operand->variant.expression,
+                                    &just_past_end, &err_code);
+      if (just_past_end) {
+        expr_pos_warning(err_code, &operand->position);
+      }  /* if */
     }  /* if */
   }  /* if */
 }  /* using_lvalue */
