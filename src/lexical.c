@@ -21608,6 +21608,7 @@ indicated by the template argument list.
     } else {
       a_boolean	prototype_allowed;
       a_boolean	is_use = FALSE;
+      check_assertion(template_sym != NULL);
       if ((options & GID_IS_EXPR_CONTEXT) != 0) {
         /* Determine if the variable template specialization must be
            instantiated.  That is the case when its value is used, but also
@@ -21628,7 +21629,6 @@ indicated by the template argument list.
         }  /* if */
       }  /* if */
       prototype_allowed = (options & GID_USE_PROTOTYPE_NOT_NONREAL) != 0;
-      check_assertion(template_sym != NULL);
       new_sym = find_template_variable(template_sym, &arg_list,
                                        prototype_allowed, is_use,
                                        /*diagnose=*/TRUE);
