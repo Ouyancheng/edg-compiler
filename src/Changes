@@ -1,5 +1,12 @@
 Version 6.7
 
+5/8/24   [EDGcpfe/27242]
+GNU compatibility: __is_array builtin
+
+The __is_array type trait builtin is now available when gnu_version >= 140000
+(it was previously only available in Clang emulation mode).
+
+
 5/8/24   [EDGcpfe/27216]
 Spurious error on pack expansion in nested generic lambda
 

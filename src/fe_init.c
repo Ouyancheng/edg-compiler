@@ -816,6 +816,9 @@ modes.
     enter_keyword(tok_reference_converts_from_temporary,
                   "__reference_converts_from_temporary");
   }  /* if */
+  if (gnu_version_is(>=140000)) {
+    enter_keyword(tok_is_array, "__is_array");
+  }  /* if */
   enter_keyword(tok_has_trivial_move_constructor,
                 "__has_trivial_move_constructor");
   enter_keyword(tok_has_trivial_move_assign, "__has_trivial_move_assign");
