@@ -1,5 +1,12 @@
 Version 6.7
 
+5/8/24   [EDGcpfe/27236]
+GNU compatibility: GCC 14.1.0 builtins
+
+The front end has been updated with the latest builtin signatures from
+GCC version 14.1.0.
+
+
 5/7/24   [EDGcpfe/20755,EDGcpfe/20905]
 Use of variable template specialization in unevaluated context
 
