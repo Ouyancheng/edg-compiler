@@ -4,7 +4,7 @@
 * Edison Design Group C++/C Front End                        - | \^/ | -      *
 *                                                               \   /         *
 * Proprietary information of Edison Design Group Inc.         /  | |  \       *
-* Copyright 1988-2023 Edison Design Group Inc.                   [_]          *
+* Copyright 1988-2024 Edison Design Group Inc.                   [_]          *
 *                                                                             *
 ******************************************************************************/
 /*
@@ -76438,7 +76438,7 @@ EXTERN a_builtin_descr builtin_x86_64_table[]
 Array to map a builtin function category to the corresponding system builtin
 table (NULL for non-system builtins).
 */
-EXTERN a_builtin_descr *builtin_tables[bfc_last + 1]
+EXTERN a_builtin_descr *builtin_tables[bfc_last]
 #if VAR_INITIALIZERS
 = {
   NULL,
@@ -76479,6 +76479,6 @@ END_EDG_NAMESPACE
 * Edison Design Group C++/C Front End                        - | \^/ | -      *
 *                                                               \   /         *
 * Proprietary information of Edison Design Group Inc.         /  | |  \       *
-* Copyright 1988-2023 Edison Design Group Inc.                   [_]          *
+* Copyright 1988-2024 Edison Design Group Inc.                   [_]          *
 *                                                                             *
 ******************************************************************************/

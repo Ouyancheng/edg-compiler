@@ -11595,6 +11595,9 @@ typedef struct a_field {
 
 /*
 An enumeration of the different builtin function categories.
+
+If you add a new target-specific function category, also update builtin_tables
+in builtin_defs.h.
 */
 enum a_builtin_function_category : a_byte {
   bfc_none,		/* No builtin function table. */
@@ -11608,7 +11611,7 @@ enum a_builtin_function_category : a_byte {
   bfc_x86_64,		/* 64-bit x86 specific builtin function. */
   bfc_keyword,		/* A keyword treated as a builtin function. */
   bfc_user,		/* User-supplied builtin function. */
-  bfc_last = bfc_user
+  bfc_last
 };
 
 /* Type used to store an enumeration value used to identify the kind of
