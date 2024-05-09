@@ -1269,7 +1269,7 @@ Install the keywords in the symbol table.
     if (gnu_version >= (unsigned long)(gcc_mode ? 40700 : 40800)) {
       enter_keyword((a_token_kind)tok_builtin_shuffle, "__builtin_shuffle");
     }  /* if */
-    if (clang_mode) {
+    if (clang_mode || gnu_version_is(>=120000)) {
       /* Strictly speaking, __builtin_shufflevector is not a keyword, but
          treating it as such makes the implementation easier (i.e., it can
          be shared with __builtin_shuffle). */
