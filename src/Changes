@@ -1,14 +1,5 @@
 Version 6.7
 
-5/8/24   [EDGcpfe/27242]
-GNU compatibility: __is_array builtin and __builtin_shufflevector
-
-The __is_array type trait builtin is now available when gnu_version >= 140000.
-The __builtin_shufflevector type trait builtin is now available when
-gnu_version >= 120000.  Both builtins were previously only available in Clang
-emulation mode.
-
-
 5/8/24   [EDGcpfe/27216]
 Spurious error on pack expansion in nested generic lambda
 
