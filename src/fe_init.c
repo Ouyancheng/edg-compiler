@@ -764,18 +764,12 @@ modes.
   enter_keyword(tok_is_standard_layout, "__is_standard_layout");
   enter_keyword(tok_is_trivially_copyable, "__is_trivially_copyable");
   enter_keyword(tok_is_literal_type, "__is_literal_type");
-  if (clang_mode) {
+  if (clang_mode || gnu_version_is(>=140000)) {
+    /* Intrinsics common to both Clang and later GCC versions. */
     enter_keyword(tok_is_array, "__is_array");
-    enter_keyword(tok_array_rank, "__array_rank");
-    enter_keyword(tok_array_extent, "__array_extent");
-    enter_keyword(tok_is_arithmetic, "__is_arithmetic");
-    enter_keyword(tok_is_complete_type, "__is_complete_type");
-    enter_keyword(tok_is_compound, "__is_compound");
+    enter_keyword(tok_is_bounded_array, "__is_bounded_array");
     enter_keyword(tok_is_const, "__is_const");
-    enter_keyword(tok_is_floating_point, "__is_floating_point");
-    enter_keyword(tok_is_fundamental, "__is_fundamental");
-    enter_keyword(tok_is_integral, "__is_integral");
-    enter_keyword(tok_is_lvalue_reference, "__is_lvalue_reference");
+    enter_keyword(tok_is_convertible, "__is_convertible");
     enter_keyword(tok_is_member_function_pointer,
                   "__is_member_function_pointer");
     enter_keyword(tok_is_member_object_pointer, "__is_member_object_pointer");
@@ -783,6 +777,21 @@ modes.
     enter_keyword(tok_is_object, "__is_object");
     enter_keyword(tok_is_pointer, "__is_pointer");
     enter_keyword(tok_is_reference, "__is_reference");
+    if (clang_version >= 180000) {
+      enter_keyword(tok_reference_constructs_from_temporary,
+                    "__reference_constructs_from_temporary");
+    }  /* if */
+  }  /* if */
+  if (clang_mode) {
+    enter_keyword(tok_array_rank, "__array_rank");
+    enter_keyword(tok_array_extent, "__array_extent");
+    enter_keyword(tok_is_arithmetic, "__is_arithmetic");
+    enter_keyword(tok_is_complete_type, "__is_complete_type");
+    enter_keyword(tok_is_compound, "__is_compound");
+    enter_keyword(tok_is_floating_point, "__is_floating_point");
+    enter_keyword(tok_is_fundamental, "__is_fundamental");
+    enter_keyword(tok_is_integral, "__is_integral");
+    enter_keyword(tok_is_lvalue_reference, "__is_lvalue_reference");
     enter_keyword(tok_is_rvalue_reference, "__is_rvalue_reference");
     enter_keyword(tok_is_scalar, "__is_scalar");
     enter_keyword(tok_is_unsigned, "__is_unsigned");
@@ -793,19 +802,13 @@ modes.
     enter_keyword(tok_is_same_as, "__is_same_as");
     enter_keyword(tok_reference_binds_to_temporary,
                   "__reference_binds_to_temporary");
-    enter_keyword(tok_is_bounded_array, "__is_bounded_array");
     enter_keyword(tok_is_unbounded_array, "__is_unbounded_array");
     enter_keyword(tok_is_referenceable, "__is_referenceable");
     /* These next two are synonyms for existing intrinsics. */
     enter_keyword(tok_is_literal_type, "__is_literal");
-    enter_keyword(tok_is_convertible, "__is_convertible");
     if (clang_version >= 170000) {
       enter_keyword(tok_is_trivially_equality_comparable,
                     "__is_trivially_equality_comparable");
-    }  /* if */
-    if (clang_version >= 180000) {
-      enter_keyword(tok_reference_constructs_from_temporary,
-                    "__reference_constructs_from_temporary");
     }  /* if */
   }  /* if */
   if (gnu_version_is(>=130000)) {
@@ -815,9 +818,6 @@ modes.
                   "__reference_constructs_from_temporary");
     enter_keyword(tok_reference_converts_from_temporary,
                   "__reference_converts_from_temporary");
-  }  /* if */
-  if (gnu_version_is(>=140000)) {
-    enter_keyword(tok_is_array, "__is_array");
   }  /* if */
   enter_keyword(tok_has_trivial_move_constructor,
                 "__has_trivial_move_constructor");
