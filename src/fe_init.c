@@ -775,7 +775,6 @@ modes.
     enter_keyword(tok_is_member_object_pointer, "__is_member_object_pointer");
     enter_keyword(tok_is_member_pointer, "__is_member_pointer");
     enter_keyword(tok_is_object, "__is_object");
-    enter_keyword(tok_is_pointer, "__is_pointer");
     enter_keyword(tok_is_reference, "__is_reference");
     if (clang_version >= 180000) {
       enter_keyword(tok_reference_constructs_from_temporary,
@@ -793,6 +792,7 @@ modes.
     enter_keyword(tok_is_integral, "__is_integral");
     enter_keyword(tok_is_lvalue_reference, "__is_lvalue_reference");
     enter_keyword(tok_is_rvalue_reference, "__is_rvalue_reference");
+    enter_keyword(tok_is_pointer, "__is_pointer");
     enter_keyword(tok_is_scalar, "__is_scalar");
     enter_keyword(tok_is_unsigned, "__is_unsigned");
     /* Note: tok_is_signed is handled in a context-sensitive way in expr.c
