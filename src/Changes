@@ -7,6 +7,8 @@ In GCC 14 a change was made that converts several warnings to errors (see
 https://gcc.gnu.org/gcc-14/porting_to.html#warnings-as-errors).  A change has
 been made to the C-generating back end to prevent the associated errors.
 
+Note that GCC_IS_GENERATED_CODE_TARGET must be TRUE for this to take effect.
+
 
 5/8/24   [EDGcpfe/27216]
 Spurious error on pack expansion in nested generic lambda
