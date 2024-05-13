@@ -3036,7 +3036,8 @@ typedef struct a_template_symbol_supplement {
       a_bit_field
 		has_ms_undeclared_base_class:1;
 			/* TRUE if this template has a base class that has not
-			   been declared yet. */
+			   been declared yet.  Such a base class is only
+			   accepted in permissive Microsoft mode. */
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
       a_bit_field
 		invented_template:1;
