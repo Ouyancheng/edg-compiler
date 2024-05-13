@@ -11223,15 +11223,16 @@ definitions needed to support the generated code.
       f_C_output);
 #endif /* C_GEN_BE_GENERATES_ANSI_C */
 #if GCC_IS_GENERATED_CODE_TARGET
-  /* In GCC 14 a number of spurious warnings were changed to hard errors. */
-  (void)fputs(
-         "#if defined __GNUC__ && __GNUC__ >= 14\n"
+  if (gcc_is_generated_code_target &&
+      gnu_target_version_number >= 140000) {
+    /* In GCC 14 a number of spurious warnings were changed to hard errors. */
+    (void)fputs(
          "#pragma GCC diagnostic warning \"-Wimplicit-function-declaration\"\n"
          "#pragma GCC diagnostic warning \"-Wincompatible-pointer-types\"\n"
          "#pragma GCC diagnostic warning \"-Wint-conversion\"\n"
          "#pragma GCC diagnostic warning \"-Wreturn-mismatch\"\n"
-         "#endif\n",
          f_C_output);
+  }  /* if */
 #endif /* if */
 }  /* dump_header_code */
 
