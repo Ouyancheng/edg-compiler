@@ -17,8 +17,7 @@ C-generating back end GCC 14 compatibility
 In GCC 14 a change was made that converts several warnings to errors (see
 https://gcc.gnu.org/gcc-14/porting_to.html#warnings-as-errors).  The
 C-generating back end now puts out GCC-specific diagnostic pragmas to restore
-the previous behavior when gcc_is_generated_code_target is TRUE and
-gnu_target_version_number is >= 140000.
+the previous behavior when GCC_IS_GENERATED_CODE_TARGET is TRUE.
 
 
 5/8/24   [EDGcpfe/27216]
