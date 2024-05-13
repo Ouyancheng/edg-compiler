@@ -11230,7 +11230,7 @@ definitions needed to support the generated code.
          "#pragma GCC diagnostic warning \"-Wimplicit-function-declaration\"\n"
          "#pragma GCC diagnostic warning \"-Wincompatible-pointer-types\"\n"
          "#pragma GCC diagnostic warning \"-Wint-conversion\"\n"
-         "#pragma GCC diagnostic warning \"-Wreturn-mismatch\"",
+         "#pragma GCC diagnostic warning \"-Wreturn-mismatch\"\n",
          f_C_output);
   }  /* if */
 #endif /* if */
