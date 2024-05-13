@@ -9144,7 +9144,11 @@ information).
     } else {
       /* If we did not find a matching base class there must have been an
          earlier error. */
-      check_assertion(is_at_least_one_error());
+      check_assertion(is_at_least_one_error()
+                      if_microsoft_extensions(
+                        || symbol_supplement_for_class(proto_type)
+                                        ->template_info->variant.class_template
+                                        .has_ms_undeclared_base_class));
     }  /* if */
   }  /* if */
 }  /* mark_base_dependent_if_needed */
@@ -10327,6 +10331,19 @@ can only contain CLI interfaces.
                   }  /* if */
                 }  /* if */
               }  /* if */
+#if MICROSOFT_EXTENSIONS_ALLOWED
+            } else if (microsoft_mode && ms_permissive &&
+                       is_prototype_instantiation_context() &&
+                       !locator_for_curr_id.is_qualified_name) {
+              /* In permissive Microsoft mode an undeclared name is allowed as
+                 a base class in prototype instantiations. */
+              if (normal_id_lookup(&locator_for_curr_id, IDL_NO_OPTIONS)
+                                                                     == NULL) {
+                cssp->template_info->variant.class_template.
+                                           has_ms_undeclared_base_class = TRUE;
+                goto skip_base_class;
+              }  /* if */
+#endif /* MICROSOFT_EXTENSIONS_ALLOWED */
             }  /* if */
             if (!is_dependent_type) {
               pos_error(ec_not_a_class_or_struct_name, &error_position);

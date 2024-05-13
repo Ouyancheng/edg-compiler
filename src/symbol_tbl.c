@@ -3798,6 +3798,7 @@ and return a pointer to it.
       tssp->variant.class_template.cannot_be_specialized = FALSE;
 #if MICROSOFT_EXTENSIONS_ALLOWED
       tssp->variant.class_template.any_ms_instantiated_nonreal_classes = FALSE;
+      tssp->variant.class_template.has_ms_undeclared_base_class = FALSE;
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
       tssp->variant.class_template.explicit_deduction_guides_added = FALSE;
       tssp->variant.class_template.implicit_deduction_guides_added = FALSE;

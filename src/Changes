@@ -1,5 +1,16 @@
 Version 6.7
 
+5/13/24  [EDGcpfe/24350,EDGcpfe/27184]
+Microsoft compatibility: undeclared base class of class template
+
+In Microsoft permissive mode, the base class of a class template can still be
+undeclared at the point of template definition.  For example:
+
+  template<typename T>
+  struct C : B {};  // Now accepted in Microsoft permissive mode.
+  struct B {};
+
+
 5/10/24  [EDGcpfe/27247]
 C-generating back end GCC 14 compatibility
 
