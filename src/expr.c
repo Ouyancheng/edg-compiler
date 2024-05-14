@@ -15448,7 +15448,7 @@ The optional vector operand v2 must have the same type as the first vector
 operand v1.  The result is an rvalue of vector type with the same element type
 as v1 and the same number of elements as vmask.
 
-The Clang construct has the form:
+The Clang/GNU construct has the form:
 
         __builtin_shufflevector(v1, v2 [, vint...])
 
@@ -15636,13 +15636,15 @@ __builtin_shuffle or Clang __builtin_shufflevector construct.
        where (when there are only two arguments), the second argument can have
        an integral vector type with the same number of elements as the first
        argument. */
+    a_type_ptr elem1 = skip_typerefs(p_op1->type)->variant.vector.element_type;
+    a_type_ptr elem2 = skip_typerefs(p_op2->type)->variant.vector.element_type;
     if (op1_is_vector && op2_is_vector &&
         !(identical_types_ignoring_qualifiers(p_op1->type, p_op2->type) ||
-          (is_shufflevector && p_op3 == NULL &&
-           is_integral_type(
-                    skip_typerefs(p_op2->type)->variant.vector.element_type) &&
-           num_vector_elements(p_op1->type) ==
-                                          num_vector_elements(p_op2->type)))) {
+          (is_shufflevector &&
+           ((p_op3 == NULL && is_integral_type(elem2) &&
+             num_vector_elements(p_op1->type) ==
+                                           num_vector_elements(p_op2->type)) ||
+            identical_types_ignoring_qualifiers(elem1, elem2))))) {
       if (rcblock == NULL) {
         pos_ty2_error(ec_incompatible_shuffle_source_operands,
                       &p_op1->position, p_op1->type, p_op2->type);

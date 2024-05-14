@@ -1,5 +1,12 @@
 Version 6.7
 
+5/14/24  [EDGcpfe/25321,EDGcpfe/25688]
+GNU compatibility: __builtin_shufflevector
+
+The __builtin_shufflevector intrinsic is now enabled in GNU emulation mode when
+gnu_version >= 120000.
+
+
 5/14/24  [EDGcpfe/27242]
 GNU compatibility: GNU 14.1.0 type trait intrinsics
 
