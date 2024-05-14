@@ -601,6 +601,7 @@ EXTERN an_opname_kind opname_kind_for_token[(int)tok_last+1]
    onk_none,          /* tok_is_nothrow_convertible */
    onk_none,          /* tok_is_empty */
    onk_none,          /* tok_is_enum */
+   onk_none,          /* tok_is_scoped_enum */
    onk_none,          /* tok_is_pod */
    onk_none,          /* tok_is_polymorphic */
    onk_none,          /* tok_is_union */

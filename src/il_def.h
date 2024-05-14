@@ -1332,6 +1332,7 @@ enum a_token_kind : unsigned short {
   tok_is_nothrow_convertible,
   tok_is_empty,
   tok_is_enum,
+  tok_is_scoped_enum,
   tok_is_pod,
   tok_is_polymorphic,
   tok_is_union,
@@ -1597,6 +1598,7 @@ EXTERN a_const_char
    "__is_nothrow_convertible",
    "__is_empty",
    "__is_enum",
+   "__is_scoped_enum",
    "__is_pod",
    "__is_polymorphic",
    "__is_union",
@@ -13753,6 +13755,7 @@ enum a_builtin_operation_kind : a_byte {
                            (clang). */
   bok_is_empty,		/* __is_empty.  One operand: A type. */
   bok_is_enum,		/* __is_enum.  One operand: A type. */
+  bok_is_scoped_enum,	/* __is_scoped_enum.  One operand: A type. */
   bok_is_pod,		/* __is_pod.  One operand: A type. */
   bok_is_polymorphic,	/* __is_polymorphic.  One operand: A type. */
   bok_is_union,		/* __is_union.  One operand: A type. */
@@ -18402,6 +18405,7 @@ EXTERN a_const_char *builtin_operation_names[]
   "__is_convertible_to",
   "__is_empty",
   "__is_enum",
+  "__is_scoped_enum",
   "__is_pod",
   "__is_polymorphic",
   "__is_union",

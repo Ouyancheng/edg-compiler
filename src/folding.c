@@ -8988,6 +8988,9 @@ and, if pos is not NULL, an error will be reported.
         case bok_is_enum:
           result = is_immediate_enum_type(type);
           break;
+        case bok_is_scoped_enum:
+          result = is_scoped_enum_type(type);
+          break;
         case bok_is_function:
           result = is_function_type(type);
           break;
@@ -9259,6 +9262,7 @@ and, if pos is not NULL, an error will be reported.
                  is_empty_class_type(type);
         break;
       case bok_is_enum:
+      case bok_is_scoped_enum:
         result = FALSE;
         break;
       case bok_is_function:
@@ -10166,6 +10170,7 @@ constant is set as well.
         break;
       case bok_is_class:
       case bok_is_enum:
+      case bok_is_scoped_enum:
       case bok_is_function:
       case bok_is_array:
       case bok_is_union:

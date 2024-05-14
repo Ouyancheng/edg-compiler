@@ -14993,6 +14993,7 @@ indication in *rcblock).
       case tok_is_class:                bok = bok_is_class; break;
       case tok_is_empty:                bok = bok_is_empty; break;
       case tok_is_enum:                 bok = bok_is_enum; break;
+      case tok_is_scoped_enum:          bok = bok_is_scoped_enum; break;
       case tok_is_function:             bok = bok_is_function; break;
       case tok_is_array:                bok = bok_is_array; break;
       case tok_is_pod:                  bok = bok_is_pod; break;
@@ -32539,6 +32540,7 @@ Return TRUE if the given token kind represents a "trait" name (like
     case tok_is_nothrow_convertible:
     case tok_is_empty:
     case tok_is_enum:
+    case tok_is_scoped_enum:
     case tok_is_function:
     case tok_is_array:
     case tok_is_pod:
@@ -35322,6 +35324,7 @@ Return TRUE if the indicated token is one that could start an expression.
     case tok_is_nothrow_convertible:
     case tok_is_empty:
     case tok_is_enum:
+    case tok_is_scoped_enum:
     case tok_is_function:
     case tok_is_array:
     case tok_is_pod:
@@ -41678,6 +41681,7 @@ handle_identifier:
     case tok_is_class:
     case tok_is_empty:
     case tok_is_enum:
+    case tok_is_scoped_enum:
     case tok_is_function:
     case tok_is_array:
     case tok_is_pod:
