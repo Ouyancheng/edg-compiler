@@ -1,5 +1,16 @@
 Version 6.7
 
+5/14/24  [EDGcpfe/27242]
+GNU compatibility: GNU 14.1.0 type trait intrinsics
+
+A number of new type trait intrinsics are now available when gnu_version >=
+140000.  Specifically, __is_array, __is_member_object_pointer,
+__is_member_function_pointer, __is_reference, __is_object, __is_member_pointer,
+__is_bounded_array, and __type_pack_element had all been previously implemented
+in Clang mode and are now enabled in GNU emulation mode.  __is_scoped_enum is
+a new type trait intrinsic.
+
+
 5/13/24  [EDGcpfe/24350,EDGcpfe/27184]
 Microsoft compatibility: undeclared base class of class template
 
