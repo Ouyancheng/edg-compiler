@@ -1177,7 +1177,7 @@ Install the keywords in the symbol table.
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
   if (!C_mode() &&
       ((cli_or_cx_enabled || (microsoft_mode && microsoft_version >= 1900)) ||
-        clang_mode)) {
+        clang_mode || gnu_version_is(>=140000))) {
     internal_templates_enabled = TRUE;
     /* A keyword used to predefine alias templates even when alias declarations
        are not otherwise enabled.  This is used, e.g., to map interior_ptr<T>

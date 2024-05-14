@@ -1795,7 +1795,7 @@ Enter predeclared symbols as required by the implementation.
       /* Create an alias template for "__make_integer_seq". */
       make_make_integer_seq_internal_template();
     }  /* if */
-    if (clangcpp_version_is(>=30900)) {
+    if (clangcpp_version_is(>=30900) || gnu_version_is(>=140000)) {
       /* Create an alias template for "__type_pack_element". */
       make_type_pack_element_internal_template();
     }  /* if */
