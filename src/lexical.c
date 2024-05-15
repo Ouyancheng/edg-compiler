@@ -11397,10 +11397,6 @@ end_float_accum:
           curr_char_loc += 3;
         }  /* if */
       }  /* if */
-    } else if (is_identifier_char(curr_char_loc, &char_bytes,
-                                  /*is_identifier_start=*/FALSE)) {
-      potential_ud_suffix = TRUE;
-      --curr_char_loc;
     }  /* if */
 #if FIXED_POINT_ALLOWED
     if (ch == 'l' || ch == 'L') {
