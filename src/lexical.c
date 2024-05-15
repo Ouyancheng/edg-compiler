@@ -10924,8 +10924,6 @@ the kind of token.
   a_boolean     accept_f_suffix = extended_float_types ||
                                   (gcc_version_is(>= 70000) ||
                                    gpp_version_is(>= 130000));
-  a_boolean     accept_bf16_suffix = (gcc_version_is(>=130000) ||
-                                      gpp_version_is(>=130000));
 
 /*
 Macro to skip over an optional C++14 digit separator (apostrophe).  Reports
@@ -11351,36 +11349,28 @@ end_float_accum:
   if ((ch = *curr_char_loc) == 'f' || ch == 'F' || ch == 'l' || ch == 'L' ||
       (float80_enabled && (ch == 'w' || ch == 'W')) ||
       (float128_enabled && (ch == 'q' || ch == 'Q')) ||
-      ((extended_float_types || accept_bf16_suffix) &&
-       (ch == 'b' || ch == 'B'))) {
+      (extended_float_types && (ch == 'b' || ch == 'B'))) {
     if (possible_start_of_ud_suffix == NULL) {
       possible_start_of_ud_suffix = curr_char_loc;
     }  /* if */
     curr_char_loc++;
-    if (accept_f_suffix || float16_enabled) {
+    if (accept_f_suffix || (float16_enabled && !gpp_version_is(any_version))) {
+      /* We exclude g++ here because clang accepts the f16 and F16 suffixes
+         in both C and C++, but g++ treats them as user-defined literal
+         suffixes. */
       a_const_char *p = curr_char_loc;
-      if ((extended_float_types || accept_bf16_suffix) &&
-          (ch == 'b' || ch == 'B')) {
+      if (extended_float_types && (ch == 'b' || ch == 'B')) {
         if (((ch == 'b' && *p == 'f') || (ch == 'B' && *p == 'F')) &&
             p[1] == '1' && p[2] == '6') {
           /* bf16 */
           curr_char_loc += 3;
         } else {
           potential_ud_suffix = TRUE;
-          --curr_char_loc;
         }  /* if */
       } else if (ch == 'f' || ch == 'F') {
         if ((*p == '1' && p[1] == '6')) {
           /* f16 */
-          if (gpp_version_is(<130000)) {
-            /* Although g++ began accepting the _Float16 type in version
-               12.1, it did not accept the f16 suffix until version
-               13.1. */
-            potential_ud_suffix = TRUE;
-            --curr_char_loc;
-          } else {
-            curr_char_loc += 2;
-          }  /* if */
+          curr_char_loc += 2;
         } else if (accept_f_suffix &&
                    ((*p == '3' && p[1] == '2') ||
                     (*p == '6' && p[1] == '4'))) {
@@ -11396,9 +11386,6 @@ end_float_accum:
           curr_char_loc += 3;
         }  /* if */
       }  /* if */
-    } else {
-      potential_ud_suffix = TRUE;
-      --curr_char_loc;
     }  /* if */
 #if FIXED_POINT_ALLOWED
     if (ch == 'l' || ch == 'L') {
