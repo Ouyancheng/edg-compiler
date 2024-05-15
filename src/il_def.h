@@ -13755,7 +13755,6 @@ enum a_builtin_operation_kind : a_byte {
                            (clang). */
   bok_is_empty,		/* __is_empty.  One operand: A type. */
   bok_is_enum,		/* __is_enum.  One operand: A type. */
-  bok_is_scoped_enum,	/* __is_scoped_enum.  One operand: A type. */
   bok_is_pod,		/* __is_pod.  One operand: A type. */
   bok_is_polymorphic,	/* __is_polymorphic.  One operand: A type. */
   bok_is_union,		/* __is_union.  One operand: A type. */
@@ -13911,6 +13910,7 @@ enum a_builtin_operation_kind : a_byte {
   bok_is_trivially_equality_comparable,
 			/* __is_trivially_equality_comparable (Clang).  One
 			   type operand. */
+  bok_is_scoped_enum,	/* __is_scoped_enum.  One operand: A type. */
   bok_last              /* Marks the end of the list. */
 };
 
@@ -18405,7 +18405,6 @@ EXTERN a_const_char *builtin_operation_names[]
   "__is_convertible_to",
   "__is_empty",
   "__is_enum",
-  "__is_scoped_enum",
   "__is_pod",
   "__is_polymorphic",
   "__is_union",
@@ -18492,6 +18491,7 @@ EXTERN a_const_char *builtin_operation_names[]
   "__reference_converts_from_temporary",
   "__is_convertible",
   "__is_trivially_equality_comparable",
+  "__is_scoped_enum",
   "last"
 }
 #endif /* VAR_INITIALIZERS */
