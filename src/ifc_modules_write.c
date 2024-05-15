@@ -3869,6 +3869,9 @@ return the corresponding EDG IFC BasicToken sort value.
     case tok_is_scalar:
       result = ifc_ebts_is_scalar;
       break;
+    case tok_is_scoped_enum:
+      result = ifc_ebts_is_scoped_enum;
+      break;
 #if MICROSOFT_EXTENSIONS_ALLOWED
     case tok_is_sealed:
       result = ifc_ebts_is_sealed;
