@@ -3204,7 +3204,6 @@ enum an_ifc_edg_basic_token_sort : uint32_t {
   ifc_ebts_is_same,
   ifc_ebts_is_same_as,
   ifc_ebts_is_scalar,
-  ifc_ebts_is_scoped_enum,
   ifc_ebts_is_sealed,
   ifc_ebts_is_signed,
   ifc_ebts_is_simple_value_class,
