@@ -1398,6 +1398,16 @@ to the secondary translation unit.
               is_primary_translation_unit = FALSE;
               compute_il_prefix_size();
             }  /* if */
+          } else if (fp->initializer != NULL) {
+            /* Eliminate any object lifetime associated with the initializer
+               (which is in the global scope, but shouldn't be merged into the
+               primary global scope). */
+            a_dynamic_init     *field_init = fp->initializer;
+            an_object_lifetime *init_lifetime = field_init->init_expr_lifetime;
+
+            if (init_lifetime != NULL) {
+              detach_from_object_lifetime_tree(init_lifetime);
+            }  /* if */
           }  /* if */
         }  /* for */
       }  /* if */
