@@ -4902,7 +4902,7 @@ in *bound_function_selector.
   an_expr_node_ptr              expr_copy = NULL;
   a_boolean                     rescanned_case = FALSE;
   a_constant_ptr                constant = local_constant();
-  a_constant_ptr                alloc_con;
+  a_constant_ptr                alloc_con = NULL;
   an_expr_rescan_info_entry_ptr eriep;
   an_expr_rescan_info_entry     rescan_info;
 
@@ -22401,7 +22401,7 @@ cases so we don't do it here.
   an_operand        orig_operand;
   a_type_ptr        unqual_operand_type;
   a_boolean         constant_case = FALSE;
-  a_constant_ptr    con_value;
+  a_constant_ptr    con_value = NULL;
 
   /* Ignore non-glvalues. */
   if (is_a_glvalue(operand)) {
@@ -23872,7 +23872,7 @@ orig_operand to the function operand created before assembling the final call.
   a_symbol_ptr      member_sym;
   a_symbol_locator  loc;
   a_boolean         nonreal_case = FALSE;
-  an_expr_node_ptr  arg_node_list;
+  an_expr_node_ptr  arg_node_list = NULL;
   an_operand        function_operand;
 
   class_type = skip_typerefs_not_dependent_decltypes(selector_operand->type);
@@ -24115,7 +24115,7 @@ otherwise.
       a_template_arg_ptr new_arg_list;
       a_symbol_ptr       base_sym;
       a_symbol_ptr       matching_sym = NULL;
-      a_template_arg_ptr matching_arg_list;
+      a_template_arg_ptr matching_arg_list = NULL;
 
       base_sym = fundamental_symbol_of(orig_sym);
       if (base_sym->kind == (a_symbol_kind)sk_function_template) {
@@ -26255,7 +26255,7 @@ p_fatal and p_copy_error are NULL by default.
   } else {
     /* An atomic constraint.  First perform substitution (or reuse a cached
        substitution); then evaluate the expression. */
-    an_expr_node_ptr  expr;
+    an_expr_node_ptr  expr = NULL;
     a_constant_ptr    allocated_cp = NULL;
     if (template_param_list != NULL) {
       /* Check the cache if it already contains this substitution. */

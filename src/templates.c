@@ -9080,7 +9080,7 @@ of the alias is arbitrary (the code below determines the target type).
 Returns the type of the Nth template argument in the pack.
 */
 {
-  a_type_ptr           result;
+  a_type_ptr           result = NULL;
   a_template_arg_ptr   tap = template_arg_list;
   a_constant_ptr       con;
   a_host_large_integer val;
@@ -14125,8 +14125,8 @@ it is always NULL.
 {
   a_boolean            result;
   a_pack_reference_ptr prp = NULL;
-  a_template_arg_ptr   saved_prev_tap;
-  a_template_arg_ptr   saved_curr_tap;
+  a_template_arg_ptr   saved_prev_tap = NULL;
+  a_template_arg_ptr   saved_curr_tap = NULL;
 
   db_enter(5, "tentatively_matches_template_type");
   /* Avoid changing any existing template arguments as a result of this
@@ -15200,7 +15200,7 @@ returned in *new_type (and new_type must not be NULL).  Otherwise, if
 new_type is not NULL, *new_type is set to NULL.
 */
 {
-  a_template_arg_ptr			new_list;
+  a_template_arg_ptr			new_list = NULL;
   a_symbol_ptr				new_sym = NULL;
   a_symbol_ptr				orig_sym;
   a_template_arg_ptr			tap;
@@ -16100,7 +16100,7 @@ parameters.
   /* Make copies of the entries on the given list (ptp_list), making the
      appropriate substitutions for template parameter type entries. */
   for (ptp = ptp_list; ptp != NULL; ptp = ptp->next) {
-    a_pack_expansion_stack_entry_ptr	pesep;
+    a_pack_expansion_stack_entry_ptr	pesep = NULL;
     a_boolean				any_more;
     a_param_type_ptr			first_element = NULL;
     a_boolean				err = FALSE;

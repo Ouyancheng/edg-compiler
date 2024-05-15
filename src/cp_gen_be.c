@@ -7160,7 +7160,7 @@ compound literal.
     write_tok_ch('{');
   }  /* if */
   if (literal_con != NULL) {
-    a_dynamic_init_ptr dip2;
+    a_dynamic_init_ptr dip2 = NULL;
     a_constant_ptr     sub_con = NULL;
     if (constant_is(literal_con, ck_aggregate) &&
         literal_con->expr != NULL &&
@@ -8816,7 +8816,7 @@ the current function definition.  Mark such types so that their definitions
 will be put out when they are encountered when generating the parameter types.
 */
 {
-  a_type_ptr                   type;
+  a_type_ptr                   type = NULL;
   a_src_seq_secondary_decl_ptr sec_decl;
   a_boolean                    is_definition, found_decl, is_type;
 
@@ -12144,7 +12144,7 @@ this one is such a continuation.
   a_boolean                    suppress_closing_punct = FALSE;
   a_boolean                    need_to_unset_typedefs = FALSE;
   a_template_arg_ptr           template_arg_list = NULL;
-  a_scope_ptr                  common_scope, orig_scope = NULL;
+  a_scope_ptr                  common_scope = NULL, orig_scope = NULL;
   a_boolean                    need_extern_C_closing_brace = FALSE;
   a_template_decl_ptr          template_decl = NULL;
   a_template_ptr               assoc_template = NULL;
@@ -12780,7 +12780,7 @@ the expression reflects an implicit member access ("this->y"), so the
   an_expr_node_ptr      object_expr;
   an_expr_node_ptr      field_expr;
   an_expr_operator_kind op;
-  a_type_ptr            naming_class, selection_class = NULL;
+  a_type_ptr            naming_class = NULL, selection_class = NULL;
   a_name_context_ptr    new_name_context = NULL;
   a_boolean             suppressed_this = FALSE;
   a_boolean             already_qualified = FALSE;
@@ -14576,7 +14576,7 @@ If the parameters describe such a rewrite, render an expression matching the
 {
   a_boolean         handled = FALSE;
   an_expr_node_ptr  generated_call = NULL, arg1, arg2;
-  a_routine_ptr     rp;
+  a_routine_ptr     rp = NULL;
 
   if (op == (an_opname_kind)onk_eq) {
     /* The only rewrite that occurs with "==" is the reversal of the operands.
@@ -21698,7 +21698,7 @@ this one is such a continuation.
   a_type_ptr                   unqual_var_type;
   a_boolean                    is_specialization;
   a_boolean                    force_unqualified_name = FALSE;
-  a_scope_ptr                  common_scope, orig_scope = NULL;
+  a_scope_ptr                  common_scope = NULL, orig_scope = NULL;
   a_template_decl_ptr          template_decl = NULL;
   a_template_ptr	       assoc_template = NULL;
 #if GNU_EXTENSIONS_ALLOWED
@@ -22918,7 +22918,7 @@ TRUE if the declaration following this one is such a continuation.
   a_boolean                     suppress_inline_kwd = FALSE;
   a_boolean                     force_unqualified_name;
   a_boolean                     need_to_unset_typedefs = FALSE;
-  a_scope_ptr                   common_scope, orig_scope = NULL;
+  a_scope_ptr                   common_scope = NULL, orig_scope = NULL;
   a_boolean                     need_extern_C = FALSE;
   a_boolean                     brace_form_linkage_spec = FALSE;
   a_boolean                     out_of_class_redecl = FALSE;

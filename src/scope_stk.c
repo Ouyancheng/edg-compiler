@@ -9345,7 +9345,7 @@ set of option flags that specify additional information about the scope
 being popped.
 */
 {
-  a_scope_stack_entry_ptr  ssep, parent_ssep;
+  a_scope_stack_entry_ptr  ssep, parent_ssep = NULL;
   a_scope_pointers_block_ptr pointers_block;
   a_memory_region_number   old_memory_region_number;
   a_scope_kind             kind;

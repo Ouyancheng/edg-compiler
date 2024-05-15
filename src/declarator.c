@@ -899,7 +899,7 @@ the specifiers and declarator that formed the new type.
   a_type_kind             tkind;
   a_boolean               array_of_incomp_class_or_enum = FALSE;
   a_boolean               is_member_function_typedef = FALSE;
-  a_type_ptr              mft_class_type, mft_rout_type;
+  a_type_ptr              mft_class_type = NULL, mft_rout_type = NULL;
   a_symbol_ptr            mft_sym = NULL;
 
   db_enter(3, "add_to_derived_type_list");
@@ -5668,8 +5668,8 @@ Microsoft extended decl modifiers are also scanned, but they are ignored
   a_type_ptr                complete_type = specifiers_type;
   a_boolean                 err = FALSE;
   a_pointer_modifier_state  ptr_mods;
-  a_type_ptr                class_type;
-  a_type_ptr                rout_type;
+  a_type_ptr                class_type = NULL;
+  a_type_ptr                rout_type = NULL;
 #if MICROSOFT_EXTENSIONS_ALLOWED || NEAR_AND_FAR_ALLOWED
   a_pointer_modifier_state  pending_ptr_mods;
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED || NEAR_AND_FAR_ALLOWED */
@@ -5818,7 +5818,7 @@ Microsoft extended decl modifiers are also scanned, but they are ignored
            reference type can be attached directly to it.  (Or, this is a
            pointer to a pointer type or a reference to a pointer type). */
         a_type_ptr    temp_type;
-        a_symbol_ptr  sym;
+        a_symbol_ptr  sym = NULL;
         a_boolean     is_member_function_typedef = FALSE;
         temp_type = skip_typerefs_not_parameterized_decltypes(complete_type);
         if (!same_entities(temp_type, complete_type)) {

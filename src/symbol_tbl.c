@@ -10051,7 +10051,8 @@ and in cdp->promise record a new variable of type traits::promise_type.
 a nonstatic member function, P1 is the type of this.)
 */
 {
-  a_symbol_ptr           traits_sym = NULL, traits_inst_sym, promise_sym;
+  a_symbol_ptr           traits_sym = NULL, traits_inst_sym = NULL,
+                         promise_sym;
   a_type_ptr             traits = NULL, promise_type = NULL, handle_type,
                          rtp = skip_typerefs(rp->type);
   a_template_arg_ptr     tap_list, *p_tap;

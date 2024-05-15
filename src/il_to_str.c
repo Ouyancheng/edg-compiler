@@ -5699,7 +5699,7 @@ it represents a backing expression for the floating-point constant value.
     BUILTIN_FUNCTIONS_ENABLED
   a_routine_ptr rp;
   an_expr_node_ptr arg;
-  a_constant_ptr string_con;
+  a_constant_ptr string_con = NULL;
   a_const_char  *gnu_builtin_suffix = "";
   int           max_exp = targ_dbl_max_exp;
   unsigned long gnu_targ_version = gnu_target_version_number;

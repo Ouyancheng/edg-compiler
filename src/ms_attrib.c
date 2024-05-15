@@ -2302,7 +2302,7 @@ attributes).
   a_token_sequence_number        last_token;
   a_source_position              start_position;
   an_ms_attribute_ptr            attr = NULL;
-  a_type_ptr                     custom_attribute_type;
+  a_type_ptr                     custom_attribute_type = NULL;
   a_boolean                      is_attribute_attribute = FALSE;
 
   /* Save the token sequence number of the first token of this attribute. */
@@ -2577,7 +2577,7 @@ otherwise, issue any appropriate diagnostics and return FALSE.
 */
 {
   a_boolean  result = cli_or_cx_enabled;
-  a_type_ptr attribute_type;
+  a_type_ptr attribute_type = NULL;
   a_boolean  is_attribute_usage_attribute = FALSE;
   a_boolean  is_allow_multiple_attribute = FALSE;
 

@@ -22806,7 +22806,7 @@ issue an error if it is not actually constexpr.
   a_class_symbol_supplement_ptr
                  cssp = symbol_supplement_for_class(class_type);
   a_symbol_ptr   ctor = get_generated_default_ctor(cssp);
-  a_routine_ptr  ctor_rp;
+  a_routine_ptr  ctor_rp = NULL;
   a_boolean      is_constexpr = FALSE;
 
   check_assertion(constexpr_enabled);
@@ -25900,10 +25900,10 @@ entity if applicable.
   a_type_ptr           class_type = cdsp->class_type;
   an_access_specifier  access = cdsp->access;
   a_symbol_ptr         sym, declared_sym = NULL;
-  a_symbol_ptr         other_sym, fund_sym;
+  a_symbol_ptr         other_sym, fund_sym = NULL;
   a_base_class_ptr     bcp = NULL;
   a_pack_expansion_stack_entry_ptr
-                       pesep;
+                       pesep = NULL;
   a_boolean            err = FALSE, bcp_is_dummy = FALSE, no_il_entry = FALSE,
                        check_for_packs = FALSE, any_more = TRUE,
                        secondary = FALSE, empty_pack = FALSE,

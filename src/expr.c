@@ -827,7 +827,7 @@ swallowed); otherwise, it's "="-form or "{...}" form.
 */
 {
   an_expr_stack_entry   expr_stack_entry;
-  an_expr_stack_entry   *saved_expr_stack;
+  an_expr_stack_entry   *saved_expr_stack = NULL;
   an_expression_kind    expr_kind = (an_expression_kind)ek_normal;
   an_init_component_ptr icp;
   a_type_ptr            undeduced_type, deduced_auto_type;
@@ -6264,7 +6264,7 @@ The builtin is declared as taking one "void *" argument, but the argument must
 be a pointer to a complete type and may not be const-qualified.
 */
 {
-  an_operand *operand;
+  an_operand *operand = NULL;
   a_boolean  err = FALSE;
 
   *arg_list = NULL;
@@ -6329,7 +6329,7 @@ resulting return type is determined for the routine.
   a_type_ptr    arg1_type = NULL;
   a_type_ptr    arg2_type = NULL;
   a_routine_ptr rout = routine_from_function_operand(target);
-  an_operand    *op1, *op2 = NULL;
+  an_operand    *op1 = NULL, *op2 = NULL;
 
   *arg_list = NULL;
   check_assertion(rout != NULL &&
@@ -10199,7 +10199,7 @@ the selection, not an operator token for the call.
   a_source_position operator_position;
   a_token_sequence_number
                     operator_tok_seq_number;
-  a_base_class_ptr  bcp;
+  a_base_class_ptr  bcp = NULL;
   an_expr_node_ptr  select_node, object_node, pm_node;
   a_boolean         ptr_to_data_member_case = FALSE;
   a_boolean         result_is_a_glvalue = FALSE;
@@ -11028,7 +11028,7 @@ case.
 #if MICROSOFT_EXTENSIONS_ALLOWED
   an_operand            operand_clone, get_result_clone;
   a_boolean             operand_clone_unused = FALSE;
-  an_expr_node_ptr      temp_init_expr;
+  an_expr_node_ptr      temp_init_expr = NULL;
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
 #if EXTRA_SOURCE_POSITIONS_IN_IL
   a_source_position     end_position;
@@ -11378,7 +11378,7 @@ and return the result in *result (or an error indication in *rcblock).
 #if MICROSOFT_EXTENSIONS_ALLOWED
   an_operand            operand_clone;
   a_boolean             operand_clone_unused = FALSE;
-  an_expr_node_ptr      temp_init_expr;
+  an_expr_node_ptr      temp_init_expr = NULL;
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
 
   db_enter(4, "scan_prefix_incr_decr");
@@ -12750,7 +12750,7 @@ indication in *rcblock).
   an_expr_stack_entry        expr_stack_entry;
   a_host_large_unsigned      result_count = 0;
   a_pack_expansion_stack_entry_ptr
-                             pesep;
+                             pesep = NULL;
   a_pack_expansion_descr_ptr pedep = NULL;
   a_memory_region_number     region_to_switch_back_to = NULL_region_number;
   a_symbol_locator           field_locator;
@@ -13048,7 +13048,7 @@ scanned sizeof or __datasizeof expression, and return the result in *result
   an_operand            operand;
   a_constant_ptr        constant = local_constant();
   a_boolean             is_parenthesized = FALSE, is_type = FALSE;
-  a_type_ptr            sizeof_type = NULL, orig_sizeof_type;
+  a_type_ptr            sizeof_type = NULL, orig_sizeof_type = NULL;
   an_expr_stack_entry   expr_stack_entry;
   a_boolean             template_case = FALSE;
 #if UPC_EXTENSIONS_ALLOWED || CHECKING
@@ -13626,7 +13626,7 @@ standard headers (e.g., to implement <stdarg.h>).
   an_operand          operand;
   a_constant_ptr      constant = local_constant();
   a_boolean           is_parenthesized = FALSE, is_type = FALSE, is_std_syntax;
-  a_type_ptr          alignof_type;
+  a_type_ptr          alignof_type = NULL;
   an_expr_stack_entry expr_stack_entry;
   a_boolean           template_case, is_error;
   a_targ_alignment    alignof_value;
@@ -15134,7 +15134,7 @@ cases).
   an_operand              operand;
   a_boolean               err = FALSE, force_false = FALSE;
   an_attribute_family     family;
-  a_const_char            *name;
+  a_const_char            *name = NULL;
   an_expr_node_ptr        arg1 = NULL;
   a_source_position       start_position;
 #if EXTRA_SOURCE_POSITIONS_IN_IL
@@ -17196,7 +17196,7 @@ in *rcblock).  This routine is intended to be called from outside of
 the expression-processing routines.
 */
 {
-  a_type_ptr                  result, type_arg = NULL;
+  a_type_ptr                  result = NULL, type_arg = NULL;
   an_expr_stack_entry         expr_stack_entry;
   an_expr_node_ptr            expr = NULL;
   an_operand                  operand;
@@ -17205,7 +17205,7 @@ the expression-processing routines.
   an_expr_stack_entry_ptr     saved_expr_stack = NULL;
   a_scope_depth               expr_scope_depth = NO_SCOPE_DEPTH;
   a_memory_region_number      region_to_switch_back_to;
-  an_object_lifetime_ptr      saved_object_lifetime;
+  an_object_lifetime_ptr      saved_object_lifetime = NULL;
 #if GENERATE_SOURCE_SEQUENCE_LISTS
   a_source_sequence_entry_ptr ssep = NULL;
 #endif /* GENERATE_SOURCE_SEQUENCE_LISTS */
@@ -18692,7 +18692,7 @@ indication in *rcblock).
   an_operand        opnd, *operand = &opnd;
   an_expr_node_ptr  expr = NULL;
   a_boolean         is_type;
-  a_type_ptr        typeid_type;
+  a_type_ptr        typeid_type = NULL;
   a_boolean         is_cli_typeid = FALSE;
   a_boolean         err = FALSE, unevaluated_scan_done = FALSE;
   a_boolean         microsoft_template_arg_case = FALSE;
@@ -18702,7 +18702,7 @@ indication in *rcblock).
   a_memory_region_number
                     region_to_switch_back_to;
   an_object_lifetime_ptr
-                    saved_object_lifetime;
+                    saved_object_lifetime = NULL;
   a_boolean         objectless_nonstatic_data_ref_seen = FALSE;
   a_source_position objectless_nonstatic_data_ref_pos;
   a_boolean         potentially_unevaluated_lambda_seen = FALSE;
@@ -19491,7 +19491,7 @@ indication in *rcblock).  after_keyword is ignored in that case.
   a_source_position   end_position;
 #endif /* EXTRA_SOURCE_POSITIONS_IN_IL */
   an_operand          operand;
-  a_type_ptr          uuidof_type;
+  a_type_ptr          uuidof_type = NULL;
   a_boolean           err = FALSE, template_case = FALSE;
   a_boolean           is_type;
   a_boolean           operand_was_created = FALSE, operand_was_used = FALSE;
@@ -29486,8 +29486,8 @@ that case.
   a_boolean             both_operands_are_arithmetic = FALSE;
   a_boolean		pointer_difference = FALSE, nonstd_ptr_diff = FALSE;
   a_boolean             err = FALSE, processed = FALSE;
-  a_type_ptr            result_type;
-  a_type_ptr            operation_type;
+  a_type_ptr            result_type = NULL;
+  a_type_ptr            operation_type = NULL;
 
   db_enter(4, "scan_add_operator");
 
@@ -29848,7 +29848,7 @@ expression, and return the result in *result (or an error indication in
   a_source_position     operator_position;
   a_token_sequence_number
                         operator_tok_seq_number;
-  a_type_ptr            result_type;
+  a_type_ptr            result_type = NULL;
   an_error_code         err_code;
   a_boolean             processed = FALSE;
 
@@ -33366,7 +33366,7 @@ that case.
   a_boolean             result_is_a_glvalue = FALSE;
   a_boolean             result_is_an_xvalue = FALSE;
   a_boolean             err = FALSE, processed = FALSE;
-  a_type_ptr            result_type, ptr_result_type, operation_type;
+  a_type_ptr            result_type = NULL, ptr_result_type, operation_type;
   a_boolean             operand_2_is_pointer, operand_3_is_pointer;
   a_boolean             operand_2_is_nullptr = FALSE;
   a_boolean             operand_3_is_nullptr = FALSE;
@@ -34743,7 +34743,7 @@ assignment was a braced-init-list (allowed in C++11 mode),
 #if MICROSOFT_EXTENSIONS_ALLOWED
   an_operand            operand_1_clone;
   a_boolean             operand_1_clone_unused = FALSE;
-  an_expr_node_ptr      temp_init_expr;
+  an_expr_node_ptr      temp_init_expr = NULL;
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
   an_error_code         err_code;
   an_expr_operator_kind op = (an_expr_operator_kind)eok_last;
@@ -38415,7 +38415,7 @@ type_identifier_case:
         case sk_concept_template:
           /* Presumably a concept-id. */
           {
-            a_template_arg_ptr  tap;
+            a_template_arg_ptr  tap = NULL;
             (void)get_token();
             if (required_token_no_advance(tok_lt, ec_exp_lt)) {
               (void)get_token();
@@ -44372,7 +44372,7 @@ pointer to that entry (or NULL in error cases).  If needed, update *is
   an_operand          *operand;
   a_constant_ptr      cp;
   a_decl_parse_state  *dps = is->decl_parse_state;
-  an_expr_stack_entry *saved_expr_stack;
+  an_expr_stack_entry *saved_expr_stack = NULL;
   an_expr_stack_entry expr_stack_entry;
   a_boolean           new_stack = FALSE;
 
@@ -46555,7 +46555,7 @@ pointers_block is the pointers block for the iterator scope previously created
 */
 {
   a_boolean  passed = TRUE;
-  a_variable_ptr  temp_var;
+  a_variable_ptr  temp_var = NULL;
   a_variable_ptr  cend_var;
   a_type_ptr  begin_type, end_type;
   an_operand  dummy_operand;

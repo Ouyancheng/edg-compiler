@@ -10142,7 +10142,7 @@ or
 
 */
 {
-  an_assert_predicate_ptr predicate_entry = NULL, prev_app;
+  an_assert_predicate_ptr predicate_entry = NULL, prev_app = NULL;
   an_assert_value_ptr     predicate_value, prev_avp;
   char                    *token_str = NULL;
   a_boolean               err = FALSE;

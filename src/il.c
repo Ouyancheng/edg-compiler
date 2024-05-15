@@ -20937,7 +20937,7 @@ options.
 */
 {
   a_constant_ptr con_copy, other_con, src_con;
-  a_type_ptr     new_type;
+  a_type_ptr     new_type = NULL;
   a_boolean      did_not_fold, reinterpret_cast_needed = FALSE;
   an_error_code  error_detected;
   a_template_param_coordinate_ptr

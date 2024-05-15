@@ -3599,7 +3599,7 @@ Return TRUE if the given using declarations refer to corresponding entities.
                ud1->entity.kind == iek_routine ||
                ud1->entity.kind == iek_variable ||
                ud1->entity.kind == iek_template) {
-      a_type_ptr tp1, tp2;
+      a_type_ptr tp1 = NULL, tp2 = NULL;
       if (ud1->entity.kind == iek_type) {
         tp1 = (a_type_ptr)ud1->entity.ptr;
         tp2 = (a_type_ptr)ud2->entity.ptr;

@@ -15543,7 +15543,8 @@ process the "import" or "module" that follows it.
 {
   a_boolean         export_seen = FALSE;
   a_token_kind      token = tok_error, next;
-  a_const_char      *saved_curr_char_loc = curr_char_loc, *start_of_args;
+  a_const_char      *saved_curr_char_loc = curr_char_loc,
+                    *start_of_args = NULL;
   a_boolean         saved_fetch_pp_tokens = fetch_pp_tokens;
   a_boolean         saved_expand_macros = expand_macros;
   int               saved_logical_char_info_entries_used =

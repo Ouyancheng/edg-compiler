@@ -16228,7 +16228,7 @@ complete_object).  Otherwise, return FALSE and record a diagnostic in *ips.
   a_type_ptr        src_type, dst_type;
   a_byte_count      n_bytes;
   a_targ_size_t     type_size;
-  a_byte            *src_result_storage, *target_result_storage;
+  a_byte            *src_result_storage = NULL, *target_result_storage;
   a_byte            *target_result_bitmap;
 
   check_assertion(arg1 != NULL && arg1->next != NULL &&
@@ -16368,7 +16368,7 @@ diagnostic).
 {
   a_boolean         result = TRUE;
   an_expr_node_ptr  pm_args, arg = expr->variant.builtin_operation.operands;
-  a_type_ptr        tp1, tp2;
+  a_type_ptr        tp1 = NULL, tp2 = NULL;
   a_builtin_operation_kind
                     op = expr->variant.builtin_operation.kind;
 
@@ -24916,7 +24916,7 @@ if the caller has determined that reinterpret_cast expressions can be folded
 {
   a_boolean             result = TRUE;
   an_interpreter_state  ips;
-  a_byte                *result_storage;
+  a_byte                *result_storage = NULL;
 
   if (!in_front_end
 #if DO_IL_LOWERING
@@ -25133,7 +25133,7 @@ position associated with the call.
   an_interpreter_state  ips;
   a_byte                *result_storage;
   a_byte_count          n_bytes;
-  a_type_ptr            result_type;
+  a_type_ptr            result_type = NULL;
 
   if (!in_front_end
 #if DO_IL_LOWERING

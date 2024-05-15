@@ -2337,7 +2337,7 @@ for the corresponding end_diagnostic call.
     function_sym = cfp->function_symbol;
     if (function_sym != NULL) {
       a_boolean        inh_ctor_case = FALSE;
-      a_using_decl_ptr udp;
+      a_using_decl_ptr udp = NULL;
       a_symbol_ptr     fund_sym = fundamental_symbol_of(function_sym);
       /* Normal function case. */
       if (is_ambiguous_by_inheritance(function_sym)) {
@@ -21344,7 +21344,7 @@ that case).
   a_type_ptr               source_type, diag_dest_type = dest_type;
   a_type_ptr               class_type = NULL;
   an_error_code            err_code = ec_no_error;
-  a_candidate_function_ptr ambiguity_list;
+  a_candidate_function_ptr ambiguity_list = NULL;
 
   *failed = FALSE;
   clear_conv_descr(conversion);
@@ -23029,7 +23029,7 @@ example, for a return, because the caller will do the destruction).
 {
   a_boolean          is_usable_temp_init = FALSE;
   an_expr_node_ptr   temp_init_node;
-  a_dynamic_init_ptr dip;
+  a_dynamic_init_ptr dip = NULL;
 
   *p_temp_init_node = NULL;
   *p_dip = NULL;

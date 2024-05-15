@@ -2743,7 +2743,7 @@ and return a tk_vector type representing a vector of N elements of the given
 type.
 */
 {
-  a_type_ptr      vtype, etype;
+  a_type_ptr      vtype, etype = NULL;
   a_boolean       err = FALSE;
   a_targ_size_t   n_elems, esize = 0;
 #if GNU_VECTOR_TYPES_ALLOWED

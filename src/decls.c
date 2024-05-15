@@ -16900,7 +16900,7 @@ there are attributes in that position.
   a_boolean                check_for_packs = FALSE, any_more = TRUE;
   a_scope_stack_entry_ptr  ssep = &scope_stack[depth_scope_stack];
   a_pack_expansion_stack_entry_ptr
-                           pesep;
+                           pesep = NULL;
   a_using_decl_ptr         prev_udp = NULL;
 
   db_enter(3, "nonmember_using_declaration");
