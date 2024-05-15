@@ -1,5 +1,41 @@
 Version 6.7
 
+
+5/15/24  [EDGcpfe/27157]
+Assertion failures when remapping default member initializers in multi-TU mode
+
+Previously, template code with a default member initializer could result in a
+violation of a spurious assertion in trans_copy.c:
+
+  // shared.h
+  using a_size_type = unsigned long long;
+  template<typename T>
+  struct foo { a_size_type x = 0; };
+  inline void bar(foo<int> x) {}
+  // tu-a.cpp
+  #include "shared.h"
+  foo<int> z;
+  // tu-b.cpp
+  #include "shared.h"
+
+Similarly, a type with default member initializer, that initializes a type
+dependent default argument, with a type that has a destructor could result in a
+spurious IL entry representing the lifetime of the default argument in the
+default member initializer:
+
+  // shared.h
+  struct type_with_dtor { ~type_with_dtor(); };
+  template<typename T>
+  struct type_with_def_arg { type_with_def_arg(T a = T()); };
+  struct type_with_def_init { type_with_def_arg<type_with_dtor> val{}; };
+  // tu-a.cpp
+  #include "shared.h"
+  // tu-b.cpp
+  #include "shared.h"
+
+This is now fixed.
+
+
 5/14/24  [EDGcpfe/27240,EDGcpfe/27246]
 GNU C++ compatibility: bf16 floating-point suffix
 
@@ -416,28 +452,6 @@ predefined __cplusplus macro to 202600L; those values will eventually be
 updated to match the official __cplusplus value when the forthcoming standard
 is approved.  A new macro cpp26_mode is also available in the front end to
 test whether it runs in C++26 mode.
-
-
-4/12/24  [EDGcpfe/27157]
-Crash in multi-TU CHECKING modes when remapping default initializers
-
-Previously, template code with a default member initializer could result in a
-violation of a spurious assertion in trans_copy.c:
-
-  // shared.h
-  using a_size_type = unsigned long long;
-  template<typename T>
-  struct foo {
-    a_size_type x = 0;
-  };
-  inline void bar(foo<int> x) {}
-  // tu-a.cpp
-  #include "shared.h"
-  foo<int> z;
-  // tu-b.cpp
-  #include "shared.h"
-
-This is now fixed.
 
 
 4/12/24  [EDGcpfe/27158]
