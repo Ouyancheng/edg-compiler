@@ -4499,7 +4499,9 @@ return the corresponding EDG IFC BasicToken sort value.
          or the wrong conversion function has been called. */
       unexpected_condition();
       break;
-    default_is_unexpected();
+    default:
+      /* An unsupported token was cached as a basic token. */
+      header_unit_catastrophe();
   }  /* switch */
   return result;
 }  /* token_to_basic_token_kind */
