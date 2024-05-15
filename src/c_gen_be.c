@@ -11178,61 +11178,52 @@ Write a header at the beginning of the generated file, containing any
 definitions needed to support the generated code.
 */
 {
+  a_const_char *p;
+
   /* Put out a declaration of a variable that identifies the version number.
      This also ensures that the generated file has at least one declaration
      when generating ANSI C. */
-  (void)fputs("extern int __EDGCPFE__", f_C_output);
-  for (a_const_char *p = il_header.compiler_version; *p != '\0'; p++) {
+  (void)fprintf(f_C_output, "extern int __EDGCPFE__");
+  for (p = il_header.compiler_version; *p != '\0'; p++) {
     char ch = *p;
     /* Replace non-alphanumeric characters in the version number with
        an underscore. */
     if (!isalnum((unsigned char)ch)) ch = '_';
     (void)fputc(ch, f_C_output);
   }  /* for */
-  (void)fputs(";\n", f_C_output);
+  (void)fprintf(f_C_output, ";\n");
 #if C_GEN_BE_GENERATES_ANSI_C
 #if __BSD__
   /* Get bcopy declared.
      void bcopy(const void *,void *,size_t); */
-  (void)fputs("void bcopy(const void *,void *,", f_C_output);
+  (void)fprintf(f_C_output,
+                "void bcopy(const void *,void *,");
   dump_size_t_type();
-  (void)fputs(");\n", f_C_output);
+  (void)fprintf(f_C_output, ");\n");
   /* Get bzero declared.
      void bzero(void *,size_t); */
-  (void)fputs("void bzero(void *,", f_C_output);
+  (void)fprintf(f_C_output, "void bzero(void *,");
   dump_size_t_type();
-  (void)fputs(");\n", f_C_output);
+  (void)fprintf(f_C_output, ");\n");
 #else  /* !__BSD__ */
   /* Get memcpy declared.
      void *memcpy(void *,const void *,size_t); */
-  (void)fputs("void *memcpy(void *,const void *,", f_C_output);
+  (void)fprintf(f_C_output, "void *memcpy(void *,const void *,");
   dump_size_t_type();
-  (void)fputs(");\n", f_C_output);
+  (void)fprintf(f_C_output, ");\n");
   /* Get memset declared.
      void *memset(void *,int,size_t); */
-  (void)fputs("void *memset(void *,int,", f_C_output);
+  (void)fprintf(f_C_output, "void *memset(void *,int,");
   dump_size_t_type();
-  (void)fputs(");\n", f_C_output);
+  (void)fprintf(f_C_output, ");\n");
 #endif /* __BSD__ */
 #else /* !C_GEN_BE_GENERATES_ANSI_C */
   /* Routine needed to adjust the signedness of bit field accesses
      (pcc doesn't support signed bit fields). */
-  (void)fputs(
-      "static int __sexten(i,n) int i,n;\n"
-      "{int mask=(1<<(n-1))-1; if(i<0||i>mask)i=(i&mask)|~mask; return(i);}\n",
-      f_C_output);
+  (void)fprintf(f_C_output, "static int __sexten(i,n) int i,n;\n");
+  (void)fprintf(f_C_output,
+     "{int mask=(1<<(n-1))-1; if(i<0||i>mask)i=(i&mask)|~mask; return(i);}\n");
 #endif /* C_GEN_BE_GENERATES_ANSI_C */
-#if GCC_IS_GENERATED_CODE_TARGET
-  /* In GCC 14 a number of spurious warnings were changed to hard errors. */
-  (void)fputs(
-         "#if defined __GNUC__ && __GNUC__ >= 14\n"
-         "#pragma GCC diagnostic warning \"-Wimplicit-function-declaration\"\n"
-         "#pragma GCC diagnostic warning \"-Wincompatible-pointer-types\"\n"
-         "#pragma GCC diagnostic warning \"-Wint-conversion\"\n"
-         "#pragma GCC diagnostic warning \"-Wreturn-mismatch\"\n"
-         "#endif\n",
-         f_C_output);
-#endif /* if */
 }  /* dump_header_code */
 
 #if !C_GEN_BE_GENERATES_ANSI_C
