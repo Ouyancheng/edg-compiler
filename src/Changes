@@ -1,5 +1,19 @@
 Version 6.7
 
+5/15/24  [EDGcpfe/24907]
+Substitution of nested pack in requires-expression
+
+A pack of a nested template would previously fail to be expanded in a
+requires-expression during substitution.  For example, with --c++20:
+
+  template<typename U> struct C { };
+  template<typename T> struct D {
+    template<typename ... Us> requires requires { typename C<Us ...>; }
+    struct N { };
+  };
+  D<char>::N<short> n;  // Previously a spurious error.  Now okay.
+
+
 5/14/24  [EDGcpfe/25321,EDGcpfe/25688]
 GNU compatibility: __builtin_shufflevector
 

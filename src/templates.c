@@ -17078,10 +17078,13 @@ ctws_state, see copy_type_with_substitution.
 {
   int  levels = (int)subst_pairs.length();
 
-  for (int k = 0; k < levels && !*copy_error; ++k) {
+  /* As packs are expanded during the first substitution, it is essential that
+     we start substituting from the innermost level.  This ensures that all
+     enclosing template argument lists are available during pack expansion. */
+  for (int k = levels - 1; k >= 0 && !*copy_error; --k) {
     a_subst_pairs_descr const  *spd = &subst_pairs[k];
     a_ctws_options_set         all_options = options;
-    if (k < levels-1) all_options |= CTWS_MAY_BE_RESCANNED;
+    if (k > 0) all_options |= CTWS_MAY_BE_RESCANNED;
     type = copy_type_with_substitution(type, spd->args, spd->params,
                                        source_pos, all_options, copy_error,
                                        ctws_state);
@@ -17105,10 +17108,10 @@ copy_error, and ctws_state, see copy_type_with_substitution.
 {
   int  levels = (int)subst_pairs.length();
 
-  for (int k = 0; k < levels && !*copy_error; ++k) {
+  for (int k = levels - 1; k >= 0 && !*copy_error; --k) {
     a_subst_pairs_descr const  *spd = &subst_pairs[k];
     a_ctws_options_set         all_options = options;
-    if (k < levels-1) all_options |= CTWS_MAY_BE_RESCANNED;
+    if (k > 0) all_options |= CTWS_MAY_BE_RESCANNED;
     ptp_list = copy_param_type_list_with_substitution(
                                        ptp_list, spd->args, spd->params,
                                        source_pos, all_options, copy_error,
@@ -17138,16 +17141,16 @@ copy_template_arg_list_with_substitution.
   a_template_arg_ptr  new_args = NULL;
 
   if (levels != 0) {
-    for (int k = 0; k < levels && !*copy_error; ++k) {
+    for (int k = levels - 1; k >= 0 && !*copy_error; --k) {
       a_subst_pairs_descr const  *spd = &subst_pairs[k];
       a_ctws_options_set         all_options = options;
-      if (k < levels-1) all_options |= CTWS_MAY_BE_RESCANNED;
+      if (k > 0) all_options |= CTWS_MAY_BE_RESCANNED;
       new_args = copy_template_arg_list_with_substitution(
                      template_sym,
                      arg_list_to_copy, param_list_for_copy, ttp_list_for_copy,
                      spd->args, spd->params,
                      source_pos, all_options, copy_error, ctws_state);
-      if (k > 0) {
+      if (k < levels - 1) {
         /* Free intermediate substituted lists. */
         free_template_arg_list(arg_list_to_copy);
       }  /* if */
@@ -42656,7 +42659,7 @@ substitution may not be completed.
 
   if (levels != 0) {
     init_ctws_state(&ctws_state);
-    for (int k = 0; k < levels && !*copy_error; ++k) {
+    for (int k = levels - 1; k >= 0 && !*copy_error; --k) {
       a_subst_pairs_descr const  *spd = &subst_pairs[k];
       substitute_template_param_list(template_sym, list_to_subst,
                                      spd->params, spd->args,
