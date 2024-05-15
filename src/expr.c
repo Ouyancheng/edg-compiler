@@ -15556,50 +15556,69 @@ __builtin_shuffle or Clang __builtin_shufflevector construct.
         (void)get_token();
         add_stop_token(tok_comma);
         do {
+          /* An argument might be a pack expansion in some modes and
+             contexts. */
+          a_pack_expansion_stack_entry_ptr pesep;
+          a_boolean any_more = begin_potential_pack_expansion_context(&pesep);
           intop_start_pos = pos_curr_token;
-          /* Scan the constant expression. */
-          scan_integral_constant_expression(constant);
-          /* If the scanned constant has no position information (likely
-             a shared constant), allocate an unshared version and populate
-             the source information. */
-          if (cmp_source_positions(constant->source_corresp.decl_position,
-                                   null_source_position) == 0) {
-            intop_constant = alloc_unshared_constant(constant);
-            intop_constant->source_corresp.decl_position = intop_start_pos;
-          } else {
-            intop_constant = constant;
-          }  /* if */
+          while (any_more) {
+            a_pack_expansion_descr_ptr pedep;
+            /* Scan the constant expression. */
+            scan_integral_constant_expression(constant);
+            /* If the scanned constant has no position information (likely
+               a shared constant), allocate an unshared version and populate
+               the source information. */
+            if (cmp_source_positions(constant->source_corresp.decl_position,
+                                     null_source_position) == 0) {
+              intop_constant = alloc_unshared_constant(constant);
+              intop_constant->source_corresp.decl_position = intop_start_pos;
+            } else {
+              intop_constant = constant;
+            }  /* if */
 #if EXTRA_SOURCE_POSITIONS_IN_IL
-          intop_end_pos = intop_constant->end_position;
+            intop_end_pos = intop_constant->end_position;
 #endif /* EXTRA_SOURCE_POSITIONS_IN_IL */
-          if (is_error_type(intop_constant->type)) {
-            expr_expect_error();
-            result_type = error_type();
-          } else if (is_template_dependent_context() &&
-                     is_template_dependent_type(intop_constant->type)) {
-            check_assertion(intop_constant->kind ==
-                                      (a_constant_repr_kind)ck_template_param);
-            intop_is_dependent = TRUE;
-          }  /* if */
-          if (result_type == NULL) {
-            make_constant_operand(intop_constant, &intop);
-            set_operand_position(&intop, &intop_start_pos, &intop_end_pos,
-                                 (a_source_position*)NULL);
-            if (intop_is_dependent) {
-              prep_generic_operand(&intop);
-            } else {
-              do_operand_transformations(&intop, TOPT_NO_OPTIONS);
+            if (is_error_type(intop_constant->type)) {
+              expr_expect_error();
+              result_type = error_type();
+            } else if (is_template_dependent_context() &&
+                       is_template_dependent_type(intop_constant->type)) {
+              check_assertion(intop_constant->kind == ck_template_param);
+              intop_is_dependent = TRUE;
             }  /* if */
-            /* Keep a list of the integer arguments. */
-            intop_expr = make_node_from_operand(&intop);
-            if (p_int_arg_head == NULL) {
-              p_int_arg_head = intop_expr;
-            } else {
-              p_int_arg_tail->next = intop_expr;
+            if (result_type == NULL) {
+              make_constant_operand(intop_constant, &intop);
+              set_operand_position(&intop, &intop_start_pos, &intop_end_pos,
+                                   (a_source_position*)NULL);
+              if (intop_is_dependent) {
+                prep_generic_operand(&intop);
+              } else {
+                do_operand_transformations(&intop, TOPT_NO_OPTIONS);
+              }  /* if */
+              /* Keep a list of the integer arguments. */
+              intop_expr = make_node_from_operand(&intop);
+              if (p_int_arg_head == NULL) {
+                p_int_arg_head = intop_expr;
+              } else {
+                p_int_arg_tail->next = intop_expr;
+              }  /* if */
+              p_int_arg_tail = intop_expr;
             }  /* if */
-            p_int_arg_tail = intop_expr;
-          }  /* if */
-          int_args++;
+            int_args++;
+            /* If this is a pack expansion, swallow the trailing "..." and
+               loop for the next iteration of the expansion. */
+            pedep = end_potential_pack_expansion_context(
+                                                      pesep,
+                                                      /*is_declarator=*/FALSE);
+            if (pedep != NULL) {
+              /* This element is a variadic template pack expansion, i.e.,
+                 it's followed by "...".  Furthermore, we're in the prototype
+                 instantiation, so we record the expansion information on the
+                 element. */
+              mark_operand_as_pack_expansion(&intop, pedep);
+            }  /* if */
+            any_more = advance_to_next_pack_element(pesep);
+          }  /* while */
         } while (loop_token(tok_comma));
         remove_stop_token(tok_comma);
         release_local_constant(&constant);

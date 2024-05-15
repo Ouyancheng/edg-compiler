@@ -18,7 +18,8 @@ requires-expression during substitution.  For example, with --c++20:
 GNU compatibility: __builtin_shufflevector
 
 The __builtin_shufflevector intrinsic is now enabled in GNU emulation mode when
-gnu_version >= 120000.
+gnu_version >= 120000.  Furthermore, a call to __builtin_shufflevector can
+now take pack expansions.
 
 
 5/14/24  [EDGcpfe/27242]
