@@ -18350,6 +18350,9 @@ this routine does not assume that the selector address will be taken.
     check_assertion(is_error_type(operand_type) ||
                     is_template_param_type(operand_type));
   }  /* if */
+  if (is_a_glvalue(operand)) {
+    using_lvalue(operand);
+  }  /* if */
 }  /* prep_special_selector_operand */
 
 
