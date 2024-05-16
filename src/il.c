@@ -13233,8 +13233,12 @@ and reuse an existing entry if possible.
                        TQ_NONE, PM_NONE, /*expl_mem_attr_implicit=*/FALSE,
                        /*class_type=*/(a_type_ptr)NULL, UPC_BLOCK_SIZE_NONE);
   if (ptr == NULL) {
-    /* No allocated entry, need to allocate one. */
-    check_assertion(rvalue_references_enabled);
+    /* No allocated entry, need to allocate one.  (Note that in GNU and Clang
+       modes, rvalue references may be accepted with a warning even in C++03
+       modes that do not enable rvalue references.  In such modes, rvalue
+       references may also be generated implicitly, e.g., through range-based
+       "for" statements.) */
+    check_assertion(rvalue_references_enabled || gpp_mode || clang_mode);
     ptr = alloc_type((a_type_kind)tk_pointer);
     ptr->variant.pointer.type = pointed_to_type;
     ptr->variant.pointer.is_reference = TRUE;
