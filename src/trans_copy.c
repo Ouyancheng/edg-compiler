@@ -1392,8 +1392,9 @@ to the secondary translation unit.
               is_primary_translation_unit = TRUE;
               compute_il_prefix_size();
             }  /* if */
-            corresp_field->initializer = copy_dynamic_init(fp->initializer,
-                                                           CE_NO_OPTIONS);
+            corresp_field->initializer = copy_dynamic_init(
+                                               fp->initializer,
+                                               CE_COPYING_DEFAULT_MEMBER_INIT);
             if (!saved_is_primary) {
               is_primary_translation_unit = FALSE;
               compute_il_prefix_size();
