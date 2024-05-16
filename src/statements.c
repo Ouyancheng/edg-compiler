@@ -5442,8 +5442,7 @@ The affinity can be an expression or the keyword "continue".
   /* Check for and skip the opening parenthesis. */
   (void)required_token(tok_lparen, ec_exp_lparen);
   add_stop_token(tok_rparen);
-  if (!range_based_for_enabled ||
-      find_for_loop_separator() == tok_semicolon) {
+  if (find_for_loop_separator() == tok_semicolon) {
     /* This code is for "plain old" for statements (i.e., C, pre-C++11, UPC C)
        as well as C++20 range-based for statements that can have an optional
        init-statement.  Scan an initializing expression or declaration if it is
@@ -5453,11 +5452,15 @@ The affinity can be an expression or the keyword "continue".
     for_init_statement(&iterator_pointers_block);
     remove_stop_token(tok_semicolon);
   }  /* if */
-  if (range_based_for_enabled && find_for_loop_separator() == tok_colon) {
+  if (find_for_loop_separator() == tok_colon) {
     /* Now that it is known that we're scanning a range-based for statement,
        we need to go back and fix up the current statement and statement stack
        to reflect this. */
-    a_for_loop_ptr       flip = sp->variant.for_loop.extra_info;
+    a_for_loop_ptr  flip = sp->variant.for_loop.extra_info;
+    if (!range_based_for_enabled) {
+      an_error_severity  sev = clang_mode ? es_warning : es_error;
+      pos_diagnostic(sev, ec_range_based_for_nonstandard, &pos_curr_token);
+    }  /* if */
     is_range_based_for = TRUE;
     struct_stmt_stack[depth_stmt_stack].kind = ssk_range_based_for;
     scope_stack_top().is_for_init_block = FALSE;

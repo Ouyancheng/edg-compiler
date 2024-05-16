@@ -9510,7 +9510,7 @@ describe the type specified by the specifiers and are updated if
 if an error is issued.
 */
 {
-  if (auto_type_specifier_enabled &&
+  if ((auto_type_specifier_enabled || clangcpp_version_is(any_version)) &&
       (!auto_storage_class_specifier_enabled ||
        state->decltype_auto_specifier_seen ||
        (!(*decl_specifiers_seen & DS_TYPE) &&
@@ -9550,6 +9550,9 @@ if an error is issued.
       state->auto_type->variant.template_param.extra_info
                       ->constraint.type_constraint = state->type_constraint;
       *type_ptr = state->auto_type;
+      if (!auto_type_specifier_enabled) {
+        pos_warning(ec_auto_type_nonstandard, &state->auto_pos);
+      }  /* if */
     }  /* if */
     *decl_specifiers_seen |= DS_TYPE;
   } else {
@@ -10641,7 +10644,8 @@ corresponding change in prescan_decl_specifiers (in disambig.c).
              and friend). */
           auto_is_first = !(decl_specifiers_seen & ~(DS_INLINE | DS_FRIEND));
           if (auto_storage_class_specifier_enabled &&
-              auto_type_specifier_enabled) {
+              (auto_type_specifier_enabled ||
+               clangcpp_version_is(any_version))) {
             /* Whether "auto" is a type specifier or a storage class specifier
                cannot be decided until all decl-specifiers have been seen. */
           } else {
@@ -12720,7 +12724,8 @@ exit_loop:
     err = TRUE;
   }  /* if */
   if (state->auto_type_specifier_seen &&
-      auto_storage_class_specifier_enabled && auto_type_specifier_enabled) {
+      auto_storage_class_specifier_enabled &&
+      (auto_type_specifier_enabled || clangcpp_version_is(any_version))) {
     /* The "auto" token was seen among the specifiers, but we could not decide
        if it is a storage class specifier or a type specifier until now.  We do
        not check for decltype(auto) as that would have been processed when it

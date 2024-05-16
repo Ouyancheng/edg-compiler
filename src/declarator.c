@@ -2796,8 +2796,7 @@ this is a helper function.
       pos_error(err_code, &qualifier_pos);
     }  /* if */
   }  /* if */
-  if (ref_qualifiers_enabled &&
-      (curr_token == tok_ampersand || curr_token == tok_and_and)) {
+  if (curr_token == tok_ampersand || curr_token == tok_and_and) {
     /* This looks like a ref-qualifier (e.g., "struct S { int f() &; };"). */
     if ((is_nonstatic_member ||
          (!state->is_inclass_member_function_decl && parent_type != NULL) ||
@@ -2809,6 +2808,12 @@ this is a helper function.
       /* Ref-qualifiers are permitted on nonstatic member function declarations
          an on certain type name declarations, but never on declarations of
          constructors, destructors, finalizers, or new/delete operators. */
+      if (!ref_qualifiers_enabled) {
+        /* Clang accepts ref-qualifiers in all modes, but issues a warning
+           in pre-C++11 modes. */
+        an_error_severity  sev = clang_mode ? es_warning : es_error;
+        pos_diagnostic(sev, ec_ref_qualifier_nonstandard, &pos_curr_token);
+      }  /* if */
       ref_qualifiers = (a_ref_qualifier_kind)
                                    (curr_token == tok_ampersand ? rqk_lvalue
                                                                 : rqk_rvalue);

@@ -19298,12 +19298,16 @@ set to reflect whether the call was folded or not.
         }  /* if */
 #endif /* GNU_EXTENSIONS_ALLOWED */
         if (is_gnu_builtin_function(rp) &&
-            is_foldable_gnu_builtin_function(rp, (a_boolean *)NULL) &&
-            (!is_prototype_instantiation_context() ||
-             !operand_is_instantiation_dependent(result))) {
+            is_foldable_gnu_builtin_function(rp, (a_boolean *)NULL)) {
           /* Some __builtin_xxx functions act as constant-expressions. */
-          call_folded_to_constant = fold_gnu_call_if_possible(
+          if (!is_prototype_instantiation_context() ||
+              !operand_is_instantiation_dependent(result)) {
+            call_folded_to_constant = fold_gnu_call_if_possible(
                                                   result, function_call_node);
+          } else {
+            make_template_param_expr_constant_operand(result);
+            call_folded_to_constant = TRUE;
+          }  /* if */
         }  /* if */
 #endif /* BUILTIN_FUNCTIONS_ENABLED */
       }  /* if */

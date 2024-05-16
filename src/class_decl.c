@@ -30825,7 +30825,8 @@ template so far.
   check_assertion(scope_level != NO_SCOPE_DEPTH);
   class_state_ptr = scope_stack[scope_level].class_def_state;
   dps->in_class_scope = TRUE;
-  dps->auto_type_allowed = auto_type_specifier_enabled;
+  dps->auto_type_allowed = auto_type_specifier_enabled ||
+                           clangcpp_version_is(any_version);
   sym = class_member_declaration(class_state_ptr, templ_state,
                                  dps->ms_attributes,
                                  /*is_member_template=*/TRUE,

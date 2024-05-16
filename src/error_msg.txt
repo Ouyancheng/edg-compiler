@@ -3113,8 +3113,8 @@ ec_ambiguous_c11_generic;;"_Generic construct matches multiple types"
 ec_ambiguous_c11_generic_previous_match;;"the other match is %t"
 ec_availability_attribute_ignored;;"the \"availability\" attribute used here is ignored"
 ec_init_stmt_in_range_for_nonstandard;;"C++20-style initializer statement in a range-based \"for\" statement is nonstandard in this mode"
-ec_co_await_on_non_range_based_for;;"co_await can only apply to a range-based for statement"
-ec_cannot_deduce_type_in_range_based_for;;"cannot deduce type of range in range-based \"for\" loop"
+ec_co_await_on_non_range_based_for;;"co_await can only apply to a range-based \"for\" statement"
+ec_cannot_deduce_type_in_range_based_for;;"cannot deduce type of range in range-based \"for\" statement"
 ec_inline_variables_nonstandard;;"inline variables are a C++17 feature"
 ec_destroying_delete_wrong_type;;"destroying operator delete requires %t as first parameter"
 ec_destroying_delete_with_extra_params;;"a destroying operator delete cannot have parameters other than std::size_t and std::align_val_t"
@@ -3502,6 +3502,9 @@ ec_ifc_unexpected_null_scope_member;;"unexpected null declaration index found as
 ec_cl_unnamed_module_map;;"a module name must be specified for the module file map referencing the file %sq"
 ec_ifc_partition_missing_element;;"a null index value was received where a node in the IFC partition %sq was expected"
 ec_void_template_variable;;"%nd cannot have type %t"
+ec_ref_qualifier_nonstandard;;"a ref-qualifier is nonstandard in this mode"
+ec_range_based_for_nonstandard;;"a range-based \"for\" statement is nonstandard in this mode"
+ec_auto_type_nonstandard;;"\"auto\" as a type specifier is nonstandard in this mode"
 ###############################################################################
 #                                                             \  ___  /       #
 #                                                               /   \         #

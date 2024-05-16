@@ -21937,7 +21937,8 @@ parameters are scanned by scan_a_template_parameter_declaration.
                                                  dps->is_old_style_param_decl;
 
   set_err_pos_to_curr_token();
-  dps->auto_type_allowed = auto_type_specifier_enabled;
+  dps->auto_type_allowed = auto_type_specifier_enabled ||
+                           clangcpp_version_is(any_version);
   copy_source_position(pos_curr_token, dps->start_pos);
   clear_decl_pos_block(&decl_pos_block);
   if (!dps->marked_as_gnu_extension && curr_token == tok_extension) {
