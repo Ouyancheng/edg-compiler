@@ -8436,6 +8436,33 @@ type-as-subobject that is different from its normal type.
 
 #endif /* CFRONT_OBJECT_CODE_COMPATIBILITY */
 
+#if IA64_ABI
+
+static void mark_field_for_tail_padding_if_needed(a_field_ptr fp)
+/*
+fp designates a field marked with the [[no_unique_address]] attribute.
+Such a field with a class type is allocated somewhat like a base class
+subobject, potentially allowing tail padding to be reused.  Specifically,
+max(dsize, nvsize) bytes are allocated for the field, where dsize
+corresponds to the data size prior to rounding up for alignment purposes
+and nvsize is the size not including virtual base classes.  If there is
+tail padding in the allocation, mark the field accordingly.
+*/
+{
+  a_type_ptr ftp = skip_typerefs(fp->type);
+
+  if (is_class_or_struct(ftp)) {
+    /* Check to see if the type of the field has tail padding. */
+    if (class_type_supp(ftp)->size_without_virtual_base_classes < ftp->size &&
+        compute_dsize(ftp) < ftp->size) {
+      /* The type has tail padding.  Mark the field accordingly. */
+      fp->class_subobject_with_tail_padding = TRUE;
+    }  /* if */
+  }  /* if */
+}  /* mark_field_for_tail_padding_if_needed */
+
+#endif /* IA64_ABI */
+
 static void make_subobject_class_type(a_type_ptr class_type)
 /*
 Make a version of the indicated class type that is suitable for use when
@@ -8468,6 +8495,17 @@ this routine to do a relatively simple copy of all the fields.
        by a base class (unions cannot have base classes), so the type to use
        as a subobject is the same as the class type itself. */
     subobject_type = class_type;
+#if IA64_ABI
+    /* Check the class's fields to see if any of them have tail padding and
+       mark them accordingly.  This is done here instead of in lower_field
+       to avoid ordering issues when lowering classes. */
+    for (old_field = class_type->variant.class_struct_union.field_list;
+         old_field != NULL; old_field = old_field->next) {
+      if (old_field->has_no_unique_address_attribute) {
+        mark_field_for_tail_padding_if_needed(old_field);
+      }  /* if */
+    }  /* for */
+#endif /* IA64_ABI */
   } else {
     /* Make a copy of the class type for use as the subobject type. */
     check_assertion(class_type->kind != (a_type_kind)tk_union);
@@ -8547,23 +8585,7 @@ added_to_list:;
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
 #if IA64_ABI
       if (old_field->has_no_unique_address_attribute) {
-        /* A field marked with the [[no_unique_address]] attribute is
-           allocated somewhat like a base class subobject, potentially
-           allowing tail padding to be reused.  Specifically, max(dsize,
-           nvsize) bytes are allocated for the field, where dsize
-           corresponds to the data size prior to rounding up for alignment
-           purposes and nvsize is the size not including virtual base
-           classes. */
-        a_type_ptr ftp = skip_typerefs(old_field->type);
-        if (is_class_or_struct(ftp)) {
-          /* Check to see if the type of the field has tail padding. */
-          if (class_type_supp(ftp)->size_without_virtual_base_classes <
-                                                                   ftp->size &&
-              compute_dsize(ftp) < ftp->size) {
-            /* The type has tail padding.  Mark the field accordingly. */
-            old_field->class_subobject_with_tail_padding = TRUE;
-          }  /* if */
-        }  /* if */
+        mark_field_for_tail_padding_if_needed(old_field);
       }  /* if */
 #endif /* IA64_ABI */
       /* Copy the field. */
