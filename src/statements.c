@@ -5442,17 +5442,18 @@ The affinity can be an expression or the keyword "continue".
   /* Check for and skip the opening parenthesis. */
   (void)required_token(tok_lparen, ec_exp_lparen);
   add_stop_token(tok_rparen);
-  if (find_for_loop_separator() == tok_semicolon) {
+  if (C_mode() || find_for_loop_separator() == tok_semicolon) {
     /* This code is for "plain old" for statements (i.e., C, pre-C++11, UPC C)
        as well as C++20 range-based for statements that can have an optional
        init-statement.  Scan an initializing expression or declaration if it is
        present.  It will be added to the correct place in the stmk_for entry.
-       */
+       (Note: find_for_loop_separator uses the grammar disambiguation code,
+       which currently cannot be used in C mode.) */
     add_stop_token(tok_semicolon);
     for_init_statement(&iterator_pointers_block);
     remove_stop_token(tok_semicolon);
   }  /* if */
-  if (find_for_loop_separator() == tok_colon) {
+  if (!C_mode() && find_for_loop_separator() == tok_colon) {
     /* Now that it is known that we're scanning a range-based for statement,
        we need to go back and fix up the current statement and statement stack
        to reflect this. */
