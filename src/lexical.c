@@ -10924,8 +10924,7 @@ the kind of token.
   a_boolean     accept_f_suffix = extended_float_types ||
                                   (gcc_version_is(>= 70000) ||
                                    gpp_version_is(>= 130000));
-  a_boolean     accept_bf16_suffix = (gcc_version_is(>=130000) ||
-                                      gpp_version_is(>=130000));
+  a_boolean     accept_bf16_suffix = gnu_version_is(>= 130000);
   int           char_bytes;
 
 /*
