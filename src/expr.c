@@ -7285,10 +7285,11 @@ are expected to be NULL in that case.
       routine_type = NULL;
       routine = NULL;
       if (bcap->overloaded_function_symbol != NULL) {
-        /* The builtin is being replaced by a call to an overloaded operator
-           function; use that symbol to do the overload resolution. */
+        /* The builtin is being replaced by a call to a global overloaded
+           operator function; use that symbol to do the overload resolution. */
         overloaded_function_symbol = bcap->overloaded_function_symbol;
         overloaded_function_case = TRUE;
+        do_arg_dep_lookup = FALSE;
       }  /* if */
     }  /* if */
   }  /* if */

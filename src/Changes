@@ -1,5 +1,25 @@
 Version 6.7
 
+5/16/24  [EDGcpfe/27248]
+Clang compatibility: spurious instantiation for __builtin_operator_delete
+
+Previously, if __builtin_operator_delete was named using an unparenthesized,
+unqualified id, the front end would perform argument dependent lookup to find
+the corresponding deallocation function.  This could trigger template
+instantiation of any types used in function arguments.  For example, with
+--c++11 --clang_version 180100:
+
+  struct A;
+  template<typename T>
+  struct C {
+    T t;  // Previously a spurious error as A is still incomplete when
+          // instantiated from below.
+  };
+  void f(C<A> *c) {
+    __builtin_operator_delete(c);
+  }
+
+
 5/15/24  [EDGcpfe/24168,EDGcpfe/27138]
 Clang compatibility: C++11 features in C++03 modes
 
