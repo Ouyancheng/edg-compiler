@@ -59,7 +59,7 @@ mode when gnu_version is at least 130000.  For example, with
   typedef __decltype(0.0bf16) __bfloat16_t;   // Previously an error, now okay
 
 
-5/15/24  [EDGcpfe/24907]
+5/15/24  [EDGcpfe/24907,EDGcpfe/26639]
 Substitution of nested pack in requires-expression
 
 A pack of a nested template would previously fail to be expanded in a

@@ -1452,7 +1452,9 @@ enclosing template class types, if any (starting from the outermost).
       a_subst_pairs_descr  pspd = { NULL, NULL, FALSE, FALSE };
       get_substitution_pairs_for_template_class(class_type,
                                                 &pspd.params, &pspd.args);
-      p_array->push_back(pspd);
+      if (pspd.params != NULL) {
+        p_array->push_back(pspd);
+      }  /* if */
     }  /* if */
     class_type = parent_class_or_null(class_type);
   } while (class_type != NULL);
