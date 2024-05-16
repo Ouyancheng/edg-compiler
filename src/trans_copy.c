@@ -1399,7 +1399,8 @@ to the secondary translation unit.
               is_primary_translation_unit = FALSE;
               compute_il_prefix_size();
             }  /* if */
-          } else if (fp->initializer != NULL) {
+          }  /* if */
+          if (fp->initializer != NULL) {
             /* Eliminate any object lifetime associated with the initializer
                (which is in the global scope, but shouldn't be merged into the
                primary global scope). */
