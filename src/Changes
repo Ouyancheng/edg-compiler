@@ -5,9 +5,10 @@ C-generating back end: internal error on small floating point type and ellipsis
 
 The C-generating back end incorrectly assumed all floating point types
 shorter than double should be widened to double when passed to an ellipsis
-and issued an internal error in such cases; in fact, widening only applies
-to the float type and not to other small floating point types.  This is now
-fixed.  For example, with --gcc --gnu_version=140100:
+and issued an internal error when it encountered an unwidened type in an
+argument expression.  In fact, widening only applies to the float type and
+not to other small floating point types.  This is now fixed.  For example,
+with --gcc --gnu_version=140100:
 
   void f(int, ...);
   void g() {
