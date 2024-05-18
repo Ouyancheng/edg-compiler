@@ -1,5 +1,22 @@
 Version 6.7
 
+5/18/24  [EDGcpfe/27239]
+C/C++-generating back ends: version numbers of target compilers;
+new __EDG_BFLOAT16_ENABLING_POSSIBLE predefined macro with --building_runtime
+
+The front end now accepts the command-line options --gnu_target_version and
+--clang_target_version to specify the version of the gcc or clang compiler,
+respectively, for which the C/C++-generating back end produces code.  (The
+--msvc_target_version command-line option was already supported.)
+
+In addition, when --building_runtime is specified, the front end now
+predefines the macro __EDG_BFLOAT16_ENABLING_POSSIBLE, controlling whether
+the run-time library is configured to support the bfloat16 type.  The
+default value of the macro is determined by the specified target compiler
+and version, but it can be redefined via command-line or other macro
+definitions.
+
+
 5/16/24  [EDGcpfe/27259]
 C-generating back end: internal error on small floating point type and ellipsis
 

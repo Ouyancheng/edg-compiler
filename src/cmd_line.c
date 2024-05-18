@@ -445,6 +445,12 @@ Initialize the option information table.
   add_option_description(optk_msvc_target_version, "msvc_target_version",
                          '\0', /*value=*/TRUE, /*arg_required=*/TRUE,
                          pchek_command_line);
+  add_option_description(optk_gnu_target_version, "gnu_target_version",
+                         '\0', /*value=*/TRUE, /*arg_required=*/TRUE,
+                         pchek_command_line);
+  add_option_description(optk_clang_target_version, "clang_target_version",
+                         '\0', /*value=*/TRUE, /*arg_required=*/TRUE,
+                         pchek_command_line);
 #endif /* BACK_END_IS_C_GEN_BE || BACK_END_IS_CP_GEN_BE */
   add_option_description(optk_create_pch, "create_pch",
                          '\0', /*value=*/TRUE, /*arg_required=*/TRUE,
@@ -10603,6 +10609,16 @@ Process the arguments on the command line that invoked the compiler.
         /* The Microsoft C/C++ compiler being targeted. */
         msvc_target_version_number = (int)scan_opt_arg_number(opt_arg);
         msvc_is_generated_code_target = TRUE;
+        break;
+      case optk_gnu_target_version:
+        /* The GNU C/C++ compiler being targeted. */
+        gnu_target_version_number = (int)scan_opt_arg_number(opt_arg);
+        gcc_is_generated_code_target = TRUE;
+        break;
+      case optk_clang_target_version:
+        /* The clang C/C++ compiler being targeted. */
+        clang_target_version_number = (int)scan_opt_arg_number(opt_arg);
+        clang_is_generated_code_target = TRUE;
         break;
 #endif /* BACK_END_IS_C_GEN_BE || BACK_END_IS_CP_GEN_BE */
       case optk_create_pch:
