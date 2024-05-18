@@ -2744,8 +2744,8 @@ before setting it if there are unused bits.
     /* Check for overflow. */
     int exp;
     (void)frexpl(temp, &exp);
-    if (exp >= max_exponent[(int)kind] ||
-        exp < min_exponent[(int)kind] - 1) {
+    if (exp > max_exponent[(int)kind] ||
+        exp < min_exponent[(int)kind]) {
       errno = ERANGE;
     }  /* if */
   }  /* if */
