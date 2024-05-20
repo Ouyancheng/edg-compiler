@@ -221,24 +221,41 @@ of the token if digit separators are enabled.
   /* Evaluate the literal as an unsigned long. */
   if (radix == 10) {
     /* Decimal. */
-    set_unsigned_integer_value(&ten, (a_host_large_unsigned)10);
-    intdigit = *start_of_curr_token - '0';
-    set_unsigned_integer_value(&number, (a_host_large_unsigned)intdigit);
-    for (temp_ptr = start_of_curr_token+1;
-         temp_ptr <= real_end_pos; temp_ptr++) {
-      if (*temp_ptr == '\'') {
-        /* Digit separator -- ignore. */
-      } else {
-        intdigit = *temp_ptr - '0';
-        /* Multiply previous value by 10, checking for overflow. */
-        multiply_integer_values(&number, &ten, /*is_signed=*/FALSE, &err);
-        if (err) ovflo = TRUE;
-        /* Add in digit, checking for overflow. */
-        set_unsigned_integer_value(&digit, (a_host_large_unsigned)intdigit);
-        add_integer_values(&number, &digit, /*is_signed=*/FALSE, &err);
-        if (err) ovflo = TRUE;
-      }  /* if */
-    }  /* for */
+    if (!number_contains_digit_separator &&
+        sizeof(a_host_large_unsigned) >= 8 &&
+        real_end_pos - start_of_curr_token <= 18) {
+      /* A 19-digit decimal number can be represented without overflow in
+         a_host_large_unsigned, so we can use a more efficient loop
+         accumulating the literal value. */
+      a_host_large_unsigned lit_val = *start_of_curr_token - '0';
+      for (temp_ptr = start_of_curr_token + 1;
+           temp_ptr <= real_end_pos; ++temp_ptr) {
+        lit_val = 10 * lit_val + *temp_ptr - '0';
+      }  /* for */
+      set_unsigned_integer_value(&number, lit_val);
+    } else {
+      /* For small host integers, very large literals, or embedded digit
+         separators, use the constant integer routines to calculate the
+         value of the literal. */
+      set_unsigned_integer_value(&ten, (a_host_large_unsigned)10);
+      intdigit = *start_of_curr_token - '0';
+      set_unsigned_integer_value(&number, (a_host_large_unsigned)intdigit);
+      for (temp_ptr = start_of_curr_token+1;
+           temp_ptr <= real_end_pos; temp_ptr++) {
+        if (*temp_ptr == '\'') {
+          /* Digit separator -- ignore. */
+        } else {
+          intdigit = *temp_ptr - '0';
+          /* Multiply previous value by 10, checking for overflow. */
+          multiply_integer_values(&number, &ten, /*is_signed=*/FALSE, &err);
+          if (err) ovflo = TRUE;
+          /* Add in digit, checking for overflow. */
+          set_unsigned_integer_value(&digit, (a_host_large_unsigned)intdigit);
+          add_integer_values(&number, &digit, /*is_signed=*/FALSE, &err);
+          if (err) ovflo = TRUE;
+        }  /* if */
+      }  /* for */
+    }  /* if */
   } else if (radix == 8) {
     /* Octal.*/
     set_unsigned_integer_value(&number, (a_host_large_unsigned)0);

@@ -1,5 +1,17 @@
 Version 6.7
 
+5/20/24  [EDGcpfe/27256]
+Performance with large numbers of decimal integer literals
+
+In configurations in which TYPE_FOR_AN_INTEGER_VALUE is at least 64 bits,
+the process of extracting the value of a decimal integer literal that has
+no digit separators and fewer than 20 characters has been optimized.  For
+configurations in which INTEGER_VALUE_REPR_IS_A_HOST_INTEGER is TRUE, the
+performance difference is minimal, but in configurations where that macro
+is FALSE, the improvement will be significant when processing large numbers
+of literals.
+
+
 5/18/24  [EDGcpfe/27250]
 Incorrect _Float32 and _Float64 range checks
 
