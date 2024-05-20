@@ -442,13 +442,18 @@ Initialize the option information table.
   add_option_description(optk_gen_c_file_name, "gen_c_file_name",
                          '\0', /*value=*/TRUE, /*arg_required=*/TRUE,
                          pchek_none);
+  /* --msvc_target_version is supported for compatibility but deprecated
+     in favor of regularity with --gen_c_{msvc|gnu|clang}_version. */
   add_option_description(optk_msvc_target_version, "msvc_target_version",
                          '\0', /*value=*/TRUE, /*arg_required=*/TRUE,
                          pchek_command_line);
-  add_option_description(optk_gnu_target_version, "gnu_target_version",
+  add_option_description(optk_msvc_target_version, "gen_c_msvc_version",
                          '\0', /*value=*/TRUE, /*arg_required=*/TRUE,
                          pchek_command_line);
-  add_option_description(optk_clang_target_version, "clang_target_version",
+  add_option_description(optk_gnu_target_version, "gen_c_gnu_version",
+                         '\0', /*value=*/TRUE, /*arg_required=*/TRUE,
+                         pchek_command_line);
+  add_option_description(optk_clang_target_version, "gen_c_clang_version",
                          '\0', /*value=*/TRUE, /*arg_required=*/TRUE,
                          pchek_command_line);
 #endif /* BACK_END_IS_C_GEN_BE || BACK_END_IS_CP_GEN_BE */
@@ -10608,7 +10613,8 @@ Process the arguments on the command line that invoked the compiler.
       case optk_msvc_target_version:
         /* The Microsoft C/C++ compiler being targeted. */
         msvc_target_version_number = (int)scan_opt_arg_number(opt_arg);
-        msvc_is_generated_code_target = TRUE;
+        microsoft_dialect_is_generated_code_target = TRUE;
+        msvc_is_generated_code_target = MSVC_IS_GENERATED_CODE_TARGET;
         break;
       case optk_gnu_target_version:
         /* The GNU C/C++ compiler being targeted. */

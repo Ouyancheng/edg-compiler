@@ -715,11 +715,6 @@ to match the source dialect (including the version of the dialect).
 */
 {
 #if CP_GEN_BE_TARGET_MATCHES_SOURCE_DIALECT
-  check_assertion_str(!gcc_is_generated_code_target &&
-                      !microsoft_dialect_is_generated_code_target &&
-                      !sun_is_generated_code_target &&
-                      !clang_is_generated_code_target,
-                      "Target dialect already set.");
 #if CHECKING
   {
     /* Note that clang mode is a dialect of GNU mode. */
@@ -744,16 +739,23 @@ to match the source dialect (including the version of the dialect).
       gcc_is_generated_code_target = TRUE;
       gnu_target_version_number = gnu_version;
     }  /* if */
-  } else if (microsoft_mode) {
+  }  /* if */
+  if (microsoft_mode) {
     microsoft_dialect_is_generated_code_target = TRUE;
     msvc_target_version_number = microsoft_version;
     msvc_is_generated_code_target = MSVC_IS_GENERATED_CODE_TARGET;
-  } else if (sun_mode) {
+  }  /* if */
+  if (sun_mode) {
     sun_is_generated_code_target = TRUE;
 #ifdef SUN_TARGET_VERSION_NUMBER
     sun_target_version_number = SUN_TARGET_VERSION_NUMBER;
 #endif /* ifdef SUN_TARGET_VERSION_NUMBER */
   }  /* if */
+  check_assertion_str(gcc_is_generated_code_target +
+                      microsoft_dialect_is_generated_code_target +
+                      sun_is_generated_code_target +
+                      clang_is_generated_code_target == 1,
+                      "Conflicting target dialects set.");
 #endif /* CP_GEN_BE_TARGET_MATCHES_SOURCE_DIALECT */
 }  /* select_cp_gen_be_target_dialect */
 
