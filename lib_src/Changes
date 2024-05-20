@@ -6,10 +6,10 @@ Conditional support for complex bfloat16 type
 Support for complex bfloat16 types (see the entry for EDGcpfe/26466) is now
 conditioned on the value of the macro __EDG_BFLOAT16_ENABLING_POSSIBLE.
 This macro is predefined by the front end when --building_runtime is
-specified, based on the assumed characteristics of the target compiler.
-The macro can be redefined via command-line or other macro definitions if
-the value provided by the front end does not accurately reflect the actual
-capabilities of the target.
+specified, based on the assumed characteristics of the target of the
+compilation.  The macro can be redefined via command-line or other macro
+definitions if the value provided by the front end does not accurately
+reflect the actual capabilities of the target.
 
 
 3/27/24  [EDGcpfe/27124]
