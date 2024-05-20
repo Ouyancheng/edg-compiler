@@ -11044,6 +11044,7 @@ See do_constexpr_intrinsic_call for the meaning of the parameters.
          is_copy_constructor(rp, parent_class_of(rp), &tqs,
                              /*includ_move_ctors=*/TRUE,
                              /*is_declarative_context=*/TRUE))) {
+      answer = TRUE;
     } else if (special_kind_is(rp, sfk_destructor)) {
       answer = TRUE;
     } else if (special_kind_is(rp, sfk_operator) &&
