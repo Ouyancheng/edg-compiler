@@ -3505,6 +3505,7 @@ ec_void_template_variable;;"%nd cannot have type %t"
 ec_ref_qualifier_nonstandard;;"a ref-qualifier is nonstandard in this mode"
 ec_range_based_for_nonstandard;;"a range-based \"for\" statement is nonstandard in this mode"
 ec_auto_type_nonstandard;;"\"auto\" as a type specifier is nonstandard in this mode"
+ec_cannot_import_module_bad_checksum;;"could not import module file %sq due to file corruption"
 ###############################################################################
 #                                                             \  ___  /       #
 #                                                               /   \         #

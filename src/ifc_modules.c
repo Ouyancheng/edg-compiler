@@ -12903,6 +12903,47 @@ the partition could not be found, return ifc_pk_none.
 }  /* find_ifc_partition */
 
 
+static inline a_boolean verify_checksum(an_ifc_module_file       *file,
+                                        const an_ifc_file_header &header)
+/*
+Return TRUE if the checksum value stored in the given IFC file header matches
+the current contents of the given IFC module file; otherwise, return FALSE.
+*/
+{
+  /* The initial 4 bytes for the magic numbers identifying the file type
+     followed by the bytes that correspond to the expected checksum. */
+  constexpr size_t unhashed_bytes = 4 + 32;
+  a_boolean        result = TRUE;
+  a_sha256_hash    hash;
+  an_ifc_module_file_read_state
+                   &read_state = file->get_read_state();
+  size_t           num_hashed_bytes = read_state.f_size - unhashed_bytes;
+
+  init_byte_buffer(file, unhashed_bytes, num_hashed_bytes);
+#if USE_MMAP_FOR_MEMORY_REGIONS
+  hash.update(read_state.byte_buffer, num_hashed_bytes);
+#else /* !USE_MMAP_FOR_MEMORY_REGIONS */
+  a_byte buff[1000];
+  for (size_t rem = num_hashed_bytes; rem != 0;) {
+    size_t buff_used = min_val(sizeof(buff), rem);
+
+    get_bytes_from_buffer(file, buff, buff_used);
+    hash.update(buff, buff_used);
+    rem -= buff_used;
+  }  /* for */
+#endif /* USE_MMAP_FOR_MEMORY_REGIONS */
+  a_sha256_digest computed_checksum = hash.compute_digest();
+  an_ifc_sha256   expected_checksum = get_ifc_checksum(header);
+  for (size_t i = 0; i < 32; ++i) {
+    if ((*expected_checksum.get_storage())[i] != computed_checksum[i]) {
+      result = FALSE;
+      break;
+    }  /* if */
+  }  /* for */
+  return result;
+}  /* verify_checksum */
+
+
 a_boolean an_ifc_module::initialize_members_from_ifc_module_file(
                                            a_module_import_decl_ptr midp,
                                            a_boolean                issue_diag)
@@ -12919,6 +12960,11 @@ diagnostics if issue_diag is TRUE.
   this->assoc_module_info = mod;
   set_name(mod->name, is_header_unit(mod));
   if (!init_header(midp, issue_diag)) {
+    goto invalid;
+  }  /* if */
+  if (!verify_checksum(&this->file, this->header)) {
+    pos_catastrophe(ec_cannot_import_module_bad_checksum,
+                    &midp->module_name_position, mod->full_name);
     goto invalid;
   }  /* if */
 #if DEBUG
