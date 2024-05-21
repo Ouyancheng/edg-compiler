@@ -1,5 +1,21 @@
 Version 6.7
 
+5/20/24  [EDGcpfe/27258]
+Instantiations of templates in namespace with ELF visibility attribute
+
+Consider, in GNU or Clang C++ modes:
+
+  namespace  __attribute((visibility("default"))) N {
+    template<typename T> void f(T) {}
+    template<typename T> T v = T{};
+  }
+  template void N::f(int);
+  template int N::v<int>;
+
+Previously, the ELF visibility attribute on namespace N did not carry over to
+the instances of the templates in N.  That is now fixed.
+
+
 5/20/24  [EDGcpfe/27256]
 Performance with large numbers of decimal integer literals
 

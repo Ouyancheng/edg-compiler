@@ -11718,6 +11718,14 @@ definition of a member function of a class template.
     apply_microsoft_attributes_to_routine(&dps->ms_attributes, rout_ptr);
   }  /* if */
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
+#if GNU_EXTENSIONS_ALLOWED && GNU_VISIBILITY_ATTRIBUTE_ALLOWED
+  /* Update the ELF visibility if applicable. */
+  { an_ELF_visibility_kind  visibility = enum_cast<an_ELF_visibility_kind>(
+                                                    rout_ptr->ELF_visibility);
+    update_for_default_ELF_visibility(&visibility, /*is_class_member=*/FALSE);
+    rout_ptr->ELF_visibility = visibility;
+  }
+#endif /* GNU_EXTENSIONS_ALLOWED && GNU_VISIBILITY_ATTRIBUTE_ALLOWED */
   check_defaulted_or_deleted_function(dps, func_info,
                                       &locator->source_position);
   if (locator->template_arg_list != NULL && !locator->is_template_id) {

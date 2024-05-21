@@ -7799,6 +7799,11 @@ expression context) rather than a declaration.
       check_for_missing_initializer(var_sym, var_ptr->type);
     }  /* if */
   }  /* if */
+#if GNU_EXTENSIONS_ALLOWED && GNU_VISIBILITY_ATTRIBUTE_ALLOWED
+  if (var_ptr->ELF_visibility == evk_unspecified) {
+    var_ptr->ELF_visibility = proto_var->ELF_visibility;
+  }  /* if */
+#endif /* GNU_EXTENSIONS_ALLOWED && GNU_VISIBILITY_ATTRIBUTE_ALLOWED */
   /* When is_use is FALSE we don't process the initializer, so don't
      check placeholder use at that time. */
   if (is_use) check_use_of_placeholder_type(&dps);
@@ -20035,6 +20040,7 @@ mode in-class specialization.
 #if GNU_EXTENSIONS_ALLOWED
     if (gpp_mode) {
 #if GNU_VISIBILITY_ATTRIBUTE_ALLOWED
+      rp->ELF_visibility = templ_rout->ELF_visibility;
       if (rp->source_corresp.is_class_member &&
           rp->ELF_visibility == (an_ELF_visibility_kind)evk_unspecified) {
         /* If no visibility attribute was specified on the function, propagate
@@ -28981,6 +28987,14 @@ Create the variable entry variable template specified by template_sym.
   } else if (dps->has_deducible_class_templ_args) {
     var->declared_with_class_template_placeholder = TRUE;
   }  /* if */
+#if GNU_EXTENSIONS_ALLOWED && GNU_VISIBILITY_ATTRIBUTE_ALLOWED
+  /* Update the ELF visibility if applicable. */
+  { an_ELF_visibility_kind  visibility = enum_cast<an_ELF_visibility_kind>(
+                                                         var->ELF_visibility);
+    update_for_default_ELF_visibility(&visibility, /*is_class_member=*/FALSE);
+    var->ELF_visibility = visibility;
+  }
+#endif /* GNU_EXTENSIONS_ALLOWED && GNU_VISIBILITY_ATTRIBUTE_ALLOWED */
   if (prototype_instantiations_in_il || tssp->is_generic) {
     if (decl_state->decl_scope_err) {
       /* Don't add the type to the type list in error cases.  This is done
