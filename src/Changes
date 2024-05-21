@@ -110,7 +110,7 @@ constexpr functions).
 Assertion failures when remapping default member initializers in multi-TU mode
 
 Previously, template code with a default member initializer could result in a
-violation of a spurious assertion in trans_copy.c:
+spurious assertion failure in trans_copy.c:
 
   // shared.h
   using a_size_type = unsigned long long;
@@ -123,10 +123,9 @@ violation of a spurious assertion in trans_copy.c:
   // tu-b.cpp
   #include "shared.h"
 
-Similarly, a type with default member initializer, that initializes a type
-dependent default argument, with a type that has a destructor could result in a
-spurious IL entry representing the lifetime of the default argument in the
-default member initializer:
+Similarly, certain complex cases involving default member initializers and
+default arguments could result in a spurious IL entry representing the lifetime
+of the default argument in the default member initializer:
 
   // shared.h
   struct type_with_dtor { ~type_with_dtor(); };
