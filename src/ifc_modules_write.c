@@ -16,6 +16,8 @@ ifc_modules_write.c -- IFC writing code.
 /* Header files common to all files. */
 #include "fe_common.h"
 
+#include <errno.h>
+
 /* Additional header files. */
 #include "ifc_modules.h"
 #include "ifc_map_functions.h"
@@ -188,7 +190,7 @@ struct an_ifc_output_state {
 
   void sort_traits();
 
-  a_boolean write();
+  void write();
 private:
   template<typename an_ifc_Node_type>
   an_ifc_output_partition *get_or_init_partition();
@@ -493,6 +495,17 @@ struct Is_trivially_destructible_edg_impl<an_ifc_output_partition_metadata> :
 };  /* Is_trivially_destructible_edg_impl */
 
 }  /* namespace detail */
+
+NORETURN static void ifc_write_error()
+/*
+Issue a catastrophic diagnostic that the IFC file could not be created and
+terminate the compilation.  This routine does not return.
+*/
+{
+  error_position = null_source_position;
+  file_write_error(ec_ifc, errno);
+}  /* ifc_write_error */
+
 namespace {
 
 /*
@@ -514,33 +527,127 @@ struct an_ifc_output_metadata {
                            will be written to the IFC file. */
 };  /* an_ifc_output_metadata */
 
-}  /* namespace */
-
-template<typename an_ifc_Node_type>
-static void append_node_to_file(const an_ifc_Node_type &node)
 /*
-Append the given IFC node contents to the file.
+This structure is encapsulates the write operations into a particular IFC file
+along with the hashing of the contents as they're written out.
+*/
+struct an_ifc_output_stream {
+  an_ifc_output_stream(an_ifc_module_file *output_file_val)
+    : output_file(output_file_val)
+    {}
+  an_ifc_module_file *get_file() const
+    { return this->output_file; }
+  a_module_kind get_module_kind() const
+    { return this->output_file->module_kind; }
+  void write_bytes_at(size_t       file_pos,
+                      a_byte const *bytes,
+                      size_t       num_bytes);
+  void write_bytes(a_byte const *bytes,
+                   size_t       num_bytes,
+                   a_boolean    add_to_checksum = TRUE);
+  a_sha256_digest finish_checksum();
+private:
+  an_ifc_module_file
+                *output_file;
+                        /* The IFC module file being written to. */
+  a_sha256_hash hash_state = {};
+                        /* The hash state of all bytes written that should
+                           be considered part of the checksum. */
+#if CHECKING
+  a_boolean     checksum_computed = FALSE;
+                        /* TRUE if the checksum has been computed via a call to
+                           an_ifc_output_stream::finish_checksum. */
+#endif /* CHECKING */
+};  /* an_ifc_output_stream */
+
+
+void an_ifc_output_stream::write_bytes_at(size_t       file_pos,
+                                          a_byte const *bytes,
+                                          size_t       num_bytes)
+/*
+Write the given bytes (counted by num_bytes) at the given file position.  The
+file position must already exist and the file must already have at least
+num_bytes bytes following the specified file position.
 */
 {
-  using a_storage_type = typename an_ifc_Node_type::storage_type;
-  size_t storarge_len = get_ifc_buffer_size<a_storage_type>(node.get_file());
+  long orig_file_pos = ftell(this->output_file->f_module);
 
-  (void)fwrite(node.get_storage(), storarge_len, /*num_to_write=*/1,
-               node.get_file()->f_module);
-}  /* append_node_to_file */
+  if (orig_file_pos < 0) {
+    ifc_write_error();
+  }  /* if */
+  /* If this assertion fails, this write operation would increase the size of
+     the file.  write_bytes should be used for append operations. */
+  check_assertion(file_pos + num_bytes < size_t_arg(orig_file_pos));
+  { /* Move to the cursor to the desired write position. */
+    int seek_result = fseek(this->output_file->f_module, file_pos, SEEK_SET);
+
+    if (seek_result != 0) {
+      ifc_write_error();
+    }  /* if */
+  }
+  this->write_bytes(bytes, num_bytes, /*add_to_checksum=*/FALSE);
+  { /* Restore the cursor to its original position. */
+    int seek_result = fseek(this->output_file->f_module, orig_file_pos,
+                            SEEK_SET);
+    if (seek_result != 0) {
+      ifc_write_error();
+    }  /* if */
+  }
+}  /* an_ifc_output_stream::write_bytes_at */
 
 
-static void write_ifc_magic_bytes(an_ifc_module_file *file)
+void an_ifc_output_stream::write_bytes(a_byte const *bytes,
+                                       size_t       num_bytes,
+                     /* Defaulted: */  a_boolean    add_to_checksum)
+/*
+Append the given bytes (counted by num_bytes) to the underlying file.  If
+add_to_checksum is TRUE, the bytes will be factored into the SHA-2 256 checksum
+associated with the file.
+*/
+{
+  /* The write must be either performed without modifying the checksum
+     or the checksum must not yet have been calculated. */
+  check_assertion(!add_to_checksum || !this->checksum_computed);
+  size_t num_written = fwrite(bytes, num_bytes, /*num_to_write=*/1,
+                              this->output_file->f_module);
+
+  if (add_to_checksum) {
+    this->hash_state.update(bytes, num_bytes);
+  }  /* if */
+  if (num_written != 1) {
+    ifc_write_error();
+  }  /* if */
+}  /* an_ifc_output_stream::write_bytes */
+
+
+a_sha256_digest an_ifc_output_stream::finish_checksum()
+/*
+Compute and return the checksum of all bytes written to the file that
+should be considered part of the checksum.
+*/
+{
+#if CHECKING
+  /* The output stream can only be "finished" once. */
+  check_assertion(!this->checksum_computed);
+  this->checksum_computed = TRUE;
+#endif /* CHECKING */
+  return this->hash_state.compute_digest();
+}  /* an_ifc_output_stream::finish_checksum */
+
+}  /* namespace */
+
+static void write_ifc_magic_bytes(an_ifc_output_stream *output_stream)
 /*
 Write the series of magic bytes identifying the IFC file.
 */
 {
   /* If this assertion fails the front end is presumably trying to write a
      Microsoft compatible IFC file and that's not currently possible. */
-  check_assertion(file->module_kind == mk_edg_ifc);
+  check_assertion(output_stream->get_module_kind() == mk_edg_ifc);
   /* FIXME: If the file header ever changes size, we'll need to change this. */
-  (void)fwrite(edg_ifc_magic_numbers, sizeof(edg_ifc_magic_numbers),
-               /*num_to_write=*/1, file->f_module);
+  output_stream->write_bytes(edg_ifc_magic_numbers,
+                             sizeof(edg_ifc_magic_numbers),
+                             /*add_to_checksum=*/FALSE);
 }  /* write_ifc_magic_bytes */
 
 
@@ -618,18 +725,29 @@ associated module file and output metadata.
 }  /* get_toc_start */
 
 
-static void write_ifc_header(an_ifc_module_file           *file,
+template<typename an_ifc_Node_type>
+static a_byte const *node_as_bytes(const an_ifc_Node_type &node)
+/*
+Return the given node's storage as const byte pointer.
+*/
+{
+  return (a_byte const *)*(node.get_storage());
+}  /* node_as_bytes */
+
+
+static void write_ifc_header(an_ifc_output_stream         *output_stream,
                              an_ifc_text_offset_storage   source_file_name,
                              an_ifc_scope_offset          global_scope,
                              const an_ifc_output_metadata &metadata)
 /*
-Create and write out the IFC file header for the given IFC module file using
-the associated offset of the source file name into the string table, global
-scope offset, and metadata.
+Use the associated offset of the source file name into the string table, global
+scope offset, and metadata to form the IFC file header.  Write the created file
+header into the given output stream.
 */
 {
   /* Create an instance of an_ifc_file_header_storage on the stack and
      use it to set up, then write, the file header. */
+  an_ifc_module_file *file = output_stream->get_file();
   an_ifc_file_header file_header(file);
   an_ifc_version     ifc_major_version(file, file->version_major);
   an_ifc_version     ifc_minor_version(file, file->version_minor);
@@ -665,46 +783,58 @@ scope offset, and metadata.
                                          metadata.used_partitions.length());
   set_ifc_partition_count(&file_header, ifc_partition_count);
   /* Do the append. */
-  append_node_to_file(file_header);
+  using a_sha256_storage_type = typename an_ifc_sha256::storage_type;
+  using a_header_storage_type = typename an_ifc_file_header::storage_type;
+
+  /* Write the file header's SHA256 checksum as a placeholder. */
+  size_t sha256_len = get_ifc_buffer_size<a_sha256_storage_type>(file);
+  output_stream->write_bytes(node_as_bytes(file_header), sha256_len,
+                             /*add_to_checksum=*/FALSE);
+
+  /* Write the remaining file header contents (included in the checksum). */
+  size_t header_len = get_ifc_buffer_size<a_header_storage_type>(file);
+  output_stream->write_bytes(node_as_bytes(file_header) + sha256_len,
+                             header_len - sha256_len);
 }  /* write_ifc_header */
 
 
-static void write_ifc_partition(an_ifc_module_file            *file,
+static void write_ifc_partition(an_ifc_output_stream          *output_stream,
                                 const an_ifc_output_partition &partition)
 /*
-Append the contents of the given partition to the given module output file.
+Append the contents of the given partition to the given module output stream.
 */
 {
-  (void)fwrite(partition.get_bytes(), partition.get_num_bytes(),
-               /*num_to_write=*/1, file->f_module);
+  output_stream->write_bytes(partition.get_bytes(), partition.get_num_bytes());
 }  /* write_ifc_partition */
 
 
-static void write_string_table(an_ifc_module_file         *file,
+static void write_string_table(an_ifc_output_stream       *output_stream,
                                const an_ifc_output_buffer &string_table_bytes)
 /*
-Append the contents of the given string table to the given module output file.
+Append the contents of the given string table to the given module output
+stream.
 */
 {
-  (void)fwrite(string_table_bytes.begin(), string_table_bytes.length(),
-               /*num_to_write=*/1, file->f_module);
+  output_stream->write_bytes(string_table_bytes.begin(),
+                             string_table_bytes.length());
 }  /* write_string_table */
 
 
 static void write_table_of_contents_entry(
-                   an_ifc_module_file                     *file,
+                   an_ifc_output_stream                   *output_stream,
                    an_ifc_byte_offset_storage             start_of_partitions,
                    const an_ifc_output_partition          &partition,
                    const an_ifc_output_partition_metadata &partition_metadata)
 /*
 Write the table of contents entry for the given partition into the given module
-output file.
+output stream.
 
 The start of partitions value should be the byte offset from the start of the
 file to where the partition bytes have been written.  Partition metadata is the
 associated partition metadata for the partition.
 */
 {
+  an_ifc_module_file *file = output_stream->get_file();
   an_ifc_partition   toc_entry(file);
   an_ifc_text_offset ifc_name_offset(file, partition.part_name_offset);
 
@@ -728,8 +858,27 @@ associated partition metadata for the partition.
   an_ifc_entity_size         ifc_entity_size(file, entity_size);
   set_ifc_entry_size(&toc_entry, ifc_entity_size);
 
-  append_node_to_file(toc_entry);
+  using a_storage_type = typename an_ifc_partition::storage_type;
+  size_t storage_len = get_ifc_buffer_size<a_storage_type>(file);
+  output_stream->write_bytes(node_as_bytes(toc_entry), storage_len);
 }  /* write_table_of_contents_entry */
+
+
+static void write_ifc_checksum(an_ifc_output_stream *output_stream)
+/*
+Create and write out the IFC file header for the given IFC module file using
+the associated offset of the source file name into the string table, global
+scope offset, and metadata.
+*/
+{
+  an_ifc_module_file *file = output_stream->get_file();
+  a_sha256_digest    digest = output_stream->finish_checksum();
+
+  using a_sha256_type = typename an_ifc_sha256::storage_type;
+  size_t sha256_size = get_ifc_buffer_size<a_sha256_type>(file);
+  check_assertion(sha256_size == 32);
+  output_stream->write_bytes_at(/*file_pos=*/4, digest, sha256_size);
+}  /* write_ifc_checksum */
 
 
 static an_ifc_output_metadata make_output_metadata(
@@ -768,27 +917,29 @@ return the computed IFC output metadata.
 
 namespace {
 
-a_boolean an_ifc_output_state::write()
+void an_ifc_output_state::write()
 /*
 Write the IFC output state to the file associated with the output state's
 output file (i.e., an_ifc_output_state::output_file).
 */
 {
+  an_ifc_output_stream
+                output_stream(this->output_file);
   an_ifc_output_metadata
                 metadata = make_output_metadata(this->partitions,
                                                 this->string_table);
 
-  write_ifc_magic_bytes(this->output_file);
-  write_ifc_header(this->output_file, this->source_file_name_offset,
+  write_ifc_magic_bytes(&output_stream);
+  write_ifc_header(&output_stream, this->source_file_name_offset,
                    this->global_scope, metadata);
   for (const an_ifc_output_partition_metadata &part_metadata :
                                                    metadata.used_partitions) {
     an_ifc_output_partition
                 *partition = this->get_partition(part_metadata.kind);
 
-    write_ifc_partition(this->output_file, *partition);
+    write_ifc_partition(&output_stream, *partition);
   }  /* for */
-  write_string_table(this->output_file, this->string_table);
+  write_string_table(&output_stream, this->string_table);
 
   an_ifc_byte_offset_storage
                 start_of_partitions = get_partitions_start(this->output_file,
@@ -798,11 +949,10 @@ output file (i.e., an_ifc_output_state::output_file).
     an_ifc_output_partition
                 *partition = this->get_partition(part_metadata.kind);
 
-    write_table_of_contents_entry(this->output_file, start_of_partitions,
+    write_table_of_contents_entry(&output_stream, start_of_partitions,
                                   *partition, part_metadata);
   }  /* for */
-  /* FIXME: Assume all is fine for now. */
-  return TRUE;
+  write_ifc_checksum(&output_stream);
 }  /* an_ifc_output_state::write */
 
 
@@ -5483,9 +5633,7 @@ of the IFC format.
     dump_scope_recursively(&il_map, scope);
     complete_scope_info(&output_state, &il_map);
     output_state.sort_traits();
-    if (!output_state.write()) {
-      /* FIXME: Add error? */
-    }  /* if */
+    output_state.write();
   }  /* if */
 }  /* ifc_modules_write_out */
 
