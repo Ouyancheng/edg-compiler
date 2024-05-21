@@ -27,10 +27,12 @@ fixed.  For example, with --gnu_version=140100:
 C/C++-generating back ends: version numbers of target compilers;
 new __EDG_BFLOAT16_ENABLING_POSSIBLE predefined macro with --building_runtime
 
-The front end now accepts the command-line options --gnu_target_version and
---clang_target_version to specify the version of the gcc or clang compiler,
-respectively, for which the C/C++-generating back end produces code.  (The
---msvc_target_version command-line option was already supported.)
+The front end now accepts the command-line options --gen_c_clang_version,
+--gen_c_gnu_version, and --gen_c_msvc_version to specify the version of the
+clang, gnu, or MSVC compiler, respectively, for which the C/C++-generating
+back end produces code.  (The existing --msvc_target_version command-line
+option continues to be accepted for backward compatibility; its effect is
+identical to --gen_c_msvc_version.)
 
 In addition, when --building_runtime is specified, the front end now
 predefines the macro __EDG_BFLOAT16_ENABLING_POSSIBLE, controlling whether
