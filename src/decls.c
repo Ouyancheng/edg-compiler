@@ -11575,7 +11575,8 @@ definition of a member function of a class template.
     a_symbol_ptr  prototype_sym;
     dps->first_decl = TRUE;
     switch_to_file_scope_region(&region_to_switch_back_to);
-    tssp->variant.function.routine = rout_ptr = alloc_routine();
+    rout_ptr = alloc_routine();
+    tssp->variant.function.routine = rout_ptr;
 #if MICROSOFT_EXTENSIONS_ALLOWED
     tssp->is_generic = decl_state->is_generic;
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
@@ -11720,7 +11721,8 @@ definition of a member function of a class template.
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
 #if GNU_EXTENSIONS_ALLOWED && GNU_VISIBILITY_ATTRIBUTE_ALLOWED
   /* Update the ELF visibility if applicable. */
-  { an_ELF_visibility_kind  visibility = enum_cast<an_ELF_visibility_kind>(
+  if (rout_ptr->storage_class != sc_static) {
+    an_ELF_visibility_kind  visibility = enum_cast<an_ELF_visibility_kind>(
                                                     rout_ptr->ELF_visibility);
     update_for_default_ELF_visibility(&visibility, /*is_class_member=*/FALSE);
     rout_ptr->ELF_visibility = visibility;

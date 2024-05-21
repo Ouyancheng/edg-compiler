@@ -28989,7 +28989,8 @@ Create the variable entry variable template specified by template_sym.
   }  /* if */
 #if GNU_EXTENSIONS_ALLOWED && GNU_VISIBILITY_ATTRIBUTE_ALLOWED
   /* Update the ELF visibility if applicable. */
-  { an_ELF_visibility_kind  visibility = enum_cast<an_ELF_visibility_kind>(
+  if (var->storage_class != sc_static) {
+    an_ELF_visibility_kind  visibility = enum_cast<an_ELF_visibility_kind>(
                                                          var->ELF_visibility);
     update_for_default_ELF_visibility(&visibility, /*is_class_member=*/FALSE);
     var->ELF_visibility = visibility;
