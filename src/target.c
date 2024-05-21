@@ -754,7 +754,7 @@ to match the source dialect (including the version of the dialect).
   check_assertion_str(gcc_is_generated_code_target +
                       microsoft_dialect_is_generated_code_target +
                       sun_is_generated_code_target +
-                      clang_is_generated_code_target == 1,
+                      clang_is_generated_code_target <= 1,
                       "Conflicting target dialects set.");
 #endif /* CP_GEN_BE_TARGET_MATCHES_SOURCE_DIALECT */
 }  /* select_cp_gen_be_target_dialect */
