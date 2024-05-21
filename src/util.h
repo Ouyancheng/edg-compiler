@@ -5573,6 +5573,284 @@ has been set and overflow did not occur; otherwise, return FALSE.
 }  /* checked_multiplication */
 
 
+template<typename an_Integral_type>
+inline void append_as_big_endian(a_byte           *dest_array,
+                                 an_Integral_type value)
+/*
+Append the given value to the array position represented by dest_array using
+a big endian byte order.
+*/
+{
+  constexpr size_t num_bytes = sizeof(an_Integral_type);
+
+  if (host_little_endian) {
+    /* Swap the byte order into big endian. */
+    for (size_t i = 0; i < num_bytes; ++i) {
+      dest_array[i] = (value >> (((num_bytes - 1) - i) * 8)) & 0xff;
+    }  /* for */
+  } else {
+    /* Copy the bytes. */
+    memcpy(dest_array, &value, num_bytes);
+  }  /* if */
+}  /* append_as_big_endian */
+
+
+template<typename an_Integral_type>
+inline an_Integral_type bit_rotate_left(an_Integral_type value,
+                                        unsigned         num_bits)
+/*
+Perform the given number of left bit rotations on the given value returning the
+result.
+*/
+{
+  constexpr unsigned num_bits_total = sizeof(an_Integral_type) * 8;
+
+  return (value << num_bits) | (value >> (num_bits_total - num_bits));
+}  /* bit_rotate_left */
+
+
+template<typename an_Integral_type>
+inline an_Integral_type bit_rotate_right(an_Integral_type value,
+                                         unsigned         num_bits)
+/*
+Perform the given number of right bit rotations on the given value returning
+the result.
+*/
+{
+  constexpr unsigned num_bits_total = sizeof(an_Integral_type) * 8;
+
+  return (value >> num_bits) | (value << (num_bits_total - num_bits));
+}  /* bit_rotate_right */
+
+
+namespace detail {
+namespace sha256 {
+
+constexpr size_t
+                num_words_in_digest = 8;
+                        /* The number of 32-bit words in a SHA-2 256 bit
+                           digest. */
+constexpr size_t
+                num_bytes_in_digest = num_words_in_digest * 4;
+                        /* The number of 8-bit bytes in a SHA-2 256 bit
+                           digest. */
+constexpr size_t
+                chunk_size = 64;
+                        /* The number of bytes used by the SHA-2 256 bit
+                           algorithm to store a pending chunk (composing 512
+                           bits total). */
+constexpr uint32_t
+                constants[64] = {
+                              0x428a2f98, 0x71374491, 0xb5c0fbcf, 0xe9b5dba5,
+                              0x3956c25b, 0x59f111f1, 0x923f82a4, 0xab1c5ed5,
+                              0xd807aa98, 0x12835b01, 0x243185be, 0x550c7dc3,
+                              0x72be5d74, 0x80deb1fe, 0x9bdc06a7, 0xc19bf174,
+                              0xe49b69c1, 0xefbe4786, 0x0fc19dc6, 0x240ca1cc,
+                              0x2de92c6f, 0x4a7484aa, 0x5cb0a9dc, 0x76f988da,
+                              0x983e5152, 0xa831c66d, 0xb00327c8, 0xbf597fc7,
+                              0xc6e00bf3, 0xd5a79147, 0x06ca6351, 0x14292967,
+                              0x27b70a85, 0x2e1b2138, 0x4d2c6dfc, 0x53380d13,
+                              0x650a7354, 0x766a0abb, 0x81c2c92e, 0x92722c85,
+                              0xa2bfe8a1, 0xa81a664b, 0xc24b8b70, 0xc76c51a3,
+                              0xd192e819, 0xd6990624, 0xf40e3585, 0x106aa070,
+                              0x19a4c116, 0x1e376c08, 0x2748774c, 0x34b0bcb5,
+                              0x391c0cb3, 0x4ed8aa4a, 0x5b9cca4f, 0x682e6ff3,
+                              0x748f82ee, 0x78a5636f, 0x84c87814, 0x8cc70208,
+                              0x90befffa, 0xa4506ceb, 0xbef9a3f7, 0xc67178f2 };
+                        /* The round constants used by the SHA-2 algorithm's
+                           compression loop. */
+
+}  /* sha256 */
+}  /* detail */
+
+/*
+This structure is used to represent a SHA-2 256 bit digest.
+*/
+struct a_sha256_digest {
+  a_sha256_digest(a_byte *init_bytes)
+    { memcpy(this->bytes, init_bytes, detail::sha256::num_bytes_in_digest); }
+
+  a_byte operator[](size_t idx) const
+    { return this->bytes[idx]; }
+
+  operator a_byte const*() const
+    { return this->bytes; }
+private:
+  a_byte       bytes[detail::sha256::num_bytes_in_digest];
+                /* The bytes composing the digest. */
+};  /* a_sha256_digest */
+
+/*
+This structure is used to compute a SHA-2 256 bit digest for the given bytes.
+
+This implementation makes no guarantees about cryptographic security and has
+not been formally validated by the Cryptographic Module Validation Program.
+*/
+struct a_sha256_hash {
+  a_sha256_hash() = default;
+  inline void update(a_byte const *bytes, size_t num_bytes);
+  inline a_sha256_digest compute_digest();
+private:
+  inline void transform_chunk();
+  a_byte        chunk_bytes[detail::sha256::chunk_size] = {};
+                        /* The currently pending chunk bytes.  These bytes
+                           will be fed through SHA-2's compression loop in
+                           a_sha256_hash::transform_chunk. */
+  uint32_t      chunk_len = 0;
+                        /* The number of bytes in chunk_bytes currently. */
+  uint64_t      num_bits_of_data = 0;
+                        /* The total number of bits in the source data (i.e.,
+                           the total number of bits that have been given to
+                           a_sha256_hash::update).  This implementation does
+                           not currently allow sub-byte bit lengths to be added
+                           to the hash. */
+  uint32_t      state[detail::sha256::num_words_in_digest] =
+                            { 0x6a09e667, 0xbb67ae85, 0x3c6ef372, 0xa54ff53a,
+                              0x510e527f, 0x9b05688c, 0x1f83d9ab, 0x5be0cd19 };
+                        /* The current hash state.  This is initialized to the
+                           SHA-2 starting state and then updated by the
+                           compression loop in a_sha256_hash::transform_chunk.
+                           The state is then finalized by
+                           a_sha256_hash::compute_digest.  At which point, the
+                           values stored here are equivalent to the current
+                           SHA-2 256 bit digest value on big endian systems (on
+                           little endian systems the byte order of the "words",
+                           i.e., 32-bit integers, must first be swapped). */
+};  /* a_sha256_hash */
+
+
+void a_sha256_hash::update(a_byte const *bytes, size_t num_bytes)
+/*
+Append the given bytes (counted by num_bytes) to the hash state.
+*/
+{
+  for (size_t i = 0; i < num_bytes; ++i) {
+    this->chunk_bytes[this->chunk_len++] = bytes[i];
+    if (this->chunk_len == detail::sha256::chunk_size) {
+      this->transform_chunk();
+    }  /* if */
+  }  /* for */
+  this->num_bits_of_data += num_bytes * 8;
+}  /* a_sha256_hash::update */
+
+
+void a_sha256_hash::transform_chunk()
+/*
+Process the current complete chunk.
+*/
+{
+  /* The chunk should be complete before any call to transform_chunk. */
+  check_assertion(this->chunk_len == detail::sha256::chunk_size);
+  /* Initialize the message schedule with the chunk values. */
+  uint32_t msg_sch[detail::sha256::chunk_size] = {};
+
+  /* Change the chunk size into the number of 32-bit words that need copied. */
+  for (size_t i = 0; i < detail::sha256::chunk_size / 4; ++i) {
+    /* Convert every 4 bytes into a 32-bit word value in the message
+       schedule.  For the first byte, copy it directly.  For subsequent bytes,
+       move the existing bits over and then add the next byte. */
+    msg_sch[i] = this->chunk_bytes[i * 4] & 0xff;
+    for (size_t k = 1; k < 4; ++k) {
+      msg_sch[i] = (msg_sch[i] << 8) | (this->chunk_bytes[(i * 4) + k] & 0xff);
+    }  /* for */
+  }  /* for */
+  /* Extent the first 16 words (those that were just written) in the message
+     schedule into the remaining 48 words. */
+  for (size_t i = 16; i < 64; ++i) {
+    uint32_t &src_byte_a = msg_sch[i - 15];
+    uint32_t sig_bits_a = bit_rotate_right(src_byte_a, 7) ^
+                          bit_rotate_right(src_byte_a, 18) ^
+                          (src_byte_a >> 3);
+    uint32_t &src_byte_b = msg_sch[i - 2];
+    uint32_t sig_bits_b = bit_rotate_right(src_byte_b, 17) ^
+                          bit_rotate_right(src_byte_b, 19) ^
+                          (src_byte_b >> 10);
+
+    msg_sch[i] = msg_sch[i - 16] + sig_bits_a + msg_sch[i - 7] + sig_bits_b;
+  }  /* for */
+
+  uint32_t tmp_state[detail::sha256::num_words_in_digest];
+  /* Initialize the local hash state. */
+  for (size_t i = 0; i < detail::sha256::num_words_in_digest; ++i) {
+    tmp_state[i] = this->state[i];
+  }  /* for */
+  /* Perform the compression loop. */
+  for (size_t i = 0; i < 64; ++i) {
+    uint32_t s1 = bit_rotate_right(tmp_state[4], 6) ^
+                  bit_rotate_right(tmp_state[4], 11) ^
+                  bit_rotate_right(tmp_state[4], 25);
+    uint32_t ch = (tmp_state[4] & tmp_state[5]) ^
+                  (~tmp_state[4] & tmp_state[6]);
+    uint32_t tmp_1 = tmp_state[7] + s1 + ch + detail::sha256::constants[i] +
+                     msg_sch[i];
+    uint32_t s0 = bit_rotate_right(tmp_state[0], 2) ^
+                  bit_rotate_right(tmp_state[0], 13) ^
+                  bit_rotate_right(tmp_state[0], 22);
+    uint32_t maj = (tmp_state[0] & tmp_state[1]) ^
+                   (tmp_state[0] & tmp_state[2]) ^
+                   (tmp_state[1] & tmp_state[2]);
+    uint32_t tmp_2 = s0 + maj;
+
+    tmp_state[7] = tmp_state[6];
+    tmp_state[6] = tmp_state[5];
+    tmp_state[5] = tmp_state[4];
+    tmp_state[4] = tmp_state[3] + tmp_1;
+    tmp_state[3] = tmp_state[2];
+    tmp_state[2] = tmp_state[1];
+    tmp_state[1] = tmp_state[0];
+    tmp_state[0] = tmp_1 + tmp_2;
+  }  /* for */
+  /* Merge the local hash state with the overall hash state. */
+  for (size_t i = 0; i < detail::sha256::num_words_in_digest; ++i) {
+    this->state[i] += tmp_state[i];
+  }  /* for */
+  /* Reset the chunk length. */
+  this->chunk_len = 0;
+}  /* a_sha256_hash::transform_chunk */
+
+
+a_sha256_digest a_sha256_hash::compute_digest()
+/*
+Finalize the hash state and return the SHA-2 256 bit digest value.
+*/
+{
+  /* The length of the original message will be stored in a 64-bit integer. */
+  constexpr unsigned num_bytes_for_len = sizeof(uint64_t);
+
+  /* Append a single "1" bit by adding a byte with the binary representation
+     "10000000" (note the chunk is guaranteed to have remaining bytes at this
+     point, as otherwise the a_sha256_hash::update function would've triggered
+     a chunk transform). */
+  this->chunk_bytes[this->chunk_len++] = 0x80;
+  /* If there are not enough bytes left to store the length in the chunk, fill
+     the chunk and transform. */
+  if (detail::sha256::chunk_size - this->chunk_len < num_bytes_for_len) {
+    while (this->chunk_len < detail::sha256::chunk_size) {
+      this->chunk_bytes[this->chunk_len++] = 0x0;
+    }  /* while */
+    this->transform_chunk();
+  }  /* if */
+  /* Fill the chunk with padding zeros up while leaving space for the 64-bit
+     integer value representing the data length. */
+  while (this->chunk_len < detail::sha256::chunk_size - num_bytes_for_len) {
+    this->chunk_bytes[this->chunk_len++] = 0x0;
+  }  /* while */
+  /* Copy the length. */
+  append_as_big_endian(this->chunk_bytes + this->chunk_len,
+                       this->num_bits_of_data);
+  this->chunk_len += num_bytes_for_len;
+  /* Perform the final message transform. */
+  this->transform_chunk();
+
+  /* Form the digest (which is always big endian). */
+  a_byte digest[detail::sha256::num_bytes_in_digest];
+  for (size_t i = 0; i < detail::sha256::num_words_in_digest; ++i) {
+    append_as_big_endian(digest + (i * 4), this->state[i]);
+  }  /* for */
+  return a_sha256_digest(digest);
+}  /* a_sha256_hash::compute_digest */
+
+
 /* Conditionally close the "edg" namespace. */
 END_EDG_NAMESPACE
 
