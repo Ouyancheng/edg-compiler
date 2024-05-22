@@ -1,5 +1,25 @@
 Version 6.7
 
+5/22/24  [EDGcpfe/27274]
+C++-generating back end: form of non-type template arguments
+
+Previously the C++-generating back end put out most non-type template
+arguments using their value rather than the expression that was evaluated
+to obtain that value.  That has now been changed, and in general the
+expression put out by the C++-generating back end for a non-type template
+argument will be the one used in the first reference to the template
+instance.  (An exception to this behavior is in cases where the expression
+uses entities that are inaccessible or out of scope at the location of the
+reference: since putting out the expression would result in an error, the
+value will continue to be used.)  For example, with --c++11:
+
+  constexpr int x = 1, y = 2, z = 3;
+  template<int> struct S { };
+  S<x + y> a; // Previously generated as S<3>, now S<x + y>
+  S<z> b;     // Previously generated as S<3>, now S<x + x> (i.e., using
+              // the form of the argument for S<3> from its first reference)
+
+
 5/20/24  [EDGcpfe/27258]
 Instantiations of templates in namespace with ELF visibility attribute
 

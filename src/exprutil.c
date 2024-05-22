@@ -3487,7 +3487,6 @@ values.
   operand->is_dummy_lvalue = FALSE;
   operand->is_parenthesized = FALSE;
   operand->name_reference_set = FALSE;
-  operand->caused_template_instantiation = FALSE;
 #if MICROSOFT_EXTENSIONS_ALLOWED
   operand->allow_addr_of_managed_member = FALSE;
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
@@ -7231,8 +7230,6 @@ destroyed its source position, etc.  Restore such things from
   if (operand->is_operand_of_address_of) {
     operand->ampersand_position = orig_operand->ampersand_position;
   }  /* if */
-  operand->caused_template_instantiation =
-                                   orig_operand->caused_template_instantiation;
   operand->pack_expansion_descr = orig_operand->pack_expansion_descr;
 }  /* restore_operand_details */
 
