@@ -12910,15 +12910,21 @@ Return TRUE if the checksum value stored in the given IFC file header matches
 the current contents of the given IFC module file; otherwise, return FALSE.
 */
 {
+  a_boolean        result = TRUE;
   /* The initial 4 bytes for the magic numbers identifying the file type
      followed by the bytes that correspond to the expected checksum. */
-  constexpr size_t unhashed_bytes = 4 + 32;
-  a_boolean        result = TRUE;
+  constexpr size_t magic_bytes = 4;
+  constexpr size_t checksum_bytes = 32;
+  a_byte           expected_checksum[checksum_bytes];
+
+  init_byte_buffer(file, magic_bytes, checksum_bytes);
+  get_bytes_from_buffer(file, expected_checksum, checksum_bytes);
+
+  constexpr size_t unhashed_bytes = magic_bytes + checksum_bytes;
   a_sha256_hash    hash;
   an_ifc_module_file_read_state
                    &read_state = file->get_read_state();
   size_t           num_hashed_bytes = read_state.f_size - unhashed_bytes;
-
   init_byte_buffer(file, unhashed_bytes, num_hashed_bytes);
 #if USE_MMAP_FOR_MEMORY_REGIONS
   hash.update(read_state.byte_buffer, num_hashed_bytes);
@@ -12933,9 +12939,8 @@ the current contents of the given IFC module file; otherwise, return FALSE.
   }  /* for */
 #endif /* USE_MMAP_FOR_MEMORY_REGIONS */
   a_sha256_digest computed_checksum = hash.compute_digest();
-  an_ifc_sha256   expected_checksum = get_ifc_checksum(header);
   for (size_t i = 0; i < 32; ++i) {
-    if ((*expected_checksum.get_storage())[i] != computed_checksum[i]) {
+    if (expected_checksum[i] != computed_checksum[i]) {
       result = FALSE;
       break;
     }  /* if */
