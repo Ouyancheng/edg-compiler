@@ -8126,14 +8126,16 @@ entity.
                    attribute_display_name(ap));
     make_attr_unrecognized(ap);
   } else {
-    a_routine_ptr    rp;
-    a_variable_ptr   vp;
-    a_type_ptr       tp;
+    a_routine_ptr       rp;
+    a_variable_ptr      vp;
+    a_type_ptr          tp;
+    a_decl_parse_state  *dps = (a_decl_parse_state*)ap->assoc_info;
     switch (entity_kind) {
       case iek_routine:
         rp = (a_routine_ptr)entity;
         if (rp->ELF_visibility != (an_ELF_visibility_kind)evk_unspecified &&
-            rp->ELF_visibility != evk) {
+            rp->ELF_visibility != evk &&
+            !dps->is_explicit_instantiation) {
           pos_warning(ec_gnu_visibility_conflict, &ap->position);
           make_attr_unrecognized(ap);
         } else {
@@ -8143,7 +8145,8 @@ entity.
       case iek_variable:
         vp = (a_variable_ptr)entity;
         if (vp->ELF_visibility != (an_ELF_visibility_kind)evk_unspecified &&
-            vp->ELF_visibility != evk) {
+            vp->ELF_visibility != evk &&
+            !dps->is_explicit_instantiation) {
           pos_warning(ec_gnu_visibility_conflict, &ap->position);
           make_attr_unrecognized(ap);
         } else {
