@@ -5711,7 +5711,7 @@ private:
                            SHA-2 starting state and then updated by the
                            compression loop in a_sha256_hash::transform_chunk.
                            The state is then finalized by
-                           a_sha256_hash::compute_digest.  At which point, the
+                           a_sha256_hash::compute_digest.  At that point, the
                            values stored here are equivalent to the current
                            SHA-2 256 bit digest value on big endian systems (on
                            little endian systems the byte order of the "words",
@@ -5744,7 +5744,8 @@ Process the current complete chunk.
   /* Initialize the message schedule with the chunk values. */
   uint32_t msg_sch[detail::sha256::chunk_size] = {};
 
-  /* Change the chunk size into the number of 32-bit words that need copied. */
+  /* Change the chunk size into the number of 32-bit words that need to be
+     copied. */
   for (size_t i = 0; i < detail::sha256::chunk_size / 4; ++i) {
     /* Convert every 4 bytes into a 32-bit word value in the message
        schedule.  For the first byte, copy it directly.  For subsequent bytes,
@@ -5754,7 +5755,7 @@ Process the current complete chunk.
       msg_sch[i] = (msg_sch[i] << 8) | (this->chunk_bytes[(i * 4) + k] & 0xff);
     }  /* for */
   }  /* for */
-  /* Extent the first 16 words (those that were just written) in the message
+  /* Extend the first 16 words (those that were just written) in the message
      schedule into the remaining 48 words. */
   for (size_t i = 16; i < 64; ++i) {
     uint32_t &src_byte_a = msg_sch[i - 15];

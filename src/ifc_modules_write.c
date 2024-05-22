@@ -528,7 +528,7 @@ struct an_ifc_output_metadata {
 };  /* an_ifc_output_metadata */
 
 /*
-This structure is encapsulates the write operations into a particular IFC file
+This structure encapsulates the write operations into a particular IFC file
 along with the hashing of the contents as they're written out.
 */
 struct an_ifc_output_stream {
@@ -578,7 +578,7 @@ num_bytes bytes following the specified file position.
   /* If this assertion fails, this write operation would increase the size of
      the file.  write_bytes should be used for append operations. */
   check_assertion(file_pos + num_bytes < size_t_arg(orig_file_pos));
-  { /* Move to the cursor to the desired write position. */
+  { /* Move the cursor to the desired write position. */
     int seek_result = fseek(this->output_file->f_module, file_pos, SEEK_SET);
 
     if (seek_result != 0) {
@@ -728,7 +728,7 @@ associated module file and output metadata.
 template<typename an_ifc_Node_type>
 static a_byte const *node_as_bytes(const an_ifc_Node_type &node)
 /*
-Return the given node's storage as const byte pointer.
+Return the given node's storage as a const byte pointer.
 */
 {
   return (a_byte const *)*(node.get_storage());
@@ -786,7 +786,7 @@ header into the given output stream.
   using a_sha256_storage_type = typename an_ifc_sha256::storage_type;
   using a_header_storage_type = typename an_ifc_file_header::storage_type;
 
-  /* Write the file header's SHA256 checksum as a placeholder. */
+  /* Write the file header's SHA-2 256 bit checksum as a placeholder. */
   size_t sha256_len = get_ifc_buffer_size<a_sha256_storage_type>(file);
   output_stream->write_bytes(node_as_bytes(file_header), sha256_len,
                              /*add_to_checksum=*/FALSE);

@@ -12911,7 +12911,7 @@ the current contents of the given IFC module file; otherwise, return FALSE.
 */
 {
   a_boolean        result = TRUE;
-  /* The initial 4 bytes for the magic numbers identifying the file type
+  /* The initial 4 bytes for the magic numbers identifying the file type are
      followed by the bytes that correspond to the expected checksum. */
   constexpr size_t magic_bytes = 4;
   constexpr size_t checksum_bytes = 32;
