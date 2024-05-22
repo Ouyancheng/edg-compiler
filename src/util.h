@@ -5831,7 +5831,7 @@ Finalize the hash state and return the SHA-2 256 bit digest value.
     }  /* while */
     this->transform_chunk();
   }  /* if */
-  /* Fill the chunk with padding zeros up while leaving space for the 64-bit
+  /* Fill the chunk with padding zeros while leaving space for the 64-bit
      integer value representing the data length. */
   while (this->chunk_len < detail::sha256::chunk_size - num_bytes_for_len) {
     this->chunk_bytes[this->chunk_len++] = 0x0;
