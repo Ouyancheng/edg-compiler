@@ -7231,9 +7231,11 @@ cases).
   if (func_info_ptr->is_inline) {
     set_inline_flag(rout_ptr, TRUE);
     if (!extern_inline_allowed) {
-      rout_ptr->storage_class = (a_storage_class)sc_static;
-      rout_ptr->source_corresp.name_linkage =
-                                  (a_name_linkage_kind)nlk_internal;
+      rout_ptr->storage_class = sc_static;
+      rout_ptr->source_corresp.name_linkage = nlk_internal;
+#if GNU_EXTENSIONS_ALLOWED && GNU_VISIBILITY_ATTRIBUTE_ALLOWED
+      rout_ptr->ELF_visibility = evk_unspecified;
+#endif /* GNU_EXTENSIONS_ALLOWED && GNU_VISIBILITY_ATTRIBUTE_ALLOWED */
     }  /* if */
 #if IA64_ABI
     if (func_info_ptr->is_inline) {
@@ -7271,14 +7273,15 @@ cases).
   /* Set the linkage and storage class. */
   if (instantiation_mode == tim_local) {
     /* Put out template function as internally linked. */
-    rout_ptr->storage_class = (a_storage_class)sc_static;
-    rout_ptr->source_corresp.name_linkage =
-                                (a_name_linkage_kind)nlk_internal;
-  } else if (rout_ptr->storage_class != (a_storage_class)sc_static) {
+    rout_ptr->storage_class = sc_static;
+    rout_ptr->source_corresp.name_linkage = nlk_internal;
+#if GNU_EXTENSIONS_ALLOWED && GNU_VISIBILITY_ATTRIBUTE_ALLOWED
+    rout_ptr->ELF_visibility = evk_unspecified;
+#endif /* GNU_EXTENSIONS_ALLOWED && GNU_VISIBILITY_ATTRIBUTE_ALLOWED */
+  } else if (rout_ptr->storage_class != sc_static) {
     /* Set the linkage for the definition of an externally linked routine. */
-    rout_ptr->storage_class = (a_storage_class)sc_unspecified;
-    rout_ptr->source_corresp.name_linkage =
-                                (a_name_linkage_kind)nlk_cplusplus_external;
+    rout_ptr->storage_class = sc_unspecified;
+    rout_ptr->source_corresp.name_linkage = nlk_cplusplus_external;
   }  /* if */
   if (proto_rout_ptr->source_corresp.attributes != NULL &&
       !routine_includes_definition_attribute(rout_ptr) &&
@@ -7559,8 +7562,11 @@ expression context) rather than a declaration.
   ++(tssp_of_prototype->pending_instantiations);
   if (instantiation_mode == tim_local) {
     /* In -tlocal mode, put out the variable with internal linkage. */
-    var_ptr->storage_class = (a_storage_class)sc_static;
-    var_ptr->source_corresp.name_linkage = (a_name_linkage_kind)nlk_internal;
+    var_ptr->storage_class = sc_static;
+    var_ptr->source_corresp.name_linkage = nlk_internal;
+#if GNU_EXTENSIONS_ALLOWED && GNU_VISIBILITY_ATTRIBUTE_ALLOWED
+    var_ptr->ELF_visibility = evk_unspecified;
+#endif /* GNU_EXTENSIONS_ALLOWED && GNU_VISIBILITY_ATTRIBUTE_ALLOWED */
   }  /* if */
   /* Push a template instantiation scope.  The real values of the template
      arguments will be associated with the template parameter names. */
@@ -7643,6 +7649,9 @@ expression context) rather than a declaration.
         template_arg_list_has_internal_linkage(templ_arg_list)))) {
     var_ptr->storage_class = sc_static;
     var_ptr->source_corresp.name_linkage = nlk_internal;
+#if GNU_EXTENSIONS_ALLOWED && GNU_VISIBILITY_ATTRIBUTE_ALLOWED
+    var_ptr->ELF_visibility = evk_unspecified;
+#endif /* GNU_EXTENSIONS_ALLOWED && GNU_VISIBILITY_ATTRIBUTE_ALLOWED */
   }  /* if */
   /* Reactivate any pragmas that should be bound to the generated
      instance. */
@@ -19994,6 +20003,9 @@ mode in-class specialization.
         template_arg_list_has_internal_linkage(templ_arg_list)) {
       rp->source_corresp.name_linkage = (a_name_linkage_kind)nlk_internal;
       rp->storage_class = (a_storage_class)sc_static;
+#if GNU_EXTENSIONS_ALLOWED && GNU_VISIBILITY_ATTRIBUTE_ALLOWED
+      rp->ELF_visibility = evk_unspecified;
+#endif /* GNU_EXTENSIONS_ALLOWED && GNU_VISIBILITY_ATTRIBUTE_ALLOWED */
     }  /* if */
     rp->source_corresp.access = templ_rout->source_corresp.access;
     rp->template_arg_list = templ_arg_list;
@@ -20800,11 +20812,14 @@ is the template entry for the template being declared.
          based on the template. */
       a_routine_ptr  rp = rout_sym->variant.routine.ptr;
       a_routine_ptr  templ_rp = tssp->variant.function.routine;
-      if (templ_rp->storage_class == (a_storage_class)sc_static) {
-        if (rp->storage_class != (a_storage_class)sc_static) {
+      if (templ_rp->storage_class == sc_static) {
+        if (rp->storage_class != sc_static) {
           sym_warning(ec_template_and_instance_linkage_conflict, rout_sym);
-          rp->storage_class = (a_storage_class)sc_static;
-          rp->source_corresp.name_linkage = (a_name_linkage_kind)nlk_internal;
+          rp->storage_class = sc_static;
+          rp->source_corresp.name_linkage = nlk_internal;
+#if GNU_EXTENSIONS_ALLOWED && GNU_VISIBILITY_ATTRIBUTE_ALLOWED
+          rp->ELF_visibility = evk_unspecified;
+#endif /* GNU_EXTENSIONS_ALLOWED && GNU_VISIBILITY_ATTRIBUTE_ALLOWED */
         }  /* if */
       } else if (rp->storage_class == (a_storage_class)sc_static) {
         sym_warning(ec_template_and_instance_linkage_conflict, rout_sym);
@@ -33586,9 +33601,11 @@ that follows.
             /* Core issue 2387 clarified that only non-template variables of
                const-qualified type are given internal linkage.  However, GCC
                does not implement that resolution. */
-            vp->storage_class = (a_storage_class)sc_static;
-            vp->source_corresp.name_linkage =
-                                             (a_name_linkage_kind)nlk_internal;
+            vp->storage_class = sc_static;
+            vp->source_corresp.name_linkage = nlk_internal;
+#if GNU_EXTENSIONS_ALLOWED && GNU_VISIBILITY_ATTRIBUTE_ALLOWED
+            vp->ELF_visibility = evk_unspecified;
+#endif /* GNU_EXTENSIONS_ALLOWED && GNU_VISIBILITY_ATTRIBUTE_ALLOWED */
           } else if (vp->storage_class != (a_storage_class)sc_static) {
             vp->storage_class = (a_storage_class)sc_unspecified;
           }  /* if */
