@@ -282,8 +282,7 @@ associated memory managed.
 struct an_ifc_module_file {
   an_ifc_module_file(a_module_kind mk, a_boolean for_read_val = TRUE);
   an_ifc_module_file(an_ifc_module_file &&old);
-  ~an_ifc_module_file()
-    { this->close(); }
+  ~an_ifc_module_file();
 
   an_ifc_module_file &operator=(an_ifc_module_file &&old);
 

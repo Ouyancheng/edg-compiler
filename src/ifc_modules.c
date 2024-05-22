@@ -1192,9 +1192,9 @@ constructed for a write operation.
   : module_kind(mk), for_read(for_read_val)
 {
   if (this->for_read) {
-    this->read_state = {};
+    new (&this->read_state) an_ifc_module_file_read_state();
   } else {
-    this->write_state = {};
+    new (&this->write_state) an_ifc_module_file_write_state();
   }  /* if */
 }  /* an_ifc_module_file::an_ifc_module_file */
 
@@ -1221,6 +1221,20 @@ Move construct from the given IFC module file.
     swap_at(&old.write_state, &this->write_state);
   }  /* if */
 }  /* an_ifc_module_file::an_ifc_module_file */
+
+
+an_ifc_module_file::~an_ifc_module_file()
+/*
+Destroy the IFC module file.
+*/
+{
+  this->close();
+  if (this->for_read) {
+    this->read_state.~an_ifc_module_file_read_state();
+  } else {
+    this->write_state.~an_ifc_module_file_write_state();
+  }  /* if */
+}  /* an_ifc_module_file::~an_ifc_module_file */
 
 
 an_ifc_module_file &an_ifc_module_file::operator=(an_ifc_module_file &&old)
