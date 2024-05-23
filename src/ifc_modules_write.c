@@ -1300,8 +1300,12 @@ private:
   an_ifc_edg_constant_index enter_constant(a_constant_ptr cp);
 
   /* Functions for adding tokens and manipulating token caches. */
-  void enter_basic_token_to_cache(an_ifc_output_token_cache *ifc_cache,
-                                  a_cached_token            *token);
+  an_ifc_edg_complex_token_index find_or_enter_textual_token(
+                                                  const a_cached_token *token);
+  an_ifc_edg_complex_token_index enter_textual_token(
+                                                  const a_cached_token *token);
+  void enter_textual_token_to_cache(an_ifc_output_token_cache *ifc_cache,
+                                    a_cached_token            *token);
   an_ifc_edg_complex_token_index enter_constant_token(
                                   an_ifc_edg_constant_token_sort token_kind,
                                   an_ifc_edg_constant_index      constant_idx);
@@ -1346,6 +1350,11 @@ private:
                            in the string table.  This is used to deduplicate
                            strings as they're added to the IFC reducing the
                            overall file size. */
+  Ptr_map<a_token_kind, size_t, General_allocator>
+                textual_token_map = {/*mask_width=*/10};
+                        /* A map of token kinds to their offset in the textual
+                           token partition (plus one to differentiate from the
+                           null case). */
   Ptr_map<a_source_file_ptr, an_ifc_name_index, General_allocator>
                 src_file_map = {/*mask_width=*/10};
                         /* A map of IL source files to IFC source file
@@ -3285,23 +3294,6 @@ return the corresponding EDG IFC BasicToken sort value.
   an_ifc_edg_basic_token_sort result;
 
   switch (token) {
-#if MICROSOFT_EXTENSIONS_ALLOWED
-    case tok_abstract:
-      result = ifc_ebts_abstract;
-      break;
-#endif /* MICROSOFT_EXTENSIONS_ALLOWED */
-    case tok_accum:
-      result = ifc_ebts_accum;
-      break;
-    case tok_add_lvalue_reference:
-      result = ifc_ebts_add_lvalue_reference;
-      break;
-    case tok_add_pointer:
-      result = ifc_ebts_add_pointer;
-      break;
-    case tok_add_rvalue_reference:
-      result = ifc_ebts_add_rvalue_reference;
-      break;
     case tok_alignas:
       result = ifc_ebts_alignas;
       break;
@@ -3317,12 +3309,6 @@ return the corresponding EDG IFC BasicToken sort value.
     case tok_and_assign:
       result = ifc_ebts_and_assign;
       break;
-    case tok_array_extent:
-      result = ifc_ebts_array_extent;
-      break;
-    case tok_array_rank:
-      result = ifc_ebts_array_rank;
-      break;
     case tok_arrow:
       result = ifc_ebts_arrow;
       break;
@@ -3335,75 +3321,15 @@ return the corresponding EDG IFC BasicToken sort value.
     case tok_assign:
       result = ifc_ebts_assign;
       break;
-#if MICROSOFT_EXTENSIONS_ALLOWED
-    case tok_assume:
-      result = ifc_ebts_assume;
-      break;
-#endif /* MICROSOFT_EXTENSIONS_ALLOWED */
-    case tok_attribute:
-      result = ifc_ebts_attribute;
-      break;
     case tok_auto:
       result = ifc_ebts_auto;
       break;
-    case tok_auto_type:
-      result = ifc_ebts_auto_type;
-      break;
-#if MICROSOFT_EXTENSIONS_ALLOWED
-    case tok_based:
-      result = ifc_ebts_based;
-      break;
-#endif /* MICROSOFT_EXTENSIONS_ALLOWED */
-#if GNU_EXTENSIONS_ALLOWED
-    case tok_bases:
-      result = ifc_ebts_bases;
-      break;
-#endif /* GNU_EXTENSIONS_ALLOWED */
     case tok_bool:
       result = ifc_ebts_bool;
       break;
     case tok_break:
       result = ifc_ebts_break;
       break;
-    case tok_builtin_addressof:
-      result = ifc_ebts_builtin_addressof;
-      break;
-    case tok_builtin_bit_cast:
-      result = ifc_ebts_builtin_bit_cast;
-      break;
-    case tok_builtin_complex:
-      result = ifc_ebts_builtin_complex;
-      break;
-#if GNU_VECTOR_TYPES_ALLOWED
-    case tok_builtin_convertvector:
-      result = ifc_ebts_builtin_convertvector;
-      break;
-#endif /* GNU_VECTOR_TYPES_ALLOWED */
-    case tok_builtin_has_attribute:
-      result = ifc_ebts_builtin_has_attribute;
-      break;
-    case tok_builtin_is_corresponding_member:
-      result = ifc_ebts_builtin_is_corresponding_member;
-      break;
-    case tok_builtin_is_pointer_interconvertible_with_class:
-      result = ifc_ebts_builtin_is_pointer_interconvertible_with_class;
-      break;
-    case tok_builtin_offsetof:
-      result = ifc_ebts_builtin_offsetof;
-      break;
-#if GNU_VECTOR_TYPES_ALLOWED
-    case tok_builtin_shuffle:
-      result = ifc_ebts_builtin_shuffle;
-      break;
-    case tok_builtin_shufflevector:
-      result = ifc_ebts_builtin_shufflevector;
-      break;
-#endif /* GNU_VECTOR_TYPES_ALLOWED */
-#if GNU_EXTENSIONS_ALLOWED
-    case tok_builtin_types_compatible:
-      result = ifc_ebts_builtin_types_compatible;
-      break;
-#endif /* GNU_EXTENSIONS_ALLOWED */
     case tok_c11_atomic:
       result = ifc_ebts_c11_atomic;
       break;
@@ -3434,11 +3360,6 @@ return the corresponding EDG IFC BasicToken sort value.
     case tok_catch:
       result = ifc_ebts_catch;
       break;
-#if MICROSOFT_EXTENSIONS_ALLOWED
-    case tok_cdecl:
-      result = ifc_ebts_cdecl;
-      break;
-#endif /* MICROSOFT_EXTENSIONS_ALLOWED */
     case tok_char:
       result = ifc_ebts_char;
       break;
@@ -3451,22 +3372,9 @@ return the corresponding EDG IFC BasicToken sort value.
     case tok_char8_t:
       result = ifc_ebts_char8_t;
       break;
-#if MICROSOFT_EXTENSIONS_ALLOWED
-    case tok_charize:
-      result = ifc_ebts_charize;
-      break;
-#endif /* MICROSOFT_EXTENSIONS_ALLOWED */
-    case tok_clang_version:
-      result = ifc_ebts_clang_version;
-      break;
     case tok_class:
       result = ifc_ebts_class;
       break;
-#if MICROSOFT_EXTENSIONS_ALLOWED
-    case tok_clrcall:
-      result = ifc_ebts_clrcall;
-      break;
-#endif /* MICROSOFT_EXTENSIONS_ALLOWED */
     case tok_colon:
       result = ifc_ebts_colon;
       break;
@@ -3512,14 +3420,8 @@ return the corresponding EDG IFC BasicToken sort value.
     case tok_cpp98_export:
       result = ifc_ebts_cpp98_export;
       break;
-    case tok_decay:
-      result = ifc_ebts_decay;
-      break;
     case tok_decltype:
       result = ifc_ebts_decltype;
-      break;
-    case tok_decorated_function_name:
-      result = ifc_ebts_decorated_function_name;
       break;
     case tok_default:
       result = ifc_ebts_default;
@@ -3527,11 +3429,6 @@ return the corresponding EDG IFC BasicToken sort value.
     case tok_delete:
       result = ifc_ebts_delete;
       break;
-#if GNU_EXTENSIONS_ALLOWED
-    case tok_direct_bases:
-      result = ifc_ebts_direct_bases;
-      break;
-#endif /* GNU_EXTENSIONS_ALLOWED */
     case tok_divide:
       result = ifc_ebts_divide;
       break;
@@ -3547,66 +3444,18 @@ return the corresponding EDG IFC BasicToken sort value.
     case tok_dynamic_cast:
       result = ifc_ebts_dynamic_cast;
       break;
-    case tok_edg_bool_type:
-      result = ifc_ebts_edg_bool_type;
-      break;
-    case tok_edg_internal_opnd:
-      result = ifc_ebts_edg_internal_opnd;
-      break;
-    case tok_edg_internal_type:
-      result = ifc_ebts_edg_internal_type;
-      break;
-    case tok_edg_is_deducible:
-      result = ifc_ebts_edg_is_deducible;
-      break;
-    case tok_edg_ptrdiff_type:
-      result = ifc_ebts_edg_ptrdiff_type;
-      break;
-    case tok_edg_size_type:
-      result = ifc_ebts_edg_size_type;
-      break;
-    case tok_edg_throw:
-      result = ifc_ebts_edg_throw;
-      break;
-    case tok_edg_vector_type:
-      result = ifc_ebts_edg_vector_type;
-      break;
-    case tok_edg_wchar_type:
-      result = ifc_ebts_edg_wchar_type;
-      break;
     case tok_ellipsis:
       result = ifc_ebts_ellipsis;
       break;
     case tok_else:
       result = ifc_ebts_else;
       break;
-#if MICROSOFT_EXTENSIONS_ALLOWED
-    case tok_end_of_if_exists:
-      result = ifc_ebts_end_of_if_exists;
-      break;
-#endif /* MICROSOFT_EXTENSIONS_ALLOWED */
     case tok_enum:
       result = ifc_ebts_enum;
       break;
-#if MICROSOFT_EXTENSIONS_ALLOWED
-    case tok_enum_class:
-      result = ifc_ebts_enum_class;
-      break;
-    case tok_enum_struct:
-      result = ifc_ebts_enum_struct;
-      break;
-#endif /* MICROSOFT_EXTENSIONS_ALLOWED */
     case tok_eq:
       result = ifc_ebts_eq;
       break;
-#if MICROSOFT_EXTENSIONS_ALLOWED
-    case tok_event:
-      result = ifc_ebts_event;
-      break;
-    case tok_except:
-      result = ifc_ebts_except;
-      break;
-#endif /* MICROSOFT_EXTENSIONS_ALLOWED */
     case tok_excl_or:
       result = ifc_ebts_excl_or;
       break;
@@ -3622,36 +3471,15 @@ return the corresponding EDG IFC BasicToken sort value.
     case tok_export_keyword:
       result = ifc_ebts_export_keyword;
       break;
-    case tok_ext_alignof:
-      result = ifc_ebts_ext_alignof;
-      break;
-    case tok_extension:
-      result = ifc_ebts_extension;
-      break;
     case tok_extern:
       result = ifc_ebts_extern;
       break;
     case tok_false:
       result = ifc_ebts_false;
       break;
-#if NEAR_AND_FAR_ALLOWED
-    case tok_far:
-      result = ifc_ebts_far;
-      break;
-#endif /* NEAR_AND_FAR_ALLOWED */
-#if MICROSOFT_EXTENSIONS_ALLOWED
-    case tok_fastcall:
-      result = ifc_ebts_fastcall;
-      break;
-#endif /* MICROSOFT_EXTENSIONS_ALLOWED */
     case tok_final:
       result = ifc_ebts_final;
       break;
-#if MICROSOFT_EXTENSIONS_ALLOWED
-    case tok_finally:
-      result = ifc_ebts_finally;
-      break;
-#endif /* MICROSOFT_EXTENSIONS_ALLOWED */
     case tok_float:
       result = ifc_ebts_float;
       break;
@@ -3673,57 +3501,11 @@ return the corresponding EDG IFC BasicToken sort value.
     case tok_for:
       result = ifc_ebts_for;
       break;
-#if MICROSOFT_EXTENSIONS_ALLOWED
-    case tok_for_each:
-      result = ifc_ebts_for_each;
-      break;
-    case tok_forceinline:
-      result = ifc_ebts_forceinline;
-      break;
-#endif /* MICROSOFT_EXTENSIONS_ALLOWED */
-    case tok_fract:
-      result = ifc_ebts_fract;
-      break;
     case tok_friend:
       result = ifc_ebts_friend;
       break;
-    case tok_func_name:
-      result = ifc_ebts_func_name;
-      break;
-    case tok_function_name:
-      result = ifc_ebts_function_name;
-      break;
-#if MICROSOFT_EXTENSIONS_ALLOWED
-    case tok_gcnew:
-      result = ifc_ebts_gcnew;
-      break;
-#endif /* MICROSOFT_EXTENSIONS_ALLOWED */
     case tok_ge:
       result = ifc_ebts_ge;
-      break;
-#if SUN_EXTENSIONS_ALLOWED
-    case tok_global_link_scope:
-      result = ifc_ebts_global_link_scope;
-      break;
-#endif /* SUN_EXTENSIONS_ALLOWED */
-#if GNU_EXTENSIONS_ALLOWED
-    case tok_gnu_imag:
-      result = ifc_ebts_gnu_imag;
-      break;
-#endif /* GNU_EXTENSIONS_ALLOWED */
-    case tok_gnu_max:
-      result = ifc_ebts_gnu_max;
-      break;
-    case tok_gnu_min:
-      result = ifc_ebts_gnu_min;
-      break;
-#if GNU_EXTENSIONS_ALLOWED
-    case tok_gnu_real:
-      result = ifc_ebts_gnu_real;
-      break;
-#endif /* GNU_EXTENSIONS_ALLOWED */
-    case tok_gnu_restrict:
-      result = ifc_ebts_gnu_restrict;
       break;
     case tok_goto:
       result = ifc_ebts_goto;
@@ -3731,88 +3513,12 @@ return the corresponding EDG IFC BasicToken sort value.
     case tok_gt:
       result = ifc_ebts_gt;
       break;
-    case tok_has_assign:
-      result = ifc_ebts_has_assign;
-      break;
-    case tok_has_copy:
-      result = ifc_ebts_has_copy;
-      break;
-#if MICROSOFT_EXTENSIONS_ALLOWED
-    case tok_has_finalizer:
-      result = ifc_ebts_has_finalizer;
-      break;
-#endif /* MICROSOFT_EXTENSIONS_ALLOWED */
-    case tok_has_nothrow_assign:
-      result = ifc_ebts_has_nothrow_assign;
-      break;
-    case tok_has_nothrow_constructor:
-      result = ifc_ebts_has_nothrow_constructor;
-      break;
-    case tok_has_nothrow_copy:
-      result = ifc_ebts_has_nothrow_copy;
-      break;
-    case tok_has_nothrow_move_assign:
-      result = ifc_ebts_has_nothrow_move_assign;
-      break;
-    case tok_has_trivial_assign:
-      result = ifc_ebts_has_trivial_assign;
-      break;
-    case tok_has_trivial_constructor:
-      result = ifc_ebts_has_trivial_constructor;
-      break;
-    case tok_has_trivial_copy:
-      result = ifc_ebts_has_trivial_copy;
-      break;
-    case tok_has_trivial_destructor:
-      result = ifc_ebts_has_trivial_destructor;
-      break;
-    case tok_has_trivial_move_assign:
-      result = ifc_ebts_has_trivial_move_assign;
-      break;
-    case tok_has_trivial_move_constructor:
-      result = ifc_ebts_has_trivial_move_constructor;
-      break;
-    case tok_has_unique_object_representations:
-      result = ifc_ebts_has_unique_object_representations;
-      break;
-    case tok_has_user_destructor:
-      result = ifc_ebts_has_user_destructor;
-      break;
-    case tok_has_virtual_destructor:
-      result = ifc_ebts_has_virtual_destructor;
-      break;
-#if SUN_EXTENSIONS_ALLOWED
-    case tok_hidden_link_scope:
-      result = ifc_ebts_hidden_link_scope;
-      break;
-#endif /* SUN_EXTENSIONS_ALLOWED */
     case tok_if:
       result = ifc_ebts_if;
       break;
-#if MICROSOFT_EXTENSIONS_ALLOWED
-    case tok_if_exists:
-      result = ifc_ebts_if_exists;
-      break;
-    case tok_if_not_exists:
-      result = ifc_ebts_if_not_exists;
-      break;
-#endif /* MICROSOFT_EXTENSIONS_ALLOWED */
-    case tok_imaginary_unit:
-      result = ifc_ebts_imaginary_unit;
-      break;
-#if MICROSOFT_EXTENSIONS_ALLOWED
-    case tok_implements:
-      result = ifc_ebts_implements;
-      break;
-#endif /* MICROSOFT_EXTENSIONS_ALLOWED */
     case tok_import:
       result = ifc_ebts_import;
       break;
-#if MICROSOFT_EXTENSIONS_ALLOWED
-    case tok_in:
-      result = ifc_ebts_in;
-      break;
-#endif /* MICROSOFT_EXTENSIONS_ALLOWED */
     case tok_infinity:
       result = ifc_ebts_infinity;
       break;
@@ -3822,273 +3528,6 @@ return the corresponding EDG IFC BasicToken sort value.
     case tok_int:
       result = ifc_ebts_int;
       break;
-#if INT128_EXTENSIONS_ALLOWED
-    case tok_int128:
-      result = ifc_ebts_int128;
-      break;
-#endif /* INT128_EXTENSIONS_ALLOWED */
-#if MICROSOFT_EXTENSIONS_ALLOWED
-    case tok_int16:
-      result = ifc_ebts_int16;
-      break;
-    case tok_int32:
-      result = ifc_ebts_int32;
-      break;
-    case tok_int64:
-      result = ifc_ebts_int64;
-      break;
-    case tok_int8:
-      result = ifc_ebts_int8;
-      break;
-#endif /* MICROSOFT_EXTENSIONS_ALLOWED */
-    case tok_intaddr:
-      result = ifc_ebts_intaddr;
-      break;
-    case tok_integer_pack:
-      result = ifc_ebts_integer_pack;
-      break;
-#if MICROSOFT_EXTENSIONS_ALLOWED
-    case tok_interface:
-      result = ifc_ebts_interface;
-      break;
-    case tok_interface_class:
-      result = ifc_ebts_interface_class;
-      break;
-    case tok_interface_struct:
-      result = ifc_ebts_interface_struct;
-      break;
-#endif /* MICROSOFT_EXTENSIONS_ALLOWED */
-    case tok_internal_alias_decl:
-      result = ifc_ebts_internal_alias_decl;
-      break;
-    case tok_is_abstract:
-      result = ifc_ebts_is_abstract;
-      break;
-    case tok_is_aggregate:
-      result = ifc_ebts_is_aggregate;
-      break;
-    case tok_is_arithmetic:
-      result = ifc_ebts_is_arithmetic;
-      break;
-    case tok_is_array:
-      result = ifc_ebts_is_array;
-      break;
-    case tok_is_assignable:
-      result = ifc_ebts_is_assignable;
-      break;
-#if MICROSOFT_EXTENSIONS_ALLOWED
-    case tok_is_assignable_no_precondition_check:
-      result = ifc_ebts_is_assignable_no_precondition_check;
-      break;
-#endif /* MICROSOFT_EXTENSIONS_ALLOWED */
-    case tok_is_base_of:
-      result = ifc_ebts_is_base_of;
-      break;
-    case tok_is_bounded_array:
-      result = ifc_ebts_is_bounded_array;
-      break;
-    case tok_is_class:
-      result = ifc_ebts_is_class;
-      break;
-    case tok_is_complete_type:
-      result = ifc_ebts_is_complete_type;
-      break;
-    case tok_is_compound:
-      result = ifc_ebts_is_compound;
-      break;
-    case tok_is_const:
-      result = ifc_ebts_is_const;
-      break;
-    case tok_is_constructible:
-      result = ifc_ebts_is_constructible;
-      break;
-    case tok_is_convertible:
-      result = ifc_ebts_is_convertible;
-      break;
-    case tok_is_convertible_to:
-      result = ifc_ebts_is_convertible_to;
-      break;
-    case tok_is_corresponding_member:
-      result = ifc_ebts_is_corresponding_member;
-      break;
-#if MICROSOFT_EXTENSIONS_ALLOWED
-    case tok_is_delegate:
-      result = ifc_ebts_is_delegate;
-      break;
-#endif /* MICROSOFT_EXTENSIONS_ALLOWED */
-    case tok_is_destructible:
-      result = ifc_ebts_is_destructible;
-      break;
-    case tok_is_empty:
-      result = ifc_ebts_is_empty;
-      break;
-    case tok_is_enum:
-      result = ifc_ebts_is_enum;
-      break;
-    case tok_is_final:
-      result = ifc_ebts_is_final;
-      break;
-    case tok_is_floating_point:
-      result = ifc_ebts_is_floating_point;
-      break;
-    case tok_is_function:
-      result = ifc_ebts_is_function;
-      break;
-    case tok_is_fundamental:
-      result = ifc_ebts_is_fundamental;
-      break;
-    case tok_is_integral:
-      result = ifc_ebts_is_integral;
-      break;
-#if MICROSOFT_EXTENSIONS_ALLOWED
-    case tok_is_interface_class:
-      result = ifc_ebts_is_interface_class;
-      break;
-#endif /* MICROSOFT_EXTENSIONS_ALLOWED */
-    case tok_is_layout_compatible:
-      result = ifc_ebts_is_layout_compatible;
-      break;
-    case tok_is_literal_type:
-      result = ifc_ebts_is_literal_type;
-      break;
-    case tok_is_lvalue_reference:
-      result = ifc_ebts_is_lvalue_reference;
-      break;
-    case tok_is_member_function_pointer:
-      result = ifc_ebts_is_member_function_pointer;
-      break;
-    case tok_is_member_object_pointer:
-      result = ifc_ebts_is_member_object_pointer;
-      break;
-    case tok_is_member_pointer:
-      result = ifc_ebts_is_member_pointer;
-      break;
-    case tok_is_nothrow_assignable:
-      result = ifc_ebts_is_nothrow_assignable;
-      break;
-    case tok_is_nothrow_constructible:
-      result = ifc_ebts_is_nothrow_constructible;
-      break;
-    case tok_is_nothrow_convertible:
-      result = ifc_ebts_is_nothrow_convertible;
-      break;
-    case tok_is_nothrow_destructible:
-      result = ifc_ebts_is_nothrow_destructible;
-      break;
-    case tok_is_object:
-      result = ifc_ebts_is_object;
-      break;
-    case tok_is_pod:
-      result = ifc_ebts_is_pod;
-      break;
-    case tok_is_pointer:
-      result = ifc_ebts_is_pointer;
-      break;
-    case tok_is_pointer_interconvertible_base_of:
-      result = ifc_ebts_is_pointer_interconvertible_base_of;
-      break;
-    case tok_is_pointer_interconvertible_with_class:
-      result = ifc_ebts_is_pointer_interconvertible_with_class;
-      break;
-    case tok_is_polymorphic:
-      result = ifc_ebts_is_polymorphic;
-      break;
-#if MICROSOFT_EXTENSIONS_ALLOWED
-    case tok_is_ref_array:
-      result = ifc_ebts_is_ref_array;
-      break;
-    case tok_is_ref_class:
-      result = ifc_ebts_is_ref_class;
-      break;
-#endif /* MICROSOFT_EXTENSIONS_ALLOWED */
-    case tok_is_reference:
-      result = ifc_ebts_is_reference;
-      break;
-    case tok_is_referenceable:
-      result = ifc_ebts_is_referenceable;
-      break;
-    case tok_is_rvalue_reference:
-      result = ifc_ebts_is_rvalue_reference;
-      break;
-    case tok_is_same:
-      result = ifc_ebts_is_same;
-      break;
-    case tok_is_same_as:
-      result = ifc_ebts_is_same_as;
-      break;
-    case tok_is_scalar:
-      result = ifc_ebts_is_scalar;
-      break;
-#if MICROSOFT_EXTENSIONS_ALLOWED
-    case tok_is_sealed:
-      result = ifc_ebts_is_sealed;
-      break;
-#endif /* MICROSOFT_EXTENSIONS_ALLOWED */
-    case tok_is_signed:
-      result = ifc_ebts_is_signed;
-      break;
-#if MICROSOFT_EXTENSIONS_ALLOWED
-    case tok_is_simple_value_class:
-      result = ifc_ebts_is_simple_value_class;
-      break;
-#endif /* MICROSOFT_EXTENSIONS_ALLOWED */
-    case tok_is_standard_layout:
-      result = ifc_ebts_is_standard_layout;
-      break;
-    case tok_is_trivial:
-      result = ifc_ebts_is_trivial;
-      break;
-    case tok_is_trivially_assignable:
-      result = ifc_ebts_is_trivially_assignable;
-      break;
-    case tok_is_trivially_constructible:
-      result = ifc_ebts_is_trivially_constructible;
-      break;
-#if MICROSOFT_EXTENSIONS_ALLOWED
-    case tok_is_trivially_copy_assignable:
-      result = ifc_ebts_is_trivially_copy_assignable;
-      break;
-#endif /* MICROSOFT_EXTENSIONS_ALLOWED */
-    case tok_is_trivially_copyable:
-      result = ifc_ebts_is_trivially_copyable;
-      break;
-    case tok_is_trivially_destructible:
-      result = ifc_ebts_is_trivially_destructible;
-      break;
-    case tok_is_trivially_equality_comparable:
-      result = ifc_ebts_is_trivially_equality_comparable;
-      break;
-    case tok_is_unbounded_array:
-      result = ifc_ebts_is_unbounded_array;
-      break;
-    case tok_is_union:
-      result = ifc_ebts_is_union;
-      break;
-    case tok_is_unsigned:
-      result = ifc_ebts_is_unsigned;
-      break;
-    case tok_is_valid_winrt_type:
-      result = ifc_ebts_is_valid_winrt_type;
-      break;
-#if MICROSOFT_EXTENSIONS_ALLOWED
-    case tok_is_value_class:
-      result = ifc_ebts_is_value_class;
-      break;
-#endif /* MICROSOFT_EXTENSIONS_ALLOWED */
-    case tok_is_void:
-      result = ifc_ebts_is_void;
-      break;
-    case tok_is_volatile:
-      result = ifc_ebts_is_volatile;
-      break;
-#if MICROSOFT_EXTENSIONS_ALLOWED
-    case tok_is_win_class:
-      result = ifc_ebts_is_win_class;
-      break;
-    case tok_is_win_interface:
-      result = ifc_ebts_is_win_interface;
-      break;
-#endif /* MICROSOFT_EXTENSIONS_ALLOWED */
     case tok_lbrace:
       result = ifc_ebts_lbrace;
       break;
@@ -4098,11 +3537,6 @@ return the corresponding EDG IFC BasicToken sort value.
     case tok_le:
       result = ifc_ebts_le;
       break;
-#if MICROSOFT_EXTENSIONS_ALLOWED
-    case tok_leave:
-      result = ifc_ebts_leave;
-      break;
-#endif /* MICROSOFT_EXTENSIONS_ALLOWED */
     case tok_long:
       result = ifc_ebts_long;
       break;
@@ -4115,47 +3549,6 @@ return the corresponding EDG IFC BasicToken sort value.
     case tok_lt:
       result = ifc_ebts_lt;
       break;
-    case tok_make_signed:
-      result = ifc_ebts_make_signed;
-      break;
-    case tok_make_unsigned:
-      result = ifc_ebts_make_unsigned;
-      break;
-    case tok_microsoft_asm:
-      result = ifc_ebts_microsoft_asm;
-      break;
-#if MICROSOFT_EXTENSIONS_ALLOWED
-    case tok_microsoft_identifier:
-      result = ifc_ebts_microsoft_identifier;
-      break;
-    case tok_microsoft_inline:
-      result = ifc_ebts_microsoft_inline;
-      break;
-    case tok_microsoft_lprefix:
-      result = ifc_ebts_microsoft_lprefix;
-      break;
-    case tok_microsoft_ptr32:
-      result = ifc_ebts_microsoft_ptr32;
-      break;
-    case tok_microsoft_ptr64:
-      result = ifc_ebts_microsoft_ptr64;
-      break;
-    case tok_microsoft_sptr:
-      result = ifc_ebts_microsoft_sptr;
-      break;
-    case tok_microsoft_try:
-      result = ifc_ebts_microsoft_try;
-      break;
-    case tok_microsoft_uprefix:
-      result = ifc_ebts_microsoft_uprefix;
-      break;
-    case tok_microsoft_uptr:
-      result = ifc_ebts_microsoft_uptr;
-      break;
-    case tok_microsoft_w64:
-      result = ifc_ebts_microsoft_w64;
-      break;
-#endif /* MICROSOFT_EXTENSIONS_ALLOWED */
     case tok_minus:
       result = ifc_ebts_minus;
       break;
@@ -4177,47 +3570,20 @@ return the corresponding EDG IFC BasicToken sort value.
     case tok_nan:
       result = ifc_ebts_nan;
       break;
-#if MICROSOFT_EXTENSIONS_ALLOWED
-    case tok_native_nullptr:
-      result = ifc_ebts_native_nullptr;
-      break;
-#endif /* MICROSOFT_EXTENSIONS_ALLOWED */
     case tok_ne:
       result = ifc_ebts_ne;
       break;
-#if NEAR_AND_FAR_ALLOWED
-    case tok_near:
-      result = ifc_ebts_near;
-      break;
-#endif /* NEAR_AND_FAR_ALLOWED */
     case tok_new:
       result = ifc_ebts_new;
       break;
     case tok_noexcept:
       result = ifc_ebts_noexcept;
       break;
-    case tok_nonnull:
-      result = ifc_ebts_nonnull;
-      break;
-#if MICROSOFT_EXTENSIONS_ALLOWED
-    case tok_noop:
-      result = ifc_ebts_noop;
-      break;
-#endif /* MICROSOFT_EXTENSIONS_ALLOWED */
     case tok_noreturn:
       result = ifc_ebts_noreturn;
       break;
     case tok_not:
       result = ifc_ebts_not;
-      break;
-    case tok_null:
-      result = ifc_ebts_null;
-      break;
-    case tok_null_unspecified:
-      result = ifc_ebts_null_unspecified;
-      break;
-    case tok_nullable:
-      result = ifc_ebts_nullable;
       break;
     case tok_nullptr:
       result = ifc_ebts_nullptr;
@@ -4240,14 +3606,6 @@ return the corresponding EDG IFC BasicToken sort value.
     case tok_override:
       result = ifc_ebts_override;
       break;
-#if MICROSOFT_EXTENSIONS_ALLOWED
-    case tok_partial_ref_class:
-      result = ifc_ebts_partial_ref_class;
-      break;
-    case tok_partial_ref_struct:
-      result = ifc_ebts_partial_ref_struct;
-      break;
-#endif /* MICROSOFT_EXTENSIONS_ALLOWED */
     case tok_paste:
       result = ifc_ebts_paste;
       break;
@@ -4265,29 +3623,6 @@ return the corresponding EDG IFC BasicToken sort value.
       break;
     case tok_plus_plus:
       result = ifc_ebts_plus_plus;
-      break;
-#if MICROSOFT_EXTENSIONS_ALLOWED
-    case tok_prefix_enum:
-      result = ifc_ebts_prefix_enum;
-      break;
-    case tok_prefix_for:
-      result = ifc_ebts_prefix_for;
-      break;
-    case tok_prefix_interface:
-      result = ifc_ebts_prefix_interface;
-      break;
-    case tok_prefix_partial:
-      result = ifc_ebts_prefix_partial;
-      break;
-    case tok_prefix_ref:
-      result = ifc_ebts_prefix_ref;
-      break;
-    case tok_prefix_value:
-      result = ifc_ebts_prefix_value;
-      break;
-#endif /* MICROSOFT_EXTENSIONS_ALLOWED */
-    case tok_pretty_function_name:
-      result = ifc_ebts_pretty_function_name;
       break;
     case tok_private:
       result = ifc_ebts_private;
@@ -4307,26 +3642,6 @@ return the corresponding EDG IFC BasicToken sort value.
     case tok_rbracket:
       result = ifc_ebts_rbracket;
       break;
-#if MICROSOFT_EXTENSIONS_ALLOWED
-    case tok_ref_class:
-      result = ifc_ebts_ref_class;
-      break;
-    case tok_ref_new:
-      result = ifc_ebts_ref_new;
-      break;
-    case tok_ref_struct:
-      result = ifc_ebts_ref_struct;
-      break;
-#endif /* MICROSOFT_EXTENSIONS_ALLOWED */
-    case tok_reference_binds_to_temporary:
-      result = ifc_ebts_reference_binds_to_temporary;
-      break;
-    case tok_reference_constructs_from_temporary:
-      result = ifc_ebts_reference_constructs_from_temporary;
-      break;
-    case tok_reference_converts_from_temporary:
-      result = ifc_ebts_reference_converts_from_temporary;
-      break;
     case tok_register:
       result = ifc_ebts_register;
       break;
@@ -4342,38 +3657,8 @@ return the corresponding EDG IFC BasicToken sort value.
     case tok_remove_all_extents:
       result = ifc_ebts_remove_all_extents;
       break;
-    case tok_remove_const:
-      result = ifc_ebts_remove_const;
-      break;
-    case tok_remove_cv:
-      result = ifc_ebts_remove_cv;
-      break;
-    case tok_remove_cvref:
-      result = ifc_ebts_remove_cvref;
-      break;
-    case tok_remove_extent:
-      result = ifc_ebts_remove_extent;
-      break;
-    case tok_remove_pointer:
-      result = ifc_ebts_remove_pointer;
-      break;
-    case tok_remove_reference:
-      result = ifc_ebts_remove_reference;
-      break;
-    case tok_remove_reference_t:
-      result = ifc_ebts_remove_reference_t;
-      break;
-    case tok_remove_restrict:
-      result = ifc_ebts_remove_restrict;
-      break;
-    case tok_remove_volatile:
-      result = ifc_ebts_remove_volatile;
-      break;
     case tok_requires:
       result = ifc_ebts_requires;
-      break;
-    case tok_restrict:
-      result = ifc_ebts_restrict;
       break;
     case tok_return:
       result = ifc_ebts_return;
@@ -4384,19 +3669,6 @@ return the corresponding EDG IFC BasicToken sort value.
     case tok_rsplice:
       result = ifc_ebts_rsplice;
       break;
-#if MICROSOFT_EXTENSIONS_ALLOWED
-    case tok_safe_cast:
-      result = ifc_ebts_safe_cast;
-      break;
-#endif /* MICROSOFT_EXTENSIONS_ALLOWED */
-    case tok_sat:
-      result = ifc_ebts_sat;
-      break;
-#if MICROSOFT_EXTENSIONS_ALLOWED
-    case tok_sealed:
-      result = ifc_ebts_sealed;
-      break;
-#endif /* MICROSOFT_EXTENSIONS_ALLOWED */
     case tok_semicolon:
       result = ifc_ebts_semicolon;
       break;
@@ -4439,40 +3711,17 @@ return the corresponding EDG IFC BasicToken sort value.
     case tok_static_cast:
       result = ifc_ebts_static_cast;
       break;
-#if MICROSOFT_EXTENSIONS_ALLOWED
-    case tok_stdcall:
-      result = ifc_ebts_stdcall;
-      break;
-#endif /* MICROSOFT_EXTENSIONS_ALLOWED */
     case tok_struct:
       result = ifc_ebts_struct;
       break;
-#if MICROSOFT_EXTENSIONS_ALLOWED
-    case tok_super:
-      result = ifc_ebts_super;
-      break;
-#endif /* MICROSOFT_EXTENSIONS_ALLOWED */
     case tok_switch:
       result = ifc_ebts_switch;
       break;
-#if SUN_EXTENSIONS_ALLOWED
-    case tok_symbolic_link_scope:
-      result = ifc_ebts_symbolic_link_scope;
-      break;
-#endif /* SUN_EXTENSIONS_ALLOWED */
     case tok_template:
       result = ifc_ebts_template;
       break;
     case tok_this:
       result = ifc_ebts_this;
-      break;
-#if MICROSOFT_EXTENSIONS_ALLOWED
-    case tok_thiscall:
-      result = ifc_ebts_thiscall;
-      break;
-#endif /* MICROSOFT_EXTENSIONS_ALLOWED */
-    case tok_thread:
-      result = ifc_ebts_thread;
       break;
     case tok_thread_local:
       result = ifc_ebts_thread_local;
@@ -4498,97 +3747,15 @@ return the corresponding EDG IFC BasicToken sort value.
     case tok_typename:
       result = ifc_ebts_typename;
       break;
-    case tok_typeof:
-      result = ifc_ebts_typeof;
-      break;
-    case tok_typeof_unqual:
-      result = ifc_ebts_typeof_unqual;
-      break;
-#if MICROSOFT_EXTENSIONS_ALLOWED
-    case tok_unaligned:
-      result = ifc_ebts_unaligned;
-      break;
-#endif /* MICROSOFT_EXTENSIONS_ALLOWED */
-    case tok_underlying_type:
-      result = ifc_ebts_underlying_type;
-      break;
     case tok_union:
       result = ifc_ebts_union;
       break;
-#if MICROSOFT_EXTENSIONS_ALLOWED
-    case tok_unresolved_type:
-      result = ifc_ebts_unresolved_type;
-      break;
-#endif /* MICROSOFT_EXTENSIONS_ALLOWED */
     case tok_unsigned:
       result = ifc_ebts_unsigned;
       break;
-#if UPC_EXTENSIONS_ALLOWED
-    case tok_upc_barrier:
-      result = ifc_ebts_upc_barrier;
-      break;
-    case tok_upc_blocksizeof:
-      result = ifc_ebts_upc_blocksizeof;
-      break;
-    case tok_upc_elemsizeof:
-      result = ifc_ebts_upc_elemsizeof;
-      break;
-    case tok_upc_fence:
-      result = ifc_ebts_upc_fence;
-      break;
-    case tok_upc_forall:
-      result = ifc_ebts_upc_forall;
-      break;
-    case tok_upc_localsizeof:
-      result = ifc_ebts_upc_localsizeof;
-      break;
-    case tok_upc_mythread:
-      result = ifc_ebts_upc_mythread;
-      break;
-    case tok_upc_notify:
-      result = ifc_ebts_upc_notify;
-      break;
-    case tok_upc_relaxed:
-      result = ifc_ebts_upc_relaxed;
-      break;
-    case tok_upc_shared:
-      result = ifc_ebts_upc_shared;
-      break;
-    case tok_upc_strict:
-      result = ifc_ebts_upc_strict;
-      break;
-    case tok_upc_threads:
-      result = ifc_ebts_upc_threads;
-      break;
-    case tok_upc_wait:
-      result = ifc_ebts_upc_wait;
-      break;
-#endif /* UPC_EXTENSIONS_ALLOWED */
     case tok_using:
       result = ifc_ebts_using;
       break;
-#if MICROSOFT_EXTENSIONS_ALLOWED
-    case tok_uuid:
-      result = ifc_ebts_uuid;
-      break;
-    case tok_uuidof:
-      result = ifc_ebts_uuidof;
-      break;
-#endif /* MICROSOFT_EXTENSIONS_ALLOWED */
-    case tok_va_copy:
-      result = ifc_ebts_va_copy;
-      break;
-#if MICROSOFT_EXTENSIONS_ALLOWED
-    case tok_value_class:
-      result = ifc_ebts_value_class;
-      break;
-    case tok_value_struct:
-      result = ifc_ebts_value_struct;
-      break;
-    case tok_vectorcall:
-      result = ifc_ebts_vectorcall;
-      break;
-#endif /* MICROSOFT_EXTENSIONS_ALLOWED */
     case tok_virtual:
       result = ifc_ebts_virtual;
       break;
@@ -4603,6 +3770,363 @@ return the corresponding EDG IFC BasicToken sort value.
       break;
     case tok_while:
       result = ifc_ebts_while;
+      break;
+#if MICROSOFT_EXTENSIONS_ALLOWED
+    case tok_abstract:
+#endif /* MICROSOFT_EXTENSIONS_ALLOWED */
+    case tok_accum:
+    case tok_add_lvalue_reference:
+    case tok_add_pointer:
+    case tok_add_rvalue_reference:
+    case tok_array_extent:
+    case tok_array_rank:
+#if MICROSOFT_EXTENSIONS_ALLOWED
+    case tok_assume:
+#endif /* MICROSOFT_EXTENSIONS_ALLOWED */
+    case tok_attribute:
+    case tok_auto_type:
+#if MICROSOFT_EXTENSIONS_ALLOWED
+    case tok_based:
+#endif /* MICROSOFT_EXTENSIONS_ALLOWED */
+#if GNU_EXTENSIONS_ALLOWED
+    case tok_bases:
+#endif /* GNU_EXTENSIONS_ALLOWED */
+    case tok_builtin_addressof:
+    case tok_builtin_bit_cast:
+    case tok_builtin_complex:
+#if GNU_VECTOR_TYPES_ALLOWED
+    case tok_builtin_convertvector:
+#endif /* GNU_VECTOR_TYPES_ALLOWED */
+    case tok_builtin_has_attribute:
+    case tok_builtin_is_corresponding_member:
+    case tok_builtin_is_pointer_interconvertible_with_class:
+    case tok_builtin_offsetof:
+#if GNU_VECTOR_TYPES_ALLOWED
+    case tok_builtin_shuffle:
+    case tok_builtin_shufflevector:
+#endif /* GNU_VECTOR_TYPES_ALLOWED */
+#if GNU_EXTENSIONS_ALLOWED
+    case tok_builtin_types_compatible:
+#endif /* GNU_EXTENSIONS_ALLOWED */
+#if MICROSOFT_EXTENSIONS_ALLOWED
+    case tok_cdecl:
+#endif /* MICROSOFT_EXTENSIONS_ALLOWED */
+#if MICROSOFT_EXTENSIONS_ALLOWED
+    case tok_charize:
+#endif /* MICROSOFT_EXTENSIONS_ALLOWED */
+    case tok_clang_version:
+#if MICROSOFT_EXTENSIONS_ALLOWED
+    case tok_clrcall:
+#endif /* MICROSOFT_EXTENSIONS_ALLOWED */
+    case tok_decay:
+    case tok_decorated_function_name:
+#if GNU_EXTENSIONS_ALLOWED
+    case tok_direct_bases:
+#endif /* GNU_EXTENSIONS_ALLOWED */
+    case tok_edg_bool_type:
+    case tok_edg_internal_opnd:
+    case tok_edg_internal_type:
+    case tok_edg_is_deducible:
+    case tok_edg_ptrdiff_type:
+    case tok_edg_size_type:
+    case tok_edg_throw:
+    case tok_edg_vector_type:
+    case tok_edg_wchar_type:
+#if MICROSOFT_EXTENSIONS_ALLOWED
+    case tok_end_of_if_exists:
+#endif /* MICROSOFT_EXTENSIONS_ALLOWED */
+#if MICROSOFT_EXTENSIONS_ALLOWED
+    case tok_enum_class:
+    case tok_enum_struct:
+#endif /* MICROSOFT_EXTENSIONS_ALLOWED */
+#if MICROSOFT_EXTENSIONS_ALLOWED
+    case tok_event:
+    case tok_except:
+#endif /* MICROSOFT_EXTENSIONS_ALLOWED */
+    case tok_ext_alignof:
+    case tok_extension:
+#if NEAR_AND_FAR_ALLOWED
+    case tok_far:
+#endif /* NEAR_AND_FAR_ALLOWED */
+#if MICROSOFT_EXTENSIONS_ALLOWED
+    case tok_fastcall:
+#endif /* MICROSOFT_EXTENSIONS_ALLOWED */
+#if MICROSOFT_EXTENSIONS_ALLOWED
+    case tok_finally:
+#endif /* MICROSOFT_EXTENSIONS_ALLOWED */
+#if MICROSOFT_EXTENSIONS_ALLOWED
+    case tok_for_each:
+    case tok_forceinline:
+#endif /* MICROSOFT_EXTENSIONS_ALLOWED */
+    case tok_fract:
+    case tok_func_name:
+    case tok_function_name:
+#if MICROSOFT_EXTENSIONS_ALLOWED
+    case tok_gcnew:
+#endif /* MICROSOFT_EXTENSIONS_ALLOWED */
+#if SUN_EXTENSIONS_ALLOWED
+    case tok_global_link_scope:
+#endif /* SUN_EXTENSIONS_ALLOWED */
+#if GNU_EXTENSIONS_ALLOWED
+    case tok_gnu_imag:
+#endif /* GNU_EXTENSIONS_ALLOWED */
+    case tok_gnu_max:
+    case tok_gnu_min:
+#if GNU_EXTENSIONS_ALLOWED
+    case tok_gnu_real:
+#endif /* GNU_EXTENSIONS_ALLOWED */
+    case tok_gnu_restrict:
+    case tok_has_assign:
+    case tok_has_copy:
+#if MICROSOFT_EXTENSIONS_ALLOWED
+    case tok_has_finalizer:
+#endif /* MICROSOFT_EXTENSIONS_ALLOWED */
+    case tok_has_nothrow_assign:
+    case tok_has_nothrow_constructor:
+    case tok_has_nothrow_copy:
+    case tok_has_nothrow_move_assign:
+    case tok_has_trivial_assign:
+    case tok_has_trivial_constructor:
+    case tok_has_trivial_copy:
+    case tok_has_trivial_destructor:
+    case tok_has_trivial_move_assign:
+    case tok_has_trivial_move_constructor:
+    case tok_has_unique_object_representations:
+    case tok_has_user_destructor:
+    case tok_has_virtual_destructor:
+#if SUN_EXTENSIONS_ALLOWED
+    case tok_hidden_link_scope:
+#endif /* SUN_EXTENSIONS_ALLOWED */
+#if MICROSOFT_EXTENSIONS_ALLOWED
+    case tok_if_exists:
+    case tok_if_not_exists:
+#endif /* MICROSOFT_EXTENSIONS_ALLOWED */
+    case tok_imaginary_unit:
+#if MICROSOFT_EXTENSIONS_ALLOWED
+    case tok_implements:
+#endif /* MICROSOFT_EXTENSIONS_ALLOWED */
+#if MICROSOFT_EXTENSIONS_ALLOWED
+    case tok_in:
+#endif /* MICROSOFT_EXTENSIONS_ALLOWED */
+#if INT128_EXTENSIONS_ALLOWED
+    case tok_int128:
+#endif /* INT128_EXTENSIONS_ALLOWED */
+#if MICROSOFT_EXTENSIONS_ALLOWED
+    case tok_int16:
+    case tok_int32:
+    case tok_int64:
+    case tok_int8:
+#endif /* MICROSOFT_EXTENSIONS_ALLOWED */
+    case tok_intaddr:
+    case tok_integer_pack:
+#if MICROSOFT_EXTENSIONS_ALLOWED
+    case tok_interface:
+    case tok_interface_class:
+    case tok_interface_struct:
+#endif /* MICROSOFT_EXTENSIONS_ALLOWED */
+    case tok_internal_alias_decl:
+    case tok_is_abstract:
+    case tok_is_aggregate:
+    case tok_is_arithmetic:
+    case tok_is_array:
+    case tok_is_assignable:
+#if MICROSOFT_EXTENSIONS_ALLOWED
+    case tok_is_assignable_no_precondition_check:
+#endif /* MICROSOFT_EXTENSIONS_ALLOWED */
+    case tok_is_base_of:
+    case tok_is_bounded_array:
+    case tok_is_class:
+    case tok_is_complete_type:
+    case tok_is_compound:
+    case tok_is_const:
+    case tok_is_constructible:
+    case tok_is_convertible:
+    case tok_is_convertible_to:
+    case tok_is_corresponding_member:
+#if MICROSOFT_EXTENSIONS_ALLOWED
+    case tok_is_delegate:
+#endif /* MICROSOFT_EXTENSIONS_ALLOWED */
+    case tok_is_destructible:
+    case tok_is_empty:
+    case tok_is_enum:
+    case tok_is_final:
+    case tok_is_floating_point:
+    case tok_is_function:
+    case tok_is_fundamental:
+    case tok_is_integral:
+#if MICROSOFT_EXTENSIONS_ALLOWED
+    case tok_is_interface_class:
+#endif /* MICROSOFT_EXTENSIONS_ALLOWED */
+    case tok_is_layout_compatible:
+    case tok_is_literal_type:
+    case tok_is_lvalue_reference:
+    case tok_is_member_function_pointer:
+    case tok_is_member_object_pointer:
+    case tok_is_member_pointer:
+    case tok_is_nothrow_assignable:
+    case tok_is_nothrow_constructible:
+    case tok_is_nothrow_convertible:
+    case tok_is_nothrow_destructible:
+    case tok_is_object:
+    case tok_is_pod:
+    case tok_is_pointer:
+    case tok_is_pointer_interconvertible_base_of:
+    case tok_is_pointer_interconvertible_with_class:
+    case tok_is_polymorphic:
+#if MICROSOFT_EXTENSIONS_ALLOWED
+    case tok_is_ref_array:
+    case tok_is_ref_class:
+#endif /* MICROSOFT_EXTENSIONS_ALLOWED */
+    case tok_is_reference:
+    case tok_is_referenceable:
+    case tok_is_rvalue_reference:
+    case tok_is_same:
+    case tok_is_same_as:
+    case tok_is_scalar:
+    case tok_is_scoped_enum:
+#if MICROSOFT_EXTENSIONS_ALLOWED
+    case tok_is_sealed:
+#endif /* MICROSOFT_EXTENSIONS_ALLOWED */
+    case tok_is_signed:
+#if MICROSOFT_EXTENSIONS_ALLOWED
+    case tok_is_simple_value_class:
+#endif /* MICROSOFT_EXTENSIONS_ALLOWED */
+    case tok_is_standard_layout:
+    case tok_is_trivial:
+    case tok_is_trivially_assignable:
+    case tok_is_trivially_constructible:
+#if MICROSOFT_EXTENSIONS_ALLOWED
+    case tok_is_trivially_copy_assignable:
+#endif /* MICROSOFT_EXTENSIONS_ALLOWED */
+    case tok_is_trivially_copyable:
+    case tok_is_trivially_destructible:
+    case tok_is_trivially_equality_comparable:
+    case tok_is_unbounded_array:
+    case tok_is_union:
+    case tok_is_unsigned:
+    case tok_is_valid_winrt_type:
+#if MICROSOFT_EXTENSIONS_ALLOWED
+    case tok_is_value_class:
+#endif /* MICROSOFT_EXTENSIONS_ALLOWED */
+    case tok_is_void:
+    case tok_is_volatile:
+#if MICROSOFT_EXTENSIONS_ALLOWED
+    case tok_is_win_class:
+    case tok_is_win_interface:
+#endif /* MICROSOFT_EXTENSIONS_ALLOWED */
+#if MICROSOFT_EXTENSIONS_ALLOWED
+    case tok_leave:
+#endif /* MICROSOFT_EXTENSIONS_ALLOWED */
+    case tok_make_signed:
+    case tok_make_unsigned:
+    case tok_microsoft_asm:
+#if MICROSOFT_EXTENSIONS_ALLOWED
+    case tok_microsoft_identifier:
+    case tok_microsoft_inline:
+    case tok_microsoft_lprefix:
+    case tok_microsoft_ptr32:
+    case tok_microsoft_ptr64:
+    case tok_microsoft_sptr:
+    case tok_microsoft_try:
+    case tok_microsoft_uprefix:
+    case tok_microsoft_uptr:
+    case tok_microsoft_w64:
+#endif /* MICROSOFT_EXTENSIONS_ALLOWED */
+#if MICROSOFT_EXTENSIONS_ALLOWED
+    case tok_native_nullptr:
+#endif /* MICROSOFT_EXTENSIONS_ALLOWED */
+#if NEAR_AND_FAR_ALLOWED
+    case tok_near:
+#endif /* NEAR_AND_FAR_ALLOWED */
+    case tok_nonnull:
+#if MICROSOFT_EXTENSIONS_ALLOWED
+    case tok_noop:
+#endif /* MICROSOFT_EXTENSIONS_ALLOWED */
+    case tok_null:
+    case tok_null_unspecified:
+    case tok_nullable:
+#if MICROSOFT_EXTENSIONS_ALLOWED
+    case tok_partial_ref_class:
+    case tok_partial_ref_struct:
+#endif /* MICROSOFT_EXTENSIONS_ALLOWED */
+#if MICROSOFT_EXTENSIONS_ALLOWED
+    case tok_prefix_enum:
+    case tok_prefix_for:
+    case tok_prefix_interface:
+    case tok_prefix_partial:
+    case tok_prefix_ref:
+    case tok_prefix_value:
+#endif /* MICROSOFT_EXTENSIONS_ALLOWED */
+    case tok_pretty_function_name:
+#if MICROSOFT_EXTENSIONS_ALLOWED
+    case tok_ref_class:
+    case tok_ref_new:
+    case tok_ref_struct:
+#endif /* MICROSOFT_EXTENSIONS_ALLOWED */
+    case tok_reference_binds_to_temporary:
+    case tok_reference_constructs_from_temporary:
+    case tok_reference_converts_from_temporary:
+    case tok_remove_const:
+    case tok_remove_cv:
+    case tok_remove_cvref:
+    case tok_remove_extent:
+    case tok_remove_pointer:
+    case tok_remove_reference:
+    case tok_remove_reference_t:
+    case tok_remove_restrict:
+    case tok_remove_volatile:
+    case tok_restrict:
+#if MICROSOFT_EXTENSIONS_ALLOWED
+    case tok_safe_cast:
+#endif /* MICROSOFT_EXTENSIONS_ALLOWED */
+    case tok_sat:
+#if MICROSOFT_EXTENSIONS_ALLOWED
+    case tok_sealed:
+    case tok_stdcall:
+    case tok_super:
+#endif /* MICROSOFT_EXTENSIONS_ALLOWED */
+#if SUN_EXTENSIONS_ALLOWED
+    case tok_symbolic_link_scope:
+#endif /* SUN_EXTENSIONS_ALLOWED */
+#if MICROSOFT_EXTENSIONS_ALLOWED
+    case tok_thiscall:
+#endif /* MICROSOFT_EXTENSIONS_ALLOWED */
+    case tok_thread:
+    case tok_typeof:
+    case tok_typeof_unqual:
+#if MICROSOFT_EXTENSIONS_ALLOWED
+    case tok_unaligned:
+#endif /* MICROSOFT_EXTENSIONS_ALLOWED */
+    case tok_underlying_type:
+#if MICROSOFT_EXTENSIONS_ALLOWED
+    case tok_unresolved_type:
+#endif /* MICROSOFT_EXTENSIONS_ALLOWED */
+#if UPC_EXTENSIONS_ALLOWED
+    case tok_upc_barrier:
+    case tok_upc_blocksizeof:
+    case tok_upc_elemsizeof:
+    case tok_upc_fence:
+    case tok_upc_forall:
+    case tok_upc_localsizeof:
+    case tok_upc_mythread:
+    case tok_upc_notify:
+    case tok_upc_relaxed:
+    case tok_upc_shared:
+    case tok_upc_strict:
+    case tok_upc_threads:
+    case tok_upc_wait:
+#endif /* UPC_EXTENSIONS_ALLOWED */
+#if MICROSOFT_EXTENSIONS_ALLOWED
+    case tok_uuid:
+    case tok_uuidof:
+#endif /* MICROSOFT_EXTENSIONS_ALLOWED */
+    case tok_va_copy:
+#if MICROSOFT_EXTENSIONS_ALLOWED
+    case tok_value_class:
+    case tok_value_struct:
+    case tok_vectorcall:
+#endif /* MICROSOFT_EXTENSIONS_ALLOWED */
+      result = ifc_ebts_complex;
       break;
     case tok_aggr_constant:
     case tok_char_constant:
@@ -4646,12 +4170,12 @@ return the corresponding EDG IFC BasicToken sort value.
     case tok_va_start:
       /* An attempt was made to convert an unsupported or complex token to an
          EDG IFC basic token kind.  Either the token needs a case added above
-         or the wrong conversion function has been called. */
+         or the wrong conversion function has been called.  If the new token is
+         a token with no associated state (i.e., the token's extra_info_kind is
+         teik_none), the ifc_ebts_complex case above can be used. */
       unexpected_condition();
       break;
-    default:
-      /* An unsupported token was cached as a basic token. */
-      header_unit_catastrophe();
+    default_is_unexpected();
   }  /* switch */
   return result;
 }  /* token_to_basic_token_kind */
@@ -4695,19 +4219,77 @@ EDG IFC constant token kind.
 
 namespace {
 
-void an_ifc_il_map::enter_basic_token_to_cache(
+an_ifc_edg_complex_token_index an_ifc_il_map::find_or_enter_textual_token(
+                                                     const a_cached_token *ctp)
+/*
+For the given cached token (representing a token with a singular textual
+identity) find or enter the textual token representation into the IFC output
+state.  Return the corresponding IFC EDG complex token index.
+*/
+{
+  an_ifc_edg_complex_token_index
+                result;
+  size_t        textual_token_offset = this->textual_token_map.get(ctp->token);
+
+  if (textual_token_offset == 0) {
+    result = this->enter_textual_token(ctp);
+  } else {
+    result = an_ifc_edg_complex_token_index(this->get_default_file(),
+                                            ifc_ects_edg_token_textual,
+                                            textual_token_offset - 1);
+  }  /* if */
+  return result;
+}  /* an_ifc_il_map::find_or_enter_textual_token */
+
+
+an_ifc_edg_complex_token_index an_ifc_il_map::enter_textual_token(
+                                                     const a_cached_token *ctp)
+/*
+For the given cached token (representing a token with a singular textual
+identity) enter the textual token representation into the IFC output state.
+Return the corresponding IFC EDG complex token index.
+*/
+{
+  /* If this assertion fails, this token should not be represented as a textual
+     token because it's directly representable as a basic token. */
+  check_assertion(token_to_basic_token_kind(ctp->token) == ifc_ebts_complex);
+  /* If this assertion fails, this token should not be represented as a textual
+     token because it has additional state that needs serialized. */
+  check_assertion(ctp->extra_info_kind == teik_none);
+  /* If this assertion fails, this textual token has already been entered. */
+  check_assertion(this->textual_token_map.get(ctp->token) == 0);
+  an_ifc_edg_token_textual
+                textual_token;
+  an_ifc_edg_complex_token_index
+                result = this->output_state->alloc_complex_token(
+                                                               &textual_token);
+
+  this->textual_token_map.map(ctp->token, result.value + 1);
+
+  size_t        token_name_offset = this->output_state->add_to_string_table(
+                                                ifc_token_name_of(ctp->token));
+  an_ifc_text_offset
+                ifc_token_name_offset(this->get_default_file(),
+                                      token_name_offset);
+  set_ifc_characters(&textual_token, ifc_token_name_offset);
+  return result;
+}  /* an_ifc_il_map::enter_textual_token */
+
+
+void an_ifc_il_map::enter_textual_token_to_cache(
                                           an_ifc_output_token_cache *ifc_cache,
                                           a_cached_token            *token)
 /*
-Add the given cached token (representing an EDG IFC basic token) to the given
-token cache.
+Add the given cached token (representing a token with a singular textual
+identity) to the given token cache.
 */
 {
-  an_ifc_edg_basic_token_sort
-                ifc_token = token_to_basic_token_kind(token->token);
+  check_assertion(token->extra_info_kind == teik_none);
+  an_ifc_edg_complex_token_index
+                complex_token_idx = this->find_or_enter_textual_token(token);
 
-  ifc_cache->add_basic(ifc_token);
-}  /* an_ifc_il_map::enter_basic_token_to_cache */
+  ifc_cache->add_complex(complex_token_idx);
+}  /* an_ifc_il_map::enter_textual_token_to_cache */
 
 
 an_ifc_edg_complex_token_index an_ifc_il_map::enter_constant_token(
@@ -4800,14 +4382,22 @@ cache.
         this->enter_identifier_token_to_cache(ifc_cache, tok);
         break;
       case teik_none:
-        if (tok->token == tok_end_of_source) {
-          /* An end of source token should never be followed by another token.
-             If this happens, something is wrong with the token cache and the
-             authoring code should be corrected. */
-          check_assertion(tok->next == NULL);
-          break;
-        }  /* if */
-        this->enter_basic_token_to_cache(ifc_cache, tok);
+        { if (tok->token == tok_end_of_source) {
+            /* An end of source token should never be followed by another
+               token.  If this happens, something is wrong with the token cache
+               and the authoring code should be corrected. */
+            check_assertion(tok->next == NULL);
+            break;
+          }  /* if */
+
+          an_ifc_edg_basic_token_sort
+                ifc_token = token_to_basic_token_kind(tok->token);
+          if (ifc_token == ifc_ebts_complex) {
+            this->enter_textual_token_to_cache(ifc_cache, tok);
+          } else {
+            ifc_cache->add_basic(ifc_token);
+          }  /* if */
+        }
         break;
       case teik_asm_string:
       case teik_extracted_body:

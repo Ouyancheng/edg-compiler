@@ -445,6 +445,16 @@ struct an_ifc_module : public a_module_interface {
   an_ifc_module_string_table
                 string_table = {};
                         /* The string table of the IFC file. */
+  Small_dyn_array<a_token_kind, 10>
+                textual_tokens = {};
+                        /* An array mapping the values in the
+                           .edg.token.complex.textual values to the
+                           corresponding front end token kind or tok_error if
+                           the token is not available.  This is resolved during
+                           the initial file load to allow textual tokens to be
+                           mapped to the corresponding token kind based on
+                           their index (rather than the name associated with
+                           the token) during caching. */
   a_tmpl_decl_state_ptr
                 curr_templ_decl_state = NULL;
                         /* The current template declaration state, NULL if
@@ -771,6 +781,8 @@ Given an IFC module entity, return the corresponding an_ifc_module instance.
   return mod;
 }  /* module_of */
 
+
+extern a_const_char *ifc_token_name_of(a_token_kind token_kind);
 
 template<typename an_ifc_Index_type>
 extern an_ifc_partition_kind get_partition_kind(an_ifc_Index_type idx);

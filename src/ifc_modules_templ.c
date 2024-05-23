@@ -39,6 +39,38 @@ an_ifc_module_file.
 }  /* is_for_read */
 
 
+a_const_char *ifc_token_name_of(a_token_kind token_kind)
+/*
+Return a unique name for the given token for identification purposes in a EDG
+IFC token cache.
+
+This function primarily uses the EDG token_names, but replaces some token names
+to allow every token to have a unique name.
+*/
+{
+  a_const_char *result;
+
+  switch (token_kind) {
+    case tok_prefix_for:
+      result = "for[[prefix]]";
+      break;
+    case tok_prefix_enum:
+      result = "enum[[prefix]]";
+      break;
+    case tok_cpp98_export:
+      result = "export[[C++98]]";
+      break;
+    case tok_export_keyword:
+      result = "export[[keyword]]";
+      break;
+    default:
+      result = token_names[token_kind];
+      break;
+  }  /* switch */
+  return result;
+}  /* ifc_token_name_of */
+
+
 template<typename an_ifc_Storage_type>
 size_t get_byte_buffer_size(an_ifc_module_file *file)
 /*
@@ -536,6 +568,7 @@ INST_CONSTRUCT_NODE(an_ifc_edg_constant_integer_word,
                     an_ifc_partition_kind_index)
 INST_CONSTRUCT_NODE(an_ifc_edg_heap_complex_token, an_ifc_partition_kind_index)
 INST_CONSTRUCT_NODE(an_ifc_edg_token_basic, an_ifc_partition_kind_index)
+INST_CONSTRUCT_NODE(an_ifc_edg_token_textual, an_ifc_partition_kind_index)
 INST_CONSTRUCT_NODE(an_ifc_heap_attr, an_ifc_partition_kind_index)
 INST_CONSTRUCT_NODE(an_ifc_heap_decl, an_ifc_partition_kind_index)
 INST_CONSTRUCT_NODE(an_ifc_heap_expr, an_ifc_partition_kind_index)
