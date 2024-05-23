@@ -16102,6 +16102,54 @@ representation of the field "text".
 
 
 /*
+Functions for reading data from IFC EdgTokenTextual nodes.
+*/
+
+
+template<>
+a_boolean has_ifc_characters(const an_ifc_edg_token_textual &universal)
+/*
+Return TRUE if the given universal representation has the field "characters";
+otherwise, return FALSE.
+*/
+{
+  an_ifc_module_file *file = universal.get_file();
+  a_boolean          result = FALSE;
+
+  if (is_at_least(file, 0, 43)) {
+    result = TRUE;
+  }  /* if */
+  return result;
+}  /* has_ifc_characters */
+
+
+template<>
+an_ifc_text_offset get_ifc_characters(
+                                     const an_ifc_edg_token_textual &universal)
+/*
+Given the universal representation of EdgTokenTextual, return the universal
+representation of the field "characters".
+*/
+{
+  an_ifc_text_offset result;
+
+  /* Ensure the characters field exists in the current module version. */
+  check_assertion(has_ifc_characters(universal));
+  an_ifc_text_offset_0_33 stage_0;
+  an_ifc_text_offset      stage_1;
+
+  /* Copy the field (EdgTokenTextual::characters - TextOffset) into
+     version-specific storage. */
+  static_assert(sizeof(stage_0) == 4,
+                "stage_0 is not properly sized storage!");
+  copy_from_node_field(&stage_0, universal.get_storage(), /*offset=*/0);
+  stage_1 = {universal.get_file(), (an_ifc_text_offset_storage)stage_0};
+  result = stage_1;
+  return result;
+}  /* get_ifc_characters */
+
+
+/*
 Functions for reading data from IFC EdgTraitFunctionDefinition nodes.
 */
 

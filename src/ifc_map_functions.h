@@ -10199,6 +10199,16 @@ extern an_ifc_word_category get_ifc_category(
 
 
 template<typename an_ifc_Node_type>
+extern a_boolean has_ifc_characters(
+                              const an_ifc_Node_type &universal) DELETED_FN_DEF
+
+
+template<typename an_ifc_Node_type>
+extern an_ifc_text_offset get_ifc_characters(
+                              const an_ifc_Node_type &universal) DELETED_FN_DEF
+
+
+template<typename an_ifc_Node_type>
 extern a_boolean has_ifc_chart(
                               const an_ifc_Node_type &universal) DELETED_FN_DEF
 
@@ -12938,6 +12948,12 @@ extern void set_ifc_catch(an_ifc_Node_type        *universal,
 
 template<typename an_ifc_Node_type, typename an_ifc_Value_type>
 extern void set_ifc_category(an_ifc_Node_type        *universal,
+                             const an_ifc_Value_type &value) DELETED_FN_DEF
+
+
+template<typename an_ifc_Node_type, typename an_ifc_Value_type>
+extern void set_ifc_characters(
+                             an_ifc_Node_type        *universal,
                              const an_ifc_Value_type &value) DELETED_FN_DEF
 
 
@@ -19424,6 +19440,47 @@ an_ifc_edg_token_identifier_storage* get<an_ifc_edg_token_identifier_storage>(
 
 template<>
 an_ifc_partition_kind get_ifc_partition_kind<an_ifc_edg_token_identifier>();
+
+
+
+template<>
+size_t get_ifc_buffer_size<an_ifc_edg_token_textual_storage>(
+                                                     an_ifc_module_file *file);
+
+/*
+Functions for interacting with IFC EdgTokenTextual nodes.
+*/
+
+template<>
+a_boolean has_ifc_characters(const an_ifc_edg_token_textual &universal);
+
+template<>
+an_ifc_text_offset get_ifc_characters(
+                                    const an_ifc_edg_token_textual &universal);
+
+template<>
+void set_ifc_characters(an_ifc_edg_token_textual *universal,
+                        const an_ifc_text_offset &value);
+
+template<>
+a_boolean validate(const an_ifc_edg_token_textual &universal,
+                   const an_ifc_validation_trace  *parent);
+
+#if DEBUG
+extern void db_node(const an_ifc_edg_token_textual &universal,
+                    unsigned                       indent);
+
+extern void db_node(const an_ifc_edg_token_textual &universal);
+#endif /* DEBUG */
+
+template<>
+an_ifc_edg_token_textual_storage* get<an_ifc_edg_token_textual_storage>(
+                                an_ifc_module_file               *file,
+                                an_ifc_edg_token_textual_storage *storage,
+                                a_boolean                        fill_storage);
+
+template<>
+an_ifc_partition_kind get_ifc_partition_kind<an_ifc_edg_token_textual>();
 
 
 

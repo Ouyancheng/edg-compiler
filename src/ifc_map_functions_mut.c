@@ -7685,6 +7685,32 @@ the field "text" to the given TextOffset value.
 
 
 /*
+Functions for writing data to IFC EdgTokenTextual nodes.
+*/
+
+
+template<>
+void set_ifc_characters(an_ifc_edg_token_textual *universal,
+                        const an_ifc_text_offset &value)
+/*
+Given the universal representation of EdgTokenTextual update the value of the
+field "characters" to the given TextOffset value.
+*/
+{
+  /* Ensure the characters field exists in the current module version. */
+  check_assertion(has_ifc_characters(*universal));
+  an_ifc_text_offset_0_33 stage_0;
+
+  stage_0 = (an_ifc_text_offset_0_33)value.value;
+  /* Copy from version-specific storage into the field
+     (EdgTokenTextual::characters - TextOffset). */
+  static_assert(sizeof(stage_0) == 4,
+                "stage_0 is not properly sized storage!");
+  copy_to_node_field(&stage_0, universal->get_storage(), /*offset=*/0);
+}  /* set_ifc_characters */
+
+
+/*
 Functions for writing data to IFC EdgTraitFunctionDefinition nodes.
 */
 

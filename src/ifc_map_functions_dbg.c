@@ -6111,6 +6111,34 @@ textual representation.
 }  /* db_node */
 
 
+void db_node(const an_ifc_edg_token_textual &universal, unsigned indent)
+/*
+Given the universal representation of EdgTokenTextual, print a diagnostic
+textual representation with the given indent.
+*/
+{
+  if (has_ifc_characters(universal)) {
+    an_ifc_text_offset field = get_ifc_characters(universal);
+
+    db_print_indent(indent);
+    fprintf(f_debug, "characters: %llu\n", (unsigned long long)field.value);
+  }  /* if */
+}  /* db_node */
+
+
+void db_node(const an_ifc_edg_token_textual &universal)
+/*
+Given the universal representation of EdgTokenTextual, print a diagnostic
+textual representation.
+*/
+{
+  fprintf(f_debug, "=============================== ");
+  fprintf(f_debug, "EdgTokenTextual ");
+  fprintf(f_debug, "================================\n");
+  db_node(universal, 0);
+}  /* db_node */
+
+
 void db_node(const an_ifc_edg_trait_function_definition &universal,
              unsigned                                   indent)
 /*
@@ -22307,6 +22335,13 @@ the associated node.
         break;
       case ifc_ects_edg_token_identifier:
         { an_ifc_edg_token_identifier universal;
+
+          construct_node_prechecked(&universal, idx);
+          db_node(universal);
+        }
+        break;
+      case ifc_ects_edg_token_textual:
+        { an_ifc_edg_token_textual universal;
 
           construct_node_prechecked(&universal, idx);
           db_node(universal);

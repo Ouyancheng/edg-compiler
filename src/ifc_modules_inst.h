@@ -522,6 +522,14 @@ Explicit instantiations of functions for EdgTokenIdentifier.
 */
 INST_CONSTRUCT_NODE_ALL(an_ifc_edg_token_identifier,
                         an_ifc_edg_complex_token_index)
+INST_NODE_DECL(an_ifc_edg_token_textual_storage)
+
+
+/*
+Explicit instantiations of functions for EdgTokenTextual.
+*/
+INST_CONSTRUCT_NODE_ALL(an_ifc_edg_token_textual,
+                        an_ifc_edg_complex_token_index)
 INST_NODE_DECL(an_ifc_edg_trait_function_definition_storage)
 INST_NODE_DECL(an_ifc_expr_alignof_storage)
 
