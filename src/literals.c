@@ -222,9 +222,13 @@ of the token if digit separators are enabled.
   if (radix == 10) {
     /* Decimal. */
     if (!number_contains_digit_separator &&
-        sizeof(a_host_large_unsigned) >= 8 &&
-        real_end_pos - start_of_curr_token <= 18) {
-      /* A 19-digit decimal number can be represented without overflow in
+        (sizeof(a_host_large_unsigned) >= 16 &&
+         real_end_pos - start_of_curr_token <= 36) ||
+        (sizeof(a_host_large_unsigned) >= 8 &&
+         real_end_pos - start_of_curr_token <= 18) ||
+        (sizeof(a_host_large_unsigned) >= 4 &&
+         real_end_pos - start_of_curr_token <= 8)) {
+      /* The value of the literal can be represented without overflow in
          a_host_large_unsigned, so we can use a more efficient loop
          accumulating the literal value. */
       a_host_large_unsigned lit_val = *start_of_curr_token - '0';
@@ -234,9 +238,9 @@ of the token if digit separators are enabled.
       }  /* for */
       set_unsigned_integer_value(&number, lit_val);
     } else {
-      /* For small host integers, very large literals, or embedded digit
-         separators, use the constant integer routines to calculate the
-         value of the literal. */
+      /* For literals that might overflow a host integer or that contain
+         embedded digit separators, use the constant integer routines to
+         calculate the value of the literal. */
       set_unsigned_integer_value(&ten, (a_host_large_unsigned)10);
       intdigit = *start_of_curr_token - '0';
       set_unsigned_integer_value(&number, (a_host_large_unsigned)intdigit);
