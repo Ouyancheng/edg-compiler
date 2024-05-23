@@ -222,12 +222,12 @@ of the token if digit separators are enabled.
   if (radix == 10) {
     /* Decimal. */
     if (!number_contains_digit_separator &&
-        (sizeof(a_host_large_unsigned) >= 16 &&
-         real_end_pos - start_of_curr_token <= 36) ||
-        (sizeof(a_host_large_unsigned) >= 8 &&
-         real_end_pos - start_of_curr_token <= 18) ||
-        (sizeof(a_host_large_unsigned) >= 4 &&
-         real_end_pos - start_of_curr_token <= 8)) {
+        ((sizeof(a_host_large_unsigned) >= 16 &&
+          real_end_pos - start_of_curr_token <= 36) ||
+         (sizeof(a_host_large_unsigned) >= 8 &&
+          real_end_pos - start_of_curr_token <= 18) ||
+         (sizeof(a_host_large_unsigned) >= 4 &&
+          real_end_pos - start_of_curr_token <= 8))) {
       /* The value of the literal can be represented without overflow in
          a_host_large_unsigned, so we can use a more efficient loop
          accumulating the literal value. */
