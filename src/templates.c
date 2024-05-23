@@ -6516,6 +6516,9 @@ user later during real instantiations.
                                                   .within_unnamed_namespace)) {
       var_ptr->storage_class = sc_static;
       var_ptr->source_corresp.name_linkage = nlk_internal;
+#if GNU_EXTENSIONS_ALLOWED && GNU_VISIBILITY_ATTRIBUTE_ALLOWED
+      var_ptr->ELF_visibility = evk_unspecified;
+#endif /* GNU_EXTENSIONS_ALLOWED && GNU_VISIBILITY_ATTRIBUTE_ALLOWED */
     } else {
       var_ptr->storage_class = sc_unspecified;
       var_ptr->source_corresp.name_linkage = nlk_cplusplus_external;
@@ -9967,11 +9970,13 @@ a type in certain ways (see template_arg_list_is_dependent).
      that have internal linkage then set this instance to have internal linkage
      as well, since it cannot be referred to by name outside of this TU. */
   if (tssp->is_error) {
-    class_type->source_corresp.name_linkage =
-                                 (a_name_linkage_kind)nlk_cplusplus_external;
+    class_type->source_corresp.name_linkage = nlk_cplusplus_external;
   } else if (template_linkage_depends_on_instantiation_args &&
              template_arg_list_has_internal_linkage(template_arg_list)) {
-    class_type->source_corresp.name_linkage =(a_name_linkage_kind)nlk_internal;
+    class_type->source_corresp.name_linkage = nlk_internal;
+#if GNU_EXTENSIONS_ALLOWED && GNU_VISIBILITY_ATTRIBUTE_ALLOWED
+    ctsp->ELF_visibility = evk_unspecified;
+#endif /* GNU_EXTENSIONS_ALLOWED && GNU_VISIBILITY_ATTRIBUTE_ALLOWED */
   } else {
     class_type->source_corresp.name_linkage =
                                    tssp->variant.class_template.name_linkage;
@@ -19275,9 +19280,12 @@ by this routine.
                             (a_routine_ptr)NULL, tip, &decl_pos_block);
   var = variable_for_symbol(sym);
   if (!sym->is_class_member && symbol_is(sym, sk_variable) &&
-      dps->storage_class == (a_storage_class)sc_static) {
-    var->storage_class = dps->storage_class;
-    var->source_corresp.name_linkage = (a_name_linkage_kind)nlk_internal;
+      dps->storage_class == sc_static) {
+    var->storage_class = sc_static;
+    var->source_corresp.name_linkage = nlk_internal;
+#if GNU_EXTENSIONS_ALLOWED && GNU_VISIBILITY_ATTRIBUTE_ALLOWED
+    var->ELF_visibility = evk_unspecified;
+#endif /* GNU_EXTENSIONS_ALLOWED && GNU_VISIBILITY_ATTRIBUTE_ALLOWED */
   }  /* if */
   if (var->type == NULL) {
     var->type = dps->type;
@@ -20052,13 +20060,16 @@ mode in-class specialization.
 #if GNU_EXTENSIONS_ALLOWED
     if (gpp_mode) {
 #if GNU_VISIBILITY_ATTRIBUTE_ALLOWED
-      rp->ELF_visibility = templ_rout->ELF_visibility;
-      if (rp->source_corresp.is_class_member &&
-          rp->ELF_visibility == (an_ELF_visibility_kind)evk_unspecified) {
-        /* If no visibility attribute was specified on the function, propagate
-           any visibility that was specified on the enclosing class */
-        check_assertion(parent_class != NULL);
-        rp->ELF_visibility = class_type_supp(parent_class)->ELF_visibility;
+      if (rp->storage_class != sc_static) {
+        rp->ELF_visibility = templ_rout->ELF_visibility;
+        if (rp->source_corresp.is_class_member &&
+            rp->ELF_visibility == (an_ELF_visibility_kind)evk_unspecified) {
+          /* If no visibility attribute was specified on the function,
+             propagate any visibility that was specified on the enclosing
+             class. */
+          check_assertion(parent_class != NULL);
+          rp->ELF_visibility = class_type_supp(parent_class)->ELF_visibility;
+        }  /* if */
       }  /* if */
 #endif /* GNU_VISIBILITY_ATTRIBUTE_ALLOWED */
     }  /* if */
@@ -33824,15 +33835,15 @@ that follows.
             dps->storage_class == (a_storage_class)sc_static) {
           /* Function was declared "static" or it was declared "inline" and
              inline functions have internal linkage by default. */
-          rp->storage_class = (a_storage_class)sc_static;
-          rp->source_corresp.name_linkage =
-                                 (a_name_linkage_kind)nlk_internal;
+          rp->storage_class = sc_static;
+          rp->source_corresp.name_linkage = nlk_internal;
+#if GNU_EXTENSIONS_ALLOWED && GNU_VISIBILITY_ATTRIBUTE_ALLOWED
+          rp->ELF_visibility = evk_unspecified;
+#endif /* GNU_EXTENSIONS_ALLOWED && GNU_VISIBILITY_ATTRIBUTE_ALLOWED */
         } else {
-          rp->storage_class =
-                         dps->is_definition? (a_storage_class)sc_unspecified :
-                                             (a_storage_class)sc_extern;
-          rp->source_corresp.name_linkage =
-                                 (a_name_linkage_kind)nlk_cplusplus_external;
+          rp->storage_class = dps->is_definition? sc_unspecified
+                                                : sc_extern;
+          rp->source_corresp.name_linkage = nlk_cplusplus_external;
         }  /* if */
         if (dps->type->kind == (a_type_kind)tk_typeref &&
             is_possibly_qualified_typedef(dps->type)) {
