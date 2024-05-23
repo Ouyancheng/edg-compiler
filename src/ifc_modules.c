@@ -25350,7 +25350,7 @@ static inline a_boolean cache_edg_complex_token_case(
                                       an_ifc_edg_complex_token_index token_idx)
 /*
 Cache the complex token at the given index, of the given node type, into the
-given token cache.
+given token cache.  Return TRUE if caching succeeds; otherwise, return FALSE.
 */
 {
   a_boolean             result = FALSE;
@@ -25373,7 +25373,8 @@ inline a_boolean cache_edg_complex_token_case<an_ifc_edg_token_textual>(
                                       a_module_token_cache_ptr       cache,
                                       an_ifc_edg_complex_token_index token_idx)
 /*
-Cache the given identifier token into the given token cache.
+Cache the given textual token (indexed by token_idx) into the given token
+cache.  Return TRUE if caching succeeds; otherwise, return FALSE.
 */
 {
   a_boolean     result = TRUE;
