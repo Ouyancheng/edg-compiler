@@ -51,12 +51,14 @@ to allow every token to have a unique name.
   a_const_char *result;
 
   switch (token_kind) {
+#if MICROSOFT_EXTENSIONS_ALLOWED
     case tok_prefix_for:
       result = "for[[prefix]]";
       break;
     case tok_prefix_enum:
       result = "enum[[prefix]]";
       break;
+#endif /* MICROSOFT_EXTENSIONS_ALLOWED */
     case tok_cpp98_export:
       result = "export[[C++98]]";
       break;
