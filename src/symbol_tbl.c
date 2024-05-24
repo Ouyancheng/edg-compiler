@@ -18380,7 +18380,7 @@ static struct {
                               /sizeof(constexpr_intrinsic_descriptions[0])))
 
 using a_constexpr_intrinsic_descr_table =
-		Ptr_map<a_symbol_header*, a_constexpr_intrinsic_descr>;
+		Ptr_map<a_symbol_header*, a_constexpr_intrinsic_descr*>;
 			/* The type of a table that maps intrinsic identifiers
 			   to descriptions of functions that the interpreter
 			   knows how to evaluate.  (Function with names in the
@@ -18413,7 +18413,7 @@ intrinsically.
     (void)find_symbol(name, strlen(name), &loc);
     loc.symbol_header->has_intrinsic_name = TRUE;
     constexpr_intrinsic_descr_table->map(
-                 loc.symbol_header,constexpr_intrinsic_descriptions[n].descr);
+               loc.symbol_header, &constexpr_intrinsic_descriptions[n].descr);
                                         
   }  /* for */
 }  /* init_constexpr_instrinsic_descriptions */
@@ -18660,14 +18660,15 @@ interpreter) and if so mark it as such.
 */
 {
   a_constexpr_intrinsic_descr
-		descr;
+		*descr;
 
   descr = constexpr_intrinsic_descr_table->get(sym_hdr);
-  if (descr.kind != cit_error) {
-    if (is_namespace_member(rp) && *descr.p_namespace_sym != NULL &&
-        is_member_of_namespace(symbol_for(rp), *descr.p_namespace_sym)) {
-      if (matches_constexpr_intrinsic_sig(rp, descr.signature)) {
-        register_constexpr_intrinsic(descr.kind, rp);
+  if (descr != NULL) {
+    check_assertion(descr->kind != cit_error);
+    if (is_namespace_member(rp) && *descr->p_namespace_sym != NULL &&
+        is_member_of_namespace(symbol_for(rp), *descr->p_namespace_sym)) {
+      if (matches_constexpr_intrinsic_sig(rp, descr->signature)) {
+        register_constexpr_intrinsic(descr->kind, rp);
       }  /* if */
     }  /* if */
   }  /* if */
