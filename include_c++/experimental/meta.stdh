@@ -196,13 +196,25 @@ namespace std {
     }
 
     template<typename T>
-    consteval info reflect_value(T) {
+    consteval info reflect_result(T) {
       return ^::;  /* Dummy return.  Handled by interpreter. */
     }
 
     template<typename T>
-    consteval T value_of(info) {
+    [[deprecated("use std::meta::reflect_result")]]
+    consteval info reflect_value(T v) {
+      return reflect_result<T>(v);
+    }
+
+    template<typename T>
+    consteval T extract(info) {
       return T{};  /* Dummy return.  Handled by interpreter. */
+    }
+
+    template<typename T>
+    [[deprecated("use std::meta::extract")]]
+    consteval T value_of(info r) {
+      return extract<T>(r);
     }
 
     consteval bool test_type(info templ, info type) {
@@ -484,15 +496,15 @@ namespace std {
     }
 
 
-    consteval void __define_class(info type,
-                                  int  n_fields,
-                                  nsdm_description *field_info) {
+    consteval void define_class__impl(info type,
+                                      int  n_fields,
+                                      nsdm_description *field_info) {
       /* Handled by interpreter. */
     };
 
     consteval info define_class(info  type,
                                 std::vector<nsdm_description> fields) {
-      __define_class(type, fields.size(), fields.data());
+      define_class__impl(type, fields.size(), fields.data());
       return type;
     }
 

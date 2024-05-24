@@ -71,77 +71,129 @@ a_boolean interpret_constexpr_ctor(a_dynamic_init_ptr  dip,
                                    a_constant_ptr      result_con,
                                    a_diag_list_ptr     diag_list);
 
+/*
+The following macro (NS_scope_constexpr_intrinsics) describes functions in
+namespace std and std::meta that the front end recognizes and attempts to
+evaluate intrinsically.  The macro takes a macro M that should be replaced
+by a macro of the form:
+
+  #define MACRO(ns, name, signature)
+
+Different parts of the front end invoke NS_scope_constexpr_intrinsics to
+  1) define (here, in interpret.h) enumerator constants identifying the
+     intrinsics by number
+  2) define a table (in symbol_tbl.h) used to (a) mark associated symbol
+     headers for efficient identification, and (b) build a Ptr_map to
+     associate a "signature" to match function declarations with
+  3) produce switch cases (in interpret.c) to handle evaluation dispatch
+
+The "signature" is a string literal used as the third operand for the macro M.
+This literal places some constraints on template arguments (optional), function
+parameters (optional) and the return type (mandatory).  For example, if the
+front end runs into a function std::construct_at, it will (a) recognize that
+the symbol header for "construct_at" is marked as an intrinsic name, (b) look
+up that header in the Ptr_map mentioned in (2) above (finding the string
+literal "<T,>(*.,)*."), and (c) compare the declaration against the string as
+follows:
+  - "<T,>" indicates that a leading type argument is required (and the trailing
+     comma indicates that additional unconstrained arguments are permitted)
+  - "(*.,)" indicates that one or more parameter type are expected (again, the
+     trailing comma indicates optional additional parameters); "*" represents
+     "pointer to" and "." represents "any type"
+  - The second "*." represents the return type ("pointer to any type")
+The "type codes" currently recognized are:
+  - ".": any type
+  - "b": bool
+  - "r": std::meta::info
+  - "v": void
+  - "C": a built-in character type
+  - "I": an integral type
+  - "Sv": std::string_view
+  - "Sz": std::size_t
+  - "Vr": std::meta::__infovec
+  - "*": pointer to the type kind described in the following code
+
+If a new intrinsic is added with name intrin in the namespace identified with
+ns (currently ns must be std or std_meta), a function do_constexpr_ns_intrin
+must be defined in interpret.c to implement its evaluation.
+*/
+#define NS_scope_constexpr_intrinsics(M) \
+  M(std, is_constant_evaluated, "()b") \
+  M(std, construct_at, "<T,>(*.,)*.") \
+  M(std, __report_constexpr_value, "(I)v|(*C)v|(*C,I)v") \
+  M(std_meta, make_constexpr_array, "<T>(*.,I)*.") \
+  M(std_meta, name_of, "(r)Sv") \
+  M(std_meta, members__impl, "(r)Vr") \
+  M(std_meta, static_data_members__impl, "(r)Vr") \
+  M(std_meta, nonstatic_data_members__impl, "(r)Vr") \
+  M(std_meta, bases__impl, "(r)Vr") \
+  M(std_meta, subobjects__impl, "(r)Vr") \
+  M(std_meta, enumerators__impl, "(r)Vr") \
+  M(std_meta, parameters__impl, "(r)Vr") \
+  M(std_meta, template_arguments__impl, "(r)Vr") \
+  M(std_meta, substitute__impl, "(r,Vr)r") \
+  M(std_meta, reflect_result, "<T>(.)r") \
+  M(std_meta, extract, "<T>(r).") \
+  M(std_meta, is_type, "(r)b") \
+  M(std_meta, is_alias, "(r)b") \
+  M(std_meta, is_incomplete_type, "(r)b") \
+  M(std_meta, is_template, "(r)b") \
+  M(std_meta, is_function_template, "(r)b") \
+  M(std_meta, is_variable_template, "(r)b") \
+  M(std_meta, is_class_template, "(r)b") \
+  M(std_meta, is_alias_template, "(r)b") \
+  M(std_meta, is_concept, "(r)b") \
+  M(std_meta, is_constant, "(r)b") \
+  M(std_meta, is_variable, "(r)b") \
+  M(std_meta, is_function, "(r)b") \
+  M(std_meta, is_function_parameter, "(r)b") \
+  M(std_meta, is_explicit_object_parameter, "(r)b") \
+  M(std_meta, is_namespace, "(r)b") \
+  M(std_meta, is_nsdm, "(r)b") \
+  M(std_meta, is_base, "(r)b") \
+  M(std_meta, is_constructor, "(r)b") \
+  M(std_meta, is_destructor, "(r)b") \
+  M(std_meta, is_special_member, "(r)b") \
+  M(std_meta, is_public, "(r)b") \
+  M(std_meta, is_protected, "(r)b") \
+  M(std_meta, is_private, "(r)b") \
+  M(std_meta, is_accessible, "(r)b") \
+  M(std_meta, is_static_member, "(r)b") \
+  M(std_meta, is_virtual, "(r)b") \
+  M(std_meta, is_deleted, "(r)b") \
+  M(std_meta, is_defaulted, "(r)b") \
+  M(std_meta, is_explicit, "(r)b") \
+  M(std_meta, is_override, "(r)b") \
+  M(std_meta, is_pure_virtual, "(r)b") \
+  M(std_meta, is_bit_field, "(r)b") \
+  M(std_meta, has_static_storage_duration, "(r)b") \
+  M(std_meta, has_internal_linkage, "(r)b") \
+  M(std_meta, has_c_varargs, "(r)b") \
+  M(std_meta, has_default_argument, "(r)b") \
+  M(std_meta, has_consistent_name, "(r)b") \
+  M(std_meta, has_template_arguments, "(r)b") \
+  M(std_meta, dealias, "(r)r") \
+  M(std_meta, template_of, "(r)r") \
+  M(std_meta, type_of, "(r)r") \
+  M(std_meta, return_type_of, "(r)r") \
+  M(std_meta, parent_of, "(r)r") \
+  M(std_meta, size_of, "(r)Sz") \
+  M(std_meta, offset_of, "(r)Sz") \
+  M(std_meta, bit_size_of, "(r)Sz") \
+  M(std_meta, bit_offset_of, "(r)Sz") \
+  M(std_meta, alignment_of, "(r)Sz") \
+  M(std_meta, define_class__impl, "(r,I,*.)v") \
+  M(std_meta, metacall__impl, "(r,Vr)r") 
+
+
+
 enum a_constexpr_intrinsic {
   cit_error,
-  cit_std_is_constant_evaluated,
   cit_std_allocator_allocate,
   cit_std_allocator_deallocate,
-  cit_std_construct_at,
-  cit_std_destroy_at,
-  cit_std_report_constexpr_value,
-  cit_std_meta_make_constexpr_array,
-  cit_std_meta_name_of,
-  cit_std_meta_members_of,
-  cit_std_meta_static_data_members_of,
-  cit_std_meta_nonstatic_data_members_of,
-  cit_std_meta_bases_of,
-  cit_std_meta_subobjects_of,
-  cit_std_meta_enumerators_of,
-  cit_std_meta_parameters_of,
-  cit_std_meta_substitute,
-  cit_std_meta_reflect_value,
-  cit_std_meta_value_of,
-  cit_std_meta_is_type,
-  cit_std_meta_is_alias,
-  cit_std_meta_is_incomplete_type,
-  cit_std_meta_is_template,
-  cit_std_meta_is_function_template,
-  cit_std_meta_is_variable_template,
-  cit_std_meta_is_class_template,
-  cit_std_meta_is_alias_template,
-  cit_std_meta_is_concept,
-  cit_std_meta_is_constant,
-  cit_std_meta_is_variable,
-  cit_std_meta_is_function,
-  cit_std_meta_is_function_parameter,
-  cit_std_meta_is_explicit_object_parameter,
-  cit_std_meta_is_namespace,
-  cit_std_meta_is_nsdm,
-  cit_std_meta_is_base,
-  cit_std_meta_is_constructor,
-  cit_std_meta_is_destructor,
-  cit_std_meta_is_special_member,
-  cit_std_meta_is_public,
-  cit_std_meta_is_protected,
-  cit_std_meta_is_private,
-  cit_std_meta_is_accessible,
-  cit_std_meta_is_static_member,
-  cit_std_meta_is_virtual,
-  cit_std_meta_is_deleted,
-  cit_std_meta_is_defaulted,
-  cit_std_meta_is_explicit,
-  cit_std_meta_is_override,
-  cit_std_meta_is_pure_virtual,
-  cit_std_meta_is_bit_field,
-  cit_std_meta_has_static_storage_duration,
-  cit_std_meta_has_internal_linkage,
-  cit_std_meta_has_c_varargs,
-  cit_std_meta_has_default_argument,
-  cit_std_meta_has_consistent_name,
-  cit_std_meta_has_template_arguments,
-  cit_std_meta_template_arguments_of,
-  cit_std_meta_template_of,
-  cit_std_meta_type_of,
-  cit_std_meta_return_type_of,
-  cit_std_meta_parent_of,
-  cit_std_meta_dealias,
-  cit_std_meta_size_of,
-  cit_std_meta_offset_of,
-  cit_std_meta_bit_size_of,
-  cit_std_meta_bit_offset_of,
-  cit_std_meta_alignment_of,
-  cit_std_meta_define_class,
-  cit_std_meta_metacall,
+#define CIT_name(ns, name, signature)  cit_##ns##_##name,
+  NS_scope_constexpr_intrinsics(CIT_name)
+#undef CIT_name
   cit_last
 };
 

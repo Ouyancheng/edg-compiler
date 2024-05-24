@@ -10224,17 +10224,18 @@ See do_constexpr_intrinsic_call for the meaning of the parameters.
     info_with_pos(ec_constexpr_invalid_null_ptr_operation, 
                   &call_node->position, ips);
   } else {
-    a_template_arg_ptr    tap = callee->template_arg_list;
-    a_type_ptr            array_type, elem_type = tap->variant.type;
-    a_byte_count          elem_size, pos, len;
-    an_integer_value      *param2 = (an_integer_value*)p_arg_bytes[1];
-    a_host_large_integer  n_elems;
-    a_boolean             ovfl;
-    a_variable_ptr        vp;
-    a_constant_ptr        init_cp, result_cp;
-    a_symbol_ptr          sym;
-    a_symbol_locator      loc;
-    static long           n = 0;
+    a_memory_region_number  region_to_switch_back_to;
+    a_template_arg_ptr      tap = callee->template_arg_list;
+    a_type_ptr              array_type, elem_type = tap->variant.type;
+    a_byte_count            elem_size, pos, len;
+    an_integer_value        *param2 = (an_integer_value*)p_arg_bytes[1];
+    a_host_large_integer    n_elems;
+    a_boolean               ovfl;
+    a_variable_ptr          vp;
+    a_constant_ptr          init_cp, result_cp;
+    a_symbol_ptr            sym;
+    a_symbol_locator        loc;
+    static long             n = 0;
     get_array_pos(ips, cap, elem_type, &len, &pos, &elem_size,
                   &result);
     if (!result) goto done;
@@ -10257,11 +10258,13 @@ See do_constexpr_intrinsic_call for the meaning of the parameters.
     array_type->variant.array.variant.number_of_elements =
                                                        (a_targ_size_t)n_elems;
     init_cp = fs_constant(ck_aggregate);
+    switch_to_file_scope_region(&region_to_switch_back_to);
     if (!copy_interpreter_object_to_constant(
               ips, cap->address, cap->complete_object, array_type, init_cp)) {
       result = FALSE;
       goto done;
     }  /* if */
+    switch_back_to_original_region(region_to_switch_back_to);
     vp = make_variable(array_type, (a_storage_class)sc_static, NO_SCOPE_DEPTH);
     add_temporary_to_front_of_variables_list(
                                     vp, curr_translation_unit->primary_scope);
@@ -10291,7 +10294,7 @@ done:
 }  /* do_constexpr_std_meta_make_constexpr_array */
 
 
-static a_boolean do_constexpr_std_meta_reflect_value(
+static a_boolean do_constexpr_std_meta_reflect_result(
                                         an_interpreter_state  *ips,
                                         a_routine_ptr         callee,
                                         an_expr_node_ptr      call_node,
@@ -10299,8 +10302,8 @@ static a_boolean do_constexpr_std_meta_reflect_value(
                                         a_byte                *result_storage,
                                         a_byte                *complete_obj)
 /*
-Implement std::meta::reflect_value(T val).  It creates IL (a_constant) for the
-value val and returns a reflection value referring to that constant.
+Implement std::meta::reflect_result<T>(T val).  It creates IL (a_constant) for
+the value val and returns a reflection value referring to that constant.
 
 See do_constexpr_intrinsic_call for the meaning of the parameters.
 */
@@ -10327,10 +10330,10 @@ See do_constexpr_intrinsic_call for the meaning of the parameters.
     result = TRUE;
   }  /* if */
   return result;
-}  /* do_constexpr_std_meta_reflect_value */
+}  /* do_constexpr_std_meta_reflect_result */
 
 
-static a_boolean handle_pm_case_for_value_of(
+static a_boolean handle_pm_case_for_extract(
                                          an_interpreter_state  *ips,
                                          a_constant_ptr        cp,
                                          a_type_ptr            val_type,
@@ -10338,10 +10341,10 @@ static a_boolean handle_pm_case_for_value_of(
                                          a_byte                *result_storage,
                                          a_byte                *complete_obj)
 /*
-Handle the case where std::meta::value_of<T>(r) is evaluated with T a
+Handle the case where std::meta::extract<T>(r) is evaluated with T a
 pointer-to-member type (val_type) and r is the reflection of a field or a
 nonstatic member function.  cp is a pointer-to-member constant for the
-nonstatic member being reflected.  See do_constexpr_std_meta_value_of for the
+nonstatic member being reflected.  See do_constexpr_std_meta_extract for the
 meanings of call_node, result_storage, and complete_obj.
 */
 {
@@ -10370,10 +10373,10 @@ meanings of call_node, result_storage, and complete_obj.
     do_constexpr_fail(result);
   }  /* if */
   return result;
-}  /* handle_pm_case_for_value_of */
+}  /* handle_pm_case_for_extract */
 
 
-static a_boolean do_constexpr_std_meta_value_of(
+static a_boolean do_constexpr_std_meta_extract(
                                         an_interpreter_state  *ips,
                                         a_routine_ptr         callee,
                                         an_expr_node_ptr      call_node,
@@ -10381,7 +10384,7 @@ static a_boolean do_constexpr_std_meta_value_of(
                                         a_byte                *result_storage,
                                         a_byte                *complete_obj)
 /*
-Implement std::meta::value_of<T>(r).  Return at result_storage the value of
+Implement std::meta::extract<T>(r).  Return at result_storage the value of
 type T that is reflected by r.
 
 See do_constexpr_intrinsic_call for the meaning of the parameters.
@@ -10417,7 +10420,7 @@ See do_constexpr_intrinsic_call for the meaning of the parameters.
         vp = (a_variable*)rvp->entity.ptr;
         rt = vp->type;
         if (is_reference_type(rt)) {
-          /* A reference variable.  In value_of<T>(r), T must be a matching
+          /* A reference variable.  In extract<T>(r), T must be a matching
              reference type and the result is the referenced address. */
           if (identical_types(rt, val_type)) {
             node->is_lvalue = TRUE;
@@ -10481,8 +10484,8 @@ See do_constexpr_intrinsic_call for the meaning of the parameters.
                    routine_type_is_nonstatic_member_function(rt)) {
           cp = local_constant();
           set_ptr_to_member_function_constant(rp, cp);
-          result = handle_pm_case_for_value_of(ips, cp, val_type, call_node,
-                                               result_storage, complete_obj);
+          result = handle_pm_case_for_extract(ips, cp, val_type, call_node,
+                                              result_storage, complete_obj);
           release_local_constant(&cp);
         } else {
           info_with_pos_type2(ec_incompatible_std_meta_value_of_type,
@@ -10497,8 +10500,8 @@ See do_constexpr_intrinsic_call for the meaning of the parameters.
         if (!fp->is_bit_field) {
           cp = local_constant();
           set_ptr_to_data_member_constant((a_field*)rvp->entity.ptr, cp);
-          result = handle_pm_case_for_value_of(ips, cp, val_type, call_node,
-                                               result_storage, complete_obj);
+          result = handle_pm_case_for_extract(ips, cp, val_type, call_node,
+                                              result_storage, complete_obj);
           release_local_constant(&cp);
         } else {
           info_with_pos(ec_address_of_bit_field, &call_node->position, ips);
@@ -10533,7 +10536,7 @@ See do_constexpr_intrinsic_call for the meaning of the parameters.
     }  /* if */
   }  /* if */
   return result;
-}  /* do_constexpr_std_meta_value_of */
+}  /* do_constexpr_std_meta_extract */
 
 
 static inline void set_bool_value(a_boolean  value,
@@ -11687,7 +11690,7 @@ reflection is for a template instance.  Otherwise, return NULL.
 }  /* template_args_for_reflection */
 
 
-static a_boolean do_constexpr_std_meta_template_arguments_of(
+static a_boolean do_constexpr_std_meta_template_arguments__impl(
                                         an_interpreter_state  *ips,
                                         a_routine_ptr         callee,
                                         an_expr_node_ptr      call_node,
@@ -11724,7 +11727,7 @@ See do_constexpr_intrinsic_call for the meaning of the parameters.
     do_constexpr_fail(result);
   }  /* if */
   return result;
-}  /* do_constexpr_std_meta_template_arguments_of */
+}  /* do_constexpr_std_meta_template_arguments__impl */
 
 
 static a_boolean do_constexpr_std_meta_template_of(
@@ -12451,7 +12454,7 @@ See do_constexpr_intrinsic_call for the meaning of the parameters.
 }  /* do_constexpr_std_meta_name_of */
 
 
-static a_boolean do_constexpr_std_meta_members_of(
+static a_boolean do_constexpr_std_meta_members__impl(
                                         an_interpreter_state  *ips,
                                         a_routine_ptr         callee,
                                         an_expr_node_ptr      call_node,
@@ -12542,10 +12545,10 @@ See do_constexpr_intrinsic_call for the meaning of the parameters.
   }  /* if */
 done:
   return result;
-}  /* do_constexpr_std_meta_members_of */
+}  /* do_constexpr_std_meta_members__impl */
 
 
-static a_boolean do_constexpr_std_meta_static_data_members_of(
+static a_boolean do_constexpr_std_meta_static_data_members__impl(
                                         an_interpreter_state  *ips,
                                         a_routine_ptr         callee,
                                         an_expr_node_ptr      call_node,
@@ -12614,10 +12617,10 @@ See do_constexpr_intrinsic_call for the meaning of the parameters.
   }  /* if */
 done:
   return result;
-}  /* do_constexpr_std_meta_static_data_members_of */
+}  /* do_constexpr_std_meta_static_data_members__impl */
 
 
-static a_boolean do_constexpr_std_meta_nonstatic_data_members_of(
+static a_boolean do_constexpr_std_meta_nonstatic_data_members__impl(
                                         an_interpreter_state  *ips,
                                         a_routine_ptr         callee,
                                         an_expr_node_ptr      call_node,
@@ -12684,10 +12687,10 @@ See do_constexpr_intrinsic_call for the meaning of the parameters.
   }  /* if */
 done:
   return result;
-}  /* do_constexpr_std_meta_nonstatic_data_members_of */
+}  /* do_constexpr_std_meta_nonstatic_data_members__impl */
 
 
-static a_boolean do_constexpr_std_meta_bases_of(
+static a_boolean do_constexpr_std_meta_bases__impl(
                                         an_interpreter_state  *ips,
                                         a_routine_ptr         callee,
                                         an_expr_node_ptr      call_node,
@@ -12753,10 +12756,10 @@ See do_constexpr_intrinsic_call for the meaning of the parameters.
   }  /* if */
 done:
   return result;
-}  /* do_constexpr_std_meta_bases_of */
+}  /* do_constexpr_std_meta_bases__impl */
 
 
-static a_boolean do_constexpr_std_meta_subobjects_of(
+static a_boolean do_constexpr_std_meta_subobjects__impl(
                                         an_interpreter_state  *ips,
                                         a_routine_ptr         callee,
                                         an_expr_node_ptr      call_node,
@@ -12832,10 +12835,10 @@ See do_constexpr_intrinsic_call for the meaning of the parameters.
   }  /* if */
 done:
   return result;
-}  /* do_constexpr_std_meta_subobjects_of */
+}  /* do_constexpr_std_meta_subobjects__impl */
 
 
-static a_boolean do_constexpr_std_meta_enumerators_of(
+static a_boolean do_constexpr_std_meta_enumerators__impl(
                                         an_interpreter_state  *ips,
                                         a_routine_ptr         callee,
                                         an_expr_node_ptr      call_node,
@@ -12901,10 +12904,10 @@ See do_constexpr_intrinsic_call for the meaning of the parameters.
   }  /* if */
 done:
   return result;
-}  /* do_constexpr_std_meta_enumerators_of */
+}  /* do_constexpr_std_meta_enumerators__impl */
 
 
-static a_boolean do_constexpr_std_meta_parameters_of(
+static a_boolean do_constexpr_std_meta_parameters__impl(
                                         an_interpreter_state  *ips,
                                         a_routine_ptr         callee,
                                         an_expr_node_ptr      call_node,
@@ -12972,10 +12975,10 @@ See do_constexpr_intrinsic_call for the meaning of the parameters.
   }  /* if */
 done:
   return result;
-}  /* do_constexpr_std_meta_parameters_of */
+}  /* do_constexpr_std_meta_parameters__impl */
 
 
-static a_boolean do_constexpr_std_meta_substitute(
+static a_boolean do_constexpr_std_meta_substitute__impl(
                                         an_interpreter_state  *ips,
                                         a_routine_ptr         callee,
                                         an_expr_node_ptr      call_node,
@@ -12983,7 +12986,7 @@ static a_boolean do_constexpr_std_meta_substitute(
                                         a_byte                *result_storage,
                                         a_byte                *complete_obj)
 /*
-Implement std::meta::substitute(<info>, <infovec>).  It returns a
+Implement std::meta::substitute__impl(<info>, <infovec>).  It returns a
 reflection for an instance obtained by substituting the template arguments
 represented by <infovec> in the template represented by info.  A substitution
 error is communicated with an invalid reflection.
@@ -13142,10 +13145,10 @@ done:
     mark_subobject_initialized(result_storage, complete_obj);
   }  /* if */
   return result;
-}  /* do_constexpr_std_meta_substitute */
+}  /* do_constexpr_std_meta_substitute__impl */
 
 
-static a_boolean do_constexpr_std_meta_define_class(
+static a_boolean do_constexpr_std_meta_define_class__impl(
                                         an_interpreter_state  *ips,
                                         a_routine_ptr         callee,
                                         an_expr_node_ptr      call_node,
@@ -13153,8 +13156,8 @@ static a_boolean do_constexpr_std_meta_define_class(
                                         a_byte                *result_storage,
                                         a_byte                *complete_object)
 /*
-Implement std::meta::__define_class(<info>, n, <descriptions>).  It returns its
-first argument, which should be a reflection for an incomplete class type.
+Implement std::meta::define_class__impl(<info>, n, <descriptions>).  It returns
+its first argument, which should be a reflection for an incomplete class type.
 The third argument of the call points to an array of n elements of type
 std::meta::ndsm_description that describe members that should be added to the
 definition of the given type.  This function triggers the completion of the
@@ -13362,10 +13365,10 @@ See do_constexpr_intrinsic_call for the meaning of the parameters.
   synth_class_definition(class_type, &field_descrs, &call_node->position);
 done:
   return result;
-}  /* do_constexpr_std_meta_define_class */
+}  /* do_constexpr_std_meta_define_class__impl */
 
 
-static a_boolean do_constexpr_std_meta_metacall(
+static a_boolean do_constexpr_std_meta_metacall__impl(
                                         an_interpreter_state  *ips,
                                         a_routine_ptr         callee,
                                         an_expr_node_ptr      call_node,
@@ -13440,7 +13443,7 @@ See do_constexpr_intrinsic_call for the meaning of the parameters.
 done:
   if (result_con != NULL) release_local_constant(&result_con);
   return result;
-}  /* do_constexpr_std_meta_metacall */
+}  /* do_constexpr_std_meta_metacall__impl */
 
 
 static void report_leftover_allocations(an_interpreter_state  *ips)
@@ -13875,26 +13878,7 @@ See do_constexpr_std_allocator_allocate for the meaning of the parameters.
 }  /* do_constexpr_std_construct_at */
 
 
-static a_boolean do_constexpr_std_destroy_at(
-                                   an_interpreter_state        *ips,
-                                   a_routine_ptr               callee,
-                                   ARG_UNUSED an_expr_node_ptr call_node,
-                                   ARG_UNUSED a_byte           **p_arg_bytes,
-                                   ARG_UNUSED a_byte           *result_storage,
-                                   ARG_UNUSED a_byte           *complete_obj)
-/*
-Execute a call to std::destroy_at.  See do_constexpr_std_allocator_allocate
-for the meaning of the parameters.
-*/
-{
-  a_boolean  result = TRUE;
-
-  result = run_function_body(ips, scope_for_routine(callee));
-  return result;
-}  /* do_constexpr_std_destroy_at */
-
-
-static a_boolean do_constexpr_std_report_constexpr_value(
+static a_boolean do_constexpr_std___report_constexpr_value(
                                    an_interpreter_state        *ips,
                                    a_routine_ptr               callee,
                                    ARG_UNUSED an_expr_node_ptr call_node,
@@ -14004,7 +13988,7 @@ See do_constexpr_std_allocator_allocate for the meaning of the parameters.
   }  /* if */
 done:
   return result;
-}  /* do_constexpr_std_report_constexpr_value */
+}  /* do_constexpr_std___report_constexpr_value */
 
 
 typedef a_boolean (*an_intrinsic_evaluator)(
@@ -14041,213 +14025,21 @@ frame when the call has completed.
 
   /* Dispatch the call to the appropriate implementation. */
   switch (callee->number.constexpr_intrinsic) {
-    case cit_std_is_constant_evaluated:
-      evaluator = do_constexpr_std_is_constant_evaluated;
-      break;
     case cit_std_allocator_allocate:
       evaluator = do_constexpr_std_allocator_allocate;
       break;
     case cit_std_allocator_deallocate:
       evaluator = do_constexpr_std_allocator_deallocate;
       break;
-    case cit_std_construct_at:
-      evaluator = do_constexpr_std_construct_at;
-      break;
-    case cit_std_destroy_at:
-      evaluator = do_constexpr_std_destroy_at;
-      break;
-    case cit_std_report_constexpr_value:
-      evaluator = do_constexpr_std_report_constexpr_value;
-      break;
-    case cit_std_meta_make_constexpr_array:
-      evaluator = do_constexpr_std_meta_make_constexpr_array;
-      break;
-    case cit_std_meta_name_of:
-      evaluator = do_constexpr_std_meta_name_of;
-      break;
-    case cit_std_meta_members_of:
-      evaluator = do_constexpr_std_meta_members_of;
-      break;
-    case cit_std_meta_static_data_members_of:
-      evaluator = do_constexpr_std_meta_static_data_members_of;
-      break;
-    case cit_std_meta_nonstatic_data_members_of:
-      evaluator = do_constexpr_std_meta_nonstatic_data_members_of;
-      break;
-    case cit_std_meta_bases_of:
-      evaluator = do_constexpr_std_meta_bases_of;
-      break;
-    case cit_std_meta_subobjects_of:
-      evaluator = do_constexpr_std_meta_subobjects_of;
-      break;
-    case cit_std_meta_enumerators_of:
-      evaluator = do_constexpr_std_meta_enumerators_of;
-      break;
-    case cit_std_meta_parameters_of:
-      evaluator = do_constexpr_std_meta_parameters_of;
-      break;
-    case cit_std_meta_substitute:
-      evaluator = do_constexpr_std_meta_substitute;
-      break;
-    case cit_std_meta_reflect_value:
-      evaluator = do_constexpr_std_meta_reflect_value;
-      break;
-    case cit_std_meta_value_of:
-      evaluator = do_constexpr_std_meta_value_of;
-      break;
-    case cit_std_meta_is_type:
-      evaluator = do_constexpr_std_meta_is_type;
-      break;
-    case cit_std_meta_is_alias:
-      evaluator = do_constexpr_std_meta_is_alias;
-      break;
-    case cit_std_meta_is_incomplete_type:
-      evaluator = do_constexpr_std_meta_is_incomplete_type;
-      break;
-    case cit_std_meta_is_template:
-      evaluator = do_constexpr_std_meta_is_template;
-      break;
-    case cit_std_meta_is_function_template:
-      evaluator = do_constexpr_std_meta_is_function_template;
-      break;
-    case cit_std_meta_is_variable_template:
-      evaluator = do_constexpr_std_meta_is_variable_template;
-      break;
-    case cit_std_meta_is_class_template:
-      evaluator = do_constexpr_std_meta_is_class_template;
-      break;
-    case cit_std_meta_is_alias_template:
-      evaluator = do_constexpr_std_meta_is_alias_template;
-      break;
-    case cit_std_meta_is_concept:
-      evaluator = do_constexpr_std_meta_is_concept;
-      break;
-    case cit_std_meta_is_constant:
-      evaluator = do_constexpr_std_meta_is_constant;
-      break;
-    case cit_std_meta_is_variable:
-      evaluator = do_constexpr_std_meta_is_variable;
-      break;
-    case cit_std_meta_is_function:
-      evaluator = do_constexpr_std_meta_is_function;
-      break;
-    case cit_std_meta_is_function_parameter:
-      evaluator = do_constexpr_std_meta_is_function_parameter;
-      break;
-    case cit_std_meta_is_explicit_object_parameter:
-      evaluator = do_constexpr_std_meta_is_explicit_object_parameter;
-      break;
-    case cit_std_meta_is_namespace:
-      evaluator = do_constexpr_std_meta_is_namespace;
-      break;
-    case cit_std_meta_is_nsdm:
-      evaluator = do_constexpr_std_meta_is_nsdm;
-      break;
-    case cit_std_meta_is_base:
-      evaluator = do_constexpr_std_meta_is_base;
-      break;
-    case cit_std_meta_is_constructor:
-      evaluator = do_constexpr_std_meta_is_constructor;
-      break;
-    case cit_std_meta_is_destructor:
-      evaluator = do_constexpr_std_meta_is_destructor;
-      break;
-    case cit_std_meta_is_special_member:
-      evaluator = do_constexpr_std_meta_is_special_member;
-      break;
-    case cit_std_meta_is_public:
-      evaluator = do_constexpr_std_meta_is_public;
-      break;
-    case cit_std_meta_is_protected:
-      evaluator = do_constexpr_std_meta_is_protected;
-      break;
-    case cit_std_meta_is_private:
-      evaluator = do_constexpr_std_meta_is_private;
-      break;
-    case cit_std_meta_is_accessible:
-      evaluator = do_constexpr_std_meta_is_accessible;
-      break;
-    case cit_std_meta_is_static_member:
-      evaluator = do_constexpr_std_meta_is_static_member;
-      break;
-    case cit_std_meta_is_virtual:
-      evaluator = do_constexpr_std_meta_is_virtual;
-      break;
-    case cit_std_meta_is_deleted:
-      evaluator = do_constexpr_std_meta_is_deleted;
-      break;
-    case cit_std_meta_is_defaulted:
-      evaluator = do_constexpr_std_meta_is_defaulted;
-      break;
-    case cit_std_meta_is_explicit:
-      evaluator = do_constexpr_std_meta_is_explicit;
-      break;
-    case cit_std_meta_is_override:
-      evaluator = do_constexpr_std_meta_is_override;
-      break;
-    case cit_std_meta_is_pure_virtual:
-      evaluator = do_constexpr_std_meta_is_pure_virtual;
-      break;
-    case cit_std_meta_is_bit_field:
-      evaluator = do_constexpr_std_meta_is_bit_field;
-      break;
-    case cit_std_meta_has_static_storage_duration:
-      evaluator = do_constexpr_std_meta_has_static_storage_duration;
-      break;
-    case cit_std_meta_has_internal_linkage:
-      evaluator = do_constexpr_std_meta_has_internal_linkage;
-      break;
-    case cit_std_meta_has_c_varargs:
-      evaluator = do_constexpr_std_meta_has_c_varargs;
-      break;
-    case cit_std_meta_has_default_argument:
-      evaluator = do_constexpr_std_meta_has_default_argument;
-      break;
-    case cit_std_meta_has_consistent_name:
-      evaluator = do_constexpr_std_meta_has_consistent_name;
-      break;
-    case cit_std_meta_has_template_arguments:
-      evaluator = do_constexpr_std_meta_has_template_arguments;
-      break;
-    case cit_std_meta_template_arguments_of:
-      evaluator = do_constexpr_std_meta_template_arguments_of;
-      break;
-    case cit_std_meta_template_of:
-      evaluator = do_constexpr_std_meta_template_of;
-      break;
-    case cit_std_meta_type_of:
-      evaluator = do_constexpr_std_meta_type_of;
-      break;
-    case cit_std_meta_return_type_of:
-      evaluator = do_constexpr_std_meta_return_type_of;
-      break;
-    case cit_std_meta_parent_of:
-      evaluator = do_constexpr_std_meta_parent_of;
-      break;
-    case cit_std_meta_dealias:
-      evaluator = do_constexpr_std_meta_dealias;
-      break;
-    case cit_std_meta_size_of:
-      evaluator = do_constexpr_std_meta_size_of;
-      break;
-    case cit_std_meta_offset_of:
-      evaluator = do_constexpr_std_meta_offset_of;
-      break;
-    case cit_std_meta_bit_size_of:
-      evaluator = do_constexpr_std_meta_bit_size_of;
-      break;
-    case cit_std_meta_bit_offset_of:
-      evaluator = do_constexpr_std_meta_bit_offset_of;
-      break;
-    case cit_std_meta_alignment_of:
-      evaluator = do_constexpr_std_meta_alignment_of;
-      break;
-    case cit_std_meta_define_class:
-      evaluator = do_constexpr_std_meta_define_class;
-      break;
-    case cit_std_meta_metacall:
-      evaluator = do_constexpr_std_meta_metacall;
-      break;
+    /* Create cases for all the namespace-scope constexpr intrinsics by
+       expanding NS_scope_constexpr_intrinsics with the macro CIT_dispatch
+       defined here. */
+#define CIT_dispatch(ns, name, signature) \
+    case cit_##ns##_##name: \
+      evaluator = do_constexpr_##ns##_##name; \
+      break;
+    NS_scope_constexpr_intrinsics(CIT_dispatch)
+#undef CIT_dispatch
     default:
       unexpected_condition();
   }  /* switch */

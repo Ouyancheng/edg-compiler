@@ -7597,6 +7597,9 @@ and evaluates the associated constraint.
 }  /* is_ineligible */
 
 
+extern void check_for_constexpr_intrinsic(a_routine_ptr     rp,
+                                          a_symbol_header  *sym_hdr);
+
 extern a_boolean is_intrinsic_type_transform_name(a_symbol_header  *hdr);
 
 inline a_boolean is_intrinsic_type_transform_token(void)

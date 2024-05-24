@@ -35,9 +35,7 @@ symbol_tbl.c - Symbol table management routines.
 #include "overload.h"
 #include "folding.h"
 #include "sys_predef.h"
-#if DEBUG
 #include "interpret.h"
-#endif /* DEBUG */
 
 /* Conditionally open the "edg" namespace. */
 BEGIN_EDG_NAMESPACE
@@ -18318,89 +18316,363 @@ for space tracking purposes.
 /*
 A table of identifiers that are of interest to front end processing.  The
 associated symbol table entries are flagged so other identifiers can avoid
-special checks.
+special checks.  (Additional identifiers are flagged via other tables, such
+as constexpr_intrinsic_descriptions and type_transform_names below).
 */
 static a_const_char* intrinsic_names[] = {
-  "is_constant_evaluated",
-  "allocator",
-  "allocate",
-  "deallocate",
-  "construct_at",
-  "destroy_at",
-  "__report_constexpr_value",
+  "main",
   "__is_signed",
 #if MICROSOFT_EXTENSIONS_ALLOWED
   "safe_cast",
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
-  "report_constexpr_value",
-  "make_constexpr_array",
-  "name_of",
-  "members__impl",
-  "static_data_members__impl",
-  "nonstatic_data_members__impl",
-  "bases__impl",
-  "subobjects__impl",
-  "enumerators__impl",
-  "parameters__impl",
-  "substitute__impl",
-  "reflect_value",
-  "value_of",
-  "is_type",
-  "is_alias",
-  "is_incomplete_type",
-  "is_template",
-  "is_function_template",
-  "is_variable_template",
-  "is_class_template",
-  "is_alias_template",
-  "is_concept",
-  "is_constant",
-  "is_variable",
-  "is_function",
-  "is_function_parameter",
-  "is_explicit_object_parameter",
-  "is_namespace",
-  "is_nsdm",
-  "is_base",
-  "is_constructor",
-  "is_destructor",
-  "is_special_member",
-  "is_public",
-  "is_protected",
-  "is_private",
-  "is_accessible",
-  "is_static_member",
-  "is_virtual",
-  "is_deleted",
-  "is_defaulted",
-  "is_explicit",
-  "is_override",
-  "is_pure_virtual",
-  "is_bit_field",
-  "has_static_storage_duration",
-  "has_internal_linkage",
-  "has_c_varargs",
-  "has_default_argument",
-  "has_consistent_name",
-  "has_template_arguments",
-  "template_arguments__impl",
-  "template_of",
-  "type_of",
-  "return_type_of",
-  "parent_of",
-  "dealias",
-  "size_of",
-  "offset_of",
-  "bit_size_of",
-  "bit_offset_of",
-  "alignment_of",
-  "__define_class",
-  "metacall__impl",
-  "main"
+  "allocator",
+  "allocate",
+  "deallocate",
 };
 
 #define N_INTRINSIC_NAMES \
    ((int)(sizeof(intrinsic_names)/sizeof(intrinsic_names[0])))
+
+
+/*
+A structure recording some characteristics of a constexpr function that the
+front end recognizes for potential evaluation by the interpreter.  This is
+the value type of a Ptr_map described below.
+*/
+struct a_constexpr_intrinsic_descr {
+  a_constexpr_intrinsic
+		kind;
+			/* The enumerator value identifying this function
+			   for efficient dispatch in the interpreter. */
+  a_symbol_ptr	*p_namespace_sym;
+			/* A pointer to a (global) variable pointing to the
+			   symbol representing the parent namespace of this
+			   function. */
+  a_const_char	*signature;
+			/* A string describing some constraint on the type and
+			   template arguments of this function (see
+			   interpret.h for details of the string's format). */
+};
+
+
+/*
+A table of entries describing characteristics of a constexpr function that the
+front end recognizes for potential evaluation by the interpreter.  The table
+is produced by expanding the macro NS_scope_constexpr_intrinsics (see
+interpret.h).
+*/
+static struct {
+  a_const_char	*name;
+			/* The name of a function known to the interpreter. */
+  a_constexpr_intrinsic_descr
+		descr;
+			/* Information characterizing the function beyond its
+			   name. */
+} constexpr_intrinsic_descriptions[] = {
+#define CIT_descr(ns, name, signature) \
+  { #name, { cit_##ns##_##name, &symbol_for_namespace_##ns, signature } },
+  NS_scope_constexpr_intrinsics(CIT_descr)
+#undef CIT_descr
+};
+
+#define N_CONSTEXPR_INTRINSIC_DESCRIPTIONS \
+   ((int)(sizeof(constexpr_intrinsic_descriptions) \
+                              /sizeof(constexpr_intrinsic_descriptions[0])))
+
+using a_constexpr_intrinsic_descr_table =
+		Ptr_map<a_symbol_header*, a_constexpr_intrinsic_descr>;
+			/* The type of a table that maps intrinsic identifiers
+			   to descriptions of functions that the interpreter
+			   knows how to evaluate.  (Function with names in the
+			   table but which don't match the description will
+			   not be handled specially by the interpreter.) */
+
+a_constexpr_intrinsic_descr_table
+		*constexpr_intrinsic_descr_table;
+			/* A map from symbol headers for names of functions
+			   that the interpreter might know to descriptions
+			   that decide whether an appropriately named function
+			   should be handled intrinsically. */
+
+static void init_constexpr_instrinsic_descriptions(void)
+/*
+Pre-enter symbol headers some function names so they can efficiently be
+recognized during parsing.  Also, record associated information in a Ptr_map
+to efficiently dispatch evaluations of functions that can be handled
+intrinsically.
+*/
+{
+  int  n;
+
+  constexpr_intrinsic_descr_table =
+                          alloc_fe_of_type(a_constexpr_intrinsic_descr_table);
+  construct(constexpr_intrinsic_descr_table, /*mask_width=*/8);
+  for (n = 0; n<N_CONSTEXPR_INTRINSIC_DESCRIPTIONS; ++n) {
+    a_symbol_locator  loc;
+    a_const_char      *name = constexpr_intrinsic_descriptions[n].name;
+    (void)find_symbol(name, strlen(name), &loc);
+    loc.symbol_header->has_intrinsic_name = TRUE;
+    constexpr_intrinsic_descr_table->map(
+                 loc.symbol_header,constexpr_intrinsic_descriptions[n].descr);
+                                        
+  }  /* for */
+}  /* init_constexpr_instrinsic_descriptions */
+
+
+static
+a_const_char* check_constexpr_intrinsic_template_args(a_routine     *rp,
+                                                      a_const_char  *sig)
+/*
+Match the template arguments (if any) of the given function to the string *sig
+(see the description of NS_scope_constexpr_intrinsics in interpret.h for
+details).  If successful, return a pointer to the '>' character that should be
+present in the string.  If unsuccessful, the return value will point to a
+character other than '>'.
+*/
+{
+  a_template_arg  *tap = rp->template_arg_list;
+
+  while (*sig != '>' && tap != NULL) {
+    if (*sig == 'T') {
+      /* A type argument is required next. */
+      if (tap == NULL || tap->kind != tak_type) break;
+      tap = tap->next;
+      ++sig;
+    }  /* if */
+    if (*sig == ',') {
+      /* More arguments are expected. */
+      ++sig;
+      if (*sig == '>') {
+        /* A trailing comma means additional arguments are okay (but
+           ignored). */
+        tap = NULL;
+      }  /* if */
+    } else if (*sig != '>') {
+      /* No more arguments are expected, but we didn't reach a '>'.  Something
+         went wrong (i.e., the function doesn't match). */
+      break;
+    }  /* if */
+  }  /* while */
+  if (tap != NULL && *sig == '>') {
+    /* The are more arguments (that are not ignored), but we reached a '>'.
+       This is not a match: Back up one position so the caller known it is
+       not a match. */
+    --sig;
+  }  /*if */
+  return sig;
+}  /* check_constexpr_intrinsic_template_args */
+
+
+static a_boolean is_std_meta_infovec_type(a_type_ptr  tp)
+/*
+Return TRUE if the given type is a class type named __infovec belonging to
+namespace std::meta.
+*/
+{
+  a_boolean  result = FALSE;
+
+  tp = skip_typerefs(tp);
+  if (is_immediate_class_type(tp) &&
+      symbol_for_namespace_std_meta != NULL &&
+      is_namespace_member(tp) &&
+      parent_namespace_of(tp) ==
+                  symbol_for_namespace_std_meta->variant.namespace_info.ptr) {
+    a_const_char  *name = unmangled_name_of(&tp->source_corresp);
+    if (strcmp(name, "__infovec") == 0) {
+      result = TRUE;
+    }  /* if */
+  }  /* if */
+  return result;
+}  /* is_std_meta_infovec_type */
+
+
+static
+a_const_char* check_constexpr_intrinsic_type(a_type        *tp,
+                                             a_const_char  *sig,
+                                             a_boolean     *okay)
+/*
+Check whether type tp matches the "type code" that comes next in *sig (see the
+description of NS_scope_constexpr_intrinsics in interpret.h for details about
+the type codes).  If successful, return a pointer one position past the end
+of the type code.  If unsuccessful, set *okay to FALSE and return a pointer
+to the type code that was not successfully matched.
+*/
+{
+more_components:
+  switch (*sig) {
+    case '.':
+      ++sig;
+      break;
+    case 'b':
+      if (!is_bool_type(tp)) *okay = FALSE;
+      ++sig;
+      break;
+    case 'r':
+      if (!is_reflection_type(tp)) *okay = FALSE;
+      ++sig;
+      break;
+    case 'v':
+      if (!is_void_type(tp)) *okay = FALSE;
+      ++sig;
+      break;
+    case 'C':
+      if (!is_character_type(tp)) *okay = FALSE;
+      ++sig;
+      break;
+    case 'I':
+      if (!is_integral_type(tp)) *okay = FALSE;
+      ++sig;
+      break;
+    case 'S':
+      if (sig[1] == 'v') {
+        if (!check_consistent_string_view_type(tp)) *okay = FALSE;
+        sig += 2;
+      } else if (sig[1] == 'z') {
+        if (!is_size_t_type(tp)) *okay = FALSE;
+        sig += 2;
+      } else {
+        unexpected_condition();
+      }  /* if */
+      break;
+    case 'V':
+      if (sig[1] == 'r') {
+        if (!is_std_meta_infovec_type(tp)) *okay = FALSE;
+        sig += 2;
+      } else {
+        unexpected_condition();
+      }  /* if */
+      break;
+    case '*':
+      if (is_pointer_type(tp)) {
+        ++sig;
+        tp = type_pointed_to(tp);
+        goto more_components;
+      } else {
+        *okay = FALSE;
+      }  /* if */
+      break;
+    default:
+      unexpected_condition();
+  }  /* switch */
+  return sig;
+}  /* check_constexpr_intrinsic_type */
+
+
+static
+a_const_char* check_constexpr_intrinsic_params(a_type        *rtp,
+                                               a_const_char  *sig)
+/*
+Match the parameter (if any) of the given function type to the string *sig
+(see the description of NS_scope_constexpr_intrinsics in interpret.h for
+details).  If successful, return a pointer to the ')' character that should be
+present in the string.  If unsuccessful, the return value will point to a
+character other than ')'.
+*/
+{
+  a_param_type_ptr  ptp = function_type_params(rtp);
+
+  while (*sig != ')' && ptp != NULL) {
+    a_boolean  type_okay = TRUE;
+    sig = check_constexpr_intrinsic_type(ptp->type, sig, &type_okay);
+    if (!type_okay) break;
+    ptp = ptp->next;
+    if (*sig == ',') {
+      /* More parameters are expected. */
+      ++sig;
+      if (*sig == ')') {
+        /* A trailing comma means additional parameters are okay (but
+           ignored). */
+        ptp = NULL;
+      }  /* if */
+    } else if (*sig != ')') {
+      /* No more arguments are expected, but we didn't reach a ')'.  Something
+         went wrong (i.e., the function type doesn't match). */
+      break;
+    }  /* if */
+  }  /* while */
+  if (ptp != NULL && *sig == ')') {
+    /* The are more parameters (that are not ignored), but we reached a ')'.
+       This is not a match: Back up one position so the caller known it is
+       not a match. */
+    --sig;
+  }  /* if */
+  return sig;
+}  /* check_constexpr_intrinsic_params */
+
+
+static bool matches_constexpr_intrinsic_sig(a_routine     *rp,
+                                            a_const_char  *sig)
+/*
+Return TRUE if rp matches the characteristics described by the given string.
+(See the description of NS_scope_constexpr_intrinsics in interpret.h for
+details about the format of this string.)  Otherwise, return FALSE.
+*/
+{
+  a_boolean  result = TRUE;
+
+  for (;;) {
+    a_type_ptr  rtp;
+    if (*sig == '<') {
+      /* Check template argument constraints. */
+      sig = check_constexpr_intrinsic_template_args(rp, sig+1);
+      if (*sig != '>') goto failed;
+      ++sig;
+    }  /* if */
+    rtp = skip_typerefs(rp->type);
+    if (*sig == '(') {
+      /* Check function parameter constraints. */
+      sig = check_constexpr_intrinsic_params(rtp, sig+1);
+      if (*sig != ')') goto failed;
+      ++sig;
+    }  /* if */
+    /* Check the return type. */
+    { a_boolean  type_okay = TRUE;
+      sig = check_constexpr_intrinsic_type(rtp->variant.routine.return_type,
+                                           sig, &type_okay);
+      if (!type_okay) goto failed;
+    }
+    if (*sig == '\0' || *sig == '|') {
+      /* Success. */
+      break;
+    }  /* if */
+failed:
+    /* Skip any remaining characters looking for '|' (meaning another signature
+       is next) or '\0' (meaning we are done). */
+    while (*sig != '\0' && *sig != '|') ++sig;
+    if (*sig == '\0') {
+      result = FALSE;
+      break;
+    }  /* if */
+    /* Skip over the '|': */
+    ++sig;
+  }  /* for */
+  return result;
+}  /* matches_constexpr_intrinsic_sig */
+
+
+void check_for_constexpr_intrinsic(a_routine_ptr    rp,
+                                   a_symbol_header  *sym_hdr)
+/*
+The given routine is being declared with the given symbol header and that
+header is associated with an intrinsic.  Check whether the routine is actually
+a "constexpr intrinsic" (i.e., a function handled specially by the constexpr
+interpreter) and if so mark it as such.
+*/
+{
+  a_constexpr_intrinsic_descr
+		descr;
+
+  descr = constexpr_intrinsic_descr_table->get(sym_hdr);
+  if (descr.kind != cit_error) {
+    if (is_namespace_member(rp) && *descr.p_namespace_sym != NULL &&
+        is_member_of_namespace(symbol_for(rp), *descr.p_namespace_sym)) {
+      if (matches_constexpr_intrinsic_sig(rp, descr.signature)) {
+        register_constexpr_intrinsic(descr.kind, rp);
+      }  /* if */
+    }  /* if */
+  }  /* if */
+}  /* check_for_constexpr_intrinsic */
+
 
 /*
 Like intrinsic_names, these are names of interest to the front end, but they
@@ -18515,6 +18787,7 @@ recognized during parsing.
     (void)find_symbol(name, strlen(name), &loc);
     loc.symbol_header->has_intrinsic_name = TRUE;
   }  /* for */
+  init_constexpr_instrinsic_descriptions();
   init_type_transform_names();
 }  /* init_intrinsic_symbol_headers */
 
