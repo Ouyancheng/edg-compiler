@@ -1493,6 +1493,14 @@ enum a_token_kind : unsigned short {
   tok_last
 };
 
+namespace detail {
+
+template<>
+struct Is_trivially_destructible_edg_impl<a_token_kind> :
+                                                Integral_constant<bool, true> {
+};  /* Is_trivially_destructible_edg_impl */
+
+}  /* detail */
 
 /*
 Table of names corresponding to token kinds.
