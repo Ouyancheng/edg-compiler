@@ -3291,7 +3291,7 @@ Given a front end token kind (for a token where extra_info_kind == teik_none)
 return the corresponding EDG IFC BasicToken sort value.
 */
 {
-  an_ifc_edg_basic_token_sort result;
+  an_ifc_edg_basic_token_sort result = ifc_ebts_semicolon;
 
   switch (token) {
     case tok_alignas:
