@@ -449,6 +449,8 @@ Flags to be set for any version that uses the C++ generating back end.
 #define ASM_FUNCTION_ALLOWED 1
 #endif /* !defined(ASM_FUNCTION_ALLOWED) */
 #endif /* ifdef SOLARIS */
+
+#ifndef USE_MMAP_FOR_MEMORY_REGIONS
 /* Use 1 for mmap PCH, 0 for non-mmap PCH. */
 #if 1
 #define USE_FIXED_ADDRESS_FOR_MMAP 1
@@ -457,6 +459,7 @@ Flags to be set for any version that uses the C++ generating back end.
 #else /* !1 */
 #define USE_MMAP_FOR_MEMORY_REGIONS 0
 #endif /* 1 */
+#endif /* USE_MMAP_FOR_MEMORY_REGIONS */
 
 #endif /* ifndef OPTIMIZED_VERSION */
 
