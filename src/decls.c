@@ -11340,7 +11340,7 @@ definition of a member function of a class template.
                                                     rout_ptr->ELF_visibility);
     update_for_default_ELF_visibility(&visibility, /*is_class_member=*/FALSE);
     rout_ptr->ELF_visibility = visibility;
-  }
+  }  /* if */
 #endif /* GNU_EXTENSIONS_ALLOWED && GNU_VISIBILITY_ATTRIBUTE_ALLOWED */
   check_defaulted_or_deleted_function(dps, func_info,
                                       &locator->source_position);

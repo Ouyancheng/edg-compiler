@@ -29020,7 +29020,7 @@ Create the variable entry variable template specified by template_sym.
                                                          var->ELF_visibility);
     update_for_default_ELF_visibility(&visibility, /*is_class_member=*/FALSE);
     var->ELF_visibility = visibility;
-  }
+  }  /* if */
 #endif /* GNU_EXTENSIONS_ALLOWED && GNU_VISIBILITY_ATTRIBUTE_ALLOWED */
   if (prototype_instantiations_in_il || tssp->is_generic) {
     if (decl_state->decl_scope_err) {
