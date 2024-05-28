@@ -4254,7 +4254,7 @@ Return the corresponding IFC EDG complex token index.
      token because it's directly representable as a basic token. */
   check_assertion(token_to_basic_token_kind(ctp->token) == ifc_ebts_complex);
   /* If this assertion fails, this token should not be represented as a textual
-     token because it has additional state that needs serialized. */
+     token because it has additional state that needs to be serialized. */
   check_assertion(ctp->extra_info_kind == teik_none);
   /* If this assertion fails, this textual token has already been entered. */
   check_assertion(this->textual_token_map.get(ctp->token) == 0);

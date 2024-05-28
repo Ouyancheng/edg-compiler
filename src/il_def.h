@@ -964,12 +964,27 @@ EXTERN a_const_char *il_entry_kind_names[(int)iek_last + 1]
 
 /*
 Token kinds.
+
+"Complex tokens" should be listed before the tok_last_complex_token constant.
+In this context, a "complex token" is token that either (a) is not visible in
+the source (like an end-of-source token), or (b) has a large number of distinct
+forms (like identifiers, numbers, etc.).
+
 If this enumeration is changed, be sure to change token_names (below) and
-opname_kind_for_token (lexical.h).  "Complex tokens" should be listed before
-the tok_last_complex_token constant.  In this context, a "complex token" is
-token that either (a) is not visible in the source (like an end-of-source
-token), or (b) has a large number of distinct forms (like identifiers,
-numbers, etc.).
+opname_kind_for_token (lexical.h).
+
+Additionally, for proper modules support, support for writing the token should
+be added to an_ifc_il_map::enter_token_cache (ifc_modules_write.c) and support
+for reading should be added to cache_edg_token_cache (ifc_modules_read.c).
+
+For simple IFC token cases (i.e., where the token has no associated state)
+simply add a case to token_to_basic_token_kind (ifc_modules_write.c) ensuring a
+return value of ifc_ebts_complex.  This results in the token being serialized
+into the IFC as an EDG "textual" IFC token.  If the name entered into
+token_names (below) for the new token is not unique, a case in
+ifc_token_name_of (returning a unique name) must also be added (as otherwise
+the deserialization of the IFC encoding to the front end token kind is
+ambiguous).
 */
 enum a_token_kind : unsigned short {
   /* Complex tokens: */

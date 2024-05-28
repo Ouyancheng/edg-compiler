@@ -12971,7 +12971,7 @@ using a_token_name_map = Ptr_map<a_string_view, a_token_kind>;
 
 static a_token_name_map
                 *tok_name_map;
-                        /* A lazy initialized mapping of token names to token
+                        /* A lazily-initialized mapping of token names to token
                            kinds to allow constant time resolution of a
                            particular token name. */
 
@@ -13174,7 +13174,7 @@ diagnostics if issue_diag is TRUE.
     }  /* if */
   }  /* if */
   if (get_partition_metadata(ifc_pk_edg_token_complex_textual).name != NULL) {
-    /* Resolve all the textually encoded tokens to their corresponding token
+    /* Resolve all the textually-encoded tokens to their corresponding token
        kinds. */
     an_edg_token_textual_sequence
                 sequence(this, 0);
