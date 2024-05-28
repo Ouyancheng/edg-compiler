@@ -10819,13 +10819,13 @@ from the front end to the runtime.
   if (clang_is_generated_code_target) {
     /* clang supported the bfloat16 type beginning with version 11.0 on
        ARM architectures and version 15.0 on other platforms. */
-    targ_has_bfloat16 = (targ_supports_arm32 || targ_supports_arm64)
+    targ_has_bfloat16 = target_is_arm_based()
                                      ? (clang_target_version_number >= 110000)
                                      : (clang_target_version_number >= 150000);
   } else if (gcc_is_generated_code_target) {
     /* gcc supported the bfloat16 type beginning with version 10.1.0 on
        ARM architectures and version 13.1.0 on other platforms. */
-    targ_has_bfloat16 = (targ_supports_arm32 || targ_supports_arm64)
+    targ_has_bfloat16 = target_is_arm_based()
                                        ? (gnu_target_version_number >= 100000)
                                        : (gnu_target_version_number >= 130000);
   }  /* if */
