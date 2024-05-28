@@ -5677,7 +5677,7 @@ struct a_sha256_digest {
     { return this->bytes; }
 private:
   a_byte       bytes[detail::sha256::num_bytes_in_digest];
-                /* The bytes composing the digest. */
+                        /* The bytes composing the digest. */
 };  /* a_sha256_digest */
 
 /*
