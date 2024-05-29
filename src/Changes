@@ -1,5 +1,16 @@
 Version 6.7
 
+5/28/24  [EDGcpfe/27275]
+Small _Float16 literal values
+
+In some configurations the front end could abort (in fast_dec2bin_float16)
+when processing a small _Float16 literal written with more digits than can
+be represented by the _Float16 type.  This is now fixed.  For example, with
+--c++23 --gnu_version=140100:
+
+  _Float16 x = 6.103515625e-5F16;   // Previously aborted, now okay
+
+
 5/22/24  [EDGcpfe/27274]
 C++-generating back end: form of non-type template arguments
 

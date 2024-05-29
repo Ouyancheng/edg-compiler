@@ -756,13 +756,22 @@ type.
 #define MAX_APPROX_DIG (FPT_DIGITS + 1)
 #define N_SMALL_TENS ((MAX_FAST_EXP + 1) < FPT_DIGITS ? FPT_DIGITS : \
                                                         (MAX_FAST_EXP + 1))
-
+#if N_SMALL_TENS < 8
+#define EXP_SHIFT 2
+#else /* N_SMALL_TENS >= 8 */
 #if N_SMALL_TENS < 16
 #define EXP_SHIFT 3
 #else /* N_SMALL_TENS >= 16 */
 #define EXP_SHIFT 4
 #endif /* N_SMALL_TENS < 16 */
+#endif /* N_SMALL_TENS < 8 */
 #define EXP_MASK MASK_BITS(EXP_SHIFT)
+
+/* Ensure that there are at least 10 SMALL_TENS. */
+#if N_SMALL_TENS < 10
+#undef N_SMALL_TENS
+#define N_SMALL_TENS 10
+#endif /* N_SMALL_TENS < 10 */
 
 #if FPT_MAX_10_EXP < 8
  #define TENS_BASE 3
