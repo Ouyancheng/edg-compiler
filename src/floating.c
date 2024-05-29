@@ -1798,19 +1798,23 @@ STATIC void fp_emul_add_int(an_fp_binary  *left,
     i = fp_frac_high_zero_bits(bin.frac, bin.precision);
     if (i == 0 &&
 	(over = (right & ~MASK_BITS(bin.precision)) >> bin.precision) != 0) {
-      /* The value being added has more bits than the precision.  Increment
-         the exponent to reflect the eventual adjustment to the number of
-         bits of precision. */
+      /* The value being added occupies more bits than allowed by the
+         precision.  Count the number of excess bits and increment the
+         exponent to reflect the eventual adjustment (right shift) that
+         will be done to represent the value in the number of bits of
+         precision. */
       while (over != 0) {
 	++i;
 	over >>= 1;
       }  /* while */
       /* The -1 in the adjustment to the exponent reflects the implicit
-         high-order bit in the precision.  E.g., if over is initially the
-         two bits "10", the precision will be incremented by 1, since the
-         initial "1" in the mantissa is implicit. */
+         high-order "1" bit in the fraction.  E.g., if over is initially
+         the two bits "10", the precision will be incremented by 1, since
+         the initial "1" in the fraction will be implicit. */
       bin.exponent = bin.precision + i - 1;
     } else {
+      /* Decrement the exponent and shift the value to normalize the value
+         so that the high-order bit of the fraction is a "1". */
       bin.exponent = bin.precision - i;
       fp_frac_shift_left(bin.frac, bin.precision, i);
     }  /* if */
