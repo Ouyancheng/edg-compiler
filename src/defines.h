@@ -1348,6 +1348,8 @@ command-line when compiling system headers.
 #define TARG_ZERO_WIDTH_BIT_FIELD_AFFECTS_STRUCT_ALIGNMENT 0
 #define STDC_ZERO_IN_NONSTRICT_MODE 1
 #define GUARD_MACRO_FOR_VA_LIST "_VA_LIST"
+
+#ifndef USE_MMAP_FOR_MEMORY_REGIONS
 /* Use 1 for mmap PCH, 0 for non-mmap PCH. */
 #if 1
 #define USE_FIXED_ADDRESS_FOR_MMAP 0
@@ -1355,6 +1357,7 @@ command-line when compiling system headers.
 #else /* !1 */
 #define USE_MMAP_FOR_MEMORY_REGIONS 0
 #endif /* 1 */
+#endif /* USE_MMAP_FOR_MEMORY_REGIONS */
 
 #ifdef OPTIMIZED_VERSION
 
@@ -1499,7 +1502,9 @@ command-line when compiling system headers.
 #define TARG_BIT_FIELD_CONTAINER_SIZE (-1)
 #define ALLOW_NON_INT_BIT_FIELD_BASE_TYPE_IN_GENERATED_C 1
 
+#ifndef USE_MMAP_FOR_MEMORY_REGIONS
 #define USE_MMAP_FOR_MEMORY_REGIONS 0
+#endif /* USE_MMAP_FOR_MEMORY_REGIONS */
 
 #define LONG_LONG_ALLOWED 1
 #if INT128_EXTENSIONS_ALLOWED
