@@ -2744,8 +2744,9 @@ before setting it if there are unused bits.
     /* Check for overflow. */
     int exp;
     (void)frexpl(temp, &exp);
+    /* Check against the maximum and (denormalized) minimum values. */
     if (exp > max_exponent[(int)kind] ||
-        exp < min_exponent[(int)kind]) {
+        exp < min_exponent[(int)kind] - num_mantissa_bits[(int)kind] - 1) {
       errno = ERANGE;
     }  /* if */
   }  /* if */

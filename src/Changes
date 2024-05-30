@@ -62,11 +62,12 @@ will be significant when processing large numbers of literals.
 Incorrect _Float32 and _Float64 range checks
 
 In some configurations, the front end reported spurious "out of range"
-errors for very large _Float32 and _Float64 literal values.  This is now
-fixed.  For example, with --gnu_version=140100:
+errors for very large or small _Float32 and _Float64 literal values.  This
+is now fixed.  For example, with --gnu_version=140100:
 
-  // No longer an error:
+  // No longer errors:
   _Float32 large = 3.40282346638528859811704183484516925e+38F32;
+  _Float32 denorm = 1.40129846432481707092372958328991613e-45F32;
 
 
 5/18/24  [EDGcpfe/27239]
