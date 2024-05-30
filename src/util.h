@@ -3428,16 +3428,6 @@ template<typename a_Type>
 struct String_formatter;
 
 
-/*
-Delegate the implementation of the string formatter for the given type to
-formatter_type.  This macro is undefined at the end of the namespace.
-*/
-#define DELEGATE_FORMATTER(type, formatter_type) \
-  template<> \
-  struct String_formatter<type> : formatter_type { \
-  };  /* String_formatter */
-
-
 template<typename a_Dyn_array, typename ...a_Format_arg>
 inline void append_using_c_formatting(a_const_char *formatting_str,
                                       a_Dyn_array  &underlying_array,
@@ -3776,21 +3766,20 @@ array.  size_hint is unused.
 A string formatter (and associated delegates) for unsigned integer values to be
 formatted with the given base.
 */
-template<unsigned a_Base>
+template<typename an_Integral_type, int a_Base>
 struct Unsigned_int_formatter {
-  template<typename an_Integral_type>
   static size_t size_hint_of(an_Integral_type value)
     { return integral_digits(value, a_Base); }
-  template<typename a_Dyn_array, typename an_Integral_type>
+  template<typename a_Dyn_array>
   static inline void append_into(a_Dyn_array      &underlying_array,
                                  an_Integral_type value,
                                  size_t           size_hint);
 };  /* Unsigned_int_formatter */
 
 
-template<unsigned a_Base>
-template<typename a_Dyn_array, typename an_Integral_type>
-void Unsigned_int_formatter<a_Base>::append_into(
+template<typename an_Integral_type, int a_Base>
+template<typename a_Dyn_array>
+void Unsigned_int_formatter<an_Integral_type, a_Base>::append_into(
                                             a_Dyn_array      &underlying_array,
                                             an_Integral_type value,
                                             size_t           size_hint)
@@ -3817,41 +3806,24 @@ size_hint is the number of digits to represent the given value as a string.
 
 /*
 A string formatter (and associated delegates) for unsigned integer values to be
-formatted as base-16/hex values.
-*/
-struct Hex_unsigned_int_formatter {
-  using Base_ty = Unsigned_int_formatter<16>;
-
-  template<typename an_Integral_type>
-  static size_t size_hint_of(Hex_view<an_Integral_type> value)
-    { return Base_ty::size_hint_of(value.value); }
-  template<typename a_Dyn_array, typename an_Integral_type>
-  static inline void append_into(a_Dyn_array                &underlying_array,
-                                 Hex_view<an_Integral_type> value,
-                                 size_t                     size_hint)
-    { Base_ty::append_into(underlying_array, value.value, size_hint); }
-};  /* Hex_unsigned_int_formatter */
-
-
-/*
-A string formatter (and associated delegates) for unsigned integer values to be
 formatted with the given base.
 */
-template<int a_Base>
+template<typename an_Integral_type, int a_Base>
 struct Signed_int_formatter {
-  template<typename an_Integral_type>
   static inline size_t size_hint_of(an_Integral_type value);
-  template<typename a_Dyn_array, typename an_Integral_type>
+  template<typename a_Dyn_array>
   static inline void append_into(a_Dyn_array      &underlying_array,
                                  an_Integral_type value,
                                  size_t           size_hint);
 };  /* Signed_int_formatter */
 
 
-template<int a_Base>
-template<typename an_Integral_type>
-size_t Signed_int_formatter<a_Base>::size_hint_of(an_Integral_type value)
+template<typename an_Integral_type, int a_Base>
+size_t Signed_int_formatter<an_Integral_type, a_Base>::size_hint_of(
+                                                        an_Integral_type value)
 /*
+Return the number of digits to represent the given value as a string (plus one
+if the value is negative).
 */
 {
   size_t result = integral_digits(value, a_Base);
@@ -3864,9 +3836,9 @@ size_t Signed_int_formatter<a_Base>::size_hint_of(an_Integral_type value)
 }  /* size_hint_of */
 
 
-template<int a_Base>
-template<typename a_Dyn_array, typename an_Integral_type>
-void Signed_int_formatter<a_Base>::append_into(
+template<typename an_Integral_type, int a_Base>
+template<typename a_Dyn_array>
+void Signed_int_formatter<an_Integral_type, a_Base>::append_into(
                                             a_Dyn_array      &underlying_array,
                                             an_Integral_type value,
                                             size_t           size_hint)
@@ -3897,25 +3869,66 @@ size_hint is the number of digits to represent the given value as a string
   }  /* for */
 }  /* append_into */
 
-DELEGATE_FORMATTER(unsigned long long, Unsigned_int_formatter<10>)
-DELEGATE_FORMATTER(unsigned long,      Unsigned_int_formatter<10>)
-DELEGATE_FORMATTER(unsigned,           Unsigned_int_formatter<10>)
-DELEGATE_FORMATTER(unsigned short,     Unsigned_int_formatter<10>)
 
-DELEGATE_FORMATTER(Hex_view<unsigned long long>, Hex_unsigned_int_formatter)
-DELEGATE_FORMATTER(Hex_view<unsigned long>,      Hex_unsigned_int_formatter)
-DELEGATE_FORMATTER(Hex_view<unsigned>,           Hex_unsigned_int_formatter)
-DELEGATE_FORMATTER(Hex_view<unsigned short>,     Hex_unsigned_int_formatter)
+/*
+A string formatter (and associated delegates) for unsigned integer values to be
+formatted as base-16/hex values.
+*/
+template<typename an_Integral_type>
+struct Hex_unsigned_int_formatter {
+  using Base_ty = Unsigned_int_formatter<an_Integral_type, 16>;
 
-DELEGATE_FORMATTER(long long, Signed_int_formatter<10>)
-DELEGATE_FORMATTER(long,      Signed_int_formatter<10>)
-DELEGATE_FORMATTER(int,       Signed_int_formatter<10>)
-DELEGATE_FORMATTER(short,     Signed_int_formatter<10>)
+  static size_t size_hint_of(Hex_view<an_Integral_type> value)
+    { return Base_ty::size_hint_of(value.value); }
+  template<typename a_Dyn_array>
+  static inline void append_into(a_Dyn_array                &underlying_array,
+                                 Hex_view<an_Integral_type> value,
+                                 size_t                     size_hint)
+    { Base_ty::append_into(underlying_array, value.value, size_hint); }
+};  /* Hex_unsigned_int_formatter */
+
+
+/*
+Delegate the implementation of the string formatter that formats the given type
+in decimal to formatter_type.  This macro is undefined at the end of the
+namespace.
+*/
+#define DELEGATE_DEC_FORMATTER(type, formatter_type) \
+  template<> \
+  struct String_formatter<type> : formatter_type<type, 10>  { \
+  };  /* String_formatter */
+
+
+/*
+Delegate the implementation of the string formatter that formats the given type
+in hexadecimal to formatter_type.  This macro is undefined at the end of the
+namespace.
+*/
+#define DELEGATE_HEX_FORMATTER(type) \
+  template<> \
+  struct String_formatter<Hex_view<type>> : Hex_unsigned_int_formatter<type> {\
+  };  /* String_formatter */
+
+
+DELEGATE_DEC_FORMATTER(unsigned long long, Unsigned_int_formatter)
+DELEGATE_DEC_FORMATTER(unsigned long,      Unsigned_int_formatter)
+DELEGATE_DEC_FORMATTER(unsigned,           Unsigned_int_formatter)
+DELEGATE_DEC_FORMATTER(unsigned short,     Unsigned_int_formatter)
+
+DELEGATE_DEC_FORMATTER(long long, Signed_int_formatter)
+DELEGATE_DEC_FORMATTER(long,      Signed_int_formatter)
+DELEGATE_DEC_FORMATTER(int,       Signed_int_formatter)
+DELEGATE_DEC_FORMATTER(short,     Signed_int_formatter)
+
+DELEGATE_HEX_FORMATTER(unsigned long long)
+DELEGATE_HEX_FORMATTER(unsigned long)
+DELEGATE_HEX_FORMATTER(unsigned)
+DELEGATE_HEX_FORMATTER(unsigned short)
 
 #if __SIZEOF_INT128__
-DELEGATE_FORMATTER(__uint128_t,           Unsigned_int_formatter<10>)
-DELEGATE_FORMATTER(Hex_view<__uint128_t>, Hex_unsigned_int_formatter)
-DELEGATE_FORMATTER(__int128_t,            Signed_int_formatter<10>)
+DELEGATE_DEC_FORMATTER(__uint128_t, Unsigned_int_formatter)
+DELEGATE_DEC_FORMATTER(__int128_t,  Signed_int_formatter)
+DELEGATE_HEX_FORMATTER(__uint128_t)
 #endif /* __SIZEOF_INT128__ */
 
 template<typename a_Reserve_fn, typename... a_Text_convertible_type>
@@ -3976,7 +3989,8 @@ formatter::append_into functions.
   backing_array->push_back('\0');
 }  /* append_with_custom_reserve */
 
-#undef DELEGATE_FORMATTER
+#undef DELEGATE_HEX_FORMATTER
+#undef DELEGATE_DEC_FORMATTER
 
 }  /* detail */
 
