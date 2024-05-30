@@ -157,7 +157,9 @@ additional target configuration will be added below.
 #define TARG_WCHAR_T_INT_KIND ((an_integer_kind)ik_int)
 #define TARG_SIZE_T_INT_KIND ((an_integer_kind)ik_unsigned_long)
 #define TARG_PTRDIFF_T_INT_KIND ((an_integer_kind)ik_long)
+#ifndef HOST_ALIGNMENT_REQUIRED
 #define HOST_ALIGNMENT_REQUIRED 8
+#endif /* HOST_ALIGNMENT_REQUIRED */
 #define TYPE_FOR_AN_FP_VALUE_PART unsigned int
 #define TARG_JMP_BUF_NUM_ELEMENTS 25
 #define TARG_JMP_BUF_ELEMENT_INT_KIND ((an_integer_kind)ik_long)
@@ -174,7 +176,9 @@ additional target configuration will be added below.
 #define TARG_WCHAR_T_INT_KIND ((an_integer_kind)ik_unsigned_int)
 #define TARG_SIZE_T_INT_KIND ((an_integer_kind)ik_unsigned_long)
 #define TARG_PTRDIFF_T_INT_KIND ((an_integer_kind)ik_long)
+#ifndef HOST_ALIGNMENT_REQUIRED
 #define HOST_ALIGNMENT_REQUIRED 8
+#endif /* HOST_ALIGNMENT_REQUIRED */
 #define TARG_JMP_BUF_NUM_ELEMENTS 39
 #define TARG_JMP_BUF_ELEMENT_INT_KIND ((an_integer_kind)ik_long_long)
 #elif TARG_SUPPORTS_ARM32
@@ -242,8 +246,12 @@ Linux.
 #ifndef INTEGER_VALUE_REPR_IS_A_HOST_INTEGER
 #define INTEGER_VALUE_REPR_IS_A_HOST_INTEGER 1
 #endif /* ifndef INTEGER_VALUE_REPR_IS_A_HOST_INTEGER */
+#ifndef TYPE_FOR_AN_INTEGER_VALUE
 #define TYPE_FOR_AN_INTEGER_VALUE unsigned long long
+#endif /* ifndef TYPE_FOR_AN_INTEGER_VALUE */
+#ifndef TYPE_FOR_A_SIGNED_INTEGER_VALUE
 #define TYPE_FOR_A_SIGNED_INTEGER_VALUE long long
+#endif /* TYPE_FOR_A_SIGNED_INTEGER_VALUE */
 #define MAX_INTEGER_VALUE 9223372036854775807LL
 #define MIN_INTEGER_VALUE (-MAX_INTEGER_VALUE-1)
 #define MAX_UNSIGNED_INTEGER_VALUE 18446744073709551615ULL
