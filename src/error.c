@@ -5575,12 +5575,15 @@ The message is formatted into text strings and is output.
   }  /* if */
 #endif /* !STANDALONE_UTILITY_PROGRAM */
   if (diag_should_be_issued) {
+    an_error_severity reported_severity = determine_reported_severity(dp);
+
     /* If there's an instantiation currently on the scope stack, grab the most
        recent instantiation's associated template.  Then mark the template as
        having an invalid active instantiation so that further (recursive)
        instantiations of the template are suspended until the problematic
        instantiation is popped off the scope stack. */
-    if (depth_innermost_instantiation_scope != NO_SCOPE_DEPTH) {
+    if (depth_innermost_instantiation_scope != NO_SCOPE_DEPTH &&
+        reported_severity >= es_discretionary_error) {
       a_scope_stack_entry_ptr ssep =
                              &scope_stack[depth_innermost_instantiation_scope];
       a_symbol_ptr            templ_sym = ssep->template_sym;
@@ -5594,8 +5597,6 @@ The message is formatted into text strings and is output.
         }  /* if */
       }  /* if */
     }  /* if */
-
-    an_error_severity reported_severity = determine_reported_severity(dp);
     /* Update the total diagnostics counter. */
     update_diagnostic_counter(reported_severity, &diagnostic_counters.total);
     /* When diagnostics are suppressed, suppress all non-catastrophic error
