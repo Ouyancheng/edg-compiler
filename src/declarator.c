@@ -5097,26 +5097,26 @@ convention scanned on this call.
 {
   set_err_pos_to_curr_token();
   do {
-    a_calling_convention new_call_conv = (a_calling_convention)cc_default;
+    a_calling_convention new_call_conv = cc_default;
     switch (curr_token) {
       case tok_cdecl:
-        new_call_conv = (a_calling_convention)cc_cdecl;
+        new_call_conv = cc_cdecl;
         break;
       case tok_vectorcall:
-        new_call_conv = (a_calling_convention)cc_vectorcall;
+        new_call_conv = cc_vectorcall;
         break;
       case tok_fastcall:
-        new_call_conv = (a_calling_convention)cc_fastcall;
+        new_call_conv = cc_fastcall;
         break;
       case tok_stdcall:
-        new_call_conv = (a_calling_convention)cc_stdcall;
+        new_call_conv = cc_stdcall;
         break;
       case tok_thiscall:
-        new_call_conv = (a_calling_convention)cc_thiscall;
+        new_call_conv = cc_thiscall;
         break;
       case tok_clrcall:
         if (cppcli_enabled) {
-          new_call_conv = (a_calling_convention)cc_clrcall;
+          new_call_conv = cc_clrcall;
         } else {
           pos_error(ec_clrcall_requires_cppcli, &error_position);
           goto skip_token;
@@ -5124,9 +5124,10 @@ convention scanned on this call.
         break;
       default: unexpected_condition();
     }  /* switch */
-    if (*call_conv != (a_calling_convention)cc_default) {
+    if (*call_conv != cc_default) {
       /* A calling convention was specified. */
-      if (*call_conv != new_call_conv) {
+      if (normalized_calling_conv(*call_conv) !=
+                                     normalized_calling_conv(new_call_conv)) {
         /* The new calling convention does not agree with the old one. */
         pos_error(ec_conflicting_calling_conventions, &error_position);
       } else {

@@ -4011,6 +4011,8 @@ extern a_hash_value hash_template_arg_list(a_template_arg_ptr	tap);
 extern a_boolean routine_has_default_calling_convention(
                                            a_routine_type_supplement_ptr rtsp);
 
+extern a_calling_convention normalized_calling_conv(a_calling_convention  cc);
+
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED || GNU_X86_ATTRIBUTES_ALLOWED */
 
 extern an_expr_node_ptr unwrap_if_tpck_expression(an_expr_node_ptr  expr);

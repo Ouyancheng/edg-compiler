@@ -1,5 +1,17 @@
 Version 6.7
 
+5/30/24  [EDGcpfe/26810]
+Microsoft compatibility: 64-bit targets and calling conventions
+
+Consider, in Microsoft mode with a 64-bit target:
+
+  int __stdcall __fastcall g();
+
+Previously, this elicited an error.  However, for 64-bit targets the __stdcall,
+__fastcall, and __cdecl calling convention are all equivalent to the default,
+and thus MSVC accepts such code.  The front end now does as well.
+
+
 5/30/24  [EDGcpfe/27291]
 Recursive instantiation not performed when a warning is issued
 

@@ -7218,6 +7218,28 @@ done:
   return result;
 }  /* routine_has_default_calling_convention */
 
+
+a_calling_convention normalized_calling_conv(a_calling_convention  cc)
+/*
+Return the canonical calling convention corresponding to cc in the current
+mode.  In particular, Microsoft treats the old __fastcall, __stdcall, and
+__cdecl conventions identically to the default calling convention when
+targeting 64-bit platforms: For those calling conventions this function
+returns cc_default if the target is a 64-bit x86 platform.
+*/
+{
+  a_calling_convention  result_cc = cc;
+
+  if (ms_extensions && !target_is_32_bit_x86_based()) {
+    /* MSVC's 64-bit ABI treats __fastcall, __stdcall, and __cdecl identically
+       to the default calling convention. */
+    if (cc == cc_fastcall || cc == cc_stdcall || cc == cc_cdecl) {
+      result_cc = cc_default;
+    }  /* if */
+  }  /* if */
+  return result_cc;
+}  /* normalized_calling_conv */
+
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED || GNU_X86_ATTRIBUTES_ALLOWED */
 
 
