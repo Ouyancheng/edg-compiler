@@ -286,8 +286,9 @@ Display a host large unsigned value along with a name.
 */
 {
   disp_name(name);
-  (void)printf(PRINTF_FORMAT_FOR_HOST_LARGE_INTEGER, value);
-  (void)printf("\n");
+
+  a_number_buffer tmp_str(value);
+  (void)printf("%s\n", tmp_str.as_temp_characters());
 }  /* disp_host_large_integer */
 
 
@@ -298,8 +299,9 @@ Display a host large unsigned value along with a name.
 */
 {
   disp_name(name);
-  (void)printf(PRINTF_FORMAT_FOR_HOST_LARGE_UNSIGNED, value);
-  (void)printf("\n");
+
+  a_number_buffer tmp_str(value);
+  (void)printf("%s\n", tmp_str.as_temp_characters());
 }  /* disp_host_large_unsigned */
 
 

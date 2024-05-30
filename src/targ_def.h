@@ -1462,28 +1462,6 @@ typedef TYPE_FOR_A_SIGNED_INTEGER_VALUE a_signed_integer_value;
 #ifndef BITS_IN_AN_INTEGER_VALUE
 #define BITS_IN_AN_INTEGER_VALUE (sizeof(an_integer_value) * CHAR_BIT)
 #endif /* ifndef BITS_IN_AN_INTEGER_VALUE */
-/* The printf formatting specifier to be used to print the integer type. */
-#ifndef PRINTF_FORMAT_FOR_SIGNED_INTEGER_VALUE
-#if LONG_LONG_ALLOWED
-#define PRINTF_FORMAT_FOR_SIGNED_INTEGER_VALUE   "%lld" /* long long */
-#else /* !LONG_LONG_ALLOWED */
-#define PRINTF_FORMAT_FOR_SIGNED_INTEGER_VALUE   "%ld"  /* long */
-#endif /* LONG_LONG_ALLOWED */
-#endif /* ifndef PRINTF_FORMAT_FOR_SIGNED_INTEGER_VALUE */
-#ifndef PRINTF_FORMAT_FOR_UNSIGNED_INTEGER_VALUE
-#if LONG_LONG_ALLOWED
-#define PRINTF_FORMAT_FOR_UNSIGNED_INTEGER_VALUE "%llu" /* unsigned long long*/
-#else /* !LONG_LONG_ALLOWED */
-#define PRINTF_FORMAT_FOR_UNSIGNED_INTEGER_VALUE "%lu"  /* unsigned long */
-#endif /* LONG_LONG_ALLOWED */
-#endif /* ifndef PRINTF_FORMAT_FOR_UNSIGNED_INTEGER_VALUE */
-#ifndef PRINTF_FORMAT_FOR_HEX_INTEGER_VALUE
-#if LONG_LONG_ALLOWED
-#define PRINTF_FORMAT_FOR_HEX_INTEGER_VALUE      "%llx" /* hex long long */
-#else /* !LONG_LONG_ALLOWED */
-#define PRINTF_FORMAT_FOR_HEX_INTEGER_VALUE      "%lx"  /* hex long */
-#endif /* LONG_LONG_ALLOWED */
-#endif /* ifndef PRINTF_FORMAT_FOR_HEX_INTEGER_VALUE */
 
 /*
 Host types used to manipulate integer values.
@@ -1495,21 +1473,6 @@ static_assert(sizeof(a_host_large_integer) >= sizeof(a_ptrdiff),
               "a_host_large_integer too small");
 static_assert(sizeof(a_host_large_unsigned) >= sizeof(sizeof_t),
               "a_host_large_unsigned too small");
-
-
-/*
-The printf formatting specifier to be used to print a host large integer.
-These default to the values used for integer values when an integer value
-is a host integer.
-*/
-#ifndef PRINTF_FORMAT_FOR_HOST_LARGE_INTEGER
-#define PRINTF_FORMAT_FOR_HOST_LARGE_INTEGER \
-			PRINTF_FORMAT_FOR_SIGNED_INTEGER_VALUE
-#endif /* ifndef PRINTF_FORMAT_FOR_HOST_LARGE_INTEGER */
-#ifndef PRINTF_FORMAT_FOR_HOST_LARGE_UNSIGNED
-#define PRINTF_FORMAT_FOR_HOST_LARGE_UNSIGNED \
-			PRINTF_FORMAT_FOR_UNSIGNED_INTEGER_VALUE
-#endif /* ifndef PRINTF_FORMAT_FOR_HOST_LARGE_UNSIGNED */
 
 /*
 Minimum and maximum values that can be represented in a_host_large_integer
@@ -1601,16 +1564,6 @@ typedef struct an_integer_value {
 } an_integer_value;
 #define BITS_IN_AN_INTEGER_VALUE (BITS_IN_INT_VALUE_PART *	      \
 				  INT_VALUE_PARTS_PER_INTEGER_VALUE)
-
-/*
-The printf formatting specifier to be used to print a host large integer.
-*/
-#ifndef PRINTF_FORMAT_FOR_HOST_LARGE_INTEGER
-#define PRINTF_FORMAT_FOR_HOST_LARGE_INTEGER "%td"  /* ptrdiff_t */
-#endif /* ifndef PRINTF_FORMAT_FOR_HOST_LARGE_INTEGER */
-#ifndef PRINTF_FORMAT_FOR_HOST_LARGE_UNSIGNED
-#define PRINTF_FORMAT_FOR_HOST_LARGE_UNSIGNED "%zu"  /* size_t */
-#endif /* ifndef PRINTF_FORMAT_FOR_HOST_LARGE_UNSIGNED */
 
 #endif /* INTEGER_VALUE_REPR_IS_A_HOST_INTEGER */
 

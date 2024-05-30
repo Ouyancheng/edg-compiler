@@ -154,6 +154,11 @@ MARK_TRIVIALLY_COPYABLE(unsigned long)
 MARK_TRIVIALLY_COPYABLE(long long)
 MARK_TRIVIALLY_COPYABLE(unsigned long long)
 
+#if __SIZEOF_INT128__
+MARK_TRIVIALLY_COPYABLE(__int128_t)
+MARK_TRIVIALLY_COPYABLE(__uint128_t)
+#endif /* __SIZEOF_INT128__ */
+
 #undef MARK_TRIVIALLY_COPYABLE
 
 /*
@@ -241,6 +246,11 @@ MARK_TRIVIALLY_DESTRUCTIBLE(long)
 MARK_TRIVIALLY_DESTRUCTIBLE(unsigned long)
 MARK_TRIVIALLY_DESTRUCTIBLE(long long)
 MARK_TRIVIALLY_DESTRUCTIBLE(unsigned long long)
+
+#if __SIZEOF_INT128__
+MARK_TRIVIALLY_DESTRUCTIBLE(__int128_t)
+MARK_TRIVIALLY_DESTRUCTIBLE(__uint128_t)
+#endif /* __SIZEOF_INT128__ */
 
 #undef MARK_TRIVIALLY_DESTRUCTIBLE
 
@@ -3321,12 +3331,30 @@ Return the maximum value of a 64-bit unsigned integer.
 
 
 template<typename an_Integral_type>
-inline constexpr size_t integral_digits(an_Integral_type value,
-                                        size_t           base)
+inline constexpr
+Enable_if<(an_Integral_type(-1) < an_Integral_type(0)), size_t>
+integral_digits(an_Integral_type value,
+                int              base)
 /*
 Given a value, return the number of digits required to represent it for a
-numbering system with the given base.  Note this function does not count the
-negative sign as a digit (i.e., 3 and -3 are both considered 1 digit).
+signed numbering system with the given base.  Note this function does not count
+the negative sign as a digit (i.e., 3 and -3 are both considered 1 digit).
+*/
+{
+  return value != 0 && (value / base) != 0 ?
+    (1 + integral_digits(an_Integral_type(value / base), base)) :
+    1;
+}  /* integral_digits */
+
+
+template<typename an_Integral_type>
+inline constexpr
+Enable_if<!(an_Integral_type(-1) < an_Integral_type(0)), size_t>
+integral_digits(an_Integral_type value,
+                unsigned int     base)
+/*
+Given a value, return the number of digits required to represent it for a
+unsigned numbering system with the given base.
 */
 {
   return value != 0 && (value / base) != 0 ?
@@ -3345,7 +3373,7 @@ are both considered 1 digit).
 {
   constexpr size_t result = integral_digits(
                                         max_integral_value<an_Integral_type>(),
-                                        size_t_arg(10));
+                                        10);
 
   return result;
 }  /* max_integral_digits */
@@ -3401,12 +3429,12 @@ struct String_formatter;
 
 
 /*
-Delegate the given type to the delegate_type string formatter.  This macro
-is undefined at the end of the namespace.
+Delegate the implementation of the string formatter for the given type to
+formatter_type.  This macro is undefined at the end of the namespace.
 */
-#define DELEGATE_FORMATTER(type, delegate_type) \
+#define DELEGATE_FORMATTER(type, formatter_type) \
   template<> \
-  struct String_formatter<type> : String_formatter<delegate_type> { \
+  struct String_formatter<type> : formatter_type { \
   };  /* String_formatter */
 
 
@@ -3631,44 +3659,6 @@ array (see Padded_string for more information).  size_hint is unused.
 
 
 /*
-A string formatter (and associated delegates) for Hex_view<unsigned long long>,
-Hex_view<unsigned long>, Hex_view<unsigned>, and Hex_view<unsigned short>
-values.
-*/
-template<>
-struct String_formatter<Hex_view<unsigned long long>> {
-  template<typename a_Type>
-  static size_t size_hint_of(Hex_view<a_Type> value)
-    { return integral_digits(value.value, size_t_arg(16)); }
-  template<typename a_Dyn_array, typename a_Type>
-  static inline void append_into(a_Dyn_array          &underlying_array,
-                                 Hex_view<a_Type>     value,
-                                 size_t               size_hint);
-};  /* String_formatter */
-
-
-DELEGATE_FORMATTER(Hex_view<unsigned long>,  Hex_view<unsigned long long>)
-DELEGATE_FORMATTER(Hex_view<unsigned>,       Hex_view<unsigned long long>)
-DELEGATE_FORMATTER(Hex_view<unsigned short>, Hex_view<unsigned long long>)
-
-
-template<typename a_Dyn_array, typename a_Type>
-void String_formatter<Hex_view<unsigned long long>>::append_into(
-                                        a_Dyn_array          &underlying_array,
-                                        Hex_view<a_Type>     value,
-                                        size_t               size_hint)
-/*
-Append the characters representing the given integral value into the underlying
-array in hex format.  size_hint is an overestimate (i.e., maximum) number of
-characters this value might use.
-*/
-{
-  append_using_c_formatting("%llx", underlying_array, size_hint,
-                            (unsigned long long)value.value);
-}  /* append_into */
-
-
-/*
 A string formatter for Hex_view<double> values.
 */
 template<>
@@ -3732,7 +3722,7 @@ A string formatter for an_octal_view values.
 template<>
 struct String_formatter<an_octal_view> {
   static size_t size_hint_of(an_octal_view value)
-    { return integral_digits(value.value, size_t_arg(8)); }
+    { return integral_digits(value.value, 8); }
   template<typename a_Dyn_array>
   static inline void append_into(a_Dyn_array   &underlying_array,
                                  an_octal_view value,
@@ -3783,66 +3773,88 @@ array.  size_hint is unused.
 
 
 /*
-A string formatter (and associated delegates) for unsigned long long, unsigned
-long, unsigned, and unsigned short values.
+A string formatter (and associated delegates) for unsigned integer values to be
+formatted with the given base.
 */
-template<>
-struct String_formatter<unsigned long long> {
-  static size_t size_hint_of(unsigned long long value)
-    { return integral_digits(value, size_t_arg(10)); }
-  template<typename a_Dyn_array>
-  static inline void append_into(a_Dyn_array        &underlying_array,
-                                 unsigned long long value,
-                                 size_t             size_hint);
-};  /* String_formatter */
+template<unsigned a_Base>
+struct Unsigned_int_formatter {
+  template<typename an_Integral_type>
+  static size_t size_hint_of(an_Integral_type value)
+    { return integral_digits(value, a_Base); }
+  template<typename a_Dyn_array, typename an_Integral_type>
+  static inline void append_into(a_Dyn_array      &underlying_array,
+                                 an_Integral_type value,
+                                 size_t           size_hint);
+};  /* Unsigned_int_formatter */
 
 
-DELEGATE_FORMATTER(unsigned long,  unsigned long long)
-DELEGATE_FORMATTER(unsigned,       unsigned long long)
-DELEGATE_FORMATTER(unsigned short, unsigned long long)
+template<unsigned a_Base>
+template<typename a_Dyn_array, typename an_Integral_type>
+void Unsigned_int_formatter<a_Base>::append_into(
+                                            a_Dyn_array      &underlying_array,
+                                            an_Integral_type value,
+                                            size_t           size_hint)
 
-
-template<typename a_Dyn_array>
-void String_formatter<unsigned long long>::append_into(
-                                          a_Dyn_array        &underlying_array,
-                                          unsigned long long value,
-                                          size_t             size_hint)
 /*
 Convert the given unsigned integer value into its character representation, and
 append the characters representing the value into the underlying array.
-size_hint is the number of digits to represent the given value as a string
-(plus 1 for a temporary null terminator).
+size_hint is the number of digits to represent the given value as a string.
 */
 {
-  append_using_c_formatting("%llu", underlying_array, size_hint, value);
+  size_t orig_size = underlying_array.length();
+
+  /* Create space in the underlying array to write the arguments. */
+  underlying_array.resize(orig_size + size_hint, '\0');
+  for (size_t i = size_hint; i != 0; --i) {
+    static_assert(a_Base <= 16, "the base must not exceed 16");
+    char c = "0123456789abcdef"[value % a_Base];
+
+    underlying_array[orig_size + (i - 1)] = c;
+    value /= a_Base;
+  }  /* for */
 }  /* append_into */
 
 
 /*
-A string formatter (and associated delegates) for long long, long, int, and
-short values.
+A string formatter (and associated delegates) for unsigned integer values to be
+formatted as base-16/hex values.
 */
-template<>
-struct String_formatter<long long> {
-  static inline size_t size_hint_of(long long value);
-  template<typename a_Dyn_array>
-  static inline void append_into(a_Dyn_array &underlying_array,
-                                 long long   value,
-                                 size_t      size_hint);
-};  /* String_formatter */
+struct Hex_unsigned_int_formatter {
+  using Base_ty = Unsigned_int_formatter<16>;
+
+  template<typename an_Integral_type>
+  static size_t size_hint_of(Hex_view<an_Integral_type> value)
+    { return Base_ty::size_hint_of(value.value); }
+  template<typename a_Dyn_array, typename an_Integral_type>
+  static inline void append_into(a_Dyn_array                &underlying_array,
+                                 Hex_view<an_Integral_type> value,
+                                 size_t                     size_hint)
+    { Base_ty::append_into(underlying_array, value.value, size_hint); }
+};  /* Hex_unsigned_int_formatter */
 
 
-DELEGATE_FORMATTER(long,  long long)
-DELEGATE_FORMATTER(int,   long long)
-DELEGATE_FORMATTER(short, long long)
-
-
-size_t String_formatter<long long>::size_hint_of(long long value)
 /*
-Given a value, return the number of characters required to format the string.
+A string formatter (and associated delegates) for unsigned integer values to be
+formatted with the given base.
+*/
+template<int a_Base>
+struct Signed_int_formatter {
+  template<typename an_Integral_type>
+  static inline size_t size_hint_of(an_Integral_type value);
+  template<typename a_Dyn_array, typename an_Integral_type>
+  static inline void append_into(a_Dyn_array      &underlying_array,
+                                 an_Integral_type value,
+                                 size_t           size_hint);
+};  /* Signed_int_formatter */
+
+
+template<int a_Base>
+template<typename an_Integral_type>
+size_t Signed_int_formatter<a_Base>::size_hint_of(an_Integral_type value)
+/*
 */
 {
-  size_t result = integral_digits(value, size_t_arg(10));
+  size_t result = integral_digits(value, a_Base);
 
   /* Add one for a negative sign. */
   if (value < 0) {
@@ -3852,20 +3864,59 @@ Given a value, return the number of characters required to format the string.
 }  /* size_hint_of */
 
 
-template<typename a_Dyn_array>
-void String_formatter<long long>::append_into(a_Dyn_array &underlying_array,
-                                              long long   value,
-                                              size_t      size_hint)
+template<int a_Base>
+template<typename a_Dyn_array, typename an_Integral_type>
+void Signed_int_formatter<a_Base>::append_into(
+                                            a_Dyn_array      &underlying_array,
+                                            an_Integral_type value,
+                                            size_t           size_hint)
 /*
 Convert the given signed integer value into its character representation, and
 append the characters representing the value into the underlying array.
-size_hint is the approximate number of digits to represent the given value as a
-string (plus 1 for a temporary null terminator).
+size_hint is the number of digits to represent the given value as a string
+(plus one if the value is negative).
 */
 {
-  append_using_c_formatting("%lli", underlying_array, size_hint, value);
+  int sign_negation = 1;
+
+  if (value < 0) {
+    sign_negation = -1;
+    underlying_array.push_back('-');
+    --size_hint;
+  }  /* if */
+
+  /* Create space in the underlying array to write the integer. */
+  size_t orig_size = underlying_array.length();
+  underlying_array.resize(orig_size + size_hint, '\0');
+  for (size_t i = size_hint; i != 0; --i) {
+    static_assert(a_Base <= 16, "the base must not exceed 16");
+    char c = "0123456789abcdef"[(value % a_Base) * sign_negation];
+
+    underlying_array[orig_size + (i - 1)] = c;
+    value /= a_Base;
+  }  /* for */
 }  /* append_into */
 
+DELEGATE_FORMATTER(unsigned long long, Unsigned_int_formatter<10>)
+DELEGATE_FORMATTER(unsigned long,      Unsigned_int_formatter<10>)
+DELEGATE_FORMATTER(unsigned,           Unsigned_int_formatter<10>)
+DELEGATE_FORMATTER(unsigned short,     Unsigned_int_formatter<10>)
+
+DELEGATE_FORMATTER(Hex_view<unsigned long long>, Hex_unsigned_int_formatter)
+DELEGATE_FORMATTER(Hex_view<unsigned long>,      Hex_unsigned_int_formatter)
+DELEGATE_FORMATTER(Hex_view<unsigned>,           Hex_unsigned_int_formatter)
+DELEGATE_FORMATTER(Hex_view<unsigned short>,     Hex_unsigned_int_formatter)
+
+DELEGATE_FORMATTER(long long, Signed_int_formatter<10>)
+DELEGATE_FORMATTER(long,      Signed_int_formatter<10>)
+DELEGATE_FORMATTER(int,       Signed_int_formatter<10>)
+DELEGATE_FORMATTER(short,     Signed_int_formatter<10>)
+
+#if __SIZEOF_INT128__
+DELEGATE_FORMATTER(__uint128_t,           Unsigned_int_formatter<10>)
+DELEGATE_FORMATTER(Hex_view<__uint128_t>, Hex_unsigned_int_formatter)
+DELEGATE_FORMATTER(__int128_t,            Signed_int_formatter<10>)
+#endif /* __SIZEOF_INT128__ */
 
 template<typename a_Reserve_fn, typename... a_Text_convertible_type>
 void append_with_custom_reserve(a_Reserve_fn               reserve_func,

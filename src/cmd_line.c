@@ -6067,15 +6067,15 @@ file.
 #define comment_string_valued_macro(X) \
   fprintf(f_error, "/*      %s %s */\n", #X, stringize(X))
 /* Write a #define directive for the option, which has a numeric value: */
-/*lint -emacro(506,define_numeric_valued_macro)*/
 #define define_numeric_valued_macro(X)                                       \
-  fprintf(f_error, "#define %s " PRINTF_FORMAT_FOR_HOST_LARGE_INTEGER "\n",  \
-          #X, (a_host_large_integer)(X))
+  { a_number_buffer tmp_str((a_host_large_integer)(X));                      \
+    fprintf(f_error, "#define %s %s\n", #X, tmp_str.as_temp_characters());   \
+  }
 /* Write a comment giving the option name and its (numeric) value: */
-/*lint -emacro(506,comment_numeric_valued_macro)*/
 #define comment_numeric_valued_macro(X)                                       \
-  fprintf(f_error, "/*      %s " PRINTF_FORMAT_FOR_HOST_LARGE_INTEGER " */\n",\
-          #X, (a_host_large_integer)(X))
+  { a_number_buffer tmp_str((a_host_large_integer)(X));                       \
+    fprintf(f_error, "/*      %s %s */\n", #X, tmp_str.as_temp_characters()); \
+  }
 /* Write a comment giving the option name and noting that it is undefined: */
 #define comment_undefined_macro_name(X) \
   fprintf(f_error, "/*      %s not defined */\n", #X)
@@ -8482,31 +8482,6 @@ file.
 #else /* !defined(PRESERVE_TOP_LEVEL_CASTS_TO_VOID_IN_IL) */
   comment_undefined_macro_name(PRESERVE_TOP_LEVEL_CASTS_TO_VOID_IN_IL);
 #endif /* defined(PRESERVE_TOP_LEVEL_CASTS_TO_VOID_IN_IL) */
-#if defined(PRINTF_FORMAT_FOR_HEX_INTEGER_VALUE)
-  define_string_valued_macro(PRINTF_FORMAT_FOR_HEX_INTEGER_VALUE);
-#else /* !defined(PRINTF_FORMAT_FOR_HEX_INTEGER_VALUE) */
-  comment_undefined_macro_name(PRINTF_FORMAT_FOR_HEX_INTEGER_VALUE);
-#endif /* defined(PRINTF_FORMAT_FOR_HEX_INTEGER_VALUE) */
-#if defined(PRINTF_FORMAT_FOR_HOST_LARGE_INTEGER)
-  define_string_valued_macro(PRINTF_FORMAT_FOR_HOST_LARGE_INTEGER);
-#else /* !defined(PRINTF_FORMAT_FOR_HOST_LARGE_INTEGER) */
-  comment_undefined_macro_name(PRINTF_FORMAT_FOR_HOST_LARGE_INTEGER);
-#endif /* defined(PRINTF_FORMAT_FOR_HOST_LARGE_INTEGER) */
-#if defined(PRINTF_FORMAT_FOR_HOST_LARGE_UNSIGNED)
-  define_string_valued_macro(PRINTF_FORMAT_FOR_HOST_LARGE_UNSIGNED);
-#else /* !defined(PRINTF_FORMAT_FOR_HOST_LARGE_UNSIGNED) */
-  comment_undefined_macro_name(PRINTF_FORMAT_FOR_HOST_LARGE_UNSIGNED);
-#endif /* defined(PRINTF_FORMAT_FOR_HOST_LARGE_UNSIGNED) */
-#if defined(PRINTF_FORMAT_FOR_SIGNED_INTEGER_VALUE)
-  define_string_valued_macro(PRINTF_FORMAT_FOR_SIGNED_INTEGER_VALUE);
-#else /* !defined(PRINTF_FORMAT_FOR_SIGNED_INTEGER_VALUE) */
-  comment_undefined_macro_name(PRINTF_FORMAT_FOR_SIGNED_INTEGER_VALUE);
-#endif /* defined(PRINTF_FORMAT_FOR_SIGNED_INTEGER_VALUE) */
-#if defined(PRINTF_FORMAT_FOR_UNSIGNED_INTEGER_VALUE)
-  define_string_valued_macro(PRINTF_FORMAT_FOR_UNSIGNED_INTEGER_VALUE);
-#else /* !defined(PRINTF_FORMAT_FOR_UNSIGNED_INTEGER_VALUE) */
-  comment_undefined_macro_name(PRINTF_FORMAT_FOR_UNSIGNED_INTEGER_VALUE);
-#endif /* defined(PRINTF_FORMAT_FOR_UNSIGNED_INTEGER_VALUE) */
 #if defined(PROMOTE_LOCAL_ENTITIES_TO_FILE_SCOPE)
   define_numeric_valued_macro(PROMOTE_LOCAL_ENTITIES_TO_FILE_SCOPE);
 #else /* !defined(PROMOTE_LOCAL_ENTITIES_TO_FILE_SCOPE) */
