@@ -2729,27 +2729,20 @@ ABI, type size_t for the IA-64 ABI.
 static an_expr_node_ptr var_arg_num_elem_count()
 /*
 Build an expression for a constant that represents the number of elements
-in an array for an array new/delete call.  -1 indicates a variable-length
-array (that's used only in the Cfront-like ABI).  The node has type int
-for the Cfront-like ABI, type size_t for the IA-64 ABI.
+in an array for an array new/delete call.  The node has type int
+for the Cfront-like ABI.
 */
 {
   an_expr_node_ptr num_elem_node;
   a_constant_ptr   num_elem_constant = local_constant();
 
-  if (int_kind_is_signed[targ_runtime_elem_count_int_kind]) {
-    set_integer_constant_with_overflow_check(
-                 num_elem_constant, (a_host_large_integer)array_element_count,
+  /* -1 indicates a variable-length array (that's used only in the Cfront-like
+     ABI). */
+  set_integer_constant_with_overflow_check(
+                 num_elem_constant, (a_host_large_integer)-1,
                  targ_runtime_elem_count_int_kind,
                  (a_type_ptr)NULL,
                  /*preserve_needed_flag=*/FALSE);
-  } else {
-    set_unsigned_integer_constant_with_overflow_check(
-                 num_elem_constant, (a_host_large_unsigned)array_element_count,
-                 targ_runtime_elem_count_int_kind,
-                 (a_type_ptr)NULL,
-                 /*preserve_needed_flag=*/FALSE);
-  }  /* if */
   /* Allocate an expression node for the constant. */
   num_elem_node = alloc_node_for_constant(num_elem_constant);
   release_local_constant(&num_elem_constant);
