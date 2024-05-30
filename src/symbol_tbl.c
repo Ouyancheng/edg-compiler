@@ -18597,7 +18597,7 @@ character other than ')'.
   }  /* while */
   if (ptp != NULL && *sig == ')') {
     /* There are more parameters (that are not ignored), but we reached a ')'.
-       This is not a match: Back up one position so the caller known it is not
+       This is not a match: Back up one position so the caller knows it is not
        a match. */
     --sig;
   }  /* if */
