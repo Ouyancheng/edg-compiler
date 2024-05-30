@@ -2726,7 +2726,7 @@ ABI, type size_t for the IA-64 ABI.
 
 #if !IA64_ABI
 
-static an_expr_node_ptr var_arg_num_elem_count()
+static an_expr_node_ptr var_arg_num_elem_node()
 /*
 Build an expression for a constant that represents the number of elements
 in an array for an array new/delete call.  The node has type int
@@ -2747,7 +2747,7 @@ for the Cfront-like ABI.
   num_elem_node = alloc_node_for_constant(num_elem_constant);
   release_local_constant(&num_elem_constant);
   return num_elem_node;
-}  /* var_arg_num_elem_count */
+}  /* var_arg_num_elem_node */
 
 #endif /* !IA64_ABI */
 
