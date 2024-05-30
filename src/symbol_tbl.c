@@ -18492,11 +18492,11 @@ static
 a_boolean check_constexpr_intrinsic_type(a_type        *tp,
                                          a_const_char  **p_sig)
 /*
-Check whether type tp matches the "type code" that comes next in *sig (see the
-description of NS_scope_constexpr_intrinsics in interpret.h for details about
-the type codes).  If successful, return TRUE and set *p_sig one position past
-the end of the type code.  If unsuccessful, return FALSE and leave *p_sig
-unchanged.
+Check whether type tp matches the "type code" that comes next in the string
+pointed to by *p_sig (see the description of NS_scope_constexpr_intrinsics in
+interpret.h for details about the type codes).  If successful, return TRUE and
+set *p_sig one position past the end of the type code.  If unsuccessful,
+return FALSE and leave *p_sig unchanged.
 */
 {
   a_boolean     okay = TRUE;
