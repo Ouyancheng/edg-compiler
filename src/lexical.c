@@ -16987,6 +16987,7 @@ end_of_id:
           !expand_macros && !caching_pragma_tokens) {
         /* Raw preprocessing tokens wanted, so do not look up the
            identifier. */
+       sym_hdr = NULL;
 #if UNICODE_VULNERABILITY_DETECTION_SUPPORTED
         if (check_unicode_security &&
             multibyte_chars_in_source_enabled
@@ -17237,7 +17238,7 @@ end_of_id:
       }  /* if */
 end_id_scan:
       if (id_ptr[0] == '$' && !allow_dollar_in_id_chars) {
-        if (!sym_hdr->has_intrinsic_name) {
+        if (sym_hdr != NULL && !sym_hdr->has_intrinsic_name) {
           /* Some reserved tokens with a leading "$" are accepted in this
              mode (e.g., when reflection is enabled) but this is not one.
              General identifiers with dollar signs are not accepted, however,
