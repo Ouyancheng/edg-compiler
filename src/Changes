@@ -4,7 +4,7 @@ Version 6.7
 Recursive instantiation not performed when a warning is issued
 
 A regression in template instantiation was introduced by the suppression
-mechanism in EDGcpfe/10223; warnings could trigger subsequent recursive
+mechanism in EDGcpfe/10223; warnings could cause subsequent recursive
 instantiations to be suppressed.  This resulted in the following code:
 
   template<int X>
@@ -14,7 +14,7 @@ instantiations to be suppressed.  This resulted in the following code:
   int x = recurse<1>();
 
 only having the instantiation recurse<1> with recurse<2>, recurse<3>, and
-recurse<4> dropped.  This has now been fixed.
+recurse<4> being dropped.  This has now been fixed.
 
 
 5/28/24  [EDGcpfe/27275]
