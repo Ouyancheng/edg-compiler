@@ -2003,6 +2003,7 @@ do_set_proper_definition_needed_flag:
           case enk_template_name:
             walk_ptr(eptr->variant.template_name, a_template_ptr,
                      iek_template);
+            break;
           case enk_token_sequence:
             walk_ptr(eptr->variant.token_sequence, a_token_sequence_ptr,
                      iek_token_sequence);
