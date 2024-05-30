@@ -2827,17 +2827,29 @@ all dimensions.
        the number already initialized).  Note that we're purposely skipping the
        case where partial_initialization_starting_element is zero (since
        there's no need to subtract zero in this case). */
-    a_constant_ptr starting_elem_constant = local_constant();
-    set_integer_constant_with_overflow_check(
+    a_constant_ptr  starting_elem_constant = local_constant();
+    an_integer_kind targ_elem_int_kind;
+
+#if IA64_ABI
+    targ_elem_int_kind = targ_size_t_int_kind;
+#else /* !IA64_ABI */
+    targ_elem_int_kind = targ_runtime_elem_count_int_kind;
+#endif /* IA64_ABI */
+    if (int_kind_is_signed[targ_elem_int_kind]) {
+      set_integer_constant_with_overflow_check(
                                  starting_elem_constant,
                                  ipdp->partial_initialization_starting_element,
-#if IA64_ABI
-                                 targ_size_t_int_kind,
-#else /* !IA64_ABI */
-                                 targ_runtime_elem_count_int_kind,
-#endif /* IA64_ABI */
+                                 targ_elem_int_kind,
                                  (a_type_ptr)NULL,
                                  /*preserve_needed_flag=*/FALSE);
+    } else {
+      set_unsigned_integer_constant_with_overflow_check(
+                                 starting_elem_constant,
+                                 ipdp->partial_initialization_starting_element,
+                                 targ_elem_int_kind,
+                                 (a_type_ptr)NULL,
+                                 /*preserve_needed_flag=*/FALSE);
+    }  /* if */
     num_elem_node->next = alloc_node_for_constant(starting_elem_constant);
     num_elem_node = make_operator_node((an_expr_operator_kind)eok_subtract,
                                        num_elem_node->type, num_elem_node);
