@@ -18385,7 +18385,7 @@ using a_constexpr_intrinsic_descr_table =
 		Ptr_map<a_symbol_header*, a_constexpr_intrinsic_descr*>;
 			/* The type of a table that maps intrinsic identifiers
 			   to descriptions of functions that the interpreter
-			   knows how to evaluate.  (Function with names in the
+			   knows how to evaluate.  (Functions with names in the
 			   table but which don't match the description will
 			   not be handled specially by the interpreter.) */
 
@@ -18398,7 +18398,7 @@ a_constexpr_intrinsic_descr_table
 
 static void init_constexpr_instrinsic_descriptions(void)
 /*
-Pre-enter symbol headers some function names so they can efficiently be
+Pre-enter symbol headers for some function names so they can efficiently be
 recognized during parsing.  Also, record associated information in a Ptr_map
 to efficiently dispatch evaluations of functions that can be handled
 intrinsically.
@@ -18456,8 +18456,8 @@ character other than '>'.
     }  /* if */
   }  /* while */
   if (tap != NULL && *sig == '>') {
-    /* The are more arguments (that are not ignored), but we reached a '>'.
-       This is not a match: Back up one position so the caller known it is
+    /* There are more arguments (that are not ignored), but we reached a '>'.
+       This is not a match: Back up one position so the caller knows it is
        not a match. */
     --sig;
   }  /*if */
@@ -18489,48 +18489,50 @@ namespace std::meta.
 
 
 static
-a_const_char* check_constexpr_intrinsic_type(a_type        *tp,
-                                             a_const_char  *sig,
-                                             a_boolean     *okay)
+a_boolean check_constexpr_intrinsic_type(a_type        *tp,
+                                         a_const_char  **p_sig)
 /*
 Check whether type tp matches the "type code" that comes next in *sig (see the
 description of NS_scope_constexpr_intrinsics in interpret.h for details about
-the type codes).  If successful, return a pointer one position past the end
-of the type code.  If unsuccessful, set *okay to FALSE and return a pointer
-to the type code that was not successfully matched.
+the type codes).  If successful, return TRUE and set *p_sig one position past
+the end of the type code.  If unsuccessful, return FALSE and leave *p_sig
+unchanged.
 */
 {
+  a_boolean     okay = TRUE;
+  a_const_char  *sig = *p_sig;
+  
 more_components:
   switch (*sig) {
     case '.':
       ++sig;
       break;
     case 'b':
-      if (!is_bool_type(tp)) *okay = FALSE;
+      if (!is_bool_type(tp)) okay = FALSE;
       ++sig;
       break;
     case 'r':
-      if (!is_reflection_type(tp)) *okay = FALSE;
+      if (!is_reflection_type(tp)) okay = FALSE;
       ++sig;
       break;
     case 'v':
-      if (!is_void_type(tp)) *okay = FALSE;
+      if (!is_void_type(tp)) okay = FALSE;
       ++sig;
       break;
     case 'C':
-      if (!is_character_type(tp)) *okay = FALSE;
+      if (!is_character_type(tp)) okay = FALSE;
       ++sig;
       break;
     case 'I':
-      if (!is_integral_type(tp)) *okay = FALSE;
+      if (!is_integral_type(tp)) okay = FALSE;
       ++sig;
       break;
     case 'S':
       if (sig[1] == 'v') {
-        if (!check_consistent_string_view_type(tp)) *okay = FALSE;
+        if (!check_consistent_string_view_type(tp)) okay = FALSE;
         sig += 2;
       } else if (sig[1] == 'z') {
-        if (!is_size_t_type(tp)) *okay = FALSE;
+        if (!is_size_t_type(tp)) okay = FALSE;
         sig += 2;
       } else {
         unexpected_condition();
@@ -18538,7 +18540,7 @@ more_components:
       break;
     case 'V':
       if (sig[1] == 'r') {
-        if (!is_std_meta_infovec_type(tp)) *okay = FALSE;
+        if (!is_std_meta_infovec_type(tp)) okay = FALSE;
         sig += 2;
       } else {
         unexpected_condition();
@@ -18550,13 +18552,14 @@ more_components:
         tp = type_pointed_to(tp);
         goto more_components;
       } else {
-        *okay = FALSE;
+        okay = FALSE;
       }  /* if */
       break;
     default:
       unexpected_condition();
   }  /* switch */
-  return sig;
+  if (okay) *p_sig = sig;
+  return okay;
 }  /* check_constexpr_intrinsic_type */
 
 
@@ -18574,9 +18577,9 @@ character other than ')'.
   a_param_type_ptr  ptp = function_type_params(rtp);
 
   while (*sig != ')' && ptp != NULL) {
-    a_boolean  type_okay = TRUE;
-    sig = check_constexpr_intrinsic_type(ptp->type, sig, &type_okay);
-    if (!type_okay) break;
+    if (!check_constexpr_intrinsic_type(ptp->type, &sig)) {
+      break;
+    }  /* if */
     ptp = ptp->next;
     if (*sig == ',') {
       /* More parameters are expected. */
@@ -18593,9 +18596,9 @@ character other than ')'.
     }  /* if */
   }  /* while */
   if (ptp != NULL && *sig == ')') {
-    /* The are more parameters (that are not ignored), but we reached a ')'.
-       This is not a match: Back up one position so the caller known it is
-       not a match. */
+    /* There are more parameters (that are not ignored), but we reached a ')'.
+       This is not a match: Back up one position so the caller known it is not
+       a match. */
     --sig;
   }  /* if */
   return sig;
@@ -18628,11 +18631,10 @@ details about the format of this string.)  Otherwise, return FALSE.
       ++sig;
     }  /* if */
     /* Check the return type. */
-    { a_boolean  type_okay = TRUE;
-      sig = check_constexpr_intrinsic_type(rtp->variant.routine.return_type,
-                                           sig, &type_okay);
-      if (!type_okay) goto failed;
-    }
+    if (!check_constexpr_intrinsic_type(rtp->variant.routine.return_type,
+                                        &sig)) {
+      goto failed;
+    }  /* if */
     if (*sig == '\0' || *sig == '|') {
       /* Success. */
       break;

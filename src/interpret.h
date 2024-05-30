@@ -89,7 +89,7 @@ Different parts of the front end invoke NS_scope_constexpr_intrinsics to
 
 The "signature" is a string literal used as the third operand for the macro M.
 This literal places some constraints on template arguments (optional), function
-parameters (optional) and the return type (mandatory).  For example, if the
+parameters (optional), and the return type (mandatory).  For example, if the
 front end runs into a function std::construct_at, it will (a) recognize that
 the symbol header for "construct_at" is marked as an intrinsic name, (b) look
 up that header in the Ptr_map mentioned in (2) above (finding the string
