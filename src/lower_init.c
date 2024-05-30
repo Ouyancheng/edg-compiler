@@ -2689,7 +2689,44 @@ static a_routine_ptr
 
 
 static an_expr_node_ptr num_elem_node_from_count(
-                                          a_targ_ptrdiff_t array_element_count)
+                                             a_targ_size_t array_element_count)
+/*
+Build an expression for a constant that represents the number of elements in an
+array for an array new/delete call.  The node has type int for the Cfront-like
+ABI, type size_t for the IA-64 ABI.
+*/
+{
+  an_expr_node_ptr num_elem_node;
+  a_constant_ptr   num_elem_constant = local_constant();
+  an_integer_kind  targ_elem_int_kind;
+
+#if IA64_ABI
+  targ_elem_int_kind = targ_size_t_int_kind;
+#else /* !IA64_ABI */
+  targ_elem_int_kind = targ_runtime_elem_count_int_kind;
+#endif /* IA64_ABI */
+  if (int_kind_is_signed[targ_elem_int_kind]) {
+    set_integer_constant_with_overflow_check(
+                 num_elem_constant, (a_host_large_integer)array_element_count,
+                 targ_elem_int_kind,
+                 (a_type_ptr)NULL,
+                 /*preserve_needed_flag=*/FALSE);
+  } else {
+    set_unsigned_integer_constant_with_overflow_check(
+                 num_elem_constant, (a_host_large_unsigned)array_element_count,
+                 targ_elem_int_kind,
+                 (a_type_ptr)NULL,
+                 /*preserve_needed_flag=*/FALSE);
+  }  /* if */
+  /* Allocate an expression node for the constant. */
+  num_elem_node = alloc_node_for_constant(num_elem_constant);
+  release_local_constant(&num_elem_constant);
+  return num_elem_node;
+}  /* num_elem_node_from_count */
+
+#if !IA64_ABI
+
+static an_expr_node_ptr var_arg_num_elem_count()
 /*
 Build an expression for a constant that represents the number of elements
 in an array for an array new/delete call.  -1 indicates a variable-length
@@ -2700,24 +2737,26 @@ for the Cfront-like ABI, type size_t for the IA-64 ABI.
   an_expr_node_ptr num_elem_node;
   a_constant_ptr   num_elem_constant = local_constant();
 
-#if IA64_ABI
-  check_assertion(array_element_count >= 0);
-#endif /* IA64_ABI */
-  set_integer_constant_with_overflow_check(
+  if (int_kind_is_signed[targ_runtime_elem_count_int_kind]) {
+    set_integer_constant_with_overflow_check(
                  num_elem_constant, (a_host_large_integer)array_element_count,
-#if IA64_ABI
-                 targ_size_t_int_kind,
-#else /* !IA64_ABI */
                  targ_runtime_elem_count_int_kind,
-#endif /* IA64_ABI */
                  (a_type_ptr)NULL,
                  /*preserve_needed_flag=*/FALSE);
+  } else {
+    set_unsigned_integer_constant_with_overflow_check(
+                 num_elem_constant, (a_host_large_unsigned)array_element_count,
+                 targ_runtime_elem_count_int_kind,
+                 (a_type_ptr)NULL,
+                 /*preserve_needed_flag=*/FALSE);
+  }  /* if */
   /* Allocate an expression node for the constant. */
   num_elem_node = alloc_node_for_constant(num_elem_constant);
   release_local_constant(&num_elem_constant);
   return num_elem_node;
-}  /* num_elem_node_from_count */
+}  /* var_arg_num_elem_count */
 
+#endif /* !IA64_ABI */
 
 static an_expr_node_ptr num_elem_node_if_array(an_init_pos_descr_ptr ipdp)
 /*
@@ -2756,8 +2795,8 @@ all dimensions.
                                                ));
   } else {
     /* Not a VLA. */
-    a_boolean        is_array = FALSE;
-    a_targ_ptrdiff_t array_element_count = 0;
+    a_boolean     is_array = FALSE;
+    a_targ_size_t array_element_count = 0;
     if (ipdp->array_element_sequence) {
       /* Accessing a sequence of array elements. */
       is_array = TRUE;
@@ -3860,8 +3899,8 @@ A pointer to the expression created is returned.
   size_elem_node = size_elem_node_from_pointer_type(entity_type);
 #if !IA64_ABI
   if (num_elem_node == NULL) {
-    /* -1 tells the runtime to use the array size from the "new[]". */
-    num_elem_node = num_elem_node_from_count((a_targ_ptrdiff_t)-1);
+    /* Use the runtime array size from the "new[]". */
+    num_elem_node = var_arg_num_elem_node();
   }  /* if */
   if (delete_routine == NULL || aligned_delete) {
     /* The call looks like

@@ -4042,9 +4042,10 @@ kinds.
 #if MAINTAIN_NEEDED_FLAGS
   a_boolean needed = con->source_corresp.needed;
 #endif /* MAINTAIN_NEEDED_FLAGS */
-  /* Create the constant as a long and then change its type to get any
-     truncation error. */
-  set_integer_constant(con, con_val, (an_integer_kind)ik_long);
+  /* Create the constant as the largest signed type and then change its type to
+     get any truncation error. */
+  check_assertion(int_kind_is_signed[ikind]);
+  set_integer_constant(con, con_val, targ_intmax_kind);
   conv_integer_constant_with_overflow_check(con, ikind, class_type);
 #if MAINTAIN_NEEDED_FLAGS
   /* If the needed flag has already been set, maintain it. */
@@ -4075,10 +4076,10 @@ integer kinds.
 #if MAINTAIN_NEEDED_FLAGS
   a_boolean needed = con->source_corresp.needed;
 #endif /* MAINTAIN_NEEDED_FLAGS */
-  /* Create the constant as an unsigned long and then change its type to
-     get any truncation error. */
-  set_unsigned_integer_constant(con, con_val,
-                                (an_integer_kind)ik_unsigned_long);
+  /* Create the constant as the largest unsigned type and then change its type
+     to get any truncation error. */
+  check_assertion(!int_kind_is_signed[ikind]);
+  set_unsigned_integer_constant(con, con_val, targ_uintmax_kind);
   conv_integer_constant_with_overflow_check(con, ikind, class_type);
 #if MAINTAIN_NEEDED_FLAGS
   /* If the needed flag has already been set, maintain it. */

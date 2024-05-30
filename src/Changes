@@ -1,5 +1,18 @@
 Version 6.7
 
+5/30/24  [EDGcpfe/27302]
+Assertion failure when array bound exceeds targ_ptrdiff_t
+
+Previously, the front end would fail to preserve array bound information after
+lowering (if the array bound could not be represented by targ_ptrdiff_t),
+resulting in a failed assertion in num_elem_node_from_count:
+
+  struct A { ~A() {} };
+  A y[~((unsigned long)0)];
+
+This is now fixed.
+
+
 5/30/24  [EDGcpfe/26810]
 Microsoft compatibility: 64-bit targets and calling conventions
 
