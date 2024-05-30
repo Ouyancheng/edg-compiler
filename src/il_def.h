@@ -971,7 +971,7 @@ EXTERN a_const_char *il_entry_kind_names[(int)iek_last + 1]
 Token kinds.
 
 "Complex tokens" should be listed before the tok_last_complex_token constant.
-In this context, a "complex token" is token that either (a) is not visible in
+In this context, a "complex token" is a token that either (a) is not visible in
 the source (like an end-of-source token), or (b) has a large number of distinct
 forms (like identifiers, numbers, etc.).
 
