@@ -508,6 +508,10 @@ namespace std {
       return type;
     }
 
+    consteval void inject(info, info) {
+      /* Dummy definition.  Handled by interpreter. */
+    }
+
     consteval info metacall__impl(info, __infovec) {
       return ^::;  /* Dummy return.  Handled by interpreter. */
     }

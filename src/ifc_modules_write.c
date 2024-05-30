@@ -4128,7 +4128,7 @@ return the corresponding EDG IFC BasicToken sort value.
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
       result = ifc_ebts_complex;
       break;
-    case tok_aggr_constant:
+    case tok_gen_constant:
     case tok_char_constant:
 #if MICROSOFT_EXTENSIONS_ALLOWED
     case tok_cli_typeid:
@@ -4191,7 +4191,8 @@ EDG IFC constant token kind.
   an_ifc_edg_constant_token_sort result;
 
   switch (token) {
-    case tok_aggr_constant:
+    case tok_gen_constant:
+      /* In modules, this is only used for aggregate constants. */
       result = ifc_ects_aggr_constant;
       break;
     case tok_char_constant:

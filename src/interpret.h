@@ -183,8 +183,9 @@ must be defined in interpret.c to implement its evaluation.
   M(std_meta, bit_offset_of, "(r)Sz") \
   M(std_meta, alignment_of, "(r)Sz") \
   M(std_meta, define_class__impl, "(r,I,*.)v") \
-  M(std_meta, metacall__impl, "(r,Vr)r") 
-
+  M(std_meta, metacall__impl, "(r,Vr)r") \
+  M(std_meta, inject, "(r,r)v") \
+  /* End of NS_scope_constexpr_intrinsics. */
 
 
 enum a_constexpr_intrinsic {

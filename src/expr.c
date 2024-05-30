@@ -19166,6 +19166,119 @@ reparse:
 }  /* scan_typeid_operator */
 
 
+static a_token_sequence_entry* cache_curr_token_sequence_entry(
+                                                        a_token_cache  *cache)
+/*
+Add the current token to the given cache and return an IL representation for
+that token.
+*/
+{
+  a_token_sequence_entry  *result = alloc_token_sequence_entry();
+
+  result->token_kind = curr_token;
+  result->token_kind = curr_token;
+  result->position = pos_curr_token;
+  /* il_string_for_curr_token() is inefficient.  This may therefore need
+     a new routine optimized for single plain tokens. */
+  result->spelling = il_string_for_curr_token();
+  cache_curr_token(cache);
+  return result;
+}  /* cache_curr_token_sequence_entry */
+
+
+static void scan_token_sequence(an_operand         *result,
+                                a_source_position  *caret_pos)
+/*
+The current token is "{".  Scan all tokens following it up to but not including
+a matching "}" into an enk_token_sequence expression.  Then skip the "}".  The
+type of the expression is std::meta::info.
+*/
+{
+  a_token_sequence_entry
+                    *il_tokens = NULL, **p_end_il_tokens = &il_tokens;
+  a_token_sequence  *tsp;
+  an_expr_node      *interpolations = NULL,
+                    **end_interpolations = &interpolations,
+                    *token_seq_node;
+  a_token_cache     *cache = alloc_token_cache(/*reusable=*/TRUE);
+  unsigned          num_lbraces = 0;
+  a_boolean         err = FALSE;
+
+  check_assertion(curr_token == tok_lbrace);
+  (void)get_token();
+  for (;;) {
+    if (curr_token == tok_rbrace) {
+      if (num_lbraces == 0) {
+        break;
+      } else {
+        --num_lbraces;
+      }  /* if */
+    } else if (curr_token == tok_lbrace) {
+      ++num_lbraces;
+    } else if (curr_token == tok_end_of_source) {
+      pos_error(ec_exp_rbrace, &pos_curr_token);
+      err = TRUE;
+      break;
+    }  /* if */
+    *p_end_il_tokens = cache_curr_token_sequence_entry(cache);
+    p_end_il_tokens = &(*p_end_il_tokens)->next;
+    if (curr_token == tok_identifier &&
+        locator_for_curr_id.symbol_header->has_intrinsic_name) {
+      /* Check whether this is an identifier introducing an interpolator;
+         i.e., "$" or "$id". */
+      a_const_char  *id = locator_for_curr_id.symbol_header->identifier;
+      if (id[0] == '$' && (id[1] == '\0' || strcmp(id, "$id") == 0)) {
+        an_operand  opnd;
+        (void)get_token();
+        if (curr_token != tok_lparen) {
+          pos_error(ec_exp_lparen, &pos_curr_token);
+          continue;
+        }  /* if */
+        *p_end_il_tokens = cache_curr_token_sequence_entry(cache);
+        p_end_il_tokens = &(*p_end_il_tokens)->next;
+        (void)get_token();
+        /* Scan the interpolated expression. */
+        add_matching_stop_token(tok_rparen);
+        scan_expr(&opnd, PREC_COMMA, EOPT_DISALLOW_COMMA_OPERATOR);
+        do_operand_transformations(&opnd, TOPT_NO_OPTIONS);
+        *end_interpolations = make_node_from_operand(&opnd);
+        end_interpolations = &(*end_interpolations)->next;
+        /* For $id(...), check that the expression type is std::string_view. */
+        if (id[1] != '\0' && !check_consistent_string_view_type(opnd.type)) {
+          pos_ty_error(ec_expected_string_view_value, &opnd.position,
+                       opnd.type);
+          err = TRUE;
+        }  /* if */
+        /* Check for and pass over the right parenthesis. */
+        (void)required_token_no_advance(tok_rparen, ec_exp_rparen);
+        *p_end_il_tokens = cache_curr_token_sequence_entry(cache);
+        p_end_il_tokens = &(*p_end_il_tokens)->next;
+        remove_matching_stop_token(tok_rparen);
+      }  /* if */
+    }  /* if */
+    (void)get_token();
+  }  /* for */
+  if (!err) {
+    terminate_token_cache(cache);
+    /* Create a token sequence entry and an enk_token_sequence node to point
+       to it. */
+    tsp = alloc_token_sequence();
+    tsp->tokens = il_tokens;
+    tsp->interpolations = interpolations;
+    tsp->token_cache = (void*)cache;
+    token_seq_node = alloc_expr_node(enk_token_sequence);
+    token_seq_node->type = reflection_type();
+    token_seq_node->position = *caret_pos;
+    token_seq_node->variant.token_sequence = tsp;
+    make_expression_operand(token_seq_node, result);
+  } else {
+    make_error_operand(result);
+  }  /* if */
+  set_operand_position(result, caret_pos, &end_pos_curr_token, caret_pos);
+  required_token(tok_rbrace, ec_exp_rbrace);
+}  /* scan_token_sequence */
+
+
 static void scan_reflection_operator(a_rescan_control_block  *rcblock,
                                      an_operand              *result)
 /*
@@ -19179,6 +19292,7 @@ where <construct> is one of:
   - a template name
   - a type-id
   - an expression
+  - a token sequence delimited by braces
 
 The result (stored in *result) is a compile-time constant value (of kind
 ck_reflection) of a special built-in type (of kind tk_reflection).
@@ -19191,10 +19305,8 @@ ck_reflection) of a special built-in type (of kind tk_reflection).
 #if EXTRA_SOURCE_POSITIONS_IN_IL
   a_source_position       end_pos;
 #endif /* EXTRA_SOURCE_POSITIONS_IN_IL */
-  a_constant_ptr          refl_cp = local_constant();
   a_boolean               is_dependent = FALSE;
 
-  clear_constant(refl_cp, (a_constant_repr_kind)ck_reflection);
   /* If we're in the file-scope memory region instead of a function-scope
      memory region because we're scanning something like an array bound,
      switch back.  Any expression nodes allocated must be in the function-scope
@@ -19217,16 +19329,23 @@ ck_reflection) of a special built-in type (of kind tk_reflection).
 #endif /* EXTRA_SOURCE_POSITIONS_IN_IL */
   } else {
     /* Normal, non-rescan, processing. */
+    a_constant_ptr             refl_cp = local_constant();
     an_identifier_options_set  gid_flags = GID_IS_EXPR_CONTEXT |
                                            GID_TEMPLATE_ARGS_OPTIONAL;
     a_boolean                  handled = FALSE, err = FALSE;
     a_token_kind               next_tok;
+    a_source_position          caret_pos = pos_curr_token;
+    clear_constant(refl_cp, ck_reflection);
     /* Consume the "^" token. */
     (void)get_token();
     arg_pos = pos_curr_token;
-    if (curr_token == tok_colon_colon &&
-        (next_tok = next_token()) != tok_identifier &&
-        next_tok != tok_new && next_tok != tok_delete) {
+    if (curr_token == tok_lbrace) {
+      release_local_constant(&refl_cp);
+      scan_token_sequence(result, &caret_pos);
+      handled = TRUE;
+    } else if (curr_token == tok_colon_colon &&
+               (next_tok = next_token()) != tok_identifier &&
+               next_tok != tok_new && next_tok != tok_delete) {
       /* ^:: represents the global namespace. */
       refl_cp->variant.reflection.entity.kind = iek_scope;
       refl_cp->variant.reflection.entity.ptr = (char*)il_header.primary_scope;
@@ -19359,19 +19478,21 @@ ck_reflection) of a special built-in type (of kind tk_reflection).
       handled = TRUE;
     }  /* if */
     check_assertion(handled);
+    if (refl_cp != NULL) {
+      /* FIXME The type should not really depend on whether the operand is
+         dependent, but for now this is an expedient way to parse templates. */
+      refl_cp->type = is_dependent ? type_of_unknown_templ_param_nontype
+                                   : reflection_type();
+      make_constant_operand(refl_cp, result);
+      release_local_constant(&refl_cp);
+    }  /* if */
   }  /* if */
-  /* FIXME The type should not really depend on whether the operand is
-     dependent, but for now this is an expedient way to parse templates. */
-  refl_cp->type = is_dependent ? type_of_unknown_templ_param_nontype
-                               : reflection_type();
-  make_constant_operand(refl_cp, result);
   set_operand_position(result, &start_pos, &end_pos, &start_pos);
   record_operator_position_in_rescan_info(result, &start_pos,
                                           NO_TOKEN_SEQUENCE_NUMBER, &arg_pos);
   pop_expr_stack();
   switch_back_region_and_lifetime(region_to_switch_back_to,
                                   saved_object_lifetime);
-  release_local_constant(&refl_cp);
 }  /* scan_reflection_operator */
 
 #if MICROSOFT_EXTENSIONS_ALLOWED
@@ -32479,7 +32600,7 @@ of:
   switch (tok) {
     case tok_int_constant:
     case tok_char_constant:
-    case tok_aggr_constant:
+    case tok_gen_constant:
     case tok_true:
     case tok_false:
 #if TARG_HAS_IEEE_FLOATING_POINT
@@ -35275,7 +35396,7 @@ Return TRUE if the indicated token is one that could start an expression.
     case tok_ud_literal:
     case tok_int_constant:
     case tok_char_constant:
-    case tok_aggr_constant:
+    case tok_gen_constant:
     case tok_true:
     case tok_false:
     case tok_plus_plus:
@@ -41574,7 +41695,7 @@ handle_identifier:
       break;
     case tok_int_constant:
     case tok_char_constant:
-    case tok_aggr_constant:
+    case tok_gen_constant:
     case tok_true:
     case tok_false:
       if (const_for_curr_token.from_undefined_preproc_id) {

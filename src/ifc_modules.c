@@ -17188,19 +17188,19 @@ rules of position inference).
 }  /* cache_ud_literal */
 
 
-static void cache_aggr_constant(a_module_token_cache_ptr cache,
-                                a_constant_ptr           cp)
+static void cache_constant(a_module_token_cache_ptr cache,
+                           a_constant_ptr           cp)
 /*
-Add a tok_aggr_constant token with the provided constant to cache.
+Add a tok_gen_constant token with the provided constant to cache.
 */
 {
-  cache_token(cache, tok_aggr_constant);
+  cache_token(cache, tok_gen_constant);
 
   a_cached_token_ptr last_token = cache->get_last_token();
   last_token->extra_info_kind = (a_token_extra_info_kind)teik_constant;
   last_token->variant.constant = alloc_cached_constant();
   copy_constant(cp, last_token->variant.constant);
-}  /* cache_aggr_constant */
+}  /* cache_constant */
 
 
 a_boolean extract_tokens_for_ifc_module_expr(
@@ -25281,7 +25281,7 @@ Given a constant token, return the corresponding front end token kind.
 
   switch (token_sort) {
     case ifc_ects_aggr_constant:
-      result = tok_aggr_constant;
+      result = tok_gen_constant;
       break;
     case ifc_ects_char_constant:
       result = tok_char_constant;
@@ -26345,7 +26345,7 @@ common_cast:
         if (is_error_constant(cp)) {
           goto invalid;
         }  /* if */
-        cache_aggr_constant(cache, cp);
+        cache_constant(cache, cp);
       }
       break;
     case ifc_es_expr_tuple:

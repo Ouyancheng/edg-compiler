@@ -3507,6 +3507,9 @@ ec_range_based_for_nonstandard;;"a range-based \"for\" statement is nonstandard 
 ec_auto_type_nonstandard;;"\"auto\" as a type specifier is nonstandard in this mode"
 ec_cannot_import_module_bad_checksum;;"could not import module file %sq due to file corruption"
 ec_ifc;INTERNAL;"IFC"
+ec_extraneous_injected_member_tokens;;"extraneous tokens injected after member declaration"
+ec_bad_injection_scope;;"bad injection scope (%r)"
+ec_expected_string_view_value;;"expected a value of type std::string_view but got %t"
 ###############################################################################
 #                                                             \  ___  /       #
 #                                                               /   \         #

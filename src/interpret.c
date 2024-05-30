@@ -4774,6 +4774,11 @@ the corresponding integer value (zero for a null address).
 }  /* is_integer_address */
 
 
+static a_boolean evaluate_expr(an_interpreter_state  *ips,
+                               an_expr_node_ptr      expr,
+                               a_boolean             force_prvalue,
+                               a_constant_ptr        result_con);
+
 static a_boolean do_constexpr_statement(an_interpreter_state  *ips,
                                         a_statement_ptr       stmt);
 
@@ -13444,6 +13449,234 @@ done:
   if (result_con != NULL) release_local_constant(&result_con);
   return result;
 }  /* do_constexpr_std_meta_metacall__impl */
+
+
+static a_boolean do_constexpr_std_meta_inject(
+                                        an_interpreter_state  *ips,
+                                        a_routine_ptr         callee,
+                                        an_expr_node_ptr      call_node,
+                                        a_byte                **p_arg_bytes,
+                                        a_byte                *result_storage,
+                                        a_byte                *complete_object)
+/*
+Implement std::meta::inject(<info1>, <info2>), where <info1> represents a
+class, namespace, or block scope, and <info2> represents an evaluated token
+sequence (i.e., a token sequence without interpolators).
+*/
+{
+  a_boolean     result = TRUE;
+  a_reflection_value
+                *rvp0 = (a_reflection_value*)p_arg_bytes[0],
+                *rvp1 = (a_reflection_value*)p_arg_bytes[1];
+  a_scope       *scope = NULL;
+  a_scope_depth depth = depth_scope_stack;
+
+  if (rvp1->entity.kind != iek_token_sequence) {
+    info_with_pos(ec_invalid_reflection_for_intrinsic,
+                  &call_node->position, ips);
+    do_constexpr_fail(result);
+    goto done;
+  }  /* if */
+  if (rvp0->entity.kind == iek_scope) {
+    /* A namespace or block scope. */
+    scope = (a_scope*)rvp0->entity.ptr;
+  } else if (rvp0->entity.kind == iek_type) {
+    /* Normally a class type: Retrieve its associated scope. */
+    a_type  *tp = skip_typerefs((a_type*)rvp0->entity.ptr);
+    if (is_immediate_class_type(tp)) {
+      scope = class_type_supp(tp)->assoc_scope;
+    } else {
+      info_with_pos(ec_invalid_reflection_for_intrinsic,
+                    &call_node->position, ips);
+      do_constexpr_fail(result);
+      goto done;
+    }  /* if */
+  } else if (rvp0->entity.kind == iek_namespace) {
+    /* A namespace alias: Retrieve the scope of the associated namespace. */
+    a_namespace  *nsp = skip_namespace_aliases((a_namespace*)rvp0->entity.ptr);
+    scope = nsp->variant.assoc_scope;
+  }  /* if */
+  /* Look through the scope stack for the associated scope. */
+  result = FALSE;
+  for (; depth != NO_SCOPE_DEPTH; depth = scope_stack[depth].previous_scope) {
+    if (scope_stack[depth].il_scope == scope &&
+        (scope_is(&scope_stack[depth], sck_class_struct_union) ||
+         scope_is(&scope_stack[depth], sck_namespace) ||
+         scope_is(&scope_stack[depth], sck_namespace_extension) ||
+         (scope_is(&scope_stack[depth], sck_block) &&
+          TRUE/*FIXME: Check it's a compound statement block*/))) {
+      an_il_entity_list_entry  **end_list = &scope_stack[depth].injections;
+      end_list = get_last_simple_list_link(end_list);
+      *end_list =  alloc_il_entity_list_entry();
+      (*end_list)->entity =  rvp1->entity;
+      result = TRUE;
+      break;
+    }  /* if */
+  }  /* if */
+  if (!result) {
+    info_with_pos_refl(ec_bad_injection_scope, &call_node->position, *rvp0,
+                       ips);
+    do_constexpr_fail(result);
+  }  /* if */
+done:
+  return result;
+}  /* do_constexpr_std_meta_inject */
+
+
+static a_boolean get_string_from_string_view(
+                                 ARG_UNUSED an_interpreter_state  *ips,
+                                             a_constant            *cp,
+                                             a_const_char          **p_string,
+                                             a_targ_size_t         *p_len)
+/*
+*cp is a std::string_view value produced by the current interpreter invocation
+(whose state is tracked by ips).  Return the string it represents via *p_string
+(a pointer to an array of characters) and *p_len (the length of the view).
+*/
+{
+  a_boolean   result = TRUE, ovflo = FALSE;
+  a_constant  *length_cp, *str_cp;
+
+  /* FIXME: Currently, this code assumes the string_view is represented as a
+     pointer and a length.  Adjust it to also handle two pointers. */
+  if (!constant_is(cp, ck_aggregate) ||
+      cp->variant.aggregate.first_constant == NULL ||
+      cp->variant.aggregate.first_constant->next == NULL ||
+      cp->variant.aggregate.first_constant->next->next != NULL) {
+    do_constexpr_fail(result);
+    goto done;
+  }  /* if */
+  length_cp = cp->variant.aggregate.first_constant;
+  str_cp = cp->variant.aggregate.first_constant->next;
+  if (constant_is(str_cp, ck_integer)) swap_at(&length_cp, &str_cp);
+  if (!constant_is(str_cp, ck_address) ||
+      !address_base_is(str_cp, abk_constant)) {
+    do_constexpr_fail(result);
+    goto done;
+  } else {
+    str_cp = str_cp->variant.address.variant.constant;
+  }  /* if */
+  if (!constant_is(str_cp, ck_string)) {
+    do_constexpr_fail(result);
+    goto done;
+  }  /* if */
+  *p_string = str_cp->variant.string.value;
+  *p_len = (a_targ_size_t)value_of_integer_constant(length_cp, &ovflo);
+   if (ovflo) {
+    do_constexpr_fail(result);
+    goto done;
+  }  /* if */
+done:
+  return result;
+}  /* get_string_from_string_view */
+
+
+static a_boolean do_constexpr_eval_token_sequence(
+                                           an_interpreter_state  *ips,
+                                           an_expr_node_ptr      tok_seq_node,
+                                           a_constexpr_address   *result_cap)
+/*
+The given expression is an enk_token_sequence node.  Evaluate it and return
+the corresponding reflection value at the location denoted by result_cap.
+*/
+{
+  a_boolean           result = TRUE;
+  a_reflection_value  *result_rvp = (a_reflection_value*)result_cap->address;
+  a_token_sequence    *orig_tok_seq = tok_seq_node->variant.token_sequence,
+                      *tok_seq = NULL;
+  a_token_cache       *new_cache;
+  Dyn_array<a_constant*>
+                      values(10);
+
+  if (!ips->is_constant_evaluated) {
+    do_constexpr_fail(result);
+    goto done;
+  }  /* if */
+  if (orig_tok_seq->interpolations != NULL) {
+    /* Evaluate the interpolations into constant entries. */
+    an_expr_node  *node = orig_tok_seq->interpolations;
+    for (; node != NULL; node = node->next) {
+      a_constant   *cp = local_constant();
+      values.push_back(cp);
+      if (!evaluate_expr(ips, node, /*force_prvalue=*/TRUE, cp)) {
+        do_constexpr_fail(result);
+        break;
+      }  /* if */
+    }  /* if */
+    if (result) {
+      int interpolator_num = 0;
+      new_cache = alloc_token_cache(/*reusable=*/TRUE);
+      rescan_reusable_cache((a_token_cache*)orig_tok_seq->token_cache);
+      for (; curr_token != tok_end_of_source; (void)get_token()) {
+        if (curr_token == tok_identifier &&
+            locator_for_curr_id.symbol_header->has_intrinsic_name) {
+          a_const_char  *id = locator_for_curr_id.symbol_header->identifier;
+          if (id[0] == '$' && next_token() == tok_lparen) {
+            a_cached_token_ptr last_token;
+            check_assertion(interpolator_num < values.length());
+            if (id[1] == '\0') {
+              /* An interpolator of the form $(...).  Pass the value of the
+                 interpolated expression (converted to a prvalue) as a
+                 pseudo-token representing that constant. */
+              cache_general_constant(new_cache, values[interpolator_num],
+                                     &pos_curr_token);
+            } else if (strcmp(id, "$id") == 0) {
+              a_const_char   *str = NULL;
+              a_targ_size_t  len = 0;
+              if (!get_string_from_string_view(ips, values[interpolator_num],
+                                               &str, &len)) {
+                do_constexpr_fail(result);
+                goto done;
+              }  /* if */
+              cache_string_as_identifier(new_cache, str, len, &pos_curr_token);
+            }  /* if */
+            /* Set the token sequence number range of the interpolated token
+               to match that of the interpolation construct.  This matters
+               among others if the token sequence will be cached again later
+               on (which might look for a specific token sequence number
+               range). */
+            last_token = new_cache->last_token;
+            last_token->token_sequence_number = curr_token_sequence_number;
+            /* Skip the identifier. */
+            (void)get_token();
+            /* Make the "end" of the interpolated token match the end of the
+               interpolation construct. */
+            last_token->ending_token_sequence_number =
+                                                   curr_token_sequence_number;
+            /* Skip the left parenthesis (the right one is skipped by the
+               general loop mechanism). */
+            (void)get_token();
+            check_assertion(curr_token == tok_rparen);
+            ++interpolator_num;
+          }  /* if */
+        } else {
+          cache_curr_token(new_cache);
+        }  /* if */
+      }  /* for */
+      flush_past_token_cache_terminator();
+      terminate_token_cache(new_cache);
+    }  /* if */
+  } else {
+    new_cache = (a_token_cache*)orig_tok_seq->token_cache;
+  }  /* if */
+  if (result) {
+    /* Create a new token sequence entry associated to the new cache, and
+       point the result reflection to it. */
+    a_memory_region_number  region_to_switch_back_to;
+    switch_to_file_scope_region(&region_to_switch_back_to);
+    tok_seq = alloc_token_sequence();
+    tok_seq->token_cache = new_cache;
+    switch_back_to_original_region(region_to_switch_back_to);
+    result_rvp->entity.kind = iek_token_sequence;
+    result_rvp->entity.ptr = (char*)tok_seq;
+    result_rvp->local_scope_number = FILE_SCOPE_NUMBER;
+    mark_subobject_initialized(result_cap->address,
+                               result_cap->complete_object);
+  }  /* if */
+done:
+  for (auto cp: values) release_local_constant(&cp);
+  return result;
+}  /* do_constexpr_eval_token_sequence */
 
 
 static void report_leftover_allocations(an_interpreter_state  *ips)
@@ -23314,6 +23547,9 @@ the value representation of the integer value.
         }  /* if */
       }
       break;
+    case enk_token_sequence:
+      result = do_constexpr_eval_token_sequence(ips, expr, result_cap);
+      break;
 #if BUILTIN_FUNCTIONS_ENABLED
     case enk_builtin_choose_expr:
       { an_expr_node_ptr  active_expr = expr->variant.builtin_choose_expr
@@ -24324,6 +24560,125 @@ done:
 }  /* is_core_constant_expr */
 
 
+static a_boolean evaluate_expr(an_interpreter_state  *ips,
+                               an_expr_node_ptr      expr,
+                               a_boolean             force_prvalue,
+                               a_constant_ptr        result_con)
+/*
+Evaluate the given expression for the interpreter state *ips and place the
+result in result_con.  If force_prvalue is TRUE, convert a glvalue expression
+to a prvalue (without changing expr itself).
+*/
+{
+  a_boolean     result = TRUE;
+  a_byte        *result_storage;
+  a_byte_count  n_bytes;
+  a_type_ptr    result_type = expr->type,
+                val_type = skip_typerefs(result_type);
+
+  n_bytes = expr_result_size(ips, expr, val_type, &result); 
+  if (!result) {
+    if (ips->input_error) {
+      /* Interpretation failed due to an error node in the IL.  Continue
+         with an error constant, but treat interpretation as successful. */
+      set_error_constant(result_con);
+      result = TRUE;
+    }  /* if */
+    /* Nothing more to be done. */
+  } else {
+    alloc_complete_object(ips, n_bytes, val_type, result_storage);
+    if (!do_constexpr_expression(ips, expr, result_storage, result_storage)) {
+      if (ips->input_error) {
+        /* Interpretation failed due to an error node in the IL.  Continue
+           with an error constant, but treat interpretation as successful. */
+        set_error_constant(result_con);
+      } else {
+        do_constexpr_fail(result);
+        if (expr_stack != NULL) {
+          merge_reattempt_state(&expr_stack->const_eval_reattempt_state,
+                                ips->reattempt_state);
+        }  /* if */
+      }  /* if */
+    } else {
+      if (expr->is_lvalue || expr->is_xvalue) {
+        a_constexpr_address  *cap = (a_constexpr_address*)result_storage;
+        if (force_prvalue) {
+          if (is_runtime_data_address(cap)) {
+            if (is_immediate_class_type(val_type) &&
+                val_type->variant.class_struct_union.is_empty_class &&
+                is_trivially_copy_constructible_type(val_type)) {
+              /* An empty class with no actual data to copy: Just allocate
+                 an empty object. */
+              n_bytes = value_bytes_for_type(ips, val_type, &result);
+              check_assertion(result);
+              alloc_complete_object(ips, n_bytes, val_type, result_storage);
+              init_subobject_to_zero(ips, result_storage, val_type,
+                                     result_storage);
+            } else {
+              info_with_pos(ec_constexpr_access_to_runtime_storage,
+                            &expr->position, ips);
+              do_constexpr_fail(result);
+            }  /* if */
+          } else if (is_volatile_qualified_type(expr->type)) {
+              do_constexpr_fail(result);
+              info_with_pos(ec_constexpr_volatile_fetch, &expr->position, ips);
+          } else {
+            /* result_storage points to an interpreter address for the glvalue.
+               Allocate a new object for the corresponding prvalue and perform
+               the glvalue-to-prvalue conversion into it. */
+            n_bytes = value_bytes_for_type(ips, val_type, &result);
+            check_assertion(result);
+            alloc_complete_object(ips, n_bytes, val_type, result_storage);
+            result = do_glvalue_to_prvalue(ips, expr, val_type, cap,
+                                           n_bytes, result_storage,
+                                           result_storage);
+          }  /* if */
+        } else {
+          val_type = expr->is_xvalue ?
+                                     make_rvalue_reference_type(result_type) :
+                                     make_reference_type(result_type);
+          result_type = val_type;
+        }  /* if */
+      }  /* if */
+      if (!result) {
+        /* Nothing more to do. */
+      } else if (ips->storage_stack.destructions != NULL &&
+                 ((!node_is(expr, enk_object_lifetime) &&
+                   !ips->is_constant_evaluated) ||
+                  !perform_destructions(ips))) {
+        /* If there are pending destructions, but this node is not an
+           enk_object_lifetime entry, expr doesn't represent a full expression
+           and therefore we shouldn't attempt to evaluate the destruction of
+           temporaries yet.  If we do have a full expression, ensure that the
+           destruction interpretation succeeds. */
+        result = FALSE;
+      } else if (ips->dyn_allocations != NULL) {
+        /* Leftover dynamic allocations are always invalid in this case. */
+        report_leftover_allocations(ips);
+        do_constexpr_fail(result);
+      } else if (!copy_interpreter_object_to_constant(
+                                         ips, result_storage, result_storage,
+                                         result_type, result_con)) {
+        do_constexpr_fail(result);
+      } else {
+        if (expr->next == NULL &&
+            (expr_stack == NULL ||
+             curr_expr_kind_is_one_in_which_const_exprs_are_recorded())) {
+          /* If expr is part of an expression list and followed by other
+             expressions, do not record it as the backing expression since
+             it could cause IL traversal problems later on. */
+          result_con->expr = expr;
+        }  /* if */
+        if (expr->is_brace_notation_cast) {
+          result_con->explicit_cast_applied = TRUE;
+        }  /* if */
+      }  /* if */
+    }  /* if */
+  }  /* if */
+  return result;
+}  /* evaluate_expr */
+
+
 a_boolean interpret_expr(an_expr_node_ptr  expr,
                          a_boolean         is_constant_evaluated,
                          a_boolean         force_prvalue,
@@ -24339,10 +24694,6 @@ indicates the value produced by std::is_constant_evaluated().
 {
   a_boolean             result = TRUE;
   an_interpreter_state  ips;
-  a_byte                *result_storage;
-  a_byte_count          n_bytes;
-  a_type_ptr            result_type = expr->type,
-                        val_type = skip_typerefs(result_type);
 
   if (is_constant_node(expr)) {
     a_constant_ptr  expr_con = node_constant(expr);
@@ -24384,107 +24735,7 @@ indicates the value produced by std::is_constant_evaluated().
     ips.permit_null_pointer_offsets = TRUE;
   }  /* if */
   ips.position = expr->position;
-  n_bytes = expr_result_size(&ips, expr, val_type, &result); 
-  if (!result) {
-    if (ips.input_error) {
-      /* Interpretation failed due to an error node in the IL.  Continue
-         with an error constant, but treat interpretation as successful. */
-      set_error_constant(result_con);
-      result = TRUE;
-    }  /* if */
-    /* Nothing more to be done. */
-  } else {
-    alloc_complete_object(&ips, n_bytes, val_type, result_storage);
-    if (!do_constexpr_expression(&ips, expr, result_storage, result_storage)) {
-      if (ips.input_error) {
-        /* Interpretation failed due to an error node in the IL.  Continue
-           with an error constant, but treat interpretation as successful. */
-        set_error_constant(result_con);
-      } else {
-        do_constexpr_fail(result);
-        if (expr_stack != NULL) {
-          merge_reattempt_state(&expr_stack->const_eval_reattempt_state,
-                                ips.reattempt_state);
-        }  /* if */
-      }  /* if */
-    } else {
-      if (expr->is_lvalue || expr->is_xvalue) {
-        a_constexpr_address  *cap = (a_constexpr_address*)result_storage;
-        if (force_prvalue) {
-          if (is_runtime_data_address(cap)) {
-            if (is_immediate_class_type(val_type) &&
-                val_type->variant.class_struct_union.is_empty_class &&
-                is_trivially_copy_constructible_type(val_type)) {
-              /* An empty class with no actual data to copy: Just allocate
-                 an empty object. */
-              n_bytes = value_bytes_for_type(&ips, val_type, &result);
-              check_assertion(result);
-              alloc_complete_object(&ips, n_bytes, val_type,
-                                    result_storage);
-              init_subobject_to_zero(&ips, result_storage, val_type,
-                                     result_storage);
-            } else {
-              info_with_pos(ec_constexpr_access_to_runtime_storage,
-                            &expr->position, &ips);
-              do_constexpr_fail(result);
-            }  /* if */
-          } else if (is_volatile_qualified_type(expr->type)) {
-              do_constexpr_fail(result);
-              info_with_pos(ec_constexpr_volatile_fetch, &expr->position,
-                            &ips);
-          } else {
-            /* result_storage points to an interpreter address for the glvalue.
-               Allocate a new object for the corresponding prvalue and perform
-               the glvalue-to-prvalue conversion into it. */
-            n_bytes = value_bytes_for_type(&ips, val_type, &result);
-            check_assertion(result);
-            alloc_complete_object(&ips, n_bytes, val_type, result_storage);
-            result = do_glvalue_to_prvalue(&ips, expr, val_type, cap,
-                                           n_bytes, result_storage,
-                                           result_storage);
-          }  /* if */
-        } else {
-          val_type = expr->is_xvalue ?
-                                     make_rvalue_reference_type(result_type) :
-                                     make_reference_type(result_type);
-          result_type = val_type;
-        }  /* if */
-      }  /* if */
-      if (!result) {
-        /* Nothing more to do. */
-      } else if (ips.storage_stack.destructions != NULL &&
-                 ((!node_is(expr, enk_object_lifetime) &&
-                   !is_constant_evaluated) ||
-                  !perform_destructions(&ips))) {
-        /* If there are pending destructions, but this node is not an
-           enk_object_lifetime entry, expr doesn't represent a full expression
-           and therefore we shouldn't attempt to evaluate the destruction of
-           temporaries yet.  If we do have a full expression, ensure that the
-           destruction interpretation succeeds. */
-        result = FALSE;
-      } else if (ips.dyn_allocations != NULL) {
-        /* Leftover dynamic allocations are always invalid in this case. */
-        report_leftover_allocations(&ips);
-        do_constexpr_fail(result);
-      } else if (!copy_interpreter_object_to_constant(
-                                         &ips, result_storage, result_storage,
-                                         result_type, result_con)) {
-        do_constexpr_fail(result);
-      } else {
-        if (expr->next == NULL &&
-            (expr_stack == NULL ||
-             curr_expr_kind_is_one_in_which_const_exprs_are_recorded())) {
-          /* If expr is part of an expression list and followed by other
-             expressions, do not record it as the backing expression since
-             it could cause IL traversal problems later on. */
-          result_con->expr = expr;
-        }  /* if */
-        if (expr->is_brace_notation_cast) {
-          result_con->explicit_cast_applied = TRUE;
-        }  /* if */
-      }  /* if */
-    }  /* if */
-  }  /* if */
+  result = evaluate_expr(&ips, expr, force_prvalue, result_con);
   *diag_list = ips.diag_list;
   release_interpreter_state(&ips);
 done:

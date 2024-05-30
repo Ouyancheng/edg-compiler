@@ -17158,6 +17158,12 @@ cast.  See lower_expr for typical invocation.
       lower_expr(expr->variant.await_info.ready_resume_suspend->next);
       lower_expr(expr->variant.await_info.ready_resume_suspend->next->next);
       break;
+    case enk_token_sequence:
+      lower_expr_list(expr->variant.token_sequence->interpolations,
+                      /*is_bool_controlling_expr_mask=*/0,
+                      /*assume_expr_is_non_null_mask=*/0,
+                      /*eval_right_to_left=*/FALSE);
+      break;
 #if VLA_DEALLOCATIONS_IN_IL
     case enk_vla_dealloc:
 #endif /* VLA_DEALLOCATIONS_IN_IL */

@@ -1695,6 +1695,10 @@ typedef struct a_scope_stack_entry {
 			   template this is the token sequence number of
 			   the declarator name.  NO_TOKEN_SEQUENCE_NUMBER
 			   in other cases. */
+  an_il_entity_list_entry
+		*injections;
+			/* Token sequence entries scheduled for injection
+			   in this scope this scope. */
 } a_scope_stack_entry;
 
 EXTERN a_scope_stack_entry_ptr

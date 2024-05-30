@@ -788,6 +788,9 @@ enum an_il_entry_kind : a_byte {
   iek_module,		/* a_module */
   iek_module_import_decl,
 			/* a_module_import_decl */
+  iek_token_sequence, 	/* a_token_sequence */
+  iek_token_sequence_entry,
+			/* a_token_sequence_entry */
   iek_last		/* Marks the end of the list. */
 };
 
@@ -956,6 +959,8 @@ EXTERN a_const_char *il_entry_kind_names[(int)iek_last + 1]
 /* iek_constexpr_if */			"constexpr-if",
 /* iek_module */			"module",
 /* iek_module_import_decl */		"mod-import-decl",
+/* iek_token_sequence */		"token-sequence",
+/* iek_token_sequence_entry */		"token-sequence-entry",
 /* iek_last */				"last"
 }
 #endif /* VAR_INITIALIZERS */
@@ -995,8 +1000,10 @@ enum a_token_kind : unsigned short {
   tok_fixed_point_constant,
   tok_int_constant,
   tok_char_constant,
-  tok_aggr_constant,        /* Cannot come directly from source, but modules
-                               may produce such a thing. */
+  tok_gen_constant,         /* A token representing a general constant.  These
+                               cannot be expressed using ordinary source code,
+			       but generated code (from modules or injection)
+			       may produce such tokens. */
   tok_string_literal,
   tok_ud_literal,
   tok_last_literal_token_kind = tok_ud_literal,
@@ -1524,7 +1531,7 @@ EXTERN a_const_char
 		*token_names[(int)tok_last+1]
 #if VAR_INITIALIZERS
 = {"error", "identifier", "float constant", "fixed-point constant",
-   "int constant", "char constant", "aggregate constant",
+   "int constant", "char constant", "generated constant",
    "string literal", "user-defined literal",
    "end of source", "newline", "header name", "pp number", "digit sequence",
    "cpp quote", "ptr to member", "removed expr", "removed template body",
@@ -4496,24 +4503,6 @@ typedef struct a_subobject_path {
   } variant;
 } a_subobject_path;
 		
-#if DO_IL_LOWERING
-/*
-Define a union type to store either a pointer to a field or a base class.
-This is used when lowering an optimized empty class (which could be either
-an optimized base class or an optimized empty field).  A pointer to either
-the field/base class from which a (ck_aggregate or ck_dynamic_init) constant
-derived is stored here for easy access during lowering.  When
-a_constant::constant_for_base_class is TRUE, the "base" member is active,
-otherwise "field" is.
-*/
-typedef union a_field_or_base {
-  a_field_ptr   field;  /* Points to a field whose is_optimized_empty_class
-                           flag is TRUE. */
-  a_base_class_ptr
-                base;   /* Points to a base class whose
-                           is_optimized_empty_base flag is TRUE. */
-} a_field_or_base;
-#endif /* DO_IL_LOWERING */
 
 /*
 Numbering for scopes.  Each new scope is given a number.  These
@@ -4535,7 +4524,47 @@ typedef int32_t a_scope_number;
 			   unit might be involved. */
 
 
-typedef struct a_reflection_value {
+/*
+Token information for token sequences.
+*/
+typedef struct a_token_sequence_entry *a_token_sequence_entry_ptr;
+struct a_token_sequence_entry {
+  a_token_sequence_entry
+		*next;
+			/* Pointer to the next token in the sequence (or
+			   NULL if this is the last token in the sequence). */
+  a_token_kind	token_kind;
+			/* The token kind. */
+  a_source_position
+		position;
+  a_const_char
+		*spelling;
+			/* For tokens other than constants and interpolators
+			   the spelling of the token. */
+};
+
+
+typedef struct a_token_sequence *a_token_sequence_ptr;
+struct a_token_sequence {
+  a_token_sequence_entry
+		*tokens;
+			/* A representation of tokens (and pseudo-tokens) for
+			   a token sequence appearing in the source, excluding
+			   the operands of interpolators.  (NULL for a token
+			   sequence resulting from constant-evaluation.) */
+  an_expr_node  *interpolations;
+			/* The expressions appearing in interpolators (in
+			   lexical order). */
+  void		*token_cache;
+			/* Pointer to a_token_cache.  For front-end use
+			   only. */
+};
+
+/*
+Information identifying a reflection value.  This is used both for the
+representation of ck_reflection constants and in the interpreter.
+*/
+struct a_reflection_value {
   a_tagged_pointer
 		entity;
 			/* The entity represented by this reflection value. */
@@ -4544,8 +4573,27 @@ typedef struct a_reflection_value {
 			/* If the entity referred to by the reflection value
 			   is local, this holds the scope number of the nearest
 			   enclosing scope of that entity. */
-} a_reflection_value;
+};
 
+#if DO_IL_LOWERING
+/*
+Define a union type to store either a pointer to a field or a base class.
+This is used when lowering an optimized empty class (which could be either
+an optimized base class or an optimized empty field).  A pointer to either
+the field/base class from which a (ck_aggregate or ck_dynamic_init) constant
+derived is stored here for easy access during lowering.  When
+a_constant::constant_for_base_class is TRUE, the "base" member is active,
+otherwise "field" is.
+*/
+union a_field_or_base {
+  a_field_ptr   field;  /* Points to a field whose is_optimized_empty_class
+                           flag is TRUE. */
+  a_base_class_ptr
+                base;   /* Points to a base class whose
+                           is_optimized_empty_base flag is TRUE. */
+};
+
+#endif /* DO_IL_LOWERING */
 
 typedef struct a_constant {
   /* Description of a constant.  Also used as an element on an initializer
@@ -13150,6 +13198,7 @@ enum an_expr_node_kind : a_bit_field {
 			/* A deferred constant evaluation node. */
   enk_template_name,	/* Used to represent a template name in builtin
 			   operation expressions. */
+  enk_token_sequence,	/* A token sequence (a reflection feature). */
   enk_reclaimed,	/* Used to represent a node that's been reclaimed and
 			   is part of the avail_fs_nodes list. */
   enk_last
@@ -15058,6 +15107,11 @@ typedef struct an_expr_node {
     a_template_ptr
 		template_name;
 			/* The template this template-name refers to. */
+    /* When kind == enk_token_sequence: */
+    a_token_sequence
+		*token_sequence;
+			/* A token sequence resulting from a reflection
+			   operation like "^{ int $id(str+n); }". */
     /* When kind == enk_requires: */
     struct {
       an_expr_node_ptr
@@ -18688,6 +18742,8 @@ EXTERN sizeof_t	sizeof_il_entry[(int)iek_last+1]
   sizeof(a_constexpr_if),
   sizeof(a_module),
   sizeof(a_module_import_decl),
+  sizeof(a_token_sequence),
+  sizeof(a_token_sequence_entry),
   IEK_LAST_CHECK_SIZE /* iek_last */
 }
 #endif /* VAR_INITIALIZERS */

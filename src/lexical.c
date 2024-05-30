@@ -74,7 +74,7 @@ Return TRUE if tok is a token kind that is a literal constant.
   (tok == tok_float_constant || tok == tok_int_constant ||            \
    tok == tok_char_constant  || tok == tok_string_literal ||          \
    tok == tok_false          || tok == tok_true ||                    \
-   tok == tok_aggr_constant  ||                                       \
+   tok == tok_gen_constant   ||                                       \
    is_microsoft_tok_uuid(tok))
 
 
@@ -2678,9 +2678,10 @@ Initialize a token cache, presumably so tokens can be added to it.
 }  /* clear_token_cache */
 
 
-a_token_cache_ptr alloc_token_cache(void)
+a_token_cache_ptr alloc_token_cache(/* Defaulted: */  a_boolean  reusable)
 /*
-Allocate a token cache entry.  Reuse a freed entry if possible.
+Allocate a token cache entry.  Reuse a freed entry if possible.  Make the
+cache reusable is reusable is TRUE (defaults to FALSE).
 */
 {
   a_token_cache_ptr	tcp;
@@ -2696,7 +2697,7 @@ Allocate a token cache entry.  Reuse a freed entry if possible.
     num_token_caches_allocated++;
 #endif /* DEBUG */
   }  /* if */
-  clear_token_cache(tcp, /*reusable=*/FALSE);
+  clear_token_cache(tcp, reusable);
   return tcp;
 }  /* alloc_token_cache */
 
@@ -2854,6 +2855,17 @@ Allocate a cached constant entry.  Reuse a freed entry if possible.
 
 
 /*
+Macro to free a constant used by a cached token, i.e., to put it on the
+avail list to be reused.
+*/
+#define free_cached_token_constant(cp) \
+{                                      \
+  (cp)->next = avail_cached_constants; \
+  avail_cached_constants = (cp);       \
+}  /* free_cached_token_constant */
+
+
+/*
 Macro used to update the counter of tokens used in reusable caches
 and the number of tokens used in the given cache.
 When debugging code is not being generated the macro expands to nothing.
@@ -2940,17 +2952,6 @@ associated with the current token.
   }
 #endif /* DEBUG */
 }  /* add_pragma_entry_to_cache */
-
-
-/*
-Macro to free a constant used by a cached token, i.e., to put it on the
-avail list to be reused.
-*/
-#define free_cached_token_constant(cp) \
-{                                      \
-  (cp)->next = avail_cached_constants; \
-  avail_cached_constants = (cp);       \
-}  /* free_cached_token_constant */
 
 
 /*
@@ -3110,6 +3111,43 @@ the newly created token.
 #endif /* DEBUG */
   return ctp;
 }  /* build_cached_token */
+
+
+void cache_string_as_identifier(a_token_cache_ptr     cache,
+                                a_const_char          *str,
+                                a_targ_size_t         len,
+                                a_source_position_ptr pos)
+/*
+Cache an identifier spelled like the given (null-terminated) string.
+*/
+{
+  a_symbol_locator loc;
+
+  clear_locator(&loc, pos);
+  (void)find_symbol(str, len, &loc);
+  cache_token(cache, tok_identifier, pos);
+
+  a_cached_token_ptr last_token = cache->last_token;
+  last_token->extra_info_kind = teik_identifier;
+  last_token->variant.locator = loc;
+}  /* cache_string_as_identifier */
+
+
+void cache_general_constant(a_token_cache_ptr     cache,
+                            a_constant_ptr        cp,
+                            a_source_position_ptr pos)
+/*
+Add a tok_gen_constant token with the provided constant and position to the
+given token cache.
+*/
+{
+  cache_token(cache, tok_gen_constant, pos);
+
+  a_cached_token_ptr last_token = cache->last_token;
+  last_token->extra_info_kind = teik_constant;
+  last_token->variant.constant = alloc_cached_constant();
+  copy_constant(cp, last_token->variant.constant);
+}  /* cache_general_constant */
 
 
 void cache_resolved_type_token(a_token_cache_ptr     cache,
@@ -16713,8 +16751,10 @@ return_end_of_source_token:
     case '$':
       /* The dollar sign can optionally be accepted as an ID character.
          If it is to be accepted then we go to the code responsible for
-         scanning identifiers; otherwise it is an unrecognized token. */
-      if (allow_dollar_in_id_chars) {
+         scanning identifiers; otherwise it is an unrecognized token.
+         If reflection is enabled, we accept "$" and "$id" in token
+         sequences. */
+      if (reflection_enabled || allow_dollar_in_id_chars) {
         goto id_scan;
       } else {
         goto bad_token;
@@ -17196,6 +17236,15 @@ end_of_id:
         }  /* if */
       }  /* if */
 end_id_scan:
+      if (id_ptr[0] == '$' && !allow_dollar_in_id_chars) {
+        if (!sym_hdr->has_intrinsic_name) {
+          /* Some reserved tokens with a leading "$" are accepted in this
+             mode (e.g., when reflection is enabled) but this is not one.
+             General identifiers with dollar signs are not accepted, however,
+             and therefore this must be an error. */
+          goto bad_token;
+        }  /* if */
+      }  /* if */
       /* Use "_b" exit because we may no longer be on the line on which
          the identifier appears if it is a macro name and the opening
          parenthesis of the parameter list is on a different line. */
@@ -26057,7 +26106,7 @@ of characters added.
              token == tok_float_constant ||
              token == tok_string_literal ||
              token == tok_char_constant ||
-             token == tok_aggr_constant ||
+             token == tok_gen_constant ||
              token == tok_ud_literal ||
              is_microsoft_tok_uuid(token)) {
     a_constant_ptr	constant;

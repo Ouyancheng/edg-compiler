@@ -229,6 +229,10 @@ extern a_label_list_ptr alloc_label_list(void);
 
 extern a_label_ptr alloc_label(void);
 
+extern a_token_sequence_entry* alloc_token_sequence_entry(void);
+
+extern a_token_sequence* alloc_token_sequence(void);
+
 extern void set_expr_node_kind(an_expr_node_ptr  node,
                                an_expr_node_kind kind);
 

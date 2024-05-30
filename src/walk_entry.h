@@ -1027,7 +1027,8 @@ handle_next_entry:
             break;
           case ck_reflection:
             { an_il_entry_kind  kind = eptr->variant.reflection.entity.kind;
-              if (kind == iek_expr_node || kind == iek_constant) {
+              if (kind == iek_expr_node || kind == iek_constant ||
+                  kind == iek_token_sequence) {
                 walk_ptr(eptr->variant.reflection.entity.ptr, a_char_ptr,
                          kind);
               } else {
@@ -2002,6 +2003,9 @@ do_set_proper_definition_needed_flag:
           case enk_template_name:
             walk_ptr(eptr->variant.template_name, a_template_ptr,
                      iek_template);
+          case enk_token_sequence:
+            walk_ptr(eptr->variant.token_sequence, a_token_sequence_ptr,
+                     iek_token_sequence);
             break;
           default:
             unexpected_condition_str(
@@ -4113,6 +4117,19 @@ handle_class_type_supplement_for_class:
         walk_ptr(eptr->module_info, a_module_ptr, iek_module);
 #undef eptr
       }
+      break;
+    case iek_token_sequence:
+#define eptr ((a_token_sequence*)entry_ptr)
+      walk_list(eptr->tokens, a_token_sequence_entry_ptr,
+                iek_token_sequence_entry);
+      walk_list(eptr->interpolations, an_expr_node_ptr, iek_expr_node);
+      conditionally_clear_fe_pointer(eptr->token_cache);
+#undef eptr
+      break;
+    case iek_token_sequence_entry:
+#define eptr ((a_token_sequence_entry*)entry_ptr)
+      walk_string_ptr(eptr->spelling, iek_other_text, 0);
+#undef eptr
       break;
     case iek_id_name:
     case iek_string_text:

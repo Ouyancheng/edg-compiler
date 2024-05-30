@@ -302,7 +302,7 @@ EXTERN an_opname_kind opname_kind_for_token[(int)tok_last+1]
    onk_none,          /* tok_fixed_point_constant */
    onk_none,          /* tok_int_constant */
    onk_none,          /* tok_char_constant */
-   onk_none,          /* tok_aggr_constant */
+   onk_none,          /* tok_gen_constant */
    onk_none,          /* tok_string_literal */
    onk_none,          /* tok_ud_literal */
    onk_none,          /* tok_end_of_source */
@@ -2418,6 +2418,15 @@ Add tok to cache.  pos is the position of the token.
 }  /* cache_token */
 
 
+extern void cache_string_as_identifier(a_token_cache_ptr     cache,
+                                       a_const_char          *str,
+                                       a_targ_size_t         len,
+                                       a_source_position_ptr pos);
+
+extern void cache_general_constant(a_token_cache_ptr     cache,
+                                   a_constant_ptr        cp,
+                                   a_source_position_ptr pos);
+
 extern void cache_resolved_type_token(a_token_cache_ptr     cache,
                                       a_type_ptr            type,
                                       a_source_position_ptr pos);
@@ -3484,7 +3493,7 @@ extern void init_whitespace_keywords(void);
 
 extern char *generate_top_level_metadata_code(an_assembly_index index);
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
-extern a_token_cache_ptr alloc_token_cache(void);
+extern a_token_cache_ptr alloc_token_cache(a_boolean  reusable = FALSE);
 extern void free_token_cache(a_token_cache_ptr tcp);
 
 extern a_hash_value hash_include_file_history(a_void_ptr	key);

@@ -33037,6 +33037,7 @@ classes.
     } else {
       a_decl_sequence_number  class_start_decl_seq = decl_seq_counter,
                               friend_decl_seq_adjustment = 0;
+      a_boolean               injected_member_decl = FALSE;
 #if MICROSOFT_EXTENSIONS_ALLOWED
       if (cli_or_cx_enabled) {
         /* C++/CLI property and event definitions can consist of multiple
@@ -33414,6 +33415,23 @@ next_declaration:
         /* Silence some compiler warnings about member_sym being unused. */
         (void)(member_sym != NULL);
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
+        if (injected_member_decl) {
+          /* The declaration we just saw was injected.  The next token should
+             be the cache terminator. */
+          if (curr_token != tok_end_of_source) {
+            pos_error(ec_extraneous_injected_member_tokens, &pos_curr_token);
+          }  /* if */
+          flush_past_token_cache_terminator();
+        }  /* if */
+        if (scope_stack_top().injections != NULL) {
+          /* If there are pending injections at this level, inject the tokens
+             for the next one now. */
+          an_il_entity_list_entry  *ielep = scope_stack_top().injections;
+          a_token_sequence         *tsp = (a_token_sequence*)ielep->entity.ptr;
+          rescan_reusable_cache((a_token_cache*)tsp->token_cache);
+          scope_stack_top().injections = ielep->next;
+          injected_member_decl = TRUE;
+        }  /* if */
         /* Keep processing member declarations until the closing brace or
            the end-of-source marker is reached. */
       } while (curr_token != tok_rbrace && curr_token != tok_end_of_source);

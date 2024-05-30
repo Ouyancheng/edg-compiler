@@ -3475,6 +3475,34 @@ node, initialize it, and return a pointer to it.
   return ptr;
 }  /* alloc_local_expr_node_ref */
 
+
+a_token_sequence_entry* alloc_token_sequence_entry(void)
+/*
+Allocate an entry to represent a token in a token sequence, initialize it, and
+return a pointer to it.
+*/
+{
+  a_token_sequence_entry  *tsep;
+
+  tsep = alloc_cil_of_type(a_token_sequence_entry);
+  memzero((char*)tsep, sizeof(*tsep));
+  return tsep;
+}  /* alloc_token_sequence_entry */
+
+
+a_token_sequence* alloc_token_sequence(void)
+/*
+Allocate an entry to represent a token sequence, initialize it, and return a
+pointer to it.
+*/
+{
+  a_token_sequence  *tsp;
+
+  tsp = alloc_cil_of_type(a_token_sequence);
+  memzero((char*)tsp, sizeof(*tsp));
+  return tsp;
+}  /* alloc_token_sequence */
+
 #endif /* !STANDALONE_UTILITY_PROGRAM */
 
 void set_expr_node_kind(an_expr_node_ptr  node,
@@ -3764,6 +3792,9 @@ fields to default values.
       break;
     case enk_template_name:
       node->variant.template_name = NULL;
+      break;
+    case enk_token_sequence:
+      node->variant.token_sequence = NULL;
       break;
     default:
       unexpected_condition_str("set_expr_node_kind: bad kind");
