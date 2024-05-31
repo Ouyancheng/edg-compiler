@@ -1400,6 +1400,18 @@ integers than the host.
 #if INTEGER_VALUE_REPR_IS_A_HOST_INTEGER
 
 /*
+If using a host integer as the integer value representation and 128-bit integer
+extensions are allowed, ensure that the host has 128-bit integer extensions.
+*/
+#if INT128_EXTENSIONS_ALLOWED
+#if !HOST_HAS_INT128_EXTENSIONS
+ #error -- HOST_HAS_INT128_EXTENSIONS cannot be FALSE when \
+           INTEGER_VALUE_REPR_IS_A_HOST_INTEGER is TRUE and \
+           INT128_EXTENSIONS_ALLOWED is TRUE
+#endif /* !HOST_HAS_INT128_EXTENSIONS */
+#endif /* INT128_EXTENSIONS_ALLOWED */
+
+/*
 There is a host integer type that is large enough to hold all target integers,
 so the integer representation is just some host integral type.
 This type must be unsigned; a_signed_integer_value is the signed version.
@@ -1407,19 +1419,28 @@ If LONG_LONG_ALLOWED is TRUE, the host "long long" and "unsigned long long"
 are used by default.
 */
 #ifndef TYPE_FOR_AN_INTEGER_VALUE
+#if INT128_EXTENSIONS_ALLOWED
+#define TYPE_FOR_AN_INTEGER_VALUE __uint128_t
+#else /* !INT128_EXTENSIONS_ALLOWED */
 #if LONG_LONG_ALLOWED
 #define TYPE_FOR_AN_INTEGER_VALUE unsigned long long
 #else /* !LONG_LONG_ALLOWED */
 #define TYPE_FOR_AN_INTEGER_VALUE unsigned long
 #endif /* LONG_LONG_ALLOWED */
+#endif /* INT128_EXTENSIONS_ALLOWED */
 #endif /* ifndef TYPE_FOR_AN_INTEGER_VALUE */
 typedef TYPE_FOR_AN_INTEGER_VALUE an_integer_value;
+
 #ifndef TYPE_FOR_A_SIGNED_INTEGER_VALUE
+#if INT128_EXTENSIONS_ALLOWED
+#define TYPE_FOR_A_SIGNED_INTEGER_VALUE __int128_t
+#else /* !INT128_EXTENSIONS_ALLOWED */
 #if LONG_LONG_ALLOWED
 #define TYPE_FOR_A_SIGNED_INTEGER_VALUE long long
 #else /* !LONG_LONG_ALLOWED */
 #define TYPE_FOR_A_SIGNED_INTEGER_VALUE long
 #endif /* LONG_LONG_ALLOWED */
+#endif /* INT128_EXTENSIONS_ALLOWED */
 #endif /* ifndef TYPE_FOR_A_SIGNED_INTEGER_VALUE */
 typedef TYPE_FOR_A_SIGNED_INTEGER_VALUE a_signed_integer_value;
 
