@@ -7830,6 +7830,11 @@ file.
 #else /* !defined(HOST_HAS_FLOAT16_TYPE) */
   comment_undefined_macro_name(HOST_HAS_FLOAT16_TYPE);
 #endif /* defined(HOST_HAS_FLOAT16_TYPE) */
+#if defined(HOST_HAS_INT128_EXTENSIONS)
+  define_numeric_valued_macro(HOST_HAS_INT128_EXTENSIONS);
+#else /* !defined(HOST_HAS_INT128_EXTENSIONS) */
+  comment_undefined_macro_name(HOST_HAS_INT128_EXTENSIONS);
+#endif /* defined(HOST_HAS_INT128_EXTENSIONS) */
 #if defined(HOST_TARGET_ENDIAN_MISMATCH_OKAY)
   define_numeric_valued_macro(HOST_TARGET_ENDIAN_MISMATCH_OKAY);
 #else /* !defined(HOST_TARGET_ENDIAN_MISMATCH_OKAY) */

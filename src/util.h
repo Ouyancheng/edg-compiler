@@ -154,10 +154,10 @@ MARK_TRIVIALLY_COPYABLE(unsigned long)
 MARK_TRIVIALLY_COPYABLE(long long)
 MARK_TRIVIALLY_COPYABLE(unsigned long long)
 
-#if __SIZEOF_INT128__
+#if HOST_HAS_INT128_EXTENSIONS
 MARK_TRIVIALLY_COPYABLE(__int128_t)
 MARK_TRIVIALLY_COPYABLE(__uint128_t)
-#endif /* __SIZEOF_INT128__ */
+#endif /* HOST_HAS_INT128_EXTENSIONS */
 
 #undef MARK_TRIVIALLY_COPYABLE
 
@@ -247,10 +247,10 @@ MARK_TRIVIALLY_DESTRUCTIBLE(unsigned long)
 MARK_TRIVIALLY_DESTRUCTIBLE(long long)
 MARK_TRIVIALLY_DESTRUCTIBLE(unsigned long long)
 
-#if __SIZEOF_INT128__
+#if HOST_HAS_INT128_EXTENSIONS
 MARK_TRIVIALLY_DESTRUCTIBLE(__int128_t)
 MARK_TRIVIALLY_DESTRUCTIBLE(__uint128_t)
-#endif /* __SIZEOF_INT128__ */
+#endif /* HOST_HAS_INT128_EXTENSIONS */
 
 #undef MARK_TRIVIALLY_DESTRUCTIBLE
 
@@ -3925,11 +3925,11 @@ DELEGATE_HEX_FORMATTER(unsigned long)
 DELEGATE_HEX_FORMATTER(unsigned)
 DELEGATE_HEX_FORMATTER(unsigned short)
 
-#if __SIZEOF_INT128__
+#if HOST_HAS_INT128_EXTENSIONS
 DELEGATE_DEC_FORMATTER(__uint128_t, Unsigned_int_formatter)
 DELEGATE_DEC_FORMATTER(__int128_t,  Signed_int_formatter)
 DELEGATE_HEX_FORMATTER(__uint128_t)
-#endif /* __SIZEOF_INT128__ */
+#endif /* HOST_HAS_INT128_EXTENSIONS */
 
 template<typename a_Reserve_fn, typename... a_Text_convertible_type>
 void append_with_custom_reserve(a_Reserve_fn               reserve_func,

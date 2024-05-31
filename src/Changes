@@ -42,6 +42,11 @@ facility.  The signed, unsigned integer, and hex String_formatters have all
 been rewritten to work with TYPE_FOR_AN_INTEGER_VALUE and
 TYPE_FOR_A_SIGNED_INTEGER_VALUE of arbitrary bit counts.
 
+A new configuration macro (HOST_HAS_INT128_EXTENSIONS) has been introduced for
+control over the use of 128-bit native integer types.
+HOST_HAS_INT128_EXTENSIONS should typically be set automatically based on the
+value of the __SIZEOF_INT128__ macro.
+
 This resolves build issues with 128-bit native integer types when
 TYPE_FOR_AN_INTEGER_VALUE=__uint128_t and
 TYPE_FOR_A_SIGNED_INTEGER_VALUE=__int128_t.
