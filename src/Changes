@@ -83,8 +83,9 @@ and thus MSVC accepts such code.  The front end now does as well.
 Recursive instantiation not performed when a warning is issued
 
 A regression in template instantiation was introduced by the suppression
-mechanism in EDGcpfe/10223; warnings could cause subsequent recursive
-instantiations to be suppressed.  This resulted in the following code:
+mechanism in EDGcpfe/10223 (in version 6.5); warnings could cause subsequent
+recursive instantiations to be suppressed.  This resulted in the following
+code:
 
   template<int X>
   int recurse() { return (0 << X * 1000) + recurse<X + 1>(); }
