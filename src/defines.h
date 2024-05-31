@@ -162,8 +162,6 @@ of the host system.
 
 #define USE_SOFTFLOAT 1
 
-#define REFLECTION_ENABLING_POSSIBLE 1
-
 #if MSVC_INT128_CONFIG
 #define INT128_EXTENSIONS_ALLOWED 1
 #endif /* MSVC_INT128_CONFIG */
@@ -2989,6 +2987,10 @@ Assume all IFC module files are little-endian, regardless of the target.
 #ifndef ASSUME_LITTLE_ENDIAN_IFC_MODULES
 #define ASSUME_LITTLE_ENDIAN_IFC_MODULES 1
 #endif /* ifndef ASSUME_LITTLE_ENDIAN_IFC_MODULES */
+
+#ifndef REFLECTION_ENABLING_POSSIBLE
+#define REFLECTION_ENABLING_POSSIBLE 1
+#endif /* ifndef REFLECTION_ENABLING_POSSIBLE */
 
 /*
 If using lint on a non-Sun platform, define some features that are in the
