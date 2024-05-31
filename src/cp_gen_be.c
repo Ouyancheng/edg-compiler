@@ -19119,6 +19119,26 @@ Generate code for a class member or nonmember using-declaration.
         check_assertion(qualifier != NULL);
         scp = &qualifier->source_corresp;
       }  /* if */
+      if (udp->entity.kind == iek_type &&
+          curr_name_context->class_type != NULL &&
+          a_type_ptr(udp->entity.ptr)->source_corresp.access != as_public) {
+        /* Create a dummy typedef entry and register it as a possible
+           substitute if the target is inaccessible at some point. */
+        a_type_ptr                    targ_type = a_type_ptr(udp->entity.ptr);
+        a_type_ptr                    tp = alloc_general_of_type(a_type);
+        a_typeref_type_supplement_ptr ttsp =
+                              alloc_general_of_type(a_typeref_type_supplement);
+        *tp = {};
+        tp->source_corresp = targ_type->source_corresp;
+        tp->source_corresp.access = udp->access;
+        tp->source_corresp.parent_scope = curr_name_context->assoc_scope;
+        tp->kind = tk_typeref;
+        tp->has_been_declared = TRUE;
+        tp->variant.typeref.type = targ_type;
+        *ttsp = {};
+        tp->variant.typeref.extra_info = ttsp;
+        register_substitutable_typedef(tp);
+      }  /* if */
     } else {
       /* A nonmember using-declaration. */
       /* For C++17 using-declarations mentionining multiple names, don't emit
