@@ -1681,7 +1681,8 @@ Given an IL hex integer value, return the approximate character usage.
 {
 #if INTEGER_VALUE_REPR_IS_A_HOST_INTEGER
   /* 2 for the "0x" plus the number of hex digits required. */
-  return 2 + integral_digits(*value.value, 16);
+  auto hex_view = hex_view_of(*value.value);
+  return 2 + String_formatter<decltype(hex_view)>::size_hint_of(hex_view);
 #else /* !INTEGER_VALUE_REPR_IS_A_HOST_INTEGER */
   return 3 + (4 * INT_VALUE_PARTS_PER_INTEGER_VALUE);
 #endif /* INTEGER_VALUE_REPR_IS_A_HOST_INTEGER */
@@ -1700,10 +1701,16 @@ number of characters this value might use (plus a temporary null character --
 for use by snprintf_impl).
 */
 {
-  int num_hex_digits_in_repr = (value.size * targ_char_bit) / 4;
-
   underlying_array.push_back('0');
   underlying_array.push_back('x');
+#if INTEGER_VALUE_REPR_IS_A_HOST_INTEGER
+  auto hex_view = hex_view_of(*value.value);
+  String_formatter<decltype(hex_view)>::append_into(underlying_array,
+                                                    hex_view,
+                                                    size_hint - 2);
+#else /* !INTEGER_VALUE_REPR_IS_A_HOST_INTEGER */
+  int num_hex_digits_in_repr = (value.size * targ_char_bit) / 4;
+
   /* Remove two elements from the size hint to account for the "0x". */
   size_hint -= 2;
 
@@ -1714,13 +1721,6 @@ for use by snprintf_impl).
   underlying_array.resize(size_before_parts + extra_space, '\0');
 
   auto buff_ptr = &underlying_array[size_before_parts];
-#if INTEGER_VALUE_REPR_IS_A_HOST_INTEGER
-  /* Write the formatted string. */
-  num_hex_digits_printed = snprintf_impl(buff_ptr, extra_space,
-                                         PRINTF_FORMAT_FOR_HEX_INTEGER_VALUE,
-                                         *value.value);
-  check_assertion(num_hex_digits_printed > 0);
-#else /* !INTEGER_VALUE_REPR_IS_A_HOST_INTEGER */
   /* The code below assumes four hex digits for each part. */
   check_assertion(MAX_UINT_VALUE_PART == 0xffff);
 
@@ -1753,7 +1753,6 @@ for use by snprintf_impl).
     buff_ptr[0] = '0';
     num_hex_digits_printed += 1;
   }  /* if */
-#endif /* INTEGER_VALUE_REPR_IS_A_HOST_INTEGER */
 
   size_t digits_skipped = 0;
   if (num_hex_digits_printed > num_hex_digits_in_repr) {
@@ -1770,6 +1769,7 @@ for use by snprintf_impl).
   size_t final_size = (size_before_parts + num_hex_digits_printed -
                        digits_skipped);
   underlying_array.resize(final_size, '\0');
+#endif /* INTEGER_VALUE_REPR_IS_A_HOST_INTEGER */
 }  /* append_into */
 
 
@@ -2237,14 +2237,14 @@ final null character).
 
 a_number_buffer db_format_integer_value(an_integer_value  *value)
 /*
-Formats an integer value as hexadecimal.  Returns a pointer to a local static
-buffer containing the formatted string.
+Formats an integer value as hexadecimal.  Returns a number buffer containing
+the formatted string.
 */
 {
   a_number_buffer buffer;
 
 #if INTEGER_VALUE_REPR_IS_A_HOST_INTEGER
-  buffer.reset_to(hex_view_of(*value));
+  buffer.reset_to("0x", hex_view_of(*value));
 #else /* INTEGER_VALUE_REPR_IS_A_HOST_INTEGER */
   buffer.reset_to("0x");
   for (int i = 0; i < (int)INT_VALUE_PARTS_PER_INTEGER_VALUE; ++i) {
