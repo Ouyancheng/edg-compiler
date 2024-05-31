@@ -4044,7 +4044,6 @@ kinds.
 #endif /* MAINTAIN_NEEDED_FLAGS */
   /* Create the constant as the largest signed type and then change its type to
      get any truncation error. */
-  check_assertion(int_kind_is_signed[ikind]);
   set_integer_constant(con, con_val, targ_intmax_kind);
   conv_integer_constant_with_overflow_check(con, ikind, class_type);
 #if MAINTAIN_NEEDED_FLAGS
@@ -4078,7 +4077,6 @@ integer kinds.
 #endif /* MAINTAIN_NEEDED_FLAGS */
   /* Create the constant as the largest unsigned type and then change its type
      to get any truncation error. */
-  check_assertion(!int_kind_is_signed[ikind]);
   set_unsigned_integer_constant(con, con_val, targ_uintmax_kind);
   conv_integer_constant_with_overflow_check(con, ikind, class_type);
 #if MAINTAIN_NEEDED_FLAGS
