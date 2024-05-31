@@ -1,5 +1,16 @@
 Version 6.7
 
+5/31/24  [EDGcpfe/23333,EDGcpfe/24685,EDGcpfe/27190]
+GNU compatibility: Extraneous parentheses in attribute string operands
+
+The front end now accepts extraneous parentheses in string operands for
+GNU-style attributes (providing they are matched).  For example (with --gcc):
+
+  void f(void) __attribute__((visibility("hidden")));
+  void g(void) __attribute__((visibility(("hidden"))));
+  void h(void) __attribute__((visibility((((((("hidden")))))))));
+
+
 5/31/24  [EDGcpfe/27296]
 C++-generating back end: using-declarations for inaccessible types
 

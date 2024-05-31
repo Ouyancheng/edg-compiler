@@ -1777,7 +1777,15 @@ NULL.
 */
 {
   an_attribute_arg_ptr  aap = NULL;
+  size_t                require_matching = 0;
 
+  if (ap->family == af_gnu) {
+    while (curr_token == tok_lparen) {
+      /* Ignore any extraneous parentheses on GNU-style attribute strings. */
+      (void)get_token();
+      require_matching++;
+    }  /* while */
+  }  /* if */
   if (curr_token == tok_string_literal) {
     if (const_for_curr_token.kind == (a_constant_repr_kind)ck_error) {
       /* A malformed string literal: An error has already been issued. */
@@ -1800,6 +1808,9 @@ NULL.
       pos_error(ec_wide_string_not_allowed, &pos_curr_token);
     }  /* if */
     (void)get_token();
+    while (require_matching--) {
+      (void)required_token(tok_rparen, ec_exp_rparen);
+    }  /* while */
   } else {
     syntax_error(ec_exp_string_literal);
   }  /* if */
