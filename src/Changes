@@ -27,10 +27,10 @@ example:
     typedef C OC;
   };
   struct B : A {
-    using A::OC;   // public
+    using A::OC;    // public
   };
   void Test() {
-    B::OC oc;      // previously generated as A::C
+    B::OC oc;       // previously generated as A::C
   }
 
 
