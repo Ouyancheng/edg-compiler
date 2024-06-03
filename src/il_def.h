@@ -3012,6 +3012,8 @@ enum an_attribute_kind : a_byte {
   ak_one_phase_constructed,
 			/* "one_phase_constructed" (ms). */
   ak_allocator,		/* "allocator" (ms). */
+  ak_no_sanitize_address,
+			/* "no_sanitize_address" (ms). */
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
 
 #if INCLUDE_EDG_TEST_ATTRIBUTES

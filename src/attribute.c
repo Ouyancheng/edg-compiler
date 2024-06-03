@@ -46,6 +46,8 @@ attribute.  Typically, adding an attribute involves just a few steps:
       units (by default corresponding attributes must match exactly; see
       the definition of an_attr_corresp_descr for details).
 
+  (6) Update the switch statement in disp_attribute (in il_display.c).
+
 Even when none of these steps is taken, an unrecognized attribute will still
 automatically be recorded in the IL when record_unrecognized_attributes is
 TRUE (when FALSE, a warning is issued for unrecognized attributes). 
@@ -400,6 +402,7 @@ static an_attr_descr known_attr_table[] = {
   { "no_weakreferencesource", "", "m+", ak_no_weakreferencesource },
   { "one_phase_constructed", "", "m+", ak_one_phase_constructed },
   { "allocator", "", "mx(1900-)", ak_allocator },
+  { "no_sanitize_address", "", "mx(1928-)", ak_no_sanitize_address },
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
 
 #if SUN_EXTENSIONS_ALLOWED && GNU_EXTENSIONS_ALLOWED
@@ -816,6 +819,7 @@ static an_attr_appl_descr known_attr_appl_table[(int)ak_last+1] = {
   { ak_no_weakreferencesource, "t|p|r|v|d", NO_APPL_FN },
   { ak_one_phase_constructed, "t|p|r|v|d", NO_APPL_FN },
   { ak_allocator, "r", NO_APPL_FN },
+  { ak_no_sanitize_address, "r|v", NO_APPL_FN },
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
 
 #if INCLUDE_EDG_TEST_ATTRIBUTES

@@ -6169,6 +6169,8 @@ Display the indicated attribute entry.
     case ak_one_phase_constructed:
                                  kind_name = "one_phase_constructed";
                                                                     break;
+    case ak_allocator:           kind_name = "allocator";           break;
+    case ak_no_sanitize_address: kind_name = "no_sanitize_address"; break;
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
 #if INCLUDE_EDG_TEST_ATTRIBUTES
   /* Attributes used for testing by EDG. */

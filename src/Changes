@@ -1,5 +1,13 @@
 Version 6.7
 
+6/3/24   [EDGcpfe/27315]
+Microsoft compatibility: __declspec(no_sanitize_address)
+
+The __declspec(no_sanitize_address) specifier is now accepted when it applied
+to functions or variables and microsoft_version >= 1928.  No action is taken
+based on the presence of this specifier.
+
+
 6/3/24   [EDGcpfe/27272]
 GNU compatibility: Update builtin signatures to 13.3.0
 
