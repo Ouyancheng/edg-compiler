@@ -1703,18 +1703,18 @@ for use by snprintf_impl).
 {
   underlying_array.push_back('0');
   underlying_array.push_back('x');
+
+  size_t size_before_parts = underlying_array.length();
 #if INTEGER_VALUE_REPR_IS_A_HOST_INTEGER
-  auto hex_view = hex_view_of(*value.value);
+  auto   hex_view = hex_view_of(*value.value);
+  int    num_hex_digits_printed = size_hint - 2;
   String_formatter<decltype(hex_view)>::append_into(underlying_array,
                                                     hex_view,
-                                                    size_hint - 2);
+                                                    num_hex_digits_printed);
 #else /* !INTEGER_VALUE_REPR_IS_A_HOST_INTEGER */
-  int num_hex_digits_in_repr = (value.size * targ_char_bit) / 4;
-
   /* Remove two elements from the size hint to account for the "0x". */
   size_hint -= 2;
 
-  size_t size_before_parts = underlying_array.length();
   int    num_hex_digits_printed = 0;
   size_t extra_space = size_hint + 1;
   /* Create space in the underlying array to write the arguments. */
@@ -1753,8 +1753,10 @@ for use by snprintf_impl).
     buff_ptr[0] = '0';
     num_hex_digits_printed += 1;
   }  /* if */
+#endif /* INTEGER_VALUE_REPR_IS_A_HOST_INTEGER */
 
   size_t digits_skipped = 0;
+  int    num_hex_digits_in_repr = (value.size * targ_char_bit) / 4;
   if (num_hex_digits_printed > num_hex_digits_in_repr) {
     /* The hex string is longer than what is required to represent the type of
        the integer, probably because it is a negative value and thus padded
@@ -1769,7 +1771,6 @@ for use by snprintf_impl).
   size_t final_size = (size_before_parts + num_hex_digits_printed -
                        digits_skipped);
   underlying_array.resize(final_size, '\0');
-#endif /* INTEGER_VALUE_REPR_IS_A_HOST_INTEGER */
 }  /* append_into */
 
 
