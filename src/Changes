@@ -1,5 +1,21 @@
 Version 6.7
 
+6/2/24   [EDGcpfe/26982]
+Clang compatibility: type of _Float16
+
+The front end incorrectly set the type of the _Float16 predefined typedef
+in clang mode to a type different from that of a float16 literal.  This is
+now fixed.  For example, with --gnu_version=130100 --clang:
+
+  template<typename, typename> struct S {
+    static constexpr bool v = false;
+  };
+  template<typename T> struct S<T, T> {
+    static constexpr bool v = true;
+  };
+  static_assert(S<decltype(1.0f16), _Float16>::v);   // Previously failed
+
+
 5/31/24  [EDGcpfe/23333,EDGcpfe/24685,EDGcpfe/27190]
 GNU compatibility: Extraneous parentheses in attribute string operands
 
