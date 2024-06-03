@@ -1,5 +1,13 @@
 Version 6.7
 
+6/3/24   [EDGcpfe/27272]
+GNU compatibility: Update builtin signatures to 13.3.0
+
+Two builtins (__builtin_ia32_ldtilecfg and __builtin_ia32_sttilecfg) were added
+between GNU 13.2.0 and 13.3.0.  The builtin signatures have been updated
+accordingly.
+
+
 6/2/24   [EDGcpfe/26982]
 Clang compatibility: type of _Float16
 
