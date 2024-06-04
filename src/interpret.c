@@ -24632,6 +24632,7 @@ to a prvalue (without changing expr itself).
             result = do_glvalue_to_prvalue(ips, expr, val_type, cap,
                                            n_bytes, result_storage,
                                            result_storage);
+            result_type = prvalue_type(result_type);
           }  /* if */
         } else {
           val_type = expr->is_xvalue ?

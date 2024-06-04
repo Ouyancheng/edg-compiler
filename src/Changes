@@ -1,5 +1,18 @@
 Version 6.7
 
+6/4/24   [EDGcpfe/25980,EDGcpfe/26692]
+Incorrect type for conditional operator
+
+In some cases where the second and third operands of the conditional operator
+are a cv-qualified glvalue of enum type and a prvalue of that enum type, the
+front end previously used the promoted integral type as the result type.  For
+example, with --c++11:
+
+  enum E { E0, E1 };
+  const E &e0 = E0;
+  E e = true ? e0 : E1;  // Previously a spurious error.  Now okay.
+
+
 6/3/24   [EDGcpfe/27177]
 GNU C++ compatibility: Variable templates in alias template definitions
 
