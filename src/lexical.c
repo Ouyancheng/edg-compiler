@@ -21790,7 +21790,29 @@ it is a name that is part of a class member access (i.e., it follows a
 */
 {
   a_symbol_ptr	result_sym;
+  a_boolean     treat_as_unknown_func = FALSE;
 
+  if (template_sym != NULL && symbol_is(template_sym, sk_variable_template) &&
+      gpp_version_is(<130000) &&
+      scope_stack_top().in_prototype_instantiation &&
+      scope_is(&scope_stack_top(), sck_template_instantiation) &&
+      scope_stack_top().template_sym != NULL &&
+      is_alias_template_symbol(scope_stack_top().template_sym)) {
+    /* GCC sometimes does not substitute nondependent template-ids referring to
+       variable templates if they appear in certain contexts, particularly in
+       the definitions of alias templates.  For example:
+           template<bool B> using Void = void;
+           template<typename T, typename T::whatever> bool vart;
+           template<typename> using Alias = Void<vart<int, 0>>;
+       GCC 12 accepts that example.  The mechanism used by GCC is not very
+       clear, and it appears to depend on the particular version of GCC, but
+       the criteria above cover examples found in real code.  To avoid
+       instantiating the variable template, treat it as an unknown function
+       template instead. */
+    template_sym = find_unknown_function_symbol(
+                         template_sym, locator_for_curr_id.is_qualified_name);
+    treat_as_unknown_func = TRUE;
+  }  /* if */
   if (template_sym != NULL &&
       symbol_is(template_sym, sk_variable_template)) {
     result_sym = coalesce_template_variable_reference(template_sym,
@@ -21804,6 +21826,7 @@ it is a name that is part of a class member access (i.e., it follows a
               (template_sym == NULL ||
                (is_function_symbol(template_sym) &&
                 !template_sym->is_class_member))) ||
+             treat_as_unknown_func ||
              (template_sym != NULL &&
               !is_class_template_or_injected_template_symbol(template_sym) && 
               symbol_is_or_contains_template(template_sym))) {
@@ -25098,9 +25121,30 @@ scanned is, in fact, an identifier).
      class.  is_template_id will be TRUE if the template reference has already
      been coalesced.  If this is a variable template without an argument list,
      an error will be issued. */
+  a_boolean  is_var_templ = FALSE, treat_as_unknown_func = FALSE;
   if (symbol != NULL &&
       (is_class_template_or_injected_template_symbol(symbol) ||
-       symbol_is(symbol, sk_variable_template))) {
+       (is_var_templ = symbol_is(symbol, sk_variable_template)))) {
+    if (symbol != NULL && is_var_templ && gpp_version_is(<130000) &&
+        scope_stack_top().in_prototype_instantiation &&
+        scope_is(&scope_stack_top(), sck_template_instantiation) &&
+        scope_stack_top().template_sym != NULL &&
+        is_alias_template_symbol(scope_stack_top().template_sym)) {
+      /* GCC sometimes does not substitute nondependent template-ids referring
+         to variable templates if they appear in certain contexts, particularly
+         in the definitions of alias templates.  For example:
+           template<bool B> using Void = void;
+           template<typename T, typename T::whatever> bool vart;
+           template<typename> using Alias = Void<vart<int, 0>>;
+         GCC 12 accepts that example.  The mechanism used by GCC is not very
+         clear, and it appears to depend on the particular version of GCC, but
+         the criteria above cover examples found in real code.  To avoid
+         instantiating the variable template, treat it as an unknown function
+         template instead. */
+      symbol = find_unknown_function_symbol(
+                               symbol, locator_for_curr_id.is_qualified_name);
+      treat_as_unknown_func = TRUE;
+    }  /* if */
     if (locator_for_curr_id.is_unknown_template_reference) {
       /* This is a template class reference that was changed back to a
          template reference by ensure_correct_nonreal_instance_kind.
@@ -25131,7 +25175,10 @@ scanned is, in fact, an identifier).
          end up being resolved (e.g., to the injected template name).
          For the variable case, an error will result (from the missing
          argument list). */
-      if (symbol_is(symbol, sk_variable_template)) {
+      if (treat_as_unknown_func) {
+        symbol = coalesce_template_function_reference(symbol, next_token(),
+                                                      &templ_err);
+      } else if (is_var_templ) {
         symbol = coalesce_template_variable_reference(
                                             symbol, curr_token_sequence_number,
                                             options, next_token(), &templ_err);
