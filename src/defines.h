@@ -32,6 +32,15 @@ Note: This is the EDG internal version.  The version shipped as part of
 the release should contain no defines.
 */
 
+#if defined(USE_CMAKE_DEFINES)
+
+/*
+If USE_CMAKE_DEFINES is present, use the CMake generated cmake_defines.h file.
+*/
+#include "cmake_defines.h"
+
+#else /* !defined(USE_CMAKE_DEFINES) */
+
 /*
 High level EDG macros used solely in this file for easy configuration:
 
@@ -3021,6 +3030,8 @@ used to compile older versions where the macros are used).
 #define TARG_MAXIMUM_PACK_ALIGNMENT_win64 128
 #define TARG_MINIMUM_PACK_ALIGNMENT_win32 1
 #define TARG_MAXIMUM_PACK_ALIGNMENT_win32 128
+
+#endif /* defined(USE_CMAKE_DEFINES) */
 
 #endif /* ifndef DEFINES_H */
 
