@@ -18343,8 +18343,7 @@ the value type of a Ptr_map described below.
 */
 struct a_constexpr_intrinsic_descr {
   a_constexpr_intrinsic
-		kind;
-			/* The enumerator value identifying this function
+		kind;	/* The enumerator value identifying this function
 			   for efficient dispatch in the interpreter. */
   a_symbol_ptr	*p_namespace_sym;
 			/* A pointer to a (global) variable pointing to the
@@ -18364,11 +18363,9 @@ is produced by expanding the macro NS_scope_constexpr_intrinsics (see
 interpret.h).
 */
 static struct {
-  a_const_char	*name;
-			/* The name of a function known to the interpreter. */
+  a_const_char	*name;	/* The name of a function known to the interpreter. */
   a_constexpr_intrinsic_descr
-		descr;
-			/* Information characterizing the function beyond its
+		descr;	/* Information characterizing the function beyond its
 			   name. */
 } constexpr_intrinsic_descriptions[] = {
 #define CIT_descr(ns, name, signature) \
