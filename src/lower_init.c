@@ -2718,9 +2718,9 @@ ABI, type size_t for the IA-64 ABI.
 
 static an_expr_node_ptr var_arg_num_elem_node()
 /*
-Build an expression for a constant that represents the number of elements
-in an array for an array new/delete call.  The node has type int
-for the Cfront-like ABI.
+Return an expression of type int, that indicates that a variable number of
+elements are present in an array, for an array new/delete call (i.e., an
+expression for the constant '-1').
 */
 {
   an_expr_node_ptr num_elem_node;
