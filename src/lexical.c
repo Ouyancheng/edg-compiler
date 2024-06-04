@@ -21766,6 +21766,26 @@ otherwise the original "sym" is returned.
 }  /* ensure_correct_nonreal_instance_kind */
 
 
+static a_boolean has_dependent_nontype_parameter(a_symbol_ptr  template_sym)
+/*
+Return TRUE if the given template has a nontype template parameter that
+involves a template parameter.
+*/
+{
+  a_boolean             result = FALSE;
+  a_template_param_ptr  param = template_sym->variant.template_info
+                                            ->cache.decl_info->parameters;
+
+  for (; param != NULL; param = param->next) {
+    if (symbol_is(param->param_symbol, sk_constant) &&
+        param->variant.constant.type_involves_template_param) {
+      result = TRUE;
+    }  /* if */
+  }  /* for */
+  return result;
+}  /* has_dependent_nontype_parameter */
+
+
 static a_symbol_ptr coalesce_template_id(
 			a_symbol_ptr			template_sym,
 			a_token_kind			next_tok,
@@ -21797,7 +21817,9 @@ it is a name that is part of a class member access (i.e., it follows a
       scope_stack_top().in_prototype_instantiation &&
       scope_is(&scope_stack_top(), sck_template_instantiation) &&
       scope_stack_top().template_sym != NULL &&
-      is_alias_template_symbol(scope_stack_top().template_sym)) {
+      is_alias_template_symbol(scope_stack_top().template_sym) &&
+      has_dependent_nontype_parameter(template_sym) &&
+      (expr_stack == NULL || curr_expr_is_potentially_evaluated())) {
     /* GCC sometimes does not substitute nondependent template-ids referring to
        variable templates if they appear in certain contexts, particularly in
        the definitions of alias templates.  For example:
@@ -25129,7 +25151,9 @@ scanned is, in fact, an identifier).
         scope_stack_top().in_prototype_instantiation &&
         scope_is(&scope_stack_top(), sck_template_instantiation) &&
         scope_stack_top().template_sym != NULL &&
-        is_alias_template_symbol(scope_stack_top().template_sym)) {
+        is_alias_template_symbol(scope_stack_top().template_sym) &&
+        has_dependent_nontype_parameter(symbol) &&
+        (expr_stack == NULL || curr_expr_is_potentially_evaluated())) {
       /* GCC sometimes does not substitute nondependent template-ids referring
          to variable templates if they appear in certain contexts, particularly
          in the definitions of alias templates.  For example:
