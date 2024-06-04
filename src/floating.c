@@ -1797,7 +1797,7 @@ STATIC void fp_emul_add_int(an_fp_binary  *left,
                           (an_fp_uint)right);
     i = fp_frac_high_zero_bits(bin.frac, bin.precision);
     if (i == 0 &&
-	(over = (right & ~MASK_BITS(bin.precision)) >> bin.precision) != 0) {
+        (over = (right & ~MASK_BITS(bin.precision)) >> bin.precision) != 0) {
       /* The value being added occupies more bits than allowed by the
          precision.  Count the number of excess bits and increment the
          exponent to reflect the eventual adjustment (right shift) that
