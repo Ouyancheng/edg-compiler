@@ -83,7 +83,7 @@ example:
 5/30/24  [EDGcpfe/27255]
 Improve support for 128-bit when INTEGER_VALUE_REPR_IS_A_HOST_INTEGER=1
 
-The front end's now prints all integer values via the util.h String_formatter
+The front end now prints all integer values via the util.h String_formatter
 facility.  The signed, unsigned integer, and hex String_formatters have all
 been rewritten to work with TYPE_FOR_AN_INTEGER_VALUE and
 TYPE_FOR_A_SIGNED_INTEGER_VALUE of arbitrary bit counts.

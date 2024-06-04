@@ -1996,15 +1996,15 @@ recompiled, such as the include search paths to be used.
 #endif /* ifndef EXPORT_INFO_FILE_NAME */
 
 /*
-Flag that is TRUE if the host has the __int128 and __uint128 extension;
+Flag that is TRUE if the host has the __int128 and __uint128 extensions;
 otherwise, FALSE.
 */
 #ifndef HOST_HAS_INT128_EXTENSIONS
-#if __SIZEOF_INT128__
+#if defined(__SIZEOF_INT128__)
 #define HOST_HAS_INT128_EXTENSIONS TRUE
-#else /* !__SIZEOF_INT128__ */
+#else /* !defined(__SIZEOF_INT128__) */
 #define HOST_HAS_INT128_EXTENSIONS FALSE
-#endif /* __SIZEOF_INT128__ */
+#endif /* defined(__SIZEOF_INT128__) */
 #endif /* ifndef HOST_HAS_INT128_EXTENSIONS */
 
 /*
