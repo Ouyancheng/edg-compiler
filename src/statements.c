@@ -8135,13 +8135,31 @@ is being parsed within the context of the __extension__ keyword.
      preprocessing error recovery if a C++11 lambda or GNU statement
      expression appears in a #if directive; hence, the test for
      tok_newline.) */
-  while (curr_token != tok_rbrace && curr_token != tok_end_of_source &&
-         curr_token != tok_newline) {
+  scope_stack_top().is_compound_statement_block = TRUE;
+  while ((curr_token != tok_rbrace && curr_token != tok_end_of_source &&
+          curr_token != tok_newline) || scope_stack_top().injections != NULL) {
     if (!C_mode()) {
       /* In C++ mode, where declarations can be interspersed with
          executable statements, statement() handles declarations, too. */
-      statement(/*is_dependent_statement=*/FALSE,
-                marked_as_gnu_extension);
+      a_boolean  injected_stmt = FALSE;
+      if (scope_stack_top().injections != NULL) {
+        /* If there are pending injections at this level, inject the tokens
+           for the next one now. */
+        an_il_entity_list_entry  *ielep = scope_stack_top().injections;
+        a_token_sequence         *tsp = (a_token_sequence*)ielep->entity.ptr;
+        rescan_reusable_cache((a_token_cache*)tsp->token_cache);
+        scope_stack_top().injections = ielep->next;
+        injected_stmt = TRUE;
+      }  /* if */
+      statement(/*is_dependent_statement=*/FALSE, marked_as_gnu_extension);
+      if (injected_stmt) {
+        /* The statement we just saw was injected.  The next token should be
+           the cache terminator. */
+        if (curr_token != tok_end_of_source) {
+          pos_error(ec_extraneous_injected_statement_tokens, &pos_curr_token);
+        }  /* if */
+        flush_past_token_cache_terminator();
+      }  /* if */
     } else {
       /* In C mode the declarations are expected to appear first.  Note that
          label statements may look like the start of a declaration, so we

@@ -13469,7 +13469,6 @@ sequence (i.e., a token sequence without interpolators).
                 *rvp0 = (a_reflection_value*)p_arg_bytes[0],
                 *rvp1 = (a_reflection_value*)p_arg_bytes[1];
   a_scope       *scope = NULL;
-  a_scope_depth depth = depth_scope_stack;
 
   if (rvp1->entity.kind != iek_token_sequence) {
     info_with_pos(ec_invalid_reflection_for_intrinsic,
@@ -13496,27 +13495,32 @@ sequence (i.e., a token sequence without interpolators).
     a_namespace  *nsp = skip_namespace_aliases((a_namespace*)rvp0->entity.ptr);
     scope = nsp->variant.assoc_scope;
   }  /* if */
-  /* Look through the scope stack for the associated scope. */
-  result = FALSE;
-  for (; depth != NO_SCOPE_DEPTH; depth = scope_stack[depth].previous_scope) {
-    if (scope_stack[depth].il_scope == scope &&
-        (scope_is(&scope_stack[depth], sck_class_struct_union) ||
-         scope_is(&scope_stack[depth], sck_namespace) ||
-         scope_is(&scope_stack[depth], sck_namespace_extension) ||
-         (scope_is(&scope_stack[depth], sck_block) &&
-          TRUE/*FIXME: Check it's a compound statement block*/))) {
-      an_il_entity_list_entry  **end_list = &scope_stack[depth].injections;
-      end_list = get_last_simple_list_link(end_list);
-      *end_list =  alloc_il_entity_list_entry();
-      (*end_list)->entity =  rvp1->entity;
-      result = TRUE;
-      break;
+  if (scope_is(scope, sck_namespace) || scope_is(scope, sck_file)) {
+    a_token_sequence  *token_seq = (a_token_sequence*)rvp1->entity.ptr;
+    a_token_cache     *tokens = (a_token_cache*)token_seq->token_cache;
+    inject_tokens_in_namespace(tokens, scope);
+  } else {
+    /* Look through the scope stack for the associated scope. */
+    result = FALSE;
+    for (a_scope_depth depth = depth_scope_stack;
+         depth != NO_SCOPE_DEPTH;
+         depth = scope_stack[depth].previous_scope) {
+      if (scope_stack[depth].il_scope == scope &&
+          (scope_is(&scope_stack[depth], sck_class_struct_union) ||
+           scope_stack[depth].is_compound_statement_block)) {
+        an_il_entity_list_entry  **end_list = &scope_stack[depth].injections;
+        end_list = get_last_simple_list_link(end_list);
+        *end_list =  alloc_il_entity_list_entry();
+        (*end_list)->entity =  rvp1->entity;
+        result = TRUE;
+        break;
+      }  /* if */
     }  /* if */
-  }  /* if */
-  if (!result) {
-    info_with_pos_refl(ec_bad_injection_scope, &call_node->position, *rvp0,
-                       ips);
-    do_constexpr_fail(result);
+    if (!result) {
+      info_with_pos_refl(ec_bad_injection_scope, &call_node->position, *rvp0,
+                         ips);
+      do_constexpr_fail(result);
+    }  /* if */
   }  /* if */
 done:
   return result;
@@ -13601,6 +13605,12 @@ the corresponding reflection value at the location denoted by result_cap.
       if (!evaluate_expr(ips, node, /*force_prvalue=*/TRUE, cp)) {
         do_constexpr_fail(result);
         break;
+      } else {
+        /* Discard the backing expression since it will be associated with a
+           new pseudo-token likely to be injected in a scope where the
+           expression is meaningless (and would produce memory region
+           violations). */
+        cp->expr = NULL;
       }  /* if */
     }  /* if */
     if (result) {

@@ -4950,6 +4950,38 @@ is used for generic lambdas and is the scope containing the lambda.
 }  /* push_instantiation_context */
 
 
+void inject_tokens_in_namespace(a_token_cache  *tokens,
+                                a_scope        *namespace_scope)
+/*
+Scan the given tokens as a declaration appearing in the given namespace scope
+(which might be the file scope).
+*/
+{
+  a_scope_depth  orig_depth = depth_scope_stack;
+
+  push_new_top_level_declaration();
+  if (scope_is(namespace_scope, sck_namespace)) {
+    push_namespace_extension_scope(namespace_scope->variant.assoc_namespace);
+    decl_scope_level = depth_innermost_namespace_scope;
+  } else {
+    /* Update the decl_scope_level. */
+    decl_scope_level = DEPTH_OF_FILE_SCOPE;
+  }  /* if */
+  rescan_reusable_cache(tokens);
+  declaration(/*function_definition_allowed=*/TRUE,
+              /*is_old_style_param_decl=*/FALSE,
+              /*is_top_level_declaration=*/TRUE,
+              /*marked_as_gnu_extension=*/FALSE,
+              (a_param_id*)NULL,
+              (a_source_range*)NULL);
+  if (curr_token != tok_end_of_source) {
+    pos_error(ec_extraneous_injected_declaration_tokens, &pos_curr_token);
+  }  /* if */
+  flush_past_token_cache_terminator();
+  while (depth_scope_stack > orig_depth) pop_scope();
+}  /* inject_tokens_in_namespace */
+
+
 static void fixup_instantiation_scopes(
 			a_template_decl_info_ptr	decl_info,
 			a_scope_depth			orig_depth,

@@ -871,6 +871,9 @@ typedef struct a_scope_stack_entry {
 			   continue on past the nested instantiation scope so
 			   that names from the outer instantiation scope can
 			   be visible. */
+  a_bit_field	is_compound_statement_block:1;
+			/* TRUE if the scope is that of the compound
+			   statement. */
   a_bit_field	is_try_block:1;
 			/* TRUE if the scope is that of the compound statement
 			   of a try block (sck_block only).  Note: not set
@@ -2267,6 +2270,9 @@ extern a_scope_ptr push_namespace_scope(a_scope_kind    kind,
 extern void make_class_definition_context_visible(void);
 
 extern void pop_namespace_scope(void);
+
+extern void inject_tokens_in_namespace(a_token_cache  *tokens,
+                                       a_scope        *namespace_scope);
 
 enum a_module_scope_push_kind {
   mspk_unattempted,     /* No push was performed. */

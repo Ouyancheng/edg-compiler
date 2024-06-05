@@ -21977,7 +21977,8 @@ copy.
     pdps->variant.param_id_list = param_id_list;
   }  /* if */
   if (is_top_level_declaration &&
-      depth_innermost_namespace_scope == depth_scope_stack) {
+      (is_file_or_namespace_scope(&scope_stack_top()) ||
+       scope_is(&scope_stack_top(), sck_instantiation_context))) {
     /* decl-specifiers of namespace scope declarations are an implicit
        type context in C++20. */
     pdps->is_implicit_type_context = TRUE;
