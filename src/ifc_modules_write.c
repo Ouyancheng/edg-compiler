@@ -1311,6 +1311,8 @@ private:
                                   an_ifc_edg_constant_index      constant_idx);
   void enter_constant_token_to_cache(an_ifc_output_token_cache *ifc_cache,
                                      a_cached_token            *token);
+  void enter_extracted_body_to_cache(an_ifc_output_token_cache *ifc_cache,
+                                     a_cached_token            *token);
   void enter_identifier_token_to_cache(an_ifc_output_token_cache *ifc_cache,
                                        a_cached_token            *token);
   void enter_token_cache(an_ifc_output_token_cache *ifc_cache,
@@ -1326,6 +1328,7 @@ private:
 
   /* Functions for entering declarations that are invoked by proxy (e.g.,
      enter_typedef is called when needed by enter_type). */
+  an_ifc_decl_index enter_class_template(a_template_ptr templ);
   an_ifc_decl_index enter_constructor(a_routine_ptr rp);
   an_ifc_decl_index enter_destructor(a_routine_ptr rp);
   an_ifc_decl_index enter_field(a_field_ptr field);
@@ -1721,14 +1724,21 @@ index for the class type.
   /* FIXME: Set base. */
   /* Associate the class scope decl with its contents. */
   a_scope_ptr   class_scope = class_type_supp(type)->assoc_scope;
-  an_ifc_scope_offset
+  a_template    *assoc_templ =
+                   type->variant.class_struct_union.extra_info->assoc_template;
+  if (assoc_templ == NULL) {
+    /* This traversal is not performed for class templates.  The class template
+       definition will be associated below via a trait. */
+    an_ifc_scope_offset
                 initializer = this->find_or_enter_scope(class_scope);
-  set_ifc_initializer(&scope_decl, initializer);
-  for (a_field_ptr fp = fields_of(type); fp != NULL; fp = fp->next) {
-    (void)this->enter_field(fp);
-  }  /* for */
-  /* Traverse the class scope's contents. */
-  dump_scope_recursively(this, class_scope);
+
+    set_ifc_initializer(&scope_decl, initializer);
+    for (a_field_ptr fp = fields_of(type); fp != NULL; fp = fp->next) {
+      (void)this->enter_field(fp);
+    }  /* for */
+    /* Traverse the class scope's contents. */
+    dump_scope_recursively(this, class_scope);
+  }  /* if */
 
   /* Set the scope information. */
   an_ifc_decl_index
@@ -1746,7 +1756,29 @@ index for the class type.
   /* Set the properties. */
   an_ifc_reachable_properties_bitfield_query
                 properties = (an_ifc_reachable_properties_bitfield_query)0;
-  if (!type->incomplete) {
+  /* Flag that an initializer is present if relevant. */
+  if (assoc_templ != NULL) {
+    an_ifc_edg_trait_class_definition
+                def_trait;
+    this->output_state->alloc_decl_trait(result, &def_trait);
+
+    /* Create a token cache representation of the initializing constant. */
+    an_ifc_output_token_cache
+                init_token_cache;
+    a_symbol_ptr
+                templ_sym = symbol_for(assoc_templ);
+    a_template_symbol_supplement_ptr
+                tssp = templ_sym->variant.template_info;
+    this->enter_token_cache(&init_token_cache, &tssp->cache.tokens);
+
+    an_ifc_edg_token_cache_offset
+                token_cache_offset = this->output_state->alloc_token_cache(
+                                                             init_token_cache);
+    set_ifc_initializer(&def_trait, token_cache_offset);
+    /* Apply the initializer flag to indicate the presence of this
+       definition. */
+    properties = properties | ifc_rpb_initializer;
+  } else if (!type->incomplete) {
     properties = properties | ifc_rpb_initializer;
   }  /* if */
 
@@ -1942,8 +1974,9 @@ state.  Return the declaration index for the template.
 
   switch (templ->kind) {
     case templk_class:
+      result = this->enter_class_template(templ);
+      break;
     case templk_concept:
-      /* FIXME: Implement these. */
       header_unit_catastrophe();
       break;
     case templk_function:
@@ -4340,6 +4373,36 @@ given token cache.
 }  /* an_ifc_il_map::enter_constant_token_to_cache */
 
 
+void an_ifc_il_map::enter_extracted_body_to_cache(
+                                          an_ifc_output_token_cache *ifc_cache,
+                                          a_cached_token            *token)
+/*
+Enter the token cache associated with given extracted template token into
+the given token cache.
+*/
+{
+  check_assertion(token->extra_info_kind == teik_extracted_body);
+  an_extracted_template_descr
+                *extracted_template = &token->variant.extracted_template;
+  a_symbol_ptr  template_sym = extracted_template->symbol;
+
+  switch (template_sym->kind) {
+    case sk_member_function:
+      { a_template_instance_ptr
+                instance_ptr = template_sym->variant.routine.instance_ptr;
+        a_template_symbol_supplement_ptr
+                tssp = instance_ptr->template_info;
+
+        this->enter_token_cache(ifc_cache, &tssp->cache.tokens);
+      }
+      break;
+    default:
+      header_unit_catastrophe();
+      break;
+  }  /* switch */
+}  /* an_ifc_il_map::enter_extracted_body_to_cache */
+
+
 void an_ifc_il_map::enter_identifier_token_to_cache(
                                           an_ifc_output_token_cache *ifc_cache,
                                           a_cached_token            *token)
@@ -4382,6 +4445,9 @@ cache.
       case teik_constant:
         this->enter_constant_token_to_cache(ifc_cache, tok);
         break;
+      case teik_extracted_body:
+        this->enter_extracted_body_to_cache(ifc_cache, tok);
+        break;
       case teik_identifier:
         this->enter_identifier_token_to_cache(ifc_cache, tok);
         break;
@@ -4404,7 +4470,6 @@ cache.
         }
         break;
       case teik_asm_string:
-      case teik_extracted_body:
       case teik_ifc_index:
       case teik_insert_string:
       case teik_pp_token:
@@ -4527,6 +4592,58 @@ fundamental type.
   }  /* if */
   return this->fund_unscoped_enum_type;
 }  /* an_ifc_il_map::find_or_enter_unscoped_enum_type */
+
+
+an_ifc_decl_index an_ifc_il_map::enter_class_template(a_template_ptr templ)
+/*
+Enter the given class template (templ) into the IFC output state.  Return the
+declaration index of the class template declaration.
+*/
+{
+  an_ifc_decl_template
+                class_templ;
+  an_ifc_decl_index
+                result = this->map_new_decl(templ, &class_templ);
+
+  /* Set the name information. */
+  an_ifc_name_index
+                ifc_name_index = this->entity_name_as_name_index(templ);
+  set_ifc_name(&class_templ, ifc_name_index);
+
+  /* Set the source location information. */
+  an_ifc_source_location
+                ifc_src_pos = this->find_or_enter_entity_pos(templ);
+  set_ifc_locus(&class_templ, ifc_src_pos);
+
+  /* Set the scope information. */
+  an_ifc_decl_index
+                scope_decl_idx = this->associate_entity_home_scope(templ);
+  set_ifc_home_scope(&class_templ, scope_decl_idx);
+
+  /* Set the template parameter chart. */
+  an_ifc_chart_index
+                param_chart = this->enter_template_params(templ);
+  set_ifc_chart(&class_templ, param_chart);
+
+  /* Set the parameterized entity information. */
+  an_ifc_parameterized_entity
+                ifc_entity(this->get_default_file());
+  a_type_ptr    prototype_decl = templ->prototype_instantiation.type;
+  an_ifc_decl_index
+                prototype_decl_idx = this->enter_class(prototype_decl);
+  set_ifc_decl(&ifc_entity, prototype_decl_idx);
+  set_ifc_entity(&class_templ, ifc_entity);
+
+  /* FIXME: Set type. */
+  /* FIXME: Set specifiers. */
+
+  /* Set the access specifier. */
+  an_ifc_access_sort
+                ifc_access = access_specifier_of(templ);
+  set_ifc_access(&class_templ, ifc_access);
+  /* FIXME: Set properties. */
+  return result;
+}  /* an_ifc_il_map::enter_class_template */
 
 
 an_ifc_decl_index an_ifc_il_map::enter_constructor(a_routine_ptr rp)
@@ -4726,7 +4843,7 @@ declaration index of the free function declaration.
     a_template_ptr
                 templ = rp->assoc_template;
     a_symbol_ptr
-                templ_sym = symbol_for(templ);;
+                templ_sym = symbol_for(templ);
     a_template_symbol_supplement_ptr
                 tssp = templ_sym->variant.template_info;
     this->enter_token_cache(&init_token_cache, &tssp->cache.tokens);
@@ -5066,6 +5183,10 @@ Add all the types in the given scope to the given IL -> IFC mapping.
 */
 {
   for (a_type_ptr type = scope->types; type != NULL; type = type->next) {
+    if (is_template_class_type(type)) {
+      /* Skip template types, these will be handled by dump_scope_templates. */
+      continue;
+    }  /* if */
     (void)il_map->find_or_enter_type(type);
   }  /* for */
 }  /* dump_scope_types */

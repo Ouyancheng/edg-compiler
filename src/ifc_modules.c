@@ -19609,6 +19609,83 @@ cache context to help inform decisions about what to cache.
 }  /* maybe_cache_var_initializer */
 
 
+static void cache_class_key(a_module_token_cache_ptr cache,
+                            const an_ifc_decl_scope  &scope)
+/*
+Cache the class-key associated with the given IFC scope declaration
+(representing a class, struct, or union declaration).
+*/
+{
+  a_type_kind type_kind = get_csu_type_kind(scope);
+
+  switch (type_kind) {
+    case tk_class:
+      cache_token(cache, tok_class);
+      break;
+    case tk_struct:
+      cache_token(cache, tok_struct);
+      break;
+    case tk_union:
+      cache_token(cache, tok_union);
+      break;
+    default:
+      /* The given type kind is not supported.  Either this switch
+         needs expanded or the caller supplied an incorrect type
+         kind. */
+      unexpected_condition();
+  }  /* switch */
+}  /* cache_class_key */
+
+
+static a_boolean cache_edg_token_cache(
+                                   a_module_token_cache_ptr      cache,
+                                   an_ifc_edg_token_cache_offset cache_offset);
+
+
+static void cache_class_body_or_end_decl(a_module_token_cache_ptr cache,
+                                         an_ifc_decl_index        decl_idx,
+                                         const an_ifc_decl_scope  &decl,
+                                         const an_ifc_cache_info  &cinfo)
+/*
+Cache the class-specifier (excluding the portion of the class-head prior to the
+class-head-name and the class-head-name itself) for the given class, struct, or
+union declaration (identified by decl_idx) if its definition is specified;
+otherwise, cache a semicolon to terminate the declaration.  cinfo contains
+information about the current cache context to help inform decisions about what
+to cache.
+*/
+{
+  if (!is_null_index(cinfo.parameterizing_entity) &&
+      is_edg_authored(decl)) {
+    /* This is an EDG class template body. */
+    Opt<an_ifc_edg_trait_class_definition> opt_edg_class_def;
+
+    find_trait(&opt_edg_class_def, decl_idx);
+    if (opt_edg_class_def.has_value()) {
+      an_ifc_edg_trait_class_definition
+        edg_class_def = *opt_edg_class_def;
+      an_ifc_edg_token_cache_offset
+        cache_offset = get_ifc_initializer(edg_class_def);
+
+      (void)cache_edg_token_cache(cache, cache_offset);
+    } else {
+      /* The IFC told us there would be a definition but none was
+         written. */
+      a_string err_msg("Unexpected missing EDG class definition for ",
+                       index_to_str(decl_idx));
+
+      /* FIXME: Migrate to ec_ifc_missing_class_definition. */
+      ifc_unexpected(module_of(decl), err_msg);
+    }  /* if */
+  } else {
+    /* Currently the non-EDG template case is handled via another code path and
+       the non-template case is always handled via a lazy loading function that
+       does not use this function. */
+    cache_token(cache, tok_semicolon);
+  }  /* if */
+}  /* cache_class_body_or_end_decl */
+
+
 template<typename an_ifc_Node_type>
 static void cache_func_type_cv_qualifiers(a_module_token_cache_ptr     cache,
                                           const an_ifc_Node_type       &node)
@@ -20103,11 +20180,6 @@ Cache the virt-specifier-seq for the given function-like declaration.
     cache_literal(module_of(decl), cache, cp);
   }  /* if */
 }  /* cache_func_virt_specifier_seq */
-
-
-static a_boolean cache_edg_token_cache(
-                                   a_module_token_cache_ptr      cache,
-                                   an_ifc_edg_token_cache_offset cache_offset);
 
 
 template<typename an_ifc_Node_type>
@@ -23296,6 +23368,21 @@ return FALSE.
           }  /* if */
         }
         break;
+      case ifc_ds_decl_scope:
+        { Opt<an_ifc_decl_scope> opt_scope_decl;
+
+          construct_node(&opt_scope_decl, decl_idx);
+          if (!opt_scope_decl.has_value()) {
+            goto invalid;
+          }  /* if */
+
+          an_ifc_decl_scope
+                scope_decl = *opt_scope_decl;
+          an_ifc_reachable_properties_bitfield
+                properties = get_ifc_properties(scope_decl);
+          result = test_bitmask<ifc_rpb_initializer>(properties);
+        }
+        break;
       default:
         { /* FIXME: Add other cases. */
           a_string err_msg("Unexpected parameterized entity (",
@@ -24169,6 +24256,20 @@ about what to cache.
 
         construct_node_prechecked(&scope_decl, decl);
 
+        Opt<a_scope_kind> opt_scope_kind = get_scope_kind(scope_decl);
+        if (!opt_scope_kind.has_value()) {
+          goto invalid;
+        }  /* if */
+
+        a_scope_kind scope_kind = *opt_scope_kind;
+        if (scope_kind != sck_class_struct_union) {
+          a_string err_msg("Expected a class or struct type for ",
+                           index_to_str(decl));
+
+          ifc_unexpected(module_of(decl), err_msg);
+          goto invalid;
+        }  /* if */
+
         Opt<a_string> opt_decl_name = name_of_decl(decl);
         if (!opt_decl_name.has_value()) {
           goto invalid;
@@ -24183,11 +24284,11 @@ about what to cache.
           cache_scope_decl(cache, decl, type, /*name=*/{}, base, initializer,
                            cinfo);
         } else {
-          an_ifc_name_index name = get_ifc_name(scope_decl);
+          cache_class_key(cache, scope_decl);
 
-          cache_token(cache, tok_class);
+          an_ifc_name_index name = get_ifc_name(scope_decl);
           cache_name(cache, name);
-          cache_token(cache, tok_semicolon);
+          cache_class_body_or_end_decl(cache, decl, scope_decl, cinfo);
         }  /* if */
       }
       break;
