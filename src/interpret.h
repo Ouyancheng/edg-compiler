@@ -185,6 +185,8 @@ must be defined in interpret.c to implement its evaluation.
   M(std_meta, define_class__impl, "(r,I,*.)v") \
   M(std_meta, metacall__impl, "(r,Vr)r") \
   M(std_meta, inject, "(r,r)v") \
+  M(std_meta, nearest_class_or_namespace, "()r") \
+  M(std_meta, nearest_namespace, "()r") \
   /* End of NS_scope_constexpr_intrinsics. */
 
 

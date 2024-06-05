@@ -1096,6 +1096,7 @@ enum a_token_kind : unsigned short {
   tok_rbrace                /* } */,
   tok_lsplice               /* [: */,
   tok_rsplice               /* :] */,
+  tok_backslash             /* \ */,
   tok_semicolon             /* ; */,
   tok_ellipsis              /* ... */,
   /* Keywords: */
@@ -1544,7 +1545,7 @@ EXTERN a_const_char
    "~", "!", "/", "%", "<<", ">>", "<", ">", "<=", ">=", "==", "!=", "<=>",
    "^", "|", "&&", "||", "?", ":", "=", "*=", "/=", "%=",
    "+=", "-=", "<<=", ">>=", "&=", "^=", "|=", ",", "#", "##", "<?", ">?",
-   "{", "}", "[:", ":]", ";", "...",
+   "{", "}", "[:", ":]", "\\",  ";", "...",
    "auto", "break", "case", "char", "const",
    "continue", "default", "do", "double", "else", "enum", "extern",
    "float", "for", "goto", "if", "int", "long", "register",

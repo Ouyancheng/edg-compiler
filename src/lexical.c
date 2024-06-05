@@ -16751,10 +16751,8 @@ return_end_of_source_token:
     case '$':
       /* The dollar sign can optionally be accepted as an ID character.
          If it is to be accepted then we go to the code responsible for
-         scanning identifiers; otherwise it is an unrecognized token.
-         If reflection is enabled, we accept "$" and "$id" in token
-         sequences. */
-      if (reflection_enabled || allow_dollar_in_id_chars) {
+         scanning identifiers; otherwise it is an unrecognized token. */
+      if (allow_dollar_in_id_chars) {
         goto id_scan;
       } else {
         goto bad_token;
@@ -16770,6 +16768,10 @@ return_end_of_source_token:
           (ch == 'N' && curr_char_loc[2] == '{' &&
            named_unicode_chars_allowed)) {
         goto id_scan;
+      } else if (reflection_enabled) {
+        /* The backslash token is the interpolator token in token sequences. */
+        ctoken = tok_backslash;
+        break;
       } else {
         goto bad_token;
       }  /* if */
@@ -17237,15 +17239,6 @@ end_of_id:
         }  /* if */
       }  /* if */
 end_id_scan:
-      if (id_ptr[0] == '$' && !allow_dollar_in_id_chars) {
-        if (sym_hdr != NULL && !sym_hdr->has_intrinsic_name) {
-          /* Some reserved tokens with a leading "$" are accepted in this
-             mode (e.g., when reflection is enabled) but this is not one.
-             General identifiers with dollar signs are not accepted, however,
-             and therefore this must be an error. */
-          goto bad_token;
-        }  /* if */
-      }  /* if */
       /* Use "_b" exit because we may no longer be on the line on which
          the identifier appears if it is a macro name and the opening
          parenthesis of the parameter list is on a different line. */

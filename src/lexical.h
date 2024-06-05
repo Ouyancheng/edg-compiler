@@ -374,6 +374,7 @@ EXTERN an_opname_kind opname_kind_for_token[(int)tok_last+1]
    onk_none,          /* tok_rbrace */
    onk_none,          /* tok_lsplice */
    onk_none,          /* tok_rsplice */
+   onk_none,          /* tok_backslash */
    onk_none,          /* tok_semicolon */
    onk_none,          /* tok_ellipsis */
    onk_none,          /* tok_auto */

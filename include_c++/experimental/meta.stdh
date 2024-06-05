@@ -508,8 +508,20 @@ namespace std {
       return type;
     }
 
+    consteval info nearest_class_or_namespace() {
+      return ^::;  /* Dummy return.  Handled by interpreter. */
+    }
+
+    consteval info nearest_namespace() {
+      return ^::;  /* Dummy return.  Handled by interpreter. */
+    }
+
     consteval void inject(info, info) {
       /* Dummy definition.  Handled by interpreter. */
+    }
+
+    consteval void inject(info  tokens) {
+      inject(nearest_class_or_namespace(), tokens);
     }
 
     consteval info metacall__impl(info, __infovec) {

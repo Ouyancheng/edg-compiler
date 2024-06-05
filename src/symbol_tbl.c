@@ -18328,8 +18328,6 @@ static a_const_char* intrinsic_names[] = {
   "allocator",
   "allocate",
   "deallocate",
-  "$",
-  "$id",
 };
 
 #define N_INTRINSIC_NAMES \

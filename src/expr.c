@@ -19202,7 +19202,7 @@ type of the expression is std::meta::info.
                     *token_seq_node;
   a_token_cache     *cache = alloc_token_cache(/*reusable=*/TRUE);
   unsigned          num_lbraces = 0;
-  a_boolean         err = FALSE;
+  a_boolean         err = FALSE, prev_token_is_backslash = FALSE;
 
   check_assertion(curr_token == tok_lbrace);
   (void)get_token();
@@ -19220,42 +19220,53 @@ type of the expression is std::meta::info.
       err = TRUE;
       break;
     }  /* if */
+    if (prev_token_is_backslash) {
+      /* An interpolator should follow. */
+      a_boolean   is_id = FALSE;
+      an_operand  opnd;
+      prev_token_is_backslash = FALSE;
+      if (curr_token == tok_identifier) {
+        /* Check whether this is an identifier introducing a special
+           interpolator; i.e., "\id" or "\tokens". */
+        a_const_char  *id = locator_for_curr_id.symbol_header->identifier;
+        if (strcmp(id, "id") == 0) {
+          is_id = TRUE;
+          *p_end_il_tokens = cache_curr_token_sequence_entry(cache);
+          p_end_il_tokens = &(*p_end_il_tokens)->next;
+          (void)get_token();
+        } else if (strcmp(id, "tokens") == 0) {
+          *p_end_il_tokens = cache_curr_token_sequence_entry(cache);
+          p_end_il_tokens = &(*p_end_il_tokens)->next;
+          (void)get_token();
+        }  /* if */
+      }  /* if */
+      if (curr_token != tok_lparen) {
+        pos_error(ec_exp_lparen, &pos_curr_token);
+        continue;
+      }  /* if */
+      *p_end_il_tokens = cache_curr_token_sequence_entry(cache);
+      p_end_il_tokens = &(*p_end_il_tokens)->next;
+      (void)get_token();
+      /* Scan the interpolated expression. */
+      add_matching_stop_token(tok_rparen);
+      scan_expr(&opnd, PREC_COMMA, EOPT_DISALLOW_COMMA_OPERATOR);
+      do_operand_transformations(&opnd, TOPT_NO_OPTIONS);
+      *end_interpolations = make_node_from_operand(&opnd);
+      end_interpolations = &(*end_interpolations)->next;
+      /* For \id(...), check that the expression type is std::string_view. */
+      if (is_id && !check_consistent_string_view_type(opnd.type) &&
+          !is_template_dependent_type(opnd.type) &&
+          !is_error_type(opnd.type)) {
+        pos_ty_error(ec_expected_string_view_value, &opnd.position, opnd.type);
+        err = TRUE;
+      }  /* if */
+      /* Check for the right parenthesis. */
+      (void)required_token_no_advance(tok_rparen, ec_exp_rparen);
+      remove_matching_stop_token(tok_rparen);
+    }  /* if */
+    prev_token_is_backslash = curr_token == tok_backslash;
     *p_end_il_tokens = cache_curr_token_sequence_entry(cache);
     p_end_il_tokens = &(*p_end_il_tokens)->next;
-    if (curr_token == tok_identifier &&
-        locator_for_curr_id.symbol_header->has_intrinsic_name) {
-      /* Check whether this is an identifier introducing an interpolator;
-         i.e., "$" or "$id". */
-      a_const_char  *id = locator_for_curr_id.symbol_header->identifier;
-      if (id[0] == '$' && (id[1] == '\0' || strcmp(id, "$id") == 0)) {
-        an_operand  opnd;
-        (void)get_token();
-        if (curr_token != tok_lparen) {
-          pos_error(ec_exp_lparen, &pos_curr_token);
-          continue;
-        }  /* if */
-        *p_end_il_tokens = cache_curr_token_sequence_entry(cache);
-        p_end_il_tokens = &(*p_end_il_tokens)->next;
-        (void)get_token();
-        /* Scan the interpolated expression. */
-        add_matching_stop_token(tok_rparen);
-        scan_expr(&opnd, PREC_COMMA, EOPT_DISALLOW_COMMA_OPERATOR);
-        do_operand_transformations(&opnd, TOPT_NO_OPTIONS);
-        *end_interpolations = make_node_from_operand(&opnd);
-        end_interpolations = &(*end_interpolations)->next;
-        /* For $id(...), check that the expression type is std::string_view. */
-        if (id[1] != '\0' && !check_consistent_string_view_type(opnd.type)) {
-          pos_ty_error(ec_expected_string_view_value, &opnd.position,
-                       opnd.type);
-          err = TRUE;
-        }  /* if */
-        /* Check for and pass over the right parenthesis. */
-        (void)required_token_no_advance(tok_rparen, ec_exp_rparen);
-        *p_end_il_tokens = cache_curr_token_sequence_entry(cache);
-        p_end_il_tokens = &(*p_end_il_tokens)->next;
-        remove_matching_stop_token(tok_rparen);
-      }  /* if */
-    }  /* if */
     (void)get_token();
   }  /* for */
   if (!err) {

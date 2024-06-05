@@ -33422,6 +33422,7 @@ next_declaration:
             pos_error(ec_extraneous_injected_member_tokens, &pos_curr_token);
           }  /* if */
           flush_past_token_cache_terminator();
+          injected_member_decl = FALSE;
         }  /* if */
         if (scope_stack_top().injections != NULL) {
           /* If there are pending injections at this level, inject the tokens

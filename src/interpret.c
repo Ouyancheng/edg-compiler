@@ -13494,6 +13494,12 @@ sequence (i.e., a token sequence without interpolators).
     /* A namespace alias: Retrieve the scope of the associated namespace. */
     a_namespace  *nsp = skip_namespace_aliases((a_namespace*)rvp0->entity.ptr);
     scope = nsp->variant.assoc_scope;
+  } else {
+    /* Not a valid injection context. */
+    info_with_pos(ec_invalid_reflection_for_intrinsic,
+                  &call_node->position, ips);
+    do_constexpr_fail(result);
+    goto done;
   }  /* if */
   if (scope_is(scope, sck_namespace) || scope_is(scope, sck_file)) {
     a_token_sequence  *token_seq = (a_token_sequence*)rvp1->entity.ptr;
@@ -13515,7 +13521,7 @@ sequence (i.e., a token sequence without interpolators).
         result = TRUE;
         break;
       }  /* if */
-    }  /* if */
+    }  /* for */
     if (!result) {
       info_with_pos_refl(ec_bad_injection_scope, &call_node->position, *rvp0,
                          ips);
@@ -13525,6 +13531,78 @@ sequence (i.e., a token sequence without interpolators).
 done:
   return result;
 }  /* do_constexpr_std_meta_inject */
+
+
+static a_boolean do_constexpr_std_meta_nearest_class_or_namespace(
+                                        an_interpreter_state  *ips,
+                                        a_routine_ptr         callee,
+                                        an_expr_node_ptr      call_node,
+                                        a_byte                **p_arg_bytes,
+                                        a_byte                *result_storage,
+                                        a_byte                *complete_object)
+/*
+Implement std::meta::nearest_class_or_namespace().
+class, namespace, or block scope, and <info2> represents an evaluated token
+sequence (i.e., a token sequence without interpolators).
+*/
+{
+  a_boolean           result = TRUE;
+  a_reflection_value  *result_rvp = (a_reflection_value*)result_storage;
+  a_scope_depth       depth;
+
+  result_rvp->local_scope_number = FILE_SCOPE_NUMBER;
+  for (depth = depth_scope_stack;
+       depth != NO_SCOPE_DEPTH;
+       depth = scope_stack[depth].previous_scope) {
+    if (scope_is(&scope_stack[depth], sck_class_struct_union)) {
+      result_rvp->entity.kind = iek_type;
+      result_rvp->entity.ptr = (char*)scope_stack[depth].assoc_type;
+      break;
+    } else if (scope_is(&scope_stack[depth], sck_file) ||
+               scope_is(&scope_stack[depth], sck_namespace) ||
+               scope_is(&scope_stack[depth], sck_namespace_extension)) {
+      result_rvp->entity.kind = iek_scope;
+      result_rvp->entity.ptr = (char*)scope_stack[depth].il_scope;
+      break;
+    }  /* if */
+  }  /* for */
+  check_assertion(depth != NO_SCOPE_DEPTH);
+  return result;
+}  /* do_constexpr_std_meta_nearest_class_or_namespace */
+
+
+static a_boolean do_constexpr_std_meta_nearest_namespace(
+                                        an_interpreter_state  *ips,
+                                        a_routine_ptr         callee,
+                                        an_expr_node_ptr      call_node,
+                                        a_byte                **p_arg_bytes,
+                                        a_byte                *result_storage,
+                                        a_byte                *complete_object)
+/*
+Implement std::meta::nearest_namespace().
+class, namespace, or block scope, and <info2> represents an evaluated token
+sequence (i.e., a token sequence without interpolators).
+*/
+{
+  a_boolean           result = TRUE;
+  a_reflection_value  *result_rvp = (a_reflection_value*)result_storage;
+  a_scope_depth       depth;
+
+  result_rvp->local_scope_number = FILE_SCOPE_NUMBER;
+  for (depth = depth_scope_stack;
+       depth != NO_SCOPE_DEPTH;
+       depth = scope_stack[depth].previous_scope) {
+    if (scope_is(&scope_stack[depth], sck_file) ||
+        scope_is(&scope_stack[depth], sck_namespace) ||
+        scope_is(&scope_stack[depth], sck_namespace_extension)) {
+      result_rvp->entity.kind = iek_scope;
+      result_rvp->entity.ptr = (char*)scope_stack[depth].il_scope;
+      break;
+    }  /* if */
+  }  /* for */
+  check_assertion(depth != NO_SCOPE_DEPTH);
+  return result;
+}  /* do_constexpr_std_meta_nearest_namespace */
 
 
 static a_boolean get_string_from_string_view(
@@ -13614,54 +13692,76 @@ the corresponding reflection value at the location denoted by result_cap.
       }  /* if */
     }  /* if */
     if (result) {
-      int interpolator_num = 0;
+      int  interpolator_num = 0;
       new_cache = alloc_token_cache(/*reusable=*/TRUE);
       rescan_reusable_cache((a_token_cache*)orig_tok_seq->token_cache);
       for (; curr_token != tok_end_of_source; (void)get_token()) {
-        if (curr_token == tok_identifier &&
-            locator_for_curr_id.symbol_header->has_intrinsic_name) {
-          a_const_char  *id = locator_for_curr_id.symbol_header->identifier;
-          if (id[0] == '$' && next_token() == tok_lparen) {
-            a_cached_token_ptr last_token;
-            check_assertion(interpolator_num < values.length());
-            if (id[1] == '\0') {
-              /* An interpolator of the form $(...).  Pass the value of the
-                 interpolated expression (converted to a prvalue) as a
-                 pseudo-token representing that constant. */
-              cache_general_constant(new_cache, values[interpolator_num],
-                                     &pos_curr_token);
-            } else if (strcmp(id, "$id") == 0) {
-              a_const_char   *str = NULL;
-              a_targ_size_t  len = 0;
-              if (!get_string_from_string_view(ips, values[interpolator_num],
-                                               &str, &len)) {
-                do_constexpr_fail(result);
-                goto done;
-              }  /* if */
-              cache_string_as_identifier(new_cache, str, len, &pos_curr_token);
-            }  /* if */
-            /* Set the token sequence number range of the interpolated token
-               to match that of the interpolation construct.  This matters
-               among others if the token sequence will be cached again later
-               on (which might look for a specific token sequence number
-               range). */
-            last_token = new_cache->last_token;
-            last_token->token_sequence_number = curr_token_sequence_number;
-            /* Skip the identifier. */
-            (void)get_token();
-            /* Make the "end" of the interpolated token match the end of the
-               interpolation construct. */
-            last_token->ending_token_sequence_number =
-                                                   curr_token_sequence_number;
-            /* Skip the left parenthesis (the right one is skipped by the
-               general loop mechanism). */
-            (void)get_token();
-            check_assertion(curr_token == tok_rparen);
-            ++interpolator_num;
-          }  /* if */
-        } else {
+        a_token_sequence_number  tsn;
+        a_cached_token           *last_token;
+        if (curr_token != tok_backslash) {
           cache_curr_token(new_cache);
+          continue;
         }  /* if */
+        tsn = curr_token_sequence_number;
+        /* Skip the backslash. */
+        (void)get_token();
+        check_assertion(interpolator_num < values.length());
+        if (curr_token == tok_identifier) {
+          a_const_char  *id = locator_for_curr_id.symbol_header->identifier;
+          if (strcmp(id, "id") == 0) {
+            a_const_char   *str = NULL;
+            a_targ_size_t  len = 0;
+            if (!get_string_from_string_view(ips, values[interpolator_num],
+                                             &str, &len)) {
+              do_constexpr_fail(result);
+              goto done;
+            }  /* if */
+            cache_string_as_identifier(new_cache, str, len, &pos_curr_token);
+          } else if (strcmp(id, "tokens") == 0) {
+            a_constant  *cp = values[interpolator_num];
+            if (constant_is(cp, ck_reflection) &&
+                cp->variant.reflection.entity.kind == iek_token_sequence) {
+              a_token_sequence  *in_seq;
+              in_seq = (a_token_sequence*)cp->variant.reflection.entity.ptr;
+              rescan_reusable_cache((a_token_cache*)in_seq->token_cache);
+              for (; curr_token != tok_end_of_source; (void)get_token()) {
+                cache_curr_token(new_cache);
+              }  /* for */
+              flush_past_token_cache_terminator();
+            } else {
+              // FIXME
+              do_constexpr_fail(result);
+              goto done;
+            }  /* if */
+          } else {
+            do_constexpr_fail(result);
+            goto done;
+          }  /* if */
+          (void)get_token();
+        } else if (curr_token == tok_lparen) {
+          /* An interpolator of the form $(...).  Pass the value of the
+             interpolated expression (converted to a prvalue) as a
+             pseudo-token representing that constant. */
+          cache_general_constant(new_cache, values[interpolator_num],
+                                 &pos_curr_token);
+        } else {
+          do_constexpr_fail(result);
+          goto done;
+        }  /* if */
+        /* Set the token sequence number range of the interpolated token to
+           match that of the interpolation construct.  This matters among
+           others if the token sequence will be cached again later on (which
+           might look for a specific token sequence number range). */
+        last_token = new_cache->last_token;
+        last_token->token_sequence_number = tsn;
+        /* Skip the left parenthesis (the right one is skipped by the
+           general loop mechanism). */
+        (void)get_token();
+        check_assertion(curr_token == tok_rparen);
+        /* Make the "end" of the interpolated token match the end of the
+           interpolation construct. */
+        last_token->ending_token_sequence_number = curr_token_sequence_number;
+        ++interpolator_num;
       }  /* for */
       flush_past_token_cache_terminator();
       terminate_token_cache(new_cache);
