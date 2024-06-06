@@ -33162,6 +33162,10 @@ classes.
           pos_error(ec_export_class_members, &export_pos);
         }  /* if */
         /* Scan a member declaration. */
+        if (reflection_enabled && curr_token == tok_consteval &&
+            next_token() == tok_lbrace) {
+          rewrite_consteval_block();
+        }  /* if */
         if (curr_token == tok_semicolon &&
             (C_dialect == C_dialect_cplusplus ||
              !(class_state.is_first_field && next_token() == tok_rbrace))) {

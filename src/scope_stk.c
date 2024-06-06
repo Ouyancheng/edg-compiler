@@ -4964,8 +4964,7 @@ Scan the given tokens as a declaration appearing in the given namespace scope
     push_namespace_extension_scope(namespace_scope->variant.assoc_namespace);
     decl_scope_level = depth_innermost_namespace_scope;
   } else {
-    /* Update the decl_scope_level. */
-    decl_scope_level = DEPTH_OF_FILE_SCOPE;
+    push_file_scope(/*is_reactivation=*/TRUE);
   }  /* if */
   curr_object_lifetime =
                   scope_stack[DEPTH_OF_FILE_SCOPE].curr_scope_object_lifetime;

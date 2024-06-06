@@ -1332,8 +1332,8 @@ of declarations that are permitted.
   } else if (curr_token == tok_static_assert) {
     /* static_assert is (syntactically) a declarative construct. */
     is_start = TRUE;
-  } else if (curr_token == tok_constexpr) {
-    /* constexpr is always a specifier for a declaration. */
+  } else if (curr_token == tok_constexpr || curr_token == tok_consteval) {
+    /* constexpr is always a specifier for a declaration.  So is consteval. */
     is_start = TRUE;
   } else if (is_type_start_full(expr_context, /*is_prescan=*/FALSE,
                                 options)) {
@@ -20462,6 +20462,78 @@ to be present (without actually parsing the attributes).
 }  /* is_alias_declaration */
 
 
+void rewrite_consteval_block(void)
+/*
+The current tokens are "consteval {".  Transform:
+
+  consteval {
+    <optional-statement-list>
+  }
+
+to:
+
+  static_assert((
+    []() -> void consteval {
+      <optional-statement-list>
+    }(),
+    true)
+  );
+
+*/
+{
+  a_token_cache      rewritten_code;
+  a_source_position  start_pos = pos_curr_token;
+  unsigned           num_lbraces = 0;
+  a_token_kind       prev_token;
+
+  clear_token_cache(&rewritten_code, /*reusable=*/FALSE);
+  insert_string_into_token_stream("static_assert(([]() consteval->void ",
+                                  /*insert_after=*/TRUE,
+                                  /*p_expand_macros=*/FALSE,
+                                  /*suspend_caching=*/TRUE,
+                                  start_pos);
+  /* Skip the current "consteval" token. */
+  (void)get_token();
+  do {
+    prev_token = curr_token;
+    cache_curr_token(&rewritten_code);
+    (void)get_token();
+  }  while (prev_token != tok_void);
+  /* The original brace following the original "consteval" should be next. */
+  check_assertion(curr_token == tok_lbrace);
+  while (curr_token != tok_end_of_source) {
+    cache_curr_token(&rewritten_code);
+    if (curr_token == tok_rbrace) {
+      if (--num_lbraces == 0) {
+        break;
+      }  /* if */
+    } else if (curr_token == tok_lbrace) {
+      ++num_lbraces;
+    }  /* if */
+    (void)get_token();
+  }  /* while */
+  if (curr_token == tok_end_of_source) {
+    /* The left brace was not terminated. */
+    expect_error();
+  } else {
+    a_source_position  end_pos = pos_curr_token;
+    insert_string_into_token_stream("(), true));",
+                                    /*insert_after=*/TRUE,
+                                    /*p_expand_macros=*/FALSE,
+                                    /*suspend_caching=*/TRUE,
+                                    end_pos);
+    /* Consume the remaining right brace. */
+    (void)get_token();
+    do {
+      prev_token = curr_token;
+      cache_curr_token(&rewritten_code);
+      (void)get_token();
+    } while (prev_token != tok_semicolon);
+  }  /* if */
+  rescan_cached_tokens(&rewritten_code);
+}  /* rewrite_consteval_block */
+
+
 static an_end_of_decl_action
               check_special_declaration_form(a_decl_parse_state  *state,
                                              a_token_kind        *final_token)
@@ -20493,6 +20565,10 @@ processing should proceed after the call.
     }  /* if */
   }  /* if */
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
+  if (reflection_enabled && curr_token == tok_consteval &&
+      next_token() == tok_lbrace) {
+    rewrite_consteval_block();
+  }  /* if */
   if (curr_token == tok_static_assert) {
     end_potential_abbr_func_templ_caching(state);
     if (scope_stack_top().exporting_decl) {

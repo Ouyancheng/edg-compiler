@@ -6021,20 +6021,10 @@ END_DISABLE_GCC_WARNING_STR_OVERFLOW
       /* void values have no representation: Nothing to do. */
       break;
     case ck_reflection:
-      /* Copy the embedded reflection value, but not if it is associated
-         with a local scope number that is not on the stack. */
+      /* Copy the embedded reflection value. */
       { a_reflection_value  rv = con->variant.reflection;
-        a_scope_number      sn;
         extract_reflected_entity(&rv);
-        sn = rv.local_scope_number;
-        if (sn != FILE_SCOPE_NUMBER && !scope_number_is_active(sn)) {
-          info_with_pos(ec_expired_reflection_value,
-                        constant_pos(con, ips), ips);
-          
-          do_constexpr_fail(result);
-        } else {
-          *(a_reflection_value*)value = rv;
-        }
+        *(a_reflection_value*)value = rv;
       }
       break;
     default:
@@ -24543,8 +24533,19 @@ diagnostic in *ips.
       }
       break;
     case tk_reflection:
-      set_constant_kind(con, (a_constant_repr_kind)ck_reflection);
-      con->variant.reflection = *(a_reflection_value*)object;
+      { a_reflection_value  *rv = (a_reflection_value*)object;
+        a_scope_number      sn = rv->local_scope_number;
+        /* Guard against producing a reflection for an entity that has no
+           meaning in the current context. */
+        if (sn != FILE_SCOPE_NUMBER && !scope_number_is_active(sn)) {
+          info_with_pos(ec_expired_reflection_value,
+                        constant_pos(con, ips), ips);
+          do_constexpr_fail(result);
+        } else {
+          set_constant_kind(con, ck_reflection);
+          con->variant.reflection = *rv;
+        }  /* if */
+      }
       break;
     default:
       unexpected_condition();
