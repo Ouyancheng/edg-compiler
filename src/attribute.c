@@ -7410,6 +7410,10 @@ attributes in C mode).
        lexing/parsing may be finished by the time lowering actually needs
        these builtins.  Load these into the primary translation unit (if
        there are multiple translation units). */
+    a_gcc_pragma_options_entry_ptr save_gcc_pragma_options_stack;
+    /* If any "GCC pragma" options are in effect, temporarily disable them. */
+    save_gcc_pragma_options_stack = gcc_pragma_options_stack;
+    gcc_pragma_options_stack = NULL;
     a_translation_unit_ptr saved_tup = curr_translation_unit;
     switch_translation_unit(translation_units);
     load_matching_builtin_function_by_name("__builtin_cpu_init");
@@ -7417,6 +7421,7 @@ attributes in C mode).
     load_matching_builtin_function_by_name("__builtin_cpu_supports");
     switch_translation_unit(saved_tup);
     mv_builtins_loaded = TRUE;
+    gcc_pragma_options_stack = save_gcc_pragma_options_stack;
   }  /* if */
 #endif /* USE_X86_FUNCTION_MULTIVERSIONING && DO_IL_LOWERING */
   *target = target_routine;

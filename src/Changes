@@ -1,5 +1,16 @@
 Version 6.7
 
+6/6/24   [EDGcpfe/27350]
+GNU compatibility: Spurious diagnostics for some function multiversion cases
+
+Spurious diagnostics had been issued in some configurations when compiling
+a case like this (with --gnu_version 50000):
+
+    #pragma GCC target("xyzzy")
+    void f() {}     // Had issued four diagnostics for an unknown target,
+                    // now issues just one.
+
+
 6/6/24   [EDGcpfe/27225]
 Mangling for _Complex _Float32x and _Complex _Float64x
 
