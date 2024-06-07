@@ -508,6 +508,10 @@ namespace std {
       return type;
     }
 
+    consteval info nearest_token_queuing_context() {
+      return ^::;  /* Dummy return.  Handled by interpreter. */
+    }
+
     consteval info nearest_class_or_namespace() {
       return ^::;  /* Dummy return.  Handled by interpreter. */
     }
@@ -516,12 +520,20 @@ namespace std {
       return ^::;  /* Dummy return.  Handled by interpreter. */
     }
 
-    consteval void inject(info, info) {
+    consteval void queue_injection(info, info) {
       /* Dummy definition.  Handled by interpreter. */
     }
 
-    consteval void inject(info  tokens) {
-      inject(nearest_class_or_namespace(), tokens);
+    consteval void queue_injection(info  tokens) {
+      queue_injection(nearest_token_queuing_context(), tokens);
+    }
+
+    consteval void namespace_inject(info, info) {
+      /* Dummy definition.  Handled by interpreter. */
+    }
+
+    consteval void namespace_inject(info  tokens) {
+      namespace_inject(nearest_namespace(), tokens);
     }
 
     consteval info metacall__impl(info, __infovec) {

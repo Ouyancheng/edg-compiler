@@ -3515,7 +3515,7 @@ when the declaration is a friend declaration within a class.
       check_assertion(idlbp->effective_decl_level ==
                                             depth_innermost_namespace_scope ||
                       idlbp->is_friend_decl);
-      if (depth_innermost_namespace_scope == DEPTH_OF_FILE_SCOPE) {
+      if (scope_is(&scope_stack[depth_innermost_namespace_scope], sck_file)) {
         /* Do the lookup in the file scope. */
         (void)file_scope_id_lookup(il_header.primary_scope,
                                    locator, IDL_LINKAGE_LOOKUP);
@@ -7741,7 +7741,7 @@ for use in generating cross-reference output describing this declaration.
        alone in set_source_corresp. */
     source_corresp_ptr->is_local_to_function = FALSE;
   }  /* if */
-  if (depth_innermost_namespace_scope != DEPTH_OF_FILE_SCOPE &&
+  if (!scope_is(&scope_stack[depth_innermost_namespace_scope], sck_file) &&
       alloc_at_file_scope && !redeclaration) {
     add_namespace_parent_pointer(sym, source_corresp_ptr);
   }  /* if */
@@ -13900,6 +13900,47 @@ is present when a "=" is not there.
 
 #endif /* C_ANACHRONISMS_ALLOWED */
 
+static void scan_namespace_declaration_list(a_boolean  is_top_level)
+/*
+Scan a list of declarations in namespace (incl. file) scope.  is_top_level is
+TRUE if this is for translation-unit level declarations (or equivalent
+generated code) not delimited by braces.
+*/
+{
+  while ((curr_token != tok_end_of_source &&
+          (is_top_level || curr_token != tok_rbrace))||
+         scope_stack_top().injections != NULL) {
+    a_boolean  injected_decl = FALSE;
+    /* A C99 or C++11 predefined pragma in the file scope must appear
+       between top-level declarations. */
+    if (c99_mode || cpp11_mode || fixed_point_enabled) {
+      check_for_stdc_pragmas();
+    }  /* if */
+    if (scope_stack_top().injections != NULL) {
+      /* If there are pending injections at this level, inject the tokens
+         for the next one now. */
+      an_il_entity_list_entry  *ielep = scope_stack_top().injections;
+      a_token_sequence         *tsp = (a_token_sequence*)ielep->entity.ptr;
+      rescan_reusable_cache((a_token_cache*)tsp->token_cache);
+      scope_stack_top().injections = ielep->next;
+      injected_decl = TRUE;
+    }  /* if */
+    declaration(/*function_definition_allowed=*/TRUE,
+                /*is_old_style_param_decl=*/FALSE,
+                /*is_top_level_declaration=*/TRUE,
+                /*marked_as_gnu_extension=*/FALSE,
+                (a_param_id_ptr)NULL, (a_source_range *)NULL);
+    if (injected_decl) {
+      /* The declaration we just saw was injected.  The next token should be
+         the cache terminator. */
+      if (curr_token != tok_end_of_source) {
+        pos_error(ec_extraneous_injected_declaration_tokens,
+                  &pos_curr_token);
+      }  /* if */
+      flush_past_token_cache_terminator();
+    }  /* if */
+  }  /* while */
+}  /* scan_namespace_declaration_list */
 
 static a_boolean scan_name_linkage_string(a_name_linkage_kind  *kind)
 /*
@@ -16040,13 +16081,7 @@ it's a definition and NULL otherwise).
       a_decl_sequence_number old_decl_seq_counter = decl_seq_counter;
       /* Scan the namespace body. */
       add_stop_token(tok_rbrace);
-      while (curr_token != tok_rbrace && curr_token != tok_end_of_source) {
-        declaration(/*function_definition_allowed=*/TRUE,
-                    /*is_old_style_param_decl=*/FALSE,
-                    /*is_top_level_declaration=*/FALSE,
-                    /*marked_as_gnu_extension=*/FALSE,
-                    (a_param_id_ptr)NULL, (a_source_range *)NULL);
-      }  /* while */
+      scan_namespace_declaration_list(/*is_top_level=*/FALSE);
       remove_stop_token(tok_rbrace);
       if (exporting_decl && is_unnamed_namespace &&
           decl_seq_counter == old_decl_seq_counter) {
@@ -22128,18 +22163,7 @@ are encountered.
       }  /* if */
     }  /* if */
   } else {
-    while (curr_token != tok_end_of_source) {
-      /* A C99 or C++11 predefined pragma in the file scope must appear
-         between top-level declarations. */
-      if (c99_mode || cpp11_mode || fixed_point_enabled) {
-        check_for_stdc_pragmas();
-      }  /* if */
-      declaration(/*function_definition_allowed=*/TRUE,
-                  /*is_old_style_param_decl=*/FALSE,
-                  /*is_top_level_declaration=*/TRUE,
-                  /*marked_as_gnu_extension=*/FALSE,
-                  (a_param_id_ptr)NULL, (a_source_range *)NULL);
-    }  /* while */
+    scan_namespace_declaration_list(/*is_top_level=*/TRUE);
   }  /* if */
   check_assertion_str2(!header_stop_position_pending, "translation_unit:",
                        "header stop position not found");
@@ -22165,13 +22189,7 @@ scanning a translation-unit, except there's no diagnostic on the empty file.
 */
 {
   (void)get_token();
-  while (curr_token != tok_end_of_source) {
-    declaration(/*function_definition_allowed=*/TRUE,
-                /*is_old_style_param_decl=*/FALSE,
-                /*is_top_level_declaration=*/FALSE,
-                /*marked_as_gnu_extension=*/FALSE,
-                (a_param_id_ptr)NULL, (a_source_range *)NULL);
-  }  /* if */
+  scan_namespace_declaration_list(/*is_top_level=*/FALSE);
   process_pragmas_at_end_of_source();
 }  /* scan_implicitly_included_template_definition_file */
 #endif /* INSTANTIATION_BY_IMPLICIT_INCLUSION */
@@ -22241,13 +22259,7 @@ templates (e.g., __make_integer_seq).
                                   /*p_expand_macros=*/FALSE,
                                   /*suspend_caching=*/FALSE,
                                   insert_position);
-  while (curr_token != tok_end_of_source) {
-    declaration(/*function_definition_allowed=*/TRUE,
-                /*is_old_style_param_decl=*/FALSE,
-                /*is_top_level_declaration=*/TRUE,
-                /*marked_as_gnu_extension=*/FALSE,
-                (a_param_id_ptr)NULL, (a_source_range *)NULL);
-  }  /* while */
+  scan_namespace_declaration_list(/*is_top_level=*/TRUE);
   /* Get the injected end of source token. */
   check_assertion(curr_token == tok_end_of_source);
   (void)get_token();

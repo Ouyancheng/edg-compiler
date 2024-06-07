@@ -13441,7 +13441,7 @@ done:
 }  /* do_constexpr_std_meta_metacall__impl */
 
 
-static a_boolean do_constexpr_std_meta_inject(
+static a_boolean do_constexpr_std_meta_queue_injection(
                                         an_interpreter_state  *ips,
                                         a_routine_ptr         callee,
                                         an_expr_node_ptr      call_node,
@@ -13449,12 +13449,12 @@ static a_boolean do_constexpr_std_meta_inject(
                                         a_byte                *result_storage,
                                         a_byte                *complete_object)
 /*
-Implement std::meta::inject(<info1>, <info2>), where <info1> represents a
-class, namespace, or block scope, and <info2> represents an evaluated token
-sequence (i.e., a token sequence without interpolators).
+Implement std::meta::queue_injection(<info1>, <info2>), where <info1>
+represents a class, namespace, or block scope, and <info2> represents an
+evaluated token sequence (i.e., a token sequence without interpolators).
 */
 {
-  a_boolean     result = TRUE;
+  a_boolean     result = FALSE;
   a_reflection_value
                 *rvp0 = (a_reflection_value*)p_arg_bytes[0],
                 *rvp1 = (a_reflection_value*)p_arg_bytes[1];
@@ -13486,41 +13486,128 @@ sequence (i.e., a token sequence without interpolators).
     scope = nsp->variant.assoc_scope;
   } else {
     /* Not a valid injection context. */
+    info_with_pos_refl(ec_bad_injection_scope, &call_node->position, *rvp0,
+                       ips);
+    do_constexpr_fail(result);
+    goto done;
+  }  /* if */
+  /* Look through the scope stack for the associated scope. */
+  result = FALSE;
+  for (a_scope_depth depth = depth_scope_stack;
+       depth != NO_SCOPE_DEPTH;
+       depth = scope_stack[depth].previous_scope) {
+    if (scope_stack[depth].il_scope == scope &&
+        (scope_is(&scope_stack[depth], sck_class_struct_union) ||
+         scope_is(&scope_stack[depth], sck_namespace) ||
+         scope_is(&scope_stack[depth], sck_file) ||
+         scope_stack[depth].is_compound_statement_block)) {
+      an_il_entity_list_entry  **end_list = &scope_stack[depth].injections;
+      end_list = get_last_simple_list_link(end_list);
+      *end_list =  alloc_il_entity_list_entry();
+      (*end_list)->entity =  rvp1->entity;
+      result = TRUE;
+      break;
+    }  /* if */
+  }  /* for */
+  if (!result) {
+    info_with_pos_refl(ec_bad_injection_scope, &call_node->position, *rvp0,
+                       ips);
+    do_constexpr_fail(result);
+  }  /* if */
+done:
+  return result;
+}  /* do_constexpr_std_meta_queue_injection */
+
+
+static a_boolean do_constexpr_std_meta_namespace_inject(
+                                        an_interpreter_state  *ips,
+                                        a_routine_ptr         callee,
+                                        an_expr_node_ptr      call_node,
+                                        a_byte                **p_arg_bytes,
+                                        a_byte                *result_storage,
+                                        a_byte                *complete_object)
+/*
+Implement std::meta::namespace_inject(<info1>, <info2>), where <info1>
+represents a namespace (incl. the global namespace) and <info2> represents an
+evaluated token sequence (i.e., a token sequence without interpolators).
+*/
+{
+  a_boolean     result = TRUE;
+  a_reflection_value
+                *rvp0 = (a_reflection_value*)p_arg_bytes[0],
+                *rvp1 = (a_reflection_value*)p_arg_bytes[1];
+  a_scope       *scope = NULL;
+
+  if (rvp1->entity.kind != iek_token_sequence) {
     info_with_pos(ec_invalid_reflection_for_intrinsic,
                   &call_node->position, ips);
     do_constexpr_fail(result);
     goto done;
   }  /* if */
-  if (scope_is(scope, sck_namespace) || scope_is(scope, sck_file)) {
+  if (rvp0->entity.kind == iek_scope) {
+    /* A namespace or block scope. */
+    scope = (a_scope*)rvp0->entity.ptr;
+  } else if (rvp0->entity.kind == iek_namespace) {
+    /* A namespace alias: Retrieve the scope of the associated namespace. */
+    a_namespace  *nsp = skip_namespace_aliases((a_namespace*)rvp0->entity.ptr);
+    scope = nsp->variant.assoc_scope;
+  }  /* if */
+  if (scope != NULL &&
+      (scope_is(scope, sck_namespace) || scope_is(scope, sck_file))) {
     a_token_sequence  *token_seq = (a_token_sequence*)rvp1->entity.ptr;
     a_token_cache     *tokens = (a_token_cache*)token_seq->token_cache;
     inject_tokens_in_namespace(tokens, scope);
   } else {
-    /* Look through the scope stack for the associated scope. */
-    result = FALSE;
-    for (a_scope_depth depth = depth_scope_stack;
-         depth != NO_SCOPE_DEPTH;
-         depth = scope_stack[depth].previous_scope) {
-      if (scope_stack[depth].il_scope == scope &&
-          (scope_is(&scope_stack[depth], sck_class_struct_union) ||
-           scope_stack[depth].is_compound_statement_block)) {
-        an_il_entity_list_entry  **end_list = &scope_stack[depth].injections;
-        end_list = get_last_simple_list_link(end_list);
-        *end_list =  alloc_il_entity_list_entry();
-        (*end_list)->entity =  rvp1->entity;
-        result = TRUE;
-        break;
-      }  /* if */
-    }  /* for */
-    if (!result) {
-      info_with_pos_refl(ec_bad_injection_scope, &call_node->position, *rvp0,
-                         ips);
-      do_constexpr_fail(result);
-    }  /* if */
+    /* Not a valid injection context. */
+    info_with_pos_refl(ec_bad_injection_scope, &call_node->position, *rvp0,
+                       ips);
+    do_constexpr_fail(result);
   }  /* if */
 done:
   return result;
-}  /* do_constexpr_std_meta_inject */
+}  /* do_constexpr_std_meta_namespace_inject */
+
+
+static a_boolean do_constexpr_std_meta_nearest_token_queuing_context(
+                                        an_interpreter_state  *ips,
+                                        a_routine_ptr         callee,
+                                        an_expr_node_ptr      call_node,
+                                        a_byte                **p_arg_bytes,
+                                        a_byte                *result_storage,
+                                        a_byte                *complete_object)
+/*
+Implement std::meta::nearest_token_queuing_context().
+*/
+{
+  a_boolean           result = TRUE;
+  a_reflection_value  *result_rvp = (a_reflection_value*)result_storage;
+  a_scope_depth       depth;
+
+  for (depth = depth_scope_stack;
+       depth != NO_SCOPE_DEPTH;
+       depth = scope_stack[depth].previous_scope) {
+    if (scope_stack[depth].is_compound_statement_block) {
+      result_rvp->entity.kind = iek_scope;
+      result_rvp->entity.ptr = (char*)ensure_il_scope_exists(
+                                                          &scope_stack[depth]);
+      result_rvp->local_scope_number = scope_stack[depth].number;
+    } else if (scope_is(&scope_stack[depth], sck_class_struct_union)) {
+      result_rvp->entity.kind = iek_type;
+      result_rvp->entity.ptr = (char*)scope_stack[depth].assoc_type;
+      result_rvp->local_scope_number = FILE_SCOPE_NUMBER;
+      break;
+    } else if (scope_is(&scope_stack[depth], sck_file) ||
+               scope_is(&scope_stack[depth], sck_namespace) ||
+               scope_is(&scope_stack[depth], sck_namespace_extension)) {
+      result_rvp->entity.kind = iek_scope;
+      result_rvp->entity.ptr = (char*)scope_stack[depth].il_scope;
+      result_rvp->local_scope_number = FILE_SCOPE_NUMBER;
+      break;
+    }  /* if */
+  }  /* for */
+  check_assertion(depth != NO_SCOPE_DEPTH);
+  return result;
+}  /* do_constexpr_std_meta_nearest_token_queuing_context */
 
 
 static a_boolean do_constexpr_std_meta_nearest_class_or_namespace(
@@ -13532,8 +13619,6 @@ static a_boolean do_constexpr_std_meta_nearest_class_or_namespace(
                                         a_byte                *complete_object)
 /*
 Implement std::meta::nearest_class_or_namespace().
-class, namespace, or block scope, and <info2> represents an evaluated token
-sequence (i.e., a token sequence without interpolators).
 */
 {
   a_boolean           result = TRUE;
@@ -13570,8 +13655,6 @@ static a_boolean do_constexpr_std_meta_nearest_namespace(
                                         a_byte                *complete_object)
 /*
 Implement std::meta::nearest_namespace().
-class, namespace, or block scope, and <info2> represents an evaluated token
-sequence (i.e., a token sequence without interpolators).
 */
 {
   a_boolean           result = TRUE;
