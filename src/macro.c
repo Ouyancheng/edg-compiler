@@ -3165,7 +3165,7 @@ when the text is copied out of the current line buffer.
           result += 2;
           if (reverted_string != NULL) {
             memcpy(reverted_string, "?" "?", 2);
-            reverted_string[2] = olmp->variant.trigraph_orig_char;
+            reverted_string[2] = olmp->variant.orig_char;
             reverted_string += 3;
             copy_start += 1;
           }  /* if */
@@ -3196,6 +3196,15 @@ when the text is copied out of the current line buffer.
              representation, which will be correctly converted back to a
              null character when creating the runtime value of the
              string. */
+          break;
+        case olm_splice_whitespace:
+          /* The original whitespace character following the backslash of
+             a line splice was omitted from the adjusted token. */
+          result += 1;
+          if (reverted_string != NULL) {
+            reverted_string[0] = olmp->variant.orig_char;
+            ++reverted_string;
+          }  /* if */
           break;
         default:
           unexpected_condition();

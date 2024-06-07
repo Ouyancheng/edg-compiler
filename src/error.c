@@ -2650,7 +2650,7 @@ as appropriate.
           case olm_trigraph:
             put_char('?');
             put_char('?');
-            put_char(olmp->variant.trigraph_orig_char);
+            put_char(olmp->variant.orig_char);
             loc_in_line++;
             /* If the trigraph is "? ? /", which turns into "\", and it's at
 	       the end of a line, the "\" will indicate a line splice.  In
@@ -2676,6 +2676,10 @@ as appropriate.
             /* Null (zero) character in source line. */
             put_char(' ');
             loc_in_line += LE_ESCAPE_LEN;
+            break;
+          case olm_splice_whitespace:
+            /* A whitespace character following the '\' of a line splice.
+               It is not represented in the line. */
             break;
           default:
             unexpected_condition_str2("write_orig_source_line:",

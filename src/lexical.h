@@ -1382,7 +1382,9 @@ enum an_orig_line_modif_kind {
   olm_trigraph,
   olm_line_splice,
   olm_multiline_string_splice,
-  olm_null		/* Null (zero) character in source line. */
+  olm_null,		/* Null (zero) character in source line. */
+  olm_splice_whitespace	/* A whitespace character following the '\' of a
+			   line splice. */
 };
 
 typedef struct an_orig_line_modif {
@@ -1409,11 +1411,18 @@ typedef struct an_orig_line_modif {
 			   string literal, FALSE otherwise. */
   union {
     /* When kind == olm_null, no variant fields. */
-    /* When kind == olm_trigraph: */
-    char	trigraph_orig_char;
-			/* The original third character of the trigraph,
-			   for example "=" in "? ? =" (extra space added
-			   so that won't actually be a trigraph). */
+    /* When kind == olm_trigraph or olm_splice_whitespace: */
+    char	orig_char;
+			/* For olm_trigraph, the original third character
+			   of the trigraph, for example "=" in "? ? ="
+			   (extra space added so that won't actually be a
+			   trigraph).  For olm_splice_whitespace, a
+			   whitespace character following the '\' of a line
+			   splice.  (Multiple whitespace characters are
+			   represented by multiple modifications, one per
+			   character in the order that they appear, so they
+			   can be correctly reconstructed in raw string
+			   literals.) */
     /* When kind == olm_line_splice or olm_multiline_string_splice: */
     a_seq_number
 		line_splice_seq_number;

@@ -4621,7 +4621,8 @@ original source line because of trigraphs and line splices.
   /* Set the variant fields. */
   switch (kind) {
     case olm_trigraph:
-      olmp->variant.trigraph_orig_char = ' ';  /* To be neat. */
+    case olm_splice_whitespace:
+      olmp->variant.orig_char = ' ';  /* To be neat. */
       break;
     case olm_line_splice:
     case olm_multiline_string_splice:
@@ -5474,7 +5475,7 @@ is TRUE.
               /* A trigraph was changed to its corresponding single
                  character. */
               fprintf(f_pp_output, "?" "?%c",
-                      next_raw_string_modif->variant.trigraph_orig_char);
+                      next_raw_string_modif->variant.orig_char);
               ++loc_in_line;
               break;
             case olm_line_splice:
@@ -5493,6 +5494,11 @@ is TRUE.
                  escape. */
               putc('\0', f_pp_output);
               loc_in_line += LE_ESCAPE_LEN;
+              break;
+            case olm_splice_whitespace:
+              /* A whitespace character followed a line splice. */
+              fprintf(f_pp_output, "%c",
+                      next_raw_string_modif->variant.orig_char);
               break;
             default:
               unexpected_condition();
@@ -6100,8 +6106,7 @@ only be called when f_raw_listing is non-NULL.
       write_orig_line_piece(loc_in_line, olmp->line_loc);
       switch (olmp->kind) {
         case olm_trigraph:
-          fprintf(f_raw_listing, "??%c", /*lint !e585 invalid trigraph*/
-                  olmp->variant.trigraph_orig_char);
+          fprintf(f_raw_listing, "?" "?%c", olmp->variant.orig_char);
           /* If the trigraph is "? ? /", which turns into "\", and it's at the
              end of a line, the "\" will indicate a line splice.  In that
              case, the "\" for the line splice should not be put out.
@@ -6134,6 +6139,10 @@ partially_process_line_splice:
           /* Null (zero) character.  Output as a blank. */
           putc(' ', f_raw_listing);
           loc_in_line = olmp->line_loc + LE_ESCAPE_LEN;
+          break;
+        olm_splice_whitespace:
+          /* A whitespace character following a line splice. */
+          fprintf(f_raw_listing, "%c", olmp->variant.orig_char);
           break;
         default:
           unexpected_condition_str2("gen_raw_listing_output_for_curr_line:",
@@ -8623,7 +8632,9 @@ macro_line_loc_to_source_pos should be used when speed is critical.
           /* Remember the rightmost splice as an optimization. */
           last_splice_olmp = olmp;
         }  /* if */
-      } else if (adj_loc_in_line == olmp->line_loc) {
+      } else if (adj_loc_in_line == olmp->line_loc ||
+                 (olmp->kind == olm_splice_whitespace &&
+                  olmp->line_loc == last_splice_olmp->line_loc)) {
         /* This position matches the position in the current entry, so
            the position we have is right. */
       } else if (olmp->kind == olm_null) {
@@ -9310,8 +9321,7 @@ simple_return:
             case olm_trigraph:
               /* Lint comment on the next line is to suppress the invalid
                  trigraph warning. */
-              fprintf(f_debug, "trigraph: ??%c\n",  /*lint !e585 */
-                      olmp->variant.trigraph_orig_char);
+              fprintf(f_debug, "trigraph: ?" "?%c\n", olmp->variant.orig_char);
               break;
             case olm_line_splice:
               fprintf(f_debug, "line splice: seq = %lu\n",
@@ -9323,6 +9333,9 @@ simple_return:
               break;
             case olm_null:
               fprintf(f_debug, "null\n");
+              break;
+            case olm_splice_whitespace:
+              fprintf(f_debug, "whitespace\n");
               break;
             default:
               unexpected_condition_str2("read_logical_source_line:",
@@ -9473,7 +9486,7 @@ entry_for_possible_trigraph:
               loc_in_line--;
               curr_column++;
               olmp = add_orig_line_modif(olm_trigraph, loc_in_line);
-              olmp->variant.trigraph_orig_char = next_ch;
+              olmp->variant.orig_char = next_ch;
             }  /* if */
           }  /* if */
         }  /* if */
@@ -9589,30 +9602,39 @@ entry_for_line_splice:
 #endif /* BACKSLASH_CAN_OCCUR_AS_PART_OF_MULTIBYTE_CHAR */
 #endif /* MULTIBYTE_CHARS_IN_SOURCE_SUPPORTED */
         if (white_space_chars_after_backslash != 0) {
-          if (!gnu_mode) {
-            /* In non-GNU modes, white space between a backslash and the
-               end of the line causes the backslash not to be interpreted
-               as a line splice. */
+          if (!gnu_mode && !cpp23_mode) {
+            /* In non-GNU pre-C++23 modes, white space between a backslash
+               and the end of the line causes the backslash not to be
+               interpreted as a line splice. */
             goto add_newline_and_line_end_and_return;
-          } else {
-            /* Some white-space characters occurred between "\" and the
-               newline.  Fix the line so it will display properly, adjust
-               loc_in_line and curr_column appropriately, and issue a
-               warning. */
-            finish_off_source_line_so_it_can_be_displayed_in_error();
-            loc_in_line -= white_space_chars_after_backslash;
-            /* coverity[assigned_value] */
-            curr_column -= white_space_chars_after_backslash;
-            warning_at_line_pos(ec_white_space_inside_splice, loc_in_line);
-            white_space_chars_after_backslash = 0;
           }  /* if */
+          /* Some white-space characters occurred between "\" and the
+             newline.  Add modification entries for the splice and
+             white-space characters, adjust loc_in_line and curr_column
+             appropriately, and issue a warning. */
+          finish_off_source_line_so_it_can_be_displayed_in_error();
+          warning_at_line_pos(ec_white_space_inside_splice,
+                              loc_in_line - white_space_chars_after_backslash);
+          loc_in_line -= white_space_chars_after_backslash + 1;
+          olmp = add_orig_line_modif(olm_line_splice, loc_in_line);
+          olmp->variant.line_splice_seq_number = seq_number_last_read+1;
+          for (int i = 0; i < white_space_chars_after_backslash; ++i) {
+            /* All the olm_splice_whitespace entries will be associated
+               with the location of the backslash. */
+            olmp = add_orig_line_modif(olm_splice_whitespace, loc_in_line);
+            olmp->variant.orig_char = loc_in_line[i + 1];
+          }  /* for */
+          /* coverity[assigned_value] */
+          curr_column -= white_space_chars_after_backslash;
+          white_space_chars_after_backslash = 0;
+        } else {
+          /* Remove the backslash in the buffer. */
+          --loc_in_line;
+          /* Add a modification entry recording the position of the line
+             splice. */
+          olmp = add_orig_line_modif(olm_line_splice, loc_in_line);
+          olmp->variant.line_splice_seq_number = seq_number_last_read+1;
         }  /* if */
-        /* Remove the backslash in the buffer. */
-        loc_in_line--;
-        /* Add a modification entry recording the position of the line
-           splice. */
-        olmp = add_orig_line_modif(olm_line_splice, loc_in_line);
-        olmp->variant.line_splice_seq_number = seq_number_last_read+1;
         /* Begin reading the next line.  It is an error if end of file is
            encountered. */
         ch = getc_curr_input_stream();
@@ -9621,9 +9643,9 @@ entry_for_line_splice:
         eof_read_on_curr_input_stream = TRUE;
         /* Backslash at end of last line in a file -- error. */
         finish_off_source_line_so_it_can_be_displayed_in_error();
-        diagnostic_at_line_pos((microsoft_mode || gnu_mode) ?
-                                                         es_warning : es_error,
-                             ec_last_line_backslash, loc_in_line);
+        diagnostic_at_line_pos((microsoft_mode || gnu_mode) ? es_warning
+                                                            : es_error,
+                               ec_last_line_backslash, loc_in_line);
         /* Ignore the backslash, end the logical line at this point. */
       }  /* if */
     }  /* if */
@@ -12974,6 +12996,11 @@ messages.
           }  /* if */
           curr_char_loc += LE_ESCAPE_LEN;
           break;
+        case olm_splice_whitespace:
+          /* The backslash of a line splice was followed by a whitespace
+             character (removed from the logical source line). */
+          ++nchars;
+          break;
         default:
           unexpected_condition();
       }  /* switch */
@@ -13395,7 +13422,7 @@ and return FALSE.
            source line.  Treat it as a backslash. */
         char_is_invalid = TRUE;
         invalid_char = '\\';
-      } else if (olmp->variant.trigraph_orig_char == '(') {
+      } else if (olmp->variant.orig_char == '(') {
         /* Recognition of the delimiter applies to the unmodified source,
            so the '(' terminates the delimiter. */
         found_end = TRUE;

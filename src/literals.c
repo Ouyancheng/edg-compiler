@@ -1177,18 +1177,22 @@ get_another:
         targ_ch = '?';
         state->remaining_char_count = 2;
         state->translated_char[0] = '?';
-        state->translated_char[1] = olmp->variant.trigraph_orig_char;
+        state->translated_char[1] = olmp->variant.orig_char;
         state->next_mbc_char = state->translated_char;
         ++lptr;
         break;
       case olm_line_splice:
         /* A line splice is not represented in the source string
            characters, so we don't increment lptr, but we return the '\'
-           now and the newline on the next call. */
+           now and the newline on a subsequent call.. */
         targ_ch = '\\';
-        state->remaining_char_count = 1;
-        state->translated_char[0] = TARG_NEWLINE_CHAR;
-        state->next_mbc_char = state->translated_char;
+        if (olmp->next == NULL || olmp->next->kind != olm_splice_whitespace) {
+          /* Only return the newline after any whitespace characters
+             following the backslash. */
+          state->remaining_char_count = 1;
+          state->translated_char[0] = TARG_NEWLINE_CHAR;
+          state->next_mbc_char = state->translated_char;
+        }  /* if */
         break;
       case olm_multiline_string_splice:
         /* scan_multiline_string inserted the two characters '\' and 'n'
@@ -1206,6 +1210,19 @@ get_another:
           goto get_another;
         } else {
           targ_ch = 0;
+        }  /* if */
+        break;
+      case olm_splice_whitespace:
+        /* A whitespace character following the backslash of a line splice
+           is not representedin the source string characters, so we don't
+           increment lptr, but we return the whitespace character. */
+        targ_ch = olmp->variant.orig_char;
+        if (olmp->next == NULL || olmp->next->kind != olm_splice_whitespace) {
+          /* Return the newline after the last whitespace character
+             following the backslash. */
+          state->remaining_char_count = 1;
+          state->translated_char[0] = TARG_NEWLINE_CHAR;
+          state->next_mbc_char = state->translated_char;
         }  /* if */
         break;
       default:
@@ -2052,7 +2069,8 @@ fewer characters than the number of bytes in the UTF-8 encoding.
   while (temp_ptr < end_of_string_value + raw_str_trigraph_delim_chars ||
          conv_state.remaining_char_count > raw_str_trigraph_delim_chars ||
          (conv_state.next_orig_line_modif != NULL &&
-          conv_state.next_orig_line_modif->kind == olm_line_splice &&
+          (conv_state.next_orig_line_modif->kind == olm_line_splice ||
+           conv_state.next_orig_line_modif->kind == olm_splice_whitespace) &&
           conv_state.next_orig_line_modif->line_loc == temp_ptr)) {
     check_assertion(pstr < str_start + constant_size);
     /* Convert one character of the string literal. */

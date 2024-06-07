@@ -1,5 +1,29 @@
 Version 6.7
 
+6/7/24   [EDGcpfe/24778]
+C++23: White space following backslash in line splice
+
+C++ Committee paper P2223R2 specified that a backslash that is followed by
+one or more white space characters before the line-ending newline is to be
+considered a line splice.  The front end previously treated such sequences
+as line splices only in GNU and clang modes, but they are now accepted in
+all C++23 emulation modes.  In addition, in modes where such constructs
+were recognized as line splices, the front end previously incorrectly
+dropped the intervening white space characters from the value of a raw
+string literal.  This is now fixed.  For example, lines 1 and 4 of the
+following code end in a backslash followed by a space character, a
+horizontal tab, a formfeed, and a newline; with --c++23, the code now
+compiles without error:
+
+  // Equivalent to "x\\ \t\f\ny"; previously omitted " \t\f":
+  constexpr char x[] = R"(x\ 	
+  y)";
+  static_assert(sizeof(x) == 8 && x[4] == '\f');
+  // Now equivalent to "int i = 00;":
+  int i = 0\ 	
+  0;
+
+
 6/7/24   [EDGcpfe/27352]
 Default member initializers and destructor instantiations
 
