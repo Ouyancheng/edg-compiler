@@ -9618,7 +9618,7 @@ entry_for_line_splice:
           loc_in_line -= white_space_chars_after_backslash + 1;
           olmp = add_orig_line_modif(olm_line_splice, loc_in_line);
           olmp->variant.line_splice_seq_number = seq_number_last_read+1;
-          for (int i = 0; i < white_space_chars_after_backslash; ++i) {
+          for (unsigned i = 0; i < white_space_chars_after_backslash; ++i) {
             /* All the olm_splice_whitespace entries will be associated
                with the location of the backslash. */
             olmp = add_orig_line_modif(olm_splice_whitespace, loc_in_line);
