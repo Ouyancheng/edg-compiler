@@ -8634,6 +8634,7 @@ macro_line_loc_to_source_pos should be used when speed is critical.
         }  /* if */
       } else if (adj_loc_in_line == olmp->line_loc ||
                  (olmp->kind == olm_splice_whitespace &&
+                  last_splice_olmp != NULL &&
                   olmp->line_loc == last_splice_olmp->line_loc)) {
         /* This position matches the position in the current entry, so
            the position we have is right. */
