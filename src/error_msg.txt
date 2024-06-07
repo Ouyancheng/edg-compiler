@@ -3512,6 +3512,7 @@ ec_bad_injection_scope;;"bad injection scope (%r)"
 ec_expected_string_view_value;;"expected a value of type std::string_view but got %t"
 ec_extraneous_injected_statement_tokens;;"extraneous tokens injected after statement"
 ec_extraneous_injected_declaration_tokens;;"extraneous tokens injected after declaration"
+ec_tuple_index_overflow;;"tuple index value (%d) overflow"
 ###############################################################################
 #                                                             \  ___  /       #
 #                                                               /   \         #

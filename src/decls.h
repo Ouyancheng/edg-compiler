@@ -1568,6 +1568,14 @@ extern void check_prefix_attributes_without_a_declarator(
 extern void disallow_attributes(an_attribute_ptr  *p_attributes,
                                 an_error_severity sev);
 
+extern a_boolean is_tuple_like_type(a_type_ptr     tp,
+                                    a_targ_size_t  *n_elements,
+                                    a_boolean      *p_err);
+
+extern a_type_ptr get_tuple_element_type(a_targ_size_t      elem_idx,
+                                         a_type_ptr         tp,
+                                         a_source_position  *diag_pos = NULL);
+
 extern a_type_ptr decltype_for_struct_binding(a_variable_ptr  vp);
 
 extern void define_struct_bindings(a_decl_parse_state  *dps);

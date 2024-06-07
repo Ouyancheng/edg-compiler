@@ -18526,9 +18526,9 @@ that the type of the initializer is consistent with the type of the variable.
 #endif /* CHECKING */
 
 
-static a_boolean is_tuple_like_type(a_type_ptr     tp,
-                                    a_targ_size_t  *n_elements,
-                                    a_boolean      *p_err)
+a_boolean is_tuple_like_type(a_type_ptr     tp,
+                             a_targ_size_t  *n_elements,
+                             a_boolean      *p_err)
 /*
 If the given type is a tuple-like type, return TRUE and set n_elements to the
 number of elements in the tuple.  Set *p_err to TRUE if n_elements cannot be
@@ -18597,38 +18597,26 @@ done:
 }  /* is_tuple_like_type */
 
 
-static a_type_ptr tuple_like_binding_type(a_variable_ptr     container,
-                                          a_type_ptr         tp,
-                                          a_targ_size_t      elem_idx,
-                                          a_boolean          for_decltype,
-                                          a_source_position  *diag_pos,
-                                          an_init_component  **p_icp)
+a_type_ptr get_tuple_element_type(a_targ_size_t      elem_idx,
+                                  a_type_ptr         tp,
+                /* Defaulted: */  a_source_position  *diag_pos)
 /*
-Return the type of a binding variable for a tuple-like container.  tp
-represents the container type E (from the container e represented by container)
-and elem_idx is the element number n (starting at zero) being bound to.  If
-for_decltype is TRUE, the returned type entry is the type obtained from
-instantiating std::tuple_element<n, E>::type.  Otherwise (when for_decltype is
-FALSE), an lvalue or rvalue reference layer is applied to that type: an lvalue
-reference if the initializer for the binding is an lvalue and an rvalue
-reference otherwise.
-
-When for_decltype is FALSE, the initializer for the binding is returned in
-*p_icp.  If E is a class type with a member "get", that initializer is
-"e.get<n>()"; otherwise, it is "get<n>(e)" where get is looked up using
-argument-dependent lookup only.
+Return the type std::tuple_element<I, T>::type where I and T are described by
+elem_idx and tp, respectively.  If diag_pos is non-NULL, issue diagnostics at
+that position.  Otherwise (the default), do not issue diagnostics in the
+"immediate context" (i.e., for errors outside actual instantiations).  If such
+errors occur, return an error type.
 */
 {
   a_type_ptr             e_type, te_inst;
   a_symbol_ptr           te_sym, te_inst_sym, e_type_sym;
   a_template_arg_ptr     tap;
   a_constant_ptr         n_constant;
-  a_boolean              lvalue_binding;
   an_integer_kind        n_int_kind = targ_size_t_int_kind;
 
   te_sym = look_up_class_template_in_std("tuple_element");
   if (te_sym == NULL || !is_class_template_symbol(te_sym)) {
-    if (!for_decltype) {
+    if (diag_pos != NULL) {
       pos_error(ec_missing_std_tuple_element, diag_pos);
     }  /* if */
     e_type = error_type();
@@ -18644,31 +18632,29 @@ argument-dependent lookup only.
     tpp = tssp->variant.class_template.initial_decl_cache.decl_info
               ->parameters;
     if (tpp == NULL || !symbol_is(tpp->param_symbol, sk_constant)) {
-      if (!for_decltype) {
+      if (diag_pos != NULL) {
         pos_error(ec_missing_std_tuple_element, diag_pos);
       }  /* if */
       e_type = error_type();
       goto done;
     }  /* if */
     n_type = skip_typerefs(tpp->variant.constant.ptr->type);
-    if (n_type->kind == (a_type_kind)tk_integer) {
+    if (type_is(n_type, tk_integer)) {
       n_int_kind = n_type->variant.integer.int_kind;
     }  /* if */
   }  /* if */
   /* Instantiate tuple_element<n, T> for n = elem_idx and T = tp. */
-  tap = alloc_template_arg((a_templ_arg_kind)tak_nontype);
+  tap = alloc_template_arg(tak_nontype);
   n_constant = local_constant();
   set_integer_constant(n_constant, (a_host_large_integer)elem_idx, n_int_kind);
   tap->variant.constant = alloc_shareable_constant(n_constant);
   release_local_constant(&n_constant);
-  tap->next = alloc_template_arg((a_templ_arg_kind)tak_type);
+  tap->next = alloc_template_arg(tak_type);
   tap->next->variant.type = tp;
   te_inst_sym = find_class_template_instance(te_sym, &tap);
-  if (te_inst_sym == NULL ||
-      !symbol_is(te_inst_sym, sk_class_or_struct_tag)) {
-    if (!for_decltype) {
-      a_number_buffer num_str(elem_idx);
-
+  if (te_inst_sym == NULL || !symbol_is(te_inst_sym, sk_class_or_struct_tag)) {
+    if (diag_pos != NULL) {
+      a_number_buffer  num_str(elem_idx);
       pos_error(ec_missing_std_tuple_element_instance, diag_pos,
                 num_str.as_temp_characters(), tp);
     }  /* if */
@@ -18678,9 +18664,8 @@ argument-dependent lookup only.
   te_inst = type_symbol_type(te_inst_sym);
   complete_type_is_needed(te_inst);
   if (te_inst->incomplete) {
-    if (!for_decltype) {
-      a_number_buffer num_str(elem_idx);
-
+    if (diag_pos != NULL) {
+      a_number_buffer  num_str(elem_idx);
       pos_error(ec_missing_std_tuple_element_instance, diag_pos,
                 num_str.as_temp_characters(), tp);
     }  /* if */
@@ -18690,31 +18675,56 @@ argument-dependent lookup only.
   /* Look up "tuple_element<n, T>::type" and make sure it produces a type. */
   e_type_sym = look_up_name_string_in_class("type", te_inst, IDL_NO_OPTIONS);
   if (e_type_sym == NULL || !is_type_symbol(e_type_sym)) {
-    if (!for_decltype) {
+    if (diag_pos != NULL) {
       pos_stsy_error(ec_not_a_member, diag_pos, "type", te_inst_sym);
     }  /* if */
     e_type = error_type();
     goto done;
   }  /* if */
   e_type = type_symbol_type(e_type_sym);
-  if (!for_decltype) {
-    /* Determine the initializer. */
-    determine_get_call_for_tuple_like_binding(container, tp, elem_idx,
-                                              diag_pos, p_icp,
-                                              &lvalue_binding);
-    /* Add a reference on top of e_type, applying the reference-collapsing
-       rules if needed.  An lvalue reference is added if lvalue_binding is
-       TRUE, an rvalue reference otherwise. */
-    if (is_reference_type(e_type)) {
-      e_type = make_reference_to_reference(
-                                         e_type,
+done:
+  return e_type;
+}  /* get_tuple_element_type */
+
+
+static a_type_ptr tuple_like_binding_type(a_variable_ptr     container,
+                                          a_type_ptr         tp,
+                                          a_targ_size_t      elem_idx,
+                                          a_source_position  *diag_pos,
+                                          an_init_component  **p_icp)
+/*
+Return the type of a binding variable for a tuple-like container.  tp
+represents the container type E (from the container e represented by container)
+and elem_idx is the element number n (starting at zero) being bound to.  The
+returned type entry is the type obtained from instantiating
+std::tuple_element<n, E>::type, but with an lvalue or rvalue reference layer
+applied to it: an lvalue reference if the initializer for the binding is an
+lvalue and an rvalue reference otherwise.  The initializer for the binding is
+returned in *p_icp.  If E is a class type with a member "get", that initializer
+is "e.get<n>()"; otherwise, it is "get<n>(e)" where "get" is looked up using
+argument-dependent lookup only.
+*/
+{
+  a_type_ptr  e_type;
+  a_boolean   lvalue_binding;
+
+  e_type = get_tuple_element_type(elem_idx, tp, diag_pos);
+  if (is_error_type(e_type)) goto done;
+  /* Determine the initializer. */
+  determine_get_call_for_tuple_like_binding(container, tp, elem_idx,
+                                            diag_pos, p_icp,
+                                            &lvalue_binding);
+  /* Add a reference on top of e_type, applying the reference-collapsing
+     rules if needed.  An lvalue reference is added if lvalue_binding is
+     TRUE, an rvalue reference otherwise. */
+  if (is_reference_type(e_type)) {
+    e_type = make_reference_to_reference(e_type,
                                          /*rvalue_ref=*/!lvalue_binding,
                                          /*tracking_ref=*/FALSE,
                                          TQ_NONE, diag_pos, (a_boolean*)NULL);
-    } else {
-      e_type = lvalue_binding ? make_reference_type(e_type)
-                              : make_rvalue_reference_type(e_type);
-    }  /* if */
+  } else {
+    e_type = lvalue_binding ? make_reference_type(e_type)
+                            : make_rvalue_reference_type(e_type);
   }  /* if */
 done:
   return e_type;
@@ -19021,7 +19031,6 @@ can be fully determined.
       btype = array_element_type(container_type);
     } else if (tuple_case) {
       btype = tuple_like_binding_type(container, container_type, n-1,
-                                      /*for_decltype=*/FALSE,
                                       &dps->declarator_pos, &icp);
       if (is_error_type(btype)) {
         err = TRUE;
@@ -19132,8 +19141,7 @@ static a_type_ptr decltype_for_tuple_like_binding(a_variable_ptr  vp)
 Determine the type of the given tuple-based structured binding as seen by
 "decltype(binding_name)".  This is often different from vp->type because a
 reference was applied on top of the type we're looking for: The original type
-is recovered by calling tuple_like_binding_type with the "for_decltype" flag
-set to TRUE.
+is recovered by calling get_tuple_element_type directly.
 */
 {
   a_type_ptr             result;
@@ -19144,15 +19152,10 @@ set to TRUE.
     a_targ_size_t   idx = get_binding_index(vp);
     a_variable_ptr  container = vp->variant.container;
     a_type_ptr      container_type = container->type;
-    an_init_component_ptr
-                    icp = NULL;
     if (is_reference_type(container_type)) {
       container_type = type_pointed_to(container_type);
     }  /* if */
-    result = tuple_like_binding_type(container, container_type,
-                                     idx-1,  /*for_decltype=*/TRUE,
-                                     &error_position, &icp);
-    free_init_component_list(icp);
+    result = get_tuple_element_type(idx-1, container_type);
   }  /* if */
   return result;
 }  /* decltype_for_tuple_like_binding */

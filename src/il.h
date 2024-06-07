@@ -3436,6 +3436,8 @@ reflection for that entity.
       case enk_variable:
         rvp->entity.kind = iek_variable;
         rvp->entity.ptr = (char*)node_variable(node);
+        rvp->local_scope_number =
+                                parent_scope_of(node_variable(node))->number;
         break;
       case enk_constant:
         rvp->entity.kind = iek_constant;

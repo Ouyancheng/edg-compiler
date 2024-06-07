@@ -19456,6 +19456,7 @@ ck_reflection) of a special built-in type (of kind tk_reflection).
                                        (char*)move_local_constant_to_il(&con);
           } else {
             node = make_node_from_operand(&opnd);
+            node = strip_ref_indirect(node, /*parens_also=*/TRUE);
             /* If the node doesn't refer to a specific entity, constant-fold
                the expression.  The constant result has a potentially broader
                scope than the expression itself (which often is only locally
@@ -38876,6 +38877,7 @@ FIXME: This is currently incomplete.
         make_error_operand(result);
       } else if (iek == iek_expr_node) {
         an_expr_node_ptr  node = (an_expr_node*)rvp->entity.ptr;
+        node = strip_ref_indirect(node, /*parens_also=*/TRUE);
         if (node_is(node, enk_variable)) {
           vp = node_variable(node);
           goto variable_case;

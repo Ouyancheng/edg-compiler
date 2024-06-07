@@ -508,6 +508,19 @@ namespace std {
       return type;
     }
 
+    consteval info metacall__impl(info, __infovec) {
+      return ^::;  /* Dummy return.  Handled by interpreter. */
+    }
+
+    consteval info reflect_invoke(info r, std::vector<info> v) {
+      return metacall__impl(r, v);
+    }
+
+    [[deprecated("metacall has been renamed to reflect_invoke")]]
+    consteval info metacall(info r, std::vector<info> v) {
+      return metacall__impl(r, v);
+    }
+
     consteval info nearest_token_queuing_context() {
       return ^::;  /* Dummy return.  Handled by interpreter. */
     }
@@ -518,6 +531,10 @@ namespace std {
 
     consteval info nearest_namespace() {
       return ^::;  /* Dummy return.  Handled by interpreter. */
+    }
+
+    consteval void __report_tokens(info  tokens) {
+      /* Dummy definition.  Handled by interpreter. */
     }
 
     consteval void queue_injection(info, info) {
@@ -536,17 +553,18 @@ namespace std {
       namespace_inject(nearest_namespace(), tokens);
     }
 
-    consteval info metacall__impl(info, __infovec) {
+
+    // Type traits
+    consteval info type_remove_reference(info) {
       return ^::;  /* Dummy return.  Handled by interpreter. */
     }
 
-    consteval info reflect_invoke(info r, std::vector<info> v) {
-      return metacall__impl(r, v);
+    consteval std::size_t type_tuple_size(info) {
+      return 0;  /* Dummy return.  Handled by interpreter. */
     }
 
-    [[deprecated("metacall has been renamed to reflect_invoke")]]
-    consteval info metacall(info r, std::vector<info> v) {
-      return metacall__impl(r, v);
+    consteval info type_tuple_element(std::size_t, info) {
+      return ^::;  /* Dummy return.  Handled by interpreter. */
     }
 
     /* Alternatives to P1306 expansion statements.

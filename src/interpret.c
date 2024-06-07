@@ -13441,6 +13441,65 @@ done:
 }  /* do_constexpr_std_meta_metacall__impl */
 
 
+static a_boolean do_constexpr_std_meta___report_tokens(
+                                   an_interpreter_state        *ips,
+                                   a_routine_ptr               callee,
+                                   ARG_UNUSED an_expr_node_ptr call_node,
+                                   a_byte                      **p_arg_bytes,
+                                   ARG_UNUSED a_byte           *result_storage,
+                                   ARG_UNUSED a_byte           *complete_obj)
+/*
+Implement std::meta::__report_tokens, which outputs a given token sequence to
+the diagnostic output.
+*/
+{
+  a_boolean           result = TRUE;
+  a_reflection_value  *rvp = (a_reflection_value*)p_arg_bytes[0];
+  a_token_sequence    *seq;
+  a_token_cache       *tokens;
+
+  if (!ips->is_constant_evaluated) {
+    /* Don't generate output if a constant is not needed, but fail evaluation
+       in that case.  That avoids repeated output due to the front end trying
+       to fold the same sub-expression multiple times (when it doesn't really
+       need to).  It also avoids folding the call prematurely and then not
+       evaluating the call later. */
+    result = FALSE;
+    goto done;
+  } else if (rvp->entity.kind != iek_token_sequence) {
+    info_with_pos(ec_invalid_reflection_for_intrinsic,
+                  &call_node->position, ips);
+    do_constexpr_fail(result);
+    goto done;
+  }  /* if */
+  if (!ips->report_started) {
+    a_const_char   *full_name, *diag_file_name;
+    a_line_number  line_number;
+    a_boolean      at_end_of_source;
+    (void)conv_seq_to_file_and_line(ips->position.seq, &diag_file_name,
+                                    &full_name, &line_number,
+                                    &at_end_of_source);
+    fprintf(f_error, "\n%s\n", error_text(ec_constexpr_begin_report));
+    if (line_number != 0) {
+      fprintf(f_error, "%s%lu%s%s\n",
+              error_text(ec_at_line), (unsigned long)line_number,
+              error_text(ec_of), diag_file_name);
+    }  /* if */
+    ips->report_started = TRUE;
+  }  /* if */
+
+  seq = (a_token_sequence*)rvp->entity.ptr;
+  tokens = (a_token_cache*)seq->token_cache;
+  for (a_cached_token  *ctp = tokens->first_token;
+       ctp->token != tok_end_of_source;
+       ctp = ctp->next) {
+    fprintf(f_error, "%s ", token_names[ctp->token]);
+  }  /* for */
+done:
+  return result;
+}  /* do_constexpr_std_meta___report_tokens */
+
+
 static a_boolean do_constexpr_std_meta_queue_injection(
                                         an_interpreter_state  *ips,
                                         a_routine_ptr         callee,
@@ -13591,6 +13650,7 @@ Implement std::meta::nearest_token_queuing_context().
       result_rvp->entity.ptr = (char*)ensure_il_scope_exists(
                                                           &scope_stack[depth]);
       result_rvp->local_scope_number = scope_stack[depth].number;
+      break;
     } else if (scope_is(&scope_stack[depth], sck_class_struct_union)) {
       result_rvp->entity.kind = iek_type;
       result_rvp->entity.ptr = (char*)scope_stack[depth].assoc_type;
@@ -13676,6 +13736,135 @@ Implement std::meta::nearest_namespace().
   check_assertion(depth != NO_SCOPE_DEPTH);
   return result;
 }  /* do_constexpr_std_meta_nearest_namespace */
+
+
+static a_boolean do_constexpr_std_meta_type_tuple_size(
+                                        an_interpreter_state  *ips,
+                                        a_routine_ptr         callee,
+                                        an_expr_node_ptr      call_node,
+                                        a_byte                **p_arg_bytes,
+                                        a_byte                *result_storage,
+                                        a_byte                *complete_object)
+/*
+Implement std::meta::type_tuple_size().
+*/
+{
+  a_boolean           result = TRUE;
+  a_reflection_value  *rvp = (a_reflection_value*)p_arg_bytes[0];
+  a_targ_size_t       n_elems;
+  a_boolean           err = FALSE;
+
+extern a_boolean is_tuple_like_type(a_type_ptr     tp,
+                                    a_targ_size_t  *n_elements,
+                                    a_boolean      *p_err);
+  if (rvp->entity.kind != iek_type) {
+    /* The operand doesn't designate a type. */
+    do_constexpr_fail(result);
+    info_with_pos(ec_invalid_reflection_for_intrinsic,
+                  &call_node->position, ips);
+  } else if (!is_tuple_like_type((a_type*)rvp->entity.ptr, &n_elems, &err)) {
+    do_constexpr_fail(result);
+    // FIXME: More specific diagnostic.
+    info_with_pos(ec_invalid_reflection_for_intrinsic,
+                  &call_node->position, ips);
+  } else {
+    set_integer_value((an_integer_value*)result_storage,
+                      (a_host_large_integer)n_elems);
+  }  /* if */
+  return result;
+}  /* do_constexpr_std_meta_type_tuple_size */
+
+
+static a_boolean do_constexpr_std_meta_type_tuple_element(
+                                        an_interpreter_state  *ips,
+                                        a_routine_ptr         callee,
+                                        an_expr_node_ptr      call_node,
+                                        a_byte                **p_arg_bytes,
+                                        a_byte                *result_storage,
+                                        a_byte                *complete_object)
+/*
+Implement std::meta::type_tuple_element().
+*/
+{
+  a_boolean           result = FALSE;
+  an_integer_value    *int_val = (an_integer_value*)p_arg_bytes[0];
+  a_reflection_value  *rvp = (a_reflection_value*)p_arg_bytes[1],
+                      *result_rvp = (a_reflection_value*)result_storage;
+
+  if (rvp->entity.kind != iek_type) {
+    /* The second operand doesn't designate a type. */
+    do_constexpr_fail(result);
+    info_with_pos(ec_invalid_reflection_for_intrinsic,
+                  &call_node->position, ips);
+  } else {
+    a_type_ptr            result_tp;
+    a_host_large_integer  idx;
+    a_boolean             ovfl;
+    conv_integer_value_to_host_large_integer(int_val, /*is_signed=*/FALSE,
+                                             &idx, &ovfl);
+    if (ovfl || idx > (1<<30)) {
+      do_constexpr_fail(result);
+      info_with_pos_num(ec_tuple_index_overflow, &call_node->position,
+                        (a_byte_count)idx, ips);
+    } else {
+      result_tp = get_tuple_element_type((a_targ_size_t)idx,
+                                         (a_type*)rvp->entity.ptr);
+      if (!is_error_type(result_tp)) {
+        result_rvp->entity.kind = iek_type;
+        result_rvp->entity.ptr = (char*)result_tp;
+        result_rvp->local_scope_number = FILE_SCOPE_NUMBER;
+        result = TRUE;
+      }  /* if */
+    }  /* if */
+  }  /* if */
+  return result;
+}  /* do_constexpr_std_meta_type_tuple_element */
+
+
+
+/*
+Type traits.
+FIXME
+*/
+
+#define DEFINE_type_transform(ns, name, ref_lambda_body)                     \
+static a_boolean do_constexpr_##ns##_##name(                                 \
+                                     an_interpreter_state  *ips,             \
+                                     a_routine_ptr         callee,           \
+                                     an_expr_node_ptr      call_node,        \
+                                     a_byte                **p_arg_bytes,    \
+                                     a_byte                *result_storage,  \
+                                     a_byte                *complete_obj)    \
+{                                                                            \
+  a_boolean           result = TRUE;                                         \
+  a_reflection_value  *rvp = (a_reflection_value*)p_arg_bytes[0],            \
+                      *result_rvp = (a_reflection_value*)result_storage;     \
+  a_type              *tp, *result_tp = NULL;                                \
+                                                                             \
+  strip_template_arg(rvp);                                                   \
+  extract_reflected_entity(rvp);                                             \
+  if (rvp->entity.kind == iek_type) {                                        \
+    tp = skip_typerefs((a_type*)rvp->entity.ptr);                            \
+    ref_lambda_body();                                                       \
+  }  /* if */                                                                \
+  if (result_tp == NULL) {                                                   \
+    info_with_pos(ec_invalid_reflection_for_intrinsic,                       \
+                  &call_node->position, ips);                                \
+    do_constexpr_fail(result);                                               \
+  } else {                                                                   \
+    result_rvp->entity.kind = iek_type;                                      \
+    result_rvp->entity.ptr = (char*)result_tp;                               \
+    result_rvp->local_scope_number = FILE_SCOPE_NUMBER;                      \
+  }  /* if */                                                                \
+  return result;                                                             \
+}
+
+
+DEFINE_type_transform(std_meta, type_remove_reference,
+  ([&]{
+    if (is_reference_type(tp)) tp = skip_typerefs(type_pointed_to(tp));
+    result_tp = tp;
+  }))
 
 
 static a_boolean get_string_from_string_view(
