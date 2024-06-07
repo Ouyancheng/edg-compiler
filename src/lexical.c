@@ -9263,6 +9263,7 @@ return_with_line:
     curr_char_loc = curr_source_line;
     logical_char_info_entries_used = 0;
     any_tokens_gotten_from_curr_source_line = FALSE;
+    last_splice_olmp = NULL;
   }  /* if */
 
 simple_return:
