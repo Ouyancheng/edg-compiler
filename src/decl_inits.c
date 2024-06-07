@@ -6264,7 +6264,7 @@ expressions.  For the latter, see init_capture_initializer below.)
       /* Scan the initializer. */
       braced_initializer(dtype, (an_init_component*)NULL, is,
                          (a_decl_parse_state*)NULL,
-                         /*fill_in_dtor=*/exceptions_enabled,
+                         /*fill_in_dtor=*/FALSE,
                          (an_init_component**)NULL, &init_pos);
     } else {
       /* An initialization of the form "T x = <expr>". */
