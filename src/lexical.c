@@ -6140,7 +6140,7 @@ partially_process_line_splice:
           putc(' ', f_raw_listing);
           loc_in_line = olmp->line_loc + LE_ESCAPE_LEN;
           break;
-        olm_splice_whitespace:
+        case olm_splice_whitespace:
           /* A whitespace character following a line splice. */
           fprintf(f_raw_listing, "%c", olmp->variant.orig_char);
           break;
