@@ -20500,6 +20500,19 @@ to be present (without actually parsing the attributes).
 }  /* is_alias_declaration */
 
 
+using a_consteval_block_map = Ptr_map<a_token_sequence_number, a_token_cache*>;
+			/* The type of a map that associated the token sequence
+			   number of "consteval" in a "consteval { ... }"
+			   construct with a cache containing that construct
+			   transformed into a "static_assert(...)"
+			   declaration. */
+
+static a_consteval_block_map
+		*consteval_blocks;
+			/* A map from token sequence numbers to token caches
+			   holding rewritten "consteval { ... }" constructs. */
+		
+
 void rewrite_consteval_block(void)
 /*
 The current tokens are "consteval {".  Transform:
@@ -20519,56 +20532,85 @@ to:
 
 */
 {
-  a_token_cache      rewritten_code;
-  a_source_position  start_pos = pos_curr_token;
-  unsigned           num_lbraces = 0;
-  a_token_kind       prev_token;
+  unsigned       num_lbraces = 0;
+  a_token_cache  *rewritten_code =
+                            consteval_blocks->get(curr_token_sequence_number);
 
-  clear_token_cache(&rewritten_code, /*reusable=*/FALSE);
-  insert_string_into_token_stream("static_assert(([]() consteval->void ",
-                                  /*insert_after=*/TRUE,
-                                  /*p_expand_macros=*/FALSE,
-                                  /*suspend_caching=*/TRUE,
-                                  start_pos);
-  /* Skip the current "consteval" token. */
-  (void)get_token();
-  do {
-    prev_token = curr_token;
-    cache_curr_token(&rewritten_code);
-    (void)get_token();
-  }  while (prev_token != tok_void);
-  /* The original brace following the original "consteval" should be next. */
-  check_assertion(curr_token == tok_lbrace);
-  while (curr_token != tok_end_of_source) {
-    cache_curr_token(&rewritten_code);
-    if (curr_token == tok_rbrace) {
-      if (--num_lbraces == 0) {
-        break;
-      }  /* if */
-    } else if (curr_token == tok_lbrace) {
-      ++num_lbraces;
-    }  /* if */
-    (void)get_token();
-  }  /* while */
-  if (curr_token == tok_end_of_source) {
-    /* The left brace was not terminated. */
-    expect_error();
-  } else {
-    a_source_position  end_pos = pos_curr_token;
-    insert_string_into_token_stream("(), true));",
+  /* Since the consteval block may appear in a variadic template, we must
+     make sure that the same tokens are rescanned every time we instantiate
+     a variadic template (because those tokens might be referenced by the
+     variadic expansion mechanism).  Hence we use a reusable cache, and if
+     we see a token sequence number previously encountered, the token cache
+     containing the rewritten code of the original encounter is reused. */
+  if (rewritten_code == NULL) {
+    a_source_position  start_pos = pos_curr_token;
+    a_token_kind       prev_token;
+
+    rewritten_code = alloc_token_cache(/*reusable=*/TRUE);
+    (void)consteval_blocks->map(curr_token_sequence_number, rewritten_code);
+    insert_string_into_token_stream("static_assert(([]() consteval->void ",
                                     /*insert_after=*/TRUE,
                                     /*p_expand_macros=*/FALSE,
                                     /*suspend_caching=*/TRUE,
-                                    end_pos);
-    /* Consume the remaining right brace. */
+                                    start_pos);
+    /* Skip the current "consteval" token. */
     (void)get_token();
     do {
       prev_token = curr_token;
-      cache_curr_token(&rewritten_code);
+      cache_curr_token(rewritten_code);
       (void)get_token();
-    } while (prev_token != tok_semicolon);
+    }  while (prev_token != tok_void);
+    /* The original brace following the original "consteval" should be next. */
+    check_assertion(curr_token == tok_lbrace);
+    /* Skip to the matching brace.  Note that other delimiters need not be
+       balanced. */
+    while (curr_token != tok_end_of_source) {
+      cache_curr_token(rewritten_code);
+      if (curr_token == tok_rbrace) {
+        if (--num_lbraces == 0) {
+          break;
+        }  /* if */
+      } else if (curr_token == tok_lbrace) {
+        ++num_lbraces;
+      }  /* if */
+      (void)get_token();
+    }  /* while */
+    if (curr_token == tok_end_of_source) {
+      /* The left brace was not terminated. */
+      pos_error(ec_exp_rbrace, &pos_curr_token);
+    } else {
+      a_source_position  end_pos = pos_curr_token;
+      insert_string_into_token_stream("(), true));",
+                                      /*insert_after=*/TRUE,
+                                      /*p_expand_macros=*/FALSE,
+                                      /*suspend_caching=*/TRUE,
+                                      end_pos);
+      /* Consume the remaining right brace. */
+      (void)get_token();
+      do {
+        prev_token = curr_token;
+        cache_curr_token(rewritten_code);
+        (void)get_token();
+      } while (prev_token != tok_semicolon);
+    }  /* if */
+  } else {
+    /* Skip the consteval block tokens.  We will rescan the rewritten version
+       in the cache instead. */
+    (void)get_token();
+    check_assertion(curr_token == tok_lbrace);
+    while (curr_token != tok_end_of_source) {
+      if (curr_token == tok_rbrace) {
+        if (--num_lbraces == 0) {
+          (void)get_token();
+          break;
+        }  /* if */
+      } else if (curr_token == tok_lbrace) {
+        ++num_lbraces;
+      }  /* if */
+      (void)get_token();
+    }  /* while */
   }  /* if */
-  rescan_cached_tokens(&rewritten_code);
+  rescan_reusable_cache(rewritten_code);
 }  /* rewrite_consteval_block */
 
 
@@ -22342,6 +22384,8 @@ initialization for each compilation.
   avail_decl_parse_states = NULL;
   avail_decl_parse_callbacks = NULL;
   avail_auto_param_descriptions = NULL;
+  consteval_blocks = alloc_fe_of_type(a_consteval_block_map);
+  construct(consteval_blocks, /*mask_width=*/6);
 }  /* decls_init */
 
 #if DEBUG

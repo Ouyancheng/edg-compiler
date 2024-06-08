@@ -42372,10 +42372,15 @@ type_start:
       break;
 
     case tok_lsplice:
-      /* An expression splicer of the form [: ... :]. */
-      scan_expr_splicer((a_rescan_control_block *)NULL, &local_result);
+      if (spliced_name_qualifier_next()) {
+        /* A splicer that is a name qualifier.  This means a generalized
+           identifier is next. */
+        goto handle_identifier;
+      } else {
+        /* An expression splicer of the form [: ... :]. */
+        scan_expr_splicer((a_rescan_control_block *)NULL, &local_result);
+      }  /*if */
       break;
-
     case tok_ud_literal:
       check_assertion(user_defined_literals_enabled);
       scan_ud_literal(&local_result);

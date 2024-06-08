@@ -24337,6 +24337,7 @@ Initialize for the C++/C-generating back end.
   octl.skip_implicit_steps = skip_implicit_steps;
   octl.gen_compilable_code = TRUE;
   octl.gen_pcc_code = il_header.pcc_compatibility_mode;
+  octl.cpp_generating_back_end = TRUE;
   /* In C99 mode we want to see "_Bool" rather than "bool" or the type
      underlying _Bool. */
   octl.render_c99_bool = c99_mode || gcc_mode;

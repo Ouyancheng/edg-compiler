@@ -133,6 +133,7 @@ Clear an output control block to default values.
   octl->suppress_local_typedefs   = FALSE;
   octl->render_c99_bool           = FALSE;
   octl->c_generating_back_end     = FALSE;
+  octl->cpp_generating_back_end     = FALSE;
 #if DEBUG
   octl->debug_output              = FALSE;
 #endif /* DEBUG */
@@ -6282,17 +6283,48 @@ for debug output).
 }  /* form_dynamic_init_constant */
 
 
+static void form_reflection_prefix(an_error_code                          ec,
+                                   an_il_to_str_output_control_block_ptr  octl)
+/*
+This function should be called from form_reflection only.
+
+If generating compilable code, render "(^" to start a reflection expression.
+Otherwise, render the text for the given code, followed by a space.  If we're
+generating compilable code, turn off the "compilable code" flag to ensure that
+form_name can be called.  The caller will restore the flag.
+*/
+{
+  if (!octl->gen_compilable_code) {
+    octl->output_str(error_text(ec), octl);
+    octl->output_str(" ", octl);
+  } else {
+    octl->output_str("(^", octl);
+    octl->gen_compilable_code = FALSE;
+  }  /* if */
+}  /* form_reflection_prefix */
+
+
 void form_reflection(a_reflection_value                     rv,
                      an_il_to_str_output_control_block_ptr  octl)
 /*
 Render the entity designated by the given reflection.
 */
 {
+  a_boolean  saved_gen_compilable_code = octl->gen_compilable_code,
+             saved_suppress_typedefs = octl->suppress_typedefs;
+
   if (octl->gen_compilable_code) {
-    /* Reflection values sometimes leak into the C++-generating back end,
-       but those values are not actually used. */
-    octl->output_str("(decltype(^0){})", octl);
-    goto done;
+    if (octl->cpp_generating_back_end || octl->c_generating_back_end) {
+      /* Reflection values sometimes leak into the C++-generating back end,
+         but those values are not actually used. */
+      octl->output_str("(decltype(^0){})", octl);
+      goto done;
+    }  /* if */
+    /* We may still get here when rendering strings from token caches. */
+  }  /* if */
+  if (rv.entity.kind != iek_type ||
+      !type_is_typedef((a_type*)rv.entity.ptr)) {
+    octl->suppress_typedefs = TRUE;
   }  /* if */
   strip_template_arg(&rv);
   switch (rv.entity.kind) {
@@ -6300,7 +6332,7 @@ Render the entity designated by the given reflection.
       if (!octl->gen_compilable_code) {
         octl->output_str(error_text(ec_null_reflection), octl);
       } else {
-        octl->output_str("(decltype(^0){})", octl);
+        octl->output_str("(decltype(^\"null\"){}", octl);
       }  /* if */
       break;
     case iek_base_class:
@@ -6312,58 +6344,48 @@ Render the entity designated by the given reflection.
         octl->output_str(" ", octl);
         form_type(bcp->derived_class, octl);
       } else {
-        unexpected_condition();
+        octl->output_str("(decltype(^\"base class\"){}", octl);
       }  /* if */
       break;
     case iek_type:
-      if (!octl->gen_compilable_code) {
-        octl->output_str(error_text(ec_type), octl);
-        octl->output_str(" ", octl);
-      }  /* if */
+      form_reflection_prefix(ec_type, octl);
       form_type((a_type*)rv.entity.ptr, octl);
       break;
     case iek_constant:
+      if (octl->gen_compilable_code) {
+        form_reflection_prefix(ec_no_error, octl);
+      }  /* if */
       form_constant((a_constant*)rv.entity.ptr, /*need_parens=*/FALSE, octl);
       break;
     case iek_expr_node:
+      if (octl->gen_compilable_code) {
+        form_reflection_prefix(ec_no_error, octl);
+      }  /* if */
+      octl->output_str("(", octl);
       form_expression((an_expr_node*)rv.entity.ptr,  octl);
+      octl->output_str(")", octl);
       break;
     case iek_field:
-      if (!octl->gen_compilable_code) {
-        octl->output_str(error_text(ec_field), octl);
-        octl->output_str(" ", octl);
-      } /* if */
+      form_reflection_prefix(ec_field, octl);
       form_name(&((a_field*)rv.entity.ptr)->source_corresp, iek_field, octl);
       break;
     case iek_routine:
-      if (!octl->gen_compilable_code) {
-        octl->output_str(error_text(ec_function), octl);
-        octl->output_str(" ", octl);
-      } /* if */
+      form_reflection_prefix(ec_function, octl);
       form_name(&((a_routine*)rv.entity.ptr)->source_corresp, iek_routine,
                 octl);
       break;
     case iek_variable:
-      if (!octl->gen_compilable_code) {
-        octl->output_str(error_text(ec_variable), octl);
-        octl->output_str(" ", octl);
-      } /* if */
+      form_reflection_prefix(ec_variable, octl);
       form_name(&((a_variable*)rv.entity.ptr)->source_corresp, iek_routine,
                 octl);
       break;
     case iek_template:
-      if (!octl->gen_compilable_code) {
-        octl->output_str(error_text(ec_template), octl);
-        octl->output_str(" ", octl);
-      } /* if */
+      form_reflection_prefix(ec_template, octl);
       form_name(&((a_template*)rv.entity.ptr)->source_corresp, iek_template,
                 octl);
       break;
     case iek_namespace:
-      if (!octl->gen_compilable_code) {
-        octl->output_str(error_text(ec_namespace_alias), octl);
-        octl->output_str(" ", octl);
-      } /* if */
+      form_reflection_prefix(ec_namespace_alias, octl);
       form_name(&((a_namespace*)rv.entity.ptr)->source_corresp,
                 iek_namespace, octl);
       break;
@@ -6371,10 +6393,7 @@ Render the entity designated by the given reflection.
       { a_scope*  scope = (a_scope*)rv.entity.ptr;
         if (scope_is(scope, sck_namespace) ||
             scope_is(scope, sck_namespace_extension)) {
-          if (!octl->gen_compilable_code) {
-            octl->output_str(error_text(ec_namespace), octl);
-            octl->output_str(" ", octl);
-          } /* if */
+          form_reflection_prefix(ec_namespace, octl);
           form_name(&scope->variant.assoc_namespace->source_corresp,
                     iek_namespace, octl);
           break;
@@ -6385,10 +6404,15 @@ Render the entity designated by the given reflection.
       if (!octl->gen_compilable_code) {
         octl->output_str(error_text(ec_unspecified_reflection), octl);
       } else {
-        unexpected_condition();
+        octl->output_str("(decltype(^\"unhandled\"){}", octl);
       }  /* if */
       break;
   }  /* switch */
+  octl->gen_compilable_code = saved_gen_compilable_code;
+  octl->suppress_typedefs = saved_suppress_typedefs;
+  if (octl->gen_compilable_code) {
+    octl->output_str(")", octl);
+  }  /* if */
 done:;
 }  /* form_reflection */
 

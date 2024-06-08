@@ -13472,29 +13472,29 @@ the diagnostic output.
     do_constexpr_fail(result);
     goto done;
   }  /* if */
-  if (!ips->report_started) {
+  {
     a_const_char   *full_name, *diag_file_name;
     a_line_number  line_number;
     a_boolean      at_end_of_source;
     (void)conv_seq_to_file_and_line(ips->position.seq, &diag_file_name,
                                     &full_name, &line_number,
                                     &at_end_of_source);
-    fprintf(f_error, "\n%s\n", error_text(ec_constexpr_begin_report));
+    fprintf(f_error, "\n%s\n", error_text(ec_constexpr_begin_report_tokens));
     if (line_number != 0) {
       fprintf(f_error, "%s%lu%s%s\n",
               error_text(ec_at_line), (unsigned long)line_number,
               error_text(ec_of), diag_file_name);
     }  /* if */
-    ips->report_started = TRUE;
   }  /* if */
 
   seq = (a_token_sequence*)rvp->entity.ptr;
   tokens = (a_token_cache*)seq->token_cache;
-  for (a_cached_token  *ctp = tokens->first_token;
-       ctp->token != tok_end_of_source;
-       ctp = ctp->next) {
-    fprintf(f_error, "%s ", token_names[ctp->token]);
-  }  /* for */
+  init_token_string(&tokens->first_token->source_position,
+                    /*keep_spacing=*/TRUE,
+                    /*suppress_identifier_wrapping=*/FALSE);
+  add_token_cache_to_string(tokens);
+  fprintf(f_error, "%s ", temp_text_buffer);
+  fprintf(f_error, "\n%s\n", error_text(ec_constexpr_end_report_tokens));
 done:
   return result;
 }  /* do_constexpr_std_meta___report_tokens */
