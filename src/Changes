@@ -10,7 +10,7 @@ as line splices only in GNU and clang modes, but they are now accepted in
 all C++23 emulation modes.  In addition, in modes where such constructs
 were recognized as line splices, the front end previously incorrectly
 dropped the intervening white space characters from the value of a raw
-string literal.  This is now fixed.  For example, lines 1 and 4 of the
+string literal.  This is now fixed.  For example, lines 2 and 6 of the
 following code end in a backslash followed by a space character, a
 horizontal tab, a formfeed, and a newline; with --c++23, the code now
 compiles without error:
