@@ -13860,7 +13860,48 @@ static a_boolean do_constexpr_##ns##_##name(                                 \
 }
 
 
+DEFINE_type_transform(std_meta, type_remove_pointer,
+  ([&]{
+    if (is_pointer_type(tp)) tp = skip_typedefs(type_pointed_to(tp));
+    result_tp = tp;
+  }))
+
+
+// FIXME: Handle abominable types
+DEFINE_type_transform(std_meta, type_add_pointer,
+  ([&]{
+    if (is_reference_type(tp)) tp = skip_typedefs(type_pointed_to(tp));
+    result_tp = make_pointer_type(tp);
+  }))
+
+
+DEFINE_type_transform(std_meta, type_decay,
+  ([&]{
+    if (is_reference_type(tp)) tp = skip_typerefs(type_pointed_to(tp));
+    if (is_array_type(tp)) {
+      tp = type_after_array_to_pointer_transformation(tp);
+    } else if (is_function_type(tp)) {
+      tp = make_pointer_type(tp);
+    }  /* if */
+    result_tp = tp;
+  }))
+
+
 DEFINE_type_transform(std_meta, type_remove_reference,
+  ([&]{
+    if (is_reference_type(tp)) tp = skip_typedefs(type_pointed_to(tp));
+    result_tp = tp;
+  }))
+
+
+DEFINE_type_transform(std_meta, type_remove_cv,
+  ([&]{
+    if (is_reference_type(tp)) tp = skip_typerefs(tp);
+    result_tp = tp;
+  }))
+
+
+DEFINE_type_transform(std_meta, type_remove_cvref,
   ([&]{
     if (is_reference_type(tp)) tp = skip_typerefs(type_pointed_to(tp));
     result_tp = tp;

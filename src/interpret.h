@@ -192,7 +192,12 @@ must be defined in interpret.c to implement its evaluation.
   M(std_meta, nearest_namespace, "()r") \
   M(std_meta, type_tuple_size, "(r)I") \
   M(std_meta, type_tuple_element, "(I,r)r") \
+  M(std_meta, type_remove_pointer, "(r)r") \
+  M(std_meta, type_add_pointer, "(r)r") \
+  M(std_meta, type_decay, "(r)r") \
   M(std_meta, type_remove_reference, "(r)r") \
+  M(std_meta, type_remove_cv, "(r)r") \
+  M(std_meta, type_remove_cvref, "(r)r") \
   /* End of NS_scope_constexpr_intrinsics. */
 
 

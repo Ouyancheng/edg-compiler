@@ -555,7 +555,28 @@ namespace std {
 
 
     // Type traits
+
+    consteval info type_remove_pointer(info) {
+      return ^::;  /* Dummy return.  Handled by interpreter. */
+    }
+
+    consteval info type_add_pointer(info) {
+      return ^::;  /* Dummy return.  Handled by interpreter. */
+    }
+
+    consteval info type_decay(info) {
+      return ^::;  /* Dummy return.  Handled by interpreter. */
+    }
+
     consteval info type_remove_reference(info) {
+      return ^::;  /* Dummy return.  Handled by interpreter. */
+    }
+
+    consteval info type_remove_cv(info) {
+      return ^::;  /* Dummy return.  Handled by interpreter. */
+    }
+
+    consteval info type_remove_cvref(info) {
       return ^::;  /* Dummy return.  Handled by interpreter. */
     }
 
