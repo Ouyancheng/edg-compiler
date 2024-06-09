@@ -9335,7 +9335,8 @@ simple_return:
               fprintf(f_debug, "null\n");
               break;
             case olm_splice_whitespace:
-              fprintf(f_debug, "whitespace\n");
+              fprintf(f_debug, "splice whitespace: %x\n",
+		      olmp->variant.orig_char);
               break;
             default:
               unexpected_condition_str2("read_logical_source_line:",
