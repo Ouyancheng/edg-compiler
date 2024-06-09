@@ -10256,7 +10256,7 @@ skip_overloading:;
     }  /* if */
   }  /* if */
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
-  if (depth_innermost_namespace_scope != DEPTH_OF_FILE_SCOPE &&
+  if (!scope_is(&scope_stack[depth_innermost_namespace_scope], sck_file) &&
       !redeclaration && !template_function_specific_decl &&
       !explicit_template_reference) {
     /* Set the namespace parent in the symbol and IL entry. */

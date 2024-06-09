@@ -4957,8 +4957,11 @@ Scan the given tokens as a declaration appearing in the given namespace scope
 (which might be the file scope).
 */
 {
-  a_scope_depth  orig_depth = depth_scope_stack;
+  a_scope_depth       orig_depth = depth_scope_stack;
   an_object_lifetime  *saved_curr_olp = curr_object_lifetime;
+  a_struct_stmt_stack_state
+                      saved_sss_state;
+
   push_new_top_level_declaration();
   if (scope_is(namespace_scope, sck_namespace)) {
     push_namespace_extension_scope(namespace_scope->variant.assoc_namespace);
@@ -4968,6 +4971,7 @@ Scan the given tokens as a declaration appearing in the given namespace scope
   }  /* if */
   curr_object_lifetime =
                   scope_stack[DEPTH_OF_FILE_SCOPE].curr_scope_object_lifetime;
+  new_struct_stmt_stack(&saved_sss_state);
   rescan_reusable_cache(tokens);
   declaration(/*function_definition_allowed=*/TRUE,
               /*is_old_style_param_decl=*/FALSE,
@@ -4979,6 +4983,7 @@ Scan the given tokens as a declaration appearing in the given namespace scope
     pos_error(ec_extraneous_injected_declaration_tokens, &pos_curr_token);
   }  /* if */
   flush_past_token_cache_terminator();
+  restore_struct_stmt_stack(&saved_sss_state);
   while (depth_scope_stack > orig_depth) pop_scope();
   curr_object_lifetime = saved_curr_olp;
 }  /* inject_tokens_in_namespace */
