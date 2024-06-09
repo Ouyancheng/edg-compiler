@@ -9321,8 +9321,6 @@ simple_return:
                   (int)(olmp->line_loc-curr_source_line+1), '^');
           switch (olmp->kind) {
             case olm_trigraph:
-              /* Lint comment on the next line is to suppress the invalid
-                 trigraph warning. */
               fprintf(f_debug, "trigraph: ?" "?%c\n", olmp->variant.orig_char);
               break;
             case olm_line_splice:
