@@ -1214,7 +1214,7 @@ get_another:
         break;
       case olm_splice_whitespace:
         /* A whitespace character following the backslash of a line splice
-           is not representedin the source string characters, so we don't
+           is not represented in the source string characters, so we don't
            increment lptr, but we return the whitespace character. */
         targ_ch = olmp->variant.orig_char;
         if (olmp->next == NULL || olmp->next->kind != olm_splice_whitespace) {
