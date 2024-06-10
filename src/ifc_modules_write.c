@@ -3324,6 +3324,9 @@ return the corresponding EDG IFC BasicToken sort value.
     case tok_auto:
       result = ifc_ebts_auto;
       break;
+    case tok_backslash:
+      result = ifc_ebts_backslash;
+      break;
     case tok_bool:
       result = ifc_ebts_bool;
       break;
