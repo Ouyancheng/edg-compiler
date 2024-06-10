@@ -351,7 +351,7 @@ instantiation of any types used in function arguments.  For example, with
   }
 
 
-5/15/24  [EDGcpfe/24168,EDGcpfe/27138]
+5/15/24  [EDGcpfe/19215,EDGcpfe/24168,EDGcpfe/27138]
 Clang compatibility: C++11 features in C++03 modes
 
 In Clang C++03 mode, the front end now accepts ref-qualifiers on member
@@ -359,7 +359,9 @@ function declarations, range-based "for" statements, and "auto" type specifiers
 in C++03 mode (with a warning).  In addition, some dependent calls to GNU
 built-in functions are now assumed to be foldable after instantiation in C++03
 mode (previously, they were only assumed to be foldable in modes that allow
-constexpr functions).
+constexpr functions).  The changes to accept "auto" type specifiers also
+improve disambiguation in modes that accept "auto" both as a storage class
+specifier and as a type specifier.
 
 
 5/15/24  [EDGcpfe/27157]

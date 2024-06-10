@@ -10503,6 +10503,53 @@ would not be valid (inaccessible).
 }  /* insert_typeref_for_naming_if_needed */
 
 
+static a_boolean potential_type_ahead_heuristic(void)
+/*
+The current token is "auto" in a mode where it could either be a type specifier
+or a storage class specifier.  Return TRUE if the tokens ahead might include a
+type name (if not, we can conclude that "auto" is a type specifier).
+*/
+{
+  a_boolean      result = TRUE;
+  a_token_cache  cache;
+
+  clear_token_cache(&cache, /*is_reusable=*/FALSE);
+  for (;;) {
+    cache_curr_token(&cache);
+    (void)get_token();
+    if (curr_token == tok_lparen || curr_token == tok_lbrace ||
+        curr_token == tok_assign || curr_token == tok_star ||
+        curr_token == tok_ampersand || curr_token == tok_and_and) {
+      /* An initializer, declarator, of function parameter list is
+         next.  So there are no more decl-specifiers. */
+      result = FALSE;
+      break;
+    } else if (curr_token == tok_identifier) {
+      /* Check if this identifier might name a type. */
+      a_symbol  *sym = locator_for_curr_id.symbol_header->symbol;
+      for (; sym != NULL; sym = sym->next) {
+        if (is_type_symbol(sym) ||
+            (symbol_is(sym, sk_class_template) && next_token() == tok_lt)) {
+          goto done;
+        } else if (symbol_is(sym, sk_namespace)) {
+          /* Likely a qualified name next.  Assume it might name a type. */
+          goto done;
+        }  /* if */
+      }  /* for */
+      result = FALSE;
+      break;
+    } else if (curr_token != tok_const && curr_token != tok_volatile &&
+               curr_token != tok_static && curr_token != tok_constexpr) {
+      /* Assume this is a token specifying a type. */
+      break;
+    }  /* if */
+  }  /* for */
+done:
+  rescan_cached_tokens(&cache);
+  return result;
+}  /* potential_type_ahead_heuristic */
+
+
 void decl_specifiers(a_decl_flag_set       input_flags,
                      a_decl_parse_state    *state,
                      a_decl_pos_block_ptr  decl_pos_block)
@@ -10645,7 +10692,9 @@ corresponding change in prescan_decl_specifiers (in disambig.c).
           auto_is_first = !(decl_specifiers_seen & ~(DS_INLINE | DS_FRIEND));
           if (auto_storage_class_specifier_enabled &&
               (auto_type_specifier_enabled ||
-               clangcpp_version_is(any_version))) {
+               clangcpp_version_is(any_version)) &&
+              ((decl_specifiers_seen & DS_TYPE) != 0 ||
+               potential_type_ahead_heuristic())) {
             /* Whether "auto" is a type specifier or a storage class specifier
                cannot be decided until all decl-specifiers have been seen. */
           } else {
@@ -12723,7 +12772,7 @@ exit_loop:
     pos_error(ec_bad_storage_class_with_inline, &state->storage_class_pos);
     err = TRUE;
   }  /* if */
-  if (state->auto_type_specifier_seen &&
+  if (state->auto_type_specifier_seen && state->auto_type == NULL &&
       auto_storage_class_specifier_enabled &&
       (auto_type_specifier_enabled || clangcpp_version_is(any_version))) {
     /* The "auto" token was seen among the specifiers, but we could not decide
