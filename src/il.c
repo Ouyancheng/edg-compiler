@@ -13259,8 +13259,10 @@ and reuse an existing entry if possible.
        modes, rvalue references may be accepted with a warning even in C++03
        modes that do not enable rvalue references.  In such modes, rvalue
        references may also be generated implicitly, e.g., through range-based
-       "for" statements.) */
-    check_assertion(rvalue_references_enabled || gpp_mode || clang_mode);
+       "for" statements.  In other modes, that can happen as part of error
+       recovery.) */
+    check_assertion_or_expect_error(
+                         rvalue_references_enabled || gpp_mode || clang_mode);
     ptr = alloc_type((a_type_kind)tk_pointer);
     ptr->variant.pointer.type = pointed_to_type;
     ptr->variant.pointer.is_reference = TRUE;
