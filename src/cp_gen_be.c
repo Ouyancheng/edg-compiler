@@ -16556,6 +16556,42 @@ Render the given requires-expression.
 }  /* gen_requires_expr */
 
 
+static void gen_token_sequence(a_token_sequence  *tok_seq)
+/*
+Render the given token sequence.
+*/
+{
+  a_token_sequence_entry  *tok = tok_seq->tokens;
+  an_expr_node            *interpolation = tok_seq->interpolations;
+
+  write_tok_str("^ {");
+  for (; tok != NULL; tok = tok->next) {
+    set_output_position(&tok->position);
+    write_tok_str(tok->spelling);
+    if (tok->token_kind == tok_backslash && interpolation != NULL) {
+      tok = tok->next;
+      if (tok == NULL) break;
+      if (tok->token_kind == tok_identifier) {
+        set_output_position(&tok->position);
+        write_tok_str(tok->spelling);
+        tok = tok->next;
+        if (tok == NULL) break;
+      }  /* if */
+      if (tok->token_kind == tok_lparen) {
+        set_output_position(&tok->position);
+        write_tok_str(tok->spelling);
+        gen_expression(interpolation);
+        interpolation = interpolation->next;
+      } else {
+        /* Unexpected token sequence. */
+        continue;
+      }  /* if */
+    }  /* if */
+  }  /* for */
+  write_tok_str("}");
+}  /* gen_token_sequence */
+
+
 static void gen_expr(an_expr_node_ptr expr,
                      a_boolean        need_parens,
                      a_boolean        obj_expr_of_mfunc_operator)
@@ -17814,6 +17850,9 @@ sizeof_cases:
     case enk_template_name:
       gen_template_name((char *)&expr->variant.template_name->source_corresp,
                         iek_template);
+      break;
+    case enk_token_sequence:
+      gen_token_sequence(expr->variant.token_sequence);
       break;
 
     case enk_initializer:
