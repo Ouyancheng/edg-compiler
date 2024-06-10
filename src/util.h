@@ -2005,7 +2005,7 @@ values are equal, return the first one.
 
 
 template<typename an_Integer>
-inline int log2(an_Integer n)
+inline int floor_log2(an_Integer n)
 /*
 Return floor(log2(n)), assuming n > 0.
 */
@@ -2014,7 +2014,7 @@ Return floor(log2(n)), assuming n > 0.
 
   while (n >>= 1) ++result;
   return result;
-}  /* log2 */
+}  /* floor_log2 */
 
 
 template<typename an_Unsigned_integer>
@@ -2921,7 +2921,7 @@ the elements of the sequence.
 {
   if (begin != end) {
     pdqsort_impl::pdqsort_loop</*branchless=*/TRUE>(
-                         begin, end, cmp, log2(end-begin), /*left_most=*/TRUE);
+                  begin, end, cmp, floor_log2(end-begin), /*left_most=*/TRUE);
   }  /* if */
 }  /* sort */
 

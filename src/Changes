@@ -1,5 +1,15 @@
 Version 6.7
 
+6/10/24  [EDGcpfe/27357]
+Rename log2 function in util.h header
+
+The util.h header that is part of the front end source code contained a log2
+function template and a use of that template.  However, recent system headers
+on macOS contain a similar log2 template that causes an ambiguity for the use
+of log2 in util.h.  The version in util.h has been renamed to floor_log2 to
+avoid the ambiguity.
+
+
 6/7/24   [EDGcpfe/24778]
 C++23: White space following backslash in line splice
 
