@@ -22519,6 +22519,12 @@ be called to start a copy.
         }  /* if */
       }
       break;
+    case enk_token_sequence:
+      expr_copy = alloc_node_for_constant(fs_constant(ck_reflection));
+      expr_copy->type = expr->type;
+      node_constant(expr_copy)->type = expr_copy->type;
+      expr_copy->position = expr->position;
+      break;
 #endif /* BUILTIN_FUNCTIONS_ENABLED */
     case enk_statement:
       /* Doesn't have to be copied because forbidden in default argument
