@@ -24808,6 +24808,9 @@ Cache the given basic token into the given front end token cache.
     case ifc_ebts_auto:
       cache_token(cache, tok_auto);
       break;
+    case ifc_ebts_backslash:
+      cache_token(cache, tok_backslash);
+      break;
     case ifc_ebts_bool:
       cache_token(cache, tok_bool);
       break;
