@@ -1367,6 +1367,11 @@ typedef struct an_interpreter_state {
 			   in GNU C++ mode and within an __INTADDR__
 			   construct. */
   a_bit_field
+		permit_leftover_dyn_alloc:1;
+			/* TRUE if leftover dynamic allocations are permitted.
+			   This is the case with nested calls to
+                           evaluate_expr. */
+  a_bit_field
 		static_lifetime_init:1;
 			/* TRUE when interpreting the initializer for a static
 			   lifetime variable. */
@@ -2234,6 +2239,7 @@ result of calls to std::is_constant_evaluated().
   ips->permit_address_of_local_temporary = FALSE;
   ips->permit_null_pointer_offsets = (gpp_mode && !clang_mode) ||
                                      microsoft_mode;
+  ips->permit_leftover_dyn_alloc = FALSE;
   ips->static_lifetime_init = FALSE;
   ips->report_started = FALSE;
   ips->disallow_mutable_field_load = FALSE;
@@ -13983,7 +13989,10 @@ the corresponding reflection value at the location denoted by result_cap.
   a_token_cache       *new_cache;
   Dyn_array<a_constant*>
                       values(10);
+  a_boolean           saved_permit_leftover_dyn_alloc =
+                                               ips->permit_leftover_dyn_alloc;
 
+  ips->permit_leftover_dyn_alloc = TRUE;
   if (!ips->is_constant_evaluated) {
     do_constexpr_fail(result);
     goto done;
@@ -14108,6 +14117,7 @@ the corresponding reflection value at the location denoted by result_cap.
   }  /* if */
 done:
   for (auto cp: values) release_local_constant(&cp);
+  ips->permit_leftover_dyn_alloc = saved_permit_leftover_dyn_alloc;
   return result;
 }  /* do_constexpr_eval_token_sequence */
 
@@ -25097,7 +25107,8 @@ to a prvalue (without changing expr itself).
            temporaries yet.  If we do have a full expression, ensure that the
            destruction interpretation succeeds. */
         result = FALSE;
-      } else if (ips->dyn_allocations != NULL) {
+      } else if (ips->dyn_allocations != NULL &&
+                 !ips->permit_leftover_dyn_alloc) {
         /* Leftover dynamic allocations are always invalid in this case. */
         report_leftover_allocations(ips);
         do_constexpr_fail(result);
@@ -25293,7 +25304,7 @@ can only be TRUE if the called function is "consteval").
     } else if (ips.storage_stack.destructions != NULL &&
                !perform_destructions(&ips)) {
       result = FALSE;
-    } else if (ips.dyn_allocations != NULL) {
+    } else if (ips.dyn_allocations != NULL && !ips.permit_leftover_dyn_alloc) {
       /* Leftover dynamic allocations are always invalid in this case. */
       report_leftover_allocations(&ips);
       do_constexpr_fail(result);
@@ -25559,7 +25570,8 @@ if the caller has determined that reinterpret_cast expressions can be folded
           dip->variant.constant.non_constant = FALSE;
         }  /* if */
         result = FALSE;
-      } else if (ips.dyn_allocations != NULL) {
+      } else if (ips.dyn_allocations != NULL &&
+                 !ips.permit_leftover_dyn_alloc) {
         /* Leftover dynamic allocations are always invalid in this case. */
         report_leftover_allocations(&ips);
         do_constexpr_fail(result);
@@ -25696,7 +25708,7 @@ position associated with the call.
          only, and therefore it is safe to attempt the destruction of
          temporaries in that case. */
       result = FALSE;
-    } else if (ips.dyn_allocations != NULL) {
+    } else if (ips.dyn_allocations != NULL && !ips.permit_leftover_dyn_alloc) {
       /* Leftover dynamic allocations are always invalid in this case. */
       report_leftover_allocations(&ips);
       do_constexpr_fail(result);
@@ -25728,7 +25740,8 @@ position associated with the call.
          only, and therefore it is safe to attempt the destruction of
          temporaries in that case. */
       result = FALSE;
-    } else if (result && ips.dyn_allocations != NULL) {
+    } else if (result && ips.dyn_allocations != NULL &&
+               !ips.permit_leftover_dyn_alloc) {
       report_leftover_allocations(&ips);
       do_constexpr_fail(result);
     }  /* if */
