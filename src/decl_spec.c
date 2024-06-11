@@ -10520,7 +10520,7 @@ type name (if not, we can conclude that "auto" is a type specifier).
     if (curr_token == tok_lparen || curr_token == tok_lbrace ||
         curr_token == tok_assign || curr_token == tok_star ||
         curr_token == tok_ampersand || curr_token == tok_and_and) {
-      /* An initializer, declarator, of function parameter list is
+      /* An initializer, declarator, or function parameter list is
          next.  So there are no more decl-specifiers. */
       result = FALSE;
       break;
