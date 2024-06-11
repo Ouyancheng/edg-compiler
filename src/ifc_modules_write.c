@@ -3288,7 +3288,9 @@ static inline an_ifc_edg_basic_token_sort token_to_basic_token_kind(
                                                             a_token_kind token)
 /*
 Given a front end token kind (for a token where extra_info_kind == teik_none)
-return the corresponding EDG IFC BasicToken sort value.
+return the corresponding EDG IFC BasicToken sort value.  For tokens that should
+be handled textually, add a case to ifc_ebts_complex.  See the documentation of
+a_token_kind for more information about IFC token serialization.
 */
 {
   an_ifc_edg_basic_token_sort result = ifc_ebts_semicolon;
