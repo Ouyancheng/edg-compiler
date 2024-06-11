@@ -18823,10 +18823,14 @@ the destructor or finalizer is part of a qualified name (e.g., "A::B::~B").
   a_boolean     is_finalizer = (cli_or_cx_enabled && curr_token == tok_not);
 
   check_assertion(is_destructor || is_finalizer);
-  /* Skip past the "~" or "!", check for an identifier. */
+  /* Skip past the "~" or "!", check for an identifier.  In this context, a "<"
+     following the identifier is always interpreted as the delimiter of a
+     template argument list. */
   (void)get_token();
   if (!f_is_generalized_identifier_start(GID_DISALLOW_QUALIFIED_NAME |
-				         GID_DISALLOW_OPERATOR_NAME,
+                                         GID_DISALLOW_OPERATOR_NAME |
+                                         GID_IS_DTOR_NAME |
+                                         GID_TEMPLATE_ARGS_OPTIONAL,
                                          field_sel_type) &&
       (curr_token != tok_decltype_construct || field_sel_type == NULL ||
        qualifier_sym != NULL || is_finalizer)) {
@@ -23156,7 +23160,7 @@ selection operator, in which case it points to the type of the left operand.
   a_namespace_ptr		qualifier_namespace = NULL;
   a_token_sequence_number	start_seq_number;
   a_cached_token_handle		start_cached_token_handle;
-  a_boolean			follows_template;
+  a_boolean			follows_template, is_dtor_name;
   a_boolean			qualifier_is_super = FALSE;
   a_boolean			is_super_qualified = FALSE;
   a_boolean			is_conversion_type = FALSE;
@@ -23210,6 +23214,7 @@ selection operator, in which case it points to the type of the left operand.
     is_conversion_type = field_sel_type != NULL;
   }  /* if */
   follows_template = (options & GID_FOLLOWS_TEMPLATE) != 0;
+  is_dtor_name = (options & GID_IS_DTOR_NAME) != 0;
   /* Look for a leading unary "::".  Don't be fooled by "::new" and
      "::delete".  Don't treat ::* as a pointer to member declarator.
      ::* would be rejected below as a pointer to member declarator, but
@@ -23466,7 +23471,7 @@ selection operator, in which case it points to the type of the left operand.
          is being used as a qualifier or as a field selection operator
          so we need to do a normal lookup and then decide based on the
          type of the thing we find. */
-      if (follows_template) {
+      if (follows_template || is_dtor_name) {
         lookup_kind = IDL_TREAT_AS_TEMPLATE_ID |
                       IDL_TENTATIVE_TEMPLATE_LOOKUP;
       } else if (next_tok == tok_lt) {
@@ -23521,7 +23526,8 @@ selection operator, in which case it points to the type of the left operand.
                                    &is_vacuous_dtor_or_finalizer,
                                    follows_template,
                                    /*might_be_template=*/next_tok == tok_lt ||
-                                                         follows_template,
+                                                         follows_template ||
+                                                         is_dtor_name,
                                    in_if_exists,
                                    cpp11_mode ? is_conversion_type :
                                                 qualified_conversion_operator,

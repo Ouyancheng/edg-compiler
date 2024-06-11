@@ -203,6 +203,9 @@ typedef int an_identifier_options_set;
 			/* TRUE if this is a context in which a
 			   dependent qualified name is implicitly
 			   treated as a type (a C++20 feature). */
+#define GID_IS_DTOR_NAME 0x8000000
+			/* TRUE when scanning a destructor or C++/CLI finalizer
+			   name. */
 #define GID_ERROR_FLAGS (GID_DISALLOW_QUALIFIED_NAME |		\
 			 GID_DISALLOW_GLOBAL_QUALIFIER |	\
 			 GID_DISALLOW_OPERATOR_NAME)
