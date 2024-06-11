@@ -12978,7 +12978,14 @@ messages.
           /* Two '?'s and another character were replaced by one
              character. */
           nchars += 3;
-          ++curr_char_loc;
+          if (olmp->next == NULL || olmp->next->line_loc > curr_char_loc) {
+            /* Advance the current location only if the next modification
+               entry is not at the current location (to allow for cases
+               where the backslash in a line splice is represented by a
+               trigraph, which will result in an olm_trigraph followed by
+               an olm_line_splice at the same location). */
+            ++curr_char_loc;
+          }  /* if */
           break;
         case olm_line_splice:
           /* A '\' and a newline were replaced by nothing. */

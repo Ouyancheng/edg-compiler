@@ -1179,7 +1179,14 @@ get_another:
         state->translated_char[0] = '?';
         state->translated_char[1] = olmp->variant.orig_char;
         state->next_mbc_char = state->translated_char;
-        ++lptr;
+        if (olmp->next == NULL || olmp->next->line_loc > lptr) {
+          /* Advance the current location only if the next modification
+             entry is not at the current location (to allow for cases where
+             the backslash in a line splice is represented by a trigraph,
+             which will result in an olm_trigraph followed by an
+             olm_line_splice at the same location). */
+          ++lptr;
+        }  /* if */
         break;
       case olm_line_splice:
         /* A line splice is not represented in the source string

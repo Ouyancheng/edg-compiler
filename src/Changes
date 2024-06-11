@@ -1,5 +1,20 @@
 Version 6.7
 
+6/11/24  [EDGcpfe/27363]
+Raw string literals, trigraphs, and apparent line splices
+
+In modes in which raw string literals and trigraphs are supported, the
+front end previously did not correctly process a raw string literal in
+which a line ends with the trigraph representation of a '\', i.e., "??/",
+either producing an incorrect value for the raw string literal or aborting
+with an assertion failure in conv_string_literal.  For example, with
+--c++11:
+
+  // Equivalent to "\?\?/\\\n\?\?", previously produced "\?\?"
+  const char a[] = R"(??/
+  ??)";
+
+
 6/11/24  [EDGcpfe/27356]
 Template arguments for dependent destructor name
 
