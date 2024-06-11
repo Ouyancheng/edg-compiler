@@ -201,7 +201,6 @@ namespace std {
     }
 
     template<typename T>
-    [[deprecated("use std::meta::reflect_result")]]
     consteval info reflect_value(T v) {
       return reflect_result<T>(v);
     }
