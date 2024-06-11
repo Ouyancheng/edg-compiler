@@ -2749,7 +2749,6 @@ enum an_ifc_edg_basic_token_sort : uint32_t {
   ifc_ebts_asm,
   ifc_ebts_assign,
   ifc_ebts_auto,
-  ifc_ebts_backslash,
   ifc_ebts_bool,
   ifc_ebts_break,
   ifc_ebts_c11_atomic,

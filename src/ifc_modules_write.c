@@ -3326,9 +3326,6 @@ a_token_kind for more information about IFC token serialization.
     case tok_auto:
       result = ifc_ebts_auto;
       break;
-    case tok_backslash:
-      result = ifc_ebts_backslash;
-      break;
     case tok_bool:
       result = ifc_ebts_bool;
       break;
@@ -3790,6 +3787,7 @@ a_token_kind for more information about IFC token serialization.
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
     case tok_attribute:
     case tok_auto_type:
+    case tok_backslash:
 #if MICROSOFT_EXTENSIONS_ALLOWED
     case tok_based:
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
