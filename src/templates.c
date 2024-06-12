@@ -14614,24 +14614,31 @@ parameters.
       if (tpp->variant.constant.type_involves_template_param) {
         /* The type of the template parameter involves a template parameter.
            Substitute the current set of template arguments (the ones being
-           created by this routine) into the type.  The outer template
-           arguments will also be substituted below, which means that any
-           expressions that result from substitution may be rescanned once
-           more. */
+           created by this routine) into the type.  Normally, outer template
+           arguments have already been substituted into arg_list_to_copy, but
+           for partial ordering and partial specialization matching, the outer
+           template arguments need to be substituted separately. */
+        a_boolean  subst_outer_args;
+        subst_outer_args = (options & (CTWS_IS_PARTIAL_SPECIALIZATION_CHECK |
+                                       CTWS_IS_PARTIAL_ORDER_CHECK)) != 0;
         new_const_type =
              copy_type_with_substitution(new_const_type,
                                          arg_list_to_copy, param_list_for_copy,
                                          source_pos,
-                                         options | CTWS_MAY_BE_RESCANNED,
+                                         options | (subst_outer_args ?
+                                                        CTWS_MAY_BE_RESCANNED :
+                                                        CTWS_NO_OPTIONS),
                                          copy_error, ctws_state);
         if (*copy_error) goto done;
+        if (subst_outer_args) {
+          new_const_type = copy_type_with_substitution(new_const_type,
+                                                       templ_arg_list,
+                                                       templ_param_list,
+                                                       source_pos, options,
+                                                       copy_error, ctws_state);
+          if (*copy_error) goto done;
+        }  /* if */
       }  /* if */
-      new_const_type = copy_type_with_substitution(new_const_type,
-                                                   templ_arg_list,
-                                                   templ_param_list,
-                                                   source_pos, options,
-                                                   copy_error, ctws_state);
-      if (*copy_error) goto done;
       if (!tpp->uses_auto) {
         template_param_type = new_const_type;
       }  /* if */
@@ -15098,7 +15105,6 @@ do_substitution:
         if ((options & (CTWS_IS_PARTIAL_ORDER_CHECK |
                         CTWS_IS_PARTIAL_SPECIALIZATION_CHECK)) != 0) {
           list_for_subst = arg_list_to_copy;
-          options |= CTWS_MAY_BE_RESCANNED;
         }  /* if */
         substitute_template_argument(new_tap, tpp, list_for_subst,
                                      param_list_for_copy,
