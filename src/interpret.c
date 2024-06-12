@@ -13973,6 +13973,19 @@ done:
 }  /* get_string_from_string_view */
 
 
+static inline void freshen_last_cached_token(a_token_cache  *cache)
+/*
+Assign a fresh token sequence number to the last token added to the given
+token cache.
+*/
+{
+  a_token_sequence_number  tsn = assign_new_token_sequence_number();
+
+  cache->last_token->token_sequence_number = tsn;
+  cache->last_token->ending_token_sequence_number = tsn;
+}  /* freshen_last_cached_token */
+
+
 static a_boolean do_constexpr_eval_token_sequence(
                                            an_interpreter_state  *ips,
                                            an_expr_node_ptr      tok_seq_node,
@@ -14019,14 +14032,11 @@ the corresponding reflection value at the location denoted by result_cap.
       new_cache = alloc_token_cache(/*reusable=*/TRUE);
       rescan_reusable_cache((a_token_cache*)orig_tok_seq->token_cache);
       for (; curr_token != tok_end_of_source; (void)get_token()) {
-        a_token_sequence_number  tsn;
-        a_boolean                empty_interpolator = TRUE;
-        a_cached_token           *last_token;
         if (curr_token != tok_backslash) {
           cache_curr_token(new_cache);
+          freshen_last_cached_token(new_cache);
           continue;
         }  /* if */
-        tsn = curr_token_sequence_number;
         /* Skip the backslash. */
         (void)get_token();
         check_assertion(interpolator_num < values.length());
@@ -14041,7 +14051,7 @@ the corresponding reflection value at the location denoted by result_cap.
               goto done;
             }  /* if */
             cache_string_as_identifier(new_cache, str, len, &pos_curr_token);
-            empty_interpolator = FALSE;
+            freshen_last_cached_token(new_cache);
           } else if (strcmp(id, "tokens") == 0) {
             a_constant  *cp = values[interpolator_num];
             if (constant_is(cp, ck_reflection) &&
@@ -14051,7 +14061,7 @@ the corresponding reflection value at the location denoted by result_cap.
               rescan_reusable_cache((a_token_cache*)in_seq->token_cache);
               for (; curr_token != tok_end_of_source; (void)get_token()) {
                 cache_curr_token(new_cache);
-                empty_interpolator = FALSE;
+                freshen_last_cached_token(new_cache);
               }  /* for */
               flush_past_token_cache_terminator();
             } else {
@@ -14070,29 +14080,15 @@ the corresponding reflection value at the location denoted by result_cap.
              pseudo-token representing that constant. */
           cache_general_constant(new_cache, values[interpolator_num],
                                  &pos_curr_token);
-          empty_interpolator = FALSE;
+          freshen_last_cached_token(new_cache);
         } else {
           do_constexpr_fail(result);
           goto done;
-        }  /* if */
-        if (!empty_interpolator) {
-          /* Set the token sequence number range of the interpolated token to
-             match that of the interpolation construct.  This matters among
-             others if the token sequence will be cached again later on (which
-             might look for a specific token sequence number range). */
-          last_token = new_cache->last_token;
-          last_token->token_sequence_number = tsn;
         }  /* if */
         /* Skip the left parenthesis (the right one is skipped by the
            general loop mechanism). */
         (void)get_token();
         check_assertion(curr_token == tok_rparen);
-         /* Make the "end" of the interpolated token match the end of the
-            interpolation construct. */
-        if (!empty_interpolator) {
-          last_token->ending_token_sequence_number =
-                                                   curr_token_sequence_number;
-        }  /* if */
         ++interpolator_num;
       }  /* for */
       flush_past_token_cache_terminator();

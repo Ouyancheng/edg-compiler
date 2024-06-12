@@ -35144,6 +35144,9 @@ position.
 #endif /* GENERATE_SOURCE_SEQUENCE_LISTS */
 
   /* Start the class definition (and associated class scope). */
+  if (!class_type->source_corresp.is_local_to_function) {
+    push_new_top_level_declaration();
+  }  /* if */
   initialize_class_def_state(class_type, &class_state);
   class_state.access = as_public;
   class_type_supp(class_type)->assoc_scope =
@@ -35192,6 +35195,9 @@ position.
   pop_scope();
   if (nontrivial_dtor != NULL) {
     force_definition_of_compiler_generated_routine(nontrivial_dtor);
+  }  /* if */
+  if (!class_type->source_corresp.is_local_to_function) {
+    pop_scope();
   }  /* if */
 }  /* synth_class_definition */
 
