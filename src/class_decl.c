@@ -32119,11 +32119,13 @@ static void complete_class_definition(a_type_ptr         class_type,
                                       a_class_def_state  *class_state)
 /*
 We have seen the complete definition of class_type belonging to scope level
-effective_decl_level.  Perform various postprocessing steps such as computing
-the layout and synthesizing special members (C++).  *class_state holds some
-bits of information that were acquired while parsing.  Note that fixup
-processing (e.g., for default arguments of member functions) has not been done
-at this point yet.  For tasks that must occur after that processing, see
+effective_decl_level (except that effective_decl_level may be NO_SCOPE_DEPTH
+if the definition is the result of calling std::meta::define_class__impl).
+Perform various postprocessing steps such as computing the layout and
+synthesizing special members (C++).  *class_state holds some bits of
+information that were acquired while parsing.  Note that fixup processing
+(e.g., for default arguments of member functions) has not been done at this
+point yet.  For tasks that must occur after that processing, see
 wrap_up_class_definition.
 */
 {
@@ -32161,7 +32163,8 @@ wrap_up_class_definition.
 #endif /* GNU_EXTENSIONS_ALLOWED */
     }  /* if */
   }  /* if */    
-  if (!class_state->is_nonreal_instantiation &&
+  if (effective_decl_level != NO_SCOPE_DEPTH &&
+      !class_state->is_nonreal_instantiation &&
       (prototype_instantiations_in_il ||
        !class_type->variant.class_struct_union.is_nonreal_class)) {
     if (may_be_added_to_types_list(class_type, effective_decl_level)) {
@@ -35131,8 +35134,8 @@ void synth_class_definition(a_type_ptr                     class_type,
 /*
 Define the given class type according to the member declarations provided by
 *descr_array.  This is a helper function for the interpreter's implementation
-of std::meta::__define_class.  Any diagnostics should be issued at the given
-position.
+of std::meta::define_class__impl.  Any diagnostics should be issued at the
+given position.
 */
 {
   a_class_def_state       class_state;
@@ -35187,7 +35190,7 @@ position.
     nontrivial_dtor = generate_destructor(&class_state, &gsfd);
   }  /* if */
   /* Wrap up the definition. */
-  complete_class_definition(class_type, depth_scope_stack-1, &class_state);
+  complete_class_definition(class_type, NO_SCOPE_DEPTH, &class_state);
   symbol_for(class_type)->defined = TRUE;
   if (class_type->variant.class_struct_union.is_template_class) {
     class_type->variant.class_struct_union.is_specialized = TRUE;
