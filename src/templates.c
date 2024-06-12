@@ -14982,7 +14982,8 @@ If there is an error in the copying, set *copy_error to TRUE.
          symbol_is(template_sym, sk_concept_template) ||
          symbol_is(template_sym, sk_variable_template)) &&
         !((options & CTWS_PARTIAL_ARG_LIST_OKAY) != 0 &&
-          (options & CTWS_PRESERVE_DEDUCED_PACKS) != 0)) {
+          (options & CTWS_PRESERVE_DEDUCED_PACKS) != 0 &&
+          pack_tap != NULL)) {
       /* This is an empty pack expansion for a template parameter with a
          default argument, or a missing template argument (which can occur
          following a use of a pack as an argument to a non-pack).  Get the

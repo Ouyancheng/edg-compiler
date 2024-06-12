@@ -1,5 +1,21 @@
 Version 6.7
 
+6/12/24  [EDGcpfe/27193]
+Substitution failure for nested template with default template arguments
+
+Previously, the use of a nested template with default template arguments would
+trigger a spurious substitution failure for a variadic function template.  For
+example, with --c++11:
+
+  template<typename T>
+  struct C {
+    template<typename = void> using A = int;
+  };
+  template<typename T, typename ... Us>
+  typename C<T>::template A<> f(Us ...);
+  auto v = f<int>();  // Previously a spurious error.  Now okay.
+
+
 6/12/24  [EDGcpfe/27304]
 Abort on substitution of dependent non-type template parameter type
 
