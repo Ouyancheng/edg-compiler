@@ -1,5 +1,19 @@
 Version 6.7
 
+6/12/24  [EDGcpfe/25508]
+C++23: Unencodable and multi-character wide character literals
+
+C++ Committee paper P2362R3 specified that wide character literals
+containing more than one character or a character that cannot be
+represented in a single object of type wchar_t are ill-formed; previously
+they produced implementation-defined values.  The front end now issues
+discretionary errors for such constructs in strict C++23 mode and continues
+to issue a warning in other modes.  For example, with --strict --c++23:
+
+  wchar_t a = L'\U0001f926';   // Discretionary error if sizeof(wchar_t) == 2
+  wchar_t b = L'ab';           // Discretionary error
+
+
 6/12/24  [EDGcpfe/27193]
 Substitution failure for nested template with default template arguments
 

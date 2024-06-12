@@ -1503,12 +1503,15 @@ range_check:
   if (range_error) {
     /* A range error occurring in an octal or hexadecimal escape is
        classified as an error by the C Standard.  Other contexts, and in
-       all cases in C++, produce implementation-defined behavior.  We thus
-       issue a strict-ANSI diagnostic for numeric escapes in C and a
-       warning in all other cases. */
+       all cases in C++ other than wchar_t in strict c++23 mode, produce
+       implementation-defined behavior.  We thus issue a strict-ANSI
+       discretionary error for numeric escapes in C and for C++23 wide
+       characters and a warning in all other cases. */
     conv_line_loc_to_source_pos(*state->next_token_char, &error_position);
-    if (C_mode() && strict_ansi_mode && numeric_escape) {
-      diagnostic(strict_ansi_error_severity, ec_bad_character_value);
+    if (strict_ansi_mode &&
+        ((C_mode() && numeric_escape) ||
+         (cpp23_mode && !narrow_literal))) {
+      diagnostic(strict_ansi_discretionary_severity, ec_bad_character_value);
     } else {
       pos_warning(ec_bad_character_value, &error_position);
     }  /* if */
@@ -1866,11 +1869,15 @@ the actual number of converted characters may be less than num_chars.  */
     *err_pos = NULL;
     if (num_chars > 1) {
       /* A character literal with more than one character produces an
-         implementation-defined value.  Issue a warning.  The "too many
-         characters" message is used for wide characters as this is
+         implementation-defined value.  Issue a warning, except in strict
+         C++23 mode, in which a discretionary error is required.  The "too
+         many characters" message is used for wide characters as this is
          unlikely to produce a meaningful result. */
-      an_error_code  wcode = (character_kind != (a_character_kind)chk_char) ?
-                               ec_too_many_characters : ec_multi_char_literal;
+      an_error_code wcode = (character_kind != chk_char) ?
+                                ec_too_many_characters : ec_multi_char_literal;
+      an_error_severity sev = (character_kind == chk_wchar_t &&
+                               cpp23_mode && strict_ansi_mode) ?
+                               strict_ansi_discretionary_severity : es_warning;
       if (gnu_mode && i > targ_sizeof_int) {
         /* Truncate the value and warn about discarded characters. */
         an_integer_value int_mask;
@@ -1880,7 +1887,7 @@ the actual number of converted characters may be less than num_chars.  */
         wcode = ec_leading_character_ignored_in_char_literal;
       }  /* if */
       conv_line_loc_to_source_pos(start_of_curr_token, &error_position);
-      pos_warning(wcode, &error_position);
+      pos_diagnostic(sev, wcode, &error_position);
     }  /* if */
   }  /* if */
   if (*err_code == ec_no_error) {
