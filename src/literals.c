@@ -1869,10 +1869,10 @@ the actual number of converted characters may be less than num_chars.  */
     *err_pos = NULL;
     if (num_chars > 1) {
       /* A character literal with more than one character produces an
-         implementation-defined value.  Issue a warning, except in strict
-         C++23 mode, in which a discretionary error is required.  The "too
-         many characters" message is used for wide characters as this is
-         unlikely to produce a meaningful result. */
+         implementation-defined value.  Issue a warning, except for wchar_t
+         in strict C++23 mode, in which a discretionary error is required.
+         The "too many characters" message is used for wide characters as
+         this is unlikely to produce a meaningful result. */
       an_error_code wcode = (character_kind != chk_char) ?
                                 ec_too_many_characters : ec_multi_char_literal;
       an_error_severity sev = (character_kind == chk_wchar_t &&
