@@ -5926,43 +5926,6 @@ diagnostic textual representation.
 }  /* db_node */
 
 
-void db_node(const an_ifc_edg_extension_type &universal, unsigned indent)
-/*
-Given the universal representation of EdgExtensionType, print a diagnostic
-textual representation with the given indent.
-*/
-{
-  if (has_ifc_value(universal)) {
-    an_ifc_edg_type_index field = get_ifc_value(universal);
-
-    db_print_indent(indent);
-    fprintf(f_debug, "value:");
-    if (is_null_index(field)) {
-      fprintf(f_debug, " NULL\n");
-    } else {
-      fprintf(f_debug, "\n");
-      db_print_indent(indent);
-      fprintf(f_debug, "  sort: %s\n", str_for(field.sort));
-      db_print_indent(indent);
-      fprintf(f_debug, "  value: %llu\n", (unsigned long long)field.value);
-    }  /* if */
-  }  /* if */
-}  /* db_node */
-
-
-void db_node(const an_ifc_edg_extension_type &universal)
-/*
-Given the universal representation of EdgExtensionType, print a diagnostic
-textual representation.
-*/
-{
-  fprintf(f_debug, "=============================== ");
-  fprintf(f_debug, "EdgExtensionType ");
-  fprintf(f_debug, "===============================\n");
-  db_node(universal, 0);
-}  /* db_node */
-
-
 void db_node(const an_ifc_edg_heap_complex_token &universal, unsigned indent)
 /*
 Given the universal representation of EdgHeapComplexToken, print a diagnostic
@@ -5996,158 +5959,6 @@ textual representation.
   fprintf(f_debug, "============================= ");
   fprintf(f_debug, "EdgHeapComplexToken ");
   fprintf(f_debug, "==============================\n");
-  db_node(universal, 0);
-}  /* db_node */
-
-
-void db_node(const an_ifc_edg_heap_template_argument &universal,
-             unsigned                                indent)
-/*
-Given the universal representation of EdgHeapTemplateArgument, print a
-diagnostic textual representation with the given indent.
-*/
-{
-  if (has_ifc_index(universal)) {
-    an_ifc_edg_template_argument_index field = get_ifc_index(universal);
-
-    db_print_indent(indent);
-    fprintf(f_debug, "index:");
-    if (is_null_index(field)) {
-      fprintf(f_debug, " NULL\n");
-    } else {
-      fprintf(f_debug, "\n");
-      db_print_indent(indent);
-      fprintf(f_debug, "  sort: %s\n", str_for(field.sort));
-      db_print_indent(indent);
-      fprintf(f_debug, "  value: %llu\n", (unsigned long long)field.value);
-    }  /* if */
-  }  /* if */
-}  /* db_node */
-
-
-void db_node(const an_ifc_edg_heap_template_argument &universal)
-/*
-Given the universal representation of EdgHeapTemplateArgument, print a
-diagnostic textual representation.
-*/
-{
-  fprintf(f_debug, "=========================== ");
-  fprintf(f_debug, "EdgHeapTemplateArgument ");
-  fprintf(f_debug, "============================\n");
-  db_node(universal, 0);
-}  /* db_node */
-
-
-void db_node(const an_ifc_edg_template_argument_non_type &universal,
-             unsigned                                    indent)
-/*
-Given the universal representation of EdgTemplateArgumentNonType, print a
-diagnostic textual representation with the given indent.
-*/
-{
-  if (has_ifc_value(universal)) {
-    an_ifc_expr_index field = get_ifc_value(universal);
-
-    db_print_indent(indent);
-    fprintf(f_debug, "value:");
-    if (is_null_index(field)) {
-      fprintf(f_debug, " NULL\n");
-    } else {
-      fprintf(f_debug, "\n");
-      db_print_indent(indent);
-      fprintf(f_debug, "  sort: %s\n", str_for(field.sort));
-      db_print_indent(indent);
-      fprintf(f_debug, "  value: %llu\n", (unsigned long long)field.value);
-    }  /* if */
-  }  /* if */
-}  /* db_node */
-
-
-void db_node(const an_ifc_edg_template_argument_non_type &universal)
-/*
-Given the universal representation of EdgTemplateArgumentNonType, print a
-diagnostic textual representation.
-*/
-{
-  fprintf(f_debug, "========================== ");
-  fprintf(f_debug, "EdgTemplateArgumentNonType ");
-  fprintf(f_debug, "==========================\n");
-  db_node(universal, 0);
-}  /* db_node */
-
-
-void db_node(const an_ifc_edg_template_argument_template &universal,
-             unsigned                                    indent)
-/*
-Given the universal representation of EdgTemplateArgumentTemplate, print a
-diagnostic textual representation with the given indent.
-*/
-{
-  if (has_ifc_value(universal)) {
-    an_ifc_decl_index field = get_ifc_value(universal);
-
-    db_print_indent(indent);
-    fprintf(f_debug, "value:");
-    if (is_null_index(field)) {
-      fprintf(f_debug, " NULL\n");
-    } else {
-      fprintf(f_debug, "\n");
-      db_print_indent(indent);
-      fprintf(f_debug, "  sort: %s\n", str_for(field.sort));
-      db_print_indent(indent);
-      fprintf(f_debug, "  value: %llu\n", (unsigned long long)field.value);
-    }  /* if */
-  }  /* if */
-}  /* db_node */
-
-
-void db_node(const an_ifc_edg_template_argument_template &universal)
-/*
-Given the universal representation of EdgTemplateArgumentTemplate, print a
-diagnostic textual representation.
-*/
-{
-  fprintf(f_debug, "========================= ");
-  fprintf(f_debug, "EdgTemplateArgumentTemplate ");
-  fprintf(f_debug, "==========================\n");
-  db_node(universal, 0);
-}  /* db_node */
-
-
-void db_node(const an_ifc_edg_template_argument_type &universal,
-             unsigned                                indent)
-/*
-Given the universal representation of EdgTemplateArgumentType, print a
-diagnostic textual representation with the given indent.
-*/
-{
-  if (has_ifc_value(universal)) {
-    an_ifc_type_index field = get_ifc_value(universal);
-
-    db_print_indent(indent);
-    fprintf(f_debug, "value:");
-    if (is_null_index(field)) {
-      fprintf(f_debug, " NULL\n");
-    } else {
-      fprintf(f_debug, "\n");
-      db_print_indent(indent);
-      fprintf(f_debug, "  sort: %s\n", str_for(field.sort));
-      db_print_indent(indent);
-      fprintf(f_debug, "  value: %llu\n", (unsigned long long)field.value);
-    }  /* if */
-  }  /* if */
-}  /* db_node */
-
-
-void db_node(const an_ifc_edg_template_argument_type &universal)
-/*
-Given the universal representation of EdgTemplateArgumentType, print a
-diagnostic textual representation.
-*/
-{
-  fprintf(f_debug, "=========================== ");
-  fprintf(f_debug, "EdgTemplateArgumentType ");
-  fprintf(f_debug, "============================\n");
   db_node(universal, 0);
 }  /* db_node */
 
@@ -6424,57 +6235,6 @@ diagnostic textual representation.
   fprintf(f_debug, "========================== ");
   fprintf(f_debug, "EdgTraitFunctionDefinition ");
   fprintf(f_debug, "==========================\n");
-  db_node(universal, 0);
-}  /* db_node */
-
-
-void db_node(const an_ifc_edg_type_substituted &universal, unsigned indent)
-/*
-Given the universal representation of EdgTypeSubstituted, print a diagnostic
-textual representation with the given indent.
-*/
-{
-  if (has_ifc_arguments(universal)) {
-    an_ifc_edg_heap_template_argument_offset field =
-                                                  get_ifc_arguments(universal);
-
-    db_print_indent(indent);
-    fprintf(f_debug, "arguments: %llu\n", (unsigned long long)field.value);
-  }  /* if */
-  if (has_ifc_num_arguments(universal)) {
-    an_ifc_cardinality field = get_ifc_num_arguments(universal);
-
-    db_print_indent(indent);
-    fprintf(f_debug, "num_arguments: %llu\n",
-            (unsigned long long)field.value);
-  }  /* if */
-  if (has_ifc_subject(universal)) {
-    an_ifc_decl_index field = get_ifc_subject(universal);
-
-    db_print_indent(indent);
-    fprintf(f_debug, "subject:");
-    if (is_null_index(field)) {
-      fprintf(f_debug, " NULL\n");
-    } else {
-      fprintf(f_debug, "\n");
-      db_print_indent(indent);
-      fprintf(f_debug, "  sort: %s\n", str_for(field.sort));
-      db_print_indent(indent);
-      fprintf(f_debug, "  value: %llu\n", (unsigned long long)field.value);
-    }  /* if */
-  }  /* if */
-}  /* db_node */
-
-
-void db_node(const an_ifc_edg_type_substituted &universal)
-/*
-Given the universal representation of EdgTypeSubstituted, print a diagnostic
-textual representation.
-*/
-{
-  fprintf(f_debug, "============================== ");
-  fprintf(f_debug, "EdgTypeSubstituted ");
-  fprintf(f_debug, "==============================\n");
   db_node(universal, 0);
 }  /* db_node */
 
@@ -22689,23 +22449,6 @@ representation of the associated node.
 }  /* db_node_at_idx */
 
 
-void db_node_at_idx(an_ifc_edg_extension_type_offset idx)
-/*
-Given the EdgExtensionTypeOffset, print a diagnostic textual representation of
-the associated node.
-*/
-{
-  if (validate(idx)) {
-    an_ifc_edg_extension_type universal;
-
-    construct_node_prechecked(&universal, idx);
-    db_node(universal);
-  } else {
-    fputs("Invalid EdgExtensionType node.\n", f_debug);
-  }  /* if */
-}  /* db_node_at_idx */
-
-
 void db_node_at_idx(an_ifc_edg_heap_complex_token_offset idx)
 /*
 Given the EdgHeapComplexTokenOffset, print a diagnostic textual representation
@@ -22719,62 +22462,6 @@ of the associated node.
     db_node(universal);
   } else {
     fputs("Invalid EdgHeapComplexToken node.\n", f_debug);
-  }  /* if */
-}  /* db_node_at_idx */
-
-
-void db_node_at_idx(an_ifc_edg_heap_template_argument_offset idx)
-/*
-Given the EdgHeapTemplateArgumentOffset, print a diagnostic textual
-representation of the associated node.
-*/
-{
-  if (validate(idx)) {
-    an_ifc_edg_heap_template_argument universal;
-
-    construct_node_prechecked(&universal, idx);
-    db_node(universal);
-  } else {
-    fputs("Invalid EdgHeapTemplateArgument node.\n", f_debug);
-  }  /* if */
-}  /* db_node_at_idx */
-
-
-void db_node_at_idx(an_ifc_edg_template_argument_index idx)
-/*
-Given the EdgTemplateArgumentIndex, print a diagnostic textual representation
-of the associated node.
-*/
-{
-  if (validate(idx)) {
-    switch (idx.sort) {
-      case ifc_etas_edg_template_argument_non_type:
-        { an_ifc_edg_template_argument_non_type universal;
-
-          construct_node_prechecked(&universal, idx);
-          db_node(universal);
-        }
-        break;
-      case ifc_etas_edg_template_argument_template:
-        { an_ifc_edg_template_argument_template universal;
-
-          construct_node_prechecked(&universal, idx);
-          db_node(universal);
-        }
-        break;
-      case ifc_etas_edg_template_argument_type:
-        { an_ifc_edg_template_argument_type universal;
-
-          construct_node_prechecked(&universal, idx);
-          db_node(universal);
-        }
-        break;
-      default:
-        fprintf(f_debug, "Node not found.");
-        break;
-    }  /* switch */
-  } else {
-    fprintf(f_debug, "Invalid %s node.\n", str_for(idx.sort));
   }  /* if */
 }  /* db_node_at_idx */
 
@@ -22809,31 +22496,6 @@ associated node.
     db_node(universal);
   } else {
     fputs("Invalid EdgTokenCache node.\n", f_debug);
-  }  /* if */
-}  /* db_node_at_idx */
-
-
-void db_node_at_idx(an_ifc_edg_type_index idx)
-/*
-Given the EdgTypeIndex, print a diagnostic textual representation of the
-associated node.
-*/
-{
-  if (validate(idx)) {
-    switch (idx.sort) {
-      case ifc_ets_edg_type_substituted:
-        { an_ifc_edg_type_substituted universal;
-
-          construct_node_prechecked(&universal, idx);
-          db_node(universal);
-        }
-        break;
-      default:
-        fprintf(f_debug, "Node not found.");
-        break;
-    }  /* switch */
-  } else {
-    fprintf(f_debug, "Invalid %s node.\n", str_for(idx.sort));
   }  /* if */
 }  /* db_node_at_idx */
 

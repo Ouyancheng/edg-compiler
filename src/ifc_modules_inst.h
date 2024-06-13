@@ -72,18 +72,6 @@ INST_PARTITION_ALL(an_ifc_edg_constant_index)
 
 
 /*
-Explicit instantiations of functions for EdgTemplateArgumentIndex.
-*/
-INST_PARTITION_ALL(an_ifc_edg_template_argument_index)
-
-
-/*
-Explicit instantiations of functions for EdgTypeIndex.
-*/
-INST_PARTITION_ALL(an_ifc_edg_type_index)
-
-
-/*
 Explicit instantiations of functions for ExprIndex.
 */
 INST_PARTITION_ALL(an_ifc_expr_index)
@@ -496,14 +484,6 @@ Explicit instantiations of functions for EdgConstantIntegerWord.
 */
 INST_CONSTRUCT_NODE_ALL(an_ifc_edg_constant_integer_word,
                         an_ifc_edg_constant_integer_word_offset)
-INST_NODE_DECL(an_ifc_edg_extension_type_storage)
-
-
-/*
-Explicit instantiations of functions for EdgExtensionType.
-*/
-INST_CONSTRUCT_NODE_ALL(an_ifc_edg_extension_type,
-                        an_ifc_edg_extension_type_offset)
 INST_NODE_DECL(an_ifc_edg_heap_complex_token_storage)
 
 
@@ -512,38 +492,6 @@ Explicit instantiations of functions for EdgHeapComplexToken.
 */
 INST_CONSTRUCT_NODE_ALL(an_ifc_edg_heap_complex_token,
                         an_ifc_edg_heap_complex_token_offset)
-INST_NODE_DECL(an_ifc_edg_heap_template_argument_storage)
-
-
-/*
-Explicit instantiations of functions for EdgHeapTemplateArgument.
-*/
-INST_CONSTRUCT_NODE_ALL(an_ifc_edg_heap_template_argument,
-                        an_ifc_edg_heap_template_argument_offset)
-INST_NODE_DECL(an_ifc_edg_template_argument_non_type_storage)
-
-
-/*
-Explicit instantiations of functions for EdgTemplateArgumentNonType.
-*/
-INST_CONSTRUCT_NODE_ALL(an_ifc_edg_template_argument_non_type,
-                        an_ifc_edg_template_argument_index)
-INST_NODE_DECL(an_ifc_edg_template_argument_template_storage)
-
-
-/*
-Explicit instantiations of functions for EdgTemplateArgumentTemplate.
-*/
-INST_CONSTRUCT_NODE_ALL(an_ifc_edg_template_argument_template,
-                        an_ifc_edg_template_argument_index)
-INST_NODE_DECL(an_ifc_edg_template_argument_type_storage)
-
-
-/*
-Explicit instantiations of functions for EdgTemplateArgumentType.
-*/
-INST_CONSTRUCT_NODE_ALL(an_ifc_edg_template_argument_type,
-                        an_ifc_edg_template_argument_index)
 INST_NODE_DECL(an_ifc_edg_token_basic_storage)
 
 
@@ -584,13 +532,6 @@ INST_CONSTRUCT_NODE_ALL(an_ifc_edg_token_textual,
                         an_ifc_edg_complex_token_index)
 INST_NODE_DECL(an_ifc_edg_trait_class_definition_storage)
 INST_NODE_DECL(an_ifc_edg_trait_function_definition_storage)
-INST_NODE_DECL(an_ifc_edg_type_substituted_storage)
-
-
-/*
-Explicit instantiations of functions for EdgTypeSubstituted.
-*/
-INST_CONSTRUCT_NODE_ALL(an_ifc_edg_type_substituted, an_ifc_edg_type_index)
 INST_NODE_DECL(an_ifc_expr_alignof_storage)
 
 
@@ -2324,21 +2265,9 @@ INST_PARTITION_ALL(an_ifc_edg_constant_integer_word_offset)
 
 
 /*
-Explicit instantiations of functions for EdgExtensionTypeOffset.
-*/
-INST_PARTITION_ALL(an_ifc_edg_extension_type_offset)
-
-
-/*
 Explicit instantiations of functions for EdgHeapComplexTokenOffset.
 */
 INST_PARTITION_ALL(an_ifc_edg_heap_complex_token_offset)
-
-
-/*
-Explicit instantiations of functions for EdgHeapTemplateArgumentOffset.
-*/
-INST_PARTITION_ALL(an_ifc_edg_heap_template_argument_offset)
 
 
 /*
