@@ -568,8 +568,6 @@ INST_CONSTRUCT_NODE(an_ifc_decl_temploid, an_ifc_partition_kind_index)
 INST_CONSTRUCT_NODE(an_ifc_decl_specialization, an_ifc_partition_kind_index)
 INST_CONSTRUCT_NODE(an_ifc_edg_constant_integer_word,
                     an_ifc_partition_kind_index)
-INST_CONSTRUCT_NODE(an_ifc_edg_heap_template_argument,
-                    an_ifc_partition_kind_index)
 INST_CONSTRUCT_NODE(an_ifc_edg_heap_complex_token, an_ifc_partition_kind_index)
 INST_CONSTRUCT_NODE(an_ifc_edg_token_basic, an_ifc_partition_kind_index)
 INST_CONSTRUCT_NODE(an_ifc_edg_token_textual, an_ifc_partition_kind_index)

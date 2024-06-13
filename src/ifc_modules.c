@@ -1849,8 +1849,6 @@ using a_decl_specialization_sequence =
 using a_decl_temploid_sequence = Node_sequence<an_ifc_decl_temploid>;
 using an_edg_constant_integer_word_sequence =
                                Node_sequence<an_ifc_edg_constant_integer_word>;
-using an_edg_template_arg_heap_sequence =
-                              Node_sequence<an_ifc_edg_heap_template_argument>;
 using an_edg_token_basic_sequence = Node_sequence<an_ifc_edg_token_basic>;
 using an_edg_token_textual_sequence =
                                      Node_sequence<an_ifc_edg_token_textual>;
@@ -21763,201 +21761,6 @@ decisions about what to cache.
 }  /* an_ifc_module::cache_scope_decl */
 
 
-static a_boolean cache_edg_template_arg(
-                                    a_module_token_cache_ptr           cache,
-                                    an_ifc_edg_template_argument_index arg_idx)
-/*
-Add the tokens corresponding to the given template argument to the cache.
-Return TRUE if caching succeeds; otherwise, return FALSE.
-*/
-{
-  a_boolean result = TRUE;
-
-  switch (arg_idx.sort) {
-    case ifc_etas_edg_template_argument_non_type:
-      { Opt<an_ifc_edg_template_argument_non_type> opt_non_type_arg;
-
-        construct_node(&opt_non_type_arg, arg_idx);
-        if (!opt_non_type_arg.has_value()) {
-          goto invalid;
-        }  /* if */
-
-        an_ifc_edg_template_argument_non_type
-                non_type_arg = *opt_non_type_arg;
-        an_ifc_expr_index
-                expr_idx = get_ifc_value(non_type_arg);
-        cache_expr(cache, expr_idx, /*cinfo=*/{});
-      }
-      break;
-    case ifc_etas_edg_template_argument_template:
-      { Opt<an_ifc_edg_template_argument_template> opt_templ_arg;
-
-        construct_node(&opt_templ_arg, arg_idx);
-        if (!opt_templ_arg.has_value()) {
-          goto invalid;
-        }  /* if */
-
-        an_ifc_edg_template_argument_template
-                templ_arg = *opt_templ_arg;
-        an_ifc_decl_index
-                decl_idx = get_ifc_value(templ_arg);
-        cache_token_with_index(cache, tok_ifc_decl_ref, decl_idx);
-      }
-      break;
-    case ifc_etas_edg_template_argument_type:
-      { Opt<an_ifc_edg_template_argument_type> opt_type_arg;
-
-        construct_node(&opt_type_arg, arg_idx);
-        if (!opt_type_arg.has_value()) {
-          goto invalid;
-        }  /* if */
-
-        an_ifc_edg_template_argument_type
-                type_templ = *opt_type_arg;
-        an_ifc_type_index
-                type_idx = get_ifc_value(type_templ);
-        cache_type(cache, type_idx, /*cinfo=*/{});
-      }
-      break;
-    default_is_unexpected();
-  }  /* switch */
-  goto done;
-invalid:
-  cache->invalidate();
-  result = FALSE;
-done:
-  return result;
-}  /* cache_edg_template_arg */
-
-
-static void cache_edg_type_first_part(a_module_token_cache_ptr cache,
-                                      an_ifc_edg_type_index    type_idx,
-                                      const an_ifc_cache_info  &cinfo)
-/*
-This function implements cache_type_first_part for EDG IFC type extensions.
-See cache_type_first_part for additional information.
-*/
-{
-  switch (type_idx.sort) {
-    case ifc_ets_edg_type_substituted:
-      { Opt<an_ifc_edg_type_substituted> opt_subst_type;
-
-        construct_node(&opt_subst_type, type_idx);
-        if (!opt_subst_type.has_value()) {
-          goto invalid;
-        }  /* if */
-
-        an_ifc_edg_type_substituted subst_type = *opt_subst_type;
-        an_ifc_decl_index           subject = get_ifc_subject(subst_type);
-        cache_token_with_index(cache, tok_ifc_decl_ref, subject);
-        cache_token(cache, tok_lt);
-
-        an_ifc_index_type
-                arg_start = get_ifc_arguments(subst_type).value;
-        an_ifc_cardinality
-                arg_count = get_ifc_num_arguments(subst_type);
-        an_edg_template_arg_heap_sequence
-                templ_arg_seq(module_of(subst_type), arg_start, arg_count);
-        a_boolean
-                first = TRUE;
-        for (Indexed<an_ifc_edg_heap_template_argument> indexed_hta :
-                                                               templ_arg_seq) {
-          if (!indexed_hta.has_value()) {
-            goto invalid;
-          }  /* if */
-          if (!first) {
-            cache_token(cache, tok_comma);
-          }  /* if */
-
-          an_ifc_edg_heap_template_argument
-                templ_arg = *indexed_hta;
-          an_ifc_edg_template_argument_index
-                arg_index = get_ifc_index(templ_arg);
-          if (!cache_edg_template_arg(cache, arg_index)) {
-            goto invalid;
-          }  /* if */
-          first = FALSE;
-        }  /* for */
-        cache_token(cache, tok_gt);
-      }
-      break;
-    default_is_unexpected();
-  }  /* switch */
-  goto done;
-invalid:
-  cache->invalidate();
-done:;
-}  /* cache_edg_type_first_part */
-
-
-static void cache_edg_type_second_part(a_module_token_cache_ptr cache,
-                                       an_ifc_edg_type_index    type_idx,
-                                       const an_ifc_cache_info  &cinfo)
-/*
-This function implements cache_type_second_part for EDG IFC type extensions.
-See cache_type_second_part for additional information.
-*/
-{
-  switch (type_idx.sort) {
-    case ifc_ets_edg_type_substituted:
-      /* Nothing to do for these types. */
-      break;
-    default_is_unexpected();
-  }  /* switch */
-}  /* cache_edg_type_second_part */
-
-
-static Opt<an_ifc_edg_type_index>
-load_edg_type_vendor_extension(an_ifc_type_index type)
-/*
-Given non-null vendor extension type index from an EDG authored IFC file,
-return the corresponding EDG type index.  If a problem occurs while retrieving
-the EDG type index, instead return an empty optional.
-*/
-{
-  /* If this assertion fails, the caller has provided something other than an
-     EDG type vendor extension. */
-  check_assertion(is_edg_authored(type) && !is_null_index(type) &&
-                  type.sort == ifc_ts_type_vendor_extension);
-  Opt<an_ifc_edg_type_index> result;
-
-  {
-    /* This is the EDG variant of the IFC, the type vendor extension references
-       an entry in the ".edg.extension.type" partition.  When written an
-       additional value of one is added to the true partition offset to allow
-       for the null index case to be distinguished; subtract the extra value
-       now. */
-    an_ifc_index_type expected_offset = type.value - 1;
-
-    /* The offset is going to be manually constructed (and thus isn't subject
-       to the normal protection of the IFC validator): Explicitly perform
-       presence checking. */
-    if (!validate_element_exists(type.file, ifc_pk_edg_extension_type,
-                                 expected_offset, /*trace=*/NULL)) {
-      goto invalid;
-    }  /* if */
-
-    /* Load the EDG IFC type extension. */
-    an_ifc_edg_extension_type_offset type_offset(type.file,
-                                                 expected_offset + 1);
-    Opt<an_ifc_edg_extension_type>   opt_extension_type;
-    construct_node(&opt_extension_type, type_offset);
-    if (!opt_extension_type.has_value()) {
-      goto invalid;
-    }  /* if */
-
-    an_ifc_edg_extension_type extension_type = *opt_extension_type;
-    an_ifc_edg_type_index     edg_type_idx = get_ifc_value(extension_type);
-    result = edg_type_idx;
-  }
-  goto done;
-invalid:
-  result.clear();
-done:
-  return result;
-}  /* load_edg_type_vendor_extension */
-
-
 static void cache_type_first_part(a_module_token_cache_ptr cache,
                                   an_ifc_type_index        type,
                                   const an_ifc_cache_info  &cinfo)
@@ -21980,28 +21783,12 @@ this is needed.
   an_ifc_module *mod = module_of(type);
 
   switch (type.sort) {
+    case ifc_ts_type_vendor_extension:
     case ifc_ts_type_method:
     case ifc_ts_type_unaligned:
       issue_unsupported_construct_error(mod, str_for(type.sort),
                                         &error_position);
       goto invalid;
-    case ifc_ts_type_vendor_extension:
-      if (is_edg_authored(type)) {
-        Opt<an_ifc_edg_type_index> opt_edg_type_idx =
-                                          load_edg_type_vendor_extension(type);
-
-        if (!opt_edg_type_idx.has_value()) {
-          goto invalid;
-        }  /* if */
-
-        an_ifc_edg_type_index edg_type_idx = *opt_edg_type_idx;
-        cache_edg_type_first_part(cache, edg_type_idx, cinfo);
-      } else {
-        issue_unsupported_construct_error(mod, str_for(type.sort),
-                                          &error_position);
-        goto invalid;
-      }  /* else if */
-      break;
     case ifc_ts_type_fundamental:
       { Opt<an_ifc_type_fundamental> opt_itf;
 
@@ -22532,6 +22319,7 @@ this is needed.
 
   switch (type.sort) {
     case ifc_ts_type_tor:
+    case ifc_ts_type_vendor_extension:
       /* This type should only be encountered when processing a constructor,
          and that is directly handled with that constructor declaration.*/
       { a_string err_msg("Unexpected ", str_for(type.sort));
@@ -22539,23 +22327,6 @@ this is needed.
         ifc_unexpected(mod, err_msg);
       }
       goto invalid;
-    case ifc_ts_type_vendor_extension:
-      if (is_edg_authored(type)) {
-        Opt<an_ifc_edg_type_index> opt_edg_type_idx =
-                                          load_edg_type_vendor_extension(type);
-
-        if (!opt_edg_type_idx.has_value()) {
-          goto invalid;
-        }  /* if */
-
-        an_ifc_edg_type_index edg_type_idx = *opt_edg_type_idx;
-        cache_edg_type_second_part(cache, edg_type_idx, cinfo);
-      } else {
-        issue_unsupported_construct_error(mod, str_for(type.sort),
-                                          &error_position);
-        goto invalid;
-      }  /* else if */
-      break;
     case ifc_ts_type_pointer:
       { Opt<an_ifc_type_pointer> opt_itp;
 

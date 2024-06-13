@@ -385,31 +385,13 @@ Allocate a type node in its corresponding output partition.  Set *result to the
 allocated node.  Return the node's type index.
 */
 {
-  an_ifc_type_index
-                result_idx;
   an_ifc_partition_kind
                 part_kind = get_ifc_partition_kind<an_ifc_Node_type>();
   size_t        part_offset = this->alloc_node(result);
+  an_ifc_type_sort
+                type_sort = to_type_sort(part_kind);
 
-  if (is_edg_type_sort(part_kind)) {
-    an_ifc_edg_extension_type
-                type_extension;
-    size_t      extension_offset = this->alloc_node(&type_extension);
-    an_ifc_edg_type_sort
-                type_sort = to_edg_type_sort(part_kind);
-    an_ifc_edg_type_index
-                edg_type_index(result->get_file(), type_sort, part_offset);
-
-    set_ifc_value(&type_extension, edg_type_index);
-    result_idx = an_ifc_type_index(result->get_file(),
-                                   ifc_ts_type_vendor_extension,
-                                   extension_offset + 1);
-  } else {
-    an_ifc_type_sort type_sort = to_type_sort(part_kind);
-
-    result_idx = an_ifc_type_index(result->get_file(), type_sort, part_offset);
-  }  /* if */
-  return result_idx;
+  return an_ifc_type_index(result->get_file(), type_sort, part_offset);
 }  /* an_ifc_output_state::alloc_type */
 
 
@@ -1237,8 +1219,8 @@ struct an_ifc_il_map {
   an_ifc_type_index enter_type(a_type_ptr type);
   an_ifc_scope_offset find_or_enter_scope(a_scope_ptr scope);
   an_ifc_scope_offset enter_scope(a_scope_ptr scope);
-  an_ifc_decl_index find_or_enter_class_struct_union(a_type_ptr type);
-  an_ifc_decl_index enter_class_struct_union(a_type_ptr type);
+  an_ifc_decl_index find_or_enter_class(a_type_ptr type);
+  an_ifc_decl_index enter_class(a_type_ptr type);
   an_ifc_decl_index find_or_enter_enum(a_type_ptr type);
   an_ifc_decl_index enter_enum(a_type_ptr type);
   an_ifc_decl_index find_or_enter_routine(a_routine_ptr rp);
@@ -1284,7 +1266,7 @@ private:
                                         an_ifc_Node_type *node);
 
   /* Functions for entering specific type kinds. */
-  an_ifc_type_index enter_class_struct_union_type(a_type_ptr type);
+  an_ifc_type_index enter_class_type(a_type_ptr type);
   an_ifc_type_index enter_constructor_type(a_type_ptr type);
   an_ifc_type_index enter_enum_type(a_type_ptr type);
   an_ifc_type_index enter_float_type(a_type_ptr type);
@@ -1304,17 +1286,11 @@ private:
   /* Functions for entering portions of other larger entities. */
   an_ifc_sequence enter_enumerators(a_type_ptr type);
   an_ifc_chart_index enter_routine_params(a_routine_ptr rp);
-  an_ifc_edg_template_argument_index enter_template_argument(
-                                                 a_template_arg_ptr templ_arg);
   an_ifc_chart_index enter_template_params(a_template_ptr templ);
-  an_ifc_type_index enter_template_template_param_type(a_template_ptr templ);
   void set_template_param_coordinates(
                                an_ifc_decl_parameter             *param_decl,
                                const a_template_param_coordinate &coordinates);
   void set_up_template_non_type_param(an_ifc_decl_parameter    *param_decl,
-                                      a_template_parameter_ptr templ_param);
-  void set_up_template_template_param(an_ifc_decl_parameter    *param_decl,
-                                      an_ifc_decl_index        curr_param_idx,
                                       a_template_parameter_ptr templ_param);
   void set_up_template_type_param(an_ifc_decl_parameter    *param_decl,
                                   an_ifc_decl_index        curr_param_idx,
@@ -1495,8 +1471,7 @@ index for the type file.
   switch (type->kind) {
     case tk_class:
     case tk_struct:
-    case tk_union:
-      result = this->enter_class_struct_union_type(type);
+      result = this->enter_class_type(type);
       break;
     case tk_float:
       result = this->enter_float_type(type);
@@ -1583,6 +1558,7 @@ index for the type file.
     case tk_void:
       result = this->enter_void_type(type);
       break;
+    case tk_union:
     case tk_error:
 #if FIXED_POINT_ALLOWED
     case tk_fixed_point:
@@ -1698,30 +1674,28 @@ Return the IFC access sort representing the access of the given IL entity.
 
 namespace {
 
-an_ifc_decl_index an_ifc_il_map::find_or_enter_class_struct_union(
-                                                               a_type_ptr type)
+an_ifc_decl_index an_ifc_il_map::find_or_enter_class(a_type_ptr type)
 /*
-For the given class, struct, or union type find or enter the respective
-declaration into the IFC output state.  Return the declaration index for the
-entered declaration.
+For the given class type find or enter the class into the IFC output state.
+Return the declaration index for the class.
 */
 {
   an_ifc_decl_index result = this->il_entry_to_decl.get(make_tagged_ptr(type));
 
   if (is_null_index(result)) {
-    result = this->enter_class_struct_union(type);
+    result = this->enter_class(type);
   }  /* if */
   return result;
-}  /* an_ifc_il_map::find_or_enter_class_struct_union */
+}  /* an_ifc_il_map::find_or_enter_class */
 
 
-an_ifc_decl_index an_ifc_il_map::enter_class_struct_union(a_type_ptr type)
+an_ifc_decl_index an_ifc_il_map::enter_class(a_type_ptr type)
 /*
-Enter the given class, struct, or union type into the IFC output state.  Return
-the declaration index for the entered declaration.
+Enter the given class type into the IFC output state.  Return the declaration
+index for the class type.
 */
 {
-  check_assertion(is_class_struct_union_type(type));
+  check_assertion(is_class_or_struct(type));
   an_ifc_decl_scope
                 scope_decl;
   an_ifc_decl_index
@@ -1750,7 +1724,8 @@ the declaration index for the entered declaration.
   /* FIXME: Set base. */
   /* Associate the class scope decl with its contents. */
   a_scope_ptr   class_scope = class_type_supp(type)->assoc_scope;
-  a_template    *assoc_templ = class_type_supp(type)->assoc_template;
+  a_template    *assoc_templ =
+                   type->variant.class_struct_union.extra_info->assoc_template;
   if (assoc_templ == NULL) {
     /* This traversal is not performed for class templates.  The class template
        definition will be associated below via a trait. */
@@ -1814,7 +1789,7 @@ the declaration index for the entered declaration.
                 ifc_properties(scope_decl.get_file(), ifc_raw_properties);
   set_ifc_properties(&scope_decl, ifc_properties);
   return result;
-}  /* an_ifc_il_map::enter_class_struct_union */
+}  /* an_ifc_il_map::enter_class */
 
 
 an_ifc_decl_index an_ifc_il_map::find_or_enter_enum(a_type_ptr type)
@@ -2291,71 +2266,23 @@ node.
 }  /* an_ifc_il_map::map_new_decl */
 
 
-an_ifc_type_index an_ifc_il_map::enter_class_struct_union_type(a_type_ptr type)
+an_ifc_type_index an_ifc_il_map::enter_class_type(a_type_ptr type)
 /*
-Enter the given class, struct, or union type into the IFC output state.  Return
-the type index for the class type.
+Enter the given class type into the IFC output state.  Return the type index
+for the class type.
 */
 {
   check_assertion(is_class_or_struct(type));
-  an_ifc_type_index
-                result;
-  a_template_arg_ptr
-                arg_list = class_type_supp(type)->template_arg_list;
-  unsigned      arg_count = count_list_elements(arg_list);
-
-  if (arg_count > 0) {
-    /* This is a substituted type, enter it as such. */
-    an_ifc_edg_type_substituted
-                substituted_type;
-
-    result = this->map_new_type(type, &substituted_type);
-
-    a_template_ptr
-                templ = class_type_supp(type)->assoc_template;
-    an_ifc_decl_index
-                ifc_templ_idx = this->find_or_enter_template(templ);
-    set_ifc_subject(&substituted_type, ifc_templ_idx);
-
-    /* Preallocate all the arguments to ensure we get one contiguous block. */
-    size_t      start = this->output_state->
-                alloc_node_block<an_ifc_edg_heap_template_argument>(arg_count);
-    /* Associate the preallocated parameter nodes with the type. */
-    an_ifc_module_file
-                *file = this->get_default_file();
-    an_ifc_edg_heap_template_argument_offset
-                ifc_arg_start(file, start);
-    an_ifc_cardinality
-                ifc_arg_count(file, arg_count);
-    set_ifc_arguments(&substituted_type, ifc_arg_start);
-    set_ifc_num_arguments(&substituted_type, ifc_arg_count);
-
-    /* Complete the arguments. */
-    a_template_arg_ptr curr_templ_arg = arg_list;
-    for (size_t i = 0; i < arg_count; ++i) {
-      size_t                            curr_arg_offset = start + i;
-      an_ifc_edg_heap_template_argument curr_arg;
-
-      this->output_state->fetch_node(&curr_arg, curr_arg_offset);
-
-      an_ifc_edg_template_argument_index
-                arg_index = this->enter_template_argument(curr_templ_arg);
-      set_ifc_index(&curr_arg, arg_index);
-      /* Advance to the next argument. */
-      curr_templ_arg = curr_templ_arg->next;
-    }  /* for */
-  } else {
-    an_ifc_type_designated
+  an_ifc_type_designated
                 designated_type;
+  an_ifc_type_index
+                result = this->map_new_type(type, &designated_type);
+  an_ifc_decl_index
+                decl_idx = this->find_or_enter_class(type);
 
-    result = this->map_new_type(type, &designated_type);
-
-    an_ifc_decl_index
-                decl_idx = this->find_or_enter_class_struct_union(type);
-    set_ifc_decl(&designated_type, decl_idx);
-  }  /* if */
+  set_ifc_decl(&designated_type, decl_idx);
   return result;
-}  /* an_ifc_il_map::enter_class_struct_union_type */
+}  /* an_ifc_il_map::enter_class_type */
 
 
 an_ifc_type_index an_ifc_il_map::enter_constructor_type(a_type_ptr type)
@@ -3098,97 +3025,6 @@ the parameters.
 }  /* an_ifc_il_map::enter_routine_params */
 
 
-an_ifc_edg_template_argument_index an_ifc_il_map::enter_template_argument(
-                                                  a_template_arg_ptr templ_arg)
-/*
-For the given template argument enter the template argument into the IFC output
-state.  Return the EDG IFC template argument index for the template argument.
-*/
-{
-  an_ifc_edg_template_argument_index
-                result;
-  a_templ_arg_kind
-                arg_kind = templ_arg->kind;
-
-  switch (arg_kind) {
-    case tak_nontype:
-      { an_ifc_edg_template_argument_non_type
-                non_type_templ_arg;
-        size_t  arg_offset =
-                           this->output_state->alloc_node(&non_type_templ_arg);
-        an_ifc_output_token_cache
-                init_token_cache;
-
-        if (templ_arg->is_array_bound_of_unknown_type) {
-          header_unit_catastrophe();
-        } else {
-          an_ifc_edg_constant_index
-                ifc_constant =
-                             this->enter_constant(templ_arg->variant.constant);
-          an_ifc_edg_complex_token_index
-                ifc_constant_token = this->enter_constant_token(
-                                                         ifc_ects_int_constant,
-                                                         ifc_constant);
-
-          init_token_cache.add_complex(ifc_constant_token);
-        }  /* if */
-
-        /* Set the value for the argument. */
-        an_ifc_expr_index
-                init_idx = this->output_state->alloc_token_cache_expr(
-                                                             init_token_cache);
-        set_ifc_value(&non_type_templ_arg, init_idx);
-        result = an_ifc_edg_template_argument_index(
-                                       non_type_templ_arg.get_file(),
-                                       ifc_etas_edg_template_argument_non_type,
-                                       arg_offset);
-      }
-      break;
-    case tak_template:
-      { an_ifc_edg_template_argument_template
-                template_templ_arg;
-        size_t  arg_offset =
-                           this->output_state->alloc_node(&template_templ_arg);
-
-        if (templ_arg->variant.templ.substituted_param_template != NULL) {
-          /* FIXME: What if anything needs done here? */
-          header_unit_catastrophe();
-        }  /* if */
-
-        an_ifc_decl_index
-                decl_idx =
-                    this->find_or_enter_template(templ_arg->variant.templ.ptr);
-        set_ifc_value(&template_templ_arg, decl_idx);
-        result = an_ifc_edg_template_argument_index(
-                                       template_templ_arg.get_file(),
-                                       ifc_etas_edg_template_argument_template,
-                                       arg_offset);
-      }
-      break;
-    case tak_type:
-      { an_ifc_edg_template_argument_type
-                template_templ_arg;
-        size_t  arg_offset =
-                           this->output_state->alloc_node(&template_templ_arg);
-        an_ifc_type_index
-                type_idx = this->find_or_enter_type(templ_arg->variant.type);
-
-        set_ifc_value(&template_templ_arg, type_idx);
-        result = an_ifc_edg_template_argument_index(
-                                           template_templ_arg.get_file(),
-                                           ifc_etas_edg_template_argument_type,
-                                           arg_offset);
-      }
-      break;
-    case tak_start_of_pack_expansion:
-      header_unit_catastrophe();
-      break;
-    default_is_unexpected();
-  }  /* switch */
-  return result;
-}  /* an_ifc_il_map::enter_template_argument */
-
-
 an_ifc_chart_index an_ifc_il_map::enter_template_params(a_template_ptr templ)
 /*
 Enter the chart representing the given template's template parameters.  Return
@@ -3240,8 +3076,7 @@ the index of the template parameter chart.
           this->set_up_template_non_type_param(&curr_param, curr_templ_param);
           break;
         case tpk_template:
-          this->set_up_template_template_param(&curr_param, curr_param_idx,
-                                               curr_templ_param);
+          header_unit_catastrophe();
           break;
         case tpk_type:
           this->set_up_template_type_param(&curr_param, curr_param_idx,
@@ -3259,26 +3094,6 @@ the index of the template parameter chart.
   }  /* if */
   return result;
 }  /* an_ifc_il_map::enter_template_params */
-
-
-an_ifc_type_index an_ifc_il_map::enter_template_template_param_type(
-                                                          a_template_ptr templ)
-/*
-Enter an IFC forall type representing the given template (representing a
-template parameter).
-*/
-{
-  an_ifc_type_forall
-                forall_type;
-  an_ifc_type_index
-                result = this->output_state->alloc_type(&forall_type);
-  an_ifc_chart_index
-                param_chart = this->enter_template_params(templ);
-
-  set_ifc_chart(&forall_type, param_chart);
-  set_ifc_subject(&forall_type, this->find_or_enter_class_scope_type());
-  return result;
-}  /* an_ifc_il_map::enter_template_template_param_type */
 
 
 void an_ifc_il_map::set_template_param_coordinates(
@@ -3300,6 +3115,7 @@ coordinate information.
                 ifc_param_position(this->get_default_file(),
                                    coordinates.position);
   set_ifc_position(param_decl, ifc_param_position);
+
 }  /* an_ifc_il_map::set_template_param_coordinates */
 
 
@@ -3347,53 +3163,6 @@ to represent the given front end non-type template parameter.
   set_ifc_sort(param_decl, ifc_ps_non_type);
   /* FIXME: Set the reachable properties. */
 }  /* an_ifc_il_map::set_up_template_non_type_param */
-
-
-void an_ifc_il_map::set_up_template_template_param(
-                                       an_ifc_decl_parameter    *param_decl,
-                                       an_ifc_decl_index        param_decl_idx,
-                                       a_template_parameter_ptr templ_param)
-/*
-The given IFC parameter declaration node (at the given declaration index) is
-freshly allocated, set its fields to represent the given front end template
-template parameter.
-*/
-{
-  check_assertion(templ_param->kind == tpk_template);
-  /* Link the template representing this parameter to the IFC
-     DeclSort::Parameter now.  Following the mapping, this ensures that any
-     references to the type resolve to the template parameter properly. */
-  a_template_ptr   param_template = templ_param->variant.templ.class_template;
-  a_tagged_pointer tagged_templ = make_tagged_ptr(param_template);
-
-  this->il_entry_to_decl.map(tagged_templ, param_decl_idx);
-
-  /* Set the parameter name. */
-  an_ifc_text_offset
-                ifc_name_offset =
-                            this->entity_name_as_text_offset(templ_param);
-  set_ifc_name(param_decl, ifc_name_offset);
-
-  /* Set the source location information. */
-  an_ifc_source_location
-                ifc_src_pos = this->find_or_enter_entity_pos(templ_param);
-  set_ifc_locus(param_decl, ifc_src_pos);
-
-  /* Set the type information. */
-  an_ifc_type_index
-                type_idx =
-                      this->enter_template_template_param_type(param_template);
-  set_ifc_type(param_decl, type_idx);
-
-  /* Set the level (i.e., depth) and position information. */
-  this->set_template_param_coordinates(param_decl,
-                                       param_template->coordinates);
-  /* FIXME: Set the constraint. */
-  /* FIXME: Set the initializer. */
-  /* Set the parameter sort. */
-  set_ifc_sort(param_decl, ifc_ps_template);
-  /* FIXME: Set the reachable properties. */
-}  /* an_ifc_il_map::set_up_template_template_param */
 
 
 void an_ifc_il_map::set_up_template_type_param(
@@ -4861,8 +4630,7 @@ declaration index of the class template declaration.
                 ifc_entity(this->get_default_file());
   a_type_ptr    prototype_decl = templ->prototype_instantiation.type;
   an_ifc_decl_index
-                prototype_decl_idx =
-                                this->enter_class_struct_union(prototype_decl);
+                prototype_decl_idx = this->enter_class(prototype_decl);
   set_ifc_decl(&ifc_entity, prototype_decl_idx);
   set_ifc_entity(&class_templ, ifc_entity);
 
@@ -5320,8 +5088,12 @@ output state.  Return the declaration index for the scope.
 
   switch (scope->kind) {
     case sck_class_struct_union:
-      result =
-             this->find_or_enter_class_struct_union(scope->variant.assoc_type);
+      if (is_class_or_struct(scope->variant.assoc_type)) {
+        result = this->find_or_enter_class(scope->variant.assoc_type);
+      } else {
+        /* FIXME: Implement unions. */
+        header_unit_catastrophe();
+      }  /* if */
       break;
     case sck_file:
       /* Use a null index to indicate the primary scope. */
