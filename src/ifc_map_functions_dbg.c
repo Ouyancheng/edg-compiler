@@ -6139,6 +6139,56 @@ textual representation.
 }  /* db_node */
 
 
+void db_node(const an_ifc_edg_trait_class_definition &universal,
+             unsigned                                indent)
+/*
+Given the universal representation of EdgTraitClassDefinition, print a
+diagnostic textual representation with the given indent.
+*/
+{
+  if (has_ifc_decl(universal)) {
+    an_ifc_decl_index field = get_ifc_decl(universal);
+
+    db_print_indent(indent);
+    fprintf(f_debug, "decl:");
+    if (is_null_index(field)) {
+      fprintf(f_debug, " NULL\n");
+    } else {
+      fprintf(f_debug, "\n");
+      db_print_indent(indent);
+      fprintf(f_debug, "  sort: %s\n", str_for(field.sort));
+      db_print_indent(indent);
+      fprintf(f_debug, "  value: %llu\n", (unsigned long long)field.value);
+    }  /* if */
+  }  /* if */
+  if (has_ifc_encoded_decl(universal)) {
+    an_ifc_encoded_decl_index field = get_ifc_encoded_decl(universal);
+
+    db_print_indent(indent);
+    fprintf(f_debug, "encoded_decl: %llu\n", (unsigned long long)field.value);
+  }  /* if */
+  if (has_ifc_initializer(universal)) {
+    an_ifc_edg_token_cache_offset field = get_ifc_initializer(universal);
+
+    db_print_indent(indent);
+    fprintf(f_debug, "initializer: %llu\n", (unsigned long long)field.value);
+  }  /* if */
+}  /* db_node */
+
+
+void db_node(const an_ifc_edg_trait_class_definition &universal)
+/*
+Given the universal representation of EdgTraitClassDefinition, print a
+diagnostic textual representation.
+*/
+{
+  fprintf(f_debug, "=========================== ");
+  fprintf(f_debug, "EdgTraitClassDefinition ");
+  fprintf(f_debug, "============================\n");
+  db_node(universal, 0);
+}  /* db_node */
+
+
 void db_node(const an_ifc_edg_trait_function_definition &universal,
              unsigned                                   indent)
 /*
