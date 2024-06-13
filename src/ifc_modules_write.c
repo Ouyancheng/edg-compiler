@@ -1783,7 +1783,7 @@ the declaration index for the entered declaration.
                 properties = (an_ifc_reachable_properties_bitfield_query)0;
   /* Flag that an initializer is present if relevant. */
   if (assoc_templ != NULL) {
-    an_ifc_edg_trait_class_definition
+    an_ifc_edg_trait_class_template_definition
                 def_trait;
     this->output_state->alloc_decl_trait(result, &def_trait);
 
