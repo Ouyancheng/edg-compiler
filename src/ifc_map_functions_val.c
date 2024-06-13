@@ -12543,11 +12543,11 @@ representation is valid; otherwise, return FALSE.
 
 
 template<>
-a_boolean validate(const an_ifc_edg_trait_class_definition &universal,
-                   const an_ifc_validation_trace           *parent)
+a_boolean validate(const an_ifc_edg_trait_class_template_definition &universal,
+                   const an_ifc_validation_trace                    *parent)
 /*
-Given the universal representation of EdgTraitClassDefinition, return TRUE if
-the representation is valid; otherwise, return FALSE.
+Given the universal representation of EdgTraitClassTemplateDefinition, return
+TRUE if the representation is valid; otherwise, return FALSE.
 */
 {
   a_boolean result = TRUE;
@@ -12556,7 +12556,7 @@ the representation is valid; otherwise, return FALSE.
     an_ifc_decl_index_0_43  stage_0;
     an_ifc_validation_trace stage_0_trace = {"decl", /*offset=*/0, parent};
 
-    /* Copy the field (EdgTraitClassDefinition::decl - DeclIndex) into
+    /* Copy the field (EdgTraitClassTemplateDefinition::decl - DeclIndex) into
        version-specific storage. */
     static_assert(sizeof(stage_0) == 4,
                   "stage_0 is not properly sized storage!");
@@ -12571,7 +12571,7 @@ the representation is valid; otherwise, return FALSE.
     an_ifc_validation_trace            stage_0_trace =
                                          {"initializer", /*offset=*/4, parent};
 
-    /* Copy the field (EdgTraitClassDefinition::initializer -
+    /* Copy the field (EdgTraitClassTemplateDefinition::initializer -
        EdgTokenCacheOffset) into version-specific storage. */
     static_assert(sizeof(stage_0) == 4,
                   "stage_0 is not properly sized storage!");
