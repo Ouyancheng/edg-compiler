@@ -3360,16 +3360,6 @@ struct an_ifc_decl_metadata<an_ifc_decl_specialization> {
 
 /*
 The IFC decl field has multiple return types.  This type is a metadata type
-that allows resolution of the return type for EdgTraitClassDefinition nodes.
-*/
-template<>
-struct an_ifc_decl_metadata<an_ifc_edg_trait_class_definition> {
-  using return_type = an_ifc_decl_index;
-};  /* an_ifc_decl_metadata */
-
-
-/*
-The IFC decl field has multiple return types.  This type is a metadata type
 that allows resolution of the return type for EdgTraitFunctionDefinition nodes.
 */
 template<>
@@ -4156,17 +4146,6 @@ type that allows resolution of the return type for DeclVariable nodes.
 template<>
 struct an_ifc_initializer_metadata<an_ifc_decl_variable> {
   using return_type = an_ifc_expr_index;
-};  /* an_ifc_initializer_metadata */
-
-
-/*
-The IFC initializer field has multiple return types.  This type is a metadata
-type that allows resolution of the return type for EdgTraitClassDefinition
-nodes.
-*/
-template<>
-struct an_ifc_initializer_metadata<an_ifc_edg_trait_class_definition> {
-  using return_type = an_ifc_edg_token_cache_offset;
 };  /* an_ifc_initializer_metadata */
 
 
@@ -19502,73 +19481,6 @@ an_ifc_edg_token_textual_storage* get<an_ifc_edg_token_textual_storage>(
 
 template<>
 an_ifc_partition_kind get_ifc_partition_kind<an_ifc_edg_token_textual>();
-
-
-
-template<>
-size_t get_ifc_buffer_size<an_ifc_edg_trait_class_definition_storage>(
-                                                     an_ifc_module_file *file);
-
-/*
-Functions for interacting with IFC EdgTraitClassDefinition nodes.
-*/
-
-template<>
-a_boolean has_ifc_decl(const an_ifc_edg_trait_class_definition &universal);
-
-template<>
-an_ifc_decl_index get_ifc_decl(
-                           const an_ifc_edg_trait_class_definition &universal);
-
-template<>
-a_boolean has_ifc_encoded_decl(
-                           const an_ifc_edg_trait_class_definition &universal);
-
-template<>
-an_ifc_encoded_decl_index get_ifc_encoded_decl(
-                           const an_ifc_edg_trait_class_definition &universal);
-
-template<>
-a_boolean has_ifc_initializer(
-                           const an_ifc_edg_trait_class_definition &universal);
-
-template<>
-an_ifc_edg_token_cache_offset get_ifc_initializer(
-                           const an_ifc_edg_trait_class_definition &universal);
-
-template<>
-void set_ifc_decl(an_ifc_edg_trait_class_definition *universal,
-                  const an_ifc_decl_index           &value);
-
-template<>
-void set_ifc_encoded_decl(an_ifc_edg_trait_class_definition *universal,
-                          const an_ifc_encoded_decl_index   &value);
-
-template<>
-void set_ifc_initializer(an_ifc_edg_trait_class_definition   *universal,
-                         const an_ifc_edg_token_cache_offset &value);
-
-template<>
-a_boolean validate(const an_ifc_edg_trait_class_definition &universal,
-                   const an_ifc_validation_trace           *parent);
-
-#if DEBUG
-extern void db_node(const an_ifc_edg_trait_class_definition &universal,
-                    unsigned                                indent);
-
-extern void db_node(const an_ifc_edg_trait_class_definition &universal);
-#endif /* DEBUG */
-
-template<>
-an_ifc_edg_trait_class_definition_storage*
-get<an_ifc_edg_trait_class_definition_storage>(
-                       an_ifc_module_file                        *file,
-                       an_ifc_edg_trait_class_definition_storage *storage,
-                       a_boolean                                 fill_storage);
-
-template<>
-an_ifc_partition_kind
-get_ifc_partition_kind<an_ifc_edg_trait_class_definition>();
 
 
 

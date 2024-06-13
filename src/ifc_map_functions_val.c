@@ -12240,50 +12240,6 @@ representation is valid; otherwise, return FALSE.
 
 
 template<>
-a_boolean validate(const an_ifc_edg_trait_class_definition &universal,
-                   const an_ifc_validation_trace           *parent)
-/*
-Given the universal representation of EdgTraitClassDefinition, return TRUE if
-the representation is valid; otherwise, return FALSE.
-*/
-{
-  a_boolean result = TRUE;
-
-  if (has_ifc_decl(universal)) {
-    an_ifc_decl_index_0_43  stage_0;
-    an_ifc_validation_trace stage_0_trace = {"decl", /*offset=*/0, parent};
-
-    /* Copy the field (EdgTraitClassDefinition::decl - DeclIndex) into
-       version-specific storage. */
-    static_assert(sizeof(stage_0) == 4,
-                  "stage_0 is not properly sized storage!");
-    copy_from_node_field(&stage_0, universal.get_storage(), /*offset=*/0);
-    if (!validate_index(universal.get_file(), stage_0, &stage_0_trace)) {
-      result = FALSE;
-      goto done;
-    }  /* if */
-  }  /* if */
-  if (has_ifc_initializer(universal)) {
-    an_ifc_edg_token_cache_offset_0_43 stage_0;
-    an_ifc_validation_trace            stage_0_trace =
-                                         {"initializer", /*offset=*/4, parent};
-
-    /* Copy the field (EdgTraitClassDefinition::initializer -
-       EdgTokenCacheOffset) into version-specific storage. */
-    static_assert(sizeof(stage_0) == 4,
-                  "stage_0 is not properly sized storage!");
-    copy_from_node_field(&stage_0, universal.get_storage(), /*offset=*/4);
-    if (!validate_offset(universal.get_file(), stage_0, &stage_0_trace)) {
-      result = FALSE;
-      goto done;
-    }  /* if */
-  }  /* if */
-done:
-  return result;
-}  /* validate */
-
-
-template<>
 a_boolean validate(const an_ifc_edg_trait_function_definition &universal,
                    const an_ifc_validation_trace              *parent)
 /*
