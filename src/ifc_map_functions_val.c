@@ -1095,6 +1095,82 @@ value represents a valid sort value; otherwise, return FALSE.
 }  /* validate_sort */
 
 
+a_boolean is_known_sort(an_ifc_edg_template_argument_sort_0_43 versioned)
+/*
+Given the versioned representation of EdgTemplateArgumentSort, return TRUE if
+the value represents a valid sort value; otherwise, return FALSE.
+*/
+{
+  a_boolean result = FALSE;
+
+  switch (versioned) {
+    case ifc_0_43_etas_edg_template_argument_type:
+    case ifc_0_43_etas_edg_template_argument_non_type:
+    case ifc_0_43_etas_edg_template_argument_template:
+      result = TRUE;
+      break;
+    default:
+      break;
+  }  /* switch */
+  return result;
+}  /* is_known_sort */
+
+
+a_boolean validate_sort(an_ifc_module_file                     *file,
+                        an_ifc_edg_template_argument_sort_0_43 versioned,
+                        const an_ifc_validation_trace          *parent)
+/*
+Given the versioned representation of EdgTemplateArgumentSort, return TRUE if
+the value represents a valid sort value; otherwise, return FALSE.
+*/
+{
+  a_boolean result = TRUE;
+
+  if (!is_known_sort(versioned)) {
+    invalid_sort(file, parent);
+    result = FALSE;
+  }  /* if */
+  return result;
+}  /* validate_sort */
+
+
+a_boolean is_known_sort(an_ifc_edg_type_sort_0_43 versioned)
+/*
+Given the versioned representation of EdgTypeSort, return TRUE if the value
+represents a valid sort value; otherwise, return FALSE.
+*/
+{
+  a_boolean result = FALSE;
+
+  switch (versioned) {
+    case ifc_0_43_ets_edg_type_substituted:
+      result = TRUE;
+      break;
+    default:
+      break;
+  }  /* switch */
+  return result;
+}  /* is_known_sort */
+
+
+a_boolean validate_sort(an_ifc_module_file            *file,
+                        an_ifc_edg_type_sort_0_43     versioned,
+                        const an_ifc_validation_trace *parent)
+/*
+Given the versioned representation of EdgTypeSort, return TRUE if the value
+represents a valid sort value; otherwise, return FALSE.
+*/
+{
+  a_boolean result = TRUE;
+
+  if (!is_known_sort(versioned)) {
+    invalid_sort(file, parent);
+    result = FALSE;
+  }  /* if */
+  return result;
+}  /* validate_sort */
+
+
 a_boolean is_known_sort(an_ifc_expansion_mode_sort_0_33 versioned)
 /*
 Given the versioned representation of ExpansionModeSort, return TRUE if the
@@ -3871,6 +3947,86 @@ otherwise, return FALSE.
 }  /* validate_index */
 
 
+a_boolean validate_index(an_ifc_module_file                      *file,
+                         an_ifc_edg_template_argument_index_0_43 versioned,
+                         const an_ifc_validation_trace           *parent)
+/*
+Given the versioned representation of EdgTemplateArgumentIndex and the
+associated module file, return TRUE if the value represents a valid node
+position; otherwise, return FALSE.
+*/
+{
+  a_boolean                              result = TRUE;
+  an_ifc_edg_template_argument_sort_0_43 sort =
+                                         edg_template_argument_sort(versioned);
+
+  if (!is_known_sort(sort)) {
+    invalid_partition(file, parent);
+    result = FALSE;
+  } else {
+    an_ifc_edg_template_argument_sort univ_sort = to_universal_sort(sort);
+
+    if (has_partition_kind(univ_sort)) {
+      an_ifc_partition_kind kind = to_partition_kind(univ_sort);
+      uint32_t              value = edg_template_argument_value(versioned);
+
+      if (!validate_element_exists(file, kind, value, parent)) {
+        result = FALSE;
+      }  /* if */
+    } else {
+      an_ifc_edg_template_argument_index univ_idx =
+                                           to_universal_index(file, versioned);
+
+      if (!is_null_index(univ_idx)) {
+        unknown_partition_conversion(file, str_for(univ_sort), univ_idx.value,
+                                     parent);
+        result = FALSE;
+      }  /* if */
+    }  /* if */
+  }  /* if */
+  return result;
+}  /* validate_index */
+
+
+a_boolean validate_index(an_ifc_module_file            *file,
+                         an_ifc_edg_type_index_0_43    versioned,
+                         const an_ifc_validation_trace *parent)
+/*
+Given the versioned representation of EdgTypeIndex and the associated module
+file, return TRUE if the value represents a valid node position; otherwise,
+return FALSE.
+*/
+{
+  a_boolean                 result = TRUE;
+  an_ifc_edg_type_sort_0_43 sort = edg_type_sort(versioned);
+
+  if (!is_known_sort(sort)) {
+    invalid_partition(file, parent);
+    result = FALSE;
+  } else {
+    an_ifc_edg_type_sort univ_sort = to_universal_sort(sort);
+
+    if (has_partition_kind(univ_sort)) {
+      an_ifc_partition_kind kind = to_partition_kind(univ_sort);
+      uint32_t              value = edg_type_value(versioned);
+
+      if (!validate_element_exists(file, kind, value, parent)) {
+        result = FALSE;
+      }  /* if */
+    } else {
+      an_ifc_edg_type_index univ_idx = to_universal_index(file, versioned);
+
+      if (!is_null_index(univ_idx)) {
+        unknown_partition_conversion(file, str_for(univ_sort), univ_idx.value,
+                                     parent);
+        result = FALSE;
+      }  /* if */
+    }  /* if */
+  }  /* if */
+  return result;
+}  /* validate_index */
+
+
 a_boolean validate_index(an_ifc_module_file            *file,
                          an_ifc_expr_index_0_33        versioned,
                          const an_ifc_validation_trace *parent)
@@ -4274,7 +4430,8 @@ FALSE.
     } else {
       an_ifc_type_index univ_idx = to_universal_index(file, versioned);
 
-      if (!is_null_index(univ_idx)) {
+      if (univ_idx.sort == ifc_ts_type_vendor_extension) {
+      } else if (!is_null_index(univ_idx)) {
         unknown_partition_conversion(file, str_for(univ_sort), univ_idx.value,
                                      parent);
         result = FALSE;
@@ -12062,6 +12219,35 @@ the representation is valid; otherwise, return FALSE.
 
 
 template<>
+a_boolean validate(const an_ifc_edg_extension_type &universal,
+                   const an_ifc_validation_trace   *parent)
+/*
+Given the universal representation of EdgExtensionType, return TRUE if the
+representation is valid; otherwise, return FALSE.
+*/
+{
+  a_boolean result = TRUE;
+
+  if (has_ifc_value(universal)) {
+    an_ifc_edg_type_index_0_43 stage_0;
+    an_ifc_validation_trace    stage_0_trace = {"value", /*offset=*/0, parent};
+
+    /* Copy the field (EdgExtensionType::value - EdgTypeIndex) into
+       version-specific storage. */
+    static_assert(sizeof(stage_0) == 4,
+                  "stage_0 is not properly sized storage!");
+    copy_from_node_field(&stage_0, universal.get_storage(), /*offset=*/0);
+    if (!validate_index(universal.get_file(), stage_0, &stage_0_trace)) {
+      result = FALSE;
+      goto done;
+    }  /* if */
+  }  /* if */
+done:
+  return result;
+}  /* validate */
+
+
+template<>
 a_boolean validate(const an_ifc_edg_heap_complex_token &universal,
                    const an_ifc_validation_trace       *parent)
 /*
@@ -12077,6 +12263,123 @@ representation is valid; otherwise, return FALSE.
                                                {"index", /*offset=*/0, parent};
 
     /* Copy the field (EdgHeapComplexToken::index - EdgComplexTokenIndex) into
+       version-specific storage. */
+    static_assert(sizeof(stage_0) == 4,
+                  "stage_0 is not properly sized storage!");
+    copy_from_node_field(&stage_0, universal.get_storage(), /*offset=*/0);
+    if (!validate_index(universal.get_file(), stage_0, &stage_0_trace)) {
+      result = FALSE;
+      goto done;
+    }  /* if */
+  }  /* if */
+done:
+  return result;
+}  /* validate */
+
+
+template<>
+a_boolean validate(const an_ifc_edg_heap_template_argument &universal,
+                   const an_ifc_validation_trace           *parent)
+/*
+Given the universal representation of EdgHeapTemplateArgument, return TRUE if
+the representation is valid; otherwise, return FALSE.
+*/
+{
+  a_boolean result = TRUE;
+
+  if (has_ifc_index(universal)) {
+    an_ifc_edg_template_argument_index_0_43 stage_0;
+    an_ifc_validation_trace                 stage_0_trace =
+                                               {"index", /*offset=*/0, parent};
+
+    /* Copy the field (EdgHeapTemplateArgument::index -
+       EdgTemplateArgumentIndex) into version-specific storage. */
+    static_assert(sizeof(stage_0) == 4,
+                  "stage_0 is not properly sized storage!");
+    copy_from_node_field(&stage_0, universal.get_storage(), /*offset=*/0);
+    if (!validate_index(universal.get_file(), stage_0, &stage_0_trace)) {
+      result = FALSE;
+      goto done;
+    }  /* if */
+  }  /* if */
+done:
+  return result;
+}  /* validate */
+
+
+template<>
+a_boolean validate(const an_ifc_edg_template_argument_non_type &universal,
+                   const an_ifc_validation_trace               *parent)
+/*
+Given the universal representation of EdgTemplateArgumentNonType, return TRUE
+if the representation is valid; otherwise, return FALSE.
+*/
+{
+  a_boolean result = TRUE;
+
+  if (has_ifc_value(universal)) {
+    an_ifc_expr_index_0_42  stage_0;
+    an_ifc_validation_trace stage_0_trace = {"value", /*offset=*/0, parent};
+
+    /* Copy the field (EdgTemplateArgumentNonType::value - ExprIndex) into
+       version-specific storage. */
+    static_assert(sizeof(stage_0) == 4,
+                  "stage_0 is not properly sized storage!");
+    copy_from_node_field(&stage_0, universal.get_storage(), /*offset=*/0);
+    if (!validate_index(universal.get_file(), stage_0, &stage_0_trace)) {
+      result = FALSE;
+      goto done;
+    }  /* if */
+  }  /* if */
+done:
+  return result;
+}  /* validate */
+
+
+template<>
+a_boolean validate(const an_ifc_edg_template_argument_template &universal,
+                   const an_ifc_validation_trace               *parent)
+/*
+Given the universal representation of EdgTemplateArgumentTemplate, return TRUE
+if the representation is valid; otherwise, return FALSE.
+*/
+{
+  a_boolean result = TRUE;
+
+  if (has_ifc_value(universal)) {
+    an_ifc_decl_index_0_43  stage_0;
+    an_ifc_validation_trace stage_0_trace = {"value", /*offset=*/0, parent};
+
+    /* Copy the field (EdgTemplateArgumentTemplate::value - DeclIndex) into
+       version-specific storage. */
+    static_assert(sizeof(stage_0) == 4,
+                  "stage_0 is not properly sized storage!");
+    copy_from_node_field(&stage_0, universal.get_storage(), /*offset=*/0);
+    if (!validate_index(universal.get_file(), stage_0, &stage_0_trace)) {
+      result = FALSE;
+      goto done;
+    }  /* if */
+  }  /* if */
+done:
+  return result;
+}  /* validate */
+
+
+template<>
+a_boolean validate(const an_ifc_edg_template_argument_type &universal,
+                   const an_ifc_validation_trace           *parent)
+/*
+Given the universal representation of EdgTemplateArgumentType, return TRUE if
+the representation is valid; otherwise, return FALSE.
+*/
+{
+  a_boolean result = TRUE;
+
+  if (has_ifc_value(universal)) {
+    an_ifc_type_index_0_33  stage_0;
+    an_ifc_validation_trace stage_0_trace = {"value", /*offset=*/0, parent};
+
+    /* Copy the field (EdgTemplateArgumentType::value - TypeIndex) into
        version-specific storage. */
     static_assert(sizeof(stage_0) == 4,
                   "stage_0 is not properly sized storage!");
@@ -12318,6 +12621,50 @@ if the representation is valid; otherwise, return FALSE.
                   "stage_0 is not properly sized storage!");
     copy_from_node_field(&stage_0, universal.get_storage(), /*offset=*/4);
     if (!validate_offset(universal.get_file(), stage_0, &stage_0_trace)) {
+      result = FALSE;
+      goto done;
+    }  /* if */
+  }  /* if */
+done:
+  return result;
+}  /* validate */
+
+
+template<>
+a_boolean validate(const an_ifc_edg_type_substituted &universal,
+                   const an_ifc_validation_trace     *parent)
+/*
+Given the universal representation of EdgTypeSubstituted, return TRUE if the
+representation is valid; otherwise, return FALSE.
+*/
+{
+  a_boolean result = TRUE;
+
+  if (has_ifc_arguments(universal)) {
+    an_ifc_edg_heap_template_argument_offset_0_43 stage_0;
+    an_ifc_validation_trace                       stage_0_trace =
+                                           {"arguments", /*offset=*/4, parent};
+
+    /* Copy the field (EdgTypeSubstituted::arguments -
+       EdgHeapTemplateArgumentOffset) into version-specific storage. */
+    static_assert(sizeof(stage_0) == 4,
+                  "stage_0 is not properly sized storage!");
+    copy_from_node_field(&stage_0, universal.get_storage(), /*offset=*/4);
+    if (!validate_offset(universal.get_file(), stage_0, &stage_0_trace)) {
+      result = FALSE;
+      goto done;
+    }  /* if */
+  }  /* if */
+  if (has_ifc_subject(universal)) {
+    an_ifc_decl_index_0_43  stage_0;
+    an_ifc_validation_trace stage_0_trace = {"subject", /*offset=*/0, parent};
+
+    /* Copy the field (EdgTypeSubstituted::subject - DeclIndex) into
+       version-specific storage. */
+    static_assert(sizeof(stage_0) == 4,
+                  "stage_0 is not properly sized storage!");
+    copy_from_node_field(&stage_0, universal.get_storage(), /*offset=*/0);
+    if (!validate_index(universal.get_file(), stage_0, &stage_0_trace)) {
       result = FALSE;
       goto done;
     }  /* if */
@@ -32941,6 +33288,32 @@ position; otherwise, return FALSE.
 }  /* validate_offset */
 
 
+a_boolean validate_offset(an_ifc_module_file                    *file,
+                          an_ifc_edg_extension_type_offset_0_43 versioned,
+                          const an_ifc_validation_trace         *parent)
+/*
+Given the versioned representation of EdgExtensionTypeOffset and the associated
+module file, return TRUE if the value represents a valid node position;
+otherwise, return FALSE.
+*/
+{
+  a_boolean                        result = TRUE;
+  an_ifc_edg_extension_type_offset univ_offset =
+                                          to_universal_offset(file, versioned);
+
+  if (!is_null_index(univ_offset)) {
+    an_ifc_partition_kind kind =
+                    get_ifc_partition_kind<an_ifc_edg_extension_type_offset>();
+    uint32_t              value = univ_offset.value - 1;
+
+    if (!validate_element_exists(file, kind, value, parent)) {
+      result = FALSE;
+    }  /* if */
+  }  /* if */
+  return result;
+}  /* validate_offset */
+
+
 a_boolean validate_offset(an_ifc_module_file                        *file,
                           an_ifc_edg_heap_complex_token_offset_0_43 versioned,
                           const an_ifc_validation_trace             *parent)
@@ -32957,6 +33330,33 @@ position; otherwise, return FALSE.
   if (!is_null_index(univ_offset)) {
     an_ifc_partition_kind kind =
                 get_ifc_partition_kind<an_ifc_edg_heap_complex_token_offset>();
+    uint32_t              value = univ_offset.value - 1;
+
+    if (!validate_element_exists(file, kind, value, parent)) {
+      result = FALSE;
+    }  /* if */
+  }  /* if */
+  return result;
+}  /* validate_offset */
+
+
+a_boolean validate_offset(
+                       an_ifc_module_file                            *file,
+                       an_ifc_edg_heap_template_argument_offset_0_43 versioned,
+                       const an_ifc_validation_trace                 *parent)
+/*
+Given the versioned representation of EdgHeapTemplateArgumentOffset and the
+associated module file, return TRUE if the value represents a valid node
+position; otherwise, return FALSE.
+*/
+{
+  a_boolean                                result = TRUE;
+  an_ifc_edg_heap_template_argument_offset univ_offset =
+                                          to_universal_offset(file, versioned);
+
+  if (!is_null_index(univ_offset)) {
+    an_ifc_partition_kind kind =
+            get_ifc_partition_kind<an_ifc_edg_heap_template_argument_offset>();
     uint32_t              value = univ_offset.value - 1;
 
     if (!validate_element_exists(file, kind, value, parent)) {
