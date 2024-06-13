@@ -2098,11 +2098,9 @@ typedef struct a_pp_token_descr {
 
 /*
 Structure used to record information about a template body that has been
-extracted from the enclosing cache.  This is used to mark the body of a member
-function or member class template that has been extracted from its enclosing
-class template.  This is also used when creating template strings so that the
-nested template body can be put out as part of the template string for the
-enclosing template.
+extracted from the enclosing cache.  This is used when creating template
+strings so that the nested template body can be put out as part of the
+template string for the enclosing template.
 */
 typedef struct an_extracted_template_descr {
   a_symbol_ptr	symbol;
