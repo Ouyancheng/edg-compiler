@@ -19660,11 +19660,11 @@ to cache.
   if (!is_null_index(cinfo.parameterizing_entity) &&
       is_edg_authored(decl)) {
     /* This is an EDG class template body. */
-    Opt<an_ifc_edg_trait_class_template_definition> opt_edg_class_def;
+    Opt<an_ifc_edg_trait_class_definition> opt_edg_class_def;
 
     find_trait(&opt_edg_class_def, decl_idx);
     if (opt_edg_class_def.has_value()) {
-      an_ifc_edg_trait_class_template_definition
+      an_ifc_edg_trait_class_definition
         edg_class_def = *opt_edg_class_def;
       an_ifc_edg_token_cache_offset
         cache_offset = get_ifc_initializer(edg_class_def);
