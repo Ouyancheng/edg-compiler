@@ -6328,10 +6328,10 @@ textual representation.
 }  /* db_node */
 
 
-void db_node(const an_ifc_edg_trait_class_template_definition &universal,
-             unsigned                                         indent)
+void db_node(const an_ifc_edg_trait_class_definition &universal,
+             unsigned                                indent)
 /*
-Given the universal representation of EdgTraitClassTemplateDefinition, print a
+Given the universal representation of EdgTraitClassDefinition, print a
 diagnostic textual representation with the given indent.
 */
 {
@@ -6365,15 +6365,15 @@ diagnostic textual representation with the given indent.
 }  /* db_node */
 
 
-void db_node(const an_ifc_edg_trait_class_template_definition &universal)
+void db_node(const an_ifc_edg_trait_class_definition &universal)
 /*
-Given the universal representation of EdgTraitClassTemplateDefinition, print a
+Given the universal representation of EdgTraitClassDefinition, print a
 diagnostic textual representation.
 */
 {
-  fprintf(f_debug, "======================= ");
-  fprintf(f_debug, "EdgTraitClassTemplateDefinition ");
-  fprintf(f_debug, "========================\n");
+  fprintf(f_debug, "=========================== ");
+  fprintf(f_debug, "EdgTraitClassDefinition ");
+  fprintf(f_debug, "============================\n");
   db_node(universal, 0);
 }  /* db_node */
 

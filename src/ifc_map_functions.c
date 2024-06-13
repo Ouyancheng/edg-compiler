@@ -23871,11 +23871,11 @@ Return the corresponding partition kind for EdgTokenTextual.
 
 
 template<>
-size_t get_ifc_buffer_size<an_ifc_edg_trait_class_template_definition_storage>(
+size_t get_ifc_buffer_size<an_ifc_edg_trait_class_definition_storage>(
                                                       an_ifc_module_file *file)
 /*
 Given the associated module file, return the number of bytes required for an
-IFC EdgTraitClassTemplateDefinition node.
+IFC EdgTraitClassDefinition node.
 */
 {
   size_t result;
@@ -23886,14 +23886,13 @@ IFC EdgTraitClassTemplateDefinition node.
 
 
 template<>
-an_ifc_edg_trait_class_template_definition_storage*
-get<an_ifc_edg_trait_class_template_definition_storage>(
-               an_ifc_module_file                                 *file,
-               an_ifc_edg_trait_class_template_definition_storage *storage,
-               a_boolean                                          fill_storage)
+an_ifc_edg_trait_class_definition_storage*
+get<an_ifc_edg_trait_class_definition_storage>(
+                        an_ifc_module_file                        *file,
+                        an_ifc_edg_trait_class_definition_storage *storage,
+                        a_boolean                                 fill_storage)
 /*
-Retrieve an instance of EdgTraitClassTemplateDefinition from the IFC module
-file.
+Retrieve an instance of EdgTraitClassDefinition from the IFC module file.
 
 If memory mapping is used and both the host and the target have the same
 endianness, then the file layout and the alignment/padding of the host must
@@ -23910,7 +23909,7 @@ the storage specified by the storage argument).
 */
 {
 #if USE_MMAP_FOR_MODULES
-  using storage_type = an_ifc_edg_trait_class_template_definition_storage;
+  using storage_type = an_ifc_edg_trait_class_definition_storage;
   if (has_matching_endianness(file)) {
     if (fill_storage) {
       memcpy(*storage, get_byte_buffer(file), /*size=*/8);
@@ -23927,17 +23926,17 @@ the storage specified by the storage argument).
     get_bytes(file, (*storage) + 4, /*num_bytes=*/4, /*from_header=*/FALSE);
   }  /* if */
   return storage;
-}  /* get<an_ifc_edg_trait_class_template_definition_storage> */
+}  /* get<an_ifc_edg_trait_class_definition_storage> */
 
 
 template<>
 an_ifc_partition_kind
-get_ifc_partition_kind<an_ifc_edg_trait_class_template_definition>()
+get_ifc_partition_kind<an_ifc_edg_trait_class_definition>()
 /*
-Return the corresponding partition kind for EdgTraitClassTemplateDefinition.
+Return the corresponding partition kind for EdgTraitClassDefinition.
 */
 {
-  return ifc_pk_edg_trait_class_template_definition;
+  return ifc_pk_edg_trait_class_definition;
 }  /* get_ifc_partition_kind */
 
 
@@ -44189,7 +44188,7 @@ corresponding expected partition element size.
     case ifc_pk_edg_token_complex_textual:
       result = 4;
       break;
-    case ifc_pk_edg_trait_class_template_definition:
+    case ifc_pk_edg_trait_class_definition:
       result = 8;
       break;
     case ifc_pk_edg_trait_function_definition:
