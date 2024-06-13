@@ -1348,6 +1348,7 @@ private:
   an_ifc_type_index find_or_enter_alias_typedef_type();
   an_ifc_type_index find_or_enter_scoped_enum_type();
   an_ifc_type_index find_or_enter_struct_scope_type();
+  an_ifc_type_index find_or_enter_union_scope_type();
   an_ifc_type_index find_or_enter_unscoped_enum_type();
 
   /* Functions for entering declarations that are invoked by proxy (e.g.,
@@ -1416,6 +1417,10 @@ private:
   an_ifc_type_index
                 fund_struct_type;
                         /* The fundamental type used to represent a struct
+                           DeclSort::Scope. */
+  an_ifc_type_index
+                fund_union_type;
+                        /* The fundamental type used to represent a union
                            DeclSort::Scope. */
   an_ifc_type_index
                 fund_unscoped_enum_type;
@@ -1740,11 +1745,20 @@ the declaration index for the entered declaration.
   /* Set the IFC fundamental type to indicate this is a class scope. */
   an_ifc_type_index
                 ifc_scope_type;
-  if (type->kind == tk_class) {
-    ifc_scope_type = this->find_or_enter_class_scope_type();
-  } else {
-    ifc_scope_type = this->find_or_enter_struct_scope_type();
-  }  /* else */
+  switch (type->kind) {
+    case tk_class:
+      ifc_scope_type = this->find_or_enter_class_scope_type();
+      break;
+    case tk_struct:
+      ifc_scope_type = this->find_or_enter_struct_scope_type();
+      break;
+    case tk_union:
+      ifc_scope_type = this->find_or_enter_union_scope_type();
+      break;
+    default:
+      header_unit_catastrophe();
+      break;
+  }  /* switch */
   set_ifc_type(&scope_decl, ifc_scope_type);
 
   /* FIXME: Set base. */
@@ -4794,7 +4808,7 @@ Find or enter the fundamental type used by the IFC to indicate a given IFC
 DeclSort::Scope is a struct.  Return the index for the fundamental type.
 */
 {
-  if (is_null_index(this->fund_unscoped_enum_type)) {
+  if (is_null_index(this->fund_struct_type)) {
     an_ifc_type_fundamental fund_type;
 
     this->fund_struct_type = this->output_state->alloc_type(&fund_type);
@@ -4804,6 +4818,24 @@ DeclSort::Scope is a struct.  Return the index for the fundamental type.
   }  /* if */
   return this->fund_struct_type;
 }  /* an_ifc_il_map::find_or_enter_struct_scope_type */
+
+
+an_ifc_type_index an_ifc_il_map::find_or_enter_union_scope_type()
+/*
+Find or enter the fundamental type used by the IFC to indicate a given IFC
+DeclSort::Scope is a union.  Return the index for the fundamental type.
+*/
+{
+  if (is_null_index(this->fund_union_type)) {
+    an_ifc_type_fundamental fund_type;
+
+    this->fund_union_type = this->output_state->alloc_type(&fund_type);
+    set_ifc_basis(&fund_type, ifc_tbs_union);
+    set_ifc_precision(&fund_type, ifc_tps_default);
+    set_ifc_sign(&fund_type, ifc_tss_plain);
+  }  /* if */
+  return this->fund_union_type;
+}  /* an_ifc_il_map::find_or_enter_union_scope_type */
 
 
 an_ifc_type_index an_ifc_il_map::find_or_enter_unscoped_enum_type()
