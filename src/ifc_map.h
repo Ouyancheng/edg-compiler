@@ -877,6 +877,21 @@ struct an_ifc_encoded_edg_constant_token_sort : Implicit_numeric_entity<
 };  /* an_ifc_encoded_edg_constant_token_sort */
 
 
+enum an_ifc_encoded_edg_extension_type_offset_0_43 : uint32_t;
+using an_ifc_encoded_edg_extension_type_offset_storage = uint32_t;
+
+
+/*
+The universal representation for an IFC EncodedEdgExtensionTypeOffset.
+*/
+struct an_ifc_encoded_edg_extension_type_offset : Implicit_numeric_entity<
+                            an_ifc_encoded_edg_extension_type_offset_storage> {
+  using storage_type = an_ifc_encoded_edg_extension_type_offset_storage;
+  using base_type = Implicit_numeric_entity<storage_type>;
+  using base_type::Implicit_numeric_entity;
+};  /* an_ifc_encoded_edg_extension_type_offset */
+
+
 enum an_ifc_encoded_edg_heap_complex_token_offset_0_43 : uint32_t;
 using an_ifc_encoded_edg_heap_complex_token_offset_storage = uint32_t;
 
@@ -890,6 +905,53 @@ struct an_ifc_encoded_edg_heap_complex_token_offset : Implicit_numeric_entity<
   using base_type = Implicit_numeric_entity<storage_type>;
   using base_type::Implicit_numeric_entity;
 };  /* an_ifc_encoded_edg_heap_complex_token_offset */
+
+
+enum an_ifc_encoded_edg_heap_template_argument_offset_0_43 : uint32_t;
+using an_ifc_encoded_edg_heap_template_argument_offset_storage = uint32_t;
+
+
+/*
+The universal representation for an IFC EncodedEdgHeapTemplateArgumentOffset.
+*/
+struct an_ifc_encoded_edg_heap_template_argument_offset :
+                                                       Implicit_numeric_entity<
+                    an_ifc_encoded_edg_heap_template_argument_offset_storage> {
+  using storage_type =
+                      an_ifc_encoded_edg_heap_template_argument_offset_storage;
+  using base_type = Implicit_numeric_entity<storage_type>;
+  using base_type::Implicit_numeric_entity;
+};  /* an_ifc_encoded_edg_heap_template_argument_offset */
+
+
+enum an_ifc_encoded_edg_template_argument_index_0_43 : uint32_t;
+using an_ifc_encoded_edg_template_argument_index_storage = uint32_t;
+
+
+/*
+The universal representation for an IFC EncodedEdgTemplateArgumentIndex.
+*/
+struct an_ifc_encoded_edg_template_argument_index : Implicit_numeric_entity<
+                          an_ifc_encoded_edg_template_argument_index_storage> {
+  using storage_type = an_ifc_encoded_edg_template_argument_index_storage;
+  using base_type = Implicit_numeric_entity<storage_type>;
+  using base_type::Implicit_numeric_entity;
+};  /* an_ifc_encoded_edg_template_argument_index */
+
+
+enum an_ifc_encoded_edg_template_argument_sort_0_43 : uint32_t;
+using an_ifc_encoded_edg_template_argument_sort_storage = uint32_t;
+
+
+/*
+The universal representation for an IFC EncodedEdgTemplateArgumentSort.
+*/
+struct an_ifc_encoded_edg_template_argument_sort : Implicit_numeric_entity<
+                           an_ifc_encoded_edg_template_argument_sort_storage> {
+  using storage_type = an_ifc_encoded_edg_template_argument_sort_storage;
+  using base_type = Implicit_numeric_entity<storage_type>;
+  using base_type::Implicit_numeric_entity;
+};  /* an_ifc_encoded_edg_template_argument_sort */
 
 
 enum an_ifc_encoded_edg_token_basic_offset_0_43 : uint32_t;
@@ -920,6 +982,36 @@ struct an_ifc_encoded_edg_token_cache_offset : Implicit_numeric_entity<
   using base_type = Implicit_numeric_entity<storage_type>;
   using base_type::Implicit_numeric_entity;
 };  /* an_ifc_encoded_edg_token_cache_offset */
+
+
+enum an_ifc_encoded_edg_type_index_0_43 : uint32_t;
+using an_ifc_encoded_edg_type_index_storage = uint32_t;
+
+
+/*
+The universal representation for an IFC EncodedEdgTypeIndex.
+*/
+struct an_ifc_encoded_edg_type_index : Implicit_numeric_entity<
+                                       an_ifc_encoded_edg_type_index_storage> {
+  using storage_type = an_ifc_encoded_edg_type_index_storage;
+  using base_type = Implicit_numeric_entity<storage_type>;
+  using base_type::Implicit_numeric_entity;
+};  /* an_ifc_encoded_edg_type_index */
+
+
+enum an_ifc_encoded_edg_type_sort_0_43 : uint32_t;
+using an_ifc_encoded_edg_type_sort_storage = uint32_t;
+
+
+/*
+The universal representation for an IFC EncodedEdgTypeSort.
+*/
+struct an_ifc_encoded_edg_type_sort : Implicit_numeric_entity<
+                                        an_ifc_encoded_edg_type_sort_storage> {
+  using storage_type = an_ifc_encoded_edg_type_sort_storage;
+  using base_type = Implicit_numeric_entity<storage_type>;
+  using base_type::Implicit_numeric_entity;
+};  /* an_ifc_encoded_edg_type_sort */
 
 
 enum an_ifc_encoded_expansion_mode_sort_0_33 : uint8_t;
@@ -2942,6 +3034,30 @@ enum an_ifc_edg_constant_token_sort : uint32_t {
   ifc_ects_int_constant,
   ifc_ects_string_literal
 };  /* an_ifc_edg_constant_token_sort */
+
+
+enum an_ifc_edg_template_argument_sort_0_43 : uint32_t {
+  ifc_0_43_etas_edg_template_argument_type     = 0,
+  ifc_0_43_etas_edg_template_argument_non_type = 1,
+  ifc_0_43_etas_edg_template_argument_template = 2
+};  /* an_ifc_edg_template_argument_sort_0_43 */
+
+
+enum an_ifc_edg_template_argument_sort : uint32_t {
+  ifc_etas_edg_template_argument_non_type,
+  ifc_etas_edg_template_argument_template,
+  ifc_etas_edg_template_argument_type
+};  /* an_ifc_edg_template_argument_sort */
+
+
+enum an_ifc_edg_type_sort_0_43 : uint32_t {
+  ifc_0_43_ets_edg_type_substituted = 0
+};  /* an_ifc_edg_type_sort_0_43 */
+
+
+enum an_ifc_edg_type_sort : uint32_t {
+  ifc_ets_edg_type_substituted
+};  /* an_ifc_edg_type_sort */
 
 
 enum an_ifc_expansion_mode_sort_0_33 : uint8_t {
@@ -5286,6 +5402,101 @@ inline a_boolean operator!=(const an_ifc_edg_constant_index &lhs,
 /*
 Compare two instances of this EdgConstantIndex (lhs and rhs).  If the two
 instances are equivalent, return FALSE; otherwise return TRUE.
+*/
+{
+  return !(lhs == rhs);
+}  /* operator!= */
+
+
+enum an_ifc_edg_template_argument_index_0_43 : uint32_t {};
+
+
+/*
+The universal representation for an IFC EdgTemplateArgumentIndex.
+*/
+struct an_ifc_edg_template_argument_index : Index_entity<
+                                 an_ifc_edg_template_argument_sort, uint32_t> {
+  using sort_type = an_ifc_edg_template_argument_sort;
+  using native_size_type = uint32_t;
+  using base_type = Index_entity<sort_type, native_size_type>;
+  using base_type::Index_entity;
+};  /* an_ifc_edg_template_argument_index */
+
+
+inline a_boolean operator==(const an_ifc_edg_template_argument_index &lhs,
+                            const an_ifc_edg_template_argument_index &rhs)
+/*
+Compare two instances of this EdgTemplateArgumentIndex (lhs and rhs).  If the
+two instances are equivalent, return TRUE; otherwise return FALSE.
+*/
+{
+  a_boolean result = TRUE;
+
+  /* Check members that are more likely to be unique first.  This allows the
+     logic to short circuit in common negative cases. */
+  if (lhs.value != rhs.value) {
+    result = FALSE;
+  } else if (lhs.sort != rhs.sort) {
+    result = FALSE;
+  } else if (lhs.file != rhs.file) {
+    result = FALSE;
+  }  /* if */
+  return result;
+}  /* operator== */
+
+
+inline a_boolean operator!=(const an_ifc_edg_template_argument_index &lhs,
+                            const an_ifc_edg_template_argument_index &rhs)
+/*
+Compare two instances of this EdgTemplateArgumentIndex (lhs and rhs).  If the
+two instances are equivalent, return FALSE; otherwise return TRUE.
+*/
+{
+  return !(lhs == rhs);
+}  /* operator!= */
+
+
+enum an_ifc_edg_type_index_0_43 : uint32_t {};
+
+
+/*
+The universal representation for an IFC EdgTypeIndex.
+*/
+struct an_ifc_edg_type_index : Index_entity<an_ifc_edg_type_sort, uint32_t> {
+  using sort_type = an_ifc_edg_type_sort;
+  using native_size_type = uint32_t;
+  using base_type = Index_entity<sort_type, native_size_type>;
+  using base_type::Index_entity;
+};  /* an_ifc_edg_type_index */
+
+
+inline a_boolean operator==(const an_ifc_edg_type_index &lhs,
+                            const an_ifc_edg_type_index &rhs)
+/*
+Compare two instances of this EdgTypeIndex (lhs and rhs).  If the two instances
+are equivalent, return TRUE; otherwise return FALSE.
+*/
+{
+  a_boolean result = TRUE;
+
+  /* Check members that are more likely to be unique first.  This allows the
+     logic to short circuit in common negative cases. */
+  if (lhs.value != rhs.value) {
+    result = FALSE;
+  } else if (lhs.sort != rhs.sort) {
+    result = FALSE;
+  } else if (lhs.file != rhs.file) {
+    result = FALSE;
+  }  /* if */
+  return result;
+}  /* operator== */
+
+
+inline a_boolean operator!=(const an_ifc_edg_type_index &lhs,
+                            const an_ifc_edg_type_index &rhs)
+/*
+Compare two instances of this EdgTypeIndex (lhs and rhs).  If the two instances
+are equivalent, return FALSE; otherwise return TRUE.
 */
 {
   return !(lhs == rhs);
@@ -9635,6 +9846,37 @@ struct an_ifc_edg_constant_integer_word :
 
 
 /*
+  |---------------------------------------|
+  |   EdgExtensionType - 0.43 (4 bytes)   |
+  |-------|--------------|---------|------|
+  | Name  | Type         | Version | Size |
+  |-------|--------------|---------|------|
+  | value | EdgTypeIndex | 0.43    | 4    |
+  |-------|--------------|---------|------|
+*/
+enum an_ifc_edg_extension_type_part : uint8_t {};
+using an_ifc_edg_extension_type_storage = an_ifc_edg_extension_type_part[4];
+#if USE_MMAP_FOR_MODULES
+using an_ifc_edg_extension_type_bytes =
+                                      const an_ifc_edg_extension_type_storage*;
+#else /* !USE_MMAP_FOR_MODULES */
+using an_ifc_edg_extension_type_bytes = an_ifc_edg_extension_type_storage;
+#endif /* USE_MMAP_FOR_MODULES */
+/*
+The universal representation of an IFC EdgExtensionType node.
+
+The representation is declared as a derived struct of Byte_buffer_entity rather
+than simply an alias of the instantiation to improve the debugger experience.
+*/
+struct an_ifc_edg_extension_type :
+                        Byte_buffer_entity<an_ifc_edg_extension_type_storage> {
+  using storage_type = an_ifc_edg_extension_type_storage;
+  using base_type = Byte_buffer_entity<storage_type>;
+  using base_type::Byte_buffer_entity;
+};  /* an_ifc_edg_extension_type */
+
+
+/*
   |-----------------------------------------------|
   |     EdgHeapComplexToken - 0.43 (4 bytes)      |
   |-------|----------------------|---------|------|
@@ -9665,6 +9907,138 @@ struct an_ifc_edg_heap_complex_token :
   using base_type = Byte_buffer_entity<storage_type>;
   using base_type::Byte_buffer_entity;
 };  /* an_ifc_edg_heap_complex_token */
+
+
+/*
+  |---------------------------------------------------|
+  |     EdgHeapTemplateArgument - 0.43 (4 bytes)      |
+  |-------|--------------------------|---------|------|
+  | Name  | Type                     | Version | Size |
+  |-------|--------------------------|---------|------|
+  | index | EdgTemplateArgumentIndex | 0.43    | 4    |
+  |-------|--------------------------|---------|------|
+*/
+enum an_ifc_edg_heap_template_argument_part : uint8_t {};
+using an_ifc_edg_heap_template_argument_storage =
+                                     an_ifc_edg_heap_template_argument_part[4];
+#if USE_MMAP_FOR_MODULES
+using an_ifc_edg_heap_template_argument_bytes =
+                              const an_ifc_edg_heap_template_argument_storage*;
+#else /* !USE_MMAP_FOR_MODULES */
+using an_ifc_edg_heap_template_argument_bytes =
+                                     an_ifc_edg_heap_template_argument_storage;
+#endif /* USE_MMAP_FOR_MODULES */
+/*
+The universal representation of an IFC EdgHeapTemplateArgument node.
+
+The representation is declared as a derived struct of Byte_buffer_entity rather
+than simply an alias of the instantiation to improve the debugger experience.
+*/
+struct an_ifc_edg_heap_template_argument :
+                Byte_buffer_entity<an_ifc_edg_heap_template_argument_storage> {
+  using storage_type = an_ifc_edg_heap_template_argument_storage;
+  using base_type = Byte_buffer_entity<storage_type>;
+  using base_type::Byte_buffer_entity;
+};  /* an_ifc_edg_heap_template_argument */
+
+
+/*
+  |---------------------------------------------|
+  | EdgTemplateArgumentNonType - 0.43 (4 bytes) |
+  |----------|-------------|-----------|--------|
+  | Name     | Type        | Version   | Size   |
+  |----------|-------------|-----------|--------|
+  | value    | ExprIndex   | 0.42      | 4      |
+  |----------|-------------|-----------|--------|
+*/
+enum an_ifc_edg_template_argument_non_type_part : uint8_t {};
+using an_ifc_edg_template_argument_non_type_storage =
+                                 an_ifc_edg_template_argument_non_type_part[4];
+#if USE_MMAP_FOR_MODULES
+using an_ifc_edg_template_argument_non_type_bytes =
+                          const an_ifc_edg_template_argument_non_type_storage*;
+#else /* !USE_MMAP_FOR_MODULES */
+using an_ifc_edg_template_argument_non_type_bytes =
+                                 an_ifc_edg_template_argument_non_type_storage;
+#endif /* USE_MMAP_FOR_MODULES */
+/*
+The universal representation of an IFC EdgTemplateArgumentNonType node.
+
+The representation is declared as a derived struct of Byte_buffer_entity rather
+than simply an alias of the instantiation to improve the debugger experience.
+*/
+struct an_ifc_edg_template_argument_non_type :
+            Byte_buffer_entity<an_ifc_edg_template_argument_non_type_storage> {
+  using storage_type = an_ifc_edg_template_argument_non_type_storage;
+  using base_type = Byte_buffer_entity<storage_type>;
+  using base_type::Byte_buffer_entity;
+};  /* an_ifc_edg_template_argument_non_type */
+
+
+/*
+  |----------------------------------------------|
+  | EdgTemplateArgumentTemplate - 0.43 (4 bytes) |
+  |-----------|-------------|-----------|--------|
+  | Name      | Type        | Version   | Size   |
+  |-----------|-------------|-----------|--------|
+  | value     | DeclIndex   | 0.43      | 4      |
+  |-----------|-------------|-----------|--------|
+*/
+enum an_ifc_edg_template_argument_template_part : uint8_t {};
+using an_ifc_edg_template_argument_template_storage =
+                                 an_ifc_edg_template_argument_template_part[4];
+#if USE_MMAP_FOR_MODULES
+using an_ifc_edg_template_argument_template_bytes =
+                          const an_ifc_edg_template_argument_template_storage*;
+#else /* !USE_MMAP_FOR_MODULES */
+using an_ifc_edg_template_argument_template_bytes =
+                                 an_ifc_edg_template_argument_template_storage;
+#endif /* USE_MMAP_FOR_MODULES */
+/*
+The universal representation of an IFC EdgTemplateArgumentTemplate node.
+
+The representation is declared as a derived struct of Byte_buffer_entity rather
+than simply an alias of the instantiation to improve the debugger experience.
+*/
+struct an_ifc_edg_template_argument_template :
+            Byte_buffer_entity<an_ifc_edg_template_argument_template_storage> {
+  using storage_type = an_ifc_edg_template_argument_template_storage;
+  using base_type = Byte_buffer_entity<storage_type>;
+  using base_type::Byte_buffer_entity;
+};  /* an_ifc_edg_template_argument_template */
+
+
+/*
+  |------------------------------------------|
+  | EdgTemplateArgumentType - 0.43 (4 bytes) |
+  |----------|------------|----------|-------|
+  | Name     | Type       | Version  | Size  |
+  |----------|------------|----------|-------|
+  | value    | TypeIndex  | 0.33     | 4     |
+  |----------|------------|----------|-------|
+*/
+enum an_ifc_edg_template_argument_type_part : uint8_t {};
+using an_ifc_edg_template_argument_type_storage =
+                                     an_ifc_edg_template_argument_type_part[4];
+#if USE_MMAP_FOR_MODULES
+using an_ifc_edg_template_argument_type_bytes =
+                              const an_ifc_edg_template_argument_type_storage*;
+#else /* !USE_MMAP_FOR_MODULES */
+using an_ifc_edg_template_argument_type_bytes =
+                                     an_ifc_edg_template_argument_type_storage;
+#endif /* USE_MMAP_FOR_MODULES */
+/*
+The universal representation of an IFC EdgTemplateArgumentType node.
+
+The representation is declared as a derived struct of Byte_buffer_entity rather
+than simply an alias of the instantiation to improve the debugger experience.
+*/
+struct an_ifc_edg_template_argument_type :
+                Byte_buffer_entity<an_ifc_edg_template_argument_type_storage> {
+  using storage_type = an_ifc_edg_template_argument_type_storage;
+  using base_type = Byte_buffer_entity<storage_type>;
+  using base_type::Byte_buffer_entity;
+};  /* an_ifc_edg_template_argument_type */
 
 
 /*
@@ -9894,6 +10268,40 @@ struct an_ifc_edg_trait_function_definition :
   using base_type = Byte_buffer_entity<storage_type>;
   using base_type::Byte_buffer_entity;
 };  /* an_ifc_edg_trait_function_definition */
+
+
+/*
+  |----------------------------------------------------------------|
+  |              EdgTypeSubstituted - 0.43 (12 bytes)              |
+  |---------------|-------------------------------|---------|------|
+  | Name          | Type                          | Version | Size |
+  |---------------|-------------------------------|---------|------|
+  | subject       | DeclIndex                     | 0.43    | 4    |
+  | arguments     | EdgHeapTemplateArgumentOffset | 0.43    | 4    |
+  | num_arguments | Cardinality                   | 0.33    | 4    |
+  |---------------|-------------------------------|---------|------|
+*/
+enum an_ifc_edg_type_substituted_part : uint8_t {};
+using an_ifc_edg_type_substituted_storage =
+                                          an_ifc_edg_type_substituted_part[12];
+#if USE_MMAP_FOR_MODULES
+using an_ifc_edg_type_substituted_bytes =
+                                    const an_ifc_edg_type_substituted_storage*;
+#else /* !USE_MMAP_FOR_MODULES */
+using an_ifc_edg_type_substituted_bytes = an_ifc_edg_type_substituted_storage;
+#endif /* USE_MMAP_FOR_MODULES */
+/*
+The universal representation of an IFC EdgTypeSubstituted node.
+
+The representation is declared as a derived struct of Byte_buffer_entity rather
+than simply an alias of the instantiation to improve the debugger experience.
+*/
+struct an_ifc_edg_type_substituted :
+                      Byte_buffer_entity<an_ifc_edg_type_substituted_storage> {
+  using storage_type = an_ifc_edg_type_substituted_storage;
+  using base_type = Byte_buffer_entity<storage_type>;
+  using base_type::Byte_buffer_entity;
+};  /* an_ifc_edg_type_substituted */
 
 
 /*
@@ -20556,6 +20964,53 @@ the two instances are equivalent, return FALSE; otherwise return TRUE.
 }  /* operator!= */
 
 
+enum an_ifc_edg_extension_type_offset_0_43 : uint32_t {};
+
+
+/*
+The universal representation for an IFC EdgExtensionTypeOffset.
+*/
+struct an_ifc_edg_extension_type_offset : Offset_entity<
+                                         an_ifc_edg_extension_type, uint32_t> {
+  using node_type = an_ifc_edg_extension_type;
+
+  using native_size_type = uint32_t;
+  using base_type = Offset_entity<node_type, native_size_type>;
+  using base_type::Offset_entity;
+};  /* an_ifc_edg_extension_type_offset */
+
+
+inline a_boolean operator==(const an_ifc_edg_extension_type_offset &lhs,
+                            const an_ifc_edg_extension_type_offset &rhs)
+/*
+Compare two instances of this EdgExtensionTypeOffset (lhs and rhs).  If the two
+instances are equivalent, return TRUE; otherwise return FALSE.
+*/
+{
+  a_boolean result = TRUE;
+
+  /* Check members that are more likely to be unique first.  This allows the
+     logic to short circuit in common negative cases. */
+  if (lhs.value != rhs.value) {
+    result = FALSE;
+  } else if (lhs.file != rhs.file) {
+    result = FALSE;
+  }  /* if */
+  return result;
+}  /* operator== */
+
+
+inline a_boolean operator!=(const an_ifc_edg_extension_type_offset &lhs,
+                            const an_ifc_edg_extension_type_offset &rhs)
+/*
+Compare two instances of this EdgExtensionTypeOffset (lhs and rhs).  If the two
+instances are equivalent, return FALSE; otherwise return TRUE.
+*/
+{
+  return !(lhs == rhs);
+}  /* operator!= */
+
+
 enum an_ifc_edg_heap_complex_token_offset_0_43 : uint32_t {};
 
 
@@ -20597,6 +21052,55 @@ inline a_boolean operator!=(const an_ifc_edg_heap_complex_token_offset &lhs,
 /*
 Compare two instances of this EdgHeapComplexTokenOffset (lhs and rhs).  If the
 two instances are equivalent, return FALSE; otherwise return TRUE.
+*/
+{
+  return !(lhs == rhs);
+}  /* operator!= */
+
+
+enum an_ifc_edg_heap_template_argument_offset_0_43 : uint32_t {};
+
+
+/*
+The universal representation for an IFC EdgHeapTemplateArgumentOffset.
+*/
+struct an_ifc_edg_heap_template_argument_offset : Offset_entity<
+                                 an_ifc_edg_heap_template_argument, uint32_t> {
+  using node_type = an_ifc_edg_heap_template_argument;
+
+  using native_size_type = uint32_t;
+  using base_type = Offset_entity<node_type, native_size_type>;
+  using base_type::Offset_entity;
+};  /* an_ifc_edg_heap_template_argument_offset */
+
+
+inline a_boolean operator==(
+                           const an_ifc_edg_heap_template_argument_offset &lhs,
+                           const an_ifc_edg_heap_template_argument_offset &rhs)
+/*
+Compare two instances of this EdgHeapTemplateArgumentOffset (lhs and rhs).  If
+the two instances are equivalent, return TRUE; otherwise return FALSE.
+*/
+{
+  a_boolean result = TRUE;
+
+  /* Check members that are more likely to be unique first.  This allows the
+     logic to short circuit in common negative cases. */
+  if (lhs.value != rhs.value) {
+    result = FALSE;
+  } else if (lhs.file != rhs.file) {
+    result = FALSE;
+  }  /* if */
+  return result;
+}  /* operator== */
+
+
+inline a_boolean operator!=(
+                           const an_ifc_edg_heap_template_argument_offset &lhs,
+                           const an_ifc_edg_heap_template_argument_offset &rhs)
+/*
+Compare two instances of this EdgHeapTemplateArgumentOffset (lhs and rhs).  If
+the two instances are equivalent, return FALSE; otherwise return TRUE.
 */
 {
   return !(lhs == rhs);
@@ -20886,7 +21390,12 @@ enum an_ifc_partition_kind : uint32_t {
   ifc_pk_none,
   ifc_pk_edg_constant_integer,
   ifc_pk_edg_constant_integer_word,
+  ifc_pk_edg_extension_type,
   ifc_pk_edg_heap_complex_token,
+  ifc_pk_edg_heap_template_argument,
+  ifc_pk_edg_template_argument_non_type,
+  ifc_pk_edg_template_argument_template,
+  ifc_pk_edg_template_argument_type,
   ifc_pk_edg_token_basic,
   ifc_pk_edg_token_cache,
   ifc_pk_edg_token_complex_constant,
@@ -20894,6 +21403,7 @@ enum an_ifc_partition_kind : uint32_t {
   ifc_pk_edg_token_complex_textual,
   ifc_pk_edg_trait_class_definition,
   ifc_pk_edg_trait_function_definition,
+  ifc_pk_edg_type_substitued,
   ifc_pk_msvc_trait_decl_attrs,
   ifc_pk_msvc_trait_named_function_parameters,
   ifc_pk_msvc_trait_uuid,
@@ -21211,7 +21721,7 @@ enum an_ifc_partition_kind : uint32_t {
 };  /* an_ifc_partition_kind */
 
 
-#define IFC_PARTITION_COUNT 324
+#define IFC_PARTITION_COUNT 330
 
 /*
 A method for mapping partition names to an_ifc_partition_kind values.  Used
@@ -21231,7 +21741,12 @@ EXTERN an_ifc_partition_map ifc_partition_map[IFC_PARTITION_COUNT]
 = {
   { ".edg.constant.integer", ifc_pk_edg_constant_integer },
   { ".edg.constant.integer-word", ifc_pk_edg_constant_integer_word },
+  { ".edg.extension.type", ifc_pk_edg_extension_type },
   { ".edg.heap.complex-token", ifc_pk_edg_heap_complex_token },
+  { ".edg.heap.template-argument", ifc_pk_edg_heap_template_argument },
+  { ".edg.template-argument.non-type", ifc_pk_edg_template_argument_non_type },
+  { ".edg.template-argument.template", ifc_pk_edg_template_argument_template },
+  { ".edg.template-argument.type", ifc_pk_edg_template_argument_type },
   { ".edg.token.basic", ifc_pk_edg_token_basic },
   { ".edg.token.cache", ifc_pk_edg_token_cache },
   { ".edg.token.complex.constant", ifc_pk_edg_token_complex_constant },
@@ -21239,6 +21754,7 @@ EXTERN an_ifc_partition_map ifc_partition_map[IFC_PARTITION_COUNT]
   { ".edg.token.complex.textual", ifc_pk_edg_token_complex_textual },
   { ".edg.trait.class-definition", ifc_pk_edg_trait_class_definition },
   { ".edg.trait.function-definition", ifc_pk_edg_trait_function_definition },
+  { ".edg.type.substitued", ifc_pk_edg_type_substitued },
   { ".msvc.trait.decl-attrs", ifc_pk_msvc_trait_decl_attrs },
   { ".msvc.trait.named-function-parameters",
                                  ifc_pk_msvc_trait_named_function_parameters },

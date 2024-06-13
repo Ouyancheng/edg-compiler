@@ -37,10 +37,24 @@ SPEC_OFFSET_PARTITION_INDEX(an_ifc_edg_constant_integer_word_offset)
 
 
 /*
+Explicit specializations of functions for EdgExtensionTypeOffset.
+*/
+SPEC_OFFSET_PARTITION_KIND(an_ifc_edg_extension_type_offset)
+SPEC_OFFSET_PARTITION_INDEX(an_ifc_edg_extension_type_offset)
+
+
+/*
 Explicit specializations of functions for EdgHeapComplexTokenOffset.
 */
 SPEC_OFFSET_PARTITION_KIND(an_ifc_edg_heap_complex_token_offset)
 SPEC_OFFSET_PARTITION_INDEX(an_ifc_edg_heap_complex_token_offset)
+
+
+/*
+Explicit specializations of functions for EdgHeapTemplateArgumentOffset.
+*/
+SPEC_OFFSET_PARTITION_KIND(an_ifc_edg_heap_template_argument_offset)
+SPEC_OFFSET_PARTITION_INDEX(an_ifc_edg_heap_template_argument_offset)
 
 
 /*
