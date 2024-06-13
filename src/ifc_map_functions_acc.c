@@ -16389,12 +16389,13 @@ representation of the field "characters".
 
 
 /*
-Functions for reading data from IFC EdgTraitClassDefinition nodes.
+Functions for reading data from IFC EdgTraitClassTemplateDefinition nodes.
 */
 
 
 template<>
-a_boolean has_ifc_decl(const an_ifc_edg_trait_class_definition &universal)
+a_boolean has_ifc_decl(
+                   const an_ifc_edg_trait_class_template_definition &universal)
 /*
 Return TRUE if the given universal representation has the field "decl";
 otherwise, return FALSE.
@@ -16412,10 +16413,10 @@ otherwise, return FALSE.
 
 template<>
 an_ifc_decl_index get_ifc_decl(
-                            const an_ifc_edg_trait_class_definition &universal)
+                   const an_ifc_edg_trait_class_template_definition &universal)
 /*
-Given the universal representation of EdgTraitClassDefinition, return the
-universal representation of the field "decl".
+Given the universal representation of EdgTraitClassTemplateDefinition, return
+the universal representation of the field "decl".
 */
 {
   an_ifc_decl_index result;
@@ -16425,7 +16426,7 @@ universal representation of the field "decl".
   an_ifc_decl_index_0_43 stage_0;
   an_ifc_decl_index      stage_1;
 
-  /* Copy the field (EdgTraitClassDefinition::decl - DeclIndex) into
+  /* Copy the field (EdgTraitClassTemplateDefinition::decl - DeclIndex) into
      version-specific storage. */
   static_assert(sizeof(stage_0) == 4,
                 "stage_0 is not properly sized storage!");
@@ -16438,7 +16439,7 @@ universal representation of the field "decl".
 
 template<>
 a_boolean has_ifc_encoded_decl(
-                            const an_ifc_edg_trait_class_definition &universal)
+                   const an_ifc_edg_trait_class_template_definition &universal)
 /*
 Return TRUE if the given universal representation has the field "encoded_decl";
 otherwise, return FALSE.
@@ -16456,10 +16457,10 @@ otherwise, return FALSE.
 
 template<>
 an_ifc_encoded_decl_index get_ifc_encoded_decl(
-                            const an_ifc_edg_trait_class_definition &universal)
+                   const an_ifc_edg_trait_class_template_definition &universal)
 /*
-Given the universal representation of EdgTraitClassDefinition, return the
-universal representation of the field "encoded_decl".
+Given the universal representation of EdgTraitClassTemplateDefinition, return
+the universal representation of the field "encoded_decl".
 */
 {
   an_ifc_encoded_decl_index result;
@@ -16470,7 +16471,7 @@ universal representation of the field "encoded_decl".
   an_ifc_decl_index         stage_1;
   an_ifc_encoded_decl_index stage_2;
 
-  /* Copy the field (EdgTraitClassDefinition::decl - DeclIndex) into
+  /* Copy the field (EdgTraitClassTemplateDefinition::decl - DeclIndex) into
      version-specific storage. */
   static_assert(sizeof(stage_0) == 4,
                 "stage_0 is not properly sized storage!");
@@ -16487,7 +16488,7 @@ universal representation of the field "encoded_decl".
 
 template<>
 a_boolean has_ifc_initializer(
-                            const an_ifc_edg_trait_class_definition &universal)
+                   const an_ifc_edg_trait_class_template_definition &universal)
 /*
 Return TRUE if the given universal representation has the field "initializer";
 otherwise, return FALSE.
@@ -16505,10 +16506,10 @@ otherwise, return FALSE.
 
 template<>
 an_ifc_edg_token_cache_offset get_ifc_initializer(
-                            const an_ifc_edg_trait_class_definition &universal)
+                   const an_ifc_edg_trait_class_template_definition &universal)
 /*
-Given the universal representation of EdgTraitClassDefinition, return the
-universal representation of the field "initializer".
+Given the universal representation of EdgTraitClassTemplateDefinition, return
+the universal representation of the field "initializer".
 */
 {
   an_ifc_edg_token_cache_offset result;
@@ -16518,7 +16519,7 @@ universal representation of the field "initializer".
   an_ifc_edg_token_cache_offset_0_43 stage_0;
   an_ifc_edg_token_cache_offset      stage_1;
 
-  /* Copy the field (EdgTraitClassDefinition::initializer -
+  /* Copy the field (EdgTraitClassTemplateDefinition::initializer -
      EdgTokenCacheOffset) into version-specific storage. */
   static_assert(sizeof(stage_0) == 4,
                 "stage_0 is not properly sized storage!");

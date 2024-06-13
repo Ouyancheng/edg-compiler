@@ -10200,7 +10200,7 @@ struct an_ifc_edg_token_textual :
 
 /*
   |-----------------------------------------------------|
-  |      EdgTraitClassDefinition - 0.43 (8 bytes)       |
+  |  EdgTraitClassTemplateDefinition - 0.43 (8 bytes)   |
   |--------------|---------------------|---------|------|
   | Name         | Type                | Version | Size |
   |--------------|---------------------|---------|------|
@@ -10210,28 +10210,28 @@ struct an_ifc_edg_token_textual :
   | encoded_decl | EncodedDeclIndex    | 0.33    | TF   |
   |--------------|---------------------|---------|------|
 */
-enum an_ifc_edg_trait_class_definition_part : uint8_t {};
-using an_ifc_edg_trait_class_definition_storage =
-                                     an_ifc_edg_trait_class_definition_part[8];
+enum an_ifc_edg_trait_class_template_definition_part : uint8_t {};
+using an_ifc_edg_trait_class_template_definition_storage =
+                            an_ifc_edg_trait_class_template_definition_part[8];
 #if USE_MMAP_FOR_MODULES
-using an_ifc_edg_trait_class_definition_bytes =
-                              const an_ifc_edg_trait_class_definition_storage*;
+using an_ifc_edg_trait_class_template_definition_bytes =
+                     const an_ifc_edg_trait_class_template_definition_storage*;
 #else /* !USE_MMAP_FOR_MODULES */
-using an_ifc_edg_trait_class_definition_bytes =
-                                     an_ifc_edg_trait_class_definition_storage;
+using an_ifc_edg_trait_class_template_definition_bytes =
+                            an_ifc_edg_trait_class_template_definition_storage;
 #endif /* USE_MMAP_FOR_MODULES */
 /*
-The universal representation of an IFC EdgTraitClassDefinition node.
+The universal representation of an IFC EdgTraitClassTemplateDefinition node.
 
 The representation is declared as a derived struct of Byte_buffer_entity rather
 than simply an alias of the instantiation to improve the debugger experience.
 */
-struct an_ifc_edg_trait_class_definition :
-                Byte_buffer_entity<an_ifc_edg_trait_class_definition_storage> {
-  using storage_type = an_ifc_edg_trait_class_definition_storage;
+struct an_ifc_edg_trait_class_template_definition :
+       Byte_buffer_entity<an_ifc_edg_trait_class_template_definition_storage> {
+  using storage_type = an_ifc_edg_trait_class_template_definition_storage;
   using base_type = Byte_buffer_entity<storage_type>;
   using base_type::Byte_buffer_entity;
-};  /* an_ifc_edg_trait_class_definition */
+};  /* an_ifc_edg_trait_class_template_definition */
 
 
 /*
@@ -21401,7 +21401,7 @@ enum an_ifc_partition_kind : uint32_t {
   ifc_pk_edg_token_complex_constant,
   ifc_pk_edg_token_complex_identifier,
   ifc_pk_edg_token_complex_textual,
-  ifc_pk_edg_trait_class_definition,
+  ifc_pk_edg_trait_class_template_definition,
   ifc_pk_edg_trait_function_definition,
   ifc_pk_edg_type_substitued,
   ifc_pk_msvc_trait_decl_attrs,
@@ -21752,7 +21752,8 @@ EXTERN an_ifc_partition_map ifc_partition_map[IFC_PARTITION_COUNT]
   { ".edg.token.complex.constant", ifc_pk_edg_token_complex_constant },
   { ".edg.token.complex.identifier", ifc_pk_edg_token_complex_identifier },
   { ".edg.token.complex.textual", ifc_pk_edg_token_complex_textual },
-  { ".edg.trait.class-definition", ifc_pk_edg_trait_class_definition },
+  { ".edg.trait.class-template-definition",
+                                  ifc_pk_edg_trait_class_template_definition },
   { ".edg.trait.function-definition", ifc_pk_edg_trait_function_definition },
   { ".edg.type.substitued", ifc_pk_edg_type_substitued },
   { ".msvc.trait.decl-attrs", ifc_pk_msvc_trait_decl_attrs },

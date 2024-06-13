@@ -7851,16 +7851,16 @@ field "characters" to the given TextOffset value.
 
 
 /*
-Functions for writing data to IFC EdgTraitClassDefinition nodes.
+Functions for writing data to IFC EdgTraitClassTemplateDefinition nodes.
 */
 
 
 template<>
-void set_ifc_decl(an_ifc_edg_trait_class_definition *universal,
-                  const an_ifc_decl_index           &value)
+void set_ifc_decl(an_ifc_edg_trait_class_template_definition *universal,
+                  const an_ifc_decl_index                    &value)
 /*
-Given the universal representation of EdgTraitClassDefinition update the value
-of the field "decl" to the given DeclIndex value.
+Given the universal representation of EdgTraitClassTemplateDefinition update
+the value of the field "decl" to the given DeclIndex value.
 */
 {
   /* Ensure the decl field exists in the current module version. */
@@ -7871,7 +7871,7 @@ of the field "decl" to the given DeclIndex value.
   stage_0 = to_encoded(universal->get_file(), value);
   stage_1 = (an_ifc_decl_index_0_43)stage_0.value;
   /* Copy from version-specific storage into the field
-     (EdgTraitClassDefinition::decl - DeclIndex). */
+     (EdgTraitClassTemplateDefinition::decl - DeclIndex). */
   static_assert(sizeof(stage_1) == 4,
                 "stage_1 is not properly sized storage!");
   copy_to_node_field(&stage_1, universal->get_storage(), /*offset=*/0);
@@ -7879,11 +7879,12 @@ of the field "decl" to the given DeclIndex value.
 
 
 template<>
-void set_ifc_encoded_decl(an_ifc_edg_trait_class_definition *universal,
-                          const an_ifc_encoded_decl_index   &value)
+void set_ifc_encoded_decl(
+                         an_ifc_edg_trait_class_template_definition *universal,
+                         const an_ifc_encoded_decl_index            &value)
 /*
-Given the universal representation of EdgTraitClassDefinition update the value
-of the field "encoded_decl" to the given EncodedDeclIndex value.
+Given the universal representation of EdgTraitClassTemplateDefinition update
+the value of the field "encoded_decl" to the given EncodedDeclIndex value.
 */
 {
   /* Ensure the encoded_decl field exists in the current module version. */
@@ -7893,11 +7894,11 @@ of the field "encoded_decl" to the given EncodedDeclIndex value.
 
 
 template<>
-void set_ifc_initializer(an_ifc_edg_trait_class_definition   *universal,
-                         const an_ifc_edg_token_cache_offset &value)
+void set_ifc_initializer(an_ifc_edg_trait_class_template_definition *universal,
+                         const an_ifc_edg_token_cache_offset        &value)
 /*
-Given the universal representation of EdgTraitClassDefinition update the value
-of the field "initializer" to the given EdgTokenCacheOffset value.
+Given the universal representation of EdgTraitClassTemplateDefinition update
+the value of the field "initializer" to the given EdgTokenCacheOffset value.
 */
 {
   /* Ensure the initializer field exists in the current module version. */
@@ -7908,7 +7909,7 @@ of the field "initializer" to the given EdgTokenCacheOffset value.
   stage_0 = to_encoded(universal->get_file(), value);
   stage_1 = (an_ifc_edg_token_cache_offset_0_43)stage_0.value;
   /* Copy from version-specific storage into the field
-     (EdgTraitClassDefinition::initializer - EdgTokenCacheOffset). */
+     (EdgTraitClassTemplateDefinition::initializer - EdgTokenCacheOffset). */
   static_assert(sizeof(stage_1) == 4,
                 "stage_1 is not properly sized storage!");
   copy_to_node_field(&stage_1, universal->get_storage(), /*offset=*/4);
