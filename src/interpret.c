@@ -9685,7 +9685,8 @@ to FALSE and the reason for the failure is recorded in *ips.
               case bfk_wmemmove: is_move = TRUE; is_wide = TRUE; break;
               default: unexpected_condition();
             }  /* switch */
-            if (ovflo || length_val > MAX_CONSTEXPR_TYPE_SIZE) {
+            if (ovflo ||
+                (length_val > (a_host_large_integer)MAX_CONSTEXPR_TYPE_SIZE)) {
               length_val = MAX_CONSTEXPR_TYPE_SIZE+1;
             }  /* if */
             if (is_wide) {
@@ -14028,7 +14029,7 @@ the corresponding reflection value at the location denoted by result_cap.
       }  /* if */
     }  /* if */
     if (result) {
-      int  interpolator_num = 0;
+      size_t  interpolator_num = 0;
       new_cache = alloc_token_cache(/*reusable=*/TRUE);
       rescan_reusable_cache((a_token_cache*)orig_tok_seq->token_cache);
       for (; curr_token != tok_end_of_source; (void)get_token()) {
@@ -23858,7 +23859,7 @@ the value representation of the integer value.
           /* A use of a parameter in a Clang enable_if condition.  Copy the
              corresponding constant to result_storage (that constant may be an
              error constant if the corresponding argument is not constant). */
-          a_ptrdiff  param_num = expr->variant.param_ref.param_num;
+          size_t     param_num = expr->variant.param_ref.param_num;
           Dyn_array<a_constant*>
                      *params = (Dyn_array<a_constant*>*)param_table_bytes;
           if (param_num < params->length()) {

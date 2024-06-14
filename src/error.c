@@ -713,7 +713,7 @@ static Dyn_array<a_pragma_diag_elem>
                            by source location (which occurs naturally except
                            for the case of _Pragmas in instantiations which
                            must be inserted at the proper location). */
-static Dyn_array<a_ptrdiff>
+static Dyn_array<size_t>
                 *pragma_diag_stack;
                         /* A stack that keeps track of "diagnostic push"
                            pragma indices so that they can later be matched
@@ -8102,7 +8102,8 @@ parsed except during instantiations).
       if (is_push) {
         /* Push the index onto a stack so it can be associated with a later
            "pop". */
-        pragma_diag_stack->push_back({pragma_diag_list->length()-1});
+        check_assertion(pragma_diag_list->length() > 0);
+        pragma_diag_stack->push_back(pragma_diag_list->length() - 1);
       } else {
         /* Link to associated "push". */
         ptr->is_pop = TRUE;
@@ -8273,7 +8274,7 @@ Initialize variables that are specific to a given translation unit.
 #if !STANDALONE_UTILITY_PROGRAM
   pragma_diag_list = alloc_fe_of_type(Dyn_array<a_pragma_diag_elem>);
   construct(pragma_diag_list, /*cap=*/256);
-  pragma_diag_stack = alloc_fe_of_type(Dyn_array<a_ptrdiff>);
+  pragma_diag_stack = alloc_fe_of_type(Dyn_array<size_t>);
   construct(pragma_diag_stack, /*cap=*/16);
 #endif /* !STANDALONE_UTILITY_PROGRAM */
 }  /* error_trans_unit_init */

@@ -520,7 +520,7 @@ END_DISABLE_GCC_WARNING_MAYBE_UNITIALIZED
 
 template<typename an_Object>
 void reverse_array(an_Object  *arr,
-                   a_ptrdiff  length)
+                   size_t     length)
 /*
 Reverse the length elements in the given array (or sub-array).
 */
@@ -783,7 +783,7 @@ struct Allocation {
 		start;
 			/* Pointer to the first allocated element.  If NULL,
 			   n_allocated must be zero. */
-  const a_ptrdiff
+  const size_t
 		n_allocated;
 			/* Number of allocated elements. */
 };  /* Allocation */
@@ -793,39 +793,38 @@ template<typename an_Elem>
 struct FE_allocator {
   /* A general allocator for front end memory. */
   typedef an_Elem an_elem;
-  typedef a_ptrdiff a_size;
   typedef Allocation<an_elem> an_allocation;
   typedef FE_allocator<an_elem> an_allocator;
   typedef FE_allocator<an_elem> a_deallocator;
-  inline static auto alloc(a_size n) -> an_allocation;
+  inline static auto alloc(size_t n) -> an_allocation;
   inline static auto realloc(an_allocation  a,
-                             a_size         new_capacity,
-                             a_size         n_to_move)
+                             size_t         new_capacity,
+                             size_t         n_to_move)
                      -> an_allocation;
   static auto move_alloc(ARG_UNUSED an_allocator  &src,
                          an_allocation            src_alloc,
-                         ARG_UNUSED a_size        n_to_move) -> an_allocation
+                         ARG_UNUSED size_t        n_to_move) -> an_allocation
     { return src_alloc; }
   inline static void dealloc(an_allocation allocation);
 };  /* FE_allocator */
 
 
 template<typename an_Elem>
-inline auto FE_allocator<an_Elem>::alloc(a_size n) -> an_allocation
+inline auto FE_allocator<an_Elem>::alloc(size_t n) -> an_allocation
 /*
 Allocate at least n elements of type an_Elem and return the resulting
 allocation (which reflects the actual number of allocated elements).
 */
 {
   return an_allocation{ (an_elem*)alloc_fe(n*sizeof(an_elem)),
-                        (a_ptrdiff)n };
+                        n };
 }  /* FE_allocator::alloc */
 
 
 template<typename an_Elem>
 inline auto FE_allocator<an_Elem>::realloc(an_allocation a,
-                                           a_size        new_capacity,
-                                           a_size        n_to_move)
+                                           size_t        new_capacity,
+                                           size_t        n_to_move)
             -> an_allocation
 /*
 Replace the given allocation -- which was allocated by the same allocator -- by
@@ -836,12 +835,12 @@ new allocation.
 {
   an_elem  *old_start = a.start,
            *new_start = (an_elem*)alloc_fe(new_capacity*sizeof(an_elem));
-  for (a_size k = 0; k < n_to_move; ++k) {
+  for (size_t k = 0; k < n_to_move; ++k) {
     construct(new_start+k, move_from(old_start+k));
     destroy(old_start+k);
   }  /* for */
   free_fe((void*)old_start, a.n_allocated*sizeof(an_elem));
-  return an_allocation{ new_start, (a_ptrdiff)new_capacity };
+  return an_allocation{ new_start, new_capacity };
 }  /* FE_allocator::realloc */
 
 
@@ -890,39 +889,37 @@ struct General_allocator {
   /* A general allocator for general memory (i.e., as allocated by
      alloc_general in mem_manage.c). */
   typedef an_Elem an_elem;
-  typedef a_ptrdiff a_size;
   typedef Allocation<an_elem> an_allocation;
   typedef General_allocator<an_elem> an_allocator;
   typedef General_allocator<an_elem> a_deallocator;
-  inline static auto alloc(a_size n) -> an_allocation;
+  inline static auto alloc(size_t n) -> an_allocation;
   inline static auto realloc(an_allocation  a,
-                             a_size         new_capacity,
-                             a_size         n_to_move)
+                             size_t         new_capacity,
+                             size_t         n_to_move)
                      -> an_allocation;
   static auto move_alloc(ARG_UNUSED an_allocator  &src,
                          an_allocation            src_alloc,
-                         ARG_UNUSED a_size        n_to_move) -> an_allocation
+                         ARG_UNUSED size_t        n_to_move) -> an_allocation
     { return src_alloc; }
   inline static void dealloc(an_allocation allocation);
 };  /* General_allocator */
 
 
 template<typename an_Elem>
-inline auto General_allocator<an_Elem>::alloc(a_size n) -> an_allocation
+inline auto General_allocator<an_Elem>::alloc(size_t n) -> an_allocation
 /*
 Allocate at least n elements of type an_Elem and return the resulting
 allocation (which reflects the actual number of allocated elements).
 */
 {
-  return an_allocation{ (an_elem*)alloc_general(n*sizeof(an_elem)),
-                        (a_ptrdiff)n };
+  return an_allocation{ (an_elem*)alloc_general(n*sizeof(an_elem)), n };
 }  /* General_allocator::alloc */
 
 
 template<typename an_Elem>
 inline auto General_allocator<an_Elem>::realloc(an_allocation a,
-                                                a_size        new_capacity,
-                                                a_size        n_to_move)
+                                                size_t        new_capacity,
+                                                size_t        n_to_move)
             -> an_allocation
 /*
 Replace the given allocation -- which was allocated by the same allocator -- by
@@ -933,12 +930,12 @@ new allocation.
 {
   an_elem  *old_start = a.start,
            *new_start = (an_elem*)alloc_general(new_capacity*sizeof(an_elem));
-  for (a_size k = 0; k < n_to_move; ++k) {
+  for (size_t k = 0; k < n_to_move; ++k) {
     construct(new_start+k, move_from(old_start+k));
     destroy(old_start+k);
   }  /* for */
   free_general(old_start, a.n_allocated*sizeof(an_elem));
-  return an_allocation{ new_start, (a_ptrdiff)new_capacity };
+  return an_allocation{ new_start, new_capacity };
 }  /* General_allocator::realloc */
 
 
@@ -987,10 +984,9 @@ struct IL_allocator {
   /* An allocator for IL memory (i.e., as allocated by alloc_il in
      il_alloc.c). */
   typedef an_Elem an_elem;
-  typedef a_ptrdiff a_size;
   typedef Allocation<an_elem> an_allocation;
   typedef IL_allocator<an_elem> an_allocator;
-  inline static auto alloc(a_size n) -> an_allocation;
+  inline static auto alloc(size_t n) -> an_allocation;
 };  /* IL_allocator */
 
 
@@ -998,14 +994,13 @@ struct IL_allocator {
 extern char *alloc_il(sizeof_t size);
 
 template<typename an_Elem>
-inline auto IL_allocator<an_Elem>::alloc(a_size n) -> an_allocation
+inline auto IL_allocator<an_Elem>::alloc(size_t n) -> an_allocation
 /*
 Allocate at least n elements of type an_Elem and return the resulting
 allocation (which reflects the actual number of allocated elements).
 */
 {
-  return an_allocation{ (an_elem*)alloc_il(n*sizeof(an_elem)),
-                        (a_ptrdiff)n };
+  return an_allocation{ (an_elem*)alloc_il(n*sizeof(an_elem)), n };
 }  /* IL_allocator::alloc */
 
 
@@ -1046,7 +1041,6 @@ template<unsigned a_Capacity,
          typename an_Elem>
 struct Buffered_allocator {
   typedef an_Elem an_elem;
-  typedef a_ptrdiff a_size;
   typedef Allocation<an_elem> an_allocation;
   typedef a_Fallback_allocator<an_Elem> a_fallback_allocator;
   typedef Buffered_allocator<a_Capacity, a_Fallback_allocator, an_Elem>
@@ -1066,17 +1060,17 @@ struct Buffered_allocator {
   ~Buffered_allocator()
     {}
 
-  inline auto alloc(a_size n) -> an_allocation;
+  inline auto alloc(size_t n) -> an_allocation;
   inline auto realloc(an_allocation  a,
-                      a_size         new_capacity,
-                      a_size         n_to_move) -> an_allocation;
+                      size_t         new_capacity,
+                      size_t         n_to_move) -> an_allocation;
   inline auto move_alloc(an_allocator  &src,
                          an_allocation src_alloc,
-                         a_size        n_to_move) -> an_allocation;
+                         size_t        n_to_move) -> an_allocation;
   inline void dealloc(an_allocation allocation);
 private:
-  inline auto local_alloc(a_size n) -> an_allocation;
-  inline auto fallback_alloc(a_size n) -> an_allocation;
+  inline auto local_alloc(size_t n) -> an_allocation;
+  inline auto fallback_alloc(size_t n) -> an_allocation;
   a_fallback_allocator
                 fallback_allocator;
                         /* The fallback allocator used when the local buffer is
@@ -1105,7 +1099,7 @@ template<unsigned a_Capacity,
          typename an_Elem>
 inline auto
 Buffered_allocator<a_Capacity, a_Fallback_allocator, an_Elem>::local_alloc(
-                                                                   a_size n) ->
+                                                                   size_t n) ->
                                                                   an_allocation
 /*
 Allocate at least n elements of type an_Elem using space reserved in this
@@ -1114,8 +1108,8 @@ number of allocated elements).
 */
 {
   check_assertion(!this->local_used && n <= a_Capacity);
-  an_elem   *start = this->local;
-  a_ptrdiff num_allocated = a_Capacity;
+  an_elem *start = this->local;
+  size_t  num_allocated = a_Capacity;
 
   this->local_used = TRUE;
   return an_allocation{start, num_allocated};
@@ -1127,7 +1121,7 @@ template<unsigned a_Capacity,
          typename an_Elem>
 inline auto
 Buffered_allocator<a_Capacity, a_Fallback_allocator, an_Elem>::fallback_alloc(
-                                                                   a_size n) ->
+                                                                   size_t n) ->
                                                                   an_allocation
 /*
 Allocate at least n elements of type an_Elem using the fallback allocator and
@@ -1138,7 +1132,7 @@ elements).
 
   an_allocation alloced = this->fallback_allocator.alloc(n);
   an_elem       *start = alloced.start;
-  a_ptrdiff     num_allocated = alloced.n_allocated;
+  size_t        num_allocated = alloced.n_allocated;
 
   return an_allocation{start, num_allocated};
 }  /* Buffered_allocator::fallback_alloc */
@@ -1149,7 +1143,7 @@ template<unsigned a_Capacity,
          typename an_Elem>
 inline auto
 Buffered_allocator<a_Capacity, a_Fallback_allocator, an_Elem>::alloc(
-                                                                   a_size n) ->
+                                                                   size_t n) ->
                                                                   an_allocation
 /*
 Allocate at least n elements of type an_Elem and return the resulting
@@ -1170,8 +1164,8 @@ template<unsigned a_Capacity,
 inline auto
 Buffered_allocator<a_Capacity, a_Fallback_allocator, an_Elem>::realloc(
                                                    an_allocation  a,
-                                                   a_size         new_capacity,
-                                                   a_size         n_to_move) ->
+                                                   size_t         new_capacity,
+                                                   size_t         n_to_move) ->
                                                                   an_allocation
 /*
 Replace the given allocation -- which was allocated by the same allocator -- by
@@ -1180,9 +1174,9 @@ the original allocation are initialized and should therefore be moved to the
 new allocation.
 */
 {
-  an_elem   *new_start;
-  a_ptrdiff new_num_allocated;
-  an_elem   *old_start = a.start;
+  an_elem *new_start;
+  size_t  new_num_allocated;
+  an_elem *old_start = a.start;
 
   if ((!this->local_used || old_start == this->local) &&
       new_capacity <= a_Capacity) {
@@ -1200,7 +1194,7 @@ new allocation.
   /* If we're still within the local capacity old_start will equal new_start,
      and nothing more needs to happen. */
   if (old_start != new_start) {
-    for (a_size k = 0; k < n_to_move; ++k) {
+    for (size_t k = 0; k < n_to_move; ++k) {
       construct(new_start + k, move_from(old_start + k));
       destroy(old_start + k);
     }  /* for */
@@ -1217,7 +1211,7 @@ inline auto
 Buffered_allocator<a_Capacity, a_Fallback_allocator, an_Elem>::move_alloc(
                                                     an_allocator  &src,
                                                     an_allocation src_alloc,
-                                                    a_size        n_to_move) ->
+                                                    size_t        n_to_move) ->
                                                                   an_allocation
 /*
 Move the ownership of the given source allocation from the source allocator to
@@ -1225,9 +1219,9 @@ this allocator.  The first n_to_move elements in the original allocation are
 initialized and should therefore be moved to the new allocator.
 */
 {
-  an_elem   *new_start;
-  a_ptrdiff new_num_allocated;
-  an_elem   *old_start = src_alloc.start;
+  an_elem *new_start;
+  size_t  new_num_allocated;
+  an_elem *old_start = src_alloc.start;
 
   if (old_start == src.local) {
     /* This allocation is owned by the buffer of src.  Steal the allocation
@@ -1236,7 +1230,7 @@ initialized and should therefore be moved to the new allocator.
 
     new_start = alloced.start;
     new_num_allocated = alloced.n_allocated;
-    for (a_size k = 0; k < n_to_move; ++k) {
+    for (size_t k = 0; k < n_to_move; ++k) {
       construct(new_start + k, move_from(old_start + k));
       destroy(old_start + k);
     }  /* for */
@@ -1311,11 +1305,9 @@ struct Dyn_array: private Allocator<an_Elem> {
   /* A dynamically growable array-like class type. */
   typedef an_Elem an_elem;
   typedef Allocator<an_Elem> an_allocator;
-  typedef typename an_allocator::a_size a_size;
-  typedef a_ptrdiff an_index;
-  inline Dyn_array(a_size             cap = 0,
+  inline Dyn_array(size_t             cap = 0,
                    const an_allocator &a = an_allocator());
-  inline Dyn_array(a_size             cap,
+  inline Dyn_array(size_t             cap,
                    const an_elem      &v,
                    const an_allocator &a = an_allocator());
   inline Dyn_array(const Dyn_array&);
@@ -1323,13 +1315,13 @@ struct Dyn_array: private Allocator<an_Elem> {
   inline ~Dyn_array();
   inline auto operator=(const Dyn_array&) -> Dyn_array&;
   inline auto operator=(Dyn_array&&) -> Dyn_array&;
-  inline auto operator[](an_index i) -> an_elem&;
-  inline auto operator[](an_index i) const -> const an_elem&;
-  inline auto is_empty() const -> a_boolean 
+  inline auto operator[](size_t i) -> an_elem&;
+  inline auto operator[](size_t i) const -> const an_elem&;
+  inline auto is_empty() const -> a_boolean
     { return this->n_elems == 0; }
-  inline auto length() const -> a_size 
+  inline auto length() const -> size_t
     { return this->n_elems; }
-  inline auto capacity() const -> a_size
+  inline auto capacity() const -> size_t
     { return this->n_allocated; }
   inline auto front_elem() -> an_elem&
     { return (*this)[0]; }
@@ -1346,18 +1338,18 @@ struct Dyn_array: private Allocator<an_Elem> {
   inline void push_back(an_elem  &&value);
   inline void pop_back()
     { destroy(&((*this)[this->n_elems-1])); --this->n_elems; }
-  inline void insert(an_index i, const an_elem  &value);
-  inline void insert(an_index i, an_elem  &&value);
+  inline void insert(size_t i, const an_elem  &value);
+  inline void insert(size_t i, an_elem  &&value);
   template<typename an_Input_iterator>
-  inline void insert(an_index          i,
+  inline void insert(size_t            i,
                      an_Input_iterator begin,
                      size_t            len);
-  inline void insert_many(an_index i, a_size num_copies, const an_elem &value);
-  inline void remove(an_index i);
-  inline void remove_many(an_index i, a_size num_elements);
+  inline void insert_many(size_t i, size_t num_copies, const an_elem &value);
+  inline void remove(size_t i);
+  inline void remove_many(size_t i, size_t num_elements);
   inline void clear();
-  void resize(a_size new_n, const an_elem  &value);
-  void reserve(a_size);
+  void resize(size_t new_n, const an_elem  &value);
+  void reserve(size_t);
   /* Interfaces to allow range-based for loop. */
   /*lint -e{1535}*/
   inline auto begin() -> an_elem*
@@ -1372,10 +1364,10 @@ private:
   typedef typename an_allocator::an_allocation an_allocation;
   an_elem	*elems;
 			/* Pointer to the allocated elements. */
-  a_size	n_allocated;
+  size_t	n_allocated;
 			/* Number of elements allocated.  This is also known
 			   as the "capacity". */
-  a_size	n_elems;
+  size_t	n_elems;
 			/* Number of initialized elements.  This is also known
 			   as the "length". */
   void grow();
@@ -1394,7 +1386,7 @@ using Small_dyn_array = Dyn_array<an_Elem, Delegate_buffered_allocator<
 
 
 template<typename an_Elem, template<typename> class Allocator>
-inline Dyn_array<an_Elem, Allocator>::Dyn_array(a_size             cap,
+inline Dyn_array<an_Elem, Allocator>::Dyn_array(size_t             cap,
                                                 const an_allocator &a)
 /*
 Initialize a Dyn_array with a minimum of cap elements whose allocation is
@@ -1407,12 +1399,12 @@ managed by the given allocator.
 {
   an_allocation  allocation = this->alloc(cap);
   this->elems = allocation.start;
-  this->n_allocated = (a_size)allocation.n_allocated;
+  this->n_allocated = allocation.n_allocated;
 }  /* Dyn_array::Dyn_array */
 
 
 template<typename an_Elem, template<typename> class Allocator>
-inline Dyn_array<an_Elem, Allocator>::Dyn_array(a_size             cap,
+inline Dyn_array<an_Elem, Allocator>::Dyn_array(size_t             cap,
                                                 const an_elem      &v,
                                                 const an_allocator &a)
 /*
@@ -1426,7 +1418,7 @@ managed by the given allocator.  Initialize the first cap elements to v.
 {
   an_allocation  allocation = this->alloc(cap);
   this->elems = allocation.start;
-  this->n_allocated = (a_size)allocation.n_allocated;
+  this->n_allocated = allocation.n_allocated;
 
   /* Copy-construct the element into newly-allocated storage. */
   an_elem *dst_elems = this->elems;
@@ -1447,13 +1439,13 @@ Copy constructor.
   /* Allocate new storage. */
   an_allocation  allocation = this->alloc(src.n_allocated);
   this->elems = allocation.start;
-  this->n_allocated = (a_size)allocation.n_allocated;
+  this->n_allocated = allocation.n_allocated;
 
   /* Copy-construct the elements from the source into the newly-allocated
      storage. */
   an_elem *dst_elems = this->elems;
   an_elem *src_elems = src.elems;
-  a_size  new_n = this->n_elems;
+  size_t  new_n = this->n_elems;
   copy_elements<an_elem>(dst_elems, src_elems, new_n);
 }  /* Dyn_array::Dyn_array */
 
@@ -1486,7 +1478,7 @@ Destructor.
 */
 {
   an_elem  *arr_elems = this->elems;
-  a_size   n = this->n_elems;
+  size_t   n = this->n_elems;
 
   destroy_elements<an_elem>(arr_elems, n);
   this->dealloc(an_allocation{ arr_elems, this->n_allocated });
@@ -1502,8 +1494,8 @@ inline auto Dyn_array<an_Elem, Allocator>::operator=(const Dyn_array &b)
 Copy assignment operator.
 */
 {
-  a_size n = this->n_elems;
-  a_size new_n = b.n_elems;
+  size_t n = this->n_elems;
+  size_t new_n = b.n_elems;
 
   if (new_n == n) {
     /* Straightforward element-to-element assignment.  Note that this covers
@@ -1545,27 +1537,27 @@ Move assignment operator.
 
 
 template<typename an_Elem, template<typename> class Allocator>
-inline auto Dyn_array<an_Elem, Allocator>::operator[](an_index i) -> an_elem&
+inline auto Dyn_array<an_Elem, Allocator>::operator[](size_t i) -> an_elem&
 /*
 Subscript operator to access the element at the given index.
 */
 {
 BEGIN_DISABLE_GCC_WARNING_MAYBE_UNITIALIZED
-  check_assertion(0 <= i && i < this->n_elems);
+  check_assertion(i < this->n_elems);
   return this->elems[i];
 END_DISABLE_GCC_WARNING_MAYBE_UNITIALIZED
 }  /* Dyn_array::operator[] */
 
 
 template<typename an_Elem, template<typename> class Allocator>
-inline auto Dyn_array<an_Elem, Allocator>::operator[](an_index i) const ->
+inline auto Dyn_array<an_Elem, Allocator>::operator[](size_t i) const ->
                                                                  const an_elem&
 /*
 Subscript operator to access a const version of the element at the given index.
 */
 {
 BEGIN_DISABLE_GCC_WARNING_MAYBE_UNITIALIZED
-  check_assertion(0 <= i && i < this->n_elems);
+  check_assertion(i < this->n_elems);
   return this->elems[i];
 END_DISABLE_GCC_WARNING_MAYBE_UNITIALIZED
 }  /* Dyn_array::operator[] */
@@ -1598,7 +1590,7 @@ Copy the given value into the position after the currently-last element.
 Allocate new storage if needed.
 */
 {
-  a_size  n = this->n_elems;
+  size_t  n = this->n_elems;
 
   if (n == this->n_allocated) {
     this->grow();
@@ -1615,7 +1607,7 @@ Move the given value into the position after the currently-last element.
 Allocate new storage if needed.
 */
 {
-  a_size  n = this->n_elems;
+  size_t  n = this->n_elems;
 
   if (n == this->n_allocated) {
     this->grow();
@@ -1626,15 +1618,15 @@ Allocate new storage if needed.
 
 
 template<typename an_Elem, template<typename> class Allocator>
-inline void Dyn_array<an_Elem, Allocator>::insert(an_index      i,
+inline void Dyn_array<an_Elem, Allocator>::insert(size_t        i,
                                                   const an_elem &value)
 /*
 Copy-insert the given value at the given index.  All subsequent values (if any)
 are first moved one position up.
 */
 {
-  check_assertion(0 <= i && i <= this->n_elems);
-  a_size orig_count = this->n_elems;
+  check_assertion(i <= this->n_elems);
+  size_t orig_count = this->n_elems;
 
   if (orig_count == this->n_allocated) {
     this->grow();
@@ -1644,7 +1636,7 @@ are first moved one position up.
   an_elem  *arr_elems = this->elems;
   an_elem  *move_src = arr_elems + i;
   an_elem  *move_dest = move_src + 1;
-  a_size   num_to_move = orig_count - i;
+  size_t   num_to_move = orig_count - i;
   move_elements<an_elem>(move_dest, move_src, num_to_move);
   /* Insert the new element. */
   construct(arr_elems+i, value);
@@ -1653,15 +1645,15 @@ are first moved one position up.
 
 
 template<typename an_Elem, template<typename> class Allocator>
-inline void Dyn_array<an_Elem, Allocator>::insert(an_index  i,
-                                                  an_elem   &&value)
+inline void Dyn_array<an_Elem, Allocator>::insert(size_t  i,
+                                                  an_elem &&value)
 /*
 Move-insert the given value at the given index.  All subsequent values (if any)
 are first moved one position up.
 */
 {
-  check_assertion(0 <= i && i <= this->n_elems);
-  a_size orig_count = this->n_elems;
+  check_assertion(i <= this->n_elems);
+  size_t orig_count = this->n_elems;
 
   if (orig_count == this->n_allocated) {
     this->grow();
@@ -1671,7 +1663,7 @@ are first moved one position up.
   an_elem  *arr_elems = this->elems;
   an_elem  *move_src = arr_elems + i;
   an_elem  *move_dest = move_src + 1;
-  a_size   num_to_move = orig_count - i;
+  size_t   num_to_move = orig_count - i;
   move_elements<an_elem>(move_dest, move_src, num_to_move);
   /* Insert the new element. */
   construct(arr_elems+i, move_from(&value));
@@ -1681,7 +1673,7 @@ are first moved one position up.
 
 template<typename an_Elem, template<typename> class Allocator>
 template<typename an_Input_iterator>
-inline void Dyn_array<an_Elem, Allocator>::insert(an_index          i,
+inline void Dyn_array<an_Elem, Allocator>::insert(size_t            i,
                                                   an_Input_iterator start,
                                                   size_t            len)
 /*
@@ -1690,8 +1682,8 @@ into the array beginning at the given index i.  All existing values from index
 i through the end of the array are first moved len positions back.
 */
 {
-  check_assertion(0 <= i && i <= this->n_elems);
-  a_size orig_count = this->n_elems;
+  check_assertion(i <= this->n_elems);
+  size_t orig_count = this->n_elems;
 
   /* Ensure adequate capacity for the bulk insert operation. */
   this->reserve(orig_count + len);
@@ -1700,12 +1692,12 @@ i through the end of the array are first moved len positions back.
   /* Move the existing elements past the inserted sequence. */
   an_elem  *move_src = arr_elems + i;
   an_elem  *move_dest = move_src + len;
-  a_size   num_to_move = orig_count - i;
+  size_t   num_to_move = orig_count - i;
   move_elements<an_elem>(move_dest, move_src, num_to_move);
 
   /* Insert the sequence of elements. */
   an_Input_iterator curr = start;
-  for (an_index k = 0; k < (an_index)len; ++k) {
+  for (size_t k = 0; k < len; ++k) {
     construct(arr_elems + i + k, *curr);
     ++curr;
   }  /* for */
@@ -1715,8 +1707,8 @@ i through the end of the array are first moved len positions back.
 
 template<typename an_Elem, template<typename> class Allocator>
 inline void Dyn_array<an_Elem, Allocator>::insert_many(
-                                                      an_index      i,
-                                                      a_size        num_copies,
+                                                      size_t        i,
+                                                      size_t        num_copies,
                                                       const an_elem &value)
 /*
 Copy-insert the given number of copies of the value starting at the given
@@ -1724,8 +1716,8 @@ index.  All subsequent values (if any) are first moved by the number of copies
 back.
 */
 {
-  check_assertion(0 <= i && i <= this->n_elems);
-  a_size  orig_count = this->n_elems;
+  check_assertion(i <= this->n_elems);
+  size_t  orig_count = this->n_elems;
 
   /* Ensure adequate capacity for the bulk insert operation. */
   this->reserve(orig_count + num_copies);
@@ -1734,7 +1726,7 @@ back.
   /* Move the existing elements past the inserted copies. */
   an_elem  *move_src = arr_elems + i;
   an_elem  *move_dest = move_src + num_copies;
-  a_size   num_to_move = orig_count - i;
+  size_t   num_to_move = orig_count - i;
   move_elements<an_elem>(move_dest, move_src, num_to_move);
 
   /* Construct the new elements. */
@@ -1745,36 +1737,36 @@ back.
 
 
 template<typename an_Elem, template<typename> class Allocator>
-inline void Dyn_array<an_Elem, Allocator>::remove(an_index  i)
+inline void Dyn_array<an_Elem, Allocator>::remove(size_t  i)
 /*
 Destroy the entry at the given index.  All subsequent values (if any) are moved
 one position down.
 */
 {
-  check_assertion(0 <= i && i < this->n_elems);
-  a_size   orig_count = this->n_elems;
+  check_assertion(i < this->n_elems);
+  size_t   orig_count = this->n_elems;
   an_elem  *arr_elems = this->elems;
 
   destroy(arr_elems + i);
 
   an_elem *move_dest = arr_elems + i;
   an_elem *move_src = move_dest + 1;
-  a_size   num_to_move = orig_count - (i + 1);
+  size_t   num_to_move = orig_count - (i + 1);
   move_elements<an_elem>(move_dest, move_src, num_to_move);
   --this->n_elems;
 }  /* Dyn_array::remove */
 
 
 template<typename an_Elem, template<typename> class Allocator>
-inline void Dyn_array<an_Elem, Allocator>::remove_many(an_index i,
-                                                       a_size   num_elements)
+inline void Dyn_array<an_Elem, Allocator>::remove_many(size_t i,
+                                                       size_t num_elements)
 /*
 Remove the given number of elements starting at the given index.  All
 subsequent values (if any) are first moved by the number of copies back.
 */
 {
-  check_assertion(0 <= i && i + num_elements <= this->n_elems);
-  a_size  orig_count = this->n_elems;
+  check_assertion(i + num_elements <= this->n_elems);
+  size_t  orig_count = this->n_elems;
   an_elem *arr_elems = this->elems;
   an_elem *removal_start = this->elems + i;
 
@@ -1784,7 +1776,7 @@ subsequent values (if any) are first moved by the number of copies back.
   /* Move any elements past the point of removal back. */
   an_elem *move_dest = arr_elems + i;
   an_elem *move_src = move_dest + num_elements;
-  a_size   num_to_move = orig_count - (i + num_elements);
+  size_t  num_to_move = orig_count - (i + num_elements);
   move_elements<an_elem>(move_dest, move_src, num_to_move);
   this->n_elems -= num_elements;
 }  /* Dyn_array::remove_many */
@@ -1802,24 +1794,24 @@ Remove all the elements in the array.
 
 
 template<typename an_Elem, template<typename> class Allocator>
-void Dyn_array<an_Elem, Allocator>::resize(a_size        new_n,
+void Dyn_array<an_Elem, Allocator>::resize(size_t        new_n,
                                            const an_elem &value)
 /*
 Resize the array to the given length.  Any new elements are copy-inserted from
 the given value.
 */
 {
-  a_size  old_n = this->n_elems;
+  size_t  old_n = this->n_elems;
 
   if (new_n > old_n) {
     this->reserve(new_n);
 
-    a_size  num_copies = new_n - old_n;
+    size_t  num_copies = new_n - old_n;
     an_elem *insert_start = this->elems + old_n;
     copy_element<an_elem>(insert_start, value, num_copies);
     this->n_elems += num_copies;
   } else if (new_n < old_n) {
-    a_size  num_to_destroy = old_n - new_n;
+    size_t  num_to_destroy = old_n - new_n;
     an_elem *removal_start = this->elems + old_n - num_to_destroy;
 
     destroy_elements<an_elem>(removal_start, num_to_destroy);
@@ -1829,19 +1821,19 @@ the given value.
 
 
 template<typename an_Elem, template<typename> class Allocator>
-void Dyn_array<an_Elem, Allocator>::reserve(a_size  new_cap)
+void Dyn_array<an_Elem, Allocator>::reserve(size_t  new_cap)
 /*
 Increase the capacity to the given value if that given value is larger than
 the current capacity.
 */
 {
-  a_size  old_cap = this->n_allocated;
+  size_t  old_cap = this->n_allocated;
 
   if (new_cap > old_cap) {
     an_allocation  a = this->realloc(an_allocation{ this->elems, old_cap },
                                      new_cap, this->n_elems);
     this->elems = a.start;
-    this->n_allocated = (a_size)a.n_allocated;
+    this->n_allocated = a.n_allocated;
   }  /* if */
 }  /* Dyn_array::reserve */
 
@@ -1853,12 +1845,12 @@ Grow the capacity of the array by about half, unless the capacity is less than
 2, in which case the capacity is set to 2.
 */
 {
-  a_size  old_cap = this->n_allocated,
+  size_t  old_cap = this->n_allocated,
           new_cap = old_cap < 2 ? 2 : old_cap + old_cap/2 + 1;
   an_allocation  a = this->realloc(an_allocation{ this->elems, old_cap },
                                    new_cap, this->n_elems);
   this->elems = a.start;
-  this->n_allocated = (a_size)a.n_allocated;
+  this->n_allocated = a.n_allocated;
 }  /* Dyn_array::grow */
 
 
@@ -2316,8 +2308,8 @@ is returned.
 
 template<typename a_Ptr, typename a_Comparison>
 inline void heapify(a_Ptr        ptr,
-                    a_ptrdiff    len,
-                    a_ptrdiff    i,
+                    size_t       len,
+                    size_t       i,
                     a_Comparison cmp)
 /*
 This is an adaptation of the "heapify" procedure as described in "Introduction
@@ -2340,7 +2332,7 @@ function fixes the root element my moving it down the tree if needed.
 {
   typedef Remove_ref<decltype(*ptr)> a_value;
 
-  a_ptrdiff  l = 2*i+1, r = l+1, extreme;
+  size_t  l = 2*i+1, r = l+1, extreme;
 
   if (l<len && cmp(*(ptr+i), *(ptr+l))) {
     extreme = l;
@@ -2387,7 +2379,7 @@ function fixes the root element my moving it down the tree if needed.
 
 template<typename a_Ptr, typename a_comparison>
 void build_heap(a_Ptr        first,
-                a_ptrdiff    len,
+                size_t       len,
                 a_comparison cmp)
 /*
 This is an adaptation of the "Build-Heap" procedure as described in
@@ -2395,7 +2387,7 @@ This is an adaptation of the "Build-Heap" procedure as described in
 edition).
 */
 {
-  for (a_ptrdiff i = len/2; i > 0;) {
+  for (size_t i = len/2; i > 0;) {
     --i;
     heapify(first, len, i, cmp);
   }  /* for */
@@ -2411,11 +2403,11 @@ This is an adaptation of the "Heapsort" procedure as described in "Introduction
 To Algorithms" by Cormen, Leiserson, and Rivest (CLR, first edition).
 */
 {
-  a_ptrdiff  len = last-first;
+  size_t  len = last-first;
 
   if (len > 1) {
     build_heap(first, len, cmp);
-    for (a_ptrdiff i = len; i>1;) {
+    for (size_t i = len; i>1;) {
       --i;
       swap_at(first, first+i);
       --len;
@@ -2984,7 +2976,7 @@ Provide a generic printing interface for generic function diagnostics.
 #if EXPENSIVE_CHECKING
 
 template<typename a_Value_Fn>
-inline void validate_elements_in_order(ptrdiff_t  num_elements,
+inline void validate_elements_in_order(size_t     num_elements,
                                        a_Value_Fn value_fn)
 /*
 Validate that the input container of num_elements elements is in order for a
@@ -2995,7 +2987,7 @@ minimize the number of operators that need to be implemented.
   a_boolean any_out_of_order = FALSE;
   auto &&last_value = value_fn(0);
 
-  for (ptrdiff_t i = 1; i < num_elements; ++i) {
+  for (size_t i = 1; i < num_elements; ++i) {
     auto &&curr_value = value_fn(i);
     if (!(last_value < curr_value || last_value == curr_value)) {
       fprintf(stderr, "Binary search element %td (", i);
@@ -3017,7 +3009,7 @@ minimize the number of operators that need to be implemented.
 #endif /* EXPENSIVE_CHECKING */
 
 template<typename T, typename a_Value_Fn>
-inline ptrdiff_t lower_bound(ptrdiff_t  num_elements,
+inline ptrdiff_t lower_bound(size_t     num_elements,
                              const T    &value,
                              a_Value_Fn value_fn)
 /*
@@ -3029,8 +3021,9 @@ at that index.  Return the index of said element or -1 if no such element is
 found.
 */
 {
-  ptrdiff_t begin_idx = 0;
-  ptrdiff_t curr_size = num_elements;
+  ptrdiff_t result;
+  size_t    begin_idx = 0;
+  size_t    curr_size = num_elements;
 
 #if EXPENSIVE_CHECKING
   if (num_elements >= 2) {
@@ -3041,8 +3034,8 @@ found.
     /* Calculate the current index.  First compute an index relative to the
        amount of data we have.  Then add the relative index to our starting
        index to get the true index into the unknown container. */
-    ptrdiff_t midpoint_idx = curr_size / 2;
-    ptrdiff_t curr_idx = begin_idx + midpoint_idx;
+    size_t midpoint_idx = curr_size / 2;
+    size_t curr_idx = begin_idx + midpoint_idx;
     /* Retrieve the value at our current index from the unknown container.
        Extracted to a variable to ease debugging. */
     auto &&curr_value = value_fn(curr_idx);
@@ -3088,15 +3081,17 @@ found.
      and return -1 (to better to conform to developer expectations of "no
      result"). */
   if (begin_idx == num_elements) {
-    begin_idx = -1;
+    result = -1;
+  } else {
+    result = (ptrdiff_t)begin_idx;
   }  /* if */
-  return begin_idx;
+  return result;
 }  /* lower_bound */
 
 
 template<typename T>
 inline ptrdiff_t array_lower_bound(T         *t_start,
-                                   ptrdiff_t num_elements,
+                                   size_t    num_elements,
                                    const T   &value)
 /*
 Search for the first element in an array of num_elements elements beginning at
@@ -3112,7 +3107,7 @@ index of said element or -1 if no such element is found.
 
 
 template<typename T, typename a_Value_Fn>
-inline ptrdiff_t bin_search(ptrdiff_t  num_elements,
+inline ptrdiff_t bin_search(size_t     num_elements,
                             const T    &value,
                             a_Value_Fn value_fn)
 /*
@@ -3139,9 +3134,9 @@ or -1 if no such element is found.
 
 
 template<typename T>
-inline ptrdiff_t array_bin_search(T         *t_start,
-                                  ptrdiff_t num_elements,
-                                  const T   &value)
+inline ptrdiff_t array_bin_search(T       *t_start,
+                                  size_t  num_elements,
+                                  const T &value)
 /*
 Search for the first element in an array of num_elements elements beginning at
 t_start, that is equal to value.  Return the index of said element or -1 if no
@@ -4004,8 +3999,6 @@ multi-byte character strings.
 template<template<typename> class Allocator>
 struct Allocated_string {
   typedef Allocator<char> an_allocator;
-  typedef typename an_allocator::a_size a_size;
-  typedef typename an_allocator::a_size an_index;
 
   template<typename... a_Text_convertible_type>
   inline Allocated_string(const an_allocator         &a,
@@ -4022,9 +4015,9 @@ struct Allocated_string {
 
   inline void write_to_buffer(char *buffer, size_t buffer_len) const;
 
-  inline auto operator[](an_index i) -> char&
+  inline auto operator[](size_t i) -> char&
     { return this->backing_array[i]; }
-  inline auto operator[](an_index i) const -> const char&
+  inline auto operator[](size_t i) const -> const char&
     { return this->backing_array[i]; }
 
   size_t length() const
@@ -4035,7 +4028,7 @@ struct Allocated_string {
   inline void truncate_to(size_t new_length);
 
   template<typename... a_Text_convertible_type>
-  inline void insert(an_index position, a_Text_convertible_type... args);
+  inline void insert(size_t position, a_Text_convertible_type... args);
   template<typename... a_Text_convertible_type>
   inline void append(a_Text_convertible_type... args);
   template<typename... a_Text_convertible_type>
@@ -4060,7 +4053,7 @@ appended in the fashion described in detail::append_with_custom_reserve.
 {
   /* Delay initialization of the backing array until size hints are computed so
      that only one allocation is performed. */
-  auto reserve_func = [this, &a](a_size total_size) {
+  auto reserve_func = [this, &a](size_t total_size) {
     this->backing_array = {total_size, a};
     return &this->backing_array;
   };
@@ -4118,7 +4111,7 @@ Truncate the string to be at most the given number of characters.
 
 template<template<typename> class Allocator>
 template<typename... a_Text_convertible_type>
-void Allocated_string<Allocator>::insert(an_index                   position,
+void Allocated_string<Allocator>::insert(size_t                     position,
                                          a_Text_convertible_type... args)
 /*
 The passed arguments are inserted at the given position.
@@ -4133,7 +4126,7 @@ characters to the insertion point and the characters previously between
   check_assertion(this->backing_array.back_elem() == '\0');
   this->backing_array.pop_back();
   /* Append the new characters. */
-  auto     reserve_func = [this](a_size total_size) {
+  auto     reserve_func = [this](size_t total_size) {
     auto min_new_size = this->backing_array.length() + total_size;
 
     if (min_new_size > this->backing_array.capacity()) {
@@ -4144,7 +4137,7 @@ characters to the insertion point and the characters previously between
     }  /* if */
     return &this->backing_array;
   };
-  an_index original_len = this->backing_array.length();
+  size_t original_len = this->backing_array.length();
   detail::append_with_custom_reserve(reserve_func, args...);
   /* Rotate the characters moving the appended elements into the correct
      insertion position. */
@@ -4166,7 +4159,7 @@ detail::append_with_custom_reserve.
   check_assertion(this->backing_array.back_elem() == '\0');
   this->backing_array.pop_back();
   /* Append the new characters. */
-  auto reserve_func = [this](a_size total_size) {
+  auto reserve_func = [this](size_t total_size) {
     auto min_new_size = this->backing_array.length() + total_size;
 
     if (min_new_size > this->backing_array.capacity()) {
@@ -4193,7 +4186,7 @@ the fashion described in detail::append_with_custom_reserve.
   check_assertion(this->backing_array.back_elem() == '\0');
   this->backing_array.clear();
   /* Append the new characters. */
-  auto reserve_func = [this](a_size total_size) {
+  auto reserve_func = [this](size_t total_size) {
     this->backing_array.reserve(total_size);
     return &this->backing_array;
   };
@@ -4529,7 +4522,6 @@ struct Ptr_map: private Allocator<Ptr_map_entry<a_Ptr_key, a_Value>> {
   typedef a_Ptr_key a_key;
   typedef a_Value a_value;
   typedef Allocator<Ptr_map_entry<a_Ptr_key, a_Value>> an_allocator;
-  typedef unsigned int an_index;
   typedef Ptr_map_entry<a_key, a_value> an_entry;
   inline Ptr_map(unsigned int       mask_width,
                  const an_allocator &a = an_allocator());
@@ -4553,7 +4545,7 @@ struct Ptr_map: private Allocator<Ptr_map_entry<a_Ptr_key, a_Value>> {
     { return this->map_or_replace_with_hash(key, value, hash_ptr(key)); }
   inline void unmap(a_key  key);
   inline void clear();
-  inline auto number_of_elements() const -> an_index
+  inline auto number_of_elements() const -> size_t
     { return this->n_elements; }
 #if DEBUG
   void db_ptrs() const;
@@ -4568,23 +4560,23 @@ private:
   typedef typename an_allocator::an_allocation an_allocation;
   an_entry	*table;
 			/* Pointer to the hash table. */
-  an_index	hash_mask;
+  size_t	hash_mask;
 			/* The mask to apply to the hash value before indexing
 			   in the table.  This mask is increased as the table
 			   grows. */
-  an_index	n_elements;
+  size_t	n_elements;
 			/* The number of elements stored in the table. */
-  inline a_boolean has_value_at(an_index idx) const
+  inline a_boolean has_value_at(size_t idx) const
     { return this->table[idx].has_value(); }
-  inline void map_colliding_key(an_index       idx,
+  inline void map_colliding_key(size_t         idx,
                                 const a_key    &new_key,
                                 const a_value  &new_value);
-  inline void construct_entry_at(an_index      idx,
+  inline void construct_entry_at(size_t        idx,
                                  const a_key   &new_key,
                                  const a_value &new_value);
   inline void create_table(unsigned n_slots);
   inline void expand_table();
-  inline void check_deleted_slot(an_index  idx0);
+  inline void check_deleted_slot(size_t  idx0);
 };  /* Ptr_map */
 
 
@@ -4612,13 +4604,13 @@ inline Ptr_map<a_Ptr_key, a_Value, Allocator>::~Ptr_map()
 Release the storage for the map.
 */
 {
-  an_index  mask = this->hash_mask;
-  an_index  n_slots = mask+1;
+  size_t  mask = this->hash_mask;
+  size_t  n_slots = mask+1;
 
-  for (an_index k = 0; k<n_slots; ++k) {
+  for (size_t k = 0; k<n_slots; ++k) {
     destroy(&table[k]);
   }  /* for */
-  this->dealloc(an_allocation{ this->table, (a_ptrdiff)n_slots });
+  this->dealloc(an_allocation{ this->table, n_slots });
   this->table = NULL;
 }  /* Ptr_map::~Ptr_map */
 
@@ -4634,10 +4626,10 @@ Look up key in the map and return the associated value if found, or a_value()
 if not found.  hash is the precomputed hash value for the key.
 */
 {
-  an_index   mask = this->hash_mask;
-  an_index   idx = hash & mask;
-  an_entry   *tbl = this->table;
-  a_value    result = a_value();
+  size_t   mask = this->hash_mask;
+  size_t   idx = hash & mask;
+  an_entry *tbl = this->table;
+  a_value  result = a_value();
 
   /* If this assertion fails no value could possibly be found as the key is
      indistinguishable from an unused entry in the table. */
@@ -4691,8 +4683,8 @@ Associate a copy of value with the given key.  hash is the precomputed hash
 value of that key.
 */
 {
-  an_index   mask = this->hash_mask;
-  an_index   idx = hash & mask;
+  size_t mask = this->hash_mask;
+  size_t idx = hash & mask;
 
   /* If this assertion fails the mapped value will be lost as the key is
      indistinguishable from an unused entry in the table. */
@@ -4717,9 +4709,9 @@ Replace the value associated with the given key by the given value.  hash is
 the precomputed hash of that key.
 */
 {
-  an_index   mask = this->hash_mask;
-  an_index   idx = hash & mask;
-  an_entry   *tbl = this->table;
+  size_t   mask = this->hash_mask;
+  size_t   idx = hash & mask;
+  an_entry *tbl = this->table;
 
   /* If this assertion fails the mapped value will be lost as the key is
      indistinguishable from an unused entry in the table. */
@@ -4752,10 +4744,10 @@ associate it with the given value, and return a_value().  hash is the
 precomputed hash of that key.
 */
 {
-  an_index   mask = this->hash_mask;
-  an_index   idx = hash & mask;
-  an_entry   *tbl = this->table;
-  a_value    old_value = a_value();
+  size_t   mask = this->hash_mask;
+  size_t   idx = hash & mask;
+  an_entry *tbl = this->table;
+  a_value  old_value = a_value();
 
   /* If this assertion fails the mapped value will be lost as the key is
      indistinguishable from an unused entry in the table. */
@@ -4791,10 +4783,10 @@ inline void Ptr_map<a_Ptr_key, a_Value, Allocator>::unmap(a_key  key)
 Remove the given key from the table (it must exist).
 */
 {
-  uintptr_t  hash = hash_ptr(key);
-  an_index   mask = this->hash_mask;
-  an_index   idx = hash & mask;
-  an_entry   *tbl = this->table;
+  uintptr_t hash = hash_ptr(key);
+  size_t    mask = this->hash_mask;
+  size_t    idx = hash & mask;
+  an_entry  *tbl = this->table;
 
   check_traced_key_ptr(key, "UNmapped");
   /* Find the item to delete (we're assuming it exists). */
@@ -4820,10 +4812,10 @@ inline void Ptr_map<a_Ptr_key, a_Value, Allocator>::clear()
 Remove all entries in the Ptr_map.
 */
 {
-  an_index  mask = this->hash_mask;
-  an_index  n_slots = mask+1;
+  size_t  mask = this->hash_mask;
+  size_t  n_slots = mask+1;
 
-  for (an_index k = 0; k<n_slots; ++k) {
+  for (size_t k = 0; k<n_slots; ++k) {
     if (this->has_value_at(k)) {
       /* If the entry was used, replace it. */
       destroy(&table[k]);
@@ -4836,7 +4828,7 @@ Remove all entries in the Ptr_map.
 template<typename a_Ptr_key, typename a_Value,
          template<typename> class Allocator>
 void Ptr_map<a_Ptr_key, a_Value, Allocator>::map_colliding_key(
-                                                     an_index       idx,
+                                                     size_t         idx,
                                                      const a_key    &new_key,
                                                      const a_value  &new_value)
 /*
@@ -4853,7 +4845,7 @@ the given new key and new value at the next available location.
 #endif /* EXPENSIVE_CHECKING */
 
   /* Move the existing mapping to the next available spot. */
-  an_index initial_hit = idx;
+  size_t initial_hit = idx;
   for (;;) {
     idx = (idx+1) & this->hash_mask;
     if (!this->has_value_at(idx)) {
@@ -4869,7 +4861,7 @@ the given new key and new value at the next available location.
 template<typename a_Ptr_key, typename a_Value,
          template<typename> class Allocator>
 void Ptr_map<a_Ptr_key, a_Value, Allocator>::construct_entry_at(
-                                                      an_index      idx,
+                                                      size_t        idx,
                                                       const a_key   &new_key,
                                                       const a_value &new_value)
 /*
@@ -4917,18 +4909,18 @@ void Ptr_map<a_Ptr_key, a_Value, Allocator>::expand_table()
 Double the size of the hash table (and rehash entries as needed).
 */
 {
-  an_index old_n_slots = this->hash_mask + 1;
+  size_t   old_n_slots = this->hash_mask + 1;
   an_entry *old_table = this->table;
 
   this->create_table(2 * (this->hash_mask + 1));
 
-  an_index new_mask = this->hash_mask;
+  size_t new_mask = this->hash_mask;
   an_entry *new_table = this->table;
-  for (an_index k = 0; k < old_n_slots; ++k) {
+  for (size_t k = 0; k < old_n_slots; ++k) {
     an_entry &entry = old_table[k];
 
     if (entry.has_value()) {
-      an_index idx = hash_ptr(entry.key()) & new_mask;
+      size_t idx = hash_ptr(entry.key()) & new_mask;
 
       while (new_table[idx].has_value()) {
         idx = (idx+1) & new_mask;
@@ -4938,13 +4930,13 @@ Double the size of the hash table (and rehash entries as needed).
   }  /* for */
   this->table = new_table;
   this->hash_mask = new_mask;
-  this->dealloc(an_allocation{ old_table, (a_ptrdiff)old_n_slots });
+  this->dealloc(an_allocation{ old_table, old_n_slots });
 }  /* Ptr_map::expand_table */
 
 
 template<typename a_Ptr_key, typename a_Value,
          template<typename> class Allocator>
-void Ptr_map<a_Ptr_key, a_Value, Allocator>::check_deleted_slot(an_index  idx0)
+void Ptr_map<a_Ptr_key, a_Value, Allocator>::check_deleted_slot(size_t  idx0)
 /*
 Slot idx0 has been cleared (i.e., this->table[idx0].ptr has been set to null).
 The next slot is not empty.  There may therefore exist entries that are
@@ -4957,10 +4949,10 @@ with the assumption that step R1 has already been performed (idx0 is "j") and
 we know that the subsequent slot is not empty.
 */
 {
-  an_entry  *tbl = this->table;
-  an_index  mask = this->hash_mask;
-  an_index  idx = (idx0+1) & mask;
-  an_index  ridx;
+  an_entry *tbl = this->table;
+  size_t   mask = this->hash_mask;
+  size_t   idx = (idx0+1) & mask;
+  size_t   ridx;
 
   for (;;) {
     for (;;) {
@@ -4997,19 +4989,19 @@ void Ptr_map<a_Ptr_key, a_Value, Allocator>::db_ptrs() const
 Output some information about the map's key contents to f_debug.
 */
 {
-  an_entry  *tbl = this->table;
-  an_index  mask = this->hash_mask;
-  an_index  n_slots = mask+1;
+  an_entry *tbl = this->table;
+  size_t   mask = this->hash_mask;
+  size_t   n_slots = mask+1;
 
-  for (an_index k = 0; k<n_slots; ++k) {
-    fprintf(f_debug, "[%2u] ", k);
+  for (size_t k = 0; k<n_slots; ++k) {
+    fprintf(f_debug, "[%2zu] ", k);
     if (!this->has_value_at(k)) {
       fprintf(f_debug, "(empty)\n");
     } else {
       a_key  ptr = tbl[k].key();
 
       fprintf(f_debug, "h = %2u  %p\n",
-              (an_index)hash_ptr(ptr) & mask, (void*)ptr);
+              (unsigned)(hash_ptr(ptr) & mask), (void*)ptr);
     }  /* if */
   }  /* for */
 }  /* Ptr_map::db_ptrs */
@@ -5395,7 +5387,7 @@ Seq_comparator_impl<an_Elem_a, an_Elem_b, an_Eq_fn, Allocator>::
 Destroy the Seq_comparator instance and its allocated resources.
 */
 {
-  ptrdiff_t num_elements = (ptrdiff_t)(this->array_a_len * this->array_b_len);
+  size_t num_elements = this->array_a_len * this->array_b_len;
 
   this->dealloc(an_allocation{this->lcs_table, num_elements});
 }  /* Seq_comparator_impl::~Seq_comparator_impl */

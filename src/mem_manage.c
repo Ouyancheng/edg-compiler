@@ -45,39 +45,37 @@ functions.
 template<typename an_Elem>
 struct Direct_allocator {
   typedef an_Elem an_elem;
-  typedef a_ptrdiff a_size;
   typedef Allocation<an_elem> an_allocation;
   typedef Direct_allocator<an_elem> an_allocator;
   typedef Direct_allocator<an_elem> a_deallocator;
-  inline static auto alloc(a_size n) -> an_allocation;
+  inline static auto alloc(size_t n) -> an_allocation;
   inline static auto realloc(an_allocation  a,
-                             a_size         new_capacity,
-                             a_size         n_to_move)
+                             size_t         new_capacity,
+                             size_t         n_to_move)
                      -> an_allocation;
   static auto move_alloc(ARG_UNUSED an_allocator  &src,
                          an_allocation            src_alloc,
-                         ARG_UNUSED a_size        n_to_move) -> an_allocation
+                         ARG_UNUSED size_t        n_to_move) -> an_allocation
     { return src_alloc; }
   inline static void dealloc(an_allocation allocation);
 };  /* Direct_allocator */
 
 
 template<typename an_Elem>
-inline auto Direct_allocator<an_Elem>::alloc(a_size n) -> an_allocation
+inline auto Direct_allocator<an_Elem>::alloc(size_t n) -> an_allocation
 /*
 Allocate at least n elements of type an_Elem and return the resulting
 allocation (which reflects the actual number of allocated elements).
 */
 {
-  return an_allocation{ (an_elem*)malloc(n*sizeof(an_elem)),
-                        (a_ptrdiff)n };
+  return an_allocation{ (an_elem*)malloc(n*sizeof(an_elem)), n };
 }  /* Direct_allocator::alloc */
 
 
 template<typename an_Elem>
 inline auto Direct_allocator<an_Elem>::realloc(an_allocation a,
-                                               a_size        new_capacity,
-                                               a_size        n_to_move)
+                                               size_t        new_capacity,
+                                               size_t        n_to_move)
             -> an_allocation
 /*
 Replace the given allocation -- which was allocated by the same allocator -- by
@@ -88,7 +86,7 @@ new allocation.
 {
   an_elem  *old_start = a.start,
            *new_start = (an_elem*)malloc(new_capacity * sizeof(an_elem));
-  for (a_size k = 0; k < n_to_move; ++k) {
+  for (size_t k = 0; k < n_to_move; ++k) {
     construct(new_start + k, move_from(old_start + k));
     destroy(old_start + k);
   }  /* for */

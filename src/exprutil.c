@@ -25095,7 +25095,7 @@ Output a description of the given constraint chart.
     if (chart->not_subsumable) {
       fprintf(f_debug, "Not subsumable\n");
     }  /* if */
-    for (auto k = 0; k<array.length(); ++k) {
+    for (size_t k = 0; k<array.length(); ++k) {
       fprintf(f_debug, "[%3d -> %3d] %s ",
                        (int)k,
                        array[k].no_link() ? -1 : (int)array[k].link,

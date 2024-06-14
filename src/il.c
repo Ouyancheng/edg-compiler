@@ -304,8 +304,8 @@ void db_subst_pairs(a_subst_pairs_array const  &pairs)
 Output descriptions of paired template parameter/argument lists.
 */
 {
-  for (int k = 0; k < pairs.length(); ++k) {
-    fprintf(f_debug, "Pair #%d:\n", k);
+  for (size_t k = 0; k < pairs.length(); ++k) {
+    fprintf(f_debug, "Pair #%zu:\n", k);
     db_tpp(pairs[k].params);
     fprintf(f_debug, "\n");
     db_tap(pairs[k].args);

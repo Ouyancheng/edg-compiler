@@ -27310,7 +27310,7 @@ is_tok_equiv; otherwise, return FALSE.
   if (cache_a.length() != cache_b.length()) {
     result = FALSE;
   } else {
-    for (ptrdiff_t i = 0; i < cache_a.length(); ++i) {
+    for (size_t i = 0; i < cache_a.length(); ++i) {
       if (is_tok_equiv(cache_a[i], cache_b[i])) {
         continue;
       }  /* if */
