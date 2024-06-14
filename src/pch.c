@@ -1647,9 +1647,6 @@ write out the precompiled header file.
   } else if (macro_depth != 0 || pp_if_stack_depth != -1) {
     /* Nor if we are in the midst of a macro definition or a #if construct. */
     db_cannot_generate_reason("in a macro or #if");
-  } else if (is_at_least_one_error()) {
-    /* Nor if there have been errors. */
-    db_cannot_generate_reason("there have been errors");
   } else if (scope_stack[DEPTH_OF_FILE_SCOPE].name_linkage_is_explicit) {
     /* Nor if we are in the middle of a linkage specifier block. */
     db_cannot_generate_reason("in a linkage block");
@@ -1670,8 +1667,17 @@ write out the precompiled header file.
       /* Allow for any work needed to prepare data structures that will be
          recorded in the precompiled header file. */
       prepare_to_write_precompiled_header_file();
-      /* Okay -- go ahead and do it. */
-      write_precompiled_header_file();
+      if (is_at_least_one_error()) {
+        /* Don't create a PCH if there have been errors.  This check is
+           deferred in case there were errors during the preparation of the PCH
+           (e.g., an error could have occurred during one or more
+           instantiations when prepare_to_write_precompiled_header_file was
+           called). */
+        db_cannot_generate_reason("there have been errors");
+      } else {
+        /* Okay -- go ahead and do it. */
+        write_precompiled_header_file();
+      }  /* if */
     }  /* if */
   }  /* if */
   db_exit();
