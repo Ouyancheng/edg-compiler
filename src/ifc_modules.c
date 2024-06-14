@@ -4699,7 +4699,7 @@ index information to the given symbol.
     }  /* if */
   }  /* if */
   if (!mep->invalid) {
-    if (sym->kind == sk_class_or_struct_tag &&
+    if (is_class_struct_union_symbol(sym) &&
         decl_idx.sort == ifc_ds_decl_scope) {
       /* Check for a scope declaration with a pending definition that is not
          yet mapped. */
