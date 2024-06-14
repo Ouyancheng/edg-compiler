@@ -1957,8 +1957,8 @@ front-end memory.
 
 
 template<typename an_Object>
-inline an_Object min_val(const an_Object &x,
-                         const an_Object &y)
+inline constexpr an_Object min_val(const an_Object &x,
+                                   const an_Object &y)
 /*
 Return the smaller of the given values.  If the values are equal, return the
 first one.
@@ -1969,8 +1969,8 @@ first one.
 
 
 template<typename an_Object>
-inline an_Object max_val(const an_Object &x,
-                         const an_Object &y)
+inline constexpr an_Object max_val(const an_Object &x,
+                                   const an_Object &y)
 /*
 Return the larger of the given values.  If the values are equal, return the
 first one.
@@ -1981,8 +1981,8 @@ first one.
 
 
 template<typename an_Object>
-inline an_Object& min_ref(an_Object &x,
-                          an_Object &y)
+inline constexpr an_Object& min_ref(an_Object &x,
+                                    an_Object &y)
 /*
 Return a reference to the smaller of the given referenced values.  If the
 values are equal, return the first one.
@@ -1993,8 +1993,8 @@ values are equal, return the first one.
 
 
 template<typename an_Object>
-inline an_Object& max_ref(an_Object &x,
-                          an_Object &y)
+inline constexpr an_Object& max_ref(an_Object &x,
+                                    an_Object &y)
 /*
 Return a reference to the larger of the given referenced values.  If the
 values are equal, return the first one.

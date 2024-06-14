@@ -3473,7 +3473,13 @@ the expr index for the constant.
                 &int_val = cp->variant.integer_value;
         /* Convert the front end integer value into the necessary number of EDG
            IFC integer constant words. */
-        auto    output_int = integer_value_as_translator<uint32_t, 2>(int_val);
+        constexpr unsigned
+                num_parts_expected = max_val(
+                      (unsigned)1,
+                      (unsigned)(sizeof(an_integer_value) / sizeof(uint32_t)));
+        auto    output_int =
+                      integer_value_as_translator<uint32_t,
+                                                  num_parts_expected>(int_val);
         /* Allocate the integer constant word block and populate it with
            the computed values. */
         size_t  num_parts_required = output_int.length();
