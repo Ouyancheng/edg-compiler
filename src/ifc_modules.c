@@ -19631,9 +19631,8 @@ Cache the class-key associated with the given IFC scope declaration
       cache_token(cache, tok_union);
       break;
     default:
-      /* The given type kind is not supported.  Either this switch
-         needs expanded or the caller supplied an incorrect type
-         kind. */
+      /* The given type kind is not supported.  Either this switch needs to be
+         expanded or the caller supplied an incorrect type kind. */
       unexpected_condition();
   }  /* switch */
 }  /* cache_class_key */
@@ -21910,7 +21909,7 @@ See cache_type_second_part for additional information.
 static Opt<an_ifc_edg_type_index>
 load_edg_type_vendor_extension(an_ifc_type_index type)
 /*
-Given non-null vendor extension type index from an EDG authored IFC file,
+Given a non-null vendor extension type index from an EDG-authored IFC file,
 return the corresponding EDG type index.  If a problem occurs while retrieving
 the EDG type index, instead return an empty optional.
 */
@@ -21922,11 +21921,11 @@ the EDG type index, instead return an empty optional.
   Opt<an_ifc_edg_type_index> result;
 
   {
-    /* This is the EDG variant of the IFC, the type vendor extension references
-       an entry in the ".edg.extension.type" partition.  When written an
-       additional value of one is added to the true partition offset to allow
-       for the null index case to be distinguished; subtract the extra value
-       now. */
+    /* This is the EDG variant of the IFC, so the type vendor extension
+       references an entry in the ".edg.extension.type" partition.  When
+       written an additional value of one is added to the true partition offset
+       to allow for the null index case to be distinguished; subtract the extra
+       value now. */
     an_ifc_index_type expected_offset = type.value - 1;
 
     /* The offset is going to be manually constructed (and thus isn't subject

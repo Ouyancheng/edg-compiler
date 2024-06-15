@@ -3369,14 +3369,15 @@ void an_ifc_il_map::set_up_template_template_param(
                                        a_template_parameter_ptr templ_param)
 /*
 The given IFC parameter declaration node (at the given declaration index) is
-freshly allocated, set its fields to represent the given front end template
+freshly allocated.  Set its fields to represent the given front end template
 template parameter.
 */
 {
   check_assertion(templ_param->kind == tpk_template);
   /* Link the template representing this parameter to the IFC
      DeclSort::Parameter now.  Following the mapping, this ensures that any
-     references to the type resolve to the template parameter properly. */
+     references to the template properly resolve to the correct IFC
+     parameter declaration. */
   a_template_ptr   param_template = templ_param->variant.templ.class_template;
   a_tagged_pointer tagged_templ = make_tagged_ptr(param_template);
 
@@ -3416,14 +3417,14 @@ void an_ifc_il_map::set_up_template_type_param(
                                        a_template_parameter_ptr templ_param)
 /*
 The given IFC parameter declaration node (at the given declaration index) is
-freshly allocated, set its fields to represent the given front end type
+freshly allocated.  Set its fields to represent the given front end type
 template parameter.
 */
 {
   check_assertion(templ_param->kind == tpk_type);
   /* Link the type representing this parameter to the IFC DeclSort::Parameter
-     now.  Following the mapping, this ensures that any references to the type
-     resolve to the template parameter properly. */
+     now.  Following the mapping, this ensures that any references to the
+     type properly resolve to the correct IFC parameter declaration. */
   a_type_ptr    param_type = templ_param->variant.type.ptr;
   (void)this->enter_template_type_param_type(param_type, param_decl_idx);
 
@@ -4628,7 +4629,7 @@ void an_ifc_il_map::enter_extracted_body_to_cache(
                                           an_ifc_output_token_cache *ifc_cache,
                                           a_cached_token            *token)
 /*
-Enter the token cache associated with given extracted template token into
+Enter the token cache associated with the given extracted template token into
 the given token cache.
 */
 {
@@ -5450,7 +5451,8 @@ Add all the types in the given scope to the given IL -> IFC mapping.
 {
   for (a_type_ptr type = scope->types; type != NULL; type = type->next) {
     if (is_template_class_type(type)) {
-      /* Skip template types, these will be handled by dump_scope_templates. */
+      /* Skip template types (these will be handled by
+         dump_scope_templates). */
       continue;
     }  /* if */
     (void)il_map->find_or_enter_type(type);
