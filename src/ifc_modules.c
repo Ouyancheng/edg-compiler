@@ -23609,7 +23609,9 @@ return FALSE.
                 scope_decl = *opt_scope_decl;
           an_ifc_reachable_properties_bitfield
                 properties = get_ifc_properties(scope_decl);
-          result = test_bitmask<ifc_rpb_initializer>(properties);
+          if (test_bitmask<ifc_rpb_initializer>(properties)) {
+            result = TRUE;
+          }  /* if */
         }
         break;
       default:
@@ -23622,7 +23624,6 @@ return FALSE.
         }
         goto invalid;
     }  /* switch */
-    result = TRUE;
   } else {
     an_ifc_sentence_index decl_body = get_ifc_body(entity);
 
