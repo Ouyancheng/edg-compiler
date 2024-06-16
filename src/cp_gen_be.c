@@ -16556,13 +16556,15 @@ Render the given requires-expression.
 }  /* gen_requires_expr */
 
 
-static void gen_token_sequence(a_token_sequence  *tok_seq)
+static void gen_token_sequence(an_expr_node  *expr)
 /*
-Render the given token sequence.
+Render the given enk_token_sequence node.
 */
 {
+  a_token_sequence        *tok_seq = expr->variant.token_sequence.tokens;
   a_token_sequence_entry  *tok = tok_seq->tokens;
-  an_expr_node            *interpolation = tok_seq->interpolations;
+  an_expr_node            *interpolation =
+                                  expr->variant.token_sequence.interpolations;
 
   write_tok_str("^ {");
   for (; tok != NULL; tok = tok->next) {
@@ -17852,7 +17854,7 @@ sizeof_cases:
                         iek_template);
       break;
     case enk_token_sequence:
-      gen_token_sequence(expr->variant.token_sequence);
+      gen_token_sequence(expr);
       break;
 
     case enk_initializer:
