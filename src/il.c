@@ -6888,9 +6888,13 @@ copy_constant_full should be called to start a copy.
     }  /* if */
   } else if (constant_is(new_constant, ck_reflection)) {
     a_reflection_value  *rvp = &new_constant->variant.reflection;
-    if (!in_file_scope(rvp->entity.ptr) &&
-        (curr_il_region_number == file_scope_region_number ||
-         copying_from_one_func_to_another)) {
+    if (il_lowering_underway) {
+      /* Reflection values in lowering are meaningless. */
+      rvp->entity.ptr = NULL;
+      rvp->entity.kind = iek_none;
+    } else if (!in_file_scope(rvp->entity.ptr) &&
+               (curr_il_region_number == file_scope_region_number ||
+                copying_from_one_func_to_another)) {
       switch (rvp->entity.kind) {
         case iek_expr_node:
           rvp->entity.ptr = (char*)i_copy_expr_tree(

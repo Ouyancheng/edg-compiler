@@ -3513,8 +3513,9 @@ ec_expected_string_view_value;;"expected a value of type std::string_view but go
 ec_extraneous_injected_statement_tokens;;"extraneous tokens injected after statement"
 ec_extraneous_injected_declaration_tokens;;"extraneous tokens injected after declaration"
 ec_tuple_index_overflow;;"tuple index value (%d) overflow"
-ec_constexpr_begin_report_tokens;;">> output from std::__report_tokens"
-ec_constexpr_end_report_tokens;;">> end output from std::__report_tokens"
+ec_constexpr_begin_report_tokens;;">> output from std::meta::__report_tokens"
+ec_constexpr_end_report_tokens;;">> end output from std::meta::__report_tokens"
+ec_constexpr_no_current_parameters;;"not in a context with parameter variables"
 ###############################################################################
 #                                                             \  ___  /       #
 #                                                               /   \         #

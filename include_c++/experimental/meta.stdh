@@ -187,6 +187,15 @@ namespace std {
       return std::vector<info>(v.begin(), v.end());
     }
 
+    consteval __infovec current_parameters__impl(info) {
+      return __infovec(0);  /* Dummy return.  Handled by interpreter. */
+    }
+
+    consteval std::vector<info> current_parameters(info r) {
+      __infovec v = parameters__impl(r);
+      return std::vector<info>(v.begin(), v.end());
+    }
+
     consteval info substitute__impl(info, __infovec) {
       return ^::;  /* Dummy return.  Handled by interpreter. */
     }
@@ -536,6 +545,26 @@ namespace std {
       /* Dummy definition.  Handled by interpreter. */
     }
 
+    struct list_builder {
+      // FIXME: Default token sequence arg doesn't work correctly.
+      consteval list_builder() {}
+      consteval list_builder(info separator): separator(separator) {}
+      consteval operator info() const { return this->tokens; }
+      consteval void operator+=(info  next_tokens) {
+        if (first) {
+          this->tokens = next_tokens;
+          first = false;
+        } else {
+          this->tokens = ^{ \tokens(this->tokens) 
+                            \tokens(separator)
+                            \tokens(next_tokens) };
+        }  /* if */
+      }
+    private:
+      bool first = true;
+      info tokens = ^{}, separator = ^{,};
+    };
+
     consteval void queue_injection(info, info) {
       /* Dummy definition.  Handled by interpreter. */
     }
@@ -554,6 +583,10 @@ namespace std {
 
 
     // Type traits
+
+    consteval bool type_is_const(info) {
+      return false;  /* Dummy return.  Handled by interpreter. */
+    }
 
     consteval info type_remove_pointer(info) {
       return ^::;  /* Dummy return.  Handled by interpreter. */

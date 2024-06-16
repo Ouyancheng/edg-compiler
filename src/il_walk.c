@@ -3591,7 +3591,7 @@ as specified in the control block.
     case enk_template_name:
       break;
     case enk_token_sequence:
-      traverse_expr_list(expr->variant.token_sequence->interpolations, tblock);
+      traverse_expr_list(expr->variant.token_sequence.interpolations, tblock);
       break;
     default:
       unexpected_condition_str("traverse_expr: bad expr kind");

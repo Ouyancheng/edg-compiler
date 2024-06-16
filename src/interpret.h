@@ -130,6 +130,7 @@ must be defined in interpret.c to implement its evaluation.
   M(std_meta, subobjects__impl, "(r)Vr") \
   M(std_meta, enumerators__impl, "(r)Vr") \
   M(std_meta, parameters__impl, "(r)Vr") \
+  M(std_meta, current_parameters__impl, "()Vr") \
   M(std_meta, template_arguments__impl, "(r)Vr") \
   M(std_meta, substitute__impl, "(r,Vr)r") \
   M(std_meta, reflect_result, "<T>(.)r") \
@@ -192,6 +193,7 @@ must be defined in interpret.c to implement its evaluation.
   M(std_meta, nearest_namespace, "()r") \
   M(std_meta, type_tuple_size, "(r)I") \
   M(std_meta, type_tuple_element, "(I,r)r") \
+  M(std_meta, type_is_const, "(r)b") \
   M(std_meta, type_remove_pointer, "(r)r") \
   M(std_meta, type_add_pointer, "(r)r") \
   M(std_meta, type_decay, "(r)r") \

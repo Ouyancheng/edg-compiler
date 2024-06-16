@@ -19222,10 +19222,11 @@ type of the expression is std::meta::info.
     }  /* if */
     if (prev_token_is_backslash) {
       /* An interpolator should follow. */
-      a_boolean   is_id = FALSE;
+      a_boolean   is_id = FALSE, is_tokens = FALSE, is_first_opnd = TRUE;
       an_operand  opnd;
       prev_token_is_backslash = FALSE;
-      if (curr_token == tok_identifier) {
+      if (curr_token == tok_identifier &&
+          locator_for_curr_id.symbol_header->has_intrinsic_name) {
         /* Check whether this is an identifier introducing a special
            interpolator; i.e., "\id" or "\tokens". */
         a_const_char  *id = locator_for_curr_id.symbol_header->identifier;
@@ -19235,6 +19236,7 @@ type of the expression is std::meta::info.
           p_end_il_tokens = &(*p_end_il_tokens)->next;
           (void)get_token();
         } else if (strcmp(id, "tokens") == 0) {
+          is_tokens = TRUE;
           *p_end_il_tokens = cache_curr_token_sequence_entry(cache);
           p_end_il_tokens = &(*p_end_il_tokens)->next;
           (void)get_token();
@@ -19249,16 +19251,39 @@ type of the expression is std::meta::info.
       (void)get_token();
       /* Scan the interpolated expression. */
       add_matching_stop_token(tok_rparen);
+another_opnd:
       scan_expr(&opnd, PREC_COMMA, EOPT_DISALLOW_COMMA_OPERATOR);
+      if (is_tokens) {
+        if (is_class_struct_union_type(opnd.type)) {
+          /* Contextually convert the operand to std::meta::info. */
+          a_boolean  converted = FALSE;
+          (void)try_to_convert_class_operand_to_builtin_type(
+                                           &opnd, reflection_type(), BTK_NONE,
+                                           CCO_ALLOW_EXPLICIT_CONV_FUNCTIONS,
+                                           &converted);
+        }  /* if */
+      }  /* if */
       do_operand_transformations(&opnd, TOPT_NO_OPTIONS);
       *end_interpolations = make_node_from_operand(&opnd);
       end_interpolations = &(*end_interpolations)->next;
       /* For \id(...), check that the expression type is std::string_view. */
-      if (is_id && !check_consistent_string_view_type(opnd.type) &&
-          !is_template_dependent_type(opnd.type) &&
-          !is_error_type(opnd.type)) {
-        pos_ty_error(ec_expected_string_view_value, &opnd.position, opnd.type);
-        err = TRUE;
+      if (is_id) {
+        if (!is_template_dependent_type(opnd.type) &&
+            !is_error_type(opnd.type) &&
+            (is_first_opnd || !is_integral_type(opnd.type)) &&
+            !check_consistent_string_view_type(opnd.type)) {
+          // FIXME: Distinguish diagnostic for first and subsequent operand.
+          pos_ty_error(ec_expected_string_view_value, &opnd.position,
+                       opnd.type);
+          err = TRUE;
+        }  /* if */
+        if (curr_token == tok_comma) {
+          *p_end_il_tokens = cache_curr_token_sequence_entry(cache);
+          p_end_il_tokens = &(*p_end_il_tokens)->next;
+          (void)get_token();
+          is_first_opnd = FALSE;
+          goto another_opnd;
+        }  /* if */
       }  /* if */
       /* Check for the right parenthesis. */
       (void)required_token_no_advance(tok_rparen, ec_exp_rparen);
@@ -19275,12 +19300,12 @@ type of the expression is std::meta::info.
        to it. */
     tsp = alloc_token_sequence();
     tsp->tokens = il_tokens;
-    tsp->interpolations = interpolations;
     tsp->token_cache = (void*)cache;
     token_seq_node = alloc_expr_node(enk_token_sequence);
     token_seq_node->type = reflection_type();
     token_seq_node->position = *caret_pos;
-    token_seq_node->variant.token_sequence = tsp;
+    token_seq_node->variant.token_sequence.interpolations = interpolations;
+    token_seq_node->variant.token_sequence.tokens = tsp;
     make_expression_operand(token_seq_node, result);
   } else {
     make_error_operand(result);

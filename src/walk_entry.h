@@ -2005,8 +2005,10 @@ do_set_proper_definition_needed_flag:
                      iek_template);
             break;
           case enk_token_sequence:
-            walk_ptr(eptr->variant.token_sequence, a_token_sequence_ptr,
-                     iek_token_sequence);
+            walk_ptr(eptr->variant.token_sequence.interpolations,
+                     an_expr_node_ptr, iek_token_sequence);
+            walk_ptr(eptr->variant.token_sequence.tokens,
+                     a_token_sequence_ptr, iek_token_sequence);
             break;
           default:
             unexpected_condition_str(
@@ -4123,7 +4125,6 @@ handle_class_type_supplement_for_class:
 #define eptr ((a_token_sequence*)entry_ptr)
       walk_list(eptr->tokens, a_token_sequence_entry_ptr,
                 iek_token_sequence_entry);
-      walk_list(eptr->interpolations, an_expr_node_ptr, iek_expr_node);
       conditionally_clear_fe_pointer(eptr->token_cache);
 #undef eptr
       break;

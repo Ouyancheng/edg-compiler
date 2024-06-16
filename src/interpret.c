@@ -12980,6 +12980,57 @@ done:
 }  /* do_constexpr_std_meta_parameters__impl */
 
 
+static a_boolean do_constexpr_std_meta_current_parameters__impl(
+                                        an_interpreter_state  *ips,
+                                        a_routine_ptr         callee,
+                                        an_expr_node_ptr      call_node,
+                                        a_byte                **p_arg_bytes,
+                                        a_byte                *result_storage,
+                                        a_byte                *complete_obj)
+/*
+Implement std::meta::current_parameters__impl().  It returns a vector-like
+container (struct std::meta::__infovec) of reflections, with each element
+representing a parameter variable of the function currently being defined
+(in declaration order).
+
+See do_constexpr_intrinsic_call for the meaning of the parameters.
+*/
+{
+  a_boolean     result = FALSE;
+
+  if (!ips->is_constant_evaluated || !constexpr_dynamic_alloc_enabled) {
+    /* Don't attempt to evaluate this call if a constant result is not needed,
+       because it could be somewhat expensive. */
+    do_constexpr_fail(result);
+    info_with_pos(ec_constexpr_expression_cannot_be_interpreted,
+                  &call_node->position, ips);
+    goto done;
+  }  /* if */
+  if (depth_innermost_function_scope == NO_SCOPE_DEPTH) {
+    do_constexpr_fail(result);
+    info_with_pos(ec_constexpr_no_current_parameters,
+                  &call_node->position, ips);
+  } else {
+    a_scope     *scope = scope_stack[depth_innermost_function_scope].il_scope;
+    a_variable  *vp = scope->variant.routine.parameters;
+    a_type_ptr  result_tp = skip_typerefs(call_node->type);
+    Dyn_array<a_reflection_value>
+                result_reflections(0);
+    for (; vp != NULL; vp = vp->next) {
+      a_reflection_value  rv;
+      rv.entity.ptr = (char*)vp;
+      rv.entity.kind = iek_variable;
+      rv.local_scope_number = scope->number;
+      result_reflections.push_back(rv);
+    }  /* for */
+    result = make_infovec(ips, result_tp, &result_reflections,
+                          &call_node->position, result_storage, complete_obj);
+  }  /* if */
+done:
+  return result;
+}  /* do_constexpr_std_meta_current_parameters__impl */
+
+
 static a_boolean do_constexpr_std_meta_substitute__impl(
                                         an_interpreter_state  *ips,
                                         a_routine_ptr         callee,
@@ -13827,6 +13878,7 @@ Implement std::meta::type_tuple_element().
     } else {
       result_tp = get_tuple_element_type((a_targ_size_t)idx,
                                          (a_type*)rvp->entity.ptr);
+      result_tp = skip_typedefs(result_tp);
       if (!is_error_type(result_tp)) {
         result_rvp->entity.kind = iek_type;
         result_rvp->entity.ptr = (char*)result_tp;
@@ -13844,6 +13896,46 @@ Implement std::meta::type_tuple_element().
 Type traits.
 FIXME
 */
+
+#define DEFINE_type_predicate(ns, name, ref_lambda_body)                     \
+static a_boolean do_constexpr_##ns##_##name(                                 \
+                                     an_interpreter_state  *ips,             \
+                                     a_routine_ptr         callee,           \
+                                     an_expr_node_ptr      call_node,        \
+                                     a_byte                **p_arg_bytes,    \
+                                     a_byte                *result_storage,  \
+                                     a_byte                *complete_obj)    \
+{                                                                            \
+  a_boolean           result = TRUE, answer = FALSE;                         \
+  a_reflection_value  *rvp = (a_reflection_value*)p_arg_bytes[0];            \
+  a_type              *tp;                                                   \
+                                                                             \
+  strip_template_arg(rvp);                                                   \
+  extract_reflected_entity(rvp);                                             \
+  if (rvp->entity.kind == iek_type) {                                        \
+    tp = skip_typerefs((a_type*)rvp->entity.ptr);                            \
+    ref_lambda_body();                                                       \
+    set_bool_value(answer, result_storage);                                  \
+  } else {                                                                   \
+    info_with_pos(ec_invalid_reflection_for_intrinsic,                       \
+                  &call_node->position, ips);                                \
+    do_constexpr_fail(result);                                               \
+  }  /* if */                                                                \
+  return result;                                                             \
+}
+
+
+DEFINE_type_predicate(std_meta, type_is_const,
+  ([&]{
+    if (is_const_qualified_type(tp)) {
+      answer = TRUE;
+    } else if (is_function_type(tp)) {
+      if ((rout_type_supp(skip_typerefs(tp))->qualifiers & TQ_CONST) != 0) {
+        answer = TRUE;
+      }  /* if */
+    }  /* if */
+  }))
+
 
 #define DEFINE_type_transform(ns, name, ref_lambda_body)                     \
 static a_boolean do_constexpr_##ns##_##name(                                 \
@@ -13998,8 +14090,7 @@ the corresponding reflection value at the location denoted by result_cap.
 {
   a_boolean           result = TRUE;
   a_reflection_value  *result_rvp = (a_reflection_value*)result_cap->address;
-  a_token_sequence    *orig_tok_seq = tok_seq_node->variant.token_sequence,
-                      *tok_seq = NULL;
+  a_token_sequence    *orig_tok_seq, *tok_seq = NULL;
   a_token_cache       *new_cache;
   Dyn_array<a_constant*>
                       values(10);
@@ -14011,9 +14102,10 @@ the corresponding reflection value at the location denoted by result_cap.
     do_constexpr_fail(result);
     goto done;
   }  /* if */
-  if (orig_tok_seq->interpolations != NULL) {
+  orig_tok_seq = tok_seq_node->variant.token_sequence.tokens;
+  if (tok_seq_node->variant.token_sequence.interpolations != NULL) {
     /* Evaluate the interpolations into constant entries. */
-    an_expr_node  *node = orig_tok_seq->interpolations;
+    an_expr_node  *node = tok_seq_node->variant.token_sequence.interpolations;
     for (; node != NULL; node = node->next) {
       a_constant   *cp = local_constant();
       values.push_back(cp);
@@ -14043,14 +14135,38 @@ the corresponding reflection value at the location denoted by result_cap.
         check_assertion(interpolator_num < values.length());
         if (curr_token == tok_identifier) {
           a_const_char  *id = locator_for_curr_id.symbol_header->identifier;
+          /* Skip the identifier. */
+          (void)get_token();
+          /* Skip the left parenthesis (the right one is skipped by the
+             general loop mechanism). */
+          (void)get_token();
           if (strcmp(id, "id") == 0) {
+            a_string       full_id;  // FIXME XXX
             a_const_char   *str = NULL;
             a_targ_size_t  len = 0;
-            if (!get_string_from_string_view(ips, values[interpolator_num],
-                                             &str, &len)) {
+            if (!get_string_from_string_view(
+                                 ips, values[interpolator_num], &str, &len)) {
               do_constexpr_fail(result);
               goto done;
             }  /* if */
+            full_id.append(a_string_view(str, len));
+            while (curr_token == tok_comma) {
+              a_constant  *cp = values[++interpolator_num];
+              (void)get_token();
+              if (is_integral_type(cp->type)) {
+                a_boolean             ovflo = FALSE;
+                a_host_large_integer  val =
+                                        value_of_integer_constant(cp, &ovflo);
+                full_id.append(val);
+              } else if (get_string_from_string_view(ips, cp, &str, &len)) {
+                full_id.append(a_string_view(str, len));
+              } else {
+                do_constexpr_fail(result);
+                goto done;
+              }  /* if */
+            }  /* while */
+            len = full_id.length();
+            str = full_id.as_temp_characters();
             cache_string_as_identifier(new_cache, str, len, &pos_curr_token);
             freshen_last_cached_token(new_cache);
           } else if (strcmp(id, "tokens") == 0) {
@@ -14074,7 +14190,6 @@ the corresponding reflection value at the location denoted by result_cap.
             do_constexpr_fail(result);
             goto done;
           }  /* if */
-          (void)get_token();
         } else if (curr_token == tok_lparen) {
           /* An interpolator of the form \(...).  Pass the value of the
              interpolated expression (converted to a prvalue) as a
@@ -14082,13 +14197,13 @@ the corresponding reflection value at the location denoted by result_cap.
           cache_general_constant(new_cache, values[interpolator_num],
                                  &pos_curr_token);
           freshen_last_cached_token(new_cache);
+          /* Skip the left parenthesis (the right one is skipped by the
+             general loop mechanism). */
+          (void)get_token();
         } else {
           do_constexpr_fail(result);
           goto done;
         }  /* if */
-        /* Skip the left parenthesis (the right one is skipped by the
-           general loop mechanism). */
-        (void)get_token();
         check_assertion(curr_token == tok_rparen);
         ++interpolator_num;
       }  /* for */
@@ -14101,11 +14216,8 @@ the corresponding reflection value at the location denoted by result_cap.
   if (result) {
     /* Create a new token sequence entry associated to the new cache, and
        point the result reflection to it. */
-    a_memory_region_number  region_to_switch_back_to;
-    switch_to_file_scope_region(&region_to_switch_back_to);
     tok_seq = alloc_token_sequence();
     tok_seq->token_cache = new_cache;
-    switch_back_to_original_region(region_to_switch_back_to);
     result_rvp->entity.kind = iek_token_sequence;
     result_rvp->entity.ptr = (char*)tok_seq;
     result_rvp->local_scope_number = FILE_SCOPE_NUMBER;

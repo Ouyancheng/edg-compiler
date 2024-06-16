@@ -4555,9 +4555,6 @@ struct a_token_sequence {
 			   a token sequence appearing in the source, excluding
 			   the operands of interpolators.  (NULL for a token
 			   sequence resulting from constant-evaluation.) */
-  an_expr_node  *interpolations;
-			/* The expressions appearing in interpolators (in
-			   lexical order). */
   void		*token_cache;
 			/* Pointer to a_token_cache.  For front-end use
 			   only. */
@@ -15111,10 +15108,17 @@ typedef struct an_expr_node {
 		template_name;
 			/* The template this template-name refers to. */
     /* When kind == enk_token_sequence: */
-    a_token_sequence
-		*token_sequence;
+    struct {
+      an_expr_node
+		*interpolations;
+			/* The expressions appearing in interpolators (in
+			   lexical order). */
+      a_token_sequence
+		*tokens;
 			/* A token sequence resulting from a reflection
-			   operation like "^{ int $id(str+n); }". */
+			   operation like "^{ int \id(str+n); }", excluding
+			   the interpolated expressions. */
+    } token_sequence;
     /* When kind == enk_requires: */
     struct {
       an_expr_node_ptr

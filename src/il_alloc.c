@@ -3484,7 +3484,7 @@ return a pointer to it.
 {
   a_token_sequence_entry  *tsep;
 
-  tsep = alloc_cil_of_type(a_token_sequence_entry);
+  tsep = alloc_il_of_type(a_token_sequence_entry);
   memzero((char*)tsep, sizeof(*tsep));
   return tsep;
 }  /* alloc_token_sequence_entry */
@@ -3498,7 +3498,7 @@ pointer to it.
 {
   a_token_sequence  *tsp;
 
-  tsp = alloc_cil_of_type(a_token_sequence);
+  tsp = alloc_il_of_type(a_token_sequence);
   memzero((char*)tsp, sizeof(*tsp));
   return tsp;
 }  /* alloc_token_sequence */
@@ -3794,7 +3794,8 @@ fields to default values.
       node->variant.template_name = NULL;
       break;
     case enk_token_sequence:
-      node->variant.token_sequence = NULL;
+      node->variant.token_sequence.interpolations = NULL;
+      node->variant.token_sequence.tokens = NULL;
       break;
     default:
       unexpected_condition_str("set_expr_node_kind: bad kind");

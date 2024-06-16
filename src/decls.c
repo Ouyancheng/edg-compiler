@@ -13908,7 +13908,7 @@ generated code) not delimited by braces.
 */
 {
   while ((curr_token != tok_end_of_source &&
-          (is_top_level || curr_token != tok_rbrace))||
+          (is_top_level || curr_token != tok_rbrace)) ||
          scope_stack_top().injections != NULL) {
     a_boolean  injected_decl = FALSE;
     /* A C99 or C++11 predefined pragma in the file scope must appear
