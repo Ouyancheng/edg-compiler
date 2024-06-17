@@ -2005,8 +2005,8 @@ do_set_proper_definition_needed_flag:
                      iek_template);
             break;
           case enk_token_sequence:
-            walk_ptr(eptr->variant.token_sequence.interpolations,
-                     an_expr_node_ptr, iek_token_sequence);
+            walk_list(eptr->variant.token_sequence.interpolations,
+                      an_expr_node_ptr, iek_expr_node);
             walk_ptr(eptr->variant.token_sequence.tokens,
                      a_token_sequence_ptr, iek_token_sequence);
             break;
@@ -4299,6 +4299,8 @@ of each kind.
   walk_orphan_entry_list_for_entry_kind(a_name_qualifier_ptr,
                                         iek_name_qualifier);
   walk_orphan_entry_list_for_entry_kind(an_attribute_ptr, iek_attribute);
+  walk_orphan_entry_list_for_entry_kind(a_token_sequence_ptr,
+                                        iek_token_sequence);
   /* Note that no orphan list walking is needed for iek_source_sequence_entry
      nor for its subordinate entries like iek_src_seq_secondary_decl
      and iek_src_seq_end_of_construct, since such entries will

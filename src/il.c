@@ -5018,6 +5018,9 @@ members), and does not enter those.
         /* Parameters of requires-expressions can be orphaned. */
         could_be_orphan = TRUE;
         break;
+      case iek_token_sequence:
+        could_be_orphan = TRUE;
+        break;
       default:
         could_be_orphan = FALSE;
         break;
