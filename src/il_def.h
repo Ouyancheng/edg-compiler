@@ -1001,9 +1001,9 @@ enum a_token_kind : unsigned short {
   tok_int_constant,
   tok_char_constant,
   tok_gen_constant,         /* A token representing a general constant.  These
-                               cannot be expressed using ordinary source code,
-			       but generated code (from modules or injection)
-			       may produce such tokens. */
+                               cannot always be expressed using ordinary source
+                               code, but generated code (from modules or
+                               injection) may produce such tokens. */
   tok_string_literal,
   tok_ud_literal,
   tok_last_literal_token_kind = tok_ud_literal,

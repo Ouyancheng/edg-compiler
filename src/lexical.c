@@ -2681,7 +2681,7 @@ Initialize a token cache, presumably so tokens can be added to it.
 a_token_cache_ptr alloc_token_cache(/* Defaulted: */  a_boolean  reusable)
 /*
 Allocate a token cache entry.  Reuse a freed entry if possible.  Make the
-cache reusable is reusable is TRUE (defaults to FALSE).
+cache reusable if reusable is TRUE (defaults to FALSE).
 */
 {
   a_token_cache_ptr	tcp;
@@ -3118,7 +3118,8 @@ void cache_string_as_identifier(a_token_cache_ptr     cache,
                                 a_targ_size_t         len,
                                 a_source_position_ptr pos)
 /*
-Cache an identifier spelled like the given (null-terminated) string.
+Cache an identifier spelled like the given (null-terminated) string, whose
+length is given by len.  pos is the position to record for the identifier.
 */
 {
   a_symbol_locator loc;

@@ -872,7 +872,7 @@ typedef struct a_scope_stack_entry {
 			   that names from the outer instantiation scope can
 			   be visible. */
   a_bit_field	is_compound_statement_block:1;
-			/* TRUE if the scope is that of the compound
+			/* TRUE if the scope is that of a compound
 			   statement. */
   a_bit_field	is_try_block:1;
 			/* TRUE if the scope is that of the compound statement
@@ -1701,7 +1701,7 @@ typedef struct a_scope_stack_entry {
   an_il_entity_list_entry
 		*injections;
 			/* Token sequence entries scheduled for injection
-			   in this scope this scope. */
+			   in this scope. */
 } a_scope_stack_entry;
 
 EXTERN a_scope_stack_entry_ptr

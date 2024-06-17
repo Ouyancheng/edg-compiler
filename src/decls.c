@@ -13942,6 +13942,7 @@ generated code) not delimited by braces.
   }  /* while */
 }  /* scan_namespace_declaration_list */
 
+
 static a_boolean scan_name_linkage_string(a_name_linkage_kind  *kind)
 /*
 Scan the string portion of a linkage specification (extern "C", extern "C++",
@@ -18604,7 +18605,8 @@ a_type_ptr get_tuple_element_type(a_targ_size_t      elem_idx,
 Return the type std::tuple_element<I, T>::type where I and T are described by
 elem_idx and tp, respectively.  If diag_pos is non-NULL, issue diagnostics at
 that position.  Otherwise (the default), do not issue diagnostics in the
-"immediate context" (i.e., for errors outside actual instantiations).  If such
+"immediate context" (i.e., for errors outside actual instantiations; errors
+occurring within instantiations will be diagnosed in all cases).  If such
 errors occur, return an error type.
 */
 {

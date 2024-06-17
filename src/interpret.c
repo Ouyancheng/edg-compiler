@@ -1370,7 +1370,7 @@ typedef struct an_interpreter_state {
 		permit_leftover_dyn_alloc:1;
 			/* TRUE if leftover dynamic allocations are permitted.
 			   This is the case with nested calls to
-                           evaluate_expr. */
+			   evaluate_expr. */
   a_bit_field
 		static_lifetime_init:1;
 			/* TRUE when interpreting the initializer for a static
@@ -13520,6 +13520,8 @@ static a_boolean do_constexpr_std_meta___report_tokens(
 /*
 Implement std::meta::__report_tokens, which outputs a given token sequence to
 the diagnostic output.
+
+See do_constexpr_intrinsic_call for the meaning of the parameters.
 */
 {
   a_boolean           result = TRUE;
@@ -13580,6 +13582,8 @@ static a_boolean do_constexpr_std_meta_queue_injection(
 Implement std::meta::queue_injection(<info1>, <info2>), where <info1>
 represents a class, namespace, or block scope, and <info2> represents an
 evaluated token sequence (i.e., a token sequence without interpolators).
+
+See do_constexpr_intrinsic_call for the meaning of the parameters.
 */
 {
   a_boolean     result = FALSE;
@@ -13658,6 +13662,8 @@ static a_boolean do_constexpr_std_meta_namespace_inject(
 Implement std::meta::namespace_inject(<info1>, <info2>), where <info1>
 represents a namespace (incl. the global namespace) and <info2> represents an
 evaluated token sequence (i.e., a token sequence without interpolators).
+
+See do_constexpr_intrinsic_call for the meaning of the parameters.
 */
 {
   a_boolean     result = TRUE;
@@ -13705,6 +13711,8 @@ static a_boolean do_constexpr_std_meta_nearest_token_queuing_context(
                                         a_byte                *complete_object)
 /*
 Implement std::meta::nearest_token_queuing_context().
+
+See do_constexpr_intrinsic_call for the meaning of the parameters.
 */
 {
   a_boolean           result = TRUE;
@@ -13748,6 +13756,8 @@ static a_boolean do_constexpr_std_meta_nearest_class_or_namespace(
                                         a_byte                *complete_object)
 /*
 Implement std::meta::nearest_class_or_namespace().
+
+See do_constexpr_intrinsic_call for the meaning of the parameters.
 */
 {
   a_boolean           result = TRUE;
@@ -13784,6 +13794,8 @@ static a_boolean do_constexpr_std_meta_nearest_namespace(
                                         a_byte                *complete_object)
 /*
 Implement std::meta::nearest_namespace().
+
+See do_constexpr_intrinsic_call for the meaning of the parameters.
 */
 {
   a_boolean           result = TRUE;
@@ -13816,6 +13828,8 @@ static a_boolean do_constexpr_std_meta_type_tuple_size(
                                         a_byte                *complete_object)
 /*
 Implement std::meta::type_tuple_size().
+
+See do_constexpr_intrinsic_call for the meaning of the parameters.
 */
 {
   a_boolean           result = TRUE;
@@ -13823,9 +13837,6 @@ Implement std::meta::type_tuple_size().
   a_targ_size_t       n_elems;
   a_boolean           err = FALSE;
 
-extern a_boolean is_tuple_like_type(a_type_ptr     tp,
-                                    a_targ_size_t  *n_elements,
-                                    a_boolean      *p_err);
   if (rvp->entity.kind != iek_type) {
     /* The operand doesn't designate a type. */
     do_constexpr_fail(result);
@@ -13853,6 +13864,8 @@ static a_boolean do_constexpr_std_meta_type_tuple_element(
                                         a_byte                *complete_object)
 /*
 Implement std::meta::type_tuple_element().
+
+See do_constexpr_intrinsic_call for the meaning of the parameters.
 */
 {
   a_boolean           result = FALSE;
@@ -13894,7 +13907,24 @@ Implement std::meta::type_tuple_element().
 
 /*
 Type traits.
-FIXME
+
+The macros DEFINE_type_predicate and DEFINE_type_transform below expand to
+function definitions implementing the handling of a type trait query as
+intrinsic functions (see do_constexpr_intrinsic_call for the meaning of their
+parameters).  The first and second macro arguments match the description of
+the function in interpret.h (see the macro NS_scope_constexpr_intrinsics).
+The third macro operand must be a lambda expression that is parenthesized (to
+avoid having embedded commas interpreted as macro argument separators).
+
+For DEFINE_type_predicate, the lambda implements the predicate by examining
+the type represented by "tp" and setting the boolean result variable "answer".
+Any failure to evaluate should set the boolean status variable "result" to
+FALSE.
+
+For DEFINE_type_transform, the lambda implements the type transformation by
+examining the type represented by "tp" and setting the variable "result_tp".
+Any failure to evaluate should set the boolean status variable "result" to
+FALSE.
 */
 
 #define DEFINE_type_predicate(ns, name, ref_lambda_body)                     \
@@ -14214,7 +14244,7 @@ the corresponding reflection value at the location denoted by result_cap.
     new_cache = (a_token_cache*)orig_tok_seq->token_cache;
   }  /* if */
   if (result) {
-    /* Create a new token sequence entry associated to the new cache, and
+    /* Create a new token sequence entry associated with the new cache, and
        point the result reflection to it. */
     tok_seq = alloc_token_sequence();
     tok_seq->token_cache = new_cache;

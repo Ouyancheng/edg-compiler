@@ -19176,10 +19176,9 @@ that token.
   a_token_sequence_entry  *result = alloc_token_sequence_entry();
 
   result->token_kind = curr_token;
-  result->token_kind = curr_token;
   result->position = pos_curr_token;
-  /* il_string_for_curr_token() is inefficient.  This may therefore need
-     a new routine optimized for single plain tokens. */
+  /* FIXME: il_string_for_curr_token() is inefficient.  This may therefore
+     need a new routine optimized for single plain tokens. */
   result->spelling = il_string_for_curr_token();
   cache_curr_token(cache);
   return result;

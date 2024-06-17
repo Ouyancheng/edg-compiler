@@ -95,7 +95,7 @@ Return TRUE if the output targeted by octl is aimed at the C++-generating back
 end; otherwise, return FALSE.
 */
 {
-  return octl->gen_compilable_code && !octl->c_generating_back_end;
+  return octl->cpp_generating_back_end;
 }  /* is_for_cp_gen_be */
 
 
@@ -133,7 +133,7 @@ Clear an output control block to default values.
   octl->suppress_local_typedefs   = FALSE;
   octl->render_c99_bool           = FALSE;
   octl->c_generating_back_end     = FALSE;
-  octl->cpp_generating_back_end     = FALSE;
+  octl->cpp_generating_back_end   = FALSE;
 #if DEBUG
   octl->debug_output              = FALSE;
 #endif /* DEBUG */
@@ -6314,11 +6314,14 @@ Render the entity designated by the given reflection.
              saved_suppress_typedefs = octl->suppress_typedefs;
 
   if (octl->gen_compilable_code) {
-    if (octl->cpp_generating_back_end || octl->c_generating_back_end) {
+    if (octl->cpp_generating_back_end) {
       /* Reflection values sometimes leak into the C++-generating back end,
-         but those values are not actually used. */
+         but those values are not actually used.  Render a null reflection
+         value. */
       octl->output_str("(decltype(^0){})", octl);
       goto done;
+    } else if (octl->c_generating_back_end) {
+      unexpected_condition();
     }  /* if */
     /* We may still get here when rendering strings from token caches. */
   }  /* if */
