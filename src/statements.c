@@ -4334,6 +4334,9 @@ The syntax is:
     if (curr_token == tok_end_of_source) {
       /* Don't create the cached entry in certain error cases. */
       expect_error();
+    } else if (curr_token_pragmas != NULL) {
+      /* The caching mechanism cannot be used if immediately followed by
+         a pragma. */
     } else {
       cicip_to_create->ending_handle = curr_cached_token_handle;
       add_to_constexpr_if_cache_hash_table(cicip_to_create, start_tsn);

@@ -18253,8 +18253,8 @@ The current token is the token after the "if" or "else" keyword.
       flush_tokens_with_stop_tokens_and_warning_flag(stop_tokens,
                                                     /*suppress_warning=*/TRUE);
     }  /* if */
-    if (curr_token != tok_end_of_source) (void)get_token();
     pop_lexical_state_stack();
+    if (curr_token != tok_end_of_source) (void)get_token();
   }  /* if */
 }  /* flush_if_or_else_statement */
 

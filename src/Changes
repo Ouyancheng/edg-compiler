@@ -1,5 +1,24 @@
 Version 6.7
 
+6/17/24  [EDGcpfe/27359]
+Pragma not processed following FALSE constexpr if in template
+
+If a template contained a constexpr if with a condition that evaluates to
+FALSE and that is immediately followed by a a #pragma, the pragma was not
+processed.  Now fixed.
+
+  void g();
+  template <typename T> inline void f() {
+    if constexpr (0) {
+      g();
+    }
+    #pragma test_next_statement
+    for(int i = 0; i < 10; ++i) { g(); }
+  }
+  int main() {
+    f<int>();
+  }
+
 6/14/24  [EDGcpfe/27321]
 PCH may be created for header with errors
 
