@@ -430,9 +430,10 @@ Integer_translator::remainder to understand the semantics of the operation.
 
     an_Integral_type
                 &dest_part = this->parts.back_elem();
-    size_t      bit_adjustment = (((num_dst_bytes - 1) - this->remainder) * 8);
-    dest_part |= (part & 0xFF) << bit_adjustment;
-    part = part >> 8;
+    an_Integral_type
+                next_part_byte = (part >> (8 * i)) & 0xFF;
+    size_t      dest_bit_adjustment = (this->remainder * 8);
+    dest_part |= next_part_byte << dest_bit_adjustment;
   }  /* for */
 }  /* Integer_translator::add_part */
 
