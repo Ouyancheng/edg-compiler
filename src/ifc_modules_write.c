@@ -4738,7 +4738,7 @@ cache.
 
 an_ifc_type_index an_ifc_il_map::find_or_enter_class_scope_type()
 /*
-Find or enter the fundamental type used by the IFC to indicate a given IFC
+Find or enter the fundamental type used by the IFC to indicate that a given IFC
 DeclSort::Scope is a class.  Return the index for the fundamental type.
 */
 {
@@ -4756,7 +4756,7 @@ DeclSort::Scope is a class.  Return the index for the fundamental type.
 
 an_ifc_type_index an_ifc_il_map::find_or_enter_namespace_scope_type()
 /*
-Find or enter the fundamental type used by the IFC to indicate a given IFC
+Find or enter the fundamental type used by the IFC to indicate that a given IFC
 DeclSort::Scope is a namespace.  Return the index for the fundamental type.
 */
 {
@@ -4774,7 +4774,7 @@ DeclSort::Scope is a namespace.  Return the index for the fundamental type.
 
 an_ifc_type_index an_ifc_il_map::find_or_enter_alias_typedef_type()
 /*
-Find or enter the fundamental type used by the IFC to indicate a given IFC
+Find or enter the fundamental type used by the IFC to indicate that a given IFC
 DeclSort::Alias is a typedef.  Return the index for the fundamental type.
 */
 {
@@ -4792,7 +4792,7 @@ DeclSort::Alias is a typedef.  Return the index for the fundamental type.
 
 an_ifc_type_index an_ifc_il_map::find_or_enter_scoped_enum_type()
 /*
-Find or enter the fundamental type used by the IFC to indicate a given IFC
+Find or enter the fundamental type used by the IFC to indicate that a given IFC
 DeclSort::Enumeration is a scoped enum type.  Return the index for the
 fundamental type.
 */
@@ -4811,7 +4811,7 @@ fundamental type.
 
 an_ifc_type_index an_ifc_il_map::find_or_enter_struct_scope_type()
 /*
-Find or enter the fundamental type used by the IFC to indicate a given IFC
+Find or enter the fundamental type used by the IFC to indicate that a given IFC
 DeclSort::Scope is a struct.  Return the index for the fundamental type.
 */
 {
@@ -4829,7 +4829,7 @@ DeclSort::Scope is a struct.  Return the index for the fundamental type.
 
 an_ifc_type_index an_ifc_il_map::find_or_enter_union_scope_type()
 /*
-Find or enter the fundamental type used by the IFC to indicate a given IFC
+Find or enter the fundamental type used by the IFC to indicate that a given IFC
 DeclSort::Scope is a union.  Return the index for the fundamental type.
 */
 {
@@ -4847,7 +4847,7 @@ DeclSort::Scope is a union.  Return the index for the fundamental type.
 
 an_ifc_type_index an_ifc_il_map::find_or_enter_unscoped_enum_type()
 /*
-Find or enter the fundamental type used by the IFC to indicate a given IFC
+Find or enter the fundamental type used by the IFC to indicate that a given IFC
 DeclSort::Enumeration is an unscoped enum type.  Return the index for the
 fundamental type.
 */

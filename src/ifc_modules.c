@@ -19650,7 +19650,7 @@ static void cache_class_body_or_end_decl(a_module_token_cache_ptr cache,
 /*
 Cache the class-specifier (excluding the portion of the class-head prior to the
 class-head-name and the class-head-name itself) for the given class, struct, or
-union declaration (identified by decl_idx) if its definition is specified;
+union scope declaration (indexed by decl_idx) if its definition is specified;
 otherwise, cache a semicolon to terminate the declaration.  cinfo contains
 information about the current cache context to help inform decisions about what
 to cache.
