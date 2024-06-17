@@ -7896,10 +7896,25 @@ integer constant.
   a_constant_ptr
                 result = NULL;
   {
-    an_ifc_index_type
-                start = get_ifc_start(node).value;
     an_ifc_cardinality
                 cardinality = get_ifc_cardinality(node);
+    constexpr unsigned
+                num_parts_expected =
+                                 (sizeof(an_integer_value) / sizeof(uint32_t));
+
+    if (cardinality != num_parts_expected) {
+      /* FIXME: Use a real error message. */
+      a_string err_msg("Unexpected integer constant composed of ",
+                       (an_ifc_cardinality_storage)cardinality,
+                       " 32-bit chunks when ", num_parts_expected,
+                       " parts were expected");
+
+      ifc_unexpected(module_of(node), err_msg);
+      goto invalid;
+    }  /* if */
+
+    an_ifc_index_type
+                start = get_ifc_start(node).value;
     an_edg_constant_integer_word_sequence
                 word_seq(module_of(node), start, cardinality);
     an_integer_value_translator
@@ -7918,17 +7933,12 @@ integer constant.
       memcpy(&num_part, bytes.get_storage(), /*num_bytes=*/4);
       dest_int.add_part(num_part);
     }  /* for */
-
     /* Check to see if the IFC representation is too large for this build of
-       the front end. */
-    if (has_translator_overflowed(dest_int)) {
-      /* FIXME: Use a real error message. */
-      a_string err_msg("Unexpected overflow while processing "
-                       "integer constant");
-
-      ifc_unexpected(module_of(node), err_msg);
-      goto invalid;
-    }  /* if */
+       the front end.  This is checked as an assertion as the front end
+       currently does not support with working with integers of differing
+       bitwidth.  However, that could be changed in the future at which
+       point this should be changed to a diagnosed error. */
+    check_assertion(!has_translator_overflowed(dest_int));
 
     /* Form the result constant. */
     a_constant_ptr

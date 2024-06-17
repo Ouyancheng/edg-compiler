@@ -3473,21 +3473,34 @@ the expr index for the constant.
       { const an_integer_value
                 &int_val = cp->variant.integer_value;
         /* Convert the front end integer value into the necessary number of EDG
-           IFC integer constant words. */
+           IFC integer constant words.
+
+           an_integer_value must be a multiple of 4 bytes; otherwise, the
+           "constant words" will not be completely filled.  As an example:
+
+             0x00 0x00 0x0f 0x00
+             ^^^^ ^^^^ ^^^^
+
+           may be written instead of:
+
+             0x00 0x00 0x00 0x0f
+             ^^^^ ^^^^ ^^^^ ^^^^
+         */
+        static_assert(sizeof(an_integer_value) % sizeof(uint32_t) == 0,
+                      "an_integer_value must be a multiple of 4 bytes");
         constexpr unsigned
-                num_parts_expected = max_val(
-                      (unsigned)1,
-                      (unsigned)(sizeof(an_integer_value) / sizeof(uint32_t)));
+                num_parts_expected =
+                                 (sizeof(an_integer_value) / sizeof(uint32_t));
         auto    output_int =
                       integer_value_as_translator<uint32_t,
                                                   num_parts_expected>(int_val);
         /* Allocate the integer constant word block and populate it with
            the computed values. */
-        size_t  num_parts_required = output_int.length();
+        check_assertion(output_int.length() == num_parts_expected);
         size_t  start = this->output_state->
                             alloc_node_block<an_ifc_edg_constant_integer_word>(
-                                                           num_parts_required);
-        for (size_t i = 0; i < num_parts_required; ++i) {
+                                                           num_parts_expected);
+        for (size_t i = 0; i < num_parts_expected; ++i) {
           an_ifc_edg_constant_integer_word int_word;
 
           this->output_state->fetch_node(&int_word, start + i);
@@ -3527,7 +3540,7 @@ the expr index for the constant.
         an_ifc_edg_constant_integer_word_offset
                 ifc_start(int_constant.get_file(), start);
         an_ifc_cardinality
-                ifc_cardinality(int_constant.get_file(), num_parts_required);
+                ifc_cardinality(int_constant.get_file(), num_parts_expected);
         set_ifc_start(&int_constant, ifc_start);
         set_ifc_cardinality(&int_constant, ifc_cardinality);
       }
