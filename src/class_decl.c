@@ -19587,7 +19587,8 @@ nonstandard anonymous unions is_nonstd is TRUE.
          list when it is reentered in the symbol table. */
       sym->next_in_scope = NULL;
       sym->prev_in_scope = NULL;
-      remove_symbol_from_lookup_table(sym, &cssp->pointers_block);
+      remove_symbol_from_lookup_table(sym,
+                                      cssp->pointers_block.lookup_table);
       if (!is_template_symbol(sym)) {
         /* It is no longer treated as a member of the anonymous union but
            rather it will be a member of the class_type.  (Templates are not

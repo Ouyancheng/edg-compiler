@@ -709,6 +709,7 @@ treated as separate translation units of a single compilation.
   is_primary_translation_unit = is_primary;
   translation_unit_needed_only_for_exported_templates = exported_file != NULL;
   trans_unit_file_name = file_name;
+  trans_unit_module = NULL;
   compute_il_prefix_size();
   if (is_primary_translation_unit) fe_init_part_1();
   trans_unit = alloc_translation_unit();
@@ -846,6 +847,7 @@ One-time initialization for trans_unit variables.
   register_trans_unit_variable(trans_unit_file_name);
   register_trans_unit_variable(
                           translation_unit_needed_only_for_exported_templates);
+  register_trans_unit_variable(trans_unit_module);
 }  /* trans_unit_one_time_init */
 
 
@@ -876,6 +878,7 @@ of the front end are called.
   trans_unit_var_block_size = 0;
   is_primary_translation_unit = FALSE;
   trans_unit_file_name = NULL;
+  trans_unit_module = NULL;
   avail_translation_unit_stack_entries = NULL;
   avail_trans_unit_corresps = NULL;
 #if DEBUG

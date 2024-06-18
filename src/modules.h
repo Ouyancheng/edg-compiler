@@ -149,9 +149,56 @@ EXTERN unsigned long
 
 #endif /* DEBUG */
 
-EXTERN a_symbol_ptr
-                curr_module_sym;
-                        /* If in a module unit, the current module symbol. */
+/*
+Entry used to maintain a stack of module contexts.  The top of the stack
+is the "current" module for name declarations and lookups.
+*/
+typedef struct a_module_context_stack_entry *a_module_context_stack_entry_ptr;
+struct a_module_context_stack_entry {
+  a_module_ptr	module_ptr;
+			/* Pointer to the current module when this entry is
+			   at the top of the stack. */
+};  /* a_module_context_stack_entry */
+
+using a_module_stack = Dyn_array<a_module_context_stack_entry,
+                                 General_allocator>;
+
+EXTERN a_module_stack
+		*module_stack;
+			/* A dynamic array of the active module contexts. */
+
+
+inline a_module_context_stack_entry_ptr curr_module_context(void)
+/*
+Return a pointer to the top of the module context stack, or NULL if the
+stack is empty.
+*/
+{
+  a_module_context_stack_entry_ptr mcsep = NULL;
+  if (module_stack->length() > 0) {
+    mcsep = &module_stack->back_elem();
+  }  /* if */
+  return mcsep;
+}  /* curr_module_context */
+
+
+inline a_module_ptr curr_module(void)
+/*
+Return the module entry associated with the entry at the top of the module
+stack, or NULL if the stack is empty.
+*/
+{
+  a_module_context_stack_entry_ptr mcsep;
+  a_module_ptr                     mp = NULL;
+
+  mcsep = curr_module_context();
+  if (mcsep != NULL) mp = mcsep->module_ptr;
+  return mp;
+}  /* curr_module */
+
+
+/* If in a module unit, the current module symbol. */
+EXTERN a_symbol_ptr    curr_module_sym;
 
 struct a_module_entity_stack_state;
 
@@ -601,6 +648,13 @@ extern a_string s_basic_db_mep(a_module_entity_ptr mep);
 
 extern void db_mep(a_module_entity_ptr mep);
 
+extern void push_module_context(a_module_ptr	mod_ptr);
+
+extern void pop_module_context(void);
+
+extern void db_module_entity(a_module_entity_ptr mep);
+
+extern void db_module_stack(void);
 #endif /* DEBUG */
 
 extern void modules_pch_reset();

@@ -3494,6 +3494,9 @@ typedef struct a_symbol {
 			   was declared to be a namespace member (C++ only),
 			   parent.namespace_ptr points to the namespace;
 			   otherwise it is NULL. */
+  a_module_ptr	module_context;
+			/* For namespace scope entities, points to the
+			   module entry in which the symbol was declared. */
   a_symbol_ptr	corresp_nonreal_or_nested_type;
 			/* For types that are nested within prototype
 			   instantiation types, this points to a nonreal
@@ -4720,9 +4723,30 @@ extern a_symbol_ptr find_symbol(a_const_char     *identifier,
 			        sizeof_t         identifier_length,
 				a_symbol_locator *location);
 
-extern a_symbol_ptr find_symbol_list_in_table(
+extern a_hash_table_ptr curr_lookup_table(
+                              a_scope_pointers_block_ptr pointers_block,
+                              a_module_ptr               module_context,
+            /* Defaulted: */  a_scope_kind               scope_kind = sck_none,
+            /* Defaulted: */  a_boolean                  create = FALSE);
+
+
+extern
+a_hash_table_ptr curr_lookup_table(a_scope_stack_entry_ptr ssep,
+                                   a_module_ptr            module_context);
+
+extern
+a_symbol_ptr find_symbol_list_in_table(
 			a_scope_pointers_block_ptr	pointers_block,
 			a_symbol_header_ptr		header);
+
+extern
+a_symbol_ptr find_symbol_list_in_table(a_hash_table_ptr       hash_table,
+                                       a_symbol_header_ptr    header);
+
+extern a_symbol_ptr find_symbol_list_in_table(
+			a_scope_stack_entry_ptr   ssep,
+                        a_module_ptr              module_context,
+			a_symbol_header_ptr       header);
 
 extern void add_symbol_to_scope_list(a_symbol_ptr  sym_ptr,
                                      a_scope_depth scope_depth,
@@ -5595,8 +5619,8 @@ extern void remove_symbol_from_overload_set(a_symbol_ptr  sym,
 extern void remove_symbol(a_symbol_ptr sym_ptr);
 
 extern void remove_symbol_from_lookup_table(
-			a_symbol_ptr			symbol,
-			a_scope_pointers_block_ptr	pointers_block);
+				a_symbol_ptr        symbol,
+				a_hash_table_ptr    lookup_table);
 
 extern void remove_anonymous_union_member_from_inactive_symbols_list
                                                        (a_symbol_ptr sym_ptr);

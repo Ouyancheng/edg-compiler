@@ -5934,6 +5934,7 @@ Allocate and return an IL entry for a module.
   mep->is_sys_include = FALSE;
   mep->suppress_macro_export = FALSE;
   mep->contains_unsupported_constructs = FALSE;
+  mep->is_non_module_trans_unit = FALSE;
   return mep;
 }  /* alloc_module */
 

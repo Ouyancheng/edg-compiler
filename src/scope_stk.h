@@ -178,6 +178,13 @@ typedef struct a_class_fixup_header {
 
 
 /*
+Type for a map from a module pointer to a lookup table.
+*/
+using a_module_lookup_table_map = Ptr_map<a_module_ptr, a_hash_table_ptr>;
+using a_module_lookup_table_map_ptr = a_module_lookup_table_map*;
+
+
+/*
 Structure that is logically (and historically) part of a_scope_stack_entry,
 but which must persist longer than a scope stack entry for namespace scopes
 (since "extension-definitions" are allowed for them).  Therefore,
@@ -291,7 +298,15 @@ typedef struct a_scope_pointers_block {
 			   in name lookup.  This is non-NULL if such a table
 			   has been created for the associated scope.  The
 			   table is only created when the first entry has been
-			   added to the table. */
+			   added to the table.  Some scopes can have multiple
+			   tables for different namespaces.  For more
+			   information see module_lookup_table_map below. */
+  a_module_lookup_table_map_ptr
+		module_lookup_table_map;
+			/* For namespace scopes (including the file scope),
+			   there is a separate lookup table for each module
+			   that uses that scope.  This is a map from a module
+			   to a lookup table. */
   a_bit_field	add_symbols_to_inactive_list:1;
 			/* TRUE for sck_namespace_reactivation scopes if
 			   symbols added to the scope should be added
@@ -1811,14 +1826,25 @@ which variables have automatic storage duration by default).
    (kind) == (a_scope_kind)sck_block ||                                  \
    (kind) == (a_scope_kind)sck_condition)
 
+
+inline a_boolean is_file_or_namespace_scope_kind(a_scope_kind kind)
+/*
+Given a pointer to a scope kind, return TRUE if the kind is a file
+scope or namespace scope.
+*/
+{
+  return (kind == (a_scope_kind)sck_file ||
+          kind == (a_scope_kind)sck_namespace ||
+          kind == (a_scope_kind)sck_namespace_extension);
+}  /* is_file_or_namespace_scope_kind */
+
+
 /*
 Given a pointer to a scope stack entry, return TRUE if and only if the
 associated scope is a file or namespace scope.
 */
 #define is_file_or_namespace_scope(ssep)                     \
-  ((ssep)->kind == (a_scope_kind)sck_file ||                 \
-   (ssep)->kind == (a_scope_kind)sck_namespace ||            \
-   (ssep)->kind == (a_scope_kind)sck_namespace_extension)
+  is_file_or_namespace_scope_kind((ssep)->kind)
 
 
 inline a_boolean is_lambda_body_scope(a_scope_stack_entry_ptr ssep)

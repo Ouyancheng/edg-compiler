@@ -17996,6 +17996,8 @@ enum a_module_kind : a_byte {
   mk_edg,		/* An EDG module. */
   mk_edg_ifc,		/* An EDG IFC module. */
   mk_ms_ifc,		/* A Microsoft IFC module. */
+  mk_trans_unit,	/* A module entry used to represent a translation
+			   unit that does not contain a module declaration. */
   mk_any		/* Any kind of module. */
 };
 
@@ -18031,6 +18033,9 @@ typedef struct a_module {
 			   binary module interface constructs (i.e., the module
 			   made use of a feature of its binary module format
 			   that EDG knows about but does not yet support). */
+  a_bit_field	is_non_module_trans_unit:1;
+			/* TRUE for the module entry created to represent
+			   a non-module translation unit. */
 } a_module;
 
 

@@ -2436,6 +2436,7 @@ Initialize the fields in a scope-pointers-block substructure.
   spbp->last_ms_attribute             = NULL;
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
   spbp->lookup_table                  = NULL;
+  spbp->module_lookup_table_map       = NULL;
 #if GENERATE_MICROSOFT_IF_EXISTS_ENTRIES
   spbp->last_ms_if_exists             = NULL;
 #endif /* GENERATE_MICROSOFT_IF_EXISTS_ENTRIES */
@@ -3492,6 +3493,7 @@ the scope being pushed.
     a_class_symbol_supplement_ptr cssp;
     check_assertion(assoc_type != NULL);
     cssp = symbol_supplement_for_class(assoc_type);
+// FIXME: Should this be setting assoc_pointers_block?
     ssep->pointers_block.lookup_table = cssp->pointers_block.lookup_table;
   } else if (kind == (a_scope_kind)sck_file) {
     /* For the file scope, use the pointers block allocated in the

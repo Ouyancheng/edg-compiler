@@ -231,6 +231,9 @@ Given a module kind, return a string for that kind for use in error messages.
     case mk_any:
       str = error_text(ec_module_kind_any);
       break;
+    case mk_trans_unit:
+      /* This should never occur. */
+      unexpected_condition();
     default:
       str = error_text(ec_module_kind_unexpected);
       unexpected_condition_str("Unexpected module kind");
@@ -312,6 +315,7 @@ file_kind (which may range from remarks to catastrophic errors).
       break;
     case mk_none:
     case mk_header:
+    case mk_trans_unit:
     default:
       severity = es_catastrophe;
       unexpected_condition_str("Unexpected module kind");
@@ -476,6 +480,7 @@ the kind of module_file.
     case mk_none:
     case mk_any:
     case mk_header:
+    case mk_trans_unit:
       unexpected_condition_str("Unexpected module kind");
       break;
     case mk_edg:
@@ -720,11 +725,14 @@ Import the module file specified in the module-import-declaration.
     case mk_none:
     case mk_any:
     case mk_header:
+    case mk_trans_unit:
     default:
       unexpected_condition_str("Unexpected module kind for import.");
   }  /* switch */
   midp->module_info->module_interface = iface;
+  push_module_context(midp->module_info);
   (void)iface->import(midp);
+  pop_module_context();
 }  /* import_module_file */
 
 
@@ -741,6 +749,7 @@ processing has ended.
 */
 {
   a_module_entity_ptr mep, *mepp = &(sym_hdr->deferred_module_entities);
+  a_module_ptr        current_module = curr_module();
 
   /* This function should only be called if lexical processing is still
      enabled. */
@@ -749,7 +758,7 @@ processing has ended.
      available. */
   check_assertion(sym_hdr->deferred_module_entities != NULL);
   while (*mepp != NULL) {
-    if ((*mepp)->scope == scope) {
+    if ((*mepp)->scope == scope && (*mepp)->module_info == current_module) {
 #if DEBUG
       if (db_flag_is_set("ms_symbols")) {
         (void)fprintf(f_debug, "Loading symbol %s in ",
@@ -775,6 +784,7 @@ processing has ended.
           process_ifc_declaration(mep);
           break;
         case mk_edg:
+        case mk_trans_unit:
         default:
           unexpected_condition();
       }  /* switch */
@@ -886,6 +896,7 @@ Dispatch the is_open() call to the variant for the actual object.
       break;
     case mk_header:
     case mk_any:
+    case mk_trans_unit:
       unexpected_condition();
       break;
     default_is_unexpected();
@@ -915,6 +926,7 @@ Dispatch the import() call to the variant for the actual object.
       break;
     case mk_header:
     case mk_any:
+    case mk_trans_unit:
       unexpected_condition();
       break;
     default_is_unexpected();
@@ -942,6 +954,7 @@ Dispatch the close() call to the variant for the actual object.
       break;
     case mk_header:
     case mk_any:
+    case mk_trans_unit:
       unexpected_condition();
       break;
     default_is_unexpected();
@@ -969,6 +982,8 @@ Dispatch the pch_reset() call to the variant for the actual object.
     case mk_header:
     case mk_any:
       unexpected_condition();
+    case mk_trans_unit:
+      /* This is the actual object. */
       break;
     default_is_unexpected();
   }  /* switch */
@@ -1255,7 +1270,37 @@ definition now and return TRUE. If an error occurs, return FALSE.
   return result;
 }  /* load_type_definition_from_module */
 
+void push_module_context(a_module_ptr	mod_ptr)
+/*
+Push an entry for the module specified by mod_ptr onto the module stack.
+*/
+{
+  module_stack->push_back(a_module_context_stack_entry {mod_ptr});
+}  /* push_module_context */
+
+
+void pop_module_context(void)
+/*
+Pop an entry from the module stack.
+*/
+{
+  module_stack->pop_back();
+}  /* push_module_context */
+
 #if DEBUG
+
+void db_module_stack()
+/*
+Display debug information about the module stack.
+*/
+{
+  int  size = module_stack->length();
+  for (int i = size-1; i >= 0; i--) {
+    a_module_context_stack_entry_ptr mcsep = &(*module_stack)[i];
+    fprintf(f_debug, "%d: %p\n", i, mcsep);
+  }  /* for */
+}  /* db_module_stack */
+
 
 void db_tokens(a_module_token_cache_ptr cache)
 /*
@@ -1425,6 +1470,7 @@ Do one-time initialization of static variables defined in this file.
   module_file_name_buffer = alloc_text_buffer(64);
   module_primary_name_buffer = alloc_text_buffer(64);
   module_partition_name_buffer = alloc_text_buffer(64);
+  module_stack = new_general<a_module_stack>();
   ifc_modules_one_time_init();
   /* Register variables that have distinct copies for distinct translation
      units. */

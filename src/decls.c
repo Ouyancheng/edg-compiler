@@ -20034,6 +20034,26 @@ An export declaration can take the following forms:
 }  /* export_declaration */
 
 
+a_module_ptr get_trans_unit_module(void)
+/*
+Return the module entry that will be used for namespace scope entities
+in the current translation unit if it does not containa module declaration.
+Create the entry if it does not already exist.
+*/
+{
+  a_module_ptr  mp = trans_unit_module;
+
+  if (mp == NULL) {
+    mp = alloc_module((a_module_kind)mk_any);
+    mp->name = copy_string_to_region(file_scope_region_number,
+                                     trans_unit_file_name);
+    mp->is_non_module_trans_unit = TRUE;
+    trans_unit_module = mp;
+  }  /* if */
+  return mp;
+}  /* make_trans_unit_module */
+
+
 static void import_curr_module(void)
 /*
 Import the module referred to by the current module unit.
@@ -22189,6 +22209,10 @@ kept in tu_stage) is updated (by module_declaration) as module declarations
 are encountered.
 */
 {
+  /* Push an module entry for the translation unit.  If there is not module
+     declaration, this will be the module associated with namespace scope
+     declarations in the current translation unit. */
+  push_module_context(trans_unit_module);
   if (using_a_pch_file) {
     /* When using a precompiled header, do any special processing needed
        for a preincluded file. */
@@ -22236,6 +22260,7 @@ are encountered.
      top-level declarations. */
   if (c99_mode || cpp11_mode) check_for_stdc_pragmas();
   process_pragmas_at_end_of_source();
+  pop_module_context();
 }  /* translation_unit */
 
 

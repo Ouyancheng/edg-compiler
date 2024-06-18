@@ -2019,6 +2019,8 @@ declared in the current function.
 }  /* is_addressable_auto_var */
 
 
+extern a_module_ptr get_trans_unit_module(void);
+
 extern void decls_one_time_init(void);
 
 extern void decls_trans_unit_init(void);

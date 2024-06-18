@@ -2135,6 +2135,9 @@ typedef struct a_lookup_state {
 			   using-directive lookup.  Symbols declared after this
 			   position are ignored.  This used used when doing
 			   g++ lookup emulation. */
+   a_module_ptr	module_context;
+			/* The module to be used for namespace scope
+			   lookups. */
    a_boolean	check_decl_seq;
 			/* Flag that is TRUE if the decl_seq field should be
 			   compared with the corresponding value for each
@@ -2198,6 +2201,7 @@ value.
   cleared_lookup_state.decl_seq                      = 0;
   cleared_lookup_state.using_dir_decl_seq            = NO_DECL_SEQUENCE_NUMBER;
   cleared_lookup_state.check_decl_seq                = 0;
+  cleared_lookup_state.module_context                = NULL;
   cleared_lookup_state.found_template_param          = FALSE;
 }  /* init_cleared_lookup_state */
 
@@ -2550,8 +2554,9 @@ of the lookup is returned to the caller.
     check_assertion(ns_sym->kind == (a_symbol_kind)sk_namespace);
     nsp = skip_namespace_aliases(ns_sym->variant.namespace_info.ptr);
     load_lazy_symbols_if_needed(nsp->variant.assoc_scope, locator);
-    for (new_sym = find_symbol_list_in_table(&nssp->pointers_block,
-                                             locator->symbol_header);
+    for (new_sym = find_symbol_list_in_table(
+                       curr_lookup_table(&nssp->pointers_block, curr_module()),
+                                         locator->symbol_header);
          new_sym != NULL;
          new_sym = new_sym->next_in_lookup_table) {
       /* Look through the symbols associated with the given namespace.  Note
@@ -2848,24 +2853,25 @@ routine.
         a_symbol_ptr			type_tag_symbol = NULL;
         a_symbol_ptr			tag_symbol = NULL;
         a_symbol_ptr			namespace_symbol = NULL;
-        a_scope_pointers_block_ptr	spbp;
         a_boolean			use_lookup_table;
         a_boolean			use_scope_list = FALSE;
         a_boolean			process_single_symbol = FALSE;
         a_symbol_ptr			next_sym;
+        a_hash_table_ptr		lookup_table;
         load_lazy_symbols_if_needed(ssep->il_scope, locator);
         /* Lazy loading of symbols may cause scope_stack to be re-allocated,
            invalidating ssep. */
         ssep = scope_stack_entry_for(scope_depth);
-        spbp = assoc_pointers_block_of(ssep);
-        use_lookup_table = spbp->lookup_table != NULL;
+        lookup_table = curr_lookup_table(ssep, lookup_state->module_context);
+        use_lookup_table = lookup_table != NULL;
         if (ssep->is_reactivation && is_local_scope_kind(ssep->kind)) {
           use_scope_list = TRUE;
         }  /* if */
         /* If the scope has a lookup table, use it.  Otherwise, use the
            inactive list. */
         if (use_lookup_table) {
-          sym = find_symbol_list_in_table(spbp, locator->symbol_header);
+          sym = find_symbol_list_in_table(lookup_table,
+                                          locator->symbol_header);
         } else if (use_scope_list) {
           /* Get the symbol list from the scope stack entry.  Note that
              if the scope is on the stack more than once, the depth will
@@ -4282,6 +4288,7 @@ after a call to this routine.
                                    (options & IDL_DO_NOT_CREATE_PROJ_SYM) != 0;
     lookup_state.skip_curr_scope = (options & IDL_SKIP_CURR_SCOPE) != 0;
     lookup_state.skip_class_scopes = (options & IDL_SKIP_CLASS_SCOPES) != 0;
+    lookup_state.module_context = curr_module();
     if (depth_innermost_instantiation_scope != NO_SCOPE_DEPTH &&
         scope_stack_top().exception_specification &&
         scope_stack_top().decl_parse_state != NULL &&
