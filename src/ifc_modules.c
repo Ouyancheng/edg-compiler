@@ -7935,9 +7935,9 @@ integer constant.
     }  /* for */
     /* Check to see if the IFC representation is too large for this build of
        the front end.  This is checked as an assertion as the front end
-       currently does not support with working with integers of differing
-       bitwidth.  However, that could be changed in the future at which
-       point this should be changed to a diagnosed error. */
+       currently does not support working with integers of differing bitwidth.
+       However, that could be changed in the future, at which point this should
+       be changed to a diagnosed error. */
     check_assertion(!has_translator_overflowed(dest_int));
 
     /* Form the result constant. */
