@@ -6172,7 +6172,7 @@ field declaration and dtype is the type of the field.
     prep_initializer_result(is, /*dtor_rp=*/NULL);
   } else {
     convert_initializer(expr_icp, dtype, /*is_var_init=*/FALSE,
-                        /*fill_in_dtor=*/TRUE, is);
+                        /*fill_in_dtor=*/FALSE, is);
   }  /* if */
   free_init_component_list(expr_icp);
 }  /* expr_init_field */
