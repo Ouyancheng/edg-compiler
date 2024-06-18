@@ -2694,14 +2694,15 @@ option values if they were not already set by a command line option.
       arg_dependent_lookup_enabled = (microsoft_version >= 1310);
     }  /* if */
     if (!option_kind_used[(int)optk_friend_injection]) {
-      /* In non-permissive mode, do not inject friend names. */
+      /* In non-permissive mode, do not inject friend function names. */
       if (ms_permissive) {
-        friend_class_injection_enabled = TRUE;
         friend_function_injection_enabled = TRUE;
       } else {
-        friend_class_injection_enabled = FALSE;
         friend_function_injection_enabled = FALSE;
       }  /* if */
+      /* Friend class name injection appears to still be performed in all
+         MSVC modes. */
+      friend_class_injection_enabled = TRUE;
     }  /* if */
     if (!option_kind_used[(int)optk_dependent_name_processing]) {
       /* In non-permissive mode, do normal dependent name processing. */

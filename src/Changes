@@ -1,5 +1,15 @@
 Version 6.7
 
+6/18/24  [EDGcpfe/23571,EDGcpfe/24860,EDGcpfe/25564,EDGcpfe/26798,
+          EDGcpfe/27172]
+Microsoft C++ compatibility: Friend class name injection
+
+The changes for EDGcpfe/17455,EDGcpfe/17457 disabled friend name injection in
+"non-permissive" Microsoft modes.  However, it appears that MSVC still performs
+such injections in all modes for ordinary (non-template) friend class
+declarations.  The front end has been updated to restore that behavior.
+
+
 6/17/24  [EDGcpfe/27359]
 Pragma not processed following FALSE constexpr if in template
 
