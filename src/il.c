@@ -7027,7 +7027,9 @@ indicated source correspondence entry.
   if (name != NULL) {
     hash_value = hash_string(name);
   }  /* if */
-  if (scp->parent_scope != NULL) {
+  if (scp->enclosing_routine != NULL) {
+    hash_value += hash_routine(scp->enclosing_routine);
+  } else if (scp->parent_scope != NULL) {
     a_scope_ptr  scope = scp->parent_scope;
     switch (scope->kind) {
       case sck_class_struct_union:
@@ -7049,8 +7051,6 @@ indicated source correspondence entry.
         /* Nothing to be done. */
         break;
     }  /* switch */
-  } else if (scp->enclosing_routine != NULL) {
-    hash_value += hash_routine(scp->enclosing_routine);
   }  /* if */
   return hash_value;
 }  /* hash_name */
@@ -7083,8 +7083,7 @@ Return a hash value for the indicated template argument list.
     switch (tap->kind) {
       case tak_type:
         if (tap->variant.type != NULL) {
-          hash_value += hash_type(tap->variant.type);
-          hash_value = hash_value + (hash_value * (pos+1));
+          hash_value += hash_type(tap->variant.type) * next_pos;
         }  /* if */
         break;
       case tak_nontype:
@@ -7102,8 +7101,7 @@ Return a hash value for the indicated template argument list.
         break;
       case tak_template:
         if (tap->variant.templ.ptr != NULL) {
-          hash_value += hash_template(tap->variant.templ.ptr);
-          hash_value = hash_value + (hash_value * (pos+1));
+          hash_value += hash_template(tap->variant.templ.ptr) * next_pos;
         }  /* if */
         break;
       case tak_start_of_pack_expansion:
@@ -7326,32 +7324,36 @@ to refine the hash value developed in hash_constant.
 */
 {
   a_hash_value       hash_value = 0;
-  an_expr_node_ptr   dpdt_type_operator_expr = NULL;
 
   /* Only pointers to class types are particularly important here. */
   /* Note that the address of the type or its subtypes should not be
      used in determining the hash value (see comment in hash_constant). */
-  /* Skip typerefs, but keep any expression associated with a dependent type
-     operator (which we will use later if the type refers to a template
-     parameter). */
+  /* Skip typerefs, but update the hash value with any dependent type operator
+     expressions. */
   while (type->kind == tk_typeref) {
     if (type->variant.typeref.is_dependent_type_operator) {
       a_typeref_type_supplement_ptr  ttsp = type->variant.typeref.extra_info;
-      dpdt_type_operator_expr = ttsp->expr;
+      if (ttsp->expr != NULL) {
+        hash_value += hash_expr(ttsp->expr);
+      }  /* if */
     }  /* if */
     type = type->variant.typeref.type;
   }  /* while */
   switch (type->kind) {
     case tk_integer:
-      hash_value = type->variant.integer.int_kind + 53;
+      hash_value += type->variant.integer.int_kind*13 + 53;
+      if (type->variant.integer.enum_type) {
+        hash_value += type->variant.integer.is_scoped_enum*4 + 2;
+        hash_value += hash_name(&type->source_corresp);
+      }  /* if */
       break;
 #if FIXED_POINT_ALLOWED
     case tk_fixed_point:
-      hash_value = type->variant.fixed_point.saturating +
-                   type->variant.fixed_point.is_fract_type*2 +
-                   type->variant.fixed_point.is_unsigned*4 +
-                   type->variant.fixed_point.precision*8 +
-                   131;
+      hash_value += type->variant.fixed_point.saturating +
+                    type->variant.fixed_point.is_fract_type*2 +
+                    type->variant.fixed_point.is_unsigned*4 +
+                    type->variant.fixed_point.precision*8 +
+                    131;
       break;
 #endif /* FIXED_POINT_ALLOWED */
 #if C99_IL_EXTENSIONS_SUPPORTED
@@ -7359,10 +7361,10 @@ to refine the hash value developed in hash_constant.
     case tk_imaginary:
 #endif /* C99_IL_EXTENSIONS_SUPPORTED */
     case tk_float:
-      hash_value = type->variant.float_kind + 87;
+      hash_value += type->variant.float_kind + 87;
       break;
     case tk_pointer:
-      hash_value = hash_type(type->variant.pointer.type) + 107
+      hash_value += hash_type(type->variant.pointer.type) + 107
                      + type->variant.pointer.is_reference
                      + type->variant.pointer.is_rvalue_reference*2
 #if MICROSOFT_EXTENSIONS_ALLOWED
@@ -7373,7 +7375,7 @@ to refine the hash value developed in hash_constant.
                      ;
       break;
     case tk_array:
-      hash_value = hash_type(type->variant.array.element_type) + 307;
+      hash_value += hash_type(type->variant.array.element_type) + 307;
       if (!has_unknown_specified_bound(type)) {
         hash_value += (a_hash_value)
                             (type->variant.array.variant.number_of_elements);
@@ -7382,7 +7384,7 @@ to refine the hash value developed in hash_constant.
     case tk_struct:
     case tk_class:
     case tk_union:
-      hash_value = hash_class_type(type);
+      hash_value += hash_class_type(type);
       break;
     case tk_routine:
       {
@@ -7390,9 +7392,8 @@ to refine the hash value developed in hash_constant.
         a_param_type_ptr		ptp;
         uint32_t                        pos;
         rtsp = type->variant.routine.extra_info;
-        hash_value = 0;
         if (type->variant.routine.return_type != NULL) {
-          hash_value = hash_type(type->variant.routine.return_type);
+          hash_value += hash_type(type->variant.routine.return_type);
         }  /* if */
         for (ptp = rtsp->param_type_list, pos = 0; ptp != NULL;
              ptp = ptp->next, pos++) {
@@ -7424,7 +7425,7 @@ to refine the hash value developed in hash_constant.
       break;
 #if GNU_VECTOR_TYPES_ALLOWED
     case tk_vector:
-      hash_value = hash_type(type->variant.vector.element_type) + 331;
+      hash_value += hash_type(type->variant.vector.element_type) + 331;
       if (type->variant.vector.size_constant != NULL) {
         hash_value += 5*hash_constant(type->variant.vector.size_constant);
       }  /* if */
@@ -7434,8 +7435,8 @@ to refine the hash value developed in hash_constant.
       {
         a_template_param_type_supplement_ptr	tpts;
         tpts = type->variant.template_param.extra_info;
-        hash_value = 499 + (int)type->variant.template_param.kind +
-                     type->variant.template_param.is_pack;
+        hash_value += 499 + (int)type->variant.template_param.kind +
+                      type->variant.template_param.is_pack;
         /* If the template parameter has a parent scope, include that in the
            hash value. */
         if (type->source_corresp.parent_scope != NULL) {
@@ -7448,17 +7449,14 @@ to refine the hash value developed in hash_constant.
           hash_value += (tpts->coordinates.depth << 8) +
                                                     tpts->coordinates.position;
         }  /* if */
-        if (dpdt_type_operator_expr != NULL) {
-          hash_value += hash_expr(dpdt_type_operator_expr);
-        }  /* if */
       }
       break;
     case tk_ptr_to_member:
-      hash_value = hash_type(type->variant.ptr_to_member.type) +
+      hash_value += hash_type(type->variant.ptr_to_member.type) +
                 hash_type(type->variant.ptr_to_member.class_of_which_a_member);
       break;
     default:
-      hash_value = (a_hash_value)type->kind;
+      hash_value += (a_hash_value)type->kind;
   }  /* switch */
   return hash_value;
 }  /* hash_type */
@@ -7603,19 +7601,18 @@ Return the hash value for the indicated constant.
       break;
     case ck_template_param:
       hash_value = 499;
-      if (cp->variant.template_param.kind ==
-                                 (a_template_param_constant_kind)tpck_param) {
-        hash_value += cp->source_corresp.decl_position.seq +
-                      cp->source_corresp.decl_position.column;
-        hash_value += cp->variant.template_param.variant.coordinates.depth +
-                      cp->variant.template_param.variant.coordinates.position;
-      } else if (cp->variant.template_param.kind ==
-                             (a_template_param_constant_kind)tpck_expression) {
-        /* For expressions, use an integer representation of the pointer.
-           In general, this means that those entries won't be found, but
-           this is okay because, in general, there can be multiple versions
-           of nonreal types. */
+      if (cp->variant.template_param.kind == tpck_param ||
+          cp->variant.template_param.kind == tpck_expression) {
+        /* For simple non-type template parameters and expressions, use an
+           integer representation of the pointer.  In general, this means that
+           those entries won't be found, but this is okay because, in general,
+           there can be multiple versions of nonreal types. */
         hash_value += (a_hash_value)possible_lossy_cast_from_pointer(cp);
+      } else if (cp->variant.template_param.kind == tpck_template_ref) {
+        hash_value += hash_constant(cp->variant.template_param
+                                               .variant.template_ref.con) +
+                      hash_template_arg_list(cp->variant.template_param
+                                               .variant.template_ref.arg_list);
       }  /* if */
       break;
 #if GNU_EXTENSIONS_ALLOWED
