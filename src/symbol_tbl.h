@@ -4726,9 +4726,8 @@ extern a_symbol_ptr find_symbol(a_const_char     *identifier,
 extern a_hash_table_ptr curr_lookup_table(
                               a_scope_pointers_block_ptr pointers_block,
                               a_module_ptr               module_context,
-            /* Defaulted: */  a_scope_kind               scope_kind = sck_none,
-            /* Defaulted: */  a_boolean                  create = FALSE);
-
+                              a_scope_kind               scope_kind = sck_none,
+                              a_boolean                  create = FALSE);
 
 extern
 a_hash_table_ptr curr_lookup_table(a_scope_stack_entry_ptr ssep,
@@ -4745,7 +4744,7 @@ a_symbol_ptr find_symbol_list_in_table(a_hash_table_ptr       hash_table,
 
 extern a_symbol_ptr find_symbol_list_in_table(
 			a_scope_stack_entry_ptr   ssep,
-                        a_module_ptr              module_context,
+			a_module_ptr              module_context,
 			a_symbol_header_ptr       header);
 
 extern void add_symbol_to_scope_list(a_symbol_ptr  sym_ptr,

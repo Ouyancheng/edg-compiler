@@ -277,6 +277,10 @@ Given a module file, issue diagnostics for an unavailable file_kind.
       /* These module kinds are abstract. */
       unexpected_condition();
       break;
+    case mk_trans_unit:
+      /* This should never happen. */
+      unexpected_condition();
+      break;
     default_is_unexpected();
   }  /* switch */
 }  /* diagnose_unavailable_module_file_kind */
@@ -458,6 +462,10 @@ determined, return an empty optional.
       result = get_name_of_ifc_module(module_file);
       break;
     case mk_none:
+      break;
+    case mk_trans_unit:
+      /* This should never happen. */
+      unexpected_condition();
       break;
     default_is_unexpected();
   }  /* switch */
@@ -1270,7 +1278,8 @@ definition now and return TRUE. If an error occurs, return FALSE.
   return result;
 }  /* load_type_definition_from_module */
 
-void push_module_context(a_module_ptr	mod_ptr)
+
+void push_module_context(a_module_ptr mod_ptr)
 /*
 Push an entry for the module specified by mod_ptr onto the module stack.
 */
@@ -1279,7 +1288,7 @@ Push an entry for the module specified by mod_ptr onto the module stack.
 }  /* push_module_context */
 
 
-void pop_module_context(void)
+void pop_module_context()
 /*
 Pop an entry from the module stack.
 */
@@ -1297,7 +1306,7 @@ Display debug information about the module stack.
   int  size = module_stack->length();
   for (int i = size-1; i >= 0; i--) {
     a_module_context_stack_entry_ptr mcsep = &(*module_stack)[i];
-    fprintf(f_debug, "%d: %p\n", i, mcsep);
+    fprintf(f_debug, "%d: %p\n", i, (void*)mcsep);
   }  /* for */
 }  /* db_module_stack */
 

@@ -238,7 +238,7 @@ EXTERN a_module_ptr
 		trans_unit_module;
 			/* If this ia a non-module translation unit, this
 			   points to a special module entry used to identify
-			   that context.  NULL of TUs that contain a module
+			   that context.  NULL for TUs that contain a module
 			   declaration. */
 
 EXTERN a_boolean

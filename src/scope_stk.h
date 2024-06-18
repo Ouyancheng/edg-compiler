@@ -1833,9 +1833,9 @@ Given a pointer to a scope kind, return TRUE if the kind is a file
 scope or namespace scope.
 */
 {
-  return (kind == (a_scope_kind)sck_file ||
-          kind == (a_scope_kind)sck_namespace ||
-          kind == (a_scope_kind)sck_namespace_extension);
+  return (kind == sck_file ||
+          kind == sck_namespace ||
+          kind == sck_namespace_extension);
 }  /* is_file_or_namespace_scope_kind */
 
 

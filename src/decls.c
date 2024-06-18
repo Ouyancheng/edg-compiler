@@ -20034,20 +20034,19 @@ An export declaration can take the following forms:
 }  /* export_declaration */
 
 
-a_module_ptr get_trans_unit_module(void)
+a_module_ptr get_trans_unit_module()
 /*
-Return the module entry that will be used for namespace scope entities
-in the current translation unit if it does not containa module declaration.
-Create the entry if it does not already exist.
+Return the module entry that will be used for namespace scope entities in the
+current translation unit if it does not containa module declaration.  Create
+the entry if it does not already exist.
 */
 {
   a_module_ptr  mp = trans_unit_module;
 
   if (mp == NULL) {
-    mp = alloc_module((a_module_kind)mk_any);
+    mp = alloc_module(mk_trans_unit);
     mp->name = copy_string_to_region(file_scope_region_number,
                                      trans_unit_file_name);
-    mp->is_non_module_trans_unit = TRUE;
     trans_unit_module = mp;
   }  /* if */
   return mp;
@@ -20065,7 +20064,7 @@ Import the module referred to by the current module unit.
   midp = alloc_module_import_decl();
   midp->position = curr_module_sym->decl_position;
   midp->module_name_position = curr_module_sym->decl_position;
-  midp->module_info = alloc_module((a_module_kind)mk_any);
+  midp->module_info = alloc_module(mk_any);
   midp->module_info->name = curr_module_sym->header->identifier;
   midp->impl_unit_importing_self = TRUE;
   import_module(midp, curr_module_sym);
@@ -20142,7 +20141,7 @@ preceded by an export-keyword.
       /* FIXME: attach symbol to the appropriate place */
       /* We don't currently know what kind of module this is. */
       midp->module_name_position = pos;
-      midp->module_info = alloc_module((a_module_kind)mk_any);
+      midp->module_info = alloc_module(mk_any);
       midp->module_info->name = module_sym->header->identifier;
     }  /* if */
     if (!err) {
@@ -22209,7 +22208,7 @@ kept in tu_stage) is updated (by module_declaration) as module declarations
 are encountered.
 */
 {
-  /* Push an module entry for the translation unit.  If there is not module
+  /* Push a module entry for the translation unit.  If there is not module
      declaration, this will be the module associated with namespace scope
      declarations in the current translation unit. */
   push_module_context(trans_unit_module);

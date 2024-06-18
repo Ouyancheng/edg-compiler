@@ -155,26 +155,29 @@ is the "current" module for name declarations and lookups.
 */
 typedef struct a_module_context_stack_entry *a_module_context_stack_entry_ptr;
 struct a_module_context_stack_entry {
-  a_module_ptr	module_ptr;
-			/* Pointer to the current module when this entry is
-			   at the top of the stack. */
+  a_module_ptr  module_ptr;
+                        /* Pointer to the current module when this entry is
+                           at the top of the stack. */
 };  /* a_module_context_stack_entry */
 
-using a_module_stack = Dyn_array<a_module_context_stack_entry,
-                                 General_allocator>;
+using a_module_stack = Small_dyn_array<a_module_context_stack_entry, 5,
+                                       General_allocator>;
+                        /* The type used to represent the stack of module
+                           contexts. */
 
 EXTERN a_module_stack
-		*module_stack;
-			/* A dynamic array of the active module contexts. */
+                *module_stack;
+                        /* A dynamic array of the active module contexts. */
 
 
-inline a_module_context_stack_entry_ptr curr_module_context(void)
+inline a_module_context_stack_entry_ptr curr_module_context()
 /*
 Return a pointer to the top of the module context stack, or NULL if the
 stack is empty.
 */
 {
   a_module_context_stack_entry_ptr mcsep = NULL;
+
   if (module_stack->length() > 0) {
     mcsep = &module_stack->back_elem();
   }  /* if */
@@ -182,23 +185,25 @@ stack is empty.
 }  /* curr_module_context */
 
 
-inline a_module_ptr curr_module(void)
+inline a_module_ptr curr_module()
 /*
 Return the module entry associated with the entry at the top of the module
 stack, or NULL if the stack is empty.
 */
 {
-  a_module_context_stack_entry_ptr mcsep;
   a_module_ptr                     mp = NULL;
+  a_module_context_stack_entry_ptr mcsep = curr_module_context();
 
-  mcsep = curr_module_context();
-  if (mcsep != NULL) mp = mcsep->module_ptr;
+  if (mcsep != NULL) {
+    mp = mcsep->module_ptr;
+  }  /* if */
   return mp;
 }  /* curr_module */
 
 
-/* If in a module unit, the current module symbol. */
-EXTERN a_symbol_ptr    curr_module_sym;
+EXTERN a_symbol_ptr
+                curr_module_sym;
+                        /* If in a module unit, the current module symbol. */
 
 struct a_module_entity_stack_state;
 
@@ -655,6 +660,7 @@ extern void pop_module_context(void);
 extern void db_module_entity(a_module_entity_ptr mep);
 
 extern void db_module_stack(void);
+
 #endif /* DEBUG */
 
 extern void modules_pch_reset();
