@@ -13556,7 +13556,7 @@ See do_constexpr_intrinsic_call for the meaning of the parameters.
               error_text(ec_at_line), (unsigned long)line_number,
               error_text(ec_of), diag_file_name);
     }  /* if */
-  }  /* if */
+  }
 
   seq = (a_token_sequence*)rvp->entity.ptr;
   tokens = (a_token_cache*)seq->token_cache;
@@ -14149,7 +14149,7 @@ the corresponding reflection value at the location denoted by result_cap.
            violations). */
         cp->expr = NULL;
       }  /* if */
-    }  /* if */
+    }  /* for */
     if (result) {
       size_t  interpolator_num = 0;
       new_cache = alloc_token_cache(/*reusable=*/TRUE);
