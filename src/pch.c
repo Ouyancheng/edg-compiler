@@ -1601,16 +1601,14 @@ can't be generated.
 #endif /* !DEBUG */
 
 
-
-void generate_precompiled_header(void)
+static inline a_boolean check_can_generate_pch()
 /*
-Processing has reached the "header stop" point.  Check for conditions that
-would prevent generation of a precompiled header file, and if none exists,
-write out the precompiled header file.
+Check to see if generating a PCH is both possible and reasonable.  Return TRUE
+if a PCH should be generated; otherwise, return FALSE.
 */
 {
-  db_enter(2, "generate_precompiled_header");
-  check_assertion(header_stop_position_pending);
+  a_boolean result = TRUE;
+
   if (cannot_create_pch_file) {
     /* Some condition was encountered that makes creation of a precompiled
        header impossible. */
@@ -1633,23 +1631,33 @@ write out the precompiled header file.
                      &large_mem_block_error_pos);
     }  /* if */
 #endif /* !USE_MMAP_FOR_MEMORY_REGIONS */
+    result = FALSE;
   } else if (!next_token_is_top_level_decl_start) {
     /* We are in the middle of a construct.  We must be between top level
        declarations in order to generate a precompiled header. */
     db_cannot_generate_reason("not between top level declarations");
+    result = FALSE;
   } else if (num_macro_invocations_in_process != 0) {
     /* We are in the middle of processing a macro invocation.  Don't generate
        a PCH here. */
     db_cannot_generate_reason("macro invocation in process");
+    result = FALSE;
   } else if (depth_scope_stack != DEPTH_OF_FILE_SCOPE) {
     /* Don't save the header files if we are not currently at file scope. */
     db_cannot_generate_reason("not at file scope");
+    result = FALSE;
   } else if (macro_depth != 0 || pp_if_stack_depth != -1) {
     /* Nor if we are in the midst of a macro definition or a #if construct. */
     db_cannot_generate_reason("in a macro or #if");
+    result = FALSE;
+  } else if (is_at_least_one_error()) {
+    /* Nor if there have been errors. */
+    db_cannot_generate_reason("there have been errors");
+    result = FALSE;
   } else if (scope_stack[DEPTH_OF_FILE_SCOPE].name_linkage_is_explicit) {
     /* Nor if we are in the middle of a linkage specifier block. */
     db_cannot_generate_reason("in a linkage block");
+    result = FALSE;
   } else {
     /* The state justifies creating a precompiled header. */
     check_assertion(curr_il_region_number == FILE_SCOPE_REGION_NUMBER);
@@ -1660,24 +1668,38 @@ write out the precompiled header file.
       /* There haven't been enough declarations to justify writing out and
          restoring the header information. */
       db_cannot_generate_reason("too few declarations");
+      result = FALSE;
     } else if (il_header.primary_source_file->first_child_file == NULL) {
       /* Don't generate a PCH if there were no included files. */
       db_cannot_generate_reason("no included files");
-    } else {
-      /* Allow for any work needed to prepare data structures that will be
-         recorded in the precompiled header file. */
-      prepare_to_write_precompiled_header_file();
-      if (is_at_least_one_error()) {
-        /* Don't create a PCH if there have been errors.  This check is
-           deferred in case there were errors during the preparation of the PCH
-           (e.g., an error could have occurred during one or more
-           instantiations when prepare_to_write_precompiled_header_file was
-           called). */
-        db_cannot_generate_reason("there have been errors");
-      } else {
-        /* Okay -- go ahead and do it. */
-        write_precompiled_header_file();
-      }  /* if */
+      result = FALSE;
+    }  /* if */
+  }  /* if */
+  return result;
+}  /* check_can_generate_pch */
+
+
+void generate_precompiled_header(void)
+/*
+Processing has reached the "header stop" point.  Check for conditions that
+would prevent generation of a precompiled header file, and if none exists,
+write out the precompiled header file.
+*/
+{
+  db_enter(2, "generate_precompiled_header");
+  check_assertion(header_stop_position_pending);
+  if (check_can_generate_pch()) {
+    /* Allow for any work needed to prepare data structures that will be
+       recorded in the precompiled header file. */
+    prepare_to_write_precompiled_header_file();
+    /* Perform an additional check following the data structure updates.  This
+       additional check is performed in case something happened during PCH
+       preparation that now disqualifies the PCH from being created (e.g., an
+       error could have occurred during one or more instantiations when
+       prepare_to_write_precompiled_header_file was called). */
+    if (check_can_generate_pch()) {
+      /* Okay -- go ahead and do it. */
+      write_precompiled_header_file();
     }  /* if */
   }  /* if */
   db_exit();
