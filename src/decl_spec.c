@@ -1717,6 +1717,22 @@ caution when modifying this routine.
             underlying_type = skip_typerefs(underlying_type);
             tag_sym = symbol_for(underlying_type);
           }  /* if */
+        } else {
+          a_type_ptr  tp = type_symbol_type(tag_sym);
+          if (mscpp_version_is(any_version) &&
+              is_immediate_enum_type(tp) &&
+              tp->variant.integer.originally_unnamed &&
+              scope_is(&scope_stack_top(), sck_func_prototype)) {
+            /* In a case like:
+                 typedef enum { e } E;
+                 void f(enum E x) {
+                   decltype(e) *p = &x;
+                 }
+               MSVC appears to enter "enum E" in the prototype scope of f,
+               and thus issues a type compatibility error on the initializer
+               for p. */
+            tag_sym = NULL;
+          }  /* if */
         }  /* if */
       }  /* if */
     }  /* if */

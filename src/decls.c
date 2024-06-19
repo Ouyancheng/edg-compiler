@@ -12363,12 +12363,13 @@ symbol entry, and return a pointer to it in state->sym.
 #endif /* ABI_COMPATIBILITY_VERSION >= 230 && ... */
     }  /* if */
     if (tp != NULL) {
-      if (any_cfront_mode()) {
+      if (any_cfront_mode() ||
+          (mscpp_version_is(any_version) && is_immediate_enum_type(tp))) {
         /* An unnamed tag symbol was created for the class and can be reused
            now that we have a name to assign to it.  We need to unlink it
            from the symbol table, give it the name, and relink it into the
            symbol table. */
-        sym = (a_symbol_ptr)tp->source_corresp.assoc_info;
+        sym = symbol_for(tp);
         check_assertion(sym != NULL && is_unnamed_tag_symbol(sym));
         relink_unnamed_tag_symbol(sym, locator);
         /* Call set_source_corresp, but preserve the current IL referenced

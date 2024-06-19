@@ -1,5 +1,29 @@
 Version 6.7
 
+6/19/24  [EDGcpfe/24484,EDGcpfe/26840]
+Microsoft C++ compatibility: Unnamed enum types
+
+The front end now emulates two nonstandard behaviors of MSVC related to
+unnamed enum types that acquire a name for linkage purposes through a typedef.
+First, in a case like:
+
+  struct S {
+    typedef enum { e } E;
+    enum E x;  // Now accepted in Microsoft mode.
+    void f() { decltype(e) *p = &x; }
+  };
+
+the elaborated type specifier "enum E" is now resolved to the unnamed enum
+type that acquired E as a name for linkage purposes.  Second, in a similar
+case where the elaborated type specifier appears in a function prototype scope,
+a new type is entered into that prototype scope.  For example:
+
+  typedef enum { e } E;
+  void f(enum E x) {  // Now accepted in Microsoft mode, creating a new type.
+    decltype(e) *p = &x;  // Error: Initializer has incompatible type.
+  }
+
+
 6/19/24  [EDGcpfe/25510]
 C++23: Delimited escape sequences
 
