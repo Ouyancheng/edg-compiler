@@ -1,5 +1,21 @@
 Version 6.7
 
+6/19/24  [EDGcpfe/27380]
+Assignment to const-qualified lvalues in templates
+
+Consider:
+
+  template<class T> struct S {
+    int *const p;
+    void f() { p = 0; }  // Accepted in some C++ modes.
+  };
+
+The changes for EDGcpfe/15398 caused this example to be accepted in Microsoft,
+GNU, and Clang C++ modes, despite "p = 0" being an invalid assignment to a
+const lvalue.  Now that behavior has been restricted to clang_version < 10000
+in Clang C++ mode and gnu_version < 140000 in GNU C++ mode.
+
+
 6/19/24  [EDGcpfe/26889]
 Pointer-to-member with zero-length array member type
 

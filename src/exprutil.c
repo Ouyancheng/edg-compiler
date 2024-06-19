@@ -13817,7 +13817,8 @@ lvalue.  If there is an error, change the operand to an error operand.
      a prototype instantiation.*/
   if (is_lvalue_with_complete_type &&
       (!is_const_qualified_type(type) ||
-       ((gpp_mode || clang_mode || microsoft_mode) &&
+       ((gpp_version_is(<140000) || clang_version_is(<100000) ||
+         microsoft_mode) &&
         is_prototype_instantiation_context()))) {
 #if MICROSOFT_EXTENSIONS_ALLOWED
     a_boolean is_static_initonly_field;
