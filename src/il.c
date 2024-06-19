@@ -8436,9 +8436,9 @@ definition of the CC flags in il.h for more information.
         is_pointer_type(eff_cp1_type) &&
         is_pointer_type(eff_cp2_type)) {
       eff_cp1_type = type_pointed_to(eff_cp1_type);
-      eff_cp1_type = skip_typerefs(eff_cp1_type);
+      eff_cp1_type = skip_typerefs_not_dependent_decltypes(eff_cp1_type);
       eff_cp2_type = type_pointed_to(eff_cp2_type);
-      eff_cp2_type = skip_typerefs(eff_cp2_type);
+      eff_cp2_type = skip_typerefs_not_dependent_decltypes(eff_cp2_type);
     }  /* if */
     if (gpp_mode && cp1_type->kind != cp2_type->kind &&
         cp2_type->kind == (a_type_kind)tk_template_param) {
