@@ -1,5 +1,13 @@
 Version 6.7
 
+6/19/24  [EDGcpfe/27047]
+Performance issue with hashing of template argument lists
+
+Hashing of template argument lists has been further improved (see also the
+entry for EDGcpfe/26048,EDGcpfe/26691), particularly for
+instantiation-dependent template type arguments.
+
+
 6/18/24  [EDGcpfe/23571,EDGcpfe/24860,EDGcpfe/25564,EDGcpfe/26798,
           EDGcpfe/27172]
 Microsoft C++ compatibility: Friend class name injection
