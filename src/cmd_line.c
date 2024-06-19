@@ -4151,7 +4151,6 @@ default mode (e.g., exception handling).
           elifdef_enabled = TRUE;
           size_suffix_enabled = TRUE;
           named_unicode_chars_allowed = TRUE;
-          delimited_escape_seqs_allowed = TRUE;
         }  /* if */
       }  /* if */
     }  /* if */
@@ -5142,11 +5141,6 @@ This function is also called in clang mode.
          14.0.0. */
       old_id_chars = TRUE;
     }  /* if */
-    if (clang_version >= 140000) {
-      /* As of version 14, clang accepts delimited escape sequences in all
-         language versions. */
-      delimited_escape_seqs_allowed = TRUE;
-    }  /* if */
     if (clang_version >= 150000) {
       /* As of version 15, clang accepts named Unicode characters in all
          language versions. */
@@ -5178,15 +5172,10 @@ This function is also called in clang mode.
          identifier characters. */
       old_id_chars = TRUE;
     }  /* if */
-    if (gnu_version >= 130000) {
-      /* As of version 13.1, g++ accepts delimited escape sequences in all
-         language versions. */
-      delimited_escape_seqs_allowed = TRUE;
-      if (cpp23_mode) {
-        /* As of version 13.1, g++ accepts named Unicode characters, but
-           only with -std=c++23. */
-        named_unicode_chars_allowed = TRUE;
-      }  /* if */
+    if (gnu_version >= 130000 && cpp23_mode) {
+      /* As of version 13.1, g++ accepts named Unicode characters, but only
+         with -std=c++23. */
+      named_unicode_chars_allowed = TRUE;
     }  /* if */
   }  /* if */
 }  /* check_and_set_gnu_mode_options */
@@ -13253,7 +13242,6 @@ variables declared in cmd_line.h.
   elifdef_enabled = FALSE;
   size_suffix_enabled = FALSE;
   named_unicode_chars_allowed = FALSE;
-  delimited_escape_seqs_allowed = FALSE;
 }  /* cmd_line_static_var_init */
 
 

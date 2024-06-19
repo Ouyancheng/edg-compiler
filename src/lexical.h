@@ -2782,8 +2782,7 @@ extern unsigned long scan_universal_character(
 					a_const_char	**start_pos,
 					a_boolean	is_identifier,
 				        a_boolean	is_identifier_start,
-					a_boolean	issue_diagnostics,
-					a_boolean	*delimited_err = NULL);
+					a_boolean	issue_diagnostics);
 
 extern unsigned long scan_named_unicode_char(
 					a_const_char	**start_pos,

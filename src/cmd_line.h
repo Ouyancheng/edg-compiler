@@ -2369,12 +2369,6 @@ EXTERN a_boolean
 			   construct \N{...} should be accepted. */
 
 EXTERN a_boolean
-		delimited_escape_seqs_allowed;
-			/* TRUE if the C++23 delimited escape sequences
-			   (\o{...}, \u{...}, and \x{...}) should be
-			   accepted. */
-
-EXTERN a_boolean
 		va_copy_macro_allowed;
 			/* TRUE if the va_copy macro should be accepted.
 			   It is permitted in C99 mode.  This is only
