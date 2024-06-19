@@ -13062,6 +13062,9 @@ diagnostics if issue_diag is TRUE.
         goto invalid;
       }  /* if */
     }  /* if */
+
+    an_ifc_unit_index unit_index = get_ifc_unit(this->header);
+    mod->is_header_unit = unit_index.sort == ifc_us_header;
   }
   this->string_table = load_string_table(&this->file, this->header);
   {

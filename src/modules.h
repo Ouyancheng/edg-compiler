@@ -77,6 +77,10 @@ struct a_module_entity {
   a_bit_field   global_module:1;
                         /* TRUE if this is an entity owned by the "global
                            module". */
+  a_bit_field   non_exported:1;
+                        /* TRUE if this is an entity that's reachable but not
+                           visible (and thus was not exported from the imported
+                           module). */
   union {
     an_ifc_partition_kind
                 ifc_partition;
@@ -185,10 +189,10 @@ stack is empty.
 }  /* curr_module_context */
 
 
-inline a_module_ptr curr_module()
+inline a_module_ptr curr_lookup_module()
 /*
 Return the module entry associated with the entry at the top of the module
-stack, or NULL if the stack is empty.
+stack, or NULL if there's no module currently limiting lookup.
 */
 {
   a_module_ptr                     mp = NULL;
@@ -198,7 +202,24 @@ stack, or NULL if the stack is empty.
     mp = mcsep->module_ptr;
   }  /* if */
   return mp;
-}  /* curr_module */
+}  /* curr_lookup_module */
+
+
+inline Small_dyn_array<a_module_ptr, 2> curr_lookup_modules()
+/*
+Return the module entry associated with the entry at the top of the module
+stack, or NULL if there's no module currently limiting lookup.
+*/
+{
+  Small_dyn_array<a_module_ptr, 2> result;
+  a_module_ptr curr_module = curr_lookup_module();
+
+  result.push_back(NULL);
+  if (curr_module != NULL) {
+    result.push_back(curr_module);
+  }  /* if */
+  return result;
+}  /* curr_lookup_modules */
 
 
 EXTERN a_symbol_ptr
@@ -225,13 +246,8 @@ an RAII object that automatically manages the value of curr_mep_state for the
 module given during construction.
 */
 struct a_module_entity_stack_state {
-  a_module_entity_stack_state(a_module_entity_ptr mep_val)
-    : parent(curr_mep_state), mep(mep_val)
-    { curr_mep_state = this; }
-
-  ~a_module_entity_stack_state()
-    { curr_mep_state = this->parent; }
-
+  a_module_entity_stack_state(a_module_entity_ptr mep_val);
+  ~a_module_entity_stack_state();
   void invalidate()
     { this->mep->invalid = TRUE; }
 
@@ -240,8 +256,10 @@ struct a_module_entity_stack_state {
                         /* The parent (old) module entity stack state, prior
                            to this object's construction. */
   a_module_entity_ptr
-                mep;
-                        /* The current module entity pointer. */
+                mep;    /* The current module entity pointer. */
+  a_boolean     module_pushed;
+                        /* TRUE if a module was pushed to the module context
+                           stack; otherwise, FALSE. */
 };  /* a_module_entity_stack_state */
 
 
@@ -653,7 +671,7 @@ extern a_string s_basic_db_mep(a_module_entity_ptr mep);
 
 extern void db_mep(a_module_entity_ptr mep);
 
-extern void push_module_context(a_module_ptr	mod_ptr);
+extern void push_module_context(a_module_ptr mod_ptr);
 
 extern void pop_module_context(void);
 

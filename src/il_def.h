@@ -3199,7 +3199,8 @@ typedef struct a_source_correspondence {
 			   the enclosing routine.  Otherwise, NULL. */
   a_module_entity_ptr
 		module_entity;
-			/* If the current entity was imported from a module,
+			/* If the entity associated with this source
+			   correspondence entry was imported from a module,
 			   this points to the corresponding module entity.
 			   (Note: multiple source correspondences can point to
 			   the same module entity.  The module entity is
@@ -18016,6 +18017,10 @@ typedef struct a_module {
 		module_interface;
 			/* The module interface object used to interact with
 			   the module. */
+  a_bit_field	is_header_unit:1;
+			/* TRUE if this module file is a header unit.  This flag
+			   is initially FALSE and set upon import of the module
+			   file. */
   a_bit_field	is_sys_include:1;
 			/* When kind == mk_header, this is TRUE if the header
 			   import used system header import syntax (e.g.,

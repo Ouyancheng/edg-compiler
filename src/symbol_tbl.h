@@ -3494,9 +3494,15 @@ typedef struct a_symbol {
 			   was declared to be a namespace member (C++ only),
 			   parent.namespace_ptr points to the namespace;
 			   otherwise it is NULL. */
-  a_module_ptr	module_context;
-			/* For namespace scope entities, points to the
-			   module entry in which the symbol was declared. */
+  a_module_entity_ptr
+		module_entity;
+			/* If the entity associated with this symbol was
+			   imported from a module, this points to the
+			   corresponding module entity.  (Note: multiple source
+			   correspondences can point to the same module entity.
+			   The module entity is determined via the current
+			   module entity on the module entity stack when this
+			   source correspondence was created). */
   a_symbol_ptr	corresp_nonreal_or_nested_type;
 			/* For types that are nested within prototype
 			   instantiation types, this points to a nonreal
@@ -5949,6 +5955,12 @@ Given a symbol known to reference a template, return the template.
 
 extern a_source_correspondence *source_corresp_entry_for_symbol(
                                                          a_symbol_ptr sym_ptr);
+
+extern a_module *module_for_symbol(a_symbol_ptr sym_ptr);
+
+extern a_boolean is_symbol_lookup_visible(a_symbol_ptr sym_ptr);
+
+extern a_boolean is_symbol_currently_lookup_visible(a_symbol_ptr sym_ptr);
 
 extern an_access_specifier compute_access(an_access_specifier access,
                                           an_access_specifier class_access);

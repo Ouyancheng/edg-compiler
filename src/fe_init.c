@@ -2036,7 +2036,6 @@ scan of a file to build the PCH prefix information.
                (a_boolean*)NULL);
   /* Save the source file pointer for this translation unit. */
   curr_translation_unit->source_file = curr_ise->assoc_actual_il_file;
-  curr_translation_unit->source_file->assoc_module = get_trans_unit_module();
   if (!pch_prefix_scan && !using_a_pch_file) {
 #if MICROSOFT_EXTENSIONS_ALLOWED
     if (cli_or_cx_enabled && !do_preprocessing_only) {

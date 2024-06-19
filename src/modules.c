@@ -738,9 +738,7 @@ Import the module file specified in the module-import-declaration.
       unexpected_condition_str("Unexpected module kind for import.");
   }  /* switch */
   midp->module_info->module_interface = iface;
-  push_module_context(midp->module_info);
   (void)iface->import(midp);
-  pop_module_context();
 }  /* import_module_file */
 
 
@@ -757,7 +755,6 @@ processing has ended.
 */
 {
   a_module_entity_ptr mep, *mepp = &(sym_hdr->deferred_module_entities);
-  a_module_ptr        current_module = curr_module();
 
   /* This function should only be called if lexical processing is still
      enabled. */
@@ -766,7 +763,7 @@ processing has ended.
      available. */
   check_assertion(sym_hdr->deferred_module_entities != NULL);
   while (*mepp != NULL) {
-    if ((*mepp)->scope == scope && (*mepp)->module_info == current_module) {
+    if ((*mepp)->scope == scope) {
 #if DEBUG
       if (db_flag_is_set("ms_symbols")) {
         (void)fprintf(f_debug, "Loading symbol %s in ",
@@ -874,9 +871,8 @@ the specified module.
     (*p)->uses_bound_token = FALSE;
     (*p)->invalid = FALSE;
     (*p)->global_module = FALSE;
-#if MICROSOFT_EXTENSIONS_ALLOWED
+    (*p)->non_exported = FALSE;
     (*p)->variant.ifc_partition = ifc_pk_none;
-#endif /* MICROSOFT_EXTENSIONS_ALLWED */
   }  /* if */
   return *p;
 }  /* get_module_entity_ptr */
@@ -1056,6 +1052,38 @@ processing of the imported module entities for this module.
                       warnings);
   }  /* if */
 }  /* report_suppressed_diagnostics */
+
+
+a_module_entity_stack_state::a_module_entity_stack_state(
+                                                   a_module_entity_ptr mep_val)
+/*
+Begin a new module entity stack state for the given module entity pointer.
+*/
+  : parent(curr_mep_state), mep(mep_val), module_pushed(FALSE)
+{
+  curr_mep_state = this;
+
+  a_module_ptr lookup_module = NULL;
+  if (!mep_val->module_info->is_header_unit) {
+    lookup_module = mep_val->module_info;
+  }  /* if */
+  if (curr_lookup_module() != lookup_module) {
+    this->module_pushed = TRUE;
+    push_module_context(lookup_module);
+  }  /* if */
+}  /* a_module_entity_stack_state::a_module_entity_stack_state */
+
+
+a_module_entity_stack_state::~a_module_entity_stack_state()
+/*
+End the current module entity stack state and return to the prior state.
+*/
+{
+  if (this->module_pushed) {
+    pop_module_context();
+  }  /* if */
+  curr_mep_state = this->parent;
+}  /* a_module_entity_stack_state::~a_module_entity_stack_state */
 
 
 static a_boolean check_module_already_imported(a_module_import_decl_ptr midp)
@@ -1306,7 +1334,7 @@ Display debug information about the module stack.
   int  size = module_stack->length();
   for (int i = size-1; i >= 0; i--) {
     a_module_context_stack_entry_ptr mcsep = &(*module_stack)[i];
-    fprintf(f_debug, "%d: %p\n", i, (void*)mcsep);
+    db_module(mcsep->module_ptr);
   }  /* for */
 }  /* db_module_stack */
 
@@ -1325,17 +1353,11 @@ a_string s_db_module(a_module_ptr mod)
 Return a string containing debug information about the given module.
 */
 {
-  a_string               result = "";
-  a_module_kind          m_kind = mk_none;
+  a_string      result = "";
+  a_module_kind m_kind = mk_none;
 
   if (mod != NULL) {
-    a_module_interface_ptr m_iface = mod->module_interface;
-
-    if (m_iface != NULL) {
-#if !USE_VIRTUAL_FUNCTIONS
-      m_kind = m_iface->mod_kind;
-#endif /* !USE_VIRTUAL_FUNCTIONS */
-    }  /* if */
+    m_kind = mod->kind;
   }  /* if */
   result.append("module name: ");
   if (mod != NULL && mod->name != NULL) {
@@ -1352,21 +1374,24 @@ Return a string containing debug information about the given module.
   result.append(", kind: ");
   switch (m_kind) {
     case mk_edg_ifc:
+      result.append("IFC (EDG)");
+      break;
     case mk_ms_ifc:
-      result.append("ifc");
+      result.append("IFC (Microsoft)");
+      break;
+    case mk_trans_unit:
+      result.append("Translation Unit");
       break;
     default:
       result.append("UNKNOWN");
       break;
   }  /* switch */
-  result.append(", version: ");
   switch (m_kind) {
     case mk_edg_ifc:
     case mk_ms_ifc:
-      result.append(s_db_version_of_ifc_module(mod));
+      result.append(", version: ", s_db_version_of_ifc_module(mod));
       break;
     default:
-      result.append("UNKNOWN");
       break;
   }  /* switch */
   return result;

@@ -4271,6 +4271,12 @@ hdr_ptr == NULL indicates that an error symbol should be constructed.
   sym_ptr->header = hdr_ptr;
   /* Set the declaration source position. */
   sym_ptr->decl_position = *position;
+  /* Mark this declaration as declared by the current module entity
+     (if any). */
+  a_module_entity_stack_state *state = curr_mep_state;
+  if (state != NULL) {
+    sym_ptr->module_entity = state->mep;
+  }  /* if */
 }  /* init_symbol */
 
 
@@ -4685,10 +4691,14 @@ Remove the given symbol from the list of symbols for its scope.
       pointers_block->last_symbol = sym_ptr->prev_in_scope;
     }  /* if */
     if (is_scope_kind_with_lookup_table(scope_kind)) {
-      a_hash_table_ptr lookup_table = curr_lookup_table(
-                                                      pointers_block,
-                                                      sym_ptr->module_context);
+      a_module_ptr module_ptr = module_for_symbol(sym_ptr);
 
+      if (is_symbol_lookup_visible(sym_ptr)) {
+        module_ptr = NULL;
+      }  /* if */
+
+      a_hash_table_ptr lookup_table = curr_lookup_table(pointers_block,
+                                                        module_ptr);
       remove_symbol_from_lookup_table(sym_ptr, lookup_table);
     }  /* if */
   }  /* if */
@@ -4851,9 +4861,6 @@ this is not allowed, an error will be issued by the caller.
     /* The old symbol was created for an undefined symbol that
        was referenced.  A new symbol can always coexist with
        an undefined one. */
-    err = FALSE;
-  } else if (old_sym->module_context != new_sym->module_context) {
-    /* The symbols are from different modules and so can coexist. */
     err = FALSE;
   } else if ((cfront_2_1_mode || C_dialect == C_dialect_pcc ||
               (gcc_mode && gnu_version < 30400)) &&
@@ -6238,18 +6245,17 @@ changed if there is no error.
       sym_ptr->prev_in_scope = pointers_block->last_symbol;
     }  /* if */
     pointers_block->last_symbol = sym_ptr;
-    if (is_file_or_namespace_scope_kind(scope_kind)) {
-      /* For namespace scope symbols, record the module with which the
-         symbol is associated. */
-      sym_ptr->module_context = curr_module();
-    }  /* if */
     if (is_scope_kind_with_lookup_table(scope_kind)) {
-      a_hash_table_ptr lookup_table = curr_lookup_table(
-                                                       pointers_block,
-                                                       sym_ptr->module_context,
-                                                       scope_kind,
-                                                       /*create=*/TRUE);
+      a_module_ptr module_ptr = module_for_symbol(sym_ptr);
 
+      if (is_symbol_lookup_visible(sym_ptr)) {
+        module_ptr = NULL;
+      }  /* if */
+
+      a_hash_table_ptr lookup_table = curr_lookup_table(pointers_block,
+                                                        module_ptr,
+                                                        scope_kind,
+                                                        /*create=*/TRUE);
       add_symbol_to_lookup_table(sym_ptr, lookup_table);
     }  /* if */
   }  /* if */
@@ -7130,9 +7136,13 @@ the file scope is used.
       }  /* if */
 
       /* Remove the original symbol from the hash table and add the new one. */
-      a_hash_table_ptr lookup_table = curr_lookup_table(
-                                                    pointers_block,
-                                                    other_sym->module_context);
+      a_module_ptr module_ptr = module_for_symbol(other_sym);
+      if (is_symbol_lookup_visible(other_sym)) {
+        module_ptr = NULL;
+      }  /* if */
+
+      a_hash_table_ptr lookup_table = curr_lookup_table(pointers_block,
+                                                        module_ptr);
       remove_symbol_from_lookup_table(other_sym, lookup_table);
       add_symbol_to_lookup_table(overload_sym, lookup_table);
     }  /* if */
@@ -12731,6 +12741,72 @@ for the given symbol.  Return NULL if there isn't one.
   return (entity_ptr == NULL ?
            NULL : source_corresp_for_il_entry(entity_ptr, entity_kind));
 }  /* source_corresp_entry_for_symbol */
+
+
+a_module *module_for_symbol(a_symbol_ptr sym_ptr)
+/*
+Return a pointer to the module where the given symbol was declared.  Return NULL
+if there isn't one.
+*/
+{
+  a_module_ptr  result = NULL;
+  a_module_entity_ptr
+                introducing_entity = sym_ptr->module_entity;
+
+  if (introducing_entity != NULL) {
+    result = introducing_entity->module_info;
+  }  /* if */
+  return result;
+}  /* module_for_symbol */
+
+
+a_boolean is_symbol_lookup_visible(a_symbol_ptr sym_ptr)
+/*
+Return TRUE if the given symbol is visible to lookup.  For the symbol to be
+visible to lookup, it must either be part of the global module or it must have
+been exported from a module (that has been imported).  Otherwise, return FALSE.
+*/
+{
+  a_boolean           result = FALSE;
+  a_module_entity_ptr mep = sym_ptr->module_entity;
+
+  if (mep == NULL || mep->global_module) {
+    /* This declaration belongs to the global module, so it's definitely
+       lookup visible. */
+    result = TRUE;
+  } else if (!mep->non_exported) {
+    /* This declaration was exported from an imported module. */
+    result = TRUE;
+  }  /* if */
+  return result;
+}  /* is_symbol_lookup_visible */
+
+
+a_boolean is_symbol_currently_lookup_visible(a_symbol_ptr sym_ptr)
+/*
+Return TRUE if the given symbol is visible to lookup.  For the symbol to be
+visible to lookup, it must either be part of the global module or it must have
+been exported from a module (that has been imported).  Otherwise, return FALSE.
+*/
+{
+  a_boolean result = FALSE;
+
+  if (is_symbol_lookup_visible(sym_ptr)) {
+    /* This declaration belongs to the global module, so it's definitely
+       lookup visible. */
+    result = TRUE;
+  } else {
+    a_module_entity_ptr mep = sym_ptr->module_entity;
+
+    if (mep->module_info == curr_lookup_module()) {
+      /* This is a non-exported module entity, but we're doing lookup from
+         within the same module, so lookup succeeds. */
+      check_assertion(mep->non_exported);
+      result = TRUE;
+    }  /* if */
+  }  /* if */
+  return result;
+}  /* is_symbol_lookup_visible */
 
 #if DEBUG
 
@@ -19110,7 +19186,7 @@ are handled in symbol_tbl_init.)
   /* Clear both fields for union-as-struct testing. */
   cleared_symbol.parent.class_type                 = NULL;
   cleared_symbol.parent.namespace_ptr              = NULL;
-  cleared_symbol.module_context                    = NULL;
+  cleared_symbol.module_entity                     = NULL;
   cleared_symbol.corresp_nonreal_or_nested_type    = NULL;
 #if MICROSOFT_EXTENSIONS_ALLOWED
   cleared_symbol.hide_by_sig_lookup_result         = NULL;

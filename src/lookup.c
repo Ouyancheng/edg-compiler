@@ -2554,69 +2554,71 @@ of the lookup is returned to the caller.
     check_assertion(ns_sym->kind == (a_symbol_kind)sk_namespace);
     nsp = skip_namespace_aliases(ns_sym->variant.namespace_info.ptr);
     load_lazy_symbols_if_needed(nsp->variant.assoc_scope, locator);
-    for (new_sym = find_symbol_list_in_table(
-                       curr_lookup_table(&nssp->pointers_block, curr_module()),
-                                         locator->symbol_header);
-         new_sym != NULL;
-         new_sym = new_sym->next_in_lookup_table) {
-      /* Look through the symbols associated with the given namespace.  Note
-         that we keep looking even if an ambiguity is detected.  The symbol
-         pointed to by the ambiguous synthesized projection symbol may
-         differ depending on the lookup options. */
-      a_symbol_ptr		fund_sym;
-      a_boolean			any_errors = FALSE;
-      /* Ignore symbols that do not match the lookup requirements. */
-      fund_sym = fundamental_symbol_of(new_sym);
-      if (!is_acceptable_symbol(new_sym, fund_sym, lookup_state, ssep,
-                                /*invisible_okay=*/FALSE)) {
-        continue;
-      }  /* if */
-      if (gpp_namespace_only_mode &&
-          fund_sym->kind != (a_symbol_kind)sk_namespace) {
-        /* Non-namespace symbols should be ignored.  See the comment about
-           gpp_namespace_only_mode for more information. */
-        continue;
-      }  /* if */
-      if (gpp_using_directive_lookup) {
-       /* In normal mode, only a namespace test is needed.  When we are doing
-           g++ dependent name lookup, a more complex test is needed to emulate
-           the g++ using-directive visibility rules. */
-        if (!is_symbol_visible_for_gpp_using_dir(ssep, locator,
-                                                 lookup_state, sym_from_scope,
-                                                 new_sym, nssp)) {
+    for (a_module_ptr mod : curr_lookup_modules()) {
+      for (new_sym = find_symbol_list_in_table(
+                                 curr_lookup_table(&nssp->pointers_block, mod),
+                                 locator->symbol_header);
+           new_sym != NULL;
+           new_sym = new_sym->next_in_lookup_table) {
+        /* Look through the symbols associated with the given namespace.  Note
+           that we keep looking even if an ambiguity is detected.  The symbol
+           pointed to by the ambiguous synthesized projection symbol may
+           differ depending on the lookup options. */
+        a_symbol_ptr fund_sym;
+        a_boolean    any_errors = FALSE;
+
+        /* Ignore symbols that do not match the lookup requirements. */
+        fund_sym = fundamental_symbol_of(new_sym);
+        if (!is_acceptable_symbol(new_sym, fund_sym, lookup_state, ssep,
+                                  /*invisible_okay=*/FALSE)) {
           continue;
         }  /* if */
-      }  /* if */
-      if (synth_sym == NULL) {
-        /* Look for a previous synthesized namespace projection symbol
-           for this scope. */
-        synth_sym = find_synthesized_projection_symbol
-                                            (locator, lookup_state->options,
-                                             /*qualified_lookup=*/FALSE,
-                                             (a_namespace_ptr)NULL);
-        if (sym != NULL) {
-          /* The lookup from this scope did find a symbol.  Put it in
-             the lookup set. */
-          synth_sym = add_symbol_to_lookup_set(synth_sym, sym,
-                                               locator,
-                                               /*qualified_lookup=*/FALSE,
-                                               (a_namespace_ptr)NULL,
-                                               lookup_state->options,
-                                               &any_errors);
+        if (gpp_namespace_only_mode && fund_sym->kind != sk_namespace) {
+          /* Non-namespace symbols should be ignored.  See the comment about
+             gpp_namespace_only_mode for more information. */
+          continue;
         }  /* if */
-        sym = synth_sym;
-      }  /* if */
-      /* Merge the information about this symbol, with that
-         of any previous symbol that was found. */
-      sym = add_symbol_to_lookup_set(sym, new_sym,
-                                     locator,
-                                     /*qualified_lookup=*/FALSE,
-                                     (a_namespace_ptr)NULL,
-                                     lookup_state->options,
-                                     &any_errors);
-      /* Set synth_sym in case it was not set earlier.  This
-         suppresses subsequent attempts to look up synth_sym. */
-      synth_sym = sym;
+        if (gpp_using_directive_lookup) {
+          /* In normal mode, only a namespace test is needed.  When we are
+             doing g++ dependent name lookup, a more complex test is needed to
+             emulate the g++ using-directive visibility rules. */
+          if (!is_symbol_visible_for_gpp_using_dir(ssep, locator, lookup_state,
+                                                   sym_from_scope,
+                                                   new_sym, nssp)) {
+            continue;
+          }  /* if */
+        }  /* if */
+        if (synth_sym == NULL) {
+          /* Look for a previous synthesized namespace projection symbol for
+             this scope. */
+          synth_sym = find_synthesized_projection_symbol(
+                                                locator, lookup_state->options,
+                                                /*qualified_lookup=*/FALSE,
+                                                (a_namespace_ptr)NULL);
+          if (sym != NULL) {
+            /* The lookup from this scope did find a symbol.  Put it in the
+               lookup set. */
+            synth_sym = add_symbol_to_lookup_set(synth_sym, sym,
+                                                 locator,
+                                                 /*qualified_lookup=*/FALSE,
+                                                 (a_namespace_ptr)NULL,
+                                                 lookup_state->options,
+                                                 &any_errors);
+          }  /* if */
+          sym = synth_sym;
+        }  /* if */
+        /* Merge the information about this symbol, with that
+           of any previous symbol that was found. */
+        sym = add_symbol_to_lookup_set(sym, new_sym,
+                                       locator,
+                                       /*qualified_lookup=*/FALSE,
+                                       (a_namespace_ptr)NULL,
+                                       lookup_state->options,
+                                       &any_errors);
+        /* Set synth_sym in case it was not set earlier.  This
+           suppresses subsequent attempts to look up synth_sym. */
+        synth_sym = sym;
+      }  /* for */
     }  /* for */
   }  /* for */
 done:
@@ -2658,6 +2660,28 @@ the parameters.
   }  /* if */
   return sym;
 }  /* do_normal_using_directive_lookup_if_needed */
+
+
+static a_boolean should_skip_active_sym(a_symbol_ptr   sym,
+                                        a_scope_number scope_number)
+/*
+Return TRUE if the given symbol should be skipped when looking for active
+symbols in the given scope number and additionally, if non-NULL, the current
+module; otherwise, return FALSE.
+*/
+{
+  a_boolean result = FALSE;
+
+  if (sym != NULL) {
+    if (sym->decl_scope != scope_number) {
+      result = TRUE;
+    } else if (is_symbol_currently_lookup_visible(sym)) {
+      /* The symbol is visible to lookup (conceptually part of the primary
+         lookup table). */
+    }  /* if */
+  }  /* if */
+  return result;
+}  /* should_skip_active_sym */
 
 
 static
@@ -2710,14 +2734,23 @@ routine.
     ssep = scope_stack_entry_for(scope_depth);
     prev_active_sym = NULL;
     active_sym = symbol_list_from_locator(*locator);
-    /* Find the first symbol on the active list for this scope. */
-    while (active_sym != NULL && active_sym->decl_scope != ssep->number) {
+
+    while (should_skip_active_sym(active_sym, ssep->number)) {
       prev_active_sym = active_sym;
       active_sym = active_sym->next;
     }  /* while */
     for (; active_sym != NULL && active_sym->decl_scope == ssep->number;
          prev_active_sym = active_sym, active_sym = active_sym->next) {
-      a_symbol_ptr	fund_sym = fundamental_symbol_of(active_sym);
+
+      while (should_skip_active_sym(active_sym, ssep->number)) {
+        prev_active_sym = active_sym;
+        active_sym = active_sym->next;
+      }  /* while */
+      if (active_sym == NULL) {
+        break;
+      }  /* if */
+
+      a_symbol_ptr fund_sym = fundamental_symbol_of(active_sym);
       /* Exit the loop if we found a type tag symbol and the new symbol
          to check is not from the same scope. */
       if (type_tag_symbol != NULL &&
@@ -4288,7 +4321,7 @@ after a call to this routine.
                                    (options & IDL_DO_NOT_CREATE_PROJ_SYM) != 0;
     lookup_state.skip_curr_scope = (options & IDL_SKIP_CURR_SCOPE) != 0;
     lookup_state.skip_class_scopes = (options & IDL_SKIP_CLASS_SCOPES) != 0;
-    lookup_state.module_context = curr_module();
+    lookup_state.module_context = curr_lookup_module();
     if (depth_innermost_instantiation_scope != NO_SCOPE_DEPTH &&
         scope_stack_top().exception_specification &&
         scope_stack_top().decl_parse_state != NULL &&
@@ -5339,85 +5372,92 @@ symbol pointer is returned.  This routine is used in both C and C++ mode.
          fields of structs/unions. */
       tag_symbol = NULL;
       type_tag_symbol = NULL;
-      for (sym = find_symbol_list_in_table(&cssp->pointers_block,
-                                           locator->symbol_header);
-           sym != NULL;
-           sym = sym->next_in_lookup_table) {
-        a_symbol_ptr  fund_sym = fundamental_symbol_of(sym);
-        if (cls_lookup_opts.accepts(class_type, sym, fund_sym)) {
-          /* Found an acceptable symbol. */
-          if (is_proxy_or_nonreal_class_lookup &&
-              !acceptable_nonreal_class_member_symbol(sym, options, locator)) {
-            /* The nonreal class member found does not match the kind required
-               by the lookup.  Ignore this symbol. */
-          } else if (any_nonreal_base_classes &&
-                     sym->kind == (a_symbol_kind)sk_projection &&
-                     sym->variant.projection.fund_sym_is_nonreal_member &&
-                     !acceptable_nonreal_class_member_symbol(fund_sym, options,
-                                                             locator)) {
-            /* The symbol is a projection symbol in a derived class that points
-               to a nonreal member of a base class.  Ignore this symbol
-               if it does not match the kind required by the lookup. */
-          } else if (cls_lookup_opts.is_direct_class_members_only &&
-                     sym->kind == (a_symbol_kind)sk_projection &&
-                     !sym->variant.projection.is_using_decl) {
-            /* This is a projection symbol not created by a using-declaration.
-               This should be ignored for "direct class members only"
-               lookups. */
-          } else {
-            /* When looking for a tag symbol, both tags and typedefs may
-               match the "acceptable" test.  The tag should be preferred
-               over the typedef, so if we find a typedef we must keep
-               looking.  Similarly, when not doing a "must be tag" lookup,
-               both tags and non-tags will match the test.  A non-tag
-               should be preferred over the tag, so if we find a tag we
-               must keep looking. */
-           if (!cls_lookup_opts.must_be_tag) {
-              /* A normal lookup. */
-              if (is_tag_symbol(fund_sym)) {
-                if (tag_symbol != NULL &&
-                    symbol_is(tag_symbol, sk_namespace_projection)) {
-                  /* If a using-declaration to a tag symbol is followed by
-                     an actual tag symbol, ignore the first one. */
-                  tag_symbol = NULL;
-                }  /* if */
-                /* If a tag symbol is followed by a projection to a
-                   different tag, use the first symbol. */
-                check_assertion_or_expect_error(
+      for (a_module_ptr mod : curr_lookup_modules()) {
+        for (sym = find_symbol_list_in_table(
+                                 curr_lookup_table(&cssp->pointers_block, mod),
+                                 locator->symbol_header);
+             sym != NULL;
+             sym = sym->next_in_lookup_table) {
+          a_symbol_ptr  fund_sym = fundamental_symbol_of(sym);
+
+          if (cls_lookup_opts.accepts(class_type, sym, fund_sym)) {
+            /* Found an acceptable symbol. */
+            if (is_proxy_or_nonreal_class_lookup &&
+                !acceptable_nonreal_class_member_symbol(sym, options,
+                                                        locator)) {
+              /* The nonreal class member found does not match the kind
+                 required by the lookup.  Ignore this symbol. */
+            } else if (any_nonreal_base_classes &&
+                       sym->kind == sk_projection &&
+                       sym->variant.projection.fund_sym_is_nonreal_member &&
+                       !acceptable_nonreal_class_member_symbol(fund_sym,
+                                                               options,
+                                                               locator)) {
+              /* The symbol is a projection symbol in a derived class that
+                 points to a nonreal member of a base class.  Ignore this
+                 symbol if it does not match the kind required by the
+                 lookup. */
+            } else if (cls_lookup_opts.is_direct_class_members_only &&
+                       sym->kind == sk_projection &&
+                       !sym->variant.projection.is_using_decl) {
+              /* This is a projection symbol not created by a using-declaration.
+                 This should be ignored for "direct class members only"
+                 lookups. */
+            } else {
+              /* When looking for a tag symbol, both tags and typedefs may
+                 match the "acceptable" test.  The tag should be preferred
+                 over the typedef, so if we find a typedef we must keep
+                 looking.  Similarly, when not doing a "must be tag" lookup,
+                 both tags and non-tags will match the test.  A non-tag
+                 should be preferred over the tag, so if we find a tag we
+                 must keep looking. */
+             if (!cls_lookup_opts.must_be_tag) {
+                /* A normal lookup. */
+                if (is_tag_symbol(fund_sym)) {
+                  if (tag_symbol != NULL &&
+                      symbol_is(tag_symbol, sk_namespace_projection)) {
+                    /* If a using-declaration to a tag symbol is followed by
+                       an actual tag symbol, ignore the first one. */
+                    tag_symbol = NULL;
+                  }  /* if */
+                  /* If a tag symbol is followed by a projection to a
+                     different tag, use the first symbol. */
+                  check_assertion_or_expect_error(
                                             tag_symbol == NULL ||
                                             symbol_is(sym, sk_projection) ||
                                             is_injected_class_symbol(sym));
-                if (tag_symbol == NULL) tag_symbol = sym;
+                  if (tag_symbol == NULL) tag_symbol = sym;
+                } else {
+                  if (sym->kind == sk_type) {
+                    type_tag_symbol = sym;
+                  } else {
+                    /* Take the symbol. */
+                    goto end_lookup;
+                  }  /* if */
+                }  /* if */
               } else {
+                /* A tag lookup. */
                 if (sym->kind == (a_symbol_kind)sk_type) {
-                  type_tag_symbol = sym;
+                  if (type_tag_symbol != NULL &&
+                      symbol_is(type_tag_symbol, sk_namespace_projection)) {
+                    /* If a using-declaration to a tag symbol is followed by
+                       an actual tag symbol, ignore the first one. */
+                    type_tag_symbol = NULL;
+                  }  /* if */
+                  /* If a tag symbol is followed by a projection to a
+                     different tag, use the first symbol. */
+                  check_assertion_or_expect_error(
+                          tag_symbol == NULL || symbol_is(sym, sk_projection));
+                  if (tag_symbol == NULL) tag_symbol = sym;
+                  if (type_tag_symbol == NULL) type_tag_symbol = sym;
                 } else {
                   /* Take the symbol. */
                   goto end_lookup;
                 }  /* if */
               }  /* if */
-            } else {
-              /* A tag lookup. */
-              if (sym->kind == (a_symbol_kind)sk_type) {
-                if (type_tag_symbol != NULL &&
-                    symbol_is(type_tag_symbol, sk_namespace_projection)) {
-                  /* If a using-declaration to a tag symbol is followed by
-                     an actual tag symbol, ignore the first one. */
-                  type_tag_symbol = NULL;
-                }  /* if */
-                /* If a tag symbol is followed by a projection to a
-                   different tag, use the first symbol. */
-                check_assertion_or_expect_error(
-                          tag_symbol == NULL || symbol_is(sym, sk_projection));
-                if (tag_symbol == NULL) tag_symbol = sym;
-                if (type_tag_symbol == NULL) type_tag_symbol = sym;
-              } else {
-                /* Take the symbol. */
-                goto end_lookup;
-              }  /* if */
             }  /* if */
           }  /* if */
-        }  /* if */
+        }  /* for */
       }  /* for */
       /* We reached the end of the list.  If there is a tag symbol, or
          type tag symbol saved within the loop, use it. */
@@ -6315,50 +6355,54 @@ inline namespaces.
   nssp = symbol_supplement_for_namespace(ns_ptr);
   load_lazy_symbols_if_needed(ns_ptr->variant.assoc_scope, locator);
   /* Search for a symbol in the lookup table for the namespace. */
-  for (sym = find_symbol_list_in_table(&nssp->pointers_block,
-                                       locator->symbol_header);
-       sym != NULL;
-       sym = sym->next_in_lookup_table) {
-    a_symbol_ptr	fund_sym = fundamental_symbol_of(sym);
-    if (ns_lookup_opts.accepts(ns_ptr, sym, fund_sym)) {
-      /* Found an acceptable symbol. */
-      /* When looking for a tag symbol, both tags and typedefs may match
-         the "acceptable" test.  The tag should be preferred over the
-         typedef, so if we find a typedef we must keep looking.  Similarly,
-         when not doing a "must be tag" lookup, both tags and non-tags
-         will match the test.  A non-tag should be preferred over the tag,
-         so if we find a tag we must keep looking. */
-      if (!ns_lookup_opts.must_be_tag) {
-        /* A normal lookup. */
-        if (is_tag_symbol(fund_sym)) {
-          check_assertion_or_expect_error(tag_symbol == NULL ||
-                                          fundamental_symbol_of(tag_symbol) ==
+  for (a_module_ptr mod : curr_lookup_modules()) {
+    for (sym = find_symbol_list_in_table(
+                                 curr_lookup_table(&nssp->pointers_block, mod),
+                                 locator->symbol_header);
+         sym != NULL;
+         sym = sym->next_in_lookup_table) {
+      a_symbol_ptr fund_sym = fundamental_symbol_of(sym);
+
+      if (ns_lookup_opts.accepts(ns_ptr, sym, fund_sym)) {
+        /* Found an acceptable symbol. */
+        /* When looking for a tag symbol, both tags and typedefs may match the
+           "acceptable" test.  The tag should be preferred over the typedef, so
+           if we find a typedef we must keep looking.  Similarly, when not
+           doing a "must be tag" lookup, both tags and non-tags will match the
+           test.  A non-tag should be preferred over the tag, so if we find a
+           tag we must keep looking. */
+        if (!ns_lookup_opts.must_be_tag) {
+          /* A normal lookup. */
+          if (is_tag_symbol(fund_sym)) {
+            check_assertion_or_expect_error(
+                                           tag_symbol == NULL ||
+                                           fundamental_symbol_of(tag_symbol) ==
                                                                      fund_sym);
-          tag_symbol = sym;
+            tag_symbol = sym;
+          } else {
+            if (is_namespace_symbol(sym) &&
+                gnu_namespace_and_class_in_same_scope) {
+              /* Some versions of g++ allow a namespace and class with the same
+                 name in a scope.  The class name should be preferred.  If we
+                 found the namespace keep looking in case we find a class. */
+              namespace_symbol = sym;
+            } else {
+              /* Take the symbol. */
+              break;
+            }  /* if */
+          }  /* if */
         } else {
-          if (is_namespace_symbol(sym) &&
-              gnu_namespace_and_class_in_same_scope) {
-            /* Some versions of g++ allow a namespace and class
-               with the same name in a scope.  The class name
-               should be preferred.  If we found the namespace
-               keep looking in case we find a class. */
-            namespace_symbol = sym;
+          /* A tag lookup. */
+          if (sym->kind == sk_type) {
+            check_assertion_or_expect_error(type_tag_symbol == NULL);
+            type_tag_symbol = sym;
           } else {
             /* Take the symbol. */
             break;
           }  /* if */
         }  /* if */
-      } else {
-        /* A tag lookup. */
-        if (sym->kind == (a_symbol_kind)sk_type) {
-          check_assertion_or_expect_error(type_tag_symbol == NULL);
-          type_tag_symbol = sym;
-        } else {
-          /* Take the symbol. */
-          break;
-        }  /* if */
       }  /* if */
-    }  /* if */
+    }  /* for */
   }  /* for */
   if (sym == NULL) {
     /* If a type symbol was found and no other matching tag was present,
@@ -7686,4 +7730,3 @@ END_EDG_NAMESPACE
 * Copyright 1988-2023 Edison Design Group Inc.                   [_]          *
 *                                                                             *
 ******************************************************************************/
-

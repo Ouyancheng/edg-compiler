@@ -186,13 +186,14 @@ static a_source_correspondence
 
 static inline void set_default_source_corresp(a_source_correspondence_ptr scp)
 /*
-Clear the given source correspondence value, and associate this entity
-with the module interface importing the entity (if any).
+Clear the given source correspondence value, and associate this entity with the
+module entity that declared it (if any).
 */
 {
   (*scp) = def_source_corresp;
 
-  /* Mark this declaration as imported from the current module interface. */
+  /* Mark this declaration as declared by the current module entity
+     (if any). */
   a_module_entity_stack_state *state = curr_mep_state;
   if (state != NULL) {
     scp->module_entity = state->mep;
@@ -5924,17 +5925,18 @@ a_module_ptr alloc_module(a_module_kind kind)
 Allocate and return an IL entry for a module.
 */
 {
-  a_module_ptr mep = alloc_il_of_type(a_module);
+  a_module_ptr mod = alloc_il_of_type(a_module);
 
-  mep->kind = kind;
-  mep->name = NULL;
-  mep->resolved_header = NULL;
-  mep->full_name = NULL;
-  mep->module_interface = NULL;
-  mep->is_sys_include = FALSE;
-  mep->suppress_macro_export = FALSE;
-  mep->contains_unsupported_constructs = FALSE;
-  return mep;
+  mod->kind = kind;
+  mod->name = NULL;
+  mod->resolved_header = NULL;
+  mod->full_name = NULL;
+  mod->module_interface = NULL;
+  mod->is_header_unit = FALSE;
+  mod->is_sys_include = FALSE;
+  mod->suppress_macro_export = FALSE;
+  mod->contains_unsupported_constructs = FALSE;
+  return mod;
 }  /* alloc_module */
 
 

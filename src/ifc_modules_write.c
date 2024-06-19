@@ -791,6 +791,11 @@ header into the given output stream.
   set_ifc_string_table_bytes(&file_header, ifc_string_table_start);
   set_ifc_string_table_size(&file_header, ifc_string_table_length);
 
+  /* Set the unit information. */
+  /* FIXME: For now just assume this is a header unit. */
+  an_ifc_unit_index ifc_unit_idx(file, ifc_us_header, 0);
+  set_ifc_unit(&file_header, ifc_unit_idx);
+
   /* Set the source path information. */
   an_ifc_text_offset ifc_source_path(file, source_file_name);
   set_ifc_src_path(&file_header, ifc_source_path);

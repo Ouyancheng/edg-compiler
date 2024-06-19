@@ -5205,7 +5205,10 @@ appropriate.
   }  /* if */
   reset_text_buffer(format_file_name_buffer);
   name = use_name_as_written ? sfp->name_as_written : sfp->file_name;
-  if (sfp->assoc_module != NULL) {
+
+  a_boolean display_module_info = (sfp->assoc_module != NULL &&
+                                   sfp->assoc_module->kind != mk_trans_unit);
+  if (display_module_info) {
     add_string_to_text_buffer(format_file_name_buffer, "module \"");
     add_string_to_text_buffer(format_file_name_buffer,
                               sfp->assoc_module->name);
@@ -5221,7 +5224,7 @@ appropriate.
   if (quote_file_name) {
     add_char_to_text_buffer(format_file_name_buffer, '"');
   }  /* if */
-  if (sfp->assoc_module != NULL) {
+  if (display_module_info) {
     add_char_to_text_buffer(format_file_name_buffer, ')');
   }  /* if */
   add_char_to_text_buffer(format_file_name_buffer, '\0');
