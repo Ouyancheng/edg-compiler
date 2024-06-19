@@ -1,5 +1,16 @@
 Version 6.7
 
+6/19/24  [EDGcpfe/26889]
+Pointer-to-member with zero-length array member type
+
+In Microsoft C++ modes, the front end sometimes accepts zero-length array
+types in class scopes.  Now it also accepts zero-length array types as the
+member type for a pointer-to-member type.  For example:
+
+  struct S {};
+  typedef int (S::*PMZ)[0];  // Now accepted in Microsoft C++ mode.
+
+
 6/19/24  [EDGcpfe/24484,EDGcpfe/26840]
 Microsoft C++ compatibility: Unnamed enum types
 

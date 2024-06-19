@@ -4819,7 +4819,9 @@ constant.
             num_of_elements =
                         unsigned_value_of_integer_constant(constant, &err);
             if (err) pos_error(ec_array_size_too_large, &error_position);
-          } else if (((ms_extensions && in_class_definition()) || gnu_mode) &&
+          } else if (((ms_extensions &&
+                       (top_level_field_decl || in_class_definition())) ||
+                      gnu_mode) &&
                      sign_of_integer_constant(constant) == 0) {
             /* In Microsoft C mode a field may be a zero-sized array type if
                it is the last field of the struct.  Thus
@@ -8132,8 +8134,9 @@ function_lparen:
       /* This is a top-level declarator if derived_type is NULL; it's a field
          declaration only if the nonstatic member flag is set.  (Note: it
          will be set for fields in C mode as well as in C++ mode.) */
-      top_level_field_decl = (input_flags & DI_NONSTATIC_MEMBER) &&
-                             derived_type == NULL;
+      top_level_field_decl = derived_type == NULL ?
+                                       (input_flags & DI_NONSTATIC_MEMBER) :
+                                       derived_type->kind == tk_ptr_to_member;
       /* See whether this is a top-level declarator in a parameter
          declaration. */
       top_level_param_decl = (input_flags & DI_IS_PARAMETER_DECL) &&
