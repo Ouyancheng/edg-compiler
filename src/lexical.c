@@ -12142,7 +12142,8 @@ Issue a diagnostic if it is not.
 unsigned long scan_universal_character(a_const_char	**start_pos,
 				       a_boolean	is_identifier,
 				       a_boolean	is_identifier_start,
-				       a_boolean	issue_diagnostics)
+				       a_boolean	issue_diagnostics,
+                     /* Defaulted: */  a_boolean	*delimited_err)
 /*
 Scan the universal character name starting at start_pos.  The character
 specified by the universal character name is returned.  If is_identifier is
@@ -12151,15 +12152,21 @@ a valid identifier character.  If is_identifier_start is TRUE, it must be
 one of those characters that can appear as the first character in an
 identifier.  If issue_diagnostics is TRUE, diagnostic messages are produced
 if the universal character is improperly formed, or if it names an invalid
-character.  start_pos is updated by this routine to point to the character
-after the universal character name.
+character.  *start_pos is updated by this routine to point to the character
+after the universal character name.  If a malformed delimited escape
+sequence is detected and delimited_err is not NULL, *delimited_err is set
+to TRUE.
 */
 {
   a_const_char	*pos = *start_pos;
   a_boolean	err = FALSE;
   unsigned long	result = 0;
   int		digits;
+  a_boolean     is_delimited;
 
+  if (delimited_err != NULL) {
+    *delimited_err = FALSE;
+  }  /* if */
   /* The current position must be the start of a universal character name. */
   check_assertion_str2(*pos == '\\' && (*(pos+1) == 'u' || *(pos+1) == 'U'),
                        "scan_universal_character:",
@@ -12171,30 +12178,61 @@ after the universal character name.
     issue_diagnostics = FALSE;
   }  /* if */
   /* Skip past the "\u" or "\U", and determine whether we are processing a
-     four or eight character name.  "\u" is followed by four hex digits,
-     "\U" is followed by eight hex digits. */
-  pos++;
+     delimited name or a four or eight character name.  "\u{" is a
+     delimited name, allowing an arbitrary number of digits, while "\u"
+     without a brace is followed by four hex digits and "\U" is followed by
+     eight hex digits. */
+  ++pos;
   digits = *pos++ == 'u' ? 4 : 8;
+  if (digits == 4 && delimited_escape_seqs_allowed && *pos == '{') {
+    is_delimited = TRUE;
+    ++pos;
+  } else {
+    is_delimited = FALSE;
+  }  /* if */
   /* Scan the digits and calculate the character value.  Stop scanning if
      we encounter an invalid character. */
-  for (; digits > 0; --digits) {
+  for (; is_delimited || digits > 0; --digits) {
     char	ch;
     ch = *pos++;
     if (!isxdigit((unsigned char)ch)) {
-      if (issue_diagnostics) {
+      if (is_delimited && ch == '}') {
+        if (digits == 4 && issue_diagnostics) {
+          /* An empty sequence. */
+          conv_line_loc_to_source_pos(pos - 1, &error_position);
+          pos_diagnostic(es_discretionary_error, ec_empty_delimited_escape,
+                         &error_position);
+          /* Increment the position so that the backing-up done below will
+             leave *start_pos pointing to the character after the '}'. */
+          ++pos;
+        } else {
+          /* Normal end of sequence. */
+          goto check_validity;
+        }  /* if */
+      } else if (issue_diagnostics) {
         /* Get the source position that corresponds to this character. */
         conv_line_loc_to_source_pos(pos-1, &error_position);
-        pos_error(ec_malformed_universal_character, &error_position);
+        if (is_delimited) {
+          pos_diagnostic(es_discretionary_error,
+                         ec_unterminated_delimited_escape, &error_position);
+        } else {
+          pos_diagnostic(es_discretionary_error,
+                         ec_malformed_universal_character, &error_position);
+        }  /* if */
       }  /* if */
       /* Back up one character so that the invalid character will be
          treated as part of the token that follows. */
-      pos--;
+      --pos;
       err = TRUE;
+      if (is_delimited && delimited_err != NULL) {
+        *delimited_err = TRUE;
+      }  /* if */
       break;
     }  /* if */
     result = (result << 4) | hexvalue(ch);
   }  /* for */
   /* Check whether the specified character is a valid universal character. */
+check_validity:
   if (!err && issue_diagnostics) {
     if (!C_mode()) {
       check_for_invalid_cplusplus_ucn(result, start_pos, is_identifier,
@@ -12881,11 +12919,15 @@ messages.
                                            raw_string_delimiter_len,
                                            &delim_len_adjustment))) {
     if (ch == '\\' && !is_header_name && !is_raw_string) {
-      /* Backslash, escapes the next character.  If followed by "0" or
-         "x", an octal or hexadecimal value must be scanned.  We recognize
-         those digits so we can accurately count characters, but we do
-         not convert them at this point. */
+      /* Backslash, escapes the next character.  If followed by "0", "x",
+         or "o{", an octal or hexadecimal value must be scanned.  We
+         recognize those digits so we can accurately count characters, but
+         we do not convert them at this point.  If followed by "u" or "U",
+         a universal character name will be scanned. */
+      a_boolean    is_delimited;
+      a_const_char *escape_start = curr_char_loc;
       ch = *(++curr_char_loc);
+      is_delimited = delimited_escape_seqs_allowed && curr_char_loc[1] == '{';
       if (ch == LE_ESCAPE) {
         /* Token ends after the "\" -- this is an unclosed string.  This can
            happen because of macro definitions on the command line, e.g.,
@@ -12902,6 +12944,7 @@ messages.
            sequence.  Skip past the characters that make up the construct.
            Ignore any errors at this point -- they will be issued when the
            escape is converted to a character. */
+        a_boolean delimited_err = FALSE;
         /* Back up one character because the routines expect the opening
            backslash to be the current character. */
         curr_char_loc--;
@@ -12922,12 +12965,18 @@ messages.
           (void)scan_universal_character(&curr_char_loc,
                                          /*is_identifier=*/FALSE,
                                          /*is_identifier_start=*/FALSE,
-                                         /*issue_diagnostics=*/FALSE);
+                                         /*issue_diagnostics=*/FALSE,
+                                         &delimited_err);
         }  /* if */
-        if (ch == 'U' && is_string_literal &&
-            (literal_kind == SCLK_CHAR16_T_LITERAL ||
-             literal_kind == SCLK_WIDE_LITERAL)) {
-          /* A 32-bit code to be stored in a 16-bit character
+        if (delimited_err) {
+          /* A malformed delimited escape sequence will be treated as an
+             ordinary sequence of characters with no special meaning. */
+          nchars += curr_char_loc - escape_start;
+        } else if ((ch == 'U' || (ch == 'u' && is_delimited)) &&
+                   is_string_literal &&
+                   (literal_kind == SCLK_CHAR16_T_LITERAL ||
+                    literal_kind == SCLK_WIDE_LITERAL)) {
+          /* A (potentially) 32-bit code to be stored in a 16-bit character
              representation.  In a wide character literal, this just
              truncates to a single character; for wide string literals,
              however, this could result in a surrogate pair.  Since we
@@ -12951,7 +13000,7 @@ messages.
           ++nchars;
         }  /* if */
       } else {
-        curr_char_loc++;
+        curr_char_loc += is_delimited ? 2 : 1;
         nchars++;
         if (isdigit((unsigned char)ch) && ch != '8' && ch != '9') {
           /* Octal escape, one to three digits.  Note that neither ANSI nor
@@ -12965,9 +13014,55 @@ messages.
               curr_char_loc++;
             }  /* if */
           }  /* if */
+        } else if (ch == 'o' && is_delimited) {
+          /* A delimited octal escape, which allows unlimited octal digits
+             (but represents only a single character). */
+          ch = *curr_char_loc;
+          if (ch == '}') {
+            /* An empty sequence. */
+            diagnostic_at_line_pos(es_discretionary_error,
+                                   ec_empty_delimited_escape, curr_char_loc);
+          } else {
+            while (isdigit((unsigned char)ch) && ch != '8' && ch != '9') {
+              ch = *++curr_char_loc;
+            }  /* while */
+            if (*curr_char_loc == '}') {
+              ++curr_char_loc;
+            } else {
+              diagnostic_at_line_pos(es_discretionary_error,
+                                     ec_unterminated_delimited_escape,
+                                     curr_char_loc);
+              /* Adjust the character count to allow for all the characters
+                 of the malformed escape sequence (already incremented by
+                 one in anticipation of the expected single character
+                 result). */
+              nchars += curr_char_loc - escape_start - 1;
+            }  /* if */
+          }  /* if */
         } else if (ch == 'x') {
           /* Hex escape, any number of digits. */
-          while (isxdigit((unsigned char)*curr_char_loc)) curr_char_loc++;
+          if (is_delimited && *curr_char_loc == '}') {
+            /* An empty sequence. */
+            diagnostic_at_line_pos(es_discretionary_error,
+                                   ec_empty_delimited_escape, curr_char_loc);
+          } else {
+            while (isxdigit((unsigned char)*curr_char_loc)) {
+              ++curr_char_loc;
+            }  /* while */
+            if (is_delimited && *curr_char_loc != '}') {
+              diagnostic_at_line_pos(es_discretionary_error,
+                                     ec_unterminated_delimited_escape,
+                                     curr_char_loc);
+              /* Adjust the character count to allow for all the characters
+                 of the malformed escape sequence (already incremented by
+                 one in anticipation of the expected single character
+                 result). */
+              nchars += curr_char_loc - escape_start - 1;
+            }  /* if */
+          }  /* if */
+          if (is_delimited && *curr_char_loc == '}') {
+            ++curr_char_loc;
+          }  /* if */
         }  /* if */
       }  /* if */
     } else if (olmp != NULL && olmp->line_loc == curr_char_loc) {

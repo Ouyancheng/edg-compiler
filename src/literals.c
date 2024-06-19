@@ -1125,6 +1125,7 @@ state->next_orig_line_modif is advanced to point to the next modification.
   a_boolean     range_error = FALSE;
   a_boolean     numeric_escape = FALSE;
   a_boolean     unrecognized;
+  a_boolean     delimited_err = FALSE;
 
   lptr = *state->next_token_char;
   if (state->remaining_char_count != 0) {
@@ -1302,8 +1303,8 @@ get_another:
        escape, a simple escape sequence (like \n), a
        universal-character-name, or something unrecognized, in which case
        the character is left alone. */
+    a_const_char *start_of_escape = lptr++;
     unrecognized = FALSE;
-    lptr++;
     switch ((int)(tch = (unsigned char)*(lptr++))) {
       case 'a':
         if (C_dialect == C_dialect_pcc) {
@@ -1350,11 +1351,22 @@ get_another:
            of the backslash. */
         /* Universal characters are allowed in C++ and C99. */
         if (!universal_character_names_allowed) goto other_chars;
-        lptr -= 2;
+        lptr = start_of_escape;
         targ_ch = scan_universal_character(&lptr,
                                            /*is_identifier=*/FALSE,
 					   /*is_identifier_start=*/FALSE,
-                                           /*issue_diagnostics=*/TRUE);
+                                           /*issue_diagnostics=*/TRUE,
+                                           &delimited_err);
+        if (delimited_err) {
+          /* There was a malformed delimited escape sequence.  If the
+             literal was empty, add a null character; otherwise, treat the
+             '\' as an ordinary character and the rest of the sequence as
+             having no special significance. */
+          if (lptr != start_of_escape + 4 || targ_ch != 0) {
+            targ_ch = '\\';
+            lptr = start_of_escape + 1;
+          }  /* if */
+        }  /* if */
         if (!narrow_literal) {
           /* This is for a wide character or wide string literal.  Return
              the value directly, subject to the range constraints implied
@@ -1373,7 +1385,7 @@ get_another:
         /* A named Unicode character.  Move the pointer back to the start
            of the construct, i.e., to the '\' in "\N{". */
         if (!named_unicode_chars_allowed) goto other_chars;
-        lptr -= 2;
+        lptr = start_of_escape;
         targ_ch = scan_named_unicode_char(&lptr,
                                           /*is_identifier=*/FALSE,
                                           /*is_identifier_start=*/FALSE,
@@ -1398,10 +1410,62 @@ get_another:
           targ_ch = conv_unicode_literal_char(state, targ_ch, utf8_literal);
         }  /* if */
         break;
+      case 'o':
+        if (*lptr != '{' || !delimited_escape_seqs_allowed) {
+          /* A plain "\o" has no special meaning. */
+          goto other_chars;
+        }  /* if */
+        /* Octal escape, which has an unlimited number of octal characters,
+           terminated by a '}'. */
+        targ_ch = 0;
+        while (isdigit((unsigned char)*++lptr) &&
+               *lptr != '8' && *lptr != '9') {
+          targ_ch = (targ_ch << 3) | (*lptr - '0');
+          if (targ_ch > (((unsigned long)LONG_MAX)>>4)) {
+            /* Error will be processed below.  We must keep going and take
+               all the digits. */
+            range_error = TRUE;
+          }  /* if */
+        }  /* while */
+        if (*lptr == '}') {
+          /* Normal termination.  Skip over the closing '}'. */
+          numeric_escape = TRUE;
+          ++lptr;
+        } else {
+          /* Unterminated delimited escape sequence.  The error will have
+             already been reported.  Treat the malformed sequence as an
+             ordinary sequence of characters beginning with the '\'. */
+          targ_ch = (unsigned char)'\\';
+          lptr = start_of_escape + 1;
+        }  /* if */
+        break;
       case 'x':
         /* Hexadecimal escape.  There can be many digits, but there must be
            at least one.  If not, treat as just "x". */
-        if (!isxdigit((unsigned char)*lptr)) {
+        if (delimited_escape_seqs_allowed && *lptr == '{') {
+          /* A delimited escape sequence, which has an unlimited number of
+             hexadecimal characters, terminated by a '}'. */
+          targ_ch = 0;
+          while (isxdigit(*++lptr)) {
+            targ_ch = (targ_ch << 4) | hexvalue(*lptr);
+            if (targ_ch > (((unsigned long)LONG_MAX)>>4)) {
+              /* Error will be processed below.  We must keep going and take
+                 all the digits. */
+              range_error = TRUE;
+            }  /* if */
+          }  /* while */
+          if (*lptr == '}') {
+            /* Normal termination.  Skip over the closing '}'. */
+            numeric_escape = TRUE;
+            ++lptr;
+          } else {
+            /* Unterminated delimited escape sequence.  The error will have
+               already been reported.  Treat the malformed sequence as an
+               ordinary sequence of characters beginning with the '\'. */
+            targ_ch = (unsigned char)'\\';
+            lptr = start_of_escape + 1;
+          }  /* if */
+        } else if (!isxdigit((unsigned char)*lptr)) {
           conv_line_loc_to_source_pos(*state->next_token_char+2,
                                       &error_position);
           if (C_dialect == C_dialect_pcc || SVR4_C_mode) {
