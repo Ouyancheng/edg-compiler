@@ -25430,7 +25430,7 @@ declaration of a partial specialization declared outside of its class.
                   (ms_version_is(any_version) && !ms_permissive)) &&
                  enclosing_scope_is_prototype_instantiation_context()) {
         /* In prototype instantiation contexts, template friends are only added
-           as invisible symbols, unless friend class injection is enabled. In
+           as invisible symbols, unless friend class injection is enabled.  In
            non-permissive mode, however, MSVC does not do friend class
            injection for template friends, even though it does do so for
            non-template friends. */
