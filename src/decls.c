@@ -5221,7 +5221,7 @@ be issued at the given position.
     }  /* if */
 #if INSTANTIATE_EXTERN_INLINE
     if (new_dll_export && is_inline &&
-        !rout_is_real_template_instance(routine)) {
+        !rout_is_template_instance(routine)) {
       /* dllexport forces the "instantiation" of inline functions outside
          prototype instantiations. */
       set_instance_required(symbol_for(routine), TRUE, SIR_DEFER_INLINE);
