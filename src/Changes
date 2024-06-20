@@ -1,5 +1,20 @@
 Version 6.7
 
+6/20/24  [EDGcpfe/27268]
+C++-generating back end: constructors with reference to initializer_list
+
+The C++-generating back end previously put out an extra set of braces when
+a variable initializer is brace-enclosed and the parameter of the matching
+constructor is a reference to an instance of std::initializer_list.  This
+is now fixed.  For example, with --c++11:
+
+  #include <initializer_list>
+  struct S {
+    S(const std::initializer_list<int>&);
+  };
+  S s{0};   // Previously generated as s{{0}}
+
+
 6/19/24  [EDGcpfe/23516,EDGcpfe/27371]
 Microsoft compatibility: dllexport and function instantiation
 

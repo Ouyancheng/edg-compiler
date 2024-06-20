@@ -21428,13 +21428,15 @@ and the output of the type name.
             }  /* if */
           } else {
             /* A braced initializer. */
+            an_expr_node_ptr arg_init;
             if (args != NULL &&
                 (args->next == NULL || args->next->generated_default_arg) &&
-                args->kind == (an_expr_node_kind)enk_temp_init) {
+                (arg_init = skip_implicit_steps(args))->kind ==
+                                            (an_expr_node_kind)enk_temp_init) {
               /* A single argument that is a temporary.  Check to see if it
                  is a generated call to a std::initializer_list
                  constructor. */
-              a_dynamic_init_ptr arg_dip = args->variant.init.dynamic_init;
+              a_dynamic_init_ptr arg_dip = arg_init->variant.init.dynamic_init;
               if (arg_dip->kind == (a_dynamic_init_kind)dik_constructor &&
                   arg_dip->is_creation_of_initializer_list_object &&
                   !is_deduced_type_var_init) {
