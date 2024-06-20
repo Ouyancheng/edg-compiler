@@ -44,8 +44,6 @@ static void clear_type_correspondence(a_type_ptr  type,
                                       a_boolean   visited);
 static void establish_trans_unit_correspondences_for_enum(a_type_ptr  type);
 static void establish_trans_unit_correspondences_for_class(a_type_ptr  type);
-static void find_type_correspondence(a_type_ptr  type,
-                                     a_boolean   parent_found);
 static void find_template_correspondence(a_template_ptr  templ,
                                          a_boolean       parent_found);
 static a_symbol_list_entry_ptr find_class_template_instantiation(
@@ -5565,6 +5563,12 @@ entities.
     /* A class that acquired a name through a typedef declaration will be
        handled elsewhere.   Similarly, prototype instantiations are handled
        when the generic template is processed. */
+    handled_later = TRUE;
+  } else if (is_immediate_enum_type(type) &&
+             type->variant.integer.originally_unnamed) {
+    /* An enum type that is originally unnamed but acquired a name through a
+       typedef declaration will be handled elsewhere (when the typedef
+       correspondence is established). */
     handled_later = TRUE;
   } else if (C_mode()) {
     /* In C, types have no correspondence unless they're involved in the
