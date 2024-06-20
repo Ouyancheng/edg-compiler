@@ -5219,18 +5219,14 @@ be issued at the given position.
          below.) */
       routine->need_out_of_line_copy = TRUE;
     }  /* if */
-    if (new_dll_export &&
-        !routine->is_prototype_instantiation &&
-        ((routine->is_template_function && !routine->is_specialized)
 #if INSTANTIATE_EXTERN_INLINE
-         || is_inline
-#endif /* INSTANTIATE_EXTERN_INLINE */
-                     )) {
-      /* dllexport forces the instantiation of nonexplicit specializations.
-         If inline functions are "instantiated", this also applies to inline
-         functions. */
+    if (new_dll_export && is_inline &&
+        !rout_is_real_template_instance(routine)) {
+      /* dllexport forces the "instantiation" of inline functions outside
+         prototype instantiations. */
       set_instance_required(symbol_for(routine), TRUE, SIR_DEFER_INLINE);
     }  /* if */
+#endif /* INSTANTIATE_EXTERN_INLINE */
   }  /* if */
 done:;
 }  /* update_dll_info_for_routine */
