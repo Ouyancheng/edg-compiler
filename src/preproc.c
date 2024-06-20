@@ -3281,12 +3281,12 @@ the construct is not correctly formed.
           ppp->variant.gcc.kind = (a_gcc_pragma_kind)gcc_pk_visibility_push;
           ppp->variant.gcc.variant.visibility = evk;
           push_ELF_visibility(evk, /*namespace_attribute=*/FALSE);
+          (void)get_token();
         } else {
           /* An invalid visibility kind was specified. */
           pos_warning(ec_unrecognized_visibility, &error_position);
           warning_issued = TRUE;
         }  /* if */
-        (void)get_token();
         if (curr_token != tok_rparen) {
           pos_warning(ec_exp_rparen, &error_position);
           warning_issued = TRUE;

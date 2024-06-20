@@ -1,5 +1,16 @@
 Version 6.7
 
+6/20/24  [EDGcpfe/27364]
+Assertion failure on ill-formed #pragma GCC visibility pragmas
+
+An assertion failure (in process_immediate_pragmas) had triggered on some
+ill-formed GCC visibility #pragmas as a result of the changes for EDGcpfe/26419
+(in version 6.6).  Now fixed.  For example, with --g++:
+
+  #pragma GCC visibility push(
+  #pragma GCC visibility push(hidden
+
+
 6/20/24  [EDGcpfe/25510]
 C++23: Delimited escape sequences
 
