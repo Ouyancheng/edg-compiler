@@ -19926,6 +19926,7 @@ the <int> is matched with U and no argument is generated for V.
   a_template_param_ptr             param_list;
   a_symbol_ptr                     sym;
   a_symbol_ptr                     argument_template = NULL;
+  a_symbol_ptr                     templ_sym_for_default = template_sym;
   a_type_ptr                       argument_type;
   a_constant_ptr                   constant;
   a_template_arg_ptr               arg_ptr = NULL;
@@ -20344,13 +20345,13 @@ next_integer_pack_element:
        elements from the argument template. */
     check_assertion(tssp->variant.class_template.template_template_param);
     orig_param_ptr = param_ptr;
+    templ_sym_for_default = argument_template;
   }  /* if */
   for (; param_ptr != NULL && orig_param_ptr != NULL;
          param_ptr = param_ptr->next,
            orig_param_ptr = orig_param_ptr->is_pack ? orig_param_ptr
                                                     : orig_param_ptr->next) {
     a_template_param_ptr	param_for_default = orig_param_ptr;
-    a_symbol_ptr		templ_sym_for_default = template_sym;
     if (orig_param_ptr->is_pack && param_ptr->has_default_arg &&
         argument_template != NULL) {
       /* If the template template parameter has an argument that is a pack,
