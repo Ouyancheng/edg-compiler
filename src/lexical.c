@@ -12140,9 +12140,9 @@ Issue a diagnostic if it is not.
 
 
 unsigned long scan_universal_character(a_const_char	**start_pos,
-				       a_boolean	is_identifier,
-				       a_boolean	is_identifier_start,
-				       a_boolean	issue_diagnostics,
+                                       a_boolean	is_identifier,
+                                       a_boolean	is_identifier_start,
+                                       a_boolean	issue_diagnostics,
                      /* Defaulted: */  a_boolean	*delimited_err)
 /*
 Scan the universal character name starting at start_pos.  The character
@@ -12162,7 +12162,7 @@ to TRUE.
   a_boolean	err = FALSE;
   unsigned long	result = 0;
   int		digits;
-  a_boolean     is_delimited;
+  a_boolean	is_delimited;
 
   if (delimited_err != NULL) {
     *delimited_err = FALSE;
@@ -12193,8 +12193,7 @@ to TRUE.
   /* Scan the digits and calculate the character value.  Stop scanning if
      we encounter an invalid character. */
   for (; is_delimited || digits > 0; --digits) {
-    char	ch;
-    ch = *pos++;
+    char ch = *pos++;
     if (!isxdigit((unsigned char)ch)) {
       if (is_delimited && ch == '}') {
         if (digits == 4 && issue_diagnostics) {

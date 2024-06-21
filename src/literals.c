@@ -1354,7 +1354,7 @@ get_another:
         lptr = start_of_escape;
         targ_ch = scan_universal_character(&lptr,
                                            /*is_identifier=*/FALSE,
-					   /*is_identifier_start=*/FALSE,
+                                           /*is_identifier_start=*/FALSE,
                                            /*issue_diagnostics=*/TRUE,
                                            &delimited_err);
         if (delimited_err) {
