@@ -1,5 +1,15 @@
 Version 6.7
 
+6/21/24  [EDGcpfe/27391]
+GNU compatibility: Update builtin signatures to 12.4.0
+
+There were a small number of changes to builtin signatures between GNU 12.3.0
+and 12.4.0 (builtins __builtin_ia32_ldtilecfg and __builtin_ia32_sttilecfg were
+added for the x86-64 architecture, and the return types of __builtin_arm_ssat,
+__builtin_arm_ssat16, and __builtin_arm_usat16 were changed to int for the
+ARM32 architecture).  The builtin signatures have been updated accordingly.
+
+
 6/20/24  [EDGcpfe/27364]
 Assertion failure on ill-formed #pragma GCC visibility pragmas
 
