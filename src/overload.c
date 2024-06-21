@@ -29235,11 +29235,9 @@ assignment operator.
   class_type = skip_typerefs(class_type);
   instantiate_template_class(class_type);
   cssp = symbol_supplement_for_class(class_type);
-  if ((cssp->assignment_by_bitwise_copy_allowed &&
-       !cssp->has_deleted_copy_or_move_assign_operator) ||
-      class_type->variant.class_struct_union.is_nonreal_class) {
-    /* A bitwise assignment is allowed.  Also used when the class is nonreal,
-       because we don't know about assignment operators in that case. */
+  if (class_type->variant.class_struct_union.is_nonreal_class) {
+    /* When the class is nonreal, assume bitwise copy assignment because we
+       don't know about assignment operators in that case. */
     assign_sym = NULL;
     if (!sun_mode && 
         any_qualifier_in_set_missing(TQ_CONST,

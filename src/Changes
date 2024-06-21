@@ -1,5 +1,28 @@
 Version 6.7
 
+6/21/24  [EDGcpfe/27270]
+Spurious bitwise assignment in generated assignment operator
+
+Consider:
+
+  template<typename T> struct I { using Type = T; };
+  struct X {
+    X& operator=(volatile const X&) = delete;
+    template<typename T = X>
+        X& operator=(typename I<const T&>::Type);
+  };
+  struct S { X x; };
+  int main() {
+    S s;
+    s = s;
+  }
+
+The copy assignment operator of S erroneously used bitwise assignment for its
+subobject S::x when instead it should call an instance the X::operator= member
+template.  This regression, introduced by the Changes for EDGcpfe/26518 in
+version 6.6 of the front end, is now fixed.
+
+
 6/21/24  [EDGcpfe/27267]
 Substitution of nested pack expansions
 

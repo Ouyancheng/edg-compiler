@@ -22020,8 +22020,17 @@ member of a union or anonymous union).
       }  /* if */
     } else if (rout_sym != NULL) {
       rout_sym = fundamental_symbol_of(rout_sym);
-      if (symbol_is(rout_sym, sk_member_function)) {
-        a_routine_ptr  rp = rout_sym->variant.routine.ptr;
+      if (symbol_is(rout_sym, sk_member_function) ||
+          symbol_is(rout_sym, sk_function_template)) {
+        a_routine_ptr  rp = func_sym_routine(rout_sym);
+        if (!rp->is_trivial_copy_function) {
+          class_symbol_supp(symbol_for(type))
+                                    ->makes_copy_assignment_nontrivial = TRUE;
+          class_symbol_supp(symbol_for(class_type))
+                                    ->makes_copy_assignment_nontrivial = TRUE;
+          class_symbol_supp(symbol_for(class_type))
+                                 ->assignment_by_bitwise_copy_allowed = FALSE;
+        }  /* if */
         if (!rp->is_constexpr) {
           /* If this special member has to call a non-constexpr special
              member, it is itself not constexpr. */
@@ -22051,10 +22060,13 @@ member of a union or anonymous union).
       gsfd->suppress_move_assign = TRUE;
     } else if (rout_sym != NULL) {
       rout_sym = fundamental_symbol_of(rout_sym);
-      if (symbol_is(rout_sym, sk_member_function)) {
-        a_routine_ptr  rp = rout_sym->variant.routine.ptr;
+      if (symbol_is(rout_sym, sk_member_function) ||
+          symbol_is(rout_sym, sk_function_template)) {
+        a_routine_ptr  rp = func_sym_routine(rout_sym);
         if (!rp->is_trivial_copy_function) {
           class_symbol_supp(symbol_for(class_type))
+                                    ->makes_move_assignment_nontrivial = TRUE;
+          class_symbol_supp(symbol_for(type))
                                     ->makes_move_assignment_nontrivial = TRUE;
         }  /* if */
         if (!rp->is_constexpr) {

@@ -53229,6 +53229,8 @@ specifier or member declaration for the subobject to be copied.
                                       &bitwise_assign);
     if (undecidable_because_of_error) {
       /* There was a previously-reported error. */
+    } else if (bitwise_assign) {
+      /* No assignment operator needs to be involved. */
     } else if (ambiguous) {
       /* More than one operator= function applies and is a best match. */
       if (expr_error_should_be_issued()) {
