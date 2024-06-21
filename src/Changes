@@ -1,5 +1,19 @@
 Version 6.7
 
+6/21/24  [EDGcpfe/27267]
+Substitution of nested pack expansions
+
+Previously, the front end failed to substitute into nested pack expansions
+during template argument deduction.  For example, with --c++11:
+
+  template<typename ...> struct C {};
+  template<typename, typename> struct E {};
+  template<typename T, typename ... Us> using A = C<E<T, Us> ...>;
+  template<typename ... Ts, typename ... Us, typename = C<A<Ts, Us ...> ...>>
+  int f(C<Ts ...>, Us ...);
+  int i = f(C<int>{}, 0);  // Previously a spurious error.  Now okay.
+
+
 6/21/24  [EDGcpfe/27391]
 GNU compatibility: Update builtin signatures to 12.4.0
 

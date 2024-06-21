@@ -12183,7 +12183,7 @@ a_template_arg_ptr get_curr_variadic_arg_for_param(
 This routine is called during rescan and deduction contexts.  We need the
 current template argument value for the pack specified by coordinates,
 which identifies the template parameter.  Go through the pack references
-for the current expansion and look for one that matches coordinates.  Return
+for the current expansions and look for one that matches coordinates.  Return
 the current template argument value for that parameter.  is_rescan is TRUE if
 this is called from a rescan/substitution context.  If there is not a matching
 parameter, or if there is not a current argument, an argument is created
@@ -12201,41 +12201,46 @@ and can be NULL only if create_if_not_found is FALSE.
      could be in a suppression context. */
   if (pesep != NULL && !pesep->is_suppression &&
       pesep->instantiation_descr != NULL) {
-    param_prp = pesep->expansion_descr->packs_referenced;
-    arg_prp = pesep->instantiation_descr->pack_status;
+    for (; pesep != NULL; pesep = pesep->next) {
+      param_prp = pesep->expansion_descr->packs_referenced;
+      arg_prp = pesep->instantiation_descr->pack_status;
+      for (; param_prp != NULL;
+           param_prp = param_prp->next, arg_prp = arg_prp->next) {
+        /* Only process pack references for template parameters. */
+        if (param_prp->kind != prk_template_param) continue;
+        /* See if the coordinates of the pack reference match the ones
+           specified by the caller. */
+        if (param_prp->coordinates->depth != coordinates->depth ||
+            param_prp->coordinates->position != coordinates->position) {
+          continue;
+        }  /* if */
+        result_tap = arg_prp->curr_argument.template_arg;
+        if (pesep->is_deduction) {
+          if (result_tap != NULL &&
+              !is_start_of_pack_expansion_templ_arg(result_tap)) {
+            /* We are deducing an existing element. */
+          } else {
+            /* We are deducing the value for a new pack element.  Create the
+               argument now and link it into the argument list. */
+            result_tap = alloc_template_arg(
+                      templ_arg_kind_for_symbol_kind(param_prp->symbol->kind));
+            result_tap->is_pack_element = TRUE;
+            check_assertion(arg_prp->prev_template_arg != NULL);
+            result_tap->next = arg_prp->prev_template_arg->next;
+            arg_prp->prev_template_arg->next = result_tap;
+            arg_prp->prev_template_arg = result_tap;
+            arg_prp->curr_argument.template_arg = result_tap;
+          }  /* if */
+        }  /* if */
+        break;
+      }  /* for */
+      if (param_prp != NULL) break;
+    }  /* for */
   } else {
     /* In cases where we can't find an argument, create one if we have a
        template parameter on which to base it. */
     create_if_not_found = templ_param != NULL;
   }  /* if */
-  for (; param_prp != NULL;
-       param_prp = param_prp->next, arg_prp = arg_prp->next) {
-    /* Only process pack references for template parameters. */
-    if (param_prp->kind != prk_template_param) continue;
-    /* See if the coordinates of the pack reference match the ones specified
-       by the caller. */
-    if (param_prp->coordinates->depth != coordinates->depth ||
-        param_prp->coordinates->position != coordinates->position) continue;
-    result_tap = arg_prp->curr_argument.template_arg;
-    if (pesep->is_deduction) {
-      if (result_tap != NULL &&
-          !is_start_of_pack_expansion_templ_arg(result_tap)) {
-        /* We are deducing an existing element. */
-      } else {
-        /* We are deducing the value for a new pack element.  Create the
-           argument now and link it into the argument list. */
-        result_tap = alloc_template_arg(
-                      templ_arg_kind_for_symbol_kind(param_prp->symbol->kind));
-        result_tap->is_pack_element = TRUE;
-        check_assertion(arg_prp->prev_template_arg != NULL);
-        result_tap->next = arg_prp->prev_template_arg->next;
-        arg_prp->prev_template_arg->next = result_tap;
-        arg_prp->prev_template_arg = result_tap;
-        arg_prp->curr_argument.template_arg = result_tap;
-      }  /* if */
-    }  /* if */
-    break;
-  }  /* for */
   if (result_tap == NULL && create_if_not_found) {
     /* If not found above, just return an empty template argument. */
     result_tap = alloc_template_arg(
