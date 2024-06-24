@@ -20440,7 +20440,8 @@ next_integer_pack_element:
        arguments for the additional parameters.  In that case, we will have
        exhausted the list of original parameters.  Use the remaining
        elements from the argument template. */
-    check_assertion(tssp->variant.class_template.template_template_param);
+    check_assertion(tssp->variant.class_template.template_template_param &&
+                    argument_template != NULL);
     orig_param_ptr = param_ptr;
     templ_sym_for_default = argument_template;
   }  /* if */
@@ -20499,7 +20500,6 @@ next_integer_pack_element:
         if (param_for_default->has_default_arg) {
           /* A type parameter with a default value.  The default can be
              either a type or a token cache that needs to be scanned. */
-          check_assertion(templ_sym_for_default != NULL);
           arg_ptr->variant.type = rescan_template_type_default_arg(
                                                          templ_sym_for_default,
                                                          param_for_default,
