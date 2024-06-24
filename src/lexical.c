@@ -20499,6 +20499,7 @@ next_integer_pack_element:
         if (param_for_default->has_default_arg) {
           /* A type parameter with a default value.  The default can be
              either a type or a token cache that needs to be scanned. */
+          check_assertion(templ_sym_for_default != NULL);
           arg_ptr->variant.type = rescan_template_type_default_arg(
                                                          templ_sym_for_default,
                                                          param_for_default,
