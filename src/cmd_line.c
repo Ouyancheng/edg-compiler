@@ -3852,7 +3852,11 @@ taking into account any compiler emulation and the version of the emulation.
   if (!cpp_mode_specified()) {
     if (clang_mode) {
       /* Handle Clang mode C++ standard version defaults. */
-      if (clang_version >= 60000) {
+      if (clang_version >= 160000) {
+        /* Beginning with Clang 16.0.0, C++17 features are enabled by
+           default. */
+        std_version = 201703;
+      } else if (clang_version >= 60000) {
         /* Beginning with Clang 6.0.0, C++14 features are enabled by
            default. */
         std_version = 201402;

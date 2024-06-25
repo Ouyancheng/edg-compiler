@@ -1,5 +1,12 @@
 Version 6.7
 
+6/25/24  [EDGcpfe/27393]
+Clang compatibility: default to C++17 mode when emulating Clang 16.0.0
+
+When emulating Clang 16.0.0 or later and no explicit C++ standard is
+specified, the front end now uses C++17 mode by default.
+
+
 6/21/24  [EDGcpfe/27270]
 Spurious bitwise assignment in generated assignment operator
 
