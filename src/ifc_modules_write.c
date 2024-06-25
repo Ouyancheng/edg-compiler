@@ -5509,6 +5509,12 @@ Add all the types in the given scope to the given IL -> IFC mapping.
          dump_scope_templates). */
       continue;
     }  /* if */
+    if (type->kind == tk_template_param && tptk_is(type, tptk_member)) {
+      /* Skip member template parameters, these are used for nonreal nested
+         types (these are not currently relevant to modules).  See
+         create_nonreal_version_of_nested_type for more information. */
+      continue;
+    }  /* if */
     (void)il_map->find_or_enter_type(type);
   }  /* for */
 }  /* dump_scope_types */
