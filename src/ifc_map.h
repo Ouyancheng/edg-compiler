@@ -3023,14 +3023,14 @@ enum an_ifc_edg_constant_token_sort_0_43 : uint32_t {
   ifc_0_43_ects_float_constant = 1,
   ifc_0_43_ects_char_constant  = 2,
   ifc_0_43_ects_string_literal = 3,
-  ifc_0_43_ects_aggr_constant  = 4
+  ifc_0_43_ects_gen_constant   = 4
 };  /* an_ifc_edg_constant_token_sort_0_43 */
 
 
 enum an_ifc_edg_constant_token_sort : uint32_t {
-  ifc_ects_aggr_constant,
   ifc_ects_char_constant,
   ifc_ects_float_constant,
+  ifc_ects_gen_constant,
   ifc_ects_int_constant,
   ifc_ects_string_literal
 };  /* an_ifc_edg_constant_token_sort */

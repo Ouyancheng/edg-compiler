@@ -1067,7 +1067,7 @@ value represents a valid sort value; otherwise, return FALSE.
     case ifc_0_43_ects_float_constant:
     case ifc_0_43_ects_char_constant:
     case ifc_0_43_ects_string_literal:
-    case ifc_0_43_ects_aggr_constant:
+    case ifc_0_43_ects_gen_constant:
       result = TRUE;
       break;
     default:

@@ -4804,14 +4804,14 @@ name in the form of a c-string.
   a_const_char *result;
 
   switch (universal) {
-    case ifc_ects_aggr_constant:
-      result = "EdgConstantTokenSort::AggrConstant";
-      break;
     case ifc_ects_char_constant:
       result = "EdgConstantTokenSort::CharConstant";
       break;
     case ifc_ects_float_constant:
       result = "EdgConstantTokenSort::FloatConstant";
+      break;
+    case ifc_ects_gen_constant:
+      result = "EdgConstantTokenSort::GenConstant";
       break;
     case ifc_ects_int_constant:
       result = "EdgConstantTokenSort::IntConstant";
@@ -4851,8 +4851,8 @@ module, return a reencoded sort value.
     case ifc_ects_string_literal:
       result = (ue_ty)ifc_0_43_ects_string_literal;
       break;
-    case ifc_ects_aggr_constant:
-      result = (ue_ty)ifc_0_43_ects_aggr_constant;
+    case ifc_ects_gen_constant:
+      result = (ue_ty)ifc_0_43_ects_gen_constant;
       break;
     default:
       unexpected_condition_str("Invalid value for a EdgConstantTokenSort.");
@@ -4884,8 +4884,8 @@ corresponding universal representation.
     case ifc_0_43_ects_string_literal:
       result = ifc_ects_string_literal;
       break;
-    case ifc_0_43_ects_aggr_constant:
-      result = ifc_ects_aggr_constant;
+    case ifc_0_43_ects_gen_constant:
+      result = ifc_ects_gen_constant;
       break;
     default:
       unexpected_condition_str("Invalid value for a EdgConstantTokenSort.");

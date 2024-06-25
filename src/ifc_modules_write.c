@@ -4492,15 +4492,14 @@ EDG IFC constant token kind.
   an_ifc_edg_constant_token_sort result;
 
   switch (token) {
-    case tok_gen_constant:
-      /* In modules, this is only used for aggregate constants. */
-      result = ifc_ects_aggr_constant;
-      break;
     case tok_char_constant:
       result = ifc_ects_char_constant;
       break;
     case tok_float_constant:
       result = ifc_ects_float_constant;
+      break;
+    case tok_gen_constant:
+      result = ifc_ects_gen_constant;
       break;
     case tok_int_constant:
       result = ifc_ects_int_constant;

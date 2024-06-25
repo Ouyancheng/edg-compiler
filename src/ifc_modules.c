@@ -25620,14 +25620,14 @@ Given a constant token, return the corresponding front end token kind.
   an_ifc_edg_constant_token_sort token_sort = get_ifc_kind(node);
 
   switch (token_sort) {
-    case ifc_ects_aggr_constant:
-      result = tok_gen_constant;
-      break;
     case ifc_ects_char_constant:
       result = tok_char_constant;
       break;
     case ifc_ects_float_constant:
       result = tok_float_constant;
+      break;
+    case ifc_ects_gen_constant:
+      result = tok_gen_constant;
       break;
     case ifc_ects_int_constant:
       result = tok_int_constant;
