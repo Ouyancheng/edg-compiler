@@ -305,10 +305,15 @@ Allocate the given number of nodes in their corresponding output partition.
 Return the first node in the block's index into the partition.
 */
 {
-  an_ifc_output_partition
+  size_t result = 0;
+
+  if (num_nodes > 0) {
+    an_ifc_output_partition
                 *output_part = this->get_or_init_partition<an_ifc_Node_type>();
 
-  return output_part->new_elements(num_nodes);
+    result = output_part->new_elements(num_nodes);
+  }  /* if */
+  return result;
 }  /* an_ifc_output_state::alloc_node_block */
 
 
