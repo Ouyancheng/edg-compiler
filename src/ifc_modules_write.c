@@ -1326,6 +1326,8 @@ private:
   /* Functions for adding tokens and manipulating token caches. */
   an_ifc_edg_complex_token_index find_or_enter_textual_token(
                                                   const a_cached_token *token);
+  void enter_basic_token_to_cache(an_ifc_output_token_cache *ifc_cache,
+                                  a_cached_token            *token);
   an_ifc_edg_complex_token_index enter_textual_token(
                                                   const a_cached_token *token);
   void enter_textual_token_to_cache(an_ifc_output_token_cache *ifc_cache,
@@ -4543,6 +4545,24 @@ state.  Return the corresponding IFC EDG complex token index.
 }  /* an_ifc_il_map::find_or_enter_textual_token */
 
 
+void an_ifc_il_map::enter_basic_token_to_cache(
+                                         an_ifc_output_token_cache *ifc_cache,
+                                         a_cached_token            *token)
+/*
+Add the given cached token (representing a token representable as either a
+basic token or a textual token) to the given token cache.
+*/
+{
+  an_ifc_edg_basic_token_sort
+                ifc_token = token_to_basic_token_kind(token->token);
+  if (ifc_token == ifc_ebts_complex) {
+    this->enter_textual_token_to_cache(ifc_cache, token);
+  } else {
+    ifc_cache->add_basic(ifc_token);
+  }  /* if */
+}  /* an_ifc_il_map::enter_basic_token_to_cache */
+
+
 an_ifc_edg_complex_token_index an_ifc_il_map::enter_textual_token(
                                                      const a_cached_token *ctp)
 /*
@@ -4693,6 +4713,31 @@ given token cache.
 }  /* an_ifc_il_map::enter_identifier_token_to_cache */
 
 
+static a_boolean should_token_be_simplified(a_cached_token *tok)
+/*
+Return TRUE if the given token should be simplified to just its corresponding
+basic token kind.  This occurs for some token kinds (e.g,. tok_true) where the
+front end has an associated constant value but it should not be used.
+Otherwise, return FALSE.
+*/
+{
+  a_boolean result = FALSE;
+
+  switch (tok->token) {
+    case tok_true:
+    case tok_false:
+      result = TRUE;
+      break;
+    default:
+      break;
+  }  /* switch */
+  /* Textual tokens cannot currently be simplified tokens. */
+  check_assertion(!result ||
+                  token_to_basic_token_kind(tok->token) != ifc_ebts_complex);
+  return result;
+}  /* should_token_be_simplified */
+
+
 void an_ifc_il_map::enter_token_cache(an_ifc_output_token_cache *ifc_cache,
                                       a_token_cache             *fe_cache)
 /*
@@ -4702,9 +4747,13 @@ cache.
 {
   for (a_cached_token *tok = fe_cache->first_token; tok != NULL;
        tok = tok->next) {
+    if (should_token_be_simplified(tok)) {
+      this->enter_basic_token_to_cache(ifc_cache, tok);
+      continue;
+    }  /* if */
+
     a_token_extra_info_kind
                 extra_info = tok->extra_info_kind;
-
     switch (extra_info) {
       case teik_constant:
         this->enter_constant_token_to_cache(ifc_cache, tok);
@@ -4723,14 +4772,7 @@ cache.
             check_assertion(tok->next == NULL);
             break;
           }  /* if */
-
-          an_ifc_edg_basic_token_sort
-                ifc_token = token_to_basic_token_kind(tok->token);
-          if (ifc_token == ifc_ebts_complex) {
-            this->enter_textual_token_to_cache(ifc_cache, tok);
-          } else {
-            ifc_cache->add_basic(ifc_token);
-          }  /* if */
+          this->enter_basic_token_to_cache(ifc_cache, tok);
         }
         break;
       case teik_asm_string:
