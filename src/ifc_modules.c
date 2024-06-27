@@ -22009,7 +22009,7 @@ this is needed.
         issue_unsupported_construct_error(mod, str_for(type.sort),
                                           &error_position);
         goto invalid;
-      }  /* else if */
+      }  /* if */
       break;
     case ifc_ts_type_fundamental:
       { Opt<an_ifc_type_fundamental> opt_itf;
