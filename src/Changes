@@ -1,5 +1,13 @@
 Version 6.7
 
+6/28/24  [EDGcpfe/27407]
+Unbounded loop in form_exception_specification
+
+In some complex cases the front end could enter an unbounded loop in
+form_exception_specification while putting out error diagnostics.  This is
+now fixed.
+
+
 6/25/24  [EDGcpfe/27393]
 Clang compatibility: default to C++17 mode when emulating Clang 16.0.0
 

@@ -3338,10 +3338,18 @@ if any, recorded in the given routine type in the way described by octl.
   } else if (esp->is_noexcept) {
     octl->output_str(" noexcept", octl);
     while (esp->copy_from_prototype) {
-      esp = skip_typerefs(esp->variant.routine->type)->
+      an_exception_specification_ptr proto_esp =
+                           skip_typerefs(esp->variant.routine->type)->
                            variant.routine.extra_info->exception_specification;
+      if (proto_esp == esp) {
+        /* This can occur in error cases; avoid an endless loop. */
+        break;
+      }  /* if */
+      esp = proto_esp;
     }  /* while */
-    if (esp->arg_cached) {
+    if (esp->arg_cached || esp->copy_from_prototype) {
+      /* We don't have a usable constant for the operand. */
+      check_assertion(!octl->gen_compilable_code);
       octl->output_str("(<expr>)", octl);
     } else if (esp->variant.noexcept_arg != NULL) {
       octl->output_str("(", octl);
