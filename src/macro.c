@@ -12020,12 +12020,12 @@ command line -D options.
                                /*cannot_be_redefined=*/TRUE,
                                /*ref_suppresses_pch_file=*/FALSE);
     }  /* if */
-    if (ms_await ||
-        (coroutines_enabled &&
-         ms_version_is(>=1900) &&
-         ms_version_is(<1928))) {
+    if (!ms_await_strict &&
+        (ms_await ||
+         (coroutines_enabled &&
+          ms_version_is(>=1900) && ms_version_is(<1928)))) {
       /* This macro is defined only when using the pre-C++20 coroutine
-         implementation. */
+         implementation (and never in /await:strict mode). */
       (void)enter_predef_macro("1", "_RESUMABLE_FUNCTIONS_SUPPORTED",
                                /*cannot_be_redefined=*/TRUE,
                                /*ref_suppresses_pch_file=*/FALSE);
