@@ -56,9 +56,9 @@ Consider:
   }
 
 The copy assignment operator of S erroneously used bitwise assignment for its
-subobject S::x when instead it should call an instance the X::operator= member
-template.  This regression, introduced by the Changes for EDGcpfe/26518 in
-version 6.6 of the front end, is now fixed.
+subobject S::x when instead it should call an of instance the X::operator=
+member template.  This regression, introduced by the changes for EDGcpfe/26518
+in version 6.6 of the front end, is now fixed.
 
 
 6/21/24  [EDGcpfe/27267]
