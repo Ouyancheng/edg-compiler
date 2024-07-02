@@ -2898,13 +2898,32 @@ static void proc_pragma(a_source_position *start_of_dir_position)
 Scan and process a #pragma directive.
 */
 {
+  int				char_len;
   a_pragma_kind_description_ptr	pkdp = NULL;
   a_source_position		id_position;
   a_boolean			pass_to_output = generate_pp_output;
 #if GNU_EXTENSIONS_ALLOWED
-  a_boolean                     is_gcc_system_header = FALSE;
+  a_boolean			is_gcc_system_header = FALSE;
 #endif /* GNU_EXTENSIONS_ALLOWED */
 
+  /* The expand_macros flag is currently FALSE after recognizing the
+     "pragma" directive.  Determine whether macro expansion should be
+     enabled before fetching the pragma identifier. */
+  skip_white_space();
+  if (curr_char_loc[0] == 'S' && curr_char_loc[1] == 'T' &&
+      curr_char_loc[2] == 'D' && curr_char_loc[3] == 'C' &&
+      !is_identifier_char(curr_char_loc + 4, &char_len,
+                          /*is_identifier_start=*/FALSE)) {
+    /* The "STDC" in a standard C pragma must be recognized before macro
+       expansion, i.e., defining a macro STDC should have no effect. */
+  } else {
+    /* Whether macros are expanded within a pragma directive is
+       implementation-defined, but common practice is to do so.  (This
+       affects only recognition of the pragma identifier; whether the rest
+       of the directive is macro-expanded or not is determined by the
+       expand_macros flag in the pragma kind description.) */
+    expand_macros = TRUE;
+  }  /* if */
   /* Look up the identifier that specifies the kind of pragma. */
   pkdp = look_up_pragma_id(&id_position);
   if (generate_pp_output && do_preprocessing_only) {

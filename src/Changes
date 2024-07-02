@@ -1,5 +1,21 @@
 Version 6.7
 
+7/2/24   [EDGcpfe/27416]
+Macro expansion of pragma names
+
+Except for standard pragmas, where the "STDC" string must be recognized
+even if there is a macro definition for STDC in effect, it is
+implementation-defined by the C and C++ Standards whether the preprocessing
+tokens of a pragma directive are subject to macro expansion.  Previously,
+the front end did not expand macros when determining the pragma name.
+Other implementations do so, however, so the front end has now been changed
+to follow suit.  For example, with --c++11:
+
+  #define M diag_error 69  // 69 is the integer truncation diagnostic
+  #pragma M                // Previously an unrecognized pragma M
+  char c = { 1234 };       // Previously a warning, now promoted to an error
+
+
 7/1/24   [EDGcpfe/27410]
 Microsoft compatibility: _RESUMABLE_FUNCTIONS_SUPPORTED macro
 
