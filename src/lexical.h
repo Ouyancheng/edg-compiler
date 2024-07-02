@@ -2014,16 +2014,17 @@ typedef struct a_lexical_state_stack_entry {
   a_token_cache	cache;
 			/* The cache used to save tokens when cache_tokens is
 			   TRUE. */
-  a_byte_boolean
-		caching_tokens;
+  a_bit_field	next_token_is_top_level_decl_start:1;
+			/* The saved value of
+			   next_token_is_top_level_decl_start when the state
+			   stack was pushed. */
+  a_bit_field	caching_tokens:1;
 			/* The saved value of caching_tokens when the state
 			   stack was pushed. */
-  a_byte_boolean
-		suspend_caching_tokens;
+  a_bit_field	suspend_caching_tokens:1;
 			/* TRUE if, when we are caching tokens, we should
 			   temporarily suspend that caching. */
-  a_byte_boolean
-		flushing_tokens;
+  a_bit_field	flushing_tokens:1;
 			/* TRUE if we are flushing tokens that are being
 			   ignored. */
 } a_lexical_state_stack_entry;

@@ -17960,6 +17960,8 @@ is saved for use when the stack is popped.
   lssep = alloc_lexical_state_stack_entry();
   lssep->next = curr_lexical_state_stack_entry;
   lssep->error_position = error_position;
+  lssep->next_token_is_top_level_decl_start =
+                                            next_token_is_top_level_decl_start;
   lssep->caching_tokens = caching_tokens;
   caching_tokens = FALSE;
   curr_lexical_state_stack_entry = lssep;
@@ -17993,6 +17995,8 @@ to alter the consistency check at the end of the routine.
   lssep->next = avail_lexical_state_stack_entries;
   error_position = lssep->error_position;
   caching_tokens = lssep->caching_tokens;
+  next_token_is_top_level_decl_start =
+                                     lssep->next_token_is_top_level_decl_start;
   /* Discard any tokens that may have been cached. */
   discard_token_cache(&lssep->cache);
   check_assertion_str2(lssep->cache_tokens == 0, "pop_lexical_stack_state:",
@@ -18069,23 +18073,22 @@ skipping too far in error cases.
 */
 {
   a_token_kind      closing_token = tok_error;
-  a_token_kind	    prev_token = tok_error;
+  a_token_kind      prev_token = tok_error;
   a_source_position start_pos;
   unsigned long     paren_count   = 0,
-		    bracket_count = 0,
-		    brace_count   = 0;
+                    bracket_count = 0,
+                    brace_count   = 0;
   unsigned long     max_lines;
   a_boolean         done = FALSE;
   a_symbol_header_ptr
                     prev_sym_header = NULL;
-  Value_saver<a_byte_boolean>
-                    flushing_tokens_saver(
-                       &curr_lexical_state_stack_entry->flushing_tokens, TRUE);
+  a_boolean         saved_flushing_tokens =
+                               curr_lexical_state_stack_entry->flushing_tokens;
 
   db_enter(3, "flush_until_matching_token_full");
+  curr_lexical_state_stack_entry->flushing_tokens = TRUE;
   /* Save the current position, to see later how much we have flushed. */
   copy_source_position(pos_curr_token, start_pos);
-
   /* Determine the associated closing token and the maximum number of lines
      to throw away. */
   max_lines = 2;
@@ -18104,7 +18107,6 @@ skipping too far in error cases.
                                 "bad opening token");
   }  /* switch */
   (void)get_token();
-
   while (!done && (curr_token != closing_token ||
          /*lint --e(845) LINTBUG */
          paren_count != 0 || bracket_count != 0 || brace_count != 0)) {
@@ -18159,7 +18161,8 @@ skipping too far in error cases.
     prev_sym_header = locator_for_curr_id.symbol_header;
     (void)get_token();
   }  /* while */
-
+  /* Restore the value of flushing_tokens. */
+  curr_lexical_state_stack_entry->flushing_tokens = saved_flushing_tokens;
   db_exit();
 }  /* flush_until_matching_token_full */
 
