@@ -150,7 +150,7 @@ must be defined in interpret.c to implement its evaluation.
   M(std_meta, is_function_parameter, "(r)b") \
   M(std_meta, is_explicit_object_parameter, "(r)b") \
   M(std_meta, is_namespace, "(r)b") \
-  M(std_meta, is_nsdm, "(r)b") \
+  M(std_meta, is_nonstatic_data_member, "(r)b") \
   M(std_meta, is_base, "(r)b") \
   M(std_meta, is_constructor, "(r)b") \
   M(std_meta, is_destructor, "(r)b") \
@@ -193,6 +193,28 @@ must be defined in interpret.c to implement its evaluation.
   M(std_meta, nearest_namespace, "()r") \
   M(std_meta, type_tuple_size, "(r)I") \
   M(std_meta, type_tuple_element, "(I,r)r") \
+  M(std_meta, type_is_void, "(r)I") \
+  M(std_meta, type_is_null_pointer, "(r)I") \
+  M(std_meta, type_is_integral, "(r)I") \
+  M(std_meta, type_is_floating_point, "(r)I") \
+  M(std_meta, type_is_array, "(r)I") \
+  M(std_meta, type_is_pointer, "(r)I") \
+  M(std_meta, type_is_lvalue_reference, "(r)I") \
+  M(std_meta, type_is_rvalue_reference, "(r)I") \
+  M(std_meta, type_is_member_object_pointer, "(r)I") \
+  M(std_meta, type_is_member_function_pointer, "(r)I") \
+  M(std_meta, type_is_enum, "(r)I") \
+  M(std_meta, type_is_union, "(r)I") \
+  M(std_meta, type_is_class, "(r)I") \
+  M(std_meta, type_is_function, "(r)I") \
+  M(std_meta, type_is_reflection, "(r)I") \
+  M(std_meta, type_is_reference, "(r)b") \
+  M(std_meta, type_is_arithmetic, "(r)b") \
+  M(std_meta, type_is_fundamental, "(r)b") \
+  M(std_meta, type_is_object, "(r)b") \
+  M(std_meta, type_is_scalar, "(r)b") \
+  M(std_meta, type_is_compound, "(r)b") \
+  M(std_meta, type_is_member_pointer, "(r)b") \
   M(std_meta, type_is_const, "(r)b") \
   M(std_meta, type_remove_pointer, "(r)r") \
   M(std_meta, type_add_pointer, "(r)r") \

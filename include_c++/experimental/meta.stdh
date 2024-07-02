@@ -584,6 +584,94 @@ namespace std {
 
     // Type traits
 
+    consteval bool type_is_void(info) {
+      return false;  /* Dummy return.  Handled by interpreter. */
+    }
+
+    consteval bool type_is_null_pointer(info) {
+      return false;  /* Dummy return.  Handled by interpreter. */
+    }
+
+    consteval bool type_is_integral(info) {
+      return false;  /* Dummy return.  Handled by interpreter. */
+    }
+
+    consteval bool type_is_floating_point(info) {
+      return false;  /* Dummy return.  Handled by interpreter. */
+    }
+
+    consteval bool type_is_array(info) {
+      return false;  /* Dummy return.  Handled by interpreter. */
+    }
+
+    consteval bool type_is_pointer(info) {
+      return false;  /* Dummy return.  Handled by interpreter. */
+    }
+
+    consteval bool type_is_lvalue_reference(info) {
+      return false;  /* Dummy return.  Handled by interpreter. */
+    }
+
+    consteval bool type_is_rvalue_reference(info) {
+      return false;  /* Dummy return.  Handled by interpreter. */
+    }
+
+    consteval bool type_is_member_object_pointer(info) {
+      return false;  /* Dummy return.  Handled by interpreter. */
+    }
+
+    consteval bool type_is_member_function_pointer(info) {
+      return false;  /* Dummy return.  Handled by interpreter. */
+    }
+
+    consteval bool type_is_enum(info) {
+      return false;  /* Dummy return.  Handled by interpreter. */
+    }
+
+    consteval bool type_is_union(info) {
+      return false;  /* Dummy return.  Handled by interpreter. */
+    }
+
+    consteval bool type_is_class(info) {
+      return false;  /* Dummy return.  Handled by interpreter. */
+    }
+
+    consteval bool type_is_function(info) {
+      return false;  /* Dummy return.  Handled by interpreter. */
+    }
+
+    consteval bool type_is_reflection(info) {
+      return false;  /* Dummy return.  Handled by interpreter. */
+    }
+
+    consteval bool type_is_reference(info) {
+      return false;  /* Dummy return.  Handled by interpreter. */
+    }
+
+    consteval bool type_is_arithmetic(info) {
+      return false;  /* Dummy return.  Handled by interpreter. */
+    }
+
+    consteval bool type_is_fundamental(info) {
+      return false;  /* Dummy return.  Handled by interpreter. */
+    }
+
+    consteval bool type_is_object(info) {
+      return false;  /* Dummy return.  Handled by interpreter. */
+    }
+
+    consteval bool type_is_scalar(info) {
+      return false;  /* Dummy return.  Handled by interpreter. */
+    }
+
+    consteval bool type_is_compound(info) {
+      return false;  /* Dummy return.  Handled by interpreter. */
+    }
+
+    consteval bool type_is_member_pointer(info) {
+      return false;  /* Dummy return.  Handled by interpreter. */
+    }
+
     consteval bool type_is_const(info) {
       return false;  /* Dummy return.  Handled by interpreter. */
     }
