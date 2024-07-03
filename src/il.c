@@ -14266,6 +14266,46 @@ The expression can then be recovered using find_local_expr_node.
   func_scope->expr_node_refs = new_ref;
 }  /* make_local_expr_node_ref */
 
+
+void add_local_expr_node_referrer(char                        *referrer,
+                                  a_local_expr_node_ref_kind  kind)
+/*
+The IL entry given by referrer is a duplicate of an IL entry that has an
+associated a_local_expr_node_ref entry of the given kind.  Duplicate that
+entry but associate it with the given referrer.
+*/
+{
+  a_source_correspondence  *scp = (a_source_correspondence*)referrer;
+  a_routine                *rp = scp->enclosing_routine;
+
+  if (rp->function_def_number != NULL_function_def_number) {
+    a_scope_ptr  scope = scope_for_routine(rp);
+    a_local_expr_node_ref_ptr
+                 ref = scope->expr_node_refs, new_ref;
+    for (; ref != NULL; ref = ref->next) {
+      if (ref->kind == kind) {
+        a_memory_region_number  memory_region, region_to_switch_back_to;
+        memory_region = mem_region_for_routine(rp);
+        if (memory_region != curr_il_region_number) {
+          region_to_switch_back_to = curr_il_region_number;
+          switch_il_region(memory_region);
+        } else {
+          region_to_switch_back_to = NULL_region_number;
+        }  /* if */
+        new_ref = alloc_local_expr_node_ref();
+        switch_back_to_original_region(region_to_switch_back_to);
+        new_ref->next = ref->next;
+        ref->next = new_ref;
+        new_ref->kind = kind;
+        new_ref->expr = ref->expr;
+        new_ref->referrer.ptr = referrer;
+        new_ref->referrer.kind = ref->referrer.kind;
+        break;
+      }  /* if */
+    }  /* for */
+  }  /* if */
+}  /* add_local_expr_node_referrer */
+
 #endif /* !STANDALONE_UTILITY_PROGRAM */
 
 an_expr_node_ptr find_local_expr_node_in_scope(
@@ -14321,46 +14361,6 @@ expected to hold a pointer to the expression being searched for.)
   }  /* if */
   return result;
 }  /* find_local_expr_node */
-
-
-void add_local_expr_node_referrer(char                        *referrer,
-                                  a_local_expr_node_ref_kind  kind)
-/*
-The IL entry given by referrer is a duplicate of an IL entry that has an
-associated a_local_expr_node_ref entry of the given kind.  Duplicate that
-entry but associate it with the given referrer.
-*/
-{
-  a_source_correspondence  *scp = (a_source_correspondence*)referrer;
-  a_routine                *rp = scp->enclosing_routine;
-
-  if (rp->function_def_number != NULL_function_def_number) {
-    a_scope_ptr  scope = scope_for_routine(rp);
-    a_local_expr_node_ref_ptr
-                 ref = scope->expr_node_refs, new_ref;
-    for (; ref != NULL; ref = ref->next) {
-      if (ref->kind == kind) {
-        a_memory_region_number  memory_region, region_to_switch_back_to;
-        memory_region = mem_region_for_routine(rp);
-        if (memory_region != curr_il_region_number) {
-          region_to_switch_back_to = curr_il_region_number;
-          switch_il_region(memory_region);
-        } else {
-          region_to_switch_back_to = NULL_region_number;
-        }  /* if */
-        new_ref = alloc_local_expr_node_ref();
-        switch_back_to_original_region(region_to_switch_back_to);
-        new_ref->next = ref->next;
-        ref->next = new_ref;
-        new_ref->kind = kind;
-        new_ref->expr = ref->expr;
-        new_ref->referrer.ptr = referrer;
-        new_ref->referrer.kind = ref->referrer.kind;
-        break;
-      }  /* if */
-    }  /* for */
-  }  /* if */
-}  /* add_local_expr_node_referrer */
 
 
 an_expr_node_ptr expr_node_from_tpck_expression(a_constant_ptr cp)
