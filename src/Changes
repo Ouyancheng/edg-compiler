@@ -1,5 +1,21 @@
 Version 6.7
 
+7/2/24   [EDGcpfe/27263]
+Abort when using an array with a local element type as a template argument
+
+Consider:
+
+  template<typename T> inline T* get_ptr();
+  template<typename T> T* g(T&) {
+    using local_t = typename T::Type;
+    constexpr auto N = T::Count;
+    return get_ptr<local_t[N]>(); // Previously triggered an abort.  Now okay.
+  }
+
+Previously, this elicited an abort in the C++-generating back end (when calling
+function form_array_declarator).  That is now fixed.
+
+
 7/2/24   [EDGcpfe/27416]
 Macro expansion of pragma names
 
