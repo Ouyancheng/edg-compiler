@@ -14323,6 +14323,46 @@ expected to hold a pointer to the expression being searched for.)
 }  /* find_local_expr_node */
 
 
+void add_local_expr_node_referrer(char                        *referrer,
+                                  a_local_expr_node_ref_kind  kind)
+/*
+The IL entry given by referrer is a duplicate of an IL entry that has an
+associated a_local_expr_node_ref entry of the given kind.  Duplicate that
+entry but associate it with the given referrer.
+*/
+{
+  a_source_correspondence  *scp = (a_source_correspondence*)referrer;
+  a_routine                *rp = scp->enclosing_routine;
+
+  if (rp->function_def_number != NULL_function_def_number) {
+    a_scope_ptr  scope = scope_for_routine(rp);
+    a_local_expr_node_ref_ptr
+                 ref = scope->expr_node_refs, new_ref;
+    for (; ref != NULL; ref = ref->next) {
+      if (ref->kind == kind) {
+        a_memory_region_number  memory_region, region_to_switch_back_to;
+        memory_region = mem_region_for_routine(rp);
+        if (memory_region != curr_il_region_number) {
+          region_to_switch_back_to = curr_il_region_number;
+          switch_il_region(memory_region);
+        } else {
+          region_to_switch_back_to = NULL_region_number;
+        }  /* if */
+        new_ref = alloc_local_expr_node_ref();
+        switch_back_to_original_region(region_to_switch_back_to);
+        new_ref->next = ref->next;
+        ref->next = new_ref;
+        new_ref->kind = kind;
+        new_ref->expr = ref->expr;
+        new_ref->referrer.ptr = referrer;
+        new_ref->referrer.kind = ref->referrer.kind;
+        break;
+      }  /* if */
+    }  /* for */
+  }  /* if */
+}  /* add_local_expr_node_referrer */
+
+
 an_expr_node_ptr expr_node_from_tpck_expression(a_constant_ptr cp)
 /*
 Return the expression associated with cp, which must be a
@@ -15000,9 +15040,8 @@ field in the new parameter types will be NULL.
 #if LOWER_VARIABLE_LENGTH_ARRAYS
   to->visited_for_vla_lowering = FALSE;
 #endif /* LOWER_VARIABLE_LENGTH_ARRAYS */
-  if (from_kind == (a_type_kind)tk_array ||
-      from_kind == (a_type_kind)tk_routine) {
-    if (from_kind == (a_type_kind)tk_routine) {
+  if (from_kind == tk_array || from_kind == tk_routine) {
+    if (from_kind == tk_routine) {
       /* For a routine type, the type supplement must also be copied. */
       *rtsp = *from->variant.routine.extra_info;
       to->variant.routine.extra_info = rtsp;
@@ -15015,7 +15054,7 @@ field in the new parameter types will be NULL.
     } else {
       /* An array type. */
       tp = f_skip_typerefs(underlying_array_element_type(to));
-      dtf_kind = (a_dependent_type_fixup_kind)dtfk_array_type_size;
+      dtf_kind = dtfk_array_type_size;
       if (from->variant.array.has_assoc_vla_dimension) {
         /* A variable-length array (VLA): Create a new a_vla_dimension entry
            for the new copy of the type.  VLA types can only be copied while
@@ -15032,6 +15071,12 @@ field in the new parameter types will be NULL.
                                      &vdp->position);
         decl_scope_level = saved_decl_scope_level;
         new_vdp->original_dimension = vdp;
+      }  /* if */
+      if (to->variant.array.constant_bound_expr_in_local_expr_node_ref) {
+        add_local_expr_node_referrer((char*)to, lerk_array_bound);
+      }  /* if */
+      if (to->variant.array.dep_constant_bound_expr_in_local_expr_node_ref) {
+        add_local_expr_node_referrer((char*)to, lerk_dep_array_bound);
       }  /* if */
     }  /* if */
     if (is_incomplete_type(tp) && is_immediate_class_type(tp)) {
