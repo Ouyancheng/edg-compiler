@@ -43814,9 +43814,15 @@ deduction succeeds and results in the same type "A<T>".
       all_templ_params_have_values(tap, template_params, CTWS_NO_OPTIONS,
                                    /*is_templ_templ_param_check=*/FALSE,
                                    template_sym, tssp, 0)) {
-    a_symbol_ptr  inst_sym = find_template_class_simple(template_sym, &tap);
-    a_type_ptr    inst_type = inst_sym->variant.type.ptr;
-    result = identical_types(type, inst_type);
+    /* GCC does not check that the type resulting from substituting the deduced
+       arguments into the template matches the original type. */
+    if (!gnu_version_is(any_version)) {
+      a_symbol_ptr  inst_sym = find_template_class_simple(template_sym, &tap);
+      a_type_ptr    inst_type = inst_sym->variant.type.ptr;
+      result = identical_types(type, inst_type);
+    } else {
+      result = TRUE;
+    }  /* if */
   }  /* if */
   free_template_arg_list(tap);
   return result;
