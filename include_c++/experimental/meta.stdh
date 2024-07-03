@@ -293,8 +293,13 @@ namespace std {
       return false;  /* Dummy return.  Handled by interpreter. */
     }
 
-    consteval bool is_nsdm(info) {
+    consteval bool is_nonstatic_data_member(info) {
       return false;  /* Dummy return.  Handled by interpreter. */
+    }
+
+    [[deprecated("use std::meta::is_nonstatic_data_member")]]
+    consteval bool is_nsdm(info r) {
+      return is_nonstatic_data_member(r);
     }
 
     consteval bool is_base(info) {
