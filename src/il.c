@@ -14267,16 +14267,15 @@ The expression can then be recovered using find_local_expr_node.
 }  /* make_local_expr_node_ref */
 
 
-void add_local_expr_node_referrer(char                        *new_referrer,
-                                  char                        *old_referrer,
+void add_local_expr_node_referrer(char                        *referrer,
                                   a_local_expr_node_ref_kind  kind)
 /*
-The IL entry given by new_referrer is a duplicate of the old_referrer entry
-and the latter has an associated a_local_expr_node_ref entry of the given kind.
-Duplicate that entry but associate it with the given referrer.
+The IL entry given by referrer is a duplicate of an IL entry that has an
+associated a_local_expr_node_ref entry of the given kind.  Duplicate that
+entry but associate it with the given referrer.
 */
 {
-  a_source_correspondence  *scp = (a_source_correspondence*)new_referrer;
+  a_source_correspondence  *scp = (a_source_correspondence*)referrer;
   a_routine                *rp = scp->enclosing_routine;
 
   if (rp->function_def_number != NULL_function_def_number) {
@@ -14284,7 +14283,7 @@ Duplicate that entry but associate it with the given referrer.
     a_local_expr_node_ref_ptr
                  ref = scope->expr_node_refs, new_ref;
     for (; ref != NULL; ref = ref->next) {
-      if (ref->kind == kind && ref->referrer.ptr == old_referrer) {
+      if (ref->kind == kind) {
         a_memory_region_number  memory_region, region_to_switch_back_to;
         memory_region = mem_region_for_routine(rp);
         if (memory_region != curr_il_region_number) {
@@ -14299,7 +14298,7 @@ Duplicate that entry but associate it with the given referrer.
         ref->next = new_ref;
         new_ref->kind = kind;
         new_ref->expr = ref->expr;
-        new_ref->referrer.ptr = new_referrer;
+        new_ref->referrer.ptr = referrer;
         new_ref->referrer.kind = ref->referrer.kind;
         break;
       }  /* if */
@@ -15074,11 +15073,10 @@ field in the new parameter types will be NULL.
         new_vdp->original_dimension = vdp;
       }  /* if */
       if (to->variant.array.constant_bound_expr_in_local_expr_node_ref) {
-        add_local_expr_node_referrer((char*)to, (char*)from, lerk_array_bound);
+        add_local_expr_node_referrer((char*)to, lerk_array_bound);
       }  /* if */
       if (to->variant.array.dep_constant_bound_expr_in_local_expr_node_ref) {
-        add_local_expr_node_referrer((char*)to, (char*)from,
-                                     lerk_dep_array_bound);
+        add_local_expr_node_referrer((char*)to, lerk_dep_array_bound);
       }  /* if */
     }  /* if */
     if (is_incomplete_type(tp) && is_immediate_class_type(tp)) {
