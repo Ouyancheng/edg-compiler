@@ -2926,6 +2926,7 @@ Scan and process a #pragma directive.
   }  /* if */
   /* Look up the identifier that specifies the kind of pragma. */
   pkdp = look_up_pragma_id(&id_position);
+  expand_macros = FALSE;
   if (generate_pp_output && do_preprocessing_only) {
     /* Generating preprocessing output for some other compiler.  In most cases
        the #pragma is passed to the output.  The information in the pragma
