@@ -1,5 +1,21 @@
 Version 6.7
 
+7/3/24   [EDGcpfe/27406]
+Abort on class template argument deduction for alias templates
+
+In modes where the deduced type of a deduction guide can include CV qualifiers
+or name an alias template specialization, forming the guides for an alias
+template previously resulted in an incorrect variant access.  For example, with
+--c++20 --g++:
+
+  template<typename> struct C {
+    C(int);
+  };
+  template<typename T> C(T) -> const C<void>;
+  template<typename T> using A = C<T>;
+  A a{1};  // Previously triggered an abort.  Now okay.
+
+
 7/2/24   [EDGcpfe/27263]
 Abort when using an array with a local element type as a template argument
 

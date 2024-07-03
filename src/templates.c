@@ -43279,7 +43279,8 @@ guide is recorded in the template symbol supplement associated with alias_sym.
   /* The template arguments (if any) of the return type of the deduction guide
      (ret_type) are deduced from the defining-type-id of the alias template
      (def_type). */
-  ret_type = rout_type->variant.routine.return_type;
+  ret_type = skip_typerefs(rout_type->variant.routine.return_type);
+  if (!is_template_class_type(ret_type)) goto done;
   deduced_guide_args = create_initial_template_arg_list(
                                           guide_template_params, NULL,
                                           /*is_templ_templ_param_check=*/FALSE,
@@ -43526,7 +43527,7 @@ guide is recorded in the template symbol supplement associated with alias_sym.
                                               CTWS_ALIAS_DEDUCTION_GUIDE,
                                               &copy_error, &ctws_state);
       if (copy_error) goto done;
-      ret_type = rout_type->variant.routine.return_type;
+      ret_type = skip_typerefs(rout_type->variant.routine.return_type);
     }  /* if */
     rout = alloc_routine();
     if (new_template_params != NULL) {
