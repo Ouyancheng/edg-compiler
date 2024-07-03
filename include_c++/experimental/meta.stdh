@@ -676,6 +676,63 @@ namespace std {
       return false;  /* Dummy return.  Handled by interpreter. */
     }
 
+    consteval bool type_is_volatile(info) {
+      return false;  /* Dummy return.  Handled by interpreter. */
+    }
+
+    consteval bool type_is_trivial(info) {
+      return false;  /* Dummy return.  Handled by interpreter. */
+    }
+
+    consteval bool type_is_trivially_copyable(info) {
+      return false;  /* Dummy return.  Handled by interpreter. */
+    }
+
+    consteval bool type_is_standard_layout(info) {
+      return false;  /* Dummy return.  Handled by interpreter. */
+    }
+
+    consteval bool type_is_empty(info) {
+      return false;  /* Dummy return.  Handled by interpreter. */
+    }
+
+    consteval bool type_is_polymorphic(info) {
+      return false;  /* Dummy return.  Handled by interpreter. */
+    }
+
+    consteval bool type_is_abstract(info) {
+      return false;  /* Dummy return.  Handled by interpreter. */
+    }
+
+    consteval bool type_is_final(info) {
+      return false;  /* Dummy return.  Handled by interpreter. */
+    }
+
+    consteval bool type_is_aggregate(info) {
+      return false;  /* Dummy return.  Handled by interpreter. */
+    }
+
+    consteval bool type_is_signed(info) {
+      return false;  /* Dummy return.  Handled by interpreter. */
+    }
+
+    consteval bool type_is_unsigned(info) {
+      return false;  /* Dummy return.  Handled by interpreter. */
+    }
+
+    consteval bool type_is_bounded_array(info) {
+      return false;  /* Dummy return.  Handled by interpreter. */
+    }
+
+    consteval bool type_is_unbounded_array(info) {
+      return false;  /* Dummy return.  Handled by interpreter. */
+    }
+
+    consteval bool type_is_scoped_enum(info) {
+      return false;  /* Dummy return.  Handled by interpreter. */
+    }
+
+
     consteval info type_remove_pointer(info) {
       return ^::;  /* Dummy return.  Handled by interpreter. */
     }
