@@ -216,6 +216,20 @@ must be defined in interpret.c to implement its evaluation.
   M(std_meta, type_is_compound, "(r)b") \
   M(std_meta, type_is_member_pointer, "(r)b") \
   M(std_meta, type_is_const, "(r)b") \
+  M(std_meta, type_is_volatile, "(r)b") \
+  M(std_meta, type_is_trivial, "(r)b") \
+  M(std_meta, type_is_trivially_copyable, "(r)b") \
+  M(std_meta, type_is_standard_layout, "(r)b") \
+  M(std_meta, type_is_empty, "(r)b") \
+  M(std_meta, type_is_polymorphic, "(r)b") \
+  M(std_meta, type_is_abstract, "(r)b") \
+  M(std_meta, type_is_final, "(r)b") \
+  M(std_meta, type_is_aggregate, "(r)b") \
+  M(std_meta, type_is_signed, "(r)b") \
+  M(std_meta, type_is_unsigned, "(r)b") \
+  M(std_meta, type_is_bounded_array, "(r)b") \
+  M(std_meta, type_is_unbounded_array, "(r)b") \
+  M(std_meta, type_is_scoped_enum, "(r)b") \
   M(std_meta, type_remove_pointer, "(r)r") \
   M(std_meta, type_add_pointer, "(r)r") \
   M(std_meta, type_decay, "(r)r") \

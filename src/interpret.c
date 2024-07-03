@@ -14084,6 +14084,115 @@ DEFINE_type_predicate(std_meta, type_is_const,
     }  /* if */
   }))
 
+DEFINE_type_predicate(std_meta, type_is_volatile,
+  ([&]{
+    if (is_volatile_qualified_type(tp)) {
+      answer = TRUE;
+    } else if (is_function_type(tp)) {
+      if ((rout_type_supp(skip_typerefs(tp))->qualifiers & TQ_VOLATILE) != 0) {
+        answer = TRUE;
+      }  /* if */
+    }  /* if */
+  }))
+
+DEFINE_type_predicate(std_meta, type_is_trivial,
+  ([&]{
+    tp = skip_typerefs(skip_array_types(tp));
+    if (is_immediate_class_type(tp) ? is_trivial_class(tp)
+                                    : is_scalar_type(tp)) {
+      answer = TRUE;
+    }  /* if */
+  }))
+
+DEFINE_type_predicate(std_meta, type_is_trivially_copyable,
+  ([&]{
+    if (is_trivially_copyable_type(tp)) {
+      answer = TRUE;
+    }  /* if */
+  }))
+
+DEFINE_type_predicate(std_meta, type_is_standard_layout,
+  ([&]{
+    tp = skip_typerefs(skip_array_types(tp));
+    if (is_immediate_class_type(tp) ?
+                           class_symbol_supp(symbol_for(tp))->standard_layout
+                         : is_scalar_type(tp)) {
+      answer = TRUE;
+    }  /* if */
+  }))
+
+DEFINE_type_predicate(std_meta, type_is_empty,
+  ([&]{
+    if (is_class_or_struct(tp) && is_empty_class_type(tp)) {
+      answer = TRUE;
+    }  /* if */
+  }))
+
+DEFINE_type_predicate(std_meta, type_is_polymorphic,
+  ([&]{
+    if (is_class_or_struct(tp) && is_polymorphic_class_type(tp)) {
+      answer = TRUE;
+    }  /* if */
+  }))
+
+DEFINE_type_predicate(std_meta, type_is_abstract,
+  ([&]{
+    if (is_class_or_struct(tp) && is_abstract_class_type(tp)) {
+      answer = TRUE;
+    }  /* if */
+  }))
+
+DEFINE_type_predicate(std_meta, type_is_final,
+  ([&]{
+    if (is_class_or_struct(tp) && tp->variant.class_struct_union.final) {
+      answer = TRUE;
+    }  /* if */
+  }))
+
+DEFINE_type_predicate(std_meta, type_is_aggregate,
+  ([&]{
+    if (is_aggregate_type(tp)) {
+      answer = TRUE;
+    }  /* if */
+  }))
+
+DEFINE_type_predicate(std_meta, type_is_signed,
+  ([&]{
+    if ((is_integral_type(tp) && int_type_is_signed(tp)) ||
+         is_floating_type(tp)) {
+      answer = TRUE;
+    }  /* if */
+  }))
+
+DEFINE_type_predicate(std_meta, type_is_unsigned,
+  ([&]{
+    if (is_integral_type(tp) && !int_type_is_signed(tp)) { 
+      answer = TRUE;
+    }  /* if */
+  }))
+
+DEFINE_type_predicate(std_meta, type_is_bounded_array,
+  ([&]{
+    if (type_is(tp, tk_array) && !array_type_has_no_bound(tp)) { 
+      answer = TRUE;
+    }  /* if */
+  }))
+
+DEFINE_type_predicate(std_meta, type_is_unbounded_array,
+  ([&]{
+    if (type_is(tp, tk_array) && array_type_has_no_bound(tp)) { 
+      answer = TRUE;
+    }  /* if */
+  }))
+
+DEFINE_type_predicate(std_meta, type_is_scoped_enum,
+  ([&]{
+    if (is_scoped_enum_type(tp)) {
+      answer = TRUE;
+    }  /* if */
+  }))
+
+
 
 #define DEFINE_type_transform(ns, name, ref_lambda_body)                     \
 static a_boolean do_constexpr_##ns##_##name(                                 \
