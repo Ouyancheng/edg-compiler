@@ -24705,11 +24705,20 @@ functional-notation type conversions, and C++ new-style casts.
                (expr_stack->is_default_arg_expression ||
                 (!curr_expr_is_evaluated() &&
                  is_template_dependent_context() &&
-                 !scope_stack_top().is_rescan)))) {
+                 !scope_stack_top().is_rescan))) &&
+             !(expr_stack->possible_rescan_context &&
+               is_template_dependent_context() &&
+               !strict_ansi_mode)) {
     /* Don't allow a cast to an incomplete type (e.g., an incomplete enum
        type), but allow certain exceptions.  One of those exceptions is that
        in GNU mode casts to incomplete class types are accepted in template-
-       dependent contexts (until GCC 10.2). */
+       dependent contexts (until GCC 10.2).  Furthermore, it appears to be
+       common practice to treat casts to incomplete nondependent class types
+       as deduction failures rather than actual errors.  For example, in C++20
+       mode:
+         template<class T> constexpr bool x = requires (T x) { (struct c)x; };
+         static_assert(!x<int>);
+       MSVC, GCC, and Clang all accept this. */
     expr_issue_incomplete_type_diag(type_position, type_cast_to);
     err = TRUE;
   } else if (is_class_struct_union_type(type_cast_to)) {

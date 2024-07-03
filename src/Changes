@@ -1,5 +1,20 @@
 Version 6.7
 
+7/3/24   [EDGcpfe/27338]
+Casts to incomplete types in substitution contexts
+
+Consider, in C++20 mode:
+
+  template<class T> constexpr bool x = requires (T x) { (struct c)x; };
+  static_assert(!x<int>);
+
+Previously, the front end issued an error because of the attempt to cast to an
+in incomplete (non-dependent) class type.  That error was issued when parsing
+the variable template (i.e., prior substituting the requires-expression) since
+the cast can never be valid.  However, MSVC, GCC, and Clang all accept such
+code and the front end therefore now also accepts it in nonstrict modes.
+
+
 7/3/24   [EDGcpfe/27420]
 GCC compatibility: class template argument deduction for alias templates
 
