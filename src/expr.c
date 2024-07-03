@@ -24475,7 +24475,9 @@ in *rcblock).
           /* Deleting a pointer to an incomplete class.  Give a warning,
              because we may not know how to do the right thing (like call
              a destructor). */
-          expr_pos_warning(ec_delete_of_incomplete_class, &operand.position);
+          expr_pos_diagnostic(
+                          cpp26_mode ? es_error : es_warning,
+                          ec_delete_of_incomplete_class, &operand.position);
         }  /* if */
         dtor_routine = expr_select_destructor(base_delete_type,
                                               base_delete_type,

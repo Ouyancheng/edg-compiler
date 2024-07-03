@@ -1,5 +1,17 @@
 Version 6.7
 
+7/3/24   [EDGcpfe/27422]
+C++26: Deleting a pointer to an incomplete type
+
+In C++26 mode, deleting a pointer to an incomplete type is now an error instead
+of a warning.  For example:
+
+  void f(struct S *p, struct S *q) {
+    delete p;    // An error in C++26 mode.  A warning otherwise.
+    delete[] q;  // Ditto.
+  }
+
+
 7/3/24   [EDGcpfe/27427]
 Microsoft compatibility: -0 as a null pointer constant
 
