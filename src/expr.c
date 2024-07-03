@@ -12631,6 +12631,15 @@ analysis on a previously-scanned expression, and return the result in
          constant-expressions, provided they are the immediate operand of a
          cast.  That does not allow for a "+" or "-" prefix. */
       rule_out_expr_kinds(ROEK_INTEGRAL_CONSTANT, result);
+    } else if (microsoft_mode && is_constant_operand(result) &&
+               is_constant_operand(&operand) &&
+               !operand.variant.constant.null_pointer_constant_ruled_out) {
+      /* Microsoft accepts -0, +0, and ~~0 as null pointer constants, even in
+         non-permissive modes. */
+      if (operator_token == tok_plus || operator_token == tok_minus ||
+          operator_token == tok_compl) {
+        result->variant.constant.null_pointer_constant_ruled_out = FALSE;
+      }  /* if */
     }  /* if */
   }  /* if */
 

@@ -1,5 +1,13 @@
 Version 6.7
 
+7/3/24   [EDGcpfe/27427]
+Microsoft compatibility: -0 as a null pointer constant
+
+It appears that MSVC accepts -0 as a null pointer constant even in its non-
+permissive mode.  That front end now emulates that behavior in non-permissive
+Microsoft modes.  (The same applies to expressions of the form +0 and ~~0.)
+
+
 7/3/24   [EDGcpfe/27338]
 Casts to incomplete types in substitution contexts
 
