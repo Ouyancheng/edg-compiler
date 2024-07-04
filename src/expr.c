@@ -7791,7 +7791,13 @@ accepts the case where the first operand is a C++/CLI handle.
     }  /* if */
     /* Determine the result type. */
     qualifiers = get_type_qualifiers(class_struct_union_type);
-    if (cfront_2_1_mode) {
+    if ((!result_is_a_glvalue || result_is_an_xvalue) &&
+        is_template_param_type(operand_1->type)) {
+      /* If the left operand is of template parameter type, the value category
+         might not be accurate, so we need to consider the result to be
+         dependent. */
+      result_type = type_of_unknown_templ_param_nontype;
+    } else if (cfront_2_1_mode) {
       /* cfront 2.1 ignores the cv-qualifiers on the left operand. */
       result_type = field->type;
       if (qualifiers != TQ_NONE) {
