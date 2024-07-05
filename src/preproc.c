@@ -2898,7 +2898,6 @@ static void proc_pragma(a_source_position *start_of_dir_position)
 Scan and process a #pragma directive.
 */
 {
-  int				char_len;
   a_pragma_kind_description_ptr	pkdp = NULL;
   a_source_position		id_position;
   a_boolean			pass_to_output = generate_pp_output;
