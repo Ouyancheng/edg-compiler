@@ -5514,11 +5514,10 @@ is used in the constraint, its evaluation will fail.
   ap = find_attribute(ak_enable_if,
                       skip_typerefs(rp->type)->source_corresp.attributes);
   check_assertion(ap != NULL);
-  for (; ap != NULL; ap = find_attribute(ak_enable_if, ap->next)) {
+  do {
     /* Extract the condition operand (an expression) from the attribute. */
     an_attribute_arg_ptr  aap = ap->arguments;
     an_expr_node_ptr      expr;
-    a_boolean             cond = TRUE;
     if (aap == NULL || aap->kind != (an_attribute_arg_kind)aak_expression) {
       expect_error();
       failed = TRUE;
@@ -5542,13 +5541,6 @@ is used in the constraint, its evaluation will fail.
         break;
       }  /* if */
     }  /* if */
-    if (interpret_clang_enable_if_opnd(expr, args, &aap->position, &cond) &&
-        cond) {
-      /* If the attribute's condition is trivially satisfied (without
-         considering the arguments), do not attempt to evaluate and convert
-         the arguments. */
-      continue;
-    }  /* if */
     /* For every argument to the call (in arg_list) that is constant, record
        the constant value in the args array.  For other arguments, record an
        error constant (which will cause evaluation of expr to fail if it refers
@@ -5556,10 +5548,6 @@ is used in the constraint, its evaluation will fail.
     an_arg_match_summary_ptr  arg_match = arg_match_list;
     a_param_type_ptr          ptp;
     a_ptrdiff                 k = 1;
-    if (arg_match != NULL && arg_match->is_match_for_this_param) {
-      /* Ignore the conversion on *this. */
-      arg_match = arg_match->next;
-    }  /* if */
     ptp = rout_type_supp(skip_typerefs(routine_type))->param_type_list;
     alep = arg_list;
     while (alep != NULL && arg_match != NULL && ptp != NULL) {
@@ -5619,7 +5607,9 @@ next_arg:
          No need to try another attribute. */
       break;
     }  /* if */
-  }  /* for */
+    /* Move to the next "enable_if" attribute, if any. */
+    ap = find_attribute(ak_enable_if, ap->next);
+  } while (ap != NULL);
   while (!args.is_empty()) {
     release_local_constant(&args.back_elem());
     args.pop_back();
