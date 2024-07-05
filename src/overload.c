@@ -5499,7 +5499,7 @@ is used in the constraint, its evaluation will fail.
   a_boolean               failed = FALSE;
   an_attribute_ptr        ap;
   an_arg_list_elem_ptr    alep, converted_alep;
-  Dyn_array<a_constant*>  args(10);
+  Dyn_array<a_constant*>  args(10), no_args;
 
   /* Set up an array of constant values corresponding to the arguments of the
      call, starting with a constant for the selector.  (The constants are
@@ -5542,7 +5542,7 @@ is used in the constraint, its evaluation will fail.
         break;
       }  /* if */
     }  /* if */
-    if (interpret_clang_enable_if_opnd(expr, args, &aap->position, &cond) &&
+    if (interpret_clang_enable_if_opnd(expr, no_args, &aap->position, &cond) &&
         cond) {
       /* If the attribute's condition is trivially satisfied (without
          considering the arguments), do not attempt to evaluate and convert

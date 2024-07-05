@@ -25294,7 +25294,9 @@ FALSE if the evaluation produces a "false" value.
     goto done;
   }  /* if */
   ips.position = expr->position;
-  map_ptr(&ips.map, &ips.constants, (a_byte*)&params);
+  if (params.length() != 0) {
+    map_ptr(&ips.map, &ips.constants, (a_byte*)&params);
+  }  /* if */
   n_bytes = expr_result_size(&ips, expr, val_type, &result); 
   if (!result) goto done;
   alloc_complete_object(&ips, n_bytes, val_type, result_storage);
