@@ -52,7 +52,7 @@ error instead of a warning.  For example:
 Microsoft compatibility: -0 as a null pointer constant
 
 It appears that MSVC accepts -0 as a null pointer constant even in its non-
-permissive mode.  That front end now emulates that behavior in non-permissive
+permissive mode.  The front end now emulates that behavior in non-permissive
 Microsoft modes.  (The same applies to expressions of the form +0 and ~~0.)
 
 
