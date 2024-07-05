@@ -37,13 +37,15 @@ enable_if attribute have been fixed.  For example:
 7/3/24   [EDGcpfe/27422]
 C++26: Deleting a pointer to an incomplete type
 
-In C++26 mode, deleting a pointer to an incomplete type is now an error instead
-of a warning.  For example:
+In C++26 mode, deleting a pointer to an incomplete type is now a discretionary
+error instead of a warning.  For example:
 
   void f(struct S *p, struct S *q) {
     delete p;    // An error in C++26 mode.  A warning otherwise.
     delete[] q;  // Ditto.
   }
+
+(This implements the C++ standardization committee's paper P3144R2.)
 
 
 7/3/24   [EDGcpfe/27427]
