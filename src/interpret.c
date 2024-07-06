@@ -14075,10 +14075,10 @@ DEFINE_type_predicate(std_meta, type_is_member_pointer,
 
 DEFINE_type_predicate(std_meta, type_is_const,
   ([&]{
-    if (is_const_qualified_type(tp)) {
+    if (is_const_qualified_type((a_type*)rvp->entity.ptr)) {
       answer = TRUE;
-    } else if (is_function_type(tp)) {
-      if ((rout_type_supp(skip_typerefs(tp))->qualifiers & TQ_CONST) != 0) {
+    } else if (type_is(tp, tk_routine)) {
+      if ((rout_type_supp(tp)->qualifiers & TQ_CONST) != 0) {
         answer = TRUE;
       }  /* if */
     }  /* if */
@@ -14086,10 +14086,10 @@ DEFINE_type_predicate(std_meta, type_is_const,
 
 DEFINE_type_predicate(std_meta, type_is_volatile,
   ([&]{
-    if (is_volatile_qualified_type(tp)) {
+    if (is_volatile_qualified_type((a_type*)rvp->entity.ptr)) {
       answer = TRUE;
-    } else if (is_function_type(tp)) {
-      if ((rout_type_supp(skip_typerefs(tp))->qualifiers & TQ_VOLATILE) != 0) {
+    } else if (type_is(tp, tk_routine)) {
+      if ((rout_type_supp(tp)->qualifiers & TQ_VOLATILE) != 0) {
         answer = TRUE;
       }  /* if */
     }  /* if */
@@ -15357,6 +15357,30 @@ done:
 }  /* eval_constexpr_callee */
 
 
+static void release_address_structures_for_args(an_expr_node  *args,
+                                                a_byte        **p_arg_ptr)
+/*
+Release the address structures (if any) for the arguments evaluated in a
+function call.  args points to the list of expressions that correspond to the
+arguments.  p_arg_ptr points to an array of pointers to storage for each of
+the arguments.
+*/
+{
+  for (an_expr_node  *arg = args; arg != NULL; arg = arg->next) {
+    a_type_ptr  tp = skip_typerefs(arg->type);
+    if ((arg->is_lvalue || arg->is_xvalue) &&
+        !(type_is(tp, tk_pointer) && tp->variant.pointer.is_reference)) {
+        /* When a class-type argument is passed by-value via a copy
+           constructor call, the argument is left as an lvalue.  However,
+           such cases aren't passed via an address. */
+    } else {
+      release_address_structures(arg, tp, *p_arg_ptr);
+    }  /* if */
+    p_arg_ptr += 1;
+  }  /* for */
+}  /* release_address_structures_for_args */
+
+
 static a_boolean do_constexpr_call(an_interpreter_state  *ips,
                                    an_expr_node_ptr      call_node,
                                    a_constexpr_address   *result_cap)
@@ -15666,15 +15690,32 @@ update *ips accordingly.
       }  /* if */
     }  /* if */
     if (callee->function_def_number == NULL_function_def_number) {
-      info_with_pos_sym(ec_constexpr_function_undefined,
-                        &callee_node->position, symbol_for(callee), ips);
-      do_constexpr_fail(result);
-      if (callee->is_deleted && ips->is_constant_evaluated) {
-        /* An error has presumably been issued earlier (use of a deleted
-           function).  Treat this as an input error to avoid extraneous
-           diagnostics. */
-        expect_error();
-        ips->input_error = TRUE;
+      if (callee->is_constexpr_intrinsic) {
+        /* A standard library function or member function that the front end
+           has marked as "constexpr-intrinsic", which means we should implement
+           its semantics without immediate regard for the actual definition.
+           Note that some intrinsics do have a definition, and for those we
+           should perform some more work (like mapping parameters) in case the
+           intrinsic handling falls back to the provided definition (as, e.g.,
+           std::construct_at does). */
+        push_call_frame(ips, &frame, callee, &call_node->position, result_cap);
+        result = do_constexpr_intrinsic_call(
+                                   ips, callee, call_node, (a_byte**)arg_ptrs,
+                                   result_storage, complete_object);
+        release_address_structures_for_args(callee_node->next,
+                                            (a_byte**)arg_ptrs);
+        pop_call_frame(ips);
+      } else {
+        info_with_pos_sym(ec_constexpr_function_undefined,
+                          &callee_node->position, symbol_for(callee), ips);
+        do_constexpr_fail(result);
+        if (callee->is_deleted && ips->is_constant_evaluated) {
+            /* An error has presumably been issued earlier (use of a deleted
+             function).  Treat this as an input error to avoid extraneous
+             diagnostics. */
+          expect_error();
+          ips->input_error = TRUE;
+        }  /* if */
       }  /* if */
       goto done;
     }  /* if */
@@ -15755,8 +15796,10 @@ update *ips accordingly.
     if (callee->is_constexpr_intrinsic) {
       /* A standard library function or member function that the front end has
          marked as "constexpr-intrinsic", which means we should implement its
-         semantics without regard for the actual definition.  For example,
-         this could be a call to std::is_constant_evaluated. */
+         semantics without immediate regard for the actual definition.  For
+         example, this could be a call to std::is_constant_evaluated or
+         std::construct_at (the latter does eventually call the actual
+         definition). */
       result = do_constexpr_intrinsic_call(
                                    ips, callee, call_node, (a_byte**)arg_ptrs,
                                    result_storage, complete_object);
@@ -15780,21 +15823,7 @@ update *ips accordingly.
     if (closure_ptr != NULL) {
       unmap_param_ref_for_this_ptr(ips, closure_ptr);
     }  /* if */
-    /* Release any address structures, if needed. */
-    p_arg_ptr = (a_byte**)arg_ptrs;
-    for (arg = callee_node->next; arg != NULL; arg = arg->next) {
-      a_type_ptr  tp = skip_typerefs(arg->type);
-      if ((arg->is_lvalue || arg->is_xvalue) &&
-          !(tp->kind == (a_type_kind)tk_pointer &&
-            tp->variant.pointer.is_reference)) {
-          /* When a class-type argument is passed by-value via a copy
-             constructor call, the argument is left as an lvalue.  However,
-             such cases aren't passed via an address above. */
-      } else {
-        release_address_structures(arg, tp, *p_arg_ptr);
-      }  /* if */
-      p_arg_ptr += 1;
-    }  /* for */
+    release_address_structures_for_args(callee_node->next, (a_byte**)arg_ptrs);
     pop_call_frame(ips);
     /* Release mappings of the parameters. */
     p_arg_ptr = (a_byte**)arg_ptrs;
@@ -16416,21 +16445,7 @@ the body of the (constructor) function proper.
     if (result) callee->evaluated_in_interpreter = TRUE;
 #endif /* BACK_END_IS_CP_GEN_BE */
 #endif /* NONCLASS_TEMPLATE_INSTANTIATIONS_IN_SOURCE_SEQUENCE_LISTS */
-    /* Release any address structures, if needed. */
-    p_arg_ptr = (a_byte**)arg_ptrs+1;
-    for (arg = args; arg != NULL; arg = arg->next) {
-      a_type_ptr  tp = skip_typerefs(arg->type);
-      if ((arg->is_lvalue || arg->is_xvalue) &&
-          !(tp->kind == (a_type_kind)tk_pointer &&
-            tp->variant.pointer.is_reference)) {
-          /* When a class-type argument is passed by-value via a copy
-             constructor call, the argument is left as an lvalue.  However,
-             such cases aren't passed via an address above. */
-      } else {
-        release_address_structures(arg, tp, *p_arg_ptr);
-      }  /* if */
-      p_arg_ptr += 1;
-    }  /* for */
+    release_address_structures_for_args(args, (a_byte**)arg_ptrs+1);
     pop_call_frame(ips);
     /* Unmap the parameters. */
     p_arg_ptr = (a_byte**)arg_ptrs+1;

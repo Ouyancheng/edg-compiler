@@ -35,13 +35,9 @@ described in the C++ committee's paper P2996.
 
 namespace std {
 
-  constexpr void __report_constexpr_value(long long) {
-    /* Handled by interpreter. */
-  }
+  constexpr void __report_constexpr_value(long long);
 
-  constexpr void __report_constexpr_value(char const*) {
-    /* Handled by interpreter. */
-  }
+  constexpr void __report_constexpr_value(char const*);
 
   namespace meta {
     using info = decltype(^::);
@@ -109,9 +105,7 @@ namespace std {
     using  __refl_ptrdiff = decltype((int*)2-(int*)1);
 
     template<typename __T>
-    consteval __T* make_constexpr_array(__T*, __refl_ptrdiff) {
-      return 0;  /* Dummy return.  Handled by interpreter. */
-    }
+    consteval __T* make_constexpr_array(__T*, __refl_ptrdiff);
 
     using __str = std::string_view;
 
@@ -119,9 +113,7 @@ namespace std {
       return __str("", 0);  /* Dummy return.  Handled by interpreter. */
     }
 
-    consteval __infovec members__impl(info) {
-      return __infovec(0);  /* Dummy return.  Handled by interpreter. */
-    }
+    consteval __infovec members__impl(info);
 
     template<typename ... Filters>
     consteval std::vector<info> members_of(info r, Filters ... filters) {
@@ -133,81 +125,63 @@ namespace std {
       return result;
     }
 
-    consteval __infovec static_data_members__impl(info) {
-      return __infovec(0);  /* Dummy return.  Handled by interpreter. */
-    }
+    consteval __infovec static_data_members__impl(info);
 
     consteval std::vector<info> static_data_members_of(info r) {
       __infovec v = static_data_members__impl(r);
       return std::vector<info>(v.begin(), v.end());
     }
 
-    consteval __infovec nonstatic_data_members__impl(info) {
-      return __infovec(0);  /* Dummy return.  Handled by interpreter. */
-    }
+    consteval __infovec nonstatic_data_members__impl(info);
 
     consteval std::vector<info> nonstatic_data_members_of(info r) {
       __infovec v = nonstatic_data_members__impl(r);
       return std::vector<info>(v.begin(), v.end());
     }
 
-    consteval __infovec bases__impl(info) {
-      return __infovec(0);  /* Dummy return.  Handled by interpreter. */
-    }
+    consteval __infovec bases__impl(info);
 
     consteval std::vector<info> bases_of(info r) {
       __infovec v = bases__impl(r);
       return std::vector<info>(v.begin(), v.end());
     }
 
-    consteval __infovec subobjects__impl(info) {
-      return __infovec(0);  /* Dummy return.  Handled by interpreter. */
-    }
+    consteval __infovec subobjects__impl(info);
 
     consteval std::vector<info> subobjects_of(info r) {
       __infovec v = subobjects__impl(r);
       return std::vector<info>(v.begin(), v.end());
     }
 
-    consteval __infovec enumerators__impl(info) {
-      return __infovec(0);  /* Dummy return.  Handled by interpreter. */
-    }
+    consteval __infovec enumerators__impl(info);
 
     consteval std::vector<info> enumerators_of(info r) {
       __infovec v = enumerators__impl(r);
       return std::vector<info>(v.begin(), v.end());
     }
 
-    consteval __infovec parameters__impl(info) {
-      return __infovec(0);  /* Dummy return.  Handled by interpreter. */
-    }
+    consteval __infovec parameters__impl(info);
 
     consteval std::vector<info> parameters_of(info r) {
       __infovec v = parameters__impl(r);
       return std::vector<info>(v.begin(), v.end());
     }
 
-    consteval __infovec current_parameters__impl(info) {
-      return __infovec(0);  /* Dummy return.  Handled by interpreter. */
-    }
+    consteval __infovec current_parameters__impl(info);
 
     consteval std::vector<info> current_parameters(info r) {
       __infovec v = parameters__impl(r);
       return std::vector<info>(v.begin(), v.end());
     }
 
-    consteval info substitute__impl(info, __infovec) {
-      return ^::;  /* Dummy return.  Handled by interpreter. */
-    }
+    consteval info substitute__impl(info, __infovec);
 
     consteval info substitute(info r, std::vector<info> v) {
       return substitute__impl(r, v);
     }
 
     template<typename T>
-    consteval info reflect_result(T) {
-      return ^::;  /* Dummy return.  Handled by interpreter. */
-    }
+    consteval info reflect_result(T);
 
     template<typename T>
     consteval info reflect_value(T v) {
@@ -215,9 +189,7 @@ namespace std {
     }
 
     template<typename T>
-    consteval T extract(info) {
-      return T{};  /* Dummy return.  Handled by interpreter. */
-    }
+    consteval T extract(info);
 
     template<typename T>
     [[deprecated("use std::meta::extract")]]
@@ -233,211 +205,113 @@ namespace std {
       return value_of<bool>(substitute__impl(templ, types));
     }
 
-    consteval bool is_type(info) {
-      return false;  /* Dummy return.  Handled by interpreter. */
-    }
+    consteval bool is_type(info);
 
-    consteval bool is_alias(info) {
-      return false;  /* Dummy return.  Handled by interpreter. */
-    }
+    consteval bool is_alias(info);
 
-    consteval bool is_incomplete_type(info) {
-      return false;  /* Dummy return.  Handled by interpreter. */
-    }
+    consteval bool is_incomplete_type(info);
 
-    consteval bool is_template(info) {
-      return false;  /* Dummy return.  Handled by interpreter. */
-    }
+    consteval bool is_template(info);
 
-    consteval bool is_function_template(info) {
-      return false;  /* Dummy return.  Handled by interpreter. */
-    }
+    consteval bool is_function_template(info);
 
-    consteval bool is_variable_template(info) {
-      return false;  /* Dummy return.  Handled by interpreter. */
-    }
+    consteval bool is_variable_template(info);
 
-    consteval bool is_class_template(info) {
-      return false;  /* Dummy return.  Handled by interpreter. */
-    }
+    consteval bool is_class_template(info);
 
-    consteval bool is_alias_template(info) {
-      return false;  /* Dummy return.  Handled by interpreter. */
-    }
+    consteval bool is_alias_template(info);
 
-    consteval bool is_concept(info) {
-      return false;  /* Dummy return.  Handled by interpreter. */
-    }
+    consteval bool is_concept(info);
 
-    consteval bool is_constant(info) {
-      return false;  /* Dummy return.  Handled by interpreter. */
-    }
+    consteval bool is_constant(info);
 
-    consteval bool is_variable(info) {
-      return false;  /* Dummy return.  Handled by interpreter. */
-    }
+    consteval bool is_variable(info);
 
-    consteval bool is_function(info) {
-      return false;  /* Dummy return.  Handled by interpreter. */
-    }
+    consteval bool is_function(info);
 
-    consteval bool is_function_parameter(info) {
-      return false;  /* Dummy return.  Handled by interpreter. */
-    }
+    consteval bool is_function_parameter(info);
 
-    consteval bool is_explicit_object_parameter(info) {
-      return false;  /* Dummy return.  Handled by interpreter. */
-    }
+    consteval bool is_explicit_object_parameter(info);
 
-    consteval bool is_namespace(info) {
-      return false;  /* Dummy return.  Handled by interpreter. */
-    }
+    consteval bool is_namespace(info);
 
-    consteval bool is_nonstatic_data_member(info) {
-      return false;  /* Dummy return.  Handled by interpreter. */
-    }
+    consteval bool is_nonstatic_data_member(info);
 
     [[deprecated("use std::meta::is_nonstatic_data_member")]]
     consteval bool is_nsdm(info r) {
       return is_nonstatic_data_member(r);
     }
 
-    consteval bool is_base(info) {
-      return false;  /* Dummy return.  Handled by interpreter. */
-    }
+    consteval bool is_base(info);
 
-    consteval bool is_constructor(info) {
-      return false;  /* Dummy return.  Handled by interpreter. */
-    }
+    consteval bool is_constructor(info);
 
-    consteval bool is_destructor(info) {
-      return false;  /* Dummy return.  Handled by interpreter. */
-    }
+    consteval bool is_destructor(info);
 
-    consteval bool is_special_member(info) {
-      return false;  /* Dummy return.  Handled by interpreter. */
-    }
+    consteval bool is_special_member(info);
 
-    consteval bool is_public(info) {
-      return false;  /* Dummy return.  Handled by interpreter. */
-    }
+    consteval bool is_public(info);
 
-    consteval bool is_protected(info) {
-      return false;  /* Dummy return.  Handled by interpreter. */
-    }
+    consteval bool is_protected(info);
 
-    consteval bool is_private(info) {
-      return false;  /* Dummy return.  Handled by interpreter. */
-    }
+    consteval bool is_private(info);
 
-    consteval bool is_accessible(info) {
-      return false;  /* Dummy return.  Handled by interpreter. */
-    }
+    consteval bool is_accessible(info);
 
-    consteval bool is_static_member(info) {
-      return false;  /* Dummy return.  Handled by interpreter. */
-    }
+    consteval bool is_static_member(info);
 
-    consteval bool is_virtual(info) {
-      return false;  /* Dummy return.  Handled by interpreter. */
-    }
+    consteval bool is_virtual(info);
 
-    consteval bool is_deleted(info) {
-      return false;  /* Dummy return.  Handled by interpreter. */
-    }
+    consteval bool is_deleted(info);
 
-    consteval bool is_defaulted(info) {
-      return false;  /* Dummy return.  Handled by interpreter. */
-    }
+    consteval bool is_defaulted(info);
 
-    consteval bool is_explicit(info) {
-      return false;  /* Dummy return.  Handled by interpreter. */
-    }
+    consteval bool is_explicit(info);
 
-    consteval bool is_override(info) {
-      return false;  /* Dummy return.  Handled by interpreter. */
-    }
+    consteval bool is_override(info);
 
-    consteval bool is_pure_virtual(info) {
-      return false;  /* Dummy return.  Handled by interpreter. */
-    }
+    consteval bool is_pure_virtual(info);
 
-    consteval bool is_bit_field(info) {
-      return false;  /* Dummy return.  Handled by interpreter. */
-    }
+    consteval bool is_bit_field(info);
 
-    consteval bool has_static_storage_duration(info) {
-      return false;  /* Dummy return.  Handled by interpreter. */
-    }
+    consteval bool has_static_storage_duration(info);
 
-    consteval bool has_internal_linkage(info) {
-      return false;  /* Dummy return.  Handled by interpreter. */
-    }
+    consteval bool has_internal_linkage(info);
 
-    consteval bool has_c_varargs(info) {
-      return false;  /* Dummy return.  Handled by interpreter. */
-    }
+    consteval bool has_c_varargs(info);
 
-    consteval bool has_default_argument(info) {
-      return false;  /* Dummy return.  Handled by interpreter. */
-    }
+    consteval bool has_default_argument(info);
 
-    consteval bool has_consistent_name(info) {
-      return false;  /* Dummy return.  Handled by interpreter. */
-    }
+    consteval bool has_consistent_name(info);
 
-    consteval bool has_template_arguments(info) {
-      return false;  /* Dummy return.  Handled by interpreter. */
-    }
+    consteval bool has_template_arguments(info);
 
-    consteval __infovec template_arguments__impl(info) {
-      return __infovec(0);  /* Dummy return.  Handled by interpreter. */
-    }
+    consteval __infovec template_arguments__impl(info);
 
     consteval std::vector<info> template_arguments_of(info r) {
       __infovec v = template_arguments__impl(r);
       return std::vector<info>(v.begin(), v.end());
     }
 
-    consteval info template_of(info) {
-      return ^::;  /* Dummy return.  Handled by interpreter. */
-    }
+    consteval info template_of(info);
 
-    consteval info type_of(info) {
-      return ^::;  /* Dummy return.  Handled by interpreter. */
-    }
+    consteval info type_of(info);
 
-    consteval info return_type_of(info) {
-      return ^::;  /* Dummy return.  Handled by interpreter. */
-    }
+    consteval info return_type_of(info);
 
-    consteval info parent_of(info) {
-      return ^::;  /* Dummy return.  Handled by interpreter. */
-    }
+    consteval info parent_of(info);
 
-    consteval info dealias(info) {
-      return ^::;  /* Dummy return.  Handled by interpreter. */
-    }
+    consteval info dealias(info);
 
-    consteval std::size_t size_of(info entity) {
-      return 0;  /* Dummy return.  Handled by interpreter. */
-    }
+    consteval std::size_t size_of(info entity);
 
-    consteval std::size_t offset_of(info entity) {
-      return 0;  /* Dummy return.  Handled by interpreter. */
-    }
+    consteval std::size_t offset_of(info entity);
 
-    consteval std::size_t bit_size_of(info entity) {
-      return 0;  /* Dummy return.  Handled by interpreter. */
-    }
+    consteval std::size_t bit_size_of(info entity);
 
-    consteval std::size_t bit_offset_of(info entity) {
-      return 0;  /* Dummy return.  Handled by interpreter. */
-    }
+    consteval std::size_t bit_offset_of(info entity);
 
-    consteval std::size_t alignment_of(info entity) {
-      return 0;  /* Dummy return.  Handled by interpreter. */
-    }
+    consteval std::size_t alignment_of(info entity);
 
 
     struct nsdm_options {
@@ -511,9 +385,7 @@ namespace std {
 
     consteval void define_class__impl(info type,
                                       int  n_fields,
-                                      nsdm_description *field_info) {
-      /* Handled by interpreter. */
-    };
+                                      nsdm_description *field_info);
 
     consteval info define_class(info  type,
                                 std::vector<nsdm_description> fields) {
@@ -521,9 +393,7 @@ namespace std {
       return type;
     }
 
-    consteval info metacall__impl(info, __infovec) {
-      return ^::;  /* Dummy return.  Handled by interpreter. */
-    }
+    consteval info metacall__impl(info, __infovec);
 
     consteval info reflect_invoke(info r, std::vector<info> v) {
       return metacall__impl(r, v);
@@ -534,21 +404,13 @@ namespace std {
       return metacall__impl(r, v);
     }
 
-    consteval info nearest_token_queuing_context() {
-      return ^::;  /* Dummy return.  Handled by interpreter. */
-    }
+    consteval info nearest_token_queuing_context();
 
-    consteval info nearest_class_or_namespace() {
-      return ^::;  /* Dummy return.  Handled by interpreter. */
-    }
+    consteval info nearest_class_or_namespace();
 
-    consteval info nearest_namespace() {
-      return ^::;  /* Dummy return.  Handled by interpreter. */
-    }
+    consteval info nearest_namespace();
 
-    consteval void __report_tokens(info  tokens) {
-      /* Dummy definition.  Handled by interpreter. */
-    }
+    consteval void __report_tokens(info  tokens);
 
     struct list_builder {
       // FIXME: Default token sequence arg doesn't work correctly.
@@ -570,17 +432,13 @@ namespace std {
       info tokens = ^{}, separator = ^{,};
     };
 
-    consteval void queue_injection(info, info) {
-      /* Dummy definition.  Handled by interpreter. */
-    }
+    consteval void queue_injection(info, info);
 
     consteval void queue_injection(info  tokens) {
       queue_injection(nearest_token_queuing_context(), tokens);
     }
 
-    consteval void namespace_inject(info, info) {
-      /* Dummy definition.  Handled by interpreter. */
-    }
+    consteval void namespace_inject(info, info);
 
     consteval void namespace_inject(info  tokens) {
       namespace_inject(nearest_namespace(), tokens);
@@ -589,186 +447,95 @@ namespace std {
 
     // Type traits
 
-    consteval bool type_is_void(info) {
-      return false;  /* Dummy return.  Handled by interpreter. */
-    }
+    consteval bool type_is_void(info);
 
-    consteval bool type_is_null_pointer(info) {
-      return false;  /* Dummy return.  Handled by interpreter. */
-    }
+    consteval bool type_is_null_pointer(info);
 
-    consteval bool type_is_integral(info) {
-      return false;  /* Dummy return.  Handled by interpreter. */
-    }
+    consteval bool type_is_integral(info);
 
-    consteval bool type_is_floating_point(info) {
-      return false;  /* Dummy return.  Handled by interpreter. */
-    }
+    consteval bool type_is_floating_point(info);
 
-    consteval bool type_is_array(info) {
-      return false;  /* Dummy return.  Handled by interpreter. */
-    }
+    consteval bool type_is_array(info);
 
-    consteval bool type_is_pointer(info) {
-      return false;  /* Dummy return.  Handled by interpreter. */
-    }
+    consteval bool type_is_pointer(info);
 
-    consteval bool type_is_lvalue_reference(info) {
-      return false;  /* Dummy return.  Handled by interpreter. */
-    }
+    consteval bool type_is_lvalue_reference(info);
 
-    consteval bool type_is_rvalue_reference(info) {
-      return false;  /* Dummy return.  Handled by interpreter. */
-    }
+    consteval bool type_is_rvalue_reference(info);
 
-    consteval bool type_is_member_object_pointer(info) {
-      return false;  /* Dummy return.  Handled by interpreter. */
-    }
+    consteval bool type_is_member_object_pointer(info);
 
-    consteval bool type_is_member_function_pointer(info) {
-      return false;  /* Dummy return.  Handled by interpreter. */
-    }
+    consteval bool type_is_member_function_pointer(info);
 
-    consteval bool type_is_enum(info) {
-      return false;  /* Dummy return.  Handled by interpreter. */
-    }
+    consteval bool type_is_enum(info);
 
-    consteval bool type_is_union(info) {
-      return false;  /* Dummy return.  Handled by interpreter. */
-    }
+    consteval bool type_is_union(info);
 
-    consteval bool type_is_class(info) {
-      return false;  /* Dummy return.  Handled by interpreter. */
-    }
+    consteval bool type_is_class(info);
 
-    consteval bool type_is_function(info) {
-      return false;  /* Dummy return.  Handled by interpreter. */
-    }
+    consteval bool type_is_function(info);
 
-    consteval bool type_is_reflection(info) {
-      return false;  /* Dummy return.  Handled by interpreter. */
-    }
+    consteval bool type_is_reflection(info);
 
-    consteval bool type_is_reference(info) {
-      return false;  /* Dummy return.  Handled by interpreter. */
-    }
+    consteval bool type_is_reference(info);
 
-    consteval bool type_is_arithmetic(info) {
-      return false;  /* Dummy return.  Handled by interpreter. */
-    }
+    consteval bool type_is_arithmetic(info);
 
-    consteval bool type_is_fundamental(info) {
-      return false;  /* Dummy return.  Handled by interpreter. */
-    }
+    consteval bool type_is_fundamental(info);
 
-    consteval bool type_is_object(info) {
-      return false;  /* Dummy return.  Handled by interpreter. */
-    }
+    consteval bool type_is_object(info);
 
-    consteval bool type_is_scalar(info) {
-      return false;  /* Dummy return.  Handled by interpreter. */
-    }
+    consteval bool type_is_scalar(info);
 
-    consteval bool type_is_compound(info) {
-      return false;  /* Dummy return.  Handled by interpreter. */
-    }
+    consteval bool type_is_compound(info);
 
-    consteval bool type_is_member_pointer(info) {
-      return false;  /* Dummy return.  Handled by interpreter. */
-    }
+    consteval bool type_is_member_pointer(info);
 
-    consteval bool type_is_const(info) {
-      return false;  /* Dummy return.  Handled by interpreter. */
-    }
+    consteval bool type_is_const(info);
 
-    consteval bool type_is_volatile(info) {
-      return false;  /* Dummy return.  Handled by interpreter. */
-    }
+    consteval bool type_is_volatile(info);
 
-    consteval bool type_is_trivial(info) {
-      return false;  /* Dummy return.  Handled by interpreter. */
-    }
+    consteval bool type_is_trivial(info);
 
-    consteval bool type_is_trivially_copyable(info) {
-      return false;  /* Dummy return.  Handled by interpreter. */
-    }
+    consteval bool type_is_trivially_copyable(info);
 
-    consteval bool type_is_standard_layout(info) {
-      return false;  /* Dummy return.  Handled by interpreter. */
-    }
+    consteval bool type_is_standard_layout(info);
 
-    consteval bool type_is_empty(info) {
-      return false;  /* Dummy return.  Handled by interpreter. */
-    }
+    consteval bool type_is_empty(info);
 
-    consteval bool type_is_polymorphic(info) {
-      return false;  /* Dummy return.  Handled by interpreter. */
-    }
+    consteval bool type_is_polymorphic(info);
 
-    consteval bool type_is_abstract(info) {
-      return false;  /* Dummy return.  Handled by interpreter. */
-    }
+    consteval bool type_is_abstract(info);
 
-    consteval bool type_is_final(info) {
-      return false;  /* Dummy return.  Handled by interpreter. */
-    }
+    consteval bool type_is_final(info);
 
-    consteval bool type_is_aggregate(info) {
-      return false;  /* Dummy return.  Handled by interpreter. */
-    }
+    consteval bool type_is_aggregate(info);
 
-    consteval bool type_is_signed(info) {
-      return false;  /* Dummy return.  Handled by interpreter. */
-    }
+    consteval bool type_is_signed(info);
 
-    consteval bool type_is_unsigned(info) {
-      return false;  /* Dummy return.  Handled by interpreter. */
-    }
+    consteval bool type_is_unsigned(info);
 
-    consteval bool type_is_bounded_array(info) {
-      return false;  /* Dummy return.  Handled by interpreter. */
-    }
+    consteval bool type_is_bounded_array(info);
 
-    consteval bool type_is_unbounded_array(info) {
-      return false;  /* Dummy return.  Handled by interpreter. */
-    }
+    consteval bool type_is_unbounded_array(info);
 
-    consteval bool type_is_scoped_enum(info) {
-      return false;  /* Dummy return.  Handled by interpreter. */
-    }
+    consteval bool type_is_scoped_enum(info);
 
+    consteval info type_remove_pointer(info);
 
-    consteval info type_remove_pointer(info) {
-      return ^::;  /* Dummy return.  Handled by interpreter. */
-    }
+    consteval info type_add_pointer(info);
 
-    consteval info type_add_pointer(info) {
-      return ^::;  /* Dummy return.  Handled by interpreter. */
-    }
+    consteval info type_decay(info);
 
-    consteval info type_decay(info) {
-      return ^::;  /* Dummy return.  Handled by interpreter. */
-    }
+    consteval info type_remove_reference(info);
 
-    consteval info type_remove_reference(info) {
-      return ^::;  /* Dummy return.  Handled by interpreter. */
-    }
+    consteval info type_remove_cv(info);
 
-    consteval info type_remove_cv(info) {
-      return ^::;  /* Dummy return.  Handled by interpreter. */
-    }
+    consteval info type_remove_cvref(info);
 
-    consteval info type_remove_cvref(info) {
-      return ^::;  /* Dummy return.  Handled by interpreter. */
-    }
+    consteval std::size_t type_tuple_size(info);
 
-    consteval std::size_t type_tuple_size(info) {
-      return 0;  /* Dummy return.  Handled by interpreter. */
-    }
-
-    consteval info type_tuple_element(std::size_t, info) {
-      return ^::;  /* Dummy return.  Handled by interpreter. */
-    }
+    consteval info type_tuple_element(std::size_t, info);
 
     /* Alternatives to P1306 expansion statements.
        Example usage:
