@@ -1,5 +1,21 @@
 Version 6.7
 
+7/6/24   [EDGcpfe/27430]
+C++-generating back end: unnamed class/enum types in variable initializers
+
+In cases where an unnamed class or enumeration type is used in the type of
+a variable and the variable's initializer uses a decltype specifier
+referring to that variable, the C++-generating back end previously put out
+an undeclared temporary name (of the form __T12345678) in place of the
+decltype specifier.  This is now fixed.  For example, with --c++17:
+
+  char a[99];
+  union {
+    int i;
+    const char *p;
+  } &u = (decltype(u))a;   // Previously generated as "u = (__T12345678)a"
+
+
 7/4/24   [EDGcpfe/27289]
 Spurious error on assignment with dependent class member access expression
 

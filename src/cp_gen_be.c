@@ -365,7 +365,7 @@ none.
        efdp = efdp->next) {
     a_type_ptr tp = efdp->is_variable ? efdp->variant.var->type
                                       : efdp->variant.field->type;
-    if (type == tp) {
+    if (standalone_identical_types(type, tp)) {
       result = efdp;
     }  /* if */
   }  /* for */
@@ -9736,12 +9736,37 @@ used as an interface to the il_to_str routines.
 }  /* gen_function_declarator */
 
 
+static a_boolean type_is_based_on_unnamed_tag(a_type_ptr tp)
+/*
+Return TRUE if tp is an unnamed tag type or a pointer or reference to such
+a type.
+*/
+{
+  a_boolean result = FALSE;
+
+  tp = skip_typerefs_not_typedefs(tp);
+  while (type_is(tp, tk_pointer)) {
+    tp = skip_typerefs_not_typedefs(type_pointed_to(tp));
+  }  /* while */
+  if ((is_immediate_class_type(tp) || is_immediate_enum_type(tp)) &&
+      !has_name_before_mangling(tp)) {
+    result = TRUE;
+  }  /* if */
+  return result;
+}  /* type_is_based_on_unnamed_tag */
+
+
 static void gen_type(a_type_ptr type)
 /*
 Output a reference to a type.
 */
 {
-  form_type(type, &octl);
+  if (type_is_based_on_unnamed_tag(type) &&
+      synthesize_decltype_specifier(type)) {
+    /* A decltype specifier was put out. */
+  } else {
+    form_type(type, &octl);
+  }  /* if */
 }  /* gen_type */
 
 
@@ -22197,6 +22222,11 @@ this one is such a continuation.
     form_var_reg_name(var->asm_name_or_reg.reg, &octl);
   }  /* if */
 #endif /* GNU_EXTENSIONS_ALLOWED */
+  if (!C_mode() && type_is_based_on_unnamed_tag(var_type)) {
+    /* Allow the variable name to be used in a decltype in its initializer
+       and thereafter. */
+    register_entity_for_decltype(var, /*field=*/NULL);
+  }  /* if */
   gen_attributes(attributes, al_postfix, is_definition);
   gen_attributes(attributes, al_id_equivalent_as_postfix, is_definition);
   /* Output the initializer, if any. */
@@ -22274,10 +22304,6 @@ this one is such a continuation.
       unqual_var_type->has_been_declared = TRUE;
     }  /* if */
     write_tok_ch(';');
-  } else if (!C_mode() && (is_immediate_class_type(var_type) ||
-                           is_immediate_enum_type(var_type)) &&
-             !has_name_before_mangling(var_type)) {
-    register_entity_for_decltype(var, /*field=*/NULL);
   }  /* if */
 #if NONCLASS_TEMPLATE_INSTANTIATIONS_IN_SOURCE_SEQUENCE_LISTS
 end_of_routine:;
