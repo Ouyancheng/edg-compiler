@@ -1,5 +1,15 @@
 Version 6.7
 
+7/8/24   [EDGcpfe/27266,EDGcpfe/27434]
+Clang compatibility: __ext_vector_type__ attribute in alias declarations
+
+The Clang-specific __ext_vector_type__ attribute was previously only allowed
+on typedef declarations and is now also accepted on alias declarations.
+For example, with --clang:
+
+  using FourShorts = short __attribute__((ext_vector_type(4)));
+
+
 7/6/24   [EDGcpfe/27430]
 C++-generating back end: unnamed class/enum types in variable initializers
 

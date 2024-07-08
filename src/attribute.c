@@ -7950,8 +7950,9 @@ error type.
       expect_error();
     }  /* if */
   }  /* if */
-  if (dps->declared_storage_class != (a_storage_class)sc_typedef) {
-    /* The ext_vector_type attribute must appear in a typedef. */
+  if (!(dps->declared_storage_class == sc_typedef || dps->is_alias)) {
+    /* The ext_vector_type attribute must appear in a typedef or an alias
+       declaration. */
     pos_error(ec_ext_vector_type_not_in_typedef, &ap->position);
     err = TRUE;
   }  /* if */
