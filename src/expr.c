@@ -24479,7 +24479,7 @@ in *rcblock).
       if (is_class_struct_union_type(base_delete_type)) {
         if (is_incomplete_type(base_delete_type)) {
           /* Deleting a pointer to an incomplete class.  Give a diagnostic,
-             because we may not know how to do the right thing (like call 
+             because we may not know how to do the right thing (like call a
              destructor).  C++26 made this invalid (through paper P3144R2). */
           expr_pos_diagnostic(
                           cpp26_mode ? es_discretionary_error : es_warning,
