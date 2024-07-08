@@ -29678,16 +29678,15 @@ appropriate, produce the "aggregate deduction candidate" (see N4885
 [over.match.class.deduct]/1) and return a symbol for it.
 */
 {
-  a_symbol_ptr      ct_sym = prototype_template_of(orig_ct_sym);
-  a_symbol_ptr      aggr_candidate = NULL;
+  a_symbol_ptr      ct_sym = prototype_template_of(orig_ct_sym),
+                    aggr_candidate = NULL, proto_sym;
   a_template_symbol_supplement_ptr
                     ct_tssp = ct_sym->variant.template_info;
   a_type_ptr        proto_type;
   a_param_type_ptr  param_list = NULL;
   a_boolean         trailing_pack = FALSE;
 
-  proto_type = ct_tssp->variant.class_template.prototype_instantiation
-                      ->variant.class_struct_union.type;
+  proto_sym = ct_tssp->variant.class_template.prototype_instantiation;
   if (ct_tssp->variant.class_template.is_alias_template) {
     a_symbol_ptr  dealiased_sym = NULL;
     a_type_ptr    defining_type;
@@ -29695,6 +29694,7 @@ appropriate, produce the "aggregate deduction candidate" (see N4885
     /* Check if the defining-type-id of the alias template names a deducible
        template and, if so, recursively check if an aggregate deduction
        candidate needs to be added. */
+    proto_type = proto_sym->variant.type.ptr;
     defining_type = proto_type->variant.typeref.type;
     if (is_immediate_class_type(defining_type) &&
         defining_type->variant.class_struct_union.is_template_class) {
@@ -29727,8 +29727,9 @@ appropriate, produce the "aggregate deduction candidate" (see N4885
     }  /* if */
     goto done;
   }  /* if */
+  proto_type = proto_sym->variant.class_struct_union.type;
   if (!is_immediate_class_type(proto_type) ||
-      !class_symbol_supp(symbol_for(proto_type))->is_class_aggregate) {
+      !class_symbol_supp(proto_sym)->is_class_aggregate) {
     goto done;
   }  /* if */
   if (update_param_list_for_aggr_candidate(&param_list, proto_type,

@@ -43818,7 +43818,9 @@ deduction succeeds and results in the same type "A<T>".
        arguments into the template matches the original type. */
     if (!gnu_version_is(any_version)) {
       a_symbol_ptr  inst_sym = find_template_class_simple(template_sym, &tap);
-      a_type_ptr    inst_type = inst_sym->variant.type.ptr;
+      a_type_ptr    inst_type = symbol_is(inst_sym, sk_type) ?
+                                     inst_sym->variant.type.ptr :
+                                     inst_sym->variant.class_struct_union.type;
       result = identical_types(type, inst_type);
     } else {
       result = TRUE;
