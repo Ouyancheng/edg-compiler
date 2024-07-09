@@ -5922,6 +5922,9 @@ indicated type.
     }  /* if */
     orig_dispatch_type = ptr_type;
     dispatch_type = f_skip_typerefs(orig_dispatch_type);
+    /* Do array-to-pointer decay if needed. */
+    dispatch_type = do_implicit_type_transformations(dispatch_type,
+                                                    (an_operand*)NULL);
     /* Check that the dispatch type is a pointer (or a template parameter,
        which could be a pointer). */
     if (is_pointer_type(dispatch_type)) {
