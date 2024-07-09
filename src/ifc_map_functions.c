@@ -52280,6 +52280,309 @@ node's "name" field value.
 
 
 /*
+Visitor functions for retrieving specifiers values from nodes on the DeclIndex.
+*/
+
+
+a_boolean has_ifc_specifiers(an_ifc_decl_index idx)
+/*
+Given the DeclIndex, test whether the associated node has the field
+"specifiers".  Return TRUE if the node has the field "specifiers"; otherwise,
+return FALSE.
+*/
+{
+  an_ifc_module_file *file = idx.file;
+  a_boolean          result = FALSE;
+
+  switch (idx.sort) {
+    case ifc_ds_decl_alias:
+      if (is_at_least(file, 0, 33)) {
+        result = TRUE;
+      }  /* if */
+      break;
+    case ifc_ds_decl_barren:
+      if (is_at_least(file, 0, 43)) {
+        result = TRUE;
+      }  /* if */
+      break;
+    case ifc_ds_decl_bitfield:
+      if (is_at_least(file, 0, 33)) {
+        result = TRUE;
+      }  /* if */
+      break;
+    case ifc_ds_decl_concept:
+      if (is_at_least(file, 0, 33)) {
+        result = TRUE;
+      }  /* if */
+      break;
+    case ifc_ds_decl_constructor:
+      if (is_at_least(file, 0, 33)) {
+        result = TRUE;
+      }  /* if */
+      break;
+    case ifc_ds_decl_deduction_guide:
+      if (is_at_least(file, 0, 33)) {
+        result = TRUE;
+      }  /* if */
+      break;
+    case ifc_ds_decl_default_argument:
+      if (is_at_least(file, 0, 43)) {
+        result = TRUE;
+      }  /* if */
+      break;
+    case ifc_ds_decl_destructor:
+      if (is_at_least(file, 0, 33)) {
+        result = TRUE;
+      }  /* if */
+      break;
+    case ifc_ds_decl_enumeration:
+      if (is_at_least(file, 0, 33)) {
+        result = TRUE;
+      }  /* if */
+      break;
+    case ifc_ds_decl_enumerator:
+      if (is_at_least(file, 0, 33)) {
+        result = TRUE;
+      }  /* if */
+      break;
+    case ifc_ds_decl_field:
+      if (is_at_least(file, 0, 33)) {
+        result = TRUE;
+      }  /* if */
+      break;
+    case ifc_ds_decl_function:
+      if (is_at_least(file, 0, 33)) {
+        result = TRUE;
+      }  /* if */
+      break;
+    case ifc_ds_decl_inherited_constructor:
+      if (is_at_least(file, 0, 33)) {
+        result = TRUE;
+      }  /* if */
+      break;
+    case ifc_ds_decl_intrinsic:
+      if (is_at_least(file, 0, 33)) {
+        result = TRUE;
+      }  /* if */
+      break;
+    case ifc_ds_decl_method:
+      if (is_at_least(file, 0, 33)) {
+        result = TRUE;
+      }  /* if */
+      break;
+    case ifc_ds_decl_partial_specialization:
+      if (is_at_least(file, 0, 33)) {
+        result = TRUE;
+      }  /* if */
+      break;
+    case ifc_ds_decl_scope:
+      if (is_at_least(file, 0, 33)) {
+        result = TRUE;
+      }  /* if */
+      break;
+    case ifc_ds_decl_template:
+      if (is_at_least(file, 0, 33)) {
+        result = TRUE;
+      }  /* if */
+      break;
+    case ifc_ds_decl_using_declaration:
+      if (is_at_least(file, 0, 33)) {
+        result = TRUE;
+      }  /* if */
+      break;
+    case ifc_ds_decl_variable:
+      if (is_at_least(file, 0, 33)) {
+        result = TRUE;
+      }  /* if */
+      break;
+    case ifc_ds_decl_reference:
+      { Opt<an_ifc_decl_reference> opt_universal;
+
+        construct_node(&opt_universal, idx);
+        if (opt_universal.has_value()) {
+          an_ifc_decl_index remote_idx = get_ifc_index(*opt_universal);
+
+          if (has_ifc_specifiers(remote_idx)) {
+            result = TRUE;
+          }  /* if */
+        }  /* if */
+      }
+      break;
+    default:
+      result = FALSE;
+      break;
+  }  /* switch */
+  return result;
+}  /* has_ifc_specifiers */
+
+
+an_ifc_basic_specifiers_bitfield get_ifc_specifiers(an_ifc_decl_index idx)
+/*
+Given the DeclIndex, return the universal representation of the associated
+node's "specifiers" field value.
+*/
+{
+  an_ifc_basic_specifiers_bitfield result;
+
+  switch (idx.sort) {
+    case ifc_ds_decl_alias:
+      { an_ifc_decl_alias universal;
+
+        construct_node_prechecked(&universal, idx);
+        result = get_ifc_specifiers(universal);
+      }
+      break;
+    case ifc_ds_decl_barren:
+      { an_ifc_decl_barren universal;
+
+        construct_node_prechecked(&universal, idx);
+        result = get_ifc_specifiers(universal);
+      }
+      break;
+    case ifc_ds_decl_bitfield:
+      { an_ifc_decl_bitfield universal;
+
+        construct_node_prechecked(&universal, idx);
+        result = get_ifc_specifiers(universal);
+      }
+      break;
+    case ifc_ds_decl_concept:
+      { an_ifc_decl_concept universal;
+
+        construct_node_prechecked(&universal, idx);
+        result = get_ifc_specifiers(universal);
+      }
+      break;
+    case ifc_ds_decl_constructor:
+      { an_ifc_decl_constructor universal;
+
+        construct_node_prechecked(&universal, idx);
+        result = get_ifc_specifiers(universal);
+      }
+      break;
+    case ifc_ds_decl_deduction_guide:
+      { an_ifc_decl_deduction_guide universal;
+
+        construct_node_prechecked(&universal, idx);
+        result = get_ifc_specifiers(universal);
+      }
+      break;
+    case ifc_ds_decl_default_argument:
+      { an_ifc_decl_default_argument universal;
+
+        construct_node_prechecked(&universal, idx);
+        result = get_ifc_specifiers(universal);
+      }
+      break;
+    case ifc_ds_decl_destructor:
+      { an_ifc_decl_destructor universal;
+
+        construct_node_prechecked(&universal, idx);
+        result = get_ifc_specifiers(universal);
+      }
+      break;
+    case ifc_ds_decl_enumeration:
+      { an_ifc_decl_enumeration universal;
+
+        construct_node_prechecked(&universal, idx);
+        result = get_ifc_specifiers(universal);
+      }
+      break;
+    case ifc_ds_decl_enumerator:
+      { an_ifc_decl_enumerator universal;
+
+        construct_node_prechecked(&universal, idx);
+        result = get_ifc_specifiers(universal);
+      }
+      break;
+    case ifc_ds_decl_field:
+      { an_ifc_decl_field universal;
+
+        construct_node_prechecked(&universal, idx);
+        result = get_ifc_specifiers(universal);
+      }
+      break;
+    case ifc_ds_decl_function:
+      { an_ifc_decl_function universal;
+
+        construct_node_prechecked(&universal, idx);
+        result = get_ifc_specifiers(universal);
+      }
+      break;
+    case ifc_ds_decl_inherited_constructor:
+      { an_ifc_decl_inherited_constructor universal;
+
+        construct_node_prechecked(&universal, idx);
+        result = get_ifc_specifiers(universal);
+      }
+      break;
+    case ifc_ds_decl_intrinsic:
+      { an_ifc_decl_intrinsic universal;
+
+        construct_node_prechecked(&universal, idx);
+        result = get_ifc_specifiers(universal);
+      }
+      break;
+    case ifc_ds_decl_method:
+      { an_ifc_decl_method universal;
+
+        construct_node_prechecked(&universal, idx);
+        result = get_ifc_specifiers(universal);
+      }
+      break;
+    case ifc_ds_decl_partial_specialization:
+      { an_ifc_decl_partial_specialization universal;
+
+        construct_node_prechecked(&universal, idx);
+        result = get_ifc_specifiers(universal);
+      }
+      break;
+    case ifc_ds_decl_scope:
+      { an_ifc_decl_scope universal;
+
+        construct_node_prechecked(&universal, idx);
+        result = get_ifc_specifiers(universal);
+      }
+      break;
+    case ifc_ds_decl_template:
+      { an_ifc_decl_template universal;
+
+        construct_node_prechecked(&universal, idx);
+        result = get_ifc_specifiers(universal);
+      }
+      break;
+    case ifc_ds_decl_using_declaration:
+      { an_ifc_decl_using_declaration universal;
+
+        construct_node_prechecked(&universal, idx);
+        result = get_ifc_specifiers(universal);
+      }
+      break;
+    case ifc_ds_decl_variable:
+      { an_ifc_decl_variable universal;
+
+        construct_node_prechecked(&universal, idx);
+        result = get_ifc_specifiers(universal);
+      }
+      break;
+    case ifc_ds_decl_reference:
+      { an_ifc_decl_reference universal;
+
+        construct_node_prechecked(&universal, idx);
+
+        an_ifc_decl_index remote_idx = get_ifc_index(universal);
+        result = get_ifc_specifiers(remote_idx);
+      }
+      break;
+    default:
+      unexpected_condition_str("Invalid query, no specifiers value.");
+      break;
+  }  /* switch */
+  return result;
+}  /* get_ifc_specifiers */
+
+
+/*
 Visitor functions for retrieving locus values from nodes on the ExprIndex.
 */
 

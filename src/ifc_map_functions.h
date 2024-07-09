@@ -37788,6 +37788,15 @@ a_boolean has_ifc_name(an_ifc_decl_index idx);
 extern an_ifc_name_index get_ifc_name(an_ifc_decl_index idx);
 
 /*
+Visitor functions for retrieving specifiers values from nodes on the DeclIndex.
+*/
+
+a_boolean has_ifc_specifiers(an_ifc_decl_index idx);
+
+extern an_ifc_basic_specifiers_bitfield get_ifc_specifiers(
+                                                        an_ifc_decl_index idx);
+
+/*
 Visitor functions for retrieving locus values from nodes on the ExprIndex.
 */
 
