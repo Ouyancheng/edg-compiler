@@ -1,5 +1,14 @@
 Version 6.7
 
+7/8/24   [EDGcpfe/27433]
+Missing generated constructor definition for constant evaluation
+
+In somewhat unusual cases, the front end failed to produce a definition for a
+generated copy constructor that is needed for constant evaluation.  That in
+turn caused the constant evaluation to fail and errors to ensue.  This is now
+fixed.
+
+
 7/8/24   [EDGcpfe/27439]
 Microsoft-mode abort on copy of closure object
 
