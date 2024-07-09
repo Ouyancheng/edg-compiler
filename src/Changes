@@ -44,9 +44,9 @@ Consider, in Microsoft mode:
 This previously triggered an internal error in conv_glvalue_expr_to_prvalue.
 The underlying reason for this is that in Microsoft mode, a lambda expression
 (which is a prvalue) can be converted to a corresponding glvalue, but the
-conversion back to a prvalue was (accidentally)  not supported.  This
-particular example exercises the back-and-forth conversion, thus triggering an
-internal error.  This is now fixed.
+conversion back to a prvalue was (accidentally) not supported.  This particular
+example exercises the back-and-forth conversion, thus triggering an internal
+error.  This is now fixed.
 
 
 7/8/24   [EDGcpfe/27266,EDGcpfe/27434]
