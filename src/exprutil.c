@@ -22305,6 +22305,12 @@ lvalue_adjust:
     }  /* if */
 #endif /* CHECKING */
     simple_glvalue_to_prvalue(node, prvalue_node_type);
+    if (node_is(node, enk_lambda)) {
+      /* A lambda started off as a prvalue and so we don't record an "original
+         lvalue" type because that can cause some other components to assume
+         a "load" took place. */
+      node->orig_lvalue_type = NULL;
+    }  /* if */
   }  /* if */
   if (con_expr_value != NULL) {
     /* The expression is constant-valued. */
