@@ -14,7 +14,7 @@ with --clang:
   }
 
 
-7/9/23
+7/9/24   [EDGcpfe/26511,EDGcpfe/27370]
 C++-generating back end: pragmas in template definitions
 
 In configurations in which template definitions are generated from the
