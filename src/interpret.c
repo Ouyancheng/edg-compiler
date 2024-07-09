@@ -10256,7 +10256,8 @@ See do_constexpr_intrinsic_call for the meaning of the parameters.
       goto done;
     }  /* if */
     array_type = alloc_type(tk_array);
-    array_type->variant.array.element_type = elem_type;
+    array_type->variant.array.element_type = make_qualified_type(elem_type,
+                                                                 TQ_CONST);
     array_type->variant.array.variant.number_of_elements =
                                                        (a_targ_size_t)n_elems;
     init_cp = fs_constant(ck_aggregate);
@@ -10267,10 +10268,10 @@ See do_constexpr_intrinsic_call for the meaning of the parameters.
       goto done;
     }  /* if */
     switch_back_to_original_region(region_to_switch_back_to);
-    vp = make_variable(array_type, (a_storage_class)sc_static, NO_SCOPE_DEPTH);
+    vp = make_variable(array_type, sc_static, NO_SCOPE_DEPTH);
     add_temporary_to_front_of_variables_list(
                                     vp, curr_translation_unit->primary_scope);
-    vp->init_kind = (an_init_kind)initk_static;
+    vp->init_kind = initk_static;
     vp->initializer.constant = init_cp;
     vp->is_constexpr = TRUE;
 

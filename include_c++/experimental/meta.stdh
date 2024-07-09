@@ -105,13 +105,11 @@ namespace std {
     using  __refl_ptrdiff = decltype((int*)2-(int*)1);
 
     template<typename __T>
-    consteval __T* make_constexpr_array(__T*, __refl_ptrdiff);
+    consteval __T const* make_constexpr_array(__T*, __refl_ptrdiff);
 
     using __str = std::string_view;
 
-    consteval __str name_of(info) {
-      return __str("", 0);  /* Dummy return.  Handled by interpreter. */
-    }
+    consteval __str name_of(info);
 
     consteval __infovec members__impl(info);
 
