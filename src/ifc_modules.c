@@ -9588,17 +9588,38 @@ global module fragment; otherwise, return FALSE.
 }  /* is_from_gmf */
 
 
-template<typename an_ifc_Node_type>
-static a_boolean is_from_gmf(const an_ifc_Node_type &node)
+static inline void set_mep_origin_flags(a_module_entity_ptr mep)
 /*
-Return TRUE if the entity represented by the given node came from the global
-module fragment; otherwise, return FALSE.
+Set the module entity's origin flags (namely, global_module and non_exported).
+The IFC node associated with the given module entity pointer is required to
+have been validated by the caller.
 */
 {
-  an_ifc_basic_specifiers_bitfield specifiers = get_ifc_specifiers(node);
+  an_ifc_decl_index decl_idx = decl_index_of(mep);
 
-  return is_from_gmf(specifiers);
-}  /* is_from_gmf */
+  if (has_ifc_specifiers(decl_idx)) {
+    an_ifc_basic_specifiers_bitfield specifiers = get_ifc_specifiers(decl_idx);
+
+    if (is_from_gmf(specifiers)) {
+      mep->global_module = TRUE;
+    }  /* if */
+    if (test_bitmask<ifc_bsb_non_exported>(specifiers)) {
+      mep->non_exported = TRUE;
+    }  /* if */
+  }  /* if */
+}  /* set_mep_origin_flags */
+
+
+static inline void inherit_mep_origin_flags(a_module_entity_ptr mep,
+                                            a_module_entity_ptr source_mep)
+/*
+Inherit the module entity's origin flags (namely, global_module and non_exported)
+from the given source module entity.
+*/
+{
+  mep->global_module = source_mep->global_module;
+  mep->non_exported = source_mep->non_exported;
+}  /* inherit_mep_origin_flags */
 
 
 static inline a_boolean is_unnamed_tag(a_const_char  *name)
@@ -10664,6 +10685,10 @@ strongly preferred over calling this function directly.
          it does not already have a scope, one may be created below. */
       push_module_declaration_context(mep->scope, &scope_push_status);
     }  /* if */
+    if (!validate(decl_idx)) {
+      goto invalid;
+    }  /* if */
+    set_mep_origin_flags(mep);
   }  /* if */
   switch (decl_idx.sort) {
     case ifc_ds_decl_variable:
@@ -10685,9 +10710,6 @@ strongly preferred over calling this function directly.
           a_decl_parse_state   dps;
           a_module_token_cache cache;
 
-          if (is_from_gmf(idv)) {
-            mep->global_module = TRUE;
-          }  /* if */
           if (!ensure_module_scope(mep, idv, &scope_push_status)) {
             goto invalid;
           }  /* if */
@@ -10890,9 +10912,6 @@ strongly preferred over calling this function directly.
         if (!ensure_module_scope(mep, scope_decl, &scope_push_status)) {
           goto invalid;
         }  /* if */
-        if (is_from_gmf(scope_decl)) {
-          mep->global_module = TRUE;
-        }  /* if */
 
         Opt<a_scope_kind> opt_scope_kind = get_scope_kind(scope_decl);
         if (!opt_scope_kind.has_value()) {
@@ -10944,6 +10963,11 @@ strongly preferred over calling this function directly.
                               properties = get_ifc_properties(scope_decl);
               a_symbol_kind   sym_kind = get_csu_sym_kind(scope_decl);
               a_symbol_ptr    tag_sym;
+              an_ifc_basic_specifiers_bitfield
+                              specifiers = get_ifc_specifiers(scope_decl);
+              if (test_bitmask<ifc_bsb_non_exported>(specifiers)) {
+                mep->non_exported = TRUE;
+              }  /* if */
 
               if (decl_is_named) {
                 a_symbol_locator loc;
@@ -11053,9 +11077,6 @@ strongly preferred over calling this function directly.
           an_ifc_decl_alias ida = *opt_ida;
           an_ifc_type_index type = get_ifc_type(ida);
 
-          if (is_from_gmf(ida)) {
-            mep->global_module = TRUE;
-          }  /* if */
           if (type.sort == ifc_ts_type_fundamental) {
             Opt<an_ifc_type_fundamental> opt_itf;
 
@@ -11185,9 +11206,6 @@ strongly preferred over calling this function directly.
         /* FIXME: This does a lot of stuff even when deferred. */
         if (!source_position_from_locus(&error_position, locus)) {
           goto invalid;
-        }  /* if */
-        if (is_from_gmf(ide)) {
-          mep->global_module = TRUE;
         }  /* if */
 
         Opt<an_ifc_type_fundamental> opt_itf;
@@ -11393,9 +11411,6 @@ strongly preferred over calling this function directly.
         } else {
           an_ifc_decl_enumerator ide = *opt_ide;
 
-          if (is_from_gmf(ide)) {
-            mep->global_module = TRUE;
-          }  /* if */
           if (!ensure_module_scope(mep, ide, &scope_push_status)) {
             goto invalid;
           }  /* if */
@@ -11484,9 +11499,6 @@ strongly preferred over calling this function directly.
         } else {
           an_ifc_cache_info cache_info;
 
-          if (is_from_gmf(idt)) {
-            mep->global_module = TRUE;
-          }  /* if */
           if (!ensure_module_scope(mep, idt, &scope_push_status)) {
             goto invalid;
           }  /* if */
@@ -11643,6 +11655,12 @@ strongly preferred over calling this function directly.
         }  /* if */
 
         an_ifc_decl_specialization ids = *opt_ids;
+        an_ifc_decl_index          primary_templ =
+                                                get_ifc_primary_template(ids);
+        a_module_entity_ptr        primary_templ_mep =
+                                     get_ifc_module_entity_ptr(primary_templ);
+        inherit_mep_origin_flags(mep, primary_templ_mep);
+
         a_module_token_cache       cache;
         if (!ensure_module_scope(mep, ids, &scope_push_status)) {
           goto invalid;
@@ -11693,9 +11711,6 @@ strongly preferred over calling this function directly.
           /* Create a definition for the concept and scan it. */
           an_ifc_decl_concept idc = *opt_idc;
 
-          if (is_from_gmf(idc)) {
-            mep->global_module = TRUE;
-          }  /* if */
           /* Activate the parent scope if needed. */
           if (!ensure_module_scope(mep, idc, &scope_push_status)) {
             goto invalid;
