@@ -21810,11 +21810,11 @@ it might produce an error).
         op2->next = NULL;
         /* Expressions produced by conv_prvalue_expr_to_lvalue
            can have a throw as one arm of the lvalue. */
-        if (skip_parens(op2)->kind != (an_expr_node_kind)enk_throw) {
+        if (!node_is(skip_parens(op2), enk_throw)) {
           op2 = conv_glvalue_expr_to_prvalue(op2, allow_folding,
                                              (a_constant_ptr *)NULL, err_pos);
         }  /* if */
-        if (skip_parens(op3)->kind != (an_expr_node_kind)enk_throw) {
+        if (!node_is(skip_parens(op3), enk_throw)) {
           op3 = conv_glvalue_expr_to_prvalue(op3, allow_folding,
                                              (a_constant_ptr *)NULL, err_pos);
         }  /* if */
@@ -22106,7 +22106,7 @@ it might produce an error).
              See core issue 1480.  Normally, the underlying entity has an
              address that we must preserve (e.g., in an xvalue). */
           if (constexpr_enabled &&
-              ((op1->kind == (an_expr_node_kind)enk_temp_init &&
+              ((node_is(op1, enk_temp_init) &&
                 op1->variant.init.dynamic_init->has_temporary_lifetime) ||
                are_reference_related(orig_type, op1->type))) {
             goto lvalue_adjust;
@@ -22174,7 +22174,7 @@ lvalue_adjust:
           break;
       }  /* switch */
     }  /* if */
-  } else if (node->kind == (an_expr_node_kind)enk_temp_init) {
+  } else if (node_is(node, enk_temp_init)) {
     /* If the given node is a generated temporary initialized with the result
        of a comma operation or an rvalue expression of the right type, just
        get back that expression. */
@@ -22196,12 +22196,12 @@ lvalue_adjust:
         processed = TRUE;
       }  /* if */
     }  /* if */
-  } else if (node->kind == (an_expr_node_kind)enk_object_lifetime) {
+  } else if (node_is(node, enk_object_lifetime)) {
     /* We don't expect an lvalue-to-rvalue conversion to be done after the
        enk_object_lifetime node has been added to the top of an expression. */
     unexpected_condition();
 #if BUILTIN_FUNCTIONS_ENABLED
-  } else if (node->kind == (an_expr_node_kind)enk_builtin_choose_expr) {
+  } else if (node_is(node, enk_builtin_choose_expr)) {
     /* Apply the conversion to the selected node. */
     an_expr_node_ptr  selected, converted;
     a_boolean         local_constant_case;
@@ -22291,8 +22291,12 @@ lvalue_adjust:
        and change the type to the prvalue type. */
 #if CHECKING
     /* Make sure this is a node that can be turned into a prvalue by
-       clearing the flags. */
-    if (!is_rvalueable_node(node)) {
+       clearing the flags.  (Mostly these are "rvalueable" nodes, where a
+       prvalue state represents a "load".  In some cases, a lambda may have
+       been transformed from a prvalue to a glvalue, but the reverse
+       transformation isn't really considered a "load" since it is the
+       original state of the expression.) */
+    if (!is_rvalueable_node(node) && !node_is(node, enk_lambda)) {
 #if DEBUG
       fprintf(f_debug, "\n");
       db_expression(node);
