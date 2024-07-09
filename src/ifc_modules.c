@@ -8695,14 +8695,29 @@ redeclaration is.
                                                   redecl_kind);
 
   if (result) {
-    /* This is a redeclaration of an existing symbol. */
-    /* FIXME: This should also trigger if the redeclared entity's module is a
-       named module. */
-#if 0
-    if (!is_header_unit(mep->module_info)) {
-      pos_error(ec_module_entity_redeclaration, pos);
+    /* This is a redeclaration of an existing symbol.  If this is a named
+       module and the entity is not part of the global module, emit an
+       error. */
+    if (!is_header_unit(mep->module_info) && !mep->global_module) {
+      /* Suspend any diagnostic suppression, ensuring the following error
+         is always surfaced. */
+      Value_saver<a_boolean>
+                saved_globally_suppress_diagnostics(
+                                                &globally_suppress_diagnostics,
+                                                /*new_value=*/FALSE);
+      Value_saver<a_diagnostic_counter_ptr>
+                saved_local_diag_counter(&diagnostic_counters.local,
+                                         /*new_value=*/NULL);
+      /* Gather the symbol where the collision occurred and diagnose the
+         conflict. */
+      a_source_correspondence_ptr
+                scp = source_corresp_for_il_entry(*redecl_entity,
+                                                  *redecl_kind);
+      a_symbol_ptr
+                redecl_sym = ((a_symbol_ptr)scp->assoc_info);
+
+      pos_error(ec_module_import_conflict, pos, redecl_sym);
     }  /* if */
-#endif /* 0 */
   }  /* if */
   return result;
 }  /* check_and_set_redeclaration */

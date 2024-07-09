@@ -3520,6 +3520,7 @@ ec_empty_delimited_escape;;"a delimited escape sequence must have at least one c
 ec_unterminated_delimited_escape;;"unterminated delimited escape sequence"
 ec_constant_addresses_local_variable;;"constant contains address of a local variable"
 ec_struct_binding_consteval;;"a structured binding cannot be declared \"consteval\""
+ec_module_import_conflict;;"%no conflicts with the imported declaration %nd"
 ###############################################################################
 #                                                             \  ___  /       #
 #                                                               /   \         #
