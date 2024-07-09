@@ -493,9 +493,7 @@ it.  Reuse a freed entry if possible.
   *ppp = *orig_ppp;
   ppp->next = NULL;
 #if GENERATE_SOURCE_SEQUENCE_LISTS
-  check_assertion_str2(ppp->source_sequence_entry == NULL,
-                       "alloc_copy_of_pending_pragma:",
-		       "copied pragma has source sequence entry");
+  ppp->source_sequence_entry = NULL;
 #endif /* GENERATE_SOURCE_SEQUENCE_LISTS */
   return ppp;
 }  /* alloc_copy_of_pending_pragma */
@@ -670,8 +668,9 @@ if it turns out that no IL pragma entry is created).
 {
   a_pending_pragma_ptr	ppp = curr_token_pragmas;
   db_enter(4, "add_source_sequence_entry_to_curr_token_pragmas");
-  if (!is_nonspecialized_instantiation_context() &&
-      depth_template_declaration_scope == NO_SCOPE_DEPTH) {
+  if ((!is_nonspecialized_instantiation_context() &&
+       depth_template_declaration_scope == NO_SCOPE_DEPTH) ||
+      is_prototype_instantiation_context()) {
     while (ppp != NULL) {
       if (ppp->source_sequence_entry == NULL &&
           (binding_kind == pbk_none ||
@@ -837,13 +836,16 @@ there is additional processing to be done.
   a_source_correspondence  *scp = NULL;
 
   db_enter(5, "add_pragma_to_il");
-  if (scope_stack_top().in_prototype_instantiation ||
-      scope_stack_top().in_nonreal_instantiation) {
-    /* Pragmas are never added to the IL inside a prototype or nonreal
-       instantiation. */
+  if (scope_stack_top().in_nonreal_instantiation) {
+    /* Pragmas are never added to the IL inside a nonreal instantiation. */
   } else if (in_constexpr_if_discarded_statement()) {
     /* Pragmas from C++17 constexpr if discarded statements are not added
        to the IL. */
+  } else if (scope_stack_top().in_prototype_instantiation &&
+	     secondary_translation_unit_seen()) {
+    /* Pragmas in prototype instantiations in secondary translation
+       units can cause memory management issues, so do not add this
+       one. */
   } else {
     /* Determine the memory region in which the IL pragma entry should be
        allocated and the scope_depth of the scope entry to which it should
@@ -1188,7 +1190,8 @@ with a token that is to be cached.
            as having been processed so that it won't be applied again by
            process_curr_token_pragmas. */
         ppp->has_been_processed = TRUE;
-        if (pkdp->automatically_include_in_il) {
+        if (pkdp->automatically_include_in_il ||
+            is_template_declaration_context()) {
           /* Create an IL entry for pragmas that should automatically be
              included in the IL. */
           create_il_entry_for_pragma(ppp, (a_symbol_ptr)NULL,

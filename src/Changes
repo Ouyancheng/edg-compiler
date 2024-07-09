@@ -1,5 +1,24 @@
 Version 6.7
 
+7/9/23
+C++-generating back end: pragmas in template definitions
+
+In configurations in which template definitions are generated from the
+prototype instantiation IL. the C++-generating back end previously omitted
+pragmas appearing within template definitions from the generated code.
+This is now fixed.  For example, with --g++ in a configuration in which
+INCLUDE_UNRECOGNIZED_PRAGMAS_IN_IL is TRUE:
+
+  template <typename T> void f(T x) {
+  // Previously omitted the following pragma:
+  #pragma omp parallel for num_threads(8)
+    for (int h = 0; h < x; h++) { }
+  }
+  void m() {
+    f(16);
+  }
+
+
 7/8/24   [EDGcpfe/27433]
 Missing generated constructor definition for constant evaluation
 

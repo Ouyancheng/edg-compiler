@@ -4436,7 +4436,8 @@ In C++17 mode, the initializer need not be a constant-expression.
 #if TEMPLATE_INSTANTIATIONS_IN_SOURCE_SEQUENCE_LISTS
     scope_stack_top().ss_list_instantiation_insert_point = inst_insert_point;
 #endif /* TEMPLATE_INSTANTIATIONS_IN_SOURCE_SEQUENCE_LISTS */
-    if (last_ssep != scope_stack_top().end_of_source_sequence_list) {
+    if (last_ssep != scope_stack_top().end_of_source_sequence_list &&
+        var->source_corresp.source_sequence_entry != NULL) {
       /* The initializer created source sequence entries.  Move them to
          precede the entry for the variable (this ensures that nested
          class template instantiations are visible to the initializer

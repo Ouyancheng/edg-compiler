@@ -3207,7 +3207,8 @@ block statement part of a GNU statement expression.
 {
   a_boolean  result = FALSE;
 
-  if (ss_entry_kind(curr_source_sequence_entry) == iek_statement) {
+  if (curr_source_sequence_entry != NULL &&
+      ss_entry_kind(curr_source_sequence_entry) == iek_statement) {
     a_statement_ptr  stmt = ss_entry_ptr(curr_source_sequence_entry,
                                          a_statement_ptr);
     if (stmt->kind == (a_statement_kind)stmk_block &&

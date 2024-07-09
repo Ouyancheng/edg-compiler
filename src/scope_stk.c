@@ -3580,6 +3580,12 @@ the scope being pushed.
         /* Suppress source sequence entries when IL lowering is done. */
         source_sequence_entries_disallowed = TRUE;
 #endif /* DO_IL_LOWERING && !PRESERVE_SOURCE_SEQUENCE_LISTS_WITH_IL_LOWERING */
+      } else if (prototype_template_of(template_sym) != template_sym) {
+        /* This is not the original prototype instantiation, but a prototype
+           instantiation within a real instantiation.  Do not record source
+           sequence entries this time around; they were already recorded when
+           during the prototype instantiation of the enclosing template. */
+        source_sequence_entries_disallowed = TRUE;
       } else {
         /* In all other cases, produce source sequence entries for the
            prototype instantiation. */
