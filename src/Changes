@@ -1,10 +1,10 @@
 Version 6.7
 
 7/9/24   [EDGcpfe/27288]
-Clang compatibility: __c11_atomic_* builtins
+GNU/Clang compatibility: array-to-pointer decay on sync builtins
 
 A missing array-to-pointer decay had caused spurious errors when using an
-array type as the first argument to a __c11_atomic_* builtin.  For example,
+array type as the first argument to some GCC/Clang builtins.  For example,
 with --clang:
 
   void f() {
