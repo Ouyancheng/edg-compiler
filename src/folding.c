@@ -10373,6 +10373,7 @@ pseudo_call can be NULL if that information is not needed.
       case bfk_signbitl:
       case bfk_atomic_always_lock_free:
       case bfk_atomic_is_lock_free:
+      case bfk___c11_atomic_is_lock_free:
       case bfk_bswap16:
       case bfk_bswap32:
       case bfk_bswap64:
@@ -10741,10 +10742,11 @@ static a_boolean fold_lock_free_query_if_possible(
                                          a_constant_ptr           result,
                                          a_type_ptr               result_type)
 /*
-bfk is either bfk_atomic_always_lock_free or bfk_atomic_is_lock_free.
-If possible, fold a call to the corresponding "built-in functions" with the
-given arguments, and return the result in *result.  If successful, return
-TRUE.
+bfk is either bfk_atomic_always_lock_free, bfk_atomic_is_lock_free, or
+bfk__c11_atomic_is_lock_free.  If possible, fold a call to the corresponding
+built-in functions with the given arguments (ptr_arg is NULL if bfk is
+bfk__c11_atomic_is_lock_free), and return the result in *result.  If
+successful, return TRUE.
 */
 {
   a_boolean  folded = FALSE, err;
@@ -10756,7 +10758,7 @@ TRUE.
     a_host_large_unsigned  size;
     a_boolean              size_8_foldable = FALSE;
     if (bfk == (a_builtin_function_kind)bfk_atomic_always_lock_free ||
-        is_constant_node(ptr_arg)) {
+        (ptr_arg != NULL && is_constant_node(ptr_arg))) {
       /* For __atomic_is_lock_free, GCC appears to always fold the cases where
          the size argument is 1, 2, or 4.  The case where it is 8, is only
          folded if ptr_arg represents an address constant expression or a
@@ -11151,6 +11153,7 @@ the folding mechanism is used as a way to validate argument values.
         FALLTHROUGH
       case bfk_atomic_is_lock_free:
         check_assertion(args2 != NULL);
+      case bfk___c11_atomic_is_lock_free:
         folded = fold_lock_free_query_if_possible(
                                            rp->variant.builtin_function_kind,
                                            args, args2, result, result_type);

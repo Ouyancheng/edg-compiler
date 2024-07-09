@@ -1,5 +1,12 @@
 Version 6.7
 
+7/9/24   [EDGcpfe/27287]
+GNU/Clang compatibility: __c11_atomic_is_lock_free
+
+The front end now folds certain calls to the built-in function
+__c11_atomic_is_lock_free, in both C and C++ modes.
+
+
 7/9/24   [EDGcpfe/27288]
 GNU/Clang compatibility: array-to-pointer decay on sync builtins
 
