@@ -97,12 +97,11 @@ without needing to make an IL change.
 FIXME: For PCH, f_module needs to be re-opened and mmap_addr recomputed.
 */
 struct a_module_interface {
-#if !USE_VIRTUAL_FUNCTIONS
-  a_module_kind mod_kind = mk_none;
-                        /* What kind of module this interface is for.  This
+  a_module_file_kind
+                mod_kind;
+                        /* What kind of module file this interfaces with.  This
                            indicates which class has inherited this module and
                            is used to emulate virtual function dispatch. */
-#endif /* !USE_VIRTUAL_FUNCTIONS */
   a_const_char  *primary_name = NULL;
                         /* The primary name of the module. */
   a_const_char  *partition_name = NULL;
@@ -118,22 +117,20 @@ struct a_module_interface {
                            this module. */
 
   a_module_interface() = delete;
-  a_module_interface(a_module_kind iface_kind)
-#if !USE_VIRTUAL_FUNCTIONS
+  a_module_interface(a_module_file_kind iface_kind)
     : mod_kind(iface_kind)
-#endif /* !USE_VIRTUAL_FUNCTIONS */
     {}
-  VIRTUAL ~a_module_interface() EDG_NOEXCEPT = default;
+  ~a_module_interface() EDG_NOEXCEPT = default;
 
-/* State query functions. */
-  VIRTUAL a_boolean is_open() const ABSTRACT;
+  /* State query functions. */
+  a_boolean is_open() const;
 
-/* Disk interface functions. */
-  VIRTUAL a_boolean import(a_module_import_decl_ptr midp) ABSTRACT;
-  VIRTUAL void close() ABSTRACT;
-  VIRTUAL void pch_reset(a_module_import_decl_ptr midp) ABSTRACT;
+  /* Disk interface functions. */
+  a_boolean import(a_module_import_decl_ptr midp);
+  void close();
+  void pch_reset(a_module_import_decl_ptr midp);
 
-/* Module interface functions. */
+  /* Module interface functions. */
   void set_name(a_const_char *module_name,
                 a_boolean    header_unit);
   void report_suppressed_diagnostics() const;
@@ -200,6 +197,13 @@ stack, or NULL if there's no module currently limiting lookup.
 
   if (mcsep != NULL) {
     mp = mcsep->module_ptr;
+  } else if (trans_unit_module != NULL) {
+    mp = trans_unit_module;
+  }   /* if */
+  if (mp != NULL && mp->kind == mk_unit_partition) {
+    if (mp->variant.unit_partition.unit != NULL) {
+      mp = mp->variant.unit_partition.unit;
+    }  /* if */
   }  /* if */
   return mp;
 }  /* curr_lookup_module */
@@ -275,20 +279,12 @@ Return true if the provided magic numbers match their expected magic numbers.
          magic[3] == expected[3];
 }  /* magic_numbers_match */
 
-
-inline a_boolean is_header_unit(a_module_ptr mod)
-/*
-Return TRUE if the provided module is a header unit, FALSE otherwise.
-*/
-{
-  return (mod != NULL &&
-          (mod->kind == mk_header || mod->resolved_header != NULL));
-}  /* is_header_unit */
-
 extern a_boolean check_module_has_interface_dependency(
                                            a_symbol_ptr          module_sym,
                                            a_symbol_ptr          interface_sym,
                                            a_source_position_ptr module_pos);
+
+extern a_module_ptr find_or_create_module(a_symbol_ptr module_sym);
 
 extern a_boolean find_module_file(a_module_ptr  mod,
                                   a_module_kind kind);
@@ -305,31 +301,6 @@ extern a_boolean compare_for_module_entity(a_void_ptr  entry,
 
 extern a_module_entity_ptr get_module_entity_ptr(a_module_ptr mod,
                                                  size_t       file_offset);
-
-
-/*
-EDG implementation of modules.
-*/
-/*lint -save -e1511 -e1762 -e1790*/
-struct an_edg_module : public a_module_interface {
-  an_edg_module() : a_module_interface((a_module_kind)mk_edg) {}
-  ~an_edg_module() EDG_NOEXCEPT = default;
-
-  a_boolean matches_module(ARG_UNUSED a_const_char *module_name,
-                           ARG_UNUSED a_const_char *module_file)
-    { unexpected_condition_str("Unimplemented"); /*lint -e527*/ return FALSE; }
-
-  a_boolean is_open() const OVERRIDE
-    { unexpected_condition_str("Unimplemented"); /*lint -e527*/ return FALSE; }
-
-  a_boolean import(ARG_UNUSED a_module_import_decl_ptr midp) OVERRIDE
-    { unexpected_condition_str("Unimplemented"); /*lint -e527*/ return FALSE; }
-  NORETURN void close() OVERRIDE
-    { unexpected_condition_str("Unimplemented"); }
-  NORETURN void pch_reset(ARG_UNUSED a_module_import_decl_ptr midp) OVERRIDE
-    { unexpected_condition_str("Unimplemented"); }
-};  /* an_edg_module */
-/*lint -restore*/
 
 extern void import_header_module(a_module_import_decl_ptr midp);
 

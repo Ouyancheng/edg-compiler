@@ -12797,7 +12797,11 @@ been exported from a module (that has been imported).  Otherwise, return FALSE.
     result = TRUE;
   } else {
     a_module_entity_ptr mep = sym_ptr->module_entity;
+    a_module_ptr        mod = mep->module_info;
 
+    if (mod->kind == mk_unit_partition) {
+      mod = mod->variant.unit_partition.unit;
+    }  /* if */
     if (mep->module_info == curr_lookup_module()) {
       /* This is a non-exported module entity, but we're doing lookup from
          within the same module, so lookup succeeds. */

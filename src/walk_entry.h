@@ -4104,8 +4104,7 @@ handle_class_type_supplement_for_class:
 #define eptr ((a_module_ptr)entry_ptr)
         /* FIXME: make sure all fields are walked appropriately. */
         walk_string_ptr(eptr->name, iek_other_text, 0);
-        walk_string_ptr(eptr->resolved_header, iek_other_text, 0);
-        walk_string_ptr(eptr->full_name, iek_other_text, 0);
+        walk_string_ptr(eptr->resolved_file, iek_other_text, 0);
         conditionally_clear_fe_pointer(eptr->module_interface);
 #undef eptr
       }

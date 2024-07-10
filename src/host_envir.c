@@ -5206,8 +5206,7 @@ appropriate.
   reset_text_buffer(format_file_name_buffer);
   name = use_name_as_written ? sfp->name_as_written : sfp->file_name;
 
-  a_boolean display_module_info = (sfp->assoc_module != NULL &&
-                                   sfp->assoc_module->kind != mk_trans_unit);
+  a_boolean display_module_info = (sfp->assoc_module != NULL);
   if (display_module_info) {
     add_string_to_text_buffer(format_file_name_buffer, "module \"");
     add_string_to_text_buffer(format_file_name_buffer,

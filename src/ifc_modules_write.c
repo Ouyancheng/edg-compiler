@@ -561,7 +561,7 @@ struct an_ifc_output_stream {
     {}
   an_ifc_module_file *get_file() const
     { return this->output_file; }
-  a_module_kind get_module_kind() const
+  a_module_file_kind get_module_kind() const
     { return this->output_file->module_kind; }
   void write_bytes_at(size_t       file_pos,
                       a_byte const *bytes,
@@ -667,7 +667,7 @@ Write the series of magic bytes identifying the IFC file.
 {
   /* If this assertion fails the front end is presumably trying to write a
      Microsoft compatible IFC file and that's not currently possible. */
-  check_assertion(output_stream->get_module_kind() == mk_edg_ifc);
+  check_assertion(output_stream->get_module_kind() == mfk_edg_ifc);
   /* FIXME: If the file header ever changes size, we'll need to change this. */
   output_stream->write_bytes(edg_ifc_magic_numbers,
                              sizeof(edg_ifc_magic_numbers),
@@ -5655,7 +5655,7 @@ returned.
     return {};
   }  /* if */
 
-  an_ifc_module_file result(mk_edg_ifc, /*for_read=*/FALSE);
+  an_ifc_module_file result(mfk_edg_ifc, /*for_read=*/FALSE);
   result.version_major = 0;
   result.version_minor = 43;
   result.f_module = f_handle;

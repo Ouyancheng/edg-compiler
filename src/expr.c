@@ -32,8 +32,8 @@ expr.c -- Expression scanning routines.
 #include "func_def.h"
 #include "interpret.h"
 #include "layout.h"
-#if MICROSOFT_EXTENSIONS_ALLOWED
 #include "ifc_modules.h"
+#if MICROSOFT_EXTENSIONS_ALLOWED
 /* The Microsoft-specific predefined identifier __FUNCDNAME__ refers to the
    mangled name of the current function.  Hence, we may need access to the
    mangling routines. */

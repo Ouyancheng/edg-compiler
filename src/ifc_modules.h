@@ -280,7 +280,7 @@ A structure abstracting the representation of the IFC module file and the
 associated memory managed.
 */
 struct an_ifc_module_file {
-  an_ifc_module_file(a_module_kind mk, a_boolean for_read_val = TRUE);
+  an_ifc_module_file(a_module_file_kind mk, a_boolean for_read_val = TRUE);
   an_ifc_module_file(an_ifc_module_file &&old);
   ~an_ifc_module_file();
 
@@ -301,8 +301,9 @@ struct an_ifc_module_file {
   an_ifc_module_file_write_state const& get_write_state() const
     { check_assertion(!this->for_read); return this->write_state; }
 
-  a_module_kind module_kind;
-                        /* The module kind of this file. */
+  a_module_file_kind
+                module_kind;
+                        /* The module file kind. */
   an_ifc_version_storage
                 version_major = IFC_MIN_VER_MAJOR;
                         /* The module file's major version.  Defaulted to the
@@ -439,7 +440,7 @@ struct an_ifc_module : public a_module_interface {
                            Dynamically allocated (in front end memory) once
                            the number of source files is known. */
   an_ifc_module_file
-                file = {mk_none};
+                file = {mfk_unknown};
                         /* Information about the file backing this IFC module
                            interface. */
   an_ifc_module_string_table
@@ -474,20 +475,17 @@ struct an_ifc_module : public a_module_interface {
                            suppressed (typically because the friendship is
                            handled at a higher level). */
 public:
-  an_ifc_module(a_module_kind mk)
+  an_ifc_module(a_module_file_kind mk)
     : a_module_interface(mk), referenced_modules(/*mask_width=*/4)
     {}
-  VIRTUAL ~an_ifc_module() EDG_NOEXCEPT = default;
-
-  a_boolean matches_module(a_const_char *module_name,
-                           a_const_char *module_file);
+  ~an_ifc_module() EDG_NOEXCEPT = default;
 
   inline a_boolean is_open() const OVERRIDE
     { return file.f_module != NULL; }
 
-  a_boolean import(a_module_import_decl_ptr midp) OVERRIDE;
-  void close() OVERRIDE;
-  void pch_reset(a_module_import_decl_ptr midp) OVERRIDE;
+  a_boolean import(a_module_import_decl_ptr midp);
+  void close();
+  void pch_reset(a_module_import_decl_ptr midp);
 
   an_ifc_partition_metadata &get_partition_metadata(
                                               an_ifc_partition_kind part_kind);

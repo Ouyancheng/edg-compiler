@@ -32,20 +32,15 @@ namespace {
 struct a_module_file_suffix {
   a_const_char  *suffix;
                         /* The suffix associated with the module file. */
-  a_module_kind kind;
+  a_module_file_kind
+                kind;
                         /* The kind of module this suffix implies. */
 };  /* a_module_file_suffix */
 
 constexpr a_module_file_suffix module_file_suffixes[] = {
-  { "edgm", mk_edg },
-  { "eifc", mk_edg_ifc },
-  { "ifc", mk_ms_ifc }
+  { "eifc", mfk_edg_ifc },
+  { "ifc", mfk_ms_ifc }
 };
-
-/*
-Magic numbers that identify the beginning of an EDG module file.
-*/
-constexpr a_byte edg_magic_numbers[] = { 0x9A, 0x13, 0x37, 0x7D };
 
 a_text_buffer_ptr module_search_buffer, module_file_name_buffer;
 a_text_buffer_ptr module_primary_name_buffer, module_partition_name_buffer;
@@ -107,6 +102,60 @@ any).  Return TRUE if there exists an interface dependency, FALSE otherwise.
   /* FIXME: Recurse over interface_sym's interface dependencies. */
   return result;
 }  /* check_module_has_interface_dependency */
+
+
+using a_module_name_map = Ptr_map<a_string_view, a_module_ptr>;
+
+static a_module_name_map
+                *known_modules;
+                        /* A map of names to the known module. */
+
+
+static a_module_ptr find_or_create_module(a_string_view module_sym_id,
+                                          a_module_kind module_kind)
+/*
+*/
+{
+  a_module_ptr  result = known_modules->get(module_sym_id);
+
+  if (result == NULL) {
+    result = alloc_module(module_kind);
+    result->name = module_sym_id.start;
+    known_modules->map(module_sym_id, result);
+  }  /* if */
+  return result;
+} /* find_or_create_module */
+
+
+a_module_ptr find_or_create_module(a_symbol_ptr module_sym)
+/*
+module_name must be backed by a string with long term storage.
+*/
+{
+  check_assertion(module_sym->kind == sk_module);
+  a_string_view module_sym_id(module_sym->header->identifier,
+                              module_sym->header->identifier_length);
+  a_symbol_ptr  partition_name =
+                                module_sym->variant.module_info.partition_name;
+  a_module_kind module_kind = partition_name == NULL ? mk_unit
+                                                     : mk_unit_partition;
+  a_module_ptr  result = find_or_create_module(module_sym_id, module_kind);
+
+  if (result->kind == mk_unit_partition &&
+      result->variant.unit_partition.unit == NULL) {
+    a_symbol_ptr unit_sym = module_sym->variant.module_info.primary_name;
+
+    check_assertion_or_expect_error(unit_sym != NULL);
+    if (unit_sym != NULL) {
+      a_string_view unit_sym_id(unit_sym->header->identifier,
+                                unit_sym->header->identifier_length);
+
+      result->variant.unit_partition.unit =
+                                   find_or_create_module(unit_sym_id, mk_unit);
+    }  /* if */
+  }  /* if */
+  return result;
+}  /* find_or_create_module */
 
 
 static a_const_char *get_module_primary_name(a_const_char *name)
@@ -181,177 +230,74 @@ and should be copied if it's wanted to be kept long-term.
 }  /* get_module_file_base_name */
 
 
-static a_module_kind determine_module_file_kind(FILE *file)
+static a_module_file_kind determine_module_file_kind(FILE *file)
 /*
 Given an already open file pointer, determine what kind of module file is open
 (if any).  Return the kind of module file.
 */
 {
-  a_module_kind kind = (a_module_kind)mk_none;
-  a_byte        magic[4];
+  a_module_file_kind result = mfk_unknown;
+  a_byte             magic[4];
 
   /* Ensure we're at the start of the file. */
   if (fseek(file, 0, SEEK_SET) != 0) {
     catastrophe(ec_module_read_error);
   }  /* if */
   if (fread(magic, (size_t)1, sizeof(magic), file) == sizeof(magic)) {
-    if (magic_numbers_match(magic, edg_magic_numbers)) {
-      kind = mk_edg;
-    } else if (magic_numbers_match(magic, edg_ifc_magic_numbers)) {
-      kind = mk_edg_ifc;
+    if (magic_numbers_match(magic, edg_ifc_magic_numbers)) {
+      result = mfk_edg_ifc;
     } else if (magic_numbers_match(magic, ms_ifc_magic_numbers)) {
-      kind = mk_ms_ifc;
+      result = mfk_ms_ifc;
     }  /* if */
   }  /* if */
-  return kind;
+  return result;
 }  /* determine_module_file_kind */
 
 
-static inline a_const_char *err_string_for_module_kind(a_module_kind kind)
+static a_boolean is_module_kind_available(a_module_file_kind kind)
 /*
-Given a module kind, return a string for that kind for use in error messages.
+Given a supported module file kind, return TRUE if it's currently usable;
+otherwise, return FALSE.
 */
 {
-  a_const_char *str;
+  a_boolean result = FALSE;
 
   switch (kind) {
-    case mk_none:
-      str = error_text(ec_module_kind_none);
+    case mfk_edg_ifc:
+      /* Always enabled. */
+      result = TRUE;
       break;
-    case mk_header:
-      str = error_text(ec_module_kind_header);
+    case mfk_unknown:
+      /* Always disabled. */
       break;
-    case mk_edg:
-      str = error_text(ec_module_kind_edg);
+    case mfk_ms_ifc:
+#if MICROSOFT_EXTENSIONS_ALLOWED
+      result = microsoft_mode;
+#endif /* #if MICROSOFT_EXTENSIONS_ALLOWED */
       break;
-    case mk_edg_ifc:
-    case mk_ms_ifc:
-      str = error_text(ec_module_kind_ifc);
-      break;
-    case mk_any:
-      str = error_text(ec_module_kind_any);
-      break;
-    case mk_trans_unit:
-      /* This should never occur. */
-      unexpected_condition();
-    default:
-      str = error_text(ec_module_kind_unexpected);
-      unexpected_condition_str("Unexpected module kind");
-  }  /* switch */
-  return str;
-}  /* err_string_for_module_kind */
-
-
-static a_boolean is_module_kind_available(a_module_kind kind)
-/*
-Given a supported module kind, return TRUE if it's currently usable; otherwise,
-return FALSE.
-*/
-{
-  a_boolean result = TRUE;
-
-  if (kind == mk_ms_ifc && !microsoft_mode) {
-    result = FALSE;
+    default_is_unexpected();
   }  /* if */
   return result;
 }  /* is_module_kind_available */
 
 
-static void diagnose_unavailable_module_file_kind(a_module_kind file_kind,
-                                                  a_const_char  *module_file)
-/*
-Given a module file, issue diagnostics for an unavailable file_kind.
-*/
-{
-  switch (file_kind) {
-    case mk_edg:
-    case mk_edg_ifc:
-      /* Always enabled. */
-      break;
-    case mk_ms_ifc:
-      str_catastrophe(ec_ms_ifc_unavailable, module_file);
-      break;
-    case mk_any:
-    case mk_none:
-    case mk_header:
-      /* These module kinds are abstract. */
-      unexpected_condition();
-      break;
-    case mk_trans_unit:
-      /* This should never happen. */
-      unexpected_condition();
-      break;
-    default_is_unexpected();
-  }  /* switch */
-}  /* diagnose_unavailable_module_file_kind */
-
-
-static void diagnose_mismatched_module_file_kind(a_module_kind file_kind,
-                                                 a_module_kind expected_kind,
-                                                 a_const_char  *module_file)
-/*
-Given a module file, issue diagnostics for a mismatch between expected_kind and
-file_kind (which may range from remarks to catastrophic errors).
-*/
-{
-  an_error_severity severity;
-  a_diagnostic_ptr  dp;
-
-  if (file_kind == expected_kind) {
-    /* No mismatch, no diagnostics to issue. */
-    goto done;
-  }  /* if */
-  switch (expected_kind) {
-    case mk_edg:
-    case mk_edg_ifc:
-      severity = es_catastrophe;
-      break;
-    case mk_any:
-      /* Match anything except for unknown module files and header units. */
-      if (file_kind != (a_module_kind)mk_none &&
-          file_kind != (a_module_kind)mk_header) {
-        goto done;
-      }  /* if */
-      FALLTHROUGH
-    case mk_ms_ifc:
-      /* Visual Studio skips files that don't appear to be IFCs. */
-      severity = es_remark;
-      break;
-    case mk_none:
-    case mk_header:
-    case mk_trans_unit:
-    default:
-      severity = es_catastrophe;
-      unexpected_condition_str("Unexpected module kind");
-  }  /* switch */
-  dp = pos_start_diagnostic(severity, ec_mismatched_module_file_kind,
-                            &error_position,
-                            err_string_for_module_kind(expected_kind),
-                            err_string_for_module_kind(file_kind));
-  str_add_diag_info(dp, ec_mismatched_module_file_context, module_file);
-  end_diagnostic(dp);
-done:;
-}  /* diagnose_mismatched_module_file_kind */
-
-
-static a_boolean check_module_file(a_module_kind *kind,
-                                   a_const_char  *module_file)
+static a_boolean check_module_file(a_const_char       *module_file,
+                                   a_module_file_kind *file_kind)
 /*
 Return TRUE if the provided module file exists and is the given kind, FALSE
-otherwise.  If *kind == mk_any, update *kind with the determined kind of the
-module file (any supported kind is a match).  This function may not return and
-instead issue a catastrophic error if the module file exists but cannot be
-opened, or if it does not match the expected kind and such a mismatch cannot be
-ignored.
+otherwise.  Set *file_kind to the module file kind discovered.
+
+This function may not return and instead issue a catastrophic error if the
+module file exists but cannot be opened.
 */
 {
   a_boolean           result = FALSE;
   FILE*               file;
   an_open_file_result open_result;
-  a_module_kind       file_kind;
 
   file = fopen_with_result(module_file, FOPEN_MODE_FOR_BINARY_READ,
                            &open_result);
+  *file_kind = mfk_unknown;
   if (file == NULL) {
     /* Open failed.  Most reasons are likely valid, but check for specific
        problem cases. */
@@ -391,23 +337,14 @@ ignored.
     end_diagnostic(dp);
     goto done;
   }  /* if */
-  /* We've found a file - determine what kind it is. */
-  file_kind = determine_module_file_kind(file);
-  if (file_kind != (a_module_kind)mk_none && *kind == (a_module_kind)mk_any) {
-    *kind = file_kind;
-  }  /* if */
-  if (*kind == file_kind) {
-    result = TRUE;
-  } else {
-    /* Module file matched the expected extension for this type, but did
-       not match the expected content indicators.  This may or may not
-       issue a catastrophic error - if this returns, that means we ignore
-       the file and continue on searching. */
-    diagnose_mismatched_module_file_kind(file_kind, *kind, module_file);
-  }  /* if */
-  if (!is_module_kind_available(file_kind)) {
-    diagnose_unavailable_module_file_kind(file_kind, module_file);
-  }  /* if */
+  { /* We've found a file - determine what kind it is. */
+    *file_kind = determine_module_file_kind(file);
+
+    if (!is_module_kind_available(*file_kind)) {
+      str_catastrophe(ec_ms_ifc_unavailable, module_file);
+    }  /* if */
+  }
+  result = TRUE;
 done:
   if (file != NULL) {
     (void)fclose(file);
@@ -416,12 +353,12 @@ done:
 }  /* check_module_file */
 
 
-static a_module_kind get_module_kind(a_const_char *module_file)
+static a_module_file_kind get_module_kind(a_const_char *module_file)
 /*
 Given a module file, return the module's kind.
 */
 {
-  a_module_kind       result = mk_none;
+  a_module_file_kind  result = mfk_unknown;
   FILE*               file;
   an_open_file_result open_result;
 
@@ -446,26 +383,16 @@ Given a module file, return the module's name.  If the name could not be
 determined, return an empty optional.
 */
 {
-  Opt<a_string> result;
-  a_module_kind kind = get_module_kind(module_file);
+  Opt<a_string>      result;
+  a_module_file_kind kind = get_module_kind(module_file);
 
   switch (kind) {
-    case mk_any:
-    case mk_header:
-      unexpected_condition_str("Unexpected module kind");
-      break;
-    case mk_edg:
-      unexpected_condition_str("Unimplemented");
-      break;
-    case mk_edg_ifc:
-    case mk_ms_ifc:
+    case mfk_edg_ifc:
+    case mfk_ms_ifc:
       result = get_name_of_ifc_module(module_file);
       break;
-    case mk_none:
-      break;
-    case mk_trans_unit:
-      /* This should never happen. */
-      unexpected_condition();
+    case mfk_unknown:
+      /* The name cannot be resolved, return an empty optional. */
       break;
     default_is_unexpected();
   }  /* switch */
@@ -473,37 +400,23 @@ determined, return an empty optional.
 }  /* get_name_of_module */
 
 
-static a_boolean module_file_matches(a_const_char  *module_name,
-                                     a_const_char  *module_file,
-                                     a_module_kind kind)
+static a_boolean module_file_matches(a_const_char *module_name,
+                                     a_const_char *module_file)
 /*
 Return TRUE if module_file is a module file for module_name (i.e., the name of
-the module in the module file matches module_name), FALSE otherwise.  kind is
-the kind of module_file.
+the module in the module file matches module_name), FALSE otherwise.
 */
 {
-  a_boolean result = FALSE;
+  a_boolean     result = FALSE;
+  Opt<a_string> opt_mod_name = get_name_of_module(module_file);
 
-  switch (kind) {
-    case mk_none:
-    case mk_any:
-    case mk_header:
-    case mk_trans_unit:
-      unexpected_condition_str("Unexpected module kind");
-      break;
-    case mk_edg:
-      { an_edg_module mod;
-        result = mod.matches_module(module_name, module_file);
-      }
-      break;
-    case mk_edg_ifc:
-    case mk_ms_ifc:
-      { an_ifc_module mod(kind);
-        result = mod.matches_module(module_name, module_file);
-      }
-      break;
-    default_is_unexpected();
-  }  /* switch */
+  if (opt_mod_name.has_value()) {
+    a_string mod_name = *opt_mod_name;
+
+    if (mod_name == module_name) {
+      result = TRUE;
+    }  /* if */
+  }  /* if */
   return result;
 }  /* module_file_matches */
 
@@ -542,14 +455,10 @@ already exists, it takes priority and this element is silently ignored.
 }  /* resolve_lazy_mod_map_element */
 
 
-static a_boolean find_module_file_in_map(a_module_ptr  mod,
-                                         a_module_kind kind)
+static a_boolean find_module_file_in_map(a_module_ptr  mod)
 /*
 Find the module file associated with mod in the module map and update mod with
-the path to the file.  If kind == mk_any and a mapping exists, determine the
-kind of (supported) module file encountered and update the kind of mod.
-Otherwise, only consider module files of the kind indicated by kind.  Return
-TRUE if a module file was found, FALSE otherwise.
+the path to the file.  Return TRUE if a module file was found, FALSE otherwise.
 
 This routine is a helper for find_module_file and assumes the module file has
 not already been found - deferring diagnostics related to failing to find the
@@ -570,10 +479,9 @@ module file to the caller.
     module_path = mod_map->get(mod->name);
   }  /* if */
   if (module_path != NULL) {
-    if (check_module_file(&kind, module_path)) {
-      mod->kind = kind;
-      mod->full_name = copy_string_to_region(file_scope_region_number,
-                                             module_path);
+    if (check_module_file(module_path, &mod->file_kind)) {
+      mod->resolved_file = copy_string_to_region(file_scope_region_number,
+                                                 module_path);
       found = TRUE;
     }  /* if */
   }  /* if */
@@ -581,14 +489,11 @@ module file to the caller.
 }  /* find_module_file_in_map */
 
 
-static a_boolean find_header_unit_in_map(a_module_ptr  mod,
-                                         a_module_kind kind)
+static a_boolean find_header_unit_in_map(a_module_ptr mod)
 /*
 Find the module file associated with mod in the header unit map and update mod
-with the path to the file.  If kind == mk_any and a mapping exists, determine
-the kind of (supported) module file encountered and update the kind of mod.
-Otherwise, only consider module files of the kind indicated by kind.  Return
-TRUE if a module file was found, FALSE otherwise.
+with the path to the file.  Return TRUE if a module file was found, FALSE
+otherwise.
 
 This routine is a helper for find_module_file and assumes the module file has
 not already been found - deferring diagnostics related to failing to find the
@@ -598,13 +503,15 @@ module file to the caller.
   a_boolean     found = FALSE;
   a_const_char  *module_path;
 
-  module_path = resolve_header_in_map(mod->name, mod->resolved_header,
-                                      mod->is_sys_include);
+  /* The module must be a header unit module to use this search function. */
+  check_assertion(mod->kind == mk_header_unit);
+  module_path = resolve_header_in_map(mod->name,
+                                      mod->variant.header_unit.resolved_header,
+                                      mod->variant.header_unit.is_sys_include);
   if (module_path != NULL) {
-    if (check_module_file(&kind, module_path)) {
-      mod->kind = kind;
-      mod->full_name = copy_string_to_region(file_scope_region_number,
-                                             module_path);
+    if (check_module_file(module_path, &mod->file_kind)) {
+      mod->resolved_file = copy_string_to_region(file_scope_region_number,
+                                                 module_path);
       found = TRUE;
     }  /* if */
   }  /* if */
@@ -612,14 +519,11 @@ module file to the caller.
 }  /* find_header_unit_in_map */
 
 
-static a_boolean find_module_file_in_dirs(a_module_ptr  mod,
-                                          a_module_kind kind)
+static a_boolean find_module_file_in_dirs(a_module_ptr mod)
 /*
-Find the module file associated with mod in the module search paths and
-update mod with the path to the file.  If kind == mk_any, select the first
-(supported) module file encountered and update the kind of mod.  Otherwise,
-only consider module files of the kind indicated by kind.  Return TRUE if a
-module file was found, FALSE otherwise.
+Find the module file associated with mod in the module search paths and update
+mod with the path to the file.  Return TRUE if a module file was found, FALSE
+otherwise.
 
 This routine is a helper for find_module_file and assumes the module file has
 not already been found - deferring diagnostics related to failing to find the
@@ -640,17 +544,15 @@ module file to the caller.
     remove_null_terminator_from_text_buffer(module_search_buffer);
     add_to_text_buffer(module_search_buffer, ".ext", 5);
     for (const auto& suffix : module_file_suffixes) {
-      a_module_kind skind = suffix.kind;
-      if (kind != (a_module_kind)mk_any && suffix.kind != kind) continue;
       replace_file_name_suffix(suffix.suffix, module_search_buffer);
       if (!file_exists(module_search_buffer->buffer)) {
         continue;
       }  /* if */
-      if (check_module_file(&skind, module_search_buffer->buffer)) {
+      if (check_module_file(module_search_buffer->buffer, &mod->file_kind)) {
         found = TRUE;
-        mod->kind = suffix.kind;
-        mod->full_name = copy_string_to_region(file_scope_region_number,
-                                               module_search_buffer->buffer);
+        mod->resolved_file = copy_string_to_region(
+                                                 file_scope_region_number,
+                                                 module_search_buffer->buffer);
         break;
       }  /* if */
     }  /* for */
@@ -659,25 +561,22 @@ module file to the caller.
 }  /* find_module_file_in_dirs */
 
 
-a_boolean find_module_file(a_module_ptr  mod,
-                           a_module_kind kind)
+a_boolean find_module_file(a_module_ptr mod)
 /*
 Find the module file associated with mod and update mod with the path to the
-file.  If kind == mk_any, select the first (supported) module file encountered
-and update the kind of mod.  Otherwise, only consider module files of the kind
-indicated by kind.  Return TRUE if a module file was found, FALSE otherwise.
+file.  Return TRUE if a module file was found, FALSE otherwise.
 */
 {
   a_boolean found = FALSE;
 
-  if (mod->full_name != NULL) {
+  if (mod->resolved_file != NULL && mod->file_kind != mfk_unknown) {
     /* Module file has already been found. */
     found = TRUE;
   }  /* if */
   if (found || skip_module_imports) {
     goto done;
   }  /* if */
-  if (mod->kind == (a_module_kind)mk_header) {
+  if (mod->kind == mk_header_unit) {
     Value_saver<a_boolean> windows_path_saver(&windows_paths_allowed, TRUE);
     Value_saver<a_boolean> backslash_saver(&backslash_is_also_dir_separator,
                                            TRUE);
@@ -688,24 +587,25 @@ indicated by kind.  Return TRUE if a module file was found, FALSE otherwise.
         is_absolute_file_name(name_for_search)) {
       name_for_search = get_base_name(name_for_search);
     }  /* if */
-    header_path = resolve_header(name_for_search, mod->is_sys_include,
+    header_path = resolve_header(name_for_search,
+                                 mod->variant.header_unit.is_sys_include,
                                  /*is_include_next=*/FALSE,
                                  /*suppress_diagnostics=*/FALSE);
     if (header_path == NULL) {
       pos_st_catastrophe(ec_cannot_find_header_for_import, &error_position,
                          mod->name);
     } else {
-      mod->resolved_header = header_path;
-      found = find_header_unit_in_map(mod, kind);
+      mod->variant.header_unit.resolved_header = header_path;
+      found = find_header_unit_in_map(mod);
     }  /* if */
   } else {
-    found = find_module_file_in_map(mod, kind);
+    found = find_module_file_in_map(mod);
     if (!found) {
-      found = find_module_file_in_dirs(mod, kind);
+      found = find_module_file_in_dirs(mod);
     }  /* if */
     if (!found) {
       pos_st_catastrophe(ec_module_file_not_found, &error_position, mod->name);
-    } else if (!module_file_matches(mod->name, mod->full_name, mod->kind)) {
+    } else if (!module_file_matches(mod->name, mod->resolved_file)) {
       pos_st_catastrophe(ec_module_file_mismatch, &error_position, mod->name);
     }  /* if */
   }  /* if */
@@ -721,19 +621,15 @@ Import the module file specified in the module-import-declaration.
 {
   a_module_interface_ptr iface = NULL;
 
-  check_assertion(midp->module_info->full_name != NULL);
-  switch (midp->module_info->kind) {
-    case mk_edg:
-      iface = new_fe<an_edg_module>();
+  check_assertion(midp->module_info->resolved_file != NULL);
+  switch (midp->module_info->file_kind) {
+    case mfk_unknown:
+      /* The module file kind should be set if the resolved path is set. */
+      unexpected_condition();
+    case mfk_edg_ifc:
+    case mfk_ms_ifc:
+      iface = new_fe<an_ifc_module>(midp->module_info->file_kind);
       break;
-    case mk_edg_ifc:
-    case mk_ms_ifc:
-      iface = new_fe<an_ifc_module>(midp->module_info->kind);
-      break;
-    case mk_none:
-    case mk_any:
-    case mk_header:
-    case mk_trans_unit:
     default:
       unexpected_condition_str("Unexpected module kind for import.");
   }  /* switch */
@@ -783,13 +679,11 @@ processing has ended.
         continue;
       }  /* if */
       *mepp = mep->next;
-      switch (mep->module_info->kind) {
-        case mk_edg_ifc:
-        case mk_ms_ifc:
+      switch (mep->module_info->file_kind) {
+        case mfk_edg_ifc:
+        case mfk_ms_ifc:
           process_ifc_declaration(mep);
           break;
-        case mk_edg:
-        case mk_trans_unit:
         default:
           unexpected_condition();
       }  /* switch */
@@ -877,8 +771,6 @@ the specified module.
   return *p;
 }  /* get_module_entity_ptr */
 
-#if !USE_VIRTUAL_FUNCTIONS
-
 /*lint -esym(1714,*a_module_interface::is_open)*/ /* FIXME: temporary*/
 a_boolean a_module_interface::is_open() const
 /*
@@ -887,20 +779,12 @@ Dispatch the is_open() call to the variant for the actual object.
 {
   a_boolean result = FALSE;
 
-  switch (mod_kind) {
-    case mk_none:
-      /* This is the actual object. */
-      break;
-    case mk_edg:
-      result = ((an_edg_module*)this)->is_open();
-      break;
-    case mk_edg_ifc:
-    case mk_ms_ifc:
+  switch (this->mod_kind) {
+    case mfk_edg_ifc:
+    case mfk_ms_ifc:
       result = ((an_ifc_module*)this)->is_open();
       break;
-    case mk_header:
-    case mk_any:
-    case mk_trans_unit:
+    case mfk_unknown:
       unexpected_condition();
       break;
     default_is_unexpected();
@@ -917,20 +801,12 @@ Dispatch the import() call to the variant for the actual object.
 {
   a_boolean result = FALSE;
 
-  switch (mod_kind) {
-    case mk_none:
-      /* This is the actual object. */
-      break;
-    case mk_edg:
-      result = ((an_edg_module*)this)->import(midp);
-      break;
-    case mk_edg_ifc:
-    case mk_ms_ifc:
+  switch (this->mod_kind) {
+    case mfk_edg_ifc:
+    case mfk_ms_ifc:
       result = ((an_ifc_module*)this)->import(midp);
       break;
-    case mk_header:
-    case mk_any:
-    case mk_trans_unit:
+    case mfk_unknown:
       unexpected_condition();
       break;
     default_is_unexpected();
@@ -945,20 +821,12 @@ void a_module_interface::close()
 Dispatch the close() call to the variant for the actual object.
 */
 {
-  switch (mod_kind) {
-    case mk_none:
-      /* This is the actual object. */
-      break;
-    case mk_edg:
-      ((an_edg_module*)this)->close();
-      break;
-    case mk_edg_ifc:
-    case mk_ms_ifc:
+  switch (this->mod_kind) {
+    case mfk_edg_ifc:
+    case mfk_ms_ifc:
       ((an_ifc_module*)this)->close();
       break;
-    case mk_header:
-    case mk_any:
-    case mk_trans_unit:
+    case mfk_unknown:
       unexpected_condition();
       break;
     default_is_unexpected();
@@ -972,28 +840,17 @@ void a_module_interface::pch_reset(a_module_import_decl_ptr midp)
 Dispatch the pch_reset() call to the variant for the actual object.
 */
 {
-  switch (mod_kind) {
-    case mk_none:
-      /* This is the actual object. */
-      break;
-    case mk_edg:
-      ((an_edg_module*)this)->pch_reset(midp);
-      break;
-    case mk_edg_ifc:
-    case mk_ms_ifc:
+  switch (this->mod_kind) {
+    case mfk_edg_ifc:
+    case mfk_ms_ifc:
       ((an_ifc_module*)this)->pch_reset(midp);
       break;
-    case mk_header:
-    case mk_any:
+    case mfk_unknown:
       unexpected_condition();
-    case mk_trans_unit:
-      /* This is the actual object. */
-      break;
     default_is_unexpected();
   }  /* switch */
 }  /* pch_reset */
 
-#endif /* !USE_VIRTUAL_FUNCTIONS */
 
 void a_module_interface::set_name(a_const_char *module_name,
                                   a_boolean    header_unit)
@@ -1003,22 +860,24 @@ TRUE, module_name is the path to the header file (not the header unit BMI, if
 it exists).
 */
 {
-  a_const_char *name;
-
   if (header_unit) {
     /* This convention is purely arbitrary but matches how MSVC encodes the
        primary/partition names for header units. */
-    primary_name = NULL;
-    partition_name = copy_string_to_region(file_scope_region_number,
-                                           module_name);
+    this->primary_name = NULL;
+    this->partition_name = copy_string_to_region(file_scope_region_number,
+                                                 module_name);
   } else {
-    name = get_module_primary_name(module_name);
-    primary_name = copy_string_to_region(file_scope_region_number, name);
-    name = get_module_partition_name(module_name);
-    if (name[0] != '\0') {
-      partition_name = copy_string_to_region(file_scope_region_number, name);
+    a_const_char *tmp_prim_name = get_module_primary_name(module_name);
+
+    this->primary_name = copy_string_to_region(file_scope_region_number,
+                                               tmp_prim_name);
+
+    a_const_char *tmp_part_name = get_module_partition_name(module_name);
+    if (tmp_part_name[0] != '\0') {
+      this->partition_name = copy_string_to_region(file_scope_region_number,
+                                                   tmp_part_name);
     } else {
-      partition_name = NULL;
+      this->partition_name = NULL;
     }  /* if */
   }  /* if */
 }  /* set_name */
@@ -1064,7 +923,7 @@ Begin a new module entity stack state for the given module entity pointer.
   curr_mep_state = this;
 
   a_module_ptr lookup_module = NULL;
-  if (!mep_val->module_info->is_header_unit) {
+  if (mep->module_info->kind != mk_header_unit) {
     lookup_module = mep_val->module_info;
   }  /* if */
   if (curr_lookup_module() != lookup_module) {
@@ -1104,8 +963,9 @@ declaration.  Otherwise, return FALSE and leave *midp unmodified.
        unit could possibly reference the same module file from multiple
        paths). */
     same_name = (strcmp(ptr->module_info->name, mod->name) == 0);
-    same_file = (mod->full_name != NULL &&
-                 strcmp(ptr->module_info->full_name, mod->full_name) == 0);
+    same_file = (mod->resolved_file != NULL &&
+                 (strcmp(ptr->module_info->resolved_file,
+                         mod->resolved_file) == 0));
     if (same_name || same_file) {
       pos_st_remark(ec_module_already_imported, &midp->module_name_position,
                     mod->name);
@@ -1125,7 +985,7 @@ Import the given header module.
 {
   /* See if there's a known module file for the imported header and import
      that file if so. */
-  if (find_module_file(midp->module_info, (a_module_kind)mk_any)) {
+  if (find_module_file(midp->module_info)) {
     if (!check_module_already_imported(midp)) {
       import_module_file(midp);
       /* Add this to the list of imported modules regardless of whether the
@@ -1160,7 +1020,7 @@ Import the given module.  assoc_sym is the associated symbol for the module.
   if (!already_imported &&
       !check_module_has_interface_dependency(assoc_sym, curr_module_sym,
                                              &midp->module_name_position)) {
-    if (find_module_file(midp->module_info, (a_module_kind)mk_any)) {
+    if (find_module_file(midp->module_info)) {
       import_module_file(midp);
     }  /* if */
     /* Add this to the list of imported modules regardless of whether the
@@ -1355,7 +1215,6 @@ Return a string containing debug information about the given module.
 {
   a_string      result = "";
   a_module_kind m_kind = mk_none;
-
   if (mod != NULL) {
     m_kind = mod->kind;
   }  /* if */
@@ -1365,35 +1224,39 @@ Return a string containing debug information about the given module.
   } else {
     result.append("<NULL>");
   }  /* if */
-  result.append(", file: ");
-  if (mod != NULL && mod->full_name != NULL) {
-    result.append(mod->full_name);
-  } else {
-    result.append("<NULL>");
-  }  /* if */
   result.append(", kind: ");
   switch (m_kind) {
-    case mk_edg_ifc:
-      result.append("IFC (EDG)");
+    case mk_header_unit:
+      result.append("Header Unit");
       break;
-    case mk_ms_ifc:
-      result.append("IFC (Microsoft)");
+    case mk_unit:
+      result.append("Module Unit");
       break;
-    case mk_trans_unit:
-      result.append("Translation Unit");
+    case mk_unit_partition:
+      result.append("Module Unit (Partition)");
       break;
     default:
       result.append("UNKNOWN");
       break;
   }  /* switch */
-  switch (m_kind) {
-    case mk_edg_ifc:
-    case mk_ms_ifc:
-      result.append(", version: ", s_db_version_of_ifc_module(mod));
-      break;
-    default:
-      break;
-  }  /* switch */
+  result.append(", file: ");
+  if (mod != NULL && mod->resolved_file != NULL) {
+    result.append(mod->resolved_file);
+    result.append(", file kind: ");
+    switch (mod->file_kind) {
+      case mfk_edg_ifc:
+        result.append("IFC (EDG)");
+        break;
+      case mfk_ms_ifc:
+        result.append("IFC (Microsoft)");
+        break;
+      default:
+        result.append("UNKNOWN");
+        break;
+    }  /* switch */
+  } else {
+    result.append("<NULL>");
+  }  /* if */
   return result;
 }  /* s_db_module */
 
@@ -1415,20 +1278,18 @@ This string does not contain extensive information about the module.
 {
   a_string               result = s_db_module(mep->module_info);
   a_module_interface_ptr m_iface = NULL;
-  a_module_kind          m_kind = mk_none;
+  a_module_file_kind     m_kind = mfk_unknown;
 
   if (mep->module_info != NULL) {
     m_iface = mep->module_info->module_interface;
     if (m_iface != NULL) {
-#if !USE_VIRTUAL_FUNCTIONS
       m_kind = m_iface->mod_kind;
-#endif /* !USE_VIRTUAL_FUNCTIONS */
     }  /* if */
   }  /* if */
   result.append(", entity id: ");
   switch (m_kind) {
-    case mk_edg_ifc:
-    case mk_ms_ifc:
+    case mfk_edg_ifc:
+    case mfk_ms_ifc:
       result.append(s_db_id_of_ifc_mep(mep));
       break;
     default:
@@ -1504,7 +1365,6 @@ Do one-time initialization of static variables defined in this file.
   module_file_name_buffer = alloc_text_buffer(64);
   module_primary_name_buffer = alloc_text_buffer(64);
   module_partition_name_buffer = alloc_text_buffer(64);
-  module_stack = new_general<a_module_stack>();
   ifc_modules_one_time_init();
   /* Register variables that have distinct copies for distinct translation
      units. */
@@ -1516,6 +1376,8 @@ Do one-time initialization of static variables defined in this file.
   register_trans_unit_variable(curr_mep_state);
   register_trans_unit_variable(lazy_symbols_may_be_visible);
   register_trans_unit_variable(module_entity_hash_table);
+  register_trans_unit_variable(module_stack);
+  register_trans_unit_variable(known_modules);
 }  /* modules_one_time_init */
 
 
@@ -1534,6 +1396,8 @@ translation unit.
   curr_mep_state = NULL;
   lazy_symbols_may_be_visible = FALSE;
   module_entity_hash_table = NULL;
+  module_stack = new_fe<a_module_stack>();
+  known_modules = new_fe<a_module_name_map>(/*mask_width=*/10);
   ifc_modules_trans_unit_init();
 }  /* modules_trans_unit_init */
 
@@ -1546,6 +1410,8 @@ instantiations, etc.) has been done.
 */
 {
   ifc_modules_trans_unit_wrapup();
+  delete_fe(&known_modules);
+  delete_fe(&module_stack);
   lazy_symbols_may_be_visible = FALSE;
 }  /* modules_trans_unit_wrapup */
 

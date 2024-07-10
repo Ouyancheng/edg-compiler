@@ -32,6 +32,7 @@ decls.c -- Scanning of declarations.
 /* To get clear_initializer_cache: */
 #include "exprutil.h"
 #include "layout.h"
+#include "ifc_modules.h"
 #if MAINTAIN_NEEDED_FLAGS && !STANDALONE_UTILITY_PROGRAM
 #include "il_walk.h"
 #endif /* MAINTAIN_NEEDED_FLAGS && !STANDALONE_UTILITY_PROGRAM */
@@ -39,7 +40,6 @@ decls.c -- Scanning of declarations.
 #include "lower_name.h"
 #endif /* DO_IL_LOWERING */
 #if MICROSOFT_EXTENSIONS_ALLOWED
-#include "ifc_modules.h"
 #include "ms_attrib.h"
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
 
@@ -20034,7 +20034,7 @@ An export declaration can take the following forms:
 }  /* export_declaration */
 
 
-static void import_curr_module(void)
+static void import_curr_module()
 /*
 Import the module referred to by the current module unit.
 */
@@ -20045,8 +20045,7 @@ Import the module referred to by the current module unit.
   midp = alloc_module_import_decl();
   midp->position = curr_module_sym->decl_position;
   midp->module_name_position = curr_module_sym->decl_position;
-  midp->module_info = alloc_module(mk_any);
-  midp->module_info->name = curr_module_sym->header->identifier;
+  midp->module_info = trans_unit_module;
   midp->impl_unit_importing_self = TRUE;
   import_module(midp, curr_module_sym);
 }  /* import_curr_module */
@@ -20095,9 +20094,10 @@ preceded by an export-keyword.
     (void)get_header_name();
     if (curr_token == tok_header_name) {
       midp->module_name_position = pos_curr_token;
-      midp->module_info = alloc_module((a_module_kind)mk_header);
+      midp->module_info = alloc_module(mk_header_unit);
       midp->module_info->name = copy_header_name(/*process_escapes=*/FALSE);
-      midp->module_info->is_sys_include = (*start_of_curr_token == '<');
+      midp->module_info->variant.header_unit.is_sys_include =
+                                                 (*start_of_curr_token == '<');
       (void)get_token();
     } else {
       a_symbol_ptr      primary_name, partition_name;
@@ -20119,11 +20119,8 @@ preceded by an export-keyword.
       }  /* if */
       module_sym = make_module_symbol(primary_name, partition_name,
                                       /*is_interface=*/TRUE, &pos);
-      /* FIXME: attach symbol to the appropriate place */
-      /* We don't currently know what kind of module this is. */
       midp->module_name_position = pos;
-      midp->module_info = alloc_module(mk_any);
-      midp->module_info->name = module_sym->header->identifier;
+      midp->module_info = find_or_create_module(module_sym);
     }  /* if */
     if (!err) {
       attributes = scan_attributes(al_module);
@@ -20134,7 +20131,7 @@ preceded by an export-keyword.
 #endif /* GENERATE_SOURCE_SEQUENCE_LISTS */
     if (!err) {
       error_position = midp->module_name_position;
-      if (midp->module_info->kind == (a_module_kind)mk_header) {
+      if (midp->module_info->kind == mk_header_unit) {
         import_header_module(midp);
       } else {
         import_module(midp, module_sym);
@@ -20232,6 +20229,7 @@ left unchanged.
     if (curr_module_sym == NULL) {
       curr_module_sym = make_module_symbol(primary_name, partition_name,
                                            is_interface, &module_pos);
+      trans_unit_module = find_or_create_module(curr_module_sym);
       set_tu_stage(tud_module_unit);
       if (!is_interface && (module_partition_implicitly_imports_self ||
                             partition_name == NULL)) {

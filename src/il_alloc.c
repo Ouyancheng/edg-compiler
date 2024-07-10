@@ -5929,13 +5929,23 @@ Allocate and return an IL entry for a module.
 
   mod->kind = kind;
   mod->name = NULL;
-  mod->resolved_header = NULL;
-  mod->full_name = NULL;
+  mod->resolved_file = NULL;
+  mod->file_kind = mfk_unknown;
   mod->module_interface = NULL;
-  mod->is_header_unit = FALSE;
-  mod->is_sys_include = FALSE;
-  mod->suppress_macro_export = FALSE;
   mod->contains_unsupported_constructs = FALSE;
+  switch (mod->kind) {
+    case mk_none:
+    case mk_unit:
+      break;
+    case mk_header_unit:
+      mod->variant.header_unit.is_sys_include = FALSE;
+      mod->variant.header_unit.suppress_macro_export = FALSE;
+      mod->variant.header_unit.resolved_header = NULL;
+      break;
+    case mk_unit_partition:
+      mod->variant.unit_partition.unit = NULL;
+      break;
+  }  /* switch */
   return mod;
 }  /* alloc_module */
 

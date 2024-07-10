@@ -17989,55 +17989,79 @@ typedef struct a_scope {
 
 
 /*
-An enumeration to identify the different types of supported module files.
+An enumeration to identify the different types of modules.
 */
 enum a_module_kind : a_byte {
   mk_none,		/* An unknown module. */
-  mk_header,		/* An importable header. */
-  mk_edg,		/* An EDG module. */
-  mk_edg_ifc,		/* An EDG IFC module. */
-  mk_ms_ifc,		/* A Microsoft IFC module. */
-  mk_trans_unit,	/* A module entry used to represent a translation
-			   unit that does not contain a module declaration. */
-  mk_any		/* Any kind of module. */
+  mk_header_unit,	/* A module header unit. */
+  mk_unit,		/* A module unit. */
+  mk_unit_partition	/* A partition of a module unit. */
 };
 
 /*
-Information about a module file.
+An enumeration to identify the different types of supported module files.
+*/
+enum a_module_file_kind : a_byte {
+  mfk_unknown,		/* An unknown module file kind. */
+  mfk_edg_ifc,		/* An EDG IFC module. */
+  mfk_ms_ifc		/* A Microsoft IFC module. */
+};
+
+/*
+Information about a module.
 */
 typedef struct a_module {
   a_module_kind	kind;	/* The kind of module file. */
   a_const_char	*name;	/* The name (as written) of the module file. */
-  a_const_char	*resolved_header;
-			/* The resolved header path, if this is a header unit.
-			   NULL otherwise. */
-  a_const_char	*full_name;
-			/* The full path name to the module file. */
+  /* FIXME: Remove this cached information from the IL.  We should be able to
+     collect it in one read (currently every import requires several file
+     reads). */
+  a_const_char	*resolved_file;
+			/* The (cached) full path name to the module file. */
+  a_module_file_kind
+		file_kind;
+			/* The (cached) file kind of the module file at the path
+			   stored by resolved_file. */
   a_module_interface_ptr
 		module_interface;
 			/* The module interface object used to interact with
 			   the module. */
-  a_bit_field	is_header_unit:1;
-			/* TRUE if this module file is a header unit.  This flag
-			   is initially FALSE and set upon import of the module
-			   file. */
-  a_bit_field	is_sys_include:1;
-			/* When kind == mk_header, this is TRUE if the header
-			   import used system header import syntax (e.g.,
-			   import <foo.h>), and FALSE if it used user header
-			   import syntax (e.g., import "foo.h").  This field is
-			   meaningless when kind != mk_header. */
-  a_bit_field	suppress_macro_export:1;
-			/* When kind == mk_header, this is FALSE if macros
-			   exposed by the header unit should be exported.
-			   Normally a header unit will export macros, but not
-			   when the header unit is being transitively imported
-			   via another non-header-unit module. */
   a_bit_field	contains_unsupported_constructs:1;
 			/* TRUE if this module contains one or more unsupported
 			   binary module interface constructs (i.e., the module
 			   made use of a feature of its binary module format
 			   that EDG knows about but does not yet support). */
+  union {
+    /* When kind == mk_none, no variant fields. */
+    /* When kind == mk_header_unit: */
+    struct {
+      a_bit_field
+		is_sys_include:1;
+			/* This is TRUE if the header import used system header
+			   import syntax (e.g., import <foo.h>), and FALSE if it
+			   used user header import syntax (e.g., import
+			   "foo.h").  This field is meaningless when kind !=
+			   mk_header. */
+      a_bit_field
+		suppress_macro_export:1;
+			/* This is FALSE if macros exposed by the header unit
+			   should be exported.  Normally a header unit will
+			   export macros, but not when the header unit is being
+			   transitively imported via another non-header-unit
+			   module. */
+      a_const_char
+		*resolved_header;
+			/* The resolved header path. */
+    } header_unit;
+    /* When kind == mk_unit: */
+    struct {
+    } unit;
+    /* When kind == mk_unit_partition: */
+    struct {
+      a_module_ptr
+		unit;	/* The module unit of which this is a partition. */
+    } unit_partition;
+  } variant;
 } a_module;
 
 

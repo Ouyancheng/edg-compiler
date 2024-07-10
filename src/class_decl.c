@@ -30,11 +30,11 @@ class_decl.c -- Scanning of class declarations.
 #include "exprutil.h"
 #include "interpret.h"
 #include "layout.h"
+#include "ifc_modules.h"
 #if MAINTAIN_NEEDED_FLAGS
 #include "il_walk.h"
 #endif /* MAINTAIN_NEEDED_FLAGS */
 #if MICROSOFT_EXTENSIONS_ALLOWED
-#include "ifc_modules.h"
 #include "ms_attrib.h"
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
 
@@ -33440,16 +33440,13 @@ next_declaration:
         if (class_state.property_or_event_descr != NULL) {
           check_cli_accessor_decl(&class_state, &decl_start_pos);
         }  /* if */
+#endif /* MICROSOFT_EXTENSIONS_ALLOWED */
         if (curr_token == tok_ifc_decl) {
           if (member_sym != NULL) {
             record_symbol_for_ifc_decl(member_sym);
           }  /* if */
           (void)get_token();
         }  /* if */
-#else /* MICROSOFT_EXTENSIONS_ALLOWED */
-        /* Silence some compiler warnings about member_sym being unused. */
-        (void)(member_sym != NULL);
-#endif /* MICROSOFT_EXTENSIONS_ALLOWED */
         if (injected_member_decl) {
           /* The declaration we just saw was injected.  The next token should
              be the cache terminator. */
@@ -33536,14 +33533,12 @@ next_declaration:
     } else {
       complete_class_definition(class_type, effective_decl_level,
                                 &class_state);
-#if MICROSOFT_EXTENSIONS_ALLOWED
       if (curr_token == tok_ifc_decl) {
         /* Record the symbol for a data member with an unnamed user-defined
            type. */
         record_symbol_for_ifc_decl(symbol_for(class_type));
         (void)get_token();
       }  /* if */
-#endif /* MICROSOFT_EXTENSIONS_ALLOWED */
     }  /* if */
     if (need_restore_pack_alignment_state) {
       /* Now that the class instantiation has been scanned, restore the

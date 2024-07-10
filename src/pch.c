@@ -1080,13 +1080,13 @@ to the PCH output file.
   for (midp = il_header.imported_modules; midp != NULL; midp = midp->next) {
     time_t     mod_time;
 
-    (void)get_file_modification_time(midp->module_info->full_name, &mod_time);
-    pch_write_string(midp->module_info->full_name);
+    (void)get_file_modification_time(midp->module_info->resolved_file, &mod_time);
+    pch_write_string(midp->module_info->resolved_file);
     pch_write_value(mod_time);
 #if DEBUG
     if (debug_level >= 5) {
       fprintf(f_debug, "Writing file timestamp for %s, time is %ld\n",
-              midp->module_info->full_name, (long)mod_time);
+              midp->module_info->resolved_file, (long)mod_time);
     }  /* if */
 #endif /* DEBUG */
   }  /* for */

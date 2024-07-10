@@ -43,15 +43,15 @@ and parsing of them into tokens.
 #include "preproc.h"
 #include "symbol_ref.h"
 #include "templates.h"
+#include "ifc_modules.h"
+#if DEBUG
+#include "ifc_map_functions.h"
+#endif /* DEBUG */
 #if INCLUDE_COMMENTS_IN_ASM_FUNC_BODY
 #include "func_def.h"
 #endif /* INCLUDE_COMMENTS_IN_ASM_FUNC_BODY */
 #if MICROSOFT_EXTENSIONS_ALLOWED
 #include "ms_metadata.h"
-#include "ifc_modules.h"
-#if DEBUG
-#include "ifc_map_functions.h"
-#endif /* DEBUG */
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
 
 /* Conditionally open the "edg" namespace. */

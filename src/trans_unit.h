@@ -234,6 +234,13 @@ EXTERN a_const_char
 			/* Name of the primary source file for the current
 			   translation unit. */
 
+EXTERN a_module_ptr
+		trans_unit_module;
+			/* If this ia a non-module translation unit, this
+			   points to a special module entry used to identify
+			   that context.  NULL for TUs that contain a module
+			   declaration. */
+
 EXTERN a_boolean
 		translation_unit_needed_only_for_exported_templates;
 			/* TRUE when processing a secondary translation unit

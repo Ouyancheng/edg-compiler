@@ -50,7 +50,7 @@ Return TRUE if the given IFC entity is from an EDG-authored IFC; otherwise,
 return FALSE.
 */
 {
-  return entity.file->module_kind == mk_edg_ifc;
+  return entity.file->module_kind == mfk_edg_ifc;
 }  /* is_edg_authored */
 
 
@@ -60,7 +60,7 @@ Return TRUE if the given IFC entity is from an MSVC-authored IFC; otherwise,
 return FALSE.
 */
 {
-  return entity.file->module_kind == mk_ms_ifc;
+  return entity.file->module_kind == mfk_ms_ifc;
 }  /* is_msvc_authored */
 
 
@@ -137,7 +137,7 @@ Convert the given index value into a string representation.
 {
   a_module *mod = module_of(idx)->assoc_module_info;
   a_string msg(str_for(idx.sort), "[", idx.value, "] (\"",
-               mod->full_name, "\")");
+               mod->resolved_file, "\")");
 
 #if DEBUG
   if (db_flag_is_set("ifc_idx")) {
@@ -925,12 +925,8 @@ Reinterpret the given module interface pointer as an ifc module pointer with
 additional checks for debug modes.  Return the reinterpreted pointer.
 */
 {
-#if USE_VIRTUAL_FUNCTIONS
-  check_assertion(dynamic_cast<an_ifc_module*>(interface) != NULL);
-#else /* !USE_VIRTUAL_FUNCTIONS */
-  check_assertion(interface->mod_kind == mk_ms_ifc ||
-                  interface->mod_kind == mk_edg_ifc);
-#endif /* USE_VIRTUAL_FUNCTIONS */
+  check_assertion(interface->mod_kind == mfk_ms_ifc ||
+                  interface->mod_kind == mfk_edg_ifc);
   return (an_ifc_module*)interface;
 }  /* get_as_an_ifc_module */
 
@@ -1181,10 +1177,10 @@ key).
 }  /* as_key */
 
 
-an_ifc_module_file::an_ifc_module_file(a_module_kind mk,
-                     /* Defaulted: */  a_boolean     for_read_val)
+an_ifc_module_file::an_ifc_module_file(a_module_file_kind mk,
+                     /* Defaulted: */  a_boolean          for_read_val)
 /*
-Construct a new IFC module file with the given module kind.  for_read_val
+Construct a new IFC module file with the given module file kind.  for_read_val
 should be TRUE if this IFC module file is being constructed for a read
 operation.  for_read_val should be FALSE if this IFC module file is being
 constructed for a write operation.
@@ -1347,16 +1343,16 @@ Given a module reference, import the referenced module.
       /* This is a header unit. */
       a_string part_name = get_string_at_offset(partition);
 
-      midp->module_info = alloc_module((a_module_kind)mk_header);
+      midp->module_info = alloc_module(mk_header_unit);
       midp->module_info->name = copy_string_to_region(
                                                FILE_SCOPE_REGION_NUMBER,
                                                part_name.as_temp_characters());
       /* A non-header-unit module cannot leak macros, but may transitively
          import a header unit.  Ensure that the transitive import does not leak
          macro definitions. */
-      if (mod->assoc_module_info->suppress_macro_export ||
-          !is_header_unit(mod->assoc_module_info)) {
-        midp->module_info->suppress_macro_export = TRUE;
+      if (mod->assoc_module_info->kind != mk_header_unit ||
+          mod->assoc_module_info->variant.header_unit.suppress_macro_export) {
+        midp->module_info->variant.header_unit.suppress_macro_export = TRUE;
       }  /* if */
       import_header_module(midp);
     } else {
@@ -1371,8 +1367,7 @@ Given a module reference, import the referenced module.
                                                    /*is_interface=*/TRUE,
                                                    &null_source_position);
 
-      midp->module_info = alloc_module(mk_ms_ifc);
-      midp->module_info->name = module_sym->header->identifier;
+      midp->module_info = find_or_create_module(module_sym);
       import_module(midp, module_sym);
     }  /* if */
   }  /* if */
@@ -1439,11 +1434,11 @@ module file if it was successfully opened; otherwise, return an empty optional.
 
     /* Verify the magic number and determine the module kind (this works for
        both big and little endian machines). */
-    a_module_kind module_kind;
+    a_module_file_kind module_kind;
     if (magic_numbers_match(magic, ms_ifc_magic_numbers)) {
-      module_kind = mk_ms_ifc;
+      module_kind = mfk_ms_ifc;
     } else if (magic_numbers_match(magic, edg_ifc_magic_numbers)) {
-      module_kind = mk_edg_ifc;
+      module_kind = mfk_edg_ifc;
     } else {
       goto error;
     }  /* if */
@@ -3457,25 +3452,6 @@ front of the queue; otherwise, it is added at the end.
 }  /* defer_symbol_creation */
 
 
-a_boolean an_ifc_module::matches_module(a_const_char *module_name,
-                                        a_const_char *module_file)
-/*
-Return TRUE if module_file is an IFC module file for module_name, FALSE
-otherwise.
-*/
-{
-  a_boolean     result = FALSE;
-  Opt<a_string> opt_mod_name = get_name_of_ifc_module(module_file);
-
-  if (opt_mod_name.has_value()) {
-    a_string_view mod_name(opt_mod_name->as_temp_characters(),
-                           opt_mod_name->length());
-
-    result = (mod_name == module_name);
-  }  /* if */
-  return result;
-}  /* an_ifc_module::matches_module */
-
 static size_t calculate_validation_block_byte_count(uint32_t num_elements)
 /*
 For a given number of elements, return the number of bytes required to
@@ -3699,7 +3675,7 @@ location as the original.
      as we don't want to trigger the destructor of the file (a file handle
      pointer that's no longer valid can still be present, which will cause a
      segfault upon an_ifc_module_file::close). */
-  new (&mod_iface->file) an_ifc_module_file(mk_none);
+  new (&mod_iface->file) an_ifc_module_file(mfk_unknown);
   /* Any diagnostics related to opening the module file were already issued
      when the PCH file was first created. */
   if (!open_and_map_ifc_module_file(midp, /*issue_diag=*/FALSE)) {
@@ -8670,13 +8646,45 @@ check_and_set_redeclaration.
 }  /* find_redeclared_basic_entity */
 
 
+static void maybe_diagnose_redeclaration(a_module_entity_ptr   mep,
+                                         a_source_position_ptr pos,
+                                         char                  *redecl_entity,
+                                         an_il_entry_kind      redecl_kind)
+/*
+This is a redeclaration of an existing symbol.  If this is a named module and
+the entity is not part of the global module, emit an error.
+*/
+{
+  if (mep->module_info->kind != mk_header_unit && !mep->global_module) {
+    /* Suspend any diagnostic suppression, ensuring the following error is
+       always surfaced. */
+    Value_saver<a_boolean>
+                saved_globally_suppress_diagnostics(
+                                                &globally_suppress_diagnostics,
+                                                /*new_value=*/FALSE);
+    Value_saver<a_diagnostic_counter_ptr>
+                saved_local_diag_counter(&diagnostic_counters.local,
+                                         /*new_value=*/NULL);
+    /* Gather the symbol where the collision occurred and diagnose the
+       conflict. */
+    a_source_correspondence_ptr
+                scp = source_corresp_for_il_entry(redecl_entity,
+                                                  redecl_kind);
+    a_symbol_ptr
+                redecl_sym = ((a_symbol_ptr)scp->assoc_info);
+
+    pos_error(ec_module_import_conflict, pos, redecl_sym);
+  }  /* if */
+}  /* diagnose_redeclaration */
+
+
 static a_boolean
-check_and_set_redeclaration(a_symbol_locator                 *loc,
-                            a_module_entity_ptr              mep,
-                            ARG_UNUSED a_source_position_ptr pos,
-                            an_il_entry_kind                 expected_kind,
-                            char                             **redecl_entity,
-                            an_il_entry_kind                 *redecl_kind)
+check_and_set_redeclaration(a_symbol_locator      *loc,
+                            a_module_entity_ptr   mep,
+                            a_source_position_ptr pos,
+                            an_il_entry_kind      expected_kind,
+                            char                  **redecl_entity,
+                            an_il_entry_kind      *redecl_kind)
 /*
 Given an IFC module entity's symbol locator, module entity pointer, source
 position, and expected kind check for a redeclaration.  If a redeclaration is
@@ -8695,29 +8703,7 @@ redeclaration is.
                                                   redecl_kind);
 
   if (result) {
-    /* This is a redeclaration of an existing symbol.  If this is a named
-       module and the entity is not part of the global module, emit an
-       error. */
-    if (!is_header_unit(mep->module_info) && !mep->global_module) {
-      /* Suspend any diagnostic suppression, ensuring the following error
-         is always surfaced. */
-      Value_saver<a_boolean>
-                saved_globally_suppress_diagnostics(
-                                                &globally_suppress_diagnostics,
-                                                /*new_value=*/FALSE);
-      Value_saver<a_diagnostic_counter_ptr>
-                saved_local_diag_counter(&diagnostic_counters.local,
-                                         /*new_value=*/NULL);
-      /* Gather the symbol where the collision occurred and diagnose the
-         conflict. */
-      a_source_correspondence_ptr
-                scp = source_corresp_for_il_entry(*redecl_entity,
-                                                  *redecl_kind);
-      a_symbol_ptr
-                redecl_sym = ((a_symbol_ptr)scp->assoc_info);
-
-      pos_error(ec_module_import_conflict, pos, redecl_sym);
-    }  /* if */
+    maybe_diagnose_redeclaration(mep, pos, *redecl_entity, *redecl_kind);
   }  /* if */
   return result;
 }  /* check_and_set_redeclaration */
@@ -9123,11 +9109,11 @@ check_and_set_template_redeclaration.
 
 
 static a_boolean check_and_set_template_redeclaration(
-                              a_symbol_locator                 *loc,
-                              a_module_entity_ptr              mep,
-                              ARG_UNUSED a_source_position_ptr pos,
-                              char                             **redecl_entity,
-                              an_il_entry_kind                 *redecl_kind)
+                                         a_symbol_locator      *loc,
+                                         a_module_entity_ptr   mep,
+                                         a_source_position_ptr pos,
+                                         char                  **redecl_entity,
+                                         an_il_entry_kind      *redecl_kind)
 /*
 Given an IFC module entity's symbol locator, module entity pointer, and source
 position, check for a redeclaration of a template.  If a redeclaration is
@@ -9142,14 +9128,7 @@ The caller is responsible for handling appropriate merging of declarations.
                                                      redecl_kind);
 
   if (result) {
-    /* This is a redeclaration of an existing symbol. */
-    /* FIXME: This should also trigger if the redeclared entity's module is a
-       named module. */
-#if 0
-    if (!is_header_unit(mep->module_info)) {
-      pos_error(ec_module_entity_redeclaration, pos);
-    }  /* if */
-#endif /* 0 */
+    maybe_diagnose_redeclaration(mep, pos, *redecl_entity, *redecl_kind);
   }  /* if */
   return result;
 }  /* check_and_set_template_redeclaration */
@@ -9337,7 +9316,7 @@ static a_boolean check_and_set_specialization_redeclaration(
                               a_symbol_locator                 *loc,
                               a_module_entity_ptr              mep,
                               const an_ifc_decl_specialization &decl_spec,
-                              ARG_UNUSED a_source_position_ptr pos,
+                              a_source_position_ptr            pos,
                               char                             **redecl_entity,
                               an_il_entry_kind                 *redecl_kind)
 /*
@@ -9358,14 +9337,7 @@ The caller is responsible for handling appropriate merging of declarations.
                                                    redecl_kind);
 
   if (result) {
-    /* This is a redeclaration of an existing symbol. */
-    /* FIXME: This should also trigger if the redeclared entity's module is a
-       named module. */
-#if 0
-    if (!is_header_unit(mep->module_info)) {
-      pos_error(ec_module_entity_redeclaration, pos);
-    }  /* if */
-#endif /* 0 */
+    maybe_diagnose_redeclaration(mep, pos, *redecl_entity, *redecl_kind);
   }  /* if */
   return result;
 }  /* check_and_set_specialization_redeclaration */
@@ -9396,14 +9368,7 @@ The caller is responsible for handling appropriate merging of declarations.
                                           redecl_kind);
 
   if (result) {
-    /* This is a redeclaration of an existing symbol. */
-    /* FIXME: This should also trigger if the redeclared entity's module is a
-       named module. */
-#if 0
-    if (!is_header_unit(mep->module_info)) {
-      pos_error(ec_module_entity_redeclaration, pos);
-    }  /* if */
-#endif /* 0 */
+    maybe_diagnose_redeclaration(mep, pos, *redecl_entity, *redecl_kind);
   }  /* if */
   return result;
 }  /* check_and_set_partial_specialization_redeclaration */
@@ -9510,11 +9475,11 @@ check_and_set_concept_redeclaration.
 
 
 static a_boolean check_and_set_concept_redeclaration(
-                              a_symbol_locator                 *loc,
-                              a_module_entity_ptr              mep,
-                              ARG_UNUSED a_source_position_ptr pos,
-                              char                             **redecl_entity,
-                              an_il_entry_kind                 *redecl_kind)
+                                         a_symbol_locator      *loc,
+                                         a_module_entity_ptr   mep,
+                                         a_source_position_ptr pos,
+                                         char                  **redecl_entity,
+                                         an_il_entry_kind      *redecl_kind)
 /*
 Given an IFC module entity's symbol locator, module entity pointer, and source
 position, check for a redeclaration of a concept.  If a redeclaration is found,
@@ -9529,14 +9494,7 @@ The caller is responsible for handling appropriate merging of declarations.
                                                     redecl_kind);
 
   if (result) {
-    /* This is a redeclaration of an existing symbol. */
-    /* FIXME: This should also trigger if the redeclared entity's module is a
-       named module. */
-#if 0
-    if (!is_header_unit(mep->module_info)) {
-      pos_error(ec_module_entity_redeclaration, pos);
-    }  /* if */
-#endif /* 0 */
+    maybe_diagnose_redeclaration(mep, pos, *redecl_entity, *redecl_kind);
   }  /* if */
   return result;
 }  /* check_and_set_concept_redeclaration */
@@ -13061,13 +13019,13 @@ diagnostics if issue_diag is TRUE.
   a_boolean    result = TRUE;
 
   this->assoc_module_info = mod;
-  set_name(mod->name, is_header_unit(mod));
+  set_name(mod->name, mod->kind == mk_header_unit);
   if (!init_header(midp, issue_diag)) {
     goto invalid;
   }  /* if */
   if (!verify_checksum(&this->file, this->header)) {
     pos_catastrophe(ec_cannot_import_module_bad_checksum,
-                    &midp->module_name_position, mod->full_name);
+                    &midp->module_name_position, mod->resolved_file);
     goto invalid;
   }  /* if */
 #if DEBUG
@@ -13084,7 +13042,7 @@ diagnostics if issue_diag is TRUE.
     if (checker.is_diagnosed()) {
       an_ifc_compatibility_diag_handler diagnostic(checker.severity(),
                                                    &midp->module_name_position,
-                                                   mod->full_name);
+                                                   mod->resolved_file);
 
       check_ifc_compatibility(this->header, &diagnostic);
       diagnostic.emit_diagnostic();
@@ -13092,9 +13050,6 @@ diagnostics if issue_diag is TRUE.
         goto invalid;
       }  /* if */
     }  /* if */
-
-    an_ifc_unit_index unit_index = get_ifc_unit(this->header);
-    mod->is_header_unit = unit_index.sort == ifc_us_header;
   }
   this->string_table = load_string_table(&this->file, this->header);
   {
@@ -13311,9 +13266,9 @@ issue_diag == TRUE) otherwise.
 {
   a_module_ptr mod = midp->module_info;
 
-  check_assertion(mod != NULL && mod->full_name != NULL);
+  check_assertion(mod != NULL && mod->resolved_file != NULL);
 
-  Opt<an_ifc_module_file> opt_file = open_ifc_module_file(mod->full_name);
+  Opt<an_ifc_module_file> opt_file = open_ifc_module_file(mod->resolved_file);
   if (opt_file.has_value()) {
     an_ifc_module *mod_iface = (an_ifc_module*)(mod->module_interface);
 
@@ -13324,7 +13279,7 @@ issue_diag == TRUE) otherwise.
   } else if (issue_diag) {
     /* FIXME: perhaps better error messages here. */
     pos_error(ec_cannot_import_module, &midp->module_name_position,
-              mod->full_name);
+              mod->resolved_file);
   }  /* if */
   return opt_file.has_value();
 }  /* an_ifc_module::open_and_map_ifc_module_file */
@@ -13581,9 +13536,9 @@ been confirmed to exist and the path stored in midp.
   a_module_ptr mod = midp->module_info;
   a_boolean    result = FALSE;
 
-  check_assertion(midp->module_info->kind == mk_ms_ifc ||
-                  midp->module_info->kind == mk_edg_ifc);
-  check_assertion(mod->name != NULL && mod->full_name != NULL);
+  check_assertion(midp->module_info->file_kind == mfk_ms_ifc ||
+                  midp->module_info->file_kind == mfk_edg_ifc);
+  check_assertion(mod->name != NULL && mod->resolved_file != NULL);
   check_assertion(mod->module_interface == this);
   if (open_and_map_ifc_module_file(midp, /*issue_diag=*/TRUE)) {
     result = initialize_members_from_ifc_module_file(midp,
@@ -13603,7 +13558,8 @@ been confirmed to exist and the path stored in midp.
     lazy_symbols_may_be_visible = TRUE;
     /* Load the declarations of the global scope. */
     load_ifc_namespace(get_ifc_global_scope(header), il_header.primary_scope);
-    if (!mod->suppress_macro_export && is_header_unit(mod)) {
+    if (mod->kind == mk_header_unit &&
+        !mod->variant.header_unit.suppress_macro_export) {
       export_ifc_macros();
     }  /* if */
   }  /* if */
@@ -28556,7 +28512,9 @@ kind.
        importing a header unit (which should behave more like a #include) the
        explicit instantiation directive should remain an ordinary instantiation
        directive. */
-    if (is_header_unit(this->assoc_module_info)) options = TDO_NO_OPTIONS;
+    if (this->assoc_module_info->kind == mk_header_unit) {
+      options = TDO_NO_OPTIONS;
+    }  /* if */
     explicit_instantiation(&dps, options, &template_kw_pos);
   }
   return get_parsed_entity(&dps, kind);
