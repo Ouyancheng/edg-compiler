@@ -11152,7 +11152,6 @@ the folding mechanism is used as a way to validate argument values.
         }  /* if */
         FALLTHROUGH
       case bfk_atomic_is_lock_free:
-        check_assertion(args2 != NULL);
       case bfk___c11_atomic_is_lock_free:
         folded = fold_lock_free_query_if_possible(
                                            rp->variant.builtin_function_kind,
