@@ -10751,6 +10751,7 @@ successful, return TRUE.
 {
   a_boolean  folded = FALSE, err;
 
+  check_assertion(size_arg != NULL);
   if (is_constant_node(size_arg) && node_constant_is(size_arg, ck_integer)) {
     /* These queries can only be folded if the first argument is a
        constant. */
