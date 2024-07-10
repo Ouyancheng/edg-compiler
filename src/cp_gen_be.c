@@ -17581,12 +17581,19 @@ done_with_operation_after_parens:
             !scope_is_in_name_context_stack(local_scope) &&
             (cip = var_init_map->get(vp)) != NULL) {
           /* The name of the variable is not in scope, but we can use its
-             value instead.  The type is already that of the variable; copy
-             the value category of the enk_variable node we are
-             replacing and put out the variable's initializer. */
+             initializer instead.  The type of the synthesized
+             enk_temp_init is already that of the variable (although the
+             type may have been implicit in the actual initialization, so
+             we need to ensure that an explicit cast is used here).  We
+             also copy the value category of the enk_variable node we are
+             replacing. */
+          dip = cip->initializer.variant.init.dynamic_init;
+          a_boolean saved_expl_cast = dip->is_explicit_cast;
+          dip->is_explicit_cast = TRUE;
           cip->initializer.is_lvalue = expr->is_lvalue;
           cip->initializer.is_xvalue = expr->is_xvalue;
           gen_expression(&cip->initializer);
+          dip->is_explicit_cast = saved_expl_cast;
         } else {
           gen_name_from_variable_node(expr);
         }  /* if */
