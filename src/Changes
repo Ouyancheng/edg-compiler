@@ -1,5 +1,14 @@
 Version 6.7
 
+7/11/24  [EDGcpfe/27200]
+Performance improvements for find_allocated_name_reference
+
+Previously, find_allocated_name_reference performed a linear search on the list
+of name references to check for duplicates, which could take a significant
+amount of time with long lists.  This has now been addressed by using a hash
+table for the duplicate entry check.
+
+
 7/10/24  [EDGcpfe/27429]
 C++-generating back end: differing default arguments in alias template and
 underlying type

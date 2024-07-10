@@ -3305,6 +3305,9 @@ extern a_preinclude_file_ptr alloc_preinclude_file(void);
 extern void get_definition_of_class(a_type_ptr	class_type);
 #endif /* GET_DEFINITION_OF_CLASS_NEEDED */
 
+extern a_hash_value hash_name_reference(a_void_ptr	key);
+extern a_boolean compare_name_reference(a_void_ptr	entry,
+					a_void_ptr	key);
 extern a_name_reference_ptr make_name_reference(
 					a_symbol_locator	*locator,
 					a_source_correspondence	*scp);

@@ -586,6 +586,8 @@ enum a_function_number : a_byte {
   fn_hash_id_representation,
   fn_id_representations_match,
 #endif /* UNICODE_VULNERABILITY_DETECTION_SUPPORTED */
+  fn_hash_name_reference,
+  fn_compare_name_reference,
   fn_last
 };
 

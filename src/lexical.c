@@ -22366,6 +22366,74 @@ done:
 }  /* make_name_qualifier */
 
 
+using a_name_references_map = Ptr_map<a_source_correspondence_ptr,
+                                      a_hash_table_ptr>;
+			/* The type of a map that associates source
+			   correspondences with a hash table of name
+			   references. */
+
+static a_name_references_map
+		*name_references_map;
+			/* A map from source correspondence pointers to a hash
+			   table of name references. */
+
+
+a_hash_value hash_name_reference(a_void_ptr  key)
+/*
+Produce a hash value for a name reference entry.  The key is
+a_name_reference_ptr.
+*/
+{
+  a_name_reference_ptr  nrp = (a_name_reference_ptr)key;
+  a_hash_value          value;
+
+  value = possible_lossy_cast_from_pointer(nrp->qualifier) +
+          nrp->is_global_qualified_name +
+          nrp->is_decltype_qualified * 2 +
+          nrp->is_template_id * 4 +
+          nrp->special_kind * 8 +
+          nrp->is_global_qualified_name * 16 +
+          nrp->from_prototype_instantiation * 32 +
+          nrp->is_super_qualified * 64;
+  if (nrp->is_template_id) value += nrp->num_template_arguments * 128;
+  return value;
+}  /* hash_name_reference */
+
+
+a_boolean compare_name_reference(a_void_ptr  entry,
+                                 a_void_ptr  key)
+/*
+Compare an entry in the name references hash table with an entry to be found.
+"entry" and "key" are of type a_name_reference_ptr.  Return TRUE if the key
+matches the entry.
+*/
+{
+  a_name_reference_ptr  enrp = (a_name_reference_ptr)entry;
+  a_name_reference_ptr  knrp = (a_name_reference_ptr)key;
+  a_boolean             result;
+
+  result = enrp->qualifier == knrp->qualifier &&
+           enrp->num_template_arguments == knrp->num_template_arguments &&
+           enrp->is_global_qualified_name == knrp->is_global_qualified_name &&
+           enrp->is_decltype_qualified == knrp->is_decltype_qualified &&
+           enrp->is_template_id == knrp->is_template_id &&
+           enrp->special_kind == knrp->special_kind &&
+#if MICROSOFT_EXTENSIONS_ALLOWED && !DO_IL_LOWERING
+           (special_kind_is(enrp, sfk_none) ?
+                 enrp->variant.destructor_type ==
+                                                knrp->variant.destructor_type :
+                 enrp->variant.property_or_event_descr ==
+                                      knrp->variant.property_or_event_descr) &&
+#else /* !(MICROSOFT_EXTENSIONS_ALLOWED && !DO_IL_LOWERING) */
+           enrp->variant.destructor_type == knrp->variant.destructor_type &&
+#endif /* MICROSOFT_EXTENSIONS_ALLOWED && !DO_IL_LOWERING */
+           enrp->from_prototype_instantiation ==
+                                          knrp->from_prototype_instantiation &&
+           enrp->is_super_qualified == knrp->is_super_qualified;
+  return result;
+}  /* compare_name_reference */
+
+
 void make_name_reference_from_locator(
 				a_symbol_locator	*locator,
 				a_name_reference_ptr	nrp)
@@ -22419,6 +22487,8 @@ a previously created entry that can be reused.
 */
 {
   a_name_reference_ptr		nrp = NULL;
+  a_name_reference_ptr		*nrp_in_table;
+  a_hash_table_ptr		htp;
 
   check_assertion(!C_mode());
   if (!prototype_instantiations_in_il &&
@@ -22441,42 +22511,33 @@ a previously created entry that can be reused.
     fprintf(f_debug, "  scp name=%s\n", scp->name);
   }  /* if */
 #endif /* DEBUG */
+  if (scp->name_references == NULL) {
+    /* Create a new name references hash table and associate it with the source
+       correspondence. */
+    htp = alloc_hash_table(FRONT_END_REGION_NUMBER, (a_hash_table_size)11,
+                           fn_for_function(hash_name_reference),
+                           fn_for_function(compare_name_reference));
+    name_references_map->map(scp, htp);
+  } else {
+    htp = name_references_map->get(scp);
+    check_assertion(htp != NULL);
+  }  /* if */
   /* Look for a previously created name reference that matches the
      information in the locator. */
-  for (nrp = scp->name_references; nrp != NULL; nrp = nrp->next) {
-    if (nrp->qualifier == entry_to_copy->qualifier &&
-        nrp->num_template_arguments == entry_to_copy->num_template_arguments &&
-        nrp->is_global_qualified_name ==
-                                     entry_to_copy->is_global_qualified_name &&
-        nrp->is_decltype_qualified ==  entry_to_copy->is_decltype_qualified &&
-        nrp->is_template_id == entry_to_copy->is_template_id &&
-        nrp->special_kind == entry_to_copy->special_kind &&
-#if MICROSOFT_EXTENSIONS_ALLOWED && !DO_IL_LOWERING
-        (special_kind_is(nrp, sfk_none) ?
-            nrp->variant.destructor_type ==
-                                      entry_to_copy->variant.destructor_type :
-            nrp->variant.property_or_event_descr ==
-                            entry_to_copy->variant.property_or_event_descr) &&
-#else /* !(MICROSOFT_EXTENSIONS_ALLOWED && !DO_IL_LOWERING) */
-        nrp->variant.destructor_type ==
-                                      entry_to_copy->variant.destructor_type &&
-#endif /* MICROSOFT_EXTENSIONS_ALLOWED && !DO_IL_LOWERING */
-
-        nrp->from_prototype_instantiation ==
-                                 entry_to_copy->from_prototype_instantiation &&
-        nrp->is_super_qualified == entry_to_copy->is_super_qualified) {
-      /* A match was found. */
-      break;
-    }  /* if */
-  }  /* for */
-  if (nrp == NULL) {
+  nrp_in_table = (a_name_reference_ptr*)hash_find(htp,
+                                                  (a_void_ptr)entry_to_copy,
+                                                  /*create=*/TRUE);
+  if (*nrp_in_table == NULL) {
     /* No match was found -- create a new entry. */
     nrp = alloc_name_reference();
     *nrp = *entry_to_copy;
+    *nrp_in_table = nrp;
     /* Put this on the list of name references pointed to by the source
        correspondence. */
     nrp->next = scp->name_references;
     scp->name_references = nrp;
+  } else {
+    nrp = *nrp_in_table;
   }  /* if */
 done:
   return nrp;
@@ -28701,6 +28762,8 @@ of the front end.
   octl.gen_compilable_code = TRUE;
   next_preinclude_file = NULL;
   processing_macro_preincludes = FALSE;
+  name_references_map = alloc_fe_of_type(a_name_references_map);
+  construct(name_references_map, /*mask_width=*/10);
 #if UNICODE_VULNERABILITY_DETECTION_SUPPORTED
   pending_bidi_controls = NULL;
   avail_pending_bidi_controls = NULL;
