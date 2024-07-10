@@ -1,5 +1,28 @@
 Version 6.7
 
+7/10/24  [EDGcpfe/27429]
+C++-generating back end: differing default arguments in alias template and
+underlying type
+
+In cases where an alias template and a template appearing in its type-id
+have differing default arguments, the output of the C++-generating back end
+could sometimes replace a use of the alias template with its underlying
+type while omitting the differing default template argument, thus referring
+to an incorrect template instance.  This is now fixed.  For example, with
+--c++17:
+
+  struct A;
+  template <typename, typename = A> struct B {
+    using b = int;
+    B(b);
+  };
+  template <typename T, typename U = int> using C = B<T, U>;
+  template <typename T> C<T> f() {
+    return C<T>(0);   // Previously generated as "B<T>0", which is equivalent
+                      // to (B<T,A>)0 instead of (B<T,int>)0
+  }
+
+
 7/10/24  [EDGcpfe/27425]
 C++-generating back end: template arguments using out-of-scope variables
 

@@ -20781,9 +20781,9 @@ static void gen_dynamic_init(a_dynamic_init_ptr dip,
                              a_boolean          obj_expr_of_mfunc_operator)
 /*
 Output an expression for the dynamic initialization described by dip.
-init_entity_type gives the type of entity being initialized.
-assoc_expr, if non-NULL, gives an associated expression, e.g., an
-enk_temp_init expression.
+init_entity_type gives the type (which may be a proxy type) of the entity
+being initialized.  assoc_expr, if non-NULL, gives an associated
+expression, e.g., an enk_temp_init expression.
 
 The output here is always a freestanding expression, e.g., for a
 dik_constructor initialization, it might be something like "X(a, b)",
@@ -20816,6 +20816,11 @@ when possible.
   a_boolean        saved_suppress_template_args = octl.suppress_template_args;
   a_boolean        suppress_template_args;
 
+  if (is_immediate_class_type(init_entity_type) &&
+      class_type_supp(init_entity_type)->proxy_of_type != NULL) {
+    /* Use the actual dependent type of a proxy type. */
+    init_entity_type = class_type_supp(init_entity_type)->proxy_of_type;
+  }  /* if */
   dip = skip_constexpr_init_folding(dip);
   braced_init = dip->is_braced_initializer;
   suppress_template_args = dip->suppress_template_arguments_for_cast;
@@ -21054,7 +21059,7 @@ output_functional_notation_cast_arguments:
       closing_parens_needed++;
       if (dip->kind == (a_dynamic_init_kind)dik_constructor) {
         /* Avoid type qualifiers, which would potentially cause problems. */
-        gen_cast(skip_typerefs(init_entity_type));
+        gen_cast(skip_typerefs_not_typedefs(init_entity_type));
       } else {
         gen_cast(init_entity_type);
       }  /* if */
