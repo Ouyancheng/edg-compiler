@@ -25,9 +25,9 @@ with --clang:
 C++-generating back end: pragmas in template definitions
 
 In configurations in which template definitions are generated from the
-prototype instantiation IL. the C++-generating back end previously omitted
-pragmas appearing within template definitions from the generated code.
-This is now fixed.  For example, with --g++ in a configuration in which
+prototype instantiation IL, pragmas appearing within template definitions
+were omitted in the output of the C++-generating back end.  This is now
+fixed.  For example, with --g++ in a configuration in which
 INCLUDE_UNRECOGNIZED_PRAGMAS_IN_IL is TRUE:
 
   template <typename T> void f(T x) {

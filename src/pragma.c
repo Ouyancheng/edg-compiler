@@ -842,7 +842,7 @@ there is additional processing to be done.
     /* Pragmas from C++17 constexpr if discarded statements are not added
        to the IL. */
   } else if (scope_stack_top().in_prototype_instantiation &&
-	     secondary_translation_unit_seen()) {
+             secondary_translation_unit_seen()) {
     /* Pragmas in prototype instantiations in secondary translation
        units can cause memory management issues, so do not add this
        one. */
