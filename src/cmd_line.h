@@ -1649,6 +1649,26 @@ EXTERN a_boolean
 			   accepted. */
 
 EXTERN a_boolean
+		pre_cpp11_list_init;
+			/* When TRUE, list_init_enabled must be TRUE as well
+			   and this indicates that list-initialization is
+			   being enabled in a pre-C++11 mode.  A warning is
+			   issued when using a list initialization feature and
+			   narrowing conversions are not checked. */
+
+inline void check_nonstd_list_init(a_source_position  *diag_pos)
+/*
+If warn_nonstd_list_init is TRUE, issue a warning at the given position
+explaining that list initialization is not standard in this mode.
+*/
+{
+  if (pre_cpp11_list_init) {
+    pos_warning(ec_list_initializer_nonstandard_in_current_mode, diag_pos);
+  }  /* if */
+}  /* check_nonstd_list_init */
+
+
+EXTERN a_boolean
 		field_initializers_enabled;
 			/* When TRUE, C++11-style field initializers are
 			   accepted. */

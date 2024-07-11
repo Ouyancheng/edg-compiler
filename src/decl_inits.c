@@ -784,14 +784,19 @@ remove_any_extraneous_braces:
          when list initialization is enabled. */
       if (class_symbol_supp(symbol_for(dtype))->is_class_aggregate) {
         check_assertion(is_singleton_with_extraneous_braces(icp, dtype));
-      } else if (!list_init_enabled) {
+      }  /* if */
+      if (list_init_enabled) {
+        check_nonstd_list_init(init_component_pos(icp));
+      } else {
         pos_ty_error(ec_brace_initialization_not_allowed,
                      init_component_pos(icp), dest_type);
       }  /* if */
     } else if (icp->variant.braced.list == NULL) {
       /* Empty braces: Pass the braces to convert_initializer below (which
          results in "value initialization"). */
-      if (!list_init_enabled) {
+      if (list_init_enabled) {
+        check_nonstd_list_init(&icp->variant.braced.end_pos);
+      } else {
         /* Empty braces initializing a scalar are a C++11 list initialization
            feature. */
         pos_error(ec_exp_primary_expr, &icp->variant.braced.end_pos);
@@ -851,7 +856,9 @@ remove_any_extraneous_braces:
         }  /* while */
       }  /* if */
       if (is_braced_init_component(icp) && icp->variant.braced.list == NULL) {
-        if (!list_init_enabled) {
+        if (list_init_enabled) {
+          check_nonstd_list_init(&icp->variant.braced.end_pos);
+        } else {
         /* Empty braces initializing a scalar are a C++11 list
            initialization feature. */
           pos_error(ec_exp_primary_expr, &icp->variant.braced.end_pos);
@@ -1342,7 +1349,7 @@ given position, unless is->no_diagnostics is TRUE.
 {
   a_constant_ptr  result = NULL;
 
-  if (list_init_enabled &&
+  if (list_init_enabled && !pre_cpp11_list_init &&
       !clang_version_is(< 30500) && !gpp_version_is(< 40700) &&
       !(microsoft_mode && !(cpp11_mode || implicit_microsoft_cpp11_mode))) {
     /* C++11 changed the rules from requiring a value-initialization (i.e.,
@@ -4426,7 +4433,9 @@ variable initialization.
 
   if (is_braced_init_component(icp)) {
     if (icp->variant.braced.list == NULL) {
-      if (!list_init_enabled) {
+      if (list_init_enabled) {
+        check_nonstd_list_init(&icp->variant.braced.end_pos);
+      } else {
         /* Empty braces initializing a scalar are a C++11 list initialization
            feature. */
         pos_error(ec_exp_primary_expr, &icp->variant.braced.end_pos);
@@ -4780,13 +4789,11 @@ is part of.  diag_pos is the position to be used by default for diagnostics
   vp = variable_for_symbol(dps->sym);
   check_assertion_or_expect_error(vp != NULL);
   if (direct) {
-    if (!list_init_enabled) {
+    if (list_init_enabled) {
+      check_nonstd_list_init(&pos_curr_token);
+    } else {
       /* Direct list initializers are not explicitly enabled. */
-      if (gpp_mode) {
-        /* GCC accepts some of these cases in non-C++11 mode with a warning. */
-        pos_warning(ec_list_initializer_nonstandard_in_current_mode,
-                    &pos_curr_token);
-      } else if (!is_or_contains_error_type(dps->type)) {
+      if (!is_or_contains_error_type(dps->type)) {
         pos_error(ec_exp_assign, &pos_curr_token);
       }  /* if */
       direct = FALSE;
@@ -8188,6 +8195,7 @@ the mem-initializer.
     } else {
       /* A braced (i.e., C++11-style) mem-initializer argument. */
       a_type_ptr  dtype = (array_type != NULL) ? array_type : init_type;
+      check_nonstd_list_init(&pos_curr_token);
       braced_mem_initializer(ctor, dtype, cip, (an_init_component*)NULL);
     }  /* if */
     pop_stop_token_stack();

@@ -2709,6 +2709,7 @@ resulting argument list is returned.
         if (curr_token == tok_lbrace && list_init_enabled) {
           /* A brace-enclosed list. */
           alep = parse_braced_init_list(bundle);
+          check_nonstd_list_init(init_component_pos(alep));
         } else {
           /* An expression. */
           if (bundle) {
@@ -28510,7 +28511,8 @@ previously-scanned braced initializer.
      should be treated as an error to ensure deduction failures (aka. SFINAE)
      occur as intended. */
   error_on_narrowing = strict_ansi_mode ||
-                       expr_stack->template_deduction_context;
+                       (expr_stack->template_deduction_context &&
+                        !pre_cpp11_list_init);
   if (source_form == csf_functional) conv_context |= CCO_FUNC_NOTATION_CAST;
   if (rescan_icp != NULL) {
     icp = rescan_icp;
@@ -44217,6 +44219,7 @@ Return a special kind of operand representing the braced-init-list.
   check_assertion(list_init_enabled && curr_token == tok_lbrace);
   alep = parse_braced_init_list(/*bundle=*/FALSE);
   make_braced_init_list_operand(alep, operand);
+  check_nonstd_list_init(&operand->position);
 }  /* scan_braced_init_list_as_operand */
 
 

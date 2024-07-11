@@ -1,5 +1,12 @@
 Version 6.7
 
+7/11/24  [EDGcpfe/27091,EDGcpfe/27095]
+GNU C++ compatibility: List-initialization in C++03 modes
+
+The front end now accepts list-initialization constructs with a warning in GNU
+C++03 modes.  Narrowing conversions are not checked (unlike C++11 mode).
+
+
 7/11/24  [EDGcpfe/27445]
 C23: nullptr keyword
 

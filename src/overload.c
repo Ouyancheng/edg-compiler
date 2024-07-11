@@ -15015,7 +15015,8 @@ specific function being called.
       }  /* if */
     } else {
       check_assertion(is_expression_component(alep));
-      if (alep->check_narrowing && param != NULL) {
+      if (alep->check_narrowing && param != NULL &&
+          !pre_cpp11_list_init) {
         a_boolean  treat_as_warning,
                    error_on_narrowing = !(gpp_mode || microsoft_mode);
 retry_narrowing_diagnostic:
@@ -26461,8 +26462,11 @@ will be an lvalue instead of the usual prvalue.
      is used for overload resolution cases; a narrowing conversion
      causes failure but not a diagnostic.)  If check_narrowing is FALSE,
      warning_on_narrowing can be TRUE to indicate that warnings should be
-     issued for narrowing conversions. */
-  if (icp->check_narrowing || (is != NULL && is->error_on_narrowing)) {
+     issued for narrowing conversions.  Narrowing checks are not performed
+     in some pre-C++11 modes that enable list initialization. */
+  if (pre_cpp11_list_init) {
+    check_narrowing = FALSE;
+  } else if (icp->check_narrowing || (is != NULL && is->error_on_narrowing)) {
     check_narrowing = TRUE;
   }  /* if */
   if (is != NULL && is->warning_on_narrowing) {
@@ -26684,7 +26688,7 @@ will be an lvalue instead of the usual prvalue.
         }  /* if */
       } else {
         /* Non-class-copy, non-dependent, non-reference cases. */
-        if (!is_error_operand(&operand) &&
+        if (!is_error_operand(&operand) && !pre_cpp11_list_init &&
             (warning_on_narrowing || force_narrowing_warning_check) &&
             check_narrowing_conversion(&operand,
                                        dest_type,

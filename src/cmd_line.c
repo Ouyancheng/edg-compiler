@@ -5379,6 +5379,11 @@ before this routine is called.
   if (!option_kind_used[(int)optk_deprecated_string_conv]) {
     deprecated_string_literal_conv_allowed = TRUE;
   }  /* if */
+  if (!cpp11_mode && gnu_version >= 40300) {
+    /* GCC accepts list initializers with a warning in pre-C++11 modes. */
+    list_init_enabled = TRUE;
+    pre_cpp11_list_init = TRUE;
+  }  /* if */
   if (!option_kind_used[(int)optk_user_defined_literals]) {
     user_defined_literals_enabled = (cpp11_mode && gnu_version >= 40700);
   }  /* if */
@@ -12879,6 +12884,7 @@ variables declared in cmd_line.h.
   trailing_return_types_enabled = FALSE;
   this_in_trailing_return_types_enabled = FALSE;
   list_init_enabled = FALSE;
+  pre_cpp11_list_init = FALSE;
   field_initializers_enabled = FALSE;
   aggregate_classes_can_have_field_initializers = FALSE;
   aggregate_classes_can_have_bases = FALSE;
