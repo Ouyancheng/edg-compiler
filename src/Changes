@@ -54,7 +54,7 @@ For example, with --c++17:
   };
   constexpr bool g1() {
     constexpr S s{ 1 };
-      return b<f(s)>;   // Instance is b<true>
+    return b<f(s)>;     // Instance is b<true>, argument recorded as "f<s>"
   }
   constexpr bool g2() {
     return b<true>;     // Previously generated as b<f({1})>, now b<f(S{1})>
