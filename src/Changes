@@ -5,7 +5,9 @@ C23: nullptr keyword
 
 The "nullptr" keyword is now enabled in C23 mode, as well as when the
 --nullptr command-line option is specified (it was previously disallowed in
-C language modes).
+C language modes).  For example, with --c23:
+
+  void *p = nullptr;
 
 
 7/11/24  [EDGcpfe/27200]
