@@ -3505,6 +3505,28 @@ Set the various flags appropriate to C99 mode or later standard modes.
     c11_atomic_enabled = TRUE;
     noreturn_keyword_enabled = TRUE;
   }  /* if */
+  if (c23_mode) {
+    std_attributes_enabled = TRUE;
+    nodiscard_attribute_enabled = TRUE;
+    enumerator_attributes_enabled = TRUE;
+    if (!option_kind_used[(int)optk_utf8_char_literals]) {
+      utf8_char_literals_enabled = TRUE;
+    }  /* if */
+    binary_literals_allowed = TRUE;
+    if (!option_kind_used[(int)optk_trigraphs]) {
+      trigraphs_allowed = FALSE;
+    }  /* if */
+    va_opt_enabled = TRUE;
+    allow_ellipsis_only_param_in_C_mode = TRUE;
+    if (!option_kind_used[(int)optk_digit_separators]) {
+      digit_separators_enabled = TRUE;
+    }  /* if */
+    elifdef_enabled = TRUE;
+    terse_static_assert_enabled = TRUE;
+    if (!option_kind_used[(int)optk_nullptr]) {
+      nullptr_enabled = TRUE;
+    }  /* if */
+  }  /* if */
 }  /* check_and_set_new_c_mode_options */
 
 
@@ -3598,7 +3620,6 @@ process.
   auto_storage_class_specifier_enabled = TRUE;
   trailing_return_types_enabled = FALSE;
   this_in_trailing_return_types_enabled = FALSE;
-  nullptr_enabled = FALSE;
   cpp11_sfinae_enabled = FALSE;
   cpp11_sfinae_ignore_access = FALSE;
   diag_override_does_not_affect_sfinae = FALSE;
@@ -3617,26 +3638,6 @@ process.
     func_prototype_tags_enabled = TRUE;
   }  /* if */
   relaxed_abstract_checking = FALSE;
-  if (std_version >= 202311) {
-    /* C23 features. */
-    std_attributes_enabled = TRUE;
-    nodiscard_attribute_enabled = TRUE;
-    enumerator_attributes_enabled = TRUE;
-    if (!option_kind_used[(int)optk_utf8_char_literals]) {
-      utf8_char_literals_enabled = TRUE;
-    }  /* if */
-    binary_literals_allowed = TRUE;
-    if (!option_kind_used[(int)optk_trigraphs]) {
-      trigraphs_allowed = FALSE;
-    }  /* if */
-    va_opt_enabled = TRUE;
-    allow_ellipsis_only_param_in_C_mode = TRUE;
-    if (!option_kind_used[(int)optk_digit_separators]) {
-      digit_separators_enabled = TRUE;
-    }  /* if */
-    elifdef_enabled = TRUE;
-    terse_static_assert_enabled = TRUE;
-  }  /* if */
 }  /* set_c_mode_flags */
 
 
@@ -3810,9 +3811,6 @@ setting is used, and to set various unmentioned settings as needed.
   }  /* if */
   if (option_kind_used[(int)optk_auto_storage]) {
     command_line_error(ec_cl_auto_storage_option_only_in_cplusplus);
-  }  /* if */
-  if (option_kind_used[(int)optk_nullptr]) {
-    command_line_error(ec_cl_nullptr_option_only_in_cplusplus);
   }  /* if */
   if (option_kind_used[(int)optk_variadic_templates]) {
     command_line_error(ec_cl_variadic_templates_only_in_cplusplus);

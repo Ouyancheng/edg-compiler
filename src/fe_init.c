@@ -1349,6 +1349,9 @@ Install the keywords in the symbol table.
     enter_keyword((a_token_kind)tok_asm, "__asm");
   }  /* if */
 #endif /* ASM_FUNCTION_ALLOWED */
+  if (nullptr_enabled) {
+    enter_keyword((a_token_kind)tok_nullptr, "nullptr");
+  }  /* if */
   if (C_dialect == C_dialect_cplusplus) {
     /* Enter C++ keywords that are not also C keywords. */
     enter_keyword((a_token_kind)tok_catch,     "catch");
@@ -1485,9 +1488,6 @@ Install the keywords in the symbol table.
       if (!enable_underscore_decltype_only) {
         enter_keyword((a_token_kind)tok_decltype, "decltype");
       }  /* if */
-    }  /* if */
-    if (nullptr_enabled) {
-      enter_keyword((a_token_kind)tok_nullptr, "nullptr");
     }  /* if */
     if (clang_mode) {
       /* Clang defines a __nullptr token that matches nullptr even in modes
