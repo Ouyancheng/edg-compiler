@@ -27,7 +27,7 @@ to an incorrect template instance.  This is now fixed.  For example, with
   };
   template <typename T, typename U = int> using C = B<T, U>;
   template <typename T> C<T> f() {
-    return C<T>(0);   // Previously generated as "B<T>0", which is equivalent
+    return C<T>(0);   // Previously generated as "(B<T>)0", which is equivalent
                       // to (B<T,A>)0 instead of (B<T,int>)0
   }
 
