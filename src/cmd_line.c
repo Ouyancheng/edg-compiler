@@ -5379,7 +5379,7 @@ before this routine is called.
   if (!option_kind_used[(int)optk_deprecated_string_conv]) {
     deprecated_string_literal_conv_allowed = TRUE;
   }  /* if */
-  if (!cpp11_mode && gnu_version >= 40300) {
+  if (!cpp11_mode && !clang_mode && gnu_version >= 40300) {
     /* GCC accepts list initializers with a warning in pre-C++11 modes. */
     list_init_enabled = TRUE;
     pre_cpp11_list_init = TRUE;
