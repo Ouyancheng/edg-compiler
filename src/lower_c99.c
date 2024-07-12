@@ -4664,6 +4664,11 @@ on the scope types list.
     }  /* for */
   }  /* if */
 #endif /* LOWER_COMPLEX && GNU_EXTENSIONS_ALLOWED */
+  if (is_nullptr_type(type)) {
+    /* Lower the C23 nullptr_t type to a void* type. */
+    type = skip_typerefs(type);
+    overwrite_type_with_new_type(type, void_star_type());
+  }  /* if */
 }  /* lower_c99_type */
 
 

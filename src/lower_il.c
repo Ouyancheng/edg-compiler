@@ -9276,8 +9276,8 @@ a function value should be returned through an additional pointer parameter
 }  /* set_lowered_routine_calling_method_flag */
 
 
-static void overwrite_type_with_new_type(a_type_ptr type,
-                                         a_type_ptr new_type)
+void overwrite_type_with_new_type(a_type_ptr type,
+                                  a_type_ptr new_type)
 /*
 Overwrite "type" with a typeref to new_type, saving a copy of "type" in the
 orig_type field of the typeref.

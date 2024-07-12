@@ -1429,6 +1429,9 @@ extern a_boolean expr1_could_affect_expr2(an_expr_node_ptr expr1,
 #endif /* DO_IL_LOWERING */
 #endif /* NEED_NAME_MANGLING */
 
+extern void overwrite_type_with_new_type(a_type_ptr type,
+                                         a_type_ptr new_type);
+
 /* Conditionally close the "edg" namespace. */
 END_EDG_NAMESPACE
 
