@@ -22511,33 +22511,51 @@ a previously created entry that can be reused.
     fprintf(f_debug, "  scp name=%s\n", scp->name);
   }  /* if */
 #endif /* DEBUG */
-  if (scp->name_references == NULL) {
-    /* Create a new name references hash table and associate it with the source
-       correspondence. */
-    htp = alloc_hash_table(FRONT_END_REGION_NUMBER, (a_hash_table_size)11,
-                           fn_for_function(hash_name_reference),
-                           fn_for_function(compare_name_reference));
-    name_references_map->map(scp, htp);
+  /* Look for a previously created name reference that matches the information
+     in the locator. */
+  if (scp->is_local_to_function) {
+    /* Do a linear search for function-scope nodes. */
+    for (nrp = scp->name_references; nrp != NULL; nrp = nrp->next) {
+      if (compare_name_reference(nrp, entry_to_copy)) {
+        /* A match was found. */
+        break;
+      }  /* if */
+    }  /* for */
+    if (nrp == NULL) {
+      nrp = alloc_name_reference();
+      *nrp = *entry_to_copy;
+      /* Put this on the list of name references pointed to by the source
+         correspondence. */
+      nrp->next = scp->name_references;
+      scp->name_references = nrp;
+    }  /* if */
   } else {
-    htp = name_references_map->get(scp);
-    check_assertion(htp != NULL);
-  }  /* if */
-  /* Look for a previously created name reference that matches the
-     information in the locator. */
-  nrp_in_table = (a_name_reference_ptr*)hash_find(htp,
-                                                  (a_void_ptr)entry_to_copy,
-                                                  /*create=*/TRUE);
-  if (*nrp_in_table == NULL) {
-    /* No match was found -- create a new entry. */
-    nrp = alloc_name_reference();
-    *nrp = *entry_to_copy;
-    *nrp_in_table = nrp;
-    /* Put this on the list of name references pointed to by the source
-       correspondence. */
-    nrp->next = scp->name_references;
-    scp->name_references = nrp;
-  } else {
-    nrp = *nrp_in_table;
+    if (scp->name_references == NULL) {
+      /* Create a new name references hash table and associate it with the
+         source correspondence. */
+      htp = alloc_hash_table(FRONT_END_REGION_NUMBER, (a_hash_table_size)11,
+                             fn_for_function(hash_name_reference),
+                             fn_for_function(compare_name_reference));
+      name_references_map->map(scp, htp);
+    } else {
+      htp = name_references_map->get(scp);
+      check_assertion(htp != NULL);
+    }  /* if */
+    nrp_in_table = (a_name_reference_ptr*)hash_find(htp,
+                                                    (a_void_ptr)entry_to_copy,
+                                                    /*create=*/TRUE);
+    if (*nrp_in_table == NULL) {
+      /* No match was found -- create a new entry. */
+      nrp = alloc_name_reference();
+      *nrp = *entry_to_copy;
+      *nrp_in_table = nrp;
+      /* Put this on the list of name references pointed to by the source
+         correspondence. */
+      nrp->next = scp->name_references;
+      scp->name_references = nrp;
+    } else {
+      nrp = *nrp_in_table;
+    }  /* if */
   }  /* if */
 done:
   return nrp;
