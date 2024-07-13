@@ -307,7 +307,7 @@ If you change this, see also type_keyword.
    (tok) == tok_bool     || (tok) == tok_char8_t  ||                  \
    (tok) == tok_float32  || (tok) == tok_float32x ||                  \
    (tok) == tok_float64  || (tok) == tok_float64x ||                  \
-   (tok) == tok_float128                                              \
+   (tok) == tok_float128 || (tok) == tok_nullptr_t                    \
    or_is_c99_type_keyword(tok)                                        \
    or_is_cpp11_type_keyword(tok)                                      \
    or_is_microsoft_type_keyword(tok)                                  \

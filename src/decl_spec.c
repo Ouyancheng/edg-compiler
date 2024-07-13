@@ -7517,6 +7517,7 @@ enum a_basic_type {
   bt_float80,
   bt_float128,
   bt_std_float128,
+  bt_nullptr_t,
   bt_typedef,
   bt_struct_union,
   bt_enum,
@@ -8124,6 +8125,14 @@ _Sat was specified.
         {
           dps->specifiers_type = float_type((a_float_kind)fkind);
         }  /* if */
+      }  /* if */
+      break;
+    case bt_nullptr_t:
+      if (sign == sign_none && size == size_none) {
+        /* nullptr_t type. */
+        dps->specifiers_type = standard_nullptr_type();
+      } else {
+        bad_combination = TRUE;
       }  /* if */
       break;
     case bt_auto:
@@ -11522,6 +11531,7 @@ storage_class_specifier:
       case tok_float64:
       case tok_float64x:
       case tok_float128:
+      case tok_nullptr_t:
         /* A type specifier (3.5.2) that indicates a basic type. */
         if (!type_specifier_allowed) {
           pos_error(ec_type_specifier_not_allowed, &error_position);
@@ -11530,19 +11540,23 @@ storage_class_specifier:
           /* Basic type has already been specified in some way. */
 #if GNU_EXTENSIONS_ALLOWED
           if (gcc_version_is(< 40000) ||
-              (gpp_version_is(any_version) &&
+              (gnu_version_is(any_version) &&
                (curr_token == tok_wchar_t || curr_token == tok_bool ||
                 curr_token == tok_float32 || curr_token == tok_float32x ||
                 curr_token == tok_float64 || curr_token == tok_float64x ||
                 curr_token == tok_float128) &&
-               seq_is_in_system_header(pos_curr_token.seq))) {
+               seq_is_in_system_header(pos_curr_token.seq)) ||
+              ((gnu_version_is(any_version) ||
+                clang_version_is(any_version)) &&
+               curr_token == tok_nullptr_t)) {
             /* Early GNU C allows multiple basic type specifiers, but they
                must be part of a typedef declaration that doesn't include a
                declarator (and therefore it doesn't really declare
                anything).  For example, "typedef int int;".  In system
                headers, a typedef for wchar_t, bool, or one of the _Float*
                types is discarded like this by all current GNU C++
-               compilers. */
+               compilers.  Both gcc and clang accept typedefs of the C23
+               nullptr_t keyword in any file, not just system headers. */
             delayed_error = ec_bad_combination_of_type_specifiers;
             copy_source_position(pos_curr_token, pos_delayed_error);
           } else
@@ -11576,6 +11590,7 @@ storage_class_specifier:
             case tok_float64:  basic_type = bt_float64; break;
             case tok_float64x: basic_type = bt_float64x; break;
             case tok_float128: basic_type = bt_std_float128; break;
+            case tok_nullptr_t: basic_type = bt_nullptr_t; break;
             default:
               unexpected_condition_str("decl_specifiers: bad type specifier");
           }  /* switch */
@@ -12813,6 +12828,9 @@ exit_loop:
          warning. */
       sev = (an_error_severity)es_error;
       bad_combination_of_type_specifiers = TRUE;
+    } else if (c23_mode && is_nullptr_type(state->specifiers_type)) {
+      /* Benign redefinition of C23 nullptr_t. */
+      sev = es_none;
     }  /* if */
     pos_diagnostic(sev, delayed_error, &pos_delayed_error);
   }  /* if */

@@ -761,6 +761,7 @@ EXTERN an_opname_kind opname_kind_for_token[(int)tok_last+1]
    onk_none,           /* tok_remove_restrict */
    onk_none,           /* tok_remove_volatile */
    onk_none,           /* tok_is_trivially_equality_comparable */
+   onk_none,           /* tok_nullptr_t */
    onk_last            /* tok_last */
   }
 #endif /* VAR_INITIALIZERS */

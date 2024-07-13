@@ -1512,6 +1512,7 @@ enum a_token_kind : unsigned short {
   tok_remove_restrict,
   tok_remove_volatile,
   tok_is_trivially_equality_comparable,
+  tok_nullptr_t,
   /* Placeholder for last position in enumeration. */
   tok_last
 };
@@ -1523,7 +1524,7 @@ struct Is_trivially_destructible_edg_impl<a_token_kind> :
                                                 Integral_constant<bool, true> {
 };  /* Is_trivially_destructible_edg_impl */
 
-}  /* detail */
+}  /* namespace detail */
 
 /*
 Table of names corresponding to token kinds.
@@ -1779,6 +1780,7 @@ EXTERN a_const_char
    "__remove_restrict",
    "__remove_volatile",
    "__is_trivially_equality_comparable",
+   "nullptr_t",
    "last" /* used to check that initialization is right. */
   }
 #endif /* VAR_INITIALIZERS */

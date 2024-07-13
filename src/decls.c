@@ -13788,6 +13788,9 @@ types, e.g., "unsigned int".  See ARM 7.1.6 and 5.2.3.
     case tok_float128:
       type = float_type(fk_std_float128);
       break;
+    case tok_nullptr_t:
+      type = standard_nullptr_type();
+      break;
     default:
       type = NULL;
       break;
@@ -17099,6 +17102,11 @@ state describes the declaration parsed so far.
              "typedef enum { red, green, blue };" -- see first constraint,
              Section 3.5 of the ANSI C standard.  However, a warning should
              be issued, since the "typedef" is superfluous. */
+        } else if (c23_mode && is_nullptr_type(state->specifiers_type)) {
+          /* Something like "typedef __typeof__(nullptr) nullptr_t;" is
+             accepted by gcc and clang, even though nullptr_t is a
+             keyword in C23. */
+          severity = es_none;
         } else {
           /* A case like "typedef int;" or "typedef struct { int i; };" --
              gets a warning by default but may get an error in strict ANSI

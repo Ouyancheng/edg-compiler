@@ -1351,6 +1351,11 @@ Install the keywords in the symbol table.
 #endif /* ASM_FUNCTION_ALLOWED */
   if (nullptr_enabled) {
     enter_keyword((a_token_kind)tok_nullptr, "nullptr");
+    if (c23_mode) {
+      /* Only enter nullptr_t as a keyword in C23 mode so as not to conflict
+         with legitimate uses in other language dialects. */
+      enter_keyword((a_token_kind)tok_nullptr_t, "nullptr_t");
+    }  /* if */
   }  /* if */
   if (C_dialect == C_dialect_cplusplus) {
     /* Enter C++ keywords that are not also C keywords. */

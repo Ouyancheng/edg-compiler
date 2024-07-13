@@ -12244,14 +12244,15 @@ See conversion_possible.
   } else if (is_bool(dest_type) &&
              !(is_enum(source_type) &&
                !integer_type_is_scoped_enum(source_type))) {
-    /* Conversion to the bool type.  This is possible only in C++.
-       Conversion is allowed from arithmetic, unscoped enumeration,
-       pointer, and pointer to member, as well as from nullptr_t in
-       direct-initialization contexts.  C++/CLI does not allow conversion
-       from a handle to bool (though it is allowed, effectively, in a
-       boolean controlling expression).  Don't handle the conversion from
-       an unscoped enum here because it can be a promotion case; we therefore
-       handle that case with the arithmetic types below. */
+    /* Conversion to the bool type.  This is possible only in C++ and, for
+       nullptr_t, C23.  Conversion is allowed from arithmetic, unscoped
+       enumeration, pointer, and pointer to member, as well as from
+       nullptr_t in C++ direct-initialization and C23 contexts.  C++/CLI
+       does not allow conversion from a handle to bool (though it is
+       allowed, effectively, in a boolean controlling expression).  Don't
+       handle the conversion from an unscoped enum here because it can be a
+       promotion case; we therefore handle that case with the arithmetic
+       types below. */
     if (is_bool(source_type)) {
       /* bool --> bool is no conversion. */
       okay = TRUE;
@@ -12259,7 +12260,8 @@ See conversion_possible.
     } else if (is_arithmetic_or_unscoped_enum(source_type)) {
       okay = TRUE;
     } else if (is_pointer(source_type) || is_ptr_to_member(source_type) ||
-               (is_nullptr(source_type) && !is_copy_initialization)) {
+               (is_nullptr(source_type) &&
+                (!is_copy_initialization || c23_mode))) {
       okay = TRUE;
       /* This conversion is worse than others in overload resolution.
          Remember that. */

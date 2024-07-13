@@ -814,6 +814,7 @@ Scan and cache the tokens that comprise a list of decl_specifiers.
       case tok_float64:
       case tok_float64x:
       case tok_float128:
+      case tok_nullptr_t:
       case tok_edg_size_type:
       case tok_edg_ptrdiff_type:
       case tok_edg_bool_type:

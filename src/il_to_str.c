@@ -2603,10 +2603,14 @@ by octl.
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
     case tk_nullptr:
       check_assertion(!is_for_c_gen_be(octl));
-      /* If this is the standard nullptr type, put it out as the name of the
-         standard C++ typedef; otherwise, use decltype. */
+      /* If this is the standard nullptr type, put it out as the name of
+         the standard C++ typedef or the C23 keyword; otherwise, use
+         decltype. */
       if (is_standard_nullptr_type(type)) {
-        octl->output_str("std::nullptr_t", octl);
+        if (!c23_mode) {
+          octl->output_str("std::", octl);
+        }  /* if */
+        octl->output_str("nullptr_t", octl);
       } else {
         octl->output_str("decltype(nullptr)", octl);
       }  /* if */

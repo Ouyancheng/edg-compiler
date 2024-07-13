@@ -34273,6 +34273,9 @@ that case.
           operand_3_is_handle = is_handle_type(operand_3.type);
         }  /* if */
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
+      } else if (nullptr_enabled) {
+        operand_2_is_nullptr = is_nullptr_type(operand_2.type);
+        operand_3_is_nullptr = is_nullptr_type(operand_3.type);
       }  /* if */
 #if MICROSOFT_EXTENSIONS_ALLOWED
       if (microsoft_bugs && !ms_strict_ternary &&
@@ -42309,6 +42312,7 @@ handle_trapped_left_paren:
     case tok_float64:
     case tok_float64x:
     case tok_float128:
+    case tok_nullptr_t:
 #if GNU_EXTENSIONS_ALLOWED
     case tok_typeof:
 #endif /* GNU_EXTENSIONS_ALLOWED */
