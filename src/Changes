@@ -7,14 +7,18 @@ The front end now accepts list-initialization constructs with a warning in GNU
 C++03 modes.  Narrowing conversions are not checked (unlike C++11 mode).
 
 
-7/11/24  [EDGcpfe/27445]
-C23: nullptr keyword
+7/11/24  [EDGcpfe/25950,EDGcpfe/26287,EDGcpfe/27445]
+C23: nullptr keyword and nullptr_t type
 
-The "nullptr" keyword is now enabled in C23 mode, as well as when the
---nullptr command-line option is specified (it was previously disallowed in
-C language modes).  For example, with --c23:
+The nullptr keyword and nullptr_t type, as described in C Committee
+document N3042, are now enabled in C23 mode.  In addition, the nullptr
+keyword (but not the nullptr_t keyword, to avoid collisions with
+user-declared identifiers) is enabled in pre-C23 modes when the --nullptr
+command-line option is specified (it was previously disallowed in C
+language modes).  For example, with --c23:
 
   void *p = nullptr;
+  void f(nullptr_t);
 
 
 7/11/24  [EDGcpfe/27200]
