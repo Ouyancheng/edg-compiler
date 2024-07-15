@@ -22513,8 +22513,8 @@ a previously created entry that can be reused.
 #endif /* DEBUG */
   /* Look for a previously created name reference that matches the information
      in the locator. */
-  if (scp->is_local_to_function) {
-    /* Do a linear search for function-scope nodes. */
+  if (scp->is_local_to_function || scp->name == NULL) {
+    /* Do a linear search for function-scope or unnamed nodes. */
     for (nrp = scp->name_references; nrp != NULL; nrp = nrp->next) {
       if (compare_name_reference(nrp, entry_to_copy)) {
         /* A match was found. */
@@ -28781,7 +28781,7 @@ of the front end.
   next_preinclude_file = NULL;
   processing_macro_preincludes = FALSE;
   name_references_map = alloc_fe_of_type(a_name_references_map);
-  construct(name_references_map, /*mask_width=*/10);
+  construct(name_references_map, /*mask_width=*/8);
 #if UNICODE_VULNERABILITY_DETECTION_SUPPORTED
   pending_bidi_controls = NULL;
   avail_pending_bidi_controls = NULL;
