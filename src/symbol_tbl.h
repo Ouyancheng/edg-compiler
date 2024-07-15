@@ -4732,7 +4732,7 @@ extern a_symbol_ptr find_symbol(a_const_char     *identifier,
 extern a_hash_table_ptr curr_lookup_table(
                               a_scope_pointers_block_ptr pointers_block,
                               a_module_ptr               module_context,
-                              a_scope_kind               scope_kind = sck_none,
+                              a_scope_kind               scope_kind,
                               a_boolean                  create = FALSE);
 
 extern

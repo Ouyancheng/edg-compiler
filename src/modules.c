@@ -913,36 +913,34 @@ processing of the imported module entities for this module.
 }  /* report_suppressed_diagnostics */
 
 
-a_module_entity_stack_state::a_module_entity_stack_state(
-                                                   a_module_entity_ptr mep_val)
+void push_module_entity_state(a_module_entity_ptr mep)
 /*
-Begin a new module entity stack state for the given module entity pointer.
 */
-  : parent(curr_mep_state), mep(mep_val), module_pushed(FALSE)
 {
-  curr_mep_state = this;
+  a_module_entity_stack_entry mese{};
 
-  a_module_ptr lookup_module = NULL;
-  if (mep->module_info->kind != mk_header_unit) {
-    lookup_module = mep_val->module_info;
+  mese.mep = mep;
+  a_module_ptr lookup_module = trans_unit_module;
+  if (mep != NULL && mep->module_info->kind != mk_header_unit) {
+    lookup_module = mep->module_info;
   }  /* if */
   if (curr_lookup_module() != lookup_module) {
-    this->module_pushed = TRUE;
+    mese.module_pushed = TRUE;
     push_module_context(lookup_module);
   }  /* if */
-}  /* a_module_entity_stack_state::a_module_entity_stack_state */
+  module_entity_stack->push_back(mese);
+}  /* push_module_entity_state */
 
 
-a_module_entity_stack_state::~a_module_entity_stack_state()
+void pop_module_entity_state()
 /*
-End the current module entity stack state and return to the prior state.
 */
 {
-  if (this->module_pushed) {
+  if (module_entity_stack->back_elem().module_pushed) {
     pop_module_context();
   }  /* if */
-  curr_mep_state = this->parent;
-}  /* a_module_entity_stack_state::~a_module_entity_stack_state */
+  module_entity_stack->pop_back();
+}  /* pop_module_entity_state */
 
 
 static a_boolean check_module_already_imported(a_module_import_decl_ptr midp)
@@ -1193,10 +1191,25 @@ Display debug information about the module stack.
 {
   int  size = module_stack->length();
   for (int i = size-1; i >= 0; i--) {
-    a_module_context_stack_entry_ptr mcsep = &(*module_stack)[i];
-    db_module(mcsep->module_ptr);
+    a_module_context_stack_entry &mcsep = (*module_stack)[i];
+
+    db_module(mcsep.module_ptr);
   }  /* for */
 }  /* db_module_stack */
+
+
+void db_mep_stack()
+/*
+Print information about the module entity stack.
+*/
+{
+  int  size = module_entity_stack->length();
+  for (int i = size-1; i >= 0; i--) {
+    a_module_entity_stack_entry &mese = (*module_entity_stack)[i];
+
+    db_mep(mese.mep);
+  }  /* for */
+}  /* db_mep_stack */
 
 
 void db_tokens(a_module_token_cache_ptr cache)
@@ -1373,10 +1386,10 @@ Do one-time initialization of static variables defined in this file.
   register_trans_unit_variable(num_module_decls_failed);
 #endif /* DEBUG */
   register_trans_unit_variable(curr_module_sym);
-  register_trans_unit_variable(curr_mep_state);
   register_trans_unit_variable(lazy_symbols_may_be_visible);
   register_trans_unit_variable(module_entity_hash_table);
   register_trans_unit_variable(module_stack);
+  register_trans_unit_variable(module_entity_stack);
   register_trans_unit_variable(known_modules);
 }  /* modules_one_time_init */
 
@@ -1393,10 +1406,10 @@ translation unit.
   num_module_decls_failed = 0;
 #endif /* DEBUG */
   curr_module_sym = NULL;
-  curr_mep_state = NULL;
   lazy_symbols_may_be_visible = FALSE;
   module_entity_hash_table = NULL;
   module_stack = new_fe<a_module_stack>();
+  module_entity_stack = new_fe<a_module_entity_stack>();
   known_modules = new_fe<a_module_name_map>(/*mask_width=*/10);
   ifc_modules_trans_unit_init();
 }  /* modules_trans_unit_init */
@@ -1411,6 +1424,7 @@ instantiations, etc.) has been done.
 {
   ifc_modules_trans_unit_wrapup();
   delete_fe(&known_modules);
+  delete_fe(&module_entity_stack);
   delete_fe(&module_stack);
   lazy_symbols_may_be_visible = FALSE;
 }  /* modules_trans_unit_wrapup */

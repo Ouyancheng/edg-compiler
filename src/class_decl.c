@@ -32824,11 +32824,11 @@ classes.
          template parameters of the template.  Push an instantiation scope
          if this is a specialization definition.  (This is not allowed for
          in-class specializations.) */
-      a_scope_depth  depth;
       push_instantiation_scope_for_class(
                       class_type, /*is_microsoft_specialization_scope=*/TRUE);
       instantiation_scope_pushed = TRUE;
-      depth = depth_scope_stack;
+
+      a_scope_depth depth = depth_scope_stack;
       scope_stack[depth].microsoft_specialization_instantiation_scope = TRUE;
     } else if (delayed_nested_class_def && !is_template_instantiation) {
       /* This is a definition of a C++ nested class that appears outside the

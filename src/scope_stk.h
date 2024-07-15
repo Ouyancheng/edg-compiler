@@ -1136,6 +1136,10 @@ typedef struct a_scope_stack_entry {
   a_bit_field	in_export_block:1;
 			/* TRUE while scanning a block export declaration.
 			   exporting_decl is also TRUE while this is TRUE. */
+  a_bit_field
+		owns_module_push:1;
+			/* TRUE if the module stack should be popped when this
+			   scope is popped. */
   a_source_position
 		export_pos;
 			/* When in_export_block is TRUE this is the position of

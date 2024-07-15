@@ -4271,11 +4271,11 @@ hdr_ptr == NULL indicates that an error symbol should be constructed.
   sym_ptr->header = hdr_ptr;
   /* Set the declaration source position. */
   sym_ptr->decl_position = *position;
-  /* Mark this declaration as declared by the current module entity
-     (if any). */
-  a_module_entity_stack_state *state = curr_mep_state;
-  if (state != NULL) {
-    sym_ptr->module_entity = state->mep;
+  /* Mark this symbol as associated with the current module entity (if any). */
+  if (module_entity_stack != NULL && !module_entity_stack->is_empty()) {
+    a_module_entity_stack_entry &mese = module_entity_stack->back_elem();
+
+    sym_ptr->module_entity = mese.mep;
   }  /* if */
 }  /* init_symbol */
 
@@ -4459,7 +4459,7 @@ Create the entry if it does not already exist.
 a_hash_table_ptr curr_lookup_table(
                               a_scope_pointers_block_ptr pointers_block,
                               a_module_ptr               module_context,
-            /* Defaulted: */  a_scope_kind               scope_kind,
+                              a_scope_kind               scope_kind,
             /* Defaulted: */  a_boolean                  create)
 
 /*
@@ -4473,7 +4473,7 @@ TRUE, a map entry is added for the lookup table for the module_context.
 {
   a_hash_table_ptr result;
 
-  if (module_context == NULL) {
+  if (module_context == NULL || !is_file_or_namespace_scope_kind(scope_kind)) {
     result = pointers_block->lookup_table;
     if (result == NULL && create) {
       result = create_name_lookup_table(scope_kind);
@@ -4483,9 +4483,10 @@ TRUE, a map entry is added for the lookup table for the module_context.
     a_module_lookup_table_map_ptr
                 mltmp = get_module_lookup_table_map(pointers_block);
 
+    module_context = skip_module_partitions(module_context);
     result = mltmp->get(module_context);
     if (result == NULL && create) {
-      result = create_name_lookup_table(sck_namespace);
+      result = create_name_lookup_table(scope_kind);
       mltmp->map(module_context, result);
     }  /* if */
   }  /* if */
@@ -4506,7 +4507,7 @@ the lookup_table pointer vs. the module map is based on the scope kind.
   a_scope_pointers_block_ptr pointers_block = assoc_pointers_block_of(ssep);
 
   if (is_file_or_namespace_scope(ssep)) {
-    result = curr_lookup_table(pointers_block, module_context);
+    result = curr_lookup_table(pointers_block, module_context, ssep->kind);
   } else {
     result = pointers_block->lookup_table;
   }  /* if */
@@ -4698,7 +4699,8 @@ Remove the given symbol from the list of symbols for its scope.
       }  /* if */
 
       a_hash_table_ptr lookup_table = curr_lookup_table(pointers_block,
-                                                        module_ptr);
+                                                        module_ptr,
+                                                        scope_kind);
       remove_symbol_from_lookup_table(sym_ptr, lookup_table);
     }  /* if */
   }  /* if */
@@ -7032,16 +7034,19 @@ the file scope is used.
 {
   a_symbol_ptr        overload_sym, prev_sym_ptr;
   a_symbol_header_ptr hdr_ptr;
-  a_scope_stack_entry *ssep;
-  a_scope_pointers_block_ptr  pointers_block = NULL;
 
   if (other_sym->kind == (a_symbol_kind)sk_overloaded_function) {
     overload_sym = other_sym;
     other_sym = overload_sym->variant.overloaded_function.symbols;
   } else {
+    a_scope_pointers_block_ptr pointers_block = NULL;
+    a_scope_kind               pointers_block_scope_kind;
+
     /* The existing symbol is not an sk_overloaded_function symbol
        (i.e., it's a simple function symbol of some kind). */
     if (!use_namespace) {
+      a_scope_stack_entry *ssep;
+
       if (other_sym->synthesized_namespace_projection) {
         /* When looking for a synthesized namespace symbol, look in the
            scope in which the symbol was entered. */
@@ -7060,10 +7065,12 @@ the file scope is used.
         }  /* if */
       }  /* if */
       pointers_block = assoc_pointers_block_of(ssep);
+      pointers_block_scope_kind = ssep->kind;
     } else {
       /* A namespace pointer was passed by the caller.  Use the pointers
          block associated with this namespace. */
       pointers_block = pointers_block_for_namespace(ns_ptr);
+      pointers_block_scope_kind = ns_ptr == NULL ? sck_file : sck_namespace;
     }  /* if */
     /* Create an sk_overloaded_function symbol and attach the old
        function symbol to it. */
@@ -7141,8 +7148,10 @@ the file scope is used.
         module_ptr = NULL;
       }  /* if */
 
-      a_hash_table_ptr lookup_table = curr_lookup_table(pointers_block,
-                                                        module_ptr);
+      a_hash_table_ptr lookup_table = curr_lookup_table(
+                                                    pointers_block,
+                                                    module_ptr,
+                                                    pointers_block_scope_kind);
       remove_symbol_from_lookup_table(other_sym, lookup_table);
       add_symbol_to_lookup_table(overload_sym, lookup_table);
     }  /* if */
@@ -12797,12 +12806,9 @@ been exported from a module (that has been imported).  Otherwise, return FALSE.
     result = TRUE;
   } else {
     a_module_entity_ptr mep = sym_ptr->module_entity;
-    a_module_ptr        mod = mep->module_info;
+    a_module_ptr        mod = skip_module_partitions(mep->module_info);
 
-    if (mod->kind == mk_unit_partition) {
-      mod = mod->variant.unit_partition.unit;
-    }  /* if */
-    if (mep->module_info == curr_lookup_module()) {
+    if (mod == curr_lookup_module()) {
       /* This is a non-exported module entity, but we're doing lookup from
          within the same module, so lookup succeeds. */
       check_assertion(mep->non_exported);

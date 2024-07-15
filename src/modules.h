@@ -152,7 +152,7 @@ EXTERN unsigned long
 
 /*
 Entry used to maintain a stack of module contexts.  The top of the stack
-is the "current" module for name declarations and lookups.
+is the "current" module for lookups.
 */
 typedef struct a_module_context_stack_entry *a_module_context_stack_entry_ptr;
 struct a_module_context_stack_entry {
@@ -179,11 +179,25 @@ stack is empty.
 {
   a_module_context_stack_entry_ptr mcsep = NULL;
 
-  if (module_stack->length() > 0) {
+  if (module_stack != NULL && module_stack->length() > 0) {
     mcsep = &module_stack->back_elem();
   }  /* if */
   return mcsep;
 }  /* curr_module_context */
+
+
+inline a_module_ptr skip_module_partitions(a_module_ptr mod)
+/*
+Return the module unit skipping over any module partition unit.
+*/
+{
+  a_module_ptr result = mod;
+
+  while (result != NULL && result->kind == mk_unit_partition) {
+    result = result->variant.unit_partition.unit;
+  }  /* while */
+  return result;
+}  /* skip_module_partitions */
 
 
 inline a_module_ptr curr_lookup_module()
@@ -200,23 +214,23 @@ stack, or NULL if there's no module currently limiting lookup.
   } else if (trans_unit_module != NULL) {
     mp = trans_unit_module;
   }   /* if */
-  if (mp != NULL && mp->kind == mk_unit_partition) {
-    if (mp->variant.unit_partition.unit != NULL) {
-      mp = mp->variant.unit_partition.unit;
-    }  /* if */
-  }  /* if */
+  mp = skip_module_partitions(mp);
   return mp;
 }  /* curr_lookup_module */
 
 
-inline Small_dyn_array<a_module_ptr, 2> curr_lookup_modules()
+using a_module_lookup_array = Small_dyn_array<a_module_ptr, 2>;
+                        /* An array used to represent the array of modules
+                           to be used for lookup. */
+
+inline a_module_lookup_array curr_lookup_modules()
 /*
 Return the module entry associated with the entry at the top of the module
 stack, or NULL if there's no module currently limiting lookup.
 */
 {
-  Small_dyn_array<a_module_ptr, 2> result;
-  a_module_ptr curr_module = curr_lookup_module();
+  a_module_lookup_array result;
+  a_module_ptr          curr_module = curr_lookup_module();
 
   result.push_back(NULL);
   if (curr_module != NULL) {
@@ -230,42 +244,72 @@ EXTERN a_symbol_ptr
                 curr_module_sym;
                         /* If in a module unit, the current module symbol. */
 
-struct a_module_entity_stack_state;
+/*
+Entry used to maintain a stack of module contexts.  The top of the stack
+is the "current" module for declarations.
+*/
+typedef struct a_module_entity_stack_entry *a_module_entity_stack_entry_ptr;
+struct a_module_entity_stack_entry {
+  void invalidate()
+    { this->mep->invalid = TRUE; }
 
-EXTERN a_module_entity_stack_state
-                *curr_mep_state;
-                        /* A global stack of module entity pointers currently
-                           being processed.  This stack can be printed with
-                           db_mep_stack(). */
+  a_module_entity_ptr
+                mep;    /* The current module entity pointer. */
+  a_boolean     module_pushed;
+                        /* TRUE if a module was pushed to the module context
+                           stack; otherwise, FALSE. */
+};  /* a_module_context_stack_entry */
+
+using a_module_entity_stack = Small_dyn_array<a_module_entity_stack_entry, 5,
+                                              General_allocator>;
+                        /* The type used to represent the stack of module
+                           contexts. */
+
+EXTERN a_module_entity_stack
+                *module_entity_stack;
+                        /* A dynamic array of the active module entities. */
+
+using a_module_entity_depth = ptrdiff_t;
+                        /* The type used to represent the module entity scope
+                           depth. */
+
+inline a_module_entity_depth module_entity_stack_depth()
+/*
+Return the depth of the module entity stack.
+*/
+{
+  a_module_entity_depth result = NO_SCOPE_DEPTH;
+
+  if (module_entity_stack != NULL && !module_entity_stack->is_empty()) {
+    result = module_entity_stack->length() - 1;
+  }  /* if */
+  return result;
+}  /* module_entity_stack_depth */
+
+
+extern void push_module_entity_state(a_module_entity_ptr mep);
+
+extern void pop_module_entity_state();
+
+
+/*
+A class used to represent an element on the module entity state stack.  This is
+an RAII object that automatically manages the calls to
+push/pop_module_entity_state for the module entity given during construction.
+*/
+struct a_module_entity_stack_state {
+  a_module_entity_stack_state(a_module_entity_ptr mep_val)
+    { push_module_entity_state(mep_val); }
+  ~a_module_entity_stack_state()
+    { pop_module_entity_state(); }
+};  /* a_module_entity_stack_state */
+
 
 EXTERN a_boolean
                 lazy_symbols_may_be_visible;
                         /* TRUE if symbols (and their definitions) may be
                            "lazily loaded" (i.e., because at least one module
                            has been imported). */
-
-/*
-A class used to represent an element on the module entity state stack.  This is
-an RAII object that automatically manages the value of curr_mep_state for the
-module given during construction.
-*/
-struct a_module_entity_stack_state {
-  a_module_entity_stack_state(a_module_entity_ptr mep_val);
-  ~a_module_entity_stack_state();
-  void invalidate()
-    { this->mep->invalid = TRUE; }
-
-  a_module_entity_stack_state
-                *parent;
-                        /* The parent (old) module entity stack state, prior
-                           to this object's construction. */
-  a_module_entity_ptr
-                mep;    /* The current module entity pointer. */
-  a_boolean     module_pushed;
-                        /* TRUE if a module was pushed to the module context
-                           stack; otherwise, FALSE. */
-};  /* a_module_entity_stack_state */
-
 
 inline a_boolean magic_numbers_match(const a_byte magic[4],
                                      const a_byte expected[4])
@@ -648,7 +692,9 @@ extern void pop_module_context(void);
 
 extern void db_module_entity(a_module_entity_ptr mep);
 
-extern void db_module_stack(void);
+extern void db_module_stack();
+
+extern void db_mep_stack();
 
 #endif /* DEBUG */
 

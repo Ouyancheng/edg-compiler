@@ -194,9 +194,10 @@ module entity that declared it (if any).
 
   /* Mark this declaration as declared by the current module entity
      (if any). */
-  a_module_entity_stack_state *state = curr_mep_state;
-  if (state != NULL) {
-    scp->module_entity = state->mep;
+  if (module_entity_stack != NULL && !module_entity_stack->is_empty()) {
+    a_module_entity_stack_entry &mese = module_entity_stack->back_elem();
+
+    scp->module_entity = mese.mep;
   }  /* if */
 }  /* set_default_source_corresp */
 

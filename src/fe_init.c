@@ -2149,6 +2149,7 @@ when it is a secondary file.
   lexical_trans_unit_init();
   symbol_tbl_trans_unit_init();
   scope_stk_trans_unit_init();
+  modules_trans_unit_init();
   templates_trans_unit_init();
   corresp_trans_unit_init();
   expr_trans_unit_init();
@@ -2158,7 +2159,6 @@ when it is a secondary file.
   layout_trans_unit_init();
   macro_trans_unit_init();
   preproc_trans_unit_init();
-  modules_trans_unit_init();
 #if DO_IL_LOWERING
   il_lower_trans_unit_init();
   lower_c99_trans_unit_init();

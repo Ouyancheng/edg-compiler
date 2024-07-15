@@ -5596,8 +5596,30 @@ class to be defined.
     db_scope_stack();
   }  /* if */
 #endif /* DEBUG */
+
   /* Return TRUE if a scope was pushed. */
-  return depth_scope_stack != orig_depth;
+  a_boolean scope_pushed = depth_scope_stack != orig_depth;
+  if (scope_pushed) {
+    a_scope_stack_entry_ptr ssep = &scope_stack_top();
+
+    /* If owns_module_push is already TRUE, the pushed scope cannot take
+       ownership of the module entity state.  If this occurs, the code will
+       need to be adjusted to either pop the previously owned module entity
+       state or to ensure this condition is not reached. */
+    check_assertion(!ssep->owns_module_push);
+    /* In most cases, set the module ownership of any symbols that follow from
+       the template to its associated module entity (if any).  In some cases
+       (e.g., push_instantiation_scope_for_boxed_enum_type) the template symbol
+       is NULL and it's assumed the appropriate module is the global module. */
+    if (template_sym != NULL) {
+      push_module_entity_state(template_sym->module_entity);
+    } else {
+      push_module_entity_state(NULL);
+    } /* if */
+    /* Set the pushed scope to own the pushed module entity state. */
+    ssep->owns_module_push = TRUE;
+  }  /* if */
+  return scope_pushed;
 }  /* push_template_instantiation_scope */
 
 
@@ -9408,6 +9430,9 @@ being popped.
   ssep = &scope_stack[depth_scope_stack];
   pointers_block = assoc_pointers_block_of(ssep);
   kind = ssep->kind;
+  if (ssep->owns_module_push) {
+    pop_module_entity_state();
+  }  /* if */
   if (kind == (a_scope_kind)sck_function) {
     /* If the scope is for a routine, get a pointer to the routine. */
     curr_routine = ssep->il_scope->variant.routine.ptr;

@@ -21174,6 +21174,7 @@ instance to the definitions list for the template.
   var_for_decl = variable_for_symbol(var_sym);
   tp = type_symbol_type(corresp_prototype_tag_sym);
   member_type = var_for_decl->type;
+
   if (member_type->kind == (a_type_kind)tk_union &&
       is_unnamed_tag_symbol(
                   (a_symbol_ptr)member_type->source_corresp.assoc_info)) {
@@ -21226,19 +21227,19 @@ instance to the definitions list for the template.
              If not, it is probably a partial specialization.  This is
              not done for static data members because __if_exists can
              cause a mismatch. */
-          a_template_symbol_supplement_ptr	tssp;
+          a_template_symbol_supplement_ptr     tssp;
           tssp = template_supplement_for_symbol(sym);
           if (symbol_is(sym, sk_variable_template) &&
               tssp->token_sequence_number != token_sequence_number) {
-            a_symbol_ptr				ps_sym;
+            a_symbol_ptr                               ps_sym;
             /* Check each of its partial specializations. */
             for (ps_sym = tssp->partial_specializations;
                  ps_sym != NULL; ps_sym = ps_sym->next) {
               tssp = ps_sym->variant.template_info;
               if (tssp->token_sequence_number == token_sequence_number) {
-                break;
-              }  /* if */
-            }  /* for */
+                 break;
+               }  /* if */
+             }  /* for */
             sym = ps_sym;
           }  /* if */
           break;
@@ -21246,7 +21247,7 @@ instance to the definitions list for the template.
         } else if (sym->kind == (a_symbol_kind)sk_property_set) {
           /* A Microsoft property set.  Look for a static data member in
              the associated set of properties. */
-          a_symbol_ptr	prop_sym;
+          a_symbol_ptr prop_sym;
           for (prop_sym = sym->variant.property_info->properties;
                prop_sym != NULL; prop_sym = prop_sym->next) {
             if (prop_sym->kind == (a_symbol_kind)sk_static_data_member &&
@@ -36674,53 +36675,6 @@ instantiation (of the same template), return TRUE; otherwise, return FALSE.
   return result;
 }  /* is_artifact_of_failing_instantiation */
 
-namespace {
-
-/*
-This structure is used to represent pending template instantation's context
-after the translation unit is resolved.  It's used to track the number of
-total pending instantiations and apply the appropriate module context
-(if necessary).
-*/
-struct a_pending_instantation_raii {
-  inline a_pending_instantation_raii(a_template_instance_ptr tip);
-  inline ~a_pending_instantation_raii();
-private:
-  a_boolean     module_pushed;
-                        /* TRUE if a module was pushed to the module context
-                           stack; otherwise, FALSE. */
-};  /* a_template_instantiation_raii */
-
-
-a_pending_instantation_raii::a_pending_instantation_raii(
-                                                   a_template_instance_ptr tip)
-/*
-Begin a pending instantiation.
-*/
-  : module_pushed(FALSE)
-{
-  num_total_pending_instantiations++;
-
-  a_module_ptr tip_module = module_for_symbol(tip->template_sym);
-  if (curr_lookup_module() != tip_module) {
-    this->module_pushed = TRUE;
-    push_module_context(tip_module);
-  }  /* if */
-}  /* a_pending_instantation_raii::a_pending_instantation_raii */
-
-
-a_pending_instantation_raii::~a_pending_instantation_raii()
-/*
-End a pending instantiation.
-*/
-{
-  if (this->module_pushed) {
-    pop_module_context();
-  }  /* if */
-  num_total_pending_instantiations--;
-}  /* a_pending_instantation_raii::~a_pending_instantation_raii */
-
-}  /* namespace */
 
 static void instantiate_entity(a_template_instance_ptr tip)
 /*
@@ -36823,8 +36777,6 @@ data member specified by tip.
       tip->suppress_instantiation = TRUE;
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
     } else {
-      a_pending_instantation_raii inst_raii(tip);
-
       instantiate_template_variable(tip, /*is_new=*/FALSE, /*is_use=*/TRUE);
     }  /* if */
   } else {
@@ -36834,9 +36786,9 @@ data member specified by tip.
        defined.  This is done because, while a function is being instantiated,
        it generally consumes HOST_ALLOCATION_INCREMENT bytes of storage. */
     if (num_total_pending_instantiations < MAX_TOTAL_PENDING_INSTANTIATIONS) {
-      a_pending_instantation_raii inst_raii(tip);
-
+      num_total_pending_instantiations++;
       instantiate_template_function(tip);
+      num_total_pending_instantiations--;
     }  /* if */
   }  /* if */
   if (trans_unit_pushed) {

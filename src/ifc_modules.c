@@ -89,7 +89,8 @@ does not compile with a possibly-misinterpreted IFC import).
 {
   /* Checking a condition without a module entity pointer state.  The caller
      did not set up the module entity state stack properly. */
-  check_assertion(curr_mep_state != NULL);
+  check_assertion(module_entity_stack != NULL &&
+                  !module_entity_stack->is_empty());
   if (!condition) {
     a_diagnostic_ptr diag = start_error(ec_ifc_requirement_failure,
                                         mod->assoc_module_info->name);
@@ -99,7 +100,9 @@ does not compile with a possibly-misinterpreted IFC import).
                   line_number, function, string);
 #endif /* DEBUG */
     end_diagnostic(diag);
-    curr_mep_state->invalidate();
+
+    a_module_entity_stack_entry &mese = module_entity_stack->back_elem();
+    mese.invalidate();
   }  /* if */
 }  /* ifc_requirement_impl */
 
@@ -12530,20 +12533,6 @@ corresponding IFC identity (i.e., index) information.
 {
   return index_to_str(decl_index_of(mep));
 }  /* s_db_id_of_ifc_mep */
-
-
-void db_mep_stack()
-/*
-Print information about the module entity stack.
-*/
-{
-  a_module_entity_stack_state *state = curr_mep_state;
-
-  while (state != NULL) {
-    db_mep(state->mep);
-    state = state->parent;
-  }  /* while */
-}  /* db_mep_stack */
 
 
 void db_node_at_tsn(a_token_cache_ptr        cache,
