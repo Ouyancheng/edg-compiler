@@ -4721,7 +4721,7 @@ given token cache.
 static a_boolean should_token_be_simplified(a_cached_token *tok)
 /*
 Return TRUE if the given token should be simplified to just its corresponding
-basic token kind.  This occurs for some token kinds (e.g,. tok_true) where the
+basic token kind.  This occurs for some token kinds (e.g., tok_true) where the
 front end has an associated constant value but it should not be used.
 Otherwise, return FALSE.
 */
