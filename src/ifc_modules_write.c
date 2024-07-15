@@ -21,6 +21,7 @@ ifc_modules_write.c -- IFC writing code.
 /* Additional header files. */
 #include "ifc_modules.h"
 #include "ifc_map_functions.h"
+#include "il_def.h"
 #include "il_walk.h"
 
 /* Conditionally open the "edg" namespace. */
@@ -4353,6 +4354,7 @@ a_token_kind for more information about IFC token serialization.
     case tok_null:
     case tok_null_unspecified:
     case tok_nullable:
+    case tok_nullptr_t:
 #if MICROSOFT_EXTENSIONS_ALLOWED
     case tok_partial_ref_class:
     case tok_partial_ref_struct:
