@@ -6898,6 +6898,7 @@ copy_constant_full should be called to start a copy.
       rvp->entity.kind = iek_none;
     } else
 #endif /* DO_IL_LOWERING */
+    /* Do not insert code here. */
     if (!in_file_scope(rvp->entity.ptr) &&
                (curr_il_region_number == file_scope_region_number ||
                 copying_from_one_func_to_another)) {
