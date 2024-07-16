@@ -1,5 +1,13 @@
 Version 6.7
 
+7/16/24  [EDGcpfe/27388]
+Abort on unusual C++ coroutine type
+
+In the unusual case of a coroutine with a non-class return type, the front end
+was likely to abort in a call to select_overloaded_copy_constructor.  That is
+now fixed.
+
+
 7/11/24  [EDGcpfe/27091,EDGcpfe/27095]
 GNU C++ compatibility: List-initialization in C++03 modes
 

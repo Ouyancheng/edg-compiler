@@ -9979,6 +9979,7 @@ coroutine as described in N4810 (or N4775+P0912R5).
   an_operand          operand;
   a_dynamic_init_ptr  dip;
   an_expr_stack_entry expr_stack_entry, *saved_expr_stack = expr_stack;
+  a_type_ptr          return_type;
 
   push_expr_stack((an_expression_kind)ek_normal, &expr_stack_entry,
                   /*force_object_lifetime=*/FALSE,
@@ -9989,12 +9990,12 @@ coroutine as described in N4810 (or N4775+P0912R5).
   make_coroutine_promise_call_operand(&operand, "initial_suspend",
                                       promise_var, /*add_await=*/TRUE,
                                       /*init_suspend=*/TRUE);
-  cr_desc->initial_suspend_call = expr_node_from_operand(&operand);
+  cr_desc->initial_suspend_call = full_expr_from_operand(&operand);
   set_possibly_null_expr_result_not_used(cr_desc->initial_suspend_call);
   make_coroutine_promise_call_operand(&operand, "final_suspend",
                                       promise_var, /*add_await=*/TRUE,
                                       /*init_suspend=*/FALSE);
-  cr_desc->final_suspend_call = expr_node_from_operand(&operand);
+  cr_desc->final_suspend_call = full_expr_from_operand(&operand);
   set_possibly_null_expr_result_not_used(cr_desc->final_suspend_call);
   if (cr_desc->final_suspend_call != NULL &&
       expr_might_throw(cr_desc->final_suspend_call)) {
@@ -10011,7 +10012,7 @@ coroutine as described in N4810 (or N4775+P0912R5).
     make_coroutine_promise_call_operand(&operand, "unhandled_exception",
                                         promise_var, /*add_await=*/FALSE,
                                         /*init_suspend=*/FALSE);
-    cr_desc->unhandled_exception_call = expr_node_from_operand(&operand);
+    cr_desc->unhandled_exception_call = full_expr_from_operand(&operand);
     set_possibly_null_expr_result_not_used(cr_desc->unhandled_exception_call);
   }  /* if */
   /* Resolve the call to p.get_return_object and convert it to the return type
@@ -10019,16 +10020,22 @@ coroutine as described in N4810 (or N4775+P0912R5).
   make_coroutine_promise_call_operand(&operand, "get_return_object",
                                       promise_var, /*add_await=*/FALSE,
                                       /*init_suspend=*/FALSE);
-  if (is_class_struct_union_type(operand.type)) {
-    prep_elision_initializer_operand(&operand, coroutine->type->
-                                                   variant.routine.return_type,
+  return_type = coroutine->type->variant.routine.return_type;
+  if (is_class_struct_union_type(return_type)) {
+    prep_elision_initializer_operand(&operand, return_type,
                                      /*fill_in_dtor=*/FALSE,
                                      CCO_INITIALIZING_RETURN_VALUE,
                                      ec_bad_return_value_type,
                                      /*elision_done=*/NULL,
                                      &dip);
+  } else {
+    prep_initializer_operand(&operand, return_type, /*is_transparent=*/NULL,
+                             /*conversion=*/NULL,
+                             /*is_copy_initialization=*/TRUE,
+                             CCO_INITIALIZING_RETURN_VALUE,
+                             ec_bad_return_value_type);
   }  /* if */
-  cr_desc->get_return_object_call = expr_node_from_operand(&operand);
+  cr_desc->get_return_object_call = full_expr_from_operand(&operand);
   set_possibly_null_expr_result_not_used(cr_desc->get_return_object_call);
   select_coroutine_new_delete(cr_desc, coroutine);
   pop_expr_stack();

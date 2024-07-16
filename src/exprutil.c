@@ -6152,11 +6152,26 @@ be at the top level in the list.)
 */
 {
   an_expr_node_ptr expr = make_node_from_operand(operand);
+
   if (operand->pack_expansion_descr != NULL) {
     expr->is_pack_expansion = TRUE;
   }  /* if */
   return expr;
 }  /* make_node_from_operand_for_expr_list */
+
+
+an_expr_node_ptr full_expr_from_operand(an_operand  *opnd)
+/*
+Produce an IL representation of the given operand interpreted as a full
+expression.
+*/
+{
+  an_expr_node  *result;
+
+  eliminate_unusual_operand_kinds(opnd);
+  result = make_node_from_operand(opnd);
+  return wrap_up_full_expression(result);
+}  /* full_expr_from_operand */
 
 
 void mark_expr_of_operand_as_pack_expansion_if_necessary(an_operand *operand)
