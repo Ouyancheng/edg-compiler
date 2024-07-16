@@ -22511,7 +22511,7 @@ a previously created entry that can be reused.
     fprintf(f_debug, "  scp name=%s\n", scp->name);
   }  /* if */
 #endif /* DEBUG */
-  /* Look for a previously created name reference that matches the information
+  /* Look for a previously-created name reference that matches the information
      in the locator. */
   if (scp->is_local_to_function || scp->name == NULL) {
     /* Do a linear search for function-scope or unnamed nodes. */
