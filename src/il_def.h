@@ -5445,8 +5445,7 @@ enum an_integer_kind : a_byte {
 
 
 /* Array that indicates, for each integer kind, whether or not it is signed. */
-EXTERN Fixed_array<a_byte_boolean, (unsigned)ik_last>
-		int_kind_is_signed
+CONSTINIT_ARRAY(a_byte_boolean, int_kind_is_signed, (unsigned)ik_last)
 #if VAR_INITIALIZERS
 = {
   FALSE,	/* ik_char -- updated when signedness of plain char is
@@ -5473,8 +5472,7 @@ EXTERN Fixed_array<a_byte_boolean, (unsigned)ik_last>
 
 /* Array that indicates, for each integer kind, the unsigned integer kind of
    the same size. */
-EXTERN Fixed_array<an_integer_kind, (unsigned)ik_last>
-		unsigned_int_kind_of
+CONSTINIT_ARRAY(an_integer_kind, unsigned_int_kind_of, (unsigned)ik_last)
 #if VAR_INITIALIZERS
 = {
   (an_integer_kind)ik_unsigned_char,		/* ik_char */
