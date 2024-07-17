@@ -871,15 +871,16 @@ the constructor arguments specified by args.  Return a pointer to the object.
 
 
 template<typename an_Object>
-inline void delete_fe(an_Object *p)
+inline void delete_fe(an_Object **p)
 /*
 Destroy and delete an object of type an_Object that was allocated in front end
-memory.
+memory.  The value of *p will be set to NULL.
 */
 {
-  if (p != NULL) {
-    destroy(p);
-    FE_allocator<an_Object>::dealloc(Allocation<an_Object>{p, 1});
+  if (*p != NULL) {
+    destroy(*p);
+    FE_allocator<an_Object>::dealloc(Allocation<an_Object>{*p, 1});
+    *p = NULL;
   }  /* if */
 }  /* delete_fe */
 
@@ -966,15 +967,16 @@ the constructor arguments specified by args.  Return a pointer to the object.
 
 
 template<typename an_Object>
-inline void delete_general(an_Object *p)
+inline void delete_general(an_Object **p)
 /*
 Destroy and delete an object of type an_Object that was allocated in
-general memory.
+general memory.  The value of *p will be set to NULL.
 */
 {
-  if (p != NULL) {
-    destroy(p);
-    General_allocator<an_Object>::dealloc(Allocation<an_Object>{p, 1});
+  if (*p != NULL) {
+    destroy(*p);
+    General_allocator<an_Object>::dealloc(Allocation<an_Object>{*p, 1});
+    *p = NULL;
   }  /* if */
 }  /* delete_general */
 

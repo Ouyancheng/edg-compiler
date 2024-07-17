@@ -28820,14 +28820,14 @@ called after all processing for the translation unit (including template
 instantiations, etc.) has been done.
 */
 {
-  delete_fe(ifc_decl_template_lookup_table);
-  delete_fe(ifc_decl_lookup_table);
-  delete_fe(ifc_tag_definitions);
-  delete_fe(ifc_template_specializations);
-  delete_fe(ifc_template_definitions);
-  delete_fe(ifc_function_bodies);
-  delete_fe(ifc_var_inits);
-  delete_fe(ifc_parameterized_entities);
+  delete_fe(&ifc_decl_template_lookup_table);
+  delete_fe(&ifc_decl_lookup_table);
+  delete_fe(&ifc_tag_definitions);
+  delete_fe(&ifc_template_specializations);
+  delete_fe(&ifc_template_definitions);
+  delete_fe(&ifc_function_bodies);
+  delete_fe(&ifc_var_inits);
+  delete_fe(&ifc_parameterized_entities);
 }  /* ifc_modules_trans_unit_wrapup */
 
 #if MAKE_FRONT_END_CALLABLE
@@ -28838,7 +28838,7 @@ This routine is called at the end of compilation, or if compilation is
 terminated prematurely for some reason.  It runs any necessary destructors.
 */
 {
-  delete_fe(bad_operator_name_encodings);
+  delete_fe(&bad_operator_name_encodings);
 }  /* ifc_modules_cleanup */
 
 #endif /* MAKE_FRONT_END_CALLABLE */

@@ -247,7 +247,7 @@ Clean up the IFC output state.
 */
 {
   for (size_t i = 0; i < IFC_PARTITION_COUNT; ++i) {
-    delete_general(partitions[i]);
+    delete_general(&(partitions[i]));
   }  /* for */
 }  /* an_ifc_output_state::~an_ifc_output_state */
 
@@ -1066,7 +1066,7 @@ Perform a sort on the trait contents now to correctly arrange the contents.
              output_partition->element_size);
     }  /* for */
     /* Free the replaced partition. */
-    delete_general(output_partition);
+    delete_general(&output_partition);
   }  /* if */
 }  /* an_ifc_output_state::sort_trait_partition */
 

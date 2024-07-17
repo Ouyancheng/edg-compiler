@@ -544,7 +544,7 @@ A type describing an entry in the overload resolution stack.
 struct an_ovl_resolution_descr {
   inline an_ovl_resolution_descr();
   inline ~an_ovl_resolution_descr()
-    { if (this->noted_candidates != NULL) delete_fe(this->noted_candidates); }
+    { if (this->noted_candidates != NULL) delete_fe(&this->noted_candidates); }
   a_bit_field   emit_note_diagnostics:1;
                         /* TRUE if we're in the "note processing" pass.
                            Currently only set in the top-most overload (i.e.,

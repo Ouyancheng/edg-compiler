@@ -1339,8 +1339,7 @@ needed (e.g., it has been written out to the IL file).
   if (region_number == FRONT_END_REGION_NUMBER && freed_fe_map != NULL) {
     /* We're about to free the front end memory region.  Also delete the
        map of reusable entries in that region. */
-    delete_general(freed_fe_map);
-    freed_fe_map = NULL;
+    delete_general(&freed_fe_map);
   }  /* if */
   /* Traverse the list of blocks and free each one. */
   for (hdr = mem_region_table[region_number]; hdr != NULL;) {
@@ -1441,8 +1440,7 @@ end memory region.
     if (freed_fe_map != NULL) {
       /* We're about to free the front end memory region.  Also delete the
          map of reusable entries in that region. */
-      delete_general(freed_fe_map);
-      freed_fe_map = NULL;
+      delete_general(&freed_fe_map);
     }  /* if */
     for (region_number = highest_used_region_number;
          region_number != NULL_region_number;
