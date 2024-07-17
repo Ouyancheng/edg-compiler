@@ -1248,9 +1248,9 @@ Define a macro for declaring a global array with static initialization of a
 given type, name, and size.
 */
 #if MAKE_FRONT_END_CALLABLE
-#define CONSTINIT_ARRAY(type, name, size) EXTERN type name[(size)]
+#define CONSTINIT_ARRAY(type, name, size) type name[(size)]
 #else /* !MAKE_FRONT_END_CALLABLE */
-#define CONSTINIT_ARRAY(type, name, size) EXTERN Fixed_array<type, (size)> name
+#define CONSTINIT_ARRAY(type, name, size) Complete_array<type, (size)> name
 #endif /* MAKE_FRONT_END_CALLABLE */
 
 /*
