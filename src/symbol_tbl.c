@@ -10029,7 +10029,7 @@ coroutine as described in N4810 (or N4775+P0912R5).
                                      ec_bad_return_value_type,
                                      /*elision_done=*/NULL,
                                      &dip);
-  } else {
+  } else if (!is_void_type(return_type)) {
     prep_initializer_operand(&operand, return_type, /*is_transparent=*/NULL,
                              /*conversion=*/NULL,
                              /*is_copy_initialization=*/TRUE,
