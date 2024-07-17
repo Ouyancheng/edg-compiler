@@ -1284,7 +1284,7 @@ linked array of 46 integers named example_decl:
   }
   CONSTINIT_ARRAY_END(example_decl)
 
-this will similarly example to:
+this will similarly expand to:
 
   static constexpr example_decl_expected_size = 46;
   static int example_decl[] = {
