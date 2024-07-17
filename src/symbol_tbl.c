@@ -9998,6 +9998,7 @@ coroutine as described in N4810 (or N4775+P0912R5).
   cr_desc->final_suspend_call = full_expr_from_operand(&operand);
   set_possibly_null_expr_result_not_used(cr_desc->final_suspend_call);
   if (cr_desc->final_suspend_call != NULL &&
+      !is_error_node(cr_desc->final_suspend_call) &&
       expr_might_throw(cr_desc->final_suspend_call)) {
     /* Calling final_suspend() on the promise cannot throw (see N4810
        [dcl.fct.def.coroutine]/15). */
