@@ -4089,8 +4089,8 @@ EXTERN a_boolean
 			/* TRUE if a given predefined macro mode should be
 			   considered to be in effect. */
 
-EXTERN a_const_char
-		*predef_macro_mode_names[(int)pmm_last + 1]
+EXTERN_CONSTINIT_ARRAY(a_const_char*, predef_macro_mode_names,
+                       (unsigned)pmm_last+1)
 			/* A list of the mode strings that may be used in
 			   predefined macro definition entries. */
 #if VAR_INITIALIZERS
@@ -4110,7 +4110,7 @@ EXTERN a_const_char
 /* pmm_last */		"last"
 }
 #endif /* VAR_INITIALIZERS */
-;
+EXTERN_CONSTINIT_ARRAY_END(predef_macro_mode_names)
 
 EXTERN a_boolean
 		lowering_normalizes_boolean_controlling_expressions

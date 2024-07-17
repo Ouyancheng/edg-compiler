@@ -206,7 +206,8 @@ to another on operating systems that implement Address Space Layout
 Randomization (ASLR).
 */
 
-CONSTINIT_ARRAY(a_function_pointer, function_pointers, (unsigned)fn_last+1)
+CONSTINIT_ARRAY(/* none */, a_function_pointer, function_pointers,
+                (unsigned)fn_last+1)
 #if VAR_INITIALIZERS
 = {
   (a_function_pointer)NULL,              /* fn_null */
@@ -306,7 +307,7 @@ CONSTINIT_ARRAY(a_function_pointer, function_pointers, (unsigned)fn_last+1)
   (a_function_pointer)last               /* fn_last */
 }
 #endif /* VAR_INITIALIZERS */
-;
+CONSTINIT_ARRAY_END(function_pointers)
 
 /*
 Date/time of compilation, in ctime format ("Sun Sep 16 01:03:52 1973\n"):

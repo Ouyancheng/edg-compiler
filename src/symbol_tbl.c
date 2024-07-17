@@ -9189,12 +9189,6 @@ Many of these symbols will be accessible through the cli_symbols array.
     internal_error(
          "init_cli_symbols: incorrect a_cli_symbol_kind");
   }  /* if */
-  /* Check that the cli_symbol_names array is correctly initialized. */
-  if (cli_symbol_names[(int)csk_last].name == NULL ||
-      strcmp(cli_symbol_names[(int)csk_last].name, "last") != 0) {
-    internal_error(
-              "init_cli_symbols: incorrect cli_symbol_names");
-  }  /* if */
 #endif /* CHECKING */
   /* Initialize the symbols in the cli_symbols array. */
   for (csk = (int)csk_first_type; csk <= (int)csk_last_type; csk++) {
@@ -10688,16 +10682,7 @@ readily detect when the operator name is used in a context in which the name
 is reserved.
 */
 {
-  int  cok;
-
-#if CHECKING
-  /* Check that the cli_operator_info array is correctly initialized. */
-  if (cli_operator_info[(int)cok_last].cli_name == NULL ||
-      strcmp(cli_operator_info[(int)cok_last].cli_name, "last") != 0) {
-    internal_error("init_cli_operator_headers: incorrect cli_operator_info");
-  }  /* if */
-#endif /* CHECKING */
-  for (cok = (int)cok_first; cok < (int)cok_last; ++cok) {
+  for (int cok = (int)cok_first; cok < (int)cok_last; ++cok) {
     a_symbol_header_ptr header;
     a_symbol_locator    locator;
     a_const_char        *name = cli_operator_info[cok].cli_name;

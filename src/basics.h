@@ -1244,14 +1244,71 @@ sufficient.
 #endif /* HOST_SUPPORTS_DELETED_FUNCTION_TEMPLATES */
 
 /*
-Define a macro for declaring a global array with static initialization of a
-given type, name, and size.
+Define macros for declaring arrays with static initialization of a
+given specifiers, type, name, and size.
+
+Global arrays that should be initialized during the compilation of fe_init.c
+should use EXTERN_CONSTINIT_ARRAY and EXTERN_CONSTINIT_ARRAY as so (for an
+array of 23 integers named example_decl):
+
+  EXTERN_CONSTINIT_ARRAY(int, example_decl, 23)
+  #if VAR_INITIALIZERS
+  = {
+    // values
+  }
+  #endif
+  EXTERN_CONSTINIT_ARRAY_END(example_decl)
+
+This will create a declaration that in translation units other than fe_inint.c
+is equivalent to:
+
+  extern int example_decl[23];
+
+in the fe_init.c translation unit this will appear as:
+
+  static constexpr example_decl_expected_size = 23;
+  int example_decl[] = {
+    // values
+  };
+  static_assert((sizeof(example_decl) / sizeof(example_decl[0]) >=
+                example_decl_expected_size, "<error text>");
+
+For declarations that do not follow this initialization pattern,
+CONSTINIT_ARRAY can be used to set up the appropriate checking with explicit
+specifier and initialization management.  For instance, to create an internally
+linked array of 46 integers named example_decl:
+
+  CONSTINIT_ARRAY(static, int, example_decl, 46)
+  = {
+    // values
+  }
+  CONSTINIT_ARRAY_END(example_decl)
+
+this will similarly example to:
+
+  static constexpr example_decl_expected_size = 46;
+  static int example_decl[] = {
+    // values
+  };
+  static_assert((sizeof(example_decl) / sizeof(example_decl[0]) >=
+                example_decl_expected_size, "<error text>");
+
 */
-#if MAKE_FRONT_END_CALLABLE
-#define CONSTINIT_ARRAY(type, name, size) type name[(size)]
-#else /* !MAKE_FRONT_END_CALLABLE */
-#define CONSTINIT_ARRAY(type, name, size) Complete_array<type, (size)> name
-#endif /* MAKE_FRONT_END_CALLABLE */
+#define CONSTINIT_ARRAY(specifiers, type, name, size)                         \
+  static constexpr sizeof_t EDG_CONCAT(name, _expected_size) = size;          \
+  specifiers type name[]
+#define CONSTINIT_ARRAY_END(name)                               ;             \
+  static_assert(((sizeof(name) / sizeof(name[0])) >=                          \
+                 EDG_CONCAT(name, _expected_size)),                           \
+                "there is a missing element in the array \"" #name "\"");
+#if VAR_INITIALIZERS
+#define EXTERN_CONSTINIT_ARRAY(type, name, size)                              \
+  CONSTINIT_ARRAY(EXTERN, type, name, size)
+#define EXTERN_CONSTINIT_ARRAY_END(name) CONSTINIT_ARRAY_END(name)
+#else /* !VAR_INITIALIZERS */
+#define EXTERN_CONSTINIT_ARRAY(type, name, size) EXTERN type name[size]
+#define EXTERN_CONSTINIT_ARRAY_END(name) ;
+#endif /* VAR_INITIALIZERS */
 
 /*
 Some coding standards require a default label in switches even if it's

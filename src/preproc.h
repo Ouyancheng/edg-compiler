@@ -67,7 +67,7 @@ Table of names of preprocessing directives, used as event kinds for PCH
 processing.  This is not the definition of the preprocessing directive
 keywords (see identify_dir_keyword).
 */
-EXTERN CONSTINIT_ARRAY(a_const_char*, pp_directive_kind_names,
+EXTERN_CONSTINIT_ARRAY(a_const_char*, pp_directive_kind_names,
                        (unsigned)ppd_not_valid+1)
 #if VAR_INITIALIZERS
 = { "if",
@@ -105,7 +105,7 @@ EXTERN CONSTINIT_ARRAY(a_const_char*, pp_directive_kind_names,
     "not_valid"
   }
 #endif /* VAR_INITIALIZERS */
-;
+EXTERN_CONSTINIT_ARRAY_END(pp_directive_kind_names)
 #endif /* DEBUG */
 
 

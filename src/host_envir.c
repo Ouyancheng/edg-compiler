@@ -6195,13 +6195,6 @@ This is done before command line processing.
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED &&
           (!CPPCLI_ENABLING_POSSIBLE || !EDG_WIN32) */
   add_match_notes = DEFAULT_ADD_MATCH_NOTES;
-  /* Make sure the predefined macro mode enumeration and the array of
-     mode names match. */
-  check_assertion_str2(predef_macro_mode_names[(int)pmm_last] != NULL &&
-                       strcmp(predef_macro_mode_names[(int)pmm_last],
-                              "last") == 0,
-                       "host_envir_early_init",
-                       "predef_macro_mode_names not initialized properly");
   /* If the host environment and the front end configuration did not provide a
      definition for UINT32_MAX or UINT64_MAX, we defaulted that macro to
      UINT_MAX.  Check that this does not exceed the capacity of the uint32_t or

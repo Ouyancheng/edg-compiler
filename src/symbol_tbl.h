@@ -515,7 +515,7 @@ enum a_symbol_kind : a_byte {
 /*
 Table of names corresponding to symbol kinds.
 */
-EXTERN CONSTINIT_ARRAY(a_const_char*, symbol_kind_names,
+EXTERN_CONSTINIT_ARRAY(a_const_char*, symbol_kind_names,
                        (unsigned)sk_last+1)
 #if VAR_INITIALIZERS
 = {
@@ -534,10 +534,10 @@ EXTERN CONSTINIT_ARRAY(a_const_char*, symbol_kind_names,
 #if MICROSOFT_EXTENSIONS_ALLOWED
    "property set",
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
-   "last" /* used to check that initialization is right. */
+   "last"
 }
 #endif /* VAR_INITIALIZERS */
-;
+EXTERN_CONSTINIT_ARRAY_END(symbol_kind_names)
 
 /* Macro to return the name of a symbol kind. */
 #define name_of_symbol_kind(kind) symbol_kind_names[(int)(kind)]
@@ -4225,7 +4225,8 @@ typedef struct a_cli_operator_info {
 Table of a_cli_operator_info structures corresponding to each entry in 
 a_cli_operator_kind.
 */
-EXTERN a_cli_operator_info cli_operator_info[(int)cok_last + 1]
+EXTERN_CONSTINIT_ARRAY(a_cli_operator_info, cli_operator_info,
+                       (unsigned)cok_last + 1)
 #if VAR_INITIALIZERS
 = {
   { "<none>", NULL, FALSE },
@@ -4281,7 +4282,7 @@ EXTERN a_cli_operator_info cli_operator_info[(int)cok_last + 1]
   { "last", NULL, FALSE } /* cok_last */
 }
 #endif /* VAR_INITIALIZERS */
-;
+EXTERN_CONSTINIT_ARRAY_END(cli_operator_info)
 
 #define cli_operator_info_from_kind(cok) (&cli_operator_info[(int)(cok)])
 
@@ -5296,8 +5297,7 @@ typedef struct {
                         /* Init flags required by the symbol. */
 } a_cli_symbol_name;
 
-EXTERN a_cli_symbol_name
-		cli_symbol_names[(int)csk_last + 1]
+EXTERN_CONSTINIT_ARRAY(a_cli_symbol_name, cli_symbol_names, (int)csk_last + 1)
 			/* Array of symbol names corresponding to each entry
 			   in a_cli_symbol_kind, respectively.  See
 			   a_cli_symbol_kind for more information. */
@@ -5459,7 +5459,7 @@ EXTERN a_cli_symbol_name
 			/* csk_last */
 }
 #endif /* VAR_INITIALIZERS */
-;
+EXTERN_CONSTINIT_ARRAY_END(cli_symbol_names)
 
 #define cli_symbol_is_required(csk)                                          \
   ((cli_symbol_names[(int)(csk)].init_flags & CISF_OPTIONAL) == 0)

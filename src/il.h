@@ -286,7 +286,7 @@ enum a_type_info_kind {
 
 
 /* Names of type_info types. */
-EXTERN CONSTINIT_ARRAY(a_const_char*, type_info_names,
+EXTERN_CONSTINIT_ARRAY(a_const_char*, type_info_names,
                        (unsigned)tik_last+1)
 #if VAR_INITIALIZERS
 = { 
@@ -308,7 +308,7 @@ EXTERN CONSTINIT_ARRAY(a_const_char*, type_info_names,
   NULL				/* tik_last */
 }
 #endif /* VAR_INITIALIZERS */
-;
+EXTERN_CONSTINIT_ARRAY_END(type_info_names)
 
 /* Pointer types for types defined in il_to_str.h. */
 typedef struct an_il_to_str_output_control_block
