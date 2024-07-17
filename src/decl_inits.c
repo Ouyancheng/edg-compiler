@@ -4082,7 +4082,7 @@ a ck_aggregate constant.
        since we don't know how many elements it should match. */
     etype = type_of_unknown_templ_param_nontype;
     base_etype = etype;
-    pack_expansion = is->pack_expansion_handled = TRUE;
+    pack_expansion = (is->pack_expansion_handled = TRUE);
   } else {
     base_etype = skip_typerefs(etype);
   }  /* if */

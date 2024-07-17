@@ -32144,14 +32144,6 @@ in il_init.)
            "il_one_time_init: incorrect init of microsoft_pragma_comment_ids");
   }  /* if */
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
-  /* Variable in il_def.h: */
-  /* Check that unsigned_int_kind_of is correctly initialized.  This
-     guards against someone changing the enumeration and forgetting to update
-     the initialization. */
-  if (unsigned_int_kind_of[(int)ik_last] != 111) {
-    internal_error(
-         "il_one_time_init: incorrect initialization of unsigned_int_kind_of");
-  }  /* if */
 #endif /* CHECKING */
 
   /* Static variables in il.c: */

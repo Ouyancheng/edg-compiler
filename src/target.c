@@ -1047,15 +1047,6 @@ initialization and must be done after command-line processing.
   /* Set the element of int_kind_is_signed that corresponds to "plain"
      char. */
   int_kind_is_signed[(int)ik_char] = targ_has_signed_chars;
-#if CHECKING && !USE_BOOL_FOR_BOOLEAN_IN_CPLUSPLUS
-  /* Check that int_kind_is_signed is correctly initialized.  This
-     guards against someone changing the enumeration and forgetting to update
-     the initialization. */
-  if (int_kind_is_signed[(int)ik_last] != 111) {
-    internal_error(
-           "target_init: initialization of int_kind_is_signed is not correct");
-  }  /* if */
-#endif /* CHECKING && !USE_BOOL_FOR_BOOLEAN_IN_CPLUSPLUS */
   /* String literals are shared, except in pcc mode and in some Microsoft
      modes.  (pcc and Microsoft C allow string literals to be overwritten.) */
   string_literals_shared = (C_dialect != C_dialect_pcc &&

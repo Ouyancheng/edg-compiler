@@ -25979,7 +25979,7 @@ be suppressed (i.e., SFINAE mode).
          [over.ics.list]p2 in the C++11 standard, which does not mention
          narrowing conversions as precluding a match). */
       saved_check_narrowing = elem_icp->check_narrowing;
-      check_narrowing = elem_icp->check_narrowing = FALSE;
+      check_narrowing = (elem_icp->check_narrowing = FALSE);
     } else {
       if (!issue_errors) init_state.no_diagnostics = TRUE;
     }  /* if */

@@ -5445,11 +5445,12 @@ enum an_integer_kind : a_byte {
 
 
 /* Array that indicates, for each integer kind, whether or not it is signed. */
-EXTERN a_byte_boolean
-		int_kind_is_signed[(int)ik_last+1]
+EXTERN Fixed_array<a_byte_boolean, (unsigned)ik_last>
+		int_kind_is_signed
 #if VAR_INITIALIZERS
 = {
-  0,		/* ik_char -- set when signedness of plain char is known. */
+  FALSE,	/* ik_char -- updated when signedness of plain char is
+		   known. */
   TRUE,		/* ik_signed_char */
   FALSE,	/* ik_unsigned_char */
   TRUE,		/* ik_short */
@@ -5466,16 +5467,14 @@ EXTERN a_byte_boolean
   TRUE,		/* ik_int128 */
   FALSE,	/* ik_uint128 */
 #endif /* INT128_EXTENSIONS_ALLOWED */
-  111		/* ik_last ("111" is just an unusual value used to check the
-		   correctness of the initialization order) */
 }
 #endif /* VAR_INITIALIZERS*/
 ;
 
 /* Array that indicates, for each integer kind, the unsigned integer kind of
    the same size. */
-EXTERN an_integer_kind
-		unsigned_int_kind_of[(int)ik_last+1]
+EXTERN Fixed_array<an_integer_kind, (unsigned)ik_last>
+		unsigned_int_kind_of
 #if VAR_INITIALIZERS
 = {
   (an_integer_kind)ik_unsigned_char,		/* ik_char */
@@ -5495,8 +5494,6 @@ EXTERN an_integer_kind
   (an_integer_kind)ik_unsigned_int128,		/* ik_int128 */
   (an_integer_kind)ik_unsigned_int128,		/* ik_unsigned_int128 */
 #endif /* INT128_EXTENSIONS_ALLOWED */
-  (an_integer_kind)111	/* ik_last ("111" is just an unusual value used to
-                           check the correctness of the initialization order)*/
 }
 #endif /* VAR_INITIALIZERS */
 ;

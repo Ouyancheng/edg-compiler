@@ -1856,6 +1856,29 @@ Grow the capacity of the array by about half, unless the capacity is less than
 }  /* Dyn_array::grow */
 
 
+/*
+This type is used to represent an array of a fixed size that's initialized once
+and should have an initializer provided for all members.
+*/
+template<typename an_Elem, size_t a_Size>
+struct Fixed_array {
+  template<typename ...an_Elems>
+  Fixed_array(an_Elems... new_elems)
+    : elems{(an_Elem)new_elems...}
+    { static_assert(sizeof...(an_Elems) == a_Size, "array size must match"); }
+  Fixed_array(const Fixed_array<an_Elem, a_Size> &) = delete;
+  Fixed_array(Fixed_array<an_Elem, a_Size> &&) = delete;
+
+  an_Elem& operator[](size_t idx)
+    { check_assertion(idx < a_Size); return this->elems[idx]; };
+  const an_Elem& operator[](size_t idx) const
+    { check_assertion(idx < a_Size); return this->elems[idx]; };
+private:
+  an_Elem       elems[a_Size];
+                        /* The backing elements. */
+};  /* Fixed_array */
+
+
 template<typename an_Object,
          template<typename> class Deallocator = FE_allocator>
 struct Owning_ptr: private Deallocator<an_Object> {
