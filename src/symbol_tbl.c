@@ -9990,11 +9990,13 @@ coroutine as described in N4810 (or N4775+P0912R5).
   make_coroutine_promise_call_operand(&operand, "initial_suspend",
                                       promise_var, /*add_await=*/TRUE,
                                       /*init_suspend=*/TRUE);
+  if (is_error_operand(&operand)) goto done;
   cr_desc->initial_suspend_call = full_expr_from_operand(&operand);
   set_possibly_null_expr_result_not_used(cr_desc->initial_suspend_call);
   make_coroutine_promise_call_operand(&operand, "final_suspend",
                                       promise_var, /*add_await=*/TRUE,
                                       /*init_suspend=*/FALSE);
+  if (is_error_operand(&operand)) goto done;
   cr_desc->final_suspend_call = full_expr_from_operand(&operand);
   set_possibly_null_expr_result_not_used(cr_desc->final_suspend_call);
   if (cr_desc->final_suspend_call != NULL &&
@@ -10013,6 +10015,7 @@ coroutine as described in N4810 (or N4775+P0912R5).
     make_coroutine_promise_call_operand(&operand, "unhandled_exception",
                                         promise_var, /*add_await=*/FALSE,
                                         /*init_suspend=*/FALSE);
+    if (is_error_operand(&operand)) goto done;
     cr_desc->unhandled_exception_call = full_expr_from_operand(&operand);
     set_possibly_null_expr_result_not_used(cr_desc->unhandled_exception_call);
   }  /* if */
@@ -10039,6 +10042,7 @@ coroutine as described in N4810 (or N4775+P0912R5).
   cr_desc->get_return_object_call = full_expr_from_operand(&operand);
   set_possibly_null_expr_result_not_used(cr_desc->get_return_object_call);
   select_coroutine_new_delete(cr_desc, coroutine);
+done:
   pop_expr_stack();
   expr_stack = saved_expr_stack;
 }  /* prepare_coroutine_calls */
