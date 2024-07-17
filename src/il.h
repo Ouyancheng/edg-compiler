@@ -286,8 +286,8 @@ enum a_type_info_kind {
 
 
 /* Names of type_info types. */
-EXTERN a_const_char
-		*type_info_names[(int)tik_last+1]
+EXTERN CONSTINIT_ARRAY(a_const_char*, type_info_names,
+                       (unsigned)tik_last+1)
 #if VAR_INITIALIZERS
 = { 
   "type_info",			/* tik_user */

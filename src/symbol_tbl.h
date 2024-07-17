@@ -515,8 +515,8 @@ enum a_symbol_kind : a_byte {
 /*
 Table of names corresponding to symbol kinds.
 */
-EXTERN a_const_char
-		*symbol_kind_names[(int)sk_last + 1]
+EXTERN CONSTINIT_ARRAY(a_const_char*, symbol_kind_names,
+                       (unsigned)sk_last+1)
 #if VAR_INITIALIZERS
 = {
    "keyword", "macro", "constant", "type", "class or struct", "union",

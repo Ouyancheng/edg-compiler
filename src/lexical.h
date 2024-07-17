@@ -296,7 +296,8 @@ typedef struct a_token_cache {
 #endif /* ifndef SYMBOL_TBL_H */
 
 /* Array of opname kinds indexed by token kind. */
-EXTERN an_opname_kind opname_kind_for_token[(int)tok_last+1]
+EXTERN CONSTINIT_ARRAY(an_opname_kind, opname_kind_for_token,
+                       (unsigned)tok_last+1)
 #if VAR_INITIALIZERS
 = {
    onk_none,          /* tok_error */

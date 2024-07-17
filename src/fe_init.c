@@ -206,7 +206,7 @@ to another on operating systems that implement Address Space Layout
 Randomization (ASLR).
 */
 
-EXTERN a_function_pointer function_pointers[(int)fn_last+1]
+CONSTINIT_ARRAY(a_function_pointer, function_pointers, (unsigned)fn_last+1)
 #if VAR_INITIALIZERS
 = {
   (a_function_pointer)NULL,              /* fn_null */
@@ -1804,12 +1804,6 @@ after the command-line processing has been done.
   /*lint -e{506}*/
   if (1 << (sizeof(a_function_number)*CHAR_BIT) < (int)fn_last) {
     internal_error("a_function_number is too small");
-  }  /* if */
-  /* Make sure first and last entries are correct. */
-  /*lint -e{506}*/
-  if (function_pointers[(int)fn_null] != (a_function_pointer)NULL ||
-      function_pointers[(int)fn_last] != (a_function_pointer)last) {
-    internal_error("function_pointers is incorrectly initialized");
   }  /* if */
 #endif /* CHECKING */
 }  /* fe_one_time_init */

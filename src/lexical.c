@@ -28370,18 +28370,6 @@ are handled in lexical_init.)
     internal_error("lexical_one_time_init: "
                    "NUM_BITS_FOR_EXPR_NODE_KIND is too small");
   }  /* if */
-  /* Check that the table of token names is correctly initialized.  This
-     guards against someone changing the enumeration and forgetting to
-     update token_names. */
-  if (token_names[(int)tok_last] == NULL ||
-      strcmp(token_names[(int)tok_last], "last") != 0) {
-    internal_error(
-       "lexical_one_time_init: initialization of token_names is not correct");
-  }  /* if */
-  /* Check that the table of opname kinds is correctly initialized. */
-  if (opname_kind_for_token[(int)tok_last] != (an_opname_kind)onk_last) {
-    internal_error("lexical_one_time_init: bad init of opname_kind_for_token");
-  }  /* if */
 #endif /* CHECKING */
   /* Initialize is_id_char to the characters that can appear in an
      identifier after the first character (i.e., a-z, A-Z, 0-9, and "_").

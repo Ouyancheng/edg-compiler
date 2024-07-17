@@ -30586,7 +30586,8 @@ Definition of the bits in lvalue_rvalue_test.
 #define LVRV_VA_LIST_OPERATION			0x40
 #define LVRV_DISTINGUISHED_VALUE_FOR_LAST	0xfd
 
-static a_byte lvalue_rvalue_test[(int)eok_last+1] = {
+static CONSTINIT_ARRAY(a_byte, lvalue_rvalue_test, (unsigned)eok_last+1)
+= {
   /* eok_address_of: */			LVRV_OPND1_IS_GLVALUE,
   /* eok_reference_to: */		LVRV_NO_REQUIREMENTS,
   /* eok_handle_to: */			LVRV_NO_REQUIREMENTS,
@@ -32055,97 +32056,6 @@ that need to be reinitialized with each new translation unit are handled
 in il_init.)
 */
 {
-#if CHECKING
-  /* Variable in il_file.h: */
-  /* Check that the table of IL-entry sizes is correctly initialized, i.e.,
-     that the enumeration an_il_entry_kind and the array sizeof_il_entry
-     are in sync. */
-  if (sizeof_il_entry[(int)iek_last] != IEK_LAST_CHECK_SIZE) {
-    internal_error("il_one_time_init: bad initialization of sizeof_il_entry");
-  }  /* if */
-#if NEED_IL_DISPLAY || DEBUG
-  /* Variable in il_def.h: */
-  /* Check that the table of IL entry names is correctly initialized.
-     This guards against someone changing the enumeration and forgetting to
-     update il_entry_kind_names. */
-  if (il_entry_kind_names[(int)iek_last] == NULL ||
-      strcmp(il_entry_kind_names[(int)iek_last], "last") != 0) {
-    internal_error(
-          "il_one_time_init: incorrect initialization of il_entry_kind_names");
-  }  /* if */
-#endif /* NEED_IL_DISPLAY || DEBUG */
-#if DEBUG
-  /* Variables in il_def.h: */
-  /* Check that the table of storage class names is correctly initialized.
-     This guards against someone changing the enumeration and forgetting to
-     update db_storage_class_names. */
-  if (db_storage_class_names[(int)sc_last] == NULL ||
-      strcmp(db_storage_class_names[(int)sc_last], "last") != 0) {
-    internal_error(
-       "il_one_time_init: incorrect initialization of db_storage_class_names");
-  }  /* if */
-  /* Check that the table of special function kind names is correctly
-     initialized. */
-  if (db_special_function_kinds[(int)sfk_last] == NULL ||
-      strcmp(db_special_function_kinds[(int)sfk_last], "last") != 0) {
-    internal_error(
-    "il_one_time_init: incorrect initialization of db_special_function_kinds");
-  }  /* if */
-  /* Check that the table of operator names is correctly initialized.  This
-     guards against someone changing the enumeration and forgetting to update
-     db_operator_names. */
-  if (db_operator_names[(int)eok_last] == NULL ||
-      strcmp(db_operator_names[(int)eok_last], "last") != 0) {
-    internal_error(
-            "il_one_time_init: incorrect initialization of db_operator_names");
-  }  /* if */
-#if CHECKING
-  /* Perform a similar check on the lvalue/rvalue operator table. */
-  if (lvalue_rvalue_test[(int)eok_last] != LVRV_DISTINGUISHED_VALUE_FOR_LAST) {
-    internal_error(
-           "il_one_time_init: incorrect initialization of lvalue_rvalue_test");
-  }  /* if */
-#endif /* CHECKING */
-#endif /* DEBUG */
-  /* Variable in il_def.h: */
-  /* Check that the table of linkage kind names is correctly initialized. */
-  if (name_linkage_kind_names[(int)nlk_last] == NULL ||
-      strcmp(name_linkage_kind_names[(int)nlk_last], "last") != 0) {
-    internal_error(
-      "il_one_time_init: incorrect initialization of name_linkage_kind_names");
-  }  /* if */
-#if DECL_MODIFIERS_IN_USE
-  /* Variable in il_def.h: */
-  /* Check that the table of decl modifier names is correctly initialized. */
-  if (decl_modifier_names[(int)dmt_last] == NULL ||
-      strcmp(decl_modifier_names[(int)dmt_last], "last") != 0) {
-    internal_error(
-          "il_one_time_init: incorrect initialization of decl_modifier_names");
-  }  /* if */
-#endif /* DECL_MODIFIERS_IN_USE */
-  /* Variable in il_def.h: */
-  /* Check that the table of pragma ids is correctly initialized.  This guards
-     against someone changing the enumeration a_pragma_kind and forgetting to
-     update pragma_ids. */
-  if (pragma_ids[(int)pk_last] == NULL ||
-      strcmp(pragma_ids[(int)pk_last], "last") != 0) {
-    internal_error(
-                   "il_one_time_init: incorrect initialization of pragma_ids");
-  }  /* if */
-#if MICROSOFT_EXTENSIONS_ALLOWED
-  /* Variable in il_def.h: */
-  /* Check that the table of Microsoft #pragma comment ids is correctly
-     initialized.  This guards against someone changing the enumeration
-     a_microsoft_pragma_comment_type and forgetting to update
-     microsoft_pragma_comment_ids. */
-  if (microsoft_pragma_comment_ids[(int)mpct_last] == NULL ||
-      strcmp(microsoft_pragma_comment_ids[(int)mpct_last], "last") != 0) {
-    internal_error(
-           "il_one_time_init: incorrect init of microsoft_pragma_comment_ids");
-  }  /* if */
-#endif /* MICROSOFT_EXTENSIONS_ALLOWED */
-#endif /* CHECKING */
-
   /* Static variables in il.c: */
   seq_number_lookup_table_size = 0;
   seq_number_lookup_table = NULL;
