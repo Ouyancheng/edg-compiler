@@ -1248,8 +1248,8 @@ Define macros for declaring arrays with static initialization of a
 given specifiers, type, name, and size.
 
 Global arrays that should be initialized during the compilation of fe_init.c
-should use EXTERN_CONSTINIT_ARRAY and EXTERN_CONSTINIT_ARRAY as so (for an
-array of 23 integers named example_decl):
+should use EXTERN_CONSTINIT_ARRAY and EXTERN_CONSTINIT_ARRAY_END as follows
+(for an array of 23 integers named example_decl):
 
   EXTERN_CONSTINIT_ARRAY(int, example_decl, 23)
   #if VAR_INITIALIZERS
