@@ -9589,6 +9589,7 @@ member functions), or the default constructor.
   push_expr_stack((an_expression_kind)ek_normal, &expr_stack_entry,
                   /*force_object_lifetime=*/FALSE,
                   /*suppress_object_lifetime=*/FALSE);
+  expr_stack->in_coroutine_desc_init = TRUE;
   ctor_sym = symbol_supplement_for_class(promise->type)->constructor;
   if (ctor_sym != NULL) {
     saved_suppress_diagnostics = expr_stack->suppress_diagnostics;
@@ -9648,6 +9649,7 @@ member functions), or the default constructor.
       dip = alloc_expr_dynamic_init((a_dynamic_init_kind)dik_none);
     }  /* if */
   }  /* if */
+  wrap_up_dynamic_init_full_expression(dip);
   add_dtor_to_dynamic_init(dip, promise->type, promise->type, pos);
   dip->variable = promise;
   promise->init_kind = (an_init_kind)initk_dynamic;
@@ -9974,12 +9976,35 @@ coroutine as described in N4810 (or N4775+P0912R5).
   a_dynamic_init_ptr  dip;
   an_expr_stack_entry expr_stack_entry, *saved_expr_stack = expr_stack;
   a_type_ptr          return_type;
+  an_object_lifetime  *saved_curr_object_lifetime = curr_object_lifetime,
+                      *func_olp = curr_object_lifetime;
+  a_dynamic_init      *saved_destructions, **p_link;
+
+  /* We're about to construct some expressions to set up a coroutine and those
+     might cause exceptions to be thrown.  However, we may not be at the start 
+     of the coroutine (calling this function may, e.g., be triggered when
+     encountering a co_return statement).  Temporarily "reset" the object
+     lifetime state to that at the start of the coroutine by (a) making the
+     function's root lifetime object be the current object lifetime, and (b)
+     unlinking the destructions that have been scheduled in that lifetime. */
+  check_assertion(func_olp != NULL);
+  for (;; func_olp = func_olp->parent_lifetime) {
+    if (func_olp->kind == olk_block &&
+        func_olp->entity.kind == iek_scope) {
+      if (scope_is((a_scope*)func_olp->entity.ptr, sck_function)) {
+        break;
+      }  /* if */
+    }  /* if */
+  }  /* for */
+  saved_destructions = func_olp->destructions;
+  func_olp->destructions = NULL;
+  curr_object_lifetime = func_olp;
+  initialize_coroutine_promise_variable(promise_var, coroutine);
 
   push_expr_stack((an_expression_kind)ek_normal, &expr_stack_entry,
                   /*force_object_lifetime=*/FALSE,
                   /*suppress_object_lifetime=*/FALSE);
   expr_stack->in_coroutine_desc_init = TRUE;
-  initialize_coroutine_promise_variable(promise_var, coroutine);
   /* Resolve the needed calls that use the promise variable. */
   make_coroutine_promise_call_operand(&operand, "initial_suspend",
                                       promise_var, /*add_await=*/TRUE,
@@ -9987,6 +10012,12 @@ coroutine as described in N4810 (or N4775+P0912R5).
   if (is_error_operand(&operand)) goto done;
   cr_desc->initial_suspend_call = full_expr_from_operand(&operand);
   set_possibly_null_expr_result_not_used(cr_desc->initial_suspend_call);
+  pop_expr_stack();
+
+  push_expr_stack((an_expression_kind)ek_normal, &expr_stack_entry,
+                  /*force_object_lifetime=*/FALSE,
+                  /*suppress_object_lifetime=*/FALSE);
+  expr_stack->in_coroutine_desc_init = TRUE;
   make_coroutine_promise_call_operand(&operand, "final_suspend",
                                       promise_var, /*add_await=*/TRUE,
                                       /*init_suspend=*/FALSE);
@@ -10005,16 +10036,27 @@ coroutine as described in N4810 (or N4775+P0912R5).
     check_assertion(sym != NULL);
     pos_sy_error(ec_final_suspend_cannot_throw, &sym->decl_position, sym);
   }  /* if */
+  pop_expr_stack();
+
   if (exceptions_enabled) {
+    push_expr_stack((an_expression_kind)ek_normal, &expr_stack_entry,
+                    /*force_object_lifetime=*/FALSE,
+                    /*suppress_object_lifetime=*/FALSE);
+    expr_stack->in_coroutine_desc_init = TRUE;
     make_coroutine_promise_call_operand(&operand, "unhandled_exception",
                                         promise_var, /*add_await=*/FALSE,
                                         /*init_suspend=*/FALSE);
     if (is_error_operand(&operand)) goto done;
     cr_desc->unhandled_exception_call = full_expr_from_operand(&operand);
     set_possibly_null_expr_result_not_used(cr_desc->unhandled_exception_call);
+    pop_expr_stack();
   }  /* if */
   /* Resolve the call to p.get_return_object and convert it to the return type
      of the coroutine. */
+  push_expr_stack((an_expression_kind)ek_normal, &expr_stack_entry,
+                  /*force_object_lifetime=*/FALSE,
+                  /*suppress_object_lifetime=*/FALSE);
+  expr_stack->in_coroutine_desc_init = TRUE;
   make_coroutine_promise_call_operand(&operand, "get_return_object",
                                       promise_var, /*add_await=*/FALSE,
                                       /*init_suspend=*/FALSE);
@@ -10035,9 +10077,22 @@ coroutine as described in N4810 (or N4775+P0912R5).
   }  /* if */
   cr_desc->get_return_object_call = full_expr_from_operand(&operand);
   set_possibly_null_expr_result_not_used(cr_desc->get_return_object_call);
+  pop_expr_stack();
+
   select_coroutine_new_delete(cr_desc, coroutine);
 done:
-  pop_expr_stack();
+  if (expr_stack == &expr_stack_entry) {
+    /* An error situation caused an early exit, which bypassed popping the
+       expression stack. */
+    pop_expr_stack();
+  }  /* if */
+  /* Restore the object lifetime state to what it was on entry to this
+     function. The destructions that were previously unlinked are re-linked
+     at the end of the "destructions" list that they were on previously. */
+  p_link = &func_olp->destructions;
+  while (*p_link != NULL) p_link = &(*p_link)->next_in_destruction_list;
+  *p_link = saved_destructions;
+  curr_object_lifetime = saved_curr_object_lifetime;
   expr_stack = saved_expr_stack;
 }  /* prepare_coroutine_calls */
 
