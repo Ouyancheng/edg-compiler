@@ -12972,7 +12972,7 @@ messages.
           /* A malformed delimited escape sequence will be treated as an
              ordinary sequence of characters with no special meaning. */
           nchars += curr_char_loc - escape_start;
-        } else if ((ch == 'U' || (ch == 'u' && is_delimited)) &&
+        } else if ((ch == 'U' || (ch == 'u' && is_delimited) || ch == 'N') &&
                    is_string_literal &&
                    (literal_kind == SCLK_CHAR16_T_LITERAL ||
                     literal_kind == SCLK_WIDE_LITERAL)) {
