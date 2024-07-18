@@ -1,6 +1,6 @@
 Version 6.7
 
-7/16/24  [EDGcpfe/27388]
+7/16/24  [EDGcpfe/25411,EDGcpfe/26809,EDGcpfe/27388]
 Abort on unusual C++ coroutine type
 
 In the unusual case of a coroutine with a non-class return type, the front end
