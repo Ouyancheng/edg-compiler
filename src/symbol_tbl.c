@@ -10087,7 +10087,7 @@ done:
     pop_expr_stack();
   }  /* if */
   /* Restore the object lifetime state to what it was on entry to this
-     function. The destructions that were previously unlinked are re-linked
+     function.  The destructions that were previously unlinked are re-linked
      at the end of the "destructions" list that they were on previously. */
   p_link = &func_olp->destructions;
   while (*p_link != NULL) p_link = &(*p_link)->next_in_destruction_list;
