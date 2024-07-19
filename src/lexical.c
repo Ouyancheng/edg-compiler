@@ -3808,11 +3808,18 @@ The current token is an identifier.  Return TRUE if it is a concept name.
 */
 {
   a_symbol_ptr  sym = locator_for_curr_id.specific_symbol;
+  a_boolean     result;
 
   if (sym == NULL) {
     sym = normal_id_lookup(&locator_for_curr_id, IDL_TENTATIVE_TYPE_LOOKUP);
   }  /* if */
-  return sym != NULL && symbol_is(sym, sk_concept_template);
+  if (sym == NULL) {
+    result = FALSE;
+  } else {
+    sym = fundamental_symbol_of(sym);
+    result = symbol_is(sym, sk_concept_template);
+  }  /* if */
+  return result;
 }  /* curr_id_is_concept_name */
 
 
@@ -24367,11 +24374,11 @@ selection operator, in which case it points to the type of the left operand.
           }  /* if */
           if (qualifier_sym != NULL &&
               (is_class_template_or_injected_template_symbol(qualifier_sym) ||
-               (is_template ||
-                (next_tok == tok_lt &&
-                 ((!caching_tokens &&
-                   !symbol_is(qualifier_sym, sk_concept_template)) ||
-                  symbol_is_or_contains_template(qualifier_sym)))))) {
+               is_template ||
+               (next_tok == tok_lt &&
+                ((!caching_tokens &&
+                  !symbol_is(qualifier_sym, sk_concept_template)) ||
+                  symbol_is_or_contains_template(qualifier_sym))))) {
             /* Save the original qualifier_sym.  This may be needed later to
                know the name used in the qualifier if the symbol is a template
                template parameter.  We generally treat a "<" as potentially

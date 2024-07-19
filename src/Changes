@@ -1,5 +1,25 @@
 Version 6.7
 
+7/19/24  [EDGcpfe/27389]
+Incorrect handling of concept in unnamed namespace
+
+Consider, in C++20 mode:
+
+  namespace N {
+    namespace {
+      template <class, class> concept c = true;
+    }
+    class S {
+      template<typename T> static constexpr bool b = N::c<T, T>;
+    };
+  }
+
+The front end previously did not recognize the angle bracket following N::c
+(which caching the initializer for S::b), instead treating it like a "less
+than" operator.  That in turn resulted in misleading spurious errors.  That
+problem is now fixed.
+
+
 7/16/24  [EDGcpfe/25411,EDGcpfe/26809,EDGcpfe/27388]
 Abort on unusual C++ coroutine type
 
