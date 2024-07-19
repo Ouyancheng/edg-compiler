@@ -19564,12 +19564,11 @@ the value representation of the integer value.
                                      &max_integer_value_of_kind[int_kind]);
                 }  /* if */
               } else if (type_is_float_like(tp)) {
-                a_boolean  depends_of_fp_mode;
                 fp_change_kind(fp_value(opnd1_value),
                                opnd1_type->variant.float_kind,
                                fp_value(result_storage),
                                tp->variant.float_kind,
-                               &err, &depends_of_fp_mode);
+                               &err, &depends_on_fp_mode);
                 if (err) {
                   info_with_pos(ec_constexpr_fp_conversion_failed,
                                 &expr->position, ips);
@@ -19627,19 +19626,18 @@ the value representation of the integer value.
               } else if (type_is(tp, tk_void)) {
                 release_address_structures(opnd1, opnd1_type, opnd1_value);
 #if C99_IL_EXTENSIONS_SUPPORTED
-              } else if (tp->kind == (a_type_kind)tk_complex) {
-                a_boolean  depends_of_fp_mode;
+              } else if (type_is(tp, tk_complex)) {
                 fp_change_kind(&cx_value(opnd1_value)->real,
                                opnd1_type->variant.float_kind,
                                &cx_value(result_storage)->real,
                                tp->variant.float_kind,
-                               &err, &depends_of_fp_mode);
+                               &err, &depends_on_fp_mode);
                 if (!err) {
                   fp_change_kind(&cx_value(opnd1_value)->imag,
                                  opnd1_type->variant.float_kind,
                                  &cx_value(result_storage)->imag,
                                  tp->variant.float_kind,
-                                 &err, &depends_of_fp_mode);
+                                 &err, &depends_on_fp_mode);
                 }  /* if */
                 if (err) {
                   info_with_pos(ec_constexpr_fp_conversion_failed,
@@ -19658,8 +19656,8 @@ the value representation of the integer value.
                                     &expr->position, opnd1_type, tp, ips);
                 do_constexpr_fail(result);
               }  /* if */
-            } else if (opnd1_type->kind == (a_type_kind)tk_integer &&
-                       tp->kind == (a_type_kind)tk_float) {
+            } else if (type_is(opnd1_type, tk_integer) &&
+                       type_is(tp, tk_float)) {
               /* Integer-to-floating-point conversion. */
               int_kind = opnd1_type->variant.integer.int_kind;
               is_signed = int_kind_is_signed[int_kind];
@@ -19673,8 +19671,8 @@ the value representation of the integer value.
                 info_with_pos_type2(ec_constexpr_invalid_type_conversion,
                                     &expr->position, opnd1_type, tp, ips);
               }  /* if */
-            } else if (opnd1_type->kind == (a_type_kind)tk_float &&
-                       tp->kind == (a_type_kind)tk_integer) {
+            } else if (type_is(opnd1_type, tk_float) &&
+                       type_is(tp, tk_integer)) {
               int_kind = tp->variant.integer.int_kind;
               is_signed = int_kind_is_signed[int_kind];
               if (conv_float_value_to_int_value(
@@ -19689,9 +19687,9 @@ the value representation of the integer value.
                 info_with_pos_type2(ec_constexpr_invalid_type_conversion,
                                     &expr->position, opnd1_type, tp, ips);
               }  /* if */
-            } else if (tp->kind == (a_type_kind)tk_pointer &&
-                       (opnd1_type->kind == (a_type_kind)tk_nullptr ||
-                        (opnd1_type->kind == (a_type_kind)tk_integer &&
+            } else if (type_is(tp, tk_pointer) &&
+                       (type_is(opnd1_type, tk_nullptr) ||
+                        (type_is(opnd1_type, tk_integer) &&
                          cmp_integer_values((an_integer_value *)opnd1_value,
                                             /*op_1_signed=*/FALSE,
                                             (an_integer_value *)&zero_int,
@@ -19709,9 +19707,9 @@ the value representation of the integer value.
                                     &expr->position, opnd1_type, tp, ips);
               }  /* if */
               clear_address(result_storage, (a_byte*)0);
-            } else if (tp->kind == (a_type_kind)tk_ptr_to_member &&
-                       (opnd1_type->kind == (a_type_kind)tk_nullptr ||
-                        (opnd1_type->kind == (a_type_kind)tk_integer &&
+            } else if (type_is(tp, tk_ptr_to_member) &&
+                       (type_is(opnd1_type, tk_nullptr) ||
+                        (type_is(opnd1_type, tk_integer) &&
                          cmp_integer_values((an_integer_value *)opnd1_value,
                                             /*op_1_signed=*/FALSE,
                                             (an_integer_value *)&zero_int,
@@ -19728,25 +19726,51 @@ the value representation of the integer value.
                 pm->is_ptr_to_mem_function = FALSE;
                 pm->variant.field = NULL;
               }  /* if */
-            } else if (tp->kind == (a_type_kind)tk_void) {
+            } else if (type_is(tp, tk_void)) {
               /* Conversion to void.  No result. */
               release_address_structures(opnd1, opnd1_type, opnd1_value);
 #if C99_IL_EXTENSIONS_SUPPORTED
-            } else if (tp->kind == (a_type_kind)tk_complex &&
-                       opnd1_type->kind == (a_type_kind)tk_float) {
+            } else if (type_is(tp, tk_complex) &&
+                       type_is(opnd1_type, tk_float)) {
               /* Convert real floating-point to complex floating-point. */
-              cx_value(result_storage)->real = *fp_value(opnd1_value);
+              if (tp->variant.float_kind == opnd1_type->variant.float_kind) {
+                cx_value(result_storage)->real = *fp_value(opnd1_value);
+              } else {
+                fp_change_kind(&cx_value(result_storage)->real,
+                               tp->variant.float_kind,
+                               fp_value(opnd1_value),
+                               opnd1_type->variant.float_kind,
+                               &err, &depends_on_fp_mode);
+                if (err) {
+                  info_with_pos(ec_constexpr_fp_conversion_failed,
+                                &expr->position, ips);
+                  do_constexpr_fail(result);
+                }  /* if */
+              }  /* if */
               cx_value(result_storage)->imag =
                                         zero_flt[(int)tp->variant.float_kind];
-            } else if (tp->kind == (a_type_kind)tk_complex &&
-                       opnd1_type->kind == (a_type_kind)tk_imaginary) {
+            } else if (type_is(tp, tk_complex) &&
+                       type_is(opnd1_type, tk_imaginary)) {
               /* Convert imaginary floating-point to complex floating-point. */
               cx_value(result_storage)->real =
                                         zero_flt[(int)tp->variant.float_kind];
-              cx_value(result_storage)->imag = *fp_value(opnd1_value);
+              if (tp->variant.float_kind == opnd1_type->variant.float_kind) {
+                cx_value(result_storage)->imag = *fp_value(opnd1_value);
+              } else {
+                fp_change_kind(&cx_value(result_storage)->imag,
+                               tp->variant.float_kind,
+                               fp_value(opnd1_value),
+                               opnd1_type->variant.float_kind,
+                               &err, &depends_on_fp_mode);
+                if (err) {
+                  info_with_pos(ec_constexpr_fp_conversion_failed,
+                                &expr->position, ips);
+                  do_constexpr_fail(result);
+                }  /* if */
+              }  /* if */
 #endif /* C99_IL_EXTENSIONS_SUPPORTED */
-            } else if (tp->kind == (a_type_kind)tk_integer &&
-                       opnd1_type->kind == (a_type_kind)tk_pointer &&
+            } else if (type_is(tp, tk_integer) &&
+                       type_is(opnd1_type, tk_pointer) &&
                        ips->permit_null_pointer_offsets &&
                        is_integer_address((a_constexpr_address*)opnd1_value,
                                           (an_integer_value*)result_storage)) {

@@ -1,5 +1,22 @@
 Version 6.7
 
+7/19/24  [EDGcpfe/27397]
+Incorrect constant-evaluation of real-to-complex conversion
+
+Consider, in GNU C++ mode:
+
+  constexpr auto g() {
+    float f{1};
+    _Complex double cx{1};
+    return cx / f;  // Previously incorrectly evaluated.  Now okay.
+  }
+  constexpr auto r = g();
+
+This example previously failed to evaluate to a constant expression, due to
+the incorrect evaluation of the implicit conversion of f from "float" to
+"_Complex double".  That is now fixed.
+
+
 7/19/24  [EDGcpfe/27389]
 Incorrect handling of concept in unnamed namespace
 
