@@ -8436,7 +8436,12 @@ associated with cssp are trivial.
       if (routine_is_copy_or_move_assign_operator(rp, &tqs, &is_move) &&
           !is_move) {
         if (!rp->is_trivial_copy_function ||
-            (microsoft_mode && microsoft_version >= 1800 && rp->is_deleted)) {
+            (microsoft_mode && microsoft_version >= 1800 && rp->is_deleted) ||
+            (microsoft_bugs && tqs != TQ_CONST)) {
+          /* MSVC fails the following assertion:
+               struct S { S& operator=(S&) = default; };
+               static_assert(__has_trivial_assign(S));
+          */
           result = FALSE;
           break;
         } else {

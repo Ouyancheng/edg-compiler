@@ -1,5 +1,22 @@
 Version 6.7
 
+7/19/24  [EDGcpfe/27400]
+Microsoft compatibility: __has_trivial_assign
+
+Consider:
+
+  struct S {
+    S& operator=(S&) = default;
+  };
+  static_assert(__has_trivial_assign(S));  // Now fails in Microsoft mode.
+ 
+S::operator= is a trivial copy assignment operator and so ordinarily the
+static assertion in the above example succeeds.  MSVC, however, does not
+accept the assertion because the parameter type of S::operator(S&) is S&
+instead of the more common S const&.  The front end now emulates that behavior
+in Microsoft bugs mode (but still marks the operator as trivial).
+
+
 7/19/24  [EDGcpfe/27397]
 Incorrect constant-evaluation of real-to-complex conversion
 
