@@ -11379,6 +11379,7 @@ static a_template_arg_ptr find_template_arg_for_pack(
 				a_symbol_ptr		sym,
 				uint32_t		*elements,
 				a_template_param_ptr	*template_param,
+				a_boolean		*found,
 				a_boolean		is_rescan,
 				a_boolean		is_deduction)
 /*
@@ -11387,7 +11388,8 @@ with the pack specified by sym, which is a template parameter symbol
 from templ_param_list.  If there are no actual arguments for the pack,
 return NULL.  Return the associated template parameter in *template_param.
 This is returned even when the function returns NULL.  Return the number of
-actual arguments in *elements.
+actual arguments in *elements.  Set *found to TRUE if the pack specified
+was found in templ_param_list and to FALSE otherwise.
 
 is_deduction is TRUE if the pack instantiation is being created as
 part of the deduction of the pack argument values.  is_rescan is TRUE
@@ -11398,8 +11400,8 @@ rescan.
   a_template_arg_ptr	result_tap = NULL;
   a_template_arg_ptr	tap;
   a_template_param_ptr	tpp;
-  a_boolean		found = FALSE;
 
+  *found = FALSE;
   *elements = 0;
   *template_param = NULL;
   begin_special_variadic_template_arg_list_traversal(
@@ -11421,7 +11423,7 @@ rescan.
       }  /* if */
       result_tap = tap;
       *template_param = tpp;
-      found = TRUE;
+      *found = TRUE;
       /* Compute the number of pack elements. */
       for (; tap != NULL && tap->is_pack_element; tap = tap->next) {
         (*elements)++;
@@ -11429,7 +11431,7 @@ rescan.
       break;
     }  /* if */
   }  /* for */
-  if (!found && !is_deduction) {
+  if (!*found && !is_deduction) {
     /* The immediate instantiation context does not have the specified
        template parameter.  Look in an enclosing context. */
     get_enclosing_template_params_and_args(&templ_param_list,
@@ -11437,7 +11439,7 @@ rescan.
     if (templ_arg_list != NULL) {
       result_tap = find_template_arg_for_pack(templ_param_list, templ_arg_list,
                                               sym, elements, template_param,
-                                              is_rescan, is_deduction);
+                                              found, is_rescan, is_deduction);
     }  /* if */
   }  /* if */
   return result_tap;
@@ -11909,10 +11911,13 @@ lengths) *err is set to TRUE, FALSE otherwise.
       } else if (prp->kind == prk_template_param) {
         a_template_arg_ptr	tap;
         a_template_param_ptr	tpp;
+        a_boolean		found = FALSE;
         tap = find_template_arg_for_pack(templ_param_list, templ_arg_list,
                                          prp->symbol, &elements_for_pack,
-                                         &tpp, is_rescan, is_deduction);
+                                         &tpp, &found, is_rescan,
+                                         is_deduction);
         if (tap == NULL) not_found = TRUE;
+        if (!found && ctws_state != NULL) ctws_state->unexpanded_pack = TRUE;
         new_prp->curr_argument.template_arg = tap;
         new_prp->template_param = tpp;
       } else if (prp->kind == prk_init_capture) {
@@ -11938,9 +11943,11 @@ lengths) *err is set to TRUE, FALSE otherwise.
         /* A g++ __bases or __direct_bases operator. */
         a_template_arg_ptr	tap;
         a_template_param_ptr	tpp;
+        a_boolean		found = FALSE;
         tap = find_template_arg_for_pack(templ_param_list, templ_arg_list,
                                          prp->symbol, &elements_for_pack,
-                                         &tpp, is_rescan, is_deduction);
+                                         &tpp, &found, is_rescan,
+                                         is_deduction);
         new_prp->curr_argument.template_arg =
                 make_base_class_arg_list(tap->variant.type, prp->direct_bases,
                                          &elements_for_pack);
@@ -11969,6 +11976,7 @@ lengths) *err is set to TRUE, FALSE otherwise.
 
                 subst_pairs.push_back(a_subst_pairs_descr{ templ_param_list,
                                                            templ_arg_list,
+                                                           FALSE, FALSE,
                                                            FALSE, FALSE });
                 local_ctws_state = *ctws_state;
                 local_ctws_state.variadic_param_info = NULL;

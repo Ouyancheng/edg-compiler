@@ -2822,6 +2822,11 @@ typedef struct a_ctws_state {
   a_boolean	substituted_parameter_pack;
 			/* TRUE if a pack argument was substituted.  This is
 			   set by the template substitution routines. */
+  a_boolean	unexpanded_pack;
+			/* TRUE if a pack was not expanded because template
+			   parameters were for a different template depth.
+			   This is set by the template substitution
+			   routines. */
 } a_ctws_state;
 
 
@@ -2845,6 +2850,12 @@ struct a_subst_pairs_descr {
   a_bit_field	args_known_nondependent:1;
 			/* TRUE if args is known not to be
 			   instantiation-dependent. */
+  a_bit_field	adjust_coordinates:1;
+			/* TRUE if CTWS_ADJUST_COORDINATES option
+			   should be set for substitution. */
+  a_bit_field	alias_deduction_guide:1;
+			/* TRUE if CTWS_ALIAS_DEDUCTION_GUIDE option
+			   should be set for substitution. */
 };
 
 typedef Dyn_array<a_subst_pairs_descr>

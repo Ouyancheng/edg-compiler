@@ -625,6 +625,7 @@ Initialize a template argument substitution state block.
   csp->preserve_deduced_packs = FALSE;
   csp->in_parent_substitution = FALSE;
   csp->substituted_parameter_pack = FALSE;
+  csp->unexpanded_pack = FALSE;
 }  /* init_ctws_state */
 
 
@@ -14952,6 +14953,7 @@ If there is an error in the copying, set *copy_error to TRUE.
     }  /* if */
     if (tap != NULL && tap->pack_expansion_descr != NULL) {
       a_boolean  err = FALSE;
+      ctws_state->unexpanded_pack = FALSE;
       if ((options & CTWS_ADJUST_COORDINATES) != 0) {
         any_more = TRUE;
       } else {
@@ -14963,12 +14965,9 @@ If there is an error in the copying, set *copy_error to TRUE.
                                                      ctws_state, &err);
       }  /* if */
       pack_tap = tap;
-      if (!any_more && !have_params &&
-	  (options & CTWS_IN_PARENT_SUBSTITUTION) != 0) {
-        /* In cases where we are doing parent substitution we can encounter
-           a template argument list for which we don't have parameters and
-           that will be substituted in a later iteration.  Keep the
-           pack in that case. */
+      if (!any_more && ctws_state->unexpanded_pack &&
+          (options & CTWS_MAY_BE_RESCANNED) != 0) {
+        /* Preserve any unexpanded packs. */
         preserve_packs = TRUE;
       }  /* if */
       /* Check if an error occurred (such as mismatched parameter pack
@@ -17113,6 +17112,8 @@ ctws_state, see copy_type_with_substitution.
     a_subst_pairs_descr const  *spd = &subst_pairs[k];
     a_ctws_options_set         all_options = options;
     if (k > 0) all_options |= CTWS_MAY_BE_RESCANNED;
+    if (spd->adjust_coordinates) all_options |= CTWS_ADJUST_COORDINATES;
+    if (spd->alias_deduction_guide) all_options |= CTWS_ALIAS_DEDUCTION_GUIDE;
     type = copy_type_with_substitution(type, spd->args, spd->params,
                                        source_pos, all_options, copy_error,
                                        ctws_state);
@@ -17140,6 +17141,8 @@ copy_error, and ctws_state, see copy_type_with_substitution.
     a_subst_pairs_descr const  *spd = &subst_pairs[k];
     a_ctws_options_set         all_options = options;
     if (k > 0) all_options |= CTWS_MAY_BE_RESCANNED;
+    if (spd->adjust_coordinates) all_options |= CTWS_ADJUST_COORDINATES;
+    if (spd->alias_deduction_guide) all_options |= CTWS_ALIAS_DEDUCTION_GUIDE;
     ptp_list = copy_param_type_list_with_substitution(
                                        ptp_list, spd->args, spd->params,
                                        source_pos, all_options, copy_error,
@@ -17173,6 +17176,8 @@ copy_template_arg_list_with_substitution.
       a_subst_pairs_descr const  *spd = &subst_pairs[k];
       a_ctws_options_set         all_options = options;
       if (k > 0) all_options |= CTWS_MAY_BE_RESCANNED;
+      if (spd->adjust_coordinates) all_options |= CTWS_ADJUST_COORDINATES;
+      if (spd->alias_deduction_guide) all_options |=CTWS_ALIAS_DEDUCTION_GUIDE;
       new_args = copy_template_arg_list_with_substitution(
                      template_sym,
                      arg_list_to_copy, param_list_for_copy, ttp_list_for_copy,
@@ -42882,7 +42887,7 @@ identical).
        parameter list from the class template. */
     a_subst_pairs_array  subst_pairs(1);
     a_subst_pairs_descr  spd = { orig_class_templ_params, class_templ_args,
-                                 FALSE, FALSE };
+                                 FALSE, FALSE, FALSE, FALSE };
     if (ct_sym != orig_ct_sym) {
       /* If this is a nested class template, also substitute the enclosing
          class templates. */
@@ -42891,7 +42896,8 @@ identical).
     }  /* if */
     subst_pairs.push_back(spd);
     substitute_templ_params(templ_param_list, ct_sym, subst_pairs,
-                            CTWS_ADJUST_COORDINATES, &copy_error);
+                            (CTWS_ADJUST_COORDINATES | CTWS_MAY_BE_RESCANNED),
+                            &copy_error);
     if (copy_error) goto done;
   }
   /* Get the return type based on the class template argument list.
@@ -42920,13 +42926,15 @@ identical).
     substitute_template_param_list(ctor_sym, templ_param_list,
                                    orig_ctor_templ_params,
                                    ctor_templ_args,
-                                   CTWS_ADJUST_COORDINATES,
+                                   (CTWS_ADJUST_COORDINATES |
+                                    CTWS_MAY_BE_RESCANNED),
                                    &copy_error, &ctws_state);
     if (copy_error) goto done;
     substitute_template_param_list(ctor_sym, ctor_templ_params,
                                    orig_class_templ_params,
                                    class_templ_args,
-                                   CTWS_ADJUST_COORDINATES,
+                                   (CTWS_ADJUST_COORDINATES |
+                                    CTWS_MAY_BE_RESCANNED),
                                    &copy_error, &ctws_state);
     if (copy_error) goto done;
   }  /* if */
@@ -42947,7 +42955,8 @@ identical).
                                   class_templ_args,
                                   orig_class_templ_params,
                                   &ct_sym->decl_position,
-                                  CTWS_ADJUST_COORDINATES,
+                                  (CTWS_ADJUST_COORDINATES |
+                                   CTWS_MAY_BE_RESCANNED),
                                   &copy_error,
                                   &ctws_state);
   if (copy_error) goto done;
@@ -42969,7 +42978,8 @@ identical).
                                   ctor_templ_args,
                                   orig_ctor_templ_params,
                                   &ct_sym->decl_position,
-                                  CTWS_ADJUST_COORDINATES,
+                                  (CTWS_ADJUST_COORDINATES |
+                                   CTWS_MAY_BE_RESCANNED),
                                   &copy_error,
                                   &ctws_state);
     if (copy_error) goto done;
@@ -43524,7 +43534,8 @@ guide is recorded in the template symbol supplement associated with alias_sym.
       rout_type = copy_type_with_substitution(rout_type, deduced_guide_args,
                                               guide_template_params,
                                               alias_position,
-                                              CTWS_ALIAS_DEDUCTION_GUIDE,
+                                              (CTWS_ALIAS_DEDUCTION_GUIDE |
+                                               CTWS_MAY_BE_RESCANNED),
                                               &copy_error, &ctws_state);
       if (copy_error) goto done;
       ret_type = skip_typerefs(rout_type->variant.routine.return_type);

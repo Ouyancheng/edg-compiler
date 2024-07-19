@@ -26463,12 +26463,14 @@ stage, set *p_err to TRUE.
   a_source_position  *pos = &expr->position;
   a_boolean          is_top_level_nonreal =
                                     scope_stack_top().in_nonreal_instantiation;
-  for (int k = 0; k < levels && !*p_err; ++k) {
+  for (int k = levels - 1; k >= 0 && !*p_err; --k) {
     a_subst_pairs_descr const  *spd = &subst_pairs[k];
     a_ctws_options_set         all_options = options | CTWS_NON_CONSTANT_EXPR;
-    if (k < levels-1) {
+    if (k > 0) {
       /* The next iteration may have to rescan the result. */
       all_options |= CTWS_MAY_BE_RESCANNED;
+      if (spd->adjust_coordinates) all_options |= CTWS_ADJUST_COORDINATES;
+      if (spd->alias_deduction_guide) all_options |=CTWS_ALIAS_DEDUCTION_GUIDE;
       if (!is_top_level_nonreal) {
         /* Substitutions below the top level are always non-real. */
         scope_stack_top().in_nonreal_instantiation = TRUE;

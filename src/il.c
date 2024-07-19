@@ -5639,9 +5639,18 @@ fix them.
                               (kind == tpck_expression) ? lerk_tpl_param_expr
                                                         : lerk_generic_sizeof,
                               (char*)cp, sp);
+            *expr = NULL;
+          } else {
+            /* Need to copy the expression (most likely a sub-expression of a
+               function-local requires expression). */
+            *expr = copy_expr_tree(*expr,
+                                   expr_stack->possible_rescan_context ?
+                                                      CE_PRESERVE_RESCAN_INFO :
+                                                      CE_NO_OPTIONS);
           }  /* if */
-#endif /* PROTOTYPE_INSTANTIATIONS_IN_IL */
+#else /* !PROTOTYPE_INSTANTIATIONS_IN_IL */
           *expr = NULL;
+#endif /* PROTOTYPE_INSTANTIATIONS_IN_IL */
         }  /* if */
       }  /* if */
     } else if (cp->kind == ck_reflection) {
@@ -20125,9 +20134,12 @@ options is a set of substitution options.
         if (options & (CTWS_ADJUST_COORDINATES | CTWS_ALIAS_DEDUCTION_GUIDE)) {
           a_subst_pairs_array  subst_pairs = requires_expr_substs->get(expr);
           expr_copy = copy_node(expr);
-          subst_pairs.push_back(a_subst_pairs_descr{ template_param_list,
-                                                     template_arg_list,
-                                                     TRUE, FALSE });
+          subst_pairs.insert(0,
+                             a_subst_pairs_descr{
+                                template_param_list, template_arg_list,
+                                TRUE, FALSE,
+                                (options & CTWS_ADJUST_COORDINATES) != 0,
+                                (options & CTWS_ALIAS_DEDUCTION_GUIDE) != 0 });
           requires_expr_substs->map_or_replace(expr_copy, subst_pairs);
         } else {
           subst_fail(*copy_error);
@@ -20146,12 +20158,23 @@ options is a set of substitution options.
                                                   a_subst_pairs_array(1);
         a_subst_pairs_array
                    delayed_subst_pairs = requires_expr_substs->get(expr);
-        subst_pairs.insert(subst_pairs.length(),
-                           delayed_subst_pairs.begin(),
-                           delayed_subst_pairs.length());
-        subst_pairs.push_back(a_subst_pairs_descr{ template_param_list,
-                                                   template_arg_list,
-                                                   FALSE, TRUE });
+        if (!delayed_subst_pairs.is_empty()) {
+          /* Delayed substitutions adjust the coordinates of template parameter
+             types and therefore need to be performed before substituting the
+             passed in template arguments. */
+          subst_pairs.insert(0, a_subst_pairs_descr{ template_param_list,
+                                                     template_arg_list,
+                                                     FALSE, TRUE, FALSE,
+                                                     FALSE });
+          subst_pairs.insert(1,
+                             delayed_subst_pairs.begin(),
+                             delayed_subst_pairs.length());
+        } else {
+          subst_pairs.push_back(a_subst_pairs_descr{ template_param_list,
+                                                     template_arg_list,
+                                                     FALSE, TRUE, FALSE,
+                                                     FALSE });
+        }  /* if */
         val = requires_expr_satisfied_full(expr, subst_pairs, ctws_state);
         make_bool_constant_value(val, constant);
       }  /* if */
