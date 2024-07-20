@@ -19736,10 +19736,10 @@ the value representation of the integer value.
               if (tp->variant.float_kind == opnd1_type->variant.float_kind) {
                 cx_value(result_storage)->real = *fp_value(opnd1_value);
               } else {
-                fp_change_kind(&cx_value(result_storage)->real,
-                               tp->variant.float_kind,
-                               fp_value(opnd1_value),
+                fp_change_kind(fp_value(opnd1_value),
                                opnd1_type->variant.float_kind,
+                               &cx_value(result_storage)->real,
+                               tp->variant.float_kind,
                                &err, &depends_on_fp_mode);
                 if (err) {
                   info_with_pos(ec_constexpr_fp_conversion_failed,
@@ -19757,10 +19757,10 @@ the value representation of the integer value.
               if (tp->variant.float_kind == opnd1_type->variant.float_kind) {
                 cx_value(result_storage)->imag = *fp_value(opnd1_value);
               } else {
-                fp_change_kind(&cx_value(result_storage)->imag,
-                               tp->variant.float_kind,
-                               fp_value(opnd1_value),
+                fp_change_kind(fp_value(opnd1_value),
                                opnd1_type->variant.float_kind,
+                               &cx_value(result_storage)->imag,
+                               tp->variant.float_kind,
                                &err, &depends_on_fp_mode);
                 if (err) {
                   info_with_pos(ec_constexpr_fp_conversion_failed,
