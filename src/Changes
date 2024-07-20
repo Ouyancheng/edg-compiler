@@ -49,7 +49,7 @@ Consider, in C++20 mode:
   }
 
 The front end previously did not recognize the angle bracket following N::c
-(which caching the initializer for S::b), instead treating it like a "less
+(while caching the initializer for S::b), instead treating it like a "less
 than" operator.  That in turn resulted in misleading spurious errors.  That
 problem is now fixed.
 
