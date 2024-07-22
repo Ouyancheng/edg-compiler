@@ -6022,10 +6022,29 @@ in a new-expression).
                                      notes);
           }  /* if */
           goto reject_function;
-        } else if (!check_deduced_parameters(routine_type, function_symbol,
-                                             notes)) {
-          /* A deduced parameter type is either incomplete or abstract. */
-          goto reject_function;
+        } else {
+          
+          if (check_arg_count_mismatch) {
+          /* We're about to check the completeness of deduced types, but that
+             could trigger hard errors.  Ensure that we have a viable number
+             of parameters first (since that doesn't risk errors outside the
+             immediate deduction context). */
+            check_arg_count_mismatch = FALSE;
+            if (arg_count_mismatch(routine_type, arg_list, routine,
+                                   &param_array_expanded_case)) {
+              if (notes != NULL) {
+                more_info_sym_diagnostic(ec_candidate_wrong_param_count,
+                                         &function_symbol->decl_position,
+                                         function_symbol, notes);
+              }  /* if */
+              goto reject_function;
+            }  /* if */
+          }  /* if */
+          if (!check_deduced_parameters(routine_type, function_symbol,
+                                        notes)) {
+            /* A deduced parameter type is either incomplete or abstract. */
+            goto reject_function;
+          }  /* if */
         }  /* if */
       }  /* if */
     }  /* if */
