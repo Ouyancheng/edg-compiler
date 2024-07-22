@@ -20133,13 +20133,17 @@ options is a set of substitution options.
            that case we store the template arguments for later substitution. */
         if (options & (CTWS_ADJUST_COORDINATES | CTWS_ALIAS_DEDUCTION_GUIDE)) {
           a_subst_pairs_array  subst_pairs = requires_expr_substs->get(expr);
+          a_boolean            adjust_coordinates =
+                                      (options & CTWS_ADJUST_COORDINATES) != 0;
+          a_boolean            is_alias_deduction_guide =
+                                   (options & CTWS_ALIAS_DEDUCTION_GUIDE) != 0;
           expr_copy = copy_node(expr);
           subst_pairs.insert(0,
                              a_subst_pairs_descr{
-                                template_param_list, template_arg_list,
-                                TRUE, FALSE,
-                                (options & CTWS_ADJUST_COORDINATES) != 0,
-                                (options & CTWS_ALIAS_DEDUCTION_GUIDE) != 0 });
+                                      template_param_list, template_arg_list,
+                                      TRUE, FALSE,
+                                      (a_bit_field)adjust_coordinates,
+                                      (a_bit_field)is_alias_deduction_guide });
           requires_expr_substs->map_or_replace(expr_copy, subst_pairs);
         } else {
           subst_fail(*copy_error);
