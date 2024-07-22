@@ -443,7 +443,7 @@ of this object expires (whichever is sooner).
   : cache_ptr(cache), pos(), hint_given(TRUE)
 {
   source_position_from_locus(&this->pos, locus);
-  this->cache_ptr->set_position_hint(&this->pos);
+  this->cache_ptr->suggest_source_position(&this->pos);
 }  /* an_ifc_source_position_hint::an_ifc_source_position_hint */
 
 
@@ -490,7 +490,7 @@ lifetime of this object expires (whichever is sooner).
 
     source_position_from_locus(&this->pos, locus);
     if (cmp_source_positions(this->pos, null_source_position) != 0) {
-      this->cache_ptr->set_position_hint(&this->pos);
+      this->cache_ptr->suggest_source_position(&this->pos);
     }
     /* Do not add code here. */
 #if DEBUG
@@ -18800,7 +18800,7 @@ hint for the cache to said value.
 
   if (source_position_from_locus(&loc_pos, locus)) {
     *pos_hint = loc_pos;
-    cache->set_position_hint(pos_hint);
+    cache->suggest_source_position(pos_hint);
   }  /* if */
 }  /* update_cache_pos_from_word */
 

@@ -321,6 +321,7 @@ struct a_module_token_cache {
     { return this->position_hint; }
   void set_position_hint(a_source_position_ptr new_position_hint)
     { this->position_hint = new_position_hint; }
+  void suggest_source_position(a_source_position_ptr new_position_hint);
 private:
   a_token_cache
                 underlying_cache;
@@ -332,6 +333,28 @@ private:
                         /* Current source position hint (used for source
                            position inference). */
 };  /* a_module_token_cache */
+
+
+inline void a_module_token_cache::suggest_source_position(
+                                       a_source_position_ptr new_position_hint)
+/*
+Set the token position hint (only) if the new token position follows the most
+recent token in the cache.
+*/
+{
+  check_assertion(new_position_hint != NULL);
+  if (this->get_last_token() == NULL) {
+    this->position_hint = new_position_hint;
+  } else {
+    a_source_position_ptr last_pos = &this->get_last_token()->source_position;
+
+    if (last_pos->seq < new_position_hint->seq ||
+        (last_pos->seq == new_position_hint->seq &&
+         last_pos->column < new_position_hint->column)) {
+      this->position_hint = new_position_hint;
+    }  /* if */
+  }  /* if */
+}  /* a_module_token_cache::suggest_source_position */
 
 
 a_module_token_cache::~a_module_token_cache()
