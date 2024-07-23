@@ -4089,8 +4089,7 @@ EXTERN a_boolean
 			/* TRUE if a given predefined macro mode should be
 			   considered to be in effect. */
 
-EXTERN_CONSTINIT_ARRAY(a_const_char*, predef_macro_mode_names,
-                       (unsigned)pmm_last+1)
+EXTERN_CONSTINIT_ARRAY(a_const_char*, predef_macro_mode_names, pmm_last+1)
 			/* A list of the mode strings that may be used in
 			   predefined macro definition entries. */
 #if VAR_INITIALIZERS

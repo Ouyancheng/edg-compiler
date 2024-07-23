@@ -1266,7 +1266,7 @@ is equivalent to:
 
 in the fe_init.c translation unit this will appear as:
 
-  static constexpr example_decl_expected_size = 23;
+  static constexpr sizeof_t example_decl_expected_size = 23;
   int example_decl[] = {
     // values
   };
@@ -1286,7 +1286,7 @@ linked array of 46 integers named example_decl:
 
 this will similarly expand to:
 
-  static constexpr example_decl_expected_size = 46;
+  static constexpr sizeof_t example_decl_expected_size = 46;
   static int example_decl[] = {
     // values
   };
@@ -1306,7 +1306,7 @@ this will similarly expand to:
   CONSTINIT_ARRAY(EXTERN, type, name, size)
 #define EXTERN_CONSTINIT_ARRAY_END(name) CONSTINIT_ARRAY_END(name)
 #else /* !VAR_INITIALIZERS */
-#define EXTERN_CONSTINIT_ARRAY(type, name, size) EXTERN type name[size]
+#define EXTERN_CONSTINIT_ARRAY(type, name, size) extern type name[size]
 #define EXTERN_CONSTINIT_ARRAY_END(name) ;
 #endif /* VAR_INITIALIZERS */
 
