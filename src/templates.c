@@ -1450,7 +1450,7 @@ enclosing template class types, if any (starting from the outermost).
   do {
     if (class_type->variant.class_struct_union.is_template_class &&
         !class_type->variant.class_struct_union.is_specialized) {
-      a_subst_pairs_descr  pspd = { NULL, NULL, FALSE, FALSE };
+      a_subst_pairs_descr  pspd = { NULL, NULL, FALSE, FALSE, FALSE, FALSE };
       get_substitution_pairs_for_template_class(class_type,
                                                 &pspd.params, &pspd.args);
       if (pspd.params != NULL) {
@@ -1483,7 +1483,8 @@ being instantiated.
       if (scope_is(issep, sck_template_instantiation) &&
           issep->template_arg_list != NULL) {
         a_subst_pairs_descr  spd = { issep->template_decl_info->parameters,
-                                     issep->template_arg_list, FALSE, FALSE };
+                                     issep->template_arg_list, FALSE, FALSE,
+                                     FALSE, FALSE };
         result.push_back(spd);
       } else if (is_file_or_namespace_scope(issep)) {
         break;
@@ -10992,7 +10993,7 @@ type; otherwise, parent_type is NULL.
       get_all_class_subst_pairs(parent_type, &subst_pairs);
     }  /* if */
     subst_pairs.push_back(a_subst_pairs_descr{ param_list, arg_list,
-                                               FALSE, FALSE });
+                                               FALSE, FALSE, FALSE, FALSE });
     init_ctws_state(&ctws_state);
     if (check_type_constraint(arg_type, constraint, subst_pairs,
                               &ctws_state, p_diag_list)) {
