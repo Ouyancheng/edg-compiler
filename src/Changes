@@ -11,7 +11,7 @@ deduced parameter types can lead to a hard error, and thus the change for
 EDGcpfe/26586 introduced regressions in some cases.  That is now fixed.
 
 
-7/22/24   [EDGcpfe/27465]
+7/22/24  [EDGcpfe/27465]
 GNU compatibility: Update builtin signatures to 11.5.0
 
 Two builtins (__builtin_ia32_ldtilecfg and __builtin_ia32_sttilecfg) were added
