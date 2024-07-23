@@ -1447,18 +1447,30 @@ Accumulate in *p_array the substitution pairs of class_type and all its
 enclosing template class types, if any (starting from the outermost).
 */
 {
+  a_template_decl_info_ptr  tdip = NULL;
   do {
     if (class_type->variant.class_struct_union.is_template_class &&
-        !class_type->variant.class_struct_union.is_specialized) {
-      a_subst_pairs_descr  pspd = { NULL, NULL, FALSE, FALSE, FALSE, FALSE };
-      get_substitution_pairs_for_template_class(class_type,
-                                                &pspd.params, &pspd.args);
-      if (pspd.params != NULL) {
-        p_array->push_back(pspd);
+        !class_type->variant.class_struct_union.is_specialized &&
+        class_type_supp(class_type)->template_arg_list != NULL) {
+      a_template_arg_ptr  templ_args = templ_arg_list_for_class(class_type);
+      if (tdip == NULL) {
+        /* This is the innermost class template.  Get its template
+           declaration. */
+        a_symbol_ptr  proto_sym = symbol_supplement_for_class(class_type)
+                                                       ->corresp_prototype_sym;
+        check_assertion(proto_sym != NULL);
+        tdip = class_symbol_supp(proto_sym)->template_info->cache.decl_info;
       }  /* if */
+      p_array->push_back(a_subst_pairs_descr{ tdip->parameters, templ_args,
+                                              FALSE, FALSE, FALSE, FALSE });
+      /* Move to the enclosing template declaration.  For an out-of-class
+         definition of a member template, its enclosing template declaration is
+         different from the template declaration of its parent class. */
+      tdip = tdip->enclosing_template_decl;
     }  /* if */
     class_type = parent_class_or_null(class_type);
   } while (class_type != NULL);
+  check_assertion(tdip == NULL);
   if (p_array->length() > 1) {
     reverse_array(p_array->begin(), p_array->length());
   }  /* if */
