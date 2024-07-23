@@ -24724,8 +24724,15 @@ block.
           a_template_ptr     prev_tmpl = pp_sym->variant.template_info
                                                ->il_template_entry;
           a_type_ptr         prev_tp = prev_tmpl->prototype_instantiation.type;
-          a_template_arg_ptr
-                             prev_args =
+
+          /* If the prototype instantiation fails, there may not be
+             a type. */
+          if (prev_tp == NULL) {
+            expect_error();
+            continue;
+          }  /* if */
+
+          a_template_arg_ptr prev_args =
                                   class_type_supp(prev_tp)->template_arg_list;
           a_requires_clause  *prev_rcp = prev_tmpl->template_decl
                                                   ->constraint.requires_clause;
