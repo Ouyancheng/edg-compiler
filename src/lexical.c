@@ -17727,8 +17727,8 @@ in subsequent sequential calls (until the colon processing is finished).
 {
   a_token_kind result;
 
-  if (C_mode()) {
-    /* There is no tok_colon_colon in C mode. */
+  if (C_mode() && !c23_mode) {
+    /* There is no tok_colon_colon in early C modes. */
     result = get_token();
   } else {
     if (!*seen_tok_colon_colon) {
