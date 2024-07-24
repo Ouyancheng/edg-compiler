@@ -5,7 +5,9 @@ Abort on non-dependent specialization of constrained member template
 
 Previously, when a template definition referred to a non-dependent
 specialization of a constrained member template, the front end aborted with a
-failed assertion.  For example, with --c++20:
+failed assertion in get_substitution_pairs_for_template_class (or, with the
+changes for EDGcpfe/27472, in get_all_class_subst_pairs).  For example, with
+--c++20:
 
   template<typename> concept X = true;
   template<typename>
