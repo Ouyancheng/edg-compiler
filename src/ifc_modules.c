@@ -8658,6 +8658,7 @@ This is a redeclaration of an existing symbol.  If this is a named module and
 the entity is not part of the global module, emit an error.
 */
 {
+#if 0
   if (mep->module_info->kind != mk_header_unit && !mep->global_module) {
     /* Suspend any diagnostic suppression, ensuring the following error is
        always surfaced. */
@@ -8678,6 +8679,7 @@ the entity is not part of the global module, emit an error.
 
     pos_error(ec_module_import_conflict, pos, redecl_sym);
   }  /* if */
+#endif /* 0 */
 }  /* diagnose_redeclaration */
 
 
