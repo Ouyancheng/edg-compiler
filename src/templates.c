@@ -1451,6 +1451,7 @@ enclosing template class types, if any (starting from the outermost).
   do {
     if (class_type->variant.class_struct_union.is_template_class &&
         !class_type->variant.class_struct_union.is_specialized &&
+        !class_type->variant.class_struct_union.is_prototype_instantiation &&
         class_type_supp(class_type)->template_arg_list != NULL) {
       a_template_arg_ptr  templ_args = templ_arg_list_for_class(class_type);
       if (tdip == NULL) {
