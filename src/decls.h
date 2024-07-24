@@ -2004,6 +2004,21 @@ extern a_boolean is_alias_declaration(a_boolean  *has_attr);
 
 extern void scan_and_attach_using_declaration_attributes(a_using_decl_ptr udp);
 
+
+inline a_boolean is_addressable_auto_var(a_variable  *vp)
+/*
+Return TRUE if the given variable is an addressable automatic variable (not a
+"this" parameter nor a structured binding with initk_binding "initialization")
+declared in the current function.
+*/
+{
+  return vp->storage_class == sc_auto &&
+         !vp->is_this_parameter &&
+         vp->init_kind != initk_binding &&
+         vp->source_corresp.enclosing_routine == curr_routine_or_null();
+}  /* is_addressable_auto_var */
+
+
 extern void decls_one_time_init(void);
 
 extern void decls_trans_unit_init(void);

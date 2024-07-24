@@ -49437,21 +49437,27 @@ memory region).  Do various error checks.
     } else {
       an_expr_node_ptr  expr = NULL;
       extract_constant_from_operand(operand, constant);
-      expr = constant->expr;
-      do_fs_constant_fixup(constant);
-      if (expr != NULL && !in_file_scope(expr) &&
+      if (constant_addresses_local_var(constant)) {
+        expr_pos_error(ec_constant_addresses_local_variable,
+                       &operand->position);
+        make_error_operand(operand);
+        extract_constant_from_operand(operand, constant);
+      } else {
+        expr = constant->expr;
+        do_fs_constant_fixup(constant);
+        if (expr != NULL && !in_file_scope(expr) &&
 #if GENERATE_SOURCE_SEQUENCE_LISTS
-          !expr_stack->statement_expression_seen &&
+            !expr_stack->statement_expression_seen &&
 #endif /* GENERATE_SOURCE_SEQUENCE_LISTS */
-          innermost_function_scope != NULL) {
-        /* Refer to the underlying expression indirectly since it lives in
-           function scope memory.  (Discard the expression if a statement
-           expression and source sequence entries are recorded, because no
-           source sequence entries could be recorded for a template
-           argument.) */
-        make_local_expr_node_ref(
-                         expr, (a_local_expr_node_ref_kind)lerk_constant_expr,
-                         (char*)constant, innermost_function_scope);
+            innermost_function_scope != NULL) {
+          /* Refer to the underlying expression indirectly since it lives in
+             function scope memory.  (Discard the expression if a statement
+             expression and source sequence entries are recorded, because no
+             source sequence entries could be recorded for a template
+             argument.) */
+          make_local_expr_node_ref(expr, lerk_constant_expr, (char*)constant,
+                                   innermost_function_scope);
+        }  /* if */
       }  /* if */
     }  /* if */
     if (!is_constant_operand(operand)) {

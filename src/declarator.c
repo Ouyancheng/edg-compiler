@@ -7196,11 +7196,14 @@ and record it in *dps.  Also update positions in decl_pos_block.
      the static or thread_local storage classes. */
   if (dps->dso_flags & DSO_INLINE) {
     pos_error(ec_struct_binding_inline, &dps->inline_pos);
-  } else if (dps->dso_flags & (DSO_CONSTEXPR | DSO_CONSTEVAL)) {
+  } else if ((dps->dso_flags & DSO_CONSTEXPR) != 0 && !cpp26_mode) {
     pos_error(ec_struct_binding_constexpr, &dps->constexpr_pos);
-  } else if ((dps->declared_storage_class != (a_storage_class)sc_unspecified &&
+    dps->dso_flags &= ~DSO_CONSTEXPR;
+  } else if ((dps->dso_flags & DSO_CONSTEVAL) != 0) {
+    pos_error(ec_struct_binding_consteval, &dps->constexpr_pos);
+  } else if ((dps->declared_storage_class != sc_unspecified &&
               (!cpp20_mode ||
-               dps->declared_storage_class != (a_storage_class)sc_static)) ||
+               dps->declared_storage_class != sc_static)) ||
              (!cpp20_mode && dps->dso_flags & DSO_THREAD_LOCAL)) {
     if (!cpp20_mode) {
       pos_error(ec_struct_binding_storage_class, &dps->storage_class_pos);
@@ -7208,13 +7211,13 @@ and record it in *dps.  Also update positions in decl_pos_block.
       pos_error(ec_struct_binding_restricted_storage_class,
                 &dps->storage_class_pos);
     }  /* if */
-    dps->storage_class = (a_storage_class)sc_unspecified;
+    dps->storage_class = sc_unspecified;
   }  /* if */
-  dps->dso_flags &= ~(DSO_INLINE | DSO_CONSTEXPR | DSO_CONSTEVAL);
+  dps->dso_flags &= ~(DSO_INLINE |  DSO_CONSTEVAL);
   if (!cpp20_mode) {
     dps->dso_flags &= ~DSO_THREAD_LOCAL;
   }  /* if */
-  if (dps->type->kind == (a_type_kind)tk_pointer &&
+  if (type_is(dps->type, tk_pointer) &&
       !dps->type->variant.pointer.is_reference) {
     pos_error(ec_invalid_struct_binding_syntax, &dps->declarator_start_pos);
   }  /* if */

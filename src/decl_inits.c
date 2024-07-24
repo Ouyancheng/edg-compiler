@@ -5803,14 +5803,18 @@ returned set to TRUE.
     vp->has_parenthesized_initializer = parenthesized_initializer;
     if (dps->init_state.initializer_must_be_constant && init_con != NULL &&
         constant_is(init_con, ck_address) &&
-        init_con->variant.address.kind == (an_address_base_kind)abk_variable &&
-        !var_has_static_or_thread_storage_duration(
-                                init_con->variant.address.variant.variable)) {
+        address_base_is(init_con, abk_variable)) {
       /* In some modes, a ck_address constant pointing to a local variable may
          be created (to represent a "core constant expression").  However, such
-         a constant does not represent a valid "constant expression". */
-      pos_error(ec_expr_not_constant, &pos_first_token);
-      init_err = TRUE;
+         a constant does not represent a valid "constant expression" prior to
+         C++26 (and in C++26, it is only valid for references). */
+      a_variable  *referenced_vp = init_con->variant.address.variant.variable;
+      if (!var_has_static_storage_duration(referenced_vp) &&
+          !(cpp26_mode && is_addressable_auto_var(vp) &&
+            is_any_reference_type(init_con->type))) {
+        pos_error(ec_expr_not_constant, &pos_first_token);
+        init_err = TRUE;
+      }  /* if */
     }  /* if */
     if (init_err) {
       /* There was an error in the initializer.  Put an error constant
@@ -5901,7 +5905,15 @@ returned set to TRUE.
       } else if (interpret_dynamic_init(init_dip, &pos_first_token, dps->type,
                                         is_constant_evaluated,
                                         folded_con, &diag_list)) {
-        if (is_error_constant(folded_con)) init_err = TRUE;
+        if (is_error_constant(folded_con)) {
+          init_err = TRUE;
+        } else if (static_lifetime &&
+                   (vp->is_constexpr || vp->declared_constinit) &&
+                   constant_addresses_local_var(folded_con)) {
+          pos_error(ec_constant_addresses_local_variable, &pos_first_token);
+          set_error_constant(folded_con);
+          init_err = TRUE;
+        }  /* if */
 #if EXTRA_SOURCE_POSITIONS_IN_IL
         if (folded_con->expr != NULL &&
             node_is(folded_con->expr, enk_initializer)) {

@@ -25840,6 +25840,63 @@ value-dependent.
 }  /* constant_is_instantiation_dependent */
 
 
+static void examine_constant_for_local_var_address(
+                                    a_constant_ptr                      con,
+                                    an_expr_or_stmt_traversal_block_ptr tblock)
+/*
+Called from traverse_constant to check whether the constant contains a
+ck_address entry referring to a local variable.
+*/
+{
+  switch (con->kind) {
+    case ck_address:
+      if (address_base_is(con, abk_variable)) {
+        if (con->variant.address.variant.variable->storage_class == sc_auto) {
+          tblock->result = TRUE;
+          tblock->terminate = TRUE;
+        }  /* if */
+      }  /* if */
+      /* Be sure to avoid following pointers, since constants can be
+         self-referential in that way. */
+      tblock->suppress_subtree_walk = TRUE;
+      break;
+    case ck_dynamic_init:
+    case ck_template_param:
+    case ck_reflection:
+      tblock->suppress_subtree_walk = TRUE;
+      break;
+    default:
+      break;
+  }  /* switch */
+}  /* examine_constant_for_local_var_address */
+
+
+a_boolean constant_addresses_local_var(a_constant_ptr  con)
+/*
+Return TRUE if con contains a ck_address component referring to a local
+variable.
+*/
+{
+  a_boolean  result = FALSE;
+
+  switch (con->kind) {
+    case ck_address:
+    case ck_aggregate:
+      { an_expr_or_stmt_traversal_block tblock;
+        clear_expr_or_stmt_traversal_block(&tblock);
+            tblock.process_constant = examine_constant_for_local_var_address;
+            tblock.process_non_dynamic_constants = TRUE;
+            traverse_constant(con, &tblock);
+            result = tblock.result;
+      }
+      break;
+    default:
+      break;
+  }  /* switch */
+  return result;
+}  /* constant_addresses_local_var */
+
+
 static void examine_type_for_error(a_type_ptr                          type,
                                    an_expr_or_stmt_traversal_block_ptr tblock)
 /*

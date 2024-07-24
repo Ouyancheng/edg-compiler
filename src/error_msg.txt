@@ -3518,6 +3518,8 @@ ec_constexpr_end_report_tokens;;">> end output from std::meta::__report_tokens"
 ec_constexpr_no_current_parameters;;"not in a context with parameter variables"
 ec_empty_delimited_escape;;"a delimited escape sequence must have at least one character"
 ec_unterminated_delimited_escape;;"unterminated delimited escape sequence"
+ec_constant_addresses_local_variable;;"constant contains address of a local variable"
+ec_struct_binding_consteval;;"a structured binding cannot be declared \"consteval\""
 ###############################################################################
 #                                                             \  ___  /       #
 #                                                               /   \         #

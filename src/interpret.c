@@ -2165,6 +2165,14 @@ Convenience macro to get the position of a type.
                            &(ips)->position)
 
 
+/*
+Convenience macro to get the position of a variable.
+ */
+#define var_pos(vp, ips) ((vp)->source_corresp.decl_position.seq != 0 ?  \
+                          &(vp)->source_corresp.decl_position :          \
+                          &(ips)->position)
+
+
 static void trim_bit_field(a_byte      *storage,
                            unsigned    length,
                            a_boolean   is_signed,
@@ -24756,16 +24764,19 @@ diagnostic in *ips.
              not constant-valued. */
           if (constant_is(rt_con, ck_address)) {
             an_address_base_kind  abk = rt_con->variant.address.kind;
-            if (abk == (an_address_base_kind)abk_variable) {
+            if (abk == abk_variable) {
               a_variable_ptr  vp = rt_con->variant.address.variant.variable;
-              if (!variable_has_constant_address(vp)) {
+              if (!variable_has_constant_address(vp) &&
+                  !(cpp26_mode && ips->is_constant_evaluated &&
+                    type->variant.pointer.is_reference &&
+                    is_addressable_auto_var(vp))) {
                 a_symbol_ptr  var_sym = symbol_for(vp);
                 do_constexpr_fail(result);
                 if (var_sym == NULL) {
                   /* A variable with no associated symbol (likely an anonymous
                      union parent object). */
                   info_with_pos(ec_constexpr_access_to_runtime_storage,
-                                &vp->source_corresp.decl_position, ips);
+                                var_pos(vp, ips), ips);
                 
                 } else {
                   info_with_pos_sym(ec_variable_not_constant_addressed,
@@ -24773,14 +24784,14 @@ diagnostic in *ips.
                 }  /* if */
                 break;
               }  /* if */
-            } else if (abk == (an_address_base_kind)abk_routine) {
+            } else if (abk == abk_routine) {
               a_routine_ptr  rp = rt_con->variant.address.variant.routine;
               if (rp->is_consteval) {
                 info_with_pos_sym(ec_address_of_consteval_function,
                                   &ips->position, symbol_for(rp), ips);
                 do_constexpr_fail(result);
               }  /* if */
-            } else if (abk == (an_address_base_kind)abk_label) {
+            } else if (abk == abk_label) {
               a_label_ptr  lp = rt_con->variant.address.variant.label;
               info_with_pos(ec_constexpr_access_to_runtime_storage,
                             &lp->source_corresp.decl_position, ips);
@@ -24939,12 +24950,15 @@ diagnostic in *ips.
             con->implicit_cast = TRUE;
           }  /* if */
           if (vp != NULL) {
-            if (var_has_static_storage_duration(vp)) {
-              con->variant.address.kind = (an_address_base_kind)abk_variable;
+            if (var_has_static_storage_duration(vp) ||
+                (cpp26_mode && ips->is_constant_evaluated &&
+                 type->variant.pointer.is_reference &&
+                 is_addressable_auto_var(vp))) {
+              con->variant.address.kind = abk_variable;
               con->variant.address.variant.variable = vp;
             } else {
-              /* Not a variable with static storage duration (e.g., a thread-
-                 local variable). */
+              /* Not a variable with static storage duration nor (in C++26
+                 mode) a local variable (e.g., a thread-local variable). */
               do_constexpr_fail(result);
               info_with_pos(ec_constexpr_access_to_runtime_storage,
                             &ips->position, ips);

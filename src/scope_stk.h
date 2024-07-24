@@ -2659,6 +2659,7 @@ EXTERN a_call_op_to_lambda_map
 			/* A map from lambda call operator (a_routine) entries
 			   to corresponding a_lambda entries. */
 
+
 inline a_lambda_ptr get_lambda_for_scope_depth(a_scope_depth  sd)
 /*
 The given scope depth is for an sck_function scope.  If the associated function
@@ -2670,7 +2671,9 @@ return NULL.
   return call_op_to_lambda_map->get(scope_stack[sd].assoc_routine);
 }  /* get_lambda_for_scope_depth */
 
+
 extern a_scope_depth get_curr_lambda_depth(void);
+
 
 inline a_lambda_ptr get_current_lambda(void)
 /*
