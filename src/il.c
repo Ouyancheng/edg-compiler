@@ -20165,7 +20165,7 @@ options is a set of substitution options.
         if (!delayed_subst_pairs.is_empty()) {
           /* Delayed substitutions adjust the coordinates of template parameter
              types and therefore need to be performed before substituting the
-             passed in template arguments. */
+             template arguments that were passed in. */
           subst_pairs.insert(0, a_subst_pairs_descr{ template_param_list,
                                                      template_arg_list,
                                                      FALSE, TRUE, FALSE,
