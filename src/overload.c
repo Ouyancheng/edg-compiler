@@ -6023,7 +6023,6 @@ in a new-expression).
           }  /* if */
           goto reject_function;
         } else {
-          
           if (check_arg_count_mismatch) {
           /* We're about to check the completeness of deduced types, but that
              could trigger hard errors.  Ensure that we have a viable number
