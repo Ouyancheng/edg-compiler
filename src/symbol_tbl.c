@@ -4859,6 +4859,10 @@ this is not allowed, an error will be issued by the caller.
        was referenced.  A new symbol can always coexist with
        an undefined one. */
     err = FALSE;
+  } else if (lookup_module_for_symbol(old_sym) !=
+             lookup_module_for_symbol(new_sym)) {
+    /* The symbols are in different modules for the purposes of lookup. */
+    err = FALSE;
   } else if ((cfront_2_1_mode || C_dialect == C_dialect_pcc ||
               (gcc_mode && gnu_version < 30400)) &&
              old_sym->kind == (a_symbol_kind)sk_variable &&

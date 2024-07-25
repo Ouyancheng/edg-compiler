@@ -381,6 +381,7 @@ IDL_PROJ_SYMBOL_ALLOWED is specified in options.
     for (; sym != NULL; sym = sym->next) {
       a_symbol_ptr	fund_sym = fundamental_symbol_of(sym);
       if (sym->decl_scope == scope_number &&
+          is_symbol_currently_lookup_visible(sym) &&
           scope_lookup_opts.accepts(required_name_space_kind, sym, fund_sym)) {
          /* Found it. */
          break;
