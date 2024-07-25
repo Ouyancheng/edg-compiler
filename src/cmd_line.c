@@ -5184,11 +5184,9 @@ This function is also called in clang mode.
       /* As of version 13.1, g++ accepts delimited escape sequences in all
          language versions. */
       delimited_escape_seqs_allowed = TRUE;
-      if (cpp23_mode) {
-        /* As of version 13.1, g++ accepts named Unicode characters, but
-           only with -std=c++23. */
-        named_unicode_chars_allowed = TRUE;
-      }  /* if */
+      /* As of version 13.1, g++ accepts named Unicode characters in all
+         language versions. */
+      named_unicode_chars_allowed = TRUE;
     }  /* if */
   }  /* if */
 }  /* check_and_set_gnu_mode_options */

@@ -2389,8 +2389,9 @@ C++23: Named Unicode character escapes
 
 As described in WG21 paper P2071R2 and modified by core issue 2640, the
 front end now accepts named Unicode character escapes in C++23 modes.  In
-clang C++ emulation, the feature is accepted in all language versions when
-clang_version is at least 150000.  For example, with --c++23:
+GNU and clang C++ emulation, the feature is accepted in all language
+versions when gnu_version is at least 130000 or clang_version is at least
+150000, respectively.  For example, with --c++23:
 
   const char *p = "0\N{DIGIT ONE}2";   // Equivalent to "012"
 
