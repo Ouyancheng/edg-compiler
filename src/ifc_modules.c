@@ -8564,21 +8564,26 @@ redeclaration.  If the symbol is a redeclaration, return TRUE and set
 kind; otherwise, return FALSE.
 */
 {
-  a_boolean        result = FALSE;
-  an_il_entry_kind kind;
-  char             *entity = il_entry_for_symbol_null_okay(sym, &kind);
+  a_boolean    result = FALSE;
+  a_module_ptr sym_mod = lookup_module_for_symbol(sym);
+  a_module_ptr mep_mod = lookup_module_for_mep(mep);
 
-  if (entity != NULL && kind == expected_kind) {
-    a_source_correspondence_ptr scp =
+  if (sym_mod == mep_mod) {
+    an_il_entry_kind kind;
+    char             *entity = il_entry_for_symbol_null_okay(sym, &kind);
+
+    if (entity != NULL && kind == expected_kind) {
+      a_source_correspondence_ptr scp =
                                      source_corresp_for_il_entry(entity, kind);
 
-    if (scp != NULL) {
-      a_scope_ptr scope = get_parent_scope_of(scp);
+      if (scp != NULL) {
+        a_scope_ptr scope = get_parent_scope_of(scp);
 
-      if (mep->scope == scope) {
-        *redecl_entity = entity;
-        *redecl_kind = kind;
-        result = TRUE;
+        if (mep->scope == scope) {
+          *redecl_entity = entity;
+          *redecl_kind = kind;
+          result = TRUE;
+        }  /* if */
       }  /* if */
     }  /* if */
   }  /* if */
@@ -9008,44 +9013,49 @@ This function should not be used directly in modules code, instead see
 check_and_set_template_redeclaration.
 */
 {
-  a_boolean        result = FALSE;
-  an_il_entry_kind kind;
-  char             *entity = il_entry_for_symbol_null_okay(sym, &kind);
+  a_boolean    result = FALSE;
+  a_module_ptr sym_mod = lookup_module_for_symbol(sym);
+  a_module_ptr mep_mod = lookup_module_for_mep(mep);
 
-  if (entity != NULL && kind == iek_template) {
-    a_source_correspondence_ptr scp =
+  if (sym_mod == mep_mod) {
+    an_il_entry_kind kind;
+    char             *entity = il_entry_for_symbol_null_okay(sym, &kind);
+
+    if (entity != NULL && kind == iek_template) {
+      a_source_correspondence_ptr scp =
                                      source_corresp_for_il_entry(entity, kind);
 
-    if (scp != NULL) {
-      a_scope_ptr scope = get_parent_scope_of(scp);
+      if (scp != NULL) {
+        a_scope_ptr scope = get_parent_scope_of(scp);
 
-      if (mep->scope == scope) {
-        a_template_ptr  templ = (a_template_ptr)entity;
-        a_template_kind templ_kind = templ->kind;
+        if (mep->scope == scope) {
+          a_template_ptr  templ = (a_template_ptr)entity;
+          a_template_kind templ_kind = templ->kind;
 
-        switch (templ_kind) {
-          case templk_none:
-            break;
-          case templk_class:
-          case templk_member_class:
-          case templk_member_enum:
-          case templk_template_template_param:
-          case templk_concept:
-          case templk_variable:
-          case templk_static_data_member:
-            /* Cases that can't be overloaded. */
-            result = TRUE;
-            break;
-          case templk_function:
-          case templk_member_function:
-            /* Function (potentially) overloaded case. */
-            result = is_function_template_redecl(mep, templ);
-            break;
-          default_is_unexpected();
-        }  /* switch */
-        if (result) {
-          *redecl_entity = entity;
-          *redecl_kind = kind;
+          switch (templ_kind) {
+            case templk_none:
+              break;
+            case templk_class:
+            case templk_member_class:
+            case templk_member_enum:
+            case templk_template_template_param:
+            case templk_concept:
+            case templk_variable:
+            case templk_static_data_member:
+              /* Cases that can't be overloaded. */
+              result = TRUE;
+              break;
+            case templk_function:
+            case templk_member_function:
+              /* Function (potentially) overloaded case. */
+              result = is_function_template_redecl(mep, templ);
+              break;
+            default_is_unexpected();
+          }  /* switch */
+          if (result) {
+            *redecl_entity = entity;
+            *redecl_kind = kind;
+          }  /* if */
         }  /* if */
       }  /* if */
     }  /* if */
@@ -9398,20 +9408,25 @@ check_and_set_concept_redeclaration.
   a_boolean result = FALSE;
 
   if (sym->kind == sk_concept_template) {
-    an_il_entry_kind kind;
-    char             *entity = il_entry_for_symbol_null_okay(sym, &kind);
+    a_module_ptr sym_mod = lookup_module_for_symbol(sym);
+    a_module_ptr mep_mod = lookup_module_for_mep(mep);
 
-    if (entity != NULL && kind == iek_template) {
-      a_source_correspondence_ptr scp =
+    if (sym_mod == mep_mod) {
+      an_il_entry_kind kind;
+      char             *entity = il_entry_for_symbol_null_okay(sym, &kind);
+
+      if (entity != NULL && kind == iek_template) {
+        a_source_correspondence_ptr scp =
                                      source_corresp_for_il_entry(entity, kind);
 
-      if (scp != NULL) {
-        a_scope_ptr scope = get_parent_scope_of(scp);
+        if (scp != NULL) {
+          a_scope_ptr scope = get_parent_scope_of(scp);
 
-        if (mep->scope == scope) {
-          result = TRUE;
-          *redecl_entity = entity;
-          *redecl_kind = kind;
+          if (mep->scope == scope) {
+            result = TRUE;
+            *redecl_entity = entity;
+            *redecl_kind = kind;
+          }  /* if */
         }  /* if */
       }  /* if */
     }  /* if */

@@ -4692,12 +4692,7 @@ Remove the given symbol from the list of symbols for its scope.
       pointers_block->last_symbol = sym_ptr->prev_in_scope;
     }  /* if */
     if (is_scope_kind_with_lookup_table(scope_kind)) {
-      a_module_ptr module_ptr = module_for_symbol(sym_ptr);
-
-      if (is_symbol_lookup_visible(sym_ptr)) {
-        module_ptr = NULL;
-      }  /* if */
-
+      a_module_ptr     module_ptr = lookup_module_for_symbol(sym_ptr);
       a_hash_table_ptr lookup_table = curr_lookup_table(pointers_block,
                                                         module_ptr,
                                                         scope_kind);
@@ -6248,12 +6243,7 @@ changed if there is no error.
     }  /* if */
     pointers_block->last_symbol = sym_ptr;
     if (is_scope_kind_with_lookup_table(scope_kind)) {
-      a_module_ptr module_ptr = module_for_symbol(sym_ptr);
-
-      if (is_symbol_lookup_visible(sym_ptr)) {
-        module_ptr = NULL;
-      }  /* if */
-
+      a_module_ptr     module_ptr = lookup_module_for_symbol(sym_ptr);
       a_hash_table_ptr lookup_table = curr_lookup_table(pointers_block,
                                                         module_ptr,
                                                         scope_kind,
@@ -7143,11 +7133,7 @@ the file scope is used.
       }  /* if */
 
       /* Remove the original symbol from the hash table and add the new one. */
-      a_module_ptr module_ptr = module_for_symbol(other_sym);
-      if (is_symbol_lookup_visible(other_sym)) {
-        module_ptr = NULL;
-      }  /* if */
-
+      a_module_ptr     module_ptr = lookup_module_for_symbol(other_sym);
       a_hash_table_ptr lookup_table = curr_lookup_table(
                                                     pointers_block,
                                                     module_ptr,
@@ -12769,6 +12755,23 @@ if there isn't one.
 }  /* module_for_symbol */
 
 
+a_module *lookup_module_for_symbol(a_symbol_ptr sym_ptr)
+/*
+Return a pointer to the module used for lookup of the given symbol.  Return NULL
+if there isn't one.
+*/
+{
+  a_module_ptr result;
+
+  if (is_symbol_lookup_visible(sym_ptr)) {
+    result = NULL;
+  } else {
+    result = skip_module_partitions(module_for_symbol(sym_ptr));
+  }  /* if */
+  return result;
+}  /* module_for_symbol */
+
+
 a_boolean is_symbol_lookup_visible(a_symbol_ptr sym_ptr)
 /*
 Return TRUE if the given symbol is visible to lookup.  For the symbol to be
@@ -12776,17 +12779,9 @@ visible to lookup, it must either be part of the global module or it must have
 been exported from a module (that has been imported).  Otherwise, return FALSE.
 */
 {
-  a_boolean           result = FALSE;
   a_module_entity_ptr mep = sym_ptr->module_entity;
+  a_boolean           result = is_module_entity_lookup_visible(mep);
 
-  if (mep == NULL || mep->global_module) {
-    /* This declaration belongs to the global module, so it's definitely
-       lookup visible. */
-    result = TRUE;
-  } else if (!mep->non_exported) {
-    /* This declaration was exported from an imported module. */
-    result = TRUE;
-  }  /* if */
   return result;
 }  /* is_symbol_lookup_visible */
 

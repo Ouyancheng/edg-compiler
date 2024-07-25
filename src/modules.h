@@ -186,6 +186,28 @@ stack is empty.
 }  /* curr_module_context */
 
 
+inline a_boolean is_module_entity_lookup_visible(a_module_entity_ptr mep)
+/*
+Return TRUE if the given module entity is visible to lookup.  For the symbol to
+be visible to lookup, it must either be part of the global module or it must
+have been exported from a module (that has been imported).  Otherwise, return
+FALSE.
+*/
+{
+  a_boolean result = FALSE;
+
+  if (mep == NULL || mep->global_module) {
+    /* This declaration belongs to the global module, so it's definitely
+       lookup visible. */
+    result = TRUE;
+  } else if (!mep->non_exported) {
+    /* This declaration was exported from an imported module. */
+    result = TRUE;
+  }  /* if */
+  return result;
+}  /* is_module_entity_lookup_visible */
+
+
 inline a_module_ptr skip_module_partitions(a_module_ptr mod)
 /*
 Return the module unit skipping over any module partition unit.
@@ -198,6 +220,23 @@ Return the module unit skipping over any module partition unit.
   }  /* while */
   return result;
 }  /* skip_module_partitions */
+
+
+inline a_module *lookup_module_for_mep(a_module_entity_ptr mep)
+/*
+Return a pointer to the module used for lookup of the given module entity
+pointer.  Return NULL if there isn't one.
+*/
+{
+  a_module_ptr result;
+
+  if (is_module_entity_lookup_visible(mep)) {
+    result = NULL;
+  } else {
+    result = skip_module_partitions(mep->module_info);
+  }  /* if */
+  return result;
+}  /* module_for_symbol */
 
 
 inline a_module_ptr curr_lookup_module()

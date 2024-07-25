@@ -5958,6 +5958,8 @@ extern a_source_correspondence *source_corresp_entry_for_symbol(
 
 extern a_module *module_for_symbol(a_symbol_ptr sym_ptr);
 
+extern a_module *lookup_module_for_symbol(a_symbol_ptr sym_ptr);
+
 extern a_boolean is_symbol_lookup_visible(a_symbol_ptr sym_ptr);
 
 extern a_boolean is_symbol_currently_lookup_visible(a_symbol_ptr sym_ptr);
