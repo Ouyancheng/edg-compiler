@@ -5904,11 +5904,18 @@ returned set to TRUE.
         release_local_constant(&folded_con);
       } else if (interpret_dynamic_init(init_dip, &pos_first_token, dps->type,
                                         is_constant_evaluated,
-                                        folded_con, &diag_list)) {
+                                        folded_con, &diag_list) &&
+                 /* Avoid "constant" addresses of local variables for static-
+                    lifetime variables that don't need to be constant-
+                    initialized.  For other variables, an error will be issued
+                    below. */
+                 !(static_lifetime &&
+                   !dps->init_state.initializer_must_be_constant &&
+                   constant_addresses_local_var(folded_con))) {
         if (is_error_constant(folded_con)) {
           init_err = TRUE;
         } else if (static_lifetime &&
-                   (vp->is_constexpr || vp->declared_constinit) &&
+                   dps->init_state.initializer_must_be_constant &&
                    constant_addresses_local_var(folded_con)) {
           pos_error(ec_constant_addresses_local_variable, &pos_first_token);
           set_error_constant(folded_con);
