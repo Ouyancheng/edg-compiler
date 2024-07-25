@@ -19118,8 +19118,15 @@ for the union type (class_type).
          will be repeated when a real instantiation of the enclosing union is
          performed. */
     } else if (unrestricted_unions_enabled) {
-      if (cssp->has_nontrivial_default_constructor &&
-          !initializer_overrides_ctor) {
+      /* For struct and class types, record a nontrivial default constructor.
+         For union types, nontriviality due to default member initializers
+         should be ignored, but we can instead propagate the flag
+         variant_member_with_nontrivial_default_ctor. */
+      if (type_is(tp, tk_union)) {
+        parent_cssp->variant_member_with_nontrivial_default_ctor = 
+                            cssp->variant_member_with_nontrivial_default_ctor;
+      } else if (cssp->has_nontrivial_default_constructor &&
+                 !initializer_overrides_ctor) {
         parent_cssp->variant_member_with_nontrivial_default_ctor = TRUE;
       }  /* if */
       if (cssp->makes_copy_construction_nontrivial) {
