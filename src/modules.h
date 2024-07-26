@@ -150,48 +150,12 @@ EXTERN unsigned long
 
 #endif /* DEBUG */
 
+inline a_boolean is_module_entity_globally_visible(a_module_entity_ptr mep)
 /*
-Entry used to maintain a stack of module contexts.  The top of the stack
-is the "current" module for lookups.
-*/
-typedef struct a_module_context_stack_entry *a_module_context_stack_entry_ptr;
-struct a_module_context_stack_entry {
-  a_module_ptr  module_ptr;
-                        /* Pointer to the current module when this entry is
-                           at the top of the stack. */
-};  /* a_module_context_stack_entry */
-
-using a_module_stack = Small_dyn_array<a_module_context_stack_entry, 5,
-                                       General_allocator>;
-                        /* The type used to represent the stack of module
-                           contexts. */
-
-EXTERN a_module_stack
-                *module_stack;
-                        /* A dynamic array of the active module contexts. */
-
-
-inline a_module_context_stack_entry_ptr curr_module_context()
-/*
-Return a pointer to the top of the module context stack, or NULL if the
-stack is empty.
-*/
-{
-  a_module_context_stack_entry_ptr mcsep = NULL;
-
-  if (module_stack != NULL && module_stack->length() > 0) {
-    mcsep = &module_stack->back_elem();
-  }  /* if */
-  return mcsep;
-}  /* curr_module_context */
-
-
-inline a_boolean is_module_entity_lookup_visible(a_module_entity_ptr mep)
-/*
-Return TRUE if the given module entity is visible to lookup.  For the symbol to
-be visible to lookup, it must either be part of the global module or it must
-have been exported from a module (that has been imported).  Otherwise, return
-FALSE.
+Return TRUE if the given module entity is globally visible to lookup.  For the
+symbol to be globally visible to lookup, it must either be part of the global
+module or it must have been exported from a module (that has been imported).
+Otherwise, return FALSE.
 */
 {
   a_boolean result = FALSE;
@@ -205,7 +169,7 @@ FALSE.
     result = TRUE;
   }  /* if */
   return result;
-}  /* is_module_entity_lookup_visible */
+}  /* is_module_entity_globally_visible */
 
 
 inline a_module_ptr skip_module_partitions(a_module_ptr mod)
@@ -230,53 +194,13 @@ pointer.  Return NULL if there isn't one.
 {
   a_module_ptr result;
 
-  if (is_module_entity_lookup_visible(mep)) {
+  if (is_module_entity_globally_visible(mep)) {
     result = NULL;
   } else {
     result = skip_module_partitions(mep->module_info);
   }  /* if */
   return result;
-}  /* module_for_symbol */
-
-
-inline a_module_ptr curr_lookup_module()
-/*
-Return the module entry associated with the entry at the top of the module
-stack, or NULL if there's no module currently limiting lookup.
-*/
-{
-  a_module_ptr                     mp = NULL;
-  a_module_context_stack_entry_ptr mcsep = curr_module_context();
-
-  if (mcsep != NULL) {
-    mp = mcsep->module_ptr;
-  } else if (trans_unit_module != NULL) {
-    mp = trans_unit_module;
-  }   /* if */
-  mp = skip_module_partitions(mp);
-  return mp;
-}  /* curr_lookup_module */
-
-
-using a_module_lookup_array = Small_dyn_array<a_module_ptr, 2>;
-                        /* An array used to represent the array of modules
-                           to be used for lookup. */
-
-inline a_module_lookup_array curr_lookup_modules()
-/*
-Return the module entry associated with the entry at the top of the module
-stack, or NULL if there's no module currently limiting lookup.
-*/
-{
-  a_module_lookup_array result;
-  a_module_ptr          curr_module = curr_lookup_module();
-
-  result.push_back(NULL);
-  if (curr_module != NULL) {
-    result.push_back(curr_module);
-  }  /* if */
-  return result;
-}  /* curr_lookup_modules */
+}  /* lookup_module_for_mep */
 
 
 EXTERN a_symbol_ptr
@@ -290,13 +214,12 @@ is the "current" module for declarations.
 typedef struct a_module_entity_stack_entry *a_module_entity_stack_entry_ptr;
 struct a_module_entity_stack_entry {
   void invalidate()
-    { this->mep->invalid = TRUE; }
+    { check_assertion(this->mep != NULL); this->mep->invalid = TRUE; }
 
   a_module_entity_ptr
-                mep;    /* The current module entity pointer. */
-  a_boolean     module_pushed;
-                        /* TRUE if a module was pushed to the module context
-                           stack; otherwise, FALSE. */
+                mep;    /* The current module entity pointer.  If mep is NULL,
+                           this represents a return to the translation unit
+                           module or the global module. */
 };  /* a_module_context_stack_entry */
 
 using a_module_entity_stack = Small_dyn_array<a_module_entity_stack_entry, 5,
@@ -342,6 +265,65 @@ struct a_module_entity_stack_state {
   ~a_module_entity_stack_state()
     { pop_module_entity_state(); }
 };  /* a_module_entity_stack_state */
+
+
+inline a_module_entity_ptr curr_module_entity()
+/*
+Return a pointer to the module entity at the top of the module entity stack, or
+NULL if there is no current module entity.
+*/
+{
+  a_module_entity_ptr mep = NULL;
+
+  if (module_entity_stack != NULL && module_entity_stack->length() > 0) {
+    a_module_entity_stack_entry_ptr mesep = &module_entity_stack->back_elem();
+
+    mep = mesep->mep;
+  }  /* if */
+  return mep;
+}  /* curr_module_entity */
+
+
+inline a_module_ptr curr_lookup_module()
+/*
+Return the module that should be used for additional lookup (outside of
+the global module and any exported entities from imported modules).
+*/
+{
+  a_module_ptr        result = NULL;
+  a_module_entity_ptr mep = curr_module_entity();
+
+  if (mep != NULL && mep->module_info->kind != mk_header_unit) {
+    result = mep->module_info;
+  } else if (trans_unit_module != NULL) {
+    result = trans_unit_module;
+  }   /* if */
+  result = skip_module_partitions(result);
+  return result;
+}  /* curr_lookup_module */
+
+
+using a_module_lookup_array = Small_dyn_array<a_module_ptr, 2>;
+                        /* An array used to represent the array of modules
+                           to be used for lookup. */
+
+
+inline a_module_lookup_array curr_lookup_modules()
+/*
+Return all modules that module that can be pulled from during lookup.  A NULL
+value represents the global module and any exported entities from imported
+modules.
+*/
+{
+  a_module_lookup_array result;
+  a_module_ptr          curr_module = curr_lookup_module();
+
+  result.push_back(NULL);
+  if (curr_module != NULL) {
+    result.push_back(curr_module);
+  }  /* if */
+  return result;
+}  /* curr_lookup_modules */
 
 
 EXTERN a_boolean

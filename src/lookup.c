@@ -2556,8 +2556,8 @@ of the lookup is returned to the caller.
     load_lazy_symbols_if_needed(nsp->variant.assoc_scope, locator);
     for (a_module_ptr mod : curr_lookup_modules()) {
       for (new_sym = find_symbol_list_in_table(
-                   curr_lookup_table(&nssp->pointers_block, mod, sck_namespace),
-                   locator->symbol_header);
+                  curr_lookup_table(&nssp->pointers_block, mod, sck_namespace),
+                  locator->symbol_header);
            new_sym != NULL;
            new_sym = new_sym->next_in_lookup_table) {
         /* Look through the symbols associated with the given namespace.  Note
@@ -2920,7 +2920,8 @@ routine.
                symbol list for the other entries will not be correct if
                the first occurrence is for the initial use of the scope.
                If this is a reactivation and the primary entry for the
-               scope is not on the stack, get the symbol list from the scope. */
+               scope is not on the stack, get the symbol list from the
+               scope. */
             a_scope_depth depth;
 
             check_assertion(ssep->il_scope != NULL);

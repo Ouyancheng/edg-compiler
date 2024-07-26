@@ -4465,9 +4465,9 @@ a_hash_table_ptr curr_lookup_table(
 /*
 Return a pointer to the lookup table for given module context for the scope
 associated with pointers_block.  Note that this address could point into a
-Ptr_map, so it is potentially not stable across things like instantiations, etc.
-When module_context is NULL the lookup_table pointer is used, otherwise a map
-from the module context to a particular lookup table is used.  If create is
+Ptr_map, so it is potentially not stable across things like instantiations,
+etc.  When module_context is NULL the lookup_table pointer is used, otherwise a
+map from the module context to a particular lookup table is used.  If create is
 TRUE, a map entry is added for the lookup table for the module_context.
 */
 {
@@ -12744,8 +12744,8 @@ for the given symbol.  Return NULL if there isn't one.
 
 a_module *module_for_symbol(a_symbol_ptr sym_ptr)
 /*
-Return a pointer to the module where the given symbol was declared.  Return NULL
-if there isn't one.
+Return a pointer to the module where the given symbol was declared.  Return
+NULL if there isn't one.
 */
 {
   a_module_ptr  result = NULL;
@@ -12761,22 +12761,22 @@ if there isn't one.
 
 a_module *lookup_module_for_symbol(a_symbol_ptr sym_ptr)
 /*
-Return a pointer to the module used for lookup of the given symbol.  Return NULL
-if there isn't one.
+Return a pointer to the module used for lookup of the given symbol.  Return
+NULL if there isn't one.
 */
 {
   a_module_ptr result;
 
-  if (is_symbol_lookup_visible(sym_ptr)) {
+  if (is_symbol_globally_visible(sym_ptr)) {
     result = NULL;
   } else {
     result = skip_module_partitions(module_for_symbol(sym_ptr));
   }  /* if */
   return result;
-}  /* module_for_symbol */
+}  /* lookup_module_for_symbol */
 
 
-a_boolean is_symbol_lookup_visible(a_symbol_ptr sym_ptr)
+a_boolean is_symbol_globally_visible(a_symbol_ptr sym_ptr)
 /*
 Return TRUE if the given symbol is visible to lookup.  For the symbol to be
 visible to lookup, it must either be part of the global module or it must have
@@ -12784,10 +12784,10 @@ been exported from a module (that has been imported).  Otherwise, return FALSE.
 */
 {
   a_module_entity_ptr mep = sym_ptr->module_entity;
-  a_boolean           result = is_module_entity_lookup_visible(mep);
+  a_boolean           result = is_module_entity_globally_visible(mep);
 
   return result;
-}  /* is_symbol_lookup_visible */
+}  /* is_symbol_globally_visible */
 
 
 a_boolean is_symbol_currently_lookup_visible(a_symbol_ptr sym_ptr)
@@ -12799,7 +12799,7 @@ been exported from a module (that has been imported).  Otherwise, return FALSE.
 {
   a_boolean result = FALSE;
 
-  if (is_symbol_lookup_visible(sym_ptr)) {
+  if (is_symbol_globally_visible(sym_ptr)) {
     /* This declaration belongs to the global module, so it's definitely
        lookup visible. */
     result = TRUE;
@@ -12815,7 +12815,7 @@ been exported from a module (that has been imported).  Otherwise, return FALSE.
     }  /* if */
   }  /* if */
   return result;
-}  /* is_symbol_lookup_visible */
+}  /* is_symbol_currently_lookup_visible */
 
 #if DEBUG
 

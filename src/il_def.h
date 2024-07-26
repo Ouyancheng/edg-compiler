@@ -18020,8 +18020,8 @@ typedef struct a_module {
 			/* The (cached) full path name to the module file. */
   a_module_file_kind
 		file_kind;
-			/* The (cached) file kind of the module file at the path
-			   stored by resolved_file. */
+			/* The (cached) file kind of the module file at the
+			   path stored by resolved_file. */
   a_module_interface_ptr
 		module_interface;
 			/* The module interface object used to interact with
@@ -18032,14 +18032,14 @@ typedef struct a_module {
 			   made use of a feature of its binary module format
 			   that EDG knows about but does not yet support). */
   union {
-    /* When kind == mk_none, no variant fields. */
+    /* When kind == mk_none or mk_unit, no variant fields. */
     /* When kind == mk_header_unit: */
     struct {
       a_bit_field
 		is_sys_include:1;
 			/* This is TRUE if the header import used system header
-			   import syntax (e.g., import <foo.h>), and FALSE if it
-			   used user header import syntax (e.g., import
+			   import syntax (e.g., import <foo.h>), and FALSE if
+			   it used user header import syntax (e.g., import
 			   "foo.h").  This field is meaningless when kind !=
 			   mk_header. */
       a_bit_field
@@ -18053,9 +18053,6 @@ typedef struct a_module {
 		*resolved_header;
 			/* The resolved header path. */
     } header_unit;
-    /* When kind == mk_unit: */
-    struct {
-    } unit;
     /* When kind == mk_unit_partition: */
     struct {
       a_module_ptr

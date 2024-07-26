@@ -1078,9 +1078,10 @@ to the PCH output file.
 
   db_enter(5, "write_list_of_module_file_timestamps");
   for (midp = il_header.imported_modules; midp != NULL; midp = midp->next) {
-    time_t     mod_time;
+    time_t mod_time;
 
-    (void)get_file_modification_time(midp->module_info->resolved_file, &mod_time);
+    (void)get_file_modification_time(midp->module_info->resolved_file,
+                                     &mod_time);
     pch_write_string(midp->module_info->resolved_file);
     pch_write_value(mod_time);
 #if DEBUG

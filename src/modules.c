@@ -114,6 +114,11 @@ static a_module_name_map
 static a_module_ptr find_or_create_module(a_string_view module_sym_id,
                                           a_module_kind module_kind)
 /*
+Find or create an IL module entity corresponding to the given module symbol
+identifier and module kind.
+
+Note: module_sym_id must be backed by long term storage; this function does not
+create its own copy of the module symbol identifier.
 */
 {
   a_module_ptr  result = known_modules->get(module_sym_id);
@@ -124,12 +129,13 @@ static a_module_ptr find_or_create_module(a_string_view module_sym_id,
     known_modules->map(module_sym_id, result);
   }  /* if */
   return result;
-} /* find_or_create_module */
+}  /* find_or_create_module */
 
 
 a_module_ptr find_or_create_module(a_symbol_ptr module_sym)
 /*
-module_name must be backed by a string with long term storage.
+Find or create an IL module entity corresponding to the given module symbol
+identifier and module kind.
 */
 {
   check_assertion(module_sym->kind == sk_module);
@@ -915,30 +921,22 @@ processing of the imported module entities for this module.
 
 void push_module_entity_state(a_module_entity_ptr mep)
 /*
+Push a new module entity to the module entity stack.  If mep is NULL, this
+represents a return to the translation unit module or the global module.
 */
 {
   a_module_entity_stack_entry mese{};
 
   mese.mep = mep;
-  a_module_ptr lookup_module = trans_unit_module;
-  if (mep != NULL && mep->module_info->kind != mk_header_unit) {
-    lookup_module = mep->module_info;
-  }  /* if */
-  if (curr_lookup_module() != lookup_module) {
-    mese.module_pushed = TRUE;
-    push_module_context(lookup_module);
-  }  /* if */
   module_entity_stack->push_back(mese);
 }  /* push_module_entity_state */
 
 
 void pop_module_entity_state()
 /*
+Pop the current module entity from the module entity stack.
 */
 {
-  if (module_entity_stack->back_elem().module_pushed) {
-    pop_module_context();
-  }  /* if */
   module_entity_stack->pop_back();
 }  /* pop_module_entity_state */
 
@@ -1164,39 +1162,7 @@ definition now and return TRUE. If an error occurs, return FALSE.
   return result;
 }  /* load_type_definition_from_module */
 
-
-void push_module_context(a_module_ptr mod_ptr)
-/*
-Push an entry for the module specified by mod_ptr onto the module stack.
-*/
-{
-  module_stack->push_back(a_module_context_stack_entry {mod_ptr});
-}  /* push_module_context */
-
-
-void pop_module_context()
-/*
-Pop an entry from the module stack.
-*/
-{
-  module_stack->pop_back();
-}  /* push_module_context */
-
 #if DEBUG
-
-void db_module_stack()
-/*
-Display debug information about the module stack.
-*/
-{
-  int  size = module_stack->length();
-  for (int i = size-1; i >= 0; i--) {
-    a_module_context_stack_entry &mcsep = (*module_stack)[i];
-
-    db_module(mcsep.module_ptr);
-  }  /* for */
-}  /* db_module_stack */
-
 
 void db_mep_stack()
 /*
@@ -1388,7 +1354,6 @@ Do one-time initialization of static variables defined in this file.
   register_trans_unit_variable(curr_module_sym);
   register_trans_unit_variable(lazy_symbols_may_be_visible);
   register_trans_unit_variable(module_entity_hash_table);
-  register_trans_unit_variable(module_stack);
   register_trans_unit_variable(module_entity_stack);
   register_trans_unit_variable(known_modules);
 }  /* modules_one_time_init */
@@ -1408,7 +1373,6 @@ translation unit.
   curr_module_sym = NULL;
   lazy_symbols_may_be_visible = FALSE;
   module_entity_hash_table = NULL;
-  module_stack = new_fe<a_module_stack>();
   module_entity_stack = new_fe<a_module_entity_stack>();
   known_modules = new_fe<a_module_name_map>(/*mask_width=*/10);
   ifc_modules_trans_unit_init();
@@ -1425,7 +1389,6 @@ instantiations, etc.) has been done.
   ifc_modules_trans_unit_wrapup();
   delete_fe(&known_modules);
   delete_fe(&module_entity_stack);
-  delete_fe(&module_stack);
   lazy_symbols_may_be_visible = FALSE;
 }  /* modules_trans_unit_wrapup */
 

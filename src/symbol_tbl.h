@@ -5960,7 +5960,7 @@ extern a_module *module_for_symbol(a_symbol_ptr sym_ptr);
 
 extern a_module *lookup_module_for_symbol(a_symbol_ptr sym_ptr);
 
-extern a_boolean is_symbol_lookup_visible(a_symbol_ptr sym_ptr);
+extern a_boolean is_symbol_globally_visible(a_symbol_ptr sym_ptr);
 
 extern a_boolean is_symbol_currently_lookup_visible(a_symbol_ptr sym_ptr);
 

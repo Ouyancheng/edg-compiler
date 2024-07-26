@@ -8659,8 +8659,10 @@ static void maybe_diagnose_redeclaration(a_module_entity_ptr   mep,
                                          char                  *redecl_entity,
                                          an_il_entry_kind      redecl_kind)
 /*
-This is a redeclaration of an existing symbol.  If this is a named module and
-the entity is not part of the global module, emit an error.
+The given module entity pointer (at the given position) is a redeclaration of
+an existing entity (represented by redecl_entity and redecl_kind).  If module
+entity is from a named module and the entity is not part of the global module,
+emit an error.
 */
 {
 #if 0
@@ -8685,7 +8687,7 @@ the entity is not part of the global module, emit an error.
     pos_error(ec_module_import_conflict, pos, redecl_sym);
   }  /* if */
 #endif /* 0 */
-}  /* diagnose_redeclaration */
+}  /* maybe_diagnose_redeclaration */
 
 
 static a_boolean
@@ -9606,8 +9608,8 @@ have been validated by the caller.
 static inline void inherit_mep_origin_flags(a_module_entity_ptr mep,
                                             a_module_entity_ptr source_mep)
 /*
-Inherit the module entity's origin flags (namely, global_module and non_exported)
-from the given source module entity.
+Inherit the module entity's origin flags (namely, global_module and
+non_exported) from the given source module entity.
 */
 {
   mep->global_module = source_mep->global_module;
