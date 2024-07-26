@@ -19699,11 +19699,13 @@ Generate a module import directive.
   /* Write out the import declaration. */
   write_tok_str("import ");
   if (midp->module_info->kind == mk_header_unit) {
-    write_tok_ch(midp->module_info->variant.is_sys_include ? '<' : '"');
+    write_tok_ch(midp->module_info->variant.header_unit.is_sys_include ?
+                                                                   '<' : '"');
   }  /* if */
   write_tok_str(midp->module_info->name);
   if (midp->module_info->kind == mk_header_unit) {
-    write_tok_str(midp->module_info->variant.is_sys_include ? "> " : "\" ");
+    write_tok_str(midp->module_info->variant.header_unit.is_sys_include ?
+                                                                 "> " : "\" ");
   }  /* if */
   gen_attributes(midp->attributes, al_module, /*primary_only=*/FALSE);
   write_tok_ch(';');
