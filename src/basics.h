@@ -1271,9 +1271,13 @@ in the fe_init.c translation unit this will appear as:
     // values
   };
   static_assert((sizeof(example_decl) / sizeof(example_decl[0]) >=
-                example_decl_expected_size, "<missing error text>");
+                example_decl_expected_size,
+                "there are one or more missing elements in the array "
+                "\"example_decl\"");
   static_assert((sizeof(example_decl) / sizeof(example_decl[0]) <=
-                example_decl_expected_size, "<extra error text>");
+                example_decl_expected_size,
+                "there are one or more extra elements in the array "
+                "\"example_decl\"");
 
 For declarations that do not follow this initialization pattern,
 CONSTINIT_ARRAY can be used to set up the appropriate checking with explicit
@@ -1293,9 +1297,13 @@ this will similarly expand to:
     // values
   };
   static_assert((sizeof(example_decl) / sizeof(example_decl[0]) >=
-                example_decl_expected_size, "<missing error text>");
+                example_decl_expected_size,
+                "there are one or more missing elements in the array "
+                "\"example_decl\"");
   static_assert((sizeof(example_decl) / sizeof(example_decl[0]) <=
-                example_decl_expected_size, "<extra error text>");
+                example_decl_expected_size,
+                "there are one or more extra elements in the array "
+                "\"example_decl\"");
 
 */
 #define CONSTINIT_ARRAY(specifiers, type, name, size)                         \
@@ -1312,7 +1320,7 @@ this will similarly expand to:
                 "\"" #name "\"");
 #if VAR_INITIALIZERS
 #define EXTERN_CONSTINIT_ARRAY(type, name, size)                              \
-  CONSTINIT_ARRAY(EXTERN, type, name, size)
+  CONSTINIT_ARRAY(, type, name, size)
 #define EXTERN_CONSTINIT_ARRAY_END(name) CONSTINIT_ARRAY_END(name)
 #else /* !VAR_INITIALIZERS */
 #define EXTERN_CONSTINIT_ARRAY(type, name, size) extern type name[size]
