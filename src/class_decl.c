@@ -19066,14 +19066,16 @@ assignment.
 
 static a_boolean check_valid_union_field(a_type_ptr         field_type,
                                          a_type_ptr         class_type,
+                                         a_boolean          anon_union_field,
                                          a_boolean          is_nonstd,
                                          a_boolean          has_initializer,
                                          a_source_position  *pos)
 /*
 Check that a union field's type (field_type) is valid.  class_type is the type
-of the union.  is_nonstd is TRUE if class_type is a nonstandard anonymous
-union.  has_initializer is TRUE if the field has an initializer (a C++11
-feature).  pos is the position for diagnostics.
+of the union.  anon_union_field is TRUE if the field is a anonymous union
+field (within another union).  is_nonstd is TRUE if class_type is a nonstandard
+anonymous union.  has_initializer is TRUE if the field has an initializer (a
+C++11 feature).  pos is the position for diagnostics.
 
 In traditional C++, nonstatic data members of a union may not be objects with
 a constructor, a destructor, or a user-defined assignment operator.  (In C++11
@@ -19118,13 +19120,14 @@ for the union type (class_type).
          will be repeated when a real instantiation of the enclosing union is
          performed. */
     } else if (unrestricted_unions_enabled) {
-      /* For struct and class types, record a nontrivial default constructor.
-         For union types, nontriviality due to default member initializers
-         should be ignored, but we can instead propagate the flag
+      /* Record a nontrivial default constructor.  For anonymous union fields,
+         nontriviality due to default member initializers should be ignored,
+         but we can instead propagate the flag
          variant_member_with_nontrivial_default_ctor. */
-      if (type_is(tp, tk_union)) {
-        parent_cssp->variant_member_with_nontrivial_default_ctor = 
-                            cssp->variant_member_with_nontrivial_default_ctor;
+      if (anon_union_field) {
+        if (cssp->variant_member_with_nontrivial_default_ctor) {
+          parent_cssp->variant_member_with_nontrivial_default_ctor = TRUE;
+        }  /* if */
       } else if (cssp->has_nontrivial_default_constructor &&
                  !initializer_overrides_ctor) {
         parent_cssp->variant_member_with_nontrivial_default_ctor = TRUE;
@@ -19302,7 +19305,9 @@ promotion is for a nonstandard anonymous union.
   a_field_ptr   field = sym->variant.field.ptr;
  
   if (is_nonstd && gpp_mode &&
-      !check_valid_union_field(field->type, class_type, /*is_nonstd=*/TRUE,
+      !check_valid_union_field(field->type, class_type,
+                               /*anon_union_field=*/FALSE,
+                               /*is_nonstd=*/TRUE,
                                field->has_initializer,
                                &field->source_corresp.decl_position)) {
     /* GNU C++ compilers apply the same constraints to nonstandard anonymous
@@ -20903,7 +20908,9 @@ be entered.
       (!decl_info->is_anonymous_union || unrestricted_unions_enabled)) {
     /* An object of a class with a constructor, a destructor, or a user-
        defined assignment operator cannot be a member of a union. */
-    if (!check_valid_union_field(member_type, class_type, /*is_nonstd=*/FALSE,
+    if (!check_valid_union_field(member_type, class_type,
+                                 decl_info->is_anonymous_union,
+                                 /*is_nonstd=*/FALSE,
                                  decl_state->has_initializer,
                                  &locator->source_position)) {
       member_type = error_type();
