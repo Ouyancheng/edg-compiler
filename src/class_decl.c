@@ -4455,6 +4455,16 @@ In C++17 mode, the initializer need not be a constant-expression.
       last_ssep->next = NULL;
     }  /* if */
 #endif /* GENERATE_SOURCE_SEQUENCE_LISTS */
+  } else if (var->is_inline && symbol_is(var_sym, sk_static_data_member)) {
+    /* Inline static data members must have a complete type only when
+       instantiated, but also when they have no initializer. */
+    complete_type_is_needed(var->type);
+    if (is_incomplete_type(var->type) &&
+        !is_template_dependent_type(var->type)) {
+      /* As a definition, an inline static data member must have a
+         complete type. */
+      issue_incomplete_type_diag(&var_sym->decl_position, var->type);
+    }  /* if */
   }  /* if */
 }  /* ensure_inclass_static_member_constant_initializer_is_scanned */
 
@@ -18650,11 +18660,14 @@ template declaration and is NULL otherwise.
         constant_member = is_const_qualified_type(member_type);
       }  /* if */
     } else if (((gpp_version_is(>= 40100) && constant_member) ||
-                (gpp_mode && var->is_inline)) &&
+                var->is_inline) &&
                in_class_template_definition(class_state)) {
-      /* GCC appears to instantiate the initializer on demand.  Cache and
-         extract the initializer during the prototype instantiation.  The
-         cache will be scanned on-demand for real instantiations (see
+      /* GCC appears to instantiate the initializer of constant static data
+         members initialized in the class on-demand.  Inline static data
+         member declaration are considered to be defined in the class, and are
+         therefore also instantiated on-demand. Cache and extract the
+         initializer during the prototype instantiation.  The cache will be
+         scanned on-demand for real instantiations (see
          ensure_inclass_static_member_constant_initializer_is_scanned). */
       a_token_cache  *token_cache;
       a_static_data_member_supplement_ptr
@@ -18799,13 +18812,16 @@ template declaration and is NULL otherwise.
     if (var->is_inline) {
       /* Inline static data members are considered definitions. */
       srk_flags |= SRK_DEFINITION;
-      if (!decl_info->is_member_template && !initializer_delayed) {
+      if (!decl_info->is_member_template && !initializer_delayed &&
+          !(class_state->is_template_instantiation &&
+            !class_state->is_nonreal_instantiation)) {
         complete_type_is_needed(var->type);
         if (is_incomplete_type(var->type) &&
             !is_template_dependent_type(var->type)) {
           /* As a definition, an inline static data member must have a
              complete type. */
           issue_incomplete_type_diag(start_pos, var->type);
+          var->type = error_type();
         }  /* if */
       }  /* if */
     }  /* if */

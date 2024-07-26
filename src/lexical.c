@@ -3870,7 +3870,9 @@ a template argument list or is just a less-than sign.
   if (coalesce_ids) {
     begin_caching_fetched_tokens(/*include_curr_token=*/TRUE);
     /* Attempt to coalesce this token in case it begins an identifier. */
-    (void)is_generalized_identifier_start(GID_TEMPLATE_ARGS_OPTIONAL);
+    an_identifier_options_set  gid_opts = GID_TEMPLATE_ARGS_OPTIONAL;
+    if (is_expr) gid_opts |= GID_IS_EXPR_CONTEXT;
+    (void)is_generalized_identifier_start(gid_opts);
   }  /* if */
   /* Loop through the tokens, beginning with the current token and stopping
      when a token in the stop token array is found.  Whenever a '(', '[', or

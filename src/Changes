@@ -1,5 +1,25 @@
 Version 6.7
 
+7/26/24  [EDGcpfe/27249,EDGcpfe/27478]
+Handling of inline static data members in class templates
+
+An inline static data member is considered defined in a class template, and
+its definition should only be instantiated when used.  Previously, the front
+end instantiated inline static data members in class templates along with the
+parent template class by default.  Consider:
+
+  template<typename = void> struct S {
+    S();
+    static inline S s;
+  };
+  template<> inline S<>::S() {}  // Previously an error.  Now okay.
+
+This previously elicited an error because "S<>::" triggered the instantiation
+of S<void>, and the member S<void>::s was required to be complete before the
+instantiation of S<void> was complete.  That is now fixed: The instantiation
+of S<void>::s is not performed and thus its type need not be complete.
+
+
 7/26/24  [EDGcpfe/27396]
 Abort on pack expansion in concept template argument list
 
