@@ -5946,6 +5946,7 @@ Allocate and return an IL entry for a module.
     case mk_unit_partition:
       mod->variant.unit_partition.unit = NULL;
       break;
+    default_is_unexpected();
   }  /* switch */
   return mod;
 }  /* alloc_module */
