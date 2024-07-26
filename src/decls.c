@@ -1025,13 +1025,19 @@ type-constraint followed by "auto" or, if decltype_auto_okay is TRUE, by
   (void)get_token();
   if (curr_token == tok_lt) {
     a_token_sequence_number  start_tsn = curr_token_sequence_number;
+    a_template_arg_ptr       templ_args;
     begin_caching_fetched_tokens(/*include_curr_token=*/TRUE);
     a_boolean      saved_in_disambiguation;
     saved_in_disambiguation = scope_stack_top().in_disambiguation;
     scope_stack_top().in_disambiguation = TRUE;
-    (void)cache_token_stream_until_matching_token(
-                                (a_token_cache*)NULL,
-                                CTS_COALESCE_IDS | CTS_STOP_ON_STATEMENT_END);
+    ++scope_stack_top().pending_templ_arg_lists;
+    (void)get_token();
+    /* As we don't know whether it is a type constraint or not, scan it as an
+       unknown template argument list. */
+    templ_args = scan_unknown_template_arg_list(/*is_nonreal=*/FALSE,
+                                                (a_boolean*)NULL);
+    free_template_arg_list(templ_args);
+    --scope_stack_top().pending_templ_arg_lists;
     scope_stack_top().in_disambiguation = saved_in_disambiguation;
     if (curr_token == tok_gt) {
       (void)get_token();

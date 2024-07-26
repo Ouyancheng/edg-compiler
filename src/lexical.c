@@ -19777,15 +19777,15 @@ of a_constant entries.
 }  /* scan_integer_pack */
 
 
-static a_template_arg_ptr scan_unknown_template_arg_list(a_boolean is_nonreal,
-                                                         a_boolean *p_err)
+a_template_arg_ptr scan_unknown_template_arg_list(a_boolean is_nonreal,
+                                                  a_boolean *p_err)
 /*
 Scan a template argument list associated with an unknown template
 parameter list.  This is done when scanning the template arguments
 for an explicitly specified function template argument list, when
 the specific template whose arguments are being scanned may not be
-known yet.  is_nonreal is FALSE to indicate that an explicit function
-template argument list is being scanned.
+known yet.  is_nonreal is FALSE to indicate that a concept or explicit
+function template argument list is being scanned.
 
 When is_nonreal is TRUE, the argument list being scanned is associated with
 a template that is a member of a proxy or nonreal class.  This occurs as a 
@@ -19930,8 +19930,8 @@ If p_err is non-NULL, set *p_err to TRUE if an error is detected.
         arg_ptr->variant.templ.ptr = templ_ptr;
       }  /* if */
 arg_produced:
-      /* When is_nonreal is FALSE, we are scanning an explicit function
-         template argument list. */
+      /* When is_nonreal is FALSE, we are scanning a concept or explicit
+         function template argument list. */
       arg_ptr->explicitly_specified = !is_nonreal;
       /* Link this entry on to the argument list. */
       if (arg_list == NULL) arg_list = arg_ptr;

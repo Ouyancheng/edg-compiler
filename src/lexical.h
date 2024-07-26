@@ -3215,6 +3215,9 @@ extern void pop_stop_token_stack(void);
 extern void push_lexical_state_stack(void);
 extern void pop_lexical_state_stack(void);
 
+extern a_template_arg_ptr scan_unknown_template_arg_list(a_boolean is_nonreal,
+                                                         a_boolean *p_err);
+
 extern a_template_ptr scan_template_template_argument(
 				a_template_ptr		param_template,
 				a_source_position	*err_pos,
