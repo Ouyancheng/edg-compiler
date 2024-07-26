@@ -220,7 +220,27 @@ struct a_module_entity_stack_entry {
                 mep;    /* The current module entity pointer.  If mep is NULL,
                            this represents a return to the translation unit
                            module or the global module. */
-};  /* a_module_context_stack_entry */
+};  /* a_module_entity_stack_entry */
+
+namespace detail {
+
+/*
+The following specializations provide Is_trivially_copyable and
+Is_trivially_destructible support for a_module_entity_stack_entry.
+*/
+
+template<>
+struct Is_trivially_copyable_edg_impl<a_module_entity_stack_entry> :
+                                                Integral_constant<bool, true> {
+};  /* Is_trivially_copyable_edg_impl */
+
+template<>
+struct Is_trivially_destructible_edg_impl<a_module_entity_stack_entry> :
+                                                Integral_constant<bool, true> {
+};  /* Is_trivially_destructible_edg_impl */
+
+
+}  /* detail */
 
 using a_module_entity_stack = Small_dyn_array<a_module_entity_stack_entry, 5,
                                               General_allocator>;
