@@ -54809,7 +54809,11 @@ function operand: The selector is then returned in *bound_function_selector.
       }  /* if */
     }  /* if */
   }  /* if */
-  if (!unary || left_associative) {
+  if (curr_token == tok_rparen &&
+      in_ms_nonreal_class_instantiation()) {
+    generic = TRUE;
+    pack_seen = TRUE;
+  } else if (!unary || left_associative) {
     a_pack_expansion_stack_entry_ptr right_pesep;
     a_boolean                        any_more;
     any_more = begin_potential_pack_expansion_context(&right_pesep);
