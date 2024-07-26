@@ -47,7 +47,7 @@ Consider:
     union { int x = 42; };
   } u;  // Previously an error.  Now okay.
 
-The front end previously erroneously concludes that the outer union's default
+The front end previously erroneously concluded that the outer union's default
 constructor is deleted.  That is now fixed.
 
 
