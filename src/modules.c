@@ -925,10 +925,14 @@ Push a new module entity to the module entity stack.  If mep is NULL, this
 represents a return to the translation unit module or the global module.
 */
 {
-  a_module_entity_stack_entry mese{};
+  /* To avoid issues where the module entity stack is unavailable in the back
+     end, do nothing outside of the front end. */
+  if (in_front_end) {
+    a_module_entity_stack_entry mese{};
 
-  mese.mep = mep;
-  module_entity_stack->push_back(mese);
+    mese.mep = mep;
+    module_entity_stack->push_back(mese);
+  }  /* if */
 }  /* push_module_entity_state */
 
 
@@ -937,7 +941,11 @@ void pop_module_entity_state()
 Pop the current module entity from the module entity stack.
 */
 {
-  module_entity_stack->pop_back();
+  /* To avoid issues where the module entity stack is unavailable in the back
+     end, do nothing outside of the front end. */
+  if (in_front_end) {
+    module_entity_stack->pop_back();
+  }  /* if */
 }  /* pop_module_entity_state */
 
 
