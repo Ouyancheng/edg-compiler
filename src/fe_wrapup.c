@@ -326,8 +326,6 @@ it needs to be executed after all templates have been instantiated.
 
   il_scope = curr_translation_unit->primary_scope;
 
-  /* Do any modules cleanup that may be needed for this translation unit. */
-  modules_trans_unit_wrapup();
   /* Do any lexical cleanup that may be needed for this translation unit. */
   lexical_trans_unit_wrapup();
   if (is_primary_translation_unit && !do_preprocessing_only) {
@@ -354,6 +352,8 @@ it needs to be executed after all templates have been instantiated.
        types in secondary translation units are removed. */
     do_based_type_fixup();
   }  /* if */
+  /* Do any modules cleanup that may be needed for this translation unit. */
+  modules_trans_unit_wrapup();
 #if MANGLE_ALL_NAMES
   if (name_mangling_needed()) {
     /* Do name mangling for all entities.  This has to be done before
