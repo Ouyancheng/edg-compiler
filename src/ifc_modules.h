@@ -480,7 +480,7 @@ public:
     {}
   ~an_ifc_module() EDG_NOEXCEPT = default;
 
-  inline a_boolean is_open() const OVERRIDE
+  inline a_boolean is_open() const
     { return file.f_module != NULL; }
 
   a_boolean import(a_module_import_decl_ptr midp);
