@@ -12982,14 +12982,11 @@ messages.
              ordinary sequence of characters with no special meaning. */
           nchars += curr_char_loc - escape_start;
         } else if ((ch == 'U' || (ch == 'u' && is_delimited) || ch == 'N') &&
-                   is_string_literal &&
                    (literal_kind == SCLK_CHAR16_T_LITERAL ||
                     literal_kind == SCLK_WIDE_LITERAL)) {
           /* A (potentially) 32-bit code to be stored in a 16-bit character
-             representation.  In a wide character literal, this just
-             truncates to a single character; for wide string literals,
-             however, this could result in a surrogate pair.  Since we
-             don't know how many characters will be needed for the
+             representation, which could result in a surrogate pair.  Since
+             we don't know how many characters will be needed for the
              encoding, assume the longest. */
           nchars += MAX_CHAR16_T_ENCODING_LENGTH;
         } else if (literal_kind == SCLK_ORDINARY_LITERAL ||
@@ -13704,7 +13701,7 @@ opening quotation mark; on exit, it points after the closing quote.
                           lit_kind, num_chars, &err_code, &err_pos);
       /* Check for errors detected. */
       if (err_code != ec_no_error) {
-        error_at_line_pos(err_code, err_pos);
+        diagnostic_at_line_pos(es_discretionary_error, err_code, err_pos);
       }  /* if */
     }  /* if */
   } else if (start_of_raw_string_delimiter != NULL &&

@@ -1,5 +1,20 @@
 Version 6.7
 
+7/27/24  [EDGcpfe/26451]
+C++26: Non-encodable character and string literals
+
+C++ Committee paper P1854R4 makes it an error for character or string
+literals to contain a character that cannot be represented in the literal's
+character encoding.  The paper was adopted for C++26 and as a defect
+report, i.e., applying to previous versions of C++ as well.  At this time,
+the latest versions of g++, clang, and MSVC do not completely implement
+these restrictions, so the front end applies them in strict mode with
+appropriate relaxations in the various emulations.  For example, with
+--c++23 --strict:
+
+  int f = '\U0001F602';  // Previously a multi-character literal, now an error
+
+
 7/26/24  [EDGcpfe/27249,EDGcpfe/27478]
 Handling of inline static data members in class templates
 

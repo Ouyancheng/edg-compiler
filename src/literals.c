@@ -1431,6 +1431,7 @@ get_another:
           /* Normal termination.  Skip over the closing '}'. */
           numeric_escape = TRUE;
           ++lptr;
+          goto range_check;
         } else {
           /* Unterminated delimited escape sequence.  The error will have
              already been reported.  Treat the malformed sequence as an
@@ -1458,6 +1459,7 @@ get_another:
             /* Normal termination.  Skip over the closing '}'. */
             numeric_escape = TRUE;
             ++lptr;
+            goto range_check;
           } else {
             /* Unterminated delimited escape sequence.  The error will have
                already been reported.  Treat the malformed sequence as an
@@ -1542,9 +1544,8 @@ return_point:
   return;
 
 range_check:
-  /* Check that the value of c is legal for a character.  The standard
-     (3.1.3.4) requires that this be diagnosed.  Range is different for
-     wide characters. */
+  /* Check that the value of c is representable in the target character
+     type. */
   if (!range_error) {
     /* The comparison here is always done as unsigned, even if char or
        wchar_t are signed.  That's because octal and hexadecimal escapes
@@ -1566,20 +1567,14 @@ range_check:
   }  /* if */
   if (range_error) {
     /* A range error occurring in an octal or hexadecimal escape is
-       classified as an error by the C Standard.  Other contexts, and in
-       all cases in C++ other than wchar_t in strict c++23 mode, produce
-       implementation-defined behavior.  We thus issue a strict-ANSI
-       discretionary error for numeric escapes in C and for C++23 wide
-       characters and a warning in all other cases. */
+       classified as an error by the C Standard and, after adoption of
+       paper P1854R4, by the C++ Standard as well, although that is not
+       enforced by gcc. */
+    an_error_severity sev =
+                          gnu_version_is(any_version) ? es_warning
+                                                      : es_discretionary_error;
     conv_line_loc_to_source_pos(*state->next_token_char, &error_position);
-    if (strict_ansi_mode &&
-        ((C_mode() && numeric_escape) ||
-         (cpp23_mode && !narrow_literal))) {
-      diagnostic(strict_ansi_discretionary_severity, ec_bad_character_value);
-    } else {
-      pos_warning(ec_bad_character_value, &error_position);
-    }  /* if */
-    /* Value is truncated by the normal return processing. */
+    diagnostic(sev, ec_bad_character_value);
   }  /* if */
   goto return_point;
 }  /* conv_single_char */
@@ -1689,6 +1684,9 @@ the actual number of converted characters may be less than num_chars.  */
   a_character_kind        character_kind = (a_character_kind)ck_last;
   a_char_conversion_state conv_state;
   a_boolean               utf8_literal = FALSE;
+  a_boolean               char_too_wide_for_rep = FALSE;
+  a_const_char            *char_start;
+  a_const_char            *mbc_loc = NULL;
 
   /* Determine the constant type as follows:
        Single-character constant     ('x'): int in C, char in C++
@@ -1805,28 +1803,51 @@ the actual number of converted characters may be less than num_chars.  */
     switch (character_kind) {
       case chk_char:
       case chk_char8_t:
+        char_start = temp_ptr;
         conv_single_char(&conv_state, /*process_escapes=*/TRUE, &ch,
                          centity_mask, /*narrow_literal=*/TRUE, utf8_literal);
-        if ((i >= targ_sizeof_int && !gnu_mode) ||
-            (utf8_literal && i != 0)) {
-          /* GNU compilers accept overlong literals, simply discarding any
-             leading characters that do not fit.  Otherwise (including the
-             case of a UTF-8 literal with more than a single converted
-             character), flag this as an error. */
+        if (!utf8_literal && conv_state.remaining_char_count != 0 &&
+            !char_too_wide_for_rep && !gnu_version_is(any_version) &&
+            !ms_version_is(any_version)) {
+          /* An ordinary narrow character literal cannot contain a
+             multi-byte character, even if it fits in an int. */
+          char_too_wide_for_rep = TRUE;
+          mbc_loc = char_start;
+        }  /* if */
+        if ((i >= targ_sizeof_int && !gnu_version_is(any_version) &&
+             !clang_version_is(any_version)) ||
+            (utf8_literal && i != 0 && !clang_version_is(any_version))) {
+          /* GNU and clang compilers accept overlong literals, simply
+             discarding any leading characters that do not fit.  Otherwise
+             (including the case of a UTF-8 literal with more than a single
+             converted character, except in clang mode), flag this as an
+             error. */
           too_many_chars = TRUE;
         }  /* if */
         break;
       case chk_wchar_t:
         conv_single_wide_char(&conv_state, /*process_escapes=*/TRUE, &ch,
                               centity_mask);
-        /* The value of a multi-character L'...' literal is truncated to
-           the first character. */
-        if (i != 0) continue;
+        if (i != 0) {
+          if (C_mode()) {
+            /* The value of a multi-character L'...' literal is truncated
+               to the first character in C. */
+            continue;
+          } else if (gnu_version_is(any_version) ||
+                     clang_version_is(<140000) || ms_version_is(any_version)) {
+            /* Accepted with a warning by gcc, MSVC, and older versions of
+               clang, with the value being the last character in the
+               literal. */
+          } else {
+            too_many_chars = TRUE;
+          }  /* if */
+        }  /* if */
         break;
       case chk_char16_t:
+        char_start = temp_ptr;
         conv_single_wide_char(&conv_state, /*process_escapes=*/TRUE, &ch,
                               centity_mask);
-        if (i != 0 && !C_mode() && (!gnu_mode || clang_mode)) {
+        if (i != 0 && !C_mode()) {
           too_many_chars = TRUE;
         } else {
           unsigned short char16_t_vals[MAX_CHAR16_T_ENCODING_LENGTH];
@@ -1837,7 +1858,13 @@ the actual number of converted characters may be less than num_chars.  */
           } else {
             /* ch contained a character code that cannot be encoded in a
                single char16_t character. */
-            bad_character = TRUE;
+            if (gnu_version_is(any_version) && char_start[0] == '\\' &&
+                char_start[1] == 'x') {
+              /* Hexadecimal escapes with too many characters are accepted
+                 by gcc with a warning. */
+            } else {
+              bad_character = TRUE;
+            }  /* if */
             if (encoding_length > 1) {
               /* Use the low-order code unit. */
               ch = (unsigned long)char16_t_vals[encoding_length - 1];
@@ -1848,15 +1875,16 @@ the actual number of converted characters may be less than num_chars.  */
       case chk_char32_t:
         conv_single_wide_char(&conv_state, /*process_escapes=*/TRUE, &ch,
                               centity_mask);
-        if (i != 0 && !C_mode() && (!gnu_mode || clang_mode)) {
+        if (i != 0 && !C_mode()) {
           too_many_chars = TRUE;
         }  /* if */
         break;
       default:
         unexpected_condition();
     }  /* switch */
-    if (i != 0 && (character_kind == (a_character_kind)chk_char16_t ||
-                   character_kind == (a_character_kind)chk_char32_t)) {
+    if (i != 0 && (character_kind == chk_wchar_t ||
+                   character_kind == chk_char16_t ||
+                   character_kind == chk_char32_t)) {
       /* Ignore any preceding characters and just take the last one. */
       set_unsigned_integer_value(&number, (a_host_large_unsigned)0);
     }  /* if */
@@ -1904,10 +1932,11 @@ the actual number of converted characters may be less than num_chars.  */
     num_chars = 1;
   }  /* if */
   if (bad_character) {
-    if (C_mode()) {
+    if (C_mode() || gnu_version_is(<100000)) {
       /* In C, a character that cannot be represented in one UTF-16 code
          unit has an implementation-defined value, typically the low-order
-         16 bits.  Issue a warning about the truncation. */
+         16 bits.  Early versions of gcc followed the same rule.  Issue a
+         warning about the truncation. */
       conv_line_loc_to_source_pos(start_of_curr_token, &error_position);
       pos_warning(ec_utf16_char_lit_too_long, &error_position);
       *err_code = ec_no_error;
@@ -1932,17 +1961,29 @@ the actual number of converted characters may be less than num_chars.  */
     *err_code = ec_no_error;
     *err_pos = NULL;
     if (num_chars > 1) {
-      /* A character literal with more than one character produces an
-         implementation-defined value.  Issue a warning, except for wchar_t
-         in strict C++23 mode, in which a discretionary error is required.
-         The "too many characters" message is used for wide characters as
-         this is unlikely to produce a meaningful result. */
-      an_error_code wcode = (character_kind != chk_char) ?
-                                ec_too_many_characters : ec_multi_char_literal;
-      an_error_severity sev = (character_kind == chk_wchar_t &&
-                               cpp23_mode && strict_ansi_mode) ?
-                               strict_ansi_discretionary_severity : es_warning;
-      if (gnu_mode && i > targ_sizeof_int) {
+      /* An ordinary narrow character literal containing a multi-byte
+         character is ill-formed, as is a wide character (wchar_t) literal
+         in C23 mode containing more than a single character.  Otherwise, a
+         character literal with more than one character produces an
+         implementation-defined value.  Issue a warning in the well-formed
+         cases.  The "too many characters" warning is used for wide
+         characters as this is unlikely to produce a meaningful result. */
+      an_error_code     wcode;
+      an_error_severity sev;
+
+      if (char_too_wide_for_rep) {
+        wcode = ec_char_too_wide_for_rep;
+        sev = es_discretionary_error;
+        conv_line_loc_to_source_pos(mbc_loc, &error_position);
+      } else {
+        wcode = (character_kind != chk_char) ? ec_too_many_characters
+                                             : ec_multi_char_literal;
+        sev = (character_kind == chk_wchar_t && cpp23_mode &&
+               strict_ansi_mode) ? strict_ansi_discretionary_severity
+                                 : es_warning;
+        conv_line_loc_to_source_pos(start_of_curr_token, &error_position);
+      }  /* if */
+      if (!char_too_wide_for_rep && gnu_mode && i > targ_sizeof_int) {
         /* Truncate the value and warn about discarded characters. */
         an_integer_value int_mask;
         make_integer_value_mask(&int_mask,
@@ -1950,7 +1991,6 @@ the actual number of converted characters may be less than num_chars.  */
         and_integer_values(&number, &int_mask);
         wcode = ec_leading_character_ignored_in_char_literal;
       }  /* if */
-      conv_line_loc_to_source_pos(start_of_curr_token, &error_position);
       pos_diagnostic(sev, wcode, &error_position);
     }  /* if */
   }  /* if */
@@ -2035,7 +2075,10 @@ fewer characters than the number of bytes in the UTF-8 encoding.
   a_string_or_char_literal_kind prefix_kind =
                                              literal_encoding_prefix(lit_kind);
   a_boolean                     process_escapes = !is_rescan;
+  a_const_char                  *char_start;
 
+  *err_code = ec_no_error;
+  *err_pos = NULL;  /* To make lint happy. */
   /* The number of array elements is one more than the number of characters,
      to leave space for the terminating null.  (For char16_t strings, this
      may need to be adjusted below.) */
@@ -2154,6 +2197,18 @@ fewer characters than the number of bytes in the UTF-8 encoding.
     /* Convert one character of the string literal. */
     switch (character_kind) {
       case chk_char:
+        char_start = temp_ptr;
+        conv_single_char(
+                 &conv_state, process_escapes, &ch, centity_mask,
+                 /*narrow_literal=*/TRUE, (prefix_kind == SCLK_UTF8_LITERAL));
+        if (strict_ansi_mode && *err_pos == NULL &&
+            conv_state.remaining_char_count != 0) {
+          /* The character is too wide to fit in a single char. */
+          *err_code = ec_char_too_wide_for_rep;
+          *err_pos = char_start;
+        }  /* if */
+        *pstr++ = (char)ch;
+        break;
       case chk_char8_t:
         conv_single_char(
                  &conv_state, process_escapes, &ch, centity_mask,
@@ -2207,9 +2262,6 @@ fewer characters than the number of bytes in the UTF-8 encoding.
   const_for_curr_token.variant.string.length = (a_targ_size_t)constant_size;
   const_for_curr_token.variant.string.value  = str_start;
   const_for_curr_token.character_kind = character_kind;
-  /* Currently, no error is returned through err_code or err_pos. */
-  *err_code = ec_no_error;
-  *err_pos = NULL;  /* To make lint happy. */
 }  /* conv_string_literal */
 
 
