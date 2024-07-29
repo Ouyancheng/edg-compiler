@@ -2074,6 +2074,8 @@ fewer characters than the number of bytes in the UTF-8 encoding.
   int                           raw_str_trigraph_delim_chars = 0;
   a_string_or_char_literal_kind prefix_kind =
                                              literal_encoding_prefix(lit_kind);
+  a_boolean                     is_raw_string =
+                                     (lit_kind & SCLK_RAW_STRING_LITERAL) != 0;
   a_boolean                     process_escapes = !is_rescan;
   a_const_char                  *char_start;
 
@@ -2201,7 +2203,7 @@ fewer characters than the number of bytes in the UTF-8 encoding.
         conv_single_char(
                  &conv_state, process_escapes, &ch, centity_mask,
                  /*narrow_literal=*/TRUE, (prefix_kind == SCLK_UTF8_LITERAL));
-        if (strict_ansi_mode && *err_pos == NULL &&
+        if (!is_raw_string && strict_ansi_mode && *err_pos == NULL &&
             conv_state.remaining_char_count != 0) {
           /* The character is too wide to fit in a single char. */
           *err_code = ec_char_too_wide_for_rep;
