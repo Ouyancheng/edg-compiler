@@ -919,6 +919,20 @@ processing of the imported module entities for this module.
 }  /* report_suppressed_diagnostics */
 
 
+a_module_entity_depth module_entity_stack_depth()
+/*
+Return the depth of the module entity stack.
+*/
+{
+  a_module_entity_depth result = NO_SCOPE_DEPTH;
+
+  if (module_entity_stack != NULL && !module_entity_stack->is_empty()) {
+    result = module_entity_stack->length() - 1;
+  }  /* if */
+  return result;
+}  /* module_entity_stack_depth */
+
+
 void push_module_entity_state(a_module_entity_ptr mep)
 /*
 Push a new module entity to the module entity stack.  If mep is NULL, this
