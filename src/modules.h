@@ -241,8 +241,7 @@ struct Is_trivially_destructible_edg_impl<a_module_entity_stack_entry> :
 
 }  /* detail */
 
-using a_module_entity_stack = Small_dyn_array<a_module_entity_stack_entry, 5,
-                                              General_allocator>;
+using a_module_entity_stack = Small_dyn_array<a_module_entity_stack_entry, 5>;
                         /* The type used to represent the stack of module
                            contexts. */
 
