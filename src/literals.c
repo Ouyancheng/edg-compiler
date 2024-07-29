@@ -2160,7 +2160,7 @@ fewer characters than the number of bytes in the UTF-8 encoding.
   /* Initialize for scanning multibyte characters in the string. */
   mbc_scan_init_if_multibyte_chars_in_source_enabled();
 #endif /* MULTIBYTE_CHARS_IN_SOURCE_SUPPORTED */
-  if (lit_kind & SCLK_RAW_STRING_LITERAL) {
+  if (is_raw_string) {
     process_escapes = FALSE;
     /* Set up to reverse any original line modifications (trigraphs, line
        splices) that appear in the raw string. */
@@ -2199,22 +2199,18 @@ fewer characters than the number of bytes in the UTF-8 encoding.
     /* Convert one character of the string literal. */
     switch (character_kind) {
       case chk_char:
+      case chk_char8_t:
         char_start = temp_ptr;
         conv_single_char(
                  &conv_state, process_escapes, &ch, centity_mask,
                  /*narrow_literal=*/TRUE, (prefix_kind == SCLK_UTF8_LITERAL));
-        if (!is_raw_string && strict_ansi_mode && *err_pos == NULL &&
+        if (prefix_kind == SCLK_ORDINARY_LITERAL && !is_raw_string &&
+            strict_ansi_mode && *err_pos == NULL &&
             conv_state.remaining_char_count != 0) {
           /* The character is too wide to fit in a single char. */
           *err_code = ec_char_too_wide_for_rep;
           *err_pos = char_start;
         }  /* if */
-        *pstr++ = (char)ch;
-        break;
-      case chk_char8_t:
-        conv_single_char(
-                 &conv_state, process_escapes, &ch, centity_mask,
-                 /*narrow_literal=*/TRUE, (prefix_kind == SCLK_UTF8_LITERAL));
         *pstr++ = (char)ch;
         break;
       case chk_wchar_t:
