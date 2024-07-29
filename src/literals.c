@@ -1875,7 +1875,7 @@ the actual number of converted characters may be less than num_chars.  */
       case chk_char32_t:
         conv_single_wide_char(&conv_state, /*process_escapes=*/TRUE, &ch,
                               centity_mask);
-        if (i != 0 && !C_mode()) {
+        if (i != 0 && !C_mode() && !gnu_version_is(<100000)) {
           too_many_chars = TRUE;
         }  /* if */
         break;
