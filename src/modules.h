@@ -746,7 +746,9 @@ extern void modules_one_time_init();
 
 extern void modules_trans_unit_init();
 
-extern void modules_trans_unit_wrapup();
+extern void modules_trans_unit_wrapup_part_1();
+
+extern void modules_trans_unit_wrapup_part_2();
 
 #if MAKE_FRONT_END_CALLABLE
 extern void modules_cleanup();

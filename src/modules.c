@@ -1379,18 +1379,35 @@ translation unit.
 }  /* modules_trans_unit_init */
 
 
-void modules_trans_unit_wrapup()
+void modules_trans_unit_wrapup_part_1()
 /*
-Perform any wrapup operations needed for the translation unit.  This is
-called after all processing for the translation unit (including template
-instantiations, etc.) has been done.
+Perform the initial modules related wrapup operations needed for the
+translation unit.  This is called after all processing for the translation unit
+(including template instantiations, etc.) has been done but before scopes have
+been wrapped up.
+
+This phase is primarily used to shutdown the lazy loading system and ensure no
+additional entities are added to the IL.
+*/
+{
+  lazy_symbols_may_be_visible = FALSE;
+}  /* modules_trans_unit_wrapup_part_1 */
+
+
+void modules_trans_unit_wrapup_part_2()
+/*
+Perform final modules related wrapup operations needed for the translation
+unit.  This is called after all processing for the translation unit (including
+template instantiations, etc.) and scope wrapup has been done.
+
+This phase is primarily used to deallocate objects allocated for modules
+support in the current translation unit.
 */
 {
   ifc_modules_trans_unit_wrapup();
   delete_fe(&known_modules);
   delete_fe(&module_entity_stack);
-  lazy_symbols_may_be_visible = FALSE;
-}  /* modules_trans_unit_wrapup */
+}  /* modules_trans_unit_wrapup_part_2 */
 
 #if MAKE_FRONT_END_CALLABLE
 
