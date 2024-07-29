@@ -2546,6 +2546,98 @@ static a_boolean
 			   keyword. */
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
 
+/*
+Declarations for handling reports of extended characters that cannot be
+represented in an ordinary narrow string literal.  These cannot be reported
+on the fly when processing a string literal because string concatenation
+can change the literal kind.  For example, "\U0001F602" is an error by
+itself, but the sequence "\U0001F602" U"." is not, because the result of
+string concatenation is equivalent to U"\U0001F602.".  To handle such cases,
+conv_string_literal will call register_char_overflow when an extended
+character appears in an ordinary string literal, concat_string_literals
+will call clear_char_overflows if the resulting literal kind is not an
+ordinary narrow string literal and pass a flag to conv_string_literal to
+prevent double reporting, and get_token will call report_char_overflows
+after doing string concatenation.
+*/
+struct a_char_overflow {
+  a_char_overflow
+		*next;	/* The next report in the list, or NULL for the
+			   last report. */
+  a_source_position
+		pos;	/* The source position at which the character
+			   appears. */
+};  /* a_char_overflow */
+
+static a_char_overflow
+		*pending_overflow_reports;
+			/* A list of entries for which diagnostics may be
+			   needed. */
+
+static a_char_overflow
+		*last_pending_overflow_report;
+			/* The last item in the list of overflow entries. */
+
+static a_char_overflow
+		*available_overflow_reports;
+			/* A list of entries that can be reused. */
+
+void register_char_overflow(a_source_position *pos)
+/*
+Add a report with the given source position at the end of the list of
+pending overflow reports.
+*/
+{
+  a_char_overflow *cop;
+
+  if (available_overflow_reports != NULL) {
+    cop = available_overflow_reports;
+    available_overflow_reports = cop->next;
+  } else {
+    cop = alloc_fe_of_type(a_char_overflow);
+  }  /* if */
+  cop->pos = *pos;
+  cop->next = NULL;
+  if (last_pending_overflow_report != NULL) {
+    last_pending_overflow_report->next = cop;
+  } else {
+    pending_overflow_reports = cop;
+  }  /* if */
+  last_pending_overflow_report = cop;
+}  /* register_char_overflow */
+
+
+void clear_char_overflows(void)
+/*
+Empty the list of pending overflow reports, placing any existing reports
+on the "available" list.
+*/
+{
+  if (last_pending_overflow_report != NULL) {
+    last_pending_overflow_report->next = available_overflow_reports;
+    available_overflow_reports = pending_overflow_reports;
+    pending_overflow_reports = NULL;
+    last_pending_overflow_report = NULL;
+  }  /* if */
+}  /* clear_char_overflows */
+
+
+static inline void report_char_overflows(void)
+/*
+Issue discretionary errors for each position in the list of pending
+overflow reports and empty the list.
+*/
+{
+  if (pending_overflow_reports != NULL) {
+    for (a_char_overflow *cop = pending_overflow_reports; cop != NULL;
+         cop = cop->next) {
+      pos_diagnostic(es_discretionary_error, ec_char_too_wide_for_rep,
+                     &cop->pos);
+    }  /* for */
+    clear_char_overflows();
+  }  /* if */
+}  /* report_char_overflows */
+
 #if DEBUG
 /*
 Counts of tables allocated, to track total use of memory.
@@ -17708,6 +17800,7 @@ concatenate_adjacent_string_literals:
   ctoken = concat_adjacent_string_literals(/*function_name_case=*/FALSE);
   /* Give this string literal a sequence number, if needed. */
   assign_string_literal_sequence_number();
+  report_char_overflows();
   goto return_from_token_scan;
 }  /* get_token */
 
@@ -28808,6 +28901,9 @@ of the front end.
   spelling_storage_buffer_space = 0;
   spelling_storage_buffer_head = NULL;
   spelling_storage_buffer_tail = NULL;
+  pending_overflow_reports = NULL;
+  last_pending_overflow_report = NULL;
+  available_overflow_reports = NULL;
 #endif /* UNICODE_VULNERABILITY_DETECTION_SUPPORTED */
 #endif /* DEBUG */
 #if EXPENSIVE_CHECKING

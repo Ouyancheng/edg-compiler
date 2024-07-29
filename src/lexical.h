@@ -2619,6 +2619,9 @@ extern an_error_code is_valid_UCN_identifier_char(
 extern a_boolean is_nonstandard_character(char ch);
 /* Skip white space. */
 extern void skip_white_space(void);
+/* Narrow character overflow handling. */
+extern void register_char_overflow(a_source_position *);
+extern void clear_char_overflows(void);
 /* Concatenate adjacent string literals in the current string constant. */
 extern a_token_kind concat_adjacent_string_literals(
                                                  a_boolean function_name_case);

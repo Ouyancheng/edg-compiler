@@ -2078,9 +2078,8 @@ fewer characters than the number of bytes in the UTF-8 encoding.
                                      (lit_kind & SCLK_RAW_STRING_LITERAL) != 0;
   a_boolean                     process_escapes = !is_rescan;
   a_const_char                  *char_start;
+  a_boolean                     inside_char = FALSE;
 
-  *err_code = ec_no_error;
-  *err_pos = NULL;  /* To make lint happy. */
   /* The number of array elements is one more than the number of characters,
      to leave space for the terminating null.  (For char16_t strings, this
      may need to be adjusted below.) */
@@ -2205,12 +2204,14 @@ fewer characters than the number of bytes in the UTF-8 encoding.
                  &conv_state, process_escapes, &ch, centity_mask,
                  /*narrow_literal=*/TRUE, (prefix_kind == SCLK_UTF8_LITERAL));
         if (prefix_kind == SCLK_ORDINARY_LITERAL && !is_raw_string &&
-            strict_ansi_mode && *err_pos == NULL &&
-            conv_state.remaining_char_count != 0) {
+            strict_ansi_mode && conv_state.remaining_char_count != 0 &&
+            !inside_char) {
           /* The character is too wide to fit in a single char. */
-          *err_code = ec_char_too_wide_for_rep;
-          *err_pos = char_start;
+          a_source_position pos;
+          conv_line_loc_to_source_pos(char_start, &pos);
+          register_char_overflow(&pos);
         }  /* if */
+        inside_char = (conv_state.remaining_char_count != 0);
         *pstr++ = (char)ch;
         break;
       case chk_wchar_t:
@@ -2260,6 +2261,9 @@ fewer characters than the number of bytes in the UTF-8 encoding.
   const_for_curr_token.variant.string.length = (a_targ_size_t)constant_size;
   const_for_curr_token.variant.string.value  = str_start;
   const_for_curr_token.character_kind = character_kind;
+  /* Currently, no error is returned through err_code or err_pos. */
+  *err_code = ec_no_error;
+  *err_pos = NULL;  /* To make lint happy. */
 }  /* conv_string_literal */
 
 
@@ -2293,6 +2297,12 @@ the given character kind, or a mix of the given kind and chk_char.
   a_string_or_char_literal_kind lit_kind;
 
   db_enter(4, "concat_string_literals");
+  if (character_kind != chk_char) {
+    /* We may be rescanning normal narrow character string literals as
+       a different literal kind, so any previous pending reports of char
+       overflow should be discarded. */
+    clear_char_overflows();
+  }  /* if */
   if (first_token == NULL) {
     first_token = cache->first_token;
   }  /* if */
