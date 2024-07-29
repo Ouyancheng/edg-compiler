@@ -35,7 +35,7 @@ instantiation of S<void> was complete.  That is now fixed: The instantiation
 of S<void>::s is not performed and thus its type need not be complete.
 
 
-7/26/24  [EDGcpfe/27396]
+7/26/24  [EDGcpfe/26577,EDGcpfe/27396]
 Abort on pack expansion in concept template argument list
 
 Previously, the front end failed to correctly expand parameter packs when
