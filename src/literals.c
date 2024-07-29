@@ -1570,11 +1570,18 @@ range_check:
        classified as an error by the C Standard and, after adoption of
        paper P1854R4, by the C++ Standard as well, although that is not
        enforced by gcc. */
-    an_error_severity sev =
+   an_error_severity sev =
                           gnu_version_is(any_version) ? es_warning
                                                       : es_discretionary_error;
     conv_line_loc_to_source_pos(*state->next_token_char, &error_position);
-    diagnostic(sev, ec_bad_character_value);
+    if (narrow_literal) {
+      /* Register the overflow instead of reporting it immediately, since
+         it might be acceptable if string concatenation changes the literal
+         kind. */
+      register_char_overflow(sev, ec_bad_character_value, &error_position);
+    } else {
+      diagnostic(sev, ec_bad_character_value);
+    }  /* if */
   }  /* if */
   goto return_point;
 }  /* conv_single_char */
@@ -2209,7 +2216,8 @@ fewer characters than the number of bytes in the UTF-8 encoding.
           /* The character is too wide to fit in a single char. */
           a_source_position pos;
           conv_line_loc_to_source_pos(char_start, &pos);
-          register_char_overflow(&pos);
+          register_char_overflow(es_discretionary_error,
+                                 ec_char_too_wide_for_rep, &pos);
         }  /* if */
         inside_char = (conv_state.remaining_char_count != 0);
         *pstr++ = (char)ch;

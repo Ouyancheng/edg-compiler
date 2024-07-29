@@ -2552,18 +2552,23 @@ represented in an ordinary narrow string literal.  These cannot be reported
 on the fly when processing a string literal because string concatenation
 can change the literal kind.  For example, "\U0001F602" is an error by
 itself, but the sequence "\U0001F602" U"." is not, because the result of
-string concatenation is equivalent to U"\U0001F602.".  To handle such cases,
-conv_string_literal will call register_char_overflow when an extended
-character appears in an ordinary string literal, concat_string_literals
-will call clear_char_overflows if the resulting literal kind is not an
-ordinary narrow string literal and pass a flag to conv_string_literal to
-prevent double reporting, and get_token will call report_char_overflows
-after doing string concatenation.
+string concatenation is equivalent to U"\U0001F602.".  To handle such
+cases, register_char_overflow will be called when an extended character or
+out-of-range numeric escape appears in an ordinary string literal,
+concat_string_literals will call clear_char_overflows if the resulting
+literal kind is not an ordinary narrow string literal and get_token will
+call report_char_overflows after doing string concatenation.
 */
 struct a_char_overflow {
   a_char_overflow
 		*next;	/* The next report in the list, or NULL for the
 			   last report. */
+  an_error_severity
+		severity;
+			/* The severity of the diagnostic to be issued. */
+  an_error_code	err_code;
+			/* The diagnostic to report at the given
+			   position. */
   a_source_position
 		pos;	/* The source position at which the character
 			   appears. */
@@ -2582,10 +2587,12 @@ static a_char_overflow
 		*available_overflow_reports;
 			/* A list of entries that can be reused. */
 
-void register_char_overflow(a_source_position *pos)
+void register_char_overflow(an_error_severity severity,
+                            an_error_code     err_code,
+                            a_source_position *pos)
 /*
-Add a report with the given source position at the end of the list of
-pending overflow reports.
+Add a report with the given code, severity, and source position at the end
+of the list of pending overflow reports.
 */
 {
   a_char_overflow *cop;
@@ -2596,6 +2603,8 @@ pending overflow reports.
   } else {
     cop = alloc_fe_of_type(a_char_overflow);
   }  /* if */
+  cop->severity = severity;
+  cop->err_code = err_code;
   cop->pos = *pos;
   cop->next = NULL;
   if (last_pending_overflow_report != NULL) {
@@ -2624,15 +2633,14 @@ on the "available" list.
 
 static inline void report_char_overflows(void)
 /*
-Issue discretionary errors for each position in the list of pending
-overflow reports and empty the list.
+Issue diagnostics for each position in the list of pending overflow reports
+and empty the list.
 */
 {
   if (pending_overflow_reports != NULL) {
     for (a_char_overflow *cop = pending_overflow_reports; cop != NULL;
          cop = cop->next) {
-      pos_diagnostic(es_discretionary_error, ec_char_too_wide_for_rep,
-                     &cop->pos);
+      pos_diagnostic(cop->severity, cop->err_code, &cop->pos);
     }  /* for */
     clear_char_overflows();
   }  /* if */

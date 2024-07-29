@@ -2620,7 +2620,9 @@ extern a_boolean is_nonstandard_character(char ch);
 /* Skip white space. */
 extern void skip_white_space(void);
 /* Narrow character overflow handling. */
-extern void register_char_overflow(a_source_position *);
+extern void register_char_overflow(an_error_severity severity,
+                                   an_error_code     err_code,
+                                   a_source_position *pos);
 extern void clear_char_overflows(void);
 /* Concatenate adjacent string literals in the current string constant. */
 extern a_token_kind concat_adjacent_string_literals(
