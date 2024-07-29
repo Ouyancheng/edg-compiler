@@ -19088,7 +19088,7 @@ static a_boolean check_valid_union_field(a_type_ptr         field_type,
                                          a_source_position  *pos)
 /*
 Check that a union field's type (field_type) is valid.  class_type is the type
-of the union.  anon_union_field is TRUE if the field is a anonymous union
+of the union.  anon_union_field is TRUE if the field is an anonymous union
 field (within another union).  is_nonstd is TRUE if class_type is a nonstandard
 anonymous union.  has_initializer is TRUE if the field has an initializer (a
 C++11 feature).  pos is the position for diagnostics.
