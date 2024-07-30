@@ -1,5 +1,14 @@
 Version 6.7
 
+7/30/24  [EDGcpfe/26486]
+GCC compatibility: Incorrect builtin signatures for ARM
+
+Previously, the builtin signatures for __builtin_coro_done and
+__builtin_coro_promise were missing for GCC on ARM.  Additionally, the ARM NEON
+vector type __Uint16x8_t was inadvertently recorded as __Uint16x4_t in the
+signature definitions for 64-bit ARM platforms.  These are now fixed.
+
+
 7/27/24  [EDGcpfe/26451]
 C++26: Non-encodable character and string literals
 
