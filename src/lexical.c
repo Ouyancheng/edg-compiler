@@ -13476,6 +13476,7 @@ kind or tok_error.  The token can be a normal or wide character constant.
       err_pos = start_of_curr_token;
     } else {
       conv_char_literal(num_chars, &err_code, &err_pos);
+      report_char_overflows();
     }  /* if */
   }  /* if */
   if (err_code == ec_no_error && user_defined_literals_enabled) {
