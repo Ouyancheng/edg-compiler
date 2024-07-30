@@ -9769,9 +9769,9 @@ to FALSE and the reason for the failure is recorded in *ips.
         }  /* if */
         if (args == NULL || args->next == NULL ||
             (callee->variant.builtin_function_kind ==
-                         (a_builtin_function_kind)bfk_expect_with_probability ?
-              args->next->next == NULL || args->next->next->next != NULL :
-              args->next->next != NULL)) {
+                                                 bfk_expect_with_probability ?
+               args->next->next == NULL || args->next->next->next != NULL :
+               args->next->next != NULL)) {
           unexpected_condition();
         } else if (!do_constexpr_expression(ips, args, result_storage,
                                             result_storage)) {
@@ -15432,8 +15432,7 @@ update *ips accordingly.
 #endif /* GNU_EXTENSIONS_ALLOWED */
 #if BUILTIN_FUNCTIONS_ENABLED
     if (special_kind_is(eff_callee, sfk_none) &&
-        eff_callee->variant.builtin_function_kind !=
-                                          (a_builtin_function_kind)bfk_none &&
+        eff_callee->variant.builtin_function_kind != bfk_none &&
         do_constexpr_builtin_function(ips, eff_callee, call_node,
                                       result_storage, &result)) {
       ips->call_seen = TRUE;
@@ -20071,7 +20070,8 @@ the value representation of the integer value.
               } else {
                 /* The somewhat unusual case of an array rvalue. */
                 clear_address(result_addr, opnd1_value);
-                result_addr->alloc_seq_number = ips->curr_alloc_seq_number;
+                result_addr->alloc_seq_number =
+                                          ips->storage_stack.alloc_seq_number;
               }  /* if */
               result_addr->flags |= CA_ARRAY_ELEMENT;
               /* Check that the array length fits in interpreter limits. */

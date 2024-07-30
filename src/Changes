@@ -1,5 +1,15 @@
 Version 6.7
 
+7/30/24  [EDGcpfe/26252,EDGcpfe/27023,EDGcpfe/27454]
+Lifetime of array prvalue during constant evaluation
+
+When evaluating the array-to-pointer conversion of an array prvalue (which is
+a somewhat unusual expression), the front end often recorded a wrong lifetime
+for the array pointed-to, which in turn could lead spurious diagnostics
+(because the array was erroneously treated as having expired).  That is now
+fixed.
+
+
 7/30/24  [EDGcpfe/27409]
 IA-64 ABI: Invalid mangled name generated for template parameter object
 
