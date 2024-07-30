@@ -30,8 +30,8 @@ namespace detail {
 
 /*
 The following specializations provide Is_trivially_copyable and
-Is_trivially_destructible support for a_tagged_pointer.  These are declared
-here to keep il_def.h free from C++ specializations.
+Is_trivially_destructible support for a_tagged_pointer and a_token_kind.  These
+are declared here to keep il_def.h free from C++ specializations.
 */
 
 template<>
@@ -40,9 +40,19 @@ struct Is_trivially_copyable_edg_impl<a_tagged_pointer> :
 };  /* Is_trivially_copyable_edg_impl */
 
 template<>
+struct Is_trivially_copyable_edg_impl<a_token_kind> :
+                                                Integral_constant<bool, true> {
+};  /* Is_trivially_copyable_edg_impl */
+
+template<>
 struct Is_trivially_destructible_edg_impl<a_tagged_pointer> :
                                                 Integral_constant<bool, true> {
 };  /* Is_trivially_destructible_edg_impl */
+
+template<>
+struct Is_trivially_destructible_edg_impl<a_token_kind> :
+                                                Integral_constant<bool, true> {
+};  /* Is_trivially_copyable_edg_impl */
 
 }  /* detail */
 
