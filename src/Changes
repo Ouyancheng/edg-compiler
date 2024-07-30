@@ -1,5 +1,24 @@
 Version 6.7
 
+7/30/24  [EDGcpfe/27175]
+Negative offsets in __INTADDR__(...)
+
+The changes for EDGcpfe/18070 introduced a regression in version 5.0 wrt.
+__INTADDR__(...) constructs that would produce a negative offset.  For
+example, in C++11 mode:
+
+  #define offsetof(T, member)  (__INTADDR__((&((T *)0)->member)))
+  struct S {
+    int  x[2];
+  };
+  int r = offsetof(struct S, x[-1]);
+
+Prior to version 5.0, this example was accepted (with warnings), but more
+recent versions issued an error.  The constant-evaluation interpreter has now
+be updated to allow this case as well.  (See the changes for EDGcpfe/21926,
+for a related issue.)
+
+
 7/30/24  [EDGcpfe/26483]
 Clang compatibility: Additional builtins for Clang version 19.1.0
 
@@ -51888,7 +51907,7 @@ fixed.
 Spurious constexpr failure when adding/subtracting zero from null pointer
 
 The constexpr interpreter previously treated adding or subtracting zero from a
-null pointer as a evaluation failure, which in turn could lead to spurious
+null pointer as an evaluation failure, which in turn could lead to spurious
 errors.  For example:
 
   constexpr int* f() { return nullptr; }

@@ -23559,8 +23559,13 @@ the value representation of the integer value.
                   get_array_pos(ips, &result_addr, elem_type, &len, &pos,
                                 &elem_size, &result);
                   if (!result) break;
-                  if (host_int_val > 0 ? (len-pos < (a_byte_count)host_int_val)
-                                       : (pos < (a_byte_count)-host_int_val)) {
+                  if ((host_int_val > 0 ? len-pos < (a_byte_count)host_int_val
+                                        : pos < (a_byte_count)-host_int_val) &&
+                      /* Allow out-of-bounds subscripts on null pointer values
+                         within __INTADDR__(...). */
+                      !(ips->permit_null_pointer_offsets &&
+                        is_runtime_data_address(&result_addr) &&
+                        is_null_pointer_value(result_addr.variant.addr_con))) {
                     /* Out of bounds. */
                     do_constexpr_fail(result);
                     info_with_pos_num2(ec_constexpr_out_of_bounds_array_access,
