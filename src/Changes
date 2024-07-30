@@ -1,5 +1,12 @@
 Version 6.7
 
+7/30/24  [EDGcpfe/26483]
+Clang compatibility: Additional builtins for Clang version 19.1.0
+
+Additional builtin signatures have been added for Clang 19.1.0 (based on the
+recently released RC1).
+
+
 7/30/24  [EDGcpfe/26486]
 GCC compatibility: Incorrect builtin signatures for ARM
 
