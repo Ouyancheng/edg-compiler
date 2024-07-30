@@ -814,7 +814,7 @@ extern an_ifc_module_file* get_module(const an_ifc_module_reference &ref);
 
 extern Opt<a_string> get_name_of_ifc_module(a_const_char *file_name);
 
-extern a_boolean request_entity_at_index(an_ifc_decl_index decl_idx);
+extern a_boolean request_ifc_entity(a_module_entry_locator locator);
 
 extern void process_ifc_declaration(a_module_entity_ptr mep);
 

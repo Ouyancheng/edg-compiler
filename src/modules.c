@@ -19,6 +19,9 @@ modules.c -- Classes and routines handling modules.
 #include "pch.h"
 #include "util.h"
 
+/* Other required header files. */
+#include "templates.h"
+
 #ifdef PCH_PRAGMA_GUARD
 /* Mark the end of the sequence of headers subject to precompiled header
    processing. */
@@ -694,14 +697,13 @@ processing has ended.
     ++deferred_entries->num_processed;
     entry.scope = NULL;
     switch (entry.locator.kind) {
+      case melk_none:
+        /* If this assertion is hit, a locator with no usable information was
+           put onto the list of deferred entities; this should never happen. */
+        unexpected_condition();
+        break;
       case melk_ifc:
-        { an_ifc_decl_index decl_idx(
-                           (an_ifc_module_file*)entry.locator.variant.ifc.file,
-                           (an_ifc_decl_sort)entry.locator.variant.ifc.sort,
-                           entry.locator.variant.ifc.value);
-
-          request_entity_at_index(decl_idx);
-        }
+        (void)request_ifc_entity(entry.locator);
         break;
       default_is_unexpected();
     }  /* switch */
@@ -761,81 +763,502 @@ processing has ended.
 }  /* define_names_from_scope */
 
 
-static a_hash_table_ptr
-       module_entity_hash_table;
+a_module_entity_key::a_module_entity_key(a_module_entity_key &&other)
+/*
+Destroy the given module entity key.
+*/
+  : mod(other.mod), scope(other.scope), name(other.name), kind(other.kind),
+    variant(other.variant)
+{
+  other.mod = NULL;
+  other.scope = NULL;
+  other.name = NULL;
+  other.kind = meeik_none;
+}  /* a_module_entity_key::~a_module_entity_key */
+
+
+a_module_entity_key::~a_module_entity_key()
+/*
+Destroy the given module entity key.
+*/
+{
+  switch (this->kind) {
+    case meeik_none:
+      /* No additional information to free. */
+      break;
+    case meeik_function:
+      delete_fe(&this->variant.function);
+      break;
+    case meeik_specialization:
+      delete_fe(&this->variant.specialization);
+      break;
+    case meeik_func_templ:
+      delete_fe(&this->variant.func_templ);
+      break;
+    case meeik_func_spec:
+      delete_fe(&this->variant.func_spec);
+      break;
+  }  /* switch */
+}  /* a_module_entity_key::~a_module_entity_key */
+
+
+using a_module_entity_scope_hash_table = Ptr_map<a_module_entity_scope,
+                                                 a_module_entity_scope*>;
+                        /* The type used for the module entity scope hash
+                           table. */
+
+static a_module_entity_scope_hash_table
+                *module_entity_scope_hash_table;
+                        /* A hash table to find module entity scopes. */
+
+static a_module_entity_scope
+                *trans_unit_module_entity_scope;
+                        /* The translation unit module entity scope. */
+
+
+uintptr_t hash_ptr(const a_module_entity_scope &key)
+/*
+Return a hash value for the given module entity scope.
+*/
+{
+  uintptr_t  result = hash_ptr((void*)key.name);
+
+  result = result*31 + hash_ptr((void*)key.parent);
+  return result;
+}  /* hash_ptr */
+
+
+a_boolean operator==(const a_module_entity_scope &a,
+                     const a_module_entity_scope &b)
+/*
+Return TRUE if the given module entity scopes are equal; otherwise, return
+FALSE.
+*/
+{
+  a_boolean result = TRUE;
+
+  if (a.name != b.name) {
+    result = FALSE;
+  } else if (a.parent != b.parent) {
+    result = FALSE;
+  }  /* if */
+  return result;
+}  /* operator== */
+
+
+a_boolean operator==(const a_module_template_parameter &a,
+                     const a_module_template_parameter &b)
+/*
+*/
+{
+  a_boolean result = TRUE;
+
+  if (a.kind != b.kind) {
+    result = FALSE;
+  } else {
+    switch (a.kind) {
+      case mtpk_non_type:
+        { a_type_ptr type_a = a.variant.type;
+          a_type_ptr type_b = b.variant.type;
+
+          if (!il_identical_types(type_a, type_b)) {
+            result = FALSE;
+          }  /* if */
+        }
+        break;
+      case mtpk_template:
+        { a_module_template_parameter_list *params_a = a.variant.params_list;
+          a_module_template_parameter_list *params_b = b.variant.params_list;
+
+          if (params_a->length() != params_b->length()) {
+            result = FALSE;
+          } else {
+            for (size_t i = 0; i < params_a->length(); ++i) {
+              a_module_template_parameter &param_a = (*params_a)[i];
+              a_module_template_parameter &param_b = (*params_b)[i];
+
+              if (!(param_a == param_b)) {
+                result = FALSE;
+              }  /* if */
+            }  /* for */
+          }  /* if */
+        }
+        break;
+      case mtpk_type:
+        /* Nothing to compare. */
+        break;
+      default_is_unexpected();
+    }  /* switch */
+  }  /* if */
+  return result;
+}  /* operator== */
+
+
+a_boolean operator==(const a_module_entity_function_key &a,
+                     const a_module_entity_function_key &b)
+/*
+*/
+{
+  a_boolean             result = TRUE;
+  Dyn_array<a_type_ptr> *a_params = a.parameter_types;
+  Dyn_array<a_type_ptr> *b_params = b.parameter_types;
+
+  if (a_params->length() != b_params->length()) {
+    result = FALSE;
+  } else {
+    for (size_t i = 0; i < a_params->length(); ++i) {
+      a_type_ptr a_param = (*a_params)[i];
+      a_type_ptr b_param = (*b_params)[i];
+
+      /* Compare on object identity as all equal module entity pointers
+         have the same address. */
+      if (!routine_types_are_redecl_compatible(a_param, b_param,
+                                               TCF_NO_FLAGS)) {
+        result = FALSE;
+      }  /* if */
+    }  /* for */
+  }  /* if */
+  return result;
+}  /* operator== */
+
+
+a_boolean operator==(const a_module_entity_specialization_key &a,
+                     const a_module_entity_specialization_key &b)
+/*
+*/
+{
+  a_boolean          result = TRUE;
+  a_template_arg_ptr a_args = a.arguments;
+  a_template_arg_ptr b_args = b.arguments;
+  /* FIXME: Do we need to have eta_options_for_template (or some
+     equivalent) factored in here? */
+  an_equiv_templ_arg_options_set
+                     eta_options = ETA_EXACT_DECLTYPE_EXPR_MATCH_REQUIRED;
+
+  if (!equiv_template_arg_lists(a_args, b_args, eta_options)) {
+    result = FALSE;
+  }  /* if */
+  return result;
+}  /* operator== */
+
+
+a_boolean operator==(const a_module_entity_func_templ_key &a,
+                     const a_module_entity_func_templ_key &b)
+/*
+*/
+{
+  a_boolean result = TRUE;
+
+  if (!(a.function == b.function)) {
+    result = FALSE;
+  } else {
+    a_module_template_parameter_list *a_params = a.parameters;
+    a_module_template_parameter_list *b_params = b.parameters;
+
+    if (a_params->length() != b_params->length()) {
+      result = FALSE;
+    } else {
+      for (size_t i = 0; i < a_params->length(); ++i) {
+        const a_module_template_parameter &a_param = (*a_params)[i];
+        const a_module_template_parameter &b_param = (*b_params)[i];
+
+        if (!(a_param == b_param)) {
+          result = FALSE;
+          break;
+        }  /* if */
+      }  /* for */
+    }  /* if */
+  }  /* if */
+  return result;
+}  /* operator== */
+
+
+a_boolean operator==(const a_module_entity_func_spec_key &a,
+                     const a_module_entity_func_spec_key &b)
+/*
+*/
+{
+  a_boolean result = TRUE;
+
+  if (!(a.function == b.function)) {
+    result = FALSE;
+  } else if (!(a.specialization == b.specialization)) {
+    result = FALSE;
+  }  /* if */
+  return result;
+}  /* operator== */
+
+
+using a_module_entity_hash_table = Ptr_map<a_module_entity_key,
+                                           a_module_entity_ptr>;
+                        /* The type used for the module entity hash table. */
+
+static a_module_entity_hash_table
+                *module_entity_hash_table;
                         /* A hash table to find module entities. */
 
-
-a_hash_value hash_module_entity(a_void_ptr  key)
+uintptr_t hash_ptr(const a_module_entity_key &key)
 /*
-Produce a hash value for the given pointer (a_module_entity_ptr).
+Return a hash value for the given module entity key.
 */
 {
-  a_module_entity_ptr mep = (a_module_entity_ptr)key;
+  /* FIXME: We could likely do better than this in terms of hashing. */
+  uintptr_t  result = hash_ptr((void*)key.mod);
 
-  check_assertion(mep->module_info != NULL);
-  return (a_hash_value)mep->file_offset;
-}  /* hash_module_entity */
+  result = result*31 + hash_ptr((void*)key.scope);
+  result = result*31 + hash_ptr((void*)key.name);
+  switch (key.kind) {
+    case meeik_none:
+      /* No additional information to hash. */
+      break;
+    case meeik_function:
+      /* FIXME: Implement this. */
+      break;
+    case meeik_specialization:
+      check_assertion(key.variant.specialization != NULL);
+      /* FIXME: This hash isn't sufficiently stable, the "same" template
+         argument list hashes differently. */
+      /* result += hash_template_arg_list(
+                                     key.variant.specialization->arguments); */
+      break;
+    case meeik_func_templ:
+      /* FIXME: Implement this. */
+      break;
+    case meeik_func_spec:
+      /* FIXME: Implement this. */
+      break;
+  }  /* switch */
+  return result;
+}  /* hash_ptr */
 
 
-a_boolean compare_for_module_entity(a_void_ptr  entry,
-                                    a_void_ptr  key)
+a_boolean operator==(const a_module_entity_key &a,
+                     const a_module_entity_key &b)
 /*
-Compare the file offset associated with entry (a_module_entity_ptr) to the
-given key (a_module_entity_ptr).  Return TRUE if they represent the same module
-entity.
+Return TRUE if the given module entity keys are equal; otherwise, return FALSE.
 */
 {
-  return (((a_module_entity_ptr)entry)->module_info ==
-          ((a_module_entity_ptr)key)->module_info) &&
-         (((a_module_entity_ptr)entry)->file_offset ==
-          ((a_module_entity_ptr)key)->file_offset);
-}  /* compare_for_module_entity */
+  a_boolean result = TRUE;
 
-
-a_module_entity_ptr get_module_entity_ptr(a_module_ptr mod,
-                                          size_t       file_offset)
-/*
-Return a pointer to the module entity pointer for the entity at file_offset in
-the specified module.
-*/
-{
-  a_module_entity  key, **p;
-
-  if (module_entity_hash_table == NULL) {
-      /* FIXME: what is a good hash table size here? */
-      module_entity_hash_table = alloc_hash_table(FRONT_END_REGION_NUMBER,
-                                  (a_hash_table_size)1000,
-                                  fn_for_function(hash_module_entity),
-                                  fn_for_function(compare_for_module_entity));
+  if (a.mod != b.mod) {
+    result = FALSE;
+  } else if (a.scope != b.scope) {
+    result = FALSE;
+  } else if (a.name != b.name) {
+    result = FALSE;
+  } else if (a.kind != b.kind) {
+    result = FALSE;
+  } else {
+    /* FIXME: Use a dedicated operator== for each of these rather than inline
+       implementations. */
+    switch (a.kind) {
+      case meeik_none:
+        /* No additional information to compare. */
+        break;
+      case meeik_function:
+        if (!(*a.variant.function == *b.variant.function)) {
+          result = FALSE;
+        }  /* if */
+        break;
+      case meeik_specialization:
+        if (!(*a.variant.specialization == *b.variant.specialization)) {
+          result = FALSE;
+        }  /* if */
+        break;
+      case meeik_func_templ:
+        if (!(*a.variant.func_templ == *b.variant.func_templ)) {
+          result = FALSE;
+        }  /* if */
+        break;
+      case meeik_func_spec:
+        if (!(*a.variant.func_spec == *b.variant.func_spec)) {
+          result = FALSE;
+        }  /* if */
+        break;
+    }  /* switch */
   }  /* if */
+  return result;
+}  /* operator== */
+
+
+a_module_entity_scope* get_module_entity_scope(a_symbol_header_ptr   name,
+                                               a_module_entity_scope *parent)
+/*
+*/
+{
+  a_module_entity_scope *result = NULL;
+
+  if (name == NULL && parent == NULL) {
+    /* This is the translation unit scope, which is handled via a special
+       case. */
+    if (trans_unit_module_entity_scope == NULL) {
+      trans_unit_module_entity_scope = new_fe<a_module_entity_scope>();
+    }  /* if */
+    result = trans_unit_module_entity_scope;
+  } else {
+    /* Find or create a module entity scope for the given name and parent
+       scope. */
+    a_module_entity_scope key{name, parent};
+    uint8_t               hashed_key = hash_ptr(key);
+
+    result = module_entity_scope_hash_table->get_with_hash(key, hashed_key);
+    if (result == NULL) {
+      result = new_fe<a_module_entity_scope>(key);
+      /* Update the hash table to point to the new module entity scope. */
+      module_entity_scope_hash_table->map_with_hash(key, result, hashed_key);
+    }  /* if */
+  }  /* if */
+  return result;
+}  /* get_module_entity_scope */
+
+
+static a_module_entity_ptr get_module_entity_from_key(
+                                                     a_module_entity_key &&key)
+/*
+*/
+{
   /* A module interface must be present, otherwise this module entity pointer
      is not viable. */
-  check_assertion(mod->module_interface != NULL);
-  key.module_info = mod;
-  key.file_offset = file_offset;
-  p = (a_module_entity_ptr*)hash_find(module_entity_hash_table, &key,
-                                      /*create=*/TRUE);
-  check_assertion(p != NULL);
-  if (*p == NULL) {
+  check_assertion(key.mod != NULL && key.mod->module_interface != NULL);
+  uintptr_t           hashed_key = hash_ptr(key);
+  a_module_entity_ptr mep = module_entity_hash_table->get_with_hash(key,
+                                                                    hashed_key);
+  if (mep == NULL) {
     /* Create a new module entity.  These are allocated in front end memory
        (so they are saved in PCH files) and never freed. */
-    *p = (a_module_entity*)alloc_fe(sizeof(a_module_entity));
-    (*p)->module_info = mod;
-    (*p)->scope = NULL;
-    (*p)->entity.ptr = NULL;
-    (*p)->entity.kind = iek_none;
-    (*p)->file_offset = file_offset;
-    (*p)->imminent = FALSE;
-    (*p)->def_imminent = FALSE;
-    (*p)->uses_bound_token = FALSE;
-    (*p)->invalid = FALSE;
-    (*p)->global_module = FALSE;
-    (*p)->non_exported = FALSE;
-    (*p)->variant.ifc_partition = ifc_pk_none;
+    mep = new_fe<a_module_entity>();
+    mep->module_info = key.mod;
+    mep->scope = NULL;
+    mep->entity.ptr = NULL;
+    mep->entity.kind = iek_none;
+    mep->locator.kind = melk_none;
+    mep->imminent = FALSE;
+    mep->def_imminent = FALSE;
+    mep->uses_bound_token = FALSE;
+    mep->invalid = FALSE;
+    mep->global_module = FALSE;
+    mep->non_exported = FALSE;
+    /* Update the hash table to point to the new module entity. */
+    module_entity_hash_table->map_with_hash(move_from(&key), mep, hashed_key);
   }  /* if */
-  return *p;
-}  /* get_module_entity_ptr */
+  return mep;
+}  /* get_module_entity_from_key */
+
+
+a_module_entity_ptr get_module_entity(a_module_ptr          mod,
+                                      a_module_entity_scope *scope,
+                                      a_symbol_header_ptr   name)
+/*
+Return a pointer to the module entity for the entity in the given module, with
+the given scope and name.
+*/
+{
+  a_module_entity_key key;
+  key.mod = mod;
+  key.scope = scope;
+  key.name = name;
+  key.kind = meeik_none;
+
+  a_module_entity_ptr result = get_module_entity_from_key(move_from(&key));
+  return result;
+}  /* get_module_entity */
+
+
+a_module_entity_ptr get_function_module_entity(
+                                         a_module_ptr             mod,
+                                         a_module_entity_scope    *scope,
+                                         a_symbol_header_ptr      name,
+                                         a_module_func_param_list *func_params)
+/*
+Return a pointer to the module entity for the entity in the given module, with
+the given scope, name, and function parameters.
+*/
+{
+  a_module_entity_key key;
+  key.mod = mod;
+  key.scope = scope;
+  key.name = name;
+  key.kind = meeik_function;
+  key.variant.function = new_fe<a_module_entity_function_key>();
+  key.variant.function->parameter_types = func_params;
+
+  a_module_entity_ptr result = get_module_entity_from_key(move_from(&key));
+  return result;
+}  /* get_function_module_entity */
+
+
+a_module_entity_ptr get_specialized_module_entity(
+                                           a_module_ptr          mod,
+                                           a_module_entity_scope *scope,
+                                           a_symbol_header_ptr   name,
+                                           a_template_arg_ptr    template_args)
+/*
+Return a pointer to the module entity for the entity in the given module, with
+the given scope, name, and template arguments.
+*/
+{
+  a_module_entity_key key;
+  key.mod = mod;
+  key.scope = scope;
+  key.name = name;
+  key.kind = meeik_specialization;
+  key.variant.specialization = new_fe<a_module_entity_specialization_key>();
+  key.variant.specialization->arguments = template_args;
+
+  a_module_entity_ptr result = get_module_entity_from_key(move_from(&key));
+  return result;
+}  /* get_specialized_module_entity */
+
+
+a_module_entity_ptr get_function_template_module_entity(
+                             a_module_ptr                     mod,
+                             a_module_entity_scope            *scope,
+                             a_symbol_header_ptr              name,
+                             a_module_template_parameter_list *template_params,
+                             a_module_func_param_list         *func_params)
+/*
+Return a pointer to the module entity for the entity in the given module, with
+the given scope, name, and template arguments.
+*/
+{
+  a_module_entity_key key;
+  key.mod = mod;
+  key.scope = scope;
+  key.name = name;
+  key.kind = meeik_func_templ;
+  key.variant.func_templ = new_fe<a_module_entity_func_templ_key>();
+  key.variant.func_templ->function.parameter_types = func_params;
+  key.variant.func_templ->parameters = template_params;
+
+  a_module_entity_ptr result = get_module_entity_from_key(move_from(&key));
+  return result;
+}  /* get_function_template_module_entity */
+
+
+a_module_entity_ptr get_specialized_function_module_entity(
+                                        a_module_ptr             mod,
+                                        a_module_entity_scope    *scope,
+                                        a_symbol_header_ptr      name,
+                                        a_template_arg_ptr       template_args,
+                                        a_module_func_param_list *func_params)
+/*
+Return a pointer to the module entity for the entity in the given module, with
+the given scope, name, and template arguments.
+*/
+{
+  a_module_entity_key key;
+  key.mod = mod;
+  key.scope = scope;
+  key.name = name;
+  key.kind = meeik_func_spec;
+  key.variant.func_spec = new_fe<a_module_entity_func_spec_key>();
+  key.variant.func_spec->function.parameter_types = func_params;
+  key.variant.func_spec->specialization.arguments = template_args;
+
+  a_module_entity_ptr result = get_module_entity_from_key(move_from(&key));
+  return result;
+}  /* get_specialized_function_module_entity */
+
 
 /*lint -esym(1714,*a_module_interface::is_open)*/ /* FIXME: temporary*/
 a_boolean a_module_interface::is_open() const
@@ -1243,14 +1666,12 @@ otherwise, return an empty optional.
 */
 {
   Opt<a_source_position> result;
-  a_module_interface_ptr m_iface = mep->module_info->module_interface;
 
-  switch (m_iface->mod_kind) {
-    case mfk_edg_ifc:
-    case mfk_ms_ifc:
+  switch (mep->locator.kind) {
+    case melk_ifc:
       result = source_position_from_ifc_of(mep);
       break;
-    case mfk_unknown:
+    case melk_none:
       unexpected_condition();
       break;
     default_is_unexpected();
@@ -1494,6 +1915,8 @@ Do one-time initialization of static variables defined in this file.
 #endif /* DEBUG */
   register_trans_unit_variable(curr_module_sym);
   register_trans_unit_variable(lazy_symbols_may_be_visible);
+  register_trans_unit_variable(module_entity_scope_hash_table);
+  register_trans_unit_variable(trans_unit_module_entity_scope);
   register_trans_unit_variable(module_entity_hash_table);
   register_trans_unit_variable(module_entity_stack);
   register_trans_unit_variable(known_modules);
@@ -1512,7 +1935,11 @@ translation unit.
 #endif /* DEBUG */
   curr_module_sym = NULL;
   lazy_symbols_may_be_visible = FALSE;
-  module_entity_hash_table = NULL;
+  module_entity_scope_hash_table =
+                   new_fe<a_module_entity_scope_hash_table>(/*mask_width=*/10);
+  trans_unit_module_entity_scope = NULL;
+  module_entity_hash_table =
+                         new_fe<a_module_entity_hash_table>(/*mask_width=*/10);
   module_entity_stack = new_fe<a_module_entity_stack>();
   known_modules = new_fe<a_module_name_map>(/*mask_width=*/10);
   ifc_modules_trans_unit_init();
@@ -1574,6 +2001,11 @@ support in the current translation unit.
   free_module_interfaces();
   delete_fe(&known_modules);
   delete_fe(&module_entity_stack);
+  delete_fe(&module_entity_hash_table);
+  if (trans_unit_module_entity_scope != NULL) {
+    delete_fe(&trans_unit_module_entity_scope);
+  }  /* if */
+  delete_fe(&module_entity_scope_hash_table);
 }  /* modules_trans_unit_wrapup_part_2 */
 
 #if MAKE_FRONT_END_CALLABLE

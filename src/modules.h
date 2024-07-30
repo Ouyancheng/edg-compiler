@@ -20,9 +20,6 @@ modules.h -- Declarations related to module handling.
 /* Conditionally open the "edg" namespace. */
 BEGIN_EDG_NAMESPACE
 
-/* FIXME: Also defined in ifc_modules.h */
-enum an_ifc_partition_kind : uint32_t;
-
 /*
 The following structure is associated with every entity in a module file that
 has been loaded into the IL in some way (or, if invalid is TRUE, failed to load
@@ -35,15 +32,13 @@ struct a_module_entity {
                         /* The module in which this entity is defined. */
   a_scope_ptr   scope;  /* The scope in which this entity is defined. */
   a_tagged_pointer
-                entity; /* The IL entity that corresponds to the module entity
-                           (NULL when invalid is TRUE). */
-  size_t        file_offset;
-                        /* An offset from the beginning of the module file to
-                           the associated module entity.  Used as a key to
-                           uniquely identify this entity.  Note that an offset
-                           is used rather than a pointer to avoid PCH
-                           issues (should the underlying module file be mapped
-                           to a different address). */
+                entity; /* The IL entity that corresponds to the module
+                           entity. */
+  a_module_entry_locator
+                locator;
+                        /* The primary module entity origin (i.e., the module
+                           entry that contains a definition) for this module
+                           entity. */
   a_bit_field   imminent:1;
                         /* This flag is typically set to TRUE when deferred
                            processing starts; i.e., when the creation of an
@@ -77,12 +72,6 @@ struct a_module_entity {
                         /* TRUE if this is an entity that's reachable but not
                            visible (and thus was not exported from the imported
                            module). */
-  union {
-    an_ifc_partition_kind
-                ifc_partition;
-                        /* Specifies which IFC partition the module entity
-                           belongs to. */
-  } variant;
 };  /* a_module_entity */
 
 
@@ -376,13 +365,231 @@ extern void import_module_file(a_module_import_decl_ptr midp);
 extern void define_names_from_scope(a_scope_ptr     scope,
                                     a_symbol_header *sym_hdr);
 
-extern a_hash_value hash_module_entity(a_void_ptr  key);
+/*
+*/
+struct a_module_entity_scope {
+  a_symbol_header_ptr
+                name;   /* The symbol header that represents the name of this
+                           module entity scope. */
+  a_module_entity_scope
+                *parent;
+                        /* The parent scope of this scope. */
 
-extern a_boolean compare_for_module_entity(a_void_ptr  entry,
-                                           a_void_ptr  key);
+  a_module_entity_scope()
+    : name(NULL), parent(NULL)
+    {}
+  a_module_entity_scope(a_symbol_header_ptr   name_val,
+                        a_module_entity_scope *parent_val)
+    : name(name_val), parent(parent_val)
+    {}
+};  /*  a_module_entity_scope */
 
-extern a_module_entity_ptr get_module_entity_ptr(a_module_ptr mod,
-                                                 size_t       file_offset);
+extern uintptr_t hash_ptr(const a_module_entity_scope &key);
+
+extern a_boolean operator==(const a_module_entity_scope &a,
+                            const a_module_entity_scope &b);
+
+
+inline a_boolean operator!=(const a_module_entity_scope &a,
+                            const a_module_entity_scope &b)
+/*
+Return TRUE if the given module entity scopes are not equal; otherwise, return
+FALSE.
+*/
+{
+  return !(a == b);
+}  /* operator!= */
+
+
+struct a_module_entity_key;
+struct a_module_template_parameter;
+
+enum a_module_template_parameter_kind {
+  mtpk_non_type,
+  mtpk_template,
+  mtpk_type
+};
+
+using a_module_template_parameter_list =
+                                        Dyn_array<a_module_template_parameter>;
+                        /* */
+
+/*
+*/
+struct a_module_template_parameter {
+  a_module_template_parameter_kind
+                kind;   /* */
+  union {
+    /* When kind == mtpk_type, no variant fields. */
+    /* When kind == mtpk_non_type: */
+    a_type_ptr  type;
+    /* When kind == mtpk_template: */
+    a_module_template_parameter_list
+                *params_list;
+  } variant;
+};  /* a_module_template_parameter */
+
+extern a_boolean operator==(const a_module_template_parameter &a,
+                            const a_module_template_parameter &b);
+
+enum a_module_entity_extra_info_kind {
+  meeik_none,
+  meeik_function,
+  meeik_specialization,
+  meeik_func_templ,
+  meeik_func_spec
+};
+
+using a_module_func_param_list = Dyn_array<a_type_ptr>;
+                        /* */
+
+/*
+*/
+struct a_module_entity_function_key {
+  a_module_func_param_list
+                *parameter_types;
+                        /* The parameter types */
+  /* FIXME: Implement destruction. */
+};  /* a_module_entity_function_key */
+
+extern a_boolean operator==(const a_module_entity_function_key &a,
+                            const a_module_entity_function_key &b);
+
+/*
+*/
+struct a_module_entity_specialization_key {
+  a_template_arg_ptr
+                arguments;
+                        /* The argument set this entity is specialized on. */
+  /* FIXME: Implement a destructor so a_template_arg_ptr is freed. */
+};  /* a_module_entity_specialization_key */
+
+extern a_boolean operator==(const a_module_entity_specialization_key &a,
+                            const a_module_entity_specialization_key &b);
+
+/*
+*/
+struct a_module_entity_func_templ_key {
+  a_module_entity_function_key
+                function;
+                        /* The function parameters for the function
+                           template. */
+  a_module_template_parameter_list
+                *parameters;
+                        /* The template parameters for the function
+                           template. */
+  /* FIXME: Implement destruction. */
+};  /* a_module_entity_func_templ_key */
+
+extern a_boolean operator==(const a_module_entity_func_templ_key &a,
+                            const a_module_entity_func_templ_key &b);
+
+/*
+*/
+struct a_module_entity_func_spec_key {
+  a_module_entity_function_key
+                function;
+                        /* The function parameters for the function
+                           specialization. */
+  a_module_entity_specialization_key
+                specialization;
+                        /* The function parameters for the function
+                           specialization. */
+};  /* a_module_entity_func_spec_key */
+
+extern a_boolean operator==(const a_module_entity_func_spec_key &a,
+                            const a_module_entity_func_spec_key &b);
+
+/*
+*/
+struct a_module_entity_key {
+  a_module      *mod;   /* The module this entity is owned by. */
+  a_module_entity_scope
+                *scope; /* The module entity scope this entity resides in. */
+  a_symbol_header_ptr
+                name;   /* The symbol header that represents the name of this
+                           module entity. */
+  a_module_entity_extra_info_kind
+                kind;   /* The extra info kind. */
+  union {
+    /* When kind == meeik_none, no variant fields. */
+    /* When kind == meeik_function: */
+    a_module_entity_function_key
+                *function;
+                        /* A pointer to extra information about the function's
+                           identity. */
+    /* When kind == meeik_specialization: */
+    a_module_entity_specialization_key
+                *specialization;
+                        /* A pointer to extra information about the
+                           specialization's identity. */
+    /* When kind == meeik_func_templ: */
+    a_module_entity_func_templ_key
+                *func_templ;
+                        /* A pointer to extra information about the function
+                           template's identity. */
+    /* When kind == meeik_func_spec: */
+    a_module_entity_func_spec_key
+                *func_spec;
+                        /* A pointer to extra information about the function
+                           specialization's identity. */
+  } variant;
+  inline a_module_entity_key() = default;
+  a_module_entity_key(a_module_entity_key &&other);
+  a_module_entity_key(const a_module_entity_key&) = delete;
+  ~a_module_entity_key();
+};  /* a_module_entity_key */
+
+extern uintptr_t hash_ptr(const a_module_entity_key &key);
+
+extern a_boolean operator==(const a_module_entity_key &a,
+                            const a_module_entity_key &b);
+
+
+inline a_boolean operator!=(const a_module_entity_key &a,
+                            const a_module_entity_key &b)
+/*
+Return TRUE if the given module entity keys are not equal; otherwise, return
+FALSE.
+*/
+{
+  return !(a == b);
+}  /* operator!= */
+
+
+extern a_module_entity_scope* get_module_entity_scope(
+                                                a_symbol_header_ptr   name,
+                                                a_module_entity_scope *parent);
+
+extern a_module_entity_ptr get_module_entity(a_module_ptr          mod,
+                                             a_module_entity_scope *scope,
+                                             a_symbol_header_ptr   name);
+
+extern a_module_entity_ptr get_function_module_entity(
+                                        a_module_ptr             mod,
+                                        a_module_entity_scope    *scope,
+                                        a_symbol_header_ptr      name,
+                                        a_module_func_param_list *func_params);
+
+extern a_module_entity_ptr get_specialized_module_entity(
+                                          a_module_ptr          mod,
+                                          a_module_entity_scope *scope,
+                                          a_symbol_header_ptr   name,
+                                          a_template_arg_ptr    template_args);
+
+extern a_module_entity_ptr get_function_template_module_entity(
+                             a_module_ptr                     mod,
+                             a_module_entity_scope            *scope,
+                             a_symbol_header_ptr              name,
+                             a_module_template_parameter_list *template_params,
+                             a_module_func_param_list         *func_params);
+
+extern a_module_entity_ptr get_specialized_function_module_entity(
+                                        a_module_ptr             mod,
+                                        a_module_entity_scope    *scope,
+                                        a_symbol_header_ptr      name,
+                                        a_template_arg_ptr       template_args,
+                                        a_module_func_param_list *func_params);
 
 extern void import_header_module(a_module_import_decl_ptr midp);
 

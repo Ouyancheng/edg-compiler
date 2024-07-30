@@ -922,33 +922,20 @@ Given a partition kind, return a reference to the corresponding metadata entry.
 }  /* an_ifc_module::get_partition_metadata */
 
 
-static an_ifc_module *get_as_an_ifc_module(a_module_interface_ptr interface)
-/*
-Reinterpret the given module interface pointer as an ifc module pointer with
-additional checks for debug modes.  Return the reinterpreted pointer.
-*/
-{
-  check_assertion(interface->mod_kind == mfk_ms_ifc ||
-                  interface->mod_kind == mfk_edg_ifc);
-  return (an_ifc_module*)interface;
-}  /* get_as_an_ifc_module */
-
-
 static an_ifc_module *get_assoc_ifc_module(a_module_entity_ptr mep)
 /*
 Return the associated module interface for the given module entity pointer as
 an ifc module.
 */
 {
-  a_module_interface *interface = mep->module_info->module_interface;
-
-  return get_as_an_ifc_module(interface);
+  check_assertion(mep->locator.kind == melk_ifc);
+  return module_of(mep->locator.variant.ifc.file);
 }  /* get_assoc_ifc_module */
 
 
 static an_ifc_index_type to_partition_index(an_ifc_module         *mod,
                                             an_ifc_partition_kind partition,
-                                            size_t                file_offset)
+                                            sizeof_t              file_offset)
 /*
 Given a partition kind and an offset into the given module's file for an
 element, return the respective partition index.
@@ -960,7 +947,7 @@ element, return the respective partition index.
      partition. */
   an_ifc_partition_metadata &part_meta =
                                        mod->get_partition_metadata(partition);
-  size_t                    part_offset = file_offset - part_meta.offset;
+  sizeof_t                  part_offset = file_offset - part_meta.offset;
 
   return (an_ifc_index_type)(part_offset / part_meta.entry_size);
 }  /* to_partition_index */
@@ -977,9 +964,9 @@ Given an IFC partition kind index, return an IFC decl index.
 }  /* to_decl_index */
 
 
-static inline uintptr_t hash_ptr(an_ifc_decl_index  idx)
+template <typename an_ifc_Index_type>
+static inline uintptr_t hash_ifc_index(an_ifc_Index_type idx)
 /*
-Return a hash value for the given IFC declaration index.
 */
 {
   uintptr_t  result = 17*31 + hash_ptr((void*)idx.file);
@@ -987,6 +974,24 @@ Return a hash value for the given IFC declaration index.
   result = result*31 + (uintptr_t)idx.sort;
   result = result*31 + (uintptr_t)idx.value;
   return result;
+}  /* hash_ifc_index */
+
+
+static inline uintptr_t hash_ptr(an_ifc_decl_index idx)
+/*
+Return a hash value for the given IFC declaration index.
+*/
+{
+  return hash_ifc_index(idx);
+}  /* hash_ptr */
+
+
+static inline uintptr_t hash_ptr(an_ifc_type_index idx)
+/*
+Return a hash value for the given IFC type index.
+*/
+{
+  return hash_ifc_index(idx);
 }  /* hash_ptr */
 
 
@@ -1007,10 +1012,7 @@ static an_ifc_parameterized_entity_map
                            DeclSpecialization IFC declaration index). */
 
 
-static an_ifc_partition_kind_index collapse_partition_index(
-                                               an_ifc_module         *mod,
-                                               an_ifc_partition_kind partition,
-                                               an_ifc_index_type     index)
+static an_ifc_decl_index collapse_partition_index(an_ifc_decl_index decl_idx)
 /*
 Some entities conceptually have multiple "module entities" (for instance, an
 explicit class template specialization is composed of an IFC DeclSpecialization
@@ -1021,78 +1023,645 @@ The module, partition kind, and index are taken as inputs and the collapsed IFC
 partition kind index is returned.
 */
 {
-  an_ifc_partition_kind_index result{&mod->file, partition, index};
-
-  if (is_decl_sort(partition)) {
-    an_ifc_decl_index decl_idx = to_decl_index(result);
-    an_ifc_decl_index specialization_idx =
+  an_ifc_decl_index result = decl_idx;
+  an_ifc_decl_index specialization_idx =
                                      ifc_parameterized_entities->get(decl_idx);
 
-    /* If the scope ref is a parameterized entity, we actually want the
-       specialization that's doing the parameterization. */
-    if (!is_null_index(specialization_idx)) {
-      decl_idx = specialization_idx;
-    }  /* if */
-    result = {decl_idx.file, get_partition_kind(decl_idx), decl_idx.value};
+  /* If the scope ref is a parameterized entity, we actually want the
+     specialization that's doing the parameterization. */
+  if (!is_null_index(specialization_idx)) {
+    result = specialization_idx;
   }  /* if */
   return result;
 }  /* collapse_partition_index */
 
 
-static a_module_entity_ptr get_ifc_module_entity_ptr(
-                                               an_ifc_module         *mod,
-                                               an_ifc_partition_kind partition,
-                                               an_ifc_index_type     index)
+static Opt<a_string> name_of_decl(an_ifc_decl_index decl_idx);
+
+static Opt<a_symbol_header_ptr> get_name_symbol(an_ifc_decl_index decl_idx)
 /*
-Utility to return a module entity pointer for the given module, IFC partition,
-and index into that partition.  For cases where the module entity has just
-been created, the partition is set according to the partition supplied by the
-caller.
+Return a symbol header representing the name of the given IFC declaration index.
 */
 {
-  a_module_entity_ptr         result;
-  an_ifc_partition_kind_index element_idx =
-                               collapse_partition_index(mod, partition, index);
-  Opt<size_t>                 opt_offset = get_partition_offset(element_idx);
+  Opt<a_symbol_header_ptr> result;
+  Opt<a_string>            opt_decl_name = name_of_decl(decl_idx);
 
-  /* If this assertion is violated, get_ifc_module_entity_ptr was called with
-     an index that hasn't passed through validation.  This should be resolved
-     with additional validation. */
-  check_assertion(opt_offset.has_value());
+  if (opt_decl_name.has_value()) {
+    a_string         decl_name = *opt_decl_name;
+    a_symbol_locator locator;
 
-  size_t offset = *opt_offset;
-  result = get_module_entity_ptr(module_of(element_idx)->assoc_module_info,
-                                 offset);
-  if (result->variant.ifc_partition == ifc_pk_none) {
-    result->variant.ifc_partition = element_idx.partition_kind;
-  } else {
-    /* This should always hold unless there's a logic bug that's resulted in
-       the value partition being corrupted or the file offset is being
-       incorrectly calculated. */
-      check_assertion(result->variant.ifc_partition ==
-                      element_idx.partition_kind);
+    clear_locator(&locator, &null_source_position);
+    result = find_symbol_header(decl_name.as_temp_characters(),
+                                decl_name.length(), &locator);
   }  /* if */
   return result;
-}  /* get_ifc_module_entity_ptr */
+}  /* get_name_symbol */
+
+
+static a_module_entity_scope *get_ifc_module_entity_scope(
+                                                   an_ifc_decl_index scope_ref)
+/*
+Given a scope reference find and return the associated module entity scope.
+*/
+{
+  a_module_entity_scope *result = NULL;
+
+  if (is_null_index(scope_ref)) {
+    result = get_module_entity_scope(/*name=*/NULL, /*parent=*/NULL);
+  } else {
+    Opt<a_symbol_header_ptr> opt_decl_name_sym = get_name_symbol(scope_ref);
+
+    if (!opt_decl_name_sym.has_value()) {
+      goto invalid;
+    }  /* if */
+
+    a_symbol_header_ptr   decl_name_sym = *opt_decl_name_sym;
+    an_ifc_decl_index     parent_scope_ref = get_ifc_home_scope(scope_ref);
+    a_module_entity_scope *mesp =
+                                 get_ifc_module_entity_scope(parent_scope_ref);
+    result = get_module_entity_scope(decl_name_sym, mesp);
+  }  /* if */
+  goto done;
+invalid:
+  result = NULL;
+  expect_error_str("expected errors for bad module entity scope request");
+done:
+  return result;
+}  /* get_ifc_module_entity_scope */
+
+
+static inline a_module_entity_ptr
+get_ifc_module_entity(an_ifc_macro_index index) {
+  ifc_unexpected(module_of(index), "macro not yet implemented");
+  return NULL;
+}  /* get_ifc_module_entity */
 
 
 template<typename an_ifc_Index_type>
-static inline a_module_entity_ptr
-get_ifc_module_entity_ptr(an_ifc_Index_type index)
+static inline void set_module_entry_locator(a_module_entry_locator *locator,
+                                            an_ifc_Index_type      index)
 /*
-Overload wrapper for "get_ifc_module_entity_ptr" that extracts the type sort
-and index from the provided index.
 */
 {
-  return get_ifc_module_entity_ptr(module_of(index), get_partition_kind(index),
-                                   index.value);
-}  /* get_ifc_module_entity_ptr */
+  an_ifc_partition_kind_index element_idx{index.file,
+                                          to_partition_kind(index.sort),
+                                          index.value};
+  Opt<size_t>                 opt_offset = get_partition_offset(element_idx);
+
+  /* If this assertion is violated, get_ifc_module_entity was called with an
+     index that hasn't passed through validation.  This should be resolved with
+     additional validation. */
+  check_assertion(opt_offset.has_value());
+
+  size_t offset = *opt_offset;
+  locator->kind = melk_ifc;
+  locator->variant.ifc.partition = element_idx.partition_kind;
+  locator->variant.ifc.offset = offset;
+  locator->variant.ifc.file = index.file;
+}  /* set_module_entry_locator */
+
+
+static inline a_module_entity_ptr
+get_ifc_basic_module_entity(an_ifc_decl_index index)
+/*
+*/
+{
+  a_module_entity_ptr      result = NULL;
+  Opt<a_symbol_header_ptr> opt_decl_name_sym = get_name_symbol(index);
+
+  if (opt_decl_name_sym.has_value()) {
+    a_module_ptr          mod = module_of(index)->assoc_module_info;
+    a_module_entity_scope *mesp =
+                        get_ifc_module_entity_scope(get_ifc_home_scope(index));
+    a_symbol_header_ptr   decl_name_sym = *opt_decl_name_sym;
+
+    result = get_module_entity(mod, mesp, decl_name_sym);
+  }  /* if */
+  return result;
+}  /* get_ifc_basic_module_entity */
+
+namespace {
+
+/*
+This class implements a lazily-loadable function parameter chart abstraction
+(i.e., the chart remains unloaded until information about a parameter is
+requested).
+*/
+struct a_lazy_ifc_func_param_chart {
+  a_lazy_ifc_func_param_chart(an_ifc_chart_index chart_idx_val)
+    : chart_idx(chart_idx_val), opt_node{}, node_invalid(FALSE)
+    {}
+  inline Opt<an_ifc_decl_parameter> get(an_ifc_index_type param_idx);
+private:
+  inline a_boolean try_load_chart();
+  an_ifc_chart_index
+                chart_idx;
+                        /* The index for the function parameter chart. */
+  Opt<an_ifc_chart_unilevel>
+                opt_node;
+                        /* The (potentially unloaded) underlying parameter
+                           chart corresponding to chart_idx. */
+  a_boolean     node_invalid;
+                        /* TRUE if loading of opt_node was attempted but
+                           ultimately failed. */
+};  /* a_lazy_ifc_func_param_chart */
+
+/*
+This class implements a "function parameter context" which abstracts away the
+various locations the IFC stores parameter information to provide a consistent
+view of the "best" information the IFC provides.
+
+This type is implemented in terms of relative indexes to allow for maximum
+flexibility (given the current IFC status-quo's potential for mismatched
+information).
+*/
+struct an_ifc_func_param_context {
+  template<typename an_ifc_Node_type>
+  inline an_ifc_func_param_context(
+                                 an_ifc_decl_index      decl_idx,
+                                 const an_ifc_Node_type &decl,
+                                 an_ifc_decl_index      parameterizing_entity);
+  an_ifc_index_type get_num_params() const
+    { return num_params; }
+  inline an_ifc_type_index get_param_type(an_ifc_index_type param_idx);
+  inline an_ifc_name_index get_name(an_ifc_index_type param_idx);
+  inline an_ifc_expr_index get_default_arg_expr(an_ifc_index_type param_idx);
+private:
+  inline an_ifc_index_type determine_param_count();
+  an_ifc_index_type
+                num_params;
+                        /* The determined number of parameters (see
+                           determine_param_count for more information). */
+  an_ifc_type_index
+                params_type;
+                        /* The type representing the function's parameters.
+                           This is typically the IFC source field of the
+                           function-like declaration's type. */
+  a_lazy_ifc_func_param_chart
+                decl_param_chart;
+                        /* The function parameter chart associated directly
+                           with this declaration.  This is typically the IFC
+                           chart field of the function-like declaration. */
+  a_lazy_ifc_func_param_chart
+                def_param_chart;
+                        /* The function parameter chart pulled from the
+                           associated IFC function definition trait. */
+  a_lazy_ifc_func_param_chart
+                msvc_traits_param_chart;
+                        /* The function parameter chart pulled from the
+                           associated MSVC function parameters trait. */
+  a_lazy_ifc_func_param_chart
+                parameterizer_msvc_traits_param_chart;
+                        /* If this function is parameterized, this is the
+                           function parameter chart pulled from the associated
+                           MSVC function parameters trait for the
+                           parameterizing entity (see
+                           an_ifc_cache_info::parameterizing_entity for more
+                           information about the parameterizing entity). */
+};  /* an_ifc_func_param_context */
+
+/*
+The module isolation scope class encapsulates the construction of a detached
+template parameter list and isolates the template parameter resolution
+(find_template_parameter -- so as to prevent resolution to an incorrect
+parameter higher up in the scope stack).  It's intended to (at least currently)
+only be used during redeclaration checking.
+
+See alloc_detached_templ_param_sym for more information about detached template
+parameters.
+*/
+template<typename an_ifc_Decl_type>
+struct Module_isolation_scope {
+  inline Module_isolation_scope(const an_ifc_Decl_type &decl);
+  inline ~Module_isolation_scope();
+};  /* Moudle_isolation_scope */
+
+}  /* namespace */
+
+template<typename an_ifc_Decl_type>
+static a_template_arg_ptr create_templ_args_for_comparison(
+                                            const an_ifc_Decl_type &decl_spec);
+
+static inline a_module_template_parameter_list*
+get_ifc_template_parameter_list(an_ifc_chart_index param_idx);
+
+
+static inline a_module_template_parameter_list*
+get_ifc_template_parameter_list(const an_ifc_decl_template &templ_decl)
+/*
+*/
+{
+  an_ifc_chart_index param_idx = get_ifc_chart(templ_decl);
+
+  return get_ifc_template_parameter_list(param_idx);
+}  /* get_ifc_template_parameter_list */
+
+
+template<typename an_ifc_Node_type>
+static inline a_module_func_param_list* get_ifc_function_parameter_list(
+                                 an_ifc_decl_index      decl_idx,
+                                 const an_ifc_Node_type &decl,
+                                 an_ifc_decl_index      parameterizing_entity);
+
+
+static inline a_module_func_param_list* get_ifc_function_parameter_list(
+                                 an_ifc_decl_index      decl_idx,
+                                 an_ifc_decl_index      parameterizing_entity)
+/*
+*/
+{
+  a_module_func_param_list *func_params = NULL;
+
+  switch (decl_idx.sort) {
+    case ifc_ds_decl_constructor:
+      { Opt<an_ifc_decl_constructor> opt_ctor_decl;
+
+        construct_node(&opt_ctor_decl, decl_idx);
+        if (!opt_ctor_decl.has_value()) {
+          goto invalid;
+        }  /* if */
+
+        an_ifc_decl_constructor ctor_decl = *opt_ctor_decl;
+        func_params = get_ifc_function_parameter_list(decl_idx,
+                                                      ctor_decl,
+                                                      parameterizing_entity);
+      }
+      break;
+    case ifc_ds_decl_function:
+      { Opt<an_ifc_decl_function> opt_func_decl;
+
+        construct_node(&opt_func_decl, decl_idx);
+        if (!opt_func_decl.has_value()) {
+          goto invalid;
+        }  /* if */
+
+        an_ifc_decl_function func_decl = *opt_func_decl;
+        func_params = get_ifc_function_parameter_list(decl_idx,
+                                                      func_decl,
+                                                      parameterizing_entity);
+      }
+      break;
+    case ifc_ds_decl_method:
+      { Opt<an_ifc_decl_method> opt_method_decl;
+
+        construct_node(&opt_method_decl, decl_idx);
+        if (!opt_method_decl.has_value()) {
+          goto invalid;
+        }  /* if */
+
+        an_ifc_decl_method method_decl = *opt_method_decl;
+        func_params = get_ifc_function_parameter_list(decl_idx,
+                                                      method_decl,
+                                                      parameterizing_entity);
+      }
+      break;
+    case ifc_ds_decl_destructor:
+      /* Use an empty list. */
+      func_params = new_fe<a_module_func_param_list>();
+      break;
+    default:
+      { a_string err_msg("unexpected attempt to resolve ",
+                         index_to_str(decl_idx), "as a function");
+
+        ifc_unexpected(module_of(decl_idx), err_msg.as_temp_characters());
+      }
+      goto invalid;
+  }  /* if */
+invalid:
+  return func_params;
+}  /* get_ifc_function_parameter_list */
+
+
+static inline a_boolean is_function_decl(an_ifc_decl_index index)
+/*
+*/
+{
+  return (index.sort == ifc_ds_decl_function ||
+          index.sort == ifc_ds_decl_method ||
+          index.sort == ifc_ds_decl_constructor ||
+          index.sort == ifc_ds_decl_destructor);
+}  /* is_function_decl */
+
+
+static inline a_module_entity_ptr get_ifc_function_module_entity(
+                                                       an_ifc_decl_index index)
+/*
+*/
+{
+  a_module_entity_ptr      result = NULL;
+  Opt<a_symbol_header_ptr> opt_decl_name_sym = get_name_symbol(index);
+
+  if (opt_decl_name_sym.has_value()) {
+    a_module_ptr             mod = module_of(index)->assoc_module_info;
+    a_module_entity_scope    *mesp =
+                        get_ifc_module_entity_scope(get_ifc_home_scope(index));
+    a_symbol_header_ptr      decl_name_sym = *opt_decl_name_sym;
+    a_module_func_param_list *func_params = get_ifc_function_parameter_list(
+                                index,
+                                /*parameterizing_entity=*/an_ifc_decl_index());
+
+    if (func_params == NULL) {
+      goto invalid;
+    }  /* if */
+    result = get_function_module_entity(mod, mesp, decl_name_sym, func_params);
+  }  /* if */
+  goto done;
+invalid:
+  result = NULL;
+done:
+  return result;
+}  /* get_ifc_function_module_entity */
+
+
+static inline a_module_entity_ptr get_ifc_template_module_entity(
+                                        an_ifc_decl_index          index,
+                                        const an_ifc_decl_template &templ_decl)
+/*
+*/
+{
+  a_module_entity_ptr      result = NULL;
+  Opt<a_symbol_header_ptr> opt_decl_name_sym = get_name_symbol(index);
+
+  if (opt_decl_name_sym.has_value()) {
+    a_module_ptr          mod = module_of(index)->assoc_module_info;
+    a_module_entity_scope *mesp =
+                        get_ifc_module_entity_scope(get_ifc_home_scope(index));
+    a_symbol_header_ptr   decl_name_sym = *opt_decl_name_sym;
+    an_ifc_decl_index     entity_decl_idx =
+                                      get_ifc_decl(get_ifc_entity(templ_decl));
+
+    if (!is_function_decl(entity_decl_idx)) {
+      result = get_module_entity(mod, mesp, decl_name_sym);
+    } else {
+      Module_isolation_scope<an_ifc_decl_template>
+                isolation_scope(templ_decl);
+      a_module_template_parameter_list
+                *template_params = get_ifc_template_parameter_list(templ_decl);
+
+      if (template_params == NULL) {
+        goto invalid;
+      }  /* if */
+
+      a_module_func_param_list *func_params =
+                              get_ifc_function_parameter_list(entity_decl_idx,
+                                                              index);
+      if (func_params == NULL) {
+        goto invalid;
+      }  /* if */
+      result = get_function_template_module_entity(mod, mesp, decl_name_sym,
+                                                   template_params,
+                                                   func_params);
+    }  /* if */
+  }  /* if */
+  goto done;
+invalid:
+  result = NULL;
+done:
+  return result;
+}  /* get_ifc_template_module_entity */
+
+
+static inline a_module_entity_ptr get_ifc_partially_specialized_module_entity(
+                                                       an_ifc_decl_index index)
+/*
+*/
+{
+  a_module_entity_ptr      result = NULL;
+  Opt<a_symbol_header_ptr> opt_decl_name_sym = get_name_symbol(index);
+
+  if (opt_decl_name_sym.has_value()) {
+    Opt<an_ifc_decl_partial_specialization> opt_spec_decl;
+
+    construct_node(&opt_spec_decl, index);
+    if (!opt_spec_decl.has_value()) {
+      goto invalid;
+    }  /* if */
+
+    an_ifc_decl_partial_specialization
+                 spec_decl = *opt_spec_decl;
+    Module_isolation_scope<an_ifc_decl_partial_specialization>
+                 isolation_scope(spec_decl);
+    a_template_arg_ptr
+                 templ_args = create_templ_args_for_comparison(spec_decl);
+    a_module_ptr mod = module_of(index)->assoc_module_info;
+    a_module_entity_scope
+                 *mesp =
+                        get_ifc_module_entity_scope(get_ifc_home_scope(index));
+    a_symbol_header_ptr
+                 decl_name_sym = *opt_decl_name_sym;
+    result = get_specialized_module_entity(mod, mesp, decl_name_sym,
+                                           templ_args);
+  }  /* if */
+  goto done;
+invalid:
+  result = NULL;
+done:
+  return result;
+}  /* get_ifc_specialized_module_entity */
+
+
+static inline a_module_entity_ptr get_ifc_specialized_module_entity(
+                                                       an_ifc_decl_index index)
+/*
+*/
+{
+  a_module_entity_ptr      result = NULL;
+  Opt<a_symbol_header_ptr> opt_decl_name_sym = get_name_symbol(index);
+
+  if (opt_decl_name_sym.has_value()) {
+    Opt<an_ifc_decl_specialization> opt_spec_decl;
+
+    construct_node(&opt_spec_decl, index);
+    if (!opt_spec_decl.has_value()) {
+      goto invalid;
+    }  /* if */
+
+    an_ifc_decl_specialization
+                 spec_decl = *opt_spec_decl;
+    a_template_arg_ptr
+                 templ_args = create_templ_args_for_comparison(spec_decl);
+    a_module_ptr mod = module_of(index)->assoc_module_info;
+    a_module_entity_scope
+                 *mesp =
+                        get_ifc_module_entity_scope(get_ifc_home_scope(index));
+    a_symbol_header_ptr
+                 decl_name_sym = *opt_decl_name_sym;
+    an_ifc_decl_index
+                 parameterized_idx = get_ifc_decl(spec_decl);
+
+    if (!is_function_decl(parameterized_idx)) {
+      result = get_specialized_module_entity(mod, mesp, decl_name_sym,
+                                             templ_args);
+    } else {
+      a_module_func_param_list *func_params =
+                            get_ifc_function_parameter_list(parameterized_idx,
+                                                            index);
+
+      if (func_params == NULL) {
+        goto invalid;
+      }  /* if */
+      result = get_specialized_function_module_entity(mod, mesp, decl_name_sym,
+                                                      templ_args, func_params);
+    }  /* if */
+  }  /* if */
+  goto done;
+invalid:
+  result = NULL;
+done:
+  return result;
+}  /* get_ifc_specialized_module_entity */
+
+
+static inline a_module_entity_ptr get_ifc_error_module_entity(
+                                                       an_ifc_decl_index index)
+/*
+*/
+{
+  a_module_entity_ptr result = new_fe<a_module_entity>();
+
+  result->module_info = module_of(index)->assoc_module_info;
+  result->invalid = TRUE;
+  set_module_entry_locator(&result->locator, index);
+  return result;
+}  /* get_ifc_error_module_entity */
+
+
+using an_ifc_module_entity_lookup = Ptr_map<an_ifc_decl_index,
+                                            a_module_entity_ptr>;
+                        /* The type used to map a declaration index to a
+                           module entity pointer. */
+
+static an_ifc_module_entity_lookup
+                *entity_lookup_cache;
+                        /* A cache of IFC declaration indexes to the
+                           corresponding module entity so that more complicated
+                           entity hash keys do not have to be recomputed. */
+
+
+static inline a_module_entity_ptr
+get_ifc_module_entity(an_ifc_decl_index index)
+/*
+*/
+{
+  uintptr_t           index_hash = hash_ptr(index);
+  a_module_entity_ptr cached_result =
+                         entity_lookup_cache->get_with_hash(index, index_hash);
+  a_module_entity_ptr result = cached_result;
+
+#if EXPENSIVE_CHECKING
+  /* In EXPENSIVE_CHECKING configurations the cache is used to ensure a given
+     index is not remapped to different module entities. */
+  if (result == NULL || !result->invalid) {
+#else /* !EXPENSIVE_CHECKING */
+  if (result == NULL) {
+#endif /* EXPENSIVE_CHECKING */
+    /* Create a temporary module entity on the stack to track any states
+       associated with this module entity before its resolved (this allows
+       ifc_unexpected to reasonably trace the entity associated with any errors
+       and for this function to propagate the invalid state if an error occurs
+       while resolving the module entity). */
+    a_module_entity pending_mep{};
+
+#if DEBUG
+    if (db_flag_is_set("ifc_idx") && cached_result == NULL) {
+      a_string err_msg("Module entity initial lookup started for ",
+                       index_to_str(index));
+
+      print(err_msg, f_debug);
+    }  /* if */
+#endif /* DEBUG */
+    set_module_entry_locator(&pending_mep.locator, index);
+
+    a_module_entity_stack_state mep_state(&pending_mep);
+    index = collapse_partition_index(index);
+    switch (index.sort) {
+      case ifc_ds_decl_constructor:
+      case ifc_ds_decl_function:
+      case ifc_ds_decl_method:
+        result = get_ifc_function_module_entity(index);
+        break;
+      case ifc_ds_decl_template:
+        { Opt<an_ifc_decl_template> opt_templ_decl;
+
+          construct_node(&opt_templ_decl, index);
+          if (!opt_templ_decl.has_value()) {
+            goto invalid;
+          }  /* if */
+
+          an_ifc_decl_template templ_decl = *opt_templ_decl;
+          result = get_ifc_template_module_entity(index, templ_decl);
+        }
+        break;
+      case ifc_ds_decl_partial_specialization:
+        result = get_ifc_partially_specialized_module_entity(index);
+        break;
+      case ifc_ds_decl_specialization:
+        result = get_ifc_specialized_module_entity(index);
+        break;
+      case ifc_ds_decl_tuple:
+        { a_string err_msg("unexpected attempt to represent ",
+                           index_to_str(index), " as a module entity");
+
+          ifc_unexpected(module_of(index), err_msg.as_temp_characters());
+          result = get_ifc_error_module_entity(index);
+        }
+        break;
+      default:
+        result = get_ifc_basic_module_entity(index);
+        break;
+    }  /* switch */
+    if (result != NULL && result->locator.kind == melk_none) {
+      /* This module entity is freshly created, give the locator an initial
+         value. */
+      set_module_entry_locator(&result->locator, index);
+    }  /* if */
+    goto done;
+  invalid:
+    result = NULL;
+  done:
+    if (result != NULL) {
+      /* Synchronize any invalid states for this module entity from the
+         temporarily invalid entity. */
+      if (pending_mep.invalid) {
+        result->invalid = TRUE;
+      }  /* if */
+    } else {
+      result = get_ifc_error_module_entity(index);
+    }  /* if */
+#if DEBUG
+    if (db_flag_is_set("ifc_idx") && cached_result == NULL) {
+      a_string dbg_msg("Module entity lookup done ",
+                       index_to_str(index),
+                       " (",
+                       (void*)result,
+                       (result->invalid) ? ") [[invalid]]" : ")");
+
+      print(dbg_msg, f_debug);
+    }  /* if */
+#endif /* DEBUG */
+#if EXPENSIVE_CHECKING
+    if (cached_result == result) {
+      /* This is not a new result and the same result was returned. */
+    } else
+#endif /* EXPENSIVE_CHECKING */
+    /* Do not add code here. */
+    {
+      /* If an assertion fails while mapping this result, the same IFC
+         declaration index is being mapped to two different module entity
+         values.  This should not happen, so something has gone wrong with
+         either the construction of the hash key or the comparison of the key
+         (i.e., its hashing or equality operator). */
+      entity_lookup_cache->map_with_hash(index, result, index_hash);
+    }  /* if */
+  }  /* if */
+  return result;
+}  /* get_ifc_module_entity */
 
 
 static inline an_ifc_decl_index
 decl_index_of(an_ifc_module         *mod,
               an_ifc_partition_kind partition,
-              size_t                file_offset)
+              sizeof_t              file_offset)
 /*
 Return the an_ifc_decl_index in the given module, derived from the partition
 kind and file offset.
@@ -1105,15 +1674,30 @@ kind and file offset.
 }  /* decl_index_of */
 
 
+static inline an_ifc_decl_index decl_index_of(a_module_entry_locator locator)
+/*
+Return the an_ifc_decl_index derived from the partition kind and file offset
+stored on the given module entry locator.
+*/
+{
+  /* If this assertion fails a module entity pointer that's not from an IFC
+     file was incorrectly passed to this function. */
+  check_assertion(locator.kind == melk_ifc);
+  auto                  &ifc_info = locator.variant.ifc;
+  an_ifc_module_file    *file = ifc_info.file;
+  an_ifc_partition_kind part_kind = ifc_info.partition;
+
+  return decl_index_of(module_of(file), part_kind, ifc_info.offset);
+}  /* decl_index_of */
+
+
 static inline an_ifc_decl_index decl_index_of(a_module_entity_ptr mep)
 /*
 Return the an_ifc_decl_index derived from the partition kind and file offset
 stored on the given module entity pointer.
 */
 {
-  an_ifc_module *mod = get_assoc_ifc_module(mep);
-
-  return decl_index_of(mod, mep->variant.ifc_partition, mep->file_offset);
+  return decl_index_of(mep->locator);
 }  /* decl_index_of */
 
 
@@ -1133,15 +1717,30 @@ kind and file offset.
 }  /* type_index_of */
 
 
+static inline an_ifc_type_index type_index_of(a_module_entry_locator locator)
+/*
+Return the an_ifc_type_index derived from the partition kind and file offset
+stored on the given module entry locator.
+*/
+{
+  /* If this assertion fails a module entity pointer that's not from an IFC
+     file was incorrectly passed to this function. */
+  check_assertion(locator.kind == melk_ifc);
+  auto                  &ifc_info = locator.variant.ifc;
+  an_ifc_module_file    *file = ifc_info.file;
+  an_ifc_partition_kind part_kind = ifc_info.partition;
+
+  return type_index_of(module_of(file), part_kind, ifc_info.offset);
+}  /* type_index_of */
+
+
 static inline an_ifc_type_index type_index_of(a_module_entity_ptr mep)
 /*
 Return the an_ifc_type_index derived from the partition kind and file offset
 stored on the given module entity pointer.
 */
 {
-  an_ifc_module *mod = get_assoc_ifc_module(mep);
-
-  return type_index_of(mod, mep->variant.ifc_partition, mep->file_offset);
+  return type_index_of(mep->locator);
 }  /* type_index_of */
 
 
@@ -1390,6 +1989,18 @@ satisfies these requirements; otherwise, return FALSE.
      of work. */
   return transitive_import_module(ref) != NULL;
 }  /* check_module */
+
+
+static an_ifc_module *get_as_an_ifc_module(a_module_interface_ptr interface)
+/*
+Reinterpret the given module interface pointer as an ifc module pointer with
+additional checks for debug modes.  Return the reinterpreted pointer.
+*/
+{
+  check_assertion(interface->mod_kind == mfk_ms_ifc ||
+                  interface->mod_kind == mfk_edg_ifc);
+  return (an_ifc_module*)interface;
+}  /* get_as_an_ifc_module */
 
 
 an_ifc_module_file* get_module(const an_ifc_module_reference &ref)
@@ -2286,7 +2897,7 @@ processing is not required (i.e., the exact entity doesn't need to be known).
 {
   /* Get the associated IFC module entity pointer, and then use it to
      process this declaration via process_ifc_declaration. */
-  a_module_entity_ptr dmep = get_ifc_module_entity_ptr(decl_idx);
+  a_module_entity_ptr dmep = get_ifc_module_entity(decl_idx);
 
   process_ifc_declaration(dmep);
   return dmep;
@@ -2333,7 +2944,7 @@ should be preferred if the entity should be processed immediately.
 }  /* request_entity */
 
 
-a_boolean request_entity_at_index(an_ifc_decl_index decl_idx)
+static a_boolean request_entity_at_index(an_ifc_decl_index decl_idx)
 /*
 Request that the given module entity specified at the given declaration index
 be processed (if not already being processed).  If the entity's processing is
@@ -2346,10 +2957,35 @@ should be preferred if the entity should be processed immediately.
 {
   /* Get the associated IFC module entity pointer, and then use it to
      process this declaration via process_ifc_declaration. */
-  a_module_entity_ptr dmep = get_ifc_module_entity_ptr(decl_idx);
+  a_module_entity_ptr dmep = get_ifc_module_entity(decl_idx);
 
   return request_entity(dmep);
 }  /* request_entity_at_index */
+
+
+a_boolean request_ifc_entity(a_module_entry_locator locator)
+/*
+Request that the given module entity be processed (if not already being
+processed).  If the entity's processing is complete, return TRUE; otherwise,
+return FALSE.
+*/
+{
+  /* If this assertion fails a module entity pointer that's not from an IFC
+     file was incorrectly passed to this function. */
+  check_assertion(locator.kind == melk_ifc);
+  a_boolean             result = FALSE;
+  an_ifc_partition_kind part_kind = locator.variant.ifc.partition;
+
+  if (is_decl_sort(part_kind)) {
+    an_ifc_decl_index decl_idx = decl_index_of(locator);
+
+    result = request_entity_at_index(decl_idx);
+  } else {
+    unexpected_condition_str("unexpected call to request_ifc_entity with "
+                             "a non-declaration entity");
+  }  /* if */
+  return result;
+}  /* request_ifc_entity */
 
 
 static a_module_entity_ptr
@@ -3414,10 +4050,7 @@ field is encountered, an IL entity and symbol are created at that time.
   }  /* if */
 
   a_module_entry_locator mel;
-  mel.kind = melk_ifc;
-  mel.variant.ifc.sort = (uint32_t)decl_idx.sort;
-  mel.variant.ifc.value = (uint32_t)decl_idx.value;
-  mel.variant.ifc.file = (void*)decl_idx.file;
+  set_module_entry_locator(&mel, decl_idx);
 
   a_deferred_module_entry deferred_entry{scope, mel};
   hdr->deferred_module_entries->entries.push_back(deferred_entry);
@@ -3529,7 +4162,7 @@ already saved for restoration.
 */
 {
   a_module_token_cache        cache;
-  a_module_entity_ptr         mep = get_ifc_module_entity_ptr(macro);
+  a_module_entity_ptr         mep = get_ifc_module_entity(macro);
   a_module_entity_stack_state mep_state(mep);
 
   cache_macro(&cache, macro);
@@ -4086,7 +4719,6 @@ a_lazy_entity_part
 }  /* namespace */
 
 
-
 static inline a_boolean is_closure_decl(an_ifc_decl_index decl_idx)
 /*
 Return TRUE if the given IFC decl index represents a closure declaration;
@@ -4619,7 +5251,7 @@ index information to the given symbol.
   ifc_decl_lookup_table->map(decl_idx, sym);
 
   /* Associate the appropriate module entity with this symbol's IL entity. */
-  a_module_entity_ptr mep = get_ifc_module_entity_ptr(decl_idx);
+  a_module_entity_ptr mep = get_ifc_module_entity(decl_idx);
   if (sym->kind == sk_overloaded_function) {
     mep->entity.kind = iek_il_entity_list_entry;
 
@@ -4944,8 +5576,8 @@ parameter pack; otherwise, return FALSE.
 }  /* is_parameter_pack */
 
 
-static a_boolean type_represents_type_templ_param_ref(
-                                                   an_ifc_type_index type_idx);
+static a_boolean param_represents_type_templ_param_ref(
+                                      const an_ifc_decl_parameter &param_decl);
 
 
 static a_type_ptr alloc_detached_type_templ_param(
@@ -4959,13 +5591,11 @@ parameters.
 {
   a_type_ptr result = alloc_type(tk_template_param);
 
+  if (!param_represents_type_templ_param_ref(param_decl)) {
+    ifc_unexpected(module_of(param_decl),
+                   "expected a non-type template parameter");
+  }  /* if */
   result->variant.template_param.is_pack = is_parameter_pack(param_decl);
-#if CHECKING
-  { an_ifc_type_index type = get_ifc_type(param_decl);
-
-    check_assertion(type_represents_type_templ_param_ref(type));
-  }
-#endif /* CHECKING */
   result->variant.template_param.is_generic_param = FALSE;
 
   a_template_param_type_supplement_ptr extra_info =
@@ -5393,23 +6023,148 @@ done:
   return result;
 }  /* alloc_detached_templ_param */
 
-namespace {
 
+static inline Opt<a_module_template_parameter>
+get_ifc_module_template_parameter(const an_ifc_decl_parameter &param_decl)
+{
+  Opt<a_module_template_parameter> result;
+  an_ifc_parameter_sort            sort = get_ifc_sort(param_decl);
+
+  switch (sort) {
+    case ifc_ps_non_type:
+      { a_module_template_parameter param;
+
+        param.kind = mtpk_non_type;
+        param.variant.type = type_for_nontype_templ_param(param_decl);
+        result = param;
+      }  /* if */
+      break;
+    case ifc_ps_template:
+      { a_module_template_parameter param;
+        an_ifc_chart_index          param_chart_idx =
+                                 get_template_template_param_chart(param_decl);
+
+        param.kind = mtpk_template;
+        param.variant.params_list =
+                              get_ifc_template_parameter_list(param_chart_idx);
+        result = param;
+      }  /* if */
+      break;
+    case ifc_ps_type:
+      { a_module_template_parameter param;
+
+        param.kind = mtpk_type;
+        result = param;
+      }  /* if */
+      break;
+    case ifc_ps_object:
+      ifc_unexpected(module_of(param_decl),
+                     "Unexpected function parameter where a template "
+                     "parameter was expected");
+      goto invalid;
+    default_is_unexpected();
+  }  /* switch */
+  goto done;
+invalid:
+  result.clear();
+done:
+  return result;
+}  /* get_ifc_module_template_parameter */
+
+
+static inline a_module_template_parameter_list*
+get_ifc_template_parameter_list(an_ifc_chart_index param_idx)
 /*
-The module isolation scope class encapsulates the construction of a detached
-template parameter list and isolates the template parameter resolution
-(find_template_parameter -- so as to prevent resolution to an incorrect
-parameter higher up in the scope stack).  It's intended to (at least currently)
-only be used during redeclaration checking.
-
-See alloc_detached_templ_param_sym for more information about detached template
-parameters.
 */
-template<typename an_ifc_Decl_type>
-struct Module_isolation_scope {
-  inline Module_isolation_scope(const an_ifc_Decl_type &decl);
-  inline ~Module_isolation_scope();
-};  /* Moudle_isolation_scope */
+{
+  a_module_template_parameter_list *result = NULL;
+
+  if (is_null_index(param_idx)) {
+    result = new_fe<a_module_template_parameter_list>();
+  } else {
+    switch (param_idx.sort) {
+      case ifc_cs_chart_unilevel:
+        { Opt<an_ifc_chart_unilevel> opt_params;
+
+          construct_node(&opt_params, param_idx);
+          if (!opt_params.has_value()) {
+            goto invalid;
+          }  /* if */
+          result = new_fe<a_module_template_parameter_list>();
+
+          an_ifc_chart_unilevel     params = *opt_params;
+          a_decl_parameter_sequence sequence(params);
+          for (Indexed<an_ifc_decl_parameter> idxd_param : sequence) {
+            if (!idxd_param.has_value()) {
+              goto invalid;
+            }  /* if */
+
+            an_ifc_decl_parameter            param = *idxd_param;
+            Opt<a_module_template_parameter> opt_mod_param =
+                                      get_ifc_module_template_parameter(param);
+            if (!opt_mod_param.has_value()) {
+              goto invalid;
+            }  /* if */
+
+            a_module_template_parameter mod_param = *opt_mod_param;
+            result->push_back(mod_param);
+          }  /* for */
+        }
+        break;
+      case ifc_cs_chart_multilevel:
+      case ifc_cs_chart_none:
+        ifc_unexpected(module_of(param_idx),
+                       "only unilevel or absent templates parameters "
+                       "are supported for function template declarations");
+        goto invalid;
+      default_is_unexpected();
+    }  /* switch */
+  }  /* if */
+  goto done;
+invalid:
+  if (result != NULL) {
+    delete_fe(&result);
+  }  /* if */
+done:
+  return result;
+}  /* get_ifc_template_parameter_list */
+
+
+template<typename an_ifc_Node_type>
+static inline a_module_func_param_list* get_ifc_function_parameter_list(
+                                  an_ifc_decl_index      decl_idx,
+                                  const an_ifc_Node_type &decl,
+                                  an_ifc_decl_index      parameterizing_entity)
+/*
+*/
+{
+  a_module_func_param_list  *result = new_fe<a_module_func_param_list>();
+  an_ifc_func_param_context param_context(decl_idx, decl,
+                                          parameterizing_entity);
+
+  for (an_ifc_index_type i = 0; i < param_context.get_num_params(); ++i) {
+    an_ifc_type_index ifc_type_idx = param_context.get_param_type(i);
+
+    /* If the type couldn't be resolved, fail; this isn't reasonably
+       recoverable. */
+    if (is_null_index(ifc_type_idx)) {
+      goto invalid;
+    }  /* if */
+
+    a_type_ptr param_type = type_for_type_index(ifc_type_idx);
+    if (is_error_type(param_type)) {
+      goto invalid;
+    }  /* if */
+    result->push_back(param_type);
+  }  /* for */
+  goto done;
+invalid:
+  delete_fe(&result);
+done:
+  return result;
+}  /* get_ifc_function_parameter_list */
+
+namespace {
 
 template<typename an_ifc_Decl_type>
 Module_isolation_scope<an_ifc_Decl_type>::Module_isolation_scope(
@@ -5629,7 +6384,7 @@ the concrete "sub-entities" is imminent, return TRUE; otherwise, return FALSE.
         }  /* if */
 
         an_ifc_decl_index   heap_value = get_ifc_value(*indexed_ihd);
-        a_module_entity_ptr emep = get_ifc_module_entity_ptr(heap_value);
+        a_module_entity_ptr emep = get_ifc_module_entity(heap_value);
         if (is_entity_imminent(emep)) {
           result = TRUE;
           break;
@@ -5667,7 +6422,7 @@ Return NULL if none is found.
     /* Disable the "friend" specifier since we are parsing the entity itself
        (in namespace scope) and not its friendship (which is handled
        elsewhere). */
-    a_module_entity             *mep = get_ifc_module_entity_ptr(decl_idx);
+    a_module_entity             *mep = get_ifc_module_entity(decl_idx);
     Value_saver<a_boolean>      suppression(&mod->suppress_friend_token,
                                             /*new_value=*/TRUE);
     a_module_entity_stack_state mep_state(mep);
@@ -6209,8 +6964,6 @@ entities are immediately marked as imminent, and will be resolved to an IL
 entity during parsing.
 */
 {
-  a_module_entity_ptr mep = get_ifc_module_entity_ptr(decl_idx);
-
 #if CHECKING
   {
     /* The front end should not mark the member declaration's module
@@ -6220,11 +6973,9 @@ entity during parsing.
                      index_to_str(decl_idx),
                      " but it is already imminent");
 
-    check_assertion_str(!mep->imminent, err_msg.as_temp_characters());
+    /* FIXME: Implement reuse checking. */
   }
 #endif /* CHECKING */
-  mep->imminent = TRUE;
-  mep->uses_bound_token = TRUE;
   cache_fn(cache, decl_idx);
   cache_token_with_index(cache, tok_ifc_decl, decl_idx);
 #if DEBUG
@@ -8111,7 +8862,7 @@ variable initializer.
     an_ifc_decl_index
                 decl_idx = ifc_var_inits->get_associated_ifc_decl(vp);
     a_module_entity_ptr
-                mep = get_ifc_module_entity_ptr(decl_idx);
+                mep = get_ifc_module_entity(decl_idx);
     a_module_entity_stack_state
                 mep_state(mep);
     a_diagnostic_suppression
@@ -8351,7 +9102,7 @@ definition.
     a_func_info_block           func_info;
     a_module_token_cache        def_cache;
     a_decl_flag_set             flags = SFB_NEW_STRUCT_STMT_STACK_REQUIRED;
-    a_module_entity_stack_state mep_state(get_ifc_module_entity_ptr(ifb));
+    a_module_entity_stack_state mep_state(get_ifc_module_entity(ifb));
     a_diagnostic_suppression    diag_suppress(
                                        &module_of(ifb)->suppressed_diagnostics,
                                        !display_module_import_diagnostics);
@@ -8533,10 +9284,13 @@ Given a type index, return TRUE if the type index represents an ellipsis.
 static a_boolean type_represents_type_templ_param_ref(
                                                     an_ifc_type_index type_idx)
 /*
-Given a type index, return TRUE if the type index represents a reference to a
-type template parameter.
+Given a type index, return TRUE if the type index represents a type template
+parameter.
 */
 {
+  /* This function does not work for EDG authored IFC files.  The caller should
+     have used param_represents_type_templ_param_ref. */
+  check_assertion(!is_edg_authored(type_idx));
   a_boolean result = FALSE;
 
   if (type_idx.sort == ifc_ts_type_expansion) {
@@ -8563,6 +9317,22 @@ type template parameter.
   }  /* if */
   return result;
 }  /* type_represents_type_templ_param_ref */
+
+
+static a_boolean param_represents_type_templ_param_ref(
+                                      const an_ifc_decl_parameter &param_decl)
+/*
+Given an IFC parameter declaration, return TRUE if the type index represents a
+type template parameter.
+*/
+{
+  if (is_edg_authored(param_decl)) {
+    return get_ifc_sort(param_decl) == ifc_ps_type;
+  } else {
+    an_ifc_type_index type_idx = get_ifc_type(param_decl);
+    return type_represents_type_templ_param_ref(type_idx);
+  }  /* if */
+}  /* param_represents_type_templ_param_ref */
 
 namespace {
 
@@ -9243,6 +10013,8 @@ problem is encountered during reconstruction, NULL is returned instead.
 
   construct_node(&opt_form_spec, form_offset);
   if (opt_form_spec.has_value()) {
+    Module_isolation_scope<an_ifc_Decl_type>
+                      isolation_scope(decl_spec);
     an_ifc_form_spec  form_spec = *opt_form_spec;
     an_ifc_expr_index form_arg_idx = get_ifc_arguments(form_spec);
     a_symbol_ptr      template_sym = symbol_for(primary_template);
@@ -9335,6 +10107,26 @@ check_and_set_specialization_redeclaration.
 }  /* find_redeclared_specialized_entity_in_list */
 
 
+template<typename an_ifc_Decl_type>
+static a_template_arg_ptr create_templ_args_for_comparison(
+                                            const an_ifc_Decl_type &decl_spec)
+/*
+*/
+{
+  a_template_arg_ptr  result = NULL;
+  an_ifc_decl_index   templ_idx = get_ifc_primary_template(decl_spec);
+  a_module_entity_ptr templ_mep = process_decl_at_index(templ_idx);
+  a_tagged_pointer    templ_entity = templ_mep->entity;
+
+  if (!templ_mep->invalid && templ_entity.kind == iek_template) {
+    a_template_ptr primary_templ = (a_template_ptr)templ_entity.ptr;
+
+    result = create_templ_args_for_comparison(decl_spec, primary_templ);
+  }  /* if */
+  return result;
+}  /* create_templ_args_for_comparison */
+
+
 template<typename a_Search_fn, typename an_ifc_Decl_type>
 static a_boolean find_redeclared_specialized_entity(
                                         a_Search_fn            search_fn,
@@ -9365,13 +10157,11 @@ check_and_set_specialization_redeclaration.
        information, while comparisons are optimized by doing this up front,
        we're paying an unnecessary cost if there are no symbols to compare
        against. */
-    Module_isolation_scope<an_ifc_Decl_type>
-                    isolation_scope(decl_spec);
-    a_template_ptr  primary_templ = (a_template_ptr)templ_entity.ptr;
-    a_template_arg_ptr
-                    templ_args = create_templ_args_for_comparison(
-                                                                decl_spec,
+    a_template_ptr     primary_templ = (a_template_ptr)templ_entity.ptr;
+    a_template_arg_ptr templ_args =
+                               create_templ_args_for_comparison(decl_spec,
                                                                 primary_templ);
+
     if (templ_args != NULL) {
       a_symbol_ptr active_symbols = sym_header->symbol;
       a_symbol_ptr inactive_symbols = sym_header->inactive_symbols;
@@ -9769,7 +10559,7 @@ specialization is declared in an additional module).
       construct_node(&opt_decl_ref, raw_templ_idx);
       if (opt_decl_ref.has_value()) {
         an_ifc_decl_index   templ_idx = get_ifc_index(*opt_decl_ref);
-        a_module_entity_ptr templ_mep = get_ifc_module_entity_ptr(templ_idx);
+        a_module_entity_ptr templ_mep = get_ifc_module_entity(templ_idx);
 
         /* Typically the entity will not already be set.  There are two
            exceptions to this where the front end needs to enter the else case
@@ -10004,7 +10794,7 @@ check if it has any associated deduction guides, and process them.
   find_trait(&opt_guide_trait, decl_idx);
   if (opt_guide_trait.has_value()) {
     an_ifc_decl_index   guides_idx = get_ifc_trait(*opt_guide_trait);
-    a_module_entity_ptr guides_mep = get_ifc_module_entity_ptr(guides_idx);
+    a_module_entity_ptr guides_mep = get_ifc_module_entity(guides_idx);
 
     /* A single guide will have an ifc_DeclSort_Template entry directly
        associated with it, but it doesn't record the parent scope: So set
@@ -10174,7 +10964,7 @@ must refer to the canonical template.
     construct_node_prechecked(&template_decl, def_decl_idx);
 
     /* Reconstruct the module entity state. */
-    a_module_entity_ptr         mep = get_ifc_module_entity_ptr(def_decl_idx);
+    a_module_entity_ptr         mep = get_ifc_module_entity(def_decl_idx);
     a_module_entity_stack_state mep_state(mep);
     a_module_scope_push_kind    scope_push_status = mspk_unattempted;
     push_module_declaration_context(mep->scope, &scope_push_status);
@@ -11349,7 +12139,7 @@ strongly preferred over calling this function directly.
 
           an_ifc_decl_index   enumerator_idx =
                                            to_decl_index(idxed_enmtr.node_idx);
-          a_module_entity_ptr emep = get_ifc_module_entity_ptr(enumerator_idx);
+          a_module_entity_ptr emep = get_ifc_module_entity(enumerator_idx);
           emep->scope = enum_scope;
           process_ifc_declaration(emep);
         }  /* for */
@@ -11549,7 +12339,7 @@ strongly preferred over calling this function directly.
 
         an_ifc_decl_index   primary_templ = get_ifc_primary_template(ids);
         a_module_entity_ptr primary_templ_mep =
-                                     get_ifc_module_entity_ptr(primary_templ);
+                                         get_ifc_module_entity(primary_templ);
         inherit_mep_origin_flags(mep, primary_templ_mep);
 
         a_module_token_cache cache;
@@ -11639,7 +12429,7 @@ strongly preferred over calling this function directly.
           }  /* if */
 
           an_ifc_decl_index   heap_value = get_ifc_value(*indexed_ihd);
-          a_module_entity_ptr emep = get_ifc_module_entity_ptr(heap_value);
+          a_module_entity_ptr emep = get_ifc_module_entity(heap_value);
           /* In at least some cases (the handling of deduction guides), the
              caller will have filled in mep->scope and that should be
              propagated to the individual associated declarations. */
@@ -12080,7 +12870,7 @@ parsing; this is used to diagnose unprocessed tok_ifc_decl tokens.
 
     an_ifc_scope_member scope_mem = *indexed_scope_mem;
     an_ifc_decl_index   mem_idx = get_ifc_index(scope_mem);
-    a_module_entity_ptr mem_mep = get_ifc_module_entity_ptr(mem_idx);
+    a_module_entity_ptr mem_mep = get_ifc_module_entity(mem_idx);
     if (mem_mep->entity.ptr == NULL) {
 #if CHECKING
       { /* When this condition is violated, no IL entity was recorded for this
@@ -12297,7 +13087,7 @@ definition.
   an_ifc_decl_index
                 def_idx = ifc_tag_definitions->get_associated_ifc_decl(ty);
   a_module_entity_ptr
-                def_mep = get_ifc_module_entity_ptr(def_idx);
+                def_mep = get_ifc_module_entity(def_idx);
 
   if (ifc_tag_definitions->can_be_processed(ty)) {
     a_module_scope_push_kind scope_push_status = mspk_unattempted;
@@ -12324,7 +13114,10 @@ otherwise, return an empty optional.
 {
   Opt<a_source_position> result;
 
-  if (is_decl_sort(mep->variant.ifc_partition)) {
+  /* If this assertion fails a module entity pointer that's not from an IFC
+     file was incorrectly passed to this function. */
+  check_assertion(mep->locator.kind == melk_ifc);
+  if (is_decl_sort(mep->locator.variant.ifc.partition)) {
     an_ifc_decl_index decl_idx = decl_index_of(mep);
 
     if (validate(decl_idx) && has_ifc_locus(decl_idx)) {
@@ -13508,7 +14301,7 @@ be deferred until they are referenced.
 
         /* Eagerly load the definition and specializations "as-if" they'd been
            requested for an instantiation via the lazy loading system. */
-        a_module_entity_ptr dmep = get_ifc_module_entity_ptr(decl_idx);
+        a_module_entity_ptr dmep = get_ifc_module_entity(decl_idx);
         if (dmep->invalid) {
           continue;
         }  /* if */
@@ -14005,15 +14798,117 @@ error and return NULL.
 }  /* parse_typename_specifier_cache */
 
 
-static void associate_mep_with_type(a_module_entity_ptr mep)
+using an_ifc_module_type_cache = Ptr_map<an_ifc_type_index, a_type_ptr>;
+                        /* The type used for a cache of IFC type indexes to
+                           their corresponding type pointers. */
+
+static an_ifc_module_type_cache
+                *ifc_type_cache;
+                        /* A map from a given IFC type index to its associated
+                           type pointer. */
+
+static void cache_edg_type_first_part(a_module_token_cache_ptr cache,
+                                      an_ifc_edg_type_index    type_idx,
+                                      const an_ifc_cache_info  &cinfo);
+
+static void cache_edg_type_second_part(a_module_token_cache_ptr cache,
+                                       an_ifc_edg_type_index    type_idx,
+                                       const an_ifc_cache_info  &cinfo);
+
+static Opt<an_ifc_edg_type_index>
+load_edg_type_vendor_extension(an_ifc_type_index type)
 /*
-For the given type module entity pointer, associate the corresponding IL type
-with the module entity pointer.
+Given a non-null vendor extension type index from an EDG-authored IFC file,
+return the corresponding EDG type index.  If a problem occurs while retrieving
+the EDG type index, instead return an empty optional.
 */
 {
-  a_type_ptr        result = NULL;
-  an_ifc_type_index type_idx = type_index_of(mep);
-  an_ifc_module     *mod = module_of(type_idx);
+  /* If this assertion fails, the caller has provided something other than an
+     EDG type vendor extension. */
+  check_assertion(is_edg_authored(type) && !is_null_index(type) &&
+                  type.sort == ifc_ts_type_vendor_extension);
+  Opt<an_ifc_edg_type_index> result;
+
+  {
+    /* This is the EDG variant of the IFC, so the type vendor extension
+       references an entry in the ".edg.extension.type" partition.  When
+       written an additional value of one is added to the true partition offset
+       to allow for the null index case to be distinguished; subtract the extra
+       value now. */
+    an_ifc_index_type expected_offset = type.value - 1;
+
+    /* The offset is going to be manually constructed (and thus isn't subject
+       to the normal protection of the IFC validator): Explicitly perform
+       presence checking. */
+    if (!validate_element_exists(type.file, ifc_pk_edg_extension_type,
+                                 expected_offset, /*trace=*/NULL)) {
+      goto invalid;
+    }  /* if */
+
+    /* Load the EDG IFC type extension. */
+    an_ifc_edg_extension_type_offset type_offset(type.file,
+                                                 expected_offset + 1);
+    Opt<an_ifc_edg_extension_type>   opt_extension_type;
+    construct_node(&opt_extension_type, type_offset);
+    if (!opt_extension_type.has_value()) {
+      goto invalid;
+    }  /* if */
+
+    an_ifc_edg_extension_type extension_type = *opt_extension_type;
+    an_ifc_edg_type_index     edg_type_idx = get_ifc_value(extension_type);
+    result = edg_type_idx;
+  }
+  goto done;
+invalid:
+  result.clear();
+done:
+  return result;
+}  /* load_edg_type_vendor_extension */
+
+
+static a_type_ptr process_edg_type(an_ifc_edg_type_index type_idx)
+/*
+*/
+{
+  a_type_ptr result = NULL;
+
+  /* FIXME: As the path of least resistance, we just cache the type as a
+     typename-specifier and parse it; eventually we should be able to do
+     something smarter here. */
+  {
+    a_module_token_cache cache;
+
+    /* Create a fake "typename-specifier" and use that to parse the
+       type. */
+    cache_token(&cache, tok_typename);
+    cache_edg_type_first_part(&cache, type_idx, /*cinfo=*/{});
+    cache_edg_type_second_part(&cache, type_idx, /*cinfo=*/{});
+    if (!cache.is_valid()) {
+      goto invalid;
+    }  /* if */
+
+    result = parse_typename_specifier_cache(module_of(type_idx), &cache);
+    if (result == NULL) {
+      goto invalid;
+    }  /* if */
+  }
+  goto done;
+invalid:
+  result = error_type();
+done:
+  /* If this assertion fails preceeding code failed to set a result value or
+     use the invalid result case. */
+  check_assertion(result != NULL);
+  return result;
+}  /* process_edg_type */
+
+
+static a_type_ptr process_ifc_type(an_ifc_type_index type_idx)
+/*
+*/
+{
+  a_type_ptr    result = NULL;
+  an_ifc_module *mod = module_of(type_idx);
 
 #if DEBUG
   if (db_flag_is_set("ifc_idx")) {
@@ -14023,6 +14918,23 @@ with the module entity pointer.
   }  /* if */
 #endif /* DEBUG */
   switch (type_idx.sort) {
+    case ifc_ts_type_vendor_extension:
+      if (is_edg_authored(type_idx)) {
+        Opt<an_ifc_edg_type_index> opt_edg_type_idx =
+                                      load_edg_type_vendor_extension(type_idx);
+
+        if (!opt_edg_type_idx.has_value()) {
+          goto invalid;
+        }  /* if */
+
+        an_ifc_edg_type_index edg_type_idx = *opt_edg_type_idx;
+        result = process_edg_type(edg_type_idx);
+      } else {
+        issue_unsupported_construct_error(mod, str_for(type_idx.sort),
+                                          &error_position);
+        goto invalid;
+      }  /* if */
+      break;
     case ifc_ts_type_fundamental:
       { Opt<an_ifc_type_fundamental> opt_itf;
 
@@ -14411,8 +15323,7 @@ with the module entity pointer.
               }  /* if */
 
               an_ifc_decl_parameter param_decl = *opt_param_decl;
-              an_ifc_type_index     type = get_ifc_type(param_decl);
-              if (type_represents_type_templ_param_ref(type)) {
+              if (param_represents_type_templ_param_ref(param_decl)) {
                 a_symbol_ptr sym = find_template_parameter(param_decl);
 
                 if (sym == NULL) {
@@ -14696,10 +15607,6 @@ with the module entity pointer.
                                           &error_position);
         goto invalid;
       }
-    case ifc_ts_type_vendor_extension:
-      issue_unsupported_construct_error(mod, str_for(type_idx.sort),
-                                        &error_position);
-      goto invalid;
     default_is_unexpected_str("Unexpected TypeSort");
   }  /* switch */
   goto done;
@@ -14709,10 +15616,6 @@ done:
   /* If this assertion fails preceeding code failed to set a result value or
      use the invalid result case. */
   check_assertion(result != NULL);
-  /* Record this mapping for future reference. */
-  mep->scope = result->source_corresp.parent_scope;
-  /* Assign the entity. */
-  mep->entity = make_tagged_ptr(result);
 #if DEBUG
   if (db_flag_is_set("ifc_idx")) {
     a_string err_msg("Type resolution done for ", index_to_str(type_idx));
@@ -14720,7 +15623,8 @@ done:
     print(err_msg, f_debug);
   }  /* if */
 #endif /* DEBUG */
-}  /* associate_mep_with_type */
+  return result;
+}  /* process_ifc_type */
 
 
 static a_type_ptr type_for_type_index(an_ifc_type_index type_index)
@@ -14734,13 +15638,27 @@ corresponding type, return an error type.
   if (is_null_index(type_index)) {
     result = error_type();
   } else {
-    a_module_entity_ptr mep = get_ifc_module_entity_ptr(type_index);
+    uintptr_t type_hash = hash_ptr(type_index);
 
-    if (mep->entity.ptr == NULL) {
-      associate_mep_with_type(mep);
+    result = ifc_type_cache->get_with_hash(type_index, type_hash);
+    if (result == NULL) {
+      result = process_ifc_type(type_index);
+
+      a_type_ptr existing_result =
+                          ifc_type_cache->get_with_hash(type_index, type_hash);
+      /* If this assertion fails, type_for_type_index recorded the type as a
+         different type during a recursive call to type_for_type_index.
+
+         Such calls can happen (as of the time of writing) when an enumeration
+         type is requested; this triggers the resolution of the enumerators
+         which request the type of the enumeration.  The subsequent call then
+         succeeds due to the enumeration being memoized by the module entity
+         system. */
+      check_assertion(existing_result == NULL || existing_result == result);
+      if (existing_result == NULL) {
+        ifc_type_cache->map_with_hash(type_index, result, type_hash);
+      }  /* if */
     }  /* if */
-    check_assertion(mep->entity.kind == iek_type);
-    result = (a_type_ptr)mep->entity.ptr;
   }  /* if */
   check_assertion(result != NULL);
   return result;
@@ -20406,31 +21324,6 @@ done:
 
 namespace {
 
-/*
-This class implements a lazily-loadable function parameter chart abstraction
-(i.e., the chart remains unloaded until information about a parameter is
-requested).
-*/
-struct a_lazy_ifc_func_param_chart {
-  a_lazy_ifc_func_param_chart(an_ifc_chart_index chart_idx_val)
-    : chart_idx(chart_idx_val), opt_node{}, node_invalid(FALSE)
-    {}
-  inline Opt<an_ifc_decl_parameter> get(an_ifc_index_type param_idx);
-private:
-  inline a_boolean try_load_chart();
-  an_ifc_chart_index
-                chart_idx;
-                        /* The index for the function parameter chart. */
-  Opt<an_ifc_chart_unilevel>
-                opt_node;
-                        /* The (potentially unloaded) underlying parameter
-                           chart corresponding to chart_idx. */
-  a_boolean     node_invalid;
-                        /* TRUE if loading of opt_node was attempted but
-                           ultimately failed. */
-};  /* a_lazy_ifc_func_param_chart */
-
-
 static an_ifc_chart_index get_msvc_trait_func_param_chart_idx(
                                                     an_ifc_decl_index decl_idx)
 /*
@@ -20562,61 +21455,6 @@ invalid:
 done:
   return this->opt_node.has_value();
 }  /* a_lazy_ifc_func_param_chart::try_load_chart */
-
-
-/*
-This class implements a "function parameter context" which abstracts away the
-various locations the IFC stores parameter information to provide a consistent
-view of the "best" information the IFC provides.
-
-This type is implemented in terms of relative indexes to allow for maximum
-flexibility (given the current IFC status-quo's potential for mismatched
-information).
-*/
-struct an_ifc_func_param_context {
-  template<typename an_ifc_Node_type>
-  inline an_ifc_func_param_context(
-                                 an_ifc_decl_index      decl_idx,
-                                 const an_ifc_Node_type &decl,
-                                 an_ifc_decl_index      parameterizing_entity);
-  an_ifc_index_type get_num_params() const
-    { return num_params; }
-  inline an_ifc_type_index get_param_type(an_ifc_index_type param_idx);
-  inline an_ifc_name_index get_name(an_ifc_index_type param_idx);
-  inline an_ifc_expr_index get_default_arg_expr(an_ifc_index_type param_idx);
-private:
-  inline an_ifc_index_type determine_param_count();
-  an_ifc_index_type
-                num_params;
-                        /* The determined number of parameters (see
-                           determine_param_count for more information). */
-  an_ifc_type_index
-                params_type;
-                        /* The type representing the function's parameters.
-                           This is typically the IFC source field of the
-                           function-like declaration's type. */
-  a_lazy_ifc_func_param_chart
-                decl_param_chart;
-                        /* The function parameter chart associated directly
-                           with this declaration.  This is typically the IFC
-                           chart field of the function-like declaration. */
-  a_lazy_ifc_func_param_chart
-                def_param_chart;
-                        /* The function parameter chart pulled from the
-                           associated IFC function definition trait. */
-  a_lazy_ifc_func_param_chart
-                msvc_traits_param_chart;
-                        /* The function parameter chart pulled from the
-                           associated MSVC function parameters trait. */
-  a_lazy_ifc_func_param_chart
-                parameterizer_msvc_traits_param_chart;
-                        /* If this function is parameterized, this is the
-                           function parameter chart pulled from the associated
-                           MSVC function parameters trait for the
-                           parameterizing entity (see
-                           an_ifc_cache_info::parameterizing_entity for more
-                           information about the parameterizing entity). */
-};  /* an_ifc_func_param_context */
 
 
 template<typename an_ifc_Node_type>
@@ -21822,57 +22660,6 @@ See cache_type_second_part for additional information.
     default_is_unexpected();
   }  /* switch */
 }  /* cache_edg_type_second_part */
-
-
-static Opt<an_ifc_edg_type_index>
-load_edg_type_vendor_extension(an_ifc_type_index type)
-/*
-Given a non-null vendor extension type index from an EDG-authored IFC file,
-return the corresponding EDG type index.  If a problem occurs while retrieving
-the EDG type index, instead return an empty optional.
-*/
-{
-  /* If this assertion fails, the caller has provided something other than an
-     EDG type vendor extension. */
-  check_assertion(is_edg_authored(type) && !is_null_index(type) &&
-                  type.sort == ifc_ts_type_vendor_extension);
-  Opt<an_ifc_edg_type_index> result;
-
-  {
-    /* This is the EDG variant of the IFC, so the type vendor extension
-       references an entry in the ".edg.extension.type" partition.  When
-       written an additional value of one is added to the true partition offset
-       to allow for the null index case to be distinguished; subtract the extra
-       value now. */
-    an_ifc_index_type expected_offset = type.value - 1;
-
-    /* The offset is going to be manually constructed (and thus isn't subject
-       to the normal protection of the IFC validator): Explicitly perform
-       presence checking. */
-    if (!validate_element_exists(type.file, ifc_pk_edg_extension_type,
-                                 expected_offset, /*trace=*/NULL)) {
-      goto invalid;
-    }  /* if */
-
-    /* Load the EDG IFC type extension. */
-    an_ifc_edg_extension_type_offset type_offset(type.file,
-                                                 expected_offset + 1);
-    Opt<an_ifc_edg_extension_type>   opt_extension_type;
-    construct_node(&opt_extension_type, type_offset);
-    if (!opt_extension_type.has_value()) {
-      goto invalid;
-    }  /* if */
-
-    an_ifc_edg_extension_type extension_type = *opt_extension_type;
-    an_ifc_edg_type_index     edg_type_idx = get_ifc_value(extension_type);
-    result = edg_type_idx;
-  }
-  goto done;
-invalid:
-  result.clear();
-done:
-  return result;
-}  /* load_edg_type_vendor_extension */
 
 
 static void cache_type_first_part(a_module_token_cache_ptr cache,
@@ -28707,6 +29494,7 @@ translation unit.
 #if DEBUG && EXPENSIVE_CHECKING
   debug_partition = NULL;
 #endif /* DEBUG && EXPENSIVE_CHECKING */
+  entity_lookup_cache = new_fe<an_ifc_module_entity_lookup>(/*mask_width=*/10);
   ifc_parameterized_entities = new_fe<an_ifc_parameterized_entity_map>(
                                                             /*mask_width=*/10);
   ifc_var_inits = new_fe<a_lazy_entity_part>();
@@ -28718,6 +29506,7 @@ translation unit.
   ifc_decl_lookup_table = new_fe<an_ifc_decl_lookup_table>(/*mask_width=*/10);
   ifc_decl_template_lookup_table = new_fe<an_ifc_template_lookup_table>(
                                                             /*mask_width=*/10);
+  ifc_type_cache = new_fe<an_ifc_module_type_cache>(/*mask_width=*/10);
 }  /* ifc_modules_trans_unit_init */
 
 
@@ -28728,6 +29517,7 @@ called after all processing for the translation unit (including template
 instantiations, etc.) has been done.
 */
 {
+  delete_fe(&ifc_type_cache);
   delete_fe(&ifc_decl_template_lookup_table);
   delete_fe(&ifc_decl_lookup_table);
   delete_fe(&ifc_tag_definitions);
@@ -28736,6 +29526,7 @@ instantiations, etc.) has been done.
   delete_fe(&ifc_function_bodies);
   delete_fe(&ifc_var_inits);
   delete_fe(&ifc_parameterized_entities);
+  delete_fe(&entity_lookup_cache);
 }  /* ifc_modules_trans_unit_wrapup */
 
 #if MAKE_FRONT_END_CALLABLE

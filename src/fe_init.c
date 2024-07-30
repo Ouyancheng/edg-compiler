@@ -300,8 +300,6 @@ CONSTINIT_ARRAY(/* none */, a_function_pointer, function_pointers, fn_last + 1)
   (a_function_pointer)compare_substituted_type_list_entry,
   (a_function_pointer)hash_token_sequence_xref,
   (a_function_pointer)compare_token_sequence_xref,
-  (a_function_pointer)hash_module_entity,
-  (a_function_pointer)compare_for_module_entity,
 #if UNICODE_VULNERABILITY_DETECTION_SUPPORTED
   (a_function_pointer)hash_id_representation,
   (a_function_pointer)id_representations_match,

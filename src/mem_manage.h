@@ -583,8 +583,6 @@ enum a_function_number : a_byte {
   fn_compare_substituted_type_list_entry,
   fn_hash_token_sequence_xref,
   fn_compare_token_sequence_xref,
-  fn_hash_module_entity,
-  fn_compare_for_module_entity,
 #if UNICODE_VULNERABILITY_DETECTION_SUPPORTED
   fn_hash_id_representation,
   fn_id_representations_match,

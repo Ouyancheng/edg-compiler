@@ -4311,8 +4311,21 @@ extern a_cli_operator_kind find_cli_operator_kind(a_const_char *identifier);
 The kind of module entry locator.
 */
 enum a_module_entry_locator_kind {
+  melk_none,
   melk_ifc
 };
+
+/*
+This is a forward declaration of an_ifc_module_file for use by the symbol
+table.
+*/
+struct an_ifc_module_file;
+
+/*
+This is a forward declaration of an_ifc_partition_kind for use by the symbol
+table.
+*/
+enum an_ifc_partition_kind : uint32_t;
 
 /*
 A lightweight representation of a module entry that can be resolved by the
@@ -4323,13 +4336,15 @@ struct a_module_entry_locator {
   a_module_entry_locator_kind
 		kind;	/* The kind of module entry locator. */
   union {
+    /* When kind == melk_none: no variant fields. */
     /* When kind == melk_ifc: */
     struct {
-      uint32_t	sort;	/* The index sort in the IFC file used to address the
-			   node being referred to. */
-      uint32_t	value;	/* The index in the IFC partition used to address the
-			   node being referred to. */
-      const void
+      an_ifc_partition_kind
+		partition;
+			/* The IFC partition kind. */
+      sizeof_t  offset; /* The file offset into the IFC where this entity is
+			   defined. */
+      an_ifc_module_file
 		*file;	/* An opaque pointer to the IFC module file
 			   (an_ifc_module_file) containing this declaration. */
     } ifc;
