@@ -1520,7 +1520,7 @@ information in sym_header.
   } else
 #endif /* NEED_NAME_MANGLING */
   /* Do not insert code here. */
-  { 
+  if (!sym_header->is_unnamed) {
     /* Note that the identifier name was allocated in the intermediate language
        memory area (see find_symbol); it can therefore be used without
        copying. */

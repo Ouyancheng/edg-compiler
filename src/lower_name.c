@@ -14216,15 +14216,15 @@ Also determines any implicit abi_tags for the variable when mangling is needed.
   a_boolean file_scope_case = FALSE;
 #endif /* ABI_COMPATIBILITY_VERSION >= 411 && GNU_EXTENSIONS_ALLOWED */
 
-  if (!has_name(variable)) {
+  if (variable->is_template_param_object) {
+    /* Template parameter objects (unnamed) get their own mangling. */
+    mangling_needed = TRUE;
+  } else if (!has_name(variable)) {
     /* Unnamed variables do not need mangled names (except some structured
        binding containers are given mangled names). */
     if (struct_binding_container_needs_mangling(variable)) {
       mangling_needed = TRUE;
     }  /* if */
-  } else if (variable->is_template_param_object) {
-    /* Template parameter objects get their own mangling. */
-    mangling_needed = TRUE;
   } else if (!is_name_linkage_kind_subject_to_name_mangling(
                                       variable->source_corresp.name_linkage)) {
     /* Do not mangle namespace members with extern "C" linkage. */

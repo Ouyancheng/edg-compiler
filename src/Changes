@@ -1,5 +1,18 @@
 Version 6.7
 
+7/30/24  [EDGcpfe/27409]
+IA-64 ABI: Invalid mangled name generated for template parameter object
+
+The IA-64 ABI mangled name for a template parameter object had inadvertently
+contained the string "<templ-param-object>" in some cases and is now fixed.
+For example (with --c++20):
+
+  auto lambda = [](int) { return 0; };
+  template<auto F, class T> using TA = decltype(F(T()));
+  template<class T = int> TA<lambda, T> f();
+  auto var = f();
+
+
 7/30/24  [EDGcpfe/27175]
 Negative offsets in __INTADDR__(...)
 

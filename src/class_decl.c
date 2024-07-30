@@ -16086,9 +16086,8 @@ implicitly declared member functions.
          "<unnamed>". */
       rtn->source_corresp.name = NULL;
     } else if (cppcx_enabled && is_unnamed_virtual_function_symbol(sym)) {
-      /* Ensure the routine name is in IL memory. */
-      rtn->source_corresp.name = copy_string_to_region(
-                          file_scope_region_number, rtn->source_corresp.name);
+      /* Leave the name NULL for an unnamed virtual function. */
+      rtn->source_corresp.name = NULL;
     }  /* if */
   } else if (cli_or_cx_enabled) {
     if (cli_class_type_kind_is(class_type, cctk_value)) {
