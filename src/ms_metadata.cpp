@@ -5711,7 +5711,7 @@ void a_type_definition::import_enum_definition(ostringstream &buffer) const
 Import the definition of an enumeration and emit the code for the definition.
 */
 {
-  auto &underlying_type = this->underlying_type();
+  auto const &underlying_type = this->underlying_type();
   if (underlying_type != nullptr) {
     buffer << type_name_ << " : " << underlying_type->get_string();
     if (kind_ == tdk_native_enum) {
@@ -9149,7 +9149,7 @@ CPPMetadataDispenser;
    module. */
 extern "C" IMAGE_DOS_HEADER __ImageBase;
 
-HINSTANCE relative_load_library(wchar_t *relative_path)
+HINSTANCE relative_load_library(const wchar_t *relative_path)
 /*
 Utility to load a DLL relative to the location of the module that contains
 this function.
@@ -9439,7 +9439,7 @@ an_assembly_name::an_assembly_name(
   DWORD characters_in_locale = data.cbLocale;
   if (data.szLocale == nullptr) {
     check_assertion(data.cbLocale == 0);
-    locale = L"";
+    locale = (LPVOID)L"";
     characters_in_locale = _countof(L"");
   }  /* if */
   hr = name_interface_->SetProperty(ASM_NAME_CULTURE, locale,
