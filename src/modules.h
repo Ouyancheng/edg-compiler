@@ -241,7 +241,7 @@ struct Is_trivially_destructible_edg_impl<a_module_entity_stack_entry> :
 
 }  /* detail */
 
-using a_module_entity_stack = Small_dyn_array<a_module_entity_stack_entry, 5>;
+using a_module_entity_stack = Dyn_array<a_module_entity_stack_entry>;
                         /* The type used to represent the stack of module
                            contexts. */
 
@@ -253,7 +253,19 @@ using a_module_entity_depth = ptrdiff_t;
                         /* The type used to represent the module entity scope
                            depth. */
 
-extern a_module_entity_depth module_entity_stack_depth();
+inline a_module_entity_depth module_entity_stack_depth()
+/*
+Return the depth of the module entity stack.
+*/
+{
+  a_module_entity_depth result = NO_SCOPE_DEPTH;
+
+  if (module_entity_stack != NULL && !module_entity_stack->is_empty()) {
+    result = module_entity_stack->length() - 1;
+  }  /* if */
+  return result;
+}  /* module_entity_stack_depth */
+
 
 extern void push_module_entity_state(a_module_entity_ptr mep);
 
