@@ -12989,7 +12989,6 @@ messages.
   an_orig_line_modif_ptr olmp = NULL;
   int                    delim_len_adjustment = 0;
   a_boolean              is_raw_string;
-  a_boolean              is_string_literal;
 #if UNICODE_VULNERABILITY_DETECTION_SUPPORTED
   a_boolean              suspicious_unicode = FALSE;
 #endif /* UNICODE_VULNERABILITY_DETECTION_SUPPORTED */
@@ -12997,8 +12996,8 @@ messages.
   nchars = 0;
   is_raw_string = (literal_kind & SCLK_RAW_STRING_LITERAL) != 0;
   check_assertion(is_raw_string == (raw_string_delimiter_len >= 0));
-  is_string_literal = (literal_kind & SCLK_STRING_LITERAL) != 0;
-  check_assertion(!(is_raw_string && !is_string_literal));
+  check_assertion(!(is_raw_string &&
+                    (literal_kind & SCLK_STRING_LITERAL) == 0));
   literal_kind = literal_encoding_prefix(literal_kind);
 #if UNICODE_VULNERABILITY_DETECTION_SUPPORTED
   if (string_start_loc == NULL) {

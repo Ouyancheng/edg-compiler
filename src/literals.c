@@ -1673,10 +1673,13 @@ start_of_curr_token and end_of_curr_token point to the two ends of the
 external form.  The internal form is placed in const_for_curr_token.  If
 there is no error, *err_code is set to ec_no_error (which is 0); otherwise,
 *err_code is set to an appropriate error code and *err_pos is set to the
-character position of the error.  num_chars indicates the number of
-characters contained within the quotes (after escape processing, and in
-wide characters if the constant is wide).  If the literal contains a UCN,
-the actual number of converted characters may be less than num_chars.  */
+character position of the error.  (Note that conv_single_char may report
+errors using register_char_overflow, so the caller should call
+report_char_overflows after calling conv_char_literal.)  num_chars
+indicates the number of characters contained within the quotes (after
+escape processing, and in wide characters if the constant is wide).  If the
+literal contains a UCN, the actual number of converted characters may be
+less than num_chars.  */
 {
   unsigned long           i, ch;
   an_integer_value        number, ch_int_val;
@@ -2052,21 +2055,28 @@ of the value and to the terminating character of the external form (i.e.,
 following the opening quote and to the closing quote in an ordinary string
 literal, or following the '(' and to the ')' in a raw string literal), and
 lit_kind describes the kind of literal.  The internal form is placed in
-const_for_curr_token.  If there is no error, *err_code is set to
-ec_no_error (which is 0); otherwise, *err_code is set to an appropriate
-error code and *err_pos is set to the character position of the error.
-num_chars indicates the number of characters contained within the quotes
-(after escape processing, and in wide characters if the string is wide).
-If the string is a char16_t string of the form u"...", num_chars may be
-larger (but not smaller) than the number of characters needed to represent
-the string.  if is_rescan is TRUE, this call is scanning a
-previously-processed narrow character string value as a different literal
-kind, as when concatenating an unprefixed string literal with one that has
-a prefix.  In this case, escapes will have already been recognized and
-translated, and an escaped backslash should not be considered to introduce
-another escape.  Also, universal character names will have been replaced by
-their UTF-8 encodings, so the rescan as a wider UTF encoding may result in
-fewer characters than the number of bytes in the UTF-8 encoding.
+const_for_curr_token.  num_chars indicates the number of characters
+contained within the quotes (after escape processing, and in wide
+characters if the string is wide).  If the string is a char16_t string of
+the form u"...", num_chars may be larger (but not smaller) than the number
+of characters needed to represent the string.  if is_rescan is TRUE, this
+call is scanning a previously-processed narrow character string value as a
+different literal kind, as when concatenating an unprefixed string literal
+with one that has a prefix.  In this case, escapes will have already been
+recognized and translated, and an escaped backslash should not be
+considered to introduce another escape.  Also, universal character names
+will have been replaced by their UTF-8 encodings, so the rescan as a wider
+UTF encoding may result in fewer characters than the number of bytes in the
+UTF-8 encoding.
+
+If there is no error, *err_code is set to ec_no_error (which is 0);
+otherwise, *err_code is set to an appropriate error code and *err_pos is
+set to the character position of the error.  (Not all errors are reported
+this way.  Because string concatenation can change the literal kind,
+constructs that would be an error in an ordinary narrow string literal but
+accepted in a wide or UTF string literal are reported using
+register_char_overflow, to be processed or discarded once the literal kind
+is finally known.)
 */
 {
   unsigned long                 i, ch, centity_mask;
