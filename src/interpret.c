@@ -16619,7 +16619,7 @@ This is similar to do_constexpr_ctor.
     if (!result) {
       /* Something went wrong.  Don't perform additional interpretation. */
     } else {
-      if (block_stmt->kind == (a_statement_kind)stmk_try_block) {
+      if (block_stmt->kind == stmk_try_block) {
         block_stmt = block_stmt->variant.try_block->statement;
       }  /* if */
       result = do_constexpr_block_statement(ips, block_stmt, callee_scope);
@@ -16629,31 +16629,46 @@ This is similar to do_constexpr_ctor.
     unmark_complete_object_initialized(complete_object);
     dtor_init = callee_scope->variant.routine.constructor_inits;
     for (; dtor_init != NULL; dtor_init = dtor_init->next) {
-      a_byte_count        offset;
+      a_byte_count        offset, elem_size = 0;
       a_dynamic_init_ptr  sub_dip;
-      if (dtor_init->kind == (a_constructor_init_kind)cik_field) {
+      int                 n;
+      a_byte              *sub_bytes;
+      if (dtor_init->kind == cik_field) {
         a_field_ptr  fp = dtor_init->variant.field;
+        a_type_ptr   ftp = skip_typerefs(fp->type);
+        if (type_is(ftp, tk_array)) {
+          n = (int)num_array_elements(ftp);
+          ftp = skip_typerefs(underlying_array_element_type(ftp));
+          elem_size = value_bytes_for_type(ips, ftp, &result);
+        } else {
+          n = 1;
+        }  /* if */
         get_mapped_byte_count(&persistent_map, fp, offset);
         sub_dip = dtor_init->initializer;
         if (type_is(class_type, tk_union)) {
           /* Clear the active field for the enclosing union. */
           *(a_field_ptr*)result_storage = NULL;
         }  /* if */
+        
       } else {
         a_base_class_ptr  bcp = dtor_init->variant.base_class;
+        n = 1;
         get_mapped_byte_count(&persistent_map, bcp, offset);
         sub_dip = dtor_init->initializer;
       }  /* if */
-      /* Clear the derivation/active-field state. */
-      *(void**)(result_storage+offset) = NULL;
-      if (!do_constexpr_dtor(ips, sub_dip->destructor, pos,
-                             result_storage+offset, complete_object,
-                             /*nonvirtual=*/TRUE)) {
-        do_constexpr_fail(result);
-        break;
-      } else {
-        mark_subobject_uninitialized(result_storage+offset, complete_object);
-      }  /* if */
+      sub_bytes = result_storage+offset;
+      for (int k = 0; k<n; ++k) {
+        /* Clear the derivation/active-field state. */
+        *(void**)sub_bytes = NULL;
+        if (!do_constexpr_dtor(ips, sub_dip->destructor, pos, sub_bytes,
+                               complete_object, /*nonvirtual=*/TRUE)) {
+          do_constexpr_fail(result);
+          break;
+        } else {
+          mark_subobject_uninitialized(sub_bytes, complete_object);
+        }  /* if */
+        sub_bytes += elem_size;
+      }  /* for */
     }  /* for */
     if (!mark_whole_subobject_uninitialized(ips, result_storage, class_type,
                                             complete_object)) {

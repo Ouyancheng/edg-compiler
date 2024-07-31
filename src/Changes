@@ -1,5 +1,23 @@
 Version 6.7
 
+7/31/24  [EDGcpfe/26750,EDGcpfe/27494]
+Failure to destroy sub-arrays in constant evaluation
+
+Consider, in C++23 mode:
+
+  #include <string>
+  template <typename T, int N> struct Array { T elems[N]; };
+  constexpr bool g() {
+    Array<std::string, 3> arr{"one", "two", "three"};
+    return true;
+  }
+  static_assert(g());  // Previously an error.  Now okay.
+
+Previously, this example resulted in a spurious error because the constant
+evaluation interpreter only invoked the destructor for the first element of
+the array subobject in arr.  That is now fixed.
+
+
 7/31/24  [EDGcpfe/27491]
 Type of floating point literals with f16 suffix
 
