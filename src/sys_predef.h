@@ -445,6 +445,10 @@ EXTERN a_builtin_user_descr builtin_user_table[]
   { "__builtin_FUNCTION",  "Lx(90000-)s+(202002-)m+(1927-)",
     "const char*(void) __edg_throw__()", bfk_FUNCTION },
 
+  /* __builtin_vectorelements is not picked up for all Clang versions. */
+  { "__builtin_vectorelements", "Lx(180000-)",
+    "__edg_size_type__ (...) __edg_throw__()", bfk_vectorelements },
+
   /* Microsoft supports __builtin_FUNCSIG (which returns the same as their
      __FUNCSIG__ macro) beginning with version 19.35. */
   { "__builtin_FUNCSIG", "m+(1935-)",
