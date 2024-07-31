@@ -1040,8 +1040,7 @@ an_arg_list_elem_ptr alloc_arg_list_elem_for_operand(an_operand *operand)
 Allocate an init component/arg list element containing the given operand.
 */
 {
-  an_init_component_ptr icp =
-                  alloc_init_component((an_init_component_kind)ick_expression);
+  an_init_component_ptr icp = alloc_init_component(ick_expression);
 
   /* If the operand is a braced-init-list, the copy should be handled
      explicitly by the caller.  At this level, we can't deal with the
@@ -23503,8 +23502,13 @@ If get_routine is non-NULL, *get_routine is set to a pointer to the
     arg_list = operand->variant.property_ref.subscripts;
     if (put_operand != NULL) {
       /* The last argument for a "put" is the value to be put. */
-      an_arg_list_elem_ptr put_arg =
-                                  alloc_arg_list_elem_for_operand(put_operand);
+      an_arg_list_elem_ptr  put_arg;
+      if (is_braced_init_list_operand(put_operand)) {
+        put_arg = put_operand->variant.braced_init_list;
+        put_operand->variant.braced_init_list = NULL;  /* To be neat. */
+      } else {
+        put_arg = alloc_arg_list_elem_for_operand(put_operand);
+      }  /* if */
       if (arg_list == NULL) {
         arg_list = put_arg;
       } else {
