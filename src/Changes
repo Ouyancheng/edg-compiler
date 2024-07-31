@@ -1,5 +1,17 @@
 Version 6.7
 
+7/31/24  [EDGcpfe/27491]
+Type of floating point literals with f16 suffix
+
+The front end previously gave floating point literals with the f16/F16
+suffix the pre-C++23 "_Float16" type instead of the correct std::float16_t
+type.  This is now fixed.  For example, with --c++23:
+
+  typedef decltype(0.0f16) f16t;
+  int f(f16t);
+  int i = f(0.0);   // Previously accepted, now an error
+
+
 7/31/24  [EDGcpfe/27468]
 C++-generating back end: stack overflow with out-of-class template member
 definition

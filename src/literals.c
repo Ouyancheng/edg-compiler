@@ -861,10 +861,12 @@ of the resulting diagnostic.
         switch (actual_end[-1]) {
           case '1':
             if (*actual_end == '6') {
-              if (gnu_mode && gnu_version >= 130000) {
-                /* gcc makes _Float16 and std::float16_t synonyms. */
+              if (cpp23_mode || (gnu_mode && gnu_version >= 130000)) {
+                /* Recent versions of gcc make _Float16 and std::float16_t
+                   synonyms. */
                 kind = fk_std_float16;
               } else {
+                /* Use the pre-C++23 _Float16 type. */
                 kind = fk_float16;
               }  /* if */
               actual_end -= 3;
