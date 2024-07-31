@@ -43,7 +43,7 @@ For example (with --c++20):
 7/30/24  [EDGcpfe/27175]
 Negative offsets in __INTADDR__(...)
 
-The changes for EDGcpfe/18070 introduced a regression in version 5.0 wrt.
+The changes for EDGcpfe/18070 introduced a regression in version 5.0 for
 __INTADDR__(...) constructs that would produce a negative offset.  For
 example, in C++11 mode:
 
@@ -55,7 +55,7 @@ example, in C++11 mode:
 
 Prior to version 5.0, this example was accepted (with warnings), but more
 recent versions issued an error.  The constant-evaluation interpreter has now
-be updated to allow this case as well.  (See the changes for EDGcpfe/21926,
+be updated to allow this case as well.  (See the changes for EDGcpfe/21926
 for a related issue.)
 
 
