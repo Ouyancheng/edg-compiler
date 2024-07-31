@@ -21,10 +21,9 @@ Previously, this elicited an internal error in alloc_arg_list_elem_for_operand
 Lifetime of array prvalue during constant evaluation
 
 When evaluating the array-to-pointer conversion of an array prvalue (which is
-a somewhat unusual expression), the front end often recorded a wrong lifetime
-for the array pointed-to, which in turn could lead spurious diagnostics
-(because the array was erroneously treated as having expired).  That is now
-fixed.
+a somewhat unusual expression), the front end often recorded an incorrect
+lifetime for the array, which in turn could lead spurious diagnostics (because
+the array was erroneously treated as having expired).  That is now fixed.
 
 
 7/30/24  [EDGcpfe/27409]
