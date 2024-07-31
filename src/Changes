@@ -1,5 +1,16 @@
 Version 6.7
 
+7/31/24  [EDGcpfe/27468]
+C++-generating back end: stack overflow with out-of-class template member
+definition
+
+In certain complex cases in which a member of a class template is defined
+outside the class template definition and the type of the member involves a
+name that is inaccessible to non-members, the C++-generating back end could
+enter an unbounded recursion generating the member definition.  This is now
+fixed.
+
+
 7/30/24  [EDGcpfe/27455]
 Microsoft-mode abort assigning a braced construct to a property field
 

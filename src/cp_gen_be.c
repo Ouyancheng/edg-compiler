@@ -2544,10 +2544,15 @@ set *for_all_scopes to FALSE.
         found = TRUE;
       } else if (curr_name_context != NULL &&
                  curr_name_context->assoc_scope != NULL &&
-                 curr_name_context->assoc_scope->number ==
-                                                         entry->lookup_scope) {
-        /* We are still in the same scope in which the previous lookup was
-           done, so the cached result is valid. */
+                 ((curr_name_context->assoc_scope->number ==
+                                                        entry->lookup_scope) ||
+                  (curr_name_context->class_type_for_access_not_naming !=
+                                                                        NULL &&
+                   class_type_supp(curr_name_context->
+                                            class_type_for_access_not_naming)->
+                                assoc_scope->number == entry->lookup_scope))) {
+        /* We are still in the same effective scope in which the previous
+           lookup was done, so the cached result is valid. */
         *is_accessible = entry->is_accessible;
         *for_all_scopes = FALSE;
         found = TRUE;
