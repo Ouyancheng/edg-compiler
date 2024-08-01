@@ -1,5 +1,27 @@
 Version 6.7
 
+8/1/24   [EDGcpfe/27489]
+C++-generating back end: empty braced list in braced initializer
+
+In some cases in which an empty braced list appears as part of an
+initializer list, the C++-generating back end could omit the empty braces
+in the generated code.  This is now fixed.  For example, with --c++11:
+
+  struct A {
+     A() = default;
+     constexpr A(int i) noexcept: m(i) {}
+     int m;
+  };
+  struct B {
+     int i;
+     A a;
+     const char *s;
+  };
+  constexpr B f(const char *s) {
+     return { 0, {}, s };   // Previously generated as { 0, s }
+  }
+
+
 7/31/24  [EDGcpfe/27466]
 Spurious incomplete type error on GNU-mode static data member initializer
 

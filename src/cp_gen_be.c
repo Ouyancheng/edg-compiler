@@ -20674,8 +20674,9 @@ source.
   a_constant_ptr con;
 
   dip = skip_constexpr_init_folding(dip);
-  if (dip->is_explicit_cast) {
-    /* An explicit cast is not a default initialization. */
+  if (dip->is_explicit_cast || dip->is_braced_initializer) {
+    /* Explicit casts and braced-init-lists are not default
+       initialization. */
   } else if (dip->kind == (a_dynamic_init_kind)dik_none) {
     /* No initialization at all.  (The dynamic init is here because
        there is a destructor, but it's implicit.) */
