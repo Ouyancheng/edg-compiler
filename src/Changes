@@ -40,7 +40,7 @@ the array subobject in arr.  That is now fixed.
 Type of floating point literals with f16 suffix
 
 In non-GNU C++23 mode, the front end previously considered floating point
-literals with the f16/F16 suffix to have the pre-C++23 "_Float16" type
+literals with the f16/F16 suffix to have the pre-C++23 _Float16 type
 instead of the correct std::float16_t type.  This is now fixed.  For
 example, with --c++23:
 
