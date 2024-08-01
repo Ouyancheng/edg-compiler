@@ -2554,9 +2554,9 @@ can change the literal kind.  For example, "\U0001F602" is an error by
 itself, but the sequence "\U0001F602" U"." is not, because the result of
 string concatenation is equivalent to U"\U0001F602.".  To handle such
 cases, register_char_overflow will be called when an extended character or
-out-of-range numeric escape appears in an ordinary string literal,
+out-of-range numeric escape appears in an ordinary string literal;
 concat_string_literals will call clear_char_overflows if the resulting
-literal kind is not an ordinary narrow string literal and get_token will
+literal kind is not an ordinary narrow string literal, and get_token will
 call report_char_overflows after doing string concatenation.
 */
 struct a_char_overflow {
