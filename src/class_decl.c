@@ -4272,6 +4272,7 @@ In C++17 mode, the initializer need not be a constant-expression.
 
   check_assertion(symbol_is(var_sym, sk_static_data_member) ||
                   symbol_is(var_sym, sk_variable));
+  complete_type_is_needed(var->type);
   if (gpp_mode && var->is_template_variable) {
     /* For GNU and Clang static data members, we record a cache in the static
        data member supplement. */
