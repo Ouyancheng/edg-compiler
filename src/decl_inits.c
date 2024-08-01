@@ -9415,7 +9415,10 @@ initialized.  These are addressed in the course of the processing.
           if (*init_to_use != NULL) {
             a_type_ptr  uftp = skip_typerefs(skip_array_types(field->type));
             if (is_immediate_class_type(uftp)) {
-              add_dtor_to_dynamic_init(*init_to_use, uftp, uftp, &err_pos);
+              a_routine_ptr dtor  = select_destructor(uftp, uftp, &err_pos);
+
+              record_dtor_in_dynamic_init(dtor, *init_to_use,
+                                          /*evaluated=*/TRUE);
             }  /* if */
           }  /* if */
           if (user_defined && ctor_rout->is_constexpr) {
