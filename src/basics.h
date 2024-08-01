@@ -1259,7 +1259,7 @@ should use EXTERN_CONSTINIT_ARRAY and EXTERN_CONSTINIT_ARRAY_END as follows
   #endif
   EXTERN_CONSTINIT_ARRAY_END(example_decl)
 
-This will create a declaration that in translation units other than fe_inint.c
+This will create a declaration that in translation units other than fe_init.c
 is equivalent to:
 
   extern int example_decl[23];
