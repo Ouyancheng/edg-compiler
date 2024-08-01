@@ -120,7 +120,7 @@ for a related issue.)
 Clang compatibility: Additional builtins for Clang version 19.1.0
 
 Additional builtin signatures have been added for Clang 19.1.0 (based on the
-recently released RC1).
+recently-released RC1).
 
 
 7/30/24  [EDGcpfe/26486]
