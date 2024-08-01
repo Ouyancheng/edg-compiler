@@ -7213,7 +7213,7 @@ and record it in *dps.  Also update positions in decl_pos_block.
     }  /* if */
     dps->storage_class = sc_unspecified;
   }  /* if */
-  dps->dso_flags &= ~(DSO_INLINE |  DSO_CONSTEVAL);
+  dps->dso_flags &= ~(DSO_INLINE | DSO_CONSTEVAL);
   if (!cpp20_mode) {
     dps->dso_flags &= ~DSO_THREAD_LOCAL;
   }  /* if */
