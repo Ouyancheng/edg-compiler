@@ -16649,7 +16649,6 @@ This is similar to do_constexpr_ctor.
           /* Clear the active field for the enclosing union. */
           *(a_field_ptr*)result_storage = NULL;
         }  /* if */
-        
       } else {
         a_base_class_ptr  bcp = dtor_init->variant.base_class;
         n = 1;
