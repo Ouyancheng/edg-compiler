@@ -1,5 +1,25 @@
 Version 6.7
 
+8/2/24   [EDGcpfe/27497]
+Destructor instantiation not performed when using in-field initialization
+
+Previously, a template instantiation's destructor would not be instantiated,
+if the following conditions were met:
+
+  // There must be an in-field default initializer that uses a class
+  // template with a user defined destructor.
+  template<typename T>
+  struct X { ~X() {} };
+  struct Y { X<int> z = {}; };
+  // The TU must include only a dynamically allocated constructor for the
+  // initializing type (Y).  If a destructor call for the initialized type (X)
+  // is present, this bug does not occur.
+  Y* alloc_y() { return new Y(); }
+
+This is now fixed and the destructor is now (consistent with other
+initialization mechanisms) always instantiated for in-field initialization.
+
+
 8/1/24   [EDGcpfe/27469]
 Parameter variables of generated comparison functions
 
