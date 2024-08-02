@@ -1,5 +1,12 @@
 Version 6.7
 
+8/1/24   [EDGcpfe/27469]
+Parameter variables of generated comparison functions
+
+The parameter variables of generated comparison function definitions failed to
+record the a_variable::variant.assoc_param_type field.  That is now fixed.
+
+
 8/1/24   [EDGcpfe/27489]
 C++-generating back end: empty braced list in braced initializer
 

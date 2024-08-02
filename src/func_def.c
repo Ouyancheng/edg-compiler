@@ -3062,15 +3062,16 @@ member declaration (allowed in Microsoft mode only).
 }  /* function_definition */
 
 
-static a_variable_ptr implicitly_generated_param_variable(a_type_ptr  type)
+static a_variable_ptr implicitly_generated_param_variable(a_param_type  *ptp)
 /*
-Allocate a parameter variable of the specified type and return a pointer
-to it.
+Allocate a parameter variable corresponding to the given param-type entry and
+return a pointer to it.
 */
 {
   a_variable_ptr vp;
 
-  vp = make_param_variable(type, (a_storage_class)sc_auto);
+  vp = make_param_variable(ptp->type, sc_auto);
+  vp->variant.assoc_param_type = ptp;
   add_to_parameters_list(vp);
   return(vp);
 }  /* implicitly_generated_param_variable */
@@ -3095,8 +3096,7 @@ construction (if any is needed).
   /* Create the parameter variable -- needed for copy constructors only. */
   rtsp = (skip_typerefs(rp->type))->variant.routine.extra_info;
   for (ptp = rtsp->param_type_list; ptp != NULL; ptp = ptp->next) {
-    a_variable_ptr  vp = implicitly_generated_param_variable(ptp->type);
-    vp->variant.assoc_param_type = ptp;
+    (void)implicitly_generated_param_variable(ptp);
   }  /* if */    
   /* Create entries describing constructions to be done in the wrapper code. */
   if (rp->is_inheriting_ctor) {
@@ -3286,8 +3286,7 @@ operator routine or do bitwise assignment.
   rtsp = rout_type_supp(skip_typerefs(rout->type));
   ptp = rtsp->param_type_list;
   move_assign = is_rvalue_reference_type(ptp->type);
-  source_var = implicitly_generated_param_variable(ptp->type);
-  source_var->variant.assoc_param_type = ptp;
+  source_var = implicitly_generated_param_variable(ptp);
   class_type =
           type_pointed_to(scope->variant.routine.this_param_variable->type);
   err_pos = &class_type->source_corresp.decl_position;
@@ -4234,7 +4233,7 @@ definition for it.
     scope = begin_definition_of_generated_function(rp, rtp, class_type,
                                                    &context);
     for (; ptp != NULL; ptp = ptp->next) {
-      (void)implicitly_generated_param_variable(ptp->type);
+      (void)implicitly_generated_param_variable(ptp);
     }  /* for */
     if (opname_kind_is(rp, onk_eq)) {
       make_default_eq_body(scope, class_type);
