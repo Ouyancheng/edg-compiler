@@ -4485,9 +4485,8 @@ a_token_kind for more information about IFC token serialization.
     case tok_va_start:
       /* An attempt was made to convert an unsupported or complex token to an
          EDG IFC basic token kind.  Either the token needs a case added above
-         or the wrong conversion function has been called.  If the new token is
-         a token with no associated state (i.e., the token's extra_info_kind is
-         teik_none), the ifc_ebts_complex case above can be used. */
+         or the wrong conversion function has been called.  See the
+         documentation of a_token_kind for more information. */
       unexpected_condition();
       break;
     default_is_unexpected();

@@ -970,26 +970,33 @@ EXTERN_CONSTINIT_ARRAY_END(il_entry_kind_names)
 /*
 Token kinds.
 
+The front end conceptually has two categories of tokens: "simple tokens" and
+"complex tokens".  "Simple tokens" are tokens that have a single form.
+"Complex tokens" are tokens that have (practically) innumerable distinct forms
+(like identifiers, numbers, etc.) or "pseudo tokens" that cannot be spelled
+(like an end-of-source token or an IFC entity ref token).
+
 "Complex tokens" should be listed before the tok_last_complex_token constant.
-In this context, a "complex token" is a token that either (a) is not visible in
-the source (like an end-of-source token), or (b) has a large number of distinct
-forms (like identifiers, numbers, etc.).
 
 If this enumeration is changed, be sure to change token_names (below) and
 opname_kind_for_token (lexical.h).
 
-Additionally, for proper modules support, support for writing the token should
-be added to an_ifc_il_map::enter_token_cache (ifc_modules_write.c) and support
-for reading should be added to cache_edg_token_cache (ifc_modules_read.c).
+In addition, the token handling code for modules must be updated.
 
-For simple IFC token cases (i.e., where the token has no associated state)
-simply add a case to token_to_basic_token_kind (ifc_modules_write.c) ensuring a
-return value of ifc_ebts_complex.  This results in the token being serialized
-into the IFC as an EDG "textual" IFC token.  If the name entered into
-token_names (below) for the new token is not unique, a case in
+For "simple tokens", it's sufficient to use an EDG "textual" IFC
+token; this requires adding the token kind to the ifc_ebts_complex case of
+token_to_basic_token_kind (ifc_modules_write.c).   If the name entered into
+token_names (below) for the new token is not unique, additionally, a case in
 ifc_token_name_of (returning a unique name) must also be added (as otherwise
 the deserialization of the IFC encoding to the front end token kind is
 ambiguous).
+
+For "complex tokens" (as described above), the gen-ifc-map tool should be used
+to add new IFC node representation of the token.  Once the "IFC Map"
+(i.e., ifc_map.h) has been updated via the tool, the writing
+(an_ifc_il_map::enter_token_cache in ifc_modules_write.c) and reading
+(cache_edg_token_cache in ifc_modules_read.c) code must be updated to make use
+of the new IFC node.
 */
 enum a_token_kind : unsigned short {
   /* Complex tokens: */
