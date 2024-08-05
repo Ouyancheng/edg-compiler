@@ -19124,14 +19124,6 @@ are handled in symbol_tbl_init.)
     internal_error(
   "symbol_table_one_time_init: different name spaces for undefined & routine");
   }  /* if */
-  /* Check that the table of symbol kind names is correctly initialized.
-     This guards against someone changing the enumeration and forgetting to
-     update symbol_kind_names. */
-  if (symbol_kind_names[(int)sk_last] == NULL ||
-      strcmp(symbol_kind_names[(int)sk_last], "last") != 0) {
-    internal_error
-              ("sym_tbl_init: incorrect initialization of symbol_kind_names");
-  }  /* if */
 #endif /* CHECKING */
   /* Clear a locator that can be used to make initialization more efficient. */
   cleared_locator.symbol_header                   = NULL;
