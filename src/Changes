@@ -9,18 +9,18 @@ compile time checks to ensure all array elements have been initialized
 (replacing the previous runtime checking strategy).
 
 
-8/2/24   [EDGcpfe/27497,EDGcpfe/26602,EDGcpfe/27303]
+8/2/24   [EDGcpfe/26602,EDGcpfe/27303,EDGcpfe/27497]
 Destructor instantiation not performed when using default member initialization
 
 Previously, a template instantiation's destructor would not be instantiated
 if the following conditions were met:
 
-  // There must be an default member initialization that uses a class
+  // There must be a default member initialization that uses a class
   // template with a user defined destructor.
   template<typename T>
   struct X { ~X() {} };
   struct Y { X<int> z = {}; };
-  // The TU must include only objects with dynamically storage duration for the
+  // The TU must include only objects with dynamic storage duration for the
   // initializing type (Y).  If a destructor call for the initialized type (X)
   // is present (explicitly or implicitly -- via an object with static, thread,
   // or automatic storage duration), this bug does not occur.
