@@ -158,9 +158,11 @@ static void copy_address_setup(
 /*
 Called during the IL walk that copies IL from the secondary translation
 unit to the primary translation unit to set up the copy address
-pointer of the entry pointed to by ptr, of kind "kind".
-known_will_process_in_curr_walk is TRUE if it is known that the entry
-has been or will be processed (and not merely have its address remapped)
+pointer of the entry pointed to by ptr, of kind "kind".  The copy address is
+the address where the given entry will be copied to.  For non-string entries
+this function both sets up the copy address and allocates the necessary space
+for the copy.  known_will_process_in_curr_walk is TRUE if it is known that the
+entry has been or will be processed (and not merely have its address remapped)
 in the current IL walk.
 */
 {
@@ -995,6 +997,37 @@ is called.
 }  /* f_mark_to_merge */
 
 
+template<typename a_Type>
+static inline a_Type* perform_immediate_copy(a_Type           *ptr,
+                                             an_il_entry_kind entity_kind)
+/*
+The given IL entry needs immediately copied as it is part of an entity that 
+is being discarded from a secondary translation unit.
+
+This function should only be used when the normal copying strategy would fail
+resulting in a reference to one or more deleted IL entries.  For instance,
+during the merging of entity details (as the entity in the secondary
+translation unit is discarded and the entity in the primary translation unit,
+while modified, is not copied).
+*/
+{
+  /* If this assertion fails the given entity should not have been passed as it does
+     not need copied immediately or otherwise. */
+  check_assertion(in_secondary_trans_unit(ptr) && in_file_scope(ptr));
+  /* Create the copy address information for the entity. */
+  copy_address_setup((char*)ptr, entity_kind, /*known_will_process_in_curr_walk=*/TRUE);
+  /* Perform the actual copy operation. */
+  walk_il_subtree(copy_entry, copy_string_entry,
+                  (a_remap_function_ptr)NULL,
+                  (a_remap_function_ptr)NULL,
+                  copy_termination_test,
+                  /*clear_fe_pointers=*/FALSE,
+                  (char*)ptr, entity_kind);
+  /* Return the pointer to where this entity was copied. */
+  return (a_Type*)trans_unit_copy_address_of(ptr);
+}  /* perform_immediate_copy */
+
+
 static void merge_attributes(a_source_correspondence *expiring_scp,
                              a_source_correspondence *surviving_scp)
 /*
@@ -1018,6 +1051,7 @@ must be merged in.
       ap_next = ap->next;
       if (ap->must_be_preserved_in_trans_unit_copy) {
         /* Keep this attribute on the merged list. */
+        ap = perform_immediate_copy(ap, /*entity_kind=*/iek_attribute);
         if (last_ap == NULL) {
           surviving_scp->attributes = ap;
         } else {
@@ -1037,26 +1071,30 @@ static void merge_name_reference_lists(a_source_correspondence *expiring_scp,
 Merge the name reference list from the expiring_scp into the surviving_scp.
 */
 {
-  a_name_reference_ptr nrpe = expiring_scp->name_references;
-  a_name_reference_ptr nrps = surviving_scp->name_references;
+  a_name_reference_ptr nrp, last_nrp, nrp_next;
 
-  if (nrpe != NULL) {
-    if (nrps == NULL) {
-      /* The surviving scp has no list presently, so just transfer the list
-         from the expiring scp. */
-      surviving_scp->name_references = nrpe;
-    } else {
-      /* Both have lists, so find the end of the surviving list and concatenate
-         the two.  If the expiring list is contained within the surviving one
-         then do nothing.  This can happen with certain built-in functions that
-         are "instantiated" for various invocation points (e.g.,
-         __c11_atomic_load). */
-      while (nrps->next != NULL && nrps != nrpe) nrps = nrps->next;
-      if (nrps != nrpe) {
-        nrps->next = nrpe;
-      }  /* if */
-    }  /* if */
+  nrp = expiring_scp->name_references;
+  if (nrp != NULL) {
     expiring_scp->name_references = NULL;
+    /* Move the list of name references headed by nrp onto the list of name references
+       attached to surviving_scp. */
+    last_nrp = surviving_scp->name_references;
+    if (last_nrp != NULL) {
+      /* Find the last name reference on surviving_scp so we can add after it. */
+      while (last_nrp->next != NULL) last_nrp = last_nrp->next;
+    }  /* if */
+    for (; nrp != NULL; nrp = nrp_next) {
+      nrp_next = nrp->next;
+      /* Keep this name reference on the merged list. */
+      nrp = perform_immediate_copy(nrp, /*entity_kind=*/iek_name_reference);
+      if (last_nrp == NULL) {
+        surviving_scp->name_references = nrp;
+      } else {
+        last_nrp->next = nrp;
+      }  /* if */
+      last_nrp = nrp;
+      nrp->next = NULL;
+    }  /* for */
   }  /* if */
 }  /* merge_name_reference_lists */
 

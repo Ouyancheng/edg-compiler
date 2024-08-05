@@ -384,6 +384,13 @@ the file-scope IL entry at ptr.
 /*
 Macro to allow reference to the translation unit copy address pointer
 that precedes the file-scope IL entry at ptr.
+
+Note that for IL entries that are going to be merged, the
+trans_unit_copy_address_of value is overridden with an intermediary value.
+To access the true copy address for these IL entries use
+transitive_copy_address_of.
+
+See f_transitive_copy_address_of for more information.
 */
 #define trans_unit_copy_address_of(ptr)                            \
   (*(char **)((char *)(ptr) -                                         \
