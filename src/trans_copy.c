@@ -338,6 +338,11 @@ top_of_routine:
           case iek_object_lifetime:
             ptr = (char *)((an_object_lifetime_ptr)ptr)->next;
             break;
+          case iek_field:
+            /* Merged fields come up when attributes on those fields need
+               to be merged. */
+            ptr = (char *)((a_field_ptr)ptr)->next;
+            break;
           default:
             unexpected_condition_str(
                       "remap_secondary_ptr_to_primary_full: bad merged entry");
@@ -997,35 +1002,84 @@ is called.
 }  /* f_mark_to_merge */
 
 
-template<typename a_Type>
-static inline a_Type* perform_immediate_copy(a_Type           *ptr,
-                                             an_il_entry_kind entity_kind)
+static a_boolean strip_non_merged_attributes(a_source_correspondence *scp)
 /*
-The given IL entry needs immediately copied as it is part of an entity that 
-is being discarded from a secondary translation unit.
-
-This function should only be used when the normal copying strategy would fail
-resulting in a reference to one or more deleted IL entries.  For instance,
-during the merging of entity details (as the entity in the secondary
-translation unit is discarded and the entity in the primary translation unit,
-while modified, is not copied).
+Remove from the list of attributes attached to scp any that are not
+marked to be merged.  This is so we don't have to copy the non-merged
+attributes only to discard them later.  Return TRUE if the list
+contained at least one attribute to be merged.
 */
 {
-  /* If this assertion fails the given entity should not have been passed as it does
-     not need copied immediately or otherwise. */
-  check_assertion(in_secondary_trans_unit(ptr) && in_file_scope(ptr));
-  /* Create the copy address information for the entity. */
-  copy_address_setup((char*)ptr, entity_kind, /*known_will_process_in_curr_walk=*/TRUE);
-  /* Perform the actual copy operation. */
-  walk_il_subtree(copy_entry, copy_string_entry,
-                  (a_remap_function_ptr)NULL,
-                  (a_remap_function_ptr)NULL,
-                  copy_termination_test,
-                  /*clear_fe_pointers=*/FALSE,
-                  (char*)ptr, entity_kind);
-  /* Return the pointer to where this entity was copied. */
-  return (a_Type*)trans_unit_copy_address_of(ptr);
-}  /* perform_immediate_copy */
+  a_boolean        requires_merge = FALSE;
+  an_attribute_ptr ap, ap_next, end_of_list = NULL;
+
+  check_assertion(trans_unit_corresp_of((a_type_ptr)scp)->canonical !=
+                                                                  (char *)scp);
+  for (ap = scp->attributes, scp->attributes = NULL;
+       ap != NULL;
+       ap = ap_next) {
+    ap_next = ap->next;
+    if (ap->must_be_preserved_in_trans_unit_copy) {
+      requires_merge = TRUE;
+      if (end_of_list == NULL) {
+        scp->attributes = ap;
+      } else {
+        end_of_list->next = ap;
+      }  /* if */
+      end_of_list = ap;
+      ap->next = NULL;
+    }  /* if */
+  }  /* for */
+  return requires_merge;
+}  /* strip_non_merged_attributes */
+
+
+static a_boolean f_entry_requires_merge_because_of_attributes(
+                                                  a_source_correspondence *scp)
+/*
+If the indicated entry has attributes that must be merged into the
+canonical entry as part of the copy/merge process, return TRUE.  In
+that case, its attribute list is altered so that only attributes that
+must be merged remain on the list; the rest are duplicates and are
+deleted.  The entry passed in must not be one that will be copied
+instead of merged (i.e., entry_should_be_copied must be FALSE for
+it), nor may it be one that will overwrite a primary IL entry (i.e.,
+entry_should_overwrite_primary_entry must be FALSE for it).  The
+combination of those two means the entry is not the canonical entry
+(all of whose attributes would be preserved), and is instead an entry
+that would otherwise be discarded except if some of its attributes
+must be merged into the canonical entry.
+*/
+{
+  a_boolean requires_merge = FALSE;
+
+  /* Only entries with correspondences require this special processing,
+     because only they can be merged. */
+  if (scp->attributes != NULL &&
+      /* a_type_ptr is arbitrary. */
+      trans_unit_corresp_of((a_type_ptr)scp) != NULL) {
+    /* Go through the list of attributes and keep only those marked as
+       requiring a merge.  Note whether we found any. */
+    if (strip_non_merged_attributes(scp)) requires_merge = TRUE;
+  }  /* if */
+  return requires_merge;
+}  /* f_entry_requires_merge_because_of_attributes */
+
+
+/*
+Interface macro for f_entry_requires_merge_because_of_attributes that allows
+passing any entry that has a source correspondence field.
+*/
+#define entry_requires_merge_because_of_attributes(ptr) \
+  f_entry_requires_merge_because_of_attributes(&(ptr)->source_corresp)
+
+
+/*
+Return TRUE if the given entity requires merging because of some details,
+e.g., it has attributes that must be merged into the composite entity.
+*/
+#define entry_requires_merge_because_of_details(ptr) \
+  entry_requires_merge_because_of_attributes(ptr)
 
 
 static void merge_attributes(a_source_correspondence *expiring_scp,
@@ -1039,28 +1093,40 @@ must be merged in.
 
   ap = expiring_scp->attributes;
   if (ap != NULL) {
-    expiring_scp->attributes = NULL;
-    /* Move the list of attributes headed by ap onto the list of attributes
-       attached to surviving_scp.  Copy only the ones marked to be merged. */
-    last_ap = surviving_scp->attributes;
-    if (last_ap != NULL) {
-      /* Find the last attribute on surviving_scp so we can add after it. */
-      while (last_ap->next != NULL) last_ap = last_ap->next;
-    }  /* if */
-    for (; ap != NULL; ap = ap_next) {
-      ap_next = ap->next;
-      if (ap->must_be_preserved_in_trans_unit_copy) {
-        /* Keep this attribute on the merged list. */
-        ap = perform_immediate_copy(ap, /*entity_kind=*/iek_attribute);
-        if (last_ap == NULL) {
-          surviving_scp->attributes = ap;
-        } else {
-          last_ap->next = ap;
-        }  /* if */
-        last_ap = ap;
-        ap->next = NULL;
+    if (in_secondary_trans_unit(ap)) {
+      /* When transfer_xxx_details is called for a case where a non-canonical
+         secondary entry is being deleted because it duplicates information
+         in the primary entry, no attributes should be ones that need to
+         be copied (if there were any, we should have concluded that the
+         entry needed to be merged). */
+#if CHECKING
+      for (; ap != NULL; ap = ap->next) {
+        check_assertion(!ap->must_be_preserved_in_trans_unit_copy);
+      }  /* for */
+#endif /* CHECKING */
+    } else {
+      expiring_scp->attributes = NULL;
+      /* Move the list of attributes headed by ap onto the list of attributes
+         attached to surviving_scp.  Copy only the ones marked to be merged. */
+      last_ap = surviving_scp->attributes;
+      if (last_ap != NULL) {
+        /* Find the last attribute on surviving_scp so we can add after it. */
+        while (last_ap->next != NULL) last_ap = last_ap->next;
       }  /* if */
-    }  /* for */
+      for (; ap != NULL; ap = ap_next) {
+        ap_next = ap->next;
+        if (ap->must_be_preserved_in_trans_unit_copy) {
+          /* Keep this attribute on the merged list. */
+          if (last_ap == NULL) {
+            surviving_scp->attributes = ap;
+          } else {
+            last_ap->next = ap;
+          }  /* if */
+          last_ap = ap;
+          ap->next = NULL;
+        }  /* if */
+      }  /* for */
+    }  /* if */
   }  /* if */
 }  /* merge_attributes */
 
@@ -1086,7 +1152,6 @@ Merge the name reference list from the expiring_scp into the surviving_scp.
     for (; nrp != NULL; nrp = nrp_next) {
       nrp_next = nrp->next;
       /* Keep this name reference on the merged list. */
-      nrp = perform_immediate_copy(nrp, /*entity_kind=*/iek_name_reference);
       if (last_nrp == NULL) {
         surviving_scp->name_references = nrp;
       } else {
@@ -1408,52 +1473,27 @@ to the secondary translation unit.
          as we look at the members. */
       keep_on_parent_list = FALSE;
       check_member_merges = TRUE;
-      /* Save any details like attributes by transferring them from the
-         fields here to their corresponding canonical fields. */
-      { a_field_ptr fp;
+      if (entry_requires_merge_because_of_details(class_type)) {
+        /* The class type has some details that must be merged into the
+           canonical entry. */
+        keep_on_parent_list = TRUE;
+        mark_to_merge(class_type, iek_type);
+      }  /* if */
+      if (symbol_supplement_for_class(class_type)->
+                                                has_field_with_attr_to_merge) {
+        /* The class has at least one field that has an attribute that must be
+           merged.  Walk through all fields and strip the attributes except for
+           those that must be merged. */
+        a_field_ptr fp;
         for (fp = class_type->variant.class_struct_union.field_list;
              fp != NULL;
              fp = fp->next) {
-          a_field_ptr corresp_field = (a_field_ptr)canonical_il_entry_of(fp);
-          merge_entity_details(&fp->source_corresp,
-                               &corresp_field->source_corresp);
-          if (corresp_field->initializer == NULL && fp->initializer != NULL) {
-            a_boolean saved_is_primary = is_primary_translation_unit;
-            /* This can occur if a class template is instantiated in the
-               secondary TU but not in the primary. */
-            check_assertion(class_type->
-                                 variant.class_struct_union.is_template_class);
-            if (!is_primary_translation_unit) {
-              /* Set up so that the copy of the dynamic initializer
-                 (including things it points to) will be in the primary
-                 TU. */
-              is_primary_translation_unit = TRUE;
-              compute_il_prefix_size();
-            }  /* if */
-            corresp_field->initializer = copy_dynamic_init(
-                                               fp->initializer,
-                                               CE_COPYING_DEFAULT_MEMBER_INIT);
-            if (!saved_is_primary) {
-              is_primary_translation_unit = FALSE;
-              compute_il_prefix_size();
-            }  /* if */
-          }  /* if */
-          if (fp->initializer != NULL) {
-            /* Eliminate any object lifetime associated with the initializer
-               (which is in the global scope, but shouldn't be merged into the
-               primary global scope). */
-            a_dynamic_init     *field_init = fp->initializer;
-            an_object_lifetime *init_lifetime = field_init->init_expr_lifetime;
-
-            if (init_lifetime != NULL) {
-              detach_from_object_lifetime_tree(init_lifetime);
-            }  /* if */
+          if (strip_non_merged_attributes(&fp->source_corresp)) {
+            mark_to_merge(fp, iek_field);
           }  /* if */
         }  /* for */
+        any_members_to_process = TRUE;
       }  /* if */
-      /* Now that we've transferred any information we needed from the
-         fields to their canonical counterparts, discard the field list. */
-      class_type->variant.class_struct_union.field_list = NULL;
     }  /* if */
     pointers_block = NULL;
   }  /* if */
@@ -1500,6 +1540,12 @@ to the secondary translation unit.
          in the secondary translation unit but only a declaration in the
          primary IL. */
       check_assertion(check_member_merges);
+      keep_on_list = TRUE;
+      mark_to_merge(type, iek_type);
+    } else if (check_member_merges &&
+               entry_requires_merge_because_of_details(type)) {
+      /* The type has some details that must be merged into the
+         canonical entry. */
       keep_on_list = TRUE;
       mark_to_merge(type, iek_type);
     } else {
@@ -1574,9 +1620,10 @@ to the secondary translation unit.
       check_assertion(check_member_merges);
       keep_on_list = TRUE;
       mark_to_merge(variable, iek_variable);
-    } else if (variable->source_corresp.attributes != NULL) {
-      /* The variable has attributes that may need to be merged into the
-         primary entry. */
+    } else if (check_member_merges &&
+               entry_requires_merge_because_of_details(variable)) {
+      /* The variable has some details that must be merged into the
+         canonical entry. */
       keep_on_list = TRUE;
       mark_to_merge(variable, iek_variable);
     } else {
@@ -1667,6 +1714,14 @@ to the secondary translation unit.
          primary IL. */
       check_assertion(check_member_merges);
       keep_on_list = TRUE;
+      mark_to_merge(routine, iek_routine);
+    } else if (check_member_merges &&
+               entry_requires_merge_because_of_details(routine)) {
+      /* The routine has some details that must be merged into the
+         canonical entry.  We delete the body but keep the routine entry
+         so we can do the merge from the copy of it. */
+      keep_on_list = TRUE;
+      keep_body = FALSE;
       mark_to_merge(routine, iek_routine);
     } else {
       /* The routine is a duplicate of one elsewhere and should be
@@ -2287,6 +2342,27 @@ unit set to the primary translation unit.
         if (pointers_block != NULL) pointers_block->last_type = last_type;
       }  /* if */
     }  /* for */
+  }  /* if */
+  if (is_class_scope) {
+    a_type_ptr class_type = scope->variant.assoc_type;
+    if (symbol_supplement_for_class(class_type)->
+                                                has_field_with_attr_to_merge) {
+      /* There is at least one field with an attribute that must be merged.
+         Go through the fields and merge attributes. */
+      a_field_ptr field;
+      for (field = class_type->variant.class_struct_union.field_list;
+           field != NULL;
+           field = field->next) {
+        if (entry_to_be_merged(field)) {
+          a_field_ptr corresp_field =
+                        (a_field_ptr)checked_trans_unit_copy_address_of(field);
+          a_field_ptr primary_field =
+                (a_field_ptr)checked_trans_unit_copy_address_of(corresp_field);
+          merge_entity_details(&corresp_field->source_corresp,
+                               &primary_field->source_corresp);
+        }  /* if */
+      }  /* for */
+    }  /* if */
   }  /* if */
   if (scope->variables != NULL) {
     a_variable_ptr variable, last_variable;
@@ -3363,7 +3439,6 @@ primary IL.
               break;
             case iek_expr_node:
             case iek_template_arg:
-            case iek_attribute:
             case iek_name_reference:
             case iek_name_qualifier:
 #if GNU_EXTENSIONS_ALLOWED || REDEFINE_EXTNAME_PRAGMA_ENABLED
