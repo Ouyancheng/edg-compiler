@@ -1034,56 +1034,91 @@ contained at least one attribute to be merged.
 }  /* strip_non_merged_attributes */
 
 
-static a_boolean f_entry_requires_merge_because_of_attributes(
-                                                  a_source_correspondence *scp)
+template<typename an_Entry_type>
+static inline a_boolean entry_requires_merge_because_of_attributes(
+                                                          an_Entry_type *entry)
 /*
-If the indicated entry has attributes that must be merged into the
-canonical entry as part of the copy/merge process, return TRUE.  In
-that case, its attribute list is altered so that only attributes that
-must be merged remain on the list; the rest are duplicates and are
-deleted.  The entry passed in must not be one that will be copied
-instead of merged (i.e., entry_should_be_copied must be FALSE for
-it), nor may it be one that will overwrite a primary IL entry (i.e.,
-entry_should_overwrite_primary_entry must be FALSE for it).  The
-combination of those two means the entry is not the canonical entry
-(all of whose attributes would be preserved), and is instead an entry
-that would otherwise be discarded except if some of its attributes
-must be merged into the canonical entry.
+If the indicated entry has attributes that must be merged into the canonical
+entry as part of the copy/merge process, return TRUE.  In that case, its
+attribute list is altered so that only attributes that must be merged remain on
+the list; the rest are duplicates and are deleted.  The entry passed in must
+not be one that will be copied instead of merged (i.e., entry_should_be_copied
+must be FALSE for it), nor may it be one that will overwrite a primary IL entry
+(i.e., entry_should_overwrite_primary_entry must be FALSE for it).  The
+combination of those two means the entry is not the canonical entry (all of
+whose attributes would be preserved), and is instead an entry that would
+otherwise be discarded.
 */
 {
-  a_boolean requires_merge = FALSE;
+  check_assertion(!entry_should_be_copied(entry));
+  check_assertion(!entry_should_overwrite_primary_entry(entry));
+  a_boolean                   result = FALSE;
+  a_source_correspondence_ptr scp = &entry->source_corresp;
 
   /* Only entries with correspondences require this special processing,
      because only they can be merged. */
-  if (scp->attributes != NULL &&
-      /* a_type_ptr is arbitrary. */
-      trans_unit_corresp_of((a_type_ptr)scp) != NULL) {
+  if (scp->attributes != NULL && trans_unit_corresp_of(entry) != NULL) {
     /* Go through the list of attributes and keep only those marked as
        requiring a merge.  Note whether we found any. */
-    if (strip_non_merged_attributes(scp)) requires_merge = TRUE;
+    if (strip_non_merged_attributes(scp)) result = TRUE;
   }  /* if */
-  return requires_merge;
-}  /* f_entry_requires_merge_because_of_attributes */
+  return result;
+}  /* entry_requires_merge_because_of_attributes */
 
 
+template<typename an_Entry_type>
+static inline a_boolean entry_requires_merge_because_of_name_references(
+                                                          an_Entry_type *entry)
 /*
-Interface macro for f_entry_requires_merge_because_of_attributes that allows
-passing any entry that has a source correspondence field.
+If the indicated entry has name references that must be merged into the
+canonical entry as part of the copy/merge process, return TRUE.  In that case,
+its attribute list is altered so that only attributes that must be merged
+remain on the list; the rest are duplicates and are deleted.  The entry passed
+in must not be one that will be copied instead of merged (i.e.,
+entry_should_be_copied must be FALSE for it), nor may it be one that will
+overwrite a primary IL entry (i.e., entry_should_overwrite_primary_entry must
+be FALSE for it).  The combination of those two means the entry is not the
+canonical entry (all of whose attributes would be preserved), and is instead an
+entry that would otherwise be discarded.
 */
-#define entry_requires_merge_because_of_attributes(ptr) \
-  f_entry_requires_merge_because_of_attributes(&(ptr)->source_corresp)
+{
+  check_assertion(!entry_should_be_copied(entry));
+  check_assertion(!entry_should_overwrite_primary_entry(entry));
+  a_boolean                   result = FALSE;
+  a_source_correspondence_ptr scp = &entry->source_corresp;
+
+  /* Only entries with correspondences require this special processing,
+     because only they can be merged. */
+  if (scp->name_references != NULL && trans_unit_corresp_of(entry) != NULL) {
+    /* All name references are always kept. */
+    result = TRUE;
+  }  /*if */
+  return result;
+}  /* entry_requires_merge_because_of_name_references */
 
 
+template<typename an_Entry_type>
+static inline a_boolean entry_requires_merge_because_of_details(
+                                                          an_Entry_type *entry)
 /*
 Return TRUE if the given entity requires merging because of some details,
 e.g., it has attributes that must be merged into the composite entity.
 */
-#define entry_requires_merge_because_of_details(ptr) \
-  entry_requires_merge_because_of_attributes(ptr)
+{
+  a_boolean result = FALSE;
+
+  if (entry_requires_merge_because_of_attributes(entry)) {
+    result = TRUE;
+  } else if (entry_requires_merge_because_of_name_references(entry)) {
+    result = TRUE;
+  }  /* if */
+  return result;
+}  /* entry_requires_merge_because_of_details */
 
 
-static void merge_attributes(a_source_correspondence *expiring_scp,
-                             a_source_correspondence *surviving_scp)
+static inline void
+merge_attributes(a_source_correspondence *expiring_scp,
+                 a_source_correspondence *surviving_scp)
 /*
 Transfer from the expiring_scp to the surviving_scp any attributes that
 must be merged in.
@@ -1131,8 +1166,9 @@ must be merged in.
 }  /* merge_attributes */
 
 
-static void merge_name_reference_lists(a_source_correspondence *expiring_scp,
-                                       a_source_correspondence *surviving_scp)
+static inline void
+merge_name_reference_lists(a_source_correspondence *expiring_scp,
+                           a_source_correspondence *surviving_scp)
 /*
 Merge the name reference list from the expiring_scp into the surviving_scp.
 */
@@ -1142,11 +1178,12 @@ Merge the name reference list from the expiring_scp into the surviving_scp.
   nrp = expiring_scp->name_references;
   if (nrp != NULL) {
     expiring_scp->name_references = NULL;
-    /* Move the list of name references headed by nrp onto the list of name references
-       attached to surviving_scp. */
+    /* Move the list of name references headed by nrp onto the list of name
+       references attached to surviving_scp. */
     last_nrp = surviving_scp->name_references;
     if (last_nrp != NULL) {
-      /* Find the last name reference on surviving_scp so we can add after it. */
+      /* Find the last name reference on surviving_scp so we can add after
+         it. */
       while (last_nrp->next != NULL) last_nrp = last_nrp->next;
     }  /* if */
     for (; nrp != NULL; nrp = nrp_next) {
@@ -1171,6 +1208,8 @@ Transfer from the expiring_scp to the surviving_scp any details that
 must be merged in.  For example, merge the lists of attributes, if any.
 */
 {
+  /* If this assertion fails, a merge is being performed as part of setup. */
+  check_assertion(!in_trans_copy_setup);
   merge_attributes(expiring_scp, surviving_scp);
   merge_name_reference_lists(expiring_scp, surviving_scp);
 }  /* merge_entity_details */
@@ -1235,8 +1274,6 @@ not being eliminated.
     }  /* if */
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
   }  /* if */
-  /* Move any attributes that must be saved to the surviving entry. */
-  merge_entity_details(&type->source_corresp, &corresp_type->source_corresp);
 }  /* transfer_type_details */
 
 
@@ -1250,9 +1287,6 @@ eliminated.
 */
 {
   corresp_variable->address_taken |= variable->address_taken;
-  /* Move any attributes that must be saved to the surviving entry. */
-  merge_entity_details(&variable->source_corresp,
-                       &corresp_variable->source_corresp);
   if (variable->alignment > corresp_variable->alignment) {
     corresp_variable->alignment = variable->alignment;
   }  /* if */
@@ -1355,9 +1389,6 @@ not being eliminated.
       corresp_routine->function_def_number != NULL_function_def_number) {
     corresp_routine->suppress_inline_body &= routine->suppress_inline_body;
   }  /* if */
-  /* Move any attributes that must be saved to the surviving entry. */
-  merge_entity_details(&routine->source_corresp,
-                       &corresp_routine->source_corresp);
 }  /* transfer_routine_flags */
 
 
@@ -1479,21 +1510,59 @@ to the secondary translation unit.
         keep_on_parent_list = TRUE;
         mark_to_merge(class_type, iek_type);
       }  /* if */
-      if (symbol_supplement_for_class(class_type)->
-                                                has_field_with_attr_to_merge) {
-        /* The class has at least one field that has an attribute that must be
-           merged.  Walk through all fields and strip the attributes except for
-           those that must be merged. */
-        a_field_ptr fp;
+      { a_field_ptr fp;
+        a_boolean   has_field_with_attr_to_merge =
+                                      symbol_supplement_for_class(class_type)->
+                                                  has_field_with_attr_to_merge;
         for (fp = class_type->variant.class_struct_union.field_list;
              fp != NULL;
              fp = fp->next) {
-          if (strip_non_merged_attributes(&fp->source_corresp)) {
-            mark_to_merge(fp, iek_field);
+          a_field_ptr corresp_field = (a_field_ptr)canonical_il_entry_of(fp);
+          if (corresp_field->initializer == NULL && fp->initializer != NULL) {
+            a_boolean saved_is_primary = is_primary_translation_unit;
+            /* This can occur if a class template is instantiated in the
+               secondary TU but not in the primary. */
+            check_assertion(class_type->
+                                 variant.class_struct_union.is_template_class);
+            if (!is_primary_translation_unit) {
+              /* Set up so that the copy of the dynamic initializer
+                 (including things it points to) will be in the primary
+                 TU. */
+              is_primary_translation_unit = TRUE;
+              compute_il_prefix_size();
+            }  /* if */
+            corresp_field->initializer = copy_dynamic_init(
+                                               fp->initializer,
+                                               CE_COPYING_DEFAULT_MEMBER_INIT);
+            if (!saved_is_primary) {
+              is_primary_translation_unit = FALSE;
+              compute_il_prefix_size();
+            }  /* if */
+          }  /* if */
+          if (fp->initializer != NULL) {
+            /* Eliminate any object lifetime associated with the initializer
+               (which is in the global scope, but shouldn't be merged into the
+               primary global scope). */
+            a_dynamic_init     *field_init = fp->initializer;
+            an_object_lifetime *init_lifetime = field_init->init_expr_lifetime;
+
+            if (init_lifetime != NULL) {
+              detach_from_object_lifetime_tree(init_lifetime);
+            }  /* if */
+          }  /* if */
+          if (has_field_with_attr_to_merge) {
+            /* The class has at least one field that has an attribute that must be
+               merged.  Walk through all fields and strip the attributes except for
+               those that must be merged. */
+            if (strip_non_merged_attributes(&fp->source_corresp)) {
+              mark_to_merge(fp, iek_field);
+            }  /* if */
           }  /* if */
         }  /* for */
-        any_members_to_process = TRUE;
-      }  /* if */
+        if (has_field_with_attr_to_merge) {
+          any_members_to_process = TRUE;
+        }  /* if */
+      }
     }  /* if */
     pointers_block = NULL;
   }  /* if */
@@ -2287,6 +2356,8 @@ unit set to the primary translation unit.
              for example, when the only reason the class is marked to be
              merged is that some of its members need to be merged. */
           transfer_type_details(corresp_type, primary_type);
+          merge_entity_details(&corresp_type->source_corresp,
+                               &primary_type->source_corresp);
         } else {
           /* Copy this type and its definition, overwriting the
              existing primary type.  Move the primary IL type
@@ -2399,6 +2470,8 @@ unit set to the primary translation unit.
         if (!entry_should_overwrite_primary_entry(variable)) {
           /* No overwriting is needed, so we're done. */
           transfer_variable_flags(corresp_variable, primary_variable);
+          merge_entity_details(&corresp_variable->source_corresp,
+                               &primary_variable->source_corresp);
         } else {
           /* Copy this variable and its definition, overwriting the
              existing primary variable.  Move the primary IL variable
@@ -2520,6 +2593,8 @@ unit set to the primary translation unit.
         if (!entry_should_overwrite_primary_entry(routine)) {
           /* No overwriting is needed, so we're done. */
           transfer_routine_flags(corresp_routine, primary_routine);
+          merge_entity_details(&corresp_routine->source_corresp,
+                               &primary_routine->source_corresp);
         } else {
           /* Copy this routine and its definition, overwriting the
              existing primary routine.  Move the primary IL routine
