@@ -251,6 +251,10 @@ typedef _Float16 EDG_float16_t;
 /* _Float16 values are represented using the host "float" type. */
 typedef float EDG_float16_t;
 #endif /* HOST_HAS_FLOAT16_TYPE */
+static void store_host_fp_value(a_host_fp_value         temp,
+	                        a_float_kind            kind,
+	                        an_internal_float_value *float_value,
+	                        a_boolean               *err);
 #endif /* USE_SOFTFLOAT */
 
 #if USE_SOFTFLOAT
@@ -964,13 +968,14 @@ underflow.  If the conversion can be done, return the result in "result".
   /* Leverage the support for various configurations in
      conv_host_fp_to_float, then check the resulting value against the
      _Float16 range limitations. */
-#define MIN_FLOAT16_DENORM 0.000000059604645
-#define MAX_FLOAT16_VAL 65504
   float float_temp;
   conv_host_fp_to_float(temp, err, &float_temp);
   if (!*err) {
-    /* The conversion to float succeeded.  Check the resulting value
-       against the _Float16 range limits. */
+    /* The conversion to float succeeded. */
+#if HOST_HAS_FLOAT16_TYPE
+    /* Check the resulting value against the _Float16 range limits. */
+#define MIN_FLOAT16_DENORM 0.000000059604645
+#define MAX_FLOAT16_VAL 65504
     float abs_value = (float)fabs(float_temp);
     if (abs_value > MAX_FLOAT16_VAL ||
         (abs_value < MIN_FLOAT16_DENORM && abs_value != 0.0)) {
@@ -980,9 +985,29 @@ underflow.  If the conversion can be done, return the result in "result".
       /* The value is within the representable range for _Float16. */
       *result = (EDG_float16_t)float_temp;
     }  /* if */
-  }  /* if */
 #undef MIN_FLOAT16_DENORM
 #undef MAX_FLOAT16_VAL
+#else /* !HOST_HAS_FLOAT16_TYPE */
+    /* Do a round-trip conversion through the mantissa/exponent
+       representation to perform rounding to the _Float16 precision and
+       check the resulting value against the _Float16 range limits. */
+    an_internal_float_value val;
+    long                    exponent = 0;
+    a_mantissa              mantissa;
+    a_boolean               is_negative;
+    a_boolean               inexact;
+    a_host_fp_value         host_val;
+    store_host_fp_value(float_temp, fk_float, &val, err);
+    load_hex_fp_value(&val, fk_float, &mantissa, &exponent, &is_negative,
+                      /*restore_implicit_bit=*/TRUE);
+    conv_mantissa_to_floating_point(&mantissa, &exponent, is_negative,
+                                    fk_float16, &val,
+                                    /*exponent_overfloat=*/FALSE, err,
+                                    &inexact);
+    host_val = fetch_host_fp_value(fk_float16, &val);
+    *result = (EDG_float16_t)host_val;
+#endif /* HOST_HAS_FLOAT16_TYPE */
+  }  /* if */
 #endif /* USE_SOFTFLOAT */
 }  /* conv_host_fp_to_float16 */
 
@@ -2196,7 +2221,6 @@ type, set inexact to TRUE.  If the exponent is out of range, set err to TRUE.
   }  /* if */
 }  /* check_and_denormalize_hex_fp_value */
 
-#if FIXED_POINT_ALLOWED
 
 void load_hex_fp_value(an_internal_float_value	*float_value,
 		       a_float_kind		kind,
@@ -2337,7 +2361,6 @@ adjusted to make the implicit bit explicit.
   }  /* if */
 }  /* load_hex_fp_value */
 
-#endif /* FIXED_POINT_ALLOWED */
 
 static void store_hex_fp_value(a_mantissa_ptr		mp,
 			       long			exponent,
@@ -2381,10 +2404,16 @@ the long double kind will have already been mapped to double by the caller.
     /* We need a flag to indicate that we had a zero, because we can end up
        with a zero mantissa because of the possible presence of an implicit
        bit. */
-  } else if (kind == (a_float_kind)fk_float ||
-             (is_extended_flt_kind(kind) &&
-              num_mantissa_bits[(int)kind] <=
-                                           num_mantissa_bits[(int)fk_float])) {
+#if HOST_HAS_FLOAT16_TYPE
+  } else if (kind_is_binary16(kind)) {
+    val = (an_fp_value_part)((mp->parts[0] >> 6) | ((exponent + 15) << 26));
+    if (is_negative) {
+      val |= 0x80000000;
+    }  /* if */
+    val >>= 16;
+    memcpy((char*)float_value, (char*)&val, sizeof(val));
+#endif /* HOST_HAS_FLOAT16_TYPE */
+  } else if (kind_is_binary16(kind) || kind == fk_float) {
     val = (an_fp_value_part)((mp->parts[0] >> 9) | ((exponent + 127) << 23));
     if (is_negative) val |= 0x80000000;
     memcpy((char*)float_value, (char*)&val, sizeof(val));
@@ -2571,7 +2600,7 @@ set to TRUE if the exponent is too large to represent.
 
 void conv_mantissa_to_floating_point(
 				a_mantissa_ptr			mp,
-				long				exponent,
+				long				*p_exponent,
 				a_boolean			is_negative,
 				a_float_kind			kind,
 				an_internal_float_value		*float_value,
@@ -2579,17 +2608,19 @@ void conv_mantissa_to_floating_point(
 				a_boolean			*err,
 				a_boolean			*inexact)
 /*
-Given a mantissa (mp) and exponent that represent a floating-point
-value, check that the value is representable in the destination type
-specified by kind.  is_negative is TRUE if the value to be stored must
-be created as a negative value.  Set *err on overflow.  Set *inexact
-if any bits are lost because the precision of the destination type.
-overflow is TRUE if the value is already known to be too large (i.e.,
-because the exponent was out of range).
+Given a mantissa (mp) and exponent (*p_exponent) that represent a
+floating-point value, check that the value is representable in the
+destination type specified by kind.  is_negative is TRUE if the value to be
+stored must be created as a negative value.  Update *p_exponent to reflect
+adjustments to the exponent value.  Set *err on overflow.  Set *inexact if
+any bits are lost because the precision of the destination type.  overflow
+is TRUE if the value is already known to be too large (i.e., because the
+exponent was out of range).
 */
 {
   a_boolean	any_digits;
   int		mant_dig = 0;
+  long		exponent = *p_exponent;
 
   *err = FALSE;
   if (long_double_is_double && repr_is_long_double(kind)) {
@@ -2644,6 +2675,8 @@ because the exponent was out of range).
   /* If an underflow occurred, set the flag that indicates that the resulting
      value is not an exact representation of the specified value. */
   if (mp->underflow) *inexact = mp->underflow;
+  /* Update the exponent value to reflect any adjustments made above. */
+  *p_exponent = exponent;
 }  /* conv_mantissa_to_floating_point */
 
 
@@ -2671,7 +2704,7 @@ fit in the indicated type.
   /* Convert the string into a mantissa and exponent. */
   conv_hex_string_to_mantissa_and_exponent(str, &mantissa, &exponent,
                                            &exponent_overflow);
-  conv_mantissa_to_floating_point(&mantissa, exponent, /*is_negative=*/FALSE,
+  conv_mantissa_to_floating_point(&mantissa, &exponent, /*is_negative=*/FALSE,
                                   kind, float_value, exponent_overflow,
                                   err, inexact);
 #if TARG_HAS_IEEE_FLOATING_POINT

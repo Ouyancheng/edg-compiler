@@ -895,7 +895,7 @@ to be issued; otherwise set err_code to ec_no_error.
     load_hex_fxp_value(&old_constant->variant.fixed_point_value,
                        fxp_descr, &mantissa, &exponent, &is_negative);
     /* Convert and store the mantissa as a floating-point value. */
-    conv_mantissa_to_floating_point(&mantissa, exponent, is_negative,
+    conv_mantissa_to_floating_point(&mantissa, &exponent, is_negative,
                                     float_tp->variant.float_kind,
                                     float_value,
                                     /*overflow=*/FALSE, &err, &inexact);
@@ -1143,7 +1143,7 @@ fxp_descr specifies the format of the fixed-point value.
   a_boolean	inexact;
 
   load_hex_fxp_value(fxp_value, fxp_descr, &mantissa, &exponent, &is_negative);
-  conv_mantissa_to_floating_point(&mantissa, exponent, is_negative,
+  conv_mantissa_to_floating_point(&mantissa, &exponent, is_negative,
                                   (a_float_kind)fk_long_double, fp_value,
                                   /*overflow=*/FALSE, &err, &inexact);
 }  /* conv_fixed_point_to_long_double */

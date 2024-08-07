@@ -79,7 +79,7 @@ extern void conv_hex_string_to_mantissa_and_exponent(
 
 extern void conv_mantissa_to_floating_point(
 				a_mantissa_ptr			mp,
-				long				exponent,
+				long				*p_exponent,
 				a_boolean			is_negative,
 				a_float_kind			kind,
 				an_internal_float_value		*float_value,
@@ -91,6 +91,8 @@ extern void conv_mantissa_to_floating_point(
 
 extern a_boolean mantissa_is_zero(a_mantissa_ptr	mp);
 
+#endif /* FIXED_POINT_ALLOWED */
+
 extern void load_hex_fp_value(an_internal_float_value	*float_value,
 			      a_float_kind		kind,
 			      a_mantissa_ptr		mp,
@@ -98,7 +100,6 @@ extern void load_hex_fp_value(an_internal_float_value	*float_value,
 			      a_boolean			*is_negative,
 			      a_boolean			restore_implicit_bit);
 
-#endif /* FIXED_POINT_ALLOWED */
 
 extern a_host_fp_value fetch_host_fp_value(
 				a_float_kind            kind,
