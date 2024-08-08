@@ -412,6 +412,15 @@ Allocate and return "size" bytes of storage in the file scope memory region.
 */
 {
   char *ptr;
+
+  /* If this assertion fails an IL allocation occured outside of the front
+     end that was targeted towards a non-primary file scope memory region.
+     In other words, an attempt was made to allocate IL for a secondary
+     translation unit outside of the front end.  This should not happen as all
+     translation units should have been merged into the primary
+     translation unit. */
+  check_assertion(in_front_end ||
+                  file_scope_region_number == FILE_SCOPE_REGION_NUMBER);
   do_fs_alloc(ptr, size, file_scope_region_number);
   trace_alloc_check(ptr);
   return ptr;

@@ -16004,7 +16004,7 @@ return type be examined? what about its parameters?).
   }  /* if */
 #if !STANDALONE_UTILITY_PROGRAM
   type_sym = symbol_for(type_ptr);
-  if (type_sym != NULL) {
+  if (type_sym != NULL && curr_translation_unit != NULL) {
     /* A number of type transformations are performed through this traversal
        Ensure the translation unit corresponding to the type (if any) is the
        current translation unit.  This in turn, ensures that any additional
