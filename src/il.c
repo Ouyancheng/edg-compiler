@@ -10593,6 +10593,7 @@ entry.  pos is used to establish the type entry's position information.
   if (class_template->is_error) {
     sym->is_error = TRUE;
   }  /* if */
+  sym->decl_scope = class_template->decl_scope;
   sym->variant.type.ptr = type;
   tpcp->depth = CLASS_TEMPLATE_PLACEHOLDER_NESTING_DEPTH;
   tptsp->constraint.class_template_symbol = class_template;
