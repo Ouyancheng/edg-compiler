@@ -4310,6 +4310,7 @@ hdr_ptr == NULL indicates that an error symbol should be constructed.
   num_symbols_allocated++;
 #endif /* DEBUG */
 #if EXPENSIVE_CHECKING
+  /* Add the symbol to the list of allocated symbols to check. */
   allocated_symbols->push_back(sym_ptr);
 #endif /* EXPENSIVE_CHECKING */
   /* Set the shared fields to default values, set the kind, and initialize
@@ -12676,6 +12677,13 @@ set to iek_none.
   char             *entry_ptr = NULL;
   an_il_entry_kind lkind = iek_none;
 
+#if EXPENSIVE_CHECKING
+  /* If this assertion fails, the caller likely is using a symbol that it
+     shouldn't be.  The symbol's associated IL entry belongs to a freed
+     memory region (and thus the IL entry no longer exists). */
+  check_assertion_str(sym->kind != sk_freed,
+                      "attempted to retrieve IL entry for a freed symbol");
+#endif /* EXPENSIVE_CHECKING */
   switch (sym->kind) {
     case sk_macro:
 #if RECORD_MACROS_IN_IL
@@ -19612,6 +19620,40 @@ of the front end.
 
 #if EXPENSIVE_CHECKING
 
+void symbol_table_memory_region_wrap_up(a_memory_region_number region)
+/*
+Sanitize the symbol table for the given memory region being freed.
+*/
+{
+  if (allocated_symbols != NULL) {
+    for (a_symbol_ptr sym : *allocated_symbols) {
+      if (sym->kind == sk_freed) {
+        /* This symbol was already freed. */
+        continue;
+      }  /* if */
+
+      an_il_entry_kind kind;
+      char             *ptr = il_entry_for_symbol_null_okay(sym, &kind);
+      if (ptr == NULL) {
+        continue;
+      }  /* if */
+
+      an_il_entry_prefix_ptr prefix = &il_entry_prefix_of(ptr);
+      a_memory_region_number prefix_region = prefix->region_number;
+      if (prefix_region != region) {
+        continue;
+      }  /* if */
+      /* This symbol's IL entry is being freed. */
+      sym->kind = sk_freed;
+    }  /* for */
+    /* Note: It's conceptually tempting to remove symbols from the list here
+       after they've been marked freed (so they're not checked again).
+       However, in practice normally only a small number of symbols are removed
+       so this actually increases the cost of the checking. */
+  }  /* if */
+}  /* symbol_table_memory_region_wrap_up */
+
+
 void symbol_table_trans_unit_validate()
 /*
 Validate the current state of the symbol table for the
@@ -19621,6 +19663,10 @@ current translation unit.
   a_boolean any_errors = FALSE;
 
   for (a_symbol_ptr sym : *allocated_symbols) {
+    if (sym->kind == sk_freed) {
+      /* Don't check freed symbols, they're no longer relevant. */
+      continue;
+    }  /* if */
     if (!symbol_has_trans_unit_ptr(sym)) {
       /* Don't check symbols that are acknowledged as not having an associated
          translation unit.  */
@@ -19655,6 +19701,7 @@ current translation unit.
   check_assertion_str(!any_errors,
                       "at least one symbol has the incorrect "
                       "translation unit information");
+  delete_fe(&allocated_symbols);
 }  /* symbol_table_trans_unit_validate */
 
 #endif /* EXPENSIVE_CHECKING */

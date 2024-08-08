@@ -252,7 +252,8 @@ happens that it is usually known by the caller).
   incr_num_il_entry_prefixes_allocated();                                     \
   clear_il_entry_prefix(ptr, file_scope, !is_primary_translation_unit);       \
   init_memory_region_metadata(ptr,                                            \
-                             curr_translation_unit->file_scope_region_number);\
+                              curr_translation_unit->file_scope_region_number,\
+                              region_number);                                 \
   ptr += SPACE_FOR_IL_ENTRY_PREFIX;                                           \
 }  /* do_alloc */
 
@@ -323,7 +324,7 @@ units are involved).
   clear_and_incr_past_orphan_pointer(ptr);                              \
   incr_num_il_entry_prefixes_allocated();                               \
   clear_il_entry_prefix(ptr, TRUE, !is_primary_translation_unit);       \
-  init_memory_region_metadata(ptr, fs_region_number);                   \
+  init_memory_region_metadata(ptr, fs_region_number, fs_region_number); \
   ptr += SPACE_FOR_IL_ENTRY_PREFIX;                                     \
 }  /* do_fs_alloc */
 
@@ -6582,7 +6583,8 @@ for non-file-scope entities.
   /* Set the prefix size to the aligned size. */
   file_scope_entry_prefix_size = aligned_size;
   /* Compute the size of the non-file-scope entry prefix and the associated
-     alignment offset. */
+     alignment offset.  This is only computed once (during the first IL
+     prefix computation of the primary translation unit); however, it is used for all translation units. */
   if (is_primary_translation_unit) {
     non_file_scope_entry_prefix_size = SPACE_FOR_IL_ENTRY_PREFIX;
     do_host_alignment(non_file_scope_entry_prefix_size);

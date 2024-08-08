@@ -508,6 +508,9 @@ enum a_symbol_kind : a_byte {
   sk_property_set,
 			/* C++/CLI property. */
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
+#if EXPENSIVE_CHECKING
+  sk_freed,             /* A symbol that has gone out of scope.  */
+#endif /* EXPENSIVE_CHECKING */
   sk_last
 };
 
@@ -534,6 +537,9 @@ EXTERN_CONSTINIT_ARRAY(a_const_char*, symbol_kind_names,
 #if MICROSOFT_EXTENSIONS_ALLOWED
    "property set",
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
+#if EXPENSIVE_CHECKING
+   "freed",
+#endif /* EXPENSIVE_CHECKING */
    "last"
 }
 #endif /* VAR_INITIALIZERS */
@@ -7457,6 +7463,13 @@ Return TRUE if a translation unit pointer can be retrieved from this symbol;
 otherwise, return FALSE.
 */
 {
+#if EXPENSIVE_CHECKING
+  /* If this assertion fails, the caller likely is using a symbol that it
+     shouldn't be.  The symbol's associated IL entry belongs to a freed memory
+     region and requesting the symbol's translation unit is dubious. */
+  check_assertion_str(sym == NULL || sym->kind != sk_freed,
+                      "attempted to check translation unit of a freed symbol");
+#endif /* EXPENSIVE_CHECKING */
   return sym != NULL && !sym->is_error && sym->decl_scope != NO_SCOPE_NUMBER;
 }  /* symbol_has_trans_unit_ptr */
 
@@ -7668,6 +7681,8 @@ extern void symbol_tbl_trans_unit_init(void);
 extern void symbol_tbl_init(void);
 
 #if EXPENSIVE_CHECKING
+
+extern void symbol_table_memory_region_wrap_up(a_memory_region_number region);
 
 extern void symbol_table_trans_unit_validate();
 

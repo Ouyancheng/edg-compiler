@@ -214,10 +214,13 @@ typedef struct an_il_entry_prefix {
 #if EXPENSIVE_CHECKING
   a_memory_region_number
                 file_scope_region_number;
-                        /* The memory region holding the file scope IL entities
-                           during this IL entity's allocation (this is a proxy
+                        /* The memory region holding the file scope IL entries
+                           during this IL entry's allocation (this is a proxy
                            value that can be used to identify the translation
                            unit this IL entry was allocated in). */
+  a_memory_region_number
+                region_number;
+                        /* The memory region this IL entry was allocated in. */
   uint32_t      magic_number;
                         /* For debugging purposes, set when an IL entity is
                            allocated to a known value, then tested when
@@ -297,10 +300,11 @@ Macro used by do_alloc and do_fs_alloc to set the memory region number.
 This allows strong tracing of memory region problems.
 */
 #if EXPENSIVE_CHECKING
-#define init_memory_region_metadata(epp, region) \
-  ((((an_il_entry_prefix_ptr)epp)->file_scope_region_number) = (region))
+#define init_memory_region_metadata(epp, tu_region, region)                  \
+  ((((an_il_entry_prefix_ptr)epp)->file_scope_region_number) = (tu_region)); \
+  ((((an_il_entry_prefix_ptr)epp)->region_number) = (region))
 #else /* !EXPENSIVE_CHECKING */
-#define init_memory_region_metadata(epp, region) /* Nothing */
+#define init_memory_region_metadata(epp, tu_region, region) /* Nothing */
 #endif /* EXPENSIVE_CHECKING */
 
 /*

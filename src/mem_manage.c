@@ -1336,6 +1336,11 @@ needed (e.g., it has been written out to the IL file).
                      (unsigned long)allocated_in_region[region_number]);
   }  /* if */
 #endif /* DEBUG */
+#if !STANDALONE_UTILITY_PROGRAM && EXPENSIVE_CHECKING
+  /* Mark that any IL entity associated with these symbols
+     no longer exists. */
+  symbol_table_memory_region_wrap_up(region_number);
+#endif /* !STANDALONE_UTILITY_PROGRAM && EXPENSIVE_CHECKING */
   if (region_number == FRONT_END_REGION_NUMBER && freed_fe_map != NULL) {
     /* We're about to free the front end memory region.  Also delete the
        map of reusable entries in that region. */
