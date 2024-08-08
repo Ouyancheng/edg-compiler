@@ -166,10 +166,9 @@ typedef struct a_translation_unit_stack_entry {
 			   entry that should become the current entry when
 			   this one is popped off of the stack. */
   a_translation_unit_ptr
-		translation_unit;
-			/* Pointer to the translation unit that should be the
-			   current translation unit when this entry is at the
-			   top of the stack.*/
+		prev_tarns_unit;
+			/* Pointer to the previous value of curr_translation_unit that should
+			   be restored when the translation unit stack is popped. */
 } a_translation_unit_stack_entry;
 
 

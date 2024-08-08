@@ -7420,28 +7420,31 @@ in each of the translation units in which dependent names can be found.
 Add the symbols for the names found to the list specified by symbol_list.
 */
 {
-  a_translation_unit_stack_entry_ptr	tusep;
+  a_translation_unit_stack_entry_ptr tusep = curr_translation_unit_stack_entry;
+  a_translation_unit_ptr             tup = curr_translation_unit;
 
   /* Loop through the translation units that are on the translation unit
      stack.  This is used for argument dependent lookup that is done
      during the instantiation of exported templates. */
-  for (tusep = curr_translation_unit_stack_entry; tusep != NULL;
-       tusep = tusep->next) {
-    a_translation_unit_ptr	tup;
-    a_namespace_list_entry_ptr	namespace_list;
-    a_type_list_entry_ptr	class_list;
-    tup = tusep->translation_unit;
+  do {
     /* Update the namespace list to refer to the corresponding entities in
        the new translation unit. */
-    namespace_list = update_namespace_list_for_trans_unit(
+    a_namespace_list_entry_ptr	namespace_list =
+                                          update_namespace_list_for_trans_unit(
                                                      orig_namespace_list, tup);
     /* We don't need to create a transformed class list because the
        class lookup is not translation unit dependent. */
-    class_list = tup == curr_translation_unit ? orig_class_list : NULL;
+    a_type_list_entry_ptr	class_list = tup == curr_translation_unit ?
+                                                    orig_class_list : NULL;
     argument_dependent_lookup_for_trans_unit(locator, namespace_list,
-				             class_list, tup, symbol_list);
+                                             class_list, tup, symbol_list);
     free_list_of_namespace_list_entries(namespace_list);
-  }  /* for */
+    if (tusep == NULL) {
+      break;
+    }  /* if */
+    tup = tusep->prev_tarns_unit;
+    tusep = tusep->next;
+  } while (tup != NULL);
 }  /* exported_template_argument_dependent_lookup */
 
 

@@ -187,7 +187,7 @@ a pointer to the entry created.
 #endif /* DEBUG */
   }  /* if */
   tusep->next = NULL;
-  tusep->translation_unit = NULL;
+  tusep->prev_tarns_unit = NULL;
   return tusep;
 }  /* alloc_translation_unit_stack_entry */
 
@@ -494,16 +494,22 @@ void db_translation_unit_stack(void)
 Display the translation unit stack, for debugging purposes.
 */
 {
-  a_translation_unit_stack_entry_ptr	tusep;
-  int					count = 0;
+  a_translation_unit_stack_entry_ptr tusep = curr_translation_unit_stack_entry;
+  a_translation_unit_ptr             tup = curr_translation_unit;
+  int                                count = 0;
 
   fprintf(f_debug, "Translation unit stack:\n");
-  for (tusep = curr_translation_unit_stack_entry;
-       tusep != NULL; tusep = tusep->next, count++) {
-    fprintf(f_debug, "  %d: %s\n", count,
-            tusep->translation_unit->source_file->file_name);
-  }  /* for */
+  do {
+    fprintf(f_debug, "  %d: %s\n", count, tup->source_file->file_name);
+    count++;
+    if (tusep == NULL) {
+      break;
+    }  /* if */
+    tup = tusep->prev_tarns_unit;
+    tusep = tusep->next;
+  } while (tup != NULL);
 }  /* db_translation_unit_stack */
+
 #endif /* DEBUG */
 
 void switch_translation_unit(a_translation_unit_ptr	tup)
@@ -529,17 +535,17 @@ it the current translation unit.
 {
   a_translation_unit_stack_entry_ptr	tusep;
 
+  /* The given translation unit must not be NULL. */
+  check_assertion(tup != NULL);
   tusep = alloc_translation_unit_stack_entry();
   tusep->next = curr_translation_unit_stack_entry;
-  tusep->translation_unit = tup;
-  if (curr_translation_unit != tup) {
-    /* Make the new translation unit the currently active one.  This should
-       not be done when pushing the primary translation unit. */
-    switch_translation_unit(tup);
-  }  /* if */
+  tusep->prev_tarns_unit = curr_translation_unit;
+  switch_translation_unit(tup);
   /* If this is a secondary translation unit, increment the count of
      secondary translation units on the stack. */
-  if (tup != translation_units) secondary_trans_units_on_stack++;
+  if (!is_primary_translation_unit) {
+    secondary_trans_units_on_stack++;
+  }  /* if */
   curr_translation_unit_stack_entry = tusep;
 }  /* push_translation_unit_stack */
 
@@ -553,23 +559,20 @@ new top entry the current translation unit.
   a_translation_unit_stack_entry_ptr	tusep;
 
   tusep = curr_translation_unit_stack_entry;
-  check_assertion(tusep->translation_unit == curr_translation_unit);
+  /* If this assertion fails, there's no translation unit on the stack. */
+  check_assertion(tusep != NULL);
   /* If this is a secondary translation unit, decrement the count of
      secondary translation units on the stack. */
-  if (tusep->translation_unit != translation_units) {
+  if (!is_primary_translation_unit) {
     secondary_trans_units_on_stack--;
   }  /* if */
   /* Unlink this entry from the stack. */
   curr_translation_unit_stack_entry = tusep->next;
+  /* Restore the previous translation unit. */
+  switch_translation_unit(tusep->prev_tarns_unit);
   /* Add the old entry to the list of available stack entries. */
   tusep->next = avail_translation_unit_stack_entries;
   avail_translation_unit_stack_entries = tusep;
-  if (curr_translation_unit_stack_entry != NULL) {
-    /* Make the translation unit specified by the top of the stack into the
-       active translation unit. */
-   switch_translation_unit(
-                          curr_translation_unit_stack_entry->translation_unit);
-  }  /* if */
 }  /* pop_translation_unit_stack */
 
 
