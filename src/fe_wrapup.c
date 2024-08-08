@@ -114,6 +114,9 @@ are instantiated.
   check_all_stop_token_entries_are_reset(
                                    curr_stop_token_stack_entry->stop_tokens);
 #endif /* CHECKING */
+#if EXPENSIVE_CHECKING
+  symbol_table_trans_unit_validate();
+#endif /* EXPENSIVE_CHECKING */
   if (!do_preprocessing_only && any_cfront_mode()) {
     /* Determine whether any classes defined in this file require external
        linkage, and if so do the appropriate fixup.  No such fixup is

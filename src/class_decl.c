@@ -4480,22 +4480,27 @@ new translation unit.  It is set to TRUE if this call pushes a new
 translation unit.
 */
 {
-  a_symbol_ptr            sym = symbol_for(class_type);
-  a_translation_unit_ptr  tup_needed = trans_unit_for_symbol(sym);
+  a_symbol_ptr sym = symbol_for(class_type);
 
-  if (tup_needed != curr_translation_unit) {
-    /* The current translation unit is not the right one.  If we previously
-       pushed a translation unit, pop it now. */
-    if (*trans_unit_pushed) {
-      pop_translation_unit_stack();
-      *trans_unit_pushed = FALSE;
-    }  /* if */
-    /* If the new top of stack is still not the right one, push a new entry
-       for the translation unit needed. */
+  if (symbol_has_trans_unit_ptr(sym)) {
+    a_translation_unit_ptr tup_needed = trans_unit_for_symbol(sym);
+
     if (tup_needed != curr_translation_unit) {
-      push_translation_unit_stack(tup_needed);
-      *trans_unit_pushed = TRUE;
+      /* The current translation unit is not the right one.  If we previously
+         pushed a translation unit, pop it now. */
+      if (*trans_unit_pushed) {
+        pop_translation_unit_stack();
+        *trans_unit_pushed = FALSE;
+      }  /* if */
+      /* If the new top of stack is still not the right one, push a new entry
+         for the translation unit needed. */
+      if (tup_needed != curr_translation_unit) {
+        push_translation_unit_stack(tup_needed);
+        *trans_unit_pushed = TRUE;
+      }  /* if */
     }  /* if */
+  } else {
+    expect_error();
   }  /* if */
 }  /* check_trans_unit_for_class */
 

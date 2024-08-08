@@ -35967,10 +35967,16 @@ added, FALSE if it was already on the list.
     instantiations_required_tail = tip;
     added = TRUE;
     tip->on_instantiations_list = TRUE;
-    check_assertion_str2(curr_translation_unit ==
+#if CHECKING
+    if (symbol_has_trans_unit_ptr(tip->instance_sym)) {
+      check_assertion_str2(curr_translation_unit ==
                                       trans_unit_for_symbol(tip->instance_sym),
-                         "add_to_instantiations_required_list:",
-                         "symbol for wrong translation unit");
+                           "add_to_instantiations_required_list:",
+                           "symbol for wrong translation unit");
+    } else {
+      expect_error();
+    }  /* if */
+#endif /* CHECKING */
 #if EXPENSIVE_CHECKING
     /* Make sure none of the template arguments depend on template
        parameters. */

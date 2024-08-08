@@ -7450,6 +7450,17 @@ extern a_boolean symbol_is_from_trans_unit(a_symbol_ptr			sym,
 extern
 a_translation_unit_ptr get_trans_unit_for_scope(a_scope_number	scope_number);
 
+
+inline a_boolean symbol_has_trans_unit_ptr(a_symbol_ptr sym)
+/*
+Return TRUE if a translation unit pointer can be retrieved from this symbol;
+otherwise, return FALSE.
+*/
+{
+  return sym != NULL && !sym->is_error && sym->decl_scope != NO_SCOPE_NUMBER;
+}  /* symbol_has_trans_unit_ptr */
+
+
 extern a_translation_unit_ptr trans_unit_for_symbol(a_symbol_ptr	sym);
 
 extern void set_keyword_visibility(a_const_char     *keyword,
@@ -7459,12 +7470,6 @@ extern void set_keyword_visibility(a_const_char     *keyword,
 #if SUN_EXTENSIONS_ALLOWED
 extern void ldscope_pragma(a_pending_pragma_ptr ppp);
 #endif /* SUN_EXTENSIONS_ALLOWED */
-
-extern void symbol_tbl_one_time_init(void);
-
-extern void symbol_tbl_trans_unit_init(void);
-
-extern void symbol_tbl_init(void);
 
 /*
 Type used to represent the size of a hash table.  This must not be larger
@@ -7655,6 +7660,18 @@ name.
 
 
 extern a_token_kind check_type_transform_name(void);
+
+extern void symbol_tbl_one_time_init(void);
+
+extern void symbol_tbl_trans_unit_init(void);
+
+extern void symbol_tbl_init(void);
+
+#if EXPENSIVE_CHECKING
+
+extern void symbol_table_trans_unit_validate();
+
+#endif /* EXPENSIVE_CHECKING */
 
 /* Conditionally close the "edg" namespace. */
 END_EDG_NAMESPACE

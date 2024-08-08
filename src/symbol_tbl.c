@@ -4279,6 +4279,18 @@ hdr_ptr == NULL indicates that an error symbol should be constructed.
   }  /* if */
 }  /* init_symbol */
 
+#if EXPENSIVE_CHECKING
+
+using an_allocated_symbols_list = Dyn_array<a_symbol_ptr>;
+			/* The type for a list of symbols allocated in the
+			   current translation unit. */
+
+static an_allocated_symbols_list
+		*allocated_symbols;
+			/* The symbols allocated in the current translation unit.
+			   This is used for post-compilation sanity checks. */
+
+#endif /* EXPENSIVE_CHECKING */
 
 a_symbol_ptr alloc_symbol(a_symbol_kind       kind,
                           a_symbol_header_ptr hdr_ptr,
@@ -4297,6 +4309,9 @@ hdr_ptr == NULL indicates that an error symbol should be constructed.
 #if DEBUG
   num_symbols_allocated++;
 #endif /* DEBUG */
+#if EXPENSIVE_CHECKING
+  allocated_symbols->push_back(sym_ptr);
+#endif /* EXPENSIVE_CHECKING */
   /* Set the shared fields to default values, set the kind, and initialize
      its variant fields. */
   init_symbol(sym_ptr, kind, hdr_ptr, position);
@@ -17389,13 +17404,17 @@ Return the translation unit pointer for the translation unit in which
 "sym" was declared.
 */
 {
-  a_scope_number	 scope_number;
-  a_translation_unit_ptr tup;
-
-  check_assertion(sym != NULL);
-  scope_number = sym->decl_scope;
-  check_assertion(scope_number != NO_SCOPE_NUMBER);
-  tup = trans_unit_for_scope[scope_number];
+  /* If this assertion fails either no symbol or a symbol that has no
+     translation unit information was passed.  The symbol likely should
+     have translation unit information or the caller needs corrected to
+     filter out symbols that don't have translation unit information. */
+  check_assertion(symbol_has_trans_unit_ptr(sym));
+  a_scope_number         scope_number = sym->decl_scope;
+  a_translation_unit_ptr tup = trans_unit_for_scope[scope_number];
+  /* If this assertion fails, the scope number is likely incorrect 
+     and thus is accessing a bad translation unit pointer.  Otherwise,
+     the translation unit was never properly set for
+     trans_unit_for_scope. */
   check_assertion(tup != NULL);
   return tup;
 }  /* trans_unit_for_symbol */
@@ -19409,6 +19428,9 @@ are handled in symbol_tbl_init.)
   register_trans_unit_variable(next_named_register_id);
 #endif /* NAMED_REGISTERS_ALLOWED */
   register_trans_unit_variable(template_cache_segment_table);
+#if EXPENSIVE_CHECKING
+  register_trans_unit_variable(allocated_symbols);
+#endif /* EXPENSIVE_CHECKING */
 }  /* symbol_tbl_one_time_init */
 
 
@@ -19477,9 +19499,11 @@ given translation unit.
 #if NAMED_REGISTERS_ALLOWED
   next_named_register_id = 1;
 #endif /* NAMED_REGISTERS_ALLOWED */
-  template_cache_segment_table = alloc_fe_of_type(
-                                              a_template_cache_segment_table);
-  construct(template_cache_segment_table, /*mask_width=*/10);
+  template_cache_segment_table =
+                     new_fe<a_template_cache_segment_table>(/*mask_width=*/10);
+#if EXPENSIVE_CHECKING
+  allocated_symbols = new_fe<an_allocated_symbols_list>();
+#endif /* EXPENSIVE_CHECKING */
 }  /* symbol_tbl_trans_unit_init */
 
 
@@ -19585,6 +19609,55 @@ of the front end.
 #endif /* DEBUG */
   init_intrinsic_symbol_headers();
 }  /* symbol_tbl_init */
+
+#if EXPENSIVE_CHECKING
+
+void symbol_table_trans_unit_validate()
+/*
+Validate the current state of the symbol table for the
+current translation unit.
+*/
+{
+  a_boolean any_errors = FALSE;
+
+  for (a_symbol_ptr sym : *allocated_symbols) {
+    if (!symbol_has_trans_unit_ptr(sym)) {
+      /* Don't check symbols that are acknowledged as not having an associated
+         translation unit.  */
+      continue;
+    }  /* if */
+
+    an_il_entry_kind kind;
+    char             *ptr = il_entry_for_symbol_null_okay(sym, &kind);
+    if (ptr == NULL) {
+      continue;
+    }  /* if */
+
+    /* There should always be a reachable translation unit for the symbol,
+       unless the symbol has already been freed (covered by the sk_freed
+       case above). */
+    a_translation_unit_ptr sym_tu = trans_unit_for_symbol(sym);
+    a_memory_region_number sym_tu_region = sym_tu->file_scope_region_number;
+    an_il_entry_prefix_ptr prefix = &il_entry_prefix_of(ptr);
+    a_memory_region_number prefix_region = prefix->file_scope_region_number;
+    if (sym_tu_region != prefix_region) {
+      fputs("the following symbol:\n    ", f_debug);
+      db_symbol(sym, "", 6);
+
+      a_string err_msg("  claims the IL entity is in the TU correspoding "
+                       "to memory region ", sym_tu_region, " but it was "
+                       "actually allocated in the TU correspoding to ",
+                       prefix_region);
+      print(err_msg, f_debug);
+      any_errors = TRUE;
+    }  /* if */
+  }  /* for */
+  check_assertion_str(!any_errors,
+                      "at least one symbol has the incorrect "
+                      "translation unit information");
+}  /* symbol_table_trans_unit_validate */
+
+#endif /* EXPENSIVE_CHECKING */
 
 /* Conditionally close the "edg" namespace. */
 END_EDG_NAMESPACE

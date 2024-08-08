@@ -576,6 +576,34 @@ new top entry the current translation unit.
 }  /* pop_translation_unit_stack */
 
 
+static a_boolean push_translation_unit_if_needed(a_translation_unit_ptr tup)
+/*
+Push the given translation unit to the translation unit stack if it is not the
+current translation unit.  Return TRUE if the translation unit was added to
+the stack; otherwise, return FALSE.
+*/
+{
+  a_boolean result = FALSE;
+
+  if (tup != curr_translation_unit) {
+    result = TRUE;
+    push_translation_unit_stack(tup);
+  }  /* if */
+  return result;
+}  /* push_translation_unit_if_needed */
+
+
+a_boolean push_primary_translation_unit_if_needed()
+/*
+Push the primary translation unit if not already
+*/
+{
+  /* Note that translation_units always starts with the
+     primary translation unit. */
+  return push_translation_unit_if_needed(translation_units);
+}  /* push_primary_translation_unit_if_needed */
+
+
 a_boolean push_translation_unit_if_needed(a_symbol_ptr	sym)
 /*
 If "sym" was declared in a translation unit other than the current one,
@@ -584,17 +612,14 @@ push its translation unit onto the translation unit stack.
 Return TRUE if a translation unit was pushed, FALSE if not.
 */
 {
-  a_boolean			push_needed = FALSE;
-  a_translation_unit_ptr	tup;
+  a_boolean result = FALSE;
 
   if (!sym->is_error) {
-    tup = trans_unit_for_symbol(sym);
-    push_needed = tup != curr_translation_unit;
-    if (push_needed) {
-      push_translation_unit_stack(tup);
-    }  /* if */
+    a_translation_unit_ptr tup = trans_unit_for_symbol(sym);
+
+    result = push_translation_unit_if_needed(tup);
   }  /* if */
-  return push_needed;
+  return result;
 }  /* push_translation_unit_if_needed */
 
 

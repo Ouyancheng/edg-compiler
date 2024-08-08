@@ -212,6 +212,12 @@ typedef struct an_il_entry_prefix {
 			   when this block was allocated. */
 #endif /* MAINTAIN_ALLOCATION_SEQUENCE_NUMBER */
 #if EXPENSIVE_CHECKING
+  a_memory_region_number
+                file_scope_region_number;
+                        /* The memory region holding the file scope IL entities
+                           during this IL entity's allocation (this is a proxy
+                           value that can be used to identify the translation
+                           unit this IL entry was allocated in). */
   uint32_t      magic_number;
                         /* For debugging purposes, set when an IL entity is
                            allocated to a known value, then tested when
@@ -285,6 +291,17 @@ EXTERN unsigned long
 #else /* !MAINTAIN_ALLOCATION_SEQUENCE_NUMBER */
 #define init_alloc_seq_number(epp) /* Nothing */
 #endif /* MAINTAIN_ALLOCATION_SEQUENCE_NUMBER */
+
+/*
+Macro used by do_alloc and do_fs_alloc to set the memory region number.
+This allows strong tracing of memory region problems.
+*/
+#if EXPENSIVE_CHECKING
+#define init_memory_region_metadata(epp, region) \
+  ((((an_il_entry_prefix_ptr)epp)->file_scope_region_number) = (region))
+#else /* !EXPENSIVE_CHECKING */
+#define init_memory_region_metadata(epp, region) /* Nothing */
+#endif /* EXPENSIVE_CHECKING */
 
 /*
 Macro used by clear_il_entry_prefix to set the magic number to indicate

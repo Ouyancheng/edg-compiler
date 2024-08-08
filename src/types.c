@@ -16004,13 +16004,19 @@ return type be examined? what about its parameters?).
   }  /* if */
 #if !STANDALONE_UTILITY_PROGRAM
   type_sym = symbol_for(type_ptr);
-  if (type_sym != NULL && curr_translation_unit != NULL) {
+  if (curr_translation_unit != NULL) {
     /* A number of type transformations are performed through this traversal
        Ensure the translation unit corresponding to the type (if any) is the
        current translation unit.  This in turn, ensures that any additional
        allocations related to the type occur in the correct
        translation unit. */
-    trans_unit_pushed = push_translation_unit_if_needed(type_sym);
+    if (symbol_has_trans_unit_ptr(type_sym)) {
+      trans_unit_pushed = push_translation_unit_if_needed(type_sym);
+    } else {
+      /* Assume the primary translation unit is the safest place to perform any
+         transformations in lieu of better information. */
+      trans_unit_pushed = push_primary_translation_unit_if_needed();
+    }  /* if */
   }  /* if */
 #endif /* !STANDALONE_UTILITY_PROGRAM */
   if (type_ptr->kind == (a_type_kind)tk_typeref) {

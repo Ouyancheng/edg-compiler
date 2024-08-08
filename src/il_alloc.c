@@ -244,14 +244,16 @@ region region_number.  file_scope is TRUE if the allocation is in the
 file scope.  (Yes, that could be determined from region_number, but it
 happens that it is usually known by the caller).
 */
-#define do_alloc(ptr, region_number, file_scope, size)                \
-{ ptr = alloc_in_region((region_number),                              \
+#define do_alloc(ptr, region_number, file_scope, size)                        \
+{ ptr = alloc_in_region((region_number),                                      \
                          (sizeof_t)((size)+non_file_scope_entry_prefix_size));\
-  /* There may be padding before the prefix if needed for alignment. */	\
-  ptr += non_file_scope_entry_prefix_alignment_offset;			\
-  incr_num_il_entry_prefixes_allocated();                             \
-  clear_il_entry_prefix(ptr, file_scope, !is_primary_translation_unit); \
-  ptr += SPACE_FOR_IL_ENTRY_PREFIX;                                   \
+  /* There may be padding before the prefix if needed for alignment. */       \
+  ptr += non_file_scope_entry_prefix_alignment_offset;                        \
+  incr_num_il_entry_prefixes_allocated();                                     \
+  clear_il_entry_prefix(ptr, file_scope, !is_primary_translation_unit);       \
+  init_memory_region_metadata(ptr,                                            \
+                             curr_translation_unit->file_scope_region_number);\
+  ptr += SPACE_FOR_IL_ENTRY_PREFIX;                                           \
 }  /* do_alloc */
 
 
@@ -309,19 +311,20 @@ to point to the entry proper.  fs_region_number indicates the file scope
 region number to be used (there can be several, when secondary translation
 units are involved).
 */
-#define do_fs_alloc(ptr, size, fs_region_number)                      \
-{ ptr = alloc_in_region(					      \
-          fs_region_number,                                           \
-          (sizeof_t)((size) + file_scope_entry_prefix_size));         \
-  /* There may be padding before the prefix if needed for alignment. */	\
-  ptr += file_scope_entry_prefix_alignment_offset;			\
-  if (!is_primary_translation_unit) {				      \
-    clear_and_incr_past_trans_unit_copy_address_pointer(ptr);		      \
-  }  /* if */							      \
-  clear_and_incr_past_orphan_pointer(ptr);			      \
-  incr_num_il_entry_prefixes_allocated();                             \
-  clear_il_entry_prefix(ptr, TRUE, !is_primary_translation_unit);     \
-  ptr += SPACE_FOR_IL_ENTRY_PREFIX;                                   \
+#define do_fs_alloc(ptr, size, fs_region_number)                        \
+{ ptr = alloc_in_region(                                                \
+          fs_region_number,                                             \
+          (sizeof_t)((size) + file_scope_entry_prefix_size));           \
+  /* There may be padding before the prefix if needed for alignment. */ \
+  ptr += file_scope_entry_prefix_alignment_offset;                      \
+  if (!is_primary_translation_unit) {                                   \
+    clear_and_incr_past_trans_unit_copy_address_pointer(ptr);           \
+  }  /* if */                                                           \
+  clear_and_incr_past_orphan_pointer(ptr);                              \
+  incr_num_il_entry_prefixes_allocated();                               \
+  clear_il_entry_prefix(ptr, TRUE, !is_primary_translation_unit);       \
+  init_memory_region_metadata(ptr, fs_region_number);                   \
+  ptr += SPACE_FOR_IL_ENTRY_PREFIX;                                     \
 }  /* do_fs_alloc */
 
 
