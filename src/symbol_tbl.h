@@ -7354,12 +7354,8 @@ Return TRUE if tp is not a C++03 POD (for pre-C++11 modes) or has nontrivial
 constructors or destructor (for C++11 and later modes).
 */
 #define is_nonPOD_or_has_nontrivial_copy_semantics(tp)                \
-    ((cpp11_mode)                                                     \
-       ? ((symbol_supplement_for_class(tp)->constructor != NULL &&    \
-           f_has_nontrivial_ctor(symbol_supplement_for_class(tp))) || \
-          (symbol_supplement_for_class(tp)->destructor != NULL &&     \
-           !symbol_supplement_for_class(tp)->has_trivial_destructor)) \
-       : !symbol_supplement_for_class(tp)->is_cpp03_POD)
+    (cpp11_mode ? !is_trivially_copyable_type(tp)                     \
+                : !is_pod_class(skip_typerefs(tp)))
 
 /*
 Returns TRUE if tp is not a C++03 POD (for pre-C++11 modes) or is not a
