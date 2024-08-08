@@ -15992,12 +15992,27 @@ return type be examined? what about its parameters?).
   a_routine_type_supplement_ptr  rtsp;
   a_typeref_type_supplement_ptr  ttsp;
   a_boolean                      scan_alias_template_args = FALSE;
+#if !STANDALONE_UTILITY_PROGRAM
+  a_symbol_ptr                   type_sym;
+  a_boolean                      trans_unit_pushed = FALSE;
+#endif /* !STANDALONE_UTILITY_PROGRAM */
 
   if (type_ptr == NULL) {
     /* If a NULL pointer was passed in, simply return FALSE. */
     status = FALSE;
     goto done;
   }  /* if */
+#if !STANDALONE_UTILITY_PROGRAM
+  type_sym = symbol_for(type_ptr);
+  if (type_sym != NULL) {
+    /* A number of type transformations are performed through this traversal
+       Ensure the translation unit corresponding to the type (if any) is the
+       current translation unit.  This in turn, ensures that any additional
+       allocations related to the type occur in the correct
+       translation unit. */
+    trans_unit_pushed = push_translation_unit_if_needed(type_sym);
+  }  /* if */
+#endif /* !STANDALONE_UTILITY_PROGRAM */
   if (type_ptr->kind == (a_type_kind)tk_typeref) {
     if (flags & TTT_SKIP_TYPEREFS) {
       if (flags & TTT_STOP_AT_TYPEDEFS) {
@@ -16280,6 +16295,11 @@ check_enclosing_classes:
     pofunc(type_ptr, status);
   }  /* if */
 done:
+#if !STANDALONE_UTILITY_PROGRAM
+  if (trans_unit_pushed) {
+    pop_translation_unit_stack();
+  }  /* if */
+#endif /* !STANDALONE_UTILITY_PROGRAM */
   return status;
 }  /* traverse_type_tree_full */
 
