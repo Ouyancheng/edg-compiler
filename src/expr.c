@@ -29007,6 +29007,26 @@ freed by this routine.
       }  /* if */
       goto have_result;
     }  /* if */
+    an_arg_list_elem_ptr     init_list_ctor_arg_list = NULL;
+    if (gpp_version_is(any_version) && supplied_arg_list != NULL &&
+        is_braced_init_component(supplied_arg_list) &&
+        class_type_supp(skip_typerefs(type_cast_to))
+                                                ->has_initializer_list_ctor) {
+      /* GCC prefers an initializer list constructor if one is present and a
+         braced-initializer is being cast, even if the latter requires an
+         additional user-defined conversion.  For example:
+           #include <initializer_list>
+           struct X { X(int); };
+           struct S {
+             S(int) = delete;
+             S(std::initializer_list<X>);
+           };
+           S s = S({5});  // Accepted by GCC.  An error because the deleted
+                          // constructor is selected, otherwise.
+      */
+      init_list_ctor_arg_list = supplied_arg_list;
+      supplied_arg_list = supplied_arg_list->variant.braced.list;
+    }  /* if */
     scan_ctor_arguments(ctor_sym, start_position,
                         (a_type_ptr)NULL, type_cast_to,
                         /*fill_in_dtor=*/TRUE,
@@ -29016,7 +29036,7 @@ freed by this routine.
                         rcblock,
                         /*arg_list_supplied=*/TRUE,
                         supplied_arg_list,
-                        (an_arg_list_elem *)NULL,
+                        init_list_ctor_arg_list,
                         /*trivial_ctor=*/(a_boolean *)NULL,
                         /*explicit_ctor=*/(a_boolean *)NULL,
                         /*elision_done=*/(a_boolean *)NULL,
@@ -29025,6 +29045,10 @@ freed by this routine.
                         /*simple_result=*/result,
                         &dip, &temp_init_node,
                         end_position_arg);
+    if (init_list_ctor_arg_list != NULL) {
+      /* Restored supplied_arg_list so it is correctly freed if needed. */
+      supplied_arg_list = init_list_ctor_arg_list;
+    }  /* if */
     if (!arg_list_supplied) {
       /* Free the arg list that we scanned. */
       free_arg_list(supplied_arg_list);

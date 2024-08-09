@@ -1,5 +1,24 @@
 Version 6.7
 
+8/9/24   [EDGcpfe/24661,EDGcpfe/25843]
+GNU C++ compatibility: Functional-notation cast of braced initializer
+
+Consider:
+
+  #include <initializer_list>
+  struct X { X(int); };
+  struct S {
+    S(int) = delete;
+    S(std::initializer_list<X>);
+  };
+  S s = S({5});  // Now accepted in GNU C++ modes.
+
+Ordinarily, the deleted S::S(int) constructor is preferred by overload
+resolution, which causes the example to be invalid.  However, GCC prefers the
+initializer-list constructor here, and the front end now emulates that
+behavior.
+
+
 8/8/24   [EDGcpfe/27485]
 Spurious error on selection from a dependent expression naming a reference
 
