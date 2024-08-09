@@ -1,5 +1,20 @@
 Version 6.7
 
+8/8/24   [EDGcpfe/27485]
+Spurious error on selection from a dependent expression naming a reference
+
+Consider:
+
+  template<typename T> void g(T &p) {
+    decltype(p) &rp = p;
+    rp->m;  // Previously an error.  Now okay.
+  }
+
+Previously, the front end issued a spurious error complaining the selection
+rp->m was from a T& type instead of a pointer type (when, in fact, T could be
+a pointer type).  That is now fixed.
+
+
 8/8/24   [EDGcpfe/17472,EDGcpfe/24212,EDGcpfe/25603,EDGcpfe/27479]
 Constraints on C-style variadic function arguments and designated initializers
 

@@ -359,6 +359,17 @@ extern a_targ_size_t num_vector_elements(a_type_ptr vector_type);
 extern a_type_ptr find_bottom_of_type(a_type_ptr type);
 extern a_type_ptr type_pointed_to(a_type_ptr pointer_type);
 extern a_type_ptr skip_pointer_types(a_type_ptr tp);
+
+inline a_type_ptr skip_reference_type(a_type_ptr  tp)
+/*
+If tp is a reference type (or alias thereof) return the underlying referenced
+type.  Otherwise, return tp;
+*/
+{
+  if (is_any_reference_type(tp)) tp = type_pointed_to(tp);
+  return tp;
+}  /* skip_reference_type */
+
 extern a_type_ptr pm_member_type(a_type_ptr pm_type);
 extern a_type_ptr pm_class_type(a_type_ptr pm_type);
 extern a_type_ptr f_underlying_type_of_derived_type(

@@ -9425,7 +9425,8 @@ case).
             is_integral_or_enum_type(operand_1->type)) {
           /* In pcc mode, something like 0->x is valid. */
           pcc_mode_integral_pointer_case = TRUE;
-        } else if (is_template_param_or_nonreal_class_type(operand_1->type)) {
+        } else if (is_template_param_or_nonreal_class_type(
+                                      skip_reference_type(operand_1->type))) {
           /* In a prototype instantiation, allow a template parameter type,
              which might be a pointer type.  Also allow a nonreal class type,
              which might have an operator-> function. */
@@ -28946,7 +28947,10 @@ freed by this routine.
     expr_pos_warning(ec_auto_cast_is_cpp23, start_position);
   }  /* if */
   could_be_dependent = !is_auto_cast &&
-                       could_be_dependent_class_type(type_cast_to);
+                       could_be_dependent_class_type(
+                          (clang_mode || microsoft_mode) ?
+                                         skip_reference_type(type_cast_to) :
+                                         type_cast_to);
   if (gpp_mode && !clang_mode && !could_be_dependent &&
       is_prototype_instantiation_context() &&
       ((!expr_stack->possible_rescan_context &&
