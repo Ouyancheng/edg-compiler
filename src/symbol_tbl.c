@@ -7833,6 +7833,11 @@ create the instance symbols for template aliases.
     cssp = sym->variant.class_struct_union.extra_info;
     cssp->class_template = ct_symbol;
   }  /* if */
+  /* If the class template symbol is an error symbol, the instance
+     is also implicitly in an error state. */
+  if (ct_symbol->is_error) {
+    sym->is_error = TRUE;
+  }  /* if */
   /* Make the declaration scope the same as the class template's. */
   sym->decl_scope = ct_symbol->decl_scope;
   /* Set the new symbol to have the same class or namespace membership as
