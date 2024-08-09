@@ -362,8 +362,8 @@ extern a_type_ptr skip_pointer_types(a_type_ptr tp);
 
 inline a_type_ptr skip_reference_type(a_type_ptr  tp)
 /*
-If tp is a reference type (or alias thereof) return the underlying referenced
-type.  Otherwise, return tp;
+If tp is a reference type (or alias thereof), return the underlying referenced
+type.  Otherwise, return tp.
 */
 {
   if (is_any_reference_type(tp)) tp = type_pointed_to(tp);
