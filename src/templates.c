@@ -10920,6 +10920,7 @@ is added to the substitution state.
   a_diag_list           diag_list;
   a_source_position     diag_pos = error_position;
   a_ctws_state          ctws_state;
+  a_subst_pairs_array   subst_pairs;
 
   push_instantiation_scope_for_rescan(template_sym);
   clear_diag_list(&diag_list);
@@ -10934,9 +10935,15 @@ is added to the substitution state.
     ctws_state.routine_type_levels = 0;
     create_variadic_param_info_for_routine_params(&ctws_state,
                                                   function_type_params(rtp));
+    if (symbol_is(template_sym, sk_function_template)) {
+      /* Add enclosing template arguments for trailing requires clauses of
+         member function templates. */
+      get_all_class_subst_pairs(template_sym->parent.class_type, &subst_pairs);
+    }  /* if */
   }  /* if */
-  if (!constraint_satisfied(constraint, args, params, &diag_list,
-                            CTWS_NO_OPTIONS, &ctws_state, &fatal)) {
+  subst_pairs.push_back({ params, args, FALSE, FALSE, FALSE, FALSE });
+  if (!constraint_satisfied_full(constraint, subst_pairs, &diag_list,
+                                 CTWS_NO_OPTIONS, &ctws_state, &fatal)) {
     if (!is_empty_diag_list(&diag_list)) {
       if (diagnose || (fatal && !clang_mode)) {
         a_diagnostic_ptr  dp;

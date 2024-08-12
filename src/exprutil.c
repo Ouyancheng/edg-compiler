@@ -26148,18 +26148,16 @@ static a_constraint_subst_cache
 			   substitution results. */
 
 
-a_boolean constraint_satisfied(an_expr_node_ptr      constraint,
-                               a_template_arg_ptr    template_arg_list,
-                               a_template_param_ptr  template_param_list,
-                               a_diag_list_ptr       diag_list,
-             /* Defaulted: */  a_ctws_options_set    options,
-                               a_ctws_state_ptr      ctws_state,
-                               a_boolean             *p_fatal,
-                               a_boolean             *p_copy_error)
+a_boolean constraint_satisfied_full(an_expr_node_ptr           constraint,
+                                    a_subst_pairs_array const  &subst_pairs,
+                                    a_diag_list_ptr            diag_list,
+                  /* Defaulted: */  a_ctws_options_set         options,
+                                    a_ctws_state_ptr           ctws_state,
+                                    a_boolean                  *p_fatal,
+                                    a_boolean                  *p_copy_error)
 /*
-Return TRUE if the given constraint expression, built on the given template
-parameter list, is satisfied by the given template argument list.  Otherwise,
-return FALSE and:
+Return TRUE if the given constraint expression is satisfied by the given
+substitution pairs.  Otherwise, return FALSE and:
   - if p_copy_error is non-NULL, set *p_copy_error to TRUE if the FALSE result
     is due to a substitution failure, or to FALSE otherwise;
   - update diag_list with notes describing the reason for the failure if
@@ -26192,7 +26190,7 @@ p_fatal and p_copy_error are NULL by default.
     sym = symbol_for(templ);
     old_args = constraint->variant.concept_id.args;
     params = sym->variant.template_info->cache.decl_info->parameters;
-    if (template_param_list != NULL) {
+    if (!subst_pairs.is_empty()) {
       /* Substitute the dependent arguments of the concept-id. */
       a_ctws_state_ptr  args_ctws_state = ctws_state;
       a_ctws_state      new_ctws_state;
@@ -26211,15 +26209,13 @@ p_fatal and p_copy_error are NULL by default.
          atomic constraint (presumably, those are those for which
          param->param_symbol->referenced is TRUE), but for now we substitute
          them all. */
-      new_args = copy_template_arg_list_with_substitution(
-                                                  sym, old_args, params,
-                                                  (a_template_param_ptr)NULL,
-                                                  template_arg_list,
-                                                  template_param_list, 
-                                                  &constraint->position,
-                                                  options,
-                                                  &copy_error,
-                                                  args_ctws_state);
+      new_args = templ_args_after_substitutions(sym, old_args, params,
+                                                (a_template_param_ptr)NULL,
+                                                subst_pairs,
+                                                &constraint->position,
+                                                options,
+                                                &copy_error,
+                                                args_ctws_state);
       scope_stack_top().in_concept_rescan = saved_in_concept_rescan;
     } else {
       /* The concept-id is already fully non-dependent. */
@@ -26239,8 +26235,8 @@ p_fatal and p_copy_error are NULL by default.
          the parameter mapping for concept X.  (Ordinary SFINAE still applies,
          however.) */
       more_info_tap_diagnostic(ec_concept_arg_list_substitution_failed,
-                               &constraint->position, template_arg_list,
-                               diag_list);
+                               &constraint->position,
+                               subst_pairs.front_elem().args, diag_list);
       result = FALSE;
     } else {
       a_diagnostic_ptr  prev_diags = diag_list->tail;
@@ -26265,32 +26261,65 @@ p_fatal and p_copy_error are NULL by default.
        determines the outcome, the second is neither substituted nor
        evaluated. */
     an_expr_node_ptr  opnds = constraint->variant.operation.operands;
-    result = constraint_satisfied(opnds, template_arg_list,
-                                  template_param_list, diag_list, options,
-                                  ctws_state, p_fatal, &copy_error) &&
-             constraint_satisfied(opnds->next, template_arg_list,
-                                  template_param_list, diag_list, options,
-                                  ctws_state, p_fatal, &copy_error);
+    result = constraint_satisfied_full(opnds, subst_pairs,
+                                       diag_list, options,
+                                       ctws_state, p_fatal, &copy_error) &&
+             constraint_satisfied_full(opnds->next, subst_pairs,
+                                       diag_list, options,
+                                       ctws_state, p_fatal, &copy_error);
   } else if (node_is_operator(constraint, eok_lor)) {
     /* Check the two underlying constraints separately.  If the first
        determines the outcome, the second is neither substituted nor
        evaluated. */
     an_expr_node_ptr  opnds = constraint->variant.operation.operands;
-    result = constraint_satisfied(opnds, template_arg_list,
-                                  template_param_list, diag_list, options,
-                                  ctws_state, p_fatal, &copy_error) ||
+    result = constraint_satisfied_full(opnds, subst_pairs,
+                                       diag_list, options,
+                                       ctws_state, p_fatal, &copy_error) ||
              (!*p_fatal &&
-              constraint_satisfied(opnds->next, template_arg_list,
-                                   template_param_list, diag_list, options,
-                                   ctws_state, p_fatal, &copy_error));
+              constraint_satisfied_full(opnds->next, subst_pairs,
+                                        diag_list, options,
+                                        ctws_state, p_fatal, &copy_error));
   } else {
     /* An atomic constraint.  First perform substitution (or reuse a cached
        substitution); then evaluate the expression. */
     an_expr_node_ptr  expr = NULL;
     a_constant_ptr    allocated_cp = NULL;
-    if (template_param_list != NULL) {
+    if (subst_pairs.length() > 1) {
+      /* We have nested template arguments.  Perform ordinary expression
+         substitutions on all but the last one. */
+      a_constant_ptr       cp = local_constant();
+      a_ctws_state_ptr     inner_ctws_state = ctws_state;
+      a_ctws_state         new_ctws_state;
+      a_subst_pairs_array  new_subst_pairs(subst_pairs.length() - 1);
+      if (inner_ctws_state == NULL) {
+        init_ctws_state(&new_ctws_state);
+        inner_ctws_state = &new_ctws_state;
+      }  /* if */
+      new_subst_pairs.insert(0, subst_pairs.begin() + 1,
+                             subst_pairs.length() - 1);
+      expr = substitute_expr(constraint, new_subst_pairs,
+                             inner_ctws_state, CTWS_MAY_BE_RESCANNED,
+                             cp, &allocated_cp, &copy_error);
+      if (copy_error || expr != NULL) {
+        release_local_constant(&cp);
+      } else {
+        if (allocated_cp == NULL) {
+          /* The constant result was constructed in *cp: Move it to file
+             scope memory. */
+          allocated_cp = move_local_constant_to_il(&cp);
+        } else {
+          release_local_constant(&cp);
+        }  /* if */
+        expr = alloc_node_for_constant(allocated_cp);
+      }  /* if */
+      allocated_cp = NULL;
+    } else {
+      expr = constraint;
+    }  /* if */
+    if (!copy_error && !subst_pairs.is_empty()) {
       /* Check the cache if it already contains this substitution. */
-      a_constraint_test    test = { constraint, template_arg_list };
+      a_template_arg_ptr   template_arg_list = subst_pairs.front_elem().args;
+      a_constraint_test    test = { expr, template_arg_list };
       uintptr_t            hash = hash_ptr(test);
       a_test_subst_result  cached_subst;
       /* Check the cache for a substitution. */
@@ -26301,6 +26330,8 @@ p_fatal and p_copy_error are NULL by default.
         a_source_position       saved_err_pos = error_position;
         a_constant_ptr          cp = local_constant();
         a_memory_region_number  region_to_switch_back_to;
+        a_template_param_ptr    template_param_list = subst_pairs.front_elem()
+                                                                 .params;
         switch_to_file_scope_region(&region_to_switch_back_to);
         test.template_arg_list = copy_template_arg_list(template_arg_list);
         cached_subst.kind = a_test_subst_result::tsrk_pending;
@@ -26314,8 +26345,8 @@ p_fatal and p_copy_error are NULL by default.
           ctws_state = &new_ctws_state;
         }  /* if */
         expr = copy_template_param_expr(
-                            constraint, template_arg_list, template_param_list,
-                            (a_type_ptr)NULL, &constraint->position,
+                            expr, template_arg_list, template_param_list,
+                            (a_type_ptr)NULL, &expr->position,
                             options, &copy_error, ctws_state,
                             cp, &allocated_cp);
         /* Store the substitution in the cache. */
@@ -26363,10 +26394,6 @@ p_fatal and p_copy_error are NULL by default.
       } else {
         unexpected_condition();
       }  /* if */
-    } else {
-      /* No parameters: This can occur when called from
-         resolve_pending_trailing_requires_clause. */
-      expr = constraint;
     }  /* if */
     if (copy_error) {
       /* Substitution failed. */
@@ -26440,6 +26467,27 @@ p_fatal and p_copy_error are NULL by default.
   }  /* if */
   if (p_copy_error != NULL) *p_copy_error = copy_error;
   return result;
+}  /* constraint_satisfied_full */
+
+
+a_boolean constraint_satisfied(an_expr_node_ptr      constraint,
+                               a_template_arg_ptr    template_arg_list,
+                               a_template_param_ptr  template_param_list,
+                               a_diag_list_ptr       diag_list,
+             /* Defaulted: */  a_ctws_options_set    options,
+                               a_ctws_state_ptr      ctws_state,
+                               a_boolean             *p_fatal,
+                               a_boolean             *p_copy_error)
+/*
+Convenience function to call constraint_satisfied_full with a single
+substitution pair.
+*/
+{
+  a_subst_pairs_array  subst_pairs(1);
+  subst_pairs.push_back({ template_param_list, template_arg_list,
+                          FALSE, FALSE, FALSE, FALSE });
+  return constraint_satisfied_full(constraint, subst_pairs, diag_list, options,
+                                   ctws_state, p_fatal, p_copy_error);
 }  /* constraint_satisfied */
 
 

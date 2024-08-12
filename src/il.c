@@ -7611,12 +7611,16 @@ Return the hash value for the indicated constant.
       break;
     case ck_template_param:
       hash_value = 499;
-      if (cp->variant.template_param.kind == tpck_param ||
-          cp->variant.template_param.kind == tpck_expression) {
-        /* For simple non-type template parameters and expressions, use an
-           integer representation of the pointer.  In general, this means that
-           those entries won't be found, but this is okay because, in general,
-           there can be multiple versions of nonreal types. */
+      if (cp->variant.template_param.kind == tpck_expression) {
+        an_expr_node_ptr  expr = cp->variant.template_param.local_expr_ref ?
+                        find_local_expr_node((char *)cp, lerk_tpl_param_expr) :
+                        cp->variant.template_param.variant.expr;
+        hash_value += hash_expr(expr);
+      } else if (cp->variant.template_param.kind == tpck_param) {
+        /* For simple non-type template parameters, use an integer
+           representation of the pointer.  In general, this means that those
+           entries won't be found, but this is okay because, in general, there
+           can be multiple versions of nonreal types. */
         hash_value += (a_hash_value)possible_lossy_cast_from_pointer(cp);
       } else if (cp->variant.template_param.kind == tpck_template_ref) {
         hash_value += hash_constant(cp->variant.template_param
@@ -20104,9 +20108,10 @@ options is a set of substitution options.
                                  (a_template_param_ptr)NULL,
                                  template_arg_list, template_param_list,
                                  source_pos, options, copy_error, ctws_state);
-        if (new_args == NULL || template_arg_list_is_dependent(new_args)) {
-          /* Don't attempt to evaluate concept-ids with dependent parameter
-             lists. */
+        if ((options & CTWS_MAY_BE_RESCANNED) != 0 ||
+            new_args == NULL || template_arg_list_is_dependent(new_args)) {
+          /* Don't attempt to evaluate concept-ids that will be rescanned or
+             with dependent parameter lists. */
           if (!*copy_error) {
             expr_copy = copy_node(expr);
             expr_copy->variant.concept_id.args = new_args;
@@ -20126,12 +20131,14 @@ options is a set of substitution options.
       }
       break;
     case enk_requires:
-      if (template_arg_list_is_dependent(template_arg_list)) {
+      if ((options & CTWS_MAY_BE_RESCANNED) ||
+          template_arg_list_is_dependent(template_arg_list)) {
         /* Don't attempt to substitute requires-expressions with dependent
            parameter lists.  Exceptions occur when we are adjusting template
            parameter coordinates or synthesizing an alias deduction guide: In
            that case we store the template arguments for later substitution. */
-        if (options & (CTWS_ADJUST_COORDINATES | CTWS_ALIAS_DEDUCTION_GUIDE)) {
+        if (options & (CTWS_MAY_BE_RESCANNED | CTWS_ADJUST_COORDINATES |
+                       CTWS_ALIAS_DEDUCTION_GUIDE)) {
           a_subst_pairs_array  subst_pairs = requires_expr_substs->get(expr);
           a_boolean            adjust_coordinates =
                                       (options & CTWS_ADJUST_COORDINATES) != 0;

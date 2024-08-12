@@ -2866,6 +2866,9 @@ done.
        !(rcblock->options & CTWS_SUBST_PARENT_CLASS_ARGS))) {
     add_expr_copy = TRUE;
   } else {
+    Value_saver<a_boolean>  unexpanded_pack_saver(
+                                        &rcblock->ctws_state->unexpanded_pack);
+    rcblock->ctws_state->unexpanded_pack = FALSE;
     any_more = begin_rescan_pack_expansion_context(pedep,
                                                  rcblock->template_param_list,
                                                  rcblock->template_arg_list,
@@ -2874,6 +2877,11 @@ done.
     /* Check if an error occurred (such as mismatched parameter pack
        lengths). */
     if (err) subst_fail(rcblock->error_detected);
+    if (!any_more && rcblock->ctws_state->unexpanded_pack &&
+        (rcblock->options & CTWS_MAY_BE_RESCANNED) != 0) {
+      add_expr_copy = TRUE;
+    }  /* if */
+    unexpanded_pack_saver.restore_now();
     while (any_more) {
       /* Rescan one iteration of the pack expansion and add the resulting
          expression to the list. */
@@ -12880,6 +12888,8 @@ indication in *rcblock).
     /* Rescanning a previously-scanned sizeof... */
     an_expr_rescan_info_entry_ptr eriep;
     a_boolean                     rescan_err;
+    Value_saver<a_boolean>        unexpanded_pack_saver(
+                                        &rcblock->ctws_state->unexpanded_pack);
 
     check_assertion(rcblock->expr->kind == (an_expr_node_kind)enk_sizeof_pack);
     eriep = get_expr_rescan_info(rcblock->expr,
@@ -12893,14 +12903,14 @@ indication in *rcblock).
       /* In some error cases, pedep can be NULL. */
       rescan_err = TRUE;
       any_more = FALSE;
+    } else if ((rcblock->options & (CTWS_PRESERVE_DEDUCED_PACKS |
+                                    CTWS_ADJUST_COORDINATES)) != 0) {
+      /* Just copy the saved operand for another rescan later on. */
+      copy_operand(&rcblock->expr->extra.rescan_info->saved_operand, result);
+      make_template_param_expr_constant_operand(result);
+      goto operand_ready;
     } else {
-      if ((rcblock->options & (CTWS_PRESERVE_DEDUCED_PACKS |
-                               CTWS_ADJUST_COORDINATES)) != 0) {
-        /* Just copy the saved operand for another rescan later on. */
-        copy_operand(&rcblock->expr->extra.rescan_info->saved_operand, result);
-        make_template_param_expr_constant_operand(result);
-        goto operand_ready;
-      }  /* if */
+      rcblock->ctws_state->unexpanded_pack = FALSE;
       any_more = begin_rescan_pack_expansion_context(
                                                   pedep,
                                                   rcblock->template_param_list,
@@ -12912,6 +12922,14 @@ indication in *rcblock).
     /* Check if an error occurred (such as mismatched parameter pack
        lengths). */
     if (rescan_err) subst_fail(rcblock->error_detected);
+    if (!any_more && (rcblock->options & CTWS_MAY_BE_RESCANNED) != 0 &&
+        rcblock->ctws_state->unexpanded_pack) {
+      /* For an unexpanded pack, just copy the saved operand for another rescan
+         later on. */
+      copy_operand(&rcblock->expr->extra.rescan_info->saved_operand, result);
+      make_template_param_expr_constant_operand(result);
+      goto operand_ready;
+    }  /* if */
     /* Again, we loop only to count the number of times around. */
     while (any_more) {
       result_count++;

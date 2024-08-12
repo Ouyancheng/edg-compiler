@@ -11385,6 +11385,43 @@ When templates_only is TRUE, only function templates members are considered.
             dps->is_explicit_instantiation) {
           if (is_ineligible(fund_sym)) match = FALSE;
         } else {
+          a_requires_clause      subst_requires_clause;
+          if (other_rcp != NULL && symbol_is(fund_sym, sk_function_template) &&
+              parent_class->variant.class_struct_union.is_template_class &&
+              !parent_class->variant.class_struct_union.is_nonreal_class) {
+            /* Substitute the template arguments of the instantiated
+               specialization of the enclosing class into the requires
+               clause. */
+            a_boolean            err = FALSE;
+            a_ctws_state         ctws_state;
+            a_subst_pairs_array  subst_pairs;
+            a_constant_ptr       allocated_cp = NULL;
+            a_constant_ptr       cp = local_constant();
+            subst_requires_clause = *other_rcp;
+            init_ctws_state(&ctws_state);
+            get_all_class_subst_pairs(parent_class, &subst_pairs);
+            subst_requires_clause.constraint =
+                            substitute_expr(other_rcp->constraint, subst_pairs,
+                                            &ctws_state, CTWS_MAY_BE_RESCANNED,
+                                            cp, &allocated_cp, &err);
+            if (err || subst_requires_clause.constraint != NULL) {
+              release_local_constant(&cp);
+              if (err) {
+                subst_requires_clause.constraint = make_zero_expr(bool_type());
+              }  /* if */
+            } else {
+              if (allocated_cp == NULL) {
+                /* The constant result was constructed in *cp: Move it to file
+                   scope memory. */
+                allocated_cp = move_local_constant_to_il(&cp);
+              } else {
+                release_local_constant(&cp);
+              }  /* if */
+              subst_requires_clause.constraint =
+                                         alloc_node_for_constant(allocated_cp);
+            }  /* if */
+            other_rcp = &subst_requires_clause;
+          }  /* if */
           match = equiv_requires_clauses(other_rcp,
                                          dps->trailing_requires_clause);
         }  /* if */

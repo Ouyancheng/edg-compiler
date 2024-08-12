@@ -8542,18 +8542,26 @@ class is partially instantiated.
 {
   a_boolean  discard_clause = dps->is_template_rescan,
              is_ordinary_member_instantiation = FALSE,
-             pop_func_prototype_scope = FALSE;
+             pop_func_prototype_scope = FALSE,
+             in_member_template_decl = FALSE;
+  a_scope_stack_entry_ptr
+             ssep = &scope_stack_top();
 
-  if (scope_is(&scope_stack_top(), sck_class_struct_union)) {
-    a_type_ptr  class_type = scope_stack_top().assoc_type;
+  if (scope_is(ssep, sck_template_declaration) &&
+      !(dps->dso_flags & DSO_FRIEND)) {
+    in_member_template_decl = TRUE;
+    ssep = &scope_stack[ssep->previous_scope];
+  }  /* if */
+  if (scope_is(ssep, sck_class_struct_union)) {
+    a_type_ptr  class_type = ssep->assoc_type;
     if (is_unspecialized_template_class(class_type) &&
         !class_type->variant.class_struct_union.is_prototype_instantiation) {
-      /* When instantiating ordinary members of class templates, ignore the
+      /* When instantiating members of class templates, ignore the
          requires-clause tokens.  The requires-clause recorded for the
          prototype instantiation will be recorded instead, and will be
          substituted at the first point of reference. */
       discard_clause = TRUE;
-      is_ordinary_member_instantiation = TRUE;
+      is_ordinary_member_instantiation = !in_member_template_decl;
     }  /* if */
   }  /* if */
   if (!type_is(dps->type, tk_routine) ||
