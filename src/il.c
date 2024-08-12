@@ -10588,6 +10588,11 @@ entry.  pos is used to establish the type entry's position information.
 
   /* Use the class template name as the placeholder name. */
   sym = alloc_symbol((a_symbol_kind)sk_type, class_template->header, pos);
+  /* If the class template symbol is an error symbol, the class template
+     placeholder is also implicitly in an error state. */
+  if (class_template->is_error) {
+    sym->is_error = TRUE;
+  }  /* if */
   sym->variant.type.ptr = type;
   tpcp->depth = CLASS_TEMPLATE_PLACEHOLDER_NESTING_DEPTH;
   tptsp->constraint.class_template_symbol = class_template;
