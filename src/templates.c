@@ -10935,7 +10935,8 @@ is added to the substitution state.
     ctws_state.routine_type_levels = 0;
     create_variadic_param_info_for_routine_params(&ctws_state,
                                                   function_type_params(rtp));
-    if (symbol_is(template_sym, sk_function_template)) {
+    if (template_sym->is_class_member &&
+        symbol_is(template_sym, sk_function_template)) {
       /* Add enclosing template arguments for trailing requires clauses of
          member function templates. */
       get_all_class_subst_pairs(template_sym->parent.class_type, &subst_pairs);
