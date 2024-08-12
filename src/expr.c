@@ -29026,7 +29026,7 @@ freed by this routine.
       goto have_result;
     }  /* if */
     an_arg_list_elem_ptr     init_list_ctor_arg_list = NULL;
-    if (gpp_version_is(any_version) && supplied_arg_list != NULL &&
+    if (gpp_version_is(any_version) && is_single_elem(supplied_arg_list) &&
         is_braced_init_component(supplied_arg_list) &&
         class_type_supp(skip_typerefs(type_cast_to))
                                                 ->has_initializer_list_ctor) {
