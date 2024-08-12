@@ -25760,6 +25760,7 @@ friend_template_checks_done:
            has been filled in.  The extra information is needed to check
            for redeclaration errors. */
         sym = make_symbol((a_symbol_kind)sk_class_template, &locator);
+        sym->decl_scope = scope_stack[decl_state->effective_decl_level].number;
         add_sym_to_symbol_table = !make_new_symbol_invisible;
       }  /* if */
       if (make_new_symbol_invisible) {
@@ -29110,6 +29111,7 @@ partial specialization, primary_sym is the corresponding primary template.
     sym = alloc_symbol((a_symbol_kind)sk_variable_template,
                        locator->symbol_header,
                        &locator->source_position);
+    sym->decl_scope = scope_stack[decl_state->effective_decl_level].number;
     if (primary_sym != NULL) {
       /* Associate the partial specialization with the primary template; its
          parent scope is also that of the primary template even if the partial
@@ -29530,7 +29532,6 @@ supplement for this template should be returned to the caller.
     set_to_named_error_locator(*locator);
     sym = create_variable_template_symbol(decl_state, locator,
                                           (a_symbol*)NULL);
-    sym->decl_scope = scope_stack_top().number;
     set_template_cache_info(&sym->variant.template_info->cache,
                             (a_token_cache*)NULL, decl_state->decl_info);
     set_template_cache_info(&sym->variant.template_info

@@ -11721,6 +11721,7 @@ instantiations are recorded in the IL.
                                              : sk_routine);
   sym = alloc_symbol(sym_kind, locator->symbol_header,
                      &locator->source_position);
+  sym->decl_scope = scope_stack_top().number;
   dps->sym = sym;
   /* Make a routine entry for this member: */
   rp = make_routine(function_type, (a_storage_class)sc_extern, NO_SCOPE_DEPTH);
@@ -11732,6 +11733,7 @@ instantiations are recorded in the IL.
              !is_template_dependent_context()) {
     /* For friend placeholders, arbitrarily record the entry in the innermost
        namespace scope. */
+    sym->decl_scope = scope_stack[depth_innermost_namespace_scope].number;
     add_to_routines_list(rp, depth_innermost_namespace_scope);
   }  /* if */
   rp->has_deducible_return_type = dps->has_deducible_return_type;
