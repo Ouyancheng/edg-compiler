@@ -29064,7 +29064,7 @@ freed by this routine.
                         &dip, &temp_init_node,
                         end_position_arg);
     if (init_list_ctor_arg_list != NULL) {
-      /* Restored supplied_arg_list so it is correctly freed if needed. */
+      /* Restore supplied_arg_list so it is correctly freed if needed. */
       supplied_arg_list = init_list_ctor_arg_list;
     }  /* if */
     if (!arg_list_supplied) {
