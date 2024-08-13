@@ -727,7 +727,8 @@ modes.
                   "__is_assignable_no_precondition_check");
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
   }  /* if */
-  if (ms_extensions || gnu_version_is(>=120000)) {
+  if (ms_extensions || gnu_version_is(>=120000) ||
+      clang_version_is(>=190000)) {
     /* Enter keywords in support of P0466R5 ("Layout-compatibility and
        Pointer-interconvertibility Traits", part of C++20). */
     enter_keyword(tok_is_layout_compatible, "__is_layout_compatible");
@@ -739,7 +740,7 @@ modes.
                     "__builtin_is_corresponding_member");
       enter_keyword(tok_builtin_is_pointer_interconvertible_with_class,
                     "__builtin_is_pointer_interconvertible_with_class");
-    } else {
+    } else if (ms_extensions) {
       enter_keyword(tok_is_corresponding_member, "__is_corresponding_member");
       enter_keyword(tok_is_pointer_interconvertible_with_class,
                     "__is_pointer_interconvertible_with_class");
@@ -767,22 +768,20 @@ modes.
   enter_keyword(tok_is_standard_layout, "__is_standard_layout");
   enter_keyword(tok_is_trivially_copyable, "__is_trivially_copyable");
   enter_keyword(tok_is_literal_type, "__is_literal_type");
+  /* Intrinsics common to both Clang and later GCC versions. */
+  if (clang_mode || gnu_version_is(>=130000)) {
+    enter_keyword(tok_is_convertible, "__is_convertible");
+  }  /* if */
   if (clang_mode || gnu_version_is(>=140000)) {
-    /* Intrinsics common to both Clang and later GCC versions. */
     enter_keyword(tok_is_array, "__is_array");
     enter_keyword(tok_is_bounded_array, "__is_bounded_array");
     enter_keyword(tok_is_const, "__is_const");
-    enter_keyword(tok_is_convertible, "__is_convertible");
     enter_keyword(tok_is_member_function_pointer,
                   "__is_member_function_pointer");
     enter_keyword(tok_is_member_object_pointer, "__is_member_object_pointer");
     enter_keyword(tok_is_member_pointer, "__is_member_pointer");
     enter_keyword(tok_is_object, "__is_object");
     enter_keyword(tok_is_reference, "__is_reference");
-    if (clang_version >= 180000) {
-      enter_keyword(tok_reference_constructs_from_temporary,
-                    "__reference_constructs_from_temporary");
-    }  /* if */
   }  /* if */
   if (clang_mode) {
     enter_keyword(tok_array_rank, "__array_rank");
@@ -814,15 +813,16 @@ modes.
                     "__is_trivially_equality_comparable");
     }  /* if */
   }  /* if */
-  if (gnu_version_is(>=130000)) {
-    enter_keyword(tok_is_convertible, "__is_convertible");
-    enter_keyword(tok_is_nothrow_convertible, "__is_nothrow_convertible");
+  if (gnu_version_is(>=130000) || clang_version_is(>=180000)) {
     enter_keyword(tok_reference_constructs_from_temporary,
                   "__reference_constructs_from_temporary");
+  }  /* if */
+  if (gnu_version_is(>=130000) || clang_version_is(>=190000)) {
+    enter_keyword(tok_is_nothrow_convertible, "__is_nothrow_convertible");
     enter_keyword(tok_reference_converts_from_temporary,
                   "__reference_converts_from_temporary");
   }  /* if */
-  if (gnu_version_is(>=140000)) {
+  if (gnu_version_is(>=140000) || clang_version_is(>=160000)) {
     enter_keyword(tok_is_scoped_enum, "__is_scoped_enum");
   }  /* if */
   enter_keyword(tok_has_trivial_move_constructor,

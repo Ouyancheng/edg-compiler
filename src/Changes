@@ -1,5 +1,15 @@
 Version 6.7
 
+8/13/24  [EDGcpfe/27507]
+Clang compatibility: Clang 19 intrinsics
+
+A number of new type trait intrinsics are now available in Clang mode.
+Specifically, __is_layout_compatible, __is_pointer_interconvertible_base_of,
+__is_nothrow_convertible, and __reference_converts_from_temporary are now
+enabled for Clang 19.  Additionally, __is_scoped_enum is now enabled for Clang
+16.
+
+
 8/12/24  [EDGcpfe/22821,EDGcpfe/27314,EDGcpfe/27438]
 Substitution of member function template trailing requires clauses
 
