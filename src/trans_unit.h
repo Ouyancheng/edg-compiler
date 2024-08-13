@@ -167,8 +167,9 @@ typedef struct a_translation_unit_stack_entry {
 			   this one is popped off of the stack. */
   a_translation_unit_ptr
 		prev_tarns_unit;
-			/* Pointer to the previous value of curr_translation_unit that should
-			   be restored when the translation unit stack is popped. */
+			/* Pointer to the previous value of
+			   curr_translation_unit that should be restored when
+			   the translation unit stack is popped. */
 } a_translation_unit_stack_entry;
 
 

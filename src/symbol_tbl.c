@@ -4291,13 +4291,14 @@ hdr_ptr == NULL indicates that an error symbol should be constructed.
 #if EXPENSIVE_CHECKING
 
 using an_allocated_symbols_list = Dyn_array<a_symbol_ptr>;
-			/* The type for a list of symbols allocated in the
-			   current translation unit. */
+                        /* The type for a list of symbols allocated in the
+                           current translation unit. */
 
 static an_allocated_symbols_list
-		*allocated_symbols;
-			/* The symbols allocated in the current translation unit.
-			   This is used for post-compilation sanity checks. */
+                *allocated_symbols;
+                        /* The symbols allocated in the current translation
+                           unit.  This is used for post-compilation sanity
+                           checks. */
 
 #endif /* EXPENSIVE_CHECKING */
 

@@ -980,7 +980,7 @@ The merge process occurs in effectively two phases.  The merge process starts
 with the first phase when copy_from_secondary_to_primary_IL is called.  During
 this phase IL will be copied from the secondary translation unit to "remapped
 copy."  The remapped copy is a temporary copy of the IL entry with all has all
-pointers remapped to IL entries in the priamry IL memory region.  The remapped
+pointers remapped to IL entries in the primary IL memory region.  The remapped
 copy itself is allocated in the secondary translation unit's IL memory region
 and is thus dropped along with the secondary translation unit's IL following
 the merge.
@@ -1591,9 +1591,9 @@ to the secondary translation unit.
             }  /* if */
           }  /* if */
           if (has_field_with_attr_to_merge) {
-            /* The class has at least one field that has an attribute that must be
-               merged.  Walk through all fields and strip the attributes except for
-               those that must be merged. */
+            /* The class has at least one field that has an attribute that must
+               be merged.  Walk through all fields and strip the attributes
+               except for those that must be merged. */
             if (strip_non_merged_attributes(&fp->source_corresp)) {
               mark_to_merge(fp, iek_field);
             }  /* if */
