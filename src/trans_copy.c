@@ -84,6 +84,7 @@ entries of various kinds.
 /*
 Return TRUE if the given entry is to be merged with its counterpart
 in the primary IL (this tests a flag, which must have been set previously).
+See f_mark_to_merge for more information about merging.
 */
 #define entry_to_be_merged(ptr) \
   (il_entry_prefix_of(ptr).il_lowering_flag)
@@ -110,6 +111,9 @@ Return the copy address for the indicated entry.  In the case where the
 entry is to be merged, and the copy address points to the intermediate
 copy, get the ultimate primary IL copy address from the copy.  The
 copy address must be set (i.e., the return value is always non-NULL).
+
+For more information about the copy address, see copy_address_setup.
+For more information about the merge process itself, see f_mark_to_merge.
 */
 {
   ptr = checked_trans_unit_copy_address_of(ptr);
@@ -156,17 +160,30 @@ static void copy_address_setup(
                               an_il_entry_kind kind,
                               a_boolean        known_will_process_in_curr_walk)
 /*
-Called during the IL walk that copies IL from the secondary translation
-unit to the primary translation unit to set up the copy address
-pointer of the entry pointed to by ptr, of kind "kind".  The copy address is
-the address where the given entry will be copied to.  For non-string entries
-this function both sets up the copy address and allocates the necessary space
-for the copy.  known_will_process_in_curr_walk is TRUE if it is known that the
-entry has been or will be processed (and not merely have its address remapped)
-in the current IL walk.
+Called during the IL walk that copies IL from the secondary translation unit to
+the primary translation unit to set up the copy address pointer of the entry
+pointed to by ptr, of kind "kind".
+
+The copy address is normally a direct pointer to the primary (canonicalized)
+address where the given entry will be copied or remapped to (in the primary
+IL).  When merging there is an intermediary address used (see f_mark_to_merge
+for more information about the merge).  In this latter case,
+transivite_copy_address_of always reaches the former case transitively through
+the intermediary address.
+
+If there is no corresponding entry in the primary IL (and this is not a string
+entry -- string entries are handled by copy_string_entry itself) this function
+will allocate a new entry in the primary IL and use that address as the copy
+address.
+
+known_will_process_in_curr_walk is TRUE if it is known that the entry has been
+or will be processed (and not merely have its address remapped) in the current
+IL walk.  If it is not known that an entry will be processed and
+copy_address_setup is invoked as part of copy_from_secondary_to_primary_IL,
+copy_address_setup will ensure the entry and its IL subtree are copied as
+needed.
 */
 {
-
   if (ptr == NULL) {
     /* Ignore NULL pointers. */
   } else if (!in_file_scope(ptr)) {
@@ -954,39 +971,62 @@ source correspondence field is scp and whose kind is "kind" are consistent.
 #endif /* CHECKING */
 
 
-static void f_mark_to_merge(char             *ptr,
-                            an_il_entry_kind kind)
+static void f_mark_to_merge(char *ptr, an_il_entry_kind kind)
 /*
 Mark the given entry (of kind "kind") as one that must be merged with its
-counterpart in the primary IL.  copy_address_setup will be called
-to set the copy address if it is not set already, so if a special
-copy address is required it should be established before this routine
-is called.
+counterpart in the primary IL.
+
+The merge process occurs in effectively two phases.  The merge process starts
+with the first phase when copy_from_secondary_to_primary_IL is called.  During
+this phase IL will be copied from the secondary translation unit to "remapped
+copy."  The remapped copy is a temporary copy of the IL entry with all has all
+pointers remapped to IL entries in the priamry IL memory region.  The remapped
+copy itself is allocated in the secondary translation unit's IL memory region
+and is thus dropped along with the secondary translation unit's IL following
+the merge.
+
+The merge operation is then completed in its secondary phase, during the final
+(manual) walk of the translation unit, facilitated by finish_trans_unit_copy.
+For entries that were marked for merging the copy address returned points to
+the remapped copy.  The primary IL entry's address is then obtained from the
+copy address of the remapped copy.  As all pointers at this point reachable
+from the remapped copy refer to entries in the primary IL, information can be
+safely and freely moved from the remapped copy to the primary IL entry (thus
+facilitating the merge).
+
+Note: as copy_address_setup will be called to set the copy address if it is not
+set already, so if a special copy address is required it should be established
+before this routine is called.
 */
 {
-  char *primary, *copy;
-
   check_assertion_str(in_file_scope(ptr) && in_secondary_trans_unit(ptr),
                       "f_mark_to_merge: bad input pointer");
   /* If the flag is set already, do nothing. */
   if (!il_entry_prefix_of(ptr).il_lowering_flag) {
+    /* Strings should never be marked for merging (as there's nothing to
+       "merge").  String entries are allocated in copy_string_entry (because
+       the length is known there). */
+    check_assertion(!is_string_entry_kind(kind));
     /* Set a flag to request merging.  The IL lowering flag is borrowed
        for this process because IL lowering is not done on secondary
        translation units. */
     il_entry_prefix_of(ptr).il_lowering_flag = TRUE;
     /* Get the copy address set if it is not set already. */
     copy_address_setup(ptr, kind, /*known_will_process_in_curr_walk=*/TRUE);
-    primary = trans_unit_copy_address_of(ptr);
+
+    /* The copy address of ptr has been configured to a location in the primary
+       IL. */
+    char *primary = trans_unit_copy_address_of(ptr);
     check_assertion_str(primary != NULL,
                         "f_mark_to_merge: copy address is not set");
     check_assertion_str(!in_secondary_trans_unit(primary),
                         "f_mark_to_merge: copy address is in sec trans unit");
+
     /* Allocate space for a copy in the secondary translation unit IL
        so we will have a version with all the pointers remapped appropriately.
        The original entry points to the copy, which points (via its
        copy address pointer) to the primary IL. */
-    check_assertion(!is_string_entry_kind(kind));
-    copy = alloc_il(sizeof_il_entry[(int)kind]);
+    char *copy = alloc_il(sizeof_il_entry[(int)kind]);
     trans_unit_copy_address_of(ptr) = copy;
     trans_unit_copy_address_of(copy) = primary;
     /* Set the flag to request copying. */
@@ -2288,16 +2328,16 @@ the secondary translation unit IL).
     }  /* switch */
   }  /* if */
 }  /* overwrite_primary_routine */
-  
+
 
 static void finish_trans_unit_copy(a_scope_ptr scope)
 /*
 scope is a file, namespace, or class scope from the secondary file IL.  Do
-processing required after the IL walk has copied IL entries from the
-secondary scope to the primary file IL.  This includes putting copied
-entries on primary IL lists and merging entries into the corresponding
-primary IL entries.  This routine is called with the current translation
-unit set to the primary translation unit.
+processing required after the IL walk has copied IL entries from the secondary
+scope to the primary file IL.  This includes putting copied entries on primary
+IL lists and merging entries into the corresponding primary IL entries (see
+f_mark_to_merge for more information about merging).  This routine is called
+with the current translation unit set to the primary translation unit.
 */
 {
   a_scope_ptr            primary_scope;
