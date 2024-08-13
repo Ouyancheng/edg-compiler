@@ -794,7 +794,7 @@ set to TRUE before they are attached.
           if (err_ap == NULL) err_ap = ap;
           make_attr_unrecognized(ap);
         }  /* if */
-      }  /* if */
+      }  /* for */
       for (ap = dps->id_attributes; ap != NULL; ap = ap->next) {
         if (is_std_attribute(ap)) {
           if (err_ap == NULL) {
@@ -802,7 +802,7 @@ set to TRUE before they are attached.
           }  /* if */
           make_attr_unrecognized(ap);
         }  /* if */
-      }  /* if */
+      }  /* for */
       if (err_ap != NULL) {
         pos_error(ec_friend_attribute_requires_definition,
                   &err_ap->group->position);
