@@ -13,7 +13,7 @@ enabled for Clang 19.  Additionally, __is_scoped_enum is now enabled for Clang
 8/12/24  [EDGcpfe/22821,EDGcpfe/27314,EDGcpfe/27438]
 Substitution of member function template trailing requires clauses
 
-Previously, a trailing requires clause of the member function template was
+Previously, a trailing requires clause of a member function template was
 instantiated together with the definition of the enclosing class template
 specialization.  That in turn could result in spurious errors.  Now,
 substitution into the trailing requires clause is only performed during

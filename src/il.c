@@ -20116,7 +20116,7 @@ options is a set of substitution options.
         if ((options & CTWS_MAY_BE_RESCANNED) != 0 ||
             new_args == NULL || template_arg_list_is_dependent(new_args)) {
           /* Don't attempt to evaluate concept-ids that will be rescanned or
-             with dependent parameter lists. */
+             that have dependent parameter lists. */
           if (!*copy_error) {
             expr_copy = copy_node(expr);
             expr_copy->variant.concept_id.args = new_args;
