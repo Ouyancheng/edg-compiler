@@ -39,7 +39,7 @@ statements.c -- Scanning of statements.
 /* Conditionally open the "edg" namespace. */
 BEGIN_EDG_NAMESPACE
 
-static a_struct_stmt_stack_entry_ptr
+STATIC_THREAD a_struct_stmt_stack_entry_ptr
 		struct_stmt_stack_container;
 			/* A dynamically allocated array of structured
 			   statement stack entries that can accommodate
@@ -53,7 +53,7 @@ static a_struct_stmt_stack_entry_ptr
 			   necessary.  size_struct_stmt_stack_container
 			   gives the number of elements currently allocated.
 			   Allocation is not per-file. */
-static sizeof_t	size_struct_stmt_stack_container;
+STATIC_THREAD sizeof_t	size_struct_stmt_stack_container;
 			/* Size of struct_stmt_stack_container, in terms of
 			   the number of elements. */
 #define STRUCT_STMT_STACK_INCREMENTAL_ALLOCATION 30
@@ -61,7 +61,7 @@ static sizeof_t	size_struct_stmt_stack_container;
 			   each time it is reallocated; also the initial
 			   allocation. */
 
-static a_reachability_summary
+STATIC_THREAD a_reachability_summary
 		curr_reachability;
 			/* Indicates whether or not the current location in
 			   the code (following the last statement of the top
@@ -69,7 +69,7 @@ static a_reachability_summary
 			   reachable by flowing into it from the previous
 			   statement. */
 
-static a_control_flow_descr_ptr
+STATIC_THREAD a_control_flow_descr_ptr
 		control_flow_descr_list;
 			/* A linked list that represents that part of the
 			   static control flow pattern of a given function
@@ -87,12 +87,12 @@ static a_control_flow_descr_ptr
 			   entries on the list point to IL entries, but the
 			   IL does not point back.  It is for front-end use
 			   only. */
-static a_control_flow_descr_ptr
+STATIC_THREAD a_control_flow_descr_ptr
 		end_of_control_flow_descr_list;
 			/* Pointer to the tail of control_flow_descr_list;
 			   NULL only when control_flow_descr_list itself is
 			   NULL. */
-static a_control_flow_descr_ptr
+STATIC_THREAD a_control_flow_descr_ptr
 		avail_control_flow_descrs;
 			/* Linked list of a_control_flow_descr entries that
 			   have been freed for reuse. */
@@ -117,7 +117,7 @@ static a_statement_ptr
 /*
 Counts of tables allocated, to track total use of memory.
 */
-static unsigned long
+STATIC_THREAD unsigned long
 		num_control_flow_descrs_allocated;
 #endif /* DEBUG */
 
@@ -512,7 +512,7 @@ dump_control_flow has been enabled at the command line.
 #endif /* DEBUG */
 
 #if DEBUG
-static unsigned long
+STATIC_THREAD unsigned long
 		cfd_id_number;
 			/* Identifier number used in control flow debug
 			   output. */

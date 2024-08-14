@@ -169,8 +169,8 @@ static struct name_to_reg extra_reg_names[] = {
 };
 
 /* The complete map between register names and enumerators, and its size. */
-static struct name_to_reg *regmap;
-static size_t regmap_size;
+STATIC_THREAD struct name_to_reg *regmap;
+STATIC_THREAD size_t regmap_size;
 
 
 a_named_register name_to_register(a_const_char  *name)

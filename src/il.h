@@ -207,7 +207,7 @@ Convert the given IL variable pointer into a tagged pointer.
 
 
 /* Current memory region number for IL information. */
-EXTERN a_memory_region_number
+EXTERN_THREAD a_memory_region_number
 		curr_il_region_number;
 
 /* A dummy name for placeholders. */
@@ -235,7 +235,7 @@ typedef struct an_orphaned_il_entry_list {
 			   kind in a linked list. */
 } an_orphaned_il_entry_list;
 
-EXTERN an_orphaned_il_entry_list
+EXTERN_THREAD an_orphaned_il_entry_list
 		orphaned_file_scope_il_entries[(int)iek_last];
 			/* Array of orphaned IL entry lists containing
 			   individual orphaned file scope IL entries. */
@@ -247,7 +247,7 @@ whether or not IL lowering has visited them yet.  This is the initial
 value for that flag when it is cleared.
 */
 /* Not conditional because it's also used by trans_copy.c. */
-EXTERN a_boolean
+EXTERN_THREAD a_boolean
 		initial_value_for_il_lowering_flag;
 
 /*
@@ -256,7 +256,7 @@ routine_name_linkage field of a routine type supplement is initialized.
 When a value other than the language default is required, the caller of
 alloc_type will make the correction.
 */
-EXTERN a_name_linkage_kind
+EXTERN_THREAD a_name_linkage_kind
 		default_routine_name_linkage;
 
 /* The various type_info types. */
@@ -323,29 +323,29 @@ EXTERN_CONSTINIT_ARRAY_END(type_info_names)
 typedef struct an_il_to_str_output_control_block
                                         *an_il_to_str_output_control_block_ptr;
 
-EXTERN a_type_ptr
+EXTERN_THREAD a_type_ptr
 		*internal_type_array;
 			/* Pointer to an array of types usable by internal
 			   expression code. */
 
-EXTERN a_host_large_unsigned
+EXTERN_THREAD a_host_large_unsigned
 		n_internal_types;
 			/* Number of elements pointed to by
 			   internal_type_array. */
 
-EXTERN a_type_ptr
+EXTERN_THREAD a_type_ptr
 		type_of_type_info;
 			/* Points to the definition of the type_info type
 			   returned by typeid.	In some configurations, this
 			   type is identified by a #pragma define_type_info
 			   that immediately precedes the class definition of
 			   type_info. */
-EXTERN a_type_ptr
+EXTERN_THREAD a_type_ptr
 		types_of_type_info[(int)tik_last + 1];
 			/* The user-visible type_info types.  The element
 			   with index tik_user has the same value as
 			   type_of_type_info. */
-EXTERN a_type_ptr
+EXTERN_THREAD a_type_ptr
 		type_of_align_val_t;
 			/* Points to the definition of std::align_val_t. */
 
@@ -361,7 +361,7 @@ EXTERN a_boolean
 			   start_map_region" and "#pragma stop_map_region". */
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
 
-EXTERN a_boolean
+EXTERN_THREAD a_boolean
 		okay_to_eliminate_unneeded_il_entries;
 			/* When TRUE unneeded entities may be pruned from the
 			   IL tree; otherwise, pruning is suppressed even if
@@ -374,19 +374,19 @@ EXTERN a_boolean
 			   of the front end (e.g., when the C++-generating
 			   back end is used).  */
 
-EXTERN a_stdc_pragma_value
+EXTERN_THREAD a_stdc_pragma_value
 		curr_fp_contract_state;
 			/* Used in C99 mode to reflect the current setting
 			   of the fp_contract state, which is set using the
 			   STDC FP_CONTRACT pragma. */
 
-EXTERN a_stdc_pragma_value
+EXTERN_THREAD a_stdc_pragma_value
 		curr_fenv_access_state;
 			/* Used in C99 and C++11 modes to reflect the
 			   current setting of the fenv_access state, which
 			   is set using the STDC FENV_ACCESS pragma. */
 
-EXTERN a_stdc_pragma_value
+EXTERN_THREAD a_stdc_pragma_value
 		curr_cx_limited_range_state;
 			/* Used in C99 mode to reflect the current setting
 			   of the cx_limited_range state, which is set using
@@ -425,7 +425,7 @@ EXTERN a_upc_access_method
 
 #if ONE_INSTANTIATION_PER_OBJECT
 
-EXTERN unsigned long
+EXTERN_THREAD unsigned long
 		needed_flag_bit_number;
 			/* If non-zero, indicates that instead of the normal
 			   "needed" flag in the source correspondence entry,
@@ -1246,16 +1246,16 @@ Dynamically-allocated and expandable buffer used for short-lived text.
 which no parsing or lexical advance is done (no get_token calls, no
 macro expansions, etc.).
 */
-EXTERN char	*temp_text_buffer;
+EXTERN_THREAD char	*temp_text_buffer;
 			/* The buffer itself.  Not allocated on a per-file
 			   basis. */
-EXTERN sizeof_t	size_temp_text_buffer;
+EXTERN_THREAD sizeof_t	size_temp_text_buffer;
 			/* The size of temp_text_buffer, as currently
 			   allocated. */
-EXTERN sizeof_t	pos_in_temp_text_buffer;
+EXTERN_THREAD sizeof_t	pos_in_temp_text_buffer;
 			/* The number of characters actually in
 			   temp_text_buffer currently. */
-EXTERN a_boolean
+EXTERN_THREAD a_boolean
 		temp_text_buffer_managed;
 			/* TRUE if temp_text_buffer is managed by an instance
 			   of a_temp_text_buffer_swap; otherwise, FALSE. */
@@ -1594,7 +1594,7 @@ extern a_boolean has_gnu_source_location_impl_type(void);
 
 extern a_gnu_source_location_type_info gnu_source_location_impl(void);
 
-EXTERN a_constant_ptr
+EXTERN_THREAD a_constant_ptr
 		strong_ordering_equal,
 		strong_ordering_less,
 		strong_ordering_greater,
@@ -3135,7 +3135,7 @@ extern a_boolean operator_takes_lvalue_op1(an_expr_operator_kind op);
 
 extern a_boolean operator_takes_lvalue_op2(an_expr_operator_kind op);
 
-EXTERN an_object_lifetime_ptr
+EXTERN_THREAD an_object_lifetime_ptr
 		curr_object_lifetime;
 			/* The top of the currently active object lifetime
 			   stack. */

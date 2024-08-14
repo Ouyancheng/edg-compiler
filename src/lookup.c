@@ -2153,7 +2153,7 @@ typedef struct a_lookup_state {
 A lookup state that has been cleared that can be used to initialize
 new lookup state variables.
 */
-static a_lookup_state
+STATIC_THREAD a_lookup_state
 		cleared_lookup_state;
 
 

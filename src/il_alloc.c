@@ -35,7 +35,7 @@ BEGIN_EDG_NAMESPACE
 /*
 Counts of tables allocated, to track total use of memory.
 */
-static unsigned long
+STATIC_THREAD unsigned long
 		num_source_files_allocated,
 		num_constants_allocated,
 		num_param_types_allocated,
@@ -132,26 +132,26 @@ static unsigned long
 		num_instantiation_directives_allocated;
 #endif /* GENERATE_SOURCE_SEQUENCE_LISTS */
 #if ORPHAN_PROCESSING_NEEDED
-static unsigned long
+STATIC_THREAD unsigned long
 		num_fs_orphan_pointers_allocated;
 #endif /* ORPHAN_PROCESSING_NEEDED */
 #if SCOPE_ORPHANED_LIST_PROCESSING_NEEDED
-static unsigned long
+STATIC_THREAD unsigned long
 		num_scope_orphaned_list_headers_allocated;
 #endif /* SCOPE_ORPHANED_LIST_PROCESSING_NEEDED */
 #if RECORD_HIDDEN_NAMES_IN_IL
 static unsigned long
 		num_hidden_names_allocated;
 #endif /* RECORD_HIDDEN_NAMES_IN_IL */
-static unsigned long
+STATIC_THREAD unsigned long
 		num_template_decls_allocated;
-static unsigned long
+STATIC_THREAD unsigned long
 		num_requires_clauses_allocated;
-static unsigned long
+STATIC_THREAD unsigned long
 		num_template_parameters_allocated;
-static unsigned long
+STATIC_THREAD unsigned long
 		num_templates_allocated;
-static unsigned long
+STATIC_THREAD unsigned long
 		num_name_references_allocated,
                 num_name_qualifiers_allocated;
 #if RECORD_MACROS_IN_IL
@@ -162,25 +162,25 @@ static unsigned long
 static unsigned long
 		num_macro_invocation_record_blocks_allocated;
 #endif /* RECORD_MACRO_INVOCATIONS */
-static unsigned long
+STATIC_THREAD unsigned long
 		num_element_positions_allocated;
 #if EXTRA_SOURCE_POSITIONS_IN_IL
-static unsigned long
+STATIC_THREAD unsigned long
 		num_decl_position_supplements_allocated;
 #endif /* EXTRA_SOURCE_POSITIONS_IN_IL */
 #if ONE_INSTANTIATION_PER_OBJECT
-static unsigned long
+STATIC_THREAD unsigned long
 		num_per_instantiation_needed_flags_entries_allocated;
 #endif /* ONE_INSTANTIATION_PER_OBJECT */
 #if ASM_SUPPORT_NEEDED
-static unsigned long
+STATIC_THREAD unsigned long
 		asm_function_body_space_allocated;
 #endif /* ASM_SUPPORT_NEEDED */
 #endif /* DEBUG */
 
 /* Static variable and macro for quickly initializing the source_corresp
    field of an IL entry to default values. */
-static a_source_correspondence
+STATIC_THREAD a_source_correspondence
 		def_source_corresp;
 
 
@@ -202,23 +202,23 @@ module entity that declared it (if any).
 }  /* set_default_source_corresp */
 
 
-static int	file_scope_entry_prefix_size;
+STATIC_THREAD int	file_scope_entry_prefix_size;
 			/* The size of the entry prefix for IL entries
 			   allocated in the file scope of the current
 			   translation unit. */
 
-static int	file_scope_entry_prefix_alignment_offset;
+STATIC_THREAD int	file_scope_entry_prefix_alignment_offset;
 			/* The offset from the beginning of the space allocated
 			   for an IL entry to where the prefix actually
 			   begins for file scope allocations.  This is a
 			   translation unit variable. */
 
-static int	non_file_scope_entry_prefix_size;
+STATIC_THREAD int	non_file_scope_entry_prefix_size;
 			/* The size of the entry prefix for IL entries
 			   not allocated in the file scope.  This is not a
 			   translation unit variable. */
 
-static int	non_file_scope_entry_prefix_alignment_offset;
+STATIC_THREAD int	non_file_scope_entry_prefix_alignment_offset;
 			/* The offset from the beginning of the space allocated
 			   for an IL entry to where the prefix actually
 			   begins for non-file-scope allocations.  This is
@@ -1086,7 +1086,7 @@ region.
 Counter for the number of local constants requested but not yet released,
 used for an end-of-processing check that none were leaked.
 */
-static long local_constants_in_use;
+STATIC_THREAD long local_constants_in_use;
 #endif /* CHECKING */
 
 a_constant_ptr local_constant(void)
@@ -1191,7 +1191,7 @@ that no release requests were made for unrequested local constants.
 
 #endif /* CHECKING */
 
-static a_param_type_ptr
+STATIC_THREAD a_param_type_ptr
 		avail_param_types;
 			/* List of freed parameter type entries that are
 			   available for reuse. */
@@ -1368,7 +1368,7 @@ return a pointer to it.
   return ovfp;
 }  /* alloc_overriding_virtual_function */
 
-static a_template_arg_ptr
+STATIC_THREAD a_template_arg_ptr
 		avail_template_args;
 			/* List of freed template arg entries that are
 			   available for reuse. */
@@ -1716,7 +1716,7 @@ to it.
 
 #if NEED_NAME_MANGLING
 
-static a_constant_list_entry_ptr
+STATIC_THREAD a_constant_list_entry_ptr
                 avail_constant_list_entries;
                         /* A list of available a_constant_list_entry
                            entries. */

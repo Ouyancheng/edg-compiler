@@ -68,22 +68,6 @@ information file cannot be used with driver versions prior to 2.37.
 #endif /* ifndef DRIVER_COMPATIBILITY_VERSION */
 
 /*
-TRUE if the front end is to be called as a subroutine of another
-program, or as a library.  When this is TRUE, the front end has
-no main program of its own and exits via a return to the caller.
-This defaults to TRUE if an alternate name of the main routine has
-been specified (via the EDG_MAIN macro).
-*/
-#ifndef MAKE_FRONT_END_CALLABLE
-#ifdef EDG_MAIN
-#define MAKE_FRONT_END_CALLABLE TRUE
-#else /* ifndef EDG_MAIN */
-#define MAKE_FRONT_END_CALLABLE FALSE
-#endif /* ifdef EDG_MAIN */
-#endif /* MAKE_FRONT_END_CALLABLE */
-
-
-/*
 Return codes to be used when the highest error severity is as given:
 */
 #if __VMS__

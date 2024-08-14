@@ -335,16 +335,16 @@ typedef struct a_pending_pragma {
 } a_pending_pragma;
 
 
-EXTERN a_pragma_kind_description_ptr pragma_kind_descriptions;
+EXTERN_THREAD a_pragma_kind_description_ptr pragma_kind_descriptions;
 			/* Pointer to a linked list of pragma descriptions. */
 
-EXTERN a_pending_pragma_ptr
+EXTERN_THREAD a_pending_pragma_ptr
 		curr_token_pragmas;
 			/* A list of pending pragma entries for any
 			   pragmas the immediately preceded the current
 			   token. */
 
-EXTERN a_pragma_kind_description_ptr
+EXTERN_THREAD a_pragma_kind_description_ptr
 		 pragma_description_for_pragma_kind[(int)pk_last + 1];
 			/* An array that can be used to get a pointer to
 			   a pragma description given a pragma kind.  Note that
@@ -354,7 +354,7 @@ EXTERN a_pragma_kind_description_ptr
 			   add_pragma_description call. */
 
 
-EXTERN a_pending_pragma_ptr
+EXTERN_THREAD a_pending_pragma_ptr
 		avail_pending_pragmas;
 			/* Information about data structures used for
                            managing pending pragma information.  This is
@@ -375,7 +375,7 @@ extern void db_name_pragma(a_pending_pragma_ptr	ppp);
 Counts of tables allocated, to track total use of memory.  These are
 initialized and the results reported in lexical.c.
 */
-EXTERN unsigned long
+EXTERN_THREAD unsigned long
 		num_pending_pragmas_allocated,
                 num_pragma_descriptions_allocated;
 #endif /* DEBUG */

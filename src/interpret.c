@@ -436,7 +436,7 @@ typedef struct a_large_block_header {
 } a_large_block_header;
 
 
-static a_storage_stack_state
+STATIC_THREAD a_storage_stack_state
 		persistent_data;
 			/* Data that persists across interpreter invocations.
 			   In particular, data describing the layout of data
@@ -495,14 +495,14 @@ typedef struct a_data_map {
 } a_data_map;
 
 
-static a_data_map
+STATIC_THREAD a_data_map
 		persistent_map;
 			/* Map that persists across interpreter invocations.
 			   In particular, its entries describe the layout of
 			   data in the interpreter. */
 
 #define MAX_WIDTH_REUSABLE_TABLE 10
-static a_data_map_entry
+STATIC_THREAD a_data_map_entry
 		*free_map_tables[MAX_WIDTH_REUSABLE_TABLE+1];
 			/* A array of pointers to map tables available for
 			   reuse.  free_map_table[n] points to a list of tables
@@ -609,22 +609,22 @@ typedef struct a_variant_path_entry {
 			   base address of the indexed array. */
 } a_variant_path_entry;
 
-static a_variant_path_entry_ptr
+STATIC_THREAD a_variant_path_entry_ptr
 		variant_path_entries;
 			/* A list of all allocated variant path entries,
 			   linked through the next_allocated pointers. */
 
-static unsigned long
+STATIC_THREAD unsigned long
 		n_variant_path_entries;
 			/* The number of entries on the variant_path_entries
 			   list. */
 
-static a_variant_path_entry_ptr
+STATIC_THREAD a_variant_path_entry_ptr
 		free_variant_path_entries;
 			/* A list of variant path entries available for reuse,
 			   linked through the next pointers. */
 
-static unsigned long
+STATIC_THREAD unsigned long
 		n_free_variant_path_entries;
 			/* The number of entries on the
 			   free_variant_path_entries list. */
@@ -965,7 +965,7 @@ typedef struct a_live_set {
 			/* The number of elements stored in the table. */
 } a_live_set;
 
-static an_alloc_seq_number
+STATIC_THREAD an_alloc_seq_number
 		*free_live_set_tables[MAX_WIDTH_REUSABLE_TABLE+1];
 			/* A array of pointers to live set tables available for
 			   reuse.  free_live_set_table[n] points to a list of
@@ -1406,7 +1406,7 @@ typedef struct an_interpreter_state {
 } an_interpreter_state;
 
 
-static unsigned long
+STATIC_THREAD unsigned long
 		n_active_interpreter_states;
 			/* The number of interpreter states that have been
 			   initialized but not released. */
@@ -1417,7 +1417,7 @@ static unsigned long
   (++(ips)->cost > max_cost_constexpr_call)
 
 
-static a_byte	*free_stack_blocks;
+STATIC_THREAD a_byte	*free_stack_blocks;
 			/* List of free stack blocks available for reuse. */
 
 
@@ -2129,20 +2129,20 @@ If an older mapping exists for iptr, that mapping becomes active again.
 /*
 Useful constants and types.
 */
-static an_integer_value
+STATIC_THREAD an_integer_value
 		zero_int;
-static an_integer_value
+STATIC_THREAD an_integer_value
 		one_int;
-static an_internal_float_value
+STATIC_THREAD an_internal_float_value
 		zero_flt[(int)fk_last];
-static an_internal_float_value
+STATIC_THREAD an_internal_float_value
 		one_flt[(int)fk_last];
-static a_type_ptr
+STATIC_THREAD a_type_ptr
 		generic_ptr_type;
 			/* Type (void*) used in some cases where a pointer type
 			   is needed, but the specific type is unimportant. */
 
-static a_boolean
+STATIC_THREAD a_boolean
 		useful_constants_initialized;
 			/* Flag indicating whether these constants and types
 			   have been initialized yet. */
@@ -12452,7 +12452,7 @@ done:
   return result;
 }  /* get_interpreter_string */
 
-static a_constant_ptr
+STATIC_THREAD a_constant_ptr
 		reflection_str_placeholder;
 			/* Dummy entry used to identify strings produced by
 			   reflection. */
@@ -15245,12 +15245,12 @@ done:
 }  /* do_constexpr_std_allocator_deallocate */
 
 
-static a_byte
+STATIC_THREAD a_byte
 		*valid_placement_new_address;
 			/* An address for which a placement-new is
 			   acceptable. */
 
-static a_type_ptr
+STATIC_THREAD a_type_ptr
 		valid_placement_new_type;
 			/* The type of the object stored at the
 			   valid_placement_new_address.  NULL if no address
@@ -24859,7 +24859,7 @@ done:
 }  /* do_constexpr_expr */
 
 
-static a_boolean
+STATIC_THREAD a_boolean
 		trans_unit_initialization_needed;
 			/* Flag indicating whether persistent_data and
 			   persistent_storage have been initialized for this

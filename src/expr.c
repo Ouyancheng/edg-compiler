@@ -36423,7 +36423,7 @@ is an lvalue.
                                  (an_arg_list_elem_ptr)NULL, &e_opnd,
                                  operand_of_arg_list_elem(*p_icp));
     } else {
-      static a_token_cache   expr_tokens;
+      STATIC_THREAD a_token_cache   expr_tokens;
       static a_boolean       expr_tokens_ready = FALSE;
       int                    saved_n_internal_opnds = n_internal_opnds;
       an_operand_ptr         *saved_internal_opnd_array = internal_opnd_array;

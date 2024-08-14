@@ -2220,34 +2220,34 @@ Variables pertaining to the input stack (for include files and the
 primary source file) and the current input file (the top entry on the
 stack).
 */
-static an_input_stack_entry_ptr
+STATIC_THREAD an_input_stack_entry_ptr
 		input_stack;
 			/* Input stack, one entry for each active source 
 			   file.  Entry [0] is for the primary source file.
 			   Dynamically allocated, reallocated if necessary;
 			   size_input_stack gives the current allocated
 			   size.  Not per-file. */
-static int	size_input_stack;
+STATIC_THREAD int	size_input_stack;
 			/* Allocated size of input_stack, in elements not
 			   bytes.  Not per-file. */
 #define INPUT_STACK_INCREMENTAL_ALLOCATION 30
 			/* The number of elements added to input_stack each
 			   time it is reallocated; also the initial
 			   allocation. */
-static int	depth_input_stack;
+STATIC_THREAD int	depth_input_stack;
 			/* Depth of the input stack, minus 1.
 			   input_stack[depth_input_stack] is the active
 			   entry.  -1 if the stack is completely empty. */
-static an_input_stack_entry_ptr
+STATIC_THREAD an_input_stack_entry_ptr
 		base_ise;
 			/* The topmost entry in the input stack that
 			   reflects an actual file, as opposed to a cloned
 			   entry for tracking the tree structure of #line
 			   directives. */
-static FILE
+STATIC_THREAD FILE
 		*curr_input_stream;
 			/* The currently active source input stream. */
-static a_boolean
+STATIC_THREAD a_boolean
 		eof_read_on_curr_input_stream;
 			/* TRUE if end of file has been reached on the
 			   current source stream.  This can indicate the
@@ -2275,7 +2275,7 @@ Converts UTF-16 to UTF-8 in configurations that support that.
 /*
 Variables related to the current source line (see lexical.h):
 */
-static a_boolean
+STATIC_THREAD a_boolean
 		after_end_of_all_source;
 			/* If TRUE, there is no current logical source line;
 			   all source has been read, all files popped off the
@@ -2283,7 +2283,7 @@ static a_boolean
 			   a position one line beyond the last line actually
 			   read.  We are no longer inside any source file; we
 			   are past the end of the primary file. */
-static a_boolean
+STATIC_THREAD a_boolean
 		any_tokens_gotten_from_curr_source_line;
 			/* If TRUE, one or more tokens (normal or
 			   preprocessor) have been gotten from the current
@@ -2291,14 +2291,14 @@ static a_boolean
 			   white space) has been gotten from that line.
 			   This is used in determining whether or not a "#"
 			   is the start of a preprocessing directive. */
-static a_boolean
+STATIC_THREAD a_boolean
 		no_modifs_to_curr_source_line;
 			/* TRUE if source_line_modif_list == NULL and
 			   orig_line_modif_list == NULL.  Used as a speed
 			   optimization in deciding whether or not one can
 			   use the fast method of converting a line location
 			   into a source position. */
-static a_boolean
+STATIC_THREAD a_boolean
 		init_do_not_put_curr_line_in_pp_output;
 			/* The value of do_not_put_curr_line_in_pp_output
 			   that applies to any text inserted at the beginning
@@ -2307,13 +2307,13 @@ static a_boolean
 			   (e.g., if the inserted text is an inert macro
 			   identifier and the new line is a preprocessing
 			   directive). */
-static char	curr_raw_listing_line_code;
+STATIC_THREAD char	curr_raw_listing_line_code;
 			/* When a raw listing file is being generated,
 			   this indicates the code for the current line:
 			   'S' for a line skipped by an if-skip, 'N' for
 			   a normal line, or '\0' if there is no current 
 			   line. */
-static	char	*raw_listing_buffer;
+STATIC_THREAD	char	*raw_listing_buffer;
 			/* Buffer used in writing the macro-expanded versions
 			   of source lines to the raw listing file.  Space is
 			   dynamically allocated, and its upper bound is given
@@ -2324,26 +2324,26 @@ static	char	*raw_listing_buffer;
 			   Subsequent reallocations will double the amount
 			   previously allocated.  Should probably match the
 			   corresponding constant for curr_source_line. */
-static char	*after_end_of_raw_listing_buffer;
+STATIC_THREAD char	*after_end_of_raw_listing_buffer;
 			/* Address past the last element of raw_listing_buffer,
 			   as an aid to checking for overflow, etc.  A variable
 			   because raw_listing_buffer can be reallocated larger
 			   if needed. */
-static char	*loc_in_raw_listing_buffer;
+STATIC_THREAD char	*loc_in_raw_listing_buffer;
 			/* Current output location in raw_listing_buffer. */
-static a_boolean
+STATIC_THREAD a_boolean
 		must_display_raw_listing_buffer;
 			/* TRUE if raw_listing_buffer contains a line or lines
 			   modified in nontrivial ways (comments are considered
 			   trivial modifications).  If so, it must be
 			   displayed. */
 
-static a_boolean
+STATIC_THREAD a_boolean
 		in_token_insertion_from_string;
 			/* TRUE during the initial scan of tokens that are
 			   being inserted from a string. */
 
-static a_source_position
+STATIC_THREAD a_source_position
 		token_insertion_position;
 			/* The source position to be used for tokens inserted
 			   from a string. */
@@ -2361,17 +2361,17 @@ static a_text_buffer_ptr
 			   generate_top_level_metadata_code. */
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
 
-static a_text_buffer_ptr
+STATIC_THREAD a_text_buffer_ptr
 		ucn_buffer;
 			/* A text buffer used to hold a temporary copy of
 			   identifiers containing universal character names. */
 
-static a_text_buffer_ptr
+STATIC_THREAD a_text_buffer_ptr
 		suffix_replacement_buffer;
 			/* A text buffer used to store a copy of the file
 			   name when doing suffix replacement. */
 
-static a_boolean
+STATIC_THREAD a_boolean
 		curr_line_began_inside_comment;
 			/* TRUE if the call to read_logical_source_line for
 			   for the current line occurred during the scan of
@@ -2380,7 +2380,7 @@ static a_boolean
 			   directives into comments when
 			   keep_comments_in_pp_output is TRUE. */
 
-static a_boolean
+STATIC_THREAD a_boolean
 		pending_nonsplice_backslash;
 			/* TRUE if the current line ended in a backslash
 			   followed by whitespace (i.e., not a line splice
@@ -2390,7 +2390,7 @@ static a_boolean
 			   suppressed if the non-splice occurs inside a
 			   comment. */
 
-static sizeof_t	offset_of_nonsplice_backslash;
+STATIC_THREAD sizeof_t	offset_of_nonsplice_backslash;
 			/* Offset within curr_source_line of the backslash
 			   that resulted in the warning to be issued when
 			   pending_nonsplice_backslash is TRUE (invalid if
@@ -2399,7 +2399,7 @@ static sizeof_t	offset_of_nonsplice_backslash;
 			   curr_source_line is reallocated between calls
 			   to read_logical_source_line. */
 
-static a_text_buffer_ptr
+STATIC_THREAD a_text_buffer_ptr
 		ud_lit_suffix_buffer;
 			/* Text buffer used for the ud-suffix of a
 			   user-defined-string-literal during concatenation
@@ -2411,29 +2411,29 @@ line modification associated with the ATTENTION_MARKER at a given
 location.
 */
 #define SOURCE_LINE_MODIF_HASH_TABLE_SIZE 7993
-static a_source_line_modif_ptr
+STATIC_THREAD a_source_line_modif_ptr
 		source_line_modif_hash_table
                                            [SOURCE_LINE_MODIF_HASH_TABLE_SIZE];
 
 /*
 Information about cached tokens, i.e., tokens saved for later rescanning.
 */
-static a_cached_token_ptr
+STATIC_THREAD a_cached_token_ptr
 		cached_token_rescan_list;
 			/* If non-NULL, points to a list of cached tokens
 			   that should be rescanned by get_token before going
 			   forward in the input stream. */
-static a_cached_token_ptr
+STATIC_THREAD a_cached_token_ptr
 		avail_cached_tokens;
 			/* List of cached token entries (allocated in front
 			   end storage) freed and available for reuse. */
-static a_constant_ptr
+STATIC_THREAD a_constant_ptr
 		avail_cached_constants;
 			/* List of constant entries (allocated in front end
 			   storage) for use with token caching entries,
 			   freed and available for reuse. */
 
-static a_token_cache_ptr
+STATIC_THREAD a_token_cache_ptr
 		avail_token_cache_entries;
 			/* List of token cache entries that have been freed
 			   and are available for reuse. */
@@ -2443,41 +2443,41 @@ Information about data structures used for working with persistent token
 caches.
 */
 
-static a_reusable_cache_entry_ptr
+STATIC_THREAD a_reusable_cache_entry_ptr
 		avail_reusable_cache_entries;
 			/* List of reusable cache stack entries (allocated
                            in front end storage) freed and available for
                            reuse. */
 
-static a_reusable_cache_entry_ptr
+STATIC_THREAD a_reusable_cache_entry_ptr
                 reusable_cache_stack;
                         /* The stack of reusable caches that are currently
                            active. */
 
-static a_stop_token_stack_entry_ptr
+STATIC_THREAD a_stop_token_stack_entry_ptr
 		avail_stop_token_stack_entries;
 			/* List of stop token stack entries that have been
 			   freed and are available for reuse. */
 
-static a_lexical_state_stack_entry_ptr
+STATIC_THREAD a_lexical_state_stack_entry_ptr
 		avail_lexical_state_stack_entries;
 			/* List of lexical state stack entries that have been
 			   freed and are available for reuse. */
 
-static a_boolean
+STATIC_THREAD a_boolean
 		trigraph_diagnostic_issued;
 			/* TRUE if a diagnostic indicating that trigraphs are
 			   disabled has already been issued.  Actually, it
 			   is set to TRUE once trigraph_column has been
 			   set. */
 
-static a_column_number
+STATIC_THREAD a_column_number
 		trigraph_column;
 			/* If a trigraph was encountered when trigraphs are
 			   disabled, this is the column in the line of
 			   the trigraph so that a diagnostic can be issued. */
 
-static a_boolean
+STATIC_THREAD a_boolean
 		scanning_microsoft_asm;
 			/* TRUE while scanning a Microsoft asm. */
 
@@ -2486,7 +2486,7 @@ Hash table of history information about include files that have
 been processed.  Used to suppress subsequent inclusions of the same
 file.
 */
-static a_hash_table_ptr
+STATIC_THREAD a_hash_table_ptr
 		include_file_history_hash_table;
 
 #if UNIQUE_FILE_IDENTIFIER_AVAILABLE
@@ -2496,7 +2496,7 @@ with a key that is a unique file identifier (e.g., an inode number on
 Unix-like systems).  Used to suppress subsequent inclusions of the same
 file.
 */
-static a_hash_table_ptr
+STATIC_THREAD a_hash_table_ptr
 		unique_file_id_hash_table;
 #endif /* UNIQUE_FILE_IDENTIFIER_AVAILABLE */
 
@@ -2504,7 +2504,7 @@ static a_hash_table_ptr
 Hash table of information about include file searches files that have
 been performed.  Used to optimize subsequent searches for the same file.
 */
-static a_hash_table_ptr
+STATIC_THREAD a_hash_table_ptr
 		include_search_hash_table;
 
 /*
@@ -2557,17 +2557,17 @@ typedef struct a_file_suffix {
 
 #if INSTANTIATION_BY_IMPLICIT_INCLUSION
 
-static a_file_suffix_ptr
+STATIC_THREAD a_file_suffix_ptr
 		 implicit_instantiation_file_suffix_list;
 
 #endif /* INSTANTIATION_BY_IMPLICIT_INCLUSION */
 
-static a_file_suffix_ptr
+STATIC_THREAD a_file_suffix_ptr
 		 include_file_suffix_list;
 			/* List of file suffixes used when searching for a
 			   header file whose name does not include a suffix. */
 
-static a_file_suffix_ptr
+STATIC_THREAD a_file_suffix_ptr
 		 sun_include_file_suffix_list;
 			/* List of file suffixes used in Sun mode when
 			   searching for includes specified with the <...>
@@ -2632,16 +2632,16 @@ struct a_char_overflow {
 			   appears. */
 };  /* a_char_overflow */
 
-static a_char_overflow
+STATIC_THREAD a_char_overflow
 		*pending_overflow_reports;
 			/* A list of entries for which diagnostics may be
 			   needed. */
 
-static a_char_overflow
+STATIC_THREAD a_char_overflow
 		*last_pending_overflow_report;
 			/* The last item in the list of overflow entries. */
 
-static a_char_overflow
+STATIC_THREAD a_char_overflow
 		*available_overflow_reports;
 			/* A list of entries that can be reused. */
 
@@ -2708,7 +2708,7 @@ and empty the list.
 /*
 Counts of tables allocated, to track total use of memory.
 */
-static unsigned long
+STATIC_THREAD unsigned long
 		num_orig_line_modifs_allocated,
 		num_source_line_modifs_allocated,
 		num_concatenation_records_allocated,
@@ -8535,7 +8535,7 @@ the token scanning process so that for tokens that contain multibyte
 characters we can quickly determine the logical column offset of the start
 of the token.
 */
-static int cached_logical_char_info_entries_used;
+STATIC_THREAD int cached_logical_char_info_entries_used;
 
 
 static int f_logical_column_offset(a_const_char *loc_in_line)
@@ -8629,7 +8629,7 @@ needed to convert to a logical column number.
 
 #endif /* MULTIBYTE_CHARS_IN_SOURCE_SUPPORTED */
 
-static an_orig_line_modif_ptr
+STATIC_THREAD an_orig_line_modif_ptr
 		last_splice_olmp;
 			/* If non-NULL, points to the orig line
 			   modification for the rightmost line splice or
@@ -10046,7 +10046,7 @@ ISO C standard.
 Flag that is TRUE while scanning a pcc-mode half-comment (see routine
 below).
 */
-static a_boolean in_pcc_mode_half_comment;
+STATIC_THREAD a_boolean in_pcc_mode_half_comment;
 
 static void skip_pcc_mode_half_comment(void)
 /*
@@ -13987,7 +13987,7 @@ This variable and the EXTERN prev_asm_stop_char remember where the previous
 copy_from_source_to_asm_func_buffer() left off.  They are set by
 scan_asm_function_body() to start just after the initial left brace.
 */
-static a_seq_number prev_seq_number;
+STATIC_THREAD a_seq_number prev_seq_number;
 
 #if !ASM_FUNCTION_ALLOWED
 static
@@ -22583,7 +22583,7 @@ using a_name_references_map = Ptr_map<a_source_correspondence_ptr,
 			   correspondences with a hash table of name
 			   references. */
 
-static a_name_references_map
+STATIC_THREAD a_name_references_map
 		*name_references_map;
 			/* A map from source correspondence pointers to a hash
 			   table of name references. */
@@ -26479,17 +26479,17 @@ of a token cache.  Characters are added to the temp_text_buffer, which is
 indefinitely expandable, and then a string is created -- a copy of the
 assigned portion of the buffer, with a null terminator appended.
 */
-static a_seq_number
+STATIC_THREAD a_seq_number
 		curr_seq;
 			/* The sequence number of the source position of the
 			   most recently added token, etc., in the buffer. */
 
-static an_il_to_str_output_control_block
+STATIC_THREAD an_il_to_str_output_control_block
 		octl;
 			/* Output control block used to interface to the
 			   il_to_str routines. */
 
-static a_boolean
+STATIC_THREAD a_boolean
 		keep_spacing_in_token_string;
 			/* If TRUE, spacing between tokens in the cache
 			   should be preserved in the string, including

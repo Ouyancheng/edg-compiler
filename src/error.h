@@ -89,7 +89,7 @@ typedef struct an_error_tag_entry {
 			/* The error code that this tag refers to. */
 } an_error_tag_entry;
 
-EXTERN FILE	*f_error;
+EXTERN_THREAD FILE	*f_error;
 			/* The file to which error output is written. */
 
 /*
@@ -98,7 +98,7 @@ implicitly to the start of a construct whenever one is scanned (e.g.,
 when a token is gotten, error_position is set to the start of the
 token).
 */
-EXTERN a_source_position
+EXTERN_THREAD a_source_position
 		error_position;
 
 /*
@@ -155,11 +155,11 @@ struct a_diagnostic_counter_set {
 };  /* a_diagnostic_counter_set */
 
 
-EXTERN a_diagnostic_counter_set
+EXTERN_THREAD a_diagnostic_counter_set
                 diagnostic_counters;
                         /* The global set of active diagnostic counters. */
 
-EXTERN a_boolean
+EXTERN_THREAD a_boolean
                 globally_suppress_diagnostics;
                         /* TRUE if encountered diagnostics should not be
                            reported or counted in the global counters.
@@ -263,32 +263,32 @@ This function is defined for easily checking if there was at least one warning.
 }  /* is_at_least_one_warning */
 
 
-EXTERN an_error_severity
+EXTERN_THREAD an_error_severity
 		error_threshold;
 			/* Messages at or above this severity level should
 			   be displayed; those below are suppressed. */
-EXTERN an_error_severity
+EXTERN_THREAD an_error_severity
 		error_promotion_threshold;
 			/* Messages at or above this severity level will be
 			   promoted to discretionary errors, unless they are
 			   already more severe than that. */
-EXTERN unsigned long
+EXTERN_THREAD unsigned long
 		error_limit;
 			/* Compilation is abandoned when this many errors
 			   are detected. */
 
-EXTERN int	context_limit;
+EXTERN_THREAD int	context_limit;
 
 			/* The maximum number of context lines to be
 			   emitted as part of an error message. */
 
-EXTERN an_error_severity
+EXTERN_THREAD an_error_severity
                 strict_ansi_error_severity;
                         /* Strict ANSI mode violations are reported at this
                            error severity.  This must either be es_error
                            or es_warning. */
 
-EXTERN an_error_severity
+EXTERN_THREAD an_error_severity
                 strict_ansi_discretionary_severity;
                         /* Strict ANSI mode violations that may be
                            discretionary errors are reported at this
@@ -296,30 +296,30 @@ EXTERN an_error_severity
                            es_discretionary_error or es_warning. */
 
 
-EXTERN an_error_severity
+EXTERN_THREAD an_error_severity
                 anachronism_error_severity;
                         /* Use of anachronisms are reported at this
                            error severity.  It is expected that this will
                            either be es_error or es_warning.  This can be
                            modified by a command line option. */
 
-EXTERN a_boolean
+EXTERN_THREAD a_boolean
                 brief_diagnostics;
                         /* TRUE if diagnostic output should omit the
 			   source line information and suppress wrapping
 			   of the error message text. */
 
-EXTERN a_boolean
+EXTERN_THREAD a_boolean
                 do_not_wrap_diagnostics;
                         /* TRUE if diagnostic output should suppress
 			   wrapping of the error message text. */
 
-EXTERN a_boolean
+EXTERN_THREAD a_boolean
                 display_error_context_on_catastrophe;
                         /* TRUE if error context information should be
 			   displayed following a catastrophic error. */
 
-EXTERN a_boolean
+EXTERN_THREAD a_boolean
 		display_template_typedefs_in_diagnostics;
 			/* TRUE if typedefs from class templates should be
 			   included in diagnostic output.  When this is FALSE
@@ -340,7 +340,7 @@ Error routines.
 */
 #if CHECKING
 
-EXTERN a_boolean
+EXTERN_THREAD a_boolean
 		suppress_assertion_line_number;
 			/* TRUE if the line number portion of an "assertion
 			   failed" message should be suppressed. */
@@ -1513,12 +1513,12 @@ typedef struct an_sgr_string {
     sizeof_t    length; /* The length of the SGR code. */
 } an_sgr_string;
 
-EXTERN an_sgr_string
+EXTERN_THREAD an_sgr_string
                 sgr_map[(int)da_last];
                         /* A mapping of annotation kinds to SGR strings for
                            colorized diagnostics. */
 
-EXTERN a_boolean
+EXTERN_THREAD a_boolean
                 annotate_diagnostics;
                         /* If TRUE, portions of diagnostic messages are
                            annotated (i.e., delimited by markers) so that
@@ -1526,13 +1526,13 @@ EXTERN a_boolean
                            the diagnostic in different ways.  This must be
                            TRUE if colorize_diagnostics is TRUE. */
 
-EXTERN a_boolean
+EXTERN_THREAD a_boolean
                 colorize_diagnostics;
                         /* If TRUE, portions of diagnostic messages are
                            potentially highlighted (e.g., by the use of colors)
                            to enhance readability. */
 
-EXTERN a_const_char
+EXTERN_THREAD a_const_char
                 *sgr_string_for_colored_diagnostics;
                         /* A string that contains the SGR codes for all of the
                            highlightable diagnostic entities.  Entities that

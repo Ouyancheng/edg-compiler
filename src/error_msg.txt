@@ -3526,6 +3526,7 @@ ec_annotation_after_using;;"an annotation cannot appear in the context of a \"us
 ec_annotation_must_have_literal_type;;"type %t of annotation is not a literal type"
 ec_ext_vector_type_requires_bool_integral_floating_type;;"the \"ext_vector_type\" attribute applies only to bool, integer, or floating-point types"
 ec_multiple_union_designators;;"multiple designators into the same union are not permitted"
+ec_debug_show_location;;"test message"
 ###############################################################################
 #                                                             \  ___  /       #
 #                                                               /   \         #

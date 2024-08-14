@@ -482,7 +482,7 @@ typedef struct a_struct_stmt_stack_entry {
 			   is needed if a diagnostic is to be given). */
 } a_struct_stmt_stack_entry;
 
-EXTERN a_struct_stmt_stack_entry_ptr
+EXTERN_THREAD a_struct_stmt_stack_entry_ptr
 		struct_stmt_stack;
 			/* The currently active structured statement stack
 			   itself.  The current entry is [depth_stmt_stack].
@@ -493,7 +493,7 @@ EXTERN a_struct_stmt_stack_entry_ptr
 			   struct_stmt_stack array is actually a subarray of
 			   struct_stmt_stack_container. */
 
-EXTERN int	depth_stmt_stack;
+EXTERN_THREAD int	depth_stmt_stack;
 			/* Index of the current entry in struct_stmt_stack.
 			   -1 if the stack is empty. */
 

@@ -54,13 +54,13 @@ NEED_IL_DISPLAY and a call of il_display should be added in the front end.
 /* Conditionally open the "edg" namespace. */
 BEGIN_EDG_NAMESPACE
 
-static a_boolean
+STATIC_THREAD a_boolean
 		displaying_file_scope_il;
 			/* TRUE if displaying the file-scope memory region,
 			   FALSE if displaying a function scope memory
 			   region. */
 
-static an_il_to_str_output_control_block
+STATIC_THREAD an_il_to_str_output_control_block
 		octl;	/* Output control block for interface to il_to_str
 			   routines. */
 

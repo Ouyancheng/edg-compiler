@@ -201,7 +201,7 @@ file-scope dynamic initializations.
 
 #define MAX_OUTPUT_LINE_SIZE 300 /* Arbitrary. */
 			/* Maximum allowable output line size (approximate). */
-static unsigned int
+STATIC_THREAD unsigned int
 		line_wrapping_disabled;
 			/* If 0, output lines will be wrapped to keep them
 			   within MAX_OUTPUT_LINE_SIZE if possible. */
@@ -209,39 +209,39 @@ static unsigned int
 #define disable_line_wrapping() (line_wrapping_disabled++)
 #define enable_line_wrapping() (line_wrapping_disabled--)
 
-static FILE	*f_primary;
+STATIC_THREAD FILE	*f_primary;
 			/* Primary file to which generated C is written. */
-static FILE	*f_C_output;
+STATIC_THREAD FILE	*f_C_output;
 			/* File to which the generated C is currently being
 			   written. */
 /* Current output position -- file, line, sequence number, column: */
-static a_source_file_ptr
+STATIC_THREAD a_source_file_ptr
 		curr_output_file;
-static a_line_number
+STATIC_THREAD a_line_number
 		curr_output_line;
-static uint32_t
+STATIC_THREAD uint32_t
 		curr_output_column;
 			/* The number of characters written to the current
 			   line of output.  Zero means nothing has been
 			   written so far. */
 #if ONE_INSTANTIATION_PER_OBJECT
-static a_text_buffer_ptr
+STATIC_THREAD a_text_buffer_ptr
 		C_output_file_name_buffer;
 			/* A text buffer used to construct the name of the
 			   C output file. */
 #endif /* ONE_INSTANTIATION_PER_OBJECT */
-static a_boolean
+STATIC_THREAD a_boolean
 		curr_output_pos_known;
 			/* TRUE if the current output position is known. */
-static uint32_t
+STATIC_THREAD uint32_t
 		indent;
 			/* Number of spaces to indent at the start of a
 			   line (when annotating). */
 /* Last "known good" output position, from the last call of
    set_output_position: */
-static a_line_number
+STATIC_THREAD a_line_number
 		last_known_good_line;
-static a_source_file_ptr
+STATIC_THREAD a_source_file_ptr
 		last_known_good_file;
 
 
@@ -267,13 +267,13 @@ typedef struct an_output_file_position {
 Saved output position for each file (primary, file-scope initializations,
 and routine initializations).
 */
-static an_output_file_position
+STATIC_THREAD an_output_file_position
 			primary_output_position;
 #if !C_GEN_BE_GENERATES_ANSI_C
 static an_output_file_position
 			file_scope_inits_output_position;
 #endif /* !C_GEN_BE_GENERATES_ANSI_C */
-static an_output_file_position
+STATIC_THREAD an_output_file_position
 			rout_dynamic_inits_output_position;
 
 
@@ -285,19 +285,19 @@ assignment statements:
 static FILE	*f_file_scope_inits;
 			/* Static initializations at the file scope. */
 #endif /* !C_GEN_BE_GENERATES_ANSI_C */
-static FILE	*f_rout_dynamic_inits;
+STATIC_THREAD FILE	*f_rout_dynamic_inits;
 			/* Dynamic initializations at the routine level. */
 
-static uint32_t
+STATIC_THREAD uint32_t
 		in_comment;
 			/* Flag indicating whether the current output is
 			   inside a comment. */
-static a_boolean
+STATIC_THREAD a_boolean
 		annotate;
 			/* Flag indicating whether or not annotations should
 			   be output. */
 #if ASM_FUNCTION_ALLOWED
-static a_boolean
+STATIC_THREAD a_boolean
 		within_asm_function_definition;
 			/* Flag indicating generation of an asm function is in
 			   progress (used to suppress forward declarations of
@@ -316,18 +316,18 @@ static a_boolean
 			/* TRUE if a file-scope initialization routine has
 			   been called. */
 #endif /* !C_GEN_BE_GENERATES_ANSI_C */
-static a_scope_ptr
+STATIC_THREAD a_scope_ptr
 		curr_scope;
 			/* Points to the scope being processed currently
 			   (file, function, or block). */
 
-static a_constant_ptr
+STATIC_THREAD a_constant_ptr
 		wide_string_constants_to_unbind_at_end_of_scope;
 			/* List of wide string literal constants whose bindings
 			   to variables must be broken at the end of the
 			   current scope. */
 
-static a_constant
+STATIC_THREAD a_constant
 		wide_string_constant_marker;
 			/* Used to mark the end of the list pointed to by
 			   wide_string_constants_to_unbind_at_end_of_scope as
@@ -335,7 +335,7 @@ static a_constant
 			   "dummy" constant, only the address is used,
 			   not the value. */
 
-static a_scope_ptr
+STATIC_THREAD a_scope_ptr
 		entry_routine_scope;
 			/* If non-NULL, we are expanding the body of an
 			   overriding virtual function with a covariant return
@@ -343,7 +343,7 @@ static a_scope_ptr
 			   constructor or destructor in the IA-64 ABI.
 			   This is the top-level scope of the
 			   entry/wrapper function. */
-static a_scope_ptr
+STATIC_THREAD a_scope_ptr
 		master_routine_scope;
 			/* If non-NULL, we are expanding the body of an
 			   overriding virtual function with a covariant
@@ -354,7 +354,7 @@ static a_scope_ptr
 			   scope of the underlying function for which
 			   entry_routine_scope gives the entry/wrapper
 			   function scope. */
-static a_variable_ptr
+STATIC_THREAD a_variable_ptr
 		master_routine_return_variable;
 			/* If non-NULL, we are expanding the body of a
 			   master routine that returns "this" and all returns
@@ -368,11 +368,11 @@ static a_const_char
 			/* Label used to indicate the end of a master routine.
 			   Used as a target for "inlined" returns from the
 			   master routine. */
-static int	num_master_params_added;
+STATIC_THREAD int	num_master_params_added;
 			/* The number of additional parameters that the
 			   master routine has relative to the entry/wrapper
 			   routine. */
-static a_boolean
+STATIC_THREAD a_boolean
                 skip_this_parameter;
                         /* If TRUE, skip over the "this" parameter when mapping
                            between master routine parameters and wrapper
@@ -380,29 +380,29 @@ static a_boolean
                            the call operator of a no-capture lambda with an
                            ellipsis and the wrapper routine is the
                            corresponding special static member function. */
-static an_il_to_str_output_control_block
+STATIC_THREAD an_il_to_str_output_control_block
 		octl;	/* Output control block for interface to il_to_str
 			   routines. */
 
-static a_boolean
+STATIC_THREAD a_boolean
 		output_initializer_code_directly;
 			/* If TRUE, initializer executable code can be
 			   output directly to f_C_output instead of to
 			   a temporary file. */
 
-static a_stdc_pragma_value
+STATIC_THREAD a_stdc_pragma_value
 		curr_default_fp_contract;
 			/* The value of the last STDC FP_CONTRACT pragma
 			   emitted in file scope (stdc_pv_default if none was
 			   emitted so far). */
 
-static a_stdc_pragma_value
+STATIC_THREAD a_stdc_pragma_value
 		curr_default_fenv_access;
 			/* The value of the last STDC FENV_ACCESS pragma
 			   emitted in file scope (stdc_pv_default if none was
 			   emitted so far). */
 
-static a_stdc_pragma_value
+STATIC_THREAD a_stdc_pragma_value
 		curr_default_cx_limited_range;
 			/* The value of the last STDC CX_LIMITED_RANGE pragma
 			   emitted in file scope (stdc_pv_default if none was
@@ -516,15 +516,15 @@ typedef struct a_pending_typedef {
 /*
 Head and tail of a singly-linked list of pending typedefs.
 */
-static a_pending_typedef_ptr
+STATIC_THREAD a_pending_typedef_ptr
 		pending_typedefs;
-static a_pending_typedef_ptr
+STATIC_THREAD a_pending_typedef_ptr
 		last_pending_typedef;
 /*
 Head of a list of pending typedefs that have been processed and can be
 reused.
 */
-static a_pending_typedef_ptr
+STATIC_THREAD a_pending_typedef_ptr
 		avail_pending_typedefs;
 
 /*
@@ -563,9 +563,9 @@ typedef struct a_member_name_prefix_component {
 /*
 Head and tail of a doubly-linked list of member name prefix components.
 */
-static a_member_name_prefix_component_ptr
+STATIC_THREAD a_member_name_prefix_component_ptr
 		name_prefix_components;
-static a_member_name_prefix_component_ptr
+STATIC_THREAD a_member_name_prefix_component_ptr
 		last_name_prefix_component;
 
 /*
@@ -573,7 +573,7 @@ The offset within the most-derived class of the subobject associated with
 the current member name prefix, or 0 if none.  (Used to adjust the offsets
 displayed in layout annotations to be relative to the complete object.)
 */
-static a_targ_size_t subobject_offset;
+STATIC_THREAD a_targ_size_t subobject_offset;
 
 /*
 The following data structures are used when the Microsoft compiler is the
@@ -605,7 +605,7 @@ typedef struct a_microsoft_bit_field_tracker {
 			   container_type is non-NULL. */
 } a_microsoft_bit_field_tracker;
 
-static a_microsoft_bit_field_tracker
+STATIC_THREAD a_microsoft_bit_field_tracker
 		msvc_bit_field_tracker;
 			/* Bit-field tracker for the struct currently being
 			   declared. */
@@ -5170,7 +5170,7 @@ be performed as executable code.
 The variable found while traversing the expression passed to
 variable_referenced_by_lvalue (see below).
 */
-static a_variable_ptr var_seen_during_lvalue_traversal;
+STATIC_THREAD a_variable_ptr var_seen_during_lvalue_traversal;
 
 
 static void set_var_in_lvalue_traversal(
@@ -5233,8 +5233,8 @@ pointer to the variable; otherwise, return NULL.
 The variable or routine (if any) found while traversing the expression
 passed to check_address_taken_flag (see below).
 */
-static a_variable_ptr var_for_address_taken_check;
-static a_routine_ptr  rout_for_address_taken_check;
+STATIC_THREAD a_variable_ptr var_for_address_taken_check;
+STATIC_THREAD a_routine_ptr  rout_for_address_taken_check;
 
 
 static void set_target_of_addressing_op(

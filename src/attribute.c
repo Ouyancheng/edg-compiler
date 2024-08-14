@@ -950,7 +950,7 @@ static a_const_char *valid_attribute_namespaces[] = {
 /*
 Pointer to a hash table indexing attr_corresp_table by attribute kind.
 */
-static a_hash_table_ptr
+STATIC_THREAD a_hash_table_ptr
 	attr_corresp_checking_map;
 
 /*
@@ -970,7 +970,7 @@ typedef struct an_attr_corresp_checking_map_entry {
 } an_attr_corresp_checking_map_entry;
 
 
-static an_attr_corresp_checking_map_entry
+STATIC_THREAD an_attr_corresp_checking_map_entry
 		corresp_checking_map_entries[ATTR_CORRESP_TABLE_LENGTH];
 			/* Since the number of buckets for
 			   attr_corresp_checking_map is fixed, we can store
@@ -1173,7 +1173,7 @@ is called through the macro check_attr_config.
 /*
 Pointer to a hash table indexing known_attr_table by attribute name.
 */
-static a_hash_table_ptr
+STATIC_THREAD a_hash_table_ptr
 	attr_name_map;
 
 /*
@@ -1191,7 +1191,7 @@ typedef struct an_attr_name_map_entry {
 } an_attr_name_map_entry;
 
 
-static an_attr_name_map_entry
+STATIC_THREAD an_attr_name_map_entry
 		attr_name_map_entries[KNOWN_ATTR_TABLE_LENGTH];
 			/* Since the number of buckets for attr_name_map is
 			   fixed, we can store the buckets in a fixed array. */
@@ -1511,7 +1511,7 @@ modes encoded in that string.
 }  /* cond_matches_ms_declspec_mode */
 
 
-static int attr_family_seen[(int)ak_last];
+STATIC_THREAD int attr_family_seen[(int)ak_last];
 			/* An array used to efficiently detect duplicated
 			   attributes. */
 
@@ -7270,7 +7270,7 @@ The attribute is being applied to "routine".  If an error is issued,
 #if GNU_FUNCTION_MULTIVERSIONING
 
 #if USE_X86_FUNCTION_MULTIVERSIONING && DO_IL_LOWERING
-static a_boolean
+STATIC_THREAD a_boolean
                 mv_builtins_loaded;
                         /* Flag that is TRUE if the GCC builtins required
                            during the lowering of multiversioning routines
@@ -9384,19 +9384,19 @@ typedef struct an_alias_fixup {
 } an_alias_fixup;
 
 /* Pointer to the head of the list of alias fixups. */
-static an_alias_fixup_ptr
+STATIC_THREAD an_alias_fixup_ptr
 	alias_fixup_list;
 
 /* Pointer to the last element on the list of alias fixups. */
-static an_alias_fixup_ptr
+STATIC_THREAD an_alias_fixup_ptr
 	last_alias_fixup;
 
 /* Pointer to a list of available (freed) alias fixups. */
-static an_alias_fixup_ptr
+STATIC_THREAD an_alias_fixup_ptr
 	avail_alias_fixups;
 
 #if DEBUG
-static unsigned long
+STATIC_THREAD unsigned long
 	num_alias_fixups_allocated;
 #endif /* DEBUG */
 
@@ -9562,7 +9562,7 @@ be recorded as an alias for aliased_sym.
    symbols corresponding to the entities declared with the explicit asm
    names.  This is used when looking up alias names (which should find asm
    names). */
-static a_hash_table_ptr
+STATIC_THREAD a_hash_table_ptr
 	asm_name_map;
 
 
@@ -9848,7 +9848,7 @@ Also used for the GNU ifunc attribute.
 #if REDEFINE_EXTNAME_PRAGMA_ENABLED
 
 #if DEBUG
-static unsigned long
+STATIC_THREAD unsigned long
 	pragma_extname_string_space;
 #endif /* DEBUG */
 
@@ -10005,7 +10005,7 @@ Copy any GNU type properties (set by attributes) in type dst to type src.
 /*
 A dummy attribute used solely for the processing of attribute_is_supported.
 */
-static an_attribute_ptr dummy_attr;
+STATIC_THREAD an_attribute_ptr dummy_attr;
 
 a_boolean attribute_is_supported(a_const_char        *name,
                                  a_const_char        *namespace_name,

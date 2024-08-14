@@ -49,14 +49,14 @@ to handle C++ lowering, and from C99 IL lowering to handle C99 lowering.
 BEGIN_EDG_NAMESPACE
 
 
-static a_variable_remapping_for_inlining_ptr
+STATIC_THREAD a_variable_remapping_for_inlining_ptr
 		variable_remappings_for_inlining;
 			/* List of remappings of variables to be done while
 			   copying the body of a function being inlined.  The
 			   list is kept in the order of argument evaluation. */
 
 
-static a_scope_ptr
+STATIC_THREAD a_scope_ptr
 		routine_scope_being_inlined;
 			/* When non-NULL, a call of the routine associated
 			   with this scope is being expanded as an inline. */

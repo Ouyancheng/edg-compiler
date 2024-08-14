@@ -69,50 +69,50 @@ typedef struct a_variable_registration {
 } a_variable_registration;
 
 
-static a_translation_unit_stack_entry_ptr
+STATIC_THREAD a_translation_unit_stack_entry_ptr
 		avail_translation_unit_stack_entries;
 			/* List of translation unit stack entries that have
 			   been freed and are available for reuse. */
 
-static an_export_trans_unit_stack_entry_ptr
+STATIC_THREAD an_export_trans_unit_stack_entry_ptr
 		avail_export_template_translation_unit_stack_entries;
 			/* List of export template translation unit stack
 			   entries that have been freed and are available for
 			   reuse. */
 
-static a_trans_unit_corresp_ptr
+STATIC_THREAD a_trans_unit_corresp_ptr
 		avail_trans_unit_corresps;
 			/* List of translation unit correspondence entries
 			   that have been freed and are available for reuse. */
 
-static a_variable_registration_ptr
+STATIC_THREAD a_variable_registration_ptr
 		trans_unit_variables;
 			/* Pointer to a list of variable registrations for
 			   variables that are local to a given translation
 			   unit. */
 
-static a_variable_registration_ptr
+STATIC_THREAD a_variable_registration_ptr
 		trans_unit_variables_tail;
 			/* Pointer to the last entry on the list of variables
 			   that are local to a given translation unit. */
 
-static sizeof_t	trans_unit_var_block_size;
+STATIC_THREAD sizeof_t	trans_unit_var_block_size;
 			/* Size of the memory block used to store variables
 			   that are specific to a given translation unit. */
 
-static a_translation_unit_ptr
+STATIC_THREAD a_translation_unit_ptr
 		translation_units_tail;
 			/* Pointer to the end of the list of translation
 			   units. */
 
 #if CHECKING
-static a_boolean
+STATIC_THREAD a_boolean
 		any_translation_units_allocated;
 			/* Set to TRUE once the first translation unit
 			   entry has been allocated.  Variable registrations
 			   are not permitted after this point. */
 
-static a_boolean
+STATIC_THREAD a_boolean
 		any_exported_template_files_loaded;
 			/* Set to TRUE once the first translation unit is
 			   loaded for the purpose of defining an exported
@@ -120,7 +120,7 @@ static a_boolean
 #endif /* CHECKING */
 
 #if DEBUG
-static unsigned long
+STATIC_THREAD unsigned long
 		num_translation_unit_stack_entries_allocated,
 		num_export_trans_unit_stack_entries_allocated,
 		num_translation_units_allocated,

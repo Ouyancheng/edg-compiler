@@ -38,7 +38,7 @@ configuration was specified.
 */
 #define NO_TARGET_CONFIG (-1)
 
-EXTERN int32_t  target_configuration_index;
+EXTERN_THREAD int32_t  target_configuration_index;
                         /* Gives the index (into target_configurations[]) of
                            the target configuration that is being used
                            (either selected by the --target command-line option
@@ -51,7 +51,7 @@ Except as noted, the following variables are initialized to values defined
 for the expected target machine but may be reset to permit reconfiguring
 the EDG front end to different targets with each invocation.
 */
-EXTERN a_boolean
+EXTERN_THREAD a_boolean
 		targ_little_endian;
 			/* When TRUE the least significant part of a multi-byte
 			   target integer is at the lowest memory address. */
@@ -59,11 +59,11 @@ EXTERN a_boolean
 /*
 Char types:
 */
-EXTERN unsigned int
+EXTERN_THREAD unsigned int
 		targ_char_bit;
 			/* Number of bits in a target char. */
 
-EXTERN unsigned int
+EXTERN_THREAD unsigned int
 		targ_host_string_char_bit;
 			/* The number of data bits per character used when
 			   representing target characters as a string on the
@@ -73,58 +73,58 @@ EXTERN unsigned int
 			   literals will be limited by what is representable
 			   in a host char. */
 
-EXTERN a_boolean
+EXTERN_THREAD a_boolean
 		targ_has_signed_chars;
 			/* TRUE if the target has signed characters.  This
 			   is selectable on the command line. */
 
-EXTERN a_boolean
+EXTERN_THREAD a_boolean
 		targ_char_constant_first_char_most_significant;
 			/* TRUE when the first character in a target char
 			   constant is most significant -- e.g., 'ab' == 0x6162
 			   instead of 0x6261. */
 
-EXTERN an_integer_kind
+EXTERN_THREAD an_integer_kind
 		targ_wchar_t_int_kind;
 			/* Integer kind associated with wchar_t.  Initialized
 			   to the default value but reconfigurable. */
 
-EXTERN a_targ_size_t
+EXTERN_THREAD a_targ_size_t
 		targ_sizeof_wchar_t;
 			/* Size of a wchar_t entity.  Initialized to the
 			   default value but reconfigurable. */
 
-EXTERN an_integer_kind
+EXTERN_THREAD an_integer_kind
 		targ_wint_t_int_kind;
 			/* Integer kind associated with wint_t.  Initialized
 			   to the default value but reconfigurable. */
 
-EXTERN an_integer_kind
+EXTERN_THREAD an_integer_kind
 		targ_char16_t_int_kind;
 			/* Integer kind associated with char16_t.  Initialized
 			   to the default value but reconfigurable. */
-EXTERN a_targ_size_t
+EXTERN_THREAD a_targ_size_t
 		targ_sizeof_char16_t;
 			/* Size of a char16_t entity.  Initialized to the
 			   default value but reconfigurable. */
 
-EXTERN an_integer_kind
+EXTERN_THREAD an_integer_kind
 		targ_char32_t_int_kind;
 			/* Integer kind associated with char32_t.  Initialized
 			   to the default value but reconfigurable. */
-EXTERN a_targ_size_t
+EXTERN_THREAD a_targ_size_t
 		targ_sizeof_char32_t;
 			/* Size of a char32_t entity.  Initialized to the
 			   default value but reconfigurable. */
 
-EXTERN a_targ_size_t
+EXTERN_THREAD a_targ_size_t
 		character_size[(int)chk_last];
 			/* A table of sizes for the various character kinds. */
 
-EXTERN an_integer_kind
+EXTERN_THREAD an_integer_kind
 		targ_bool_int_kind;
 			/* Integer kind associated with bool in C++ mode. */
-EXTERN an_integer_kind
+EXTERN_THREAD an_integer_kind
 		targ_c_bool_int_kind;
 			/* Integer kind associated with bool in C mode. */
 
@@ -137,43 +137,43 @@ as appropriate depending on the mode.
 /*
 Integer types:
 */
-EXTERN a_targ_size_t
+EXTERN_THREAD a_targ_size_t
 		targ_sizeof_short;
 			/* Size of a short int.  Initialized to the default
 			   value but reconfigurable. */
 
-EXTERN a_targ_alignment
+EXTERN_THREAD a_targ_alignment
 		targ_alignof_short;
 			/* Alignment of a short int.  Initialized to the
 			   default value but reconfigurable. */
 
-EXTERN a_targ_size_t
+EXTERN_THREAD a_targ_size_t
 		targ_sizeof_int;
 			/* Size of an int.  Initialized to the default value
 			   but reconfigurable. */
 
-EXTERN a_targ_alignment
+EXTERN_THREAD a_targ_alignment
 		targ_alignof_int;
 			/* Alignment of an int.  Initialized to the default
 			   value but reconfigurable. */
 
-EXTERN a_targ_size_t
+EXTERN_THREAD a_targ_size_t
 		targ_sizeof_long;
 			/* Size of a long int.  Initialized to the default
 			   value but reconfigurable. */
 
-EXTERN a_targ_alignment
+EXTERN_THREAD a_targ_alignment
 		targ_alignof_long;
 			/* Alignment of a long int.  Initialized to the
 			   default value but reconfigurable. */
 
 #if LONG_LONG_ALLOWED
-EXTERN a_targ_size_t
+EXTERN_THREAD a_targ_size_t
 		targ_sizeof_long_long;
 			/* Size of a long long int.  Initialized to the default
 			   value but reconfigurable. */
 
-EXTERN a_targ_alignment
+EXTERN_THREAD a_targ_alignment
 		targ_alignof_long_long;
 			/* Alignment of a long long int.  Initialized to the
 			   default value but reconfigurable. */
@@ -192,13 +192,13 @@ EXTERN a_targ_alignment
 			   this almost certainly equals 16). */
 #endif /* INT128_EXTENSIONS_ALLOWED */
 
-EXTERN a_targ_size_t
+EXTERN_THREAD a_targ_size_t
 		targ_sizeof_largest_integer;
 			/* Size of the longest integer in the configuration.
 			   Must be no larger than MAX_SIZEOF_LARGEST_INTEGER.*/
 
 #if GNU_EXTENSIONS_ALLOWED
-EXTERN a_targ_size_t
+EXTERN_THREAD a_targ_size_t
 		targ_sizeof_largest_atomic;
 			/* Size of the largest atomic type.  Initialized to the
 			   default value but reconfigurable. */
@@ -251,35 +251,35 @@ EXTERN an_integer_kind
 			   Initialized to ik_none and reset later. */
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
 
-EXTERN an_integer_kind
+EXTERN_THREAD an_integer_kind
 		targ_intmax_kind;
 			/* Integer kind associated with the largest signed
 			   integer type (excluding ik_int128).  In C99, this
 			   is intmax_t. */
 
-EXTERN an_integer_kind
+EXTERN_THREAD an_integer_kind
 		targ_uintmax_kind;
 			/* Integer kind associated with the largest unsigned
 			   integer type (excluding ik_unsigned_int128).  In
 			   C99, this is uintmax_t. */
 
-EXTERN a_targ_size_t
+EXTERN_THREAD a_targ_size_t
 		targ_max_class_object_size;
 			/* Maximum size of a class object.  Initialized to the
 			   default value but may be reset in target_init. */
 
-EXTERN a_targ_size_t
+EXTERN_THREAD a_targ_size_t
 		targ_max_base_class_offset;
 			/* Maximum offset of a base class.  Initialized to the
 			   default value but may be reset in target_init. */
 
-EXTERN a_boolean
+EXTERN_THREAD a_boolean
 		targ_optimize_empty_base_class_layout;
 			/* TRUE if the layout mechanism should attempt to
 			   allocate empty base classes at the same offset as
 			   other subobjects. */
 
-EXTERN int	targ_bit_field_container_size;
+EXTERN_THREAD int	targ_bit_field_container_size;
 			/* Container size to be used for bit-fields.  If > 0,
 			   indicates the size in bytes of one of the integral
 			   types.  0 means "use the smallest integral type
@@ -287,7 +287,7 @@ EXTERN int	targ_bit_field_container_size;
 			   base type given in the declaration".  Initialized
 			   to the default value but reconfigurable. */
 
-EXTERN a_boolean
+EXTERN_THREAD a_boolean
 		targ_microsoft_bit_field_allocation;
 			/* If this flag is TRUE, bit-field allocation follows
 			   the conventions of Microsoft C/C++.  The value of
@@ -299,13 +299,13 @@ EXTERN a_boolean
 			   bit-field type changes or the container fills up,
 			   a new container is allocated. */
 
-EXTERN a_boolean
+EXTERN_THREAD a_boolean
 		targ_plain_int_bit_field_is_unsigned;
 			/* TRUE when a "plain" int bit field is to be treated
 			   as unsigned.  Initialized to the default value but
 			   reconfigurable. */
 
-EXTERN a_boolean
+EXTERN_THREAD a_boolean
 		targ_force_one_bit_bit_field_to_be_unsigned;
 			/* TRUE when a "plain" int bit field of length 1 is
 			   to be treated as unsigned regardless of the
@@ -313,7 +313,7 @@ EXTERN a_boolean
 			   (because a bit field consisting of only a sign
 			   is not very useful). */
 
-EXTERN a_boolean
+EXTERN_THREAD a_boolean
 		targ_enum_bit_fields_are_always_unsigned;
 			/* Signedness for enum bit fields (an extension in C):
 			   if TRUE, enum bit fields are always unsigned.  If
@@ -324,7 +324,7 @@ EXTERN a_boolean
 			   This needs to be FALSE to allow fully-standard
 			   C++. */
 
-EXTERN a_boolean
+EXTERN_THREAD a_boolean
 		targ_nonnegative_enum_bit_field_is_unsigned;
 			/* Signedness for enum bit fields whose enum types have
 			   enumerators that could all fit in the nonnegative
@@ -332,7 +332,7 @@ EXTERN a_boolean
 			   if targ_enum_bit_fields_are_always_unsigned is
 			   TRUE.) */
 
-EXTERN int	targ_zero_width_bit_field_alignment;
+EXTERN_THREAD int	targ_zero_width_bit_field_alignment;
 			/* Alignment adjustment to be made when a zero-width
 			   (unnamed) bit field is declared.  If > 0 it is the
 			   alignment to be used (typically the alignment of
@@ -343,30 +343,30 @@ EXTERN int	targ_zero_width_bit_field_alignment;
 			   means "use the alignment of the base type given in
 			   the declaration". */
 
-EXTERN int	targ_zero_width_bit_field_affects_struct_alignment;
+EXTERN_THREAD int	targ_zero_width_bit_field_affects_struct_alignment;
 			/* TRUE when the alignment adjustment when a
 			   zero-width (unnamed) bit-field is declared
 			   affects the overall alignment of the struct as
 			   well as the alignment of the next field. */
 
-EXTERN int	targ_unnamed_bit_field_affects_struct_alignment;
+EXTERN_THREAD int	targ_unnamed_bit_field_affects_struct_alignment;
 			/* TRUE if the alignment adjustment when an unnamed
 			   bit-field is declared affects the overall alignment
 			   of the struct as well as the alignment of the next
 			   field. */
 
-EXTERN a_boolean
+EXTERN_THREAD a_boolean
 		targ_bit_field_affects_union_alignment;
 			/* TRUE if a bit field in a union type affects its
 			   alignment. */
 
-EXTERN int	targ_user_control_of_struct_packing_affects_bit_fields;
+EXTERN_THREAD int	targ_user_control_of_struct_packing_affects_bit_fields;
 			/* TRUE if "#pragma pack(n)" and the command-line
 			   option "--pack_alignment=n" affect the alignment of
 			   bit field containers (when bit fields straddle
 			   container alignment boundaries). */
 
-EXTERN int	targ_pad_bit_fields_larger_than_base_type;
+EXTERN_THREAD int	targ_pad_bit_fields_larger_than_base_type;
 			/* TRUE if bit fields longer than their base types are
 			   padded out to the full declared length.  FALSE
 			   means allocate only as many bits as are in the
@@ -374,16 +374,16 @@ EXTERN int	targ_pad_bit_fields_larger_than_base_type;
 			   has the same number of bits; the extra bits are
 			   padding bits. */
 
-EXTERN a_boolean
+EXTERN_THREAD a_boolean
                 targ_supports_x86_64;
                         /* TRUE if the target supports the 64-bit version of
                            the x86 instruction set. */
-EXTERN a_boolean
+EXTERN_THREAD a_boolean
                 targ_supports_arm64;
                         /* TRUE if the target supports the 64-bit version of
                            the ARM instruction set. */
 
-EXTERN a_boolean
+EXTERN_THREAD a_boolean
                 targ_supports_arm32;
                         /* TRUE if the target supports the 32-bit version of
                            the ARM instruction set. */
@@ -441,7 +441,7 @@ Currently this is the default (but that may change in the future).
 }  /* target_is_32_bit_x86_based */
 
 
-EXTERN a_boolean
+EXTERN_THREAD a_boolean
                 packing_applies_to_base_classes;
                         /* TRUE if "#pragma pack(n)" affects the alignment of
                            base classes (in addition to that of proper
@@ -451,18 +451,18 @@ EXTERN a_boolean
 Pointer types:
 */
 
-EXTERN a_boolean
+EXTERN_THREAD a_boolean
                 targ_all_pointers_same_size;
                         /* TRUE if all pointers have the same size (see the
                            caveats for TARG_ALL_POINTERS_SAME_SIZE). */
 
-EXTERN a_targ_size_t
+EXTERN_THREAD a_targ_size_t
 		targ_sizeof_pointer;
 			/* Size of a pointer.  Initialized to the default
 			   value but reconfigurable.  Meaningless when
 			   targ_all_pointers_same_size is FALSE. */
 
-EXTERN a_targ_alignment
+EXTERN_THREAD a_targ_alignment
 		targ_alignof_pointer;
 			/* Alignment of a pointer.  Initialized to the default
 			   value but reconfigurable.  Meaningless when
@@ -497,13 +497,13 @@ EXTERN a_targ_alignment
 			   16-bit Microsoft mode). */
 #endif /* NEAR_AND_FAR_ALLOWED */
 
-EXTERN an_integer_kind
+EXTERN_THREAD an_integer_kind
 		targ_ptrdiff_t_int_kind;
 			/* Representation for ptrdiff_t -- the integer kind
 			   large enough to hold a pointer value.  Initialized
 			   to the default value but reconfigurable. */
 
-EXTERN a_targ_size_t
+EXTERN_THREAD a_targ_size_t
 		targ_size_t_max;
 			/* The limit of the host representation of size_t
 			   constants; the range it defines can be equal to
@@ -511,14 +511,14 @@ EXTERN a_targ_size_t
 			   TARG_SIZE_T_INT_KIND.  Initialized to the default
 			   value but reconfigurable. */
 
-EXTERN an_integer_kind
+EXTERN_THREAD an_integer_kind
 		targ_size_t_int_kind;
 			/* Representation for size_t -- the integer kind
 			   large enough to hold a pointer value.  Initialized
 			   to the default value but reconfigurable. */
 
 #if GNU_EXTENSIONS_ALLOWED
-EXTERN an_integer_kind
+EXTERN_THREAD an_integer_kind
 		targ_ssize_t_int_kind;
 			/* Representation for ssize_t (a POSIX type used to
 			   count bytes in certain I/O functions). */
@@ -598,52 +598,52 @@ EXTERN a_targ_size_t
 /*
 Float types:
 */
-EXTERN a_targ_size_t
+EXTERN_THREAD a_targ_size_t
 		targ_sizeof_float;
 			/* Size of a float.  Initialized to the default
 			   value but reconfigurable. */
 
-EXTERN a_targ_alignment
+EXTERN_THREAD a_targ_alignment
 		targ_alignof_float;
 			/* Alignment of a float.  Initialized to the default
 			   value but reconfigurable. */
 
-EXTERN a_targ_size_t
+EXTERN_THREAD a_targ_size_t
 		targ_sizeof_double;
 			/* Size of a double.  Initialized to the default
 			   value but reconfigurable. */
 
-EXTERN a_targ_alignment
+EXTERN_THREAD a_targ_alignment
 		targ_alignof_double;
 			/* Alignment of a double.  Initialized to the default
 			   value but reconfigurable. */
 
-EXTERN a_targ_size_t
+EXTERN_THREAD a_targ_size_t
 		targ_sizeof_long_double;
 			/* Size of a long double.  Initialized to the default
 			   value but reconfigurable. */
 
-EXTERN a_targ_alignment
+EXTERN_THREAD a_targ_alignment
 		targ_alignof_long_double;
 			/* Alignment of a long double.  Initialized to the
 			   default value but reconfigurable. */
 
-EXTERN a_targ_size_t
+EXTERN_THREAD a_targ_size_t
 		targ_sizeof_float80;
 			/* Size of a __float80.  Initialized to the default
 			   value but reconfigurable. */
 
-EXTERN a_targ_alignment
+EXTERN_THREAD a_targ_alignment
 		targ_alignof_float80;
 			/* Alignment of a __float80.  Initialized to the
 			   default value but reconfigurable. */
 
-EXTERN a_targ_size_t
+EXTERN_THREAD a_targ_size_t
 		targ_sizeof_float128;
 			/* Size of a __float128.  Initialized to the default
 			   value but reconfigurable. */
 
-EXTERN a_targ_alignment
+EXTERN_THREAD a_targ_alignment
 		targ_alignof_float128;
 			/* Alignment of a __float128.  Initialized to the
 			   default value but reconfigurable. */
@@ -671,57 +671,57 @@ EXTERN a_float_kind
 
 #if GNU_EXTENSIONS_ALLOWED
 
-EXTERN a_type_mode_kind
+EXTERN_THREAD a_type_mode_kind
 		targ_word_mode;
 			/* Mode of a word, i.e., the natural integer
 			   size for the target.  Initialized to the
 			   default value but reconfigurable. */
 
-EXTERN a_type_mode_kind
+EXTERN_THREAD a_type_mode_kind
 		targ_unwind_word_mode;
 			/* Mode of an "unwind word", i.e., the integer size
 			   used in unwind descriptors for the target.
 			   Initialized to the default value but
 			   reconfigurable. */
 
-EXTERN a_type_mode_kind
+EXTERN_THREAD a_type_mode_kind
 		targ_libgcc_cmp_return_mode;
 			/* Mode used by GNU's libgcc for compare instruction
 			   results.  Initialized to the default value but
 			   reconfigurable. */
 
-EXTERN a_type_mode_kind
+EXTERN_THREAD a_type_mode_kind
 		targ_libgcc_shift_count_mode;
 			/* Mode used by GNU's libgcc for shift counts.
 			   Initialized to the default value but
 			   reconfigurable. */
 
-EXTERN a_type_mode_kind
+EXTERN_THREAD a_type_mode_kind
 		targ_pointer_mode;
 			/* Mode of a pointer.  Initialized to the
 			   default value but reconfigurable. */
 
 #endif /* GNU_EXTENSIONS_ALLOWED */
 
-EXTERN a_boolean
+EXTERN_THREAD a_boolean
                 targ_dual_alignments_for_builtin_types;
                         /* TRUE if field alignments are different from those of
                            a variable of the same type. */
 
-EXTERN a_targ_alignment
+EXTERN_THREAD a_targ_alignment
 		targ_short_field_alignment;
 			/* Default alignment for fields of type short. */
 
-EXTERN a_targ_alignment
+EXTERN_THREAD a_targ_alignment
 		targ_int_field_alignment;
 			/* Default alignment for fields of type int. */
 
-EXTERN a_targ_alignment
+EXTERN_THREAD a_targ_alignment
 		targ_long_field_alignment;
 			/* Default alignment for fields of type long. */
 
 #if LONG_LONG_ALLOWED
-EXTERN a_targ_alignment
+EXTERN_THREAD a_targ_alignment
 		targ_long_long_field_alignment;
 			/* Default alignment for fields of type long long. */
 #endif /* LONG_LONG_ALLOWED */
@@ -733,23 +733,23 @@ EXTERN a_targ_alignment
 			   type. */
 #endif /* INT128_EXTENSIONS_ALLOWED */
 
-EXTERN a_targ_alignment
+EXTERN_THREAD a_targ_alignment
 		targ_float_field_alignment;
 			/* Default alignment for fields of type float. */
 
-EXTERN a_targ_alignment
+EXTERN_THREAD a_targ_alignment
 		targ_double_field_alignment;
 			/* Default alignment for fields of type double. */
 
-EXTERN a_targ_alignment
+EXTERN_THREAD a_targ_alignment
 		targ_long_double_field_alignment;
 			/* Default alignment for fields of type long double. */
 
-EXTERN a_targ_alignment
+EXTERN_THREAD a_targ_alignment
 		targ_float80_field_alignment;
 			/* Default alignment for fields of type __float80. */
 
-EXTERN a_targ_alignment
+EXTERN_THREAD a_targ_alignment
 		targ_float128_field_alignment;
 			/* Default alignment for fields of type __float128. */
 
@@ -757,28 +757,28 @@ EXTERN a_targ_alignment
 /*
 C++ pointer-to-member type.
 */
-EXTERN a_targ_size_t
+EXTERN_THREAD a_targ_size_t
 		targ_sizeof_ptr_to_data_member;
 			/* Size of a pointer-to-data-member.  Initialized to
 			   the default value but reconfigurable. */
 
-EXTERN a_targ_alignment
+EXTERN_THREAD a_targ_alignment
 		targ_alignof_ptr_to_data_member;
 			/* Alignment of a pointer-to-data-member.  Initialized
 			   to the default value but reconfigurable. */
 
-EXTERN a_targ_size_t
+EXTERN_THREAD a_targ_size_t
 		targ_sizeof_ptr_to_member_function;
 			/* Size of a ptr-to-member-function.  Initialized to
 			   the default value but reconfigurable. */
 
-EXTERN a_targ_alignment
+EXTERN_THREAD a_targ_alignment
 		targ_alignof_ptr_to_member_function;
 			/* Alignment of a pointer-to-member-function.
 			   Initialized to the default value but
 			   reconfigurable. */
 
-EXTERN a_boolean
+EXTERN_THREAD a_boolean
 		targ_microsoft_ptr_to_member_sizing;
 			/* TRUE if the size of pointer-to-member types should
 			   follow the class-dependent rules implemented by
@@ -789,13 +789,13 @@ EXTERN a_boolean
 /*
 Virtual function info.
 */
-EXTERN a_targ_size_t
+EXTERN_THREAD a_targ_size_t
 		targ_sizeof_virtual_function_info;
 			/* Size of a virtual-function-info entity.
 			   Initialized to the default value but
 			   reconfigurable. */
 
-EXTERN a_targ_alignment
+EXTERN_THREAD a_targ_alignment
 		targ_alignof_virtual_function_info;
 			/* Alignment of a virtual-function-info entity.
 			   Initialized to the default value but
@@ -805,13 +805,13 @@ EXTERN a_targ_alignment
 /*
 Pointer to virtual base class.
 */
-EXTERN a_targ_size_t
+EXTERN_THREAD a_targ_size_t
 		targ_sizeof_ptr_to_virtual_base_class;
 			/* Size of a "pointer-to-virtual-base-class" member.
 			   Initialized to the default value but
 			   reconfigurable. */
 
-EXTERN a_targ_alignment
+EXTERN_THREAD a_targ_alignment
 		targ_alignof_ptr_to_virtual_base_class;
 			/* Alignment of a "pointer-to-virtual-base-class"
 			   member.  Initialized to the default value but
@@ -821,7 +821,7 @@ EXTERN a_targ_alignment
 /*
 Miscellaneous
 */
-EXTERN a_boolean
+EXTERN_THREAD a_boolean
 		targ_enum_types_can_be_smaller_than_int;
 			/* When TRUE, enum types will be allocated in the
 			   smallest integral type in which they will fit; if
@@ -829,51 +829,51 @@ EXTERN a_boolean
 			   compatibility).  Initialized to the default value
 			   but reconfigurable. */
 
-EXTERN a_boolean
+EXTERN_THREAD a_boolean
 		targ_right_shift_is_arithmetic;
 			/* When TRUE a right shift on a signed quantity does
 			   sign extension.  Initialized to the default value
 			   but reconfigurable. */
 
-EXTERN a_boolean
+EXTERN_THREAD a_boolean
 		targ_too_large_shift_count_is_taken_modulo_size;
 			/* When TRUE a shift with a too-large shift count is
 			   treated as if the shift count is reduced modulo
 			   the bit size of the object. */
 
-EXTERN a_targ_alignment
+EXTERN_THREAD a_targ_alignment
 		targ_minimum_struct_alignment;
 			/* The minimum alignment required for objects of class,
 			   struct, and union type in the target environment.
 			   Initialized to the default value but
 			   reconfigurable. */
 
-EXTERN a_boolean
+EXTERN_THREAD a_boolean
                 targ_field_alloc_sequence_equals_decl_sequence;
                         /* TRUE if class and struct fields are allocated in the
                            same order as they are declared, regardless of
                            access specification.  See
                            TARG_FIELD_ALLOC_SEQUENCE_EQUALS_DECL_SEQUENCE. */
 
-EXTERN a_targ_alignment
+EXTERN_THREAD a_targ_alignment
 		targ_minimum_pack_alignment;
 			/* The minimum value which a "pack alignment" value
 			   may have.  Initialized to the default value but
 			   reconfigurable. */
 
-EXTERN a_targ_alignment
+EXTERN_THREAD a_targ_alignment
 		targ_maximum_pack_alignment;
 			/* The maximum value which a "pack alignment" value
 			   may have.  Initialized to the default value but
 			   reconfigurable. */
 
-EXTERN a_targ_alignment
+EXTERN_THREAD a_targ_alignment
 		targ_maximum_intrinsic_alignment;
 			/* The maximum alignment value which the target can
 			   take advantage of.  Initialized to the default
 			   value but reconfigurable. */
 
-EXTERN a_targ_alignment
+EXTERN_THREAD a_targ_alignment
 		targ_default_new_alignment;
 			/* In C++17 mode, the alignment beyond which new
 			   and delete expressions will use the versions of
@@ -883,13 +883,13 @@ EXTERN a_targ_alignment
 			   macro.  Initialized to the default value but
 			   reconfigurable. */
 
-EXTERN a_boolean
+EXTERN_THREAD a_boolean
 		distinct_template_signatures;
 			/* If TRUE, template functions are given mangled names
 			   that are distinct from the names for nontemplate
 			   functions. */
 
-EXTERN a_boolean
+EXTERN_THREAD a_boolean
 		exc_spec_in_func_type;
 			/* TRUE if function types should formally include
 			   exception specifications.  The IL representation
@@ -898,13 +898,13 @@ EXTERN a_boolean
 			   semantically.  This flag is TRUE if the C++17
 			   semantics should be implemented. */
 
-EXTERN a_boolean
+EXTERN_THREAD a_boolean
 		deduction_from_exc_spec_allowed;
 			/* TRUE if a template parameter can be deduced from
 			   the noexcept flag of a parameter of function
 			   type. */
 
-EXTERN a_boolean
+EXTERN_THREAD a_boolean
 		assume_references_cannot_be_null;
 			/* If TRUE, C++ references are assumed never to have
 			   NULL addresses in them.  That's as required by the
@@ -913,17 +913,17 @@ EXTERN a_boolean
 
 #if DO_IL_LOWERING
 
-EXTERN a_boolean
+EXTERN_THREAD a_boolean
 		force_variable_definition_via_zeroing;
 			/* If TRUE, add zeroing to variable definitions
 			   to make them definitions in C. */
 
-EXTERN a_boolean
+EXTERN_THREAD a_boolean
 		make_all_functions_unprototyped;
 			/* If TRUE, all functions are rewritten to be
 			   unprototyped. */
 
-EXTERN a_boolean
+EXTERN_THREAD a_boolean
 		assume_this_cannot_be_null_in_conditional_operators;
 			/* If TRUE, assume "this" cannot be null in conditional
 			   operators, allowing some additional optimizations
@@ -932,26 +932,26 @@ EXTERN a_boolean
 
 #if DO_FULL_PORTABLE_EH_LOWERING
 
-EXTERN unsigned int
+EXTERN_THREAD unsigned int
 		targ_jmp_buf_num_elements;
 			/* Number of elements in a jmp_buf array.  Initialized
 			   to the default value but reconfigurable. */
-EXTERN a_boolean
+EXTERN_THREAD a_boolean
 		targ_jmp_buf_elements_are_float;
 			/* Choose between integer and float members of the
 			   jmp_buf array.  Initialized to the default value
 			   but reconfigurable. */
-EXTERN an_integer_kind
+EXTERN_THREAD an_integer_kind
 		targ_jmp_buf_element_int_kind;
 			/* Integer kind indicating the kind of element in a
 			   jmp_buf array.  Initialized to the default value
 			   but reconfigurable. */
-EXTERN a_float_kind
+EXTERN_THREAD a_float_kind
 		targ_jmp_buf_element_float_kind;
 			/* Float kind indicating the kind of element in a
 			   jmp_buf array.  Initialized to the default value
 			   but reconfigurable. */
-EXTERN a_const_char
+EXTERN_THREAD a_const_char
 		*targ_setjmp_func;
 			/* The name of the setjmp function to call.
 			   Initialized to the default value but
@@ -960,74 +960,74 @@ EXTERN a_const_char
 #endif /* DO_FULL_PORTABLE_EH_LOWERING */
 
 #if GENERATE_EH_TABLES
-EXTERN an_integer_kind
+EXTERN_THREAD an_integer_kind
 		targ_var_handle_int_kind;
 			/* Integer kind to be used for a "handle" in
 			   exception handling tables. */
 #endif /* GENERATE_EH_TABLES */
 #endif /* DO_IL_LOWERING */
 
-EXTERN int	targ_flt_mant_dig;
+EXTERN_THREAD int	targ_flt_mant_dig;
 			/* The number of bits in the mantissa of a float. */
 
-EXTERN int	targ_flt_min_exp;
+EXTERN_THREAD int	targ_flt_min_exp;
 			/* The minimum exponent value of a float. */
 
-EXTERN int	targ_flt_max_exp;
+EXTERN_THREAD int	targ_flt_max_exp;
 			/* The maximum exponent value of a float. */
 
-EXTERN int	targ_dbl_mant_dig;
+EXTERN_THREAD int	targ_dbl_mant_dig;
 			/* The number of bits in the mantissa of a double. */
 
-EXTERN int	targ_dbl_min_exp;
+EXTERN_THREAD int	targ_dbl_min_exp;
 			/* The minimum exponent value of a double. */
 
-EXTERN int	targ_dbl_max_exp;
+EXTERN_THREAD int	targ_dbl_max_exp;
 			/* The maximum exponent value of a double. */
 
-EXTERN int	targ_ldbl_mant_dig;
+EXTERN_THREAD int	targ_ldbl_mant_dig;
 			/* The number of bits in the mantissa of a long
                            double. */
 
-EXTERN int	targ_ldbl_min_exp;
+EXTERN_THREAD int	targ_ldbl_min_exp;
 			/* The minimum exponent value of a long double. */
 
-EXTERN int	targ_ldbl_max_exp;
+EXTERN_THREAD int	targ_ldbl_max_exp;
 			/* The maximum exponent value of a long double. */
 
-EXTERN int	targ_flt80_mant_dig;
+EXTERN_THREAD int	targ_flt80_mant_dig;
 			/* The number of bits in the mantissa of a
                            __float80. */
 
-EXTERN int	targ_flt80_min_exp;
+EXTERN_THREAD int	targ_flt80_min_exp;
 			/* The minimum exponent value of a __float80. */
 
-EXTERN int	targ_flt80_max_exp;
+EXTERN_THREAD int	targ_flt80_max_exp;
 			/* The maximum exponent value of a __float80. */
 
-EXTERN int	targ_flt128_mant_dig;
+EXTERN_THREAD int	targ_flt128_mant_dig;
 			/* The number of bits in the mantissa of a
                            __float128. */
 
-EXTERN int	targ_flt128_min_exp;
+EXTERN_THREAD int	targ_flt128_min_exp;
 			/* The minimum exponent value of a __float128. */
 
-EXTERN int	targ_flt128_max_exp;
+EXTERN_THREAD int	targ_flt128_max_exp;
 			/* The maximum exponent value of a __float128. */
 
-EXTERN a_boolean
+EXTERN_THREAD a_boolean
 		remove_qualifiers_from_param_types;
 			/* TRUE when type qualifiers should be removed from
 			   function parameter types (e.g., a "const int"
 			   parameter is seen simply as "int"). */
 
-EXTERN a_boolean
+EXTERN_THREAD a_boolean
 		keep_restrict_in_signatures;
 			/* TRUE if the "restrict" (or "__restrict") qualifier
 			   should be kept in function parameter types even
 			   when remove_qualifiers_from_param_types is TRUE. */
 
-EXTERN a_boolean
+EXTERN_THREAD a_boolean
 		c_and_cpp_function_types_are_distinct;
 			/* If TRUE, function types are considered distinct if
 			   their only difference is that one has extern "C"
@@ -1046,48 +1046,48 @@ EXTERN a_boolean
 			   modern "template <>" prefix form. */
 #endif /* BACK_END_IS_CP_GEN_BE */
 
-EXTERN a_boolean
+EXTERN_THREAD a_boolean
 		type_info_in_namespace_std;
 			/* If TRUE,  class type_info is defined as a member
 			   of namespace "std". */
 
-EXTERN a_boolean
+EXTERN_THREAD a_boolean
 		pass_stdarg_references_to_generated_code;
 			/* If TRUE, references to the macros in <stdarg.h>
 			   are passed through to the output unchanged. */
 
-EXTERN a_boolean
+EXTERN_THREAD a_boolean
 		va_list_in_std_namespace;
 			/* If TRUE, the va_list type created when passing
 			   stdarg references to generated code is placed in
 			   the std namespace. */
 
-EXTERN a_boolean
+EXTERN_THREAD a_boolean
 		va_list_using_using_decl_in_std_namespace;
 			/* When va_list_in_std_namespace is FALSE, this is
 			   TRUE if a using-declaration for va_list should
 			   be created in the std namespace. */
 
-EXTERN a_boolean
+EXTERN_THREAD a_boolean
 		va_arg_returns_lvalue;
 			/* If TRUE, the va_arg operator implemented when
 			   passing stdarg references to generated code returns
 			   an lvalue.  The C and C++ standards allow but
 			   do not require that va_arg produce an lvalue. */
 
-EXTERN a_boolean
+EXTERN_THREAD a_boolean
 		instantiate_extern_inline;
 			/* TRUE if the instantiation mechanism should be used
 			   to control the definition of inline functions. */
 
-EXTERN a_boolean
+EXTERN_THREAD a_boolean
 		instantiate_inline_variables;
 			/* TRUE if the instantiation mechanism should be used
 			   to control the definition of inline variables. */
 
 #if BACK_END_IS_C_GEN_BE || BACK_END_IS_CP_GEN_BE
 
-EXTERN a_boolean
+EXTERN_THREAD a_boolean
 		sun_is_generated_code_target;
 			/* TRUE if code is being generated for a Sun
 			   compiler. */
@@ -1099,56 +1099,56 @@ EXTERN unsigned long
 			   targeted (e.g., 0x530 for version 5.3). */
 #endif /* ifdef SUN_TARGET_VERSION_NUMBER */
 
-EXTERN a_boolean
+EXTERN_THREAD a_boolean
 		gcc_is_generated_code_target;
 			/* TRUE if code is being generated for the GNU C or
 			   C++ compiler.  See also
 			   gcc_or_clang_is_generated_code_target. */
 
-EXTERN unsigned long
+EXTERN_THREAD unsigned long
 		gnu_target_version_number;
 			/* The version number of the GNU compiler being
 			   targeted (e.g., 30401 for GNU C/C++ 3.4.1). */
 
-EXTERN a_boolean
+EXTERN_THREAD a_boolean
 		gcc_builtin_varargs_in_generated_code;
 			/* TRUE if the generated code should use vararg
 			   primitives predefined by GNU compilers. */
 
-EXTERN a_boolean
+EXTERN_THREAD a_boolean
 		clang_is_generated_code_target;
 			/* TRUE if code is being generated for the clang
 			   (C or C++) compiler.  See also
 			   gcc_or_clang_is_generated_code_target. */
 
-EXTERN unsigned long
+EXTERN_THREAD unsigned long
 		clang_target_version_number;
 			/* The version number of the clang compiler being
 			   targeted (e.g., 30300 for clang C/C++ 3.3). */
 
-EXTERN a_boolean
+EXTERN_THREAD a_boolean
 		gcc_or_clang_is_generated_code_target;
 			/* TRUE if code is being generated for either the
 			   GNU or clang (C or C++) compiler. */
 
-EXTERN a_boolean
+EXTERN_THREAD a_boolean
 		msvc_is_generated_code_target;
 			/* TRUE if code is being generated for the Microsoft
 			   MSVC++ compiler. */
 
-EXTERN int
+EXTERN_THREAD int
 		msvc_target_version_number;
 			/* The version number (i.e., 1300 for 7.0) of the
 			   Microsoft MSVC compiler being targeted. */
 
-EXTERN a_boolean
+EXTERN_THREAD a_boolean
 		microsoft_dialect_is_generated_code_target;
 			/* TRUE if code is being generated for a compiler
 			   accepting Microsoft extensions. */
 
 #endif /* BACK_END_IS_C_GEN_BE || BACK_END_IS_CP_GEN_BE */
 
-EXTERN a_boolean
+EXTERN_THREAD a_boolean
 		always_fold_calls_to_builtin_constant_p;
 			/* TRUE if calls to __builtin_constant_p should always
 			   be folded in the front end. */
@@ -1163,19 +1163,19 @@ EXTERN a_boolean
 
 #endif /* BACK_END_IS_CP_GEN_BE */
 
-EXTERN an_integer_kind
+EXTERN_THREAD an_integer_kind
 		plain_char_int_kind;
 			/* Integer kind for a "plain" char, dependent on
 			   the setting of targ_has_signed_chars. */
 
-EXTERN a_boolean
+EXTERN_THREAD a_boolean
 		string_literals_shared;
 			/* TRUE if string literals can be shared.  FALSE
 			   if string literals are not shared because they
 			   might be writable (as in pcc mode). */
 
 #if !IA64_ABI
-EXTERN an_integer_kind
+EXTERN_THREAD an_integer_kind
 		targ_runtime_elem_count_int_kind;
 			/* Type used for number_of_elements arguments
 			   in the cfront ABI. */
@@ -1189,14 +1189,14 @@ EXTERN a_boolean
 			   class. */
 #endif /* IA64_ABI */
 
-EXTERN a_boolean
+EXTERN_THREAD a_boolean
 		warn_on_try_statement;
 			/* When TRUE (and in Microsoft emulation mode),
 			   a (one time) warning is issued when a try statement
 			   is encountered. */
 
 #if BACK_END_IS_C_GEN_BE
-EXTERN a_boolean
+EXTERN_THREAD a_boolean
 		use_empty_struct_in_generated_c;
 			/* When TRUE, the C-generating back end will use an
 			   empty struct as the representation of an empty
@@ -1204,32 +1204,32 @@ EXTERN a_boolean
 			   a one-byte padding field. */
 #endif /* BACK_END_IS_C_GEN_BE */
 
-EXTERN char     *auxiliary_info_dir_name;
+EXTERN_THREAD char     *auxiliary_info_dir_name;
                         /* Initialized to EDG_AUXILIARY_INFO_DIR_NAME (e.g.,
                            "lib"), when using an unnamed target configuration,
                            otherwise the target name (and a separating
                            underscore) is appended to the name. */
 
 #if DO_IL_LOWERING
-EXTERN an_integer_kind
+EXTERN_THREAD an_integer_kind
 		targ_delta_int_kind;
                         /* Integer kind to use for an offset into a class.
                            This is used for delta fields in pointers to member
                            functions, etc., but not for pointers to data
                            members. */
 
-EXTERN an_integer_kind
+EXTERN_THREAD an_integer_kind
 		targ_virtual_function_index_int_kind;
                         /* Integer kind to use for an index into a virtual
                            function table.  Must be no smaller than the size of
                            a_virtual_function_number. */
-EXTERN a_boolean
+EXTERN_THREAD a_boolean
                 ctors_return_this;
                         /* Flag that indicates whether constructors return
                            "this".  This is TRUE in the Cfront-like ABI and
                            FALSE in the IA-64 ABI, but TRUE in the ARM EABI
                            variant of the IA-64 ABI. */
-EXTERN a_boolean
+EXTERN_THREAD a_boolean
                 dtors_return_this;
                         /* Flag that indicates whether destructors return
                            "this".  This is FALSE except in the ARM EABI
@@ -1287,11 +1287,11 @@ EXTERN an_integer_kind
 #endif /* IA64_ABI */
 
 #if GENERATE_EH_TABLES
-EXTERN an_integer_kind
+EXTERN_THREAD an_integer_kind
 		targ_region_number_int_kind;
                         /* The integral kind to be used for a cleanup region
                            number with exception processing. */
-EXTERN an_integer_kind
+EXTERN_THREAD an_integer_kind
 		targ_ets_flag_type_int_kind;
                         /* The integral kind to be used for flags passed to
                            the run time library for exception processing. */

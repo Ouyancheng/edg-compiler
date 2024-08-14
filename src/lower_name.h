@@ -52,7 +52,7 @@ typedef struct a_compressible_string_pos {
 			   original mangled name. */
 } a_compressible_string_pos;
 
-EXTERN a_compressible_string_pos_ptr
+EXTERN_THREAD a_compressible_string_pos_ptr
 		avail_compressible_string_pos;
 			/* List of compressible string position entries freed
 			   and available for reuse. */
@@ -61,7 +61,7 @@ EXTERN a_compressible_string_pos_ptr
 /*
 Count of entries allocated, for debugging purposes.
 */
-EXTERN unsigned long
+EXTERN_THREAD unsigned long
 		num_compressible_string_pos_allocated;
 #endif /* DEBUG */
 

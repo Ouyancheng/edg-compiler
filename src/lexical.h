@@ -42,7 +42,7 @@ typedef struct a_symbol_header a_symbol_header_dummy_typedef;
 
 /* There are more #includes later in this file. */
 
-EXTERN a_token_sequence_number
+EXTERN_THREAD a_token_sequence_number
 		curr_token_sequence_number;
 			/* The sequence number associated with the
 			   current token.  A token retains its sequence
@@ -50,14 +50,14 @@ EXTERN a_token_sequence_number
 			   token cache.  For a coalesced token this is the
 			   token sequence number of the initial token. */
 
-EXTERN a_token_sequence_number
+EXTERN_THREAD a_token_sequence_number
 		last_token_sequence_number_of_token;
 			/* The sequence number associated with the end of
 			   the current token.  This is normally the same as
 			   curr_token_sequence_number, but for coalesced
 			   identifiers refers to a later token. */
 
-EXTERN a_token_sequence_number
+EXTERN_THREAD a_token_sequence_number
 		last_token_sequence_number_used;
 			/* The counter used to assign token sequence
 			   numbers. */
@@ -71,7 +71,7 @@ A type used to represent a token from a reusable cache.
 */
 typedef a_cached_token_ptr a_cached_token_handle;
 
-EXTERN a_cached_token_handle
+EXTERN_THREAD a_cached_token_handle
 		curr_cached_token_handle;
 			/* If the current token originated from a reusable
 			   token cache, this is a handle that can be used
@@ -773,7 +773,7 @@ EXTERN_CONSTINIT_ARRAY_END(opname_kind_for_token)
 /*
 Array giving the token name for each opname kind.
 */
-EXTERN a_const_char
+EXTERN_THREAD a_const_char
 		*opname_names[(int)onk_last];
 
 
@@ -863,7 +863,7 @@ a_boolean find_include_history(a_const_char                *full_name,
 extern a_byte get_ifg_state(void);
 extern void set_ifg_state(a_byte new_state);
 
-EXTERN a_boolean
+EXTERN_THREAD a_boolean
 		any_tokens_fetched_from_curr_input_file;
 			/* TRUE if any "real" tokens have been fetched from
 			   the current input file.  This is used to
@@ -985,12 +985,12 @@ typedef struct an_input_stack_entry {
 
 /* See lexical.c for the definitions of input_stack, depth_input_stack,
    and seq_number_last_read. */
-EXTERN an_input_stack_entry_ptr
+EXTERN_THREAD an_input_stack_entry_ptr
 		curr_ise;
 			/* Pointer to input_stack[depth_input_stack].  NULL
 			   if depth_input_stack == -1. */
 
-EXTERN unsigned int
+EXTERN_THREAD unsigned int
 		include_file_depth;
 			/* Number of include files (input_stack entries for
 			   which is_include_file is TRUE) currently on the
@@ -1103,7 +1103,7 @@ typedef struct a_concatenation_record {
 			   occurs. */
 } a_concatenation_record;
 
-EXTERN a_concatenation_record_ptr
+EXTERN_THREAD a_concatenation_record_ptr
 		avail_concatenation_records;
 			/* List of entries that have been allocated and
 			   freed and are available for reuse. */
@@ -1149,7 +1149,7 @@ sequence of characters following curr_char_loc where input must be
 diverted elsewhere, there must be a marker character at that point to
 force examination of related data structures.
 */
-EXTERN a_const_char
+EXTERN_THREAD a_const_char
 		*curr_source_line;
 			/* Characters of the current logical source line,
 			   ended by LE_NEWLINE and LE_END_OF_LINE lexical
@@ -1168,14 +1168,14 @@ EXTERN a_const_char
 			   all the lines of a large macro definition.
 			   Subsequent reallocations will double the amount
 			   previously allocated. */
-EXTERN a_const_char
+EXTERN_THREAD a_const_char
 		*after_end_of_curr_source_line;
 			/* Address past the last element of curr_source_line,
 			   as an aid to checking for overflow, etc.  A variable
 			   because curr_source_line line can reallocated larger
 			   if needed. */
 #if MULTIBYTE_CHARS_IN_SOURCE_SUPPORTED
-EXTERN a_const_char
+EXTERN_THREAD a_const_char
 		**logical_char_info;
 			/* A dynamically allocated array that is used to
 			   convert a pointer into curr_source_line from a
@@ -1196,13 +1196,13 @@ EXTERN a_const_char
 			   index+1 is the adjustment needed to convert to
 			   a logical column number. */
 #endif /* MULTIBYTE_CHARS_IN_SOURCE_SUPPORTED */
-EXTERN int	logical_char_info_entries_used;
+EXTERN_THREAD int	logical_char_info_entries_used;
 			/* The number of entries in the logical_char_info
 			   array that are in use for the current source
 			   line (zero if no entries are in use).  Only
 			   referenced when MULTIBYTE_CHARS_IN_SOURCE_SUPPORTED
 			   is TRUE. */
-EXTERN a_seq_number
+EXTERN_THREAD a_seq_number
 		curr_seq_number;
 			/* The sequence number of the first physical line
 			   in curr_source_line.  Once the end of file on
@@ -1210,7 +1210,7 @@ EXTERN a_seq_number
 			   indicates a sequence number one past the highest
 			   sequence number actually read, as an indication
 			   of a sort of end-of-file line. */
-EXTERN a_boolean
+EXTERN_THREAD a_boolean
 		at_end_of_source_file;
 			/* If TRUE, there is no current logical source line;
 			   the last attempt to read one ran into an end of
@@ -1221,7 +1221,7 @@ EXTERN a_boolean
 			   but still within it -- the stack has not yet been
 			   popped.  curr_source_line still contains the line
 			   most recently read. */
-EXTERN sizeof_t	end_of_line_escape_offset;
+EXTERN_THREAD sizeof_t	end_of_line_escape_offset;
 			/* The offset of the LE_END_OF_LINE escape that
 			   ends curr_source_line.  This is set by
 			   skip_white_space and is used only in the rare
@@ -1237,7 +1237,7 @@ EXTERN sizeof_t	end_of_line_escape_offset;
 			   line to avoid processing the line's contents
 			   twice. */
 
-EXTERN a_seq_number
+EXTERN_THREAD a_seq_number
 		seq_number_last_read;
 			/* The sequence number of the physical line last read
 			   from curr_input_stream.  This is often not the
@@ -1252,7 +1252,7 @@ logical source line.  Usually, this points within curr_source_line,
 but when macros are being scanned, it can point elsewhere (in macro_buffer
 or in an argument string).
 */
-EXTERN a_const_char
+EXTERN_THREAD a_const_char
 		*curr_char_loc;
 			/* Pointer to the current character within
 			   curr_source_line.  More precisely, this is the
@@ -1439,7 +1439,7 @@ typedef struct an_orig_line_modif {
   } variant;
 } an_orig_line_modif;
 
-EXTERN an_orig_line_modif_ptr
+EXTERN_THREAD an_orig_line_modif_ptr
 		orig_line_modif_list,
 		end_orig_line_modif_list;
 			/* List of modifications to the original source lines
@@ -1448,7 +1448,7 @@ EXTERN an_orig_line_modif_ptr
 			   end_orig_line_modif_list points to the last entry
 			   on the list.  Both pointers are NULL if there are
 			   no changes (a very common case). */
-EXTERN an_orig_line_modif_ptr
+EXTERN_THREAD an_orig_line_modif_ptr
 		avail_orig_line_modifs;
 			/* List of entries that have been allocated and freed
 			   and are available for reuse. */
@@ -1652,7 +1652,7 @@ typedef struct a_source_line_modif {
 			   FALSE). */
 } a_source_line_modif;
 
-EXTERN a_source_line_modif_ptr
+EXTERN_THREAD a_source_line_modif_ptr
 		source_line_modif_list;
 			/* List of modifications to the current logical source
 			   line to produce the fully preprocessed line.
@@ -1663,7 +1663,7 @@ EXTERN a_source_line_modif_ptr
 			   they are referenced, so the searches are short.
 			   NULL if there are no changes (a very common
 			   case). */
-EXTERN a_source_line_modif_ptr
+EXTERN_THREAD a_source_line_modif_ptr
 		line_start_source_line_modif;
 			/* Ordinarily NULL.  When non-NULL, points to
 			   a source modification entry with line_loc == NULL,
@@ -1676,11 +1676,11 @@ EXTERN a_source_line_modif_ptr
 			   an entry.  Used for re-insertion of macro name
 			   identifiers for function-like macros when the
 			   identifier is not followed by a "(". */
-EXTERN a_source_line_modif_ptr
+EXTERN_THREAD a_source_line_modif_ptr
 		avail_source_line_modifs;
 			/* List of entries that have been allocated and freed
 			   and are available for reuse. */
-EXTERN unsigned long
+EXTERN_THREAD unsigned long
 		sequence_id_for_source_line_modifs;
 			/* Used to generate sequence_id values as 
 			   modifications are added; incremented each
@@ -1697,7 +1697,7 @@ logical source line.  Having the flag ensures that the deletion will be
 done as the newline is processed, after which delete_source_from_loc
 will be set to the start of the new line.
 */
-EXTERN a_const_char
+EXTERN_THREAD a_const_char
 		*delete_source_from_loc;
 
 /*
@@ -1709,34 +1709,34 @@ If new variables are added here, be sure to put them also into
 cache_curr_token, get_token_from_cached_token_rescan_list, and
 get_token_from_reusable_cache_stack.
 */
-EXTERN a_token_kind
+EXTERN_THREAD a_token_kind
 		curr_token;
 			/* The current token of input.  More precisely,
 			   the one about to be processed. */
-EXTERN a_const_char
+EXTERN_THREAD a_const_char
 		*start_of_curr_token,
 		*end_of_curr_token;
 			/* The characters of the current token, in
 			   curr_source_line.  Only valid outside the
 			   lexical routines when raw pp tokens are being
 			   fetched. */
-EXTERN sizeof_t	len_of_curr_token;
+EXTERN_THREAD sizeof_t	len_of_curr_token;
 			/* The length of the current token.  Only valid 
 			   outside the lexical routines when raw pp tokens
 			   are being fetched. */
-EXTERN a_source_position
+EXTERN_THREAD a_source_position
 		pos_curr_token;
 			/* The start position of the current token. */
 
 #if EXTRA_SOURCE_POSITIONS_IN_IL
-EXTERN a_source_position
+EXTERN_THREAD a_source_position
 		end_pos_curr_token;
 			/* The end position of the current token -- that is,
 			   the source position of the last character of the
 			   token. */
 #endif /* EXTRA_SOURCE_POSITIONS_IN_IL */
 
-EXTERN int	kind_of_white_space_skipped;
+EXTERN_THREAD int	kind_of_white_space_skipped;
 			/* Kind of white space skipped by the most recent
 			   call to skip_white_space (not necessarily
 			   correct when get_token is called).  Used in
@@ -1746,7 +1746,7 @@ EXTERN int	kind_of_white_space_skipped;
 #define WHITE_SPACE_COMMENTS 0x01
 #define WHITE_SPACE_OTHER    0x02
 
-EXTERN a_boolean
+EXTERN_THREAD a_boolean
 		preserve_white_space_kind;
 			/* When TRUE, skip_white_space will not reset
 			   kind_of_white_space_skipped to 0, and the caller
@@ -1759,13 +1759,13 @@ EXTERN a_boolean
 			   empty, followed by a non-empty macro
 			   expansion. */
 
-EXTERN a_boolean
+EXTERN_THREAD a_boolean
 		comma_is_from_argument;
 			/* Set to TRUE when an LE_COMMA_FROM_ARGUMENT is
 			   seen by skip_white_space.  It is the responsibility
 			   of the caller of skip_white_space to set it to
 			   FALSE beforehand. */
-EXTERN a_boolean
+EXTERN_THREAD a_boolean
 		comma_is_magic;
 			/* Set to TRUE when skip_white_space encounters an
 			   LE_MICROSOFT_MAGIC_COMMA when in_macro_arg_list
@@ -1773,27 +1773,27 @@ EXTERN a_boolean
 			   skipped.  It is the responsibility of the caller
 			   of skip_white_space to set it to FALSE
 			   beforehand. */
-EXTERN a_boolean
+EXTERN_THREAD a_boolean
 		empty_variadic_macro_seen;
 			/* Set to TRUE when skip_white_space encounters an
 			   LE_EMPTY_VARIADIC_MACRO.  It is the
 			   responsibility of the caller of skip_white_space
 			   to set it to FALSE beforehand. */
-EXTERN a_boolean
+EXTERN_THREAD a_boolean
 		lparen_is_from_argument;
 			/* Set to TRUE when an LE_LPAREN_FROM_ARGUMENT is
 			   seen by skip_white_space.  It is the
 			   responsibility of the caller of skip_white_space
 			   to set it to FALSE beforehand. */
-EXTERN a_source_line_modif_ptr
+EXTERN_THREAD a_source_line_modif_ptr
 		last_source_line_modif_exited_while_skipping_white_space;
 			/* Set by skip_white_space whenever a source line
 			   modification is exited. */
-EXTERN a_constant
+EXTERN_THREAD a_constant
 		const_for_curr_token;
 			/* If the current token is a literal constant,
 			   this is its value. */
-EXTERN a_constant
+EXTERN_THREAD a_constant
 		const_with_curr_tok_spelling;
 			/* If the current token is a numeric user-defined
 			   literal and tokens are either being cached or
@@ -1802,7 +1802,7 @@ EXTERN a_constant
 			   the literal suffix.  For example, if the current
 			   token is 123_x, this constant would be the
 			   string "123". */
-EXTERN a_symbol_ptr
+EXTERN_THREAD a_symbol_ptr
 		ud_lit_op_sym_for_curr_token;
 			/* If the current token is a user-defined literal
 			   (tok_ud_literal), this is the symbol for its
@@ -1815,34 +1815,34 @@ EXTERN a_symbol_ptr
 			   otherwise, it designates the specific function
 			   or template to be used to produce the value of
 			   this literal. */
-EXTERN a_type_ptr
+EXTERN_THREAD a_type_ptr
 		ud_lit_type_for_curr_token;
 			/* If the current token is a user-defined literal
 			   (tok_ud_literal), this is the type passed to
 			   find_literal_operator to look up the associated
 			   literal operator or literal operator
 			   template. */
-EXTERN an_error_code
+EXTERN_THREAD an_error_code
 		err_code_for_error_token;
 			/* If the current token is tok_error, this is the
 			   error code that applies to the error.  This is
 			   useful if the token was fetched with fetch_pp_tokens
 			   TRUE, since no diagnostic was put out in that
 			   case. */
-EXTERN a_boolean
+EXTERN_THREAD a_boolean
 		curr_token_is_inert_macro;
 			/* TRUE if the current token is an identifier that
 			   is the name of a macro that was found within its
 			   own expansion and therefore should not be expanded
 			   again.  Not used in pcc preprocessing mode. */
-EXTERN a_boolean
+EXTERN_THREAD a_boolean
 		curr_token_is_temporarily_inert_macro;
 			/* TRUE when curr_token_is_inert_macro is TRUE and
 			   the lexical escape indicating inertness is
 			   LE_TEMPORARILY_INERT_MACRO instead of
 			   LE_INERT_MACRO. */
 
-EXTERN a_boolean
+EXTERN_THREAD a_boolean
 		any_initial_get_token_tests_needed;
 			/* TRUE if a condition exists that requires some
 			   special processing when get_token is called.
@@ -1850,21 +1850,21 @@ EXTERN a_boolean
 			   from a cache or when there are pragmas that
 			   are associated with the current token. */
 
-EXTERN a_boolean
+EXTERN_THREAD a_boolean
 		treat_newline_as_token;
 			/* TRUE if ends-of-lines should be returned as
 			   tok_newline instead of skipped as white space. */
 
-EXTERN char	*curr_token_asm_string;
+EXTERN_THREAD char	*curr_token_asm_string;
 			/* When curr_token == tok_microsoft_asm, this points
 			   to the associated asm string. */
 
-EXTERN a_constant_ptr
+EXTERN_THREAD a_constant_ptr
 		name_linkage_constants;
 			/* A pointer to an array of constants representing
 			   the name linkages that the front end accepts. */
 
-EXTERN a_boolean
+EXTERN_THREAD a_boolean
 		id_contains_ucn_or_multibyte_char;
 			/* When curr_token is tok_identifier, TRUE if the
 			   the identifier was written using a
@@ -1877,7 +1877,7 @@ EXTERN a_boolean
 			   directives where it is known that source text is
 			   being scanned. */
 
-EXTERN a_boolean
+EXTERN_THREAD a_boolean
 		number_contains_digit_separator;
 			/* Set to TRUE by scan_number if the current token
 			   has embedded digit separators (apostrophes) and
@@ -1886,24 +1886,24 @@ EXTERN a_boolean
 
 #if ASM_SUPPORT_NEEDED
 
-EXTERN a_boolean
+EXTERN_THREAD a_boolean
 		in_asm_function_body;
 			/* TRUE if processing takes place during the scan of
 			   an asm function body. */
 
-EXTERN sizeof_t	pos_in_asm_func_body_buffer;
+EXTERN_THREAD sizeof_t	pos_in_asm_func_body_buffer;
 			/* The number of characters that have been added to
 			   asm_func_body_buffer thus far in processing. */
 
-EXTERN char	*asm_func_body_buffer;
+EXTERN_THREAD char	*asm_func_body_buffer;
 			/* Pointer to a dynamically allocated buffer used to
 			   construct the string representation of an asm
 			   function or Microsoft asm block. */
 
-EXTERN sizeof_t	size_asm_func_body_buffer;
+EXTERN_THREAD sizeof_t	size_asm_func_body_buffer;
 			/* The size of the asm buffer. */
 
-EXTERN a_const_char
+EXTERN_THREAD a_const_char
 		*prev_asm_stop_char;
 			/* The last character copied by the previous call to
 			   copy_from_source_to_asm_func_buffer.  (Must be
@@ -1921,7 +1921,7 @@ extern void reset_asm_buffer(void);
 #endif /* ASM_SUPPORT_NEEDED */
 
 #if EXTRA_SOURCE_POSITIONS_IN_IL
-EXTERN a_source_position
+EXTERN_THREAD a_source_position
 		curr_construct_end_position;
 			/* Global variable used to return an end position
 			   from the scanning of some construct.  Should be
@@ -1930,7 +1930,7 @@ EXTERN a_source_position
 #endif /* EXTRA_SOURCE_POSITIONS_IN_IL */
 
 #if !FULLY_RESOLVED_MACRO_POSITIONS
-EXTERN a_source_position
+EXTERN_THREAD a_source_position
 		pos_of_macro_invocation;
 			/* Global variable that contains the source
 			   position of the outermost macro invocation
@@ -1985,7 +1985,7 @@ typedef struct a_stop_token_stack_entry {
 			   stop_tokens[token] != 0; */
 } a_stop_token_stack_entry;
 
-EXTERN a_stop_token_stack_entry_ptr
+EXTERN_THREAD a_stop_token_stack_entry_ptr
 		curr_stop_token_stack_entry;
 			/* Pointer to the current stop token stack entry. */
 
@@ -2034,7 +2034,7 @@ typedef struct a_lexical_state_stack_entry {
 			   ignored. */
 } a_lexical_state_stack_entry;
 
-EXTERN a_lexical_state_stack_entry_ptr
+EXTERN_THREAD a_lexical_state_stack_entry_ptr
 		curr_lexical_state_stack_entry;
 			/* Pointer to the current lexical state stack entry. */
 
@@ -2048,7 +2048,7 @@ state stack entry.
 /*
 Other general variables:
 */
-EXTERN a_boolean
+EXTERN_THREAD a_boolean
 		is_id_char[CHAR_MAX-CHAR_MIN+1];
 			/* For each character, whether or not it can be a
 			   character after the first in an identifier.
@@ -2071,18 +2071,18 @@ EXTERN a_boolean
 			   can be checked in this table once they have been
 			   converted to a single-byte Unicode code point. */
 #endif /* UNICODE_SOURCE_SUPPORTED */
-EXTERN a_boolean
+EXTERN_THREAD a_boolean
 		char_ends_id[CHAR_MAX-CHAR_MIN+1];
 			/* A table to quickly identify characters that end
 			   an identifier (to avoid a relatively expensive
 			   call to f_is_identifier_char). */
-EXTERN a_boolean
+EXTERN_THREAD a_boolean
 		char_ends_number[CHAR_MAX-CHAR_MIN+1];
 			/* A table to quickly identify characters that end
 			   a numeric literal (used to check for the
 			   single-digit integer performance
 			   optimization). */
-EXTERN a_boolean
+EXTERN_THREAD a_boolean
 		is_raw_string_delimiter_char[CHAR_MAX-CHAR_MIN+1];
 			/* For each character, whether or not it can appear
 			   in the d-char-sequence of a raw string
@@ -2183,7 +2183,7 @@ typedef struct a_lexical_ifc_index_reference {
 #endif /* DEBUG */
 } a_lexical_ifc_index_reference;
 
-EXTERN a_lexical_ifc_index_reference
+EXTERN_THREAD a_lexical_ifc_index_reference
 		ifc_index_for_curr_token;
 			/* If the current token is a pseudotoken indicating an
 			   index into an IFC module (i.e., extra_info_kind is
@@ -2549,25 +2549,25 @@ preprocessed (or raw listing) output to ensure that the output is correctly
 tokenizable.  The second variable only applies to the next line of output
 (after which it is reset to the value of the first variable).
 */
-EXTERN a_boolean
+EXTERN_THREAD a_boolean
 		no_token_separators_in_pp_output;
 
-EXTERN a_boolean
+EXTERN_THREAD a_boolean
 		no_token_separators_in_this_line_of_pp_output;
 
-EXTERN a_preinclude_file_ptr
+EXTERN_THREAD a_preinclude_file_ptr
 		next_preinclude_file;
 			/* The next preinclude file to be processed in either
 			   the normal or macro-only preinclude file list,
 			   depending on the setting of
 			   processing_macro_preincludes. */
 
-EXTERN a_boolean
+EXTERN_THREAD a_boolean
 		processing_macro_preincludes;
 			 /* TRUE when processing the list of macro-only
 			    preincludes. */
 
-EXTERN a_boolean
+EXTERN_THREAD a_boolean
 		next_token_is_top_level_decl_start;
 			/* Flag toggled in translation_unit when advancing
 			   past a token that marks the end of a "top-level"
@@ -2576,7 +2576,7 @@ EXTERN a_boolean
 			   between declarations -- or else just before the
 			   first declaration or just after the last. */
 
-EXTERN a_boolean
+EXTERN_THREAD a_boolean
 		caching_tokens;
 			/* TRUE when caching a token stream to be scanned
 			   later. */
@@ -2585,7 +2585,7 @@ EXTERN a_boolean
 Data structure used in deciding where to put extra blanks to separate
 adjacent tokens in textual preprocessing output.
 */
-EXTERN a_byte	pp_lexical_category[CHAR_MAX-CHAR_MIN+1];
+EXTERN_THREAD a_byte	pp_lexical_category[CHAR_MAX-CHAR_MIN+1];
 			/* For each character, the lexical category to
 			   be used in preprocessing output.  These categories
 			   are used to decide when extra token-separating
@@ -2913,7 +2913,7 @@ utilities that do not have memory management code.
 */
 {
 #define add_str(s) { strcpy(buff + len, s); len += sizeof(s) - 1; }
-  static char buff[64];
+  STATIC_THREAD char buff[64];
   int len = 0;
 
   if (lit_kind == SCLK_NOT_A_LITERAL) {

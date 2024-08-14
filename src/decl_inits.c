@@ -6207,7 +6207,7 @@ field declaration and dtype is the type of the field.
 }  /* expr_init_field */
 
 
-static a_field_ptr
+STATIC_THREAD a_field_ptr
 		field_for_curr_field_initializer;
 			/* The field handled by the last unterminated call to
 			   field_initializer (below).  NULL if there is no
@@ -6215,7 +6215,7 @@ static a_field_ptr
 			   not for an actual field). */
 
 #if NEED_NAME_MANGLING
-static a_discriminator
+STATIC_THREAD a_discriminator
 		last_discriminator_for_curr_field_initializer;
 			/* The value of the last discriminator handed out to
 			   distinguish the mangled name of unnamed entities
@@ -8428,7 +8428,7 @@ Each entry in the table maps a routine entry for a delegating constructor to
 a non-delegating constructor it (possibly indirectly) delegates construction
 to.
 */
-static a_hash_table_ptr
+STATIC_THREAD a_hash_table_ptr
 	ctor_delegation_map;
 
 

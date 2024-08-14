@@ -248,24 +248,24 @@ typedef long	a_mem_alloc_history_number;
 			/* Type of an index into the
 			    mem_alloc_history array. */
 
-EXTERN a_mem_alloc_history_number
+EXTERN_THREAD a_mem_alloc_history_number
 		num_of_mem_alloc_history_entries;
 			/* Number of elements used in the memory allocation
 			   history array. */
 
-EXTERN a_mem_alloc_history_number
+EXTERN_THREAD a_mem_alloc_history_number
 		size_of_mem_alloc_history;
 			/* Number of array elements in the memory allocation
 			   history array. */
 
-EXTERN a_mem_alloc_history_number
+EXTERN_THREAD a_mem_alloc_history_number
 		mem_alloc_history_entries_used;
 			/* The number of entries in the mem_alloc_history
 			   array for which the associated memory is
 			   actually in use by the compilation. */
 
 #if USE_MMAP_FOR_MEMORY_REGIONS
-EXTERN a_mem_alloc_history_ptr
+EXTERN_THREAD a_mem_alloc_history_ptr
 		mem_alloc_history;
 			/* Pointer to an array of memory allocation history
 			   entries. */
@@ -324,11 +324,11 @@ Macro that is TRUE if two memory allocation history entries are equivalent.
 #endif /* !STANDALONE_UTILITY_PROGRAM */
 
 #if DEBUG
-EXTERN unsigned long
+EXTERN_THREAD unsigned long
 		*allocated_in_region;
 			/* Parallel array to mem_region_table.  Keeps track
 			   of the allocation in each region. */
-EXTERN a_memory_region_number
+EXTERN_THREAD a_memory_region_number
 		size_of_allocated_in_region;
 			/* Size of allocated_in_region (in entries, not 
 			   bytes). */

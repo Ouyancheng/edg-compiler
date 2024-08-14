@@ -1345,17 +1345,17 @@ extern void update_instantiation_flags_for_class(
 
 extern void instantiation_pragma(a_pending_pragma_ptr	ppp);
 
-EXTERN a_def_arg_expr_fixup_ptr
+EXTERN_THREAD a_def_arg_expr_fixup_ptr
 		curr_default_args /* = NULL */;
 			/* Pointer to the default argument entries for
 			   the function template being scanned. */
 
-EXTERN a_type_ptr
+EXTERN_THREAD a_type_ptr
 		type_of_unknown_templ_param_nontype /* = NULL */;
 			/* A type used for template parameter nontype values
 			   and expressions whose real type cannot be known. */
 
-EXTERN unsigned long
+EXTERN_THREAD unsigned long
 		defer_instantiations;
 			/* Nonzero if nonclass instantiations should be
 			   deferred.  This causes instantiations to be placed
@@ -1364,14 +1364,14 @@ EXTERN unsigned long
 			   deferred when pending_class_definitions is
 			   nonzero. */
 
-EXTERN a_symbol_list_entry_ptr
+EXTERN_THREAD a_symbol_list_entry_ptr
 		exported_templates_list;
 			/* List of exported templates whose definitions
 			   were provided in this compilation.  This list
 			   includes only functions and static data members
 			   (i.e., not classes). */
 
-EXTERN a_decl_sequence_number
+EXTERN_THREAD a_decl_sequence_number
 		class_instantiation_sequence_number;
 			/* Count of the number of instantiations of
 			   class templates that have been performed in the
@@ -1379,7 +1379,7 @@ EXTERN a_decl_sequence_number
 
 #if ENSURE_LOWERED_TYPE_LIST_ORDERING
 
-EXTERN a_boolean
+EXTERN_THREAD a_boolean
 		local_type_used_as_template_type_argument;
 			/* TRUE if a local type has been used as a template
 			   argument in any translation unit of the

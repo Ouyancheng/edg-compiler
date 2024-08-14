@@ -41,7 +41,7 @@ BEGIN_EDG_NAMESPACE
 /*
 Static variable set when a catastrophe occurs, to catch catastrophe loops.
 */
-static a_boolean catastrophe_has_occurred;
+STATIC_THREAD a_boolean catastrophe_has_occurred;
 
 /*
 Constants, structures and static variables used to format diagnostic
@@ -67,7 +67,7 @@ messages.
 				   NORMAL_DIAG_INDENT and less than
 				   SOURCE_INDENT. */
 
-static int	diagnostic_indent;
+STATIC_THREAD int	diagnostic_indent;
 			/* Typically all diagnostic messages will
 			   begin in the first column of a line and
 			   subsequent continuation lines would be
@@ -77,7 +77,7 @@ static int	diagnostic_indent;
 			   start of each additional message.  See
 			   NORMAL_DIAG_INDENT and LIST_DIAG_INDENT
 			   above. */
-static a_memory_region_number
+STATIC_THREAD a_memory_region_number
 		diag_memory_region;
 			/* The memory region to be used for allocating
 			   diagnostics.  Normally this is front end
@@ -453,30 +453,30 @@ fill-in entries are valid.
 /*
 Counts of tables allocated, to track total use of memory.
 */
-static uint32_t	num_diagnostics_allocated,
+STATIC_THREAD uint32_t	num_diagnostics_allocated,
 		num_diag_fill_ins_allocated;
 #endif /* DEBUG */
 
-static a_diagnostic_ptr
+STATIC_THREAD a_diagnostic_ptr
 		avail_diagnostics;
 			/* List of diagnostic entries freed and available
 			   for reuse. */
 
-static a_diag_fill_in_ptr
+STATIC_THREAD a_diag_fill_in_ptr
 		avail_diag_fill_ins;
 			/* List of diagnostic fill-in entries freed and
 			   available for reuse. */
 
-static a_text_buffer_ptr
+STATIC_THREAD a_text_buffer_ptr
 		msg_buffer;
 			/* Buffer used to construct an error message. */
 
-static a_text_buffer_ptr
+STATIC_THREAD a_text_buffer_ptr
 		prefix_buffer;
 			/* Buffer used to construct the diagnostic prefix
 			   information (file, severity, etc). */
 
-static a_text_buffer_ptr
+STATIC_THREAD a_text_buffer_ptr
 		write_diagnostic_buffer;
 			/* A text buffer used by write_diagnostic to
 			   accumulate the entire contents of a
@@ -485,7 +485,7 @@ static a_text_buffer_ptr
 			   is not null-terminated during the
 			   construction of the diagnostic. */
 
-static int	diagnostic_line_length;
+STATIC_THREAD int	diagnostic_line_length;
 			/* The maximum length of an error output line.
 			   Use to wrap diagnostics. */
 
@@ -518,18 +518,18 @@ struct an_error_code_entry {
                                    current compilation. */
 };
 
-static an_error_code_entry
+STATIC_THREAD an_error_code_entry
                 error_codes[(int)ec_last + 1];
                                 /* An array of consisting of information
                                    related to how each error code is handled.
                                    */
-static a_boolean
+STATIC_THREAD a_boolean
                 error_codes_initialized;
                                 /* A flag used to avoid re-initialization of
                                    error_codes when compiling the first
                                    translation unit. */
 
-static an_il_to_str_output_control_block
+STATIC_THREAD an_il_to_str_output_control_block
 		octl;	/* Output control block for interface to il_to_str
 			   routines. */
 
@@ -542,7 +542,7 @@ line.  Occasionally a diagnostic will refer to a source line that is not in
 the current logical source line (a line read earlier).  The buffer pointed
 to by error_source_line will hold such a source line that has been reread.
 */
-static char	*error_source_line;
+STATIC_THREAD char	*error_source_line;
 			/* Characters of the source line being reread for
 			   diagnostic generation, ended by both a newline and
 			   a null.  Space is dynamically allocated, and its
@@ -554,7 +554,7 @@ static char	*error_source_line;
 			   error_source_line.  The initial allocation should be
 			   such that almost all cases can be accepted (so that
 			   the realloc is hardly ever needed). */
-static char	*after_end_of_error_source_line;
+STATIC_THREAD char	*after_end_of_error_source_line;
 			/* Address past the last element of error_source_line,
 			   as an aid to checking for overflow, etc.  A variable
 			   because error_source_line line can be reallocated
@@ -605,12 +605,12 @@ typedef struct an_error_file_index {
 				   large. */
 } an_error_file_index;
 
-static an_error_file_index_ptr
+STATIC_THREAD an_error_file_index_ptr
 		head_of_file_index_list;
 				/* Pointer to the beginning of the list of
 				   an_error_file_index entries.  Initialized
 				   to NULL by error_init(). */
-static an_error_file_index_ptr
+STATIC_THREAD an_error_file_index_ptr
 		tail_of_file_index_list;
 				/* Pointer to the tail of the list of
 				   an_error_file_index entries.  Initialized
@@ -705,7 +705,7 @@ Return TRUE if e1 and e2 have the same values for all non-static data members.
 }  /* operator== */
 
 
-static Dyn_array<a_pragma_diag_elem>
+STATIC_THREAD Dyn_array<a_pragma_diag_elem>
                 *pragma_diag_list;
                         /* A pointer to a dynamic array of a_pragma_diag_elem
                            entries that represent all of the "diagnostic"
@@ -713,7 +713,7 @@ static Dyn_array<a_pragma_diag_elem>
                            by source location (which occurs naturally except
                            for the case of _Pragmas in instantiations which
                            must be inserted at the proper location). */
-static Dyn_array<size_t>
+STATIC_THREAD Dyn_array<size_t>
                 *pragma_diag_stack;
                         /* A stack that keeps track of "diagnostic push"
                            pragma indices so that they can later be matched
@@ -755,7 +755,7 @@ typedef struct a_recorded_diagnostic {
 			/* The number of buckets in the recorded diagnostic
 			   table.  This number should be prime. */
 
-static a_recorded_diagnostic_ptr
+STATIC_THREAD a_recorded_diagnostic_ptr
 		recorded_diagnostic_table[RECORDED_DIAG_TABLE_SIZE];
 			/* The top level array used for the hash table used
 			   to find previously issued diagnostics. */
@@ -2264,27 +2264,27 @@ file which is closer to the desired line.
 #endif /* !STANDALONE_UTILITY_PROGRAM */
 #if !STANDALONE_UTILITY_PROGRAM
 
-static FILE	*f_err_src_file;
+STATIC_THREAD FILE	*f_err_src_file;
 			/* File variable used to fetch the source line from
 			   the source file. */
 
-static a_boolean
+STATIC_THREAD a_boolean
 		can_locate_source_line_info_cached;
 			/* TRUE if the cached... values below can be used
 			   to fetch the information about a previous call to
 			   can_locate_source_line. */
 
-static a_seq_number
+STATIC_THREAD a_seq_number
 		cached_seq_number;
 			/* The last sequence number passed into
 			   can_locate_source_line. */
 
-static a_unicode_source_kind
+STATIC_THREAD a_unicode_source_kind
 		cached_unicode_source_kind;
 			/* The unicode_source_kind returned by the last call
 			   to can_locate_source_line. */
 
-static a_boolean
+STATIC_THREAD a_boolean
 		cached_can_locate_source_line;
 			/* The result returned by the last call
 			   to can_locate_source_line. */
@@ -3245,7 +3245,7 @@ static void general_diagnostic(
 
 #if CHECKING
 
-static a_boolean internal_error_loop;
+STATIC_THREAD a_boolean internal_error_loop;
 			/* Set to TRUE once an internal error has been
 			   detected.  Used to detect a loop in internal
 			   error processing. */
@@ -3333,7 +3333,7 @@ An assertion has failed.  Abort the compilation.
 Structure to record a pending assertion.  If necessary, the recorded entities
 will be passed to assertion_failed at a later time.
 */
-static struct {
+STATIC_THREAD struct {
   a_const_char *filename;
   int          line_number;
   a_const_char *function;
@@ -3392,7 +3392,7 @@ expected_error.
 extern "C" {
 #endif /* BSEARCH_QSORT_FUNCTION_IS_EXTERN_C */
 
-static a_pragma_diag_elem
+STATIC_THREAD a_pragma_diag_elem
                 *pdl_lower_bound;
                         /* During a call to pragma_diag_list_lower_bound this
                            variable is used to keep track of the greatest
@@ -5429,7 +5429,7 @@ create the diagnostic entries for the context.
     }  /* if */
     for (sd = depth_scope_stack; sd > DEPTH_OF_FILE_SCOPE; --sd) {
       a_scope_stack_entry_ptr	ssep = &scope_stack[sd];
-      static a_source_position	context_source_pos;
+      STATIC_THREAD a_source_position	context_source_pos;
       if (!include_in_context_output(ssep, &sym,
                                      &context_error_code,
                                      &context_source_pos,

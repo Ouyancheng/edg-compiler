@@ -135,11 +135,11 @@ static void handle_multidimensional_ck_init_repeat(a_constant_ptr constant,
 #if USE_LAZY_INITIALIZATION_FOR_THREAD_LOCAL_VARIABLES
 static void make_null_tls_init_routine(void);
 
-static a_boolean tls_init_needed;
+STATIC_THREAD a_boolean tls_init_needed;
                         /* TRUE if a reference to a __tls_init function has
                            been generated in this translation unit. */
 
-static a_boolean tls_init_emitted;
+STATIC_THREAD a_boolean tls_init_emitted;
                         /* TRUE if a __tls_init function has been emitted in
                            this translation unit. */
 #endif /* USE_LAZY_INITIALIZATION_FOR_THREAD_LOCAL_VARIABLES */
@@ -2659,7 +2659,7 @@ Pointers to routine entries for runtime routines for call of a constructor,
 copy constructor, or destructor for each element of an array, once created.
 NULL until then.
 */
-static a_routine_ptr
+STATIC_THREAD a_routine_ptr
 		vec_new_routine,
 #if !IA64_ABI
 		vec_new_eh_routine,
@@ -2898,7 +2898,7 @@ Pointer to the generic function pointer types used for passing constructors,
 destructors, copy constructors, operator new, and operator delete functions
 to runtime routines for array construction/destruction.  NULL until created.
 */
-static a_type_ptr
+STATIC_THREAD a_type_ptr
 		ctor_ptr_type,
 		dtor_ptr_type,
 		cctor_ptr_type,
@@ -3217,7 +3217,7 @@ Variable entry for the runtime global variable __array_new_prefix_size,
 which gives the size in bytes of the array allocation prefix.  NULL until
 created.  Used only with ABI_CHANGES_FOR_PLACEMENT_DELETE set to TRUE.
 */
-static a_variable_ptr
+STATIC_THREAD a_variable_ptr
 		array_new_prefix_size_var;
 
 #endif /* !IA64_ABI */
@@ -7699,9 +7699,9 @@ Pointer to the struct type used to provide information to the runtime about
 a needed destruction for a file-scope or local static variable.
 NULL until created.
 */
-static a_type_ptr
+STATIC_THREAD a_type_ptr
 		needed_destruction_type;
-static a_field_ptr
+STATIC_THREAD a_field_ptr
 		needed_destruction_object_field;
 
 
@@ -7780,7 +7780,7 @@ Pointer to the routine entry for the runtime routine used to record a
 needed call of a destructor at process termination and at thread
 termination.  NULL until created.
 */
-static a_routine_ptr
+STATIC_THREAD a_routine_ptr
 		record_needed_destruction_routine,
                 record_needed_thread_destruction_routine;
 
@@ -8610,7 +8610,7 @@ those assignments.
 Pointer to the routine entry for the C library routine memcpy.  NULL until
 created.
 */
-static a_routine_ptr
+STATIC_THREAD a_routine_ptr
 		memcpy_routine;
 
 an_expr_node_ptr make_memcpy_call(an_expr_node_ptr     dst,
@@ -8919,7 +8919,7 @@ of the array.
 Pointer to the routine entry for the runtime routine __memzero.  NULL until
 created.  For the IA-64 ABI, points to memset or bzero instead.
 */
-static a_routine_ptr
+STATIC_THREAD a_routine_ptr
 		memzero_routine;
 
 
@@ -11160,7 +11160,7 @@ virtual table table pointer that should be passed to the destructor
 
 #if RUNTIME_SUPPORTS_ARRAY_LENGTH_CHECK && ABI_COMPATIBILITY_VERSION >= 406
 
-static a_routine_ptr
+STATIC_THREAD a_routine_ptr
                 throw_bad_array_new_length_routine;
                         /* Pointer to __throw_bad_array_new_length runtime
                            routine. */
@@ -19957,7 +19957,7 @@ a (decayed) pointer type.
 /*
 Pointers to builtin routines used in the lowering of a resolver routine.
 */
-static a_routine_ptr
+STATIC_THREAD a_routine_ptr
                 builtin_cpu_init_routine,
                 builtin_cpu_is_routine,
                 builtin_cpu_supports_routine;

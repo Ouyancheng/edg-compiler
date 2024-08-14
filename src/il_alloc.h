@@ -24,18 +24,18 @@ BEGIN_EDG_NAMESPACE
 /*
 List of released local constants for reuse by local_constant.
 */
-EXTERN a_constant_ptr available_local_constants;
+EXTERN_THREAD a_constant_ptr available_local_constants;
 
 /*
 List of released file-scope expression nodes for reuse by alloc_expr_node.
 */
-EXTERN an_expr_node_ptr avail_fs_nodes;
+EXTERN_THREAD an_expr_node_ptr avail_fs_nodes;
 
 /*
 Scratch variable for use by macro versions of some local constant routines
 in some configurations.
 */
-EXTERN a_constant_ptr temp_for_local_constant;
+EXTERN_THREAD a_constant_ptr temp_for_local_constant;
 
 /* Most IL allocation facilities are not needed in a standalone utility
    program. */

@@ -49,7 +49,7 @@ extern long gethostid(void);
 BEGIN_EDG_NAMESPACE
 
 
-static a_def_undef_string_ptr
+STATIC_THREAD a_def_undef_string_ptr
 		last_defs_from_cmd_line;
 			/* Points to the last element in the list
 			   defs_from_cmd_line. */
@@ -102,21 +102,21 @@ typedef struct an_option_description {
 			   and disable the option.  Also, it is possible
 			   to have synonyms for options. */
 
-static an_option_description
+STATIC_THREAD an_option_description
 		option_descriptions[SIZE_OF_OPTION_DESCRIPTIONS];
 			/* Pointer to a linked list of option descriptions. */
 
-static int	option_descriptions_used;
+STATIC_THREAD int	option_descriptions_used;
 			/* The number of entries that are used in the option
 			   description array. */
 
-static a_byte_boolean
+STATIC_THREAD a_byte_boolean
 		option_kind_used[(int)optk_last+1];
 			/* An array indexed by option kind that indicates
 			   whether the option kind has been specified in
 			   the command line. */
 
-static a_boolean
+STATIC_THREAD a_boolean
 		old_style_preprocessing;
 			/* TRUE if old-style preprocessing should be
 			   used in ANSI C or C++ mode. */
@@ -1818,11 +1818,11 @@ to is the option letter.
 }  /* look_up_option_description */
 
 
-static a_const_char
+STATIC_THREAD a_const_char
 		*opt_arg;
 			/* Returned from get_option -- Pointer to the current
 			   option argument. */
-static int	opt_ind;
+STATIC_THREAD int	opt_ind;
 			/* Index of the current option in argv. */
 
 NORETURN static void invalid_argument_error(int  argc,
@@ -1840,7 +1840,7 @@ Issue a invalid command line argument diagnostic.
 }  /* invalid_argument_error */
 
 
-static char
+STATIC_THREAD char
 		*optchar;
 				/* The character position containing the
 				   next option letter to be examined, or NULL
@@ -3428,8 +3428,8 @@ If it is not acceptable, issue an error.
 
 
 #if COMPILE_MULTIPLE_SOURCE_FILES || COMPILE_MULTIPLE_TRANSLATION_UNITS
-static char	**argv_file_list;
-static int	argc_file_list;
+STATIC_THREAD char	**argv_file_list;
+STATIC_THREAD int	argc_file_list;
 			/* When multiple source input files are accepted,
 			   argc_file_list is the count of files remaining
 			   after the current one, and argv_file_list
@@ -10007,7 +10007,7 @@ its use in such cases.
   }  /* for */
 }  /* dump_command_options */
 
-static a_boolean
+STATIC_THREAD a_boolean
                 C_dialect_has_been_set;
                         /* Flag that is TRUE if the C_dialect has been
                            set (either implicitly or explicitly) via a

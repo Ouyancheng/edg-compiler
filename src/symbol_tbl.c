@@ -50,7 +50,7 @@ BEGIN_EDG_NAMESPACE
 Dummy symbol headers used for compiler-generated error symbols and for
 unnamed class symbols.
 */
-static a_symbol_header_ptr
+STATIC_THREAD a_symbol_header_ptr
 		error_symbol_header,
 		template_param_object_symbol_header,
 		unnamed_tag_symbol_header,
@@ -59,11 +59,11 @@ static a_symbol_header_ptr
 		unnamed_virtual_function_symbol_header,
 		unnamed_namespace_symbol_header;
 
-static a_symbol_ptr
+STATIC_THREAD a_symbol_ptr
 		symbols_with_no_scope_tail;
 			/* End of the symbols_with_no_scope list. */
 
-static a_boolean
+STATIC_THREAD a_boolean
 		va_list_global_alias_has_been_created;
 			/* TRUE if the va_list type is in namespace std and
 			   a global using-declaration has already been
@@ -86,7 +86,7 @@ static a_named_register_id
 /*
 An empty symbol used to initialize newly allocated symbols.
 */
-static a_symbol cleared_symbol;
+STATIC_THREAD a_symbol cleared_symbol;
 
 static inline void clear_symbol(a_symbol_ptr   sym,
                                 a_symbol_kind  kind)
@@ -106,7 +106,7 @@ initialize its variant fields.
 /*
 Information used to gather performance statistics on the symbol table:
 */
-static unsigned long
+STATIC_THREAD unsigned long
 		num_symbols_allocated,
 		num_symbol_headers_allocated,
 		num_symbol_headers_in_hash_table,
@@ -158,7 +158,7 @@ static unsigned long
 		num_exception_spec_error_descrs_allocated;
 #endif /* DEBUG */
 
-static a_namespace_list_entry_ptr
+STATIC_THREAD a_namespace_list_entry_ptr
 		global_namespace_list_entry;
 			/* Pointer to a namespace list entry for the
 			   global scope.  This contains a NULL namespace
@@ -167,63 +167,63 @@ static a_namespace_list_entry_ptr
 Array used to hold an identifier for external name or destructor name
 generation.
 */
-static char     *ident_buffer;
+STATIC_THREAD char     *ident_buffer;
 			/* Buffer itself.  Dynamic allocated; current size is
 			   given by size_ident_buffer.  Allocated in general
 			   storage.  Not per-file. */
-static sizeof_t size_ident_buffer;
+STATIC_THREAD sizeof_t size_ident_buffer;
 			/* Current allocated size of ident_buffer. */
 #define IDENT_BUFFER_INCREMENTAL_ALLOCATION 300
 			/* Incremental allocation for ident_buffer.  Should
 			   be bigger than most identifiers. */
 
-static a_param_id_ptr
+STATIC_THREAD a_param_id_ptr
 		avail_param_ids;
 			/* List of parameter id entries freed and available
 			   for reuse. */
 
-static a_dependent_type_fixup_ptr
+STATIC_THREAD a_dependent_type_fixup_ptr
 		avail_dependent_type_fixups;
 			/* List of dependent type fixup entries freed and
 			   available for reuse. */
 
-static an_access_error_descr_ptr
+STATIC_THREAD an_access_error_descr_ptr
 		avail_access_error_descrs;
 			/* List of access error description  entries (allocated
                            in front end storage) freed and available for
                            reuse. */
 
-static a_symbol_list_entry_ptr
+STATIC_THREAD a_symbol_list_entry_ptr
 		avail_symbol_list_entries;
 			/* List of symbol list entries freed and available for
 			   reuse. */
 
-static a_type_list_entry_ptr
+STATIC_THREAD a_type_list_entry_ptr
 		avail_type_list_entries;
 			/* List of type list entries freed and available for
 			   reuse. */
 
-static a_namespace_list_entry_ptr
+STATIC_THREAD a_namespace_list_entry_ptr
 		avail_namespace_list_entries;
 			/* List of namespace list entries freed and available
 			   for reuse. */
 
-static a_template_cache_segment_ptr
+STATIC_THREAD a_template_cache_segment_ptr
 		avail_template_cache_segments;
 			/* List of template cache segments freed and available
 			   for reuse. */
 
-static a_vla_fixup_ptr
+STATIC_THREAD a_vla_fixup_ptr
 		avail_vla_fixups;
 			/* List of vla fixup entries freed and available for
 			   reuse. */
 
-static a_template_decl_info_ptr
+STATIC_THREAD a_template_decl_info_ptr
 		avail_template_decl_infos;
 			/* List of template declaration info entries freed and
 			   available for reuse. */
 
-static a_saved_macro_state_ptr
+STATIC_THREAD a_saved_macro_state_ptr
 		avail_saved_macro_states;
 			/* List of saved macro state entries freed and
 			   available for reuse. */
@@ -245,19 +245,19 @@ static a_hash_table_ptr
 
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
 
-static a_symbol_ptr
+STATIC_THREAD a_symbol_ptr
 		error_class_template_symbol;
 			/* Pointer to a shared error class template entry. */
 
-static sizeof_t	size_of_trans_unit_for_scope;
+STATIC_THREAD sizeof_t	size_of_trans_unit_for_scope;
 			/* Allocated size of the trans_unit_for_scope table. */
 
-static a_boolean
+STATIC_THREAD a_boolean
 		symbol_for_namespace_std_entered;
 			/* TRUE when the symbol for the "std" namespace has
 			   been entered into the symbol table. */
 
-static a_boolean
+STATIC_THREAD a_boolean
 		symbol_for_namespace_std_meta_entered;
 			/* TRUE when the symbol for the "std::meta" namespace
 			   has been entered into the symbol table. */
@@ -266,12 +266,12 @@ static a_boolean
 			/* Incremental allocation for the trans_unit_for_scope
 			   table. */
 
-static a_type_ptr
+STATIC_THREAD a_type_ptr
 		size_t_type;
 			/* Type for std::size_t, used for parameter type
 			   checking by find_literal_operator. */
 
-static a_type_ptr
+STATIC_THREAD a_type_ptr
 		ptr_to_const_char_type;
 			/* Type for const char*, used for parameter type
 			   checking by find_literal_operator. */
@@ -4349,7 +4349,7 @@ hdr_ptr == NULL indicates that an error symbol should be constructed.
 A pointer to an sk_undefined symbol.  This symbol is never entered into
 the symbol table.
 */
-static a_symbol_ptr dummy_undefined_symbol;
+STATIC_THREAD a_symbol_ptr dummy_undefined_symbol;
 
 
 a_symbol_ptr make_dummy_undefined_symbol(a_symbol_header_ptr hdr_ptr,
@@ -8167,7 +8167,7 @@ Return a pointer to "the" unnamed field symbol, which exists only for the
 sake of identifying a given field entry as representing an unnamed field.
 */
 {
-  static a_symbol             sym;
+  STATIC_THREAD a_symbol             sym;
 
   if (unnamed_field_symbol_header == NULL) {
     /* Set the shared fields to default values, set the kind, and initialize
@@ -15075,7 +15075,7 @@ typedef struct a_progenitor {
 			   derived class. */
 } a_progenitor;
 
-static a_progenitor_ptr
+STATIC_THREAD a_progenitor_ptr
 		avail_progenitors;
 			/* Linked list of progenitor entries that are
 			   available for reuse; may be NULL. */

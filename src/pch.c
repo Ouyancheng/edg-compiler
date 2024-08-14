@@ -47,43 +47,43 @@ BEGIN_EDG_NAMESPACE
 #define PCH_ID_STRING_LENGTH 128
 			/* Maximum length of the PCH id string. */
 
-static char	pch_id_string[PCH_ID_STRING_LENGTH];
+STATIC_THREAD char	pch_id_string[PCH_ID_STRING_LENGTH];
 			/* Buffer used to store the PCH id string. */
 
-static sizeof_t	pch_id_string_length;
+STATIC_THREAD sizeof_t	pch_id_string_length;
 			/* The actual length of the PCH id string (including
 			   the trailing null character). */
 
-static a_pch_event_ptr
+STATIC_THREAD a_pch_event_ptr
 		pch_event_list_head;
 			/* List of precompiled header events for the
 			   current primary input file. */
 
-static a_pch_event_ptr
+STATIC_THREAD a_pch_event_ptr
 		pch_event_list_tail;
 			/* Pointer to the end of the list of precompiled
                            header events for the current primary input file. */
 
-static a_pch_event_ptr
+STATIC_THREAD a_pch_event_ptr
 		pch_cmd_line_event_list_head;
 			/* List of precompiled header events associated with
 			   the command line. */
 
-static a_pch_event_ptr
+STATIC_THREAD a_pch_event_ptr
 		pch_cmd_line_event_list_tail;
 			/* Pointer to the end of the list of precompiled
                            header events associated with the command line. */
 
-static a_const_char
+STATIC_THREAD a_const_char
 		*pch_file_name;
 			/* Name of the precompiled header file being written
 			   or read. */
 
-static FILE	*f_pch_input;
+STATIC_THREAD FILE	*f_pch_input;
 			/* File from which the precompiled header information
 			   is being read. */
 
-static FILE	*f_pch_output;
+STATIC_THREAD FILE	*f_pch_output;
 			/* File to which the precompiled header information
 			   is being written. */
 
@@ -94,42 +94,42 @@ static FILE	*f_pch_output;
 			   for each compiled source file containing variables
 			   to be saved. */
 
-static a_pch_saved_variable_ptr
+STATIC_THREAD a_pch_saved_variable_ptr
 		saved_variable_array_list[MAX_NUMBER_OF_SAVED_VARIABLE_LISTS];
 			/* Array of pointers to arrays of saved variable
 			   lists.  Each element points to an array of
 			   saved variable entries. */
 
-static int	num_of_saved_variable_lists;
+STATIC_THREAD int	num_of_saved_variable_lists;
 			/* Number of entries in the saved variable array list
 			   that have been used. */
 
-static an_error_code
+STATIC_THREAD an_error_code
 		mismatch_reason;
 			/* An error code that specifies why a given
 			   precompiled header file could not be used. */
 
 /*lint -esym(728,*il_header_from_pch)*/
-static an_il_header
+STATIC_THREAD an_il_header
 		il_header_from_pch;
 			/* Copy of the IL header from the compilation that
 			   generated the PCH file. */
 
-static a_seq_number
+STATIC_THREAD a_seq_number
 		saved_curr_seq_number;
 			/* Saved value of curr_seq_number, used to fix up
 			   the source file sequence number information. */
 
-static a_mem_alloc_history_ptr
+STATIC_THREAD a_mem_alloc_history_ptr
 		new_alloc_history;
 			/* The memory allocation history information
 			   read from the precompiled header file. */
 
-static a_mem_alloc_history_number
+STATIC_THREAD a_mem_alloc_history_number
 		new_alloc_history_entries;
 			/* Number of entries in new_alloc_history. */
 
-static a_text_buffer_ptr
+STATIC_THREAD a_text_buffer_ptr
 		file_name_text_buffer;
 			/* A buffer used to construct PCH file names. */
 
@@ -208,7 +208,7 @@ Macro to do an fseek on the output file with an error check.
 
 
 #if DEBUG
-static long	num_pch_events_allocated;
+STATIC_THREAD long	num_pch_events_allocated;
 #endif /* DEBUG */
 
 
@@ -331,7 +331,7 @@ during precompiled header prefix comparisons.
 static char	*pch_buffer = NULL;
 			/* Not allocated on a per-file basis. */
 
-static sizeof_t	size_pch_buffer;
+STATIC_THREAD sizeof_t	size_pch_buffer;
 			/* Current size of pch_buffer. */
 
 
@@ -378,7 +378,7 @@ typedef struct a_file_name_buffer {
 			   file_name. */
 } a_file_name_buffer;
 
-static a_file_name_buffer
+STATIC_THREAD a_file_name_buffer
 		file_name_buffer;
 			/* Buffer use to temporarily record file names. */
 

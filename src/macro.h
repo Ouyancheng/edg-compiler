@@ -43,7 +43,7 @@ typedef struct a_pointer_registration {
 			   char *). */
 } a_pointer_registration;
 
-EXTERN a_pointer_registration_ptr
+EXTERN_THREAD a_pointer_registration_ptr
 		registered_pointers;
 			/* List of registered pointers. */
 /*
@@ -62,39 +62,39 @@ shouldn't be initialized in its declaration).
   (ptr_var) = NULL;                                                   \
 }  /* register_pointer_variable */
 
-EXTERN unsigned long
+EXTERN_THREAD unsigned long
 		macro_depth;
 			/* Current number of levels of nesting of macro
 			   invocations.  Zero if no macro calls are being
 			   processed currently. */
 
-EXTERN a_boolean
+EXTERN_THREAD a_boolean
 		in_macro_arg_list;
 			/* TRUE when reading the tokens of a macro argument
 			   list, FALSE at all other times. */
 
-EXTERN a_symbol_ptr
+EXTERN_THREAD a_symbol_ptr
 	       	line_macro_symbol,
 		file_macro_symbol,
 		defined_macro_symbol;
 			/* Pointers to the symbol entries for the special
 			   macros "__LINE__", "__FILE__", and "defined". */
-EXTERN int	num_macro_invocations_in_process;
+EXTERN_THREAD int	num_macro_invocations_in_process;
 			/* Number of macro invocations currently being
 			   processed.  This is used to suppress PCH creation
 			   if a macro is in the process of being expanded. */
 
-EXTERN a_symbol_ptr
+EXTERN_THREAD a_symbol_ptr
 	       	base_file_macro_symbol;
 			/* Pointer to the symbol entry for the special
 			   GNU macro __BASE_FILE__. */
 
-EXTERN a_boolean
+EXTERN_THREAD a_boolean
 		scanning_macro_name;
 			/* TRUE if the token about to be scanned is the
 			   macro name in a #define directive. */
 
-EXTERN a_boolean
+EXTERN_THREAD a_boolean
 		scanning_module_macro;
 			/* TRUE if the macro about to be scanned comes from a
 			   module (e.g., from a header unit). */

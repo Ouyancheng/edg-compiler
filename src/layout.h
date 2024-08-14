@@ -30,7 +30,7 @@ BEGIN_EDG_NAMESPACE
 
 typedef a_host_large_unsigned an_unnormalized_bit_offset;
 
-EXTERN a_targ_alignment
+EXTERN_THREAD a_targ_alignment
 		curr_max_member_alignment;
 			/* Current pack alignment, as specified by the most
 			   recent #pragma pack directive.  If it is zero, use

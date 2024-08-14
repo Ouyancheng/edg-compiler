@@ -103,7 +103,7 @@ typedef struct a_variable_remapping_for_inlining {
 } a_variable_remapping_for_inlining;
 
 
-EXTERN a_variable_remapping_for_inlining_ptr
+EXTERN_THREAD a_variable_remapping_for_inlining_ptr
 		avail_variable_remappings_for_inlining;
 			/* List of remapping entries that have been freed
 			    and are available for reuse. */
@@ -112,7 +112,7 @@ EXTERN a_variable_remapping_for_inlining_ptr
 /*
 Count of entries allocated, for debugging purposes.
 */
-EXTERN unsigned long
+EXTERN_THREAD unsigned long
 		num_variable_remappings_for_inlining;
 #endif /* DEBUG */
 

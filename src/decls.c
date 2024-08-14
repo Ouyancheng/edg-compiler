@@ -340,7 +340,7 @@ be restored).
 }  /* clear_decl_parse_state_fields */
 
 
-static a_decl_parse_state_ptr
+STATIC_THREAD a_decl_parse_state_ptr
 		avail_decl_parse_states;
 			/* Pointer to state entries available for reuse. */
 
@@ -454,7 +454,7 @@ suggesting deduction must occur.
 }  /* discard_placeholder_type */
 
 
-static a_decl_parse_callback_ptr
+STATIC_THREAD a_decl_parse_callback_ptr
 		avail_decl_parse_callbacks;
 			/* Pointer to callback entries available for reuse. */
 
@@ -563,7 +563,7 @@ until_action indicates that all callbacks should be discarded.
 }  /* discard_end_of_parse_actions */
 
 
-static an_auto_param_descr_ptr
+STATIC_THREAD an_auto_param_descr_ptr
 		avail_auto_param_descriptions;
 			/* Pointer to "auto" parameter description entries
 			   available for reuse. */
@@ -20614,7 +20614,7 @@ using a_consteval_block_map = Ptr_map<a_token_sequence_number, a_token_cache*>;
 			   transformed into a "static_assert(...)"
 			   declaration. */
 
-static a_consteval_block_map
+STATIC_THREAD a_consteval_block_map
 		*consteval_blocks;
 			/* A map from token sequence numbers to token caches
 			   holding rewritten "consteval { ... }" constructs. */

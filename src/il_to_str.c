@@ -1878,10 +1878,10 @@ typedef struct a_template_param_map_level {
 } a_template_param_map_level;
 
 
-static a_template_param_map_level_ptr template_param_map;
+STATIC_THREAD a_template_param_map_level_ptr template_param_map;
 			/* A pointer to the two-level lookup structure. */
 
-static a_template_nesting_depth template_param_map_max_level;
+STATIC_THREAD a_template_nesting_depth template_param_map_max_level;
 			/* The size of the first level (i.e., the maximum
 			   template nesting depth for which a parameter
 			   coordinate has been mapped). */
@@ -4689,7 +4689,7 @@ match other types in the IL.
 */
 {
   a_type_ptr    type;
-  static a_type unkn_type;
+  STATIC_THREAD a_type unkn_type;
 
   type = &unkn_type;
   /* Can't use clear_type here either.  This is unfortunate, but all we
@@ -8157,7 +8157,7 @@ is properly maintained.  Do the output as indicated by octl.
 #if BACK_END_IS_C_GEN_BE || BACK_END_IS_CP_GEN_BE
 #if DEBUG
 
-static uintptr_t
+STATIC_THREAD uintptr_t
                 unique_id_counter;
                         /* A ticket counter used by
                            generate_unique_id_for_il_pointer to generate stable
@@ -8168,7 +8168,7 @@ using a_ptr_unique_id_map = Ptr_map<void*, uintptr_t, General_allocator>;
                            arbitrary pointer to a unique identifier from the
                            unique_id_counter. */
 
-static a_ptr_unique_id_map
+STATIC_THREAD a_ptr_unique_id_map
                 *ptr_to_unique_id;
                         /* A map of a given pointer to its unique identifiers
                            from the unique_id_counter used by

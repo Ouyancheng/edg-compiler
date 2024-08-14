@@ -80,38 +80,38 @@ static void mark_init_component_as_permanently_allocated(
 Information on references to symbols, held until the kind of reference to
 the symbol is known.
 */
-static a_ref_entry_ptr
+STATIC_THREAD a_ref_entry_ptr
 		avail_ref_entries;
 			/* List of reference entries that have been freed
 			   and are available for reuse. */
 #if SEQUENCING_DIAGNOSTICS_ENABLED
 
-static a_seq_pt_var_entry_ptr
+STATIC_THREAD a_seq_pt_var_entry_ptr
                 avail_seq_pt_var_entries;
                         /* List of sequence point variable entries that
                            have been freed and are available for reuse. */
 
-static a_seq_pt_info_entry_ptr
+STATIC_THREAD a_seq_pt_info_entry_ptr
                 avail_sequence_info_entries;
                         /* List of sequence point info entries that have
                            been freed and are available for reuse. */
 
 #endif /* SEQUENCING_DIAGNOSTICS_ENABLED */
 
-static a_boolean
+STATIC_THREAD a_boolean
                 sequencing_diagnostics_enabled;
                         /* TRUE if sequencing diagnostics are enabled. */
 
-static an_arg_operand_ptr
+STATIC_THREAD an_arg_operand_ptr
 		avail_arg_operands;
 			/* List of argument operand entries that have been
 			   freed and are available for reuse. */
-static an_init_component_ptr
+STATIC_THREAD an_init_component_ptr
 		avail_init_components;
 			/* List of initializer list value entries that have
 			   been freed and are available for reuse. */
 
-static a_dynamic_init_dtor_fixup_ptr
+STATIC_THREAD a_dynamic_init_dtor_fixup_ptr
 		avail_dynamic_init_dtor_fixups;
 			/* List of dynamic init dtor fixup entries that have
 			   been freed and are available for reuse. */
@@ -121,7 +121,7 @@ static a_dynamic_init_dtor_fixup_ptr
 /*
 Counts of entries allocated, for debugging purposes.
 */
-static unsigned long
+STATIC_THREAD unsigned long
 		num_arg_operands_allocated,
 		num_init_components_allocated,
 		num_init_components_permanently_allocated,
@@ -130,7 +130,7 @@ static unsigned long
 		num_ref_entries_allocated,
 		num_dynamic_init_dtor_fixups_allocated;
 #if SEQUENCING_DIAGNOSTICS_ENABLED
-static unsigned long
+STATIC_THREAD unsigned long
 		num_seq_pt_var_entries_allocated,
 		num_sequence_info_entries_allocated;
 #endif /* SEQUENCING_DIAGNOSTICS_ENABLED */
@@ -8312,7 +8312,7 @@ using a_template_param_object_map = Ptr_map<a_constant_handle, a_variable_ptr>;
 			   objects (represented as constexpr variable entries)
 			   with a constant value of class type. */
 
-static a_template_param_object_map
+STATIC_THREAD a_template_param_object_map
 		*template_param_objects;
 			/* A map from constant values of class types (or rather
 			   handles to such constant entries) to constexpr
@@ -25248,7 +25248,7 @@ using a_constraint_charts_map = Ptr_map<a_symbol_ptr, a_constraint_chart*>;
 			   their associated constraint chart (if one has been
 			   constructed). */
 
-static a_constraint_charts_map
+STATIC_THREAD a_constraint_charts_map
 		*constraint_charts;
 			/* Map of constraint charts. */
 
@@ -26182,7 +26182,7 @@ using a_constraint_subst_cache = Ptr_map<a_constraint_test,
 			/* The type of a map that caches the substitutions of
 			   constraint tests. */
 
-static a_constraint_subst_cache
+STATIC_THREAD a_constraint_subst_cache
 		*constraint_subst_cache;
 			/* A map from constraint test descriptions to
 			   substitution results. */

@@ -140,7 +140,7 @@ using a_memory_allocation_map = Ptr_map<void*, sizeof_t, Direct_allocator>;
                         /* The type for a memory allocation map used for
                            internal tracking of allocated memory. */
 
-static a_memory_allocation_map
+STATIC_THREAD a_memory_allocation_map
 		*memory_allocation_map;
 			/* A list of memory blocks allocated in general memory.
 			   This is used to free the blocks at the end of
@@ -152,7 +152,7 @@ using a_memory_allocation_set = Ptr_set<void*, Direct_allocator>;
                         /* The type for a memory allocation set used for
                            internal tracking of allocated memory. */
 
-static a_memory_allocation_set
+STATIC_THREAD a_memory_allocation_set
 		*resizable_memory_allocations;
 			/* A set of pointers in the memory allocation map that
 			   are allowed to be resized.  This is used to make
@@ -173,13 +173,13 @@ static a_boolean
 #endif /* USING_PURIFY */
 
 
-static a_mem_block_header_ptr
+STATIC_THREAD a_mem_block_header_ptr
 		reusable_blocks_list;
 			/* List of memory blocks freed and available for
 			   reuse.  These are only partial blocks; full blocks
 			   are actually freed with free. */
 
-static a_boolean
+STATIC_THREAD a_boolean
 		okay_to_free_mem_blocks;
 			/* TRUE if it is okay to free (using free())
 			   memory region blocks that are no longer needed.
@@ -198,7 +198,7 @@ typedef Ptr_map<sizeof_t, a_dyn_array_of_void_ptrs_ptr, General_allocator>
 			/* A map to an array of pointers to blocks of memory
 			   of a given size. */
 
-static a_size_to_ptr_map
+STATIC_THREAD a_size_to_ptr_map
 		*freed_fe_map;
 			/* Pointer to a map to freed front end memory entries
 			   of a given size.  This is NULL until it is first
@@ -230,41 +230,41 @@ static sizeof_t adjusted_header_size = (sizeof_t)(sizeof(a_mem_block_header) +
 /*
 Record of memory allocated, for space tracking purposes.
 */
-static unsigned long
+STATIC_THREAD unsigned long
 		total_mem_allocated;
 			/* Total memory allocated via malloc, minus total
 			   memory freed via free. */
-static unsigned long
+STATIC_THREAD unsigned long
 		max_mem_allocated;
 			/* The high-water mark, the largest value that
 			   total_mem_allocated ever had. */
-static unsigned long
+STATIC_THREAD unsigned long
 		total_general_mem_allocated;
 			/* The part of total_mem_allocated that was
 			   allocated in general storage, i.e., by
 			   alloc_general and realloc_general. */
-static unsigned long
+STATIC_THREAD unsigned long
 		total_mem_used;
 			/* Total memory allocated by alloc_in_region.
 			   Reset for each input file. */
-static unsigned long
+STATIC_THREAD unsigned long
 		num_alignment_bytes_allocated;
 			/* Number of bytes wasted in alignment cracks.
 			   Reset for each input file. */
 
 #if USE_MMAP_FOR_MEMORY_REGIONS
-static unsigned long
+STATIC_THREAD unsigned long
 		num_mapped_bytes_allocated;
 			/* Number of bytes of memory that are mapped to
 			   files. */
 
-static unsigned long
+STATIC_THREAD unsigned long
 		num_mapped_bytes_from_pch;
 			/* Number of bytes of memory that have been mapped
 			   from a precompiled header file. */
 #endif /* USE_MMAP_FOR_MEMORY_REGIONS */
 
-static unsigned long
+STATIC_THREAD unsigned long
 		num_text_buffers_allocated;
 			/* Number of text buffers that have been allocated. */
 #endif /* DEBUG */
@@ -501,12 +501,12 @@ preallocated memory that has not been used.
 
 
 #if USE_MMAP_FOR_MEMORY_REGIONS
-static a_boolean
+STATIC_THREAD a_boolean
 		mmap_initialized;
 			/* TRUE when the file used for mmap has been
 			   opened. */
 
-static sizeof_t	mmap_size_allocated;
+STATIC_THREAD sizeof_t	mmap_size_allocated;
 			/* The number of bytes of mapped memory that have
 			   been allocated.  This is usually the same as
 			   mmap_file_offset, except when a precompiled
@@ -514,7 +514,7 @@ static sizeof_t	mmap_size_allocated;
 			   the PCH file is included in mmap_size_allocated,
 			   but not in mmap_file_offset. */
 
-static sizeof_t	mmap_file_offset;
+STATIC_THREAD sizeof_t	mmap_file_offset;
 			/* The offset into the mmap file of the next block
 			   to be allocated. */
 

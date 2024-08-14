@@ -774,8 +774,8 @@ field alignment is accessed through the following arrays.
 However, it is needed by the C-generating back end, and layout.c is not
 present in standalone C-generating back end executables.)
 */
-static a_targ_alignment  int_field_alignments[(int)ik_last];
-static a_targ_alignment  float_field_alignments[(int)fk_last];
+STATIC_THREAD a_targ_alignment  int_field_alignments[(int)ik_last];
+STATIC_THREAD a_targ_alignment  float_field_alignments[(int)fk_last];
 
 
 static void init_field_alignment_tables(void)

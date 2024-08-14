@@ -240,7 +240,7 @@ BEGIN_EDG_NAMESPACE
 
 #if MULTIBYTE_CHARS_IN_SOURCE_SUPPORTED
 
-static a_boolean
+STATIC_THREAD a_boolean
 		locale_already_set;
 			/* TRUE if the multibyte locale has been set. */
 
@@ -362,24 +362,24 @@ original length.
 
 #endif /* MULTIBYTE_CHARS_IN_SOURCE_SUPPORTED */
 
-static a_text_buffer_ptr
+STATIC_THREAD a_text_buffer_ptr
 		file_read_buffer;
 			/* Buffer used when reading from the various files. */
 
-static a_directory_name_entry_ptr
+STATIC_THREAD a_directory_name_entry_ptr
 		avail_directory_name_entries;
 			/* Available list of directory name entries. */
 
-static a_directory_name_entry_ptr
+STATIC_THREAD a_directory_name_entry_ptr
 		template_search_path_tail;
 			/* End of the search path to find exported templates.
 			   The name strings are in general storage. */
 
-static a_text_buffer_ptr
+STATIC_THREAD a_text_buffer_ptr
 		dir_and_file_buffer;
 			/* A text buffer used by combine_dir_and_file_name.*/
 
-static a_text_buffer_ptr
+STATIC_THREAD a_text_buffer_ptr
 		format_file_name_buffer;
 			/* A text buffer used by f_format_file_name.*/
 
@@ -419,7 +419,7 @@ static a_text_buffer_ptr
 #endif /* !STANDALONE_UTILITY_PROGRAM */
 
 
-static a_directory_name_entry_ptr
+STATIC_THREAD a_directory_name_entry_ptr
 		dir_name_list_general;
 			/* List of all directory name strings used that have
 			   been allocated in general memory.  Used so that the
@@ -1667,8 +1667,8 @@ static a_temp_file_name_ptr
 /*
 Static variables used by open_temp_file.
 */
-static a_const_char  *temp_dir;
-static unsigned long temp_seed;
+STATIC_THREAD a_const_char  *temp_dir;
+STATIC_THREAD unsigned long temp_seed;
 
 
 FILE *open_temp_file(a_boolean binary_file)
@@ -2929,8 +2929,9 @@ char *get_file_name_from_dir(a_boolean	             first,
 See comment above.
 */
 {
-  static DIR		*dir;
-  static struct dirent	*dir_entry;
+  STATIC_THREAD DIR	*dir;
+  STATIC_THREAD struct dirent
+                        *dir_entry;
   char			*result;
 
   if (first) {
@@ -3044,7 +3045,7 @@ Change any non-identifier characters in the indicated string to underscores.
 }  /* change_non_id_characters */
 
 
-static a_const_char
+STATIC_THREAD a_const_char
 		*module_id;
 			/* A string used to qualify static names that are put
 			   out as external names to make them unique.  Note
@@ -3686,10 +3687,10 @@ extern "C" int getpagesize(void);
 #define _SC_PAGESIZE _SC_PAGE_SIZE
 #endif /* defined(__hpux) || defined(__AIX__) */
 
-static FILE*	f_mmap_file;
+STATIC_THREAD FILE*	f_mmap_file;
 			/* The file descriptor for the mmap file. */
 
-static int	mmap_file_number;
+STATIC_THREAD int	mmap_file_number;
 			/* The file number of the mmap file. */
 
 int get_page_size(void)
@@ -3862,7 +3863,7 @@ Close the file used for allocation of file mapped memory for IL memory blocks.
 
 #endif /* EDG_WIN32 */
 
-static int	page_size;
+STATIC_THREAD int	page_size;
 			/* The size of a host page.  Memory mapped blocks must
 			   be requested in increments of this size. */
 
@@ -4775,9 +4776,9 @@ to the current directory.
 }  /* normalize_dir_name */
 
 
-static a_text_buffer_ptr
+STATIC_THREAD a_text_buffer_ptr
 		dir_buffer1;
-static a_text_buffer_ptr
+STATIC_THREAD a_text_buffer_ptr
 		dir_buffer2;
 				/* Text buffers used to construct a
 				   normalized directory name. */

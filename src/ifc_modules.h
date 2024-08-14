@@ -620,7 +620,7 @@ public:
 
 
 #if DEBUG && EXPENSIVE_CHECKING
-EXTERN const an_ifc_partition_metadata
+EXTERN_THREAD const an_ifc_partition_metadata
                 *debug_partition;
                         /* Points to information about the partition currently
                            being read (for debugging purposes only). */

@@ -87,7 +87,7 @@ typedef unsigned long a_symbol_reference_kind;
 /* Unique sequence number identifying a declaration in a given scope. */
 typedef uint32_t a_decl_sequence_number;
   
-EXTERN a_decl_sequence_number
+EXTERN_THREAD a_decl_sequence_number
 		decl_seq_counter;
 			/* Counter, initialized to 0 with each compilation
 			   unit, for maintaining the declaration sequence
@@ -133,10 +133,10 @@ BEGIN_EDG_NAMESPACE
 The scope number for the file scope.  Equal to FILE_SCOPE_NUMBER (zero)
 except in secondary translation units (i.e., when export template is used).
 */
-EXTERN a_scope_number
+EXTERN_THREAD a_scope_number
 		file_scope_number;
 
-EXTERN a_translation_unit_ptr
+EXTERN_THREAD a_translation_unit_ptr
 		*trans_unit_for_scope;
 			/* A dynamically allocated array of translation
 			   unit pointers indexed by scope number. */
@@ -367,7 +367,7 @@ namespace, otherwise return NULL.
                              : (locator).parent.namespace_ptr)
 
 
-EXTERN a_symbol_locator
+EXTERN_THREAD a_symbol_locator
 		cleared_locator;
 			/* An empty locator used to initialize locators in
                            macro clear_locator. */
@@ -569,7 +569,7 @@ enum a_name_space_kind {
 			   C mode only. */
 };
 
-EXTERN a_name_space_kind
+EXTERN_THREAD a_name_space_kind
 		name_space_for_symbol_kind[(int)sk_last+1];
 			/* For each symbol kind, this array maps the kind to
 			   the associated name space.  See
@@ -4638,14 +4638,14 @@ defined for C++ only, are the opname_symbol_table, for accessing operator
 functions by operator, and the conversion_header_list, for accessing
 conversion functions by destination type.)  
 */
-EXTERN a_symbol_header_ptr
+EXTERN_THREAD a_symbol_header_ptr
 		symbol_table[SYMBOL_TABLE_SIZE];
 
 /*
 Table of pointers to symbol headers for C++ operator name symbols, for
 names like "operator+".  Indexed by opname kind.
 */
-EXTERN a_symbol_header_ptr
+EXTERN_THREAD a_symbol_header_ptr
 		opname_symbol_table[(int)onk_last];
 
 typedef struct a_conversion_header *a_conversion_header_ptr;
@@ -4672,7 +4672,7 @@ typedef struct a_conversion_header {
 List of conversion header entries that serve as a lookup list for conversion
 function symbols.
 */
-EXTERN a_conversion_header_ptr
+EXTERN_THREAD a_conversion_header_ptr
 		conversion_header_list;
 
 typedef struct a_literal_operator_header *a_literal_operator_header_ptr;
@@ -4701,13 +4701,13 @@ typedef struct a_literal_operator_header {
 List of literal operator header entries that serve as a lookup list for
 literal operators and literal operator templates.
 */
-EXTERN a_literal_operator_header_ptr
+EXTERN_THREAD a_literal_operator_header_ptr
 		literal_operator_header_list;
 
 /*
 Symbol information related to the current token:
 */
-EXTERN a_symbol_locator
+EXTERN_THREAD a_symbol_locator
 		locator_for_curr_id;
 			/* If curr_token == tok_identifier, this is information
 			   fully specifying the identifier.  If curr_token ==
@@ -4715,12 +4715,12 @@ EXTERN a_symbol_locator
 			   canonical name of the literal operator or literal
 			   operator template, i.e., operator ""identifier. */
 
-EXTERN an_active_using_directive_ptr
+EXTERN_THREAD an_active_using_directive_ptr
 		avail_active_using_directives;
 			/* List of active using directive entries freed and
 			   available for reuse. */
 
-EXTERN sizeof_t	size_scope_stack;
+EXTERN_THREAD sizeof_t	size_scope_stack;
 			/* Allocated size of scope_stack in elements.
 			   Not per-file. */
 
@@ -5127,28 +5127,28 @@ extern void make_make_integer_seq_internal_template(void);
 
 extern void make_type_pack_element_internal_template(void);
 
-EXTERN a_symbol_ptr
+EXTERN_THREAD a_symbol_ptr
                 symbol_for_make_integer_seq;
                         /* Symbol for "__make_integer_seq", which is a
                            builtin class template (used for cases where
                            template arguments to __make_integer_seq are
                            dependent). */
 
-EXTERN a_symbol_ptr
+EXTERN_THREAD a_symbol_ptr
                 symbol_for_make_integer_seq_alias;
                         /* Symbol for "__make_integer_seq_alias", which is a
                            builtin alias template (used for cases where
                            template arguments to __make_integer_seq are
                            non-dependent). */
 
-EXTERN a_symbol_ptr
+EXTERN_THREAD a_symbol_ptr
                 symbol_for_type_pack_element;
                         /* Symbol for "__type_pack_element", which is a
                            builtin class template (used for cases where
                            template arguments to __type_pack_element are
                            dependent). */
 
-EXTERN a_symbol_ptr
+EXTERN_THREAD a_symbol_ptr
                 symbol_for_type_pack_element_alias;
                         /* Symbol for "__type_pack_element_alias", which is a
                            builtin alias template (used for cases where
@@ -5249,13 +5249,13 @@ extern a_symbol_ptr enter_typedef_symbol(a_type_ptr       type_ptr,
                                          a_scope_depth    scope_level,
                                          a_boolean        suppress_error);
 
-EXTERN a_symbol_ptr
+EXTERN_THREAD a_symbol_ptr
 		symbol_for_namespace_std;
 			/* Symbol for namespace "std", which is predeclared
 			   by the front end (but not entered into the symbol
 			   table until a source declaration is encountered).
 			   C++ only. */
-EXTERN a_symbol_ptr
+EXTERN_THREAD a_symbol_ptr
 		symbol_for_namespace_std_meta;
 			/* Symbol for namespace "std::meta", which is
 			   predeclared by the front end in some modes (but
@@ -5285,7 +5285,7 @@ extern a_symbol_ptr look_up_name_string_in_std(a_const_char  *name);
 extern a_boolean is_member_of_namespace(a_symbol_ptr  sym,
                                         a_symbol_ptr  ns_sym);
 
-EXTERN a_namespace_ptr
+EXTERN_THREAD a_namespace_ptr
 		namespace_for_coroutine_types;
 			/* Namespace containing the various class templates
 			   used with coroutines, such as "coroutine_traits".
@@ -5295,7 +5295,7 @@ EXTERN a_namespace_ptr
 extern void init_coroutine_descr(a_routine_ptr          rp,
                                  a_coroutine_descr_ptr  cdp);
 
-EXTERN a_symbol_ptr
+EXTERN_THREAD a_symbol_ptr
 		symbol_for_std_initializer_list;
 			/* Symbol for "std::initializer_list", a class
 			   template that should be defined in the standard
@@ -5742,13 +5742,13 @@ extern void init_windows_metadata_symbols(void);
 
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
 
-EXTERN a_type_ptr
+EXTERN_THREAD a_type_ptr
 		builtin_va_list_type;
 			/* When the <stdarg.h> header is handled as a builtin,
 			   this points to the va_list type once it has been
 			   defined.  NULL until then. */
 
-EXTERN a_type_ptr
+EXTERN_THREAD a_type_ptr
 		type_underlying_va_list;
 			/* This is a configurable type (NULL by default; it
 			   can conveniently be set in sys_predef.c).  When the
@@ -5759,7 +5759,7 @@ EXTERN a_type_ptr
 			   underlying type of __builtin_va_list.  If this type
 			   is NULL, a default type (usual "void*") is used. */
 
-EXTERN a_symbol_ptr
+EXTERN_THREAD a_symbol_ptr
 		symbols_with_no_scope;
 			/* A list of symbols that were entered into the
 			   symbol table, but are not associated with any
@@ -5768,7 +5768,7 @@ EXTERN a_symbol_ptr
 			   keywords.  The next_in_scope field is used to
 			   link these symbols together. */
 
-EXTERN a_boolean
+EXTERN_THREAD a_boolean
 		file_scope_symbols_are_on_inactive_list;
 			/* TRUE once the file scope has been popped for the
 			   first time, and any file scope symbols have been
@@ -7578,7 +7578,7 @@ extern void db_hide_by_sig_list(a_hide_by_sig_list_entry_ptr	hbslep);
 Information used to gather performance statistics related to symbol
 table processing that needs to be externally visible.
 */
-EXTERN unsigned long
+EXTERN_THREAD unsigned long
 		num_fast_id_lookups,
 		num_slow_id_lookups,
 		num_active_using_directives_allocated,

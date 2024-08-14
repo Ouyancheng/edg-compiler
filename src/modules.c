@@ -121,7 +121,7 @@ any).  Return TRUE if there exists an interface dependency, FALSE otherwise.
 
 using a_module_name_map = Ptr_map<a_string_view, a_module_ptr>;
 
-static a_module_name_map
+STATIC_THREAD a_module_name_map
                 *known_modules;
                         /* A mapping of module names to their corresponding
                            module IL entry. */

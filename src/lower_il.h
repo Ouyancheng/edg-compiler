@@ -55,19 +55,19 @@ extern a_boolean is_or_was_nullptr_type(a_type_ptr tp);
 
 #if DO_IL_LOWERING
 
-EXTERN a_boolean
+EXTERN_THREAD a_boolean
 		il_lowering_underway;
 			/* TRUE while IL lowering is actually being done. */
-EXTERN a_boolean
+EXTERN_THREAD a_boolean
 		lowering_file_scope;
 			/* TRUE if lowering the file scope's IL, FALSE if
 			   lowering a routine scope's IL. */
-EXTERN a_boolean
+EXTERN_THREAD a_boolean
 		keep_object_lifetime_info_in_lowered_il;
 			/* TRUE if object lifetime information should be
 			   preserved by the lowering process (so a back end
 			   can use it, e.g., for exception handling). */
-EXTERN a_boolean
+EXTERN_THREAD a_boolean
 		typeinfo_uncoupled_when_vtable_is_optional;
 			/* TRUE if in the current ABI a typeinfo variable
 			   definition can go out independently of the vtable
@@ -75,7 +75,7 @@ EXTERN a_boolean
 			   "optional". */
 
 #if ENSURE_LOWERED_TYPE_LIST_ORDERING
-EXTERN a_boolean
+EXTERN_THREAD a_boolean
 		perform_type_list_ordering;
 			/* TRUE if types may appear out-of-order in lowered
 			   C code and need to be sorted to produce code that
@@ -114,7 +114,7 @@ incomplete array fields (where allowed), and nontrivial properties and events
                            (skip_typerefs((field)->type)->size == 0 ||      \
                             field_is_nontrivial_property_or_event(field)))
 
-EXTERN an_integer_kind
+EXTERN_THREAD an_integer_kind
 		targ_ptr_to_data_member_int_kind;
 			/* The integer kind to use for pointers to data
 			   members. */
@@ -177,7 +177,7 @@ typedef struct an_init_pos_modifier {
 #endif /* C99_IL_EXTENSIONS_SUPPORTED && !LOWER_COMPLEX */
 } an_init_pos_modifier;
 
-EXTERN an_init_pos_modifier_ptr
+EXTERN_THREAD an_init_pos_modifier_ptr
 		avail_init_pos_modifiers;
 			/* List of initialization position modifier entries
 			   that have been freed and are available for reuse. */
@@ -388,7 +388,7 @@ typedef struct a_destructible_entity_descr {
 			   the subobject base class. */
 } a_destructible_entity_descr;
 
-EXTERN a_destructible_entity_descr_ptr
+EXTERN_THREAD a_destructible_entity_descr_ptr
 		avail_destructible_entity_descrs;
 			/* List of destructible entity descriptions that
 			   have been freed and are available for reuse. */
@@ -398,7 +398,7 @@ EXTERN a_destructible_entity_descr_ptr
 /*
 Count of entries allocated, for debugging purposes.
 */
-EXTERN unsigned long
+EXTERN_THREAD unsigned long
 		num_init_pos_modifiers_allocated,
 		num_destructible_entity_descrs_allocated;
 #endif /* DEBUG */
@@ -612,17 +612,17 @@ typedef struct a_context {
 #endif /* CHECKING */
 } a_context;
 
-EXTERN a_context_ptr
+EXTERN_THREAD a_context_ptr
 		curr_context;
 			/* Current (bottom) end of the context chain. */
 
-EXTERN a_return_memo_ptr
+EXTERN_THREAD a_return_memo_ptr
 		return_memo_list;
 			/* List of return statements found in the current
 			   routine, maintained so that epilogue code can be
 			   added. */
 
-EXTERN a_variable_ptr
+EXTERN_THREAD a_variable_ptr
 		return_value_pointer_variable;
 			/* While processing a routine that returns its
 			   value via a copy constructor, this points to
@@ -631,7 +631,7 @@ EXTERN a_variable_ptr
 			   at which the result will be stored; NULL
 			   otherwise. */
 
-EXTERN a_variable_ptr
+EXTERN_THREAD a_variable_ptr
                 gse_return_value_pointer_variable;
                         /* Somewhat similar to return_value_pointer_variable
                            above, this is set to point to the variable that is
@@ -641,7 +641,7 @@ EXTERN a_variable_ptr
                            NULL when not lowering a GNU statement expression
                            and in cases where the initialization doesn't
                            explicitly specify a variable (see below). */
-EXTERN an_init_pos_descr_ptr
+EXTERN_THREAD an_init_pos_descr_ptr
                 gse_init_position;
                         /* Specifies the entity that is being initialized
                            (when it isn't a variable -- see above) by a
@@ -659,12 +659,12 @@ variable for the current function.
    innermost_function_scope->variant.routine.return_value_variable == (var))
 #endif /* DO_RETURN_VALUE_OPTIMIZATION_IN_LOWERING */
 
-EXTERN a_local_static_variable_init_ptr
+EXTERN_THREAD a_local_static_variable_init_ptr
                 promoted_local_static_variable_inits;
 			/* List of initialization entries for local static
 			   variables promoted out of the current routine. */
 
-EXTERN a_source_position
+EXTERN_THREAD a_source_position
 		code_pos_for_lowering;
 			/* The source position associated with executable code
 			   currently being lowered. */

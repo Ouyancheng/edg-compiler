@@ -58,6 +58,90 @@ The EDG code can either go into the global namespace or the "edg" namespace.
 #endif /* USE_EDG_NAMESPACE */
 
 
+/*
+TRUE if the front end is to be called as a subroutine of another
+program, or as a library.  When this is TRUE, the front end has
+no main program of its own and exits via a return to the caller.
+This defaults to TRUE if an alternate name of the main routine has
+been specified (via the EDG_MAIN macro).
+*/
+#ifndef MAKE_FRONT_END_CALLABLE
+#ifdef EDG_MAIN
+#define MAKE_FRONT_END_CALLABLE TRUE
+#else /* ifndef EDG_MAIN */
+#define MAKE_FRONT_END_CALLABLE FALSE
+#endif /* ifdef EDG_MAIN */
+#endif /* MAKE_FRONT_END_CALLABLE */
+
+/*
+TRUE if the front end can use multiple threads to support concurrent
+compilations within a single process.  Each thread acts is if it were
+a separate invocation of the front end.  This is only allowed supported
+when MAKE_FRONT_END_CALLABLE is TRUE.
+*/
+#ifndef MULTIPLE_THREAD_COMPILATION
+#define MULTIPLE_THREAD_COMPILATION FALSE
+#endif /* MULTIPLE_THREAD_COMPILATION */
+
+#if MULTIPLE_THREAD_COMPILATION && !MAKE_FRONT_END_CALLABLE
+ #error -- MULTIPLE_THREAD_COMPLATION requires that \
+           MAKE_FRONT_END_CALLABLE be TRUE.
+#endif /* MULTIPLE_THREAD_COMPILATION && !MAKE_FRONT_END_CALLABLE */
+
+
+/*
+EXTERN is defined usually as "extern"; in the translation unit that
+actually defines storage for external variables, it is defined as an
+empty string.  EXTERN is used on the declarations of external variables
+in .h files.  This scheme makes it easy to define them in only one
+place while using the same source in all places.  VAR_INITIALIZERS is
+defined to indicate we are in the translation unit in which the definitions
+occur and also causes inclusion of initializers for those variables.
+*/
+#ifndef VAR_INITIALIZERS
+#define VAR_INITIALIZERS 0
+#define EXTERN extern
+#else /* !VAR_INITIALIZERS */
+#define EXTERN /*empty*/
+#endif /* ifndef VAR_INITIALIZERS */
+
+/*
+EDG_THREAD is used to provide either the thread_local keyword or nothing
+depending on MULTIPLE_THREAD_COMPILATION.
+*/
+#ifndef EDG_THREAD
+#if MULTIPLE_THREAD_COMPILATION
+#define EDG_THREAD thread_local
+#else /* !MULTIPLE_THREAD_COMPILATION */
+#define EDG_THREAD /* nothing */
+#endif /* MULTIPLE_THREAD_COMPILATION */
+#endif /* EDG_THREAD */
+
+/*
+EXTERN_THREAD is similar to EXTERN but is used to optionally make global
+variables thread-local.
+*/
+#ifndef EXTERN_THREAD
+#if MULTIPLE_THREAD_COMPILATION
+#define EXTERN_THREAD EXTERN thread_local
+#else /* !MULTIPLE_THREAD_COMPILATION */
+#define EXTERN_THREAD EXTERN
+#endif /* MULTIPLE_THREAD_COMPILATION */
+#endif /* EXTERN_THREAD */
+
+/*
+STATIC_THREAD is similar to EXTERN_THREAD but is used to make file scope
+or function scope variables optionally thread-local.
+variables thread-local.
+*/
+#ifndef STATIC_THREAD
+#if MULTIPLE_THREAD_COMPILATION
+#define STATIC_THREAD static thread_local
+#else /* !MULTIPLE_THREAD_COMPILATION */
+#define STATIC_THREAD static thread_local
+#endif /* MULTIPLE_THREAD_COMPILATION */
+#endif /* STATIC_THREAD */
+
 /* Conditionally open the "edg" namespace. */
 BEGIN_EDG_NAMESPACE
 
@@ -596,36 +680,20 @@ END_EDG_NAMESPACE  /* Conditionally close the "edg" namespace. */
 #include <ctype.h>
 BEGIN_EDG_NAMESPACE  /* Conditionally open the "edg" namespace. */
 
-/*
-EXTERN is defined usually as "extern"; in the translation unit that
-actually defines storage for external variables, it is defined as an
-empty string.  EXTERN is used on the declarations of external variables
-in .h files.  This scheme makes it easy to define them in only one
-place while using the same source in all places.  Likewise, 
-VAR_INITIALIZERS is defined to cause inclusion of initializers for those
-variables.
-*/
-#ifndef EXTERN
-#define EXTERN extern
-#endif /* ifndef EXTERN */
-#ifndef VAR_INITIALIZERS
-#define VAR_INITIALIZERS FALSE
-#endif /* ifndef VAR_INITIALIZERS */
-
 #ifndef DEBUG
 /* Include debugging code. */
 #define DEBUG TRUE
 #endif /* ifndef DEBUG */
 #if DEBUG
-EXTERN int	debug_level /* = 0 */;
+EXTERN_THREAD int	debug_level /* = 0 */;
 			/* Debug level.  0 means no debug output, 1 - 5
                             means increasing amounts. */
-EXTERN a_boolean
+EXTERN_THREAD a_boolean
 		db_active /* = FALSE */;
 			/* TRUE if debug_level is currently non-zero, or
 			   if there is the potential for it becoming
 			   non-zero (because there is a debug list). */
-EXTERN FILE	*f_debug;
+EXTERN_THREAD FILE	*f_debug;
 			/* Debug output file. */
 
 extern void debug_enter(int reporting_level, a_const_char *function_name);
@@ -969,7 +1037,7 @@ enum a_C_dialect {
 };
 
 
-EXTERN a_C_dialect
+EXTERN_THREAD a_C_dialect
 		C_dialect;
 			/* The C dialect to be accepted.  This is here because
 			   it's convenient to allow "back end" pieces to

@@ -43,7 +43,7 @@ extern a_variable_ptr make_typeinfo_var(a_type_ptr type);
 extern a_variable_ptr get_typeinfo_var(a_type_ptr type);
 
 #if ABI_CHANGES_FOR_RTTI
-EXTERN a_variable_ptr 
+EXTERN_THREAD a_variable_ptr 
 		vtbls_for_type_info[(int)tik_last];
 			/* The variables for the virtual function tables for
 			   the user-visible typeinfo types, once created.
@@ -64,7 +64,7 @@ extern a_type_info_kind is_type_info_vtbl(a_variable_ptr vtbl);
 Value used to indicate "no region number" for exception handling regions.
 It's all one bits, truncated to fit in a TARG_REGION_NUMBER_INT_KIND integer.
 */
-EXTERN a_cleanup_region_number
+EXTERN_THREAD a_cleanup_region_number
 		null_eh_region_number;
 
 

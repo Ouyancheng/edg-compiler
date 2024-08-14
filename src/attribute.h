@@ -133,14 +133,14 @@ extern a_boolean unscanned_attributes_pending(void);
 
 extern void unscan_attributes(an_attribute_ptr  attributes);
 
-EXTERN a_token_sequence_number
+EXTERN_THREAD a_token_sequence_number
 		last_token_number_of_attributes;
 			/* After scanning a group of attributes, this variable
 			   holds the token sequence number of the last token of
 			   that attribute group (until the next attribute
 			   group is scanned). */
 
-EXTERN a_source_position
+EXTERN_THREAD a_source_position
 		end_position_of_attributes;
 			/* After scanning a group of attributes, this variable
 			   holds the position of the last token of that
@@ -148,20 +148,20 @@ EXTERN a_source_position
 			   scanned). */
 
 #if GNU_EXTENSIONS_ALLOWED
-EXTERN a_boolean
+EXTERN_THREAD a_boolean
                 gnu_abi_tag_attribute_seen;
                         /* TRUE if an abi_tag attribute has been seen in the
                            source (triggers additional mangling work). */
 #endif /* GNU_EXTENSIONS_ALLOWED */
 
 #if !IA64_ABI
-EXTERN a_boolean
+EXTERN_THREAD a_boolean
                 no_unique_address_attribute_seen;
                         /* TRUE if a no_unique_address attribute has been seen
                            in the source (triggers additional layout work). */
 #endif /* !IA64_ABI */
 
-EXTERN an_attribute_ptr
+EXTERN_THREAD an_attribute_ptr
 		unscanned_attributes;
 			/* A pointer to previously-scanned attributes that
 			   should be returned from the next call to

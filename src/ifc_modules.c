@@ -987,7 +987,7 @@ using an_ifc_parameterized_entity_map = Ptr_map<an_ifc_decl_index,
                            corresponding parameterizing IFC declaration
                            index. */
 
-static an_ifc_parameterized_entity_map
+STATIC_THREAD an_ifc_parameterized_entity_map
                 *ifc_parameterized_entities;
                         /* A hash table to map IFC declaration indexes for
                            parameterized entities to their corresponding
@@ -2716,7 +2716,7 @@ using an_ifc_decl_lookup_table = Ptr_map<an_ifc_decl_index, a_symbol_ptr>;
                         /* The type of a table that maps IFC declaration
                            indices to corresponding front end symbols. */
 
-static an_ifc_decl_lookup_table
+STATIC_THREAD an_ifc_decl_lookup_table
                 *ifc_decl_lookup_table;
                         /* A hash table to map IFC declaration indices to
                            corresponding front end symbols. */
@@ -14162,7 +14162,7 @@ using a_token_name_map = Ptr_map<a_string_view, a_token_kind>;
                         /* The type used for a mapping from a token's name
                            to its token kind. */
 
-static a_token_name_map
+STATIC_THREAD a_token_name_map
                 *tok_name_map;
                         /* A lazily-initialized mapping of token names to token
                            kinds to allow constant time resolution of a
@@ -17450,7 +17450,7 @@ using a_bad_operator_name_encoding_map = Ptr_map<a_string_view,
                            prefix) or forming the appropriate operator
                            locator. */
 
-static a_bad_operator_name_encoding_map
+STATIC_THREAD a_bad_operator_name_encoding_map
                 *bad_operator_name_encodings;
                         /* A map that maps operator names that appear textually
                            without the operator prefix in a number of

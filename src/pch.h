@@ -179,26 +179,26 @@ Macro used to mark the end of a list of saved variables.
 extern void register_pch_saved_variables(a_pch_saved_variable array[]);
 
 
-EXTERN a_boolean
+EXTERN_THREAD a_boolean
 		building_pch_prefix;
 			/* TRUE when doing the initial scan of the
 			   primary source file to build the precompiled
 			   header prefix information. */
-EXTERN a_boolean
+EXTERN_THREAD a_boolean
 	        cannot_do_pch_processing;
 			/* TRUE if a condition has occurred that makes it
 			   impossible to generate or use precompiled header
 			   information for this compilation.  For example,
 			   running out of special PCH memory. */
 
-EXTERN a_boolean
+EXTERN_THREAD a_boolean
 		cannot_create_pch_file;
 			/* TRUE is a condition has occurred that makes
 			   the current compilation ineligible to create
 			   a precompiled header.  For example, using
 			   the predefined macros __DATE__ and __TIME__. */
 
-EXTERN a_source_position
+EXTERN_THREAD a_source_position
 		header_stop_source_position;
 			/* The line number and column position in the
 			   primary source file of the first token of the
@@ -207,7 +207,7 @@ EXTERN a_source_position
 			   processing routines to determine when they have
 			   reached the implied header stop point. */
 
-EXTERN a_boolean
+EXTERN_THREAD a_boolean
 		header_stop_position_pending;
 			/* TRUE when the actual compilation of the file
 			   has reached the header stop point.  Also TRUE
@@ -215,32 +215,32 @@ EXTERN a_boolean
 			   subsequence checking for the header stop
 			   condition. */
 
-EXTERN a_boolean
+EXTERN_THREAD a_boolean
 		pragma_hdrstop_found;
 			/* TRUE is a #pragma hdrstop was encountered
 			   during the prefix prescan.  This disables
 			   the recognition of subsequent events. */
 
-EXTERN a_boolean
+EXTERN_THREAD a_boolean
 		using_a_pch_file;
 			/* TRUE if this compilation makes use of a
 			   precompiled header file. */
 
-EXTERN a_source_position
+EXTERN_THREAD a_source_position
 		pos_of_last_event_from_pch;
 			/* Position of the last event in the current source
 			   file that will actually be supplied by the PCH
 			   being used.  Used to skip past the common
 			   prefix before beginning the compilation. */
 
-EXTERN a_boolean
+EXTERN_THREAD a_boolean
 		next_event_resumes_compilation;
 			/* Used when skipping the common prefix before
 			   beginning real compilation when using a PCH.
 			   This is TRUE when the next event should be
 			   processed normally. */
 
-EXTERN a_boolean
+EXTERN_THREAD a_boolean
 		generate_pch_on_return_to_primary_source_file;
 			/* This flag indicates that a precompiled header
 			   should be generated the next time that the

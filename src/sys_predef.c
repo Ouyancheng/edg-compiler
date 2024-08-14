@@ -924,7 +924,7 @@ using a_builtin_func_load_set = Ptr_set<a_symbol_header*>;
                         /* The type of a set that contains the symbols
                            of all loaded builtin functions. */
 
-static a_builtin_func_load_set
+STATIC_THREAD a_builtin_func_load_set
                 *loaded_builtin_set;
                         /* The set of currently loaded builtin function symbols
                            for the current translation unit.  Note that for the
@@ -1992,7 +1992,7 @@ value must be copied before a second call is made.
 */
 {
   a_const_char *result = target_attributes[arch];
-  static char  buffer[20];
+  STATIC_THREAD char  buffer[20];
 
   if (is_mv_cpu_arch(arch)) {
     /* Replace "arch=" with "arch_" in CPU architecture cases. */
@@ -2269,7 +2269,7 @@ result to an allocated area.
 */
 {
 #define STATIC_BUFFER_SIZE 256
-  static char        buffer[STATIC_BUFFER_SIZE];
+  STATIC_THREAD char        buffer[STATIC_BUFFER_SIZE];
   size_t             buff_idx = 0;
 #if USE_X86_FUNCTION_MULTIVERSIONING
   size_t             i;

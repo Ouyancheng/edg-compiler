@@ -539,11 +539,11 @@ typedef struct a_candidate_function {
   (memzero((char*)(p_cand), sizeof(a_candidate_function)))
 
 
-EXTERN a_candidate_function_ptr
+EXTERN_THREAD a_candidate_function_ptr
 		avail_candidate_functions;
 			/* List of candidate function entries that have been
 			   freed and are available for reuse. */
-EXTERN an_arg_match_summary_ptr
+EXTERN_THREAD an_arg_match_summary_ptr
 		avail_arg_match_summaries;
 			/* List of argument match summary entries that have
 			   been freed and are available for reuse. */
@@ -710,7 +710,7 @@ is that the caller is about to record that note).
 /*
 Counts of entries allocated, for debugging purposes.
 */
-EXTERN unsigned long
+EXTERN_THREAD unsigned long
 		num_candidate_functions_allocated;
 #endif /* DEBUG */
 

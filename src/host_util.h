@@ -64,8 +64,8 @@ called again.
 */
 {
 #define MAX_INSTANTIATION_OUTPUT_FILE_LEN 31
-  static char buffer[MAX_INSTANTIATION_OUTPUT_FILE_LEN+1];
-  int         max_len_without_suffix;
+  STATIC_THREAD char buffer[MAX_INSTANTIATION_OUTPUT_FILE_LEN+1];
+  int                max_len_without_suffix;
 
   /* Determine the output file name.  Use the mangled name (or the beginning
      of it) plus an underscore plus the hexadecimal for the CRC-32 checksum

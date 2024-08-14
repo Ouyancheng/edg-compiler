@@ -647,7 +647,7 @@ void db_abbr_expr(an_expr_node_ptr                       expr,
 extern void il_to_str_one_time_init(void);
 extern void il_to_str_init(void);
 
-EXTERN a_boolean
+EXTERN_THREAD a_boolean
 		gen_edg_special_types;
 			/* If TRUE, use the __edg_vector_type__ keyword to
 			   render vector types (instead of a GNU attribute)

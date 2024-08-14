@@ -26,10 +26,7 @@ fe_init.c -- Initialization for the front end.
 Force definition in this compilation of external variables declared
 in .h files.
 */
-/*lint -save -e767*/
-#define EXTERN /*empty*/
 #define VAR_INITIALIZERS 1
-/*lint -restore*/
 
 #include "basic_hdrs.h"
 #include "fe_common.h"
@@ -314,7 +311,8 @@ CONSTINIT_ARRAY_END(function_pointers)
 /*
 Date/time of compilation, in ctime format ("Sun Sep 16 01:03:52 1973\n"):
 */
-static char	curr_date_time[128];
+STATIC_THREAD char
+		curr_date_time[128];
 
 
 static void host_init(void)

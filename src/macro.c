@@ -41,7 +41,7 @@ BEGIN_EDG_NAMESPACE
 Buffer used to contain the characters of a macro being defined, and the
 characters of macro expansions.
 */
-static char	*macro_buffer;
+STATIC_THREAD char	*macro_buffer;
 			/* Contains characters of macro expansions and of
 			   macro definitions.  Dynamically allocated,
 			   expanded as needed. */
@@ -51,15 +51,15 @@ static char	*macro_buffer;
 			   cases can be accepted (so that the realloc is
 			   hardly ever needed).  Subsequent reallocations will
 			   double the amount previously allocated. */
-static char	*after_end_of_macro_buffer;
+STATIC_THREAD char	*after_end_of_macro_buffer;
 			/* The address just past the last element of
 			   macro_buffer. */
-static char	*next_avail_in_macro_buffer;
+STATIC_THREAD char	*next_avail_in_macro_buffer;
 			/* Next character position in macro_buffer available
 			   for allocation.  Reset at the start of a macro
 			   definition or a top-level macro expansion.  Not
 			   set outside of macro processing. */
-static sizeof_t num_compacted_macro_buffer_chars;
+STATIC_THREAD sizeof_t num_compacted_macro_buffer_chars;
 			/* Number of characters in macro_buffer that have
 			   already been compacted as a result of previous
 			   reallocations.  Except for cases where source line
@@ -68,11 +68,11 @@ static sizeof_t num_compacted_macro_buffer_chars;
 			   further and, as an optimization, can thus just be
 			   memcpy'ed during further macro_buffer
 			   reallocations. */
-static sizeof_t num_chars_deleted_in_macro_buffer;
+STATIC_THREAD sizeof_t num_chars_deleted_in_macro_buffer;
 			/* Number of characters in the uncompacted portion of
 			   macro_buffer that have been logically deleted via
 			   source line modifications. */
-static char	*macro_buffer_region_in_progress;
+STATIC_THREAD char	*macro_buffer_region_in_progress;
 			/* If non-NULL, points to the start of a section at
 			   the end of macro_buffer that is in the process of
 			   being built incrementally (e.g., by proc_define).
@@ -152,7 +152,7 @@ static unsigned long
 		ckpt_depth_of_curr_macro_invocation_record;
 			/* Shadow copy of preceding for checkpoint/revert. */
 #endif /* RECORD_MACRO_INVOCATIONS */
-static char	*aux_buffer_for_pcc_macros;
+STATIC_THREAD char	*aux_buffer_for_pcc_macros;
 			/* Auxiliary buffer allocated in pcc mode only and
 			   used to construct the full text of a first-level
 			   macro expansion so that the token pasting can
@@ -164,7 +164,7 @@ static char	*aux_buffer_for_pcc_macros;
 			   accepted (so that the realloc is hardly ever
 			   needed).  Subsequent reallocations will double the
 			   amount previously allocated. */
-static char	*after_end_of_aux_buffer_for_pcc_macros;
+STATIC_THREAD char	*after_end_of_aux_buffer_for_pcc_macros;
 			/* Pointer to just after the end of
 			   aux_buffer_for_pcc_macros. */
 #if FULLY_RESOLVED_MACRO_POSITIONS
@@ -184,48 +184,48 @@ static a_macro_text_map
 			   number of entries previously allocated. */
 #endif /* FULLY_RESOLVED_MACRO_POSITIONS */
 
-static a_symbol_ptr
+STATIC_THREAD a_symbol_ptr
 		Pragma_macro_symbol;
 			/* Pointer to the symbol entry for the special
 			   macro "_Pragma", which is used in modes where
 			   the C99-style pragma operator is allowed. */
 
-static a_symbol_ptr
+STATIC_THREAD a_symbol_ptr
 		microsoft_pragma_macro_symbol;
 			/* Pointer to the symbol entry for the special
 			   macro "__pragma", which is used in Microsoft
 			   mode. */
 
-static a_symbol_ptr
+STATIC_THREAD a_symbol_ptr
 		timestamp_macro_symbol;
 			/* Pointer to the symbol entry for the Microsoft
 			   and GNU __TIMESTAMP__ macro. */
-static a_symbol_ptr
+STATIC_THREAD a_symbol_ptr
 		counter_macro_symbol;
 			/* Pointer to the symbol entry for the Microsoft
 			   and GNU __COUNTER__ macro. */
-static unsigned long
+STATIC_THREAD unsigned long
 		counter_macro_number;
 			/* The current value for the Microsoft/GNU
 			   __COUNTER__ macro. */
 
-static a_symbol_ptr
+STATIC_THREAD a_symbol_ptr
 		include_level_symbol;
 			/* Pointer to the symbol entry for the GNU
 			   __INCLUDE_LEVEL__ macro. */
-static a_symbol_ptr
+STATIC_THREAD a_symbol_ptr
 		stdc_macro_symbol;
 			/* Pointer to the symbol entry for the __STDC__
 			   macro.  Only non-NULL when
 			   stdc_zero_in_system_headers is TRUE. */
 
-static a_boolean
+STATIC_THREAD a_boolean
 		stdc_value;
 			/* The value to be used for the __STDC__ macro,
 			   except when stdc_zero_in_system_headers is TRUE
 			   and we are in a system header. */
 
-static a_boolean
+STATIC_THREAD a_boolean
 		newline_ungotten;
 			/* TRUE if a "defined(" operator ends abruptly so
 			   that the terminating newline is queued onto a
@@ -233,70 +233,70 @@ static a_boolean
 			   expand_top_level_pcc_macro to avoid skipping
 			   white space onto a new source line. */
 
-static a_symbol_ptr
+STATIC_THREAD a_symbol_ptr
 		has_feature_symbol;
 			/* Pointer to the symbol entry for the special
 			   macro "__has_feature", which used in clang
 			   mode and optionally in all modes. */
 
-static a_symbol_ptr
+STATIC_THREAD a_symbol_ptr
 		has_extension_symbol;
 			/* Pointer to the symbol entry for the special
 			   macro "__has_extension", which is used in clang
 			   mode and optionally in all modes. */
 
-static a_symbol_ptr
+STATIC_THREAD a_symbol_ptr
 		has_include_symbol;
 			/* Pointer to the symbol entry for the special
 			   macro "__has_include", which is used in clang
 			   mode and when the portable feature test macros
 			   are enabled or, optionally, in all modes. */
 
-static a_symbol_ptr
+STATIC_THREAD a_symbol_ptr
 		has_include_next_symbol;
 			/* Pointer to the symbol entry for the special
 			   macro "__has_include_next", which is used in
 			   clang mode and optionally in all modes. */
 
-static a_symbol_ptr
+STATIC_THREAD a_symbol_ptr
 		has_attribute_symbol;
 			/* Pointer to the symbol entry for the special
 			   macro "__has_attribute", which is used in clang
 			   mode and optionally in all modes. */
 
-static a_symbol_ptr
+STATIC_THREAD a_symbol_ptr
 		has_cpp_attribute_symbol;
 			/* Pointer to the symbol entry for the special
 			   macro "__has_cpp_attribute", which enables
 			   testing whether a given attribute is supported
 			   in the current C++ emulation. */
 
-static a_symbol_ptr
+STATIC_THREAD a_symbol_ptr
 		has_c_attribute_symbol;
 			/* Pointer to the symbol entry for the special
 			   macro "__has_c_attribute", which enables
 			   testing whether a given attribute is supported
 			   in the current C emulation. */
 
-static a_symbol_ptr
+STATIC_THREAD a_symbol_ptr
 		has_builtin_symbol;
 			/* Pointer to the symbol entry for the special
 			   macro "__has_builtin", which is used in clang
 			   mode and optionally in all modes. */
 
-static a_symbol_ptr
+STATIC_THREAD a_symbol_ptr
 		is_identifier_symbol;
 			/* Pointer to the symbol entry for the special
 			   macro "__is_identifer", which is used in clang
 			   mode and optionally in all modes. */
 
-static a_symbol_ptr
+STATIC_THREAD a_symbol_ptr
 		has_warning_symbol;
 			/* Pointer to the symbol entry for the special
 			   macro "__has_warning", which is used in clang
 			   mode. */
 
-static a_boolean
+STATIC_THREAD a_boolean
 		use_raw_version_of_arg;
 			/* TRUE if the raw version of a macro argument
 			   should be used, FALSE if the expanded version
@@ -304,14 +304,14 @@ static a_boolean
 			   preprocessor idiosyncrasy.  See
 			   choose_raw_or_expanded_arg for details. */
 
-static a_source_line_modif_ptr
+STATIC_THREAD a_source_line_modif_ptr
 		top_microsoft_slmp;
 			/* In Microsoft mode, points to the top-level
 			   source line modification passed to
 			   expand_top_level_pcc_macro when that routine is
 			   active; NULL otherwise. */
 
-static a_text_buffer_ptr
+STATIC_THREAD a_text_buffer_ptr
 		file_name_text_buffer;
 			/* A buffer to hold the results of the __FILE__ and
 			   __BASE_FILE__ predefined macros. */
@@ -437,23 +437,23 @@ typedef struct a_macro_arg {
 			   Microsoft preprocessor emulation. */
 } a_macro_arg;
 
-static a_macro_arg_ptr
+STATIC_THREAD a_macro_arg_ptr
 		avail_macro_args;
 			/* List of freed macro arguments available for
 			   reuse. */
-static a_macro_arg_ptr
+STATIC_THREAD a_macro_arg_ptr
 		macro_arg_list,
 		end_of_macro_arg_list;
 			/* All the a_macro_arg entries currently being used. */
 
-static a_const_char
+STATIC_THREAD a_const_char
 		*arg_get_token_start_of_curr_token;
 			/* Set by arg_get_token to point to the position
 			   after the white-space skip.  This differs from
 			   the value returned in start_of_curr_token when
 			   the token is preceded by an inert-macro escape. */
 
-static unsigned long
+STATIC_THREAD unsigned long
 		macro_name_modif_seq;
 			/* During the execution of macro_invocation, this
 			   is the sequence id of the source line
@@ -465,7 +465,7 @@ static unsigned long
 			   those appearing in expansions of macro
 			   arguments. */
 
-static a_boolean
+STATIC_THREAD a_boolean
 		single_param_macro;
 			/* During the execution of macro_invocation, this
 			   will be TRUE if and only if the macro being
@@ -475,7 +475,7 @@ static a_boolean
 			   should be suppressed or included. */
 
 #if DEBUG
-static unsigned long
+STATIC_THREAD unsigned long
 		num_macro_params_allocated,
 		num_macro_defs_allocated,
 		num_macro_args_allocated,
@@ -485,7 +485,7 @@ static unsigned long
 			/* Used to track space use. */
 #endif /* DEBUG */
 
-static a_const_char
+STATIC_THREAD a_const_char
 		*end_of_cpp_string;
 			/* When preprocessing in cpp-compatibility mode,
 			   the insides of character constants and string
@@ -495,7 +495,7 @@ static a_const_char
 			   When this flag is non-NULL, we are inside a
 			   string, and it points to the closing quote
 			   character. */
-static a_const_char
+STATIC_THREAD a_const_char
 		*start_of_white_space_in_cpp_string;
 			/* When end_of_cpp_string is non-NULL, this
 			   is set by mdefn_get_token to the start of any
@@ -504,7 +504,7 @@ static a_const_char
 			   quote of the string. */
 
 
-static a_symbol_ptr
+STATIC_THREAD a_symbol_ptr
 	       	date_macro_symbol,
 		time_macro_symbol;
 			/* Pointers to the symbol entries for the special
@@ -4546,33 +4546,33 @@ init_predefined_macros will give them the appropriate values before
 creating the WG21 SG10 feature-test macros.
 */
 
-static a_boolean
+STATIC_THREAD a_boolean
 		access_control_sfinae;
 			/* TRUE if lack of access is considered to cause a
 			   deduction failure as it does in standard C++11.
 			   Used to support
 			   __has_feature(cxx_access_control_sfinae). */
 
-static a_boolean
+STATIC_THREAD a_boolean
 		contextual_conversions;
 			/* TRUE if the rules in paper WG21 N3323 for
 			   contextual implicit conversions are obeyed.
 			   Used to support
 			   __has_feature(cxx_contextual_conversions). */
 
-static a_boolean
+STATIC_THREAD a_boolean
 		attribute_deprecated_with_message;
 			/* TRUE if the "deprecated" attribute can take a
 			   string argument.  Used to support
 			   __has_feature(attribute_deprecated_with_message). */
 
-static a_boolean
+STATIC_THREAD a_boolean
 		attribute_unavailable_with_message;
 			/* TRUE if the "unavailable" attribute can take a
 			   string argument.  Used to support
 			   __has_feature(attribute_unavailable_with_message).*/
 
-static a_boolean
+STATIC_THREAD a_boolean
 		decltype_keyword_enabled;
 			/* TRUE if the C++11 "decltype" keyword is enabled.
 			   This is needed to support
@@ -4580,67 +4580,67 @@ static a_boolean
 			   decltype_enabled is TRUE when __decltype is
 			   enabled but the "decltype" keyword is not. */
 
-static a_boolean
+STATIC_THREAD a_boolean
 		initializer_lists_enabled;
 			/* TRUE if C++11 initializer lists are enabled.
 			   Used to support the __cpp_initializer_lists
 			   feature test macro. */
 
-static a_boolean
+STATIC_THREAD a_boolean
 		auto_cast_enabled;
 			/* TRUE if C++23 cast to auto is enabled.  Used to
 			   support the __cpp_auto_cast feature test
 			   macro. */
 
-static a_boolean
+STATIC_THREAD a_boolean
 		c_alignas_enabled;
 			/* TRUE if the _Alignas specifier is enabled in C
 			   mode.  Used to support
 			   __has_feature(c_alignas). */
 
-static a_boolean
+STATIC_THREAD a_boolean
 		c_alignof_enabled;
 			/* TRUE if the _Alignof operator is enabled in C
 			   mode.  Used to support
 			   __has_feature(c_alignof). */
 
-static a_boolean
+STATIC_THREAD a_boolean
 		c_generic_enabled;
 			/* TRUE if _Generic expressions are enabled in C
 			   mode.  Used to support
 			   __has_feature(c_generic_selections). */
 
-static a_boolean
+STATIC_THREAD a_boolean
 		c_static_assert_enabled;
 			/* TRUE if _Static_assert is enabled in C mode.
 			   Used to support
 			   __has_feature(c_static_assert). */
 
-static a_boolean
+STATIC_THREAD a_boolean
 		cxx_static_assert_enabled;
 			/* TRUE if static_assert is enabled in C++ mode.
 			   Used to support
 			   __has_feature(cxx_static_assert). */
 
-static a_boolean
+STATIC_THREAD a_boolean
 		c_thread_local_enabled;
 			/* TRUE if the _Thread_local specifier is enabled
 			   in C mode.  Used to support
 			   __has_feature(c_thread_local). */
 
-static a_boolean
+STATIC_THREAD a_boolean
 		cxx_thread_local_enabled;
 			/* TRUE if the thread_local specifier is enabled
 			   in C++ mode.  Used to support
 			   __has_feature(cxx_thread_local). */
 
-static a_boolean
+STATIC_THREAD a_boolean
 		cxx_constexpr_string_builtins;
 			/* TRUE if certain string builtin functions can be
 			   used in constexpr expressions.  Used for
 			   __has_feature(cxx_constexpr_string_builtins). */
 
-static a_boolean
+STATIC_THREAD a_boolean
 		cpp_static_call_operator_enabled;
 			/* TRUE if operator() can be a static member. */
 
@@ -5367,7 +5367,7 @@ by subsequent calls.
   a_boolean               full_id_seen = FALSE;
   a_boolean               diagnostic_issued = FALSE;
   a_boolean               saw_colon_colon = FALSE;
-  static char             buff[MAX_CLANG_FEATURE_NAME_LEN];
+  STATIC_THREAD char             buff[MAX_CLANG_FEATURE_NAME_LEN];
   a_boolean               namespace_allowed = (ns_id_ptr != NULL);
 
   if (ns_id_ptr != NULL) {
@@ -9913,7 +9913,7 @@ typedef struct an_assert_predicate {
 		values;	/* List of values for this predicate name.  (A given
 			   predicate may have several values.) */
 } an_assert_predicate;
-static an_assert_predicate_ptr
+STATIC_THREAD an_assert_predicate_ptr
 		assert_predicates;
 			/* List of all the #assert predicates currently
 			   defined.  This is a simple linear list because we
@@ -11392,7 +11392,7 @@ Return the file descriptor.
   return f_file;
 }  /* open_predefined_macro_file */
 
-static FILE	*f_predef_macros;
+STATIC_THREAD FILE	*f_predef_macros;
 			/* The file descriptor for the predefined macros
 			   file. */
 

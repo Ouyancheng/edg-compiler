@@ -655,17 +655,17 @@ typedef struct a_mangling_buffer {
                         /* A text buffer used for name mangling. */
 } a_mangling_buffer;
 
-static a_mangling_buffer_ptr
+STATIC_THREAD a_mangling_buffer_ptr
                 mangling_buffers_in_use;
                         /* A list of a_mangling_buffer entries that are in-use
                            (points to the buffer currently in-use, previous
                            in-use buffers are linked by next). */
 
-static a_mangling_buffer_ptr
+STATIC_THREAD a_mangling_buffer_ptr
                 mangling_buffer_free_list;
                         /* A list of free mangling buffers. */
 
-static a_text_buffer_ptr
+STATIC_THREAD a_text_buffer_ptr
 		mangling_text_buffer;
                         /* The text buffer currently being used for mangling.
                            Points to the text buffer at the head of the
@@ -674,7 +674,7 @@ static a_text_buffer_ptr
                            mangling_buffers_in_use is non-NULL, and NULL
                            otherwise). */
 
-static a_boolean
+STATIC_THREAD a_boolean
                 in_mangling_pre_pass;
                         /* TRUE if we're in a mangling "pre-pass" (e.g.,
                            before generating a PCH file).  In a mangling
@@ -881,7 +881,7 @@ static void mangled_simple_id_or_name(
 typedef Ptr_map<a_source_correspondence*, bool>
 		an_active_parent_map;
                         /* A convenient type for the map below. */
-static an_active_parent_map
+STATIC_THREAD an_active_parent_map
 		*active_parents;
                         /* A map to keep track of whether an entity
                            (a_source_correspondence *) has already been
@@ -7806,7 +7806,7 @@ returned and mctl->lacking_module_id is set to TRUE.
 /*
 Seed number for unnamed type names.
 */
-static unsigned long
+STATIC_THREAD unsigned long
 		unnamed_type_seed;
 
 static a_const_char *give_unnamed_class_or_enum_a_name(
@@ -8026,7 +8026,7 @@ caller.
 /*
 Seed number for unnamed member variable names.
 */
-static unsigned long
+STATIC_THREAD unsigned long
 		unnamed_member_variable_name_seed;
 
 
@@ -9168,7 +9168,7 @@ that use this namespace should be discarded).  A subsequent call will give the
 namespace an appropriate name once the module id is chosen.
 */
 {
-  static a_namespace_ptr nsp;
+  STATIC_THREAD a_namespace_ptr nsp;
   a_translation_unit_ptr tup;
 
   /* Each translation unit is individuated with a different name, make
@@ -11882,10 +11882,10 @@ typedef struct an_abi_tag_string {
               constant; /* A pointer to a ck_string constant. */
 } an_abi_tag_string;
 
-static an_abi_tag_string_ptr
+STATIC_THREAD an_abi_tag_string_ptr
               avail_abi_tag_strings;
                         /* A list of available abi_tag entries. */
-static a_constant_list_entry_ptr
+STATIC_THREAD a_constant_list_entry_ptr
                 implicit_tag_list;
                         /* A list of string constants from abi_tag attributes
                            of enclosing inline namespace(s) and local routines
@@ -11896,7 +11896,7 @@ static a_constant_list_entry_ptr
 
 #if DO_IL_LOWERING
 
-static a_routine_list_entry_ptr
+STATIC_THREAD a_routine_list_entry_ptr
                 avail_rlep_entries;
                         /* A list of available rlep entries. */
 
@@ -12016,18 +12016,18 @@ is added as a prefix in the Cfront case and a suffix in the IA-64 ABI case
 }  /* add_abi_tag_mangling */
 
 
-static a_source_correspondence
+STATIC_THREAD a_source_correspondence
                 *ttt_scp_for_implicit_abi_tags;
                         /* Used by calculate_implicit_abi_tags during a
                            type traversal to store the source correspondence
                            for the IL entity whose implicit abi_tags are
                            being computed. */
-static an_il_entry_kind
+STATIC_THREAD an_il_entry_kind
                 ttt_kind_for_implicit_abi_tags;
                         /* Used by calculate_implicit_abi_tags during a
                            type traversal to store the IL entity kind
                            (either iek_routine or iek_variable). */
-static a_boolean
+STATIC_THREAD a_boolean
                 ttt_mark_value;
                         /* Used during the walk of entities in the mangled
                            signature to store the value to set the

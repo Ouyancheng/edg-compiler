@@ -28,14 +28,14 @@ def_arg.c -- Processing of default arguments
 BEGIN_EDG_NAMESPACE
 
 /* Previously allocated fixup entries available for reuse. */
-static a_def_arg_expr_fixup_ptr avail_def_arg_expr_fixup;
+STATIC_THREAD a_def_arg_expr_fixup_ptr avail_def_arg_expr_fixup;
 
 
 #if DEBUG
 /*
 Counter to track use of memory.
 */
-static unsigned long
+STATIC_THREAD unsigned long
 		num_def_arg_expr_fixups_allocated;
 
 unsigned long db_show_def_arg_expr_fixups_used(unsigned long grand_total)

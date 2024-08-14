@@ -153,14 +153,14 @@ typedef struct a_class_fixup {
                            instance. */
 } a_class_fixup;
 
-static a_boolean
+STATIC_THREAD a_boolean
 		use_deferred_friend_fixup_list;
 			/* TRUE if deferred friend fixups should be done at
 			   the end of the translation unit instead of at the
 			   point at which the friend function is first
 			   referenced. */
 
-static a_routine_fixup_ptr
+STATIC_THREAD a_routine_fixup_ptr
 		deferred_friend_fixup_list;
 			/* A list of routine fixups for deferred friend
 			   function fixups that should be performed at the
@@ -169,27 +169,27 @@ static a_routine_fixup_ptr
 			   but in some modes they are done at the end of
 			   the translation unit. */
 
-static a_routine_fixup_ptr
+STATIC_THREAD a_routine_fixup_ptr
 		deferred_friend_fixup_list_tail;
 			/* The end of the deferred_friend_fixup_list. */
 
 /* The routine fixup entry for the current class member declaration. */
-static a_routine_fixup_ptr curr_routine_fixup;
+STATIC_THREAD a_routine_fixup_ptr curr_routine_fixup;
 
 /* Previously allocated fixup entries available for reuse. */
-static a_routine_fixup_ptr avail_routine_fixup;
+STATIC_THREAD a_routine_fixup_ptr avail_routine_fixup;
 
 /* Previously allocated fixup entries available for reuse. */
-static a_class_fixup_ptr avail_class_fixup;
+STATIC_THREAD a_class_fixup_ptr avail_class_fixup;
 
 #if DEBUG
 /*
 Counters to track total use of memory.
 */
-static unsigned long
+STATIC_THREAD unsigned long
 		num_routine_fixups_allocated;
 
-static unsigned long
+STATIC_THREAD unsigned long
 		num_class_fixups_allocated;
 
 unsigned long db_show_routine_fixups_used(unsigned long grand_total)
@@ -807,13 +807,13 @@ typedef struct an_initializer_fixup {
 			   member initializer. */
 } an_initializer_fixup;
 
-static an_initializer_fixup_ptr
+STATIC_THREAD an_initializer_fixup_ptr
 		avail_initializer_fixup;
 			/* Previously allocated fixup entries available for
 			   reuse. */
 
 #if DEBUG
-static unsigned long
+STATIC_THREAD unsigned long
 		num_initializer_fixups_allocated;
 			/* Number of initializer fixup entries allocated
 			   (including those in the avail_initializer_fixup
@@ -921,10 +921,10 @@ typedef struct an_override_registry_entry {
 
 
 /* Available list of partial-override entries. */
-static an_override_registry_entry_ptr avail_override_registry_entries;
+STATIC_THREAD an_override_registry_entry_ptr avail_override_registry_entries;
 
 #if DEBUG
-static unsigned long
+STATIC_THREAD unsigned long
 		num_override_registry_entries_allocated;
 
 unsigned long db_show_override_registry_entries_used(unsigned long grand_total)
@@ -1454,10 +1454,10 @@ static void complete_class_definition(a_type_ptr         class_type,
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
 
 /* Available list of override exception check entries. */
-static a_pending_exception_check_entry_ptr
+STATIC_THREAD a_pending_exception_check_entry_ptr
 		avail_pending_exception_check_entries;
 
-static a_pending_exception_check_entry_ptr
+STATIC_THREAD a_pending_exception_check_entry_ptr
 		pending_exception_check_entries;
 			/* A list of entries describing declarations whose
 			   exception specifications should be checked against
@@ -1468,7 +1468,7 @@ static a_pending_exception_check_entry_ptr
 /*
 Counter to track total use of memory.
 */
-static unsigned long
+STATIC_THREAD unsigned long
 		num_pending_exception_check_entries;
 
 unsigned long db_show_pending_exception_check_entries_used(
@@ -7922,7 +7922,7 @@ class associated with cdsp.
 
 
 /* Previously allocated derivation-step entries available for reuse. */
-static a_derivation_step_ptr avail_derivation_steps;
+STATIC_THREAD a_derivation_step_ptr avail_derivation_steps;
 
 void free_derivation_step(a_derivation_step_ptr  step)
 /*

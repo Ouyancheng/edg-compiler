@@ -54,12 +54,12 @@ typedef struct an_implied_copy_source {
 
 extern void clear_implied_copy_source(an_implied_copy_source *source_desc);
 
-EXTERN a_boolean
+EXTERN_THREAD a_boolean
 		processing_file_scope_init_routine;
 			/* TRUE while generating the file-scope initialization
 			   routine. */
 
-EXTERN a_statement_ptr
+EXTERN_THREAD a_statement_ptr
 		pending_stmk_init_statements;
 			/* A list of stmk_init statements that are generated
 			   during lowering of various expressions (e.g.,
@@ -69,7 +69,7 @@ EXTERN a_statement_ptr
 			   them) when control returns to the statement
 			   level. */
 
-EXTERN an_init_pos_descr_ptr
+EXTERN_THREAD an_init_pos_descr_ptr
                 aggregate_this_stack;
                         /* When non-NULL, points to the head of a stack of
                            initialization position descriptors that represent
@@ -84,7 +84,7 @@ EXTERN an_init_pos_descr_ptr
                            In this case, there would be two "this" pointers
                            on the stack: "S::N" and "S".  */
 
-EXTERN a_variable_ptr
+EXTERN_THREAD a_variable_ptr
                 ctor_init_this;
                         /* When non-NULL, points to the "this" parameter of the
                            constructor init that is being lowered.  Used

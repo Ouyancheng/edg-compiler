@@ -229,47 +229,47 @@ extern void trans_unit_one_time_init(void);
 
 extern void trans_unit_init(void);
 
-EXTERN a_translation_unit_stack_entry_ptr
+EXTERN_THREAD a_translation_unit_stack_entry_ptr
 		curr_translation_unit_stack_entry;
 			/* Pointer to the top of the translation unit stack. */
 
-EXTERN an_export_trans_unit_stack_entry_ptr
+EXTERN_THREAD an_export_trans_unit_stack_entry_ptr
 		curr_export_translation_unit_stack_entry;
 			/* Pointer to the top of the export template
 			   translation unit stack. */
 
-EXTERN a_translation_unit_ptr
+EXTERN_THREAD a_translation_unit_ptr
 		curr_translation_unit;
 			/* Pointer to the translation unit entry for the
 			   translation unit that is being processed (and
 			   whose per-translation unit data structures are
 			   currently active). */
 
-EXTERN a_boolean
+EXTERN_THREAD a_boolean
 		is_primary_translation_unit;
 			/* TRUE when processing the primary translation
 			   unit.  FALSE when processing secondary translation
 			   units. */
 
-EXTERN a_const_char
+EXTERN_THREAD a_const_char
 		*trans_unit_file_name;
 			/* Name of the primary source file for the current
 			   translation unit. */
 
-EXTERN a_module_ptr
+EXTERN_THREAD a_module_ptr
 		trans_unit_module;
 			/* If this ia a non-module translation unit, this
 			   points to a special module entry used to identify
 			   that context.  NULL for TUs that contain a module
 			   declaration. */
 
-EXTERN a_boolean
+EXTERN_THREAD a_boolean
 		translation_unit_needed_only_for_exported_templates;
 			/* TRUE when processing a secondary translation unit
 			   that is needed only for the exported templates
 			   it contains. */
 
-EXTERN a_translation_unit_ptr
+EXTERN_THREAD a_translation_unit_ptr
 		translation_units;
 			/* Pointer to a list of translation units.  The first
 			   entry on the list is the primary translation

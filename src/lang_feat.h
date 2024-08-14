@@ -1196,23 +1196,23 @@ The global variables gcc_mode, gpp_mode, and clang_mode are defined here
 utilities.
 */
 #if GNU_EXTENSIONS_ALLOWED || defined(_lint)
-EXTERN a_boolean
+EXTERN_THREAD a_boolean
                 gcc_mode;
                         /* Accept C language features supported by GNU C
                            compilers. */
-EXTERN a_boolean
+EXTERN_THREAD a_boolean
                 gpp_mode;
                         /* Accept C++ language features supported by GNU C++
                            compilers. */
 
-EXTERN a_boolean
+EXTERN_THREAD a_boolean
 		gnu_mode;
 			/* TRUE when either gcc_mode or gpp_mode is TRUE. */
-EXTERN a_boolean
+EXTERN_THREAD a_boolean
 		clang_mode;
 			/* Accept language_features supported by GNU and
 			   clang compilers. */
-EXTERN a_boolean
+EXTERN_THREAD a_boolean
 		strict_gnu;
 			/* When TRUE, combined with gnu_mode or clang_mode,
 			   acts like -std=c* rather than -std=gnu*.  Valid in
@@ -1228,14 +1228,14 @@ EXTERN a_boolean
 #define strict_gnu FALSE
 #endif /* GNU_EXTENSIONS_ALLOWED || defined(_lint) */
 
-EXTERN unsigned long
+EXTERN_THREAD unsigned long
 		gnu_version;
 			/* The version of the GNU C or C++ compiler with which
 			   compatibility is desired.  GNU C/C++ version x.y.z
 			   is represented by the value x*10000+y*100+z.  (E.g.,
 			   GNU C/C++ 3.4.1 is represented by 30401.) */
 
-EXTERN unsigned long
+EXTERN_THREAD unsigned long
 		clang_version;
 			/* The version of the clang compiler with which
 			   compatibility is desired.  clang version x.y.z
@@ -1328,26 +1328,26 @@ EXTERN a_boolean
 #endif /* ifdef _lint */
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
 
-EXTERN a_boolean
+EXTERN_THREAD a_boolean
 		scanning_generated_code;
 			/* TRUE if we are scanning code generated from
 			   internal definitions (e.g., metadata or builtin
 			   templates). */
 
-EXTERN a_boolean
+EXTERN_THREAD a_boolean
 		internal_templates_enabled;
 			/* TRUE if the front end defines "internal templates"
 			   as a means for enabling certain C++/CLI or C++/CX
 			   templates (e.g., cli::pin_ptr) or other builtin
 			   alias templates (e.g., __make_integer_seq). */
 
-EXTERN a_boolean
+EXTERN_THREAD a_boolean
                 use_cppcli_fill_ins;
                         /* TRUE if the C++/CLI label fill-ins should be used in
                            error messages (otherwise the C++/CX fill-in strings
                            are used). */
 
-EXTERN unsigned long
+EXTERN_THREAD unsigned long
 		microsoft_version;
 			/* The version of the Microsoft compiler with which
 			   compatibility is desired.  This enables or disables
@@ -1358,7 +1358,7 @@ EXTERN unsigned long
 			   supplied by the version of the Microsoft compiler
 			   that is being emulated. */
 
-EXTERN unsigned long
+EXTERN_THREAD unsigned long
 		microsoft_build_number;
 			/* The "build number" to use in creating the value of
 			   the predeclared macro _MSC_FULL_VER in Microsoft
@@ -2482,7 +2482,7 @@ __has_feature should be enabled in all modes.
 #define DEFINE_FEATURE_TEST_MACRO_OPERATORS_IN_ALL_MODES TRUE
 #endif /* DEFINE_FEATURE_TEST_MACRO_OPERATORS_IN_ALL_MODES */
 
-EXTERN int32_t
+EXTERN_THREAD int32_t
 		std_version;
 			/* A number of the form YYYYmm indicating the version
 			   of the language standard (for C or C++) in effect.
@@ -2495,7 +2495,7 @@ EXTERN int32_t
 			   and mm is 00 (e.g., it might be 204200 for an
 			   anticipated C++42 mode). */
 
-EXTERN a_boolean
+EXTERN_THREAD a_boolean
                 implicit_microsoft_cpp11_mode;
                         /* TRUE if in Microsoft emulation mode and
                            microsoft_version >= 1900, in which case it is
@@ -2547,7 +2547,7 @@ the standard is official.
 */
 #define cpp26_mode (!C_mode() && std_version >= 202600)
 
-EXTERN a_boolean
+EXTERN_THREAD a_boolean
 		right_shift_can_be_angle_brackets;
 			/* When TRUE, treat right shift (">>") tokens as
 			   double closing angle brackets (as mandated by the
@@ -2561,14 +2561,14 @@ C++ mode.
 #define DEFAULT_RIGHT_SHIFT_CAN_BE_ANGLE_BRACKETS FALSE
 #endif /* DEFAULT_RIGHT_SHIFT_CAN_BE_ANGLE_BRACKETS */
 
-EXTERN a_boolean
+EXTERN_THREAD a_boolean
 		extended_friends_enabled;
 			/* When TRUE, allow the form "friend <type-name>;"
 			   where <type-name> is not necessarily an elaborated
 			   type specifier (an extension specified in the C++11
 			   standard). */
 
-EXTERN a_boolean
+EXTERN_THREAD a_boolean
 		mixed_string_concat_enabled;
 			/* When TRUE, string literal concatenation is allowed
 			   even when one of the string literals is an ordinary
@@ -2576,60 +2576,60 @@ EXTERN a_boolean
 			   string literal (e.g., L"a" "b" is then accepted; so
 			   is "a" U"b" in modes that allow U-literals). */
 
-EXTERN a_boolean
+EXTERN_THREAD a_boolean
 		static_assert_enabled;
 			/* When TRUE, the C++11 construct static_assert is
 			   supported. */
 
-EXTERN a_boolean
+EXTERN_THREAD a_boolean
 		terse_static_assert_enabled;
 			/* When TRUE, the C++17 terse static_assert (i.e., one
 			   with only a single argument) is supported. */
 
-EXTERN a_boolean
+EXTERN_THREAD a_boolean
 		auto_type_specifier_enabled;
 			/* When TRUE, the "auto" token can appear as a type
 			   specifier (the type is implied by the mandatory
 			   initializer; this is a C++11 feature). */
 
-EXTERN a_boolean
+EXTERN_THREAD a_boolean
 		auto_storage_class_specifier_enabled;
 			/* When TRUE, the "auto" token can appear as a storage
 			   class specifier (this is the traditional meaning of
 			   "auto"; the variable is TRUE by default in all
 			   non-C++11 modes). */
 
-EXTERN a_boolean
+EXTERN_THREAD a_boolean
 		decltype_enabled;
 			/* When TRUE, the C++11 construct decltype is
 			   supported. */
 
-EXTERN a_boolean
+EXTERN_THREAD a_boolean
 		decltype_auto_enabled;
 			/* When TRUE, the C++14 "decltype(auto)" construct is
 			   enabled.  auto_type_specifier_enabled must also be
 			   TRUE in that case. */
 
-EXTERN a_boolean
+EXTERN_THREAD a_boolean
 		deduced_return_types_enabled;
 			/* When TRUE, C++14-style deduction of function return
 			   types from their definitions is enabled.  E.g.,
 			       auto f() { return 2.0; } // returns double
 			   */
 
-EXTERN a_boolean
+EXTERN_THREAD a_boolean
 		warn_on_deduced_return_types;
 			/* When TRUE, issue a warning on the use of deduced
 			   return types (to emulate a GCC 4.8.x feature). */
 
-EXTERN a_boolean
+EXTERN_THREAD a_boolean
 		enable_underscore_decltype_only;
 			/* When TRUE in GNU C++ mode with decltype_enabled set
 			   to TRUE, the C++11 keyword decltype is disabled,
 			   but the alternative __decltype is enabled with the
 			   same meaning as the standard token. */
 
-EXTERN a_boolean
+EXTERN_THREAD a_boolean
                 enable_decltype_in_base_specifier_and_mem_initializer;
                         /* TRUE if a decltype-specifier is allowed in a
                            base-specifier (e.g., struct A : decltype(x) {};)
@@ -2639,31 +2639,31 @@ EXTERN a_boolean
                            so there are cases where the front end accepts
                            more cases than the compilers they're emulating. */
 
-EXTERN a_boolean
+EXTERN_THREAD a_boolean
 		nullptr_enabled;
 			/* When TRUE, the C++11/C23 keyword "nullptr" is
 			   enabled.  Note that even when FALSE other equivalent
 			   tokens may exist (e.g., "__nullptr" in Clang C++03
 			   mode). */
 
-EXTERN a_boolean
+EXTERN_THREAD a_boolean
 		c23_typeof_enabled;
 			/* When TRUE, the C23 typeof language feature is
 			   enabled regardless of the current C language
 			   level. */
 
-EXTERN a_boolean
+EXTERN_THREAD a_boolean
 		cpp11_sfinae_enabled;
 			/* When TRUE, the C++11 SFINAE rules of N2634 are
 			   enabled. */
 
-EXTERN a_boolean
+EXTERN_THREAD a_boolean
 		cpp11_sfinae_ignore_access;
 			/* When cpp11_sfinae_enabled is TRUE and this is TRUE,
 			   access checking errors are ignored and do not cause
 			   deduction failure. */
 
-EXTERN a_boolean
+EXTERN_THREAD a_boolean
 		diag_override_does_not_affect_sfinae;
 			/* TRUE if features that override diagnostic
 			   severities (i.e., command-line options,
@@ -2673,12 +2673,12 @@ EXTERN a_boolean
 			   SFINAE-like processing that can affect overload
 			   resolution. */
 
-EXTERN a_boolean
+EXTERN_THREAD a_boolean
 		range_based_for_enabled;
 			/* When TRUE, the C++11 range-based-for statement
 			   is enabled. */
 
-EXTERN a_boolean
+EXTERN_THREAD a_boolean
 		relaxed_range_based_for_enabled;
 			/* When TRUE, and when range_based_for_enabled is TRUE,
 			   the "begin" and "end" iterators implied by the
@@ -2689,7 +2689,7 @@ EXTERN a_boolean
 			   range-based-for loop valid).  This relaxation was
 			   introduced for C++17. */
 
-EXTERN a_boolean
+EXTERN_THREAD a_boolean
 		terse_range_based_for_enabled;
 			/* When TRUE, the "terse" form of range-based-for
 			   statement is enabled (e.g., "for (x: v) ...").  This
@@ -2699,17 +2699,17 @@ EXTERN a_boolean
 			   versions of the Microsoft compiler, but eventually
 			   the C++ standardization committee turned it down. */
 
-EXTERN a_boolean
+EXTERN_THREAD a_boolean
 		deprecated_string_literal_conv_allowed;
 			/* When TRUE, the deprecated conversion from string
 			   literal to char * is allowed in C++ mode. */
 
-EXTERN a_boolean
+EXTERN_THREAD a_boolean
 		user_defined_literals_enabled;
 			/* When TRUE, C++11 user-defined literals are
 			   permitted. */
 
-EXTERN a_boolean
+EXTERN_THREAD a_boolean
 		macro_preempts_udl_suffix;
 			/* When TRUE, an identifier that would otherwise be
 			   the suffix for a user-defined string literal is
@@ -2724,29 +2724,29 @@ EXTERN a_boolean
 			   default in gpp_mode (but not clang_mode) with
 			   gnu_version >= 40800, FALSE otherwise. */
 
-EXTERN a_boolean
+EXTERN_THREAD a_boolean
 		raw_string_literals_enabled;
 			/* When TRUE, C++11 raw string literals are
 			   permitted. */
 
-EXTERN a_boolean
+EXTERN_THREAD a_boolean
 		digit_separators_enabled;
 			/* When TRUE, C++14/C23 digit separators (e.g.,
 			   0x1234'5678 or 123'456'789) are permitted. */
 
-EXTERN a_boolean
+EXTERN_THREAD a_boolean
 		gcc_const_variables_allowed;
 			/* When TRUE, gcc mode allows use of const integral
 			   variables as constants.  gcc allows this, but only
 			   with -O1. */
 
-EXTERN a_boolean
+EXTERN_THREAD a_boolean
 		define_portable_feature_test_macros;
 			/* When TRUE, the front end will define the
 			   appropriate feature test macros described in
 			   document WG21 SG10 SD-6. */
 
-EXTERN a_boolean
+EXTERN_THREAD a_boolean
 		string_literal_operator_template_allowed;
 			/* When TRUE, string literal operator templates
 			   (i.e., having the signature

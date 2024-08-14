@@ -138,12 +138,12 @@ struct a_module_interface {
 
 #if DEBUG
 
-EXTERN unsigned long
+EXTERN_THREAD unsigned long
                 num_module_decls_attempted;
                         /* The number of declarations that process_ifc_decl
                            attempted to process. */
 
-EXTERN unsigned long
+EXTERN_THREAD unsigned long
                 num_module_decls_failed;
                         /* The number of declarations that process_ifc_decl
                            attempted to process, but marked invalid. */
@@ -203,7 +203,7 @@ pointer.  Return NULL if there isn't one.
 }  /* lookup_module_for_mep */
 
 
-EXTERN a_symbol_ptr
+EXTERN_THREAD a_symbol_ptr
                 curr_module_sym;
                         /* If in a module unit, the current module symbol. */
 
@@ -249,7 +249,7 @@ using a_module_entity_stack = Dyn_array<a_module_entity_stack_entry>;
                         /* The type used to represent the stack of module
                            contexts. */
 
-EXTERN a_module_entity_stack
+EXTERN_THREAD a_module_entity_stack
                 *module_entity_stack;
                         /* A dynamic array of the active module entities. */
 
@@ -347,7 +347,7 @@ represents the global module and any exported entities from imported modules.
 }  /* curr_lookup_modules */
 
 
-EXTERN a_boolean
+EXTERN_THREAD a_boolean
                 lazy_symbols_may_be_visible;
                         /* TRUE if symbols (and their definitions) may be
                            "lazily loaded" (i.e., because at least one module

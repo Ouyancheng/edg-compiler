@@ -47,7 +47,7 @@ might be involved.
 */
 #define FILE_SCOPE_REGION_NUMBER ((a_memory_region_number)1)
 
-EXTERN a_memory_region_number
+EXTERN_THREAD a_memory_region_number
 		file_scope_region_number;
 			/* The memory region number for the file scope.
 			   Equal to FILE_SCOPE_REGION_NUMBER except when
@@ -453,24 +453,24 @@ region.
   ((a_boolean)(il_entry_prefix_of(ptr).secondary_trans_unit))
 			
 
-EXTERN a_mem_block_header_ptr
+EXTERN_THREAD a_mem_block_header_ptr
 		*mem_region_table;
 			/* A dynamically-allocated array.  mem_region_table[i]
 			   points to the last memory block header for 
 			   region i. */
-EXTERN a_memory_region_number
+EXTERN_THREAD a_memory_region_number
 		size_of_mem_region_table;
 			/* Current size of mem_region_table (number of regions,
 			   not number of bytes). */
-EXTERN a_memory_region_number
+EXTERN_THREAD a_memory_region_number
 		highest_used_region_number;
 			/* The highest memory region number used so far. */
 
-EXTERN a_memory_region_number
+EXTERN_THREAD a_memory_region_number
 		size_of_function_def_table;
 			/* Current size of IL header function_def_table
 			   (number of entries, not number of bytes). */
-EXTERN a_function_def_number
+EXTERN_THREAD a_function_def_number
 		highest_used_function_def_number;
 			/* The highest function definition number used so
 			   far. */

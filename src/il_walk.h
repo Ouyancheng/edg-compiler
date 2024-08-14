@@ -65,7 +65,7 @@ by the trans_copy.c code.
 #define REMAP_ONLY_ROUTINES_NEEDED FALSE
 #endif /* IL_SHOULD_BE_WRITTEN_TO_FILE && ... */
 
-EXTERN unsigned int
+EXTERN_THREAD unsigned int
 		flag_value_meaning_visited;
 			/* Value to be placed in the il_walk_flag field
 			   to indicate that an entry has been visited.
@@ -138,7 +138,7 @@ extern void set_class_keep_definition_in_il(a_type_ptr type);
 
 extern void walk_subtrees_of_local_entities(a_scope_ptr scope);
 
-EXTERN a_boolean
+EXTERN_THREAD a_boolean
 		end_of_file_scope_needed_flags_phase;
 			/* TRUE during the phase at the end of the file scope
 			   that deals with walking the subtrees of variables

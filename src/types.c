@@ -4957,7 +4957,7 @@ using a_corresponding_base_class_map =
                         /* The type of a table that maps a base class to a
                            corresponding base class in a new class type. */
 
-static a_corresponding_base_class_map
+STATIC_THREAD a_corresponding_base_class_map
                 *corresponding_base_class_cache;
                         /* A hash table that maps a base class to a
                            corresponding base class in a new class type. */
@@ -15089,9 +15089,9 @@ and those formed via alias-declaration syntax.
 
 /* Static variables used to pass information back to the routine
    is_invalid_template_arg_type. */
-static a_boolean is_unnamed_type;
-static a_boolean is_local_type;
-static a_boolean treat_class_members_as_named;
+STATIC_THREAD a_boolean is_unnamed_type;
+STATIC_THREAD a_boolean is_local_type;
+STATIC_THREAD a_boolean treat_class_members_as_named;
 
 
 static a_boolean ttt_is_type_with_no_name_linkage(
@@ -15160,32 +15160,32 @@ ttt_is_unnamed_namespace_type.
 
 /* A pointer to the specific template parameter type to be found by
    ttt_is_or_contains_template_param. */
-static a_type_ptr
+STATIC_THREAD a_type_ptr
 		specific_template_param_type;
 
 /* A pointer to the specific template parameter constant to be found by
    ttt_contains_template_param_constant. */
-static a_constant_ptr
+STATIC_THREAD a_constant_ptr
 		specific_template_param_constant;
 
 /* TRUE if only deduced contexts should be considered by
    ttt_contains_template_param_constant. */
-static a_boolean
+STATIC_THREAD a_boolean
 		deduced_contexts_only;
 
 /* TRUE if nonreal classes should be found in addition to
    template parameters. */
-static a_boolean
+STATIC_THREAD a_boolean
 		find_all_dependent_types;
 
 /* TRUE if instantiation dependence is being tested. */
-static a_boolean
+STATIC_THREAD a_boolean
 		check_for_instantiation_dependence;
 
 
 /* A pointer to the specific template template parameter to be found by
    ttt_contains_specific_template_template_param. */
-static a_template_ptr
+STATIC_THREAD a_template_ptr
 		specific_template_template_param;
 
 
@@ -17950,7 +17950,7 @@ make_new_type:
 
 /* TRUE if only local types should be removed by
    f_strip_local_and_nonreal_typedefs. */
-static a_boolean
+STATIC_THREAD a_boolean
 		slnrt_local_only;
 
 static a_type_ptr f_strip_local_and_nonreal_typedefs(a_type_ptr  type)

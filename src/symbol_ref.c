@@ -91,12 +91,12 @@ Output the flags set in kind to the debug output in a human-readable way.
 
 #endif /* DEBUG */
 
-static an_il_to_str_output_control_block
+STATIC_THREAD an_il_to_str_output_control_block
 		octl;
 			/* Output control block used to interface to the
 			   il_to_str routines. */
 
-static a_boolean
+STATIC_THREAD a_boolean
 		output_control_block_has_been_set_up;
 			/* Flag that indicates whether initialization has
 			   already been done on the output control block. */

@@ -301,7 +301,7 @@ For the IA-64 ABI:
 /*
 Count of entries allocated, for debugging purposes.
 */
-static unsigned long
+STATIC_THREAD unsigned long
 		allocated_name_string_length,
 		num_return_memos_allocated;
 #endif /* DEBUG && DO_IL_LOWERING */
@@ -468,17 +468,17 @@ function scope memory region.
   (!lowering_file_scope && in_file_scope((char *)(entry_ptr)))
 
 
-static a_return_memo_ptr
+STATIC_THREAD a_return_memo_ptr
 		avail_return_memos;
 			/* List of return memo entries that have been freed
 			   and are available for reuse. */
 
-static a_temporary_list_entry_ptr
+STATIC_THREAD a_temporary_list_entry_ptr
 		avail_temporary_list_entries;
 			/* List of temporary list entries that have been
 			   freed and are available for reuse. */
 
-static a_scopeless_compound_stmt_ptr
+STATIC_THREAD a_scopeless_compound_stmt_ptr
 		avail_scopeless_compound_stmts;
 			/* List of scopeless compound statement entries that
 			   have been freed and are available for reuse. */
@@ -487,7 +487,7 @@ static a_scopeless_compound_stmt_ptr
 /*
 Count of entries allocated, for debugging purposes.
 */
-static unsigned long
+STATIC_THREAD unsigned long
 		num_temporary_list_entries_allocated,
 		num_scopeless_compound_stmts_allocated;
 #endif /* DEBUG */
@@ -1317,7 +1317,7 @@ Make and return a "char *" type.
 Pointer to the generic function pointer type used in virtual function tables
 and pointers to member functions, once it is created.  NULL until created.
 */
-static a_type_ptr
+STATIC_THREAD a_type_ptr
 		vptp_type;
 
 
@@ -1373,9 +1373,9 @@ inside other user-written structs.
 Pointer to the struct type that defines pointers to member functions,
 once it is created.  NULL until created.
 */
-static a_type_ptr
+STATIC_THREAD a_type_ptr
 		mptr_type;
-static a_field_ptr
+STATIC_THREAD a_field_ptr
 		mptr_d_field,
 #if !IA64_ABI
 		mptr_i_field,
@@ -5406,7 +5406,7 @@ have_vtbl_var:;
 /*
 Count of entries allocated, for debugging purposes.
 */
-static unsigned long
+STATIC_THREAD unsigned long
 		num_construction_vtbls_allocated;
 #endif /* DEBUG */
 
@@ -6681,7 +6681,7 @@ Pointer to routine entry for the runtime routine __pure_virtual_called,
 a pointer to which is placed in virtual function table slots for
 pure virtual functions.  NULL until allocated.
 */
-static a_routine_ptr
+STATIC_THREAD a_routine_ptr
 		pure_virtual_called_routine;
 
 /*
@@ -6690,7 +6690,7 @@ deleted virtual function is invoked.  A pointer to this function is placed in
 virtual function table slots for deleted virtual functions.  NULL until
 allocated.
 */
-static a_routine_ptr
+STATIC_THREAD a_routine_ptr
 		deleted_virtual_called_routine;
 
 
@@ -11438,7 +11438,7 @@ of a base or derived class of that class.
 Routine entries for the runtime routines __dynamic_cast and __dynamic_cast_ref,
 once created.  NULL until then.
 */
-static a_routine_ptr
+STATIC_THREAD a_routine_ptr
 #if !IA64_ABI
 		dynamic_cast_ref_routine,
 #else /* IA64_ABI */

@@ -52,28 +52,28 @@ Variables and constants related to the scope_stack:
 			   time it is reallocated; also the initial
 			   allocation. */
 
-static a_function_shareable_constants_table_ptr
+STATIC_THREAD a_function_shareable_constants_table_ptr
 		avail_function_shareable_constants_tables;
 			/* A list of the function shareable constant tables
 			   that have been freed and are available for
 			   reuse. */
 
-static a_pack_reference_ptr
+STATIC_THREAD a_pack_reference_ptr
 		avail_pack_references;
 			/* A list of pack reference entries that have
 			   been freed and are available for reuse. */
 
-static a_pack_expansion_stack_entry_ptr
+STATIC_THREAD a_pack_expansion_stack_entry_ptr
 		avail_pack_expansion_stack_entries;
 			/* A list of pack expansion stack entries that have
 			   been freed and are available for reuse. */
 
-static a_pack_expansion_descr_ptr
+STATIC_THREAD a_pack_expansion_descr_ptr
 		avail_pack_expansion_descrs;
 			/* A list of pack expansion descriptors that have
 			   been freed and are available for reuse. */
 
-static a_pack_instantiation_descr_ptr
+STATIC_THREAD a_pack_instantiation_descr_ptr
 		avail_pack_instantiation_descrs;
 			/* A list of pack instantiation descriptors that have
 			   been freed and are available for reuse. */
@@ -91,7 +91,7 @@ static a_boolean
 /*
 Counts of tables allocated, to track total use of memory.
 */
-static unsigned long
+STATIC_THREAD unsigned long
 		num_pack_expansion_stack_entries_allocated,
 		num_pack_references_allocated,
 		num_pack_expansion_descrs_allocated,
@@ -474,7 +474,7 @@ typedef union a_collision_table {
 /*
 Pointer to a list of available collision tables.
 */
-static a_collision_table_ptr avail_collision_tables;
+STATIC_THREAD a_collision_table_ptr avail_collision_tables;
 
 
 static void initialize_local_name_collision_table(a_scope_stack_entry_ptr ssep)
@@ -1258,18 +1258,18 @@ typedef struct a_c99_inline_definition_locator {
 } a_c99_inline_definition_locator;
 
 
-static a_c99_inline_definition_locator_ptr
+STATIC_THREAD a_c99_inline_definition_locator_ptr
 		c99_inline_definition_locators_to_check;
 			/* A pointer to the list of locators for suspect
 			   constructs in C99 inline definitions. */
 
-static a_c99_inline_definition_locator_ptr
+STATIC_THREAD a_c99_inline_definition_locator_ptr
 		avail_c99_inline_definition_locators;
 			/* A pointer to a list of locators that are no longer
 			   in use. */
 
 #if DEBUG
-static unsigned long
+STATIC_THREAD unsigned long
 	num_c99_inline_definition_locators_allocated;
 #endif /* DEBUG */
 
@@ -1795,12 +1795,12 @@ typedef struct a_name_linkage_stack_entry {
 } a_name_linkage_stack_entry;
 
 
-static a_name_linkage_stack_entry_ptr
+STATIC_THREAD a_name_linkage_stack_entry_ptr
 		name_linkage_stack;
 			/* Linked list of entries recording saved name-linkage
 			   states from the currently active scopes. */
 
-static a_name_linkage_stack_entry_ptr
+STATIC_THREAD a_name_linkage_stack_entry_ptr
 		avail_name_linkage_stack_entries;
 			/* Freed name-linkage-stack entries that are available
 			   for reuse. */
@@ -3892,7 +3892,7 @@ using a_module_scope_reuse_state_array =
                         /* The type of an array of module scope reuse states
                            used for the module reuse state stack. */
 
-static a_module_scope_reuse_state_array
+STATIC_THREAD a_module_scope_reuse_state_array
                 *module_reuse_state_stack;
                         /* The previous module states. */
 
@@ -6451,6 +6451,51 @@ bindings.
 }  /* diagnose_unreferenced_binding */
 
 
+static void check_if_thread_local_needed(a_symbol_ptr sym)
+/*
+*/
+{
+  check_assertion(symbol_is(sym, sk_variable));
+  a_variable_ptr var = sym->variant.variable.ptr;
+  if (var->storage_class == (a_storage_class)sc_unspecified ||
+      var->storage_class == (a_storage_class)sc_static) {
+    if (!var->compiler_generated &&
+        !var->is_thread_local && !var->has_explicit_initializer) {
+      a_const_char *file_name;
+      a_const_char *full_name;
+      a_line_number line_number;
+      a_boolean     at_eos;
+      a_const_char  *old_string;
+      a_const_char  *new_string;
+      if (var->storage_class == (a_storage_class)sc_static) {
+        old_string = "static";
+        new_string = "STATIC_THREAD";
+      } else {
+        old_string = "EXTERN";
+        new_string = "EXTERN_THREAD";
+      }  /* if */
+#if 0
+      conv_seq_to_file_and_line(
+                  var->source_corresp.decl_pos_info->
+                                                    specifiers_range.start.seq,
+                  &file_name,
+                  &full_name,
+                  &line_number,
+                  &at_eos);
+      if (!at_eos) {
+        fprintf(f_debug, "%s: %d s/%s/%s/\n", file_name, line_number,
+                old_string, new_string);
+      }  /* if */
+#endif
+#if 0
+      pos_warning(ec_debug_show_location,
+                  &var->source_corresp.decl_pos_info->specifiers_range.start);
+#endif
+    }  /* if */
+  }  /* if */
+}  /* check_if_thread_local_needed */
+
+
 static void end_of_scope_symbol_check(a_symbol_ptr  sym,
 				      a_scope_kind  scope_kind,
                                       a_routine_ptr curr_routine)
@@ -6481,6 +6526,7 @@ curr_routine points to the routine entry; otherwise, it is NULL.
       storage_class = var_ptr->storage_class;
       anon_ns_mem = is_member_of_unnamed_namespace(&var_ptr->source_corresp) &&
                     !sym->is_class_member && sym->parent.namespace_ptr != NULL;
+      check_if_thread_local_needed(sym);
       if (scope_kind == (a_scope_kind)sck_file &&
           var_ptr->used && var_ptr->is_inline &&
           (storage_class == (a_storage_class)sc_unspecified ||
@@ -7205,7 +7251,8 @@ curr_routine points to the routine entry; otherwise, it is NULL.
 /*
 Available list of entries of type a_name_hidden_by_old_for_init.
 */
-static a_name_hidden_by_old_for_init_ptr avail_names_hidden_by_old_for_init;
+STATIC_THREAD a_name_hidden_by_old_for_init_ptr
+		avail_names_hidden_by_old_for_init;
 
 
 static 
@@ -8572,20 +8619,20 @@ typedef struct a_delayed_lowering_list_entry {
                         /* The function whose lowering has been delayed. */
 } a_delayed_lowering_list_entry;
 
-static a_delayed_lowering_list_entry_ptr
+STATIC_THREAD a_delayed_lowering_list_entry_ptr
                 waiting_for_module_id_list_head;
                         /* The head of the list of functions whose lowering
                            has been delayed because no module id was
                            available. */
 
-static a_delayed_lowering_list_entry_ptr
+STATIC_THREAD a_delayed_lowering_list_entry_ptr
                 waiting_for_module_id_list_tail;
                         /* The tail of the list of functions whose lowering
                            has been delayed because no module id was
                            available. */
 
 #if DEBUG
-static unsigned long
+STATIC_THREAD unsigned long
                 num_delayed_lowering_list_entries_allocated;
 #endif /* DEBUG */
 
@@ -10928,7 +10975,7 @@ facilitate identification of the descriptors to be discarded.  If a second
 parse is not required, the value in each such descriptor is reset to 0
 after the initial parse.
 */
-static int depth_tentative_pack_expansions;
+STATIC_THREAD int depth_tentative_pack_expansions;
 
 
 void begin_tentative_pack_expansion_context(void)

@@ -346,7 +346,7 @@ extern void db_signed_integer_value(an_integer_value  *value);
 /*
 Arrays containing the minimum and maximum values for each integer kind.
 */
-EXTERN an_integer_value
+EXTERN_THREAD an_integer_value
 		min_integer_value_of_kind[(int)ik_last],
 		max_integer_value_of_kind[(int)ik_last];
 

@@ -143,12 +143,12 @@ typedef struct a_substitution_stack_entry {
 } a_substitution_stack_entry;
 
 
-static a_substitution_stack_entry_ptr
+STATIC_THREAD a_substitution_stack_entry_ptr
 		substitution_stack;
 			/* A stack of entries representing substitutions that
 			   are under way. */
 
-static a_substitution_stack_entry_ptr
+STATIC_THREAD a_substitution_stack_entry_ptr
 		avail_substitution_stack_entries;
 			/* A list of substitution stack entries available for
 			   reuse. */
@@ -263,7 +263,7 @@ Output a log of the current substitution stack.
 #endif  /* DEBUG */
 
 using a_small_ovl_res_stack_stack = Small_dyn_array<an_ovl_res_stack, 3>;
-static a_small_ovl_res_stack_stack
+STATIC_THREAD a_small_ovl_res_stack_stack
                 *ovl_res_stack_stack;
                         /* Pointer to a stack of stacks of cascading overload
                            resolution tasks. */
@@ -1895,7 +1895,7 @@ function's formal parameters.
 Output control block used with the il_to_str routines to output argument
 types for diagnostic messages.
 */
-static an_il_to_str_output_control_block
+STATIC_THREAD an_il_to_str_output_control_block
 		octl;
 
 

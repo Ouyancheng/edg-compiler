@@ -4951,7 +4951,7 @@ done:
 }  /* class_specifier */
 
 
-static an_integer_kind
+STATIC_THREAD an_integer_kind
 		largest_enum_int_kind;
 			/* The largest integer kind that enum type can
 			   have.  Ordinarily ik_int in C mode, but in C++

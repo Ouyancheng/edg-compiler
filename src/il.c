@@ -66,8 +66,8 @@ BEGIN_EDG_NAMESPACE
 /*
 Pointers to shared types.  These are cleared by il_init.
 */
-static a_type_ptr int_types[(int)ik_last];
-static a_type_ptr signed_int_types[(int)ik_last];
+STATIC_THREAD a_type_ptr int_types[(int)ik_last];
+STATIC_THREAD a_type_ptr signed_int_types[(int)ik_last];
 #if MICROSOFT_EXTENSIONS_ALLOWED
 static a_type_ptr microsoft_sized_int_types[(int)ik_last];
 static a_type_ptr microsoft_sized_signed_int_types[(int)ik_last];
@@ -76,26 +76,26 @@ static a_type_ptr microsoft_sized_signed_int_types[(int)ik_last];
 static a_type_ptr fixed_point_types[(int)fpp_last][/*is_unsigned*/2]
                                    [/*is_fract*/2][/*saturating*/2];
 #endif /* FIXED_POINT_ALLOWED */
-static a_type_ptr float_types[(int)fk_last];
+STATIC_THREAD a_type_ptr float_types[(int)fk_last];
 #if C99_IL_EXTENSIONS_SUPPORTED
-static a_type_ptr complex_types[(int)fk_last];
-static a_type_ptr imaginary_types[(int)fk_last];
+STATIC_THREAD a_type_ptr complex_types[(int)fk_last];
+STATIC_THREAD a_type_ptr imaginary_types[(int)fk_last];
 #endif /* C99_IL_EXTENSIONS_SUPPORTED */
 #define MAX_TRACKED_STRING_TYPE_LENGTH 80
-static a_type_ptr (*string_types)[MAX_TRACKED_STRING_TYPE_LENGTH+1];
-static a_type_ptr il_error_type;
-static a_type_ptr il_unknown_type;
-static a_type_ptr il_void_type;
-static a_type_ptr il_reflection_type;
-static a_type_ptr il_wchar_t_type;
-static a_type_ptr il_char8_t_type;
-static a_type_ptr il_char16_t_type;
-static a_type_ptr il_char32_t_type;
-static a_type_ptr il_bool_type;
-static a_type_ptr il_standard_nullptr_type;
-static a_type_ptr il_managed_nullptr_type;
-static a_type_ptr il_std_string_view;
-static a_type_ptr il_scalable_vector_count_type;
+STATIC_THREAD a_type_ptr (*string_types)[MAX_TRACKED_STRING_TYPE_LENGTH+1];
+STATIC_THREAD a_type_ptr il_error_type;
+STATIC_THREAD a_type_ptr il_unknown_type;
+STATIC_THREAD a_type_ptr il_void_type;
+STATIC_THREAD a_type_ptr il_reflection_type;
+STATIC_THREAD a_type_ptr il_wchar_t_type;
+STATIC_THREAD a_type_ptr il_char8_t_type;
+STATIC_THREAD a_type_ptr il_char16_t_type;
+STATIC_THREAD a_type_ptr il_char32_t_type;
+STATIC_THREAD a_type_ptr il_bool_type;
+STATIC_THREAD a_type_ptr il_standard_nullptr_type;
+STATIC_THREAD a_type_ptr il_managed_nullptr_type;
+STATIC_THREAD a_type_ptr il_std_string_view;
+STATIC_THREAD a_type_ptr il_scalable_vector_count_type;
 
 /* Conditionally close the "edg" namespace. */
 END_EDG_NAMESPACE
@@ -111,7 +111,7 @@ BEGIN_EDG_NAMESPACE
 /*
 Number of times the based_types lists of types are searched for related types.
 */
-static unsigned long
+STATIC_THREAD unsigned long
 		num_get_based_type_calls;
 #endif /* !STANDALONE_UTILITY_PROGRAM */
 #endif /* DEBUG */
@@ -143,18 +143,18 @@ typedef struct a_source_sequence_cache_entry {
 			/* Cached source file pointer. */
 } a_source_sequence_cache_entry;
 
-static a_source_sequence_cache_entry seq_cache;
+STATIC_THREAD a_source_sequence_cache_entry seq_cache;
 
 #if !STANDALONE_UTILITY_PROGRAM
 
-static a_seq_number_lookup_entry_ptr
+STATIC_THREAD a_seq_number_lookup_entry_ptr
 		curr_seq_number_lookup_entry;
 			/* Pointer to the sequence number lookup entry for
 			   the source file segment currently being read. */
 
 #endif /* !STANDALONE_UTILITY_PROGRAM */
 
-static a_boolean
+STATIC_THREAD a_boolean
 		okay_to_use_seq_number_lookup_table;
 			/* TRUE if the sequence number lookup table is known
 			   to be in a valid state so that it can be used
@@ -166,19 +166,19 @@ static a_boolean
 			/* The initial number of elements in the sequence
 			   number lookup table. */ 
 
-static unsigned long
+STATIC_THREAD unsigned long
 		seq_number_lookup_table_size;
 			/* The allocated size of the sequence number lookup
 			   table. */
 
-static a_seq_number_lookup_entry_ptr
+STATIC_THREAD a_seq_number_lookup_entry_ptr
 		*seq_number_lookup_table;
 			/* Pointer to a dynamically allocated array of sequence
 			   number lookup entries.  See the description of
 			   a_seq_number_lookup_entry and the routine
 			   add_seq_number_lookup_entry for more information. */
 
-static a_source_file_ptr
+STATIC_THREAD a_source_file_ptr
 		effective_primary_source_file;
 			/* A pointer to the effective primary source file
 			   entry.  This is usually the same as the primary
@@ -197,7 +197,7 @@ for example there would only be one constant for the literal "0").
 			/* Size of the table; should be about twice
 			   the expected number of entries for a big
 			   program, and must be prime. */
-static a_constant_ptr
+STATIC_THREAD a_constant_ptr
 		*shareable_constants_table;
 			/* Each entry in the table points to a linear
 			   linked list of constant entries.  The function
@@ -208,7 +208,7 @@ static a_constant_ptr
 			   initialized. */ 
 
 #if DEBUG
-static unsigned long
+STATIC_THREAD unsigned long
 		num_shareable_constants,
 		num_func_shareable_constants,
 		num_used_shareable_constant_buckets,
@@ -232,7 +232,7 @@ typedef struct a_based_type_fixup {
 } a_based_type_fixup;
 
 #if DEBUG
-static unsigned long
+STATIC_THREAD unsigned long
 		num_based_type_fixups_allocated;
 #endif /* DEBUG */
 
@@ -375,7 +375,7 @@ Output a string into the db_name_str buffer.
 /*
 Buffer into which names are written for db_name_str
 */
-static a_text_buffer_ptr
+STATIC_THREAD a_text_buffer_ptr
 		db_name_str_buffer;
 
 #if !STANDALONE_UTILITY_PROGRAM
@@ -383,7 +383,7 @@ static a_text_buffer_ptr
 /*
 Buffer used to generate output by db_qualifier_str.
 */
-static a_text_buffer_ptr
+STATIC_THREAD a_text_buffer_ptr
 		db_qualifiers_str_buffer;
 
 #endif /* !STANDALONE_UTILITY_PROGRAM */
@@ -5135,12 +5135,12 @@ typedef struct a_copy_remap_entry {
 } a_copy_remap_entry;
 
 
-static a_copy_remap_entry_ptr
+STATIC_THREAD a_copy_remap_entry_ptr
 		avail_copy_remap_entries;
 			/* Copy remap entries freed and available for reuse. */
 
 #if DEBUG
-static unsigned long
+STATIC_THREAD unsigned long
 		num_copy_remap_entries_allocated;
 #endif /* DEBUG */
 
@@ -12214,7 +12214,7 @@ Make or find a type entry for a void type, and return a pointer to it.
 }  /* void_type */
 
 
-static a_type_ptr
+STATIC_THREAD a_type_ptr
 		il_strong_ordering_type,
 		il_weak_ordering_type,
 		il_partial_ordering_type,
@@ -17805,12 +17805,12 @@ typedef struct a_routine_move_descr {
 } a_routine_move_descr;
 
 
-static a_routine_move_descr
+STATIC_THREAD a_routine_move_descr
 		*scheduled_routine_moves;
 			/* A pointer to an array of routine move
 			   descriptions. */
 
-static a_scope_ptr
+STATIC_THREAD a_scope_ptr
 		scope_of_scheduled_routine_moves;
 			/* A pointer to the scope of the routines currently
 			   scheduled to be moved.  If a routine in another
@@ -17819,17 +17819,17 @@ static a_scope_ptr
 			   to point to the scope of the newly scheduled
 			   routine. */
 
-static a_scope_pointers_block_ptr
+STATIC_THREAD a_scope_pointers_block_ptr
 		scope_pointers_of_scheduled_routine_moves;
 			/* A pointer to the "pointers block" associated with
 			   by scope_of_scheduled_routine_moves. */
 
-static a_routine_ptr
+STATIC_THREAD a_routine_ptr
 		*routine_move_placeholders;
 			/* A pointer to an array of pointers to placeholder
 			   routines. */
 
-static sizeof_t
+STATIC_THREAD sizeof_t
 		n_scheduled_routine_moves;
 
 #define MAX_N_SCHEDULED_ROUTINE_MOVES  100
@@ -25044,7 +25044,7 @@ local scope or an enk_statement node allocated in function-scope memory.
 }  /* expr_has_reference_to_local_entity */
 
 
-static an_expr_node_ptr
+STATIC_THREAD an_expr_node_ptr
 		last_routine_scope_variable_node_found;
 			/* A pointer to the last node found by
 			   check_for_routine_scope_variable. */
@@ -31492,14 +31492,14 @@ Display memory use for entities in front end memory in this file (il.c).
  #error -- ENSURE_LOWERED_TYPE_LIST_ORDERING requires IL lowering
 #endif /* !DO_IL_LOWERING */
 
-static a_type_ptr
+STATIC_THREAD a_type_ptr
 	*type_reordering;
 		/* A pointer to a temporary array of a_type_ptr values
 		   used to order the file-scope types list as required for
 		   the C-generating back end.
 		   See fix_type_list_ordering_problems. */
 
-static a_type_ptr
+STATIC_THREAD a_type_ptr
 	*next_type_reordering_slot;
 		/* Pointer to the next available slot in type_reordering. */
 
@@ -31771,7 +31771,7 @@ IL lowering.
 #endif /* ENSURE_LOWERED_TYPE_LIST_ORDERING */
 #if MODULE_ID_NEEDED
 
-static a_source_correspondence_ptr
+STATIC_THREAD a_source_correspondence_ptr
                 module_id_scp;
                         /* The entity that is being used as the basis for
                            the translation unit's module id.  If the entity
@@ -31779,7 +31779,7 @@ static a_source_correspondence_ptr
                            still point to the entity after the PCH is restored
                            (but the translation unit filename may be
                            different). */
-static an_il_entry_kind
+STATIC_THREAD an_il_entry_kind
                 module_id_kind;
                         /* The entity kind for module_id_scp above. */
 

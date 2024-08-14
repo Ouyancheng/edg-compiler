@@ -30,7 +30,7 @@ literals.c -- Literal constant conversion to and from internal form.
 BEGIN_EDG_NAMESPACE
 
 
-static a_text_buffer_ptr
+STATIC_THREAD a_text_buffer_ptr
 		token_buffer;
 			/* A text buffer used to hold the spelling of a
 			   token after removal of digit separators. */

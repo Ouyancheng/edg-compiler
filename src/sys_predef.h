@@ -143,7 +143,7 @@ typedef struct a_builtin_function_type {
                            tk_typeref (which records those attributes). */
 } a_builtin_function_type;
 
-EXTERN a_builtin_function_type
+EXTERN_THREAD a_builtin_function_type
                 *builtin_type_table;
                         /* A dynamically-allocated array of
                            a_builtin_function_type entries that
@@ -176,7 +176,7 @@ typedef struct a_builtin_function_condition {
                            enabled in the current configuration. */
 } a_builtin_function_condition;
 
-EXTERN a_builtin_function_condition
+EXTERN_THREAD a_builtin_function_condition
                 *builtin_condition_table;
                         /* A dynamically-allocated array of
                            a_builtin_function_condition entries that

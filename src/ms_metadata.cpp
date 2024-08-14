@@ -110,7 +110,7 @@ make_unique_ptr(P1&& p1, P2&& p2, P3&& p3, P4&& p4, P5&& p5) {
 
 
 
-static bool is_cppcx_metadata = false;
+STATIC_THREAD bool is_cppcx_metadata;
 
 #define WIDEN2(x) L ## x
 #define WIDEN(x) WIDEN2(x)
@@ -9809,6 +9809,7 @@ Reset the metadata reader for reading metadata for the next translation unit.
   } else {
     catastrophe(ec_ms_metadata_init_failed);
   }  /* if */
+  is_cppcx_metadata = false;
 }  /* ms_metadata_trans_unit_init */
 
 

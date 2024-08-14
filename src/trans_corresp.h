@@ -22,11 +22,11 @@ trans_corresp.h -- Declarations related to matching entities across
 /* Conditionally open the "edg" namespace. */
 BEGIN_EDG_NAMESPACE
 
-EXTERN a_boolean
+EXTERN_THREAD a_boolean
 		correspondence_checking_underway;
 			/* TRUE if the correspondence checking code is
 			   currently executing. */
-EXTERN a_boolean
+EXTERN_THREAD a_boolean
 		correspondence_checking_done;
 			/* TRUE if the correspondence checking code has been
 			   completed for the current translation unit. */

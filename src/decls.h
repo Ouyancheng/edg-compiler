@@ -39,7 +39,7 @@ enum a_tu_decl_stage {
 				   module fragment stage. */
 };
 
-EXTERN a_tu_decl_stage
+EXTERN_THREAD a_tu_decl_stage
                 tu_stage;
                         /* The stage of the current translation unit.
                            Originally set to tud_none and is then set to
@@ -49,7 +49,7 @@ EXTERN a_tu_decl_stage
                            (respectively) are seen.  Should only be set by
                            calling set_tu_stage. */
 
-EXTERN a_boolean
+EXTERN_THREAD a_boolean
                 any_decls_seen_this_stage;
                         /* TRUE if any declaration has been seen in the
                            current stage of the translation unit. */
@@ -64,7 +64,7 @@ EXTERN a_boolean
     any_decls_seen_this_stage = FALSE;                                        \
   }
 
-extern a_symbol_ptr
+extern EDG_THREAD a_symbol_ptr
                 curr_module_sym;
                         /* When compiling a module unit, the symbol for the
                            module. */
@@ -105,7 +105,6 @@ been seen.
           (!curr_module_sym->variant.module_info.is_interface_unit ||
            tu_stage_is(tud_private_module_fgmt)));
 }  /* in_module_implementation_unit */
-
 
 /*
 Kinds of linkage, meaning whether or not an identifier declared in

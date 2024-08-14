@@ -45,13 +45,13 @@ typedef struct a_pp_if_stack_entry {
 			/* TRUE once the #else (if any) has been seen. */
 } a_pp_if_stack_entry;
 
-static a_pp_if_stack_entry_ptr
+STATIC_THREAD a_pp_if_stack_entry_ptr
 		pp_if_stack;
 			/* Stack of preprocessing ifs.  Dynamically allocated;
 			   can be expanded if necessary.  size_pp_if_stack
 			   gives the number of elements currently allocated.
 			   Allocation is not per-file. */
-static sizeof_t	size_pp_if_stack;
+STATIC_THREAD sizeof_t	size_pp_if_stack;
 			/* Allocated size in elements of pp_if_stack.
 			   Not per-file. */
 #define PP_IF_STACK_INCREMENTAL_ALLOCATION 30
@@ -60,18 +60,18 @@ static sizeof_t	size_pp_if_stack;
 			   allocation. */
 /* See preproc.h for pp_if_stack_depth and base_pp_if_stack_depth. */
 
-static a_source_position
+STATIC_THREAD a_source_position
 		pos_of_curr_directive;
 			/* The source position of the current preprocessing
 			   directive. */
 
-static a_boolean
+STATIC_THREAD a_boolean
 		is_header_stop_dir;
 			/* TRUE when the directive being scanned is the
 			   header stop directive after which a precompiled
 			   header file should be generated. */
 
-static a_text_buffer_ptr
+STATIC_THREAD a_text_buffer_ptr
 		header_name_buffer;
 			/* Text buffer used by copy_header_name. */
 
@@ -2277,7 +2277,7 @@ generate_pp_output is TRUE.
 Dynamically allocated buffer used to contain preprocessing directives
 that are being recorded as character strings.
 */
-static char	*pp_dir_string_buffer;
+STATIC_THREAD char	*pp_dir_string_buffer;
 			/* Not allocated on a per-file basis. */
 
 #define PP_DIR_STRING_BUFFER_INCREMENTAL_ALLOCATION 300
@@ -3405,11 +3405,11 @@ typedef struct a_gcc_pragma_options_entry {
 /*
 Counts of entries allocated, to track total use of memory.
 */
-static unsigned long
+STATIC_THREAD unsigned long
 		num_gcc_pragma_options_stack_entries_allocated;
 #endif /* DEBUG */
 
-static a_gcc_pragma_options_entry_ptr
+STATIC_THREAD a_gcc_pragma_options_entry_ptr
 		avail_gcc_pragma_options_stack_entries;
 			/* List of stack entries freed and available
 			   for reuse. */

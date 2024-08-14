@@ -219,12 +219,12 @@ floating-point format.
 #define kind_is_16bit(kind)                                                   \
   (kind_is_binary16(kind) || (kind) == fk_std_bfloat16)
 
-static a_boolean
+STATIC_THREAD a_boolean
                 long_double_is_double;
                         /* TRUE in configurations where the "long double" and
                            "double" types have the same representation. */
 
-static sizeof_t
+STATIC_THREAD sizeof_t
 		data_size_of_host_fp_value;
 			/* The number of bytes of the host floating point
 			   value that actually contain data.  This is
@@ -237,7 +237,7 @@ static a_boolean
 			/* TRUE if the long double floating point type does
 			   not make use of an implicit mantissa bit. */
 
-static a_host_fp_value
+STATIC_THREAD a_host_fp_value
 		fp_zero;
 			/* The value 0.0 in internal representation. */
 
@@ -785,8 +785,8 @@ underflow.  If the conversion can be done, return the result in "result".
   /* We can test for conversion overflow before doing the actual conversion,
      as outlined above. */
   static a_boolean		init_done = FALSE;
-  static a_host_fp_value	host_fp_flt_max;
-  static float			float_flt_max;
+  STATIC_THREAD a_host_fp_value	host_fp_flt_max;
+  STATIC_THREAD float			float_flt_max;
   /* Initialize host_fp_flt_max to FLT_MAX converted as a_host_fp_value.  This
      might be slightly larger than FLT_MAX evaluated as a float (because
      of greater precision), but it's what the conversion of the actual
@@ -1079,8 +1079,8 @@ underflow.  If the conversion can be done, return the result in "result".
      this before converting to double in case an overflow on such a
      conversion would cause a float exception. */
   static a_boolean		init_done = FALSE;
-  static a_host_fp_value	host_fp_dbl_max;
-  static double			double_dbl_max;
+  STATIC_THREAD a_host_fp_value	host_fp_dbl_max;
+  STATIC_THREAD double			double_dbl_max;
   /* Initialize host_fp_dbl_max to DBL_MAX converted as a_host_fp_value.
      This might be slightly larger than DBL_MAX evaluated as a double (because
      of greater precision), but it's what the conversion of the actual

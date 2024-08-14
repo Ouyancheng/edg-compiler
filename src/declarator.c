@@ -1460,7 +1460,7 @@ typedef Ptr_map<an_exception_specification_ptr, a_noexcept_arg_descr>
 			   specification entries to a description of the
 			   context in which they appeared. */
 
-static a_noexcept_arg_map
+STATIC_THREAD a_noexcept_arg_map
 		*noexcept_args;
 			/* A pointer to a hash table mapping exception
 			   specification entries to a description of the
@@ -8671,7 +8671,7 @@ If we are in such a context, update the types in the decl_parse_state.
 typedef Ptr_map<a_token_sequence_number, an_auto_param_descr*> 
 		an_abbr_lambda_descr_map;
 
-static an_abbr_lambda_descr_map
+STATIC_THREAD an_abbr_lambda_descr_map
 		*abbr_lambda_descrs;
 			/* Map from token sequence numbers to "auto" parameter
 			   lists for lambdas that appear in templates (i.e.,

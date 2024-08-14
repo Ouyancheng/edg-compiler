@@ -259,12 +259,12 @@ typedef struct a_pack_alignment_stack_entry {
 } a_pack_alignment_stack_entry;
 
 
-static a_pack_alignment_stack_entry_ptr
+STATIC_THREAD a_pack_alignment_stack_entry_ptr
 		pack_alignment_stack;
 			/* Pointer to the top of the stack of pack alignment
 			   values produced by #pragma pack directives. */
 
-static a_pack_alignment_stack_entry_ptr
+STATIC_THREAD a_pack_alignment_stack_entry_ptr
 		avail_pack_alignment_stack_entries;
 			/* List of pack alignment stack entries freed and
 			   available for reuse. */

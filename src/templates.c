@@ -50,11 +50,11 @@ templates.c -- Support for C++ templates.
 /* Conditionally open the "edg" namespace. */
 BEGIN_EDG_NAMESPACE
 
-static a_symbol_header
+STATIC_THREAD a_symbol_header
 		*initializer_list_sym_hdr;
 			/* Symbol header for "initializer_list". */
 
-static a_symbol_header
+STATIC_THREAD a_symbol_header
 		*invented_template_sym_hdr;
 			/* Symbol header for "<invented>". */
 
@@ -206,13 +206,13 @@ template information file.
 			   definition list file, which may contain a very
 			   large number of symbols. */
 
-static an_instance_lookup_entry_ptr
+STATIC_THREAD an_instance_lookup_entry_ptr
 		instance_lookup_table[INSTANCE_LOOKUP_TABLE_SIZE];
 			/* Each element of the array points to a list of
 			   entries associated with instantiations that hashed
 			   to a given group. */
 
-static a_const_char
+STATIC_THREAD a_const_char
 		*instantiation_request_file_name;
                         /* The name of a file containing a list of names
 			   of template functions and static data members to
@@ -220,11 +220,11 @@ static a_const_char
 			   feedback mechanisms to provide automatic
 			   instantiation. */
 
-static FILE	*f_instantiation_request;
+STATIC_THREAD FILE	*f_instantiation_request;
 			/* File from which the instantiation list should be
 			   read.  Only valid when do_auto_instantiation is
 			   TRUE. */
-static a_boolean
+STATIC_THREAD a_boolean
 		request_file_check_needed;
 			/* TRUE if any instantiations have been assigned
 			   to this translation unit or if a definition list
@@ -234,11 +234,11 @@ static a_boolean
 			   instantiations and/or with the list of entities
 			   in the definition list file.  */
 
-static FILE	*f_template_info;
+STATIC_THREAD FILE	*f_template_info;
 			/* File variable associated with the template
 			   information file. */
 
-static a_boolean
+STATIC_THREAD a_boolean
 		remove_exported_template_file;
 			/* TRUE if the exported template file is should
 			   be removed when it is closed.  This is used
@@ -246,11 +246,11 @@ static a_boolean
 			   created when the input comes from standard
 			   input. */
 
-static FILE	*f_exported_template;
+STATIC_THREAD FILE	*f_exported_template;
 			/* File variable associated with the exported
 			   template file. */
 
-static a_boolean
+STATIC_THREAD a_boolean
 		any_instantiated_entities_added_to_request_file;
 			/* TRUE if any instances have had their add to
 			   request flag set and have also been instantiated.
@@ -258,15 +258,15 @@ static a_boolean
 			   added entities should be generated at the end of
 			   the compilation. */
 
-static FILE	*f_definition_list;
+STATIC_THREAD FILE	*f_definition_list;
 			/* File variable associated with the definition list
 			   file being used, if any. */
 
-static FILE	*f_exported_template_input;
+STATIC_THREAD FILE	*f_exported_template_input;
 			/* The current exported template file (.et) being
 			   processed, if any. */
 
-static FILE	*f_export_info;
+STATIC_THREAD FILE	*f_export_info;
 			/* File variable associated with the export information
 			   file being processed, if any. */
 
@@ -290,7 +290,7 @@ typedef struct a_can_instantiate_entry {
 } a_can_instantiate_entry;
 
 
-static a_can_instantiate_entry_ptr can_instantiate_list;
+STATIC_THREAD a_can_instantiate_entry_ptr can_instantiate_list;
 
 #if TEMPLATE_LOOKUP_NEEDED
 	
@@ -319,7 +319,7 @@ typedef struct a_template_lookup_entry {
 			/* The number of buckets in the template lookup table.
 			   This number should be prime. */
 
-static a_template_lookup_entry_ptr
+STATIC_THREAD a_template_lookup_entry_ptr
 		template_lookup_table[TEMPLATE_LOOKUP_TABLE_SIZE];
 			/* Table used to find the definition of exported
 			   templates.  Each element of the array points to
@@ -337,48 +337,48 @@ static a_template_lookup_entry_ptr
 
 #endif /* TEMPLATE_LOOKUP_NEEDED */
 
-static a_master_instance_ptr
+STATIC_THREAD a_master_instance_ptr
 		master_instantiations_list;
 			/* List of master instance entries for external
 			   template entities (functions and static data
 			   members).  This is a list of instances for all
 			   translation units. */
 
-static a_master_instance_ptr
+STATIC_THREAD a_master_instance_ptr
 		master_instantiations_tail;
 			/* Points to the end of the
 			   master_instantiations_list. */
 
-static a_template_instance_ptr instantiations_required;
+STATIC_THREAD a_template_instance_ptr instantiations_required;
 			/* Points to the first entry on a list of template
 			   instance entries for which either function
 			   instantiations or compiler-generated static data
 			   member definitions are required.  Entries are
 			   added to the end of the list.  */
 
-static a_template_instance_ptr instantiations_required_tail;
+STATIC_THREAD a_template_instance_ptr instantiations_required_tail;
 			/* Points to the end of the instantiations_required
 			   list; needed because entries added to this list
 			   must be added at the end. */
 
-static a_boolean
+STATIC_THREAD a_boolean
 		in_instantiation_wrapup;
 			/* TRUE during end-of-compilation unit instantiation
 			    processing. */
 
-static a_routine_list_entry_ptr
+STATIC_THREAD a_routine_list_entry_ptr
 		inline_function_list;
 			/* When instantiating extern inline entities,
 			   this points to a list of inline functions
 			   defined in this translation unit. */
 
-static a_variable_list_entry_ptr
+STATIC_THREAD a_variable_list_entry_ptr
 		inline_variable_list;
 			/* When instantiating extern inline entities
 			   this points to a list of inline variables
 			   defined in this translation unit. */
 
-static a_boolean
+STATIC_THREAD a_boolean
 		additional_instantiation_wrapup_required;
 			/* TRUE if additional instances or inline functions
 			   were created during this phase of instantiation
@@ -386,32 +386,32 @@ static a_boolean
 			   to make sure all entries have been considered. */
 
 #if CHECKING && INSTANTIATION_BY_IMPLICIT_INCLUSION
-static a_boolean
+STATIC_THREAD a_boolean
 		after_instantiation_wrapup;
 			/* TRUE after instantiation wrapup processing has
 			   completed. */
 #endif /* CHECKING && INSTANTIATION_BY_IMPLICIT_INCLUSION */
 
-static a_symbol_list_entry_ptr
+STATIC_THREAD a_symbol_list_entry_ptr
 		exported_templates_tail;
 			/* The end of the exported templates list. */
 
-static a_symbol_list_entry_ptr
+STATIC_THREAD a_symbol_list_entry_ptr
 		deferred_instantiations;
 			/* A list of symbol entries for instantiations that
 			   were deferred while a class definition was
 			   pending.  These entities are instantiated when
 			   a class definition is no longer pending. */
 
-static a_symbol_list_entry_ptr
+STATIC_THREAD a_symbol_list_entry_ptr
 		deferred_instantiations_tail;
 			/* The end of the deferred_instantiations list. */
 
-static a_partial_order_candidate_ptr
+STATIC_THREAD a_partial_order_candidate_ptr
 		avail_partial_order_candidates;
 			/* Previously allocated entries available for reuse. */
 
-static a_variadic_param_info_ptr
+STATIC_THREAD a_variadic_param_info_ptr
 		avail_variadic_param_infos;
 			/* Previously allocated entries available for reuse. */
 
@@ -427,7 +427,7 @@ static a_boolean
 			   done by the Microsoft compiler. */
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
 
-static a_boolean
+STATIC_THREAD a_boolean
 		deferred_instantiations_in_process;
 			/* Flag used by process_deferred_instantiations to
 			   determine whether the routine has already been
@@ -436,12 +436,12 @@ static a_boolean
 			   not a function static so that it can be reset
 			   if a compilation is terminated abnormally. */
 
-static unsigned long
+STATIC_THREAD unsigned long
 		num_total_pending_instantiations;
 			/* The number of function instantiations that are
 			   in progress at any point in time. */
 
-static unsigned long
+STATIC_THREAD unsigned long
 		num_pending_default_arg_instantiations;
 			/* The number of default argument instantiations
 			   that are in progress at any point in time. */
@@ -450,7 +450,7 @@ static unsigned long
 /*
 Counters used to track memory usage.
 */
-static unsigned long
+STATIC_THREAD unsigned long
 #if TEMPLATE_LOOKUP_NEEDED
 		num_template_lookup_entries_allocated,
                 num_exported_template_files_allocated,
@@ -27938,7 +27938,7 @@ to represent the template parameters.
 }  /* scan_template_param_list */
 
 
-static unsigned int
+STATIC_THREAD unsigned int
 		pending_nontype_param_instantiations;
 			/* The number of pending instantiations of dependent
 			   template nontype parameters.  This is used to
@@ -28124,7 +28124,7 @@ template template parameter.
 }  /* set_decl_state_for_template_template_rescan */
 
 
-static unsigned int
+STATIC_THREAD unsigned int
 		pending_templ_templ_param_instantiations;
 			/* The number of pending instantiations of dependent
 			   template template parameters.  This is used to
@@ -28220,7 +28220,7 @@ template parameters that depend on other template parameters.
 }  /* rescan_template_template_parameter */
 
 
-static unsigned int
+STATIC_THREAD unsigned int
 		pending_type_param_instantiations;
 			/* The number of pending instantiations of dependent
 			   template type parameters.  This is used to

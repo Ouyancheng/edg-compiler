@@ -647,12 +647,12 @@ copy assignment operator.
 }  /* copy_from */
 
 
-EXTERN an_operand_ptr
+EXTERN_THREAD an_operand_ptr
 		*internal_opnd_array;
 			/* Pointer to an array of operands available when
 			   scanning internal expressions. */
 
-EXTERN int	n_internal_opnds;
+EXTERN_THREAD int	n_internal_opnds;
 			/* Length of the array pointed to by
 			   internal_opnd_array. */
 
@@ -845,7 +845,7 @@ typedef struct a_dynamic_init_dtor_fixup {
 typedef struct an_initializer_cache an_initializer_cache_dummy_typedef;
 
 
-EXTERN a_routine_ptr
+EXTERN_THREAD a_routine_ptr
 		*p_called_nonconstexpr_routine;
 			/* Pointer to the location where a non-constexpr
 			   routine should be recorded if it is called (when
@@ -1220,18 +1220,18 @@ typedef struct an_expr_stack_entry {
 			   on a previously-scanned expression. */
 } an_expr_stack_entry;
 
-EXTERN an_expr_stack_entry_ptr
+EXTERN_THREAD an_expr_stack_entry_ptr
 		expr_stack;
 			/* Pointer to the top of the expression stack. */
 
-EXTERN a_ref_entry_ptr
+EXTERN_THREAD a_ref_entry_ptr
 		curr_expr_ref_entries;
 			/* List of all the reference entries for the current
 			   expression.  They are recorded at the end of the
 			   expression.  Before that, the kind of reference
 			   each indicates might be adjusted. */
 
-EXTERN an_expr_node_ptr
+EXTERN_THREAD an_expr_node_ptr
 		decltype_rescan_operand;
 			/* While rescanning a decltype operand, this points
 			   to the operand of the innermost type operator, or
@@ -1305,7 +1305,7 @@ typedef struct a_pending_consteval_failure {
 			   Undefined if there is no pending failure. */
 } a_pending_consteval_failure;
 
-EXTERN a_pending_consteval_failure
+EXTERN_THREAD a_pending_consteval_failure
 		pending_consteval_failure;
 			/* While scanning call arguments, this may hold a
 			   description of a failure to fold a nested consteval
@@ -1343,14 +1343,14 @@ inhibited in some cases (particularly, when implicitly converting a constant
 value to an arithmetic type).  This can be useful when dealing with very large
 aggregate initializers.
 */
-EXTERN a_boolean
+EXTERN_THREAD a_boolean
 		reduce_backing_expression_use;
 
 #if DEBUG
 /*
 Counts of entries allocated, for debugging purposes.
 */
-EXTERN unsigned long
+EXTERN_THREAD unsigned long
 		num_arg_match_summaries_allocated;
 #endif /* DEBUG */
 
@@ -3330,7 +3330,7 @@ struct a_requires_range_descr {
 typedef Ptr_map<a_token_sequence_number, a_requires_range_descr>
 		a_requires_range_map;
 
-EXTERN a_requires_range_map
+EXTERN_THREAD a_requires_range_map
 		*requires_ranges;
 			/* A map from the token_sequence_number corresponding
 			   to a tok_requires token for a requires-expression
@@ -3342,14 +3342,14 @@ EXTERN a_requires_range_map
 typedef Ptr_map<an_expr_node_ptr, a_subst_pairs_array>
 		a_requires_subst_map;
 
-EXTERN a_requires_subst_map
+EXTERN_THREAD a_requires_subst_map
 		*requires_expr_substs;
 			/* A map from a requires-expression to template
 			   argument substitutions.  This is used to delay these
 			   substitutions until a fully non-dependent template
 			   argument list is available. */
 
-EXTERN Ptr_map<a_variable_ptr, a_boolean>
+EXTERN_THREAD Ptr_map<a_variable_ptr, a_boolean>
 		*vars_being_deduced;
 			/* A map containing variables whose type is in the
 			   process of being deduced. */

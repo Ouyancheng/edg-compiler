@@ -36,40 +36,40 @@ BEGIN_EDG_NAMESPACE
  #error -- ORPHAN_PROCESSING_NEEDED must be set if IL walking is needed.
 #endif /* !ORPHAN_PROCESSING_NEEDED */
 
-static an_entry_process_function_ptr
+STATIC_THREAD an_entry_process_function_ptr
 		entry_process_func;
 			/* The function to be called for each non-string entry.
 			   NULL if no function is to be called. */
-static a_string_entry_process_function_ptr
+STATIC_THREAD a_string_entry_process_function_ptr
 		string_entry_process_func;
 			/* The function to be called for each string entry.
 			   NULL if no function is to be called. */
-static a_walk_termination_test_function_ptr
+STATIC_THREAD a_walk_termination_test_function_ptr
 		walk_termination_test_func;
 			/* The function to be called to decide on pruning
 			   of the IL walk at a given entry, or NULL if the
 			   default pruning algorithm (using il_walk_flag)
 			   should be used. */
-static a_remap_function_ptr
+STATIC_THREAD a_remap_function_ptr
 		walk_remap_func;
 			/* The function to be used to remap each pointer
 			   from an old value to a new value.  NULL if no
 			   remapping is to be done. */
-static a_remap_function_ptr
+STATIC_THREAD a_remap_function_ptr
 		walk_list_remap_func;
 			/* The function to be used to remap each pointer
 			   from an old value to a new value, for list pointers
 			   ("next" pointers and start-of-list pointers).
 			   NULL if no remapping is to be done. */
-static a_boolean
+STATIC_THREAD a_boolean
 		clear_fe_pointers_during_walk;
 			/* If TRUE, pointers to front end information should
 			   be cleared during the IL walk. */
-static a_boolean
+STATIC_THREAD a_boolean
 		walking_file_scope;
 			/* TRUE if walking the file-scope IL, FALSE if
 			   walking the IL for a function scope. */
-static a_boolean
+STATIC_THREAD a_boolean
 		walking_secondary_trans_unit;
 			/* TRUE if we are walking an IL tree in a secondary
 			   translation unit, FALSE if we are walking the

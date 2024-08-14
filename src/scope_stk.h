@@ -1723,7 +1723,7 @@ typedef struct a_scope_stack_entry {
 			   in this scope. */
 } a_scope_stack_entry;
 
-EXTERN a_scope_stack_entry_ptr
+EXTERN_THREAD a_scope_stack_entry_ptr
 		scope_stack;
 			/* Stack of entries describing active scopes.
 			   scope_stack[0] is the entry for the file scope,
@@ -1733,7 +1733,7 @@ EXTERN a_scope_stack_entry_ptr
 			   number of elements currently allocated.
 			   Allocation is not per-file. */
 
-EXTERN a_scope_depth
+EXTERN_THREAD a_scope_depth
 		depth_scope_stack;
 			/* Current depth of the scope stack.  NO_SCOPE_DEPTH
 			   (i.e., -1) indicates that the stack is empty. */
@@ -2140,7 +2140,7 @@ non_local_class_fixup_depth for more information.
    are defined as indexes into the array, not as pointers.  Pointers into
    the scope stack are dangerous because the scope stack can be reallocated
    and moved on a push_scope. */
-EXTERN a_scope_depth
+EXTERN_THREAD a_scope_depth
 		depth_of_initial_lookup_scope;
 			/* Scope depth of the scope at which name lookup
 			   operations should begin.  This is usually the
@@ -2148,7 +2148,7 @@ EXTERN a_scope_depth
 			   under certain conditions (for example, when
 			   a namespace reactivation is pushed on top of
 			   a template declaration scope). */
-EXTERN a_scope_depth
+EXTERN_THREAD a_scope_depth
 		decl_scope_level;
 			/* Level in the scope stack that contains the
 			   current declaration level.  In C, differs from
@@ -2158,12 +2158,12 @@ EXTERN a_scope_depth
 			   the struct/union pseudo-scope level.  In C++,
 			   differs from depth_scope_stack when the innermost
 			   "scope" is a class reactivation. */
-EXTERN a_scope_depth
+EXTERN_THREAD a_scope_depth
 		depth_innermost_function_scope;
 			/* Level in the scope stack that contains the innermost
 			   function scope, or NO_SCOPE_DEPTH if there isn't
 			   one. */
-EXTERN a_scope_ptr
+EXTERN_THREAD a_scope_ptr
 		innermost_function_scope;
 			/* The innermost function scope, or NULL if there isn't
 			   one.  Usually matches
@@ -2172,17 +2172,17 @@ EXTERN a_scope_ptr
 			   processed where no scope stack entry exists
 			   (e.g., in IL lowering, when routines are
 			   generated). */
-EXTERN a_scope_depth
+EXTERN_THREAD a_scope_depth
 		depth_innermost_instantiation_scope;
 			/* If there are template instantiation scopes on the
                            scope stack, this is the depth of the innermost
                            one.  Otherwise, NO_SCOPE_DEPTH. */
-EXTERN a_scope_depth
+EXTERN_THREAD a_scope_depth
 		depth_template_declaration_scope;
 			/* Depth of the sck_template_declaration scope entry,
 			   if any, that the current scope is enclosed by;
 			   otherwise, NO_SCOPE_DEPTH. */
-EXTERN a_scope_depth
+EXTERN_THREAD a_scope_depth
 		curr_deferred_access_scope;
 			/* Depth of the scope entry to be used to determine
 			   whether access checking should be deferred, and if
@@ -2199,17 +2199,17 @@ EXTERN a_boolean
 			   a template instantiation, or a pragma. */
 #endif /* GENERATE_SOURCE_SEQUENCE_LISTS */
 
-EXTERN a_boolean
+EXTERN_THREAD a_boolean
 		inside_local_class;
 			/* TRUE if we are currently inside a local class,
 			   i.e., a class defined within a function. */
-EXTERN a_scope_depth
+EXTERN_THREAD a_scope_depth
 		depth_innermost_namespace_scope;
 			/* If there are any namespace scopes on the scope
 			   stack, this is the depth of the innermost one.
 			   Otherwise, it is the depth of the file scope.
 			   It is defined in both C and C++. */
-EXTERN a_scope_number
+EXTERN_THREAD a_scope_number
 		next_scope_number;
 			/* Next scope number to be assigned.  These are
 			   unique identifiers for each scope, not just
@@ -2217,7 +2217,7 @@ EXTERN a_scope_number
 			   pseudo-scopes associated with the members of
 			   structs and unions in C (not C++). */
 
-EXTERN a_scope_depth
+EXTERN_THREAD a_scope_depth
 		depth_of_innermost_scope_that_affects_access_control;
 			/* If there are scopes on the scope stack that
 			   affect C++ access control, this is the depth of
@@ -2225,7 +2225,7 @@ EXTERN a_scope_depth
 			   Heads a list linked by
 			   next_scope_that_affects_access_control. */
 
-EXTERN a_scope_depth
+EXTERN_THREAD a_scope_depth
 		num_classes_on_scope_stack;
 			/* Current count of sck_class_struct_union and
 			   sck_class_reactivation entries in scope_stack.
@@ -2233,7 +2233,7 @@ EXTERN a_scope_depth
 			   reactivation of the scope of a class, and name
 			   lookup is more complicated. */
 
-EXTERN a_scope_depth
+EXTERN_THREAD a_scope_depth
 		non_local_class_fixup_depth;
 			/* The fixup of classes is delayed until any pending
 			   class definitions have completed, except that
@@ -2248,13 +2248,13 @@ EXTERN a_scope_depth
 			   special context scope that get_definition_of_class
 			   pushes. */
 
-EXTERN a_boolean
+EXTERN_THREAD a_boolean
 		function_body_processing_delayed_on_some_func_in_primary_il;
 			/* TRUE if function body processing (e.g., lowering)
 			   was delayed for some function in the primary IL. */
 
 
-EXTERN a_pack_expansion_stack_entry_ptr
+EXTERN_THREAD a_pack_expansion_stack_entry_ptr
 		pack_expansion_stack;
 			/* Pointer to the top of the pack expansion stack. */
 
@@ -2707,7 +2707,7 @@ Microsoft compilers fixed this.)
 typedef Ptr_map<a_routine_ptr, a_lambda_ptr>
 		a_call_op_to_lambda_map;
 
-EXTERN a_call_op_to_lambda_map
+EXTERN_THREAD a_call_op_to_lambda_map
 		*call_op_to_lambda_map;
 			/* A map from lambda call operator (a_routine) entries
 			   to corresponding a_lambda entries. */
