@@ -4945,8 +4945,17 @@ deduction failed.
     }  /* if */
     if (ptp->is_parameter_pack && ptp->next != NULL) {
       /* A parameter pack can be deduced only if there are no other parameters
-         following it. */
-      goto done;
+         following it, except if there are no more arguments and subsequent
+         parameters are packs or defaulted. */
+      if (alep == NULL &&
+          (ptp->next->is_parameter_pack || ptp->next->has_default_arg)) {
+        /* Something like
+               template<typename T, typename ...Ts> int f(T, Ts..., int = 32);
+               int r = f(42);  // Okay.
+           is valid. */
+      } else {
+        goto done;
+      }  /* if */
     }  /* if */
   }  /* if */
   push_substitution(template_sym, *template_arg_list);
@@ -5395,7 +5404,7 @@ match.
       if (rtsp->has_ellipsis || param_pack_seen) break;
       goto done;
     } else if (param->is_parameter_pack) {
-      if (param->next != NULL) {
+      if (param->next == NULL) {
         /* A final parameter pack can match all the remaining arguments. */
         param = NULL;
         break;
@@ -5424,6 +5433,11 @@ match.
     }  /* if */
     param = param->next;
   }  /* while */
+  /* Also check for non-final parameter packs, such as in:
+       template<typename T, typename ...Ts> int f(T, Ts..., int = 32);
+       int r = f(42);  // Okay.
+  */
+  while (param != NULL && param->is_parameter_pack) param = param->next;
   /* Check that the argument and parameter lists ended at the same place. */
   if (param != NULL) {
     /* Fewer arguments than required.  No match unless there are default
@@ -5808,7 +5822,7 @@ in a new-expression).
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
   a_boolean                enum_param_still_needed = FALSE;
   a_boolean                check_arg_count_mismatch = TRUE;
-  a_boolean                rescan_pushed = FALSE;
+  a_boolean                rescan_pushed = FALSE, nonfinal_pack_seen = FALSE;
   a_boolean                allocated_this_param = FALSE;
   an_operand               dummy_operand;
   a_diag_list_ptr          notes = NULL;
@@ -6258,6 +6272,7 @@ in a new-expression).
            longer see the parameter pack; the deduction should get rid of
            it.  (If is_pack_element is TRUE, the pack has already been
            expanded and the parameter should be advanced too.) */
+        if (param->next != NULL) nonfinal_pack_seen = TRUE;
         check_assertion(first_pass);
         goto next_argument;
       } else {
@@ -6493,6 +6508,24 @@ next_argument:
            that particular candidate instance. */
         goto reject_function;
       }  /* if */
+    }  /* if */
+    if (nonfinal_pack_seen &&
+        !(ovl_context == oc_ctad &&
+          is_aggregate_deduction_candidate(routine)) &&
+        arg_count_mismatch(routine_type, arg_list, routine,
+                           &param_array_expanded_case)) {
+      /* Deduction involving nonfinal packs may have produced a deduction with
+         extraneous parameters.  E.g.:
+             template<typename... Ts> int f(Ts..., int, Ts...);
+             int r = f(0,0,0); 
+         Here the first Ts... is assumed to be deduced to an empty list, but
+         the later Ts... actually deduces to <int, int>. */
+      if (notes != NULL) {
+        more_info_sym_diagnostic(ec_candidate_wrong_param_count,
+                                 &function_symbol->decl_position,
+                                 function_symbol, notes);
+      }  /* if */
+      goto reject_function;
     }  /* if */
     if (concepts_enabled &&
         (ms_version_is(any_version) || clang_version_is(any_version))) {

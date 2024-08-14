@@ -1,5 +1,19 @@
 Version 6.7
 
+8/13/24  [EDGcpfe/16584,EDGcpfe/18624,EDGcpfe/24587,EDGcpfe/22946,
+          EDGcpfe/25811]
+Overload resolution with non-final parameter packs
+
+Consider:
+
+  template<typename T, typename ...Ts> int f(T, Ts..., int = 32);
+  int r = f(42);  // Previously an error.  Now okay.
+
+Previously, this resulted in an error because overload resolution did not
+correctly handle function parameter packs that are followed by additional
+parameters.  That is now fixed and the example is now accepted.
+
+
 8/13/24  [EDGcpfe/27507]
 Clang compatibility: Clang 19 intrinsics
 
