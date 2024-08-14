@@ -4297,8 +4297,10 @@ using an_allocated_symbols_list = Dyn_array<a_symbol_ptr>;
 static an_allocated_symbols_list
                 *allocated_symbols;
                         /* The symbols allocated in the current translation
-                           unit.  This is used for post-compilation sanity
-                           checks. */
+                           unit.  This is used for post-memory region and
+                           post-compilation sanity checks.  Note that this is
+                           only populated when no_very_expensive_checking is
+                           FALSE. */
 
 #endif /* EXPENSIVE_CHECKING */
 
@@ -4321,7 +4323,9 @@ hdr_ptr == NULL indicates that an error symbol should be constructed.
 #endif /* DEBUG */
 #if EXPENSIVE_CHECKING
   /* Add the symbol to the list of allocated symbols to check. */
-  allocated_symbols->push_back(sym_ptr);
+  if (!no_very_expensive_checking) {
+    allocated_symbols->push_back(sym_ptr);
+  }  /* if */
 #endif /* EXPENSIVE_CHECKING */
   /* Set the shared fields to default values, set the kind, and initialize
      its variant fields. */
@@ -19636,7 +19640,7 @@ void symbol_table_memory_region_wrap_up(a_memory_region_number region)
 Sanitize the symbol table for the given memory region being freed.
 */
 {
-  if (allocated_symbols != NULL) {
+  if (!no_very_expensive_checking && allocated_symbols != NULL) {
     for (a_symbol_ptr sym : *allocated_symbols) {
       if (sym->kind == sk_freed) {
         /* This symbol was already freed. */
@@ -19671,50 +19675,52 @@ Validate the current state of the symbol table for the
 current translation unit.
 */
 {
-  a_boolean any_errors = FALSE;
+  if (!no_very_expensive_checking) {
+    a_boolean any_errors = FALSE;
 
-  for (a_symbol_ptr sym : *allocated_symbols) {
-    if (sym->kind == sk_freed) {
-      /* Don't check freed symbols, they're no longer relevant. */
-      continue;
-    }  /* if */
-    if (!symbol_has_trans_unit_ptr(sym)) {
-      /* Don't check symbols that are acknowledged as not having an associated
-         translation unit.  */
-      continue;
-    }  /* if */
+    for (a_symbol_ptr sym : *allocated_symbols) {
+      if (sym->kind == sk_freed) {
+        /* Don't check freed symbols, they're no longer relevant. */
+        continue;
+      }  /* if */
+      if (!symbol_has_trans_unit_ptr(sym)) {
+        /* Don't check symbols that are acknowledged as not having an
+           associated translation unit.  */
+        continue;
+      }  /* if */
 
-    an_il_entry_kind kind;
-    char             *ptr = il_entry_for_symbol_null_okay(sym, &kind);
-    if (ptr == NULL) {
-      continue;
-    }  /* if */
+      an_il_entry_kind kind;
+      char             *ptr = il_entry_for_symbol_null_okay(sym, &kind);
+      if (ptr == NULL) {
+        continue;
+      }  /* if */
 
-    /* There should always be a reachable translation unit for the symbol,
-       unless the symbol has already been freed (covered by the sk_freed
-       case above). */
-    a_translation_unit_ptr sym_tu = trans_unit_for_symbol(sym);
-    a_memory_region_number sym_tu_region = sym_tu->file_scope_region_number;
-    an_il_entry_prefix_ptr prefix = &il_entry_prefix_of(ptr);
-    a_memory_region_number prefix_region = prefix->file_scope_region_number;
-    if (sym_tu_region != prefix_region) {
+      /* There should always be a reachable translation unit for the symbol,
+         unless the symbol has already been freed (covered by the sk_freed case
+         above). */
+      a_translation_unit_ptr sym_tu = trans_unit_for_symbol(sym);
+      a_memory_region_number sym_tu_region = sym_tu->file_scope_region_number;
+      an_il_entry_prefix_ptr prefix = &il_entry_prefix_of(ptr);
+      a_memory_region_number prefix_region = prefix->file_scope_region_number;
+      if (sym_tu_region != prefix_region) {
 #if DEBUG
-      fputs("the following symbol:\n    ", f_debug);
-      db_symbol(sym, "", 6);
+        fputs("the following symbol:\n    ", f_debug);
+        db_symbol(sym, "", 6);
 
-      a_string err_msg("  claims the IL entity is in the TU correspoding "
-                       "to memory region ", sym_tu_region, " but it was "
-                       "actually allocated in the TU correspoding to ",
-                       prefix_region);
-      print(err_msg, f_debug);
+        a_string err_msg("  claims the IL entity is in the TU correspoding "
+                         "to memory region ", sym_tu_region, " but it was "
+                         "actually allocated in the TU correspoding to ",
+                         prefix_region);
+        print(err_msg, f_debug);
 #endif /* DEBUG */
-      any_errors = TRUE;
-    }  /* if */
-  }  /* for */
-  check_assertion_str(!any_errors,
-                      "at least one symbol has the incorrect "
-                      "translation unit information");
-  delete_fe(&allocated_symbols);
+        any_errors = TRUE;
+      }  /* if */
+    }  /* for */
+    check_assertion_str(!any_errors,
+                        "at least one symbol has the incorrect "
+                        "translation unit information");
+    delete_fe(&allocated_symbols);
+  }  /* if */
 }  /* symbol_table_trans_unit_validate */
 
 #endif /* EXPENSIVE_CHECKING */
