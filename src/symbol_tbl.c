@@ -17390,17 +17390,15 @@ Assign the next scope number in sequence, and return it.
 a_boolean symbol_is_from_trans_unit(a_symbol_ptr		sym,
 				    a_translation_unit_ptr	tup)
 /*
-Return TRUE if the declaration scope of sym is from a scope associated
-with the translation unit specified by tup.  If the symbol has no scope,
-return TRUE.
+Return TRUE if the declaration scope of sym is from a scope associated with the
+translation unit specified by tup.  If the symbol has no associated translation
+unit information, return TRUE.
 */
 {
-  a_scope_number	scope_number;
-  a_boolean		result = TRUE;
+  a_boolean result = TRUE;
 
-  scope_number = sym->decl_scope;
-  if (scope_number != NO_SCOPE_NUMBER) {
-    result = trans_unit_for_scope[scope_number] == tup;
+  if (symbol_has_trans_unit_ptr(sym)) {
+    result = trans_unit_for_symbol(sym) == tup;
   }  /* if */
   return result;
 }  /* symbol_is_from_trans_unit */
