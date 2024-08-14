@@ -4482,23 +4482,13 @@ Clear the given GCC pragma description.
 
 #endif /* GNU_EXTENSIONS_ALLOWED */
 
-a_pragma_ptr alloc_pragma(a_pragma_kind           kind,
-                          a_source_correspondence *scp)
+a_pragma_ptr alloc_pragma(a_pragma_kind kind)
 /*
 Allocate a pragma entry of the required kind, initialize it, and return a
-pointer to it.  If scp is non-NULL, the pragma will point to the declarative
-entity with the indicated source correspondence, so allocate the pragma
-in the same memory region as that entity; otherwise, allocate the pragma
-in the current IL memory region.
+pointer to it.
 */
 {
-  a_pragma_ptr  pp;
-
-  if (scp == NULL) {
-    pp = (a_pragma_ptr)alloc_cil(sizeof(a_pragma));
-  } else {
-    pp = (a_pragma_ptr)alloc_in_same_region_as(scp, sizeof(a_pragma));
-  }  /* if */
+  a_pragma_ptr pp = (a_pragma_ptr)alloc_cil(sizeof(a_pragma));
 #if DEBUG
   num_pragmas_allocated++;
 #endif /* DEBUG */

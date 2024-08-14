@@ -830,10 +830,9 @@ and (5) returns a pointer to the IL pragma entry to the caller, in case
 there is additional processing to be done.
 */
 {
-  a_pragma_ptr             pp;
-  a_memory_region_number   region_to_switch_back_to;
-  a_scope_depth            scope_depth = depth_scope_stack;
-  a_source_correspondence  *scp = NULL;
+  a_pragma_ptr           pp;
+  a_memory_region_number region_to_switch_back_to;
+  a_scope_depth          scope_depth = depth_scope_stack;
 
   db_enter(5, "add_pragma_to_il");
   if (scope_stack_top().in_nonreal_instantiation) {
@@ -841,12 +840,10 @@ there is additional processing to be done.
   } else if (in_constexpr_if_discarded_statement()) {
     /* Pragmas from C++17 constexpr if discarded statements are not added
        to the IL. */
-  } else if (scope_stack_top().in_prototype_instantiation &&
-             secondary_translation_unit_seen()) {
-    /* Pragmas in prototype instantiations in secondary translation
-       units can cause memory management issues, so do not add this
-       one. */
   } else {
+    a_boolean               tu_pushed = FALSE;
+    a_source_correspondence *scp = NULL;
+
     /* Determine the memory region in which the IL pragma entry should be
        allocated and the scope_depth of the scope entry to which it should
        be attached. */
@@ -913,34 +910,24 @@ there is additional processing to be done.
       scp = source_corresp_for_il_entry(entity_ptr, entity_kind);
       check_assertion_str2(scp != NULL, "add_pragma_to_il:",
                            "invalid entity kind (no source corresp)");
-      /* One of the goals here is to use NO_SCOPE_DEPTH as often as
-         possible, because that works right even when the entity is
-         not in the current translation unit.  The low-level routines,
-         however, can't determine the scope for function-local entities
-         that aren't class or namespace members.  Note that in C mode
-         there are certain cases where NO_SCOPE_DEPTH cannot be used,
-         but that's okay because is no way to refer to something in
-         another translation unit in C. */
-      if (scp_is_class_or_namespace_member(scp)) {
-        /* For class and namespace members (including local ones),
-           let the low-level routines figure out the scope and memory
-           region. */
-        if (!C_mode()) {
-          scope_depth = NO_SCOPE_DEPTH;
-        } else {
-          /* C doesn't have class or namespace scopes, so C fields
-             go into the file scope. */
-          scope_depth = DEPTH_OF_FILE_SCOPE;
-        }  /* if */
-      } else if (!scp->is_local_to_function) {
-        /* For entities not local to a function, let the low-level routines
-           figure out the scope and memory region. */
-        scope_depth = NO_SCOPE_DEPTH;
-      } else if (in_file_scope(scp)) {
-        /* Pragmas for things like local static variables are placed on
-           the file-scope pragmas list, because there are no orphan lists
-           for pragmas. */
+
+      a_symbol_ptr sym = (a_symbol_ptr)scp->assoc_info;
+      tu_pushed = push_translation_unit_if_needed(sym);
+      if (tu_pushed) {
+        /* If a TU was pushed (meaning this entity is in a different
+           translation unit than curr_translation_unit prior to calling
+           add_pragma_to_il), the pragma should be allocated into that
+           translation unit's IL scope. */
         scope_depth = DEPTH_OF_FILE_SCOPE;
+      } else if (scp_is_class_or_namespace_member(scp) ||
+                 in_file_scope(scp) ||
+                 !scp->is_local_to_function) {
+        /* For non-local entities, the pragma is always allocated with the IL
+           (in the TU file scope). */
+        scope_depth = DEPTH_OF_FILE_SCOPE;
+      } else {
+        /* Otherwise, this is a local entity in the current translation unit
+           allocate the pragma on the current scope. */
       }  /* if */
       /* Set the has_associated_pragma field. */
       scp->has_associated_pragma = TRUE;
@@ -950,10 +937,8 @@ there is additional processing to be done.
        the switch. */
     if (scope_depth != NO_SCOPE_DEPTH) {
       switch_to_scope_region(scope_depth, &region_to_switch_back_to);
-    } else {
-      check_assertion(scp != NULL);
     }  /* if */
-    pp = alloc_pragma(ppp->descr_ptr->kind, scp);
+    pp = alloc_pragma(ppp->descr_ptr->kind);
     pp->position = ppp->pragma_position;
     pp->pragma_text = ppp->pragma_text;
     pp->ignore_in_back_end = ppp->descr_ptr->ignore_in_back_end;
@@ -974,6 +959,9 @@ there is additional processing to be done.
     add_to_pragma_list(pp, scope_depth, scp);
     if (scope_depth != NO_SCOPE_DEPTH) {
       switch_back_to_original_region(region_to_switch_back_to);
+    }  /* if */
+    if (tu_pushed) {
+      pop_translation_unit_stack();
     }  /* if */
 #if GENERATE_SOURCE_SEQUENCE_LISTS
     update_source_sequence_list((char *)pp, (an_il_entry_kind)iek_pragma,

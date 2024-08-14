@@ -294,8 +294,7 @@ extern a_constructor_init_ptr alloc_ctor_init(a_constructor_init_kind  kind);
 void clear_gcc_pragma_descr(a_gcc_pragma_descr  *gpd);
 #endif /* GNU_EXTENSIONS_ALLOWED */
 
-extern a_pragma_ptr alloc_pragma(a_pragma_kind           kind,
-                                 a_source_correspondence *scp);
+extern a_pragma_ptr alloc_pragma(a_pragma_kind kind);
 
 extern an_object_lifetime_ptr alloc_object_lifetime(
                                                an_object_lifetime_kind  kind);
