@@ -779,7 +779,6 @@ treated as separate translation units of a single compilation.
                                         &end_incl_search_path);
   }  /* if */
   fe_translation_unit_init();
-  trans_unit->file_scope_region_number = file_scope_region_number;
 #if MODULE_ID_NEEDED
   if (exported_file != NULL) {
     /* When loading a file for the purpose of defining exported templates,

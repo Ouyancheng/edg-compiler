@@ -2165,6 +2165,10 @@ must be initialized for each translation unit.
     file_scope_region_number = highest_used_region_number+1;
     init_memory_region(file_scope_region_number, (sizeof_t)0);
   }  /* if */
+  /* Update the translation unit's file scope region number to make sure the
+     correct translation unit region number is immediately visible on the
+     translation unit. */
+  curr_translation_unit->file_scope_region_number = file_scope_region_number;
 }  /* mem_manage_trans_unit_init */
 
 
