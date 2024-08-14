@@ -187,7 +187,7 @@ a pointer to the entry created.
 #endif /* DEBUG */
   }  /* if */
   tusep->next = NULL;
-  tusep->prev_tarns_unit = NULL;
+  tusep->prev_trans_unit = NULL;
   return tusep;
 }  /* alloc_translation_unit_stack_entry */
 
@@ -505,7 +505,7 @@ Display the translation unit stack, for debugging purposes.
     if (tusep == NULL) {
       break;
     }  /* if */
-    tup = tusep->prev_tarns_unit;
+    tup = tusep->prev_trans_unit;
     tusep = tusep->next;
   } while (tup != NULL);
 }  /* db_translation_unit_stack */
@@ -539,7 +539,7 @@ it the current translation unit.
   check_assertion(tup != NULL);
   tusep = alloc_translation_unit_stack_entry();
   tusep->next = curr_translation_unit_stack_entry;
-  tusep->prev_tarns_unit = curr_translation_unit;
+  tusep->prev_trans_unit = curr_translation_unit;
   switch_translation_unit(tup);
   /* If this is a secondary translation unit, increment the count of
      secondary translation units on the stack. */
@@ -569,7 +569,7 @@ new top entry the current translation unit.
   /* Unlink this entry from the stack. */
   curr_translation_unit_stack_entry = tusep->next;
   /* Restore the previous translation unit. */
-  switch_translation_unit(tusep->prev_tarns_unit);
+  switch_translation_unit(tusep->prev_trans_unit);
   /* Add the old entry to the list of available stack entries. */
   tusep->next = avail_translation_unit_stack_entries;
   avail_translation_unit_stack_entries = tusep;

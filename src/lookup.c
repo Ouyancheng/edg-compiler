@@ -7442,7 +7442,7 @@ Add the symbols for the names found to the list specified by symbol_list.
     if (tusep == NULL) {
       break;
     }  /* if */
-    tup = tusep->prev_tarns_unit;
+    tup = tusep->prev_trans_unit;
     tusep = tusep->next;
   } while (tup != NULL);
 }  /* exported_template_argument_dependent_lookup */
