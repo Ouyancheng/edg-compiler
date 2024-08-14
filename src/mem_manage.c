@@ -2011,37 +2011,46 @@ Display the IL entry prefix of the given IL entry.
   if (entry == NULL) {
     fprintf(f_debug, "NULL pointer\n");
   } else {
-    if (il_entry_prefix_of(entry).file_scope) {
+    an_il_entry_prefix_ptr prefix = &il_entry_prefix_of(entry);
+
+    if (prefix->file_scope) {
       fprintf(f_debug, "file_scope ");
     }  /* if */
-    if (il_entry_prefix_of(entry).secondary_trans_unit) {
+    if (prefix->secondary_trans_unit) {
       fprintf(f_debug, "secondary_trans_unit ");
     }  /* if */
-    if (il_entry_prefix_of(entry).il_walk_flag) {
+    if (prefix->il_walk_flag) {
       fprintf(f_debug, "il_walk_flag ");
     }  /* if */
-    if (il_entry_prefix_of(entry).il_lowering_flag) {
+    if (prefix->il_lowering_flag) {
       fprintf(f_debug, "lowering_flag ");
     }  /* if */
 #if MAINTAIN_NEEDED_FLAGS
-    if (il_entry_prefix_of(entry).keep_in_il) {
+    if (prefix->keep_in_il) {
       fprintf(f_debug, "keep_in_il ");
     }  /* if */
 #endif /* MAINTAIN_NEEDED_FLAGS */
 #if IL_SHOULD_BE_WRITTEN_TO_FILE && ALTERNATE_IL_FILE_FORMAT
     fprintf(f_debug, "(entry_number = %lu) ",
-            (unsigned long)il_entry_prefix_of(entry).entry_number);
+            (unsigned long)prefix->entry_number);
 #endif /* IL_SHOULD_BE_WRITTEN_TO_FILE && ALTERNATE_IL_FILE_FORMAT */
 #if MAINTAIN_ALLOCATION_SEQUENCE_NUMBER
     fprintf(f_debug, "(alloc_seq_number = %lu) ",
-            (unsigned long)il_entry_prefix_of(entry).alloc_seq_number);
+            (unsigned long)prefix->alloc_seq_number);
 #endif /* MAINTAIN_ALLOCATION_SEQUENCE_NUMBER */
+#if EXPENSIVE_CHECKING
+    fprintf(f_debug,
+            "\nmemory regions: translation unit = %lu, owned by = %lu ",
+            (unsigned long)prefix->file_scope_region_number,
+            (unsigned long)prefix->region_number);
+#endif /* EXPENSIVE_CHECKING */
 #if ORPHAN_PROCESSING_NEEDED
-    if (il_entry_prefix_of(entry).file_scope) {
+    if (prefix->file_scope) {
       fprintf(f_debug, "\norphan ptr = %p ",
               (a_void_ptr)fs_orphan_pointer_of(entry));
     }  /* if */
 #endif /* ORPHAN_PROCESSING_NEEDED */
+    fputs("\n", f_debug);
   }  /* if */
 }  /* db_prefix */
 
