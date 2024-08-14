@@ -830,10 +830,6 @@ and (5) returns a pointer to the IL pragma entry to the caller, in case
 there is additional processing to be done.
 */
 {
-  a_pragma_ptr           pp;
-  a_memory_region_number region_to_switch_back_to;
-  a_scope_depth          scope_depth = depth_scope_stack;
-
   db_enter(5, "add_pragma_to_il");
   if (scope_stack_top().in_nonreal_instantiation) {
     /* Pragmas are never added to the IL inside a nonreal instantiation. */
@@ -841,6 +837,9 @@ there is additional processing to be done.
     /* Pragmas from C++17 constexpr if discarded statements are not added
        to the IL. */
   } else {
+    a_pragma_ptr            pp;
+    a_memory_region_number  region_to_switch_back_to;
+    a_scope_depth           scope_depth = depth_scope_stack;
     a_boolean               tu_pushed = FALSE;
     a_source_correspondence *scp = NULL;
 
@@ -932,12 +931,8 @@ there is additional processing to be done.
       /* Set the has_associated_pragma field. */
       scp->has_associated_pragma = TRUE;
     }  /* if */
-    /* Switch to the proper memory region for the scope depth.  When
-       scope_depth is NO_SCOPE_DEPTH, let the low-level routines do
-       the switch. */
-    if (scope_depth != NO_SCOPE_DEPTH) {
-      switch_to_scope_region(scope_depth, &region_to_switch_back_to);
-    }  /* if */
+    /* Switch to the proper memory region. */
+    switch_to_scope_region(scope_depth, &region_to_switch_back_to);
     pp = alloc_pragma(ppp->descr_ptr->kind);
     pp->position = ppp->pragma_position;
     pp->pragma_text = ppp->pragma_text;
@@ -957,9 +952,7 @@ there is additional processing to be done.
 #endif /* DEBUG */
     /* coverity[var_deref_model] */
     add_to_pragma_list(pp, scope_depth, scp);
-    if (scope_depth != NO_SCOPE_DEPTH) {
-      switch_back_to_original_region(region_to_switch_back_to);
-    }  /* if */
+    switch_back_to_original_region(region_to_switch_back_to);
     if (tu_pushed) {
       pop_translation_unit_stack();
     }  /* if */
