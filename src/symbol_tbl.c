@@ -7913,6 +7913,11 @@ instantiation.
   tip->template_sym = template_sym;
   tip->instance_sym = sym;
   tip->template_info = tssp;
+  /* If the function template prototype symbol is an error symbol, the function
+     prototype symbol is also implicitly in an error state. */
+  if (template_sym->is_error) {
+    sym->is_error = TRUE;
+  }  /* if */
   sym->decl_scope = template_sym->decl_scope;
   sym->variant.routine.instance_ptr = tip;
   sym->variant.routine.ptr = rout_ptr;
