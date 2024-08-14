@@ -6577,6 +6577,14 @@ next_argument:
        [over.match.oper] in the C++ standard (both C++03 and C++11). */
     goto reject_function;
   }  /* if */
+  /* In the pre-deduction list of parameters, skip any non-final parameter
+     packs (which would be deduced to empty packs or correspond to explicitly-
+     specified template arguments). */
+  while (param_before_deduction != NULL &&
+         param_before_deduction->next != NULL &&
+         param_before_deduction->is_parameter_pack) {
+    param_before_deduction = param_before_deduction->next;
+  }  /* while */
   if (param != NULL) {
     if (function_template_case && param_before_deduction->is_parameter_pack) {
       if (ovl_context == oc_ctad &&
