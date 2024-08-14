@@ -5529,9 +5529,9 @@ be completed here.
                                           class_type, /*template_entry=*/NULL);
 #endif /* CLASS_TEMPLATE_INSTANTIATIONS_IN_SOURCE_SEQUENCE_LISTS */
 #endif /* GENERATE_SOURCE_SEQUENCE_LISTS */
-      /* If the translation unit stack was pushed above, pop it now. */
-      if (trans_unit_pushed) pop_translation_unit_stack();
     }  /* if */
+    /* If the translation unit stack was pushed above, pop it now. */
+    if (trans_unit_pushed) pop_translation_unit_stack();
     cssp->instantiation_in_progress = FALSE;
     if (is_literal_token(curr_token)) {
       const_for_curr_token = saved_const_for_curr_token;
