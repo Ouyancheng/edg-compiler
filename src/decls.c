@@ -11055,6 +11055,7 @@ definition of a member function of a class template.
           set_namespace_membership(sym, (a_source_correspondence *)NULL,
                                    qualifier_namespace_ptr(*locator));
         }  /* if */
+        sym->decl_scope = scope_stack[decl_state->effective_decl_level].number;
         sym->is_error = locator->is_error;
         membership_recorded = TRUE;
       } else if (homonym_symbol != NULL) {
