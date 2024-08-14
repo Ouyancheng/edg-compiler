@@ -9978,9 +9978,12 @@ dps->specifier_attributes list.
       if (!is_type_transforming_attribute(*p_ap) &&
           (!is_unapplicable_attr(*p_ap) ||
            /* In a case like: "__attribute__((X)) auto f() -> int;" ensure that
-              the unrecognized attribute isn't attached to the "auto" type. */
+              the unrecognized attribute isn't attached to the "auto" type.
+              Similarly, move the unknown attribute if there was no specified
+              type (e.g., on a constructor). */
            (is_gcc_attribute(*p_ap) &&
-            is_auto_type(dps->specifiers_type)))) {
+            (is_auto_type(dps->specifiers_type) ||
+             is_unknown_type(dps->specifiers_type))))) {
         /* Move the attribute to the prefix attributes list. */
         an_attribute_ptr  ap = *p_ap;
         if (is_std_attribute(ap) && !ap->is_std_gcc_attribute &&

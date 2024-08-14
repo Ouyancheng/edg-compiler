@@ -1,5 +1,23 @@
 Version 6.7
 
+8/14/24  [EDGcpfe/25931]
+GNU mode specifier attributes
+
+Consider in GNU C++ mode:
+
+  struct S {
+    inline __attribute((unrecognized_attr)) S() {}
+  };
+
+The attribute in this example is a "specifier" attribute because it appears
+among the declaration specifiers of the constructor.  However, since there is
+no type among those specifiers, it cannot be associated with a specified type
+and the front end "lost" the attribute even in configuration with the macro
+RECORD_UNRECOGNIZED_ATTRIBUTES set to TRUE.  Now, such attributes are treated
+as "prefix" attributes instead, which causes it to be associated with the
+declared entity (the constructor in this case).
+
+
 8/13/24  [EDGcpfe/16584,EDGcpfe/18624,EDGcpfe/22946,EDGcpfe/24587,
           EDGcpfe/25811]
 Overload resolution with non-final parameter packs
