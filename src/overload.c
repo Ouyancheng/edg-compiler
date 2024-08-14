@@ -4944,8 +4944,8 @@ deduction failed.
       goto done;
     }  /* if */
     if (ptp->is_parameter_pack && ptp->next != NULL) {
-      /* A parameter pack can be deduced only if there are no other parameters
-         following it, except if there are no more arguments and subsequent
+      /* A parameter pack can be deduced only if there are no parameters
+         following it or if there are no more arguments and subsequent
          parameters are packs or defaulted. */
       if (alep == NULL &&
           (ptp->next->is_parameter_pack || ptp->next->has_default_arg)) {
