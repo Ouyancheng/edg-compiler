@@ -10906,15 +10906,6 @@ for the scope, which means no last-pointer is being maintained (anymore).
         scope_level = DEPTH_OF_FILE_SCOPE;
       }  /* if */
     }  /* if */
-    if (secondary_translation_unit_seen() &&
-        scope_level == DEPTH_OF_FILE_SCOPE &&
-        scp->assoc_info != NULL) {
-      /* There is more than one translation unit, so determine which
-         file scope is meant. */
-      a_translation_unit_ptr tup = trans_unit_for_source_corresp(scp);
-      sp = tup->primary_scope;
-      *pointers_block = &tup->file_scope_pointers_block;
-    }  /* if */
   }  /* if */
   if (sp != NULL) {
     /* The scope has already been determined. */
