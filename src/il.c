@@ -7309,7 +7309,7 @@ value for the indicated expression node.
 }  /* hash_expr_node */
 
 
-static a_hash_value hash_expr(an_expr_node_ptr expr)
+a_hash_value hash_expr(an_expr_node_ptr expr)
 /*
 Return a hash value for the indicated expression.  This is used in cases where
 a dependent type operator (like a dependent decltype) resolves to an unknown
@@ -7868,6 +7868,36 @@ done:
 }  /* equiv_requires_expr_params */
 
 
+static a_boolean equiv_requires_expr_substs(an_expr_node_ptr  node1,
+                                            an_expr_node_ptr  node2)
+/*
+Return TRUE if the given requires-expressions have equivalent delayed template
+argument substitutions.
+*/
+{
+  a_boolean                  result = TRUE;
+  a_subst_pairs_array const  &substs1 = requires_expr_substs->get(node1);
+  a_subst_pairs_array const  &substs2 = requires_expr_substs->get(node2);
+  a_subst_pairs_descr const  *spd1 = substs1.begin();
+  a_subst_pairs_descr const  *spd2 = substs2.begin();
+
+  result = substs1.length() == substs2.length();
+  for (; result && spd1 != substs1.end(); ++spd1, ++spd2) {
+    if (spd1->params != spd2->params ||
+        spd1->adjust_coordinates != spd2->adjust_coordinates ||
+        spd1->alias_deduction_guide != spd2->alias_deduction_guide) {
+      result = FALSE;
+    } else if (!equiv_template_arg_lists(
+                                   spd1->args, spd2->args,
+                                   (ETA_EXACT_MATCH_REQUIRED |
+                                    ETA_EXACT_DECLTYPE_EXPR_MATCH_REQUIRED))) {
+      result = FALSE;
+    }  /* if */
+  }  /* for */
+  return result;
+}  /* equiv_requires_expr_substs */
+
+
 an_expr_node_ptr unwrap_if_tpck_expression(an_expr_node_ptr  expr)
 /*
 If the given expression is for a constant of ck_template_param/tpck_expression
@@ -8225,7 +8255,9 @@ are done.
                                     node1->variant.requires_expr.requirements,
                                     node2->variant.requires_expr.requirements,
                                     options) &&
-             equiv_requires_expr_params(node1, node2);
+             equiv_requires_expr_params(node1, node2) &&
+             (!(options & CC_EXACT_EQUIVALENCE) ||
+              equiv_requires_expr_substs(node1, node2));
         break;
       case enk_compound_req:
         eq = compare_expression_lists(

@@ -4028,6 +4028,8 @@ Utility that returns TRUE if the routine is a GNU function multiversion
 
 extern a_hash_value hash_constant(a_constant *cp);
 
+extern a_hash_value hash_expr(an_expr_node_ptr expr);
+
 extern a_hash_value hash_template_arg_list(a_template_arg_ptr	tap);
 
 #if MICROSOFT_EXTENSIONS_ALLOWED || GNU_X86_ATTRIBUTES_ALLOWED

@@ -26063,6 +26063,9 @@ struct a_constraint_test {
   an_expr_node_ptr
 		constraint;
 			/* The expression being substituted. */
+  a_template_param_ptr
+		template_param_list;
+			/* The template parameters for the substitution. */
   a_template_arg_ptr
 		template_arg_list;
 			/* The template arguments for the substitution. */
@@ -26077,7 +26080,13 @@ Return TRUE if the given constraint tests are equivalent.
 {
   a_boolean  result;
 
-  if (ct1.constraint != ct2.constraint) {
+  if (ct1.template_param_list != ct2.template_param_list) {
+    result = FALSE;
+  } else if (ct1.constraint != ct2.constraint &&
+             !compare_expressions(ct1.constraint, ct2.constraint,
+                                  (CC_STRICTLY_IDENTICAL |
+                                   CC_EXACT_EQUIVALENCE |
+                                   CC_EXACT_DECLTYPE_EXPR_MATCH_REQUIRED))) {
     result = FALSE;
   } else if (ct1.template_arg_list == ct2.template_arg_list) {
     result = TRUE;
@@ -26108,7 +26117,8 @@ static inline uintptr_t hash_ptr(a_constraint_test  ct)
 Return a hash value for a constraint test description.
 */
 {
-  uintptr_t  result = 17*31 + hash_ptr((void*)ct.constraint);
+  uintptr_t  result = 17*31 + hash_ptr((void*)ct.template_param_list);
+  result = result*31 + (uintptr_t)hash_expr(ct.constraint);
   result = result*31 + (uintptr_t)hash_template_arg_list(ct.template_arg_list);
   return result;
 }  /* hash_ptr */
@@ -26319,7 +26329,10 @@ p_fatal and p_copy_error are NULL by default.
     if (!copy_error && !subst_pairs.is_empty()) {
       /* Check the cache if it already contains this substitution. */
       a_template_arg_ptr   template_arg_list = subst_pairs.front_elem().args;
-      a_constraint_test    test = { expr, template_arg_list };
+      a_template_param_ptr template_param_list = subst_pairs.front_elem()
+                                                            .params;
+      a_constraint_test    test = { expr, template_param_list,
+                                    template_arg_list };
       uintptr_t            hash = hash_ptr(test);
       a_test_subst_result  cached_subst;
       /* Check the cache for a substitution. */
@@ -26330,8 +26343,6 @@ p_fatal and p_copy_error are NULL by default.
         a_source_position       saved_err_pos = error_position;
         a_constant_ptr          cp = local_constant();
         a_memory_region_number  region_to_switch_back_to;
-        a_template_param_ptr    template_param_list = subst_pairs.front_elem()
-                                                                 .params;
         switch_to_file_scope_region(&region_to_switch_back_to);
         test.template_arg_list = copy_template_arg_list(template_arg_list);
         cached_subst.kind = a_test_subst_result::tsrk_pending;
