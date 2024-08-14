@@ -19698,6 +19698,7 @@ current translation unit.
     an_il_entry_prefix_ptr prefix = &il_entry_prefix_of(ptr);
     a_memory_region_number prefix_region = prefix->file_scope_region_number;
     if (sym_tu_region != prefix_region) {
+#if DEBUG
       fputs("the following symbol:\n    ", f_debug);
       db_symbol(sym, "", 6);
 
@@ -19706,6 +19707,7 @@ current translation unit.
                        "actually allocated in the TU correspoding to ",
                        prefix_region);
       print(err_msg, f_debug);
+#endif /* DEBUG */
       any_errors = TRUE;
     }  /* if */
   }  /* for */
