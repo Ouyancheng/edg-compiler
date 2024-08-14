@@ -17909,7 +17909,9 @@ declaration order on their list.
   rmdp = &scheduled_routine_moves[n_scheduled_routine_moves-1];
   routine = rmdp->routine;
   n = n_scheduled_routine_moves;
-  for (;;) {
+
+  a_boolean any_moves;
+  do {
     /* In most cases, all scheduled routine moves will be handled through a
        single traversal of the routines list (which is achieved by the inner
        do { ... } while loop).  However, a few situations may cause the
@@ -17917,6 +17919,7 @@ declaration order on their list.
        routines list (e.g., when multiple routines are declared on a single
        line).  We therefore repeat the traversal until all scheduled moves
        have been performed. */
+    any_moves = FALSE;
     p_rp = &scope_of_scheduled_routine_moves->routines;
     do {
       if (routine == *p_rp) {
@@ -17935,11 +17938,15 @@ declaration order on their list.
         }  /* if */
         --rmdp;
         routine = rmdp->routine;
+        any_moves = TRUE;
       } else {
         p_rp = &(*p_rp)->next;
       }  /* if */
     } while (*p_rp != NULL);
-  }  /* for */
+  } while (any_moves);
+  /* If this assertion fails, one or routines that was scheduled to be moved
+     could not be found. */
+  check_assertion(n == 0);
 remove_placeholders:
   /* Traverse the routines list once more to remove the placeholder routines
      (which are identified by their unique "source_corresp.name" pointer). */
