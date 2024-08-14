@@ -10725,7 +10725,7 @@ correspondence.  The entity must have an associated symbol.
                       "trans_unit_for_source_corresp: not in front end");
   check_assertion_str(sym != NULL,
                       "trans_unit_for_source_corresp: no assoc symbol");
-  if (sym->decl_scope == NO_SCOPE_NUMBER) {
+  if (!symbol_has_trans_unit_ptr(sym)) {
     /* There must be some previous error. */
     check_assertion(is_at_least_one_error());
     /* Pick an arbitrary translation unit, primary or secondary as
