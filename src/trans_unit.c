@@ -671,17 +671,23 @@ Push the primary translation unit if not already
 a_boolean push_translation_unit_if_needed(a_symbol_ptr	sym)
 /*
 If "sym" was declared in a translation unit other than the current one,
-push its translation unit onto the translation unit stack.
+push its translation unit onto the translation unit stack.  If the translation
+unit the symbol was declared in cannot be determined fallback to the primary
+translation unit.
 
 Return TRUE if a translation unit was pushed, FALSE if not.
 */
 {
   a_boolean result = FALSE;
 
-  if (!sym->is_error) {
+  if (symbol_has_trans_unit_ptr(sym)) {
     a_translation_unit_ptr tup = trans_unit_for_symbol(sym);
 
     result = push_translation_unit_if_needed(tup);
+  } else {
+    /* Assume the primary translation unit is the safest place to perform any
+       operations in lieu of better information. */
+    result = push_primary_translation_unit_if_needed();
   }  /* if */
   return result;
 }  /* push_translation_unit_if_needed */

@@ -16010,13 +16010,7 @@ return type be examined? what about its parameters?).
        current translation unit.  This in turn, ensures that any additional
        allocations related to the type occur in the correct
        translation unit. */
-    if (symbol_has_trans_unit_ptr(type_sym)) {
-      trans_unit_pushed = push_translation_unit_if_needed(type_sym);
-    } else {
-      /* Assume the primary translation unit is the safest place to perform any
-         transformations in lieu of better information. */
-      trans_unit_pushed = push_primary_translation_unit_if_needed();
-    }  /* if */
+    trans_unit_pushed = push_translation_unit_if_needed(type_sym);
   }  /* if */
 #endif /* !STANDALONE_UTILITY_PROGRAM */
   if (type_ptr->kind == (a_type_kind)tk_typeref) {
