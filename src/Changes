@@ -1,5 +1,45 @@
 Version 6.7
 
+8/15/24  [EDGcpfe/27282,EDGcpfe/26417]
+Multi-TU memory region management fixes
+
+A number of changes (across multiple areas in the front end) have been made to
+improve stability and correctness when compiling under multi-TU mode:
+
+- Attributes and name references now trigger a merge of the associated entity
+  ensuring IL entries from secondary translation units do not survive the merge
+  of into the primary translation unit.
+- Exported templates now use a dedicated stack of translation units for
+  argument dependent lookup (independent of the translation unit stack).
+- The translation unit stack itself now behaves more like other stacks in the
+  front end and will correctly restore the previously translation unit when
+  popping the last entry in the translation unit stack (previously, when
+  emptying the translation unit stack, callers were responsible for restoring
+  the translation unit prior to the translation unit stack being populated).
+- Type traversals now occur in the translation unit of the type being
+  transformed resulting in any associated IL allocations ending up in the
+  correct translation unit's IL memory region.
+- Various symbols now properly set decl_scope (allowing the translation unit
+  of their associated IL entry to be properly resolved).
+- Pragma allocation has been simplified for improved compatibility with
+  multi-TU use cases and related special case logic (that could lead to
+  surprising return values) has been removed from get_scope_for_list.
+- perform_scheduled_routine_moves has been updated to fail an assertion in
+  CHECKING modes if something goes wrong and the routine to move cannot be
+  found (previously this could lead to an infinite loop).
+- An incorrectly positioned call to pop_translation_unit_stack in
+  f_instantiate_template_class (resulting in translation units remaining on the
+  translation unit stack in some cases) has been fixed.
+- A new validation system has been added under EXPENSIVE_CHECKING to ensure
+  symbol's with associated IL entries resolve the translation unit (through
+  decl_scope) to correct translation unit (i.e., the translation unit the IL
+  entry was allocated in).  Additional checks were added to ensure IL entries
+  are not retrieved from memory regions that have been freed through symbols.
+
+Additionally, documentation of trans_copy.c has been expanded and elaborated
+on to better explain the copy address and merging systems.
+
+
 8/14/24  [EDGcpfe/25931]
 GNU mode specifier attributes
 
