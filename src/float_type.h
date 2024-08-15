@@ -585,26 +585,6 @@ accordingly.
 
   /* If we have a number, convert and check for underflow and overflow. */
   if (bin->type == fpt_number) {
-    if (FRAC_BITS == 10) {
-      unsigned short val = *(unsigned short *)&bin->frac;
-      unsigned short mask = (unsigned short)((1 << (11)) - 1);
-      
-      if (bin->exponent > FRAC_BITS && (val & mask) != val) {
-        /* There are more bits in bin->frac than in the mantissa.  Shift
-           the fraction value to fit in the mantissa, performing the
-           required rounding. */
-        int            num_bits = bin->exponent - FRAC_BITS;
-        unsigned short rounding_bit = (val & (1 << (num_bits - 1)));
-        val = (val + rounding_bit) >> num_bits;
-        if ((val & mask) != val) {
-          /* Rounding carried to an extra bit. */
-          val >>= 1;
-          ++bin->exponent;
-        }  /* if */
-        *(unsigned short *)&bin->frac = val;
-        ++bin->exponent;
-      }  /* if */
-    }  /* if */
     memcpy(fraction, bin->frac, FRACTION_BYTES);
     biased_exponent = bin->exponent + EXPONENT_BIAS - 1;
     if (bin->exponent < MIN_EXPONENT - bin->precision) {
@@ -773,15 +753,7 @@ type.
 /* Internal macros */
 #define LOG2divLOG5_TIMES(x) ((4307 * x) / 10000)
 #define MAX_FAST_EXP LOG2divLOG5_TIMES(FPT_PRECISION)
-/*
-FPT_DIGITS is the number of digits for which all values are exactly
-representable.  For example, _Float16 has a precision of 11 bits, for 2048
-values; thus, all 3-digit numbers are representable but only some 4-digit
-ones are, so FPT_DIGITS is 3.  MAX_APPROX_DIG is the number of digits in
-the maximum representable value.  For _Float16, the maximum value is 65504,
-so MAX_APPROX_DIG is 5.
-*/
-#define MAX_APPROX_DIG PCLOG10_2times(FPT_PRECISION + FPT_EXP_BITS - 1)
+#define MAX_APPROX_DIG (FPT_DIGITS + 1)
 #define N_SMALL_TENS ((MAX_FAST_EXP + 1) < FPT_DIGITS ? FPT_DIGITS : \
                                                         (MAX_FAST_EXP + 1))
 #if N_SMALL_TENS < 8
@@ -1080,11 +1052,8 @@ for the type.  The value of scale is stored in *pscale.
       }  /* if */
     } else {
       /* Multiply the fraction by the two multipliers. */
-      if (first_exp != 0) {
-        /* SMALL_TENS[0] is unity, no need to multiply. */
-        fp_emul_mult(bin, &SMALL_TENS[first_exp]);
-      }  /* if */
-      if (exp < N_SMALL_TENS && exp != 0) {
+      fp_emul_mult(bin, &SMALL_TENS[first_exp]);
+      if (exp < N_SMALL_TENS) {
         fp_emul_mult(bin, &SMALL_TENS[exp]);
       } else {
         /* For each 1 bit in exp, multiply by 10^2^idx. */
