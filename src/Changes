@@ -34,7 +34,7 @@ improve stability and correctness when compiling under multi-TU mode:
   symbol's with associated IL entries resolve the translation unit (through
   decl_scope) to correct translation unit (i.e., the translation unit the IL
   entry was allocated in).  Additional checks were added to ensure IL entries
-  are not retrieved from memory regions that have been freed through symbols.
+  are not retrieved, through symbols, from memory regions that have been freed.
 
 Additionally, documentation of trans_copy.c has been expanded and elaborated
 on to better explain the copy address and merging systems.
