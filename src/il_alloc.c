@@ -236,25 +236,31 @@ is TRUE.  Used in do_alloc.
 #endif /* DEBUG */
 
 
+static inline char *do_alloc(a_memory_region_number region_number,
+                             a_boolean              is_in_file_scope,
+                             sizeof_t               size)
 /*
 Allocate an IL entry of size "size" preceded by an_il_entry_prefix, and
-initialize the latter to default values.  ptr is a "char *" pointer and is
-set to point to the entry proper.  The allocation is done in the memory
-region region_number.  file_scope is TRUE if the allocation is in the
-file scope.  (Yes, that could be determined from region_number, but it
-happens that it is usually known by the caller).
+initialize the latter to default values.  ptr is a "char *" pointer and is set
+to point to the entry proper.  The allocation is done in the memory region
+region_number.  is_in_file_scope is TRUE if the allocation is in the file
+scope.  (Yes, that could be determined from region_number, but it happens that
+it is usually known by the caller).
 */
-#define do_alloc(ptr, region_number, file_scope, size)                        \
-{ ptr = alloc_in_region((region_number),                                      \
-                         (sizeof_t)((size)+non_file_scope_entry_prefix_size));\
-  /* There may be padding before the prefix if needed for alignment. */       \
-  ptr += non_file_scope_entry_prefix_alignment_offset;                        \
-  incr_num_il_entry_prefixes_allocated();                                     \
-  clear_il_entry_prefix(ptr, file_scope, !is_primary_translation_unit);       \
-  init_memory_region_metadata(ptr,                                            \
-                              curr_translation_unit->file_scope_region_number,\
-                              region_number);                                 \
-  ptr += SPACE_FOR_IL_ENTRY_PREFIX;                                           \
+{
+  char *ptr = alloc_in_region(
+                          region_number,
+                          (sizeof_t)(size + non_file_scope_entry_prefix_size));
+
+  /* There may be padding before the prefix if needed for alignment. */
+  ptr += non_file_scope_entry_prefix_alignment_offset;
+  incr_num_il_entry_prefixes_allocated();
+  clear_il_entry_prefix(ptr, is_in_file_scope, !is_primary_translation_unit);
+  init_memory_region_metadata(ptr,
+                              curr_translation_unit->file_scope_region_number,
+                              region_number);
+  ptr += SPACE_FOR_IL_ENTRY_PREFIX;
+  return ptr;
 }  /* do_alloc */
 
 
@@ -304,6 +310,10 @@ multiple translation units.
   *(char **)ptr = NULL;                                               \
   ptr += SPACE_FOR_TRANS_UNIT_COPY_ADDRESS_POINTER
 
+
+static inline char *do_fs_alloc(a_memory_region_number fs_region_number,
+                                sizeof_t               size)
+
 /*
 Allocate a file-scope IL entry of size "size" preceded by an_il_entry_prefix
 and (if appropriate) an orphan list pointer, and initialize the prefix
@@ -312,33 +322,37 @@ to point to the entry proper.  fs_region_number indicates the file scope
 region number to be used (there can be several, when secondary translation
 units are involved).
 */
-#define do_fs_alloc(ptr, size, fs_region_number)                        \
-{ ptr = alloc_in_region(                                                \
-          fs_region_number,                                             \
-          (sizeof_t)((size) + file_scope_entry_prefix_size));           \
-  /* There may be padding before the prefix if needed for alignment. */ \
-  ptr += file_scope_entry_prefix_alignment_offset;                      \
-  if (!is_primary_translation_unit) {                                   \
-    clear_and_incr_past_trans_unit_copy_address_pointer(ptr);           \
-  }  /* if */                                                           \
-  clear_and_incr_past_orphan_pointer(ptr);                              \
-  incr_num_il_entry_prefixes_allocated();                               \
-  clear_il_entry_prefix(ptr, TRUE, !is_primary_translation_unit);       \
-  init_memory_region_metadata(ptr, fs_region_number, fs_region_number); \
-  ptr += SPACE_FOR_IL_ENTRY_PREFIX;                                     \
+{
+  char *ptr = alloc_in_region(
+          fs_region_number,
+          (sizeof_t)((size) + file_scope_entry_prefix_size));
+
+  /* There may be padding before the prefix if needed for alignment. */
+  ptr += file_scope_entry_prefix_alignment_offset;
+  if (!is_primary_translation_unit) {
+    clear_and_incr_past_trans_unit_copy_address_pointer(ptr);
+  }  /* if */
+  clear_and_incr_past_orphan_pointer(ptr);
+  incr_num_il_entry_prefixes_allocated();
+  clear_il_entry_prefix(ptr, TRUE, !is_primary_translation_unit);
+  init_memory_region_metadata(ptr, fs_region_number, fs_region_number);
+  ptr += SPACE_FOR_IL_ENTRY_PREFIX;
+  return ptr;
 }  /* do_fs_alloc */
 
 
+static inline char* do_any_alloc(a_memory_region_number region_number,
+                                 sizeof_t               size)
 /*
 Allocate space in an arbitrary memory region (i.e., choose between the
 file-scope and normal allocation methods as necessary).
 */
-#define do_any_alloc(ptr, region_number, size)                        \
-{ if ((region_number) == file_scope_region_number) {                  \
-    do_fs_alloc((ptr), (size), file_scope_region_number);             \
-  } else {                                                            \
-    do_alloc((ptr), (region_number), FALSE, (size));                  \
-  }  /* if */                                                         \
+{
+  if (region_number == file_scope_region_number) {
+    return do_fs_alloc(file_scope_region_number, size);
+  } else {
+    return do_alloc(region_number, FALSE, size);
+  }  /* if */
 }  /* do_any_alloc */
 
 
@@ -415,8 +429,6 @@ char *alloc_il(sizeof_t size)
 Allocate and return "size" bytes of storage in the file scope memory region.
 */
 {
-  char *ptr;
-
   /* If this assertion fails an IL allocation occurred outside of the front end
      that was targeted towards a non-primary file scope memory region.  In
      other words, an attempt was made to allocate IL for a secondary
@@ -425,7 +437,7 @@ Allocate and return "size" bytes of storage in the file scope memory region.
      unit. */
   check_assertion(in_front_end ||
                   file_scope_region_number == FILE_SCOPE_REGION_NUMBER);
-  do_fs_alloc(ptr, size, file_scope_region_number);
+  char *ptr = do_fs_alloc(file_scope_region_number, size);
   trace_alloc_check(ptr);
   return ptr;
 }  /* alloc_il */
@@ -437,11 +449,12 @@ Allocate and return "size" bytes of storage in the file scope memory region
 of the primary translation unit.
 */
 {
-  char *ptr;
+  char      *ptr;
   a_boolean saved_is_primary_translation_unit = is_primary_translation_unit;
+
   is_primary_translation_unit = TRUE;
   if (!saved_is_primary_translation_unit) compute_il_prefix_size();
-  do_fs_alloc(ptr, size, FILE_SCOPE_REGION_NUMBER);
+  ptr = do_fs_alloc(FILE_SCOPE_REGION_NUMBER, size);
   is_primary_translation_unit = saved_is_primary_translation_unit;
   if (!saved_is_primary_translation_unit) compute_il_prefix_size();
   trace_alloc_check(ptr);
@@ -456,11 +469,12 @@ Allocate and return "size" bytes of storage in the file scope memory region
 of the secondary translation unit identified by tup.
 */
 {
-  char *ptr;
+  char      *ptr;
   a_boolean saved_is_primary_translation_unit = is_primary_translation_unit;
+
   is_primary_translation_unit = FALSE;
   if (saved_is_primary_translation_unit) compute_il_prefix_size();
-  do_fs_alloc(ptr, size, tup->file_scope_region_number);
+  ptr = do_fs_alloc(tup->file_scope_region_number, size);
   is_primary_translation_unit = saved_is_primary_translation_unit;
   if (saved_is_primary_translation_unit) compute_il_prefix_size();
   trace_alloc_check(ptr);
@@ -473,8 +487,8 @@ static char *alloc_cil(sizeof_t size)
 Allocate and return "size" bytes of storage in the current IL memory region.
 */
 {
-  char *ptr;
-  do_any_alloc(ptr, curr_il_region_number, size);
+  char *ptr = do_any_alloc(curr_il_region_number, size);
+
   trace_alloc_check(ptr);
   return ptr;
 }  /* alloc_cil */
