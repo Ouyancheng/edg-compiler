@@ -7420,31 +7420,27 @@ in each of the translation units in which dependent names can be found.
 Add the symbols for the names found to the list specified by symbol_list.
 */
 {
-  a_translation_unit_stack_entry_ptr tusep = curr_translation_unit_stack_entry;
-  a_translation_unit_ptr             tup = curr_translation_unit;
+  an_export_trans_unit_stack_entry_ptr ettusep;
 
   /* Loop through the translation units that are on the translation unit
      stack.  This is used for argument dependent lookup that is done
      during the instantiation of exported templates. */
-  do {
+  for (ettusep = curr_export_translation_unit_stack_entry; ettusep != NULL;
+       ettusep = ettusep->next) {
+    a_translation_unit_ptr      tup = ettusep->trans_unit;
     /* Update the namespace list to refer to the corresponding entities in
        the new translation unit. */
-    a_namespace_list_entry_ptr	namespace_list =
-                                          update_namespace_list_for_trans_unit(
-                                                     orig_namespace_list, tup);
+    a_namespace_list_entry_ptr namespace_list =
+                update_namespace_list_for_trans_unit(orig_namespace_list, tup);
     /* We don't need to create a transformed class list because the
        class lookup is not translation unit dependent. */
-    a_type_list_entry_ptr	class_list = tup == curr_translation_unit ?
-                                                    orig_class_list : NULL;
+    a_type_list_entry_ptr      class_list = tup == curr_translation_unit ?
+                                                        orig_class_list : NULL;
+
     argument_dependent_lookup_for_trans_unit(locator, namespace_list,
                                              class_list, tup, symbol_list);
     free_list_of_namespace_list_entries(namespace_list);
-    if (tusep == NULL) {
-      break;
-    }  /* if */
-    tup = tusep->prev_trans_unit;
-    tusep = tusep->next;
-  } while (tup != NULL);
+  }  /* for */
 }  /* exported_template_argument_dependent_lookup */
 
 

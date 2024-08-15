@@ -2074,7 +2074,8 @@ The check of is_prototype_instantiation_context() is done to make sure that
 this returns FALSE for deferred prototype instantiations.
 */
 #define in_exported_template_instantiation()				\
-  (secondary_trans_units_on_stack > 0 &&				\
+  (curr_export_translation_unit_stack_entry != NULL &&			\
+   curr_export_translation_unit_stack_entry->next != NULL &&		\
    depth_innermost_instantiation_scope != NO_SCOPE_DEPTH &&		\
    scope_stack[DEPTH_OF_FILE_SCOPE].is_reactivation &&			\
    !is_prototype_instantiation_context())

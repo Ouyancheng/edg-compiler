@@ -36507,7 +36507,7 @@ Return TRUE if a translation unit was pushed, FALSE if not.
     push_trans_unit = TRUE;
   }  /* if */
   if (push_trans_unit) {
-    push_translation_unit_stack(etfp->translation_unit);
+    push_export_template_translation_unit_stack(etfp->translation_unit);
     trans_unit_pushed = TRUE;
   }  /* if */
   return trans_unit_pushed;
@@ -36705,6 +36705,7 @@ data member specified by tip.
 */
 {
   a_boolean			trans_unit_pushed = FALSE;
+  a_boolean			pushed_for_export = FALSE;
 #if DEBUG
   a_boolean			output_debug_info;
 #endif /* DEBUG */
@@ -36737,6 +36738,7 @@ data member specified by tip.
     /* If the template was defined in an exported template file, make sure
        that file is loaded as a translation unit. */
     trans_unit_pushed = ensure_exported_template_file_is_loaded(tip);
+    pushed_for_export = TRUE;
   } else {
     /* For a non-exported template, switch to the translation unit
        containing the template. */
@@ -36815,7 +36817,11 @@ data member specified by tip.
   }  /* if */
   if (trans_unit_pushed) {
     /* Restore the previously active translation unit. */
-    pop_translation_unit_stack();
+    if (pushed_for_export) {
+      pop_export_template_translation_unit_stack();
+    } else {
+      pop_translation_unit_stack();
+    }  /* if */
   }  /* if */
   error_position = saved_error_position;
   pos_curr_token = saved_pos_curr_token;
@@ -39365,7 +39371,7 @@ translation unit.
   instantiation_wrapup_setup();
   for (tup = translation_units; tup != NULL; tup = tup->next) {
     /* Push the translation unit. */
-    push_translation_unit_stack(tup);
+    push_export_template_translation_unit_stack(tup);
 #if DO_IL_LOWERING && !IA64_ABI
     if (il_lowering_needed()) {
       /* To improve efficiency of name mangling in the instantiation
@@ -39377,7 +39383,7 @@ translation unit.
        doing the actual instantiations. */
     trans_unit_instantiation_setup();
     /* Pop the translation unit. */
-    pop_translation_unit_stack();
+    pop_export_template_translation_unit_stack();
   }  /* for */
   /* Iterate over the routines that do instantiations and inline function
      processing.  These are repeated until no additional instantiations or

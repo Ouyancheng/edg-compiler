@@ -152,10 +152,7 @@ typedef struct a_translation_unit {
 
 
 /*
-Entry used to maintain a stack of translation units.  This is not used
-when initially scanning the translation units, but is used when the
-translation units are reactivated for the purpose of generating the
-instantiations of exported templates.
+Entry used to maintain a stack of translation units.
 */
 typedef struct a_translation_unit_stack_entry
                                            *a_translation_unit_stack_entry_ptr;
@@ -171,6 +168,26 @@ typedef struct a_translation_unit_stack_entry {
 			   curr_translation_unit that should be restored when
 			   the translation unit stack is popped. */
 } a_translation_unit_stack_entry;
+
+
+/*
+Entry used to maintain a stack of translation units that should be searched
+during instantiation of an exported template for argument dependent lookup.
+*/
+typedef struct an_export_trans_unit_stack_entry
+                                         *an_export_trans_unit_stack_entry_ptr;
+typedef struct an_export_trans_unit_stack_entry {
+  an_export_trans_unit_stack_entry_ptr
+		next;
+			/* Pointer to the previous stack entry (e.g., the
+			   entry that should become the current entry when
+			   this one is popped off of the stack. */
+  a_translation_unit_ptr
+		trans_unit;
+			/* Pointer to the translation unit this export template
+			   translation unit stack is adding to argument
+			   dependent lookup. */
+} an_export_trans_unit_stack_entry;
 
 
 /*
@@ -216,6 +233,11 @@ EXTERN a_translation_unit_stack_entry_ptr
 		curr_translation_unit_stack_entry;
 			/* Pointer to the top of the translation unit stack. */
 
+EXTERN an_export_trans_unit_stack_entry_ptr
+		curr_export_translation_unit_stack_entry;
+			/* Pointer to the top of the export template
+			   translation unit stack. */
+
 EXTERN a_translation_unit_ptr
 		curr_translation_unit;
 			/* Pointer to the translation unit entry for the
@@ -253,13 +275,14 @@ EXTERN a_translation_unit_ptr
 			   entry on the list is the primary translation
 			   unit. */
 
-EXTERN int	secondary_trans_units_on_stack;
-			/* The number of entries on the translation unit
-			   stack that refer to secondary translation units. */
-
 extern void push_translation_unit_stack(a_translation_unit_ptr	tup);
 
 extern void pop_translation_unit_stack(void);
+
+extern void
+push_export_template_translation_unit_stack(a_translation_unit_ptr tup);
+
+extern void pop_export_template_translation_unit_stack();
 
 extern a_boolean push_primary_translation_unit_if_needed();
 

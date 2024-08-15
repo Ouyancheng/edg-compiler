@@ -74,6 +74,12 @@ static a_translation_unit_stack_entry_ptr
 			/* List of translation unit stack entries that have
 			   been freed and are available for reuse. */
 
+static an_export_trans_unit_stack_entry_ptr
+		avail_export_template_translation_unit_stack_entries;
+			/* List of export template translation unit stack
+			   entries that have been freed and are available for
+			   reuse. */
+
 static a_trans_unit_corresp_ptr
 		avail_trans_unit_corresps;
 			/* List of translation unit correspondence entries
@@ -116,8 +122,9 @@ static a_boolean
 #if DEBUG
 static unsigned long
 		num_translation_unit_stack_entries_allocated,
+		num_export_trans_unit_stack_entries_allocated,
 		num_translation_units_allocated,
-                num_trans_unit_corresps_allocated,
+		num_trans_unit_corresps_allocated,
 		num_variable_registrations_allocated;
 #endif /* DEBUG */
 
@@ -190,6 +197,32 @@ a pointer to the entry created.
   tusep->prev_trans_unit = NULL;
   return tusep;
 }  /* alloc_translation_unit_stack_entry */
+
+
+static an_export_trans_unit_stack_entry_ptr
+alloc_export_template_translation_unit_stack_entry(void)
+/*
+Allocate an export template translation unit stack entry, initialize its
+fields, and return a pointer to the entry created.
+*/
+{
+  an_export_trans_unit_stack_entry_ptr tusep;
+
+  if (avail_export_template_translation_unit_stack_entries != NULL) {
+    /* Reuse an existing entry. */
+    tusep = avail_export_template_translation_unit_stack_entries;
+    avail_export_template_translation_unit_stack_entries = tusep->next;
+  } else {
+    /* Allocate a new entry. */
+    tusep = alloc_general_of_type(an_export_trans_unit_stack_entry);
+#if DEBUG
+    num_export_trans_unit_stack_entries_allocated++;
+#endif /* DEBUG */
+  }  /* if */
+  tusep->next = NULL;
+  tusep->trans_unit = NULL;
+  return tusep;
+}  /* alloc_export_template_translation_unit_stack_entry */
 
 
 static a_variable_registration_ptr alloc_variable_registration(void)
@@ -541,11 +574,6 @@ it the current translation unit.
   tusep->next = curr_translation_unit_stack_entry;
   tusep->prev_trans_unit = curr_translation_unit;
   switch_translation_unit(tup);
-  /* If this is a secondary translation unit, increment the count of
-     secondary translation units on the stack. */
-  if (!is_primary_translation_unit) {
-    secondary_trans_units_on_stack++;
-  }  /* if */
   curr_translation_unit_stack_entry = tusep;
 }  /* push_translation_unit_stack */
 
@@ -561,11 +589,6 @@ new top entry the current translation unit.
   tusep = curr_translation_unit_stack_entry;
   /* If this assertion fails, there's no translation unit on the stack. */
   check_assertion(tusep != NULL);
-  /* If this is a secondary translation unit, decrement the count of
-     secondary translation units on the stack. */
-  if (!is_primary_translation_unit) {
-    secondary_trans_units_on_stack--;
-  }  /* if */
   /* Unlink this entry from the stack. */
   curr_translation_unit_stack_entry = tusep->next;
   /* Restore the previous translation unit. */
@@ -574,6 +597,47 @@ new top entry the current translation unit.
   tusep->next = avail_translation_unit_stack_entries;
   avail_translation_unit_stack_entries = tusep;
 }  /* pop_translation_unit_stack */
+
+
+void push_export_template_translation_unit_stack(a_translation_unit_ptr tup)
+/*
+Add an entry for "tup" to the top of the export template translation unit
+stack.
+*/
+{
+  an_export_trans_unit_stack_entry_ptr ettusep;
+
+  /* The given translation unit must not be NULL. */
+  check_assertion(tup != NULL);
+  ettusep = alloc_export_template_translation_unit_stack_entry();
+  ettusep->next = curr_export_translation_unit_stack_entry;
+  ettusep->trans_unit = tup;
+  curr_export_translation_unit_stack_entry = ettusep;
+  /* Update the translation unit stack itself. */
+  push_translation_unit_stack(tup);
+}  /* push_export_template_translation_unit_stack */
+
+
+void pop_export_template_translation_unit_stack()
+/*
+Remove the top entry from the export template translation unit stack.
+*/
+{
+  an_export_trans_unit_stack_entry_ptr ettusep;
+
+  ettusep = curr_export_translation_unit_stack_entry;
+  /* If this assertion fails the export template translation stack is empty
+     or our of sync with the current translation unit state. */
+  check_assertion((ettusep != NULL) &&
+                  (curr_translation_unit == ettusep->trans_unit));
+  /* Update the translation unit stack itself. */
+  pop_translation_unit_stack();
+  /* Unlink this entry from the stack. */
+  curr_export_translation_unit_stack_entry = ettusep->next;
+  /* Add the old entry to the list of available stack entries. */
+  ettusep->next = avail_export_template_translation_unit_stack_entries;
+ avail_export_template_translation_unit_stack_entries = ettusep;
+}  /* pop_export_template_translation_unit_stack */
 
 
 static a_boolean push_translation_unit_if_needed(a_translation_unit_ptr tup)
@@ -842,6 +906,9 @@ routines is reported as part of the symbol table memory used.
   db_space_used_general("trans. unit stack entry",
                         num_translation_unit_stack_entries_allocated,
                         a_translation_unit_stack_entry);
+  db_space_used_general("export templ trans. unit stack entry",
+                        num_export_trans_unit_stack_entries_allocated,
+                        an_export_trans_unit_stack_entry);
   db_space_used_general("variable registration",
                         num_variable_registrations_allocated,
                         a_variable_registration);
@@ -887,7 +954,7 @@ translation unit processing.
   translation_units_tail = NULL;
   translation_unit_needed_only_for_exported_templates = FALSE;
   curr_translation_unit_stack_entry = NULL;
-  secondary_trans_units_on_stack = 0;
+  curr_export_translation_unit_stack_entry = NULL;
 }  /* trans_unit_init */
 
 
@@ -904,9 +971,11 @@ of the front end are called.
   is_primary_translation_unit = FALSE;
   trans_unit_file_name = NULL;
   avail_translation_unit_stack_entries = NULL;
+  avail_export_template_translation_unit_stack_entries = NULL;
   avail_trans_unit_corresps = NULL;
 #if DEBUG
   num_translation_unit_stack_entries_allocated = 0;
+  num_export_trans_unit_stack_entries_allocated = 0;
   num_translation_units_allocated = 0;
   num_variable_registrations_allocated = 0;
   num_trans_unit_corresps_allocated = 0;
