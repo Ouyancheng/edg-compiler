@@ -12,9 +12,9 @@ Consider in GNU C++ mode:
 The attribute in this example is a "specifier" attribute because it appears
 among the declaration specifiers of the constructor.  However, since there is
 no type among those specifiers, it cannot be associated with a specified type
-and the front end "lost" the attribute even in configuration with the macro
+and the front end "lost" the attribute even in configurations with the macro
 RECORD_UNRECOGNIZED_ATTRIBUTES set to TRUE.  Now, such attributes are treated
-as "prefix" attributes instead, which causes it to be associated with the
+as "prefix" attributes instead, which causes them to be associated with the
 declared entity (the constructor in this case).
 
 
