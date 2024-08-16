@@ -3667,7 +3667,7 @@ will be equal to init_list_ctor_arg_list->variant.braced.list.
   a_boolean           unboxing_conv_should_be_tried = FALSE;
   a_boolean           literal_case = FALSE;
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
-  a_boolean           init_list_ctor_case = FALSE;
+  a_boolean           init_list_ctor_case = FALSE, restore_arg_list = FALSE;
   a_boolean           saved_allow_call_with_incomplete_return_type;
   a_boolean           saved_in_call_argument;
 
@@ -3742,6 +3742,25 @@ will be equal to init_list_ctor_arg_list->variant.braced.list.
                       &arg_list,
                       (an_operand *)NULL, (a_boolean *)NULL,
                       closing_paren_position);
+  if (gpp_version_is(any_version) && init_list_ctor_arg_list == NULL &&
+      is_single_elem(arg_list) && is_braced_init_component(arg_list) &&
+      class_type_supp(skip_typerefs(class_type))->has_initializer_list_ctor) {
+    /* GCC prefers an initializer list constructor if one is present and a
+       braced-initializer is being cast, even if the latter requires an
+       additional user-defined conversion.  For example:
+         #include <initializer_list>
+         struct X { X(int); };
+         struct S {
+         S(int) = delete;
+           S(std::initializer_list<X>);
+         };
+         S s = S({5});  // Accepted by GCC.  An error because the deleted
+                        // constructor is selected, otherwise.
+    */
+    init_list_ctor_arg_list = arg_list;
+    arg_list = arg_list->variant.braced.list;
+    restore_arg_list = TRUE;
+  }  /* if */
   eff_arg_list = arg_list;
   error_position = *source_pos;
   if (value_initialization_enabled &&
@@ -4159,6 +4178,12 @@ will be equal to init_list_ctor_arg_list->variant.braced.list.
 #if MICROSOFT_EXTENSIONS_ALLOWED
 end_of_routine:
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
+  if (restore_arg_list) {
+    /* If we unwrapped a braced initializer above, wrap it back to ensure
+       all entries are freed. */
+    arg_list = init_list_ctor_arg_list;
+    init_list_ctor_arg_list = NULL;
+  }  /* if */
   if (arg_list != NULL && arg_list != supplied_arg_list) {
     free_arg_list(arg_list);
   }  /* if */
@@ -29025,26 +29050,6 @@ freed by this routine.
       }  /* if */
       goto have_result;
     }  /* if */
-    an_arg_list_elem_ptr     init_list_ctor_arg_list = NULL;
-    if (gpp_version_is(any_version) && is_single_elem(supplied_arg_list) &&
-        is_braced_init_component(supplied_arg_list) &&
-        class_type_supp(skip_typerefs(type_cast_to))
-                                                ->has_initializer_list_ctor) {
-      /* GCC prefers an initializer list constructor if one is present and a
-         braced-initializer is being cast, even if the latter requires an
-         additional user-defined conversion.  For example:
-           #include <initializer_list>
-           struct X { X(int); };
-           struct S {
-             S(int) = delete;
-             S(std::initializer_list<X>);
-           };
-           S s = S({5});  // Accepted by GCC.  An error because the deleted
-                          // constructor is selected, otherwise.
-      */
-      init_list_ctor_arg_list = supplied_arg_list;
-      supplied_arg_list = supplied_arg_list->variant.braced.list;
-    }  /* if */
     scan_ctor_arguments(ctor_sym, start_position,
                         (a_type_ptr)NULL, type_cast_to,
                         /*fill_in_dtor=*/TRUE,
@@ -29054,7 +29059,7 @@ freed by this routine.
                         rcblock,
                         /*arg_list_supplied=*/TRUE,
                         supplied_arg_list,
-                        init_list_ctor_arg_list,
+                        (an_arg_list_elem *)NULL,
                         /*trivial_ctor=*/(a_boolean *)NULL,
                         /*explicit_ctor=*/(a_boolean *)NULL,
                         /*elision_done=*/(a_boolean *)NULL,
@@ -29063,10 +29068,6 @@ freed by this routine.
                         /*simple_result=*/result,
                         &dip, &temp_init_node,
                         end_position_arg);
-    if (init_list_ctor_arg_list != NULL) {
-      /* Restore supplied_arg_list so it is correctly freed if needed. */
-      supplied_arg_list = init_list_ctor_arg_list;
-    }  /* if */
     if (!arg_list_supplied) {
       /* Free the arg list that we scanned. */
       free_arg_list(supplied_arg_list);
