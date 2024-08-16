@@ -1337,8 +1337,7 @@ needed (e.g., it has been written out to the IL file).
   }  /* if */
 #endif /* DEBUG */
 #if !STANDALONE_UTILITY_PROGRAM && EXPENSIVE_CHECKING
-  /* Mark that any IL entity associated with these symbols
-     no longer exists. */
+  /* Let the symbol table know the given memory region is being freed. */
   symbol_table_memory_region_wrap_up(region_number);
 #endif /* !STANDALONE_UTILITY_PROGRAM && EXPENSIVE_CHECKING */
   if (region_number == FRONT_END_REGION_NUMBER && freed_fe_map != NULL) {

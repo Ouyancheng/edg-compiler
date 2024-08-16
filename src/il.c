@@ -17935,8 +17935,8 @@ declaration order on their list.
       }  /* if */
     } while (*p_rp != NULL);
   } while (any_moves);
-  /* If this assertion fails, one or routines that was scheduled to be moved
-     could not be found. */
+  /* If this assertion fails, at least one routine that was scheduled to be
+     moved could not be found. */
   check_assertion(n == 0);
 remove_placeholders:
   /* Traverse the routines list once more to remove the placeholder routines

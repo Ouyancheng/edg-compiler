@@ -627,7 +627,7 @@ Remove the top entry from the export template translation unit stack.
 
   ettusep = curr_export_translation_unit_stack_entry;
   /* If this assertion fails the export template translation stack is empty
-     or our of sync with the current translation unit state. */
+     or out of sync with the current translation unit state. */
   check_assertion((ettusep != NULL) &&
                   (curr_translation_unit == ettusep->trans_unit));
   /* Update the translation unit stack itself. */
@@ -636,7 +636,7 @@ Remove the top entry from the export template translation unit stack.
   curr_export_translation_unit_stack_entry = ettusep->next;
   /* Add the old entry to the list of available stack entries. */
   ettusep->next = avail_export_template_translation_unit_stack_entries;
- avail_export_template_translation_unit_stack_entries = ettusep;
+  avail_export_template_translation_unit_stack_entries = ettusep;
 }  /* pop_export_template_translation_unit_stack */
 
 
@@ -662,17 +662,17 @@ a_boolean push_primary_translation_unit_if_needed()
 Push the primary translation unit if not already
 */
 {
-  /* Note that translation_units always starts with the
-     primary translation unit. */
+  /* Note that translation_units always starts with the primary translation
+     unit. */
   return push_translation_unit_if_needed(translation_units);
 }  /* push_primary_translation_unit_if_needed */
 
 
 a_boolean push_translation_unit_if_needed(a_symbol_ptr	sym)
 /*
-If "sym" was declared in a translation unit other than the current one,
-push its translation unit onto the translation unit stack.  If the translation
-unit the symbol was declared in cannot be determined fallback to the primary
+If "sym" was declared in a translation unit other than the current one, push
+its translation unit onto the translation unit stack.  If the translation unit
+the symbol was declared in cannot be determined, fall back to the primary
 translation unit.
 
 Return TRUE if a translation unit was pushed, FALSE if not.

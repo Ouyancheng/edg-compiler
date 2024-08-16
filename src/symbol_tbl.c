@@ -17431,9 +17431,9 @@ Return the translation unit pointer for the translation unit in which
 */
 {
   /* If this assertion fails either no symbol or a symbol that has no
-     translation unit information was passed.  The symbol likely should
-     have translation unit information or the caller needs corrected to
-     filter out symbols that don't have translation unit information. */
+     translation unit information was passed.  The symbol likely should have
+     translation unit information or the caller needs to be corrected to filter
+     out symbols that don't have translation unit information. */
   check_assertion(symbol_has_trans_unit_ptr(sym));
   a_scope_number         scope_number = sym->decl_scope;
   a_translation_unit_ptr tup = trans_unit_for_scope[scope_number];
@@ -19674,8 +19674,8 @@ Sanitize the symbol table for the given memory region being freed.
 
 void symbol_table_trans_unit_validate()
 /*
-Validate the current state of the symbol table for the
-current translation unit.
+Validate the current state of the symbol table for the current translation
+unit.
 */
 {
   if (!no_very_expensive_checking) {

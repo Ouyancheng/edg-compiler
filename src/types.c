@@ -16005,11 +16005,11 @@ return type be examined? what about its parameters?).
 #if !STANDALONE_UTILITY_PROGRAM
   type_sym = symbol_for(type_ptr);
   if (curr_translation_unit != NULL) {
-    /* A number of type transformations are performed through this traversal
+    /* A number of type transformations are performed through this traversal.
        Ensure the translation unit corresponding to the type (if any) is the
-       current translation unit.  This in turn, ensures that any additional
-       allocations related to the type occur in the correct
-       translation unit. */
+       current translation unit.  This in turn ensures that any additional
+       allocations related to the type occur in the correct translation
+       unit. */
     trans_unit_pushed = push_translation_unit_if_needed(type_sym);
   }  /* if */
 #endif /* !STANDALONE_UTILITY_PROGRAM */

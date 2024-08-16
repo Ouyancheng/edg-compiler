@@ -168,7 +168,7 @@ The copy address is normally a direct pointer to the primary (canonicalized)
 address where the given entry will be copied or remapped to (in the primary
 IL).  When merging there is an intermediary address used (see f_mark_to_merge
 for more information about the merge).  In this latter case,
-transivite_copy_address_of always reaches the former case transitively through
+transitive_copy_address_of always reaches the former case transitively through
 the intermediary address.
 
 If there is no corresponding entry in the primary IL (and this is not a string
@@ -978,12 +978,12 @@ counterpart in the primary IL.
 
 The merge process occurs in effectively two phases.  The merge process starts
 with the first phase when copy_from_secondary_to_primary_IL is called.  During
-this phase IL will be copied from the secondary translation unit to "remapped
-copy."  The remapped copy is a temporary copy of the IL entry with all has all
-pointers remapped to IL entries in the primary IL memory region.  The remapped
-copy itself is allocated in the secondary translation unit's IL memory region
-and is thus dropped along with the secondary translation unit's IL following
-the merge.
+this phase IL will be copied from the secondary translation unit to a "remapped
+copy."  The remapped copy is a temporary copy of the IL entry with all pointers
+remapped to IL entries in the primary IL memory region.  The remapped copy
+itself is allocated in the secondary translation unit's IL memory region and is
+thus dropped along with the secondary translation unit's IL following the
+merge.
 
 The merge operation is then completed in its secondary phase, during the final
 (manual) walk of the translation unit, facilitated by finish_trans_unit_copy.
@@ -994,7 +994,7 @@ from the remapped copy refer to entries in the primary IL, information can be
 safely and freely moved from the remapped copy to the primary IL entry (thus
 facilitating the merge).
 
-Note: as copy_address_setup will be called to set the copy address if it is not
+Note: copy_address_setup will be called to set the copy address if it is not
 set already, so if a special copy address is required it should be established
 before this routine is called.
 */
@@ -1079,15 +1079,14 @@ static inline a_boolean entry_requires_merge_because_of_attributes(
                                                           an_Entry_type *entry)
 /*
 If the indicated entry has attributes that must be merged into the canonical
-entry as part of the copy/merge process, return TRUE.  In that case, its
-attribute list is altered so that only attributes that must be merged remain on
-the list; the rest are duplicates and are deleted.  The entry passed in must
-not be one that will be copied instead of merged (i.e., entry_should_be_copied
-must be FALSE for it), nor may it be one that will overwrite a primary IL entry
-(i.e., entry_should_overwrite_primary_entry must be FALSE for it).  The
-combination of those two means the entry is not the canonical entry (all of
-whose attributes would be preserved), and is instead an entry that would
-otherwise be discarded.
+entry as part of the copy/merge process, return TRUE.
+
+The entry passed in must not be one that will be copied instead of merged
+(i.e., entry_should_be_copied must be FALSE for it), nor may it be one that
+will overwrite a primary IL entry (i.e., entry_should_overwrite_primary_entry
+must be FALSE for it).  The combination of those two means the entry is not the
+canonical entry (all of whose attributes would be preserved), and is instead an
+entry that would otherwise be discarded.
 */
 {
   check_assertion(!entry_should_be_copied(entry));
@@ -1111,15 +1110,14 @@ static inline a_boolean entry_requires_merge_because_of_name_references(
                                                           an_Entry_type *entry)
 /*
 If the indicated entry has name references that must be merged into the
-canonical entry as part of the copy/merge process, return TRUE.  In that case,
-its attribute list is altered so that only attributes that must be merged
-remain on the list; the rest are duplicates and are deleted.  The entry passed
-in must not be one that will be copied instead of merged (i.e.,
-entry_should_be_copied must be FALSE for it), nor may it be one that will
-overwrite a primary IL entry (i.e., entry_should_overwrite_primary_entry must
-be FALSE for it).  The combination of those two means the entry is not the
-canonical entry (all of whose attributes would be preserved), and is instead an
-entry that would otherwise be discarded.
+canonical entry as part of the copy/merge process, return TRUE.
+
+The entry passed in must not be one that will be copied instead of merged
+(i.e., entry_should_be_copied must be FALSE for it), nor may it be one that
+will overwrite a primary IL entry (i.e., entry_should_overwrite_primary_entry
+must be FALSE for it).  The combination of those two means the entry is not the
+canonical entry (all of whose name references would be preserved), and is
+instead an entry that would otherwise be discarded.
 */
 {
   check_assertion(!entry_should_be_copied(entry));
