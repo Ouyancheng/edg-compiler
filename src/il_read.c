@@ -480,6 +480,7 @@ necessary to make it directly accessible in memory.
        that kind. */
     entry_ptr = remap_encoded_number_to_ptr(encoded_number, entry_kind);
     /* Set the entry prefix appropriately. */
+    /* coverity[tainted_data_downcast] */
     clear_il_entry_prefix(&il_entry_prefix_of_no_check(entry_ptr),
                           reading_file_scope_il, FALSE);
     /* If this is a string entry, read the length.  Otherwise, compute the
