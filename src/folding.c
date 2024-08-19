@@ -8761,6 +8761,64 @@ check_unique_rep can be passed FALSE to skip checking that condition.
 }  /* type_is_trivially_equality_comparable */
 
 
+static a_boolean type_is_trivially_relocatable(a_type_ptr  type)
+/*
+Return TRUE if the given type is trivially relocatable.  A class type is
+trivially relocatable if it has a trivial, non-deleted destructor, at least one
+eligible trivial copy or move constructor, and no eligible non-trivial copy or
+move constructors.  A non-class type is trivially relocatable if it is an
+object type.
+*/
+{
+  a_boolean   result;
+  a_type_ptr  utype = skip_typerefs(skip_array_types(type));
+
+  if (is_immediate_class_type(utype)) {
+    a_class_symbol_supplement_ptr  cssp = symbol_supplement_for_class(utype);
+    if (!has_nontrivial_destructor(cssp)) {
+      a_boolean     is_list;
+      a_symbol_ptr  sym = cssp->constructor;
+      if (sym != NULL && symbol_is(sym, sk_overloaded_function)) {
+        is_list = TRUE;
+        sym = sym->variant.overloaded_function.symbols;
+      } else {
+        is_list = FALSE;
+      }  /* if */
+      if (sym == NULL && cssp->construction_by_bitwise_copy_allowed) {
+        result = TRUE;
+      } else {
+        result = FALSE;
+        for (; sym != NULL; sym = is_list ? sym->next : NULL) {
+          a_routine_ptr     rp;
+          if (symbol_is(sym, sk_function_template)) continue;
+          check_assertion(symbol_is(sym, sk_member_function));
+          rp = sym->variant.routine.ptr;
+          /* Ignore any ineligible functions. */
+          if (rp->is_deleted || (in_front_end && is_ineligible(sym))) continue;
+          if (rp->is_trivial_copy_function) {
+            /* We need at least one trivial copy or move constructor. */
+            result = TRUE;
+          } else if (is_copy_constructor(rp, utype,
+                                         (a_type_qualifier_set*)NULL,
+                                         /*include_move_ctors=*/TRUE,
+                                         /*is_declarative_context=*/TRUE)) {
+            /* If there are any non-trivial copy or move constructors, the
+               class is not trivially relocatable. */
+            result = FALSE;
+            break;
+          }  /* if */
+        }  /* for */
+      }  /* if */
+    } else {
+      result = FALSE;
+    }  /* if */
+  } else {
+    result = is_object_type(utype);
+  }  /* if */
+  return result;
+}  /* type_is_trivially_relocatable */
+
+
 static void fold_unary_type_trait_helper(
                                     an_expr_node_ptr   expr,
                                     a_constant_ptr     constant,
@@ -8820,7 +8878,8 @@ and, if pos is not NULL, an error will be reported.
         kind == bok_has_nothrow_constructor ||
         kind == bok_has_trivial_constructor ||
         kind == bok_is_trivially_copyable ||
-        kind == bok_has_user_destructor) {
+        kind == bok_has_user_destructor ||
+        kind == bok_is_trivially_relocatable) {
       if (is_array_type(type)) {
         type = skip_array_types(type);
         if ((gpp_version_is(any_version) || microsoft_mode) &&
@@ -9135,6 +9194,9 @@ and, if pos is not NULL, an error will be reported.
         case bok_is_trivially_equality_comparable:
           result = type_is_trivially_equality_comparable(orig_type);
           break;
+        case bok_is_trivially_relocatable:
+          result = type_is_trivially_relocatable(type);
+          break;
         default:
           unexpected_condition();
       }  /* switch */
@@ -9417,6 +9479,9 @@ and, if pos is not NULL, an error will be reported.
         break;
       case bok_is_trivially_equality_comparable:
         result = type_is_trivially_equality_comparable(orig_type);
+        break;
+      case bok_is_trivially_relocatable:
+        result = type_is_trivially_relocatable(type);
         break;
       case bok_is_arithmetic:
       case bok_is_floating_point:
@@ -10168,6 +10233,7 @@ constant is set as well.
       case bok_is_trivially_copy_assignable:
       case bok_has_unique_object_representations:
       case bok_is_aggregate:
+      case bok_is_trivially_relocatable:
         /* Various type trait helpers that require their single argument to be
            a complete class type. */
         fold_unary_type_trait_helper(expr, constant, maintain_expression, pos,

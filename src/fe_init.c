@@ -808,6 +808,10 @@ modes.
     enter_keyword(tok_is_referenceable, "__is_referenceable");
     /* These next two are synonyms for existing intrinsics. */
     enter_keyword(tok_is_literal_type, "__is_literal");
+    if (clang_version >= 150000) {
+      enter_keyword(tok_is_trivially_relocatable,
+                    "__is_trivially_relocatable");
+    }  /* if */
     if (clang_version >= 170000) {
       enter_keyword(tok_is_trivially_equality_comparable,
                     "__is_trivially_equality_comparable");

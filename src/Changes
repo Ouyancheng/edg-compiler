@@ -1,5 +1,12 @@
 Version 6.7
 
+8/19/24  [EDGcpfe/27511]
+Clang compatibility: __is_trivially_relocatable
+
+In Clang C++ modes with clang_version >= 150000, the front end now supports the
+__is_trivially_relocatable type traits helper.
+
+
 8/15/24  [EDGcpfe/27282,EDGcpfe/26417]
 Multi-TU memory region management fixes
 

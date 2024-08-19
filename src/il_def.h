@@ -1520,6 +1520,7 @@ enum a_token_kind : unsigned short {
   tok_remove_volatile,
   tok_is_trivially_equality_comparable,
   tok_nullptr_t,
+  tok_is_trivially_relocatable,
   /* Placeholder for last position in enumeration. */
   tok_last
 };
@@ -1778,6 +1779,7 @@ EXTERN_CONSTINIT_ARRAY(a_const_char*, token_names, tok_last+1)
    "__remove_volatile",
    "__is_trivially_equality_comparable",
    "nullptr_t",
+   "__is_trivially_relocatable",
    "last" /* used to check that initialization is right. */
   }
 #endif /* VAR_INITIALIZERS */
@@ -13979,6 +13981,9 @@ enum a_builtin_operation_kind : a_byte {
 			/* __is_trivially_equality_comparable (Clang).  One
 			   type operand. */
   bok_is_scoped_enum,	/* __is_scoped_enum.  One operand: A type. */
+  bok_is_trivially_relocatable,
+			/* __is_trivially_relocatable (Clang).  One type
+			   operand. */
   bok_last              /* Marks the end of the list. */
 };
 
@@ -18599,6 +18604,7 @@ EXTERN_CONSTINIT_ARRAY(a_const_char*, builtin_operation_names, bok_last+1)
   "__is_convertible",
   "__is_trivially_equality_comparable",
   "__is_scoped_enum",
+  "__is_trivially_relocatable",
   "last"
 }
 #endif /* VAR_INITIALIZERS */
