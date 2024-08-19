@@ -329,8 +329,7 @@ initialization of the magic number occurs early because subsequent macros
 depend on it being set properly.
 */
 #define clear_il_entry_prefix(ptr, is_in_file_scope, in_sec_trans_unit) \
-{ /* coverity[tainted_data_downcast] */                               \
-  an_il_entry_prefix_ptr epp = (an_il_entry_prefix_ptr)ptr;           \
+{ an_il_entry_prefix_ptr epp = (an_il_entry_prefix_ptr)ptr;           \
   epp->file_scope = is_in_file_scope;                                 \
   epp->secondary_trans_unit = in_sec_trans_unit;		      \
   epp->il_walk_flag = 0;                                              \
