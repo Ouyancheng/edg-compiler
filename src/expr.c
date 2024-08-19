@@ -3751,7 +3751,7 @@ will be equal to init_list_ctor_arg_list->variant.braced.list.
          #include <initializer_list>
          struct X { X(int); };
          struct S {
-         S(int) = delete;
+           S(int) = delete;
            S(std::initializer_list<X>);
          };
          S s = S({5});  // Accepted by GCC.  An error because the deleted
