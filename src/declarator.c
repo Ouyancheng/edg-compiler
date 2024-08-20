@@ -5735,7 +5735,7 @@ Microsoft extended decl modifiers are also scanned, but they are ignored
       *ptr_to_member_scanned = TRUE;
 #if MICROSOFT_EXTENSIONS_ALLOWED
     } else if (cli_or_cx_enabled &&
-               (curr_token == tok_excl_or || 
+               (curr_token == tok_excl_or ||  curr_token == tok_caret_caret ||
                 (reference_allowed && curr_token == tok_remainder))) {
       /* C++/CLI declarator operators "^" (handle) or "%" (tracking
          reference). */
@@ -5926,6 +5926,15 @@ Microsoft extended decl modifiers are also scanned, but they are ignored
           /* A handle ("^") or tracking-reference ("%") type. */
           /* Make sure this was not preceded by __based. */
           based_not_allowed_here(ptr_mods.based_var, ptr_mods.based_pos);
+          if (curr_token == tok_caret_caret) {
+            /* Replace a single "^^" token (accepted when reflection is
+               enabled) by two "^" tokens. */
+            a_token_cache  two_tokens;
+            clear_token_cache(&two_tokens, /*reusable=*/FALSE);
+            cache_token(&two_tokens, tok_excl_or, &pos_curr_token);
+            cache_token(&two_tokens, tok_excl_or, &pos_curr_token);
+            f_rescan_cached_tokens(&two_tokens, /*discard_curr_token=*/TRUE);
+          }  /* if */
           if (!check_cli_or_cx_type_pointed_to(temp_type,
                                                curr_token == tok_remainder,
                                                /*is_handle=*/TRUE,
