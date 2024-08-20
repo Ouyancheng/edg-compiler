@@ -4122,6 +4122,7 @@ a_token_kind for more information about IFC token serialization.
 #if GNU_EXTENSIONS_ALLOWED
     case tok_builtin_types_compatible:
 #endif /* GNU_EXTENSIONS_ALLOWED */
+    case tok_caret_caret:
 #if MICROSOFT_EXTENSIONS_ALLOWED
     case tok_cdecl:
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
