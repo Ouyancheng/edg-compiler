@@ -27763,8 +27763,8 @@ sensitive keywords.
         cache_curr_token(cache);
         (void)get_token();
         if (curr_token == tok_identifier || curr_token == tok_star ||
-            curr_token == tok_ampersand || curr_token == tok_and_and ||
-            curr_token == tok_excl_or || curr_token == tok_remainder) {
+            curr_token == tok_ampersand || curr_token == tok_and_and 
+            or_is_cli_declarator_operator(curr_token)) {
           /* The next token is clearly a declarator.  Assume the identifier
              was meant to be a type name. */
           expect_error();

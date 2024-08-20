@@ -75,7 +75,8 @@ is_declarator_start and is_abstract_declarator_start.
   (is_microsoft_calling_convention(tok) || (tok) == tok_based)
 #define or_is_cli_declarator_operator(tok)                             \
   || (cli_or_cx_enabled &&                                             \
-      ((tok) == tok_excl_or || (tok) == tok_remainder))
+      ((tok) == tok_excl_or || (tok) == tok_caret_caret ||             \
+       (tok) == tok_remainder))
 #else /* !MICROSOFT_EXTENSIONS_ALLOWED */
 #define or_is_microsoft_declarator_keyword(tok) /* Nothing */
 #define or_is_cli_declarator_operator(tok) /* Nothing */
