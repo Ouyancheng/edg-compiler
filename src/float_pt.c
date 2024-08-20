@@ -2807,6 +2807,24 @@ before setting it if there are unused bits.
     if (kind_is_binary16(kind)) {
       res = read_float16((unsigned char *)&float_value_temp, str,
                          (int)strlen(str));
+#if !HOST_HAS_FLOAT16_TYPE
+      {
+        /* Do a round-trip conversion through the mantissa/exponent
+           representation to perform rounding to the _Float16 precision and
+           check the resulting value against the _Float16 range limits. */
+        long            exponent = 0;
+        a_mantissa      mantissa;
+        a_boolean       is_negative;
+        a_boolean       inexact;
+        a_host_fp_value host_val;
+        load_hex_fp_value(&float_value_temp, fk_float, &mantissa, &exponent,
+                          &is_negative, /*restore_implicit_bit=*/TRUE);
+        conv_mantissa_to_floating_point(&mantissa, &exponent, is_negative,
+                                        fk_float16, &float_value_temp,
+                                        /*exponent_overfloat=*/FALSE, err,
+                                        &inexact);
+      }
+#endif /* !HOST_HAS_FLOAT16_TYPE */
 #if DEBUG
       if (db_flag_is_set("fp")) {
         fprintf(f_debug, "read_float16: res=%d\n", (int)res);

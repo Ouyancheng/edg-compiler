@@ -353,6 +353,7 @@ unique name that incorporates FPT_NAME so as to differentiate it from
 subsequent inclusions with a different floating-point type.
 */
 #define SPLIT_FN              CONCAT(split_, FPT_NAME)
+#define NORMALIZE_AND_ROUND   CONCAT(normalize_and_round_, FPT_NAME)
 #define MAKE_FN               CONCAT(make_, FPT_NAME)
 #define WRITE_FN              CONCAT(write_, FPT_NAME)
 #define WRITE_N_FN            CONCAT3(write_, FPT_NAME, _n)
@@ -572,6 +573,36 @@ Split floating-point value val into broken-down form in bin.
 }  /* SPLIT_FN */
 
 
+void NORMALIZE_AND_ROUND(an_fp_binary *bin)
+/*
+If the fraction of the specified number uses more bits than the precision,
+adjust it so the fraction fits in the number of available bits, rounding
+as needed.  (This situation arises for _Float16 types.)
+*/
+{
+  if (FRAC_BITS == 10) {
+    unsigned short val = *(unsigned short *)&bin->frac;
+    unsigned short mask = (unsigned short)((1 << (11)) - 1);
+
+    if (bin->exponent > FRAC_BITS && (val & mask) != val) {
+      /* There are more bits in bin->frac than in the mantissa.  Shift
+         the fraction value to fit in the mantissa, performing the
+         required rounding. */
+      int            num_bits = bin->exponent - FRAC_BITS;
+      unsigned short rounding_bit = (val & (1 << (num_bits - 1)));
+      val = (val + rounding_bit) >> num_bits;
+      if ((val & mask) != val) {
+        /* Rounding carried to an extra bit. */
+        val >>= 1;
+        ++bin->exponent;
+      }  /* if */
+      *(unsigned short *)&bin->frac = val;
+      ++bin->exponent;
+    }  /* if */
+  }  /* if */
+}  /* NORMALIZE_AND_ROUND */
+
+
 STATIC void MAKE_FN(unsigned char *tgt,
                     an_fp_binary  *bin)
 /*
@@ -585,6 +616,7 @@ accordingly.
 
   /* If we have a number, convert and check for underflow and overflow. */
   if (bin->type == fpt_number) {
+    NORMALIZE_AND_ROUND(bin);
     memcpy(fraction, bin->frac, FRACTION_BYTES);
     biased_exponent = bin->exponent + EXPONENT_BIAS - 1;
     if (bin->exponent < MIN_EXPONENT - bin->precision) {
@@ -917,6 +949,11 @@ for the type.  The value of scale is stored in *pscale.
   /* Adjust significant digits to match input. */
   if (dec->precision < sig_dig) {
     sig_dig = dec->precision;
+  } else if (dec->precision == dec->exponent && sig_dig < dec->exponent) {
+    /* This is a special case for _Float16, which has MAX_APPROX_DIG as 4
+       but can represent some 5-digit integers up to 65504.  (The decimal
+       precision and exponent being equal indicates an integer value.) */
+    sig_dig = dec->exponent;
   }  /* if */
   /* Adjust exponent to put decimal point at right of significant digits. */
   exp -= sig_dig;
@@ -997,9 +1034,15 @@ for the type.  The value of scale is stored in *pscale.
     if (fp_emul_is_zero(bin)) {
       dec->type = fpt_underflow;
     } else if (exp_is_negative) {
+      NORMALIZE_AND_ROUND(bin);
       /* Divide the fraction by the two multipliers. */
-      fp_emul_div(bin, &SMALL_TENS[first_exp]);
-      if (exp < N_SMALL_TENS) {
+      if (first_exp != 0) {
+        /* SMALL_TENS[0] is unity, so there's no need to multiply. */
+        fp_emul_div(bin, &SMALL_TENS[first_exp]);
+      }  /* if */
+      if (exp == 0) {
+        /* SMALL_TENS[0] is unity, so there's no need to multiply. */
+      } else if (exp < N_SMALL_TENS) {
         fp_emul_div(bin, &SMALL_TENS[exp]);
       } else {
         /* For each 1 bit in exp, divide by 10^2^idx. */
@@ -1052,8 +1095,13 @@ for the type.  The value of scale is stored in *pscale.
       }  /* if */
     } else {
       /* Multiply the fraction by the two multipliers. */
-      fp_emul_mult(bin, &SMALL_TENS[first_exp]);
-      if (exp < N_SMALL_TENS) {
+      if (first_exp != 0) {
+        /* SMALL_TENS[0] is unity, so there's no need to multiply. */
+        fp_emul_mult(bin, &SMALL_TENS[first_exp]);
+      }  /* if */
+      if (exp == 0) {
+        /* SMALL_TENS[0] is unity, so there's no need to multiply. */
+      } else if (exp < N_SMALL_TENS) {
         fp_emul_mult(bin, &SMALL_TENS[exp]);
       } else {
         /* For each 1 bit in exp, multiply by 10^2^idx. */
@@ -1423,6 +1471,7 @@ zero).
 #undef an_fp_floating_point_type
 
 #undef SPLIT_FN
+#undef NORMALIZE_AND_ROUND
 #undef MAKE_FN
 #undef WRITE_FN
 #undef WRITE_N_FN

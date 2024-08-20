@@ -1795,7 +1795,14 @@ STATIC void fp_emul_add_int(an_fp_binary  *left,
     bin.precision = left->precision;
     fp_frac_set_from_uint(bin.frac, bin.precision,
                           (an_fp_uint)right);
-    i = fp_frac_high_zero_bits(bin.frac, bin.precision);
+    if (bin.precision < CHAR_BIT * sizeof(right) &&
+        right >= (1 << bin.precision)) {
+      /* By definition, there are no leading zero bits if the value is
+         larger than the precision. */
+      i = 0;
+    } else {
+      i = fp_frac_high_zero_bits(bin.frac, bin.precision);
+    }  /* if */
     if (i == 0 &&
         (over = (right & ~MASK_BITS(bin.precision)) >> bin.precision) != 0) {
       /* The value being added occupies more bits than allowed by the
@@ -2148,6 +2155,7 @@ being converted is not a zero, an infinity, or a NaN.
   int      dig_pos = 0;
   int      adjust_upper_delta = 0;
   int      r2 = 0, r5 = 0, s2 = 0, s5 = 0;
+  int      min_digits = 0;
   a_bigint *residual = new_bigint();
   a_bigint *divisor = new_bigint();
   a_bigint *delta = new_bigint();
@@ -2167,6 +2175,12 @@ being converted is not a zero, an infinity, or a NaN.
   } else {
     /* residual = residual * 2^bin_exp */
     r2 += bin_exp;
+    if (bin->precision == 11) {
+      /* The exponent of a _Float16 value is greater than the precision,
+         indicating a large integer value.  Ensure that all the digits are
+         represented in the result. */
+      min_digits = (bin->exponent > 13) ? 5 : 4;
+    }  /* if */
   }  /* if */
   /* Normalize, so that 0.1 <= residual/divisor < 1.0 and residual/divisor ==
      bin / 10^result_scale.  */
@@ -2252,7 +2266,7 @@ being converted is not a zero, an infinity, or a NaN.
       /* Do not insert code here. */
       {
         if (cmp < 0 || (cmp == 0 && bin->frac[0] % 2 == 0)) {
-          conv_finished = 1;
+          conv_finished = (dig_pos >= min_digits);
           if (!bigint_is_zero(residual)) {
             bigint_from_bigint(temp0, residual);
             bigint_shift_left(temp0, 1);
@@ -2492,6 +2506,9 @@ multiplier into account in rounding, and then remove it.
     d2 += -exp;
   } else if (0 < exp) {
     b2 += exp;
+    if (dec->exponent == dec->precision) {
+      d2 += exp;
+    }  /* if */
   }  /* if */
   /* Remove common factors of 2. */
   if (b2 <= d2) {
