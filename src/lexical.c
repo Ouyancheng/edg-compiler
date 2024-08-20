@@ -16906,9 +16906,12 @@ return_end_of_source_token:
       ctoken = tok_not;
       break;
     case '^':
-      /* One of "^=" or "^". */
+      /* One of "^=", "^^", or "^". */
       if (*(curr_char_loc+1) == '=') {
         ctoken = tok_excl_or_assign;
+        goto two_char_token;
+      } else if (*(curr_char_loc+1) == '^' && reflection_enabled) {
+        ctoken = tok_caret_caret;
         goto two_char_token;
       }  /* if */
       /* Just plain "^". */

@@ -19385,6 +19385,9 @@ static void scan_reflection_operator(a_rescan_control_block  *rcblock,
 Scan the reflection operator, which is of the form:
 
 	^ <construct> 
+ or
+	^^ <construct> 
+
 
 where <construct> is one of:
 
@@ -19436,7 +19439,7 @@ ck_reflection) of a special built-in type (of kind tk_reflection).
     a_token_kind               next_tok;
     a_source_position          caret_pos = pos_curr_token;
     clear_constant(refl_cp, ck_reflection);
-    /* Consume the "^" token. */
+    /* Consume the "^^" (or "^") token. */
     (void)get_token();
     arg_pos = pos_curr_token;
     if (curr_token == tok_lbrace) {
@@ -42180,6 +42183,7 @@ handle_cli_typeid:
       scan_typeid_operator((a_rescan_control_block *)NULL, &local_result);
       break;
 
+    case tok_caret_caret:
     case tok_excl_or:
       /* The reflection operator (e.g., "^std::list<int>"). */
       if (reflection_enabled) {

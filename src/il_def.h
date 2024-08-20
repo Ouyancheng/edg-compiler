@@ -1049,7 +1049,7 @@ enum a_token_kind : unsigned short {
   tok_unimplemented         /* Token used to indicate keywords that are not
                                yet implemented. */,
   tok_last_complex_token = tok_unimplemented,
-  /* Operators (standard, 3.1.5; sizeof appears with keywords): */
+  /* Operators (sizeof, new, typeid, etc. appear with keywords): */
   tok_lbracket              /* [ */,
   tok_rbracket              /* ] */,
   tok_lparen                /* ( */,
@@ -1075,6 +1075,7 @@ enum a_token_kind : unsigned short {
   tok_eq                    /* == */,
   tok_ne                    /* != */,
   tok_spaceship             /* <=> */,
+  tok_caret_caret           /* ^^ */,
   tok_excl_or               /* ^ */,
   tok_or                    /* | */,
   tok_and_and               /* && */,
@@ -1542,7 +1543,7 @@ EXTERN_CONSTINIT_ARRAY(a_const_char*, token_names, tok_last+1)
    "IFC entity ref", "IFC decl ref", "IFC decl", "unimplemented",
    "[", "]", "(", ")", ".", "->", "++", "--", "&", "*", "+", "-",
    "~", "!", "/", "%", "<<", ">>", "<", ">", "<=", ">=", "==", "!=", "<=>",
-   "^", "|", "&&", "||", "?", ":", "=", "*=", "/=", "%=",
+   "^^", "^", "|", "&&", "||", "?", ":", "=", "*=", "/=", "%=",
    "+=", "-=", "<<=", ">>=", "&=", "^=", "|=", ",", "#", "##", "<?", ">?",
    "{", "}", "[:", ":]", "\\",  ";", "...",
    "auto", "break", "case", "char", "const",

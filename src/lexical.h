@@ -351,6 +351,7 @@ EXTERN_CONSTINIT_ARRAY(an_opname_kind, opname_kind_for_token, tok_last+1)
    onk_eq,
    onk_ne,
    onk_spaceship,
+   onk_none,          /* tok_caret_caret */
    onk_excl_or,
    onk_or,
    onk_and_and,
