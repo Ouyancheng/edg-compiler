@@ -319,6 +319,24 @@ that this is indeed an IL entity.
 #define init_magic_number(epp) /* Nothing */
 #endif /* EXPENSIVE_CHECKING */
 
+
+// coverity[ -taint_source ]
+// coverity[ -taint_source : arg-0 ]
+template<typename a_Type>
+inline an_il_entry_prefix_ptr bless_as_il_entry_prefix(a_Type *ptr)
+/*
+Convert the given pointer into an IL entry prefix pointer and return the
+resulting IL entry prefix pointer.
+
+This function serves as a point where the conversion from an arbitrary pointer
+to an IL entry prefix pointer can be explicitly affirmed as the expected
+(and safe) behavior to static analysis tools.
+*/
+{
+  return (an_il_entry_prefix_ptr)ptr;
+}  /* bless_as_il_entry_prefix */
+
+
 /*
 Initialize an IL entry prefix to default values.  ptr is a pointer (of
 any type) to the location containing the prefix.  is_in_file_scope is TRUE if
@@ -329,7 +347,7 @@ initialization of the magic number occurs early because subsequent macros
 depend on it being set properly.
 */
 #define clear_il_entry_prefix(ptr, is_in_file_scope, in_sec_trans_unit) \
-{ an_il_entry_prefix_ptr epp = (an_il_entry_prefix_ptr)ptr;           \
+{ an_il_entry_prefix_ptr epp = bless_as_il_entry_prefix(ptr);         \
   epp->file_scope = is_in_file_scope;                                 \
   epp->secondary_trans_unit = in_sec_trans_unit;		      \
   epp->il_walk_flag = 0;                                              \

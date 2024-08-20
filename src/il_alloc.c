@@ -255,7 +255,6 @@ it is usually known by the caller).
   /* There may be padding before the prefix if needed for alignment. */
   ptr += non_file_scope_entry_prefix_alignment_offset;
   incr_num_il_entry_prefixes_allocated();
-  /* coverity[tainted_data_downcast] */
   clear_il_entry_prefix(ptr, is_in_file_scope, !is_primary_translation_unit);
   init_memory_region_metadata(ptr,
                               curr_translation_unit->file_scope_region_number,
@@ -335,7 +334,6 @@ units are involved).
   }  /* if */
   clear_and_incr_past_orphan_pointer(ptr);
   incr_num_il_entry_prefixes_allocated();
-  /* coverity[tainted_data_downcast] */
   clear_il_entry_prefix(ptr, TRUE, !is_primary_translation_unit);
   init_memory_region_metadata(ptr, fs_region_number, fs_region_number);
   ptr += SPACE_FOR_IL_ENTRY_PREFIX;
@@ -1110,7 +1108,6 @@ reuse by this routine.
     /* Reuse a previously-allocated constant. */
     result = available_local_constants;
     available_local_constants = result->next;
-    /* coverity[tainted_data_downcast] */
     clear_il_entry_prefix(&il_entry_prefix_of_no_check(result),
                           /*is_in_file_scope=*/TRUE,
                           !is_primary_translation_unit);
