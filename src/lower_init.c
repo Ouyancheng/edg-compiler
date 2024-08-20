@@ -12954,8 +12954,8 @@ The subtree of the node has not yet been lowered.
     ndsp->dynamic_init = NULL;
     if (delete_routine == NULL) {
       /* If not explicitly specified, use the delete operator for the class. */
-      delete_routine =
-                     class_type_supp(base_type)->assoc_operator_delete_routine;
+      delete_routine = class_type_supp(skip_typerefs(base_type))->
+                                                 assoc_operator_delete_routine;
     }  /* if */
   }  /* if */
 #endif /* LOWERING_REMOVES_UNNEEDED_CONSTRUCTIONS_AND_DESTRUCTIONS */
@@ -12992,8 +12992,8 @@ The subtree of the node has not yet been lowered.
        and not a case that requires calling a destructor. */
     if (delete_routine == NULL) {
       /* If not explicitly specified, use the delete operator for the class. */
-      delete_routine =
-                     class_type_supp(base_type)->assoc_operator_delete_routine;
+      delete_routine = class_type_supp(skip_typerefs(base_type))->
+                                                 assoc_operator_delete_routine;
     }  /* if */
     check_assertion(delete_routine != NULL);
     /* Lower "arg". */

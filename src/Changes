@@ -1,5 +1,22 @@
 Version 6.7
 
+8/20/24  [EDGcpfe/27513]
+Abort on lowering delete operators
+
+In configurations where IA64_ABI is FALSE and DELETE_CAN_BE_FOLDED_INTO_DTOR
+and LOWERING_REMOVES_UNNEEDED_CONSTRUCTIONS_AND_DESTRUCTIONS are both TRUE,
+missing skip_typerefs had caused undefined behavior in some cases in
+lower_delete.  For example, with --c++17:
+
+  struct B {
+    ~B() noexcept(false) { }
+  };
+  using C = B;
+  void f(C *c) {
+    delete c;  // Previously triggered undefined behavior in some
+  }            // configurations.
+
+
 8/19/24  [EDGcpfe/27511]
 Clang compatibility: __is_trivially_relocatable
 
