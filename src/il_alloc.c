@@ -236,6 +236,7 @@ is TRUE.  Used in do_alloc.
 #endif /* DEBUG */
 
 
+// coverity[ -taint_source ]
 static inline char *do_alloc(a_memory_region_number region_number,
                              a_boolean              is_in_file_scope,
                              sizeof_t               size)
@@ -311,6 +312,7 @@ multiple translation units.
   ptr += SPACE_FOR_TRANS_UNIT_COPY_ADDRESS_POINTER
 
 
+// coverity[ -taint_source ]
 static inline char *do_fs_alloc(a_memory_region_number fs_region_number,
                                 sizeof_t               size)
 
