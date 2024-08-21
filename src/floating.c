@@ -2506,7 +2506,7 @@ multiplier into account in rounding, and then remove it.
     d2 += -exp;
   } else if (0 < exp) {
     b2 += exp;
-    if (dec->exponent == dec->precision) {
+    if (bin->precision == 11 && dec->exponent == dec->precision) {
       d2 += exp;
     }  /* if */
   }  /* if */
