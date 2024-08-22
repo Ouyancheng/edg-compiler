@@ -23324,8 +23324,8 @@ parenthesized initializer was provided.
                         /*is_custom_ms_attr_arg_list=*/FALSE,
                         CCO_DIRECT_INITIALIZATION,
                         rcblock,
-                        /*arg_list_supplied=*/FALSE,
-                        (an_arg_list_elem *)NULL,
+                        /*arg_list_supplied=*/(nps->init_raw_args != NULL),
+                        nps->init_raw_args,
                         (an_arg_list_elem *)NULL,
                         &trivial_ctor,
                         /*explicit_ctor=*/(a_boolean *)NULL,
@@ -23335,6 +23335,8 @@ parenthesized initializer was provided.
                         simple_result,
                         &nps->dip, (an_expr_node_ptr *)NULL,
                         (a_source_position *)NULL);
+    free_arg_list(nps->init_raw_args);
+    nps->init_raw_args = NULL;
 #if MICROSOFT_EXTENSIONS_ALLOWED
     nps->is_gcnew_string_special_case = special_case;
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
@@ -23394,25 +23396,45 @@ parenthesized initializer was provided.
   } else {
     /* Not a class with a constructor. */
     if (!nps->empty_initializer) {
-      a_boolean expr_not_present;
-      /* The new-initializer is not empty.  Scan it. */
+      /* The new-initializer is not empty. */
       /* Develop the dynamic init entry, if any, used to free storage
          if an exception is thrown before the initialization is finished.
          This must be done after it has been determined that initialization
          is required, but before the initialization is actually processed. */
       make_dyn_init_for_deletion_for_throw(nps);
-      nps->init_val_node = scan_parenthesized_initializer_expression(
+      if (nps->init_raw_args != NULL) {
+        /* Use the existing arguments. */
+        an_operand  result;
+        prep_list_initializer(nps->init_raw_args,
+                              nps->err ? error_type() : nps->new_type,
+                              /*is_direct_init=*/TRUE,
+                              /*check_narrowing=*/FALSE,
+                              /*warning_on_narrowing=*/FALSE,
+                              CCO_DEFAULT,
+                              /*fill_in_dtor=*/TRUE,
+                              /*force_temp=*/FALSE,
+                              /*make_lvalue_temp=*/FALSE,
+                              &result, (an_init_state *)NULL,
+                              (an_arg_match_summary *)NULL);
+        free_init_component_list(nps->init_raw_args);
+        nps->init_raw_args = NULL;
+        nps->init_val_node = make_node_from_operand_for_expr_list(&result);
+      } else {
+        /* Scan the parenthesized initializer. */
+        a_boolean  expr_not_present;
+        nps->init_val_node = scan_parenthesized_initializer_expression(
                                       dps,
                                       rcblock,
                                       nps->err ? error_type() : nps->new_type,
                                       ec_bad_initializer_type,
                                       &expr_not_present);
-      if (expr_not_present) {
-        /* There was an expression, but it is a pack expansion that expanded
-           to zero expressions.  Go handle the new-initializer as if it
-           were "()". */
-        nps->empty_initializer = TRUE;
-        goto handle_empty_parens_new_initializer;
+        if (expr_not_present) {
+          /* There was an expression, but it is a pack expansion that expanded
+             to zero expressions.  Go handle the new-initializer as if it
+             were "()". */
+          nps->empty_initializer = TRUE;
+          goto handle_empty_parens_new_initializer;
+        }  /* if */
       }  /* if */
       if (nps->init_val_node != NULL &&
           node_has_side_effects(nps->init_val_node, (a_boolean*)NULL)) {
@@ -24107,18 +24129,38 @@ expression, and return the result in *result (or an error indication in
   if (nps.new_routine != NULL) {
     expr_stack->inside_conditional_expression = TRUE;
   }  /* if */
+  if (allow_parenthesized_aggregate_init && !nps.err &&
+      nps.has_new_initializer && !nps.has_braced_initializer &&
+      !nps.empty_initializer && nps.braced_init_list == NULL &&
+      is_aggregate_type(nps.new_type)) {
+    /* We have a parenthesized initializer for an aggregate: need to determine
+       if we should perform aggregate initialization or not. */
+    a_boolean             aggr_init = FALSE;
+    an_arg_list_elem_ptr  arg_list = NULL;
+    scan_ctor_args_or_paren_aggr_init(nps.new_type, rcblock, FALSE, &arg_list,
+                                      &aggr_init);
+#if EXTRA_SOURCE_POSITIONS_IN_IL
+    if (rcblock == NULL) curr_construct_end_position = end_pos_curr_token;
+#endif /* EXTRA_SOURCE_POSITIONS_IN_IL */
+    if (arg_list == NULL) {
+      nps.empty_initializer = TRUE;
+    } else {
+      if (rcblock == NULL) (void)required_token(tok_rparen, ec_exp_rparen);
+      if (aggr_init) {
+        /* Aggregate initialization with a parenthesized expression-list: treat
+           as if it were a braced initialization list. */
+        nps.has_braced_initializer = TRUE;
+        nps.braced_init_list = arg_list;
+        nps.parens_for_aggr_init = TRUE;
+        dps.init_state.paren_as_aggregate_init = TRUE;
+      } else {
+        nps.init_raw_args = arg_list;
+      }  /* if */
+    }  /* if */
+  }  /* if */
   /* See if the object has or needs initialization.  Note that we need to
      scan the initializer (if there is one) even if an error was detected
      above. */
-  if (allow_parenthesized_aggregate_init && !nps.err &&
-      nps.has_new_initializer && !nps.has_braced_initializer &&
-      nps.array_new && !nps.empty_initializer &&
-      nps.braced_init_list == NULL) {
-    /* Array initialization with a parenthesized expression-list - treat as if
-       it were a braced initialization list.  If we deduced the size of the
-       array we'll have already done this. */
-    nps.braced_init_list = scan_paren_expr_list_as_braced_list(&nps, &dps);
-  }  /* if */
   if (!nps.has_new_initializer) {
     /* No new-initializer is present. */
     prep_new_object_init_no_initializer(&nps);
