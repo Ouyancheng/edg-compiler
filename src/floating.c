@@ -1795,15 +1795,15 @@ STATIC void fp_emul_add_int(an_fp_binary  *left,
     bin.precision = left->precision;
     fp_frac_set_from_uint(bin.frac, bin.precision,
                           (an_fp_uint)right);
-    if (bin.precision < CHAR_BIT * sizeof(right) &&
-        right >= (1 << bin.precision)) {
+    if (bin.precision < (int)(CHAR_BIT * sizeof(right)) &&
+        right >= (1ul << bin.precision)) {
       /* By definition, there are no leading zero bits if the value is
          larger than the precision. */
       i = 0;
     } else {
       i = fp_frac_high_zero_bits(bin.frac, bin.precision);
     }  /* if */
-    if (i == 0 &&
+    if (i == 0 && bin.precision < (int)(CHAR_BIT * sizeof(right)) &&
         (over = (right & ~MASK_BITS(bin.precision)) >> bin.precision) != 0) {
       /* The value being added occupies more bits than allowed by the
          precision.  Count the number of excess bits and increment the

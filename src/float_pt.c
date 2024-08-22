@@ -2816,7 +2816,6 @@ before setting it if there are unused bits.
         a_mantissa      mantissa;
         a_boolean       is_negative;
         a_boolean       inexact;
-        a_host_fp_value host_val;
         load_hex_fp_value(&float_value_temp, fk_float, &mantissa, &exponent,
                           &is_negative, /*restore_implicit_bit=*/TRUE);
         conv_mantissa_to_floating_point(&mantissa, &exponent, is_negative,

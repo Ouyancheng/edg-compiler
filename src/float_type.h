@@ -581,22 +581,27 @@ as needed.  (This situation arises for _Float16 types.)
 */
 {
   if (FRAC_BITS == 10) {
-    unsigned short val = *(unsigned short *)&bin->frac;
+    union {
+      unsigned short val;
+      unsigned char  bytes[sizeof(unsigned short)];
+    } u;
     unsigned short mask = (unsigned short)((1 << (11)) - 1);
 
-    if (bin->exponent > FRAC_BITS && (val & mask) != val) {
+    memcpy(u.bytes, &bin->frac, sizeof(unsigned short));
+    if (bin->exponent > FRAC_BITS && (u.val & mask) != u.val) {
       /* There are more bits in bin->frac than in the mantissa.  Shift
          the fraction value to fit in the mantissa, performing the
          required rounding. */
       int            num_bits = bin->exponent - FRAC_BITS;
-      unsigned short rounding_bit = (val & (1 << (num_bits - 1)));
-      val = (val + rounding_bit) >> num_bits;
-      if ((val & mask) != val) {
+      unsigned short rounding_bit =
+                               (unsigned short)(u.val & (1 << (num_bits - 1)));
+      u.val = (u.val + rounding_bit) >> num_bits;
+      if ((u.val & mask) != u.val) {
         /* Rounding carried to an extra bit. */
-        val >>= 1;
+        u.val >>= 1;
         ++bin->exponent;
       }  /* if */
-      *(unsigned short *)&bin->frac = val;
+      memcpy(&bin->frac, u.bytes, sizeof(unsigned short));
       ++bin->exponent;
     }  /* if */
   }  /* if */
