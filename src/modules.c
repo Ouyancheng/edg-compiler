@@ -1405,6 +1405,13 @@ support in the current translation unit.
 */
 {
   ifc_modules_trans_unit_wrapup();
+  for (a_module_import_decl_ptr midp = il_header.imported_modules;
+       midp != NULL; midp = midp->next) {
+    if (midp->module_info->module_interface != NULL) {
+      midp->module_info->module_interface->close();
+      delete_fe<a_module_interface>(&midp->module_info->module_interface);
+    }  /* if */
+  }  /* for */
   delete_fe(&known_modules);
   delete_fe(&module_entity_stack);
 }  /* modules_trans_unit_wrapup_part_2 */
@@ -1420,15 +1427,7 @@ the point at which the compilation was terminated and makes sure any required
 destructors are invoked.
 */
 {
-  a_module_import_decl_ptr midp;
-
   ifc_modules_cleanup();
-  for (midp = il_header.imported_modules; midp != NULL; midp = midp->next) {
-    if (midp->module_info->module_interface != NULL) {
-      midp->module_info->module_interface->close();
-      delete_fe<a_module_interface>(&midp->module_info->module_interface);
-    }  /* if */
-  }  /* for */
 }  /* modules_cleanup */
 
 #endif /* MAKE_FRONT_END_CALLABLE */
