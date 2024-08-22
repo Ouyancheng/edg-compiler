@@ -3,11 +3,12 @@ Version 6.7
 8/22/24  [EDGcpfe/27526]
 Abort on friend function noexcept specification with exceptions disabled
 
-With the changes for EDGcpfe/23420,EDGcpfe/26014,EDGcpfe/26353, the front end
-aborted with a null-pointer indirection in scan_noexcept_arg when parsing a
-noexcept specification of a friend function declaration in modes with
-exceptions disabled and where the exception specification is not part of the
-function type.  For example, with --c++14 --no_exceptions:
+With the changes for EDGcpfe/23420,EDGcpfe/26014,EDGcpfe/26353 (in version
+6.5), the front end aborted with a null-pointer indirection in
+scan_noexcept_arg when parsing a noexcept specification of a friend function
+declaration in modes with exceptions disabled and where the exception
+specification is not part of the function type.  For example, with --c++14
+--no_exceptions:
 
   struct C {
     friend void f(const C &) noexcept(true)  // Previously aborted.  Now okay.
