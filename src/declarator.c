@@ -1641,17 +1641,23 @@ declaration on which the exception specification appears.
       clear_token_set_array(stop_tokens);
       incr_token_set_array_element(stop_tokens, tok_rparen);
       incr_token_set_array_element(stop_tokens, tok_semicolon);
-      esp->arg_cached = TRUE;
-      esp->variant.token_cache = alloc_token_cache();
-      clear_token_cache(esp->variant.token_cache, /*reusable=*/TRUE);
-      cache_token_stream(esp->variant.token_cache, stop_tokens);
-      terminate_token_cache(esp->variant.token_cache);
-      nad.class_type = (ssep-1)->assoc_type;
-      nad.prototype_scope_symbols = func_info->prototype_scope_symbols;
-      nad.prototype_scope_number = ssep->number;
-      noexcept_args->map(esp, nad);
-      add_end_of_parse_action(mark_mapped_exc_spec, dps,
-                              /*secondary_decls=*/TRUE);
+      if (esp != NULL) {
+        esp->arg_cached = TRUE;
+        esp->variant.token_cache = alloc_token_cache();
+        clear_token_cache(esp->variant.token_cache, /*reusable=*/TRUE);
+        cache_token_stream(esp->variant.token_cache, stop_tokens);
+        terminate_token_cache(esp->variant.token_cache);
+        nad.class_type = (ssep-1)->assoc_type;
+        nad.prototype_scope_symbols = func_info->prototype_scope_symbols;
+        nad.prototype_scope_number = ssep->number;
+        noexcept_args->map(esp, nad);
+        add_end_of_parse_action(mark_mapped_exc_spec, dps,
+                                /*secondary_decls=*/TRUE);
+      } else {
+        flush_tokens_with_stop_tokens_and_warning_flag(
+                                                    stop_tokens,
+                                                    /*suppress_warning=*/TRUE);
+      }  /* if */
     } else {
       /* Scan the argument for the noexcept-specifier, which must be a
          constant-expression convertible to bool. */
