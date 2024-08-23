@@ -3522,6 +3522,8 @@ ec_constant_addresses_local_variable;;"constant contains address of a local vari
 ec_struct_binding_consteval;;"a structured binding cannot be declared \"consteval\""
 ec_module_import_conflict;;"%no conflicts with the imported declaration %nd"
 ec_char_too_wide_for_rep;;"character cannot be represented in the specified character type"
+ec_annotation_after_using;;"an annotation cannot appear in the context of a \"using\" attribute prefix"
+ec_annotation_must_have_literal_type;;"type %t of annotation is not a literal type"
 ###############################################################################
 #                                                             \  ___  /       #
 #                                                               /   \         #

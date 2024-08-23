@@ -10405,6 +10405,7 @@ See do_constexpr_intrinsic_call for the meaning of the parameters.
   a_template_arg_ptr  tap = callee->template_arg_list;
   a_type_ptr          val_type = tap->variant.type, rt = NULL;
   a_reflection_value  *rvp = (a_reflection_value*)p_arg_bytes[0];
+  an_attribute        *ap = NULL;
   a_constant          *cp = NULL;
   a_variable          *vp = NULL;
   a_routine           *rp = NULL;
@@ -10412,8 +10413,16 @@ See do_constexpr_intrinsic_call for the meaning of the parameters.
 
   strip_template_arg(rvp);
   switch (rvp->entity.kind) {
+    case iek_attribute:
+      ap = (an_attribute*)rvp->entity.ptr;
+      check_assertion(ap->kind == ak_annotation &&
+                      ap->arguments != NULL &&
+                      ap->arguments->kind == aak_constant);
+      cp = ap->arguments->variant.constant;
+      check_assertion(cp != NULL);
+      FALLTHROUGH
     case iek_constant:
-      { cp = (a_constant*)rvp->entity.ptr;
+      { if (cp == NULL) cp = (a_constant*)rvp->entity.ptr;
         rt = cp->type;
         if (identical_types_ignoring_qualifiers(rt, val_type)) {
           result = extract_value_from_constant(ips, cp, result_storage,
@@ -10558,6 +10567,30 @@ Store the given boolean value as an_integer_value in the given storage.
 {
   *(an_integer_value*)result_storage = value ? one_int : zero_int;
 }  /* set_bool_value */
+
+
+static a_boolean do_constexpr_std_meta_is_annotation(
+                                        an_interpreter_state  *ips,
+                                        a_routine_ptr         callee,
+                                        an_expr_node_ptr      call_node,
+                                        a_byte                **p_arg_bytes,
+                                        a_byte                *result_storage,
+                                        a_byte                *complete_obj)
+/*
+Implement std::meta::is_annotation(info).
+
+See do_constexpr_intrinsic_call for the meaning of the parameters.
+*/
+{
+  a_boolean           result = TRUE;
+  a_reflection_value  *rvp = (a_reflection_value*)p_arg_bytes[0];
+
+  strip_template_arg(rvp);
+  set_bool_value(rvp->entity.kind == iek_attribute &&
+                   ((an_attribute*)rvp->entity.ptr)->kind == ak_annotation,
+                 result_storage);
+  return result;
+}  /* do_constexpr_std_meta_is_annotation */
 
 
 static a_boolean do_constexpr_std_meta_is_type(
@@ -11740,6 +11773,15 @@ See do_constexpr_intrinsic_call for the meaning of the parameters.
 
   strip_template_arg(rvp);
   switch (rvp->entity.kind) {
+    case iek_attribute:
+      { an_attribute  *ap = (an_attribute*)rvp->entity.ptr;
+        if (ap->kind == ak_annotation) {
+          check_assertion(ap->arguments != NULL &&
+                          ap->arguments->kind == aak_constant);
+          tp = ap->arguments->variant.constant->type;
+        }  /*if */
+      }
+      break;
     case iek_base_class:
       tp = ((a_base_class*)rvp->entity.ptr)->type;
       break;
@@ -13788,6 +13830,89 @@ See do_constexpr_intrinsic_call for the meaning of the parameters.
   check_assertion(depth != NO_SCOPE_DEPTH);
   return result;
 }  /* do_constexpr_std_meta_nearest_namespace */
+
+
+static a_boolean do_constexpr_std_meta_annotations__impl(
+                                        an_interpreter_state  *ips,
+                                        a_routine_ptr         callee,
+                                        an_expr_node_ptr      call_node,
+                                        a_byte                **p_arg_bytes,
+                                        a_byte                *result_storage,
+                                        a_byte                *complete_obj)
+/*
+Implement std::meta::annotations__impl(annotated_item, annotation_type).  It
+returns a vector-like container (struct std::meta::__infovec) of reflections,
+with each element representing an annotation attribute recorded for the given
+reflected "entity".
+
+See do_constexpr_intrinsic_call for the meaning of the parameters.
+*/
+{
+  a_boolean     result = FALSE;
+  a_reflection_value
+                *rvp1 = (a_reflection_value*)p_arg_bytes[0],
+                *rvp2 = (a_reflection_value*)p_arg_bytes[1];
+  Dyn_array<a_reflection_value>
+                result_reflections(0);
+  an_attribute  *attributes = NULL, *ap;
+  a_type        *annotation_type = NULL;
+
+  if (!ips->is_constant_evaluated || !constexpr_dynamic_alloc_enabled) {
+    /* Don't attempt to evaluate this call if a constant result is not needed,
+       because it could be somewhat expensive. */
+    do_constexpr_fail(result);
+    info_with_pos(ec_constexpr_expression_cannot_be_interpreted,
+                  &call_node->position, ips);
+    goto done;
+  }  /* if */
+  check_assertion(type_is(skip_typerefs(callee->type), tk_routine));
+  strip_template_arg(rvp1);
+  if (rvp1->entity.kind == iek_base_class) {
+    attributes = ((a_base_class*)rvp1->entity.ptr)->attributes;
+  } else if (rvp1->entity.kind == iek_param_type) {
+    attributes = ((a_param_type*)rvp1->entity.ptr)->attributes;
+  } else {
+    a_source_correspondence_ptr
+                scp = source_corresp_for_reflection(rvp1);
+    if (scp == NULL) {
+      do_constexpr_fail(result);
+      info_with_pos(ec_invalid_reflection_for_intrinsic, &call_node->position,
+                    ips);
+      goto done;
+    }  /* if */
+    attributes = scp->attributes;
+  }  /* if */
+  if (rvp2->entity.kind != iek_type) {
+    do_constexpr_fail(result);
+    info_with_pos(ec_invalid_reflection_for_intrinsic, &call_node->position,
+                  ips);
+    goto done;
+  }  /* if */
+  annotation_type = (a_type*)rvp2->entity.ptr;
+  if (is_void_type(annotation_type)) annotation_type = NULL;
+  for (ap = attributes; ap != NULL; ap = ap->next) {
+    if (ap->kind == ak_annotation) {
+      an_attribute_arg  *aap = ap->arguments;
+      check_assertion(aap != NULL);
+      if (annotation_type == NULL ||
+          identical_types_ignoring_qualifiers(annotation_type,
+                                              aap->variant.constant->type)) {
+        a_reflection_value  arvp;
+        arvp.entity.ptr = (char*)ap;
+        arvp.entity.kind = (an_il_entry_kind)iek_attribute;
+        arvp.local_scope_number = FILE_SCOPE_NUMBER;
+        result_reflections.push_back(arvp);
+      }  /* if */
+    }  /* if */
+  }  /* for */
+  {
+    a_type_ptr  result_tp = skip_typerefs(call_node->type);
+    result = make_infovec(ips, result_tp, &result_reflections,
+                          &call_node->position, result_storage, complete_obj);
+  }  /* if */
+done:
+  return result;
+}  /* do_constexpr_std_meta_annotations__impl */
 
 
 static a_boolean do_constexpr_std_meta_type_tuple_size(

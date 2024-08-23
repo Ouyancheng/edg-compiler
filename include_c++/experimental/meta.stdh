@@ -443,6 +443,36 @@ namespace std {
     }
 
 
+    consteval __infovec annotations__impl(info, info);
+
+    consteval std::vector<info> annotations_of(info r) {
+      __infovec v = annotations__impl(r, ^void);
+      return std::vector<info>(v.begin(), v.end());
+    }
+
+    consteval std::vector<info> annotations_of(info r, info type) {
+      __infovec v = annotations__impl(r, type);
+      return std::vector<info>(v.begin(), v.end());
+    }
+
+    template<typename T>
+    consteval std::optional<T> annotation_of_type(info r) {
+      auto v = annotations_of(r, ^T);
+      std::optional<T> result{};
+      for (info a: v) {
+        if (result.has_value()) {
+          if (extract<T>(a) != result) {
+            throw "inconsistent annotations";
+          }
+        } else {
+          result = extract<T>(a);
+        }
+      }
+      return result;
+    }
+
+    consteval bool is_annotation(info);
+
     // Type traits
 
     consteval bool type_is_void(info);

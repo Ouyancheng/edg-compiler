@@ -832,6 +832,7 @@ static an_attr_appl_descr known_attr_appl_table[(int)ak_last+1] = {
   { ak_using_if_exists, "u|t|r|v|n", apply_using_if_exists_attr },
 
   /* Internal attributes. */
+  { ak_annotation, "", NO_APPL_FN },
   { ak_conditional_explicit, "", apply_conditional_explicit },
   { ak_pragma_pack_state, "", NO_APPL_FN },
 
@@ -2282,7 +2283,8 @@ of the attribute to be that of the current token (in configurations that
 track end positions).
 */
 {
-  check_assertion(is_valid_attribute_identifier(curr_token));
+  check_assertion(is_valid_attribute_identifier(curr_token) ||
+                  (curr_token == tok_assign && ap->kind == ak_annotation));
   if (curr_token == tok_restrict) {
     /* The general mechanism for turning a tok_restrict into a string
        won't work in cases where SUPPRESS_RESTRICT_IN_GENERATED_CODE is TRUE,
@@ -2433,6 +2435,27 @@ location or arguments for the attribute.
 }  /* make_module_attribute */
 
 
+static an_attribute_ptr scan_annotation(void)
+/*
+Scan an annotation of the form
+
+	= constant-expression
+
+and return an ak_annotation attribute with the result constant as an
+argument.
+*/
+{
+  an_attribute_ptr   ap = make_attribute(af_std);
+
+  ap->kind = ak_annotation;
+  record_attribute_name(ap);
+  (void)get_token();
+  ap->arguments = alloc_attribute_arg();
+  scan_annotation_value(ap->arguments);
+  return ap;
+}  /* scan_annotation */
+
+
 static an_attribute_ptr scan_attributes_list(an_attribute_location loc,
                                              an_attribute_family   af,
                                              a_token_kind          end_token,
@@ -2492,6 +2515,11 @@ that appeared in a previous "using" prefix.  Can return NULL on error.
 #endif /* EXTRA_SOURCE_POSITIONS_IN_IL */
         /* Skip the string literal. */
         (void)get_token();
+      } else if (reflection_enabled && curr_token == tok_assign) {
+        if (using_ns_ap != NULL) {
+          pos_error(ec_annotation_after_using, &pos_curr_token);
+        }  /* if */
+        *p_attribute = scan_annotation();
       } else {
         *p_attribute = scan_attribute(af, using_ns_ap);
       }  /* if */

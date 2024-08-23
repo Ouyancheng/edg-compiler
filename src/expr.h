@@ -1004,10 +1004,12 @@ extern a_type_ptr underlying_uuidof_type(a_type_ptr uuidof_type,
 extern a_boolean concept_id_value(an_expr_node_ptr  node,
                                   a_boolean         *fatal);
 
-extern an_expr_node_ptr scan_expr_for_attribute(void);
-
 extern an_expr_node_ptr process_boolean_attribute_expression(
                                                         an_expr_node_ptr expr);
+
+extern an_expr_node_ptr scan_expr_for_attribute(void);
+
+extern void scan_annotation_value(an_attribute_arg  *aap);
 
 extern an_init_component_ptr cache_expression(bool  immediate_context);
 

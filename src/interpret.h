@@ -132,9 +132,11 @@ must be defined in interpret.c to implement its evaluation.
   M(std_meta, parameters__impl, "(r)Vr") \
   M(std_meta, current_parameters__impl, "()Vr") \
   M(std_meta, template_arguments__impl, "(r)Vr") \
+  M(std_meta, annotations__impl, "(r,r)Vr") \
   M(std_meta, substitute__impl, "(r,Vr)r") \
   M(std_meta, reflect_result, "<T>(.)r") \
   M(std_meta, extract, "<T>(r).") \
+  M(std_meta, is_annotation, "(r)b") \
   M(std_meta, is_type, "(r)b") \
   M(std_meta, is_alias, "(r)b") \
   M(std_meta, is_incomplete_type, "(r)b") \

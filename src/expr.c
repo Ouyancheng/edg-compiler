@@ -33488,6 +33488,50 @@ Scan a top-level expression that appears as an argument in an attribute.
 }  /* scan_expr_for_attribute */
 
 
+void scan_annotation_value(an_attribute_arg  *aap)
+/*
+Scan an annotation expression and evaluate it.  Store the result constant in
+the give attribute argument.
+*/
+{
+  an_operand           operand;
+  an_expr_stack_entry  *saved_expr_stack;
+  an_expr_stack_entry  expr_stack_entry;
+  a_constant           *cp = fs_constant(ck_error);
+
+  save_expr_stack(&saved_expr_stack);
+  push_expr_stack((an_expression_kind)ek_normal, &expr_stack_entry,
+                  /*force_object_lifetime=*/FALSE,
+                  /*suppress_object_lifetime=*/TRUE);
+  /* Scan the expression. */
+  aap->position = pos_curr_token;
+  scan_expr(&operand, PREC_LOWEST, EOPT_DISALLOW_COMMA_OPERATOR);
+#if EXTRA_SOURCE_POSITIONS_IN_IL
+  curr_construct_end_position = operand.end_position;
+  aap->end_position = operand.end_position;
+#endif /* EXTRA_SOURCE_POSITIONS_IN_IL */
+  eliminate_unusual_operand_kinds(&operand);
+  if (!is_a_prvalue(&operand)) {
+    conv_glvalue_to_prvalue(&operand);
+  }  /* if */
+  if (!is_literal_type(operand.type) &&
+      !is_template_dependent_type(operand.type)) {
+    pos_ty_error(ec_annotation_must_have_literal_type, &operand.position,
+                 operand.type);
+  }  /* if */
+  if (is_constant_operand(&operand) ||
+      expr_interpret_expression_operand(&operand, /*must_be_constant=*/TRUE,
+                                        /*is_constant_evaluated=*/TRUE)) {
+    extract_constant_from_operand(&operand, cp);
+  } else {
+    expect_error();
+  }  /* if */
+  aap->kind = aak_constant;
+  aap->variant.constant = cp;
+  restore_expr_stack(saved_expr_stack);
+}  /* scan_annotation_value */
+
+
 /*
 Macro that returns TRUE if the given operand is an operand for a throw
 expression.

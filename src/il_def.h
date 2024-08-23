@@ -983,9 +983,9 @@ opname_kind_for_token (lexical.h).
 
 In addition, the token handling code for modules must be updated.
 
-For "simple tokens", it's sufficient to use an EDG "textual" IFC
-token; this requires adding the token kind to the ifc_ebts_complex case of
-token_to_basic_token_kind (ifc_modules_write.c).   If the name entered into
+For "simple tokens", it's sufficient to use an EDG "textual" IFC token; this
+requires adding the token kind to the ifc_ebts_complex case of
+token_to_basic_token_kind (ifc_modules_write.c).  If the name entered into
 token_names (below) for the new token is not unique, additionally, a case in
 ifc_token_name_of (returning a unique name) must also be added (as otherwise
 the deserialization of the IFC encoding to the front end token kind is
@@ -3029,6 +3029,8 @@ enum an_attribute_kind : a_byte {
   ak_using_if_exists,   /* "using_if_exists" */
 
   /* Other attributes. */
+  ak_annotation,	/* An attribute-like user-defined value that can be
+			   examined with reflection. */
   ak_conditional_explicit,
 			/* An internal attribute representing a C++20
 			   "explicit(<bool-expression>)" construct. */
@@ -3112,7 +3114,9 @@ typedef struct an_attribute {
   an_attribute_arg_ptr
 		arguments;
 			/* The argument list of this attribute (NULL if there
-			   are no arguments). */
+			   are no arguments).  In the case of an annotation,
+			   (kind == ak_annotation) the "argument" is of kind
+			   aak_constant and represents the annotation value. */
   an_attribute_group_ptr
 		group;
 			/* The attribute group this attribute belongs to.
