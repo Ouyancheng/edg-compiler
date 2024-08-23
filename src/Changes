@@ -1,5 +1,19 @@
 Version 6.7
 
+8/23/24  [EDGcpfe/25990,EDGcpfe/26241,EDGcpfe/27252,EDGcpfe/27447]
+Parenthesized initialization of aggregates in new expressions
+
+C++20 allows parenthesized initialization of aggregates (see the changes for
+EDGcpfe/20913 in version 5.1).  However, for new expressions, this feature was
+previously implemented only for array types in non-substitution contexts.  For
+example, with --c++20:
+
+  struct C {
+    int i, j;
+  };
+  C *c = new C(1, 2);  // Previously a spurious error.  Now okay.
+
+
 8/22/24  [EDGcpfe/27526]
 Abort on friend function noexcept specification with exceptions disabled
 
