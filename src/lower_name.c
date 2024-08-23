@@ -4794,6 +4794,26 @@ do_unknown_function:
           case iek_type:
             mangled_encoding_for_type((a_type*)iep->ptr, mctl);
             break;
+          case iek_attribute:
+            { an_attribute  *ap = (an_attribute*)iep->ptr;
+              a_constant    *cp;
+              check_assertion(ap->kind == ak_annotation &&
+                              ap->arguments != NULL &&
+                              ap->arguments->kind == aak_constant);
+              cp = ap->arguments->variant.constant;
+#if IA64_ABI
+              mangled_entity_reference((a_source_correspondence*)cp,
+                                       iek_constant,
+                                       (a_routine_info_block*)NULL,
+                                       /*add_address_of=*/FALSE, mctl);
+#else /* !IA64_ABI */
+              literal_representation(cp, old_form,
+                                     /*in_dependent_expr=*/FALSE,
+                                     /*suppress_address_of=*/FALSE, mctl);
+
+#endif /* IA64_ABI */
+            }
+            break;
 #if IA64_ABI
           case iek_field:
           case iek_variable:
@@ -4816,10 +4836,9 @@ do_unknown_function:
             }
             break;
           case iek_constant:
-            literal_representation(
-                              (a_constant*)con->variant.reflection.entity.ptr,
-                              old_form, /*in_dependent_expr=*/FALSE,
-                              /*suppress_address_of=*/FALSE, mctl);
+            literal_representation((a_constant*)iep->ptr, old_form,
+                                   /*in_dependent_expr=*/FALSE,
+                                   /*suppress_address_of=*/FALSE, mctl);
             break;
 #endif /* IA64_ABI */
           case iek_expr_node:
