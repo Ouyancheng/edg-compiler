@@ -831,6 +831,9 @@ there is additional processing to be done.
 */
 {
   db_enter(5, "add_pragma_to_il");
+  /* This function can only be called when the scope stack has at least one
+     element. */
+  check_assertion(depth_scope_stack != NO_SCOPE_DEPTH);
   if (scope_stack_top().in_nonreal_instantiation) {
     /* Pragmas are never added to the IL inside a nonreal instantiation. */
   } else if (in_constexpr_if_discarded_statement()) {
