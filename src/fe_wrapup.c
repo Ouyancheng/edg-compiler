@@ -907,10 +907,10 @@ memory used by the compilation.
   pch_cleanup();
   lexical_cleanup();
   modules_cleanup();
-  mem_manage_wrapup();
 #if CPPCLI_ENABLING_POSSIBLE
   if (cli_or_cx_enabled) ms_metadata_cleanup();
 #endif /* CPPCLI_ENABLING_POSSIBLE */
+  mem_manage_wrapup();
 }  /* fe_cleanup */
 
 #endif /* MAKE_FRONT_END_CALLABLE */

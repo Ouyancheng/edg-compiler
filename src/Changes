@@ -1,5 +1,13 @@
 Version 6.7
 
+8/23/14  [EDGcpfe/27534]
+Referencing previously freed memory causes undefined behavior
+
+When MAKE_FRONT_END_CALLABLE is TRUE the use of portable assemblies for
+CPP/CLI processing had caused the inadvertent use of previously-freed memory,
+resulting in undefined behavior.
+
+
 8/23/24  [EDGcpfe/25990,EDGcpfe/26241,EDGcpfe/27252,EDGcpfe/27335,
           EDGcpfe/27447]
 Parenthesized initialization of aggregates in new expressions
