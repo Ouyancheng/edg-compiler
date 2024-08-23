@@ -1,6 +1,7 @@
 Version 6.7
 
-8/23/24  [EDGcpfe/25990,EDGcpfe/26241,EDGcpfe/27252,EDGcpfe/27447]
+8/23/24  [EDGcpfe/25990,EDGcpfe/26241,EDGcpfe/27252,EDGcpfe/27335,
+          EDGcpfe/27447]
 Parenthesized initialization of aggregates in new expressions
 
 C++20 allows parenthesized initialization of aggregates (see the changes for
