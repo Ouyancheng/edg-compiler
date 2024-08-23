@@ -954,11 +954,12 @@ for the type.  The value of scale is stored in *pscale.
   /* Adjust significant digits to match input. */
   if (dec->precision < sig_dig) {
     sig_dig = dec->precision;
-  } else if (dec->precision == dec->exponent && sig_dig < dec->exponent) {
+  } else if (sig_dig == 4 && dec->precision == dec->exponent &&
+             dec->precision == 5) {
     /* This is a special case for _Float16, which has MAX_APPROX_DIG as 4
        but can represent some 5-digit integers up to 65504.  (The decimal
        precision and exponent being equal indicates an integer value.) */
-    sig_dig = dec->exponent;
+    sig_dig = 5;
   }  /* if */
   /* Adjust exponent to put decimal point at right of significant digits. */
   exp -= sig_dig;
