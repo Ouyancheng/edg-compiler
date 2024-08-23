@@ -109,7 +109,10 @@ namespace std {
 
     using __str = std::string_view;
 
+    [[deprecated("use identifier_of")]]
     consteval __str name_of(info);
+
+    consteval __str identifier_of(info);
 
     consteval __infovec members__impl(info);
 
@@ -194,6 +197,8 @@ namespace std {
     consteval T value_of(info r) {
       return extract<T>(r);
     }
+
+    consteval info value_of(info);
 
     consteval bool test_type(info templ, info type) {
       return value_of<bool>(substitute__impl(templ, {type}));

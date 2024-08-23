@@ -10559,6 +10559,86 @@ See do_constexpr_intrinsic_call for the meaning of the parameters.
 }  /* do_constexpr_std_meta_extract */
 
 
+static a_boolean do_constexpr_std_meta_value_of(
+                                        an_interpreter_state  *ips,
+                                        a_routine_ptr         callee,
+                                        an_expr_node_ptr      call_node,
+                                        a_byte                **p_arg_bytes,
+                                        a_byte                *result_storage,
+                                        a_byte                *complete_obj)
+/*
+Implement std::meta::value_of(r).  Return at result_storage a reflection for
+the value of the item represented by r.
+
+See do_constexpr_intrinsic_call for the meaning of the parameters.
+*/
+{
+  a_boolean           result = TRUE;
+  a_type_ptr          rt = NULL;
+  a_reflection_value  *rvp = (a_reflection_value*)p_arg_bytes[0],
+                      *result_rvp = (a_reflection_value*)result_storage;
+  an_attribute        *ap = NULL;
+  a_constant          *cp = NULL;
+  a_variable          *vp = NULL;
+
+  extract_reflected_entity(rvp);
+  result_rvp->local_scope_number = FILE_SCOPE_NUMBER;
+  switch (rvp->entity.kind) {
+    case iek_attribute:
+      ap = (an_attribute*)rvp->entity.ptr;
+      check_assertion(ap->kind == ak_annotation &&
+                      ap->arguments != NULL &&
+                      ap->arguments->kind == aak_constant);
+      cp = ap->arguments->variant.constant;
+      check_assertion(cp != NULL);
+      break;
+    case iek_constant:
+      cp = (a_constant*)rvp->entity.ptr;
+      break;
+    case iek_variable:
+      { an_expr_node  *node = fs_alloc_expr_node(enk_variable);
+        a_memory_region_number
+                      region_to_switch_back_to;
+        vp = (a_variable*)rvp->entity.ptr;
+        rt = vp->type;
+        node->is_lvalue = TRUE;
+        node->variant.variable.ptr = vp;
+        node->position = call_node->position;
+        if (is_reference_type(rt)) {
+          /* A reference variable. */
+          node->type = type_pointed_to(rt);
+        } else {
+          node->type = rt;
+        }  /* if */
+        node = conv_glvalue_expr_to_prvalue(node, (a_boolean*)NULL,
+                                            (a_constant**)NULL,
+                                            &node->position);
+        result = do_constexpr_expression(ips, node, result_storage,
+                                         complete_obj);
+        cp = fs_constant(ck_error);
+        switch_to_file_scope_region(&region_to_switch_back_to);
+        if (!copy_interpreter_object_to_constant(
+                         ips, result_storage, complete_obj, node->type, cp)) {
+          result = FALSE;
+        }  /* if */
+        switch_back_to_original_region(region_to_switch_back_to);
+        mark_fs_node_reclaimed(node);
+      }
+      break;
+    default:
+      info_with_pos(ec_constexpr_expression_cannot_be_interpreted,
+                    &call_node->position, ips);
+      do_constexpr_fail(result);
+      break;
+  }  /* switch */
+  if (cp != NULL) {
+    result_rvp->entity.kind = iek_constant;
+    result_rvp->entity.ptr = (char*)cp;
+  }  /* if */
+  return result;
+}  /* do_constexpr_std_meta_value_of */
+
+
 static inline void set_bool_value(a_boolean  value,
                                   a_byte     *result_storage)
 /*
