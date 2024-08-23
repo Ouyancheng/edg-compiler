@@ -122,6 +122,7 @@ must be defined in interpret.c to implement its evaluation.
   M(std, construct_at, "<T,>(*.,)*.") \
   M(std, __report_constexpr_value, "(I)v|(*C)v|(*C,I)v") \
   M(std_meta, make_constexpr_array, "<T>(*.,I)*.") \
+  M(std_meta, identifier_of, "(r)Sv") \
   M(std_meta, name_of, "(r)Sv") \
   M(std_meta, members__impl, "(r)Vr") \
   M(std_meta, static_data_members__impl, "(r)Vr") \

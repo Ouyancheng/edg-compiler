@@ -12423,6 +12423,51 @@ done:
 }  /* make_reflective_string_view */
 
 
+static a_boolean do_constexpr_std_meta_identifier_of(
+                                        an_interpreter_state  *ips,
+                                        a_routine_ptr         callee,
+                                        an_expr_node_ptr      call_node,
+                                        a_byte                **p_arg_bytes,
+                                        a_byte                *result_storage,
+                                        a_byte                *complete_obj)
+/*
+Implement std::meta::identifier_of(<reflection_value>).  It returns a "string
+view" via the std::string_view(char_ptr, length) constructor.
+
+See do_constexpr_intrinsic_call for the meaning of the parameters.
+*/
+{
+  a_boolean     result = FALSE;
+  a_reflection_value
+                *rvp = (a_reflection_value*)p_arg_bytes[0];
+  a_source_correspondence_ptr
+                scp;
+  a_const_char  *name = NULL;
+  a_type_ptr    rtp = skip_typerefs(callee->type), tp;
+
+  strip_template_arg(rvp);
+  if (rvp->entity.kind == iek_param_type) {
+    name = ((a_param_type*)rvp->entity.ptr)->name;
+  } else {
+    scp = source_corresp_for_reflection(rvp);
+    if (scp != NULL && scp->name != NULL) {
+      name = unmangled_name_of(scp);
+    }  /* if */
+  }  /* if */
+  if (name == NULL) {
+    do_constexpr_fail(result);
+    info_with_pos(ec_invalid_reflection_for_intrinsic,
+                  &call_node->position, ips);
+  } else {
+    check_assertion(type_is(rtp, tk_routine));
+    tp = skip_typerefs(rtp->variant.routine.return_type);
+    result = make_reflective_string_view(ips, tp, name,
+                                         result_storage, complete_obj);
+  }  /* if */
+  return result;
+}  /* do_constexpr_std_meta_identifier_of */
+
+
 static a_boolean do_constexpr_std_meta_name_of(
                                         an_interpreter_state  *ips,
                                         a_routine_ptr         callee,
