@@ -7500,7 +7500,7 @@ Return the hash value for the indicated constant.
 #endif /* UPC_EXTENSIONS_ALLOWED */
     case ck_integer:
       /* Integer.  Use the constant itself as the hash value. */
-      hash_value = (a_hash_value)value_of_integer_constant(cp,&ovflo);
+      hash_value = (a_hash_value)value_of_integer_constant(cp, &ovflo);
       break;
 #if FIXED_POINT_ALLOWED
     case ck_fixed_point:
@@ -7643,6 +7643,24 @@ Return the hash value for the indicated constant.
                    cp->variant.stack_offset.offset + 350;
       break;
 #endif /* DO_IL_LOWERING && ... */
+    case ck_reflection:
+      { a_tagged_pointer  *entity = &cp->variant.reflection.entity;
+        hash_value = 17*31 + (a_hash_value)entity->kind;
+        switch (entity->kind) {
+          case iek_constant:
+            hash_value = hash_value*31 +
+                         hash_constant((a_constant*)entity->ptr);
+            break;
+          case iek_type:
+            hash_value = hash_value*31 +
+                         hash_type((a_type*)entity->ptr);
+            break;
+          default:
+            hash_value = hash_value*31 +
+                         (a_hash_value)cast_from_pointer(entity->ptr);
+        }  /* switch */
+      }
+      break;
     default:
       hash_value = (a_hash_value)(200 + cp->kind);
       break;
@@ -8408,11 +8426,7 @@ the definition of the CC flags in il.h for more information.
   } else if (rv1.entity.kind == iek_type) {
     a_type_ptr  tp1 = (a_type*)rv1.entity.ptr,
                 tp2 = (a_type*)rv2.entity.ptr;
-    tp1 = skip_typerefs_not_typedefs(tp1);
-    tp2 = skip_typerefs_not_typedefs(tp2);
-    if (tp1->kind != tp2->kind) {
-      eq = FALSE;
-    } else if (tp1->kind == tk_typeref) {
+    if (type_is_typedef(tp1) && type_is_typedef(tp2)) {
       eq = (tp1 == tp2);
     } else {
       eq = identical_types(tp1, tp2);
