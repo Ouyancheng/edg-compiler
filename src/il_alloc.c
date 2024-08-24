@@ -242,8 +242,8 @@ static inline char *do_alloc(a_memory_region_number region_number,
                              sizeof_t               size)
 /*
 Allocate an IL entry of size "size" preceded by an_il_entry_prefix, and
-initialize the latter to default values.  Return a pointer to the allocated
-memory.  The allocation is done in the memory region region_number.
+initialize the latter to default values.  Return a pointer to the storage for
+the IL entry.  The allocation is done in the memory region region_number.
 is_in_file_scope is TRUE if the allocation is in the file scope.  (Yes, that
 could be determined from region_number, but it happens that it is usually known
 by the caller).
@@ -319,9 +319,9 @@ static inline char *do_fs_alloc(a_memory_region_number fs_region_number,
 /*
 Allocate a file-scope IL entry of size "size" preceded by an_il_entry_prefix
 and (if appropriate) an orphan list pointer, and initialize the prefix and
-orphan pointer to default values.  Return a pointer to the allocated memory.
-fs_region_number indicates the file scope region number to be used (there can
-be several, when secondary translation units are involved).
+orphan pointer to default values.  Return a pointer to the storage for the IL
+entry.  fs_region_number indicates the file scope region number to be used
+(there can be several, when secondary translation units are involved).
 */
 {
   char *ptr = alloc_in_region(
