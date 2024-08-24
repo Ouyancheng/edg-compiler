@@ -4789,9 +4789,11 @@ do_unknown_function:
       break;
     case ck_reflection:
       { a_tagged_pointer  *iep = &con->variant.reflection.entity;
-        // FIXME: Add prefix and demangler support
+        // FIXME: Use better prefix and add demangler support
+        add_str_to_mangled_name("__REFL__", mctl);
         switch (iep->kind) {
           case iek_type:
+            //add_str_to_mangled_name("v6__TYPE", mctl);
             mangled_encoding_for_type((a_type*)iep->ptr, mctl);
             break;
           case iek_attribute:
@@ -4801,24 +4803,17 @@ do_unknown_function:
                               ap->arguments != NULL &&
                               ap->arguments->kind == aak_constant);
               cp = ap->arguments->variant.constant;
-#if IA64_ABI
-              mangled_entity_reference((a_source_correspondence*)cp,
-                                       iek_constant,
-                                       (a_routine_info_block*)NULL,
-                                       /*add_address_of=*/FALSE, mctl);
-#else /* !IA64_ABI */
+              add_number_to_mangled_name(unique_id_for_il_pointer(ap), mctl);
               literal_representation(cp, old_form,
                                      /*in_dependent_expr=*/FALSE,
                                      /*suppress_address_of=*/FALSE, mctl);
 
-#endif /* IA64_ABI */
             }
             break;
 #if IA64_ABI
           case iek_field:
           case iek_variable:
           case iek_routine:
-          case iek_constant:
             mangled_entity_reference((a_source_correspondence*)iep->ptr,
                                      iep->kind, (a_routine_info_block*)NULL,
                                      /*add_address_of=*/FALSE, mctl);
@@ -4835,12 +4830,12 @@ do_unknown_function:
               fill_in_length(&length_reservation, mctl);
             }
             break;
+#endif /* IA64_ABI */
           case iek_constant:
             literal_representation((a_constant*)iep->ptr, old_form,
                                    /*in_dependent_expr=*/FALSE,
                                    /*suppress_address_of=*/FALSE, mctl);
             break;
-#endif /* IA64_ABI */
           case iek_expr_node:
             mangled_encoding_for_expression(
                             (an_expr_node*)con->variant.reflection.entity.ptr,
@@ -4857,6 +4852,7 @@ do_unknown_function:
             unexpected_condition_str(
                                "literal_representation: bad reflection kind");
         }  /* switch */
+        add_str_to_mangled_name("__ENDREFL__", mctl);
       }
       break;
 #if FIXED_POINT_ALLOWED
