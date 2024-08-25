@@ -1803,7 +1803,7 @@ STATIC void fp_emul_add_int(an_fp_binary  *left,
     } else {
       i = fp_frac_high_zero_bits(bin.frac, bin.precision);
     }  /* if */
-    if `(i == 0 && bin.precision < (int)(CHAR_BIT * sizeof(right)) &&
+    if (i == 0 && bin.precision < (int)(CHAR_BIT * sizeof(right)) &&
         (over = (right & ~((1ul << bin.precision)-1) >> bin.precision) != 0)) {
       /* The value being added occupies more bits than allowed by the
          precision.  Count the number of excess bits and increment the
