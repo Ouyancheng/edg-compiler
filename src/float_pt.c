@@ -3208,7 +3208,7 @@ value might use (plus a temporary null character).
   auto              buff_ptr = &underlying_array[orig_size];
   an_fp_return_type res;
   unsigned char     *float_as_char = (unsigned char *)value.float_value;
-  if (kind_is_16bit(value.kind)) {
+  if (kind_is_binary16(value.kind)) {
     res = write_float16(buff_ptr, size_hint, float_as_char);
 #if DEBUG
     if (db_flag_is_set("fp")) {
