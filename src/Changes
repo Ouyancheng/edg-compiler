@@ -1,5 +1,16 @@
 Version 6.7
 
+8/26/24  [EDGcpfe/18955,EDGcpfe/27415]
+Spurious error on template keyword following global namespace qualifier
+
+Previously, the front end elicited a spurious error when the template keyword
+followed the global namespace qualifier.  For example, with --c++11:
+
+  template<typename>
+  struct S {};
+  ::template S<void> s;  // Previously a spurious error.  Now okay.
+
+
 8/23/14  [EDGcpfe/27534]
 Referencing previously freed memory causes undefined behavior
 

@@ -23530,9 +23530,17 @@ selection operator, in which case it points to the type of the left operand.
       follows_template = FALSE;
     }  /* if */
     (void)get_token();
-    if (curr_token == tok_template && (options & GID_IS_TYPENAME) != 0) {
-      /* The "typename :: template" case. */
+    if (curr_token == tok_template) {
+      /* Core issue 1929 clarified that the template keyword may be used
+         following the global namespace qualifier. */
       follows_template = TRUE;
+      if (!cpp11_mode && strict_ansi_mode && !is_template_context() &&
+          !in_if_exists) {
+        /* In strict C++98 mode the template keyword, when used for syntactic
+           disambiguation, may only appear within a template. */
+        diagnostic(strict_ansi_discretionary_severity,
+                   ec_template_not_in_template);
+      }  /* if */
       (void)get_token();
     }  /* if */
   }  /* if */
