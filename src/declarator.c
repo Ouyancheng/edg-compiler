@@ -2497,11 +2497,20 @@ routine is also called for the trailing return type of a lambda declarator.
     /* Something like "auto (()->int)". */
     pos_error(ec_trailing_return_type_in_nested_declarator, &error_position);
     err = TRUE;
-  } else if (dps->type != dps->auto_type) {
-    /* Something like "auto *()->int". */
+  } else if (gpp_version_is(any_version) ?
+                 skip_typerefs_not_typedefs(dps->type) != dps->auto_type :
+                 dps->type != dps->auto_type) {
+    /* Something like "auto *()->int".  GCC appears to accept something like
+       "auto const ()->int". */
     pos_error(ec_trailing_return_type_function_without_simple_auto,
               &dps->declarator_start_pos);
     err = TRUE;
+  } else if (dps->type != dps->auto_type) {
+    pos_warning(ec_trailing_return_type_function_without_simple_auto,
+                &dps->declarator_start_pos);
+    dps->type = dps->auto_type;
+    dps->declared_type = dps->auto_type;
+    dps->specifiers_type = dps->auto_type;
   }  /* if */
   /* Any leading "auto" did not represent a deduced type after all. */
   if (dps->secondary_declarator) {
@@ -8107,10 +8116,14 @@ function_lparen:
                           decl_pos_block);
       if (state->has_trailing_return_type) {
         /* function_declarator encountered a trailing return type (which means
-           that "complete_type" corresponded to a simple "auto").  Replace the
-           "auto" placeholder type by the actual return type (which was
-           recorded as the specifiers_type in *state). */
-        check_assertion(complete_type == state->auto_type);
+           that "complete_type" corresponded to a simple "auto", except
+           possibly in GNU C++ mode).  Replace the "auto" placeholder type by
+           the actual return type (which was recorded as the specifiers_type
+           in *state). */
+        check_assertion(complete_type == state->auto_type ||
+                        (gpp_version_is(any_version) &&
+                         skip_typerefs_not_typedefs(complete_type) ==
+                                                           state->auto_type));
         complete_type = state->specifiers_type;
       }  /* if */
       if (local_func_info != NULL &&
