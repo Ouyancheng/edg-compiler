@@ -1305,7 +1305,16 @@ fp_ret_pos_infinity if the result is positive infinity, and fp_ret_neg_infinity
 if the result is negative infinity.
 */
 {
-  return WRITE_FP_INTERNAL(tgt, size, val, FP_SHORTEST);
+  int ndigits;
+#if FPT_DIGITS == 3
+  /* _Float16 needs the maximum possible number of digits in order to
+     convert decimal values exactly to larger floating point types. */
+  ndigits = 10;
+#else  /* FPT_DIGITS != 3 */
+  /* Other types can use the minimal accurately-rounding value. */
+  ndigits = FP_SHORTEST;
+#endif /* FPT_DIGITS == 3 */
+  return WRITE_FP_INTERNAL(tgt, size, val, ndigits);
 }  /* WRITE_FN */
 
 
