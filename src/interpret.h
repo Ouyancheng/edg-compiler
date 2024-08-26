@@ -177,6 +177,7 @@ must be defined in interpret.c to implement its evaluation.
   M(std_meta, has_default_argument, "(r)b") \
   M(std_meta, has_consistent_name, "(r)b") \
   M(std_meta, has_template_arguments, "(r)b") \
+  M(std_meta, has_identifier, "(r)b") \
   M(std_meta, dealias, "(r)r") \
   M(std_meta, template_of, "(r)r") \
   M(std_meta, type_of, "(r)r") \

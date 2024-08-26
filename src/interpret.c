@@ -12503,6 +12503,41 @@ done:
 }  /* make_reflective_string_view */
 
 
+static a_boolean do_constexpr_std_meta_has_identifier(
+                                        an_interpreter_state  *ips,
+                                        a_routine_ptr         callee,
+                                        an_expr_node_ptr      call_node,
+                                        a_byte                **p_arg_bytes,
+                                        a_byte                *result_storage,
+                                        a_byte                *complete_obj)
+/*
+Implement std::meta::has_identifier(<reflection_value>).  It returns true if
+std::meta::identifier_of can be successfully evaluated.
+
+See do_constexpr_intrinsic_call for the meaning of the parameters.
+*/
+{
+  a_boolean     result = TRUE;
+  a_reflection_value
+                *rvp = (a_reflection_value*)p_arg_bytes[0];
+  a_source_correspondence_ptr
+                scp;
+  a_const_char  *name = NULL;
+
+  strip_template_arg(rvp);
+  if (rvp->entity.kind == iek_param_type) {
+    name = ((a_param_type*)rvp->entity.ptr)->name;
+  } else {
+    scp = source_corresp_for_reflection(rvp);
+    if (scp != NULL && scp->name != NULL) {
+      name = unmangled_name_of(scp);
+    }  /* if */
+  }  /* if */
+  set_bool_value(name != NULL, result_storage);
+  return result;
+}  /* do_constexpr_std_meta_has_identifier */
+
+
 static a_boolean do_constexpr_std_meta_identifier_of(
                                         an_interpreter_state  *ips,
                                         a_routine_ptr         callee,
@@ -12517,7 +12552,7 @@ view" via the std::string_view(char_ptr, length) constructor.
 See do_constexpr_intrinsic_call for the meaning of the parameters.
 */
 {
-  a_boolean     result = FALSE;
+  a_boolean     result = TRUE;
   a_reflection_value
                 *rvp = (a_reflection_value*)p_arg_bytes[0];
   a_source_correspondence_ptr

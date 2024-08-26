@@ -112,6 +112,8 @@ namespace std {
     [[deprecated("use identifier_of")]]
     consteval __str name_of(info);
 
+    consteval bool has_identifier(info);
+
     consteval __str identifier_of(info);
 
     consteval __infovec members__impl(info);
