@@ -721,7 +721,9 @@ zeros.
       --src_pos;
       --tgt_pos;
       frac[tgt_pos + 1] |= frac[src_pos] >> (BYTE_SIZE - bit_shift);
-      frac[tgt_pos] = frac[src_pos] << bit_shift;
+      if (tgt_pos >= 0) {
+        frac[tgt_pos] = frac[src_pos] << bit_shift;
+      }  /* if */
     }  /* for */
     for ( ; tgt_pos != 0; ) {
       --tgt_pos;
