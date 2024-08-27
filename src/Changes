@@ -21,7 +21,7 @@ Consider:
 
 This example previously often resulted in an abort in adjust_virtual_callee
 (interpret.c).  The cause of this abort was the assignment "u.s = S();", which
-did not fully initialize the class value metadata associated with the newly
+did not fully initialize the class value metadata associated with the newly-
 activated subobject u.s.  The call u.s.f() then accessed that uninitialized
 metadata.  This is now fixed.
 
