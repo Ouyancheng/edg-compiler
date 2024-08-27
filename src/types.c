@@ -13338,6 +13338,11 @@ well as C++ mode.
         is_function_type(pm_member_type(dest_type))) {
       okay = TRUE;
     }  /* if */
+  } else if (ms_version_is(any_version) && is_nullptr(source_type) &&
+             (is_pointer(dest_type) || is_ptr_to_member(dest_type))) {
+    /* MSVC allows conversions from std::nullptr_t to pointers and pointers to
+       members. */
+    okay = TRUE;
 #if GNU_VECTOR_TYPES_ALLOWED
   } else if (gnu_mode &&
              (is_vector_type(source_type) || is_vector_type(dest_type))) {
@@ -13360,7 +13365,8 @@ well as C++ mode.
           is_template_param_or_proxy_type(source_type) ||
           is_integral_or_enum(source_type) ||
           is_pointer_or_handle(source_type) ||
-          is_ptr_to_member(source_type)) {
+          is_ptr_to_member(source_type) ||
+          is_nullptr(source_type)) {
         okay = TRUE;
       }  /* if */
     } else if (is_error(source_type) ||
