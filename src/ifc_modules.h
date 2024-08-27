@@ -517,17 +517,6 @@ public:
                      an_ifc_access_sort               access,
                      an_ifc_expr_index                alignment,
                      a_partial_scope_stack_state      *psssp);
-  template<typename an_Index_type>
-  a_boolean init_locator_from_name(an_Index_type                ref,
-                                   const an_ifc_source_location &locus,
-                                   a_symbol_locator             *loc);
-  template<typename an_Index_type>
-  inline a_boolean init_decl_locator(an_Index_type                ref,
-                                     const an_ifc_source_location &locus,
-                                     a_symbol_locator             *loc);
-  template<typename an_ifc_Decl_type>
-  inline a_boolean init_decl_locator(const an_ifc_Decl_type &decl,
-                                     a_symbol_locator       *loc);
   void unsigned_integer_for_expr_index(an_ifc_expr_index expr_index,
                                        an_integer_value  *value);
   a_boolean fill_in_routine_parameter_defaults(
