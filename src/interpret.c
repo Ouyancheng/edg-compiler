@@ -3356,7 +3356,8 @@ front end starts up to find where the object is originally allocated.
 */
 {
   static a_boolean     map_ready = FALSE;
-  static a_byte_count  alloc_num = 0, prev_num;
+  static a_byte_count  alloc_num = 0;
+  a_byte_count         prev_num;
 
   if (!map_ready) {
     init_data_map(&object_alloc_map, /*mask_width=*/5U);
@@ -4683,6 +4684,14 @@ TRUE in that case.
     }  /* if */
     if (activation_mode) {
       /* Activation mode: Set the active field to the selected field. */
+      a_byte_count  offset = sizeof(a_type_ptr);
+      /* If the newly active field is a class type, make sure it's derivation
+         pointer (or its own active field pointer) is cleared. */
+      do_host_alignment(offset);
+      if (addr->address == (a_byte*)p_active_field+offset) {
+        a_type_ptr  new_ftp = skip_typerefs(selected_field->type);
+        mark_complete_class_object_if_needed(new_ftp, addr->address);
+      }  /* if */
       mark_subobject_initialized((a_byte*)p_active_field,
                                  addr->complete_object);
       *p_active_field = selected_field;
@@ -4830,7 +4839,7 @@ static a_boolean do_constexpr_dtor(an_interpreter_state  *ips,
                                    a_source_position     *pos,
                                    a_byte                *result_storage,
                                    a_byte                *complete_object,
-                                   a_boolean             nonvirtual = FALSE);
+                                   a_boolean             nonvirtual);
 
 static a_boolean do_constexpr_dynamic_init(
                                    an_interpreter_state  *ips,
@@ -4858,14 +4867,17 @@ Perform the destructions for the current storage stack.
                *pos = dlist->pos;
     a_byte_count
                size = 0;
+    a_boolean  nonvirtual = FALSE;
     if (type_is(tp, tk_array)) {
       n = (int)num_array_elements(tp);
       tp = skip_typerefs(underlying_array_element_type(tp));
       size = value_bytes_for_type(ips, tp, &result); 
       check_assertion(result);
+      nonvirtual = TRUE;
     }  /* if */
     for (int k = 0; k<n; ++k, sub_obj += size) {
-      if (!do_constexpr_dtor(ips, dtor, pos, sub_obj, complete_obj)) {
+      if (!do_constexpr_dtor(ips, dtor, pos, sub_obj, complete_obj,
+                             nonvirtual)) {
         result = FALSE;
         goto done;
       }  /* if */
@@ -15513,7 +15525,7 @@ with respect to the statically-resolved callee, add to *p_retval_offset the
 adjustment that will have to be made to the address returned by the call (to
 translate the dynamically returned address back to the statically resolved
 type).  Returns FALSE if *p_callee is not a constant expression (for example,
-if *p_this_arg is not statically initialized.)
+if *p_this_arg is not initialized.)
 */
 {
   a_constexpr_address  **p_this_val = (a_constexpr_address**)p_this_arg,
@@ -15750,10 +15762,11 @@ update *ips accordingly.
       do_constexpr_fail(result);
       goto done;
     } else {
-      result = do_constexpr_dtor(
-                               ips, callee, &call_node->position,
-                               cap->address, cap->complete_object,
-                               !call_node->variant.operation.is_virtual_call);
+      a_boolean  nonvirtual = !call_node->variant.operation.is_virtual_call ||
+                              is_array_element(cap);
+      result = do_constexpr_dtor(ips, callee, &call_node->position,
+                                 cap->address, cap->complete_object,
+                                 nonvirtual);
     }  /* if */
     mark_subobject_uninitialized(cap->address, cap->complete_object);
     unmark_complete_object_initialized(cap->complete_object);
@@ -15944,6 +15957,20 @@ update *ips accordingly.
           first_arg->is_xvalue = TRUE;
         }  /* if */
         if (!result) {
+          goto done;
+        }  /* if */
+      }  /* if */
+    }  /* if */
+    if (special_kind_is(callee, sfk_operator) &&
+        callee->variant.opname_kind == onk_assign) {
+      /* An assignment operator may change the active field in a union. */
+      a_byte               *arg_bytes = *(a_byte**)arg_ptrs;
+      a_constexpr_address  *this_cap = (a_constexpr_address*)arg_bytes;
+      if (is_variant_path(this_cap)) {
+        /* Assignment may require setting a new active field. */
+        if (!check_variant_assign(ips, this_cap, &call_node->position)) {
+          /* Invalid attempt to store into a non-active variant field. */
+          do_constexpr_fail(result);
           goto done;
         }  /* if */
       }  /* if */
@@ -19320,7 +19347,7 @@ static a_boolean do_constexpr_delete(an_interpreter_state  *ips,
 Evaluate the given delete-expression.
 */
 {
-  a_boolean                    result = TRUE;
+  a_boolean                    result = TRUE, nonvirtual = FALSE;
   a_new_delete_supplement_ptr  ndsp = expr->variant.new_delete;
   a_byte_count                 opnd_n_bytes;
   an_expr_node_ptr             ptr_expr = ndsp->arg;
@@ -19363,6 +19390,7 @@ Evaluate the given delete-expression.
     goto done;
   } else if (ndsp->array_delete) {
     obj_bytes = cap->address;
+    nonvirtual = TRUE;
   } else {
     /* For the non-array form of "delete ptr" find the most derived object
        pointed to. */
@@ -19418,7 +19446,7 @@ Evaluate the given delete-expression.
            do_constexpr_dtor will need it for the virtual function dispatch. */
         a_byte  *obj = ndsp->array_delete ? elem : cap->address;
         if (!do_constexpr_dtor(ips, dip->destructor, &expr->position,
-                               obj, arr)) {
+                               obj, arr, nonvirtual)) {
           result = FALSE;
           goto done;
         }  /* if */
@@ -26283,7 +26311,8 @@ if the caller has determined that reinterpret_cast expressions can be folded
                  !((void)mark_mutable_members_not_initialized(
                            &ips, result_storage, result_type, result_storage),
                    do_constexpr_dtor(&ips, dip->destructor, pos,
-                                    result_storage, result_storage))) {
+                                     result_storage, result_storage,
+                                     /*nonvirtual=*/TRUE))) {
         if (dip->variable != NULL && dip->variable->declared_constinit &&
             ips.dyn_allocations == NULL && !dyn_init_is(dip, dik_constant) &&
             !dyn_init_is(dip, dik_zero) && !dyn_init_is(dip, dik_none)) {
