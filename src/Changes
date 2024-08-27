@@ -1,5 +1,23 @@
 Version 6.7
 
+8/27/24  [EDGcpfe/27544]
+Range-based for-loop initializer not constant evaluated
+
+Consider:
+
+  consteval int f() {
+    int arr[] = { 1, 2, 3 };
+    for (int k = 0; int x: arr)
+      arr[k++] += 1;
+    return arr[1];
+  }
+  static_assert(f() == 3);
+
+Previously this failed, with a spurious diagnostic suggesting that k is a
+run time variable.  This was due to the front end failing to evaluate the
+"int k = 0;" of the range-based for-loop.  That is now fixed.
+
+
 8/27/24  [EDGcpfe/27542]
 C++-generating back end: template parameter name omitted as qualifier
 

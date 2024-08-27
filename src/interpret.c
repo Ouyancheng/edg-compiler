@@ -7141,6 +7141,11 @@ Interpret the given range-based for-statement.
   a_dynamic_init_ptr     dip = NULL;
 
   save_storage_stack(ips, saved_stack);
+  if (loop_info->initialization != NULL &&
+      !do_constexpr_statement(ips, loop_info->initialization)) {
+    do_constexpr_fail(result);
+    goto done;
+  }  /* if */
   /* Acquire storage for the iteration variables. */
   vp[0] = loop_info->iterator;
   vp[1] = loop_info->range;
