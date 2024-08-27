@@ -3931,6 +3931,7 @@ precedence confusion.  Do the output in the way described by octl.
   an_integer_kind ikind = (an_integer_kind)ik_none;
   a_boolean       signed_constant = FALSE;
   a_number_buffer literal_form;
+  a_boolean       is_negative = FALSE;
 
   /* See if the constant is signed. */
   if (integer_type_constant) {
@@ -4023,6 +4024,7 @@ precedence confusion.  Do the output in the way described by octl.
   }  /* if */
   if (signed_constant && sign_of_integer_constant(constant) < 0) {
     /* Negative value.  Put in parentheses. */
+    is_negative = TRUE;
     output_optional_open_paren(&need_parens, &need_negative_close_paren, octl);
     if (octl->gen_compilable_code) {
       /* Check for cases on two's complement machines where the constant
@@ -4047,9 +4049,9 @@ precedence confusion.  Do the output in the way described by octl.
     }  /* if */
   }  /* if */
   /* Write the literal form of the constant. */
-  if (octl->gen_compilable_code) {
-    /* In compilable code, we want to represent non-arithmetic integer
-       constants in hexadecimal. */
+  if (octl->gen_compilable_code && !is_negative) {
+    /* In compilable code, we want to represent non-negative non-arithmetic
+       integer constants in hexadecimal. */
     literal_form = str_for_integer_constant(eff_constant);
   } else {
     /* In diagnostics and debugging output, always use decimal. */

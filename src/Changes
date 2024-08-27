@@ -1,5 +1,20 @@
 Version 6.7
 
+8/26/24  [EDGcpfe/27541]
+C-generating back end: negative results of bit operations
+
+In cases where a bit operation (or, exclusive or, etc.) on constant values
+produces a signed negative result, the C-generating back end previously put
+out the folded constant value of the operation in hexadecimal notation,
+resulting in the literal being interpreted as unsigned rather than signed
+when the generated code was compiled.  This is now fixed, and such constants
+are now put out in decimal notation.  For example:
+
+  long one = 1L;
+  int i = (0L ^ (-9L)) > one;  // Folded constant previously put out as
+                               // "0xfffffffffffffff7L", now as "-9L"
+
+
 8/26/24  [EDGcpfe/27540]
 GNU C++ compatibility: Trailing return types
 
