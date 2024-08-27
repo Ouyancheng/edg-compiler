@@ -1349,6 +1349,8 @@ struct Dyn_array: private Allocator<an_Elem> {
   inline void insert_many(size_t i, size_t num_copies, const an_elem &value);
   inline void remove(size_t i);
   inline void remove_many(size_t i, size_t num_elements);
+  template<typename a_Predicate>
+  inline void remove_if(a_Predicate predicate_fn);
   inline void clear();
   void resize(size_t new_n, const an_elem  &value);
   void reserve(size_t);
@@ -1782,6 +1784,31 @@ subsequent values (if any) are first moved by the number of copies back.
   move_elements<an_elem>(move_dest, move_src, num_to_move);
   this->n_elems -= num_elements;
 }  /* Dyn_array::remove_many */
+
+
+template<typename an_Elem, template<typename> class Allocator>
+template<typename a_Predicate>
+inline void Dyn_array<an_Elem, Allocator>::remove_if(a_Predicate predicate_fn)
+/*
+Given a predicate function that accepts a value of an_Elem type and returns a
+boolean, apply the predicate function to all elements and remove any elements
+where the function returns TRUE.
+*/
+{
+  an_elem *arr_elems = this->elems;
+  size_t  num_removed = 0;
+
+  for (size_t i = 0; i < this->n_elems; ++i) {
+    if (predicate_fn(arr_elems[i])) {
+      ++num_removed;
+      destroy(&arr_elems[i]);
+    } else if (num_removed > 0) {
+      construct(&arr_elems[i - num_removed], move_from(&arr_elems[i]));
+      destroy(&arr_elems[i]);
+    }  /* if */
+  }  /* for */
+  this->n_elems -= num_removed;
+}  /* Dyn_array::remove_if */
 
 
 template<typename an_Elem, template<typename> class Allocator>
