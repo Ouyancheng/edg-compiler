@@ -4819,8 +4819,21 @@ gen_name.  See gen_name for the meaning of need_closing_paren.
     actual_type_used = NULL;
   } else if (!has_name_before_mangling(class_type) &&
              class_type->variant.class_struct_union.proxy_class) {
-    /* Ignore an unnamed proxy class -- it wasn't there in the source. */
-    actual_type_used = NULL;
+    a_type_ptr tptp = class_type_supp(class_type)->proxy_of_type;
+    if (type_is_actual_template_parameter(tptp)) {
+      a_source_correspondence_ptr scp = source_corresp_for_template_param(
+                        &tptp->variant.template_param.extra_info->coordinates);
+      if (scp != NULL && scp->name != NULL) {
+        write_tok_str(scp->name);
+        write_tok_str("::");
+        actual_type_used = (a_type_ptr)scp;
+      } else {
+        actual_type_used = NULL;
+      }  /* if */
+    } else {
+      /* Ignore an unnamed proxy class -- it wasn't there in the source. */
+      actual_type_used = NULL;
+    }  /* if */
   } else if (class_type->replace_by_generated_typedef) {
     /* Replace the reference to this class type by a reference to a
        generated typedef. */

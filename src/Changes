@@ -1,5 +1,21 @@
 Version 6.7
 
+8/27/24  [EDGcpfe/27542]
+C++-generating back end: template parameter name omitted as qualifier
+
+In cases where a template parameter is unnamed in the first declaration of
+a template but is named in the template's definition and then used in a
+qualified name, the changes for EDGcpfe/27409 (not in a release, but
+distributed in patch form) introduced a regression in which the
+C++-generating back end omitted the qualifier in the generated code.  This
+is now fixed.  For example:
+
+  template <class, bool> void a();
+  template <class T, bool> void a() {
+    auto x = T::template f<bool>();   // Previously omitted "T::"
+  }
+
+
 8/27/24  [EDGcpfe/24216,EDGcpfe/25455,EDGcpfe/26447]
 Access to uninitialized memory during constant evaluation with union values
 
