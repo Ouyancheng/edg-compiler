@@ -1,5 +1,31 @@
 Version 6.7
 
+8/27/24  [EDGcpfe/24216,EDGcpfe/25455,EDGcpfe/26447]
+Access to uninitialized memory during constant evaluation with union values
+
+Consider:
+
+  struct S {
+    constexpr virtual int f() { return 42; }
+  };
+  union U {
+    int i;
+    S s;
+  };
+  constexpr int g() {
+    U u { .i = -1 };
+    u.s = S();
+    return u.s.f();
+  }
+  static_assert(g() == 42);
+
+This example previously often resulted in an abort in adjust_virtual_callee
+(interpret.c).  The cause of this abort was the assignment "u.s = S();", which
+did not fully initialize the class value metadata associated with the newly
+activated subobject u.s.  The call u.s.f() then accessed that uninitialized
+metadata.  This is now fixed.
+
+
 8/26/24  [EDGcpfe/27541]
 C-generating back end: negative results of bit operations
 
