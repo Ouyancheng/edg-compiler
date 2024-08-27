@@ -16274,6 +16274,8 @@ parameters.
           }  /* if */
           new_ptp->pack_expansion_descr = pedp;
         }  /* if */
+      } else {
+        new_ptp->is_pack_element = ptp->is_pack_element;
       }  /* if */
 #if MICROSOFT_EXTENSIONS_ALLOWED
       if (new_ptp->is_cli_param_array &&
