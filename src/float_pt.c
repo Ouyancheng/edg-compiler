@@ -252,9 +252,9 @@ typedef _Float16 EDG_float16_t;
 typedef float EDG_float16_t;
 #endif /* HOST_HAS_FLOAT16_TYPE */
 static void store_host_fp_value(a_host_fp_value         temp,
-	                        a_float_kind            kind,
-	                        an_internal_float_value *float_value,
-	                        a_boolean               *err);
+                                a_float_kind            kind,
+                                an_internal_float_value *float_value,
+                                a_boolean               *err);
 #endif /* USE_SOFTFLOAT */
 
 #if USE_SOFTFLOAT
@@ -1471,7 +1471,7 @@ return TRUE otherwise.  If signaling is TRUE, a signaling Nan is created,
 otherwise a quiet NaN is created.  When mantissa is non-zero, its value
 is used for the mantissa portion of the NaN.  Note that this routine
 limits the number of bits in the mantissa to 32 bits (or 23 bits for
-float and 9 bits for _Float16).
+float and 11 bits for _Float16).
 */
 {
   a_boolean  err = FALSE, fp_mode_dependent = FALSE;
@@ -1544,7 +1544,7 @@ float and 9 bits for _Float16).
 #if HOST_HAS_FLOAT16_TYPE || USE_SOFTFLOAT
     if (kind_is_binary16(kind)) {
       /* Don't disturb non-mantissa bits. */
-      val = val | (mantissa & 0x1ff);
+      val = val | (mantissa & 0x7ff);
     } else
 #endif /* HOST_HAS_FLOAT16_TYPE || USE_SOFTFLOAT */
     /* Do not insert code here. */

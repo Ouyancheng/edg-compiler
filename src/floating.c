@@ -1790,6 +1790,7 @@ STATIC void fp_emul_add_int(an_fp_binary  *left,
   if (right != 0) {
     an_fp_binary  bin = {};
     int           i;
+    unsigned long high_bits_mask = ~MASK_BITS(left->precision);
     unsigned long over;
 
     bin.type = fpt_number;
@@ -1806,7 +1807,7 @@ STATIC void fp_emul_add_int(an_fp_binary  *left,
       i = fp_frac_high_zero_bits(bin.frac, bin.precision);
     }  /* if */
     if (i == 0 && bin.precision < (int)(CHAR_BIT * sizeof(right)) &&
-        (over = (right & ~((1ul << bin.precision)-1) >> bin.precision) != 0)) {
+        (over = (right & high_bits_mask) >> bin.precision) != 0) {
       /* The value being added occupies more bits than allowed by the
          precision.  Count the number of excess bits and increment the
          exponent to reflect the eventual adjustment (right shift) that
