@@ -4685,7 +4685,7 @@ TRUE in that case.
     if (activation_mode) {
       /* Activation mode: Set the active field to the selected field. */
       a_byte_count  offset = sizeof(a_type_ptr);
-      /* If the newly active field is a class type, make sure it's derivation
+      /* If the newly-active field is a class type, make sure its derivation
          pointer (or its own active field pointer) is cleared. */
       do_host_alignment(offset);
       if (addr->address == (a_byte*)p_active_field+offset) {
