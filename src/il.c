@@ -7658,6 +7658,7 @@ Return the hash value for the indicated constant.
           default:
             hash_value = hash_value*31 +
                          (a_hash_value)cast_from_pointer(entity->ptr);
+            break;
         }  /* switch */
       }
       break;
