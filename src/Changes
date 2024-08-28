@@ -15,7 +15,7 @@ Consider, with --c++11:
   };
   int i = D<int>::f<C, &C::f>(1);
 
-When calling the static member function template, the explicitly specified
+When calling the static member function template, the explicitly-specified
 template arguments get substituted into the template parameter list.
 Previously, that substitution failed to propagate the "is_pack_element" flag of
 any already expanded parameter types in nested function types.
