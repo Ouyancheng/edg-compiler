@@ -1334,8 +1334,17 @@ ellipsis parameter).
 
   check_assertion(rp->is_coroutine);
   cdp = get_coroutine_descr(rp);
-  if (!cdp->error_descr && !rp->is_prototype_instantiation) {
-    generate_coroutine_body(rp);
+  if (!cdp->error_descr) {
+    a_scope_ptr  decl_scope = scope_for_routine(rp);
+    if (!rp->is_prototype_instantiation) {
+      generate_coroutine_body(rp);
+    } else {
+      set_parent_scope(&cdp->promise->source_corresp, iek_variable,
+                       decl_scope);
+    }  /* if */
+    set_parent_scope(&cdp->handle->source_corresp, iek_variable, decl_scope);
+    set_parent_scope(&cdp->init_await_resume->source_corresp, iek_variable,
+                     decl_scope);
   }  /* if */
   if (skip_typerefs(rp->type)->variant.routine.extra_info->has_ellipsis) {
     pos_error(ec_coroutine_with_ellipsis_parameter,
