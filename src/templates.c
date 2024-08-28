@@ -16157,6 +16157,7 @@ parameters.
     if ((options & CTWS_ADJUST_COORDINATES) != 0) {
       any_more = TRUE;
     } else {
+      ctws_state->unexpanded_pack = FALSE;
       any_more = begin_rescan_pack_expansion_context(
                                                ptp->pack_expansion_descr,
                                                templ_param_list,
@@ -16340,6 +16341,8 @@ parameters.
       vpip = alloc_variadic_param_info();
       if (first_element != NULL && first_element->is_pack_element) {
         vpip->param_type = first_element;
+      } else if (ctws_state->unexpanded_pack) {
+        vpip->param_type = ptp;
       }  /* if */
       vpip->orig_param_type = ptp;
       vpip->level = ctws_state->routine_type_levels;
