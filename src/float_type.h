@@ -61,17 +61,17 @@ BEGIN_EDG_NAMESPACE
 #else /* !(defined(FPT_BFLOAT16) || ...) */
 #define FPT_TYPE EDG_float16_t
 #define FPT_NAME float16
-#if HOST_HAS_FLOAT16_TYPE
-/* _Float16 representation will be host _Float16. */
+#if HOST_HAS_FLOAT16_TYPE || USE_SOFTFLOAT
+/* _Float16 representation will be 16 bits. */
 #define FPT_VALUE_BITS 16
 #define FPT_PRECISION 11
 #define FPT_HAS_HIDDEN 1
-#else /* !HOST_HAS_FLOAT16_TYPE */
+#else /* !*HOST_HAS_FLOAT16_TYPE || USE_SOFTFLOAT) */
 /* _Float16 representation will be host "float". */
 #define FPT_VALUE_BITS FPT_FLOAT_VALUE_BITS
 #ifdef FPT_FLOAT_PRECISION
 #define FPT_PRECISION FPT_FLOAT_PRECISION
-#endif /* FPT_FLOAT_PRECISION */
+#endif /* FPT_FLOAT_PRECISION || USE_SOFTFLOAT */
 #ifdef FPT_FLOAT_HAS_HIDDEN
 #define FPT_HAS_HIDDEN FPT_FLOAT_HAS_HIDDEN
 #endif /* FPT_FLOAT_HAS_HIDDEN */

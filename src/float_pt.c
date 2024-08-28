@@ -2412,7 +2412,7 @@ the long double kind will have already been mapped to double by the caller.
     /* We need a flag to indicate that we had a zero, because we can end up
        with a zero mantissa because of the possible presence of an implicit
        bit. */
-#if HOST_HAS_FLOAT16_TYPE
+#if HOST_HAS_FLOAT16_TYPE || USE_SOFTFLOAT
   } else if (kind_is_binary16(kind)) {
     val = (an_fp_value_part)((mp->parts[0] >> 6) | ((exponent + 15) << 26));
     if (is_negative) {
@@ -2420,7 +2420,7 @@ the long double kind will have already been mapped to double by the caller.
     }  /* if */
     val >>= 16;
     memcpy((char*)float_value, (char*)&val, sizeof(val));
-#endif /* HOST_HAS_FLOAT16_TYPE */
+#endif /* HOST_HAS_FLOAT16_TYPE || USE_SOFTFLOAT */
   } else if (kind_is_binary16(kind) || kind == fk_float) {
     val = (an_fp_value_part)((mp->parts[0] >> 9) | ((exponent + 127) << 23));
     if (is_negative) val |= 0x80000000;
@@ -2807,7 +2807,7 @@ before setting it if there are unused bits.
     if (kind_is_binary16(kind)) {
       res = read_float16((unsigned char *)&float_value_temp, str,
                          (int)strlen(str));
-#if !HOST_HAS_FLOAT16_TYPE
+#if !HOST_HAS_FLOAT16_TYPE && !USE_SOFTFLOAT
       {
         /* Do a round-trip conversion through the mantissa/exponent
            representation to perform rounding to the _Float16 precision and
@@ -2823,7 +2823,7 @@ before setting it if there are unused bits.
                                         /*exponent_overfloat=*/FALSE, err,
                                         &inexact);
       }
-#endif /* !HOST_HAS_FLOAT16_TYPE */
+#endif /* !HOST_HAS_FLOAT16_TYPE && !USE_SOFTFLOAT */
 #if DEBUG
       if (db_flag_is_set("fp")) {
         fprintf(f_debug, "read_float16: res=%d\n", (int)res);
