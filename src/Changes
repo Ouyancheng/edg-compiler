@@ -50,7 +50,7 @@ to a pointer or pointer-to-member type is now also accepted.  For example, with
                                                 // mode.
 
 
-8/27/24  [EDGcpfe/27544]
+8/27/24  [EDGcpfe/25046,EDGcpfe/26255,EDGcpfe/27544]
 Range-based for-loop initializer not constant evaluated
 
 Consider:
