@@ -564,6 +564,7 @@ calls to exit_module_token_rescan automatically upon destruction.
   terminate_token_cache(cache->as_canonical());
 
   a_cached_token_ptr last_tok = cache->get_last_token();
+  push_lexical_state_stack();
   push_stop_token_stack();
   rescan_reusable_cache(cache->as_canonical());
   increment_dependent_scans_for_reusable_cache();
@@ -603,6 +604,7 @@ expected token, tok_error can be used to safely skip this check.
   flush_to_end_of_source(/*suppress_warning=*/TRUE);
   decrement_dependent_scans_for_reusable_cache();
   pop_stop_token_stack();
+  pop_lexical_state_stack();
   check_assertion(curr_token == tok_end_of_source);
   check_assertion(curr_token_sequence_number == expected_end_tsn ||
                   curr_token_sequence_number == NO_TOKEN_SEQUENCE_NUMBER);

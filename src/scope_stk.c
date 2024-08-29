@@ -4006,7 +4006,6 @@ mspk_unneccessary.
       ssep = &scope_stack_top();
       ssep->il_scope = scope;
     }
-    push_lexical_state_stack();
     *scope_push_status = mspk_new;
   } else {
     ssep->module_load_context_count++;
@@ -4034,8 +4033,6 @@ called if scope_push_status is mspk_unattempted.
   process_deferred_class_fixups_and_instantiations(/*for_instantiation=*/TRUE);
   if (scope_push_status == mspk_new) {
     /* "Unwind" the scope stack removing the corresponding pushed scopes. */
-    /* Remove the lexical scope. */
-    pop_lexical_state_stack();
     /* Remove the sck_module_decl_import scope. */
     pop_scope();
     /* Remove the namespace extension scope if one exists. */
