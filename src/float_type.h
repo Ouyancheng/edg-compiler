@@ -887,7 +887,7 @@ Initialize SMALL_TENS and BIG_TENS arrays.
   }  /* for */
 #if N_BIG_TENS > 0
   fp_emul_copy(&BIG_TENS[0], &SMALL_TENS[1 << EXP_SHIFT]);
-#endif /* N_BIG_TENS > 0 */
+#if N_BIG_TENS > 1
   for (i = 1; i < N_BIG_TENS; ++i) {
     fp_emul_copy(&BIG_TENS[i], &BIG_TENS[i - 1]);
     fp_emul_mult(&BIG_TENS[i], &BIG_TENS[i]);
@@ -901,6 +901,8 @@ Initialize SMALL_TENS and BIG_TENS arrays.
     MAKE_FN((unsigned char*)&BIG_TENS[i], &bin);
 #endif /* FP_USE_EMULATION */
   }  /* for */
+#endif /* N_BIG_TENS > 1 */
+#endif /* N_BIG_TENS > 0 */
 }  /* INITIALIZE_TENS */
 
 
@@ -1055,11 +1057,13 @@ for the type.  The value of scale is stored in *pscale.
         /* For each 1 bit in exp, divide by 10^2^idx. */
         int idx;
         exp >>= EXP_SHIFT;
+#if N_BIG_TENS > 1
         for (idx = 0; exp != 0 && idx < N_BIG_TENS - 1; ++idx, exp >>= 1) {
           if ((exp & 0x01) != 0) {
             fp_emul_div(bin, &BIG_TENS[idx]);
           }  /* if */
         }  /* for */
+#endif /* N_BIG_TENS > 1 */
         if (exp != 0) {
           /* Might have subnormal. */
           an_fp_floating_point_type old_value = *bin;
