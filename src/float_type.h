@@ -1055,7 +1055,7 @@ for the type.  The value of scale is stored in *pscale.
         fp_emul_div(bin, &SMALL_TENS[exp]);
       } else {
         /* For each 1 bit in exp, divide by 10^2^idx. */
-        int idx;
+        int idx = 0;
         exp >>= EXP_SHIFT;
 #if N_BIG_TENS > 1
         for (idx = 0; exp != 0 && idx < N_BIG_TENS - 1; ++idx, exp >>= 1) {
