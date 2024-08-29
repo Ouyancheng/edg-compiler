@@ -348,9 +348,9 @@ Values of _Float16 literals
 The front end previously handled _Float16 literals incorrectly when their
 values are close to the maximum representable value for the type.  In
 particular, such hexadecimal _Float16 literals were incorrectly reported as
-being out of range.  Also, in configurations in which both USE_SOFTFLOAT
-and HOST_HAS_FLOAT16_TYPE are FALSE, large _Float16 decimal literals were
-given incorrect values.  These issues are now fixed.  For example:
+being out of range.  Also, in some configurations, large _Float16 decimal
+literals were given incorrect values.  These issues are now fixed.  For
+example:
 
   auto x = 0x1.ffb8p+15f16;   // No longer a spurious error
   auto y = 65501.0f16;        // Now has the correct value (i.e., rounded to
