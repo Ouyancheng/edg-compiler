@@ -1,11 +1,11 @@
 Version 6.7
 
 8/28/24  [EDGcpfe/27143]
-Missing enclosing_routine and parent_scope on implicitly declared coroutine
+Missing enclosing_routine and parent_scope on implicitly-declared coroutine
 variables
 
 Previously, the front end failed to set the "enclosing_routine" and
-"parent_scope" fields in the source correspondences of the implicitly declared
+"parent_scope" fields in the source correspondences of the implicitly-declared
 coroutine variables for the coroutine handle and the
 initial-await-resume-called flag.
 
