@@ -1,5 +1,16 @@
 Version 6.7
 
+8/29/24  [EDGcpfe/27362]
+Clang compatibility: disabling stack_referenced_include_directories with
+--ms_extensions
+
+The global variable stack_referenced_include_directories is no longer set to
+TRUE when --ms_extensions is specified.  This emulates the behavior of Clang
+when specifying -fms-extensions.  stack_referenced_include_directories
+continues to be set to TRUE when --ms_compatibility is specified (which
+emulates Clang's behavior for -fms-compatibility).
+
+
 8/28/24  [EDGcpfe/27143]
 Missing enclosing_routine and parent_scope on implicitly-declared coroutine
 variables
