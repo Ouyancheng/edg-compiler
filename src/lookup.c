@@ -255,7 +255,7 @@ need to be reset after a call to this routine.
   /* Lazy loading may need to be selectively disabled + re-enabled at times -
      ensure that we only lazy load when lazy loading is enabled. */
   if (lazy_symbols_may_be_visible && scope != NULL &&
-      locator->symbol_header->deferred_module_entities != NULL) {
+      locator->symbol_header->deferred_module_entries != NULL) {
     if (scope_is(scope, sck_file) ||
         scope_is(scope, sck_namespace)) {
 #if CHECKING

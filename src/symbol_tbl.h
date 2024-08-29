@@ -4309,6 +4309,87 @@ extern a_cli_operator_kind find_cli_operator_kind(a_const_char *identifier);
 #endif /* CPPCLI_ENABLING_POSSIBLE && EDG_WIN32 */
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
 
+/*
+The kind of module entry locator.
+*/
+enum a_module_entry_locator_kind {
+  melk_ifc
+};
+
+/*
+A light weight representation of a module entry that can be resolved by the
+corresponding module interface to a concrete entry corresponding to an IL
+entity itself (or some components thereof).
+*/
+struct a_module_entry_locator {
+  a_module_entry_locator_kind
+		kind;	/* The kind of module entry locator. */
+  union {
+    /* When kind == melk_ifc: */
+    struct {
+      uint32_t	sort;	/* The index sort in the IFC file used to address the
+			   node being referred to. */
+      uint32_t	value;	/* The index in the IFC partition used to address the
+			   node being referred to. */
+      const void
+		*file;	/* An opaque pointer to the IFC module file
+			   (an_ifc_module_file) containing this declaration. */
+    } ifc;
+  } variant;
+};  /* a_module_entry_locator */
+
+/*
+A pairing of a scope and a module entry locator.
+*/
+struct a_deferred_module_entry {
+  a_scope_ptr	scope;	/* The scope the module entry lives in. */
+  a_module_entry_locator
+		locator;
+			/* The module entry locator (used to resolve the entry
+			   itself). */
+};  /* a_deferred_module_entry */
+
+namespace detail {
+
+/*
+The following specializations provide Is_trivially_copyable and
+Is_trivially_destructible support for a_deferred_module_entry.
+*/
+
+template<>
+struct Is_trivially_copyable_edg_impl<a_deferred_module_entry> :
+                                                Integral_constant<bool, true> {
+};  /* Is_trivially_copyable_edg_impl */
+
+
+template<>
+struct Is_trivially_destructible_edg_impl<a_deferred_module_entry> :
+                                                Integral_constant<bool, true> {
+};  /* Is_trivially_destructible_edg_impl */
+
+}  /* detail */
+
+/*
+A type used to encapsulate the list of module entries that should be considered
+for lazy loading of a given symbol header.
+*/
+struct a_deferred_module_entry_array {
+  Small_dyn_array<a_deferred_module_entry, 5>
+		entries = {};
+			/* The module entries to consider. */
+  size_t	num_active_scopes = 0;
+			/* The number of times the associated entries are being
+			   considered in the current call stack.  This is used
+			   to determine if it's safe to cleanup processed
+			   entries (by virtue of knowing if there are other
+			   calls currently reading from the entries
+			   Dyn_array). */
+  size_t	num_processed = 0;
+			/* The number of entries that have been processed.
+			   This is used to determine if there's any need to
+			   perform cleanup of the entries array. */
+};  /* a_deferred_module_entry_array */
+
 typedef struct a_symbol_header {
   /* This is the container for information that the symbol table
      management routines use in manipulating a list of symbols that have
@@ -4345,11 +4426,11 @@ typedef struct a_symbol_header {
 			/* The hash value for the identifier.  This is saved
 			   to avoid the need to recompute it if the header
 			   is entered into a scope's lookup table. */
-  a_module_entity_ptr
-		deferred_module_entities;
-			/* A list of entities defined in module files whose
-			   definitions have been deferred because there has
-			   been no reference to them. */
+  a_deferred_module_entry_array
+		*deferred_module_entries;
+			/* A list of module file entries that match this symbol
+			   header that have been deferred because no lookup has
+			   been performed on this symbol header yet. */
   union {
 #if MICROSOFT_EXTENSIONS_ALLOWED
     /* When is_cli_operator is TRUE: */

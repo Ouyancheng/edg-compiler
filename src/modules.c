@@ -656,47 +656,108 @@ responsible for making sure this function is not called after lexical
 processing has ended.
 */
 {
-  a_module_entity_ptr mep, *mepp = &(sym_hdr->deferred_module_entities);
+  a_deferred_module_entry_array
+                *deferred_entries = sym_hdr->deferred_module_entries;
 
   /* This function should only be called if lexical processing is still
      enabled. */
   check_assertion(curr_lexical_state_stack_entry != NULL);
-  /* This function should only be called if there are deferred module entities
-     available. */
-  check_assertion(sym_hdr->deferred_module_entities != NULL);
-  while (*mepp != NULL) {
-    if ((*mepp)->scope == scope) {
+  /* This function should only be called if there are deferred module
+     entities available. */
+  check_assertion(deferred_entries != NULL);
 #if DEBUG
-      if (db_flag_is_set("ms_symbols")) {
-        (void)fprintf(f_debug, "Loading symbol %s in ",
-                      sym_hdr->identifier);
-        db_scope(scope);
-        (void)fprintf(f_debug, "\n");
+  if (db_flag_is_set("ifc_symbols")) {
+    a_string dbg_msg("Symbol load started (depth = ",
+                     deferred_entries->num_active_scopes,
+                     ") for \"", sym_hdr->identifier, "\" in ");
+
+    print(dbg_msg, f_debug, /*end=*/"");
+    db_scope(scope);
+    (void)fputs("\n", f_debug);
+  }  /* if */
+#endif /* DEBUG */
+  ++deferred_entries->num_active_scopes;
+  for (size_t i = 0; i < deferred_entries->entries.length(); ++i) {
+    size_t                  entry_idx = (deferred_entries->entries.length() -
+                                         (i + 1));
+    a_deferred_module_entry &entry = deferred_entries->entries[entry_idx];
+    if (entry.scope != scope) {
+      continue;
+    }  /* if */
+#if DEBUG
+    if (db_flag_is_set("ifc_symbols")) {
+      (void)fprintf(f_debug, "Symbol load of \"%s\" in ", sym_hdr->identifier);
+      db_scope(scope);
+      (void)fprintf(f_debug, "\n");
+    }  /* if */
+#endif /* DEBUG */
+    ++deferred_entries->num_processed;
+    entry.scope = NULL;
+    switch (entry.locator.kind) {
+      case melk_ifc:
+        { an_ifc_decl_index decl_idx(
+                           (an_ifc_module_file*)entry.locator.variant.ifc.file,
+                           (an_ifc_decl_sort)entry.locator.variant.ifc.sort,
+                           entry.locator.variant.ifc.value);
+
+          request_entity_at_index(decl_idx);
+        }
+        break;
+      default_is_unexpected();
+    }  /* switch */
+  }  /* for */
+#if DEBUG
+  if (db_flag_is_set("ifc_symbols")) {
+    a_string dbg_msg("Symbol load finished (depth = ",
+                     deferred_entries->num_active_scopes,
+                     ") for \"", sym_hdr->identifier, "\" in ");
+
+    print(dbg_msg, f_debug, /*end=*/"");
+    db_scope(scope);
+    (void)fputs("\n", f_debug);
+  }  /* if */
+#endif /* DEBUG */
+  if (--deferred_entries->num_active_scopes == 0) {
+    size_t total_num_entries = deferred_entries->entries.length();
+
+    if (deferred_entries->num_processed == total_num_entries) {
+      /* Free the entire list as it's now unused. */
+#if DEBUG
+      if (db_flag_is_set("ifc_symbols")) {
+        a_string dbg_msg("Symbol loading completed for \"",
+                         sym_hdr->identifier, "\"");
+
+        print(dbg_msg, f_debug);
       }  /* if */
 #endif /* DEBUG */
-      /* Remove the entry from the queue (so it's not recursively processed)
-         but don't free it until it's been processed. */
-      mep = *mepp;
-      if (mep->imminent) {
-        /* If the entry is marked as being processed, skip it.  (Usually,
-           such entries have already been removed from the list, but partial
-           specializations are marked early and processed later.) */
-        mepp = &(*mepp)->next;
-        continue;
+      delete_fe(&sym_hdr->deferred_module_entries);
+    } else if (deferred_entries->num_processed > 0) {
+      /* Clean up any entries that match the current scope. */
+#if DEBUG
+      if (db_flag_is_set("ifc_symbols")) {
+        a_string dbg_msg("Symbol loading partially completed for \"",
+                         sym_hdr->identifier, "\" (",
+                         deferred_entries->num_processed,
+                         " entries completed)");
+
+        print(dbg_msg, f_debug);
       }  /* if */
-      *mepp = mep->next;
-      switch (mep->module_info->file_kind) {
-        case mfk_edg_ifc:
-        case mfk_ms_ifc:
-          process_ifc_declaration(mep);
-          break;
-        default:
-          unexpected_condition();
-      }  /* switch */
-    } else {
-      mepp = &(*mepp)->next;
+#endif /* DEBUG */
+      auto has_been_processed =
+                        [](const a_deferred_module_entry &entry) -> a_boolean {
+        return entry.scope == NULL;
+      };
+      deferred_entries->entries.remove_if(has_been_processed);
+      /* Since the counter num_active_scopes ensures this is the top level call
+         to define_names_from_scope for this particular symbol header, it is
+         safe to assume all entries that were considered processed have been
+         removed. */
+      check_assertion(((total_num_entries -
+                        deferred_entries->entries.length()) ==
+                       deferred_entries->num_processed));
+      deferred_entries->num_processed = 0;
     }  /* if */
-  }  /* for */
+  }  /* if */
 }  /* define_names_from_scope */
 
 
@@ -760,7 +821,6 @@ the specified module.
     /* Create a new module entity.  These are allocated in front end memory
        (so they are saved in PCH files) and never freed. */
     *p = (a_module_entity*)alloc_fe(sizeof(a_module_entity));
-    (*p)->next = NULL;
     (*p)->module_info = mod;
     (*p)->scope = NULL;
     (*p)->entity.ptr = NULL;
@@ -928,7 +988,17 @@ represents a return to the translation unit module or the global module.
   a_module_entity_stack_entry mese{};
 
   mese.mep = mep;
+  mese.saved_error_position = error_position;
   module_entity_stack->push_back(mese);
+  if (mep != NULL) {
+    Opt<a_source_position> opt_pos_info = source_position_of(mep);
+
+    if (opt_pos_info.has_value()) {
+      error_position = *opt_pos_info;
+    } else {
+      error_position = null_source_position;
+    }  /* if */
+  }  /* if */
 }  /* push_module_entity_state */
 
 
@@ -937,7 +1007,10 @@ void pop_module_entity_state()
 Pop the current module entity from the module entity stack.
 */
 {
-  module_entity_stack->pop_back();
+ a_module_entity_stack_entry &mese = module_entity_stack->back_elem();
+
+ error_position = mese.saved_error_position;
+ module_entity_stack->pop_back();
 }  /* pop_module_entity_state */
 
 
@@ -1161,6 +1234,29 @@ definition now and return TRUE. If an error occurs, return FALSE.
   }  /* if */
   return result;
 }  /* load_type_definition_from_module */
+
+
+Opt<a_source_position> source_position_of(a_module_entity_ptr mep)
+/*
+Return the source position of the given module entity pointer if available;
+otherwise, return an empty optional.
+*/
+{
+  Opt<a_source_position> result;
+  a_module_interface_ptr m_iface = mep->module_info->module_interface;
+
+  switch (m_iface->mod_kind) {
+    case mfk_edg_ifc:
+    case mfk_ms_ifc:
+      result = source_position_from_ifc_of(mep);
+      break;
+    case mfk_unknown:
+      unexpected_condition();
+      break;
+    default_is_unexpected();
+  }  /* switch */
+  return result;
+}  /* source_position_of */
 
 #if DEBUG
 

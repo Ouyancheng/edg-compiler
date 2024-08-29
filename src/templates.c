@@ -29187,9 +29187,9 @@ and returned.  Otherwise, NULL is returned.
        modules because it might cause explicit specializations to be loaded
        before the primary template. */
     a_scope_depth  saved_decl_scope_level = decl_scope_level;
-    Value_saver<a_module_entity_ptr>
+    Value_saver<a_deferred_module_entry_array*>
                    pending_entities(&locator->symbol_header
-                                            ->deferred_module_entities,
+                                            ->deferred_module_entries,
                                     /*new_value=*/NULL);
 #if EXTRA_SOURCE_POSITIONS_IN_IL
     decl_state->decl_pos_block.identifier_range.start = pos_curr_token;

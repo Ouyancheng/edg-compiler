@@ -1971,7 +1971,7 @@ Allocate a new symbol header, and return a pointer to it.
   ptr->other_symbols     = NULL;
   ptr->saved_macro_stack = NULL;
   ptr->hash_value        = 0;
-  ptr->deferred_module_entities = NULL;
+  ptr->deferred_module_entries = NULL;
   ptr->variant.opname    = (an_opname_kind)onk_none;
   ptr->is_unnamed        = FALSE;
   ptr->has_intrinsic_name = FALSE;
@@ -9556,7 +9556,7 @@ Look up name in namespace std and return the symbol found, if any.
       (void)file_scope_id_lookup(scope_stack[DEPTH_OF_FILE_SCOPE].il_scope,
                                  &loc, IDL_MUST_BE_NAMESPACE);
     } else if (symbol_for_namespace_std->header
-                                       ->deferred_module_entities != NULL &&
+                                           ->deferred_module_entries != NULL &&
                lazy_symbols_may_be_visible) {
       /* Namespace std was already entered, but module files contain some
          pending "std" declarations.  Make sure those are visible to lookup. */

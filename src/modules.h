@@ -25,22 +25,18 @@ enum an_ifc_partition_kind : uint32_t;
 
 /*
 The following structure is associated with every entity in a module file that
-is either referenced or whose definition is deferred.  It serves as a central
-point to accumulate information about the module entity.  These entries are
-kept in a hash table and accessed by a unique key.  Once referenced, the
-associated IL entry is also stored.
+has been loaded into the IL in some way (or, if invalid is TRUE, failed to load
+into the IL).  It serves as a central point to accumulate information about the
+module entity.  These entries are kept in a hash table and accessed by a unique
+key.
 */
 struct a_module_entity {
-  a_module_entity_ptr
-                next;   /* A pointer to the next entry on the list.  Used
-                           to queue entries on the symbol header (when
-                           module entities have the same name). */
   a_module_ptr  module_info;
                         /* The module in which this entity is defined. */
   a_scope_ptr   scope;  /* The scope in which this entity is defined. */
   a_tagged_pointer
-                entity; /* The IL entity that corresponds to the module
-                           entity. */
+                entity; /* The IL entity that corresponds to the module entity
+                           (NULL when invalid is TRUE). */
   size_t        file_offset;
                         /* An offset from the beginning of the module file to
                            the associated module entity.  Used as a key to
@@ -220,6 +216,10 @@ struct a_module_entity_stack_entry {
                 mep;    /* The current module entity pointer.  If mep is NULL,
                            this represents a return to the translation unit
                            module or the global module. */
+  a_source_position
+                saved_error_position;
+                        /* The value of error_position prior to this module
+                           entity being pushed to the stack. */
 };  /* a_module_entity_stack_entry */
 
 namespace detail {
@@ -412,7 +412,9 @@ extern a_boolean load_template_specializations_from_module(
 
 extern a_boolean has_type_definition_from_module(a_type_ptr  ty);
 
-extern a_boolean load_type_definition_from_module(a_type_ptr  ty);
+extern a_boolean load_type_definition_from_module(a_type_ptr ty);
+
+extern Opt<a_source_position> source_position_of(a_module_entity_ptr mep);
 
 /*
 An internal token cache wrapper structure that represents additional state for
