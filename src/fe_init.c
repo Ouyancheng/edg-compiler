@@ -393,6 +393,20 @@ std.
 }  /* make_and_enter_align_val_type */
 
 
+static inline void predeclare_std_type_info(void)
+/*
+Pre-declare type_info in the std namespace.
+*/
+{
+  a_namespace_ptr  std_namespace =
+                          symbol_for_namespace_std->variant.namespace_info.ptr;
+  (void)push_namespace_scope(sck_namespace_extension, std_namespace);
+  enter_predeclared_class(type_of_type_info, depth_scope_stack,
+                          &null_source_position);
+  pop_namespace_scope();
+}  /* predeclare_std_type_info */
+
+
 static void predeclare_entities(void)
 /*
 Several modes "pre-declare" various entities.  For example, in C++ mode,
@@ -456,6 +470,10 @@ enter_system_specific_predeclared_symbols; see sys_predef.c.)
         enter_predeclared_class(type_of_type_info, DEPTH_OF_FILE_SCOPE,
                                 &null_source_position);
       }  /* if */
+      if (clang_mode && ms_compat && type_info_in_namespace_std) {
+        /* The type should be a member of namespace std. */
+        predeclare_std_type_info();
+      }  /* if */
       type_of_guid = init_predeclared_class((a_type_kind)tk_struct, "_GUID");
       enter_predeclared_class(type_of_guid, DEPTH_OF_FILE_SCOPE,
                               &null_source_position);
@@ -467,8 +485,9 @@ enter_system_specific_predeclared_symbols; see sys_predef.c.)
     }  /* if */
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
 #if GNU_EXTENSIONS_ALLOWED
-    if (gpp_mode && symbol_for_namespace_std != NULL) {
-      /* g++ pre-declares std::type_info as an incomplete type. */
+    if (gpp_mode && !clang_mode && symbol_for_namespace_std != NULL) {
+      /* g++ pre-declares std::type_info as an incomplete type (clang does
+         not). */
       if (type_info_in_namespace_std) {
         if (ignore_std_namespace) {
           /* The std namespace is to be viewed as a synonym for the global
@@ -478,13 +497,7 @@ enter_system_specific_predeclared_symbols; see sys_predef.c.)
                                   &null_source_position);
         } else {
           /* The type should be a member of namespace std. */
-          a_namespace_ptr  std_namespace =
-                         symbol_for_namespace_std->variant.namespace_info.ptr;
-          (void)push_namespace_scope((a_scope_kind)sck_namespace_extension,
-                                     std_namespace);
-          enter_predeclared_class(type_of_type_info, depth_scope_stack,
-                                  &null_source_position);
-          pop_namespace_scope();
+          predeclare_std_type_info();
         }  /* if */
       }  /* if */
     }  /* if */

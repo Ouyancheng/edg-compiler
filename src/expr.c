@@ -18855,7 +18855,7 @@ indication in *rcblock).
   }  /* if */
   if (!err && !is_cli_typeid &&
       type_of_type_info != NULL &&
-      (clang_mode && !ms_compat ?
+      (clang_mode ?
             (symbol_for(type_of_type_info)->decl_scope == NO_SCOPE_DEPTH) :
             is_incomplete_type(type_of_type_info))) {
     expr_pos_error(ec_typeid_needs_typeinfo, &start_position);

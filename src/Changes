@@ -1,5 +1,17 @@
 Version 6.7
 
+8/29/24  [EDGcpfe/27361]
+Clang compatibility: declarations for type_info
+
+Some changes have been made to better emulate the behavior of Clang,
+particularly with --ms_extensions and --ms_compatibility.  Specifically,
+a change has been made to pre-declare std::type_info in Clang emulation mode
+when --ms_compatibility is specified (but no longer in default Clang emulation
+mode or when --ms_extensions is specified).  Also, a diagnostic is now given
+in Clang emulation mode when typeid is used without previously including
+<typeinfo>.
+
+
 8/29/24  [EDGcpfe/27362]
 Clang compatibility: disabling stack_referenced_include_directories with
 --ms_extensions
