@@ -562,6 +562,28 @@ translation unit, mark the canonical entry's definition as needed.
   }  /* if */      
 }  /* set_canonical_routine_definition_needed */
 
+#if CHECKING
+
+static inline a_boolean is_compiler_generated_constructor(a_routine_ptr rp)
+/*
+Return TRUE if this is a compiler generated constructor; otherwise, return
+FALSE.
+*/
+{
+  a_boolean result = TRUE;
+
+  if (!rp->is_trivial_default_constructor) {
+    result = FALSE;
+  } else if (rp->is_defaulted || rp->is_deleted) {
+    /* While constructors declared with "= default" and "= delete" are both
+       variants of a "trivial default constructor" these are explicit
+       declarations that need preserved between translation units. */
+    result = FALSE;
+  }  /* if */
+  return result;
+}  /* is_compiler_generated_constructor */
+
+#endif /* CHECKING */
 
 void set_routine_definition_needed(a_routine_ptr rout)
 /*
@@ -609,9 +631,8 @@ definition of the routine is needed, and not just the declaration.
     set_canonical_routine_definition_needed(rout);
   } else if (!routine_definition_needed_flag_is_set(rout)) {
     /* Set the flag if it is not set already. */
-    check_assertion_str(!rout->is_trivial_default_constructor ||
-                        rout->is_defaulted,
-                        "set_routine_definition_needed: trivial default ctor");
+    check_assertion_str(!is_compiler_generated_constructor(rout),
+                        "set_routine_definition_needed: generated ctor");
     set_routine_definition_needed_flag(rout);
 #if DEBUG
     if (db_trace("needed_flags", rout, iek_routine)) {
@@ -1216,9 +1237,8 @@ flag.
                                                  ) {
     a_routine_ptr rout = (a_routine_ptr)entry_ptr;
 
-    check_assertion_str(!rout->is_trivial_default_constructor ||
-                        rout->is_defaulted,
-                        "mark_as_needed: trivial default ctor");
+    check_assertion_str(!is_compiler_generated_constructor(rout),
+                        "mark_as_needed: generated ctor");
     /* For an externally-linked non-inline function, mark the body as needed
        too, on the presumption that it will be referenced from other
        translation units.  The caller could reasonably be expected to do
