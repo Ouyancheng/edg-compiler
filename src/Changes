@@ -13,14 +13,15 @@ in Clang emulation mode when typeid is used without previously including
 
 
 8/29/24  [EDGcpfe/27362]
-Clang compatibility: disabling stack_referenced_include_directories with
---ms_extensions
+--ms_extensions/--ms_compatibility and stack_referenced_include_directories
 
-The global variable stack_referenced_include_directories is no longer set to
-TRUE when --ms_extensions is specified.  This emulates the behavior of Clang
-when specifying -fms-extensions.  stack_referenced_include_directories
-continues to be set to TRUE when --ms_compatibility is specified (which
-emulates Clang's behavior for -fms-compatibility).
+The global variable stack_referenced_include_directories should be set to
+TRUE when emulating Microsoft's stack model of include files.  Previously
+it was set to TRUE when emulating any Microsoft mode, or when --ms_extensions
+or --ms_compatibility was specified on the command-line.  That didn't quite
+match the Clang behavior (when the stack model is used only with
+-fms-compatibility) or the GNU behavior (which doesn't emulate the stack model
+at all).  The front end behavior has been updated to reflect this.
 
 
 8/28/24  [EDGcpfe/27143]

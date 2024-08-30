@@ -2456,7 +2456,12 @@ option values if they were not already set by a command line option.
 {
   enum_types_can_be_smaller_than_int = FALSE;
   enum_types_can_be_larger_than_int = FALSE;
-  stack_referenced_include_directories = (clang_mode ? ms_compat : TRUE);
+  /* Microsoft's compilers use a "stack model" for include directories.
+     Clang emulates that (but only when -fms-compatibility is specified, not
+     -fms-extensions).  GNU doesn't emulate this in any mode. */
+  stack_referenced_include_directories = (clang_mode ? ms_compat :
+                                          gnu_mode ?   FALSE :
+                                                       TRUE);
   defer_friend_instantiation = TRUE;
   allow_nonstandard_anonymous_unions = TRUE;
   if (!option_kind_used[(int)optk_allow_dollar_in_id_chars]) {
