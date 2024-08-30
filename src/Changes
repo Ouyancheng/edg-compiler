@@ -1,5 +1,12 @@
 Version 6.7
 
+8/30/24  [EDGcpfe/27543]
+Multi-TU assertion failure in mark_as_needed
+
+In multi-TU modes an oversight resulted in a spurious assertion failure when
+marking deleted constructors as needed.  This has been fixed.
+
+
 8/29/24  [EDGcpfe/27361]
 Clang compatibility: declarations for type_info
 
