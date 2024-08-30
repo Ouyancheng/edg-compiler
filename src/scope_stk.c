@@ -5594,7 +5594,7 @@ class to be defined.
 
     /* If owns_module_push is already TRUE, the pushed scope cannot take
        ownership of the module entity state.  If this occurs, the code will
-       need to be adjusted to either pop the previously owned module entity
+       need to be adjusted to either pop the previously-owned module entity
        state or to ensure this condition is not reached. */
     check_assertion(!ssep->owns_module_push);
     /* In most cases, set the module ownership of any symbols that follow from

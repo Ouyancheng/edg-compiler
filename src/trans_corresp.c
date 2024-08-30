@@ -304,7 +304,7 @@ pointed to by trace_corresp_ptr is modified.
 
 void* db_corresp(void *ptr)
 /*
-Report correspondence pointer for given entry and return the address of the
+Report correspondence pointer for the given entry and return the address of the
 canonical entry (or NULL if none).
 */
 {

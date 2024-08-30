@@ -21187,7 +21187,6 @@ instance to the definitions list for the template.
   var_for_decl = variable_for_symbol(var_sym);
   tp = type_symbol_type(corresp_prototype_tag_sym);
   member_type = var_for_decl->type;
-
   if (member_type->kind == (a_type_kind)tk_union &&
       is_unnamed_tag_symbol(
                   (a_symbol_ptr)member_type->source_corresp.assoc_info)) {

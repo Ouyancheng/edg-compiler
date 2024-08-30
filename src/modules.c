@@ -108,7 +108,8 @@ using a_module_name_map = Ptr_map<a_string_view, a_module_ptr>;
 
 static a_module_name_map
                 *known_modules;
-                        /* A map of names to the known module. */
+                        /* A mapping of module names to their corresponding
+                           module IL entry. */
 
 
 static a_module_ptr find_or_create_module(a_string_view module_sym_id,
@@ -134,8 +135,7 @@ create its own copy of the module symbol identifier.
 
 a_module_ptr find_or_create_module(a_symbol_ptr module_sym)
 /*
-Find or create an IL module entity corresponding to the given module symbol
-identifier and module kind.
+Find or create an IL module entity corresponding to the given module symbol.
 */
 {
   check_assertion(module_sym->kind == sk_module);
@@ -398,7 +398,7 @@ determined, return an empty optional.
       result = get_name_of_ifc_module(module_file);
       break;
     case mfk_unknown:
-      /* The name cannot be resolved, return an empty optional. */
+      /* The name cannot be resolved; return an empty optional. */
       break;
     default_is_unexpected();
   }  /* switch */
@@ -1381,7 +1381,7 @@ translation unit.
 
 void modules_trans_unit_wrapup_part_1()
 /*
-Perform the initial modules related wrapup operations needed for the
+Perform the initial modules-related wrapup operations needed for the
 translation unit.  This is called after all processing for the translation unit
 (including template instantiations, etc.) has been done but before scopes have
 been wrapped up.
@@ -1396,9 +1396,9 @@ additional entities are added to the IL.
 
 void modules_trans_unit_wrapup_part_2()
 /*
-Perform final modules related wrapup operations needed for the translation
+Perform final modules-related wrapup operations needed for the translation
 unit.  This is called after all processing for the translation unit (including
-template instantiations, etc.) and scope wrapup has been done.
+template instantiations, etc.) and scope wrapup have been done.
 
 This phase is primarily used to deallocate objects allocated for modules
 support in the current translation unit.

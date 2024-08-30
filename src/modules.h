@@ -328,9 +328,8 @@ using a_module_lookup_array = Small_dyn_array<a_module_ptr, 2>;
 
 inline a_module_lookup_array curr_lookup_modules()
 /*
-Return all modules that module that can be pulled from during lookup.  A NULL
-value represents the global module and any exported entities from imported
-modules.
+Return all modules that can be pulled from during lookup.  A NULL value
+represents the global module and any exported entities from imported modules.
 */
 {
   a_module_lookup_array result;

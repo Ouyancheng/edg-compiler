@@ -8666,6 +8666,7 @@ emit an error.
 */
 {
 #if 0
+  /* FIXME: We can't enable this yet as it causes regressions in testing. */
   if (mep->module_info->kind != mk_header_unit && !mep->global_module) {
     /* Suspend any diagnostic suppression, ensuring the following error is
        always surfaced. */

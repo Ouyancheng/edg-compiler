@@ -326,8 +326,8 @@ it needs to be executed after all templates have been instantiated.
 
   il_scope = curr_translation_unit->primary_scope;
 
-  /* Do any the initial modules wrapup to shutdown loading of new entities from
-     a module. */
+  /* Do the initial modules wrapup to shutdown loading of new entities from a
+     module. */
   modules_trans_unit_wrapup_part_1();
   /* Do any lexical cleanup that may be needed for this translation unit. */
   lexical_trans_unit_wrapup();

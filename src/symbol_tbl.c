@@ -4493,7 +4493,7 @@ a_hash_table_ptr curr_lookup_table(
             /* Defaulted: */  a_boolean                  create)
 
 /*
-Return a pointer to the lookup table for given module context for the scope
+Return a pointer to the lookup table for the given module context and the scope
 associated with pointers_block.  Note that this address could point into a
 Ptr_map, so it is potentially not stable across things like instantiations,
 etc.  When module_context is NULL the lookup_table pointer is used, otherwise a
@@ -4527,10 +4527,11 @@ TRUE, a map entry is added for the lookup table for the module_context.
 a_hash_table_ptr curr_lookup_table(a_scope_stack_entry_ptr ssep,
                                    a_module_ptr            module_context)
 /*
-Return a pointer to the lookup table for given module context for the specified
-scope stack entry.  Note that this address could point into a Ptr_map, so it is
-potentially not stable across things like instantiations, etc.  The choice of
-the lookup_table pointer vs. the module map is based on the scope kind.
+Return a pointer to the lookup table for the given module context and the
+specified scope stack entry.  Note that this address could point into a
+Ptr_map, so it is potentially not stable across things like instantiations,
+etc.  The choice of the lookup_table pointer vs. the module map is based on the
+scope kind.
 */
 {
   a_hash_table_ptr           result;
@@ -6078,7 +6079,7 @@ it.
 static void add_symbol_to_lookup_table(a_symbol_ptr     symbol,
                                        a_hash_table_ptr lookup_table)
 /*
-Add symbol to the specified lookup table associated with pointers_block.
+Add symbol to the specified lookup table.
 */
 {
   a_symbol_header_lookup_entry_ptr shlep;
@@ -12826,9 +12827,10 @@ NULL if there isn't one.
 
 a_boolean is_symbol_globally_visible(a_symbol_ptr sym_ptr)
 /*
-Return TRUE if the given symbol is visible to lookup.  For the symbol to be
-visible to lookup, it must either be part of the global module or it must have
-been exported from a module (that has been imported).  Otherwise, return FALSE.
+Return TRUE if the given symbol is always (i.e., globally) visible to lookup.
+For the symbol to be globally visible to lookup, it must either be part of the
+global module or it must have been exported from a module (that has been
+imported).  Otherwise, return FALSE.
 */
 {
   a_module_entity_ptr mep = sym_ptr->module_entity;
@@ -12840,9 +12842,11 @@ been exported from a module (that has been imported).  Otherwise, return FALSE.
 
 a_boolean is_symbol_currently_lookup_visible(a_symbol_ptr sym_ptr)
 /*
-Return TRUE if the given symbol is visible to lookup.  For the symbol to be
-visible to lookup, it must either be part of the global module or it must have
-been exported from a module (that has been imported).  Otherwise, return FALSE.
+Return TRUE if the given symbol is currently visible to lookup.  For the symbol
+to be currently visible to lookup, it must either be globally visible (see the
+above function, is_symbol_globally_visible, for more information) or part of
+the module that the front end is currently processing.  Otherwise, return
+FALSE.
 */
 {
   a_boolean result = FALSE;

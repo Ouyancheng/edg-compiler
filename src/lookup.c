@@ -2734,7 +2734,6 @@ routine.
     ssep = scope_stack_entry_for(scope_depth);
     prev_active_sym = NULL;
     active_sym = symbol_list_from_locator(*locator);
-
     while (should_skip_active_sym(active_sym, ssep->number)) {
       prev_active_sym = active_sym;
       active_sym = active_sym->next;
