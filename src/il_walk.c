@@ -566,7 +566,7 @@ translation unit, mark the canonical entry's definition as needed.
 
 static inline a_boolean is_compiler_generated_constructor(a_routine_ptr rp)
 /*
-Return TRUE if this is a compiler generated constructor; otherwise, return
+Return TRUE if this is a compiler-generated constructor; otherwise, return
 FALSE.
 */
 {
@@ -577,7 +577,7 @@ FALSE.
   } else if (rp->is_defaulted || rp->is_deleted) {
     /* While constructors declared with "= default" and "= delete" are both
        variants of a "trivial default constructor" these are explicit
-       declarations that need preserved between translation units. */
+       declarations that need to be preserved between translation units. */
     result = FALSE;
   }  /* if */
   return result;
