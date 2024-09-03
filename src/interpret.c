@@ -17442,6 +17442,14 @@ complete_object).  Otherwise, return FALSE and record a diagnostic in *ips.
   if (result) {
     /* Now transform the interpreter-formatted object format into the
        target representation. */
+    if (type_is(src_type, tk_float) &&
+        (src_type->variant.float_kind == fk_float16 ||
+         src_type->variant.float_kind == fk_std_float16)) {
+      /* In some configurations, float16 types are emulated as a 32-bit
+         float internal value.  Adjust the representation to IEEE binary16
+         if necessary. */
+      adjust_float16_representation_if_needed(src_result_storage);
+    }  /* if */
     alloc_stack_bytes(ips, (a_byte_count)type_size, target_result_storage);
     alloc_stack_bytes(ips, (a_byte_count)type_size, target_result_bitmap);
     memzero(target_result_storage, type_size);

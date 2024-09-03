@@ -303,6 +303,13 @@ a_boolean fp_same_representation(a_float_kind            kind,
                                  an_internal_float_value *value_1,
                                  an_internal_float_value *value_2);
 
+#if USE_SOFTFLOAT || HOST_HAS_FLOAT16_TYPE
+/* In these configurations, the float16 representation is 16 bits, so no
+   adjustment is required. */
+#define adjust_float16_representation_if_needed(x) /* nothing */
+#else /* !(USE_SOFTFLOAT || HOST_HAS_FLOAT16_TYPE) */
+extern void adjust_float16_representation_if_needed(a_byte *rep);
+#endif /* USE_SOFTFLOAT || HOST_HAS_FLOAT16_TYPE */
 extern unsigned int fp_hash(an_internal_float_value *value);
 
 extern void float_pt_init(void);

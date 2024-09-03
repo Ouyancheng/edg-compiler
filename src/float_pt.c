@@ -4375,6 +4375,60 @@ and 0.0 might not compare equal.
   return same;
 }  /* fp_same_representation */
 
+#if !USE_SOFTFLOAT && !HOST_HAS_FLOAT16_TYPE
+
+void adjust_float16_representation_if_needed(a_byte *rep)
+/*
+Adjust the internal 32-bit representation, rep, of a std::float16_t value,
+assumed to be in IEEE binary32 format, to be a 16-bit IEEE binary16
+representation.
+*/
+{
+  union {
+    a_byte   bytes[4];
+    uint32_t float_ovl;
+    uint16_t short_ovl;
+  } u;
+  uint16_t exp;
+
+  /* IEEE binary32 representation:
+
+        s eee  eeee  e mmm  mmmm  mmmm  mmmm  mmmm  mmmm
+        | -----+------ ----------------+----------------
+        |      |                       |
+        |      |                       +-- mantissa
+        |      +-------------------------- exponent
+        +--------------------------------- sign
+
+      IEEE binary16 representation:
+
+        s eee  ee mm  mmmm  mmmm
+        | ---+--- -------+------
+        |    |           |
+        |    |           +-- mantissa
+        |    +-------------- exponent
+        +------------------- sign
+
+      Converting between the representations involves copying the sign bit;
+      de-biasing (by 127) the binary32 exponent, extracting the low-order
+      five bits, and re-biasing (by 15) the value for the binary16 exponent;
+      and copying the high-order ten bits of the binary32 mantissa for the
+      binary16 mantissa. */
+
+  /* Copy the binary32 representation. */
+  memcpy(u.bytes, rep, 4);
+  /* Calculate the binary16 biased exponent. */
+  exp = ((((u.float_ovl >> 23) & 0xff) - 127 + 15) & 0x1f);
+  /* Assemble the binary16 representation. */
+  u.short_ovl = (uint16_t)(((u.float_ovl >> 16) & 0x8000) | (exp << 10) |
+                           ((u.float_ovl >> 13) & 0x3ff));
+  /* Copy the binary16 representation. */
+  memcpy(rep, u.bytes, 2);
+  rep[2] = 0;
+  rep[3] = 0;
+}  /* adjust_float16_representation_if_needed */
+
+#endif /* !USE_SOFTFLOAT && !HOST_HAS_FLOAT16_TYPE */
 
 unsigned int fp_hash(an_internal_float_value *value)
 /*
