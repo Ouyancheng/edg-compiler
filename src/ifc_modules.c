@@ -13448,6 +13448,7 @@ to this function.
                                         str_for(decl_idx.sort),
                                         &error_position);
       goto invalid;
+    default_is_unexpected();
   }  /* switch */
   goto done;
 invalid:;
