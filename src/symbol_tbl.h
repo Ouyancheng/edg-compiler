@@ -4317,7 +4317,7 @@ enum a_module_entry_locator_kind {
 };
 
 /*
-A light weight representation of a module entry that can be resolved by the
+A lightweight representation of a module entry that can be resolved by the
 corresponding module interface to a concrete entry corresponding to an IL
 entity itself (or some components thereof).
 */
@@ -4380,7 +4380,7 @@ struct a_deferred_module_entry_array {
   size_t	num_active_scopes = 0;
 			/* The number of times the associated entries are being
 			   considered in the current call stack.  This is used
-			   to determine if it's safe to cleanup processed
+			   to determine if it's safe to clean up processed
 			   entries (by virtue of knowing if there are other
 			   calls currently reading from the entries
 			   Dyn_array). */

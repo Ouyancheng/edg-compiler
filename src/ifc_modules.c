@@ -4790,7 +4790,7 @@ static inline a_boolean init_decl_locator(const an_ifc_Decl_type &decl,
                                           a_symbol_locator       *loc)
 /*
 Initialize the locator specified by loc for the declaration represented at decl
-using a NameIndex derived declaration name.  Return TRUE if processing
+using a NameIndex-derived declaration name.  Return TRUE if processing
 succeeded, otherwise return FALSE.
 */
 {
@@ -10594,7 +10594,7 @@ static a_boolean ensure_module_scope(
                                    a_module_entity_ptr      mep,
                                    a_module_scope_push_kind *scope_push_status)
 /*
-If the given module entity has associated scope information and push the module
+If the given module entity has associated scope information, push the module
 declaration context.  Update *scope_push_status to mspk_unattempted if no scope
 push was attempted, mspk_unnecessary if the current scope is already the
 correct scope, or mspk_new if a new scope was pushed.  Return TRUE if no errors
@@ -13126,10 +13126,10 @@ return FALSE.
 static void defer_ifc_declaration(an_ifc_decl_index decl_idx,
                                   a_scope_ptr       scope)
 /*
-Setup deferred processing for the IFC module entry (that should be recreated in
-the given scope) corresponding to the given IFC declaration index by updating
-the appropriate symbol header.  If the entity cannot be deferred, instead
-process it immediately.
+Set up deferred processing for the IFC module entry (that should be recreated
+in the given scope) corresponding to the given IFC declaration index by
+updating the appropriate symbol header.  If the entity cannot be deferred,
+instead process it immediately.
 
 Only module entity pointers for IL entities not in class scope should be passed
 to this function.
