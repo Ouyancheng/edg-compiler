@@ -11724,15 +11724,6 @@ done:
 #endif /* DEBUG */
 }  /* process_decl_to_il_entity */
 
-#if DEBUG
-
-static unsigned long
-                decl_nesting_level;
-                        /* The number of defer_ifc_declaration and
-                           process_ifc_declaration calls currently on the
-                           stack. */
-
-#endif /* DEBUG */
 
 void process_ifc_declaration(a_module_entity_ptr mep)
 /*
@@ -28712,12 +28703,9 @@ Initialization of things related to IFC modules that must be repeated for every
 translation unit.
 */
 {
-#if DEBUG
-#if EXPENSIVE_CHECKING
+#if DEBUG && EXPENSIVE_CHECKING
   debug_partition = NULL;
-#endif /* EXPENSIVE_CHECKING */
-  decl_nesting_level = 0;
-#endif /* DEBUG */
+#endif /* DEBUG && EXPENSIVE_CHECKING */
   ifc_parameterized_entities = new_fe<an_ifc_parameterized_entity_map>(
                                                             /*mask_width=*/10);
   ifc_var_inits = new_fe<a_lazy_entity_part>();
