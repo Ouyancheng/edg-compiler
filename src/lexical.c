@@ -13067,7 +13067,6 @@ messages.
            sequence.  Skip past the characters that make up the construct.
            Ignore any errors at this point -- they will be issued when the
            escape is converted to a character. */
-        a_boolean delimited_err = FALSE;
         a_boolean malformed_err = FALSE;
         is_delimited = delimited_escape_seqs_allowed && ch == 'u' &&
                                                        curr_char_loc[1] == '{';
