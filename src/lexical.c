@@ -12331,10 +12331,11 @@ detected and malformed_err is not NULL, *malformed_err is set to TRUE.
             /* All three emulated compilers accept an invalid UCN without
                error, although clang emits a warning. */
             sev = es_warning;
-          } else if (microsoft_mode || macro_depth > 0) {
-            /* MSVC accepts malformed UCNs without complaint.  We also want
-               to suppress error reports during macro expansion and only
-               issue an error if the expanded text contains the UCN. */
+          } else if ((microsoft_mode && !is_identifier) || macro_depth > 0) {
+            /* MSVC accepts malformed UCNs in literals, but not in
+               identifiers, without complaint.  We also want to suppress
+               error reports during macro expansion and only issue an error
+               if the expanded text contains the UCN. */
             sev = es_remark;
           } else {
             sev = es_discretionary_error;
