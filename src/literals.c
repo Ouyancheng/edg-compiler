@@ -1127,7 +1127,7 @@ state->next_orig_line_modif is advanced to point to the next modification.
   a_boolean     range_error = FALSE;
   a_boolean     numeric_escape = FALSE;
   a_boolean     unrecognized;
-  a_boolean     delimited_err = FALSE;
+  a_boolean     malformed_err = FALSE;
 
   lptr = *state->next_token_char;
   if (state->remaining_char_count != 0) {
@@ -1358,15 +1358,15 @@ get_another:
                                            /*is_identifier=*/FALSE,
                                            /*is_identifier_start=*/FALSE,
                                            /*issue_diagnostics=*/TRUE,
-                                           &delimited_err);
-        if (delimited_err) {
-          /* There was a malformed delimited escape sequence.  If the
-             literal was empty, add a null character; otherwise, treat the
-             '\' as an ordinary character and the rest of the sequence as
-             having no special significance. */
+                                           &malformed_err);
+        if (malformed_err) {
+          /* There was a malformed escape sequence.  If a delimited literal
+             was empty, add a null character; otherwise, skip the '\' and
+             treat the rest of the sequence as having no special
+             significance. */
           if (lptr != start_of_escape + 4 || targ_ch != 0) {
-            targ_ch = '\\';
-            lptr = start_of_escape + 1;
+            targ_ch = start_of_escape[1];;
+            lptr = start_of_escape + 2;
           }  /* if */
         }  /* if */
         if (!narrow_literal) {

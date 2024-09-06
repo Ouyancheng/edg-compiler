@@ -23,20 +23,25 @@ hexadecimal digits.  When a malformed UCN was specified in a command-line
 macro definition, the error was transformed into a catastrophic
 command-line error and the compilation was terminated.  MSVC, however, does
 not diagnose these erroneous UCNs in any context, neither on the command
-line nor in program text.  The front end's Microsoft mode has been changed
-to accept these errors with only a remark.  In addition, both gcc and clang
-only issued errors for such UCNs in program text, accepting them on the
-command line, and the front end now does the same in corresponding
-emulation modes.  For example, with --microsoft -DX=\\ub (assuming a shell
-that interprets "\\" as a single '\'), the following is accepted without
-error:
+line nor in program text, and simply discards the '\'.  The front end's
+Microsoft mode has been changed to do the same, issuing only a remark.
+In addition, both gcc and clang only issue errors for such UCNs in program
+text, accepting them on the command line, and the front end now does the
+same in corresponding emulation modes.  For example, with --microsoft
+-DX=\\ub (assuming a shell that passes "\\" as a single '\'), the following
+is accepted without error:
 
   #define Q(Z) #Z
   #define Y(Z) Q(Z)
   void f() {
-      char buf1[] = "\ub";
-      char buf2[] = Y(X);   // Same value as buf1
+    char c = '\u';         // Equivalent to 'u'
+    char buf1[] = "\ub";   // Equivalent to "ub"
+    char buf2[] = Y(X);    // Equivalent to "ub"
   }
+
+With --g++ -DX=\\ub, the front end issues errors for the three occurrences
+of malformed UCNs in source text but not for the appearance on the command
+line.
 
 
 8/30/24  [EDGcpfe/27543]

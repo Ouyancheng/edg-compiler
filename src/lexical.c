@@ -12201,9 +12201,11 @@ rules for C++98/C++03 and for C++11 are different.
     }  /* if */
   }  /* if */
   if (err_code != ec_no_error) {
+    an_error_severity sev = (macro_depth > 0) ? es_remark
+                                              : strict_ansi_error_severity;
     /* Get the source position that corresponds to this character. */
     conv_line_loc_to_source_pos(*start_pos, &error_position);
-    diagnostic(strict_ansi_error_severity, err_code);
+    diagnostic(sev, err_code);
   }  /* if */
   return (err_code != ec_no_error);
 }  /* check_for_invalid_cplusplus_ucn */
@@ -12253,7 +12255,7 @@ unsigned long scan_universal_character(a_const_char	**start_pos,
                                        a_boolean	is_identifier,
                                        a_boolean	is_identifier_start,
                                        a_boolean	issue_diagnostics,
-                     /* Defaulted: */  a_boolean	*delimited_err)
+                     /* Defaulted: */  a_boolean	*malformed_err)
 /*
 Scan the universal character name starting at start_pos.  The character
 specified by the universal character name is returned.  If is_identifier is
@@ -12263,9 +12265,8 @@ one of those characters that can appear as the first character in an
 identifier.  If issue_diagnostics is TRUE, diagnostic messages are produced
 if the universal character is improperly formed, or if it names an invalid
 character.  *start_pos is updated by this routine to point to the character
-after the universal character name.  If a malformed delimited escape
-sequence is detected and delimited_err is not NULL, *delimited_err is set
-to TRUE.
+after the universal character name.  If a malformed escape sequence is
+detected and malformed_err is not NULL, *malformed_err is set to TRUE.
 */
 {
   a_const_char	*pos = *start_pos;
@@ -12274,8 +12275,8 @@ to TRUE.
   int		digits;
   a_boolean	is_delimited;
 
-  if (delimited_err != NULL) {
-    *delimited_err = FALSE;
+  if (malformed_err != NULL) {
+    *malformed_err = FALSE;
   }  /* if */
   /* The current position must be the start of a universal character name. */
   check_assertion_str2(*pos == '\\' && (*(pos+1) == 'u' || *(pos+1) == 'U'),
@@ -12332,8 +12333,10 @@ to TRUE.
             /* All three emulated compilers accept an invalid UCN without
                error, although clang emits a warning. */
             sev = es_warning;
-          } else if (microsoft_mode) {
-            /* MSVC accepts malformed UCNs without complaint. */
+          } else if (microsoft_mode || macro_depth > 0) {
+            /* MSVC accepts malformed UCNs without complaint.  We also want
+               to suppress error reports during macro expansion and only
+               issue an error if the expanded text contains the UCN. */
             sev = es_remark;
           } else {
             sev = es_discretionary_error;
@@ -12346,8 +12349,8 @@ to TRUE.
          treated as part of the token that follows. */
       --pos;
       err = TRUE;
-      if (is_delimited && delimited_err != NULL) {
-        *delimited_err = TRUE;
+      if (malformed_err != NULL) {
+        *malformed_err = TRUE;
       }  /* if */
       break;
     }  /* if */
@@ -13065,6 +13068,7 @@ messages.
            Ignore any errors at this point -- they will be issued when the
            escape is converted to a character. */
         a_boolean delimited_err = FALSE;
+        a_boolean malformed_err = FALSE;
         is_delimited = delimited_escape_seqs_allowed && ch == 'u' &&
                                                        curr_char_loc[1] == '{';
         /* Back up one character because the routines expect the opening
@@ -13088,12 +13092,13 @@ messages.
                                          /*is_identifier=*/FALSE,
                                          /*is_identifier_start=*/FALSE,
                                          /*issue_diagnostics=*/FALSE,
-                                         &delimited_err);
+                                         &malformed_err);
         }  /* if */
-        if (delimited_err) {
-          /* A malformed delimited escape sequence will be treated as an
-             ordinary sequence of characters with no special meaning. */
-          nchars += curr_char_loc - escape_start;
+        if (malformed_err) {
+          /* A malformed escape sequence will be treated as an ordinary
+             sequence of characters (skipping the '\') with no special
+             meaning. */
+          nchars += curr_char_loc - escape_start - 1;
         } else if ((ch == 'U' || (ch == 'u' && is_delimited) || ch == 'N') &&
                    (literal_kind == SCLK_CHAR16_T_LITERAL ||
                     literal_kind == SCLK_WIDE_LITERAL)) {
