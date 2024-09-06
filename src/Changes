@@ -5,13 +5,13 @@ Microsoft C++/CLI compatibility: Standard vs. managed nullptr
 
 In Microsoft C++/CLI mode, nullptr is distinct from the standard C++11 nullptr
 literal (the standard semantics are instead associated with the Microsoft
-__nullptr keyword).  One way in which this manifests, is that typeid(nullptr)
+__nullptr keyword).  One way in which this manifests is that typeid(nullptr)
 is invalid in C++/CLI.  However, under some circumstances MSVC treats a
-managed nullptr value reverts as a standard nullptr, and the front end now
-emulates that behavior more closely.  Specifically, in C++/CLI mode
-decltype(nullptr) now produces the standard nullptr type (i.e., behaves like
-decltype(__nullptr)), and template deduction from a managed nullptr value
-produces the standard nullptr type.
+managed nullptr value as a standard nullptr, and the front end now emulates
+that behavior more closely.  Specifically, in C++/CLI mode decltype(nullptr)
+now produces the standard nullptr type (i.e., decltype(__nullptr)), and
+template deduction from a managed nullptr value produces the standard nullptr
+type.
 
 
 9/5/24   [EDGcpfe/27564]
