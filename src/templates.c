@@ -13573,7 +13573,7 @@ points to the template parameter list.
                   is_auto_template_param_type(templ_type) ||
                   identical_types(type, templ_type);
         } else {
-          a_template_param_coordinate_ptr	coordinates;
+          a_template_param_coordinate_ptr  coordinates;
           /* This is a template parameter from the original source program
              and not a synthesized template parameter. */
           /* A real type "matches" a template parameter type if it is identical
@@ -13603,6 +13603,13 @@ points to the template parameter list.
               eliminate_boolean_vector(&type);
             }  /* if */
 #endif /* GNU_EXTENSIONS_ALLOWED && GNU_VECTOR_TYPES_ALLOWED */
+#if MICROSOFT_EXTENSIONS_ALLOWED
+            if (cli_or_cx_enabled && is_managed_nullptr_type(type)) {
+              /* Deduction from a managed nullptr type produces the standard
+                 nullptr type. */
+              type = standard_nullptr_type();
+            }  /* if */
+#endif /* MICROSOFT_EXTENSIONS_ALLOWED */
             tap->variant.type = type;
             /* If the new type is a pack, copy over the flag. */
             tap->is_pack = (flags & MTT_IS_PACK) != 0;

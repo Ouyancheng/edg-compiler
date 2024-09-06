@@ -16375,6 +16375,14 @@ general_case:
       goto done;
     }  /* if */
     result = operand->type;
+#if MICROSOFT_EXTENSIONS_ALLOWED
+    if (cli_or_cx_enabled && is_managed_nullptr_type(result)) {
+      /* decltype applied to an expression producing a managed nullptr type
+         produces the standard nullptr type.  E.g., typeid(nullptr) is invalid
+         in C++/CLI, but typeid(decltype(nullptr)) is accepted by MSVC. */
+      result = standard_nullptr_type();
+    }  /* if */
+#endif /* MICROSOFT_EXTENSIONS_ALLOWED */
     if (operand_has_uncertain_value_category(operand)) {
       if (!is_error_operand(operand)) {
         result = type_of_unknown_templ_param_nontype;
