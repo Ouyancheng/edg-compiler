@@ -2789,11 +2789,11 @@ extern a_symbol_ptr coalesce_and_lookup_generalized_identifier
                          a_boolean                        *err);
 
 extern unsigned long scan_universal_character(
-					a_const_char	**start_pos,
-					a_boolean	is_identifier,
-				        a_boolean	is_identifier_start,
-					a_boolean	issue_diagnostics,
-                                        a_boolean       *malformed_err = NULL);
+                                           a_const_char **start_pos,
+                                           a_boolean    is_identifier,
+                                           a_boolean    is_identifier_start,
+                                           a_boolean    issue_diagnostics,
+                                           a_boolean    *malformed_err = NULL);
 
 extern unsigned long scan_named_unicode_char(
 					a_const_char	**start_pos,
