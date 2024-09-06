@@ -1,5 +1,30 @@
 Version 6.7
 
+9/5/24   [EDGcpfe/27564]
+Microsoft compatibility: handling malformed universal character names
+
+The front end previously issued an error when a universal character name
+(i.e., \uxxxx or \Uxxxxxxxx) has fewer than the required number of
+hexadecimal digits.  When a malformed UCN was specified in a command-line
+macro definition, the error was transformed into a catastrophic
+command-line error and the compilation was terminated.  MSVC, however, does
+not diagnose these erroneous UCNs in any context, neither on the command
+line nor in program text.  The front end's Microsoft mode has been changed
+to accept these errors with only a remark.  In addition, both gcc and clang
+only issued errors for such UCNs in program text, accepting them on the
+command line, and the front end now does the same in corresponding
+emulation modes.  For example, with --microsoft -DX=\\ub (assuming a shell
+that interprets "\\" as a single '\'), the following is accepted without
+error:
+
+  #define Q(Z) #Z
+  #define Y(Z) Q(Z)
+  void f() {
+      char buf1[] = "\ub";
+      char buf2[] = Y(X);   // Same value as buf1
+  }
+
+
 8/30/24  [EDGcpfe/27543]
 Multi-TU assertion failure in mark_as_needed
 

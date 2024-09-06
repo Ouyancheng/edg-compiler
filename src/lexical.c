@@ -12155,15 +12155,15 @@ identifier character is invalid.
 }  /* is_valid_UCN_identifier_char */
 
 
-static void check_for_invalid_cplusplus_ucn(
-					unsigned long	ucn,
-				        a_const_char	**start_pos,
-					a_boolean	is_identifier,
-					a_boolean	is_identifier_start)
+static a_boolean check_for_invalid_cplusplus_ucn(
+                                             unsigned long ucn,
+                                             a_const_char  **start_pos,
+                                             a_boolean     is_identifier,
+                                             a_boolean     is_identifier_start)
 /*
-Determine whether "ucn" is a valid universal character name in C++.
-Issue a diagnostic if it is not.  The rules for C++98/C++03 and for C++11
-are different.
+Determine whether "ucn" is a valid universal character name in C++.  Issue
+a diagnostic and return TRUE if it is not; otherwise, return FALSE.  The
+rules for C++98/C++03 and for C++11 are different.
 */
 {
   an_error_code	err_code = ec_no_error;
@@ -12205,6 +12205,7 @@ are different.
     conv_line_loc_to_source_pos(*start_pos, &error_position);
     diagnostic(strict_ansi_error_severity, err_code);
   }  /* if */
+  return (err_code != ec_no_error);
 }  /* check_for_invalid_cplusplus_ucn */
 
 
@@ -12324,8 +12325,21 @@ to TRUE.
           pos_diagnostic(es_discretionary_error,
                          ec_unterminated_delimited_escape, &error_position);
         } else {
-          pos_diagnostic(es_discretionary_error,
-                         ec_malformed_universal_character, &error_position);
+          an_error_severity sev;
+          if ((microsoft_mode || clang_mode || gnu_mode) &&
+              curr_cmd_line_or_predef_macro_def != NULL &&
+              !processing_predefined_macro) {
+            /* All three emulated compilers accept an invalid UCN without
+               error, although clang emits a warning. */
+            sev = es_warning;
+          } else if (microsoft_mode) {
+            /* MSVC accepts malformed UCNs without complaint. */
+            sev = es_remark;
+          } else {
+            sev = es_discretionary_error;
+          }  /* if */
+          pos_diagnostic(sev, ec_malformed_universal_character,
+                         &error_position);
         }  /* if */
       }  /* if */
       /* Back up one character so that the invalid character will be
@@ -12343,8 +12357,8 @@ to TRUE.
 check_validity:
   if (!err && issue_diagnostics) {
     if (!C_mode()) {
-      check_for_invalid_cplusplus_ucn(result, start_pos, is_identifier,
-                                      is_identifier_start);
+      (void)check_for_invalid_cplusplus_ucn(result, start_pos, is_identifier,
+                                            is_identifier_start);
     } else {
       check_for_invalid_c99_ucn(result, start_pos, is_identifier,
                                 is_identifier_start);
@@ -12542,8 +12556,8 @@ end_of_state_processing:
   }  /* while */
   if (rbrace_pos != NULL && issue_diagnostics) {
     /* Check whether the named character is valid. */
-    check_for_invalid_cplusplus_ucn(result, start_pos, is_identifier,
-                                    is_identifier_start);
+    (void)check_for_invalid_cplusplus_ucn(result, start_pos, is_identifier,
+                                          is_identifier_start);
   }  /* if */
   if (rbrace_pos == NULL) {
     /* We encountered an error.  g++ distinguishes between cases where the
@@ -17162,7 +17176,9 @@ id_scan:
                universal_character_names_allowed) ||
               (ch == 'N' && curr_char_loc[2] == '{' &&
                 named_unicode_chars_allowed)) {
-            a_boolean is_identifier_start =
+            unsigned long ucn;
+            a_const_char  *ucn_start = curr_char_loc;
+            a_boolean     is_identifier_start =
                                           curr_char_loc == start_of_curr_token;
             continue_scan = TRUE;
             id_contains_ucn_or_multibyte_char = TRUE;
@@ -17170,24 +17186,57 @@ id_scan:
             id_contains_ucn = TRUE;
 #endif /* UNICODE_VULNERABILITY_DETECTION_SUPPORTED */
             if (ch == 'N') {
-              if (scan_named_unicode_char(&curr_char_loc,
-                                          /*is_identifier=*/TRUE,
-                                          is_identifier_start,
-                                          /*issue_diagnostics=*/TRUE,
-                                          /*update_pos_on_error=*/FALSE) >
-                                                             MAX_UNICODE_VAL) {
-                /* An error occurred.  Set the end of the token to the
-                   character before the '\' and skip over the '\' to
-                   prevent it being processed again. */
-                end_of_curr_token = curr_char_loc - 1;
-                ++curr_char_loc;
-                goto end_of_id;
+              if ((ucn = scan_named_unicode_char(
+                                              &curr_char_loc,
+                                              /*is_identifier=*/TRUE,
+                                              is_identifier_start,
+                                              /*issue_diagnostics=*/TRUE,
+                                              /*update_pos_on_error=*/FALSE)) >
+                                                             MAX_UNICODE_VAL ||
+                  check_for_invalid_cplusplus_ucn(ucn, &ucn_start,
+                                                  /*is_identifier=*/TRUE,
+                                                  is_identifier_start)) {
+                /* An error occurred. */
+                if (is_identifier_start) {
+                  /* Skip over the '\' and treat the u/U as starting an
+                     identifier. */
+                  curr_char_loc = ucn_start + 1;
+                  goto id_scan;
+                } else {
+                  /* We've already recognized part of an identifier.  Set
+                     the end of the token to the character before the '\'
+                     and skip over the '\' to prevent it being processed
+                     again. */
+                  end_of_curr_token = ucn_start - 1;
+                  curr_char_loc = ucn_start + 1;
+                  goto end_of_id;
+                }  /* if */
               }  /* if */
             } else {
-              (void)scan_universal_character(&curr_char_loc,
+              ucn = scan_universal_character(&curr_char_loc,
                                              /*is_identifier=*/TRUE,
                                              is_identifier_start,
                                              /*issue_diagnostics=*/TRUE);
+              if (check_for_invalid_cplusplus_ucn(ucn, &ucn_start,
+                                                  /*is_identifier=*/TRUE,
+                                                  is_identifier_start)) {
+                
+                /* An error occurred. */
+                if (is_identifier_start) {
+                  /* Skip over the '\' and treat the u/U as starting an
+                     identifier. */
+                  curr_char_loc = ucn_start + 1;
+                  goto id_scan;
+                } else {
+                  /* We've already recognized part of an identifier.  Set
+                     the end of the token to the character before the '\'
+                     and skip over the '\' to prevent it being processed
+                     again. */
+                  end_of_curr_token = ucn_start - 1;
+                  curr_char_loc = ucn_start + 1;
+                  goto end_of_id;
+                }  /* if */
+              }  /* if */
             }  /* if */
           }  /* if */
 #if MULTIBYTE_CHARS_IN_SOURCE_SUPPORTED
