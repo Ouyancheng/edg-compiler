@@ -17179,7 +17179,6 @@ id_scan:
                universal_character_names_allowed) ||
               (ch == 'N' && curr_char_loc[2] == '{' &&
                 named_unicode_chars_allowed)) {
-            a_const_char  *ucn_start = curr_char_loc;
             a_boolean     is_identifier_start =
                                           curr_char_loc == start_of_curr_token;
             continue_scan = TRUE;
