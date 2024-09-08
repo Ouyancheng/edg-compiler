@@ -17185,7 +17185,8 @@ id_scan:
                universal_character_names_allowed) ||
               (ch == 'N' && curr_char_loc[2] == '{' &&
                 named_unicode_chars_allowed)) {
-            a_boolean     is_identifier_start =
+            a_const_char *ucn_start = curr_char_loc;
+            a_boolean    is_identifier_start =
                                           curr_char_loc == start_of_curr_token;
             continue_scan = TRUE;
             id_contains_ucn_or_multibyte_char = TRUE;
@@ -17199,18 +17200,35 @@ id_scan:
                                           /*issue_diagnostics=*/TRUE,
                                           /*update_pos_on_error=*/FALSE) >
                                                              MAX_UNICODE_VAL) {
-                /* An error occurred.  Set the end of the token to the
-                   character before the '\' and skip over the '\' to
-                   prevent it being processed again. */
-                end_of_curr_token = curr_char_loc - 1;
-                ++curr_char_loc;
-                goto end_of_id;
+                /* An error occurred. */
+                if (is_identifier_start) {
+                  /* Skip over the '\' and treat the u/U as starting an
+                     identifier. */
+                  curr_char_loc = ucn_start + 1;
+                  goto id_scan;
+                } else {
+                  /* We've already recognized part of an identifier.  Set
+                     the end of the token to the character before the '\'
+                     and skip over the '\' to prevent it being processed
+                     again. */
+                  end_of_curr_token = ucn_start - 1;
+                  curr_char_loc = ucn_start + 1;
+                  goto end_of_id;
+                }  /* if */
               }  /* if */
             } else {
+              a_boolean delimited_err;
               (void)scan_universal_character(&curr_char_loc,
                                              /*is_identifier=*/TRUE,
                                              is_identifier_start,
-                                             /*issue_diagnostics=*/TRUE);
+                                             /*issue_diagnostics=*/TRUE,
+                                             &delimited_err);
+              if (delimited_err && is_identifier_start) {
+                /* Skip over the '\' and treat the u/U as starting an
+                   identifier. */
+                curr_char_loc = ucn_start + 1;
+                goto id_scan;
+              }  /* if */
             }  /* if */
           }  /* if */
 #if MULTIBYTE_CHARS_IN_SOURCE_SUPPORTED
