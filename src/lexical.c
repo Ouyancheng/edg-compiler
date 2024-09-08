@@ -12348,7 +12348,13 @@ detected and malformed_err is not NULL, *malformed_err is set to TRUE.
          treated as part of the token that follows. */
       --pos;
       err = TRUE;
-      if (malformed_err != NULL) {
+      if ((is_delimited || microsoft_mode) && malformed_err != NULL) {
+        /* MSVC recovers from a malformed non-delimited UCN by ignoring the
+           '\' and treating the remaining characters as ordinary
+           characters.  This style of error recovery is indicated to the
+           caller by setting *malformed_err to TRUE.  In non-Microsoft
+           modes, recovery consists of just taking whatever numeric value
+           has been accumulated and treating that as the code point. */
         *malformed_err = TRUE;
       }  /* if */
       break;
