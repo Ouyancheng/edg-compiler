@@ -34,6 +34,8 @@ class_decl.h -- Declarations related to class_decl.c (having to do with
 /* Conditionally open the "edg" namespace. */
 BEGIN_EDG_NAMESPACE
 
+extern a_boolean in_injected_member();
+
 extern a_type_ptr class_from_routine_fixup(struct a_routine_fixup  *fixup);
 
 extern a_symbol_ptr find_corresp_prototype_tag_sym(a_symbol_ptr  curr_sym);

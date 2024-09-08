@@ -30331,7 +30331,7 @@ generic lambda call operators since they have no declarator-ids).
         /* Find the associated template from the prototype instantiation.  This
            can be changed later if a specialization is seen before any
            instantiations are done. */
-        if (decl_state->class_declared_in != NULL) {
+        if (decl_state->class_declared_in != NULL && !in_injected_member()) {
           /* Only do this for the original declaration inside the class. */
           find_function_template_member(decl_state, sym);
         }  /* if */

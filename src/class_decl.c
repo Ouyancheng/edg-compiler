@@ -1311,6 +1311,8 @@ typedef struct a_class_def_state {
 			/* TRUE if the class has a non-inherited data member
 			   other than an unnamed bit field or a Microsoft
 			   "property" field. */
+  a_bit_field	injected_member_decl:1;
+			/* TRUE if we are processing injected tokens. */
   an_access_specifier
 		access;
 			/* The current access. */
@@ -1400,6 +1402,7 @@ class being defined.
   cdsp->any_defaulted_special_members = FALSE;
   cdsp->defaulted_spaceship = FALSE;
   cdsp->has_proper_data = FALSE;
+  cdsp->injected_member_decl = FALSE;
   cdsp->access = (an_access_specifier)as_public;
 #if MICROSOFT_EXTENSIONS_ALLOWED
   cdsp->assembly_access = (an_access_specifier)as_public;
@@ -1418,6 +1421,23 @@ class being defined.
   cdsp->quasi_overrides = NULL;
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
 }  /* initialize_class_def_state */
+
+
+a_boolean in_injected_member(void)
+/*
+Return TRUE if we are processing injected tokens in a class.
+*/
+{
+  a_boolean            result = FALSE;
+  a_scope_stack_entry  *ssep = &scope_stack_top();
+
+  if (scope_is(ssep, sck_template_declaration)) --ssep;
+  if (ssep->class_def_state != NULL &&
+      ssep->class_def_state->injected_member_decl) {
+    result = TRUE;
+  }  /* if */
+  return result;
+}  /* in_injected_member */
 
 /* Forward declarations. */
 
@@ -3731,9 +3751,11 @@ nested class.
                    rfp->class_type->
                          variant.class_struct_union.is_in_class_specialization;
       next_rfp = rfp->next;
+      sym = rfp->symbol;
       if (rfp->function_body_token_cache.first_token != NULL ||
-          (rfp->is_template && rfp->symbol->defined)) {
-        sym = rfp->symbol;
+          (rfp->is_template && sym->defined)) {
+        a_boolean  injected = symbol_is(sym, sk_member_function) &&
+                              func_sym_routine(sym)->from_injected_tokens;
 #if DEBUG
         if (debug_level >= 3) {
           db_symbol(sym, "scanning function body for ", 2);
@@ -3751,7 +3773,7 @@ nested class.
           curr_scope_class_type = rfp->class_type;
         }  /* if */
         if ((is_real_template_instantiation &&
-             !is_friend && !rfp->is_specialization &&
+             !is_friend && !rfp->is_specialization && !injected &&
              !in_class_specialization)) {
           /* Discard the token cache for member functions of template
              classes -- instantiate_function_template does its thing based
@@ -3760,7 +3782,7 @@ nested class.
         } else if (!nonclass_prototype_instantiations &&
                    !is_variadic_template_context() &&
                    is_nonreal_template_instantiation &&
-                   (is_friend || rfp->is_specialization ||
+                   (is_friend || rfp->is_specialization || injected ||
                     (microsoft_mode && in_class_specialization))) {
           /* During class prototype instantiations when not doing function
              prototype instantiations, friend definitions and, in Microsoft
@@ -3770,7 +3792,7 @@ nested class.
              member function of a class that is specialized in-class. */
           discard_token_cache(&rfp->function_body_token_cache);
         } else if (defer_friend_instantiation &&
-                   is_real_template_instantiation &&
+                   is_real_template_instantiation && !injected &&
                    is_function_symbol(sym) &&
                    !(is_friend &&
                     sym->variant.routine.ptr->source_corresp.referenced) &&
@@ -15972,6 +15994,7 @@ implicitly declared member functions.
                      decl_info->is_trivial_default_constructor ?
                                   NO_SCOPE_DEPTH : scope_depth);
   rtn->has_deducible_return_type = decl_state->has_deducible_return_type;
+  rtn->from_injected_tokens = class_state->injected_member_decl;
 #if GNU_FUNCTION_MULTIVERSIONING
   if (sym->variant.routine.ptr != NULL &&
       is_multiversion_representative(sym->variant.routine.ptr)) {
@@ -16618,10 +16641,10 @@ implicitly declared member functions.
                            /*is_primary_decl=*/func_info->is_definition);
     if (!compiler_generated) {
       a_symbol_ptr  proto_tag_sym = class_state->corresp_prototype_tag_sym;
-      if (proto_tag_sym != NULL) {
+      if (proto_tag_sym != NULL && !class_state->injected_member_decl) {
         /* If this is the instantiation of a class template (or nested class
            thereof), match the instantiated member function with its templated
-           entity. */
+           entity.  (Injected members are not instantiated members.) */
         a_type_ptr  proto_tp = proto_tag_sym->variant.class_struct_union.type;
         if (type_is(proto_tp, tk_union) &&
             class_type_supp(proto_tp)->anonymous_union_kind !=
@@ -19007,7 +19030,7 @@ template declaration and is NULL otherwise.
           templ->definition_template = templ;
         }  /* if */
         tssp->token_sequence_number = start_tsn;
-      } else {
+      } else if (!class_state->injected_member_decl) {
         /* We must be in the midst of a template class instantiation.  We need
            to bind this static data member or variable template to the one
            that was created for it in the prototype instantiation.  This will
@@ -26554,6 +26577,7 @@ are:   A<T> for A<int>, A<T>::B for A<int>::B, and A<T>::B::C for A<int>::B::C.
         }  /* for */
       }  /* if */
       check_assertion(corresp_prototype_tag_sym != NULL ||
+                      in_injected_member() ||
                       is_at_least_one_error());
     }  /* if */
   } else {
@@ -27570,6 +27594,7 @@ parameterization implicit in being a member of a class template.
     }  /* if */
     if ((class_state->is_nonreal_instantiation ||
          class_state->is_generic_definition) &&
+        !class_state->injected_member_decl &&
         !class_type->variant.class_struct_union.
                                             is_ms_instantiated_nonreal_class &&
         !class_type->variant.class_struct_union.is_specialized &&
@@ -33128,7 +33153,7 @@ classes.
     } else {
       a_decl_sequence_number  class_start_decl_seq = decl_seq_counter,
                               friend_decl_seq_adjustment = 0;
-      a_boolean               injected_member_decl = FALSE;
+      class_state.injected_member_decl = FALSE;
 #if MICROSOFT_EXTENSIONS_ALLOWED
       if (cli_or_cx_enabled) {
         /* C++/CLI property and event definitions can consist of multiple
@@ -33507,23 +33532,20 @@ next_declaration:
           }  /* if */
           (void)get_token();
         }  /* if */
-        if (injected_member_decl) {
-          /* The declaration we just saw was injected.  The next token should
-             be the cache terminator. */
-          if (curr_token != tok_end_of_source) {
-            pos_error(ec_extraneous_injected_member_tokens, &pos_curr_token);
-          }  /* if */
+        if (class_state.injected_member_decl &&
+            curr_token == tok_end_of_source) {
+          /* The declaration we just saw was injected.  If the next token is
+             the cache terminator, we are ready for additional injections. */
           flush_past_token_cache_terminator();
-          injected_member_decl = FALSE;
-        }  /* if */
-        if (scope_stack_top().injections != NULL) {
+          class_state.injected_member_decl = FALSE;
+        } else if (scope_stack_top().injections != NULL) {
           /* If there are pending injections at this level, inject the tokens
              for the next one now. */
           an_il_entity_list_entry  *ielep = scope_stack_top().injections;
           a_token_sequence         *tsp = (a_token_sequence*)ielep->entity.ptr;
           rescan_reusable_cache((a_token_cache*)tsp->token_cache);
           scope_stack_top().injections = ielep->next;
-          injected_member_decl = TRUE;
+          class_state.injected_member_decl = TRUE;
         }  /* if */
         /* Keep processing member declarations until the closing brace or
            the end-of-source marker is reached. */
