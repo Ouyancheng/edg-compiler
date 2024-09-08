@@ -1,5 +1,28 @@
 Version 6.7
 
+9/8/24   [EDGcpfe/27568]
+C++-generating back end: generic lambdas with template parameter list and no
+function parameter list
+
+In configurations in which template definitions are generated from the
+prototype instantiation IL, the C++-generating back end produced incorrect
+code for a generic lambda with an explicit template parameter list and no
+function parameter list.  In particular, the generated code for such
+lambdas omitted the template parameter list and could in some cases put
+out a use of one of the lambda's template parameters using the name of a
+template parameter of an unrelated previous template.  This is now fixed.
+For example, with --c++20:
+
+  template <int> struct S {
+    template <typename X> static int i;
+  };
+  template <typename> void f() {
+    []<int I> {   // Previously omitted "<int d>"
+      int a[I];   // Previously generated as "a[X]"
+    };
+  }
+
+
 9/4/24   [EDGcpfe/26150,EDGcpfe/27553]
 Microsoft C++/CLI compatibility: Standard vs. managed nullptr
 

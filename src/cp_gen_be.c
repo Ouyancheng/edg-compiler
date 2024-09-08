@@ -16198,46 +16198,46 @@ Generate code for the given lambda.
     save_source_sequence_scan_state(&saved_state);
     curr_source_sequence_entry = scope->source_sequence_list;
     adv_to_signif_source_sequence_entry();
-    if (lambda->has_parameter_decl) {
-      if (lambda->is_generic) {
-        /* C++20 allows writing an explicit template parameter list in a
-           generic lambda.  Check to see if one was specified and, if so,
-           put it out. */
-        a_template_parameter_ptr last_expl_param =
-                                 rp->assoc_template->template_decl->param_list;
-        check_assertion(last_expl_param != NULL);
-        if (last_expl_param->kind == (a_template_parameter_kind)tpk_type &&
-            last_expl_param->variant.type.ptr->
-                                        variant.template_param.is_auto_param) {
-          /* There are no explicit parameters. */
-          last_expl_param = NULL;
-        }  /* if */
-        /* C++20 generic lambdas can have both an explicit template
-           parameter list and "auto" function parameters; template
-           parameters reflecting the latter appear at the end of the
-           template parameter list.  Find the last parameter from the
-           explicit parameter list, if one was specified. */
-        while (last_expl_param != NULL && last_expl_param->next != NULL &&
-               !(last_expl_param->next->kind ==
-                                         (a_template_parameter_kind)tpk_type &&
-                 last_expl_param->next->variant.type.ptr->
-                                       variant.template_param.is_auto_param)) {
-          last_expl_param = last_expl_param->next;
-        }  /* while */
-        if (last_expl_param != NULL) {
-          /* There was an explicit template parameter list.  Temporarily
-             truncate the list following the last explicit parameter and call
-             gen_template_header to put out only the explicitly-specified
-             ones. */
-          a_template_parameter_ptr next = last_expl_param->next;
-          last_expl_param->next = NULL;
-          gen_template_header(rp->assoc_template->template_decl,
-                              /*parent_class=*/NULL,
-                              /*is_cppcli_generic=*/FALSE,
-                              /*for_generic_lambda=*/TRUE);
-          last_expl_param->next = next;
-        }  /* if */
+    if (lambda->is_generic) {
+      /* C++20 allows writing an explicit template parameter list in a
+         generic lambda.  Check to see if one was specified and, if so, put
+         it out. */
+      a_template_parameter_ptr last_expl_param =
+                               rp->assoc_template->template_decl->param_list;
+      check_assertion(last_expl_param != NULL);
+      if (last_expl_param->kind == (a_template_parameter_kind)tpk_type &&
+          last_expl_param->variant.type.ptr->
+                                      variant.template_param.is_auto_param) {
+        /* There are no explicit parameters. */
+        last_expl_param = NULL;
       }  /* if */
+      /* C++20 generic lambdas can have both an explicit template parameter
+         list and "auto" function parameters; template parameters
+         reflecting the latter appear at the end of the template parameter
+         list.  Find the last parameter from the explicit parameter list,
+         if one was specified. */
+      while (last_expl_param != NULL && last_expl_param->next != NULL &&
+             !(last_expl_param->next->kind ==
+                                       (a_template_parameter_kind)tpk_type &&
+               last_expl_param->next->variant.type.ptr->
+                                     variant.template_param.is_auto_param)) {
+        last_expl_param = last_expl_param->next;
+      }  /* while */
+      if (last_expl_param != NULL) {
+        /* There was an explicit template parameter list.  Temporarily
+           truncate the list following the last explicit parameter and call
+           gen_template_header to put out only the explicitly-specified
+           ones. */
+        a_template_parameter_ptr next = last_expl_param->next;
+        last_expl_param->next = NULL;
+        gen_template_header(rp->assoc_template->template_decl,
+                            /*parent_class=*/NULL,
+                            /*is_cppcli_generic=*/FALSE,
+                            /*for_generic_lambda=*/TRUE);
+        last_expl_param->next = next;
+      }  /* if */
+    }  /* if */
+    if (lambda->has_parameter_decl) {
       gen_attributes(rp->source_corresp.attributes, al_lambda_expression,
                      /*primary_only=*/FALSE);
       gen_function_declarator_with_scope(rp->type, scope,
