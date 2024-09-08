@@ -12609,6 +12609,9 @@ typedef struct a_routine {
   a_bit_field	has_pass_object_size_attr:1;
 			/* TRUE if any parameter was declared with the Clang
 			   pass_object_size attribute. */
+  a_bit_field	from_injected_tokens:1;
+			/* TRUE if the function was declared via injected
+			   tokens. */
 #if DECL_MODIFIERS_IN_USE
   a_decl_modifier_set
 		decl_modifiers;
