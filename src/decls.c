@@ -8397,6 +8397,12 @@ recognized.
              ->variant.variable->is_weak = TRUE;
     }  /* if */
     (void)get_token();
+    if (curr_token == tok_assign && next_token() == tok_identifier) {
+      /* GCC accepts "pragma weak alias = id".  We mark the alias "weak" in
+         that case, but do not currently record the alias. */
+      (void)get_token();
+      (void)get_token();
+    }  /* if */
     if (curr_token != tok_end_of_source) {
       pos_warning(ec_extra_text_in_pp_directive, &pos_curr_token);
       error_in_pragma = TRUE;
