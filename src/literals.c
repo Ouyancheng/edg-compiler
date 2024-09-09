@@ -1365,7 +1365,7 @@ get_another:
              treat the rest of the sequence as having no special
              significance. */
           if (lptr != start_of_escape + 4 || targ_ch != 0) {
-            targ_ch = start_of_escape[1];;
+            targ_ch = start_of_escape[1];
             lptr = start_of_escape + 2;
           }  /* if */
         }  /* if */
