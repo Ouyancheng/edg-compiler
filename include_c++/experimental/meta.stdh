@@ -170,10 +170,10 @@ namespace std {
       return std::vector<info>(v.begin(), v.end());
     }
 
-    consteval __infovec current_parameters__impl(info);
+    consteval __infovec current_parameters__impl();
 
-    consteval std::vector<info> current_parameters(info r) {
-      __infovec v = parameters__impl(r);
+    consteval std::vector<info> current_parameters() {
+      __infovec v = current_parameters__impl();
       return std::vector<info>(v.begin(), v.end());
     }
 
