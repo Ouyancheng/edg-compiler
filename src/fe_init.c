@@ -245,6 +245,9 @@ CONSTINIT_ARRAY(/* none */, a_function_pointer, function_pointers,
   (a_function_pointer)ident_pragma,
   (a_function_pointer)ident_directive,
 #endif /* IDENT_DIRECTIVE_AND_PRAGMA */
+#if PRAGMA_WEAK_ALLOWED
+  (a_function_pointer)weak_pragma,
+#endif /* PRAGMA_WEAK_ALLOWED */
   (a_function_pointer)once_pragma,
   (a_function_pointer)hdrstop_or_no_pch_pragma,
   (a_function_pointer)define_type_info_pragma,

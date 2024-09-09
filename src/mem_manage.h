@@ -529,6 +529,9 @@ enum a_function_number : a_byte {
   fn_ident_pragma,
   fn_ident_directive,
 #endif /* IDENT_DIRECTIVE_AND_PRAGMA */
+#if PRAGMA_WEAK_ALLOWED
+  fn_weak_pragma,
+#endif /* PRAGMA_WEAK_ALLOWED */
   fn_once_pragma,
   fn_hdrstop_or_no_pch_pragma,
   fn_define_type_info_pragma,

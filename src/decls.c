@@ -7907,6 +7907,13 @@ for use in generating cross-reference output describing this declaration.
      scope stack is restored, since processing depends on the pending_pragmas
      pointer in the scope stack entry. */
   process_curr_construct_pragmas(sym, (a_statement_ptr)NULL);
+#if GNU_EXTENSIONS_ALLOWED && PRAGMA_WEAK_ALLOWED
+  if (gnu_mode && variable_ptr->source_corresp.name_linkage == nlk_external &&
+      locator->symbol_header != NULL &&
+      locator->symbol_header->named_in_weak_pragma) {
+    variable_ptr->is_weak = TRUE;
+  }  /* if */
+#endif /* GNU_EXTENSIONS_ALLOWED && PRAGMA_WEAK_ALLOWED */
   /* Return linkage kind. */
   *linkage_ptr = linkage;
   dps->storage_class = storage_class;
@@ -8347,6 +8354,59 @@ new declaration is a friend declaration.
   return sym;
 }  /* record_overload */
 
+#if PRAGMA_WEAK_ALLOWED
+
+void weak_pragma(a_pending_pragma_ptr  ppp)
+/*
+Process a "#pragma weak ..." directive.  In GNU and Clang modes, the "..."
+should be a single identifier and the named function or variable should be
+marked as having weak linkage.  Currently, only C-linkage entities are
+recognized.
+*/
+{
+  a_boolean  error_in_pragma = FALSE;
+
+  /* Bypass the "weak" token. */
+  begin_rescan_of_pragma_tokens(ppp);
+  if (!(gnu_version_is(any_version) || clang_version_is(any_version))) {
+    /* In non-GCC, non-Clang modes, just ignore the tokens.  The meaning of
+       the pragma is entirely up to the back end. */
+    while (curr_token != tok_end_of_source) (void)get_token();
+#if GNU_EXTENSIONS_ALLOWED
+  } else if (curr_token != tok_identifier) {
+    pos_warning(ec_exp_identifier, &pos_curr_token);
+    error_in_pragma = TRUE;
+  } else if (gnu_version_is(any_version) || clang_version_is(any_version)) {
+    a_symbol          *ext_sym;
+    a_symbol_locator  ext_loc;
+    ext_sym = find_external_symbol(&locator_for_curr_id, nlk_external,
+                                   (a_type*)NULL, (a_requires_clause*)NULL,
+                                   &ext_loc);
+    if (ext_sym == NULL) {
+      /* The corresponding C-linkage function or variable hasn't been declared
+         yet.  Mark the symbol header so that any C-linkage function or
+         variable declared later under this header will have its is_weak flag
+         set to TRUE. */
+      locator_for_curr_id.symbol_header->named_in_weak_pragma = TRUE;
+    } else if (symbol_is(ext_sym, sk_extern_routine)) {
+      ext_sym->variant.extern_symbol_descr
+             ->variant.routine.ptr->is_weak = TRUE;
+    } else {
+      check_assertion(symbol_is(ext_sym, sk_extern_variable));
+      ext_sym->variant.extern_symbol_descr
+             ->variant.variable->is_weak = TRUE;
+    }  /* if */
+    (void)get_token();
+    if (curr_token != tok_end_of_source) {
+      pos_warning(ec_extra_text_in_pp_directive, &pos_curr_token);
+      error_in_pragma = TRUE;
+    }  /* if */
+#endif /* GNU_EXTENSIONS_ALLOWED */
+  }  /* if */
+  wrapup_rescan_of_pragma_tokens(error_in_pragma);
+}  /* weak_pragma */
+
+#endif /* PRAGMA_WEAK_ALLOWED */
 #if GNU_EXTENSIONS_ALLOWED
 
 static void check_implicit_routine_alias(a_decl_parse_state  *dps)
@@ -10647,6 +10707,13 @@ skip_overloading:;
      attributes. */
   dps->type = orig_type;
 #endif /* GNU_EXTENSIONS_ALLOWED */
+#if GNU_EXTENSIONS_ALLOWED && PRAGMA_WEAK_ALLOWED
+  if (gnu_mode && routine_ptr->source_corresp.name_linkage == nlk_external &&
+      locator->symbol_header != NULL &&
+      locator->symbol_header->named_in_weak_pragma) {
+    routine_ptr->is_weak = TRUE;
+  }  /* if */
+#endif /* GNU_EXTENSIONS_ALLOWED && PRAGMA_WEAK_ALLOWED */
   /* Return the linkage kind. */
   *linkage_ptr = linkage;
   /* Restore the "innermost namespace scope" if it was modified. */

@@ -1840,7 +1840,7 @@ Initialize the pragma description table.
 #if PRAGMA_WEAK_ALLOWED
   (void)add_next_token_pragma_kind_description
 		((a_pragma_kind)pk_weak,
-		 (a_function_number)fn_null,
+                 fn_for_function(weak_pragma),
 		 /*is_pseudo_pragma=*/FALSE,
                  /*global=*/FALSE,
                  /*automatically_include_in_il=*/TRUE,

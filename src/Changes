@@ -1,5 +1,33 @@
 Version 6.7
 
+9/9/24   [EDGcpfe/27508]
+GNU/Clang compatibility: #pragma weak
+
+In configurations with PRAGMA_WEAK_ALLOWED set to TRUE, the front end already
+accepted "#pragma weak ..." constructs, but just passed them through to the
+back end.  The front end otherwise ignored the #pragma, in particular during
+constant evaluation.  Now, in GCC and Clang compatibility modes, entities with
+C linkage matching a "#pragma weak <c_name>" directive (where <c_name> is the
+identifier naming the C-linkage entity) have their a_routine::is_weak or
+a_variable::is_weak flag set to TRUE, and that affects address comparisons
+during constant evaluation.  For example, in GNU C mode:
+
+  int printf(char const*, ...);
+  #pragma weak weak_func
+  int weak_func(int p);
+  int main() {
+    if (weak_func != 0) {
+      printf("Error.\n");
+    } else {
+      printf("Okay.\n");
+    }
+  }
+
+Previously, this short program output "Error." because constant evaluation
+folded "weak_func != 0" to true.  Now, the comparison is no longer folded and
+run time evaluation selects the "Okay." output.
+
+
 9/9/24   [EDGcpfe/27577]
 C++-generating back end: lambdas with attributes and no parameter list
 

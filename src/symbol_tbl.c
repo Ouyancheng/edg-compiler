@@ -1991,6 +1991,9 @@ Allocate a new symbol header, and return a pointer to it.
 #if UNICODE_VULNERABILITY_DETECTION_SUPPORTED
   ptr->id_added_to_map = FALSE;
 #endif /* UNICODE_VULNERABILITY_DETECTION_SUPPORTED */
+#if PRAGMA_WEAK_ALLOWED
+  ptr->named_in_weak_pragma = FALSE;
+#endif /* PRAGMA_WEAK_ALLOWED */
 #if BUILTIN_FUNCTIONS_ENABLED
   ptr->is_builtin_function = FALSE;
   ptr->builtin_has_been_loaded = FALSE;
@@ -10671,7 +10674,7 @@ of the entity being declared by the identifier.
   a_boolean           extern_C_linkage_specified = FALSE;
   a_boolean           extern_C_overload = FALSE;
 
-  db_enter(4, "find_external_symbol");
+  db_enter(4, "f_find_external_symbol");
   /* Start with the external locator the same as the normal locator.  This
      is usually correct. */
   *ext_location = *location;

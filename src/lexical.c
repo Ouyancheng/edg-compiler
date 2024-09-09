@@ -26371,7 +26371,7 @@ those tokens).  Macros are not expanded.
 
 void begin_rescan_of_pragma_tokens(a_pending_pragma_ptr ppp)
 /*
-Active the token cache containing the pragma to be scanned and push a
+Activate the token cache containing the pragma to be scanned and push a
 pragma scope to be used while scanning the pragma tokens.
 */
 {
@@ -26390,7 +26390,7 @@ pragma scope to be used while scanning the pragma tokens.
 }  /* begin_rescan_of_pragma_tokens */
 
 
-void wrapup_rescan_of_pragma_tokens(a_boolean	       error_in_pragma)
+void wrapup_rescan_of_pragma_tokens(a_boolean  error_in_pragma)
 /*
 This routine is called by pragma processing routines when they have reached
 the end of the pragma directive being scanned.  This routine fetches

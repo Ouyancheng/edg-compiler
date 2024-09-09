@@ -4502,6 +4502,11 @@ typedef struct a_symbol_header {
 			   overhead of multiple hash table lookups when the
 			   identifier is encountered multiple times. */
 #endif /* UNICODE_VULNERABILITY_DETECTION_SUPPORTED */
+#if PRAGMA_WEAK_ALLOWED
+  a_bit_field	named_in_weak_pragma:1;
+			/* TRUE if we saw a #pragma weak <id> that named this
+			   identifier. */
+#endif /* PRAGMA_WEAK_ALLOWED */
 #if BUILTIN_FUNCTIONS_ENABLED
   a_bit_field	is_builtin_function:1;
                         /* TRUE if this symbol header is for a builtin

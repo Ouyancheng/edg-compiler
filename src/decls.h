@@ -1845,6 +1845,10 @@ extern void set_routine_declared_type(a_routine_ptr  routine_ptr,
                                       a_type_ptr     declared_type);
 #endif /* GENERATE_SOURCE_SEQUENCE_LISTS */
 
+#if PRAGMA_WEAK_ALLOWED
+extern void weak_pragma(a_pending_pragma_ptr  ppp);
+#endif /* PRAGMA_WEAK_ALLOWED */
+
 extern a_boolean check_constexpr_routine_def_type(
                                                 a_routine_ptr      rp,
                                                 a_source_position  *diag_pos);
