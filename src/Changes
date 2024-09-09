@@ -17,7 +17,7 @@ For example, with --c++20:
     template <typename X> static int i;
   };
   template <typename> void f() {
-    []<int I> {   // Previously omitted "<int d>"
+    []<int I> {   // Previously omitted "<int I>"
       int a[I];   // Previously generated as "a[X]"
     };
   }
