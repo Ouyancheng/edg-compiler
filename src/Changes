@@ -1,5 +1,15 @@
 Version 6.7
 
+9/9/24   [EDGcpfe/27577]
+C++-generating back end: lambdas with attributes and no parameter list
+
+The output produced by the C++-generating back end omitted attributes
+specified for lambdas with no function parameter list.  This is now fixed.
+For example, with --c++23:
+
+  auto f = [] [[foo]] { };   // Previously omitted "[[foo]]"
+
+
 9/8/24   [EDGcpfe/27568]
 C++-generating back end: generic lambdas with template parameter list and no
 function parameter list

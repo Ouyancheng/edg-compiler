@@ -16237,9 +16237,9 @@ Generate code for the given lambda.
         last_expl_param->next = next;
       }  /* if */
     }  /* if */
+    gen_attributes(rp->source_corresp.attributes, al_lambda_expression,
+                   /*primary_only=*/FALSE);
     if (lambda->has_parameter_decl) {
-      gen_attributes(rp->source_corresp.attributes, al_lambda_expression,
-                     /*primary_only=*/FALSE);
       gen_function_declarator_with_scope(rp->type, scope,
                                          /*top_level_decl=*/TRUE,
                                          /*suppress_def_args=*/FALSE);
