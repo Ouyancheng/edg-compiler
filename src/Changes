@@ -1,5 +1,16 @@
 Version 6.7
 
+9/9/24   [EDGcpfe/27579]
+Clang compatibility: allow ext_vector_type on bool elements
+
+Clang versions 15.0.0 and later allow the ext_vector_type attribute to apply
+to bool types and now the front end does as well in the appropriate modes.
+For example:
+
+  typedef bool bool4 __attribute__((ext_vector_type(4)));
+  bool4 v;
+
+
 9/9/24   [EDGcpfe/27508]
 GNU/Clang compatibility: #pragma weak
 

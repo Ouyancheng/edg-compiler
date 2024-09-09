@@ -7936,6 +7936,7 @@ error type.
   an_attribute_arg_ptr  aap = ap->arguments;
   a_constant_ptr        size_con;
   a_boolean             ovflo = FALSE, err = FALSE;
+  a_boolean             bool_type_allowed = clang_version_is(>=150000);
   a_host_large_integer  size = 0;
   a_decl_parse_state    *dps = (a_decl_parse_state*)ap->assoc_info;
 
@@ -7949,14 +7950,19 @@ error type.
     err = TRUE;
 #if C99_IL_EXTENSIONS_SUPPORTED
   } else if (is_nonreal_floating_type(elem_type)) {
-    pos_error(ec_ext_vector_type_requires_integral_floating_type,
+    pos_error(bool_type_allowed ?
+                      ec_ext_vector_type_requires_bool_integral_floating_type :
+                      ec_ext_vector_type_requires_integral_floating_type,
               &ap->position);
     err = TRUE;
 #endif /* C99_IL_EXTENSIONS_SUPPORTED */
-  } else if (!(is_integral_type(elem_type) && !is_bool_type(elem_type)) &&
-             !is_floating_type(elem_type) &&
-             !is_template_param_type(elem_type)) {
-    pos_error(ec_ext_vector_type_requires_integral_floating_type,
+  } else if (!((is_integral_type(elem_type) &&
+                (bool_type_allowed || !is_bool_type(elem_type))) ||
+               is_floating_type(elem_type) ||
+               is_template_param_type(elem_type))) {
+    pos_error(bool_type_allowed ?
+                      ec_ext_vector_type_requires_bool_integral_floating_type :
+                      ec_ext_vector_type_requires_integral_floating_type,
               &ap->position);
     err = TRUE;
   } else {
