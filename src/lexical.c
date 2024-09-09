@@ -12264,7 +12264,8 @@ identifier.  If issue_diagnostics is TRUE, diagnostic messages are produced
 if the universal character is improperly formed, or if it names an invalid
 character.  *start_pos is updated by this routine to point to the character
 after the universal character name.  If a malformed escape sequence is
-detected and malformed_err is not NULL, *malformed_err is set to TRUE.
+detected and malformed_err is not NULL, *malformed_err is set to TRUE in
+Microsoft mode for non-delimited UCNs and in all modes for delimited UCNs.
 */
 {
   a_const_char	*pos = *start_pos;
@@ -12328,14 +12329,15 @@ detected and malformed_err is not NULL, *malformed_err is set to TRUE.
           if ((microsoft_mode || clang_mode || gnu_mode) &&
               curr_cmd_line_or_predef_macro_def != NULL &&
               !processing_predefined_macro) {
-            /* All three emulated compilers accept an invalid UCN without
-               error, although clang emits a warning. */
+            /* All three emulated compilers accept an invalid UCN in a
+               command-line macro definition without error, although clang
+               emits a warning. */
             sev = es_warning;
           } else if ((microsoft_mode && !is_identifier) || macro_depth > 0) {
             /* MSVC accepts malformed UCNs in literals, but not in
                identifiers, without complaint.  We also want to suppress
                error reports during macro expansion and only issue an error
-               if the expanded text contains the UCN. */
+               if the final expanded text contains the UCN. */
             sev = es_remark;
           } else {
             sev = es_discretionary_error;
@@ -12350,11 +12352,12 @@ detected and malformed_err is not NULL, *malformed_err is set to TRUE.
       err = TRUE;
       if ((is_delimited || microsoft_mode) && malformed_err != NULL) {
         /* MSVC recovers from a malformed non-delimited UCN by ignoring the
-           '\' and treating the remaining characters as ordinary
+           '\' and treating the remainder of the UCN as ordinary
            characters.  This style of error recovery is indicated to the
            caller by setting *malformed_err to TRUE.  In non-Microsoft
-           modes, recovery consists of just taking whatever numeric value
-           has been accumulated and treating that as the code point. */
+           modes, recovery for malformed non-delimited UCNs consists of
+           simply taking whatever numeric value has been accumulated and
+           treating that as the code point. */
         *malformed_err = TRUE;
       }  /* if */
       break;
@@ -17202,7 +17205,7 @@ id_scan:
                                                              MAX_UNICODE_VAL) {
                 /* An error occurred. */
                 if (is_identifier_start) {
-                  /* Skip over the '\' and treat the u/U as starting an
+                  /* Skip over the '\' and treat the N as starting an
                      identifier. */
                   curr_char_loc = ucn_start + 1;
                   goto id_scan;
