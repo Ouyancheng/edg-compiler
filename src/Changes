@@ -1,5 +1,19 @@
 Version 6.7
 
+9/10/24  [EDGcpfe/23480,EDGcpfe/27202,EDGcpfe/27224]
+GNU/Clang C compatibility: Folding array subscripting
+
+Consider, in C mode:
+
+  int const arr[] = { 0, 1 };
+  struct S { int i; } S s  = { arr[1] };
+
+Ordinarily, this is an error because arr[1] is not constant.  However, it
+appears that recent versions of GCC and Clang do accept such code.  The front
+end now emulates that behavior.  (See also EDGcpfe/25484, upon which these
+changes depend.)
+
+
 9/10/24  [EDGcpfe/27580]
 C++-generating back end: dependent type arguments to builtin functions
 

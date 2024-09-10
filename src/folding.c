@@ -11384,22 +11384,18 @@ allocated and returned.
     } else {
       result_con = alloc_error_constant();
     }  /* if */
-  } else if (addr_con->kind == (a_constant_repr_kind)ck_address &&
-             (addr_con->variant.address.kind ==
-                                        (an_address_base_kind)abk_variable ||
-              addr_con->variant.address.kind ==
-                                        (an_address_base_kind)abk_constant ||
-              addr_con->variant.address.kind ==
-                                        (an_address_base_kind)abk_temporary)) {
+  } else if (constant_is(addr_con, ck_address) &&
+             (address_base_is(addr_con, abk_variable) ||
+              address_base_is(addr_con, abk_constant) ||
+              address_base_is(addr_con, abk_temporary))) {
     an_address_base_kind abkind = addr_con->variant.address.kind;
     a_type_ptr           target_type = type_pointed_to(addr_con->type);
     a_type_ptr           val_type;
     target_type = skip_typerefs(target_type);
-    if (abkind == (an_address_base_kind)abk_variable) {
+    if (abkind == abk_variable) {
       val_type = addr_con->variant.address.variant.variable->type;
     } else {
-      check_assertion(abkind == (an_address_base_kind)abk_constant ||
-                      abkind == (an_address_base_kind)abk_temporary);
+      check_assertion(abkind == abk_constant || abkind == abk_temporary);
       val_type = addr_con->variant.address.variant.constant->type;
     }  /* if */
     if (addr_con->variant.address.offset < 0 ||
@@ -11408,14 +11404,16 @@ allocated and returned.
       /* The address is outside the bounds of the object, so this is not a
          constant expression.  (A warning will have been issued earlier, so
          no diagnostic is needed here.) */
-    } else if (abkind == (an_address_base_kind)abk_variable) {
+    } else if (abkind == abk_variable) {
       /* The constant is the address of a variable, possibly with an offset
          designating a subobject.  See if it has a constant value and, if
          so, use it. */
-      result_con =
-               var_constant_value(addr_con->variant.address.variant.variable);
-    } else if (abkind == (an_address_base_kind)abk_temporary &&
-               !is_const_qualified_type(val_type)) {
+      a_variable  *vp = addr_con->variant.address.variant.variable;
+      a_boolean   allow_C_mode_const_var = gcc_mode;
+      result_con = var_constant_value_full(vp, /*copy_for_reuse=*/FALSE,
+                                           /*clear_backing_expr=*/FALSE,
+                                           allow_C_mode_const_var);
+    } else if (abkind == abk_temporary && !is_const_qualified_type(val_type)) {
       /* The temporary is mutable.  The constant is only its initial value. */
     } else {
       /* The constant is the address of a constant, possibly with an offset

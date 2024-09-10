@@ -17145,10 +17145,18 @@ initializer, is done in var_constant_value[_full].
        "const" always). */
     is_const = TRUE;
 #if GNU_EXTENSIONS_ALLOWED
-  } else if ((gpp_mode || (gcc_version_is(>=80000))) &&
-             is_scalar_type(var_type) && is_const_qualified_type(var_type)) {
+  } else if (gpp_mode && is_scalar_type(var_type) &&
+             is_const_qualified_type(var_type)) {
     /* GCC allows const scalar expressions (specifically, floating-point and
        pointer constants). */
+    is_const = TRUE;
+  } else if ((gcc_version_is(>=80000) || clangc_version_is(>=170000)) &&
+             is_const_qualified_type(skip_array_types(var_type))) {
+    /* In C mode, recent versions of GCC and Clang fold variables of just
+       about any const-qualified type.  For example:
+           int const arr[] = { 0, 1 };
+           struct S { int i; } S s  = { arr[1] };
+       is accepted by some GCC and Clang versions. */
     is_const = TRUE;
 #endif /* GNU_EXTENSIONS_ALLOWED */
   }  /* if */
@@ -21959,19 +21967,38 @@ it might produce an error).
           }  /* if */
           break;
         case eok_subscript:
-          if (allow_folding != NULL) {
+          if (allow_folding != NULL && !strict_ansi_mode) {
             op1 = skip_parens(op1);
             op2 = skip_parens(op2);
             if (is_constant_node(op1) && is_constant_node(op2)) {
               /* Something like "abc"[1] can be folded to the character
                  value. */
-              if (!strict_ansi_mode &&
-                  conv_subscript_in_string_to_char(node_constant(op1),
+              if (conv_subscript_in_string_to_char(node_constant(op1),
                                                    node_constant(op2),
                                                    result_con)) {
                 con_expr_value = alloc_shareable_constant(result_con);
                 simple_glvalue_to_prvalue(node, prvalue_node_type);
                 processed = TRUE;
+              } else if (gcc_version_is(>=80000) ||
+                         clangc_version_is(>=170000)) {
+                /*  For example:
+                      int const arr[] = { 0, 1 };
+                      struct S { int i; } S s  = { arr[1] };
+                    is accepted by some GCC and Clang versions.  Note that
+                    just passing "force_prvalue=TRUE" doesn't currently
+                    work in C mode.  Instead, we just temporarily treat the
+                    node as a prvalue and attempt to fold it. */
+                a_boolean  folded;
+                node->is_lvalue = FALSE;
+                folded = fold_constexpr_expr(node, result_con,
+                                             /*is_constant_evaluated=*/FALSE,
+                                             /*force_prvalue=*/FALSE);
+                node->is_lvalue = TRUE;
+                if (folded) {
+                  con_expr_value = alloc_shareable_constant(result_con);
+                  simple_glvalue_to_prvalue(node, prvalue_node_type);
+                  processed = TRUE;
+                }  /* if */
               }  /* if */
             }  /* if */
           }  /* if */
