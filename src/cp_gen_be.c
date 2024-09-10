@@ -4742,6 +4742,31 @@ and return TRUE; otherwise, return FALSE.
   return result;
 }  /* synthesize_decltype_specifier */
 
+
+static a_source_correspondence *named_template_param_proxy_scp(a_type_ptr tp)
+/*
+If the specified type is a proxy of an actual template type parameter and
+that template parameter has a name in the current context, return a pointer
+to the source correspondence giving that name.  Otherwise, return NULL.
+*/
+{
+  a_source_correspondence *result = NULL;
+
+  if (is_immediate_class_type(tp) && !has_name_before_mangling(tp) &&
+      tp->variant.class_struct_union.proxy_class) {
+    a_type_ptr tptp = class_type_supp(tp)->proxy_of_type;
+    if (type_is_actual_template_parameter(tptp)) {
+      result = source_corresp_for_template_param(
+                        &tptp->variant.template_param.extra_info->coordinates);
+      if (result != NULL && result->name == NULL) {
+        /* The parameter is unnamed and thus unusable as a qualifier. */
+        result = NULL;
+      }  /* if */
+    }  /* if */
+  }  /* if */
+  return result;
+}  /* named_template_param_proxy_scp */
+
 #if EXPENSIVE_CHECKING
 /*
 The following defines a structure used to detect the case when a given
@@ -4755,7 +4780,7 @@ struct a_qualifier_recursion_check {
 		prev;	/* Designates the type from the most recent
 			   previous invocation of gen_class_qualifier. */
   a_type_ptr	type;	/* The type of the qualifier in the current
-			   invocation of gen_class_qualiier. */
+			   invocation of gen_class_qualifier. */
 };
 #endif /* EXPENSIVE_CHECKING */
 
@@ -4778,6 +4803,7 @@ gen_name.  See gen_name for the meaning of need_closing_paren.
   a_type_ptr                             actual_type_used;
   a_boolean                              saved_suppress_template_args =
                                                    octl.suppress_template_args;
+  a_source_correspondence_ptr            scp;
 
 #if EXPENSIVE_CHECKING
   /* Ensure that this qualifier hasn't already appeared in the same
@@ -4817,23 +4843,16 @@ gen_name.  See gen_name for the meaning of need_closing_paren.
                                     == (an_anonymous_union_kind)auk_variable) {
     /* Put out no name for the topmost level in a non-field anonymous union. */
     actual_type_used = NULL;
+  } else if ((scp = named_template_param_proxy_scp(class_type)) != NULL) {
+    /* The qualifier is a template parameter that has a name in the current
+       context.  Use that name. */
+    write_tok_str(scp->name);
+    write_tok_str("::");
+    actual_type_used = (a_type_ptr)scp;
   } else if (!has_name_before_mangling(class_type) &&
              class_type->variant.class_struct_union.proxy_class) {
-    a_type_ptr tptp = class_type_supp(class_type)->proxy_of_type;
-    if (type_is_actual_template_parameter(tptp)) {
-      a_source_correspondence_ptr scp = source_corresp_for_template_param(
-                        &tptp->variant.template_param.extra_info->coordinates);
-      if (scp != NULL && scp->name != NULL) {
-        write_tok_str(scp->name);
-        write_tok_str("::");
-        actual_type_used = (a_type_ptr)scp;
-      } else {
-        actual_type_used = NULL;
-      }  /* if */
-    } else {
-      /* Ignore an unnamed proxy class -- it wasn't there in the source. */
-      actual_type_used = NULL;
-    }  /* if */
+    /* Ignore an unnamed proxy class -- it wasn't there in the source. */
+    actual_type_used = NULL;
   } else if (class_type->replace_by_generated_typedef) {
     /* Replace the reference to this class type by a reference to a
        generated typedef. */
@@ -6004,7 +6023,8 @@ GN_PARENS_IF_GLOBAL_QUALIFIER is not set.
             !(options & GN_QUALIFIER))) &&
           (scp->visible_as_unqualified_name ||
            (class_type->variant.class_struct_union.is_nonreal_class &&
-            !has_name_before_mangling(class_type)
+            !has_name_before_mangling(class_type) &&
+            named_template_param_proxy_scp(class_type) == NULL
 #if PROTOTYPE_INSTANTIATIONS_IN_IL
             && decltype_type == NULL
 #endif /* PROTOTYPE_INSTANTATIONS_IN_IL */
