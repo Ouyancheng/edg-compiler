@@ -19266,6 +19266,7 @@ a matching "}" into an enk_token_sequence expression.  Then skip the "}".  The
 type of the expression is std::meta::info.
 */
 {
+  an_expr_stack_entry expr_stack_entry, *saved_expr_stack = NULL;
   a_token_sequence_entry
                     *il_tokens = NULL, **p_end_il_tokens = &il_tokens;
   a_token_sequence  *tsp;
@@ -19276,6 +19277,12 @@ type of the expression is std::meta::info.
   unsigned          num_lbraces = 0;
   a_boolean         err = FALSE, prev_token_is_backslash = FALSE;
 
+  save_expr_stack(&saved_expr_stack);
+  push_expr_stack_with_rcblock((an_expression_kind)ek_normal,
+                               &expr_stack_entry,
+                               /*force_object_lifetime=*/FALSE,
+                               /*suppress_object_lifetime=*/FALSE,
+                               (a_rescan_control_block*)NULL);
   check_assertion(curr_token == tok_lbrace);
   (void)get_token();
   for (;;) {
@@ -19384,6 +19391,8 @@ another_opnd:
   }  /* if */
   set_operand_position(result, caret_pos, &end_pos_curr_token, caret_pos);
   required_token(tok_rbrace, ec_exp_rbrace);
+  pop_expr_stack();
+  restore_expr_stack(saved_expr_stack);
 }  /* scan_token_sequence */
 
 

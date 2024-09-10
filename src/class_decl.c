@@ -33538,7 +33538,9 @@ next_declaration:
              the cache terminator, we are ready for additional injections. */
           flush_past_token_cache_terminator();
           class_state.injected_member_decl = FALSE;
-        } else if (scope_stack_top().injections != NULL) {
+        }  /* if */
+        if (!class_state.injected_member_decl &&
+            scope_stack_top().injections != NULL) {
           /* If there are pending injections at this level, inject the tokens
              for the next one now. */
           an_il_entity_list_entry  *ielep = scope_stack_top().injections;
