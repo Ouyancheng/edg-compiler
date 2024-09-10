@@ -1,5 +1,21 @@
 Version 6.7
 
+9/10/24  [EDGcpfe/27580]
+C++-generating back end: dependent type arguments to builtin functions
+
+In cases where a dependent type argument is passed to a builtin function,
+the C++-generating back end could produce code in which template arguments
+that are part of the dependent type are omitted.  This is now fixed.  For
+example, with --gnu_version=120100:
+
+  struct A;
+  template <bool> using B = A;
+  template <typename T> using D = typename T::e;
+  template <typename T>
+  struct F : B<__is_aggregate(D<T>)> {   // Previously omitted "<T>"
+  };
+
+
 9/9/24   [EDGcpfe/27579]
 Clang compatibility: allow ext_vector_type on bool elements
 

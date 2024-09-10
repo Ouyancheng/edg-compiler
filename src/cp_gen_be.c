@@ -9803,6 +9803,10 @@ Output a reference to a type.
       synthesize_decltype_specifier(type)) {
     /* A decltype specifier was put out. */
   } else {
+    if (is_immediate_class_type(type) &&
+        type->variant.class_struct_union.proxy_class) {
+      type = class_type_supp(type)->proxy_of_type;
+    }  /* if */
     form_type(type, &octl);
   }  /* if */
 }  /* gen_type */
