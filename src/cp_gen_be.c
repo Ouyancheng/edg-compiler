@@ -4862,7 +4862,6 @@ gen_name.  See gen_name for the meaning of need_closing_paren.
 #if PROTOTYPE_INSTANTIATIONS_IN_IL
     if (class_type_supp(class_type)->proxy_of_type != NULL) {
       /* This qualifier represents a template parameter or dependent type. */
-      a_source_correspondence_ptr scp;
       a_type_ptr                  template_param_type =
                                     class_type_supp(class_type)->proxy_of_type;
       a_type_ptr                  substitute_typedef = NULL;
