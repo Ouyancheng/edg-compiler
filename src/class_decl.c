@@ -33153,7 +33153,7 @@ classes.
     } else {
       a_decl_sequence_number  class_start_decl_seq = decl_seq_counter,
                               friend_decl_seq_adjustment = 0;
-      an_access_specifier     saved_access;
+      an_access_specifier     saved_access = class_state.access;
       class_state.injected_member_decl = FALSE;
 #if MICROSOFT_EXTENSIONS_ALLOWED
       if (cli_or_cx_enabled) {
