@@ -33153,6 +33153,7 @@ classes.
     } else {
       a_decl_sequence_number  class_start_decl_seq = decl_seq_counter,
                               friend_decl_seq_adjustment = 0;
+      an_access_specifier     saved_access;
       class_state.injected_member_decl = FALSE;
 #if MICROSOFT_EXTENSIONS_ALLOWED
       if (cli_or_cx_enabled) {
@@ -33538,6 +33539,8 @@ next_declaration:
              the cache terminator, we are ready for additional injections. */
           flush_past_token_cache_terminator();
           class_state.injected_member_decl = FALSE;
+          /* Restore access to what it was before injection. */
+          class_state.access = saved_access;
         }  /* if */
         if (!class_state.injected_member_decl &&
             scope_stack_top().injections != NULL) {
@@ -33548,6 +33551,8 @@ next_declaration:
           rescan_reusable_cache((a_token_cache*)tsp->token_cache);
           scope_stack_top().injections = ielep->next;
           class_state.injected_member_decl = TRUE;
+          /* Save the current access to restore it after injection is done. */
+          saved_access = class_state.access;
         }  /* if */
         /* Keep processing member declarations until the closing brace or
            the end-of-source marker is reached. */
