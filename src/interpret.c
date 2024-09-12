@@ -10666,6 +10666,56 @@ Store the given boolean value as an_integer_value in the given storage.
 }  /* set_bool_value */
 
 
+static a_boolean do_constexpr_std_meta_is_token_sequence(
+                                        an_interpreter_state  *ips,
+                                        a_routine_ptr         callee,
+                                        an_expr_node_ptr      call_node,
+                                        a_byte                **p_arg_bytes,
+                                        a_byte                *result_storage,
+                                        a_byte                *complete_obj)
+/*
+Implement std::meta::is_token_sequence(info).
+
+See do_constexpr_intrinsic_call for the meaning of the parameters.
+*/
+{
+  a_boolean           result = TRUE;
+  a_reflection_value  *rvp = (a_reflection_value*)p_arg_bytes[0];
+
+  strip_template_arg(rvp);
+  set_bool_value(rvp->entity.kind == iek_token_sequence, result_storage);
+  return result;
+}  /* do_constexpr_std_meta_is_token_sequence */
+
+
+static a_boolean do_constexpr_std_meta_is_empty_token_sequence(
+                                        an_interpreter_state  *ips,
+                                        a_routine_ptr         callee,
+                                        an_expr_node_ptr      call_node,
+                                        a_byte                **p_arg_bytes,
+                                        a_byte                *result_storage,
+                                        a_byte                *complete_obj)
+/*
+Implement std::meta::is_empty_token_sequence(info).
+
+See do_constexpr_intrinsic_call for the meaning of the parameters.
+*/
+{
+  a_boolean           result = TRUE, answer = FALSE;
+  a_reflection_value  *rvp = (a_reflection_value*)p_arg_bytes[0];
+
+  strip_template_arg(rvp);
+  if (rvp->entity.kind == iek_token_sequence) {
+    a_token_sequence  *seq = (a_token_sequence*)rvp->entity.ptr;
+    a_token_cache     *cache = (a_token_cache*)seq->token_cache;
+    answer = cache->first_token == NULL ||
+             cache->first_token->token == tok_end_of_source;
+  }  /* if */
+  set_bool_value(answer, result_storage);
+  return result;
+}  /* do_constexpr_std_meta_is_empty_token_sequence */
+
+
 static a_boolean do_constexpr_std_meta_is_annotation(
                                         an_interpreter_state  *ips,
                                         a_routine_ptr         callee,
@@ -14709,7 +14759,7 @@ the corresponding reflection value at the location denoted by result_cap.
              general loop mechanism). */
           (void)get_token();
           if (strcmp(id, "id") == 0) {
-            a_string       full_id;  // FIXME XXX
+            a_string       full_id;
             a_const_char   *str = NULL;
             a_targ_size_t  len = 0;
             if (!get_string_from_string_view(
@@ -14717,6 +14767,7 @@ the corresponding reflection value at the location denoted by result_cap.
               do_constexpr_fail(result);
               goto done;
             }  /* if */
+            /* FIXME: Check that the string is a valid identifier. */
             full_id.append(a_string_view(str, len));
             while (curr_token == tok_comma) {
               a_constant  *cp = values[++interpolator_num];

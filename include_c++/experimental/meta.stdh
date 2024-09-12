@@ -409,6 +409,10 @@ namespace std {
       return metacall__impl(r, v);
     }
 
+    consteval bool is_token_sequence(info);
+
+    consteval bool is_empty_token_sequence(info);
+
     consteval info nearest_token_queuing_context();
 
     consteval info nearest_class_or_namespace();
@@ -423,7 +427,9 @@ namespace std {
       consteval list_builder(info separator): separator(separator) {}
       consteval operator info() const { return this->tokens; }
       consteval void operator+=(info  next_tokens) {
-        if (first) {
+        if (is_empty_token_sequence(next_tokens)) {
+          /* Do nothing. */
+        } else if (first) {
           this->tokens = next_tokens;
           first = false;
         } else {
