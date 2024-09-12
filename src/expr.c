@@ -19281,7 +19281,7 @@ type of the expression is std::meta::info.
   push_expr_stack_with_rcblock((an_expression_kind)ek_normal,
                                &expr_stack_entry,
                                /*force_object_lifetime=*/FALSE,
-                               /*suppress_object_lifetime=*/TRUE,
+                               /*suppress_object_lifetime=*/FALSE,
                                (a_rescan_control_block*)NULL);
   check_assertion(curr_token == tok_lbrace);
   (void)get_token();
