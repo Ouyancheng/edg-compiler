@@ -3744,6 +3744,7 @@ will be equal to init_list_ctor_arg_list->variant.braced.list.
                       closing_paren_position);
   if (gpp_version_is(any_version) && init_list_ctor_arg_list == NULL &&
       is_single_elem(arg_list) && is_braced_init_component(arg_list) &&
+      arg_list->variant.braced.list != NULL &&
       class_type_supp(skip_typerefs(class_type))->has_initializer_list_ctor) {
     /* GCC prefers an initializer list constructor if one is present and a
        braced-initializer is being cast, even if the latter requires an
