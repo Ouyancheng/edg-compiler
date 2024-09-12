@@ -138,6 +138,8 @@ must be defined in interpret.c to implement its evaluation.
   M(std_meta, reflect_result, "<T>(.)r") \
   M(std_meta, extract, "<T>(r).") \
   M(std_meta, value_of, "(r)r") \
+  M(std_meta, is_token_sequence, "(r)b") \
+  M(std_meta, is_empty_token_sequence, "(r)b") \
   M(std_meta, is_annotation, "(r)b") \
   M(std_meta, is_type, "(r)b") \
   M(std_meta, is_alias, "(r)b") \
