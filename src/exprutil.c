@@ -17301,12 +17301,13 @@ be returned for a C mode const variable.
         /* C++11 allows more kinds of constants for variables declared
            "constexpr" (e.g., class types) and for references. */
       } else if (constant_is(con_val, ck_aggregate) &&
-                 !(gcc_version_is(>=80000) && gcc_const_variables_allowed)) {
+                 !(gcc_const_variables_allowed &&
+                   (gcc_version_is(>=80000) || clangc_version_is(>=170000)))) {
         /* An aggregate cannot be considered a constant value in pre-C++11
-           code.  In some GNU C modes, however, they are usable as constant
-           values. */
+           code.  In some GNU C and Clang C modes, however, they are usable as
+           constant values. */
         con_val = NULL;
-      } else if (con_val->kind == (a_constant_repr_kind)ck_address) {
+      } else if (constant_is(con_val, ck_address)) {
         /* The address of a variable, routine, or string literal cannot
            generally be considered a constant value in pre-C++11 code. */
         /* However, in g++ mode they are allowed because const variables
@@ -17319,10 +17320,9 @@ be returned for a C mode const variable.
            cases specified as constant variables (for which back ends are
            required to use the same constant for every reference). */
         if (!gpp_mode ||
-            (con_val->variant.address.kind ==
-                                          (an_address_base_kind)abk_constant &&
-             con_val->variant.address.variant.constant->kind ==
-                                           (a_constant_repr_kind)ck_string)) {
+            (address_base_is(con_val, abk_constant) &&
+             constant_is(con_val->variant.address.variant.constant,
+                         ck_string))) {
           con_val = NULL;
         }  /* if */
       }  /* if */
