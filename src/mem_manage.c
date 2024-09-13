@@ -1923,32 +1923,6 @@ text can be added).
 }  /* remove_null_terminator_from_text_buffer */
 
 
-static inline a_boolean tracking_fe_allocations_for_pch()
-/*
-Return TRUE if front memory region allocations for a translation unit using a
-PCH file should be tracked.
-*/
-{
-  return fe_memory_allocation_map != NULL;
-}  /* tracking_fe_allocations_for_pch */
-
-
-static inline a_boolean tracking_fe_allocations()
-/*
-Return TRUE if front end memory region allocations should be tracked.
-*/
-{
-#if CHECKING
-  /* In checked configurations, always track front end memory allocations. */
-  return TRUE;
-#else  /* !CHECKING */
-  /* In non-checked configurations, only allocations created during PCH
-     processing are tracked. */
-  return tracking_fe_allocations_for_pch();
-#endif /* CHECKING */
-}  /* tracking_fe_allocations */
-
-
 char *alloc_fe(sizeof_t     size)
 /*
 Allocate a block of front end memory of the specified size and return
@@ -1977,9 +1951,9 @@ a new block.
   if (ptr == NULL) {
     /* Allocate a new block. */
     ptr = alloc_in_region(NULL_region_number, size);
-    if (tracking_fe_allocations()) {
-      fe_memory_allocation_map->map(ptr, size);
-    }  /* if */
+#if CHECKING
+    fe_memory_allocation_map->map(ptr, size);
+#endif /* CHECKING */
   }   /* if */
   return (char*)ptr;
 }  /* alloc_fe */
