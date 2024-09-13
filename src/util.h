@@ -2038,6 +2038,22 @@ Return floor(log2(n)), assuming n > 0.
 }  /* floor_log2 */
 
 
+inline int next_pow2(uint64_t n)
+/*
+Return the next power of two that is greater than or equal to n.
+*/
+{
+  n--;
+  n |= n >> 1;
+  n |= n >> 2;
+  n |= n >> 4;
+  n |= n >> 8;
+  n |= n >> 16;
+  n |= n >> 32;
+  return n+1;
+}  /* next_pow2 */
+
+
 template<typename an_Unsigned_integer>
 int count_ones(an_Unsigned_integer  n)
 /*

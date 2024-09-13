@@ -7996,13 +7996,25 @@ error type.
     result = error_type();
   } else {
     /* The attribute argument gives the number of elements in the vector;
-       convert that to the overall size of the vector type. */
-    size = skip_typerefs(elem_type)->size * size;
+       convert that to the overall size of the vector type.  An exception is
+       made for vectors of bool type; in that case each element takes a single
+       bit (and rounded up to a size that is a power of two). */
+    a_host_large_integer  type_size;
+    if (is_bool_type(elem_type)) {
+      if (size <= CHAR_BIT) {
+        type_size = 1;
+      } else {
+        type_size = (size + CHAR_BIT - 1) / CHAR_BIT;
+        type_size = next_pow2(type_size);
+      }  /* if */
+    } else {
+      type_size = skip_typerefs(elem_type)->size * size;
+    }  /* if */
     /* Allocate the vector type. */
     vector_type = alloc_type((a_type_kind)tk_vector);
     vector_type->source_corresp.decl_position = ap->position;
-    vector_type->size = size;
-    vector_type->alignment = (a_targ_alignment)size;
+    vector_type->size = type_size;
+    vector_type->alignment = (a_targ_alignment)type_size;
     vector_type->variant.vector.element_type = elem_type;
     vector_type->variant.vector.size_constant = size_con;
     vector_type->variant.vector.kind = vk_ext;

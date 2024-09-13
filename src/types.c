@@ -3790,7 +3790,23 @@ Return the number of elements in a vector type.
   element_type = skip_typerefs(vector_type->variant.vector.element_type);
   check_assertion(vector_type->kind == (a_type_kind)tk_vector &&
                   element_type->size != 0);
-  num_elements = vector_type->size / element_type->size;
+  if (vector_type->variant.vector.kind == vk_ext &&
+      is_bool(element_type)) {
+    /* ext_vector_type vectors with bool as the underlying type are "packed"
+       so we can't tell the number of elements with a simple division;
+       retrieve the number of elements from the original constant. */
+    a_constant_ptr size_con = vector_type->variant.vector.size_constant;
+    if (size_con->kind == ck_integer) {
+      a_boolean ovflo = FALSE;
+      num_elements = value_of_integer_constant(size_con, &ovflo);
+      check_assertion(!ovflo);
+    } else {
+      check_assertion(size_con->kind == ck_template_param);
+      num_elements = 1;
+    }  /* if */
+  } else {
+    num_elements = vector_type->size / element_type->size;
+  }  /* if */
   return num_elements;
 }  /* num_vector_elements */
 
