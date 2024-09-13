@@ -28745,7 +28745,7 @@ This routine is called at the end of compilation, or if compilation is
 terminated prematurely for some reason.  It runs any necessary destructors.
 */
 {
-  delete_fe(&bad_operator_name_encodings);
+  delete_general(&bad_operator_name_encodings);
 }  /* ifc_modules_cleanup */
 
 #endif /* MAKE_FRONT_END_CALLABLE */
