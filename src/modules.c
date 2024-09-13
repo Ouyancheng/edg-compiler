@@ -636,8 +636,7 @@ Import the module file specified in the module-import-declaration.
     case mfk_ms_ifc:
       iface = new_fe<an_ifc_module>(midp->module_info->file_kind);
       break;
-    default:
-      unexpected_condition_str("Unexpected module kind for import.");
+    default_is_unexpected();
   }  /* switch */
   midp->module_info->module_interface = iface;
   (void)iface->import(midp);
@@ -1505,7 +1504,18 @@ support in the current translation unit.
        midp != NULL; midp = midp->next) {
     if (midp->module_info->module_interface != NULL) {
       midp->module_info->module_interface->close();
-      delete_fe<a_module_interface>(&midp->module_info->module_interface);
+      switch (midp->module_info->file_kind) {
+        case mfk_unknown:
+          /* The module file kind should have been set if this module import
+             declaration appeared on the list of imported modules. */
+          unexpected_condition();
+        case mfk_edg_ifc:
+        case mfk_ms_ifc:
+          delete_fe<an_ifc_module>(
+                        (an_ifc_module**)&midp->module_info->module_interface);
+          break;
+        default_is_unexpected();
+      }  /* switch */
     }  /* if */
   }  /* for */
   delete_fe(&known_modules);
