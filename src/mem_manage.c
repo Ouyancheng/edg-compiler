@@ -2209,10 +2209,10 @@ This is done before command line processing.
 #if CHECKING
   fe_memory_allocation_map = new_direct<a_memory_allocation_map>(
                                                             /*mask_width=*/10);
+  pch_reset_performed = FALSE;
   resizable_memory_allocations = new_direct<a_memory_allocation_set>(
                                                             /*mask_width=*/10);
 #endif /* CHECKING */
-  pch_reset_performed = FALSE;
   mem_region_table = NULL;
   size_of_mem_region_table = 0;
   size_of_function_def_table = 0;
