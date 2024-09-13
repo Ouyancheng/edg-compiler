@@ -123,15 +123,16 @@ constructor arguments specified by args.  Return a pointer to the object.
 
 
 template<typename an_Object>
-static inline void delete_direct(an_Object *p)
+static inline void delete_direct(an_Object **p)
 /*
 Destroy and delete an object of type an_Object that was allocated directly via
-malloc.
+malloc.  The value of *p will be set to NULL.
 */
 {
-  if (p != NULL) {
-    destroy(p);
-    Direct_allocator<an_Object>::dealloc(Allocation<an_Object>{p, 1});
+  if (*p != NULL) {
+    destroy(*p);
+    Direct_allocator<an_Object>::dealloc(Allocation<an_Object>{*p, 1});
+    *p = NULL;
   }  /* if */
 }  /* delete_direct */
 
@@ -141,11 +142,22 @@ using a_memory_allocation_map = Ptr_map<void*, sizeof_t, Direct_allocator>;
 
 static a_memory_allocation_map
 		*memory_allocation_map;
-			/* A list of memory blocks allocated in general
-			   memory.  Used to free the blocks at the end
-			   of compilation. */
+			/* A list of memory blocks allocated in general memory.
+			   This is used to free the blocks at the end of
+			   compilation. */
 
 #if CHECKING
+
+static a_memory_allocation_map
+		*fe_memory_allocation_map;
+			/* A list of memory blocks allocated in front end
+			   memory.  This is used to ensure free_fe is not
+			   called on a memory allocation that was not allocated
+			   by alloc_fe. */
+
+static a_boolean
+		pch_reset_performed;
+			/* TRUE if a PCH has been observed by this process. */
 
 using a_memory_allocation_set = Ptr_set<void*, Direct_allocator>;
                         /* The type for a memory allocation set used for
@@ -1911,6 +1923,32 @@ text can be added).
 }  /* remove_null_terminator_from_text_buffer */
 
 
+static inline a_boolean tracking_fe_allocations_for_pch()
+/*
+Return TRUE if front memory region allocations for a translation unit using a
+PCH file should be tracked.
+*/
+{
+  return fe_memory_allocation_map != NULL;
+}  /* tracking_fe_allocations_for_pch */
+
+
+static inline a_boolean tracking_fe_allocations()
+/*
+Return TRUE if front end memory region allocations should be tracked.
+*/
+{
+#if CHECKING
+  /* In checked configurations, always track front end memory allocations. */
+  return TRUE;
+#else  /* !CHECKING */
+  /* In non-checked configurations, only allocations created during PCH
+     processing are tracked. */
+  return tracking_fe_allocations_for_pch();
+#endif /* CHECKING */
+}  /* tracking_fe_allocations */
+
+
 char *alloc_fe(sizeof_t     size)
 /*
 Allocate a block of front end memory of the specified size and return
@@ -1939,6 +1977,9 @@ a new block.
   if (ptr == NULL) {
     /* Allocate a new block. */
     ptr = alloc_in_region(NULL_region_number, size);
+    if (tracking_fe_allocations()) {
+      fe_memory_allocation_map->map(ptr, size);
+    }  /* if */
   }   /* if */
   return (char*)ptr;
 }  /* alloc_fe */
@@ -1959,6 +2000,12 @@ is recorded for possible reuse later.
   } else {
     /* All allocations from alloc_fe are at least 1 byte. */
     size = max_val(size, (sizeof_t)1);
+    /* Check to ensure the specified amount to free matches the allocated
+       amount.  If a PCH file has been observed, only ensure that sizes
+       match/accept free_fe calls with values of unknown origin. */
+    check_assertion(fe_memory_allocation_map->get(ptr) == size ||
+                    (pch_reset_performed &&
+                     fe_memory_allocation_map->get(ptr) == 0));
     /* Create the map to the freed memory if it has not already been
        created. */
     if (freed_fe_map == NULL) {
@@ -2186,9 +2233,12 @@ This is done before command line processing.
   memory_allocation_map = new_direct<a_memory_allocation_map>(
                                                             /*mask_width=*/10);
 #if CHECKING
+  fe_memory_allocation_map = new_direct<a_memory_allocation_map>(
+                                                            /*mask_width=*/10);
   resizable_memory_allocations = new_direct<a_memory_allocation_set>(
                                                             /*mask_width=*/10);
 #endif /* CHECKING */
+  pch_reset_performed = FALSE;
   mem_region_table = NULL;
   size_of_mem_region_table = 0;
   size_of_function_def_table = 0;
@@ -2206,6 +2256,14 @@ Called when a PCH file has just been read to reset the memory management state.
   if (freed_fe_map != NULL) {
     freed_fe_map->clear();
   }  /* if */
+#if CHECKING
+  /* Similarly, reset the state of the front end allocation expectations as
+     they may have been invalidated via the loading of a PCH file. */
+  fe_memory_allocation_map->clear();
+  /* Note that a PCH reset has been performed to enable weaker validations that
+     don't cause problems in PCH mode. */
+  pch_reset_performed = TRUE;
+#endif /* CHECKING */
 }  /* mem_manage_reset */
 
 
@@ -2255,8 +2313,7 @@ Free the general memory specified by *map.
     free((void*)entry.key());
   }  /* for */
   /* Free the map itself and remove the reference to it. */
-  delete_direct(*map);
-  *map = NULL;
+  delete_direct(map);
 }  /* free_general_memory */
 
 
@@ -2280,8 +2337,8 @@ very end of processing.
 #endif /* USE_MMAP_FOR_MEMORY_REGIONS */
 #endif /* !STANDALONE_UTILITY_PROGRAM */
 #if CHECKING
-  delete_direct(resizable_memory_allocations);
-  resizable_memory_allocations = NULL;
+  delete_direct(&fe_memory_allocation_map);
+  delete_direct(&resizable_memory_allocations);
 #endif /* CHECKING */
   free_general_memory(&memory_allocation_map);
 }  /* mem_manage_wrapup */
