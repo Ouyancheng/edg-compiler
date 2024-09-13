@@ -740,6 +740,8 @@ extern void db_mep_stack();
 
 #endif /* DEBUG */
 
+extern void modules_pch_prepare();
+
 extern void modules_pch_reset();
 
 extern void modules_check_for_suppressed_errors();

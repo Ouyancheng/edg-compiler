@@ -16,6 +16,7 @@ modules.c -- Classes and routines handling modules.
 /* Header files common to all files. */
 #include "fe_common.h"
 #include "ifc_modules.h"
+#include "pch.h"
 #include "util.h"
 
 #ifdef PCH_PRAGMA_GUARD
@@ -1394,6 +1395,38 @@ Display debug information about a module entity.
 
 #endif /* DEBUG */
 
+static inline void close_module_files()
+/*
+Close any open module file handles.
+*/
+{
+  for (a_module_import_decl_ptr midp = il_header.imported_modules;
+       midp != NULL; midp = midp->next) {
+    if (midp->module_info->module_interface != NULL) {
+      midp->module_info->module_interface->close();
+    }  /* if */
+  }  /* for */
+}  /* close_module_files */
+
+
+void modules_pch_prepare()
+/*
+Called when a PCH file is about to be written to prepare the modules system
+for the PCH write.
+*/
+{
+  /* Module files must be reopened by the new process.
+
+     Note that we cannot free instances of the module interface an_ifc_module
+     prior to PCH writing as the address of the an_ifc_module::file member is
+     required for various internal IFC module Ptr_map keys to work (e.g.,
+     various Ptr_maps map use Index_entity values as keys, these values use
+     an_ifc_module_file* pointer values for hashing and equality
+     operations). */
+  close_module_files();
+}  /* modules_pch_prepare */
+
+
 void modules_pch_reset()
 /*
 Called when a PCH file has just been read to re-open any module files that
@@ -1435,6 +1468,19 @@ void modules_one_time_init()
 Do one-time initialization of static variables defined in this file.
 */
 {
+  /* Save variables from ifc_modules.h and ifc_modules.c that are needed for
+     precompiled headers */
+  if (precompiled_header_processing_required) {
+    static a_pch_saved_variable saved_vars[] = {
+      pch_saved_var_array_elem(curr_module_sym),
+      pch_saved_var_array_elem(lazy_symbols_may_be_visible),
+      pch_saved_var_array_elem(module_entity_hash_table),
+      pch_saved_var_array_elem(module_entity_stack),
+      pch_saved_var_array_elem(known_modules),
+      pch_saved_var_array_terminating_elem()
+    };
+    register_pch_saved_variables(saved_vars);
+  }  /* if */
   module_search_buffer = alloc_text_buffer(256);
   module_file_name_buffer = alloc_text_buffer(64);
   module_primary_name_buffer = alloc_text_buffer(64);
@@ -1454,7 +1500,6 @@ Do one-time initialization of static variables defined in this file.
 }  /* modules_one_time_init */
 
 
-/* FIXME: PCH interactions? */
 void modules_trans_unit_init()
 /*
 Initialization of things related to modules that must be repeated for every
@@ -1489,21 +1534,14 @@ additional entities are added to the IL.
 }  /* modules_trans_unit_wrapup_part_1 */
 
 
-void modules_trans_unit_wrapup_part_2()
+static inline void free_module_interfaces()
 /*
-Perform final modules-related wrapup operations needed for the translation
-unit.  This is called after all processing for the translation unit (including
-template instantiations, etc.) and scope wrapup have been done.
-
-This phase is primarily used to deallocate objects allocated for modules
-support in the current translation unit.
+Free any module interfaces.
 */
 {
-  ifc_modules_trans_unit_wrapup();
   for (a_module_import_decl_ptr midp = il_header.imported_modules;
        midp != NULL; midp = midp->next) {
     if (midp->module_info->module_interface != NULL) {
-      midp->module_info->module_interface->close();
       switch (midp->module_info->file_kind) {
         case mfk_unknown:
           /* The module file kind should have been set if this module import
@@ -1518,6 +1556,22 @@ support in the current translation unit.
       }  /* switch */
     }  /* if */
   }  /* for */
+}  /* free_module_interfaces */
+
+
+void modules_trans_unit_wrapup_part_2()
+/*
+Perform final modules-related wrapup operations needed for the translation
+unit.  This is called after all processing for the translation unit (including
+template instantiations, etc.) and scope wrapup have been done.
+
+This phase is primarily used to deallocate objects allocated for modules
+support in the current translation unit.
+*/
+{
+  ifc_modules_trans_unit_wrapup();
+  close_module_files();
+  free_module_interfaces();
   delete_fe(&known_modules);
   delete_fe(&module_entity_stack);
 }  /* modules_trans_unit_wrapup_part_2 */

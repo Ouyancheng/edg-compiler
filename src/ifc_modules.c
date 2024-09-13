@@ -28623,15 +28623,16 @@ void ifc_modules_one_time_init()
 Do one-time initialization of static variables defined in this file.
 */
 {
-  /* Allocate a buffer for processing source file names.  These can get fairly
-     long and this is shared across all IFC module processing so be generous
-     with the initial allocation. */
+  /* Save variables from ifc_modules.h and ifc_modules.c that are needed for
+     precompiled headers */
   if (precompiled_header_processing_required) {
     static a_pch_saved_variable saved_vars[] = {
-      pch_saved_var_array_elem(lazy_symbols_may_be_visible),
+      pch_saved_var_array_elem(ifc_parameterized_entities),
+      pch_saved_var_array_elem(ifc_var_inits),
       pch_saved_var_array_elem(ifc_function_bodies),
       pch_saved_var_array_elem(ifc_template_definitions),
       pch_saved_var_array_elem(ifc_template_specializations),
+      pch_saved_var_array_elem(ifc_tag_definitions),
       pch_saved_var_array_elem(ifc_decl_lookup_table),
       pch_saved_var_array_elem(ifc_decl_template_lookup_table),
       pch_saved_var_array_terminating_elem()
