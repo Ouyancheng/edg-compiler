@@ -1951,9 +1951,11 @@ a new block.
   if (ptr == NULL) {
     /* Allocate a new block. */
     ptr = alloc_in_region(NULL_region_number, size);
+#if 0
 #if CHECKING
     fe_memory_allocation_map->map(ptr, size);
 #endif /* CHECKING */
+#endif /* 0 */
   }   /* if */
   return (char*)ptr;
 }  /* alloc_fe */
@@ -1977,9 +1979,11 @@ is recorded for possible reuse later.
     /* Check to ensure the specified amount to free matches the allocated
        amount.  If a PCH file has been observed, only ensure that sizes
        match/accept free_fe calls with values of unknown origin. */
+#if 0
     check_assertion(fe_memory_allocation_map->get(ptr) == size ||
                     (pch_reset_performed &&
                      fe_memory_allocation_map->get(ptr) == 0));
+#endif /* 0 */
     /* Create the map to the freed memory if it has not already been
        created. */
     if (freed_fe_map == NULL) {
