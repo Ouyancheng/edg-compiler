@@ -1420,7 +1420,7 @@ for the PCH write.
      Note that we cannot free instances of the module interface an_ifc_module
      prior to PCH writing as the address of the an_ifc_module::file member is
      required for various internal IFC module Ptr_map keys to work (e.g.,
-     various Ptr_maps map use Index_entity values as keys, these values use
+     various Ptr_maps use Index_entity values as keys, these values use
      an_ifc_module_file* pointer values for hashing and equality
      operations). */
   close_module_files();
