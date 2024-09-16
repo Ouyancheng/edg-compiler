@@ -28,18 +28,23 @@ changes depend.)
 
 
 9/10/24  [EDGcpfe/27580]
-C++-generating back end: dependent type arguments to builtin functions
+C++-generating back end: dependent type with template argument lists
 
-In cases where a dependent type argument is passed to a builtin function,
-the C++-generating back end could produce code in which template arguments
-that are part of the dependent type are omitted.  This is now fixed.  For
-example, with --gnu_version=120100:
+In some contexts when a dependent type argument with template arguments is
+used, the C++-generating back end could produce code in which the template
+arguments are omitted.  This is now fixed.  For example, with
+--gnu_version=120100:
 
   struct A;
   template <bool> using B = A;
   template <typename T> using D = typename T::e;
   template <typename T>
   struct F : B<__is_aggregate(D<T>)> {   // Previously omitted "<T>"
+  };
+  template <typename T> using G = T;
+  template <typename T> struct H {
+    H(H &) : G<T>() {   // Previously omitted "<T>"
+    }
   };
 
 

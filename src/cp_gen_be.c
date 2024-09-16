@@ -22441,6 +22441,10 @@ a constructor.
           type = ctor_init->orig_type == NULL ?
                                           ctor_init->variant.base_class->type :
                                           ctor_init->orig_type;
+          if (is_immediate_class_type(type) &&
+              type->variant.class_struct_union.proxy_class) {
+            type = class_type_supp(type)->proxy_of_type;
+          }  /* if */
           gen_type_name(type);
           break;
         case cik_field:
