@@ -1557,27 +1557,12 @@ to the secondary translation unit.
              fp = fp->next) {
           a_field_ptr corresp_field = (a_field_ptr)canonical_il_entry_of(fp);
           if (corresp_field->initializer == NULL && fp->initializer != NULL) {
-            a_boolean saved_is_primary = is_primary_translation_unit;
-            /* This can occur if a class template is instantiated in the
-               secondary TU but not in the primary. */
-            check_assertion(class_type->
-                                 variant.class_struct_union.is_template_class);
-            if (!is_primary_translation_unit) {
-              /* Set up so that the copy of the dynamic initializer
-                 (including things it points to) will be in the primary
-                 TU. */
-              is_primary_translation_unit = TRUE;
-              compute_il_prefix_size();
-            }  /* if */
-            corresp_field->initializer = copy_dynamic_init(
-                                               fp->initializer,
-                                               CE_COPYING_DEFAULT_MEMBER_INIT);
-            if (!saved_is_primary) {
-              is_primary_translation_unit = FALSE;
-              compute_il_prefix_size();
-            }  /* if */
-          }  /* if */
-          if (fp->initializer != NULL) {
+            /* Mark the field to be merged so the initializer can be properly
+               merged. */
+            any_members_to_process = TRUE;
+            mark_to_merge(fp, iek_field);
+            continue;
+          } else if (fp->initializer != NULL) {
             /* Eliminate any object lifetime associated with the initializer
                (which is in the global scope, but shouldn't be merged into the
                primary global scope). */
@@ -1593,13 +1578,11 @@ to the secondary translation unit.
                be merged.  Walk through all fields and strip the attributes
                except for those that must be merged. */
             if (strip_non_merged_attributes(&fp->source_corresp)) {
+              any_members_to_process = TRUE;
               mark_to_merge(fp, iek_field);
             }  /* if */
           }  /* if */
         }  /* for */
-        if (has_field_with_attr_to_merge) {
-          any_members_to_process = TRUE;
-        }  /* if */
       }
     }  /* if */
     pointers_block = NULL;
@@ -2454,24 +2437,26 @@ with the current translation unit set to the primary translation unit.
   }  /* if */
   if (is_class_scope) {
     a_type_ptr class_type = scope->variant.assoc_type;
-    if (symbol_supplement_for_class(class_type)->
-                                                has_field_with_attr_to_merge) {
-      /* There is at least one field with an attribute that must be merged.
-         Go through the fields and merge attributes. */
-      a_field_ptr field;
-      for (field = class_type->variant.class_struct_union.field_list;
-           field != NULL;
-           field = field->next) {
-        if (entry_to_be_merged(field)) {
-          a_field_ptr corresp_field =
+
+    /* There is at least one field with an attribute that must be merged.
+       Go through the fields and merge attributes. */
+    a_field_ptr field;
+    for (field = class_type->variant.class_struct_union.field_list;
+         field != NULL;
+         field = field->next) {
+      if (entry_to_be_merged(field)) {
+        a_field_ptr corresp_field =
                         (a_field_ptr)checked_trans_unit_copy_address_of(field);
-          a_field_ptr primary_field =
+        a_field_ptr primary_field =
                 (a_field_ptr)checked_trans_unit_copy_address_of(corresp_field);
-          merge_entity_details(&corresp_field->source_corresp,
-                               &primary_field->source_corresp);
+        if (primary_field->initializer == NULL &&
+            corresp_field->initializer != NULL) {
+          primary_field->initializer = corresp_field->initializer;
         }  /* if */
-      }  /* for */
-    }  /* if */
+        merge_entity_details(&corresp_field->source_corresp,
+                             &primary_field->source_corresp);
+      }  /* if */
+    }  /* for */
   }  /* if */
   if (scope->variables != NULL) {
     a_variable_ptr variable, last_variable;
