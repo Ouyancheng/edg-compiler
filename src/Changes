@@ -1,5 +1,18 @@
 Version 6.7
 
+9/16/24  [EDGcpfe/27560]
+GNU/Clang compatibility: __GLIBCXX_BITSIZE_INT_N_0 and __GLIBCXX_TYPE_INT_N_0
+
+Recent versions of GNU and Clang predefine the macros __GLIBCXX_BITSIZE_INT_N_0
+and __GLIBCXX_TYPE_INT_N_0 (to "128" and "__int128" respectively) in C++
+modes when using -std=gnu++* (but not when using -std=c++*).  The front end
+now emulates that behavior (in GNU/Clang emulation mode when --strict_gnu is
+not specified and 128-bit integers are enabled).  Note that these macros may
+previously have been added to the predefined_macros.txt file (perhaps by
+earlier versions of the make_predef_macro_table tool) and those values should
+be removed (as the front end will now set them dynamically).
+
+
 9/10/24  [EDGcpfe/23480,EDGcpfe/27202,EDGcpfe/27224]
 GNU/Clang C compatibility: Folding array subscripting
 

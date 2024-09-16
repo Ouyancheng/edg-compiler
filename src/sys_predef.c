@@ -144,12 +144,25 @@ Linux using the gcc/g++ header files.
        files (like stdio.h) when not in GNU C mode. */
     /* Setting __STRICT_ANSI__ disables parts of Linux headers that rely on
        GNU C extensions. */
-    /* GNU and Clang define __STRICT_ANSI__ when --std=c* is used, but not
-       when --std=gnu* is used; emulate that with strict_gnu. */
+    /* GNU and Clang define __STRICT_ANSI__ when -std=c* is used, but not
+       when -std=gnu* is used; emulate that with strict_gnu. */
     (void)enter_predef_macro("1", "__STRICT_ANSI__",
                              /*cannot_be_redefined=*/FALSE,
                              /*ref_suppresses_pch_file=*/FALSE);
   }  /* if */
+#if INT128_EXTENSIONS_ALLOWED
+  if (int128_extensions_enabled && !C_mode() &&
+      !strict_gnu && (gnu_version_is(>=50000) || clang_mode)) {
+    /* With -std=gnu++* (but not -std=c++*), define macros indicating that
+       128-bit integers are available. */
+    (void)enter_predef_macro("128", "__GLIBCXX_BITSIZE_INT_N_0",
+                             /*cannot_be_redefined=*/FALSE,
+                             /*ref_suppresses_pch_file=*/FALSE);
+    (void)enter_predef_macro("__int128", "__GLIBCXX_TYPE_INT_N_0",
+                             /*cannot_be_redefined=*/FALSE,
+                             /*ref_suppresses_pch_file=*/FALSE);
+  }  /* if */
+#endif /* INT128_EXTENSIONS_ALLOWED */
   if (!gnu_mode) {
     if (pass_stdarg_references_to_generated_code) {
       /* <stdio.h> refers to __gnuc_va_list which is declared in the Linux

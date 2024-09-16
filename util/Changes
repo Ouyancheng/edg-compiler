@@ -1,5 +1,13 @@
 Version 6.7
 
+9/16/24  [EDGcpfe/27560]
+GNU/Clang compatibility: __GLIBCXX_BITSIZE_INT_N_0 and __GLIBCXX_TYPE_INT_N_0
+
+The make_predef_macro_table tool has been updated to remove any predefined
+macro settings for __GLIBCXX_BITSIZE_INT_N_0 and __GLIBCXX_TYPE_INT_N_0 as
+those are now set dynamically in the front end.
+
+
 1/30/24  [EDGcpfe/26984]
 Cfront ABI: Demangling of _Float16, _Float32x, _Float64x types
 
