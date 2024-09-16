@@ -148,17 +148,6 @@ static a_memory_allocation_map
 
 #if CHECKING
 
-static a_memory_allocation_map
-		*fe_memory_allocation_map;
-			/* A list of memory blocks allocated in front end
-			   memory.  This is used to ensure free_fe is not
-			   called on a memory allocation that was not allocated
-			   by alloc_fe. */
-
-static a_boolean
-		pch_reset_performed;
-			/* TRUE if a PCH has been observed by this process. */
-
 using a_memory_allocation_set = Ptr_set<void*, Direct_allocator>;
                         /* The type for a memory allocation set used for
                            internal tracking of allocated memory. */
@@ -1951,15 +1940,34 @@ a new block.
   if (ptr == NULL) {
     /* Allocate a new block. */
     ptr = alloc_in_region(NULL_region_number, size);
-#if 0
-#if CHECKING
-    fe_memory_allocation_map->map(ptr, size);
-#endif /* CHECKING */
-#endif /* 0 */
   }   /* if */
   return (char*)ptr;
 }  /* alloc_fe */
 
+#if EXPENSIVE_CHECKING
+
+static a_boolean is_in_memory_region(char                   *ptr,
+                                     sizeof_t               size,
+                                     a_memory_region_number region_number)
+/*
+Return TRUE if the given pointer for an object of the given size is in one of
+the memory region blocks; otherwise, return FALSE.
+*/
+{
+  a_boolean result = FALSE;
+
+  for (a_mem_block_header_ptr hdr = mem_region_table[region_number];
+       hdr != NULL; hdr = hdr->next) {
+    if (hdr->start_of_block <= ptr &&
+        (ptr + size) <= hdr->next_avail_in_block) {
+      result = TRUE;
+      break;
+    }  /* if */
+  }  /* for */
+  return result;
+}  /* is_in_memory_region */
+
+#endif /* EXPENSIVE_CHECKING */
 
 void free_fe(a_void_ptr   ptr,
              sizeof_t     size)
@@ -1976,14 +1984,11 @@ is recorded for possible reuse later.
   } else {
     /* All allocations from alloc_fe are at least 1 byte. */
     size = max_val(size, (sizeof_t)1);
-    /* Check to ensure the specified amount to free matches the allocated
-       amount.  If a PCH file has been observed, only ensure that sizes
-       match/accept free_fe calls with values of unknown origin. */
-#if 0
-    check_assertion(fe_memory_allocation_map->get(ptr) == size ||
-                    (pch_reset_performed &&
-                     fe_memory_allocation_map->get(ptr) == 0));
-#endif /* 0 */
+#if EXPENSIVE_CHECKING
+    /* Check to ensure that the given pointer with the given size could
+       conceivably fit within the memory region. */
+    check_assertion(is_in_memory_region((char*)ptr, size, NULL_region_number));
+#endif /* EXPENSIVE_CHECKING */
     /* Create the map to the freed memory if it has not already been
        created. */
     if (freed_fe_map == NULL) {
@@ -2211,9 +2216,6 @@ This is done before command line processing.
   memory_allocation_map = new_direct<a_memory_allocation_map>(
                                                             /*mask_width=*/10);
 #if CHECKING
-  fe_memory_allocation_map = new_direct<a_memory_allocation_map>(
-                                                            /*mask_width=*/10);
-  pch_reset_performed = FALSE;
   resizable_memory_allocations = new_direct<a_memory_allocation_set>(
                                                             /*mask_width=*/10);
 #endif /* CHECKING */
@@ -2234,14 +2236,6 @@ Called when a PCH file has just been read to reset the memory management state.
   if (freed_fe_map != NULL) {
     freed_fe_map->clear();
   }  /* if */
-#if CHECKING
-  /* Similarly, reset the state of the front end allocation expectations as
-     they may have been invalidated via the loading of a PCH file. */
-  fe_memory_allocation_map->clear();
-  /* Note that a PCH reset has been performed to enable weaker validations that
-     don't cause problems in PCH mode. */
-  pch_reset_performed = TRUE;
-#endif /* CHECKING */
 }  /* mem_manage_reset */
 
 
@@ -2315,7 +2309,6 @@ very end of processing.
 #endif /* USE_MMAP_FOR_MEMORY_REGIONS */
 #endif /* !STANDALONE_UTILITY_PROGRAM */
 #if CHECKING
-  delete_direct(&fe_memory_allocation_map);
   delete_direct(&resizable_memory_allocations);
 #endif /* CHECKING */
   free_general_memory(&memory_allocation_map);
