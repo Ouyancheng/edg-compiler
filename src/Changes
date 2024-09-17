@@ -28,12 +28,11 @@ changes depend.)
 
 
 9/10/24  [EDGcpfe/27580]
-C++-generating back end: dependent type with template argument lists
+C++-generating back end: dependent types with template arguments
 
-In some contexts when a dependent type argument with template arguments is
-used, the C++-generating back end could produce code in which the template
-arguments are omitted.  This is now fixed.  For example, with
---gnu_version=120100:
+In some contexts when a dependent type with template arguments is used, the
+C++-generating back end could produce code in which the template argument
+list is omitted.  This is now fixed.  For example, with --gnu_version=120100:
 
   struct A;
   template <bool> using B = A;
