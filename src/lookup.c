@@ -3058,7 +3058,7 @@ routine.
           if (sym != NULL) {
             /* Use the symbol. */
             break;
-          }  /* break */
+          }  /* if */
         }  /* for */
       }  /* if */
       if (sym == NULL && kind == (a_scope_kind)sck_class_reactivation) {
