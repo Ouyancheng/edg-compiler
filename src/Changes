@@ -8,7 +8,7 @@ initializer expressions, the front end could abort with a failed assertion in
 walk_entry_and_subtree.  This is now fixed.
 
 Additionally, a closely related issue has been fixed.  The front end previously
-would not diagnose when one translation unit had an default member initializer
+would not diagnose when one translation unit had a default member initializer
 and another translation unit was missing said default member initializer on the
 corresponding field.
 
