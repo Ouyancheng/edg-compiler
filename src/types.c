@@ -7482,6 +7482,37 @@ type supplements are not equivalent.
 }  /* different_exception_specifications */
 
 
+static a_boolean identical_names_and_parents(a_type_ptr       type_1,
+                                             a_type_ptr       type_2,
+                                             an_itf_flag_set  itf_flags)
+/*
+Return TRUE if the names of the given types are the same and if they are
+members of identical types.  itf_flags is a set of options that control the way
+parent types are compared.
+*/
+{
+  a_symbol_ptr  sym_1 = symbol_for(type_1);
+  a_symbol_ptr  sym_2 = symbol_for(type_2);
+  a_boolean     identical;
+
+  if (in_front_end) {
+    check_assertion(sym_1 != NULL && sym_2 != NULL);
+    identical = (sym_1->header == sym_2->header);
+  } else {
+    check_assertion(prototype_instantiations_in_il);
+    /* We only have a limited ability to compare these types in a back end
+       where we have no symbol information. */
+    identical = (sym_1 == sym_2);
+  }  /* if */
+  if (identical &&
+      !f_identical_types(parent_class_of(type_1), parent_class_of(type_2),
+                         itf_flags)) {
+    identical = FALSE;
+  }  /* if */
+  return identical;
+}  /* identical_names_and_parents */
+
+
 a_boolean f_identical_types(a_type_ptr      type_1,
                             a_type_ptr      type_2,
                             an_itf_flag_set flags)
@@ -7496,7 +7527,6 @@ for more information.
   a_boolean                     identical = FALSE;
   a_param_type_ptr              list1, list2;
   a_routine_type_supplement_ptr rtsp1, rtsp2;
-  a_symbol_ptr                  sym_1, sym_2;
 #if MICROSOFT_EXTENSIONS_ALLOWED || GNU_X86_ATTRIBUTES_ALLOWED
   a_boolean                     ignore_ms_calling_convention = FALSE;
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED || GNU_X86_ATTRIBUTES_ALLOWED */
@@ -7767,14 +7797,20 @@ check_typerefs:
             identical = TRUE;
 #endif /* SAME_REPR_INTS_INTERCHANGEABLE_IN_IL */
           }  /* if */
-        } else if ((flags & ITF_SEEK_CORRESP) != 0 &&
-                   secondary_translation_unit_seen() &&
-                   type_1->variant.integer.enum_type &&
+        } else if (type_1->variant.integer.enum_type &&
                    type_2->variant.integer.enum_type) {
-          /* The types are expected to be identical, but because they are
-             presumably defined in two different translation units, the
-             correspondence of their inner structure must be checked. */
-          identical = seek_type_corresp(type_1, type_2);
+          if ((flags & ITF_SEEK_CORRESP) != 0 &&
+              secondary_translation_unit_seen()) {
+            /* The types are expected to be identical, but because they are
+               presumably defined in two different translation units, the
+               correspondence of their inner structure must be checked. */
+            identical = seek_type_corresp(type_1, type_2);
+          } else if (type_1->variant.integer.is_nonreal &&
+                     type_2->variant.integer.is_nonreal) {
+            /* Nonreal enums are the same if their names are the same and if
+               they are members of identical types. */
+            identical = identical_names_and_parents(type_1, type_2, flags);
+          }  /* if */
         }  /* if */
         break;
 #if FIXED_POINT_ALLOWED
@@ -8109,27 +8145,9 @@ check_typerefs:
               }  /* if */
               break;
             case tptk_member:
-              /* Members types are the same if their names are the same
-                 and if they are members of identical types. */
-              sym_1 = symbol_for(type_1);
-              sym_2 = symbol_for(type_2);
-              if (in_front_end) {
-                check_assertion(sym_1 != NULL && sym_2 != NULL);
-                if (sym_1->header == sym_2->header) {
-                  /* The names are the same. */
-                  identical = TRUE;
-                }  /* if */
-              } else {
-                check_assertion(prototype_instantiations_in_il);
-                /* We only have a limited ability to compare these types in a
-                   back end where we have no symbol information. */
-                identical = (sym_1 == sym_2);
-              }  /* if */
-              if (identical &&
-                  !f_identical_types(parent_class_of(type_1),
-                                     parent_class_of(type_2), flags)) {
-                identical = FALSE;
-              }  /* if */
+              /* Member types are the same if their names are the same and if
+                 they are members of identical types. */
+              identical = identical_names_and_parents(type_1, type_2, flags);
               break;
             case tptk_unknown:
               /* Two unknown types.  This should only occur when comparing
@@ -8465,6 +8483,32 @@ this kind of redeclaration.
 }  /* check_gpp_template_redecl_match */
 
 
+static an_itf_flag_set itf_flags_for_type_compat_flags(
+                                             a_type_compat_flags_set  tc_flags)
+/*
+Return the appropriate type comparison flags for a given set of type
+compatibility flags.
+*/
+{
+  an_itf_flag_set  itf_flags = ITF_NO_FLAGS;
+#if MICROSOFT_EXTENSIONS_ALLOWED
+  if (tc_flags & TCF_CONTEXTUAL_GENERIC_PARAMETERS) {
+    itf_flags |= ITF_CONTEXTUAL_GENERIC_PARAMETERS;
+  }  /* if */
+#endif /* MICROSOFT_EXTENSIONS_ALLOWED */
+  if (tc_flags & TCF_IGNORE_NESTING_DEPTH) {
+    itf_flags |= ITF_IGNORE_NESTING_DEPTH;
+  }  /* if */
+  if (tc_flags & TCF_EXACT_DECLTYPE_EXPR_MATCH_REQUIRED) {
+    itf_flags |= ITF_EXACT_DECLTYPE_EXPR_MATCH_REQUIRED;
+  }  /* if */
+  if (tc_flags & TCF_PLACEHOLDER_CONSTRAINT_MATCH_REQUIRED) {
+    itf_flags |= ITF_PLACEHOLDER_CONSTRAINT_MATCH_REQUIRED;
+  }  /* if */
+  return itf_flags;
+}  /* itf_flags_for_type_compat_flags */
+
+
 a_boolean compatible_enable_if_attributes(a_type_ptr  rtp1,
                                           a_type_ptr  rtp2)
 /*
@@ -8704,6 +8748,15 @@ check_typerefs:
             /* In C++, each enum type is a distinct type and is not compatible
                with any other type.  In C and C99, when looking for cross-
                translation compatibility, similar rules apply. */
+            if ((flags & TCF_DISTINCT_DEPENDENT_TYPES) == 0 &&
+                type_1->variant.integer.enum_type &&
+                type_2->variant.integer.enum_type &&
+                type_1->variant.integer.is_nonreal &&
+                type_2->variant.integer.is_nonreal) {
+              compat = f_identical_types(
+                                       type_1, type_2,
+                                       itf_flags_for_type_compat_flags(flags));
+            }  /* if */
           } else if (type_1->variant.integer.enum_type &&
                      type_2->variant.integer.enum_type &&
                      !(microsoft_mode || (gcc_mode && gnu_version < 30400)) &&
@@ -9016,22 +9069,8 @@ check_typerefs:
           if ((flags & TCF_DISTINCT_DEPENDENT_TYPES) == 0) {
             /* Template parameter types are considered to be compatible if
                their positions in the template parameter list are the same. */
-            an_itf_flag_set  it_flags = ITF_NO_FLAGS;
-#if MICROSOFT_EXTENSIONS_ALLOWED
-            if (flags & TCF_CONTEXTUAL_GENERIC_PARAMETERS) {
-              it_flags |= ITF_CONTEXTUAL_GENERIC_PARAMETERS;
-            }  /* if */
-#endif /* MICROSOFT_EXTENSIONS_ALLOWED */
-            if (flags & TCF_IGNORE_NESTING_DEPTH) {
-              it_flags |= ITF_IGNORE_NESTING_DEPTH;
-            }  /* if */
-            if (flags & TCF_EXACT_DECLTYPE_EXPR_MATCH_REQUIRED) {
-              it_flags |= ITF_EXACT_DECLTYPE_EXPR_MATCH_REQUIRED;
-            }  /* if */
-            if (flags & TCF_PLACEHOLDER_CONSTRAINT_MATCH_REQUIRED) {
-              it_flags |= ITF_PLACEHOLDER_CONSTRAINT_MATCH_REQUIRED;
-            }  /* if */
-            compat = f_identical_types(type_1, type_2, it_flags);
+            compat = f_identical_types(type_1, type_2,
+                                       itf_flags_for_type_compat_flags(flags));
           }  /* if */
           break;
 #if GNU_VECTOR_TYPES_ALLOWED
