@@ -2711,6 +2711,7 @@ is in fact valid.
 #if MICROSOFT_EXTENSIONS_ALLOWED
          !equivalent_property_or_event_fields(field, corresp_field) ||
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
+         field->has_initializer != corresp_field->has_initializer ||
          scp->access != corresp_scp->access ||
          scp->name_linkage != corresp_scp->name_linkage)) {
       match = FALSE;
