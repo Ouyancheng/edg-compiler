@@ -1,5 +1,18 @@
 Version 6.7
 
+9/17/24  [EDGcpfe/24862,EDGcpfe/27585]
+Multi-TU field correspondence crash
+
+When compiling multiple translation units involving complex default member
+initializer expressions, the front end could abort with a failed assertion in
+walk_entry_and_subtree.  This is now fixed.
+
+Additionally, a closely related issue has been fixed.  The front end previously
+would not diagnose when one translation unit had an default member initializer
+and another translation unit was missing said default member initializer on the
+corresponding field.
+
+
 9/17/24  [EDGcpfe/18478,EDGcpfe/22305,EDGcpfe/27354]
 Declaration matching for enums in Microsoft nonreal base classes
 
