@@ -6794,6 +6794,33 @@ Return TRUE if the two array types have identical bounds.
 }  /* identical_array_type_level */
 
 
+static a_boolean identical_names_and_parents(a_type_ptr       type_1,
+                                             a_type_ptr       type_2,
+                                             an_itf_flag_set  itf_flags)
+/*
+Return TRUE if the names of the given types are the same and if they are
+members of identical types.  itf_flags is a set of options that control the way
+parent types are compared.
+*/
+{
+  a_const_char  *name_1 = unmangled_name_of(&type_1->source_corresp);
+  a_const_char  *name_2 = unmangled_name_of(&type_2->source_corresp);
+  a_boolean     identical;
+
+  check_assertion(type_1->source_corresp.is_class_member &&
+                  type_2->source_corresp.is_class_member);
+  if (name_1 == name_2 ||
+      (name_1 != NULL && name_2 != NULL && !strcmp(name_1, name_2))) {
+    identical = f_identical_types(parent_class_of(type_1),
+                                  parent_class_of(type_2),
+                                  itf_flags);
+  } else {
+    identical = FALSE;
+  }  /* if */
+  return identical;
+}  /* identical_names_and_parents */
+
+
 a_boolean equiv_class_types(
                            a_type_ptr           type_1,
                            a_type_ptr           type_2,
@@ -6924,9 +6951,7 @@ ITF_EXACT_NESTING_DEPTHS_REQUIRED and ETA_ALLOW_EQUIV_NESTING_DEPTHS).
            But Microsoft instantiated nonreal classes have actual nested
            classes as members.  They are considered the same if their names
            are the same and their parent classes are the same. */
-        equiv = type_sym_1->header == type_sym_2->header &&
-                f_identical_types(parent_class_of(type_1),
-                                  parent_class_of(type_2), itf_flags);
+        equiv = identical_names_and_parents(type_1, type_2, itf_flags);
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
       }  /* if */
     }  /* if */
@@ -7482,37 +7507,6 @@ type supplements are not equivalent.
 }  /* different_exception_specifications */
 
 
-static a_boolean identical_names_and_parents(a_type_ptr       type_1,
-                                             a_type_ptr       type_2,
-                                             an_itf_flag_set  itf_flags)
-/*
-Return TRUE if the names of the given types are the same and if they are
-members of identical types.  itf_flags is a set of options that control the way
-parent types are compared.
-*/
-{
-  a_symbol_ptr  sym_1 = symbol_for(type_1);
-  a_symbol_ptr  sym_2 = symbol_for(type_2);
-  a_boolean     identical;
-
-  if (in_front_end) {
-    check_assertion(sym_1 != NULL && sym_2 != NULL);
-    identical = (sym_1->header == sym_2->header);
-  } else {
-    check_assertion(prototype_instantiations_in_il);
-    /* We only have a limited ability to compare these types in a back end
-       where we have no symbol information. */
-    identical = (sym_1 == sym_2);
-  }  /* if */
-  if (identical &&
-      !f_identical_types(parent_class_of(type_1), parent_class_of(type_2),
-                         itf_flags)) {
-    identical = FALSE;
-  }  /* if */
-  return identical;
-}  /* identical_names_and_parents */
-
-
 a_boolean f_identical_types(a_type_ptr      type_1,
                             a_type_ptr      type_2,
                             an_itf_flag_set flags)
@@ -7806,9 +7800,11 @@ check_typerefs:
                correspondence of their inner structure must be checked. */
             identical = seek_type_corresp(type_1, type_2);
           } else if (type_1->variant.integer.is_nonreal &&
-                     type_2->variant.integer.is_nonreal) {
-            /* Nonreal enums are the same if their names are the same and if
-               they are members of identical types. */
+                     type_2->variant.integer.is_nonreal &&
+                     type_1->source_corresp.is_class_member &&
+                     type_2->source_corresp.is_class_member) {
+            /* Nonreal member enums are the same if their names are the same
+               and if they are members of identical types. */
             identical = identical_names_and_parents(type_1, type_2, flags);
           }  /* if */
         }  /* if */
