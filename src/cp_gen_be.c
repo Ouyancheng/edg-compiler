@@ -6368,6 +6368,10 @@ put out nothing.
 #if PROTOTYPE_INSTANTIATIONS_IN_IL
       a_type_ptr                  decltype_type = NULL;
 #endif /* PROTOTYPE_INSTANTIATIONS_IN_IL */
+      if (is_immediate_class_type(class_type) &&
+          class_type->variant.class_struct_union.proxy_class) {
+        class_type = class_type_supp(class_type)->proxy_of_type;
+      }  /* if */
       scp = &class_type->source_corresp;
       kind = (an_il_entry_kind)iek_type;
       if (is_immediate_class_type(class_type) &&
