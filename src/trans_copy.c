@@ -2438,8 +2438,7 @@ with the current translation unit set to the primary translation unit.
   if (is_class_scope) {
     a_type_ptr class_type = scope->variant.assoc_type;
 
-    /* There is at least one field with an attribute that must be merged.
-       Go through the fields and merge attributes. */
+    /* Go through the fields and merge initializers and attributes. */
     a_field_ptr field;
     for (field = class_type->variant.class_struct_union.field_list;
          field != NULL;
