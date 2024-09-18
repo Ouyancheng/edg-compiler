@@ -8524,10 +8524,15 @@ Generate a reference to the indicated type, which is a fundamental type, a
 tag, a typedef, or a dependent type.  A reference is not the definition.
 */
 {
-  a_type_ptr             orig_type = type;
+  a_type_ptr             orig_type;
   a_gen_name_options_set options = GN_NO_OPTIONS;
   a_type_ptr             poss_dep_type = NULL;
 
+  if (is_immediate_class_type(type) &&
+      type->variant.class_struct_union.proxy_class) {
+    type = class_type_supp(type)->proxy_of_type;
+  }  /* if */
+  orig_type = type;
   if (is_template_param_or_nonreal_class_type(type)) {
     poss_dep_type = type;
   } else if (type->source_corresp.is_class_member &&
