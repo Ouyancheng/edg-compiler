@@ -12577,6 +12577,7 @@ Something is treated as an instantiation context if:
     in the instantiation of an enclosing class template).
   - We are in a generic lambda prototype instantiation inside some real
     enclosing instantiation.
+  - We have real template arguments for all referenced packs.
 
 In such contexts, return TRUE.  If we found a pack expansion, set *p_pedp
 to the pack expansion descriptor for the pack being instantiated.  Note
@@ -12601,6 +12602,68 @@ that *p_pedp is set even when FALSE is returned.
     } else if (pedp->uses_any_enclosing_packs &&
                in_generic_lambda_in_real_instantiation()) {
       result = TRUE;
+    } else if (pedp->uses_only_enclosing_packs) {
+      a_pack_reference_ptr      prp;
+      a_template_nesting_depth  max_pack_depth = NO_NESTING_DEPTH;
+      uint32_t                  min_function_scopes_to_skip = 0;
+      a_boolean                 has_variable_pack_reference = FALSE,
+                                has_unhandled_pack_reference = FALSE;
+
+      /* Check if we have real template arguments for each referenced pack.  We
+         can do this by checking the coordinates of template parameters and the
+         number of function scopes to skip for variables. */
+      for (prp = pedp->packs_referenced; prp != NULL; prp = prp->next) {
+        if (prp->kind == prk_template_param) {
+          if (prp->coordinates->depth > max_pack_depth) {
+            max_pack_depth = prp->coordinates->depth;
+          }  /* if */
+        } else if (prp->kind == prk_variable) {
+          has_variable_pack_reference = TRUE;
+          if (min_function_scopes_to_skip == 0 ||
+              prp->function_scopes_to_skip < min_function_scopes_to_skip) {
+            min_function_scopes_to_skip = prp->function_scopes_to_skip;
+          }  /* if */
+        } else {
+          has_unhandled_pack_reference = TRUE;
+          break;
+        }  /* if */
+      }  /* for */
+      if (!has_unhandled_pack_reference) {
+        a_template_nesting_depth  real_instantiation_depth = NO_NESTING_DEPTH,
+                                  max_variable_pack_depth = NO_NESTING_DEPTH;
+        a_scope_stack_entry_ptr   ssep = &scope_stack_top();
+        a_boolean                 skip_next_inst_scope = FALSE;
+
+        /* Walk the scope stack to count the number of template instantiation
+           scopes with real template arguments and determine the depth of the
+           innermost variable pack reference. */
+        skip_next_inst_scope = FALSE;
+        for (; ssep != NULL; ssep = previous_scope_of(ssep)) {
+          if (scope_is(ssep, sck_function)) {
+            if (min_function_scopes_to_skip > 0) {
+              skip_next_inst_scope = TRUE;
+              --min_function_scopes_to_skip;
+            }  /* if */
+          } else if (scope_is(ssep, sck_template_instantiation)) {
+            if (has_variable_pack_reference && !skip_next_inst_scope) {
+              ++max_variable_pack_depth;
+            } else {
+              skip_next_inst_scope = FALSE;
+            }  /* if */
+            if (!ssep->in_prototype_instantiation) {
+              ++real_instantiation_depth;
+            }  /* if */
+          } else {
+            skip_next_inst_scope = FALSE;
+          }  /* if */
+        }  /* for */
+        if (max_variable_pack_depth > max_pack_depth) {
+          max_pack_depth = max_variable_pack_depth;
+        }  /* if */
+        /* We are in a pack instantiation context if we have real template
+           arguments for all referenced packs. */
+        result = max_pack_depth <= real_instantiation_depth;
+      }  /* if */
     }  /* if */
   }  /* if */
   return result;
