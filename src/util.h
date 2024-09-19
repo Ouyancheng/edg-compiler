@@ -4478,6 +4478,9 @@ struct Ptr_map_entry {
   Ptr_map_entry(const a_key &init_key, const a_value &init_value)
     : stored_key(init_key), stored_value(init_value)
     {}
+  Ptr_map_entry(a_key &&init_key, const a_value &init_value)
+    : stored_key(move_from(&init_key)), stored_value(init_value)
+    {}
   Ptr_map_entry(const an_entry &other) = delete;
   inline Ptr_map_entry(an_entry &&other);
   inline ~Ptr_map_entry();
@@ -4571,24 +4574,33 @@ struct Ptr_map: private Allocator<Ptr_map_entry<a_Ptr_key, a_Value>> {
   inline Ptr_map(unsigned int       mask_width,
                  const an_allocator &a = an_allocator());
   inline ~Ptr_map();
-  inline auto get_with_hash(a_key  key, uintptr_t  hash) const -> a_value;
-  inline auto get(a_key  key) const -> a_value
+  inline auto get_with_hash(const a_key &key,
+                            uintptr_t   hash) const -> a_value;
+  inline auto get(const a_key &key) const -> a_value
     { return this->get_with_hash(key, hash_ptr(key)); }
-  inline void map_with_hash(a_key  key, const a_value &value, uintptr_t  hash);
-  inline void map(a_key  key, const a_value &value)
+  inline void map_with_hash(const a_key   &key,
+                            const a_value &value,
+                            uintptr_t     hash);
+  inline void map_with_hash(a_key         &&key,
+                            const a_value &value,
+                            uintptr_t     hash);
+  inline void map(const a_key &key, const a_value &value)
     { this->map_with_hash(key, value, hash_ptr(key)); }
-  inline void replace_with_hash(a_key          key,
+  inline void map(a_key &&key, const a_value &value)
+    { this->map_with_hash(key, value, hash_ptr(key)); }
+  inline void replace_with_hash(const a_key    &key,
                                 const a_value  &value,
                                 uintptr_t      hash);
-  inline void replace(a_key  key, const a_value  &value)
+  inline void replace(const a_key &key, const a_value  &value)
     { this->replace_with_hash(key, value, hash_ptr(key)); }
-  inline auto map_or_replace_with_hash(a_key          key,
+  inline auto map_or_replace_with_hash(const a_key    &key,
                                        const a_value  &value,
                                        uintptr_t      hash)
               -> a_value;
-  inline auto map_or_replace(a_key  key, const a_value  &value) -> a_value
+  inline auto map_or_replace(const a_key   &key,
+                             const a_value &value) -> a_value
     { return this->map_or_replace_with_hash(key, value, hash_ptr(key)); }
-  inline void unmap(a_key  key);
+  inline void unmap(const a_key &key);
   inline void clear();
   inline auto number_of_elements() const -> size_t
     { return this->n_elements; }
@@ -4613,11 +4625,14 @@ private:
 			/* The number of elements stored in the table. */
   inline a_boolean has_value_at(size_t idx) const
     { return this->table[idx].has_value(); }
-  inline void map_colliding_key(size_t         idx,
-                                const a_key    &new_key,
-                                const a_value  &new_value);
+  inline void make_space_for_colliding_key(size_t          idx,
+                                           const a_key     &new_key,
+                                           const a_value   &new_value);
   inline void construct_entry_at(size_t        idx,
                                  const a_key   &new_key,
+                                 const a_value &new_value);
+  inline void construct_entry_at(size_t        idx,
+                                 a_key         &&new_key,
                                  const a_value &new_value);
   inline void create_table(unsigned n_slots);
   inline void expand_table();
@@ -4663,8 +4678,8 @@ Release the storage for the map.
 template<typename a_Ptr_key, typename a_Value,
          template<typename> class Allocator>
 inline auto Ptr_map<a_Ptr_key, a_Value, Allocator>::get_with_hash(
-                                                         a_key      key,
-                                                         uintptr_t  hash) const
+                                                        const a_key &key,
+                                                        uintptr_t   hash) const
                                                     -> a_value
 /*
 Look up key in the map and return the associated value if found, or a_value()
@@ -4720,7 +4735,7 @@ removed from a Ptr_map instance.
 template<typename a_Ptr_key, typename a_Value,
          template<typename> class Allocator>
 inline void Ptr_map<a_Ptr_key, a_Value, Allocator>::map_with_hash(
-                                                        a_key          key,
+                                                        const a_key    &key,
                                                         const a_value  &value,
                                                         uintptr_t      hash)
 /*
@@ -4735,18 +4750,44 @@ value of that key.
      indistinguishable from an unused entry in the table. */
   check_assertion(key != a_key());
   check_traced_key_ptr(key, "mapped");
-  if (!this->has_value_at(idx)) {
-    this->construct_entry_at(idx, key, value);
-  } else {
-    this->map_colliding_key(idx, key, value);
+  if (this->has_value_at(idx)) {
+    this->make_space_for_colliding_key(idx, key, value);
   }  /* if */
+  /* Record the new mapping. */
+  this->construct_entry_at(idx, key, value);
+}  /* Ptr_map::map_with_hash */
+
+
+template<typename a_Ptr_key, typename a_Value,
+         template<typename> class Allocator>
+inline void Ptr_map<a_Ptr_key, a_Value, Allocator>::map_with_hash(
+                                                        a_key          &&key,
+                                                        const a_value  &value,
+                                                        uintptr_t      hash)
+/*
+Associate a copy of value with the given key.  hash is the precomputed hash
+value of that key.
+*/
+{
+  size_t mask = this->hash_mask;
+  size_t idx = hash & mask;
+
+  /* If this assertion fails the mapped value will be lost as the key is
+     indistinguishable from an unused entry in the table. */
+  check_assertion(key != a_key());
+  check_traced_key_ptr(key, "mapped");
+  if (this->has_value_at(idx)) {
+    this->make_space_for_colliding_key(idx, key, value);
+  }  /* if */
+  /* Record the new mapping. */
+  this->construct_entry_at(idx, move_from(&key), value);
 }  /* Ptr_map::map_with_hash */
 
 
 template<typename a_Ptr_key, typename a_Value,
          template<typename> class Allocator>
 inline void Ptr_map<a_Ptr_key, a_Value, Allocator>::replace_with_hash(
-                                                        a_key          key,
+                                                        const a_key    &key,
                                                         const a_value  &value,
                                                         uintptr_t      hash)
 /*
@@ -4778,7 +4819,7 @@ the precomputed hash of that key.
 template<typename a_Ptr_key, typename a_Value,
          template<typename> class Allocator>
 inline auto Ptr_map<a_Ptr_key, a_Value, Allocator>::map_or_replace_with_hash(
-                                                        a_key          key,
+                                                        const a_key    &key,
                                                         const a_value  &value,
                                                         uintptr_t      hash)
                                                     -> a_value
@@ -4823,7 +4864,7 @@ precomputed hash of that key.
 
 template<typename a_Ptr_key, typename a_Value,
          template<typename> class Allocator>
-inline void Ptr_map<a_Ptr_key, a_Value, Allocator>::unmap(a_key  key)
+inline void Ptr_map<a_Ptr_key, a_Value, Allocator>::unmap(const a_key &key)
 /*
 Remove the given key from the table (it must exist).
 */
@@ -4872,13 +4913,14 @@ Remove all entries in the Ptr_map.
 
 template<typename a_Ptr_key, typename a_Value,
          template<typename> class Allocator>
-void Ptr_map<a_Ptr_key, a_Value, Allocator>::map_colliding_key(
+void Ptr_map<a_Ptr_key, a_Value, Allocator>::make_space_for_colliding_key(
                                                      size_t         idx,
                                                      const a_key    &new_key,
                                                      const a_value  &new_value)
 /*
-The given key has a hash value that collides with an existing mapping.  Record
-the given new key and new value at the next available location.
+The given key has a hash value that collides with an existing mapping.
+Rearrange the current elements so that the given index can be used for the new
+value.
 */
 {
 #if EXPENSIVE_CHECKING
@@ -4898,9 +4940,7 @@ the given new key and new value at the next available location.
       break;
     }  /* if */
   }  /* for */
-  /* Record the new mapping. */
-  this->construct_entry_at(initial_hit, new_key, new_value);
-}  /* Ptr_map::map_colliding_key */
+}  /* Ptr_map::make_space_for_colliding_key */
 
 
 template<typename a_Ptr_key, typename a_Value,
@@ -4914,6 +4954,26 @@ Construct a new entry with the given key and value at the given index.
 */
 {
   an_entry new_entry(new_key, new_value);
+
+  this->table[idx] = move_from(&new_entry);
+  this->n_elements += 1;
+  if (this->n_elements * 2 > this->hash_mask) {
+    this->expand_table();
+  }  /* if */
+}  /* Ptr_map::construct_entry_at */
+
+
+template<typename a_Ptr_key, typename a_Value,
+         template<typename> class Allocator>
+void Ptr_map<a_Ptr_key, a_Value, Allocator>::construct_entry_at(
+                                                      size_t        idx,
+                                                      a_key         &&new_key,
+                                                      const a_value &new_value)
+/*
+Construct a new entry with the given key and value at the given index.
+*/
+{
+  an_entry new_entry(move_from(&new_key), new_value);
 
   this->table[idx] = move_from(&new_entry);
   this->n_elements += 1;
