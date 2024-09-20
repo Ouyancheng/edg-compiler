@@ -12650,7 +12650,8 @@ that *p_pedp is set even when FALSE is returned.
             } else {
               skip_next_inst_scope = FALSE;
             }  /* if */
-            if (!ssep->in_prototype_instantiation) {
+            if (!ssep->in_prototype_instantiation &&
+                !ssep->in_nonreal_instantiation) {
               ++real_instantiation_depth;
             }  /* if */
           } else {
