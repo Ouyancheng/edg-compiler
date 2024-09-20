@@ -6651,6 +6651,13 @@ template.  dsi_flags is the set of input flags passed to decl_specifiers.
     if (scope_stack[effective_decl_level].in_prototype_instantiation ||
         scope_stack[effective_decl_level].in_nonreal_instantiation) {
       enum_type->variant.integer.is_nonreal = TRUE;
+#if MICROSOFT_EXTENSIONS_ALLOWED
+      if (class_of_which_a_member != NULL &&
+          class_of_which_a_member->variant.class_struct_union
+                                          .is_ms_instantiated_nonreal_class) {
+        enum_type->variant.integer.is_ms_instantiated_nonreal_enum = TRUE;
+      }  /* if */
+#endif /* MICROSOFT_EXTENSIONS_ALLOWED */
     }  /* if */
     if (parent_scope != NULL && in_file_scope(parent_scope)) {
       /* Record the parent_scope if it is nonlocal so parent classes or parent

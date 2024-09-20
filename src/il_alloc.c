@@ -2038,6 +2038,9 @@ to default values.
       pte->variant.integer.is_prototype_instantiation = FALSE;
       pte->variant.integer.is_nonreal = FALSE;
       pte->variant.integer.is_specialized = FALSE;
+#if MICROSOFT_EXTENSIONS_ALLOWED
+      pte->variant.integer.is_ms_instantiated_nonreal_enum = FALSE;
+#endif /* MICROSOFT_EXTENSIONS_ALLOWED */
 #if GNU_VISIBILITY_ATTRIBUTE_ALLOWED
       pte->variant.integer.ELF_visibility =
                                        (an_ELF_visibility_kind)evk_unspecified;

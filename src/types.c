@@ -7799,13 +7799,17 @@ check_typerefs:
                presumably defined in two different translation units, the
                correspondence of their inner structure must be checked. */
             identical = seek_type_corresp(type_1, type_2);
+#if MICROSOFT_EXTENSIONS_ALLOWED
           } else if (type_1->variant.integer.is_nonreal &&
                      type_2->variant.integer.is_nonreal &&
+                     type_1->variant.integer.is_ms_instantiated_nonreal_enum &&
+                     type_2->variant.integer.is_ms_instantiated_nonreal_enum &&
                      type_1->source_corresp.is_class_member &&
                      type_2->source_corresp.is_class_member) {
-            /* Nonreal member enums are the same if their names are the same
-               and if they are members of identical types. */
+            /* MS instantiated nonreal member enums are the same if their names
+               are the same and if they are members of identical types. */
             identical = identical_names_and_parents(type_1, type_2, flags);
+#endif /* MICROSOFT_EXTENSIONS_ALLOWED */
           }  /* if */
         }  /* if */
         break;

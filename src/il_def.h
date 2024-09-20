@@ -9763,6 +9763,14 @@ typedef struct a_type {
 		is_specialized:1;
 			/* TRUE for enum instances that were explicitly
 			   specialized. */
+#if MICROSOFT_EXTENSIONS_ALLOWED
+      a_bit_field
+		is_ms_instantiated_nonreal_enum:1;
+			/* TRUE if the enum is a nonreal enum that was actually
+			   instantiated like a real enum.  This is done for
+			   certain nonreal enums used as members of base
+			   classes in Microsoft mode. */
+#endif /* MICROSOFT_EXTENSIONS_ALLOWED */
 #if GNU_VISIBILITY_ATTRIBUTE_ALLOWED
       ENUM_TYPE_FOR_BIT_FIELD(an_ELF_visibility_kind)
 		ELF_visibility:3;

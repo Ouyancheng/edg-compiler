@@ -2235,6 +2235,11 @@ Display the indicated type entry.
         if (ptr->variant.integer.is_specialized) {
           disp_boolean("is_specialized", TRUE);
         }  /* if */
+#if MICROSOFT_EXTENSIONS_ALLOWED
+        if (ptr->variant.integer.is_ms_instantiated_nonreal_enum) {
+          disp_boolean("is_ms_instantiated_nonreal_enum", TRUE);
+        }  /* if */
+#endif /* MICROSOFT_EXTENSIONS_ALLOWED */
 #if GNU_VISIBILITY_ATTRIBUTE_ALLOWED
         if (ptr->variant.integer.ELF_visibility != evk_unspecified) {
           disp_ELF_visibility_kind(enum_cast<an_ELF_visibility_kind>(
