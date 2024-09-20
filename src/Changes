@@ -1,5 +1,21 @@
 Version 6.7
 
+9/20/24  [EDGcpfe/25696,EDGcpfe/27501]
+Pack expansions in nested generic lambdas
+
+Previously, the front end failed to expand an enclosing function parameter pack
+that was captured by a generic lambda nested in another generic lambda.  For
+example, with --c++17:
+
+  int i = [] (auto ... a) {
+    return [&] (auto b) {
+      return [&] (auto c) {
+        return (a , ...);  // Previously a spurious error.  Now okay.
+      } (3);
+    } (2);
+  } (1);
+
+
 9/17/24  [EDGcpfe/24862,EDGcpfe/27585]
 Multi-TU field correspondence crash
 
