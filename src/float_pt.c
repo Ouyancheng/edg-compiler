@@ -974,18 +974,16 @@ underflow.  If the conversion can be done, return the result in "result".
     /* The conversion to float succeeded. */
 #if HOST_HAS_FLOAT16_TYPE
     /* Check the resulting value against the _Float16 range limits. */
-#define MIN_FLOAT16_DENORM 0.000000059604645
 #define MAX_FLOAT16_VAL 65504
     float abs_value = (float)fabs(float_temp);
     if (abs_value > MAX_FLOAT16_VAL ||
-        (abs_value < MIN_FLOAT16_DENORM && abs_value != 0.0)) {
+        ((EDG_float16_t)abs_value == 0.0 && abs_value != 0.0)) {
       /* The value would overflow or underflow. */
       *err = TRUE;
     } else {
       /* The value is within the representable range for _Float16. */
       *result = (EDG_float16_t)float_temp;
     }  /* if */
-#undef MIN_FLOAT16_DENORM
 #undef MAX_FLOAT16_VAL
 #else /* !HOST_HAS_FLOAT16_TYPE */
     /* Do a round-trip conversion through the mantissa/exponent
