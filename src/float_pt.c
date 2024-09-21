@@ -19,9 +19,10 @@ for a production version.
 /* Header files common to all files. */
 #include "fe_common.h"
 
-#if !USE_HOST_FP_CONVERSION_ROUTINES
+#if !USE_HOST_FP_CONVERSION_ROUTINES || \
+    (USE_FLOAT128_FOR_HOST_FP_VALUE && !USE_QUADMATH_LIBRARY)
 #include "floating.h"
-#endif /* !USE_HOST_FP_CONVERSION_ROUTINES */
+#endif /* !USE_HOST_FP_CONVERSION_ROUTINES || (USE_FLOAT128...) */
 
 #ifdef PCH_PRAGMA_GUARD
 /* Mark the end of the sequence of headers subject to precompiled header
@@ -3089,7 +3090,8 @@ struct an_il_hex_fp_value {
 
 }  /* namespace */
 
-#if USE_HOST_FP_CONVERSION_ROUTINES
+#if USE_HOST_FP_CONVERSION_ROUTINES && \
+    !(USE_FLOAT128_FOR_HOST_FP_VALUE && !USE_QUADMATH_LIBRARY)
 
 template<typename a_Dyn_array>
 static inline void append_float_using_host_routines(
@@ -3184,7 +3186,7 @@ number of characters this value might use (plus a temporary null character).
   }  /* if */
 }  /* append_float_using_host_routines */
 
-#else /* !USE_HOST_FP_CONVERSION_ROUTINES */
+#else /* !(USE_HOST_FP_CONVERSION_ROUTINES && !(USE_FLOAT128...))*/
 
 template<typename a_Dyn_array>
 static inline void append_float_using_internal_routines(
@@ -3299,7 +3301,7 @@ value might use (plus a temporary null character).
   }  /* switch */
 }  /* append_float_using_internal_routines */
 
-#endif /* USE_HOST_FP_CONVERSION_ROUTINES */
+#endif /* USE_HOST_FP_CONVERSION_ROUTINES && !(USE_FLOAT128...) */
 
 namespace detail {
 
@@ -3337,15 +3339,16 @@ value might use (plus a temporary null character).
                                          value.neg_infinity,
                                          value.not_a_number, &underlying_array,
                                          &temp)) {
-#if USE_HOST_FP_CONVERSION_ROUTINES
+#if USE_HOST_FP_CONVERSION_ROUTINES && \
+    !(USE_FLOAT128_FOR_HOST_FP_VALUE && !USE_QUADMATH_LIBRARY)
     /* The call to handle_fp_to_string_special_cases has loaded float_value
        into temp.  Use host conversion routines to format the value. */
     append_float_using_host_routines(underlying_array, size_hint, value.kind,
                                      temp);
-#else /* !USE_HOST_FP_CONVERSION_ROUTINES */
+#else /* !(USE_HOST_FP_CONVERSION_ROUTINES && !(USE_FLOAT128...)) */
     /* Use internal routines for doing the binary to string conversion. */
     append_float_using_internal_routines(underlying_array, size_hint, value);
-#endif /* USE_HOST_FP_CONVERSION_ROUTINES */
+#endif /* USE_HOST_FP_CONVERSION_ROUTINES && !(USE_FLOAT128...) */
   }  /* if */
 }  /* append_into */
 

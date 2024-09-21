@@ -2248,7 +2248,11 @@ as the conversion process is performed in software with integer arithmetic (but
 see FP_USE_EMULATION in floating.h).  Setting USE_HOST_FP_CONVERSION_ROUTINES
 to TRUE uses the host library routines; a setting of FALSE uses the internal
 routines.  When setting this macro to FALSE, make sure the configuration macros
-for FP_LONG_DOUBLE_IS_* are set properly (see floating.h).
+for FP_LONG_DOUBLE_IS_* are set properly (see floating.h).  The internal
+routines will be used for converting floating point values to string form
+when USE_FLOAT128_FOR_HOST_FP_VALUE is TRUE and USE_QUADMATH_LIBRARY is FALSE,
+regardless of the setting of USE_HOST_FP_CONVERSION_ROUTINES, because there
+are no portable host routines to perform that conversion.
 */
 #ifndef USE_HOST_FP_CONVERSION_ROUTINES
 #if USE_SOFTFLOAT

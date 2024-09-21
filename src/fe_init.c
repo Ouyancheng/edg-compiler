@@ -90,9 +90,10 @@ called (and init_flags_and_types has parsed the information in il_header).
   il_to_str_init();
   error_init();
   float_pt_init();
-#if !USE_HOST_FP_CONVERSION_ROUTINES
+#if !USE_HOST_FP_CONVERSION_ROUTINES || \
+    (USE_FLOAT128_FOR_HOST_FP_VALUE && !USE_QUADMATH_LIBRARY)
   floating_one_time_init();
-#endif /* !USE_HOST_FP_CONVERSION_ROUTINES */
+#endif /* !USE_HOST_FP_CONVERSION_ROUTINES || (USE_FLOAT128...) */
 }  /* standalone_utility_late_init */
 
 #else /* !STANDALONE_UTILITY_PROGRAM */
@@ -183,10 +184,11 @@ END_EDG_NAMESPACE  /* Conditionally close the "edg" namespace. */
 #include "lower_c99.h"
 #endif /* DO_IL_LOWERING */
 
-#if !USE_HOST_FP_CONVERSION_ROUTINES
+#if !USE_HOST_FP_CONVERSION_ROUTINES || \
+    (USE_FLOAT128_FOR_HOST_FP_VALUE && !USE_QUADMATH_LIBRARY)
 /* Internal floating point conversion routines. */
 #include "floating.h"
-#endif /* !USE_HOST_FP_CONVERSION_ROUTINES */
+#endif /* !USE_HOST_FP_CONVERSION_ROUTINES || (USE_FLOAT128...) */
 BEGIN_EDG_NAMESPACE  /* Conditionally open the "edg" namespace. */
 
 static void last(void)
@@ -1816,9 +1818,10 @@ after the command-line processing has been done.
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
   sys_predef_one_time_init();
   modules_one_time_init();
-#if !USE_HOST_FP_CONVERSION_ROUTINES
+#if !USE_HOST_FP_CONVERSION_ROUTINES || \
+    (USE_FLOAT128_FOR_HOST_FP_VALUE && !USE_QUADMATH_LIBRARY)
   floating_one_time_init();
-#endif /* !USE_HOST_FP_CONVERSION_ROUTINES */
+#endif /* !USE_HOST_FP_CONVERSION_ROUTINES || (USE_FLOAT128...) */
 #if CHECKING
   /* Verify that the type used to store a function pointer index is
      large enough. */

@@ -3185,7 +3185,8 @@ BEGIN_DISABLE_GCC_WARNING_MAYBE_UNITIALIZED
         /* Use "d" to represent a decimal point. */
         str[i - chars_removed] = 'd';
         drop_insignificant_zeros = TRUE;
-#if !USE_HOST_FP_CONVERSION_ROUTINES
+#if !USE_HOST_FP_CONVERSION_ROUTINES || \
+    (USE_FLOAT128_FOR_HOST_FP_VALUE && !USE_QUADMATH_LIBRARY)
         /* Check for ".0E" and if found, drop the ".0". */
         if (i + 2 < str.length()) {
           if (str[i + 1] == '0' &&
@@ -3196,7 +3197,7 @@ BEGIN_DISABLE_GCC_WARNING_MAYBE_UNITIALIZED
             chars_removed += 2;
           }  /* if */
         }  /* if */
-#endif /* !USE_HOST_FP_CONVERSION_ROUTINES */
+#endif /* !USE_HOST_FP_CONVERSION_ROUTINES || (USE_FLOAT128...) */
         break;
       case '0':
         { /* Check for and drop unnecessary 0s, e.g. change "1.50000e+10" to
@@ -3232,7 +3233,8 @@ BEGIN_DISABLE_GCC_WARNING_MAYBE_UNITIALIZED
       case 'E':
         drop_insignificant_zeros = FALSE;
         str[i - chars_removed] = 'e';
-#if !USE_HOST_FP_CONVERSION_ROUTINES
+#if !USE_HOST_FP_CONVERSION_ROUTINES || \
+    (USE_FLOAT128_FOR_HOST_FP_VALUE && !USE_QUADMATH_LIBRARY)
         /* Check for and replace "E2" with "ep2". */
         if (i + 1 < str.length() && isdigit(str[i + 1])) {
           /* Insert a p. */
@@ -3252,7 +3254,7 @@ BEGIN_DISABLE_GCC_WARNING_MAYBE_UNITIALIZED
             str[i - chars_removed] = 'p';
           }  /* if */
         }  /* if */
-#endif /* !USE_HOST_FP_CONVERSION_ROUTINES */
+#endif /* !USE_HOST_FP_CONVERSION_ROUTINES || (USE_FLOAT128...) */
         break;
       case '-':
         /* Use "n" to represent a minus sign. */

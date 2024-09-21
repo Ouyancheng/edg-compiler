@@ -16,7 +16,8 @@ floating.h -- Definitions related to floating-point conversions.
 #ifndef FLOATING_H
 #define FLOATING_H
 
-#if !USE_HOST_FP_CONVERSION_ROUTINES
+#if !USE_HOST_FP_CONVERSION_ROUTINES || \
+    (USE_FLOAT128_FOR_HOST_FP_VALUE && !USE_QUADMATH_LIBRARY)
 
 /* Conditionally open the "edg" namespace. */
 BEGIN_EDG_NAMESPACE
@@ -725,7 +726,7 @@ bigint_mult_pow5.
 /* Conditionally close the "edg" namespace. */
 END_EDG_NAMESPACE
 
-#endif /* !USE_HOST_FP_CONVERSION_ROUTINES */
+#endif /* !USE_HOST_FP_CONVERSION_ROUTINES || (USE_FLOAT128...) */
 
 #endif  /* ifndef FLOATING_H */
 

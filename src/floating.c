@@ -22,7 +22,8 @@ floating.c -- convert decimal strings to binary values and vice versa.
 #pragma hdrstop
 #endif /* ifdef PCH_PRAGMA_GUARD */
 
-#if !USE_HOST_FP_CONVERSION_ROUTINES
+#if !USE_HOST_FP_CONVERSION_ROUTINES || \
+    (USE_FLOAT128_FOR_HOST_FP_VALUE && !USE_QUADMATH_LIBRARY)
 
 /* Additional header files. */
 #include <ctype.h>
@@ -2805,7 +2806,7 @@ Do one-time initialization of variables related to floating-point.
 /* Conditionally close the "edg" namespace. */
 END_EDG_NAMESPACE
 
-#endif /* !USE_HOST_FP_CONVERSION_ROUTINES */
+#endif /* !USE_HOST_FP_CONVERSION_ROUTINES || (USE_FLOAT128...) */
 
 /******************************************************************************
 *                                                             \  ___  /       *

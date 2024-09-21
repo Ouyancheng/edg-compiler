@@ -1,5 +1,18 @@
 Version 6.7
 
+9/21/24  [EDGcpfe/27601]
+C++-generating back end: large _Float128 values
+
+In C++-generating configurations in which USE_FLOAT128_FOR_HOST_FP_VALUE and
+USE_HOST_FP_CONVERSION_ROUTINES are TRUE but USE_QUADMATH_LIBRARY is FALSE,
+very large 128-bit floating-point literals could be put out in a format that
+was both non-syntactic and failed to reflect the actual literal value.  This
+is now fixed.  For example, with --gnu_version=140200:
+
+  auto x = 0x1.ffffffffffffffffffffffffffffp+16383Q;  // Previously put out
+                                                      // as "inf.0Q"
+
+
 9/20/24  [EDGcpfe/25696,EDGcpfe/27501]
 Pack expansions in nested generic lambdas
 
