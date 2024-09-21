@@ -658,16 +658,16 @@ the radix point (set in host_envir_early_init).
 #endif /* USE_LONG_DOUBLE_FOR_HOST_FP_VALUE || APPROXIMATE_QUADMATH */
 #if USE_FLOAT128_FOR_HOST_FP_VALUE && USE_HOST_FP_CONVERSION_ROUTINES
 
-static __float128 str_to_float128(a_const_char * str)
+static __float128 str_to_float128(a_const_char *str)
 /*
 Convert a string to a __float128.  This routine either relies on the GNU
-quadmath library (when USE_QUADMATH_LIBRARY is TRUE) or it approximates the
-result by using str_to_long_double (when APPROXIMATE_QUADMATH is TRUE).
+quadmath library (when USE_QUADMATH_LIBRARY is TRUE) or it uses the internal
+floating point routines (when USE_QUADMATH_LIBRARY is FALSE).
 */
 {
   __float128    result;
-#if USE_QUADMATH_LIBRARY
   a_boolean     err = FALSE;
+#if USE_QUADMATH_LIBRARY
   a_const_char  *ptr;
 
   result = strtoflt128(str, (char**)NULL);
@@ -692,12 +692,22 @@ result by using str_to_long_double (when APPROXIMATE_QUADMATH is TRUE).
     /* Check for overflow. */
     err = !is_finite(*(a_host_fp_value*)&result);
   }  /* if */
+#else /* !USE_QUADMATH_LIBRARY */
+  an_fp_return_type res = read_float128((unsigned char *)&result, str,
+                                        (int)strlen(str));
+  check_assertion(!fp_is_error(res));
+  if (gnu_mode) {
+    /* For compatibility, ignore any errors in GNU mode. */
+    err = FALSE;
+  } else if (microsoft_mode && res == (an_fp_return_type)fp_ret_underflow) {
+    /* Ignore underflow condition in Microsoft emulation mode. */
+    err = FALSE;
+  } else {
+    err = fp_is_unusual(res);
+  }  /* if */
+#endif /* USE_QUADMATH_LIBRARY */
   /* Set errno to indicate an error. */
   errno = err ? ERANGE : 0;
-#else /* !USE_QUADMATH_LIBRARY */
-  /* Use an approximate conversion. */
-  result = str_to_long_double(str);
-#endif /* USE_QUADMATH_LIBRARY */
   return result;
 }  /* str_to_float128 */
 
