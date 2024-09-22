@@ -1433,6 +1433,10 @@ command-line when compiling system headers.
 #ifdef __CYGWIN__
 
 /* Options for Windows/Cygwin version. */
+#define INT128_EXTENSIONS_ALLOWED 1
+#define FLOAT128_ENABLING_POSSIBLE 1
+#define HOST_FP_VALUE_IS_128BIT 1
+#define THREAD_LOCAL_STORAGE_SPECIFIER_ALLOWED 1
 #ifndef DEFAULT_INSTANTIATION_MODE
 #define DEFAULT_INSTANTIATION_MODE tim_all
 #endif /* DEFAULT_INSTANTIATION_MODE */
