@@ -605,7 +605,7 @@ Display a long double, for debugging purposes.
 }  /* db_long_double */
 #endif /* DEBUG */
 
-#if USE_HOST_FP_CONVERSION_ROUTINES
+#if USE_HOST_FP_CONVERSION_ROUTINES && !APPROXIMATE_QUADMATH
 
 static long double str_to_long_double(a_const_char * str)
 /*
@@ -654,7 +654,7 @@ the radix point (set in host_envir_early_init).
   return temp;
 }  /* str_to_long_double */
 
-#endif /* USE_HOST_FP_CONVERSION_ROUTINES */
+#endif /* USE_HOST_FP_CONVERSION_ROUTINES && !APPROXIMATE_QUADMATH */
 #endif /* USE_LONG_DOUBLE_FOR_HOST_FP_VALUE || APPROXIMATE_QUADMATH */
 #if USE_FLOAT128_FOR_HOST_FP_VALUE && USE_HOST_FP_CONVERSION_ROUTINES
 
