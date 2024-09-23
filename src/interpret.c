@@ -258,7 +258,7 @@ typedef unsigned int a_byte_count;
 /*
 Macro defining the largest allowed size of a type in the interpreter.
 */
-#define MAX_CONSTEXPR_TYPE_SIZE ((a_byte_count)(1<<20))
+#define MAX_CONSTEXPR_TYPE_SIZE ((a_byte_count)(1<<30))
 
 /*
 Macros that control the maximum length of an array.  The length of arrays is

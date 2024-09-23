@@ -1,5 +1,13 @@
 Version 6.7
 
+9/23/24  [EDGcpfe/27588]
+Limit on constant-evaluated type size
+
+Previously, the maximum size of an object allocated in the constant-evaluation
+interpreter was 1MB (this is the size as needed by the interpreter, not the
+size produced by sizeof).  That limit has now been raised to 1GB.
+
+
 9/21/24  [EDGcpfe/27601]
 C++-generating back end: large _Float128 values
 
