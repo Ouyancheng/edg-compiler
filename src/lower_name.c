@@ -4849,6 +4849,13 @@ do_unknown_function:
               mangled_encoding_for_type(bcp->derived_class, mctl);
             }
             break;
+          case iek_token_sequence:
+            // FIXME: Encode tokens.
+            add_str_to_mangled_name("v9tokenseq_", mctl);
+            add_number_to_mangled_name(unique_id_for_il_pointer(iep->ptr),
+                                       mctl);
+            add_str_to_mangled_name("_", mctl);
+            break;
           // FIXME: Other cases?
           default:
             unexpected_condition_str(
