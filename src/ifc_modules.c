@@ -5441,50 +5441,6 @@ succeeded, otherwise return FALSE.
 }  /* init_decl_locator */
 
 
-static a_symbol_ptr overload_set_from_il_entity_list(
-                                            an_il_entity_list_entry_ptr ielep)
-/*
-The given list should contain a_routine and a_template entries: Build an
-ad-hoc overload set symbol from them and return that symbol.  For an empty
-list return NULL.  For a singleton list return the symbol for the one routine
-or template.
-*/
-{
-  a_symbol_ptr             result;
-  a_source_correspondence  *scp;
-
-  if (ielep == NULL) {
-    result = NULL;
-  } else if (ielep->next == NULL) {
-    scp = source_corresp_for_il_entry(ielep->entity.ptr, ielep->entity.kind);
-    result = (a_symbol_ptr)scp->assoc_info;
-  } else {
-    a_symbol_ptr  src_sym, dst_sym, sym_list = NULL;
-    do {
-      scp = source_corresp_for_il_entry(ielep->entity.ptr, ielep->entity.kind);
-      src_sym = (a_symbol_ptr)scp->assoc_info;
-      if (symbol_is(src_sym, sk_variable_template)) {
-        /* Currently, some IFC function templates are parsed erroneously,
-           producing a variable template instead. */
-        pos_error(ec_ifc_function_template_parse_failure, &error_position,
-                  src_sym);
-      } else {
-        dst_sym = alloc_symbol(src_sym->kind, src_sym->header,
-                               &src_sym->decl_position);
-        *dst_sym = *src_sym;
-        dst_sym->next = sym_list;
-        sym_list = dst_sym;
-      }  /* if */
-      ielep = ielep->next;
-    } while (ielep != NULL);
-    result = alloc_symbol((a_symbol_kind)sk_overloaded_function,
-                          sym_list->header, &error_position);
-    result->variant.overloaded_function.symbols = sym_list;
-  }  /* if */
-  return result;
-}  /* overload_set_from_il_entity_list */
-
-
 static inline
 a_boolean is_template_parameter(const an_ifc_decl_parameter &decl)
 /*
@@ -6409,6 +6365,54 @@ Return NULL if none is found.
        prevents issues where a template instantiation can end up with the
        incorrect parameter symbol with alias declarations. */
     result = load_param_ref(decl_idx);
+  } else if (decl_idx.sort == ifc_ds_decl_tuple) {
+    /* An overload set. */
+    Opt<an_ifc_decl_tuple> opt_tuple_decl;
+
+    construct_node(&opt_tuple_decl, decl_idx);
+    if (!opt_tuple_decl.has_value()) {
+      goto invalid;
+    }  /* if */
+
+    /* Collect the entries of the overload set. */
+    an_ifc_decl_tuple    tuple_decl = *opt_tuple_decl;
+    a_decl_heap_sequence sequence(tuple_decl);
+    a_symbol_ptr         sym_list = NULL;
+    for (Indexed<an_ifc_heap_decl> indexed_ihd : sequence) {
+      if (!indexed_ihd.has_value()) {
+        continue;
+      }  /* if */
+
+      an_ifc_decl_index heap_value = get_ifc_value(*indexed_ihd);
+      a_symbol_ptr      src_sym = symbol_for_decl_index(heap_value);
+      if (src_sym == NULL) {
+        continue;
+      }  /* if */
+      if (symbol_is(src_sym, sk_variable_template)) {
+        /* Currently, some IFC function templates are parsed erroneously,
+           producing a variable template instead. */
+        pos_error(ec_ifc_function_template_parse_failure, &error_position,
+                  src_sym);
+        continue;
+      }  /* if */
+
+      a_symbol_ptr dst_sym = alloc_symbol(src_sym->kind, src_sym->header,
+                                          &src_sym->decl_position);
+      *dst_sym = *src_sym;
+      dst_sym->next = sym_list;
+      sym_list = dst_sym;
+    }  /* for */
+    if (sym_list == NULL) {
+      goto invalid;
+    }  /* if */
+    if (sym_list->next == NULL) {
+      /* If there's only one symbol, don't bother creating the overload set. */
+      result = sym_list;
+    } else {
+      result = alloc_symbol(sk_overloaded_function, sym_list->header,
+                            &error_position);
+      result->variant.overloaded_function.symbols = sym_list;
+    }  /* if */
   } else {
     result = ifc_decl_lookup_table->get(decl_idx);
     if (result != NULL) {
@@ -6446,21 +6450,19 @@ Return NULL if none is found.
       }  /* if */
     }  /* if */
     if (result == NULL) {
-      if (mep->entity.kind == iek_il_entity_list_entry) {
-        result = overload_set_from_il_entity_list(
-                                (an_il_entity_list_entry_ptr)mep->entity.ptr);
-      } else {
-        /* Note that source_corresp_for_il_entry returns NULL for iek_none. */
-        scp = source_corresp_for_il_entry(mep->entity.ptr, mep->entity.kind);
-        if (scp != NULL) {
-          result = (a_symbol_ptr)scp->assoc_info;
-        }  /* if */
+      /* Note that source_corresp_for_il_entry returns NULL for iek_none. */
+      scp = source_corresp_for_il_entry(mep->entity.ptr, mep->entity.kind);
+      if (scp != NULL) {
+        result = (a_symbol_ptr)scp->assoc_info;
       }  /* if */
       if (result != NULL) {
         ifc_decl_lookup_table->map(decl_idx, result);
       }  /* if */
     }  /* if */
   }  /* if */
+  goto already_mapped;
+invalid:
+  result = NULL;
 already_mapped:
   return result;
 }  /* symbol_for_decl_index */
@@ -12413,47 +12415,6 @@ strongly preferred over calling this function directly.
         il_entity = parse_cached_using_declaration(&cache, &kind);
       }
       break;
-    case ifc_ds_decl_tuple:
-      /* An overload set. */
-      { an_ifc_decl_tuple idt;
-
-        construct_node_prechecked(&idt, decl_idx);
-
-        /* Collect the entries of the overload set in a list of IL entries
-           (an_il_entity_list_entry_ptr). */
-        a_decl_heap_sequence sequence(idt);
-        a_scope_ptr          scope = mep->scope;
-        for (Indexed<an_ifc_heap_decl> indexed_ihd : sequence) {
-          if (!indexed_ihd.has_value()) {
-            goto invalid;
-          }  /* if */
-
-          an_ifc_decl_index   heap_value = get_ifc_value(*indexed_ihd);
-          a_module_entity_ptr emep = get_ifc_module_entity(heap_value);
-          /* In at least some cases (the handling of deduction guides), the
-             caller will have filled in mep->scope and that should be
-             propagated to the individual associated declarations. */
-          if (scope != NULL) emep->scope = scope;
-          process_ifc_declaration(emep);
-          if (scope == NULL) mep->scope = emep->scope;
-
-          a_source_correspondence  *scp;
-          scp = source_corresp_for_il_entry(emep->entity.ptr,
-                                            emep->entity.kind);
-          if (scp == NULL || scp->assoc_info == NULL) {
-            /* Something went wrong loading this member of the set.  Ignore it
-               in what follows. */
-          } else {
-            an_il_entity_list_entry_ptr ielep = alloc_il_entity_list_entry();
-
-            ielep->next = (an_il_entity_list_entry*)il_entity;
-            il_entity = (char*)ielep;
-            ielep->entity = emep->entity;
-          }  /* if */
-        }  /* for */
-        kind = iek_il_entity_list_entry;
-      }
-      break;
     case ifc_ds_decl_bitfield:
     case ifc_ds_decl_constructor:
     case ifc_ds_decl_default_argument:
@@ -12463,6 +12424,7 @@ strongly preferred over calling this function directly.
     case ifc_ds_decl_method:
     case ifc_ds_decl_parameter:
     case ifc_ds_decl_property:
+    case ifc_ds_decl_tuple:
       { /* These declarations should not appear here; they should have been
            processed when their prerequisites were processed (see
            process_decl_prerequisites). */
