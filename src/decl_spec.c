@@ -12275,6 +12275,16 @@ general_identifier_case:
         }  /* if */
         /* Look up the identifier as a type symbol, if it has not already been
            looked up. */
+        if (microsoft_mode && state->declared_storage_class == sc_typedef &&
+            basic_type == bt_none) {
+          /* MSVC appears not to require `typename` after a typedef.  E.g.:
+               template<typename T> auto f(T x) {
+                 typedef T::X X;  // Okay in Microsoft mode.
+                 return X(x);
+               }
+          */
+          state->is_implicit_type_context = TRUE;
+        }  /* if */
         curr_token_type_symbol =
                     curr_type_symbol((input_flags & DSI_IS_NEW_TYPE_NAME) != 0,
                                      /*in_prescan=*/FALSE,
