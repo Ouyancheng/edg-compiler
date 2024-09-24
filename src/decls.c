@@ -11388,6 +11388,13 @@ definition of a member function of a class template.
         changed_to_inline = TRUE;
       }  /* if */
     }  /* if */
+    if (decl_state->is_specialization &&
+        dps->trailing_requires_clause != NULL) {
+      /* Use the trailing requires clause from the specialization
+         declaration. */
+      rout_ptr->trailing_requires_clause = dps->trailing_requires_clause;
+      dps->trailing_requires_clause = NULL;
+    }  /* if */
 #if GNU_EXTENSIONS_ALLOWED
     if (!sym->is_class_member) {
       /* GNU attributes on a function template redeclaration appear to have no

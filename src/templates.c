@@ -33865,6 +33865,7 @@ that follows.
           sym->decl_position = saved_sym_pos;
         }  /* if */
         rp->is_specialized = TRUE;
+        rp->trailing_requires_clause = NULL;
         /* Except in Microsoft and GNU modes, an explicitly specified storage
            class is disallowed.  In Microsoft mode, it is allowed on in-class
            declarations but it doesn't affect linkage.  Microsoft ignores the

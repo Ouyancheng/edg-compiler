@@ -1,5 +1,31 @@
 Version 6.7
 
+9/24/24  [EDGcpfe/27596]
+Trailing requires clauses on explicit specializations of class template members
+
+Consider, with --c++20:
+
+  template<typename> concept X = true;
+  template<typename T> struct C {
+    template<typename U> void f(U) requires X<T>;
+    void g(int) requires X<T>;
+  };
+  template<> template<typename U>
+  void C<int>::f(U) requires X<int>;
+  template<>
+  void C<int>::g(int);
+
+Previously, the explicit specializations for "f" and "g" had their
+trailing_requires_clause IL fields pointing to the trailing requires clauses of
+the corresponding in-class member declarations.  With the changes for
+EDGcpfe/22821,EDGcpfe/27314,EDGcpfe/27438 (not in a release but distributed to
+some customers as a patch), this pointed to the unsubstituted requires clause
+of "f".  Now, the trailing_requires_clause field for the explicit
+specialization of "f" points to the trailing requires clause of the explicit
+specialization declaration, whereas the explicit specialization of "g" does not
+have its trailing_requires_clause field set.
+
+
 9/23/24  [EDGcpfe/27551,EDGcpfe/27593]
 Microsoft compatibility: typedef and typename
 
