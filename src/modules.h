@@ -434,6 +434,7 @@ extern a_boolean operator==(const a_module_template_parameter &a,
 
 enum a_module_entity_extra_info_kind {
   meeik_none,
+  meeik_alias,
   meeik_function,
   meeik_specialization,
   meeik_func_templ,
@@ -512,7 +513,7 @@ struct a_module_entity_key {
   a_module_entity_extra_info_kind
                 kind;   /* The extra info kind. */
   union {
-    /* When kind == meeik_none, no variant fields. */
+    /* When kind == meeik_none or meeik_alias, no variant fields. */
     /* When kind == meeik_function: */
     a_module_entity_function_key
                 *function;
@@ -564,6 +565,11 @@ extern a_module_entity_scope* get_module_entity_scope(
 extern a_module_entity_ptr get_module_entity(a_module_ptr          mod,
                                              a_module_entity_scope *scope,
                                              a_symbol_header_ptr   name);
+
+extern a_module_entity_ptr get_alias_module_entity(
+                                                  a_module_ptr          mod,
+                                                  a_module_entity_scope *scope,
+                                                  a_symbol_header_ptr   name);
 
 extern a_module_entity_ptr get_function_module_entity(
                                         a_module_ptr             mod,

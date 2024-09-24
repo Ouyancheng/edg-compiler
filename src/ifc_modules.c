@@ -1140,6 +1140,25 @@ get_ifc_basic_module_entity(an_ifc_decl_index index)
   return result;
 }  /* get_ifc_basic_module_entity */
 
+
+static a_module_entity_ptr get_ifc_alias_module_entity(an_ifc_decl_index index)
+/*
+*/
+{
+  a_module_entity_ptr      result = NULL;
+  Opt<a_symbol_header_ptr> opt_decl_name_sym = get_name_symbol(index);
+
+  if (opt_decl_name_sym.has_value()) {
+    a_module_ptr          mod = module_of(index)->assoc_module_info;
+    a_module_entity_scope *mesp =
+                        get_ifc_module_entity_scope(get_ifc_home_scope(index));
+    a_symbol_header_ptr   decl_name_sym = *opt_decl_name_sym;
+
+    result = get_alias_module_entity(mod, mesp, decl_name_sym);
+  }  /* if */
+  return result;
+}  /* get_ifc_alias_module_entity */
+
 namespace {
 
 /*
@@ -1600,6 +1619,9 @@ get_ifc_module_entity(an_ifc_decl_index index)
       goto invalid;
     }  /* if */
     switch (index.sort) {
+      case ifc_ds_decl_alias:
+        result = get_ifc_alias_module_entity(index);
+        break;
       case ifc_ds_decl_constructor:
       case ifc_ds_decl_function:
       case ifc_ds_decl_method:

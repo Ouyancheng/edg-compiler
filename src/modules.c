@@ -784,6 +784,7 @@ Destroy the given module entity key.
 {
   switch (this->kind) {
     case meeik_none:
+    case meeik_alias:
       /* No additional information to free. */
       break;
     case meeik_function:
@@ -1016,8 +1017,10 @@ Return a hash value for the given module entity key.
 
   result = result*31 + hash_ptr((void*)key.scope);
   result = result*31 + hash_ptr((void*)key.name);
+  result += key.kind;
   switch (key.kind) {
     case meeik_none:
+    case meeik_alias:
       /* No additional information to hash. */
       break;
     case meeik_function:
@@ -1062,6 +1065,7 @@ Return TRUE if the given module entity keys are equal; otherwise, return FALSE.
        implementations. */
     switch (a.kind) {
       case meeik_none:
+      case meeik_alias:
         /* No additional information to compare. */
         break;
       case meeik_function:
@@ -1167,6 +1171,25 @@ the given scope and name.
   key.scope = scope;
   key.name = name;
   key.kind = meeik_none;
+
+  a_module_entity_ptr result = get_module_entity_from_key(move_from(&key));
+  return result;
+}  /* get_module_entity */
+
+
+a_module_entity_ptr get_alias_module_entity(a_module_ptr          mod,
+                                            a_module_entity_scope *scope,
+                                            a_symbol_header_ptr   name)
+/*
+Return a pointer to the module entity for the entity in the given module, with
+the given scope and name.
+*/
+{
+  a_module_entity_key key;
+  key.mod = mod;
+  key.scope = scope;
+  key.name = name;
+  key.kind = meeik_alias;
 
   a_module_entity_ptr result = get_module_entity_from_key(move_from(&key));
   return result;
