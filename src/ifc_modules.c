@@ -5321,6 +5321,7 @@ index information to the given symbol.
     an_il_entry_kind kind;
     char             *il_entity = il_entry_for_symbol_null_okay(sym, &kind);
 
+    mep->imminent = TRUE;
     if (il_entity != NULL) {
       mep->entity = canonicalize_tagged_ptr(kind, il_entity);
     } else {
