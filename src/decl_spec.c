@@ -12277,7 +12277,7 @@ general_identifier_case:
            looked up. */
         if (microsoft_mode && state->declared_storage_class == sc_typedef &&
             basic_type == bt_none) {
-          /* MSVC appears not to require `typename` after a typedef.  E.g.:
+          /* MSVC appears not to require "typename" after a typedef.  E.g.:
                template<typename T> auto f(T x) {
                  typedef T::X X;  // Okay in Microsoft mode.
                  return X(x);

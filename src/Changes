@@ -35,7 +35,7 @@ In non-permissive Microsoft C++ modes, the front end no longer requires the
 
   template<class T> auto f(T x) {
     typedef T::X X;  // Ordinarily an error.
-                     //  Now okay in all Microsoft C++ modes.
+                     // Now okay in all Microsoft C++ modes.
     return X(x);
   }
 
