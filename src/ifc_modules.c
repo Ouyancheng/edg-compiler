@@ -1538,6 +1538,26 @@ static an_ifc_module_entity_lookup
                            entity hash keys do not have to be recomputed. */
 
 
+static void f_emit_not_a_module_entity_error(int               line_number,
+                                             a_const_char      *function,
+                                             an_ifc_decl_index index)
+/*
+The given declaration index is not a module entity but the front end tried to
+use it as one, emit an appropriate diagnostic.
+*/
+{
+  a_string err_msg("Unexpected attempt to represent ", index_to_str(index),
+                   " as a module entity");
+
+  ifc_requirement_impl(line_number, function, module_of(index), FALSE,
+                       err_msg.as_temp_characters());
+}  /* f_emit_not_a_module_entity_error */
+
+
+#define emit_not_a_module_entity_error(index) \
+  f_emit_not_a_module_entity_error(__LINE__, __EDG_func__, (index))
+
+
 static inline a_module_entity_ptr
 get_ifc_module_entity(an_ifc_decl_index index)
 /*
@@ -1575,6 +1595,10 @@ get_ifc_module_entity(an_ifc_decl_index index)
 
     a_module_entity_stack_state mep_state(&pending_mep);
     index = collapse_partition_index(index);
+    if (!has_ifc_home_scope(index)) {
+      emit_not_a_module_entity_error(index);
+      goto invalid;
+    }  /* if */
     switch (index.sort) {
       case ifc_ds_decl_constructor:
       case ifc_ds_decl_function:
@@ -1600,13 +1624,8 @@ get_ifc_module_entity(an_ifc_decl_index index)
         result = get_ifc_specialized_module_entity(index);
         break;
       case ifc_ds_decl_tuple:
-        { a_string err_msg("unexpected attempt to represent ",
-                           index_to_str(index), " as a module entity");
-
-          ifc_unexpected(module_of(index), err_msg.as_temp_characters());
-          result = get_ifc_error_module_entity(index);
-        }
-        break;
+        emit_not_a_module_entity_error(index);
+        goto invalid;
       default:
         result = get_ifc_basic_module_entity(index);
         break;
@@ -12463,7 +12482,7 @@ strongly preferred over calling this function directly.
         a_string err_msg(index_to_str(decl_idx),
                          " cannot be processed directly into an IL entity");
 
-        unexpected_condition_str(err_msg.as_temp_characters());
+        ifc_unexpected(module_of(decl_idx), err_msg);
       }
       break;
     case ifc_ds_decl_barren:

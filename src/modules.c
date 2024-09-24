@@ -930,14 +930,23 @@ a_boolean operator==(const a_module_entity_specialization_key &a,
   a_boolean          result = TRUE;
   a_template_arg_ptr a_args = a.arguments;
   a_template_arg_ptr b_args = b.arguments;
-  /* FIXME: Do we need to have eta_options_for_template (or some
-     equivalent) factored in here? */
-  an_equiv_templ_arg_options_set
+  size_t             a_n_args = count_list_elements(a_args);
+  size_t             b_n_args = count_list_elements(b_args);
+
+  if (a_n_args != b_n_args) {
+    result = FALSE;
+  } else if (a_n_args == 0) {
+    /* This is an empty list compared to an empty list, this is equal. */
+  } else {
+    /* FIXME: Do we need to have eta_options_for_template (or some
+       equivalent) factored in here? */
+    an_equiv_templ_arg_options_set
                      eta_options = ETA_EXACT_DECLTYPE_EXPR_MATCH_REQUIRED;
 
-  if (!equiv_template_arg_lists(a_args, b_args, eta_options)) {
-    result = FALSE;
-  }  /* if */
+    if (!equiv_template_arg_lists(a_args, b_args, eta_options)) {
+      result = FALSE;
+    }  /* if */
+  }
   return result;
 }  /* operator== */
 
