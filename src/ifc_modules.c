@@ -16463,10 +16463,10 @@ valid; otherwise, return NULL.
 
     source_position_from_locus(&pos, locus);
 
-    an_ifc_decl_index   resolution = get_ifc_resolution(iend);
-    a_module_entity_ptr mep = process_decl_at_index(resolution);
-    if (mep->entity.kind == iek_template) {
-      result = (a_template_ptr)mep->entity.ptr;
+    an_ifc_decl_index resolution = get_ifc_resolution(iend);
+    a_symbol_ptr      templ_sym = symbol_for_decl_index(resolution);
+    if (templ_sym != NULL && is_template_symbol(templ_sym)) {
+      result = il_entry_for_symbol<a_template>(templ_sym);
     }  /* if */
   }  /* if */
   return result;
@@ -16513,6 +16513,7 @@ module file.
       case templk_class:
       case templk_member_class:
       case templk_member_enum:
+      case templk_template_template_param:
         inst_sym = find_template_class(symbol_for(templ), &arg_list,
                                        /*any_prototype_allowed=*/FALSE,
                                        /*specific_prototype_allowed=*/NULL,
@@ -16533,7 +16534,6 @@ module file.
                         "expected no arguments to be specified for concepts");
         result = templ->prototype_instantiation.constraint->type;
         break;
-      case templk_template_template_param:
       case templk_none:
         unexpected_condition();
         break;
