@@ -10781,6 +10781,26 @@ given IL template already contains.
 }  /* update_cache_info_for_template */
 
 
+static void process_template_deduction_guide(a_template_ptr    templ,
+                                             an_ifc_decl_index decl_idx)
+/*
+For the given class template, process the deduction guide indexed by decl_idx.
+Note that the caller is responsible for deconstructing any tuples.
+*/
+{
+  a_module_entity_ptr guides_mep = get_ifc_module_entity(decl_idx);
+
+  /* A single guide will have an ifc_DeclSort_Template entry directly
+     associated with it, but it doesn't record the parent scope: So set it here
+     (a guide is required to be declared in the same scope as the class
+     template).  If there are multiple guides, guides_mep will be for an
+     ifc_DeclSort_Tuple entry instead (and its treatment will propagate the
+     parent scope). */
+  guides_mep->scope = templ->source_corresp.parent_scope;
+  (void)request_entity_at_index(decl_idx);
+}  /* process_template_deduction_guide */
+
+
 static void process_template_deduction_guides(a_template_ptr    templ,
                                               an_ifc_decl_index decl_idx)
 /*
@@ -10796,16 +10816,27 @@ check if it has any associated deduction guides, and process them.
   find_trait(&opt_guide_trait, decl_idx);
   if (opt_guide_trait.has_value()) {
     an_ifc_decl_index   guides_idx = get_ifc_trait(*opt_guide_trait);
-    a_module_entity_ptr guides_mep = get_ifc_module_entity(guides_idx);
 
-    /* A single guide will have an ifc_DeclSort_Template entry directly
-       associated with it, but it doesn't record the parent scope: So set
-       it here (a guide is required to be declared in the same scope as
-       the class template).  If there are multiple guides, guides_mep
-       will be for an ifc_DeclSort_Tuple entry instead (and its treatment
-       will propagate the parent scope). */
-    guides_mep->scope = templ->source_corresp.parent_scope;
-    (void)request_entity_at_index(guides_idx);
+    if (guides_idx.sort == ifc_ds_decl_tuple) {
+      Opt<an_ifc_decl_tuple> opt_tuple_decl;
+
+      construct_node(&opt_tuple_decl, guides_idx);
+      if (opt_tuple_decl.has_value()) {
+        an_ifc_decl_tuple    tuple_decl = *opt_tuple_decl;
+        a_decl_heap_sequence sequence(tuple_decl);
+
+        for (Indexed<an_ifc_heap_decl> indexed_ihd : sequence) {
+          if (!indexed_ihd.has_value()) {
+            continue;
+          }  /* if */
+
+          an_ifc_decl_index heap_value = get_ifc_value(*indexed_ihd);
+          process_template_deduction_guide(templ, heap_value);
+        }  /* for */
+      }  /* if */
+    } else {
+      process_template_deduction_guide(templ, guides_idx);
+    }  /* if */
   }  /* if */
 }  /* process_template_deduction_guides */
 
