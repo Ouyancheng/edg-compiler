@@ -1570,6 +1570,7 @@ get_ifc_module_entity(an_ifc_decl_index index)
       print(err_msg, f_debug);
     }  /* if */
 #endif /* DEBUG */
+    pending_mep.module_info = module_of(index)->assoc_module_info;
     set_module_entry_locator(&pending_mep.locator, index);
 
     a_module_entity_stack_state mep_state(&pending_mep);
