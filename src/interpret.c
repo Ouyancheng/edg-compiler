@@ -1465,8 +1465,17 @@ static void release_constexpr_stack(a_storage_stack_state  *sss)
 Release the storage stack pointed to by sss for reuse.
 */
 {
-  a_byte  *first_block = sss->curr_block;
+  a_byte  *first_block = sss->curr_block, *large_blocks = sss->large_blocks;
 
+  if (large_blocks != NULL) {
+    do {
+      a_byte  *large_block = large_blocks;
+      large_blocks = ((a_large_block_header*)large_block)->prev_large_block;
+      free_general(large_block,
+                   ((a_large_block_header*)large_block)->block_size);
+    } while (large_blocks != NULL);
+    sss->large_blocks = NULL;
+  }  /* if */
   if (first_block != NULL) {
     if (free_stack_blocks != NULL) {
       /* Some blocks are already on the "free blocks" list.  Append those free
@@ -1548,6 +1557,7 @@ a previously saved stack state.
       /* We'll allocate the bytes in a separate general allocation block. */ \
       a_byte        *large_block;                                            \
       a_byte_count  hdr_size = sizeof(a_large_block_header), block_size;     \
+      check_assertion(n_bytes <= MAX_CONSTEXPR_TYPE_SIZE);                   \
       do_host_alignment(hdr_size);                                           \
       block_size = hdr_size+(n_bytes);                                       \
       large_block = (a_byte*)alloc_general(block_size);                      \
@@ -1612,24 +1622,26 @@ Macros to save and restore an allocation stack state.
   if ((ips)->storage_stack.destructions != NULL && (result_flag)) {          \
     (result_flag) = perform_destructions(ips);                               \
   }  /* if */                                                                \
-  curr_large_blocks = (ips)->storage_stack.large_blocks;                     \
-  remove_from_live_set(&(ips)->live_set,                                     \
-                       (ips)->storage_stack.alloc_seq_number);               \
-  (ips)->storage_stack = (state);                                            \
-  if (curr_large_blocks != NULL &&                                           \
-      curr_large_blocks != (state).large_blocks) {                           \
-    /* Delete large blocks no longer in the live set. */                     \
-    do {                                                                     \
-      a_byte  *large_block = curr_large_blocks;                              \
-      an_alloc_seq_number  seq = ((a_large_block_header*)large_block)        \
+  if ((result_flag)) {                                                       \
+    curr_large_blocks = (ips)->storage_stack.large_blocks;                   \
+    remove_from_live_set(&(ips)->live_set,                                   \
+                         (ips)->storage_stack.alloc_seq_number);             \
+    (ips)->storage_stack = (state);                                          \
+    if (curr_large_blocks != NULL &&                                         \
+        curr_large_blocks != (state).large_blocks) {                         \
+      /* Delete large blocks no longer in the live set. */                   \
+      do {                                                                   \
+        a_byte  *large_block = curr_large_blocks;                            \
+        an_alloc_seq_number  seq = ((a_large_block_header*)large_block)      \
                                                          ->alloc_seq_number; \
-      if (in_live_set(&(ips)->live_set, seq)) break;                         \
-      curr_large_blocks = ((a_large_block_header*)large_block)               \
-                                                      ->prev_large_block;    \
-      free_general(large_block,                                              \
-                   ((a_large_block_header*)large_block)->block_size);        \
-    } while (curr_large_blocks != NULL);                                     \
-    (ips)->storage_stack.large_blocks = curr_large_blocks;                   \
+        if (in_live_set(&(ips)->live_set, seq)) break;                       \
+        curr_large_blocks = ((a_large_block_header*)large_block)             \
+                                                        ->prev_large_block;  \
+        free_general(large_block,                                            \
+                     ((a_large_block_header*)large_block)->block_size);      \
+      } while (curr_large_blocks != NULL);                                   \
+      (ips)->storage_stack.large_blocks = curr_large_blocks;                 \
+    }  /* if */                                                              \
   }  /* if */                                                                \
 }
 
@@ -7000,6 +7012,7 @@ initialization and execute the increment before the main iteration.
       /* Allocate storage for the test expression result (a boolean). */
       tp = skip_typerefs(expr->type);
       n_bytes = expr_result_size(ips, expr, tp, &result);
+      if (!result) goto unmap_storage;
       alloc_complete_object(ips, n_bytes, tp, expr_value);
       /* Check if we have to allocate a condition variable. */
       has_cond_var = node_is(expr, enk_condition);
@@ -7287,9 +7300,11 @@ successfully interpreted, FALSE otherwise.
   }  /* if */
   tp = skip_typerefs(expr->type);
   n_bytes = value_bytes_for_type(ips, tp, &result);
-  alloc_complete_object(ips, n_bytes, tp, expr_value);
-  result = do_constexpr_condition(has_cond_var, ips, expr, tp,
-                                  expr_value);
+  if (result) {
+    alloc_complete_object(ips, n_bytes, tp, expr_value);
+    result = do_constexpr_condition(has_cond_var, ips, expr, tp,
+                                    expr_value);
+  }  /* if */
   if (!result) {
     goto done_with_switch;
   }  /* if */
@@ -7498,17 +7513,18 @@ successfully interpreted, FALSE otherwise.
         expr = stmt->expr;
         tp = skip_typerefs(expr->type);
         n_bytes = expr_result_size(ips, expr, tp, &result);
-        save_storage_stack(ips, saved_stack);
-        alloc_complete_object(ips, n_bytes, tp, expr_value);
         if (!result) {
           /* Stop interpretation. */
-        } else if (!do_constexpr_expression(
-                                         ips, expr, expr_value, expr_value)) {
-          do_constexpr_fail(result);
         } else {
-          release_address_structures(expr, tp, expr_value);
+          save_storage_stack(ips, saved_stack);
+          alloc_complete_object(ips, n_bytes, tp, expr_value);
+          if (!do_constexpr_expression(ips, expr, expr_value, expr_value)) {
+            do_constexpr_fail(result);
+          } else {
+            release_address_structures(expr, tp, expr_value);
+          }  /* if */
+          restore_storage_stack(ips, saved_stack, result);
         }  /* if */
-        restore_storage_stack(ips, saved_stack, result);
       }
       break;
     case stmk_if:
@@ -7554,15 +7570,17 @@ successfully interpreted, FALSE otherwise.
           /* The type of the test expression is known to be bool. */
           tp = skip_typerefs(expr->type);
           n_bytes = value_bytes_for_type(ips, tp, &result);
-          alloc_complete_object(ips, n_bytes, tp, expr_value);
-          if (do_constexpr_condition(has_cond_var, ips, expr, tp,
-                                     expr_value)) {
-            /* Evaluation of the test expression succeeded.  Get its value to
-               see which dependent statement should be executed. */
-            get_int_val_from(expr_value, tp, bool_val, ovfl);
-            if (ovfl) bool_val = TRUE;
-          } else {
-            result = FALSE;
+          if (result) {
+            alloc_complete_object(ips, n_bytes, tp, expr_value);
+            if (do_constexpr_condition(has_cond_var, ips, expr, tp,
+                                       expr_value)) {
+              /* Evaluation of the test expression succeeded.  Get its value
+                 to see which dependent statement should be executed. */
+              get_int_val_from(expr_value, tp, bool_val, ovfl);
+              if (ovfl) bool_val = TRUE;
+            } else {
+              result = FALSE;
+            }  /* if */
           }  /* if */
         }  /* if */
         if (result) {
@@ -7597,6 +7615,7 @@ successfully interpreted, FALSE otherwise.
         /* The type of the test expression is known to be bool. */
         tp = skip_typerefs(expr->type);
         n_bytes = value_bytes_for_type(ips, tp, &result);
+        if (!result) break;
         alloc_complete_object(ips, n_bytes, tp, expr_value);
         do {
           /* Evaluate the test expression. */
@@ -7762,6 +7781,7 @@ done_with_return_statement:
         /* The type of the test expression is known to be bool. */
         tp = skip_typerefs(expr->type);
         n_bytes = value_bytes_for_type(ips, tp, &result);
+        if (!result) break;
         alloc_complete_object(ips, n_bytes, tp, expr_value);
         do {
           /* Execute the dependent statement. */
@@ -15946,6 +15966,9 @@ update *ips accordingly.
         }  /* if */
       }  /* if */
       n_bytes = expr_result_size(ips, arg, tp, &result);
+      if (!result) {
+        goto done;
+      }  /* if */
       do_host_alignment(n_bytes);
       *arg_size = n_bytes;
       arg_size += 1;
@@ -16490,6 +16513,7 @@ the body of the (constructor) function proper.
         }  /* if */
       }  /* if */
       n_bytes = expr_result_size(ips, arg, tp, &result);
+      if (!result) goto done;
       do_host_alignment(n_bytes);
       *arg_size = n_bytes;
       arg_size += 1;
@@ -19397,8 +19421,10 @@ Evaluate the given new-expression.
         }  /* if */
       }  /* if */
       mark_subobject_initialized(elem, complete_obj);
-      mark_complete_class_object_if_needed(elem_type, complete_obj);
+      mark_complete_class_object_if_needed(elem_type, elem);
     }  /* for */
+  } else {
+    mark_complete_class_object_if_needed(elem_type, cap->complete_object);
   }  /* if */
 done:
   return result;
@@ -23795,16 +23821,18 @@ the value representation of the integer value.
                   opnd2_type = skip_typerefs(opnd2->type);
                   opnd_n_bytes = expr_result_size(ips, opnd2, opnd2_type,
                                                   &result);
-                  alloc_complete_object(ips, opnd_n_bytes, opnd2_type,
-                                        opnd2_value);
-                  if (result && !do_constexpr_expression(
+                  if (result) {
+                    alloc_complete_object(ips, opnd_n_bytes, opnd2_type,
+                                          opnd2_value);
+                    if (!do_constexpr_expression(
                                       ips, opnd2, opnd2_value, opnd2_value)) {
-                    do_constexpr_fail(result);
-                    break;
-                  }  /* if */
-                  result = check_boolean_condition(
+                      do_constexpr_fail(result);
+                      break;
+                    }  /* if */
+                    result = check_boolean_condition(
                                           ips, opnd2_value, opnd2, opnd2_type,
                                           &logical_and_result);
+                  }  /* if */
                 }  /* if */
                 if (result) {
                   if (logical_and_result) {
@@ -23829,16 +23857,18 @@ the value representation of the integer value.
                   opnd2_type = skip_typerefs(opnd2->type);
                   opnd_n_bytes = expr_result_size(ips, opnd2, opnd2_type,
                                                   &result);
-                  alloc_complete_object(ips, opnd_n_bytes, opnd2_type,
-                                        opnd2_value);
-                  if (result && !do_constexpr_expression(
+                  if (result) {
+                    alloc_complete_object(ips, opnd_n_bytes, opnd2_type,
+                                          opnd2_value);
+                    if (!do_constexpr_expression(
                                       ips, opnd2, opnd2_value, opnd2_value)) {
-                    do_constexpr_fail(result);
-                    break;
-                  }  /* if */
-                  result = check_boolean_condition(
+                      do_constexpr_fail(result);
+                      break;
+                    }  /* if */
+                    result = check_boolean_condition(
                                           ips, opnd2_value, opnd2, opnd2_type,
                                           &logical_or_result);
+                  }  /* if */
                 }  /* if */
                 if (result) {
                   if (logical_or_result) {
