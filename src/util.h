@@ -1906,6 +1906,9 @@ struct Owning_ptr: private Deallocator<an_Object> {
     { return this->ptr; }
   inline auto operator*() const -> an_object&
     { return *this->ptr; }
+  inline auto raw() -> an_object*
+    { return this->ptr; }
+  inline auto release() -> an_object*;
 private:
   an_object	*ptr;	/* Pointer to the owned object. */
 };  /* Owning_ptr */
@@ -1960,6 +1963,20 @@ pointer to a null value.  Return *this.
   }  /* if */
   return *this;
 }  /* Owning_ptr::operator= */
+
+
+template<typename an_Object, template<typename> class Deallocator>
+inline auto Owning_ptr<an_Object, Deallocator>::release() -> an_object*
+/*
+Release the owned pointer from management and return it.  The caller takes
+responsibility for memory management of the returned pointer.
+*/
+{
+  an_Object  *p = this->ptr;
+
+  this->ptr = NULL;
+  return p;
+}  /* Owning_ptr::release */
 
 
 template<typename an_Object, typename ...an_Arg_pack>
