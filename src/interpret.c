@@ -19422,7 +19422,7 @@ Evaluate the given new-expression.
       mark_subobject_initialized(elem, complete_obj);
       mark_complete_class_object_if_needed(elem_type, elem);
     }  /* for */
-  } else {
+  } else if (alloc_length != 0) {
     mark_complete_class_object_if_needed(elem_type, cap->complete_object);
   }  /* if */
 done:
