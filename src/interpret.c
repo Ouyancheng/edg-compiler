@@ -7005,7 +7005,7 @@ initialization and execute the increment before the main iteration.
     a_byte            *expr_value, *incr_value;
     a_type_ptr        tp, incr_type;
     a_byte_count      n_bytes;
-    a_boolean         ovfl, has_cond_var;
+    a_boolean         ovfl, has_cond_var = FALSE;
     a_host_large_integer
                       bool_val = FALSE;
     if (expr != NULL) {
@@ -7023,7 +7023,6 @@ initialization and execute the increment before the main iteration.
         goto unmap_storage;
       }  /* if */
     } else {
-      has_cond_var = FALSE;
       /* Needed only to avoid spurious GNU compiler optimizer
          warnings. */
       tp = NULL;
