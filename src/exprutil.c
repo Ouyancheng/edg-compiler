@@ -24170,10 +24170,10 @@ otherwise.
                                                     /*force_to_rvalue=*/FALSE);
       if (dependent != NULL) *dependent = TRUE;
     } else {
-      a_template_arg_ptr new_arg_list;
-      a_symbol_ptr       base_sym;
-      a_symbol_ptr       matching_sym = NULL;
-      a_template_arg_ptr matching_arg_list = NULL;
+      a_template_arg_ptr         new_arg_list;
+      a_symbol_ptr               base_sym;
+      a_symbol_ptr               matching_sym = NULL;
+      an_owned_template_arg_list matching_arg_list;
 
       base_sym = fundamental_symbol_of(orig_sym);
       if (base_sym->kind == (a_symbol_kind)sk_function_template) {
@@ -24202,7 +24202,7 @@ otherwise.
                 /* There's more than one matching function template, so leave
                    the operand as it is. */
                 matching_sym = NULL;
-                free_template_arg_list(matching_arg_list); /*lint !e530*/
+                matching_arg_list = NULL;
                 break;
               } else {
                 matching_sym = proj_sym;
@@ -24222,8 +24222,11 @@ otherwise.
         if (orig_operand.is_operand_of_address_of) {
           ampersand_pos = &orig_operand.ampersand_position;
         }  /* if */
+
+        /* The search list will be used or freed by find_template_function. */
+        a_template_arg_ptr search_list = matching_arg_list.release();
         sym = find_template_function(matching_sym,
-                                     &matching_arg_list,
+                                     &search_list,
                                      /*explicit_arg_list_present=*/TRUE,
                                      &orig_operand.position);
         check_assertion(sym != NULL && is_simple_function_symbol(sym));
@@ -26221,7 +26224,9 @@ p_fatal and p_copy_error are NULL by default.
        substituted argument list. */
     a_template_ptr        templ;
     a_symbol_ptr          sym;
-    a_template_arg_ptr    old_args, new_args;
+    a_template_arg_ptr    old_args;
+    an_owned_template_arg_list
+                          new_args;
     a_template_param_ptr  params;
     templ = constraint->variant.concept_id.concept_template;
     sym = symbol_for(templ);
@@ -26279,19 +26284,18 @@ p_fatal and p_copy_error are NULL by default.
       a_diagnostic_ptr  prev_diags = diag_list->tail;
       an_expr_node_ptr  expr = templ->prototype_instantiation.constraint;
       /* Evaluate the resulting constraint. */
-      result = constraint_satisfied(expr, new_args, params, diag_list, options,
-                                    NULL, p_fatal);
+      result = constraint_satisfied(expr, new_args.raw(), params, diag_list,
+                                    options, NULL, p_fatal);
       if (!result && !*p_fatal) {
         /* Insert a diagnostic before the ones detailing the constraint
            failure. */
         a_diag_list  new_diags;
         clear_diag_list(&new_diags);
         more_info_tap_diagnostic(ec_concept_failed, &constraint->position,
-                                 new_args, &new_diags);
+                                 new_args.release(), &new_diags);
         splice_diag_list(&new_diags, diag_list, prev_diags);
       }  /* if */
     }  /* if */
-    free_template_arg_list(new_args);
     pop_instantiation_scope_for_rescan();
   } else if (node_is_operator(constraint, eok_land)) {
     /* Check the two underlying constraints separately.  If the first
