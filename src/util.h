@@ -1910,6 +1910,7 @@ struct Owning_ptr: private Deallocator<an_Object> {
     { return this->ptr; }
   inline auto release() -> an_object*;
 private:
+  typedef typename a_deallocator::an_allocation an_allocation;
   an_object	*ptr;	/* Pointer to the owned object. */
 };  /* Owning_ptr */
 
@@ -1924,7 +1925,6 @@ Destroy and deallocate the pointed-to object, if any.
 
   if (p != NULL) {
     destroy(p);
-    typedef typename a_deallocator::an_allocation an_allocation;
     this->dealloc(an_allocation{ p, 1 });
   }  /* if */
 }  /* Owning_ptr::~Owning_ptr */
@@ -1957,7 +1957,6 @@ pointer to a null value.  Return *this.
 
   if (p != NULL) {
     destroy(p);
-    typedef typename a_deallocator::an_allocation an_allocation;
     this->dealloc(an_allocation{ p, 1 });
     this->ptr = NULL;
   }  /* if */
