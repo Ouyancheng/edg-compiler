@@ -16496,6 +16496,83 @@ valid; otherwise, return NULL.
 }  /* get_template_from_id_expr */
 
 
+static a_boolean is_template_arg_compatible(a_template_arg_ptr   arg,
+                                            a_template_param_ptr param)
+/*
+Return TRUE if the given argument's template argument kind is compatible with
+the given template parameter's template parameter kind; otherwise, return
+FALSE.
+*/
+{
+  a_boolean result = FALSE;
+
+  switch (param->param_symbol->kind) {
+    case sk_type:
+      if (arg->kind == tak_type) {
+        result = TRUE;
+      }  /* if */
+      break;
+    case sk_constant:
+      if (arg->kind == tak_nontype) {
+        result = TRUE;
+      }  /* if */
+      break;
+    case sk_class_template:
+      if (arg->kind == tak_template) {
+        result = TRUE;
+      }  /* if */
+      break;
+    default:
+      break;
+  }  /* switch */
+  return result;
+}  /* is_template_arg_compatible */
+
+
+static a_boolean are_template_args_compatible(a_template_arg_ptr   arg_list,
+                                              a_template_param_ptr param_list)
+/*
+Return TRUE if the given template argument list is compatible with the given
+template parameter list; otherwise, return FALSE.
+
+The parser normally facilitates checking of template argument list and template
+parameter list compatibility; this function attempts to handle that portion of
+the semantic check for directly constructed template specializations in
+modules.
+*/
+{
+  a_template_arg_ptr   curr_arg = arg_list;
+  a_template_param_ptr curr_param = param_list;
+
+  for (; curr_param != NULL && curr_arg != NULL;
+       curr_param = curr_param->next) {
+    if (curr_param->is_pack) {
+      if (curr_arg->kind != tak_start_of_pack_expansion) {
+        /* There should be a pack expansion argument starting any template
+           argument expansion. */
+        goto done;
+      }  /* if */
+      /* Move past the current argument and any elements of it that are part
+         of the pack. */
+      curr_arg = curr_arg->next;
+      while (curr_arg != NULL && curr_arg->is_pack_element) {
+        if (!is_template_arg_compatible(curr_arg, curr_param)) {
+          goto done;
+        }  /* if */
+        curr_arg = curr_arg->next;
+      }  /* while */
+    } else {
+      if (!is_template_arg_compatible(curr_arg, curr_param)) {
+        goto done;
+      }  /* if */
+      curr_arg = curr_arg->next;
+    }  /* if */
+  }  /* for */
+done:
+  return curr_arg == NULL && curr_param == NULL;
+}  /* are_template_args_compatible */
+
+
 a_type_ptr an_ifc_module::type_for_template_id(
                                        const an_ifc_expr_template_id &templ_id)
 /*
@@ -16515,6 +16592,18 @@ module file.
                           template_args_for_expr_list(template_sym, arguments);
 
     if (arg_list == NULL) {
+      goto invalid;
+    }  /* if */
+
+    a_template_param_ptr param_list = templ_params_of(template_sym);
+    if (!are_template_args_compatible(arg_list, param_list)) {
+      an_ifc_expr_index primary = get_ifc_primary(templ_id);
+      a_string          err_msg("Unexpected usage of a template argument list "
+                                "that is incompatible with the associated "
+                                "template's template parameter list for "
+                                "expression ", index_to_str(primary));
+
+      ifc_unexpected(module_of(templ_id), err_msg.as_temp_characters());
       goto invalid;
     }  /* if */
 
