@@ -1681,18 +1681,26 @@ get_ifc_module_entity(an_ifc_decl_index index)
       print(dbg_msg, f_debug);
     }  /* if */
 #endif /* DEBUG */
-#if EXPENSIVE_CHECKING
+    if (cached_result == NULL) {
+      a_module_entity_ptr side_effect_cache_result =
+                        entity_lookup_cache->get_with_hash(index, index_hash);
+
+      if (side_effect_cache_result != NULL) {
+        /* A recursive invocation of get_ifc_module_entity occurred resulting
+           in the cache being populated between the start of the function and
+           now.  Update the cached result to reflect the new value. */
+        cached_result = side_effect_cache_result;
+      }  /* if */
+    }  /* if */
     if (cached_result == result) {
       /* This is not a new result and the same result was returned. */
-    } else
-#endif /* EXPENSIVE_CHECKING */
-    /* Do not add code here. */
-    {
+    } else {
       /* If an assertion fails while mapping this result, the same IFC
          declaration index is being mapped to two different module entity
          values.  This should not happen, so something has gone wrong with
          either the construction of the hash key or the comparison of the key
          (i.e., its hashing or equality operator). */
+
       entity_lookup_cache->map_with_hash(index, result, index_hash);
     }  /* if */
   }  /* if */
