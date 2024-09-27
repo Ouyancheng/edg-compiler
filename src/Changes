@@ -1,5 +1,27 @@
 Version 6.7
 
+9/27/24  [EDGcpfe/27624]
+Spurious error on self-referential constant-initialized array
+
+Consider:
+
+  enum E { e = 0 };
+  struct B {
+    constexpr B(E &r): r(r) {}
+    E &r;
+  };
+  struct D: public B {
+    static constexpr E N = e;
+    constexpr D(E p): v(p), B(v) {}
+    E v;
+  };
+  constexpr D arr[] = { D::N };  // Previously failed.
+
+This example previously complained about the initializer of arr[] not being
+constant (because the front end did not correctly handle the self-referencing
+aspect of the result).  That is now fixed.
+
+
 9/27/24  [EDGcpfe/27610]
 Microsoft C++ compatibility: Default member initializers for zero-length fields
 

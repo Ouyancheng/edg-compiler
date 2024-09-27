@@ -25263,7 +25263,7 @@ diagnostic in *ips.
         } else if (cap->address == NULL) {
           /* A NULL pointer (since it has a pointer type, it is not a null
              pointer constant). */
-          set_constant_kind(con, (a_constant_repr_kind)ck_integer);
+          set_constant_kind(con, ck_integer);
           con->implicit_cast = TRUE;
           /* In C, any constant expression with value zero can produce a "null
              pointer constant".  In C++, only integer literals of value zero
@@ -25287,7 +25287,7 @@ diagnostic in *ips.
           if (permit_local_temp) {
             ips->permit_address_of_local_temporary = FALSE;
           }  /* if */
-          set_constant_kind(con, (a_constant_repr_kind)ck_address);
+          set_constant_kind(con, ck_address);
           get_stack_bytes(ips, cap->complete_object, mptr);
           if (mptr != NULL) {
             /* Either a constant was already allocated for the pointed-to
@@ -25302,8 +25302,7 @@ diagnostic in *ips.
                  extract_value_from_constant).  In the latter case make a
                  copy of the string constant to avoid memory region issues. */
               cp = prev_con;
-            } else if (prev_con->variant.address.kind ==
-                                         (an_address_base_kind)abk_variable) {
+            } else if (address_base_is(prev_con, abk_variable)) {
               vp = prev_con->variant.address.variant.variable;
               if (vp == NULL) {
                 /* This can happen when interpreting a dynamic initialization
@@ -25414,7 +25413,7 @@ diagnostic in *ips.
 #endif /* DO_IL_LOWERING && ASSIGN_STRING_LITERAL_SEQUENCE_NUMBERS */
                 }  /* if */
               }  /* if */
-              con->variant.address.kind = (an_address_base_kind)abk_constant;
+              con->variant.address.kind = abk_constant;
             } else if (!ips->is_constant_evaluated) {
               /* If we're not in a "manifest-constant" context, do not produce
                  a ck_address/abk_temporary entry.  If the temporary has a
@@ -25436,9 +25435,9 @@ diagnostic in *ips.
             } else if (ips->static_lifetime_init && cp->is_compound_literal) {
               /* This can occur when taking the address of a compound literal
                  (e.g., the decay of a compound literal array). */
-              con->variant.address.kind = (an_address_base_kind)abk_constant;
+              con->variant.address.kind = abk_constant;
             } else {
-              con->variant.address.kind = (an_address_base_kind)abk_temporary;
+              con->variant.address.kind = abk_temporary;
               if (!((cap->flags & CA_LIFETIME_EXTENDED) ||
                     cap->alloc_seq_number == 0) ||
                   (!ips->static_lifetime_init && !permit_local_temp)) {
@@ -26377,6 +26376,10 @@ if the caller has determined that reinterpret_cast expressions can be folded
          address back into a ck_address constant entry if needed. */
       a_boolean       class_case = is_immediate_class_type(result_type);
       a_constant_ptr  this_con;
+      if (type_is(result_type, tk_array) &&
+          is_class_struct_union_type(skip_array_types(result_type))) {
+        class_case = TRUE;
+      }  /* if */
       if (class_case) {
         this_con = local_constant();
         clear_constant(this_con, (a_constant_repr_kind)ck_address);
