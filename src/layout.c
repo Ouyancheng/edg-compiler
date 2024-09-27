@@ -5257,7 +5257,8 @@ for handling virtual bases and functions.
 #if CHECKING
       check_assertion_str2((fp->next == NULL || is_union_type(class_type)) &&
                            is_array_type(fp->type) &&
-                           is_incomplete_type(fp->type),
+                           (is_incomplete_type(fp->type) ||
+                            has_any_zero_bound(fp->type)),
                            "do_class_layout: unexpected field in zero-size",
                            "struct (Microsoft C mode)");
 #endif /* CHECKING */

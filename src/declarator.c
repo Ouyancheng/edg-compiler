@@ -5001,7 +5001,7 @@ constant.
         }  /* if */
         (*new_type_ptr)->variant.array.variant.number_of_elements =
                                                               num_of_elements;
-        if (((gnu_mode && is_constant_bound) ||
+        if ((((gnu_mode || ms_version_is(>=1900)) && is_constant_bound) ||
              (gpp_version_is(<60000) && top_level_field_decl)) &&
              num_of_elements == 0) {
           /* Record the fact that we saw a GNU C zero-length array.  GNU C++

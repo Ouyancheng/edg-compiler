@@ -1,5 +1,17 @@
 Version 6.7
 
+9/27/24  [EDGcpfe/27610]
+Microsoft C++ compatibility: Default member initializers for zero-length fields
+
+In Microsoft C++ modes, the front end now accepts the following:
+
+  struct S {
+    int arr[0]{};
+  };
+
+Previously, the default initializer "{}" elicited an error.
+
+
 9/24/24  [EDGcpfe/27596]
 Trailing requires clauses on explicit specializations of class template members
 
