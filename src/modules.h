@@ -450,6 +450,9 @@ struct a_module_entity_function_key {
   a_module_func_param_list
                 *parameter_types;
                         /* The parameter types */
+  a_boolean     has_ellipsis;
+                        /* TRUE if the given function key represents a function
+                           with a C-style ellipsis argument. */
   /* FIXME: Implement destruction. */
 };  /* a_module_entity_function_key */
 
@@ -575,7 +578,8 @@ extern a_module_entity_ptr get_function_module_entity(
                                         a_module_ptr             mod,
                                         a_module_entity_scope    *scope,
                                         a_symbol_header_ptr      name,
-                                        a_module_func_param_list *func_params);
+                                        a_module_func_param_list *func_params,
+                                        a_boolean                has_ellipsis);
 
 extern a_module_entity_ptr get_specialized_module_entity(
                                           a_module_ptr          mod,
@@ -588,14 +592,16 @@ extern a_module_entity_ptr get_function_template_module_entity(
                              a_module_entity_scope            *scope,
                              a_symbol_header_ptr              name,
                              a_module_template_parameter_list *template_params,
-                             a_module_func_param_list         *func_params);
+                             a_module_func_param_list         *func_params,
+                             a_boolean                        has_ellipsis);
 
 extern a_module_entity_ptr get_specialized_function_module_entity(
                                         a_module_ptr             mod,
                                         a_module_entity_scope    *scope,
                                         a_symbol_header_ptr      name,
                                         a_template_arg_ptr       template_args,
-                                        a_module_func_param_list *func_params);
+                                        a_module_func_param_list *func_params,
+                                        a_boolean                has_ellipsis);
 
 extern void import_header_module(a_module_import_decl_ptr midp);
 

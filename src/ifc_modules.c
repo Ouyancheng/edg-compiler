@@ -1280,12 +1280,14 @@ template<typename an_ifc_Node_type>
 static inline a_module_func_param_list* get_ifc_function_parameter_list(
                                  an_ifc_decl_index      decl_idx,
                                  const an_ifc_Node_type &decl,
-                                 an_ifc_decl_index      parameterizing_entity);
+                                 an_ifc_decl_index      parameterizing_entity,
+                                 a_boolean              *has_ellipsis);
 
 
 static inline a_module_func_param_list* get_ifc_function_parameter_list(
                                  an_ifc_decl_index      decl_idx,
-                                 an_ifc_decl_index      parameterizing_entity)
+                                 an_ifc_decl_index      parameterizing_entity,
+                                 a_boolean              *has_ellipsis)
 /*
 */
 {
@@ -1303,7 +1305,8 @@ static inline a_module_func_param_list* get_ifc_function_parameter_list(
         an_ifc_decl_constructor ctor_decl = *opt_ctor_decl;
         func_params = get_ifc_function_parameter_list(decl_idx,
                                                       ctor_decl,
-                                                      parameterizing_entity);
+                                                      parameterizing_entity,
+                                                      has_ellipsis);
       }
       break;
     case ifc_ds_decl_function:
@@ -1317,7 +1320,8 @@ static inline a_module_func_param_list* get_ifc_function_parameter_list(
         an_ifc_decl_function func_decl = *opt_func_decl;
         func_params = get_ifc_function_parameter_list(decl_idx,
                                                       func_decl,
-                                                      parameterizing_entity);
+                                                      parameterizing_entity,
+                                                      has_ellipsis);
       }
       break;
     case ifc_ds_decl_method:
@@ -1331,7 +1335,8 @@ static inline a_module_func_param_list* get_ifc_function_parameter_list(
         an_ifc_decl_method method_decl = *opt_method_decl;
         func_params = get_ifc_function_parameter_list(decl_idx,
                                                       method_decl,
-                                                      parameterizing_entity);
+                                                      parameterizing_entity,
+                                                      has_ellipsis);
       }
       break;
     case ifc_ds_decl_destructor:
@@ -1375,14 +1380,17 @@ static inline a_module_entity_ptr get_ifc_function_module_entity(
     a_module_entity_scope    *mesp =
                         get_ifc_module_entity_scope(get_ifc_home_scope(index));
     a_symbol_header_ptr      decl_name_sym = *opt_decl_name_sym;
+    a_boolean                has_ellipsis = FALSE;
     a_module_func_param_list *func_params = get_ifc_function_parameter_list(
                                 index,
-                                /*parameterizing_entity=*/an_ifc_decl_index());
+                                /*parameterizing_entity=*/an_ifc_decl_index(),
+                                &has_ellipsis);
 
     if (func_params == NULL) {
       goto invalid;
     }  /* if */
-    result = get_function_module_entity(mod, mesp, decl_name_sym, func_params);
+    result = get_function_module_entity(mod, mesp, decl_name_sym, func_params,
+                                        has_ellipsis);
   }  /* if */
   goto done;
 invalid:
@@ -1421,15 +1429,17 @@ static inline a_module_entity_ptr get_ifc_template_module_entity(
         goto invalid;
       }  /* if */
 
+      a_boolean                has_ellipsis = FALSE;
       a_module_func_param_list *func_params =
                               get_ifc_function_parameter_list(entity_decl_idx,
-                                                              index);
+                                                              index,
+                                                              &has_ellipsis);
       if (func_params == NULL) {
         goto invalid;
       }  /* if */
       result = get_function_template_module_entity(mod, mesp, decl_name_sym,
                                                    template_params,
-                                                   func_params);
+                                                   func_params, has_ellipsis);
     }  /* if */
   }  /* if */
   goto done;
@@ -1512,15 +1522,18 @@ static inline a_module_entity_ptr get_ifc_specialized_module_entity(
       result = get_specialized_module_entity(mod, mesp, decl_name_sym,
                                              templ_args);
     } else {
+      a_boolean                has_ellipsis = FALSE;
       a_module_func_param_list *func_params =
                             get_ifc_function_parameter_list(parameterized_idx,
-                                                            index);
+                                                            index,
+                                                            &has_ellipsis);
 
       if (func_params == NULL) {
         goto invalid;
       }  /* if */
       result = get_specialized_function_module_entity(mod, mesp, decl_name_sym,
-                                                      templ_args, func_params);
+                                                      templ_args, func_params,
+                                                      has_ellipsis);
     }  /* if */
   }  /* if */
   goto done;
@@ -6137,11 +6150,34 @@ done:
 }  /* get_ifc_template_parameter_list */
 
 
+static a_boolean type_represents_ellipsis(an_ifc_type_index type_idx)
+/*
+Given a type index, return TRUE if the type index represents an ellipsis.
+*/
+{
+  a_boolean result = FALSE;
+
+  if (type_idx.sort == ifc_ts_type_fundamental) {
+    Opt<an_ifc_type_fundamental> opt_itf;
+
+    construct_node(&opt_itf, type_idx);
+    if (opt_itf.has_value()) {
+      an_ifc_type_fundamental itf = *opt_itf;
+      an_ifc_type_basis_sort  basis = get_ifc_basis(itf);
+
+      result = basis == ifc_tbs_ellipsis;
+    }  /* if */
+  }  /* if */
+  return result;
+}  /* type_represents_ellipsis */
+
+
 template<typename an_ifc_Node_type>
 static inline a_module_func_param_list* get_ifc_function_parameter_list(
                                   an_ifc_decl_index      decl_idx,
                                   const an_ifc_Node_type &decl,
-                                  an_ifc_decl_index      parameterizing_entity)
+                                  an_ifc_decl_index      parameterizing_entity,
+                                  a_boolean              *has_ellipsis)
 /*
 */
 {
@@ -6156,6 +6192,18 @@ static inline a_module_func_param_list* get_ifc_function_parameter_list(
        recoverable. */
     if (is_null_index(ifc_type_idx)) {
       goto invalid;
+    }  /* if */
+
+    if (type_represents_ellipsis(ifc_type_idx)) {
+      *has_ellipsis = TRUE;
+      if (i < param_context.get_num_params() - 1) {
+        a_string err_msg("Unexpected ellipsis in parameter types for ",
+                         index_to_str(decl_idx));
+
+        ifc_unexpected(module_of(decl_idx), err_msg.as_temp_characters());
+        goto invalid;
+      }  /* if */
+      break;
     }  /* if */
 
     a_type_ptr param_type = type_for_type_index(ifc_type_idx);
@@ -9312,28 +9360,6 @@ invalid:;
 }  /* type_kind_for_type_index */
 
 
-static a_boolean type_represents_ellipsis(an_ifc_type_index type_idx)
-/*
-Given a type index, return TRUE if the type index represents an ellipsis.
-*/
-{
-  a_boolean result = FALSE;
-
-  if (type_idx.sort == ifc_ts_type_fundamental) {
-    Opt<an_ifc_type_fundamental> opt_itf;
-
-    construct_node(&opt_itf, type_idx);
-    if (opt_itf.has_value()) {
-      an_ifc_type_fundamental itf = *opt_itf;
-      an_ifc_type_basis_sort  basis = get_ifc_basis(itf);
-
-      result = basis == ifc_tbs_ellipsis;
-    }  /* if */
-  }  /* if */
-  return result;
-}  /* type_represents_ellipsis */
-
-
 static a_boolean type_represents_type_templ_param_ref(
                                                     an_ifc_type_index type_idx)
 /*
@@ -9623,10 +9649,22 @@ Return TRUE if the given IFC node information for a function parameter
 declaration represents the same type as the given IL param type.
 */
 {
+  a_boolean         result = TRUE;
   an_ifc_type_index ifc_type_idx = get_ifc_type(mod_func_param);
-  a_type_ptr        mod_param_type = type_for_type_index(ifc_type_idx);
 
-  return il_identical_types(il_param_type->declared_type, mod_param_type);
+  if (type_represents_ellipsis(ifc_type_idx)) {
+    /* An ellipsis argument is represented via a flag on the routine type, not
+       an argument in the EDG IL.  If there is an IL type to compare against,
+       this is definitely not a match. */
+    result = FALSE;
+  } else {
+    a_type_ptr mod_param_type = type_for_type_index(ifc_type_idx);
+
+    if (!il_identical_types(il_param_type->declared_type, mod_param_type)) {
+      result = FALSE;
+    }  /* if */
+  }  /* if */
+  return result;
 }  /* has_matching_func_param */
 
 

@@ -906,6 +906,8 @@ a_boolean operator==(const a_module_entity_function_key &a,
 
   if (a_params->length() != b_params->length()) {
     result = FALSE;
+  } else if (a.has_ellipsis != b.has_ellipsis) {
+    result = FALSE;
   } else {
     for (size_t i = 0; i < a_params->length(); ++i) {
       a_type_ptr a_param = (*a_params)[i];
@@ -1200,10 +1202,12 @@ a_module_entity_ptr get_function_module_entity(
                                          a_module_ptr             mod,
                                          a_module_entity_scope    *scope,
                                          a_symbol_header_ptr      name,
-                                         a_module_func_param_list *func_params)
+                                         a_module_func_param_list *func_params,
+                                         a_boolean                has_ellipsis)
 /*
 Return a pointer to the module entity for the entity in the given module, with
-the given scope, name, and function parameters.
+the given scope, name, and function parameters.  has_ellipsis should be TRUE if
+the given module entity is a C-style variable argument function.
 */
 {
   a_module_entity_key key;
@@ -1213,6 +1217,7 @@ the given scope, name, and function parameters.
   key.kind = meeik_function;
   key.variant.function = new_fe<a_module_entity_function_key>();
   key.variant.function->parameter_types = func_params;
+  key.variant.function->has_ellipsis = has_ellipsis;
 
   a_module_entity_ptr result = get_module_entity_from_key(move_from(&key));
   return result;
@@ -1247,10 +1252,12 @@ a_module_entity_ptr get_function_template_module_entity(
                              a_module_entity_scope            *scope,
                              a_symbol_header_ptr              name,
                              a_module_template_parameter_list *template_params,
-                             a_module_func_param_list         *func_params)
+                             a_module_func_param_list         *func_params,
+                             a_boolean                        has_ellipsis)
 /*
 Return a pointer to the module entity for the entity in the given module, with
-the given scope, name, and template arguments.
+the given scope, name, and template arguments.  has_ellipsis should be TRUE if
+the given module entity is a C-style variable argument function.
 */
 {
   a_module_entity_key key;
@@ -1260,6 +1267,7 @@ the given scope, name, and template arguments.
   key.kind = meeik_func_templ;
   key.variant.func_templ = new_fe<a_module_entity_func_templ_key>();
   key.variant.func_templ->function.parameter_types = func_params;
+  key.variant.func_templ->function.has_ellipsis = has_ellipsis;
   key.variant.func_templ->parameters = template_params;
 
   a_module_entity_ptr result = get_module_entity_from_key(move_from(&key));
@@ -1272,10 +1280,12 @@ a_module_entity_ptr get_specialized_function_module_entity(
                                         a_module_entity_scope    *scope,
                                         a_symbol_header_ptr      name,
                                         a_template_arg_ptr       template_args,
-                                        a_module_func_param_list *func_params)
+                                        a_module_func_param_list *func_params,
+                                        a_boolean                has_ellipsis)
 /*
 Return a pointer to the module entity for the entity in the given module, with
-the given scope, name, and template arguments.
+the given scope, name, and template arguments.  has_ellipsis should be TRUE if
+the given module entity is a C-style variable argument function.
 */
 {
   a_module_entity_key key;
@@ -1285,6 +1295,7 @@ the given scope, name, and template arguments.
   key.kind = meeik_func_spec;
   key.variant.func_spec = new_fe<a_module_entity_func_spec_key>();
   key.variant.func_spec->function.parameter_types = func_params;
+  key.variant.func_spec->function.has_ellipsis = has_ellipsis;
   key.variant.func_spec->specialization.arguments = template_args;
 
   a_module_entity_ptr result = get_module_entity_from_key(move_from(&key));
