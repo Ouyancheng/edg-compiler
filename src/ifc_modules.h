@@ -501,7 +501,6 @@ public:
   a_boolean open_and_map_ifc_module_file(a_module_import_decl_ptr midp,
                                          a_boolean                issue_diag);
   void import_referenced_modules(a_boolean impl_unit_importing_self);
-  void define_ifc_macro(an_ifc_macro_index macro);
   void export_ifc_macros();
   uint32_t get_num_entries(an_ifc_partition_kind partition) const;
   /* IFC Scope readers. */
@@ -596,11 +595,6 @@ public:
                   an_ifc_name_index            name);
   void cache_name_of_decl(a_module_token_cache_ptr cache,
                           an_ifc_decl_index        decl);
-  void cache_macro(a_module_token_cache_ptr cache,
-                   an_ifc_macro_index       macro);
-  void cache_form(a_module_token_cache_ptr cache,
-                  an_ifc_form_index        form,
-                  a_boolean                is_parameter_form = FALSE);
   an_ifc_msvc_traits_bitfield get_vendor_traits(an_ifc_decl_index decl);
   char *parse_cached_explicit_specialization(
                                    a_module_token_cache_ptr         cache,

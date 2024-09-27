@@ -1090,13 +1090,6 @@ done:
 }  /* get_ifc_module_entity_scope */
 
 
-static inline a_module_entity_ptr
-get_ifc_module_entity(an_ifc_macro_index index) {
-  ifc_unexpected(module_of(index), "macro not yet implemented");
-  return NULL;
-}  /* get_ifc_module_entity */
-
-
 template<typename an_ifc_Index_type>
 static inline void set_module_entry_locator(a_module_entry_locator *locator,
                                             an_ifc_Index_type      index)
@@ -1590,6 +1583,27 @@ use it as one, emit an appropriate diagnostic.
   f_emit_not_a_module_entity_error(__LINE__, __EDG_func__, (index))
 
 
+template<typename an_ifc_Index_type>
+static inline a_module_entity
+make_temporary_ifc_module_entity(an_ifc_Index_type index)
+/*
+Make a temporary IFC module entity from the given index on the stack.  This
+module entity can be pushed to the module entity stack when no persistent
+module entity is available for the given index.
+
+This function should be used sparingly as the module entity state will not be
+merged between different module files or persisted between function
+invocations.
+*/
+{
+  a_module_entity result{};
+
+  result.module_info = module_of(index)->assoc_module_info;
+  set_module_entry_locator(&result.locator, index);
+  return result;
+}  /* make_temporary_ifc_module_entity */
+
+
 static inline a_module_entity_ptr
 get_ifc_module_entity(an_ifc_decl_index index)
 /*
@@ -1612,7 +1626,7 @@ get_ifc_module_entity(an_ifc_decl_index index)
        ifc_unexpected to reasonably trace the entity associated with any errors
        and for this function to propagate the invalid state if an error occurs
        while resolving the module entity). */
-    a_module_entity pending_mep{};
+    a_module_entity pending_entity = make_temporary_ifc_module_entity(index);
 
 #if DEBUG
     if (db_flag_is_set("ifc_idx") && cached_result == NULL) {
@@ -1622,10 +1636,8 @@ get_ifc_module_entity(an_ifc_decl_index index)
       print(err_msg, f_debug);
     }  /* if */
 #endif /* DEBUG */
-    pending_mep.module_info = module_of(index)->assoc_module_info;
-    set_module_entry_locator(&pending_mep.locator, index);
 
-    a_module_entity_stack_state mep_state(&pending_mep);
+    a_module_entity_stack_state mep_state(&pending_entity);
     index = collapse_partition_index(index);
     if (!has_ifc_home_scope(index)) {
       emit_not_a_module_entity_error(index);
@@ -1677,7 +1689,7 @@ get_ifc_module_entity(an_ifc_decl_index index)
     if (result != NULL) {
       /* Synchronize any invalid states for this module entity from the
          temporarily invalid entity. */
-      if (pending_mep.invalid) {
+      if (pending_entity.invalid) {
         result->invalid = TRUE;
       }  /* if */
     } else {
@@ -4214,7 +4226,11 @@ exported imports need to be imported).
 }  /* an_ifc_module::import_referenced_modules */
 
 
-void an_ifc_module::define_ifc_macro(an_ifc_macro_index macro)
+static void cache_macro(a_module_token_cache_ptr cache,
+                        an_ifc_macro_index       macro);
+
+
+static void define_ifc_macro(an_ifc_macro_index macro)
 /*
 Given an IFC macro, process that macro definition.  Note that this function
 assumes variables such as "in_preprocessing_directive", "curr_source_line", and
@@ -4225,16 +4241,18 @@ already saved for restoration.
 */
 {
   a_module_token_cache        cache;
-  a_module_entity_ptr         mep = get_ifc_module_entity(macro);
-  a_module_entity_stack_state mep_state(mep);
+  /* Macros currently don't have a persistent module entity.  Create a
+     temporary module entity to capture an ifc_unexpected errors. */
+  a_module_entity             entity = make_temporary_ifc_module_entity(macro);
+  a_module_entity_stack_state mep_state(&entity);
 
   cache_macro(&cache, macro);
   if (cache.is_valid()) {
     {
       a_cached_token_ptr first_token = cache.get_first_token();
 
-      ifc_requirement(this, (first_token != NULL &&
-                             first_token->token == tok_identifier),
+      ifc_requirement(module_of(macro), (first_token != NULL &&
+                                         first_token->token == tok_identifier),
                       "expected the first macro token to be an identifier");
       /* Create an equivalent define directive so that we can leave the
          processing to proc_define. */
@@ -4265,7 +4283,7 @@ already saved for restoration.
       }  /* if */
     }
   }  /* if */
-}  /* an_ifc_module::define_ifc_macro */
+}  /* define_ifc_macro */
 
 
 void an_ifc_module::export_ifc_macros()
@@ -28770,101 +28788,6 @@ Add the tokens corresponding to the given declaration's (decl) name to cache.
 }  /* an_ifc_module::cache_name_of_decl */
 
 
-static a_boolean func_macro_is_variadic(const an_ifc_variadic_arity& arity)
-/*
-Given a variadic arity return TRUE if the associated function macro is
-variadic; otherwise, return FALSE.
-*/
-{
-  a_boolean result = FALSE;
-
-  /* FIXME: This is odd, we should refine this part of the spec with Microsoft.
-     The endianness concerns/handling of the IFC seemingly compete with the
-     layout of this data. */
-  static_assert(sizeof(an_ifc_variadic_arity_storage) == 4,
-                "Unexpected variadic arity storage size.");
-  a_byte variadic_byte = (a_byte)((*arity.get_storage())[3]);
-  if (variadic_byte & (0x1 << 7)) {
-    result = TRUE;
-  }  /* if */
-  return result;
-}  /* func_macro_is_variadic */
-
-
-void an_ifc_module::cache_macro(a_module_token_cache_ptr cache,
-                                an_ifc_macro_index       macro)
-/*
-Add the tokens corresponding to the given macro's definition to cache.
-*/
-{
-  an_ifc_source_position_hint pos_hint(cache, macro);
-
-  switch (macro.sort) {
-    case ifc_ms_macro_object_like:
-      { Opt<an_ifc_macro_object_like> opt_imol;
-
-        construct_node(&opt_imol, macro);
-        if (!opt_imol.has_value()) {
-          goto invalid;
-        }  /* if */
-
-        an_ifc_macro_object_like imol = *opt_imol;
-        an_ifc_text_offset       name_idx = get_ifc_name(imol);
-        Opt<a_string>            opt_name = name_from_index(name_idx);
-        if (!opt_name.has_value()) {
-          goto invalid;
-        }  /* if */
-
-        const a_string &name = *opt_name;
-        cache_identifier(cache, name.as_temp_characters());
-        /* Ensure there's a space between the macro identifier and the macro
-           body. */
-        cache_pp_token(cache, " ", 1);
-        cache_form(cache, get_ifc_body(*opt_imol));
-      }
-      break;
-    case ifc_ms_macro_function_like:
-      { Opt<an_ifc_macro_function_like> opt_imfl;
-
-        construct_node(&opt_imfl, macro);
-        if (!opt_imfl.has_value()) {
-          goto invalid;
-        }  /* if */
-
-        an_ifc_macro_function_like imfl = *opt_imfl;
-        an_ifc_text_offset         name_idx = get_ifc_name(imfl);
-        Opt<a_string>              opt_name = name_from_index(name_idx);
-        if (!opt_name.has_value()) {
-          goto invalid;
-        }  /* if */
-
-        const a_string &name = *opt_name;
-        cache_identifier(cache, name.as_temp_characters());
-        cache_token(cache, tok_lparen);
-        if (func_macro_is_variadic(get_ifc_arity_variadic(imfl))) {
-          cache_token(cache, tok_ellipsis);
-        } else {
-          an_ifc_form_index parameters = get_ifc_parameters(imfl);
-          check_assertion(!is_null_index(parameters));
-          cache_form(cache, parameters, /*is_parameter_form=*/TRUE);
-        }  /* if */
-        cache_token(cache, tok_rparen);
-        /* Ensure there's a space between the macro parameter list and the
-           macro body. */
-        cache_pp_token(cache, " ", 1);
-        cache_form(cache, get_ifc_body(imfl));
-      }
-      break;
-    default_is_unexpected_str("Unexpected MacroSort");
-  }  /* switch */
-  goto done;
-invalid:
-  expect_error_str("expected errors for bad macro cache");
-  cache->invalidate();
-done:;
-}  /* an_ifc_module::cache_macro */
-
-
 static void cache_form_spelling(a_module_token_cache_ptr     cache,
                                 an_ifc_text_offset           spelling)
 /*
@@ -28878,9 +28801,9 @@ Cache the given preprocessed form.
 }  /* cache_form_spelling */
 
 
-void an_ifc_module::cache_form(a_module_token_cache_ptr cache,
-                               an_ifc_form_index        form,
-                               a_boolean                is_parameter_form)
+static void cache_form(a_module_token_cache_ptr cache,
+                       an_ifc_form_index        form,
+                       a_boolean                is_parameter_form = FALSE)
 /*
 Add tokens corresponding to the given preprocessing "form" to cache.  If this
 is for a function-like macro's parameters then is_parameter_form is TRUE,
@@ -29095,7 +29018,102 @@ invalid:
   expect_error_str("expected errors for bad form cache");
   cache->invalidate();
 done:;
-}  /* an_ifc_module::cache_form */
+}  /* cache_form */
+
+
+static a_boolean func_macro_is_variadic(const an_ifc_variadic_arity& arity)
+/*
+Given a variadic arity return TRUE if the associated function macro is
+variadic; otherwise, return FALSE.
+*/
+{
+  a_boolean result = FALSE;
+
+  /* FIXME: This is odd, we should refine this part of the spec with Microsoft.
+     The endianness concerns/handling of the IFC seemingly compete with the
+     layout of this data. */
+  static_assert(sizeof(an_ifc_variadic_arity_storage) == 4,
+                "Unexpected variadic arity storage size.");
+  a_byte variadic_byte = (a_byte)((*arity.get_storage())[3]);
+  if (variadic_byte & (0x1 << 7)) {
+    result = TRUE;
+  }  /* if */
+  return result;
+}  /* func_macro_is_variadic */
+
+
+static void cache_macro(a_module_token_cache_ptr cache,
+                        an_ifc_macro_index       macro)
+/*
+Add the tokens corresponding to the given macro's definition to cache.
+*/
+{
+  an_ifc_source_position_hint pos_hint(cache, macro);
+
+  switch (macro.sort) {
+    case ifc_ms_macro_object_like:
+      { Opt<an_ifc_macro_object_like> opt_imol;
+
+        construct_node(&opt_imol, macro);
+        if (!opt_imol.has_value()) {
+          goto invalid;
+        }  /* if */
+
+        an_ifc_macro_object_like imol = *opt_imol;
+        an_ifc_text_offset       name_idx = get_ifc_name(imol);
+        Opt<a_string>            opt_name = name_from_index(name_idx);
+        if (!opt_name.has_value()) {
+          goto invalid;
+        }  /* if */
+
+        const a_string &name = *opt_name;
+        cache_identifier(cache, name.as_temp_characters());
+        /* Ensure there's a space between the macro identifier and the macro
+           body. */
+        cache_pp_token(cache, " ", 1);
+        cache_form(cache, get_ifc_body(*opt_imol));
+      }
+      break;
+    case ifc_ms_macro_function_like:
+      { Opt<an_ifc_macro_function_like> opt_imfl;
+
+        construct_node(&opt_imfl, macro);
+        if (!opt_imfl.has_value()) {
+          goto invalid;
+        }  /* if */
+
+        an_ifc_macro_function_like imfl = *opt_imfl;
+        an_ifc_text_offset         name_idx = get_ifc_name(imfl);
+        Opt<a_string>              opt_name = name_from_index(name_idx);
+        if (!opt_name.has_value()) {
+          goto invalid;
+        }  /* if */
+
+        const a_string &name = *opt_name;
+        cache_identifier(cache, name.as_temp_characters());
+        cache_token(cache, tok_lparen);
+        if (func_macro_is_variadic(get_ifc_arity_variadic(imfl))) {
+          cache_token(cache, tok_ellipsis);
+        } else {
+          an_ifc_form_index parameters = get_ifc_parameters(imfl);
+          check_assertion(!is_null_index(parameters));
+          cache_form(cache, parameters, /*is_parameter_form=*/TRUE);
+        }  /* if */
+        cache_token(cache, tok_rparen);
+        /* Ensure there's a space between the macro parameter list and the
+           macro body. */
+        cache_pp_token(cache, " ", 1);
+        cache_form(cache, get_ifc_body(imfl));
+      }
+      break;
+    default_is_unexpected_str("Unexpected MacroSort");
+  }  /* switch */
+  goto done;
+invalid:
+  expect_error_str("expected errors for bad macro cache");
+  cache->invalidate();
+done:;
+}  /* cache_macro */
 
 
 static void add_backtrace(a_diagnostic_ptr              diag_ptr,
