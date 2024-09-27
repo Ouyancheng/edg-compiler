@@ -1297,6 +1297,9 @@ static inline a_module_func_param_list* get_ifc_function_parameter_list(
                                  an_ifc_decl_index      parameterizing_entity,
                                  a_boolean              *has_ellipsis);
 
+static inline a_module_deduct_guide_param_list*
+get_ifc_deduction_guide_parameter_list(an_ifc_decl_index deduct_guide_idx);
+
 
 static inline a_module_func_param_list* get_ifc_function_parameter_list(
                                  an_ifc_decl_index      decl_idx,
@@ -1431,9 +1434,7 @@ static inline a_module_entity_ptr get_ifc_template_module_entity(
     an_ifc_decl_index     entity_decl_idx =
                                       get_ifc_decl(get_ifc_entity(templ_decl));
 
-    if (!is_function_decl(entity_decl_idx)) {
-      result = get_module_entity(mod, mesp, decl_name_sym);
-    } else {
+    if (is_function_decl(entity_decl_idx)) {
       Module_isolation_scope<an_ifc_decl_template>
                 isolation_scope(templ_decl);
       a_module_template_parameter_list
@@ -1454,6 +1455,26 @@ static inline a_module_entity_ptr get_ifc_template_module_entity(
       result = get_function_template_module_entity(mod, mesp, decl_name_sym,
                                                    template_params,
                                                    func_params, has_ellipsis);
+    } else if (entity_decl_idx.sort == ifc_ds_decl_deduction_guide) {
+      Module_isolation_scope<an_ifc_decl_template>
+                isolation_scope(templ_decl);
+      a_module_template_parameter_list
+                *template_params = get_ifc_template_parameter_list(templ_decl);
+
+      if (template_params == NULL) {
+        goto invalid;
+      }  /* if */
+
+      a_module_deduct_guide_param_list *param_list =
+                       get_ifc_deduction_guide_parameter_list(entity_decl_idx);
+      if (param_list == NULL) {
+        goto invalid;
+      }  /* if */
+      result = get_deduction_guide_module_entity(mod, mesp, decl_name_sym,
+                                                 template_params,
+                                                 param_list);
+    } else {
+      result = get_module_entity(mod, mesp, decl_name_sym);
     }  /* if */
   }  /* if */
   goto done;
@@ -2572,6 +2593,7 @@ using a_decl_partial_specialization_sequence =
                              Node_sequence<an_ifc_decl_partial_specialization>;
 using a_decl_specialization_sequence =
                                      Node_sequence<an_ifc_decl_specialization>;
+using a_decl_template_sequence = Node_sequence<an_ifc_decl_template>;
 using a_decl_temploid_sequence = Node_sequence<an_ifc_decl_temploid>;
 using an_edg_constant_integer_word_sequence =
                                Node_sequence<an_ifc_edg_constant_integer_word>;
@@ -6278,6 +6300,71 @@ invalid:
 done:
   return result;
 }  /* get_ifc_function_parameter_list */
+
+
+static inline a_module_deduct_guide_param_list*
+get_ifc_deduction_guide_parameter_list(an_ifc_decl_index deduct_guide_idx)
+/*
+*/
+{
+  a_module_func_param_list         *result = NULL;
+  Opt<an_ifc_decl_deduction_guide> opt_deduct_decl;
+
+  construct_node(&opt_deduct_decl, deduct_guide_idx);
+  if (opt_deduct_decl.has_value()) {
+    an_ifc_decl_deduction_guide deduct_decl = *opt_deduct_decl;
+    an_ifc_chart_index          param_idx = get_ifc_source(deduct_decl);
+
+    if (is_null_index(param_idx)) {
+      result = new_fe<a_module_func_param_list>();
+    } else {
+      switch (param_idx.sort) {
+        case ifc_cs_chart_unilevel:
+          { Opt<an_ifc_chart_unilevel> opt_params;
+
+            construct_node(&opt_params, param_idx);
+            if (!opt_params.has_value()) {
+              goto invalid;
+            }  /* if */
+            result = new_fe<a_module_func_param_list>();
+
+            an_ifc_chart_unilevel     params = *opt_params;
+            a_decl_parameter_sequence sequence(params);
+            for (Indexed<an_ifc_decl_parameter> idxd_param : sequence) {
+              if (!idxd_param.has_value()) {
+                goto invalid;
+              }  /* if */
+
+              an_ifc_decl_parameter param = *idxd_param;
+              an_ifc_type_index     ifc_type_idx = get_ifc_type(param);
+              a_type_ptr            param_type =
+                                             type_for_type_index(ifc_type_idx);
+              if (is_error_type(param_type)) {
+                goto invalid;
+              }  /* if */
+              result->push_back(param_type);
+            }  /* for */
+          }
+          break;
+        case ifc_cs_chart_multilevel:
+        case ifc_cs_chart_none:
+          ifc_unexpected(module_of(param_idx),
+                         "only unilevel or absent parameters are supported "
+                         "for deduction guide declarations");
+          goto invalid;
+        default_is_unexpected();
+      }  /* switch */
+    }  /* if */
+
+  }  /* if */
+  goto done;
+invalid:
+  if (result != NULL) {
+    delete_fe(&result);
+  }  /* if */
+done:
+  return result;
+}  /* get_ifc_deduction_guide_parameter_list */
 
 namespace {
 
@@ -13760,6 +13847,78 @@ can be found, return tok_error.
 }  /* resolve_token_by_name */
 
 
+using a_deduduced_template_map = Ptr_map<an_ifc_decl_index, an_ifc_decl_index>;
+                        /* The type used for a mapping from a deduction guide
+                           to the template it's associated with. */
+
+static a_deduduced_template_map
+                *deduction_guide_map;
+                        /* A lazily-initialized mapping of IFC deduction guide
+                           declarations indexes to the associated template
+                           declaration index. */
+
+
+static void map_template_deduction_guide(an_ifc_decl_index deduction_guide_idx,
+                                         an_ifc_decl_index template_idx)
+/*
+Map the given deduction guide index back to the template it's a deduction guide
+of.
+*/
+{
+  if (deduction_guide_idx.sort == ifc_ds_decl_template) {
+    Opt<an_ifc_decl_template> opt_template_decl;
+
+    construct_node(&opt_template_decl, deduction_guide_idx);
+    if (opt_template_decl.has_value()) {
+      an_ifc_decl_template        template_decl = *opt_template_decl;
+      an_ifc_parameterized_entity param_entity = get_ifc_entity(template_decl);
+      an_ifc_decl_index           entity_decl = get_ifc_decl(param_entity);
+
+      map_template_deduction_guide(entity_decl, template_idx);
+    }  /* if */
+  }  /* if */
+  deduction_guide_map->map(deduction_guide_idx, template_idx);
+}  /* map_template_deduction_guide */
+
+
+static void map_template_deduction_guides(an_ifc_decl_index decl_idx)
+/*
+For the given class template that is identified by the given declaration index,
+check if it has any associated deduction guides, and process them.
+*/
+{
+  /* Deduction guides are associated to the template through the IFC traits
+     mechanism.*/
+  Opt<an_ifc_trait_deduction_guide> opt_guide_trait;
+
+  find_trait(&opt_guide_trait, decl_idx);
+  if (opt_guide_trait.has_value()) {
+    an_ifc_decl_index   guides_idx = get_ifc_trait(*opt_guide_trait);
+
+    if (guides_idx.sort == ifc_ds_decl_tuple) {
+      Opt<an_ifc_decl_tuple> opt_tuple_decl;
+
+      construct_node(&opt_tuple_decl, guides_idx);
+      if (opt_tuple_decl.has_value()) {
+        an_ifc_decl_tuple    tuple_decl = *opt_tuple_decl;
+        a_decl_heap_sequence sequence(tuple_decl);
+
+        for (Indexed<an_ifc_heap_decl> indexed_ihd : sequence) {
+          if (!indexed_ihd.has_value()) {
+            continue;
+          }  /* if */
+
+          an_ifc_decl_index heap_value = get_ifc_value(*indexed_ihd);
+          map_template_deduction_guide(heap_value, decl_idx);
+        }  /* for */
+      }  /* if */
+    } else {
+      map_template_deduction_guide(guides_idx, decl_idx);
+    }  /* if */
+  }  /* if */
+}  /* process_template_deduction_guides */
+
+
 a_boolean an_ifc_module::initialize_members_from_ifc_module_file(
                                            a_module_import_decl_ptr midp,
                                            a_boolean                issue_diag)
@@ -13951,6 +14110,28 @@ diagnostics if issue_diag is TRUE.
       a_token_kind             token = resolve_token_by_name(token_name);
       this->textual_tokens.push_back(token);
     }  /* for */
+  }  /* if */
+  if (is_msvc_authored(this->header)) {
+    /* Map the deduction guide to their names. */
+    /* FIXME: At some point, hopefully the IFC itself will contain the correct
+       names. */
+    if (get_partition_metadata(ifc_pk_decl_template).name != NULL &&
+        get_partition_metadata(ifc_pk_decl_deduction_guide).name != NULL) {
+      a_decl_template_sequence sequence(this, 0);
+
+      if (deduction_guide_map == NULL) {
+        deduction_guide_map = new_fe<a_deduduced_template_map>(
+                                                            /*mask_width=*/10);
+      }  /* if */
+      for (Indexed<an_ifc_decl_template> indexed_templ : sequence) {
+        if (!indexed_templ.has_value()) {
+          continue;
+        }  /* if */
+
+        an_ifc_decl_index templ_idx = to_decl_index(indexed_templ.node_idx);
+        map_template_deduction_guides(templ_idx);
+      }  /* for */
+    }  /* if */
   }  /* if */
   /* FIXME: At some point, hopefully the IFC itself will encode this
      efficiently. */
@@ -17241,7 +17422,6 @@ anonymous), or an empty optional if the name was present but invalid.
 
   switch (decl_idx.sort) {
     case ifc_ds_decl_barren:
-    case ifc_ds_decl_deduction_guide:
     case ifc_ds_decl_default_argument:
     case ifc_ds_decl_explicit_instantiation:
     case ifc_ds_decl_explicit_specialization:
@@ -17253,6 +17433,30 @@ anonymous), or an empty optional if the name was present but invalid.
                                         str_for(decl_idx.sort),
                                         &error_position);
       goto invalid;
+    case ifc_ds_decl_deduction_guide:
+      { if (deduction_guide_map != NULL) {
+          /* Check to see if this deduction guide is mapped to a template (this
+             should always be true of Microsoft produced IFCs) and if so, use
+             the name information of the associated template (to overcome
+             encoding bugs). */
+          an_ifc_decl_index assoc_templ = deduction_guide_map->get(decl_idx);
+
+          if (!is_null_index(assoc_templ)) {
+            result = name_of_decl(assoc_templ);
+            break;
+          }  /* if */
+        }  /* if */
+
+        Opt<an_ifc_decl_deduction_guide> opt_guide_decl;
+        construct_node(&opt_guide_decl, decl_idx);
+        if (!opt_guide_decl.has_value()) {
+          goto invalid;
+        }  /* if */
+
+        an_ifc_decl_deduction_guide guide_decl = *opt_guide_decl;
+        result = name_of_decl(guide_decl);
+      }
+      break;
     case ifc_ds_decl_enumerator:
       { Opt<an_ifc_decl_enumerator> opt_enumerator_decl;
 
@@ -17356,8 +17560,19 @@ anonymous), or an empty optional if the name was present but invalid.
       }
       goto invalid;
     case ifc_ds_decl_template:
-      { Opt<an_ifc_decl_template> opt_template_decl;
+      { if (deduction_guide_map != NULL) {
+          /* Check to see if this a deduction guide and if so, use the name
+             information of the associated template (to overcome encoding
+             bugs). */
+          an_ifc_decl_index assoc_templ = deduction_guide_map->get(decl_idx);
 
+          if (!is_null_index(assoc_templ)) {
+            result = name_of_decl(assoc_templ);
+            break;
+          }  /* if */
+        }  /* if */
+
+        Opt<an_ifc_decl_template> opt_template_decl;
         construct_node(&opt_template_decl, decl_idx);
         if (!opt_template_decl.has_value()) {
           goto invalid;
@@ -29653,11 +29868,14 @@ Do one-time initialization of static variables defined in this file.
       pch_saved_var_array_elem(ifc_tag_definitions),
       pch_saved_var_array_elem(ifc_decl_lookup_table),
       pch_saved_var_array_elem(ifc_decl_template_lookup_table),
+      pch_saved_var_array_elem(tok_name_map),
+      pch_saved_var_array_elem(deduction_guide_map),
       pch_saved_var_array_terminating_elem()
     };
     register_pch_saved_variables(saved_vars);
   }  /* if */
   tok_name_map = NULL;
+  deduction_guide_map = NULL;
   bad_operator_name_encodings =
               new_general<a_bad_operator_name_encoding_map>(/*mask_width=*/10);
   bad_operator_name_encodings->map("new", onk_new);
@@ -29713,6 +29931,7 @@ Do one-time initialization of static variables defined in this file.
   register_trans_unit_variable(ifc_tag_definitions);
   register_trans_unit_variable(ifc_decl_lookup_table);
   register_trans_unit_variable(ifc_decl_template_lookup_table);
+  register_trans_unit_variable(deduction_guide_map);
 }  /* ifc_modules_one_time_init */
 
 
@@ -29748,6 +29967,7 @@ called after all processing for the translation unit (including template
 instantiations, etc.) has been done.
 */
 {
+  delete_fe(&deduction_guide_map);
   delete_fe(&ifc_type_cache);
   delete_fe(&ifc_decl_template_lookup_table);
   delete_fe(&ifc_decl_lookup_table);
@@ -29768,6 +29988,7 @@ This routine is called at the end of compilation, or if compilation is
 terminated prematurely for some reason.  It runs any necessary destructors.
 */
 {
+  delete_fe(&tok_name_map);
   delete_general(&bad_operator_name_encodings);
 }  /* ifc_modules_cleanup */
 

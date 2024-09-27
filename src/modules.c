@@ -799,6 +799,9 @@ Destroy the given module entity key.
     case meeik_func_spec:
       delete_fe(&this->variant.func_spec);
       break;
+    case meeik_deduct_guide:
+      delete_fe(&this->variant.deduct_guide);
+      break;
   }  /* switch */
 }  /* a_module_entity_key::~a_module_entity_key */
 
@@ -918,6 +921,7 @@ a_boolean operator==(const a_module_entity_function_key &a,
       if (!routine_types_are_redecl_compatible(a_param, b_param,
                                                TCF_NO_FLAGS)) {
         result = FALSE;
+        break;
       }  /* if */
     }  /* for */
   }  /* if */
@@ -1001,6 +1005,59 @@ a_boolean operator==(const a_module_entity_func_spec_key &a,
 }  /* operator== */
 
 
+a_boolean operator==(const a_module_entity_deduct_guide_key &a,
+                     const a_module_entity_deduct_guide_key &b)
+/*
+*/
+{
+  a_boolean result = TRUE;
+
+  {
+    a_module_template_parameter_list *a_params = a.template_params;
+    a_module_template_parameter_list *b_params = b.template_params;
+
+    if (a_params->length() != b_params->length()) {
+      result = FALSE;
+      goto done;
+    } else {
+      for (size_t i = 0; i < a_params->length(); ++i) {
+        const a_module_template_parameter &a_param = (*a_params)[i];
+        const a_module_template_parameter &b_param = (*b_params)[i];
+
+        if (!(a_param == b_param)) {
+          result = FALSE;
+          goto done;
+        }  /* if */
+      }  /* for */
+    }  /* if */
+  }
+  {
+    Dyn_array<a_type_ptr> *a_params = a.param_list;
+    Dyn_array<a_type_ptr> *b_params = b.param_list;
+
+    if (a_params->length() != b_params->length()) {
+      result = FALSE;
+      goto done;
+    } else {
+      for (size_t i = 0; i < a_params->length(); ++i) {
+        a_type_ptr a_param = (*a_params)[i];
+        a_type_ptr b_param = (*b_params)[i];
+
+        /* Compare on object identity as all equal module entity pointers
+           have the same address. */
+        if (!routine_types_are_redecl_compatible(a_param, b_param,
+                                                 TCF_NO_FLAGS)) {
+          result = FALSE;
+          goto done;
+        }  /* if */
+      }  /* for */
+    }  /* if */
+  }
+done:
+  return result;
+}  /* operator== */
+
+
 using a_module_entity_hash_table = Ptr_map<a_module_entity_key,
                                            a_module_entity_ptr>;
                         /* The type used for the module entity hash table. */
@@ -1039,6 +1096,9 @@ Return a hash value for the given module entity key.
       /* FIXME: Implement this. */
       break;
     case meeik_func_spec:
+      /* FIXME: Implement this. */
+      break;
+    case meeik_deduct_guide:
       /* FIXME: Implement this. */
       break;
   }  /* switch */
@@ -1087,6 +1147,11 @@ Return TRUE if the given module entity keys are equal; otherwise, return FALSE.
         break;
       case meeik_func_spec:
         if (!(*a.variant.func_spec == *b.variant.func_spec)) {
+          result = FALSE;
+        }  /* if */
+        break;
+      case meeik_deduct_guide:
+        if (!(*a.variant.deduct_guide == *b.variant.deduct_guide)) {
           result = FALSE;
         }  /* if */
         break;
@@ -1301,6 +1366,32 @@ the given module entity is a C-style variable argument function.
   a_module_entity_ptr result = get_module_entity_from_key(move_from(&key));
   return result;
 }  /* get_specialized_function_module_entity */
+
+
+a_module_entity_ptr get_deduction_guide_module_entity(
+                             a_module_ptr                     mod,
+                             a_module_entity_scope            *scope,
+                             a_symbol_header_ptr              name,
+                             a_module_template_parameter_list *template_params,
+                             a_module_deduct_guide_param_list *param_list)
+/*
+Return a pointer to the deduction guide module entity for the entity in the
+given module, with the given scope, name, template parameters, and deduction
+guide parameter list.
+*/
+{
+  a_module_entity_key key;
+  key.mod = mod;
+  key.scope = scope;
+  key.name = name;
+  key.kind = meeik_deduct_guide;
+  key.variant.deduct_guide = new_fe<a_module_entity_deduct_guide_key>();
+  key.variant.deduct_guide->template_params = template_params;
+  key.variant.deduct_guide->param_list = param_list;
+
+  a_module_entity_ptr result = get_module_entity_from_key(move_from(&key));
+  return result;
+}  /* get_deduction_guide_module_entity */
 
 
 /*lint -esym(1714,*a_module_interface::is_open)*/ /* FIXME: temporary*/
