@@ -8645,14 +8645,11 @@ constrained (N4849 [over.match.best] bullet (2.6)):
     a_routine_ptr  rp1 = sym1->variant.routine.ptr;
     a_routine_ptr  rp2 = sym2->variant.routine.ptr;
 
-    check_assertion(!rp1->is_specialized || !rp2->is_specialized);
-    /* An explicit specialization is itself never constrained but specializes
-       the most constrained candidate, so it needs to be considered more
-       constrained here. */
-    if (rp1->is_specialized) {
-      cmp = 1;
-    } else if (rp2->is_specialized) {
-      cmp = -1;
+    if (rp1->is_specialized != rp2->is_specialized) {
+      /* An explicit specialization is itself never constrained but specializes
+         the most constrained candidate, so it needs to be considered more
+         constrained here. */
+      cmp = rp1->is_specialized ? 1 : -1;
     } else {
       cmp = compare_constraints(sym1, sym2);
     }  /* if */
