@@ -6389,6 +6389,13 @@ in a new-expression).
                                     /*try_user_conversions=*/allow_udc,
                                     allow_expl_conv_funcs_this_arg,
                                     arg_match);
+          if (gpp_version_is(any_version) && ovl_context == oc_constructor &&
+              arg_match->match_level == aml_user_conversion &&
+              arg_match->conversion.std.conv_to_std_initializer_list) {
+            /* GCC seems to treat conversions to std::initializer_list<X>
+               as exact matches in constructor calls. */
+            arg_match->match_level = aml_exact;
+          }  /* if */
           if (enum_param_still_needed) {
             a_type_ptr  base_param_type = param->type;
             if (is_reference_type(base_param_type)) {
@@ -8270,16 +8277,14 @@ for a Microsoft bug).
        (if any) is the same in both conversions. */
     a_routine_ptr arg_routine1 = arg_match1->conversion.routine;
     a_routine_ptr arg_routine2 = arg_match2->conversion.routine;
-    if (arg_match1->match_level != (an_arg_match_level)aml_user_conversion) {
+    if (arg_match1->match_level != aml_user_conversion) {
       /* Ignore routines indicated for copy constructors on class copies. */
       arg_routine1 = arg_routine2 = NULL;
     }  /* if */
     if (arg_routine1 == arg_routine2 ||
         (microsoft_bugs && arg_routine1 != NULL && arg_routine2 != NULL &&
-         arg_routine1->special_kind ==
-                                    (a_special_function_kind)sfk_conversion &&
-         arg_routine2->special_kind ==
-                                    (a_special_function_kind)sfk_conversion)) {
+         special_kind_is(arg_routine1, sfk_conversion) &&
+         special_kind_is(arg_routine2, sfk_conversion))) {
       /* The conversions have the same user-defined conversion (or both
          have no user-defined conversion).  (The Microsoft compiler
          doesn't care that the user-defined conversions are different if
