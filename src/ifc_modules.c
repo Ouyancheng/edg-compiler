@@ -1047,12 +1047,19 @@ Return a symbol header representing the name of the given IFC declaration index.
   Opt<a_string>            opt_decl_name = name_of_decl(decl_idx);
 
   if (opt_decl_name.has_value()) {
-    a_string         decl_name = *opt_decl_name;
-    a_symbol_locator locator;
+    a_string decl_name = *opt_decl_name;
 
-    clear_locator(&locator, &null_source_position);
-    result = find_symbol_header(decl_name.as_temp_characters(),
-                                decl_name.length(), &locator);
+    if (decl_name.length() != 0) {
+      a_symbol_locator locator;
+
+      clear_locator(&locator, &null_source_position);
+      result = find_symbol_header(decl_name.as_temp_characters(),
+                                  decl_name.length(), &locator);
+    } else {
+      a_string err_msg("Unexpected empty name for ", index_to_str(decl_idx));
+
+      ifc_unexpected(module_of(decl_idx), err_msg.as_temp_characters());
+    }  /* if */
   }  /* if */
   return result;
 }  /* get_name_symbol */
@@ -1069,17 +1076,31 @@ Given a scope reference find and return the associated module entity scope.
   if (is_null_index(scope_ref)) {
     result = get_module_entity_scope(/*name=*/NULL, /*parent=*/NULL);
   } else {
-    Opt<a_symbol_header_ptr> opt_decl_name_sym = get_name_symbol(scope_ref);
+    Opt<a_string> opt_decl_name = name_of_decl(scope_ref);
 
-    if (!opt_decl_name_sym.has_value()) {
+    if (!opt_decl_name.has_value()) {
       goto invalid;
     }  /* if */
 
-    a_symbol_header_ptr   decl_name_sym = *opt_decl_name_sym;
+    a_string              decl_name = *opt_decl_name;
     an_ifc_decl_index     parent_scope_ref = get_ifc_home_scope(scope_ref);
     a_module_entity_scope *mesp =
                                  get_ifc_module_entity_scope(parent_scope_ref);
-    result = get_module_entity_scope(decl_name_sym, mesp);
+    if (decl_name.length() != 0) {
+      a_symbol_locator locator;
+
+      clear_locator(&locator, &null_source_position);
+
+      a_symbol_header_ptr   decl_name_sym = find_symbol_header(
+                                                decl_name.as_temp_characters(),
+                                                decl_name.length(), &locator);
+      result = get_module_entity_scope(decl_name_sym, mesp);
+    } else {
+      /* This can happen with an unnamed enumeration or class/struct/union
+         type.  Skip this scope and consider the entity a member of the parent
+         scope. */
+      result = mesp;
+    }  /* if */
   }  /* if */
   goto done;
 invalid:
@@ -1651,6 +1672,27 @@ get_ifc_module_entity(an_ifc_decl_index index)
       case ifc_ds_decl_function:
       case ifc_ds_decl_method:
         result = get_ifc_function_module_entity(index);
+        break;
+      case ifc_ds_decl_enumeration:
+      case ifc_ds_decl_scope:
+        { Opt<a_string> opt_decl_name = name_of_decl(index);
+
+          if (opt_decl_name.has_value() && opt_decl_name->length() != 0) {
+            /* The enumeration or class/struct/union has a name, so the basic
+               module entity hash approach should work. */
+            result = get_ifc_basic_module_entity(index);
+          } else {
+            /* FIXME: We currently do not merge these declarations across
+               modules.  Instead just create a module entity and memoize (keyed
+               on the IFC declaration index) it with the cache. */
+            if (cached_result != NULL) {
+              result = cached_result;
+            } else {
+              result = new_fe<a_module_entity>();
+              result->module_info = module_of(index)->assoc_module_info;
+            }  /* if */
+          }  /* if */
+        }
         break;
       case ifc_ds_decl_template:
         { Opt<an_ifc_decl_template> opt_templ_decl;
