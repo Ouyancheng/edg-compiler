@@ -1,5 +1,42 @@
 Version 6.7
 
+9/29/24  [EDGcpfe/27518[
+C++-generating back end, GNU compatibility: non-dependent types with nested
+template arguments
+
+Versions of g++ before 13.1.0 had a bug that resulted in spurious errors
+when a template definition refers to a non-dependent type using a qualified
+name in which the qualifier contains nested template arguments.  In
+particular, g++ incorrectly considered the type to be dependent.  In
+configurations in which template definitions are generated from the
+prototype instantiation IL, the C++-generating back end could emit such
+constructs in cases involving typedefs and/or alias template
+specializations.  This is now fixed, with the C++-generating back end
+adding otherwise-unneeded "typename" qualifiers in such cases when
+gnu_target_version_number is less than 130000.  For example, with
+--gnu_version=110400 --c++17:
+
+  template <bool> using e = int;
+  template <typename g, typename h> constexpr bool i = true;
+  template <int> struct k;
+  template <class> struct m { using ah = int; };
+  template <class, class...> class F;
+  template <class ao> class F<ao> { struct ax {}; };
+  template <class, class ba> struct G {
+    using r = typename m<ba>::ah;
+    using bk = F<r>;
+  };
+  template <class bv> struct H {
+    using bk = typename G<e<i<int, int>>, bv>::bk;
+  };
+  template <int> struct v {
+    // The following type was previously put out as
+    // "F<G<e<i<int, int>>,int>::r>::ax", triggering the g++ error.  It now
+    // includes the "typename" keyword before "F" and "G".
+    using d = H<int>::bk::ax;
+  };
+
+
 9/27/24  [EDGcpfe/27624]
 Spurious error on self-referential constant-initialized array
 

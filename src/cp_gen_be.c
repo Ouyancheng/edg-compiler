@@ -5696,6 +5696,161 @@ in its scope without qualification.
 }  /* curr_scope_has_using_enum_for */
 
 
+/*
+Variables used for passing state across recursions of
+get_template_arg_nesting below.
+*/
+static int curr_tpl_nesting;
+static int max_tpl_nesting;
+
+
+static void get_template_arg_nesting(a_source_correspondence *scp,
+                                     an_il_entry_kind        kind);
+
+static void update_expr_tpl_arg_nesting(
+                                    an_expr_node_ptr                    expr,
+                                    an_expr_or_stmt_traversal_block_ptr tblock)
+/*
+This routine is called by traverse_expr in a top-down traversal of an
+expression tree to update the maximum nesting depth to reflect any template
+arguments appearing in the expression.  It terminates the traversal if
+max_tpl_nesting becomes at least two.
+*/
+{
+  a_source_correspondence_ptr scp = NULL;
+  an_il_entry_kind            kind;
+
+  switch (expr->kind) {
+    case enk_variable:
+      scp = &node_variable(expr)->source_corresp;
+      kind = iek_variable;
+      break;
+    case enk_routine:
+      scp = &node_routine(expr)->source_corresp;
+      kind = iek_routine;
+      break;
+    case enk_operation:
+      if (node_operator_is(expr, eok_cast)) {
+        scp = &expr->type->source_corresp;
+        kind = iek_type;
+      }  /* if */
+      break;
+    default:
+      break;
+  }  /* switch */
+  if (scp != NULL) {
+    get_template_arg_nesting(scp, kind);
+    if (max_tpl_nesting >= 2) {
+      tblock->terminate = TRUE;
+    }  /* if */
+  }  /* if */
+}  /* update_expr_tpl_arg_nesting */
+
+
+static void get_template_arg_nesting(a_source_correspondence *scp,
+                                     an_il_entry_kind        kind)
+/*
+Recursively walk the template arguments, if any, of the entity denoted by
+scp and kind, updating max_tpl_nesting to reflect the most deeply nested
+template argument encountered, using curr_tpl_nesting to track the nesting
+level in the current recursion.  Terminate the walk if max_tpl_nesting
+becomes at least two.
+*/
+{
+  a_template_arg_ptr       tap;
+  a_template_parameter_ptr tpp;
+  a_boolean                insert_space;
+
+  if (name_has_template_arguments(scp, kind, &tap, &tpp, &insert_space)) {
+    if (++curr_tpl_nesting > max_tpl_nesting) {
+      max_tpl_nesting = curr_tpl_nesting;
+    }  /* if */
+    while (max_tpl_nesting < 2 && tap != NULL) {
+      a_source_correspondence *arg_scp = NULL;
+      an_il_entry_kind        arg_kind = iek_none;
+      switch (tap->kind) {
+      case tak_type:
+        arg_scp = &tap->variant.type->source_corresp;
+        arg_kind = iek_type;
+        break;
+      case tak_nontype:
+        if (!tap->is_array_bound_of_unknown_type) {
+          a_constant_ptr   cp = tap->variant.constant;
+          an_expr_node_ptr expr;
+          if (has_name_before_mangling(cp)) {
+            arg_scp = &cp->source_corresp;
+            arg_kind = iek_constant;
+          } else if ((expr = assoc_expr_for_constant(cp)) != NULL) {
+            an_expr_or_stmt_traversal_block tblock;
+            clear_expr_or_stmt_traversal_block(&tblock);
+            tblock.process_expr = update_expr_tpl_arg_nesting;
+            tblock.process_non_dynamic_constants = TRUE;
+            tblock.process_expressions_for_constants = TRUE;
+            tblock.process_template_parameter_constants_and_expressions = TRUE;
+            traverse_expr(expr, &tblock);
+          }  /* if */
+        }  /* if */
+        break;
+      case tak_template:
+        arg_scp = &tap->variant.templ.ptr->source_corresp;
+        arg_kind = iek_template;
+        break;
+      case tak_start_of_pack_expansion:
+        /* Nothing to scan.  Leave arg_scp as NULL. */
+        break;
+      default_is_unexpected();
+      }  /* switch */
+      if (arg_scp != NULL) {
+        get_template_arg_nesting(arg_scp, arg_kind);
+      }  /* if */
+      tap = tap->next;
+    }  /* while */
+    --curr_tpl_nesting;
+  }  /* if */
+  if (max_tpl_nesting < 2 && scp->is_class_member) {
+    get_template_arg_nesting(&scp_parent_class(scp)->source_corresp, iek_type);
+  }  /* if */
+}  /* get_template_arg_nesting */
+
+
+static a_boolean need_gnu_typename_kwd(a_type_ptr tp)
+/*
+Versions of g++ before 13.1.0 have a bug that causes it to issue spurious
+errors when a template definition uses a type with a qualifier that is a
+non-dependent template instance in which a template argument contains a
+nested template argument, e.g., A<B<...>>::x.  The workaround for this bug
+is to prefix the qualified name of the type with the "typename" keyword
+(even though it is not dependent).  Return TRUE if the specified type is
+one that requires the workaround.
+*/
+{
+  a_boolean result = FALSE;
+
+  if (gcc_is_generated_code_target && gnu_target_version_number < 130000 &&
+      tp->source_corresp.is_class_member) {
+    a_boolean is_in_prototype_instantiation = FALSE;
+    for (a_name_context_ptr p = curr_name_context;
+         !is_in_prototype_instantiation && p != NULL &&
+           p->assoc_scope->kind != sck_namespace; p = p->next) {
+      if (p->class_type != NULL &&
+          p->class_type->
+                       variant.class_struct_union.is_prototype_instantiation) {
+        is_in_prototype_instantiation = TRUE;
+      }  /* if */
+    }  /* for */
+    if (is_in_prototype_instantiation) {
+      curr_tpl_nesting = 0;
+      max_tpl_nesting = 0;
+      get_template_arg_nesting(&parent_class_of(tp)->source_corresp, iek_type);
+      if (max_tpl_nesting >= 2) {
+        result = TRUE;
+      }  /* if */
+    }  /* if */
+  }  /* if */
+  return result;
+}  /* need_gnu_typename_kwd */
+
+
 static void gen_name(a_source_correspondence *scp,
                      an_il_entry_kind        entry_kind,
                      a_gen_name_options_set  options,
@@ -6060,7 +6215,9 @@ GN_PARENS_IF_GLOBAL_QUALIFIER is not set.
           qualifier_options |= GN_SUPPRESS_TEMPLATE_KEYWORD;
         }  /* if */
         if (entry_kind == iek_type && !(options & GN_DECLARATION) &&
-            !(options & GN_QUALIFIER) && (options & GN_DEPENDENT)) {
+            !(options & GN_QUALIFIER) &&
+            ((options & GN_DEPENDENT) ||
+             need_gnu_typename_kwd(a_type_ptr(scp)))) {
           /* Emit a "typename" keyword for a dependent type, but only at
              the beginning of a qualified name and not in a declaration
              context (since a class/struct/union keyword will already have
