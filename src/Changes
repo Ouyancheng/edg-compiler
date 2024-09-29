@@ -1,6 +1,6 @@
 Version 6.7
 
-9/29/24  [EDGcpfe/27518[
+9/29/24  [EDGcpfe/27518]
 C++-generating back end, GNU compatibility: non-dependent types with nested
 template arguments
 
