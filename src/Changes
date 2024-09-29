@@ -12,7 +12,7 @@ configurations in which template definitions are generated from the
 prototype instantiation IL, the C++-generating back end could emit such
 constructs in cases involving typedefs and/or alias template
 specializations.  This is now fixed, with the C++-generating back end
-adding otherwise-unneeded "typename" qualifiers in such cases when
+adding otherwise-unneeded "typename" keywords in such cases when
 gnu_target_version_number is less than 130000.  For example, with
 --gnu_version=110400 --c++17:
 
