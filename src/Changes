@@ -1,5 +1,24 @@
 Version 6.7
 
+9/29/24  [EDGcpfe/27510]
+Tie-breaker for reference binding via user-defined conversion
+
+Consider:
+
+  using F = int();
+  struct A {
+    operator F&();
+    operator F&&() = delete;
+  } obj;
+  F &rf = obj;  // Previously ambiguous.  Now okay (except in Microsoft mode.)
+
+Previously, the front end treated the conversion of obj to a reference-to-
+function type as ambiguous.  However, the standard includes a tie-breaking
+rule for these kinds of situations (preferring the conversion to the reference
+type that matches the destination type).  This rule is now implemented (but
+disabled in Microsoft C++ modes, which matches MSVC behavior).
+
+
 9/29/24  [EDGcpfe/27518]
 C++-generating back end, GNU compatibility: non-dependent types with nested
 template arguments

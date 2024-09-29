@@ -509,6 +509,11 @@ typedef struct a_candidate_function {
 			   The field "conversion" is meaningful in that case.
 			   This will have the same setting in all candidate
 			   function entries being considered as a set. */
+  a_bit_field	user_conv_with_matching_ref_kinds:1;
+			/* TRUE if is_user_conversion is TRUE and the
+			   conversion is for a reference binding where the
+			   destination reference matches the reference kind to
+			   which the conversion function converts. */
   a_bit_field	in_best_match_set:1;
 			/* TRUE if the function is in the set of best-matching
 			   functions. */
