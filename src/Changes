@@ -10,7 +10,7 @@ Consider:
     operator F&();
     operator F&&() = delete;
   } obj;
-  F &rf = obj;  // Previously ambiguous.  Now okay (except in Microsoft mode.)
+  F &rf = obj;  // Previously ambiguous.  Now okay (except in Microsoft mode).
 
 Previously, the front end treated the conversion of obj to a reference-to-
 function type as ambiguous.  However, the standard includes a tie-breaking
