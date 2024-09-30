@@ -33487,7 +33487,7 @@ Scan a top-level expression that appears as an argument in an attribute.
 void scan_annotation_value(an_attribute_arg  *aap)
 /*
 Scan an annotation expression and evaluate it.  Store the result constant in
-the give attribute argument.
+the given attribute argument.
 */
 {
   an_operand           operand;
