@@ -9252,13 +9252,13 @@ other.  Return
       (cmp = compare_late_tiebreakers(cfp1, cfp2)) != 0) {
     /* There is something about one argument list that makes it better
        than the other. */
-  } else if (cfp1->user_conv_with_matching_func_ref_kinds !=
-                               cfp2->user_conv_with_matching_func_ref_kinds &&
+  } else if (cfp1->user_conv_with_matching_ref_kinds !=
+                                    cfp2->user_conv_with_matching_ref_kinds &&
              !microsoft_mode) {
     /* N4986 [over.match.best.general] bullet (2.3) prefers a user-defined
        conversion that matches the reference kind of the destination reference
        (if applicable).  MSVC appears not to implement this tie-breaker yet. */
-    cmp = cfp1->user_conv_with_matching_func_ref_kinds ? 1 : -1;
+    cmp = cfp1->user_conv_with_matching_ref_kinds ? 1 : -1;
   } else if (!late_template_ovl_res_tiebreaker &&
              (cmp = compare_template_candidate_functions(cfp1, cfp2)) != 0) {
     /* The fact that one function is a function template and the other
@@ -20891,7 +20891,7 @@ conv_context describes the context of the conversion.  */
     if (ref_binding_type != NULL) {
       a_candidate_function  *cf = candidate_functions;
       a_type_ptr            drtp = skip_typerefs(ref_binding_type);
-      if (is_reference_type(drtp) && is_function_type(type_pointed_to(drtp))) {
+      if (is_reference_type(drtp)) {
         for (; cf != NULL; cf = cf->next) {
           if (!cf->is_user_conversion) break;
           if (cf->conversion.routine != NULL) {
@@ -20900,7 +20900,7 @@ conv_context describes the context of the conversion.  */
             if (is_reference_type(rrtp) &&
                 drtp->variant.pointer.is_rvalue_reference ==
                                   rrtp->variant.pointer.is_rvalue_reference) {
-              cf->user_conv_with_matching_func_ref_kinds = TRUE;
+              cf->user_conv_with_matching_ref_kinds = TRUE;
             }  /* if */
           }  /* if */
         }  /* for */
