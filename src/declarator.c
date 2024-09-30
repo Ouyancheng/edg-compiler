@@ -5006,7 +5006,8 @@ constant.
              num_of_elements == 0) {
           /* Record the fact that we saw a GNU C zero-length array.  GNU C++
              compilers treat flexible array members ([]) as zero-length arrays
-             ([0]) until GCC 6.x. */
+             ([0]) until GCC 6.x.  Recent versions of MSVC also accept zero-
+             length arrays. */
           (*new_type_ptr)->variant.array.bound_is_zero = TRUE;
           if (is_constant_bound) {
             report_gnu_extension_if_needed(

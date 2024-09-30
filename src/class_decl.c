@@ -20550,18 +20550,21 @@ declarations.
   }  /* if */
   /* The type specified must be complete. */
   complete_type_is_needed(ufield_type);
-  if (C_mode() && is_function_type(ufield_type) &&
-      decl_state->storage_class != (a_storage_class)sc_typedef) {
+  if (C_mode() && type_is(ufield_type, tk_routine) &&
+      decl_state->storage_class != sc_typedef) {
     pos_error(ec_function_type_not_allowed, &locator->source_position);
     err = TRUE;
   } else if (vla_enabled && is_variably_modified_type(field_type)) {
     pos_error(ec_field_cannot_involve_vla_type, &locator->source_position);
     err = TRUE;
-  } else if (is_incomplete_type(ufield_type)) {
+  } else if (ufield_type->incomplete ||
+             (ms_version_is(>= 1900) && type_is(ufield_type, tk_array) &&
+              has_any_zero_bound(ufield_type))) {
     /* The member type is incomplete.  This is not necessarily an error:
        an array of unknown size is sometimes allowed as the last member
        (or, in some modes, even a member other than the last if the enclosing
-       class type is a union). */
+       class type is a union).  MSVC treats zero-length arrays as flexible
+       array members, allowing them only as the last member. */
     a_boolean   incomplete_okay = FALSE;
     /* The last member may be an incomplete array in C99 mode, as an
        extension otherwise in C mode, and in Microsoft and GNU C++ modes as 
@@ -20571,7 +20574,7 @@ declarations.
          !class_type->variant.class_struct_union.any_virtual_base_classes)) {
       /* The member must be an incomplete array, but not one whose
          underlying element type is incomplete. */
-      if (is_array_type(ufield_type) &&
+      if (type_is(ufield_type, tk_array) &&
           !is_incomplete_type(underlying_array_element_type(ufield_type))) {
         if (type_is(class_type, tk_union)) {
           /* Incomplete member in a union; only allowed in Microsoft and Clang

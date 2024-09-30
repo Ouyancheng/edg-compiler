@@ -13399,7 +13399,11 @@ scanned sizeof or __datasizeof expression, and return the result in *result
       expr_pos_error(ec_sizeof_function, &type_position);
       sizeof_type = error_type();
     }  /* if */
-  } else if (is_incomplete_type(sizeof_type)) {
+  } else if (is_incomplete_type(sizeof_type) ||
+             (ms_version_is(>= 1900) && is_array_type(sizeof_type) &&
+              has_any_zero_bound(sizeof_type))) {
+    /* MSVC appears to treat arrays with zero bounds as incomplete in this
+       context. */
     if (gnu_mode && is_void_type(sizeof_type)) {
       /* GNU C/C++ evaluates sizeof(void) as 1. */
       if (gpp_mode) {
