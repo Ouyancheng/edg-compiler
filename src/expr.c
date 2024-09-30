@@ -38779,10 +38779,11 @@ type_identifier_case:
                 /* In contexts that aren't constraint expressions, produce a
                    constant entry. */
                 a_constant_ptr        con = local_constant();
-                if (is_prototype_instantiation_context() ||
-                    is_alias_in_template_decl_context() ||
-                    (scope_stack_top().in_nonreal_instantiation &&
-                     !scope_stack_top().is_rescan)) {
+                if ((is_prototype_instantiation_context() ||
+                     is_alias_in_template_decl_context() ||
+                     (scope_stack_top().in_nonreal_instantiation &&
+                      !scope_stack_top().is_rescan)) &&
+                    expr_is_instantiation_dependent(node)) {
                   if (is_at_least_one_error() &&
                       template_arg_list_involves_error_entity(tap)) {
                     make_error_operand(result);

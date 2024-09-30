@@ -1,5 +1,20 @@
 Version 6.7
 
+9/30/24  [EDGcpfe/26822,EDGcpfe/27602]
+Handling of non-dependent concept-ids in templates
+
+Consider:
+
+  template<typename> concept C = true;
+  template<bool> struct S { using type = int; };
+  template<class T> requires requires { S<C<int>>::type{}; } int f(T);
+  int r = f(0);
+
+Previously, this failed deduction for the call "f(0)" because the front end
+did not recognize C<int> as a non-dependent concept-id that can be evaluated.
+That is now fixed.
+
+
 9/29/24  [EDGcpfe/27510]
 Tie-breaker for reference binding via user-defined conversion
 
