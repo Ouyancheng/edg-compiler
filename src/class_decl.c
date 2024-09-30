@@ -20512,7 +20512,8 @@ declarations.
   a_type_ptr          field_type = decl_state->type;
   a_type_ptr          ufield_type = skip_typerefs(field_type);
   a_type_ptr          class_type = class_state->class_type;
-  a_boolean           err = is_error_type(ufield_type);
+  a_boolean           err = is_error_type(ufield_type),
+                      ms_zero_length_array = FALSE;
 
   /* First check whether there was a preceding field of incomplete array type
      for which an error should now be issued. */
@@ -20559,7 +20560,7 @@ declarations.
     err = TRUE;
   } else if (ufield_type->incomplete ||
              (ms_version_is(>= 1900) && type_is(ufield_type, tk_array) &&
-              has_any_zero_bound(ufield_type))) {
+              (ms_zero_length_array = has_any_zero_bound(ufield_type)))) {
     /* The member type is incomplete.  This is not necessarily an error:
        an array of unknown size is sometimes allowed as the last member
        (or, in some modes, even a member other than the last if the enclosing
@@ -20617,7 +20618,7 @@ declarations.
          (e.g., the field cannot have an initializer and in some modes it
          cannot be the only field).  The constraint that it has to be the last
          field is checked elsewhere. */
-      if (decl_state->has_initializer) {
+      if (decl_state->has_initializer && !ms_zero_length_array) {
         pos_error(ec_cannot_initialize_flexible_array_member, &pos_curr_token);
         field_type = error_type();
       } else if ((class_state->is_first_field ||
