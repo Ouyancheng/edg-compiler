@@ -16350,6 +16350,67 @@ done:
 }  /* is_instantiated_template_template_argument */
 
 
+static a_boolean is_member_template_ref(an_ifc_type_index type_idx)
+/*
+Given a type index, return TRUE if the type index represents a reference to a
+member template, e.g.:
+
+  template<typename T>
+  void f(C<T::template U>);
+           ^^^^^^^^^^^^^
+
+Otherwise, return FALSE.
+*/
+{
+  a_boolean result = FALSE;
+
+  if (type_idx.sort == ifc_ts_type_typename) {
+    Opt<an_ifc_type_typename> opt_typename_type;
+
+    construct_node(&opt_typename_type, type_idx);
+    if (!opt_typename_type.has_value()) {
+      goto invalid;
+    }  /* if */
+
+    an_ifc_type_typename typename_type = *opt_typename_type;
+    an_ifc_expr_index    path_idx = get_ifc_path(typename_type);
+    if (path_idx.sort != ifc_es_expr_path) {
+      goto done;
+    }  /* if */
+
+    Opt<an_ifc_expr_path> opt_path_expr;
+    construct_node(&opt_path_expr, path_idx);
+    if (!opt_path_expr.has_value()) {
+      goto invalid;
+    }  /* if */
+
+    an_ifc_expr_path  path_expr = *opt_path_expr;
+    an_ifc_expr_index member_idx = get_ifc_member(path_expr);
+    if (member_idx.sort != ifc_es_expr_unqualified_id) {
+      goto done;
+    }  /* if */
+
+    Opt<an_ifc_expr_unqualified_id> opt_mem_id;
+    construct_node(&opt_mem_id, member_idx);
+    if (!opt_mem_id.has_value()) {
+      goto invalid;
+    }  /* if */
+
+    an_ifc_expr_unqualified_id mem_id = *opt_mem_id;
+    an_ifc_name_index          name_idx = get_ifc_name(mem_id);
+    if (name_idx.sort != ifc_ns_name_template) {
+      goto done;
+    }  /* if */
+    result = TRUE;
+  }  /* if */
+  goto done;
+invalid:
+  result = FALSE;
+done:
+  return result;
+}  /* is_template_template_param_ref */
+
+
 static a_boolean is_type_pack_expansion(an_ifc_type_index type_idx)
 /*
 Given an IFC type index, return TRUE if the type index in the context of
@@ -16542,6 +16603,40 @@ represented by the expression.
           a_template_arg *new_arg = alloc_template_arg(tak_type);
           new_arg->is_pack = TRUE;
           new_arg->variant.type = type;
+          if (!state->append_argument(new_arg, expr_idx)) {
+            goto invalid;
+          }  /* if */
+        } else if (is_member_template_ref(denotation)) {
+          a_template_param *curr_param = state->curr_param_sym();
+
+          if (curr_param->param_symbol->kind != sk_class_template) {
+            a_string err_msg("Unexpected parameter for member template "
+                             "denotated by ", index_to_str(denotation));
+
+            ifc_unexpected(module_of(denotation),
+                           err_msg.as_temp_characters());
+            goto invalid;
+          }  /* if */
+
+          an_ifc_type_typename typename_type;
+          construct_node_prechecked(&typename_type, denotation);
+
+          a_module_token_cache cache;
+          an_ifc_expr_index    path_idx = get_ifc_path(typename_type);
+          cache_expr(&cache, path_idx, /*cinfo=*/{});
+          if (!cache.is_valid()) {
+            goto invalid;
+          }  /* if */
+
+          a_template             *param_templ =
+                                  curr_param->variant.templ->il_template_entry;
+          a_template_arg         *new_arg = alloc_template_arg(tak_template);
+          a_module_entity_rescan rescan(&cache);
+          new_arg->variant.templ.ptr = scan_template_template_argument(
+                                                  param_templ,
+                                                  &error_position,
+                                                  /*is_default=*/FALSE,
+                                                  /*dependent_default=*/FALSE);
           if (!state->append_argument(new_arg, expr_idx)) {
             goto invalid;
           }  /* if */
