@@ -5707,6 +5707,7 @@ static int max_tpl_nesting;
 static void get_template_arg_nesting(a_source_correspondence *scp,
                                      an_il_entry_kind        kind);
 
+
 static void update_expr_tpl_arg_nesting(
                                     an_expr_node_ptr                    expr,
                                     an_expr_or_stmt_traversal_block_ptr tblock)
