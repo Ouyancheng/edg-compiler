@@ -15,8 +15,9 @@ Consider:
 Previously, the front end treated the conversion of obj to a reference-to-
 function type as ambiguous.  However, the standard includes a tie-breaking
 rule for these kinds of situations (preferring the conversion to the reference
-type that matches the destination type).  This rule is now implemented (but
-disabled in Microsoft C++ modes, which matches MSVC behavior).
+type that matches the destination type).  This rule -- introduced by the
+resolution of the C++ standardization committee's Core issue 1328 -- is now
+implemented (but disabled in Microsoft C++ modes, which matches MSVC behavior).
 
 
 9/29/24  [EDGcpfe/27518]
