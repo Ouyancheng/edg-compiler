@@ -16025,6 +16025,7 @@ struct a_template_argument_append_state {
   inline a_boolean append_argument(a_template_arg    *new_arg,
                                    an_ifc_expr_index expr_idx);
   inline a_boolean terminate_pack();
+  inline void finalize();
 private:
   a_template_arg
                 *head;  /* The first template argument in the list. */
@@ -16094,6 +16095,7 @@ with an error constant.
     result->pack_expansion_descr =
                  end_potential_pack_expansion_context(pesep,
                                                       /*is_declarator=*/FALSE);
+    if (result->pack_expansion_descr != NULL) result->is_pack = TRUE;
     (void)advance_to_next_pack_element(pesep);
   }
   goto done;
@@ -16143,7 +16145,8 @@ the template argument list; otherwise, return FALSE.
        to the next template parameter (in the associated template parameter
        list).
 
-       Note for packs, the transition to the next template parameter will be
+       Note that when appending to a pack template parameter with a non-pack
+       template argument, the transition to the next template parameter will be
        handled upon a call to terminate_pack. */
     if (this->curr_param()->is_pack) {
       if (new_arg->kind != tak_start_of_pack_expansion) {
@@ -16186,6 +16189,22 @@ FALSE.
   }  /* if */
   return result;
 }  /* a_template_argument_append_state::terminate_pack */
+
+
+void a_template_argument_append_state::finalize()
+/*
+Mark the end of the template argument list as complete.  This function should
+be called when all arguments have been appended to perform final cleanup.
+*/
+{
+  if (this->tail != NULL && this->tail->is_pack) {
+    /* Assume that any remaining parameters are completed via expansion of the
+       parameter pack. */
+    while (this->param_sym != NULL) {
+      this->param_sym = this->param_sym->next;
+    }  /* while */
+  }  /* if */
+}  /* a_template_argument_append_state::finalize */
 
 
 static a_boolean is_template_template_argument(an_ifc_type_index type_idx)
@@ -16735,6 +16754,7 @@ template corresponding to the given symbol.
     a_template_argument_append_state state(template_sym);
 
     if (append_template_args(&state, arguments)) {
+      state.finalize();
       if (state.curr_param() != NULL) {
         an_ifc_module    *mod = module_of(arguments);
         a_diagnostic_ptr diag = start_error(ec_ifc_too_few_template_args,
@@ -16848,6 +16868,25 @@ modules.
         }  /* if */
         curr_arg = curr_arg->next;
       }  /* while */
+    } else if (curr_arg->is_pack) {
+      if (!is_template_arg_compatible(curr_arg, curr_param)) {
+        goto done;
+      }  /* if */
+      if (curr_arg->next == NULL) {
+        /* If this is the last argument, assume it completes all remaining
+           parameters packs. */
+        do {
+          if (!is_template_arg_compatible(curr_arg, curr_param)) {
+            goto done;
+          }  /* if */
+          curr_param = curr_param->next;
+        } while (curr_param != NULL);
+        curr_arg = curr_arg->next;
+        break;
+      } else {
+        /* Otherwise, complete only a single parameter and argument pair. */
+        curr_arg = curr_arg->next;
+      }  /* if */
     } else {
       if (!is_template_arg_compatible(curr_arg, curr_param)) {
         goto done;
