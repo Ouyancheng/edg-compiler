@@ -8376,7 +8376,7 @@ recognized.
   } else if (curr_token != tok_identifier) {
     pos_warning(ec_exp_identifier, &pos_curr_token);
     error_in_pragma = TRUE;
-  } else if (gnu_version_is(any_version) || clang_version_is(any_version)) {
+  } else {
     a_symbol          *ext_sym;
     a_symbol_locator  ext_loc;
     ext_sym = find_external_symbol(&locator_for_curr_id, nlk_external,
