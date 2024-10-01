@@ -15241,6 +15241,16 @@ static a_type_ptr process_ifc_type(an_ifc_type_index type_idx)
   }  /* if */
 #endif /* DEBUG */
   switch (type_idx.sort) {
+    case ifc_ts_type_base:
+    case ifc_ts_type_forall:
+    case ifc_ts_type_syntax_tree:
+    case ifc_ts_type_tuple:
+    case ifc_ts_type_unaligned:
+      /* FIXME: Currently unsupported. */
+      issue_unsupported_construct_error(module_of(type_idx),
+                                        str_for(type_idx.sort),
+                                        &error_position);
+      goto invalid;
     case ifc_ts_type_vendor_extension:
       if (is_edg_authored(type_idx)) {
         Opt<an_ifc_edg_type_index> opt_edg_type_idx =
@@ -15257,6 +15267,44 @@ static a_type_ptr process_ifc_type(an_ifc_type_index type_idx)
                                           &error_position);
         goto invalid;
       }  /* if */
+      break;
+    case ifc_ts_type_expansion:
+      { Opt<an_ifc_type_expansion> opt_expansion_type;
+
+        construct_node(&opt_expansion_type, type_idx);
+        if (!opt_expansion_type.has_value()) {
+          goto invalid;
+        }  /* if */
+
+        an_ifc_type_expansion
+                expansion_type = *opt_expansion_type;
+        an_ifc_type_index
+                pack = get_ifc_pack(expansion_type);
+        /* Start a potential pack expansion. */
+        a_pack_expansion_stack_entry_ptr
+                pesep;
+        (void)begin_potential_pack_expansion_context_full(
+                                                  &pesep,
+                                                  /*p_pedp=*/NULL,
+                                                  /*is_lookahead=*/FALSE,
+                                                  /*allow_empty_list=*/FALSE,
+                                                  /*ignore_suppression=*/TRUE);
+        /* Form the IL type. */
+        result = type_for_type_index(pack);
+
+        /* This is a bit of a hack: a token cache is created and rescanned
+           containing an ellipsis.  This allows
+           end_potential_pack_expansion_context to consume the ellipsis and
+           mark pack use accordingly.  This, in turn, ensures that any packs
+           that are referenced are not diagnosed. */
+        a_module_token_cache cache;
+        cache_token(&cache, tok_ellipsis);
+
+        a_module_entity_rescan rescan(&cache);
+        (void)end_potential_pack_expansion_context(pesep,
+                                                   /*is_declarator=*/FALSE);
+        (void)advance_to_next_pack_element(pesep);
+      }
       break;
     case ifc_ts_type_fundamental:
       { Opt<an_ifc_type_fundamental> opt_itf;
@@ -15768,30 +15816,6 @@ static a_type_ptr process_ifc_type(an_ifc_type_index type_idx)
         result = ptr_to_member_type(member_type, scope_type);
       }
       break;
-    case ifc_ts_type_tuple:
-      { Opt<an_ifc_type_tuple> opt_itt;
-
-        construct_node(&opt_itt, type_idx);
-        if (!opt_itt.has_value()) {
-          goto invalid;
-        }  /* if */
-        /* FIXME: Currently unsupported. */
-        issue_unsupported_construct_error(mod, "TypeSort::Tuple",
-                                          &error_position);
-        goto invalid;
-      }
-    case ifc_ts_type_forall:
-      { Opt<an_ifc_type_forall> opt_itf;
-
-        construct_node(&opt_itf, type_idx);
-        if (!opt_itf.has_value()) {
-          goto invalid;
-        }  /* if */
-        /* FIXME: Currently unsupported. */
-        issue_unsupported_construct_error(mod, "TypeSort::Forall",
-                                          &error_position);
-        goto invalid;
-      }
     case ifc_ts_type_syntactic:
       { Opt<an_ifc_type_syntactic> opt_its;
 
@@ -15832,44 +15856,6 @@ static a_type_ptr process_ifc_type(an_ifc_type_index type_idx)
         }  /* switch */
       }
       break;
-    case ifc_ts_type_expansion:
-      { Opt<an_ifc_type_expansion> opt_expansion_type;
-
-        construct_node(&opt_expansion_type, type_idx);
-        if (!opt_expansion_type.has_value()) {
-          goto invalid;
-        }  /* if */
-
-        an_ifc_type_expansion
-                expansion_type = *opt_expansion_type;
-        an_ifc_type_index
-                pack = get_ifc_pack(expansion_type);
-        /* Start a potential pack expansion. */
-        a_pack_expansion_stack_entry_ptr
-                pesep;
-        (void)begin_potential_pack_expansion_context_full(
-                                                  &pesep,
-                                                  /*p_pedp=*/NULL,
-                                                  /*is_lookahead=*/FALSE,
-                                                  /*allow_empty_list=*/FALSE,
-                                                  /*ignore_suppression=*/TRUE);
-        /* Form the IL type. */
-        result = type_for_type_index(pack);
-
-        /* This is a bit of a hack: a token cache is created and rescanned
-           containing an ellipsis.  This allows
-           end_potential_pack_expansion_context to consume the ellipsis and
-           mark pack use accordingly.  This, in turn, ensures that any packs
-           that are referenced are not diagnosed. */
-        a_module_token_cache cache;
-        cache_token(&cache, tok_ellipsis);
-
-        a_module_entity_rescan rescan(&cache);
-        (void)end_potential_pack_expansion_context(pesep,
-                                                   /*is_declarator=*/FALSE);
-        (void)advance_to_next_pack_element(pesep);
-      }
-      break;
     case ifc_ts_type_typename:
       { a_module_token_cache cache;
 
@@ -15884,30 +15870,6 @@ static a_type_ptr process_ifc_type(an_ifc_type_index type_idx)
         }  /* if */
       }
       break;
-    case ifc_ts_type_base:
-      { Opt<an_ifc_type_base> opt_itb;
-
-        construct_node(&opt_itb, type_idx);
-        if (!opt_itb.has_value()) {
-          goto invalid;
-        }  /* if */
-        /* FIXME: Currently unsupported. */
-        issue_unsupported_construct_error(mod, "TypeSort::Base",
-                                          &error_position);
-        goto invalid;
-      }
-    case ifc_ts_type_unaligned:
-      { Opt<an_ifc_type_unaligned> opt_itu;
-
-        construct_node(&opt_itu, type_idx);
-        if (!opt_itu.has_value()) {
-          goto invalid;
-        }  /* if */
-        /* FIXME: Currently unsupported. */
-        issue_unsupported_construct_error(mod, "TypeSort::Unaligned",
-                                          &error_position);
-        goto invalid;
-      }
     case ifc_ts_type_decltype:
       { a_module_token_cache cache;
 
@@ -15918,18 +15880,6 @@ static a_type_ptr process_ifc_type(an_ifc_type_index type_idx)
         }  /* if */
       }
       break;
-    case ifc_ts_type_syntax_tree:
-      { Opt<an_ifc_type_syntax_tree> opt_itst;
-
-        construct_node(&opt_itst, type_idx);
-        if (!opt_itst.has_value()) {
-          goto invalid;
-        }  /* if */
-        /* FIXME: Currently unsupported. */
-        issue_unsupported_construct_error(mod, "TypeSort::Syntaxtree",
-                                          &error_position);
-        goto invalid;
-      }
     default_is_unexpected_str("Unexpected TypeSort");
   }  /* switch */
   goto done;
@@ -16594,15 +16544,44 @@ represented by the expression.
             goto invalid;
           }  /* if */
         } else if (is_type_pack_expansion(denotation)) {
-          a_type_ptr type = type_for_type_index(denotation);
+          a_template_param *curr_param = state->curr_param_sym();
 
-          if (is_error_type(type)) {
+          if (curr_param->param_symbol->kind != sk_type) {
+            a_string err_msg("Unexpected parameter for type pack expansion "
+                             "denotated by ", index_to_str(denotation));
+
+            ifc_unexpected(module_of(denotation),
+                           err_msg.as_temp_characters());
             goto invalid;
           }  /* if */
 
-          a_template_arg *new_arg = alloc_template_arg(tak_type);
-          new_arg->is_pack = TRUE;
-          new_arg->variant.type = type;
+          a_module_token_cache cache;
+          cache_type(&cache, denotation, /*cinfo=*/{});
+          if (!cache.is_valid()) {
+            goto invalid;
+          }  /* if */
+
+          /* FIXME: This is based on scan_unknown_template_arg_list; refactor
+             scan_unknown_template_arg_list so we duplicate less logic. */
+          a_template_arg         *new_arg = alloc_template_arg(tak_type);
+          a_module_entity_rescan rescan(&cache);
+          /* Start a potential pack expansion. */
+          a_pack_expansion_stack_entry_ptr
+                                 pesep;
+          (void)begin_potential_pack_expansion_context_full(
+                                                  &pesep,
+                                                  /*p_pedp=*/NULL,
+                                                  /*is_lookahead=*/FALSE,
+                                                  /*allow_empty_list=*/FALSE,
+                                                  /*ignore_suppression=*/TRUE);
+          a_boolean is_injected_class_name;
+          new_arg->variant.type = scan_template_type_argument(
+                                                     &is_injected_class_name,
+                                                     /*is_default_arg=*/FALSE);
+          new_arg->pack_expansion_descr =
+                 end_potential_pack_expansion_context(pesep,
+                                                      /*is_declarator=*/FALSE);
+          if (new_arg->pack_expansion_descr != NULL) new_arg->is_pack = TRUE;
           if (!state->append_argument(new_arg, expr_idx)) {
             goto invalid;
           }  /* if */
