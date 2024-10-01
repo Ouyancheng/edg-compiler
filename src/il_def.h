@@ -17646,11 +17646,11 @@ enum a_scope_kind : a_byte {
   sck_module_decl_import,
 			/* Used during module importing immediately before
 			   the declaration to be imported. */
-  sck_module_isolated,	/* Used during module importing when parsing tokens
-			   that have no access to the rest of the file (e.g.,
-			   while parsing a dependent typename specifier into a
-			   type).  This is currently always considered a
-			   template dependent context. */
+  sck_module_isolated,	/* Used during module importing when reconstructing IL
+			   that should be isolated from broader context (e.g.,
+			   while directly constructing an IL type or template
+			   argument without any scope information for
+			   context). */
   sck_pragma,
 			/* Used while processing certain #pragma directives
 			   to affect the visibility of other scopes.  Used

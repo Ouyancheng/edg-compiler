@@ -1397,12 +1397,16 @@ static inline a_module_entity_ptr get_ifc_function_module_entity(
     a_module_entity_scope    *mesp =
                         get_ifc_module_entity_scope(get_ifc_home_scope(index));
     a_symbol_header_ptr      decl_name_sym = *opt_decl_name_sym;
+
+    (void)push_scope(sck_module_isolated, NO_SCOPE_NUMBER, /*assoc_type=*/NULL,
+                     /*assoc_routine=*/NULL);
+
     a_boolean                has_ellipsis = FALSE;
     a_module_func_param_list *func_params = get_ifc_function_parameter_list(
                                 index,
                                 /*parameterizing_entity=*/an_ifc_decl_index(),
                                 &has_ellipsis);
-
+    pop_scope();
     if (func_params == NULL) {
       goto invalid;
     }  /* if */

@@ -2749,10 +2749,16 @@ the fields implied by the lambda's capture list).
      default argument is recorded in the associated a_param_type entry). */
   record_entity_defined_in_expression((char*)type, iek_type,
                                       /*in_file_scope=*/TRUE);
-  if (!is_nonreal || prototype_instantiations_in_il) {
-    add_lambda_closure_to_types_list(type, decl_level);
-  } else {
-    set_parent_scope_for_type(type, decl_level);
+  if (scope_stack[decl_level].kind != sck_module_isolated) {
+    /* Lambdas created for module isolation scopes are never added to the type
+       list as they are inaccessible outside of front end data structures that
+       are used for determining entity identity across translation units and
+       redeclaration checking. */
+    if (!is_nonreal || prototype_instantiations_in_il) {
+      add_lambda_closure_to_types_list(type, decl_level);
+    } else {
+      set_parent_scope_for_type(type, decl_level);
+    }  /* if */
   }  /* if */
   /* Assume for now that bitwise copy is allowed for this class.  This will
      be cleared later if this is not the case. */
@@ -34564,6 +34570,13 @@ a flag that indicates whether or not the current scope is valid for a lambda.
           scope_error = TRUE;
         }  /* if */
         break;
+      case sck_module_isolated:
+        /* A module isolation scope represents an IL reconstruction occurring
+           in isolation (see sck_module_isolated in il_def.h for more
+           information).  A lambda can appear as the operand of decltype and
+           thus should be allowed in this context. */
+        previous_scope = NO_SCOPE_DEPTH;
+        goto done;
       case sck_template_declaration:
       case sck_enum:
         /* Prior to C++17, lambdas cannot appear in template parameter
