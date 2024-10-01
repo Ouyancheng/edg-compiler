@@ -1072,8 +1072,15 @@ Return a hash value for the given module entity key.
 */
 {
   /* FIXME: We could likely do better than this in terms of hashing. */
-  uintptr_t  result = hash_ptr((void*)key.mod);
+  uintptr_t  result = 0;
 
+  if (key.mod != NULL) {
+    a_module_ptr true_module = skip_module_partitions(key.mod);
+
+    if (true_module->kind == mk_unit) {
+      result = hash_ptr((void*)true_module);
+    }  /* if */
+  }  /* if */
   result = result*31 + hash_ptr((void*)key.scope);
   result = result*31 + hash_ptr((void*)key.name);
   result += key.kind;
@@ -1106,6 +1113,33 @@ Return a hash value for the given module entity key.
 }  /* hash_ptr */
 
 
+static inline a_boolean is_same_module_or_global_module(
+                                                  const a_module_entity_key &a,
+                                                  const a_module_entity_key &b)
+/*
+Return TRUE if both of the given module entity keys reside in the same module
+or both reside in the global module; otherwise, return FALSE.
+*/
+{
+  a_boolean    result = FALSE;
+  a_module_ptr true_module_a = skip_module_partitions(a.mod);
+  a_module_ptr true_module_b = skip_module_partitions(b.mod);
+
+  if (true_module_a == true_module_b) {
+    /* The same IL module is being used, these are definitely the same. */
+    result = TRUE;
+  } else if (true_module_a != NULL && true_module_b != NULL) {
+    if (true_module_a->kind == mk_header_unit &&
+        true_module_a->kind == mk_header_unit) {
+      /* These are both header units, and thus are the same module by virtue
+         of being part of the global module. */
+      result = TRUE;
+    }  /* if */
+  }  /* if */
+  return result;
+}  /* is_same_module_or_global_module */
+
+
 a_boolean operator==(const a_module_entity_key &a,
                      const a_module_entity_key &b)
 /*
@@ -1114,7 +1148,7 @@ Return TRUE if the given module entity keys are equal; otherwise, return FALSE.
 {
   a_boolean result = TRUE;
 
-  if (a.mod != b.mod) {
+  if (!is_same_module_or_global_module(a, b)) {
     result = FALSE;
   } else if (a.scope != b.scope) {
     result = FALSE;
