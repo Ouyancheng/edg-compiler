@@ -1,5 +1,21 @@
 Version 6.7
 
+10/2/24  [EDGcpfe/27546]
+Microsoft C++ compatibility: Dependent using-declarations in type contexts
+
+Consider:
+
+  template<typename T> struct D: T {
+    using T::Type;
+    void f(Type);  // Now accepted in (non-permissive) Microsoft C++ mode.
+  };
+
+This is invalid because the using-declaration does not include the "typename"
+therefor Type is assumed not to be the name of a type.  MSVC, however, accepts
+this case (even in its non-permissive mode) and the front end now more
+consistently emulates that.
+
+
 9/30/24  [EDGcpfe/26822,EDGcpfe/27602]
 Handling of non-dependent concept-ids in templates
 

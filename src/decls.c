@@ -1143,6 +1143,21 @@ return the symbol representing that template.
           placeholder = make_class_template_placeholder(assoc_symbol,
                                                         &pos_curr_token);
           assoc_symbol = symbol_for(placeholder);
+        } else if (microsoft_mode && is_implicit_type_context &&
+                   is_nontype_template_param_symbol(assoc_symbol) &&
+                   is_class_member_using_decl_symbol(
+                                       locator_for_curr_id.specific_symbol)) {
+          /* Microsoft can treat dependent using-declarations not including
+             the "typename" keyword as introducing a type name.  E.g.:
+               template<typename T> struct D: T {
+                 using T::Type;
+                 void f(Type);
+               };
+          */
+          a_type_ptr  parent_type;
+          parent_type = locator_for_curr_id.specific_symbol->parent.class_type;
+          assoc_symbol = create_proxy_or_nonreal_class_member_of_kind(
+                          parent_type, sk_type, options, &locator_for_curr_id);
         } else if (!is_type_symbol(assoc_symbol)) {
           /* Symbol was found, but it is not a type name symbol.  Return NULL,
              clear the specific symbol (to avoid biasing future lookups), and

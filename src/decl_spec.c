@@ -12412,7 +12412,7 @@ general_identifier_case:
             decl_specifiers_seen |= DS_TYPE;
             *type_ptr = error_type();
           } else {
-            a_type_ptr    tp = type_symbol_type(curr_token_type_symbol);
+            a_type_ptr  tp = type_symbol_type(curr_token_type_symbol);
             if (locator_for_curr_id.is_semivisible_nested_type) {
               /* The symbol in the locator is a nested class that is not
                  visible according to the ARM lookup rules but is returned
@@ -12436,8 +12436,7 @@ general_identifier_case:
 #if MICROSOFT_EXTENSIONS_ALLOWED
               if (microsoft_mode && !any_decl_specifiers_seen &&
                   curr_token_type_symbol->is_template_param &&
-                  curr_token_type_symbol->variant.type.ptr->kind ==
-                                                       (a_type_kind)tk_void) {
+                  type_is(curr_token_type_symbol->variant.type.ptr, tk_void)) {
                 basic_type = bt_void;
                 decl_specifiers_seen = DS_VOID;
                 state->template_void_specifier = TRUE;
