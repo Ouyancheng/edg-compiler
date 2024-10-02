@@ -11288,11 +11288,6 @@ definition of a member function of a class template.
     switch_back_to_original_region(region_to_switch_back_to);
     rout_ptr->type = type_ptr;
     rout_ptr->storage_class = storage_class;
-#if GENERATE_SOURCE_SEQUENCE_LISTS
-    if (func_info->is_definition) {
-      rout_ptr->declared_storage_class = dps->declared_storage_class;
-    }  /* if */
-#endif /* GENERATE_SOURCE_SEQUENCE_LISTS */
     rout_ptr->has_deducible_return_type = dps->has_deducible_return_type;
     if (func_info->is_inline) set_inline_flag(rout_ptr, TRUE);
     if (dps->dso_flags & (DSO_CONSTEXPR | DSO_CONSTEVAL)) {
@@ -11422,8 +11417,13 @@ definition of a member function of a class template.
     }  /* if */
 #endif /* GNU_EXTENSIONS_ALLOWED */
   }  /* if */
-  if (decl_state->is_template_friend && func_info->is_definition) {
-    rout_ptr->defined_in_friend_decl = TRUE;
+  if (func_info->is_definition) {
+    if (decl_state->is_template_friend) {
+      rout_ptr->defined_in_friend_decl = TRUE;
+    }  /* if */
+#if GENERATE_SOURCE_SEQUENCE_LISTS
+    rout_ptr->declared_storage_class = dps->declared_storage_class;
+#endif /* GENERATE_SOURCE_SEQUENCE_LISTS */
   }  /* if */
   attach_decl_attributes(dps, func_info->is_definition);
 #if MICROSOFT_EXTENSIONS_ALLOWED

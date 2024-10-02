@@ -1,5 +1,22 @@
 Version 6.7
 
+10/2/24  [EDGcpfe/27378]
+Declared storage class for function template definition
+
+When a function template definition was also a redeclaration, the front end
+failed to record its "declared storage class".  For example:
+
+  template<typename T> static f(T);     // (1)
+  template<typename T> static f(T) {}   // (2)
+
+Declaration (1) is not a definition, and so the associated declared storage
+class (sc_static in this case) is recorded in the associated secondary source
+sequence entry (when GENERATE_SOURCE_SEQUENCE_LISTS is TRUE).  Declaration (2)
+is a definition, and therefore its declared storage class (sc_static) should
+be recorded in the a_routine entry representing the prototype instantiation of
+template f(T).  Previously, the front end refused to do so.  That is now fixed.
+
+
 10/2/24  [EDGcpfe/27546]
 Microsoft C++ compatibility: Dependent using-declarations in type contexts
 
