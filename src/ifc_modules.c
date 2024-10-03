@@ -17263,6 +17263,10 @@ non-NULL, fields (like is_operator_name) in *loc are updated accordingly.
           an_ifc_name_conversion inc = *opt_inc;
           an_ifc_type_index      target = get_ifc_target(inc);
           a_type_ptr             target_type = type_for_type_index(target);
+          if (is_error_type(target_type)) {
+            goto invalid;
+          }  /* if */
+
           /* Note that inscp->encoded contains the mangled name of the
              conversion function, so use the name from the type instead. */
           a_const_char *type_name = target_type->source_corresp.name;
