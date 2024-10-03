@@ -4478,8 +4478,8 @@ typedef struct a_subobject_path {
      selections of anonymous union parent fields.  A sequence of base class
      casts only generates a single base class selection (the entry will point
      to the resulting base class entry within the most derived object).
-     A sequence of offsets (e.g., to select within a multi-level array) is
-     also represented using a single entry. */
+     The path for an address obtained with a multi-level subscript (e.g.,
+     arr[k][l][m]) will include an entry for each subscript. */
   a_subobject_path_ptr
 		next;
 			/* Pointer the next entry in this path (or NULL if
