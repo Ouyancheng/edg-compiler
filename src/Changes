@@ -4,9 +4,9 @@ Version 6.7
 Crash during overload resolution diagnostics involving concepts
 
 In rare cases, the front end could segfault during the construction of the
-error message for a ec_concept_failed diagnostic.  This bug could also manifest
-as a ec_concept_failed diagnostic with an incorrect template argument list.
-This is now fixed.
+error message for an ec_concept_failed diagnostic.  This bug could also
+manifest as an ec_concept_failed diagnostic with an incorrect template argument
+list.  This is now fixed.
 
 
 10/2/24  [EDGcpfe/27378]
