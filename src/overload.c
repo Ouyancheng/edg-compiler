@@ -5824,6 +5824,7 @@ in a new-expression).
   a_boolean                check_arg_count_mismatch = TRUE;
   a_boolean                rescan_pushed = FALSE, nonfinal_pack_seen = FALSE;
   a_boolean                allocated_this_param = FALSE;
+  a_boolean                gpp_init_list_ctor_param_case = FALSE;
   an_operand               dummy_operand;
   a_diag_list_ptr          notes = NULL;
 
@@ -6390,11 +6391,9 @@ in a new-expression).
                                     allow_expl_conv_funcs_this_arg,
                                     arg_match);
           if (gpp_version_is(any_version) && ovl_context == oc_constructor &&
-              arg_match->match_level == aml_user_conversion &&
+              is_single_elem(arg_list) &&
               arg_match->conversion.std.conv_to_std_initializer_list) {
-            /* GCC seems to treat conversions to std::initializer_list<X>
-               as exact matches in constructor calls. */
-            arg_match->match_level = aml_exact;
+            gpp_init_list_ctor_param_case = TRUE;
           }  /* if */
           if (enum_param_still_needed) {
             a_type_ptr  base_param_type = param->type;
@@ -6814,6 +6813,10 @@ accept_function:
   if (ovl_context == oc_reversed_cmp_candidate) {
     a_candidate_function_ptr candidate = *candidate_functions;
     candidate->supplemental_reversed_candidate = TRUE;
+  }  /* if */
+  if (gpp_init_list_ctor_param_case) {
+    a_candidate_function_ptr candidate = *candidate_functions;
+    candidate->gpp_init_list_ctor_param_case = TRUE;
   }  /* if */
 #if BACK_END_IS_CP_GEN_BE
   if (from_arg_dep_lookup) {
@@ -9923,6 +9926,7 @@ is set to TRUE.
        best-match set is determined. */
     /* Put all functions in the best-match set, and set the current argument
        for each function to the first one. */
+    a_boolean  gpp_init_list_ctor_param_case = FALSE;
     number_in_best_match_set = 0;
     prev_cfp = NULL;
     for (cfp = candidates; cfp != NULL; cfp = cfp_next) {
@@ -9960,6 +9964,23 @@ is set to TRUE.
             }  /* if */
             have_candidates_without_anachronisms = TRUE;
           }  /* if */
+        }  /* if */
+        if (cfp->gpp_init_list_ctor_param_case) {
+          /* This candidate is an initializer-list constructor invocation in a
+             context where GCC (the emulated mode) appears to ignore any other
+             constructor that is not an initializer-list constructor (even if
+             it is a better match according to the standard). */
+          if (!gpp_init_list_ctor_param_case) {
+            if (prev_cfp != NULL) {
+              prev_cfp->next = NULL;
+              free_candidate_function_list(candidates);
+              number_in_best_match_set = 0;
+              candidates = *candidate_functions = cfp;
+            }  /* if */
+            gpp_init_list_ctor_param_case = TRUE;
+          }  /* if */
+        } else if (gpp_init_list_ctor_param_case) {
+          continue;
         }  /* if */
         cfp->in_best_match_set = TRUE;
         cfp->in_best_match_set_for_some_argument = FALSE;

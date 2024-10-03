@@ -500,6 +500,11 @@ typedef struct a_candidate_function {
 			   when matching an initializer-list constructor in
 			   a special way (see [over.match.list] in the C++11
 			   standard). */
+  a_bit_field	gpp_init_list_ctor_param_case:1;
+			/* TRUE if this is a viable constructor candidate with
+			   a single std::initializer_list parameter in GNU
+                           C++ mode.  GCC appears to discard candidates that
+			   do not have this property in some cases. */
   a_bit_field	is_inheriting_ctor:1;
 			/* If TRUE, this candidate is an inheriting
 			   constructor. */
