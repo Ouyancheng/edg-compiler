@@ -12149,9 +12149,9 @@ type_transform_case:
       case tok_colon_colon:
 #if MICROSOFT_EXTENSIONS_ALLOWED
       case tok_super:
+#endif /* MICROSOFT_EXTENSIONS_ALLOWED */
       case tok_ifc_entity_ref:
       case tok_ifc_decl_ref:
-#endif /* MICROSOFT_EXTENSIONS_ALLOWED */
 general_identifier_case:
         /* Identifier. */
 #if EXTRA_SOURCE_POSITIONS_IN_IL

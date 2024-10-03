@@ -852,6 +852,8 @@ extern a_symbol_ptr load_tok_ifc_entity_ref();
 
 extern a_symbol_ptr load_tok_ifc_decl_ref();
 
+extern void scan_ifc_param_ref_expr(an_operand *result);
+
 extern void ifc_modules_one_time_init();
 
 extern void ifc_modules_trans_unit_init();

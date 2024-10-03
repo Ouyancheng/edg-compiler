@@ -1980,6 +1980,28 @@ stack does not exist.
 #endif /* DO_IL_LOWERING */
 
 
+inline a_boolean is_module_isolation_context()
+/*
+TRUE if we are in a module isolation context.
+*/
+{
+  a_boolean result = FALSE;
+
+  if (depth_scope_stack != NO_SCOPE_DEPTH) {
+    a_scope_kind deepest_scope_kind = scope_stack[depth_scope_stack].kind;
+    if (deepest_scope_kind == sck_module_isolated) {
+      result = TRUE;
+    } else if (deepest_scope_kind == sck_template_declaration) {
+      if (depth_scope_stack - 1 != NO_SCOPE_DEPTH &&
+          scope_stack[depth_scope_stack - 1].kind == sck_module_isolated) {
+        result = TRUE;
+      }  /* if */
+    }  /* if */
+  }  /* if */
+  return result;
+}  /* is_module_isolation_context */
+
+
 /*
 TRUE if we are in a context in which an expression is being scanned
 that could later potentially participate in template argument deduction

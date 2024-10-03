@@ -5627,6 +5627,16 @@ otherwise, return FALSE.
 }  /* is_template_parameter */
 
 
+static a_boolean is_function_parameter(an_ifc_decl_index decl_idx)
+/*
+Return TRUE if the given declaration index is for a function parameter;
+otherwise, return FALSE.
+*/
+{
+  return (decl_idx.sort == ifc_ds_decl_parameter &&
+          !is_template_parameter(decl_idx));
+}  /* is_function_parameter */
+
 static a_templ_arg_kind get_template_arg_kind(
                                              const an_ifc_decl_parameter &decl)
 /*
@@ -5904,11 +5914,7 @@ previously constructed parameters, e.g.:
                something has corrupted the isolation scope, the code was called
                in an unsafe way, or there is a case that's yet to be
                handled. */
-            check_assertion(depth_scope_stack >= 1 &&
-                            (scope_stack[depth_scope_stack].kind ==
-                             sck_template_declaration) &&
-                            (scope_stack[depth_scope_stack - 1].kind ==
-                             sck_module_isolated));
+            check_assertion(is_module_isolation_context());
             scope_stack_top().in_variadic_template = TRUE;
           }  /* if */
           /* Link the a_template_params (constructed for the symbol table). */
@@ -7151,6 +7157,40 @@ NULL, and issue a diagnostic.
   }  /* if */
   return result;
 }  /* load_tok_ifc_decl_ref */
+
+
+void scan_ifc_param_ref_expr(an_operand *result)
+/*
+*/
+{
+  a_lexical_ifc_index_reference
+                *idx = &ifc_index_for_curr_token;
+  an_ifc_decl_index
+                decl_idx = from_lexical_index<an_ifc_decl_index>(*idx);
+  Opt<an_ifc_decl_parameter>
+                opt_param_decl;
+
+  /* The tok_ifc_param_ref token should always correspond with an IFC parameter
+     declaration that's already been seen (and thus validated). */
+  construct_node(&opt_param_decl, decl_idx);
+  if (opt_param_decl.has_value()) {
+    an_expr_node_ptr          node = alloc_expr_node(enk_param_ref);
+    an_ifc_decl_parameter     param_decl = *opt_param_decl;
+    an_ifc_type_index         type_idx = get_ifc_type(param_decl);
+    a_template_nesting_depth  pdepth = get_ifc_level(param_decl);
+    a_template_param_list_pos pnum = get_ifc_position(param_decl);
+
+    node->type = type_for_type_index(type_idx);
+    node->variant.param_ref.param_num = pnum;
+    node->variant.param_ref.levels_up = pdepth;
+    node->position = pos_curr_token;
+    node->compiler_generated = FALSE;
+    make_expression_operand(node, result);
+  } else {
+    make_error_operand(result);
+  }  /* if */
+  (void)get_token();
+}  /* scan_ifc_param_ref_expr */
 
 
 template<typename an_ifc_Index_type>
@@ -27286,8 +27326,7 @@ tuple elements by '::' instead of ','.
       }
       break;
     case ifc_es_expr_named_decl:
-      if (cinfo.dependent_name) {
-        Opt<an_ifc_expr_named_decl> opt_named_decl;
+      { Opt<an_ifc_expr_named_decl> opt_named_decl;
 
         construct_node(&opt_named_decl, expr);
         if (!opt_named_decl.has_value()) {
@@ -27296,10 +27335,15 @@ tuple elements by '::' instead of ','.
 
         an_ifc_expr_named_decl named_decl = *opt_named_decl;
         an_ifc_decl_index      resolution = get_ifc_resolution(named_decl);
-        module_of(resolution)->cache_name_of_decl(cache, resolution);
-      } else {
-        cache_token_with_index(cache, tok_ifc_entity_ref, expr);
-      }  /* if */
+        if (cinfo.dependent_name) {
+          module_of(resolution)->cache_name_of_decl(cache, resolution);
+        } else if (is_function_parameter(resolution) &&
+                   is_module_isolation_context()) {
+          cache_token_with_index(cache, tok_ifc_param_ref, resolution);
+        } else {
+          cache_token_with_index(cache, tok_ifc_entity_ref, expr);
+        }  /* if */
+      }
       break;
     case ifc_es_expr_unresolved_id:
       { Opt<an_ifc_expr_unresolved_id> opt_ieui;

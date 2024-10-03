@@ -3446,6 +3446,7 @@ This is used to save tokens for later rescanning.
   } else if (curr_token == tok_pending_ifc_expr ||
              curr_token == tok_ifc_entity_ref ||
              curr_token == tok_ifc_decl_ref ||
+             curr_token == tok_ifc_param_ref ||
              curr_token == tok_ifc_decl) {
     /* This token has an associated index. */
     ctp->extra_info_kind = teik_ifc_index;
@@ -6818,13 +6819,11 @@ NULL.
   check_assertion(is_resolved_id_pseudo_token(curr_token));
   a_symbol_ptr result = NULL;
 
-#if MICROSOFT_EXTENSIONS_ALLOWED
   if (curr_token == tok_ifc_entity_ref) {
     result = load_tok_ifc_entity_ref();
   } else {
     result = load_tok_ifc_decl_ref();
   }  /* if */
-#endif /* MICROSOFT_EXTENSIONS_ALLOWED */
   return result;
 }  /* resolve_id_pseudo_token_to_sym */
 
@@ -23668,8 +23667,8 @@ selection operator, in which case it points to the type of the left operand.
      a token that begins a simple type.  We will check later to determine
      whether the identifier is a class name or a type name, if needed.  */
   might_be_qualifier = FALSE;
-  if (curr_token == tok_identifier || curr_token == tok_ifc_entity_ref ||
-      curr_token == tok_ifc_decl_ref) {
+  if (curr_token == tok_identifier ||
+      is_resolved_id_pseudo_token(curr_token)) {
     next_tok = next_two_tokens_if_qualifier_delimiter(tok_colon_colon,
                                                       &next_tok_2);
     if (next_tok == tok_colon_colon || next_tok == tok_lt ||
@@ -24007,18 +24006,14 @@ selection operator, in which case it points to the type of the left operand.
        qualified name.  We clear it now because it may be set again if a
        template reference is coalesced and we don't want to lose that value. */
     specific_sym = locator_for_curr_id.specific_symbol;
-#if MICROSOFT_EXTENSIONS_ALLOWED
-    if (curr_token == tok_ifc_entity_ref || curr_token == tok_ifc_decl_ref) {
+    if (is_resolved_id_pseudo_token(curr_token)) {
       /* Treat the token as an identifier from here, but do not clear the
          specific symbol even if this turns out to be an unqualified name. */
       curr_token = tok_identifier;
-    } else
-#endif /* MICROSOFT_EXTENSIONS_ALLOWED */
-    /* Do not insert code here. */
-    if (!(is_conversion_type ||
-          (specific_sym != NULL &&
-           symbol_is(specific_sym, sk_concept_template))) ||
-        next_tok == tok_colon_colon) {
+    } else if (!(is_conversion_type ||
+                 (specific_sym != NULL &&
+                  symbol_is(specific_sym, sk_concept_template))) ||
+               next_tok == tok_colon_colon) {
       /* The specific symbol is needed when a special lookup was done for the
          identifier in a conversion operator.  It is also needed when an
          identifier denotes a concept (since the caller is responsible for
@@ -24350,8 +24345,7 @@ selection operator, in which case it points to the type of the left operand.
           }  /* if */
         }  /* if */
         if ((curr_token != tok_identifier &&
-             curr_token != tok_ifc_entity_ref &&
-             curr_token != tok_ifc_decl_ref) ||
+             !is_resolved_id_pseudo_token(curr_token)) ||
             ((next_tok != qualifier_separator && next_tok != tok_colon_colon &&
               (!(microsoft_bugs && microsoft_version <= 1500) ||
                (is_qualified_name &&

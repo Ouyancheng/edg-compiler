@@ -324,6 +324,7 @@ EXTERN_CONSTINIT_ARRAY(an_opname_kind, opname_kind_for_token, tok_last + 1)
    onk_none,          /* tok_pending_ifc_expr  */
    onk_none,          /* tok_ifc_entity_ref */
    onk_none,          /* tok_ifc_decl_ref */
+   onk_none,          /* tok_ifc_param_ref */
    onk_none,          /* tok_ifc_decl */
    onk_none,          /* tok_unimplemented */
    onk_subscript,     /* operator[] starts with tok_lbracket */
@@ -3077,11 +3078,9 @@ otherwise, return FALSE.
 {
   a_boolean result = FALSE;
 
-#if MICROSOFT_EXTENSIONS_ALLOWED
   if (tok == tok_ifc_entity_ref || tok == tok_ifc_decl_ref) {
     result = TRUE;
   }  /* if */
-#endif /* MICROSOFT_EXTENSIONS_ALLOWED */
   return result;
 }  /* is_resolved_id_pseudo_token */
 

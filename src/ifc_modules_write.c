@@ -4467,6 +4467,7 @@ a_token_kind for more information about IFC token serialization.
     case tok_ifc_decl:
     case tok_ifc_decl_ref:
     case tok_ifc_entity_ref:
+    case tok_ifc_param_ref:
     case tok_int_constant:
     case tok_last:
 #if MICROSOFT_EXTENSIONS_ALLOWED
