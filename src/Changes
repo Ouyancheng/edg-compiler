@@ -1,5 +1,13 @@
 Version 6.7
 
+10/3/24  [EDGcpfe/27622]
+Crash during overload resolution diagnostics involving concepts
+
+Fixed a rare crash where an ec_concept_failed diagnostic made use of a reused
+template argument list.  In some cases, this bug could also manifest as a
+ec_concept_failed diagnostic with an incorrect template argument list.
+
+
 10/2/24  [EDGcpfe/27378]
 Declared storage class for function template definition
 

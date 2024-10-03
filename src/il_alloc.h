@@ -108,7 +108,7 @@ extern a_template_arg_ptr alloc_template_arg(a_templ_arg_kind	kind);
 extern void free_template_arg_list(a_template_arg_ptr  tap);
 
 /*
-This is an deallocator type that frees template arguments back to the template
+This is a deallocator type that frees template arguments back to the template
 argument list.  This deallocator is only valid for a_template_arg objects.
 */
 template<typename>
