@@ -28,8 +28,8 @@ Consider:
   };
 
 This is invalid because the using-declaration does not include the "typename"
-therefor Type is assumed not to be the name of a type.  MSVC, however, accepts
-this case (even in its non-permissive mode) and the front end now more
+keyword, so Type is assumed not to be the name of a type.  MSVC, however,
+accepts this case (even in its non-permissive mode) and the front end now more
 consistently emulates that.
 
 
