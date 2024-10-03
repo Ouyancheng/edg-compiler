@@ -14,7 +14,7 @@ class (sc_static in this case) is recorded in the associated secondary source
 sequence entry (when GENERATE_SOURCE_SEQUENCE_LISTS is TRUE).  Declaration (2)
 is a definition, and therefore its declared storage class (sc_static) should
 be recorded in the a_routine entry representing the prototype instantiation of
-template f(T).  Previously, the front end refused to do so.  That is now fixed.
+template f(T).  Previously, the front end failed to do so.  That is now fixed.
 
 
 10/2/24  [EDGcpfe/27546]
