@@ -13317,6 +13317,7 @@ Complete the definition of the class referred to by mep (if needed).
            invalidate_failed_class_members do not fail/cause the compiler to
            abort. */
         ifc_unexpected(module_of(decl_idx), err_msg.as_temp_characters());
+        mep->invalid = TRUE;
         invalidate_failed_class_members(class_members, diag_count_snapshot);
       }  /* if */
     } else if (!is_null_index(initializer)) {
