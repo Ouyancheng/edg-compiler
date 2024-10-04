@@ -49724,7 +49724,7 @@ are NULL by default.
 {
   an_operand             result;
   an_expr_stack_entry    expr_stack_entry;
-  a_memory_region_number region_to_switch_back_to;
+  a_memory_region_number region_to_switch_back_to = NULL_region_number;
   a_boolean              relaxed_ms_case = FALSE;
   a_boolean              id_expr, id_expr_address;
   a_source_position      start_pos = pos_curr_token;
@@ -49740,13 +49740,19 @@ are NULL by default.
                   /*force_object_lifetime=*/FALSE,
                   /*suppress_object_lifetime=*/FALSE);
   expr_stack_entry.is_template_arg_expression = TRUE;
-  /* Scan the constant expression.  Template argument constant entries are
-     allocated in file-scope memory, but the underlying expression may have
-     references to local entities (e.g., variables), which means that the
-     expression as a whole has to be allocated in the local memory region.
-     Any memory region discrepancy is later fixed up with a call to
-     do_fs_constant_fixup. */
-  switch_to_scope_region(depth_scope_stack, &region_to_switch_back_to);
+  if (!is_module_isolation_context()) {
+    /* Scan the constant expression.  Template argument constant entries are
+       allocated in file-scope memory, but the underlying expression may have
+       references to local entities (e.g., variables), which means that the
+       expression as a whole has to be allocated in the local memory region.
+       Any memory region discrepancy is later fixed up with a call to
+       do_fs_constant_fixup.
+
+       In module isolation contexts, the entity is conceptually being created
+       outside of any particular scope, so the file scope is instead used to
+       ensure the associated IL is not dropped too soon. */
+    switch_to_scope_region(depth_scope_stack, &region_to_switch_back_to);
+  }  /* if */
 #if GENERATE_SOURCE_SEQUENCE_LISTS
   saved_sses_disallowed = source_sequence_entries_disallowed;
   stack_saved_sses_disallowed =

@@ -1276,6 +1276,40 @@ private:
 };  /* an_ifc_func_param_context */
 
 /*
+*/
+struct a_module_isolation_scope {
+  inline a_module_isolation_scope();
+  inline ~a_module_isolation_scope();
+private:
+  a_memory_region_number
+                region_to_switch_back_to;
+                        /* The memory region to return to upon leaving the
+                           scope. */
+};  /* a_module_isolation_scope */
+
+
+a_module_isolation_scope::a_module_isolation_scope()
+/*
+Enter a module isolation scope.
+*/
+{
+  switch_to_file_scope_region(&this->region_to_switch_back_to);
+  (void)push_scope(sck_module_isolated, NO_SCOPE_NUMBER, /*assoc_type=*/NULL,
+                   /*assoc_routine=*/NULL);
+}  /* a_module_isolation_scope::a_module_isolation_scope */
+
+
+a_module_isolation_scope::~a_module_isolation_scope()
+/*
+Exit the module isolation scope.
+*/
+{
+  pop_scope();
+  switch_back_to_original_region(this->region_to_switch_back_to);
+}  /* a_module_isolation_scope::~a_module_isolation_scope */
+
+
+/*
 The module isolation scope class encapsulates the construction of a detached
 template parameter list and isolates the template parameter resolution
 (find_template_parameter -- so as to prevent resolution to an incorrect
@@ -1286,7 +1320,7 @@ See alloc_detached_templ_param_sym for more information about detached template
 parameters.
 */
 template<typename an_ifc_Decl_type>
-struct Module_isolation_scope {
+struct Module_isolation_scope : a_module_isolation_scope {
   inline Module_isolation_scope(const an_ifc_Decl_type &decl);
   inline ~Module_isolation_scope();
 };  /* Moudle_isolation_scope */
@@ -1419,16 +1453,13 @@ static inline a_module_entity_ptr get_ifc_function_module_entity(
     a_module_entity_scope    *mesp =
                         get_ifc_module_entity_scope(get_ifc_home_scope(index));
     a_symbol_header_ptr      decl_name_sym = *opt_decl_name_sym;
-
-    (void)push_scope(sck_module_isolated, NO_SCOPE_NUMBER, /*assoc_type=*/NULL,
-                     /*assoc_routine=*/NULL);
-
+    a_module_isolation_scope isolation_scope;
     a_boolean                has_ellipsis = FALSE;
     a_module_func_param_list *func_params = get_ifc_function_parameter_list(
                                 index,
                                 /*parameterizing_entity=*/an_ifc_decl_index(),
                                 &has_ellipsis);
-    pop_scope();
+
     if (func_params == NULL) {
       goto invalid;
     }  /* if */
@@ -6449,13 +6480,8 @@ Module_isolation_scope<an_ifc_Decl_type>::Module_isolation_scope(
 Create a new module isolation scope and the associated template parameters for
 the given parameterized declaration.
 */
+  : a_module_isolation_scope()
 {
-  /* Push a module isolation scope to ensure there's a cutoff on template
-     parameter lookup.  This prevents template parameter resolution
-     (find_template_parameter) from binding to an incorrect template parameter
-     further up the scope stack with the same coordinates.*/
-  (void)push_scope(sck_module_isolated, NO_SCOPE_NUMBER,
-                   /*assoc_type=*/NULL, /*assoc_routine=*/NULL);
   /* Push a template declaration scope for the parameterized declaration with
      an associated detached template parameter list (via the scope's
      template_decl_info).  This allows template parameter resolution
@@ -6476,8 +6502,6 @@ Tear down the constructed scopes.
 */
 {
   /* Pop the sck_template_declaration scope. */
-  pop_scope();
-  /* Pop the sck_module_isolated scope. */
   pop_scope();
 }  /* Module_isolation_scope::~Module_isolation_scope */
 
@@ -17098,9 +17122,9 @@ module file.
   a_template_ptr templ = get_template_from_id_expr(templ_id);
 
   if (templ != NULL && templ->kind != templk_none) {
-    a_symbol_ptr       template_sym = symbol_for(templ);
-    an_ifc_expr_index  arguments = get_ifc_arguments(templ_id);
-    a_template_arg_ptr arg_list =
+    a_symbol_ptr             template_sym = symbol_for(templ);
+    an_ifc_expr_index        arguments = get_ifc_arguments(templ_id);
+    a_template_arg_ptr       arg_list =
                           template_args_for_expr_list(template_sym, arguments);
 
     if (arg_list == NULL) {
