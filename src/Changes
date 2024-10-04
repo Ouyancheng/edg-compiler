@@ -1,5 +1,18 @@
 Version 6.7
 
+10/4/24  [EDGcpfe/24538,EDGcpfe/27611]
+Spurious error on designator into anonymous struct within a union
+
+Consider, in a C++20 mode accepting nonstandard anonymous struct members:
+
+  union U {
+    struct { int x, y; };
+  } u = { .x = 1, .y = 2 };  // Previously a spurious error.  Now okay.
+
+Previously, this elicited a spurious error due to a flaw in the logic guarding
+against multiple designators within a union.  That is now fixed.
+
+
 10/3/24  [EDGcpfe/27622]
 Crash during overload resolution diagnostics involving concepts
 

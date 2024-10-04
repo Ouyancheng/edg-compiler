@@ -3178,10 +3178,11 @@ field.
 }  /* designator_exists */
 
 
-static a_boolean multiple_designators(an_init_component_ptr  top_icp,
-                                      an_init_component_ptr  icp)
+static a_boolean multiple_union_designators(a_type             *union_tp,
+                                            an_init_component  *top_icp,
+                                            an_init_component  *icp)
 /*
-Return TRUE if top_icp contains a designator before icp.
+Return TRUE if top_icp contains a designator into the given union before icp.
 */
 {
   a_boolean              found = FALSE;
@@ -3189,7 +3190,10 @@ Return TRUE if top_icp contains a designator before icp.
 
   check_assertion(is_designator_component(icp));
   while (cur_icp != icp) {
-    if (is_designator_component(cur_icp)) {
+    if (is_designator_component(cur_icp) &&
+        cur_icp->variant.designator.resolved_field != NULL &&
+        parent_class_of(cur_icp->variant.designator.resolved_field)
+                                                                == union_tp) {
       found = TRUE;
       break;
     } else {
@@ -3197,7 +3201,7 @@ Return TRUE if top_icp contains a designator before icp.
     }  /* if */
   }  /* while */
   return found;
-}  /* multiple_designators */
+}  /* multiple_union_designators */
 
 
 static a_boolean fields_are_ordered(a_field_ptr  first, 
@@ -3411,12 +3415,11 @@ initialization. */
   if (okay && *field != NULL && !is->check_validity_only &&
       (cpp20_designators_restriction || gpp_version_is(any_version))) {
     /* GCC restricts "non-trivial" designated initializers in all modes. */
+    /* resolved_field is set so we can check for duplicate designators.
+       For an anonymous union member, we set the field to the invented
+       anonymous union field. */
+    icp->variant.designator.resolved_field = *field;
     if (!type_is(class_type, tk_union)) {
-      /* resolved_field is set so we can check for duplicate designators.
-         For an anonymous union member, we set the field to the invented
-         anonymous union field.  For a union member we skip this step and do
-         the check at the level of the union initialization. */
-      icp->variant.designator.resolved_field = *field;
       if (designator_exists(top_icp, icp)) {
         if (!is->no_diagnostics) {
           pos_error(ec_duplicate_designator, init_component_pos(icp));
@@ -3432,10 +3435,10 @@ initialization. */
         }  /* if */
         is->init_error = TRUE;
       }  /* if */
-    } else if (multiple_designators(top_icp, icp)) {
+    } else if (multiple_union_designators(class_type, top_icp, icp)) {
       /* For a union, having multiple designators is an error */
       if (!is->no_diagnostics) {
-        pos_error(ec_duplicate_designator, init_component_pos(icp));
+        pos_error(ec_multiple_union_designators, init_component_pos(icp));
       }  /* if */
       is->init_error = TRUE;
     }  /* if */

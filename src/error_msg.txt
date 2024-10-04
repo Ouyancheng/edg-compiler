@@ -3525,6 +3525,7 @@ ec_char_too_wide_for_rep;;"character cannot be represented in the specified char
 ec_annotation_after_using;;"an annotation cannot appear in the context of a \"using\" attribute prefix"
 ec_annotation_must_have_literal_type;;"type %t of annotation is not a literal type"
 ec_ext_vector_type_requires_bool_integral_floating_type;;"the \"ext_vector_type\" attribute applies only to bool, integer, or floating-point types"
+ec_multiple_union_designators;;"multiple designators into the same union are not permitted"
 ###############################################################################
 #                                                             \  ___  /       #
 #                                                               /   \         #
