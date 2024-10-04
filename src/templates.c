@@ -43636,6 +43636,13 @@ guide is recorded in the template symbol supplement associated with alias_sym.
                                                          guide_sym, ctor_sym,
                                                          alias_sym);
       new_guide->decl_position = *alias_position;
+      if (guide_sym->is_class_member) {
+        set_class_membership(new_guide, (a_source_correspondence_ptr)NULL,
+                             sym_parent_class(guide_sym));
+      } else if (sym_is_namespace_member(guide_sym)) {
+        set_namespace_membership(new_guide, (a_source_correspondence_ptr)NULL,
+                                 sym_parent_namespace(guide_sym));
+      }  /* if */
       new_tssp = new_guide->variant.template_info;
       new_tssp->cache.decl_info->parameters = new_template_params;
       /* Create an expression to check whether the alias template parameters
