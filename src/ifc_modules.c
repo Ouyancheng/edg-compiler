@@ -17299,7 +17299,7 @@ non-NULL, fields (like is_operator_name) in *loc are updated accordingly.
             make_opname_locator(op_kind, loc, &null_source_position);
             result = loc->symbol_header->identifier;
           } else {
-            result = a_string("operator", text_val_view);
+            result = a_string("operator ", text_val_view);
           }  /* if */
           goto done;
         }  /* if */
@@ -17340,7 +17340,7 @@ non-NULL, fields (like is_operator_name) in *loc are updated accordingly.
                                 &null_source_position);
             result = loc->symbol_header->identifier;
           } else {
-            result = a_string("operator",
+            result = a_string("operator ",
                               get_string_at_offset(get_ifc_encoded(*opt_ino)));
           }  /* if */
         }
@@ -17360,13 +17360,15 @@ non-NULL, fields (like is_operator_name) in *loc are updated accordingly.
             goto invalid;
           }  /* if */
 
-          /* Note that inscp->encoded contains the mangled name of the
-             conversion function, so use the name from the type instead. */
           a_const_char *type_name = target_type->source_corresp.name;
           if (type_name == NULL) {
-            type_name = get_type_name(target_type);
+            an_ifc_text_offset type_name_offset = get_ifc_encoded(inc);
+
+            result = a_string("operator ",
+                              get_string_at_offset(type_name_offset));
+          } else {
+            result = a_string("operator ", type_name);
           }  /* if */
-          result = a_string("operator", type_name);
           if (loc != NULL) {
             /* Set the locator as appropriate for a conversion function. */
             make_type_conversion_locator(target_type, loc,
@@ -17398,7 +17400,7 @@ non-NULL, fields (like is_operator_name) in *loc are updated accordingly.
             result = loc->symbol_header->identifier;
           } else {
             /* Microsoft doesn't use a space after the "operator" string. */
-            result = a_string("operator", encoded);
+            result = a_string("operator ", encoded);
           }  /* if */
         }
         break;
@@ -19090,7 +19092,7 @@ expr.  If caching succeeds return TRUE; otherwise, return FALSE.
 
       /* Check to make sure the underscore is in the expected location. */
       a_string name = *opt_name;
-      if (name[10] != '_') {
+      if (name[11] != '_') {
         a_string err_msg("'_' at the wrong position in second "
                          "sub-expression (", index_to_str(second_expr),
                          ") of MSVC-defined constant value ",
@@ -19121,7 +19123,7 @@ expr.  If caching succeeds return TRUE; otherwise, return FALSE.
       last_token->variant.ud_lit.value_con = lit_constant;
       last_token->variant.ud_lit.spelling_con = lit_spelling_constant;
       last_token->variant.ud_lit.op_sym = NULL;
-      last_token->variant.ud_lit.suffix = constant_str + 10;
+      last_token->variant.ud_lit.suffix = constant_str + 11;
       last_token->variant.ud_lit.type = lit_type;
     } else {
       a_string err_msg("Unexpected number of expr values (",
