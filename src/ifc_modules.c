@@ -13105,6 +13105,22 @@ member scope descriptor into the given cache.
           }  /* for */
         }  /* if */
       }  /* if */
+    } else if (mem_idx.sort == ifc_ds_decl_scope) {
+      /* Check to see if this is anonymous union:
+
+         struct x {
+           union { int z; };
+         };
+       */
+      Opt<a_string> opt_decl_name = name_of_decl(mem_idx);
+      if (!opt_decl_name.has_value()) {
+        goto invalid;
+      }  /* if */
+
+      const a_string &decl_name = *opt_decl_name;
+      if (decl_name.is_empty()) {
+        desc_kind = cmdk_inline_data_member_type;
+      }  /* if */
     }  /* if */
 
     a_class_member_descriptor mem_descr = {desc_kind, mem_idx};
@@ -20924,11 +20940,13 @@ represented by the given type index.
 
 template<typename an_ifc_Node_type>
 static void cache_var_type_declarator_lhs(a_module_token_cache_ptr cache,
-                                          const an_ifc_Node_type   &decl)
+                                          const an_ifc_Node_type   &decl,
+                                          const an_ifc_cache_info  &cinfo)
 /*
 Cache the portion of the declarator for the given variable-like declaration
 that declares the type of the variable but precedes the declarator-id declaring
-the variable name.
+the variable name.  cinfo contains information about the current cache context
+to help inform decisions about what to cache.
 */
 {
   an_ifc_type_index type = get_ifc_type(decl);
@@ -20936,7 +20954,7 @@ the variable name.
   if (is_var_type_auto(type)) {
     cache_var_auto_type(cache, type);
   } else {
-    cache_type_first_part(cache, type, /*cinfo=*/{});
+    cache_type_first_part(cache, type, cinfo);
   }  /* if */
 }  /* cache_var_type_declarator_lhs */
 
@@ -20946,7 +20964,9 @@ static void cache_var_declarator_id(a_module_token_cache_ptr cache,
                                     const an_ifc_Node_type   &decl,
                                     const an_ifc_cache_info  &cinfo)
 /*
-Cache the declarator-id for the given variable-like declaration.
+Cache the declarator-id for the given variable-like declaration.  cinfo
+contains information about the current cache context to help inform decisions
+about what to cache.
 */
 {
   cache_declarator_qualifier(cache, decl, cinfo);
@@ -20958,17 +20978,19 @@ Cache the declarator-id for the given variable-like declaration.
 
 template<typename an_ifc_Node_type>
 static void cache_var_type_declarator_rhs(a_module_token_cache_ptr cache,
-                                          const an_ifc_Node_type   &decl)
+                                          const an_ifc_Node_type   &decl,
+                                          const an_ifc_cache_info  &cinfo)
 /*
 Cache the portion of the declarator for the given variable-like declaration
 that declares the type of the variable but follows the declarator-id declaring
-the variable name.
+the variable name.  cinfo contains information about the current cache context
+to help inform decisions about what to cache.
 */
 {
   an_ifc_type_index type = get_ifc_type(decl);
 
   if (!is_var_type_auto(type)) {
-    cache_type_second_part(cache, type, /*cinfo=*/{});
+    cache_type_second_part(cache, type, cinfo);
   }  /* if */
 }  /* cache_var_type_declarator_rhs */
 
@@ -25142,10 +25164,10 @@ about the current cache context to help inform decisions about what to cache.
         }  /* if */
         cache_var_storage_class_specifier(cache, variable_decl, cinfo);
         cache_var_decl_specifier_seq(cache, variable_decl, cinfo);
-        cache_var_type_declarator_lhs(cache, variable_decl);
+        cache_var_type_declarator_lhs(cache, variable_decl, cinfo);
         cache_declarator_qualifier(cache, decl, cinfo);
         cache_simple_template_id(cache, decl);
-        cache_var_type_declarator_rhs(cache, variable_decl);
+        cache_var_type_declarator_rhs(cache, variable_decl, cinfo);
 
         an_ifc_sentence_index body = get_ifc_body(get_ifc_entity(decl));
         if (body != 0) {
@@ -25308,10 +25330,10 @@ current cache context to help inform decisions about what to cache.
         /* Reconstruct the templated declaration. */
         cache_var_alignment(cache, variable_decl);
         cache_var_decl_specifier_seq(cache, variable_decl, cinfo);
-        cache_var_type_declarator_lhs(cache, variable_decl);
+        cache_var_type_declarator_lhs(cache, variable_decl, cinfo);
         cache_declarator_qualifier(cache, decl, cinfo);
         cache_simple_template_id(cache, decl);
-        cache_var_type_declarator_rhs(cache, variable_decl);
+        cache_var_type_declarator_rhs(cache, variable_decl, cinfo);
         if (!is_instantiation && !cinfo.ignore_definition) {
           cache_var_initializer(cache, variable_decl, cinfo);
         }  /* if */
@@ -25745,9 +25767,9 @@ about what to cache.
         }  /* if */
         cache_var_storage_class_specifier(cache, variable_decl, cinfo);
         cache_var_decl_specifier_seq(cache, variable_decl, cinfo);
-        cache_var_type_declarator_lhs(cache, variable_decl);
+        cache_var_type_declarator_lhs(cache, variable_decl, cinfo);
         cache_var_declarator_id(cache, variable_decl, cinfo);
-        cache_var_type_declarator_rhs(cache, variable_decl);
+        cache_var_type_declarator_rhs(cache, variable_decl, cinfo);
         maybe_cache_var_initializer(cache, variable_decl, cinfo);
         cache_token(cache, tok_semicolon);
       }
@@ -25768,9 +25790,9 @@ about what to cache.
         this->cache_attrs(cache, decl);
         cache_var_alignment(cache, field_decl);
         cache_var_decl_specifier_seq(cache, field_decl, cinfo);
-        cache_var_type_declarator_lhs(cache, field_decl);
+        cache_var_type_declarator_lhs(cache, field_decl, cinfo);
         cache_var_declarator_id(cache, field_decl, cinfo);
-        cache_var_type_declarator_rhs(cache, field_decl);
+        cache_var_type_declarator_rhs(cache, field_decl, cinfo);
         cache_var_initializer(cache, field_decl, cinfo);
         cache_token(cache, tok_semicolon);
       }
@@ -25781,9 +25803,9 @@ about what to cache.
         construct_node_prechecked(&bitfield_decl, decl);
         this->cache_attrs(cache, decl);
         cache_var_decl_specifier_seq(cache, bitfield_decl, cinfo);
-        cache_var_type_declarator_lhs(cache, bitfield_decl);
+        cache_var_type_declarator_lhs(cache, bitfield_decl, cinfo);
         cache_var_declarator_id(cache, bitfield_decl, cinfo);
-        cache_var_type_declarator_rhs(cache, bitfield_decl);
+        cache_var_type_declarator_rhs(cache, bitfield_decl, cinfo);
         cache_token(cache, tok_colon);
 
         an_ifc_expr_index width = get_ifc_width(bitfield_decl);
