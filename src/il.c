@@ -20198,10 +20198,11 @@ options is a set of substitution options.
           expr_copy = copy_node(expr);
           subst_pairs.insert(0,
                              a_subst_pairs_descr{
-                                      template_param_list, template_arg_list,
-                                      TRUE, FALSE,
-                                      (a_bit_field)adjust_coordinates,
-                                      (a_bit_field)is_alias_deduction_guide });
+                                     template_param_list,
+                                     copy_template_arg_list(template_arg_list),
+                                     TRUE, FALSE,
+                                     (a_bit_field)adjust_coordinates,
+                                     (a_bit_field)is_alias_deduction_guide });
           requires_expr_substs->map_or_replace(expr_copy, subst_pairs);
         } else {
           subst_fail(*copy_error);
