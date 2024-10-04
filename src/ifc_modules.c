@@ -1012,7 +1012,8 @@ static an_ifc_parameterized_entity_map
                            DeclSpecialization IFC declaration index). */
 
 
-static an_ifc_decl_index collapse_partition_index(an_ifc_decl_index decl_idx)
+static Opt<an_ifc_decl_index> collapse_partition_index(
+                                                    an_ifc_decl_index decl_idx)
 /*
 Some entities conceptually have multiple "module entities" (for instance, an
 explicit class template specialization is composed of an IFC DeclSpecialization
@@ -1023,15 +1024,36 @@ The module, partition kind, and index are taken as inputs and the collapsed IFC
 partition kind index is returned.
 */
 {
-  an_ifc_decl_index result = decl_idx;
-  an_ifc_decl_index specialization_idx =
+  Opt<an_ifc_decl_index> result;
+  an_ifc_decl_index      specialization_idx =
                                      ifc_parameterized_entities->get(decl_idx);
 
-  /* If the scope ref is a parameterized entity, we actually want the
+  /* If the declaration is a parameterized entity, we actually want the
      specialization that's doing the parameterization. */
   if (!is_null_index(specialization_idx)) {
-    result = specialization_idx;
+    decl_idx = specialization_idx;
   }  /* if */
+  /* If this is a reference to a declaration in another file, sort that out
+     now. */
+  if (decl_idx.sort == ifc_ds_decl_reference) {
+    Opt<an_ifc_decl_reference> opt_ref_decl;
+
+    construct_node(&opt_ref_decl, decl_idx);
+    if (!opt_ref_decl.has_value()) {
+      goto invalid;
+    }  /* if */
+
+    /* Recurse on the referenced declaration index. */
+    an_ifc_decl_reference ref_decl = *opt_ref_decl;
+    an_ifc_decl_index     ref_decl_idx = get_ifc_index(ref_decl);
+    result = collapse_partition_index(ref_decl_idx);
+  } else {
+    result = decl_idx;
+  }  /* if */
+  goto done;
+invalid:
+  result.clear();
+done:
   return result;
 }  /* collapse_partition_index */
 
@@ -1651,7 +1673,7 @@ invocations.
 
 
 static inline a_module_entity_ptr
-get_ifc_module_entity(an_ifc_decl_index index)
+get_ifc_module_entity_from_collapsed_index(an_ifc_decl_index index)
 /*
 */
 {
@@ -1684,7 +1706,6 @@ get_ifc_module_entity(an_ifc_decl_index index)
 #endif /* DEBUG */
 
     a_module_entity_stack_state mep_state(&pending_entity);
-    index = collapse_partition_index(index);
     if (!has_ifc_home_scope(index)) {
       emit_not_a_module_entity_error(index);
       goto invalid;
@@ -1794,6 +1815,36 @@ get_ifc_module_entity(an_ifc_decl_index index)
          (i.e., its hashing or equality operator). */
 
       entity_lookup_cache->map_with_hash(index, result, index_hash);
+    }  /* if */
+  }  /* if */
+  return result;
+}  /* get_ifc_module_entity_from_collapsed_index */
+
+
+static inline a_module_entity_ptr
+get_ifc_module_entity(an_ifc_decl_index index)
+/*
+*/
+{
+  a_module_entity_ptr    result;
+  Opt<an_ifc_decl_index> opt_collapsed_index = collapse_partition_index(index);
+
+  if (opt_collapsed_index.has_value()) {
+    an_ifc_decl_index collapsed_index = *opt_collapsed_index;
+
+    result = get_ifc_module_entity_from_collapsed_index(collapsed_index);
+  } else {
+    /* Use the cache here so error entities aren't allocated for repeated
+       calls. */
+    uintptr_t           index_hash = hash_ptr(index);
+    a_module_entity_ptr cached_result =
+                         entity_lookup_cache->get_with_hash(index, index_hash);
+
+    if (cached_result == NULL) {
+      result = get_ifc_error_module_entity(index);
+      entity_lookup_cache->map_with_hash(index, result, index_hash);
+    } else {
+      result = cached_result;
     }  /* if */
   }  /* if */
   return result;
@@ -3129,19 +3180,6 @@ return FALSE.
   }  /* if */
   return result;
 }  /* request_ifc_entity */
-
-
-static a_module_entity_ptr
-process_decl_via_reference(const an_ifc_decl_reference &ref)
-/*
-Process the IFC module entity declaration specified by the given declaration
-reference by creating the appropriate IL entity.
-*/
-{
-  an_ifc_decl_index decl_idx = get_ifc_index(ref);
-
-  return process_decl_at_index(decl_idx);
-}  /* process_decl_via_reference */
 
 
 static a_scope_ptr get_scope(an_ifc_decl_index scope_ref)
@@ -12582,22 +12620,6 @@ strongly preferred over calling this function directly.
         }  /* if */
       }
       break;
-    case ifc_ds_decl_reference:
-      { an_ifc_decl_reference idr;
-
-        construct_node_prechecked(&idr, decl_idx);
-
-        a_module_entity_ptr dmep = process_decl_via_reference(idr);
-        il_entity = dmep->entity.ptr;
-        kind = dmep->entity.kind;
-        /* The module entity pointer sometimes already has a scope (e.g.,
-           from lighter nested-name-specified processing). */
-        ifc_requirement(get_assoc_ifc_module(dmep),
-                        mep->scope == NULL || dmep->scope == mep->scope,
-                        "expected a matching scope");
-        mep->scope = dmep->scope;
-      }
-      break;
     case ifc_ds_decl_partial_specialization:
       { an_ifc_decl_partial_specialization idps;
 
@@ -12726,6 +12748,10 @@ strongly preferred over calling this function directly.
         il_entity = parse_cached_using_declaration(&cache, &kind);
       }
       break;
+    case ifc_ds_decl_reference:
+      /* This should never occur as the module entity should resolve to the
+         locator in the file that's referenced. */
+      unexpected_condition();
     case ifc_ds_decl_bitfield:
     case ifc_ds_decl_constructor:
     case ifc_ds_decl_default_argument:
