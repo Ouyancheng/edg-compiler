@@ -9936,11 +9936,16 @@ is set to TRUE.
          same signature as a function in the candidate set, and eliminate
          the builtin operator. */
       /* Also eliminate a candidate that uses anachronism matches, if
-         we've already seen one that used no such matches. */
+         we've already seen one that used no such matches, or a non-initializer
+         list constructor if gpp_init_list_ctor_param_case is TRUE (which
+         indicates that we've seen at least one initializer-list constructor
+         that should be prioritized). */
       if ((cfp->operand_type_pattern != NULL &&
            function_candidate_with_same_sig_as_builtin_present(cfp,
                                                                candidates)) ||
-          (uses_anachronism && have_candidates_without_anachronisms)) {
+          (uses_anachronism && have_candidates_without_anachronisms) ||
+          (gpp_init_list_ctor_param_case &&
+           !cfp->gpp_init_list_ctor_param_case)) {
         /* Remove the candidate. */
         if (prev_cfp == NULL) {
           candidates = *candidate_functions = cfp_next;
@@ -9979,8 +9984,6 @@ is set to TRUE.
             }  /* if */
             gpp_init_list_ctor_param_case = TRUE;
           }  /* if */
-        } else if (gpp_init_list_ctor_param_case) {
-          continue;
         }  /* if */
         cfp->in_best_match_set = TRUE;
         cfp->in_best_match_set_for_some_argument = FALSE;
