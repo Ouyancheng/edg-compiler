@@ -26339,7 +26339,7 @@ p_fatal and p_copy_error are NULL by default.
       new_subst_pairs.insert(0, subst_pairs.begin() + 1,
                              subst_pairs.length() - 1);
       expr = substitute_expr(constraint, new_subst_pairs,
-                             inner_ctws_state, CTWS_MAY_BE_RESCANNED,
+                             inner_ctws_state, options | CTWS_MAY_BE_RESCANNED,
                              cp, &allocated_cp, &copy_error);
       if (copy_error || expr != NULL) {
         release_local_constant(&cp);

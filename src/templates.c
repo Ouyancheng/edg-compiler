@@ -581,6 +581,7 @@ Initialize a template declaration state block.
   tdsp->definition_range = null_source_range;
 #endif /* EXTRA_SOURCE_POSITIONS_IN_IL */
   tdsp->template_decl = NULL;
+  tdsp->requires_tsn = NO_TOKEN_SEQUENCE_NUMBER;
   tdsp->enclosing_param = NULL;
 #if MICROSOFT_EXTENSIONS_ALLOWED
   tdsp->num_parameters = 0;
@@ -10935,12 +10936,14 @@ is added to the substitution state.
     ctws_state.routine_type_levels = 0;
     create_variadic_param_info_for_routine_params(&ctws_state,
                                                   function_type_params(rtp));
-    if (template_sym->is_class_member &&
-        symbol_is(template_sym, sk_function_template)) {
-      /* Add enclosing template arguments for trailing requires clauses of
-         member function templates. */
-      get_all_class_subst_pairs(template_sym->parent.class_type, &subst_pairs);
-    }  /* if */
+  }  /* if */
+  if (template_sym->is_class_member &&
+      (symbol_is(template_sym, sk_function_template) ||
+       symbol_is(template_sym, sk_class_template) ||
+       symbol_is(template_sym, sk_variable_template))) {
+    /* Add enclosing template arguments for requires clauses of member
+       templates. */
+    get_all_class_subst_pairs(template_sym->parent.class_type, &subst_pairs);
   }  /* if */
   subst_pairs.push_back({ params, args, FALSE, FALSE, FALSE, FALSE });
   if (!constraint_satisfied_full(constraint, subst_pairs, &diag_list,
@@ -31319,8 +31322,25 @@ parameters corresponding what is recorded in dps->variant.auto_params.
         set_up_template_decl(decl_state, &template_pos, &template_decl_info);
         scan_template_param_list(decl_state);
         if (curr_token == tok_requires && !decl_state->is_generic) {
+          a_boolean                discard_clause = FALSE;
+          a_scope_stack_entry_ptr  ssep = &scope_stack_top();
+          if (scope_is(ssep, sck_template_declaration)) {
+            ssep = &scope_stack[ssep->previous_scope];
+            if (scope_is(ssep, sck_class_struct_union)) {
+              a_type_ptr  class_type = ssep->assoc_type;
+              if (is_unspecialized_template_class(class_type) &&
+                  !is_prototype_instantiation_type(class_type)) {
+                /* When instantiating members of class templates, ignore the
+                   requires-clause tokens.  The requires-clause recorded for
+                   the prototype instantiation will be substituted instead at
+                   the first point of reference. */
+                discard_clause = TRUE;
+              }  /* if */
+            }  /* if */
+          }  /* if */
+          decl_state->requires_tsn = curr_token_sequence_number;
           decl_state->template_decl->constraint.requires_clause =
-                                      scan_requires_clause(/*discard=*/FALSE);
+                                          scan_requires_clause(discard_clause);
         }  /* if */
         /* Record that a template parameter list has been seen.  A
            subsequent missing parameter list is an error. */
@@ -35127,6 +35147,13 @@ instantiations of any template default arguments now.
   /* If this is a friend declaration the nesting depths of the parameter
      may need to be updated. */
   if (decl_state->is_template_friend) {
+    if (decl_state->requires_tsn != NO_TOKEN_SEQUENCE_NUMBER) {
+      /* Mark the requires clause as belonging to a friend template. */
+      a_requires_range_descr  rrd =
+                                requires_ranges->get(decl_state->requires_tsn);
+      rrd.is_friend_template = TRUE;
+      requires_ranges->replace(decl_state->requires_tsn, rrd);
+    }  /* if */
     if (decl_state->friend_depth_known) {
       /* We previously saw a qualified friend class declaration.  Reset the
          depth to the depth of the friend entity found, but subtract out

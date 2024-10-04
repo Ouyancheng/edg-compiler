@@ -3314,6 +3314,9 @@ struct a_requires_range_descr {
 		next_tsn;
 			/* The token sequence number seen after originally
 			   parsing the construct. */
+  a_boolean	is_friend_template;
+			/* TRUE if this is a requires-clause for a friend
+			   template. */
   union {
     a_requires_clause_ptr
 		requires_clause;

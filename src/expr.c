@@ -40955,9 +40955,11 @@ done_with_requirements:
          !scope_stack_top().is_rescan) ||
         is_error_node(rrd.requires_expr)) {
       /* Not all template arguments are necessarily known yet.  Just copy the
-         original expression. */
+         original expression and keep track of any non-dependent substitution
+         pairs. */
       an_expr_node_ptr  node = copy_expr_tree(rrd.requires_expr,
                                               CE_PRESERVE_RESCAN_INFO);
+      requires_expr_substs->map_or_replace(node, get_current_subst_pairs());
       make_expression_operand(node, result);
     } else {
       a_subst_pairs_array  subst_pairs = get_current_subst_pairs();
@@ -50161,6 +50163,13 @@ If discard is FALSE, return a pointer to the scanned representation.
 
   check_assertion(curr_token == tok_requires);
   (void)get_token();
+  if (discard) {
+    rrd = requires_ranges->get(requires_tsn);
+    if (rrd.is_friend_template) {
+      /* Don't discard the tokens for a friend template requires-clause. */
+      discard = FALSE;
+    }  /* if */
+  }  /* if */
   if (!discard) {
     an_expr_stack_entry_ptr  saved_expr_stack;
     an_expr_stack_entry      expr_stack_entry;
@@ -50194,6 +50203,7 @@ If discard is FALSE, return a pointer to the scanned representation.
        sequence number of the token following the requires clause.  This is
        used to skip the clause in instantiations (see below). */
     rrd.next_tsn = curr_token_sequence_number;
+    rrd.is_friend_template = FALSE;
     rrd.requires_clause = rcp;
     (void)requires_ranges->map_or_replace(requires_tsn, rrd);
   } else {

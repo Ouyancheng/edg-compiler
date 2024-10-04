@@ -20208,36 +20208,13 @@ options is a set of substitution options.
           subst_fail(*copy_error);
         }  /* if */
       } else {
-        /* If we're substituting as part of rescanning an expression, start
-           with the substitution pairs of any enclosing class template
-           instances, followed by any delayed substitution pairs.  (If we're
-           rescanning a concept constraint expression, class template instances
-           on the stack are no longer "enclosing".) */
-        a_boolean  val;
-        a_subst_pairs_array
-                   subst_pairs = (scope_stack_top().is_rescan &&
-                                  !scope_stack_top().in_concept_rescan) ?
-                                                  get_current_subst_pairs() :
-                                                  a_subst_pairs_array(1);
-        a_subst_pairs_array
-                   delayed_subst_pairs = requires_expr_substs->get(expr);
-        if (!delayed_subst_pairs.is_empty()) {
-          /* Delayed substitutions adjust the coordinates of template parameter
-             types and therefore need to be performed before substituting the
-             template arguments that were passed in. */
-          subst_pairs.insert(0, a_subst_pairs_descr{ template_param_list,
-                                                     template_arg_list,
-                                                     FALSE, TRUE, FALSE,
-                                                     FALSE });
-          subst_pairs.insert(1,
-                             delayed_subst_pairs.begin(),
-                             delayed_subst_pairs.length());
-        } else {
-          subst_pairs.push_back(a_subst_pairs_descr{ template_param_list,
-                                                     template_arg_list,
-                                                     FALSE, TRUE, FALSE,
-                                                     FALSE });
-        }  /* if */
+        /* Start with any delayed substitution pairs. */
+        a_subst_pairs_array  subst_pairs = requires_expr_substs->get(expr);
+        a_boolean            val;
+        subst_pairs.insert(0, a_subst_pairs_descr{ template_param_list,
+                                                   template_arg_list,
+                                                   FALSE, TRUE, FALSE,
+                                                   FALSE });
         val = requires_expr_satisfied_full(expr, subst_pairs, ctws_state);
         make_bool_constant_value(val, constant);
       }  /* if */

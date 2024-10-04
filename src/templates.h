@@ -306,6 +306,11 @@ typedef struct a_tmpl_decl_state {
 		template_decl;
 			/* IL representation of the template parameterization
 			   of the entity being declared. */
+  a_token_sequence_number
+		requires_tsn;
+			/* The token sequence number of the requires clause in
+			   the template head or NO_TOKEN_SEQUENCE_NUMBER if
+			   there is none. */
   a_tmpl_param_state_ptr
 		enclosing_param;
 			/* If this is the state for a template template
