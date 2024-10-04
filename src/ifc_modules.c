@@ -5419,6 +5419,32 @@ template class; otherwise, return FALSE.
 
 #endif /* CHECKING */
 
+static void associate_symbol_with_declaration(an_ifc_decl_index decl_idx,
+                                              a_symbol_ptr      sym)
+/*
+Associate the given symbol with the given declaration.  This function is used
+to populate the ifc_decl_lookup_table and provide a resolution of the symbol
+given the declaration.
+*/
+{
+  uintptr_t    hash = hash_ptr(decl_idx);
+  a_symbol_ptr prev_sym = ifc_decl_lookup_table->get_with_hash(decl_idx, hash);
+
+  if (prev_sym != NULL) {
+    a_string_view prev_sym_str(prev_sym->header->identifier,
+                               prev_sym->header->identifier_length);
+    a_string_view sym_str(sym->header->identifier,
+                          sym->header->identifier_length);
+    a_string      err_msg("Unexpected redefinition of the associated symbol "
+                          "for ", index_to_str(decl_idx),
+                          " from \"", prev_sym_str, "\" to \"", sym_str, "\"");
+
+    ifc_unexpected(module_of(decl_idx), err_msg.as_temp_characters());
+  }  /* if */
+  ifc_decl_lookup_table->map_or_replace_with_hash(decl_idx, sym, hash);
+}  /* associate_symbol_with_declaration */
+
+
 void record_symbol_for_ifc_decl(a_symbol_ptr  sym)
 /*
 The current token is a tok_ifc_decl token.  Map its associated IFC declaration
@@ -5435,7 +5461,7 @@ index information to the given symbol.
     print(err_msg, f_debug);
   }  /* if */
 #endif /* DEBUG */
-  ifc_decl_lookup_table->map(decl_idx, sym);
+  associate_symbol_with_declaration(decl_idx, sym);
 
   /* Associate the appropriate module entity with this symbol's IL entity. */
   a_module_entity_ptr mep = get_ifc_module_entity(decl_idx);
@@ -6750,7 +6776,7 @@ Return NULL if none is found.
         result = (a_symbol_ptr)scp->assoc_info;
       }  /* if */
       if (result != NULL) {
-        ifc_decl_lookup_table->map(decl_idx, result);
+        associate_symbol_with_declaration(decl_idx, result);
       }  /* if */
     }  /* if */
   }  /* if */
