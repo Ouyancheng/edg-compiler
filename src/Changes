@@ -15,7 +15,7 @@ UTF-8 and not the corresponding character in the current code page.  The
 front end has now been changed to emulate this /utf-8 behavior when the
 current source file is in a Unicode-based encoding.  For example, with
 --microsoft --unicode_source_kind=UTF-8 and assuming that the current code
-page is CP-1352:
+page is CP-1252:
 
   unsigned char b[] = "\u00A7";   // Previously put out as the two bytes
                                   // 0xA7 0x0, now as the three bytes
