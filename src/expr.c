@@ -27092,6 +27092,16 @@ if it's not valid).
                                             /*reinterpret_semantics=*/FALSE);
           }  /* if */
         }  /* if */
+      } else if (microsoft_mode && 
+                 scope_stack_top().in_prototype_instantiation &&
+                 !scope_stack_top().in_template_deduction_context) {
+        /* Microsoft appears to accept invalid static_cast constructs in
+           templates.  For example:
+               struct X {}; struct Y {};
+               template<typename T> X* f(Y *p) { return static_cast<X*>(p); }
+        */
+        generic_cast_operand(operand, type_cast_to, source_form,
+                             /*is_implicit_cast=*/FALSE);
       } else {
         /* Not a valid cast. */
         err = TRUE;

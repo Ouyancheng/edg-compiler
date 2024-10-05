@@ -1,5 +1,18 @@
 Version 6.7
 
+10/4/24  [EDGcpfe/27613]
+Microsoft C++ compatibility: Casts in templates
+
+The front end now accepts some invalid casts in Microsoft-mode templates
+(including in non-permissive Microsoft modes).  For example:
+
+  struct X {};
+  struct Y {};
+  template<typename T> X* f(Y *p) {
+    return static_cast<X*>(p);  // Now accepted in Microsoft modes.
+  }
+
+
 10/4/24  [EDGcpfe/24538,EDGcpfe/27611]
 Spurious error on designator into anonymous struct within a union
 
