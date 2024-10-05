@@ -18,7 +18,7 @@ current source file is in a Unicode-based encoding.  For example, with
 page is CP-1352:
 
   unsigned char b[] = "\u00A7";   // Previously put out as the two bytes
-                                  // 0xA7 0x00, now as the three byte
+                                  // 0xA7 0x0, now as the three bytes
                                   // 0xC2 0xA7 0x0 (the UTF-8 encoding)
 
 
