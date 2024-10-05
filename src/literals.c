@@ -1795,8 +1795,11 @@ less than num_chars.  */
      narrow-character literals for non-Unicode files in Microsoft mode. */
   clear_char_conversion_state(&conv_state, &temp_ptr,
                               (character_kind == (a_character_kind)chk_char &&
-                               microsoft_mode &&
-                               curr_file_unicode_source_kind == usk_none));
+                               microsoft_mode
+#if UNICODE_SOURCE_SUPPORTED
+                               && curr_file_unicode_source_kind == usk_none
+#endif /* UNICODE_SOURCE_SUPPORTED */
+                                                                           ));
 #if MULTIBYTE_CHARS_IN_SOURCE_SUPPORTED
   /* Initialize for scanning multibyte characters in the string. */
   mbc_scan_init_if_multibyte_chars_in_source_enabled();
@@ -2171,8 +2174,11 @@ is finally known.)
   clear_char_conversion_state(&conv_state, &temp_ptr,
                               (prefix_kind == SCLK_ORDINARY_LITERAL &&
                                (lit_kind & SCLK_FUNCTION_NAME) == 0 &&
-                               microsoft_mode &&
-                               curr_file_unicode_source_kind == usk_none));
+                               microsoft_mode
+#if UNICODE_SOURCE_SUPPORTED
+                               && curr_file_unicode_source_kind == usk_none
+#endif /* UNICODE_SOURCE_SUPPORTED */
+                                                                           ));
   conv_state.create_surrogate_pairs = (prefix_kind == SCLK_WIDE_LITERAL ||
                                        prefix_kind == SCLK_CHAR16_T_LITERAL);
   conv_state.force_utf8 = gnu_mode && is_rescan;
