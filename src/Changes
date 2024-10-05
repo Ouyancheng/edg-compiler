@@ -1,5 +1,24 @@
 Version 6.7
 
+10/5/24  [EDGcpfe/27614]
+C++-generating back end: abbreviated function templates with explicit template
+parameters
+
+In some cases involving abbreviated function templates that also have
+explicit template parameter lists, the C++-generating back end could put
+out an extraneous comma at the end of the parameter list, resulting in
+errors when the generated code was compiled.  This is now fixed.  For
+example, with --c++20:
+
+  template<typename T>   // Previously generated as "<class T,>"
+  constexpr auto f(T a, auto b) {
+    auto l = []<int J = 0>() {
+      return J;
+    };
+    return 1;
+  }
+
+
 10/4/24  [EDGcpfe/27604]
 Microsoft compatibility: UCNs and native multibyte characters
 

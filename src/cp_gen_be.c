@@ -18857,7 +18857,9 @@ parameter lists). */
                  /*need_closing_paren=*/(a_boolean *)NULL);
       }  /* if */  
     }  /* if */
-    if (param->next != NULL) write_tok_str(", ");
+    if (param->next != NULL && !param->next->is_abbreviated) {
+      write_tok_str(", ");
+    }  /* if */
   }  /* for */
   write_tok_str("> ");
   if (!is_cppcli_generic) {
