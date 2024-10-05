@@ -1,5 +1,27 @@
 Version 6.7
 
+10/4/24  [EDGcpfe/27604]
+Microsoft compatibility: UCNs and native multibyte characters
+
+When configured with NATIVE_MULTIBYTE_CHARS_SUPPORTED_WITH_UNICODE set to
+TRUE, the front end in Microsoft emulation mode translated
+universal-character-names appearing in narrow character and string literals
+to the character encoding of the current locale (i.e., the current code
+page on Windows systems).  This matches the default behavior of MSVC.  With
+version 19.00 (Visual Studio 2015), however, MSVC added the /utf-8
+command-line option.  With that option, MSVC represents UCNs in narrow
+character and string literals as the specified Unicode character encoded as
+UTF-8 and not the corresponding character in the current code page.  The
+front end has now been changed to emulate this /utf-8 behavior when the
+current source file is in a Unicode-based encoding.  For example, with
+--microsoft --unicode_source_kind=UTF-8 and assuming that the current code
+page is CP-1352:
+
+  unsigned char b[] = "\u00A7";   // Previously put out as the two bytes
+                                  // 0xA7 0x00, now as the three byte
+                                  // 0xC2 0xA7 0x0 (the UTF-8 encoding)
+
+
 10/4/24  [EDGcpfe/27613]
 Microsoft C++ compatibility: Casts in templates
 

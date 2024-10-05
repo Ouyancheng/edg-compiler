@@ -2528,10 +2528,10 @@ MULTIBYTE_CHARS_IN_SOURCE_SUPPORTED is TRUE.
 Flag that is TRUE if, when Unicode source is supported, files with other
 multibyte characters are also supported.  In this mode, Unicode files are
 processed as usual, but non-Unicode files are scanned using a particular
-locale.  Characters in identifiers, file names, and wide string literals
-are translated into their Unicode equivalents.  Characters in narrow
-literals are left in their native representation or, in the case of a
-universal-character-name, translated from the Unicode code point to the
+locale, as follows: Characters in identifiers, file names, and wide string
+literals are translated into their Unicode equivalents.  Characters in
+narrow literals are left in their native representation or, in the case of
+a universal-character-name, translated from the Unicode code point to the
 corresponding character in that locale.  (When this flag is FALSE but
 UNICODE_SOURCE_SUPPORTED is TRUE, non-Unicode files are assumed to be
 encoded as Latin-1, and universal-character-names in narrow strings are

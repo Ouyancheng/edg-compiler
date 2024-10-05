@@ -993,14 +993,15 @@ of the resulting diagnostic.
 static unsigned long conv_unicode_literal_char(
                                       a_char_conversion_state_ptr state,
                                       unsigned long               unicode_char,
-                                      a_boolean                   utf8_literal)
+                                      a_boolean                   force_utf8)
 /*
 Convert the Unicode character unicode_char to the appropriate
 representation in a literal.  Return the first byte of the converted
 character and set up state for scanning through the second and following
-bytes (if any).  If utf8_literal is TRUE, the character is part of a UTF-8
-string literal and is to be converted to UTF-8 rather than being truncated
-to a Latin-1 byte.
+bytes (if any).  If force_utf8 is TRUE, the character is part of a UTF-8
+string literal or was written as a universal-character-name and is to be
+converted to UTF-8 rather than being truncated to a Latin-1 byte or
+translated to a native multibyte encoding.
 */
 {
   int           translated_len;
@@ -1012,8 +1013,8 @@ to a Latin-1 byte.
 #endif /* UNICODE_SOURCE_SUPPORTED */
 
 #if NATIVE_MULTIBYTE_CHARS_SUPPORTED_WITH_UNICODE
-  if (state->translate_utf8_to_mbc ||
-      (!gnu_mode && !is_unicode_source && !utf8_literal)) {
+  if ((state->translate_utf8_to_mbc && !force_utf8) ||
+      (!gnu_mode && !is_unicode_source)) {
     /* If the emulation (such as Microsoft mode) requires it, we translate
        Unicode characters to the system default multibyte character set.
        Except in GNU mode, we also do that translation if the source is not
@@ -1034,7 +1035,7 @@ to a Latin-1 byte.
   } else
 #endif /* NATIVE_MULTIBYTE_CHARS_SUPPORTED_WITH_UNICODE */
   /* Do not insert code here. */
-  if (gnu_mode || is_unicode_source || utf8_literal) {
+  if (gnu_mode || is_unicode_source || force_utf8) {
     /* Translate the Unicode character into UTF-8. */
     translated_len = unicode_to_utf8(unicode_char, state->translated_char);
   } else {
@@ -1276,7 +1277,7 @@ get_another:
         (void)mbc_to_wide_char(lptr, &wc, (a_boolean *)NULL,
                                /*is_native=*/FALSE);
         lptr += (a_ptrdiff)numch - 1;
-        targ_ch = conv_unicode_literal_char(state, wc, /*utf8_literal=*/FALSE);
+        targ_ch = conv_unicode_literal_char(state, wc, /*force_utf8=*/FALSE);
 #endif /* NATIVE_MULTIBYTE_CHARS_SUPPORTED_WITH_UNICODE */
       } else if (utf8_literal) {
         /* This is a character in a UTF-8 literal, which could be a
@@ -1284,7 +1285,7 @@ get_another:
            convert it to Unicode and then to UTF-8, returning the first (or
            only) byte. */
         lptr += (a_ptrdiff)numch - 1;
-        targ_ch = conv_unicode_literal_char(state, wc, /*utf8_literal=*/TRUE);
+        targ_ch = conv_unicode_literal_char(state, wc, /*force_utf8=*/TRUE);
       } else {
         /* No translation required, just set up *state to return the bytes
            of the character one at a time directly from the input. */
@@ -1296,8 +1297,7 @@ get_another:
     if (utf8_literal) {
       /* This is a Latin-1 character (one byte) in a UTF-8 literal.
          Convert it to UTF-8 and return the first (or only) byte. */
-      targ_ch = conv_unicode_literal_char(state, targ_ch,
-                                          /*utf8_literal=*/TRUE);
+      targ_ch = conv_unicode_literal_char(state, targ_ch, /*force_utf8=*/TRUE);
     }  /* if */
     lptr++;
   } else {
@@ -1376,11 +1376,11 @@ get_another:
           goto range_check;
         } else {
           /* Convert the Unicode character specified by the
-             universal-character-name to either UTF-8 or the system default
-             multibyte character set as appropriate and set up the
-             conversion state to return subsequent bytes of the resulting
+             universal-character-name to UTF-8 and set up the conversion
+             state to return subsequent bytes of the resulting
              character. */
-          targ_ch = conv_unicode_literal_char(state, targ_ch, utf8_literal);
+          targ_ch = conv_unicode_literal_char(state, targ_ch,
+                                              /*force_utf8=*/TRUE);
         }  /* if */
         break;
       case 'N':
@@ -1405,11 +1405,11 @@ get_another:
              by centity_mask. */
           goto range_check;
         } else {
-          /* Convert the named Unicode character to either UTF-8 or the
-             system default multibyte character set as appropriate and set
-             up the conversion state to return subsequent bytes of the
-             resulting character. */
-          targ_ch = conv_unicode_literal_char(state, targ_ch, utf8_literal);
+          /* Convert the named Unicode character to UTF-8 and set up the
+             conversion state to return subsequent bytes of the resulting
+             character. */
+          targ_ch = conv_unicode_literal_char(state, targ_ch,
+                                              /*force_utf8=*/TRUE);
         }  /* if */
         break;
       case 'o':
@@ -1791,11 +1791,12 @@ less than num_chars.  */
   }  /* switch */
   centity_mask = (unsigned long)1 << (centity_bits-1);
   centity_mask = centity_mask | (centity_mask - 1);
-  /* UTF-8 characters should be translated to multibyte characters only
-     for narrow-character literals in Microsoft mode. */
+  /* UTF-8 characters should be translated to multibyte characters only in
+     narrow-character literals for non-Unicode files in Microsoft mode. */
   clear_char_conversion_state(&conv_state, &temp_ptr,
                               (character_kind == (a_character_kind)chk_char &&
-                               microsoft_mode));
+                               microsoft_mode &&
+                               curr_file_unicode_source_kind == usk_none));
 #if MULTIBYTE_CHARS_IN_SOURCE_SUPPORTED
   /* Initialize for scanning multibyte characters in the string. */
   mbc_scan_init_if_multibyte_chars_in_source_enabled();
@@ -2163,13 +2164,15 @@ is finally known.)
      char16_t strings or when translating a string in a Unicode-encoded
      file to native multibyte characters.) */
   str_start = pstr = alloc_text_of_string_literal(constant_size);
-  /* UTF-8 characters should be translated to multibyte characters only
-     for narrow-character literals in Microsoft mode and only when the
-     literal does not represent a function-name string like __FUNCTION__. */
+  /* UTF-8 characters should be translated to multibyte characters only in
+     narrow-character literals for non-Unicode files in Microsoft mode and
+     only when the literal does not represent a function-name string like
+     __FUNCTION__. */
   clear_char_conversion_state(&conv_state, &temp_ptr,
                               (prefix_kind == SCLK_ORDINARY_LITERAL &&
                                (lit_kind & SCLK_FUNCTION_NAME) == 0 &&
-                               microsoft_mode));
+                               microsoft_mode &&
+                               curr_file_unicode_source_kind == usk_none));
   conv_state.create_surrogate_pairs = (prefix_kind == SCLK_WIDE_LITERAL ||
                                        prefix_kind == SCLK_CHAR16_T_LITERAL);
   conv_state.force_utf8 = gnu_mode && is_rescan;
