@@ -101,12 +101,13 @@ typedef struct a_char_conversion_state {
 			   token. */
   a_byte_boolean
 		translate_utf8_to_mbc;
-			/* If TRUE and the current file is Unicode, UTF-8
-			   characters and universal-character-names
-			   appearing in the token string will be replaced
-			   in the converted output by their corresponding
-			   multibyte character in the system default
-			   locale. */
+			/* If TRUE, Unicode characters (in Unicode-encoded
+			   source files and, depending on the emulation
+			   mode and other options, from
+			   universal-character-names) appearing in the
+			   token string will be replaced in the converted
+			   output by their corresponding multibyte
+			   character in the system default locale. */
   a_byte_boolean
 		create_surrogate_pairs;
 			/* If TRUE, the target data type is such that a
