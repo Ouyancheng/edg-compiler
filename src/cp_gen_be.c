@@ -4929,7 +4929,24 @@ gen_name.  See gen_name for the meaning of need_closing_paren.
         /* Created a decltype-specifier for the nameless type. */
       } else {
         /* Use recursion to handle multiple levels of nesting. */
-        gen_name(&class_type->source_corresp, iek_type, options | GN_QUALIFIER,
+        a_gen_name_options_set qual_opts = options | GN_QUALIFIER;
+        if (is_immediate_class_type(class_type) &&
+            class_type->
+                       variant.class_struct_union.is_prototype_instantiation &&
+            msvc_is_generated_code_target &&
+            (options & GN_TEMPLATE_PARAM_TYPE_QUAL) &&
+            class_is_in_name_context_stack(
+                                   class_type, /*include_base_classes=*/FALSE,
+                                   /*ignore_field_selection_contexts=*/TRUE)) {
+          /* MSVC has a bug in some obscure circumstances that causes
+             spurious errors if the injected-class-name of a class template
+             is used with the template parameters as template arguments in
+             a qualifier, e.g.,
+               template<typename T> class C { ... C<T>::... };
+             so we suppress the template arguments in such cases. */
+          qual_opts |= GN_NO_TEMPLATE_ARGS;
+        } /* if */
+        gen_name(&class_type->source_corresp, iek_type, qual_opts,
                  need_closing_paren);
       }  /* if */
     }  /* if */
