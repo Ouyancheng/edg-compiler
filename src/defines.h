@@ -1433,6 +1433,9 @@ command-line when compiling system headers.
 #ifdef __CYGWIN__
 
 /* Options for Windows/Cygwin version. */
+#if CP_GEN_BE_TARGET_MATCHES_SOURCE_DIALECT
+#define MSVC_IS_GENERATED_CODE_TARGET 1
+#endif /* CP_GEN_BE_TARGET_MATCHES_SOURCE_DIALECT */
 #define INT128_EXTENSIONS_ALLOWED 1
 #define FLOAT128_ENABLING_POSSIBLE 1
 #define HOST_FP_VALUE_IS_128BIT 1
