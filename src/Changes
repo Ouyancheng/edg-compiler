@@ -1,5 +1,22 @@
 Version 6.7
 
+10/6/24  [EDGcpfe/27626]
+C++-generating back end, Microsoft compatibility: template arguments in name
+qualifiers naming the current template definition
+
+MSVC has a bug that causes spurious error reports in certain complex cases
+when the /std command-line argument specifies C++20 or newer and the name
+of a class template is used in the template definition as a qualifier with
+the template parameter list as its template arguments, e.g., something like
+
+  template<typename T> class C { ... C<T>:: ... };
+
+In configurations in which template definitions are generated from the
+prototype instantiation IL, the C++-generating back end could produce such
+constructs.  This is now fixed: the template argument list is suppressed in
+such cases when msvc_is_generated_code_target is TRUE.
+
+
 10/5/24  [EDGcpfe/27614]
 C++-generating back end: abbreviated function templates with explicit template
 parameters
