@@ -7706,7 +7706,7 @@ returned TRUE to indicate that *p_eff_con is an aggregate constant and the
 brace/parenthesis delimiters around it should be suppressed.
 */
 {
-  a_boolean      use_old_form = FALSE, close = TRUE;
+  a_boolean      use_old_form = FALSE, close = TRUE, suppressed = FALSE;
   a_constant_ptr eff_con;
 
   *suppress_delims = FALSE;
@@ -7734,6 +7734,7 @@ brace/parenthesis delimiters around it should be suppressed.
       *field = con->variant.designator.variant.field;
       if (!has_name(*field)) {
         /* Suppress designators generated for anonymous unions/structs. */
+        suppressed = TRUE;
       } else if (use_old_form) {
         gen_field_name(*field);
         write_tok_str(": ");
@@ -7777,7 +7778,9 @@ brace/parenthesis delimiters around it should be suppressed.
       }  /* if */
     }  /* if */
   }  /* if */
-  if (!use_old_form && close) write_tok_str(" = ");
+  if (!use_old_form && close && !suppressed) {
+    write_tok_str(" = ");
+  }  /* if */
   check_assertion(eff_con->kind != (a_constant_repr_kind)ck_designator);
   *p_eff_con = eff_con;
 }  /* gen_designator */
