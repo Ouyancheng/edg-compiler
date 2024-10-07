@@ -1,5 +1,22 @@
 Version 6.7
 
+10/7/24  [EDGcpfe/25496]
+Constraint checking during class template argument deduction for nested class
+templates
+
+When checking constraints of constructors of nested class templates during
+class template argument deduction (CTAD), the front end failed to substitute
+enclosing template arguments, resulting in spurious deduction failures.  For
+example, with --c++20:
+
+  template<bool B> struct N {
+    template<typename T> struct C {
+      C(T) requires B;
+    };
+  };
+  N<true>::C c(0);  // Previously a spurious error.  Now okay.
+
+
 10/7/24  [EDGcpfe/27599]
 Substitution of member template requires clauses in template heads
 

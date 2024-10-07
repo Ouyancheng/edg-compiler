@@ -43093,7 +43093,13 @@ identical).
   }  /* if */
 #endif /* DEBUG */
   tssp->variant.function.routine = rout;
-  set_membership_in_source_corresp(&rout->source_corresp, orig_ct_sym);
+  if (orig_ct_sym->is_class_member) {
+    set_class_membership(sym, &rout->source_corresp,
+                         sym_parent_class(orig_ct_sym));
+  } else if (sym_is_namespace_member(orig_ct_sym)) {
+    set_namespace_membership(sym, &rout->source_corresp,
+                             sym_parent_namespace(orig_ct_sym));
+  }  /* if */
   set_routine_special_kind(rout,
                            (a_special_function_kind)sfk_deduction_guide);
   rout->variant.class_template = orig_ct_sym->variant.template_info
