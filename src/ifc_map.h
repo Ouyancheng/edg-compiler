@@ -31,11 +31,11 @@ struct an_ifc_module_file;
 
 /*
 This is the base class for most IFC entities; it holds a pointer to the file
-the entity came from.  This is represented as a base class to allow easier API
+the entry came from.  This is represented as a base class to allow easier API
 design.
 */
-struct an_ifc_module_entity {
-  an_ifc_module_entity(an_ifc_module_file *file_val)
+struct an_ifc_module_entry {
+  an_ifc_module_entry(an_ifc_module_file *file_val)
     : file(file_val)
     {}
 
@@ -45,7 +45,7 @@ struct an_ifc_module_entity {
   an_ifc_module_file *file;
                         /* The module file associated with the underlying IFC
                            byte buffer. */
-};  /* an_ifc_module_entity */
+};  /* an_ifc_module_entry */
 
 enum a_byte_buffer_kind {
   bbk_none,             /* The byte buffer is uninitialized. */
@@ -84,27 +84,27 @@ An encapsulated representation of an IFC byte buffer.  This encapsulation
 abstracts away the exact location of the underlying byte buffer storage.
 */
 template<typename an_ifc_Storage_type>
-struct Byte_buffer_entity : public an_ifc_module_entity {
-  Byte_buffer_entity()
-    : an_ifc_module_entity(NULL), kind(bbk_none)
+struct Byte_buffer_entry : public an_ifc_module_entry {
+  Byte_buffer_entry()
+    : an_ifc_module_entry(NULL), kind(bbk_none)
     {}
 
-  Byte_buffer_entity(an_ifc_module_file *mod_val)
-    : an_ifc_module_entity(mod_val), kind(bbk_local), storage{}
+  Byte_buffer_entry(an_ifc_module_file *mod_val)
+    : an_ifc_module_entry(mod_val), kind(bbk_local), storage{}
     {}
 
-  Byte_buffer_entity(an_ifc_module_file        *mod_val,
+  Byte_buffer_entry(an_ifc_module_file        *mod_val,
                      const an_ifc_Storage_type &storage_ref)
-    : an_ifc_module_entity(mod_val), kind(bbk_local), storage{}
+    : an_ifc_module_entry(mod_val), kind(bbk_local), storage{}
     { memcpy(&this->storage, &storage_ref, sizeof(an_ifc_Storage_type)); }
 
-  inline Byte_buffer_entity(an_ifc_module_file        *mod_val,
+  inline Byte_buffer_entry(an_ifc_module_file        *mod_val,
                             const an_ifc_Storage_type *storage_ptr_val);
 
-  Byte_buffer_entity(an_ifc_module_file *mod_val,
+  Byte_buffer_entry(an_ifc_module_file *mod_val,
                      a_byte             **buffer_start,
                      size_t             byte_offset)
-    : an_ifc_module_entity(mod_val), kind(bbk_indirect_ptr),
+    : an_ifc_module_entry(mod_val), kind(bbk_indirect_ptr),
       storage_indirect_ptr(buffer_start, byte_offset)
     {}
 
@@ -135,7 +135,7 @@ private:
 #define union struct
 #endif /* ifdef UNION_AS_STRUCT */
   };
-};  /* Byte_buffer_entity */
+};  /* Byte_buffer_entry */
 
 template<typename an_ifc_Storage_type>
 extern size_t get_byte_buffer_size(an_ifc_module_file *file);
@@ -143,7 +143,7 @@ extern size_t get_byte_buffer_size(an_ifc_module_file *file);
 extern a_boolean is_for_read(an_ifc_module_file *file);
 
 template<typename an_ifc_Storage_type>
-Byte_buffer_entity<an_ifc_Storage_type>::Byte_buffer_entity(
+Byte_buffer_entry<an_ifc_Storage_type>::Byte_buffer_entry(
                                     an_ifc_module_file        *mod_val,
                                     const an_ifc_Storage_type *storage_ptr_val)
 /*
@@ -152,7 +152,7 @@ creates a direct pointer reference in file read modes and a memory copy in file
 write modes (to prevent issues that would otherwise occur if the bytes are
 relocated due to a reallocation of the underlying buffer).
 */
-  : an_ifc_module_entity(mod_val)
+  : an_ifc_module_entry(mod_val)
 {
   if (is_for_read(mod_val)) {
     this->kind = bbk_direct_ptr;
@@ -163,12 +163,12 @@ relocated due to a reallocation of the underlying buffer).
     this->kind = bbk_local;
     memcpy(&this->storage, storage_ptr_val, storage_len);
   }  /* if */
-}  /* Byte_buffer_entity::Byte_buffer_entity */
+}  /* Byte_buffer_entry::Byte_buffer_entry */
 
 
 template<typename an_ifc_Storage_type>
 inline const an_ifc_Storage_type*
-Byte_buffer_entity<an_ifc_Storage_type>::get_storage() const
+Byte_buffer_entry<an_ifc_Storage_type>::get_storage() const
 /*
 This function provides access to the underlying IFC node storage by returning
 a pointer to the associated IFC byte buffer (regardless of where the byte
@@ -207,35 +207,35 @@ buffer actually resides in memory).
 An encapsulated representation of an IFC numeric value.
 */
 template<typename an_ifc_Storage_type>
-struct Numeric_entity : public an_ifc_module_entity {
-  Numeric_entity()
-    : an_ifc_module_entity(NULL), value{}
+struct Numeric_entry : public an_ifc_module_entry {
+  Numeric_entry()
+    : an_ifc_module_entry(NULL), value{}
     {}
 
-  Numeric_entity(an_ifc_module_file        *mod_val,
+  Numeric_entry(an_ifc_module_file        *mod_val,
                  const an_ifc_Storage_type &value_ref)
-    : an_ifc_module_entity(mod_val), value{value_ref}
+    : an_ifc_module_entry(mod_val), value{value_ref}
     {}
 
   an_ifc_Storage_type
                 value;  /* The raw bit value obtained from the module.
                            Represented as the largest common underlying
                            type. */
-};  /* Numeric_entity */
+};  /* Numeric_entry */
 
 /*
 An encapsulated representation of an IFC numeric value that supports implicit
 conversion.
 */
 template<typename an_ifc_Storage_type>
-struct Implicit_numeric_entity : public an_ifc_module_entity {
-  Implicit_numeric_entity()
-    : an_ifc_module_entity(NULL), value{}
+struct Implicit_numeric_entry : public an_ifc_module_entry {
+  Implicit_numeric_entry()
+    : an_ifc_module_entry(NULL), value{}
     {}
 
-  Implicit_numeric_entity(an_ifc_module_file        *mod_val,
+  Implicit_numeric_entry(an_ifc_module_file        *mod_val,
                           const an_ifc_Storage_type &value_ref)
-    : an_ifc_module_entity(mod_val), value{value_ref}
+    : an_ifc_module_entry(mod_val), value{value_ref}
     {}
 
   an_ifc_Storage_type
@@ -245,22 +245,22 @@ struct Implicit_numeric_entity : public an_ifc_module_entity {
 
   inline operator an_ifc_Storage_type() const
     { return this->value; }
-};  /* Implicit_numeric_entity */
+};  /* Implicit_numeric_entry */
 
 
 /*
 An encapsulated representation of an IFC index value.
 */
 template<typename an_ifc_Sort_type, typename a_Native_size_type>
-struct Index_entity : public an_ifc_module_entity {
-  Index_entity()
-    : an_ifc_module_entity(NULL), sort{}, value{}
+struct Index_entry : public an_ifc_module_entry {
+  Index_entry()
+    : an_ifc_module_entry(NULL), sort{}, value{}
     {}
 
-  Index_entity(an_ifc_module_file *mod_val,
+  Index_entry(an_ifc_module_file *mod_val,
                an_ifc_Sort_type   sort_val,
                a_Native_size_type value_val)
-    : an_ifc_module_entity(mod_val), sort{sort_val}, value{value_val}
+    : an_ifc_module_entry(mod_val), sort{sort_val}, value{value_val}
     {}
 
   an_ifc_Sort_type
@@ -269,29 +269,29 @@ struct Index_entity : public an_ifc_module_entity {
                 value;  /* The index value into the associated partition of
                            "sort" for this index.  Represented as the largest
                            common underlying type. */
-};  /* Index_entity */
+};  /* Index_entry */
 
 
 /*
 An encapsulated representation of an IFC node offset value.
 */
 template<typename an_ifc_Node_type, typename a_Native_size_type>
-struct Offset_entity : public an_ifc_module_entity {
+struct Offset_entry : public an_ifc_module_entry {
   using node_type = an_ifc_Node_type;
-  Offset_entity()
-    : an_ifc_module_entity(NULL), value{}
+  Offset_entry()
+    : an_ifc_module_entry(NULL), value{}
     {}
 
-  Offset_entity(an_ifc_module_file *mod_val,
+  Offset_entry(an_ifc_module_file *mod_val,
                 a_Native_size_type value_val)
-    : an_ifc_module_entity(mod_val), value{value_val}
+    : an_ifc_module_entry(mod_val), value{value_val}
     {}
 
   a_Native_size_type
                 value;  /* The index value into the associated partition for
                            this offset.  Represented as the largest common
                            underlying type. */
-};  /* Offset_entity */
+};  /* Offset_entry */
 
 
 /*
@@ -311,14 +311,14 @@ using an_ifc_edg_constant_word_bytes = an_ifc_edg_constant_word_storage;
 /*
 The universal representation of an IFC EdgConstantWord node.
 
-The representation is declared as a derived struct of Byte_buffer_entity rather
+The representation is declared as a derived struct of Byte_buffer_entry rather
 than simply an alias of the instantiation to improve the debugger experience.
 */
 struct an_ifc_edg_constant_word :
-                         Byte_buffer_entity<an_ifc_edg_constant_word_storage> {
+                          Byte_buffer_entry<an_ifc_edg_constant_word_storage> {
   using storage_type = an_ifc_edg_constant_word_storage;
-  using base_type = Byte_buffer_entity<storage_type>;
-  using base_type::Byte_buffer_entity;
+  using base_type = Byte_buffer_entry<storage_type>;
+  using base_type::Byte_buffer_entry;
 };  /* an_ifc_edg_constant_word */
 
 
@@ -339,13 +339,13 @@ using an_ifc_ieeele_float_bytes = an_ifc_ieeele_float_storage;
 /*
 The universal representation of an IFC IEEELEFloat node.
 
-The representation is declared as a derived struct of Byte_buffer_entity rather
+The representation is declared as a derived struct of Byte_buffer_entry rather
 than simply an alias of the instantiation to improve the debugger experience.
 */
-struct an_ifc_ieeele_float : Byte_buffer_entity<an_ifc_ieeele_float_storage> {
+struct an_ifc_ieeele_float : Byte_buffer_entry<an_ifc_ieeele_float_storage> {
   using storage_type = an_ifc_ieeele_float_storage;
-  using base_type = Byte_buffer_entity<storage_type>;
-  using base_type::Byte_buffer_entity;
+  using base_type = Byte_buffer_entry<storage_type>;
+  using base_type::Byte_buffer_entry;
 };  /* an_ifc_ieeele_float */
 
 
@@ -366,13 +366,13 @@ using an_ifc_sha256_bytes = an_ifc_sha256_storage;
 /*
 The universal representation of an IFC SHA256 node.
 
-The representation is declared as a derived struct of Byte_buffer_entity rather
+The representation is declared as a derived struct of Byte_buffer_entry rather
 than simply an alias of the instantiation to improve the debugger experience.
 */
-struct an_ifc_sha256 : Byte_buffer_entity<an_ifc_sha256_storage> {
+struct an_ifc_sha256 : Byte_buffer_entry<an_ifc_sha256_storage> {
   using storage_type = an_ifc_sha256_storage;
-  using base_type = Byte_buffer_entity<storage_type>;
-  using base_type::Byte_buffer_entity;
+  using base_type = Byte_buffer_entry<storage_type>;
+  using base_type::Byte_buffer_entry;
 };  /* an_ifc_sha256 */
 
 
@@ -393,14 +393,13 @@ using an_ifc_storage_class_bytes = an_ifc_storage_class_storage;
 /*
 The universal representation of an IFC StorageClass node.
 
-The representation is declared as a derived struct of Byte_buffer_entity rather
+The representation is declared as a derived struct of Byte_buffer_entry rather
 than simply an alias of the instantiation to improve the debugger experience.
 */
-struct an_ifc_storage_class :
-                             Byte_buffer_entity<an_ifc_storage_class_storage> {
+struct an_ifc_storage_class : Byte_buffer_entry<an_ifc_storage_class_storage> {
   using storage_type = an_ifc_storage_class_storage;
-  using base_type = Byte_buffer_entity<storage_type>;
-  using base_type::Byte_buffer_entity;
+  using base_type = Byte_buffer_entry<storage_type>;
+  using base_type::Byte_buffer_entry;
 };  /* an_ifc_storage_class */
 
 
@@ -421,13 +420,13 @@ using an_ifc_uuid_bytes = an_ifc_uuid_storage;
 /*
 The universal representation of an IFC Uuid node.
 
-The representation is declared as a derived struct of Byte_buffer_entity rather
+The representation is declared as a derived struct of Byte_buffer_entry rather
 than simply an alias of the instantiation to improve the debugger experience.
 */
-struct an_ifc_uuid : Byte_buffer_entity<an_ifc_uuid_storage> {
+struct an_ifc_uuid : Byte_buffer_entry<an_ifc_uuid_storage> {
   using storage_type = an_ifc_uuid_storage;
-  using base_type = Byte_buffer_entity<storage_type>;
-  using base_type::Byte_buffer_entity;
+  using base_type = Byte_buffer_entry<storage_type>;
+  using base_type::Byte_buffer_entry;
 };  /* an_ifc_uuid */
 
 
@@ -448,14 +447,14 @@ using an_ifc_variadic_arity_bytes = an_ifc_variadic_arity_storage;
 /*
 The universal representation of an IFC VariadicArity node.
 
-The representation is declared as a derived struct of Byte_buffer_entity rather
+The representation is declared as a derived struct of Byte_buffer_entry rather
 than simply an alias of the instantiation to improve the debugger experience.
 */
 struct an_ifc_variadic_arity :
-                            Byte_buffer_entity<an_ifc_variadic_arity_storage> {
+                             Byte_buffer_entry<an_ifc_variadic_arity_storage> {
   using storage_type = an_ifc_variadic_arity_storage;
-  using base_type = Byte_buffer_entity<storage_type>;
-  using base_type::Byte_buffer_entity;
+  using base_type = Byte_buffer_entry<storage_type>;
+  using base_type::Byte_buffer_entry;
 };  /* an_ifc_variadic_arity */
 
 
@@ -466,10 +465,10 @@ using an_ifc_abi_storage = uint8_t;
 /*
 The universal representation for an IFC Abi.
 */
-struct an_ifc_abi : Implicit_numeric_entity<an_ifc_abi_storage> {
+struct an_ifc_abi : Implicit_numeric_entry<an_ifc_abi_storage> {
   using storage_type = an_ifc_abi_storage;
-  using base_type = Implicit_numeric_entity<storage_type>;
-  using base_type::Implicit_numeric_entity;
+  using base_type = Implicit_numeric_entry<storage_type>;
+  using base_type::Implicit_numeric_entry;
 };  /* an_ifc_abi */
 
 
@@ -480,11 +479,11 @@ using an_ifc_active_member_storage = uint32_t;
 /*
 The universal representation for an IFC ActiveMember.
 */
-struct an_ifc_active_member : Implicit_numeric_entity<
+struct an_ifc_active_member : Implicit_numeric_entry<
                                                 an_ifc_active_member_storage> {
   using storage_type = an_ifc_active_member_storage;
-  using base_type = Implicit_numeric_entity<storage_type>;
-  using base_type::Implicit_numeric_entity;
+  using base_type = Implicit_numeric_entry<storage_type>;
+  using base_type::Implicit_numeric_entry;
 };  /* an_ifc_active_member */
 
 
@@ -495,11 +494,11 @@ using an_ifc_associativity_storage = uint8_t;
 /*
 The universal representation for an IFC Associativity.
 */
-struct an_ifc_associativity : Implicit_numeric_entity<
+struct an_ifc_associativity : Implicit_numeric_entry<
                                                 an_ifc_associativity_storage> {
   using storage_type = an_ifc_associativity_storage;
-  using base_type = Implicit_numeric_entity<storage_type>;
-  using base_type::Implicit_numeric_entity;
+  using base_type = Implicit_numeric_entry<storage_type>;
+  using base_type::Implicit_numeric_entry;
 };  /* an_ifc_associativity */
 
 
@@ -510,11 +509,11 @@ using an_ifc_byte_offset_storage = uint32_t;
 /*
 The universal representation for an IFC ByteOffset.
 */
-struct an_ifc_byte_offset : Implicit_numeric_entity<
+struct an_ifc_byte_offset : Implicit_numeric_entry<
                                                   an_ifc_byte_offset_storage> {
   using storage_type = an_ifc_byte_offset_storage;
-  using base_type = Implicit_numeric_entity<storage_type>;
-  using base_type::Implicit_numeric_entity;
+  using base_type = Implicit_numeric_entry<storage_type>;
+  using base_type::Implicit_numeric_entry;
 };  /* an_ifc_byte_offset */
 
 
@@ -525,11 +524,11 @@ using an_ifc_cardinality_storage = uint32_t;
 /*
 The universal representation for an IFC Cardinality.
 */
-struct an_ifc_cardinality : Implicit_numeric_entity<
+struct an_ifc_cardinality : Implicit_numeric_entry<
                                                   an_ifc_cardinality_storage> {
   using storage_type = an_ifc_cardinality_storage;
-  using base_type = Implicit_numeric_entity<storage_type>;
-  using base_type::Implicit_numeric_entity;
+  using base_type = Implicit_numeric_entry<storage_type>;
+  using base_type::Implicit_numeric_entry;
 };  /* an_ifc_cardinality */
 
 
@@ -540,10 +539,10 @@ using an_ifc_column_storage = uint32_t;
 /*
 The universal representation for an IFC Column.
 */
-struct an_ifc_column : Implicit_numeric_entity<an_ifc_column_storage> {
+struct an_ifc_column : Implicit_numeric_entry<an_ifc_column_storage> {
   using storage_type = an_ifc_column_storage;
-  using base_type = Implicit_numeric_entity<storage_type>;
-  using base_type::Implicit_numeric_entity;
+  using base_type = Implicit_numeric_entry<storage_type>;
+  using base_type::Implicit_numeric_entry;
 };  /* an_ifc_column */
 
 
@@ -554,11 +553,11 @@ using an_ifc_destructor_sort_storage = uint8_t;
 /*
 The universal representation for an IFC DestructorSort.
 */
-struct an_ifc_destructor_sort : Implicit_numeric_entity<
+struct an_ifc_destructor_sort : Implicit_numeric_entry<
                                               an_ifc_destructor_sort_storage> {
   using storage_type = an_ifc_destructor_sort_storage;
-  using base_type = Implicit_numeric_entity<storage_type>;
-  using base_type::Implicit_numeric_entity;
+  using base_type = Implicit_numeric_entry<storage_type>;
+  using base_type::Implicit_numeric_entry;
 };  /* an_ifc_destructor_sort */
 
 
@@ -569,10 +568,10 @@ using an_ifc_eh_flags_storage = uint16_t;
 /*
 The universal representation for an IFC EHFlags.
 */
-struct an_ifc_eh_flags : Implicit_numeric_entity<an_ifc_eh_flags_storage> {
+struct an_ifc_eh_flags : Implicit_numeric_entry<an_ifc_eh_flags_storage> {
   using storage_type = an_ifc_eh_flags_storage;
-  using base_type = Implicit_numeric_entity<storage_type>;
-  using base_type::Implicit_numeric_entity;
+  using base_type = Implicit_numeric_entry<storage_type>;
+  using base_type::Implicit_numeric_entry;
 };  /* an_ifc_eh_flags */
 
 
@@ -583,11 +582,11 @@ using an_ifc_encoded_access_sort_storage = uint8_t;
 /*
 The universal representation for an IFC EncodedAccessSort.
 */
-struct an_ifc_encoded_access_sort : Implicit_numeric_entity<
+struct an_ifc_encoded_access_sort : Implicit_numeric_entry<
                                           an_ifc_encoded_access_sort_storage> {
   using storage_type = an_ifc_encoded_access_sort_storage;
-  using base_type = Implicit_numeric_entity<storage_type>;
-  using base_type::Implicit_numeric_entity;
+  using base_type = Implicit_numeric_entry<storage_type>;
+  using base_type::Implicit_numeric_entry;
 };  /* an_ifc_encoded_access_sort */
 
 
@@ -598,11 +597,11 @@ using an_ifc_encoded_architecture_sort_storage = uint8_t;
 /*
 The universal representation for an IFC EncodedArchitectureSort.
 */
-struct an_ifc_encoded_architecture_sort : Implicit_numeric_entity<
+struct an_ifc_encoded_architecture_sort : Implicit_numeric_entry<
                                     an_ifc_encoded_architecture_sort_storage> {
   using storage_type = an_ifc_encoded_architecture_sort_storage;
-  using base_type = Implicit_numeric_entity<storage_type>;
-  using base_type::Implicit_numeric_entity;
+  using base_type = Implicit_numeric_entry<storage_type>;
+  using base_type::Implicit_numeric_entry;
 };  /* an_ifc_encoded_architecture_sort */
 
 
@@ -613,11 +612,11 @@ using an_ifc_encoded_attr_index_storage = uint32_t;
 /*
 The universal representation for an IFC EncodedAttrIndex.
 */
-struct an_ifc_encoded_attr_index : Implicit_numeric_entity<
+struct an_ifc_encoded_attr_index : Implicit_numeric_entry<
                                            an_ifc_encoded_attr_index_storage> {
   using storage_type = an_ifc_encoded_attr_index_storage;
-  using base_type = Implicit_numeric_entity<storage_type>;
-  using base_type::Implicit_numeric_entity;
+  using base_type = Implicit_numeric_entry<storage_type>;
+  using base_type::Implicit_numeric_entry;
 };  /* an_ifc_encoded_attr_index */
 
 
@@ -628,11 +627,11 @@ using an_ifc_encoded_attr_sort_storage = uint32_t;
 /*
 The universal representation for an IFC EncodedAttrSort.
 */
-struct an_ifc_encoded_attr_sort : Implicit_numeric_entity<
+struct an_ifc_encoded_attr_sort : Implicit_numeric_entry<
                                             an_ifc_encoded_attr_sort_storage> {
   using storage_type = an_ifc_encoded_attr_sort_storage;
-  using base_type = Implicit_numeric_entity<storage_type>;
-  using base_type::Implicit_numeric_entity;
+  using base_type = Implicit_numeric_entry<storage_type>;
+  using base_type::Implicit_numeric_entry;
 };  /* an_ifc_encoded_attr_sort */
 
 
@@ -643,11 +642,11 @@ using an_ifc_encoded_calling_convention_sort_storage = uint8_t;
 /*
 The universal representation for an IFC EncodedCallingConventionSort.
 */
-struct an_ifc_encoded_calling_convention_sort : Implicit_numeric_entity<
+struct an_ifc_encoded_calling_convention_sort : Implicit_numeric_entry<
                               an_ifc_encoded_calling_convention_sort_storage> {
   using storage_type = an_ifc_encoded_calling_convention_sort_storage;
-  using base_type = Implicit_numeric_entity<storage_type>;
-  using base_type::Implicit_numeric_entity;
+  using base_type = Implicit_numeric_entry<storage_type>;
+  using base_type::Implicit_numeric_entry;
 };  /* an_ifc_encoded_calling_convention_sort */
 
 
@@ -658,11 +657,11 @@ using an_ifc_encoded_chart_index_storage = uint32_t;
 /*
 The universal representation for an IFC EncodedChartIndex.
 */
-struct an_ifc_encoded_chart_index : Implicit_numeric_entity<
+struct an_ifc_encoded_chart_index : Implicit_numeric_entry<
                                           an_ifc_encoded_chart_index_storage> {
   using storage_type = an_ifc_encoded_chart_index_storage;
-  using base_type = Implicit_numeric_entity<storage_type>;
-  using base_type::Implicit_numeric_entity;
+  using base_type = Implicit_numeric_entry<storage_type>;
+  using base_type::Implicit_numeric_entry;
 };  /* an_ifc_encoded_chart_index */
 
 
@@ -673,11 +672,11 @@ using an_ifc_encoded_chart_sort_storage = uint32_t;
 /*
 The universal representation for an IFC EncodedChartSort.
 */
-struct an_ifc_encoded_chart_sort : Implicit_numeric_entity<
+struct an_ifc_encoded_chart_sort : Implicit_numeric_entry<
                                            an_ifc_encoded_chart_sort_storage> {
   using storage_type = an_ifc_encoded_chart_sort_storage;
-  using base_type = Implicit_numeric_entity<storage_type>;
-  using base_type::Implicit_numeric_entity;
+  using base_type = Implicit_numeric_entry<storage_type>;
+  using base_type::Implicit_numeric_entry;
 };  /* an_ifc_encoded_chart_sort */
 
 
@@ -688,11 +687,11 @@ using an_ifc_encoded_decl_index_storage = uint32_t;
 /*
 The universal representation for an IFC EncodedDeclIndex.
 */
-struct an_ifc_encoded_decl_index : Implicit_numeric_entity<
+struct an_ifc_encoded_decl_index : Implicit_numeric_entry<
                                            an_ifc_encoded_decl_index_storage> {
   using storage_type = an_ifc_encoded_decl_index_storage;
-  using base_type = Implicit_numeric_entity<storage_type>;
-  using base_type::Implicit_numeric_entity;
+  using base_type = Implicit_numeric_entry<storage_type>;
+  using base_type::Implicit_numeric_entry;
 };  /* an_ifc_encoded_decl_index */
 
 
@@ -703,11 +702,11 @@ using an_ifc_encoded_decl_sort_storage = uint32_t;
 /*
 The universal representation for an IFC EncodedDeclSort.
 */
-struct an_ifc_encoded_decl_sort : Implicit_numeric_entity<
+struct an_ifc_encoded_decl_sort : Implicit_numeric_entry<
                                             an_ifc_encoded_decl_sort_storage> {
   using storage_type = an_ifc_encoded_decl_sort_storage;
-  using base_type = Implicit_numeric_entity<storage_type>;
-  using base_type::Implicit_numeric_entity;
+  using base_type = Implicit_numeric_entry<storage_type>;
+  using base_type::Implicit_numeric_entry;
 };  /* an_ifc_encoded_decl_sort */
 
 
@@ -718,11 +717,11 @@ using an_ifc_encoded_delimiter_sort_storage = uint8_t;
 /*
 The universal representation for an IFC EncodedDelimiterSort.
 */
-struct an_ifc_encoded_delimiter_sort : Implicit_numeric_entity<
+struct an_ifc_encoded_delimiter_sort : Implicit_numeric_entry<
                                        an_ifc_encoded_delimiter_sort_storage> {
   using storage_type = an_ifc_encoded_delimiter_sort_storage;
-  using base_type = Implicit_numeric_entity<storage_type>;
-  using base_type::Implicit_numeric_entity;
+  using base_type = Implicit_numeric_entry<storage_type>;
+  using base_type::Implicit_numeric_entry;
 };  /* an_ifc_encoded_delimiter_sort */
 
 
@@ -733,11 +732,11 @@ using an_ifc_encoded_dir_index_storage = uint32_t;
 /*
 The universal representation for an IFC EncodedDirIndex.
 */
-struct an_ifc_encoded_dir_index : Implicit_numeric_entity<
+struct an_ifc_encoded_dir_index : Implicit_numeric_entry<
                                             an_ifc_encoded_dir_index_storage> {
   using storage_type = an_ifc_encoded_dir_index_storage;
-  using base_type = Implicit_numeric_entity<storage_type>;
-  using base_type::Implicit_numeric_entity;
+  using base_type = Implicit_numeric_entry<storage_type>;
+  using base_type::Implicit_numeric_entry;
 };  /* an_ifc_encoded_dir_index */
 
 
@@ -748,11 +747,11 @@ using an_ifc_encoded_dir_sort_storage = uint32_t;
 /*
 The universal representation for an IFC EncodedDirSort.
 */
-struct an_ifc_encoded_dir_sort : Implicit_numeric_entity<
+struct an_ifc_encoded_dir_sort : Implicit_numeric_entry<
                                              an_ifc_encoded_dir_sort_storage> {
   using storage_type = an_ifc_encoded_dir_sort_storage;
-  using base_type = Implicit_numeric_entity<storage_type>;
-  using base_type::Implicit_numeric_entity;
+  using base_type = Implicit_numeric_entry<storage_type>;
+  using base_type::Implicit_numeric_entry;
 };  /* an_ifc_encoded_dir_sort */
 
 
@@ -763,11 +762,11 @@ using an_ifc_encoded_dyadic_operator_sort_storage = uint16_t;
 /*
 The universal representation for an IFC EncodedDyadicOperatorSort.
 */
-struct an_ifc_encoded_dyadic_operator_sort : Implicit_numeric_entity<
+struct an_ifc_encoded_dyadic_operator_sort : Implicit_numeric_entry<
                                  an_ifc_encoded_dyadic_operator_sort_storage> {
   using storage_type = an_ifc_encoded_dyadic_operator_sort_storage;
-  using base_type = Implicit_numeric_entity<storage_type>;
-  using base_type::Implicit_numeric_entity;
+  using base_type = Implicit_numeric_entry<storage_type>;
+  using base_type::Implicit_numeric_entry;
 };  /* an_ifc_encoded_dyadic_operator_sort */
 
 
@@ -778,11 +777,11 @@ using an_ifc_encoded_edg_basic_token_sort_storage = uint32_t;
 /*
 The universal representation for an IFC EncodedEdgBasicTokenSort.
 */
-struct an_ifc_encoded_edg_basic_token_sort : Implicit_numeric_entity<
+struct an_ifc_encoded_edg_basic_token_sort : Implicit_numeric_entry<
                                  an_ifc_encoded_edg_basic_token_sort_storage> {
   using storage_type = an_ifc_encoded_edg_basic_token_sort_storage;
-  using base_type = Implicit_numeric_entity<storage_type>;
-  using base_type::Implicit_numeric_entity;
+  using base_type = Implicit_numeric_entry<storage_type>;
+  using base_type::Implicit_numeric_entry;
 };  /* an_ifc_encoded_edg_basic_token_sort */
 
 
@@ -793,11 +792,11 @@ using an_ifc_encoded_edg_complex_token_index_storage = uint32_t;
 /*
 The universal representation for an IFC EncodedEdgComplexTokenIndex.
 */
-struct an_ifc_encoded_edg_complex_token_index : Implicit_numeric_entity<
+struct an_ifc_encoded_edg_complex_token_index : Implicit_numeric_entry<
                               an_ifc_encoded_edg_complex_token_index_storage> {
   using storage_type = an_ifc_encoded_edg_complex_token_index_storage;
-  using base_type = Implicit_numeric_entity<storage_type>;
-  using base_type::Implicit_numeric_entity;
+  using base_type = Implicit_numeric_entry<storage_type>;
+  using base_type::Implicit_numeric_entry;
 };  /* an_ifc_encoded_edg_complex_token_index */
 
 
@@ -808,11 +807,11 @@ using an_ifc_encoded_edg_complex_token_sort_storage = uint32_t;
 /*
 The universal representation for an IFC EncodedEdgComplexTokenSort.
 */
-struct an_ifc_encoded_edg_complex_token_sort : Implicit_numeric_entity<
+struct an_ifc_encoded_edg_complex_token_sort : Implicit_numeric_entry<
                                an_ifc_encoded_edg_complex_token_sort_storage> {
   using storage_type = an_ifc_encoded_edg_complex_token_sort_storage;
-  using base_type = Implicit_numeric_entity<storage_type>;
-  using base_type::Implicit_numeric_entity;
+  using base_type = Implicit_numeric_entry<storage_type>;
+  using base_type::Implicit_numeric_entry;
 };  /* an_ifc_encoded_edg_complex_token_sort */
 
 
@@ -823,11 +822,11 @@ using an_ifc_encoded_edg_constant_index_storage = uint32_t;
 /*
 The universal representation for an IFC EncodedEdgConstantIndex.
 */
-struct an_ifc_encoded_edg_constant_index : Implicit_numeric_entity<
+struct an_ifc_encoded_edg_constant_index : Implicit_numeric_entry<
                                    an_ifc_encoded_edg_constant_index_storage> {
   using storage_type = an_ifc_encoded_edg_constant_index_storage;
-  using base_type = Implicit_numeric_entity<storage_type>;
-  using base_type::Implicit_numeric_entity;
+  using base_type = Implicit_numeric_entry<storage_type>;
+  using base_type::Implicit_numeric_entry;
 };  /* an_ifc_encoded_edg_constant_index */
 
 
@@ -839,11 +838,11 @@ using an_ifc_encoded_edg_constant_integer_word_offset_storage = uint32_t;
 The universal representation for an IFC EncodedEdgConstantIntegerWordOffset.
 */
 struct an_ifc_encoded_edg_constant_integer_word_offset :
-                                                       Implicit_numeric_entity<
+                                                        Implicit_numeric_entry<
                      an_ifc_encoded_edg_constant_integer_word_offset_storage> {
   using storage_type = an_ifc_encoded_edg_constant_integer_word_offset_storage;
-  using base_type = Implicit_numeric_entity<storage_type>;
-  using base_type::Implicit_numeric_entity;
+  using base_type = Implicit_numeric_entry<storage_type>;
+  using base_type::Implicit_numeric_entry;
 };  /* an_ifc_encoded_edg_constant_integer_word_offset */
 
 
@@ -854,11 +853,11 @@ using an_ifc_encoded_edg_constant_sort_storage = uint32_t;
 /*
 The universal representation for an IFC EncodedEdgConstantSort.
 */
-struct an_ifc_encoded_edg_constant_sort : Implicit_numeric_entity<
+struct an_ifc_encoded_edg_constant_sort : Implicit_numeric_entry<
                                     an_ifc_encoded_edg_constant_sort_storage> {
   using storage_type = an_ifc_encoded_edg_constant_sort_storage;
-  using base_type = Implicit_numeric_entity<storage_type>;
-  using base_type::Implicit_numeric_entity;
+  using base_type = Implicit_numeric_entry<storage_type>;
+  using base_type::Implicit_numeric_entry;
 };  /* an_ifc_encoded_edg_constant_sort */
 
 
@@ -869,11 +868,11 @@ using an_ifc_encoded_edg_constant_token_sort_storage = uint32_t;
 /*
 The universal representation for an IFC EncodedEdgConstantTokenSort.
 */
-struct an_ifc_encoded_edg_constant_token_sort : Implicit_numeric_entity<
+struct an_ifc_encoded_edg_constant_token_sort : Implicit_numeric_entry<
                               an_ifc_encoded_edg_constant_token_sort_storage> {
   using storage_type = an_ifc_encoded_edg_constant_token_sort_storage;
-  using base_type = Implicit_numeric_entity<storage_type>;
-  using base_type::Implicit_numeric_entity;
+  using base_type = Implicit_numeric_entry<storage_type>;
+  using base_type::Implicit_numeric_entry;
 };  /* an_ifc_encoded_edg_constant_token_sort */
 
 
@@ -884,11 +883,11 @@ using an_ifc_encoded_edg_extension_type_offset_storage = uint32_t;
 /*
 The universal representation for an IFC EncodedEdgExtensionTypeOffset.
 */
-struct an_ifc_encoded_edg_extension_type_offset : Implicit_numeric_entity<
+struct an_ifc_encoded_edg_extension_type_offset : Implicit_numeric_entry<
                             an_ifc_encoded_edg_extension_type_offset_storage> {
   using storage_type = an_ifc_encoded_edg_extension_type_offset_storage;
-  using base_type = Implicit_numeric_entity<storage_type>;
-  using base_type::Implicit_numeric_entity;
+  using base_type = Implicit_numeric_entry<storage_type>;
+  using base_type::Implicit_numeric_entry;
 };  /* an_ifc_encoded_edg_extension_type_offset */
 
 
@@ -899,11 +898,11 @@ using an_ifc_encoded_edg_heap_complex_token_offset_storage = uint32_t;
 /*
 The universal representation for an IFC EncodedEdgHeapComplexTokenOffset.
 */
-struct an_ifc_encoded_edg_heap_complex_token_offset : Implicit_numeric_entity<
+struct an_ifc_encoded_edg_heap_complex_token_offset : Implicit_numeric_entry<
                         an_ifc_encoded_edg_heap_complex_token_offset_storage> {
   using storage_type = an_ifc_encoded_edg_heap_complex_token_offset_storage;
-  using base_type = Implicit_numeric_entity<storage_type>;
-  using base_type::Implicit_numeric_entity;
+  using base_type = Implicit_numeric_entry<storage_type>;
+  using base_type::Implicit_numeric_entry;
 };  /* an_ifc_encoded_edg_heap_complex_token_offset */
 
 
@@ -915,12 +914,12 @@ using an_ifc_encoded_edg_heap_template_argument_offset_storage = uint32_t;
 The universal representation for an IFC EncodedEdgHeapTemplateArgumentOffset.
 */
 struct an_ifc_encoded_edg_heap_template_argument_offset :
-                                                       Implicit_numeric_entity<
+                                                        Implicit_numeric_entry<
                     an_ifc_encoded_edg_heap_template_argument_offset_storage> {
   using storage_type =
                       an_ifc_encoded_edg_heap_template_argument_offset_storage;
-  using base_type = Implicit_numeric_entity<storage_type>;
-  using base_type::Implicit_numeric_entity;
+  using base_type = Implicit_numeric_entry<storage_type>;
+  using base_type::Implicit_numeric_entry;
 };  /* an_ifc_encoded_edg_heap_template_argument_offset */
 
 
@@ -931,11 +930,11 @@ using an_ifc_encoded_edg_template_argument_index_storage = uint32_t;
 /*
 The universal representation for an IFC EncodedEdgTemplateArgumentIndex.
 */
-struct an_ifc_encoded_edg_template_argument_index : Implicit_numeric_entity<
+struct an_ifc_encoded_edg_template_argument_index : Implicit_numeric_entry<
                           an_ifc_encoded_edg_template_argument_index_storage> {
   using storage_type = an_ifc_encoded_edg_template_argument_index_storage;
-  using base_type = Implicit_numeric_entity<storage_type>;
-  using base_type::Implicit_numeric_entity;
+  using base_type = Implicit_numeric_entry<storage_type>;
+  using base_type::Implicit_numeric_entry;
 };  /* an_ifc_encoded_edg_template_argument_index */
 
 
@@ -946,11 +945,11 @@ using an_ifc_encoded_edg_template_argument_sort_storage = uint32_t;
 /*
 The universal representation for an IFC EncodedEdgTemplateArgumentSort.
 */
-struct an_ifc_encoded_edg_template_argument_sort : Implicit_numeric_entity<
+struct an_ifc_encoded_edg_template_argument_sort : Implicit_numeric_entry<
                            an_ifc_encoded_edg_template_argument_sort_storage> {
   using storage_type = an_ifc_encoded_edg_template_argument_sort_storage;
-  using base_type = Implicit_numeric_entity<storage_type>;
-  using base_type::Implicit_numeric_entity;
+  using base_type = Implicit_numeric_entry<storage_type>;
+  using base_type::Implicit_numeric_entry;
 };  /* an_ifc_encoded_edg_template_argument_sort */
 
 
@@ -961,11 +960,11 @@ using an_ifc_encoded_edg_token_basic_offset_storage = uint32_t;
 /*
 The universal representation for an IFC EncodedEdgTokenBasicOffset.
 */
-struct an_ifc_encoded_edg_token_basic_offset : Implicit_numeric_entity<
+struct an_ifc_encoded_edg_token_basic_offset : Implicit_numeric_entry<
                                an_ifc_encoded_edg_token_basic_offset_storage> {
   using storage_type = an_ifc_encoded_edg_token_basic_offset_storage;
-  using base_type = Implicit_numeric_entity<storage_type>;
-  using base_type::Implicit_numeric_entity;
+  using base_type = Implicit_numeric_entry<storage_type>;
+  using base_type::Implicit_numeric_entry;
 };  /* an_ifc_encoded_edg_token_basic_offset */
 
 
@@ -976,11 +975,11 @@ using an_ifc_encoded_edg_token_cache_offset_storage = uint32_t;
 /*
 The universal representation for an IFC EncodedEdgTokenCacheOffset.
 */
-struct an_ifc_encoded_edg_token_cache_offset : Implicit_numeric_entity<
+struct an_ifc_encoded_edg_token_cache_offset : Implicit_numeric_entry<
                                an_ifc_encoded_edg_token_cache_offset_storage> {
   using storage_type = an_ifc_encoded_edg_token_cache_offset_storage;
-  using base_type = Implicit_numeric_entity<storage_type>;
-  using base_type::Implicit_numeric_entity;
+  using base_type = Implicit_numeric_entry<storage_type>;
+  using base_type::Implicit_numeric_entry;
 };  /* an_ifc_encoded_edg_token_cache_offset */
 
 
@@ -991,11 +990,11 @@ using an_ifc_encoded_edg_type_index_storage = uint32_t;
 /*
 The universal representation for an IFC EncodedEdgTypeIndex.
 */
-struct an_ifc_encoded_edg_type_index : Implicit_numeric_entity<
+struct an_ifc_encoded_edg_type_index : Implicit_numeric_entry<
                                        an_ifc_encoded_edg_type_index_storage> {
   using storage_type = an_ifc_encoded_edg_type_index_storage;
-  using base_type = Implicit_numeric_entity<storage_type>;
-  using base_type::Implicit_numeric_entity;
+  using base_type = Implicit_numeric_entry<storage_type>;
+  using base_type::Implicit_numeric_entry;
 };  /* an_ifc_encoded_edg_type_index */
 
 
@@ -1006,11 +1005,11 @@ using an_ifc_encoded_edg_type_sort_storage = uint32_t;
 /*
 The universal representation for an IFC EncodedEdgTypeSort.
 */
-struct an_ifc_encoded_edg_type_sort : Implicit_numeric_entity<
+struct an_ifc_encoded_edg_type_sort : Implicit_numeric_entry<
                                         an_ifc_encoded_edg_type_sort_storage> {
   using storage_type = an_ifc_encoded_edg_type_sort_storage;
-  using base_type = Implicit_numeric_entity<storage_type>;
-  using base_type::Implicit_numeric_entity;
+  using base_type = Implicit_numeric_entry<storage_type>;
+  using base_type::Implicit_numeric_entry;
 };  /* an_ifc_encoded_edg_type_sort */
 
 
@@ -1021,11 +1020,11 @@ using an_ifc_encoded_expansion_mode_sort_storage = uint8_t;
 /*
 The universal representation for an IFC EncodedExpansionModeSort.
 */
-struct an_ifc_encoded_expansion_mode_sort : Implicit_numeric_entity<
+struct an_ifc_encoded_expansion_mode_sort : Implicit_numeric_entry<
                                   an_ifc_encoded_expansion_mode_sort_storage> {
   using storage_type = an_ifc_encoded_expansion_mode_sort_storage;
-  using base_type = Implicit_numeric_entity<storage_type>;
-  using base_type::Implicit_numeric_entity;
+  using base_type = Implicit_numeric_entry<storage_type>;
+  using base_type::Implicit_numeric_entry;
 };  /* an_ifc_encoded_expansion_mode_sort */
 
 
@@ -1036,11 +1035,11 @@ using an_ifc_encoded_expr_index_storage = uint32_t;
 /*
 The universal representation for an IFC EncodedExprIndex.
 */
-struct an_ifc_encoded_expr_index : Implicit_numeric_entity<
+struct an_ifc_encoded_expr_index : Implicit_numeric_entry<
                                            an_ifc_encoded_expr_index_storage> {
   using storage_type = an_ifc_encoded_expr_index_storage;
-  using base_type = Implicit_numeric_entity<storage_type>;
-  using base_type::Implicit_numeric_entity;
+  using base_type = Implicit_numeric_entry<storage_type>;
+  using base_type::Implicit_numeric_entry;
 };  /* an_ifc_encoded_expr_index */
 
 
@@ -1051,11 +1050,11 @@ using an_ifc_encoded_expr_named_decl_offset_storage = uint32_t;
 /*
 The universal representation for an IFC EncodedExprNamedDeclOffset.
 */
-struct an_ifc_encoded_expr_named_decl_offset : Implicit_numeric_entity<
+struct an_ifc_encoded_expr_named_decl_offset : Implicit_numeric_entry<
                                an_ifc_encoded_expr_named_decl_offset_storage> {
   using storage_type = an_ifc_encoded_expr_named_decl_offset_storage;
-  using base_type = Implicit_numeric_entity<storage_type>;
-  using base_type::Implicit_numeric_entity;
+  using base_type = Implicit_numeric_entry<storage_type>;
+  using base_type::Implicit_numeric_entry;
 };  /* an_ifc_encoded_expr_named_decl_offset */
 
 
@@ -1066,11 +1065,11 @@ using an_ifc_encoded_expr_sort_storage = uint32_t;
 /*
 The universal representation for an IFC EncodedExprSort.
 */
-struct an_ifc_encoded_expr_sort : Implicit_numeric_entity<
+struct an_ifc_encoded_expr_sort : Implicit_numeric_entry<
                                             an_ifc_encoded_expr_sort_storage> {
   using storage_type = an_ifc_encoded_expr_sort_storage;
-  using base_type = Implicit_numeric_entity<storage_type>;
-  using base_type::Implicit_numeric_entity;
+  using base_type = Implicit_numeric_entry<storage_type>;
+  using base_type::Implicit_numeric_entry;
 };  /* an_ifc_encoded_expr_sort */
 
 
@@ -1081,11 +1080,11 @@ using an_ifc_encoded_fold_direction_sort_storage = uint32_t;
 /*
 The universal representation for an IFC EncodedFoldDirectionSort.
 */
-struct an_ifc_encoded_fold_direction_sort : Implicit_numeric_entity<
+struct an_ifc_encoded_fold_direction_sort : Implicit_numeric_entry<
                                   an_ifc_encoded_fold_direction_sort_storage> {
   using storage_type = an_ifc_encoded_fold_direction_sort_storage;
-  using base_type = Implicit_numeric_entity<storage_type>;
-  using base_type::Implicit_numeric_entity;
+  using base_type = Implicit_numeric_entry<storage_type>;
+  using base_type::Implicit_numeric_entry;
 };  /* an_ifc_encoded_fold_direction_sort */
 
 
@@ -1096,11 +1095,11 @@ using an_ifc_encoded_form_index_storage = uint32_t;
 /*
 The universal representation for an IFC EncodedFormIndex.
 */
-struct an_ifc_encoded_form_index : Implicit_numeric_entity<
+struct an_ifc_encoded_form_index : Implicit_numeric_entry<
                                            an_ifc_encoded_form_index_storage> {
   using storage_type = an_ifc_encoded_form_index_storage;
-  using base_type = Implicit_numeric_entity<storage_type>;
-  using base_type::Implicit_numeric_entity;
+  using base_type = Implicit_numeric_entry<storage_type>;
+  using base_type::Implicit_numeric_entry;
 };  /* an_ifc_encoded_form_index */
 
 
@@ -1111,11 +1110,11 @@ using an_ifc_encoded_form_sort_storage = uint32_t;
 /*
 The universal representation for an IFC EncodedFormSort.
 */
-struct an_ifc_encoded_form_sort : Implicit_numeric_entity<
+struct an_ifc_encoded_form_sort : Implicit_numeric_entry<
                                             an_ifc_encoded_form_sort_storage> {
   using storage_type = an_ifc_encoded_form_sort_storage;
-  using base_type = Implicit_numeric_entity<storage_type>;
-  using base_type::Implicit_numeric_entity;
+  using base_type = Implicit_numeric_entry<storage_type>;
+  using base_type::Implicit_numeric_entry;
 };  /* an_ifc_encoded_form_sort */
 
 
@@ -1126,11 +1125,11 @@ using an_ifc_encoded_form_spec_offset_storage = uint32_t;
 /*
 The universal representation for an IFC EncodedFormSpecOffset.
 */
-struct an_ifc_encoded_form_spec_offset : Implicit_numeric_entity<
+struct an_ifc_encoded_form_spec_offset : Implicit_numeric_entry<
                                      an_ifc_encoded_form_spec_offset_storage> {
   using storage_type = an_ifc_encoded_form_spec_offset_storage;
-  using base_type = Implicit_numeric_entity<storage_type>;
-  using base_type::Implicit_numeric_entity;
+  using base_type = Implicit_numeric_entry<storage_type>;
+  using base_type::Implicit_numeric_entry;
 };  /* an_ifc_encoded_form_spec_offset */
 
 
@@ -1141,11 +1140,11 @@ using an_ifc_encoded_initializer_sort_storage = uint8_t;
 /*
 The universal representation for an IFC EncodedInitializerSort.
 */
-struct an_ifc_encoded_initializer_sort : Implicit_numeric_entity<
+struct an_ifc_encoded_initializer_sort : Implicit_numeric_entry<
                                      an_ifc_encoded_initializer_sort_storage> {
   using storage_type = an_ifc_encoded_initializer_sort_storage;
-  using base_type = Implicit_numeric_entity<storage_type>;
-  using base_type::Implicit_numeric_entity;
+  using base_type = Implicit_numeric_entry<storage_type>;
+  using base_type::Implicit_numeric_entry;
 };  /* an_ifc_encoded_initializer_sort */
 
 
@@ -1156,11 +1155,11 @@ using an_ifc_encoded_keyword_sort_storage = uint32_t;
 /*
 The universal representation for an IFC EncodedKeywordSort.
 */
-struct an_ifc_encoded_keyword_sort : Implicit_numeric_entity<
+struct an_ifc_encoded_keyword_sort : Implicit_numeric_entry<
                                          an_ifc_encoded_keyword_sort_storage> {
   using storage_type = an_ifc_encoded_keyword_sort_storage;
-  using base_type = Implicit_numeric_entity<storage_type>;
-  using base_type::Implicit_numeric_entity;
+  using base_type = Implicit_numeric_entry<storage_type>;
+  using base_type::Implicit_numeric_entry;
 };  /* an_ifc_encoded_keyword_sort */
 
 
@@ -1171,11 +1170,11 @@ using an_ifc_encoded_label_sort_storage = uint32_t;
 /*
 The universal representation for an IFC EncodedLabelSort.
 */
-struct an_ifc_encoded_label_sort : Implicit_numeric_entity<
+struct an_ifc_encoded_label_sort : Implicit_numeric_entry<
                                            an_ifc_encoded_label_sort_storage> {
   using storage_type = an_ifc_encoded_label_sort_storage;
-  using base_type = Implicit_numeric_entity<storage_type>;
-  using base_type::Implicit_numeric_entity;
+  using base_type = Implicit_numeric_entry<storage_type>;
+  using base_type::Implicit_numeric_entry;
 };  /* an_ifc_encoded_label_sort */
 
 
@@ -1186,11 +1185,11 @@ using an_ifc_encoded_line_offset_storage = uint32_t;
 /*
 The universal representation for an IFC EncodedLineOffset.
 */
-struct an_ifc_encoded_line_offset : Implicit_numeric_entity<
+struct an_ifc_encoded_line_offset : Implicit_numeric_entry<
                                           an_ifc_encoded_line_offset_storage> {
   using storage_type = an_ifc_encoded_line_offset_storage;
-  using base_type = Implicit_numeric_entity<storage_type>;
-  using base_type::Implicit_numeric_entity;
+  using base_type = Implicit_numeric_entry<storage_type>;
+  using base_type::Implicit_numeric_entry;
 };  /* an_ifc_encoded_line_offset */
 
 
@@ -1201,11 +1200,11 @@ using an_ifc_encoded_lit_index_storage = uint32_t;
 /*
 The universal representation for an IFC EncodedLitIndex.
 */
-struct an_ifc_encoded_lit_index : Implicit_numeric_entity<
+struct an_ifc_encoded_lit_index : Implicit_numeric_entry<
                                             an_ifc_encoded_lit_index_storage> {
   using storage_type = an_ifc_encoded_lit_index_storage;
-  using base_type = Implicit_numeric_entity<storage_type>;
-  using base_type::Implicit_numeric_entity;
+  using base_type = Implicit_numeric_entry<storage_type>;
+  using base_type::Implicit_numeric_entry;
 };  /* an_ifc_encoded_lit_index */
 
 
@@ -1216,11 +1215,11 @@ using an_ifc_encoded_lit_sort_storage = uint32_t;
 /*
 The universal representation for an IFC EncodedLitSort.
 */
-struct an_ifc_encoded_lit_sort : Implicit_numeric_entity<
+struct an_ifc_encoded_lit_sort : Implicit_numeric_entry<
                                              an_ifc_encoded_lit_sort_storage> {
   using storage_type = an_ifc_encoded_lit_sort_storage;
-  using base_type = Implicit_numeric_entity<storage_type>;
-  using base_type::Implicit_numeric_entity;
+  using base_type = Implicit_numeric_entry<storage_type>;
+  using base_type::Implicit_numeric_entry;
 };  /* an_ifc_encoded_lit_sort */
 
 
@@ -1231,11 +1230,11 @@ using an_ifc_encoded_macro_index_storage = uint32_t;
 /*
 The universal representation for an IFC EncodedMacroIndex.
 */
-struct an_ifc_encoded_macro_index : Implicit_numeric_entity<
+struct an_ifc_encoded_macro_index : Implicit_numeric_entry<
                                           an_ifc_encoded_macro_index_storage> {
   using storage_type = an_ifc_encoded_macro_index_storage;
-  using base_type = Implicit_numeric_entity<storage_type>;
-  using base_type::Implicit_numeric_entity;
+  using base_type = Implicit_numeric_entry<storage_type>;
+  using base_type::Implicit_numeric_entry;
 };  /* an_ifc_encoded_macro_index */
 
 
@@ -1246,11 +1245,11 @@ using an_ifc_encoded_macro_sort_storage = uint32_t;
 /*
 The universal representation for an IFC EncodedMacroSort.
 */
-struct an_ifc_encoded_macro_sort : Implicit_numeric_entity<
+struct an_ifc_encoded_macro_sort : Implicit_numeric_entry<
                                            an_ifc_encoded_macro_sort_storage> {
   using storage_type = an_ifc_encoded_macro_sort_storage;
-  using base_type = Implicit_numeric_entity<storage_type>;
-  using base_type::Implicit_numeric_entity;
+  using base_type = Implicit_numeric_entry<storage_type>;
+  using base_type::Implicit_numeric_entry;
 };  /* an_ifc_encoded_macro_sort */
 
 
@@ -1261,11 +1260,11 @@ using an_ifc_encoded_monadic_operator_sort_storage = uint16_t;
 /*
 The universal representation for an IFC EncodedMonadicOperatorSort.
 */
-struct an_ifc_encoded_monadic_operator_sort : Implicit_numeric_entity<
+struct an_ifc_encoded_monadic_operator_sort : Implicit_numeric_entry<
                                 an_ifc_encoded_monadic_operator_sort_storage> {
   using storage_type = an_ifc_encoded_monadic_operator_sort_storage;
-  using base_type = Implicit_numeric_entity<storage_type>;
-  using base_type::Implicit_numeric_entity;
+  using base_type = Implicit_numeric_entry<storage_type>;
+  using base_type::Implicit_numeric_entry;
 };  /* an_ifc_encoded_monadic_operator_sort */
 
 
@@ -1276,11 +1275,11 @@ using an_ifc_encoded_name_index_storage = uint32_t;
 /*
 The universal representation for an IFC EncodedNameIndex.
 */
-struct an_ifc_encoded_name_index : Implicit_numeric_entity<
+struct an_ifc_encoded_name_index : Implicit_numeric_entry<
                                            an_ifc_encoded_name_index_storage> {
   using storage_type = an_ifc_encoded_name_index_storage;
-  using base_type = Implicit_numeric_entity<storage_type>;
-  using base_type::Implicit_numeric_entity;
+  using base_type = Implicit_numeric_entry<storage_type>;
+  using base_type::Implicit_numeric_entry;
 };  /* an_ifc_encoded_name_index */
 
 
@@ -1291,11 +1290,11 @@ using an_ifc_encoded_name_sort_storage = uint32_t;
 /*
 The universal representation for an IFC EncodedNameSort.
 */
-struct an_ifc_encoded_name_sort : Implicit_numeric_entity<
+struct an_ifc_encoded_name_sort : Implicit_numeric_entry<
                                             an_ifc_encoded_name_sort_storage> {
   using storage_type = an_ifc_encoded_name_sort_storage;
-  using base_type = Implicit_numeric_entity<storage_type>;
-  using base_type::Implicit_numeric_entity;
+  using base_type = Implicit_numeric_entry<storage_type>;
+  using base_type::Implicit_numeric_entry;
 };  /* an_ifc_encoded_name_sort */
 
 
@@ -1306,11 +1305,11 @@ using an_ifc_encoded_niladic_operator_sort_storage = uint16_t;
 /*
 The universal representation for an IFC EncodedNiladicOperatorSort.
 */
-struct an_ifc_encoded_niladic_operator_sort : Implicit_numeric_entity<
+struct an_ifc_encoded_niladic_operator_sort : Implicit_numeric_entry<
                                 an_ifc_encoded_niladic_operator_sort_storage> {
   using storage_type = an_ifc_encoded_niladic_operator_sort_storage;
-  using base_type = Implicit_numeric_entity<storage_type>;
-  using base_type::Implicit_numeric_entity;
+  using base_type = Implicit_numeric_entry<storage_type>;
+  using base_type::Implicit_numeric_entry;
 };  /* an_ifc_encoded_niladic_operator_sort */
 
 
@@ -1321,11 +1320,11 @@ using an_ifc_encoded_noexcept_sort_storage = uint8_t;
 /*
 The universal representation for an IFC EncodedNoexceptSort.
 */
-struct an_ifc_encoded_noexcept_sort : Implicit_numeric_entity<
+struct an_ifc_encoded_noexcept_sort : Implicit_numeric_entry<
                                         an_ifc_encoded_noexcept_sort_storage> {
   using storage_type = an_ifc_encoded_noexcept_sort_storage;
-  using base_type = Implicit_numeric_entity<storage_type>;
-  using base_type::Implicit_numeric_entity;
+  using base_type = Implicit_numeric_entry<storage_type>;
+  using base_type::Implicit_numeric_entry;
 };  /* an_ifc_encoded_noexcept_sort */
 
 
@@ -1336,11 +1335,11 @@ using an_ifc_encoded_operator_sort_storage = uint16_t;
 /*
 The universal representation for an IFC EncodedOperatorSort.
 */
-struct an_ifc_encoded_operator_sort : Implicit_numeric_entity<
+struct an_ifc_encoded_operator_sort : Implicit_numeric_entry<
                                         an_ifc_encoded_operator_sort_storage> {
   using storage_type = an_ifc_encoded_operator_sort_storage;
-  using base_type = Implicit_numeric_entity<storage_type>;
-  using base_type::Implicit_numeric_entity;
+  using base_type = Implicit_numeric_entry<storage_type>;
+  using base_type::Implicit_numeric_entry;
 };  /* an_ifc_encoded_operator_sort */
 
 
@@ -1351,11 +1350,11 @@ using an_ifc_encoded_parameter_sort_storage = uint8_t;
 /*
 The universal representation for an IFC EncodedParameterSort.
 */
-struct an_ifc_encoded_parameter_sort : Implicit_numeric_entity<
+struct an_ifc_encoded_parameter_sort : Implicit_numeric_entry<
                                        an_ifc_encoded_parameter_sort_storage> {
   using storage_type = an_ifc_encoded_parameter_sort_storage;
-  using base_type = Implicit_numeric_entity<storage_type>;
-  using base_type::Implicit_numeric_entity;
+  using base_type = Implicit_numeric_entry<storage_type>;
+  using base_type::Implicit_numeric_entry;
 };  /* an_ifc_encoded_parameter_sort */
 
 
@@ -1366,11 +1365,11 @@ using an_ifc_encoded_pointer_declarator_sort_storage = uint8_t;
 /*
 The universal representation for an IFC EncodedPointerDeclaratorSort.
 */
-struct an_ifc_encoded_pointer_declarator_sort : Implicit_numeric_entity<
+struct an_ifc_encoded_pointer_declarator_sort : Implicit_numeric_entry<
                               an_ifc_encoded_pointer_declarator_sort_storage> {
   using storage_type = an_ifc_encoded_pointer_declarator_sort_storage;
-  using base_type = Implicit_numeric_entity<storage_type>;
-  using base_type::Implicit_numeric_entity;
+  using base_type = Implicit_numeric_entry<storage_type>;
+  using base_type::Implicit_numeric_entry;
 };  /* an_ifc_encoded_pointer_declarator_sort */
 
 
@@ -1381,11 +1380,11 @@ using an_ifc_encoded_pragma_index_storage = uint32_t;
 /*
 The universal representation for an IFC EncodedPragmaIndex.
 */
-struct an_ifc_encoded_pragma_index : Implicit_numeric_entity<
+struct an_ifc_encoded_pragma_index : Implicit_numeric_entry<
                                          an_ifc_encoded_pragma_index_storage> {
   using storage_type = an_ifc_encoded_pragma_index_storage;
-  using base_type = Implicit_numeric_entity<storage_type>;
-  using base_type::Implicit_numeric_entity;
+  using base_type = Implicit_numeric_entry<storage_type>;
+  using base_type::Implicit_numeric_entry;
 };  /* an_ifc_encoded_pragma_index */
 
 
@@ -1396,11 +1395,11 @@ using an_ifc_encoded_pragma_sort_storage = uint32_t;
 /*
 The universal representation for an IFC EncodedPragmaSort.
 */
-struct an_ifc_encoded_pragma_sort : Implicit_numeric_entity<
+struct an_ifc_encoded_pragma_sort : Implicit_numeric_entry<
                                           an_ifc_encoded_pragma_sort_storage> {
   using storage_type = an_ifc_encoded_pragma_sort_storage;
-  using base_type = Implicit_numeric_entity<storage_type>;
-  using base_type::Implicit_numeric_entity;
+  using base_type = Implicit_numeric_entry<storage_type>;
+  using base_type::Implicit_numeric_entry;
 };  /* an_ifc_encoded_pragma_sort */
 
 
@@ -1411,11 +1410,11 @@ using an_ifc_encoded_read_conversion_sort_storage = uint8_t;
 /*
 The universal representation for an IFC EncodedReadConversionSort.
 */
-struct an_ifc_encoded_read_conversion_sort : Implicit_numeric_entity<
+struct an_ifc_encoded_read_conversion_sort : Implicit_numeric_entry<
                                  an_ifc_encoded_read_conversion_sort_storage> {
   using storage_type = an_ifc_encoded_read_conversion_sort_storage;
-  using base_type = Implicit_numeric_entity<storage_type>;
-  using base_type::Implicit_numeric_entity;
+  using base_type = Implicit_numeric_entry<storage_type>;
+  using base_type::Implicit_numeric_entry;
 };  /* an_ifc_encoded_read_conversion_sort */
 
 
@@ -1426,11 +1425,11 @@ using an_ifc_encoded_return_sort_storage = uint8_t;
 /*
 The universal representation for an IFC EncodedReturnSort.
 */
-struct an_ifc_encoded_return_sort : Implicit_numeric_entity<
+struct an_ifc_encoded_return_sort : Implicit_numeric_entry<
                                           an_ifc_encoded_return_sort_storage> {
   using storage_type = an_ifc_encoded_return_sort_storage;
-  using base_type = Implicit_numeric_entity<storage_type>;
-  using base_type::Implicit_numeric_entity;
+  using base_type = Implicit_numeric_entry<storage_type>;
+  using base_type::Implicit_numeric_entry;
 };  /* an_ifc_encoded_return_sort */
 
 
@@ -1441,11 +1440,11 @@ using an_ifc_encoded_scope_offset_storage = uint32_t;
 /*
 The universal representation for an IFC EncodedScopeOffset.
 */
-struct an_ifc_encoded_scope_offset : Implicit_numeric_entity<
+struct an_ifc_encoded_scope_offset : Implicit_numeric_entry<
                                          an_ifc_encoded_scope_offset_storage> {
   using storage_type = an_ifc_encoded_scope_offset_storage;
-  using base_type = Implicit_numeric_entity<storage_type>;
-  using base_type::Implicit_numeric_entity;
+  using base_type = Implicit_numeric_entry<storage_type>;
+  using base_type::Implicit_numeric_entry;
 };  /* an_ifc_encoded_scope_offset */
 
 
@@ -1456,11 +1455,11 @@ using an_ifc_encoded_source_directive_sort_storage = uint16_t;
 /*
 The universal representation for an IFC EncodedSourceDirectiveSort.
 */
-struct an_ifc_encoded_source_directive_sort : Implicit_numeric_entity<
+struct an_ifc_encoded_source_directive_sort : Implicit_numeric_entry<
                                 an_ifc_encoded_source_directive_sort_storage> {
   using storage_type = an_ifc_encoded_source_directive_sort_storage;
-  using base_type = Implicit_numeric_entity<storage_type>;
-  using base_type::Implicit_numeric_entity;
+  using base_type = Implicit_numeric_entry<storage_type>;
+  using base_type::Implicit_numeric_entry;
 };  /* an_ifc_encoded_source_directive_sort */
 
 
@@ -1471,11 +1470,11 @@ using an_ifc_encoded_source_identifier_sort_storage = uint16_t;
 /*
 The universal representation for an IFC EncodedSourceIdentifierSort.
 */
-struct an_ifc_encoded_source_identifier_sort : Implicit_numeric_entity<
+struct an_ifc_encoded_source_identifier_sort : Implicit_numeric_entry<
                                an_ifc_encoded_source_identifier_sort_storage> {
   using storage_type = an_ifc_encoded_source_identifier_sort_storage;
-  using base_type = Implicit_numeric_entity<storage_type>;
-  using base_type::Implicit_numeric_entity;
+  using base_type = Implicit_numeric_entry<storage_type>;
+  using base_type::Implicit_numeric_entry;
 };  /* an_ifc_encoded_source_identifier_sort */
 
 
@@ -1486,11 +1485,11 @@ using an_ifc_encoded_source_keyword_sort_storage = uint16_t;
 /*
 The universal representation for an IFC EncodedSourceKeywordSort.
 */
-struct an_ifc_encoded_source_keyword_sort : Implicit_numeric_entity<
+struct an_ifc_encoded_source_keyword_sort : Implicit_numeric_entry<
                                   an_ifc_encoded_source_keyword_sort_storage> {
   using storage_type = an_ifc_encoded_source_keyword_sort_storage;
-  using base_type = Implicit_numeric_entity<storage_type>;
-  using base_type::Implicit_numeric_entity;
+  using base_type = Implicit_numeric_entry<storage_type>;
+  using base_type::Implicit_numeric_entry;
 };  /* an_ifc_encoded_source_keyword_sort */
 
 
@@ -1501,11 +1500,11 @@ using an_ifc_encoded_source_literal_sort_storage = uint16_t;
 /*
 The universal representation for an IFC EncodedSourceLiteralSort.
 */
-struct an_ifc_encoded_source_literal_sort : Implicit_numeric_entity<
+struct an_ifc_encoded_source_literal_sort : Implicit_numeric_entry<
                                   an_ifc_encoded_source_literal_sort_storage> {
   using storage_type = an_ifc_encoded_source_literal_sort_storage;
-  using base_type = Implicit_numeric_entity<storage_type>;
-  using base_type::Implicit_numeric_entity;
+  using base_type = Implicit_numeric_entry<storage_type>;
+  using base_type::Implicit_numeric_entry;
 };  /* an_ifc_encoded_source_literal_sort */
 
 
@@ -1516,11 +1515,11 @@ using an_ifc_encoded_source_operator_sort_storage = uint16_t;
 /*
 The universal representation for an IFC EncodedSourceOperatorSort.
 */
-struct an_ifc_encoded_source_operator_sort : Implicit_numeric_entity<
+struct an_ifc_encoded_source_operator_sort : Implicit_numeric_entry<
                                  an_ifc_encoded_source_operator_sort_storage> {
   using storage_type = an_ifc_encoded_source_operator_sort_storage;
-  using base_type = Implicit_numeric_entity<storage_type>;
-  using base_type::Implicit_numeric_entity;
+  using base_type = Implicit_numeric_entry<storage_type>;
+  using base_type::Implicit_numeric_entry;
 };  /* an_ifc_encoded_source_operator_sort */
 
 
@@ -1531,11 +1530,11 @@ using an_ifc_encoded_source_punctuator_sort_storage = uint16_t;
 /*
 The universal representation for an IFC EncodedSourcePunctuatorSort.
 */
-struct an_ifc_encoded_source_punctuator_sort : Implicit_numeric_entity<
+struct an_ifc_encoded_source_punctuator_sort : Implicit_numeric_entry<
                                an_ifc_encoded_source_punctuator_sort_storage> {
   using storage_type = an_ifc_encoded_source_punctuator_sort_storage;
-  using base_type = Implicit_numeric_entity<storage_type>;
-  using base_type::Implicit_numeric_entity;
+  using base_type = Implicit_numeric_entry<storage_type>;
+  using base_type::Implicit_numeric_entry;
 };  /* an_ifc_encoded_source_punctuator_sort */
 
 
@@ -1546,11 +1545,11 @@ using an_ifc_encoded_specialization_sort_storage = uint8_t;
 /*
 The universal representation for an IFC EncodedSpecializationSort.
 */
-struct an_ifc_encoded_specialization_sort : Implicit_numeric_entity<
+struct an_ifc_encoded_specialization_sort : Implicit_numeric_entry<
                                   an_ifc_encoded_specialization_sort_storage> {
   using storage_type = an_ifc_encoded_specialization_sort_storage;
-  using base_type = Implicit_numeric_entity<storage_type>;
-  using base_type::Implicit_numeric_entity;
+  using base_type = Implicit_numeric_entry<storage_type>;
+  using base_type::Implicit_numeric_entry;
 };  /* an_ifc_encoded_specialization_sort */
 
 
@@ -1561,11 +1560,11 @@ using an_ifc_encoded_stmt_index_storage = uint32_t;
 /*
 The universal representation for an IFC EncodedStmtIndex.
 */
-struct an_ifc_encoded_stmt_index : Implicit_numeric_entity<
+struct an_ifc_encoded_stmt_index : Implicit_numeric_entry<
                                            an_ifc_encoded_stmt_index_storage> {
   using storage_type = an_ifc_encoded_stmt_index_storage;
-  using base_type = Implicit_numeric_entity<storage_type>;
-  using base_type::Implicit_numeric_entity;
+  using base_type = Implicit_numeric_entry<storage_type>;
+  using base_type::Implicit_numeric_entry;
 };  /* an_ifc_encoded_stmt_index */
 
 
@@ -1576,11 +1575,11 @@ using an_ifc_encoded_stmt_sort_storage = uint32_t;
 /*
 The universal representation for an IFC EncodedStmtSort.
 */
-struct an_ifc_encoded_stmt_sort : Implicit_numeric_entity<
+struct an_ifc_encoded_stmt_sort : Implicit_numeric_entry<
                                             an_ifc_encoded_stmt_sort_storage> {
   using storage_type = an_ifc_encoded_stmt_sort_storage;
-  using base_type = Implicit_numeric_entity<storage_type>;
-  using base_type::Implicit_numeric_entity;
+  using base_type = Implicit_numeric_entry<storage_type>;
+  using base_type::Implicit_numeric_entry;
 };  /* an_ifc_encoded_stmt_sort */
 
 
@@ -1592,12 +1591,12 @@ using an_ifc_encoded_storage_instruction_operator_sort_storage = uint16_t;
 The universal representation for an IFC EncodedStorageInstructionOperatorSort.
 */
 struct an_ifc_encoded_storage_instruction_operator_sort :
-                                                       Implicit_numeric_entity<
+                                                        Implicit_numeric_entry<
                     an_ifc_encoded_storage_instruction_operator_sort_storage> {
   using storage_type =
                       an_ifc_encoded_storage_instruction_operator_sort_storage;
-  using base_type = Implicit_numeric_entity<storage_type>;
-  using base_type::Implicit_numeric_entity;
+  using base_type = Implicit_numeric_entry<storage_type>;
+  using base_type::Implicit_numeric_entry;
 };  /* an_ifc_encoded_storage_instruction_operator_sort */
 
 
@@ -1608,11 +1607,11 @@ using an_ifc_encoded_string_index_storage = uint32_t;
 /*
 The universal representation for an IFC EncodedStringIndex.
 */
-struct an_ifc_encoded_string_index : Implicit_numeric_entity<
+struct an_ifc_encoded_string_index : Implicit_numeric_entry<
                                          an_ifc_encoded_string_index_storage> {
   using storage_type = an_ifc_encoded_string_index_storage;
-  using base_type = Implicit_numeric_entity<storage_type>;
-  using base_type::Implicit_numeric_entity;
+  using base_type = Implicit_numeric_entry<storage_type>;
+  using base_type::Implicit_numeric_entry;
 };  /* an_ifc_encoded_string_index */
 
 
@@ -1623,11 +1622,11 @@ using an_ifc_encoded_string_sort_storage = uint32_t;
 /*
 The universal representation for an IFC EncodedStringSort.
 */
-struct an_ifc_encoded_string_sort : Implicit_numeric_entity<
+struct an_ifc_encoded_string_sort : Implicit_numeric_entry<
                                           an_ifc_encoded_string_sort_storage> {
   using storage_type = an_ifc_encoded_string_sort_storage;
-  using base_type = Implicit_numeric_entity<storage_type>;
-  using base_type::Implicit_numeric_entity;
+  using base_type = Implicit_numeric_entry<storage_type>;
+  using base_type::Implicit_numeric_entry;
 };  /* an_ifc_encoded_string_sort */
 
 
@@ -1638,11 +1637,11 @@ using an_ifc_encoded_syntax_index_storage = uint32_t;
 /*
 The universal representation for an IFC EncodedSyntaxIndex.
 */
-struct an_ifc_encoded_syntax_index : Implicit_numeric_entity<
+struct an_ifc_encoded_syntax_index : Implicit_numeric_entry<
                                          an_ifc_encoded_syntax_index_storage> {
   using storage_type = an_ifc_encoded_syntax_index_storage;
-  using base_type = Implicit_numeric_entity<storage_type>;
-  using base_type::Implicit_numeric_entity;
+  using base_type = Implicit_numeric_entry<storage_type>;
+  using base_type::Implicit_numeric_entry;
 };  /* an_ifc_encoded_syntax_index */
 
 
@@ -1653,11 +1652,11 @@ using an_ifc_encoded_syntax_sort_storage = uint32_t;
 /*
 The universal representation for an IFC EncodedSyntaxSort.
 */
-struct an_ifc_encoded_syntax_sort : Implicit_numeric_entity<
+struct an_ifc_encoded_syntax_sort : Implicit_numeric_entry<
                                           an_ifc_encoded_syntax_sort_storage> {
   using storage_type = an_ifc_encoded_syntax_sort_storage;
-  using base_type = Implicit_numeric_entity<storage_type>;
-  using base_type::Implicit_numeric_entity;
+  using base_type = Implicit_numeric_entry<storage_type>;
+  using base_type::Implicit_numeric_entry;
 };  /* an_ifc_encoded_syntax_sort */
 
 
@@ -1668,11 +1667,11 @@ using an_ifc_encoded_triadic_operator_sort_storage = uint16_t;
 /*
 The universal representation for an IFC EncodedTriadicOperatorSort.
 */
-struct an_ifc_encoded_triadic_operator_sort : Implicit_numeric_entity<
+struct an_ifc_encoded_triadic_operator_sort : Implicit_numeric_entry<
                                 an_ifc_encoded_triadic_operator_sort_storage> {
   using storage_type = an_ifc_encoded_triadic_operator_sort_storage;
-  using base_type = Implicit_numeric_entity<storage_type>;
-  using base_type::Implicit_numeric_entity;
+  using base_type = Implicit_numeric_entry<storage_type>;
+  using base_type::Implicit_numeric_entry;
 };  /* an_ifc_encoded_triadic_operator_sort */
 
 
@@ -1683,11 +1682,11 @@ using an_ifc_encoded_type_basis_sort_storage = uint8_t;
 /*
 The universal representation for an IFC EncodedTypeBasisSort.
 */
-struct an_ifc_encoded_type_basis_sort : Implicit_numeric_entity<
+struct an_ifc_encoded_type_basis_sort : Implicit_numeric_entry<
                                       an_ifc_encoded_type_basis_sort_storage> {
   using storage_type = an_ifc_encoded_type_basis_sort_storage;
-  using base_type = Implicit_numeric_entity<storage_type>;
-  using base_type::Implicit_numeric_entity;
+  using base_type = Implicit_numeric_entry<storage_type>;
+  using base_type::Implicit_numeric_entry;
 };  /* an_ifc_encoded_type_basis_sort */
 
 
@@ -1698,11 +1697,11 @@ using an_ifc_encoded_type_index_storage = uint32_t;
 /*
 The universal representation for an IFC EncodedTypeIndex.
 */
-struct an_ifc_encoded_type_index : Implicit_numeric_entity<
+struct an_ifc_encoded_type_index : Implicit_numeric_entry<
                                            an_ifc_encoded_type_index_storage> {
   using storage_type = an_ifc_encoded_type_index_storage;
-  using base_type = Implicit_numeric_entity<storage_type>;
-  using base_type::Implicit_numeric_entity;
+  using base_type = Implicit_numeric_entry<storage_type>;
+  using base_type::Implicit_numeric_entry;
 };  /* an_ifc_encoded_type_index */
 
 
@@ -1713,11 +1712,11 @@ using an_ifc_encoded_type_precision_sort_storage = uint8_t;
 /*
 The universal representation for an IFC EncodedTypePrecisionSort.
 */
-struct an_ifc_encoded_type_precision_sort : Implicit_numeric_entity<
+struct an_ifc_encoded_type_precision_sort : Implicit_numeric_entry<
                                   an_ifc_encoded_type_precision_sort_storage> {
   using storage_type = an_ifc_encoded_type_precision_sort_storage;
-  using base_type = Implicit_numeric_entity<storage_type>;
-  using base_type::Implicit_numeric_entity;
+  using base_type = Implicit_numeric_entry<storage_type>;
+  using base_type::Implicit_numeric_entry;
 };  /* an_ifc_encoded_type_precision_sort */
 
 
@@ -1728,11 +1727,11 @@ using an_ifc_encoded_type_sign_sort_storage = uint8_t;
 /*
 The universal representation for an IFC EncodedTypeSignSort.
 */
-struct an_ifc_encoded_type_sign_sort : Implicit_numeric_entity<
+struct an_ifc_encoded_type_sign_sort : Implicit_numeric_entry<
                                        an_ifc_encoded_type_sign_sort_storage> {
   using storage_type = an_ifc_encoded_type_sign_sort_storage;
-  using base_type = Implicit_numeric_entity<storage_type>;
-  using base_type::Implicit_numeric_entity;
+  using base_type = Implicit_numeric_entry<storage_type>;
+  using base_type::Implicit_numeric_entry;
 };  /* an_ifc_encoded_type_sign_sort */
 
 
@@ -1743,11 +1742,11 @@ using an_ifc_encoded_type_sort_storage = uint32_t;
 /*
 The universal representation for an IFC EncodedTypeSort.
 */
-struct an_ifc_encoded_type_sort : Implicit_numeric_entity<
+struct an_ifc_encoded_type_sort : Implicit_numeric_entry<
                                             an_ifc_encoded_type_sort_storage> {
   using storage_type = an_ifc_encoded_type_sort_storage;
-  using base_type = Implicit_numeric_entity<storage_type>;
-  using base_type::Implicit_numeric_entity;
+  using base_type = Implicit_numeric_entry<storage_type>;
+  using base_type::Implicit_numeric_entry;
 };  /* an_ifc_encoded_type_sort */
 
 
@@ -1758,11 +1757,11 @@ using an_ifc_encoded_unit_index_storage = uint32_t;
 /*
 The universal representation for an IFC EncodedUnitIndex.
 */
-struct an_ifc_encoded_unit_index : Implicit_numeric_entity<
+struct an_ifc_encoded_unit_index : Implicit_numeric_entry<
                                            an_ifc_encoded_unit_index_storage> {
   using storage_type = an_ifc_encoded_unit_index_storage;
-  using base_type = Implicit_numeric_entity<storage_type>;
-  using base_type::Implicit_numeric_entity;
+  using base_type = Implicit_numeric_entry<storage_type>;
+  using base_type::Implicit_numeric_entry;
 };  /* an_ifc_encoded_unit_index */
 
 
@@ -1773,11 +1772,11 @@ using an_ifc_encoded_unit_sort_storage = uint32_t;
 /*
 The universal representation for an IFC EncodedUnitSort.
 */
-struct an_ifc_encoded_unit_sort : Implicit_numeric_entity<
+struct an_ifc_encoded_unit_sort : Implicit_numeric_entry<
                                             an_ifc_encoded_unit_sort_storage> {
   using storage_type = an_ifc_encoded_unit_sort_storage;
-  using base_type = Implicit_numeric_entity<storage_type>;
-  using base_type::Implicit_numeric_entity;
+  using base_type = Implicit_numeric_entry<storage_type>;
+  using base_type::Implicit_numeric_entry;
 };  /* an_ifc_encoded_unit_sort */
 
 
@@ -1788,11 +1787,11 @@ using an_ifc_encoded_variadic_operator_sort_storage = uint16_t;
 /*
 The universal representation for an IFC EncodedVariadicOperatorSort.
 */
-struct an_ifc_encoded_variadic_operator_sort : Implicit_numeric_entity<
+struct an_ifc_encoded_variadic_operator_sort : Implicit_numeric_entry<
                                an_ifc_encoded_variadic_operator_sort_storage> {
   using storage_type = an_ifc_encoded_variadic_operator_sort_storage;
-  using base_type = Implicit_numeric_entity<storage_type>;
-  using base_type::Implicit_numeric_entity;
+  using base_type = Implicit_numeric_entry<storage_type>;
+  using base_type::Implicit_numeric_entry;
 };  /* an_ifc_encoded_variadic_operator_sort */
 
 
@@ -1803,11 +1802,11 @@ using an_ifc_encoded_word_sort_storage = uint8_t;
 /*
 The universal representation for an IFC EncodedWordSort.
 */
-struct an_ifc_encoded_word_sort : Implicit_numeric_entity<
+struct an_ifc_encoded_word_sort : Implicit_numeric_entry<
                                             an_ifc_encoded_word_sort_storage> {
   using storage_type = an_ifc_encoded_word_sort_storage;
-  using base_type = Implicit_numeric_entity<storage_type>;
-  using base_type::Implicit_numeric_entity;
+  using base_type = Implicit_numeric_entry<storage_type>;
+  using base_type::Implicit_numeric_entry;
 };  /* an_ifc_encoded_word_sort */
 
 
@@ -1818,11 +1817,11 @@ using an_ifc_entity_size_storage = uint32_t;
 /*
 The universal representation for an IFC EntitySize.
 */
-struct an_ifc_entity_size : Implicit_numeric_entity<
+struct an_ifc_entity_size : Implicit_numeric_entry<
                                                   an_ifc_entity_size_storage> {
   using storage_type = an_ifc_entity_size_storage;
-  using base_type = Implicit_numeric_entity<storage_type>;
-  using base_type::Implicit_numeric_entity;
+  using base_type = Implicit_numeric_entry<storage_type>;
+  using base_type::Implicit_numeric_entry;
 };  /* an_ifc_entity_size */
 
 
@@ -1833,11 +1832,11 @@ using an_ifc_form_operator_sort_storage = uint16_t;
 /*
 The universal representation for an IFC FormOperatorSort.
 */
-struct an_ifc_form_operator_sort : Implicit_numeric_entity<
+struct an_ifc_form_operator_sort : Implicit_numeric_entry<
                                            an_ifc_form_operator_sort_storage> {
   using storage_type = an_ifc_form_operator_sort_storage;
-  using base_type = Implicit_numeric_entity<storage_type>;
-  using base_type::Implicit_numeric_entity;
+  using base_type = Implicit_numeric_entry<storage_type>;
+  using base_type::Implicit_numeric_entry;
 };  /* an_ifc_form_operator_sort */
 
 
@@ -1848,11 +1847,11 @@ using an_ifc_guide_traits_bitfield_storage = uint8_t;
 /*
 The universal representation for an IFC GuideTraitsBitfield.
 */
-struct an_ifc_guide_traits_bitfield : Implicit_numeric_entity<
+struct an_ifc_guide_traits_bitfield : Implicit_numeric_entry<
                                         an_ifc_guide_traits_bitfield_storage> {
   using storage_type = an_ifc_guide_traits_bitfield_storage;
-  using base_type = Implicit_numeric_entity<storage_type>;
-  using base_type::Implicit_numeric_entity;
+  using base_type = Implicit_numeric_entry<storage_type>;
+  using base_type::Implicit_numeric_entry;
 };  /* an_ifc_guide_traits_bitfield */
 
 
@@ -1863,10 +1862,10 @@ using an_ifc_index_storage = uint32_t;
 /*
 The universal representation for an IFC Index.
 */
-struct an_ifc_index : Implicit_numeric_entity<an_ifc_index_storage> {
+struct an_ifc_index : Implicit_numeric_entry<an_ifc_index_storage> {
   using storage_type = an_ifc_index_storage;
-  using base_type = Implicit_numeric_entity<storage_type>;
-  using base_type::Implicit_numeric_entity;
+  using base_type = Implicit_numeric_entry<storage_type>;
+  using base_type::Implicit_numeric_entry;
 };  /* an_ifc_index */
 
 
@@ -1877,11 +1876,11 @@ using an_ifc_language_version_storage = uint32_t;
 /*
 The universal representation for an IFC LanguageVersion.
 */
-struct an_ifc_language_version : Implicit_numeric_entity<
+struct an_ifc_language_version : Implicit_numeric_entry<
                                              an_ifc_language_version_storage> {
   using storage_type = an_ifc_language_version_storage;
-  using base_type = Implicit_numeric_entity<storage_type>;
-  using base_type::Implicit_numeric_entity;
+  using base_type = Implicit_numeric_entry<storage_type>;
+  using base_type::Implicit_numeric_entry;
 };  /* an_ifc_language_version */
 
 
@@ -1892,11 +1891,11 @@ using an_ifc_line_number_storage = uint32_t;
 /*
 The universal representation for an IFC LineNumber.
 */
-struct an_ifc_line_number : Implicit_numeric_entity<
+struct an_ifc_line_number : Implicit_numeric_entry<
                                                   an_ifc_line_number_storage> {
   using storage_type = an_ifc_line_number_storage;
-  using base_type = Implicit_numeric_entity<storage_type>;
-  using base_type::Implicit_numeric_entity;
+  using base_type = Implicit_numeric_entry<storage_type>;
+  using base_type::Implicit_numeric_entry;
 };  /* an_ifc_line_number */
 
 
@@ -1907,10 +1906,10 @@ using an_ifc_pack_size_storage = uint16_t;
 /*
 The universal representation for an IFC PackSize.
 */
-struct an_ifc_pack_size : Implicit_numeric_entity<an_ifc_pack_size_storage> {
+struct an_ifc_pack_size : Implicit_numeric_entry<an_ifc_pack_size_storage> {
   using storage_type = an_ifc_pack_size_storage;
-  using base_type = Implicit_numeric_entity<storage_type>;
-  using base_type::Implicit_numeric_entity;
+  using base_type = Implicit_numeric_entry<storage_type>;
+  using base_type::Implicit_numeric_entry;
 };  /* an_ifc_pack_size */
 
 
@@ -1921,11 +1920,11 @@ using an_ifc_parameter_level_storage = uint32_t;
 /*
 The universal representation for an IFC ParameterLevel.
 */
-struct an_ifc_parameter_level : Implicit_numeric_entity<
+struct an_ifc_parameter_level : Implicit_numeric_entry<
                                               an_ifc_parameter_level_storage> {
   using storage_type = an_ifc_parameter_level_storage;
-  using base_type = Implicit_numeric_entity<storage_type>;
-  using base_type::Implicit_numeric_entity;
+  using base_type = Implicit_numeric_entry<storage_type>;
+  using base_type::Implicit_numeric_entry;
 };  /* an_ifc_parameter_level */
 
 
@@ -1936,11 +1935,11 @@ using an_ifc_parameter_position_storage = uint32_t;
 /*
 The universal representation for an IFC ParameterPosition.
 */
-struct an_ifc_parameter_position : Implicit_numeric_entity<
+struct an_ifc_parameter_position : Implicit_numeric_entry<
                                            an_ifc_parameter_position_storage> {
   using storage_type = an_ifc_parameter_position_storage;
-  using base_type = Implicit_numeric_entity<storage_type>;
-  using base_type::Implicit_numeric_entity;
+  using base_type = Implicit_numeric_entry<storage_type>;
+  using base_type::Implicit_numeric_entry;
 };  /* an_ifc_parameter_position */
 
 
@@ -1951,11 +1950,11 @@ using an_ifc_segment_traits_storage = uint32_t;
 /*
 The universal representation for an IFC SegmentTraits.
 */
-struct an_ifc_segment_traits : Implicit_numeric_entity<
+struct an_ifc_segment_traits : Implicit_numeric_entry<
                                                an_ifc_segment_traits_storage> {
   using storage_type = an_ifc_segment_traits_storage;
-  using base_type = Implicit_numeric_entity<storage_type>;
-  using base_type::Implicit_numeric_entity;
+  using base_type = Implicit_numeric_entry<storage_type>;
+  using base_type::Implicit_numeric_entry;
 };  /* an_ifc_segment_traits */
 
 
@@ -1966,11 +1965,11 @@ using an_ifc_segment_type_storage = uint32_t;
 /*
 The universal representation for an IFC SegmentType.
 */
-struct an_ifc_segment_type : Implicit_numeric_entity<
+struct an_ifc_segment_type : Implicit_numeric_entry<
                                                  an_ifc_segment_type_storage> {
   using storage_type = an_ifc_segment_type_storage;
-  using base_type = Implicit_numeric_entity<storage_type>;
-  using base_type::Implicit_numeric_entity;
+  using base_type = Implicit_numeric_entry<storage_type>;
+  using base_type::Implicit_numeric_entry;
 };  /* an_ifc_segment_type */
 
 
@@ -1981,11 +1980,11 @@ using an_ifc_sentence_index_storage = uint32_t;
 /*
 The universal representation for an IFC SentenceIndex.
 */
-struct an_ifc_sentence_index : Implicit_numeric_entity<
+struct an_ifc_sentence_index : Implicit_numeric_entry<
                                                an_ifc_sentence_index_storage> {
   using storage_type = an_ifc_sentence_index_storage;
-  using base_type = Implicit_numeric_entity<storage_type>;
-  using base_type::Implicit_numeric_entity;
+  using base_type = Implicit_numeric_entry<storage_type>;
+  using base_type::Implicit_numeric_entry;
 };  /* an_ifc_sentence_index */
 
 
@@ -1996,11 +1995,11 @@ using an_ifc_source_unknown_identifier_storage = uint32_t;
 /*
 The universal representation for an IFC SourceUnknownIdentifier.
 */
-struct an_ifc_source_unknown_identifier : Implicit_numeric_entity<
+struct an_ifc_source_unknown_identifier : Implicit_numeric_entry<
                                     an_ifc_source_unknown_identifier_storage> {
   using storage_type = an_ifc_source_unknown_identifier_storage;
-  using base_type = Implicit_numeric_entity<storage_type>;
-  using base_type::Implicit_numeric_entity;
+  using base_type = Implicit_numeric_entry<storage_type>;
+  using base_type::Implicit_numeric_entry;
 };  /* an_ifc_source_unknown_identifier */
 
 
@@ -2011,11 +2010,11 @@ using an_ifc_source_unknown_literal_storage = uint32_t;
 /*
 The universal representation for an IFC SourceUnknownLiteral.
 */
-struct an_ifc_source_unknown_literal : Implicit_numeric_entity<
+struct an_ifc_source_unknown_literal : Implicit_numeric_entry<
                                        an_ifc_source_unknown_literal_storage> {
   using storage_type = an_ifc_source_unknown_literal_storage;
-  using base_type = Implicit_numeric_entity<storage_type>;
-  using base_type::Implicit_numeric_entity;
+  using base_type = Implicit_numeric_entry<storage_type>;
+  using base_type::Implicit_numeric_entry;
 };  /* an_ifc_source_unknown_literal */
 
 
@@ -2026,11 +2025,11 @@ using an_ifc_source_unknown_word_storage = uint16_t;
 /*
 The universal representation for an IFC SourceUnknownWord.
 */
-struct an_ifc_source_unknown_word : Implicit_numeric_entity<
+struct an_ifc_source_unknown_word : Implicit_numeric_entry<
                                           an_ifc_source_unknown_word_storage> {
   using storage_type = an_ifc_source_unknown_word_storage;
-  using base_type = Implicit_numeric_entity<storage_type>;
-  using base_type::Implicit_numeric_entity;
+  using base_type = Implicit_numeric_entry<storage_type>;
+  using base_type::Implicit_numeric_entry;
 };  /* an_ifc_source_unknown_word */
 
 
@@ -2041,10 +2040,10 @@ using an_ifc_unique_id_storage = uint32_t;
 /*
 The universal representation for an IFC UniqueID.
 */
-struct an_ifc_unique_id : Implicit_numeric_entity<an_ifc_unique_id_storage> {
+struct an_ifc_unique_id : Implicit_numeric_entry<an_ifc_unique_id_storage> {
   using storage_type = an_ifc_unique_id_storage;
-  using base_type = Implicit_numeric_entity<storage_type>;
-  using base_type::Implicit_numeric_entity;
+  using base_type = Implicit_numeric_entry<storage_type>;
+  using base_type::Implicit_numeric_entry;
 };  /* an_ifc_unique_id */
 
 
@@ -2055,10 +2054,10 @@ using an_ifc_version_storage = uint8_t;
 /*
 The universal representation for an IFC Version.
 */
-struct an_ifc_version : Implicit_numeric_entity<an_ifc_version_storage> {
+struct an_ifc_version : Implicit_numeric_entry<an_ifc_version_storage> {
   using storage_type = an_ifc_version_storage;
-  using base_type = Implicit_numeric_entity<storage_type>;
-  using base_type::Implicit_numeric_entity;
+  using base_type = Implicit_numeric_entry<storage_type>;
+  using base_type::Implicit_numeric_entry;
 };  /* an_ifc_version */
 
 
@@ -2069,10 +2068,10 @@ using an_ifc_bool_storage = uint8_t;
 /*
 The universal representation for an IFC bool.
 */
-struct an_ifc_bool : Implicit_numeric_entity<an_ifc_bool_storage> {
+struct an_ifc_bool : Implicit_numeric_entry<an_ifc_bool_storage> {
   using storage_type = an_ifc_bool_storage;
-  using base_type = Implicit_numeric_entity<storage_type>;
-  using base_type::Implicit_numeric_entity;
+  using base_type = Implicit_numeric_entry<storage_type>;
+  using base_type::Implicit_numeric_entry;
 };  /* an_ifc_bool */
 
 
@@ -2083,10 +2082,10 @@ using an_ifc_u16_storage = uint16_t;
 /*
 The universal representation for an IFC u16.
 */
-struct an_ifc_u16 : Implicit_numeric_entity<an_ifc_u16_storage> {
+struct an_ifc_u16 : Implicit_numeric_entry<an_ifc_u16_storage> {
   using storage_type = an_ifc_u16_storage;
-  using base_type = Implicit_numeric_entity<storage_type>;
-  using base_type::Implicit_numeric_entity;
+  using base_type = Implicit_numeric_entry<storage_type>;
+  using base_type::Implicit_numeric_entry;
 };  /* an_ifc_u16 */
 
 
@@ -2097,10 +2096,10 @@ using an_ifc_u64_storage = uint64_t;
 /*
 The universal representation for an IFC u64.
 */
-struct an_ifc_u64 : Implicit_numeric_entity<an_ifc_u64_storage> {
+struct an_ifc_u64 : Implicit_numeric_entry<an_ifc_u64_storage> {
   using storage_type = an_ifc_u64_storage;
-  using base_type = Implicit_numeric_entity<storage_type>;
-  using base_type::Implicit_numeric_entity;
+  using base_type = Implicit_numeric_entry<storage_type>;
+  using base_type::Implicit_numeric_entry;
 };  /* an_ifc_u64 */
 
 
@@ -5128,11 +5127,11 @@ enum an_ifc_attr_index_0_33 : uint32_t {};
 /*
 The universal representation for an IFC AttrIndex.
 */
-struct an_ifc_attr_index : Index_entity<an_ifc_attr_sort, uint32_t> {
+struct an_ifc_attr_index : Index_entry<an_ifc_attr_sort, uint32_t> {
   using sort_type = an_ifc_attr_sort;
   using native_size_type = uint32_t;
-  using base_type = Index_entity<sort_type, native_size_type>;
-  using base_type::Index_entity;
+  using base_type = Index_entry<sort_type, native_size_type>;
+  using base_type::Index_entry;
 };  /* an_ifc_attr_index */
 
 
@@ -5175,11 +5174,11 @@ enum an_ifc_chart_index_0_33 : uint32_t {};
 /*
 The universal representation for an IFC ChartIndex.
 */
-struct an_ifc_chart_index : Index_entity<an_ifc_chart_sort, uint32_t> {
+struct an_ifc_chart_index : Index_entry<an_ifc_chart_sort, uint32_t> {
   using sort_type = an_ifc_chart_sort;
   using native_size_type = uint32_t;
-  using base_type = Index_entity<sort_type, native_size_type>;
-  using base_type::Index_entity;
+  using base_type = Index_entry<sort_type, native_size_type>;
+  using base_type::Index_entry;
 };  /* an_ifc_chart_index */
 
 
@@ -5224,11 +5223,11 @@ enum an_ifc_decl_index_0_43 : uint32_t {};
 /*
 The universal representation for an IFC DeclIndex.
 */
-struct an_ifc_decl_index : Index_entity<an_ifc_decl_sort, uint32_t> {
+struct an_ifc_decl_index : Index_entry<an_ifc_decl_sort, uint32_t> {
   using sort_type = an_ifc_decl_sort;
   using native_size_type = uint32_t;
-  using base_type = Index_entity<sort_type, native_size_type>;
-  using base_type::Index_entity;
+  using base_type = Index_entry<sort_type, native_size_type>;
+  using base_type::Index_entry;
 };  /* an_ifc_decl_index */
 
 
@@ -5271,11 +5270,11 @@ enum an_ifc_dir_index_0_43 : uint32_t {};
 /*
 The universal representation for an IFC DirIndex.
 */
-struct an_ifc_dir_index : Index_entity<an_ifc_dir_sort, uint32_t> {
+struct an_ifc_dir_index : Index_entry<an_ifc_dir_sort, uint32_t> {
   using sort_type = an_ifc_dir_sort;
   using native_size_type = uint32_t;
-  using base_type = Index_entity<sort_type, native_size_type>;
-  using base_type::Index_entity;
+  using base_type = Index_entry<sort_type, native_size_type>;
+  using base_type::Index_entry;
 };  /* an_ifc_dir_index */
 
 
@@ -5318,12 +5317,12 @@ enum an_ifc_edg_complex_token_index_0_43 : uint32_t {};
 /*
 The universal representation for an IFC EdgComplexTokenIndex.
 */
-struct an_ifc_edg_complex_token_index : Index_entity<
+struct an_ifc_edg_complex_token_index : Index_entry<
                                      an_ifc_edg_complex_token_sort, uint32_t> {
   using sort_type = an_ifc_edg_complex_token_sort;
   using native_size_type = uint32_t;
-  using base_type = Index_entity<sort_type, native_size_type>;
-  using base_type::Index_entity;
+  using base_type = Index_entry<sort_type, native_size_type>;
+  using base_type::Index_entry;
 };  /* an_ifc_edg_complex_token_index */
 
 
@@ -5366,12 +5365,12 @@ enum an_ifc_edg_constant_index_0_43 : uint32_t {};
 /*
 The universal representation for an IFC EdgConstantIndex.
 */
-struct an_ifc_edg_constant_index : Index_entity<
+struct an_ifc_edg_constant_index : Index_entry<
                                           an_ifc_edg_constant_sort, uint32_t> {
   using sort_type = an_ifc_edg_constant_sort;
   using native_size_type = uint32_t;
-  using base_type = Index_entity<sort_type, native_size_type>;
-  using base_type::Index_entity;
+  using base_type = Index_entry<sort_type, native_size_type>;
+  using base_type::Index_entry;
 };  /* an_ifc_edg_constant_index */
 
 
@@ -5414,12 +5413,12 @@ enum an_ifc_edg_template_argument_index_0_43 : uint32_t {};
 /*
 The universal representation for an IFC EdgTemplateArgumentIndex.
 */
-struct an_ifc_edg_template_argument_index : Index_entity<
+struct an_ifc_edg_template_argument_index : Index_entry<
                                  an_ifc_edg_template_argument_sort, uint32_t> {
   using sort_type = an_ifc_edg_template_argument_sort;
   using native_size_type = uint32_t;
-  using base_type = Index_entity<sort_type, native_size_type>;
-  using base_type::Index_entity;
+  using base_type = Index_entry<sort_type, native_size_type>;
+  using base_type::Index_entry;
 };  /* an_ifc_edg_template_argument_index */
 
 
@@ -5462,11 +5461,11 @@ enum an_ifc_edg_type_index_0_43 : uint32_t {};
 /*
 The universal representation for an IFC EdgTypeIndex.
 */
-struct an_ifc_edg_type_index : Index_entity<an_ifc_edg_type_sort, uint32_t> {
+struct an_ifc_edg_type_index : Index_entry<an_ifc_edg_type_sort, uint32_t> {
   using sort_type = an_ifc_edg_type_sort;
   using native_size_type = uint32_t;
-  using base_type = Index_entity<sort_type, native_size_type>;
-  using base_type::Index_entity;
+  using base_type = Index_entry<sort_type, native_size_type>;
+  using base_type::Index_entry;
 };  /* an_ifc_edg_type_index */
 
 
@@ -5510,11 +5509,11 @@ enum an_ifc_expr_index_0_42 : uint32_t {};
 /*
 The universal representation for an IFC ExprIndex.
 */
-struct an_ifc_expr_index : Index_entity<an_ifc_expr_sort, uint32_t> {
+struct an_ifc_expr_index : Index_entry<an_ifc_expr_sort, uint32_t> {
   using sort_type = an_ifc_expr_sort;
   using native_size_type = uint32_t;
-  using base_type = Index_entity<sort_type, native_size_type>;
-  using base_type::Index_entity;
+  using base_type = Index_entry<sort_type, native_size_type>;
+  using base_type::Index_entry;
 };  /* an_ifc_expr_index */
 
 
@@ -5557,11 +5556,11 @@ enum an_ifc_form_index_0_33 : uint32_t {};
 /*
 The universal representation for an IFC FormIndex.
 */
-struct an_ifc_form_index : Index_entity<an_ifc_form_sort, uint32_t> {
+struct an_ifc_form_index : Index_entry<an_ifc_form_sort, uint32_t> {
   using sort_type = an_ifc_form_sort;
   using native_size_type = uint32_t;
-  using base_type = Index_entity<sort_type, native_size_type>;
-  using base_type::Index_entity;
+  using base_type = Index_entry<sort_type, native_size_type>;
+  using base_type::Index_entry;
 };  /* an_ifc_form_index */
 
 
@@ -5604,11 +5603,11 @@ enum an_ifc_lit_index_0_33 : uint32_t {};
 /*
 The universal representation for an IFC LitIndex.
 */
-struct an_ifc_lit_index : Index_entity<an_ifc_lit_sort, uint32_t> {
+struct an_ifc_lit_index : Index_entry<an_ifc_lit_sort, uint32_t> {
   using sort_type = an_ifc_lit_sort;
   using native_size_type = uint32_t;
-  using base_type = Index_entity<sort_type, native_size_type>;
-  using base_type::Index_entity;
+  using base_type = Index_entry<sort_type, native_size_type>;
+  using base_type::Index_entry;
 };  /* an_ifc_lit_index */
 
 
@@ -5651,11 +5650,11 @@ enum an_ifc_macro_index_0_33 : uint32_t {};
 /*
 The universal representation for an IFC MacroIndex.
 */
-struct an_ifc_macro_index : Index_entity<an_ifc_macro_sort, uint32_t> {
+struct an_ifc_macro_index : Index_entry<an_ifc_macro_sort, uint32_t> {
   using sort_type = an_ifc_macro_sort;
   using native_size_type = uint32_t;
-  using base_type = Index_entity<sort_type, native_size_type>;
-  using base_type::Index_entity;
+  using base_type = Index_entry<sort_type, native_size_type>;
+  using base_type::Index_entry;
 };  /* an_ifc_macro_index */
 
 
@@ -5698,11 +5697,11 @@ enum an_ifc_name_index_0_33 : uint32_t {};
 /*
 The universal representation for an IFC NameIndex.
 */
-struct an_ifc_name_index : Index_entity<an_ifc_name_sort, uint32_t> {
+struct an_ifc_name_index : Index_entry<an_ifc_name_sort, uint32_t> {
   using sort_type = an_ifc_name_sort;
   using native_size_type = uint32_t;
-  using base_type = Index_entity<sort_type, native_size_type>;
-  using base_type::Index_entity;
+  using base_type = Index_entry<sort_type, native_size_type>;
+  using base_type::Index_entry;
 };  /* an_ifc_name_index */
 
 
@@ -5745,11 +5744,11 @@ enum an_ifc_pragma_index_0_33 : uint32_t {};
 /*
 The universal representation for an IFC PragmaIndex.
 */
-struct an_ifc_pragma_index : Index_entity<an_ifc_pragma_sort, uint32_t> {
+struct an_ifc_pragma_index : Index_entry<an_ifc_pragma_sort, uint32_t> {
   using sort_type = an_ifc_pragma_sort;
   using native_size_type = uint32_t;
-  using base_type = Index_entity<sort_type, native_size_type>;
-  using base_type::Index_entity;
+  using base_type = Index_entry<sort_type, native_size_type>;
+  using base_type::Index_entry;
 };  /* an_ifc_pragma_index */
 
 
@@ -5793,11 +5792,11 @@ enum an_ifc_stmt_index_0_42 : uint32_t {};
 /*
 The universal representation for an IFC StmtIndex.
 */
-struct an_ifc_stmt_index : Index_entity<an_ifc_stmt_sort, uint32_t> {
+struct an_ifc_stmt_index : Index_entry<an_ifc_stmt_sort, uint32_t> {
   using sort_type = an_ifc_stmt_sort;
   using native_size_type = uint32_t;
-  using base_type = Index_entity<sort_type, native_size_type>;
-  using base_type::Index_entity;
+  using base_type = Index_entry<sort_type, native_size_type>;
+  using base_type::Index_entry;
 };  /* an_ifc_stmt_index */
 
 
@@ -5840,11 +5839,11 @@ enum an_ifc_string_index_0_33 : uint32_t {};
 /*
 The universal representation for an IFC StringIndex.
 */
-struct an_ifc_string_index : Index_entity<an_ifc_string_sort, uint32_t> {
+struct an_ifc_string_index : Index_entry<an_ifc_string_sort, uint32_t> {
   using sort_type = an_ifc_string_sort;
   using native_size_type = uint32_t;
-  using base_type = Index_entity<sort_type, native_size_type>;
-  using base_type::Index_entity;
+  using base_type = Index_entry<sort_type, native_size_type>;
+  using base_type::Index_entry;
 };  /* an_ifc_string_index */
 
 
@@ -5887,11 +5886,11 @@ enum an_ifc_syntax_index_0_33 : uint32_t {};
 /*
 The universal representation for an IFC SyntaxIndex.
 */
-struct an_ifc_syntax_index : Index_entity<an_ifc_syntax_sort, uint32_t> {
+struct an_ifc_syntax_index : Index_entry<an_ifc_syntax_sort, uint32_t> {
   using sort_type = an_ifc_syntax_sort;
   using native_size_type = uint32_t;
-  using base_type = Index_entity<sort_type, native_size_type>;
-  using base_type::Index_entity;
+  using base_type = Index_entry<sort_type, native_size_type>;
+  using base_type::Index_entry;
 };  /* an_ifc_syntax_index */
 
 
@@ -5934,11 +5933,11 @@ enum an_ifc_type_index_0_33 : uint32_t {};
 /*
 The universal representation for an IFC TypeIndex.
 */
-struct an_ifc_type_index : Index_entity<an_ifc_type_sort, uint32_t> {
+struct an_ifc_type_index : Index_entry<an_ifc_type_sort, uint32_t> {
   using sort_type = an_ifc_type_sort;
   using native_size_type = uint32_t;
-  using base_type = Index_entity<sort_type, native_size_type>;
-  using base_type::Index_entity;
+  using base_type = Index_entry<sort_type, native_size_type>;
+  using base_type::Index_entry;
 };  /* an_ifc_type_index */
 
 
@@ -5981,11 +5980,11 @@ enum an_ifc_unit_index_0_33 : uint32_t {};
 /*
 The universal representation for an IFC UnitIndex.
 */
-struct an_ifc_unit_index : Index_entity<an_ifc_unit_sort, uint32_t> {
+struct an_ifc_unit_index : Index_entry<an_ifc_unit_sort, uint32_t> {
   using sort_type = an_ifc_unit_sort;
   using native_size_type = uint32_t;
-  using base_type = Index_entity<sort_type, native_size_type>;
-  using base_type::Index_entity;
+  using base_type = Index_entry<sort_type, native_size_type>;
+  using base_type::Index_entry;
 };  /* an_ifc_unit_index */
 
 
@@ -6034,11 +6033,11 @@ using an_ifc_text_offset_storage = uint32_t;
 /*
 The universal representation for an IFC TextOffset.
 */
-struct an_ifc_text_offset : Implicit_numeric_entity<
+struct an_ifc_text_offset : Implicit_numeric_entry<
                                                   an_ifc_text_offset_storage> {
   using storage_type = an_ifc_text_offset_storage;
-  using base_type = Implicit_numeric_entity<storage_type>;
-  using base_type::Implicit_numeric_entity;
+  using base_type = Implicit_numeric_entry<storage_type>;
+  using base_type::Implicit_numeric_entry;
 };  /* an_ifc_text_offset */
 
 
@@ -6049,11 +6048,11 @@ using an_ifc_decl_foreign_index_storage = uint32_t;
 /*
 The universal representation for an IFC DeclForeignIndex.
 */
-struct an_ifc_decl_foreign_index : Numeric_entity<
+struct an_ifc_decl_foreign_index : Numeric_entry<
                                            an_ifc_decl_foreign_index_storage> {
   using storage_type = an_ifc_decl_foreign_index_storage;
-  using base_type = Numeric_entity<storage_type>;
-  using base_type::Numeric_entity;
+  using base_type = Numeric_entry<storage_type>;
+  using base_type::Numeric_entry;
 };  /* an_ifc_decl_foreign_index */
 
 
@@ -6076,11 +6075,11 @@ using an_ifc_basic_specifiers_bitfield_storage = uint8_t;
 /*
 The universal representation for an IFC BasicSpecifiersBitfield.
 */
-struct an_ifc_basic_specifiers_bitfield : Numeric_entity<
+struct an_ifc_basic_specifiers_bitfield : Numeric_entry<
                                     an_ifc_basic_specifiers_bitfield_storage> {
   using storage_type = an_ifc_basic_specifiers_bitfield_storage;
-  using base_type = Numeric_entity<storage_type>;
-  using base_type::Numeric_entity;
+  using base_type = Numeric_entry<storage_type>;
+  using base_type::Numeric_entry;
 };  /* an_ifc_basic_specifiers_bitfield */
 
 
@@ -6119,11 +6118,11 @@ using an_ifc_function_traits_bitfield_storage = uint16_t;
 /*
 The universal representation for an IFC FunctionTraitsBitfield.
 */
-struct an_ifc_function_traits_bitfield : Numeric_entity<
+struct an_ifc_function_traits_bitfield : Numeric_entry<
                                      an_ifc_function_traits_bitfield_storage> {
   using storage_type = an_ifc_function_traits_bitfield_storage;
-  using base_type = Numeric_entity<storage_type>;
-  using base_type::Numeric_entity;
+  using base_type = Numeric_entry<storage_type>;
+  using base_type::Numeric_entry;
 };  /* an_ifc_function_traits_bitfield */
 
 
@@ -6158,11 +6157,11 @@ using an_ifc_function_type_traits_bitfield_storage = uint8_t;
 /*
 The universal representation for an IFC FunctionTypeTraitsBitfield.
 */
-struct an_ifc_function_type_traits_bitfield : Numeric_entity<
+struct an_ifc_function_type_traits_bitfield : Numeric_entry<
                                 an_ifc_function_type_traits_bitfield_storage> {
   using storage_type = an_ifc_function_type_traits_bitfield_storage;
-  using base_type = Numeric_entity<storage_type>;
-  using base_type::Numeric_entity;
+  using base_type = Numeric_entry<storage_type>;
+  using base_type::Numeric_entry;
 };  /* an_ifc_function_type_traits_bitfield */
 
 
@@ -6203,11 +6202,11 @@ using an_ifc_msvc_traits_bitfield_storage = uint32_t;
 /*
 The universal representation for an IFC MsvcTraitsBitfield.
 */
-struct an_ifc_msvc_traits_bitfield : Numeric_entity<
+struct an_ifc_msvc_traits_bitfield : Numeric_entry<
                                          an_ifc_msvc_traits_bitfield_storage> {
   using storage_type = an_ifc_msvc_traits_bitfield_storage;
-  using base_type = Numeric_entity<storage_type>;
-  using base_type::Numeric_entity;
+  using base_type = Numeric_entry<storage_type>;
+  using base_type::Numeric_entry;
 };  /* an_ifc_msvc_traits_bitfield */
 
 
@@ -6250,11 +6249,11 @@ using an_ifc_object_traits_bitfield_storage = uint8_t;
 /*
 The universal representation for an IFC ObjectTraitsBitfield.
 */
-struct an_ifc_object_traits_bitfield : Numeric_entity<
+struct an_ifc_object_traits_bitfield : Numeric_entry<
                                        an_ifc_object_traits_bitfield_storage> {
   using storage_type = an_ifc_object_traits_bitfield_storage;
-  using base_type = Numeric_entity<storage_type>;
-  using base_type::Numeric_entity;
+  using base_type = Numeric_entry<storage_type>;
+  using base_type::Numeric_entry;
 };  /* an_ifc_object_traits_bitfield */
 
 
@@ -6294,11 +6293,10 @@ using an_ifc_phases_bitfield_storage = uint32_t;
 /*
 The universal representation for an IFC PhasesBitfield.
 */
-struct an_ifc_phases_bitfield : Numeric_entity<
-                                              an_ifc_phases_bitfield_storage> {
+struct an_ifc_phases_bitfield : Numeric_entry<an_ifc_phases_bitfield_storage> {
   using storage_type = an_ifc_phases_bitfield_storage;
-  using base_type = Numeric_entity<storage_type>;
-  using base_type::Numeric_entity;
+  using base_type = Numeric_entry<storage_type>;
+  using base_type::Numeric_entry;
 };  /* an_ifc_phases_bitfield */
 
 
@@ -6335,11 +6333,11 @@ using an_ifc_qualifier_bitfield_storage = uint8_t;
 /*
 The universal representation for an IFC QualifierBitfield.
 */
-struct an_ifc_qualifier_bitfield : Numeric_entity<
+struct an_ifc_qualifier_bitfield : Numeric_entry<
                                            an_ifc_qualifier_bitfield_storage> {
   using storage_type = an_ifc_qualifier_bitfield_storage;
-  using base_type = Numeric_entity<storage_type>;
-  using base_type::Numeric_entity;
+  using base_type = Numeric_entry<storage_type>;
+  using base_type::Numeric_entry;
 };  /* an_ifc_qualifier_bitfield */
 
 
@@ -6366,11 +6364,11 @@ using an_ifc_reachable_properties_bitfield_storage = uint8_t;
 /*
 The universal representation for an IFC ReachablePropertiesBitfield.
 */
-struct an_ifc_reachable_properties_bitfield : Numeric_entity<
+struct an_ifc_reachable_properties_bitfield : Numeric_entry<
                                 an_ifc_reachable_properties_bitfield_storage> {
   using storage_type = an_ifc_reachable_properties_bitfield_storage;
-  using base_type = Numeric_entity<storage_type>;
-  using base_type::Numeric_entity;
+  using base_type = Numeric_entry<storage_type>;
+  using base_type::Numeric_entry;
 };  /* an_ifc_reachable_properties_bitfield */
 
 
@@ -6400,11 +6398,11 @@ using an_ifc_scope_traits_bitfield_storage = uint8_t;
 /*
 The universal representation for an IFC ScopeTraitsBitfield.
 */
-struct an_ifc_scope_traits_bitfield : Numeric_entity<
+struct an_ifc_scope_traits_bitfield : Numeric_entry<
                                         an_ifc_scope_traits_bitfield_storage> {
   using storage_type = an_ifc_scope_traits_bitfield_storage;
-  using base_type = Numeric_entity<storage_type>;
-  using base_type::Numeric_entity;
+  using base_type = Numeric_entry<storage_type>;
+  using base_type::Numeric_entry;
 };  /* an_ifc_scope_traits_bitfield */
 
 
@@ -6672,14 +6670,14 @@ using an_ifc_keyword_syntax_bytes = an_ifc_keyword_syntax_storage;
 /*
 The universal representation of an IFC KeywordSyntax node.
 
-The representation is declared as a derived struct of Byte_buffer_entity rather
+The representation is declared as a derived struct of Byte_buffer_entry rather
 than simply an alias of the instantiation to improve the debugger experience.
 */
 struct an_ifc_keyword_syntax :
-                            Byte_buffer_entity<an_ifc_keyword_syntax_storage> {
+                             Byte_buffer_entry<an_ifc_keyword_syntax_storage> {
   using storage_type = an_ifc_keyword_syntax_storage;
-  using base_type = Byte_buffer_entity<storage_type>;
-  using base_type::Byte_buffer_entity;
+  using base_type = Byte_buffer_entry<storage_type>;
+  using base_type::Byte_buffer_entry;
 };  /* an_ifc_keyword_syntax */
 
 
@@ -6703,14 +6701,14 @@ using an_ifc_module_reference_bytes = an_ifc_module_reference_storage;
 /*
 The universal representation of an IFC ModuleReference node.
 
-The representation is declared as a derived struct of Byte_buffer_entity rather
+The representation is declared as a derived struct of Byte_buffer_entry rather
 than simply an alias of the instantiation to improve the debugger experience.
 */
 struct an_ifc_module_reference :
-                          Byte_buffer_entity<an_ifc_module_reference_storage> {
+                           Byte_buffer_entry<an_ifc_module_reference_storage> {
   using storage_type = an_ifc_module_reference_storage;
-  using base_type = Byte_buffer_entity<storage_type>;
-  using base_type::Byte_buffer_entity;
+  using base_type = Byte_buffer_entry<storage_type>;
+  using base_type::Byte_buffer_entry;
 };  /* an_ifc_module_reference */
 
 
@@ -6739,14 +6737,13 @@ using an_ifc_nestable_word_bytes = an_ifc_nestable_word_storage;
 /*
 The universal representation of an IFC NestableWord node.
 
-The representation is declared as a derived struct of Byte_buffer_entity rather
+The representation is declared as a derived struct of Byte_buffer_entry rather
 than simply an alias of the instantiation to improve the debugger experience.
 */
-struct an_ifc_nestable_word :
-                             Byte_buffer_entity<an_ifc_nestable_word_storage> {
+struct an_ifc_nestable_word : Byte_buffer_entry<an_ifc_nestable_word_storage> {
   using storage_type = an_ifc_nestable_word_storage;
-  using base_type = Byte_buffer_entity<storage_type>;
-  using base_type::Byte_buffer_entity;
+  using base_type = Byte_buffer_entry<storage_type>;
+  using base_type::Byte_buffer_entry;
 };  /* an_ifc_nestable_word */
 
 
@@ -6774,14 +6771,14 @@ using an_ifc_noexcept_specification_bytes =
 /*
 The universal representation of an IFC NoexceptSpecification node.
 
-The representation is declared as a derived struct of Byte_buffer_entity rather
+The representation is declared as a derived struct of Byte_buffer_entry rather
 than simply an alias of the instantiation to improve the debugger experience.
 */
 struct an_ifc_noexcept_specification :
-                    Byte_buffer_entity<an_ifc_noexcept_specification_storage> {
+                     Byte_buffer_entry<an_ifc_noexcept_specification_storage> {
   using storage_type = an_ifc_noexcept_specification_storage;
-  using base_type = Byte_buffer_entity<storage_type>;
-  using base_type::Byte_buffer_entity;
+  using base_type = Byte_buffer_entry<storage_type>;
+  using base_type::Byte_buffer_entry;
 };  /* an_ifc_noexcept_specification */
 
 
@@ -6831,14 +6828,14 @@ using an_ifc_parameterized_entity_bytes = an_ifc_parameterized_entity_storage;
 /*
 The universal representation of an IFC ParameterizedEntity node.
 
-The representation is declared as a derived struct of Byte_buffer_entity rather
+The representation is declared as a derived struct of Byte_buffer_entry rather
 than simply an alias of the instantiation to improve the debugger experience.
 */
 struct an_ifc_parameterized_entity :
-                      Byte_buffer_entity<an_ifc_parameterized_entity_storage> {
+                       Byte_buffer_entry<an_ifc_parameterized_entity_storage> {
   using storage_type = an_ifc_parameterized_entity_storage;
-  using base_type = Byte_buffer_entity<storage_type>;
-  using base_type::Byte_buffer_entity;
+  using base_type = Byte_buffer_entry<storage_type>;
+  using base_type::Byte_buffer_entry;
 };  /* an_ifc_parameterized_entity */
 
 
@@ -6862,13 +6859,13 @@ using an_ifc_sequence_bytes = an_ifc_sequence_storage;
 /*
 The universal representation of an IFC Sequence node.
 
-The representation is declared as a derived struct of Byte_buffer_entity rather
+The representation is declared as a derived struct of Byte_buffer_entry rather
 than simply an alias of the instantiation to improve the debugger experience.
 */
-struct an_ifc_sequence : Byte_buffer_entity<an_ifc_sequence_storage> {
+struct an_ifc_sequence : Byte_buffer_entry<an_ifc_sequence_storage> {
   using storage_type = an_ifc_sequence_storage;
-  using base_type = Byte_buffer_entity<storage_type>;
-  using base_type::Byte_buffer_entity;
+  using base_type = Byte_buffer_entry<storage_type>;
+  using base_type::Byte_buffer_entry;
 };  /* an_ifc_sequence */
 
 
@@ -6892,14 +6889,14 @@ using an_ifc_source_location_bytes = an_ifc_source_location_storage;
 /*
 The universal representation of an IFC SourceLocation node.
 
-The representation is declared as a derived struct of Byte_buffer_entity rather
+The representation is declared as a derived struct of Byte_buffer_entry rather
 than simply an alias of the instantiation to improve the debugger experience.
 */
 struct an_ifc_source_location :
-                           Byte_buffer_entity<an_ifc_source_location_storage> {
+                            Byte_buffer_entry<an_ifc_source_location_storage> {
   using storage_type = an_ifc_source_location_storage;
-  using base_type = Byte_buffer_entity<storage_type>;
-  using base_type::Byte_buffer_entity;
+  using base_type = Byte_buffer_entry<storage_type>;
+  using base_type::Byte_buffer_entry;
 };  /* an_ifc_source_location */
 
 
@@ -6926,14 +6923,14 @@ using an_ifc_type_placeholder_basis_wrapper_bytes =
 /*
 The universal representation of an IFC TypePlaceholderBasisWrapper node.
 
-The representation is declared as a derived struct of Byte_buffer_entity rather
+The representation is declared as a derived struct of Byte_buffer_entry rather
 than simply an alias of the instantiation to improve the debugger experience.
 */
 struct an_ifc_type_placeholder_basis_wrapper :
-            Byte_buffer_entity<an_ifc_type_placeholder_basis_wrapper_storage> {
+             Byte_buffer_entry<an_ifc_type_placeholder_basis_wrapper_storage> {
   using storage_type = an_ifc_type_placeholder_basis_wrapper_storage;
-  using base_type = Byte_buffer_entity<storage_type>;
-  using base_type::Byte_buffer_entity;
+  using base_type = Byte_buffer_entry<storage_type>;
+  using base_type::Byte_buffer_entry;
 };  /* an_ifc_type_placeholder_basis_wrapper */
 
 
@@ -6969,13 +6966,13 @@ using an_ifc_file_header_bytes = an_ifc_file_header_storage;
 /*
 The universal representation of an IFC FileHeader node.
 
-The representation is declared as a derived struct of Byte_buffer_entity rather
+The representation is declared as a derived struct of Byte_buffer_entry rather
 than simply an alias of the instantiation to improve the debugger experience.
 */
-struct an_ifc_file_header : Byte_buffer_entity<an_ifc_file_header_storage> {
+struct an_ifc_file_header : Byte_buffer_entry<an_ifc_file_header_storage> {
   using storage_type = an_ifc_file_header_storage;
-  using base_type = Byte_buffer_entity<storage_type>;
-  using base_type::Byte_buffer_entity;
+  using base_type = Byte_buffer_entry<storage_type>;
+  using base_type::Byte_buffer_entry;
 };  /* an_ifc_file_header */
 
 
@@ -7001,13 +6998,13 @@ using an_ifc_partition_bytes = an_ifc_partition_storage;
 /*
 The universal representation of an IFC Partition node.
 
-The representation is declared as a derived struct of Byte_buffer_entity rather
+The representation is declared as a derived struct of Byte_buffer_entry rather
 than simply an alias of the instantiation to improve the debugger experience.
 */
-struct an_ifc_partition : Byte_buffer_entity<an_ifc_partition_storage> {
+struct an_ifc_partition : Byte_buffer_entry<an_ifc_partition_storage> {
   using storage_type = an_ifc_partition_storage;
-  using base_type = Byte_buffer_entity<storage_type>;
-  using base_type::Byte_buffer_entity;
+  using base_type = Byte_buffer_entry<storage_type>;
+  using base_type::Byte_buffer_entry;
 };  /* an_ifc_partition */
 
 
@@ -7030,13 +7027,13 @@ using an_ifc_attr_basic_bytes = an_ifc_attr_basic_storage;
 /*
 The universal representation of an IFC AttrBasic node.
 
-The representation is declared as a derived struct of Byte_buffer_entity rather
+The representation is declared as a derived struct of Byte_buffer_entry rather
 than simply an alias of the instantiation to improve the debugger experience.
 */
-struct an_ifc_attr_basic : Byte_buffer_entity<an_ifc_attr_basic_storage> {
+struct an_ifc_attr_basic : Byte_buffer_entry<an_ifc_attr_basic_storage> {
   using storage_type = an_ifc_attr_basic_storage;
-  using base_type = Byte_buffer_entity<storage_type>;
-  using base_type::Byte_buffer_entity;
+  using base_type = Byte_buffer_entry<storage_type>;
+  using base_type::Byte_buffer_entry;
 };  /* an_ifc_attr_basic */
 
 
@@ -7060,13 +7057,13 @@ using an_ifc_attr_called_bytes = an_ifc_attr_called_storage;
 /*
 The universal representation of an IFC AttrCalled node.
 
-The representation is declared as a derived struct of Byte_buffer_entity rather
+The representation is declared as a derived struct of Byte_buffer_entry rather
 than simply an alias of the instantiation to improve the debugger experience.
 */
-struct an_ifc_attr_called : Byte_buffer_entity<an_ifc_attr_called_storage> {
+struct an_ifc_attr_called : Byte_buffer_entry<an_ifc_attr_called_storage> {
   using storage_type = an_ifc_attr_called_storage;
-  using base_type = Byte_buffer_entity<storage_type>;
-  using base_type::Byte_buffer_entity;
+  using base_type = Byte_buffer_entry<storage_type>;
+  using base_type::Byte_buffer_entry;
 };  /* an_ifc_attr_called */
 
 
@@ -7097,14 +7094,14 @@ using an_ifc_attr_elaborated_bytes = an_ifc_attr_elaborated_storage;
 /*
 The universal representation of an IFC AttrElaborated node.
 
-The representation is declared as a derived struct of Byte_buffer_entity rather
+The representation is declared as a derived struct of Byte_buffer_entry rather
 than simply an alias of the instantiation to improve the debugger experience.
 */
 struct an_ifc_attr_elaborated :
-                           Byte_buffer_entity<an_ifc_attr_elaborated_storage> {
+                            Byte_buffer_entry<an_ifc_attr_elaborated_storage> {
   using storage_type = an_ifc_attr_elaborated_storage;
-  using base_type = Byte_buffer_entity<storage_type>;
-  using base_type::Byte_buffer_entity;
+  using base_type = Byte_buffer_entry<storage_type>;
+  using base_type::Byte_buffer_entry;
 };  /* an_ifc_attr_elaborated */
 
 
@@ -7127,14 +7124,13 @@ using an_ifc_attr_expanded_bytes = an_ifc_attr_expanded_storage;
 /*
 The universal representation of an IFC AttrExpanded node.
 
-The representation is declared as a derived struct of Byte_buffer_entity rather
+The representation is declared as a derived struct of Byte_buffer_entry rather
 than simply an alias of the instantiation to improve the debugger experience.
 */
-struct an_ifc_attr_expanded :
-                             Byte_buffer_entity<an_ifc_attr_expanded_storage> {
+struct an_ifc_attr_expanded : Byte_buffer_entry<an_ifc_attr_expanded_storage> {
   using storage_type = an_ifc_attr_expanded_storage;
-  using base_type = Byte_buffer_entity<storage_type>;
-  using base_type::Byte_buffer_entity;
+  using base_type = Byte_buffer_entry<storage_type>;
+  using base_type::Byte_buffer_entry;
 };  /* an_ifc_attr_expanded */
 
 
@@ -7158,14 +7154,13 @@ using an_ifc_attr_factored_bytes = an_ifc_attr_factored_storage;
 /*
 The universal representation of an IFC AttrFactored node.
 
-The representation is declared as a derived struct of Byte_buffer_entity rather
+The representation is declared as a derived struct of Byte_buffer_entry rather
 than simply an alias of the instantiation to improve the debugger experience.
 */
-struct an_ifc_attr_factored :
-                             Byte_buffer_entity<an_ifc_attr_factored_storage> {
+struct an_ifc_attr_factored : Byte_buffer_entry<an_ifc_attr_factored_storage> {
   using storage_type = an_ifc_attr_factored_storage;
-  using base_type = Byte_buffer_entity<storage_type>;
-  using base_type::Byte_buffer_entity;
+  using base_type = Byte_buffer_entry<storage_type>;
+  using base_type::Byte_buffer_entry;
 };  /* an_ifc_attr_factored */
 
 
@@ -7189,13 +7184,13 @@ using an_ifc_attr_labeled_bytes = an_ifc_attr_labeled_storage;
 /*
 The universal representation of an IFC AttrLabeled node.
 
-The representation is declared as a derived struct of Byte_buffer_entity rather
+The representation is declared as a derived struct of Byte_buffer_entry rather
 than simply an alias of the instantiation to improve the debugger experience.
 */
-struct an_ifc_attr_labeled : Byte_buffer_entity<an_ifc_attr_labeled_storage> {
+struct an_ifc_attr_labeled : Byte_buffer_entry<an_ifc_attr_labeled_storage> {
   using storage_type = an_ifc_attr_labeled_storage;
-  using base_type = Byte_buffer_entity<storage_type>;
-  using base_type::Byte_buffer_entity;
+  using base_type = Byte_buffer_entry<storage_type>;
+  using base_type::Byte_buffer_entry;
 };  /* an_ifc_attr_labeled */
 
 
@@ -7219,13 +7214,13 @@ using an_ifc_attr_scoped_bytes = an_ifc_attr_scoped_storage;
 /*
 The universal representation of an IFC AttrScoped node.
 
-The representation is declared as a derived struct of Byte_buffer_entity rather
+The representation is declared as a derived struct of Byte_buffer_entry rather
 than simply an alias of the instantiation to improve the debugger experience.
 */
-struct an_ifc_attr_scoped : Byte_buffer_entity<an_ifc_attr_scoped_storage> {
+struct an_ifc_attr_scoped : Byte_buffer_entry<an_ifc_attr_scoped_storage> {
   using storage_type = an_ifc_attr_scoped_storage;
-  using base_type = Byte_buffer_entity<storage_type>;
-  using base_type::Byte_buffer_entity;
+  using base_type = Byte_buffer_entry<storage_type>;
+  using base_type::Byte_buffer_entry;
 };  /* an_ifc_attr_scoped */
 
 
@@ -7249,13 +7244,13 @@ using an_ifc_attr_tuple_bytes = an_ifc_attr_tuple_storage;
 /*
 The universal representation of an IFC AttrTuple node.
 
-The representation is declared as a derived struct of Byte_buffer_entity rather
+The representation is declared as a derived struct of Byte_buffer_entry rather
 than simply an alias of the instantiation to improve the debugger experience.
 */
-struct an_ifc_attr_tuple : Byte_buffer_entity<an_ifc_attr_tuple_storage> {
+struct an_ifc_attr_tuple : Byte_buffer_entry<an_ifc_attr_tuple_storage> {
   using storage_type = an_ifc_attr_tuple_storage;
-  using base_type = Byte_buffer_entity<storage_type>;
-  using base_type::Byte_buffer_entity;
+  using base_type = Byte_buffer_entry<storage_type>;
+  using base_type::Byte_buffer_entry;
 };  /* an_ifc_attr_tuple */
 
 
@@ -7279,14 +7274,14 @@ using an_ifc_chart_multilevel_bytes = an_ifc_chart_multilevel_storage;
 /*
 The universal representation of an IFC ChartMultilevel node.
 
-The representation is declared as a derived struct of Byte_buffer_entity rather
+The representation is declared as a derived struct of Byte_buffer_entry rather
 than simply an alias of the instantiation to improve the debugger experience.
 */
 struct an_ifc_chart_multilevel :
-                          Byte_buffer_entity<an_ifc_chart_multilevel_storage> {
+                           Byte_buffer_entry<an_ifc_chart_multilevel_storage> {
   using storage_type = an_ifc_chart_multilevel_storage;
-  using base_type = Byte_buffer_entity<storage_type>;
-  using base_type::Byte_buffer_entity;
+  using base_type = Byte_buffer_entry<storage_type>;
+  using base_type::Byte_buffer_entry;
 };  /* an_ifc_chart_multilevel */
 
 
@@ -7321,14 +7316,14 @@ using an_ifc_chart_unilevel_bytes = an_ifc_chart_unilevel_storage;
 /*
 The universal representation of an IFC ChartUnilevel node.
 
-The representation is declared as a derived struct of Byte_buffer_entity rather
+The representation is declared as a derived struct of Byte_buffer_entry rather
 than simply an alias of the instantiation to improve the debugger experience.
 */
 struct an_ifc_chart_unilevel :
-                            Byte_buffer_entity<an_ifc_chart_unilevel_storage> {
+                             Byte_buffer_entry<an_ifc_chart_unilevel_storage> {
   using storage_type = an_ifc_chart_unilevel_storage;
-  using base_type = Byte_buffer_entity<storage_type>;
-  using base_type::Byte_buffer_entity;
+  using base_type = Byte_buffer_entry<storage_type>;
+  using base_type::Byte_buffer_entry;
 };  /* an_ifc_chart_unilevel */
 
 
@@ -7352,13 +7347,13 @@ using an_ifc_const_f64_bytes = an_ifc_const_f64_storage;
 /*
 The universal representation of an IFC ConstF64 node.
 
-The representation is declared as a derived struct of Byte_buffer_entity rather
+The representation is declared as a derived struct of Byte_buffer_entry rather
 than simply an alias of the instantiation to improve the debugger experience.
 */
-struct an_ifc_const_f64 : Byte_buffer_entity<an_ifc_const_f64_storage> {
+struct an_ifc_const_f64 : Byte_buffer_entry<an_ifc_const_f64_storage> {
   using storage_type = an_ifc_const_f64_storage;
-  using base_type = Byte_buffer_entity<storage_type>;
-  using base_type::Byte_buffer_entity;
+  using base_type = Byte_buffer_entry<storage_type>;
+  using base_type::Byte_buffer_entry;
 };  /* an_ifc_const_f64 */
 
 
@@ -7381,13 +7376,13 @@ using an_ifc_const_i64_bytes = an_ifc_const_i64_storage;
 /*
 The universal representation of an IFC ConstI64 node.
 
-The representation is declared as a derived struct of Byte_buffer_entity rather
+The representation is declared as a derived struct of Byte_buffer_entry rather
 than simply an alias of the instantiation to improve the debugger experience.
 */
-struct an_ifc_const_i64 : Byte_buffer_entity<an_ifc_const_i64_storage> {
+struct an_ifc_const_i64 : Byte_buffer_entry<an_ifc_const_i64_storage> {
   using storage_type = an_ifc_const_i64_storage;
-  using base_type = Byte_buffer_entity<storage_type>;
-  using base_type::Byte_buffer_entity;
+  using base_type = Byte_buffer_entry<storage_type>;
+  using base_type::Byte_buffer_entry;
 };  /* an_ifc_const_i64 */
 
 
@@ -7412,13 +7407,13 @@ using an_ifc_const_str_bytes = an_ifc_const_str_storage;
 /*
 The universal representation of an IFC ConstStr node.
 
-The representation is declared as a derived struct of Byte_buffer_entity rather
+The representation is declared as a derived struct of Byte_buffer_entry rather
 than simply an alias of the instantiation to improve the debugger experience.
 */
-struct an_ifc_const_str : Byte_buffer_entity<an_ifc_const_str_storage> {
+struct an_ifc_const_str : Byte_buffer_entry<an_ifc_const_str_storage> {
   using storage_type = an_ifc_const_str_storage;
-  using base_type = Byte_buffer_entity<storage_type>;
-  using base_type::Byte_buffer_entity;
+  using base_type = Byte_buffer_entry<storage_type>;
+  using base_type::Byte_buffer_entry;
 };  /* an_ifc_const_str */
 
 
@@ -7482,13 +7477,13 @@ using an_ifc_decl_alias_bytes = an_ifc_decl_alias_storage;
 /*
 The universal representation of an IFC DeclAlias node.
 
-The representation is declared as a derived struct of Byte_buffer_entity rather
+The representation is declared as a derived struct of Byte_buffer_entry rather
 than simply an alias of the instantiation to improve the debugger experience.
 */
-struct an_ifc_decl_alias : Byte_buffer_entity<an_ifc_decl_alias_storage> {
+struct an_ifc_decl_alias : Byte_buffer_entry<an_ifc_decl_alias_storage> {
   using storage_type = an_ifc_decl_alias_storage;
-  using base_type = Byte_buffer_entity<storage_type>;
-  using base_type::Byte_buffer_entity;
+  using base_type = Byte_buffer_entry<storage_type>;
+  using base_type::Byte_buffer_entry;
 };  /* an_ifc_decl_alias */
 
 
@@ -7514,13 +7509,13 @@ using an_ifc_decl_barren_bytes = an_ifc_decl_barren_storage;
 /*
 The universal representation of an IFC DeclBarren node.
 
-The representation is declared as a derived struct of Byte_buffer_entity rather
+The representation is declared as a derived struct of Byte_buffer_entry rather
 than simply an alias of the instantiation to improve the debugger experience.
 */
-struct an_ifc_decl_barren : Byte_buffer_entity<an_ifc_decl_barren_storage> {
+struct an_ifc_decl_barren : Byte_buffer_entry<an_ifc_decl_barren_storage> {
   using storage_type = an_ifc_decl_barren_storage;
-  using base_type = Byte_buffer_entity<storage_type>;
-  using base_type::Byte_buffer_entity;
+  using base_type = Byte_buffer_entry<storage_type>;
+  using base_type::Byte_buffer_entry;
 };  /* an_ifc_decl_barren */
 
 
@@ -7609,14 +7604,13 @@ using an_ifc_decl_bitfield_bytes = an_ifc_decl_bitfield_storage;
 /*
 The universal representation of an IFC DeclBitfield node.
 
-The representation is declared as a derived struct of Byte_buffer_entity rather
+The representation is declared as a derived struct of Byte_buffer_entry rather
 than simply an alias of the instantiation to improve the debugger experience.
 */
-struct an_ifc_decl_bitfield :
-                             Byte_buffer_entity<an_ifc_decl_bitfield_storage> {
+struct an_ifc_decl_bitfield : Byte_buffer_entry<an_ifc_decl_bitfield_storage> {
   using storage_type = an_ifc_decl_bitfield_storage;
-  using base_type = Byte_buffer_entity<storage_type>;
-  using base_type::Byte_buffer_entity;
+  using base_type = Byte_buffer_entry<storage_type>;
+  using base_type::Byte_buffer_entry;
 };  /* an_ifc_decl_bitfield */
 
 
@@ -7709,13 +7703,13 @@ using an_ifc_decl_concept_bytes = an_ifc_decl_concept_storage;
 /*
 The universal representation of an IFC DeclConcept node.
 
-The representation is declared as a derived struct of Byte_buffer_entity rather
+The representation is declared as a derived struct of Byte_buffer_entry rather
 than simply an alias of the instantiation to improve the debugger experience.
 */
-struct an_ifc_decl_concept : Byte_buffer_entity<an_ifc_decl_concept_storage> {
+struct an_ifc_decl_concept : Byte_buffer_entry<an_ifc_decl_concept_storage> {
   using storage_type = an_ifc_decl_concept_storage;
-  using base_type = Byte_buffer_entity<storage_type>;
-  using base_type::Byte_buffer_entity;
+  using base_type = Byte_buffer_entry<storage_type>;
+  using base_type::Byte_buffer_entry;
 };  /* an_ifc_decl_concept */
 
 
@@ -7789,14 +7783,14 @@ using an_ifc_decl_constructor_bytes = an_ifc_decl_constructor_storage;
 /*
 The universal representation of an IFC DeclConstructor node.
 
-The representation is declared as a derived struct of Byte_buffer_entity rather
+The representation is declared as a derived struct of Byte_buffer_entry rather
 than simply an alias of the instantiation to improve the debugger experience.
 */
 struct an_ifc_decl_constructor :
-                          Byte_buffer_entity<an_ifc_decl_constructor_storage> {
+                           Byte_buffer_entry<an_ifc_decl_constructor_storage> {
   using storage_type = an_ifc_decl_constructor_storage;
-  using base_type = Byte_buffer_entity<storage_type>;
-  using base_type::Byte_buffer_entity;
+  using base_type = Byte_buffer_entry<storage_type>;
+  using base_type::Byte_buffer_entry;
 };  /* an_ifc_decl_constructor */
 
 
@@ -7879,14 +7873,14 @@ using an_ifc_decl_deduction_guide_bytes = an_ifc_decl_deduction_guide_storage;
 /*
 The universal representation of an IFC DeclDeductionGuide node.
 
-The representation is declared as a derived struct of Byte_buffer_entity rather
+The representation is declared as a derived struct of Byte_buffer_entry rather
 than simply an alias of the instantiation to improve the debugger experience.
 */
 struct an_ifc_decl_deduction_guide :
-                      Byte_buffer_entity<an_ifc_decl_deduction_guide_storage> {
+                       Byte_buffer_entry<an_ifc_decl_deduction_guide_storage> {
   using storage_type = an_ifc_decl_deduction_guide_storage;
-  using base_type = Byte_buffer_entity<storage_type>;
-  using base_type::Byte_buffer_entity;
+  using base_type = Byte_buffer_entry<storage_type>;
+  using base_type::Byte_buffer_entry;
 };  /* an_ifc_decl_deduction_guide */
 
 
@@ -7921,14 +7915,14 @@ using an_ifc_decl_default_argument_bytes =
 /*
 The universal representation of an IFC DeclDefaultArgument node.
 
-The representation is declared as a derived struct of Byte_buffer_entity rather
+The representation is declared as a derived struct of Byte_buffer_entry rather
 than simply an alias of the instantiation to improve the debugger experience.
 */
 struct an_ifc_decl_default_argument :
-                     Byte_buffer_entity<an_ifc_decl_default_argument_storage> {
+                      Byte_buffer_entry<an_ifc_decl_default_argument_storage> {
   using storage_type = an_ifc_decl_default_argument_storage;
-  using base_type = Byte_buffer_entity<storage_type>;
-  using base_type::Byte_buffer_entity;
+  using base_type = Byte_buffer_entry<storage_type>;
+  using base_type::Byte_buffer_entry;
 };  /* an_ifc_decl_default_argument */
 
 
@@ -8002,14 +7996,14 @@ using an_ifc_decl_destructor_bytes = an_ifc_decl_destructor_storage;
 /*
 The universal representation of an IFC DeclDestructor node.
 
-The representation is declared as a derived struct of Byte_buffer_entity rather
+The representation is declared as a derived struct of Byte_buffer_entry rather
 than simply an alias of the instantiation to improve the debugger experience.
 */
 struct an_ifc_decl_destructor :
-                           Byte_buffer_entity<an_ifc_decl_destructor_storage> {
+                            Byte_buffer_entry<an_ifc_decl_destructor_storage> {
   using storage_type = an_ifc_decl_destructor_storage;
-  using base_type = Byte_buffer_entity<storage_type>;
-  using base_type::Byte_buffer_entity;
+  using base_type = Byte_buffer_entry<storage_type>;
+  using base_type::Byte_buffer_entry;
 };  /* an_ifc_decl_destructor */
 
 
@@ -8102,14 +8096,14 @@ using an_ifc_decl_enumeration_bytes = an_ifc_decl_enumeration_storage;
 /*
 The universal representation of an IFC DeclEnumeration node.
 
-The representation is declared as a derived struct of Byte_buffer_entity rather
+The representation is declared as a derived struct of Byte_buffer_entry rather
 than simply an alias of the instantiation to improve the debugger experience.
 */
 struct an_ifc_decl_enumeration :
-                          Byte_buffer_entity<an_ifc_decl_enumeration_storage> {
+                           Byte_buffer_entry<an_ifc_decl_enumeration_storage> {
   using storage_type = an_ifc_decl_enumeration_storage;
-  using base_type = Byte_buffer_entity<storage_type>;
-  using base_type::Byte_buffer_entity;
+  using base_type = Byte_buffer_entry<storage_type>;
+  using base_type::Byte_buffer_entry;
 };  /* an_ifc_decl_enumeration */
 
 
@@ -8156,14 +8150,14 @@ using an_ifc_decl_enumerator_bytes = an_ifc_decl_enumerator_storage;
 /*
 The universal representation of an IFC DeclEnumerator node.
 
-The representation is declared as a derived struct of Byte_buffer_entity rather
+The representation is declared as a derived struct of Byte_buffer_entry rather
 than simply an alias of the instantiation to improve the debugger experience.
 */
 struct an_ifc_decl_enumerator :
-                           Byte_buffer_entity<an_ifc_decl_enumerator_storage> {
+                            Byte_buffer_entry<an_ifc_decl_enumerator_storage> {
   using storage_type = an_ifc_decl_enumerator_storage;
-  using base_type = Byte_buffer_entity<storage_type>;
-  using base_type::Byte_buffer_entity;
+  using base_type = Byte_buffer_entry<storage_type>;
+  using base_type::Byte_buffer_entry;
 };  /* an_ifc_decl_enumerator */
 
 
@@ -8205,14 +8199,14 @@ using an_ifc_decl_expansion_bytes = an_ifc_decl_expansion_storage;
 /*
 The universal representation of an IFC DeclExpansion node.
 
-The representation is declared as a derived struct of Byte_buffer_entity rather
+The representation is declared as a derived struct of Byte_buffer_entry rather
 than simply an alias of the instantiation to improve the debugger experience.
 */
 struct an_ifc_decl_expansion :
-                            Byte_buffer_entity<an_ifc_decl_expansion_storage> {
+                             Byte_buffer_entry<an_ifc_decl_expansion_storage> {
   using storage_type = an_ifc_decl_expansion_storage;
-  using base_type = Byte_buffer_entity<storage_type>;
-  using base_type::Byte_buffer_entity;
+  using base_type = Byte_buffer_entry<storage_type>;
+  using base_type::Byte_buffer_entry;
 };  /* an_ifc_decl_expansion */
 
 
@@ -8239,14 +8233,14 @@ using an_ifc_decl_explicit_instantiation_bytes =
 /*
 The universal representation of an IFC DeclExplicitInstantiation node.
 
-The representation is declared as a derived struct of Byte_buffer_entity rather
+The representation is declared as a derived struct of Byte_buffer_entry rather
 than simply an alias of the instantiation to improve the debugger experience.
 */
 struct an_ifc_decl_explicit_instantiation :
-               Byte_buffer_entity<an_ifc_decl_explicit_instantiation_storage> {
+                Byte_buffer_entry<an_ifc_decl_explicit_instantiation_storage> {
   using storage_type = an_ifc_decl_explicit_instantiation_storage;
-  using base_type = Byte_buffer_entity<storage_type>;
-  using base_type::Byte_buffer_entity;
+  using base_type = Byte_buffer_entry<storage_type>;
+  using base_type::Byte_buffer_entry;
 };  /* an_ifc_decl_explicit_instantiation */
 
 
@@ -8273,14 +8267,14 @@ using an_ifc_decl_explicit_specialization_bytes =
 /*
 The universal representation of an IFC DeclExplicitSpecialization node.
 
-The representation is declared as a derived struct of Byte_buffer_entity rather
+The representation is declared as a derived struct of Byte_buffer_entry rather
 than simply an alias of the instantiation to improve the debugger experience.
 */
 struct an_ifc_decl_explicit_specialization :
-              Byte_buffer_entity<an_ifc_decl_explicit_specialization_storage> {
+               Byte_buffer_entry<an_ifc_decl_explicit_specialization_storage> {
   using storage_type = an_ifc_decl_explicit_specialization_storage;
-  using base_type = Byte_buffer_entity<storage_type>;
-  using base_type::Byte_buffer_entity;
+  using base_type = Byte_buffer_entry<storage_type>;
+  using base_type::Byte_buffer_entry;
 };  /* an_ifc_decl_explicit_specialization */
 
 
@@ -8369,13 +8363,13 @@ using an_ifc_decl_field_bytes = an_ifc_decl_field_storage;
 /*
 The universal representation of an IFC DeclField node.
 
-The representation is declared as a derived struct of Byte_buffer_entity rather
+The representation is declared as a derived struct of Byte_buffer_entry rather
 than simply an alias of the instantiation to improve the debugger experience.
 */
-struct an_ifc_decl_field : Byte_buffer_entity<an_ifc_decl_field_storage> {
+struct an_ifc_decl_field : Byte_buffer_entry<an_ifc_decl_field_storage> {
   using storage_type = an_ifc_decl_field_storage;
-  using base_type = Byte_buffer_entity<storage_type>;
-  using base_type::Byte_buffer_entity;
+  using base_type = Byte_buffer_entry<storage_type>;
+  using base_type::Byte_buffer_entry;
 };  /* an_ifc_decl_field */
 
 
@@ -8406,13 +8400,13 @@ using an_ifc_decl_friend_bytes = an_ifc_decl_friend_storage;
 /*
 The universal representation of an IFC DeclFriend node.
 
-The representation is declared as a derived struct of Byte_buffer_entity rather
+The representation is declared as a derived struct of Byte_buffer_entry rather
 than simply an alias of the instantiation to improve the debugger experience.
 */
-struct an_ifc_decl_friend : Byte_buffer_entity<an_ifc_decl_friend_storage> {
+struct an_ifc_decl_friend : Byte_buffer_entry<an_ifc_decl_friend_storage> {
   using storage_type = an_ifc_decl_friend_storage;
-  using base_type = Byte_buffer_entity<storage_type>;
-  using base_type::Byte_buffer_entity;
+  using base_type = Byte_buffer_entry<storage_type>;
+  using base_type::Byte_buffer_entry;
 };  /* an_ifc_decl_friend */
 
 
@@ -8482,14 +8476,13 @@ using an_ifc_decl_function_bytes = an_ifc_decl_function_storage;
 /*
 The universal representation of an IFC DeclFunction node.
 
-The representation is declared as a derived struct of Byte_buffer_entity rather
+The representation is declared as a derived struct of Byte_buffer_entry rather
 than simply an alias of the instantiation to improve the debugger experience.
 */
-struct an_ifc_decl_function :
-                             Byte_buffer_entity<an_ifc_decl_function_storage> {
+struct an_ifc_decl_function : Byte_buffer_entry<an_ifc_decl_function_storage> {
   using storage_type = an_ifc_decl_function_storage;
-  using base_type = Byte_buffer_entity<storage_type>;
-  using base_type::Byte_buffer_entity;
+  using base_type = Byte_buffer_entry<storage_type>;
+  using base_type::Byte_buffer_entry;
 };  /* an_ifc_decl_function */
 
 
@@ -8559,14 +8552,14 @@ using an_ifc_decl_inherited_constructor_bytes =
 /*
 The universal representation of an IFC DeclInheritedConstructor node.
 
-The representation is declared as a derived struct of Byte_buffer_entity rather
+The representation is declared as a derived struct of Byte_buffer_entry rather
 than simply an alias of the instantiation to improve the debugger experience.
 */
 struct an_ifc_decl_inherited_constructor :
-                Byte_buffer_entity<an_ifc_decl_inherited_constructor_storage> {
+                 Byte_buffer_entry<an_ifc_decl_inherited_constructor_storage> {
   using storage_type = an_ifc_decl_inherited_constructor_storage;
-  using base_type = Byte_buffer_entity<storage_type>;
-  using base_type::Byte_buffer_entity;
+  using base_type = Byte_buffer_entry<storage_type>;
+  using base_type::Byte_buffer_entry;
 };  /* an_ifc_decl_inherited_constructor */
 
 
@@ -8627,14 +8620,14 @@ using an_ifc_decl_intrinsic_bytes = an_ifc_decl_intrinsic_storage;
 /*
 The universal representation of an IFC DeclIntrinsic node.
 
-The representation is declared as a derived struct of Byte_buffer_entity rather
+The representation is declared as a derived struct of Byte_buffer_entry rather
 than simply an alias of the instantiation to improve the debugger experience.
 */
 struct an_ifc_decl_intrinsic :
-                            Byte_buffer_entity<an_ifc_decl_intrinsic_storage> {
+                             Byte_buffer_entry<an_ifc_decl_intrinsic_storage> {
   using storage_type = an_ifc_decl_intrinsic_storage;
-  using base_type = Byte_buffer_entity<storage_type>;
-  using base_type::Byte_buffer_entity;
+  using base_type = Byte_buffer_entry<storage_type>;
+  using base_type::Byte_buffer_entry;
 };  /* an_ifc_decl_intrinsic */
 
 
@@ -8704,13 +8697,13 @@ using an_ifc_decl_method_bytes = an_ifc_decl_method_storage;
 /*
 The universal representation of an IFC DeclMethod node.
 
-The representation is declared as a derived struct of Byte_buffer_entity rather
+The representation is declared as a derived struct of Byte_buffer_entry rather
 than simply an alias of the instantiation to improve the debugger experience.
 */
-struct an_ifc_decl_method : Byte_buffer_entity<an_ifc_decl_method_storage> {
+struct an_ifc_decl_method : Byte_buffer_entry<an_ifc_decl_method_storage> {
   using storage_type = an_ifc_decl_method_storage;
-  using base_type = Byte_buffer_entity<storage_type>;
-  using base_type::Byte_buffer_entity;
+  using base_type = Byte_buffer_entry<storage_type>;
+  using base_type::Byte_buffer_entry;
 };  /* an_ifc_decl_method */
 
 
@@ -8737,14 +8730,14 @@ using an_ifc_decl_output_segment_bytes = an_ifc_decl_output_segment_storage;
 /*
 The universal representation of an IFC DeclOutputSegment node.
 
-The representation is declared as a derived struct of Byte_buffer_entity rather
+The representation is declared as a derived struct of Byte_buffer_entry rather
 than simply an alias of the instantiation to improve the debugger experience.
 */
 struct an_ifc_decl_output_segment :
-                       Byte_buffer_entity<an_ifc_decl_output_segment_storage> {
+                        Byte_buffer_entry<an_ifc_decl_output_segment_storage> {
   using storage_type = an_ifc_decl_output_segment_storage;
-  using base_type = Byte_buffer_entity<storage_type>;
-  using base_type::Byte_buffer_entity;
+  using base_type = Byte_buffer_entry<storage_type>;
+  using base_type::Byte_buffer_entry;
 };  /* an_ifc_decl_output_segment */
 
 
@@ -8828,14 +8821,14 @@ using an_ifc_decl_parameter_bytes = an_ifc_decl_parameter_storage;
 /*
 The universal representation of an IFC DeclParameter node.
 
-The representation is declared as a derived struct of Byte_buffer_entity rather
+The representation is declared as a derived struct of Byte_buffer_entry rather
 than simply an alias of the instantiation to improve the debugger experience.
 */
 struct an_ifc_decl_parameter :
-                            Byte_buffer_entity<an_ifc_decl_parameter_storage> {
+                             Byte_buffer_entry<an_ifc_decl_parameter_storage> {
   using storage_type = an_ifc_decl_parameter_storage;
-  using base_type = Byte_buffer_entity<storage_type>;
-  using base_type::Byte_buffer_entity;
+  using base_type = Byte_buffer_entry<storage_type>;
+  using base_type::Byte_buffer_entry;
 };  /* an_ifc_decl_parameter */
 
 
@@ -8916,47 +8909,53 @@ using an_ifc_decl_partial_specialization_bytes =
 /*
 The universal representation of an IFC DeclPartialSpecialization node.
 
-The representation is declared as a derived struct of Byte_buffer_entity rather
+The representation is declared as a derived struct of Byte_buffer_entry rather
 than simply an alias of the instantiation to improve the debugger experience.
 */
 struct an_ifc_decl_partial_specialization :
-               Byte_buffer_entity<an_ifc_decl_partial_specialization_storage> {
+                Byte_buffer_entry<an_ifc_decl_partial_specialization_storage> {
   using storage_type = an_ifc_decl_partial_specialization_storage;
-  using base_type = Byte_buffer_entity<storage_type>;
-  using base_type::Byte_buffer_entity;
+  using base_type = Byte_buffer_entry<storage_type>;
+  using base_type::Byte_buffer_entry;
 };  /* an_ifc_decl_partial_specialization */
 
 
 /*
-  |--------------------------------------|
-  |    DeclProperty - 0.33 (12 bytes)    |
-  |--------|------------|---------|------|
-  | Name   | Type       | Version | Size |
-  |--------|------------|---------|------|
-  | member | DeclIndex  | 0.33    | 4    |
-  | getter | TextOffset | 0.33    | 4    |
-  | setter | TextOffset | 0.33    | 4    |
-  |--------|------------|---------|------|
+  |------------------------------------------|
+  |      DeclProperty - 0.33 (12 bytes)      |
+  |------------|------------|---------|------|
+  | Name       | Type       | Version | Size |
+  |------------|------------|---------|------|
+  | member     | DeclIndex  | 0.33    | 4    |
+  | getter     | TextOffset | 0.33    | 4    |
+  | setter     | TextOffset | 0.33    | 4    |
+  |------------|------------|---------|------|
+  | home_scope | DeclIndex  | 0.33    | TF   |
+  |------------|------------|---------|------|
 
-  |--------------------------------------|
-  |    DeclProperty - 0.41 (12 bytes)    |
-  |--------|------------|---------|------|
-  | Name   | Type       | Version | Size |
-  |--------|------------|---------|------|
-  | member | DeclIndex  | 0.41    | 4    |
-  | getter | TextOffset | 0.33    | 4    |
-  | setter | TextOffset | 0.33    | 4    |
-  |--------|------------|---------|------|
+  |------------------------------------------|
+  |      DeclProperty - 0.41 (12 bytes)      |
+  |------------|------------|---------|------|
+  | Name       | Type       | Version | Size |
+  |------------|------------|---------|------|
+  | member     | DeclIndex  | 0.41    | 4    |
+  | getter     | TextOffset | 0.33    | 4    |
+  | setter     | TextOffset | 0.33    | 4    |
+  |------------|------------|---------|------|
+  | home_scope | DeclIndex  | 0.41    | TF   |
+  |------------|------------|---------|------|
 
-  |--------------------------------------|
-  |    DeclProperty - 0.43 (12 bytes)    |
-  |--------|------------|---------|------|
-  | Name   | Type       | Version | Size |
-  |--------|------------|---------|------|
-  | member | DeclIndex  | 0.43    | 4    |
-  | getter | TextOffset | 0.33    | 4    |
-  | setter | TextOffset | 0.33    | 4    |
-  |--------|------------|---------|------|
+  |------------------------------------------|
+  |      DeclProperty - 0.43 (12 bytes)      |
+  |------------|------------|---------|------|
+  | Name       | Type       | Version | Size |
+  |------------|------------|---------|------|
+  | member     | DeclIndex  | 0.43    | 4    |
+  | getter     | TextOffset | 0.33    | 4    |
+  | setter     | TextOffset | 0.33    | 4    |
+  |------------|------------|---------|------|
+  | home_scope | DeclIndex  | 0.43    | TF   |
+  |------------|------------|---------|------|
 */
 enum an_ifc_decl_property_part : uint8_t {};
 using an_ifc_decl_property_storage = an_ifc_decl_property_part[12];
@@ -8968,14 +8967,13 @@ using an_ifc_decl_property_bytes = an_ifc_decl_property_storage;
 /*
 The universal representation of an IFC DeclProperty node.
 
-The representation is declared as a derived struct of Byte_buffer_entity rather
+The representation is declared as a derived struct of Byte_buffer_entry rather
 than simply an alias of the instantiation to improve the debugger experience.
 */
-struct an_ifc_decl_property :
-                             Byte_buffer_entity<an_ifc_decl_property_storage> {
+struct an_ifc_decl_property : Byte_buffer_entry<an_ifc_decl_property_storage> {
   using storage_type = an_ifc_decl_property_storage;
-  using base_type = Byte_buffer_entity<storage_type>;
-  using base_type::Byte_buffer_entity;
+  using base_type = Byte_buffer_entry<storage_type>;
+  using base_type::Byte_buffer_entry;
 };  /* an_ifc_decl_property */
 
 
@@ -9001,14 +8999,14 @@ using an_ifc_decl_reference_bytes = an_ifc_decl_reference_storage;
 /*
 The universal representation of an IFC DeclReference node.
 
-The representation is declared as a derived struct of Byte_buffer_entity rather
+The representation is declared as a derived struct of Byte_buffer_entry rather
 than simply an alias of the instantiation to improve the debugger experience.
 */
 struct an_ifc_decl_reference :
-                            Byte_buffer_entity<an_ifc_decl_reference_storage> {
+                             Byte_buffer_entry<an_ifc_decl_reference_storage> {
   using storage_type = an_ifc_decl_reference_storage;
-  using base_type = Byte_buffer_entity<storage_type>;
-  using base_type::Byte_buffer_entity;
+  using base_type = Byte_buffer_entry<storage_type>;
+  using base_type::Byte_buffer_entry;
 };  /* an_ifc_decl_reference */
 
 
@@ -9109,13 +9107,13 @@ using an_ifc_decl_scope_bytes = an_ifc_decl_scope_storage;
 /*
 The universal representation of an IFC DeclScope node.
 
-The representation is declared as a derived struct of Byte_buffer_entity rather
+The representation is declared as a derived struct of Byte_buffer_entry rather
 than simply an alias of the instantiation to improve the debugger experience.
 */
-struct an_ifc_decl_scope : Byte_buffer_entity<an_ifc_decl_scope_storage> {
+struct an_ifc_decl_scope : Byte_buffer_entry<an_ifc_decl_scope_storage> {
   using storage_type = an_ifc_decl_scope_storage;
-  using base_type = Byte_buffer_entity<storage_type>;
-  using base_type::Byte_buffer_entity;
+  using base_type = Byte_buffer_entry<storage_type>;
+  using base_type::Byte_buffer_entry;
 };  /* an_ifc_decl_scope */
 
 
@@ -9163,14 +9161,14 @@ using an_ifc_decl_specialization_bytes = an_ifc_decl_specialization_storage;
 /*
 The universal representation of an IFC DeclSpecialization node.
 
-The representation is declared as a derived struct of Byte_buffer_entity rather
+The representation is declared as a derived struct of Byte_buffer_entry rather
 than simply an alias of the instantiation to improve the debugger experience.
 */
 struct an_ifc_decl_specialization :
-                       Byte_buffer_entity<an_ifc_decl_specialization_storage> {
+                        Byte_buffer_entry<an_ifc_decl_specialization_storage> {
   using storage_type = an_ifc_decl_specialization_storage;
-  using base_type = Byte_buffer_entity<storage_type>;
-  using base_type::Byte_buffer_entity;
+  using base_type = Byte_buffer_entry<storage_type>;
+  using base_type::Byte_buffer_entry;
 };  /* an_ifc_decl_specialization */
 
 
@@ -9193,14 +9191,14 @@ using an_ifc_decl_syntax_tree_bytes = an_ifc_decl_syntax_tree_storage;
 /*
 The universal representation of an IFC DeclSyntaxTree node.
 
-The representation is declared as a derived struct of Byte_buffer_entity rather
+The representation is declared as a derived struct of Byte_buffer_entry rather
 than simply an alias of the instantiation to improve the debugger experience.
 */
 struct an_ifc_decl_syntax_tree :
-                          Byte_buffer_entity<an_ifc_decl_syntax_tree_storage> {
+                           Byte_buffer_entry<an_ifc_decl_syntax_tree_storage> {
   using storage_type = an_ifc_decl_syntax_tree_storage;
-  using base_type = Byte_buffer_entity<storage_type>;
-  using base_type::Byte_buffer_entity;
+  using base_type = Byte_buffer_entry<storage_type>;
+  using base_type::Byte_buffer_entry;
 };  /* an_ifc_decl_syntax_tree */
 
 
@@ -9274,14 +9272,13 @@ using an_ifc_decl_template_bytes = an_ifc_decl_template_storage;
 /*
 The universal representation of an IFC DeclTemplate node.
 
-The representation is declared as a derived struct of Byte_buffer_entity rather
+The representation is declared as a derived struct of Byte_buffer_entry rather
 than simply an alias of the instantiation to improve the debugger experience.
 */
-struct an_ifc_decl_template :
-                             Byte_buffer_entity<an_ifc_decl_template_storage> {
+struct an_ifc_decl_template : Byte_buffer_entry<an_ifc_decl_template_storage> {
   using storage_type = an_ifc_decl_template_storage;
-  using base_type = Byte_buffer_entity<storage_type>;
-  using base_type::Byte_buffer_entity;
+  using base_type = Byte_buffer_entry<storage_type>;
+  using base_type::Byte_buffer_entry;
 };  /* an_ifc_decl_template */
 
 
@@ -9329,14 +9326,13 @@ using an_ifc_decl_temploid_bytes = an_ifc_decl_temploid_storage;
 /*
 The universal representation of an IFC DeclTemploid node.
 
-The representation is declared as a derived struct of Byte_buffer_entity rather
+The representation is declared as a derived struct of Byte_buffer_entry rather
 than simply an alias of the instantiation to improve the debugger experience.
 */
-struct an_ifc_decl_temploid :
-                             Byte_buffer_entity<an_ifc_decl_temploid_storage> {
+struct an_ifc_decl_temploid : Byte_buffer_entry<an_ifc_decl_temploid_storage> {
   using storage_type = an_ifc_decl_temploid_storage;
-  using base_type = Byte_buffer_entity<storage_type>;
-  using base_type::Byte_buffer_entity;
+  using base_type = Byte_buffer_entry<storage_type>;
+  using base_type::Byte_buffer_entry;
 };  /* an_ifc_decl_temploid */
 
 
@@ -9360,13 +9356,13 @@ using an_ifc_decl_tuple_bytes = an_ifc_decl_tuple_storage;
 /*
 The universal representation of an IFC DeclTuple node.
 
-The representation is declared as a derived struct of Byte_buffer_entity rather
+The representation is declared as a derived struct of Byte_buffer_entry rather
 than simply an alias of the instantiation to improve the debugger experience.
 */
-struct an_ifc_decl_tuple : Byte_buffer_entity<an_ifc_decl_tuple_storage> {
+struct an_ifc_decl_tuple : Byte_buffer_entry<an_ifc_decl_tuple_storage> {
   using storage_type = an_ifc_decl_tuple_storage;
-  using base_type = Byte_buffer_entity<storage_type>;
-  using base_type::Byte_buffer_entity;
+  using base_type = Byte_buffer_entry<storage_type>;
+  using base_type::Byte_buffer_entry;
 };  /* an_ifc_decl_tuple */
 
 
@@ -9458,14 +9454,14 @@ using an_ifc_decl_using_declaration_bytes =
 /*
 The universal representation of an IFC DeclUsingDeclaration node.
 
-The representation is declared as a derived struct of Byte_buffer_entity rather
+The representation is declared as a derived struct of Byte_buffer_entry rather
 than simply an alias of the instantiation to improve the debugger experience.
 */
 struct an_ifc_decl_using_declaration :
-                    Byte_buffer_entity<an_ifc_decl_using_declaration_storage> {
+                     Byte_buffer_entry<an_ifc_decl_using_declaration_storage> {
   using storage_type = an_ifc_decl_using_declaration_storage;
-  using base_type = Byte_buffer_entity<storage_type>;
-  using base_type::Byte_buffer_entity;
+  using base_type = Byte_buffer_entry<storage_type>;
+  using base_type::Byte_buffer_entry;
 };  /* an_ifc_decl_using_declaration */
 
 
@@ -9554,14 +9550,13 @@ using an_ifc_decl_variable_bytes = an_ifc_decl_variable_storage;
 /*
 The universal representation of an IFC DeclVariable node.
 
-The representation is declared as a derived struct of Byte_buffer_entity rather
+The representation is declared as a derived struct of Byte_buffer_entry rather
 than simply an alias of the instantiation to improve the debugger experience.
 */
-struct an_ifc_decl_variable :
-                             Byte_buffer_entity<an_ifc_decl_variable_storage> {
+struct an_ifc_decl_variable : Byte_buffer_entry<an_ifc_decl_variable_storage> {
   using storage_type = an_ifc_decl_variable_storage;
-  using base_type = Byte_buffer_entity<storage_type>;
-  using base_type::Byte_buffer_entity;
+  using base_type = Byte_buffer_entry<storage_type>;
+  using base_type::Byte_buffer_entry;
 };  /* an_ifc_decl_variable */
 
 
@@ -9585,14 +9580,13 @@ using an_ifc_dir_attribute_bytes = an_ifc_dir_attribute_storage;
 /*
 The universal representation of an IFC DirAttribute node.
 
-The representation is declared as a derived struct of Byte_buffer_entity rather
+The representation is declared as a derived struct of Byte_buffer_entry rather
 than simply an alias of the instantiation to improve the debugger experience.
 */
-struct an_ifc_dir_attribute :
-                             Byte_buffer_entity<an_ifc_dir_attribute_storage> {
+struct an_ifc_dir_attribute : Byte_buffer_entry<an_ifc_dir_attribute_storage> {
   using storage_type = an_ifc_dir_attribute_storage;
-  using base_type = Byte_buffer_entity<storage_type>;
-  using base_type::Byte_buffer_entity;
+  using base_type = Byte_buffer_entry<storage_type>;
+  using base_type::Byte_buffer_entry;
 };  /* an_ifc_dir_attribute */
 
 
@@ -9617,13 +9611,13 @@ using an_ifc_dir_decl_use_bytes = an_ifc_dir_decl_use_storage;
 /*
 The universal representation of an IFC DirDeclUse node.
 
-The representation is declared as a derived struct of Byte_buffer_entity rather
+The representation is declared as a derived struct of Byte_buffer_entry rather
 than simply an alias of the instantiation to improve the debugger experience.
 */
-struct an_ifc_dir_decl_use : Byte_buffer_entity<an_ifc_dir_decl_use_storage> {
+struct an_ifc_dir_decl_use : Byte_buffer_entry<an_ifc_dir_decl_use_storage> {
   using storage_type = an_ifc_dir_decl_use_storage;
-  using base_type = Byte_buffer_entity<storage_type>;
-  using base_type::Byte_buffer_entity;
+  using base_type = Byte_buffer_entry<storage_type>;
+  using base_type::Byte_buffer_entry;
 };  /* an_ifc_dir_decl_use */
 
 
@@ -9646,13 +9640,13 @@ using an_ifc_dir_empty_bytes = an_ifc_dir_empty_storage;
 /*
 The universal representation of an IFC DirEmpty node.
 
-The representation is declared as a derived struct of Byte_buffer_entity rather
+The representation is declared as a derived struct of Byte_buffer_entry rather
 than simply an alias of the instantiation to improve the debugger experience.
 */
-struct an_ifc_dir_empty : Byte_buffer_entity<an_ifc_dir_empty_storage> {
+struct an_ifc_dir_empty : Byte_buffer_entry<an_ifc_dir_empty_storage> {
   using storage_type = an_ifc_dir_empty_storage;
-  using base_type = Byte_buffer_entity<storage_type>;
-  using base_type::Byte_buffer_entity;
+  using base_type = Byte_buffer_entry<storage_type>;
+  using base_type::Byte_buffer_entry;
 };  /* an_ifc_dir_empty */
 
 
@@ -9677,13 +9671,13 @@ using an_ifc_dir_expr_bytes = an_ifc_dir_expr_storage;
 /*
 The universal representation of an IFC DirExpr node.
 
-The representation is declared as a derived struct of Byte_buffer_entity rather
+The representation is declared as a derived struct of Byte_buffer_entry rather
 than simply an alias of the instantiation to improve the debugger experience.
 */
-struct an_ifc_dir_expr : Byte_buffer_entity<an_ifc_dir_expr_storage> {
+struct an_ifc_dir_expr : Byte_buffer_entry<an_ifc_dir_expr_storage> {
   using storage_type = an_ifc_dir_expr_storage;
-  using base_type = Byte_buffer_entity<storage_type>;
-  using base_type::Byte_buffer_entity;
+  using base_type = Byte_buffer_entry<storage_type>;
+  using base_type::Byte_buffer_entry;
 };  /* an_ifc_dir_expr */
 
 
@@ -9707,13 +9701,13 @@ using an_ifc_dir_pragma_bytes = an_ifc_dir_pragma_storage;
 /*
 The universal representation of an IFC DirPragma node.
 
-The representation is declared as a derived struct of Byte_buffer_entity rather
+The representation is declared as a derived struct of Byte_buffer_entry rather
 than simply an alias of the instantiation to improve the debugger experience.
 */
-struct an_ifc_dir_pragma : Byte_buffer_entity<an_ifc_dir_pragma_storage> {
+struct an_ifc_dir_pragma : Byte_buffer_entry<an_ifc_dir_pragma_storage> {
   using storage_type = an_ifc_dir_pragma_storage;
-  using base_type = Byte_buffer_entity<storage_type>;
-  using base_type::Byte_buffer_entity;
+  using base_type = Byte_buffer_entry<storage_type>;
+  using base_type::Byte_buffer_entry;
 };  /* an_ifc_dir_pragma */
 
 
@@ -9737,13 +9731,13 @@ using an_ifc_dir_tuple_bytes = an_ifc_dir_tuple_storage;
 /*
 The universal representation of an IFC DirTuple node.
 
-The representation is declared as a derived struct of Byte_buffer_entity rather
+The representation is declared as a derived struct of Byte_buffer_entry rather
 than simply an alias of the instantiation to improve the debugger experience.
 */
-struct an_ifc_dir_tuple : Byte_buffer_entity<an_ifc_dir_tuple_storage> {
+struct an_ifc_dir_tuple : Byte_buffer_entry<an_ifc_dir_tuple_storage> {
   using storage_type = an_ifc_dir_tuple_storage;
-  using base_type = Byte_buffer_entity<storage_type>;
-  using base_type::Byte_buffer_entity;
+  using base_type = Byte_buffer_entry<storage_type>;
+  using base_type::Byte_buffer_entry;
 };  /* an_ifc_dir_tuple */
 
 
@@ -9768,13 +9762,13 @@ using an_ifc_dir_using_bytes = an_ifc_dir_using_storage;
 /*
 The universal representation of an IFC DirUsing node.
 
-The representation is declared as a derived struct of Byte_buffer_entity rather
+The representation is declared as a derived struct of Byte_buffer_entry rather
 than simply an alias of the instantiation to improve the debugger experience.
 */
-struct an_ifc_dir_using : Byte_buffer_entity<an_ifc_dir_using_storage> {
+struct an_ifc_dir_using : Byte_buffer_entry<an_ifc_dir_using_storage> {
   using storage_type = an_ifc_dir_using_storage;
-  using base_type = Byte_buffer_entity<storage_type>;
-  using base_type::Byte_buffer_entity;
+  using base_type = Byte_buffer_entry<storage_type>;
+  using base_type::Byte_buffer_entry;
 };  /* an_ifc_dir_using */
 
 
@@ -9801,14 +9795,14 @@ using an_ifc_edg_constant_integer_bytes = an_ifc_edg_constant_integer_storage;
 /*
 The universal representation of an IFC EdgConstantInteger node.
 
-The representation is declared as a derived struct of Byte_buffer_entity rather
+The representation is declared as a derived struct of Byte_buffer_entry rather
 than simply an alias of the instantiation to improve the debugger experience.
 */
 struct an_ifc_edg_constant_integer :
-                      Byte_buffer_entity<an_ifc_edg_constant_integer_storage> {
+                       Byte_buffer_entry<an_ifc_edg_constant_integer_storage> {
   using storage_type = an_ifc_edg_constant_integer_storage;
-  using base_type = Byte_buffer_entity<storage_type>;
-  using base_type::Byte_buffer_entity;
+  using base_type = Byte_buffer_entry<storage_type>;
+  using base_type::Byte_buffer_entry;
 };  /* an_ifc_edg_constant_integer */
 
 
@@ -9834,14 +9828,14 @@ using an_ifc_edg_constant_integer_word_bytes =
 /*
 The universal representation of an IFC EdgConstantIntegerWord node.
 
-The representation is declared as a derived struct of Byte_buffer_entity rather
+The representation is declared as a derived struct of Byte_buffer_entry rather
 than simply an alias of the instantiation to improve the debugger experience.
 */
 struct an_ifc_edg_constant_integer_word :
-                 Byte_buffer_entity<an_ifc_edg_constant_integer_word_storage> {
+                  Byte_buffer_entry<an_ifc_edg_constant_integer_word_storage> {
   using storage_type = an_ifc_edg_constant_integer_word_storage;
-  using base_type = Byte_buffer_entity<storage_type>;
-  using base_type::Byte_buffer_entity;
+  using base_type = Byte_buffer_entry<storage_type>;
+  using base_type::Byte_buffer_entry;
 };  /* an_ifc_edg_constant_integer_word */
 
 
@@ -9865,14 +9859,14 @@ using an_ifc_edg_extension_type_bytes = an_ifc_edg_extension_type_storage;
 /*
 The universal representation of an IFC EdgExtensionType node.
 
-The representation is declared as a derived struct of Byte_buffer_entity rather
+The representation is declared as a derived struct of Byte_buffer_entry rather
 than simply an alias of the instantiation to improve the debugger experience.
 */
 struct an_ifc_edg_extension_type :
-                        Byte_buffer_entity<an_ifc_edg_extension_type_storage> {
+                         Byte_buffer_entry<an_ifc_edg_extension_type_storage> {
   using storage_type = an_ifc_edg_extension_type_storage;
-  using base_type = Byte_buffer_entity<storage_type>;
-  using base_type::Byte_buffer_entity;
+  using base_type = Byte_buffer_entry<storage_type>;
+  using base_type::Byte_buffer_entry;
 };  /* an_ifc_edg_extension_type */
 
 
@@ -9898,14 +9892,14 @@ using an_ifc_edg_heap_complex_token_bytes =
 /*
 The universal representation of an IFC EdgHeapComplexToken node.
 
-The representation is declared as a derived struct of Byte_buffer_entity rather
+The representation is declared as a derived struct of Byte_buffer_entry rather
 than simply an alias of the instantiation to improve the debugger experience.
 */
 struct an_ifc_edg_heap_complex_token :
-                    Byte_buffer_entity<an_ifc_edg_heap_complex_token_storage> {
+                     Byte_buffer_entry<an_ifc_edg_heap_complex_token_storage> {
   using storage_type = an_ifc_edg_heap_complex_token_storage;
-  using base_type = Byte_buffer_entity<storage_type>;
-  using base_type::Byte_buffer_entity;
+  using base_type = Byte_buffer_entry<storage_type>;
+  using base_type::Byte_buffer_entry;
 };  /* an_ifc_edg_heap_complex_token */
 
 
@@ -9931,14 +9925,14 @@ using an_ifc_edg_heap_template_argument_bytes =
 /*
 The universal representation of an IFC EdgHeapTemplateArgument node.
 
-The representation is declared as a derived struct of Byte_buffer_entity rather
+The representation is declared as a derived struct of Byte_buffer_entry rather
 than simply an alias of the instantiation to improve the debugger experience.
 */
 struct an_ifc_edg_heap_template_argument :
-                Byte_buffer_entity<an_ifc_edg_heap_template_argument_storage> {
+                 Byte_buffer_entry<an_ifc_edg_heap_template_argument_storage> {
   using storage_type = an_ifc_edg_heap_template_argument_storage;
-  using base_type = Byte_buffer_entity<storage_type>;
-  using base_type::Byte_buffer_entity;
+  using base_type = Byte_buffer_entry<storage_type>;
+  using base_type::Byte_buffer_entry;
 };  /* an_ifc_edg_heap_template_argument */
 
 
@@ -9964,14 +9958,14 @@ using an_ifc_edg_template_argument_non_type_bytes =
 /*
 The universal representation of an IFC EdgTemplateArgumentNonType node.
 
-The representation is declared as a derived struct of Byte_buffer_entity rather
+The representation is declared as a derived struct of Byte_buffer_entry rather
 than simply an alias of the instantiation to improve the debugger experience.
 */
 struct an_ifc_edg_template_argument_non_type :
-            Byte_buffer_entity<an_ifc_edg_template_argument_non_type_storage> {
+             Byte_buffer_entry<an_ifc_edg_template_argument_non_type_storage> {
   using storage_type = an_ifc_edg_template_argument_non_type_storage;
-  using base_type = Byte_buffer_entity<storage_type>;
-  using base_type::Byte_buffer_entity;
+  using base_type = Byte_buffer_entry<storage_type>;
+  using base_type::Byte_buffer_entry;
 };  /* an_ifc_edg_template_argument_non_type */
 
 
@@ -9997,14 +9991,14 @@ using an_ifc_edg_template_argument_template_bytes =
 /*
 The universal representation of an IFC EdgTemplateArgumentTemplate node.
 
-The representation is declared as a derived struct of Byte_buffer_entity rather
+The representation is declared as a derived struct of Byte_buffer_entry rather
 than simply an alias of the instantiation to improve the debugger experience.
 */
 struct an_ifc_edg_template_argument_template :
-            Byte_buffer_entity<an_ifc_edg_template_argument_template_storage> {
+             Byte_buffer_entry<an_ifc_edg_template_argument_template_storage> {
   using storage_type = an_ifc_edg_template_argument_template_storage;
-  using base_type = Byte_buffer_entity<storage_type>;
-  using base_type::Byte_buffer_entity;
+  using base_type = Byte_buffer_entry<storage_type>;
+  using base_type::Byte_buffer_entry;
 };  /* an_ifc_edg_template_argument_template */
 
 
@@ -10030,14 +10024,14 @@ using an_ifc_edg_template_argument_type_bytes =
 /*
 The universal representation of an IFC EdgTemplateArgumentType node.
 
-The representation is declared as a derived struct of Byte_buffer_entity rather
+The representation is declared as a derived struct of Byte_buffer_entry rather
 than simply an alias of the instantiation to improve the debugger experience.
 */
 struct an_ifc_edg_template_argument_type :
-                Byte_buffer_entity<an_ifc_edg_template_argument_type_storage> {
+                 Byte_buffer_entry<an_ifc_edg_template_argument_type_storage> {
   using storage_type = an_ifc_edg_template_argument_type_storage;
-  using base_type = Byte_buffer_entity<storage_type>;
-  using base_type::Byte_buffer_entity;
+  using base_type = Byte_buffer_entry<storage_type>;
+  using base_type::Byte_buffer_entry;
 };  /* an_ifc_edg_template_argument_type */
 
 
@@ -10060,14 +10054,14 @@ using an_ifc_edg_token_basic_bytes = an_ifc_edg_token_basic_storage;
 /*
 The universal representation of an IFC EdgTokenBasic node.
 
-The representation is declared as a derived struct of Byte_buffer_entity rather
+The representation is declared as a derived struct of Byte_buffer_entry rather
 than simply an alias of the instantiation to improve the debugger experience.
 */
 struct an_ifc_edg_token_basic :
-                           Byte_buffer_entity<an_ifc_edg_token_basic_storage> {
+                            Byte_buffer_entry<an_ifc_edg_token_basic_storage> {
   using storage_type = an_ifc_edg_token_basic_storage;
-  using base_type = Byte_buffer_entity<storage_type>;
-  using base_type::Byte_buffer_entity;
+  using base_type = Byte_buffer_entry<storage_type>;
+  using base_type::Byte_buffer_entry;
 };  /* an_ifc_edg_token_basic */
 
 
@@ -10093,14 +10087,14 @@ using an_ifc_edg_token_cache_bytes = an_ifc_edg_token_cache_storage;
 /*
 The universal representation of an IFC EdgTokenCache node.
 
-The representation is declared as a derived struct of Byte_buffer_entity rather
+The representation is declared as a derived struct of Byte_buffer_entry rather
 than simply an alias of the instantiation to improve the debugger experience.
 */
 struct an_ifc_edg_token_cache :
-                           Byte_buffer_entity<an_ifc_edg_token_cache_storage> {
+                            Byte_buffer_entry<an_ifc_edg_token_cache_storage> {
   using storage_type = an_ifc_edg_token_cache_storage;
-  using base_type = Byte_buffer_entity<storage_type>;
-  using base_type::Byte_buffer_entity;
+  using base_type = Byte_buffer_entry<storage_type>;
+  using base_type::Byte_buffer_entry;
 };  /* an_ifc_edg_token_cache */
 
 
@@ -10125,14 +10119,14 @@ using an_ifc_edg_token_constant_bytes = an_ifc_edg_token_constant_storage;
 /*
 The universal representation of an IFC EdgTokenConstant node.
 
-The representation is declared as a derived struct of Byte_buffer_entity rather
+The representation is declared as a derived struct of Byte_buffer_entry rather
 than simply an alias of the instantiation to improve the debugger experience.
 */
 struct an_ifc_edg_token_constant :
-                        Byte_buffer_entity<an_ifc_edg_token_constant_storage> {
+                         Byte_buffer_entry<an_ifc_edg_token_constant_storage> {
   using storage_type = an_ifc_edg_token_constant_storage;
-  using base_type = Byte_buffer_entity<storage_type>;
-  using base_type::Byte_buffer_entity;
+  using base_type = Byte_buffer_entry<storage_type>;
+  using base_type::Byte_buffer_entry;
 };  /* an_ifc_edg_token_constant */
 
 
@@ -10157,14 +10151,14 @@ using an_ifc_edg_token_identifier_bytes = an_ifc_edg_token_identifier_storage;
 /*
 The universal representation of an IFC EdgTokenIdentifier node.
 
-The representation is declared as a derived struct of Byte_buffer_entity rather
+The representation is declared as a derived struct of Byte_buffer_entry rather
 than simply an alias of the instantiation to improve the debugger experience.
 */
 struct an_ifc_edg_token_identifier :
-                      Byte_buffer_entity<an_ifc_edg_token_identifier_storage> {
+                       Byte_buffer_entry<an_ifc_edg_token_identifier_storage> {
   using storage_type = an_ifc_edg_token_identifier_storage;
-  using base_type = Byte_buffer_entity<storage_type>;
-  using base_type::Byte_buffer_entity;
+  using base_type = Byte_buffer_entry<storage_type>;
+  using base_type::Byte_buffer_entry;
 };  /* an_ifc_edg_token_identifier */
 
 
@@ -10187,14 +10181,14 @@ using an_ifc_edg_token_textual_bytes = an_ifc_edg_token_textual_storage;
 /*
 The universal representation of an IFC EdgTokenTextual node.
 
-The representation is declared as a derived struct of Byte_buffer_entity rather
+The representation is declared as a derived struct of Byte_buffer_entry rather
 than simply an alias of the instantiation to improve the debugger experience.
 */
 struct an_ifc_edg_token_textual :
-                         Byte_buffer_entity<an_ifc_edg_token_textual_storage> {
+                          Byte_buffer_entry<an_ifc_edg_token_textual_storage> {
   using storage_type = an_ifc_edg_token_textual_storage;
-  using base_type = Byte_buffer_entity<storage_type>;
-  using base_type::Byte_buffer_entity;
+  using base_type = Byte_buffer_entry<storage_type>;
+  using base_type::Byte_buffer_entry;
 };  /* an_ifc_edg_token_textual */
 
 
@@ -10223,14 +10217,14 @@ using an_ifc_edg_trait_class_template_definition_bytes =
 /*
 The universal representation of an IFC EdgTraitClassTemplateDefinition node.
 
-The representation is declared as a derived struct of Byte_buffer_entity rather
+The representation is declared as a derived struct of Byte_buffer_entry rather
 than simply an alias of the instantiation to improve the debugger experience.
 */
 struct an_ifc_edg_trait_class_template_definition :
-       Byte_buffer_entity<an_ifc_edg_trait_class_template_definition_storage> {
+        Byte_buffer_entry<an_ifc_edg_trait_class_template_definition_storage> {
   using storage_type = an_ifc_edg_trait_class_template_definition_storage;
-  using base_type = Byte_buffer_entity<storage_type>;
-  using base_type::Byte_buffer_entity;
+  using base_type = Byte_buffer_entry<storage_type>;
+  using base_type::Byte_buffer_entry;
 };  /* an_ifc_edg_trait_class_template_definition */
 
 
@@ -10259,14 +10253,14 @@ using an_ifc_edg_trait_function_definition_bytes =
 /*
 The universal representation of an IFC EdgTraitFunctionDefinition node.
 
-The representation is declared as a derived struct of Byte_buffer_entity rather
+The representation is declared as a derived struct of Byte_buffer_entry rather
 than simply an alias of the instantiation to improve the debugger experience.
 */
 struct an_ifc_edg_trait_function_definition :
-             Byte_buffer_entity<an_ifc_edg_trait_function_definition_storage> {
+              Byte_buffer_entry<an_ifc_edg_trait_function_definition_storage> {
   using storage_type = an_ifc_edg_trait_function_definition_storage;
-  using base_type = Byte_buffer_entity<storage_type>;
-  using base_type::Byte_buffer_entity;
+  using base_type = Byte_buffer_entry<storage_type>;
+  using base_type::Byte_buffer_entry;
 };  /* an_ifc_edg_trait_function_definition */
 
 
@@ -10293,14 +10287,14 @@ using an_ifc_edg_type_substituted_bytes = an_ifc_edg_type_substituted_storage;
 /*
 The universal representation of an IFC EdgTypeSubstituted node.
 
-The representation is declared as a derived struct of Byte_buffer_entity rather
+The representation is declared as a derived struct of Byte_buffer_entry rather
 than simply an alias of the instantiation to improve the debugger experience.
 */
 struct an_ifc_edg_type_substituted :
-                      Byte_buffer_entity<an_ifc_edg_type_substituted_storage> {
+                       Byte_buffer_entry<an_ifc_edg_type_substituted_storage> {
   using storage_type = an_ifc_edg_type_substituted_storage;
-  using base_type = Byte_buffer_entity<storage_type>;
-  using base_type::Byte_buffer_entity;
+  using base_type = Byte_buffer_entry<storage_type>;
+  using base_type::Byte_buffer_entry;
 };  /* an_ifc_edg_type_substituted */
 
 
@@ -10325,13 +10319,13 @@ using an_ifc_expr_alignof_bytes = an_ifc_expr_alignof_storage;
 /*
 The universal representation of an IFC ExprAlignof node.
 
-The representation is declared as a derived struct of Byte_buffer_entity rather
+The representation is declared as a derived struct of Byte_buffer_entry rather
 than simply an alias of the instantiation to improve the debugger experience.
 */
-struct an_ifc_expr_alignof : Byte_buffer_entity<an_ifc_expr_alignof_storage> {
+struct an_ifc_expr_alignof : Byte_buffer_entry<an_ifc_expr_alignof_storage> {
   using storage_type = an_ifc_expr_alignof_storage;
-  using base_type = Byte_buffer_entity<storage_type>;
-  using base_type::Byte_buffer_entity;
+  using base_type = Byte_buffer_entry<storage_type>;
+  using base_type::Byte_buffer_entry;
 };  /* an_ifc_expr_alignof */
 
 
@@ -10368,14 +10362,14 @@ using an_ifc_expr_array_value_bytes = an_ifc_expr_array_value_storage;
 /*
 The universal representation of an IFC ExprArrayValue node.
 
-The representation is declared as a derived struct of Byte_buffer_entity rather
+The representation is declared as a derived struct of Byte_buffer_entry rather
 than simply an alias of the instantiation to improve the debugger experience.
 */
 struct an_ifc_expr_array_value :
-                          Byte_buffer_entity<an_ifc_expr_array_value_storage> {
+                           Byte_buffer_entry<an_ifc_expr_array_value_storage> {
   using storage_type = an_ifc_expr_array_value_storage;
-  using base_type = Byte_buffer_entity<storage_type>;
-  using base_type::Byte_buffer_entity;
+  using base_type = Byte_buffer_entry<storage_type>;
+  using base_type::Byte_buffer_entry;
 };  /* an_ifc_expr_array_value */
 
 
@@ -10411,14 +10405,14 @@ using an_ifc_expr_assign_initializer_bytes =
 /*
 The universal representation of an IFC ExprAssignInitializer node.
 
-The representation is declared as a derived struct of Byte_buffer_entity rather
+The representation is declared as a derived struct of Byte_buffer_entry rather
 than simply an alias of the instantiation to improve the debugger experience.
 */
 struct an_ifc_expr_assign_initializer :
-                   Byte_buffer_entity<an_ifc_expr_assign_initializer_storage> {
+                    Byte_buffer_entry<an_ifc_expr_assign_initializer_storage> {
   using storage_type = an_ifc_expr_assign_initializer_storage;
-  using base_type = Byte_buffer_entity<storage_type>;
-  using base_type::Byte_buffer_entity;
+  using base_type = Byte_buffer_entry<storage_type>;
+  using base_type::Byte_buffer_entry;
 };  /* an_ifc_expr_assign_initializer */
 
 
@@ -10472,14 +10466,14 @@ using an_ifc_expr_binary_fold_bytes = an_ifc_expr_binary_fold_storage;
 /*
 The universal representation of an IFC ExprBinaryFold node.
 
-The representation is declared as a derived struct of Byte_buffer_entity rather
+The representation is declared as a derived struct of Byte_buffer_entry rather
 than simply an alias of the instantiation to improve the debugger experience.
 */
 struct an_ifc_expr_binary_fold :
-                          Byte_buffer_entity<an_ifc_expr_binary_fold_storage> {
+                           Byte_buffer_entry<an_ifc_expr_binary_fold_storage> {
   using storage_type = an_ifc_expr_binary_fold_storage;
-  using base_type = Byte_buffer_entity<storage_type>;
-  using base_type::Byte_buffer_entity;
+  using base_type = Byte_buffer_entry<storage_type>;
+  using base_type::Byte_buffer_entry;
 };  /* an_ifc_expr_binary_fold */
 
 
@@ -10516,13 +10510,13 @@ using an_ifc_expr_call_bytes = an_ifc_expr_call_storage;
 /*
 The universal representation of an IFC ExprCall node.
 
-The representation is declared as a derived struct of Byte_buffer_entity rather
+The representation is declared as a derived struct of Byte_buffer_entry rather
 than simply an alias of the instantiation to improve the debugger experience.
 */
-struct an_ifc_expr_call : Byte_buffer_entity<an_ifc_expr_call_storage> {
+struct an_ifc_expr_call : Byte_buffer_entry<an_ifc_expr_call_storage> {
   using storage_type = an_ifc_expr_call_storage;
-  using base_type = Byte_buffer_entity<storage_type>;
-  using base_type::Byte_buffer_entity;
+  using base_type = Byte_buffer_entry<storage_type>;
+  using base_type::Byte_buffer_entry;
 };  /* an_ifc_expr_call */
 
 
@@ -10576,13 +10570,13 @@ using an_ifc_expr_cast_bytes = an_ifc_expr_cast_storage;
 /*
 The universal representation of an IFC ExprCast node.
 
-The representation is declared as a derived struct of Byte_buffer_entity rather
+The representation is declared as a derived struct of Byte_buffer_entry rather
 than simply an alias of the instantiation to improve the debugger experience.
 */
-struct an_ifc_expr_cast : Byte_buffer_entity<an_ifc_expr_cast_storage> {
+struct an_ifc_expr_cast : Byte_buffer_entry<an_ifc_expr_cast_storage> {
   using storage_type = an_ifc_expr_cast_storage;
-  using base_type = Byte_buffer_entity<storage_type>;
-  using base_type::Byte_buffer_entity;
+  using base_type = Byte_buffer_entry<storage_type>;
+  using base_type::Byte_buffer_entry;
 };  /* an_ifc_expr_cast */
 
 
@@ -10621,14 +10615,14 @@ using an_ifc_expr_compound_string_bytes = an_ifc_expr_compound_string_storage;
 /*
 The universal representation of an IFC ExprCompoundString node.
 
-The representation is declared as a derived struct of Byte_buffer_entity rather
+The representation is declared as a derived struct of Byte_buffer_entry rather
 than simply an alias of the instantiation to improve the debugger experience.
 */
 struct an_ifc_expr_compound_string :
-                      Byte_buffer_entity<an_ifc_expr_compound_string_storage> {
+                       Byte_buffer_entry<an_ifc_expr_compound_string_storage> {
   using storage_type = an_ifc_expr_compound_string_storage;
-  using base_type = Byte_buffer_entity<storage_type>;
-  using base_type::Byte_buffer_entity;
+  using base_type = Byte_buffer_entry<storage_type>;
+  using base_type::Byte_buffer_entry;
 };  /* an_ifc_expr_compound_string */
 
 
@@ -10663,14 +10657,14 @@ using an_ifc_expr_condition_bytes = an_ifc_expr_condition_storage;
 /*
 The universal representation of an IFC ExprCondition node.
 
-The representation is declared as a derived struct of Byte_buffer_entity rather
+The representation is declared as a derived struct of Byte_buffer_entry rather
 than simply an alias of the instantiation to improve the debugger experience.
 */
 struct an_ifc_expr_condition :
-                            Byte_buffer_entity<an_ifc_expr_condition_storage> {
+                             Byte_buffer_entry<an_ifc_expr_condition_storage> {
   using storage_type = an_ifc_expr_condition_storage;
-  using base_type = Byte_buffer_entity<storage_type>;
-  using base_type::Byte_buffer_entity;
+  using base_type = Byte_buffer_entry<storage_type>;
+  using base_type::Byte_buffer_entry;
 };  /* an_ifc_expr_condition */
 
 
@@ -10710,14 +10704,14 @@ using an_ifc_expr_designated_initializer_bytes =
 /*
 The universal representation of an IFC ExprDesignatedInitializer node.
 
-The representation is declared as a derived struct of Byte_buffer_entity rather
+The representation is declared as a derived struct of Byte_buffer_entry rather
 than simply an alias of the instantiation to improve the debugger experience.
 */
 struct an_ifc_expr_designated_initializer :
-               Byte_buffer_entity<an_ifc_expr_designated_initializer_storage> {
+                Byte_buffer_entry<an_ifc_expr_designated_initializer_storage> {
   using storage_type = an_ifc_expr_designated_initializer_storage;
-  using base_type = Byte_buffer_entity<storage_type>;
-  using base_type::Byte_buffer_entity;
+  using base_type = Byte_buffer_entry<storage_type>;
+  using base_type::Byte_buffer_entry;
 };  /* an_ifc_expr_designated_initializer */
 
 
@@ -10758,14 +10752,14 @@ using an_ifc_expr_destructor_call_bytes = an_ifc_expr_destructor_call_storage;
 /*
 The universal representation of an IFC ExprDestructorCall node.
 
-The representation is declared as a derived struct of Byte_buffer_entity rather
+The representation is declared as a derived struct of Byte_buffer_entry rather
 than simply an alias of the instantiation to improve the debugger experience.
 */
 struct an_ifc_expr_destructor_call :
-                      Byte_buffer_entity<an_ifc_expr_destructor_call_storage> {
+                       Byte_buffer_entry<an_ifc_expr_destructor_call_storage> {
   using storage_type = an_ifc_expr_destructor_call_storage;
-  using base_type = Byte_buffer_entity<storage_type>;
-  using base_type::Byte_buffer_entity;
+  using base_type = Byte_buffer_entry<storage_type>;
+  using base_type::Byte_buffer_entry;
 };  /* an_ifc_expr_destructor_call */
 
 
@@ -10836,13 +10830,13 @@ using an_ifc_expr_dyad_bytes = an_ifc_expr_dyad_storage;
 /*
 The universal representation of an IFC ExprDyad node.
 
-The representation is declared as a derived struct of Byte_buffer_entity rather
+The representation is declared as a derived struct of Byte_buffer_entry rather
 than simply an alias of the instantiation to improve the debugger experience.
 */
-struct an_ifc_expr_dyad : Byte_buffer_entity<an_ifc_expr_dyad_storage> {
+struct an_ifc_expr_dyad : Byte_buffer_entry<an_ifc_expr_dyad_storage> {
   using storage_type = an_ifc_expr_dyad_storage;
-  using base_type = Byte_buffer_entity<storage_type>;
-  using base_type::Byte_buffer_entity;
+  using base_type = Byte_buffer_entry<storage_type>;
+  using base_type::Byte_buffer_entry;
 };  /* an_ifc_expr_dyad */
 
 
@@ -10880,14 +10874,14 @@ using an_ifc_expr_dynamic_dispatch_bytes =
 /*
 The universal representation of an IFC ExprDynamicDispatch node.
 
-The representation is declared as a derived struct of Byte_buffer_entity rather
+The representation is declared as a derived struct of Byte_buffer_entry rather
 than simply an alias of the instantiation to improve the debugger experience.
 */
 struct an_ifc_expr_dynamic_dispatch :
-                     Byte_buffer_entity<an_ifc_expr_dynamic_dispatch_storage> {
+                      Byte_buffer_entry<an_ifc_expr_dynamic_dispatch_storage> {
   using storage_type = an_ifc_expr_dynamic_dispatch_storage;
-  using base_type = Byte_buffer_entity<storage_type>;
-  using base_type::Byte_buffer_entity;
+  using base_type = Byte_buffer_entry<storage_type>;
+  using base_type::Byte_buffer_entry;
 };  /* an_ifc_expr_dynamic_dispatch */
 
 
@@ -10911,13 +10905,13 @@ using an_ifc_expr_empty_bytes = an_ifc_expr_empty_storage;
 /*
 The universal representation of an IFC ExprEmpty node.
 
-The representation is declared as a derived struct of Byte_buffer_entity rather
+The representation is declared as a derived struct of Byte_buffer_entry rather
 than simply an alias of the instantiation to improve the debugger experience.
 */
-struct an_ifc_expr_empty : Byte_buffer_entity<an_ifc_expr_empty_storage> {
+struct an_ifc_expr_empty : Byte_buffer_entry<an_ifc_expr_empty_storage> {
   using storage_type = an_ifc_expr_empty_storage;
-  using base_type = Byte_buffer_entity<storage_type>;
-  using base_type::Byte_buffer_entity;
+  using base_type = Byte_buffer_entry<storage_type>;
+  using base_type::Byte_buffer_entry;
 };  /* an_ifc_expr_empty */
 
 
@@ -10952,14 +10946,14 @@ using an_ifc_expr_expansion_bytes = an_ifc_expr_expansion_storage;
 /*
 The universal representation of an IFC ExprExpansion node.
 
-The representation is declared as a derived struct of Byte_buffer_entity rather
+The representation is declared as a derived struct of Byte_buffer_entry rather
 than simply an alias of the instantiation to improve the debugger experience.
 */
 struct an_ifc_expr_expansion :
-                            Byte_buffer_entity<an_ifc_expr_expansion_storage> {
+                             Byte_buffer_entry<an_ifc_expr_expansion_storage> {
   using storage_type = an_ifc_expr_expansion_storage;
-  using base_type = Byte_buffer_entity<storage_type>;
-  using base_type::Byte_buffer_entity;
+  using base_type = Byte_buffer_entry<storage_type>;
+  using base_type::Byte_buffer_entry;
 };  /* an_ifc_expr_expansion */
 
 
@@ -11000,14 +10994,14 @@ using an_ifc_expr_expression_list_bytes = an_ifc_expr_expression_list_storage;
 /*
 The universal representation of an IFC ExprExpressionList node.
 
-The representation is declared as a derived struct of Byte_buffer_entity rather
+The representation is declared as a derived struct of Byte_buffer_entry rather
 than simply an alias of the instantiation to improve the debugger experience.
 */
 struct an_ifc_expr_expression_list :
-                      Byte_buffer_entity<an_ifc_expr_expression_list_storage> {
+                       Byte_buffer_entry<an_ifc_expr_expression_list_storage> {
   using storage_type = an_ifc_expr_expression_list_storage;
-  using base_type = Byte_buffer_entity<storage_type>;
-  using base_type::Byte_buffer_entity;
+  using base_type = Byte_buffer_entry<storage_type>;
+  using base_type::Byte_buffer_entry;
 };  /* an_ifc_expr_expression_list */
 
 
@@ -11034,14 +11028,14 @@ using an_ifc_expr_function_string_bytes = an_ifc_expr_function_string_storage;
 /*
 The universal representation of an IFC ExprFunctionString node.
 
-The representation is declared as a derived struct of Byte_buffer_entity rather
+The representation is declared as a derived struct of Byte_buffer_entry rather
 than simply an alias of the instantiation to improve the debugger experience.
 */
 struct an_ifc_expr_function_string :
-                      Byte_buffer_entity<an_ifc_expr_function_string_storage> {
+                       Byte_buffer_entry<an_ifc_expr_function_string_storage> {
   using storage_type = an_ifc_expr_function_string_storage;
-  using base_type = Byte_buffer_entity<storage_type>;
-  using base_type::Byte_buffer_entity;
+  using base_type = Byte_buffer_entry<storage_type>;
+  using base_type::Byte_buffer_entry;
 };  /* an_ifc_expr_function_string */
 
 
@@ -11104,14 +11098,14 @@ using an_ifc_expr_hierarchy_conversion_bytes =
 /*
 The universal representation of an IFC ExprHierarchyConversion node.
 
-The representation is declared as a derived struct of Byte_buffer_entity rather
+The representation is declared as a derived struct of Byte_buffer_entry rather
 than simply an alias of the instantiation to improve the debugger experience.
 */
 struct an_ifc_expr_hierarchy_conversion :
-                 Byte_buffer_entity<an_ifc_expr_hierarchy_conversion_storage> {
+                  Byte_buffer_entry<an_ifc_expr_hierarchy_conversion_storage> {
   using storage_type = an_ifc_expr_hierarchy_conversion_storage;
-  using base_type = Byte_buffer_entity<storage_type>;
-  using base_type::Byte_buffer_entity;
+  using base_type = Byte_buffer_entry<storage_type>;
+  using base_type::Byte_buffer_entry;
 };  /* an_ifc_expr_hierarchy_conversion */
 
 
@@ -11149,14 +11143,14 @@ using an_ifc_expr_inheritance_path_bytes =
 /*
 The universal representation of an IFC ExprInheritancePath node.
 
-The representation is declared as a derived struct of Byte_buffer_entity rather
+The representation is declared as a derived struct of Byte_buffer_entry rather
 than simply an alias of the instantiation to improve the debugger experience.
 */
 struct an_ifc_expr_inheritance_path :
-                     Byte_buffer_entity<an_ifc_expr_inheritance_path_storage> {
+                      Byte_buffer_entry<an_ifc_expr_inheritance_path_storage> {
   using storage_type = an_ifc_expr_inheritance_path_storage;
-  using base_type = Byte_buffer_entity<storage_type>;
-  using base_type::Byte_buffer_entity;
+  using base_type = Byte_buffer_entry<storage_type>;
+  using base_type::Byte_buffer_entry;
 };  /* an_ifc_expr_inheritance_path */
 
 
@@ -11193,14 +11187,14 @@ using an_ifc_expr_initializer_bytes = an_ifc_expr_initializer_storage;
 /*
 The universal representation of an IFC ExprInitializer node.
 
-The representation is declared as a derived struct of Byte_buffer_entity rather
+The representation is declared as a derived struct of Byte_buffer_entry rather
 than simply an alias of the instantiation to improve the debugger experience.
 */
 struct an_ifc_expr_initializer :
-                          Byte_buffer_entity<an_ifc_expr_initializer_storage> {
+                           Byte_buffer_entry<an_ifc_expr_initializer_storage> {
   using storage_type = an_ifc_expr_initializer_storage;
-  using base_type = Byte_buffer_entity<storage_type>;
-  using base_type::Byte_buffer_entity;
+  using base_type = Byte_buffer_entry<storage_type>;
+  using base_type::Byte_buffer_entry;
 };  /* an_ifc_expr_initializer */
 
 
@@ -11238,14 +11232,14 @@ using an_ifc_expr_initializer_list_bytes =
 /*
 The universal representation of an IFC ExprInitializerList node.
 
-The representation is declared as a derived struct of Byte_buffer_entity rather
+The representation is declared as a derived struct of Byte_buffer_entry rather
 than simply an alias of the instantiation to improve the debugger experience.
 */
 struct an_ifc_expr_initializer_list :
-                     Byte_buffer_entity<an_ifc_expr_initializer_list_storage> {
+                      Byte_buffer_entry<an_ifc_expr_initializer_list_storage> {
   using storage_type = an_ifc_expr_initializer_list_storage;
-  using base_type = Byte_buffer_entity<storage_type>;
-  using base_type::Byte_buffer_entity;
+  using base_type = Byte_buffer_entry<storage_type>;
+  using base_type::Byte_buffer_entry;
 };  /* an_ifc_expr_initializer_list */
 
 
@@ -11270,13 +11264,13 @@ using an_ifc_expr_label_bytes = an_ifc_expr_label_storage;
 /*
 The universal representation of an IFC ExprLabel node.
 
-The representation is declared as a derived struct of Byte_buffer_entity rather
+The representation is declared as a derived struct of Byte_buffer_entry rather
 than simply an alias of the instantiation to improve the debugger experience.
 */
-struct an_ifc_expr_label : Byte_buffer_entity<an_ifc_expr_label_storage> {
+struct an_ifc_expr_label : Byte_buffer_entry<an_ifc_expr_label_storage> {
   using storage_type = an_ifc_expr_label_storage;
-  using base_type = Byte_buffer_entity<storage_type>;
-  using base_type::Byte_buffer_entity;
+  using base_type = Byte_buffer_entry<storage_type>;
+  using base_type::Byte_buffer_entry;
 };  /* an_ifc_expr_label */
 
 
@@ -11303,13 +11297,13 @@ using an_ifc_expr_lambda_bytes = an_ifc_expr_lambda_storage;
 /*
 The universal representation of an IFC ExprLambda node.
 
-The representation is declared as a derived struct of Byte_buffer_entity rather
+The representation is declared as a derived struct of Byte_buffer_entry rather
 than simply an alias of the instantiation to improve the debugger experience.
 */
-struct an_ifc_expr_lambda : Byte_buffer_entity<an_ifc_expr_lambda_storage> {
+struct an_ifc_expr_lambda : Byte_buffer_entry<an_ifc_expr_lambda_storage> {
   using storage_type = an_ifc_expr_lambda_storage;
-  using base_type = Byte_buffer_entity<storage_type>;
-  using base_type::Byte_buffer_entity;
+  using base_type = Byte_buffer_entry<storage_type>;
+  using base_type::Byte_buffer_entry;
 };  /* an_ifc_expr_lambda */
 
 
@@ -11334,13 +11328,13 @@ using an_ifc_expr_literal_bytes = an_ifc_expr_literal_storage;
 /*
 The universal representation of an IFC ExprLiteral node.
 
-The representation is declared as a derived struct of Byte_buffer_entity rather
+The representation is declared as a derived struct of Byte_buffer_entry rather
 than simply an alias of the instantiation to improve the debugger experience.
 */
-struct an_ifc_expr_literal : Byte_buffer_entity<an_ifc_expr_literal_storage> {
+struct an_ifc_expr_literal : Byte_buffer_entry<an_ifc_expr_literal_storage> {
   using storage_type = an_ifc_expr_literal_storage;
-  using base_type = Byte_buffer_entity<storage_type>;
-  using base_type::Byte_buffer_entity;
+  using base_type = Byte_buffer_entry<storage_type>;
+  using base_type::Byte_buffer_entry;
 };  /* an_ifc_expr_literal */
 
 
@@ -11380,14 +11374,14 @@ using an_ifc_expr_member_access_bytes = an_ifc_expr_member_access_storage;
 /*
 The universal representation of an IFC ExprMemberAccess node.
 
-The representation is declared as a derived struct of Byte_buffer_entity rather
+The representation is declared as a derived struct of Byte_buffer_entry rather
 than simply an alias of the instantiation to improve the debugger experience.
 */
 struct an_ifc_expr_member_access :
-                        Byte_buffer_entity<an_ifc_expr_member_access_storage> {
+                         Byte_buffer_entry<an_ifc_expr_member_access_storage> {
   using storage_type = an_ifc_expr_member_access_storage;
-  using base_type = Byte_buffer_entity<storage_type>;
-  using base_type::Byte_buffer_entity;
+  using base_type = Byte_buffer_entry<storage_type>;
+  using base_type::Byte_buffer_entry;
 };  /* an_ifc_expr_member_access */
 
 
@@ -11453,14 +11447,14 @@ using an_ifc_expr_member_initializer_bytes =
 /*
 The universal representation of an IFC ExprMemberInitializer node.
 
-The representation is declared as a derived struct of Byte_buffer_entity rather
+The representation is declared as a derived struct of Byte_buffer_entry rather
 than simply an alias of the instantiation to improve the debugger experience.
 */
 struct an_ifc_expr_member_initializer :
-                   Byte_buffer_entity<an_ifc_expr_member_initializer_storage> {
+                    Byte_buffer_entry<an_ifc_expr_member_initializer_storage> {
   using storage_type = an_ifc_expr_member_initializer_storage;
-  using base_type = Byte_buffer_entity<storage_type>;
-  using base_type::Byte_buffer_entity;
+  using base_type = Byte_buffer_entry<storage_type>;
+  using base_type::Byte_buffer_entry;
 };  /* an_ifc_expr_member_initializer */
 
 
@@ -11527,13 +11521,13 @@ using an_ifc_expr_monad_bytes = an_ifc_expr_monad_storage;
 /*
 The universal representation of an IFC ExprMonad node.
 
-The representation is declared as a derived struct of Byte_buffer_entity rather
+The representation is declared as a derived struct of Byte_buffer_entry rather
 than simply an alias of the instantiation to improve the debugger experience.
 */
-struct an_ifc_expr_monad : Byte_buffer_entity<an_ifc_expr_monad_storage> {
+struct an_ifc_expr_monad : Byte_buffer_entry<an_ifc_expr_monad_storage> {
   using storage_type = an_ifc_expr_monad_storage;
-  using base_type = Byte_buffer_entity<storage_type>;
-  using base_type::Byte_buffer_entity;
+  using base_type = Byte_buffer_entry<storage_type>;
+  using base_type::Byte_buffer_entry;
 };  /* an_ifc_expr_monad */
 
 
@@ -11578,14 +11572,14 @@ using an_ifc_expr_named_decl_bytes = an_ifc_expr_named_decl_storage;
 /*
 The universal representation of an IFC ExprNamedDecl node.
 
-The representation is declared as a derived struct of Byte_buffer_entity rather
+The representation is declared as a derived struct of Byte_buffer_entry rather
 than simply an alias of the instantiation to improve the debugger experience.
 */
 struct an_ifc_expr_named_decl :
-                           Byte_buffer_entity<an_ifc_expr_named_decl_storage> {
+                            Byte_buffer_entry<an_ifc_expr_named_decl_storage> {
   using storage_type = an_ifc_expr_named_decl_storage;
-  using base_type = Byte_buffer_entity<storage_type>;
-  using base_type::Byte_buffer_entity;
+  using base_type = Byte_buffer_entry<storage_type>;
+  using base_type::Byte_buffer_entry;
 };  /* an_ifc_expr_named_decl */
 
 
@@ -11609,13 +11603,13 @@ using an_ifc_expr_nullptr_bytes = an_ifc_expr_nullptr_storage;
 /*
 The universal representation of an IFC ExprNullptr node.
 
-The representation is declared as a derived struct of Byte_buffer_entity rather
+The representation is declared as a derived struct of Byte_buffer_entry rather
 than simply an alias of the instantiation to improve the debugger experience.
 */
-struct an_ifc_expr_nullptr : Byte_buffer_entity<an_ifc_expr_nullptr_storage> {
+struct an_ifc_expr_nullptr : Byte_buffer_entry<an_ifc_expr_nullptr_storage> {
   using storage_type = an_ifc_expr_nullptr_storage;
-  using base_type = Byte_buffer_entity<storage_type>;
-  using base_type::Byte_buffer_entity;
+  using base_type = Byte_buffer_entry<storage_type>;
+  using base_type::Byte_buffer_entry;
 };  /* an_ifc_expr_nullptr */
 
 
@@ -11653,14 +11647,14 @@ using an_ifc_expr_packed_template_arguments_bytes =
 /*
 The universal representation of an IFC ExprPackedTemplateArguments node.
 
-The representation is declared as a derived struct of Byte_buffer_entity rather
+The representation is declared as a derived struct of Byte_buffer_entry rather
 than simply an alias of the instantiation to improve the debugger experience.
 */
 struct an_ifc_expr_packed_template_arguments :
-            Byte_buffer_entity<an_ifc_expr_packed_template_arguments_storage> {
+             Byte_buffer_entry<an_ifc_expr_packed_template_arguments_storage> {
   using storage_type = an_ifc_expr_packed_template_arguments_storage;
-  using base_type = Byte_buffer_entity<storage_type>;
-  using base_type::Byte_buffer_entity;
+  using base_type = Byte_buffer_entry<storage_type>;
+  using base_type::Byte_buffer_entry;
 };  /* an_ifc_expr_packed_template_arguments */
 
 
@@ -11697,13 +11691,13 @@ using an_ifc_expr_path_bytes = an_ifc_expr_path_storage;
 /*
 The universal representation of an IFC ExprPath node.
 
-The representation is declared as a derived struct of Byte_buffer_entity rather
+The representation is declared as a derived struct of Byte_buffer_entry rather
 than simply an alias of the instantiation to improve the debugger experience.
 */
-struct an_ifc_expr_path : Byte_buffer_entity<an_ifc_expr_path_storage> {
+struct an_ifc_expr_path : Byte_buffer_entry<an_ifc_expr_path_storage> {
   using storage_type = an_ifc_expr_path_storage;
-  using base_type = Byte_buffer_entity<storage_type>;
-  using base_type::Byte_buffer_entity;
+  using base_type = Byte_buffer_entry<storage_type>;
+  using base_type::Byte_buffer_entry;
 };  /* an_ifc_expr_path */
 
 
@@ -11727,14 +11721,14 @@ using an_ifc_expr_placeholder_bytes = an_ifc_expr_placeholder_storage;
 /*
 The universal representation of an IFC ExprPlaceholder node.
 
-The representation is declared as a derived struct of Byte_buffer_entity rather
+The representation is declared as a derived struct of Byte_buffer_entry rather
 than simply an alias of the instantiation to improve the debugger experience.
 */
 struct an_ifc_expr_placeholder :
-                          Byte_buffer_entity<an_ifc_expr_placeholder_storage> {
+                           Byte_buffer_entry<an_ifc_expr_placeholder_storage> {
   using storage_type = an_ifc_expr_placeholder_storage;
-  using base_type = Byte_buffer_entity<storage_type>;
-  using base_type::Byte_buffer_entity;
+  using base_type = Byte_buffer_entry<storage_type>;
+  using base_type::Byte_buffer_entry;
 };  /* an_ifc_expr_placeholder */
 
 
@@ -11757,13 +11751,13 @@ using an_ifc_expr_pointer_bytes = an_ifc_expr_pointer_storage;
 /*
 The universal representation of an IFC ExprPointer node.
 
-The representation is declared as a derived struct of Byte_buffer_entity rather
+The representation is declared as a derived struct of Byte_buffer_entry rather
 than simply an alias of the instantiation to improve the debugger experience.
 */
-struct an_ifc_expr_pointer : Byte_buffer_entity<an_ifc_expr_pointer_storage> {
+struct an_ifc_expr_pointer : Byte_buffer_entry<an_ifc_expr_pointer_storage> {
   using storage_type = an_ifc_expr_pointer_storage;
-  using base_type = Byte_buffer_entity<storage_type>;
-  using base_type::Byte_buffer_entity;
+  using base_type = Byte_buffer_entry<storage_type>;
+  using base_type::Byte_buffer_entry;
 };  /* an_ifc_expr_pointer */
 
 
@@ -11805,14 +11799,14 @@ using an_ifc_expr_product_type_value_bytes =
 /*
 The universal representation of an IFC ExprProductTypeValue node.
 
-The representation is declared as a derived struct of Byte_buffer_entity rather
+The representation is declared as a derived struct of Byte_buffer_entry rather
 than simply an alias of the instantiation to improve the debugger experience.
 */
 struct an_ifc_expr_product_type_value :
-                   Byte_buffer_entity<an_ifc_expr_product_type_value_storage> {
+                    Byte_buffer_entry<an_ifc_expr_product_type_value_storage> {
   using storage_type = an_ifc_expr_product_type_value_storage;
-  using base_type = Byte_buffer_entity<storage_type>;
-  using base_type::Byte_buffer_entity;
+  using base_type = Byte_buffer_entry<storage_type>;
+  using base_type::Byte_buffer_entry;
 };  /* an_ifc_expr_product_type_value */
 
 
@@ -11839,14 +11833,14 @@ using an_ifc_expr_push_state_bytes = an_ifc_expr_push_state_storage;
 /*
 The universal representation of an IFC ExprPushState node.
 
-The representation is declared as a derived struct of Byte_buffer_entity rather
+The representation is declared as a derived struct of Byte_buffer_entry rather
 than simply an alias of the instantiation to improve the debugger experience.
 */
 struct an_ifc_expr_push_state :
-                           Byte_buffer_entity<an_ifc_expr_push_state_storage> {
+                            Byte_buffer_entry<an_ifc_expr_push_state_storage> {
   using storage_type = an_ifc_expr_push_state_storage;
-  using base_type = Byte_buffer_entity<storage_type>;
-  using base_type::Byte_buffer_entity;
+  using base_type = Byte_buffer_entry<storage_type>;
+  using base_type::Byte_buffer_entry;
 };  /* an_ifc_expr_push_state */
 
 
@@ -11884,14 +11878,14 @@ using an_ifc_expr_qualified_name_bytes = an_ifc_expr_qualified_name_storage;
 /*
 The universal representation of an IFC ExprQualifiedName node.
 
-The representation is declared as a derived struct of Byte_buffer_entity rather
+The representation is declared as a derived struct of Byte_buffer_entry rather
 than simply an alias of the instantiation to improve the debugger experience.
 */
 struct an_ifc_expr_qualified_name :
-                       Byte_buffer_entity<an_ifc_expr_qualified_name_storage> {
+                        Byte_buffer_entry<an_ifc_expr_qualified_name_storage> {
   using storage_type = an_ifc_expr_qualified_name_storage;
-  using base_type = Byte_buffer_entity<storage_type>;
-  using base_type::Byte_buffer_entity;
+  using base_type = Byte_buffer_entry<storage_type>;
+  using base_type::Byte_buffer_entry;
 };  /* an_ifc_expr_qualified_name */
 
 
@@ -11930,13 +11924,13 @@ using an_ifc_expr_read_bytes = an_ifc_expr_read_storage;
 /*
 The universal representation of an IFC ExprRead node.
 
-The representation is declared as a derived struct of Byte_buffer_entity rather
+The representation is declared as a derived struct of Byte_buffer_entry rather
 than simply an alias of the instantiation to improve the debugger experience.
 */
-struct an_ifc_expr_read : Byte_buffer_entity<an_ifc_expr_read_storage> {
+struct an_ifc_expr_read : Byte_buffer_entry<an_ifc_expr_read_storage> {
   using storage_type = an_ifc_expr_read_storage;
-  using base_type = Byte_buffer_entity<storage_type>;
-  using base_type::Byte_buffer_entity;
+  using base_type = Byte_buffer_entry<storage_type>;
+  using base_type::Byte_buffer_entry;
 };  /* an_ifc_expr_read */
 
 
@@ -11962,14 +11956,13 @@ using an_ifc_expr_requires_bytes = an_ifc_expr_requires_storage;
 /*
 The universal representation of an IFC ExprRequires node.
 
-The representation is declared as a derived struct of Byte_buffer_entity rather
+The representation is declared as a derived struct of Byte_buffer_entry rather
 than simply an alias of the instantiation to improve the debugger experience.
 */
-struct an_ifc_expr_requires :
-                             Byte_buffer_entity<an_ifc_expr_requires_storage> {
+struct an_ifc_expr_requires : Byte_buffer_entry<an_ifc_expr_requires_storage> {
   using storage_type = an_ifc_expr_requires_storage;
-  using base_type = Byte_buffer_entity<storage_type>;
-  using base_type::Byte_buffer_entity;
+  using base_type = Byte_buffer_entry<storage_type>;
+  using base_type::Byte_buffer_entry;
 };  /* an_ifc_expr_requires */
 
 
@@ -11997,14 +11990,14 @@ using an_ifc_expr_simple_identifier_bytes =
 /*
 The universal representation of an IFC ExprSimpleIdentifier node.
 
-The representation is declared as a derived struct of Byte_buffer_entity rather
+The representation is declared as a derived struct of Byte_buffer_entry rather
 than simply an alias of the instantiation to improve the debugger experience.
 */
 struct an_ifc_expr_simple_identifier :
-                    Byte_buffer_entity<an_ifc_expr_simple_identifier_storage> {
+                     Byte_buffer_entry<an_ifc_expr_simple_identifier_storage> {
   using storage_type = an_ifc_expr_simple_identifier_storage;
-  using base_type = Byte_buffer_entity<storage_type>;
-  using base_type::Byte_buffer_entity;
+  using base_type = Byte_buffer_entry<storage_type>;
+  using base_type::Byte_buffer_entry;
 };  /* an_ifc_expr_simple_identifier */
 
 
@@ -12029,14 +12022,14 @@ using an_ifc_expr_sizeof_type_bytes = an_ifc_expr_sizeof_type_storage;
 /*
 The universal representation of an IFC ExprSizeofType node.
 
-The representation is declared as a derived struct of Byte_buffer_entity rather
+The representation is declared as a derived struct of Byte_buffer_entry rather
 than simply an alias of the instantiation to improve the debugger experience.
 */
 struct an_ifc_expr_sizeof_type :
-                          Byte_buffer_entity<an_ifc_expr_sizeof_type_storage> {
+                           Byte_buffer_entry<an_ifc_expr_sizeof_type_storage> {
   using storage_type = an_ifc_expr_sizeof_type_storage;
-  using base_type = Byte_buffer_entity<storage_type>;
-  using base_type::Byte_buffer_entity;
+  using base_type = Byte_buffer_entry<storage_type>;
+  using base_type::Byte_buffer_entry;
 };  /* an_ifc_expr_sizeof_type */
 
 
@@ -12061,13 +12054,13 @@ using an_ifc_expr_string_bytes = an_ifc_expr_string_storage;
 /*
 The universal representation of an IFC ExprString node.
 
-The representation is declared as a derived struct of Byte_buffer_entity rather
+The representation is declared as a derived struct of Byte_buffer_entry rather
 than simply an alias of the instantiation to improve the debugger experience.
 */
-struct an_ifc_expr_string : Byte_buffer_entity<an_ifc_expr_string_storage> {
+struct an_ifc_expr_string : Byte_buffer_entry<an_ifc_expr_string_storage> {
   using storage_type = an_ifc_expr_string_storage;
-  using base_type = Byte_buffer_entity<storage_type>;
-  using base_type::Byte_buffer_entity;
+  using base_type = Byte_buffer_entry<storage_type>;
+  using base_type::Byte_buffer_entry;
 };  /* an_ifc_expr_string */
 
 
@@ -12104,14 +12097,14 @@ using an_ifc_expr_string_sequence_bytes = an_ifc_expr_string_sequence_storage;
 /*
 The universal representation of an IFC ExprStringSequence node.
 
-The representation is declared as a derived struct of Byte_buffer_entity rather
+The representation is declared as a derived struct of Byte_buffer_entry rather
 than simply an alias of the instantiation to improve the debugger experience.
 */
 struct an_ifc_expr_string_sequence :
-                      Byte_buffer_entity<an_ifc_expr_string_sequence_storage> {
+                       Byte_buffer_entry<an_ifc_expr_string_sequence_storage> {
   using storage_type = an_ifc_expr_string_sequence_storage;
-  using base_type = Byte_buffer_entity<storage_type>;
-  using base_type::Byte_buffer_entity;
+  using base_type = Byte_buffer_entry<storage_type>;
+  using base_type::Byte_buffer_entry;
 };  /* an_ifc_expr_string_sequence */
 
 
@@ -12144,14 +12137,14 @@ using an_ifc_expr_subobject_value_bytes = an_ifc_expr_subobject_value_storage;
 /*
 The universal representation of an IFC ExprSubobjectValue node.
 
-The representation is declared as a derived struct of Byte_buffer_entity rather
+The representation is declared as a derived struct of Byte_buffer_entry rather
 than simply an alias of the instantiation to improve the debugger experience.
 */
 struct an_ifc_expr_subobject_value :
-                      Byte_buffer_entity<an_ifc_expr_subobject_value_storage> {
+                       Byte_buffer_entry<an_ifc_expr_subobject_value_storage> {
   using storage_type = an_ifc_expr_subobject_value_storage;
-  using base_type = Byte_buffer_entity<storage_type>;
-  using base_type::Byte_buffer_entity;
+  using base_type = Byte_buffer_entry<storage_type>;
+  using base_type::Byte_buffer_entry;
 };  /* an_ifc_expr_subobject_value */
 
 
@@ -12215,14 +12208,14 @@ using an_ifc_expr_sum_type_value_bytes = an_ifc_expr_sum_type_value_storage;
 /*
 The universal representation of an IFC ExprSumTypeValue node.
 
-The representation is declared as a derived struct of Byte_buffer_entity rather
+The representation is declared as a derived struct of Byte_buffer_entry rather
 than simply an alias of the instantiation to improve the debugger experience.
 */
 struct an_ifc_expr_sum_type_value :
-                       Byte_buffer_entity<an_ifc_expr_sum_type_value_storage> {
+                        Byte_buffer_entry<an_ifc_expr_sum_type_value_storage> {
   using storage_type = an_ifc_expr_sum_type_value_storage;
-  using base_type = Byte_buffer_entity<storage_type>;
-  using base_type::Byte_buffer_entity;
+  using base_type = Byte_buffer_entry<storage_type>;
+  using base_type::Byte_buffer_entry;
 };  /* an_ifc_expr_sum_type_value */
 
 
@@ -12245,14 +12238,14 @@ using an_ifc_expr_syntax_tree_bytes = an_ifc_expr_syntax_tree_storage;
 /*
 The universal representation of an IFC ExprSyntaxTree node.
 
-The representation is declared as a derived struct of Byte_buffer_entity rather
+The representation is declared as a derived struct of Byte_buffer_entry rather
 than simply an alias of the instantiation to improve the debugger experience.
 */
 struct an_ifc_expr_syntax_tree :
-                          Byte_buffer_entity<an_ifc_expr_syntax_tree_storage> {
+                           Byte_buffer_entry<an_ifc_expr_syntax_tree_storage> {
   using storage_type = an_ifc_expr_syntax_tree_storage;
-  using base_type = Byte_buffer_entity<storage_type>;
-  using base_type::Byte_buffer_entity;
+  using base_type = Byte_buffer_entry<storage_type>;
+  using base_type::Byte_buffer_entry;
 };  /* an_ifc_expr_syntax_tree */
 
 
@@ -12289,14 +12282,14 @@ using an_ifc_expr_template_id_bytes = an_ifc_expr_template_id_storage;
 /*
 The universal representation of an IFC ExprTemplateId node.
 
-The representation is declared as a derived struct of Byte_buffer_entity rather
+The representation is declared as a derived struct of Byte_buffer_entry rather
 than simply an alias of the instantiation to improve the debugger experience.
 */
 struct an_ifc_expr_template_id :
-                          Byte_buffer_entity<an_ifc_expr_template_id_storage> {
+                           Byte_buffer_entry<an_ifc_expr_template_id_storage> {
   using storage_type = an_ifc_expr_template_id_storage;
-  using base_type = Byte_buffer_entity<storage_type>;
-  using base_type::Byte_buffer_entity;
+  using base_type = Byte_buffer_entry<storage_type>;
+  using base_type::Byte_buffer_entry;
 };  /* an_ifc_expr_template_id */
 
 
@@ -12353,14 +12346,14 @@ using an_ifc_expr_template_reference_bytes =
 /*
 The universal representation of an IFC ExprTemplateReference node.
 
-The representation is declared as a derived struct of Byte_buffer_entity rather
+The representation is declared as a derived struct of Byte_buffer_entry rather
 than simply an alias of the instantiation to improve the debugger experience.
 */
 struct an_ifc_expr_template_reference :
-                   Byte_buffer_entity<an_ifc_expr_template_reference_storage> {
+                    Byte_buffer_entry<an_ifc_expr_template_reference_storage> {
   using storage_type = an_ifc_expr_template_reference_storage;
-  using base_type = Byte_buffer_entity<storage_type>;
-  using base_type::Byte_buffer_entity;
+  using base_type = Byte_buffer_entry<storage_type>;
+  using base_type::Byte_buffer_entry;
 };  /* an_ifc_expr_template_reference */
 
 
@@ -12385,14 +12378,14 @@ using an_ifc_expr_temporary_bytes = an_ifc_expr_temporary_storage;
 /*
 The universal representation of an IFC ExprTemporary node.
 
-The representation is declared as a derived struct of Byte_buffer_entity rather
+The representation is declared as a derived struct of Byte_buffer_entry rather
 than simply an alias of the instantiation to improve the debugger experience.
 */
 struct an_ifc_expr_temporary :
-                            Byte_buffer_entity<an_ifc_expr_temporary_storage> {
+                             Byte_buffer_entry<an_ifc_expr_temporary_storage> {
   using storage_type = an_ifc_expr_temporary_storage;
-  using base_type = Byte_buffer_entity<storage_type>;
-  using base_type::Byte_buffer_entity;
+  using base_type = Byte_buffer_entry<storage_type>;
+  using base_type::Byte_buffer_entry;
 };  /* an_ifc_expr_temporary */
 
 
@@ -12416,13 +12409,13 @@ using an_ifc_expr_this_bytes = an_ifc_expr_this_storage;
 /*
 The universal representation of an IFC ExprThis node.
 
-The representation is declared as a derived struct of Byte_buffer_entity rather
+The representation is declared as a derived struct of Byte_buffer_entry rather
 than simply an alias of the instantiation to improve the debugger experience.
 */
-struct an_ifc_expr_this : Byte_buffer_entity<an_ifc_expr_this_storage> {
+struct an_ifc_expr_this : Byte_buffer_entry<an_ifc_expr_this_storage> {
   using storage_type = an_ifc_expr_this_storage;
-  using base_type = Byte_buffer_entity<storage_type>;
-  using base_type::Byte_buffer_entity;
+  using base_type = Byte_buffer_entry<storage_type>;
+  using base_type::Byte_buffer_entry;
 };  /* an_ifc_expr_this */
 
 
@@ -12447,13 +12440,13 @@ using an_ifc_expr_tokens_bytes = an_ifc_expr_tokens_storage;
 /*
 The universal representation of an IFC ExprTokens node.
 
-The representation is declared as a derived struct of Byte_buffer_entity rather
+The representation is declared as a derived struct of Byte_buffer_entry rather
 than simply an alias of the instantiation to improve the debugger experience.
 */
-struct an_ifc_expr_tokens : Byte_buffer_entity<an_ifc_expr_tokens_storage> {
+struct an_ifc_expr_tokens : Byte_buffer_entry<an_ifc_expr_tokens_storage> {
   using storage_type = an_ifc_expr_tokens_storage;
-  using base_type = Byte_buffer_entity<storage_type>;
-  using base_type::Byte_buffer_entity;
+  using base_type = Byte_buffer_entry<storage_type>;
+  using base_type::Byte_buffer_entry;
 };  /* an_ifc_expr_tokens */
 
 
@@ -12528,13 +12521,13 @@ using an_ifc_expr_triad_bytes = an_ifc_expr_triad_storage;
 /*
 The universal representation of an IFC ExprTriad node.
 
-The representation is declared as a derived struct of Byte_buffer_entity rather
+The representation is declared as a derived struct of Byte_buffer_entry rather
 than simply an alias of the instantiation to improve the debugger experience.
 */
-struct an_ifc_expr_triad : Byte_buffer_entity<an_ifc_expr_triad_storage> {
+struct an_ifc_expr_triad : Byte_buffer_entry<an_ifc_expr_triad_storage> {
   using storage_type = an_ifc_expr_triad_storage;
-  using base_type = Byte_buffer_entity<storage_type>;
-  using base_type::Byte_buffer_entity;
+  using base_type = Byte_buffer_entry<storage_type>;
+  using base_type::Byte_buffer_entry;
 };  /* an_ifc_expr_triad */
 
 
@@ -12560,13 +12553,13 @@ using an_ifc_expr_tuple_bytes = an_ifc_expr_tuple_storage;
 /*
 The universal representation of an IFC ExprTuple node.
 
-The representation is declared as a derived struct of Byte_buffer_entity rather
+The representation is declared as a derived struct of Byte_buffer_entry rather
 than simply an alias of the instantiation to improve the debugger experience.
 */
-struct an_ifc_expr_tuple : Byte_buffer_entity<an_ifc_expr_tuple_storage> {
+struct an_ifc_expr_tuple : Byte_buffer_entry<an_ifc_expr_tuple_storage> {
   using storage_type = an_ifc_expr_tuple_storage;
-  using base_type = Byte_buffer_entity<storage_type>;
-  using base_type::Byte_buffer_entity;
+  using base_type = Byte_buffer_entry<storage_type>;
+  using base_type::Byte_buffer_entry;
 };  /* an_ifc_expr_tuple */
 
 
@@ -12591,13 +12584,13 @@ using an_ifc_expr_type_bytes = an_ifc_expr_type_storage;
 /*
 The universal representation of an IFC ExprType node.
 
-The representation is declared as a derived struct of Byte_buffer_entity rather
+The representation is declared as a derived struct of Byte_buffer_entry rather
 than simply an alias of the instantiation to improve the debugger experience.
 */
-struct an_ifc_expr_type : Byte_buffer_entity<an_ifc_expr_type_storage> {
+struct an_ifc_expr_type : Byte_buffer_entry<an_ifc_expr_type_storage> {
   using storage_type = an_ifc_expr_type_storage;
-  using base_type = Byte_buffer_entity<storage_type>;
-  using base_type::Byte_buffer_entity;
+  using base_type = Byte_buffer_entry<storage_type>;
+  using base_type::Byte_buffer_entry;
 };  /* an_ifc_expr_type */
 
 
@@ -12651,14 +12644,14 @@ using an_ifc_expr_type_trait_intrinsic_bytes =
 /*
 The universal representation of an IFC ExprTypeTraitIntrinsic node.
 
-The representation is declared as a derived struct of Byte_buffer_entity rather
+The representation is declared as a derived struct of Byte_buffer_entry rather
 than simply an alias of the instantiation to improve the debugger experience.
 */
 struct an_ifc_expr_type_trait_intrinsic :
-                 Byte_buffer_entity<an_ifc_expr_type_trait_intrinsic_storage> {
+                  Byte_buffer_entry<an_ifc_expr_type_trait_intrinsic_storage> {
   using storage_type = an_ifc_expr_type_trait_intrinsic_storage;
-  using base_type = Byte_buffer_entity<storage_type>;
-  using base_type::Byte_buffer_entity;
+  using base_type = Byte_buffer_entry<storage_type>;
+  using base_type::Byte_buffer_entry;
 };  /* an_ifc_expr_type_trait_intrinsic */
 
 
@@ -12683,13 +12676,13 @@ using an_ifc_expr_typeid_bytes = an_ifc_expr_typeid_storage;
 /*
 The universal representation of an IFC ExprTypeid node.
 
-The representation is declared as a derived struct of Byte_buffer_entity rather
+The representation is declared as a derived struct of Byte_buffer_entry rather
 than simply an alias of the instantiation to improve the debugger experience.
 */
-struct an_ifc_expr_typeid : Byte_buffer_entity<an_ifc_expr_typeid_storage> {
+struct an_ifc_expr_typeid : Byte_buffer_entry<an_ifc_expr_typeid_storage> {
   using storage_type = an_ifc_expr_typeid_storage;
-  using base_type = Byte_buffer_entity<storage_type>;
-  using base_type::Byte_buffer_entity;
+  using base_type = Byte_buffer_entry<storage_type>;
+  using base_type::Byte_buffer_entry;
 };  /* an_ifc_expr_typeid */
 
 
@@ -12743,14 +12736,14 @@ using an_ifc_expr_unary_fold_bytes = an_ifc_expr_unary_fold_storage;
 /*
 The universal representation of an IFC ExprUnaryFold node.
 
-The representation is declared as a derived struct of Byte_buffer_entity rather
+The representation is declared as a derived struct of Byte_buffer_entry rather
 than simply an alias of the instantiation to improve the debugger experience.
 */
 struct an_ifc_expr_unary_fold :
-                           Byte_buffer_entity<an_ifc_expr_unary_fold_storage> {
+                            Byte_buffer_entry<an_ifc_expr_unary_fold_storage> {
   using storage_type = an_ifc_expr_unary_fold_storage;
-  using base_type = Byte_buffer_entity<storage_type>;
-  using base_type::Byte_buffer_entity;
+  using base_type = Byte_buffer_entry<storage_type>;
+  using base_type::Byte_buffer_entry;
 };  /* an_ifc_expr_unary_fold */
 
 
@@ -12790,14 +12783,14 @@ using an_ifc_expr_unqualified_id_bytes = an_ifc_expr_unqualified_id_storage;
 /*
 The universal representation of an IFC ExprUnqualifiedId node.
 
-The representation is declared as a derived struct of Byte_buffer_entity rather
+The representation is declared as a derived struct of Byte_buffer_entry rather
 than simply an alias of the instantiation to improve the debugger experience.
 */
 struct an_ifc_expr_unqualified_id :
-                       Byte_buffer_entity<an_ifc_expr_unqualified_id_storage> {
+                        Byte_buffer_entry<an_ifc_expr_unqualified_id_storage> {
   using storage_type = an_ifc_expr_unqualified_id_storage;
-  using base_type = Byte_buffer_entity<storage_type>;
-  using base_type::Byte_buffer_entity;
+  using base_type = Byte_buffer_entry<storage_type>;
+  using base_type::Byte_buffer_entry;
 };  /* an_ifc_expr_unqualified_id */
 
 
@@ -12823,14 +12816,14 @@ using an_ifc_expr_unresolved_id_bytes = an_ifc_expr_unresolved_id_storage;
 /*
 The universal representation of an IFC ExprUnresolvedId node.
 
-The representation is declared as a derived struct of Byte_buffer_entity rather
+The representation is declared as a derived struct of Byte_buffer_entry rather
 than simply an alias of the instantiation to improve the debugger experience.
 */
 struct an_ifc_expr_unresolved_id :
-                        Byte_buffer_entity<an_ifc_expr_unresolved_id_storage> {
+                         Byte_buffer_entry<an_ifc_expr_unresolved_id_storage> {
   using storage_type = an_ifc_expr_unresolved_id_storage;
-  using base_type = Byte_buffer_entity<storage_type>;
-  using base_type::Byte_buffer_entity;
+  using base_type = Byte_buffer_entry<storage_type>;
+  using base_type::Byte_buffer_entry;
 };  /* an_ifc_expr_unresolved_id */
 
 
@@ -12878,14 +12871,14 @@ using an_ifc_expr_virtual_function_conversion_bytes =
 /*
 The universal representation of an IFC ExprVirtualFunctionConversion node.
 
-The representation is declared as a derived struct of Byte_buffer_entity rather
+The representation is declared as a derived struct of Byte_buffer_entry rather
 than simply an alias of the instantiation to improve the debugger experience.
 */
 struct an_ifc_expr_virtual_function_conversion :
-          Byte_buffer_entity<an_ifc_expr_virtual_function_conversion_storage> {
+           Byte_buffer_entry<an_ifc_expr_virtual_function_conversion_storage> {
   using storage_type = an_ifc_expr_virtual_function_conversion_storage;
-  using base_type = Byte_buffer_entity<storage_type>;
-  using base_type::Byte_buffer_entity;
+  using base_type = Byte_buffer_entry<storage_type>;
+  using base_type::Byte_buffer_entry;
 };  /* an_ifc_expr_virtual_function_conversion */
 
 
@@ -12910,14 +12903,13 @@ using an_ifc_form_catenate_bytes = an_ifc_form_catenate_storage;
 /*
 The universal representation of an IFC FormCatenate node.
 
-The representation is declared as a derived struct of Byte_buffer_entity rather
+The representation is declared as a derived struct of Byte_buffer_entry rather
 than simply an alias of the instantiation to improve the debugger experience.
 */
-struct an_ifc_form_catenate :
-                             Byte_buffer_entity<an_ifc_form_catenate_storage> {
+struct an_ifc_form_catenate : Byte_buffer_entry<an_ifc_form_catenate_storage> {
   using storage_type = an_ifc_form_catenate_storage;
-  using base_type = Byte_buffer_entity<storage_type>;
-  using base_type::Byte_buffer_entity;
+  using base_type = Byte_buffer_entry<storage_type>;
+  using base_type::Byte_buffer_entry;
 };  /* an_ifc_form_catenate */
 
 
@@ -12941,14 +12933,14 @@ using an_ifc_form_character_bytes = an_ifc_form_character_storage;
 /*
 The universal representation of an IFC FormCharacter node.
 
-The representation is declared as a derived struct of Byte_buffer_entity rather
+The representation is declared as a derived struct of Byte_buffer_entry rather
 than simply an alias of the instantiation to improve the debugger experience.
 */
 struct an_ifc_form_character :
-                            Byte_buffer_entity<an_ifc_form_character_storage> {
+                             Byte_buffer_entry<an_ifc_form_character_storage> {
   using storage_type = an_ifc_form_character_storage;
-  using base_type = Byte_buffer_entity<storage_type>;
-  using base_type::Byte_buffer_entity;
+  using base_type = Byte_buffer_entry<storage_type>;
+  using base_type::Byte_buffer_entry;
 };  /* an_ifc_form_character */
 
 
@@ -12972,13 +12964,13 @@ using an_ifc_form_header_bytes = an_ifc_form_header_storage;
 /*
 The universal representation of an IFC FormHeader node.
 
-The representation is declared as a derived struct of Byte_buffer_entity rather
+The representation is declared as a derived struct of Byte_buffer_entry rather
 than simply an alias of the instantiation to improve the debugger experience.
 */
-struct an_ifc_form_header : Byte_buffer_entity<an_ifc_form_header_storage> {
+struct an_ifc_form_header : Byte_buffer_entry<an_ifc_form_header_storage> {
   using storage_type = an_ifc_form_header_storage;
-  using base_type = Byte_buffer_entity<storage_type>;
-  using base_type::Byte_buffer_entity;
+  using base_type = Byte_buffer_entry<storage_type>;
+  using base_type::Byte_buffer_entry;
 };  /* an_ifc_form_header */
 
 
@@ -13002,14 +12994,14 @@ using an_ifc_form_identifier_bytes = an_ifc_form_identifier_storage;
 /*
 The universal representation of an IFC FormIdentifier node.
 
-The representation is declared as a derived struct of Byte_buffer_entity rather
+The representation is declared as a derived struct of Byte_buffer_entry rather
 than simply an alias of the instantiation to improve the debugger experience.
 */
 struct an_ifc_form_identifier :
-                           Byte_buffer_entity<an_ifc_form_identifier_storage> {
+                            Byte_buffer_entry<an_ifc_form_identifier_storage> {
   using storage_type = an_ifc_form_identifier_storage;
-  using base_type = Byte_buffer_entity<storage_type>;
-  using base_type::Byte_buffer_entity;
+  using base_type = Byte_buffer_entry<storage_type>;
+  using base_type::Byte_buffer_entry;
 };  /* an_ifc_form_identifier */
 
 
@@ -13033,13 +13025,13 @@ using an_ifc_form_junk_bytes = an_ifc_form_junk_storage;
 /*
 The universal representation of an IFC FormJunk node.
 
-The representation is declared as a derived struct of Byte_buffer_entity rather
+The representation is declared as a derived struct of Byte_buffer_entry rather
 than simply an alias of the instantiation to improve the debugger experience.
 */
-struct an_ifc_form_junk : Byte_buffer_entity<an_ifc_form_junk_storage> {
+struct an_ifc_form_junk : Byte_buffer_entry<an_ifc_form_junk_storage> {
   using storage_type = an_ifc_form_junk_storage;
-  using base_type = Byte_buffer_entity<storage_type>;
-  using base_type::Byte_buffer_entity;
+  using base_type = Byte_buffer_entry<storage_type>;
+  using base_type::Byte_buffer_entry;
 };  /* an_ifc_form_junk */
 
 
@@ -13063,13 +13055,13 @@ using an_ifc_form_keyword_bytes = an_ifc_form_keyword_storage;
 /*
 The universal representation of an IFC FormKeyword node.
 
-The representation is declared as a derived struct of Byte_buffer_entity rather
+The representation is declared as a derived struct of Byte_buffer_entry rather
 than simply an alias of the instantiation to improve the debugger experience.
 */
-struct an_ifc_form_keyword : Byte_buffer_entity<an_ifc_form_keyword_storage> {
+struct an_ifc_form_keyword : Byte_buffer_entry<an_ifc_form_keyword_storage> {
   using storage_type = an_ifc_form_keyword_storage;
-  using base_type = Byte_buffer_entity<storage_type>;
-  using base_type::Byte_buffer_entity;
+  using base_type = Byte_buffer_entry<storage_type>;
+  using base_type::Byte_buffer_entry;
 };  /* an_ifc_form_keyword */
 
 
@@ -13093,13 +13085,13 @@ using an_ifc_form_number_bytes = an_ifc_form_number_storage;
 /*
 The universal representation of an IFC FormNumber node.
 
-The representation is declared as a derived struct of Byte_buffer_entity rather
+The representation is declared as a derived struct of Byte_buffer_entry rather
 than simply an alias of the instantiation to improve the debugger experience.
 */
-struct an_ifc_form_number : Byte_buffer_entity<an_ifc_form_number_storage> {
+struct an_ifc_form_number : Byte_buffer_entry<an_ifc_form_number_storage> {
   using storage_type = an_ifc_form_number_storage;
-  using base_type = Byte_buffer_entity<storage_type>;
-  using base_type::Byte_buffer_entity;
+  using base_type = Byte_buffer_entry<storage_type>;
+  using base_type::Byte_buffer_entry;
 };  /* an_ifc_form_number */
 
 
@@ -13125,14 +13117,13 @@ using an_ifc_form_operator_bytes = an_ifc_form_operator_storage;
 /*
 The universal representation of an IFC FormOperator node.
 
-The representation is declared as a derived struct of Byte_buffer_entity rather
+The representation is declared as a derived struct of Byte_buffer_entry rather
 than simply an alias of the instantiation to improve the debugger experience.
 */
-struct an_ifc_form_operator :
-                             Byte_buffer_entity<an_ifc_form_operator_storage> {
+struct an_ifc_form_operator : Byte_buffer_entry<an_ifc_form_operator_storage> {
   using storage_type = an_ifc_form_operator_storage;
-  using base_type = Byte_buffer_entity<storage_type>;
-  using base_type::Byte_buffer_entity;
+  using base_type = Byte_buffer_entry<storage_type>;
+  using base_type::Byte_buffer_entry;
 };  /* an_ifc_form_operator */
 
 
@@ -13156,14 +13147,14 @@ using an_ifc_form_parameter_bytes = an_ifc_form_parameter_storage;
 /*
 The universal representation of an IFC FormParameter node.
 
-The representation is declared as a derived struct of Byte_buffer_entity rather
+The representation is declared as a derived struct of Byte_buffer_entry rather
 than simply an alias of the instantiation to improve the debugger experience.
 */
 struct an_ifc_form_parameter :
-                            Byte_buffer_entity<an_ifc_form_parameter_storage> {
+                             Byte_buffer_entry<an_ifc_form_parameter_storage> {
   using storage_type = an_ifc_form_parameter_storage;
-  using base_type = Byte_buffer_entity<storage_type>;
-  using base_type::Byte_buffer_entity;
+  using base_type = Byte_buffer_entry<storage_type>;
+  using base_type::Byte_buffer_entry;
 };  /* an_ifc_form_parameter */
 
 
@@ -13188,14 +13179,14 @@ using an_ifc_form_parenthesized_bytes = an_ifc_form_parenthesized_storage;
 /*
 The universal representation of an IFC FormParenthesized node.
 
-The representation is declared as a derived struct of Byte_buffer_entity rather
+The representation is declared as a derived struct of Byte_buffer_entry rather
 than simply an alias of the instantiation to improve the debugger experience.
 */
 struct an_ifc_form_parenthesized :
-                        Byte_buffer_entity<an_ifc_form_parenthesized_storage> {
+                         Byte_buffer_entry<an_ifc_form_parenthesized_storage> {
   using storage_type = an_ifc_form_parenthesized_storage;
-  using base_type = Byte_buffer_entity<storage_type>;
-  using base_type::Byte_buffer_entity;
+  using base_type = Byte_buffer_entry<storage_type>;
+  using base_type::Byte_buffer_entry;
 };  /* an_ifc_form_parenthesized */
 
 
@@ -13219,13 +13210,13 @@ using an_ifc_form_pragma_bytes = an_ifc_form_pragma_storage;
 /*
 The universal representation of an IFC FormPragma node.
 
-The representation is declared as a derived struct of Byte_buffer_entity rather
+The representation is declared as a derived struct of Byte_buffer_entry rather
 than simply an alias of the instantiation to improve the debugger experience.
 */
-struct an_ifc_form_pragma : Byte_buffer_entity<an_ifc_form_pragma_storage> {
+struct an_ifc_form_pragma : Byte_buffer_entry<an_ifc_form_pragma_storage> {
   using storage_type = an_ifc_form_pragma_storage;
-  using base_type = Byte_buffer_entity<storage_type>;
-  using base_type::Byte_buffer_entity;
+  using base_type = Byte_buffer_entry<storage_type>;
+  using base_type::Byte_buffer_entry;
 };  /* an_ifc_form_pragma */
 
 
@@ -13276,13 +13267,13 @@ using an_ifc_form_spec_bytes = an_ifc_form_spec_storage;
 /*
 The universal representation of an IFC FormSpec node.
 
-The representation is declared as a derived struct of Byte_buffer_entity rather
+The representation is declared as a derived struct of Byte_buffer_entry rather
 than simply an alias of the instantiation to improve the debugger experience.
 */
-struct an_ifc_form_spec : Byte_buffer_entity<an_ifc_form_spec_storage> {
+struct an_ifc_form_spec : Byte_buffer_entry<an_ifc_form_spec_storage> {
   using storage_type = an_ifc_form_spec_storage;
-  using base_type = Byte_buffer_entity<storage_type>;
-  using base_type::Byte_buffer_entity;
+  using base_type = Byte_buffer_entry<storage_type>;
+  using base_type::Byte_buffer_entry;
 };  /* an_ifc_form_spec */
 
 
@@ -13306,13 +13297,13 @@ using an_ifc_form_string_bytes = an_ifc_form_string_storage;
 /*
 The universal representation of an IFC FormString node.
 
-The representation is declared as a derived struct of Byte_buffer_entity rather
+The representation is declared as a derived struct of Byte_buffer_entry rather
 than simply an alias of the instantiation to improve the debugger experience.
 */
-struct an_ifc_form_string : Byte_buffer_entity<an_ifc_form_string_storage> {
+struct an_ifc_form_string : Byte_buffer_entry<an_ifc_form_string_storage> {
   using storage_type = an_ifc_form_string_storage;
-  using base_type = Byte_buffer_entity<storage_type>;
-  using base_type::Byte_buffer_entity;
+  using base_type = Byte_buffer_entry<storage_type>;
+  using base_type::Byte_buffer_entry;
 };  /* an_ifc_form_string */
 
 
@@ -13336,14 +13327,14 @@ using an_ifc_form_stringize_bytes = an_ifc_form_stringize_storage;
 /*
 The universal representation of an IFC FormStringize node.
 
-The representation is declared as a derived struct of Byte_buffer_entity rather
+The representation is declared as a derived struct of Byte_buffer_entry rather
 than simply an alias of the instantiation to improve the debugger experience.
 */
 struct an_ifc_form_stringize :
-                            Byte_buffer_entity<an_ifc_form_stringize_storage> {
+                             Byte_buffer_entry<an_ifc_form_stringize_storage> {
   using storage_type = an_ifc_form_stringize_storage;
-  using base_type = Byte_buffer_entity<storage_type>;
-  using base_type::Byte_buffer_entity;
+  using base_type = Byte_buffer_entry<storage_type>;
+  using base_type::Byte_buffer_entry;
 };  /* an_ifc_form_stringize */
 
 
@@ -13367,13 +13358,13 @@ using an_ifc_form_tuple_bytes = an_ifc_form_tuple_storage;
 /*
 The universal representation of an IFC FormTuple node.
 
-The representation is declared as a derived struct of Byte_buffer_entity rather
+The representation is declared as a derived struct of Byte_buffer_entry rather
 than simply an alias of the instantiation to improve the debugger experience.
 */
-struct an_ifc_form_tuple : Byte_buffer_entity<an_ifc_form_tuple_storage> {
+struct an_ifc_form_tuple : Byte_buffer_entry<an_ifc_form_tuple_storage> {
   using storage_type = an_ifc_form_tuple_storage;
-  using base_type = Byte_buffer_entity<storage_type>;
-  using base_type::Byte_buffer_entity;
+  using base_type = Byte_buffer_entry<storage_type>;
+  using base_type::Byte_buffer_entry;
 };  /* an_ifc_form_tuple */
 
 
@@ -13396,14 +13387,14 @@ using an_ifc_form_whitespace_bytes = an_ifc_form_whitespace_storage;
 /*
 The universal representation of an IFC FormWhitespace node.
 
-The representation is declared as a derived struct of Byte_buffer_entity rather
+The representation is declared as a derived struct of Byte_buffer_entry rather
 than simply an alias of the instantiation to improve the debugger experience.
 */
 struct an_ifc_form_whitespace :
-                           Byte_buffer_entity<an_ifc_form_whitespace_storage> {
+                            Byte_buffer_entry<an_ifc_form_whitespace_storage> {
   using storage_type = an_ifc_form_whitespace_storage;
-  using base_type = Byte_buffer_entity<storage_type>;
-  using base_type::Byte_buffer_entity;
+  using base_type = Byte_buffer_entry<storage_type>;
+  using base_type::Byte_buffer_entry;
 };  /* an_ifc_form_whitespace */
 
 
@@ -13426,13 +13417,13 @@ using an_ifc_heap_attr_bytes = an_ifc_heap_attr_storage;
 /*
 The universal representation of an IFC HeapAttr node.
 
-The representation is declared as a derived struct of Byte_buffer_entity rather
+The representation is declared as a derived struct of Byte_buffer_entry rather
 than simply an alias of the instantiation to improve the debugger experience.
 */
-struct an_ifc_heap_attr : Byte_buffer_entity<an_ifc_heap_attr_storage> {
+struct an_ifc_heap_attr : Byte_buffer_entry<an_ifc_heap_attr_storage> {
   using storage_type = an_ifc_heap_attr_storage;
-  using base_type = Byte_buffer_entity<storage_type>;
-  using base_type::Byte_buffer_entity;
+  using base_type = Byte_buffer_entry<storage_type>;
+  using base_type::Byte_buffer_entry;
 };  /* an_ifc_heap_attr */
 
 
@@ -13455,13 +13446,13 @@ using an_ifc_heap_chart_bytes = an_ifc_heap_chart_storage;
 /*
 The universal representation of an IFC HeapChart node.
 
-The representation is declared as a derived struct of Byte_buffer_entity rather
+The representation is declared as a derived struct of Byte_buffer_entry rather
 than simply an alias of the instantiation to improve the debugger experience.
 */
-struct an_ifc_heap_chart : Byte_buffer_entity<an_ifc_heap_chart_storage> {
+struct an_ifc_heap_chart : Byte_buffer_entry<an_ifc_heap_chart_storage> {
   using storage_type = an_ifc_heap_chart_storage;
-  using base_type = Byte_buffer_entity<storage_type>;
-  using base_type::Byte_buffer_entity;
+  using base_type = Byte_buffer_entry<storage_type>;
+  using base_type::Byte_buffer_entry;
 };  /* an_ifc_heap_chart */
 
 
@@ -13500,13 +13491,13 @@ using an_ifc_heap_decl_bytes = an_ifc_heap_decl_storage;
 /*
 The universal representation of an IFC HeapDecl node.
 
-The representation is declared as a derived struct of Byte_buffer_entity rather
+The representation is declared as a derived struct of Byte_buffer_entry rather
 than simply an alias of the instantiation to improve the debugger experience.
 */
-struct an_ifc_heap_decl : Byte_buffer_entity<an_ifc_heap_decl_storage> {
+struct an_ifc_heap_decl : Byte_buffer_entry<an_ifc_heap_decl_storage> {
   using storage_type = an_ifc_heap_decl_storage;
-  using base_type = Byte_buffer_entity<storage_type>;
-  using base_type::Byte_buffer_entity;
+  using base_type = Byte_buffer_entry<storage_type>;
+  using base_type::Byte_buffer_entry;
 };  /* an_ifc_heap_decl */
 
 
@@ -13537,13 +13528,13 @@ using an_ifc_heap_expr_bytes = an_ifc_heap_expr_storage;
 /*
 The universal representation of an IFC HeapExpr node.
 
-The representation is declared as a derived struct of Byte_buffer_entity rather
+The representation is declared as a derived struct of Byte_buffer_entry rather
 than simply an alias of the instantiation to improve the debugger experience.
 */
-struct an_ifc_heap_expr : Byte_buffer_entity<an_ifc_heap_expr_storage> {
+struct an_ifc_heap_expr : Byte_buffer_entry<an_ifc_heap_expr_storage> {
   using storage_type = an_ifc_heap_expr_storage;
-  using base_type = Byte_buffer_entity<storage_type>;
-  using base_type::Byte_buffer_entity;
+  using base_type = Byte_buffer_entry<storage_type>;
+  using base_type::Byte_buffer_entry;
 };  /* an_ifc_heap_expr */
 
 
@@ -13566,13 +13557,13 @@ using an_ifc_heap_form_bytes = an_ifc_heap_form_storage;
 /*
 The universal representation of an IFC HeapForm node.
 
-The representation is declared as a derived struct of Byte_buffer_entity rather
+The representation is declared as a derived struct of Byte_buffer_entry rather
 than simply an alias of the instantiation to improve the debugger experience.
 */
-struct an_ifc_heap_form : Byte_buffer_entity<an_ifc_heap_form_storage> {
+struct an_ifc_heap_form : Byte_buffer_entry<an_ifc_heap_form_storage> {
   using storage_type = an_ifc_heap_form_storage;
-  using base_type = Byte_buffer_entity<storage_type>;
-  using base_type::Byte_buffer_entity;
+  using base_type = Byte_buffer_entry<storage_type>;
+  using base_type::Byte_buffer_entry;
 };  /* an_ifc_heap_form */
 
 
@@ -13595,13 +13586,13 @@ using an_ifc_heap_pp_form_bytes = an_ifc_heap_pp_form_storage;
 /*
 The universal representation of an IFC HeapPPForm node.
 
-The representation is declared as a derived struct of Byte_buffer_entity rather
+The representation is declared as a derived struct of Byte_buffer_entry rather
 than simply an alias of the instantiation to improve the debugger experience.
 */
-struct an_ifc_heap_pp_form : Byte_buffer_entity<an_ifc_heap_pp_form_storage> {
+struct an_ifc_heap_pp_form : Byte_buffer_entry<an_ifc_heap_pp_form_storage> {
   using storage_type = an_ifc_heap_pp_form_storage;
-  using base_type = Byte_buffer_entity<storage_type>;
-  using base_type::Byte_buffer_entity;
+  using base_type = Byte_buffer_entry<storage_type>;
+  using base_type::Byte_buffer_entry;
 };  /* an_ifc_heap_pp_form */
 
 
@@ -13632,13 +13623,13 @@ using an_ifc_heap_stmt_bytes = an_ifc_heap_stmt_storage;
 /*
 The universal representation of an IFC HeapStmt node.
 
-The representation is declared as a derived struct of Byte_buffer_entity rather
+The representation is declared as a derived struct of Byte_buffer_entry rather
 than simply an alias of the instantiation to improve the debugger experience.
 */
-struct an_ifc_heap_stmt : Byte_buffer_entity<an_ifc_heap_stmt_storage> {
+struct an_ifc_heap_stmt : Byte_buffer_entry<an_ifc_heap_stmt_storage> {
   using storage_type = an_ifc_heap_stmt_storage;
-  using base_type = Byte_buffer_entity<storage_type>;
-  using base_type::Byte_buffer_entity;
+  using base_type = Byte_buffer_entry<storage_type>;
+  using base_type::Byte_buffer_entry;
 };  /* an_ifc_heap_stmt */
 
 
@@ -13661,13 +13652,13 @@ using an_ifc_heap_syntax_bytes = an_ifc_heap_syntax_storage;
 /*
 The universal representation of an IFC HeapSyntax node.
 
-The representation is declared as a derived struct of Byte_buffer_entity rather
+The representation is declared as a derived struct of Byte_buffer_entry rather
 than simply an alias of the instantiation to improve the debugger experience.
 */
-struct an_ifc_heap_syntax : Byte_buffer_entity<an_ifc_heap_syntax_storage> {
+struct an_ifc_heap_syntax : Byte_buffer_entry<an_ifc_heap_syntax_storage> {
   using storage_type = an_ifc_heap_syntax_storage;
-  using base_type = Byte_buffer_entity<storage_type>;
-  using base_type::Byte_buffer_entity;
+  using base_type = Byte_buffer_entry<storage_type>;
+  using base_type::Byte_buffer_entry;
 };  /* an_ifc_heap_syntax */
 
 
@@ -13690,13 +13681,13 @@ using an_ifc_heap_type_bytes = an_ifc_heap_type_storage;
 /*
 The universal representation of an IFC HeapType node.
 
-The representation is declared as a derived struct of Byte_buffer_entity rather
+The representation is declared as a derived struct of Byte_buffer_entry rather
 than simply an alias of the instantiation to improve the debugger experience.
 */
-struct an_ifc_heap_type : Byte_buffer_entity<an_ifc_heap_type_storage> {
+struct an_ifc_heap_type : Byte_buffer_entry<an_ifc_heap_type_storage> {
   using storage_type = an_ifc_heap_type_storage;
-  using base_type = Byte_buffer_entity<storage_type>;
-  using base_type::Byte_buffer_entity;
+  using base_type = Byte_buffer_entry<storage_type>;
+  using base_type::Byte_buffer_entry;
 };  /* an_ifc_heap_type */
 
 
@@ -13724,14 +13715,14 @@ using an_ifc_macro_function_like_bytes = an_ifc_macro_function_like_storage;
 /*
 The universal representation of an IFC MacroFunctionLike node.
 
-The representation is declared as a derived struct of Byte_buffer_entity rather
+The representation is declared as a derived struct of Byte_buffer_entry rather
 than simply an alias of the instantiation to improve the debugger experience.
 */
 struct an_ifc_macro_function_like :
-                       Byte_buffer_entity<an_ifc_macro_function_like_storage> {
+                        Byte_buffer_entry<an_ifc_macro_function_like_storage> {
   using storage_type = an_ifc_macro_function_like_storage;
-  using base_type = Byte_buffer_entity<storage_type>;
-  using base_type::Byte_buffer_entity;
+  using base_type = Byte_buffer_entry<storage_type>;
+  using base_type::Byte_buffer_entry;
 };  /* an_ifc_macro_function_like */
 
 
@@ -13756,14 +13747,14 @@ using an_ifc_macro_object_like_bytes = an_ifc_macro_object_like_storage;
 /*
 The universal representation of an IFC MacroObjectLike node.
 
-The representation is declared as a derived struct of Byte_buffer_entity rather
+The representation is declared as a derived struct of Byte_buffer_entry rather
 than simply an alias of the instantiation to improve the debugger experience.
 */
 struct an_ifc_macro_object_like :
-                         Byte_buffer_entity<an_ifc_macro_object_like_storage> {
+                          Byte_buffer_entry<an_ifc_macro_object_like_storage> {
   using storage_type = an_ifc_macro_object_like_storage;
-  using base_type = Byte_buffer_entity<storage_type>;
-  using base_type::Byte_buffer_entity;
+  using base_type = Byte_buffer_entry<storage_type>;
+  using base_type::Byte_buffer_entry;
 };  /* an_ifc_macro_object_like */
 
 
@@ -13789,14 +13780,14 @@ using an_ifc_module_export_reference_bytes =
 /*
 The universal representation of an IFC ModuleExportReference node.
 
-The representation is declared as a derived struct of Byte_buffer_entity rather
+The representation is declared as a derived struct of Byte_buffer_entry rather
 than simply an alias of the instantiation to improve the debugger experience.
 */
 struct an_ifc_module_export_reference :
-                   Byte_buffer_entity<an_ifc_module_export_reference_storage> {
+                    Byte_buffer_entry<an_ifc_module_export_reference_storage> {
   using storage_type = an_ifc_module_export_reference_storage;
-  using base_type = Byte_buffer_entity<storage_type>;
-  using base_type::Byte_buffer_entity;
+  using base_type = Byte_buffer_entry<storage_type>;
+  using base_type::Byte_buffer_entry;
 };  /* an_ifc_module_export_reference */
 
 
@@ -13822,14 +13813,14 @@ using an_ifc_module_import_reference_bytes =
 /*
 The universal representation of an IFC ModuleImportReference node.
 
-The representation is declared as a derived struct of Byte_buffer_entity rather
+The representation is declared as a derived struct of Byte_buffer_entry rather
 than simply an alias of the instantiation to improve the debugger experience.
 */
 struct an_ifc_module_import_reference :
-                   Byte_buffer_entity<an_ifc_module_import_reference_storage> {
+                    Byte_buffer_entry<an_ifc_module_import_reference_storage> {
   using storage_type = an_ifc_module_import_reference_storage;
-  using base_type = Byte_buffer_entity<storage_type>;
-  using base_type::Byte_buffer_entity;
+  using base_type = Byte_buffer_entry<storage_type>;
+  using base_type::Byte_buffer_entry;
 };  /* an_ifc_module_import_reference */
 
 
@@ -13853,14 +13844,14 @@ using an_ifc_name_conversion_bytes = an_ifc_name_conversion_storage;
 /*
 The universal representation of an IFC NameConversion node.
 
-The representation is declared as a derived struct of Byte_buffer_entity rather
+The representation is declared as a derived struct of Byte_buffer_entry rather
 than simply an alias of the instantiation to improve the debugger experience.
 */
 struct an_ifc_name_conversion :
-                           Byte_buffer_entity<an_ifc_name_conversion_storage> {
+                            Byte_buffer_entry<an_ifc_name_conversion_storage> {
   using storage_type = an_ifc_name_conversion_storage;
-  using base_type = Byte_buffer_entity<storage_type>;
-  using base_type::Byte_buffer_entity;
+  using base_type = Byte_buffer_entry<storage_type>;
+  using base_type::Byte_buffer_entry;
 };  /* an_ifc_name_conversion */
 
 
@@ -13899,13 +13890,13 @@ using an_ifc_name_guide_bytes = an_ifc_name_guide_storage;
 /*
 The universal representation of an IFC NameGuide node.
 
-The representation is declared as a derived struct of Byte_buffer_entity rather
+The representation is declared as a derived struct of Byte_buffer_entry rather
 than simply an alias of the instantiation to improve the debugger experience.
 */
-struct an_ifc_name_guide : Byte_buffer_entity<an_ifc_name_guide_storage> {
+struct an_ifc_name_guide : Byte_buffer_entry<an_ifc_name_guide_storage> {
   using storage_type = an_ifc_name_guide_storage;
-  using base_type = Byte_buffer_entity<storage_type>;
-  using base_type::Byte_buffer_entity;
+  using base_type = Byte_buffer_entry<storage_type>;
+  using base_type::Byte_buffer_entry;
 };  /* an_ifc_name_guide */
 
 
@@ -13928,13 +13919,13 @@ using an_ifc_name_literal_bytes = an_ifc_name_literal_storage;
 /*
 The universal representation of an IFC NameLiteral node.
 
-The representation is declared as a derived struct of Byte_buffer_entity rather
+The representation is declared as a derived struct of Byte_buffer_entry rather
 than simply an alias of the instantiation to improve the debugger experience.
 */
-struct an_ifc_name_literal : Byte_buffer_entity<an_ifc_name_literal_storage> {
+struct an_ifc_name_literal : Byte_buffer_entry<an_ifc_name_literal_storage> {
   using storage_type = an_ifc_name_literal_storage;
-  using base_type = Byte_buffer_entity<storage_type>;
-  using base_type::Byte_buffer_entity;
+  using base_type = Byte_buffer_entry<storage_type>;
+  using base_type::Byte_buffer_entry;
 };  /* an_ifc_name_literal */
 
 
@@ -13979,14 +13970,13 @@ using an_ifc_name_operator_bytes = an_ifc_name_operator_storage;
 /*
 The universal representation of an IFC NameOperator node.
 
-The representation is declared as a derived struct of Byte_buffer_entity rather
+The representation is declared as a derived struct of Byte_buffer_entry rather
 than simply an alias of the instantiation to improve the debugger experience.
 */
-struct an_ifc_name_operator :
-                             Byte_buffer_entity<an_ifc_name_operator_storage> {
+struct an_ifc_name_operator : Byte_buffer_entry<an_ifc_name_operator_storage> {
   using storage_type = an_ifc_name_operator_storage;
-  using base_type = Byte_buffer_entity<storage_type>;
-  using base_type::Byte_buffer_entity;
+  using base_type = Byte_buffer_entry<storage_type>;
+  using base_type::Byte_buffer_entry;
 };  /* an_ifc_name_operator */
 
 
@@ -14010,14 +14000,14 @@ using an_ifc_name_source_file_bytes = an_ifc_name_source_file_storage;
 /*
 The universal representation of an IFC NameSourceFile node.
 
-The representation is declared as a derived struct of Byte_buffer_entity rather
+The representation is declared as a derived struct of Byte_buffer_entry rather
 than simply an alias of the instantiation to improve the debugger experience.
 */
 struct an_ifc_name_source_file :
-                          Byte_buffer_entity<an_ifc_name_source_file_storage> {
+                           Byte_buffer_entry<an_ifc_name_source_file_storage> {
   using storage_type = an_ifc_name_source_file_storage;
-  using base_type = Byte_buffer_entity<storage_type>;
-  using base_type::Byte_buffer_entity;
+  using base_type = Byte_buffer_entry<storage_type>;
+  using base_type::Byte_buffer_entry;
 };  /* an_ifc_name_source_file */
 
 
@@ -14051,14 +14041,14 @@ using an_ifc_name_specialization_bytes = an_ifc_name_specialization_storage;
 /*
 The universal representation of an IFC NameSpecialization node.
 
-The representation is declared as a derived struct of Byte_buffer_entity rather
+The representation is declared as a derived struct of Byte_buffer_entry rather
 than simply an alias of the instantiation to improve the debugger experience.
 */
 struct an_ifc_name_specialization :
-                       Byte_buffer_entity<an_ifc_name_specialization_storage> {
+                        Byte_buffer_entry<an_ifc_name_specialization_storage> {
   using storage_type = an_ifc_name_specialization_storage;
-  using base_type = Byte_buffer_entity<storage_type>;
-  using base_type::Byte_buffer_entity;
+  using base_type = Byte_buffer_entry<storage_type>;
+  using base_type::Byte_buffer_entry;
 };  /* an_ifc_name_specialization */
 
 
@@ -14081,14 +14071,13 @@ using an_ifc_name_template_bytes = an_ifc_name_template_storage;
 /*
 The universal representation of an IFC NameTemplate node.
 
-The representation is declared as a derived struct of Byte_buffer_entity rather
+The representation is declared as a derived struct of Byte_buffer_entry rather
 than simply an alias of the instantiation to improve the debugger experience.
 */
-struct an_ifc_name_template :
-                             Byte_buffer_entity<an_ifc_name_template_storage> {
+struct an_ifc_name_template : Byte_buffer_entry<an_ifc_name_template_storage> {
   using storage_type = an_ifc_name_template_storage;
-  using base_type = Byte_buffer_entity<storage_type>;
-  using base_type::Byte_buffer_entity;
+  using base_type = Byte_buffer_entry<storage_type>;
+  using base_type::Byte_buffer_entry;
 };  /* an_ifc_name_template */
 
 
@@ -14112,14 +14101,14 @@ using an_ifc_scope_descriptor_bytes = an_ifc_scope_descriptor_storage;
 /*
 The universal representation of an IFC ScopeDescriptor node.
 
-The representation is declared as a derived struct of Byte_buffer_entity rather
+The representation is declared as a derived struct of Byte_buffer_entry rather
 than simply an alias of the instantiation to improve the debugger experience.
 */
 struct an_ifc_scope_descriptor :
-                          Byte_buffer_entity<an_ifc_scope_descriptor_storage> {
+                           Byte_buffer_entry<an_ifc_scope_descriptor_storage> {
   using storage_type = an_ifc_scope_descriptor_storage;
-  using base_type = Byte_buffer_entity<storage_type>;
-  using base_type::Byte_buffer_entity;
+  using base_type = Byte_buffer_entry<storage_type>;
+  using base_type::Byte_buffer_entry;
 };  /* an_ifc_scope_descriptor */
 
 
@@ -14158,13 +14147,13 @@ using an_ifc_scope_member_bytes = an_ifc_scope_member_storage;
 /*
 The universal representation of an IFC ScopeMember node.
 
-The representation is declared as a derived struct of Byte_buffer_entity rather
+The representation is declared as a derived struct of Byte_buffer_entry rather
 than simply an alias of the instantiation to improve the debugger experience.
 */
-struct an_ifc_scope_member : Byte_buffer_entity<an_ifc_scope_member_storage> {
+struct an_ifc_scope_member : Byte_buffer_entry<an_ifc_scope_member_storage> {
   using storage_type = an_ifc_scope_member_storage;
-  using base_type = Byte_buffer_entity<storage_type>;
-  using base_type::Byte_buffer_entity;
+  using base_type = Byte_buffer_entry<storage_type>;
+  using base_type::Byte_buffer_entry;
 };  /* an_ifc_scope_member */
 
 
@@ -14188,13 +14177,13 @@ using an_ifc_source_line_bytes = an_ifc_source_line_storage;
 /*
 The universal representation of an IFC SourceLine node.
 
-The representation is declared as a derived struct of Byte_buffer_entity rather
+The representation is declared as a derived struct of Byte_buffer_entry rather
 than simply an alias of the instantiation to improve the debugger experience.
 */
-struct an_ifc_source_line : Byte_buffer_entity<an_ifc_source_line_storage> {
+struct an_ifc_source_line : Byte_buffer_entry<an_ifc_source_line_storage> {
   using storage_type = an_ifc_source_line_storage;
-  using base_type = Byte_buffer_entity<storage_type>;
-  using base_type::Byte_buffer_entity;
+  using base_type = Byte_buffer_entry<storage_type>;
+  using base_type::Byte_buffer_entry;
 };  /* an_ifc_source_line */
 
 
@@ -14219,14 +14208,14 @@ using an_ifc_source_sentence_bytes = an_ifc_source_sentence_storage;
 /*
 The universal representation of an IFC SourceSentence node.
 
-The representation is declared as a derived struct of Byte_buffer_entity rather
+The representation is declared as a derived struct of Byte_buffer_entry rather
 than simply an alias of the instantiation to improve the debugger experience.
 */
 struct an_ifc_source_sentence :
-                           Byte_buffer_entity<an_ifc_source_sentence_storage> {
+                            Byte_buffer_entry<an_ifc_source_sentence_storage> {
   using storage_type = an_ifc_source_sentence_storage;
-  using base_type = Byte_buffer_entity<storage_type>;
-  using base_type::Byte_buffer_entity;
+  using base_type = Byte_buffer_entry<storage_type>;
+  using base_type::Byte_buffer_entry;
 };  /* an_ifc_source_sentence */
 
 
@@ -14255,13 +14244,13 @@ using an_ifc_source_word_bytes = an_ifc_source_word_storage;
 /*
 The universal representation of an IFC SourceWord node.
 
-The representation is declared as a derived struct of Byte_buffer_entity rather
+The representation is declared as a derived struct of Byte_buffer_entry rather
 than simply an alias of the instantiation to improve the debugger experience.
 */
-struct an_ifc_source_word : Byte_buffer_entity<an_ifc_source_word_storage> {
+struct an_ifc_source_word : Byte_buffer_entry<an_ifc_source_word_storage> {
   using storage_type = an_ifc_source_word_storage;
-  using base_type = Byte_buffer_entity<storage_type>;
-  using base_type::Byte_buffer_entity;
+  using base_type = Byte_buffer_entry<storage_type>;
+  using base_type::Byte_buffer_entry;
 };  /* an_ifc_source_word */
 
 
@@ -14295,13 +14284,13 @@ using an_ifc_stmt_block_bytes = an_ifc_stmt_block_storage;
 /*
 The universal representation of an IFC StmtBlock node.
 
-The representation is declared as a derived struct of Byte_buffer_entity rather
+The representation is declared as a derived struct of Byte_buffer_entry rather
 than simply an alias of the instantiation to improve the debugger experience.
 */
-struct an_ifc_stmt_block : Byte_buffer_entity<an_ifc_stmt_block_storage> {
+struct an_ifc_stmt_block : Byte_buffer_entry<an_ifc_stmt_block_storage> {
   using storage_type = an_ifc_stmt_block_storage;
-  using base_type = Byte_buffer_entity<storage_type>;
-  using base_type::Byte_buffer_entity;
+  using base_type = Byte_buffer_entry<storage_type>;
+  using base_type::Byte_buffer_entry;
 };  /* an_ifc_stmt_block */
 
 
@@ -14324,13 +14313,13 @@ using an_ifc_stmt_break_bytes = an_ifc_stmt_break_storage;
 /*
 The universal representation of an IFC StmtBreak node.
 
-The representation is declared as a derived struct of Byte_buffer_entity rather
+The representation is declared as a derived struct of Byte_buffer_entry rather
 than simply an alias of the instantiation to improve the debugger experience.
 */
-struct an_ifc_stmt_break : Byte_buffer_entity<an_ifc_stmt_break_storage> {
+struct an_ifc_stmt_break : Byte_buffer_entry<an_ifc_stmt_break_storage> {
   using storage_type = an_ifc_stmt_break_storage;
-  using base_type = Byte_buffer_entity<storage_type>;
-  using base_type::Byte_buffer_entity;
+  using base_type = Byte_buffer_entry<storage_type>;
+  using base_type::Byte_buffer_entry;
 };  /* an_ifc_stmt_break */
 
 
@@ -14363,13 +14352,13 @@ using an_ifc_stmt_case_bytes = an_ifc_stmt_case_storage;
 /*
 The universal representation of an IFC StmtCase node.
 
-The representation is declared as a derived struct of Byte_buffer_entity rather
+The representation is declared as a derived struct of Byte_buffer_entry rather
 than simply an alias of the instantiation to improve the debugger experience.
 */
-struct an_ifc_stmt_case : Byte_buffer_entity<an_ifc_stmt_case_storage> {
+struct an_ifc_stmt_case : Byte_buffer_entry<an_ifc_stmt_case_storage> {
   using storage_type = an_ifc_stmt_case_storage;
-  using base_type = Byte_buffer_entity<storage_type>;
-  using base_type::Byte_buffer_entity;
+  using base_type = Byte_buffer_entry<storage_type>;
+  using base_type::Byte_buffer_entry;
 };  /* an_ifc_stmt_case */
 
 
@@ -14392,14 +14381,13 @@ using an_ifc_stmt_continue_bytes = an_ifc_stmt_continue_storage;
 /*
 The universal representation of an IFC StmtContinue node.
 
-The representation is declared as a derived struct of Byte_buffer_entity rather
+The representation is declared as a derived struct of Byte_buffer_entry rather
 than simply an alias of the instantiation to improve the debugger experience.
 */
-struct an_ifc_stmt_continue :
-                             Byte_buffer_entity<an_ifc_stmt_continue_storage> {
+struct an_ifc_stmt_continue : Byte_buffer_entry<an_ifc_stmt_continue_storage> {
   using storage_type = an_ifc_stmt_continue_storage;
-  using base_type = Byte_buffer_entity<storage_type>;
-  using base_type::Byte_buffer_entity;
+  using base_type = Byte_buffer_entry<storage_type>;
+  using base_type::Byte_buffer_entry;
 };  /* an_ifc_stmt_continue */
 
 
@@ -14432,13 +14420,13 @@ using an_ifc_stmt_decl_bytes = an_ifc_stmt_decl_storage;
 /*
 The universal representation of an IFC StmtDecl node.
 
-The representation is declared as a derived struct of Byte_buffer_entity rather
+The representation is declared as a derived struct of Byte_buffer_entry rather
 than simply an alias of the instantiation to improve the debugger experience.
 */
-struct an_ifc_stmt_decl : Byte_buffer_entity<an_ifc_stmt_decl_storage> {
+struct an_ifc_stmt_decl : Byte_buffer_entry<an_ifc_stmt_decl_storage> {
   using storage_type = an_ifc_stmt_decl_storage;
-  using base_type = Byte_buffer_entity<storage_type>;
-  using base_type::Byte_buffer_entity;
+  using base_type = Byte_buffer_entry<storage_type>;
+  using base_type::Byte_buffer_entry;
 };  /* an_ifc_stmt_decl */
 
 
@@ -14461,13 +14449,13 @@ using an_ifc_stmt_default_bytes = an_ifc_stmt_default_storage;
 /*
 The universal representation of an IFC StmtDefault node.
 
-The representation is declared as a derived struct of Byte_buffer_entity rather
+The representation is declared as a derived struct of Byte_buffer_entry rather
 than simply an alias of the instantiation to improve the debugger experience.
 */
-struct an_ifc_stmt_default : Byte_buffer_entity<an_ifc_stmt_default_storage> {
+struct an_ifc_stmt_default : Byte_buffer_entry<an_ifc_stmt_default_storage> {
   using storage_type = an_ifc_stmt_default_storage;
-  using base_type = Byte_buffer_entity<storage_type>;
-  using base_type::Byte_buffer_entity;
+  using base_type = Byte_buffer_entry<storage_type>;
+  using base_type::Byte_buffer_entry;
 };  /* an_ifc_stmt_default */
 
 
@@ -14502,14 +14490,13 @@ using an_ifc_stmt_do_while_bytes = an_ifc_stmt_do_while_storage;
 /*
 The universal representation of an IFC StmtDoWhile node.
 
-The representation is declared as a derived struct of Byte_buffer_entity rather
+The representation is declared as a derived struct of Byte_buffer_entry rather
 than simply an alias of the instantiation to improve the debugger experience.
 */
-struct an_ifc_stmt_do_while :
-                             Byte_buffer_entity<an_ifc_stmt_do_while_storage> {
+struct an_ifc_stmt_do_while : Byte_buffer_entry<an_ifc_stmt_do_while_storage> {
   using storage_type = an_ifc_stmt_do_while_storage;
-  using base_type = Byte_buffer_entity<storage_type>;
-  using base_type::Byte_buffer_entity;
+  using base_type = Byte_buffer_entry<storage_type>;
+  using base_type::Byte_buffer_entry;
 };  /* an_ifc_stmt_do_while */
 
 
@@ -14532,13 +14519,13 @@ using an_ifc_stmt_empty_bytes = an_ifc_stmt_empty_storage;
 /*
 The universal representation of an IFC StmtEmpty node.
 
-The representation is declared as a derived struct of Byte_buffer_entity rather
+The representation is declared as a derived struct of Byte_buffer_entry rather
 than simply an alias of the instantiation to improve the debugger experience.
 */
-struct an_ifc_stmt_empty : Byte_buffer_entity<an_ifc_stmt_empty_storage> {
+struct an_ifc_stmt_empty : Byte_buffer_entry<an_ifc_stmt_empty_storage> {
   using storage_type = an_ifc_stmt_empty_storage;
-  using base_type = Byte_buffer_entity<storage_type>;
-  using base_type::Byte_buffer_entity;
+  using base_type = Byte_buffer_entry<storage_type>;
+  using base_type::Byte_buffer_entry;
 };  /* an_ifc_stmt_empty */
 
 
@@ -14570,14 +14557,14 @@ using an_ifc_stmt_expansion_bytes = an_ifc_stmt_expansion_storage;
 /*
 The universal representation of an IFC StmtExpansion node.
 
-The representation is declared as a derived struct of Byte_buffer_entity rather
+The representation is declared as a derived struct of Byte_buffer_entry rather
 than simply an alias of the instantiation to improve the debugger experience.
 */
 struct an_ifc_stmt_expansion :
-                            Byte_buffer_entity<an_ifc_stmt_expansion_storage> {
+                             Byte_buffer_entry<an_ifc_stmt_expansion_storage> {
   using storage_type = an_ifc_stmt_expansion_storage;
-  using base_type = Byte_buffer_entity<storage_type>;
-  using base_type::Byte_buffer_entity;
+  using base_type = Byte_buffer_entry<storage_type>;
+  using base_type::Byte_buffer_entry;
 };  /* an_ifc_stmt_expansion */
 
 
@@ -14610,14 +14597,14 @@ using an_ifc_stmt_expression_bytes = an_ifc_stmt_expression_storage;
 /*
 The universal representation of an IFC StmtExpression node.
 
-The representation is declared as a derived struct of Byte_buffer_entity rather
+The representation is declared as a derived struct of Byte_buffer_entry rather
 than simply an alias of the instantiation to improve the debugger experience.
 */
 struct an_ifc_stmt_expression :
-                           Byte_buffer_entity<an_ifc_stmt_expression_storage> {
+                            Byte_buffer_entry<an_ifc_stmt_expression_storage> {
   using storage_type = an_ifc_stmt_expression_storage;
-  using base_type = Byte_buffer_entity<storage_type>;
-  using base_type::Byte_buffer_entity;
+  using base_type = Byte_buffer_entry<storage_type>;
+  using base_type::Byte_buffer_entry;
 };  /* an_ifc_stmt_expression */
 
 
@@ -14656,13 +14643,13 @@ using an_ifc_stmt_for_bytes = an_ifc_stmt_for_storage;
 /*
 The universal representation of an IFC StmtFor node.
 
-The representation is declared as a derived struct of Byte_buffer_entity rather
+The representation is declared as a derived struct of Byte_buffer_entry rather
 than simply an alias of the instantiation to improve the debugger experience.
 */
-struct an_ifc_stmt_for : Byte_buffer_entity<an_ifc_stmt_for_storage> {
+struct an_ifc_stmt_for : Byte_buffer_entry<an_ifc_stmt_for_storage> {
   using storage_type = an_ifc_stmt_for_storage;
-  using base_type = Byte_buffer_entity<storage_type>;
-  using base_type::Byte_buffer_entity;
+  using base_type = Byte_buffer_entry<storage_type>;
+  using base_type::Byte_buffer_entry;
 };  /* an_ifc_stmt_for */
 
 
@@ -14686,13 +14673,13 @@ using an_ifc_stmt_goto_bytes = an_ifc_stmt_goto_storage;
 /*
 The universal representation of an IFC StmtGoto node.
 
-The representation is declared as a derived struct of Byte_buffer_entity rather
+The representation is declared as a derived struct of Byte_buffer_entry rather
 than simply an alias of the instantiation to improve the debugger experience.
 */
-struct an_ifc_stmt_goto : Byte_buffer_entity<an_ifc_stmt_goto_storage> {
+struct an_ifc_stmt_goto : Byte_buffer_entry<an_ifc_stmt_goto_storage> {
   using storage_type = an_ifc_stmt_goto_storage;
-  using base_type = Byte_buffer_entity<storage_type>;
-  using base_type::Byte_buffer_entity;
+  using base_type = Byte_buffer_entry<storage_type>;
+  using base_type::Byte_buffer_entry;
 };  /* an_ifc_stmt_goto */
 
 
@@ -14727,13 +14714,13 @@ using an_ifc_stmt_handler_bytes = an_ifc_stmt_handler_storage;
 /*
 The universal representation of an IFC StmtHandler node.
 
-The representation is declared as a derived struct of Byte_buffer_entity rather
+The representation is declared as a derived struct of Byte_buffer_entry rather
 than simply an alias of the instantiation to improve the debugger experience.
 */
-struct an_ifc_stmt_handler : Byte_buffer_entity<an_ifc_stmt_handler_storage> {
+struct an_ifc_stmt_handler : Byte_buffer_entry<an_ifc_stmt_handler_storage> {
   using storage_type = an_ifc_stmt_handler_storage;
-  using base_type = Byte_buffer_entity<storage_type>;
-  using base_type::Byte_buffer_entity;
+  using base_type = Byte_buffer_entry<storage_type>;
+  using base_type::Byte_buffer_entry;
 };  /* an_ifc_stmt_handler */
 
 
@@ -14772,13 +14759,13 @@ using an_ifc_stmt_if_bytes = an_ifc_stmt_if_storage;
 /*
 The universal representation of an IFC StmtIf node.
 
-The representation is declared as a derived struct of Byte_buffer_entity rather
+The representation is declared as a derived struct of Byte_buffer_entry rather
 than simply an alias of the instantiation to improve the debugger experience.
 */
-struct an_ifc_stmt_if : Byte_buffer_entity<an_ifc_stmt_if_storage> {
+struct an_ifc_stmt_if : Byte_buffer_entry<an_ifc_stmt_if_storage> {
   using storage_type = an_ifc_stmt_if_storage;
-  using base_type = Byte_buffer_entity<storage_type>;
-  using base_type::Byte_buffer_entity;
+  using base_type = Byte_buffer_entry<storage_type>;
+  using base_type::Byte_buffer_entry;
 };  /* an_ifc_stmt_if */
 
 
@@ -14804,13 +14791,13 @@ using an_ifc_stmt_labeled_bytes = an_ifc_stmt_labeled_storage;
 /*
 The universal representation of an IFC StmtLabeled node.
 
-The representation is declared as a derived struct of Byte_buffer_entity rather
+The representation is declared as a derived struct of Byte_buffer_entry rather
 than simply an alias of the instantiation to improve the debugger experience.
 */
-struct an_ifc_stmt_labeled : Byte_buffer_entity<an_ifc_stmt_labeled_storage> {
+struct an_ifc_stmt_labeled : Byte_buffer_entry<an_ifc_stmt_labeled_storage> {
   using storage_type = an_ifc_stmt_labeled_storage;
-  using base_type = Byte_buffer_entity<storage_type>;
-  using base_type::Byte_buffer_entity;
+  using base_type = Byte_buffer_entry<storage_type>;
+  using base_type::Byte_buffer_entry;
 };  /* an_ifc_stmt_labeled */
 
 
@@ -14847,13 +14834,13 @@ using an_ifc_stmt_return_bytes = an_ifc_stmt_return_storage;
 /*
 The universal representation of an IFC StmtReturn node.
 
-The representation is declared as a derived struct of Byte_buffer_entity rather
+The representation is declared as a derived struct of Byte_buffer_entry rather
 than simply an alias of the instantiation to improve the debugger experience.
 */
-struct an_ifc_stmt_return : Byte_buffer_entity<an_ifc_stmt_return_storage> {
+struct an_ifc_stmt_return : Byte_buffer_entry<an_ifc_stmt_return_storage> {
   using storage_type = an_ifc_stmt_return_storage;
-  using base_type = Byte_buffer_entity<storage_type>;
-  using base_type::Byte_buffer_entity;
+  using base_type = Byte_buffer_entry<storage_type>;
+  using base_type::Byte_buffer_entry;
 };  /* an_ifc_stmt_return */
 
 
@@ -14890,13 +14877,13 @@ using an_ifc_stmt_switch_bytes = an_ifc_stmt_switch_storage;
 /*
 The universal representation of an IFC StmtSwitch node.
 
-The representation is declared as a derived struct of Byte_buffer_entity rather
+The representation is declared as a derived struct of Byte_buffer_entry rather
 than simply an alias of the instantiation to improve the debugger experience.
 */
-struct an_ifc_stmt_switch : Byte_buffer_entity<an_ifc_stmt_switch_storage> {
+struct an_ifc_stmt_switch : Byte_buffer_entry<an_ifc_stmt_switch_storage> {
   using storage_type = an_ifc_stmt_switch_storage;
-  using base_type = Byte_buffer_entity<storage_type>;
-  using base_type::Byte_buffer_entity;
+  using base_type = Byte_buffer_entry<storage_type>;
+  using base_type::Byte_buffer_entry;
 };  /* an_ifc_stmt_switch */
 
 
@@ -14922,13 +14909,13 @@ using an_ifc_stmt_try_bytes = an_ifc_stmt_try_storage;
 /*
 The universal representation of an IFC StmtTry node.
 
-The representation is declared as a derived struct of Byte_buffer_entity rather
+The representation is declared as a derived struct of Byte_buffer_entry rather
 than simply an alias of the instantiation to improve the debugger experience.
 */
-struct an_ifc_stmt_try : Byte_buffer_entity<an_ifc_stmt_try_storage> {
+struct an_ifc_stmt_try : Byte_buffer_entry<an_ifc_stmt_try_storage> {
   using storage_type = an_ifc_stmt_try_storage;
-  using base_type = Byte_buffer_entity<storage_type>;
-  using base_type::Byte_buffer_entity;
+  using base_type = Byte_buffer_entry<storage_type>;
+  using base_type::Byte_buffer_entry;
 };  /* an_ifc_stmt_try */
 
 
@@ -14954,13 +14941,13 @@ using an_ifc_stmt_tuple_bytes = an_ifc_stmt_tuple_storage;
 /*
 The universal representation of an IFC StmtTuple node.
 
-The representation is declared as a derived struct of Byte_buffer_entity rather
+The representation is declared as a derived struct of Byte_buffer_entry rather
 than simply an alias of the instantiation to improve the debugger experience.
 */
-struct an_ifc_stmt_tuple : Byte_buffer_entity<an_ifc_stmt_tuple_storage> {
+struct an_ifc_stmt_tuple : Byte_buffer_entry<an_ifc_stmt_tuple_storage> {
   using storage_type = an_ifc_stmt_tuple_storage;
-  using base_type = Byte_buffer_entity<storage_type>;
-  using base_type::Byte_buffer_entity;
+  using base_type = Byte_buffer_entry<storage_type>;
+  using base_type::Byte_buffer_entry;
 };  /* an_ifc_stmt_tuple */
 
 
@@ -14994,14 +14981,14 @@ using an_ifc_stmt_variable_decl_bytes = an_ifc_stmt_variable_decl_storage;
 /*
 The universal representation of an IFC StmtVariableDecl node.
 
-The representation is declared as a derived struct of Byte_buffer_entity rather
+The representation is declared as a derived struct of Byte_buffer_entry rather
 than simply an alias of the instantiation to improve the debugger experience.
 */
 struct an_ifc_stmt_variable_decl :
-                        Byte_buffer_entity<an_ifc_stmt_variable_decl_storage> {
+                         Byte_buffer_entry<an_ifc_stmt_variable_decl_storage> {
   using storage_type = an_ifc_stmt_variable_decl_storage;
-  using base_type = Byte_buffer_entity<storage_type>;
-  using base_type::Byte_buffer_entity;
+  using base_type = Byte_buffer_entry<storage_type>;
+  using base_type::Byte_buffer_entry;
 };  /* an_ifc_stmt_variable_decl */
 
 
@@ -15036,13 +15023,13 @@ using an_ifc_stmt_while_bytes = an_ifc_stmt_while_storage;
 /*
 The universal representation of an IFC StmtWhile node.
 
-The representation is declared as a derived struct of Byte_buffer_entity rather
+The representation is declared as a derived struct of Byte_buffer_entry rather
 than simply an alias of the instantiation to improve the debugger experience.
 */
-struct an_ifc_stmt_while : Byte_buffer_entity<an_ifc_stmt_while_storage> {
+struct an_ifc_stmt_while : Byte_buffer_entry<an_ifc_stmt_while_storage> {
   using storage_type = an_ifc_stmt_while_storage;
-  using base_type = Byte_buffer_entity<storage_type>;
-  using base_type::Byte_buffer_entity;
+  using base_type = Byte_buffer_entry<storage_type>;
+  using base_type::Byte_buffer_entry;
 };  /* an_ifc_stmt_while */
 
 
@@ -15086,14 +15073,14 @@ using an_ifc_syntax_access_specifier_bytes =
 /*
 The universal representation of an IFC SyntaxAccessSpecifier node.
 
-The representation is declared as a derived struct of Byte_buffer_entity rather
+The representation is declared as a derived struct of Byte_buffer_entry rather
 than simply an alias of the instantiation to improve the debugger experience.
 */
 struct an_ifc_syntax_access_specifier :
-                   Byte_buffer_entity<an_ifc_syntax_access_specifier_storage> {
+                    Byte_buffer_entry<an_ifc_syntax_access_specifier_storage> {
   using storage_type = an_ifc_syntax_access_specifier_storage;
-  using base_type = Byte_buffer_entity<storage_type>;
-  using base_type::Byte_buffer_entity;
+  using base_type = Byte_buffer_entry<storage_type>;
+  using base_type::Byte_buffer_entry;
 };  /* an_ifc_syntax_access_specifier */
 
 
@@ -15135,14 +15122,14 @@ using an_ifc_syntax_alias_declaration_bytes =
 /*
 The universal representation of an IFC SyntaxAliasDeclaration node.
 
-The representation is declared as a derived struct of Byte_buffer_entity rather
+The representation is declared as a derived struct of Byte_buffer_entry rather
 than simply an alias of the instantiation to improve the debugger experience.
 */
 struct an_ifc_syntax_alias_declaration :
-                  Byte_buffer_entity<an_ifc_syntax_alias_declaration_storage> {
+                   Byte_buffer_entry<an_ifc_syntax_alias_declaration_storage> {
   using storage_type = an_ifc_syntax_alias_declaration_storage;
-  using base_type = Byte_buffer_entity<storage_type>;
-  using base_type::Byte_buffer_entity;
+  using base_type = Byte_buffer_entry<storage_type>;
+  using base_type::Byte_buffer_entry;
 };  /* an_ifc_syntax_alias_declaration */
 
 
@@ -15168,14 +15155,14 @@ using an_ifc_syntax_alignas_bytes = an_ifc_syntax_alignas_storage;
 /*
 The universal representation of an IFC SyntaxAlignas node.
 
-The representation is declared as a derived struct of Byte_buffer_entity rather
+The representation is declared as a derived struct of Byte_buffer_entry rather
 than simply an alias of the instantiation to improve the debugger experience.
 */
 struct an_ifc_syntax_alignas :
-                            Byte_buffer_entity<an_ifc_syntax_alignas_storage> {
+                             Byte_buffer_entry<an_ifc_syntax_alignas_storage> {
   using storage_type = an_ifc_syntax_alignas_storage;
-  using base_type = Byte_buffer_entity<storage_type>;
-  using base_type::Byte_buffer_entity;
+  using base_type = Byte_buffer_entry<storage_type>;
+  using base_type::Byte_buffer_entry;
 };  /* an_ifc_syntax_alignas */
 
 
@@ -15213,14 +15200,14 @@ using an_ifc_syntax_array_declarator_bytes =
 /*
 The universal representation of an IFC SyntaxArrayDeclarator node.
 
-The representation is declared as a derived struct of Byte_buffer_entity rather
+The representation is declared as a derived struct of Byte_buffer_entry rather
 than simply an alias of the instantiation to improve the debugger experience.
 */
 struct an_ifc_syntax_array_declarator :
-                   Byte_buffer_entity<an_ifc_syntax_array_declarator_storage> {
+                    Byte_buffer_entry<an_ifc_syntax_array_declarator_storage> {
   using storage_type = an_ifc_syntax_array_declarator_storage;
-  using base_type = Byte_buffer_entity<storage_type>;
-  using base_type::Byte_buffer_entity;
+  using base_type = Byte_buffer_entry<storage_type>;
+  using base_type::Byte_buffer_entry;
 };  /* an_ifc_syntax_array_declarator */
 
 
@@ -15258,14 +15245,14 @@ using an_ifc_syntax_array_index_bytes = an_ifc_syntax_array_index_storage;
 /*
 The universal representation of an IFC SyntaxArrayIndex node.
 
-The representation is declared as a derived struct of Byte_buffer_entity rather
+The representation is declared as a derived struct of Byte_buffer_entry rather
 than simply an alias of the instantiation to improve the debugger experience.
 */
 struct an_ifc_syntax_array_index :
-                        Byte_buffer_entity<an_ifc_syntax_array_index_storage> {
+                         Byte_buffer_entry<an_ifc_syntax_array_index_storage> {
   using storage_type = an_ifc_syntax_array_index_storage;
-  using base_type = Byte_buffer_entity<storage_type>;
-  using base_type::Byte_buffer_entity;
+  using base_type = Byte_buffer_entry<storage_type>;
+  using base_type::Byte_buffer_entry;
 };  /* an_ifc_syntax_array_index */
 
 
@@ -15292,14 +15279,14 @@ using an_ifc_syntax_array_or_function_declarator_bytes =
 /*
 The universal representation of an IFC SyntaxArrayOrFunctionDeclarator node.
 
-The representation is declared as a derived struct of Byte_buffer_entity rather
+The representation is declared as a derived struct of Byte_buffer_entry rather
 than simply an alias of the instantiation to improve the debugger experience.
 */
 struct an_ifc_syntax_array_or_function_declarator :
-       Byte_buffer_entity<an_ifc_syntax_array_or_function_declarator_storage> {
+        Byte_buffer_entry<an_ifc_syntax_array_or_function_declarator_storage> {
   using storage_type = an_ifc_syntax_array_or_function_declarator_storage;
-  using base_type = Byte_buffer_entity<storage_type>;
-  using base_type::Byte_buffer_entity;
+  using base_type = Byte_buffer_entry<storage_type>;
+  using base_type::Byte_buffer_entry;
 };  /* an_ifc_syntax_array_or_function_declarator */
 
 
@@ -15325,14 +15312,14 @@ using an_ifc_syntax_asm_statement_bytes = an_ifc_syntax_asm_statement_storage;
 /*
 The universal representation of an IFC SyntaxAsmStatement node.
 
-The representation is declared as a derived struct of Byte_buffer_entity rather
+The representation is declared as a derived struct of Byte_buffer_entry rather
 than simply an alias of the instantiation to improve the debugger experience.
 */
 struct an_ifc_syntax_asm_statement :
-                      Byte_buffer_entity<an_ifc_syntax_asm_statement_storage> {
+                       Byte_buffer_entry<an_ifc_syntax_asm_statement_storage> {
   using storage_type = an_ifc_syntax_asm_statement_storage;
-  using base_type = Byte_buffer_entity<storage_type>;
-  using base_type::Byte_buffer_entity;
+  using base_type = Byte_buffer_entry<storage_type>;
+  using base_type::Byte_buffer_entry;
 };  /* an_ifc_syntax_asm_statement */
 
 
@@ -15373,14 +15360,14 @@ using an_ifc_syntax_attribute_bytes = an_ifc_syntax_attribute_storage;
 /*
 The universal representation of an IFC SyntaxAttribute node.
 
-The representation is declared as a derived struct of Byte_buffer_entity rather
+The representation is declared as a derived struct of Byte_buffer_entry rather
 than simply an alias of the instantiation to improve the debugger experience.
 */
 struct an_ifc_syntax_attribute :
-                          Byte_buffer_entity<an_ifc_syntax_attribute_storage> {
+                           Byte_buffer_entry<an_ifc_syntax_attribute_storage> {
   using storage_type = an_ifc_syntax_attribute_storage;
-  using base_type = Byte_buffer_entity<storage_type>;
-  using base_type::Byte_buffer_entity;
+  using base_type = Byte_buffer_entry<storage_type>;
+  using base_type::Byte_buffer_entry;
 };  /* an_ifc_syntax_attribute */
 
 
@@ -15408,14 +15395,14 @@ using an_ifc_syntax_attribute_argument_clause_bytes =
 /*
 The universal representation of an IFC SyntaxAttributeArgumentClause node.
 
-The representation is declared as a derived struct of Byte_buffer_entity rather
+The representation is declared as a derived struct of Byte_buffer_entry rather
 than simply an alias of the instantiation to improve the debugger experience.
 */
 struct an_ifc_syntax_attribute_argument_clause :
-          Byte_buffer_entity<an_ifc_syntax_attribute_argument_clause_storage> {
+           Byte_buffer_entry<an_ifc_syntax_attribute_argument_clause_storage> {
   using storage_type = an_ifc_syntax_attribute_argument_clause_storage;
-  using base_type = Byte_buffer_entity<storage_type>;
-  using base_type::Byte_buffer_entity;
+  using base_type = Byte_buffer_entry<storage_type>;
+  using base_type::Byte_buffer_entry;
 };  /* an_ifc_syntax_attribute_argument_clause */
 
 
@@ -15446,14 +15433,14 @@ using an_ifc_syntax_attribute_specifier_bytes =
 /*
 The universal representation of an IFC SyntaxAttributeSpecifier node.
 
-The representation is declared as a derived struct of Byte_buffer_entity rather
+The representation is declared as a derived struct of Byte_buffer_entry rather
 than simply an alias of the instantiation to improve the debugger experience.
 */
 struct an_ifc_syntax_attribute_specifier :
-                Byte_buffer_entity<an_ifc_syntax_attribute_specifier_storage> {
+                 Byte_buffer_entry<an_ifc_syntax_attribute_specifier_storage> {
   using storage_type = an_ifc_syntax_attribute_specifier_storage;
-  using base_type = Byte_buffer_entity<storage_type>;
-  using base_type::Byte_buffer_entity;
+  using base_type = Byte_buffer_entry<storage_type>;
+  using base_type::Byte_buffer_entry;
 };  /* an_ifc_syntax_attribute_specifier */
 
 
@@ -15479,14 +15466,14 @@ using an_ifc_syntax_attribute_specifier_seq_bytes =
 /*
 The universal representation of an IFC SyntaxAttributeSpecifierSeq node.
 
-The representation is declared as a derived struct of Byte_buffer_entity rather
+The representation is declared as a derived struct of Byte_buffer_entry rather
 than simply an alias of the instantiation to improve the debugger experience.
 */
 struct an_ifc_syntax_attribute_specifier_seq :
-            Byte_buffer_entity<an_ifc_syntax_attribute_specifier_seq_storage> {
+             Byte_buffer_entry<an_ifc_syntax_attribute_specifier_seq_storage> {
   using storage_type = an_ifc_syntax_attribute_specifier_seq_storage;
-  using base_type = Byte_buffer_entity<storage_type>;
-  using base_type::Byte_buffer_entity;
+  using base_type = Byte_buffer_entry<storage_type>;
+  using base_type::Byte_buffer_entry;
 };  /* an_ifc_syntax_attribute_specifier_seq */
 
 
@@ -15513,14 +15500,14 @@ using an_ifc_syntax_attribute_using_prefix_bytes =
 /*
 The universal representation of an IFC SyntaxAttributeUsingPrefix node.
 
-The representation is declared as a derived struct of Byte_buffer_entity rather
+The representation is declared as a derived struct of Byte_buffer_entry rather
 than simply an alias of the instantiation to improve the debugger experience.
 */
 struct an_ifc_syntax_attribute_using_prefix :
-             Byte_buffer_entity<an_ifc_syntax_attribute_using_prefix_storage> {
+              Byte_buffer_entry<an_ifc_syntax_attribute_using_prefix_storage> {
   using storage_type = an_ifc_syntax_attribute_using_prefix_storage;
-  using base_type = Byte_buffer_entity<storage_type>;
-  using base_type::Byte_buffer_entity;
+  using base_type = Byte_buffer_entry<storage_type>;
+  using base_type::Byte_buffer_entry;
 };  /* an_ifc_syntax_attribute_using_prefix */
 
 
@@ -15548,14 +15535,14 @@ using an_ifc_syntax_attributed_declaration_bytes =
 /*
 The universal representation of an IFC SyntaxAttributedDeclaration node.
 
-The representation is declared as a derived struct of Byte_buffer_entity rather
+The representation is declared as a derived struct of Byte_buffer_entry rather
 than simply an alias of the instantiation to improve the debugger experience.
 */
 struct an_ifc_syntax_attributed_declaration :
-             Byte_buffer_entity<an_ifc_syntax_attributed_declaration_storage> {
+              Byte_buffer_entry<an_ifc_syntax_attributed_declaration_storage> {
   using storage_type = an_ifc_syntax_attributed_declaration_storage;
-  using base_type = Byte_buffer_entity<storage_type>;
-  using base_type::Byte_buffer_entity;
+  using base_type = Byte_buffer_entry<storage_type>;
+  using base_type::Byte_buffer_entry;
 };  /* an_ifc_syntax_attributed_declaration */
 
 
@@ -15583,14 +15570,14 @@ using an_ifc_syntax_attributed_statement_bytes =
 /*
 The universal representation of an IFC SyntaxAttributedStatement node.
 
-The representation is declared as a derived struct of Byte_buffer_entity rather
+The representation is declared as a derived struct of Byte_buffer_entry rather
 than simply an alias of the instantiation to improve the debugger experience.
 */
 struct an_ifc_syntax_attributed_statement :
-               Byte_buffer_entity<an_ifc_syntax_attributed_statement_storage> {
+                Byte_buffer_entry<an_ifc_syntax_attributed_statement_storage> {
   using storage_type = an_ifc_syntax_attributed_statement_storage;
-  using base_type = Byte_buffer_entity<storage_type>;
-  using base_type::Byte_buffer_entity;
+  using base_type = Byte_buffer_entry<storage_type>;
+  using base_type::Byte_buffer_entry;
 };  /* an_ifc_syntax_attributed_statement */
 
 
@@ -15617,14 +15604,14 @@ using an_ifc_syntax_base_specifier_bytes =
 /*
 The universal representation of an IFC SyntaxBaseSpecifier node.
 
-The representation is declared as a derived struct of Byte_buffer_entity rather
+The representation is declared as a derived struct of Byte_buffer_entry rather
 than simply an alias of the instantiation to improve the debugger experience.
 */
 struct an_ifc_syntax_base_specifier :
-                     Byte_buffer_entity<an_ifc_syntax_base_specifier_storage> {
+                      Byte_buffer_entry<an_ifc_syntax_base_specifier_storage> {
   using storage_type = an_ifc_syntax_base_specifier_storage;
-  using base_type = Byte_buffer_entity<storage_type>;
-  using base_type::Byte_buffer_entity;
+  using base_type = Byte_buffer_entry<storage_type>;
+  using base_type::Byte_buffer_entry;
 };  /* an_ifc_syntax_base_specifier */
 
 
@@ -15651,14 +15638,14 @@ using an_ifc_syntax_base_specifier_list_bytes =
 /*
 The universal representation of an IFC SyntaxBaseSpecifierList node.
 
-The representation is declared as a derived struct of Byte_buffer_entity rather
+The representation is declared as a derived struct of Byte_buffer_entry rather
 than simply an alias of the instantiation to improve the debugger experience.
 */
 struct an_ifc_syntax_base_specifier_list :
-                Byte_buffer_entity<an_ifc_syntax_base_specifier_list_storage> {
+                 Byte_buffer_entry<an_ifc_syntax_base_specifier_list_storage> {
   using storage_type = an_ifc_syntax_base_specifier_list_storage;
-  using base_type = Byte_buffer_entity<storage_type>;
-  using base_type::Byte_buffer_entity;
+  using base_type = Byte_buffer_entry<storage_type>;
+  using base_type::Byte_buffer_entry;
 };  /* an_ifc_syntax_base_specifier_list */
 
 
@@ -15725,14 +15712,14 @@ using an_ifc_syntax_binary_fold_expression_bytes =
 /*
 The universal representation of an IFC SyntaxBinaryFoldExpression node.
 
-The representation is declared as a derived struct of Byte_buffer_entity rather
+The representation is declared as a derived struct of Byte_buffer_entry rather
 than simply an alias of the instantiation to improve the debugger experience.
 */
 struct an_ifc_syntax_binary_fold_expression :
-             Byte_buffer_entity<an_ifc_syntax_binary_fold_expression_storage> {
+              Byte_buffer_entry<an_ifc_syntax_binary_fold_expression_storage> {
   using storage_type = an_ifc_syntax_binary_fold_expression_storage;
-  using base_type = Byte_buffer_entity<storage_type>;
-  using base_type::Byte_buffer_entity;
+  using base_type = Byte_buffer_entry<storage_type>;
+  using base_type::Byte_buffer_entry;
 };  /* an_ifc_syntax_binary_fold_expression */
 
 
@@ -15759,14 +15746,14 @@ using an_ifc_syntax_break_statement_bytes =
 /*
 The universal representation of an IFC SyntaxBreakStatement node.
 
-The representation is declared as a derived struct of Byte_buffer_entity rather
+The representation is declared as a derived struct of Byte_buffer_entry rather
 than simply an alias of the instantiation to improve the debugger experience.
 */
 struct an_ifc_syntax_break_statement :
-                    Byte_buffer_entity<an_ifc_syntax_break_statement_storage> {
+                     Byte_buffer_entry<an_ifc_syntax_break_statement_storage> {
   using storage_type = an_ifc_syntax_break_statement_storage;
-  using base_type = Byte_buffer_entity<storage_type>;
-  using base_type::Byte_buffer_entity;
+  using base_type = Byte_buffer_entry<storage_type>;
+  using base_type::Byte_buffer_entry;
 };  /* an_ifc_syntax_break_statement */
 
 
@@ -15794,14 +15781,14 @@ using an_ifc_syntax_capture_default_bytes =
 /*
 The universal representation of an IFC SyntaxCaptureDefault node.
 
-The representation is declared as a derived struct of Byte_buffer_entity rather
+The representation is declared as a derived struct of Byte_buffer_entry rather
 than simply an alias of the instantiation to improve the debugger experience.
 */
 struct an_ifc_syntax_capture_default :
-                    Byte_buffer_entity<an_ifc_syntax_capture_default_storage> {
+                     Byte_buffer_entry<an_ifc_syntax_capture_default_storage> {
   using storage_type = an_ifc_syntax_capture_default_storage;
-  using base_type = Byte_buffer_entity<storage_type>;
-  using base_type::Byte_buffer_entity;
+  using base_type = Byte_buffer_entry<storage_type>;
+  using base_type::Byte_buffer_entry;
 };  /* an_ifc_syntax_capture_default */
 
 
@@ -15845,14 +15832,14 @@ using an_ifc_syntax_class_specifier_bytes =
 /*
 The universal representation of an IFC SyntaxClassSpecifier node.
 
-The representation is declared as a derived struct of Byte_buffer_entity rather
+The representation is declared as a derived struct of Byte_buffer_entry rather
 than simply an alias of the instantiation to improve the debugger experience.
 */
 struct an_ifc_syntax_class_specifier :
-                    Byte_buffer_entity<an_ifc_syntax_class_specifier_storage> {
+                     Byte_buffer_entry<an_ifc_syntax_class_specifier_storage> {
   using storage_type = an_ifc_syntax_class_specifier_storage;
-  using base_type = Byte_buffer_entity<storage_type>;
-  using base_type::Byte_buffer_entity;
+  using base_type = Byte_buffer_entry<storage_type>;
+  using base_type::Byte_buffer_entry;
 };  /* an_ifc_syntax_class_specifier */
 
 
@@ -15894,14 +15881,14 @@ using an_ifc_syntax_compound_requirement_bytes =
 /*
 The universal representation of an IFC SyntaxCompoundRequirement node.
 
-The representation is declared as a derived struct of Byte_buffer_entity rather
+The representation is declared as a derived struct of Byte_buffer_entry rather
 than simply an alias of the instantiation to improve the debugger experience.
 */
 struct an_ifc_syntax_compound_requirement :
-               Byte_buffer_entity<an_ifc_syntax_compound_requirement_storage> {
+                Byte_buffer_entry<an_ifc_syntax_compound_requirement_storage> {
   using storage_type = an_ifc_syntax_compound_requirement_storage;
-  using base_type = Byte_buffer_entity<storage_type>;
-  using base_type::Byte_buffer_entity;
+  using base_type = Byte_buffer_entry<storage_type>;
+  using base_type::Byte_buffer_entry;
 };  /* an_ifc_syntax_compound_requirement */
 
 
@@ -15930,14 +15917,14 @@ using an_ifc_syntax_compound_statement_bytes =
 /*
 The universal representation of an IFC SyntaxCompoundStatement node.
 
-The representation is declared as a derived struct of Byte_buffer_entity rather
+The representation is declared as a derived struct of Byte_buffer_entry rather
 than simply an alias of the instantiation to improve the debugger experience.
 */
 struct an_ifc_syntax_compound_statement :
-                 Byte_buffer_entity<an_ifc_syntax_compound_statement_storage> {
+                  Byte_buffer_entry<an_ifc_syntax_compound_statement_storage> {
   using storage_type = an_ifc_syntax_compound_statement_storage;
-  using base_type = Byte_buffer_entity<storage_type>;
-  using base_type::Byte_buffer_entity;
+  using base_type = Byte_buffer_entry<storage_type>;
+  using base_type::Byte_buffer_entry;
 };  /* an_ifc_syntax_compound_statement */
 
 
@@ -15983,14 +15970,14 @@ using an_ifc_syntax_concept_definition_bytes =
 /*
 The universal representation of an IFC SyntaxConceptDefinition node.
 
-The representation is declared as a derived struct of Byte_buffer_entity rather
+The representation is declared as a derived struct of Byte_buffer_entry rather
 than simply an alias of the instantiation to improve the debugger experience.
 */
 struct an_ifc_syntax_concept_definition :
-                 Byte_buffer_entity<an_ifc_syntax_concept_definition_storage> {
+                  Byte_buffer_entry<an_ifc_syntax_concept_definition_storage> {
   using storage_type = an_ifc_syntax_concept_definition_storage;
-  using base_type = Byte_buffer_entity<storage_type>;
-  using base_type::Byte_buffer_entity;
+  using base_type = Byte_buffer_entry<storage_type>;
+  using base_type::Byte_buffer_entry;
 };  /* an_ifc_syntax_concept_definition */
 
 
@@ -16018,14 +16005,14 @@ using an_ifc_syntax_condition_declaration_bytes =
 /*
 The universal representation of an IFC SyntaxConditionDeclaration node.
 
-The representation is declared as a derived struct of Byte_buffer_entity rather
+The representation is declared as a derived struct of Byte_buffer_entry rather
 than simply an alias of the instantiation to improve the debugger experience.
 */
 struct an_ifc_syntax_condition_declaration :
-              Byte_buffer_entity<an_ifc_syntax_condition_declaration_storage> {
+               Byte_buffer_entry<an_ifc_syntax_condition_declaration_storage> {
   using storage_type = an_ifc_syntax_condition_declaration_storage;
-  using base_type = Byte_buffer_entity<storage_type>;
-  using base_type::Byte_buffer_entity;
+  using base_type = Byte_buffer_entry<storage_type>;
+  using base_type::Byte_buffer_entry;
 };  /* an_ifc_syntax_condition_declaration */
 
 
@@ -16052,14 +16039,14 @@ using an_ifc_syntax_continue_statement_bytes =
 /*
 The universal representation of an IFC SyntaxContinueStatement node.
 
-The representation is declared as a derived struct of Byte_buffer_entity rather
+The representation is declared as a derived struct of Byte_buffer_entry rather
 than simply an alias of the instantiation to improve the debugger experience.
 */
 struct an_ifc_syntax_continue_statement :
-                 Byte_buffer_entity<an_ifc_syntax_continue_statement_storage> {
+                  Byte_buffer_entry<an_ifc_syntax_continue_statement_storage> {
   using storage_type = an_ifc_syntax_continue_statement_storage;
-  using base_type = Byte_buffer_entity<storage_type>;
-  using base_type::Byte_buffer_entity;
+  using base_type = Byte_buffer_entry<storage_type>;
+  using base_type::Byte_buffer_entry;
 };  /* an_ifc_syntax_continue_statement */
 
 
@@ -16086,14 +16073,14 @@ using an_ifc_syntax_ctor_initializer_bytes =
 /*
 The universal representation of an IFC SyntaxCtorInitializer node.
 
-The representation is declared as a derived struct of Byte_buffer_entity rather
+The representation is declared as a derived struct of Byte_buffer_entry rather
 than simply an alias of the instantiation to improve the debugger experience.
 */
 struct an_ifc_syntax_ctor_initializer :
-                   Byte_buffer_entity<an_ifc_syntax_ctor_initializer_storage> {
+                    Byte_buffer_entry<an_ifc_syntax_ctor_initializer_storage> {
   using storage_type = an_ifc_syntax_ctor_initializer_storage;
-  using base_type = Byte_buffer_entity<storage_type>;
-  using base_type::Byte_buffer_entity;
+  using base_type = Byte_buffer_entry<storage_type>;
+  using base_type::Byte_buffer_entry;
 };  /* an_ifc_syntax_ctor_initializer */
 
 
@@ -16126,14 +16113,14 @@ using an_ifc_syntax_decl_specifier_seq_bytes =
 /*
 The universal representation of an IFC SyntaxDeclSpecifierSeq node.
 
-The representation is declared as a derived struct of Byte_buffer_entity rather
+The representation is declared as a derived struct of Byte_buffer_entry rather
 than simply an alias of the instantiation to improve the debugger experience.
 */
 struct an_ifc_syntax_decl_specifier_seq :
-                 Byte_buffer_entity<an_ifc_syntax_decl_specifier_seq_storage> {
+                  Byte_buffer_entry<an_ifc_syntax_decl_specifier_seq_storage> {
   using storage_type = an_ifc_syntax_decl_specifier_seq_storage;
-  using base_type = Byte_buffer_entity<storage_type>;
-  using base_type::Byte_buffer_entity;
+  using base_type = Byte_buffer_entry<storage_type>;
+  using base_type::Byte_buffer_entry;
 };  /* an_ifc_syntax_decl_specifier_seq */
 
 
@@ -16160,14 +16147,14 @@ using an_ifc_syntax_declaration_statement_bytes =
 /*
 The universal representation of an IFC SyntaxDeclarationStatement node.
 
-The representation is declared as a derived struct of Byte_buffer_entity rather
+The representation is declared as a derived struct of Byte_buffer_entry rather
 than simply an alias of the instantiation to improve the debugger experience.
 */
 struct an_ifc_syntax_declaration_statement :
-              Byte_buffer_entity<an_ifc_syntax_declaration_statement_storage> {
+               Byte_buffer_entry<an_ifc_syntax_declaration_statement_storage> {
   using storage_type = an_ifc_syntax_declaration_statement_storage;
-  using base_type = Byte_buffer_entity<storage_type>;
-  using base_type::Byte_buffer_entity;
+  using base_type = Byte_buffer_entry<storage_type>;
+  using base_type::Byte_buffer_entry;
 };  /* an_ifc_syntax_declaration_statement */
 
 
@@ -16220,14 +16207,14 @@ using an_ifc_syntax_declarator_bytes = an_ifc_syntax_declarator_storage;
 /*
 The universal representation of an IFC SyntaxDeclarator node.
 
-The representation is declared as a derived struct of Byte_buffer_entity rather
+The representation is declared as a derived struct of Byte_buffer_entry rather
 than simply an alias of the instantiation to improve the debugger experience.
 */
 struct an_ifc_syntax_declarator :
-                         Byte_buffer_entity<an_ifc_syntax_declarator_storage> {
+                          Byte_buffer_entry<an_ifc_syntax_declarator_storage> {
   using storage_type = an_ifc_syntax_declarator_storage;
-  using base_type = Byte_buffer_entity<storage_type>;
-  using base_type::Byte_buffer_entity;
+  using base_type = Byte_buffer_entry<storage_type>;
+  using base_type::Byte_buffer_entry;
 };  /* an_ifc_syntax_declarator */
 
 
@@ -16267,14 +16254,14 @@ using an_ifc_syntax_decltype_specifier_bytes =
 /*
 The universal representation of an IFC SyntaxDecltypeSpecifier node.
 
-The representation is declared as a derived struct of Byte_buffer_entity rather
+The representation is declared as a derived struct of Byte_buffer_entry rather
 than simply an alias of the instantiation to improve the debugger experience.
 */
 struct an_ifc_syntax_decltype_specifier :
-                 Byte_buffer_entity<an_ifc_syntax_decltype_specifier_storage> {
+                  Byte_buffer_entry<an_ifc_syntax_decltype_specifier_storage> {
   using storage_type = an_ifc_syntax_decltype_specifier_storage;
-  using base_type = Byte_buffer_entity<storage_type>;
-  using base_type::Byte_buffer_entity;
+  using base_type = Byte_buffer_entry<storage_type>;
+  using base_type::Byte_buffer_entry;
 };  /* an_ifc_syntax_decltype_specifier */
 
 
@@ -16318,14 +16305,14 @@ using an_ifc_syntax_do_while_statement_bytes =
 /*
 The universal representation of an IFC SyntaxDoWhileStatement node.
 
-The representation is declared as a derived struct of Byte_buffer_entity rather
+The representation is declared as a derived struct of Byte_buffer_entry rather
 than simply an alias of the instantiation to improve the debugger experience.
 */
 struct an_ifc_syntax_do_while_statement :
-                 Byte_buffer_entity<an_ifc_syntax_do_while_statement_storage> {
+                  Byte_buffer_entry<an_ifc_syntax_do_while_statement_storage> {
   using storage_type = an_ifc_syntax_do_while_statement_storage;
-  using base_type = Byte_buffer_entity<storage_type>;
-  using base_type::Byte_buffer_entity;
+  using base_type = Byte_buffer_entry<storage_type>;
+  using base_type::Byte_buffer_entry;
 };  /* an_ifc_syntax_do_while_statement */
 
 
@@ -16355,14 +16342,14 @@ using an_ifc_syntax_dynamic_exception_spec_bytes =
 /*
 The universal representation of an IFC SyntaxDynamicExceptionSpec node.
 
-The representation is declared as a derived struct of Byte_buffer_entity rather
+The representation is declared as a derived struct of Byte_buffer_entry rather
 than simply an alias of the instantiation to improve the debugger experience.
 */
 struct an_ifc_syntax_dynamic_exception_spec :
-             Byte_buffer_entity<an_ifc_syntax_dynamic_exception_spec_storage> {
+              Byte_buffer_entry<an_ifc_syntax_dynamic_exception_spec_storage> {
   using storage_type = an_ifc_syntax_dynamic_exception_spec_storage;
-  using base_type = Byte_buffer_entity<storage_type>;
-  using base_type::Byte_buffer_entity;
+  using base_type = Byte_buffer_entry<storage_type>;
+  using base_type::Byte_buffer_entry;
 };  /* an_ifc_syntax_dynamic_exception_spec */
 
 
@@ -16388,14 +16375,14 @@ using an_ifc_syntax_empty_statement_bytes =
 /*
 The universal representation of an IFC SyntaxEmptyStatement node.
 
-The representation is declared as a derived struct of Byte_buffer_entity rather
+The representation is declared as a derived struct of Byte_buffer_entry rather
 than simply an alias of the instantiation to improve the debugger experience.
 */
 struct an_ifc_syntax_empty_statement :
-                    Byte_buffer_entity<an_ifc_syntax_empty_statement_storage> {
+                     Byte_buffer_entry<an_ifc_syntax_empty_statement_storage> {
   using storage_type = an_ifc_syntax_empty_statement_storage;
-  using base_type = Byte_buffer_entity<storage_type>;
-  using base_type::Byte_buffer_entity;
+  using base_type = Byte_buffer_entry<storage_type>;
+  using base_type::Byte_buffer_entry;
 };  /* an_ifc_syntax_empty_statement */
 
 
@@ -16443,14 +16430,14 @@ using an_ifc_syntax_enum_specifier_bytes =
 /*
 The universal representation of an IFC SyntaxEnumSpecifier node.
 
-The representation is declared as a derived struct of Byte_buffer_entity rather
+The representation is declared as a derived struct of Byte_buffer_entry rather
 than simply an alias of the instantiation to improve the debugger experience.
 */
 struct an_ifc_syntax_enum_specifier :
-                     Byte_buffer_entity<an_ifc_syntax_enum_specifier_storage> {
+                      Byte_buffer_entry<an_ifc_syntax_enum_specifier_storage> {
   using storage_type = an_ifc_syntax_enum_specifier_storage;
-  using base_type = Byte_buffer_entity<storage_type>;
-  using base_type::Byte_buffer_entity;
+  using base_type = Byte_buffer_entry<storage_type>;
+  using base_type::Byte_buffer_entry;
 };  /* an_ifc_syntax_enum_specifier */
 
 
@@ -16492,14 +16479,14 @@ using an_ifc_syntax_enumerator_definition_bytes =
 /*
 The universal representation of an IFC SyntaxEnumeratorDefinition node.
 
-The representation is declared as a derived struct of Byte_buffer_entity rather
+The representation is declared as a derived struct of Byte_buffer_entry rather
 than simply an alias of the instantiation to improve the debugger experience.
 */
 struct an_ifc_syntax_enumerator_definition :
-              Byte_buffer_entity<an_ifc_syntax_enumerator_definition_storage> {
+               Byte_buffer_entry<an_ifc_syntax_enumerator_definition_storage> {
   using storage_type = an_ifc_syntax_enumerator_definition_storage;
-  using base_type = Byte_buffer_entity<storage_type>;
-  using base_type::Byte_buffer_entity;
+  using base_type = Byte_buffer_entry<storage_type>;
+  using base_type::Byte_buffer_entry;
 };  /* an_ifc_syntax_enumerator_definition */
 
 
@@ -16528,14 +16515,14 @@ using an_ifc_syntax_exception_declaration_bytes =
 /*
 The universal representation of an IFC SyntaxExceptionDeclaration node.
 
-The representation is declared as a derived struct of Byte_buffer_entity rather
+The representation is declared as a derived struct of Byte_buffer_entry rather
 than simply an alias of the instantiation to improve the debugger experience.
 */
 struct an_ifc_syntax_exception_declaration :
-              Byte_buffer_entity<an_ifc_syntax_exception_declaration_storage> {
+               Byte_buffer_entry<an_ifc_syntax_exception_declaration_storage> {
   using storage_type = an_ifc_syntax_exception_declaration_storage;
-  using base_type = Byte_buffer_entity<storage_type>;
-  using base_type::Byte_buffer_entity;
+  using base_type = Byte_buffer_entry<storage_type>;
+  using base_type::Byte_buffer_entry;
 };  /* an_ifc_syntax_exception_declaration */
 
 
@@ -16575,14 +16562,14 @@ using an_ifc_syntax_explicit_specifier_bytes =
 /*
 The universal representation of an IFC SyntaxExplicitSpecifier node.
 
-The representation is declared as a derived struct of Byte_buffer_entity rather
+The representation is declared as a derived struct of Byte_buffer_entry rather
 than simply an alias of the instantiation to improve the debugger experience.
 */
 struct an_ifc_syntax_explicit_specifier :
-                 Byte_buffer_entity<an_ifc_syntax_explicit_specifier_storage> {
+                  Byte_buffer_entry<an_ifc_syntax_explicit_specifier_storage> {
   using storage_type = an_ifc_syntax_explicit_specifier_storage;
-  using base_type = Byte_buffer_entity<storage_type>;
-  using base_type::Byte_buffer_entity;
+  using base_type = Byte_buffer_entry<storage_type>;
+  using base_type::Byte_buffer_entry;
 };  /* an_ifc_syntax_explicit_specifier */
 
 
@@ -16613,14 +16600,14 @@ using an_ifc_syntax_expression_bytes = an_ifc_syntax_expression_storage;
 /*
 The universal representation of an IFC SyntaxExpression node.
 
-The representation is declared as a derived struct of Byte_buffer_entity rather
+The representation is declared as a derived struct of Byte_buffer_entry rather
 than simply an alias of the instantiation to improve the debugger experience.
 */
 struct an_ifc_syntax_expression :
-                         Byte_buffer_entity<an_ifc_syntax_expression_storage> {
+                          Byte_buffer_entry<an_ifc_syntax_expression_storage> {
   using storage_type = an_ifc_syntax_expression_storage;
-  using base_type = Byte_buffer_entity<storage_type>;
-  using base_type::Byte_buffer_entity;
+  using base_type = Byte_buffer_entry<storage_type>;
+  using base_type::Byte_buffer_entry;
 };  /* an_ifc_syntax_expression */
 
 
@@ -16658,14 +16645,14 @@ using an_ifc_syntax_expression_statement_bytes =
 /*
 The universal representation of an IFC SyntaxExpressionStatement node.
 
-The representation is declared as a derived struct of Byte_buffer_entity rather
+The representation is declared as a derived struct of Byte_buffer_entry rather
 than simply an alias of the instantiation to improve the debugger experience.
 */
 struct an_ifc_syntax_expression_statement :
-               Byte_buffer_entity<an_ifc_syntax_expression_statement_storage> {
+                Byte_buffer_entry<an_ifc_syntax_expression_statement_storage> {
   using storage_type = an_ifc_syntax_expression_statement_storage;
-  using base_type = Byte_buffer_entity<storage_type>;
-  using base_type::Byte_buffer_entity;
+  using base_type = Byte_buffer_entry<storage_type>;
+  using base_type::Byte_buffer_entry;
 };  /* an_ifc_syntax_expression_statement */
 
 
@@ -16692,14 +16679,14 @@ using an_ifc_syntax_for_range_declaration_bytes =
 /*
 The universal representation of an IFC SyntaxForRangeDeclaration node.
 
-The representation is declared as a derived struct of Byte_buffer_entity rather
+The representation is declared as a derived struct of Byte_buffer_entry rather
 than simply an alias of the instantiation to improve the debugger experience.
 */
 struct an_ifc_syntax_for_range_declaration :
-              Byte_buffer_entity<an_ifc_syntax_for_range_declaration_storage> {
+               Byte_buffer_entry<an_ifc_syntax_for_range_declaration_storage> {
   using storage_type = an_ifc_syntax_for_range_declaration_storage;
-  using base_type = Byte_buffer_entity<storage_type>;
-  using base_type::Byte_buffer_entity;
+  using base_type = Byte_buffer_entry<storage_type>;
+  using base_type::Byte_buffer_entry;
 };  /* an_ifc_syntax_for_range_declaration */
 
 
@@ -16748,14 +16735,14 @@ using an_ifc_syntax_for_statement_bytes = an_ifc_syntax_for_statement_storage;
 /*
 The universal representation of an IFC SyntaxForStatement node.
 
-The representation is declared as a derived struct of Byte_buffer_entity rather
+The representation is declared as a derived struct of Byte_buffer_entry rather
 than simply an alias of the instantiation to improve the debugger experience.
 */
 struct an_ifc_syntax_for_statement :
-                      Byte_buffer_entity<an_ifc_syntax_for_statement_storage> {
+                       Byte_buffer_entry<an_ifc_syntax_for_statement_storage> {
   using storage_type = an_ifc_syntax_for_statement_storage;
-  using base_type = Byte_buffer_entity<storage_type>;
-  using base_type::Byte_buffer_entity;
+  using base_type = Byte_buffer_entry<storage_type>;
+  using base_type::Byte_buffer_entry;
 };  /* an_ifc_syntax_for_statement */
 
 
@@ -16785,14 +16772,14 @@ using an_ifc_syntax_function_body_bytes = an_ifc_syntax_function_body_storage;
 /*
 The universal representation of an IFC SyntaxFunctionBody node.
 
-The representation is declared as a derived struct of Byte_buffer_entity rather
+The representation is declared as a derived struct of Byte_buffer_entry rather
 than simply an alias of the instantiation to improve the debugger experience.
 */
 struct an_ifc_syntax_function_body :
-                      Byte_buffer_entity<an_ifc_syntax_function_body_storage> {
+                       Byte_buffer_entry<an_ifc_syntax_function_body_storage> {
   using storage_type = an_ifc_syntax_function_body_storage;
-  using base_type = Byte_buffer_entity<storage_type>;
-  using base_type::Byte_buffer_entity;
+  using base_type = Byte_buffer_entry<storage_type>;
+  using base_type::Byte_buffer_entry;
 };  /* an_ifc_syntax_function_body */
 
 
@@ -16825,14 +16812,14 @@ using an_ifc_syntax_function_declarator_bytes =
 /*
 The universal representation of an IFC SyntaxFunctionDeclarator node.
 
-The representation is declared as a derived struct of Byte_buffer_entity rather
+The representation is declared as a derived struct of Byte_buffer_entry rather
 than simply an alias of the instantiation to improve the debugger experience.
 */
 struct an_ifc_syntax_function_declarator :
-                Byte_buffer_entity<an_ifc_syntax_function_declarator_storage> {
+                 Byte_buffer_entry<an_ifc_syntax_function_declarator_storage> {
   using storage_type = an_ifc_syntax_function_declarator_storage;
-  using base_type = Byte_buffer_entity<storage_type>;
-  using base_type::Byte_buffer_entity;
+  using base_type = Byte_buffer_entry<storage_type>;
+  using base_type::Byte_buffer_entry;
 };  /* an_ifc_syntax_function_declarator */
 
 
@@ -16863,14 +16850,14 @@ using an_ifc_syntax_function_definition_bytes =
 /*
 The universal representation of an IFC SyntaxFunctionDefinition node.
 
-The representation is declared as a derived struct of Byte_buffer_entity rather
+The representation is declared as a derived struct of Byte_buffer_entry rather
 than simply an alias of the instantiation to improve the debugger experience.
 */
 struct an_ifc_syntax_function_definition :
-                Byte_buffer_entity<an_ifc_syntax_function_definition_storage> {
+                 Byte_buffer_entry<an_ifc_syntax_function_definition_storage> {
   using storage_type = an_ifc_syntax_function_definition_storage;
-  using base_type = Byte_buffer_entity<storage_type>;
-  using base_type::Byte_buffer_entity;
+  using base_type = Byte_buffer_entry<storage_type>;
+  using base_type::Byte_buffer_entry;
 };  /* an_ifc_syntax_function_definition */
 
 
@@ -16898,14 +16885,14 @@ using an_ifc_syntax_function_try_block_bytes =
 /*
 The universal representation of an IFC SyntaxFunctionTryBlock node.
 
-The representation is declared as a derived struct of Byte_buffer_entity rather
+The representation is declared as a derived struct of Byte_buffer_entry rather
 than simply an alias of the instantiation to improve the debugger experience.
 */
 struct an_ifc_syntax_function_try_block :
-                 Byte_buffer_entity<an_ifc_syntax_function_try_block_storage> {
+                  Byte_buffer_entry<an_ifc_syntax_function_try_block_storage> {
   using storage_type = an_ifc_syntax_function_try_block_storage;
-  using base_type = Byte_buffer_entity<storage_type>;
-  using base_type::Byte_buffer_entity;
+  using base_type = Byte_buffer_entry<storage_type>;
+  using base_type::Byte_buffer_entry;
 };  /* an_ifc_syntax_function_try_block */
 
 
@@ -16935,14 +16922,14 @@ using an_ifc_syntax_goto_statement_bytes =
 /*
 The universal representation of an IFC SyntaxGotoStatement node.
 
-The representation is declared as a derived struct of Byte_buffer_entity rather
+The representation is declared as a derived struct of Byte_buffer_entry rather
 than simply an alias of the instantiation to improve the debugger experience.
 */
 struct an_ifc_syntax_goto_statement :
-                     Byte_buffer_entity<an_ifc_syntax_goto_statement_storage> {
+                      Byte_buffer_entry<an_ifc_syntax_goto_statement_storage> {
   using storage_type = an_ifc_syntax_goto_statement_storage;
-  using base_type = Byte_buffer_entity<storage_type>;
-  using base_type::Byte_buffer_entity;
+  using base_type = Byte_buffer_entry<storage_type>;
+  using base_type::Byte_buffer_entry;
 };  /* an_ifc_syntax_goto_statement */
 
 
@@ -16970,14 +16957,14 @@ using an_ifc_syntax_handler_bytes = an_ifc_syntax_handler_storage;
 /*
 The universal representation of an IFC SyntaxHandler node.
 
-The representation is declared as a derived struct of Byte_buffer_entity rather
+The representation is declared as a derived struct of Byte_buffer_entry rather
 than simply an alias of the instantiation to improve the debugger experience.
 */
 struct an_ifc_syntax_handler :
-                            Byte_buffer_entity<an_ifc_syntax_handler_storage> {
+                             Byte_buffer_entry<an_ifc_syntax_handler_storage> {
   using storage_type = an_ifc_syntax_handler_storage;
-  using base_type = Byte_buffer_entity<storage_type>;
-  using base_type::Byte_buffer_entity;
+  using base_type = Byte_buffer_entry<storage_type>;
+  using base_type::Byte_buffer_entry;
 };  /* an_ifc_syntax_handler */
 
 
@@ -17001,14 +16988,14 @@ using an_ifc_syntax_handler_seq_bytes = an_ifc_syntax_handler_seq_storage;
 /*
 The universal representation of an IFC SyntaxHandlerSeq node.
 
-The representation is declared as a derived struct of Byte_buffer_entity rather
+The representation is declared as a derived struct of Byte_buffer_entry rather
 than simply an alias of the instantiation to improve the debugger experience.
 */
 struct an_ifc_syntax_handler_seq :
-                        Byte_buffer_entity<an_ifc_syntax_handler_seq_storage> {
+                         Byte_buffer_entry<an_ifc_syntax_handler_seq_storage> {
   using storage_type = an_ifc_syntax_handler_seq_storage;
-  using base_type = Byte_buffer_entity<storage_type>;
-  using base_type::Byte_buffer_entity;
+  using base_type = Byte_buffer_entry<storage_type>;
+  using base_type::Byte_buffer_entry;
 };  /* an_ifc_syntax_handler_seq */
 
 
@@ -17039,14 +17026,14 @@ using an_ifc_syntax_if_statement_bytes = an_ifc_syntax_if_statement_storage;
 /*
 The universal representation of an IFC SyntaxIfStatement node.
 
-The representation is declared as a derived struct of Byte_buffer_entity rather
+The representation is declared as a derived struct of Byte_buffer_entry rather
 than simply an alias of the instantiation to improve the debugger experience.
 */
 struct an_ifc_syntax_if_statement :
-                       Byte_buffer_entity<an_ifc_syntax_if_statement_storage> {
+                        Byte_buffer_entry<an_ifc_syntax_if_statement_storage> {
   using storage_type = an_ifc_syntax_if_statement_storage;
-  using base_type = Byte_buffer_entity<storage_type>;
-  using base_type::Byte_buffer_entity;
+  using base_type = Byte_buffer_entry<storage_type>;
+  using base_type::Byte_buffer_entry;
 };  /* an_ifc_syntax_if_statement */
 
 
@@ -17086,14 +17073,14 @@ using an_ifc_syntax_init_capture_bytes = an_ifc_syntax_init_capture_storage;
 /*
 The universal representation of an IFC SyntaxInitCapture node.
 
-The representation is declared as a derived struct of Byte_buffer_entity rather
+The representation is declared as a derived struct of Byte_buffer_entry rather
 than simply an alias of the instantiation to improve the debugger experience.
 */
 struct an_ifc_syntax_init_capture :
-                       Byte_buffer_entity<an_ifc_syntax_init_capture_storage> {
+                        Byte_buffer_entry<an_ifc_syntax_init_capture_storage> {
   using storage_type = an_ifc_syntax_init_capture_storage;
-  using base_type = Byte_buffer_entity<storage_type>;
-  using base_type::Byte_buffer_entity;
+  using base_type = Byte_buffer_entry<storage_type>;
+  using base_type::Byte_buffer_entry;
 };  /* an_ifc_syntax_init_capture */
 
 
@@ -17133,14 +17120,14 @@ using an_ifc_syntax_init_declarator_bytes =
 /*
 The universal representation of an IFC SyntaxInitDeclarator node.
 
-The representation is declared as a derived struct of Byte_buffer_entity rather
+The representation is declared as a derived struct of Byte_buffer_entry rather
 than simply an alias of the instantiation to improve the debugger experience.
 */
 struct an_ifc_syntax_init_declarator :
-                    Byte_buffer_entity<an_ifc_syntax_init_declarator_storage> {
+                     Byte_buffer_entry<an_ifc_syntax_init_declarator_storage> {
   using storage_type = an_ifc_syntax_init_declarator_storage;
-  using base_type = Byte_buffer_entity<storage_type>;
-  using base_type::Byte_buffer_entity;
+  using base_type = Byte_buffer_entry<storage_type>;
+  using base_type::Byte_buffer_entry;
 };  /* an_ifc_syntax_init_declarator */
 
 
@@ -17167,14 +17154,14 @@ using an_ifc_syntax_init_statement_bytes =
 /*
 The universal representation of an IFC SyntaxInitStatement node.
 
-The representation is declared as a derived struct of Byte_buffer_entity rather
+The representation is declared as a derived struct of Byte_buffer_entry rather
 than simply an alias of the instantiation to improve the debugger experience.
 */
 struct an_ifc_syntax_init_statement :
-                     Byte_buffer_entity<an_ifc_syntax_init_statement_storage> {
+                      Byte_buffer_entry<an_ifc_syntax_init_statement_storage> {
   using storage_type = an_ifc_syntax_init_statement_storage;
-  using base_type = Byte_buffer_entity<storage_type>;
-  using base_type::Byte_buffer_entity;
+  using base_type = Byte_buffer_entry<storage_type>;
+  using base_type::Byte_buffer_entry;
 };  /* an_ifc_syntax_init_statement */
 
 
@@ -17216,14 +17203,14 @@ using an_ifc_syntax_labeled_statement_bytes =
 /*
 The universal representation of an IFC SyntaxLabeledStatement node.
 
-The representation is declared as a derived struct of Byte_buffer_entity rather
+The representation is declared as a derived struct of Byte_buffer_entry rather
 than simply an alias of the instantiation to improve the debugger experience.
 */
 struct an_ifc_syntax_labeled_statement :
-                  Byte_buffer_entity<an_ifc_syntax_labeled_statement_storage> {
+                   Byte_buffer_entry<an_ifc_syntax_labeled_statement_storage> {
   using storage_type = an_ifc_syntax_labeled_statement_storage;
-  using base_type = Byte_buffer_entity<storage_type>;
-  using base_type::Byte_buffer_entity;
+  using base_type = Byte_buffer_entry<storage_type>;
+  using base_type::Byte_buffer_entry;
 };  /* an_ifc_syntax_labeled_statement */
 
 
@@ -17256,14 +17243,14 @@ using an_ifc_syntax_lambda_declarator_bytes =
 /*
 The universal representation of an IFC SyntaxLambdaDeclarator node.
 
-The representation is declared as a derived struct of Byte_buffer_entity rather
+The representation is declared as a derived struct of Byte_buffer_entry rather
 than simply an alias of the instantiation to improve the debugger experience.
 */
 struct an_ifc_syntax_lambda_declarator :
-                  Byte_buffer_entity<an_ifc_syntax_lambda_declarator_storage> {
+                   Byte_buffer_entry<an_ifc_syntax_lambda_declarator_storage> {
   using storage_type = an_ifc_syntax_lambda_declarator_storage;
-  using base_type = Byte_buffer_entity<storage_type>;
-  using base_type::Byte_buffer_entity;
+  using base_type = Byte_buffer_entry<storage_type>;
+  using base_type::Byte_buffer_entry;
 };  /* an_ifc_syntax_lambda_declarator */
 
 
@@ -17291,14 +17278,14 @@ using an_ifc_syntax_lambda_introducer_bytes =
 /*
 The universal representation of an IFC SyntaxLambdaIntroducer node.
 
-The representation is declared as a derived struct of Byte_buffer_entity rather
+The representation is declared as a derived struct of Byte_buffer_entry rather
 than simply an alias of the instantiation to improve the debugger experience.
 */
 struct an_ifc_syntax_lambda_introducer :
-                  Byte_buffer_entity<an_ifc_syntax_lambda_introducer_storage> {
+                   Byte_buffer_entry<an_ifc_syntax_lambda_introducer_storage> {
   using storage_type = an_ifc_syntax_lambda_introducer_storage;
-  using base_type = Byte_buffer_entity<storage_type>;
-  using base_type::Byte_buffer_entity;
+  using base_type = Byte_buffer_entry<storage_type>;
+  using base_type::Byte_buffer_entry;
 };  /* an_ifc_syntax_lambda_introducer */
 
 
@@ -17338,14 +17325,14 @@ using an_ifc_syntax_mem_initializer_bytes =
 /*
 The universal representation of an IFC SyntaxMemInitializer node.
 
-The representation is declared as a derived struct of Byte_buffer_entity rather
+The representation is declared as a derived struct of Byte_buffer_entry rather
 than simply an alias of the instantiation to improve the debugger experience.
 */
 struct an_ifc_syntax_mem_initializer :
-                    Byte_buffer_entity<an_ifc_syntax_mem_initializer_storage> {
+                     Byte_buffer_entry<an_ifc_syntax_mem_initializer_storage> {
   using storage_type = an_ifc_syntax_mem_initializer_storage;
-  using base_type = Byte_buffer_entity<storage_type>;
-  using base_type::Byte_buffer_entity;
+  using base_type = Byte_buffer_entry<storage_type>;
+  using base_type::Byte_buffer_entry;
 };  /* an_ifc_syntax_mem_initializer */
 
 
@@ -17373,14 +17360,14 @@ using an_ifc_syntax_member_declaration_bytes =
 /*
 The universal representation of an IFC SyntaxMemberDeclaration node.
 
-The representation is declared as a derived struct of Byte_buffer_entity rather
+The representation is declared as a derived struct of Byte_buffer_entry rather
 than simply an alias of the instantiation to improve the debugger experience.
 */
 struct an_ifc_syntax_member_declaration :
-                 Byte_buffer_entity<an_ifc_syntax_member_declaration_storage> {
+                  Byte_buffer_entry<an_ifc_syntax_member_declaration_storage> {
   using storage_type = an_ifc_syntax_member_declaration_storage;
-  using base_type = Byte_buffer_entity<storage_type>;
-  using base_type::Byte_buffer_entity;
+  using base_type = Byte_buffer_entry<storage_type>;
+  using base_type::Byte_buffer_entry;
 };  /* an_ifc_syntax_member_declaration */
 
 
@@ -17426,14 +17413,14 @@ using an_ifc_syntax_member_declarator_bytes =
 /*
 The universal representation of an IFC SyntaxMemberDeclarator node.
 
-The representation is declared as a derived struct of Byte_buffer_entity rather
+The representation is declared as a derived struct of Byte_buffer_entry rather
 than simply an alias of the instantiation to improve the debugger experience.
 */
 struct an_ifc_syntax_member_declarator :
-                  Byte_buffer_entity<an_ifc_syntax_member_declarator_storage> {
+                   Byte_buffer_entry<an_ifc_syntax_member_declarator_storage> {
   using storage_type = an_ifc_syntax_member_declarator_storage;
-  using base_type = Byte_buffer_entity<storage_type>;
-  using base_type::Byte_buffer_entity;
+  using base_type = Byte_buffer_entry<storage_type>;
+  using base_type::Byte_buffer_entry;
 };  /* an_ifc_syntax_member_declarator */
 
 
@@ -17459,14 +17446,14 @@ using an_ifc_syntax_member_function_declaration_bytes =
 /*
 The universal representation of an IFC SyntaxMemberFunctionDeclaration node.
 
-The representation is declared as a derived struct of Byte_buffer_entity rather
+The representation is declared as a derived struct of Byte_buffer_entry rather
 than simply an alias of the instantiation to improve the debugger experience.
 */
 struct an_ifc_syntax_member_function_declaration :
-        Byte_buffer_entity<an_ifc_syntax_member_function_declaration_storage> {
+         Byte_buffer_entry<an_ifc_syntax_member_function_declaration_storage> {
   using storage_type = an_ifc_syntax_member_function_declaration_storage;
-  using base_type = Byte_buffer_entity<storage_type>;
-  using base_type::Byte_buffer_entity;
+  using base_type = Byte_buffer_entry<storage_type>;
+  using base_type::Byte_buffer_entry;
 };  /* an_ifc_syntax_member_function_declaration */
 
 
@@ -17492,14 +17479,14 @@ using an_ifc_syntax_member_specification_bytes =
 /*
 The universal representation of an IFC SyntaxMemberSpecification node.
 
-The representation is declared as a derived struct of Byte_buffer_entity rather
+The representation is declared as a derived struct of Byte_buffer_entry rather
 than simply an alias of the instantiation to improve the debugger experience.
 */
 struct an_ifc_syntax_member_specification :
-               Byte_buffer_entity<an_ifc_syntax_member_specification_storage> {
+                Byte_buffer_entry<an_ifc_syntax_member_specification_storage> {
   using storage_type = an_ifc_syntax_member_specification_storage;
-  using base_type = Byte_buffer_entity<storage_type>;
-  using base_type::Byte_buffer_entity;
+  using base_type = Byte_buffer_entry<storage_type>;
+  using base_type::Byte_buffer_entry;
 };  /* an_ifc_syntax_member_specification */
 
 
@@ -17541,14 +17528,14 @@ using an_ifc_syntax_namespace_alias_definition_bytes =
 /*
 The universal representation of an IFC SyntaxNamespaceAliasDefinition node.
 
-The representation is declared as a derived struct of Byte_buffer_entity rather
+The representation is declared as a derived struct of Byte_buffer_entry rather
 than simply an alias of the instantiation to improve the debugger experience.
 */
 struct an_ifc_syntax_namespace_alias_definition :
-         Byte_buffer_entity<an_ifc_syntax_namespace_alias_definition_storage> {
+          Byte_buffer_entry<an_ifc_syntax_namespace_alias_definition_storage> {
   using storage_type = an_ifc_syntax_namespace_alias_definition_storage;
-  using base_type = Byte_buffer_entity<storage_type>;
-  using base_type::Byte_buffer_entity;
+  using base_type = Byte_buffer_entry<storage_type>;
+  using base_type::Byte_buffer_entry;
 };  /* an_ifc_syntax_namespace_alias_definition */
 
 
@@ -17584,14 +17571,14 @@ using an_ifc_syntax_nested_requirement_bytes =
 /*
 The universal representation of an IFC SyntaxNestedRequirement node.
 
-The representation is declared as a derived struct of Byte_buffer_entity rather
+The representation is declared as a derived struct of Byte_buffer_entry rather
 than simply an alias of the instantiation to improve the debugger experience.
 */
 struct an_ifc_syntax_nested_requirement :
-                 Byte_buffer_entity<an_ifc_syntax_nested_requirement_storage> {
+                  Byte_buffer_entry<an_ifc_syntax_nested_requirement_storage> {
   using storage_type = an_ifc_syntax_nested_requirement_storage;
-  using base_type = Byte_buffer_entity<storage_type>;
-  using base_type::Byte_buffer_entity;
+  using base_type = Byte_buffer_entry<storage_type>;
+  using base_type::Byte_buffer_entry;
 };  /* an_ifc_syntax_nested_requirement */
 
 
@@ -17617,14 +17604,14 @@ using an_ifc_syntax_new_declarator_bytes =
 /*
 The universal representation of an IFC SyntaxNewDeclarator node.
 
-The representation is declared as a derived struct of Byte_buffer_entity rather
+The representation is declared as a derived struct of Byte_buffer_entry rather
 than simply an alias of the instantiation to improve the debugger experience.
 */
 struct an_ifc_syntax_new_declarator :
-                     Byte_buffer_entity<an_ifc_syntax_new_declarator_storage> {
+                      Byte_buffer_entry<an_ifc_syntax_new_declarator_storage> {
   using storage_type = an_ifc_syntax_new_declarator_storage;
-  using base_type = Byte_buffer_entity<storage_type>;
-  using base_type::Byte_buffer_entity;
+  using base_type = Byte_buffer_entry<storage_type>;
+  using base_type::Byte_buffer_entry;
 };  /* an_ifc_syntax_new_declarator */
 
 
@@ -17653,14 +17640,14 @@ using an_ifc_syntax_noexcept_specification_bytes =
 /*
 The universal representation of an IFC SyntaxNoexceptSpecification node.
 
-The representation is declared as a derived struct of Byte_buffer_entity rather
+The representation is declared as a derived struct of Byte_buffer_entry rather
 than simply an alias of the instantiation to improve the debugger experience.
 */
 struct an_ifc_syntax_noexcept_specification :
-             Byte_buffer_entity<an_ifc_syntax_noexcept_specification_storage> {
+              Byte_buffer_entry<an_ifc_syntax_noexcept_specification_storage> {
   using storage_type = an_ifc_syntax_noexcept_specification_storage;
-  using base_type = Byte_buffer_entity<storage_type>;
-  using base_type::Byte_buffer_entity;
+  using base_type = Byte_buffer_entry<storage_type>;
+  using base_type::Byte_buffer_entry;
 };  /* an_ifc_syntax_noexcept_specification */
 
 
@@ -17698,14 +17685,14 @@ using an_ifc_syntax_non_type_template_argument_bytes =
 /*
 The universal representation of an IFC SyntaxNonTypeTemplateArgument node.
 
-The representation is declared as a derived struct of Byte_buffer_entity rather
+The representation is declared as a derived struct of Byte_buffer_entry rather
 than simply an alias of the instantiation to improve the debugger experience.
 */
 struct an_ifc_syntax_non_type_template_argument :
-         Byte_buffer_entity<an_ifc_syntax_non_type_template_argument_storage> {
+          Byte_buffer_entry<an_ifc_syntax_non_type_template_argument_storage> {
   using storage_type = an_ifc_syntax_non_type_template_argument_storage;
-  using base_type = Byte_buffer_entity<storage_type>;
-  using base_type::Byte_buffer_entity;
+  using base_type = Byte_buffer_entry<storage_type>;
+  using base_type::Byte_buffer_entry;
 };  /* an_ifc_syntax_non_type_template_argument */
 
 
@@ -17749,14 +17736,14 @@ using an_ifc_syntax_parameter_declarator_bytes =
 /*
 The universal representation of an IFC SyntaxParameterDeclarator node.
 
-The representation is declared as a derived struct of Byte_buffer_entity rather
+The representation is declared as a derived struct of Byte_buffer_entry rather
 than simply an alias of the instantiation to improve the debugger experience.
 */
 struct an_ifc_syntax_parameter_declarator :
-               Byte_buffer_entity<an_ifc_syntax_parameter_declarator_storage> {
+                Byte_buffer_entry<an_ifc_syntax_parameter_declarator_storage> {
   using storage_type = an_ifc_syntax_parameter_declarator_storage;
-  using base_type = Byte_buffer_entity<storage_type>;
-  using base_type::Byte_buffer_entity;
+  using base_type = Byte_buffer_entry<storage_type>;
+  using base_type::Byte_buffer_entry;
 };  /* an_ifc_syntax_parameter_declarator */
 
 
@@ -17796,14 +17783,14 @@ using an_ifc_syntax_placeholder_type_specifier_bytes =
 /*
 The universal representation of an IFC SyntaxPlaceholderTypeSpecifier node.
 
-The representation is declared as a derived struct of Byte_buffer_entity rather
+The representation is declared as a derived struct of Byte_buffer_entry rather
 than simply an alias of the instantiation to improve the debugger experience.
 */
 struct an_ifc_syntax_placeholder_type_specifier :
-         Byte_buffer_entity<an_ifc_syntax_placeholder_type_specifier_storage> {
+          Byte_buffer_entry<an_ifc_syntax_placeholder_type_specifier_storage> {
   using storage_type = an_ifc_syntax_placeholder_type_specifier_storage;
-  using base_type = Byte_buffer_entity<storage_type>;
-  using base_type::Byte_buffer_entity;
+  using base_type = Byte_buffer_entry<storage_type>;
+  using base_type::Byte_buffer_entry;
 };  /* an_ifc_syntax_placeholder_type_specifier */
 
 
@@ -17835,14 +17822,14 @@ using an_ifc_syntax_pointer_declarator_bytes =
 /*
 The universal representation of an IFC SyntaxPointerDeclarator node.
 
-The representation is declared as a derived struct of Byte_buffer_entity rather
+The representation is declared as a derived struct of Byte_buffer_entry rather
 than simply an alias of the instantiation to improve the debugger experience.
 */
 struct an_ifc_syntax_pointer_declarator :
-                 Byte_buffer_entity<an_ifc_syntax_pointer_declarator_storage> {
+                  Byte_buffer_entry<an_ifc_syntax_pointer_declarator_storage> {
   using storage_type = an_ifc_syntax_pointer_declarator_storage;
-  using base_type = Byte_buffer_entity<storage_type>;
-  using base_type::Byte_buffer_entity;
+  using base_type = Byte_buffer_entry<storage_type>;
+  using base_type::Byte_buffer_entry;
 };  /* an_ifc_syntax_pointer_declarator */
 
 
@@ -17876,14 +17863,14 @@ using an_ifc_syntax_range_based_for_statement_bytes =
 /*
 The universal representation of an IFC SyntaxRangeBasedForStatement node.
 
-The representation is declared as a derived struct of Byte_buffer_entity rather
+The representation is declared as a derived struct of Byte_buffer_entry rather
 than simply an alias of the instantiation to improve the debugger experience.
 */
 struct an_ifc_syntax_range_based_for_statement :
-          Byte_buffer_entity<an_ifc_syntax_range_based_for_statement_storage> {
+           Byte_buffer_entry<an_ifc_syntax_range_based_for_statement_storage> {
   using storage_type = an_ifc_syntax_range_based_for_statement_storage;
-  using base_type = Byte_buffer_entity<storage_type>;
-  using base_type::Byte_buffer_entity;
+  using base_type = Byte_buffer_entry<storage_type>;
+  using base_type::Byte_buffer_entry;
 };  /* an_ifc_syntax_range_based_for_statement */
 
 
@@ -17911,14 +17898,14 @@ using an_ifc_syntax_requirement_body_bytes =
 /*
 The universal representation of an IFC SyntaxRequirementBody node.
 
-The representation is declared as a derived struct of Byte_buffer_entity rather
+The representation is declared as a derived struct of Byte_buffer_entry rather
 than simply an alias of the instantiation to improve the debugger experience.
 */
 struct an_ifc_syntax_requirement_body :
-                   Byte_buffer_entity<an_ifc_syntax_requirement_body_storage> {
+                    Byte_buffer_entry<an_ifc_syntax_requirement_body_storage> {
   using storage_type = an_ifc_syntax_requirement_body_storage;
-  using base_type = Byte_buffer_entity<storage_type>;
-  using base_type::Byte_buffer_entity;
+  using base_type = Byte_buffer_entry<storage_type>;
+  using base_type::Byte_buffer_entry;
 };  /* an_ifc_syntax_requirement_body */
 
 
@@ -17954,14 +17941,14 @@ using an_ifc_syntax_requires_clause_bytes =
 /*
 The universal representation of an IFC SyntaxRequiresClause node.
 
-The representation is declared as a derived struct of Byte_buffer_entity rather
+The representation is declared as a derived struct of Byte_buffer_entry rather
 than simply an alias of the instantiation to improve the debugger experience.
 */
 struct an_ifc_syntax_requires_clause :
-                    Byte_buffer_entity<an_ifc_syntax_requires_clause_storage> {
+                     Byte_buffer_entry<an_ifc_syntax_requires_clause_storage> {
   using storage_type = an_ifc_syntax_requires_clause_storage;
-  using base_type = Byte_buffer_entity<storage_type>;
-  using base_type::Byte_buffer_entity;
+  using base_type = Byte_buffer_entry<storage_type>;
+  using base_type::Byte_buffer_entry;
 };  /* an_ifc_syntax_requires_clause */
 
 
@@ -18005,14 +17992,14 @@ using an_ifc_syntax_return_statement_bytes =
 /*
 The universal representation of an IFC SyntaxReturnStatement node.
 
-The representation is declared as a derived struct of Byte_buffer_entity rather
+The representation is declared as a derived struct of Byte_buffer_entry rather
 than simply an alias of the instantiation to improve the debugger experience.
 */
 struct an_ifc_syntax_return_statement :
-                   Byte_buffer_entity<an_ifc_syntax_return_statement_storage> {
+                    Byte_buffer_entry<an_ifc_syntax_return_statement_storage> {
   using storage_type = an_ifc_syntax_return_statement_storage;
-  using base_type = Byte_buffer_entity<storage_type>;
-  using base_type::Byte_buffer_entity;
+  using base_type = Byte_buffer_entry<storage_type>;
+  using base_type::Byte_buffer_entry;
 };  /* an_ifc_syntax_return_statement */
 
 
@@ -18051,14 +18038,14 @@ using an_ifc_syntax_seh_except_bytes = an_ifc_syntax_seh_except_storage;
 /*
 The universal representation of an IFC SyntaxSEHExcept node.
 
-The representation is declared as a derived struct of Byte_buffer_entity rather
+The representation is declared as a derived struct of Byte_buffer_entry rather
 than simply an alias of the instantiation to improve the debugger experience.
 */
 struct an_ifc_syntax_seh_except :
-                         Byte_buffer_entity<an_ifc_syntax_seh_except_storage> {
+                          Byte_buffer_entry<an_ifc_syntax_seh_except_storage> {
   using storage_type = an_ifc_syntax_seh_except_storage;
-  using base_type = Byte_buffer_entity<storage_type>;
-  using base_type::Byte_buffer_entity;
+  using base_type = Byte_buffer_entry<storage_type>;
+  using base_type::Byte_buffer_entry;
 };  /* an_ifc_syntax_seh_except */
 
 
@@ -18083,14 +18070,14 @@ using an_ifc_syntax_seh_finally_bytes = an_ifc_syntax_seh_finally_storage;
 /*
 The universal representation of an IFC SyntaxSEHFinally node.
 
-The representation is declared as a derived struct of Byte_buffer_entity rather
+The representation is declared as a derived struct of Byte_buffer_entry rather
 than simply an alias of the instantiation to improve the debugger experience.
 */
 struct an_ifc_syntax_seh_finally :
-                        Byte_buffer_entity<an_ifc_syntax_seh_finally_storage> {
+                         Byte_buffer_entry<an_ifc_syntax_seh_finally_storage> {
   using storage_type = an_ifc_syntax_seh_finally_storage;
-  using base_type = Byte_buffer_entity<storage_type>;
-  using base_type::Byte_buffer_entity;
+  using base_type = Byte_buffer_entry<storage_type>;
+  using base_type::Byte_buffer_entry;
 };  /* an_ifc_syntax_seh_finally */
 
 
@@ -18114,14 +18101,14 @@ using an_ifc_syntax_seh_leave_bytes = an_ifc_syntax_seh_leave_storage;
 /*
 The universal representation of an IFC SyntaxSEHLeave node.
 
-The representation is declared as a derived struct of Byte_buffer_entity rather
+The representation is declared as a derived struct of Byte_buffer_entry rather
 than simply an alias of the instantiation to improve the debugger experience.
 */
 struct an_ifc_syntax_seh_leave :
-                          Byte_buffer_entity<an_ifc_syntax_seh_leave_storage> {
+                           Byte_buffer_entry<an_ifc_syntax_seh_leave_storage> {
   using storage_type = an_ifc_syntax_seh_leave_storage;
-  using base_type = Byte_buffer_entity<storage_type>;
-  using base_type::Byte_buffer_entity;
+  using base_type = Byte_buffer_entry<storage_type>;
+  using base_type::Byte_buffer_entry;
 };  /* an_ifc_syntax_seh_leave */
 
 
@@ -18146,14 +18133,14 @@ using an_ifc_syntax_seh_try_bytes = an_ifc_syntax_seh_try_storage;
 /*
 The universal representation of an IFC SyntaxSEHTry node.
 
-The representation is declared as a derived struct of Byte_buffer_entity rather
+The representation is declared as a derived struct of Byte_buffer_entry rather
 than simply an alias of the instantiation to improve the debugger experience.
 */
 struct an_ifc_syntax_seh_try :
-                            Byte_buffer_entity<an_ifc_syntax_seh_try_storage> {
+                             Byte_buffer_entry<an_ifc_syntax_seh_try_storage> {
   using storage_type = an_ifc_syntax_seh_try_storage;
-  using base_type = Byte_buffer_entity<storage_type>;
-  using base_type::Byte_buffer_entity;
+  using base_type = Byte_buffer_entry<storage_type>;
+  using base_type::Byte_buffer_entry;
 };  /* an_ifc_syntax_seh_try */
 
 
@@ -18193,14 +18180,14 @@ using an_ifc_syntax_simple_capture_bytes =
 /*
 The universal representation of an IFC SyntaxSimpleCapture node.
 
-The representation is declared as a derived struct of Byte_buffer_entity rather
+The representation is declared as a derived struct of Byte_buffer_entry rather
 than simply an alias of the instantiation to improve the debugger experience.
 */
 struct an_ifc_syntax_simple_capture :
-                     Byte_buffer_entity<an_ifc_syntax_simple_capture_storage> {
+                      Byte_buffer_entry<an_ifc_syntax_simple_capture_storage> {
   using storage_type = an_ifc_syntax_simple_capture_storage;
-  using base_type = Byte_buffer_entity<storage_type>;
-  using base_type::Byte_buffer_entity;
+  using base_type = Byte_buffer_entry<storage_type>;
+  using base_type::Byte_buffer_entry;
 };  /* an_ifc_syntax_simple_capture */
 
 
@@ -18229,14 +18216,14 @@ using an_ifc_syntax_simple_declaration_bytes =
 /*
 The universal representation of an IFC SyntaxSimpleDeclaration node.
 
-The representation is declared as a derived struct of Byte_buffer_entity rather
+The representation is declared as a derived struct of Byte_buffer_entry rather
 than simply an alias of the instantiation to improve the debugger experience.
 */
 struct an_ifc_syntax_simple_declaration :
-                 Byte_buffer_entity<an_ifc_syntax_simple_declaration_storage> {
+                  Byte_buffer_entry<an_ifc_syntax_simple_declaration_storage> {
   using storage_type = an_ifc_syntax_simple_declaration_storage;
-  using base_type = Byte_buffer_entity<storage_type>;
-  using base_type::Byte_buffer_entity;
+  using base_type = Byte_buffer_entry<storage_type>;
+  using base_type::Byte_buffer_entry;
 };  /* an_ifc_syntax_simple_declaration */
 
 
@@ -18272,14 +18259,14 @@ using an_ifc_syntax_simple_requirement_bytes =
 /*
 The universal representation of an IFC SyntaxSimpleRequirement node.
 
-The representation is declared as a derived struct of Byte_buffer_entity rather
+The representation is declared as a derived struct of Byte_buffer_entry rather
 than simply an alias of the instantiation to improve the debugger experience.
 */
 struct an_ifc_syntax_simple_requirement :
-                 Byte_buffer_entity<an_ifc_syntax_simple_requirement_storage> {
+                  Byte_buffer_entry<an_ifc_syntax_simple_requirement_storage> {
   using storage_type = an_ifc_syntax_simple_requirement_storage;
-  using base_type = Byte_buffer_entity<storage_type>;
-  using base_type::Byte_buffer_entity;
+  using base_type = Byte_buffer_entry<storage_type>;
+  using base_type::Byte_buffer_entry;
 };  /* an_ifc_syntax_simple_requirement */
 
 
@@ -18317,14 +18304,14 @@ using an_ifc_syntax_simple_type_specifier_bytes =
 /*
 The universal representation of an IFC SyntaxSimpleTypeSpecifier node.
 
-The representation is declared as a derived struct of Byte_buffer_entity rather
+The representation is declared as a derived struct of Byte_buffer_entry rather
 than simply an alias of the instantiation to improve the debugger experience.
 */
 struct an_ifc_syntax_simple_type_specifier :
-              Byte_buffer_entity<an_ifc_syntax_simple_type_specifier_storage> {
+               Byte_buffer_entry<an_ifc_syntax_simple_type_specifier_storage> {
   using storage_type = an_ifc_syntax_simple_type_specifier_storage;
-  using base_type = Byte_buffer_entity<storage_type>;
-  using base_type::Byte_buffer_entity;
+  using base_type = Byte_buffer_entry<storage_type>;
+  using base_type::Byte_buffer_entry;
 };  /* an_ifc_syntax_simple_type_specifier */
 
 
@@ -18349,14 +18336,14 @@ using an_ifc_syntax_statement_seq_bytes = an_ifc_syntax_statement_seq_storage;
 /*
 The universal representation of an IFC SyntaxStatementSeq node.
 
-The representation is declared as a derived struct of Byte_buffer_entity rather
+The representation is declared as a derived struct of Byte_buffer_entry rather
 than simply an alias of the instantiation to improve the debugger experience.
 */
 struct an_ifc_syntax_statement_seq :
-                      Byte_buffer_entity<an_ifc_syntax_statement_seq_storage> {
+                       Byte_buffer_entry<an_ifc_syntax_statement_seq_storage> {
   using storage_type = an_ifc_syntax_statement_seq_storage;
-  using base_type = Byte_buffer_entity<storage_type>;
-  using base_type::Byte_buffer_entity;
+  using base_type = Byte_buffer_entry<storage_type>;
+  using base_type::Byte_buffer_entry;
 };  /* an_ifc_syntax_statement_seq */
 
 
@@ -18402,14 +18389,14 @@ using an_ifc_syntax_static_assert_declaration_bytes =
 /*
 The universal representation of an IFC SyntaxStaticAssertDeclaration node.
 
-The representation is declared as a derived struct of Byte_buffer_entity rather
+The representation is declared as a derived struct of Byte_buffer_entry rather
 than simply an alias of the instantiation to improve the debugger experience.
 */
 struct an_ifc_syntax_static_assert_declaration :
-          Byte_buffer_entity<an_ifc_syntax_static_assert_declaration_storage> {
+           Byte_buffer_entry<an_ifc_syntax_static_assert_declaration_storage> {
   using storage_type = an_ifc_syntax_static_assert_declaration_storage;
-  using base_type = Byte_buffer_entity<storage_type>;
-  using base_type::Byte_buffer_entity;
+  using base_type = Byte_buffer_entry<storage_type>;
+  using base_type::Byte_buffer_entry;
 };  /* an_ifc_syntax_static_assert_declaration */
 
 
@@ -18451,14 +18438,14 @@ using an_ifc_syntax_structured_binding_declaration_bytes =
 /*
 The universal representation of an IFC SyntaxStructuredBindingDeclaration node.
 
-The representation is declared as a derived struct of Byte_buffer_entity rather
+The representation is declared as a derived struct of Byte_buffer_entry rather
 than simply an alias of the instantiation to improve the debugger experience.
 */
 struct an_ifc_syntax_structured_binding_declaration :
-     Byte_buffer_entity<an_ifc_syntax_structured_binding_declaration_storage> {
+      Byte_buffer_entry<an_ifc_syntax_structured_binding_declaration_storage> {
   using storage_type = an_ifc_syntax_structured_binding_declaration_storage;
-  using base_type = Byte_buffer_entity<storage_type>;
-  using base_type::Byte_buffer_entity;
+  using base_type = Byte_buffer_entry<storage_type>;
+  using base_type::Byte_buffer_entry;
 };  /* an_ifc_syntax_structured_binding_declaration */
 
 
@@ -18494,14 +18481,14 @@ using an_ifc_syntax_structured_binding_identifier_bytes =
 /*
 The universal representation of an IFC SyntaxStructuredBindingIdentifier node.
 
-The representation is declared as a derived struct of Byte_buffer_entity rather
+The representation is declared as a derived struct of Byte_buffer_entry rather
 than simply an alias of the instantiation to improve the debugger experience.
 */
 struct an_ifc_syntax_structured_binding_identifier :
-      Byte_buffer_entity<an_ifc_syntax_structured_binding_identifier_storage> {
+       Byte_buffer_entry<an_ifc_syntax_structured_binding_identifier_storage> {
   using storage_type = an_ifc_syntax_structured_binding_identifier_storage;
-  using base_type = Byte_buffer_entity<storage_type>;
-  using base_type::Byte_buffer_entity;
+  using base_type = Byte_buffer_entry<storage_type>;
+  using base_type::Byte_buffer_entry;
 };  /* an_ifc_syntax_structured_binding_identifier */
 
 
@@ -18524,13 +18511,13 @@ using an_ifc_syntax_super_bytes = an_ifc_syntax_super_storage;
 /*
 The universal representation of an IFC SyntaxSuper node.
 
-The representation is declared as a derived struct of Byte_buffer_entity rather
+The representation is declared as a derived struct of Byte_buffer_entry rather
 than simply an alias of the instantiation to improve the debugger experience.
 */
-struct an_ifc_syntax_super : Byte_buffer_entity<an_ifc_syntax_super_storage> {
+struct an_ifc_syntax_super : Byte_buffer_entry<an_ifc_syntax_super_storage> {
   using storage_type = an_ifc_syntax_super_storage;
-  using base_type = Byte_buffer_entity<storage_type>;
-  using base_type::Byte_buffer_entity;
+  using base_type = Byte_buffer_entry<storage_type>;
+  using base_type::Byte_buffer_entry;
 };  /* an_ifc_syntax_super */
 
 
@@ -18560,14 +18547,14 @@ using an_ifc_syntax_switch_statement_bytes =
 /*
 The universal representation of an IFC SyntaxSwitchStatement node.
 
-The representation is declared as a derived struct of Byte_buffer_entity rather
+The representation is declared as a derived struct of Byte_buffer_entry rather
 than simply an alias of the instantiation to improve the debugger experience.
 */
 struct an_ifc_syntax_switch_statement :
-                   Byte_buffer_entity<an_ifc_syntax_switch_statement_storage> {
+                    Byte_buffer_entry<an_ifc_syntax_switch_statement_storage> {
   using storage_type = an_ifc_syntax_switch_statement_storage;
-  using base_type = Byte_buffer_entity<storage_type>;
-  using base_type::Byte_buffer_entity;
+  using base_type = Byte_buffer_entry<storage_type>;
+  using base_type::Byte_buffer_entry;
 };  /* an_ifc_syntax_switch_statement */
 
 
@@ -18595,14 +18582,14 @@ using an_ifc_syntax_template_argument_list_bytes =
 /*
 The universal representation of an IFC SyntaxTemplateArgumentList node.
 
-The representation is declared as a derived struct of Byte_buffer_entity rather
+The representation is declared as a derived struct of Byte_buffer_entry rather
 than simply an alias of the instantiation to improve the debugger experience.
 */
 struct an_ifc_syntax_template_argument_list :
-             Byte_buffer_entity<an_ifc_syntax_template_argument_list_storage> {
+              Byte_buffer_entry<an_ifc_syntax_template_argument_list_storage> {
   using storage_type = an_ifc_syntax_template_argument_list_storage;
-  using base_type = Byte_buffer_entity<storage_type>;
-  using base_type::Byte_buffer_entity;
+  using base_type = Byte_buffer_entry<storage_type>;
+  using base_type::Byte_buffer_entry;
 };  /* an_ifc_syntax_template_argument_list */
 
 
@@ -18630,14 +18617,14 @@ using an_ifc_syntax_template_declaration_bytes =
 /*
 The universal representation of an IFC SyntaxTemplateDeclaration node.
 
-The representation is declared as a derived struct of Byte_buffer_entity rather
+The representation is declared as a derived struct of Byte_buffer_entry rather
 than simply an alias of the instantiation to improve the debugger experience.
 */
 struct an_ifc_syntax_template_declaration :
-               Byte_buffer_entity<an_ifc_syntax_template_declaration_storage> {
+                Byte_buffer_entry<an_ifc_syntax_template_declaration_storage> {
   using storage_type = an_ifc_syntax_template_declaration_storage;
-  using base_type = Byte_buffer_entity<storage_type>;
-  using base_type::Byte_buffer_entity;
+  using base_type = Byte_buffer_entry<storage_type>;
+  using base_type::Byte_buffer_entry;
 };  /* an_ifc_syntax_template_declaration */
 
 
@@ -18677,14 +18664,14 @@ using an_ifc_syntax_template_id_bytes = an_ifc_syntax_template_id_storage;
 /*
 The universal representation of an IFC SyntaxTemplateId node.
 
-The representation is declared as a derived struct of Byte_buffer_entity rather
+The representation is declared as a derived struct of Byte_buffer_entry rather
 than simply an alias of the instantiation to improve the debugger experience.
 */
 struct an_ifc_syntax_template_id :
-                        Byte_buffer_entity<an_ifc_syntax_template_id_storage> {
+                         Byte_buffer_entry<an_ifc_syntax_template_id_storage> {
   using storage_type = an_ifc_syntax_template_id_storage;
-  using base_type = Byte_buffer_entity<storage_type>;
-  using base_type::Byte_buffer_entity;
+  using base_type = Byte_buffer_entry<storage_type>;
+  using base_type::Byte_buffer_entry;
 };  /* an_ifc_syntax_template_id */
 
 
@@ -18713,14 +18700,14 @@ using an_ifc_syntax_template_parameter_list_bytes =
 /*
 The universal representation of an IFC SyntaxTemplateParameterList node.
 
-The representation is declared as a derived struct of Byte_buffer_entity rather
+The representation is declared as a derived struct of Byte_buffer_entry rather
 than simply an alias of the instantiation to improve the debugger experience.
 */
 struct an_ifc_syntax_template_parameter_list :
-            Byte_buffer_entity<an_ifc_syntax_template_parameter_list_storage> {
+             Byte_buffer_entry<an_ifc_syntax_template_parameter_list_storage> {
   using storage_type = an_ifc_syntax_template_parameter_list_storage;
-  using base_type = Byte_buffer_entity<storage_type>;
-  using base_type::Byte_buffer_entity;
+  using base_type = Byte_buffer_entry<storage_type>;
+  using base_type::Byte_buffer_entry;
 };  /* an_ifc_syntax_template_parameter_list */
 
 
@@ -18752,14 +18739,14 @@ using an_ifc_syntax_template_template_parameter_bytes =
 /*
 The universal representation of an IFC SyntaxTemplateTemplateParameter node.
 
-The representation is declared as a derived struct of Byte_buffer_entity rather
+The representation is declared as a derived struct of Byte_buffer_entry rather
 than simply an alias of the instantiation to improve the debugger experience.
 */
 struct an_ifc_syntax_template_template_parameter :
-        Byte_buffer_entity<an_ifc_syntax_template_template_parameter_storage> {
+         Byte_buffer_entry<an_ifc_syntax_template_template_parameter_storage> {
   using storage_type = an_ifc_syntax_template_template_parameter_storage;
-  using base_type = Byte_buffer_entity<storage_type>;
-  using base_type::Byte_buffer_entity;
+  using base_type = Byte_buffer_entry<storage_type>;
+  using base_type::Byte_buffer_entry;
 };  /* an_ifc_syntax_template_template_parameter */
 
 
@@ -18785,14 +18772,14 @@ using an_ifc_syntax_this_capture_bytes = an_ifc_syntax_this_capture_storage;
 /*
 The universal representation of an IFC SyntaxThisCapture node.
 
-The representation is declared as a derived struct of Byte_buffer_entity rather
+The representation is declared as a derived struct of Byte_buffer_entry rather
 than simply an alias of the instantiation to improve the debugger experience.
 */
 struct an_ifc_syntax_this_capture :
-                       Byte_buffer_entity<an_ifc_syntax_this_capture_storage> {
+                        Byte_buffer_entry<an_ifc_syntax_this_capture_storage> {
   using storage_type = an_ifc_syntax_this_capture_storage;
-  using base_type = Byte_buffer_entity<storage_type>;
-  using base_type::Byte_buffer_entity;
+  using base_type = Byte_buffer_entry<storage_type>;
+  using base_type::Byte_buffer_entry;
 };  /* an_ifc_syntax_this_capture */
 
 
@@ -18819,14 +18806,14 @@ using an_ifc_syntax_trailing_return_type_bytes =
 /*
 The universal representation of an IFC SyntaxTrailingReturnType node.
 
-The representation is declared as a derived struct of Byte_buffer_entity rather
+The representation is declared as a derived struct of Byte_buffer_entry rather
 than simply an alias of the instantiation to improve the debugger experience.
 */
 struct an_ifc_syntax_trailing_return_type :
-               Byte_buffer_entity<an_ifc_syntax_trailing_return_type_storage> {
+                Byte_buffer_entry<an_ifc_syntax_trailing_return_type_storage> {
   using storage_type = an_ifc_syntax_trailing_return_type_storage;
-  using base_type = Byte_buffer_entity<storage_type>;
-  using base_type::Byte_buffer_entity;
+  using base_type = Byte_buffer_entry<storage_type>;
+  using base_type::Byte_buffer_entry;
 };  /* an_ifc_syntax_trailing_return_type */
 
 
@@ -18852,14 +18839,14 @@ using an_ifc_syntax_try_block_bytes = an_ifc_syntax_try_block_storage;
 /*
 The universal representation of an IFC SyntaxTryBlock node.
 
-The representation is declared as a derived struct of Byte_buffer_entity rather
+The representation is declared as a derived struct of Byte_buffer_entry rather
 than simply an alias of the instantiation to improve the debugger experience.
 */
 struct an_ifc_syntax_try_block :
-                          Byte_buffer_entity<an_ifc_syntax_try_block_storage> {
+                           Byte_buffer_entry<an_ifc_syntax_try_block_storage> {
   using storage_type = an_ifc_syntax_try_block_storage;
-  using base_type = Byte_buffer_entity<storage_type>;
-  using base_type::Byte_buffer_entity;
+  using base_type = Byte_buffer_entry<storage_type>;
+  using base_type::Byte_buffer_entry;
 };  /* an_ifc_syntax_try_block */
 
 
@@ -18883,13 +18870,13 @@ using an_ifc_syntax_tuple_bytes = an_ifc_syntax_tuple_storage;
 /*
 The universal representation of an IFC SyntaxTuple node.
 
-The representation is declared as a derived struct of Byte_buffer_entity rather
+The representation is declared as a derived struct of Byte_buffer_entry rather
 than simply an alias of the instantiation to improve the debugger experience.
 */
-struct an_ifc_syntax_tuple : Byte_buffer_entity<an_ifc_syntax_tuple_storage> {
+struct an_ifc_syntax_tuple : Byte_buffer_entry<an_ifc_syntax_tuple_storage> {
   using storage_type = an_ifc_syntax_tuple_storage;
-  using base_type = Byte_buffer_entity<storage_type>;
-  using base_type::Byte_buffer_entity;
+  using base_type = Byte_buffer_entry<storage_type>;
+  using base_type::Byte_buffer_entry;
 };  /* an_ifc_syntax_tuple */
 
 
@@ -18914,14 +18901,14 @@ using an_ifc_syntax_type_id_bytes = an_ifc_syntax_type_id_storage;
 /*
 The universal representation of an IFC SyntaxTypeId node.
 
-The representation is declared as a derived struct of Byte_buffer_entity rather
+The representation is declared as a derived struct of Byte_buffer_entry rather
 than simply an alias of the instantiation to improve the debugger experience.
 */
 struct an_ifc_syntax_type_id :
-                            Byte_buffer_entity<an_ifc_syntax_type_id_storage> {
+                             Byte_buffer_entry<an_ifc_syntax_type_id_storage> {
   using storage_type = an_ifc_syntax_type_id_storage;
-  using base_type = Byte_buffer_entity<storage_type>;
-  using base_type::Byte_buffer_entity;
+  using base_type = Byte_buffer_entry<storage_type>;
+  using base_type::Byte_buffer_entry;
 };  /* an_ifc_syntax_type_id */
 
 
@@ -18948,14 +18935,14 @@ using an_ifc_syntax_type_id_list_element_bytes =
 /*
 The universal representation of an IFC SyntaxTypeIdListElement node.
 
-The representation is declared as a derived struct of Byte_buffer_entity rather
+The representation is declared as a derived struct of Byte_buffer_entry rather
 than simply an alias of the instantiation to improve the debugger experience.
 */
 struct an_ifc_syntax_type_id_list_element :
-               Byte_buffer_entity<an_ifc_syntax_type_id_list_element_storage> {
+                Byte_buffer_entry<an_ifc_syntax_type_id_list_element_storage> {
   using storage_type = an_ifc_syntax_type_id_list_element_storage;
-  using base_type = Byte_buffer_entity<storage_type>;
-  using base_type::Byte_buffer_entity;
+  using base_type = Byte_buffer_entry<storage_type>;
+  using base_type::Byte_buffer_entry;
 };  /* an_ifc_syntax_type_id_list_element */
 
 
@@ -18991,14 +18978,14 @@ using an_ifc_syntax_type_requirement_bytes =
 /*
 The universal representation of an IFC SyntaxTypeRequirement node.
 
-The representation is declared as a derived struct of Byte_buffer_entity rather
+The representation is declared as a derived struct of Byte_buffer_entry rather
 than simply an alias of the instantiation to improve the debugger experience.
 */
 struct an_ifc_syntax_type_requirement :
-                   Byte_buffer_entity<an_ifc_syntax_type_requirement_storage> {
+                    Byte_buffer_entry<an_ifc_syntax_type_requirement_storage> {
   using storage_type = an_ifc_syntax_type_requirement_storage;
-  using base_type = Byte_buffer_entity<storage_type>;
-  using base_type::Byte_buffer_entity;
+  using base_type = Byte_buffer_entry<storage_type>;
+  using base_type::Byte_buffer_entry;
 };  /* an_ifc_syntax_type_requirement */
 
 
@@ -19029,14 +19016,14 @@ using an_ifc_syntax_type_specifier_seq_bytes =
 /*
 The universal representation of an IFC SyntaxTypeSpecifierSeq node.
 
-The representation is declared as a derived struct of Byte_buffer_entity rather
+The representation is declared as a derived struct of Byte_buffer_entry rather
 than simply an alias of the instantiation to improve the debugger experience.
 */
 struct an_ifc_syntax_type_specifier_seq :
-                 Byte_buffer_entity<an_ifc_syntax_type_specifier_seq_storage> {
+                  Byte_buffer_entry<an_ifc_syntax_type_specifier_seq_storage> {
   using storage_type = an_ifc_syntax_type_specifier_seq_storage;
-  using base_type = Byte_buffer_entity<storage_type>;
-  using base_type::Byte_buffer_entity;
+  using base_type = Byte_buffer_entry<storage_type>;
+  using base_type::Byte_buffer_entry;
 };  /* an_ifc_syntax_type_specifier_seq */
 
 
@@ -19064,14 +19051,14 @@ using an_ifc_syntax_type_template_argument_bytes =
 /*
 The universal representation of an IFC SyntaxTypeTemplateArgument node.
 
-The representation is declared as a derived struct of Byte_buffer_entity rather
+The representation is declared as a derived struct of Byte_buffer_entry rather
 than simply an alias of the instantiation to improve the debugger experience.
 */
 struct an_ifc_syntax_type_template_argument :
-             Byte_buffer_entity<an_ifc_syntax_type_template_argument_storage> {
+              Byte_buffer_entry<an_ifc_syntax_type_template_argument_storage> {
   using storage_type = an_ifc_syntax_type_template_argument_storage;
-  using base_type = Byte_buffer_entity<storage_type>;
-  using base_type::Byte_buffer_entity;
+  using base_type = Byte_buffer_entry<storage_type>;
+  using base_type::Byte_buffer_entry;
 };  /* an_ifc_syntax_type_template_argument */
 
 
@@ -19101,14 +19088,14 @@ using an_ifc_syntax_type_template_parameter_bytes =
 /*
 The universal representation of an IFC SyntaxTypeTemplateParameter node.
 
-The representation is declared as a derived struct of Byte_buffer_entity rather
+The representation is declared as a derived struct of Byte_buffer_entry rather
 than simply an alias of the instantiation to improve the debugger experience.
 */
 struct an_ifc_syntax_type_template_parameter :
-            Byte_buffer_entity<an_ifc_syntax_type_template_parameter_storage> {
+             Byte_buffer_entry<an_ifc_syntax_type_template_parameter_storage> {
   using storage_type = an_ifc_syntax_type_template_parameter_storage;
-  using base_type = Byte_buffer_entity<storage_type>;
-  using base_type::Byte_buffer_entity;
+  using base_type = Byte_buffer_entry<storage_type>;
+  using base_type::Byte_buffer_entry;
 };  /* an_ifc_syntax_type_template_parameter */
 
 
@@ -19159,14 +19146,14 @@ using an_ifc_syntax_type_trait_intrinsic_bytes =
 /*
 The universal representation of an IFC SyntaxTypeTraitIntrinsic node.
 
-The representation is declared as a derived struct of Byte_buffer_entity rather
+The representation is declared as a derived struct of Byte_buffer_entry rather
 than simply an alias of the instantiation to improve the debugger experience.
 */
 struct an_ifc_syntax_type_trait_intrinsic :
-               Byte_buffer_entity<an_ifc_syntax_type_trait_intrinsic_storage> {
+                Byte_buffer_entry<an_ifc_syntax_type_trait_intrinsic_storage> {
   using storage_type = an_ifc_syntax_type_trait_intrinsic_storage;
-  using base_type = Byte_buffer_entity<storage_type>;
-  using base_type::Byte_buffer_entity;
+  using base_type = Byte_buffer_entry<storage_type>;
+  using base_type::Byte_buffer_entry;
 };  /* an_ifc_syntax_type_trait_intrinsic */
 
 
@@ -19229,14 +19216,14 @@ using an_ifc_syntax_unary_fold_expression_bytes =
 /*
 The universal representation of an IFC SyntaxUnaryFoldExpression node.
 
-The representation is declared as a derived struct of Byte_buffer_entity rather
+The representation is declared as a derived struct of Byte_buffer_entry rather
 than simply an alias of the instantiation to improve the debugger experience.
 */
 struct an_ifc_syntax_unary_fold_expression :
-              Byte_buffer_entity<an_ifc_syntax_unary_fold_expression_storage> {
+               Byte_buffer_entry<an_ifc_syntax_unary_fold_expression_storage> {
   using storage_type = an_ifc_syntax_unary_fold_expression_storage;
-  using base_type = Byte_buffer_entity<storage_type>;
-  using base_type::Byte_buffer_entity;
+  using base_type = Byte_buffer_entry<storage_type>;
+  using base_type::Byte_buffer_entry;
 };  /* an_ifc_syntax_unary_fold_expression */
 
 
@@ -19264,14 +19251,14 @@ using an_ifc_syntax_using_declaration_bytes =
 /*
 The universal representation of an IFC SyntaxUsingDeclaration node.
 
-The representation is declared as a derived struct of Byte_buffer_entity rather
+The representation is declared as a derived struct of Byte_buffer_entry rather
 than simply an alias of the instantiation to improve the debugger experience.
 */
 struct an_ifc_syntax_using_declaration :
-                  Byte_buffer_entity<an_ifc_syntax_using_declaration_storage> {
+                   Byte_buffer_entry<an_ifc_syntax_using_declaration_storage> {
   using storage_type = an_ifc_syntax_using_declaration_storage;
-  using base_type = Byte_buffer_entity<storage_type>;
-  using base_type::Byte_buffer_entity;
+  using base_type = Byte_buffer_entry<storage_type>;
+  using base_type::Byte_buffer_entry;
 };  /* an_ifc_syntax_using_declaration */
 
 
@@ -19311,14 +19298,14 @@ using an_ifc_syntax_using_declarator_bytes =
 /*
 The universal representation of an IFC SyntaxUsingDeclarator node.
 
-The representation is declared as a derived struct of Byte_buffer_entity rather
+The representation is declared as a derived struct of Byte_buffer_entry rather
 than simply an alias of the instantiation to improve the debugger experience.
 */
 struct an_ifc_syntax_using_declarator :
-                   Byte_buffer_entity<an_ifc_syntax_using_declarator_storage> {
+                    Byte_buffer_entry<an_ifc_syntax_using_declarator_storage> {
   using storage_type = an_ifc_syntax_using_declarator_storage;
-  using base_type = Byte_buffer_entity<storage_type>;
-  using base_type::Byte_buffer_entity;
+  using base_type = Byte_buffer_entry<storage_type>;
+  using base_type::Byte_buffer_entry;
 };  /* an_ifc_syntax_using_declarator */
 
 
@@ -19358,14 +19345,14 @@ using an_ifc_syntax_using_directive_bytes =
 /*
 The universal representation of an IFC SyntaxUsingDirective node.
 
-The representation is declared as a derived struct of Byte_buffer_entity rather
+The representation is declared as a derived struct of Byte_buffer_entry rather
 than simply an alias of the instantiation to improve the debugger experience.
 */
 struct an_ifc_syntax_using_directive :
-                    Byte_buffer_entity<an_ifc_syntax_using_directive_storage> {
+                     Byte_buffer_entry<an_ifc_syntax_using_directive_storage> {
   using storage_type = an_ifc_syntax_using_directive_storage;
-  using base_type = Byte_buffer_entity<storage_type>;
-  using base_type::Byte_buffer_entity;
+  using base_type = Byte_buffer_entry<storage_type>;
+  using base_type::Byte_buffer_entry;
 };  /* an_ifc_syntax_using_directive */
 
 
@@ -19405,14 +19392,14 @@ using an_ifc_syntax_using_enum_declaration_bytes =
 /*
 The universal representation of an IFC SyntaxUsingEnumDeclaration node.
 
-The representation is declared as a derived struct of Byte_buffer_entity rather
+The representation is declared as a derived struct of Byte_buffer_entry rather
 than simply an alias of the instantiation to improve the debugger experience.
 */
 struct an_ifc_syntax_using_enum_declaration :
-             Byte_buffer_entity<an_ifc_syntax_using_enum_declaration_storage> {
+              Byte_buffer_entry<an_ifc_syntax_using_enum_declaration_storage> {
   using storage_type = an_ifc_syntax_using_enum_declaration_storage;
-  using base_type = Byte_buffer_entity<storage_type>;
-  using base_type::Byte_buffer_entity;
+  using base_type = Byte_buffer_entry<storage_type>;
+  using base_type::Byte_buffer_entry;
 };  /* an_ifc_syntax_using_enum_declaration */
 
 
@@ -19441,14 +19428,14 @@ using an_ifc_syntax_virtual_specifier_seq_bytes =
 /*
 The universal representation of an IFC SyntaxVirtualSpecifierSeq node.
 
-The representation is declared as a derived struct of Byte_buffer_entity rather
+The representation is declared as a derived struct of Byte_buffer_entry rather
 than simply an alias of the instantiation to improve the debugger experience.
 */
 struct an_ifc_syntax_virtual_specifier_seq :
-              Byte_buffer_entity<an_ifc_syntax_virtual_specifier_seq_storage> {
+               Byte_buffer_entry<an_ifc_syntax_virtual_specifier_seq_storage> {
   using storage_type = an_ifc_syntax_virtual_specifier_seq_storage;
-  using base_type = Byte_buffer_entity<storage_type>;
-  using base_type::Byte_buffer_entity;
+  using base_type = Byte_buffer_entry<storage_type>;
+  using base_type::Byte_buffer_entry;
 };  /* an_ifc_syntax_virtual_specifier_seq */
 
 
@@ -19488,14 +19475,14 @@ using an_ifc_syntax_while_statement_bytes =
 /*
 The universal representation of an IFC SyntaxWhileStatement node.
 
-The representation is declared as a derived struct of Byte_buffer_entity rather
+The representation is declared as a derived struct of Byte_buffer_entry rather
 than simply an alias of the instantiation to improve the debugger experience.
 */
 struct an_ifc_syntax_while_statement :
-                    Byte_buffer_entity<an_ifc_syntax_while_statement_storage> {
+                     Byte_buffer_entry<an_ifc_syntax_while_statement_storage> {
   using storage_type = an_ifc_syntax_while_statement_storage;
-  using base_type = Byte_buffer_entity<storage_type>;
-  using base_type::Byte_buffer_entity;
+  using base_type = Byte_buffer_entry<storage_type>;
+  using base_type::Byte_buffer_entry;
 };  /* an_ifc_syntax_while_statement */
 
 
@@ -19545,14 +19532,14 @@ using an_ifc_trait_alias_template_bytes = an_ifc_trait_alias_template_storage;
 /*
 The universal representation of an IFC TraitAliasTemplate node.
 
-The representation is declared as a derived struct of Byte_buffer_entity rather
+The representation is declared as a derived struct of Byte_buffer_entry rather
 than simply an alias of the instantiation to improve the debugger experience.
 */
 struct an_ifc_trait_alias_template :
-                      Byte_buffer_entity<an_ifc_trait_alias_template_storage> {
+                       Byte_buffer_entry<an_ifc_trait_alias_template_storage> {
   using storage_type = an_ifc_trait_alias_template_storage;
-  using base_type = Byte_buffer_entity<storage_type>;
-  using base_type::Byte_buffer_entity;
+  using base_type = Byte_buffer_entry<storage_type>;
+  using base_type::Byte_buffer_entry;
 };  /* an_ifc_trait_alias_template */
 
 
@@ -19600,14 +19587,14 @@ using an_ifc_trait_attribute_bytes = an_ifc_trait_attribute_storage;
 /*
 The universal representation of an IFC TraitAttribute node.
 
-The representation is declared as a derived struct of Byte_buffer_entity rather
+The representation is declared as a derived struct of Byte_buffer_entry rather
 than simply an alias of the instantiation to improve the debugger experience.
 */
 struct an_ifc_trait_attribute :
-                           Byte_buffer_entity<an_ifc_trait_attribute_storage> {
+                            Byte_buffer_entry<an_ifc_trait_attribute_storage> {
   using storage_type = an_ifc_trait_attribute_storage;
-  using base_type = Byte_buffer_entity<storage_type>;
-  using base_type::Byte_buffer_entity;
+  using base_type = Byte_buffer_entry<storage_type>;
+  using base_type::Byte_buffer_entry;
 };  /* an_ifc_trait_attribute */
 
 
@@ -19658,14 +19645,14 @@ using an_ifc_trait_deduction_guide_bytes =
 /*
 The universal representation of an IFC TraitDeductionGuide node.
 
-The representation is declared as a derived struct of Byte_buffer_entity rather
+The representation is declared as a derived struct of Byte_buffer_entry rather
 than simply an alias of the instantiation to improve the debugger experience.
 */
 struct an_ifc_trait_deduction_guide :
-                     Byte_buffer_entity<an_ifc_trait_deduction_guide_storage> {
+                      Byte_buffer_entry<an_ifc_trait_deduction_guide_storage> {
   using storage_type = an_ifc_trait_deduction_guide_storage;
-  using base_type = Byte_buffer_entity<storage_type>;
-  using base_type::Byte_buffer_entity;
+  using base_type = Byte_buffer_entry<storage_type>;
+  using base_type::Byte_buffer_entry;
 };  /* an_ifc_trait_deduction_guide */
 
 
@@ -19713,14 +19700,14 @@ using an_ifc_trait_deprecated_bytes = an_ifc_trait_deprecated_storage;
 /*
 The universal representation of an IFC TraitDeprecated node.
 
-The representation is declared as a derived struct of Byte_buffer_entity rather
+The representation is declared as a derived struct of Byte_buffer_entry rather
 than simply an alias of the instantiation to improve the debugger experience.
 */
 struct an_ifc_trait_deprecated :
-                          Byte_buffer_entity<an_ifc_trait_deprecated_storage> {
+                           Byte_buffer_entry<an_ifc_trait_deprecated_storage> {
   using storage_type = an_ifc_trait_deprecated_storage;
-  using base_type = Byte_buffer_entity<storage_type>;
-  using base_type::Byte_buffer_entity;
+  using base_type = Byte_buffer_entry<storage_type>;
+  using base_type::Byte_buffer_entry;
 };  /* an_ifc_trait_deprecated */
 
 
@@ -19768,13 +19755,13 @@ using an_ifc_trait_friend_bytes = an_ifc_trait_friend_storage;
 /*
 The universal representation of an IFC TraitFriend node.
 
-The representation is declared as a derived struct of Byte_buffer_entity rather
+The representation is declared as a derived struct of Byte_buffer_entry rather
 than simply an alias of the instantiation to improve the debugger experience.
 */
-struct an_ifc_trait_friend : Byte_buffer_entity<an_ifc_trait_friend_storage> {
+struct an_ifc_trait_friend : Byte_buffer_entry<an_ifc_trait_friend_storage> {
   using storage_type = an_ifc_trait_friend_storage;
-  using base_type = Byte_buffer_entity<storage_type>;
-  using base_type::Byte_buffer_entity;
+  using base_type = Byte_buffer_entry<storage_type>;
+  using base_type::Byte_buffer_entry;
 };  /* an_ifc_trait_friend */
 
 
@@ -19844,14 +19831,14 @@ using an_ifc_trait_function_definition_bytes =
 /*
 The universal representation of an IFC TraitFunctionDefinition node.
 
-The representation is declared as a derived struct of Byte_buffer_entity rather
+The representation is declared as a derived struct of Byte_buffer_entry rather
 than simply an alias of the instantiation to improve the debugger experience.
 */
 struct an_ifc_trait_function_definition :
-                 Byte_buffer_entity<an_ifc_trait_function_definition_storage> {
+                  Byte_buffer_entry<an_ifc_trait_function_definition_storage> {
   using storage_type = an_ifc_trait_function_definition_storage;
-  using base_type = Byte_buffer_entity<storage_type>;
-  using base_type::Byte_buffer_entity;
+  using base_type = Byte_buffer_entry<storage_type>;
+  using base_type::Byte_buffer_entry;
 };  /* an_ifc_trait_function_definition */
 
 
@@ -19902,14 +19889,14 @@ using an_ifc_trait_msvc_decl_attrs_bytes =
 /*
 The universal representation of an IFC TraitMsvcDeclAttrs node.
 
-The representation is declared as a derived struct of Byte_buffer_entity rather
+The representation is declared as a derived struct of Byte_buffer_entry rather
 than simply an alias of the instantiation to improve the debugger experience.
 */
 struct an_ifc_trait_msvc_decl_attrs :
-                     Byte_buffer_entity<an_ifc_trait_msvc_decl_attrs_storage> {
+                      Byte_buffer_entry<an_ifc_trait_msvc_decl_attrs_storage> {
   using storage_type = an_ifc_trait_msvc_decl_attrs_storage;
-  using base_type = Byte_buffer_entity<storage_type>;
-  using base_type::Byte_buffer_entity;
+  using base_type = Byte_buffer_entry<storage_type>;
+  using base_type::Byte_buffer_entry;
 };  /* an_ifc_trait_msvc_decl_attrs */
 
 
@@ -19960,14 +19947,14 @@ using an_ifc_trait_msvc_func_params_bytes =
 /*
 The universal representation of an IFC TraitMsvcFuncParams node.
 
-The representation is declared as a derived struct of Byte_buffer_entity rather
+The representation is declared as a derived struct of Byte_buffer_entry rather
 than simply an alias of the instantiation to improve the debugger experience.
 */
 struct an_ifc_trait_msvc_func_params :
-                    Byte_buffer_entity<an_ifc_trait_msvc_func_params_storage> {
+                     Byte_buffer_entry<an_ifc_trait_msvc_func_params_storage> {
   using storage_type = an_ifc_trait_msvc_func_params_storage;
-  using base_type = Byte_buffer_entity<storage_type>;
-  using base_type::Byte_buffer_entity;
+  using base_type = Byte_buffer_entry<storage_type>;
+  using base_type::Byte_buffer_entry;
 };  /* an_ifc_trait_msvc_func_params */
 
 
@@ -20018,14 +20005,14 @@ using an_ifc_trait_msvc_uuid_bytes = an_ifc_trait_msvc_uuid_storage;
 /*
 The universal representation of an IFC TraitMsvcUuid node.
 
-The representation is declared as a derived struct of Byte_buffer_entity rather
+The representation is declared as a derived struct of Byte_buffer_entry rather
 than simply an alias of the instantiation to improve the debugger experience.
 */
 struct an_ifc_trait_msvc_uuid :
-                           Byte_buffer_entity<an_ifc_trait_msvc_uuid_storage> {
+                            Byte_buffer_entry<an_ifc_trait_msvc_uuid_storage> {
   using storage_type = an_ifc_trait_msvc_uuid_storage;
-  using base_type = Byte_buffer_entity<storage_type>;
-  using base_type::Byte_buffer_entity;
+  using base_type = Byte_buffer_entry<storage_type>;
+  using base_type::Byte_buffer_entry;
 };  /* an_ifc_trait_msvc_uuid */
 
 
@@ -20076,14 +20063,14 @@ using an_ifc_trait_msvc_vendor_trait_bytes =
 /*
 The universal representation of an IFC TraitMsvcVendorTrait node.
 
-The representation is declared as a derived struct of Byte_buffer_entity rather
+The representation is declared as a derived struct of Byte_buffer_entry rather
 than simply an alias of the instantiation to improve the debugger experience.
 */
 struct an_ifc_trait_msvc_vendor_trait :
-                   Byte_buffer_entity<an_ifc_trait_msvc_vendor_trait_storage> {
+                    Byte_buffer_entry<an_ifc_trait_msvc_vendor_trait_storage> {
   using storage_type = an_ifc_trait_msvc_vendor_trait_storage;
-  using base_type = Byte_buffer_entity<storage_type>;
-  using base_type::Byte_buffer_entity;
+  using base_type = Byte_buffer_entry<storage_type>;
+  using base_type::Byte_buffer_entry;
 };  /* an_ifc_trait_msvc_vendor_trait */
 
 
@@ -20131,14 +20118,14 @@ using an_ifc_trait_requires_bytes = an_ifc_trait_requires_storage;
 /*
 The universal representation of an IFC TraitRequires node.
 
-The representation is declared as a derived struct of Byte_buffer_entity rather
+The representation is declared as a derived struct of Byte_buffer_entry rather
 than simply an alias of the instantiation to improve the debugger experience.
 */
 struct an_ifc_trait_requires :
-                            Byte_buffer_entity<an_ifc_trait_requires_storage> {
+                             Byte_buffer_entry<an_ifc_trait_requires_storage> {
   using storage_type = an_ifc_trait_requires_storage;
-  using base_type = Byte_buffer_entity<storage_type>;
-  using base_type::Byte_buffer_entity;
+  using base_type = Byte_buffer_entry<storage_type>;
+  using base_type::Byte_buffer_entry;
 };  /* an_ifc_trait_requires */
 
 
@@ -20188,14 +20175,14 @@ using an_ifc_trait_specialization_bytes = an_ifc_trait_specialization_storage;
 /*
 The universal representation of an IFC TraitSpecialization node.
 
-The representation is declared as a derived struct of Byte_buffer_entity rather
+The representation is declared as a derived struct of Byte_buffer_entry rather
 than simply an alias of the instantiation to improve the debugger experience.
 */
 struct an_ifc_trait_specialization :
-                      Byte_buffer_entity<an_ifc_trait_specialization_storage> {
+                       Byte_buffer_entry<an_ifc_trait_specialization_storage> {
   using storage_type = an_ifc_trait_specialization_storage;
-  using base_type = Byte_buffer_entity<storage_type>;
-  using base_type::Byte_buffer_entity;
+  using base_type = Byte_buffer_entry<storage_type>;
+  using base_type::Byte_buffer_entry;
 };  /* an_ifc_trait_specialization */
 
 
@@ -20228,13 +20215,13 @@ using an_ifc_type_array_bytes = an_ifc_type_array_storage;
 /*
 The universal representation of an IFC TypeArray node.
 
-The representation is declared as a derived struct of Byte_buffer_entity rather
+The representation is declared as a derived struct of Byte_buffer_entry rather
 than simply an alias of the instantiation to improve the debugger experience.
 */
-struct an_ifc_type_array : Byte_buffer_entity<an_ifc_type_array_storage> {
+struct an_ifc_type_array : Byte_buffer_entry<an_ifc_type_array_storage> {
   using storage_type = an_ifc_type_array_storage;
-  using base_type = Byte_buffer_entity<storage_type>;
-  using base_type::Byte_buffer_entity;
+  using base_type = Byte_buffer_entry<storage_type>;
+  using base_type::Byte_buffer_entry;
 };  /* an_ifc_type_array */
 
 
@@ -20261,13 +20248,13 @@ using an_ifc_type_base_bytes = an_ifc_type_base_storage;
 /*
 The universal representation of an IFC TypeBase node.
 
-The representation is declared as a derived struct of Byte_buffer_entity rather
+The representation is declared as a derived struct of Byte_buffer_entry rather
 than simply an alias of the instantiation to improve the debugger experience.
 */
-struct an_ifc_type_base : Byte_buffer_entity<an_ifc_type_base_storage> {
+struct an_ifc_type_base : Byte_buffer_entry<an_ifc_type_base_storage> {
   using storage_type = an_ifc_type_base_storage;
-  using base_type = Byte_buffer_entity<storage_type>;
-  using base_type::Byte_buffer_entity;
+  using base_type = Byte_buffer_entry<storage_type>;
+  using base_type::Byte_buffer_entry;
 };  /* an_ifc_type_base */
 
 
@@ -20290,14 +20277,13 @@ using an_ifc_type_decltype_bytes = an_ifc_type_decltype_storage;
 /*
 The universal representation of an IFC TypeDecltype node.
 
-The representation is declared as a derived struct of Byte_buffer_entity rather
+The representation is declared as a derived struct of Byte_buffer_entry rather
 than simply an alias of the instantiation to improve the debugger experience.
 */
-struct an_ifc_type_decltype :
-                             Byte_buffer_entity<an_ifc_type_decltype_storage> {
+struct an_ifc_type_decltype : Byte_buffer_entry<an_ifc_type_decltype_storage> {
   using storage_type = an_ifc_type_decltype_storage;
-  using base_type = Byte_buffer_entity<storage_type>;
-  using base_type::Byte_buffer_entity;
+  using base_type = Byte_buffer_entry<storage_type>;
+  using base_type::Byte_buffer_entry;
 };  /* an_ifc_type_decltype */
 
 
@@ -20336,14 +20322,14 @@ using an_ifc_type_designated_bytes = an_ifc_type_designated_storage;
 /*
 The universal representation of an IFC TypeDesignated node.
 
-The representation is declared as a derived struct of Byte_buffer_entity rather
+The representation is declared as a derived struct of Byte_buffer_entry rather
 than simply an alias of the instantiation to improve the debugger experience.
 */
 struct an_ifc_type_designated :
-                           Byte_buffer_entity<an_ifc_type_designated_storage> {
+                            Byte_buffer_entry<an_ifc_type_designated_storage> {
   using storage_type = an_ifc_type_designated_storage;
-  using base_type = Byte_buffer_entity<storage_type>;
-  using base_type::Byte_buffer_entity;
+  using base_type = Byte_buffer_entry<storage_type>;
+  using base_type::Byte_buffer_entry;
 };  /* an_ifc_type_designated */
 
 
@@ -20368,14 +20354,14 @@ using an_ifc_type_expansion_bytes = an_ifc_type_expansion_storage;
 /*
 The universal representation of an IFC TypeExpansion node.
 
-The representation is declared as a derived struct of Byte_buffer_entity rather
+The representation is declared as a derived struct of Byte_buffer_entry rather
 than simply an alias of the instantiation to improve the debugger experience.
 */
 struct an_ifc_type_expansion :
-                            Byte_buffer_entity<an_ifc_type_expansion_storage> {
+                             Byte_buffer_entry<an_ifc_type_expansion_storage> {
   using storage_type = an_ifc_type_expansion_storage;
-  using base_type = Byte_buffer_entity<storage_type>;
-  using base_type::Byte_buffer_entity;
+  using base_type = Byte_buffer_entry<storage_type>;
+  using base_type::Byte_buffer_entry;
 };  /* an_ifc_type_expansion */
 
 
@@ -20399,13 +20385,13 @@ using an_ifc_type_forall_bytes = an_ifc_type_forall_storage;
 /*
 The universal representation of an IFC TypeForall node.
 
-The representation is declared as a derived struct of Byte_buffer_entity rather
+The representation is declared as a derived struct of Byte_buffer_entry rather
 than simply an alias of the instantiation to improve the debugger experience.
 */
-struct an_ifc_type_forall : Byte_buffer_entity<an_ifc_type_forall_storage> {
+struct an_ifc_type_forall : Byte_buffer_entry<an_ifc_type_forall_storage> {
   using storage_type = an_ifc_type_forall_storage;
-  using base_type = Byte_buffer_entity<storage_type>;
-  using base_type::Byte_buffer_entity;
+  using base_type = Byte_buffer_entry<storage_type>;
+  using base_type::Byte_buffer_entry;
 };  /* an_ifc_type_forall */
 
 
@@ -20433,14 +20419,13 @@ using an_ifc_type_function_bytes = an_ifc_type_function_storage;
 /*
 The universal representation of an IFC TypeFunction node.
 
-The representation is declared as a derived struct of Byte_buffer_entity rather
+The representation is declared as a derived struct of Byte_buffer_entry rather
 than simply an alias of the instantiation to improve the debugger experience.
 */
-struct an_ifc_type_function :
-                             Byte_buffer_entity<an_ifc_type_function_storage> {
+struct an_ifc_type_function : Byte_buffer_entry<an_ifc_type_function_storage> {
   using storage_type = an_ifc_type_function_storage;
-  using base_type = Byte_buffer_entity<storage_type>;
-  using base_type::Byte_buffer_entity;
+  using base_type = Byte_buffer_entry<storage_type>;
+  using base_type::Byte_buffer_entry;
 };  /* an_ifc_type_function */
 
 
@@ -20466,14 +20451,14 @@ using an_ifc_type_fundamental_bytes = an_ifc_type_fundamental_storage;
 /*
 The universal representation of an IFC TypeFundamental node.
 
-The representation is declared as a derived struct of Byte_buffer_entity rather
+The representation is declared as a derived struct of Byte_buffer_entry rather
 than simply an alias of the instantiation to improve the debugger experience.
 */
 struct an_ifc_type_fundamental :
-                          Byte_buffer_entity<an_ifc_type_fundamental_storage> {
+                           Byte_buffer_entry<an_ifc_type_fundamental_storage> {
   using storage_type = an_ifc_type_fundamental_storage;
-  using base_type = Byte_buffer_entity<storage_type>;
-  using base_type::Byte_buffer_entity;
+  using base_type = Byte_buffer_entry<storage_type>;
+  using base_type::Byte_buffer_entry;
 };  /* an_ifc_type_fundamental */
 
 
@@ -20499,14 +20484,14 @@ using an_ifc_type_lvalue_reference_bytes =
 /*
 The universal representation of an IFC TypeLvalueReference node.
 
-The representation is declared as a derived struct of Byte_buffer_entity rather
+The representation is declared as a derived struct of Byte_buffer_entry rather
 than simply an alias of the instantiation to improve the debugger experience.
 */
 struct an_ifc_type_lvalue_reference :
-                     Byte_buffer_entity<an_ifc_type_lvalue_reference_storage> {
+                      Byte_buffer_entry<an_ifc_type_lvalue_reference_storage> {
   using storage_type = an_ifc_type_lvalue_reference_storage;
-  using base_type = Byte_buffer_entity<storage_type>;
-  using base_type::Byte_buffer_entity;
+  using base_type = Byte_buffer_entry<storage_type>;
+  using base_type::Byte_buffer_entry;
 };  /* an_ifc_type_lvalue_reference */
 
 
@@ -20535,13 +20520,13 @@ using an_ifc_type_method_bytes = an_ifc_type_method_storage;
 /*
 The universal representation of an IFC TypeMethod node.
 
-The representation is declared as a derived struct of Byte_buffer_entity rather
+The representation is declared as a derived struct of Byte_buffer_entry rather
 than simply an alias of the instantiation to improve the debugger experience.
 */
-struct an_ifc_type_method : Byte_buffer_entity<an_ifc_type_method_storage> {
+struct an_ifc_type_method : Byte_buffer_entry<an_ifc_type_method_storage> {
   using storage_type = an_ifc_type_method_storage;
-  using base_type = Byte_buffer_entity<storage_type>;
-  using base_type::Byte_buffer_entity;
+  using base_type = Byte_buffer_entry<storage_type>;
+  using base_type::Byte_buffer_entry;
 };  /* an_ifc_type_method */
 
 
@@ -20580,14 +20565,14 @@ using an_ifc_type_placeholder_bytes = an_ifc_type_placeholder_storage;
 /*
 The universal representation of an IFC TypePlaceholder node.
 
-The representation is declared as a derived struct of Byte_buffer_entity rather
+The representation is declared as a derived struct of Byte_buffer_entry rather
 than simply an alias of the instantiation to improve the debugger experience.
 */
 struct an_ifc_type_placeholder :
-                          Byte_buffer_entity<an_ifc_type_placeholder_storage> {
+                           Byte_buffer_entry<an_ifc_type_placeholder_storage> {
   using storage_type = an_ifc_type_placeholder_storage;
-  using base_type = Byte_buffer_entity<storage_type>;
-  using base_type::Byte_buffer_entity;
+  using base_type = Byte_buffer_entry<storage_type>;
+  using base_type::Byte_buffer_entry;
 };  /* an_ifc_type_placeholder */
 
 
@@ -20610,13 +20595,13 @@ using an_ifc_type_pointer_bytes = an_ifc_type_pointer_storage;
 /*
 The universal representation of an IFC TypePointer node.
 
-The representation is declared as a derived struct of Byte_buffer_entity rather
+The representation is declared as a derived struct of Byte_buffer_entry rather
 than simply an alias of the instantiation to improve the debugger experience.
 */
-struct an_ifc_type_pointer : Byte_buffer_entity<an_ifc_type_pointer_storage> {
+struct an_ifc_type_pointer : Byte_buffer_entry<an_ifc_type_pointer_storage> {
   using storage_type = an_ifc_type_pointer_storage;
-  using base_type = Byte_buffer_entity<storage_type>;
-  using base_type::Byte_buffer_entity;
+  using base_type = Byte_buffer_entry<storage_type>;
+  using base_type::Byte_buffer_entry;
 };  /* an_ifc_type_pointer */
 
 
@@ -20643,14 +20628,14 @@ using an_ifc_type_pointer_to_member_bytes =
 /*
 The universal representation of an IFC TypePointerToMember node.
 
-The representation is declared as a derived struct of Byte_buffer_entity rather
+The representation is declared as a derived struct of Byte_buffer_entry rather
 than simply an alias of the instantiation to improve the debugger experience.
 */
 struct an_ifc_type_pointer_to_member :
-                    Byte_buffer_entity<an_ifc_type_pointer_to_member_storage> {
+                     Byte_buffer_entry<an_ifc_type_pointer_to_member_storage> {
   using storage_type = an_ifc_type_pointer_to_member_storage;
-  using base_type = Byte_buffer_entity<storage_type>;
-  using base_type::Byte_buffer_entity;
+  using base_type = Byte_buffer_entry<storage_type>;
+  using base_type::Byte_buffer_entry;
 };  /* an_ifc_type_pointer_to_member */
 
 
@@ -20675,14 +20660,14 @@ using an_ifc_type_qualified_bytes = an_ifc_type_qualified_storage;
 /*
 The universal representation of an IFC TypeQualified node.
 
-The representation is declared as a derived struct of Byte_buffer_entity rather
+The representation is declared as a derived struct of Byte_buffer_entry rather
 than simply an alias of the instantiation to improve the debugger experience.
 */
 struct an_ifc_type_qualified :
-                            Byte_buffer_entity<an_ifc_type_qualified_storage> {
+                             Byte_buffer_entry<an_ifc_type_qualified_storage> {
   using storage_type = an_ifc_type_qualified_storage;
-  using base_type = Byte_buffer_entity<storage_type>;
-  using base_type::Byte_buffer_entity;
+  using base_type = Byte_buffer_entry<storage_type>;
+  using base_type::Byte_buffer_entry;
 };  /* an_ifc_type_qualified */
 
 
@@ -20708,14 +20693,14 @@ using an_ifc_type_rvalue_reference_bytes =
 /*
 The universal representation of an IFC TypeRvalueReference node.
 
-The representation is declared as a derived struct of Byte_buffer_entity rather
+The representation is declared as a derived struct of Byte_buffer_entry rather
 than simply an alias of the instantiation to improve the debugger experience.
 */
 struct an_ifc_type_rvalue_reference :
-                     Byte_buffer_entity<an_ifc_type_rvalue_reference_storage> {
+                      Byte_buffer_entry<an_ifc_type_rvalue_reference_storage> {
   using storage_type = an_ifc_type_rvalue_reference_storage;
-  using base_type = Byte_buffer_entity<storage_type>;
-  using base_type::Byte_buffer_entity;
+  using base_type = Byte_buffer_entry<storage_type>;
+  using base_type::Byte_buffer_entry;
 };  /* an_ifc_type_rvalue_reference */
 
 
@@ -20746,14 +20731,14 @@ using an_ifc_type_syntactic_bytes = an_ifc_type_syntactic_storage;
 /*
 The universal representation of an IFC TypeSyntactic node.
 
-The representation is declared as a derived struct of Byte_buffer_entity rather
+The representation is declared as a derived struct of Byte_buffer_entry rather
 than simply an alias of the instantiation to improve the debugger experience.
 */
 struct an_ifc_type_syntactic :
-                            Byte_buffer_entity<an_ifc_type_syntactic_storage> {
+                             Byte_buffer_entry<an_ifc_type_syntactic_storage> {
   using storage_type = an_ifc_type_syntactic_storage;
-  using base_type = Byte_buffer_entity<storage_type>;
-  using base_type::Byte_buffer_entity;
+  using base_type = Byte_buffer_entry<storage_type>;
+  using base_type::Byte_buffer_entry;
 };  /* an_ifc_type_syntactic */
 
 
@@ -20776,14 +20761,14 @@ using an_ifc_type_syntax_tree_bytes = an_ifc_type_syntax_tree_storage;
 /*
 The universal representation of an IFC TypeSyntaxTree node.
 
-The representation is declared as a derived struct of Byte_buffer_entity rather
+The representation is declared as a derived struct of Byte_buffer_entry rather
 than simply an alias of the instantiation to improve the debugger experience.
 */
 struct an_ifc_type_syntax_tree :
-                          Byte_buffer_entity<an_ifc_type_syntax_tree_storage> {
+                           Byte_buffer_entry<an_ifc_type_syntax_tree_storage> {
   using storage_type = an_ifc_type_syntax_tree_storage;
-  using base_type = Byte_buffer_entity<storage_type>;
-  using base_type::Byte_buffer_entity;
+  using base_type = Byte_buffer_entry<storage_type>;
+  using base_type::Byte_buffer_entry;
 };  /* an_ifc_type_syntax_tree */
 
 
@@ -20809,13 +20794,13 @@ using an_ifc_type_tor_bytes = an_ifc_type_tor_storage;
 /*
 The universal representation of an IFC TypeTor node.
 
-The representation is declared as a derived struct of Byte_buffer_entity rather
+The representation is declared as a derived struct of Byte_buffer_entry rather
 than simply an alias of the instantiation to improve the debugger experience.
 */
-struct an_ifc_type_tor : Byte_buffer_entity<an_ifc_type_tor_storage> {
+struct an_ifc_type_tor : Byte_buffer_entry<an_ifc_type_tor_storage> {
   using storage_type = an_ifc_type_tor_storage;
-  using base_type = Byte_buffer_entity<storage_type>;
-  using base_type::Byte_buffer_entity;
+  using base_type = Byte_buffer_entry<storage_type>;
+  using base_type::Byte_buffer_entry;
 };  /* an_ifc_type_tor */
 
 
@@ -20839,13 +20824,13 @@ using an_ifc_type_tuple_bytes = an_ifc_type_tuple_storage;
 /*
 The universal representation of an IFC TypeTuple node.
 
-The representation is declared as a derived struct of Byte_buffer_entity rather
+The representation is declared as a derived struct of Byte_buffer_entry rather
 than simply an alias of the instantiation to improve the debugger experience.
 */
-struct an_ifc_type_tuple : Byte_buffer_entity<an_ifc_type_tuple_storage> {
+struct an_ifc_type_tuple : Byte_buffer_entry<an_ifc_type_tuple_storage> {
   using storage_type = an_ifc_type_tuple_storage;
-  using base_type = Byte_buffer_entity<storage_type>;
-  using base_type::Byte_buffer_entity;
+  using base_type = Byte_buffer_entry<storage_type>;
+  using base_type::Byte_buffer_entry;
 };  /* an_ifc_type_tuple */
 
 
@@ -20876,14 +20861,13 @@ using an_ifc_type_typename_bytes = an_ifc_type_typename_storage;
 /*
 The universal representation of an IFC TypeTypename node.
 
-The representation is declared as a derived struct of Byte_buffer_entity rather
+The representation is declared as a derived struct of Byte_buffer_entry rather
 than simply an alias of the instantiation to improve the debugger experience.
 */
-struct an_ifc_type_typename :
-                             Byte_buffer_entity<an_ifc_type_typename_storage> {
+struct an_ifc_type_typename : Byte_buffer_entry<an_ifc_type_typename_storage> {
   using storage_type = an_ifc_type_typename_storage;
-  using base_type = Byte_buffer_entity<storage_type>;
-  using base_type::Byte_buffer_entity;
+  using base_type = Byte_buffer_entry<storage_type>;
+  using base_type::Byte_buffer_entry;
 };  /* an_ifc_type_typename */
 
 
@@ -20906,14 +20890,14 @@ using an_ifc_type_unaligned_bytes = an_ifc_type_unaligned_storage;
 /*
 The universal representation of an IFC TypeUnaligned node.
 
-The representation is declared as a derived struct of Byte_buffer_entity rather
+The representation is declared as a derived struct of Byte_buffer_entry rather
 than simply an alias of the instantiation to improve the debugger experience.
 */
 struct an_ifc_type_unaligned :
-                            Byte_buffer_entity<an_ifc_type_unaligned_storage> {
+                             Byte_buffer_entry<an_ifc_type_unaligned_storage> {
   using storage_type = an_ifc_type_unaligned_storage;
-  using base_type = Byte_buffer_entity<storage_type>;
-  using base_type::Byte_buffer_entity;
+  using base_type = Byte_buffer_entry<storage_type>;
+  using base_type::Byte_buffer_entry;
 };  /* an_ifc_type_unaligned */
 
 
@@ -20923,13 +20907,13 @@ enum an_ifc_edg_constant_integer_word_offset_0_43 : uint32_t {};
 /*
 The universal representation for an IFC EdgConstantIntegerWordOffset.
 */
-struct an_ifc_edg_constant_integer_word_offset : Offset_entity<
+struct an_ifc_edg_constant_integer_word_offset : Offset_entry<
                                   an_ifc_edg_constant_integer_word, uint32_t> {
   using node_type = an_ifc_edg_constant_integer_word;
 
   using native_size_type = uint32_t;
-  using base_type = Offset_entity<node_type, native_size_type>;
-  using base_type::Offset_entity;
+  using base_type = Offset_entry<node_type, native_size_type>;
+  using base_type::Offset_entry;
 };  /* an_ifc_edg_constant_integer_word_offset */
 
 
@@ -20970,13 +20954,13 @@ enum an_ifc_edg_extension_type_offset_0_43 : uint32_t {};
 /*
 The universal representation for an IFC EdgExtensionTypeOffset.
 */
-struct an_ifc_edg_extension_type_offset : Offset_entity<
+struct an_ifc_edg_extension_type_offset : Offset_entry<
                                          an_ifc_edg_extension_type, uint32_t> {
   using node_type = an_ifc_edg_extension_type;
 
   using native_size_type = uint32_t;
-  using base_type = Offset_entity<node_type, native_size_type>;
-  using base_type::Offset_entity;
+  using base_type = Offset_entry<node_type, native_size_type>;
+  using base_type::Offset_entry;
 };  /* an_ifc_edg_extension_type_offset */
 
 
@@ -21017,13 +21001,13 @@ enum an_ifc_edg_heap_complex_token_offset_0_43 : uint32_t {};
 /*
 The universal representation for an IFC EdgHeapComplexTokenOffset.
 */
-struct an_ifc_edg_heap_complex_token_offset : Offset_entity<
+struct an_ifc_edg_heap_complex_token_offset : Offset_entry<
                                      an_ifc_edg_heap_complex_token, uint32_t> {
   using node_type = an_ifc_edg_heap_complex_token;
 
   using native_size_type = uint32_t;
-  using base_type = Offset_entity<node_type, native_size_type>;
-  using base_type::Offset_entity;
+  using base_type = Offset_entry<node_type, native_size_type>;
+  using base_type::Offset_entry;
 };  /* an_ifc_edg_heap_complex_token_offset */
 
 
@@ -21064,13 +21048,13 @@ enum an_ifc_edg_heap_template_argument_offset_0_43 : uint32_t {};
 /*
 The universal representation for an IFC EdgHeapTemplateArgumentOffset.
 */
-struct an_ifc_edg_heap_template_argument_offset : Offset_entity<
+struct an_ifc_edg_heap_template_argument_offset : Offset_entry<
                                  an_ifc_edg_heap_template_argument, uint32_t> {
   using node_type = an_ifc_edg_heap_template_argument;
 
   using native_size_type = uint32_t;
-  using base_type = Offset_entity<node_type, native_size_type>;
-  using base_type::Offset_entity;
+  using base_type = Offset_entry<node_type, native_size_type>;
+  using base_type::Offset_entry;
 };  /* an_ifc_edg_heap_template_argument_offset */
 
 
@@ -21113,13 +21097,13 @@ enum an_ifc_edg_token_basic_offset_0_43 : uint32_t {};
 /*
 The universal representation for an IFC EdgTokenBasicOffset.
 */
-struct an_ifc_edg_token_basic_offset : Offset_entity<
+struct an_ifc_edg_token_basic_offset : Offset_entry<
                                             an_ifc_edg_token_basic, uint32_t> {
   using node_type = an_ifc_edg_token_basic;
 
   using native_size_type = uint32_t;
-  using base_type = Offset_entity<node_type, native_size_type>;
-  using base_type::Offset_entity;
+  using base_type = Offset_entry<node_type, native_size_type>;
+  using base_type::Offset_entry;
 };  /* an_ifc_edg_token_basic_offset */
 
 
@@ -21160,13 +21144,13 @@ enum an_ifc_edg_token_cache_offset_0_43 : uint32_t {};
 /*
 The universal representation for an IFC EdgTokenCacheOffset.
 */
-struct an_ifc_edg_token_cache_offset : Offset_entity<
+struct an_ifc_edg_token_cache_offset : Offset_entry<
                                             an_ifc_edg_token_cache, uint32_t> {
   using node_type = an_ifc_edg_token_cache;
 
   using native_size_type = uint32_t;
-  using base_type = Offset_entity<node_type, native_size_type>;
-  using base_type::Offset_entity;
+  using base_type = Offset_entry<node_type, native_size_type>;
+  using base_type::Offset_entry;
 };  /* an_ifc_edg_token_cache_offset */
 
 
@@ -21207,13 +21191,13 @@ enum an_ifc_expr_named_decl_offset_0_43 : uint32_t {};
 /*
 The universal representation for an IFC ExprNamedDeclOffset.
 */
-struct an_ifc_expr_named_decl_offset : Offset_entity<
+struct an_ifc_expr_named_decl_offset : Offset_entry<
                                             an_ifc_expr_named_decl, uint32_t> {
   using node_type = an_ifc_expr_named_decl;
 
   using native_size_type = uint32_t;
-  using base_type = Offset_entity<node_type, native_size_type>;
-  using base_type::Offset_entity;
+  using base_type = Offset_entry<node_type, native_size_type>;
+  using base_type::Offset_entry;
 };  /* an_ifc_expr_named_decl_offset */
 
 
@@ -21254,12 +21238,12 @@ enum an_ifc_form_spec_offset_0_33 : uint32_t {};
 /*
 The universal representation for an IFC FormSpecOffset.
 */
-struct an_ifc_form_spec_offset : Offset_entity<an_ifc_form_spec, uint32_t> {
+struct an_ifc_form_spec_offset : Offset_entry<an_ifc_form_spec, uint32_t> {
   using node_type = an_ifc_form_spec;
 
   using native_size_type = uint32_t;
-  using base_type = Offset_entity<node_type, native_size_type>;
-  using base_type::Offset_entity;
+  using base_type = Offset_entry<node_type, native_size_type>;
+  using base_type::Offset_entry;
 };  /* an_ifc_form_spec_offset */
 
 
@@ -21300,12 +21284,12 @@ enum an_ifc_line_offset_0_33 : uint32_t {};
 /*
 The universal representation for an IFC LineOffset.
 */
-struct an_ifc_line_offset : Offset_entity<an_ifc_source_line, uint32_t> {
+struct an_ifc_line_offset : Offset_entry<an_ifc_source_line, uint32_t> {
   using node_type = an_ifc_source_line;
 
   using native_size_type = uint32_t;
-  using base_type = Offset_entity<node_type, native_size_type>;
-  using base_type::Offset_entity;
+  using base_type = Offset_entry<node_type, native_size_type>;
+  using base_type::Offset_entry;
 };  /* an_ifc_line_offset */
 
 
@@ -21346,12 +21330,12 @@ enum an_ifc_scope_offset_0_33 : uint32_t {};
 /*
 The universal representation for an IFC ScopeOffset.
 */
-struct an_ifc_scope_offset : Offset_entity<an_ifc_scope_descriptor, uint32_t> {
+struct an_ifc_scope_offset : Offset_entry<an_ifc_scope_descriptor, uint32_t> {
   using node_type = an_ifc_scope_descriptor;
 
   using native_size_type = uint32_t;
-  using base_type = Offset_entity<node_type, native_size_type>;
-  using base_type::Offset_entity;
+  using base_type = Offset_entry<node_type, native_size_type>;
+  using base_type::Offset_entry;
 };  /* an_ifc_scope_offset */
 
 

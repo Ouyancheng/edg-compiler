@@ -11455,6 +11455,175 @@ representation of the field "getter".
 
 
 template<>
+a_boolean has_ifc_home_scope(const an_ifc_decl_property &universal)
+/*
+Return TRUE if the given universal representation has the field "home_scope";
+otherwise, return FALSE.
+*/
+{
+  an_ifc_module_file *file = universal.get_file();
+  a_boolean          result = FALSE;
+
+  if (is_at_least(file, 0, 33)) {
+    result = TRUE;
+  }  /* if */
+  return result;
+}  /* has_ifc_home_scope */
+
+
+template<>
+an_ifc_decl_index get_ifc_home_scope(const an_ifc_decl_property &universal)
+/*
+Given the universal representation of DeclProperty, return the universal
+representation of the field "home_scope".
+*/
+{
+  an_ifc_decl_index result;
+
+  /* Ensure the home_scope field exists in the current module version. */
+  check_assertion(has_ifc_home_scope(universal));
+  if (is_at_least(universal.get_file(), 0, 43)) {
+    an_ifc_decl_index_0_43 stage_0;
+    an_ifc_decl_index      stage_1;
+    an_ifc_decl_field      stage_2;
+    an_ifc_decl_index_0_43 stage_3;
+    an_ifc_decl_index      stage_4;
+    a_boolean              stage_5;
+    an_ifc_decl_index      stage_6;
+
+    /* Copy the field (DeclProperty::member - DeclIndex) into version-specific
+       storage. */
+    static_assert(sizeof(stage_0) == 4,
+                  "stage_0 is not properly sized storage!");
+    copy_from_node_field(&stage_0, universal.get_storage(), /*offset=*/0);
+    stage_1 = to_universal_index(universal.get_file(), stage_0);
+    /* Use the obtained index to retrieve the appropriate instance of DeclField
+       (the type tag should have been prechecked by validation).  Then,
+       retrieve and return the desired value held by the field home_scope. */
+    construct_node_unchecked(&stage_2, stage_1);
+    /* Copy the field (DeclField::home_scope - DeclIndex) into version-specific
+       storage. */
+    static_assert(sizeof(stage_3) == 4,
+                  "stage_3 is not properly sized storage!");
+    copy_from_node_field(&stage_3, stage_2.get_storage(), /*offset=*/16);
+    stage_4 = to_universal_index(stage_2.get_file(), stage_3);
+    if (stage_4.sort == ifc_ds_decl_specialization) {
+      stage_5 = TRUE;
+    } else {
+      stage_5 = FALSE;
+    }  /* if */
+    if (stage_5) {
+      an_ifc_decl_index          stage_6_0;
+      an_ifc_decl_specialization stage_6_1;
+      an_ifc_decl_index_0_43     stage_6_2;
+      an_ifc_decl_index          stage_6_3;
+
+      stage_6_0 = stage_4;
+      /* Use the obtained index to retrieve the appropriate instance of
+         DeclSpecialization (the type tag should have been prechecked by
+         validation).  Then, retrieve and return the desired value held by the
+         field decl. */
+      construct_node_unchecked(&stage_6_1, stage_6_0);
+      /* Copy the field (DeclSpecialization::decl - DeclIndex) into
+         version-specific storage. */
+      static_assert(sizeof(stage_6_2) == 4,
+                    "stage_6_2 is not properly sized storage!");
+      copy_from_node_field(&stage_6_2, stage_6_1.get_storage(), /*offset=*/4);
+      stage_6_3 = to_universal_index(stage_6_1.get_file(), stage_6_2);
+      stage_6 = stage_6_3;
+    } else {
+      an_ifc_decl_index stage_6_0;
+
+      stage_6_0 = stage_4;
+      stage_6 = stage_6_0;
+    }  /* if */
+    result = stage_6;
+  } else if (is_at_least(universal.get_file(), 0, 41)) {
+    an_ifc_decl_index_0_41 stage_0;
+    an_ifc_decl_index      stage_1;
+    an_ifc_decl_field      stage_2;
+    an_ifc_decl_index_0_41 stage_3;
+    an_ifc_decl_index      stage_4;
+    a_boolean              stage_5;
+    an_ifc_decl_index      stage_6;
+
+    /* Copy the field (DeclProperty::member - DeclIndex) into version-specific
+       storage. */
+    static_assert(sizeof(stage_0) == 4,
+                  "stage_0 is not properly sized storage!");
+    copy_from_node_field(&stage_0, universal.get_storage(), /*offset=*/0);
+    stage_1 = to_universal_index(universal.get_file(), stage_0);
+    /* Use the obtained index to retrieve the appropriate instance of DeclField
+       (the type tag should have been prechecked by validation).  Then,
+       retrieve and return the desired value held by the field home_scope. */
+    construct_node_unchecked(&stage_2, stage_1);
+    /* Copy the field (DeclField::home_scope - DeclIndex) into version-specific
+       storage. */
+    static_assert(sizeof(stage_3) == 4,
+                  "stage_3 is not properly sized storage!");
+    copy_from_node_field(&stage_3, stage_2.get_storage(), /*offset=*/16);
+    stage_4 = to_universal_index(stage_2.get_file(), stage_3);
+    if (stage_4.sort == ifc_ds_decl_specialization) {
+      stage_5 = TRUE;
+    } else {
+      stage_5 = FALSE;
+    }  /* if */
+    if (stage_5) {
+      an_ifc_decl_index          stage_6_0;
+      an_ifc_decl_specialization stage_6_1;
+      an_ifc_decl_index_0_41     stage_6_2;
+      an_ifc_decl_index          stage_6_3;
+
+      stage_6_0 = stage_4;
+      /* Use the obtained index to retrieve the appropriate instance of
+         DeclSpecialization (the type tag should have been prechecked by
+         validation).  Then, retrieve and return the desired value held by the
+         field decl. */
+      construct_node_unchecked(&stage_6_1, stage_6_0);
+      /* Copy the field (DeclSpecialization::decl - DeclIndex) into
+         version-specific storage. */
+      static_assert(sizeof(stage_6_2) == 4,
+                    "stage_6_2 is not properly sized storage!");
+      copy_from_node_field(&stage_6_2, stage_6_1.get_storage(), /*offset=*/4);
+      stage_6_3 = to_universal_index(stage_6_1.get_file(), stage_6_2);
+      stage_6 = stage_6_3;
+    } else {
+      an_ifc_decl_index stage_6_0;
+
+      stage_6_0 = stage_4;
+      stage_6 = stage_6_0;
+    }  /* if */
+    result = stage_6;
+  } else {
+    an_ifc_decl_index_0_33 stage_0;
+    an_ifc_decl_index      stage_1;
+    an_ifc_decl_field      stage_2;
+    an_ifc_decl_index_0_33 stage_3;
+    an_ifc_decl_index      stage_4;
+
+    /* Copy the field (DeclProperty::member - DeclIndex) into version-specific
+       storage. */
+    static_assert(sizeof(stage_0) == 4,
+                  "stage_0 is not properly sized storage!");
+    copy_from_node_field(&stage_0, universal.get_storage(), /*offset=*/0);
+    stage_1 = to_universal_index(universal.get_file(), stage_0);
+    /* Use the obtained index to retrieve the appropriate instance of DeclField
+       (the type tag should have been prechecked by validation).  Then,
+       retrieve and return the desired value held by the field home_scope. */
+    construct_node_unchecked(&stage_2, stage_1);
+    /* Copy the field (DeclField::home_scope - DeclIndex) into version-specific
+       storage. */
+    static_assert(sizeof(stage_3) == 4,
+                  "stage_3 is not properly sized storage!");
+    copy_from_node_field(&stage_3, stage_2.get_storage(), /*offset=*/16);
+    stage_4 = to_universal_index(stage_2.get_file(), stage_3);
+    result = stage_4;
+  }  /* if */
+  return result;
+}  /* get_ifc_home_scope */
+
+
+template<>
 a_boolean has_ifc_member(const an_ifc_decl_property &universal)
 /*
 Return TRUE if the given universal representation has the field "member";

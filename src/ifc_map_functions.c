@@ -51391,6 +51391,11 @@ return FALSE.
         result = TRUE;
       }  /* if */
       break;
+    case ifc_ds_decl_property:
+      if (is_at_least(file, 0, 33)) {
+        result = TRUE;
+      }  /* if */
+      break;
     case ifc_ds_decl_scope:
       if (is_at_least(file, 0, 33)) {
         result = TRUE;
@@ -51546,6 +51551,13 @@ node's "home_scope" field value.
       break;
     case ifc_ds_decl_partial_specialization:
       { an_ifc_decl_partial_specialization universal;
+
+        construct_node_prechecked(&universal, idx);
+        result = get_ifc_home_scope(universal);
+      }
+      break;
+    case ifc_ds_decl_property:
+      { an_ifc_decl_property universal;
 
         construct_node_prechecked(&universal, idx);
         result = get_ifc_home_scope(universal);

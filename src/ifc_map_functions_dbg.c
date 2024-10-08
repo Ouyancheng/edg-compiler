@@ -4396,6 +4396,21 @@ representation with the given indent.
     db_print_indent(indent);
     fprintf(f_debug, "getter: %llu\n", (unsigned long long)field.value);
   }  /* if */
+  if (has_ifc_home_scope(universal)) {
+    an_ifc_decl_index field = get_ifc_home_scope(universal);
+
+    db_print_indent(indent);
+    fprintf(f_debug, "home_scope:");
+    if (is_null_index(field)) {
+      fprintf(f_debug, " NULL\n");
+    } else {
+      fprintf(f_debug, "\n");
+      db_print_indent(indent);
+      fprintf(f_debug, "  sort: %s\n", str_for(field.sort));
+      db_print_indent(indent);
+      fprintf(f_debug, "  value: %llu\n", (unsigned long long)field.value);
+    }  /* if */
+  }  /* if */
   if (has_ifc_member(universal)) {
     an_ifc_decl_index field = get_ifc_member(universal);
 

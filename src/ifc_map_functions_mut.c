@@ -5503,6 +5503,20 @@ field "getter" to the given TextOffset value.
 
 
 template<>
+void set_ifc_home_scope(an_ifc_decl_property    *universal,
+                        const an_ifc_decl_index &value)
+/*
+Given the universal representation of DeclProperty update the value of the
+field "home_scope" to the given DeclIndex value.
+*/
+{
+  /* Ensure the home_scope field exists in the current module version. */
+  check_assertion(has_ifc_home_scope(*universal));
+  unexpected_condition_str("Tacit fields are not yet supported for writing.");
+}  /* set_ifc_home_scope */
+
+
+template<>
 void set_ifc_member(an_ifc_decl_property    *universal,
                     const an_ifc_decl_index &value)
 /*

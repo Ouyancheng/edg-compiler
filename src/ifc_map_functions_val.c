@@ -10061,6 +10061,189 @@ representation is valid; otherwise, return FALSE.
 {
   a_boolean result = TRUE;
 
+  if (has_ifc_home_scope(universal)) {
+    if (is_at_least(universal.get_file(), 0, 43)) {
+      an_ifc_decl_index_0_43  stage_0;
+      an_ifc_validation_trace stage_0_trace = {"member", /*offset=*/0, parent};
+      an_ifc_decl_index       stage_1;
+      an_ifc_decl_field       stage_2;
+      an_ifc_decl_index_0_43  stage_3;
+      an_ifc_validation_trace stage_3_trace =
+                                 {"home_scope", /*offset=*/16, &stage_0_trace};
+      an_ifc_decl_index       stage_4;
+      a_boolean               stage_5;
+
+      /* Copy the field (DeclProperty::member - DeclIndex) into
+         version-specific storage. */
+      static_assert(sizeof(stage_0) == 4,
+                    "stage_0 is not properly sized storage!");
+      copy_from_node_field(&stage_0, universal.get_storage(), /*offset=*/0);
+      if (!validate_index(universal.get_file(), stage_0, &stage_0_trace)) {
+        result = FALSE;
+        goto done;
+      }  /* if */
+      stage_1 = to_universal_index(universal.get_file(), stage_0);
+      if (stage_1.sort != ifc_ds_decl_field) {
+        result = FALSE;
+        goto done;
+      }  /* if */
+      /* Use the obtained index to retrieve the appropriate instance of
+         DeclField.  Then, retrieve and return the desired value held by the
+         field home_scope. */
+      construct_node_unchecked(&stage_2, stage_1);
+      /* Copy the field (DeclField::home_scope - DeclIndex) into
+         version-specific storage. */
+      static_assert(sizeof(stage_3) == 4,
+                    "stage_3 is not properly sized storage!");
+      copy_from_node_field(&stage_3, stage_2.get_storage(), /*offset=*/16);
+      if (!validate_index(stage_2.get_file(), stage_3, &stage_3_trace)) {
+        result = FALSE;
+        goto done;
+      }  /* if */
+      stage_4 = to_universal_index(stage_2.get_file(), stage_3);
+      if (stage_4.sort == ifc_ds_decl_specialization) {
+        stage_5 = TRUE;
+      } else {
+        stage_5 = FALSE;
+      }  /* if */
+      if (stage_5) {
+        an_ifc_decl_index          stage_6_0;
+        an_ifc_decl_specialization stage_6_1;
+        an_ifc_decl_index_0_43     stage_6_2;
+        an_ifc_validation_trace    stage_6_2_trace =
+                                                {"decl", /*offset=*/4, parent};
+
+        stage_6_0 = stage_4;
+        if (stage_6_0.sort != ifc_ds_decl_specialization) {
+          result = FALSE;
+          goto done;
+        }  /* if */
+        /* Use the obtained index to retrieve the appropriate instance of
+           DeclSpecialization.  Then, retrieve and return the desired value
+           held by the field decl. */
+        construct_node_unchecked(&stage_6_1, stage_6_0);
+        /* Copy the field (DeclSpecialization::decl - DeclIndex) into
+           version-specific storage. */
+        static_assert(sizeof(stage_6_2) == 4,
+                      "stage_6_2 is not properly sized storage!");
+        copy_from_node_field(&stage_6_2, stage_6_1.get_storage(),
+                             /*offset=*/4);
+        if (!validate_index(stage_6_1.get_file(), stage_6_2,
+                            &stage_6_2_trace)) {
+          result = FALSE;
+          goto done;
+        }  /* if */
+      }  /* if */
+    } else if (is_at_least(universal.get_file(), 0, 41)) {
+      an_ifc_decl_index_0_41  stage_0;
+      an_ifc_validation_trace stage_0_trace = {"member", /*offset=*/0, parent};
+      an_ifc_decl_index       stage_1;
+      an_ifc_decl_field       stage_2;
+      an_ifc_decl_index_0_41  stage_3;
+      an_ifc_validation_trace stage_3_trace =
+                                 {"home_scope", /*offset=*/16, &stage_0_trace};
+      an_ifc_decl_index       stage_4;
+      a_boolean               stage_5;
+
+      /* Copy the field (DeclProperty::member - DeclIndex) into
+         version-specific storage. */
+      static_assert(sizeof(stage_0) == 4,
+                    "stage_0 is not properly sized storage!");
+      copy_from_node_field(&stage_0, universal.get_storage(), /*offset=*/0);
+      if (!validate_index(universal.get_file(), stage_0, &stage_0_trace)) {
+        result = FALSE;
+        goto done;
+      }  /* if */
+      stage_1 = to_universal_index(universal.get_file(), stage_0);
+      if (stage_1.sort != ifc_ds_decl_field) {
+        result = FALSE;
+        goto done;
+      }  /* if */
+      /* Use the obtained index to retrieve the appropriate instance of
+         DeclField.  Then, retrieve and return the desired value held by the
+         field home_scope. */
+      construct_node_unchecked(&stage_2, stage_1);
+      /* Copy the field (DeclField::home_scope - DeclIndex) into
+         version-specific storage. */
+      static_assert(sizeof(stage_3) == 4,
+                    "stage_3 is not properly sized storage!");
+      copy_from_node_field(&stage_3, stage_2.get_storage(), /*offset=*/16);
+      if (!validate_index(stage_2.get_file(), stage_3, &stage_3_trace)) {
+        result = FALSE;
+        goto done;
+      }  /* if */
+      stage_4 = to_universal_index(stage_2.get_file(), stage_3);
+      if (stage_4.sort == ifc_ds_decl_specialization) {
+        stage_5 = TRUE;
+      } else {
+        stage_5 = FALSE;
+      }  /* if */
+      if (stage_5) {
+        an_ifc_decl_index          stage_6_0;
+        an_ifc_decl_specialization stage_6_1;
+        an_ifc_decl_index_0_41     stage_6_2;
+        an_ifc_validation_trace    stage_6_2_trace =
+                                                {"decl", /*offset=*/4, parent};
+
+        stage_6_0 = stage_4;
+        if (stage_6_0.sort != ifc_ds_decl_specialization) {
+          result = FALSE;
+          goto done;
+        }  /* if */
+        /* Use the obtained index to retrieve the appropriate instance of
+           DeclSpecialization.  Then, retrieve and return the desired value
+           held by the field decl. */
+        construct_node_unchecked(&stage_6_1, stage_6_0);
+        /* Copy the field (DeclSpecialization::decl - DeclIndex) into
+           version-specific storage. */
+        static_assert(sizeof(stage_6_2) == 4,
+                      "stage_6_2 is not properly sized storage!");
+        copy_from_node_field(&stage_6_2, stage_6_1.get_storage(),
+                             /*offset=*/4);
+        if (!validate_index(stage_6_1.get_file(), stage_6_2,
+                            &stage_6_2_trace)) {
+          result = FALSE;
+          goto done;
+        }  /* if */
+      }  /* if */
+    } else {
+      an_ifc_decl_index_0_33  stage_0;
+      an_ifc_validation_trace stage_0_trace = {"member", /*offset=*/0, parent};
+      an_ifc_decl_index       stage_1;
+      an_ifc_decl_field       stage_2;
+      an_ifc_decl_index_0_33  stage_3;
+      an_ifc_validation_trace stage_3_trace =
+                                 {"home_scope", /*offset=*/16, &stage_0_trace};
+
+      /* Copy the field (DeclProperty::member - DeclIndex) into
+         version-specific storage. */
+      static_assert(sizeof(stage_0) == 4,
+                    "stage_0 is not properly sized storage!");
+      copy_from_node_field(&stage_0, universal.get_storage(), /*offset=*/0);
+      if (!validate_index(universal.get_file(), stage_0, &stage_0_trace)) {
+        result = FALSE;
+        goto done;
+      }  /* if */
+      stage_1 = to_universal_index(universal.get_file(), stage_0);
+      if (stage_1.sort != ifc_ds_decl_field) {
+        result = FALSE;
+        goto done;
+      }  /* if */
+      /* Use the obtained index to retrieve the appropriate instance of
+         DeclField.  Then, retrieve and return the desired value held by the
+         field home_scope. */
+      construct_node_unchecked(&stage_2, stage_1);
+      /* Copy the field (DeclField::home_scope - DeclIndex) into
+         version-specific storage. */
+      static_assert(sizeof(stage_3) == 4,
+                    "stage_3 is not properly sized storage!");
+      copy_from_node_field(&stage_3, stage_2.get_storage(), /*offset=*/16);
+      if (!validate_index(stage_2.get_file(), stage_3, &stage_3_trace)) {
+        result = FALSE;
+        goto done;
+      }  /* if */
+    }  /* if */
+  }  /* if */
   if (has_ifc_member(universal)) {
     if (is_at_least(universal.get_file(), 0, 43)) {
       an_ifc_decl_index_0_43  stage_0;

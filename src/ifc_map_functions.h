@@ -18038,6 +18038,12 @@ template<>
 an_ifc_text_offset get_ifc_getter(const an_ifc_decl_property &universal);
 
 template<>
+a_boolean has_ifc_home_scope(const an_ifc_decl_property &universal);
+
+template<>
+an_ifc_decl_index get_ifc_home_scope(const an_ifc_decl_property &universal);
+
+template<>
 a_boolean has_ifc_member(const an_ifc_decl_property &universal);
 
 template<>
@@ -18052,6 +18058,10 @@ an_ifc_text_offset get_ifc_setter(const an_ifc_decl_property &universal);
 template<>
 void set_ifc_getter(an_ifc_decl_property     *universal,
                     const an_ifc_text_offset &value);
+
+template<>
+void set_ifc_home_scope(an_ifc_decl_property    *universal,
+                        const an_ifc_decl_index &value);
 
 template<>
 void set_ifc_member(an_ifc_decl_property    *universal,
