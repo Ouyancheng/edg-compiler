@@ -5788,6 +5788,10 @@ parameter pack; otherwise, return FALSE.
 static a_boolean param_represents_type_templ_param_ref(
                                       const an_ifc_decl_parameter &param_decl);
 
+static void cache_expr(a_module_token_cache_ptr cache,
+                       an_ifc_expr_index        expr,
+                       const an_ifc_cache_info  &cinfo);
+
 
 static a_type_ptr alloc_detached_type_templ_param(
                                        const an_ifc_decl_parameter &param_decl)
@@ -5813,7 +5817,31 @@ parameters.
   a_template_param_list_pos            pnum = get_ifc_position(param_decl);
   extra_info->coordinates.depth = pdepth;
   extra_info->coordinates.position = pnum;
+
+  an_ifc_expr_index constraint = get_ifc_constraint(param_decl);
+  if (!is_null_index(constraint)) {
+    a_module_token_cache cache;
+
+    cache_expr(&cache, constraint, /*cinfo=*/{});
+    if (!cache.is_valid()) {
+      goto invalid;
+    }  /* if */
+
+    a_module_entity_rescan rescan(&cache);
+    a_symbol_ptr           concept_templ;
+    (void)determine_template_param_kind(&concept_templ);
+    if (concept_templ == NULL) {
+      goto invalid;
+    }  /* if */
+
+    an_expr_node_ptr il_constraint = scan_type_constraint(concept_templ);
+    extra_info->constraint.type_constraint = il_constraint;
+  }  /* if */
   set_type_size(result);
+  goto done;
+invalid:
+  result = NULL;
+done:
   return result;
 }  /* alloc_detached_type_templ_param */
 
@@ -6149,6 +6177,9 @@ is already loaded in the IL from, e.g., a global module fragment).
           /* Form the detached type backing the template parameter type
              symbol, and associate the two. */
           a_type_ptr result_ty = alloc_detached_type_templ_param(param_decl);
+          if (result_ty == NULL) {
+            goto invalid;
+          }  /* if */
           if (decl_is_named) {
             set_source_corresp(&result_ty->source_corresp, result);
           } else {
@@ -6511,6 +6542,7 @@ Module_isolation_scope<an_ifc_decl_specialization>::Module_isolation_scope(
 Create a new module isolation scope for the given explicit template
 specialization or instantiation.
 */
+  : a_module_isolation_scope()
 {
   /* FIXME: This code exists for two reasons:
 
@@ -6521,11 +6553,6 @@ specialization or instantiation.
      We should reconsider this design to generalize the safety precaution, and
      see if it's reasonable to avoid what's in effect an "opt-out"
      specialization from being necessary. */
-  /* As a specialization isn't truly parameterized, push a module isolation
-     scope to prevent resolution of any accidentally created template
-     parameters. */
-  (void)push_scope(sck_module_isolated, NO_SCOPE_NUMBER,
-                   /*assoc_type=*/NULL, /*assoc_routine=*/NULL);
 }  /* Module_isolation_scope::Module_isolation_scope */
 
 
@@ -6535,8 +6562,6 @@ Module_isolation_scope<an_ifc_decl_specialization>::~Module_isolation_scope()
 Tear down the constructed scope.
 */
 {
-  /* Pop the sck_module_isolated scope. */
-  pop_scope();
 }  /* Module_isolation_scope::~Module_isolation_scope */
 
 }  /* namespace */
@@ -6808,11 +6833,6 @@ invalid:
 already_mapped:
   return result;
 }  /* symbol_for_decl_index */
-
-
-static void cache_expr(a_module_token_cache_ptr cache,
-                       an_ifc_expr_index        expr,
-                       const an_ifc_cache_info  &cinfo);
 
 
 static a_boolean is_template_reference_type_buggy_parent(

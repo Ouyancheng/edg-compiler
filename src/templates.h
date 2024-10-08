@@ -607,6 +607,8 @@ extern a_symbol_ptr create_template_param_symbol(a_symbol_kind    kind,
                                                  a_boolean        is_unnamed,
                                                  a_boolean        is_rescan);
 
+extern a_symbol_kind determine_template_param_kind(a_symbol_ptr  *p_concept);
+
 extern a_template_param_ptr decl_type_template_param(
                                     a_template_param_list_pos param_pos,
                                     a_symbol_locator          *loc,

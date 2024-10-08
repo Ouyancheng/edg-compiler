@@ -26507,7 +26507,7 @@ the components of the declaration.
 }  /* scan_a_template_parameter_declaration */
 
 
-static a_symbol_kind determine_template_param_kind(a_symbol_ptr  *p_concept)
+a_symbol_kind determine_template_param_kind(a_symbol_ptr  *p_concept)
 /*
 Determine the kind of template parameter that is being scanned.  Return the
 symbol kind for the parameter symbol to be created for this parameter.  If
@@ -26597,10 +26597,12 @@ the associated concept; otherwise, set it to NULL.
 done:
   /* Get the tokens that were fetched by this routine from the cache
      that has been accumulated and rescan them. */
-  copy_tokens_from_cache(curr_lexical_state_cache(), first_tsn,
-                         curr_token_sequence_number,
-                         /*include_last_token=*/FALSE, &cache);
-  rescan_cached_tokens(&cache);
+  if (curr_token_sequence_number != first_tsn) {
+    copy_tokens_from_cache(curr_lexical_state_cache(), first_tsn,
+                           curr_token_sequence_number,
+                           /*include_last_token=*/FALSE, &cache);
+    rescan_cached_tokens(&cache);
+  }  /* if */
   *p_concept = concept_templ;
   return result;
 }  /* determine_template_param_kind */
