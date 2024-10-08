@@ -44,23 +44,23 @@ the duration of this file.
 /*lint -save -e534 -e641 -e1576 -e1502*/
 /*lint -save -e1714*/ /* FIXME: temporarily disable "not referenced" */
 
-static a_boolean is_edg_authored(const an_ifc_module_entity &entity)
+static a_boolean is_edg_authored(const an_ifc_module_entry &entry)
 /*
-Return TRUE if the given IFC entity is from an EDG-authored IFC; otherwise,
+Return TRUE if the given IFC entry is from an EDG-authored IFC; otherwise,
 return FALSE.
 */
 {
-  return entity.file->module_kind == mfk_edg_ifc;
+  return entry.file->module_kind == mfk_edg_ifc;
 }  /* is_edg_authored */
 
 
-static a_boolean is_msvc_authored(const an_ifc_module_entity &entity)
+static a_boolean is_msvc_authored(const an_ifc_module_entry &entry)
 /*
-Return TRUE if the given IFC entity is from an MSVC-authored IFC; otherwise,
+Return TRUE if the given IFC entry is from an MSVC-authored IFC; otherwise,
 return FALSE.
 */
 {
-  return entity.file->module_kind == mfk_ms_ifc;
+  return entry.file->module_kind == mfk_ms_ifc;
 }  /* is_msvc_authored */
 
 

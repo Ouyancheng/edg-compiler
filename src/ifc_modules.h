@@ -689,15 +689,15 @@ extern void init_byte_buffer(an_ifc_module_file *file,
 An index type representing an index to a partition element for an associated
 module and partition kind.
 */
-struct an_ifc_partition_kind_index : public an_ifc_module_entity {
+struct an_ifc_partition_kind_index : public an_ifc_module_entry {
   an_ifc_partition_kind_index()
-    : an_ifc_module_entity(NULL), partition_kind(ifc_pk_none),
+    : an_ifc_module_entry(NULL), partition_kind(ifc_pk_none),
       value(0)
     {}
   an_ifc_partition_kind_index(an_ifc_module_file    *file_val,
                               an_ifc_partition_kind partition_kind_val,
                               an_ifc_index_type     value_val)
-    : an_ifc_module_entity(file_val), partition_kind(partition_kind_val),
+    : an_ifc_module_entry(file_val), partition_kind(partition_kind_val),
       value(value_val)
     {}
 
@@ -747,12 +747,12 @@ a null index; otherwise, return FALSE.
 }  /* is_null_index */
 
 
-inline an_ifc_module *module_of(const an_ifc_module_entity &entity)
+inline an_ifc_module *module_of(const an_ifc_module_entry &entry)
 /*
-Given an IFC module entity, return the corresponding an_ifc_module instance.
+Given an IFC module entry, return the corresponding an_ifc_module instance.
 */
 {
-  an_ifc_module *mod = entity.file->get_read_state().mod;
+  an_ifc_module *mod = entry.file->get_read_state().mod;
 
   /* If this assertion fails, the caller is using an IFC file instance that
      does not have a corresponding module set on it.  This can happen when
