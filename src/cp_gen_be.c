@@ -5831,7 +5831,8 @@ becomes at least two.
 }  /* get_template_arg_nesting */
 
 
-static a_boolean need_gnu_typename_kwd(a_type_ptr tp)
+static a_boolean need_gnu_typename_kwd(a_type_ptr             tp,
+                                       a_gen_name_options_set options)
 /*
 Versions of g++ before 13.1.0 have a bug that causes it to issue spurious
 errors when a template definition uses a type with a qualifier that is a
@@ -5839,13 +5840,14 @@ non-dependent template instance in which a template argument contains a
 nested template argument, e.g., A<B<...>>::x.  The workaround for this bug
 is to prefix the qualified name of the type with the "typename" keyword
 (even though it is not dependent).  Return TRUE if the specified type is
-one that requires the workaround.
+one that requires the workaround in the context described by options.
 */
 {
   a_boolean result = FALSE;
 
   if (gcc_is_generated_code_target && gnu_target_version_number < 130000 &&
-      tp->source_corresp.is_class_member) {
+      tp->source_corresp.is_class_member &&
+      (options & GN_BASE_SPECIFIER) == 0) {
     a_boolean is_in_prototype_instantiation = FALSE;
     for (a_name_context_ptr p = curr_name_context;
          !is_in_prototype_instantiation && p != NULL &&
@@ -6235,7 +6237,7 @@ GN_PARENS_IF_GLOBAL_QUALIFIER is not set.
         if (entry_kind == iek_type && !(options & GN_DECLARATION) &&
             !(options & GN_QUALIFIER) &&
             ((options & GN_DEPENDENT) ||
-             need_gnu_typename_kwd(a_type_ptr(scp)))) {
+             need_gnu_typename_kwd(a_type_ptr(scp), options))) {
           /* Emit a "typename" keyword for a dependent type, but only at
              the beginning of a qualified name and not in a declaration
              context (since a class/struct/union keyword will already have
