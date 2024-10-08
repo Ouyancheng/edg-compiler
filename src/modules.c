@@ -768,7 +768,7 @@ a_module_entity::a_module_entity(a_module_ptr module_info_val)
 Construct a new module entity in the given module.
 */
   : module_info(module_info_val), scope(NULL), entity{iek_none, NULL},
-    locators(), primary_locator_idx(0), num_locators_processed(0),
+    locators(), primary_locator_idx(0),
     imminent(FALSE), def_imminent(FALSE), uses_bound_token(FALSE),
     invalid(FALSE), global_module(FALSE), non_exported(FALSE)
 {
@@ -1828,6 +1828,92 @@ definition now and return TRUE. If an error occurs, return FALSE.
 }  /* load_type_definition_from_module */
 
 
+void load_namespace_elements_from_locator(a_module_entity_ptr    mep,
+                                          a_module_entry_locator loc)
+/*
+Load the namespace elements specified by the given module entry locator.
+*/
+{
+  switch (loc.kind) {
+    case melk_none:
+      /* An unknown locator should never be passed to this function. */
+      unexpected_condition();
+    case melk_ifc:
+      load_namespace_elements_from_ifc_locator(mep, loc);
+      break;
+    default_is_unexpected();
+  }  /* switch */
+}  /* load_namespace_elements_from_locator */
+
+
+void mark_locator_as_primary(a_module_entity_ptr    mep,
+                             a_module_entry_locator loc)
+/*
+Mark the given locator as the primary locator for the given module entity.
+*/
+{
+  /* In most cases the locator being marked primary is the most recently
+     added locator so traverse in reverse. */
+  for (unsigned k = mep->locators.length(); k > 0; --k) {
+    unsigned               idx = k - 1;
+    a_module_entry_locator &idx_loc = mep->locators[idx];
+
+    if (idx_loc == loc) {
+      mep->primary_locator_idx = idx;
+      goto done;
+    }  /* if */
+  }  /* if */
+  /* If this condition is reached, the locator was not found in the module
+     entity's locators.  The locator should have been added by
+     update_entity_from_new_locator. */
+  unexpected_condition();
+done:;
+}  /* load_namespace_elements_from_locator */
+
+
+void update_entity_from_new_locator(a_module_entity_ptr    mep,
+                                    a_module_entry_locator new_loc)
+/*
+A new locator has been discovered for the given module entity.  Add the locator
+to the list of known locators and (if necessary) inform the corresponding
+module implementation about the new information.
+*/
+{
+  mep->locators.push_back(new_loc);
+#if DEBUG
+  if (db_flag_is_set("module_entity_locator") && mep->locators.length() > 1) {
+    a_string  dbg_msg("Entity identified by multiple locators: ");
+    a_boolean first = TRUE;
+
+    for (const a_module_entry_locator &loc : mep->locators) {
+      if (!first) {
+        dbg_msg.append(", ");
+      }  /* if */
+      first = FALSE;
+      dbg_msg.append(s_db_module_entry_locator(loc));
+    }  /* for */
+    print(dbg_msg, f_debug);
+  }  /* if */
+#endif /* DEBUG */
+  if (mep->entity.ptr != NULL) {
+    /* Notify the appropriate module implementation. */
+    switch (new_loc.kind) {
+      case melk_none:
+        /* An unknown locator should never be passed to this function. */
+        unexpected_condition();
+      case melk_ifc:
+        update_entity_from_new_ifc_locator(mep, new_loc);
+        break;
+      default_is_unexpected();
+    }  /* switch */
+    if (mep->entity.kind == iek_namespace) {
+      /* Load any new namespace elements. */
+      load_namespace_elements_from_locator(mep, new_loc);
+    }  /* if */
+  }  /* if */
+}  /* update_entity_from_new_locator */
+
+
 Opt<a_source_position> source_position_of(a_module_entity_ptr mep)
 /*
 Return the source position of the given module entity pointer if available;
@@ -1873,6 +1959,7 @@ a module token cache pointer.
 {
   db_tokens(cache->as_canonical());
 }  /* db_tokens */
+
 
 a_string s_db_module(a_module_ptr mod)
 /*
@@ -1934,6 +2021,36 @@ Display debug information about the specified module.
 {
   print(s_db_module(mod), f_debug);
 }  /* db_module */
+
+
+a_string s_db_module_entry_locator(a_module_entry_locator loc)
+/*
+Return a string containing a string representation of the given module entry
+locator.
+*/
+{
+  a_string result;
+
+  switch (loc.kind) {
+    case melk_none:
+      result = "NONE";
+      break;
+    case melk_ifc:
+      result = s_db_ifc_locator(loc);
+      break;
+    default_is_unexpected();
+  }  /* switch */
+  return result;
+}  /* s_db_module_entry_locator */
+
+
+void db_module_entry_locator(a_module_entry_locator loc)
+/*
+Display debug information about the specified module entry locator.
+*/
+{
+  print(s_db_module_entry_locator(loc), f_debug);
+}  /* db_module_entry_locator */
 
 
 a_string s_basic_db_mep(a_module_entity_ptr mep)

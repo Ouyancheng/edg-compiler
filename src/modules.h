@@ -38,10 +38,9 @@ struct a_module_entity {
                 locators;
                         /* The locations within BMIs where details about this
                            module entity can be recovered.  There is always at
-                           least one locator for a module entity.  Any new
-                           locators should be appended so that
-                           num_locators_processed can be used to retrieve the
-                           next locator to process. */
+                           least one locator for a module entity.  New locators
+                           should be added via
+                           update_entity_from_new_locator. */
   uint16_t      primary_locator_idx;
                         /* The index of the primary locator (i.e., the locator
                            with the most detailed information).  In most cases,
@@ -49,13 +48,7 @@ struct a_module_entity {
                            definition of the entity (if any).
 
                            FIXME: At the time of writing, this field is not
-                           currently accurate as the appropriate logic to
-                           determine the "most detailed" locator has not been
-                           implemented. */
-  uint16_t      num_locators_processed;
-                        /* The number of locators that have been processed.  At
-                           the time of writing, this field is unused outside of
-                           namespace processing. */
+                           currently accurate for most entities. */
   a_bit_field   imminent:1;
                         /* This flag is typically set to TRUE when processing
                            to form or find the associated IL entity starts.
@@ -682,6 +675,15 @@ extern a_boolean has_type_definition_from_module(a_type_ptr  ty);
 
 extern a_boolean load_type_definition_from_module(a_type_ptr ty);
 
+extern void load_namespace_elements_from_locator(a_module_entity_ptr    mep,
+                                                 a_module_entry_locator loc);
+
+extern void mark_locator_as_primary(a_module_entity_ptr    mep,
+                                    a_module_entry_locator loc);
+
+extern void update_entity_from_new_locator(a_module_entity_ptr    mep,
+                                           a_module_entry_locator new_loc);
+
 extern Opt<a_source_position> source_position_of(a_module_entity_ptr mep);
 
 /*
@@ -991,6 +993,10 @@ extern void db_tokens(a_module_token_cache_ptr cache);
 extern a_string s_db_module(a_module_ptr mod);
 
 extern void db_module(a_module_ptr mod);
+
+extern a_string s_db_module_entry_locator(a_module_entry_locator loc);
+
+extern void db_module_entry_locator(a_module_entry_locator loc);
 
 extern a_string s_basic_db_mep(a_module_entity_ptr mep);
 

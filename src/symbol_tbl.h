@@ -4351,6 +4351,52 @@ struct a_module_entry_locator {
   } variant;
 };  /* a_module_entry_locator */
 
+
+inline a_boolean operator==(a_module_entry_locator a,
+                            a_module_entry_locator b)
+/*
+Return TRUE if the given module entry locators are equal; otherwise, return
+FALSE.
+*/
+{
+  a_boolean result = TRUE;
+
+  if (a.kind != b.kind) {
+    result = FALSE;
+  } else {
+    switch (a.kind) {
+      case melk_none:
+        break;
+      case melk_ifc:
+        { auto &av = a.variant.ifc;
+          auto &bv = b.variant.ifc;
+
+          if (av.partition != bv.partition) {
+            result = FALSE;
+          } else if (av.offset != bv.offset) {
+            result = FALSE;
+          } else if (av.file != bv.file) {
+            result = FALSE;
+          }  /* if */
+        }  /* if */
+        break;
+      default_is_unexpected();
+    }
+  }  /* if */
+  return result;
+}  /* operator== */
+
+
+inline a_boolean operator!=(a_module_entry_locator a,
+                            a_module_entry_locator b)
+/*
+Return FALSE if the given module entry locators are equal; otherwise, return
+TRUE.
+*/
+{
+  return !(a == b);
+}  /* operator!= */
+
 /*
 A pairing of a scope and a module entry locator.
 */

@@ -835,6 +835,13 @@ extern a_boolean has_type_definition_from_ifc_module(a_type_ptr  ty);
 
 extern a_boolean load_type_definition_from_ifc_module(a_type_ptr  ty);
 
+extern void load_namespace_elements_from_ifc_locator(
+                                                   a_module_entity_ptr    mep,
+                                                   a_module_entry_locator loc);
+
+extern void update_entity_from_new_ifc_locator(a_module_entity_ptr    mep,
+                                               a_module_entry_locator new_loc);
+
 extern Opt<a_source_position> source_position_from_ifc_of(
                                                       a_module_entity_ptr mep);
 
@@ -951,7 +958,10 @@ extern void unknown_partition_conversion(
                                       const an_ifc_validation_trace *trace);
 
 #if DEBUG
+
 extern a_string s_db_version_of_ifc_module(a_module_ptr mod);
+
+extern a_string s_db_ifc_locator(a_module_entry_locator loc);
 
 extern a_string s_db_id_of_ifc_mep(a_module_entity_ptr mep);
 

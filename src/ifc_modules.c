@@ -1858,34 +1858,10 @@ get_ifc_module_entity_from_collapsed_index(an_ifc_decl_index index)
          either the construction of the hash key or the comparison of the key
          (i.e., its hashing or equality operator). */
       entity_lookup_cache->map_with_hash(index, result, index_hash);
-      /* Add the locator, it should not already be known. */
-      result->locators.push_back(module_entry_locator_from_index(index));
-#if DEBUG
-      if (db_flag_is_set("ifc_entity_collision") &&
-          result->locators.length() > 1) {
-        a_string  dbg_msg("Entity identified by multiple locators: ");
-        a_boolean first = TRUE;
-
-        for (const a_module_entry_locator &loc : result->locators) {
-          if (!first) {
-            dbg_msg.append(", ");
-          }  /* if */
-          first = FALSE;
-          if (loc.kind == melk_ifc) {
-            an_ifc_partition_kind part_kind = loc.variant.ifc.partition;
-
-            if (is_decl_sort(part_kind)) {
-              an_ifc_decl_index decl_idx = decl_index_of(loc);
-
-              dbg_msg.append(index_to_str(decl_idx));
-              continue;
-            }  /* if */
-          }  /* if */
-          dbg_msg.append("UNKNOWN LOCATOR");
-        }  /* for */
-        print(dbg_msg, f_debug);
-      }  /* if */
-#endif /* DEBUG */
+      /* Notify the general modules implementation that a new locator has
+         been discovered. */
+      update_entity_from_new_locator(result,
+                                     module_entry_locator_from_index(index));
     }  /* if */
   }  /* if */
   return result;
@@ -10881,6 +10857,7 @@ The IFC node associated with the given module entity pointer is required to
 have been validated by the caller.
 */
 {
+
   an_ifc_decl_index decl_idx = decl_index_of(mep);
 
   if (has_ifc_specifiers(decl_idx)) {
@@ -10891,6 +10868,31 @@ have been validated by the caller.
     }  /* if */
     if (test_bitmask<ifc_bsb_non_exported>(specifiers)) {
       mep->non_exported = TRUE;
+    }  /* if */
+  }  /* if */
+}  /* set_mep_origin_flags */
+
+
+static inline void update_mep_origin_flags(a_module_entity_ptr mep,
+                                           an_ifc_decl_index   decl_idx)
+/*
+Update the module entity's origin flags (namely, global_module and
+non_exported) using the information from the given newly discovered IFC
+declaration index.  The IFC node associated with the given module entity
+pointer is required to have been validated by the caller.
+*/
+{
+  if (has_ifc_specifiers(decl_idx)) {
+    an_ifc_basic_specifiers_bitfield specifiers = get_ifc_specifiers(decl_idx);
+
+    /* FIXME: There's A LOT more that needs to be done here to properly move
+       the associated symbols to the appropriate lookup tables.  This is only
+       good enough to fix the active symbol list. */
+    if (is_from_gmf(specifiers)) {
+      mep->global_module = TRUE;
+    }  /* if */
+    if (!test_bitmask<ifc_bsb_non_exported>(specifiers)) {
+      mep->non_exported = FALSE;
     }  /* if */
   }  /* if */
 }  /* set_mep_origin_flags */
@@ -12217,44 +12219,11 @@ strongly preferred over calling this function directly.
 
               /* Process declarations in the namespace scope (which makes their
                  symbols available but not their definitions). */
-              unsigned num_locators = mep->locators.length();
-              for (unsigned i = mep->num_locators_processed;
-                   i < num_locators; ++i) {
+              for (unsigned i = 0; i < mep->locators.length(); ++i) {
                 a_module_entry_locator &mel = mep->locators[i];
 
-                if (mel.kind != melk_ifc) {
-                  /* FIXME: Abstract this. */
-                  a_string err_msg("Unexpected non-IFC module entry locator");
-
-                  ifc_unexpected(module_of(decl_idx),
-                                 err_msg.as_temp_characters());
-                  continue;
-                }  /* if */
-
-                an_ifc_decl_index      assoc_decl_idx = decl_index_of(mel);
-                Opt<an_ifc_decl_scope> opt_assoc_scope_decl;
-                construct_node(&opt_assoc_scope_decl, assoc_decl_idx);
-                if (opt_assoc_scope_decl.has_value()) {
-                  an_ifc_decl_scope assoc_scope_decl = *opt_assoc_scope_decl;
-                  Opt<a_scope_kind> opt_assoc_scope_kind =
-                                              get_scope_kind(assoc_scope_decl);
-
-                  if (opt_scope_kind.has_value() &&
-                      *opt_scope_kind != scope_kind) {
-                    a_string err_msg("Unexpected scope kind divergence for ",
-                                     index_to_str(assoc_decl_idx));
-
-                    ifc_unexpected(module_of(assoc_scope_decl), err_msg);
-                    continue;
-                  }  /* if */
-
-                  an_ifc_scope_offset init =
-                                         get_ifc_initializer(assoc_scope_decl);
-                  load_ifc_namespace(init, nsp->variant.assoc_scope);
-                }  /* if */
+                load_namespace_elements_from_locator(mep, mel);
               }  /* for */
-              mep->num_locators_processed = num_locators;
-              mep->imminent = FALSE;
               pop_namespace_scope();
             }
             break;
@@ -13568,6 +13537,116 @@ definition.
 }  /* load_type_definition_from_ifc_module */
 
 
+void load_namespace_elements_from_ifc_locator(a_module_entity_ptr    mep,
+                                              a_module_entry_locator loc)
+/*
+Load the namespace elements specified by the given IFC module entry locator
+for the namespace represented by the given module entity.
+*/
+{
+  /* This function should only be called for namespace IL entities. */
+  check_assertion(mep->entity.kind == iek_namespace);
+  an_ifc_decl_index      assoc_decl_idx = decl_index_of(loc);
+  Opt<an_ifc_decl_scope> opt_assoc_scope_decl;
+
+  construct_node(&opt_assoc_scope_decl, assoc_decl_idx);
+
+  if (opt_assoc_scope_decl.has_value()) {
+    an_ifc_decl_scope   assoc_scope_decl = *opt_assoc_scope_decl;
+    an_ifc_scope_offset init = get_ifc_initializer(assoc_scope_decl);
+    a_namespace_ptr     nsp = (a_namespace_ptr)mep->entity.ptr;
+
+    load_ifc_namespace(init, nsp->variant.assoc_scope);
+  }  /* if */
+}  /* load_namespace_elements_from_ifc_locator */
+
+
+static void update_ifc_declaration(a_module_entity_ptr mep,
+                                   an_ifc_decl_index   decl_idx)
+/*
+A new IFC declaration index has been discovered for the given module entity.
+Perform any updates to the entity using the new information.
+*/
+{
+  if (!validate(decl_idx)) {
+    goto invalid;
+  }  /* if */
+  update_mep_origin_flags(mep, decl_idx);
+  switch (decl_idx.sort) {
+    case ifc_ds_decl_scope:
+      /* A DeclSort::Scope, which indicates a namespace or a
+         class/struct/union.  Note that although these declare "scopes", the IL
+         entity that is attached to them is either a namespace or a type. */
+      { an_ifc_decl_scope scope_decl;
+
+        construct_node_prechecked(&scope_decl, decl_idx);
+
+        Opt<a_scope_kind> opt_scope_kind = get_scope_kind(scope_decl);
+        if (!opt_scope_kind.has_value()) {
+          goto invalid;
+        }  /* if */
+
+        a_scope_kind scope_kind = *opt_scope_kind;
+        switch (scope_kind) {
+          case sck_namespace:
+            /* This case is handled in a module implementation independent way
+               in update_entity_from_new_locator. */
+            break;
+          case sck_class_struct_union:
+            { /* Allocate the appropriate class type, but leave it as
+                 incomplete.  The class will be completed during a call to
+                 get_definition_of_class if it is referenced. */
+              an_ifc_reachable_properties_bitfield
+                              properties = get_ifc_properties(scope_decl);
+              if (test_bitmask<ifc_rpb_initializer>(properties)) {
+                /* Record the presence of a definition and make this the
+                   primary locator. */
+                /* If this assertion fails, the module entity was not properly
+                   marked invalid. */
+                check_assertion(mep->entity.kind == iek_type);
+                a_type_ptr tag_type = (a_type_ptr)mep->entity.ptr;
+
+                ifc_tag_definitions->associate_entity(tag_type, decl_idx);
+                mark_locator_as_primary(
+                                    mep,
+                                    module_entry_locator_from_index(decl_idx));
+              }  /* if */
+            }
+            break;
+          default:
+            break;
+        }  /* switch */
+      }
+    default:
+      break;
+  }  /* switch */
+  goto done;
+invalid:
+  mep->invalid = TRUE;
+done:;
+}  /* update_ifc_declaration */
+
+
+void update_entity_from_new_ifc_locator(a_module_entity_ptr    mep,
+                                        a_module_entry_locator new_loc)
+/*
+A new IFC locator has been discovered for the given module entity.  Perform
+any updates to the entity using the new information.
+*/
+{
+  /* If this assertion fails, the wrong kind of locator was given to this
+     function (see update_entity_from_new_locator). */
+  check_assertion(new_loc.kind == melk_ifc);
+  an_ifc_partition_kind part_kind = new_loc.variant.ifc.partition;
+
+  if (is_decl_sort(part_kind)) {
+    an_ifc_decl_index decl_idx = decl_index_of(new_loc);
+
+    update_ifc_declaration(mep, decl_idx);
+  }  /* if */
+}  /* update_entity_from_new_ifc_locator */
+
+
 Opt<a_source_position> source_position_from_ifc_of(a_module_entity_ptr mep)
 /*
 Return the source position of the given module entity pointer if available;
@@ -13609,6 +13688,25 @@ version information.
   return a_string((uint32_t)get_ifc_major_version(header),
                   ".",
                   (uint32_t)get_ifc_minor_version(header));
+}  /* s_db_version_of_ifc_module */
+
+
+a_string s_db_ifc_locator(a_module_entry_locator loc)
+/*
+Given an IFC module entry locator, return a string representing the locator.
+*/
+{
+  a_string              result;
+  an_ifc_partition_kind part_kind = loc.variant.ifc.partition;
+
+  if (is_decl_sort(part_kind)) {
+    an_ifc_decl_index decl_idx = decl_index_of(loc);
+
+    result = index_to_str(decl_idx);
+  } else {
+    result = "UNKNOWN (IFC)";
+  }  /* if */
+  return result;
 }  /* s_db_version_of_ifc_module */
 
 
