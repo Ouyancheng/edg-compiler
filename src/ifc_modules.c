@@ -1706,6 +1706,9 @@ invocations.
 }  /* make_temporary_ifc_module_entity */
 
 
+static inline an_ifc_decl_index decl_index_of(a_module_entry_locator locator);
+
+
 static inline a_module_entity_ptr
 get_ifc_module_entity_from_collapsed_index(an_ifc_decl_index index)
 /*
@@ -1846,6 +1849,32 @@ get_ifc_module_entity_from_collapsed_index(an_ifc_decl_index index)
       entity_lookup_cache->map_with_hash(index, result, index_hash);
       /* Add the locator, it should not already be known. */
       result->locators.push_back(module_entry_locator_from_index(index));
+#if DEBUG
+      if (db_flag_is_set("ifc_entity_collision") &&
+          result->locators.length() > 1) {
+        a_string  dbg_msg("Entity identified by multiple locators: ");
+        a_boolean first = TRUE;
+
+        for (const a_module_entry_locator &loc : result->locators) {
+          if (!first) {
+            dbg_msg.append(", ");
+          }  /* if */
+          first = FALSE;
+          if (loc.kind == melk_ifc) {
+            an_ifc_partition_kind part_kind = loc.variant.ifc.partition;
+
+            if (is_decl_sort(part_kind)) {
+              an_ifc_decl_index decl_idx = decl_index_of(loc);
+
+              dbg_msg.append(index_to_str(decl_idx));
+              continue;
+            }  /* if */
+          }  /* if */
+          dbg_msg.append("UNKNOWN LOCATOR");
+        }  /* for */
+        print(dbg_msg, f_debug);
+      }  /* if */
+#endif /* DEBUG */
     }  /* if */
   }  /* if */
   return result;
