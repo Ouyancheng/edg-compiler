@@ -3825,7 +3825,6 @@ Return the kind of operator described by op in the context of the given module.
     case ifc_mos_msvc_confused_aggregate_return:
     case ifc_mos_msvc_confused_dtor_action:
     case ifc_mos_msvc_confused_pop_state:
-    case ifc_mos_msvc_confused_substitution:
     case ifc_mos_msvc_confused_vtor_displacement:
     case ifc_mos_msvc_confusion:
     case ifc_mos_unknown:
@@ -3862,6 +3861,7 @@ Return the kind of operator described by op in the context of the given module.
       kind = opkind_other;
       break;
     case ifc_mos_msvc_confused_dependent_expression:
+    case ifc_mos_msvc_confused_substitution:
       kind = opkind_annotative;
       break;
     case ifc_mos_truncate:
