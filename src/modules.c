@@ -763,6 +763,18 @@ processing has ended.
 }  /* define_names_from_scope */
 
 
+a_module_entity::a_module_entity(a_module_ptr module_info_val)
+/*
+Construct a new module entity in the given module.
+*/
+  : module_info(module_info_val), scope(NULL), entity{iek_none, NULL},
+    locators(), primary_locator_idx(0), num_locators_processed(0),
+    imminent(FALSE), def_imminent(FALSE), uses_bound_token(FALSE),
+    invalid(FALSE), global_module(FALSE), non_exported(FALSE)
+{
+}  /* a_module_entity::a_module_entity */
+
+
 a_module_entity_key::a_module_entity_key(a_module_entity_key &&other)
 /*
 Destroy the given module entity key.
@@ -1240,18 +1252,7 @@ static a_module_entity_ptr get_module_entity_from_key(
   if (mep == NULL) {
     /* Create a new module entity.  These are allocated in front end memory
        (so they are saved in PCH files) and never freed. */
-    mep = new_fe<a_module_entity>();
-    mep->module_info = key.mod;
-    mep->scope = NULL;
-    mep->entity.ptr = NULL;
-    mep->entity.kind = iek_none;
-    mep->locator.kind = melk_none;
-    mep->imminent = FALSE;
-    mep->def_imminent = FALSE;
-    mep->uses_bound_token = FALSE;
-    mep->invalid = FALSE;
-    mep->global_module = FALSE;
-    mep->non_exported = FALSE;
+    mep = new_fe<a_module_entity>(key.mod);
     /* Update the hash table to point to the new module entity. */
     module_entity_hash_table->map_with_hash(move_from(&key), mep, hashed_key);
   }  /* if */
@@ -1834,8 +1835,9 @@ otherwise, return an empty optional.
 */
 {
   Opt<a_source_position> result;
+  a_module_entry_locator &primary = mep->locators[mep->primary_locator_idx];
 
-  switch (mep->locator.kind) {
+  switch (primary.kind) {
     case melk_ifc:
       result = source_position_from_ifc_of(mep);
       break;

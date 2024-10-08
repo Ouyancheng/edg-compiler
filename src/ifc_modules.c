@@ -928,8 +928,9 @@ Return the associated module interface for the given module entity pointer as
 an ifc module.
 */
 {
-  check_assertion(mep->locator.kind == melk_ifc);
-  return module_of(mep->locator.variant.ifc.file);
+  a_module_entry_locator &primary = mep->locators[mep->primary_locator_idx];
+  check_assertion(primary.kind == melk_ifc);
+  return module_of(primary.variant.ifc.file);
 }  /* get_assoc_ifc_module */
 
 
@@ -1134,11 +1135,12 @@ done:
 
 
 template<typename an_ifc_Index_type>
-static inline void set_module_entry_locator(a_module_entry_locator *locator,
-                                            an_ifc_Index_type      index)
+static inline a_module_entry_locator
+module_entry_locator_from_index(an_ifc_Index_type index)
 /*
 */
 {
+  a_module_entry_locator      result;
   an_ifc_partition_kind_index element_idx{index.file,
                                           to_partition_kind(index.sort),
                                           index.value};
@@ -1150,11 +1152,12 @@ static inline void set_module_entry_locator(a_module_entry_locator *locator,
   check_assertion(opt_offset.has_value());
 
   size_t offset = *opt_offset;
-  locator->kind = melk_ifc;
-  locator->variant.ifc.partition = element_idx.partition_kind;
-  locator->variant.ifc.offset = offset;
-  locator->variant.ifc.file = index.file;
-}  /* set_module_entry_locator */
+  result.kind = melk_ifc;
+  result.variant.ifc.partition = element_idx.partition_kind;
+  result.variant.ifc.offset = offset;
+  result.variant.ifc.file = index.file;
+  return result;
+}  /* module_entry_locator_from_index */
 
 
 static inline a_module_entity_ptr
@@ -1641,11 +1644,11 @@ static inline a_module_entity_ptr get_ifc_error_module_entity(
 /*
 */
 {
-  a_module_entity_ptr result = new_fe<a_module_entity>();
+  a_module_ptr        mod_ptr = module_of(index)->assoc_module_info;
+  a_module_entity_ptr result = new_fe<a_module_entity>(mod_ptr);
 
-  result->module_info = module_of(index)->assoc_module_info;
+  result->locators.push_back(module_entry_locator_from_index(index));
   result->invalid = TRUE;
-  set_module_entry_locator(&result->locator, index);
   return result;
 }  /* get_ifc_error_module_entity */
 
@@ -1695,10 +1698,10 @@ merged between different module files or persisted between function
 invocations.
 */
 {
-  a_module_entity result{};
+  a_module_ptr    mod_ptr = module_of(index)->assoc_module_info;
+  a_module_entity result(mod_ptr);
 
-  result.module_info = module_of(index)->assoc_module_info;
-  set_module_entry_locator(&result.locator, index);
+  result.locators.push_back(module_entry_locator_from_index(index));
   return result;
 }  /* make_temporary_ifc_module_entity */
 
@@ -1765,8 +1768,9 @@ get_ifc_module_entity_from_collapsed_index(an_ifc_decl_index index)
             if (cached_result != NULL) {
               result = cached_result;
             } else {
-              result = new_fe<a_module_entity>();
-              result->module_info = module_of(index)->assoc_module_info;
+              a_module_ptr mod_ptr = module_of(index)->assoc_module_info;
+
+              result = new_fe<a_module_entity>(mod_ptr);
             }  /* if */
           }  /* if */
         }
@@ -1796,11 +1800,6 @@ get_ifc_module_entity_from_collapsed_index(an_ifc_decl_index index)
         result = get_ifc_basic_module_entity(index);
         break;
     }  /* switch */
-    if (result != NULL && result->locator.kind == melk_none) {
-      /* This module entity is freshly created, give the locator an initial
-         value. */
-      set_module_entry_locator(&result->locator, index);
-    }  /* if */
     goto done;
   invalid:
     result = NULL;
@@ -1844,8 +1843,9 @@ get_ifc_module_entity_from_collapsed_index(an_ifc_decl_index index)
          values.  This should not happen, so something has gone wrong with
          either the construction of the hash key or the comparison of the key
          (i.e., its hashing or equality operator). */
-
       entity_lookup_cache->map_with_hash(index, result, index_hash);
+      /* Add the locator, it should not already be known. */
+      result->locators.push_back(module_entry_locator_from_index(index));
     }  /* if */
   }  /* if */
   return result;
@@ -1921,7 +1921,7 @@ Return the an_ifc_decl_index derived from the partition kind and file offset
 stored on the given module entity pointer.
 */
 {
-  return decl_index_of(mep->locator);
+  return decl_index_of(mep->locators[mep->primary_locator_idx]);
 }  /* decl_index_of */
 
 
@@ -1964,7 +1964,7 @@ Return the an_ifc_type_index derived from the partition kind and file offset
 stored on the given module entity pointer.
 */
 {
-  return type_index_of(mep->locator);
+  return type_index_of(mep->locators[mep->primary_locator_idx]);
 }  /* type_index_of */
 
 
@@ -4261,9 +4261,7 @@ field is encountered, an IL entity and symbol are created at that time.
     hdr->deferred_module_entries = new_fe<a_deferred_module_entry_array>();
   }  /* if */
 
-  a_module_entry_locator mel;
-  set_module_entry_locator(&mel, decl_idx);
-
+  a_module_entry_locator  mel = module_entry_locator_from_index(decl_idx);
   a_deferred_module_entry deferred_entry{scope, mel};
   hdr->deferred_module_entries->entries.push_back(deferred_entry);
 #if DEBUG
@@ -12159,8 +12157,44 @@ strongly preferred over calling this function directly.
 
               /* Process declarations in the namespace scope (which makes their
                  symbols available but not their definitions). */
-              an_ifc_scope_offset init = get_ifc_initializer(scope_decl);
-              load_ifc_namespace(init, nsp->variant.assoc_scope);
+              unsigned num_locators = mep->locators.length();
+              for (unsigned i = mep->num_locators_processed;
+                   i < num_locators; ++i) {
+                a_module_entry_locator &mel = mep->locators[i];
+
+                if (mel.kind != melk_ifc) {
+                  /* FIXME: Abstract this. */
+                  a_string err_msg("Unexpected non-IFC module entry locator");
+
+                  ifc_unexpected(module_of(decl_idx),
+                                 err_msg.as_temp_characters());
+                  continue;
+                }  /* if */
+
+                an_ifc_decl_index      assoc_decl_idx = decl_index_of(mel);
+                Opt<an_ifc_decl_scope> opt_assoc_scope_decl;
+                construct_node(&opt_assoc_scope_decl, assoc_decl_idx);
+                if (opt_assoc_scope_decl.has_value()) {
+                  an_ifc_decl_scope assoc_scope_decl = *opt_assoc_scope_decl;
+                  Opt<a_scope_kind> opt_assoc_scope_kind =
+                                              get_scope_kind(assoc_scope_decl);
+
+                  if (opt_scope_kind.has_value() &&
+                      *opt_scope_kind != scope_kind) {
+                    a_string err_msg("Unexpected scope kind divergence for ",
+                                     index_to_str(assoc_decl_idx));
+
+                    ifc_unexpected(module_of(assoc_scope_decl), err_msg);
+                    continue;
+                  }  /* if */
+
+                  an_ifc_scope_offset init =
+                                         get_ifc_initializer(assoc_scope_decl);
+                  load_ifc_namespace(init, nsp->variant.assoc_scope);
+                }  /* if */
+              }  /* for */
+              mep->num_locators_processed = num_locators;
+              mep->imminent = FALSE;
               pop_namespace_scope();
             }
             break;
@@ -13481,11 +13515,12 @@ otherwise, return an empty optional.
 */
 {
   Opt<a_source_position> result;
+  a_module_entry_locator &primary = mep->locators[mep->primary_locator_idx];
 
   /* If this assertion fails a module entity pointer that's not from an IFC
      file was incorrectly passed to this function. */
-  check_assertion(mep->locator.kind == melk_ifc);
-  if (is_decl_sort(mep->locator.variant.ifc.partition)) {
+  check_assertion(primary.kind == melk_ifc);
+  if (is_decl_sort(primary.variant.ifc.partition)) {
     an_ifc_decl_index decl_idx = decl_index_of(mep);
 
     if (validate(decl_idx) && has_ifc_locus(decl_idx)) {

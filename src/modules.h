@@ -34,22 +34,39 @@ struct a_module_entity {
   a_tagged_pointer
                 entity; /* The IL entity that corresponds to the module
                            entity. */
-  a_module_entry_locator
-                locator;
-                        /* The primary module entity origin (i.e., the module
-                           entry that contains a definition) for this module
-                           entity. */
+  Small_dyn_array<a_module_entry_locator, 1>
+                locators;
+                        /* The locations within BMIs where details about this
+                           module entity can be recovered.  There is always at
+                           least one locator for a module entity.  Any new
+                           locators should be appended so that
+                           num_locators_processed can be used to retrieve the
+                           next locator to process. */
+  uint16_t      primary_locator_idx;
+                        /* The index of the primary locator (i.e., the locator
+                           with the most detailed information).  In most cases,
+                           this corresponds to the locator that contains the
+                           definition of the entity (if any).
+
+                           FIXME: At the time of writing, this field is not
+                           currently accurate as the appropriate logic to
+                           determine the "most detailed" locator has not been
+                           implemented. */
+  uint16_t      num_locators_processed;
+                        /* The number of locators that have been processed.  At
+                           the time of writing, this field is unused outside of
+                           namespace processing. */
   a_bit_field   imminent:1;
-                        /* This flag is typically set to TRUE when deferred
-                           processing starts; i.e., when the creation of an
-                           actual associated IL entity is imminent.  This is
-                           used to avoid unbounded recursion.  The flag is
-                           also set to TRUE for IFC partial specializations
-                           that are deferred,  That causes the main entity
-                           loading mechanism to skip partial specializations;
-                           instead, those entries are processed explicitly
-                           immediately after the associated primary template
-                           has been processed. */
+                        /* This flag is typically set to TRUE when processing
+                           to form or find the associated IL entity starts.
+                           This is used to avoid unbounded recursion.
+
+                           The flag is sometimes unset if an entity might need
+                           to be reexamined (e.g., this is a namespace that
+                           might be expanded by additional module imports).  In
+                           that case, the num_locators_processed value is
+                           typically used to track what work still needs to be
+                           completed. */
   a_bit_field   def_imminent:1;
                         /* This flag is set when the definition of the
                            associated entity has started being loaded. */
@@ -72,6 +89,7 @@ struct a_module_entity {
                         /* TRUE if this is an entity that's reachable but not
                            visible (and thus was not exported from the imported
                            module). */
+  a_module_entity(a_module_ptr module_info_val);
 };  /* a_module_entity */
 
 
