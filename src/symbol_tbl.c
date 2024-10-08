@@ -4283,11 +4283,18 @@ hdr_ptr == NULL indicates that an error symbol should be constructed.
   sym_ptr->header = hdr_ptr;
   /* Set the declaration source position. */
   sym_ptr->decl_position = *position;
-  /* Mark this symbol as associated with the current module entity (if any). */
-  if (module_entity_stack != NULL && !module_entity_stack->is_empty()) {
-    a_module_entity_stack_entry &mese = module_entity_stack->back_elem();
+  /* Mark this symbol as associated with the current module entity (if any).
 
-    sym_ptr->module_entity = mese.mep;
+     If this is a module isolation context, the module entity is a temporary
+     value.  Additionally, the IL entity is being created in a special context
+     from which it shouldn't escape for purposes of entity identification; its
+     symbol does not need to be marked with the associated module entity. */
+  if (!is_module_isolation_context()) {
+    if (module_entity_stack != NULL && !module_entity_stack->is_empty()) {
+      a_module_entity_stack_entry &mese = module_entity_stack->back_elem();
+
+      sym_ptr->module_entity = mese.mep;
+    }  /* if */
   }  /* if */
 }  /* init_symbol */
 
