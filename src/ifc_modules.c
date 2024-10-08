@@ -7353,9 +7353,11 @@ entity during parsing.
                      index_to_str(decl_idx),
                      " but it is already imminent");
 
-    /* FIXME: Implement reuse checking. */
+    /* FIXME: Reimplement checking to ensure this entity isn't already
+       being processed. */
   }
 #endif /* CHECKING */
+  /* FIXME: Mark the module entity has imminent and using a bound token. */
   cache_fn(cache, decl_idx);
   cache_token_with_index(cache, tok_ifc_decl, decl_idx);
 #if DEBUG
