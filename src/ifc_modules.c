@@ -5129,31 +5129,43 @@ to be needed later on.
 
 
 template<typename an_ifc_Node_type>
-static void try_map_variable_initializer(const an_ifc_Node_type &decl_node,
-                                         an_ifc_decl_index      decl_idx,
-                                         a_variable_ptr         vp)
+static a_boolean
+try_map_variable_initializer(const an_ifc_Node_type &decl_node,
+                             an_ifc_decl_index      decl_idx,
+                             a_variable_ptr         vp)
 /*
 Given a declaration node (indexed by decl_idx) representing a variable-like
 entity, and the corresponding IL entity (i.e., variable pointer), map the
 associated IL entity to its pending initializer (if an initializer is present).
+
+Return TRUE if an initializer for the variable was recorded; otherwise, return
+FALSE.
 */
 {
+  a_boolean         result = FALSE;
   an_ifc_expr_index initializer = get_ifc_initializer(decl_node);
 
   if (!is_null_index(initializer)) {
     record_pending_ifc_variable_init(vp, decl_idx);
+    result = TRUE;
   }  /* if */
+  return result;
 }  /* try_map_variable_initializer */
 
 
-static void map_pending_variable_initializers(an_ifc_decl_index decl_idx,
-                                              a_variable_ptr    vp)
+static a_boolean map_pending_variable_initializers(an_ifc_decl_index decl_idx,
+                                                   a_variable_ptr    vp)
 /*
 Given a declaration index representing a variable-like entity, and the
 corresponding IL entity (i.e., variable pointer), map the associated IL entity
 to its pending initializer (if an initializer is present).
+
+Return TRUE if an initializer for the variable was recorded; otherwise, return
+FALSE.
 */
 {
+  a_boolean result = FALSE;
+
   switch (decl_idx.sort) {
     case ifc_ds_decl_field:
       /* Nothing to do: fields are always processed with their initializers. */
@@ -5170,7 +5182,7 @@ to its pending initializer (if an initializer is present).
         construct_node_prechecked(&spec_decl, decl_idx);
 
         an_ifc_decl_index parameterized_idx = get_ifc_decl(spec_decl);
-        map_pending_variable_initializers(parameterized_idx, vp);
+        result = map_pending_variable_initializers(parameterized_idx, vp);
       }
       break;
     case ifc_ds_decl_using_declaration:
@@ -5183,7 +5195,7 @@ to its pending initializer (if an initializer is present).
       { an_ifc_decl_variable var_decl;
 
         construct_node_prechecked(&var_decl, decl_idx);
-        try_map_variable_initializer(var_decl, decl_idx, vp);
+        result = try_map_variable_initializer(var_decl, decl_idx, vp);
       }
       break;
     default:
@@ -5201,6 +5213,7 @@ to its pending initializer (if an initializer is present).
 #endif /* CHECKING */
       break;
   }  /* switch */
+  return result;
 }  /* map_pending_variable_initializers */
 
 
@@ -5272,56 +5285,68 @@ to be needed later on.
 
 
 template<typename an_ifc_Node_type>
-static void try_map_routine_definition(const an_ifc_Node_type &decl_node,
+static a_boolean try_map_routine_definition(const an_ifc_Node_type &decl_node,
                                        an_ifc_decl_index      decl_idx,
                                        a_routine_ptr          rp)
 /*
 Given a declaration node (indexed by decl_idx) representing a function-like
 entity, and the corresponding IL entity (i.e., routine pointer), map the
 associated IL entity to its pending definition (if a definition is present).
+
+Return TRUE if a definition for the function was recorded; otherwise, return
+FALSE.
 */
 {
+  a_boolean result = FALSE;
+
   if (function_is_user_defined(decl_node)) {
     record_pending_ifc_function_body(rp, decl_idx);
+    result = TRUE;
   }  /* if */
+  return result;
 }  /* try_map_routine_definition */
 
 
-static void map_pending_routine_definitions(an_ifc_decl_index decl_idx,
-                                            a_routine_ptr     rp)
+static a_boolean map_pending_routine_definitions(an_ifc_decl_index decl_idx,
+                                                 a_routine_ptr     rp)
 /*
 Given a declaration index representing a function-like entity, and the
 corresponding IL entity (i.e., routine pointer), map the associated IL entity
 to its pending definition (if a definition is present).
+
+Return TRUE if a definition for the function was recorded; otherwise, return
+FALSE.
 */
 {
+  a_boolean result = FALSE;
+
   switch (decl_idx.sort) {
     case ifc_ds_decl_constructor:
       { an_ifc_decl_constructor ctor_decl;
 
         construct_node_prechecked(&ctor_decl, decl_idx);
-        try_map_routine_definition(ctor_decl, decl_idx, rp);
+        result = try_map_routine_definition(ctor_decl, decl_idx, rp);
       }
       break;
     case ifc_ds_decl_destructor:
       { an_ifc_decl_destructor dtor_decl;
 
         construct_node_prechecked(&dtor_decl, decl_idx);
-        try_map_routine_definition(dtor_decl, decl_idx, rp);
+        result = try_map_routine_definition(dtor_decl, decl_idx, rp);
       }
       break;
     case ifc_ds_decl_function:
       { an_ifc_decl_function func_decl;
 
         construct_node_prechecked(&func_decl, decl_idx);
-        try_map_routine_definition(func_decl, decl_idx, rp);
+        result = try_map_routine_definition(func_decl, decl_idx, rp);
       }
       break;
     case ifc_ds_decl_method:
       { an_ifc_decl_method method_decl;
 
         construct_node_prechecked(&method_decl, decl_idx);
-        try_map_routine_definition(method_decl, decl_idx, rp);
+        result = try_map_routine_definition(method_decl, decl_idx, rp);
       }
       break;
     case ifc_ds_decl_specialization:
@@ -5338,7 +5363,7 @@ to its pending definition (if a definition is present).
         if (!is_instantiation) {
           an_ifc_decl_index parameterized_idx = get_ifc_decl(spec_decl);
 
-          map_pending_routine_definitions(parameterized_idx, rp);
+          result = map_pending_routine_definitions(parameterized_idx, rp);
         }  /* if */
       }
       break;
@@ -5371,6 +5396,7 @@ to its pending definition (if a definition is present).
 #endif /* CHECKING */
       break;
   }  /* switch */
+  return result;
 }  /* map_pending_routine_definitions */
 
 
@@ -5392,7 +5418,8 @@ out to be needed later on.
 }  /* record_pending_ifc_template_specializations */
 
 
-static void record_pending_ifc_template_definition(a_template_ptr    templ,
+static a_boolean record_pending_ifc_template_definition(
+                                                   a_template_ptr    templ,
                                                    an_ifc_decl_index decl_idx);
 
 static void finish_mep_processing(a_module_entity_ptr mep);
@@ -13561,6 +13588,10 @@ for the namespace represented by the given module entity.
 }  /* load_namespace_elements_from_ifc_locator */
 
 
+static a_boolean try_mark_definitions(a_module_entity_ptr mep,
+                                      an_ifc_decl_index   decl_idx);
+
+
 static void update_ifc_declaration(a_module_entity_ptr mep,
                                    an_ifc_decl_index   decl_idx)
 /*
@@ -13572,54 +13603,12 @@ Perform any updates to the entity using the new information.
     goto invalid;
   }  /* if */
   update_mep_origin_flags(mep, decl_idx);
-  switch (decl_idx.sort) {
-    case ifc_ds_decl_scope:
-      /* A DeclSort::Scope, which indicates a namespace or a
-         class/struct/union.  Note that although these declare "scopes", the IL
-         entity that is attached to them is either a namespace or a type. */
-      { an_ifc_decl_scope scope_decl;
+  if (try_mark_definitions(mep, decl_idx)) {
+    /* If a definition was marked, mark this locator as the primary locator. */
+    a_module_entry_locator loc = module_entry_locator_from_index(decl_idx);
 
-        construct_node_prechecked(&scope_decl, decl_idx);
-
-        Opt<a_scope_kind> opt_scope_kind = get_scope_kind(scope_decl);
-        if (!opt_scope_kind.has_value()) {
-          goto invalid;
-        }  /* if */
-
-        a_scope_kind scope_kind = *opt_scope_kind;
-        switch (scope_kind) {
-          case sck_namespace:
-            /* This case is handled in a module implementation independent way
-               in update_entity_from_new_locator. */
-            break;
-          case sck_class_struct_union:
-            { /* Allocate the appropriate class type, but leave it as
-                 incomplete.  The class will be completed during a call to
-                 get_definition_of_class if it is referenced. */
-              an_ifc_reachable_properties_bitfield
-                              properties = get_ifc_properties(scope_decl);
-              if (test_bitmask<ifc_rpb_initializer>(properties)) {
-                /* Record the presence of a definition and make this the
-                   primary locator. */
-                /* If this assertion fails, the module entity was not properly
-                   marked invalid. */
-                check_assertion(mep->entity.kind == iek_type);
-                a_type_ptr tag_type = (a_type_ptr)mep->entity.ptr;
-
-                ifc_tag_definitions->associate_entity(tag_type, decl_idx);
-                mark_locator_as_primary(
-                                    mep,
-                                    module_entry_locator_from_index(decl_idx));
-              }  /* if */
-            }
-            break;
-          default:
-            break;
-        }  /* switch */
-      }
-    default:
-      break;
-  }  /* switch */
+    mark_locator_as_primary(mep, loc);
+  }  /* if */
   goto done;
 invalid:
   mep->invalid = TRUE;
@@ -30217,17 +30206,24 @@ and print the diff of the cached tokens.
 
 #endif /* DEBUG */
 
-static void record_pending_ifc_template_definition(a_template_ptr    templ,
-                                                   an_ifc_decl_index decl_idx)
+static a_boolean record_pending_ifc_template_definition(
+                                                    a_template_ptr    templ,
+                                                    an_ifc_decl_index decl_idx)
 /*
 Record the information needed to retrieve a definition for templ if it turns
 out to be needed later on.
 
-Note as the lazy loading system handles default template arguments, some
-declarations are recorded as definitions that aren't proper definitions (and
-later replaced if a more complete definition is discovered).
+Return TRUE if a definition for the template was recorded; otherwise, return
+FALSE.  Note that while specializations are also recorded, recording a
+specialization does not count.
+
+Additionally note that as the lazy loading system handles default template
+arguments, some declarations are recorded as definitions that aren't proper
+definitions (and later replaced if a more complete definition is discovered).
 */
 {
+  a_boolean result = FALSE;
+
   /* Ensure the canonical template IL entity is what's being mapped onto. */
   check_assertion(templ != NULL && templ->canonical_template != NULL);
   templ = templ->canonical_template;
@@ -30238,6 +30234,7 @@ later replaced if a more complete definition is discovered).
     /* This is the simple case, i.e., the template doesn't already have a
        definition, so record the definition. */
     ifc_template_definitions->associate_entity(templ, decl_idx);
+    result = TRUE;
   } else {
     /* The pending template definition is being reconsidered.  Replace the
        definition in the mapping if the newly observed declaration is a
@@ -30252,6 +30249,7 @@ later replaced if a more complete definition is discovered).
       }  /* if */
 #endif /* DEBUG */
       ifc_template_definitions->associate_entity(templ, decl_idx);
+      result = TRUE;
     }
     /* Do not add code here. */
 #if DEBUG
@@ -30272,27 +30270,60 @@ later replaced if a more complete definition is discovered).
       record_pending_ifc_template_specializations(templ, existing_decl);
     }  /* if */
   }  /* if */
+  return result;
 }  /* record_pending_ifc_template_definition */
 
 
-static void finish_mep_processing(a_module_entity_ptr mep)
+static a_boolean try_mark_definitions(a_module_entity_ptr mep,
+                                      an_ifc_decl_index   decl_idx)
 /*
-Given a module entity pointer for a valid module entity with an existing IL
-declaration, complete any processing that needs to be performed on the module
-entity pointer now that it's been successfully loaded into the IL (e.g., map
-any pending definition information for later use should a definition be
-required).
+Return TRUE if a definition for the entity was recorded for later processing;
+otherwise, return FALSE.
 */
 {
-  check_assertion(!mep->invalid && mep->entity.ptr != NULL);
-  check_assertion(mep->entity == canonicalize_tagged_ptr(mep->entity));
-  an_ifc_decl_index decl_idx = decl_index_of(mep);
+  a_boolean result = FALSE;
 
   if (mep->entity.kind == iek_routine) {
-    map_pending_routine_definitions(decl_idx, (a_routine_ptr)mep->entity.ptr);
+    a_routine_ptr rp = (a_routine_ptr)mep->entity.ptr;
+
+    result = map_pending_routine_definitions(decl_idx, rp);
   } else if (mep->entity.kind == iek_variable) {
-    map_pending_variable_initializers(decl_idx,
-                                      (a_variable_ptr)mep->entity.ptr);
+    a_variable_ptr var = (a_variable_ptr)mep->entity.ptr;
+
+    result = map_pending_variable_initializers(decl_idx, var);
+  } else if (mep->entity.kind == iek_type) {
+    if (decl_idx.sort == ifc_ds_decl_scope) {
+      /* A DeclSort::Scope, which indicates a namespace or a
+         class/struct/union.  Note that although these declare "scopes", the IL
+         entity that is attached to them is either a namespace or a type. */
+      an_ifc_decl_scope scope_decl;
+
+      construct_node_prechecked(&scope_decl, decl_idx);
+      /* If this assertion fails the IL entity was mapped to a type (presumably
+         a class) and the new locator was an IFC DeclSort::Scope node.
+         However, the DeclSort::Scope node is pointing to something unexpected.
+         Either the module entity has the wrong IL entity or the given IFC
+         declaration index should not have been associated with this module
+         entity. */
+#if CHECKING
+      { Opt<a_scope_kind> opt_scope_kind = get_scope_kind(scope_decl);
+
+        check_assertion(opt_scope_kind.has_value() &&
+                        *opt_scope_kind== sck_class_struct_union);
+      }
+#endif /* CHECKING */
+
+      an_ifc_reachable_properties_bitfield
+                                   properties = get_ifc_properties(scope_decl);
+      if (test_bitmask<ifc_rpb_initializer>(properties)) {
+        /* Record the presence of a definition and make this the primary
+           locator. */
+        a_type_ptr tag_type = (a_type_ptr)mep->entity.ptr;
+
+        ifc_tag_definitions->associate_entity(tag_type, decl_idx);
+        result = TRUE;
+      }  /* if */
+    }  /* if */
   } else if (decl_idx.sort == ifc_ds_decl_template) {
     /* The kind should be a template, otherwise this mep should've been
        marked invalid. */
@@ -30306,9 +30337,41 @@ required).
         record_pending_ifc_template_specializations(templ, decl_idx);
       }  /* if */
     } else {
-      record_pending_ifc_template_definition(templ, decl_idx);
+      result = record_pending_ifc_template_definition(templ, decl_idx);
     }  /* if */
   }  /* if */
+  return result;
+}  /* try_mark_definitions */
+
+
+static void finish_mep_processing(a_module_entity_ptr mep)
+/*
+Given a module entity pointer for a valid module entity with an existing IL
+declaration, complete any processing that needs to be performed on the module
+entity pointer now that it's been successfully loaded into the IL (e.g., map
+any pending definition information for later use should a definition be
+required).
+*/
+{
+  check_assertion(!mep->invalid && mep->entity.ptr != NULL);
+  check_assertion(mep->entity == canonicalize_tagged_ptr(mep->entity));
+  for (unsigned i = 0; i < mep->locators.length(); ++i) {
+    a_module_entry_locator &mel = mep->locators[i];
+
+    if (mel.kind != melk_ifc) {
+      continue;
+    }  /* if */
+
+    an_ifc_decl_index decl_idx = decl_index_of(mel);
+    if (try_mark_definitions(mep, decl_idx)) {
+      /* If a definition was marked, mark this locator as the primary
+         locator. */
+      mark_locator_as_primary(mep, mel);
+    }  /* if */
+  }  /* for */
+
+  /* The entity is already the primary locator, no update is needed regardless
+     of whether or not a definition was marked. */
 }  /* finish_mep_processing */
 
 
