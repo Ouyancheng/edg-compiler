@@ -1796,6 +1796,17 @@ get_ifc_module_entity_from_collapsed_index(an_ifc_decl_index index)
       case ifc_ds_decl_specialization:
         result = get_ifc_specialized_module_entity(index);
         break;
+      case ifc_ds_decl_using_declaration:
+        /* FIXME: Is there any way to merge these declarations across modules?
+           Do we care? */
+        if (cached_result != NULL) {
+          result = cached_result;
+        } else {
+          a_module_ptr mod_ptr = module_of(index)->assoc_module_info;
+
+          result = new_fe<a_module_entity>(mod_ptr);
+        }  /* if */
+        break;
       case ifc_ds_decl_tuple:
         emit_not_a_module_entity_error(index);
         goto invalid;
