@@ -4945,7 +4945,7 @@ gen_name.  See gen_name for the meaning of need_closing_paren.
                template<typename T> class C { ... C<T>::... };
              so we suppress the template arguments in such cases. */
           qual_opts |= GN_NO_TEMPLATE_ARGS;
-        } /* if */
+        }  /* if */
         gen_name(&class_type->source_corresp, iek_type, qual_opts,
                  need_closing_paren);
       }  /* if */
