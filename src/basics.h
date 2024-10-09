@@ -1279,6 +1279,20 @@ in the fe_init.c translation unit this will appear as:
                 "there are one or more extra elements in the array "
                 "\"example_decl\"");
 
+If a forward declaration is needed,
+EXTERN_CONSTINIT_ARRAY_FORWARD_DECL can be used:
+
+  EXTERN_CONSTINIT_ARRAY_FORWARD_DECL(int, example_decl, 46)
+
+this will expand to:
+
+  extern int example_decl[46];
+
+unless the translation unit being compiled is fe_init.c (in that case it
+expands to nothing).  If a forward declaration is created manually, the array
+size will not be properly checked as the forward declaration gives the array an
+explicit size rather than allowing the host compiler to compute array length.
+
 For declarations that do not follow this initialization pattern,
 CONSTINIT_ARRAY can be used to set up the appropriate checking with explicit
 specifier and initialization management.  For instance, to create an internally
@@ -1319,10 +1333,14 @@ this will similarly expand to:
                 "there are one or more extra elements in the array "          \
                 "\"" #name "\"");
 #if VAR_INITIALIZERS
+#define EXTERN_CONSTINIT_ARRAY_FORWARD_DECL(type, name, size)                 \
+  /* nothing */
 #define EXTERN_CONSTINIT_ARRAY(type, name, size)                              \
   CONSTINIT_ARRAY(, type, name, size)
 #define EXTERN_CONSTINIT_ARRAY_END(name) CONSTINIT_ARRAY_END(name)
 #else /* !VAR_INITIALIZERS */
+#define EXTERN_CONSTINIT_ARRAY_FORWARD_DECL(type, name, size)                 \
+  extern type name[size];
 #define EXTERN_CONSTINIT_ARRAY(type, name, size) extern type name[size]
 #define EXTERN_CONSTINIT_ARRAY_END(name) ;
 #endif /* VAR_INITIALIZERS */

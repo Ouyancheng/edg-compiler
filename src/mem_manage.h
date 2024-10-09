@@ -599,7 +599,8 @@ enum a_function_number : a_byte {
 typedef void (*a_function_pointer)();
 
 /* Declare the array of function pointers that map to the enumeration above. */
-extern a_function_pointer function_pointers[(unsigned)fn_last+1];
+EXTERN_CONSTINIT_ARRAY_FORWARD_DECL(a_function_pointer, function_pointers,
+                                    (unsigned)fn_last+1)
 
 /*
 This token pasting macro converts a function name into an enumerator
