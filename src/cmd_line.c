@@ -4423,12 +4423,15 @@ otherwise implicitly enabled Microsoft mode.
       if (!option_kind_used[(int)optk_microsoft_bugs]) {
         microsoft_bugs = FALSE;
       }  /* if */
-      if (!option_kind_used[(int)optk_microsoft_extensions]) {
+      if (!option_kind_used[(int)optk_microsoft_extensions] &&
+          !option_kind_used[(int)optk_microsoft_compatibility]) {
         ms_extensions = FALSE;
       }  /* if */
       if (!option_kind_used[(int)optk_microsoft_compatibility]) {
         ms_compat = FALSE;
       }  /* if */
+      /* Make sure ms_extensions is set if ms_compat is. */
+      check_assertion(!(ms_compat && !ms_extensions));
     }  /* if */
   }  /* if */
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
