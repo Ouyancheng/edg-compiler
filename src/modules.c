@@ -696,17 +696,12 @@ processing has ended.
 #endif /* DEBUG */
     ++deferred_entries->num_processed;
     entry.scope = NULL;
-    switch (entry.locator.kind) {
-      case melk_none:
-        /* If this assertion is hit, a locator with no usable information was
-           put onto the list of deferred entities; this should never happen. */
-        unexpected_condition();
-        break;
-      case melk_ifc:
-        (void)request_ifc_entity(entry.locator);
-        break;
-      default_is_unexpected();
-    }  /* switch */
+
+    a_module_entity_ptr mep = locate_module_entity(entry.locator);
+    if (mep->scope == NULL) {
+      mep->scope = scope;
+    }  /* if */
+    (void)request_entity(mep);
   }  /* for */
 #if DEBUG
   if (db_flag_is_set("ifc_symbols")) {
@@ -767,8 +762,8 @@ a_module_entity::a_module_entity(a_module_ptr module_info_val)
 /*
 Construct a new module entity in the given module.
 */
-  : module_info(module_info_val), scope(NULL), entity{iek_none, NULL},
-    locators(), primary_locator_idx(0),
+  : module_info(module_info_val), sym_header(NULL), scope(NULL),
+    entity{iek_none, NULL}, locators(), primary_locator_idx(0),
     imminent(FALSE), def_imminent(FALSE), uses_bound_token(FALSE),
     invalid(FALSE), global_module(FALSE), non_exported(FALSE)
 {
@@ -1253,6 +1248,7 @@ static a_module_entity_ptr get_module_entity_from_key(
     /* Create a new module entity.  These are allocated in front end memory
        (so they are saved in PCH files) and never freed. */
     mep = new_fe<a_module_entity>(key.mod);
+    mep->sym_header = key.name;
     /* Update the hash table to point to the new module entity. */
     module_entity_hash_table->map_with_hash(move_from(&key), mep, hashed_key);
   }  /* if */
@@ -1826,6 +1822,57 @@ definition now and return TRUE. If an error occurs, return FALSE.
   }  /* if */
   return result;
 }  /* load_type_definition_from_module */
+
+
+a_module_entity_ptr locate_module_entity(a_module_entry_locator loc)
+/*
+Return the module entity referenced by the given module entry locator.
+*/
+{
+  a_module_entity_ptr result = NULL;
+
+  switch (loc.kind) {
+    case melk_none:
+      /* An unknown locator should never be passed to this function. */
+      unexpected_condition();
+    case melk_ifc:
+      result = locate_ifc_module_entity(loc);
+      break;
+    default_is_unexpected();
+  }  /* switch */
+  /* The module entity should never be NULL.  Instead, an error module entity
+     locator should be returned. */
+  check_assertion(result != NULL);
+  return result;
+}  /* locate_module_entity */
+
+
+a_boolean request_entity(a_module_entity_ptr mep)
+/*
+Request that the given module entity be processed (if not already being
+processed).  If the entity's processing is complete, return TRUE; otherwise,
+return FALSE.
+
+This function should be preferred when immediate processing is not required
+(i.e., the exact entity doesn't need to be known).  process_ifc_declaration
+should be preferred if the entity should be processed immediately.
+*/
+{
+  if (!is_entity_resolved(mep) && !is_entity_imminent(mep)) {
+    switch (mep->locators[mep->primary_locator_idx].kind) {
+      case melk_none:
+        /* If this assertion is hit, a locator with no usable information was
+           put onto the list of deferred entities; this should never happen. */
+        unexpected_condition();
+        break;
+      case melk_ifc:
+        process_ifc_declaration(mep);
+        break;
+      default_is_unexpected();
+    }  /* switch */
+  }  /* if */
+  return is_entity_resolved(mep);
+}  /* load_namespace_elements_from_locator */
 
 
 void load_namespace_elements_from_locator(a_module_entity_ptr    mep,

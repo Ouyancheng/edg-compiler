@@ -30,6 +30,10 @@ key.
 struct a_module_entity {
   a_module_ptr  module_info;
                         /* The module in which this entity is defined. */
+  a_symbol_header_ptr
+                sym_header;
+                        /* The symbol header this entity is named by (if
+                           any). */
   a_scope_ptr   scope;  /* The scope in which this entity is defined. */
   a_tagged_pointer
                 entity; /* The IL entity that corresponds to the module
@@ -674,6 +678,33 @@ extern a_boolean load_template_specializations_from_module(
 extern a_boolean has_type_definition_from_module(a_type_ptr  ty);
 
 extern a_boolean load_type_definition_from_module(a_type_ptr ty);
+
+
+inline a_boolean is_entity_resolved(a_module_entity_ptr mep)
+/*
+Given a module entity pointer, return TRUE if the entity is in a resolved state
+(i.e., the entity is either resolved to an IL entity or marked invalid);
+otherwise, return FALSE.
+*/
+{
+  return mep->imminent && (mep->entity.ptr != NULL || mep->invalid);
+}  /* is_entity_resolved */
+
+
+inline a_boolean is_entity_imminent(a_module_entity_ptr mep)
+/*
+Given a module entity pointer, return TRUE if the entity is an unresolved
+imminent state (i.e., the entity is not yet resolved to an IL entity or marked
+invalid); otherwise, return FALSE.
+*/
+{
+  return mep->imminent && !mep->invalid && mep->entity.ptr == NULL;
+}  /* is_entity_imminent */
+
+
+extern a_module_entity_ptr locate_module_entity(a_module_entry_locator loc);
+
+extern a_boolean request_entity(a_module_entity_ptr mep);
 
 extern void load_namespace_elements_from_locator(a_module_entity_ptr    mep,
                                                  a_module_entry_locator loc);

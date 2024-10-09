@@ -808,8 +808,6 @@ extern an_ifc_module_file* get_module(const an_ifc_module_reference &ref);
 
 extern Opt<a_string> get_name_of_ifc_module(a_const_char *file_name);
 
-extern a_boolean request_ifc_entity(a_module_entry_locator locator);
-
 extern void process_ifc_declaration(a_module_entity_ptr mep);
 
 extern a_boolean has_variable_initializer_from_ifc_module(a_variable_ptr  vp);
@@ -834,6 +832,9 @@ a_boolean load_template_specializations_from_ifc_module(a_template_ptr  templ);
 extern a_boolean has_type_definition_from_ifc_module(a_type_ptr  ty);
 
 extern a_boolean load_type_definition_from_ifc_module(a_type_ptr  ty);
+
+extern a_module_entity_ptr locate_ifc_module_entity(
+                                                   a_module_entry_locator loc);
 
 extern void load_namespace_elements_from_ifc_locator(
                                                    a_module_entity_ptr    mep,

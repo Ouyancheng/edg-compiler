@@ -3145,46 +3145,6 @@ processing is not required (i.e., the exact entity doesn't need to be known).
 }  /* process_decl_at_index */
 
 
-static a_boolean is_entity_imminent(a_module_entity_ptr mep)
-/*
-Given a module entity pointer, return TRUE if the entity is an unresolved
-imminent state (i.e., the entity is not yet resolved to an IL entity or marked
-invalid); otherwise, return FALSE.
-*/
-{
-  return mep->imminent && !mep->invalid && mep->entity.ptr == NULL;
-}  /* is_entity_imminent */
-
-
-static a_boolean is_entity_resolved(a_module_entity_ptr mep)
-/*
-Given a module entity pointer, return TRUE if the entity is in a resolved state
-(i.e., the entity is either resolved to an IL entity or marked invalid);
-otherwise, return FALSE.
-*/
-{
-  return mep->imminent && (mep->entity.ptr != NULL || mep->invalid);
-}  /* is_entity_resolved */
-
-
-static a_boolean request_entity(a_module_entity_ptr mep)
-/*
-Request that the given module entity be processed (if not already being
-processed).  If the entity's processing is complete, return TRUE; otherwise,
-return FALSE.
-
-This function should be preferred when immediate processing is not required
-(i.e., the exact entity doesn't need to be known).  process_ifc_declaration
-should be preferred if the entity should be processed immediately.
-*/
-{
-  if (!is_entity_resolved(mep) && !is_entity_imminent(mep)) {
-    process_ifc_declaration(mep);
-  }  /* if */
-  return is_entity_resolved(mep);
-}  /* request_entity */
-
-
 static a_boolean request_entity_at_index(an_ifc_decl_index decl_idx)
 /*
 Request that the given module entity specified at the given declaration index
@@ -3202,31 +3162,6 @@ should be preferred if the entity should be processed immediately.
 
   return request_entity(dmep);
 }  /* request_entity_at_index */
-
-
-a_boolean request_ifc_entity(a_module_entry_locator locator)
-/*
-Request that the given module entity be processed (if not already being
-processed).  If the entity's processing is complete, return TRUE; otherwise,
-return FALSE.
-*/
-{
-  /* If this assertion fails a module entity pointer that's not from an IFC
-     file was incorrectly passed to this function. */
-  check_assertion(locator.kind == melk_ifc);
-  a_boolean             result = FALSE;
-  an_ifc_partition_kind part_kind = locator.variant.ifc.partition;
-
-  if (is_decl_sort(part_kind)) {
-    an_ifc_decl_index decl_idx = decl_index_of(locator);
-
-    result = request_entity_at_index(decl_idx);
-  } else {
-    unexpected_condition_str("unexpected call to request_ifc_entity with "
-                             "a non-declaration entity");
-  }  /* if */
-  return result;
-}  /* request_ifc_entity */
 
 
 static a_scope_ptr get_scope(an_ifc_decl_index scope_ref)
@@ -11637,10 +11572,33 @@ unresolvable cyclic dependency).  To avoid that problem the friend function's
 type dependencies are resolved before attempting to resolve the function.
 */
 {
-  a_boolean              result = TRUE;
+  a_boolean       result = TRUE;
+  /* Ensure potentially equivalent module entities from other files are
+     loaded. */
+  if (mep->sym_header != NULL) {
+    a_deferred_module_entry_array
+                  *deferred_entries = mep->sym_header->deferred_module_entries;
+
+    if (deferred_entries != NULL) {
+      /* This loop is considerably simpler than the one used for processing
+         deferred symbols as the symbols are not actually loaded.  The intent
+         is simply to make the modules system aware of the module entity
+         represented by the locator.  This allows other declarations in the
+         same scope with the same name from other files to be found and
+         included in the module entity's list of locators. */
+      for (size_t i = 0; i < deferred_entries->entries.length(); ++i) {
+        a_deferred_module_entry &entry = deferred_entries->entries[i];
+
+        if (mep->scope != NULL && entry.scope != mep->scope) {
+          continue;
+        }  /* if */
+        (void)locate_module_entity(entry.locator);
+      }  /* if */
+    }  /* if */
+  }  /* if */
+
   an_ifc_decl_index      decl_idx = decl_index_of(mep);
   Opt<an_ifc_decl_index> opt_home_scope = get_home_scope_if_class(decl_idx);
-
   /* Members of classes require the class to be complete before anything
      else. */
   if (opt_home_scope.has_value()) {
@@ -13562,6 +13520,30 @@ definition.
   }  /* if */
   return !def_mep->invalid;
 }  /* load_type_definition_from_ifc_module */
+
+
+a_module_entity_ptr locate_ifc_module_entity(a_module_entry_locator loc)
+/*
+Return the module entity pointer associated with the given module entry
+locator.
+*/
+{
+  /* If this assertion fails a module entity pointer that's not from an IFC
+     file was incorrectly passed to this function. */
+  check_assertion(loc.kind == melk_ifc);
+  a_module_entity_ptr   result = NULL;
+  an_ifc_partition_kind part_kind = loc.variant.ifc.partition;
+
+  if (is_decl_sort(part_kind)) {
+    an_ifc_decl_index decl_idx = decl_index_of(loc);
+
+    result = get_ifc_module_entity(decl_idx);
+  } else {
+    unexpected_condition_str("unexpected call to locate_ifc_module_entity "
+                             "with a non-declaration entity");
+  }  /* if */
+  return result;
+}  /* request_ifc_module_entity */
 
 
 void load_namespace_elements_from_ifc_locator(a_module_entity_ptr    mep,
