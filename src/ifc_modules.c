@@ -4860,15 +4860,7 @@ a_lazy_entity_part
                 *ifc_template_definitions;
                         /* The state tracking object for lazily-loaded IL
                            template definitions. */
-
-using an_ifc_template_spec_map = Ptr_multi_map<a_template_ptr,
-                                               an_ifc_decl_index,
-                                               5>;
-                        /* The type of a map that associates IL template
-                           entries with IFC DeclIndex values that contain
-                           supplementary specializations. */
-
-an_ifc_template_spec_map
+a_lazy_entity_part
                 *ifc_template_specializations;
                         /* A map from canonical template IL pointers to entries
                            of type an_ifc_decl_index that can be used to
@@ -5343,10 +5335,7 @@ out to be needed later on.
   /* Ensure the canonical template IL entity is what's being mapped onto. */
   check_assertion(templ != NULL && templ->canonical_template != NULL);
   templ = templ->canonical_template;
-
-  an_ifc_template_spec_map::a_multi_value *values =
-                             ifc_template_specializations->get_or_alloc(templ);
-  values->push_back(decl_idx);
+  ifc_template_specializations->associate_entity(templ, decl_idx);
 }  /* record_pending_ifc_template_specializations */
 
 
@@ -11051,7 +11040,7 @@ current state of the ifc_decl_template_lookup_table for ordered processing of
 template specializations and explicit template instantiations.
 */
 struct an_ifc_template_spec_info {
-  inline an_ifc_template_spec_info(an_ifc_decl_index templ_idx_val);
+  inline an_ifc_template_spec_info(a_module_entity_ptr mep_val);
   a_boolean has_specs()
     { return specializations.length() + explicit_instantiations.length() > 0; }
   void process_specializations();
@@ -11060,10 +11049,8 @@ private:
   void traverse_data(
                  Opt<an_ifc_sequence>                        spec_sequence,
                  an_ifc_template_lookup_table::a_multi_value *spec_references);
-  an_ifc_decl_index
-                templ_idx;
-                        /* The IFC index for the associated template
-                           declaration. */
+  a_module_entity_ptr
+                mep;    /* The module entity for the associated template. */
   Small_dyn_array<an_ifc_decl_index, 25>
                 specializations;
                         /* An array of IFC declaration indexes that represent
@@ -11078,21 +11065,28 @@ private:
 }  /* namespace */
 
 an_ifc_template_spec_info::an_ifc_template_spec_info(
-                                               an_ifc_decl_index templ_idx_val)
-  : templ_idx(templ_idx_val)
+                                                   a_module_entity_ptr mep_val)
+  : mep(mep_val)
 /*
 Construct a new template spec info object for the template at the given IFC
 index.
 */
 {
-  Opt<an_ifc_sequence>
-                opt_spec_seq =
-                         get_specialization_sequence_from_trait(templ_idx_val);
-  an_ifc_template_lookup_table::a_multi_value
-                *spec_references =
-                            ifc_decl_template_lookup_table->get(templ_idx_val);
+  for (a_module_entry_locator &loc : this->mep->locators) {
+    /* FIXME: Generalize this. */
+    check_assertion(loc.kind == melk_ifc);
 
-  this->traverse_data(opt_spec_seq, spec_references);
+    an_ifc_decl_index
+                decl_idx = decl_index_of(loc);
+    Opt<an_ifc_sequence>
+                opt_spec_seq =
+                              get_specialization_sequence_from_trait(decl_idx);
+    an_ifc_template_lookup_table::a_multi_value
+                *spec_references =
+                                 ifc_decl_template_lookup_table->get(decl_idx);
+
+    this->traverse_data(opt_spec_seq, spec_references);
+  }  /* for */
 }  /* an_ifc_template_spec_info */
 
 
@@ -11176,8 +11170,13 @@ Process the specializations associated with a given template.
   for (an_ifc_decl_index decl_idx : this->specializations) {
     (void)request_entity_at_index(decl_idx);
   }  /* for */
+  for (a_module_entry_locator &loc : this->mep->locators) {
+    /* FIXME: Generalize this. */
+    check_assertion(loc.kind == melk_ifc);
 
-  ifc_decl_template_lookup_table->remove(this->templ_idx);
+    an_ifc_decl_index decl_idx = decl_index_of(loc);
+    ifc_decl_template_lookup_table->remove(decl_idx);
+  }  /* for */
 }  /* process_specializations */
 
 
@@ -11441,7 +11440,7 @@ must refer to the canonical template.
     an_il_entry_kind
                 kind = iek_template;
     an_ifc_template_spec_info
-                spec_info(def_decl_idx);
+                spec_info(mep);
     a_boolean   processed = process_template_definition(template_decl, mep,
                                                         spec_info,
                                                         &il_entity, &kind);
@@ -11478,49 +11477,8 @@ TRUE.  Note that templ must refer to the canonical template.
 */
 {
   check_assertion(templ != NULL && templ->canonical_template == templ);
-  an_ifc_template_spec_map::a_multi_value
-                  *values = ifc_template_specializations->get(templ);
-
-  return values != NULL;
+  return ifc_template_specializations->has_associated_ifc_decl(templ);
 }  /* has_template_specializations_from_ifc_module */
-
-
-static a_boolean load_template_specializations_from_ifc_module(
-                                                    a_template_ptr    templ,
-                                                    an_ifc_decl_index decl_idx)
-/*
-Process the specialization declared by the given IFC DeclIndex not yet loaded
-from the imported module for the given template.  If processing succeeds,
-return TRUE; otherwise, return FALSE.
-
-Note that templ must refer to the canonical template.
-*/
-{
-  a_boolean result = TRUE;
-
-#if DEBUG
-  if (db_flag_is_set("ifc_idx")) {
-    a_string err_msg("Template spec loading started for ",
-                     index_to_str(decl_idx));
-
-    print(err_msg, f_debug);
-  }  /* if */
-#endif /* DEBUG */
-
-  an_ifc_template_spec_info spec_info(decl_idx);
-  check_assertion(spec_info.has_specs());
-  spec_info.process_specializations();
-  spec_info.process_instantiations();
-#if DEBUG
-  if (db_flag_is_set("ifc_idx")) {
-    a_string err_msg("Template spec loading done for ",
-                     index_to_str(decl_idx));
-
-    print(err_msg, f_debug);
-  }  /* if */
-#endif /* DEBUG */
-  return result;
-}  /* load_template_specializations_from_ifc_module */
 
 
 a_boolean load_template_specializations_from_ifc_module(a_template_ptr  templ)
@@ -11533,23 +11491,36 @@ Note that templ must refer to the canonical template.
 {
   check_assertion(has_template_specializations_from_ifc_module(templ));
   a_boolean       result = TRUE;
-  /* Remove the multi-value from the map and work with a local copy of it.
-     This prevents infinite recursion back into this function. */
-  an_ifc_template_spec_map::a_multi_value
-                  values = ifc_template_specializations->take(templ);
 
-  /* Process the specializations for each IFC DeclIndex that has associated
-     specialization information. */
-  for (an_ifc_decl_index decl_idx : values) {
-    /* Try to process everything possible, so do not short circuit from a bad
-       result. */
-    a_boolean decl_idx_result =
-                load_template_specializations_from_ifc_module(templ, decl_idx);
+  if (ifc_template_specializations->can_be_processed(templ)) {
+    an_ifc_decl_index  primary_decl_idx =
+                  ifc_template_specializations->get_associated_ifc_decl(templ);
+#if DEBUG
+    if (db_flag_is_set("ifc_idx")) {
+      a_string err_msg("Template spec loading started for ",
+                       index_to_str(primary_decl_idx));
 
-    if (!decl_idx_result) {
-      result = FALSE;
+      print(err_msg, f_debug);
     }  /* if */
-  }  /* for */
+#endif /* DEBUG */
+    ifc_template_specializations->mark_pending(templ);
+
+    a_module_entity_ptr       mep = get_ifc_module_entity(primary_decl_idx);
+    an_ifc_template_spec_info spec_info(mep);
+    check_assertion(spec_info.has_specs());
+    spec_info.process_specializations();
+    spec_info.process_instantiations();
+    /* Consider the specializations successfully loaded. */
+    ifc_template_specializations->mark_finished(templ);
+#if DEBUG
+    if (db_flag_is_set("ifc_idx")) {
+      a_string err_msg("Template spec loading done for ",
+                       index_to_str(primary_decl_idx));
+
+      print(err_msg, f_debug);
+    }  /* if */
+#endif /* DEBUG */
+  }  /* if */
   return result;
 }  /* load_template_specializations_from_ifc_module */
 
@@ -30281,13 +30252,6 @@ definitions (and later replaced if a more complete definition is discovered).
       db_diff_decls(existing_decl, decl_idx);
     }  /* if */
 #endif /* DEBUG */
-
-    /* If there are any specializations associated with the previous
-       definition, add them to the pending specializations list. */
-    an_ifc_template_spec_info spec_info(existing_decl);
-    if (spec_info.has_specs()) {
-      record_pending_ifc_template_specializations(templ, existing_decl);
-    }  /* if */
   }  /* if */
   return result;
 }  /* record_pending_ifc_template_definition */
@@ -30350,7 +30314,7 @@ otherwise, return FALSE.
     a_template_ptr templ = (a_template_ptr)mep->entity.ptr;
 
     if (is_defined(mep->entity.ptr, mep->entity.kind)) {
-      an_ifc_template_spec_info spec_info(decl_idx);
+      an_ifc_template_spec_info spec_info(mep);
 
       if (spec_info.has_specs()) {
         record_pending_ifc_template_specializations(templ, decl_idx);
@@ -30493,8 +30457,7 @@ translation unit.
   ifc_var_inits = new_fe<a_lazy_entity_part>();
   ifc_function_bodies = new_fe<a_lazy_entity_part>();
   ifc_template_definitions = new_fe<a_lazy_entity_part>();
-  ifc_template_specializations = new_fe<an_ifc_template_spec_map>(
-                                                            /*mask_width=*/10);
+  ifc_template_specializations = new_fe<a_lazy_entity_part>();
   ifc_tag_definitions = new_fe<a_lazy_entity_part>();
   ifc_decl_lookup_table = new_fe<an_ifc_decl_lookup_table>(/*mask_width=*/10);
   ifc_decl_template_lookup_table = new_fe<an_ifc_template_lookup_table>(
