@@ -1,5 +1,12 @@
 Version 6.7
 
+10/9/24  [EDGcpfe/27589]
+Ignoring deduction guides in back ends
+
+A change has been made to the ignore_routine_in_back_end macro to return
+TRUE for deduction guides (as they should be ignored by back ends).
+
+
 10/9/24  [EDGcpfe/27628]
 Clang: Missing name reference for dependent __builtin_operator_delete and
 __builtin_operator_new
