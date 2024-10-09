@@ -16,19 +16,18 @@ TRUE for deduction guides (as they should be ignored by back ends).
 
 
 10/9/24  [EDGcpfe/27628]
-Clang: Missing name reference for dependent __builtin_operator_delete and
-__builtin_operator_new
+C++-generating back end, Clang compatibility: dependent calls to
+__builtin_operator_new and __builtin_operator_delete
 
-Consider, with --c++14 --clang_version 190100:
+In configurations with ALL_TEMPLATE_INFO_IN_IL set to TRUE, the C++-generating
+back end previously represented dependent calls to __builtin_operator_new and
+__builtin_operator_delete as calls to "operator new" and "operator delete",
+respectively.  For example, with --c++14 --clang_version 190100:
 
-  template<typename T>
-  int j = (__builtin_operator_delete((T *)0), 0);
-
-Previously, the dependent call expression was represented as a call to
-"operator delete" without any name reference, making it impossible to
-reconstruct the original source form from the IL.  Now, the call expression
-contains a name reference with the special_kind field set to
-sfk_builtin_operator_delete.
+  auto l = [] (auto t, auto *p) {
+    __builtin_operator_new(t);     // Previously generated as "operator new(t)"
+    __builtin_operator_delete(p);  // Previously generated as
+  };                               // "operator delete(p)"
 
 
 10/7/24  [EDGcpfe/25496]
