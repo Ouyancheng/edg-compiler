@@ -10812,6 +10812,62 @@ global module fragment; otherwise, return FALSE.
 }  /* is_from_gmf */
 
 
+static inline a_boolean compute_global_module_bit(a_module_entity_ptr mep)
+/*
+Return TRUE if the given module entity is in the global module; otherwise,
+return FALSE.
+*/
+{
+  a_boolean result = FALSE;
+
+  for (a_module_entry_locator &loc : mep->locators) {
+    /* FIXME: Generalize this. */
+    check_assertion(loc.kind == melk_ifc);
+
+    an_ifc_decl_index decl_idx = decl_index_of(loc);
+    if (!has_ifc_specifiers(decl_idx)) {
+      continue;
+    }  /* if */
+
+    an_ifc_basic_specifiers_bitfield specifiers = get_ifc_specifiers(decl_idx);
+    if (is_from_gmf(specifiers)) {
+      result = TRUE;
+      break;
+    }  /* if */
+  }  /* for */
+  return result;
+}  /* compute_global_module_bit */
+
+
+static inline a_boolean compute_non_exported_bit(a_module_entity_ptr mep)
+/*
+Return TRUE if the given module entity is non-exported; otherwise, return FALSE.
+*/
+{
+  a_boolean result = TRUE;
+
+  for (a_module_entry_locator &loc : mep->locators) {
+    /* FIXME: Generalize this. */
+    check_assertion(loc.kind == melk_ifc);
+
+    an_ifc_decl_index decl_idx = decl_index_of(loc);
+    if (!has_ifc_specifiers(decl_idx)) {
+      continue;
+    }  /* if */
+
+    an_ifc_basic_specifiers_bitfield specifiers = get_ifc_specifiers(decl_idx);
+    if (!test_bitmask<ifc_bsb_non_exported>(specifiers)) {
+      /* If at least one locator with specifiers tests FALSE for the
+         non-exported bit, then the module interface unit for this module has
+         exported this entity. */
+      result = FALSE;
+      break;
+    }  /* if */
+  }  /* for */
+  return result;
+}  /* compute_non_exported_bit */
+
+
 static inline void set_mep_origin_flags(a_module_entity_ptr mep)
 /*
 Set the module entity's origin flags (namely, global_module and non_exported).
@@ -10819,19 +10875,8 @@ The IFC node associated with the given module entity pointer is required to
 have been validated by the caller.
 */
 {
-
-  an_ifc_decl_index decl_idx = decl_index_of(mep);
-
-  if (has_ifc_specifiers(decl_idx)) {
-    an_ifc_basic_specifiers_bitfield specifiers = get_ifc_specifiers(decl_idx);
-
-    if (is_from_gmf(specifiers)) {
-      mep->global_module = TRUE;
-    }  /* if */
-    if (test_bitmask<ifc_bsb_non_exported>(specifiers)) {
-      mep->non_exported = TRUE;
-    }  /* if */
-  }  /* if */
+  mep->global_module = compute_global_module_bit(mep);
+  mep->non_exported = compute_non_exported_bit(mep);
 }  /* set_mep_origin_flags */
 
 
@@ -12220,11 +12265,6 @@ strongly preferred over calling this function directly.
                               properties = get_ifc_properties(scope_decl);
               a_symbol_kind   sym_kind = get_csu_sym_kind(scope_decl);
               a_symbol_ptr    tag_sym;
-              an_ifc_basic_specifiers_bitfield
-                              specifiers = get_ifc_specifiers(scope_decl);
-              if (test_bitmask<ifc_bsb_non_exported>(specifiers)) {
-                mep->non_exported = TRUE;
-              }  /* if */
               if (decl_is_named) {
                 a_symbol_locator loc;
 
