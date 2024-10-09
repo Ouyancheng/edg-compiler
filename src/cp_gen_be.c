@@ -15986,10 +15986,30 @@ call.
                        (a_template_param_constant_kind)tpck_unknown_function ||
            node_constant(func_expr)->variant.template_param.kind ==
                        (a_template_param_constant_kind)tpck_template_ref)) {
-        /* A tpck_unknown_function or tpck_template_ref constant
-           represents the address of the unknown function.  Drop the "&"
-           (it's implied) to make neater output. */
-        form_unknown_lvalue_constant(node_constant(func_expr), &octl);
+#if BUILTIN_FUNCTIONS_ENABLED
+        a_name_reference_ptr  nrp = func_expr->variant.constant.name_reference;
+        if (nrp != NULL &&
+            (special_kind_is(nrp, sfk_builtin_operator_new) ||
+             special_kind_is(nrp, sfk_builtin_operator_delete))) {
+          switch (nrp->special_kind) {
+            case sfk_builtin_operator_new:
+              write_tok_str("__builtin_operator_new");
+              break;
+            case sfk_builtin_operator_delete:
+              write_tok_str("__builtin_operator_delete");
+              break;
+            default:
+              unexpected_condition();
+          }  /* switch */
+        } else
+#endif /* BUILTIN_FUNCTIONS_ENABLED */
+        /* Do not insert code here. */
+        {
+          /* A tpck_unknown_function or tpck_template_ref constant
+             represents the address of the unknown function.  Drop the "&"
+             (it's implied) to make neater output. */
+          form_unknown_lvalue_constant(node_constant(func_expr), &octl);
+        }  /* if */
       } else {
         /* Specific routine is not known (e.g., call through a pointer). */
         a_boolean need_parens = TRUE;

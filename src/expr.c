@@ -7301,6 +7301,7 @@ are expected to be NULL in that case.
            operator function; use that symbol to do the overload resolution. */
         overloaded_function_symbol = bcap->overloaded_function_symbol;
         overloaded_function_case = TRUE;
+        operand->is_qualified_name = TRUE;
         do_arg_dep_lookup = FALSE;
       }  /* if */
     }  /* if */
@@ -7547,17 +7548,29 @@ are expected to be NULL in that case.
   }  /* if */
 #if BUILTIN_FUNCTIONS_ENABLED
   if (bcap != NULL) {
+    if (bcap->name_reference != NULL && !is_error_operand(result)) {
+      /* The builtin call has been replaced by a call to the appropriate
+         operator new/delete; use a name reference to communicate this to the
+         back end so the original source can be recreated. */
+      an_expr_node_ptr  operand_node;
+      check_assertion(result->kind == ok_expression &&
+                      node_is_operator(result->variant.expression, eok_call));
+      operand_node = result->variant.expression->variant.operation.operands;
+      switch (operand_node->kind) {
+        case enk_routine:
+          operand_node->variant.routine.name_reference = bcap->name_reference;
+          break;
+        case enk_constant:
+          operand_node->variant.constant.name_reference = bcap->name_reference;
+          break;
+        default:
+          unexpected_condition_str("scan_function_call: bad operand kind");
+      }  /* switch */
+    }  /* if */
     if (bcap->result_type != NULL) {
       /* Cast the call result to the right type for certain builtin function
          calls. */
       cast_operand(bcap->result_type, result, /*is_implicit_cast=*/TRUE);
-    }  /* if */
-    an_expr_node_ptr  operand_node = expr_node_from_operand(operand);
-    if (bcap->name_reference != NULL && operand_node != NULL) {
-      /* The builtin call has been replaced by a call to the appropriate
-         operator new/delete; use a name reference to communicate this to the
-         back end so the original source can be recreated. */
-      operand_node->variant.routine.name_reference = bcap->name_reference;
     }  /* if */
   }  /* if */
 #endif /* BUILTIN_FUNCTIONS_ENABLED */

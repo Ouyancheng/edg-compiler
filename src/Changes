@@ -1,5 +1,21 @@
 Version 6.7
 
+10/9/24  [EDGcpfe/27628]
+Clang: Missing name reference for dependent __builtin_operator_delete and
+__builtin_operator_new
+
+Consider, with --c++14 --clang_version 190100:
+
+  template<typename T>
+  int j = (__builtin_operator_delete((T *)0), 0);
+
+Previously, the dependent call expression was represented as a call to
+"operator delete" without any name reference, making it impossible to
+reconstruct the original source form from the IL.  Now, the call expression
+contains a name reference with the special_kind field set to
+sfk_builtin_operator_delete.
+
+
 10/7/24  [EDGcpfe/25496]
 Constraint checking during class template argument deduction for nested class
 templates
