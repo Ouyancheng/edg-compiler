@@ -1,5 +1,12 @@
 Version 6.7
 
+10/9/24  [EDGcpfe/27569]
+Cfront ABI: read past end of buffer when demangling some invalid identifiers
+
+In the Cfront ABI, decode_identifier had read past the end of the buffer
+on some invalid identifiers (like "___it").  Now fixed.
+
+
 9/16/24  [EDGcpfe/27560]
 GNU/Clang compatibility: __GLIBCXX_BITSIZE_INT_N_0 and __GLIBCXX_TYPE_INT_N_0
 

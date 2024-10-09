@@ -4314,7 +4314,7 @@ length returned the second time will be correct).
     dctl->output_id[dctl->output_id_len] = 0;
   }  /* if */
   /* Make sure the whole identifier was taken. */
-  if (end_ptr != NULL && *end_ptr != '\0') {
+  if (!dctl->err_in_id && end_ptr != NULL && *end_ptr != '\0') {
     bad_mangled_name(dctl);
   }  /* if */
   *err = dctl->err_in_id;
