@@ -1,5 +1,11 @@
 Version 6.7
 
+10/9/24  [EDGcpfe/27636]
+Unicode 16.0.0 characters
+
+The front end now supports the Unicode 16.0.0 character set.
+
+
 10/9/24  [EDGcpfe/27169]
 Mangling of template parameters used for class template argument deduction
 
