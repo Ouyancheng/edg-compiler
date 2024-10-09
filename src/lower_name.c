@@ -2615,7 +2615,9 @@ given coordinates.  args points to the template argument list (for a
 template template parameter), if any.
 */
 {
-  check_assertion(distinct_template_signatures);
+  check_assertion(distinct_template_signatures &&
+                  coordinate->depth !=
+                                     CLASS_TEMPLATE_PLACEHOLDER_NESTING_DEPTH);
 #if !IA64_ABI
   /* The encoding is "ZnZ" for a first-level parameter, and "Zn_mZ" for
      a non-first-level parameter, with "n" the parameter number, and
@@ -2654,6 +2656,32 @@ template template parameter), if any.
   add_to_mangled_name('Z', mctl);
 #endif /* !IA64_ABI */
 }  /* mangled_encoding_for_template_parameter */
+
+
+static void mangled_encoding_for_template_parameter_with_ctad_check(
+                                                a_type                   *type,
+                                                a_template_arg_ptr       args,
+                                                a_mangling_control_block *mctl)
+/*
+Emit a mangled encoding for a template parameter, but check to see if the
+type represents a class template being used for template argument deduction.
+args points to the template argument list (for a template template parameter),
+if any.
+*/
+{
+  check_assertion(type->variant.template_param.kind == tptk_param);
+  a_template_param_coordinate *coordinate =
+                         &type->variant.template_param.extra_info->coordinates;
+
+  if (coordinate->depth == CLASS_TEMPLATE_PLACEHOLDER_NESTING_DEPTH) {
+    /* The template parameter represents a class template being used for
+       class template argument deduction; mangle it as a type. */
+    mangled_type_name(type, mctl);
+  } else {
+    /* Typical case. */
+    mangled_encoding_for_template_parameter(coordinate, args, mctl);
+  }  /* if */
+}  /* mangled_encoding_for_template_parameter_with_ctad_check */
 
 
 static void mangled_encoding_for_sizeof(
@@ -10924,8 +10952,8 @@ top_of_loop:
         } else {
           switch (type->variant.template_param.kind) {
             case tptk_param:
-              mangled_encoding_for_template_parameter(
-                         &type->variant.template_param.extra_info->coordinates,
+              mangled_encoding_for_template_parameter_with_ctad_check(
+                         type,
                          (a_template_arg *)NULL,
                          mctl);
               break;

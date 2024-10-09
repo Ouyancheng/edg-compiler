@@ -1,5 +1,19 @@
 Version 6.7
 
+10/9/24  [EDGcpfe/27169]
+Mangling of template parameters used for class template argument deduction
+
+Template parameters used for class template argument deduction were incorrectly
+mangled (resulting in names that could not be demangled) and are now
+mangled properly.  For example (with --c++17):
+
+  template <class T> struct S {
+    S(T);
+  };
+  template <class T> decltype(S(T())) c();
+  auto v = c<int>();
+
+
 10/9/24  [EDGcpfe/27565]
 Incorrect setting of ms_extensions in some modes
 
