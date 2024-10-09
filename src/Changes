@@ -1,13 +1,5 @@
 Version 6.7
 
-10/9/24  [EDGcpfe/27565]
-Incorrect setting of ms_extensions in some modes
-
-In configurations where DEFAULT_MICROSOFT_MODE is TRUE and --ms_compatibility
-is specified on the command-line, the ms_extensions global variable had
-inadvertently been set to FALSE.
-
-
 10/9/24  [EDGcpfe/27589]
 Ignoring deduction guides in back ends
 
