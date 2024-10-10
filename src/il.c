@@ -30706,7 +30706,7 @@ Definition of the bits in lvalue_rvalue_test.
 #define LVRV_VA_LIST_OPERATION			0x40
 #define LVRV_DISTINGUISHED_VALUE_FOR_LAST	0xfd
 
-CONSTINIT_ARRAY(static, a_byte, lvalue_rvalue_test, (unsigned)eok_last+1)
+CONSTINIT_ARRAY(static, a_byte, lvalue_rvalue_test, eok_last + 1)
 = {
   /* eok_address_of: */			LVRV_OPND1_IS_GLVALUE,
   /* eok_reference_to: */		LVRV_NO_REQUIREMENTS,

@@ -600,7 +600,7 @@ typedef void (*a_function_pointer)();
 
 /* Declare the array of function pointers that map to the enumeration above. */
 EXTERN_CONSTINIT_ARRAY_FORWARD_DECL(a_function_pointer, function_pointers,
-                                    (unsigned)fn_last+1)
+                                    fn_last+1)
 
 /*
 This token pasting macro converts a function name into an enumerator

@@ -68,7 +68,7 @@ processing.  This is not the definition of the preprocessing directive
 keywords (see identify_dir_keyword).
 */
 EXTERN_CONSTINIT_ARRAY(a_const_char*, pp_directive_kind_names,
-                       (unsigned)ppd_not_valid+1)
+                       ppd_not_valid + 1)
 #if VAR_INITIALIZERS
 = { "if",
     "ifdef",

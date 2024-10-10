@@ -567,7 +567,7 @@ enum a_name_linkage_kind : a_byte {
 Names of linkage kinds.  These are used to recognize the string in a
 linkage specification (extern "xxx") and for debug output.
 */
-EXTERN_CONSTINIT_ARRAY(a_const_char*, name_linkage_kind_names, nlk_last+1)
+EXTERN_CONSTINIT_ARRAY(a_const_char*, name_linkage_kind_names, nlk_last + 1)
 #if VAR_INITIALIZERS
 = {
   "no",			/* nlk_none */
@@ -803,7 +803,7 @@ enum an_il_entry_kind : a_byte {
 /*
 Display names for IL entry kinds.
 */
-EXTERN_CONSTINIT_ARRAY(a_const_char*, il_entry_kind_names, iek_last+1)
+EXTERN_CONSTINIT_ARRAY(a_const_char*, il_entry_kind_names, iek_last + 1)
 #if VAR_INITIALIZERS
 = {
 /* iek_none */				"none",
@@ -1529,7 +1529,7 @@ enum a_token_kind : unsigned short {
 /*
 Table of names corresponding to token kinds.
 */
-EXTERN_CONSTINIT_ARRAY(a_const_char*, token_names, tok_last+1)
+EXTERN_CONSTINIT_ARRAY(a_const_char*, token_names, tok_last + 1)
 #if VAR_INITIALIZERS
 = {"error", "identifier", "float constant", "fixed-point constant",
    "int constant", "char constant", "generated constant",
@@ -4440,7 +4440,7 @@ enum a_character_kind : a_byte {
 /*
 Table of names corresponding to special function kinds, for debug purposes.
 */
-EXTERN_CONSTINIT_ARRAY(a_const_char*, db_special_function_kinds, sfk_last+1)
+EXTERN_CONSTINIT_ARRAY(a_const_char*, db_special_function_kinds, sfk_last + 1)
 #if VAR_INITIALIZERS
 = {
    "none", "constructor", "destructor", "conversion", "literal operator",
@@ -5615,7 +5615,7 @@ enum a_type_mode_kind : a_byte {
 /*
 Names of machine modes.
 */
-EXTERN_CONSTINIT_ARRAY(a_const_char*, type_mode_kind_names, tmk_last+1)
+EXTERN_CONSTINIT_ARRAY(a_const_char*, type_mode_kind_names, tmk_last + 1)
 #if VAR_INITIALIZERS
 = {
 /* tmk_error */ "error",
@@ -5723,7 +5723,7 @@ enum an_asm_operand_constraint_kind : a_byte {
 /*
 Names of operand constraints.  Used by il_display.c.
 */
-EXTERN_CONSTINIT_ARRAY(char, asm_operand_constraint_letters, aoc_last+1)
+EXTERN_CONSTINIT_ARRAY(char, asm_operand_constraint_letters, aoc_last + 1)
 #if VAR_INITIALIZERS
 = {
   /* aoc_invalid */             '@',
@@ -5854,7 +5854,7 @@ enum a_named_register : a_byte {
 Names of named registers.  Note that the user is allowed to
 give additional variants, see extasm.c.
 */
-EXTERN_CONSTINIT_ARRAY(a_const_char*, named_register_names, anr_last+1)
+EXTERN_CONSTINIT_ARRAY(a_const_char*, named_register_names, anr_last + 1)
 #if VAR_INITIALIZERS
 = {
   /* anr_invalid */ "invalid",
@@ -6527,7 +6527,7 @@ enum a_pragma_kind : a_byte {
 };
 
 
-EXTERN_CONSTINIT_ARRAY(a_const_char*, pragma_ids, pk_last+1)
+EXTERN_CONSTINIT_ARRAY(a_const_char*, pragma_ids, pk_last + 1)
 #if VAR_INITIALIZERS
 = {
 /* pk_none */			"none",
@@ -6639,7 +6639,7 @@ enum a_microsoft_pragma_conform_kind : a_byte {
 
 
 EXTERN_CONSTINIT_ARRAY(a_const_char*, microsoft_pragma_comment_ids,
-                       mpct_last+1)
+                       mpct_last + 1)
 #if VAR_INITIALIZERS
 = {
 /* mpct_compiler */	"compiler",
@@ -6996,7 +6996,7 @@ enum a_decl_modifier : a_byte {
 
 
 #if DECL_MODIFIERS_IN_USE
-EXTERN_CONSTINIT_ARRAY(a_const_char*, decl_modifier_names, dmt_last+1)
+EXTERN_CONSTINIT_ARRAY(a_const_char*, decl_modifier_names, dmt_last + 1)
 #if VAR_INITIALIZERS
 = {
 #if MICROSOFT_EXTENSIONS_ALLOWED
@@ -8093,7 +8093,7 @@ enum an_inheritance_kind : a_byte {
 /*
 Names of inheritance kinds, used for diagnostics.
 */
-EXTERN_CONSTINIT_ARRAY(a_const_char*, inheritance_kind_names, ihk_last+1)
+EXTERN_CONSTINIT_ARRAY(a_const_char*, inheritance_kind_names, ihk_last + 1)
 #if VAR_INITIALIZERS
 = {
 /* ihk_none */		"none",
@@ -10575,7 +10575,7 @@ typedef struct a_type {
 /*
 Table of storage class names, for debug purposes.
 */
-EXTERN_CONSTINIT_ARRAY(a_const_char*, db_storage_class_names, sc_last+1)
+EXTERN_CONSTINIT_ARRAY(a_const_char*, db_storage_class_names, sc_last + 1)
 #if VAR_INITIALIZERS
 = { "unspecified", "extern", "static", "auto", "typedef", "register", "asm",
     "last" /* used to check that initialization is right. */
@@ -18450,7 +18450,7 @@ EXTERN an_il_header il_header;
 
 #if DEBUG
 /* Table of debug names for expression operators. */
-EXTERN_CONSTINIT_ARRAY(a_const_char*, db_operator_names, eok_last+1)
+EXTERN_CONSTINIT_ARRAY(a_const_char*, db_operator_names, eok_last + 1)
 #if VAR_INITIALIZERS
 = {"&", "ref-&", "%", "*", "ref-*",
    "cast", "lvalue cast", "ref cast", "lvalue adjust", "class rvalue adjust",
@@ -18512,7 +18512,7 @@ EXTERN_CONSTINIT_ARRAY_END(db_operator_names)
 /*
 Table of names of various builtin operations.
 */
-EXTERN_CONSTINIT_ARRAY(a_const_char*, builtin_operation_names, bok_last+1)
+EXTERN_CONSTINIT_ARRAY(a_const_char*, builtin_operation_names, bok_last + 1)
 #if VAR_INITIALIZERS
 = {
   "__builtin_offsetof",

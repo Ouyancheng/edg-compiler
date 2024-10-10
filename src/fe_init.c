@@ -208,8 +208,7 @@ to another on operating systems that implement Address Space Layout
 Randomization (ASLR).
 */
 
-CONSTINIT_ARRAY(/* none */, a_function_pointer, function_pointers,
-                (unsigned)fn_last+1)
+CONSTINIT_ARRAY(/* none */, a_function_pointer, function_pointers, fn_last + 1)
 #if VAR_INITIALIZERS
 = {
   (a_function_pointer)NULL,              /* fn_null */

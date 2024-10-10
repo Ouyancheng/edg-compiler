@@ -518,8 +518,7 @@ enum a_symbol_kind : a_byte {
 /*
 Table of names corresponding to symbol kinds.
 */
-EXTERN_CONSTINIT_ARRAY(a_const_char*, symbol_kind_names,
-                       (unsigned)sk_last+1)
+EXTERN_CONSTINIT_ARRAY(a_const_char*, symbol_kind_names, sk_last + 1)
 #if VAR_INITIALIZERS
 = {
    "keyword", "macro", "constant", "type", "class or struct", "union",
@@ -4240,8 +4239,7 @@ typedef struct a_cli_operator_info {
 Table of a_cli_operator_info structures corresponding to each entry in 
 a_cli_operator_kind.
 */
-EXTERN_CONSTINIT_ARRAY(a_cli_operator_info, cli_operator_info,
-                       (unsigned)cok_last + 1)
+EXTERN_CONSTINIT_ARRAY(a_cli_operator_info, cli_operator_info, cok_last + 1)
 #if VAR_INITIALIZERS
 = {
   { "<none>", NULL, FALSE },
@@ -5418,7 +5416,7 @@ typedef struct {
                         /* Init flags required by the symbol. */
 } a_cli_symbol_name;
 
-EXTERN_CONSTINIT_ARRAY(a_cli_symbol_name, cli_symbol_names, (int)csk_last + 1)
+EXTERN_CONSTINIT_ARRAY(a_cli_symbol_name, cli_symbol_names, csk_last + 1)
 			/* Array of symbol names corresponding to each entry
 			   in a_cli_symbol_kind, respectively.  See
 			   a_cli_symbol_kind for more information. */
