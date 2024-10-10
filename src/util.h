@@ -4464,12 +4464,25 @@ Return a hash value for the given pointer value.
 }  /* hash_ptr */
 
 
-template<typename T> uintptr_t hash_ptr(T p)
+template<typename an_Integral_type>
+inline Enable_if<!(an_Integral_type(-1) < an_Integral_type(0)), uintptr_t>
+hash_ptr(an_Integral_type i)
 /*
-Generic version of hash_ptr for types that aren't native pointers.
+Generic version of hash_ptr for unsigned integers.
 */
 {
-  return (uintptr_t)p;
+  return (uintptr_t)i;
+}  /* hash_ptr */
+
+
+template<typename an_Integral_type>
+inline Enable_if<(an_Integral_type(-1) < an_Integral_type(0)), uintptr_t>
+hash_ptr(an_Integral_type i)
+/*
+Generic version of hash_ptr for signed integers.
+*/
+{
+  return (uintptr_t)i;
 }  /* hash_ptr */
 
 
