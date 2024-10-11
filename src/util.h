@@ -4770,9 +4770,8 @@ private:
 			/* The number of elements stored in the table. */
   inline a_boolean has_value_at(size_t idx) const
     { return this->table[idx].has_value(); }
-  inline void make_space_for_colliding_key(size_t          idx,
-                                           const a_key     &new_key,
-                                           const a_value   &new_value);
+  inline void make_space_for_colliding_key(size_t      idx,
+                                           const a_key &new_key);
   inline void construct_entry_at(size_t        idx,
                                  const a_key   &new_key,
                                  const a_value &new_value);
@@ -4896,7 +4895,7 @@ value of that key.
   check_assertion(key != a_key());
   check_traced_key_ptr(key, "mapped");
   if (this->has_value_at(idx)) {
-    this->make_space_for_colliding_key(idx, key, value);
+    this->make_space_for_colliding_key(idx, key);
   }  /* if */
   /* Record the new mapping. */
   this->construct_entry_at(idx, key, value);
@@ -4922,7 +4921,7 @@ value of that key.
   check_assertion(key != a_key());
   check_traced_key_ptr(key, "mapped");
   if (this->has_value_at(idx)) {
-    this->make_space_for_colliding_key(idx, key, value);
+    this->make_space_for_colliding_key(idx, key);
   }  /* if */
   /* Record the new mapping. */
   this->construct_entry_at(idx, move_from(&key), value);
@@ -5060,11 +5059,10 @@ template<typename a_Ptr_key, typename a_Value,
          template<typename> class Allocator>
 void Ptr_map<a_Ptr_key, a_Value, Allocator>::make_space_for_colliding_key(
                                                      size_t         idx,
-                                                     const a_key    &new_key,
-                                                     const a_value  &new_value)
+                                                     const a_key    &new_key)
 /*
 The given key has a hash value that collides with an existing mapping.
-Rearrange the current elements so that the given index can be used for the new
+Rearrange the current elements so that the given index can be used for a new
 value.
 */
 {
