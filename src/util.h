@@ -1908,6 +1908,8 @@ struct Owning_ptr: private Deallocator<an_Object> {
     { return *this->ptr; }
   inline auto raw() -> an_object*
     { return this->ptr; }
+  inline auto raw() const -> an_object*
+    { return this->ptr; }
   inline auto release() -> an_object*;
 private:
   typedef typename a_deallocator::an_allocation an_allocation;
@@ -1976,6 +1978,120 @@ responsibility for memory management of the returned pointer.
   this->ptr = NULL;
   return p;
 }  /* Owning_ptr::release */
+
+
+template<typename an_Object,
+         template<typename> class Deallocator_A,
+         template<typename> class Deallocator_B>
+inline a_boolean operator==(const Owning_ptr<an_Object, Deallocator_A> &ptr_a,
+                            const Owning_ptr<an_Object, Deallocator_B> &ptr_b)
+/*
+Return TRUE if the given pointer values are equal; otherwise, return FALSE.
+*/
+{
+  return ptr_a.raw() == ptr_b.raw();
+}  /* operator== */
+
+
+template<typename an_Object,
+         template<typename> class Deallocator_A,
+         template<typename> class Deallocator_B>
+inline a_boolean operator!=(const Owning_ptr<an_Object, Deallocator_A> &ptr_a,
+                            const Owning_ptr<an_Object, Deallocator_B> &ptr_b)
+/*
+Return TRUE if the given pointer values are not equal; otherwise, return FALSE.
+*/
+{
+  return !(ptr_a == ptr_b);
+}  /* operator!= */
+
+
+template<typename an_Object, template<typename> class Deallocator>
+inline a_boolean operator==(an_Object                                *ptr_a,
+                            const Owning_ptr<an_Object, Deallocator> &ptr_b)
+/*
+Return TRUE if the given pointer values are equal; otherwise, return FALSE.
+*/
+{
+  return ptr_a == ptr_b.raw();
+}  /* operator== */
+
+
+template<typename an_Object, template<typename> class Deallocator>
+inline a_boolean operator!=(an_Object                                *ptr_a,
+                            const Owning_ptr<an_Object, Deallocator> &ptr_b)
+/*
+Return TRUE if the given pointer values are not equal; otherwise, return FALSE.
+*/
+{
+  return !(ptr_a == ptr_b);
+}  /* operator!= */
+
+
+template<typename an_Object, template<typename> class Deallocator>
+inline a_boolean operator==(const Owning_ptr<an_Object, Deallocator> &ptr_a,
+                            an_Object                                *ptr_b)
+/*
+Return TRUE if the given pointer values are equal; otherwise, return FALSE.
+*/
+{
+  return ptr_a == ptr_b.raw();
+}  /* operator== */
+
+
+template<typename an_Object, template<typename> class Deallocator>
+inline a_boolean operator!=(const Owning_ptr<an_Object, Deallocator> &ptr_a,
+                            an_Object                                *ptr_b)
+/*
+Return TRUE if the given pointer values are not equal; otherwise, return FALSE.
+*/
+{
+  return !(ptr_a == ptr_b);
+}  /* operator!= */
+
+
+template<typename an_Object, template<typename> class Deallocator>
+inline a_boolean operator==(nullptr_t                                ptr_a,
+                            const Owning_ptr<an_Object, Deallocator> &ptr_b)
+/*
+Return TRUE if the given pointer values are equal; otherwise, return FALSE.
+*/
+{
+  return ptr_a == ptr_b.raw();
+}  /* operator== */
+
+
+template<typename an_Object, template<typename> class Deallocator>
+inline a_boolean operator!=(nullptr_t                                ptr_a,
+                            const Owning_ptr<an_Object, Deallocator> &ptr_b)
+/*
+Return TRUE if the given pointer values are not equal; otherwise, return FALSE.
+*/
+{
+  return !(ptr_a == ptr_b);
+}  /* operator!= */
+
+
+template<typename an_Object, template<typename> class Deallocator>
+inline a_boolean operator==(const Owning_ptr<an_Object, Deallocator> &ptr_a,
+                            nullptr_t                                ptr_b)
+/*
+Return TRUE if the given pointer values are equal; otherwise, return FALSE.
+*/
+{
+  return ptr_a.raw() == ptr_b;
+}  /* operator== */
+
+
+template<typename an_Object, template<typename> class Deallocator>
+inline a_boolean operator!=(const Owning_ptr<an_Object, Deallocator> &ptr_a,
+                            nullptr_t                                ptr_b)
+/*
+Return TRUE if the given pointer values are not equal; otherwise, return FALSE.
+*/
+{
+  return !(ptr_a == ptr_b);
+}  /* operator!= */
 
 
 template<typename an_Object, typename ...an_Arg_pack>
