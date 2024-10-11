@@ -1982,22 +1982,6 @@ stored on the given module entity pointer.
 }  /* decl_index_of */
 
 
-static inline an_ifc_type_index
-type_index_of(an_ifc_module         *mod,
-              an_ifc_partition_kind partition,
-              size_t                file_offset)
-/*
-Return the an_ifc_type_index in the given module, derived from the partition
-kind and file offset.
-*/
-{
-  an_ifc_index_type part_index = to_partition_index(mod, partition,
-                                                    file_offset);
-
-  return an_ifc_type_index{&mod->file, to_type_sort(partition), part_index};
-}  /* type_index_of */
-
-
 a_const_char *get_partition_name_from_kind(an_ifc_partition_kind part_kind)
 /*
 Given a partition kind that corresponds to a real partition, return the

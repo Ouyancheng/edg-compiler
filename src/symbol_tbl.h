@@ -4397,6 +4397,25 @@ TRUE.
   return !(a == b);
 }  /* operator!= */
 
+namespace detail {
+
+/*
+The following specializations provide Is_trivially_copyable and
+Is_trivially_destructible support for a_module_entry_locator.
+*/
+
+template<>
+struct Is_trivially_copyable_edg_impl<a_module_entry_locator> :
+                                                Integral_constant<bool, true> {
+};  /* Is_trivially_copyable_edg_impl */
+
+template<>
+struct Is_trivially_destructible_edg_impl<a_module_entry_locator> :
+                                                Integral_constant<bool, true> {
+};  /* Is_trivially_destructible_edg_impl */
+
+}  /* namespace detail */
+
 /*
 A pairing of a scope and a module entry locator.
 */
