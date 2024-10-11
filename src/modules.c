@@ -835,6 +835,60 @@ FALSE.
 }  /* operator!= */
 
 
+a_module_template_parameter::a_module_template_parameter(
+                                           a_module_template_parameter &&other)
+/*
+Move construct from the given module template parameter.
+*/
+  : kind(other.kind)
+{
+  switch (kind) {
+    case mtpk_type:
+      /* No op. */
+      break;
+    case mtpk_non_type:
+      this->variant.type = other.variant.type;
+      break;
+    case mtpk_template:
+      this->variant.params_list = other.variant.params_list;
+      other.variant.params_list = NULL;
+      break;
+    default_is_unexpected();
+  }  /* switch */
+}  /* a_module_entity_key::~a_module_entity_key */
+
+
+a_module_template_parameter::~a_module_template_parameter()
+/*
+Destroy the given module template parameter.
+*/
+{
+  switch (kind) {
+    case mtpk_type:
+    case mtpk_non_type:
+      /* No op. */
+      break;
+    case mtpk_template:
+      delete_fe(&this->variant.params_list);
+      break;
+    default_is_unexpected();
+  }  /* switch */
+}  /* a_module_template_parameter::~a_module_template_parameter */
+
+
+a_module_template_parameter& a_module_template_parameter::operator=(
+                                           a_module_template_parameter &&other)
+/*
+Move assign from the given module template parameter.
+*/
+{
+  if (this != &other) {
+    destroy(this);
+    construct(this, move_from(&other));
+  }  /* if */
+  return *this;
+}  /* a_module_template_parameter::operator== */
+
 a_boolean operator==(const a_module_template_parameter &a,
                      const a_module_template_parameter &b)
 /*
@@ -890,23 +944,21 @@ namespace {
 A key structure used for module entity hashing of functions.
 */
 struct a_module_entity_function_key {
-  a_module_func_param_list
-                *parameter_types;
+  Owning_ptr<a_module_func_param_list>
+                parameter_types;
                         /* The parameter types. */
   a_boolean     has_ellipsis;
                         /* TRUE if the given function key represents a function
                            with a C-style ellipsis argument. */
-  /* FIXME: Implement destruction. */
 };  /* a_module_entity_function_key */
 
 /*
 A key structure used for module entity hashing of specializations.
 */
 struct a_module_entity_specialization_key {
-  a_template_arg_ptr
+  an_owned_template_arg_list
                 arguments;
                         /* The argument set this entity is specialized on. */
-  /* FIXME: Implement a destructor so a_template_arg_ptr is freed. */
 };  /* a_module_entity_specialization_key */
 
 /*
@@ -917,11 +969,10 @@ struct a_module_entity_func_templ_key {
                 function;
                         /* The function parameters for the function
                            template. */
-  a_module_template_parameter_list
-                *parameters;
+  Owning_ptr<a_module_template_parameter_list>
+                parameters;
                         /* The template parameters for the function
                            template. */
-  /* FIXME: Implement destruction. */
 };  /* a_module_entity_func_templ_key */
 
 /*
@@ -942,13 +993,12 @@ struct a_module_entity_func_spec_key {
 A key structure used for module entity hashing of deduction guides.
 */
 struct a_module_entity_deduct_guide_key {
-  a_module_template_parameter_list
-                *template_params;
+  Owning_ptr<a_module_template_parameter_list>
+                template_params;
                         /* The template parameters for the deduction guide. */
-  a_module_deduct_guide_param_list
-                *param_list;
+  Owning_ptr<a_module_deduct_guide_param_list>
+                param_list;
                         /* The parameter types for the deduction guide. */
-  /* FIXME: Implement destruction. */
 };  /* a_module_entity_deduct_guide_key */
 
 
@@ -1014,7 +1064,7 @@ struct a_module_entity_key {
 
 a_module_entity_key::a_module_entity_key(a_module_entity_key &&other)
 /*
-Destroy the given module entity key.
+Move construct from the given module entity key.
 */
   : mod(other.mod), scope(other.scope), name(other.name), kind(other.kind),
     variant(other.variant)
@@ -1063,8 +1113,8 @@ return FALSE.
 */
 {
   a_boolean             result = TRUE;
-  Dyn_array<a_type_ptr> *a_params = a.parameter_types;
-  Dyn_array<a_type_ptr> *b_params = b.parameter_types;
+  Dyn_array<a_type_ptr> *a_params = a.parameter_types.raw();
+  Dyn_array<a_type_ptr> *b_params = b.parameter_types.raw();
 
   if (a_params->length() != b_params->length()) {
     result = FALSE;
@@ -1096,8 +1146,8 @@ otherwise, return FALSE.
 */
 {
   a_boolean          result = TRUE;
-  a_template_arg_ptr a_args = a.arguments;
-  a_template_arg_ptr b_args = b.arguments;
+  a_template_arg_ptr a_args = a.arguments.raw();
+  a_template_arg_ptr b_args = b.arguments.raw();
   size_t             a_n_args = count_list_elements(a_args);
   size_t             b_n_args = count_list_elements(b_args);
 
@@ -1131,8 +1181,8 @@ otherwise, return FALSE.
   if (!(a.function == b.function)) {
     result = FALSE;
   } else {
-    a_module_template_parameter_list *a_params = a.parameters;
-    a_module_template_parameter_list *b_params = b.parameters;
+    a_module_template_parameter_list *a_params = a.parameters.raw();
+    a_module_template_parameter_list *b_params = b.parameters.raw();
 
     if (a_params->length() != b_params->length()) {
       result = FALSE;
@@ -1180,8 +1230,8 @@ otherwise, return FALSE.
   a_boolean result = TRUE;
 
   {
-    a_module_template_parameter_list *a_params = a.template_params;
-    a_module_template_parameter_list *b_params = b.template_params;
+    a_module_template_parameter_list *a_params = a.template_params.raw();
+    a_module_template_parameter_list *b_params = b.template_params.raw();
 
     if (a_params->length() != b_params->length()) {
       result = FALSE;
@@ -1199,8 +1249,8 @@ otherwise, return FALSE.
     }  /* if */
   }
   {
-    Dyn_array<a_type_ptr> *a_params = a.param_list;
-    Dyn_array<a_type_ptr> *b_params = b.param_list;
+    Dyn_array<a_type_ptr> *a_params = a.param_list.raw();
+    Dyn_array<a_type_ptr> *b_params = b.param_list.raw();
 
     if (a_params->length() != b_params->length()) {
       result = FALSE;
@@ -1500,11 +1550,11 @@ the given scope and name.
 
 
 a_module_entity_ptr get_function_module_entity(
-                                         a_module_ptr             mod,
-                                         a_module_entity_scope    *scope,
-                                         a_symbol_header_ptr      name,
-                                         a_module_func_param_list *func_params,
-                                         a_boolean                has_ellipsis)
+                            a_module_ptr                         mod,
+                            a_module_entity_scope                *scope,
+                            a_symbol_header_ptr                  name,
+                            Owning_ptr<a_module_func_param_list> &&func_params,
+                            a_boolean                            has_ellipsis)
 /*
 Return a pointer to the module entity for the entity in the given module, with
 the given scope, name, and function parameters.  has_ellipsis should be TRUE if
@@ -1517,7 +1567,7 @@ the given module entity is a C-style variable argument function.
   key.name = name;
   key.kind = meeik_function;
   key.variant.function = new_fe<a_module_entity_function_key>();
-  key.variant.function->parameter_types = func_params;
+  key.variant.function->parameter_types = move_from(&func_params);
   key.variant.function->has_ellipsis = has_ellipsis;
 
   a_module_entity_ptr result = get_module_entity_from_key(move_from(&key));
@@ -1526,10 +1576,10 @@ the given module entity is a C-style variable argument function.
 
 
 a_module_entity_ptr get_specialized_module_entity(
-                                           a_module_ptr          mod,
-                                           a_module_entity_scope *scope,
-                                           a_symbol_header_ptr   name,
-                                           a_template_arg_ptr    template_args)
+                                    a_module_ptr               mod,
+                                    a_module_entity_scope      *scope,
+                                    a_symbol_header_ptr        name,
+                                    an_owned_template_arg_list &&template_args)
 /*
 Return a pointer to the module entity for the entity in the given module, with
 the given scope, name, and template arguments.
@@ -1541,7 +1591,7 @@ the given scope, name, and template arguments.
   key.name = name;
   key.kind = meeik_specialization;
   key.variant.specialization = new_fe<a_module_entity_specialization_key>();
-  key.variant.specialization->arguments = template_args;
+  key.variant.specialization->arguments = move_from(&template_args);
 
   a_module_entity_ptr result = get_module_entity_from_key(move_from(&key));
   return result;
@@ -1549,12 +1599,12 @@ the given scope, name, and template arguments.
 
 
 a_module_entity_ptr get_function_template_module_entity(
-                             a_module_ptr                     mod,
-                             a_module_entity_scope            *scope,
-                             a_symbol_header_ptr              name,
-                             a_module_template_parameter_list *template_params,
-                             a_module_func_param_list         *func_params,
-                             a_boolean                        has_ellipsis)
+                a_module_ptr                                 mod,
+                a_module_entity_scope                        *scope,
+                a_symbol_header_ptr                          name,
+                Owning_ptr<a_module_template_parameter_list> &&template_params,
+                Owning_ptr<a_module_func_param_list>         &&func_params,
+                a_boolean                                    has_ellipsis)
 /*
 Return a pointer to the module entity for the entity in the given module, with
 the given scope, name, and template arguments.  has_ellipsis should be TRUE if
@@ -1567,9 +1617,9 @@ the given module entity is a C-style variable argument function.
   key.name = name;
   key.kind = meeik_func_templ;
   key.variant.func_templ = new_fe<a_module_entity_func_templ_key>();
-  key.variant.func_templ->function.parameter_types = func_params;
+  key.variant.func_templ->function.parameter_types = move_from(&func_params);
   key.variant.func_templ->function.has_ellipsis = has_ellipsis;
-  key.variant.func_templ->parameters = template_params;
+  key.variant.func_templ->parameters = move_from(&template_params);
 
   a_module_entity_ptr result = get_module_entity_from_key(move_from(&key));
   return result;
@@ -1577,12 +1627,12 @@ the given module entity is a C-style variable argument function.
 
 
 a_module_entity_ptr get_specialized_function_module_entity(
-                                        a_module_ptr             mod,
-                                        a_module_entity_scope    *scope,
-                                        a_symbol_header_ptr      name,
-                                        a_template_arg_ptr       template_args,
-                                        a_module_func_param_list *func_params,
-                                        a_boolean                has_ellipsis)
+                          a_module_ptr                         mod,
+                          a_module_entity_scope                *scope,
+                          a_symbol_header_ptr                  name,
+                          an_owned_template_arg_list           &&template_args,
+                          Owning_ptr<a_module_func_param_list> &&func_params,
+                          a_boolean                            has_ellipsis)
 /*
 Return a pointer to the module entity for the entity in the given module, with
 the given scope, name, and template arguments.  has_ellipsis should be TRUE if
@@ -1595,9 +1645,9 @@ the given module entity is a C-style variable argument function.
   key.name = name;
   key.kind = meeik_func_spec;
   key.variant.func_spec = new_fe<a_module_entity_func_spec_key>();
-  key.variant.func_spec->function.parameter_types = func_params;
+  key.variant.func_spec->function.parameter_types = move_from(&func_params);
   key.variant.func_spec->function.has_ellipsis = has_ellipsis;
-  key.variant.func_spec->specialization.arguments = template_args;
+  key.variant.func_spec->specialization.arguments = move_from(&template_args);
 
   a_module_entity_ptr result = get_module_entity_from_key(move_from(&key));
   return result;
@@ -1605,11 +1655,11 @@ the given module entity is a C-style variable argument function.
 
 
 a_module_entity_ptr get_deduction_guide_module_entity(
-                             a_module_ptr                     mod,
-                             a_module_entity_scope            *scope,
-                             a_symbol_header_ptr              name,
-                             a_module_template_parameter_list *template_params,
-                             a_module_deduct_guide_param_list *param_list)
+                a_module_ptr                                 mod,
+                a_module_entity_scope                        *scope,
+                a_symbol_header_ptr                          name,
+                Owning_ptr<a_module_template_parameter_list> &&template_params,
+                Owning_ptr<a_module_deduct_guide_param_list> &&param_list)
 /*
 Return a pointer to the deduction guide module entity for the entity in the
 given module, with the given scope, name, template parameters, and deduction
@@ -1622,8 +1672,8 @@ guide parameter list.
   key.name = name;
   key.kind = meeik_deduct_guide;
   key.variant.deduct_guide = new_fe<a_module_entity_deduct_guide_key>();
-  key.variant.deduct_guide->template_params = template_params;
-  key.variant.deduct_guide->param_list = param_list;
+  key.variant.deduct_guide->template_params = move_from(&template_params);
+  key.variant.deduct_guide->param_list = move_from(&param_list);
 
   a_module_entity_ptr result = get_module_entity_from_key(move_from(&key));
   return result;

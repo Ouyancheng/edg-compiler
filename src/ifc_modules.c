@@ -1330,14 +1330,14 @@ struct Template_module_isolation_scope : a_module_isolation_scope {
 }  /* namespace */
 
 template<typename an_ifc_Decl_type>
-static a_template_arg_ptr create_templ_args_for_comparison(
+static an_owned_template_arg_list create_templ_args_for_comparison(
                                             const an_ifc_Decl_type &decl_spec);
 
-static inline a_module_template_parameter_list*
+static inline Owning_ptr<a_module_template_parameter_list>
 get_ifc_template_parameter_list(an_ifc_chart_index param_idx);
 
 
-static inline a_module_template_parameter_list*
+static inline Owning_ptr<a_module_template_parameter_list>
 get_ifc_template_parameter_list(const an_ifc_decl_template &templ_decl)
 /*
 Return a pointer to a module template parameter list corresponding to the
@@ -1352,20 +1352,20 @@ parameter list cannot be reconstructed, instead return NULL.
 
 
 template<typename an_ifc_Node_type>
-static inline a_module_func_param_list* get_ifc_function_parameter_list(
-                                 an_ifc_decl_index      decl_idx,
-                                 const an_ifc_Node_type &decl,
-                                 an_ifc_decl_index      parameterizing_entity,
-                                 a_boolean              *has_ellipsis);
+static inline Owning_ptr<a_module_func_param_list>
+get_ifc_function_parameter_list(an_ifc_decl_index      decl_idx,
+                                const an_ifc_Node_type &decl,
+                                an_ifc_decl_index      parameterizing_entity,
+                                a_boolean              *has_ellipsis);
 
-static inline a_module_deduct_guide_param_list*
+static inline Owning_ptr<a_module_deduct_guide_param_list>
 get_ifc_deduction_guide_parameter_list(an_ifc_decl_index deduct_guide_idx);
 
 
-static inline a_module_func_param_list* get_ifc_function_parameter_list(
-                                       an_ifc_decl_index decl_idx,
-                                       an_ifc_decl_index parameterizing_entity,
-                                       a_boolean         *has_ellipsis)
+static inline Owning_ptr<a_module_func_param_list>
+get_ifc_function_parameter_list(an_ifc_decl_index decl_idx,
+                                an_ifc_decl_index parameterizing_entity,
+                                a_boolean         *has_ellipsis)
 /*
 Given a function-like declaration index and (if parameterized) the
 parameterizing entity (see an_ifc_cache_info::parameterizing_entity for more
@@ -1376,7 +1376,7 @@ this is a C-style variable argument function, e.g., "void foo(...)".
 If a function parameter list cannot be reconstructed, instead return NULL.
 */
 {
-  a_module_func_param_list *func_params = NULL;
+  Owning_ptr<a_module_func_param_list> func_params;
 
   switch (decl_idx.sort) {
     case ifc_ds_decl_constructor:
@@ -1466,13 +1466,17 @@ get_ifc_module_entity, prefer get_ifc_module_entity in other cases.
   Opt<a_symbol_header_ptr> opt_decl_name_sym = get_name_symbol(index);
 
   if (opt_decl_name_sym.has_value()) {
-    a_module_ptr             mod = module_of(index)->assoc_module_info;
-    a_module_entity_scope    *mesp =
-                        get_ifc_module_entity_scope(get_ifc_home_scope(index));
-    a_symbol_header_ptr      decl_name_sym = *opt_decl_name_sym;
-    a_module_isolation_scope isolation_scope;
-    a_boolean                has_ellipsis = FALSE;
-    a_module_func_param_list *func_params = get_ifc_function_parameter_list(
+    a_module_ptr
+                mod = module_of(index)->assoc_module_info;
+    a_module_entity_scope
+                *mesp = get_ifc_module_entity_scope(get_ifc_home_scope(index));
+    a_symbol_header_ptr
+                decl_name_sym = *opt_decl_name_sym;
+    a_module_isolation_scope
+                isolation_scope;
+    a_boolean   has_ellipsis = FALSE;
+    Owning_ptr<a_module_func_param_list>
+                func_params = get_ifc_function_parameter_list(
                                 index,
                                 /*parameterizing_entity=*/an_ifc_decl_index(),
                                 &has_ellipsis);
@@ -1480,7 +1484,8 @@ get_ifc_module_entity, prefer get_ifc_module_entity in other cases.
     if (func_params == NULL) {
       goto invalid;
     }  /* if */
-    result = get_function_module_entity(mod, mesp, decl_name_sym, func_params,
+    result = get_function_module_entity(mod, mesp, decl_name_sym,
+                                        move_from(&func_params),
                                         has_ellipsis);
   }  /* if */
   goto done;
@@ -1514,15 +1519,15 @@ get_ifc_module_entity, prefer get_ifc_module_entity in other cases.
     if (is_function_decl(entity_decl_idx)) {
       Template_module_isolation_scope<an_ifc_decl_template>
                 isolation_scope(templ_decl);
-      a_module_template_parameter_list
-                *template_params = get_ifc_template_parameter_list(templ_decl);
+      Owning_ptr<a_module_template_parameter_list>
+                template_params = get_ifc_template_parameter_list(templ_decl);
 
       if (template_params == NULL) {
         goto invalid;
       }  /* if */
 
-      a_boolean                has_ellipsis = FALSE;
-      a_module_func_param_list *func_params =
+      a_boolean                            has_ellipsis = FALSE;
+      Owning_ptr<a_module_func_param_list> func_params =
                               get_ifc_function_parameter_list(entity_decl_idx,
                                                               index,
                                                               &has_ellipsis);
@@ -1530,26 +1535,27 @@ get_ifc_module_entity, prefer get_ifc_module_entity in other cases.
         goto invalid;
       }  /* if */
       result = get_function_template_module_entity(mod, mesp, decl_name_sym,
-                                                   template_params,
-                                                   func_params, has_ellipsis);
+                                                   move_from(&template_params),
+                                                   move_from(&func_params),
+                                                   has_ellipsis);
     } else if (entity_decl_idx.sort == ifc_ds_decl_deduction_guide) {
       Template_module_isolation_scope<an_ifc_decl_template>
                 isolation_scope(templ_decl);
-      a_module_template_parameter_list
-                *template_params = get_ifc_template_parameter_list(templ_decl);
+      Owning_ptr<a_module_template_parameter_list>
+                template_params = get_ifc_template_parameter_list(templ_decl);
 
       if (template_params == NULL) {
         goto invalid;
       }  /* if */
 
-      a_module_deduct_guide_param_list *param_list =
+      Owning_ptr<a_module_deduct_guide_param_list> param_list =
                        get_ifc_deduction_guide_parameter_list(entity_decl_idx);
       if (param_list == NULL) {
         goto invalid;
       }  /* if */
       result = get_deduction_guide_module_entity(mod, mesp, decl_name_sym,
-                                                 template_params,
-                                                 param_list);
+                                                 move_from(&template_params),
+                                                 move_from(&param_list));
     } else {
       result = get_module_entity(mod, mesp, decl_name_sym);
     }  /* if */
@@ -1585,7 +1591,7 @@ get_ifc_module_entity, prefer get_ifc_module_entity in other cases.
                  spec_decl = *opt_spec_decl;
     Template_module_isolation_scope<an_ifc_decl_partial_specialization>
                  isolation_scope(spec_decl);
-    a_template_arg_ptr
+    an_owned_template_arg_list
                  templ_args = create_templ_args_for_comparison(spec_decl);
     a_module_ptr mod = module_of(index)->assoc_module_info;
     a_module_entity_scope
@@ -1594,7 +1600,7 @@ get_ifc_module_entity, prefer get_ifc_module_entity in other cases.
     a_symbol_header_ptr
                  decl_name_sym = *opt_decl_name_sym;
     result = get_specialized_module_entity(mod, mesp, decl_name_sym,
-                                           templ_args);
+                                           move_from(&templ_args));
   }  /* if */
   goto done;
 invalid:
@@ -1625,7 +1631,7 @@ get_ifc_module_entity, prefer get_ifc_module_entity in other cases.
 
     an_ifc_decl_specialization
                  spec_decl = *opt_spec_decl;
-    a_template_arg_ptr
+    an_owned_template_arg_list
                  templ_args = create_templ_args_for_comparison(spec_decl);
     a_module_ptr mod = module_of(index)->assoc_module_info;
     a_module_entity_scope
@@ -1638,10 +1644,10 @@ get_ifc_module_entity, prefer get_ifc_module_entity in other cases.
 
     if (!is_function_decl(parameterized_idx)) {
       result = get_specialized_module_entity(mod, mesp, decl_name_sym,
-                                             templ_args);
+                                             move_from(&templ_args));
     } else {
-      a_boolean                has_ellipsis = FALSE;
-      a_module_func_param_list *func_params =
+      a_boolean                            has_ellipsis = FALSE;
+      Owning_ptr<a_module_func_param_list> func_params =
                             get_ifc_function_parameter_list(parameterized_idx,
                                                             index,
                                                             &has_ellipsis);
@@ -1650,7 +1656,8 @@ get_ifc_module_entity, prefer get_ifc_module_entity in other cases.
         goto invalid;
       }  /* if */
       result = get_specialized_function_module_entity(mod, mesp, decl_name_sym,
-                                                      templ_args, func_params,
+                                                      move_from(&templ_args),
+                                                      move_from(&func_params),
                                                       has_ellipsis);
     }  /* if */
   }  /* if */
@@ -6254,7 +6261,7 @@ an empty optional.
 
         param.kind = mtpk_non_type;
         param.variant.type = type_for_nontype_templ_param(param_decl);
-        result = param;
+        result = move_from(&param);
       }  /* if */
       break;
     case ifc_ps_template:
@@ -6264,20 +6271,20 @@ an empty optional.
 
         param.kind = mtpk_template;
 
-        a_module_template_parameter_list
-                *param_list = get_ifc_template_parameter_list(param_chart_idx);
+        Owning_ptr<a_module_template_parameter_list>
+                param_list = get_ifc_template_parameter_list(param_chart_idx);
         if (param_list == NULL) {
           goto invalid;
         }  /* if */
-        param.variant.params_list = param_list;
-        result = param;
+        param.variant.params_list = param_list.release();
+        result = move_from(&param);
       }  /* if */
       break;
     case ifc_ps_type:
       { a_module_template_parameter param;
 
         param.kind = mtpk_type;
-        result = param;
+        result = move_from(&param);
       }  /* if */
       break;
     case ifc_ps_object:
@@ -6295,7 +6302,7 @@ done:
 }  /* get_ifc_module_template_parameter */
 
 
-static inline a_module_template_parameter_list*
+static inline Owning_ptr<a_module_template_parameter_list>
 get_ifc_template_parameter_list(an_ifc_chart_index param_idx)
 /*
 Return a pointer to a module template parameter list corresponding to the
@@ -6303,7 +6310,7 @@ template parameters of the given IFC parameter chart.  If a template parameter
 list cannot be reconstructed, instead return NULL.
 */
 {
-  a_module_template_parameter_list *result = NULL;
+  Owning_ptr<a_module_template_parameter_list> result;
 
   if (is_null_index(param_idx)) {
     result = new_fe<a_module_template_parameter_list>();
@@ -6332,8 +6339,8 @@ list cannot be reconstructed, instead return NULL.
               goto invalid;
             }  /* if */
 
-            a_module_template_parameter mod_param = *opt_mod_param;
-            result->push_back(mod_param);
+            a_module_template_parameter mod_param = move_from(&*opt_mod_param);
+            result->push_back(move_from(&mod_param));
           }  /* for */
         }
         break;
@@ -6348,9 +6355,7 @@ list cannot be reconstructed, instead return NULL.
   }  /* if */
   goto done;
 invalid:
-  if (result != NULL) {
-    delete_fe(&result);
-  }  /* if */
+  result = NULL;
 done:
   return result;
 }  /* get_ifc_template_parameter_list */
@@ -6379,11 +6384,11 @@ Given a type index, return TRUE if the type index represents an ellipsis.
 
 
 template<typename an_ifc_Node_type>
-static inline a_module_func_param_list* get_ifc_function_parameter_list(
-                                  an_ifc_decl_index      decl_idx,
-                                  const an_ifc_Node_type &decl,
-                                  an_ifc_decl_index      parameterizing_entity,
-                                  a_boolean              *has_ellipsis)
+static inline Owning_ptr<a_module_func_param_list>
+get_ifc_function_parameter_list(an_ifc_decl_index      decl_idx,
+                                const an_ifc_Node_type &decl,
+                                an_ifc_decl_index      parameterizing_entity,
+                                a_boolean              *has_ellipsis)
 /*
 Given a function-like declaration (indexed by decl_idx) and (if parameterized)
 the parameterizing entity (see an_ifc_cache_info::parameterizing_entity for
@@ -6394,9 +6399,10 @@ this is a C-style variable argument function, e.g., "void foo(...)".
 If a function parameter list cannot be reconstructed, instead return NULL.
 */
 {
-  a_module_func_param_list  *result = new_fe<a_module_func_param_list>();
-  an_ifc_func_param_context param_context(decl_idx, decl,
-                                          parameterizing_entity);
+  Owning_ptr<a_module_func_param_list>
+                result = new_fe<a_module_func_param_list>();
+  an_ifc_func_param_context
+                param_context(decl_idx, decl, parameterizing_entity);
 
   for (an_ifc_index_type i = 0; i < param_context.get_num_params(); ++i) {
     an_ifc_type_index ifc_type_idx = param_context.get_param_type(i);
@@ -6426,13 +6432,13 @@ If a function parameter list cannot be reconstructed, instead return NULL.
   }  /* for */
   goto done;
 invalid:
-  delete_fe(&result);
+  result = NULL;
 done:
   return result;
 }  /* get_ifc_function_parameter_list */
 
 
-static inline a_module_deduct_guide_param_list*
+static inline Owning_ptr<a_module_deduct_guide_param_list>
 get_ifc_deduction_guide_parameter_list(an_ifc_decl_index deduct_guide_idx)
 /*
 Given a deduction guide index return a pointer to the corresponding module
@@ -6442,8 +6448,8 @@ If a deduction guide parameter list cannot be reconstructed, instead return
 NULL.
 */
 {
-  a_module_func_param_list         *result = NULL;
-  Opt<an_ifc_decl_deduction_guide> opt_deduct_decl;
+  Owning_ptr<a_module_func_param_list> result;
+  Opt<an_ifc_decl_deduction_guide>     opt_deduct_decl;
 
   construct_node(&opt_deduct_decl, deduct_guide_idx);
   if (opt_deduct_decl.has_value()) {
@@ -6494,7 +6500,7 @@ NULL.
   }  /* if */
   goto done;
 invalid:
-  delete_fe(&result);
+  result = NULL;
 done:
   return result;
 }  /* get_ifc_deduction_guide_parameter_list */
@@ -10399,7 +10405,7 @@ template_args_for_expr_list(a_symbol_ptr      template_sym,
 
 
 template<typename an_ifc_Decl_type>
-static a_template_arg_ptr create_templ_args_for_comparison(
+static an_owned_template_arg_list create_templ_args_for_comparison(
                                        const an_ifc_Decl_type &decl_spec,
                                        a_template_ptr         primary_template)
 /*
@@ -10408,9 +10414,9 @@ template, create and return a corresponding template argument set.  If a
 problem is encountered during reconstruction, NULL is returned instead.
 */
 {
-  a_template_arg_ptr      result = NULL;
-  an_ifc_form_spec_offset form_offset = get_ifc_form(decl_spec);
-  Opt<an_ifc_form_spec>   opt_form_spec;
+  an_owned_template_arg_list result;
+  an_ifc_form_spec_offset    form_offset = get_ifc_form(decl_spec);
+  Opt<an_ifc_form_spec>      opt_form_spec;
 
   construct_node(&opt_form_spec, form_offset);
   if (opt_form_spec.has_value()) {
@@ -10509,7 +10515,7 @@ check_and_set_specialization_redeclaration.
 
 
 template<typename an_ifc_Decl_type>
-static a_template_arg_ptr create_templ_args_for_comparison(
+static an_owned_template_arg_list create_templ_args_for_comparison(
                                             const an_ifc_Decl_type &decl_spec)
 /*
 Given the IFC node information for a template specialization, create and return
@@ -10517,10 +10523,10 @@ a corresponding template argument set.  If a problem is encountered during
 reconstruction, NULL is returned instead.
 */
 {
-  a_template_arg_ptr  result = NULL;
-  an_ifc_decl_index   templ_idx = get_ifc_primary_template(decl_spec);
-  a_module_entity_ptr templ_mep = process_decl_at_index(templ_idx);
-  a_tagged_pointer    templ_entity = templ_mep->entity;
+  an_owned_template_arg_list result;
+  an_ifc_decl_index          templ_idx = get_ifc_primary_template(decl_spec);
+  a_module_entity_ptr        templ_mep = process_decl_at_index(templ_idx);
+  a_tagged_pointer           templ_entity = templ_mep->entity;
 
   if (!templ_mep->invalid && templ_entity.kind == iek_template) {
     a_template_ptr primary_templ = (a_template_ptr)templ_entity.ptr;
@@ -10561,8 +10567,8 @@ check_and_set_specialization_redeclaration.
        information, while comparisons are optimized by doing this up front,
        we're paying an unnecessary cost if there are no symbols to compare
        against. */
-    a_template_ptr     primary_templ = (a_template_ptr)templ_entity.ptr;
-    a_template_arg_ptr templ_args =
+    a_template_ptr             primary_templ = (a_template_ptr)templ_entity.ptr;
+    an_owned_template_arg_list templ_args =
                                create_templ_args_for_comparison(decl_spec,
                                                                 primary_templ);
 
@@ -10576,18 +10582,18 @@ check_and_set_specialization_redeclaration.
          find_template_instantiation function).  Thus, we must traverse the
          symbol lists. */
       if (find_redeclared_specialized_entity_in_list(search_fn, active_symbols,
-                                                     primary_templ, templ_args,
+                                                     primary_templ,
+                                                     templ_args.raw(),
                                                      redecl_entity,
                                                      redecl_kind) ||
           find_redeclared_specialized_entity_in_list(search_fn,
                                                      inactive_symbols,
-                                                     primary_templ, templ_args,
+                                                     primary_templ,
+                                                     templ_args.raw(),
                                                      redecl_entity,
                                                      redecl_kind)) {
         result = TRUE;
       }  /* if */
-      /* Free the allocated template arguments. */
-      free_template_arg_list(templ_args);
     }  /* if */
   }  /* if */
   return result;

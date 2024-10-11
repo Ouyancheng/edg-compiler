@@ -17,6 +17,8 @@ modules.h -- Declarations related to module handling.
 #ifndef MODULES_H
 #define MODULES_H 1
 
+#if !STANDALONE_UTILITY_PROGRAM
+
 /* Conditionally open the "edg" namespace. */
 BEGIN_EDG_NAMESPACE
 
@@ -409,6 +411,11 @@ struct a_module_template_parameter {
                         /* The inner template parameter list of the template
                            template parameter. */
   } variant;
+  a_module_template_parameter() = default;
+  a_module_template_parameter(const a_module_template_parameter&) = delete;
+  a_module_template_parameter(a_module_template_parameter &&other);
+  ~a_module_template_parameter();
+  a_module_template_parameter& operator=(a_module_template_parameter &&other);
 };  /* a_module_template_parameter */
 
 extern a_boolean operator==(const a_module_template_parameter &a,
@@ -436,40 +443,40 @@ extern a_module_entity_ptr get_alias_module_entity(
                                                   a_symbol_header_ptr   name);
 
 extern a_module_entity_ptr get_function_module_entity(
-                                        a_module_ptr             mod,
-                                        a_module_entity_scope    *scope,
-                                        a_symbol_header_ptr      name,
-                                        a_module_func_param_list *func_params,
-                                        a_boolean                has_ellipsis);
+                            a_module_ptr                         mod,
+                            a_module_entity_scope                *scope,
+                            a_symbol_header_ptr                  name,
+                            Owning_ptr<a_module_func_param_list> &&func_params,
+                            a_boolean                            has_ellipsis);
 
 extern a_module_entity_ptr get_specialized_module_entity(
-                                          a_module_ptr          mod,
-                                          a_module_entity_scope *scope,
-                                          a_symbol_header_ptr   name,
-                                          a_template_arg_ptr    template_args);
+                                   a_module_ptr               mod,
+                                   a_module_entity_scope      *scope,
+                                   a_symbol_header_ptr        name,
+                                   an_owned_template_arg_list &&template_args);
 
 extern a_module_entity_ptr get_function_template_module_entity(
-                             a_module_ptr                     mod,
-                             a_module_entity_scope            *scope,
-                             a_symbol_header_ptr              name,
-                             a_module_template_parameter_list *template_params,
-                             a_module_func_param_list         *func_params,
-                             a_boolean                        has_ellipsis);
+                a_module_ptr                                 mod,
+                a_module_entity_scope                        *scope,
+                a_symbol_header_ptr                          name,
+                Owning_ptr<a_module_template_parameter_list> &&template_params,
+                Owning_ptr<a_module_func_param_list>         &&func_params,
+                a_boolean                                    has_ellipsis);
 
 extern a_module_entity_ptr get_specialized_function_module_entity(
-                                        a_module_ptr             mod,
-                                        a_module_entity_scope    *scope,
-                                        a_symbol_header_ptr      name,
-                                        a_template_arg_ptr       template_args,
-                                        a_module_func_param_list *func_params,
-                                        a_boolean                has_ellipsis);
+                          a_module_ptr                         mod,
+                          a_module_entity_scope                *scope,
+                          a_symbol_header_ptr                  name,
+                          an_owned_template_arg_list           &&template_args,
+                          Owning_ptr<a_module_func_param_list> &&func_params,
+                          a_boolean                            has_ellipsis);
 
 extern a_module_entity_ptr get_deduction_guide_module_entity(
-                             a_module_ptr                     mod,
-                             a_module_entity_scope            *scope,
-                             a_symbol_header_ptr              name,
-                             a_module_template_parameter_list *template_params,
-                             a_module_deduct_guide_param_list *param_list);
+                a_module_ptr                                 mod,
+                a_module_entity_scope                        *scope,
+                a_symbol_header_ptr                          name,
+                Owning_ptr<a_module_template_parameter_list> &&template_params,
+                Owning_ptr<a_module_deduct_guide_param_list> &&param_list);
 
 extern void import_header_module(a_module_import_decl_ptr midp);
 
@@ -889,6 +896,8 @@ extern void modules_write_out();
 
 /* Conditionally close the "edg" namespace. */
 END_EDG_NAMESPACE
+
+#endif /* !STANDALONE_UTILITY_PROGRAM */
 
 #endif /* ifndef MODULES_H */
 
