@@ -855,7 +855,7 @@ Move construct from the given module template parameter.
       break;
     default_is_unexpected();
   }  /* switch */
-}  /* a_module_entity_key::~a_module_entity_key */
+}  /* a_module_template_parameter::a_module_template_parameter */
 
 
 a_module_template_parameter::~a_module_template_parameter()
@@ -887,7 +887,8 @@ Move assign from the given module template parameter.
     construct(this, move_from(&other));
   }  /* if */
   return *this;
-}  /* a_module_template_parameter::operator== */
+}  /* a_module_template_parameter::operator= */
+
 
 a_boolean operator==(const a_module_template_parameter &a,
                      const a_module_template_parameter &b)
@@ -1073,7 +1074,7 @@ Move construct from the given module entity key.
   other.scope = NULL;
   other.name = NULL;
   other.kind = meeik_none;
-}  /* a_module_entity_key::~a_module_entity_key */
+}  /* a_module_entity_key::a_module_entity_key */
 
 
 a_module_entity_key::~a_module_entity_key()
@@ -1547,7 +1548,7 @@ the given scope and name.
 
   a_module_entity_ptr result = get_module_entity_from_key(move_from(&key));
   return result;
-}  /* get_module_entity */
+}  /* get_alias_module_entity */
 
 
 a_module_entity_ptr get_function_module_entity(
@@ -2128,7 +2129,7 @@ should be preferred if the entity should be processed immediately.
     }  /* switch */
   }  /* if */
   return is_entity_resolved(mep);
-}  /* load_namespace_elements_from_locator */
+}  /* request_entity */
 
 
 void load_namespace_elements_from_locator(a_module_entity_ptr    mep,
@@ -2171,7 +2172,7 @@ Mark the given locator as the primary locator for the given module entity.
      update_entity_from_new_locator. */
   unexpected_condition();
 done:;
-}  /* load_namespace_elements_from_locator */
+}  /* mark_locator_as_primary */
 
 
 void update_entity_from_new_locator(a_module_entity_ptr    mep,
