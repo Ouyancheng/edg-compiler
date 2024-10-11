@@ -1,5 +1,32 @@
 Version 6.7
 
+10/10/24 [EDGcpfe/27644]
+C++-generating back end, GNU compatibility: use of "typename" keyword
+
+G++ has two bugs involving the "typename" keyword that result in spurious
+errors that could be triggered by the code emitted by the C++-generating
+back end.  One bug occurs when the "typename" keyword is used preceding a
+dependent reference to an alias template specialization, such as:
+
+  struct A {
+    template<typename T, typename> using type = T;
+  };
+  template<bool, typename T, typename U> using i = typename A::type<T, U>;
+
+The other bug is the inverse, where g++ requires the "typename" keyword in
+a template definition preceding a reference to a non-dependent type, e.g.,
+
+  template<typename> struct B { using type = const int; }; 
+  template<typename> void f() {
+    static_cast<B<__remove_cv(int)>::type &>(0);
+  }
+
+The C++-generating back end has been updated to avoid generating the
+"typename" keyword in all emulations for code similar to the first case and
+to add the "typename" keyword in the second case when
+gcc_is_generated_code_target is TRUE.
+
+
 10/9/24  [EDGcpfe/27636]
 Unicode 16.0.0 characters
 

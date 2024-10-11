@@ -779,7 +779,8 @@ static void gen_variable_decl(a_boolean is_condition,
                               a_boolean *another_decl_in_comma_list);
 static void gen_statement_list(a_statement_ptr stmt_list,
                                a_boolean       is_stmt_expression);
-static void gen_cast(a_type_ptr type);
+static void gen_cast(a_type_ptr type,
+                     a_boolean  typename_kwd_required = FALSE);
 static a_boolean is_expl_ctor_or_value_init(an_expr_node_ptr expr);
 static void gen_type_operator(a_type_ptr tp);
 static void gen_expr(an_expr_node_ptr expr,
@@ -8729,6 +8730,10 @@ tag, a typedef, or a dependent type.  A reference is not the definition.
                                     CLASS_TEMPLATE_PLACEHOLDER_NESTING_DEPTH) {
         options = GN_DEPENDENT;
       }  /* if */
+    } else if (type_is(type, tk_typeref) &&
+               type->variant.typeref.extra_info->template_arg_list != NULL) {
+      /* Alias template specializations do not require a "typename"
+         prefix. */
     } else {
       /* Nonreal class types are dependent and must be prefixed by the
          "typename" keyword. */
@@ -13964,14 +13969,20 @@ Return TRUE if the given expression will be put out as a braced-init-list.
 }  /* expr_is_braced_init_list */
 
 
-static void gen_cast(a_type_ptr type)
+static void gen_cast(a_type_ptr type,
+                     a_boolean  typename_kwd_required)
 /*
-Generate an old-style cast to the indicated type.  No operand is put out.
+Generate an old-style cast to the indicated type.  If typename_kwd_required
+is TRUE, put out the "typename" keyword preceding the type.  No operand is
+put out.
 */
 {
   a_boolean type_operators_suppressed =
                                      set_type_operator_suppression(type, TRUE);
   m_write_tok_ch('(');
+  if (typename_kwd_required) {
+    write_tok_str("typename ");
+  }  /* if */
   gen_type(type);
   m_write_tok_ch(')');
   if (type_operators_suppressed) {
@@ -13992,6 +14003,7 @@ is_reinterpret_cast indicate it.
   an_expr_node_ptr      operand_1 = expr->variant.operation.operands;
   a_type                ref_type;
   a_const_char          *new_cast_keyword = NULL;
+  a_boolean             typename_kwd_required = FALSE;
 
   if ((expr->variant.operation.is_reference_cast ||
        op == (an_expr_operator_kind)eok_ref_cast ||
@@ -14026,10 +14038,33 @@ is_reinterpret_cast indicate it.
              op == (an_expr_operator_kind)eok_ref_dynamic_cast) {
     new_cast_keyword = "dynamic_cast";
   }  /* if */
+  if (gcc_is_generated_code_target && in_prototype_instantiation_context) {
+    a_type_ptr tp = dest_type;
+    while (type_is(tp, tk_pointer) || type_is(tp, tk_array)) {
+      if (type_is(tp, tk_pointer)) {
+        tp = skip_typerefs_not_typedefs(type_pointed_to(tp));
+      } else {
+        tp = skip_typerefs_not_typedefs(array_element_type(tp));
+      }  /* if */
+    }  /* while */
+    if ((type_is(tp, tk_typeref) &&
+         tp->variant.typeref.extra_info->template_arg_list != NULL) ||
+        (tp->source_corresp.is_class_member &&
+         class_type_supp(parent_class_of(tp))->template_arg_list != NULL)) {
+      /* g++ has a bug that sometimes results in spurious errors if the
+         target type is a specialization of a class or alias template,
+         even if the type is non-dependent.  The workaround is to prefix
+         the type with the "typename" keyword. */
+      typename_kwd_required = TRUE;
+    }  /* if */
+  }  /* if */
   if (new_cast_keyword != NULL) {
     /* Use a new-style cast. */
     write_tok_str(new_cast_keyword);
     write_tok_str("< ");
+    if (typename_kwd_required) {
+      write_tok_str("typename ");
+    }  /* if */
     gen_type(dest_type);
     write_tok_str(">(");
     gen_expression(operand_1);
@@ -14058,7 +14093,7 @@ is_reinterpret_cast indicate it.
     }  /* if */
   } else {
     /* Use an old-style cast. */
-    gen_cast(dest_type);
+    gen_cast(dest_type, typename_kwd_required);
     gen_expr_with_parens(operand_1);
   }  /* if */
 }  /* gen_full_cast */
