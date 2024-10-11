@@ -2035,7 +2035,7 @@ inline a_boolean operator==(const Owning_ptr<an_Object, Deallocator> &ptr_a,
 Return TRUE if the given pointer values are equal; otherwise, return FALSE.
 */
 {
-  return ptr_a == ptr_b.raw();
+  return ptr_a.raw() == ptr_b;
 }  /* operator== */
 
 
@@ -2051,7 +2051,7 @@ Return TRUE if the given pointer values are not equal; otherwise, return FALSE.
 
 
 template<typename an_Object, template<typename> class Deallocator>
-inline a_boolean operator==(nullptr_t                                ptr_a,
+inline a_boolean operator==(a_nullptr                                ptr_a,
                             const Owning_ptr<an_Object, Deallocator> &ptr_b)
 /*
 Return TRUE if the given pointer values are equal; otherwise, return FALSE.
@@ -2062,7 +2062,7 @@ Return TRUE if the given pointer values are equal; otherwise, return FALSE.
 
 
 template<typename an_Object, template<typename> class Deallocator>
-inline a_boolean operator!=(nullptr_t                                ptr_a,
+inline a_boolean operator!=(a_nullptr                                ptr_a,
                             const Owning_ptr<an_Object, Deallocator> &ptr_b)
 /*
 Return TRUE if the given pointer values are not equal; otherwise, return FALSE.
@@ -2074,7 +2074,7 @@ Return TRUE if the given pointer values are not equal; otherwise, return FALSE.
 
 template<typename an_Object, template<typename> class Deallocator>
 inline a_boolean operator==(const Owning_ptr<an_Object, Deallocator> &ptr_a,
-                            nullptr_t                                ptr_b)
+                            a_nullptr                                ptr_b)
 /*
 Return TRUE if the given pointer values are equal; otherwise, return FALSE.
 */
@@ -2085,7 +2085,7 @@ Return TRUE if the given pointer values are equal; otherwise, return FALSE.
 
 template<typename an_Object, template<typename> class Deallocator>
 inline a_boolean operator!=(const Owning_ptr<an_Object, Deallocator> &ptr_a,
-                            nullptr_t                                ptr_b)
+                            a_nullptr                                ptr_b)
 /*
 Return TRUE if the given pointer values are not equal; otherwise, return FALSE.
 */
