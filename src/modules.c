@@ -1101,6 +1101,7 @@ Destroy the given module entity key.
     case meeik_deduct_guide:
       delete_fe(&this->variant.deduct_guide);
       break;
+    default_is_unexpected();
   }  /* switch */
 }  /* a_module_entity_key::~a_module_entity_key */
 
@@ -1316,6 +1317,7 @@ Return a hash value for the given module entity key.
     case meeik_deduct_guide:
       /* FIXME: Implement this. */
       break;
+    default_is_unexpected();
   }  /* switch */
   return result;
 }  /* hash_ptr */
@@ -1365,8 +1367,6 @@ Return TRUE if the given module entity keys are equal; otherwise, return FALSE.
   } else if (a.kind != b.kind) {
     result = FALSE;
   } else {
-    /* FIXME: Use a dedicated operator== for each of these rather than inline
-       implementations. */
     switch (a.kind) {
       case meeik_none:
       case meeik_alias:
@@ -1397,6 +1397,7 @@ Return TRUE if the given module entity keys are equal; otherwise, return FALSE.
           result = FALSE;
         }  /* if */
         break;
+      default_is_unexpected();
     }  /* switch */
   }  /* if */
   return result;
