@@ -138,7 +138,7 @@ variables thread-local.
 #if MULTIPLE_THREAD_COMPILATION
 #define STATIC_THREAD static thread_local
 #else /* !MULTIPLE_THREAD_COMPILATION */
-#define STATIC_THREAD static thread_local
+#define STATIC_THREAD static
 #endif /* MULTIPLE_THREAD_COMPILATION */
 #endif /* STATIC_THREAD */
 
