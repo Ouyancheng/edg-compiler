@@ -14051,7 +14051,9 @@ is_reinterpret_cast indicate it.
           tp->variant.typeref.extra_info->template_arg_list != NULL) ||
          (tp->source_corresp.is_class_member &&
           class_type_supp(parent_class_of(tp))->template_arg_list != NULL)) &&
-        !is_template_dependent_type(tp)) {
+        !(is_template_param_or_nonreal_class_type(tp) ||
+          (tp->source_corresp.is_class_member &&
+           is_template_param_or_nonreal_class_type(parent_class_of(tp))))) {
       /* g++ has a bug that sometimes results in spurious errors if the
          target type is a specialization of a class or alias template,
          even if the type is non-dependent.  The workaround is to prefix
