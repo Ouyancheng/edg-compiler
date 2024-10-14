@@ -1691,7 +1691,7 @@ using an_ifc_module_entity_lookup = Ptr_map<an_ifc_decl_index,
                         /* The type used to map a declaration index to a
                            module entity pointer. */
 
-static an_ifc_module_entity_lookup
+STATIC_THREAD an_ifc_module_entity_lookup
                 *entity_lookup_cache;
                         /* A cache of IFC declaration indexes to the
                            corresponding module entity so that more complicated
@@ -4847,28 +4847,28 @@ Remove the given entity from the pending set.
 }  /* a_lazy_entity_part::remove_from_pending_set */
 
 
-a_lazy_entity_part
+STATIC_THREAD a_lazy_entity_part
                 *ifc_var_inits;
                         /* The state tracking object for lazily-loaded IL
                            variable initializers. */
 
-a_lazy_entity_part
+STATIC_THREAD a_lazy_entity_part
                 *ifc_function_bodies;
                         /* The state tracking object for lazily-loaded IL
                            function bodies. */
 
-a_lazy_entity_part
+STATIC_THREAD a_lazy_entity_part
                 *ifc_template_definitions;
                         /* The state tracking object for lazily-loaded IL
                            template definitions. */
-a_lazy_entity_part
+STATIC_THREAD a_lazy_entity_part
                 *ifc_template_specializations;
                         /* A map from canonical template IL pointers to entries
                            of type an_ifc_decl_index that can be used to
                            retrieve the specializations of the template when
                            needed. */
 
-a_lazy_entity_part
+STATIC_THREAD a_lazy_entity_part
                 *ifc_tag_definitions;
                         /* The state tracking object for lazily-loaded IL
                            tag definitions. */
@@ -10992,7 +10992,7 @@ using an_ifc_template_lookup_table = Ptr_multi_map<an_ifc_decl_index,
                            declaration indices to the associated list of
                            specializations. */
 
-an_ifc_template_lookup_table
+STATIC_THREAD an_ifc_template_lookup_table
                 *ifc_decl_template_lookup_table;
                         /* A hash table to map IFC declaration indices to
                            corresponding front end symbols. */
@@ -14202,7 +14202,7 @@ using a_deduduced_template_map = Ptr_map<an_ifc_decl_index, an_ifc_decl_index>;
                         /* The type used for a mapping from a deduction guide
                            to the template it's associated with. */
 
-static a_deduduced_template_map
+STATIC_THREAD a_deduduced_template_map
                 *deduction_guide_map;
                         /* A lazily-initialized mapping of IFC deduction guide
                            declarations indexes to the associated template
@@ -15477,7 +15477,7 @@ using an_ifc_module_type_cache = Ptr_map<an_ifc_type_index, a_type_ptr>;
                         /* The type used for a cache of IFC type indexes to
                            their corresponding type pointers. */
 
-static an_ifc_module_type_cache
+STATIC_THREAD an_ifc_module_type_cache
                 *ifc_type_cache;
                         /* A map from a given IFC type index to its associated
                            type pointer. */

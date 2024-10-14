@@ -1422,7 +1422,7 @@ using a_module_entity_scope_hash_table = Ptr_map<a_module_entity_scope,
                         /* The type used for the module entity scope hash
                            table. */
 
-static a_module_entity_scope_hash_table
+STATIC_THREAD a_module_entity_scope_hash_table
                 *module_entity_scope_hash_table;
                         /* A hash table to find module entities, mapping module
                            entity scopes to a single (equivalent) instance.
@@ -1431,7 +1431,7 @@ static a_module_entity_scope_hash_table
                            that does not changed during reallocation of the
                            hash table. */
 
-static a_module_entity_scope
+STATIC_THREAD a_module_entity_scope
                 *trans_unit_module_entity_scope;
                         /* The translation unit module entity scope. */
 
@@ -1475,7 +1475,7 @@ using a_module_entity_hash_table = Ptr_map<a_module_entity_key,
                                            a_module_entity_ptr>;
                         /* The type used for the module entity hash table. */
 
-static a_module_entity_hash_table
+STATIC_THREAD a_module_entity_hash_table
                 *module_entity_hash_table;
                         /* A hash table to find module entities, mapping module
                            entity keys to module entity pointer values.  The
