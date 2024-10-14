@@ -6462,6 +6462,7 @@ static void check_if_thread_local_needed(a_symbol_ptr sym)
       var->storage_class == (a_storage_class)sc_static) {
     if (!var->compiler_generated &&
         !var->is_thread_local && !var->has_explicit_initializer) {
+#if 0
       a_const_char *file_name;
       a_const_char *full_name;
       a_line_number line_number;
@@ -6475,6 +6476,7 @@ static void check_if_thread_local_needed(a_symbol_ptr sym)
         old_string = "EXTERN";
         new_string = "EXTERN_THREAD";
       }  /* if */
+#endif /* 0 */
 #if 0
       conv_seq_to_file_and_line(
                   var->source_corresp.decl_pos_info->
@@ -6487,11 +6489,11 @@ static void check_if_thread_local_needed(a_symbol_ptr sym)
         fprintf(f_debug, "%s: %d s/%s/%s/\n", file_name, line_number,
                 old_string, new_string);
       }  /* if */
-#endif
+#endif /* 0 */
 #if 0
       pos_warning(ec_debug_show_location,
                   &var->source_corresp.decl_pos_info->specifiers_range.start);
-#endif
+#endif /* 0 */
     }  /* if */
   }  /* if */
 }  /* check_if_thread_local_needed */
