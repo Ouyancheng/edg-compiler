@@ -106,7 +106,8 @@ STATIC_THREAD an_option_description
 		option_descriptions[SIZE_OF_OPTION_DESCRIPTIONS];
 			/* Pointer to a linked list of option descriptions. */
 
-STATIC_THREAD int	option_descriptions_used;
+STATIC_THREAD int
+		option_descriptions_used;
 			/* The number of entries that are used in the option
 			   description array. */
 
@@ -1822,7 +1823,8 @@ STATIC_THREAD a_const_char
 		*opt_arg;
 			/* Returned from get_option -- Pointer to the current
 			   option argument. */
-STATIC_THREAD int	opt_ind;
+STATIC_THREAD int
+		opt_ind;
 			/* Index of the current option in argv. */
 
 NORETURN static void invalid_argument_error(int  argc,
@@ -3428,8 +3430,10 @@ If it is not acceptable, issue an error.
 
 
 #if COMPILE_MULTIPLE_SOURCE_FILES || COMPILE_MULTIPLE_TRANSLATION_UNITS
-STATIC_THREAD char	**argv_file_list;
-STATIC_THREAD int	argc_file_list;
+STATIC_THREAD char
+		**argv_file_list;
+STATIC_THREAD int
+		argc_file_list;
 			/* When multiple source input files are accepted,
 			   argc_file_list is the count of files remaining
 			   after the current one, and argv_file_list

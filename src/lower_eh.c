@@ -3694,13 +3694,15 @@ the aggregate constant.
 /*
 Pointer to the runtime routine __vla_dealloc_eh.  NULL until allocated.
 */
-STATIC_THREAD a_routine_ptr vla_dealloc_eh_routine;
+STATIC_THREAD a_routine_ptr
+                vla_dealloc_eh_routine;
 
 /*
 Pointer to the runtime routine __destroy_exception_object.  NULL until
 allocated.
 */
-STATIC_THREAD a_routine_ptr destroy_exception_object_routine;
+STATIC_THREAD a_routine_ptr
+                destroy_exception_object_routine;
 
 
 static a_routine_ptr make_destroy_exception_object_routine(void)

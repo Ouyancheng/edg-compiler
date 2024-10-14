@@ -202,23 +202,27 @@ module entity that declared it (if any).
 }  /* set_default_source_corresp */
 
 
-STATIC_THREAD int	file_scope_entry_prefix_size;
+STATIC_THREAD int
+		file_scope_entry_prefix_size;
 			/* The size of the entry prefix for IL entries
 			   allocated in the file scope of the current
 			   translation unit. */
 
-STATIC_THREAD int	file_scope_entry_prefix_alignment_offset;
+STATIC_THREAD int
+		file_scope_entry_prefix_alignment_offset;
 			/* The offset from the beginning of the space allocated
 			   for an IL entry to where the prefix actually
 			   begins for file scope allocations.  This is a
 			   translation unit variable. */
 
-STATIC_THREAD int	non_file_scope_entry_prefix_size;
+STATIC_THREAD int
+		non_file_scope_entry_prefix_size;
 			/* The size of the entry prefix for IL entries
 			   not allocated in the file scope.  This is not a
 			   translation unit variable. */
 
-STATIC_THREAD int	non_file_scope_entry_prefix_alignment_offset;
+STATIC_THREAD int
+		non_file_scope_entry_prefix_alignment_offset;
 			/* The offset from the beginning of the space allocated
 			   for an IL entry to where the prefix actually
 			   begins for non-file-scope allocations.  This is
@@ -1086,7 +1090,8 @@ region.
 Counter for the number of local constants requested but not yet released,
 used for an end-of-processing check that none were leaked.
 */
-STATIC_THREAD long local_constants_in_use;
+STATIC_THREAD long
+                local_constants_in_use;
 #endif /* CHECKING */
 
 a_constant_ptr local_constant(void)

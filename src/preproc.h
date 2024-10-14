@@ -241,18 +241,21 @@ EXTERN_THREAD a_boolean
 			   prevent complete successful scanning of the
 			   directive, not something like the directive
 			   appearing out of sequence. */
-EXTERN_THREAD long	pp_if_stack_depth;
+EXTERN_THREAD long
+		pp_if_stack_depth;
 			/* Stack of currently active #if, #ifdef, and
 			   #ifndef directives.  pp_if_stack_depth
 			   is the index of the currently active entry.
 			   pp_if_stack_depth == -1 for an empty stack. */
-EXTERN_THREAD long	base_pp_if_stack_depth;
+EXTERN_THREAD long
+		base_pp_if_stack_depth;
 			/* The value of pp_if_stack_depth at entry to
 			   the current file; important because in ANSI C,
 			   each #if must be closed within the file in
 			   which it was opened.  In pcc mode, always -1. */
 
-EXTERN_THREAD sizeof_t	size_pp_dir_string_buffer;
+EXTERN_THREAD sizeof_t
+		size_pp_dir_string_buffer;
 			/* Current allocated size of
                            pp_dir_string_buffer.  Not per-file.
                            See preproc.c for the definition of

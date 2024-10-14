@@ -174,13 +174,16 @@ STATIC_THREAD a_routine_fixup_ptr
 			/* The end of the deferred_friend_fixup_list. */
 
 /* The routine fixup entry for the current class member declaration. */
-STATIC_THREAD a_routine_fixup_ptr curr_routine_fixup;
+STATIC_THREAD a_routine_fixup_ptr
+                curr_routine_fixup;
 
 /* Previously allocated fixup entries available for reuse. */
-STATIC_THREAD a_routine_fixup_ptr avail_routine_fixup;
+STATIC_THREAD a_routine_fixup_ptr
+                avail_routine_fixup;
 
 /* Previously allocated fixup entries available for reuse. */
-STATIC_THREAD a_class_fixup_ptr avail_class_fixup;
+STATIC_THREAD a_class_fixup_ptr
+                avail_class_fixup;
 
 #if DEBUG
 /*
@@ -921,7 +924,8 @@ typedef struct an_override_registry_entry {
 
 
 /* Available list of partial-override entries. */
-STATIC_THREAD an_override_registry_entry_ptr avail_override_registry_entries;
+STATIC_THREAD an_override_registry_entry_ptr
+                avail_override_registry_entries;
 
 #if DEBUG
 STATIC_THREAD unsigned long
@@ -7922,7 +7926,8 @@ class associated with cdsp.
 
 
 /* Previously allocated derivation-step entries available for reuse. */
-STATIC_THREAD a_derivation_step_ptr avail_derivation_steps;
+STATIC_THREAD a_derivation_step_ptr
+                avail_derivation_steps;
 
 void free_derivation_step(a_derivation_step_ptr  step)
 /*

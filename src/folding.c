@@ -7043,7 +7043,8 @@ somewhere (if in doubt, the safe value is TRUE).
 /*
 Top of the stack of aggregate constants being initialized.
 */
-STATIC_THREAD an_aggr_init_con_elem_ptr curr_init_aggr_con;
+STATIC_THREAD an_aggr_init_con_elem_ptr
+                curr_init_aggr_con;
 
 
 void push_aggr_init_constant(a_constant_ptr            aggr_con,

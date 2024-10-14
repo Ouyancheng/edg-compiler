@@ -47,10 +47,12 @@ BEGIN_EDG_NAMESPACE
 #define PCH_ID_STRING_LENGTH 128
 			/* Maximum length of the PCH id string. */
 
-STATIC_THREAD char	pch_id_string[PCH_ID_STRING_LENGTH];
+STATIC_THREAD char
+		pch_id_string[PCH_ID_STRING_LENGTH];
 			/* Buffer used to store the PCH id string. */
 
-STATIC_THREAD sizeof_t	pch_id_string_length;
+STATIC_THREAD sizeof_t
+		pch_id_string_length;
 			/* The actual length of the PCH id string (including
 			   the trailing null character). */
 
@@ -79,11 +81,13 @@ STATIC_THREAD a_const_char
 			/* Name of the precompiled header file being written
 			   or read. */
 
-STATIC_THREAD FILE	*f_pch_input;
+STATIC_THREAD FILE
+		*f_pch_input;
 			/* File from which the precompiled header information
 			   is being read. */
 
-STATIC_THREAD FILE	*f_pch_output;
+STATIC_THREAD FILE
+		*f_pch_output;
 			/* File to which the precompiled header information
 			   is being written. */
 
@@ -100,7 +104,8 @@ STATIC_THREAD a_pch_saved_variable_ptr
 			   lists.  Each element points to an array of
 			   saved variable entries. */
 
-STATIC_THREAD int	num_of_saved_variable_lists;
+STATIC_THREAD int
+		num_of_saved_variable_lists;
 			/* Number of entries in the saved variable array list
 			   that have been used. */
 
@@ -208,7 +213,8 @@ Macro to do an fseek on the output file with an error check.
 
 
 #if DEBUG
-STATIC_THREAD long	num_pch_events_allocated;
+STATIC_THREAD long
+		num_pch_events_allocated;
 #endif /* DEBUG */
 
 
@@ -331,7 +337,8 @@ during precompiled header prefix comparisons.
 static char	*pch_buffer = NULL;
 			/* Not allocated on a per-file basis. */
 
-STATIC_THREAD sizeof_t	size_pch_buffer;
+STATIC_THREAD sizeof_t
+		size_pch_buffer;
 			/* Current size of pch_buffer. */
 
 

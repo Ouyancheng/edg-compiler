@@ -220,7 +220,8 @@ STATIC_THREAD a_const_char
 			   feedback mechanisms to provide automatic
 			   instantiation. */
 
-STATIC_THREAD FILE	*f_instantiation_request;
+STATIC_THREAD FILE
+		*f_instantiation_request;
 			/* File from which the instantiation list should be
 			   read.  Only valid when do_auto_instantiation is
 			   TRUE. */
@@ -234,7 +235,8 @@ STATIC_THREAD a_boolean
 			   instantiations and/or with the list of entities
 			   in the definition list file.  */
 
-STATIC_THREAD FILE	*f_template_info;
+STATIC_THREAD FILE
+		*f_template_info;
 			/* File variable associated with the template
 			   information file. */
 
@@ -246,7 +248,8 @@ STATIC_THREAD a_boolean
 			   created when the input comes from standard
 			   input. */
 
-STATIC_THREAD FILE	*f_exported_template;
+STATIC_THREAD FILE
+		*f_exported_template;
 			/* File variable associated with the exported
 			   template file. */
 
@@ -258,15 +261,18 @@ STATIC_THREAD a_boolean
 			   added entities should be generated at the end of
 			   the compilation. */
 
-STATIC_THREAD FILE	*f_definition_list;
+STATIC_THREAD FILE
+		*f_definition_list;
 			/* File variable associated with the definition list
 			   file being used, if any. */
 
-STATIC_THREAD FILE	*f_exported_template_input;
+STATIC_THREAD FILE
+		*f_exported_template_input;
 			/* The current exported template file (.et) being
 			   processed, if any. */
 
-STATIC_THREAD FILE	*f_export_info;
+STATIC_THREAD FILE
+		*f_export_info;
 			/* File variable associated with the export information
 			   file being processed, if any. */
 
@@ -290,7 +296,8 @@ typedef struct a_can_instantiate_entry {
 } a_can_instantiate_entry;
 
 
-STATIC_THREAD a_can_instantiate_entry_ptr can_instantiate_list;
+STATIC_THREAD a_can_instantiate_entry_ptr
+                can_instantiate_list;
 
 #if TEMPLATE_LOOKUP_NEEDED
 	
@@ -349,14 +356,16 @@ STATIC_THREAD a_master_instance_ptr
 			/* Points to the end of the
 			   master_instantiations_list. */
 
-STATIC_THREAD a_template_instance_ptr instantiations_required;
+STATIC_THREAD a_template_instance_ptr
+                instantiations_required;
 			/* Points to the first entry on a list of template
 			   instance entries for which either function
 			   instantiations or compiler-generated static data
 			   member definitions are required.  Entries are
 			   added to the end of the list.  */
 
-STATIC_THREAD a_template_instance_ptr instantiations_required_tail;
+STATIC_THREAD a_template_instance_ptr
+                instantiations_required_tail;
 			/* Points to the end of the instantiations_required
 			   list; needed because entries added to this list
 			   must be added at the end. */

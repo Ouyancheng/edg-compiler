@@ -1667,8 +1667,10 @@ static a_temp_file_name_ptr
 /*
 Static variables used by open_temp_file.
 */
-STATIC_THREAD a_const_char  *temp_dir;
-STATIC_THREAD unsigned long temp_seed;
+STATIC_THREAD a_const_char
+                *temp_dir;
+STATIC_THREAD unsigned long
+                temp_seed;
 
 
 FILE *open_temp_file(a_boolean binary_file)
@@ -3687,10 +3689,12 @@ extern "C" int getpagesize(void);
 #define _SC_PAGESIZE _SC_PAGE_SIZE
 #endif /* defined(__hpux) || defined(__AIX__) */
 
-STATIC_THREAD FILE*	f_mmap_file;
+STATIC_THREAD FILE*
+		f_mmap_file;
 			/* The file descriptor for the mmap file. */
 
-STATIC_THREAD int	mmap_file_number;
+STATIC_THREAD int
+		mmap_file_number;
 			/* The file number of the mmap file. */
 
 int get_page_size(void)
@@ -3863,7 +3867,8 @@ Close the file used for allocation of file mapped memory for IL memory blocks.
 
 #endif /* EDG_WIN32 */
 
-STATIC_THREAD int	page_size;
+STATIC_THREAD int
+		page_size;
 			/* The size of a host page.  Memory mapped blocks must
 			   be requested in increments of this size. */
 

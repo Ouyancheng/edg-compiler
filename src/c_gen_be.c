@@ -209,9 +209,11 @@ STATIC_THREAD unsigned int
 #define disable_line_wrapping() (line_wrapping_disabled++)
 #define enable_line_wrapping() (line_wrapping_disabled--)
 
-STATIC_THREAD FILE	*f_primary;
+STATIC_THREAD FILE
+		*f_primary;
 			/* Primary file to which generated C is written. */
-STATIC_THREAD FILE	*f_C_output;
+STATIC_THREAD FILE
+		*f_C_output;
 			/* File to which the generated C is currently being
 			   written. */
 /* Current output position -- file, line, sequence number, column: */
@@ -268,13 +270,13 @@ Saved output position for each file (primary, file-scope initializations,
 and routine initializations).
 */
 STATIC_THREAD an_output_file_position
-			primary_output_position;
+		primary_output_position;
 #if !C_GEN_BE_GENERATES_ANSI_C
 static an_output_file_position
 			file_scope_inits_output_position;
 #endif /* !C_GEN_BE_GENERATES_ANSI_C */
 STATIC_THREAD an_output_file_position
-			rout_dynamic_inits_output_position;
+		rout_dynamic_inits_output_position;
 
 
 /*
@@ -285,7 +287,8 @@ assignment statements:
 static FILE	*f_file_scope_inits;
 			/* Static initializations at the file scope. */
 #endif /* !C_GEN_BE_GENERATES_ANSI_C */
-STATIC_THREAD FILE	*f_rout_dynamic_inits;
+STATIC_THREAD FILE
+		*f_rout_dynamic_inits;
 			/* Dynamic initializations at the routine level. */
 
 STATIC_THREAD uint32_t
@@ -368,7 +371,8 @@ static a_const_char
 			/* Label used to indicate the end of a master routine.
 			   Used as a target for "inlined" returns from the
 			   master routine. */
-STATIC_THREAD int	num_master_params_added;
+STATIC_THREAD int
+		num_master_params_added;
 			/* The number of additional parameters that the
 			   master routine has relative to the entry/wrapper
 			   routine. */
@@ -573,7 +577,8 @@ The offset within the most-derived class of the subobject associated with
 the current member name prefix, or 0 if none.  (Used to adjust the offsets
 displayed in layout annotations to be relative to the complete object.)
 */
-STATIC_THREAD a_targ_size_t subobject_offset;
+STATIC_THREAD a_targ_size_t
+                subobject_offset;
 
 /*
 The following data structures are used when the Microsoft compiler is the
@@ -5170,7 +5175,8 @@ be performed as executable code.
 The variable found while traversing the expression passed to
 variable_referenced_by_lvalue (see below).
 */
-STATIC_THREAD a_variable_ptr var_seen_during_lvalue_traversal;
+STATIC_THREAD a_variable_ptr
+                var_seen_during_lvalue_traversal;
 
 
 static void set_var_in_lvalue_traversal(
@@ -5233,8 +5239,10 @@ pointer to the variable; otherwise, return NULL.
 The variable or routine (if any) found while traversing the expression
 passed to check_address_taken_flag (see below).
 */
-STATIC_THREAD a_variable_ptr var_for_address_taken_check;
-STATIC_THREAD a_routine_ptr  rout_for_address_taken_check;
+STATIC_THREAD a_variable_ptr
+                var_for_address_taken_check;
+STATIC_THREAD a_routine_ptr
+                rout_for_address_taken_check;
 
 
 static void set_target_of_addressing_op(

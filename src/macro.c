@@ -41,7 +41,8 @@ BEGIN_EDG_NAMESPACE
 Buffer used to contain the characters of a macro being defined, and the
 characters of macro expansions.
 */
-STATIC_THREAD char	*macro_buffer;
+STATIC_THREAD char
+		*macro_buffer;
 			/* Contains characters of macro expansions and of
 			   macro definitions.  Dynamically allocated,
 			   expanded as needed. */
@@ -51,15 +52,18 @@ STATIC_THREAD char	*macro_buffer;
 			   cases can be accepted (so that the realloc is
 			   hardly ever needed).  Subsequent reallocations will
 			   double the amount previously allocated. */
-STATIC_THREAD char	*after_end_of_macro_buffer;
+STATIC_THREAD char
+		*after_end_of_macro_buffer;
 			/* The address just past the last element of
 			   macro_buffer. */
-STATIC_THREAD char	*next_avail_in_macro_buffer;
+STATIC_THREAD char
+		*next_avail_in_macro_buffer;
 			/* Next character position in macro_buffer available
 			   for allocation.  Reset at the start of a macro
 			   definition or a top-level macro expansion.  Not
 			   set outside of macro processing. */
-STATIC_THREAD sizeof_t num_compacted_macro_buffer_chars;
+STATIC_THREAD sizeof_t
+                num_compacted_macro_buffer_chars;
 			/* Number of characters in macro_buffer that have
 			   already been compacted as a result of previous
 			   reallocations.  Except for cases where source line
@@ -68,11 +72,13 @@ STATIC_THREAD sizeof_t num_compacted_macro_buffer_chars;
 			   further and, as an optimization, can thus just be
 			   memcpy'ed during further macro_buffer
 			   reallocations. */
-STATIC_THREAD sizeof_t num_chars_deleted_in_macro_buffer;
+STATIC_THREAD sizeof_t
+                num_chars_deleted_in_macro_buffer;
 			/* Number of characters in the uncompacted portion of
 			   macro_buffer that have been logically deleted via
 			   source line modifications. */
-STATIC_THREAD char	*macro_buffer_region_in_progress;
+STATIC_THREAD char
+		*macro_buffer_region_in_progress;
 			/* If non-NULL, points to the start of a section at
 			   the end of macro_buffer that is in the process of
 			   being built incrementally (e.g., by proc_define).
@@ -152,7 +158,8 @@ static unsigned long
 		ckpt_depth_of_curr_macro_invocation_record;
 			/* Shadow copy of preceding for checkpoint/revert. */
 #endif /* RECORD_MACRO_INVOCATIONS */
-STATIC_THREAD char	*aux_buffer_for_pcc_macros;
+STATIC_THREAD char
+		*aux_buffer_for_pcc_macros;
 			/* Auxiliary buffer allocated in pcc mode only and
 			   used to construct the full text of a first-level
 			   macro expansion so that the token pasting can
@@ -164,7 +171,8 @@ STATIC_THREAD char	*aux_buffer_for_pcc_macros;
 			   accepted (so that the realloc is hardly ever
 			   needed).  Subsequent reallocations will double the
 			   amount previously allocated. */
-STATIC_THREAD char	*after_end_of_aux_buffer_for_pcc_macros;
+STATIC_THREAD char
+		*after_end_of_aux_buffer_for_pcc_macros;
 			/* Pointer to just after the end of
 			   aux_buffer_for_pcc_macros. */
 #if FULLY_RESOLVED_MACRO_POSITIONS
@@ -11392,7 +11400,8 @@ Return the file descriptor.
   return f_file;
 }  /* open_predefined_macro_file */
 
-STATIC_THREAD FILE	*f_predef_macros;
+STATIC_THREAD FILE
+		*f_predef_macros;
 			/* The file descriptor for the predefined macros
 			   file. */
 

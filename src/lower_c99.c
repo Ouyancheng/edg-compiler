@@ -1263,13 +1263,20 @@ Return names[fkind] (a string naming the given floating-point precision).
 #if LOWER_COMPLEX
 
 /* Pointers to lowered versions of complex types, once allocated. */
-STATIC_THREAD a_type_ptr lowered_complex_float16;
-STATIC_THREAD a_type_ptr lowered_complex_bfloat16;
-STATIC_THREAD a_type_ptr lowered_complex_float;
-STATIC_THREAD a_type_ptr lowered_complex_double;
-STATIC_THREAD a_type_ptr lowered_complex_long_double;
-STATIC_THREAD a_type_ptr lowered_complex_float80;
-STATIC_THREAD a_type_ptr lowered_complex_float128;
+STATIC_THREAD a_type_ptr
+                lowered_complex_float16;
+STATIC_THREAD a_type_ptr
+                lowered_complex_bfloat16;
+STATIC_THREAD a_type_ptr
+                lowered_complex_float;
+STATIC_THREAD a_type_ptr
+                lowered_complex_double;
+STATIC_THREAD a_type_ptr
+                lowered_complex_long_double;
+STATIC_THREAD a_type_ptr
+                lowered_complex_float80;
+STATIC_THREAD a_type_ptr
+                lowered_complex_float128;
 
 
 static a_type_ptr make_lowered_complex_type(a_float_kind  fkind,
@@ -1390,22 +1397,38 @@ single field in the struct for the lowered version of the type.
 
 
 /* Complex arithmetic and comparison routines. */
-STATIC_THREAD a_routine_ptr  xnegate_routine[NUM_COMPLEX_FLOAT_KINDS];
-STATIC_THREAD a_routine_ptr  xadd_routine[NUM_COMPLEX_FLOAT_KINDS];
-STATIC_THREAD a_routine_ptr  xsubtract_routine[NUM_COMPLEX_FLOAT_KINDS];
-STATIC_THREAD a_routine_ptr  xmultiply_routine[NUM_COMPLEX_FLOAT_KINDS];
-STATIC_THREAD a_routine_ptr  xdivide_routine[NUM_COMPLEX_FLOAT_KINDS];
-STATIC_THREAD a_routine_ptr  xeq_routine[NUM_COMPLEX_FLOAT_KINDS];
-STATIC_THREAD a_routine_ptr  xne_routine[NUM_COMPLEX_FLOAT_KINDS];
-STATIC_THREAD a_routine_ptr  rtoc_routine[NUM_COMPLEX_FLOAT_KINDS];
-STATIC_THREAD a_routine_ptr  ctor_routine[NUM_COMPLEX_FLOAT_KINDS];
-STATIC_THREAD a_routine_ptr  itoc_routine[NUM_COMPLEX_FLOAT_KINDS];
-STATIC_THREAD a_routine_ptr  ctoi_routine[NUM_COMPLEX_FLOAT_KINDS];
-STATIC_THREAD a_routine_ptr  cast_float16_routine[NUM_COMPLEX_FLOAT_KINDS];
-STATIC_THREAD a_routine_ptr  cast_bfloat16_routine[NUM_COMPLEX_FLOAT_KINDS];
-STATIC_THREAD a_routine_ptr  cast_float_routine[NUM_COMPLEX_FLOAT_KINDS];
-STATIC_THREAD a_routine_ptr  cast_double_routine[NUM_COMPLEX_FLOAT_KINDS];
-STATIC_THREAD a_routine_ptr  cast_long_double_routine[NUM_COMPLEX_FLOAT_KINDS];
+STATIC_THREAD a_routine_ptr
+                xnegate_routine[NUM_COMPLEX_FLOAT_KINDS];
+STATIC_THREAD a_routine_ptr
+                xadd_routine[NUM_COMPLEX_FLOAT_KINDS];
+STATIC_THREAD a_routine_ptr
+                xsubtract_routine[NUM_COMPLEX_FLOAT_KINDS];
+STATIC_THREAD a_routine_ptr
+                xmultiply_routine[NUM_COMPLEX_FLOAT_KINDS];
+STATIC_THREAD a_routine_ptr
+                xdivide_routine[NUM_COMPLEX_FLOAT_KINDS];
+STATIC_THREAD a_routine_ptr
+                xeq_routine[NUM_COMPLEX_FLOAT_KINDS];
+STATIC_THREAD a_routine_ptr
+                xne_routine[NUM_COMPLEX_FLOAT_KINDS];
+STATIC_THREAD a_routine_ptr
+                rtoc_routine[NUM_COMPLEX_FLOAT_KINDS];
+STATIC_THREAD a_routine_ptr
+                ctor_routine[NUM_COMPLEX_FLOAT_KINDS];
+STATIC_THREAD a_routine_ptr
+                itoc_routine[NUM_COMPLEX_FLOAT_KINDS];
+STATIC_THREAD a_routine_ptr
+                ctoi_routine[NUM_COMPLEX_FLOAT_KINDS];
+STATIC_THREAD a_routine_ptr
+                cast_float16_routine[NUM_COMPLEX_FLOAT_KINDS];
+STATIC_THREAD a_routine_ptr
+                cast_bfloat16_routine[NUM_COMPLEX_FLOAT_KINDS];
+STATIC_THREAD a_routine_ptr
+                cast_float_routine[NUM_COMPLEX_FLOAT_KINDS];
+STATIC_THREAD a_routine_ptr
+                cast_double_routine[NUM_COMPLEX_FLOAT_KINDS];
+STATIC_THREAD a_routine_ptr
+                cast_long_double_routine[NUM_COMPLEX_FLOAT_KINDS];
 #if FLOAT80_ENABLING_POSSIBLE
 static a_routine_ptr  cast_float80_routine[NUM_COMPLEX_FLOAT_KINDS];
 #endif /* FLOAT80_ENABLING_POSSIBLE */
@@ -2113,7 +2136,8 @@ negating one part in the "-" case.
 #if C99_IL_EXTENSIONS_SUPPORTED
 
 /* Complex conjugation routines. */
-STATIC_THREAD a_routine_ptr  xconj_routine[NUM_COMPLEX_FLOAT_KINDS];
+STATIC_THREAD a_routine_ptr
+                xconj_routine[NUM_COMPLEX_FLOAT_KINDS];
 
 /* Names of the complex conjugation runtime routines. */
 static a_library_name_array xconj_routine_name = {

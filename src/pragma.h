@@ -335,7 +335,8 @@ typedef struct a_pending_pragma {
 } a_pending_pragma;
 
 
-EXTERN_THREAD a_pragma_kind_description_ptr pragma_kind_descriptions;
+EXTERN_THREAD a_pragma_kind_description_ptr
+                pragma_kind_descriptions;
 			/* Pointer to a linked list of pragma descriptions. */
 
 EXTERN_THREAD a_pending_pragma_ptr
@@ -345,7 +346,7 @@ EXTERN_THREAD a_pending_pragma_ptr
 			   token. */
 
 EXTERN_THREAD a_pragma_kind_description_ptr
-		 pragma_description_for_pragma_kind[(int)pk_last + 1];
+		pragma_description_for_pragma_kind[(int)pk_last + 1];
 			/* An array that can be used to get a pointer to
 			   a pragma description given a pragma kind.  Note that
 			   the entry in the array will only contain a value

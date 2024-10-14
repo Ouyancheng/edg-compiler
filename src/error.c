@@ -41,7 +41,8 @@ BEGIN_EDG_NAMESPACE
 /*
 Static variable set when a catastrophe occurs, to catch catastrophe loops.
 */
-STATIC_THREAD a_boolean catastrophe_has_occurred;
+STATIC_THREAD a_boolean
+                catastrophe_has_occurred;
 
 /*
 Constants, structures and static variables used to format diagnostic
@@ -67,7 +68,8 @@ messages.
 				   NORMAL_DIAG_INDENT and less than
 				   SOURCE_INDENT. */
 
-STATIC_THREAD int	diagnostic_indent;
+STATIC_THREAD int
+		diagnostic_indent;
 			/* Typically all diagnostic messages will
 			   begin in the first column of a line and
 			   subsequent continuation lines would be
@@ -485,7 +487,8 @@ STATIC_THREAD a_text_buffer_ptr
 			   is not null-terminated during the
 			   construction of the diagnostic. */
 
-STATIC_THREAD int	diagnostic_line_length;
+STATIC_THREAD int
+		diagnostic_line_length;
 			/* The maximum length of an error output line.
 			   Use to wrap diagnostics. */
 
@@ -542,7 +545,8 @@ line.  Occasionally a diagnostic will refer to a source line that is not in
 the current logical source line (a line read earlier).  The buffer pointed
 to by error_source_line will hold such a source line that has been reread.
 */
-STATIC_THREAD char	*error_source_line;
+STATIC_THREAD char
+		*error_source_line;
 			/* Characters of the source line being reread for
 			   diagnostic generation, ended by both a newline and
 			   a null.  Space is dynamically allocated, and its
@@ -554,7 +558,8 @@ STATIC_THREAD char	*error_source_line;
 			   error_source_line.  The initial allocation should be
 			   such that almost all cases can be accepted (so that
 			   the realloc is hardly ever needed). */
-STATIC_THREAD char	*after_end_of_error_source_line;
+STATIC_THREAD char
+		*after_end_of_error_source_line;
 			/* Address past the last element of error_source_line,
 			   as an aid to checking for overflow, etc.  A variable
 			   because error_source_line line can be reallocated
@@ -2264,7 +2269,8 @@ file which is closer to the desired line.
 #endif /* !STANDALONE_UTILITY_PROGRAM */
 #if !STANDALONE_UTILITY_PROGRAM
 
-STATIC_THREAD FILE	*f_err_src_file;
+STATIC_THREAD FILE
+		*f_err_src_file;
 			/* File variable used to fetch the source line from
 			   the source file. */
 
@@ -3245,7 +3251,8 @@ static void general_diagnostic(
 
 #if CHECKING
 
-STATIC_THREAD a_boolean internal_error_loop;
+STATIC_THREAD a_boolean
+                internal_error_loop;
 			/* Set to TRUE once an internal error has been
 			   detected.  Used to detect a loop in internal
 			   error processing. */
@@ -3334,7 +3341,7 @@ Structure to record a pending assertion.  If necessary, the recorded entities
 will be passed to assertion_failed at a later time.
 */
 STATIC_THREAD struct {
-  a_const_char *filename;
+  a_const_char  *filename;
   int          line_number;
   a_const_char *function;
   a_const_char *string1;

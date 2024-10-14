@@ -66,8 +66,10 @@ BEGIN_EDG_NAMESPACE
 /*
 Pointers to shared types.  These are cleared by il_init.
 */
-STATIC_THREAD a_type_ptr int_types[(int)ik_last];
-STATIC_THREAD a_type_ptr signed_int_types[(int)ik_last];
+STATIC_THREAD a_type_ptr
+                int_types[(int)ik_last];
+STATIC_THREAD a_type_ptr
+                signed_int_types[(int)ik_last];
 #if MICROSOFT_EXTENSIONS_ALLOWED
 static a_type_ptr microsoft_sized_int_types[(int)ik_last];
 static a_type_ptr microsoft_sized_signed_int_types[(int)ik_last];
@@ -76,26 +78,42 @@ static a_type_ptr microsoft_sized_signed_int_types[(int)ik_last];
 static a_type_ptr fixed_point_types[(int)fpp_last][/*is_unsigned*/2]
                                    [/*is_fract*/2][/*saturating*/2];
 #endif /* FIXED_POINT_ALLOWED */
-STATIC_THREAD a_type_ptr float_types[(int)fk_last];
+STATIC_THREAD a_type_ptr
+                float_types[(int)fk_last];
 #if C99_IL_EXTENSIONS_SUPPORTED
-STATIC_THREAD a_type_ptr complex_types[(int)fk_last];
-STATIC_THREAD a_type_ptr imaginary_types[(int)fk_last];
+STATIC_THREAD a_type_ptr
+                complex_types[(int)fk_last];
+STATIC_THREAD a_type_ptr
+                imaginary_types[(int)fk_last];
 #endif /* C99_IL_EXTENSIONS_SUPPORTED */
 #define MAX_TRACKED_STRING_TYPE_LENGTH 80
 STATIC_THREAD a_type_ptr (*string_types)[MAX_TRACKED_STRING_TYPE_LENGTH+1];
-STATIC_THREAD a_type_ptr il_error_type;
-STATIC_THREAD a_type_ptr il_unknown_type;
-STATIC_THREAD a_type_ptr il_void_type;
-STATIC_THREAD a_type_ptr il_reflection_type;
-STATIC_THREAD a_type_ptr il_wchar_t_type;
-STATIC_THREAD a_type_ptr il_char8_t_type;
-STATIC_THREAD a_type_ptr il_char16_t_type;
-STATIC_THREAD a_type_ptr il_char32_t_type;
-STATIC_THREAD a_type_ptr il_bool_type;
-STATIC_THREAD a_type_ptr il_standard_nullptr_type;
-STATIC_THREAD a_type_ptr il_managed_nullptr_type;
-STATIC_THREAD a_type_ptr il_std_string_view;
-STATIC_THREAD a_type_ptr il_scalable_vector_count_type;
+STATIC_THREAD a_type_ptr
+                il_error_type;
+STATIC_THREAD a_type_ptr
+                il_unknown_type;
+STATIC_THREAD a_type_ptr
+                il_void_type;
+STATIC_THREAD a_type_ptr
+                il_reflection_type;
+STATIC_THREAD a_type_ptr
+                il_wchar_t_type;
+STATIC_THREAD a_type_ptr
+                il_char8_t_type;
+STATIC_THREAD a_type_ptr
+                il_char16_t_type;
+STATIC_THREAD a_type_ptr
+                il_char32_t_type;
+STATIC_THREAD a_type_ptr
+                il_bool_type;
+STATIC_THREAD a_type_ptr
+                il_standard_nullptr_type;
+STATIC_THREAD a_type_ptr
+                il_managed_nullptr_type;
+STATIC_THREAD a_type_ptr
+                il_std_string_view;
+STATIC_THREAD a_type_ptr
+                il_scalable_vector_count_type;
 
 /* Conditionally close the "edg" namespace. */
 END_EDG_NAMESPACE
@@ -143,7 +161,8 @@ typedef struct a_source_sequence_cache_entry {
 			/* Cached source file pointer. */
 } a_source_sequence_cache_entry;
 
-STATIC_THREAD a_source_sequence_cache_entry seq_cache;
+STATIC_THREAD a_source_sequence_cache_entry
+                seq_cache;
 
 #if !STANDALONE_UTILITY_PROGRAM
 
@@ -31493,14 +31512,14 @@ Display memory use for entities in front end memory in this file (il.c).
 #endif /* !DO_IL_LOWERING */
 
 STATIC_THREAD a_type_ptr
-	*type_reordering;
+		*type_reordering;
 		/* A pointer to a temporary array of a_type_ptr values
 		   used to order the file-scope types list as required for
 		   the C-generating back end.
 		   See fix_type_list_ordering_problems. */
 
 STATIC_THREAD a_type_ptr
-	*next_type_reordering_slot;
+		*next_type_reordering_slot;
 		/* Pointer to the next available slot in type_reordering. */
 
 /*

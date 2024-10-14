@@ -652,7 +652,8 @@ EXTERN_THREAD an_operand_ptr
 			/* Pointer to an array of operands available when
 			   scanning internal expressions. */
 
-EXTERN_THREAD int	n_internal_opnds;
+EXTERN_THREAD int
+		n_internal_opnds;
 			/* Length of the array pointed to by
 			   internal_opnd_array. */
 

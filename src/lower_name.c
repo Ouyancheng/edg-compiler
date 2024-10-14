@@ -11883,7 +11883,7 @@ typedef struct an_abi_tag_string {
 } an_abi_tag_string;
 
 STATIC_THREAD an_abi_tag_string_ptr
-              avail_abi_tag_strings;
+                avail_abi_tag_strings;
                         /* A list of available abi_tag entries. */
 STATIC_THREAD a_constant_list_entry_ptr
                 implicit_tag_list;

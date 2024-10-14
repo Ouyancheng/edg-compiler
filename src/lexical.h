@@ -1196,7 +1196,8 @@ EXTERN_THREAD a_const_char
 			   index+1 is the adjustment needed to convert to
 			   a logical column number. */
 #endif /* MULTIBYTE_CHARS_IN_SOURCE_SUPPORTED */
-EXTERN_THREAD int	logical_char_info_entries_used;
+EXTERN_THREAD int
+		logical_char_info_entries_used;
 			/* The number of entries in the logical_char_info
 			   array that are in use for the current source
 			   line (zero if no entries are in use).  Only
@@ -1221,7 +1222,8 @@ EXTERN_THREAD a_boolean
 			   but still within it -- the stack has not yet been
 			   popped.  curr_source_line still contains the line
 			   most recently read. */
-EXTERN_THREAD sizeof_t	end_of_line_escape_offset;
+EXTERN_THREAD sizeof_t
+		end_of_line_escape_offset;
 			/* The offset of the LE_END_OF_LINE escape that
 			   ends curr_source_line.  This is set by
 			   skip_white_space and is used only in the rare
@@ -1720,7 +1722,8 @@ EXTERN_THREAD a_const_char
 			   curr_source_line.  Only valid outside the
 			   lexical routines when raw pp tokens are being
 			   fetched. */
-EXTERN_THREAD sizeof_t	len_of_curr_token;
+EXTERN_THREAD sizeof_t
+		len_of_curr_token;
 			/* The length of the current token.  Only valid 
 			   outside the lexical routines when raw pp tokens
 			   are being fetched. */
@@ -1736,7 +1739,8 @@ EXTERN_THREAD a_source_position
 			   token. */
 #endif /* EXTRA_SOURCE_POSITIONS_IN_IL */
 
-EXTERN_THREAD int	kind_of_white_space_skipped;
+EXTERN_THREAD int
+		kind_of_white_space_skipped;
 			/* Kind of white space skipped by the most recent
 			   call to skip_white_space (not necessarily
 			   correct when get_token is called).  Used in
@@ -1855,7 +1859,8 @@ EXTERN_THREAD a_boolean
 			/* TRUE if ends-of-lines should be returned as
 			   tok_newline instead of skipped as white space. */
 
-EXTERN_THREAD char	*curr_token_asm_string;
+EXTERN_THREAD char
+		*curr_token_asm_string;
 			/* When curr_token == tok_microsoft_asm, this points
 			   to the associated asm string. */
 
@@ -1891,16 +1896,19 @@ EXTERN_THREAD a_boolean
 			/* TRUE if processing takes place during the scan of
 			   an asm function body. */
 
-EXTERN_THREAD sizeof_t	pos_in_asm_func_body_buffer;
+EXTERN_THREAD sizeof_t
+		pos_in_asm_func_body_buffer;
 			/* The number of characters that have been added to
 			   asm_func_body_buffer thus far in processing. */
 
-EXTERN_THREAD char	*asm_func_body_buffer;
+EXTERN_THREAD char
+		*asm_func_body_buffer;
 			/* Pointer to a dynamically allocated buffer used to
 			   construct the string representation of an asm
 			   function or Microsoft asm block. */
 
-EXTERN_THREAD sizeof_t	size_asm_func_body_buffer;
+EXTERN_THREAD sizeof_t
+		size_asm_func_body_buffer;
 			/* The size of the asm buffer. */
 
 EXTERN_THREAD a_const_char
@@ -2585,7 +2593,8 @@ EXTERN_THREAD a_boolean
 Data structure used in deciding where to put extra blanks to separate
 adjacent tokens in textual preprocessing output.
 */
-EXTERN_THREAD a_byte	pp_lexical_category[CHAR_MAX-CHAR_MIN+1];
+EXTERN_THREAD a_byte
+		pp_lexical_category[CHAR_MAX-CHAR_MIN+1];
 			/* For each character, the lexical category to
 			   be used in preprocessing output.  These categories
 			   are used to decide when extra token-separating

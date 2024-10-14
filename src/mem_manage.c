@@ -506,7 +506,8 @@ STATIC_THREAD a_boolean
 			/* TRUE when the file used for mmap has been
 			   opened. */
 
-STATIC_THREAD sizeof_t	mmap_size_allocated;
+STATIC_THREAD sizeof_t
+		mmap_size_allocated;
 			/* The number of bytes of mapped memory that have
 			   been allocated.  This is usually the same as
 			   mmap_file_offset, except when a precompiled
@@ -514,7 +515,8 @@ STATIC_THREAD sizeof_t	mmap_size_allocated;
 			   the PCH file is included in mmap_size_allocated,
 			   but not in mmap_file_offset. */
 
-STATIC_THREAD sizeof_t	mmap_file_offset;
+STATIC_THREAD sizeof_t
+		mmap_file_offset;
 			/* The offset into the mmap file of the next block
 			   to be allocated. */
 

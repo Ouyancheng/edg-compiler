@@ -89,7 +89,8 @@ typedef struct an_error_tag_entry {
 			/* The error code that this tag refers to. */
 } an_error_tag_entry;
 
-EXTERN_THREAD FILE	*f_error;
+EXTERN_THREAD FILE
+		*f_error;
 			/* The file to which error output is written. */
 
 /*
@@ -277,7 +278,8 @@ EXTERN_THREAD unsigned long
 			/* Compilation is abandoned when this many errors
 			   are detected. */
 
-EXTERN_THREAD int	context_limit;
+EXTERN_THREAD int
+		context_limit;
 
 			/* The maximum number of context lines to be
 			   emitted as part of an error message. */

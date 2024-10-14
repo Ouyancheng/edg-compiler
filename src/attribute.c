@@ -951,7 +951,7 @@ static a_const_char *valid_attribute_namespaces[] = {
 Pointer to a hash table indexing attr_corresp_table by attribute kind.
 */
 STATIC_THREAD a_hash_table_ptr
-	attr_corresp_checking_map;
+		attr_corresp_checking_map;
 
 /*
 Bucket type for attr_corresp_checking_map.
@@ -1174,7 +1174,7 @@ is called through the macro check_attr_config.
 Pointer to a hash table indexing known_attr_table by attribute name.
 */
 STATIC_THREAD a_hash_table_ptr
-	attr_name_map;
+		attr_name_map;
 
 /*
 Bucket type for attr_name_map.
@@ -1511,7 +1511,8 @@ modes encoded in that string.
 }  /* cond_matches_ms_declspec_mode */
 
 
-STATIC_THREAD int attr_family_seen[(int)ak_last];
+STATIC_THREAD int
+                attr_family_seen[(int)ak_last];
 			/* An array used to efficiently detect duplicated
 			   attributes. */
 
@@ -9385,19 +9386,19 @@ typedef struct an_alias_fixup {
 
 /* Pointer to the head of the list of alias fixups. */
 STATIC_THREAD an_alias_fixup_ptr
-	alias_fixup_list;
+		alias_fixup_list;
 
 /* Pointer to the last element on the list of alias fixups. */
 STATIC_THREAD an_alias_fixup_ptr
-	last_alias_fixup;
+		last_alias_fixup;
 
 /* Pointer to a list of available (freed) alias fixups. */
 STATIC_THREAD an_alias_fixup_ptr
-	avail_alias_fixups;
+		avail_alias_fixups;
 
 #if DEBUG
 STATIC_THREAD unsigned long
-	num_alias_fixups_allocated;
+		num_alias_fixups_allocated;
 #endif /* DEBUG */
 
 
@@ -9563,7 +9564,7 @@ be recorded as an alias for aliased_sym.
    names.  This is used when looking up alias names (which should find asm
    names). */
 STATIC_THREAD a_hash_table_ptr
-	asm_name_map;
+		asm_name_map;
 
 
 a_boolean compare_for_asm_name_map(a_void_ptr  entry,
@@ -9849,7 +9850,7 @@ Also used for the GNU ifunc attribute.
 
 #if DEBUG
 STATIC_THREAD unsigned long
-	pragma_extname_string_space;
+		pragma_extname_string_space;
 #endif /* DEBUG */
 
 void redefine_extname_pragma(a_pending_pragma_ptr  ppp)
@@ -10005,7 +10006,8 @@ Copy any GNU type properties (set by attributes) in type dst to type src.
 /*
 A dummy attribute used solely for the processing of attribute_is_supported.
 */
-STATIC_THREAD an_attribute_ptr dummy_attr;
+STATIC_THREAD an_attribute_ptr
+                dummy_attr;
 
 a_boolean attribute_is_supported(a_const_char        *name,
                                  a_const_char        *namespace_name,

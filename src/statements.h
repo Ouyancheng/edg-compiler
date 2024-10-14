@@ -493,7 +493,8 @@ EXTERN_THREAD a_struct_stmt_stack_entry_ptr
 			   struct_stmt_stack array is actually a subarray of
 			   struct_stmt_stack_container. */
 
-EXTERN_THREAD int	depth_stmt_stack;
+EXTERN_THREAD int
+		depth_stmt_stack;
 			/* Index of the current entry in struct_stmt_stack.
 			   -1 if the stack is empty. */
 

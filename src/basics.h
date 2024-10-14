@@ -283,7 +283,8 @@ By default, configure for ANSI C if __STDC__ is set, and for BSD4.n otherwise.
 /*
 Definition of a generic byte.  Always "unsigned char".
 */
-typedef unsigned char a_byte;
+typedef unsigned char
+                a_byte;
 
 /*
 Flag that is TRUE if, when compiling the front end as C++ code, the
@@ -693,7 +694,8 @@ EXTERN_THREAD a_boolean
 			/* TRUE if debug_level is currently non-zero, or
 			   if there is the potential for it becoming
 			   non-zero (because there is a debug list). */
-EXTERN_THREAD FILE	*f_debug;
+EXTERN_THREAD FILE
+		*f_debug;
 			/* Debug output file. */
 
 extern void debug_enter(int reporting_level, a_const_char *function_name);

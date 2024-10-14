@@ -1417,7 +1417,8 @@ STATIC_THREAD unsigned long
   (++(ips)->cost > max_cost_constexpr_call)
 
 
-STATIC_THREAD a_byte	*free_stack_blocks;
+STATIC_THREAD a_byte
+		*free_stack_blocks;
 			/* List of free stack blocks available for reuse. */
 
 

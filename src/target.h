@@ -38,7 +38,8 @@ configuration was specified.
 */
 #define NO_TARGET_CONFIG (-1)
 
-EXTERN_THREAD int32_t  target_configuration_index;
+EXTERN_THREAD int32_t
+                target_configuration_index;
                         /* Gives the index (into target_configurations[]) of
                            the target configuration that is being used
                            (either selected by the --target command-line option
@@ -279,7 +280,8 @@ EXTERN_THREAD a_boolean
 			   allocate empty base classes at the same offset as
 			   other subobjects. */
 
-EXTERN_THREAD int	targ_bit_field_container_size;
+EXTERN_THREAD int
+		targ_bit_field_container_size;
 			/* Container size to be used for bit-fields.  If > 0,
 			   indicates the size in bytes of one of the integral
 			   types.  0 means "use the smallest integral type
@@ -332,7 +334,8 @@ EXTERN_THREAD a_boolean
 			   if targ_enum_bit_fields_are_always_unsigned is
 			   TRUE.) */
 
-EXTERN_THREAD int	targ_zero_width_bit_field_alignment;
+EXTERN_THREAD int
+		targ_zero_width_bit_field_alignment;
 			/* Alignment adjustment to be made when a zero-width
 			   (unnamed) bit field is declared.  If > 0 it is the
 			   alignment to be used (typically the alignment of
@@ -343,13 +346,15 @@ EXTERN_THREAD int	targ_zero_width_bit_field_alignment;
 			   means "use the alignment of the base type given in
 			   the declaration". */
 
-EXTERN_THREAD int	targ_zero_width_bit_field_affects_struct_alignment;
+EXTERN_THREAD int
+		targ_zero_width_bit_field_affects_struct_alignment;
 			/* TRUE when the alignment adjustment when a
 			   zero-width (unnamed) bit-field is declared
 			   affects the overall alignment of the struct as
 			   well as the alignment of the next field. */
 
-EXTERN_THREAD int	targ_unnamed_bit_field_affects_struct_alignment;
+EXTERN_THREAD int
+		targ_unnamed_bit_field_affects_struct_alignment;
 			/* TRUE if the alignment adjustment when an unnamed
 			   bit-field is declared affects the overall alignment
 			   of the struct as well as the alignment of the next
@@ -360,13 +365,15 @@ EXTERN_THREAD a_boolean
 			/* TRUE if a bit field in a union type affects its
 			   alignment. */
 
-EXTERN_THREAD int	targ_user_control_of_struct_packing_affects_bit_fields;
+EXTERN_THREAD int
+		targ_user_control_of_struct_packing_affects_bit_fields;
 			/* TRUE if "#pragma pack(n)" and the command-line
 			   option "--pack_alignment=n" affect the alignment of
 			   bit field containers (when bit fields straddle
 			   container alignment boundaries). */
 
-EXTERN_THREAD int	targ_pad_bit_fields_larger_than_base_type;
+EXTERN_THREAD int
+		targ_pad_bit_fields_larger_than_base_type;
 			/* TRUE if bit fields longer than their base types are
 			   padded out to the full declared length.  FALSE
 			   means allocate only as many bits as are in the
@@ -967,52 +974,67 @@ EXTERN_THREAD an_integer_kind
 #endif /* GENERATE_EH_TABLES */
 #endif /* DO_IL_LOWERING */
 
-EXTERN_THREAD int	targ_flt_mant_dig;
+EXTERN_THREAD int
+		targ_flt_mant_dig;
 			/* The number of bits in the mantissa of a float. */
 
-EXTERN_THREAD int	targ_flt_min_exp;
+EXTERN_THREAD int
+		targ_flt_min_exp;
 			/* The minimum exponent value of a float. */
 
-EXTERN_THREAD int	targ_flt_max_exp;
+EXTERN_THREAD int
+		targ_flt_max_exp;
 			/* The maximum exponent value of a float. */
 
-EXTERN_THREAD int	targ_dbl_mant_dig;
+EXTERN_THREAD int
+		targ_dbl_mant_dig;
 			/* The number of bits in the mantissa of a double. */
 
-EXTERN_THREAD int	targ_dbl_min_exp;
+EXTERN_THREAD int
+		targ_dbl_min_exp;
 			/* The minimum exponent value of a double. */
 
-EXTERN_THREAD int	targ_dbl_max_exp;
+EXTERN_THREAD int
+		targ_dbl_max_exp;
 			/* The maximum exponent value of a double. */
 
-EXTERN_THREAD int	targ_ldbl_mant_dig;
+EXTERN_THREAD int
+		targ_ldbl_mant_dig;
 			/* The number of bits in the mantissa of a long
                            double. */
 
-EXTERN_THREAD int	targ_ldbl_min_exp;
+EXTERN_THREAD int
+		targ_ldbl_min_exp;
 			/* The minimum exponent value of a long double. */
 
-EXTERN_THREAD int	targ_ldbl_max_exp;
+EXTERN_THREAD int
+		targ_ldbl_max_exp;
 			/* The maximum exponent value of a long double. */
 
-EXTERN_THREAD int	targ_flt80_mant_dig;
+EXTERN_THREAD int
+		targ_flt80_mant_dig;
 			/* The number of bits in the mantissa of a
                            __float80. */
 
-EXTERN_THREAD int	targ_flt80_min_exp;
+EXTERN_THREAD int
+		targ_flt80_min_exp;
 			/* The minimum exponent value of a __float80. */
 
-EXTERN_THREAD int	targ_flt80_max_exp;
+EXTERN_THREAD int
+		targ_flt80_max_exp;
 			/* The maximum exponent value of a __float80. */
 
-EXTERN_THREAD int	targ_flt128_mant_dig;
+EXTERN_THREAD int
+		targ_flt128_mant_dig;
 			/* The number of bits in the mantissa of a
                            __float128. */
 
-EXTERN_THREAD int	targ_flt128_min_exp;
+EXTERN_THREAD int
+		targ_flt128_min_exp;
 			/* The minimum exponent value of a __float128. */
 
-EXTERN_THREAD int	targ_flt128_max_exp;
+EXTERN_THREAD int
+		targ_flt128_max_exp;
 			/* The maximum exponent value of a __float128. */
 
 EXTERN_THREAD a_boolean
@@ -1204,7 +1226,8 @@ EXTERN_THREAD a_boolean
 			   a one-byte padding field. */
 #endif /* BACK_END_IS_C_GEN_BE */
 
-EXTERN_THREAD char     *auxiliary_info_dir_name;
+EXTERN_THREAD char
+                *auxiliary_info_dir_name;
                         /* Initialized to EDG_AUXILIARY_INFO_DIR_NAME (e.g.,
                            "lib"), when using an unnamed target configuration,
                            otherwise the target name (and a separating

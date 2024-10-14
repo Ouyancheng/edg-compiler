@@ -474,7 +474,8 @@ typedef union a_collision_table {
 /*
 Pointer to a list of available collision tables.
 */
-STATIC_THREAD a_collision_table_ptr avail_collision_tables;
+STATIC_THREAD a_collision_table_ptr
+                avail_collision_tables;
 
 
 static void initialize_local_name_collision_table(a_scope_stack_entry_ptr ssep)
@@ -1270,7 +1271,7 @@ STATIC_THREAD a_c99_inline_definition_locator_ptr
 
 #if DEBUG
 STATIC_THREAD unsigned long
-	num_c99_inline_definition_locators_allocated;
+		num_c99_inline_definition_locators_allocated;
 #endif /* DEBUG */
 
 void check_c99_inline_definition(a_variable_ptr     var,
@@ -10975,7 +10976,8 @@ facilitate identification of the descriptors to be discarded.  If a second
 parse is not required, the value in each such descriptor is reset to 0
 after the initial parse.
 */
-STATIC_THREAD int depth_tentative_pack_expansions;
+STATIC_THREAD int
+                depth_tentative_pack_expansions;
 
 
 void begin_tentative_pack_expansion_context(void)

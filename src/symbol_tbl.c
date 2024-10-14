@@ -86,7 +86,8 @@ static a_named_register_id
 /*
 An empty symbol used to initialize newly allocated symbols.
 */
-STATIC_THREAD a_symbol cleared_symbol;
+STATIC_THREAD a_symbol
+                cleared_symbol;
 
 static inline void clear_symbol(a_symbol_ptr   sym,
                                 a_symbol_kind  kind)
@@ -167,11 +168,13 @@ STATIC_THREAD a_namespace_list_entry_ptr
 Array used to hold an identifier for external name or destructor name
 generation.
 */
-STATIC_THREAD char     *ident_buffer;
+STATIC_THREAD char
+                *ident_buffer;
 			/* Buffer itself.  Dynamic allocated; current size is
 			   given by size_ident_buffer.  Allocated in general
 			   storage.  Not per-file. */
-STATIC_THREAD sizeof_t size_ident_buffer;
+STATIC_THREAD sizeof_t
+                size_ident_buffer;
 			/* Current allocated size of ident_buffer. */
 #define IDENT_BUFFER_INCREMENTAL_ALLOCATION 300
 			/* Incremental allocation for ident_buffer.  Should
@@ -249,7 +252,8 @@ STATIC_THREAD a_symbol_ptr
 		error_class_template_symbol;
 			/* Pointer to a shared error class template entry. */
 
-STATIC_THREAD sizeof_t	size_of_trans_unit_for_scope;
+STATIC_THREAD sizeof_t
+		size_of_trans_unit_for_scope;
 			/* Allocated size of the trans_unit_for_scope table. */
 
 STATIC_THREAD a_boolean
@@ -4349,7 +4353,8 @@ hdr_ptr == NULL indicates that an error symbol should be constructed.
 A pointer to an sk_undefined symbol.  This symbol is never entered into
 the symbol table.
 */
-STATIC_THREAD a_symbol_ptr dummy_undefined_symbol;
+STATIC_THREAD a_symbol_ptr
+                dummy_undefined_symbol;
 
 
 a_symbol_ptr make_dummy_undefined_symbol(a_symbol_header_ptr hdr_ptr,

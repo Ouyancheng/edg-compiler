@@ -135,11 +135,13 @@ static void handle_multidimensional_ck_init_repeat(a_constant_ptr constant,
 #if USE_LAZY_INITIALIZATION_FOR_THREAD_LOCAL_VARIABLES
 static void make_null_tls_init_routine(void);
 
-STATIC_THREAD a_boolean tls_init_needed;
+STATIC_THREAD a_boolean
+                tls_init_needed;
                         /* TRUE if a reference to a __tls_init function has
                            been generated in this translation unit. */
 
-STATIC_THREAD a_boolean tls_init_emitted;
+STATIC_THREAD a_boolean
+                tls_init_emitted;
                         /* TRUE if a __tls_init function has been emitted in
                            this translation unit. */
 #endif /* USE_LAZY_INITIALIZATION_FOR_THREAD_LOCAL_VARIABLES */
@@ -2696,7 +2698,8 @@ array for an array new/delete call.  The node has type int for the Cfront-like
 ABI, type size_t for the IA-64 ABI.
 */
 {
-  an_expr_node_ptr num_elem_node;
+  an_expr_node_ptr
+                num_elem_node;
   a_constant_ptr   num_elem_constant = local_constant();
 
   set_unsigned_integer_constant_with_overflow_check(

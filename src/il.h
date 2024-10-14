@@ -1246,13 +1246,16 @@ Dynamically-allocated and expandable buffer used for short-lived text.
 which no parsing or lexical advance is done (no get_token calls, no
 macro expansions, etc.).
 */
-EXTERN_THREAD char	*temp_text_buffer;
+EXTERN_THREAD char
+		*temp_text_buffer;
 			/* The buffer itself.  Not allocated on a per-file
 			   basis. */
-EXTERN_THREAD sizeof_t	size_temp_text_buffer;
+EXTERN_THREAD sizeof_t
+		size_temp_text_buffer;
 			/* The size of temp_text_buffer, as currently
 			   allocated. */
-EXTERN_THREAD sizeof_t	pos_in_temp_text_buffer;
+EXTERN_THREAD sizeof_t
+		pos_in_temp_text_buffer;
 			/* The number of characters actually in
 			   temp_text_buffer currently. */
 EXTERN_THREAD a_boolean

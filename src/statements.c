@@ -53,7 +53,8 @@ STATIC_THREAD a_struct_stmt_stack_entry_ptr
 			   necessary.  size_struct_stmt_stack_container
 			   gives the number of elements currently allocated.
 			   Allocation is not per-file. */
-STATIC_THREAD sizeof_t	size_struct_stmt_stack_container;
+STATIC_THREAD sizeof_t
+		size_struct_stmt_stack_container;
 			/* Size of struct_stmt_stack_container, in terms of
 			   the number of elements. */
 #define STRUCT_STMT_STACK_INCREMENTAL_ALLOCATION 30

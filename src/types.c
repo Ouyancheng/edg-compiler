@@ -15089,9 +15089,12 @@ and those formed via alias-declaration syntax.
 
 /* Static variables used to pass information back to the routine
    is_invalid_template_arg_type. */
-STATIC_THREAD a_boolean is_unnamed_type;
-STATIC_THREAD a_boolean is_local_type;
-STATIC_THREAD a_boolean treat_class_members_as_named;
+STATIC_THREAD a_boolean
+                is_unnamed_type;
+STATIC_THREAD a_boolean
+                is_local_type;
+STATIC_THREAD a_boolean
+                treat_class_members_as_named;
 
 
 static a_boolean ttt_is_type_with_no_name_linkage(

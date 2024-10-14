@@ -2227,14 +2227,16 @@ STATIC_THREAD an_input_stack_entry_ptr
 			   Dynamically allocated, reallocated if necessary;
 			   size_input_stack gives the current allocated
 			   size.  Not per-file. */
-STATIC_THREAD int	size_input_stack;
+STATIC_THREAD int
+		size_input_stack;
 			/* Allocated size of input_stack, in elements not
 			   bytes.  Not per-file. */
 #define INPUT_STACK_INCREMENTAL_ALLOCATION 30
 			/* The number of elements added to input_stack each
 			   time it is reallocated; also the initial
 			   allocation. */
-STATIC_THREAD int	depth_input_stack;
+STATIC_THREAD int
+		depth_input_stack;
 			/* Depth of the input stack, minus 1.
 			   input_stack[depth_input_stack] is the active
 			   entry.  -1 if the stack is completely empty. */
@@ -2307,13 +2309,15 @@ STATIC_THREAD a_boolean
 			   (e.g., if the inserted text is an inert macro
 			   identifier and the new line is a preprocessing
 			   directive). */
-STATIC_THREAD char	curr_raw_listing_line_code;
+STATIC_THREAD char
+		curr_raw_listing_line_code;
 			/* When a raw listing file is being generated,
 			   this indicates the code for the current line:
 			   'S' for a line skipped by an if-skip, 'N' for
 			   a normal line, or '\0' if there is no current 
 			   line. */
-STATIC_THREAD	char	*raw_listing_buffer;
+STATIC_THREAD	char
+		*raw_listing_buffer;
 			/* Buffer used in writing the macro-expanded versions
 			   of source lines to the raw listing file.  Space is
 			   dynamically allocated, and its upper bound is given
@@ -2324,12 +2328,14 @@ STATIC_THREAD	char	*raw_listing_buffer;
 			   Subsequent reallocations will double the amount
 			   previously allocated.  Should probably match the
 			   corresponding constant for curr_source_line. */
-STATIC_THREAD char	*after_end_of_raw_listing_buffer;
+STATIC_THREAD char
+		*after_end_of_raw_listing_buffer;
 			/* Address past the last element of raw_listing_buffer,
 			   as an aid to checking for overflow, etc.  A variable
 			   because raw_listing_buffer can be reallocated larger
 			   if needed. */
-STATIC_THREAD char	*loc_in_raw_listing_buffer;
+STATIC_THREAD char
+		*loc_in_raw_listing_buffer;
 			/* Current output location in raw_listing_buffer. */
 STATIC_THREAD a_boolean
 		must_display_raw_listing_buffer;
@@ -2390,7 +2396,8 @@ STATIC_THREAD a_boolean
 			   suppressed if the non-splice occurs inside a
 			   comment. */
 
-STATIC_THREAD sizeof_t	offset_of_nonsplice_backslash;
+STATIC_THREAD sizeof_t
+		offset_of_nonsplice_backslash;
 			/* Offset within curr_source_line of the backslash
 			   that resulted in the warning to be issued when
 			   pending_nonsplice_backslash is TRUE (invalid if
@@ -2558,17 +2565,17 @@ typedef struct a_file_suffix {
 #if INSTANTIATION_BY_IMPLICIT_INCLUSION
 
 STATIC_THREAD a_file_suffix_ptr
-		 implicit_instantiation_file_suffix_list;
+		implicit_instantiation_file_suffix_list;
 
 #endif /* INSTANTIATION_BY_IMPLICIT_INCLUSION */
 
 STATIC_THREAD a_file_suffix_ptr
-		 include_file_suffix_list;
+		include_file_suffix_list;
 			/* List of file suffixes used when searching for a
 			   header file whose name does not include a suffix. */
 
 STATIC_THREAD a_file_suffix_ptr
-		 sun_include_file_suffix_list;
+		sun_include_file_suffix_list;
 			/* List of file suffixes used in Sun mode when
 			   searching for includes specified with the <...>
 			   syntax. */
@@ -8535,7 +8542,8 @@ the token scanning process so that for tokens that contain multibyte
 characters we can quickly determine the logical column offset of the start
 of the token.
 */
-STATIC_THREAD int cached_logical_char_info_entries_used;
+STATIC_THREAD int
+                cached_logical_char_info_entries_used;
 
 
 static int f_logical_column_offset(a_const_char *loc_in_line)
@@ -10046,7 +10054,8 @@ ISO C standard.
 Flag that is TRUE while scanning a pcc-mode half-comment (see routine
 below).
 */
-STATIC_THREAD a_boolean in_pcc_mode_half_comment;
+STATIC_THREAD a_boolean
+                in_pcc_mode_half_comment;
 
 static void skip_pcc_mode_half_comment(void)
 /*
@@ -13987,7 +13996,8 @@ This variable and the EXTERN prev_asm_stop_char remember where the previous
 copy_from_source_to_asm_func_buffer() left off.  They are set by
 scan_asm_function_body() to start just after the initial left brace.
 */
-STATIC_THREAD a_seq_number prev_seq_number;
+STATIC_THREAD a_seq_number
+                prev_seq_number;
 
 #if !ASM_FUNCTION_ALLOWED
 static

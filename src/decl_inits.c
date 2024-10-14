@@ -8429,7 +8429,7 @@ a non-delegating constructor it (possibly indirectly) delegates construction
 to.
 */
 STATIC_THREAD a_hash_table_ptr
-	ctor_delegation_map;
+		ctor_delegation_map;
 
 
 /*

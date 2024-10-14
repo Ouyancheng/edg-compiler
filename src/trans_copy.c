@@ -47,13 +47,15 @@ BEGIN_EDG_NAMESPACE
 /*
 Flag that is TRUE if we are in the setup phase for trans_copy.c.
 */
-STATIC_THREAD a_boolean in_trans_copy_setup;
+STATIC_THREAD a_boolean
+                in_trans_copy_setup;
 
 /*
 Flag that is TRUE if we are in the phase that rewrites primary IL
 references to secondary IL addresses.
 */
-STATIC_THREAD a_boolean in_primary_il_reference_rewrite;
+STATIC_THREAD a_boolean
+                in_primary_il_reference_rewrite;
 
 
 /*

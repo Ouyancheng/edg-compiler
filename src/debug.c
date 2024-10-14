@@ -121,7 +121,8 @@ STATIC_THREAD a_debug_stack_entry_ptr
 		debug_stack;
 			/* Pointer to the dynamically allocated debug stack. */
 
-STATIC_THREAD int	depth_debug_stack;
+STATIC_THREAD int
+		depth_debug_stack;
 			/* The current depth of the debug stack. */
 
 static sizeof_t	debug_stack_size = 0;

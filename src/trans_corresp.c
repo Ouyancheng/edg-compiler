@@ -59,8 +59,10 @@ static void process_pending_instantiations(void);
 
 
 /* Pointers to canonical built-in types. */
-STATIC_THREAD a_type_ptr canonical_int_types[(int)ik_last];
-STATIC_THREAD a_type_ptr canonical_signed_int_types[(int)ik_last];
+STATIC_THREAD a_type_ptr
+                canonical_int_types[(int)ik_last];
+STATIC_THREAD a_type_ptr
+                canonical_signed_int_types[(int)ik_last];
 #if MICROSOFT_EXTENSIONS_ALLOWED
 static a_type_ptr canonical_microsoft_sized_int_types[(int)ik_last];
 static a_type_ptr canonical_microsoft_sized_signed_int_types[(int)ik_last];
@@ -69,20 +71,32 @@ static a_type_ptr canonical_microsoft_sized_signed_int_types[(int)ik_last];
 static a_type_ptr canonical_fixed_point_types[(int)fpp_last][/*is_unsigned*/2]
                                              [/*is_fract*/2][/*saturating*/2];
 #endif /* FIXED_POINT_ALLOWED */
-STATIC_THREAD a_type_ptr canonical_float_types[(int)fk_last];
+STATIC_THREAD a_type_ptr
+                canonical_float_types[(int)fk_last];
 #if C99_IL_EXTENSIONS_SUPPORTED
-STATIC_THREAD a_type_ptr canonical_complex_types[(int)fk_last];
-STATIC_THREAD a_type_ptr canonical_imaginary_types[(int)fk_last];
+STATIC_THREAD a_type_ptr
+                canonical_complex_types[(int)fk_last];
+STATIC_THREAD a_type_ptr
+                canonical_imaginary_types[(int)fk_last];
 #endif /* C99_IL_EXTENSIONS_SUPPORTED */
-STATIC_THREAD a_type_ptr canonical_il_void_type;
-STATIC_THREAD a_type_ptr canonical_il_reflection_type;
-STATIC_THREAD a_type_ptr canonical_il_wchar_t_type;
-STATIC_THREAD a_type_ptr canonical_il_char8_t_type;
-STATIC_THREAD a_type_ptr canonical_il_char16_t_type;
-STATIC_THREAD a_type_ptr canonical_il_char32_t_type;
-STATIC_THREAD a_type_ptr canonical_il_bool_type;
-STATIC_THREAD a_type_ptr canonical_il_standard_nullptr_type;
-STATIC_THREAD a_type_ptr canonical_il_managed_nullptr_type;
+STATIC_THREAD a_type_ptr
+                canonical_il_void_type;
+STATIC_THREAD a_type_ptr
+                canonical_il_reflection_type;
+STATIC_THREAD a_type_ptr
+                canonical_il_wchar_t_type;
+STATIC_THREAD a_type_ptr
+                canonical_il_char8_t_type;
+STATIC_THREAD a_type_ptr
+                canonical_il_char16_t_type;
+STATIC_THREAD a_type_ptr
+                canonical_il_char32_t_type;
+STATIC_THREAD a_type_ptr
+                canonical_il_bool_type;
+STATIC_THREAD a_type_ptr
+                canonical_il_standard_nullptr_type;
+STATIC_THREAD a_type_ptr
+                canonical_il_managed_nullptr_type;
 
 /*
 Correspondence checking is inhibited when errors other than correspondence
@@ -95,7 +109,8 @@ issued for another translation unit are treated as non-correspondence errors
 in the current translation unit.  This approach avoids a cascade of
 correspondence errors due to errors in one translation unit.
 */
-STATIC_THREAD unsigned long corresp_errors;
+STATIC_THREAD unsigned long
+                corresp_errors;
 
 #define any_noncorresp_errors()                                       \
  ((diagnostic_counters.total.errors - corresp_errors) != 0)
@@ -124,10 +139,10 @@ typedef struct a_verification_entry {
 
 /* Pointer to the head of the list of IL entries to verify. */
 STATIC_THREAD a_verification_entry_ptr
-	verification_list;
+		verification_list;
 
 STATIC_THREAD a_verification_entry_ptr
-	avail_verification_entries;
+		avail_verification_entries;
 
 
 static void add_verification_entry(an_il_entry_kind  kind,
@@ -187,7 +202,8 @@ to avoid infinite recursion.  Therefore, we build a list of instantiations
 to process as we find correspondences for templates.  The list is then
 processed later (see process_pending_instantiations).
 */
-STATIC_THREAD a_symbol_list_entry_ptr  instantiations_to_process;
+STATIC_THREAD a_symbol_list_entry_ptr
+                instantiations_to_process;
 
 static void add_pending_instantiation(a_symbol_ptr  inst)
 /*

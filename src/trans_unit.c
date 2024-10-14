@@ -96,7 +96,8 @@ STATIC_THREAD a_variable_registration_ptr
 			/* Pointer to the last entry on the list of variables
 			   that are local to a given translation unit. */
 
-STATIC_THREAD sizeof_t	trans_unit_var_block_size;
+STATIC_THREAD sizeof_t
+		trans_unit_var_block_size;
 			/* Size of the memory block used to store variables
 			   that are specific to a given translation unit. */
 

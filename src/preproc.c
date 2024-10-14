@@ -51,7 +51,8 @@ STATIC_THREAD a_pp_if_stack_entry_ptr
 			   can be expanded if necessary.  size_pp_if_stack
 			   gives the number of elements currently allocated.
 			   Allocation is not per-file. */
-STATIC_THREAD sizeof_t	size_pp_if_stack;
+STATIC_THREAD sizeof_t
+		size_pp_if_stack;
 			/* Allocated size in elements of pp_if_stack.
 			   Not per-file. */
 #define PP_IF_STACK_INCREMENTAL_ALLOCATION 30
@@ -2277,7 +2278,8 @@ generate_pp_output is TRUE.
 Dynamically allocated buffer used to contain preprocessing directives
 that are being recorded as character strings.
 */
-STATIC_THREAD char	*pp_dir_string_buffer;
+STATIC_THREAD char
+		*pp_dir_string_buffer;
 			/* Not allocated on a per-file basis. */
 
 #define PP_DIR_STRING_BUFFER_INCREMENTAL_ALLOCATION 300

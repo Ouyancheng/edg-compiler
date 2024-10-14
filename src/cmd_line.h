@@ -427,7 +427,8 @@ EXTERN_THREAD a_boolean
 			   is ASSIGNMENT_TO_THIS_ALLOWED. */
 
 #if DEBUG
-EXTERN_THREAD int	init_debug_level;
+EXTERN_THREAD int
+		init_debug_level;
 			/* Initial debug level: n in -dn option, or 0
 			   by default. */
 #endif /* DEBUG */
@@ -462,7 +463,8 @@ EXTERN_THREAD a_boolean
 			/* If TRUE, generate #line directives in
 			   preprocessing output.  Meaningful only when
 			   generate_pp_output is TRUE. */
-EXTERN_THREAD FILE	*f_pp_output;
+EXTERN_THREAD FILE
+		*f_pp_output;
 			/* File to which preprocessing output is written.
 			   Meaningful only when generate_pp_output is
 			   TRUE. */
@@ -483,12 +485,14 @@ EXTERN_THREAD a_boolean
 		list_macro_definitions;
 			/* When TRUE, write macro definition lines to
 			   stdout. */
-EXTERN_THREAD FILE	*f_raw_listing;
+EXTERN_THREAD FILE
+		*f_raw_listing;
 			/* If non-NULL (-L option), raw source lines and
 			   context information are written to this file.
 			   Such information could be read later by a program
 			   to generate an interspersed listing. */
-EXTERN_THREAD FILE	*f_xref_info;
+EXTERN_THREAD FILE
+		*f_xref_info;
 			/* If non-NULL (-X option), cross-reference information
 			   is written to this file.  Such information could
 			   be read and sorted later to produce a cross-
@@ -2125,7 +2129,8 @@ EXTERN_THREAD a_boolean
 			/* TRUE if guiding-declarations of template functions
 			   are allowed. */
 
-EXTERN_THREAD a_boolean warning_on_non_template_friend;
+EXTERN_THREAD a_boolean
+                warning_on_non_template_friend;
 			/* TRUE if a message should be issued indicating that
 			   a friend declaration was probably intended to be
 		           a guiding declaration. */
@@ -2242,7 +2247,8 @@ EXTERN_THREAD a_const_char
 			   being put into each file. */
 #endif /* ONE_INSTANTIATION_PER_OBJECT */
 
-EXTERN_THREAD a_boolean stdc_zero_in_nonstrict_mode;
+EXTERN_THREAD a_boolean
+                stdc_zero_in_nonstrict_mode;
 			/* TRUE if __STDC__ should be defined to 0
 			   in nonstrict mode and 1 in strict mode.
 			   This flag affects both ANSI C and C++ mode

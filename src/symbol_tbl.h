@@ -4720,7 +4720,8 @@ EXTERN_THREAD an_active_using_directive_ptr
 			/* List of active using directive entries freed and
 			   available for reuse. */
 
-EXTERN_THREAD sizeof_t	size_scope_stack;
+EXTERN_THREAD sizeof_t
+		size_scope_stack;
 			/* Allocated size of scope_stack in elements.
 			   Not per-file. */
 

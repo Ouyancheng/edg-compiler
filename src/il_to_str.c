@@ -1881,7 +1881,8 @@ typedef struct a_template_param_map_level {
 STATIC_THREAD a_template_param_map_level_ptr template_param_map;
 			/* A pointer to the two-level lookup structure. */
 
-STATIC_THREAD a_template_nesting_depth template_param_map_max_level;
+STATIC_THREAD a_template_nesting_depth
+                template_param_map_max_level;
 			/* The size of the first level (i.e., the maximum
 			   template nesting depth for which a parameter
 			   coordinate has been mapped). */

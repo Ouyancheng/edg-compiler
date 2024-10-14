@@ -28,7 +28,8 @@ def_arg.c -- Processing of default arguments
 BEGIN_EDG_NAMESPACE
 
 /* Previously allocated fixup entries available for reuse. */
-STATIC_THREAD a_def_arg_expr_fixup_ptr avail_def_arg_expr_fixup;
+STATIC_THREAD a_def_arg_expr_fixup_ptr
+                avail_def_arg_expr_fixup;
 
 
 #if DEBUG
