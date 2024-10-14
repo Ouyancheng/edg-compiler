@@ -1,10 +1,3 @@
-#if 1
-//#define EXTRA_SOURCE_POSITIONS_IN_IL 1
-#define USE_EDG_NAMESPACE 0
-#define MULTIPLE_THREAD_COMPILATION 1
-#define MAKE_FRONT_END_CALLABLE 1
-#define EDG_MAIN main
-#endif
 /******************************************************************************
 *                                                             \  ___  /       *
 *                                                               /   \         *
