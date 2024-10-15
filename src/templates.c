@@ -15220,19 +15220,32 @@ end_of_loop:
     if (*copy_error) goto done;
   }  /* for */
   if (!*copy_error && pack_tap != NULL && preserve_packs) {
-    /* When we are preserving deduced packs, append a template argument
-       representing the pack to the end of the argument list so that
-       additional arguments can be deduced. */
-    new_tap = alloc_template_arg(pack_tap->kind);
-    *new_tap = *pack_tap;
-    if (have_params && tpp != NULL && tpp->is_pack) {
-      new_tap->is_pack_element = TRUE;
-    }  /* if */
-    new_tap->next = NULL;
-    if (new_list == NULL) {
-      new_list = new_tap;
-    } else {
-      prev_new_tap->next = new_tap;
+    a_boolean             is_expandable_pack = TRUE;
+    a_pack_reference_ptr  prp;
+    prp = pack_tap->pack_expansion_descr->packs_referenced;
+    for (; prp != NULL; prp = prp->next) {
+      if (prp->symbol->is_nondeducible_pack) {
+        /* A pack expansion containing a non-deducible pack becomes
+           non-expandable. */
+        is_expandable_pack = FALSE;
+        break;
+      }  /* if */
+    }  /* for */
+    if (is_expandable_pack) {
+      /* When we are preserving deduced packs, append a template argument
+         representing the pack to the end of the argument list so that
+         additional arguments can be deduced. */
+      new_tap = alloc_template_arg(pack_tap->kind);
+      *new_tap = *pack_tap;
+      if (have_params && tpp != NULL && tpp->is_pack) {
+        new_tap->is_pack_element = TRUE;
+      }  /* if */
+      new_tap->next = NULL;
+      if (new_list == NULL) {
+        new_list = new_tap;
+      } else {
+        prev_new_tap->next = new_tap;
+      }  /* if */
     }  /* if */
   } else  if (have_params && tpp != NULL &&
               (!tpp->is_pack || tpp->next != NULL) &&
@@ -16343,15 +16356,27 @@ parameters.
     }  /* while */
     if (ptp->is_parameter_pack &&
         (options & CTWS_PRESERVE_DEDUCED_PACKS) != 0) {
-      new_ptp = make_param_type(ptp->type, &null_source_position);
-      *new_ptp = *ptp;
-      /* Add the new param type entry to the param types list. */
-      if (prev_ptp == NULL) {
-        result_list = new_ptp;
-      } else {
-        prev_ptp->next = new_ptp;
+      a_boolean             is_expandable_pack = TRUE;
+      a_pack_reference_ptr  prp = ptp->pack_expansion_descr->packs_referenced;
+      for (; prp != NULL; prp = prp->next) {
+        if (prp->symbol->is_nondeducible_pack) {
+          /* A pack expansion containing a non-deducible pack becomes
+             non-expandable. */
+          is_expandable_pack = FALSE;
+          break;
+        }  /* if */
+      }  /* for */
+      if (is_expandable_pack) {
+        new_ptp = make_param_type(ptp->type, &null_source_position);
+        *new_ptp = *ptp;
+        /* Add the new param type entry to the param types list. */
+        if (prev_ptp == NULL) {
+          result_list = new_ptp;
+        } else {
+          prev_ptp->next = new_ptp;
+        }  /* if */
+        if (first_element == NULL) first_element = new_ptp;
       }  /* if */
-      if (first_element == NULL) first_element = new_ptp;
     }  /* if */
     if (ptp->is_parameter_pack) {
       /* Add this entry to the variadic param info list.  The new entries are

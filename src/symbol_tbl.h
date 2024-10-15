@@ -3717,6 +3717,10 @@ typedef struct a_symbol {
   a_bit_field	is_pack_expansion:1;
 			/* TRUE if this is the dummy symbol created for
 			   an empty template parameter pack expansion. */
+  a_bit_field	is_nondeducible_pack:1;
+			/* TRUE if this is a template parameter pack that can
+			   never be deduced as it is being used in a
+			   non-deduced context. */
   a_bit_field
 		value_has_been_set:1;
 			/* TRUE for a variable or static data member that was

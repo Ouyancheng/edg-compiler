@@ -19299,6 +19299,7 @@ are handled in symbol_tbl_init.)
 #endif /* GNU_EXTENSIONS_ALLOWED */
   cleared_symbol.is_pack_element                   = FALSE;
   cleared_symbol.is_pack_expansion                 = FALSE;
+  cleared_symbol.is_nondeducible_pack              = FALSE;
   cleared_symbol.value_has_been_set                = FALSE;
   dummy_undefined_symbol = NULL;
   size_of_trans_unit_for_scope = 0;

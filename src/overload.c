@@ -29666,16 +29666,16 @@ otherwise it is set to FALSE.
           break;
         }  /* if */
       } else if (bcp->is_pack_expansion) {
-        *param_list = alloc_param_type(bcp->type);
-        (*param_list)->param_num = ++param_num;
-        (*param_list)->is_parameter_pack = TRUE;
-        (*param_list)->pack_expansion_descr =
-                                            bcp->variant.pack_expansion_descr;
-        param_list = &(*param_list)->next;
         if (bcp->next == NULL && fp == NULL) {
           /* A trailing expansion takes the remaining initializer elements.
              Set a flag indicating that the last processed element was
              variadic. */
+          *param_list = alloc_param_type(bcp->type);
+          (*param_list)->param_num = ++param_num;
+          (*param_list)->is_parameter_pack = TRUE;
+          (*param_list)->pack_expansion_descr =
+                                            bcp->variant.pack_expansion_descr;
+          param_list = &(*param_list)->next;
           trailing_pack = TRUE;
           break;
         }  /* if */

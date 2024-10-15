@@ -16952,9 +16952,24 @@ used in expression contexts.
          involves a template parameter in any context.  Parameter packs
          are nondeduced when they do not appear at the end of the parameter
          list. */
-      ptp->type_involves_deduced_template_param =
-                             !(ptp->is_parameter_pack && ptp->next != NULL) &&
-                             is_or_contains_deduced_template_param(tp);
+      if (ptp->is_parameter_pack && ptp->next != NULL) {
+        /* N4140 [temp.deduct.call]/1: "When a function parameter pack appears
+           in a non-deduced context, the type of that parameter pack is never
+           deduced."  This rule (from core issue 1388) is not supported by
+           Clang (as of 19.1) yet. */
+        if (!clang_version_is(any_version)) {
+          a_pack_reference_ptr  prp;
+          prp = ptp->pack_expansion_descr->packs_referenced;
+          for (; prp != NULL; prp = prp->next) {
+            if (!prp->uses_enclosing_pack) {
+              prp->symbol->is_nondeducible_pack = TRUE;
+            }  /* if */
+          }  /* for */
+        }  /* if */
+      } else {
+        ptp->type_involves_deduced_template_param =
+                                     is_or_contains_deduced_template_param(tp);
+      }  /* if */
     }  /* if */
   }  /* for */
 }  /* set_parameter_list_template_param_flags */
