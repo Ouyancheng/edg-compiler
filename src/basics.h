@@ -249,12 +249,6 @@ when MAKE_FRONT_END_CALLABLE is TRUE.
 #define MULTIPLE_THREAD_COMPILATION FALSE
 #endif /* MULTIPLE_THREAD_COMPILATION */
 
-#if MULTIPLE_THREAD_COMPILATION && !MAKE_FRONT_END_CALLABLE
- #error -- MULTIPLE_THREAD_COMPLATION requires that \
-           MAKE_FRONT_END_CALLABLE be TRUE.
-#endif /* MULTIPLE_THREAD_COMPILATION && !MAKE_FRONT_END_CALLABLE */
-
-
 /*
 EXTERN is defined usually as "extern"; in the translation unit that
 actually defines storage for external variables, it is defined as an
