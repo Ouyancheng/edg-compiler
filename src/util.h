@@ -2054,7 +2054,7 @@ template<typename an_Object, template<typename> class Deallocator>
 inline a_boolean operator==(a_nullptr                                ptr_a,
                             const Owning_ptr<an_Object, Deallocator> &ptr_b)
 /*
-Return TRUE if the given pointer values are equal; otherwise, return FALSE.
+Return TRUE if ptr_b is a null pointer; otherwise, return FALSE.
 */
 {
   return ptr_a == ptr_b.raw();
@@ -2065,7 +2065,7 @@ template<typename an_Object, template<typename> class Deallocator>
 inline a_boolean operator!=(a_nullptr                                ptr_a,
                             const Owning_ptr<an_Object, Deallocator> &ptr_b)
 /*
-Return TRUE if the given pointer values are not equal; otherwise, return FALSE.
+Return TRUE if ptr_b is not a null pointer; otherwise, return FALSE.
 */
 {
   return !(ptr_a == ptr_b);
@@ -2076,7 +2076,7 @@ template<typename an_Object, template<typename> class Deallocator>
 inline a_boolean operator==(const Owning_ptr<an_Object, Deallocator> &ptr_a,
                             a_nullptr                                ptr_b)
 /*
-Return TRUE if the given pointer values are equal; otherwise, return FALSE.
+Return TRUE if ptr_a is a null pointer; otherwise, return FALSE.
 */
 {
   return ptr_a.raw() == ptr_b;
@@ -2087,7 +2087,7 @@ template<typename an_Object, template<typename> class Deallocator>
 inline a_boolean operator!=(const Owning_ptr<an_Object, Deallocator> &ptr_a,
                             a_nullptr                                ptr_b)
 /*
-Return TRUE if the given pointer values are not equal; otherwise, return FALSE.
+Return TRUE if ptr_a is not a null pointer; otherwise, return FALSE.
 */
 {
   return !(ptr_a == ptr_b);
