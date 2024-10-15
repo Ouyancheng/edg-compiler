@@ -7286,6 +7286,9 @@ operands to be parenthesized at that level.
          compiler-generated, so they must be skipped explicitly.) */
       tblock->terminate = TRUE;
     }  /* if */
+  } else if (node_is(expr, enk_temp_init)) {
+    /* A dynamic init hides any embedded comma operators in its operand. */
+    tblock->suppress_subtree_walk = TRUE;
   }  /* if */
 }  /* check_for_unprotected_comma_operation */
 
@@ -22722,9 +22725,9 @@ a constructor.
           unexpected_condition();
       }  /* switch */
       if (ctor_init->source_expr != NULL) {
-        /* An unusual GNU C++ case: An copy-initializer for an array member.
+        /* An unusual GNU C++ case: A copy-initializer for an array member.
            The dynamic initializer is based on a ck_init_repeat structure with
-           a implicit source.  Just render that implicit source. */
+           an implicit source.  Just render that implicit source. */
         write_tok_ch('(');
         gen_expression(ctor_init->source_expr);
         write_tok_ch(')');

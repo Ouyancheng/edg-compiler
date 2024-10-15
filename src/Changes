@@ -1,5 +1,14 @@
 Version 6.7
 
+10/14/24 [EDGcpfe/27651]
+C++-generating back end: extraneous parentheses in braced initializer lists
+
+In some complex cases involving nested braced initializer lists, the
+C++-generating back end could incorrectly add extraneous parentheses around
+some elements, resulting in code that could not be compiled.  This is now
+fixed.
+
+
 10/10/24 [EDGcpfe/27644]
 C++-generating back end, GNU compatibility: use of "typename" keyword
 
