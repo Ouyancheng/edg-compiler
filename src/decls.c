@@ -20067,12 +20067,14 @@ An export declaration can take the following forms:
   if (cursory_modules_check()) {
     a_boolean           saved_in_export_block =
                                              scope_stack_top().in_export_block;
+    a_boolean           entered_export_block = FALSE;
     a_decl_parse_state  dps;
 
     /* Advance past the "export" token. */
     (void)get_token();
     if (curr_token == tok_lbrace) {
       scope_stack_top().in_export_block = TRUE;
+      entered_export_block = TRUE;
     }  /* if */
     if (scope_stack_top().exporting_decl) {
       /* Can't nest export declarations. */
@@ -20089,7 +20091,7 @@ An export declaration can take the following forms:
       }  /* if */
       pos_diagnostic(severity, ec_export_only_in_modules, &export_pos);
     }  /* if */
-    if (scope_stack_top().in_export_block) {
+    if (entered_export_block) {
       a_decl_sequence_number old_decl_seq_counter = decl_seq_counter;
       a_source_position      lbrace_pos = pos_curr_token;
       /* Advance past the "{". */
