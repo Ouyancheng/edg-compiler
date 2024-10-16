@@ -882,6 +882,8 @@ extern void modules_check_for_suppressed_errors();
 
 extern void modules_one_time_init();
 
+extern void require_modules();
+
 extern void modules_trans_unit_init();
 
 extern void modules_trans_unit_wrapup_part_1();

@@ -30409,6 +30409,12 @@ required).
 }  /* finish_mep_processing */
 
 
+STATIC_THREAD a_boolean
+        ifc_modules_initialized_for_curr_tu;
+                /* TRUE if IFC modules related variables have been fully
+                   initialized for the current translation unit. */
+
+
 void ifc_modules_one_time_init()
 /*
 Do one-time initialization of static variables defined in this file.
@@ -30428,6 +30434,7 @@ Do one-time initialization of static variables defined in this file.
       pch_saved_var_array_elem(ifc_decl_template_lookup_table),
       pch_saved_var_array_elem(tok_name_map),
       pch_saved_var_array_elem(deduction_guide_map),
+      pch_saved_var_array_elem(ifc_modules_initialized_for_curr_tu),
       pch_saved_var_array_terminating_elem()
     };
     register_pch_saved_variables(saved_vars);
@@ -30490,18 +30497,16 @@ Do one-time initialization of static variables defined in this file.
   register_trans_unit_variable(ifc_decl_lookup_table);
   register_trans_unit_variable(ifc_decl_template_lookup_table);
   register_trans_unit_variable(deduction_guide_map);
+  register_trans_unit_variable(ifc_modules_initialized_for_curr_tu);
 }  /* ifc_modules_one_time_init */
 
 
-void ifc_modules_trans_unit_init()
+static void ifc_modules_trans_unit_delayed_init()
 /*
-Initialization of things related to IFC modules that must be repeated for every
-translation unit.
+Perform initialization of things related to IFC modules that are delayed until
+at least one IFC module is actually imported.
 */
 {
-#if DEBUG && EXPENSIVE_CHECKING
-  debug_partition = NULL;
-#endif /* DEBUG && EXPENSIVE_CHECKING */
   entity_lookup_cache = new_fe<an_ifc_module_entity_lookup>(/*mask_width=*/10);
   ifc_parameterized_entities = new_fe<an_ifc_parameterized_entity_map>(
                                                             /*mask_width=*/10);
@@ -30514,6 +30519,42 @@ translation unit.
   ifc_decl_template_lookup_table = new_fe<an_ifc_template_lookup_table>(
                                                             /*mask_width=*/10);
   ifc_type_cache = new_fe<an_ifc_module_type_cache>(/*mask_width=*/10);
+}  /* ifc_modules_trans_unit_delayed_init */
+
+
+void require_ifc_modules()
+/*
+IFC module use has been detected in the current translation unit, initialize
+the corresponding front end structures (if not already initialized).
+*/
+{
+  if (!ifc_modules_initialized_for_curr_tu) {
+    ifc_modules_trans_unit_delayed_init();
+    ifc_modules_initialized_for_curr_tu = TRUE;
+  }  /* if */
+}  /* require_ifc_modules */
+
+
+void ifc_modules_trans_unit_init()
+/*
+Initialization of things related to IFC modules that must be repeated for every
+translation unit.
+*/
+{
+#if DEBUG && EXPENSIVE_CHECKING
+  debug_partition = NULL;
+#endif /* DEBUG && EXPENSIVE_CHECKING */
+  entity_lookup_cache = NULL;
+  ifc_parameterized_entities = NULL;
+  ifc_var_inits = NULL;
+  ifc_function_bodies = NULL;
+  ifc_template_definitions = NULL;
+  ifc_template_specializations = NULL;
+  ifc_tag_definitions = NULL;
+  ifc_decl_lookup_table = NULL;
+  ifc_decl_template_lookup_table = NULL;
+  ifc_type_cache = NULL;
+  ifc_modules_initialized_for_curr_tu = FALSE;
 }  /* ifc_modules_trans_unit_init */
 
 

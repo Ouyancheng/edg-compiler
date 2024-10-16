@@ -137,8 +137,10 @@ Note: module_sym_id must be backed by long term storage; this function does not
 create its own copy of the module symbol identifier.
 */
 {
-  a_module_ptr  result = known_modules->get(module_sym_id);
+  /* Ensure the modules system is fully loaded. */
+  require_modules();
 
+  a_module_ptr  result = known_modules->get(module_sym_id);
   if (result == NULL) {
     result = alloc_module(module_kind);
     result->name = module_sym_id.start;
@@ -642,6 +644,8 @@ Import the module file specified in the module-import-declaration.
 {
   a_module_interface_ptr iface = NULL;
 
+  /* Ensure the modules system is fully loaded. */
+  require_modules();
   check_assertion(midp->module_info->resolved_file != NULL);
   switch (midp->module_info->file_kind) {
     case mfk_unknown:
@@ -649,6 +653,9 @@ Import the module file specified in the module-import-declaration.
       unexpected_condition();
     case mfk_edg_ifc:
     case mfk_ms_ifc:
+      /* Ensure the IFC modules system is fully loaded. */
+      require_ifc_modules();
+      /* Construct the IFC module interface for the file. */
       iface = new_fe<an_ifc_module>(midp->module_info->file_kind);
       break;
     default_is_unexpected();
@@ -2475,6 +2482,12 @@ for suppressed errors while processing the module.
 }  /* modules_check_for_suppressed_errors */
 
 
+STATIC_THREAD a_boolean
+        modules_initialized_for_curr_tu;
+                /* TRUE if modules related variables have been fully
+                   initialized for the current translation unit. */
+
+
 void modules_one_time_init()
 /*
 Do one-time initialization of static variables defined in this file.
@@ -2491,6 +2504,7 @@ Do one-time initialization of static variables defined in this file.
       pch_saved_var_array_elem(module_entity_hash_table),
       pch_saved_var_array_elem(module_entity_stack),
       pch_saved_var_array_elem(known_modules),
+      pch_saved_var_array_elem(modules_initialized_for_curr_tu),
       pch_saved_var_array_terminating_elem()
     };
     register_pch_saved_variables(saved_vars);
@@ -2513,7 +2527,34 @@ Do one-time initialization of static variables defined in this file.
   register_trans_unit_variable(module_entity_hash_table);
   register_trans_unit_variable(module_entity_stack);
   register_trans_unit_variable(known_modules);
+  register_trans_unit_variable(modules_initialized_for_curr_tu);
 }  /* modules_one_time_init */
+
+
+static void modules_trans_unit_delayed_init()
+/*
+Perform initialization of modules for the current translation.
+*/
+{
+  module_entity_scope_hash_table =
+                   new_fe<a_module_entity_scope_hash_table>(/*mask_width=*/10);
+  module_entity_hash_table =
+                         new_fe<a_module_entity_hash_table>(/*mask_width=*/10);
+  known_modules = new_fe<a_module_name_map>(/*mask_width=*/10);
+}  /* modules_trans_unit_delayed_init */
+
+
+void require_modules()
+/*
+Module use has been detected in the current translation unit, initialize the
+corresponding front end structures (if not already initialized).
+*/
+{
+  if (!modules_initialized_for_curr_tu) {
+    modules_trans_unit_delayed_init();
+    modules_initialized_for_curr_tu = TRUE;
+  }  /* if */
+}  /* require_modules */
 
 
 void modules_trans_unit_init()
@@ -2528,13 +2569,12 @@ translation unit.
 #endif /* DEBUG */
   curr_module_sym = NULL;
   lazy_symbols_may_be_visible = FALSE;
-  module_entity_scope_hash_table =
-                   new_fe<a_module_entity_scope_hash_table>(/*mask_width=*/10);
+  module_entity_scope_hash_table = NULL;
   trans_unit_module_entity_scope = NULL;
-  module_entity_hash_table =
-                         new_fe<a_module_entity_hash_table>(/*mask_width=*/10);
+  module_entity_hash_table = NULL;
   module_entity_stack = new_fe<a_module_entity_stack>();
-  known_modules = new_fe<a_module_name_map>(/*mask_width=*/10);
+  known_modules = NULL;
+  modules_initialized_for_curr_tu = FALSE;
   ifc_modules_trans_unit_init();
 }  /* modules_trans_unit_init */
 

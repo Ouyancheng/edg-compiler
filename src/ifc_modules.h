@@ -864,6 +864,8 @@ extern void scan_ifc_param_ref_expr(an_operand *result);
 
 extern void ifc_modules_one_time_init();
 
+extern void require_ifc_modules();
+
 extern void ifc_modules_trans_unit_init();
 
 extern void ifc_modules_trans_unit_wrapup();
