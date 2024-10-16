@@ -800,6 +800,17 @@ was printed on entry.  Remove the entry from the stack.
 }  /* debug_exit */
 
 
+void db_print_indent(unsigned amount)
+/*
+Print the given amount of double space indent.
+*/
+{
+  for (unsigned i = 0; i < amount; ++i) {
+    fprintf(f_debug, "  ");
+  }  /* for */
+}  /* db_print_indent */
+
+
 void debug_early_init(void)
 /*
 One time initialization that must take place early on in the front end.

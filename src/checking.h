@@ -79,7 +79,21 @@ NORETURN extern void exit_unrecoverable_compilation();
 
 #define unexpected_condition_str2(string1, string2) \
   exit_unrecoverable_compilation()
+
 #endif /* CHECKING */
+
+/* Macros that can be used in place of default labels for switch statements
+   where it should not be possible to reach the default case (e.g., exhaustive
+   coverage via case labels or code structure/assumptions). */
+#if CHECK_SWITCH_DEFAULT_UNEXPECTED
+/* Check for omitted cases at run-time. */
+#define default_is_unexpected() default: unexpected_condition()
+#define default_is_unexpected_str(x) default: unexpected_condition_str(x)
+#else /* !CHECK_SWITCH_DEFAULT_UNEXPECTED */
+/* Enable static analysis detection of missing cases. */
+#define default_is_unexpected() /* Nothing */
+#define default_is_unexpected_str(x) /* Nothing */
+#endif /* CHECK_SWITCH_DEFAULT_UNEXPECTED */
 
 /* Conditionally close the "edg" namespace. */
 END_EDG_NAMESPACE

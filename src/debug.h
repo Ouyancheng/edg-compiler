@@ -154,15 +154,7 @@ extern a_boolean f_db_sym_trace(a_const_char	*flag_name,
   db_space_used_other("Total", grand_total, "")
 
 
-inline void db_print_indent(unsigned amount)
-/*
-Print the given amount of double space indent.
-*/
-{
-  for (unsigned i = 0; i < amount; ++i) {
-    fprintf(f_debug, "  ");
-  }  /* for */
-}  /* db_print_indent */
+extern void db_print_indent(unsigned amount);
 
 
 inline a_boolean db_color_flag_is_set()

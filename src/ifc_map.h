@@ -28,6 +28,7 @@ BEGIN_EDG_NAMESPACE
 BEGIN_DISABLE_GCC_WARNING_MAYBE_UNITIALIZED
 
 struct an_ifc_module_file;
+struct an_ifc_validation_trace;
 
 /*
 This is the base class for most IFC entities; it holds a pointer to the file

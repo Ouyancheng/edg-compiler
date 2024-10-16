@@ -44,9 +44,6 @@ and parsing of them into tokens.
 #include "symbol_ref.h"
 #include "templates.h"
 #include "ifc_modules.h"
-#if DEBUG
-#include "ifc_map_functions.h"
-#endif /* DEBUG */
 #if INCLUDE_COMMENTS_IN_ASM_FUNC_BODY
 #include "func_def.h"
 #endif /* INCLUDE_COMMENTS_IN_ASM_FUNC_BODY */
@@ -3449,7 +3446,6 @@ This is used to save tokens for later rescanning.
        (e.g., a string) has been allocated in the file scope and doesn't
        need to be copied. */
     copy_constant(&const_for_curr_token, ctp->variant.constant);
-#if MICROSOFT_EXTENSIONS_ALLOWED
   } else if (curr_token == tok_pending_ifc_expr ||
              curr_token == tok_ifc_entity_ref ||
              curr_token == tok_ifc_decl_ref ||
@@ -3458,7 +3454,6 @@ This is used to save tokens for later rescanning.
     /* This token has an associated index. */
     ctp->extra_info_kind = teik_ifc_index;
     ctp->variant.ifc_index = ifc_index_for_curr_token;
-#endif /* MICROSOFT_EXTENSIONS_ALLOWED */
   } else if (curr_token == tok_ud_literal) {
       /* Save the information needed to restore the user-defined literal
          from the cache. */
@@ -4571,10 +4566,8 @@ set to TRUE in that case, FALSE otherwise.
                                 strlen(ctp->variant.ud_lit.suffix),
                                 &locator_for_curr_id, &pos_curr_token);
     ud_lit_type_for_curr_token = ctp->variant.ud_lit.type;
-#if MICROSOFT_EXTENSIONS_ALLOWED
   } else if (ctp->extra_info_kind == teik_ifc_index) {
     ifc_index_for_curr_token = ctp->variant.ifc_index;
-#endif /* MICROSOFT_EXTENSIONS_ALLOWED */
   }  /* if */
   free_cached_token(ctp);
 done:
@@ -4733,10 +4726,8 @@ equivalent change.
                                      /*from_cache=*/TRUE,
                                      (a_diagnostic_ptr)NULL);
     ud_lit_type_for_curr_token = ctp->variant.ud_lit.type;
-#if MICROSOFT_EXTENSIONS_ALLOWED
   } else if (ctp->extra_info_kind == teik_ifc_index) {
     ifc_index_for_curr_token = ctp->variant.ifc_index;
-#endif /* MICROSOFT_EXTENSIONS_ALLOWED */
   }  /* if */
   /* Check whether we have reached the end of this cache. */
   while (reusable_cache_stack->next_cached_token == NULL &&
@@ -26978,35 +26969,19 @@ the string.
              teik_kind == (a_token_extra_info_kind)teik_extracted_body) {
     put_pseudo_token_start_to_temp_text_buffer(ctp);
     put_pseudo_token_end_to_temp_text_buffer();
-#if MICROSOFT_EXTENSIONS_ALLOWED
   } else if (expand_pseudo_tokens && teik_kind == teik_ifc_index) {
     put_pseudo_token_start_to_temp_text_buffer(ctp);
 #if DEBUG
     {
-      a_lexical_ifc_index_reference ifc_idx = ctp->variant.ifc_index;
-
       put_str_to_temp_text_buffer(" - ");
-      switch (ifc_idx.reference_kind) {
-        case liik_decl_index:
-          { an_ifc_decl_sort sort = (an_ifc_decl_sort)ifc_idx.sort;
 
-            put_str_to_temp_text_buffer(str_for(sort));
-          }
-          break;
-        case liik_expr_index:
-          { an_ifc_expr_sort sort = (an_ifc_expr_sort)ifc_idx.sort;
-
-            put_str_to_temp_text_buffer(str_for(sort));
-          }
-          break;
-        default_is_unexpected();
-      }  /* switch */
-      put_str_to_temp_text_buffer(" - ");
-      put_uint_to_temp_text_buffer(ifc_idx.index);
+      a_lexical_ifc_index_reference
+                 ifc_idx = ctp->variant.ifc_index;
+      a_string   idx_as_str = s_db_lexical_ifc_index(ifc_idx);
+      put_str_to_temp_text_buffer(idx_as_str.as_temp_characters());
     }
 #endif /* DEBUG */
     put_pseudo_token_end_to_temp_text_buffer();
-#endif /* MICROSOFT_EXTENSIONS_ALLOWED */
   } else {
     /* A normal token (including, possibly, a pp-token). */
     if (expand_pseudo_tokens && ctp->token == tok_end_of_source) {

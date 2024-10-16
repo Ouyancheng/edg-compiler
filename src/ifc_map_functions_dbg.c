@@ -23,9 +23,11 @@ more about, the tool that generated this file.
 */
 
 #include "basic_hdrs.h"
-#include "fe_common.h"
-#include "ifc_modules.h"
+#include "checking.h"
+#include "header_util.h"
+#include "ifc_map.h"
 #include "ifc_map_functions.h"
+#include "ifc_modules_internal.h"
 
 
 #if !STANDALONE_UTILITY_PROGRAM

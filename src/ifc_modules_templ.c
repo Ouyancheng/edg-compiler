@@ -9,69 +9,25 @@
 ******************************************************************************/
 /*
 
-ifc_modules_templ.c -- Microsoft-specific IFC module code template code that's
-                       shared between ifc_modules.c, ifc_map_functions.c,
-                       ifc_map_functions_acc.c, and ifc_map_functions_val.c.
+ifc_modules_templ.c -- Shared IFC module template definitions and
+                       explicit instantiations of templates declared in
+                       ifc_modules_internal.h.
 
 */
 
 #include "basic_hdrs.h"
-#include "fe_common.h"
-#include "ifc_modules.h"
+#include "checking.h"
+#include "header_util.h"
+#include "util.h"
+#include "error.h"
+#include "ifc_map.h"
 #include "ifc_map_functions.h"
+#include "ifc_modules_internal.h"
 
 #if !STANDALONE_UTILITY_PROGRAM
 
 /* Conditionally open the "edg" namespace. */
 BEGIN_EDG_NAMESPACE
-
-a_boolean is_for_read(an_ifc_module_file *file)
-/*
-Return TRUE if the given module file is for a module read operation.  Return
-FALSE if the given module file is for a module write operation.
-
-This function provides a definition for the declaration in ifc_map.h.  This
-allows ifc_map.h to function without a complete definition of
-an_ifc_module_file.
-*/
-{
-  return file->is_for_read();
-}  /* is_for_read */
-
-
-a_const_char *ifc_token_name_of(a_token_kind token_kind)
-/*
-Return a unique name for the given token for identification purposes in a EDG
-IFC token cache.
-
-This function primarily uses the EDG token_names, but replaces some token names
-to allow every token to have a unique name.
-*/
-{
-  a_const_char *result;
-
-  switch (token_kind) {
-#if MICROSOFT_EXTENSIONS_ALLOWED
-    case tok_prefix_for:
-      result = "for[[prefix]]";
-      break;
-    case tok_prefix_enum:
-      result = "enum[[prefix]]";
-      break;
-#endif /* MICROSOFT_EXTENSIONS_ALLOWED */
-    case tok_cpp98_export:
-      result = "export[[C++98]]";
-      break;
-    case tok_export_keyword:
-      result = "export[[keyword]]";
-      break;
-    default:
-      result = token_names[token_kind];
-      break;
-  }  /* switch */
-  return result;
-}  /* ifc_token_name_of */
-
 
 template<typename an_ifc_Storage_type>
 size_t get_byte_buffer_size(an_ifc_module_file *file)
@@ -216,7 +172,7 @@ index.
 {
   an_ifc_partition_kind part_kind = get_partition_kind(idx);
 
-  return &idx.file->get_read_state().mod->get_partition_metadata(part_kind);
+  return get_partition_metadata(module_of(idx), part_kind);
 }  /* get_partition_metadata */
 
 
@@ -305,12 +261,8 @@ the given index.
                                           /*trace=*/NULL));
 #endif /* EXPENSIVE_CHECKING */
   an_ifc_partition_metadata *partition_metadata = get_partition_metadata(idx);
+  Opt<size_t>               opt_part_offset = get_partition_offset(idx);
 
-#if DEBUG && EXPENSIVE_CHECKING
-  debug_partition = partition_metadata;
-#endif /* DEBUG && EXPENSIVE_CHECKING */
-
-  Opt<size_t> opt_part_offset = get_partition_offset(idx);
   /* If this assertion is violated, read_partition_element was called with an
      index that hasn't passed through validation.  This should be resolved with
      additional validation. */
@@ -689,90 +641,6 @@ INST_CONSTRUCT_NODE_UN(an_ifc_trait_specialization,
 /* Manually-defined explicit instantiations of construct_node,
    construct_node_prechecked, and construct_node_unchecked, all in one. */
 /* none */
-
-#if DEBUG
-
-namespace {
-
-template<typename an_ifc_Index_type>
-a_lexical_ifc_index_kind get_lexical_ifc_kind() DELETED_FN_DEF
-
-template<>
-a_lexical_ifc_index_kind get_lexical_ifc_kind<an_ifc_decl_index>()
-/*
-Return the corresponding lexical IFC index kind.
-*/
-{
-  return liik_decl_index;
-}  /* get_lexical_ifc_kind<an_ifc_decl_index> */
-
-
-template<>
-a_lexical_ifc_index_kind get_lexical_ifc_kind<an_ifc_expr_index>()
-/*
-Return the corresponding lexical IFC index kind.
-*/
-{
-  return liik_expr_index;
-}  /* get_lexical_ifc_kind<an_ifc_expr_index> */
-
-}  /* namespace */
-
-#endif /* DEBUG */
-
-template<typename an_ifc_Index_type>
-an_ifc_Index_type from_lexical_index(a_lexical_ifc_index_reference idx)
-/*
-Given a lexical index, return the corresponding IFC index.
-*/
-{
-  an_ifc_Index_type result;
-
-  static_assert(sizeof(result.sort) >= sizeof(idx.sort), "undersized sort");
-#if DEBUG && CHECKING
-  {
-    a_lexical_ifc_index_kind lexical_kind =
-                                     get_lexical_ifc_kind<an_ifc_Index_type>();
-
-    check_assertion(idx.reference_kind == lexical_kind);
-  }
-#endif /* DEBUG && CHECKING */
-  result.sort = (decltype(result.sort))idx.sort;
-  result.value = idx.index;
-  result.file = (an_ifc_module_file*)idx.file;
-  return result;
-}  /* from_lexical_index */
-
-
-template<typename an_ifc_Index_type>
-a_lexical_ifc_index_reference to_lexical_index(an_ifc_Index_type idx)
-/*
-Given an IFC index, return the corresponding lexical index.
-*/
-{
-  a_lexical_ifc_index_reference result;
-
-  result.sort = idx.sort;
-  result.index = idx.value;
-  result.file = idx.file;
-#if DEBUG
-  result.reference_kind = get_lexical_ifc_kind<an_ifc_Index_type>();
-#endif /* DEBUG */
-  return result;
-}  /* to_lexical_index */
-
-/* Macro used to explicitly instantiate from_lexical_index and
-   to_lexical_index. */
-#define INST_LEXICAL_IDX_CONVERSION(idx_type) \
-  template \
-  idx_type from_lexical_index(a_lexical_ifc_index_reference idx); \
-  template \
-  a_lexical_ifc_index_reference to_lexical_index(idx_type idx);
-
-/* Manually-defined explicit instantiations of from_lexical_index and
-   to_lexical_index. */
-INST_LEXICAL_IDX_CONVERSION(an_ifc_decl_index)
-INST_LEXICAL_IDX_CONVERSION(an_ifc_expr_index)
 
 /* Conditionally close the "edg" namespace. */
 END_EDG_NAMESPACE

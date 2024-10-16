@@ -21,6 +21,7 @@ ifc_modules_write.c -- IFC writing code.
 /* Additional header files. */
 #include "ifc_modules.h"
 #include "ifc_map_functions.h"
+#include "ifc_modules_internal.h"
 #include "il_def.h"
 #include "il_walk.h"
 
@@ -5663,7 +5664,6 @@ returned.
   result.f_module = f_handle;
 
   an_ifc_module_file_write_state &write_state = result.get_write_state();
-  write_state.file_kind = file_kind;
   write_state.source_file_name = primary_source_file_name;
   return {move_from(&result)};
 }  /* create_output_file */
