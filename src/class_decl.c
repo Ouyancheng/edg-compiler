@@ -31756,11 +31756,12 @@ from TRUE to FALSE.
     for (; bcp != NULL; bcp = bcp->next) {
       a_class_symbol_supplement_ptr  bcssp = symbol_for(bcp->type)
                                       ->variant.class_struct_union.extra_info;
-      if (bcp->ambiguous && !gpp_mode && !clang_mode) {
+      if (bcp->ambiguous &&
+          !gnu_version_is(<100000) && !clang_version_is(<70000)) {
         /* A standard-layout class can have at most one base class subobject
            of any type.  This was clarified by the resolution of Core issue
-           1813.  Clang and GCC, however, do not currently implement that
-           resolution. */
+           1813.  Early versions of Clang and GCC, however, do not implement
+           that resolution. */
         cssp->standard_layout = FALSE;
         break;
       } else if (bcp->direct && bcssp->any_nonstatic_data_members) {

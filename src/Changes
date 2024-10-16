@@ -1,5 +1,17 @@
 Version 6.7
 
+10/16/24 [EDGcpfe/27615]
+Clang/GCC compatibility: Core issue 1813
+
+When the front end originally implemented the resolution of Core issue 1813
+(see the entry of 2/20/18 for EDGcpfe/19370), Clang and GCC did not implement
+the same and the corresponding front end modes emulated that behavior.  Since
+then, Clang (starting with version 7) and GCC (starting with version 10) have
+added support for the Core issue 1813 resolution: The front end has been
+adjusted to only emulate the older Clang/GCC behavior for corresponding values
+of gnu_version and clang_version.
+
+
 10/16/24 [EDGcpfe/27641]
 Non-trailing function parameter packs
 
