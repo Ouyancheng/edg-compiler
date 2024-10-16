@@ -9,7 +9,7 @@
 ******************************************************************************/
 /*
 
-ifc_modules.c -- IFC reading code.
+ifc_modules.c -- IFC reading & writing common code.
 
 */
 
