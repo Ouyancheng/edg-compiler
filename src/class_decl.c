@@ -35069,7 +35069,18 @@ For example:
   a_boolean            bad_scope;
   a_def_arg_expr_fixup_ptr
                        saved_curr_default_args = curr_default_args;
+#if GENERATE_SOURCE_SEQUENCE_LISTS
+  a_boolean            saved_source_sequence_entries_disallowed;
+#endif /* GENERATE_SOURCE_SEQUENCE_LISTS */
 
+#if GENERATE_SOURCE_SEQUENCE_LISTS
+  saved_source_sequence_entries_disallowed =
+                                            source_sequence_entries_disallowed;
+  if (!is_real_instantiation_context()) {
+    scope_stack_top().source_sequence_entries_disallowed = FALSE;
+    source_sequence_entries_disallowed = FALSE;
+  }  /* if */
+#endif /* GENERATE_SOURCE_SEQUENCE_LISTS */
   /* Temporarily stash away default argument fixups to keep them separate
      from any additional fixups that might be generated for the lambda
      declarator.  (E.g., this lambda expression could itself appear in a
@@ -35168,6 +35179,13 @@ For example:
   pop_stop_token_stack();
   /* Restore default argument fixups. */
   curr_default_args = saved_curr_default_args;
+#if GENERATE_SOURCE_SEQUENCE_LISTS
+  /* Restore the previous state wrt. generating source sequence entries. */
+  source_sequence_entries_disallowed =
+                                     saved_source_sequence_entries_disallowed;
+  scope_stack_top().source_sequence_entries_disallowed 
+                                    = saved_source_sequence_entries_disallowed;
+#endif /* GENERATE_SOURCE_SEQUENCE_LISTS */
   return lambda;
 }  /* scan_lambda */
 

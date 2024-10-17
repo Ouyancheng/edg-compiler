@@ -1,5 +1,20 @@
 Version 6.7
 
+10/17/24 [EDGcpfe/27217]
+Lambdas in template argument lists and the C++-generating back end
+
+Consider, in C++20 mode:
+
+  template<int> class S {};
+  template <int N> void g() {
+    S<[](int n){ return n; }(42)>();
+  }
+
+This previously triggered an internal error in the C++-generating back end (in
+bypass_prototyped_param_src_seq_entries) because no source sequence entries
+were recorded for lambda in template argument lists.  That is now fixed.
+
+
 10/17/24 [EDGcpfe/26892]
 Hang on printing excessively recursive template argument lists
 
