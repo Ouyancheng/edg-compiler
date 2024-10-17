@@ -3072,9 +3072,8 @@ the given scope.
       result = tk_union;
       break;
     default:
-      /* If this assertion is violated, the given scope declaration isn't a
-         class, struct, or union scope and the caller needs to properly
-         guard. */
+      /* The caller should ensure only scopes that correspond to a class,
+         struct, or union are passed to this function. */
       unexpected_condition();
   }  /* switch */
   return result;
@@ -3107,9 +3106,8 @@ the given scope.
       result = sk_union_tag;
       break;
     default:
-      /* If this assertion is violated, the given scope declaration isn't a
-         class, struct, or union scope and the caller needs to properly
-         guard. */
+      /* The caller should ensure only scopes that correspond to a class,
+         struct, or union are passed to this function. */
       unexpected_condition();
   }  /* switch */
   return result;
@@ -5161,7 +5159,7 @@ static a_boolean map_pending_variable_initializers(an_ifc_decl_index decl_idx,
 /*
 Given a declaration index representing a variable-like entity, and the
 corresponding IL entity (i.e., variable pointer), map the associated IL entity
-to its pending initializer (if an initializer is present).
+to any associated variable initializers.
 
 Return TRUE if an initializer for the variable was recorded; otherwise, return
 FALSE.
@@ -5315,7 +5313,7 @@ static a_boolean map_pending_routine_definitions(an_ifc_decl_index decl_idx,
 /*
 Given a declaration index representing a function-like entity, and the
 corresponding IL entity (i.e., routine pointer), map the associated IL entity
-to its pending definition (if a definition is present).
+to any associated function definitions.
 
 Return TRUE if a definition for the function was recorded; otherwise, return
 FALSE.
@@ -14895,8 +14893,8 @@ to this function.
             }
             break;
           default:
-            /* If this condition is violated, get_scope_kind returned an
-               unexpected scope kind that this function needs to implement. */
+            /* If this is reached, get_scope_kind returned an unexpected scope
+               kind that this function needs to implement. */
             unexpected_condition();
         }  /* switch */
       }
@@ -17963,8 +17961,8 @@ return FALSE.
         }
         break;
       default:
-        /* If this condition is violated, get_scope_kind returned an unexpected
-           scope kind that this function needs to implement. */
+        /* If this is reached, get_scope_kind returned an unexpected scope kind
+           that this function needs to implement. */
         unexpected_condition();
     }  /* switch */
   }
@@ -22146,8 +22144,8 @@ context to help inform decisions about what to cache.
         cache_token(cache, tok_semicolon);
       }  /* if */
     } else {
-      /* If this condition was violated, we're not correctly handling a case of
-         the function-body grammar. */
+      /* If this is reached, we're not correctly handling a case of the
+         function-body grammar. */
       unexpected_condition();
     }  /* if */
   }  /* if */

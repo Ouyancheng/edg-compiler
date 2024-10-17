@@ -649,7 +649,8 @@ Import the module file specified in the module-import-declaration.
   check_assertion(midp->module_info->resolved_file != NULL);
   switch (midp->module_info->file_kind) {
     case mfk_unknown:
-      /* The module file kind should be set if the resolved path is set. */
+      /* This should never happen, the module file kind should be set if the
+         resolved path is set. */
       unexpected_condition();
     case mfk_edg_ifc:
     case mfk_ms_ifc:
@@ -2127,8 +2128,8 @@ should be preferred if the entity should be processed immediately.
   if (!is_entity_resolved(mep) && !is_entity_imminent(mep)) {
     switch (mep->locators[mep->primary_locator_idx].kind) {
       case melk_none:
-        /* If this assertion is hit, a locator with no usable information was
-           put onto the list of deferred entities; this should never happen. */
+        /* This should never happen as a module entity with an uninitialized
+           locator should not exist. */
         unexpected_condition();
         break;
       case melk_ifc:
