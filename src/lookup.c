@@ -2991,7 +2991,8 @@ routine.
                   /* A normal lookup. */
                   if (is_tag_symbol(fund_sym)) {
                     if (tag_symbol != NULL &&
-                        symbol_is(tag_symbol, sk_namespace_projection)) {
+                        (symbol_is(tag_symbol, sk_projection) ||
+                         symbol_is(tag_symbol, sk_namespace_projection))) {
                       /* If a using-declaration to a tag symbol is followed by
                          an actual tag symbol, ignore the first one. */
                       tag_symbol = NULL;
@@ -3020,7 +3021,8 @@ routine.
                   /* A tag lookup. */
                   if (sym->kind == (a_symbol_kind)sk_type) {
                     if (type_tag_symbol != NULL &&
-                        symbol_is(type_tag_symbol, sk_namespace_projection)) {
+                        (symbol_is(type_tag_symbol, sk_projection) ||
+                         symbol_is(type_tag_symbol, sk_namespace_projection))){
                       /* If a using-declaration to a tag symbol is followed by
                          an actual tag symbol, ignore the first one. */
                       type_tag_symbol = NULL;
@@ -3028,7 +3030,9 @@ routine.
                     /* If a tag symbol is followed by a projection to a
                        different tag, use the first symbol. */
                     check_assertion_or_expect_error(
-                     type_tag_symbol == NULL || symbol_is(sym, sk_projection));
+                                      type_tag_symbol == NULL ||
+                                      symbol_is(sym, sk_projection) ||
+                                      symbol_is(sym, sk_namespace_projection));
                     if (type_tag_symbol == NULL) type_tag_symbol = sym;
                   } else {
                     /* Take the symbol. */
