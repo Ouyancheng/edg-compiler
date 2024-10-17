@@ -1002,13 +1002,13 @@ static Opt<an_ifc_decl_index> collapse_partition_index(
 /*
 Some module entities conceptually have multiple entries even within the same
 file.  For instance, an explicit class template specialization is composed of
-an IFC DeclSpecialization and an IFC DeclScope), this function "collapses"
-these module entries making sure all equivalent module entries map back to
-one module entry.
+an IFC DeclSpecialization and an IFC DeclScope).  This function "collapses"
+these module entries making sure all equivalent module entries map back to one
+module entry.
 
-The module, partition kind, and index are taken as inputs and the collapsed IFC
-partition kind index is returned.  If the index should have been collapsed
-but an error occurred, instead return an empty optional.
+The given index is collapsed and the resulting index is returned.  If the index
+should have been collapsed but an error occurred, instead return an empty
+optional.
 */
 {
   Opt<an_ifc_decl_index> result;
@@ -1313,10 +1313,9 @@ Exit the module isolation scope.
 /*
 The template module isolation scope class extends the module isolation scope.
 It additionally encapsulates the construction of a detached template parameter
-list and isolates the template parameter resolution (find_template_parameter --
-so as to prevent resolution to an incorrect parameter higher up in the scope
-stack).  It's intended to (at least currently) only be used during
-redeclaration checking.
+list and isolates the template parameter resolution (in
+find_template_parameter).  This prevents resolution of template parameters to
+an incorrect parameter higher up in the scope stack.
 
 See alloc_detached_templ_param_sym for more information about detached template
 parameters.
@@ -1325,7 +1324,7 @@ template<typename an_ifc_Decl_type>
 struct Template_module_isolation_scope : a_module_isolation_scope {
   inline Template_module_isolation_scope(const an_ifc_Decl_type &decl);
   inline ~Template_module_isolation_scope();
-};  /* Moudle_isolation_scope */
+};  /* Template_module_isolation_scope */
 
 }  /* namespace */
 
@@ -1435,7 +1434,7 @@ If a function parameter list cannot be reconstructed, instead return NULL.
         ifc_unexpected(module_of(decl_idx), err_msg.as_temp_characters());
       }
       goto invalid;
-  }  /* if */
+  }  /* switch */
 invalid:
   return func_params;
 }  /* get_ifc_function_parameter_list */
@@ -1703,7 +1702,7 @@ static void f_emit_not_a_module_entity_error(int               line_number,
                                              an_ifc_decl_index index)
 /*
 The given declaration index is not a module entity but the front end tried to
-use it as one, emit an appropriate diagnostic.  The given line number and
+use it as one; emit an appropriate diagnostic.  The given line number and
 function values respectively are the line number and function where the misuse
 occurred.
 */
@@ -1768,7 +1767,7 @@ cases.
   if (result == NULL) {
 #endif /* EXPENSIVE_CHECKING */
     /* Create a temporary module entity on the stack to track any states
-       associated with this module entity before its resolved (this allows
+       associated with this module entity before it's resolved (this allows
        ifc_unexpected to reasonably trace the entity associated with any errors
        and for this function to propagate the invalid state if an error occurs
        while resolving the module entity). */
@@ -1861,7 +1860,7 @@ cases.
   done:
     if (result != NULL) {
       /* Synchronize any invalid states for this module entity from the
-         temporarily invalid entity. */
+         (temporary) pending entity. */
       if (pending_entity.invalid) {
         result->invalid = TRUE;
       }  /* if */
@@ -5211,8 +5210,8 @@ to be needed later on.
 
 template<typename an_ifc_Node_type>
 static a_boolean try_map_routine_definition(const an_ifc_Node_type &decl_node,
-                                       an_ifc_decl_index      decl_idx,
-                                       a_routine_ptr          rp)
+                                            an_ifc_decl_index      decl_idx,
+                                            a_routine_ptr          rp)
 /*
 Given a declaration node (indexed by decl_idx) representing a function-like
 entity, and the corresponding IL entity (i.e., routine pointer), map the
@@ -5694,6 +5693,7 @@ otherwise, return FALSE.
   return (decl_idx.sort == ifc_ds_decl_parameter &&
           !is_template_parameter(decl_idx));
 }  /* is_function_parameter */
+
 
 static a_templ_arg_kind get_template_arg_kind(
                                              const an_ifc_decl_parameter &decl)
@@ -9667,7 +9667,7 @@ Given a type index, return TRUE if the type index represents a type template
 parameter.
 */
 {
-  /* This function does not work for EDG authored IFC files.  The caller should
+  /* This function does not work for EDG-authored IFC files.  The caller should
      have used param_represents_type_templ_param_ref. */
   check_assertion(!is_edg_authored(type_idx));
   a_boolean result = FALSE;
@@ -9705,12 +9705,20 @@ Given an IFC parameter declaration, return TRUE if the type index represents a
 type template parameter.
 */
 {
+  a_boolean result = FALSE;
+
   if (is_edg_authored(param_decl)) {
-    return get_ifc_sort(param_decl) == ifc_ps_type;
+    if (get_ifc_sort(param_decl) == ifc_ps_type) {
+      result = TRUE;
+    }  /* if */
   } else {
     an_ifc_type_index type_idx = get_ifc_type(param_decl);
-    return type_represents_type_templ_param_ref(type_idx);
+
+    if (type_represents_type_templ_param_ref(type_idx)) {
+      result = TRUE;
+    }  /* if */
   }  /* if */
+  return result;
 }  /* param_represents_type_templ_param_ref */
 
 namespace {
@@ -10911,7 +10919,7 @@ static inline void update_mep_origin_flags(a_module_entity_ptr mep,
                                            an_ifc_decl_index   decl_idx)
 /*
 Update the module entity's origin flags (namely, global_module and
-non_exported) using the information from the given newly discovered IFC
+non_exported) using the information from the given newly-discovered IFC
 declaration index.  The IFC node associated with the given module entity
 pointer is required to have been validated by the caller.
 */
@@ -11627,7 +11635,7 @@ type dependencies are resolved before attempting to resolve the function.
 */
 {
   a_boolean       result = TRUE;
-  /* Ensure potentially equivalent module entities from other files are
+  /* Ensure potentially-equivalent module entities from other files are
      loaded. */
   if (mep->sym_header != NULL) {
     a_deferred_module_entry_array
@@ -11647,7 +11655,7 @@ type dependencies are resolved before attempting to resolve the function.
           continue;
         }  /* if */
         (void)locate_module_entity(entry.locator);
-      }  /* if */
+      }  /* for */
     }  /* if */
   }  /* if */
 
@@ -13281,7 +13289,7 @@ member scope descriptor into the given cache.
         }  /* if */
       }  /* if */
     } else if (mem_idx.sort == ifc_ds_decl_scope) {
-      /* Check to see if this is anonymous union:
+      /* Check to see if this is an anonymous union:
 
          struct x {
            union { int z; };
@@ -14205,7 +14213,7 @@ using a_deduduced_template_map = Ptr_map<an_ifc_decl_index, an_ifc_decl_index>;
 STATIC_THREAD a_deduduced_template_map
                 *deduction_guide_map;
                         /* A lazily-initialized mapping of IFC deduction guide
-                           declarations indexes to the associated template
+                           declaration indexes to the associated template
                            declaration index. */
 
 
@@ -14464,7 +14472,7 @@ diagnostics if issue_diag is TRUE.
     }  /* for */
   }  /* if */
   if (is_msvc_authored(this->header)) {
-    /* Map the deduction guide to their names. */
+    /* Map the deduction guides to their names. */
     /* FIXME: At some point, hopefully the IFC itself will contain the correct
        names. */
     if (get_partition_metadata(ifc_pk_decl_template).name != NULL &&
@@ -17310,7 +17318,7 @@ modules.
       }  /* if */
       if (curr_arg->next == NULL) {
         /* If this is the last argument, assume it completes all remaining
-           parameters packs. */
+           parameter packs. */
         do {
           if (!is_template_arg_compatible(curr_arg, curr_param)) {
             goto done;
@@ -17917,7 +17925,7 @@ anonymous), or an empty optional if the name was present but invalid.
     case ifc_ds_decl_deduction_guide:
       { if (deduction_guide_map != NULL) {
           /* Check to see if this deduction guide is mapped to a template (this
-             should always be true of Microsoft produced IFCs) and if so, use
+             should always be true of Microsoft-produced IFCs) and if so, use
              the name information of the associated template (to overcome
              encoding bugs). */
           an_ifc_decl_index assoc_templ = deduction_guide_map->get(decl_idx);
@@ -18042,7 +18050,7 @@ anonymous), or an empty optional if the name was present but invalid.
       goto invalid;
     case ifc_ds_decl_template:
       { if (deduction_guide_map != NULL) {
-          /* Check to see if this a deduction guide and if so, use the name
+          /* Check to see if this is a deduction guide and if so, use the name
              information of the associated template (to overcome encoding
              bugs). */
           an_ifc_decl_index assoc_templ = deduction_guide_map->get(decl_idx);

@@ -989,12 +989,12 @@ A key structure used for module entity hashing of function specializations.
 struct a_module_entity_func_spec_key {
   a_module_entity_function_key
                 function;
-                        /* The function parameters for the function
-                           specialization. */
+                        /* The function key portion of the function
+                           specialization key. */
   a_module_entity_specialization_key
                 specialization;
-                        /* The function parameters for the function
-                           specialization. */
+                        /* The specialization key portion of the function
+                           specialization key. */
 };  /* a_module_entity_func_spec_key */
 
 /*
@@ -1543,7 +1543,7 @@ a_module_entity_ptr get_alias_module_entity(a_module_ptr          mod,
                                             a_module_entity_scope *scope,
                                             a_symbol_header_ptr   name)
 /*
-Return a pointer to the module entity for the entity in the given module, with
+Return a pointer to the module entity for the alias in the given module, with
 the given scope and name.
 */
 {
@@ -1616,8 +1616,9 @@ a_module_entity_ptr get_function_template_module_entity(
                 a_boolean                                    has_ellipsis)
 /*
 Return a pointer to the module entity for the entity in the given module, with
-the given scope, name, and template arguments.  has_ellipsis should be TRUE if
-the given module entity is a C-style variable argument function.
+the given scope, name, template parameters, and function parameters.
+has_ellipsis should be TRUE if the given module entity is a C-style variable
+argument function.
 */
 {
   a_module_entity_key key;
@@ -1644,8 +1645,9 @@ a_module_entity_ptr get_specialized_function_module_entity(
                           a_boolean                            has_ellipsis)
 /*
 Return a pointer to the module entity for the entity in the given module, with
-the given scope, name, and template arguments.  has_ellipsis should be TRUE if
-the given module entity is a C-style variable argument function.
+the given scope, name, template arguments, and function parameters.
+has_ellipsis should be TRUE if the given module entity is a C-style variable
+argument function.
 */
 {
   a_module_entity_key key;

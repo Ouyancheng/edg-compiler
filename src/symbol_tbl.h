@@ -4346,7 +4346,7 @@ struct a_module_entry_locator {
       an_ifc_partition_kind
 		partition;
 			/* The IFC partition kind. */
-      sizeof_t  offset; /* The file offset into the IFC where this entity is
+      sizeof_t	offset; /* The file offset into the IFC where this entity is
 			   defined. */
       an_ifc_module_file
 		*file;	/* An opaque pointer to the IFC module file
