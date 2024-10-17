@@ -965,11 +965,9 @@ Given an IFC partition kind index, return an IFC decl index.
 }  /* to_decl_index */
 
 
-template<typename an_ifc_Sort_type, typename a_Native_size_type>
-static inline uintptr_t hash_ptr(
-                         Index_entry<an_ifc_Sort_type, a_Native_size_type> idx)
+template <typename an_ifc_Index_type>
+static inline uintptr_t hash_ifc_index(an_ifc_Index_type idx)
 /*
-Return a hash value for the given IFC index.
 */
 {
   uintptr_t  result = 17*31 + hash_ptr((void*)idx.file);
@@ -977,6 +975,24 @@ Return a hash value for the given IFC index.
   result = result*31 + (uintptr_t)idx.sort;
   result = result*31 + (uintptr_t)idx.value;
   return result;
+}  /* hash_ifc_index */
+
+
+static inline uintptr_t hash_ptr(an_ifc_decl_index idx)
+/*
+Return a hash value for the given IFC declaration index.
+*/
+{
+  return hash_ifc_index(idx);
+}  /* hash_ptr */
+
+
+static inline uintptr_t hash_ptr(an_ifc_type_index idx)
+/*
+Return a hash value for the given IFC type index.
+*/
+{
+  return hash_ifc_index(idx);
 }  /* hash_ptr */
 
 
@@ -1000,15 +1016,13 @@ STATIC_THREAD an_ifc_parameterized_entity_map
 static Opt<an_ifc_decl_index> collapse_partition_index(
                                                     an_ifc_decl_index decl_idx)
 /*
-Some module entities conceptually have multiple entries even within the same
-file.  For instance, an explicit class template specialization is composed of
-an IFC DeclSpecialization and an IFC DeclScope), this function "collapses"
-these module entries making sure all equivalent module entries map back to
-one module entry.
+Some entities conceptually have multiple "module entities" (for instance, an
+explicit class template specialization is composed of an IFC DeclSpecialization
+and an IFC DeclScope), this function "collapses" these module entities making
+sure all equivalent module entities map back to the same module entity pointer.
 
 The module, partition kind, and index are taken as inputs and the collapsed IFC
-partition kind index is returned.  If the index should have been collapsed
-but an error occurred, instead return an empty optional.
+partition kind index is returned.
 */
 {
   Opt<an_ifc_decl_index> result;
@@ -1047,12 +1061,9 @@ done:
 
 static Opt<a_string> name_of_decl(an_ifc_decl_index decl_idx);
 
-
 static Opt<a_symbol_header_ptr> get_name_symbol(an_ifc_decl_index decl_idx)
 /*
-Return a symbol header representing the name of the given IFC declaration
-index.  If the name was invalid (per name_of_decl), instead return an empty
-optional.
+Return a symbol header representing the name of the given IFC declaration index.
 */
 {
   Opt<a_symbol_header_ptr> result;
@@ -1077,7 +1088,7 @@ optional.
 }  /* get_name_symbol */
 
 
-static a_module_entity_scope* get_ifc_module_entity_scope(
+static a_module_entity_scope *get_ifc_module_entity_scope(
                                                    an_ifc_decl_index scope_ref)
 /*
 Given a scope reference find and return the associated module entity scope.
@@ -1124,7 +1135,6 @@ template<typename an_ifc_Index_type>
 static inline a_module_entry_locator
 module_entry_locator_from_index(an_ifc_Index_type index)
 /*
-Return the given IFC index value as a module entry locator.
 */
 {
   a_module_entry_locator      result;
@@ -1150,9 +1160,6 @@ Return the given IFC index value as a module entry locator.
 static inline a_module_entity_ptr
 get_ifc_basic_module_entity(an_ifc_decl_index index)
 /*
-Return the module entity corresponding to the given IFC declaration index.
-This function is provided as part of the implementation of
-get_ifc_module_entity, prefer get_ifc_module_entity in other cases.
 */
 {
   a_module_entity_ptr      result = NULL;
@@ -1172,9 +1179,6 @@ get_ifc_module_entity, prefer get_ifc_module_entity in other cases.
 
 static a_module_entity_ptr get_ifc_alias_module_entity(an_ifc_decl_index index)
 /*
-Return the module entity corresponding to the given IFC DeclSort::Alias
-declaration.  This function is provided as part of the implementation of
-get_ifc_module_entity, prefer get_ifc_module_entity in other cases.
 */
 {
   a_module_entity_ptr      result = NULL;
@@ -1272,8 +1276,6 @@ private:
 };  /* an_ifc_func_param_context */
 
 /*
-An RAII type representing a module isolation scope.  This type should be
-used to manage the lifetime of a sck_module_isolated scope.
 */
 struct a_module_isolation_scope {
   inline a_module_isolation_scope();
@@ -1291,9 +1293,6 @@ a_module_isolation_scope::a_module_isolation_scope()
 Enter a module isolation scope.
 */
 {
-  /* Switch to the file scope memory region to prevent IL entries within
-     internal entity hashing maps from being allocated into a short lived
-     memory region (and then freed as part of memory region management). */
   switch_to_file_scope_region(&this->region_to_switch_back_to);
   (void)push_scope(sck_module_isolated, NO_SCOPE_NUMBER, /*assoc_type=*/NULL,
                    /*assoc_routine=*/NULL);
@@ -1311,20 +1310,19 @@ Exit the module isolation scope.
 
 
 /*
-The template module isolation scope class extends the module isolation scope.
-It additionally encapsulates the construction of a detached template parameter
-list and isolates the template parameter resolution (find_template_parameter --
-so as to prevent resolution to an incorrect parameter higher up in the scope
-stack).  It's intended to (at least currently) only be used during
-redeclaration checking.
+The module isolation scope class encapsulates the construction of a detached
+template parameter list and isolates the template parameter resolution
+(find_template_parameter -- so as to prevent resolution to an incorrect
+parameter higher up in the scope stack).  It's intended to (at least currently)
+only be used during redeclaration checking.
 
 See alloc_detached_templ_param_sym for more information about detached template
 parameters.
 */
 template<typename an_ifc_Decl_type>
-struct Template_module_isolation_scope : a_module_isolation_scope {
-  inline Template_module_isolation_scope(const an_ifc_Decl_type &decl);
-  inline ~Template_module_isolation_scope();
+struct Module_isolation_scope : a_module_isolation_scope {
+  inline Module_isolation_scope(const an_ifc_Decl_type &decl);
+  inline ~Module_isolation_scope();
 };  /* Moudle_isolation_scope */
 
 }  /* namespace */
@@ -1340,9 +1338,6 @@ get_ifc_template_parameter_list(an_ifc_chart_index param_idx);
 static inline a_module_template_parameter_list*
 get_ifc_template_parameter_list(const an_ifc_decl_template &templ_decl)
 /*
-Return a pointer to a module template parameter list corresponding to the
-template parameters of the given IFC DeclSort::Template.  If a template
-parameter list cannot be reconstructed, instead return NULL.
 */
 {
   an_ifc_chart_index param_idx = get_ifc_chart(templ_decl);
@@ -1363,17 +1358,10 @@ get_ifc_deduction_guide_parameter_list(an_ifc_decl_index deduct_guide_idx);
 
 
 static inline a_module_func_param_list* get_ifc_function_parameter_list(
-                                       an_ifc_decl_index decl_idx,
-                                       an_ifc_decl_index parameterizing_entity,
-                                       a_boolean         *has_ellipsis)
+                                 an_ifc_decl_index      decl_idx,
+                                 an_ifc_decl_index      parameterizing_entity,
+                                 a_boolean              *has_ellipsis)
 /*
-Given a function-like declaration index and (if parameterized) the
-parameterizing entity (see an_ifc_cache_info::parameterizing_entity for more
-information about the parameterizing entity) return a pointer to the
-corresponding module function parameter list.  *has_ellipsis is set to TRUE if
-this is a C-style variable argument function, e.g., "void foo(...)".
-
-If a function parameter list cannot be reconstructed, instead return NULL.
 */
 {
   a_module_func_param_list *func_params = NULL;
@@ -1443,8 +1431,6 @@ invalid:
 
 static inline a_boolean is_function_decl(an_ifc_decl_index index)
 /*
-Return TRUE if the given IFC declaration index represents a function-like
-declaration; otherwise, return FALSE.
 */
 {
   return (index.sort == ifc_ds_decl_function ||
@@ -1457,9 +1443,6 @@ declaration; otherwise, return FALSE.
 static inline a_module_entity_ptr get_ifc_function_module_entity(
                                                        an_ifc_decl_index index)
 /*
-Return the module entity corresponding to the given IFC function declaration
-index.  This function is provided as part of the implementation of
-get_ifc_module_entity, prefer get_ifc_module_entity in other cases.
 */
 {
   a_module_entity_ptr      result = NULL;
@@ -1495,9 +1478,6 @@ static inline a_module_entity_ptr get_ifc_template_module_entity(
                                         an_ifc_decl_index          index,
                                         const an_ifc_decl_template &templ_decl)
 /*
-Return the module entity corresponding to the given IFC template declaration
-index.  This function is provided as part of the implementation of
-get_ifc_module_entity, prefer get_ifc_module_entity in other cases.
 */
 {
   a_module_entity_ptr      result = NULL;
@@ -1512,7 +1492,7 @@ get_ifc_module_entity, prefer get_ifc_module_entity in other cases.
                                       get_ifc_decl(get_ifc_entity(templ_decl));
 
     if (is_function_decl(entity_decl_idx)) {
-      Template_module_isolation_scope<an_ifc_decl_template>
+      Module_isolation_scope<an_ifc_decl_template>
                 isolation_scope(templ_decl);
       a_module_template_parameter_list
                 *template_params = get_ifc_template_parameter_list(templ_decl);
@@ -1533,7 +1513,7 @@ get_ifc_module_entity, prefer get_ifc_module_entity in other cases.
                                                    template_params,
                                                    func_params, has_ellipsis);
     } else if (entity_decl_idx.sort == ifc_ds_decl_deduction_guide) {
-      Template_module_isolation_scope<an_ifc_decl_template>
+      Module_isolation_scope<an_ifc_decl_template>
                 isolation_scope(templ_decl);
       a_module_template_parameter_list
                 *template_params = get_ifc_template_parameter_list(templ_decl);
@@ -1565,9 +1545,6 @@ done:
 static inline a_module_entity_ptr get_ifc_partially_specialized_module_entity(
                                                        an_ifc_decl_index index)
 /*
-Return the module entity corresponding to the given IFC partial specialization
-declaration index.  This function is provided as part of the implementation of
-get_ifc_module_entity, prefer get_ifc_module_entity in other cases.
 */
 {
   a_module_entity_ptr      result = NULL;
@@ -1583,7 +1560,7 @@ get_ifc_module_entity, prefer get_ifc_module_entity in other cases.
 
     an_ifc_decl_partial_specialization
                  spec_decl = *opt_spec_decl;
-    Template_module_isolation_scope<an_ifc_decl_partial_specialization>
+    Module_isolation_scope<an_ifc_decl_partial_specialization>
                  isolation_scope(spec_decl);
     a_template_arg_ptr
                  templ_args = create_templ_args_for_comparison(spec_decl);
@@ -1607,9 +1584,6 @@ done:
 static inline a_module_entity_ptr get_ifc_specialized_module_entity(
                                                        an_ifc_decl_index index)
 /*
-Return the module entity corresponding to the given IFC specialized declaration
-index.  This function is provided as part of the implementation of
-get_ifc_module_entity, prefer get_ifc_module_entity in other cases.
 */
 {
   a_module_entity_ptr      result = NULL;
@@ -1665,9 +1639,6 @@ done:
 static inline a_module_entity_ptr get_ifc_error_module_entity(
                                                        an_ifc_decl_index index)
 /*
-Return an error module entity associated with the given IFC declaration index.
-This function is provided as part of the implementation of
-get_ifc_module_entity, prefer get_ifc_module_entity in other cases.
 */
 {
   a_module_ptr        mod_ptr = module_of(index)->assoc_module_info;
@@ -1696,9 +1667,7 @@ static void f_emit_not_a_module_entity_error(int               line_number,
                                              an_ifc_decl_index index)
 /*
 The given declaration index is not a module entity but the front end tried to
-use it as one, emit an appropriate diagnostic.  The given line number and
-function values respectively are the line number and function where the misuse
-occurred.
+use it as one, emit an appropriate diagnostic.
 */
 {
   a_string err_msg("Unexpected attempt to represent ", index_to_str(index),
@@ -1723,8 +1692,7 @@ module entity is available for the given index.
 
 This function should be used sparingly as the module entity state will not be
 merged between different module files or persisted between function
-invocations.  Additionally, as this module entity is stack allocated surprising
-behavior can occur if it's associated with an IL entity.
+invocations.
 */
 {
   a_module_ptr    mod_ptr = module_of(index)->assoc_module_info;
@@ -1741,11 +1709,6 @@ static inline an_ifc_decl_index decl_index_of(a_module_entry_locator locator);
 static inline a_module_entity_ptr
 get_ifc_module_entity_from_collapsed_index(an_ifc_decl_index index)
 /*
-Return the module entity corresponding to the given collapsed IFC declaration
-index (see collapse_partition_index for more information about the process of
-"collapsing" IFC indexes).  This function is provided as part of the
-implementation of get_ifc_module_entity, prefer get_ifc_module_entity in other
-cases.
 */
 {
   uintptr_t           index_hash = hash_ptr(index);
@@ -1864,7 +1827,9 @@ cases.
 #if DEBUG
     if (db_flag_is_set("ifc_idx") && cached_result == NULL) {
       a_string dbg_msg("Module entity lookup done ",
-                       index_to_str(index), " (", (void*)result,
+                       index_to_str(index),
+                       " (",
+                       (void*)result,
                        (result->invalid) ? ") [[invalid]]" : ")");
 
       print(dbg_msg, f_debug);
@@ -1890,7 +1855,7 @@ cases.
          either the construction of the hash key or the comparison of the key
          (i.e., its hashing or equality operator). */
       entity_lookup_cache->map_with_hash(index, result, index_hash);
-      /* Notify all relevant modules implementations that a new locator has
+      /* Notify the general modules implementation that a new locator has
          been discovered. */
       update_entity_from_new_locator(result,
                                      module_entry_locator_from_index(index));
@@ -1903,8 +1868,6 @@ cases.
 static inline a_module_entity_ptr
 get_ifc_module_entity(an_ifc_decl_index index)
 /*
-Return the module entity corresponding to the given IFC function declaration
-index.
 */
 {
   a_module_entity_ptr    result;
@@ -1988,6 +1951,33 @@ kind and file offset.
                                                     file_offset);
 
   return an_ifc_type_index{&mod->file, to_type_sort(partition), part_index};
+}  /* type_index_of */
+
+
+static inline an_ifc_type_index type_index_of(a_module_entry_locator locator)
+/*
+Return the an_ifc_type_index derived from the partition kind and file offset
+stored on the given module entry locator.
+*/
+{
+  /* If this assertion fails a module entity pointer that's not from an IFC
+     file was incorrectly passed to this function. */
+  check_assertion(locator.kind == melk_ifc);
+  auto                  &ifc_info = locator.variant.ifc;
+  an_ifc_module_file    *file = ifc_info.file;
+  an_ifc_partition_kind part_kind = ifc_info.partition;
+
+  return type_index_of(module_of(file), part_kind, ifc_info.offset);
+}  /* type_index_of */
+
+
+static inline an_ifc_type_index type_index_of(a_module_entity_ptr mep)
+/*
+Return the an_ifc_type_index derived from the partition kind and file offset
+stored on the given module entity pointer.
+*/
+{
+  return type_index_of(mep->locators[mep->primary_locator_idx]);
 }  /* type_index_of */
 
 
@@ -4335,7 +4325,7 @@ already saved for restoration.
 {
   a_module_token_cache        cache;
   /* Macros currently don't have a persistent module entity.  Create a
-     temporary module entity to capture any ifc_unexpected errors. */
+     temporary module entity to capture an ifc_unexpected errors. */
   a_module_entity             entity = make_temporary_ifc_module_entity(macro);
   a_module_entity_stack_state mep_state(&entity);
 
@@ -5771,50 +5761,47 @@ static a_type_ptr alloc_detached_type_templ_param(
                                        const an_ifc_decl_parameter &param_decl)
 /*
 Given an IFC parameter declaration representing a type template parameter,
-return a detached type template parameter type.  If the type cannot be
-reconstructed, instead return NULL.  See alloc_detached_templ_param_sym for
-more information about detached template parameters.
+return a detached type template parameter type.  See
+alloc_detached_templ_param_sym for more information about detached template
+parameters.
 */
 {
-  a_type_ptr result;
+  a_type_ptr result = alloc_type(tk_template_param);
 
-  if (param_represents_type_templ_param_ref(param_decl)) {
-    result = alloc_type(tk_template_param);
-    result->variant.template_param.is_pack = is_parameter_pack(param_decl);
-    result->variant.template_param.is_generic_param = FALSE;
-
-    a_template_param_type_supplement_ptr extra_info =
-                                     result->variant.template_param.extra_info;
-    a_template_nesting_depth             pdepth = get_ifc_level(param_decl);
-    a_template_param_list_pos            pnum = get_ifc_position(param_decl);
-    extra_info->coordinates.depth = pdepth;
-    extra_info->coordinates.position = pnum;
-
-    an_ifc_expr_index constraint = get_ifc_constraint(param_decl);
-    if (!is_null_index(constraint)) {
-      a_module_token_cache cache;
-
-      cache_expr(&cache, constraint, /*cinfo=*/{});
-      if (!cache.is_valid()) {
-        goto invalid;
-      }  /* if */
-
-      a_module_entity_rescan rescan(&cache);
-      a_symbol_ptr           concept_templ;
-      (void)determine_template_param_kind(&concept_templ);
-      if (concept_templ == NULL) {
-        goto invalid;
-      }  /* if */
-
-      an_expr_node_ptr il_constraint = scan_type_constraint(concept_templ);
-      extra_info->constraint.type_constraint = il_constraint;
-    }  /* if */
-    set_type_size(result);
-  } else {
+  if (!param_represents_type_templ_param_ref(param_decl)) {
     ifc_unexpected(module_of(param_decl),
                    "expected a non-type template parameter");
-    goto invalid;
   }  /* if */
+  result->variant.template_param.is_pack = is_parameter_pack(param_decl);
+  result->variant.template_param.is_generic_param = FALSE;
+
+  a_template_param_type_supplement_ptr extra_info =
+                                     result->variant.template_param.extra_info;
+  a_template_nesting_depth             pdepth = get_ifc_level(param_decl);
+  a_template_param_list_pos            pnum = get_ifc_position(param_decl);
+  extra_info->coordinates.depth = pdepth;
+  extra_info->coordinates.position = pnum;
+
+  an_ifc_expr_index constraint = get_ifc_constraint(param_decl);
+  if (!is_null_index(constraint)) {
+    a_module_token_cache cache;
+
+    cache_expr(&cache, constraint, /*cinfo=*/{});
+    if (!cache.is_valid()) {
+      goto invalid;
+    }  /* if */
+
+    a_module_entity_rescan rescan(&cache);
+    a_symbol_ptr           concept_templ;
+    (void)determine_template_param_kind(&concept_templ);
+    if (concept_templ == NULL) {
+      goto invalid;
+    }  /* if */
+
+    an_expr_node_ptr il_constraint = scan_type_constraint(concept_templ);
+    extra_info->constraint.type_constraint = il_constraint;
+  }  /* if */
+  set_type_size(result);
   goto done;
 invalid:
   result = NULL;
@@ -6239,11 +6226,6 @@ done:
 
 static inline Opt<a_module_template_parameter>
 get_ifc_module_template_parameter(const an_ifc_decl_parameter &param_decl)
-/*
-Return a module template parameter corresponding to the given IFC parameter
-declaration.  If the template parameter cannot be reconstructed, instead return
-an empty optional.
-*/
 {
   Opt<a_module_template_parameter> result;
   an_ifc_parameter_sort            sort = get_ifc_sort(param_decl);
@@ -6263,13 +6245,8 @@ an empty optional.
                                  get_template_template_param_chart(param_decl);
 
         param.kind = mtpk_template;
-
-        a_module_template_parameter_list
-                *param_list = get_ifc_template_parameter_list(param_chart_idx);
-        if (param_list == NULL) {
-          goto invalid;
-        }  /* if */
-        param.variant.params_list = param_list;
+        param.variant.params_list =
+                              get_ifc_template_parameter_list(param_chart_idx);
         result = param;
       }  /* if */
       break;
@@ -6298,9 +6275,6 @@ done:
 static inline a_module_template_parameter_list*
 get_ifc_template_parameter_list(an_ifc_chart_index param_idx)
 /*
-Return a pointer to a module template parameter list corresponding to the
-template parameters of the given IFC parameter chart.  If a template parameter
-list cannot be reconstructed, instead return NULL.
 */
 {
   a_module_template_parameter_list *result = NULL;
@@ -6385,13 +6359,6 @@ static inline a_module_func_param_list* get_ifc_function_parameter_list(
                                   an_ifc_decl_index      parameterizing_entity,
                                   a_boolean              *has_ellipsis)
 /*
-Given a function-like declaration (indexed by decl_idx) and (if parameterized)
-the parameterizing entity (see an_ifc_cache_info::parameterizing_entity for
-more information about the parameterizing entity) return a pointer to the
-corresponding module function parameter list.  *has_ellipsis is set to TRUE if
-this is a C-style variable argument function, e.g., "void foo(...)".
-
-If a function parameter list cannot be reconstructed, instead return NULL.
 */
 {
   a_module_func_param_list  *result = new_fe<a_module_func_param_list>();
@@ -6406,6 +6373,7 @@ If a function parameter list cannot be reconstructed, instead return NULL.
     if (is_null_index(ifc_type_idx)) {
       goto invalid;
     }  /* if */
+
     if (type_represents_ellipsis(ifc_type_idx)) {
       *has_ellipsis = TRUE;
       if (i < param_context.get_num_params() - 1) {
@@ -6435,11 +6403,6 @@ done:
 static inline a_module_deduct_guide_param_list*
 get_ifc_deduction_guide_parameter_list(an_ifc_decl_index deduct_guide_idx)
 /*
-Given a deduction guide index return a pointer to the corresponding module
-deduction guide parameter list.
-
-If a deduction guide parameter list cannot be reconstructed, instead return
-NULL.
 */
 {
   a_module_func_param_list         *result = NULL;
@@ -6494,7 +6457,9 @@ NULL.
   }  /* if */
   goto done;
 invalid:
-  delete_fe(&result);
+  if (result != NULL) {
+    delete_fe(&result);
+  }  /* if */
 done:
   return result;
 }  /* get_ifc_deduction_guide_parameter_list */
@@ -6502,8 +6467,7 @@ done:
 namespace {
 
 template<typename an_ifc_Decl_type>
-Template_module_isolation_scope<an_ifc_Decl_type>::
-                                               Template_module_isolation_scope(
+Module_isolation_scope<an_ifc_Decl_type>::Module_isolation_scope(
                                                   const an_ifc_Decl_type &decl)
 /*
 Create a new module isolation scope and the associated template parameters for
@@ -6525,8 +6489,7 @@ the given parameterized declaration.
 
 
 template<typename an_ifc_Decl_type>
-Template_module_isolation_scope<an_ifc_Decl_type>::
-                                             ~Template_module_isolation_scope()
+Module_isolation_scope<an_ifc_Decl_type>::~Module_isolation_scope()
 /*
 Tear down the constructed scopes.
 */
@@ -6537,8 +6500,7 @@ Tear down the constructed scopes.
 
 
 template<>
-Template_module_isolation_scope<an_ifc_decl_specialization>::
-                                               Template_module_isolation_scope(
+Module_isolation_scope<an_ifc_decl_specialization>::Module_isolation_scope(
                                         const an_ifc_decl_specialization &decl)
 /*
 Create a new module isolation scope for the given explicit template
@@ -6559,8 +6521,7 @@ specialization or instantiation.
 
 
 template<>
-Template_module_isolation_scope<an_ifc_decl_specialization>::
-                                             ~Template_module_isolation_scope()
+Module_isolation_scope<an_ifc_decl_specialization>::~Module_isolation_scope()
 /*
 Tear down the constructed scope.
 */
@@ -7270,14 +7231,6 @@ NULL, and issue a diagnostic.
 
 void scan_ifc_param_ref_expr(an_operand *result)
 /*
-The current token is tok_ifc_param_ref (an IFC pseudo-token), consume the token
-and produce an expression operand equivalent to referencing the parameter
-specified by the token in *result.  If the requested expression cannot be
-formed, instead produce an error operand in *result.
-
-Note this is only used in contexts where the parameter does not yet exist
-(e.g., in module isolation contexts while processing syntactic function return
-types that depend on a parameter's type).
 */
 {
   a_lexical_ifc_index_reference
@@ -10142,7 +10095,7 @@ FALSE.
   an_ifc_decl_template decl_templ;
   construct_node_prechecked(&decl_templ, decl_idx);
 
-  Template_module_isolation_scope<an_ifc_decl_template>
+  Module_isolation_scope<an_ifc_decl_template>
                     isolation_scope(decl_templ);
   an_ifc_decl_index entity_decl_idx = get_ifc_decl(get_ifc_entity(decl_templ));
   if (entity_decl_idx.sort != ifc_ds_decl_function) {
@@ -10414,7 +10367,7 @@ problem is encountered during reconstruction, NULL is returned instead.
 
   construct_node(&opt_form_spec, form_offset);
   if (opt_form_spec.has_value()) {
-    Template_module_isolation_scope<an_ifc_Decl_type>
+    Module_isolation_scope<an_ifc_Decl_type>
                       isolation_scope(decl_spec);
     an_ifc_form_spec  form_spec = *opt_form_spec;
     an_ifc_expr_index form_arg_idx = get_ifc_arguments(form_spec);
@@ -10512,9 +10465,6 @@ template<typename an_ifc_Decl_type>
 static a_template_arg_ptr create_templ_args_for_comparison(
                                             const an_ifc_Decl_type &decl_spec)
 /*
-Given the IFC node information for a template specialization, create and return
-a corresponding template argument set.  If a problem is encountered during
-reconstruction, NULL is returned instead.
 */
 {
   a_template_arg_ptr  result = NULL;
@@ -13617,6 +13567,7 @@ for the namespace represented by the given module entity.
   Opt<an_ifc_decl_scope> opt_assoc_scope_decl;
 
   construct_node(&opt_assoc_scope_decl, assoc_decl_idx);
+
   if (opt_assoc_scope_decl.has_value()) {
     an_ifc_decl_scope   assoc_scope_decl = *opt_assoc_scope_decl;
     an_ifc_scope_offset init = get_ifc_initializer(assoc_scope_decl);
@@ -15551,11 +15502,6 @@ done:
 
 static a_type_ptr process_edg_type(an_ifc_edg_type_index type_idx)
 /*
-Return the type that corresponds to the specified EDG TypeIndex.  If there is
-no corresponding type, return an error type.
-
-This function is provided as part of the implementation of type_for_type_index,
-prefer type_for_type_index in other cases
 */
 {
   a_type_ptr result = NULL;
@@ -15593,11 +15539,6 @@ done:
 
 static a_type_ptr process_ifc_type(an_ifc_type_index type_idx)
 /*
-Return the type that corresponds to the specified IFC TypeIndex.  If there is
-no corresponding type, return an error type.
-
-This function is provided as part of the implementation of type_for_type_index,
-prefer type_for_type_index in other cases
 */
 {
   a_type_ptr    result = NULL;
@@ -17356,9 +17297,9 @@ module file.
   a_template_ptr templ = get_template_from_id_expr(templ_id);
 
   if (templ != NULL && templ->kind != templk_none) {
-    a_symbol_ptr       template_sym = symbol_for(templ);
-    an_ifc_expr_index  arguments = get_ifc_arguments(templ_id);
-    a_template_arg_ptr arg_list =
+    a_symbol_ptr             template_sym = symbol_for(templ);
+    an_ifc_expr_index        arguments = get_ifc_arguments(templ_id);
+    a_template_arg_ptr       arg_list =
                           template_args_for_expr_list(template_sym, arguments);
 
     if (arg_list == NULL) {

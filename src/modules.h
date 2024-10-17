@@ -22,11 +22,10 @@ BEGIN_EDG_NAMESPACE
 
 /*
 The following structure is associated with every entity in a module file that
-has been loaded into the IL (or, if invalid is TRUE, failed to load into the
-IL).
-
-The module entity serves as a central point to accumulate module related
-information about the module entity across different BMIs.
+has been loaded into the IL in some way (or, if invalid is TRUE, failed to load
+into the IL).  It serves as a central point to accumulate information about the
+module entity.  These entries are kept in a hash table and accessed by a unique
+key.
 */
 struct a_module_entity {
   a_module_ptr  module_info;
@@ -34,7 +33,7 @@ struct a_module_entity {
   a_symbol_header_ptr
                 sym_header;
                         /* The symbol header this entity is named by (if
-                           any); otherwise, NULL. */
+                           any). */
   a_scope_ptr   scope;  /* The scope in which this entity is defined. */
   a_tagged_pointer
                 entity; /* The IL entity that corresponds to the module
@@ -50,7 +49,10 @@ struct a_module_entity {
                         /* The index of the primary locator (i.e., the locator
                            with the most detailed information).  In most cases,
                            this corresponds to the locator that contains the
-                           definition of the entity (if any). */
+                           definition of the entity (if any).
+
+                           FIXME: At the time of writing, this field is not
+                           currently accurate for most entities. */
   a_bit_field   imminent:1;
                         /* This flag is typically set to TRUE when processing
                            to form or find the associated IL entity starts.
@@ -378,49 +380,225 @@ extern void import_module_file(a_module_import_decl_ptr midp);
 extern void define_names_from_scope(a_scope_ptr     scope,
                                     a_symbol_header *sym_hdr);
 
-struct a_module_entity_scope;
+/*
+*/
+struct a_module_entity_scope {
+  a_symbol_header_ptr
+                name;   /* The symbol header that represents the name of this
+                           module entity scope. */
+  a_module_entity_scope
+                *parent;
+                        /* The parent scope of this scope. */
+
+  a_module_entity_scope()
+    : name(NULL), parent(NULL)
+    {}
+  a_module_entity_scope(a_symbol_header_ptr   name_val,
+                        a_module_entity_scope *parent_val)
+    : name(name_val), parent(parent_val)
+    {}
+};  /*  a_module_entity_scope */
+
+extern uintptr_t hash_ptr(const a_module_entity_scope &key);
+
+extern a_boolean operator==(const a_module_entity_scope &a,
+                            const a_module_entity_scope &b);
+
+
+inline a_boolean operator!=(const a_module_entity_scope &a,
+                            const a_module_entity_scope &b)
+/*
+Return TRUE if the given module entity scopes are not equal; otherwise, return
+FALSE.
+*/
+{
+  return !(a == b);
+}  /* operator!= */
+
+
+struct a_module_entity_key;
 struct a_module_template_parameter;
 
 enum a_module_template_parameter_kind {
-  mtpk_non_type, /* A non-type template parameter. */
-  mtpk_template, /* A template template parameter. */
-  mtpk_type      /* A type template parameter. */
+  mtpk_non_type,
+  mtpk_template,
+  mtpk_type
 };
 
 using a_module_template_parameter_list =
                                         Dyn_array<a_module_template_parameter>;
-                        /* A list of template parameters for use by module
-                           entity hashing. */
+                        /* */
 
 /*
-A lightweight representation of a template parameter used for module entity
-hashing.
 */
 struct a_module_template_parameter {
   a_module_template_parameter_kind
-                kind;   /* The kind of template parameter being represented. */
+                kind;   /* */
   union {
     /* When kind == mtpk_type, no variant fields. */
     /* When kind == mtpk_non_type: */
-    a_type_ptr  type;   /* The type of the non-type template parameter. */
+    a_type_ptr  type;
     /* When kind == mtpk_template: */
     a_module_template_parameter_list
                 *params_list;
-                        /* The inner template parameter list of the template
-                           template parameter. */
   } variant;
 };  /* a_module_template_parameter */
 
 extern a_boolean operator==(const a_module_template_parameter &a,
                             const a_module_template_parameter &b);
 
+enum a_module_entity_extra_info_kind {
+  meeik_none,
+  meeik_alias,
+  meeik_function,
+  meeik_specialization,
+  meeik_func_templ,
+  meeik_func_spec,
+  meeik_deduct_guide
+};
+
 using a_module_func_param_list = Dyn_array<a_type_ptr>;
-                        /* A list of function parameter types for use by module
-                           entity hashing. */
+                        /* */
 
 using a_module_deduct_guide_param_list = Dyn_array<a_type_ptr>;
-                        /* A list of deduction guide parameter types for use by
-                           module entity hashing. */
+                        /* */
+
+/*
+*/
+struct a_module_entity_function_key {
+  a_module_func_param_list
+                *parameter_types;
+                        /* The parameter types. */
+  a_boolean     has_ellipsis;
+                        /* TRUE if the given function key represents a function
+                           with a C-style ellipsis argument. */
+  /* FIXME: Implement destruction. */
+};  /* a_module_entity_function_key */
+
+extern a_boolean operator==(const a_module_entity_function_key &a,
+                            const a_module_entity_function_key &b);
+
+/*
+*/
+struct a_module_entity_specialization_key {
+  a_template_arg_ptr
+                arguments;
+                        /* The argument set this entity is specialized on. */
+  /* FIXME: Implement a destructor so a_template_arg_ptr is freed. */
+};  /* a_module_entity_specialization_key */
+
+extern a_boolean operator==(const a_module_entity_specialization_key &a,
+                            const a_module_entity_specialization_key &b);
+
+/*
+*/
+struct a_module_entity_func_templ_key {
+  a_module_entity_function_key
+                function;
+                        /* The function parameters for the function
+                           template. */
+  a_module_template_parameter_list
+                *parameters;
+                        /* The template parameters for the function
+                           template. */
+  /* FIXME: Implement destruction. */
+};  /* a_module_entity_func_templ_key */
+
+extern a_boolean operator==(const a_module_entity_func_templ_key &a,
+                            const a_module_entity_func_templ_key &b);
+
+/*
+*/
+struct a_module_entity_func_spec_key {
+  a_module_entity_function_key
+                function;
+                        /* The function parameters for the function
+                           specialization. */
+  a_module_entity_specialization_key
+                specialization;
+                        /* The function parameters for the function
+                           specialization. */
+};  /* a_module_entity_func_spec_key */
+
+extern a_boolean operator==(const a_module_entity_func_spec_key &a,
+                            const a_module_entity_func_spec_key &b);
+
+/*
+*/
+struct a_module_entity_deduct_guide_key {
+  a_module_template_parameter_list
+                *template_params;
+                        /* The template parameters for the deduction guide. */
+  a_module_deduct_guide_param_list
+                *param_list;
+                        /* The parameter types for the deduction guide. */
+  /* FIXME: Implement destruction. */
+};  /* a_module_entity_deduct_guide_key */
+
+extern a_boolean operator==(const a_module_entity_deduct_guide_key &a,
+                            const a_module_entity_deduct_guide_key &b);
+
+/*
+*/
+struct a_module_entity_key {
+  a_module      *mod;   /* The module this entity is owned by. */
+  a_module_entity_scope
+                *scope; /* The module entity scope this entity resides in. */
+  a_symbol_header_ptr
+                name;   /* The symbol header that represents the name of this
+                           module entity. */
+  a_module_entity_extra_info_kind
+                kind;   /* The extra info kind. */
+  union {
+    /* When kind == meeik_none or meeik_alias, no variant fields. */
+    /* When kind == meeik_function: */
+    a_module_entity_function_key
+                *function;
+                        /* A pointer to extra information about the function's
+                           identity. */
+    /* When kind == meeik_specialization: */
+    a_module_entity_specialization_key
+                *specialization;
+                        /* A pointer to extra information about the
+                           specialization's identity. */
+    /* When kind == meeik_func_templ: */
+    a_module_entity_func_templ_key
+                *func_templ;
+                        /* A pointer to extra information about the function
+                           template's identity. */
+    /* When kind == meeik_func_spec: */
+    a_module_entity_func_spec_key
+                *func_spec;
+                        /* A pointer to extra information about the function
+                           specialization's identity. */
+    /* When kind == meeik_deduct_guide: */
+    a_module_entity_deduct_guide_key
+                *deduct_guide;
+                        /* A pointer to extra information about the deduction
+                           guide's identity. */
+  } variant;
+  inline a_module_entity_key() = default;
+  a_module_entity_key(a_module_entity_key &&other);
+  a_module_entity_key(const a_module_entity_key&) = delete;
+  ~a_module_entity_key();
+};  /* a_module_entity_key */
+
+extern uintptr_t hash_ptr(const a_module_entity_key &key);
+
+extern a_boolean operator==(const a_module_entity_key &a,
+                            const a_module_entity_key &b);
+
+
+inline a_boolean operator!=(const a_module_entity_key &a,
+                            const a_module_entity_key &b)
+/*
+Return TRUE if the given module entity keys are not equal; otherwise, return
+FALSE.
+*/
+{
+  return !(a == b);
+}  /* operator!= */
+
 
 extern a_module_entity_scope* get_module_entity_scope(
                                                 a_symbol_header_ptr   name,
