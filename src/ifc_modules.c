@@ -1607,7 +1607,7 @@ invalid:
   result = NULL;
 done:
   return result;
-}  /* get_ifc_partially_specialized_module_entity */
+}  /* get_ifc_specialized_module_entity */
 
 
 static inline a_module_entity_ptr get_ifc_specialized_module_entity(
@@ -6511,7 +6511,7 @@ the given parameterized declaration.
   a_template_decl_info_ptr &templ_info = scope_stack_top().template_decl_info;
   an_ifc_chart_index       param_chart_idx = get_ifc_chart(decl);
   alloc_detached_templ_decl_info(&templ_info, param_chart_idx);
-}  /* Template_module_isolation_scope::Template_module_isolation_scope */
+}  /* Module_isolation_scope::Module_isolation_scope */
 
 
 template<typename an_ifc_Decl_type>
@@ -6523,7 +6523,7 @@ Tear down the constructed scopes.
 {
   /* Pop the sck_template_declaration scope. */
   pop_scope();
-}  /* Template_module_isolation_scope::~Template_module_isolation_scope */
+}  /* Module_isolation_scope::~Module_isolation_scope */
 
 
 template<>
@@ -6545,7 +6545,7 @@ specialization or instantiation.
      We should reconsider this design to generalize the safety precaution, and
      see if it's reasonable to avoid what's in effect an "opt-out"
      specialization from being necessary. */
-}  /* Template_module_isolation_scope::Template_module_isolation_scope */
+}  /* Module_isolation_scope::Module_isolation_scope */
 
 
 template<>
@@ -6555,7 +6555,7 @@ Template_module_isolation_scope<an_ifc_decl_specialization>::
 Tear down the constructed scope.
 */
 {
-}  /* Template_module_isolation_scope::~Template_module_isolation_scope */
+}  /* Module_isolation_scope::~Module_isolation_scope */
 
 }  /* namespace */
 
@@ -10551,7 +10551,7 @@ check_and_set_specialization_redeclaration.
        information, while comparisons are optimized by doing this up front,
        we're paying an unnecessary cost if there are no symbols to compare
        against. */
-    a_template_ptr             primary_templ = (a_template*)templ_entity.ptr;
+    a_template_ptr             primary_templ = (a_template_ptr)templ_entity.ptr;
     an_owned_template_arg_list templ_args =
                                create_templ_args_for_comparison(decl_spec,
                                                                 primary_templ);
@@ -10867,8 +10867,7 @@ return FALSE.
 
 static inline a_boolean compute_non_exported_bit(a_module_entity_ptr mep)
 /*
-Return TRUE if the given module entity is non-exported; otherwise, return
-FALSE.
+Return TRUE if the given module entity is non-exported; otherwise, return FALSE.
 */
 {
   a_boolean result = TRUE;
@@ -10929,7 +10928,7 @@ pointer is required to have been validated by the caller.
       mep->non_exported = FALSE;
     }  /* if */
   }  /* if */
-}  /* update_mep_origin_flags */
+}  /* set_mep_origin_flags */
 
 
 static inline void inherit_mep_origin_flags(a_module_entity_ptr mep,
@@ -13592,7 +13591,7 @@ locator.
                              "with a non-declaration entity");
   }  /* if */
   return result;
-}  /* locate_ifc_module_entity */
+}  /* request_ifc_module_entity */
 
 
 void load_namespace_elements_from_ifc_locator(a_module_entity_ptr    mep,
@@ -13726,7 +13725,7 @@ Given an IFC module entry locator, return a string representing the locator.
     result = "UNKNOWN (IFC)";
   }  /* if */
   return result;
-}  /* s_db_ifc_locator */
+}  /* s_db_version_of_ifc_module */
 
 
 a_string s_db_id_of_ifc_mep(a_module_entity_ptr mep)
@@ -14235,8 +14234,7 @@ of.
 static void map_template_deduction_guides(an_ifc_decl_index decl_idx)
 /*
 For the given class template that is identified by the given declaration index,
-map the associated deduction guide indexs back to the template that they're a
-deduction guide of.
+check if it has any associated deduction guides, and process them.
 */
 {
   /* Deduction guides are associated to the template through the IFC traits
@@ -14268,7 +14266,7 @@ deduction guide of.
       map_template_deduction_guide(guides_idx, decl_idx);
     }  /* if */
   }  /* if */
-}  /* map_template_deduction_guides */
+}  /* process_template_deduction_guides */
 
 
 a_boolean an_ifc_module::initialize_members_from_ifc_module_file(
@@ -16720,7 +16718,7 @@ invalid:
   result = FALSE;
 done:
   return result;
-}  /* is_member_template_ref */
+}  /* is_template_template_param_ref */
 
 
 static a_boolean is_type_pack_expansion(an_ifc_type_index type_idx)
