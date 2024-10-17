@@ -31,6 +31,17 @@ modules.c -- Classes and routines handling modules.
 /* Conditionally open the "edg" namespace. */
 BEGIN_EDG_NAMESPACE
 
+a_module_entity::a_module_entity(a_module_ptr module_info_val)
+/*
+Construct a new module entity in the given module.
+*/
+  : module_info(module_info_val), sym_header(NULL), scope(NULL),
+    entity{iek_none, NULL}, locators(), primary_locator_idx(0),
+    imminent(FALSE), def_imminent(FALSE), uses_bound_token(FALSE),
+    invalid(FALSE), global_module(FALSE), non_exported(FALSE)
+{
+}  /* a_module_entity::a_module_entity */
+
 namespace {
 
 struct a_module_file_suffix {
@@ -765,76 +776,32 @@ processing has ended.
 }  /* define_names_from_scope */
 
 
-a_module_entity::a_module_entity(a_module_ptr module_info_val)
 /*
-Construct a new module entity in the given module.
+A lightweight representation of a scope used for module entity hashing.  All
+instances of a module entity scope should be obtained through
+get_module_entity_scope.  This class has external linkage but a hidden
+definition to prevent misuse and (slightly) reduce the size of the modules.h
+header.
 */
-  : module_info(module_info_val), sym_header(NULL), scope(NULL),
-    entity{iek_none, NULL}, locators(), primary_locator_idx(0),
-    imminent(FALSE), def_imminent(FALSE), uses_bound_token(FALSE),
-    invalid(FALSE), global_module(FALSE), non_exported(FALSE)
-{
-}  /* a_module_entity::a_module_entity */
+struct a_module_entity_scope {
+  a_symbol_header_ptr
+                name;   /* The symbol header that represents the name of this
+                           module entity scope. */
+  a_module_entity_scope
+                *parent;
+                        /* The parent scope of this scope. */
+
+  a_module_entity_scope()
+    : name(NULL), parent(NULL)
+    {}
+  a_module_entity_scope(a_symbol_header_ptr   name_val,
+                        a_module_entity_scope *parent_val)
+    : name(name_val), parent(parent_val)
+    {}
+};  /*  a_module_entity_scope */
 
 
-a_module_entity_key::a_module_entity_key(a_module_entity_key &&other)
-/*
-Destroy the given module entity key.
-*/
-  : mod(other.mod), scope(other.scope), name(other.name), kind(other.kind),
-    variant(other.variant)
-{
-  other.mod = NULL;
-  other.scope = NULL;
-  other.name = NULL;
-  other.kind = meeik_none;
-}  /* a_module_entity_key::~a_module_entity_key */
-
-
-a_module_entity_key::~a_module_entity_key()
-/*
-Destroy the given module entity key.
-*/
-{
-  switch (this->kind) {
-    case meeik_none:
-    case meeik_alias:
-      /* No additional information to free. */
-      break;
-    case meeik_function:
-      delete_fe(&this->variant.function);
-      break;
-    case meeik_specialization:
-      delete_fe(&this->variant.specialization);
-      break;
-    case meeik_func_templ:
-      delete_fe(&this->variant.func_templ);
-      break;
-    case meeik_func_spec:
-      delete_fe(&this->variant.func_spec);
-      break;
-    case meeik_deduct_guide:
-      delete_fe(&this->variant.deduct_guide);
-      break;
-  }  /* switch */
-}  /* a_module_entity_key::~a_module_entity_key */
-
-
-using a_module_entity_scope_hash_table = Ptr_map<a_module_entity_scope,
-                                                 a_module_entity_scope*>;
-                        /* The type used for the module entity scope hash
-                           table. */
-
-static a_module_entity_scope_hash_table
-                *module_entity_scope_hash_table;
-                        /* A hash table to find module entity scopes. */
-
-static a_module_entity_scope
-                *trans_unit_module_entity_scope;
-                        /* The translation unit module entity scope. */
-
-
-uintptr_t hash_ptr(const a_module_entity_scope &key)
+static uintptr_t hash_ptr(const a_module_entity_scope &key)
 /*
 Return a hash value for the given module entity scope.
 */
@@ -846,8 +813,8 @@ Return a hash value for the given module entity scope.
 }  /* hash_ptr */
 
 
-a_boolean operator==(const a_module_entity_scope &a,
-                     const a_module_entity_scope &b)
+static a_boolean operator==(const a_module_entity_scope &a,
+                            const a_module_entity_scope &b)
 /*
 Return TRUE if the given module entity scopes are equal; otherwise, return
 FALSE.
@@ -864,9 +831,77 @@ FALSE.
 }  /* operator== */
 
 
+static inline a_boolean operator!=(const a_module_entity_scope &a,
+                                   const a_module_entity_scope &b)
+/*
+Return TRUE if the given module entity scopes are not equal; otherwise, return
+FALSE.
+*/
+{
+  return !(a == b);
+}  /* operator!= */
+
+
+a_module_template_parameter::a_module_template_parameter(
+                                           a_module_template_parameter &&other)
+/*
+Move construct from the given module template parameter.
+*/
+  : kind(other.kind)
+{
+  switch (kind) {
+    case mtpk_type:
+      /* No op. */
+      break;
+    case mtpk_non_type:
+      this->variant.type = other.variant.type;
+      break;
+    case mtpk_template:
+      this->variant.params_list = other.variant.params_list;
+      other.variant.params_list = NULL;
+      break;
+    default_is_unexpected();
+  }  /* switch */
+}  /* a_module_template_parameter::a_module_template_parameter */
+
+
+a_module_template_parameter::~a_module_template_parameter()
+/*
+Destroy the given module template parameter.
+*/
+{
+  switch (kind) {
+    case mtpk_type:
+    case mtpk_non_type:
+      /* No op. */
+      break;
+    case mtpk_template:
+      delete_fe(&this->variant.params_list);
+      break;
+    default_is_unexpected();
+  }  /* switch */
+}  /* a_module_template_parameter::~a_module_template_parameter */
+
+
+a_module_template_parameter& a_module_template_parameter::operator=(
+                                           a_module_template_parameter &&other)
+/*
+Move assign from the given module template parameter.
+*/
+{
+  if (this != &other) {
+    destroy(this);
+    construct(this, move_from(&other));
+  }  /* if */
+  return *this;
+}  /* a_module_template_parameter::operator= */
+
+
 a_boolean operator==(const a_module_template_parameter &a,
                      const a_module_template_parameter &b)
 /*
+Return TRUE if the given module template parameters are equal; otherwise,
+return FALSE.
 */
 {
   a_boolean result = TRUE;
@@ -911,15 +946,184 @@ a_boolean operator==(const a_module_template_parameter &a,
   return result;
 }  /* operator== */
 
+namespace {
 
-a_boolean operator==(const a_module_entity_function_key &a,
-                     const a_module_entity_function_key &b)
 /*
+A key structure used for module entity hashing of functions.
+*/
+struct a_module_entity_function_key {
+  Owning_ptr<a_module_func_param_list>
+                parameter_types;
+                        /* The parameter types. */
+  a_boolean     has_ellipsis;
+                        /* TRUE if the given function key represents a function
+                           with a C-style ellipsis argument. */
+};  /* a_module_entity_function_key */
+
+/*
+A key structure used for module entity hashing of specializations.
+*/
+struct a_module_entity_specialization_key {
+  an_owned_template_arg_list
+                arguments;
+                        /* The argument set this entity is specialized on. */
+};  /* a_module_entity_specialization_key */
+
+/*
+A key structure used for module entity hashing of function templates.
+*/
+struct a_module_entity_func_templ_key {
+  a_module_entity_function_key
+                function;
+                        /* The function parameters for the function
+                           template. */
+  Owning_ptr<a_module_template_parameter_list>
+                parameters;
+                        /* The template parameters for the function
+                           template. */
+};  /* a_module_entity_func_templ_key */
+
+/*
+A key structure used for module entity hashing of function specializations.
+*/
+struct a_module_entity_func_spec_key {
+  a_module_entity_function_key
+                function;
+                        /* The function parameters for the function
+                           specialization. */
+  a_module_entity_specialization_key
+                specialization;
+                        /* The function parameters for the function
+                           specialization. */
+};  /* a_module_entity_func_spec_key */
+
+/*
+A key structure used for module entity hashing of deduction guides.
+*/
+struct a_module_entity_deduct_guide_key {
+  Owning_ptr<a_module_template_parameter_list>
+                template_params;
+                        /* The template parameters for the deduction guide. */
+  Owning_ptr<a_module_deduct_guide_param_list>
+                param_list;
+                        /* The parameter types for the deduction guide. */
+};  /* a_module_entity_deduct_guide_key */
+
+
+enum a_module_entity_extra_info_kind {
+  meeik_none,           /* A basic module entity that doesn't need extra
+                           information. */
+  meeik_alias,          /* A module entity for an alias. */
+  meeik_function,       /* A module entity for a function. */
+  meeik_specialization, /* A module entity for a specialized entity. */
+  meeik_func_templ,     /* A module entity for a function template. */
+  meeik_func_spec,      /* A module entity for a function specialization. */
+  meeik_deduct_guide    /* A module entity for a deduction guide. */
+};
+
+/*
+The primary key structure used for module entity hashing.  Non-common state is
+dynamically allocated to reduce the size of the key structure (and by proxy,
+the size of the module entity hash table -- see module_entity_hash_table).
+*/
+struct a_module_entity_key {
+  a_module      *mod;   /* The module this entity is owned by. */
+  a_module_entity_scope
+                *scope; /* The module entity scope this entity resides in. */
+  a_symbol_header_ptr
+                name;   /* The symbol header that represents the name of this
+                           module entity. */
+  a_module_entity_extra_info_kind
+                kind;   /* The extra info kind. */
+  union {
+    /* When kind == meeik_none or meeik_alias, no variant fields. */
+    /* When kind == meeik_function: */
+    a_module_entity_function_key
+                *function;
+                        /* A pointer to extra information about the function's
+                           identity. */
+    /* When kind == meeik_specialization: */
+    a_module_entity_specialization_key
+                *specialization;
+                        /* A pointer to extra information about the
+                           specialization's identity. */
+    /* When kind == meeik_func_templ: */
+    a_module_entity_func_templ_key
+                *func_templ;
+                        /* A pointer to extra information about the function
+                           template's identity. */
+    /* When kind == meeik_func_spec: */
+    a_module_entity_func_spec_key
+                *func_spec;
+                        /* A pointer to extra information about the function
+                           specialization's identity. */
+    /* When kind == meeik_deduct_guide: */
+    a_module_entity_deduct_guide_key
+                *deduct_guide;
+                        /* A pointer to extra information about the deduction
+                           guide's identity. */
+  } variant;
+  inline a_module_entity_key() = default;
+  a_module_entity_key(a_module_entity_key &&other);
+  a_module_entity_key(const a_module_entity_key&) = delete;
+  ~a_module_entity_key();
+};  /* a_module_entity_key */
+
+
+a_module_entity_key::a_module_entity_key(a_module_entity_key &&other)
+/*
+Move construct from the given module entity key.
+*/
+  : mod(other.mod), scope(other.scope), name(other.name), kind(other.kind),
+    variant(other.variant)
+{
+  other.mod = NULL;
+  other.scope = NULL;
+  other.name = NULL;
+  other.kind = meeik_none;
+}  /* a_module_entity_key::a_module_entity_key */
+
+
+a_module_entity_key::~a_module_entity_key()
+/*
+Destroy the given module entity key.
+*/
+{
+  switch (this->kind) {
+    case meeik_none:
+    case meeik_alias:
+      /* No additional information to free. */
+      break;
+    case meeik_function:
+      delete_fe(&this->variant.function);
+      break;
+    case meeik_specialization:
+      delete_fe(&this->variant.specialization);
+      break;
+    case meeik_func_templ:
+      delete_fe(&this->variant.func_templ);
+      break;
+    case meeik_func_spec:
+      delete_fe(&this->variant.func_spec);
+      break;
+    case meeik_deduct_guide:
+      delete_fe(&this->variant.deduct_guide);
+      break;
+    default_is_unexpected();
+  }  /* switch */
+}  /* a_module_entity_key::~a_module_entity_key */
+
+
+static a_boolean operator==(const a_module_entity_function_key &a,
+                            const a_module_entity_function_key &b)
+/*
+Return TRUE if the given module entity function keys are equal; otherwise,
+return FALSE.
 */
 {
   a_boolean             result = TRUE;
-  Dyn_array<a_type_ptr> *a_params = a.parameter_types;
-  Dyn_array<a_type_ptr> *b_params = b.parameter_types;
+  Dyn_array<a_type_ptr> *a_params = a.parameter_types.raw();
+  Dyn_array<a_type_ptr> *b_params = b.parameter_types.raw();
 
   if (a_params->length() != b_params->length()) {
     result = FALSE;
@@ -943,14 +1147,16 @@ a_boolean operator==(const a_module_entity_function_key &a,
 }  /* operator== */
 
 
-a_boolean operator==(const a_module_entity_specialization_key &a,
-                     const a_module_entity_specialization_key &b)
+static a_boolean operator==(const a_module_entity_specialization_key &a,
+                            const a_module_entity_specialization_key &b)
 /*
+Return TRUE if the given module entity specialization keys are equal;
+otherwise, return FALSE.
 */
 {
   a_boolean          result = TRUE;
-  a_template_arg_ptr a_args = a.arguments;
-  a_template_arg_ptr b_args = b.arguments;
+  a_template_arg_ptr a_args = a.arguments.raw();
+  a_template_arg_ptr b_args = b.arguments.raw();
   size_t             a_n_args = count_list_elements(a_args);
   size_t             b_n_args = count_list_elements(b_args);
 
@@ -972,9 +1178,11 @@ a_boolean operator==(const a_module_entity_specialization_key &a,
 }  /* operator== */
 
 
-a_boolean operator==(const a_module_entity_func_templ_key &a,
-                     const a_module_entity_func_templ_key &b)
+static a_boolean operator==(const a_module_entity_func_templ_key &a,
+                            const a_module_entity_func_templ_key &b)
 /*
+Return TRUE if the given module entity function template keys are equal;
+otherwise, return FALSE.
 */
 {
   a_boolean result = TRUE;
@@ -982,8 +1190,8 @@ a_boolean operator==(const a_module_entity_func_templ_key &a,
   if (!(a.function == b.function)) {
     result = FALSE;
   } else {
-    a_module_template_parameter_list *a_params = a.parameters;
-    a_module_template_parameter_list *b_params = b.parameters;
+    a_module_template_parameter_list *a_params = a.parameters.raw();
+    a_module_template_parameter_list *b_params = b.parameters.raw();
 
     if (a_params->length() != b_params->length()) {
       result = FALSE;
@@ -1003,9 +1211,11 @@ a_boolean operator==(const a_module_entity_func_templ_key &a,
 }  /* operator== */
 
 
-a_boolean operator==(const a_module_entity_func_spec_key &a,
-                     const a_module_entity_func_spec_key &b)
+static a_boolean operator==(const a_module_entity_func_spec_key &a,
+                            const a_module_entity_func_spec_key &b)
 /*
+Return TRUE if the given module entity function specialization keys are equal;
+otherwise, return FALSE.
 */
 {
   a_boolean result = TRUE;
@@ -1019,16 +1229,18 @@ a_boolean operator==(const a_module_entity_func_spec_key &a,
 }  /* operator== */
 
 
-a_boolean operator==(const a_module_entity_deduct_guide_key &a,
-                     const a_module_entity_deduct_guide_key &b)
+static a_boolean operator==(const a_module_entity_deduct_guide_key &a,
+                            const a_module_entity_deduct_guide_key &b)
 /*
+Return TRUE if the given module entity deduction guide keys are equal;
+otherwise, return FALSE.
 */
 {
   a_boolean result = TRUE;
 
   {
-    a_module_template_parameter_list *a_params = a.template_params;
-    a_module_template_parameter_list *b_params = b.template_params;
+    a_module_template_parameter_list *a_params = a.template_params.raw();
+    a_module_template_parameter_list *b_params = b.template_params.raw();
 
     if (a_params->length() != b_params->length()) {
       result = FALSE;
@@ -1046,8 +1258,8 @@ a_boolean operator==(const a_module_entity_deduct_guide_key &a,
     }  /* if */
   }
   {
-    Dyn_array<a_type_ptr> *a_params = a.param_list;
-    Dyn_array<a_type_ptr> *b_params = b.param_list;
+    Dyn_array<a_type_ptr> *a_params = a.param_list.raw();
+    Dyn_array<a_type_ptr> *b_params = b.param_list.raw();
 
     if (a_params->length() != b_params->length()) {
       result = FALSE;
@@ -1072,31 +1284,22 @@ done:
 }  /* operator== */
 
 
-using a_module_entity_hash_table = Ptr_map<a_module_entity_key,
-                                           a_module_entity_ptr>;
-                        /* The type used for the module entity hash table. */
-
-static a_module_entity_hash_table
-                *module_entity_hash_table;
-                        /* A hash table to find module entities. */
-
-uintptr_t hash_ptr(const a_module_entity_key &key)
+static uintptr_t hash_ptr(const a_module_entity_key &key)
 /*
 Return a hash value for the given module entity key.
 */
 {
-  /* FIXME: We could likely do better than this in terms of hashing. */
   uintptr_t  result = 0;
 
   if (key.mod != NULL) {
     a_module_ptr true_module = skip_module_partitions(key.mod);
 
     if (true_module->kind == mk_unit) {
-      result = hash_ptr((void*)true_module);
+      result = EDG_PREFIX::hash_ptr((void*)true_module);
     }  /* if */
   }  /* if */
-  result = result*31 + hash_ptr((void*)key.scope);
-  result = result*31 + hash_ptr((void*)key.name);
+  result = result*31 + EDG_PREFIX::hash_ptr((void*)key.scope);
+  result = result*31 + EDG_PREFIX::hash_ptr((void*)key.name);
   result += key.kind;
   switch (key.kind) {
     case meeik_none:
@@ -1122,6 +1325,7 @@ Return a hash value for the given module entity key.
     case meeik_deduct_guide:
       /* FIXME: Implement this. */
       break;
+    default_is_unexpected();
   }  /* switch */
   return result;
 }  /* hash_ptr */
@@ -1154,8 +1358,8 @@ or both reside in the global module; otherwise, return FALSE.
 }  /* is_same_module_or_global_module */
 
 
-a_boolean operator==(const a_module_entity_key &a,
-                     const a_module_entity_key &b)
+static a_boolean operator==(const a_module_entity_key &a,
+                            const a_module_entity_key &b)
 /*
 Return TRUE if the given module entity keys are equal; otherwise, return FALSE.
 */
@@ -1171,8 +1375,6 @@ Return TRUE if the given module entity keys are equal; otherwise, return FALSE.
   } else if (a.kind != b.kind) {
     result = FALSE;
   } else {
-    /* FIXME: Use a dedicated operator== for each of these rather than inline
-       implementations. */
     switch (a.kind) {
       case meeik_none:
       case meeik_alias:
@@ -1203,15 +1405,51 @@ Return TRUE if the given module entity keys are equal; otherwise, return FALSE.
           result = FALSE;
         }  /* if */
         break;
+      default_is_unexpected();
     }  /* switch */
   }  /* if */
   return result;
 }  /* operator== */
 
 
+static inline a_boolean operator!=(const a_module_entity_key &a,
+                                   const a_module_entity_key &b)
+/*
+Return TRUE if the given module entity keys are not equal; otherwise, return
+FALSE.
+*/
+{
+  return !(a == b);
+}  /* operator!= */
+
+}  /* namespace */
+
+using a_module_entity_scope_hash_table = Ptr_map<a_module_entity_scope,
+                                                 a_module_entity_scope*>;
+                        /* The type used for the module entity scope hash
+                           table. */
+
+STATIC_THREAD a_module_entity_scope_hash_table
+                *module_entity_scope_hash_table;
+                        /* A hash table to find module entities, mapping module
+                           entity scopes to a single (equivalent) instance.
+                           The (module entity scope) values are not directly
+                           represented to ensure they have a stable address
+                           that does not changed during reallocation of the
+                           hash table. */
+
+STATIC_THREAD a_module_entity_scope
+                *trans_unit_module_entity_scope;
+                        /* The translation unit module entity scope. */
+
+
 a_module_entity_scope* get_module_entity_scope(a_symbol_header_ptr   name,
                                                a_module_entity_scope *parent)
 /*
+Return a pointer to the module entity scope with the given name and parent
+module entity scope.  The same module entity scopes is returned by this
+function given equivalent arguments.  All module entity scope objects should be
+obtained through this function to ensure consistent representation.
 */
 {
   a_module_entity_scope *result = NULL;
@@ -1240,17 +1478,36 @@ a_module_entity_scope* get_module_entity_scope(a_symbol_header_ptr   name,
 }  /* get_module_entity_scope */
 
 
+using a_module_entity_hash_table = Ptr_map<a_module_entity_key,
+                                           a_module_entity_ptr>;
+                        /* The type used for the module entity hash table. */
+
+STATIC_THREAD a_module_entity_hash_table
+                *module_entity_hash_table;
+                        /* A hash table to find module entities, mapping module
+                           entity keys to module entity pointer values.  The
+                           (module entity) values are not directly represented
+                           to ensure they have a stable address that does not
+                           changed during reallocation of the hash table. */
+
+
 static a_module_entity_ptr get_module_entity_from_key(
                                                      a_module_entity_key &&key)
 /*
+Return the module entity pointer corresponding to the given module entity key.
+
+If no module entity exists for the given key value, the key value will be moved
+into the hash table with a new module entity value (that is constructed with an
+initial representation derived from the key).
 */
 {
   /* A module interface must be present, otherwise this module entity pointer
      is not viable. */
   check_assertion(key.mod != NULL && key.mod->module_interface != NULL);
   uintptr_t           hashed_key = hash_ptr(key);
-  a_module_entity_ptr mep = module_entity_hash_table->get_with_hash(key,
-                                                                    hashed_key);
+  a_module_entity_ptr mep =
+                           module_entity_hash_table->get_with_hash(key,
+                                                                   hashed_key);
   if (mep == NULL) {
     /* Create a new module entity.  These are allocated in front end memory
        (so they are saved in PCH files) and never freed. */
@@ -1298,15 +1555,15 @@ the given scope and name.
 
   a_module_entity_ptr result = get_module_entity_from_key(move_from(&key));
   return result;
-}  /* get_module_entity */
+}  /* get_alias_module_entity */
 
 
 a_module_entity_ptr get_function_module_entity(
-                                         a_module_ptr             mod,
-                                         a_module_entity_scope    *scope,
-                                         a_symbol_header_ptr      name,
-                                         a_module_func_param_list *func_params,
-                                         a_boolean                has_ellipsis)
+                            a_module_ptr                         mod,
+                            a_module_entity_scope                *scope,
+                            a_symbol_header_ptr                  name,
+                            Owning_ptr<a_module_func_param_list> &&func_params,
+                            a_boolean                            has_ellipsis)
 /*
 Return a pointer to the module entity for the entity in the given module, with
 the given scope, name, and function parameters.  has_ellipsis should be TRUE if
@@ -1319,7 +1576,7 @@ the given module entity is a C-style variable argument function.
   key.name = name;
   key.kind = meeik_function;
   key.variant.function = new_fe<a_module_entity_function_key>();
-  key.variant.function->parameter_types = func_params;
+  key.variant.function->parameter_types = move_from(&func_params);
   key.variant.function->has_ellipsis = has_ellipsis;
 
   a_module_entity_ptr result = get_module_entity_from_key(move_from(&key));
@@ -1328,10 +1585,10 @@ the given module entity is a C-style variable argument function.
 
 
 a_module_entity_ptr get_specialized_module_entity(
-                                           a_module_ptr          mod,
-                                           a_module_entity_scope *scope,
-                                           a_symbol_header_ptr   name,
-                                           a_template_arg_ptr    template_args)
+                                    a_module_ptr               mod,
+                                    a_module_entity_scope      *scope,
+                                    a_symbol_header_ptr        name,
+                                    an_owned_template_arg_list &&template_args)
 /*
 Return a pointer to the module entity for the entity in the given module, with
 the given scope, name, and template arguments.
@@ -1343,7 +1600,7 @@ the given scope, name, and template arguments.
   key.name = name;
   key.kind = meeik_specialization;
   key.variant.specialization = new_fe<a_module_entity_specialization_key>();
-  key.variant.specialization->arguments = template_args;
+  key.variant.specialization->arguments = move_from(&template_args);
 
   a_module_entity_ptr result = get_module_entity_from_key(move_from(&key));
   return result;
@@ -1351,12 +1608,12 @@ the given scope, name, and template arguments.
 
 
 a_module_entity_ptr get_function_template_module_entity(
-                             a_module_ptr                     mod,
-                             a_module_entity_scope            *scope,
-                             a_symbol_header_ptr              name,
-                             a_module_template_parameter_list *template_params,
-                             a_module_func_param_list         *func_params,
-                             a_boolean                        has_ellipsis)
+                a_module_ptr                                 mod,
+                a_module_entity_scope                        *scope,
+                a_symbol_header_ptr                          name,
+                Owning_ptr<a_module_template_parameter_list> &&template_params,
+                Owning_ptr<a_module_func_param_list>         &&func_params,
+                a_boolean                                    has_ellipsis)
 /*
 Return a pointer to the module entity for the entity in the given module, with
 the given scope, name, and template arguments.  has_ellipsis should be TRUE if
@@ -1369,9 +1626,9 @@ the given module entity is a C-style variable argument function.
   key.name = name;
   key.kind = meeik_func_templ;
   key.variant.func_templ = new_fe<a_module_entity_func_templ_key>();
-  key.variant.func_templ->function.parameter_types = func_params;
+  key.variant.func_templ->function.parameter_types = move_from(&func_params);
   key.variant.func_templ->function.has_ellipsis = has_ellipsis;
-  key.variant.func_templ->parameters = template_params;
+  key.variant.func_templ->parameters = move_from(&template_params);
 
   a_module_entity_ptr result = get_module_entity_from_key(move_from(&key));
   return result;
@@ -1379,12 +1636,12 @@ the given module entity is a C-style variable argument function.
 
 
 a_module_entity_ptr get_specialized_function_module_entity(
-                                        a_module_ptr             mod,
-                                        a_module_entity_scope    *scope,
-                                        a_symbol_header_ptr      name,
-                                        a_template_arg_ptr       template_args,
-                                        a_module_func_param_list *func_params,
-                                        a_boolean                has_ellipsis)
+                          a_module_ptr                         mod,
+                          a_module_entity_scope                *scope,
+                          a_symbol_header_ptr                  name,
+                          an_owned_template_arg_list           &&template_args,
+                          Owning_ptr<a_module_func_param_list> &&func_params,
+                          a_boolean                            has_ellipsis)
 /*
 Return a pointer to the module entity for the entity in the given module, with
 the given scope, name, and template arguments.  has_ellipsis should be TRUE if
@@ -1397,9 +1654,9 @@ the given module entity is a C-style variable argument function.
   key.name = name;
   key.kind = meeik_func_spec;
   key.variant.func_spec = new_fe<a_module_entity_func_spec_key>();
-  key.variant.func_spec->function.parameter_types = func_params;
+  key.variant.func_spec->function.parameter_types = move_from(&func_params);
   key.variant.func_spec->function.has_ellipsis = has_ellipsis;
-  key.variant.func_spec->specialization.arguments = template_args;
+  key.variant.func_spec->specialization.arguments = move_from(&template_args);
 
   a_module_entity_ptr result = get_module_entity_from_key(move_from(&key));
   return result;
@@ -1407,11 +1664,11 @@ the given module entity is a C-style variable argument function.
 
 
 a_module_entity_ptr get_deduction_guide_module_entity(
-                             a_module_ptr                     mod,
-                             a_module_entity_scope            *scope,
-                             a_symbol_header_ptr              name,
-                             a_module_template_parameter_list *template_params,
-                             a_module_deduct_guide_param_list *param_list)
+                a_module_ptr                                 mod,
+                a_module_entity_scope                        *scope,
+                a_symbol_header_ptr                          name,
+                Owning_ptr<a_module_template_parameter_list> &&template_params,
+                Owning_ptr<a_module_deduct_guide_param_list> &&param_list)
 /*
 Return a pointer to the deduction guide module entity for the entity in the
 given module, with the given scope, name, template parameters, and deduction
@@ -1424,8 +1681,8 @@ guide parameter list.
   key.name = name;
   key.kind = meeik_deduct_guide;
   key.variant.deduct_guide = new_fe<a_module_entity_deduct_guide_key>();
-  key.variant.deduct_guide->template_params = template_params;
-  key.variant.deduct_guide->param_list = param_list;
+  key.variant.deduct_guide->template_params = move_from(&template_params);
+  key.variant.deduct_guide->param_list = move_from(&param_list);
 
   a_module_entity_ptr result = get_module_entity_from_key(move_from(&key));
   return result;
@@ -1879,7 +2136,7 @@ should be preferred if the entity should be processed immediately.
     }  /* switch */
   }  /* if */
   return is_entity_resolved(mep);
-}  /* load_namespace_elements_from_locator */
+}  /* request_entity */
 
 
 void load_namespace_elements_from_locator(a_module_entity_ptr    mep,
@@ -1922,7 +2179,7 @@ Mark the given locator as the primary locator for the given module entity.
      update_entity_from_new_locator. */
   unexpected_condition();
 done:;
-}  /* load_namespace_elements_from_locator */
+}  /* mark_locator_as_primary */
 
 
 void update_entity_from_new_locator(a_module_entity_ptr    mep,
@@ -2242,6 +2499,8 @@ Do one-time initialization of static variables defined in this file.
     static a_pch_saved_variable saved_vars[] = {
       pch_saved_var_array_elem(curr_module_sym),
       pch_saved_var_array_elem(lazy_symbols_may_be_visible),
+      pch_saved_var_array_elem(module_entity_scope_hash_table),
+      pch_saved_var_array_elem(trans_unit_module_entity_scope),
       pch_saved_var_array_elem(module_entity_hash_table),
       pch_saved_var_array_elem(module_entity_stack),
       pch_saved_var_array_elem(known_modules),

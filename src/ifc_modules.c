@@ -965,9 +965,11 @@ Given an IFC partition kind index, return an IFC decl index.
 }  /* to_decl_index */
 
 
-template <typename an_ifc_Index_type>
-static inline uintptr_t hash_ifc_index(an_ifc_Index_type idx)
+template<typename an_ifc_Sort_type, typename a_Native_size_type>
+static inline uintptr_t hash_ptr(
+                         Index_entry<an_ifc_Sort_type, a_Native_size_type> idx)
 /*
+Return a hash value for the given IFC index.
 */
 {
   uintptr_t  result = 17*31 + hash_ptr((void*)idx.file);
@@ -975,24 +977,6 @@ static inline uintptr_t hash_ifc_index(an_ifc_Index_type idx)
   result = result*31 + (uintptr_t)idx.sort;
   result = result*31 + (uintptr_t)idx.value;
   return result;
-}  /* hash_ifc_index */
-
-
-static inline uintptr_t hash_ptr(an_ifc_decl_index idx)
-/*
-Return a hash value for the given IFC declaration index.
-*/
-{
-  return hash_ifc_index(idx);
-}  /* hash_ptr */
-
-
-static inline uintptr_t hash_ptr(an_ifc_type_index idx)
-/*
-Return a hash value for the given IFC type index.
-*/
-{
-  return hash_ifc_index(idx);
 }  /* hash_ptr */
 
 
@@ -1016,13 +1000,15 @@ STATIC_THREAD an_ifc_parameterized_entity_map
 static Opt<an_ifc_decl_index> collapse_partition_index(
                                                     an_ifc_decl_index decl_idx)
 /*
-Some entities conceptually have multiple "module entities" (for instance, an
-explicit class template specialization is composed of an IFC DeclSpecialization
-and an IFC DeclScope), this function "collapses" these module entities making
-sure all equivalent module entities map back to the same module entity pointer.
+Some module entities conceptually have multiple entries even within the same
+file.  For instance, an explicit class template specialization is composed of
+an IFC DeclSpecialization and an IFC DeclScope), this function "collapses"
+these module entries making sure all equivalent module entries map back to
+one module entry.
 
 The module, partition kind, and index are taken as inputs and the collapsed IFC
-partition kind index is returned.
+partition kind index is returned.  If the index should have been collapsed
+but an error occurred, instead return an empty optional.
 */
 {
   Opt<an_ifc_decl_index> result;
@@ -1061,9 +1047,12 @@ done:
 
 static Opt<a_string> name_of_decl(an_ifc_decl_index decl_idx);
 
+
 static Opt<a_symbol_header_ptr> get_name_symbol(an_ifc_decl_index decl_idx)
 /*
-Return a symbol header representing the name of the given IFC declaration index.
+Return a symbol header representing the name of the given IFC declaration
+index.  If the name was invalid (per name_of_decl), instead return an empty
+optional.
 */
 {
   Opt<a_symbol_header_ptr> result;
@@ -1088,7 +1077,7 @@ Return a symbol header representing the name of the given IFC declaration index.
 }  /* get_name_symbol */
 
 
-static a_module_entity_scope *get_ifc_module_entity_scope(
+static a_module_entity_scope* get_ifc_module_entity_scope(
                                                    an_ifc_decl_index scope_ref)
 /*
 Given a scope reference find and return the associated module entity scope.
@@ -1135,6 +1124,7 @@ template<typename an_ifc_Index_type>
 static inline a_module_entry_locator
 module_entry_locator_from_index(an_ifc_Index_type index)
 /*
+Return the given IFC index value as a module entry locator.
 */
 {
   a_module_entry_locator      result;
@@ -1160,6 +1150,9 @@ module_entry_locator_from_index(an_ifc_Index_type index)
 static inline a_module_entity_ptr
 get_ifc_basic_module_entity(an_ifc_decl_index index)
 /*
+Return the module entity corresponding to the given IFC declaration index.
+This function is provided as part of the implementation of
+get_ifc_module_entity, prefer get_ifc_module_entity in other cases.
 */
 {
   a_module_entity_ptr      result = NULL;
@@ -1179,6 +1172,9 @@ get_ifc_basic_module_entity(an_ifc_decl_index index)
 
 static a_module_entity_ptr get_ifc_alias_module_entity(an_ifc_decl_index index)
 /*
+Return the module entity corresponding to the given IFC DeclSort::Alias
+declaration.  This function is provided as part of the implementation of
+get_ifc_module_entity, prefer get_ifc_module_entity in other cases.
 */
 {
   a_module_entity_ptr      result = NULL;
@@ -1276,6 +1272,8 @@ private:
 };  /* an_ifc_func_param_context */
 
 /*
+An RAII type representing a module isolation scope.  This type should be
+used to manage the lifetime of a sck_module_isolated scope.
 */
 struct a_module_isolation_scope {
   inline a_module_isolation_scope();
@@ -1293,6 +1291,9 @@ a_module_isolation_scope::a_module_isolation_scope()
 Enter a module isolation scope.
 */
 {
+  /* Switch to the file scope memory region to prevent IL entries within
+     internal entity hashing maps from being allocated into a short lived
+     memory region (and then freed as part of memory region management). */
   switch_to_file_scope_region(&this->region_to_switch_back_to);
   (void)push_scope(sck_module_isolated, NO_SCOPE_NUMBER, /*assoc_type=*/NULL,
                    /*assoc_routine=*/NULL);
@@ -1310,34 +1311,38 @@ Exit the module isolation scope.
 
 
 /*
-The module isolation scope class encapsulates the construction of a detached
-template parameter list and isolates the template parameter resolution
-(find_template_parameter -- so as to prevent resolution to an incorrect
-parameter higher up in the scope stack).  It's intended to (at least currently)
-only be used during redeclaration checking.
+The template module isolation scope class extends the module isolation scope.
+It additionally encapsulates the construction of a detached template parameter
+list and isolates the template parameter resolution (find_template_parameter --
+so as to prevent resolution to an incorrect parameter higher up in the scope
+stack).  It's intended to (at least currently) only be used during
+redeclaration checking.
 
 See alloc_detached_templ_param_sym for more information about detached template
 parameters.
 */
 template<typename an_ifc_Decl_type>
-struct Module_isolation_scope : a_module_isolation_scope {
-  inline Module_isolation_scope(const an_ifc_Decl_type &decl);
-  inline ~Module_isolation_scope();
+struct Template_module_isolation_scope : a_module_isolation_scope {
+  inline Template_module_isolation_scope(const an_ifc_Decl_type &decl);
+  inline ~Template_module_isolation_scope();
 };  /* Moudle_isolation_scope */
 
 }  /* namespace */
 
 template<typename an_ifc_Decl_type>
-static a_template_arg_ptr create_templ_args_for_comparison(
+static an_owned_template_arg_list create_templ_args_for_comparison(
                                             const an_ifc_Decl_type &decl_spec);
 
-static inline a_module_template_parameter_list*
+static inline Owning_ptr<a_module_template_parameter_list>
 get_ifc_template_parameter_list(an_ifc_chart_index param_idx);
 
 
-static inline a_module_template_parameter_list*
+static inline Owning_ptr<a_module_template_parameter_list>
 get_ifc_template_parameter_list(const an_ifc_decl_template &templ_decl)
 /*
+Return a pointer to a module template parameter list corresponding to the
+template parameters of the given IFC DeclSort::Template.  If a template
+parameter list cannot be reconstructed, instead return NULL.
 */
 {
   an_ifc_chart_index param_idx = get_ifc_chart(templ_decl);
@@ -1347,24 +1352,31 @@ get_ifc_template_parameter_list(const an_ifc_decl_template &templ_decl)
 
 
 template<typename an_ifc_Node_type>
-static inline a_module_func_param_list* get_ifc_function_parameter_list(
-                                 an_ifc_decl_index      decl_idx,
-                                 const an_ifc_Node_type &decl,
-                                 an_ifc_decl_index      parameterizing_entity,
-                                 a_boolean              *has_ellipsis);
+static inline Owning_ptr<a_module_func_param_list>
+get_ifc_function_parameter_list(an_ifc_decl_index      decl_idx,
+                                const an_ifc_Node_type &decl,
+                                an_ifc_decl_index      parameterizing_entity,
+                                a_boolean              *has_ellipsis);
 
-static inline a_module_deduct_guide_param_list*
+static inline Owning_ptr<a_module_deduct_guide_param_list>
 get_ifc_deduction_guide_parameter_list(an_ifc_decl_index deduct_guide_idx);
 
 
-static inline a_module_func_param_list* get_ifc_function_parameter_list(
-                                 an_ifc_decl_index      decl_idx,
-                                 an_ifc_decl_index      parameterizing_entity,
-                                 a_boolean              *has_ellipsis)
+static inline Owning_ptr<a_module_func_param_list>
+get_ifc_function_parameter_list(an_ifc_decl_index decl_idx,
+                                an_ifc_decl_index parameterizing_entity,
+                                a_boolean         *has_ellipsis)
 /*
+Given a function-like declaration index and (if parameterized) the
+parameterizing entity (see an_ifc_cache_info::parameterizing_entity for more
+information about the parameterizing entity) return a pointer to the
+corresponding module function parameter list.  *has_ellipsis is set to TRUE if
+this is a C-style variable argument function, e.g., "void foo(...)".
+
+If a function parameter list cannot be reconstructed, instead return NULL.
 */
 {
-  a_module_func_param_list *func_params = NULL;
+  Owning_ptr<a_module_func_param_list> func_params;
 
   switch (decl_idx.sort) {
     case ifc_ds_decl_constructor:
@@ -1431,6 +1443,8 @@ invalid:
 
 static inline a_boolean is_function_decl(an_ifc_decl_index index)
 /*
+Return TRUE if the given IFC declaration index represents a function-like
+declaration; otherwise, return FALSE.
 */
 {
   return (index.sort == ifc_ds_decl_function ||
@@ -1443,19 +1457,26 @@ static inline a_boolean is_function_decl(an_ifc_decl_index index)
 static inline a_module_entity_ptr get_ifc_function_module_entity(
                                                        an_ifc_decl_index index)
 /*
+Return the module entity corresponding to the given IFC function declaration
+index.  This function is provided as part of the implementation of
+get_ifc_module_entity, prefer get_ifc_module_entity in other cases.
 */
 {
   a_module_entity_ptr      result = NULL;
   Opt<a_symbol_header_ptr> opt_decl_name_sym = get_name_symbol(index);
 
   if (opt_decl_name_sym.has_value()) {
-    a_module_ptr             mod = module_of(index)->assoc_module_info;
-    a_module_entity_scope    *mesp =
-                        get_ifc_module_entity_scope(get_ifc_home_scope(index));
-    a_symbol_header_ptr      decl_name_sym = *opt_decl_name_sym;
-    a_module_isolation_scope isolation_scope;
-    a_boolean                has_ellipsis = FALSE;
-    a_module_func_param_list *func_params = get_ifc_function_parameter_list(
+    a_module_ptr
+                mod = module_of(index)->assoc_module_info;
+    a_module_entity_scope
+                *mesp = get_ifc_module_entity_scope(get_ifc_home_scope(index));
+    a_symbol_header_ptr
+                decl_name_sym = *opt_decl_name_sym;
+    a_module_isolation_scope
+                isolation_scope;
+    a_boolean   has_ellipsis = FALSE;
+    Owning_ptr<a_module_func_param_list>
+                func_params = get_ifc_function_parameter_list(
                                 index,
                                 /*parameterizing_entity=*/an_ifc_decl_index(),
                                 &has_ellipsis);
@@ -1463,7 +1484,8 @@ static inline a_module_entity_ptr get_ifc_function_module_entity(
     if (func_params == NULL) {
       goto invalid;
     }  /* if */
-    result = get_function_module_entity(mod, mesp, decl_name_sym, func_params,
+    result = get_function_module_entity(mod, mesp, decl_name_sym,
+                                        move_from(&func_params),
                                         has_ellipsis);
   }  /* if */
   goto done;
@@ -1478,6 +1500,9 @@ static inline a_module_entity_ptr get_ifc_template_module_entity(
                                         an_ifc_decl_index          index,
                                         const an_ifc_decl_template &templ_decl)
 /*
+Return the module entity corresponding to the given IFC template declaration
+index.  This function is provided as part of the implementation of
+get_ifc_module_entity, prefer get_ifc_module_entity in other cases.
 */
 {
   a_module_entity_ptr      result = NULL;
@@ -1492,17 +1517,17 @@ static inline a_module_entity_ptr get_ifc_template_module_entity(
                                       get_ifc_decl(get_ifc_entity(templ_decl));
 
     if (is_function_decl(entity_decl_idx)) {
-      Module_isolation_scope<an_ifc_decl_template>
+      Template_module_isolation_scope<an_ifc_decl_template>
                 isolation_scope(templ_decl);
-      a_module_template_parameter_list
-                *template_params = get_ifc_template_parameter_list(templ_decl);
+      Owning_ptr<a_module_template_parameter_list>
+                template_params = get_ifc_template_parameter_list(templ_decl);
 
       if (template_params == NULL) {
         goto invalid;
       }  /* if */
 
-      a_boolean                has_ellipsis = FALSE;
-      a_module_func_param_list *func_params =
+      a_boolean                            has_ellipsis = FALSE;
+      Owning_ptr<a_module_func_param_list> func_params =
                               get_ifc_function_parameter_list(entity_decl_idx,
                                                               index,
                                                               &has_ellipsis);
@@ -1510,26 +1535,27 @@ static inline a_module_entity_ptr get_ifc_template_module_entity(
         goto invalid;
       }  /* if */
       result = get_function_template_module_entity(mod, mesp, decl_name_sym,
-                                                   template_params,
-                                                   func_params, has_ellipsis);
+                                                   move_from(&template_params),
+                                                   move_from(&func_params),
+                                                   has_ellipsis);
     } else if (entity_decl_idx.sort == ifc_ds_decl_deduction_guide) {
-      Module_isolation_scope<an_ifc_decl_template>
+      Template_module_isolation_scope<an_ifc_decl_template>
                 isolation_scope(templ_decl);
-      a_module_template_parameter_list
-                *template_params = get_ifc_template_parameter_list(templ_decl);
+      Owning_ptr<a_module_template_parameter_list>
+                template_params = get_ifc_template_parameter_list(templ_decl);
 
       if (template_params == NULL) {
         goto invalid;
       }  /* if */
 
-      a_module_deduct_guide_param_list *param_list =
+      Owning_ptr<a_module_deduct_guide_param_list> param_list =
                        get_ifc_deduction_guide_parameter_list(entity_decl_idx);
       if (param_list == NULL) {
         goto invalid;
       }  /* if */
       result = get_deduction_guide_module_entity(mod, mesp, decl_name_sym,
-                                                 template_params,
-                                                 param_list);
+                                                 move_from(&template_params),
+                                                 move_from(&param_list));
     } else {
       result = get_module_entity(mod, mesp, decl_name_sym);
     }  /* if */
@@ -1545,6 +1571,9 @@ done:
 static inline a_module_entity_ptr get_ifc_partially_specialized_module_entity(
                                                        an_ifc_decl_index index)
 /*
+Return the module entity corresponding to the given IFC partial specialization
+declaration index.  This function is provided as part of the implementation of
+get_ifc_module_entity, prefer get_ifc_module_entity in other cases.
 */
 {
   a_module_entity_ptr      result = NULL;
@@ -1560,9 +1589,9 @@ static inline a_module_entity_ptr get_ifc_partially_specialized_module_entity(
 
     an_ifc_decl_partial_specialization
                  spec_decl = *opt_spec_decl;
-    Module_isolation_scope<an_ifc_decl_partial_specialization>
+    Template_module_isolation_scope<an_ifc_decl_partial_specialization>
                  isolation_scope(spec_decl);
-    a_template_arg_ptr
+    an_owned_template_arg_list
                  templ_args = create_templ_args_for_comparison(spec_decl);
     a_module_ptr mod = module_of(index)->assoc_module_info;
     a_module_entity_scope
@@ -1571,19 +1600,22 @@ static inline a_module_entity_ptr get_ifc_partially_specialized_module_entity(
     a_symbol_header_ptr
                  decl_name_sym = *opt_decl_name_sym;
     result = get_specialized_module_entity(mod, mesp, decl_name_sym,
-                                           templ_args);
+                                           move_from(&templ_args));
   }  /* if */
   goto done;
 invalid:
   result = NULL;
 done:
   return result;
-}  /* get_ifc_specialized_module_entity */
+}  /* get_ifc_partially_specialized_module_entity */
 
 
 static inline a_module_entity_ptr get_ifc_specialized_module_entity(
                                                        an_ifc_decl_index index)
 /*
+Return the module entity corresponding to the given IFC specialized declaration
+index.  This function is provided as part of the implementation of
+get_ifc_module_entity, prefer get_ifc_module_entity in other cases.
 */
 {
   a_module_entity_ptr      result = NULL;
@@ -1599,7 +1631,7 @@ static inline a_module_entity_ptr get_ifc_specialized_module_entity(
 
     an_ifc_decl_specialization
                  spec_decl = *opt_spec_decl;
-    a_template_arg_ptr
+    an_owned_template_arg_list
                  templ_args = create_templ_args_for_comparison(spec_decl);
     a_module_ptr mod = module_of(index)->assoc_module_info;
     a_module_entity_scope
@@ -1612,10 +1644,10 @@ static inline a_module_entity_ptr get_ifc_specialized_module_entity(
 
     if (!is_function_decl(parameterized_idx)) {
       result = get_specialized_module_entity(mod, mesp, decl_name_sym,
-                                             templ_args);
+                                             move_from(&templ_args));
     } else {
-      a_boolean                has_ellipsis = FALSE;
-      a_module_func_param_list *func_params =
+      a_boolean                            has_ellipsis = FALSE;
+      Owning_ptr<a_module_func_param_list> func_params =
                             get_ifc_function_parameter_list(parameterized_idx,
                                                             index,
                                                             &has_ellipsis);
@@ -1624,7 +1656,8 @@ static inline a_module_entity_ptr get_ifc_specialized_module_entity(
         goto invalid;
       }  /* if */
       result = get_specialized_function_module_entity(mod, mesp, decl_name_sym,
-                                                      templ_args, func_params,
+                                                      move_from(&templ_args),
+                                                      move_from(&func_params),
                                                       has_ellipsis);
     }  /* if */
   }  /* if */
@@ -1639,6 +1672,9 @@ done:
 static inline a_module_entity_ptr get_ifc_error_module_entity(
                                                        an_ifc_decl_index index)
 /*
+Return an error module entity associated with the given IFC declaration index.
+This function is provided as part of the implementation of
+get_ifc_module_entity, prefer get_ifc_module_entity in other cases.
 */
 {
   a_module_ptr        mod_ptr = module_of(index)->assoc_module_info;
@@ -1667,7 +1703,9 @@ static void f_emit_not_a_module_entity_error(int               line_number,
                                              an_ifc_decl_index index)
 /*
 The given declaration index is not a module entity but the front end tried to
-use it as one, emit an appropriate diagnostic.
+use it as one, emit an appropriate diagnostic.  The given line number and
+function values respectively are the line number and function where the misuse
+occurred.
 */
 {
   a_string err_msg("Unexpected attempt to represent ", index_to_str(index),
@@ -1692,7 +1730,8 @@ module entity is available for the given index.
 
 This function should be used sparingly as the module entity state will not be
 merged between different module files or persisted between function
-invocations.
+invocations.  Additionally, as this module entity is stack allocated surprising
+behavior can occur if it's associated with an IL entity.
 */
 {
   a_module_ptr    mod_ptr = module_of(index)->assoc_module_info;
@@ -1709,6 +1748,11 @@ static inline an_ifc_decl_index decl_index_of(a_module_entry_locator locator);
 static inline a_module_entity_ptr
 get_ifc_module_entity_from_collapsed_index(an_ifc_decl_index index)
 /*
+Return the module entity corresponding to the given collapsed IFC declaration
+index (see collapse_partition_index for more information about the process of
+"collapsing" IFC indexes).  This function is provided as part of the
+implementation of get_ifc_module_entity, prefer get_ifc_module_entity in other
+cases.
 */
 {
   uintptr_t           index_hash = hash_ptr(index);
@@ -1827,9 +1871,7 @@ get_ifc_module_entity_from_collapsed_index(an_ifc_decl_index index)
 #if DEBUG
     if (db_flag_is_set("ifc_idx") && cached_result == NULL) {
       a_string dbg_msg("Module entity lookup done ",
-                       index_to_str(index),
-                       " (",
-                       (void*)result,
+                       index_to_str(index), " (", (void*)result,
                        (result->invalid) ? ") [[invalid]]" : ")");
 
       print(dbg_msg, f_debug);
@@ -1855,7 +1897,7 @@ get_ifc_module_entity_from_collapsed_index(an_ifc_decl_index index)
          either the construction of the hash key or the comparison of the key
          (i.e., its hashing or equality operator). */
       entity_lookup_cache->map_with_hash(index, result, index_hash);
-      /* Notify the general modules implementation that a new locator has
+      /* Notify all relevant modules implementations that a new locator has
          been discovered. */
       update_entity_from_new_locator(result,
                                      module_entry_locator_from_index(index));
@@ -1868,6 +1910,8 @@ get_ifc_module_entity_from_collapsed_index(an_ifc_decl_index index)
 static inline a_module_entity_ptr
 get_ifc_module_entity(an_ifc_decl_index index)
 /*
+Return the module entity corresponding to the given IFC function declaration
+index.
 */
 {
   a_module_entity_ptr    result;
@@ -1936,49 +1980,6 @@ stored on the given module entity pointer.
 {
   return decl_index_of(mep->locators[mep->primary_locator_idx]);
 }  /* decl_index_of */
-
-
-static inline an_ifc_type_index
-type_index_of(an_ifc_module         *mod,
-              an_ifc_partition_kind partition,
-              size_t                file_offset)
-/*
-Return the an_ifc_type_index in the given module, derived from the partition
-kind and file offset.
-*/
-{
-  an_ifc_index_type part_index = to_partition_index(mod, partition,
-                                                    file_offset);
-
-  return an_ifc_type_index{&mod->file, to_type_sort(partition), part_index};
-}  /* type_index_of */
-
-
-static inline an_ifc_type_index type_index_of(a_module_entry_locator locator)
-/*
-Return the an_ifc_type_index derived from the partition kind and file offset
-stored on the given module entry locator.
-*/
-{
-  /* If this assertion fails a module entity pointer that's not from an IFC
-     file was incorrectly passed to this function. */
-  check_assertion(locator.kind == melk_ifc);
-  auto                  &ifc_info = locator.variant.ifc;
-  an_ifc_module_file    *file = ifc_info.file;
-  an_ifc_partition_kind part_kind = ifc_info.partition;
-
-  return type_index_of(module_of(file), part_kind, ifc_info.offset);
-}  /* type_index_of */
-
-
-static inline an_ifc_type_index type_index_of(a_module_entity_ptr mep)
-/*
-Return the an_ifc_type_index derived from the partition kind and file offset
-stored on the given module entity pointer.
-*/
-{
-  return type_index_of(mep->locators[mep->primary_locator_idx]);
-}  /* type_index_of */
 
 
 a_const_char *get_partition_name_from_kind(an_ifc_partition_kind part_kind)
@@ -4325,7 +4326,7 @@ already saved for restoration.
 {
   a_module_token_cache        cache;
   /* Macros currently don't have a persistent module entity.  Create a
-     temporary module entity to capture an ifc_unexpected errors. */
+     temporary module entity to capture any ifc_unexpected errors. */
   a_module_entity             entity = make_temporary_ifc_module_entity(macro);
   a_module_entity_stack_state mep_state(&entity);
 
@@ -5761,47 +5762,50 @@ static a_type_ptr alloc_detached_type_templ_param(
                                        const an_ifc_decl_parameter &param_decl)
 /*
 Given an IFC parameter declaration representing a type template parameter,
-return a detached type template parameter type.  See
-alloc_detached_templ_param_sym for more information about detached template
-parameters.
+return a detached type template parameter type.  If the type cannot be
+reconstructed, instead return NULL.  See alloc_detached_templ_param_sym for
+more information about detached template parameters.
 */
 {
-  a_type_ptr result = alloc_type(tk_template_param);
+  a_type_ptr result;
 
-  if (!param_represents_type_templ_param_ref(param_decl)) {
+  if (param_represents_type_templ_param_ref(param_decl)) {
+    result = alloc_type(tk_template_param);
+    result->variant.template_param.is_pack = is_parameter_pack(param_decl);
+    result->variant.template_param.is_generic_param = FALSE;
+
+    a_template_param_type_supplement_ptr extra_info =
+                                     result->variant.template_param.extra_info;
+    a_template_nesting_depth             pdepth = get_ifc_level(param_decl);
+    a_template_param_list_pos            pnum = get_ifc_position(param_decl);
+    extra_info->coordinates.depth = pdepth;
+    extra_info->coordinates.position = pnum;
+
+    an_ifc_expr_index constraint = get_ifc_constraint(param_decl);
+    if (!is_null_index(constraint)) {
+      a_module_token_cache cache;
+
+      cache_expr(&cache, constraint, /*cinfo=*/{});
+      if (!cache.is_valid()) {
+        goto invalid;
+      }  /* if */
+
+      a_module_entity_rescan rescan(&cache);
+      a_symbol_ptr           concept_templ;
+      (void)determine_template_param_kind(&concept_templ);
+      if (concept_templ == NULL) {
+        goto invalid;
+      }  /* if */
+
+      an_expr_node_ptr il_constraint = scan_type_constraint(concept_templ);
+      extra_info->constraint.type_constraint = il_constraint;
+    }  /* if */
+    set_type_size(result);
+  } else {
     ifc_unexpected(module_of(param_decl),
                    "expected a non-type template parameter");
+    goto invalid;
   }  /* if */
-  result->variant.template_param.is_pack = is_parameter_pack(param_decl);
-  result->variant.template_param.is_generic_param = FALSE;
-
-  a_template_param_type_supplement_ptr extra_info =
-                                     result->variant.template_param.extra_info;
-  a_template_nesting_depth             pdepth = get_ifc_level(param_decl);
-  a_template_param_list_pos            pnum = get_ifc_position(param_decl);
-  extra_info->coordinates.depth = pdepth;
-  extra_info->coordinates.position = pnum;
-
-  an_ifc_expr_index constraint = get_ifc_constraint(param_decl);
-  if (!is_null_index(constraint)) {
-    a_module_token_cache cache;
-
-    cache_expr(&cache, constraint, /*cinfo=*/{});
-    if (!cache.is_valid()) {
-      goto invalid;
-    }  /* if */
-
-    a_module_entity_rescan rescan(&cache);
-    a_symbol_ptr           concept_templ;
-    (void)determine_template_param_kind(&concept_templ);
-    if (concept_templ == NULL) {
-      goto invalid;
-    }  /* if */
-
-    an_expr_node_ptr il_constraint = scan_type_constraint(concept_templ);
-    extra_info->constraint.type_constraint = il_constraint;
-  }  /* if */
-  set_type_size(result);
   goto done;
 invalid:
   result = NULL;
@@ -6226,6 +6230,11 @@ done:
 
 static inline Opt<a_module_template_parameter>
 get_ifc_module_template_parameter(const an_ifc_decl_parameter &param_decl)
+/*
+Return a module template parameter corresponding to the given IFC parameter
+declaration.  If the template parameter cannot be reconstructed, instead return
+an empty optional.
+*/
 {
   Opt<a_module_template_parameter> result;
   an_ifc_parameter_sort            sort = get_ifc_sort(param_decl);
@@ -6236,7 +6245,7 @@ get_ifc_module_template_parameter(const an_ifc_decl_parameter &param_decl)
 
         param.kind = mtpk_non_type;
         param.variant.type = type_for_nontype_templ_param(param_decl);
-        result = param;
+        result = move_from(&param);
       }  /* if */
       break;
     case ifc_ps_template:
@@ -6245,16 +6254,21 @@ get_ifc_module_template_parameter(const an_ifc_decl_parameter &param_decl)
                                  get_template_template_param_chart(param_decl);
 
         param.kind = mtpk_template;
-        param.variant.params_list =
-                              get_ifc_template_parameter_list(param_chart_idx);
-        result = param;
+
+        Owning_ptr<a_module_template_parameter_list>
+                param_list = get_ifc_template_parameter_list(param_chart_idx);
+        if (param_list == NULL) {
+          goto invalid;
+        }  /* if */
+        param.variant.params_list = param_list.release();
+        result = move_from(&param);
       }  /* if */
       break;
     case ifc_ps_type:
       { a_module_template_parameter param;
 
         param.kind = mtpk_type;
-        result = param;
+        result = move_from(&param);
       }  /* if */
       break;
     case ifc_ps_object:
@@ -6272,12 +6286,15 @@ done:
 }  /* get_ifc_module_template_parameter */
 
 
-static inline a_module_template_parameter_list*
+static inline Owning_ptr<a_module_template_parameter_list>
 get_ifc_template_parameter_list(an_ifc_chart_index param_idx)
 /*
+Return a pointer to a module template parameter list corresponding to the
+template parameters of the given IFC parameter chart.  If a template parameter
+list cannot be reconstructed, instead return NULL.
 */
 {
-  a_module_template_parameter_list *result = NULL;
+  Owning_ptr<a_module_template_parameter_list> result;
 
   if (is_null_index(param_idx)) {
     result = new_fe<a_module_template_parameter_list>();
@@ -6306,8 +6323,8 @@ get_ifc_template_parameter_list(an_ifc_chart_index param_idx)
               goto invalid;
             }  /* if */
 
-            a_module_template_parameter mod_param = *opt_mod_param;
-            result->push_back(mod_param);
+            a_module_template_parameter mod_param = move_from(&*opt_mod_param);
+            result->push_back(move_from(&mod_param));
           }  /* for */
         }
         break;
@@ -6322,9 +6339,7 @@ get_ifc_template_parameter_list(an_ifc_chart_index param_idx)
   }  /* if */
   goto done;
 invalid:
-  if (result != NULL) {
-    delete_fe(&result);
-  }  /* if */
+  result = NULL;
 done:
   return result;
 }  /* get_ifc_template_parameter_list */
@@ -6353,17 +6368,25 @@ Given a type index, return TRUE if the type index represents an ellipsis.
 
 
 template<typename an_ifc_Node_type>
-static inline a_module_func_param_list* get_ifc_function_parameter_list(
-                                  an_ifc_decl_index      decl_idx,
-                                  const an_ifc_Node_type &decl,
-                                  an_ifc_decl_index      parameterizing_entity,
-                                  a_boolean              *has_ellipsis)
+static inline Owning_ptr<a_module_func_param_list>
+get_ifc_function_parameter_list(an_ifc_decl_index      decl_idx,
+                                const an_ifc_Node_type &decl,
+                                an_ifc_decl_index      parameterizing_entity,
+                                a_boolean              *has_ellipsis)
 /*
+Given a function-like declaration (indexed by decl_idx) and (if parameterized)
+the parameterizing entity (see an_ifc_cache_info::parameterizing_entity for
+more information about the parameterizing entity) return a pointer to the
+corresponding module function parameter list.  *has_ellipsis is set to TRUE if
+this is a C-style variable argument function, e.g., "void foo(...)".
+
+If a function parameter list cannot be reconstructed, instead return NULL.
 */
 {
-  a_module_func_param_list  *result = new_fe<a_module_func_param_list>();
-  an_ifc_func_param_context param_context(decl_idx, decl,
-                                          parameterizing_entity);
+  Owning_ptr<a_module_func_param_list>
+                result = new_fe<a_module_func_param_list>();
+  an_ifc_func_param_context
+                param_context(decl_idx, decl, parameterizing_entity);
 
   for (an_ifc_index_type i = 0; i < param_context.get_num_params(); ++i) {
     an_ifc_type_index ifc_type_idx = param_context.get_param_type(i);
@@ -6373,7 +6396,6 @@ static inline a_module_func_param_list* get_ifc_function_parameter_list(
     if (is_null_index(ifc_type_idx)) {
       goto invalid;
     }  /* if */
-
     if (type_represents_ellipsis(ifc_type_idx)) {
       *has_ellipsis = TRUE;
       if (i < param_context.get_num_params() - 1) {
@@ -6394,19 +6416,24 @@ static inline a_module_func_param_list* get_ifc_function_parameter_list(
   }  /* for */
   goto done;
 invalid:
-  delete_fe(&result);
+  result = NULL;
 done:
   return result;
 }  /* get_ifc_function_parameter_list */
 
 
-static inline a_module_deduct_guide_param_list*
+static inline Owning_ptr<a_module_deduct_guide_param_list>
 get_ifc_deduction_guide_parameter_list(an_ifc_decl_index deduct_guide_idx)
 /*
+Given a deduction guide index return a pointer to the corresponding module
+deduction guide parameter list.
+
+If a deduction guide parameter list cannot be reconstructed, instead return
+NULL.
 */
 {
-  a_module_func_param_list         *result = NULL;
-  Opt<an_ifc_decl_deduction_guide> opt_deduct_decl;
+  Owning_ptr<a_module_func_param_list> result;
+  Opt<an_ifc_decl_deduction_guide>     opt_deduct_decl;
 
   construct_node(&opt_deduct_decl, deduct_guide_idx);
   if (opt_deduct_decl.has_value()) {
@@ -6457,9 +6484,7 @@ get_ifc_deduction_guide_parameter_list(an_ifc_decl_index deduct_guide_idx)
   }  /* if */
   goto done;
 invalid:
-  if (result != NULL) {
-    delete_fe(&result);
-  }  /* if */
+  result = NULL;
 done:
   return result;
 }  /* get_ifc_deduction_guide_parameter_list */
@@ -6467,7 +6492,8 @@ done:
 namespace {
 
 template<typename an_ifc_Decl_type>
-Module_isolation_scope<an_ifc_Decl_type>::Module_isolation_scope(
+Template_module_isolation_scope<an_ifc_Decl_type>::
+                                               Template_module_isolation_scope(
                                                   const an_ifc_Decl_type &decl)
 /*
 Create a new module isolation scope and the associated template parameters for
@@ -6485,22 +6511,24 @@ the given parameterized declaration.
   a_template_decl_info_ptr &templ_info = scope_stack_top().template_decl_info;
   an_ifc_chart_index       param_chart_idx = get_ifc_chart(decl);
   alloc_detached_templ_decl_info(&templ_info, param_chart_idx);
-}  /* Module_isolation_scope::Module_isolation_scope */
+}  /* Template_module_isolation_scope::Template_module_isolation_scope */
 
 
 template<typename an_ifc_Decl_type>
-Module_isolation_scope<an_ifc_Decl_type>::~Module_isolation_scope()
+Template_module_isolation_scope<an_ifc_Decl_type>::
+                                             ~Template_module_isolation_scope()
 /*
 Tear down the constructed scopes.
 */
 {
   /* Pop the sck_template_declaration scope. */
   pop_scope();
-}  /* Module_isolation_scope::~Module_isolation_scope */
+}  /* Template_module_isolation_scope::~Template_module_isolation_scope */
 
 
 template<>
-Module_isolation_scope<an_ifc_decl_specialization>::Module_isolation_scope(
+Template_module_isolation_scope<an_ifc_decl_specialization>::
+                                               Template_module_isolation_scope(
                                         const an_ifc_decl_specialization &decl)
 /*
 Create a new module isolation scope for the given explicit template
@@ -6517,16 +6545,17 @@ specialization or instantiation.
      We should reconsider this design to generalize the safety precaution, and
      see if it's reasonable to avoid what's in effect an "opt-out"
      specialization from being necessary. */
-}  /* Module_isolation_scope::Module_isolation_scope */
+}  /* Template_module_isolation_scope::Template_module_isolation_scope */
 
 
 template<>
-Module_isolation_scope<an_ifc_decl_specialization>::~Module_isolation_scope()
+Template_module_isolation_scope<an_ifc_decl_specialization>::
+                                             ~Template_module_isolation_scope()
 /*
 Tear down the constructed scope.
 */
 {
-}  /* Module_isolation_scope::~Module_isolation_scope */
+}  /* Template_module_isolation_scope::~Template_module_isolation_scope */
 
 }  /* namespace */
 
@@ -7231,6 +7260,14 @@ NULL, and issue a diagnostic.
 
 void scan_ifc_param_ref_expr(an_operand *result)
 /*
+The current token is tok_ifc_param_ref (an IFC pseudo-token), consume the token
+and produce an expression operand equivalent to referencing the parameter
+specified by the token in *result.  If the requested expression cannot be
+formed, instead produce an error operand in *result.
+
+Note this is only used in contexts where the parameter does not yet exist
+(e.g., in module isolation contexts while processing syntactic function return
+types that depend on a parameter's type).
 */
 {
   a_lexical_ifc_index_reference
@@ -10095,7 +10132,7 @@ FALSE.
   an_ifc_decl_template decl_templ;
   construct_node_prechecked(&decl_templ, decl_idx);
 
-  Module_isolation_scope<an_ifc_decl_template>
+  Template_module_isolation_scope<an_ifc_decl_template>
                     isolation_scope(decl_templ);
   an_ifc_decl_index entity_decl_idx = get_ifc_decl(get_ifc_entity(decl_templ));
   if (entity_decl_idx.sort != ifc_ds_decl_function) {
@@ -10352,7 +10389,7 @@ template_args_for_expr_list(a_symbol_ptr      template_sym,
 
 
 template<typename an_ifc_Decl_type>
-static a_template_arg_ptr create_templ_args_for_comparison(
+static an_owned_template_arg_list create_templ_args_for_comparison(
                                        const an_ifc_Decl_type &decl_spec,
                                        a_template_ptr         primary_template)
 /*
@@ -10361,13 +10398,13 @@ template, create and return a corresponding template argument set.  If a
 problem is encountered during reconstruction, NULL is returned instead.
 */
 {
-  a_template_arg_ptr      result = NULL;
-  an_ifc_form_spec_offset form_offset = get_ifc_form(decl_spec);
-  Opt<an_ifc_form_spec>   opt_form_spec;
+  an_owned_template_arg_list result;
+  an_ifc_form_spec_offset    form_offset = get_ifc_form(decl_spec);
+  Opt<an_ifc_form_spec>      opt_form_spec;
 
   construct_node(&opt_form_spec, form_offset);
   if (opt_form_spec.has_value()) {
-    Module_isolation_scope<an_ifc_Decl_type>
+    Template_module_isolation_scope<an_ifc_Decl_type>
                       isolation_scope(decl_spec);
     an_ifc_form_spec  form_spec = *opt_form_spec;
     an_ifc_expr_index form_arg_idx = get_ifc_arguments(form_spec);
@@ -10462,15 +10499,18 @@ check_and_set_specialization_redeclaration.
 
 
 template<typename an_ifc_Decl_type>
-static a_template_arg_ptr create_templ_args_for_comparison(
+static an_owned_template_arg_list create_templ_args_for_comparison(
                                             const an_ifc_Decl_type &decl_spec)
 /*
+Given the IFC node information for a template specialization, create and return
+a corresponding template argument set.  If a problem is encountered during
+reconstruction, NULL is returned instead.
 */
 {
-  a_template_arg_ptr  result = NULL;
-  an_ifc_decl_index   templ_idx = get_ifc_primary_template(decl_spec);
-  a_module_entity_ptr templ_mep = process_decl_at_index(templ_idx);
-  a_tagged_pointer    templ_entity = templ_mep->entity;
+  an_owned_template_arg_list result;
+  an_ifc_decl_index          templ_idx = get_ifc_primary_template(decl_spec);
+  a_module_entity_ptr        templ_mep = process_decl_at_index(templ_idx);
+  a_tagged_pointer           templ_entity = templ_mep->entity;
 
   if (!templ_mep->invalid && templ_entity.kind == iek_template) {
     a_template_ptr primary_templ = (a_template_ptr)templ_entity.ptr;
@@ -10511,8 +10551,8 @@ check_and_set_specialization_redeclaration.
        information, while comparisons are optimized by doing this up front,
        we're paying an unnecessary cost if there are no symbols to compare
        against. */
-    a_template_ptr     primary_templ = (a_template_ptr)templ_entity.ptr;
-    a_template_arg_ptr templ_args =
+    a_template_ptr             primary_templ = (a_template*)templ_entity.ptr;
+    an_owned_template_arg_list templ_args =
                                create_templ_args_for_comparison(decl_spec,
                                                                 primary_templ);
 
@@ -10526,18 +10566,18 @@ check_and_set_specialization_redeclaration.
          find_template_instantiation function).  Thus, we must traverse the
          symbol lists. */
       if (find_redeclared_specialized_entity_in_list(search_fn, active_symbols,
-                                                     primary_templ, templ_args,
+                                                     primary_templ,
+                                                     templ_args.raw(),
                                                      redecl_entity,
                                                      redecl_kind) ||
           find_redeclared_specialized_entity_in_list(search_fn,
                                                      inactive_symbols,
-                                                     primary_templ, templ_args,
+                                                     primary_templ,
+                                                     templ_args.raw(),
                                                      redecl_entity,
                                                      redecl_kind)) {
         result = TRUE;
       }  /* if */
-      /* Free the allocated template arguments. */
-      free_template_arg_list(templ_args);
     }  /* if */
   }  /* if */
   return result;
@@ -10827,7 +10867,8 @@ return FALSE.
 
 static inline a_boolean compute_non_exported_bit(a_module_entity_ptr mep)
 /*
-Return TRUE if the given module entity is non-exported; otherwise, return FALSE.
+Return TRUE if the given module entity is non-exported; otherwise, return
+FALSE.
 */
 {
   a_boolean result = TRUE;
@@ -10888,7 +10929,7 @@ pointer is required to have been validated by the caller.
       mep->non_exported = FALSE;
     }  /* if */
   }  /* if */
-}  /* set_mep_origin_flags */
+}  /* update_mep_origin_flags */
 
 
 static inline void inherit_mep_origin_flags(a_module_entity_ptr mep,
@@ -13551,7 +13592,7 @@ locator.
                              "with a non-declaration entity");
   }  /* if */
   return result;
-}  /* request_ifc_module_entity */
+}  /* locate_ifc_module_entity */
 
 
 void load_namespace_elements_from_ifc_locator(a_module_entity_ptr    mep,
@@ -13567,7 +13608,6 @@ for the namespace represented by the given module entity.
   Opt<an_ifc_decl_scope> opt_assoc_scope_decl;
 
   construct_node(&opt_assoc_scope_decl, assoc_decl_idx);
-
   if (opt_assoc_scope_decl.has_value()) {
     an_ifc_decl_scope   assoc_scope_decl = *opt_assoc_scope_decl;
     an_ifc_scope_offset init = get_ifc_initializer(assoc_scope_decl);
@@ -13686,7 +13726,7 @@ Given an IFC module entry locator, return a string representing the locator.
     result = "UNKNOWN (IFC)";
   }  /* if */
   return result;
-}  /* s_db_version_of_ifc_module */
+}  /* s_db_ifc_locator */
 
 
 a_string s_db_id_of_ifc_mep(a_module_entity_ptr mep)
@@ -14195,7 +14235,8 @@ of.
 static void map_template_deduction_guides(an_ifc_decl_index decl_idx)
 /*
 For the given class template that is identified by the given declaration index,
-check if it has any associated deduction guides, and process them.
+map the associated deduction guide indexs back to the template that they're a
+deduction guide of.
 */
 {
   /* Deduction guides are associated to the template through the IFC traits
@@ -14227,7 +14268,7 @@ check if it has any associated deduction guides, and process them.
       map_template_deduction_guide(guides_idx, decl_idx);
     }  /* if */
   }  /* if */
-}  /* process_template_deduction_guides */
+}  /* map_template_deduction_guides */
 
 
 a_boolean an_ifc_module::initialize_members_from_ifc_module_file(
@@ -15502,6 +15543,11 @@ done:
 
 static a_type_ptr process_edg_type(an_ifc_edg_type_index type_idx)
 /*
+Return the type that corresponds to the specified EDG TypeIndex.  If there is
+no corresponding type, return an error type.
+
+This function is provided as part of the implementation of type_for_type_index,
+prefer type_for_type_index in other cases
 */
 {
   a_type_ptr result = NULL;
@@ -15539,6 +15585,11 @@ done:
 
 static a_type_ptr process_ifc_type(an_ifc_type_index type_idx)
 /*
+Return the type that corresponds to the specified IFC TypeIndex.  If there is
+no corresponding type, return an error type.
+
+This function is provided as part of the implementation of type_for_type_index,
+prefer type_for_type_index in other cases
 */
 {
   a_type_ptr    result = NULL;
@@ -16669,7 +16720,7 @@ invalid:
   result = FALSE;
 done:
   return result;
-}  /* is_template_template_param_ref */
+}  /* is_member_template_ref */
 
 
 static a_boolean is_type_pack_expansion(an_ifc_type_index type_idx)
@@ -17297,9 +17348,9 @@ module file.
   a_template_ptr templ = get_template_from_id_expr(templ_id);
 
   if (templ != NULL && templ->kind != templk_none) {
-    a_symbol_ptr             template_sym = symbol_for(templ);
-    an_ifc_expr_index        arguments = get_ifc_arguments(templ_id);
-    a_template_arg_ptr       arg_list =
+    a_symbol_ptr       template_sym = symbol_for(templ);
+    an_ifc_expr_index  arguments = get_ifc_arguments(templ_id);
+    a_template_arg_ptr arg_list =
                           template_args_for_expr_list(template_sym, arguments);
 
     if (arg_list == NULL) {
