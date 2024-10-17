@@ -127,6 +127,9 @@ Clear an output control block to default values.
 #if BACK_END_IS_CP_GEN_BE
   octl->curr_template_arg         = NULL;
 #endif /* BACK_END_IS_CP_GEN_BE */
+  octl->max_template_arg_depth    = 0;
+  octl->curr_template_arg_depth   = 0;
+  octl->incomplete_output         = FALSE;
   octl->gen_compilable_code       = FALSE;
   octl->gen_pcc_code              = FALSE;
   octl->suppress_typedefs         = FALSE;
@@ -727,6 +730,7 @@ in the way described by octl.  If tap is NULL or if octl indicates that
 template arguments should be suppressed, nothing is put out.
 */
 {
+  ++octl->curr_template_arg_depth;
   if (!octl->suppress_template_args && tap != NULL) {
     a_boolean saved_nontype_tpl_arg =
                                     octl->processing_nontype_template_argument;
@@ -756,33 +760,39 @@ template arguments should be suppressed, nothing is put out.
          argument begins with a "::" global qualifier. */
       octl->output_str(" ", octl);
     }  /* if */
-    skip_start_of_pack_markers(&tap, &tpp);
-    if (tap != NULL) {
-      for (;;) {
+    if (octl->max_template_arg_depth != 0 &&
+        octl->curr_template_arg_depth - 1 == octl->max_template_arg_depth) {
+      octl->output_str("/* etc... */", octl);
+      octl->incomplete_output = TRUE;
+    } else {
+      skip_start_of_pack_markers(&tap, &tpp);
+      if (tap != NULL) {
+        for (;;) {
 #if BACK_END_IS_CP_GEN_BE
-        tap->parent_arg = parent_arg;
-        octl->curr_template_arg = tap;
+          tap->parent_arg = parent_arg;
+          octl->curr_template_arg = tap;
 #endif /* BACK_END_IS_CP_GEN_BE */
-        if (tap->kind == tak_nontype && tpp != NULL) {
-          a_type_ptr param_type = tpp->variant.nontype.constant->type;
-          if (is_auto_template_param_type(param_type)) {
-            /* Mark the argument as matching an auto template parameter for
-               possible special processing. */
-            tap->param_is_auto = TRUE;
+          if (tap->kind == tak_nontype && tpp != NULL) {
+            a_type_ptr param_type = tpp->variant.nontype.constant->type;
+            if (is_auto_template_param_type(param_type)) {
+              /* Mark the argument as matching an auto template parameter for
+                 possible special processing. */
+              tap->param_is_auto = TRUE;
+            }  /* if */
+            if (is_decltype_auto_template_param_type(param_type)) {
+              /* Mark the argument as matching a decltype(auto) template
+                 parameter for possible special processing. */
+              tap->param_is_decltype_auto = TRUE;
+            }  /* if */
           }  /* if */
-          if (is_decltype_auto_template_param_type(param_type)) {
-            /* Mark the argument as matching a decltype(auto) template
-               parameter for possible special processing. */
-            tap->param_is_decltype_auto = TRUE;
-          }  /* if */
-        }  /* if */
-        form_a_template_arg(tap, octl);
-        next_template_arg_and_param(&tap, &tpp);
-        /* Stop after the last argument. */
-        if (tap == NULL) break;
-        /* Put a comma between arguments. */
-        octl->output_str(", ", octl);
-      }  /* for */
+          form_a_template_arg(tap, octl);
+          next_template_arg_and_param(&tap, &tpp);
+          /* Stop after the last argument. */
+          if (tap == NULL) break;
+          /* Put a comma between arguments. */
+          octl->output_str(", ", octl);
+        }  /* for */
+      }  /* if */
     }  /* if */
     octl->output_str(">", octl);
     if (octl->gen_compilable_code) {
@@ -798,6 +808,7 @@ template arguments should be suppressed, nothing is put out.
 #endif /* BACK_END_IS_CP_GEN_BE */
     octl->processing_nontype_template_argument = saved_nontype_tpl_arg;
   }  /* if */
+  --octl->curr_template_arg_depth;
 }  /* form_template_args */
 
 

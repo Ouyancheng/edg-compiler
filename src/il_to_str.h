@@ -223,6 +223,26 @@ typedef struct an_il_to_str_output_control_block {
 			   unbounded recursion when substituting non-real
 			   typedefs for their underlying types. */
 #endif /* BACK_END_IS_CP_GEN_BE */
+  uint16_t
+	max_template_arg_depth;
+			/* When forming a template argument list, do not print
+			   at a depth greater than this value.  As an example a
+			   value of 1 would print "A<B<int, C<int>>>" as
+			   "A<B<[etc...]>>".  A value of 0 (the default)
+			   disables this feature. */
+  uint16_t
+	curr_template_arg_depth;
+			/* This represents the current depth into a template
+			   argument list.  This value should be 0 at the start
+			   of a print and increase by one every time a template
+			   argument list print is started. */
+  a_byte_boolean
+	incomplete_output;
+			/* This flag is an observable flag that is set if the
+			   buffer contains output that is incomplete (e.g.,
+			   because the max_template_arg_depth was hit and the
+			   output was simplified to prevent performance
+			   issues). */
   a_byte_boolean
 	gen_compilable_code;
 			/* TRUE if the generated string is intended to be

@@ -1,5 +1,34 @@
 Version 6.7
 
+10/17/24 [EDGcpfe/26892]
+Hang on printing excessively recursive template argument lists
+
+Consider, with --c++ --pending_instantiations 50:
+
+  template<typename, typename> struct A { };
+  template<typename T, int N>
+  struct C {
+    typedef typename C<A<T, T>, N - 1>::type type;
+  };
+  template<typename T>
+  struct C<T, 0> {
+    typedef A<T, T> type;
+  };
+  C<int, 100>::type t;
+
+This code creates a binary tree of class template specializations with a depth
+of 100.  When hitting the instantiation limit of 50 however, the front end
+would halt instantiation and attempt to print the type.  For the vast majority
+of machines the textual rendering of this type is extremely CPU and RAM
+intensive.
+
+A new configuration macro, MAX_ERROR_TEMPLATE_ARG_DEPTH (defaulted to a fairly
+permissive 6), has been added to control how the maximum depth of a template
+argument list in error messages.  As an example, the type name
+"A<B<int, C<int>>>" with MAX_ERROR_TEMPLATE_ARG_DEPTH=1 will now print in
+diagnostics as "A<B<[etc...]>>".
+
+
 10/17/24 [EDGcpfe/27634]
 Internal error in inactive_scope_lookup in GNU mode
 

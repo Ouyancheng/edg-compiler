@@ -1089,6 +1089,7 @@ called.
   octl.output_str = put_str_into_text_buffer;
   octl.text_buffer = msg_buffer;
   octl.gen_pcc_code = (C_dialect == C_dialect_pcc);
+  octl.max_template_arg_depth = MAX_ERROR_TEMPLATE_ARG_DEPTH;
   /* For diagnostics in C99 mode we want to see "_Bool" rather "bool" or the
      type underlying _Bool. */
   octl.render_c99_bool = c99_mode;
@@ -1121,8 +1122,14 @@ buffer.
 
        "a_type" (aka "unsigned int")
                ^^^^^^^^^^^^^^^^^^^^^
+
+     If the output is incomplete, do not even try to strip aliases.  The
+     additional output is more likely to be unhelpful adding even more noise to
+     the output.  Additionally, in the case of deep template argument lists,
+     this prevents excessive time spent inside of is_or_contains_typedef_type.
   */
-  if (is_or_contains_typedef_type(dfip->variant.type)) {
+  if (!octl.incomplete_output &&
+      is_or_contains_typedef_type(dfip->variant.type)) {
     Value_saver<a_byte_boolean>
                 suppress_typedef_names_saved(&octl.suppress_typedef_names);
     sizeof_t    original_start = msg_buffer->size;

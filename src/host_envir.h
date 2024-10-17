@@ -217,6 +217,14 @@ Width at which error message lines should be wrapped to another line
 #endif /* ifndef MAX_ERROR_OUTPUT_LINE_LENGTH */
 
 /*
+The maximum depth of a template arguments list to directly print.  See
+an_il_to_str_output_control_block::max_template_arg_depth for more information.
+*/
+#ifndef MAX_ERROR_TEMPLATE_ARG_DEPTH
+#define MAX_ERROR_TEMPLATE_ARG_DEPTH 6
+#endif /* ifndef MAX_ERROR_TEMPLATE_ARG_DEPTH */
+
+/*
 File "name" to be used when primary input is from stdin.  This should
 not be acceptable as a real file name (or at least, you should be willing to
 forgo allowing an input file with this name).

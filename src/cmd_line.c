@@ -8257,6 +8257,11 @@ file.
 #else /* !defined(MAX_ERROR_OUTPUT_LINE_LENGTH) */
   comment_undefined_macro_name(MAX_ERROR_OUTPUT_LINE_LENGTH);
 #endif /* defined(MAX_ERROR_OUTPUT_LINE_LENGTH) */
+#if defined(MAX_ERROR_TEMPLATE_ARG_DEPTH)
+  define_numeric_valued_macro(MAX_ERROR_TEMPLATE_ARG_DEPTH);
+#else /* !defined(MAX_ERROR_TEMPLATE_ARG_DEPTH) */
+  comment_undefined_macro_name(MAX_ERROR_TEMPLATE_ARG_DEPTH);
+#endif /* defined(MAX_ERROR_TEMPLATE_ARG_DEPTH) */
 #if defined(MAX_INCLUDE_FILES_OPEN_AT_ONCE)
   define_numeric_valued_macro(MAX_INCLUDE_FILES_OPEN_AT_ONCE);
 #else /* !defined(MAX_INCLUDE_FILES_OPEN_AT_ONCE) */
