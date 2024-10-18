@@ -30623,7 +30623,7 @@ INST_LEXICAL_IDX_CONVERSION(an_ifc_expr_index)
 
 STATIC_THREAD a_boolean
         ifc_modules_initialized_for_curr_tu;
-                /* TRUE if IFC modules related variables have been fully
+                /* TRUE if IFC modules-related variables have been fully
                    initialized for the current translation unit. */
 
 
@@ -30736,7 +30736,7 @@ at least one IFC module is actually imported.
 
 void require_ifc_modules()
 /*
-IFC module use has been detected in the current translation unit, initialize
+IFC module use has been detected in the current translation unit.  Initialize
 the corresponding front end structures (if not already initialized).
 */
 {

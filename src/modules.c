@@ -2536,7 +2536,7 @@ Do one-time initialization of static variables defined in this file.
 
 static void modules_trans_unit_delayed_init()
 /*
-Perform initialization of modules for the current translation.
+Perform initialization of modules for the current translation unit.
 */
 {
   module_entity_scope_hash_table =
@@ -2549,7 +2549,7 @@ Perform initialization of modules for the current translation.
 
 void require_modules()
 /*
-Module use has been detected in the current translation unit, initialize the
+Module use has been detected in the current translation unit.  Initialize the
 corresponding front end structures (if not already initialized).
 */
 {
