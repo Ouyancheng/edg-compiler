@@ -14053,7 +14053,11 @@ is_reinterpret_cast indicate it.
     if (((type_is(tp, tk_typeref) &&
           tp->variant.typeref.extra_info->template_arg_list != NULL) ||
          (tp->source_corresp.is_class_member &&
-          class_type_supp(parent_class_of(tp))->template_arg_list != NULL)) &&
+          class_type_supp(parent_class_of(tp))->template_arg_list != NULL &&
+          !class_is_in_name_context_stack(
+                                parent_class_of(tp),
+                                /*include_base_classes=*/FALSE,
+                                /*ignore_field_selection_contexts=*/FALSE))) &&
         !(is_template_param_or_nonreal_class_type(tp) ||
           (tp->source_corresp.is_class_member &&
            is_template_param_or_nonreal_class_type(parent_class_of(tp))))) {
