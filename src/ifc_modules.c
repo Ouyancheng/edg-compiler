@@ -1959,7 +1959,7 @@ cases.
          either the construction of the hash key or the comparison of the key
          (i.e., its hashing or equality operator). */
       entity_lookup_cache->map_with_hash(index, result, index_hash);
-      /* Notify all relevant modules implementations that a new locator has
+      /* Notify all relevant module BMI implementations that a new locator has
          been discovered. */
       update_entity_from_new_locator(result,
                                      module_entry_locator_from_index(index));
