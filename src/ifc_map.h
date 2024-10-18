@@ -31,7 +31,7 @@ struct an_ifc_module_file;
 struct an_ifc_validation_trace;
 
 /*
-This is the base class for most IFC entities; it holds a pointer to the file
+This is the base class for most IFC entries; it holds a pointer to the file
 the entry came from.  This is represented as a base class to allow easier API
 design.
 */
