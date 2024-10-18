@@ -4559,7 +4559,6 @@ pointer to it.
     case pk_diag_error:
     case pk_diag_once:
     case pk_diag_default:
-    case pk_diagnostic:
 #if INCLUDE_EDG_TEST_PRAGMAS
     case pk_test_next_statement:
     case pk_test_next_decl:
