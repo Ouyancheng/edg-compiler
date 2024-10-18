@@ -13941,11 +13941,13 @@ Return TRUE if source sequence entries might appear in the IL tree.
 {
   a_boolean  result = GENERATE_SOURCE_SEQUENCE_LISTS;
 
+#if GENERATE_SOURCE_SEQUENCE_LISTS
 #if DO_IL_LOWERING && !PRESERVE_SOURCE_SEQUENCE_LISTS_WITH_IL_LOWERING
   if (result) {
     result = !any_lowering_being_done;
   }  /* if */
 #endif /* DO_IL_LOWERING && !PRESERVE_SOURCE_SEQUENCE_LISTS_WITH_IL_LOWERING */
+#endif /* GENERATE_SOURCE_SEQUENCE_LISTS */
   return result;
 }  /* src_seq_entries_permitted_in_il */
 
