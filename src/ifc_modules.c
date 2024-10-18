@@ -845,7 +845,7 @@ interface instead of the underlying file.
 
 a_const_char *ifc_token_name_of(a_token_kind token_kind)
 /*
-Return a unique name for the given token for identification purposes in a EDG
+Return a unique name for the given token for identification purposes in an EDG
 IFC token cache.
 
 This function primarily uses the EDG token_names, but replaces some token names

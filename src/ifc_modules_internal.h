@@ -10,7 +10,7 @@
 /*
 
 ifc_modules_internal.h -- Declarations and forward declarations exposed only to
-                          the IFC module implementation files.  For IFC related
+                          the IFC module implementation files.  For IFC-related
                           declarations used by the broader front end see
                           ifc_modules.h.
 
