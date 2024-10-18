@@ -1,5 +1,22 @@
 Version 6.7
 
+10/17/24 [EDGcpfe/27667]
+Abort in C++-generating back end on diagnostic pragma
+
+Consider, in C mode:
+
+  int f(void)
+  #pragma diag_default = 123 
+  {
+    return 1U;
+  }
+
+This previously triggered an internal error in configurations that record
+source sequence entries (in function r_set_keep_in_il_on_sslist(...), in
+il_walk.c).  That is now fixed.  (The pragma directive is still not output
+by the C++-generating back end: An issue has been opened to deal with that.)
+
+
 10/17/24 [EDGcpfe/27217]
 Lambdas in template argument lists and the C++-generating back end
 
