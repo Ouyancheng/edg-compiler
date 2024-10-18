@@ -29,7 +29,7 @@ Consider, in C++20 mode:
 
 This previously triggered an internal error in the C++-generating back end (in
 bypass_prototyped_param_src_seq_entries) because no source sequence entries
-were recorded for lambda in template argument lists.  That is now fixed.
+were recorded for lambdas in template argument lists.  That is now fixed.
 
 
 10/17/24 [EDGcpfe/26892]
