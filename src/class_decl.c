@@ -35076,7 +35076,7 @@ For example:
 #if GENERATE_SOURCE_SEQUENCE_LISTS
   saved_source_sequence_entries_disallowed =
                                             source_sequence_entries_disallowed;
-  if (!is_real_instantiation_context()) {
+  if (!is_real_instantiation_context() && src_seq_entries_permitted_in_il()) {
     scope_stack_top().source_sequence_entries_disallowed = FALSE;
     source_sequence_entries_disallowed = FALSE;
   }  /* if */

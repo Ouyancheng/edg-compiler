@@ -13933,6 +13933,22 @@ can be different (e.g., when the current scope is a local class).
   return depth;
 }  /* get_depth_innermost_function_scope */
 
+
+a_boolean src_seq_entries_permitted_in_il(void)
+/*
+Return TRUE if source sequence entries might appear in the IL tree.
+*/
+{
+  a_boolean  result = GENERATE_SOURCE_SEQUENCE_LISTS;
+
+#if DO_IL_LOWERING && !PRESERVE_SOURCE_SEQUENCE_LISTS_WITH_IL_LOWERING
+  if (result) {
+    result = !any_lowering_being_done;
+  }  /* if */
+#endif /* DO_IL_LOWERING && !PRESERVE_SOURCE_SEQUENCE_LISTS_WITH_IL_LOWERING */
+  return result;
+}  /* src_seq_entries_permitted_in_il */
+
 #if DEBUG
 
 unsigned long db_show_scope_stack_space_used(unsigned long grand_total)

@@ -2704,6 +2704,8 @@ Microsoft compilers fixed this.)
     scope_stack_top().function_partial_instantiation))
 
 
+extern a_boolean src_seq_entries_permitted_in_il(void);
+
 typedef Ptr_map<a_routine_ptr, a_lambda_ptr>
 		a_call_op_to_lambda_map;
 
