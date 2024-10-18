@@ -1037,7 +1037,7 @@ static Opt<an_ifc_decl_index> collapse_partition_index(
 /*
 Some module entities conceptually have multiple entries even within the same
 file.  For instance, an explicit class template specialization is composed of
-an IFC DeclSpecialization and an IFC DeclScope).  This function "collapses"
+an IFC DeclSpecialization and an IFC DeclScope.  This function "collapses"
 these module entries making sure all equivalent module entries map back to one
 module entry.
 
@@ -1327,7 +1327,7 @@ Enter a module isolation scope.
 */
 {
   /* Switch to the file scope memory region to prevent IL entries within
-     internal entity hashing maps from being allocated into a short lived
+     internal entity hashing maps from being allocated into a short-lived
      memory region (and then freed as part of memory region management). */
   switch_to_file_scope_region(&this->region_to_switch_back_to);
   (void)push_scope(sck_module_isolated, NO_SCOPE_NUMBER, /*assoc_type=*/NULL,
@@ -1535,7 +1535,7 @@ static inline a_module_entity_ptr get_ifc_template_module_entity(
                                         const an_ifc_decl_template &templ_decl)
 /*
 Return the module entity corresponding to the given IFC template declaration
-index.  This function is provided as part of the implementation of
+(indexed by index).  This function is provided as part of the implementation of
 get_ifc_module_entity, prefer get_ifc_module_entity in other cases.
 */
 {
@@ -1972,8 +1972,7 @@ cases.
 static inline a_module_entity_ptr
 get_ifc_module_entity(an_ifc_decl_index index)
 /*
-Return the module entity corresponding to the given IFC function declaration
-index.
+Return the module entity corresponding to the given IFC declaration index.
 */
 {
   a_module_entity_ptr    result;
@@ -7337,7 +7336,7 @@ NULL, and issue a diagnostic.
 
 void scan_ifc_param_ref_expr(an_operand *result)
 /*
-The current token is tok_ifc_param_ref (an IFC pseudo-token), consume the token
+The current token is tok_ifc_param_ref (an IFC pseudo-token): consume the token
 and produce an expression operand equivalent to referencing the parameter
 specified by the token in *result.  If the requested expression cannot be
 formed, instead produce an error operand in *result.
@@ -14341,7 +14340,7 @@ of.
 static void map_template_deduction_guides(an_ifc_decl_index decl_idx)
 /*
 For the given class template that is identified by the given declaration index,
-map the associated deduction guide indexs back to the template that they're a
+map the associated deduction guide indexes back to the template that they're a
 deduction guide of.
 */
 {
@@ -15677,7 +15676,7 @@ Return the type that corresponds to the specified EDG TypeIndex.  If there is
 no corresponding type, return an error type.
 
 This function is provided as part of the implementation of type_for_type_index,
-prefer type_for_type_index in other cases
+prefer type_for_type_index in other cases.
 */
 {
   a_type_ptr result = NULL;

@@ -649,7 +649,7 @@ Import the module file specified in the module-import-declaration.
   check_assertion(midp->module_info->resolved_file != NULL);
   switch (midp->module_info->file_kind) {
     case mfk_unknown:
-      /* This should never happen, the module file kind should be set if the
+      /* This should never happen: the module file kind should be set if the
          resolved path is set. */
       unexpected_condition();
     case mfk_edg_ifc:
@@ -1436,7 +1436,7 @@ STATIC_THREAD a_module_entity_scope_hash_table
                            entity scopes to a single (equivalent) instance.
                            The (module entity scope) values are not directly
                            represented to ensure they have a stable address
-                           that does not changed during reallocation of the
+                           that does not change during reallocation of the
                            hash table. */
 
 STATIC_THREAD a_module_entity_scope
@@ -1448,9 +1448,9 @@ a_module_entity_scope* get_module_entity_scope(a_symbol_header_ptr   name,
                                                a_module_entity_scope *parent)
 /*
 Return a pointer to the module entity scope with the given name and parent
-module entity scope.  The same module entity scopes is returned by this
-function given equivalent arguments.  All module entity scope objects should be
-obtained through this function to ensure consistent representation.
+module entity scope.  The same module entity scope is returned by this function
+given equivalent arguments.  All module entity scope objects should be obtained
+through this function to ensure consistent representation.
 */
 {
   a_module_entity_scope *result = NULL;
@@ -1489,7 +1489,7 @@ STATIC_THREAD a_module_entity_hash_table
                            entity keys to module entity pointer values.  The
                            (module entity) values are not directly represented
                            to ensure they have a stable address that does not
-                           changed during reallocation of the hash table. */
+                           change during reallocation of the hash table. */
 
 
 static a_module_entity_ptr get_module_entity_from_key(
