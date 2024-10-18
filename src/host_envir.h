@@ -217,7 +217,7 @@ Width at which error message lines should be wrapped to another line
 #endif /* ifndef MAX_ERROR_OUTPUT_LINE_LENGTH */
 
 /*
-The maximum depth of a template arguments list to directly print.  See
+The maximum depth of a template argument list to directly print.  See
 an_il_to_str_output_control_block::max_template_arg_depth for more information.
 */
 #ifndef MAX_ERROR_TEMPLATE_ARG_DEPTH
