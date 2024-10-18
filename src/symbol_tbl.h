@@ -4385,7 +4385,7 @@ FALSE.
         }  /* if */
         break;
       default_is_unexpected();
-    }
+    }  /* switch */
   }  /* if */
   return result;
 }  /* operator== */

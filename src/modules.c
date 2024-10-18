@@ -799,7 +799,7 @@ struct a_module_entity_scope {
                         a_module_entity_scope *parent_val)
     : name(name_val), parent(parent_val)
     {}
-};  /*  a_module_entity_scope */
+};  /* a_module_entity_scope */
 
 
 static uintptr_t hash_ptr(const a_module_entity_scope &key)
@@ -2176,7 +2176,7 @@ Mark the given locator as the primary locator for the given module entity.
       mep->primary_locator_idx = idx;
       goto done;
     }  /* if */
-  }  /* if */
+  }  /* for */
   /* If this condition is reached, the locator was not found in the module
      entity's locators.  The locator should have been added by
      update_entity_from_new_locator. */
