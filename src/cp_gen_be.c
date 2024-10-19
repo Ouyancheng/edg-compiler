@@ -23056,6 +23056,7 @@ declarator (or NULL if it wasn't recorded).
       form_type_second_part_simple(rout_type->variant.routine.return_type,
                                    /*under_lhs_declarator=*/FALSE, &octl);
       if (embedded_constructs) {
+        process_preprocessing_directives();
         skip_end_of_embedded_constructs((char*)rout);
         if (state_was_saved) {
           /* Update the saved state to beyond any embedded declarations, and

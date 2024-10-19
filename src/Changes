@@ -13,8 +13,7 @@ Consider, in C mode:
 
 This previously triggered an internal error in configurations that record
 source sequence entries (in function r_set_keep_in_il_on_sslist(...), in
-il_walk.c).  That is now fixed.  (The pragma directive is still not output
-by the C++-generating back end: An issue has been opened to deal with that.)
+il_walk.c).  That is now fixed.
 
 
 10/17/24 [EDGcpfe/27217]
