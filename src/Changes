@@ -1,5 +1,25 @@
 Version 6.7
 
+10/21/24 [EDGcpfe/27669]
+C++-generating back end: initializer for class template argument deduction
+
+In some cases, the C++-generating back end incorrectly put out the
+initializer for a class template argument deduction as a cast to the
+template without arguments, resulting in code that could not be compiled.
+This is now fixed, and the cast is omitted.  For example, with --c++20
+--parse_templates:
+
+  template<typename T> struct A {
+    A(T);
+  };
+  template<typename T> struct B {
+    void f() {
+      A m(g());   // Previously generated as "A m(A(g()))"
+    }
+    int g();
+  };
+
+
 10/17/24 [EDGcpfe/27667]
 Abort in C++-generating back end on diagnostic pragma
 

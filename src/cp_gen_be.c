@@ -21710,9 +21710,16 @@ and the output of the type name.
         a_boolean        no_args = FALSE;
         a_boolean        is_deduced_type_var_init;
         a_boolean        processed = FALSE;
+        a_boolean        ctad_init;
+
         is_deduced_type_var_init =
                            (dip->is_explicit_cast && dip->variable != NULL &&
                             var_declared_with_placeholder_type(dip->variable));
+        ctad_init =
+               (type_is(init_entity_type, tk_template_param) &&
+                tptk_is(init_entity_type, tptk_param) &&
+                init_entity_type->variant.template_param.extra_info->
+                coordinates.depth == CLASS_TEMPLATE_PLACEHOLDER_NESTING_DEPTH);
         if (is_var_init) {
           if (paren_form) {
             if (args == NULL || args->generated_default_arg) {
@@ -21795,7 +21802,7 @@ and the output of the type name.
             }  /* if */
           }  /* if */
         }  /* if */
-        if (!processed && is_deduced_type_var_init &&
+        if (!processed && is_deduced_type_var_init && !ctad_init &&
             has_name_before_mangling(
                                skip_typerefs_not_typedefs(init_entity_type))) {
           /* We need to put out the class type, not just the constructor
