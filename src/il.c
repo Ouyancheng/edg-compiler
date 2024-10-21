@@ -16581,6 +16581,27 @@ such initializers are instantiated on demand).
 
 #if !STANDALONE_UTILITY_PROGRAM
 
+static a_boolean is_cpp26_local_address_constant(a_constant  *con)
+/*
+Return TRUE if the given constant represents a valid address of a local
+constant according to P2686R4 (which is slated for inclusion in C++26).
+*/
+{
+  a_boolean result = FALSE;
+
+  if (constant_is(con, ck_address) && cpp26_mode) {
+    if (address_base_is(con, abk_variable)) {
+      a_variable  *vp = con->variant.address.variant.variable;
+      if (vp->storage_class == sc_auto && !vp->is_this_parameter &&
+          vp->init_kind != initk_binding) {
+        result = TRUE;
+      }  /* if */
+    }  /* if */
+  }  /* if */
+  return result;
+}  /* is_cpp26_local_address_constant */
+
+
 static void fold_dynamic_var_init_if_possible(a_dynamic_init_ptr  *p_dip,
                                               a_type_ptr          dest_type)
 /*
@@ -16614,15 +16635,17 @@ dest_type is the type being initialized.
     /* Interpret the dynamic initialization into a constant if possible.
        If the resulting constant is the address of a temporary, keep the
        dynamic initialization (otherwise, we may fold uses of references to
-       a mutable temporary later on).  Also, if the constant is the address
-       of a local variable (checked with is_static_init_constant) ignore the
-       resulting constant since it is not really "constant". */
+       a mutable temporary later on).  If the constant is the address of a
+       local variable (checked with is_static_init_constant) ignore the
+       resulting constant since it is not really "constant"; a change is
+       expected in C++26 (via P2686R4) to permit local variable cases also. */
     if (interpret_dynamic_init(dip, &pos_curr_token, dest_type,
                                /*is_constant_evaluated=*/TRUE,
                                folded_value, &diag_list) &&
         !(constant_is(folded_value, ck_address) &&
           address_base_is(folded_value, abk_temporary)) &&
-        is_static_init_constant(folded_value)) {
+        (is_static_init_constant(folded_value) ||
+         is_cpp26_local_address_constant(folded_value))) {
       *p_dip = alloc_dynamic_init((a_dynamic_init_kind)dik_constant);
       set_dynamic_init_constant(*p_dip,
                                 move_local_constant_to_il(&folded_value));

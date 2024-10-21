@@ -12012,12 +12012,11 @@ static initialization.
   a_boolean  result = TRUE;
 
   if (con->kind == (a_constant_repr_kind)ck_address) {
-    if (con->variant.address.kind == (an_address_base_kind)abk_variable &&
+    if (address_base_is(con, abk_variable) &&
         con->variant.address.variant.variable
                                       ->source_corresp.is_local_to_function) {
       result = FALSE;
-    } else if (con->variant.address.kind ==
-                                        (an_address_base_kind)abk_temporary &&
+    } else if (address_base_is(con, abk_temporary) &&
                !in_file_scope(con->variant.address.variant.constant)) {
       /* An abk_temporary entry for a constant allocated in function scope
          memory is equivalent to the address of a local static variable. */
