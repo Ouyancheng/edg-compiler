@@ -625,9 +625,11 @@ on the floating-point mode.  Otherwise, return FALSE.
     /* We set the result value even if an error occurred.  This value
        is used in some modes. */
     set_integer_value(result_value, int_value);
-    /* Set the error flag if the source value is negative and the result
-       was intended to be unsigned. */
-    if (!is_signed) err = TRUE;
+    if (!is_signed && sign_of(*result_value)) {
+      /* Set the error flag if the converted source value would be negative
+         and the result was intended to be unsigned. */
+      err = TRUE;
+    }  /* if */
   } else {
     /* Destination is an unsigned integer. */
     a_host_large_unsigned  unsigned_int_value;

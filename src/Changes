@@ -1,5 +1,24 @@
 Version 6.7
 
+10/21/24 [EDGcpfe/27648]
+Floating-point to integer conversion in folded compound assignments
+
+Consider:
+
+  consteval unsigned g(float f) {
+    unsigned r = 1;
+    r -= f;
+    return r;
+  }
+  static_assert(g(1.1) == 0);  // Previously an error.  Now okay.
+
+Previously, the front end failed to evaluated the compound assignment to an
+unsigned variable because the floating-point result of (float)r - f is
+negative.  Now, the sign is checked after the rounding implied by the
+conversion to the (unsigned) integer type.  In this example, the result is
+zero and therefore a valid unsigned integer result.
+
+
 10/21/24 [EDGcpfe/27669]
 C++-generating back end: initializer for class template argument deduction
 
