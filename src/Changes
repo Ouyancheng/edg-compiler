@@ -1,5 +1,24 @@
 Version 6.7
 
+10/22/24 [EDGcpfe/27679]
+Microsoft compatibility: Explicit static data member specialization
+
+Consider:
+
+  template<typename T> struct X { static T *v; }; 
+  template<> int* X<int>::v;     // Definition in MSVC.
+  template<> int* X<int>::v;     // Error when ms_version < 1929,
+                                 // but okay after that.
+  int main() { X<int>::v = 0; }  // Okay: X<int>::v is defined.
+
+Previously, the front end issued a redefinition error in Microsoft mode because
+the explicit specializations are both treated as definitions in that mode.  The
+second specialization is now treated as a redeclaration instead (and no longer
+a definition).  The example is still a valid program because the first explicit
+specialization is still treated as a definition (which is nonstandard Microsoft
+behavior).
+
+
 10/22/24 [EDGcpfe/27670]
 Microsoft compatibility: Conversion from incomplete derived class
 

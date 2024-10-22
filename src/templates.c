@@ -33451,10 +33451,19 @@ that follows.
         /* The Microsoft compiler treats an explicit specialization of a static
            data member of a class template as a definition, but, prior to
            version 1910, it does not do so for an explicit specialization of a
-           static data member template. */
+           static data member template.  Starting with version 1929, it appears
+           to only treat the explicit specialization as a definition if no such
+           explicit specialization was seen before.  For example:
+               template<typename T> struct X { static T *v; }; 
+               template<> int* X<int>::v;     // Definition in MSVC.
+               template<> int* X<int>::v;     // Error when ms_version < 1929,
+                                              // but okay after that.
+               int main() { X<int>::v = 0; }  // Okay: X<int>::v is defined.
+        */
         dps->is_definition = ((symbol_is(sym, sk_variable) &&
                                !sym->is_class_member) ||
                               (microsoft_bugs &&
+                               (microsoft_version < 1929 || !sym->defined) &&
                                (ms_version_is(>=1910) ||
                                 (vp->template_info != NULL &&
                                  vp->template_info
