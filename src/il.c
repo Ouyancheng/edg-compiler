@@ -16619,13 +16619,13 @@ dest_type is the type being initialized.
     a_constant_ptr          folded_value = local_constant();
     a_diag_list             diag_list;
     a_variable_ptr          var = dip->variable;
-    an_init_kind            init_kind = (an_init_kind)initk_none;
+    an_init_kind            init_kind = initk_none;
     a_memory_region_number  region_to_switch_back_to = NULL_region_number;
     if (var != NULL) {
       /* Temporarily set the variable as uninitialized to avoid runaway
          recursion. */
       init_kind = var->init_kind;
-      var->init_kind = (an_init_kind)initk_none;
+      var->init_kind = initk_none;
     }  /* if */
     if (in_file_scope(dip) &&
         curr_il_region_number != file_scope_region_number) {
@@ -16646,10 +16646,10 @@ dest_type is the type being initialized.
           address_base_is(folded_value, abk_temporary)) &&
         (is_static_init_constant(folded_value) ||
          is_cpp26_local_address_constant(folded_value))) {
-      *p_dip = alloc_dynamic_init((a_dynamic_init_kind)dik_constant);
+      set_dynamic_init_kind(*p_dip, dik_constant);
       set_dynamic_init_constant(*p_dip,
                                 move_local_constant_to_il(&folded_value));
-      (*p_dip)->variable = dip->variable;
+      (*p_dip)->variable = var;
     }  /* if */
     discard_more_info_list(&diag_list);
     if (folded_value != NULL) {
