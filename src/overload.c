@@ -8262,6 +8262,13 @@ for a Microsoft bug).
          arg_match1 is better. */
       cmp = 1;
     }  /* if */
+  } else if (arg_match1->conversion.std.conv_to_std_initializer_list !=
+                    arg_match2->conversion.std.conv_to_std_initializer_list &&
+             !(clang_version_is(<30700) || ms_version_is(any_version))) {
+    /* The resolution of Core issue 1467 causes a conversion of an initializer
+       list to a std::initializer_list to be preferred over any other
+       conversion. */
+    cmp = arg_match1->conversion.std.conv_to_std_initializer_list ? 1 : -1;
   } else if ((int)arg_match1->match_level < (int)arg_match2->match_level) {
     /* arg_match1 is better. */
     cmp = 1;

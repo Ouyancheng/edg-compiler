@@ -1,5 +1,22 @@
 Version 6.7
 
+10/22/24 [EDGcpfe/16802,EDGcpfe/16899,EDGcpfe/19833,EDGcpfe/27148,
+          EDGcpfe/27655]
+Core issue 1467
+
+The front end now implements the resolution to Core issue 1467 which causes
+conversions of initializer lists to std::initializer_list parameters to be
+preferred over other conversions.  For example:
+
+  #include <initializer_list>
+  constexpr int f(char) {return 1;}
+  constexpr int f(const std::initializer_list<int>&) {return 2;}
+  static_assert(f({'x'}) == 2, "CWG 1467 unimplemented");
+
+This behavior is not implemented in Microsoft modes and in very early Clang
+modes (clang_version < 30700).
+
+
 10/22/24 [EDGcpfe/27679]
 Microsoft compatibility: Explicit static data member specialization
 
