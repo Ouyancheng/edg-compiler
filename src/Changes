@@ -1,7 +1,7 @@
 Version 6.7
 
 10/22/24 [EDGcpfe/27670]
-Microsoft compatibility: Derived-to-incomplete-base conversions
+Microsoft compatibility: Conversion from incomplete derived class
 
 Consider:
 
