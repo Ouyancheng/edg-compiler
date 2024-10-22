@@ -12716,6 +12716,65 @@ See do_constexpr_intrinsic_call for the meaning of the parameters.
 }  /* do_constexpr_std_meta_name_of */
 
 
+static void collect_scoped_reflections(
+                                  a_scope                        *scope,
+                                  Dyn_array<a_reflection_value>  *reflections)
+/*
+Add to the *reflections container reflections for the entities listed
+directly in scope (which is a class or namespace scope).  This doesn't
+include nonstatic data members (which are pointed to by the class type,
+not the scope).
+*/
+{
+  a_routine    *rp;
+  a_type       *tp;
+  a_variable   *vp;
+  a_template   *templ;
+  a_namespace  *nsp;
+
+  for (rp = scope->routines; rp != NULL; rp = rp->next) {
+    a_reflection_value  mem_rvp;
+    mem_rvp.entity.ptr = (char*)rp;
+    mem_rvp.entity.kind = (an_il_entry_kind)iek_routine;
+    mem_rvp.local_scope_number = FILE_SCOPE_NUMBER;
+    reflections->push_back(mem_rvp);
+  }  /* for */
+  for (tp = scope->types; tp != NULL; tp = tp->next) {
+    a_reflection_value  mem_rvp;
+    mem_rvp.entity.ptr = (char*)tp;
+    mem_rvp.entity.kind = (an_il_entry_kind)iek_type;
+    mem_rvp.local_scope_number = FILE_SCOPE_NUMBER;
+    reflections->push_back(mem_rvp);
+  }  /* for */
+  for (vp = scope->variables; vp != NULL; vp = vp->next) {
+    a_reflection_value  mem_rvp;
+    mem_rvp.entity.ptr = (char*)vp;
+    mem_rvp.entity.kind = (an_il_entry_kind)iek_variable;
+    mem_rvp.local_scope_number = FILE_SCOPE_NUMBER;
+    reflections->push_back(mem_rvp);
+  }  /* for */
+  for (templ = scope->templates; templ != NULL; templ = templ->next) {
+    a_reflection_value  mem_rvp;
+    mem_rvp.entity.ptr = (char*)templ;
+    mem_rvp.entity.kind = (an_il_entry_kind)iek_template;
+    mem_rvp.local_scope_number = FILE_SCOPE_NUMBER;
+    reflections->push_back(mem_rvp);
+  }  /* for */
+  for (nsp = scope->namespaces; nsp != NULL; nsp = nsp->next) {
+    a_reflection_value  mem_rvp;
+    if (nsp->is_namespace_alias) {
+      mem_rvp.entity.ptr = (char*)nsp;
+      mem_rvp.entity.kind = (an_il_entry_kind)iek_namespace;
+    } else {
+      mem_rvp.entity.ptr = (char*)nsp->variant.assoc_scope;
+      mem_rvp.entity.kind = (an_il_entry_kind)iek_scope;
+    }  /* if */
+    mem_rvp.local_scope_number = FILE_SCOPE_NUMBER;
+    reflections->push_back(mem_rvp);
+  }  /* for */
+}  /* collect_scoped_reflections */
+
+
 static a_boolean do_constexpr_std_meta_members__impl(
                                         an_interpreter_state  *ips,
                                         a_routine_ptr         callee,
@@ -12734,8 +12793,6 @@ See do_constexpr_intrinsic_call for the meaning of the parameters.
   a_boolean     result = FALSE, invalid_arg = FALSE;
   a_reflection_value
                 *rvp = (a_reflection_value*)p_arg_bytes[0];
-  a_source_correspondence_ptr
-                scp = source_corresp_for_reflection(rvp);
   Dyn_array<a_reflection_value>
                 result_reflections(0);
 
@@ -12749,19 +12806,13 @@ See do_constexpr_intrinsic_call for the meaning of the parameters.
   }  /* if */
   check_assertion(type_is(skip_typerefs(callee->type), tk_routine));
   strip_template_arg(rvp);
-  if (scp == NULL) {
-    invalid_arg = TRUE;
-  } else if (rvp->entity.kind == iek_type) {
+  if (rvp->entity.kind == iek_type) {
     a_type_ptr  parent_tp = (a_type_ptr)rvp->entity.ptr;
     parent_tp = skip_typerefs(parent_tp);
     complete_type_is_needed(parent_tp);
     if (is_immediate_class_type(parent_tp) && !parent_tp->incomplete) {
       /* Enumerate all the class members. */
-      a_scope     *scope = class_type_supp(parent_tp)->assoc_scope;
-      a_field     *fp = next_proper_field(fields_of(parent_tp));
-      a_routine   *rp;
-      a_type      *tp;
-      a_variable  *vp;
+      a_field  *fp = next_proper_field(fields_of(parent_tp));
       for (; fp != NULL; next_proper_field(fp = fp->next)) {
         a_reflection_value  mem_rvp;
         mem_rvp.entity.ptr = (char*)fp;
@@ -12769,32 +12820,26 @@ See do_constexpr_intrinsic_call for the meaning of the parameters.
         mem_rvp.local_scope_number = FILE_SCOPE_NUMBER;
         result_reflections.push_back(mem_rvp);
       }  /* for */
-      for (rp = scope->routines; rp != NULL; rp = rp->next) {
-        a_reflection_value  mem_rvp;
-        mem_rvp.entity.ptr = (char*)rp;
-        mem_rvp.entity.kind = (an_il_entry_kind)iek_routine;
-        mem_rvp.local_scope_number = FILE_SCOPE_NUMBER;
-        result_reflections.push_back(mem_rvp);
-      }  /* for */
-      for (tp = scope->types; tp != NULL; tp = tp->next) {
-        a_reflection_value  mem_rvp;
-        mem_rvp.entity.ptr = (char*)tp;
-        mem_rvp.entity.kind = (an_il_entry_kind)iek_type;
-        mem_rvp.local_scope_number = FILE_SCOPE_NUMBER;
-        result_reflections.push_back(mem_rvp);
-      }  /* for */
-      for (vp = scope->variables; vp != NULL; vp = vp->next) {
-        a_reflection_value  mem_rvp;
-        mem_rvp.entity.ptr = (char*)vp;
-        mem_rvp.entity.kind = (an_il_entry_kind)iek_variable;
-        mem_rvp.local_scope_number = FILE_SCOPE_NUMBER;
-        result_reflections.push_back(mem_rvp);
-      }  /* for */
+      collect_scoped_reflections(class_type_supp(parent_tp)->assoc_scope,
+                                 &result_reflections);
     } else {
       invalid_arg = TRUE;
     }  /* if */
   } else {
-    invalid_arg = TRUE;
+    if (rvp->entity.kind == iek_namespace) {
+      rvp->entity.kind = iek_scope;
+      rvp->entity.ptr = (char*)((a_namespace*)rvp->entity.ptr)
+                                                     ->variant.assoc_namespace
+                                                     ->variant.assoc_scope;
+    }  /* if */
+    if (rvp->entity.kind == iek_scope &&
+        (((a_scope*)rvp->entity.ptr)->kind == sck_namespace ||
+         ((a_scope*)rvp->entity.ptr)->kind == sck_file)) {
+      collect_scoped_reflections((a_scope*)rvp->entity.ptr,
+                                 &result_reflections);
+    } else {
+      invalid_arg = TRUE;
+    }  /* if */
   }  /* if */
   if (invalid_arg) {
     do_constexpr_fail(result);
@@ -25194,7 +25239,7 @@ diagnostic in *ips.
               a_variable_ptr  vp = rt_con->variant.address.variant.variable;
               if (!variable_has_constant_address(vp) &&
                   !(cpp26_mode && ips->is_constant_evaluated &&
-                    type->variant.pointer.is_reference &&
+                    // FIXME type->variant.pointer.is_reference &&
                     is_addressable_auto_var(vp))) {
                 a_symbol_ptr  var_sym = symbol_for(vp);
                 do_constexpr_fail(result);
