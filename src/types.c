@@ -10911,7 +10911,10 @@ operators), 3.3.15 (?: operator), and 3.3.16.1 (simple assignment).
                    is_class_or_struct(unqual_dest_type_pointed_to) &&
                    ((complete_type_is_needed(unqual_source_type_pointed_to),
                      !unqual_source_type_pointed_to->incomplete) ||
-                    clang_mode || ms_version_is(< 1927) ||
+                    clang_mode ||
+                    (microsoft_mode &&
+                     (microsoft_version < 1927 ||
+                      in_unevaluated_expr_context())) ||
                     (gpp_mode && !clang_mode && 
                      (gnu_version < 90000 ||
                       in_unevaluated_expr_context()))) &&
@@ -10923,8 +10926,9 @@ operators), 3.3.15 (?: operator), and 3.3.16.1 (simple assignment).
              conversion is unambiguous.  We leave ambiguity and accessibility
              checking to be done when the cast is done.  The resolution of
              Core issue 2310 requires the derived class to be complete, but
-             Clang does not enforce that yet (as of Clang 10.x) and GCC (as
-             of 10.x) does not enforce it in unevaluated contexts. */
+             Clang does not enforce that yet (as of Clang 10.x).  GCC (as of
+             10.x) and MSVC (starting with 19.27) do not enforce it in
+             unevaluated contexts. */
           okay = TRUE;
           std_conv->cast_base_class = bcp;
         } else if ((!suppress_extensions || !C_mode()) &&

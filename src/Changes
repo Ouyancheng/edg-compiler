@@ -1,5 +1,24 @@
 Version 6.7
 
+10/22/24 [EDGcpfe/27670]
+Microsoft compatibility: Derived-to-incomplete-base conversions
+
+Consider:
+
+  struct B {};
+  struct D: B {
+    static constexpr D *pd = nullptr;
+    static constexpr decltype((B*)pd) pb1;  // (1)
+    static constexpr B *pb2 = (B*)pd;       // (2)
+  };
+
+The resolution of Core issue 2310 makes the conversions in line (1) and (2)
+invalid.  MSVC started diagnosing line (2) with version 19.27 (see also the
+entry for EDGcpfe/22468), but it appears to still accept such conversions when
+they are unevaluated (as in line (1)).  The front end now emulates that
+behavior more closely.
+
+
 10/21/24 [EDGcpfe/27648]
 Floating-point to integer conversion in folded compound assignments
 
