@@ -22181,6 +22181,7 @@ the value representation of the integer value.
               a_constexpr_address  *ptr2 = (a_constexpr_address*)opnd2_value;
               if (is_runtime_data_address(ptr1) ==
                                               is_runtime_data_address(ptr2)) {
+                int  cmp;
                 if (!is_runtime_data_address(ptr1)) {
                   if (!addresses_are_comparable(ips, ptr1, ptr2)) {
                     info_with_pos(ec_constexpr_pointers_not_comparable,
@@ -22190,11 +22191,11 @@ the value representation of the integer value.
                     set_bool_value(ptr1->address < ptr2->address,
                                    result_storage);
                   }  /* if */
-                } else if (is_null_pointer_value(ptr1->variant.addr_con) &&
-                           is_null_pointer_value(ptr2->variant.addr_con)) {
-                  /* Two null pointer values (represented as "run-time"
-                     addresses). */
-                  *(an_integer_value *)result_storage = zero_int;
+                } else if (compare_address_constants(ptr1->variant.addr_con,
+                                                     ptr2->variant.addr_con,
+                                                     &cmp)) {
+                  *(an_integer_value *)result_storage =
+                                                 cmp < 0 ? one_int : zero_int;
                 } else {
                   do_constexpr_fail(result);
                   info_with_pos(ec_constexpr_pointers_not_comparable,
@@ -22247,6 +22248,7 @@ the value representation of the integer value.
               a_constexpr_address  *ptr2 = (a_constexpr_address*)opnd2_value;
               if (is_runtime_data_address(ptr1) ==
                                               is_runtime_data_address(ptr2)) {
+                int  cmp;
                 if (!is_runtime_data_address(ptr1)) {
                   if (!addresses_are_comparable(ips, ptr1, ptr2)) {
                     info_with_pos(ec_constexpr_pointers_not_comparable,
@@ -22256,11 +22258,11 @@ the value representation of the integer value.
                     set_bool_value(ptr1->address > ptr2->address,
                                    result_storage);
                   }  /* if */
-                } else if (is_null_pointer_value(ptr1->variant.addr_con) &&
-                           is_null_pointer_value(ptr2->variant.addr_con)) {
-                  /* Two null pointer values (represented as "run-time"
-                     addresses). */
-                  *(an_integer_value *)result_storage = zero_int;
+                } else if (compare_address_constants(ptr1->variant.addr_con,
+                                                     ptr2->variant.addr_con,
+                                                     &cmp)) {
+                  *(an_integer_value *)result_storage =
+                                                 cmp > 0 ? one_int : zero_int;
                 } else {
                   do_constexpr_fail(result);
                   info_with_pos(ec_constexpr_pointers_not_comparable,
@@ -22315,6 +22317,7 @@ the value representation of the integer value.
               a_constexpr_address  *ptr2 = (a_constexpr_address*)opnd2_value;
               if (is_runtime_data_address(ptr1) ==
                                               is_runtime_data_address(ptr2)) {
+                int  cmp;
                 if (!is_runtime_data_address(ptr1)) {
                   if (!addresses_are_comparable(ips, ptr1, ptr2)) {
                     info_with_pos(ec_constexpr_pointers_not_comparable,
@@ -22324,11 +22327,11 @@ the value representation of the integer value.
                     set_bool_value(ptr1->address <= ptr2->address,
                                    result_storage);
                   }  /* if */
-                } else if (is_null_pointer_value(ptr1->variant.addr_con) &&
-                           is_null_pointer_value(ptr2->variant.addr_con)) {
-                  /* Two null pointer values (represented as "run-time"
-                     addresses). */
-                  *(an_integer_value *)result_storage = one_int;
+                } else if (compare_address_constants(ptr1->variant.addr_con,
+                                                     ptr2->variant.addr_con,
+                                                     &cmp)) {
+                  *(an_integer_value *)result_storage =
+                                                cmp <= 0 ? one_int : zero_int;
                 } else {
                   do_constexpr_fail(result);
                   info_with_pos(ec_constexpr_pointers_not_comparable,
@@ -22383,6 +22386,7 @@ the value representation of the integer value.
               a_constexpr_address  *ptr2 = (a_constexpr_address*)opnd2_value;
               if (is_runtime_data_address(ptr1) ==
                                               is_runtime_data_address(ptr2)) {
+                int  cmp;
                 if (!is_runtime_data_address(ptr1)) {
                   if (!addresses_are_comparable(ips, ptr1, ptr2)) {
                     info_with_pos(ec_constexpr_pointers_not_comparable,
@@ -22392,11 +22396,11 @@ the value representation of the integer value.
                     set_bool_value(ptr1->address >= ptr2->address,
                                    result_storage);
                   }  /* if */
-                } else if (is_null_pointer_value(ptr1->variant.addr_con) &&
-                           is_null_pointer_value(ptr2->variant.addr_con)) {
-                  /* Two null pointer values (represented as "run-time"
-                     addresses). */
-                  *(an_integer_value *)result_storage = one_int;
+                } else if (compare_address_constants(ptr1->variant.addr_con,
+                                                     ptr2->variant.addr_con,
+                                                     &cmp)) {
+                  *(an_integer_value *)result_storage =
+                                                cmp >= 0 ? one_int : zero_int;
                 } else {
                   do_constexpr_fail(result);
                   info_with_pos(ec_constexpr_pointers_not_comparable,

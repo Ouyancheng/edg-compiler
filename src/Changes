@@ -1,5 +1,20 @@
 Version 6.7
 
+10/23/24 [EDGcpfe/27658]
+Constant evaluation of comparison of local array addresses
+
+Consider:
+
+  void g() {
+    int arr[] = { 1, 2, 3 };
+    static_assert(&arr[0] <= &arr[1]);  // Previously an error.  Now okay.
+  }
+
+Previously, the condition in the static_assert declaration was not considered
+a valid constant expression.  Now it is (and produces a true value in this
+case).
+
+
 10/23/24 [EDGcpfe/27435]
 Pack expansions in nested template arguments of concept-ids
 
