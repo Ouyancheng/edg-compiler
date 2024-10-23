@@ -45244,7 +45244,7 @@ suspend point.
   a_boolean         temp_init_used, processed, is_dependent_operand;
   an_expr_node_ptr  node;
   a_coroutine_descr_ptr
-                    cdp;
+                    cdp = NULL;
 
   if (innermost_function_scope == NULL) {
     pos_error(ec_await_not_allowed_outside_function_scope, pos);

@@ -7283,7 +7283,7 @@ successfully interpreted, FALSE otherwise.
 {
   a_boolean                result = TRUE;
   an_expr_node_ptr         expr = stmt->expr;
-  a_byte                   *expr_value, *case_value;
+  a_byte                   *expr_value = NULL, *case_value;
   a_storage_stack_state    saved_stack;
   a_type_ptr               tp;
   a_byte_count             n_bytes;
@@ -14774,7 +14774,7 @@ the corresponding reflection value at the location denoted by result_cap.
   a_boolean           result = TRUE;
   a_reflection_value  *result_rvp = (a_reflection_value*)result_cap->address;
   a_token_sequence    *orig_tok_seq, *tok_seq = NULL;
-  a_token_cache       *new_cache;
+  a_token_cache       *new_cache = NULL;
   Dyn_array<a_constant*>
                       values(10);
   a_boolean           saved_permit_leftover_dyn_alloc =

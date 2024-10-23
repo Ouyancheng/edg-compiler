@@ -6356,7 +6356,7 @@ a using-directive lookup done from this namespace should only consider
 inline namespaces.
 */
 {
-  a_symbol_ptr	sym;
+  a_symbol_ptr	sym = NULL;
   a_symbol_ptr	tag_symbol = NULL;
   a_symbol_ptr	type_tag_symbol = NULL;
   a_symbol_ptr	namespace_symbol = NULL;
