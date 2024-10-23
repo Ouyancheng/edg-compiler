@@ -25239,7 +25239,7 @@ diagnostic in *ips.
               a_variable_ptr  vp = rt_con->variant.address.variant.variable;
               if (!variable_has_constant_address(vp) &&
                   !(cpp26_mode && ips->is_constant_evaluated &&
-                    // FIXME type->variant.pointer.is_reference &&
+                    type->variant.pointer.is_reference &&
                     is_addressable_auto_var(vp))) {
                 a_symbol_ptr  var_sym = symbol_for(vp);
                 do_constexpr_fail(result);
