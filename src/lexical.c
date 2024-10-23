@@ -3513,21 +3513,47 @@ references.
 }  /* is_template_reference */
 
 
+static void coalesce_and_scan_concept_args(an_identifier_options_set  gid_opts)
 /*
-Get a token and, if it is a tok_identifier and coalesce_ids is TRUE, call
-is_generalized_identifier_start to coalesce it in case it is the beginning
-of something like a qualified name.
+Call is_generalized_identifier_start with the options specified in gid_opts,
+and if it returns TRUE and the current symbol is a concept template followed by
+a '<', scan the concept argument list.
 */
-#define get_token_and_coalesce_if_needed(coalesce_ids, is_expr)             \
-  if (coalesce_ids) {                                                       \
-    an_identifier_options_set expr_type_opt = is_expr ? GID_IS_EXPR_CONTEXT \
-                                                      : GID_IS_TYPENAME;    \
-    (void)get_token();                                                      \
-    (void)is_generalized_identifier_start(GID_TEMPLATE_ARGS_OPTIONAL |      \
-                                          expr_type_opt);                   \
-  } else {                                                                  \
-    (void)get_token();                                                      \
-  }
+{
+  if (is_generalized_identifier_start(gid_opts) &&
+      locator_for_curr_id.has_been_coalesced &&
+      locator_for_curr_id.specific_symbol != NULL &&
+      symbol_is(locator_for_curr_id.specific_symbol, sk_concept_template)) {
+    (void)get_token();
+    if (curr_token == tok_lt) {
+      a_symbol_ptr        sym = locator_for_curr_id.specific_symbol;
+      a_boolean           err = FALSE;
+      a_template_arg_ptr  tap;
+
+      (void)get_token();
+      tap = scan_concept_arg_list(sym, /*type_constraint=*/FALSE, &err);
+      free_template_arg_list(tap);
+      required_token(tok_gt, ec_exp_gt);
+    }  /* if */
+  }  /* if */
+}  /* coalesce_and_scan_concept_args */
+
+
+static void get_token_and_coalesce_if_needed(a_boolean  coalesce_ids,
+                                             a_boolean  is_expr)
+/*
+Get a token and, if coalesce_ids is TRUE, call coalesce_and_scan_concept_args
+to coalesce any identifier in case it is the beginning of something like a
+qualified name.
+*/
+{
+  (void)get_token();
+  if (coalesce_ids) {
+    an_identifier_options_set  gid_opts = is_expr ? GID_IS_EXPR_CONTEXT
+                                                  : GID_IS_TYPENAME;
+    coalesce_and_scan_concept_args(gid_opts | GID_TEMPLATE_ARGS_OPTIONAL);
+  }  /* if */
+}  /* get_token_and_coalesce_if_needed */
 
 
 static void copy_cached_token(a_cached_token_ptr	from_ctp,
@@ -4033,7 +4059,7 @@ a template argument list or is just a less-than sign.
     /* Attempt to coalesce this token in case it begins an identifier. */
     an_identifier_options_set  gid_opts = GID_TEMPLATE_ARGS_OPTIONAL;
     if (is_expr) gid_opts |= GID_IS_EXPR_CONTEXT;
-    (void)is_generalized_identifier_start(gid_opts);
+    coalesce_and_scan_concept_args(gid_opts);
   }  /* if */
   /* Loop through the tokens, beginning with the current token and stopping
      when a token in the stop token array is found.  Whenever a '(', '[', or
