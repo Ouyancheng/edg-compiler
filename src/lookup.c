@@ -6462,13 +6462,15 @@ sym_found:
       }  /* if */
     }  /* if */
   }  /* if */
-  if (sym == NULL && !ns_lookup_opts.is_linkage_or_friend_lookup &&
+  if (sym == NULL && !ns_lookup_opts.is_linkage_lookup &&
+      (!ns_lookup_opts.is_friend_lookup || !clang_mode) &&
       !inline_namespace_lookup &&
       !ns_lookup_opts.direct_namespace_members_only) {
      /* If the symbol was not found in this namespace, look in namespaces
-        visible because of using directives.  Skip this process for a
-        linkage lookup.  A linkage or friend lookup should only find names
-        that are actually defined in a scope. */
+        visible because of using directives.  Skip this process for linkage
+        lookups.  A linkage lookup should only find names that are actually
+        defined in a scope.  Clang (as of version 19.1) also skips this for
+        friend lookups. */
     sym = qualified_using_directive_lookup(
                                   locator, ns_ptr, ns_ptr->variant.assoc_scope,
                                   options, orig_ns_ptr, synth_sym,
@@ -6784,14 +6786,14 @@ found_sym:
         }  /* if */
       }  /* if */
     }  /* if */
-    if (sym == NULL &&
-        !file_scope_lookup_opts.is_linkage_lookup &&
-        !file_scope_lookup_opts.is_friend_lookup &&
+    if (sym == NULL && !file_scope_lookup_opts.is_linkage_lookup &&
+        (!file_scope_lookup_opts.is_friend_lookup || !clang_mode) &&
         !file_scope_lookup_opts.is_direct_namespace_members_only) {
-       /* If the symbol was not found in this namespace, look in namespaces
-          visible because of using directives.  Skip this process for a
-          linkage lookup.  A linkage or friend lookup should only find names
-          that are actually defined in a scope. */
+      /* If the symbol was not found in this namespace, look in namespaces
+         visible because of using directives.  Skip this process for linkage
+         lookups.  A linkage lookup should only find names that are actually
+         defined in a scope.  Clang (as of version 19.1) also skips this for
+         friend lookups.*/
       sym = qualified_using_directive_lookup(
                              locator, (a_namespace_ptr)NULL, file_scope_to_use,
                              options, (a_namespace_ptr)NULL, &synth_sym,
