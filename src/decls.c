@@ -146,6 +146,7 @@ Clear the fields of *is.
   is->implicit_aggr_initializer = FALSE;
   is->return_expression = FALSE;
   is->check_consteval_functions = FALSE;
+  is->under_direct_init_designator = FALSE;
 }  /* clear_init_state_fields */
 
 #endif /* !NULL_POINTER_IS_ZERO */

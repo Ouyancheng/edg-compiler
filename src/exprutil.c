@@ -1029,6 +1029,7 @@ kind to "kind" and its fields to default values, and return a pointer to it.
   icp->constant_expr_ruled_out = FALSE;
   icp->consteval_function_designator_seen = FALSE;
   icp->preserved_deduced_pack = FALSE;
+  icp->direct_init_designator = FALSE;
   icp->pack_expansion_descr = NULL;
   set_init_component_kind(icp, kind);
   return icp;

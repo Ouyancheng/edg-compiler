@@ -657,6 +657,12 @@ typedef struct an_init_state {
   a_bit_field	check_consteval_functions:1;
 			/* TRUE when the initializer might contain references
 			   to consteval functions that need to be validated. */
+  a_bit_field	under_direct_init_designator:1;
+			/* TRUE when processing an aggregate sub-initializer
+			   introduced with a direct-init designator, such as
+			      X x = { .sub{ f() } };
+			    Here, the sub-initializer "f()" is processed with
+			    this flag set to TRUE. */ 
 } an_init_state;
 
 

@@ -911,11 +911,15 @@ remove_any_extraneous_braces:
            struct S { explicit S(int = 0) {} };
            struct X { S s; };
            X x = {};  // Normally an error, but okay in Microsoft mode.
-    */
+       The resolution of Core issue 2619 also clarified that a designated
+       initializer like ".s{0}" in "X x = {.s{0}}" is also treated as direct
+       initialization. */
     an_init_state  elem_is;
     elem_is = *is;
     elem_is.direct_init = ((microsoft_mode || (gpp_mode && !clang_mode)) &&
-                           is->implicit_aggr_initializer);
+                           is->implicit_aggr_initializer) ||
+                          is->under_direct_init_designator;
+    elem_is.under_direct_init_designator = FALSE;
     if (constexpr_enabled && elem_is.initializer_must_be_constant) {
       /* Do not force each element to be a valid constant.  The complete
          initializer will be evaluated higher up and only then is a valid
@@ -3244,7 +3248,8 @@ list and is used to check for duplicated designated initializers.  *p_bcp
 points to the list of remaining base classes of the aggregate that need
 initialization. */
 {
-  a_boolean              okay, skip_designator = TRUE;
+  a_boolean              okay, skip_designator = TRUE,
+                         saved_direct_init = is->direct_init;
   an_init_component_ptr  icp = *p_icp, next_icp = NULL;
   a_type_ptr             class_to_look_in = class_type;
   a_symbol_locator       loc;
@@ -3378,6 +3383,9 @@ initialization. */
     }  /* if */
   }  /* if */
   if (skip_designator) {
+    if (icp->direct_init_designator) {
+      is->under_direct_init_designator = TRUE;
+    }  /* if */
     next_icp = next_elem(icp);
   }  /* if */
   if (!C_mode() && okay && !type_is(class_type, tk_union) &&
@@ -3561,6 +3569,7 @@ initialization. */
 #if DO_IL_LOWERING
 done:
 #endif /* DO_IL_LOWERING */
+  is->under_direct_init_designator = saved_direct_init;
   *p_icp = icp;
 }  /* aggr_init_field_designator */
 

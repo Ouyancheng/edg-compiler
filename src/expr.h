@@ -203,6 +203,10 @@ typedef struct an_init_component {
 			/* TRUE if this entry is a copy of a pack expansion
 			   preserved for future deduction rather than an
 			   actual component. */
+  a_bit_field	direct_init_designator:1;
+			/* Set to TRUE if this is an ick_designator component
+			   that is immediately followed by "{" (instead of the
+			   more traditional "="). */
   a_pack_expansion_descr_ptr
 		pack_expansion_descr;
 			/* If non-NULL, this entity is a pack expansion

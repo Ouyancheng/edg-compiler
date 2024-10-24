@@ -1,5 +1,23 @@
 Version 6.7
 
+10/24/24 [EDGcpfe/25755,EDGcpfe/25853,EDGcpfe/EDGcpfe/27195,EDGcpfe/27261,
+          EDGcpfe/27545,EDGcpfe/27675]
+Core issue 2619: Designators and direct-initialization
+
+Consider, in C++20 mode:
+
+  struct V { explicit V() {}; };
+  struct S { V v; } s = { .v{} };  // Previously an error.  Now okay.
+
+Previously, the front end treated all aggregate element initializations as
+"copy initialization", which discards "explicit" constructors, and thus the
+example above produced an error.  Core issue 2619 clarified that a designated
+initializer using direct-list-initialization syntax (i.e., without an
+intervening "=" token) is a form of "direct initialization", which does
+consider explicit constructors (making the example above valid).  The front
+end now implements that issue resolution.
+
+
 10/23/24 [EDGcpfe/27658]
 Constant evaluation of comparison of local array addresses
 
