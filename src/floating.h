@@ -122,7 +122,17 @@ FPT_LONG_DOUBLE_PRECISION macros (see float_type.h for an explanation).
     !defined(FPT_LONG_DOUBLE_VALUE_BITS) && \
     !defined(FPT_LONG_DOUBLE_HAS_HIDDEN) && \
     !defined(FPT_LONG_DOUBLE_PRECISION)
+#if USE_HOST_FP_CONVERSION_ROUTINES
+/* We only need the internal routines described in this header because
+   USE_FLOAT128_FOR_HOST_FP_VALUE is TRUE and USE_QUADMATH_LIBRARY is
+   FALSE, i.e., we won't be using this code for anything other than to
+   provide support for the float128 type.  Consequently, having an accurate
+   configuration for long double is unnecessary and we arbitrarily
+   designate binary128 as the representation. */
+#define FP_LONG_DOUBLE_IS_BINARY128 TRUE
+#else /* !USE_HOST_FP_CONVERSION_ROUTINES */
 #error Type "long double" is configured but un-specified.
+#endif /* USE_HOST_FP_CONVERSION_ROUTINES */
 #endif /* !defined(FP_LONG_DOUBLE_IS_BINARY128) && ... */
 
 #ifndef FP_LONG_DOUBLE_IS_BINARY64
