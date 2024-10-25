@@ -3249,7 +3249,7 @@ points to the list of remaining base classes of the aggregate that need
 initialization. */
 {
   a_boolean              okay, skip_designator = TRUE,
-                         saved_direct_init = is->direct_init;
+                         saved_direct_init = is->under_direct_init_designator;
   an_init_component_ptr  icp = *p_icp, next_icp = NULL;
   a_type_ptr             class_to_look_in = class_type;
   a_symbol_locator       loc;
