@@ -8244,7 +8244,7 @@ class_type if any are needed.
   a_boolean                   need_determined = FALSE;
   a_boolean                   definition_needed = FALSE, force_static;
   a_boolean                   optional;
-  a_routine_ptr               first_virtual;
+  a_routine_ptr               first_virtual = NULL;
 
   /* Make sure the class type has been pre-lowered. */
   prelower_class_type(class_type);
@@ -12197,7 +12197,7 @@ requires implied arguments (e.g., for a constructor or destructor), add
 them.  The call has already been lowered.
 */
 {
-  an_expr_node_ptr implied_arg_list, end_implied_arg_list;
+  an_expr_node_ptr implied_arg_list, end_implied_arg_list = NULL;
   an_expr_node_ptr func_addr_arg, this_arg;
 
   implied_arg_list = NULL;
@@ -12214,6 +12214,7 @@ them.  The call has already been lowered.
     /* The implied arguments go after the "this" argument. */
     func_addr_arg = call_expr->variant.operation.operands;
     this_arg = func_addr_arg->next;
+    check_assertion(end_implied_arg_list != NULL);
     end_implied_arg_list->next = this_arg->next;
     this_arg->next = implied_arg_list;
   }  /* if */
@@ -14903,7 +14904,7 @@ static void lower_is_corresponding_member(an_expr_node_ptr expr)
 Lower a call to __is_corresponding_member or __builtin_is_corresponding_member.
 */
 {
-  a_type_ptr       class_type1, class_type2;
+  a_type_ptr       class_type1 = NULL, class_type2 = NULL;
   an_expr_node_ptr pm_args, args = expr->variant.builtin_operation.operands;
   a_builtin_operation_kind
                    op = expr->variant.builtin_operation.kind;
@@ -14933,9 +14934,7 @@ Lower a call to __is_corresponding_member or __builtin_is_corresponding_member.
     class_type1 = pm1->type->variant.ptr_to_member.class_of_which_a_member;
     class_type2 = pm2->type->variant.ptr_to_member.class_of_which_a_member;
   }  /* if */
-  /* Disable spurious warnings about class_type1 and class_type2 being
-     uninitialized. */
-BEGIN_DISABLE_GCC_WARNING_MAYBE_UNITIALIZED
+  check_assertion(class_type1 != NULL && class_type2 != NULL);
   if (is_or_was_ptr_to_member_function_type(pm1->type) ||
       is_or_was_ptr_to_member_function_type(pm2->type) ||
       !class_symbol_supp(symbol_for(class_type1))->standard_layout ||
@@ -14990,7 +14989,6 @@ BEGIN_DISABLE_GCC_WARNING_MAYBE_UNITIALIZED
     new_expr = add_cast_if_necessary(new_expr, expr->type);
     overwrite_node(expr, new_expr);
   }  /* if */
-END_DISABLE_GCC_WARNING_MAYBE_UNITIALIZED
 }  /* lower_is_corresponding_member */
 
 
@@ -19291,7 +19289,7 @@ statements don't contain an enk_condition).
     an_expr_node_ptr   value_expr;
     an_insert_location insert_location;
     an_insert_location break_label_insert_location;
-    a_statement_ptr    block_stmt, dep_statement;
+    a_statement_ptr    block_stmt, dep_statement = NULL;
     a_context          context;
     an_init_pos_descr  ipd;
     a_label_ptr        break_label = NULL;
@@ -19316,6 +19314,7 @@ statements don't contain an enk_condition).
         check_assertion(statement_kind == (a_statement_kind)stmk_while);
         dep_statement = statement->variant.loop_statement;
       }  /* if */
+      check_assertion(dep_statement != NULL);
       block_stmt = dep_statement;
       turn_statement_into_block_transferring_pragma(dep_statement,
                                                     &insert_location,

@@ -4893,7 +4893,8 @@ statement if necessary.
   a_type_ptr                routine_type, spec_array_ptr;
   an_exception_specification_ptr
                             tsp;
-  a_variable_ptr            throw_frame, func_frame, spec_array_var;
+  a_variable_ptr            throw_frame = NULL, func_frame = NULL,
+                            spec_array_var;
   an_expr_node_ptr          spec_array_node, throw_frame_throw_spec;
   an_expr_node_ptr          func_frame_function_regions;
   an_expr_node_ptr          func_frame_function_obj_table;

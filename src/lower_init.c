@@ -881,7 +881,7 @@ moved out of the block.
 */
 {
   a_boolean       return_moved = FALSE;
-  a_statement_ptr stmt, prev_stmt, temp_block_stmt, temp2_block_stmt;
+  a_statement_ptr stmt, prev_stmt = NULL, temp_block_stmt, temp2_block_stmt;
 
   check_assertion(block_stmt != NULL &&
                   block_stmt->kind == (a_statement_kind)stmk_block);
@@ -9162,7 +9162,7 @@ where we don't want to create a separate temporary for "S()" and then assign
 it to "s".
 */
 {
-  an_expr_node_ptr operand_1, operand_2, operand_3;
+  an_expr_node_ptr operand_1, operand_2, operand_3 = NULL;
   a_boolean        is_question = node_operator_is(expr, eok_question);
 
   check_assertion(is_operation_node(expr) &&
@@ -9180,6 +9180,7 @@ it to "s".
   operand_2 = add_cast_if_necessary(operand_2, void_type());
   operand_1->next = operand_2;
   if (is_question) {
+    check_assertion(operand_3 != NULL);
     set_expr_result_not_used(operand_3);
     operand_3 = add_cast_if_necessary(operand_3, void_type());
     operand_2->next = operand_3;
@@ -11606,7 +11607,7 @@ the new-expression (a pointer type).
         /* Add extra arguments as required by the selected deallocation
            function. */
         a_boolean        sized_delete, aligned_delete, destroying_delete;
-        an_expr_node_ptr alignment_arg = NULL, last_arg;
+        an_expr_node_ptr alignment_arg = NULL, last_arg = NULL;
         (void)is_default_operator_delete(delete_routine, &sized_delete,
                                          &aligned_delete, &destroying_delete);
         if (destroying_delete) {
@@ -12084,7 +12085,7 @@ i.e., arrays with class elements.
   a_routine_ptr               dtor_routine;
   an_expr_node_ptr            ptr_node = ndsp->arg, vec_delete_node;
   an_expr_node_ptr            dtor_addr_node, assign_node = NULL;
-  an_expr_node_ptr            ptr_node_test = NULL, ptr_temp;
+  an_expr_node_ptr            ptr_node_test = NULL, ptr_temp = NULL;
   a_variable_ptr              vtbl_temp_var;
 
   /* Lower "arg". */
