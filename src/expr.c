@@ -16744,25 +16744,26 @@ name.  We do not advance to the token after the decltype in this case.
 }  /* scan_decltype_operator */
 
 
-a_type_ptr scan_type_splicer(a_rescan_control_block *rcblock,
-                             a_boolean              might_be_id_start)
+a_tagged_pointer scan_type_or_namespace_splicer(
+                                    a_rescan_control_block *rcblock,
+                                    a_boolean              might_be_id_start)
 /*
-Scan the type splicer.
+Scan a type or namespace splicer of the form
 
-Syntax:
-        typename [: reflection-value :]
+        [: reflection-value :]
 
 where "reflection-value" is a constant-expression of type "std::meta::info"
-and the "typename" prefix is optional (the caller will diagnose if it wasn't
-optional).  If rcblock is non-NULL, redo semantic analysis on a previously-
-scanned splicer, and return the result type (or an error indication in
-*rcblock).  This routine is intended to be called from outside of the
-expression-processing routines.  might_be_id_start is TRUE if we are in a
-context where the type splicer could be the start of a qualified name.  Do not
-advance to the token after the typename operator in that case.
+(the caller is responsible for handling a "typename" prefix if required or
+present).  Return a pointer to the spliced entity: An iek_type entry if the
+reflection-value denotes a type or an iek_scope entry if it denotes a
+namespace (possibly the file scope).  If rcblock is non-NULL, redo semantic
+analysis on a previously-scanned splicer (which can only be a type), and
+return the result type (or an error indication in *rcblock).
+
+This routine can be called from outside of the expression-processing routines.
 */
 {
-  a_type_ptr              result;
+  a_tagged_pointer        result;
   an_expr_node_ptr        expr = NULL;
   an_expr_stack_entry     expr_stack_entry;
   an_expr_stack_entry_ptr saved_expr_stack;
@@ -16773,6 +16774,7 @@ advance to the token after the typename operator in that case.
   a_boolean               saved_in_decltype_context;
   a_boolean               saved_suppress_diagnostics;
   a_boolean               has_typename_prefix = FALSE;
+  a_boolean               err = FALSE;
 #if GENERATE_SOURCE_SEQUENCE_LISTS
   a_source_sequence_entry_ptr
                           ssep = NULL;
@@ -16787,16 +16789,10 @@ advance to the token after the typename operator in that case.
        operand is picked up later after the expression stack has been pushed.
        We do keep track of the top-level operand, skipping parentheses and
        comma operators (to handle calls with incomplete return types). */
-       // FIXME is that needed for typename[:...:]?
     saved_decltype_rescan_operand = decltype_rescan_operand;
     decltype_rescan_operand = skip_commas_and_parens(rcblock->expr);
   } else {
     /* Normal, non-rescan, processing. */
-    /* Skip the "typename" token. */
-    if (curr_token == tok_typename) {
-      has_typename_prefix = TRUE;
-      (void)get_token();
-    }  /* if */
     check_assertion(curr_token == tok_lsplice);
     /* Check for and pass over the left delimiter. */
     add_stop_token(tok_rsplice);
@@ -16831,7 +16827,7 @@ advance to the token after the typename operator in that case.
     make_rescan_operand(rcblock->expr, rcblock, &operand);
   } else {
 #if GENERATE_SOURCE_SEQUENCE_LISTS
-    /* A decltype construct may include embedded statements and declarations if
+    /* A splicer construct may include embedded statements and declarations if
        it contains a statement expression.  To allow e.g. the C++-generating
        back end to associate the resulting source sequence entries with the
        decltype type, we delimit them by a pair of source sequence entries
@@ -16864,28 +16860,44 @@ advance to the token after the typename operator in that case.
                                             /*is_constant_evaluated=*/TRUE);
   }  /* if */
   if (is_error_type(operand.type)) {
-    result = error_type();
+    err = TRUE;
   } else if (operand_is_instantiation_dependent(&operand)) {
-    result = type_of_unknown_templ_param_nontype;
+    result.kind = iek_type;
+    result.ptr = (char*)type_of_unknown_templ_param_nontype;
   } else if (!is_reflection_type(operand.type)) {
     expr_pos_ty_error(ec_bad_splicer_operand, &operand.position, operand.type);
-    result = error_type();
+    err = TRUE;
   } else if (!is_constant_operand(&operand)) {
     expr_pos_error(ec_nonconstant_splicer_operand, &operand.position);
-    result = error_type();
+    err = TRUE;
   } else {
     a_constant_ptr      cp = &operand.variant.constant;
     a_reflection_value  rv = cp->variant.reflection;
     strip_template_arg(&rv);
-    if (rv.entity.kind != iek_type) {
-      expr_pos_error(ec_not_a_type_reflection, &operand.position, rv);
-      result = error_type();
+    result = rv.entity;
+    if (rv.entity.kind == iek_type) {
+      /* Nothing more to do. */
+    } else if (rv.entity.kind == iek_namespace && might_be_id_start) {
+      /* A namespace alias.  Replace it by the aliased namespace. */
+      result.kind = iek_scope;
+      result.ptr = (char*)((a_namespace*)rv.entity.ptr)
+                                                     ->variant.assoc_namespace
+                                                     ->variant.assoc_scope;
+    } else if (rv.entity.kind == iek_scope && might_be_id_start) {
+      if (!scope_is((a_scope*)rv.entity.ptr, sck_namespace) &&
+          !scope_is((a_scope*)rv.entity.ptr, sck_file)) {
+        expr_pos_error(ec_not_a_type_reflection, &operand.position, rv);
+        err = TRUE;
+      }  /* if */
     } else {
-      result = (a_type_ptr)rv.entity.ptr;
+      expr_pos_error(ec_not_a_type_reflection, &operand.position, rv);
+      err = TRUE;
     }  /* if */
   }  /* if */
-  if (is_error_type(result)) {
+  if (err) {
     /* We'll just return the error type. */
+    result.kind = iek_type;
+    result.ptr = (char*)error_type();
     /* The expression is discarded. */
     expr_stack->unevaluated_expr_will_be_kept_in_il = FALSE;
   } else if (rcblock != NULL &&
@@ -16899,16 +16911,17 @@ advance to the token after the typename operator in that case.
        construct, we just return the underlying type in this case, and reclaim
        the expression node if possible. */
     reclaim_fs_nodes_of_operand(&operand);
-  } else {
+  } else if (!err && result.kind == iek_type) {
     /* Create a typeref representing the splice with the spliced type being
        the underlying type. */
-    a_type_ptr  tp = alloc_type((a_type_kind)tk_typeref);
-    a_boolean   dependent_arg = is_template_dependent_context() &&
-                                is_template_dependent_type(result);
+    a_boolean   dependent_arg;
     a_memory_region_number
                 prev_region;
+    a_type_ptr  tp = alloc_type(tk_typeref);
+    dependent_arg = is_template_dependent_context() &&
+                    is_template_dependent_type((a_type*)result.ptr);
     tp->variant.typeref.kind = trk_is_splice;
-    tp->variant.typeref.type = result;
+    tp->variant.typeref.type = (a_type*)result.ptr;
     tp->variant.typeref.is_dependent_type_operator = dependent_arg;
     tp->variant.typeref.is_nonreal = dependent_arg;
     tp->variant.typeref.is_dependent = dependent_arg;
@@ -16942,7 +16955,7 @@ advance to the token after the typename operator in that case.
       tp->source_corresp.enclosing_routine =
                                   scope_stack[expr_scope_depth].assoc_routine;
     }  /* if */
-    result = tp;
+    result.ptr = (char*)tp;
   }  /* if */
 #if GENERATE_SOURCE_SEQUENCE_LISTS
   if (ssep == NULL) {
@@ -16973,6 +16986,30 @@ advance to the token after the typename operator in that case.
   switch_back_region_and_lifetime(region_to_switch_back_to,
                                   saved_object_lifetime);
   return result;
+}  /* scan_type_or_namespace_splicer */
+
+
+a_type_ptr scan_type_splicer(a_rescan_control_block *rcblock)
+/*
+Scan a type splicer of the form
+
+        [: reflection-value :]
+
+where "reflection-value" is a constant-expression of type "std::meta::info"
+(the caller is responsible for handling a "typename" prefix if required or
+present).  If rcblock is NULL, the left splice bracket is the current token.
+If rcblock is non-NULL, redo semantic analysis on a previously-scanned
+splicer, and return the result type (or an error indication in *rcblock).
+
+This routine can be called from outside of the expression-processing routines.
+*/
+{
+  a_tagged_pointer  entity;
+
+  entity = scan_type_or_namespace_splicer(rcblock,
+                                          /*might_be_id_start=*/FALSE);
+  check_assertion(entity.kind == iek_type);
+  return (a_type*)entity.ptr;
 }  /* scan_type_splicer */
 
 
@@ -17128,7 +17165,7 @@ expression-processing routines.
                                   &rcblock,
                                   &expr_stack_entry);
   if (is_splice) {
-    new_type = scan_type_splicer(&rcblock, /*might_be_id_start=*/FALSE);
+    new_type = scan_type_splicer(&rcblock);
   } else if (is_typeof) {
     new_type = scan_typeof_operator(&rcblock, (a_decl_pos_block *)NULL);
   } else {
@@ -42510,8 +42547,12 @@ type_start:
 
         if (curr_token == tok_typename) {
           if (reflection_enabled && next_token() == tok_lsplice) {
-            cast_type = scan_type_splicer((a_rescan_control_block *)NULL,
-                                          /*might_be_id_start=*/FALSE);
+            (void)get_token();
+            cast_type = scan_type_splicer((a_rescan_control_block *)NULL);
+            if (type_is(cast_type, tk_typeref) &&
+                is_typeref_kind(cast_type, trk_is_splice)) {
+              cast_type->variant.typeref.has_typename_prefix = TRUE;
+            }  /* if */
           } else {
             /* "typename X::Y" is an allowed form of type. */
             a_symbol_ptr	type_sym;

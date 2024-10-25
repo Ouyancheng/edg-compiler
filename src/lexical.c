@@ -23592,7 +23592,8 @@ selection operator, in which case it points to the type of the left operand.
   a_boolean			qualifier_is_super = FALSE;
   a_boolean			is_super_qualified = FALSE;
   a_boolean			is_conversion_type = FALSE;
-  a_boolean			qualifier_is_decltype = FALSE;
+  a_boolean			qualifier_is_decltype = FALSE,
+                                qualifier_is_splice = FALSE;
   a_boolean			is_decltype_qualified = FALSE;
   a_type_ptr			decltype_type = NULL;
   a_boolean			qualified_conversion_operator = FALSE;
@@ -23729,17 +23730,27 @@ selection operator, in which case it points to the type of the left operand.
        or a splicer (e.g., "[:^int:]"), but could also be a qualifier in a
        qualified name (e.g., "decltype(expr)::something").  The former is not
        treated as an identifier, while the latter is. */
-    a_type_ptr	tp;
+    a_type_ptr	 tp = NULL;
+    a_scope_ptr  spliced_scope = NULL;
     if (curr_token == tok_decltype) {
       tp = scan_decltype_operator((a_rescan_control_block *)NULL,
                                   /*might_be_id_start=*/TRUE);
     } else {
-      tp = scan_type_splicer((a_rescan_control_block *)NULL,
-                             /*might_be_id_start=*/TRUE);
+      a_tagged_pointer  entity;
+      entity = scan_type_or_namespace_splicer((a_rescan_control_block *)NULL,
+                                              /*might_be_id_start=*/TRUE);
+      if (entity.kind == iek_type) {
+        tp = (a_type*)entity.ptr;
+      } else {
+        check_assertion(entity.kind == iek_scope);
+        spliced_scope = (a_scope*)entity.ptr;
+      }  /* if */
+      qualifier_is_splice = TRUE;
     }  /* if */
     next_tok = next_two_tokens_if_qualifier_delimiter(tok_colon_colon,
                                                       &next_tok_2);
     if (next_tok != tok_colon_colon) {
+      check_assertion(tp != NULL);
       locator_for_curr_id = cleared_locator;
       locator_for_curr_id.variant.decltype_type = tp;
       locator_for_curr_id.source_position = pos_curr_token;
@@ -23751,6 +23762,18 @@ selection operator, in which case it points to the type of the left operand.
       /* Restore the original error position. */
       error_position = orig_error_position;
       goto exit;
+    } else if (tp == NULL) {
+      /* The current token is the ":]" of the splicer. */
+      might_be_qualifier = TRUE;
+      check_assertion(spliced_scope != NULL);
+      if (scope_is(spliced_scope, sck_file)) {
+        is_file_scope_qualified_name = TRUE;
+      } else {
+        a_namespace  *spliced_nsp;
+        check_assertion(scope_is(spliced_scope, sck_namespace));
+        spliced_nsp = spliced_scope->variant.assoc_namespace;
+        qualifier_sym = symbol_for(spliced_nsp);
+      }  /* if */
     } else {
       /* The current token is the ")" of the decltype. */
       might_be_qualifier = TRUE;
@@ -23844,9 +23867,9 @@ selection operator, in which case it points to the type of the left operand.
          "::". */
       is_vacuous_dtor_or_finalizer = TRUE;
       qualifier_sym = NULL;
-    } else if (qualifier_is_decltype) {
-      /* A construct like "decltype(x)::something.  The qualifier type
-         was set above. */
+    } else if (qualifier_is_decltype || qualifier_is_splice) {
+      /* A construct like "decltype(x)::something.  The qualifier type or
+         (for some splices) namespace was set above. */
 #if MICROSOFT_EXTENSIONS_ALLOWED
     } else if (curr_token == tok_super) {
       /* The Microsoft __super qualifier. */
@@ -24105,7 +24128,8 @@ selection operator, in which case it points to the type of the left operand.
 #if GNU_EXTENSIONS_ALLOWED
                !(gpp_mode && qualifier_sym == NULL && !err &&
                  !(options & GID_IS_EXPR_CONTEXT) &&
-                 !qualifier_is_decltype && !qualifier_is_super) &&
+                 !qualifier_is_decltype && !qualifier_is_splice &&
+                 !qualifier_is_super) &&
 #endif /* GNU_EXTENSIONS_ALLOWED */
                ((!microsoft_bugs || microsoft_version >= 1300) ||
                 is_vacuous_dtor_or_finalizer ||
