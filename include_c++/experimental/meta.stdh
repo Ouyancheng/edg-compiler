@@ -562,17 +562,41 @@ namespace std {
 
     consteval bool type_is_scoped_enum(info);
 
+    consteval info type_remove_const(info);
+
+    consteval info type_remove_volatile(info);
+
+    consteval info type_remove_cv(info);
+
+    consteval info type_add_const(info);
+
+    consteval info type_add_volatile(info);
+
+    consteval info type_add_cv(info);
+
+    consteval info type_remove_reference(info);
+
+    consteval info type_add_lvalue_reference(info);
+
+    consteval info type_add_rvalue_reference(info);
+
+    consteval info type_make_signed(info);
+
+    consteval info type_make_unsigned(info);
+
+    consteval info type_remove_extent(info);
+
+    consteval info type_remove_all_extents(info);
+
     consteval info type_remove_pointer(info);
 
     consteval info type_add_pointer(info);
 
+    consteval info type_remove_cvref(info);
+
     consteval info type_decay(info);
 
-    consteval info type_remove_reference(info);
-
-    consteval info type_remove_cv(info);
-
-    consteval info type_remove_cvref(info);
+    consteval info type_underlying_type(info);
 
     consteval std::size_t type_tuple_size(info);
 

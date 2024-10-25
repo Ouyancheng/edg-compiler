@@ -237,12 +237,24 @@ must be defined in interpret.c to implement its evaluation.
   M(std_meta, type_is_bounded_array, "(r)b") \
   M(std_meta, type_is_unbounded_array, "(r)b") \
   M(std_meta, type_is_scoped_enum, "(r)b") \
+  M(std_meta, type_remove_const, "(r)r") \
+  M(std_meta, type_remove_volatile, "(r)r") \
+  M(std_meta, type_remove_cv, "(r)r") \
+  M(std_meta, type_add_const, "(r)r") \
+  M(std_meta, type_add_volatile, "(r)r") \
+  M(std_meta, type_add_cv, "(r)r") \
+  M(std_meta, type_remove_reference, "(r)r") \
+  M(std_meta, type_add_lvalue_reference, "(r)r") \
+  M(std_meta, type_add_rvalue_reference, "(r)r") \
+  M(std_meta, type_make_signed, "(r)r") \
+  M(std_meta, type_make_unsigned, "(r)r") \
+  M(std_meta, type_remove_extent, "(r)r") \
+  M(std_meta, type_remove_all_extents, "(r)r") \
   M(std_meta, type_remove_pointer, "(r)r") \
   M(std_meta, type_add_pointer, "(r)r") \
-  M(std_meta, type_decay, "(r)r") \
-  M(std_meta, type_remove_reference, "(r)r") \
-  M(std_meta, type_remove_cv, "(r)r") \
   M(std_meta, type_remove_cvref, "(r)r") \
+  M(std_meta, type_decay, "(r)r") \
+  M(std_meta, type_underlying_type, "(r)r") \
   /* End of NS_scope_constexpr_intrinsics. */
 
 

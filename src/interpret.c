@@ -14652,6 +14652,108 @@ static a_boolean do_constexpr_##ns##_##name(                                 \
   return result;                                                             \
 }
 
+// FIXME: These functions currently do not handle abominable function types
+DEFINE_type_transform(std_meta, type_remove_const,
+  ([&]{
+    result_tp = remove_qualifiers(tp, TQ_CONST);
+  }))
+
+
+DEFINE_type_transform(std_meta, type_remove_volatile,
+  ([&]{
+    result_tp = remove_qualifiers(tp, TQ_VOLATILE);
+  }))
+
+
+DEFINE_type_transform(std_meta, type_remove_cv,
+  ([&]{
+    result_tp = remove_qualifiers(tp, TQ_CONST | TQ_VOLATILE);
+  }))
+
+
+DEFINE_type_transform(std_meta, type_add_const,
+  ([&]{
+    result_tp = make_qualified_type(tp, TQ_CONST);
+  }))
+
+
+DEFINE_type_transform(std_meta, type_add_volatile,
+  ([&]{
+    result_tp = make_qualified_type(tp, TQ_VOLATILE);
+  }))
+
+
+DEFINE_type_transform(std_meta, type_add_cv,
+  ([&]{
+    result_tp = make_qualified_type(tp, TQ_CONST | TQ_VOLATILE);
+  }))
+
+
+DEFINE_type_transform(std_meta, type_remove_reference,
+  ([&]{
+    if (is_reference_type(tp)) tp = skip_typedefs(type_pointed_to(tp));
+    result_tp = tp;
+  }))
+
+
+DEFINE_type_transform(std_meta, type_add_lvalue_reference,
+  ([&]{
+    if (!is_reference_type(tp)) tp = make_reference_type(tp);
+    result_tp = tp;
+  }))
+
+DEFINE_type_transform(std_meta, type_add_rvalue_reference,
+  ([&]{
+    if (!is_reference_type(tp)) tp = make_rvalue_reference_type(tp);
+    result_tp = tp;
+  }))
+
+
+DEFINE_type_transform(std_meta, type_make_signed,
+  ([&]{
+    a_type_qualifier_set  tqs = get_type_qualifiers(tp);
+    tp = skip_typerefs(tp);
+    if (type_is(tp, tk_integer) && !tp->variant.integer.bool_type) {
+      an_integer_kind  ik = tp->variant.integer.int_kind;
+      result_tp = tp->variant.integer.enum_type ? integer_type(ik) : tp;
+      if (!int_kind_is_signed[(int)ik]) {
+        result_tp = other_signedness_integer_type(ik);
+      }  /* if */
+      result_tp = make_qualified_type(result_tp, tqs);
+    }  /* if */
+  }))
+
+
+DEFINE_type_transform(std_meta, type_make_unsigned,
+  ([&]{
+    a_type_qualifier_set  tqs = get_type_qualifiers(tp);
+    tp = skip_typerefs(tp);
+    if (type_is(tp, tk_integer) && !tp->variant.integer.bool_type) {
+      an_integer_kind  ik = tp->variant.integer.int_kind;
+      result_tp = tp->variant.integer.enum_type ? integer_type(ik) : tp;
+      if (int_kind_is_signed[(int)ik]) {
+        result_tp = other_signedness_integer_type(ik);
+      }  /* if */
+      result_tp = make_qualified_type(result_tp, tqs);
+    }  /* if */
+  }))
+
+
+DEFINE_type_transform(std_meta, type_remove_extent,
+  ([&]{
+    if (is_array_type(tp)) tp = skip_typedefs(array_element_type(tp));
+    result_tp = tp;
+  }))
+
+
+DEFINE_type_transform(std_meta, type_remove_all_extents,
+  ([&]{
+    if (is_array_type(tp)) {
+      tp = skip_typedefs(underlying_array_element_type(tp));
+    }  /* if */
+    result_tp = tp;
+  }))
+
 
 DEFINE_type_transform(std_meta, type_remove_pointer,
   ([&]{
@@ -14660,11 +14762,17 @@ DEFINE_type_transform(std_meta, type_remove_pointer,
   }))
 
 
-// FIXME: Handle abominable types
 DEFINE_type_transform(std_meta, type_add_pointer,
   ([&]{
     if (is_reference_type(tp)) tp = skip_typedefs(type_pointed_to(tp));
     result_tp = make_pointer_type(tp);
+  }))
+
+
+DEFINE_type_transform(std_meta, type_remove_cvref,
+  ([&]{
+    if (is_reference_type(tp)) tp = skip_typerefs(type_pointed_to(tp));
+    result_tp = tp;
   }))
 
 
@@ -14680,24 +14788,15 @@ DEFINE_type_transform(std_meta, type_decay,
   }))
 
 
-DEFINE_type_transform(std_meta, type_remove_reference,
+DEFINE_type_transform(std_meta, type_underlying_type,
   ([&]{
-    if (is_reference_type(tp)) tp = skip_typedefs(type_pointed_to(tp));
-    result_tp = tp;
-  }))
-
-
-DEFINE_type_transform(std_meta, type_remove_cv,
-  ([&]{
-    if (is_reference_type(tp)) tp = skip_typerefs(tp);
-    result_tp = tp;
-  }))
-
-
-DEFINE_type_transform(std_meta, type_remove_cvref,
-  ([&]{
-    if (is_reference_type(tp)) tp = skip_typerefs(type_pointed_to(tp));
-    result_tp = tp;
+    tp = skip_typerefs(tp);
+    if (type_is(tp, tk_integer) && tp->variant.integer.enum_type &&
+        !tp->incomplete) {
+      result_tp = apply_type_transforming_intrinsic(
+                             tp, trk_is_underlying_type, &call_node->position,
+                             /*diagnostic_should_be_issued=*/FALSE);
+    }  /* if */
   }))
 
 
