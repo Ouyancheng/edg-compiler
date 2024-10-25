@@ -964,6 +964,7 @@ fields to default values.
     case ck_designator:
       cp->variant.designator.is_field_designator = FALSE;
       cp->variant.designator.is_generic = FALSE;
+      cp->variant.designator.uses_direct_init_syntax = FALSE;
       cp->variant.designator.variant.array_element = 0;
       break;
     case ck_reflection:

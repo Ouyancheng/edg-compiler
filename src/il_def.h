@@ -5329,6 +5329,11 @@ typedef struct a_constant {
 		is_generic:1;
 			/* TRUE if the entity being designated has not been
 			   looked up (e.g., in template contexts). */
+      a_bit_field
+		uses_direct_init_syntax:1;
+			/* TRUE if this is a (standard) designator that uses
+			   direct-initialization syntax (i.e., a braced
+			   initializer without a preceding "=" token). */
       union {
         /* When is_field_designator == TRUE and is_generic == FALSE: */
         a_field_ptr

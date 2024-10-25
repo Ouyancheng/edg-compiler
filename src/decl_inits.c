@@ -3494,14 +3494,17 @@ initialization. */
     }  /* if */
     if (!is->check_validity_only) {
       a_constant_ptr  des_con;
-      des_con = alloc_constant((a_constant_repr_kind)ck_designator);
+      des_con = alloc_constant(ck_designator);
       des_con->type = void_type();
       des_con->variant.designator.is_field_designator = TRUE;
+      if (is->under_direct_init_designator) {
+        des_con->variant.designator.uses_direct_init_syntax = TRUE;
+      }  /* if */
       des_con->variant.designator.variant.field = *field;
       des_con->source_corresp.decl_position = *init_component_pos(*p_icp);
       add_constant_to_aggregate(des_con, aggr_con, (a_base_class_ptr)NULL,
                                 (a_field_ptr)NULL);
-      if (class_type->kind != (a_type_kind)tk_union) {
+      if (!type_is(class_type, tk_union)) {
         aggr_con->is_partially_initialized = TRUE;
       }  /* if */
     }  /* if */

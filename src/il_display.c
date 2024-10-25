@@ -1470,6 +1470,15 @@ display_constant_value:
     case ck_designator:
       (void)printf("ck_designator\n");
       if (ptr->variant.designator.is_field_designator) {
+        disp_boolean("is_field_designator", TRUE);
+      }  /* if */
+      if (ptr->variant.designator.is_generic) {
+        disp_boolean("is_generic", TRUE);
+      }  /* if */
+      if (ptr->variant.designator.uses_direct_init_syntax) {
+        disp_boolean("uses_direct_init_syntax", TRUE);
+      }  /* if */
+      if (ptr->variant.designator.is_field_designator) {
         /* A field designator: */
         if (ptr->variant.designator.is_generic) {
           disp_string_ptr("field_name",

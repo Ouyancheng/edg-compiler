@@ -7769,25 +7769,26 @@ brace/parenthesis delimiters around it should be suppressed.
     }  /* if */
     write_tok_ch(']');
   }  /* if */
-  if (eff_con->kind == (a_constant_repr_kind)ck_aggregate) {
+  if (constant_is(eff_con, ck_aggregate)) {
     /* The presence of braces following an aggregate can make
        a difference.  Don't put out braces if they were implied
        in the source. */
     if (!eff_con->explicit_braces_on_aggregate) {
       *suppress_delims = TRUE;
       if (eff_con->variant.aggregate.first_constant != NULL &&
-          eff_con->variant.aggregate.first_constant->kind ==
-                                         (a_constant_repr_kind)ck_designator) {
+          constant_is(eff_con->variant.aggregate.first_constant,
+                      ck_designator)) {
         /* Do not close the designator if another one will follow
            immediately. */
         close = FALSE;
       }  /* if */
     }  /* if */
   }  /* if */
-  if (!use_old_form && close && !suppressed) {
+  if (!use_old_form && close && !suppressed &&
+      !con->variant.designator.uses_direct_init_syntax) {
     write_tok_str(" = ");
   }  /* if */
-  check_assertion(eff_con->kind != (a_constant_repr_kind)ck_designator);
+  check_assertion(!constant_is(eff_con, ck_designator));
   *p_eff_con = eff_con;
 }  /* gen_designator */
 
