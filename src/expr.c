@@ -16965,10 +16965,9 @@ This routine can be called from outside of the expression-processing routines.
        not have to delimit them: Discard the leading entry. */
     remove_from_src_seq_list(ssep);
   } else {
-    update_source_sequence_list((char*)result, (an_il_entry_kind)iek_type,
-                                ssep);
+    update_source_sequence_list((char*)result.ptr, iek_type, ssep);
     /* Add the trailing (end-of-construct) source sequence entry. */
-    add_end_of_construct_source_sequence_entry((char*)result, iek_type);
+    add_end_of_construct_source_sequence_entry((char*)result.ptr, iek_type);
   }  /* if */
 #endif /* GENERATE_SOURCE_SEQUENCE_LISTS */
   if (rcblock == NULL) {
