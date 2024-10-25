@@ -6793,7 +6793,7 @@ found_sym:
          visible because of using directives.  Skip this process for linkage
          lookups.  A linkage lookup should only find names that are actually
          defined in a scope.  Clang (as of version 19.1) also skips this for
-         friend lookups.*/
+         friend lookups. */
       sym = qualified_using_directive_lookup(
                              locator, (a_namespace_ptr)NULL, file_scope_to_use,
                              options, (a_namespace_ptr)NULL, &synth_sym,
