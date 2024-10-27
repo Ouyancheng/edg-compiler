@@ -12423,8 +12423,9 @@ See conversion_possible.
                               max_exponent[(int)dest_type->variant.float_kind];
         if (src_mant_bits > dst_mant_bits ||
             src_max_exponent > dst_max_exponent) {
-          if (gnu_mode) {
-            /* The GNU compilers allow the conversion with a warning. */
+          if (gnu_mode || building_runtime) {
+            /* The GNU compilers allow the conversion with a warning, as
+               do we when building the runtime library. */
             if (!source_is_constant) {
               std_conv->warning_suggested = ec_lossy_conversion;
             }  /* if */
