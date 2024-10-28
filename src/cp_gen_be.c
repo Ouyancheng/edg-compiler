@@ -7979,8 +7979,10 @@ which constant is the value.
       while (sub_con != NULL) {
         a_constant_ptr eff_sub_con = sub_con;
         a_boolean      local_suppress_delims = FALSE;
-        a_boolean      need_close_paren = FALSE;
+        a_boolean      need_close_paren = FALSE, close_designator = FALSE;
         a_boolean      after_designator = FALSE;
+        a_boolean      direct_init_designator = FALSE;
+                       
         if (!first_elem) {
           write_tok_str(", ");
         } else {
@@ -7991,6 +7993,9 @@ which constant is the value.
             /* Put out the introduction for a designated initializer. */
             gen_designator(sub_con, &field, &eff_sub_con,
                            &local_suppress_delims);
+            if (sub_con->variant.designator.uses_direct_init_syntax) {
+              direct_init_designator = TRUE;
+            }  /* if */
           } else {
             /* Skip over the designator */
             eff_sub_con = eff_sub_con->next;
@@ -8024,6 +8029,17 @@ which constant is the value.
             field = next_initializable_field(field->next);
           }  /* if */
         }  /* if */
+        if (direct_init_designator && eff_sub_con->explicit_cast_applied) {
+          /* A direct-init designator is a designator followed by an
+             initializer in braces.  Consider:
+               auto r = { .x{1}, .y{Y{2}} };
+             Both initializer following the "direct init" designator will have
+             their "explicit_braces_on_aggregate" flag set to TRUE.  But for
+             the second one, it denotes the braces in Y{2}, and another set of
+             braces is needed to reflect designator semantics. */
+          write_tok_ch('{');
+          close_designator = TRUE;
+        }  /* if */
         if (eff_sub_con->is_pack_expansion &&
             eff_sub_con->kind == (a_constant_repr_kind)ck_dynamic_init &&
             eff_sub_con->variant.dynamic_init.ptr->kind ==
@@ -8042,6 +8058,9 @@ which constant is the value.
             write_tok_ch(')');
           }  /* if */
           write_tok_str("...");
+        }  /* if */
+        if (close_designator) {
+          write_tok_ch('}');
         }  /* if */
         /* Skip over default-initialized elements.  They may be the trailing
            elements of the aggregate or skipped intermediate elements before

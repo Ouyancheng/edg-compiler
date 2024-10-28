@@ -4142,6 +4142,10 @@ a ck_aggregate constant.
     } else {
       is->non_top_level_aggregate = TRUE;
       is->arg_match = NULL;
+      /* We may have gotten here with a designator that uses direct
+         initialization syntax.  Since we're about to handle a nested
+         aggregate level, we should not propagate the corresponding flag. */
+      is->under_direct_init_designator = FALSE;
       aggr_init_class(p_icp, etype, is, diag_pos, init_con);
     }  /* if */
   } else if (is_template_param_or_nonreal_class_type(etype) ||
