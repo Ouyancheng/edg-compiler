@@ -5089,6 +5089,9 @@ for handling virtual bases and functions.
 {
   a_layout_block    lob;
   a_targ_alignment  alignment = 0;
+#if MICROSOFT_EXTENSIONS_ALLOWED
+  a_targ_size_t     end_of_fields_byte_offset;
+#endif /* MICROSOFT_EXTENSIONS_ALLOWED */
 #if IA64_ABI
   a_boolean         is_POD = FALSE;
   a_boolean         zero_size_adjusted = FALSE;
@@ -5213,6 +5216,9 @@ for handling virtual bases and functions.
     lob.bit_offset = 0;
   }  /* if */
 #endif /* IA64_ABI */
+#if MICROSOFT_EXTENSIONS_ALLOWED
+  end_of_fields_byte_offset = lob.byte_offset;
+#endif /* MICROSOFT_EXTENSIONS_ALLOWED */
   /* Adjust the total size of the class to be consistent with the
      overall alignment required for the class. */
   if (!do_alignment(&lob.byte_offset, &lob.bit_offset, lob.alignment)) {
@@ -5295,6 +5301,30 @@ for handling virtual bases and functions.
                                                                    ) {
     a_class_type_supplement_ptr	ctsp = class_type_supp(class_type);
     ctsp->size_without_virtual_base_classes = class_type->size;
+#if MICROSOFT_EXTENSIONS_ALLOWED
+    if (microsoft_mode) {
+      a_targ_size_t  max_alignment_for_base_class;
+      /* MSVC ignores explicitly-specified alignment requirements that are more
+         strict than platform-specific defaults when calculating the size of a
+         a base class. */
+      max_alignment_for_base_class = current_max_alignment_for_class_members();
+      if (max_alignment_for_base_class == 0) {
+        if (target_is_arm_based() || !target_is_64_bits()) {
+          max_alignment_for_base_class = 8;
+        } else {
+          max_alignment_for_base_class = 16;
+        }  /* if */
+      }  /* if */
+      if (max_alignment_for_base_class < (target_is_64_bits() ? 16 : 8) &&
+          max_alignment_for_base_class < class_type->alignment) {
+        an_unnormalized_bit_offset   bit_offset = 0;
+        if (do_alignment(&end_of_fields_byte_offset, &bit_offset,
+                         max_alignment_for_base_class)) {
+          ctsp->size_without_virtual_base_classes = end_of_fields_byte_offset;
+        }  /* if */
+      }  /* if */
+    }  /* if */
+#endif /* MICROSOFT_EXTENSIONS_ALLOWED */
     ctsp->alignment_without_virtual_base_classes = class_type->alignment;
   }  /* if */
 set_size_for_complete_object:
