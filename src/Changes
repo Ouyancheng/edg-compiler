@@ -1,5 +1,20 @@
 Version 6.7
 
+10/28/24 [EDGcpfe/19297,EDGcpfe/19874,EDGcpfe/25095,EDGcpfe/26236,
+          EDGcpfe/26247,EDGcpfe/26655,EDGcpfe/27192,EDGcpfe/27446,
+          EDGcpfe/27687]
+Deduction from initializer list containing nested initializer list
+
+Consider:
+
+  #include <initializer_list>
+  auto x = { {}, 42 };
+
+The front end previously failed deduction on this case because of the nested
+list inside the top-level braced list.  That is now fixed: x is deduced to be
+of type std::initializer_list<int>.
+
+
 10/28/24 [EDGcpfe/27181]
 Microsoft compatibility: Size of base class with explicitly-specified alignment
 

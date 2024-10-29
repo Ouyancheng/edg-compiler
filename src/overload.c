@@ -4548,13 +4548,16 @@ deduction was successful: some cases are treated as "nondeduced contexts").
     a_type_ptr elem_param_type = elem_type;
     an_operand *elem_operand;
     ++dim_count;
-    if (is_braced_init_component(elem) && !is_auto) {
+    if (is_braced_init_component(elem)) {
       /* Something like f({{ 1, 2 }, { 3, 4 }}) is possible with a parameter of
-         type initializer_list<initializer_list<T>>.   However,
-           auto x = {{ 1 }};
-         is never valid. */
-      if (!deduce_from_braced_init_list(elem, elem_type,
-                                        templ_params, template_arg_list)) {
+         type initializer_list<initializer_list<T>>. */
+      if (is_auto) {
+        /* For the auto x = { ... } case, ignore nested initializer-lists
+           during deduction.  Something like "auto x = { {}, 1 };" will deduce
+           x to be of type std::initializer_list<int>.  "auto y = { {} };",
+           however, will fail deduction. */
+      } else if (!deduce_from_braced_init_list(
+                          elem, elem_type, templ_params, template_arg_list)) {
         deduction_okay = FALSE;
         break;
       }  /* if */
