@@ -5303,7 +5303,7 @@ for handling virtual bases and functions.
     ctsp->size_without_virtual_base_classes = class_type->size;
 #if MICROSOFT_EXTENSIONS_ALLOWED
     if (microsoft_mode) {
-      a_targ_size_t  max_alignment_for_base_class;
+      a_targ_alignment  max_alignment_for_base_class;
       /* MSVC ignores explicitly-specified alignment requirements that are more
          strict than platform-specific defaults when calculating the size of a
          a base class. */
@@ -5315,7 +5315,7 @@ for handling virtual bases and functions.
           max_alignment_for_base_class = 16;
         }  /* if */
       }  /* if */
-      if (max_alignment_for_base_class < (target_is_64_bits() ? 16 : 8) &&
+      if (max_alignment_for_base_class < (target_is_64_bits() ? 16u : 8u) &&
           max_alignment_for_base_class < class_type->alignment) {
         an_unnormalized_bit_offset   bit_offset = 0;
         if (do_alignment(&end_of_fields_byte_offset, &bit_offset,
