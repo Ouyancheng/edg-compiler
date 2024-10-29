@@ -382,17 +382,17 @@ namespace std {
       std::size_t bit_width;
     };
 
-    consteval auto make_nsdm_description(info type,
+    consteval auto make_nsdm_description(info         type,
                                          nsdm_options options = {}) {
       return nsdm_description(type, options);
     }
 
 
-    consteval void define_class__impl(info type,
-                                      int  n_fields,
+    consteval void define_class__impl(info             type,
+                                      int              n_fields,
                                       nsdm_description *field_info);
 
-    consteval info define_class(info  type,
+    consteval info define_class(info                          type,
                                 std::vector<nsdm_description> fields) {
       define_class__impl(type, fields.size(), fields.data());
       return type;

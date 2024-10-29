@@ -14350,12 +14350,14 @@ DEFINE_type_predicate(std_meta, type_is_void,
     }  /* if */
   }))
 
+
 DEFINE_type_predicate(std_meta, type_is_null_pointer,
   ([&]{
     if (type_is(tp, tk_nullptr)) {
       answer = TRUE;
     }  /* if */
   }))
+
 
 DEFINE_type_predicate(std_meta, type_is_integral,
   ([&]{
@@ -14364,12 +14366,14 @@ DEFINE_type_predicate(std_meta, type_is_integral,
     }  /* if */
   }))
 
+
 DEFINE_type_predicate(std_meta, type_is_floating_point,
   ([&]{
     if (type_is(tp, tk_float)) {
       answer = TRUE;
     }  /* if */
   }))
+
 
 DEFINE_type_predicate(std_meta, type_is_array,
   ([&]{
@@ -14378,12 +14382,14 @@ DEFINE_type_predicate(std_meta, type_is_array,
     }  /* if */
   }))
 
+
 DEFINE_type_predicate(std_meta, type_is_pointer,
   ([&]{
     if (is_pointer_type(tp)) {
       answer = TRUE;
     }  /* if */
   }))
+
 
 DEFINE_type_predicate(std_meta, type_is_lvalue_reference,
   ([&]{
@@ -14392,12 +14398,14 @@ DEFINE_type_predicate(std_meta, type_is_lvalue_reference,
     }  /* if */
   }))
 
+
 DEFINE_type_predicate(std_meta, type_is_rvalue_reference,
   ([&]{
     if (is_rvalue_reference_type(tp)) {
       answer = TRUE;
     }  /* if */
   }))
+
 
 DEFINE_type_predicate(std_meta, type_is_member_object_pointer,
   ([&]{
@@ -14406,12 +14414,14 @@ DEFINE_type_predicate(std_meta, type_is_member_object_pointer,
     }  /* if */
   }))
 
+
 DEFINE_type_predicate(std_meta, type_is_member_function_pointer,
   ([&]{
     if (type_is(tp, tk_ptr_to_member)) {
       answer = is_function_type(tp->variant.ptr_to_member.type);
     }  /* if */
   }))
+
 
 DEFINE_type_predicate(std_meta, type_is_enum,
   ([&]{
@@ -14420,12 +14430,14 @@ DEFINE_type_predicate(std_meta, type_is_enum,
     }  /* if */
   }))
 
+
 DEFINE_type_predicate(std_meta, type_is_union,
   ([&]{
     if (type_is(tp, tk_union)) {
       answer = TRUE;
     }  /* if */
   }))
+
 
 DEFINE_type_predicate(std_meta, type_is_class,
   ([&]{
@@ -14434,12 +14446,14 @@ DEFINE_type_predicate(std_meta, type_is_class,
     }  /* if */
   }))
 
+
 DEFINE_type_predicate(std_meta, type_is_function,
   ([&]{
     if (type_is(tp, tk_routine)) {
       answer = TRUE;
     }  /* if */
   }))
+
 
 DEFINE_type_predicate(std_meta, type_is_reflection,
   ([&]{
@@ -14448,12 +14462,14 @@ DEFINE_type_predicate(std_meta, type_is_reflection,
     }  /* if */
   }))
 
+
 DEFINE_type_predicate(std_meta, type_is_reference,
   ([&]{
     if (is_any_reference_type(tp)) {
       answer = TRUE;
     }  /* if */
   }))
+
 
 DEFINE_type_predicate(std_meta, type_is_arithmetic,
   ([&]{
@@ -14462,12 +14478,14 @@ DEFINE_type_predicate(std_meta, type_is_arithmetic,
     }  /* if */
   }))
 
+
 DEFINE_type_predicate(std_meta, type_is_object,
   ([&]{
     if (is_object_type(tp)) {
       answer = TRUE;
     }  /* if */
   }))
+
 
 DEFINE_type_predicate(std_meta, type_is_fundamental,
   ([&]{
@@ -14476,12 +14494,14 @@ DEFINE_type_predicate(std_meta, type_is_fundamental,
     }  /* if */
   }))
 
+
 DEFINE_type_predicate(std_meta, type_is_scalar,
   ([&]{
     if (is_scalar_type(tp)) {
       answer = TRUE;
     }  /* if */
   }))
+
 
 DEFINE_type_predicate(std_meta, type_is_compound,
   ([&]{
@@ -14492,12 +14512,14 @@ DEFINE_type_predicate(std_meta, type_is_compound,
     }  /* if */
   }))
 
+
 DEFINE_type_predicate(std_meta, type_is_member_pointer,
   ([&]{
     if (type_is(tp, tk_ptr_to_member)) {
       answer = TRUE;
     }  /* if */
   }))
+
 
 DEFINE_type_predicate(std_meta, type_is_const,
   ([&]{
@@ -14510,6 +14532,7 @@ DEFINE_type_predicate(std_meta, type_is_const,
     }  /* if */
   }))
 
+
 DEFINE_type_predicate(std_meta, type_is_volatile,
   ([&]{
     if (is_volatile_qualified_type((a_type*)rvp->entity.ptr)) {
@@ -14521,6 +14544,7 @@ DEFINE_type_predicate(std_meta, type_is_volatile,
     }  /* if */
   }))
 
+
 DEFINE_type_predicate(std_meta, type_is_trivial,
   ([&]{
     tp = skip_typerefs(skip_array_types(tp));
@@ -14530,12 +14554,14 @@ DEFINE_type_predicate(std_meta, type_is_trivial,
     }  /* if */
   }))
 
+
 DEFINE_type_predicate(std_meta, type_is_trivially_copyable,
   ([&]{
     if (is_trivially_copyable_type(tp)) {
       answer = TRUE;
     }  /* if */
   }))
+
 
 DEFINE_type_predicate(std_meta, type_is_standard_layout,
   ([&]{
@@ -14547,12 +14573,14 @@ DEFINE_type_predicate(std_meta, type_is_standard_layout,
     }  /* if */
   }))
 
+
 DEFINE_type_predicate(std_meta, type_is_empty,
   ([&]{
     if (is_class_or_struct(tp) && is_empty_class_type(tp)) {
       answer = TRUE;
     }  /* if */
   }))
+
 
 DEFINE_type_predicate(std_meta, type_is_polymorphic,
   ([&]{
@@ -14561,12 +14589,14 @@ DEFINE_type_predicate(std_meta, type_is_polymorphic,
     }  /* if */
   }))
 
+
 DEFINE_type_predicate(std_meta, type_is_abstract,
   ([&]{
     if (is_class_or_struct(tp) && is_abstract_class_type(tp)) {
       answer = TRUE;
     }  /* if */
   }))
+
 
 DEFINE_type_predicate(std_meta, type_is_final,
   ([&]{
@@ -14575,12 +14605,14 @@ DEFINE_type_predicate(std_meta, type_is_final,
     }  /* if */
   }))
 
+
 DEFINE_type_predicate(std_meta, type_is_aggregate,
   ([&]{
     if (is_aggregate_type(tp)) {
       answer = TRUE;
     }  /* if */
   }))
+
 
 DEFINE_type_predicate(std_meta, type_is_signed,
   ([&]{
@@ -14590,12 +14622,14 @@ DEFINE_type_predicate(std_meta, type_is_signed,
     }  /* if */
   }))
 
+
 DEFINE_type_predicate(std_meta, type_is_unsigned,
   ([&]{
     if (is_integral_type(tp) && !int_type_is_signed(tp)) { 
       answer = TRUE;
     }  /* if */
   }))
+
 
 DEFINE_type_predicate(std_meta, type_is_bounded_array,
   ([&]{
@@ -14604,6 +14638,7 @@ DEFINE_type_predicate(std_meta, type_is_bounded_array,
     }  /* if */
   }))
 
+
 DEFINE_type_predicate(std_meta, type_is_unbounded_array,
   ([&]{
     if (type_is(tp, tk_array) && array_type_has_no_bound(tp)) { 
@@ -14611,13 +14646,13 @@ DEFINE_type_predicate(std_meta, type_is_unbounded_array,
     }  /* if */
   }))
 
+
 DEFINE_type_predicate(std_meta, type_is_scoped_enum,
   ([&]{
     if (is_scoped_enum_type(tp)) {
       answer = TRUE;
     }  /* if */
   }))
-
 
 
 #define DEFINE_type_transform(ns, name, ref_lambda_body)                     \
@@ -14701,6 +14736,7 @@ DEFINE_type_transform(std_meta, type_add_lvalue_reference,
     if (!is_reference_type(tp)) tp = make_reference_type(tp);
     result_tp = tp;
   }))
+
 
 DEFINE_type_transform(std_meta, type_add_rvalue_reference,
   ([&]{
