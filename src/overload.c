@@ -25892,7 +25892,9 @@ initialization processing.
     an_error_severity sev = (error_on_narrowing ? es_discretionary_error :
                                                   es_warning);
     if (error_on_narrowing &&
-        !is_effective_error(err_code, sev, &source_operand->position)) {
+        (expr_stack->suppress_diagnostics ?
+         !is_effective_sfinae_error(err_code, sev, &source_operand->position) :
+         !is_effective_error(err_code, sev, &source_operand->position))) {
       /* The error has been given a non-error severity by the user.
          call this case not a narrowing error, and we'll come back again
          later to issue the warning. */
