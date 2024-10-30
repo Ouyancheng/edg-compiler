@@ -39644,6 +39644,14 @@ text buffer so the caller should copy it quickly.
     } else {
       name_str = "";
     }  /* if */
+  } else if (is_prototype_instantiation_context()) {
+    /* Return the spelling of the function name token, not the function
+       name, so that the definition of the function template can be
+       accurately reconstructed. */
+    pos_in_temp_text_buffer = 0;
+    finalize_function_name_string(spelling_for_function_name_token(token),
+                                  include_quote);
+    name_str = temp_text_buffer;
   } else {
     a_routine_ptr rp = function_scope->variant.routine.ptr;
     pos_in_temp_text_buffer = 0;
@@ -39742,6 +39750,11 @@ subsequent string literals.
   curr_char_loc = name_str;
   curr_token = scan_string_literal(lit_kind | SCLK_FUNCTION_NAME);
   curr_char_loc = saved_curr_char_loc;
+  if (is_prototype_instantiation_context()) {
+    /* Indicate that this is the spelling of the function name token, not
+       the function name. */
+    const_for_curr_token.variant.string.func_name_tok = TRUE;
+  }  /* if */
   if (do_concat) {
     /* Make sure that adjacent strings are concatenated. */
     (void)concat_adjacent_string_literals(/*function_name_case=*/TRUE);

@@ -891,6 +891,7 @@ fields to default values.
       cp->variant.string.sequence_number = 0;
 #endif /* DO_IL_LOWERING && ASSIGN_STRING_LITERAL_SEQUENCE_NUMBERS */
       cp->variant.string.literal_kind = SCLK_NOT_A_LITERAL;
+      cp->variant.string.func_name_tok = FALSE;
       break;
     case ck_float:
 #if C99_IL_EXTENSIONS_SUPPORTED

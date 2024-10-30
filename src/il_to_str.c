@@ -6865,7 +6865,9 @@ precedence confusion.  Do the output in the way described by octl.
             output_partial_token_str("\"", octl);
           } else {
             /* Normal (non-wide) string. */
-            output_partial_token_str("\"", octl);
+            if (!constant->variant.string.func_name_tok) {
+              output_partial_token_str("\"", octl);
+            }  /* if */
             for (a = 0; a < len; a++) {
               /* When generating output for humans to read, abbreviate
                  long strings. */
@@ -6888,7 +6890,9 @@ precedence confusion.  Do the output in the way described by octl.
                 out_len += form_char(ch, octl);
               }  /* if */
             }  /* for */
-            output_partial_token_str("\"", octl);
+            if (!constant->variant.string.func_name_tok) {
+              output_partial_token_str("\"", octl);
+            }  /* if */
           }  /* if */
           if (constant->is_compound_literal && !is_for_c_gen_be(octl)) {
             /* The string was originally a compound literal and, except in

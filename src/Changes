@@ -1,5 +1,22 @@
 Version 6.7
 
+10/30/24 [EDGcpfe/27695]
+C++-generating back end: function name tokens in function templates
+
+In configurations in which the definitions of function templates are
+generated from the prototype instantiation IL, when a function template
+definition contains a function name token (__func__, __PRETTY_FUNCTION__,
+etc.), the C++-generating back end previously put out the generic function
+name instead of the function name token.  This is now fixed.  For example,
+with --microsoft:
+
+  template<typename T> const char *f(T) {
+    return __FUNCSIG__;   // Previously generated as
+                          // return "const char *f<T>(T)",
+                          // now preserves the original source form
+  }
+
+
 10/29/24 [EDGcpfe/27662]
 Microsoft compatibility: Enabling C++23 features
 

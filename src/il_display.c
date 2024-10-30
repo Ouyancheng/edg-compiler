@@ -1325,6 +1325,10 @@ Display the indicated constant entry.
       disp_name("literal_kind");
       (void)printf("%s\n",
                    readable_literal_kind(ptr->variant.string.literal_kind));
+      if (ptr->variant.string.func_name_tok) {
+        disp_boolean("func_name_tok",
+                     (a_boolean)ptr->variant.string.func_name_tok);
+      }  /* if */
       disp_name("value");
 display_constant_value:
       summarize_constant(ptr);

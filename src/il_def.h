@@ -4950,6 +4950,15 @@ typedef struct a_constant {
 			   it was a raw string literal.  For string
 			   constants that are not associated with string
 			   literals, has the value SCLK_NOT_A_LITERAL. */
+      a_bit_field
+		func_name_tok:1;
+			/* TRUE if this constant contains the spelling of a
+			   function name token (__PRETTY_FUNCTION__, etc.).
+			   Used in the prototype instantiation IL to allow
+			   a function template definition to be
+			   reconstructed in its original form instead of
+			   reflecting the generic function name and
+			   parameters. */
     } string;
     /* When kind == ck_float: */
 #if C99_IL_EXTENSIONS_SUPPORTED
