@@ -6755,7 +6755,8 @@ The syntax is:
           return expression    ;
                            opt
           return brace-init-list ;  // C++11 only.
-                 
+
+In C++20, this also handles co_return statements.
 */
 {
   a_statement_ptr    sp;

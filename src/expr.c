@@ -35880,6 +35880,56 @@ Return TRUE if the indicated token is one that could start an expression.
 }  /* is_expr_start_token */
 
 
+static void make_xvalue_if_move_eligible(an_operand  *opnd,
+                                         a_boolean   for_throw)
+/*
+N4986 [expr.prim.id.unqual]/4 specifies that the operand of a return or
+co_return statement, or that of a throw statement is sometimes treated as an
+xvalue when it is an id-expression denoting an "implicitly movable entity":
+(a) a local variable of nonvolatile type, or (b) an rvalue reference to a
+non-volatile type.  If *opnd represents such an lvalue operand, and it belongs
+to the current function, transform it into an xvalue.  for_throw is TRUE if it
+represents the operand of a throw-expression; in that case, the variable or
+reference is refers to should not be outside an enclosing try-block for the
+transformation to apply.  (The current rules were introduced in C++23 by
+P2266R3.)
+*/
+{
+  a_variable  *vp;
+
+  if (opnd->is_id_expression && operand_is_lvalue_for_variable(opnd, &vp) &&
+      cpp23_mode && rvalue_references_enabled) {
+    a_boolean  vp_okay = FALSE;
+    if ((vp->storage_class == sc_auto && innermost_function_scope != NULL &&
+         is_object_type(vp->type) && !is_volatile_qualified_type(vp->type)) ||
+        (vp->source_corresp.is_local_to_function &&
+         is_rvalue_reference_type(vp->type) &&
+         !is_volatile_qualified_type(type_pointed_to(vp->type)))) {
+      check_assertion(innermost_function_scope != NULL);
+      vp_okay = vp->source_corresp.enclosing_routine == curr_routine_or_null();
+      if (for_throw && vp_okay) {
+        /* Check that the variable is not outside a try-block enclosing the
+           throw-expression. */
+        a_scope_stack_entry  *ssep = &scope_stack_top();
+        vp_okay = FALSE;
+        while (is_local_scope_kind(ssep->kind)) {
+          if (ssep->il_scope == vp->source_corresp.parent_scope) {
+            vp_okay = TRUE;
+            break;
+          } else if (ssep->is_try_block) {
+            break;
+          }  /* if */
+          ssep = &scope_stack[ssep->previous_scope];
+        }  /* if */
+      }  /* if */
+    }  /* if */
+    if (vp_okay) {
+      conv_rvalue_reference_result_to_xvalue(opnd);
+    }  /* if */
+  }  /* if */
+}  /* make_xvalue_if_move_eligible */
+
+
 static void scan_throw_operator(a_rescan_control_block *rcblock,
                                 an_operand             *result)
 /*
@@ -36062,6 +36112,7 @@ in *rcblock).
       if (is_class_struct_union_type(throw_type)) {
         /* For a class type operand, generate a dynamic initialization that
            copies the value to an undesignated location. */
+        make_xvalue_if_move_eligible(&operand, /*for_throw=*/TRUE);
         prep_elision_initializer_operand(&operand, throw_type,
                                          /*fill_in_dtor=*/FALSE,
                                          CCO_MOVE_OPTIMIZATION_ALLOWED,
@@ -48712,11 +48763,11 @@ an_expr_node_ptr scan_return_expression(a_type_ptr            required_type,
                                         a_dynamic_init_ptr    *dip,
                                         an_arg_list_elem_ptr  *alep)
 /*
-Scan an expression on a return statement and convert it to the type
-required_type; issue the error err_code if it cannot be converted to that
-type.  Return a pointer to the expression.  If the current routine is
-one that returns its value via a copy constructor, set *dip to point to
-the appropriate dynamic initialization entry and return NULL.
+Scan an expression on a return (or, in C++20, a co_return) statement and
+convert it to the type required_type; issue the error err_code if it cannot be
+converted to that type.  Return a pointer to the expression.  If the current
+routine is one that returns its value via a copy constructor, set *dip to
+point to the appropriate dynamic initialization entry and return NULL.
 required_type will be void if the expression should have void type
 (e.g., in a C++ function with void return type).
 
@@ -48909,6 +48960,7 @@ handle_deduced_return_type:
       /* The current routine returns its value via a copy constructor. */
       /* Check for the possibility of the named return value optimization. */
       check_named_return_value_optimization(&result);
+      make_xvalue_if_move_eligible(&result, /*for_throw=*/FALSE);
       /* Build a dynamic initialization entry for the return statement. */
       prep_elision_initializer_operand(&result, required_type,
                                        /*fill_in_dtor=*/FALSE,

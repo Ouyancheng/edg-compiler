@@ -1,5 +1,30 @@
 Version 6.7
 
+10/30/24 [EDGcpfe/25512,EDGcpfe/27677]
+Implicit move of return value
+
+Consider:
+
+  struct U { U(int*); U(U&&); ~U(); };
+  struct S { S(U); };
+  S g() {
+    U u{new int(42)};
+    return u;
+  }
+
+Previously, the front end failed to treat "return u;" using move construction,
+and thus it issued an error because the copy constructor of u is deleted.  Now
+this case is accepted.  In C++23 mode, the front end now also implements the
+changes described in the standardization committee's paper P2266R3.  It
+causes some previously-valid cases to become invalid.  For example:
+
+  struct S { S(); S(S&); };
+  S g() {
+    S s;
+    return s;  // Valid in C++20 but invalid in C++23.
+  }
+
+
 10/30/24 [EDGcpfe/27695]
 C++-generating back end: function name tokens in function templates
 

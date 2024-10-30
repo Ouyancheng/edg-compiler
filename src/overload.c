@@ -2803,8 +2803,10 @@ have_result:
 }  /* conversion_for_direct_reference_binding_possible */
 
 
-static a_boolean arg_copy_can_be_done_via_constructor(an_operand *arg_operand,
-                                                      a_type_ptr param_type)
+static a_boolean arg_copy_can_be_done_via_constructor(
+                                            an_operand           *arg_operand,
+                                            a_type_ptr           param_type,
+                                            an_arg_match_summary *arg_summary)
 /*
 The argument described by arg_operand is being passed to a parameter of
 type param_type.  param_type is not a reference and, ignoring cv-qualifiers,
@@ -2814,7 +2816,7 @@ the argument can be passed via a constructor (not necessarily a "copy
 constructor", e.g., a template is allowed) rather than requiring some
 auto_ptr-like trick involving an auxiliary class, which would count as
 a user-defined conversion.  Return TRUE if the copy can be done via a
-constructor.
+constructor.  Record in arg_summary the selected constructor.
 */
 {
   a_boolean    copy_can_be_done = FALSE;
@@ -2845,6 +2847,9 @@ constructor.
          consider constructors whose reference parameter cannot take an rvalue
          argument (which will presumably be elided). */
       copy_can_be_done = TRUE;
+      if (cctor_sym != NULL) {
+        arg_summary->conversion.routine = func_sym_routine(cctor_sym);
+      }  /* if */
     }  /* if */
   }  /* if */
   return copy_can_be_done;
@@ -3304,8 +3309,8 @@ copy-initialization).
              auxiliary class is required to do the copy.  So check that the
              copy can be done via a constructor. */
           if (arg_operand != NULL &&
-              !arg_copy_can_be_done_via_constructor(arg_operand,
-                                                    param_type)) {
+              !arg_copy_can_be_done_via_constructor(arg_operand, param_type,
+                                                    arg_summary)) {
             /* No simple copy constructor can be used to do this copy,
                so fail. */
             arg_summary->match_level = aml_none;
@@ -3529,8 +3534,8 @@ copy-initialization).
              auxiliary class is required to do the copy.  So check that the
              copy can be done via a constructor. */
           if (arg_operand != NULL &&
-              !arg_copy_can_be_done_via_constructor(arg_operand,
-                                                    param_type)) {
+              !arg_copy_can_be_done_via_constructor(arg_operand, param_type,
+                                                    arg_summary)) {
             /* No simple copy constructor can be used to do this copy,
                so fail. */
             arg_summary->match_level = aml_none;
@@ -21319,20 +21324,17 @@ enclosing try statements.
 }  /* variable_scope_okay_for_throw_move_optimization */
 
 
-static a_boolean selected_function_is_moving_constructor(
-                                                     a_conv_descr *conversion)
+static a_boolean selected_function_is_moving_constructor(a_routine  *rout)
 /*
-Return TRUE if the function selected and indicated in *conversion is a
-constructor whose first parameter type is an rvalue reference.
+Return TRUE if the function represented by rout is a constructor whose first
+parameter type is an rvalue reference.
 */
 {
-  a_boolean     is_moving_constructor = FALSE;
-  a_routine_ptr rout = conversion->routine;
+  a_boolean  is_moving_constructor = FALSE;
 
   if (rout != NULL && special_kind_is(rout, sfk_constructor)) {
     a_type_ptr       rout_type = skip_typerefs(rout->type);
-    a_param_type_ptr ptp =
-                        rout_type->variant.routine.extra_info->param_type_list;
+    a_param_type_ptr ptp = function_type_params(rout_type);
     if (ptp != NULL && is_rvalue_reference_type(ptp->type)) {
       is_moving_constructor = TRUE;
     }  /* if */
@@ -21391,8 +21393,11 @@ other cases, FALSE is returned and the source operand is left unchanged.
            return static_cast<A &&>(x);
          (See N4762 [class.copy.elision]/3.)
       */
-      a_boolean  ambiguous;
-      an_operand rvalue_operand;
+      a_boolean     ambiguous;
+      an_operand    rvalue_operand;
+      a_conv_descr  arg_conversion, *p_arg_conversion;
+      p_arg_conversion = ctor_arg_conversion == NULL ? &arg_conversion
+                                                     : ctor_arg_conversion;
       rvalue_operand = *source_operand;
       cast_operand_for_reference_cast(&rvalue_operand,
                                       make_rvalue_reference_type(
@@ -21409,13 +21414,23 @@ other cases, FALSE is returned and the source operand is left unchanged.
                                        /*ref_binding_type=*/(a_type*)NULL,
                                        /*is_direct_binding=*/FALSE,
                                        conv_context,
-                                       conversion, ctor_arg_conversion,
+                                       conversion, p_arg_conversion,
                                        &ambiguous,
                                        (a_candidate_function_ptr *)NULL)) {
         /* The conversion is possible.  Additionally, the selected function
            has to be a constructor whose first parameter is an rvalue
-           reference. */
-        if (selected_function_is_moving_constructor(conversion)) {
+           reference.  For something like:
+               struct U { U(int*); U(U&&); ~U(); };
+               struct S { S(U); };
+               S g() {
+                 U u{new int(42)};
+                 return u;
+               }
+           the selected function is the move constructor of U. */
+        a_routine_ptr  conv_rp = p_arg_conversion != NULL ?
+                                 p_arg_conversion->routine : (a_routine*)NULL;
+        if (conv_rp == NULL) conv_rp = conversion->routine;
+        if (selected_function_is_moving_constructor(conv_rp)) {
           /* The move optimization applies. */
           *source_operand = rvalue_operand;
           conversion_done = TRUE;
