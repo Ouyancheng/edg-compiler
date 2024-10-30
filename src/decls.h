@@ -661,8 +661,8 @@ typedef struct an_init_state {
 			/* TRUE when processing an aggregate sub-initializer
 			   introduced with a direct-init designator, such as
 			      X x = { .sub{ f() } };
-			    Here, the sub-initializer "f()" is processed with
-			    this flag set to TRUE. */ 
+			   Here, the sub-initializer "f()" is processed with
+			   this flag set to TRUE. */ 
 } an_init_state;
 
 
