@@ -1,5 +1,13 @@
 Version 6.7
 
+10/29/24 [EDGcpfe/27662]
+Microsoft compatibility: Enabling C++23 features
+
+A new command-line option, --ms_c++23, has been added to emulate the /std:c++23
+option that Microsoft Visual Studio provides.  This option is only available
+when microsoft_version >= 1943.
+
+
 10/29/24 [EDGcpfe/25759,EDGcpfe/27606]
 Substitution failures triggered by narrowing conversions in system headers
 
