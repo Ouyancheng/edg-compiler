@@ -134,6 +134,7 @@ enum an_option_kind {
   optk_microsoft_cpp14_mode,
   optk_microsoft_cpp17_mode,
   optk_microsoft_cpp20_mode,
+  optk_microsoft_cpp23_mode,
   optk_microsoft_cpplatest_mode,
   optk_microsoft_c11,
   optk_microsoft_c17,

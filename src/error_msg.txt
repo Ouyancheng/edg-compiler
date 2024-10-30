@@ -3527,6 +3527,7 @@ ec_annotation_must_have_literal_type;;"type %t of annotation is not a literal ty
 ec_ext_vector_type_requires_bool_integral_floating_type;;"the \"ext_vector_type\" attribute applies only to bool, integer, or floating-point types"
 ec_multiple_union_designators;;"multiple designators into the same union are not permitted"
 ec_debug_show_location;;"test message"
+ec_microsoft_version_doesnt_support_cpp23_mode;;"the version of Microsoft being emulated must be at least 1943 to use \"--ms_c++23\""
 ###############################################################################
 #                                                             \  ___  /       #
 #                                                               /   \         #

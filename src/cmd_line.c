@@ -550,6 +550,9 @@ Initialize the option information table.
   add_option_description(optk_microsoft_cpp20_mode, "ms_c++20",
                          '\0', /*value=*/TRUE, /*arg_required=*/FALSE,
                          pchek_command_line);
+  add_option_description(optk_microsoft_cpp23_mode, "ms_c++23",
+                         '\0', /*value=*/TRUE, /*arg_required=*/FALSE,
+                         pchek_command_line);
   add_option_description(optk_microsoft_cpplatest_mode, "ms_c++latest",
                          '\0', /*value=*/TRUE, /*arg_required=*/FALSE,
                          pchek_command_line);
@@ -2590,6 +2593,7 @@ option values if they were not already set by a command line option.
                               microsoft_version >= 1903;
     a_boolean ms_cpp17_mode = FALSE;
     a_boolean ms_cpp20_mode = FALSE;
+    a_boolean ms_cpp23_mode = FALSE;
     a_boolean ms_cpplatest_mode = FALSE;
     if (option_kind_used[(int)optk_microsoft_cpp14_mode]) {
       ms_cpp14_mode = TRUE;
@@ -2609,8 +2613,15 @@ option values if they were not already set by a command line option.
         command_line_error(ec_microsoft_version_doesnt_support_cpp20_mode);
       }  /* if */
     }  /* if */
+    if (option_kind_used[(int)optk_microsoft_cpp23_mode]) {
+      ms_cpp14_mode = ms_cpp17_mode = ms_cpp20_mode = ms_cpp23_mode = TRUE;
+      if (microsoft_version < 1943) {
+        command_line_error(ec_microsoft_version_doesnt_support_cpp23_mode);
+      }  /* if */
+    }  /* if */
     if (option_kind_used[(int)optk_microsoft_cpplatest_mode]) {
-      ms_cpp14_mode = ms_cpp17_mode = ms_cpp20_mode = ms_cpplatest_mode = TRUE;
+      ms_cpp14_mode = ms_cpp17_mode = ms_cpp20_mode = ms_cpp23_mode =
+                                                      ms_cpplatest_mode = TRUE;
       if (microsoft_version < 1903) {
         command_line_error(ec_microsoft_version_doesnt_support_cpplatest_mode);
       }  /* if */
@@ -3188,6 +3199,19 @@ option values if they were not already set by a command line option.
           /* These C++23 features are enabled in this mode. */
           if_consteval_enabled = TRUE;
           explicit_this_param_enabled = TRUE;
+        }  /* if */
+      }  /* if */
+      if (microsoft_version >= 1943) {
+        if (ms_cpp23_mode) {
+          /* These C++23 features are enabled in this mode. */
+          if_consteval_enabled = TRUE;
+          explicit_this_param_enabled = TRUE;
+          std_version = 202302;
+          msvc_lang = "202302L";
+        }  /* if */
+        if (ms_cpplatest_mode) {
+          std_version = 202400;
+          msvc_lang = "202400L";
         }  /* if */
       }  /* if */
     } else {
@@ -10835,6 +10859,7 @@ enable_microsoft_mode:
       case optk_microsoft_cpp14_mode:
       case optk_microsoft_cpp17_mode:
       case optk_microsoft_cpp20_mode:
+      case optk_microsoft_cpp23_mode:
       case optk_microsoft_cpplatest_mode:
         set_C_dialect(C_dialect_cplusplus);
         opt_value = TRUE;

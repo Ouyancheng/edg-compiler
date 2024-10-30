@@ -850,6 +850,7 @@ check_abbreviation()
 --ms_c++14
 --ms_c++17
 --ms_c++20
+--ms_c++23
 --ms_c++latest
 --ms_c11
 --ms_c17
@@ -1526,6 +1527,7 @@ process_option()
          --ms_c++14 | \
          --ms_c++17 | \
          --ms_c++20 | \
+         --ms_c++23 | \
          --ms_c++latest | \
          --ms_c11 | \
          --ms_c17 | \
