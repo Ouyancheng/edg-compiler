@@ -2816,7 +2816,7 @@ the argument can be passed via a constructor (not necessarily a "copy
 constructor", e.g., a template is allowed) rather than requiring some
 auto_ptr-like trick involving an auxiliary class, which would count as
 a user-defined conversion.  Return TRUE if the copy can be done via a
-constructor.  Record in arg_summary the selected constructor.
+constructor.  Record in *arg_summary the selected constructor.
 */
 {
   a_boolean    copy_can_be_done = FALSE;

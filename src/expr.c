@@ -35884,21 +35884,22 @@ static void make_xvalue_if_move_eligible(an_operand  *opnd,
                                          a_boolean   for_throw)
 /*
 N4986 [expr.prim.id.unqual]/4 specifies that the operand of a return or
-co_return statement, or that of a throw statement is sometimes treated as an
-xvalue when it is an id-expression denoting an "implicitly movable entity":
-(a) a local variable of nonvolatile type, or (b) an rvalue reference to a
+co_return statement or a throw-expression is sometimes treated as an xvalue
+when it is an id-expression denoting an "implicitly movable entity": (a) a
+local variable of nonvolatile type, or (b) an rvalue reference to a
 non-volatile type.  If *opnd represents such an lvalue operand, and it belongs
 to the current function, transform it into an xvalue.  for_throw is TRUE if it
 represents the operand of a throw-expression; in that case, the variable or
-reference is refers to should not be outside an enclosing try-block for the
+reference it refers to should not be outside an enclosing try-block for the
 transformation to apply.  (The current rules were introduced in C++23 by
 P2266R3.)
 */
 {
   a_variable  *vp;
 
-  if (opnd->is_id_expression && operand_is_lvalue_for_variable(opnd, &vp) &&
-      cpp23_mode && rvalue_references_enabled) {
+  if (opnd->is_id_expression && cpp23_mode && rvalue_references_enabled &&
+      (operand_is_lvalue_for_variable(opnd, &vp) ||
+       operand_is_lvalue_for_rref_variable(opnd, &vp))) {
     a_boolean  vp_okay = FALSE;
     if ((vp->storage_class == sc_auto && innermost_function_scope != NULL &&
          is_object_type(vp->type) && !is_volatile_qualified_type(vp->type)) ||
@@ -48901,6 +48902,7 @@ make_coroutine_result_expression.)
         expr_stack->in_cctor_elision_initializer = TRUE;
     }  /* if */
     scan_expr(&result, PREC_LOWEST, EOPT_NO_OPTIONS);
+    make_xvalue_if_move_eligible(&result, /*for_throw=*/FALSE);
     if (curr_routine->is_coroutine) {
       /* Bypass the usual processing on return expressions, and handle this
          as a coroutine return instead. */
@@ -48964,7 +48966,6 @@ handle_deduced_return_type:
       /* The current routine returns its value via a copy constructor. */
       /* Check for the possibility of the named return value optimization. */
       check_named_return_value_optimization(&result);
-      make_xvalue_if_move_eligible(&result, /*for_throw=*/FALSE);
       /* Build a dynamic initialization entry for the return statement. */
       prep_elision_initializer_operand(&result, required_type,
                                        /*fill_in_dtor=*/FALSE,
