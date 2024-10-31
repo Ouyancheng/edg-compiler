@@ -16289,7 +16289,7 @@ update *ips accordingly.
                           &callee_node->position, symbol_for(callee), ips);
         do_constexpr_fail(result);
         if (callee->is_deleted && ips->is_constant_evaluated) {
-            /* An error has presumably been issued earlier (use of a deleted
+          /* An error has presumably been issued earlier (use of a deleted
              function).  Treat this as an input error to avoid extraneous
              diagnostics. */
           expect_error();
