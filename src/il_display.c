@@ -1326,8 +1326,7 @@ Display the indicated constant entry.
       (void)printf("%s\n",
                    readable_literal_kind(ptr->variant.string.literal_kind));
       if (ptr->variant.string.func_name_tok) {
-        disp_boolean("func_name_tok",
-                     (a_boolean)ptr->variant.string.func_name_tok);
+        disp_boolean("func_name_tok", TRUE);
       }  /* if */
       disp_name("value");
 display_constant_value:
