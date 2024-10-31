@@ -13,7 +13,7 @@ Consider:
   }
 
 Previously, the front end failed to treat "return u;" using move construction,
-and thus it issued an error because the copy constructor of u is deleted.  Now
+and thus it issued an error because the copy constructor of U is deleted.  Now
 this case is accepted.  In C++23 mode, the front end now also implements the
 changes described in the standardization committee's paper P2266R3.  It
 causes some previously-valid cases to become invalid.  For example:
