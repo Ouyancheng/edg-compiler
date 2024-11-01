@@ -1,5 +1,24 @@
 Version 6.7
 
+11/1/24  [EDGcpfe/27696]
+Nontype template arguments with a destructor
+
+Consider, in C++20 mode:
+
+  struct S {
+    int i = 0;
+    constexpr S(): i(0) {}
+    constexpr S(S const &s): i(s.i) {}
+    constexpr ~S() {}
+  };
+  template<S> struct X {};
+  constexpr S s;
+  X<s> xs;  // Previously an error.  Now okay.
+
+Previously, the front end issued an error erroneously claiming that the nontype
+template argument "s" is not constant.  That is now fixed.
+
+
 10/31/24 [EDGcpfe/27694]
 Storage class ignored on function redeclaration with qualified name
 

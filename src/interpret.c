@@ -26129,6 +26129,10 @@ to a prvalue (without changing expr itself).
       }  /* if */
       if (!result) {
         /* Nothing more to do. */
+      } else if (!copy_interpreter_object_to_constant(
+                                         ips, result_storage, result_storage,
+                                         result_type, result_con)) {
+        do_constexpr_fail(result);
       } else if (ips->storage_stack.destructions != NULL &&
                  ((!node_is(expr, enk_object_lifetime) &&
                    !ips->is_constant_evaluated) ||
@@ -26143,10 +26147,6 @@ to a prvalue (without changing expr itself).
                  !ips->permit_leftover_dyn_alloc) {
         /* Leftover dynamic allocations are always invalid in this case. */
         report_leftover_allocations(ips);
-        do_constexpr_fail(result);
-      } else if (!copy_interpreter_object_to_constant(
-                                         ips, result_storage, result_storage,
-                                         result_type, result_con)) {
         do_constexpr_fail(result);
       } else {
         if (expr->next == NULL &&
@@ -26321,6 +26321,10 @@ can only be TRUE if the called function is "consteval").
                                 ips.reattempt_state);
         }  /* if */
       }  /* if */
+    } else if (!copy_interpreter_object_to_constant(
+                                         &ips, result_storage, result_storage,
+                                         call_expr->type, result_con)) {
+      do_constexpr_fail(result);
     } else if (!is_constant_evaluated &&
                (ips.storage_stack.destructions != NULL ||
                 (is_immediate_class_type(result_type) &&
@@ -26339,10 +26343,6 @@ can only be TRUE if the called function is "consteval").
     } else if (ips.dyn_allocations != NULL && !ips.permit_leftover_dyn_alloc) {
       /* Leftover dynamic allocations are always invalid in this case. */
       report_leftover_allocations(&ips);
-      do_constexpr_fail(result);
-    } else if (!copy_interpreter_object_to_constant(
-                                         &ips, result_storage, result_storage,
-                                         call_expr->type, result_con)) {
       do_constexpr_fail(result);
     } else if (call_expr->next == NULL &&
                (expr_stack == NULL ||
