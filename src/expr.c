@@ -35921,7 +35921,7 @@ P2266R3.)
             break;
           }  /* if */
           ssep = &scope_stack[ssep->previous_scope];
-        }  /* if */
+        }  /* while */
       }  /* if */
     }  /* if */
     if (vp_okay) {
