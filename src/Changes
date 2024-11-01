@@ -1,5 +1,17 @@
 Version 6.7
 
+10/31/24 [EDGcpfe/27694]
+Storage class ignored on function redeclaration with qualified name
+
+Consider:
+
+  void g() {}
+  static void ::g();  // Previously erroneously accepted.  Now an error.
+
+The front end previously failed to report the conflicting storage class on
+the redeclaration.  That is now fixed.
+
+
 10/30/24 [EDGcpfe/25512,EDGcpfe/27677]
 Implicit move of return value
 

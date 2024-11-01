@@ -6517,21 +6517,23 @@ function.
         linked_symbol->kind != (a_symbol_kind)sk_overloaded_function) {
       /* A linked symbol was found -- set the storage class and linkage
          appropriately. */
-      switch (linked_symbol->kind) {
-        case sk_routine:
-          storage_class = linked_symbol->variant.routine.ptr->storage_class;
-          break;
-        case sk_function_template:
-          storage_class = linked_symbol->variant.template_info->
+      if (dps->declared_storage_class == sc_unspecified) {
+        switch (linked_symbol->kind) {
+          case sk_routine:
+            storage_class = linked_symbol->variant.routine.ptr->storage_class;
+            break;
+          case sk_function_template:
+            storage_class = linked_symbol->variant.template_info->
                                       variant.function.routine->storage_class;
-          break;
-        case sk_variable:
-          storage_class = linked_symbol->variant.variable.ptr->storage_class;
-          break;
-        default:
-          unexpected_condition();
-          break;
-      }  /* switch */
+            break;
+          case sk_variable:
+            storage_class = linked_symbol->variant.variable.ptr->storage_class;
+            break;
+          default:
+            unexpected_condition();
+            break;
+        }  /* switch */
+      }  /* if */
       if (storage_class == (a_storage_class)sc_static) {
         idlbp->linkage = idl_internal;
         idlbp->storage_class = (a_storage_class)sc_static;
