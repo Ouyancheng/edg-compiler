@@ -3697,7 +3697,7 @@ A string formatter for a_string_view values.
 template<>
 struct String_formatter<a_string_view> {
   static size_t size_hint_of(a_string_view value)
-    { return value.length; }
+    { return value.length(); }
   template<typename a_Dyn_array>
   static inline void append_into(a_Dyn_array   &underlying_array,
                                  a_string_view value,
@@ -3715,8 +3715,8 @@ Append the characters in the given string view value into the underlying array.
 size_hint is unused.
 */
 {
-  underlying_array.insert(underlying_array.length(), value.start,
-                          value.length);
+  underlying_array.insert(underlying_array.length(), value.start(),
+                          value.length());
 }  /* append_into */
 
 
@@ -5420,11 +5420,19 @@ considered the same.
 
 #endif /* !STANDALONE_UTILITY_PROGRAM */
 
+inline uintptr_t hash_ptr(a_string_view str)
 /*
-This is declared in symbol_tbl.h.  To avoid potential circular references,
-declare it here as well.
+Compute a hash for the given string view.  The hash must be appropriate for
+Ptr_map.
 */
-extern a_hash_value hash_source_string(a_void_ptr  key);
+{
+  a_hash_value  value = 0;
+
+  for (size_t i = 0; i < str.length(); ++i) {
+    value = (value << 5) + value + str.start()[i];
+  }  /* for */
+  return value;
+}  /* hash_ptr */
 
 
 template<template<typename> class Allocator>
@@ -5433,17 +5441,9 @@ inline uintptr_t hash_ptr(const Allocated_string<Allocator> &str)
 Compute a hash for the given string.  The hash must be appropriate for Ptr_map.
 */
 {
-  return (uintptr_t)hash_source_string((a_void_ptr)str.as_temp_characters());
-}  /* hash_ptr */
+  a_string_view str_view(str.as_temp_characters(), str.length());
 
-
-inline uintptr_t hash_ptr(a_string_view str)
-/*
-Compute a hash for the given string view.  The hash must be appropriate for
-Ptr_map.
-*/
-{
-  return (uintptr_t)hash_source_string((a_void_ptr)str.start);
+  return hash_ptr(str_view);
 }  /* hash_ptr */
 
 #if !STANDALONE_UTILITY_PROGRAM
@@ -5453,9 +5453,10 @@ inline uintptr_t hash_ptr(const a_path_handle path)
 Compute a hash for the given path.  The hash must be appropriate for Ptr_map.
 */
 {
-  a_const_char *norm_path = normalize_file_name(path.ptr);
+  a_const_char  *norm_path = normalize_file_name(path.ptr);
+  a_string_view str_view(norm_path);
 
-  return (uintptr_t)hash_source_string((a_void_ptr)norm_path);
+  return hash_ptr(str_view);
 }  /* hash_ptr */
 
 #endif /* !STANDALONE_UTILITY_PROGRAM */

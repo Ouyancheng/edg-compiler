@@ -18445,13 +18445,7 @@ Produce a hash value for the given pointer (it points to a string of source
 characters).
 */
 {
-  a_hash_value  value = 0;
-  char          *name = (char*)key;
-
-  for (; *name != '\0'; name++) {
-    value = (value << 5) + value + *name;
-  }  /* for */
-  return value;
+  return hash_ptr(a_string_view((char*)key));
 }  /* hash_source_string */
 
 

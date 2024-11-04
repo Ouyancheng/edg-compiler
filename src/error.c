@@ -150,9 +150,11 @@ typedef struct a_diag_fill_in {
 		position;
 			/* The source position to be inserted. */
     /* When kind == dfk_string. */
-    a_const_char
-		*string;
-			/* The null-terminated string to be inserted. */
+    struct {
+      a_const_char
+		*start;	/* The start of the string to be inserted. */
+      size_t	len;	/* The length of the string to be inserted. */
+    } string;
     /* When kind == dfk_symbol. */
     struct {
       a_symbol_ptr
@@ -1042,7 +1044,8 @@ is specified by "kind".
       dfip->variant.position = null_source_position;
       break;
     case dfk_string:
-      dfip->variant.string = NULL;
+      dfip->variant.string.start = NULL;
+      dfip->variant.string.len = 0;
       break;
     case dfk_symbol:
       dfip->variant.symbol.ptr = NULL;
@@ -4162,7 +4165,9 @@ null-terminated.
 #endif /* !STANDALONE_UTILITY_PROGRAM */
     case dfk_string:
       /* A string fill-in.  Add it to the message buffer. */
-      add_string_to_text_buffer(msg_buffer, dfip->variant.string);
+      add_string_with_length_to_text_buffer(msg_buffer,
+                                            dfip->variant.string.start,
+                                            dfip->variant.string.len);
       break;
     case dfk_type:
       /* A type fill-in. */
@@ -5121,15 +5126,28 @@ Add a position fill-in entry for pos to the diagnostic specified by diag_ptr.
 
 
 static inline void add_string_fill_in(a_diagnostic_ptr diag_ptr,
+                                      a_const_char     *str_start,
+                                      size_t           str_len)
+/*
+Add a string fill-in entry for string of the given length (not including the
+null-terminator if any) to the diagnostic specified by diag_ptr.
+*/
+{
+  a_diag_fill_in_ptr dfip = alloc_diag_fill_in(dfk_string);
+
+  dfip->variant.string.start = str_start;
+  dfip->variant.string.len = str_len;
+  add_fill_in_to_diagnostic(diag_ptr, dfip);
+}  /* add_string_fill_in */
+
+
+static inline void add_string_fill_in(a_diagnostic_ptr diag_ptr,
                                       a_const_char     *string)
 /*
 Add a string fill-in entry for string to the diagnostic specified by diag_ptr.
 */
 {
-  a_diag_fill_in_ptr dfip = alloc_diag_fill_in(dfk_string);
-
-  dfip->variant.string = string;
-  add_fill_in_to_diagnostic(diag_ptr, dfip);
+  add_string_fill_in(diag_ptr, string, strlen(string));
 }  /* add_string_fill_in */
 
 
@@ -8407,6 +8425,17 @@ specified by diag.
 */
 {
   add_string_fill_in(diag, value);
+}  /* Fill_in<a_const_char*>::add */
+
+
+void Fill_in<a_string_view>::add(a_diagnostic_ptr diag,
+                                 a_string_view    value)
+/*
+Add a string fill-in entry for the given string (value) to the diagnostic
+specified by diag.
+*/
+{
+  add_string_fill_in(diag, value.start(), value.length());
 }  /* Fill_in<a_const_char*>::add */
 
 

@@ -383,20 +383,27 @@ lifetime of the represented string must exceed the lifetime of the string view
 object.
 */
 struct a_string_view {
-  a_const_char * const
-                start;  /* The start of the string. */
-  const size_t  length; /* The length of the string (not including the null
-                           terminator). */
   a_string_view()
-    : start(""), length(0)
+    : str_start(""), str_length(0)
     {}
   a_string_view(a_const_char *start_val)
-    : start((check_assertion(start_val != NULL), start_val)),
-      length(strlen(start_val))
+    : str_start((check_assertion(start_val != NULL), start_val)),
+      str_length(strlen(start_val))
     {}
   a_string_view(a_const_char *start_val, size_t length_val)
-    : start(start_val), length(length_val)
+    : str_start(start_val), str_length(length_val)
     { check_assertion(start_val != NULL); }
+
+  inline a_const_char* start() const
+    { return this->str_start; }
+  inline size_t length() const
+    { return this->str_length; }
+private:
+  a_const_char  *str_start;
+                        /* The start of the string. */
+  size_t        str_length;
+                        /* The length of the string (not including the null
+                           terminator for null-terminated strings). */
 };  /* a_string_view */
 
 
@@ -410,10 +417,10 @@ are considered the same.
 {
   a_boolean result;
 
-  if (str1.length != str2.length) {
+  if (str1.length() != str2.length()) {
     result = FALSE;
   } else {
-    result = (strncmp(str1.start, str2.start, str1.length) == 0);
+    result = (strncmp(str1.start(), str2.start(), str1.length()) == 0);
   }  /* if */
   return result;
 }  /* operator== */
@@ -429,6 +436,22 @@ are considered the same.
 {
   return !(str1 == str2);
 }  /* operator!= */
+
+
+inline a_boolean operator<(const a_string_view str1,
+                           const a_string_view str2)
+/*
+Return TRUE if the string represented by str1 comes before str in
+lexicographical order; otherwise, return FALSE.
+*/
+{
+  size_t len = str1.length();
+
+  if (str2.length() < len) {
+    len = str2.length();
+  }  /* if */
+  return strncmp(str1.start(), str2.start(), len) < 0;
+}  /* operator< */
 
 
 /*

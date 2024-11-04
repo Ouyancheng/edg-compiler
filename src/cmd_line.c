@@ -10452,11 +10452,10 @@ Process the arguments on the command line that invoked the compiler.
             a_const_char   *path = file_name_from_opt_arg(part_2);
 
             /* Add this module name to the map. */
-            if (module_name.length == 0) {
+            if (module_name.length() == 0) {
               str_command_line_error(ec_cl_unnamed_module_map, part_2);
             } else if (mod_map->get(module_name) != NULL) {
-              str_command_line_error(ec_duplicate_module_map,
-                                     module_name.start);
+              str_command_line_error(ec_duplicate_module_map, part_1);
             } else {
               mod_map->map(module_name, path);
             }  /* if */

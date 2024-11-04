@@ -133,8 +133,8 @@ static a_module_ptr find_or_create_module(a_string_view module_sym_id,
 Find or create an IL module entity corresponding to the given module symbol
 identifier and module kind.
 
-Note: module_sym_id must be backed by long term storage; this function does not
-create its own copy of the module symbol identifier.
+Note: module_sym_id must be backed by long term storage and null-terminated;
+this function does not create its own copy of the module symbol identifier.
 */
 {
   /* Ensure the modules system is fully loaded. */
@@ -143,7 +143,7 @@ create its own copy of the module symbol identifier.
   a_module_ptr  result = known_modules->get(module_sym_id);
   if (result == NULL) {
     result = alloc_module(module_kind);
-    result->name = module_sym_id.start;
+    result->name = module_sym_id.start();
     known_modules->map(module_sym_id, result);
   }  /* if */
   return result;
