@@ -3,12 +3,13 @@ Version 6.7
 11/4/24  [EDGcpfe/27176,EDGcpfe/27361]
 Microsoft compatibility: class type_info predeclaration
 
-Previously, the front end predeclared class ::type_info only if both ms_compat
-and ms_extensions were TRUE.  Now, only ms_compat needs to be TRUE.  (As
-before, this behavior is only emulated when type_info is configured to be
-declared in the global namespace rather than in namespace std, e.g. with the
-option --set_flag=force_ms_type_info_not_in_namespace_std.)  Furthermore, when
-ms_compat is TRUE, the `type_id` operator is accepted even when no complete
+Previously, the front end predeclared class type_info only if ms_extensions
+was TRUE.  Now, only ms_compat needs to be TRUE.  In addition, this behavior
+is only emulated when type_info is configured to be declared in the global
+namespace rather than in namespace std, e.g. with the command-line option
+--set_flag=force_ms_type_info_not_in_namespace_std (previously, it was
+predeclared in namespace std in some Clang modes).  Furthermore, when
+ms_compat is TRUE, the typeid operator is accepted even when no complete
 class type_info is available (i.e., the program did not include <typeinfo>).
 
 
