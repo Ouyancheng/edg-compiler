@@ -18889,7 +18889,7 @@ indication in *rcblock).
     }  /* if */
     complete_type_is_needed(type_of_type_info);
   }  /* if */
-  if (!err && !is_cli_typeid &&
+  if (!err && !is_cli_typeid && !ms_compat &&
       type_of_type_info != NULL &&
       (clang_mode ?
             (symbol_for(type_of_type_info)->decl_scope == NO_SCOPE_DEPTH) :

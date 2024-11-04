@@ -462,18 +462,17 @@ enter_system_specific_predeclared_symbols; see sys_predef.c.)
     }  /* for */
     type_of_type_info = types_of_type_info[(int)tik_user];
 #if MICROSOFT_EXTENSIONS_ALLOWED
-    if (ms_extensions) {
-      /* Microsoft compilers make visible the (incomplete) type_info type
-         visible in the global namespace.  We emulate this only if the
-         type_info type resides in the global namespace. */
+    if (ms_compat) {
+      /* Microsoft compilers (and Clang, with -fms-compatibility) make the
+         (incomplete) class type_info visible in the global namespace.  We
+         emulate this only if type_info is configured to inhabit in the global
+         namespace. */
       if (!type_info_in_namespace_std || ignore_std_namespace) {
         enter_predeclared_class(type_of_type_info, DEPTH_OF_FILE_SCOPE,
                                 &null_source_position);
       }  /* if */
-      if (clang_mode && ms_compat && type_info_in_namespace_std) {
-        /* The type should be a member of namespace std. */
-        predeclare_std_type_info();
-      }  /* if */
+    }  /* if */
+    if (ms_extensions) {
       type_of_guid = init_predeclared_class((a_type_kind)tk_struct, "_GUID");
       enter_predeclared_class(type_of_guid, DEPTH_OF_FILE_SCOPE,
                               &null_source_position);
