@@ -430,6 +430,20 @@ extern void db_print_indent(unsigned amount);
 
 #endif /* DEBUG */
 
+extern void ifc_modules_read_one_time_init();
+
+extern void ifc_modules_read_trans_unit_delayed_init();
+
+extern void ifc_modules_read_trans_unit_init();
+
+extern void ifc_modules_read_trans_unit_wrapup();
+
+#if MAKE_FRONT_END_CALLABLE
+
+extern void ifc_modules_read_cleanup();
+
+#endif /* MAKE_FRONT_END_CALLABLE */
+
 /* Conditionally close the "edg" namespace. */
 END_EDG_NAMESPACE
 

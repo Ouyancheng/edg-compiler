@@ -30621,13 +30621,7 @@ Given an IFC index, return the corresponding lexical index.
 INST_LEXICAL_IDX_CONVERSION(an_ifc_decl_index)
 INST_LEXICAL_IDX_CONVERSION(an_ifc_expr_index)
 
-STATIC_THREAD a_boolean
-        ifc_modules_initialized_for_curr_tu;
-                /* TRUE if IFC modules-related variables have been fully
-                   initialized for the current translation unit. */
-
-
-void ifc_modules_one_time_init()
+void ifc_modules_read_one_time_init()
 /*
 Do one-time initialization of static variables defined in this file.
 */
@@ -30646,7 +30640,6 @@ Do one-time initialization of static variables defined in this file.
       pch_saved_var_array_elem(ifc_decl_template_lookup_table),
       pch_saved_var_array_elem(tok_name_map),
       pch_saved_var_array_elem(deduction_guide_map),
-      pch_saved_var_array_elem(ifc_modules_initialized_for_curr_tu),
       pch_saved_var_array_terminating_elem()
     };
     register_pch_saved_variables(saved_vars);
@@ -30709,14 +30702,14 @@ Do one-time initialization of static variables defined in this file.
   register_trans_unit_variable(ifc_decl_lookup_table);
   register_trans_unit_variable(ifc_decl_template_lookup_table);
   register_trans_unit_variable(deduction_guide_map);
-  register_trans_unit_variable(ifc_modules_initialized_for_curr_tu);
-}  /* ifc_modules_one_time_init */
+}  /* ifc_modules_read_one_time_init */
 
 
-static void ifc_modules_trans_unit_delayed_init()
+void ifc_modules_read_trans_unit_delayed_init()
 /*
-Perform initialization of things related to IFC modules that are delayed until
-at least one IFC module is actually imported.
+Initialize the variables necessary for reading IFC modules in the current
+translation unit that are delayed until at least one IFC module is actually
+imported.
 */
 {
   entity_lookup_cache = new_fe<an_ifc_module_entity_lookup>(/*mask_width=*/10);
@@ -30731,25 +30724,12 @@ at least one IFC module is actually imported.
   ifc_decl_template_lookup_table = new_fe<an_ifc_template_lookup_table>(
                                                             /*mask_width=*/10);
   ifc_type_cache = new_fe<an_ifc_module_type_cache>(/*mask_width=*/10);
-}  /* ifc_modules_trans_unit_delayed_init */
+}  /* ifc_modules_read_trans_unit_delayed_init */
 
 
-void require_ifc_modules()
+void ifc_modules_read_trans_unit_init()
 /*
-IFC module use has been detected in the current translation unit.  Initialize
-the corresponding front end structures (if not already initialized).
-*/
-{
-  if (!ifc_modules_initialized_for_curr_tu) {
-    ifc_modules_trans_unit_delayed_init();
-    ifc_modules_initialized_for_curr_tu = TRUE;
-  }  /* if */
-}  /* require_ifc_modules */
-
-
-void ifc_modules_trans_unit_init()
-/*
-Initialization of things related to IFC modules that must be repeated for every
+Initialize the variables necessary for reading IFC modules in the current the
 translation unit.
 */
 {
@@ -30763,15 +30743,13 @@ translation unit.
   ifc_decl_lookup_table = NULL;
   ifc_decl_template_lookup_table = NULL;
   ifc_type_cache = NULL;
-  ifc_modules_initialized_for_curr_tu = FALSE;
-}  /* ifc_modules_trans_unit_init */
+}  /* ifc_modules_read_trans_unit_init */
 
 
-void ifc_modules_trans_unit_wrapup()
+void ifc_modules_read_trans_unit_wrapup()
 /*
-Perform any wrapup operations needed for the translation unit.  This is
-called after all processing for the translation unit (including template
-instantiations, etc.) has been done.
+Perform any wrapup operations related to reading IFC modules in the current the
+translation unit.  See ifc_modules_trans_unit_wrapup for more information.
 */
 {
   delete_fe(&deduction_guide_map);
@@ -30785,19 +30763,19 @@ instantiations, etc.) has been done.
   delete_fe(&ifc_var_inits);
   delete_fe(&ifc_parameterized_entities);
   delete_fe(&entity_lookup_cache);
-}  /* ifc_modules_trans_unit_wrapup */
+}  /* ifc_modules_read_trans_unit_wrapup */
 
 #if MAKE_FRONT_END_CALLABLE
 
-void ifc_modules_cleanup()
+void ifc_modules_read_cleanup()
 /*
-This routine is called at the end of compilation, or if compilation is
-terminated prematurely for some reason.  It runs any necessary destructors.
+Perform any cleanup operations related to reading IFC modules in the current
+the translation unit.  See ifc_modules_cleanup for more information.
 */
 {
   delete_fe(&tok_name_map);
   delete_general(&bad_operator_name_encodings);
-}  /* ifc_modules_cleanup */
+}  /* ifc_modules_read_cleanup */
 
 #endif /* MAKE_FRONT_END_CALLABLE */
 
