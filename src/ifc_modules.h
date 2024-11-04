@@ -448,8 +448,6 @@ extern a_boolean is_at_least(an_ifc_module          *mod,
                              an_ifc_version_storage minimum_version_major,
                              an_ifc_version_storage minimum_version_minor);
 
-extern a_const_char *ifc_token_name_of(a_token_kind token_kind);
-
 template<typename an_ifc_Index_type>
 extern an_ifc_Index_type from_lexical_index(a_lexical_ifc_index_reference idx);
 

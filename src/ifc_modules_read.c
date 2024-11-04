@@ -65,20 +65,6 @@ return FALSE.
 }  /* is_msvc_authored */
 
 
-a_boolean is_for_read(an_ifc_module_file *file)
-/*
-Return TRUE if the given module file is for a module read operation.  Return
-FALSE if the given module file is for a module write operation.
-
-This function provides a definition for the declaration in ifc_map.h.  This
-allows ifc_map.h to function without a complete definition of
-an_ifc_module_file.
-*/
-{
-  return file->is_for_read();
-}  /* is_for_read */
-
-
 static void ifc_requirement_impl(ARG_UNUSED int          line_number,
                                  ARG_UNUSED a_const_char *function,
                                  an_ifc_module           *mod,
@@ -793,44 +779,6 @@ Given an IFC module entry, return the corresponding an_ifc_module instance.
 }  /* module_of */
 
 
-a_boolean is_at_least(an_ifc_module_file     *file,
-                      an_ifc_version_storage minimum_version_major,
-                      an_ifc_version_storage minimum_version_minor)
-/*
-Check to see if the given module's version has at least the minimum version
-"major.minor".
-*/
-{
-  a_boolean result = FALSE;
-
-  if (file->version_major > minimum_version_major) {
-    result = TRUE;
-  } else if (file->version_major == minimum_version_major &&
-             file->version_minor >= minimum_version_minor) {
-    result = TRUE;
-  } else if (skip_module_version_check) {
-    /* The version check is being skipped.  Check to see if this is a query for
-       the minimum supported IFC version or something before that.
-
-       Local variables are used here to suppress spurious diagnostics about
-       pointless comparisons against 0 if IFC_MIN_VER_MAJOR or
-       IFC_MIN_VER_MINOR is 0.  These local variables while "constant" are not
-       sufficiently constant for front ends to analyze; the optimizer is
-       unaffected. */
-    an_ifc_version_storage min_supported_major = IFC_MIN_VER_MAJOR;
-    an_ifc_version_storage min_supported_minor = IFC_MIN_VER_MINOR;
-
-    if (minimum_version_major < min_supported_major) {
-      result = TRUE;
-    } else if (minimum_version_major == min_supported_major &&
-               minimum_version_minor <= min_supported_minor) {
-      result = TRUE;
-    }  /* if */
-  }  /* if */
-  return result;
-}  /* is_at_least */
-
-
 a_boolean is_at_least(an_ifc_module          *mod,
                       an_ifc_version_storage minimum_version_major,
                       an_ifc_version_storage minimum_version_minor)
@@ -841,68 +789,6 @@ interface instead of the underlying file.
 {
   return is_at_least(mod->file, minimum_version_major, minimum_version_minor);
 }  /* is_at_least */
-
-
-a_const_char *ifc_token_name_of(a_token_kind token_kind)
-/*
-Return a unique name for the given token for identification purposes in an EDG
-IFC token cache.
-
-This function primarily uses the EDG token_names, but replaces some token names
-to allow every token to have a unique name.
-*/
-{
-  a_const_char *result;
-
-  switch (token_kind) {
-#if MICROSOFT_EXTENSIONS_ALLOWED
-    case tok_prefix_for:
-      result = "for[[prefix]]";
-      break;
-    case tok_prefix_enum:
-      result = "enum[[prefix]]";
-      break;
-#endif /* MICROSOFT_EXTENSIONS_ALLOWED */
-    case tok_cpp98_export:
-      result = "export[[C++98]]";
-      break;
-    case tok_export_keyword:
-      result = "export[[keyword]]";
-      break;
-    default:
-      result = token_names[token_kind];
-      break;
-  }  /* switch */
-  return result;
-}  /* ifc_token_name_of */
-
-#if !ASSUME_LITTLE_ENDIAN_IFC_MODULES
-
-a_boolean has_matching_endianness(an_ifc_module_file *file)
-/*
-Check to see if the given module file's endianness matches the endianness the
-front end was compiled under.
-*/
-{
-  a_boolean result;
-
-  switch (file->endianness) {
-    case ifc_mpe_little:
-      result = host_little_endian;
-      break;
-    case ifc_mpe_big:
-      result = !host_little_endian;
-      break;
-    case ifc_mpe_unknown:
-      /* Make a best guess based on the compiler's target. */
-      result = targ_little_endian == host_little_endian;
-      break;
-    default_is_unexpected();
-  }  /* switch */
-  return result;
-}  /* has_matching_endianness */
-
-#endif /* !ASSUME_LITTLE_ENDIAN_IFC_MODULES */
 
 /*
 Verify that the variable being used to read a value is the same size as the
@@ -2057,24 +1943,6 @@ corresponding name.
 }  /* get_partition_metadata */
 
 
-a_const_char *get_partition_name_from_kind(an_ifc_partition_kind part_kind)
-/*
-Given a partition kind that corresponds to a real partition, return the
-corresponding name.
-*/
-{
-  /* Subtract 1 to ignore pk_none. */
-  static_assert(ifc_pk_none == 0,
-                "pk_none does not hold the expected value");
-  check_assertion(part_kind != ifc_pk_none);
-
-  an_ifc_partition_map *map_entry = &ifc_partition_map[part_kind - 1];
-  /* Make sure the right map entry is going to be returned. */
-  check_assertion(map_entry->kind == part_kind);
-  return map_entry->name;
-}  /* get_partition_name_from_kind */
-
-
 static a_module_ref_key as_key(const an_ifc_module_reference &ref)
 /*
 Given a module reference, return the associated module ref key (i.e., a hash
@@ -2090,105 +1958,6 @@ key).
   return (((a_module_ref_key)partition) << (sizeof(owner) * CHAR_BIT)) |
                                                        (a_module_ref_key)owner;
 }  /* as_key */
-
-
-an_ifc_module_file::an_ifc_module_file(a_module_file_kind mk,
-                     /* Defaulted: */  a_boolean          for_read_val)
-/*
-Construct a new IFC module file with the given module file kind.  for_read_val
-should be TRUE if this IFC module file is being constructed for a read
-operation.  for_read_val should be FALSE if this IFC module file is being
-constructed for a write operation.
-*/
-  : module_kind(mk), for_read(for_read_val)
-{
-  if (this->for_read) {
-    new (&this->read_state) an_ifc_module_file_read_state();
-  } else {
-    new (&this->write_state) an_ifc_module_file_write_state();
-  }  /* if */
-}  /* an_ifc_module_file::an_ifc_module_file */
-
-
-an_ifc_module_file::an_ifc_module_file(an_ifc_module_file &&old)
-/*
-Move construct from the given IFC module file.
-*/
-  : an_ifc_module_file(old.module_kind)
-{
-  this->version_major = old.version_major;
-  this->version_minor = old.version_minor;
-#if !ASSUME_LITTLE_ENDIAN_IFC_MODULES
-  swap_at(&old.endianness, &this->endianness);
-#endif /* !ASSUME_LITTLE_ENDIAN_IFC_MODULES */
-  swap_at(&old.f_module, &this->f_module);
-  if (old.for_read) {
-    this->for_read = TRUE;
-    construct(&this->read_state);
-    swap_at(&old.read_state, &this->read_state);
-  } else {
-    this->for_read = FALSE;
-    construct(&this->write_state);
-    swap_at(&old.write_state, &this->write_state);
-  }  /* if */
-}  /* an_ifc_module_file::an_ifc_module_file */
-
-
-an_ifc_module_file::~an_ifc_module_file()
-/*
-Destroy the IFC module file.
-*/
-{
-  this->close();
-  if (this->for_read) {
-    this->read_state.~an_ifc_module_file_read_state();
-  } else {
-    this->write_state.~an_ifc_module_file_write_state();
-  }  /* if */
-}  /* an_ifc_module_file::~an_ifc_module_file */
-
-
-an_ifc_module_file &an_ifc_module_file::operator=(an_ifc_module_file &&old)
-/*
-Move from the given IFC module file, returning self.
-*/
-{
-  if (this != &old) {
-    destroy(this);
-    construct(this, move_from(&old));
-  }  /* if */
-  return *this;
-}  /* an_ifc_module_file::operator= */
-
-
-void an_ifc_module_file::close()
-/*
-Close the module file.
-*/
-{
-  if (this->f_module != NULL) {
-    if (this->for_read) {
-      (void)fclose(this->f_module);
-    } else {
-      /* FIXME: Eventually we should figure out the correct error code from
-         an_ifc_module_file::module_kind. */
-      (void)close_output_file_with_error_handling(&this->f_module,
-                                                  ec_edg_ifc_file);
-    }  /* if */
-    this->f_module = NULL;
-#if USE_MMAP_FOR_MEMORY_REGIONS
-#if EDG_WIN32
-    if (this->for_read) {
-      an_ifc_module_file_read_state &rs_ref = this->read_state;
-
-      close_mapped_input_file(rs_ref.mapped_input, rs_ref.map_object);
-      rs_ref.mapped_input = NULL;
-      rs_ref.map_object = NULL;
-    }  /* if */
-#endif /* EDG_WIN32 */
-#endif /* USE_MMAP_FOR_MEMORY_REGIONS */
-  }  /* if */
-}  /* an_ifc_module_file::close */
 
 
 static a_string get_string_at_offset(const an_ifc_module_string_table &table,
@@ -2878,7 +2647,7 @@ occurred.
   if (traits.length() > 1) {
     an_ifc_partition_kind
                   part_kind = get_ifc_partition_kind<an_ifc_Node_type>();
-    a_const_char  *part_name = get_partition_name_from_kind(part_kind);
+    a_string_view part_name = get_partition_name_from_kind(part_kind);
     a_string      err_msg("found ", traits.length(), " traits in the ",
                           part_name, " partition for ", index_to_str(decl),
                           " when at most one trait was expected");
@@ -14172,40 +13941,21 @@ issue diagnostics if issue_diag is TRUE.
   return result;
 }  /* an_ifc_module::init_header */
 
-namespace {
 
-/*
-An internal representation of an IFC partition name used to facilitate binary
-search of the partition map.
-*/
-struct an_ifc_partition_name {
-  a_boolean operator<(const an_ifc_partition_name& other) const
-    { return strcmp(this->name, other.name) < 0; }
-
-  a_boolean operator==(const an_ifc_partition_name& other) const
-    { return strcmp(this->name, other.name) == 0; }
-
-  a_const_char *name;
-};  /* an_ifc_partition_name */
-
-}  /* namespace */
-
-static an_ifc_partition_kind find_ifc_partition(a_const_char *name)
+static an_ifc_partition_kind find_ifc_partition(a_string_view name)
 /*
 Find and return the IFC partition kind for the partition matching name.  If
 the partition could not be found, return ifc_pk_none.
 */
 {
   an_ifc_partition_kind result = ifc_pk_none;
-  /* Create a wrapped version of partition_name for comparisons. */
-  an_ifc_partition_name partition_name{name};
   /* Provide a value function for retrieving the wrapped partition name at the
      given partition map index. */
   auto value_lambda = [](ptrdiff_t idx) {
-    return an_ifc_partition_name{ifc_partition_map[idx].name};
+    return get_partition_name_from_kind((an_ifc_partition_kind)(idx + 1));
   };
   /* Get the partition map index (if any) for the given partition name. */
-  ptrdiff_t partition_map_idx = bin_search(IFC_PARTITION_COUNT, partition_name,
+  ptrdiff_t partition_map_idx = bin_search(IFC_PARTITION_COUNT, name,
                                            value_lambda);
 
   /* If we have a matching partition map entry, return it, otherwise return
@@ -14442,16 +14192,19 @@ diagnostics if issue_diag is TRUE.
       }  /* if */
 
       /* Read information about the partition. */
-      a_string     name_str = get_string_at_offset(get_ifc_name(ip));
-      a_const_char *name_str_temp = name_str.as_temp_characters();
+      a_string      name_str = get_string_at_offset(get_ifc_name(ip));
+      a_string_view name_str_temp(name_str.as_temp_characters(),
+                                  name_str.length());
 #if DEBUG
       if (db_flag_is_set("ifc_modules")) {
-        (void)fprintf(
-            f_debug,
-            "partition %u \"%s\" offset 0x%08x cardinality %u entry_size %u\n",
-            i, name_str_temp, (an_ifc_byte_offset_storage)get_ifc_offset(ip),
-            (an_ifc_cardinality_storage)get_ifc_cardinality(ip),
-            (an_ifc_entity_size_storage)get_ifc_entry_size(ip));
+        a_string dbg_msg("partition ", i, " \"", name_str, "\" offset 0x",
+                         (an_ifc_byte_offset_storage)get_ifc_offset(ip),
+                         " cardinality ",
+                         (an_ifc_cardinality_storage)get_ifc_cardinality(ip),
+                         " entry_size ",
+                         (an_ifc_entity_size_storage)get_ifc_entry_size(ip));
+
+        print(dbg_msg, f_debug);
       }  /* if */
 #endif /* DEBUG */
       /* FIXME: Do we need this assertion? */
@@ -30067,7 +29820,7 @@ validation trace, handle failure and diagnostics for an encountered undefined
 partition.
 */
 {
-  a_const_char     *part_name = get_partition_name_from_kind(part_kind);
+  a_string_view    part_name = get_partition_name_from_kind(part_kind);
   a_diagnostic_ptr diag_ptr = start_error(ec_undefined_ifc_partition,
                                           mod->assoc_module_info->name,
                                           part_name);
@@ -30086,7 +29839,7 @@ Given the associated module, partition kind, index, and validation trace,
 handle failure and diagnostics for an encountered undefined partition.
 */
 {
-  a_const_char     *part_name = get_partition_name_from_kind(part_kind);
+  a_string_view    part_name = get_partition_name_from_kind(part_kind);
   a_diagnostic_ptr diag_ptr = start_error(
                                        ec_invalid_unrepresentable_ifc_position,
                                        mod->assoc_module_info->name,
@@ -30111,7 +29864,7 @@ validation trace, handle failure and diagnostics for an encountered overflowing
 partition.
 */
 {
-  a_const_char     *part_name = get_partition_name_from_kind(part_kind);
+  a_string_view    part_name = get_partition_name_from_kind(part_kind);
   a_diagnostic_ptr diag_ptr = start_error(error_code,
                                           mod->assoc_module_info->name,
                                           part_name, file_offset,

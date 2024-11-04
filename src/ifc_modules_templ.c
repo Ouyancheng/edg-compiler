@@ -484,14 +484,14 @@ call).
       *result = read_value;
     }  /* if */
   } else if (is_null_index(idx)) {
-    a_const_char *node_part_name =
+    a_string_view node_part_name =
                                   get_partition_name_from_kind(node_part_kind);
 
     /* FIXME: Use a better source position. */
     error(ec_ifc_partition_missing_element, node_part_name);
   } else {
-    a_const_char *idx_part_name = get_partition_name_from_kind(idx_part_kind);
-    a_const_char *node_part_name =
+    a_string_view idx_part_name = get_partition_name_from_kind(idx_part_kind);
+    a_string_view node_part_name =
                                   get_partition_name_from_kind(node_part_kind);
 
     /* FIXME: Use a better source position. */

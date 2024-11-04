@@ -155,6 +155,7 @@ struct an_ifc_output_state {
 
   inline size_t add_to_string_table(a_const_char *bytes, size_t num_bytes);
   inline size_t add_to_string_table(a_const_char *string_text);
+  inline size_t add_to_string_table(a_string_view str);
 
   template<typename an_ifc_Node_type>
   inline size_t alloc_node(an_ifc_Node_type *result);
@@ -277,6 +278,23 @@ offset into the string table where the string starts.
   size_t num_bytes = strlen(string_text) + 1;
 
   this->string_table.insert(start, string_text, num_bytes);
+  return start;
+}  /* an_ifc_output_state::add_to_string_table */
+
+
+size_t an_ifc_output_state::add_to_string_table(a_string_view str)
+/*
+Insert the given string into the string table.  Return the byte offset into the
+string table where the string starts.
+
+Note: A null terminator is always added ensuring at least one null terminator
+terminates the string table.
+*/
+{
+  size_t start = this->string_table.length();
+
+  this->string_table.insert(start, str.start(), str.length());
+  this->string_table.push_back('\0');
   return start;
 }  /* an_ifc_output_state::add_to_string_table */
 
@@ -1004,10 +1022,8 @@ output partition is not already initialized, initialize it now.
                                                             part_kind);
     /* The partition will need a name for the table of contents write out.
        To simplify things later, create the name now. */
-    a_const_char *part_name = get_partition_name_from_kind(part_kind);
-    size_t       part_name_len = strlen(part_name) + 1;
-    size_t       part_name_offset = this->add_to_string_table(part_name,
-                                                              part_name_len);
+    a_string_view part_name = get_partition_name_from_kind(part_kind);
+    size_t        part_name_offset = this->add_to_string_table(part_name);
 
     output_part = new_general<an_ifc_output_partition>(part_name_offset,
                                                        part_size);

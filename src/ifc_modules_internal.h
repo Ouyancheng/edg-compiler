@@ -93,6 +93,9 @@ struct an_ifc_module_file_write_state {
 /* Forward declaration of a_module_file_kind from il_def.h. */
 enum a_module_file_kind : a_byte;
 
+/* Forward declaration of a_token_kind from il_def.h. */
+enum a_token_kind : unsigned short;
+
 /*
 A structure abstracting the representation of the IFC module file and the
 associated memory managed.
@@ -163,11 +166,18 @@ private:
 #endif /* ifdef UNION_AS_STRUCT */
 };  /* an_ifc_module_file */
 
+extern a_boolean is_for_read(an_ifc_module_file *file);
+
 extern an_ifc_module *module_of(const an_ifc_module_entry &entry);
 
 extern a_boolean is_at_least(an_ifc_module_file     *file,
                              an_ifc_version_storage minimum_version_major,
                              an_ifc_version_storage minimum_version_minor);
+
+extern a_const_char* ifc_token_name_of(a_token_kind token_kind);
+
+extern a_string_view get_partition_name_from_kind(
+                                              an_ifc_partition_kind part_kind);
 
 extern void get_bytes(an_ifc_module_file *file,
                       void               *entity,
@@ -321,9 +331,6 @@ extern an_ifc_partition_metadata *get_partition_metadata(
 template<typename an_ifc_Index_type>
 extern an_ifc_partition_metadata *get_partition_metadata(
                                                         an_ifc_Index_type idx);
-
-extern a_const_char *get_partition_name_from_kind(
-                                              an_ifc_partition_kind part_kind);
 
 /*
 An enum representing the kind of validation trace.
