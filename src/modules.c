@@ -1349,7 +1349,7 @@ or both reside in the global module; otherwise, return FALSE.
     result = TRUE;
   } else if (true_module_a != NULL && true_module_b != NULL) {
     if (true_module_a->kind == mk_header_unit &&
-        true_module_a->kind == mk_header_unit) {
+        true_module_b->kind == mk_header_unit) {
       /* These are both header units, and thus are the same module by virtue
          of being part of the global module. */
       result = TRUE;
