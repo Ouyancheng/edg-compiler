@@ -21427,8 +21427,7 @@ other cases, FALSE is returned and the source operand is left unchanged.
                  return u;
                }
            the selected function is the move constructor of U. */
-        a_routine_ptr  conv_rp = p_arg_conversion != NULL ?
-                                 p_arg_conversion->routine : (a_routine*)NULL;
+        a_routine_ptr  conv_rp = p_arg_conversion->routine;
         if (conv_rp == NULL) conv_rp = conversion->routine;
         if (selected_function_is_moving_constructor(conv_rp)) {
           /* The move optimization applies. */
