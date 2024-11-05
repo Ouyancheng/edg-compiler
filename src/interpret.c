@@ -16284,6 +16284,8 @@ update *ips accordingly.
         release_address_structures_for_args(callee_node->next,
                                             (a_byte**)arg_ptrs);
         pop_call_frame(ips);
+        /* Reduce the cost of the call to just 2. */
+        ips->cost -= up_front_cost-2;
       } else {
         info_with_pos_sym(ec_constexpr_function_undefined,
                           &callee_node->position, symbol_for(callee), ips);
