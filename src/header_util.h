@@ -445,12 +445,22 @@ Return TRUE if the string represented by str1 comes before str in
 lexicographical order; otherwise, return FALSE.
 */
 {
-  size_t len = str1.length();
+  a_boolean result = FALSE;
+  size_t    max_len = str1.length();
 
-  if (str2.length() < len) {
-    len = str2.length();
+  if (str2.length() < max_len) {
+    max_len = str2.length();
   }  /* if */
-  return strncmp(str1.start(), str2.start(), len) < 0;
+
+  int cmp_result = strncmp(str1.start(), str2.start(), max_len);
+  if (cmp_result < 0) {
+    result = TRUE;
+  } else if (cmp_result == 0) {
+    if (str1.length() < str2.length()) {
+      result = TRUE;
+    }  /* if */
+  }  /* if */
+  return result;
 }  /* operator< */
 
 
