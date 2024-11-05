@@ -89,53 +89,6 @@ struct a_module_entity {
   a_module_entity(a_module_ptr module_info_val);
 };  /* a_module_entity */
 
-
-/*
-An (effectively) abstract class used for interfacing with a module.  Different
-module implementations can inherit from this to provide their own interface
-without needing to make an IL change.
-FIXME: For PCH, f_module needs to be re-opened and mmap_addr recomputed.
-*/
-struct a_module_interface {
-  a_module_file_kind
-                mod_kind;
-                        /* What kind of module file this interfaces with.  This
-                           indicates which class has inherited this module and
-                           is used to emulate virtual function dispatch. */
-  a_const_char  *primary_name = NULL;
-                        /* The primary name of the module. */
-  a_const_char  *partition_name = NULL;
-                        /* The partition name of the module.  May be NULL if
-                           this is not a module partition. */
-  a_module_ptr  assoc_module_info = NULL;
-                        /* The associated IL module pointer that references
-                           this module interface. */
-  a_diagnostic_counter
-                suppressed_diagnostics = {};
-                        /* A diagnostic counter storing the counts of any
-                           diagnostics that were suppressed while processing
-                           this module. */
-
-  a_module_interface() = delete;
-  a_module_interface(a_module_file_kind iface_kind)
-    : mod_kind(iface_kind)
-    {}
-  ~a_module_interface() EDG_NOEXCEPT = default;
-
-  /* State query functions. */
-  a_boolean is_open() const;
-
-  /* Disk interface functions. */
-  a_boolean import(a_module_import_decl_ptr midp);
-  void close();
-  void pch_reset(a_module_import_decl_ptr midp);
-
-  /* Module interface functions. */
-  void set_name(a_const_char *module_name,
-                a_boolean    header_unit);
-  void report_suppressed_diagnostics() const;
-};  /* a_module_interface */
-
 #if DEBUG
 
 EXTERN_THREAD unsigned long

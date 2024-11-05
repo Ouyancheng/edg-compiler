@@ -5962,7 +5962,6 @@ Allocate and return an IL entry for a module.
   mod->name = NULL;
   mod->resolved_file = NULL;
   mod->file_kind = mfk_unknown;
-  mod->module_interface = NULL;
   mod->contains_unsupported_constructs = FALSE;
   switch (mod->kind) {
     case mk_none:

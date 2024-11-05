@@ -18059,10 +18059,6 @@ typedef struct a_module {
 		file_kind;
 			/* The (cached) file kind of the module file at the
 			   path stored by resolved_file. */
-  a_module_interface_ptr
-		module_interface;
-			/* The module interface object used to interact with
-			   the module. */
   a_bit_field	contains_unsupported_constructs:1;
 			/* TRUE if this module contains one or more unsupported
 			   binary module interface constructs (i.e., the module

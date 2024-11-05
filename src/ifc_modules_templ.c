@@ -164,7 +164,7 @@ Return the index into the partition associated with the given index type.
 
 
 template<typename an_ifc_Index_type>
-an_ifc_partition_metadata *get_partition_metadata(an_ifc_Index_type idx)
+an_ifc_partition_metadata* get_partition_metadata(an_ifc_Index_type idx)
 /*
 Return a pointer to the ifc partition metadata object associated with the given
 index.
@@ -179,7 +179,7 @@ index.
 /* Macro used to explicitly instantiate get_partition_metadata. */
 #define INST_PARTITION_METADATA(idx_type) \
   template \
-  an_ifc_partition_metadata *get_partition_metadata<idx_type>(idx_type idx);
+  an_ifc_partition_metadata* get_partition_metadata<idx_type>(idx_type idx);
 
 
 /* Manually-defined explicit instantiations of get_partition_metadata. */

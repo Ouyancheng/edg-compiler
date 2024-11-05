@@ -642,8 +642,6 @@ void import_module_file(a_module_import_decl_ptr midp)
 Import the module file specified in the module-import-declaration.
 */
 {
-  a_module_interface_ptr iface = NULL;
-
   /* Ensure the modules system is fully loaded. */
   require_modules();
   check_assertion(midp->module_info->resolved_file != NULL);
@@ -656,13 +654,11 @@ Import the module file specified in the module-import-declaration.
     case mfk_ms_ifc:
       /* Ensure the IFC modules system is fully loaded. */
       require_ifc_modules();
-      /* Construct the IFC module interface for the file. */
-      iface = new_fe<an_ifc_module>(midp->module_info->file_kind);
+      /* Import the IFC module. */
+      (void)import_ifc_module_file(midp);
       break;
     default_is_unexpected();
   }  /* switch */
-  midp->module_info->module_interface = iface;
-  (void)iface->import(midp);
 }  /* import_module_file */
 
 
@@ -1502,9 +1498,9 @@ into the hash table with a new module entity value (that is constructed with an
 initial representation derived from the key).
 */
 {
-  /* A module interface must be present, otherwise this module entity pointer
-     is not viable. */
-  check_assertion(key.mod != NULL && key.mod->module_interface != NULL);
+  /* A module must be present, otherwise this module entity pointer is not
+     viable. */
+  check_assertion(key.mod != NULL);
   uintptr_t           hashed_key = hash_ptr(key);
   a_module_entity_ptr mep =
                            module_entity_hash_table->get_with_hash(key,
@@ -1690,148 +1686,6 @@ guide parameter list.
   a_module_entity_ptr result = get_module_entity_from_key(move_from(&key));
   return result;
 }  /* get_deduction_guide_module_entity */
-
-
-/*lint -esym(1714,*a_module_interface::is_open)*/ /* FIXME: temporary*/
-a_boolean a_module_interface::is_open() const
-/*
-Dispatch the is_open() call to the variant for the actual object.
-*/
-{
-  a_boolean result = FALSE;
-
-  switch (this->mod_kind) {
-    case mfk_edg_ifc:
-    case mfk_ms_ifc:
-      result = ((an_ifc_module*)this)->is_open();
-      break;
-    case mfk_unknown:
-      unexpected_condition();
-      break;
-    default_is_unexpected();
-  }  /* switch */
-  return result;
-}  /* is_open */
-
-
-/*lint -esym(1762,*a_module_interface::import)*/ /* FIXME: temporary*/
-a_boolean a_module_interface::import(a_module_import_decl_ptr midp)
-/*
-Dispatch the import() call to the variant for the actual object.
-*/
-{
-  a_boolean result = FALSE;
-
-  switch (this->mod_kind) {
-    case mfk_edg_ifc:
-    case mfk_ms_ifc:
-      result = ((an_ifc_module*)this)->import(midp);
-      break;
-    case mfk_unknown:
-      unexpected_condition();
-      break;
-    default_is_unexpected();
-  }  /* switch */
-  return result;
-}  /* import */
-
-
-/*lint -esym(1762,*a_module_interface::close)*/ /* FIXME: temporary*/
-void a_module_interface::close()
-/*
-Dispatch the close() call to the variant for the actual object.
-*/
-{
-  switch (this->mod_kind) {
-    case mfk_edg_ifc:
-    case mfk_ms_ifc:
-      ((an_ifc_module*)this)->close();
-      break;
-    case mfk_unknown:
-      unexpected_condition();
-      break;
-    default_is_unexpected();
-  }  /* switch */
-}  /* close */
-
-
-/*lint -esym(1762,*a_module_interface::pch_reset)*/ /* FIXME: temporary*/
-void a_module_interface::pch_reset(a_module_import_decl_ptr midp)
-/*
-Dispatch the pch_reset() call to the variant for the actual object.
-*/
-{
-  switch (this->mod_kind) {
-    case mfk_edg_ifc:
-    case mfk_ms_ifc:
-      ((an_ifc_module*)this)->pch_reset(midp);
-      break;
-    case mfk_unknown:
-      unexpected_condition();
-    default_is_unexpected();
-  }  /* switch */
-}  /* pch_reset */
-
-
-void a_module_interface::set_name(a_const_char *module_name,
-                                  a_boolean    header_unit)
-/*
-Set the name of this module to the provided module_name.  If header_unit is
-TRUE, module_name is the path to the header file (not the header unit BMI, if
-it exists).
-*/
-{
-  if (header_unit) {
-    /* This convention is purely arbitrary but matches how MSVC encodes the
-       primary/partition names for header units. */
-    this->primary_name = NULL;
-    this->partition_name = copy_string_to_region(file_scope_region_number,
-                                                 module_name);
-  } else {
-    a_const_char *tmp_prim_name = get_module_primary_name(module_name);
-
-    this->primary_name = copy_string_to_region(file_scope_region_number,
-                                               tmp_prim_name);
-
-    a_const_char *tmp_part_name = get_module_partition_name(module_name);
-    if (tmp_part_name[0] != '\0') {
-      this->partition_name = copy_string_to_region(file_scope_region_number,
-                                                   tmp_part_name);
-    } else {
-      this->partition_name = NULL;
-    }  /* if */
-  }  /* if */
-}  /* set_name */
-
-
-void a_module_interface::report_suppressed_diagnostics() const
-/*
-Called to report suppressed errors, catastrophic errors, and warnings during
-processing of the imported module entities for this module.
-*/
-{
-  unsigned long errors = suppressed_diagnostics.errors;
-  unsigned long warnings = suppressed_diagnostics.warnings;
-
-  if (errors > 0) {
-    a_boolean plural = errors > 1;
-
-    st_num_diagnostic(es_error,
-                      (plural ? ec_suppressed_module_errors_diag
-                              : ec_suppressed_module_error_diag),
-                      assoc_module_info->name,
-                      errors);
-  }  /* if */
-  if (warnings > 0) {
-    a_boolean plural = warnings > 1;
-
-    st_num_diagnostic(es_warning,
-                      (plural ? ec_suppressed_module_warnings_diag
-                              : ec_suppressed_module_warning_diag),
-                      assoc_module_info->name,
-                      warnings);
-  }  /* if */
-}  /* report_suppressed_diagnostics */
 
 
 void push_module_entity_state(a_module_entity_ptr mep)
@@ -2373,20 +2227,13 @@ Return a string containing debug information about the given module entity.
 This string does not contain extensive information about the module.
 */
 {
-  a_string               result = s_db_module(mep->module_info);
-  a_module_interface_ptr m_iface = NULL;
-  a_module_file_kind     m_kind = mfk_unknown;
+  a_string      result = s_db_module(mep->module_info);
+  a_module_entry_locator_kind
+                locator_kind = mep->locators[mep->primary_locator_idx].kind;
 
-  if (mep->module_info != NULL) {
-    m_iface = mep->module_info->module_interface;
-    if (m_iface != NULL) {
-      m_kind = m_iface->mod_kind;
-    }  /* if */
-  }  /* if */
   result.append(", entity id: ");
-  switch (m_kind) {
-    case mfk_edg_ifc:
-    case mfk_ms_ifc:
+  switch (locator_kind) {
+    case melk_ifc:
       result.append(s_db_id_of_ifc_mep(mep));
       break;
     default:
@@ -2417,20 +2264,6 @@ Display debug information about a module entity.
 
 #endif /* DEBUG */
 
-static inline void close_module_files()
-/*
-Close any open module file handles.
-*/
-{
-  for (a_module_import_decl_ptr midp = il_header.imported_modules;
-       midp != NULL; midp = midp->next) {
-    if (midp->module_info->module_interface != NULL) {
-      midp->module_info->module_interface->close();
-    }  /* if */
-  }  /* for */
-}  /* close_module_files */
-
-
 void modules_pch_prepare()
 /*
 Called when a PCH file is about to be written to prepare the modules system
@@ -2445,7 +2278,7 @@ for the PCH write.
      various Ptr_maps use Index_entity values as keys, these values use
      an_ifc_module_file* pointer values for hashing and equality
      operations). */
-  close_module_files();
+  ifc_modules_close_read_files();
 }  /* modules_pch_prepare */
 
 
@@ -2455,15 +2288,7 @@ Called when a PCH file has just been read to re-open any module files that
 had been opened at the time the PCH file was created.
 */
 {
-  a_module_import_decl_ptr midp;
-
-  for (midp = il_header.imported_modules; midp != NULL; midp = midp->next) {
-    a_module_interface_ptr iface = midp->module_info->module_interface;
-
-    if (iface != NULL) {
-      iface->pch_reset(midp);
-    }  /* if */
-  }  /* for */
+  ifc_modules_pch_read_reset();
 }  /* modules_pch_reset */
 
 
@@ -2473,15 +2298,7 @@ Called after the translation unit has otherwise been processed to check
 for suppressed errors while processing the module.
 */
 {
-  a_module_import_decl_ptr midp;
-
-  for (midp = il_header.imported_modules; midp != NULL; midp = midp->next) {
-    a_module_interface_ptr iface = midp->module_info->module_interface;
-
-    if (iface != NULL) {
-      iface->report_suppressed_diagnostics();
-    }  /* if */
-  }  /* for */
+  ifc_modules_report_suppressed_diagnostics();
 }  /* modules_check_for_suppressed_errors */
 
 
@@ -2597,31 +2414,6 @@ additional entities are added to the IL.
 }  /* modules_trans_unit_wrapup_part_1 */
 
 
-static inline void free_module_interfaces()
-/*
-Free any module interfaces.
-*/
-{
-  for (a_module_import_decl_ptr midp = il_header.imported_modules;
-       midp != NULL; midp = midp->next) {
-    if (midp->module_info->module_interface != NULL) {
-      switch (midp->module_info->file_kind) {
-        case mfk_unknown:
-          /* The module file kind should have been set if this module import
-             declaration appeared on the list of imported modules. */
-          unexpected_condition();
-        case mfk_edg_ifc:
-        case mfk_ms_ifc:
-          delete_fe<an_ifc_module>(
-                        (an_ifc_module**)&midp->module_info->module_interface);
-          break;
-        default_is_unexpected();
-      }  /* switch */
-    }  /* if */
-  }  /* for */
-}  /* free_module_interfaces */
-
-
 void modules_trans_unit_wrapup_part_2()
 /*
 Perform final modules-related wrapup operations needed for the translation
@@ -2633,8 +2425,6 @@ support in the current translation unit.
 */
 {
   ifc_modules_trans_unit_wrapup();
-  close_module_files();
-  free_module_interfaces();
   delete_fe(&known_modules);
   delete_fe(&module_entity_stack);
   delete_fe(&module_entity_hash_table);

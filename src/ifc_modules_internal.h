@@ -25,7 +25,7 @@ ifc_modules_internal.h -- Declarations and forward declarations exposed only to
 /* Conditionally open the "edg" namespace. */
 BEGIN_EDG_NAMESPACE
 
-struct an_ifc_module;
+struct an_ifc_input_state;
 
 #if !ASSUME_LITTLE_ENDIAN_IFC_MODULES
 
@@ -50,8 +50,10 @@ The minimum major and minor supported version combination.
 State for an_ifc_module_file when the object represents an IFC file read.
 */
 struct an_ifc_module_file_read_state {
-  an_ifc_module *mod = NULL;
-                        /* The IFC module using this file (if any). */
+  an_ifc_input_state
+                *input_state = NULL;
+                        /* The IFC module input state associated with this file
+                           (if any). */
   size_t        f_size = 0;
                         /* The size of the module file. */
 #if USE_MMAP_FOR_MEMORY_REGIONS
@@ -168,7 +170,7 @@ private:
 
 extern a_boolean is_for_read(an_ifc_module_file *file);
 
-extern an_ifc_module *module_of(const an_ifc_module_entry &entry);
+extern an_ifc_input_state* module_of(const an_ifc_module_entry &entry);
 
 extern a_boolean is_at_least(an_ifc_module_file     *file,
                              an_ifc_version_storage minimum_version_major,
@@ -324,12 +326,12 @@ struct an_ifc_partition_metadata {
                            path." */
 };  /* an_ifc_partition_metadata */
 
-extern an_ifc_partition_metadata *get_partition_metadata(
-                                              an_ifc_module         *mod,
-                                              an_ifc_partition_kind part_kind);
+extern an_ifc_partition_metadata* get_partition_metadata(
+                                            an_ifc_input_state    *input_state,
+                                            an_ifc_partition_kind part_kind);
 
 template<typename an_ifc_Index_type>
-extern an_ifc_partition_metadata *get_partition_metadata(
+extern an_ifc_partition_metadata* get_partition_metadata(
                                                         an_ifc_Index_type idx);
 
 /*
