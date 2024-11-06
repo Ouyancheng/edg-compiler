@@ -22318,9 +22318,22 @@ be called to start a copy.
       expr_copy->variant.operation.operands =
                     i_copy_list_of_expr_trees(expr->variant.operation.operands,
                                               options, cblock);
-      if (expr->variant.operation.kind == (an_expr_operator_kind)eok_comma) {
+      if (expr->variant.operation.kind == eok_comma) {
         /* The value of the first operand of a comma operator is not used. */
         set_expr_result_not_used(expr_copy->variant.operation.operands);
+#if MINIMAL_INLINING
+        if ((options & CE_DOING_INLINING_OF_FUNCTION_CALL) &&
+            expr_copy->orig_lvalue_type != NULL &&
+            !node_includes_glvalue_to_prvalue_conv(
+                                     expr_copy->variant.operation.operands)) {
+          /* After remapping a variable under a comma expression during
+             inlining, the substituted expression might not include a
+             glvalue-to-prvalue conversion anymore, and thus no
+             orig_lvalue_type should be recorded, because that confuses
+             node_operands_have_correct_value_category. */
+          expr_copy->orig_lvalue_type = NULL;
+        }  /* if */
+#endif /* MINIMAL_INLINING */
       }  /* if */
       break;
     case enk_temp_init:
