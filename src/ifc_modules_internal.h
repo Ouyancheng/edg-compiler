@@ -170,7 +170,23 @@ private:
 
 extern a_boolean is_for_read(an_ifc_module_file *file);
 
-extern an_ifc_input_state* module_of(const an_ifc_module_entry &entry);
+
+inline an_ifc_input_state *input_state_for(const an_ifc_module_entry &entry)
+/*
+Given an IFC module entry, return the corresponding an_ifc_input_state
+instance.
+*/
+{
+  an_ifc_input_state *input_state = entry.file->get_read_state().input_state;
+
+  /* If this assertion fails, the caller is using an IFC file instance that
+     does not have a corresponding input state set on it.  This can happen when
+     using IFC processing logic with an IFC module file lacking an associated
+     IFC module interface. */
+  check_assertion_str(input_state != NULL, "module requested but not bound");
+  return input_state;
+}  /* input_state_for */
+
 
 extern a_boolean is_at_least(an_ifc_module_file     *file,
                              an_ifc_version_storage minimum_version_major,
@@ -435,6 +451,7 @@ extern void construct_node_unchecked(an_ifc_Node_type  *result,
 
 #if DEBUG
 
+extern void db_decl_cache(an_ifc_decl_index decl_idx);
 extern void db_print_indent(unsigned amount);
 
 #endif /* DEBUG */

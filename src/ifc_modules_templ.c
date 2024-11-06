@@ -172,7 +172,7 @@ index.
 {
   an_ifc_partition_kind part_kind = get_partition_kind(idx);
 
-  return get_partition_metadata(module_of(idx), part_kind);
+  return get_partition_metadata(input_state_for(idx), part_kind);
 }  /* get_partition_metadata */
 
 
