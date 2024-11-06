@@ -1,5 +1,21 @@
 Version 6.7
 
+11/6/24  [EDGcpfe/26745,EDGcpfe/26988,EDGcpfe/27516]
+Parenthesized aggregate initializers for ctor-initializers
+
+Consider:
+
+  struct I { int i; };
+  struct S {
+    S() : val(1) {}  // Previously an error.  Now okay in C++20 mode.
+    I val;
+  };
+
+The changes for EDGcpfe/20913 added support for parenthesized aggregate
+initialization in C++20 mode, but they overlooked the case of ctor-initializers
+(such as "val(1)" in the example above).  That is now fixed.
+
+
 11/6/24  [EDGcpfe/27428]
 Incorrect expansion of sizeof... expression
 

@@ -52682,6 +52682,7 @@ source position to be used in overall errors.
        symbol_is(dps->sym, sk_static_data_member))) {
     conv_context |= CCO_INITIALIZING_VARIABLE;
   }  /* if */
+  unbundle_init_component_list_expressions(arg_list);
   scan_ctor_arguments(cssp->constructor, source_pos,
                       object_class_type, (a_type_ptr)NULL, fill_in_dtor,
                       !is->is_base_init, /*is_custom_ms_attr_arg_list=*/FALSE,

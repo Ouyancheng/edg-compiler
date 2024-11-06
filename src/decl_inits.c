@@ -5607,9 +5607,8 @@ returned set to TRUE.
     scan_ctor_args_or_paren_aggr_init(vp_type, /*rcblock=*/NULL,
                                       /*arg_list_supplied=*/FALSE,
                                       &arg_list, &aggr_init);
-    pop_expr_stack_for_initializer(saved_expr_stack,
-                                    /*is_full_expr=*/TRUE,
-                                    dps, &dps->init_state);
+    pop_expr_stack_for_initializer(saved_expr_stack, /*is_full_expr=*/TRUE,
+                                   dps, &dps->init_state);
     if (aggr_init) {
       dps->init_state.paren_as_aggregate_init = TRUE;
     } else if (cssp != NULL && cssp->constructor != NULL) {
@@ -7961,8 +7960,10 @@ cases, array_type is NULL).
   a_type_ptr                     class_type = parent_class_of(ctor);
   a_source_position              lparen_pos;
   a_class_symbol_supplement_ptr  cssp;
-  a_boolean                      dependent_class_init, flex_array_init;
+  a_boolean                      dependent_class_init, flex_array_init,
+                                 processed = FALSE;
   a_dynamic_init_ptr             dip;
+  an_arg_list_elem_ptr           arg_list = NULL;
 
   lparen_pos = pos_curr_token;
   /* Skip the left parenthesis. */
@@ -7985,28 +7986,35 @@ cases, array_type is NULL).
   } else {
     cssp = NULL;
   }  /* if */
-  if ((cssp != NULL && cssp->constructor != NULL) ||
-      (dependent_class_init && !m_is_error_type(init_type))) {
+  if ((cssp != NULL && 
+       (cssp->constructor != NULL ||
+        (allow_parenthesized_aggregate_init && cssp->is_class_aggregate))) ||
+      (dependent_class_init && !m_is_error_type(init_type)) ||
+      (allow_parenthesized_aggregate_init && array_type != NULL)) {
     /* This is either a base class or a field of class type.  In
        either case, it will be initialized by a constructor call if
        a constructor exists.  Otherwise, it will be initialized
        like any scalar. */
-    an_init_state  is;
+    an_init_state        is;
+    a_boolean            aggr_init = FALSE;
+    an_expr_stack_entry  expr_stack_entry, *saved_expr_stack;
     clear_init_state(&is);
     is.direct_init = TRUE;
     is.force_dynamic_init = TRUE;
     is.ctor_initializer = TRUE;
     if (dependent_class_init) {
       scan_dependent_type_parenthesized_initializer(
-                                                &is, (an_init_component*)NULL);
+                                               &is, (an_init_component*)NULL);
+      processed = TRUE;
     } else {
-      a_type_ptr  object_class_type;
+      a_type  *dest_tp = array_type != NULL ? array_type : init_type;
+      a_type  *object_class_type;
       /* If it is a base class, the object being constructed is the whole
          class (and the base class is a subobject thereof).  If it is a field,
          the object being constructed is the field itself.  Set the object
          class type accordingly. */
       check_assertion(cip != NULL);
-      if (cip->kind == (a_constructor_init_kind)cik_field) {
+      if (cip->kind == cik_field) {
         object_class_type = init_type;
       } else {
         object_class_type = class_type;
@@ -8016,16 +8024,41 @@ cases, array_type is NULL).
          where S is a class type name.  Depending on the arguments present, a
          constructor will be selected and returned.  The scan function returns
          is.init_error set to TRUE and is.init_dip set to NULL if it finds no
-         constructor for which the arguments match. */
-      scan_class_parenthesized_initializer(init_type, object_class_type,
-                                           &lparen_pos,
-                                           /*fill_in_dtor=*/exceptions_enabled,
-                                           /*args_supplied=*/FALSE,
-                                           (an_arg_list_elem_ptr)NULL,
-                                           &is);
+         constructor for which the arguments match.  In C++20 mode, we have
+         to account for the possibility of parenthesized aggregate
+         initialization. */
+      push_expr_stack_for_initializer(&expr_stack_entry, &saved_expr_stack,
+                                      (an_expression_kind)ek_normal,
+                                      /*is_full_expr=*/TRUE,
+                                      (a_decl_parse_state*)NULL, &is);
+      scan_ctor_args_or_paren_aggr_init(dest_tp, /*rcblock=*/NULL,
+                                        /*arg_list_supplied=*/FALSE,
+                                        &arg_list, &aggr_init);
+      if (array_type != NULL && arg_list != NULL) aggr_init = TRUE;
+      if (aggr_init) {
+        prep_aggr_initializer(arg_list, &dest_tp, &is,
+                              (struct an_arg_match_summary*)NULL,
+                              /*fill_in_dtor=*/exceptions_enabled);
+        processed = TRUE;
+      }  /* if */
+      pop_expr_stack_for_initializer(saved_expr_stack, /*is_full_expr=*/TRUE,
+                                     (a_decl_parse_state*)NULL, &is);
+      if (!aggr_init && cssp->constructor != NULL) {
+        scan_class_parenthesized_initializer(
+                                    init_type, object_class_type, &lparen_pos,
+                                    /*fill_in_dtor=*/exceptions_enabled,
+                                    /*args_supplied=*/TRUE, arg_list, &is);
+        processed = TRUE;
+      }  /* if */
+      if (processed) {
+        (void)required_token(tok_rparen, ec_exp_rparen);
+        free_init_component_list(arg_list);
+      }  /* if */
     }  /* if */
     dip = is.init_dip;
-    if (dip == NULL) {
+    if (!processed) {
+      /* We haven't established the initialization yet. */
+    } else if (dip == NULL) {
       /* An error occurred: Create a fake initializer to represent the
          error. */
       check_assertion(is.init_error);
@@ -8039,19 +8072,24 @@ cases, array_type is NULL).
          along with members of array type that are not explicitly specified in
          the mem-initializer list. */
       if (array_type != NULL) {
-        check_assertion(dip->kind == (a_dynamic_init_kind)dik_constructor ||
+        check_assertion(dyn_init_is(dip, dik_constructor) ||
                         /* A trivial constructor invocation using value-
                            initialization syntax produces a dik_zero entry. */
-                        dip->kind == (a_dynamic_init_kind)dik_zero ||
+                        dyn_init_is(dip, dik_zero) ||
                         /* A constexpr constructor invocation may have been
                            folded. */
-                        (dip->kind == (a_dynamic_init_kind)dik_constant &&
-                         dip->variant.constant.ptr->
-                                                is_result_of_constexpr_call));
+                        ((dyn_init_is(dip, dik_constant) ||
+                          dyn_init_is(dip, dik_nonconstant_aggregate)) &&
+                         (dip->variant.constant.ptr->
+                                                is_result_of_constexpr_call ||
+                          aggr_init)));
       }  /* if */
 #endif /* CHECKING */
     }  /* if */
-  } else if (curr_token == tok_rparen && cssp != NULL &&
+  }  /* if */
+  if (processed) {
+    /* Nothing more to do. */
+  } else if (curr_token == tok_rparen && cssp != NULL && arg_list == NULL &&
              reference_to_trivial_default_constructor(init_type, class_type,
                                                       &error_position,
                                                       /*check_access=*/TRUE,
@@ -8075,7 +8113,13 @@ cases, array_type is NULL).
     /* A subobject whose initialization does not involve a constructor. */
     an_initializer_cache   cache;
     an_init_component_ptr  icp;
-    prescan_parenthesized_mem_init_expr(&cache);
+    if (arg_list != NULL) {
+      clear_initializer_cache(&cache);
+      add_init_component_to_initializer_cache(arg_list, /*to_front=*/FALSE,
+                                              &cache);
+    } else {
+      prescan_parenthesized_mem_init_expr(&cache);
+    }  /* if */
     if (is_variadic_template_context() &&
         init_cache_is_variadic_and_short(&cache)) {
       an_init_state  is;
