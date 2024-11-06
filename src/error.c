@@ -5129,8 +5129,9 @@ static inline void add_string_fill_in(a_diagnostic_ptr diag_ptr,
                                       a_const_char     *str_start,
                                       size_t           str_len)
 /*
-Add a string fill-in entry for string of the given length (not including the
-null terminator if any) to the diagnostic specified by diag_ptr.
+Add a string fill-in entry for the given string (starting at str_start and
+containing str_len characters -- excluding any null terminator character) to
+the diagnostic specified by diag_ptr.
 */
 {
   a_diag_fill_in_ptr dfip = alloc_diag_fill_in(dfk_string);
