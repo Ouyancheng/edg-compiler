@@ -12790,7 +12790,7 @@ indication in *rcblock).
   a_boolean                  err = FALSE;
   a_boolean                  any_more;
   an_expr_stack_entry        expr_stack_entry;
-  a_host_large_unsigned      result_count = 0;
+  a_host_large_unsigned      result_count = 0, additional_non_pack_count = 0;
   a_pack_expansion_stack_entry_ptr
                              pesep = NULL;
   a_pack_expansion_descr_ptr pedep = NULL;
@@ -12890,6 +12890,9 @@ indication in *rcblock).
       remove_matching_stop_token(tok_rparen);
       pedep = end_potential_pack_expansion_context(pesep,
                                                    /*is_declarator=*/TRUE);
+      if (pedep == NULL) {
+        additional_non_pack_count++;
+      }  /* if */
       any_more = advance_to_next_pack_element(pesep);
     }  /* while */
 #if EXTRA_SOURCE_POSITIONS_IN_IL
@@ -13028,6 +13031,7 @@ indication in *rcblock).
                                   targ_size_t_int_kind);
     make_constant_operand(constant, result);
     release_local_constant(&constant);
+    additional_non_pack_count = 0;
   }  /* if */
 operand_ready:
   set_operand_position(result, &start_position, &end_position,
@@ -13035,6 +13039,18 @@ operand_ready:
   record_operator_position_in_rescan_info(result, &start_position,
                                           NO_TOKEN_SEQUENCE_NUMBER,
                                           (a_source_position *)NULL);
+  if (additional_non_pack_count != 0) {
+    /* If we have preserved a dependent sizeof..., but also have some non-pack
+       elements, we need to add those to the resulting expression.  */
+    an_operand      op1 = *result, op2;
+    a_constant_ptr  constant = local_constant();
+    set_unsigned_integer_constant(constant, additional_non_pack_count,
+                                  targ_size_t_int_kind);
+    make_constant_operand(constant, &op2);
+    release_local_constant(&constant);
+    do_binary_operation(eok_add, &op1, &op2, result->type, result,
+                        &start_position, NO_TOKEN_SEQUENCE_NUMBER);
+  }  /* if */
   if (region_to_switch_back_to != NULL_region_number) {
     switch_back_to_original_region(region_to_switch_back_to);
   }  /* if */
