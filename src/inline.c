@@ -764,7 +764,6 @@ expression can't be inlined.
       vrip = get_var_remapping_for_inlining(node_variable(expr));
       if (vrip != NULL) {
         /* Yes, there is some kind of remapping. */
-        a_type_ptr  orig_lvalue_type;
         switch (vrip->kind) {
           case vrk_temporary:
             /* The variable is remapped to a temporary variable. */
@@ -775,12 +774,13 @@ expression can't be inlined.
             /* The variable is remapped to a constant-valued expression.
                Look for some special cases. */
             constant_expr = vrip->variant.expr;
-            orig_lvalue_type = expr->orig_lvalue_type;
             if (is_constant_node(constant_expr)) {
               /* The variable is remapped to a constant.  Use an enk_constant
                  instead. */
+              a_type_ptr  orig_lvalue_type = expr->orig_lvalue_type;
               set_expr_node_kind(expr, (an_expr_node_kind)enk_constant);
               node_constant(expr) = node_constant(constant_expr);
+              expr->orig_lvalue_type = orig_lvalue_type;
             } else {
               /* Other, more complicated, cases.  Just copy the expression. */
               overwrite_node(expr,
@@ -792,7 +792,6 @@ expression can't be inlined.
                 expr->type = expr_type;
               }  /* if */
             }  /* if */
-            expr->orig_lvalue_type = orig_lvalue_type;
             break;
           default:
             unexpected_condition_str(
