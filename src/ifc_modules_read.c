@@ -7412,8 +7412,7 @@ from a tok_ifc_entity_ref or tok_ifc_decl_ref).
   a_source_position pos = pos_curr_token;
   a_diagnostic_ptr  diag = pos_start_error(
                                           ec_ifc_entity_ref_failure, &pos,
-                                          mod->import_decl->
-dule_info->name);
+                                          mod->import_decl->module_info->name);
 
   add_partition_element_diag_info(diag, ec_ifc_entity_ref_failure_info, idx);
   end_diagnostic(diag);
