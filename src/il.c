@@ -8426,23 +8426,6 @@ are done.
                                  node2->variant.nested_req.constraint,
                                  options);
         break;
-      case enk_const_eval_deferred:
-        { a_const_eval_reattempt_state &state1 =
-                            node1->variant.const_eval_deferred.reattempt_state;
-          a_const_eval_reattempt_state &state2 =
-                            node2->variant.const_eval_deferred.reattempt_state;
-
-          if ((state1.default_arg == state2.default_arg) &&
-              (state1.default_mem_init == state2.default_mem_init)) {
-            an_expr_node_ptr wrapped1 =
-                                    node1->variant.const_eval_deferred.wrapped;
-            an_expr_node_ptr wrapped2 =
-                                    node2->variant.const_eval_deferred.wrapped;
-
-            eq = compare_expressions(wrapped1, wrapped2, options);
-          }  /* if */
-        }
-        break;
       case enk_template_name:
         eq = node1->variant.template_name == node2->variant.template_name;
         break;
@@ -8453,16 +8436,8 @@ are done.
 #if VLA_DEALLOCATIONS_IN_IL
       case enk_vla_dealloc:
 #endif /* VLA_DEALLOCATIONS_IN_IL */
-      case enk_result_of_overriding_function:
-      case enk_yield:
-      case enk_await:
-      case enk_initializer:
-      case enk_token_sequence:
-      case enk_reclaimed:
-      case enk_last:
+      default:
         unexpected_condition_str("compare_expressions: bad expr kind");
-        break;
-      default_is_unexpected();
     }  /* switch */
     if (eq && do_type_comparison) {
       if (!identical_types_full(node1->type, node2->type, itf_options)) {
