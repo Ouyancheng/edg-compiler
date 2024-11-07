@@ -8453,7 +8453,9 @@ are done.
 #if VLA_DEALLOCATIONS_IN_IL
       case enk_vla_dealloc:
 #endif /* VLA_DEALLOCATIONS_IN_IL */
+#if DO_IL_LOWERING && ABI_CHANGES_FOR_COVARIANT_VIRTUAL_FUNC_RETURN
       case enk_result_of_overriding_function:
+#endif /* DO_IL_LOWERING && ABI_CHANGES_FOR_COVARIANT_VIRTUAL_FUNC_RETURN */
       case enk_yield:
       case enk_await:
       case enk_initializer:
