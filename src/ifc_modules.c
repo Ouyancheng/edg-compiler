@@ -299,7 +299,7 @@ the corresponding front end structures (if not already initialized).
 
 void ifc_modules_trans_unit_init()
 /*
-Initialize the variables necessary for using IFC modules in the current the
+Initialize the variables necessary for using IFC modules in the current
 translation unit.
 */
 {

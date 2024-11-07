@@ -30475,7 +30475,7 @@ had been opened at the time the PCH file was created.
       if (midp == NULL) {
         continue;
       }  /* if */
-      /* Reset the file state, it will be reprocessed.  This is a blind
+      /* Reset the file state; it will be reprocessed.  This is a blind
          overwrite as we don't want to trigger the destructor of the file (a
          file handle pointer that's no longer valid can still be present, which
          will cause a segfault upon an_ifc_module_file::close). */
@@ -30655,7 +30655,7 @@ translation unit.  See ifc_modules_trans_unit_wrapup for more information.
 void ifc_modules_read_cleanup()
 /*
 Perform any cleanup operations related to reading IFC modules in the current
-the translation unit.  See ifc_modules_cleanup for more information.
+translation unit.  See ifc_modules_cleanup for more information.
 */
 {
   delete_fe(&tok_name_map);
