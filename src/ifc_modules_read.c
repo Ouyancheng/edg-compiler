@@ -24646,50 +24646,44 @@ module to cache.
       cache_token(cache, tok_sizeof);
       break;
 #else /* !MICROSOFT_EXTENSIONS_ALLOWED */
-    case ifc_mos_msvc_assume:
-    case ifc_mos_msvc_alignof:
-    case ifc_mos_msvc_uuidof:
-    case ifc_mos_msvc_is_class:
-    case ifc_mos_msvc_is_union:
-    case ifc_mos_msvc_is_enum:
-    case ifc_mos_msvc_is_polymorphic:
-    case ifc_mos_msvc_is_empty:
     case ifc_mos_lookup_globally:
-    case ifc_mos_msvc_is_trivially_copy_constructible:
-    case ifc_mos_msvc_is_trivially_copy_assignable:
-    case ifc_mos_msvc_is_trivially_destructible:
-    case ifc_mos_msvc_has_virtual_destructor:
-    case ifc_mos_msvc_is_nothrow_copy_constructible:
-    case ifc_mos_msvc_is_nothrow_copy_assignable:
-    case ifc_mos_msvc_is_pod:
-    case ifc_mos_msvc_is_abstract:
-    case ifc_mos_msvc_is_trivial:
-    case ifc_mos_msvc_is_trivially_copyable:
-    case ifc_mos_msvc_is_standard_layout:
-    case ifc_mos_msvc_is_literal_type:
-    case ifc_mos_msvc_is_trivially_move_constructible:
-    case ifc_mos_msvc_has_trivial_move_assign:
-    case ifc_mos_msvc_is_trivially_move_assignable:
-    case ifc_mos_msvc_is_nothrow_move_assignable:
-    case ifc_mos_msvc_underlying_type:
-    case ifc_mos_msvc_is_destructible:
-    case ifc_mos_msvc_is_nothrow_destructible:
-    case ifc_mos_msvc_has_unique_object_representations:
-    case ifc_mos_msvc_is_aggregate:
+    case ifc_mos_msvc_alignof:
+    case ifc_mos_msvc_assume:
     case ifc_mos_msvc_builtin_address_of:
-    case ifc_mos_msvc_is_ref_class:
-    case ifc_mos_msvc_is_value_class:
-    case ifc_mos_msvc_is_simple_value_class:
-    case ifc_mos_msvc_is_interface_class:
-    case ifc_mos_msvc_is_delegate:
-    case ifc_mos_msvc_is_final:
-    case ifc_mos_msvc_is_sealed:
-    case ifc_mos_msvc_has_finalizer:
-    case ifc_mos_msvc_has_copy:
-    case ifc_mos_msvc_has_assign:
-    case ifc_mos_msvc_has_user_destructor:
-    case ifc_mos_msvc_confused_expand:
     case ifc_mos_msvc_confused_dependent_sizeof:
+    case ifc_mos_msvc_confused_expand:
+    case ifc_mos_msvc_has_assign:
+    case ifc_mos_msvc_has_copy:
+    case ifc_mos_msvc_has_finalizer:
+    case ifc_mos_msvc_has_trivial_move_assign:
+    case ifc_mos_msvc_has_unique_object_representations:
+    case ifc_mos_msvc_has_user_destructor:
+    case ifc_mos_msvc_has_virtual_destructor:
+    case ifc_mos_msvc_is_abstract:
+    case ifc_mos_msvc_is_aggregate:
+    case ifc_mos_msvc_is_class:
+    case ifc_mos_msvc_is_delegate:
+    case ifc_mos_msvc_is_destructible:
+    case ifc_mos_msvc_is_empty:
+    case ifc_mos_msvc_is_enum:
+    case ifc_mos_msvc_is_final:
+    case ifc_mos_msvc_is_interface_class:
+    case ifc_mos_msvc_is_literal_type:
+    case ifc_mos_msvc_is_nothrow_destructible:
+    case ifc_mos_msvc_is_pod:
+    case ifc_mos_msvc_is_polymorphic:
+    case ifc_mos_msvc_is_ref_class:
+    case ifc_mos_msvc_is_sealed:
+    case ifc_mos_msvc_is_simple_value_class:
+    case ifc_mos_msvc_is_standard_layout:
+    case ifc_mos_msvc_is_trivial:
+    case ifc_mos_msvc_is_trivially_copy_assignable:
+    case ifc_mos_msvc_is_trivially_copyable:
+    case ifc_mos_msvc_is_trivially_destructible:
+    case ifc_mos_msvc_is_union:
+    case ifc_mos_msvc_is_value_class:
+    case ifc_mos_msvc_underlying_type:
+    case ifc_mos_msvc_uuidof:
       goto invalid;
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
     case ifc_mos_brace:
