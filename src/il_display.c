@@ -1397,6 +1397,12 @@ display_constant_value:
           disp_ptr("label", (char *)ptr->variant.address.variant.label,
                    iek_label);
           break;
+        case abk_param_ref:
+          (void)printf("abk_param_ref\n");
+          disp_unsigned_long(
+             "param_num",
+             (unsigned long)ptr->variant.address.variant.param_ref.param_num);
+          break;
         default:
           (void)printf("**BAD ADDRESS CONSTANT KIND**\n");
       }  /* switch */

@@ -3794,6 +3794,7 @@ replace them by a representation compatible with C89.
           /* Nothing to be done. */
           break;
         case abk_temporary:
+        case abk_param_ref:
         default:
           unexpected_condition_str("Bad c99 address const kind");
       }  /* switch */

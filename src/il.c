@@ -7678,6 +7678,9 @@ Return the hash value for the indicated constant.
 	  hash_value = 
 	         hash_name(&cp->variant.address.variant.label->source_corresp);
 	  break;
+        case abk_param_ref:
+          hash_value = 251 * cp->variant.address.variant.param_ref.param_num;
+          break;
         default:
           unexpected_condition_str("hash_constant: bad address constant kind");
       }  /* switch */
@@ -8850,6 +8853,9 @@ definition of the CC flags in il.h for more information.
 	      eq = (cp1->variant.address.variant.label == 
 		    cp2->variant.address.variant.label);
 	      break;
+            case abk_param_ref:
+              eq = cp1 == cp2;
+              break;
             default:
               unexpected_condition_str(
                                "compare_constants: bad address constant kind");
@@ -9195,6 +9201,7 @@ constant, if it exists.
         scp = &constant->variant.address.variant.label->source_corresp;
         break;
       case abk_typeid:
+      case abk_param_ref:
         break;
 #if MICROSOFT_EXTENSIONS_ALLOWED
       case abk_cli_typeid:
@@ -9256,10 +9263,11 @@ argument because it references a non-external entity, e.g., a local variable.
       case abk_cli_array:
         /* C++/CLI typeid and array constants are only valid in C++/CLI
            custom attribute argument expressions. */
+#endif /* MICROSOFT_EXTENSIONS_ALLOWED */
+      case abk_param_ref:
         scp = NULL;
         invalid = TRUE;
         break;
-#endif /* MICROSOFT_EXTENSIONS_ALLOWED */
       default:
         unexpected_condition_str2(
                   "nontype_templ_arg_constant_involves_invalid_linkage:",
@@ -9382,6 +9390,10 @@ at the file scope (it would contain a pointer down into a function scope).
         case abk_label:
           /* Labels are never in the file scope. */
           has_nfs_ref = TRUE;
+          break;
+        case abk_param_ref:
+          /* Parameters are always in file scope (and the IL representation
+             currently does not contain pointers). */
           break;
         default:
           unexpected_condition_str(

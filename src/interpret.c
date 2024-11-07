@@ -24927,6 +24927,18 @@ the value representation of the integer value.
             info_with_pos(ec_constexpr_expression_cannot_be_interpreted,
                           &expr->position, ips);
           }  /* if */
+        } else if ((expr->is_lvalue || expr->is_xvalue) &&
+                   expr->variant.param_ref.levels_up == 0) {
+          a_constant  *cp = local_constant();
+          clear_constant(cp, ck_address);
+          cp->next = ips->constants;
+          ips->constants = cp;
+          cp->source_corresp.decl_position = expr->position;
+          cp->variant.address.kind = abk_param_ref;
+          cp->variant.address.variant.param_ref.param_num =
+                                            expr->variant.param_ref.param_num;
+          cp->type = make_reference_type(tp);
+          clear_runtime_constant_address(result_storage, cp);
         } else {
           do_constexpr_fail(result);
           info_with_pos(ec_constexpr_expression_cannot_be_interpreted,
@@ -25267,14 +25279,6 @@ Return the interpreter offset with the derived class for the given base.
 }  /* interpreter_base_offset_of */
 
 
-static a_boolean copy_interpreter_object_to_constant(
-                                       an_interpreter_state  *ips,
-                                       a_byte                *object,
-                                       a_byte                *complete_object,
-                                       a_type_ptr            type,
-                                       a_constant_ptr        con);
-
-
 static a_boolean alloc_const_for_object(an_interpreter_state  *ips,
                                         a_constexpr_address   *cap,
                                         a_constant_ptr        *result)
@@ -25407,6 +25411,10 @@ diagnostic in *ips.
               a_label_ptr  lp = rt_con->variant.address.variant.label;
               info_with_pos(ec_constexpr_access_to_runtime_storage,
                             &lp->source_corresp.decl_position, ips);
+              do_constexpr_fail(result);
+            } else if (abk == abk_param_ref) {
+              info_with_pos(ec_constexpr_access_to_runtime_storage,
+                            &rt_con->source_corresp.decl_position, ips);
               do_constexpr_fail(result);
             }  /* if */
           } else {

@@ -4856,6 +4856,7 @@ parentheses are not needed.
         entity_scp = &label->source_corresp;
       }
       break;
+    case abk_param_ref:
     default:
       unexpected_condition_str(
                    "form_lvalue_for_addressed_entity: bad addr constant kind");

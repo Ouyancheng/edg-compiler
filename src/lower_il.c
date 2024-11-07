@@ -5134,6 +5134,7 @@ IL prefix is accessed).
             unexpected_condition_str("lower_constant: abk_cli_array");
             break;
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
+          case abk_param_ref:
           default:
             unexpected_condition_str(
                                   "lower_constant: bad address constant kind");

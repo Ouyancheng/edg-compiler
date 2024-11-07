@@ -3580,6 +3580,8 @@ enum an_address_base_kind : a_byte {
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
   abk_label,            /* Pointer to a label.  This is used for the
 			   GNU address-of-label extension. */
+  abk_param_ref,        /* Address of a parameter (only used during constant-
+			   evaluation). */
   abk_last
 };
 
@@ -5025,6 +5027,13 @@ typedef struct a_constant {
         /* When kind == abk_label: */
 	a_label_ptr
 		label;
+        /* When kind == abk_param_ref: */
+        struct {
+          unsigned int
+		param_num;
+			/* The number of the parameter being referenced (the
+			   first parameter is number one). */
+        } param_ref;
       } variant;
       a_targ_ptrdiff_t
                 offset;

@@ -1009,6 +1009,7 @@ otherwise).
       case abk_label:
         object = (char *)constant->variant.address.variant.label;
         break;
+      case abk_param_ref:
       default:
         unexpected_condition_str("base_object: bad address constant kind");
     }  /* switch */
@@ -4945,6 +4946,7 @@ checking.
         break;
       case abk_routine:
       case abk_label:
+      case abk_param_ref:
         /* No size to check. */
         break;
       case abk_constant:

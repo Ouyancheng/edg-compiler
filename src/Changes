@@ -1,5 +1,21 @@
 Version 6.7
 
+11/7/24  [EDGcpfe/27531]
+Constant-evaluation of parameters of requires-expressions
+
+Consider in C++20 mode:
+
+  template<typename T> concept C = requires (T v) { requires v.f() == 42; };
+  template<C T> void g(T) {}
+  struct S { constexpr int f() { return 42; } };
+  int main() {
+    g(S{});
+  }
+
+Previously, this elicited errors because the evaluation of the constraint C<S>
+for g(S{}) failed to evaluate v.f().  That is now fixed.
+
+
 11/6/24  [EDGcpfe/27685]
 Assertion failure in compare_expressions for enk_const_eval_deferred
 
