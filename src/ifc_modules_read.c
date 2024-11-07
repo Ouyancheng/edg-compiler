@@ -274,7 +274,7 @@ struct an_ifc_input_state {
                            handled at a higher level). */
 public:
   an_ifc_input_state(a_module_file_kind mk);
-  ~an_ifc_input_state() EDG_NOEXCEPT;
+  ~an_ifc_input_state();
 
   a_boolean import(a_module_import_decl_ptr midp);
   a_boolean init_header(a_module_import_decl_ptr midp,
