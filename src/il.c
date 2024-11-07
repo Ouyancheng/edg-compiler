@@ -7295,10 +7295,9 @@ value for the indicated expression node.
 */
 {
   expr_hash_value = 31*expr_hash_value + (a_hash_value)expr->kind;
+  /* Note that any sub-expressions, types, and constants are already covered by
+     the generic expression traversal. */
   switch (expr->kind) {
-    case enk_constant:
-      expr_hash_value += hash_constant(expr->variant.constant.ptr);
-      break;
     case enk_routine:
       expr_hash_value += hash_routine(expr->variant.routine.ptr);
       break;
@@ -7308,24 +7307,90 @@ value for the indicated expression node.
     case enk_field:
       expr_hash_value += hash_name(&expr->variant.field.ptr->source_corresp);
       break;
-    case enk_lambda:
-    case enk_temp_init:
-      expr_hash_value += hash_type(expr->type);
+    case enk_new_delete:
+      { a_new_delete_supplement_ptr ndsp = expr->variant.new_delete;
+        expr_hash_value += 2*(a_hash_value)ndsp->is_new +
+                           4*(a_hash_value)ndsp->placement_new +
+                           8*(a_hash_value)ndsp->array_delete +
+                           16*(a_hash_value)ndsp->global_new_or_delete +
+                           32*(a_hash_value)ndsp->has_new_initializer +
+                           64*(a_hash_value)ndsp
+                                          ->new_initializer_is_brace_enclosed +
+                           128*(a_hash_value)ndsp
+                                         ->new_initializer_is_paren_aggr_init +
+                           256*(a_hash_value)ndsp->deducible_type +
+                           512*(a_hash_value)ndsp->parenthesized_type_id;
+        if (ndsp->routine != NULL) {
+          expr_hash_value += hash_routine(ndsp->routine);
+        }  /* if */
+      }
       break;
-    case enk_type_operand:
-      if (expr->variant.type_operand.type != NULL) {
-        expr_hash_value += hash_type(expr->variant.type_operand.type);
-      }  /* if */
+    case enk_typeid:
+      expr_hash_value += 2*(a_hash_value)expr->variant.typeid_info.is_dynamic;
+      break;
+    case enk_alignof:
+      expr_hash_value += 2*(a_hash_value)expr->variant.sizeof_info
+                                                      .is_std_alignof;
       break;
     case enk_param_ref:
       expr_hash_value += 7*expr->variant.param_ref.param_num +
                          expr->variant.param_ref.levels_up;
+      break;
+    case enk_fold:
+      expr_hash_value += 15*(a_hash_value)expr->variant.fold.operator_token +
+                         7*(a_hash_value)expr->variant.fold.left_associative;
+      break;
+    case enk_concept_id:
+      expr_hash_value += hash_template(
+                                    expr->variant.concept_id.concept_template);
+      break;
+    case enk_template_name:
+      expr_hash_value += hash_template(expr->variant.template_name);
+      break;
+    case enk_sizeof_pack:
+      if (expr->variant.sizeof_pack.is_template_template) {
+        expr_hash_value += hash_template(
+                                      expr->variant.sizeof_pack.variant.templ);
+      }  /* if */
+      break;
+    case enk_operation:
+      expr_hash_value += 7*(a_hash_value)expr->variant.operation.kind;
+      break;
+    case enk_builtin_operation:
+      expr_hash_value += 7*(a_hash_value)expr->variant.builtin_operation.kind;
       break;
     default:
       /* Nothing to be done. */
       break;
   }  /* switch */
 }  /* hash_expr_node */
+
+
+static void hash_expr_type(a_type_ptr                           type,
+                           an_expr_or_stmt_traversal_block_ptr  tblock)
+/*
+This routine is called by traverse_expr in a top-down traversal of an
+expression tree.  It updates the hash value in expr_hash_value with the hash
+value for the indicated type.
+*/
+{
+  expr_hash_value += hash_type(type);
+}  /* hash_expr_type */
+
+
+static void hash_expr_constant(a_constant_ptr                       constant,
+                               an_expr_or_stmt_traversal_block_ptr  tblock)
+/*
+This routine is called by traverse_expr in a top-down traversal of an
+expression tree.  It updates the hash value in expr_hash_value with the hash
+value for the indicated constant.
+*/
+{
+  expr_hash_value += hash_constant(constant);
+  /* Suppress the subtree walk as hash_constant already covers the whole
+     subtree. */
+  tblock->suppress_subtree_walk = TRUE;
+}  /* hash_expr_constant */
 
 
 a_hash_value hash_expr(an_expr_node_ptr expr)
@@ -7341,6 +7406,9 @@ template parameter type.
 
   clear_expr_or_stmt_traversal_block(&tblock);
   tblock.process_expr = hash_expr_node;
+  tblock.process_type = hash_expr_type;
+  tblock.process_constant = hash_expr_constant;
+  tblock.process_non_dynamic_constants = TRUE;
   traverse_expr(expr, &tblock);
   return expr_hash_value;
 }  /* hash_expr */
@@ -7630,23 +7698,69 @@ Return the hash value for the indicated constant.
       break;
     case ck_template_param:
       hash_value = 499;
-      if (cp->variant.template_param.kind == tpck_expression) {
-        an_expr_node_ptr  expr = cp->variant.template_param.local_expr_ref ?
+      switch (cp->variant.template_param.kind) {
+        case tpck_expression:
+          { an_expr_node_ptr expr = cp->variant.template_param.local_expr_ref ?
                         find_local_expr_node((char *)cp, lerk_tpl_param_expr) :
                         cp->variant.template_param.variant.expr;
-        hash_value += hash_expr(expr);
-      } else if (cp->variant.template_param.kind == tpck_param) {
-        /* For simple non-type template parameters, use an integer
-           representation of the pointer.  In general, this means that those
-           entries won't be found, but this is okay because, in general, there
-           can be multiple versions of nonreal types. */
-        hash_value += (a_hash_value)possible_lossy_cast_from_pointer(cp);
-      } else if (cp->variant.template_param.kind == tpck_template_ref) {
-        hash_value += hash_constant(cp->variant.template_param
-                                               .variant.template_ref.con) +
-                      hash_template_arg_list(cp->variant.template_param
+            hash_value += hash_expr(expr);
+          }
+          break;
+        case tpck_param:
+          /* For simple non-type template parameters, use an integer
+             representation of the pointer.  In general, this means that those
+             entries won't be found, but this is okay because, in general,
+             there can be multiple versions of nonreal types. */
+          hash_value += (a_hash_value)possible_lossy_cast_from_pointer(cp);
+          break;
+        case tpck_template_ref:
+          hash_value += hash_constant(cp->variant.template_param
+                                                 .variant.template_ref.con) +
+                        hash_template_arg_list(cp->variant.template_param
                                                .variant.template_ref.arg_list);
-      }  /* if */
+          break;
+        case tpck_member:
+          hash_value += hash_name(&cp->source_corresp);
+          break;
+        case tpck_unknown_function:
+          if (cp->variant.template_param.variant.unknown_function
+                                                .conversion_type != NULL) {
+            hash_value += hash_type(cp->variant.template_param
+                                    .variant.unknown_function.conversion_type);
+          }  /* if */
+          hash_value += (a_hash_value)cp->variant.template_param
+                                         .variant.unknown_function.opname_kind;
+          break;
+        case tpck_address:
+          hash_value += hash_constant(
+                                  cp->variant.template_param.variant.constant);
+          break;
+        case tpck_sizeof:
+        case tpck_datasizeof:
+        case tpck_alignof:
+        case tpck_uuidof:
+        case tpck_typeid:
+        case tpck_noexcept:
+          if (cp->variant.template_param.variant.templ_sizeof.type != NULL) {
+            hash_value += hash_type(
+                         cp->variant.template_param.variant.templ_sizeof.type);
+          }  /* if */
+          if (cp->variant.template_param.variant.templ_sizeof.expr != NULL) {
+            hash_value += hash_expr(
+                         cp->variant.template_param.variant.templ_sizeof.expr);
+          }  /* if */
+          break;
+        case tpck_destructor:
+          hash_value += hash_type(
+                          cp->variant.template_param.variant.destructor.type) +
+                        2*(a_hash_value)cp->variant.template_param.variant
+                                                   .destructor.unqualified;
+          break;
+        case tpck_integer_pack:
+          hash_value += hash_constant(
+                                     cp->variant.template_param.variant.bound);
+          break;
+      }  /* switch */
       break;
 #if GNU_EXTENSIONS_ALLOWED
     case ck_label_difference:
