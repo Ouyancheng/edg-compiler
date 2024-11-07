@@ -1,11 +1,11 @@
 Version 6.7
 
-11/6/24  [EDGcpfe/27702]
+11/6/24  [EDGcpfe/27685]
 Assertion failure in compare_expressions for enk_const_eval_deferred
 
 Previously, compare_expressions was not implemented for
 enk_const_eval_deferred; this could result in an assertion failure for some
-programs using std::source_location.  This functionality is now implemented
+programs using std::source_location.  This functionality is now implemented,
 resolving the assertion failure.
 
 
