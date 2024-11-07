@@ -4537,7 +4537,7 @@ Return a hash value for the given pointer value.
 
 
 template<typename an_Integral_type>
-inline Enable_if<!(an_Integral_type(-1) < an_Integral_type(0)), uintptr_t>
+inline Enable_if<!(((an_Integral_type)-1) < ((an_Integral_type)0)), uintptr_t>
 hash_ptr(an_Integral_type i)
 /*
 Generic version of hash_ptr for unsigned integers.
@@ -4548,7 +4548,7 @@ Generic version of hash_ptr for unsigned integers.
 
 
 template<typename an_Integral_type>
-inline Enable_if<(an_Integral_type(-1) < an_Integral_type(0)), uintptr_t>
+inline Enable_if<(((an_Integral_type)-1) < ((an_Integral_type)0)), uintptr_t>
 hash_ptr(an_Integral_type i)
 /*
 Generic version of hash_ptr for signed integers.
