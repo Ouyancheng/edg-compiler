@@ -20204,7 +20204,11 @@ must be unsigned.
   a_constant_ptr enum_con;
 
   enum_con = enum_constants(bit_field_type);
-  if (enum_con == NULL) {
+  if (bit_field_type->variant.integer.has_explicit_enum_base) {
+    /* For an explicit underlying type, ignore the constants and just rely on
+       the underlying type. */
+    use_signed = int_type_is_signed(bit_field_type);
+  } else if (enum_con == NULL) {
     /* There are no enumeration constants, so no bits are needed to
        represent all of them; by definition, they fit in the bit field. */
   } else {
