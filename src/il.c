@@ -7760,6 +7760,8 @@ Return the hash value for the indicated constant.
           hash_value += hash_constant(
                                      cp->variant.template_param.variant.bound);
           break;
+        default:
+          unexpected_condition_str("hash_constant: bad template param kind");
       }  /* switch */
       break;
 #if GNU_EXTENSIONS_ALLOWED
