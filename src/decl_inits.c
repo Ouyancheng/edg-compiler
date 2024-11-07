@@ -7962,7 +7962,7 @@ cases, array_type is NULL).
   a_class_symbol_supplement_ptr  cssp;
   a_boolean                      dependent_class_init, flex_array_init,
                                  processed = FALSE;
-  a_dynamic_init_ptr             dip;
+  a_dynamic_init_ptr             dip = NULL;
   an_arg_list_elem_ptr           arg_list = NULL;
 
   lparen_pos = pos_curr_token;
