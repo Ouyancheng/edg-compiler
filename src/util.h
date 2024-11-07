@@ -3407,7 +3407,7 @@ appropriate size.
 template<typename an_Integral_type>
 inline constexpr
 Enable_if<sizeof(an_Integral_type) == sizeof(uint32_t) &&
-          an_Integral_type(-1) < an_Integral_type(0), int32_t>
+          (((an_Integral_type)-1) < ((an_Integral_type)0)), int32_t>
 max_integral_value()
 /*
 Return the maximum value of a 32-bit signed integer.
@@ -3420,7 +3420,7 @@ Return the maximum value of a 32-bit signed integer.
 template<typename an_Integral_type>
 inline constexpr
 Enable_if<sizeof(an_Integral_type) == sizeof(uint64_t) &&
-          an_Integral_type(-1) < an_Integral_type(0), int64_t>
+          (((an_Integral_type)-1) < ((an_Integral_type)0)), int64_t>
 max_integral_value()
 /*
 Return the maximum value of a 64-bit signed integer.
@@ -3433,7 +3433,7 @@ Return the maximum value of a 64-bit signed integer.
 template<typename an_Integral_type>
 inline constexpr
 Enable_if<sizeof(an_Integral_type) == sizeof(uint32_t) &&
-          !(an_Integral_type(-1) < an_Integral_type(0)), uint32_t>
+          !(((an_Integral_type)-1) < ((an_Integral_type)0)), uint32_t>
 max_integral_value()
 /*
 Return the maximum value of a 32-bit unsigned integer.
@@ -3448,7 +3448,7 @@ Return the maximum value of a 32-bit unsigned integer.
 template<typename an_Integral_type>
 inline constexpr
 Enable_if<sizeof(an_Integral_type) == sizeof(uint64_t) &&
-          !(an_Integral_type(-1) < an_Integral_type(0)), uint64_t>
+          !(((an_Integral_type)-1) < ((an_Integral_type)0)), uint64_t>
 max_integral_value()
 /*
 Return the maximum value of a 64-bit unsigned integer.
@@ -3460,7 +3460,7 @@ Return the maximum value of a 64-bit unsigned integer.
 
 template<typename an_Integral_type>
 inline constexpr
-Enable_if<(an_Integral_type(-1) < an_Integral_type(0)), size_t>
+Enable_if<(((an_Integral_type)-1) < ((an_Integral_type)0)), size_t>
 integral_digits(an_Integral_type value,
                 int              base)
 /*
@@ -3477,7 +3477,7 @@ the negative sign as a digit (i.e., 3 and -3 are both considered 1 digit).
 
 template<typename an_Integral_type>
 inline constexpr
-Enable_if<!(an_Integral_type(-1) < an_Integral_type(0)), size_t>
+Enable_if<!(((an_Integral_type)-1) < ((an_Integral_type)0)), size_t>
 integral_digits(an_Integral_type value,
                 unsigned int     base)
 /*
