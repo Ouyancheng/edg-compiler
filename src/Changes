@@ -1,5 +1,23 @@
 Version 6.7
 
+11/7/24  [EDGcpfe/27530]
+Bit fields of enumeration type with explicit underlying type
+
+Consider:
+
+  enum E: int { zero, one };
+  struct S { E bit:1; };
+  constexpr S s = { one };
+  static_assert(s.bit != one);  // Previously failed.  Now okay.
+
+Previously, the bit field S::bit was treated as unsigned because that permits
+both enumerator constants (zero and one) to be represented by the bit field.
+Now, the explicit signedness of the underlying type of E overrides the attempt
+at fitting the enumerator constants in the bit field representation, and thus
+s.bit is a negative value, causing the assertion check to succeed where it
+previously failed.
+
+
 11/6/24  [EDGcpfe/27702]
 Assertion failure in node_operands_have_correct_value_category
 
