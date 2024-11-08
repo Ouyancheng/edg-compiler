@@ -33126,6 +33126,9 @@ and whether the operator appears at the top level of a requires clause.
     /* We are in C++ mode, and there is an operator function that overloads
        this operator. */
     might_be_overloaded = TRUE;
+    if (is_a_glvalue(operand_1) && saved_evaluated) {
+      using_lvalue(operand_1);
+    }  /* if */
   }  /* if */
 
   /* Determine whether or not the second operand should be evaluated. */
