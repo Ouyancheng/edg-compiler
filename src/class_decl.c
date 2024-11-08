@@ -20204,11 +20204,7 @@ must be unsigned.
   a_constant_ptr enum_con;
 
   enum_con = enum_constants(bit_field_type);
-  if (bit_field_type->variant.integer.has_explicit_enum_base) {
-    /* For an explicit underlying type, ignore the constants and just rely on
-       the underlying type. */
-    use_signed = int_type_is_signed(bit_field_type);
-  } else if (enum_con == NULL) {
+  if (enum_con == NULL) {
     /* There are no enumeration constants, so no bits are needed to
        represent all of them; by definition, they fit in the bit field. */
   } else {
@@ -20277,10 +20273,17 @@ must be unsigned.
     if (bits_needed > bit_field_size) {
       pos_warning(ec_enum_bit_field_too_small, &error_position);
     }  /* if */
-    if (targ_enum_bit_fields_are_always_unsigned && smallest_is_negative) {
+    if (targ_enum_bit_fields_are_always_unsigned && smallest_is_negative &&
+        !bit_field_type->variant.integer.has_explicit_enum_base) {
       type_warning(ec_unsigned_enum_bit_field_with_signed_enumerator,
                    bit_field_type);
     }  /* if */
+  }  /* if */
+  if (bit_field_type->variant.integer.has_explicit_enum_base) {
+    /* For an explicit underlying type, ignore the constants and just rely on
+       the underlying type.  (We still potentially issue a warning above,
+       however.) */
+    use_signed = int_type_is_signed(bit_field_type);
   }  /* if */
   *need_signed_type = use_signed;
 }  /* check_enum_type_for_bit_field */
