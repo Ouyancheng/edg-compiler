@@ -119,9 +119,6 @@ struct an_ifc_input_string_table {
   an_ifc_input_string_table()
     : contents(NULL), size(0)
     {}
-  an_ifc_input_string_table(char *contents_ptr, size_t size_val)
-    : contents(contents_ptr), size(size_val)
-    {}
   inline an_ifc_input_string_table(an_ifc_input_string_table &&old);
   inline ~an_ifc_input_string_table();
 
