@@ -36,13 +36,15 @@ folding.c -- Folding routines.
 BEGIN_EDG_NAMESPACE
 
 /*
-Determine the severity (error or warning) to be used for integer
-operation overflows.
+Determine the severity (error or warning) to be used for integer operation
+overflows.  This severity may be overridden in issue_folding_diagnostic.
 */
 #ifndef ES_INT_OVERFLOW
 #if TARG_NO_ERROR_ON_INTEGER_OVERFLOW
-#define ES_INT_OVERFLOW                                               \
-  (strict_ansi_mode ? strict_ansi_error_severity : es_warning)
+#define ES_INT_OVERFLOW                                                       \
+  ((constexpr_enabled && !ms_version_is(<=1940)) ? es_error                   \
+  :                             strict_ansi_mode ? strict_ansi_error_severity \
+  :                                                es_warning)
 #else /* !TARG_NO_ERROR_ON_INTEGER_OVERFLOW */
 #define ES_INT_OVERFLOW es_error
 #endif /* TARG_NO_ERROR_ON_INTEGER_OVERFLOW */

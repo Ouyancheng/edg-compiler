@@ -1,5 +1,26 @@
 Version 6.7
 
+11/8/24  [EDGcpfe/26834]
+Overflow in integer arithmetic involving constants
+
+Consider, in a 32-bit signed int configuration:
+
+  constexpr bool g() {
+    int x = 2147483647 + 1;  // Previously a warning only.
+    return true;
+  }
+  static_assert(g());  // Previously okay.  Now an error.
+
+The front end previously folded the initializer of x (with a warning about
+overflow) when it was parsed.  The evaluation of the call g() then succeeded
+with x initialized to the result of the folded expression (a negative value).
+The C++ standard does not permit integer overflow in constant evaluation,
+however.  The front end therefore no longer records the folded result of the
+addition as the initializer of x (although a warning is still issued), and
+attempting to constant-evaluate the call g() now fails.  The old behavior is
+retained in Microsoft modes with microsoft_version <= 1940.
+
+
 11/7/24  [EDGcpfe/27531]
 Constant-evaluation of parameters of requires-expressions
 
