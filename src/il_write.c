@@ -441,7 +441,12 @@ Write the initial information to the IL file, if there is one.
 #if RECORD_MACRO_INVOCATIONS
 #define MAX_SIZEOF_IL_ENTRY sizeof(a_macro_invocation_record_block)
 #else /* !RECORD_MACRO_INVOCATIONS */
+#ifdef UNION_AS_STRUCT
+/* The a_constant structure is larger than a_scope in this configuration. */
+#define MAX_SIZEOF_IL_ENTRY (sizeof(a_constant)+sizeof(a_routine))
+#else /* !ifdef UNION_AS_STRUCT */
 #define MAX_SIZEOF_IL_ENTRY (sizeof(a_scope)+sizeof(a_routine))
+#endif /* ifdef UNION_AS_STRUCT */
 #endif /* RECORD_MACRO_INVOCATIONS */
 #if CHECKING
   { int int_entry_kind;
