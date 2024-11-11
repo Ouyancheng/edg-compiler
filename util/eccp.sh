@@ -2518,7 +2518,7 @@ fi
 # have been given.
 #
 if [ -z "$cfiles" -a $source_file_name_optional -eq 1 ] ; then
-  command=${CPFE}" "$feoptions" "$EDG_CPFE_DEFAULT_OPTIONS
+  command="$CPFE $EDG_CPFE_DEFAULT_OPTIONS $feoptions"
   invoke_front_end 0  # Run front end and keep output
   check_front_end_exit_code
 fi
@@ -2529,7 +2529,7 @@ if [ $any_header_unit_files -eq 1 ] ; then
   if [ $header_unit_specified -eq 1 ] ; then
     for hu_file in $header_unit_files
     do
-      command=${CPFE}" "$feoptions" "$EDG_CPFE_DEFAULT_OPTIONS" "$hu_file
+      command="$CPFE $EDG_CPFE_DEFAULT_OPTIONS $feoptions $hu_file"
       invoke_front_end 0  # Run front end and keep output
       check_front_end_exit_code
     done
@@ -2644,7 +2644,7 @@ do
       fi
     fi
   fi
-  command=${CPFE}" "$feoptions" "$gen_c_option" "$ii_file_option" "$ti_file_option" "$instantiation_dir_option" "$EDG_CPFE_DEFAULT_OPTIONS
+  command="$CPFE $EDG_CPFE_DEFAULT_OPTIONS $feoptions $gen_c_option $ii_file_option $ti_file_option $instantiation_dir_option"
   if [ $compile_as_secondary -ne 0 ] ; then
     # Append the dummy primary file name.
     command=$command" "$dummy_primary_file_name
