@@ -12142,7 +12142,8 @@ the IL access level corresponding to the given IFC access sort.
     previous_is_explicit(
                        scope_stack[decl_scope_level].name_linkage_is_explicit),
     previous_default_linkage(
-                            scope_stack[decl_scope_level].default_name_linkage)
+                            (a_name_linkage_kind)scope_stack[decl_scope_level].
+                                                          default_name_linkage)
 
 {
   if (test_bitmask<ifc_bsb_c>(specifiers)) {
