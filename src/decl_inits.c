@@ -8036,6 +8036,7 @@ cases, array_type is NULL).
                                         &arg_list, &aggr_init);
       if (array_type != NULL && arg_list != NULL) aggr_init = TRUE;
       if (aggr_init && arg_list != NULL) {
+        is.paren_as_aggregate_init = TRUE;
         prep_aggr_initializer(arg_list, &dest_tp, &is,
                               (struct an_arg_match_summary*)NULL,
                               /*fill_in_dtor=*/exceptions_enabled);
