@@ -26594,7 +26594,9 @@ p_fatal and p_copy_error are NULL by default.
         result = TRUE;
         break;
       case a_test_constraint_result::none:
-        unexpected_condition();
+      default:
+        unexpected_condition_str2("constraint_satisfied_full:",
+                                  "unexpected result");
     }  /* switch */
     release_local_constant(&cp);
   }  /* if */
