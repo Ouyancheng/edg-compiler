@@ -166,26 +166,6 @@ Move from the given IFC string table, returning self.
   return *this;
 }  /* an_ifc_input_string_table::operator= */
 
-
-/*
-Structure used to hold the existing name linkage state if the name linkage
-state needs to be modified.
-*/
-struct a_partial_scope_stack_state {
-  a_byte_boolean
-                saved;
-                        /* TRUE if the state has been saved. */
-  a_byte_boolean
-                name_linkage_is_explicit;
-                        /* Previous name_linkage_is_explicit setting. */
-  ENUM_TYPE_FOR_BIT_FIELD(a_name_linkage_kind)
-                default_name_linkage:NUM_BITS_FOR_NAME_LINKAGE;
-                        /* Previous default_name_linkage setting. */
-  ENUM_TYPE_FOR_BIT_FIELD(an_access_specifier)
-                current_access:2;
-                        /* Previous current_access setting. */
-};  /* a_partial_scope_stack_state */
-
 }  /* namespace */
 
 /*
@@ -4250,36 +4230,6 @@ Return the kind of operator described by the given operator name.
 
   return get_operator_kind(mod, op);
 }  /* get_operator_kind */
-
-
-static void save_partial_scope_stack(a_partial_scope_stack_state *psssp)
-/*
-Save portions of the decl_scope_level scope stack entry.
-*/
-{
-  check_assertion(psssp != NULL);
-  psssp->saved = TRUE;
-  psssp->name_linkage_is_explicit =
-                        scope_stack[decl_scope_level].name_linkage_is_explicit;
-  psssp->default_name_linkage =
-                            scope_stack[decl_scope_level].default_name_linkage;
-  psssp->current_access = scope_stack[decl_scope_level].current_access;
-}  /* save_partial_scope_stack */
-
-
-/*
-Utility to restore the previous name linkage state if it was previously saved.
-*/
-#define restore_partial_scope_stack_if_necessary(psssp) \
-{ \
-  if ((psssp)->saved) { \
-    scope_stack[decl_scope_level].name_linkage_is_explicit = \
-                                           (psssp)->name_linkage_is_explicit; \
-    scope_stack[decl_scope_level].default_name_linkage = \
-                                               (psssp)->default_name_linkage; \
-    scope_stack[decl_scope_level].current_access = (psssp)->current_access; \
-  }  /* if */ \
-}  /* restore_partial_scope_stack_if_necessary */
 
 
 static void defer_symbol_creation(an_ifc_decl_index decl_idx,
@@ -12109,142 +12059,200 @@ done:;
 }  /* unsigned_integer_for_expr_index */
 
 
-static a_boolean init_dps(a_decl_parse_state               *dps,
-                          const an_ifc_source_location     &locus,
-                          an_ifc_type_index                type_index,
-                          an_ifc_object_traits_bitfield    traits,
-                          an_ifc_msvc_traits_bitfield      msvc_traits,
-                          an_ifc_basic_specifiers_bitfield specifiers,
-                          an_ifc_access_sort               access,
-                          an_ifc_expr_index                alignment,
-                          a_partial_scope_stack_state      *psssp)
 /*
-Map the IFC fields given by locus, type_index, alignment, traits, msvc_traits,
-specifiers, and access to internal values used in the front end and set those
-fields in *dps.  *psssp is a place in which to store various fields of the
-decl_scope_level scope_stack entry (saved only if necessary).
-restore_partial_scope_stack_if_necessary should be called with this pointer
-after the declaration has been processed.  Note that although dps->alignment
-is (conditionally) set in this routine, the IFC file only specifies an
-alignment if the alignment is explicitly specified.  Therefore callers of
-this routine need to handle the case where dps->alignment is 0.  Return TRUE if
-initialization succeeds; otherwise, return FALSE.
+An RAII type used to temporarily change the IL access level of the current
+scope stack entry at scope_stack[decl_scope_level].
+*/
+struct an_il_access_swap {
+  inline an_il_access_swap(an_ifc_access_sort access_sort);
+  inline ~an_il_access_swap();
+private:
+  a_scope_depth modified_scope;
+                        /* The depth of the scope stack entry modified by this
+                           object. */
+  an_access_specifier
+                previous_value;
+                        /* The previous access level. */
+};  /* an_il_access_swap */
+
+
+an_il_access_swap::an_il_access_swap(an_ifc_access_sort access_sort)
+/*
+Change the IL access level of the scope at scope_stack[decl_scope_level] to
+the IL access level corresponding to the given IFC access sort.
+*/
+  : modified_scope(decl_scope_level),
+    previous_value(scope_stack[decl_scope_level].current_access)
+{
+  an_access_specifier new_access = as_public;
+
+  switch (access_sort) {
+    case ifc_as_private:
+      new_access = as_private;
+      break;
+    case ifc_as_protected:
+      new_access = as_protected;
+      break;
+    case ifc_as_public:
+    case ifc_as_none:
+      new_access = as_public;
+      break;
+    default_is_unexpected();
+  }  /* switch */
+  scope_stack[this->modified_scope].current_access = new_access;
+}  /* an_il_access_swap::an_il_access_swap */
+
+
+an_il_access_swap::~an_il_access_swap()
+/*
+Restore the previous access.
 */
 {
-  a_boolean        result = TRUE;
-  an_attribute_ptr ap = NULL;
+  scope_stack[this->modified_scope].current_access = this->previous_value;
+}  /* an_il_access_swap::~an_il_access_swap */
 
-  init_decl_parse_state(dps);
-  psssp->saved = FALSE;
+
+/*
+An RAII type used to temporarily change the IL linkage of the current
+scope stack entry at scope_stack[decl_scope_level].
+*/
+struct an_il_linkage_swap {
+  inline an_il_linkage_swap(an_ifc_basic_specifiers_bitfield specifiers);
+  inline ~an_il_linkage_swap();
+private:
+  a_scope_depth modified_scope;
+                        /* The depth of the scope stack entry modified by this
+                           object. */
+  a_boolean     previous_is_explicit;
+                        /* The previous value of name_linkage_is_explicit. */
+  a_name_linkage_kind
+                previous_default_linkage;
+                        /* The previous value of default_name_linkage. */
+};  /* an_il_linkage_swap */
+
+
+an_il_linkage_swap::an_il_linkage_swap(
+                                   an_ifc_basic_specifiers_bitfield specifiers)
+/*
+Change the IL access level of the scope at scope_stack[decl_scope_level] to
+the IL access level corresponding to the given IFC access sort.
+*/
+  : modified_scope(decl_scope_level),
+    previous_is_explicit(
+                       scope_stack[decl_scope_level].name_linkage_is_explicit),
+    previous_default_linkage(
+                            scope_stack[decl_scope_level].default_name_linkage)
+
+{
+  if (test_bitmask<ifc_bsb_c>(specifiers)) {
+    scope_stack[this->modified_scope].name_linkage_is_explicit = TRUE;
+    scope_stack[this->modified_scope].default_name_linkage = nlk_external;
+  }  /* if */
+}  /* an_il_linkage_swap::an_il_linkage_swap */
+
+
+an_il_linkage_swap::~an_il_linkage_swap()
+/*
+Restore the previous linkage.
+*/
+{
+  scope_stack[this->modified_scope].default_name_linkage =
+                                                this->previous_default_linkage;
+  scope_stack[this->modified_scope].name_linkage_is_explicit =
+                                                    this->previous_is_explicit;
+}  /* an_il_linkage_swap::~an_il_linkage_swap */
+
+
+template<typename an_ifc_Node_type>
+static void apply_linkage(a_decl_parse_state     *dps,
+                          const an_ifc_Node_type &decl)
+/*
+Given a declaration parse state, apply the appropriate changes to the
+declaration parse state to parse a declaration with the linkage of the given
+IFC declaration.
+*/
+{
+  an_ifc_basic_specifiers_bitfield specifiers = get_ifc_specifiers(decl);
+
+  if (test_bitmask<ifc_bsb_c>(specifiers)) {
+    dps->decl_modifiers.direct_linkage_specifier = TRUE;
+  }  /* if */
+}  /* apply_linkage */
+
+
+template<typename an_ifc_Node_type>
+static void apply_storage_class(a_decl_parse_state     *dps,
+                                const an_ifc_Node_type &decl)
+/*
+Given a declaration parse state, apply the appropriate changes to the
+declaration parse state to parse a declaration with the storage class of the
+given IFC declaration.
+*/
+{
+  an_ifc_basic_specifiers_bitfield specifiers = get_ifc_specifiers(decl);
+
+  if (test_bitmask<ifc_bsb_internal>(specifiers)) {
+    dps->storage_class = sc_static;
+  }  /* if */
+  if (test_bitmask<ifc_bsb_external>(specifiers)) {
+    dps->storage_class = sc_extern;
+  }  /* if */
+}  /* apply_storage_class */
+
+
+template<typename an_ifc_Node_type>
+static void apply_attributes(a_decl_parse_state     *dps,
+                             const an_ifc_Node_type &decl)
+/*
+Given a declaration parse state, apply the appropriate changes to the
+declaration parse state to parse a declaration with the attributes of the given
+IFC declaration.
+*/
+{
+  an_attribute_ptr ap = dps->prefix_attributes;
+  an_ifc_basic_specifiers_bitfield
+                   specifiers = get_ifc_specifiers(decl);
+
+  if (test_bitmask<ifc_bsb_deprecated>(specifiers)) {
+    ap = make_module_attribute("deprecated", af_std, ap);
+  }  /* if */
+  dps->prefix_attributes = ap;
+}  /* apply_attributes */
+
+
+template<typename an_ifc_Node_type>
+static void apply_func_decl_specifiers(a_decl_parse_state     *dps,
+                                       const an_ifc_Node_type &decl)
+/*
+Given a declaration parse state, apply the appropriate changes to the
+declaration parse state to parse a function declaration with the declaration
+specifiers of the given IFC declaration.
+*/
+{
+  an_ifc_function_traits_bitfield traits = get_ifc_traits(decl);
+
+  if (test_bitmask<ifc_ftb_immediate>(traits)) {
+    dps->dso_flags |= DSO_CONSTEVAL;
+  } else if (test_bitmask<ifc_ftb_constexpr>(traits)) {
+    dps->dso_flags |= DSO_CONSTEXPR;
+  } else if (test_bitmask<ifc_ftb_inline>(traits)) {
+    dps->dso_flags |= DSO_INLINE;
+  }  /* if */
+}  /* apply_func_decl_specifiers */
+
+
+template<typename an_ifc_Node_type>
+static void apply_source_position(a_decl_parse_state     *dps,
+                                  const an_ifc_Node_type &decl)
+/*
+Given a declaration parse state, set the declaration start position based on
+the information provided by the given IFC declaration.
+*/
+{
+  an_ifc_source_location locus = get_ifc_locus(decl);
+
   source_position_from_locus(&dps->start_pos, locus);
-  error_position = dps->start_pos;
-  if (!is_null_index(type_index)) {
-    dps->type = type_for_type_index(type_index);
-    if (is_error_type(dps->type)) {
-      result = FALSE;
-    }  /* if */
-  }  /* if */
-  if (!is_null_bitfield(traits)) {
-    if (test_bitmask<ifc_otb_constexpr>(traits)) {
-      dps->dso_flags |= DSO_CONSTEXPR;
-    }  /* if */
-    if (test_bitmask<ifc_otb_mutable>(traits)) {
-      dps->dso_flags |= DSO_MUTABLE;
-    }  /* if */
-    if (test_bitmask<ifc_otb_thread_local>(traits)) {
-      dps->dso_flags |= DSO_THREAD_LOCAL;
-    }  /* if */
-    if (test_bitmask<ifc_otb_inline>(traits)) {
-      dps->dso_flags |= DSO_INLINE;
-    }  /* if */
-  }  /* if */
-  if (!is_null_bitfield(msvc_traits)) {
-    if (test_bitmask<ifc_mtb_comdat>(msvc_traits)) {
-      unexpected_condition(); /* FIXME */
-    }  /* if */
-    if (test_bitmask<ifc_mtb_select_any>(msvc_traits)) {
-      ap = make_module_attribute("selectany", af_ms_declspec, ap);
-    }  /* if */
-    if (test_bitmask<ifc_mtb_process>(msvc_traits)) {
-      ap = make_module_attribute("process", af_ms_declspec, ap);
-    }  /* if */
-    if (test_bitmask<ifc_mtb_dll_export>(msvc_traits)) {
-      ap = make_module_attribute("dllexport", af_ms_declspec, ap);
-    }  /* if */
-    if (test_bitmask<ifc_mtb_dll_import>(msvc_traits)) {
-      ap = make_module_attribute("dllimport", af_ms_declspec, ap);
-    }  /* if */
-    if (test_bitmask<ifc_mtb_allocate>(msvc_traits)) {
-      ap = make_module_attribute("allocate", af_ms_declspec, ap);
-    }  /* if */
-  }  /* if */
-  if (!is_null_bitfield(specifiers)) {
-    if (test_bitmask<ifc_bsb_c>(specifiers)) {
-      /* Save the existing name linkage and use "C" linkage for the next
-         declaration. */
-      save_partial_scope_stack(psssp);
-      scope_stack[decl_scope_level].name_linkage_is_explicit = TRUE;
-      scope_stack[decl_scope_level].default_name_linkage =
-                                             (a_name_linkage_kind)nlk_external;
-      dps->decl_modifiers.direct_linkage_specifier = TRUE;
-    }  /* if */
-    if (test_bitmask<ifc_bsb_internal>(specifiers)) {
-      dps->storage_class = sc_static;
-    }  /* if */
-    if (test_bitmask<ifc_bsb_vague>(specifiers)) {
-      /* FIXME: unexpected_condition(); (for now) */
-    }  /* if */
-    if (test_bitmask<ifc_bsb_external>(specifiers)) {
-      dps->storage_class = sc_extern;
-    }  /* if */
-    if (test_bitmask<ifc_bsb_deprecated>(specifiers)) {
-      ap = make_module_attribute("deprecated", af_std, ap);
-    }  /* if */
-    if (test_bitmask<ifc_bsb_initialized_in_class>(specifiers)) {
-      /* FIXME: Anything to do here? */
-    }  /* if */
-    if (test_bitmask<ifc_bsb_non_exported>(specifiers)) {
-      /* FIXME: Anything to do here? */
-    }  /* if */
-  }  /* if */
-  if (ap != NULL) {
-    dps->prefix_attributes = ap;
-  }  /* if */
-  if (access != ifc_as_none) {
-    /* Set an initial value to prevent warnings about an uninitialized read in
-       some configurations. */
-    an_access_specifier il_access = as_private;
-
-    switch (access) {
-      case ifc_as_private:   il_access = as_private;   break;
-      case ifc_as_protected: il_access = as_protected; break;
-      case ifc_as_public:    il_access = as_public;    break;
-      case ifc_as_none:      unexpected_condition();   break;
-      default_is_unexpected();
-    }  /* switch */
-    if (!psssp->saved) {
-      /* Save some elements from the scope stack before temporarily changing
-         some of them.  Don't do this if we already made such changes above,
-         since that would promote the earlier temporary changes to be part of
-         the "original" state. */
-      save_partial_scope_stack(psssp);
-    }  /* if */
-    scope_stack[decl_scope_level].current_access = il_access;
-  }  /* if */
-  if (!is_null_index(alignment)) {
-    /* Not all cases use alignment (e.g., functions). */
-    an_integer_value alignment_value;
-    a_boolean        err;
-
-    unsigned_integer_for_expr_index(alignment, &alignment_value);
-    dps->alignment = (a_targ_alignment)unsigned_value_of_integer_value(
-                                                           &alignment_value,
-                                                           /*is_signed=*/FALSE,
-                                                           &err);
-    check_assertion(!err);
-  }  /* if */
-  return result;
-}  /* init_dps */
+}  /* apply_source_position */
 
 
 static a_boolean fill_in_routine_parameter_defaults(
@@ -12452,44 +12460,58 @@ strongly preferred over calling this function directly.
 #endif /* BUILTIN_FUNCTIONS_ENABLED */
         /* Do not add code here. */
         {
-          an_ifc_function_traits_bitfield traits = get_ifc_traits(idf);
-          a_type_ptr                      old_type;
-          a_routine_ptr                   rp;
-          a_boolean                       is_consteval;
-          a_decl_parse_state              dps;
-          an_id_linkage_kind              linkage_ptr;
-          a_symbol_ptr                    ext_sym;
-          a_partial_scope_stack_state     psss;
+          a_type_ptr         old_type;
+          a_routine_ptr      rp;
+          a_decl_parse_state dps;
+          an_id_linkage_kind linkage_ptr;
+          a_symbol_ptr       ext_sym;
 
           /* FIXME: There's a chicken-and-egg problem here when the return type
              is deduced and requires access to the class scope (e.g., returning
              a lambda declared within the function). */
-          if (!init_dps(&dps, get_ifc_locus(idf), get_ifc_type(idf),
-                        an_ifc_object_traits_bitfield{},
-                        an_ifc_msvc_traits_bitfield{},
-                        get_ifc_specifiers(idf), get_ifc_access(idf),
-                        an_ifc_expr_index{}, &psss)) {
-            goto invalid;
-          }  /* if */
-          is_consteval = test_bitmask<ifc_ftb_immediate>(traits);
-          if (is_consteval) {
-            dps.dso_flags |= DSO_CONSTEVAL;
-          } else if (test_bitmask<ifc_ftb_constexpr>(traits)) {
-            dps.dso_flags |= DSO_CONSTEXPR;
-          } else if (test_bitmask<ifc_ftb_inline>(traits)) {
-            dps.dso_flags |= DSO_INLINE;
-          }  /* if */
+          /* Appropriately initialize the declaration parse state. */
+          init_decl_parse_state(&dps);
 
-          a_func_info_block func_info;
-          a_decl_pos_block  decl_pos_block;
+          an_ifc_type_index type_idx = get_ifc_type(idf);
+          if (is_null_index(type_idx)) {
+            a_string err_msg("Unexpected missing type for ",
+                             index_to_str(decl_idx));
+
+            ifc_unexpected(module_of(decl_idx), err_msg);
+            goto invalid;
+          } else {
+            dps.type = type_for_type_index(type_idx);
+            if (is_error_type(dps.type)) {
+              goto invalid;
+            }  /* if */
+          }  /* if */
+          apply_linkage(&dps, idf);
+          apply_storage_class(&dps, idf);
+          apply_attributes(&dps, idf);
+          apply_source_position(&dps, idf);
+          apply_func_decl_specifiers(&dps, idf);
+
+          /* Update the scope stack. */
+          an_ifc_basic_specifiers_bitfield
+                             specifiers = get_ifc_specifiers(idf);
+          an_il_linkage_swap linkage_swap(specifiers);
+          an_ifc_access_sort access = get_ifc_access(idf);
+          an_il_access_swap  access_swap(access);
+          /* Begin the parse. */
+          a_func_info_block  func_info;
+          a_decl_pos_block   decl_pos_block;
           clear_func_info(&func_info);
           clear_decl_pos_block(&decl_pos_block);
           decl_routine(&loc, &dps, &func_info, SRK_DECLARATION,
                        &linkage_ptr, &old_type, &ext_sym, &decl_pos_block);
-          restore_partial_scope_stack_if_necessary(&psss);
           rp = dps.sym->variant.routine.ptr;
           il_entity = (char *)rp;
           kind = iek_routine;
+
+          an_ifc_function_traits_bitfield
+                             traits = get_ifc_traits(idf);
+          a_boolean          is_consteval =
+                                       test_bitmask<ifc_ftb_immediate>(traits);
           if (!fill_in_routine_parameter_defaults(get_ifc_chart(idf),
                                                   dps.type,
                                                   is_consteval)) {
@@ -12509,29 +12531,47 @@ strongly preferred over calling this function directly.
           goto invalid;
         }  /* if */
 
-        a_type_ptr                  old_type;
-        a_routine_ptr               rp;
-        a_decl_parse_state          dps;
-        an_id_linkage_kind          linkage_ptr;
-        a_symbol_ptr                ext_sym;
-        a_partial_scope_stack_state psss;
+        a_type_ptr         old_type;
+        a_routine_ptr      rp;
+        a_decl_parse_state dps;
+        an_id_linkage_kind linkage_ptr;
+        a_symbol_ptr       ext_sym;
         /* FIXME: lots more to do here (just copied
            ifc_DeclSort_Function).*/
-        if (!init_dps(&dps, get_ifc_locus(idi), get_ifc_type(idi),
-                      an_ifc_object_traits_bitfield{},
-                      an_ifc_msvc_traits_bitfield{},
-                      get_ifc_specifiers(idi), get_ifc_access(idi),
-                      an_ifc_expr_index{}, &psss)) {
-          goto invalid;
-        }  /* if */
+        /* Appropriately initialize the declaration parse state. */
+        init_decl_parse_state(&dps);
 
-        a_func_info_block func_info;
-        a_decl_pos_block  decl_pos_block;
+        an_ifc_type_index type_idx = get_ifc_type(idi);
+        if (is_null_index(type_idx)) {
+          a_string err_msg("Unexpected missing type for ",
+                           index_to_str(decl_idx));
+
+          ifc_unexpected(module_of(decl_idx), err_msg);
+          goto invalid;
+        } else {
+          dps.type = type_for_type_index(type_idx);
+          if (is_error_type(dps.type)) {
+            goto invalid;
+          }  /* if */
+        }  /* if */
+        apply_linkage(&dps, idi);
+        apply_storage_class(&dps, idi);
+        apply_attributes(&dps, idi);
+        apply_source_position(&dps, idi);
+
+        /* Update the scope stack. */
+        an_ifc_basic_specifiers_bitfield
+                           specifiers = get_ifc_specifiers(idi);
+        an_il_linkage_swap linkage_swap(specifiers);
+        an_ifc_access_sort access = get_ifc_access(idi);
+        an_il_access_swap  access_swap(access);
+        /* Begin the parse. */
+        a_func_info_block  func_info;
+        a_decl_pos_block   decl_pos_block;
         clear_func_info(&func_info);
         clear_decl_pos_block(&decl_pos_block);
         decl_routine(&loc, &dps, &func_info, SRK_DECLARATION, &linkage_ptr,
                      &old_type, &ext_sym, &decl_pos_block);
-        restore_partial_scope_stack_if_necessary(&psss);
         rp = dps.sym->variant.routine.ptr;
         mep->scope = rp->source_corresp.parent_scope;
         il_entity = (char *)rp;
@@ -12717,37 +12757,38 @@ strongly preferred over calling this function directly.
               break;
             }  /* if */
 
+            a_decl_parse_state dps;
+            /* Appropriately initialize the declaration parse state. */
+            init_decl_parse_state(&dps);
+
             an_ifc_type_index aliasee_idx = get_ifc_aliasee(ida);
             if (is_null_index(aliasee_idx)) {
-              a_string err_msg("Unexpected null aliasee for ",
+              a_string err_msg("Unexpected missing aliased type for ",
                                index_to_str(decl_idx));
 
-              ifc_unexpected(module_of(ida), err_msg);
+              ifc_unexpected(module_of(decl_idx), err_msg);
               goto invalid;
+            } else {
+              dps.type = type_for_type_index(aliasee_idx);
+              if (is_error_type(dps.type)) {
+                goto invalid;
+              }  /* if */
             }  /* if */
+            apply_linkage(&dps, ida);
+            apply_storage_class(&dps, ida);
+            apply_attributes(&dps, ida);
+            apply_source_position(&dps, ida);
 
-            a_decl_parse_state
-                            dps;
-            a_partial_scope_stack_state
-                            psss;
-            an_ifc_source_location
-                            locus = get_ifc_locus(ida);
+            /* Update the scope stack. */
             an_ifc_basic_specifiers_bitfield
-                            specifiers = get_ifc_specifiers(ida);
-            an_ifc_access_sort
-                            access = get_ifc_access(ida);
-            if (!init_dps(&dps, locus, aliasee_idx,
-                          an_ifc_object_traits_bitfield{},
-                          an_ifc_msvc_traits_bitfield{},
-                          specifiers, access,
-                          an_ifc_expr_index{}, &psss)) {
-              goto invalid;
-            }  /* if */
-
+                               specifiers = get_ifc_specifiers(ida);
+            an_il_linkage_swap linkage_swap(specifiers);
+            an_ifc_access_sort access = get_ifc_access(ida);
+            an_il_access_swap  access_swap(access);
+            /* Begin the parse. */
             a_decl_pos_block decl_pos_block;
             clear_decl_pos_block(&decl_pos_block);
             decl_typedef(&loc, &dps, (a_type_ptr)NULL, &decl_pos_block);
-            restore_partial_scope_stack_if_necessary(&psss);
             il_entity = (char *)dps.sym->variant.type.ptr;
             kind = iek_type;
           } else if (basis == ifc_tbs_namespace) {
@@ -12849,20 +12890,10 @@ strongly preferred over calling this function directly.
           }  /* if */
         }  /* if */
 
-        an_ifc_type_index           base = get_ifc_base(ide);
-        a_type_ptr                  enum_type;
-        a_scope_ptr                 enum_scope;
-        a_symbol_ptr                tag_sym;
-        a_scope_depth               scope_depth;
-        a_decl_parse_state          dps;
-        a_partial_scope_stack_state psss;
-        if (is_null_index(base)) {
-          a_string err_msg("Unexpected missing enumeration base for ",
-                           index_to_str(decl_idx));
-
-          ifc_unexpected(module_of(decl_idx), err_msg);
-          goto invalid;
-        }  /* if */
+        a_type_ptr    enum_type;
+        a_scope_ptr   enum_scope;
+        a_symbol_ptr  tag_sym;
+        a_scope_depth scope_depth;
         enum_scope = mep->scope;
         scope_depth = enum_scope->depth_in_scope_stack;
         if (decl_is_named) {
@@ -12875,14 +12906,53 @@ strongly preferred over calling this function directly.
           }  /* if */
         }  /* if */
 
-        an_ifc_basic_specifiers_bitfield specifiers = get_ifc_specifiers(ide);
-        if (!init_dps(&dps, locus, base,
-                      an_ifc_object_traits_bitfield{},
-                      an_ifc_msvc_traits_bitfield{}, specifiers,
-                      get_ifc_access(ide), get_ifc_alignment(ide),
-                      &psss)) {
+        a_decl_parse_state dps;
+        init_decl_parse_state(&dps);
+
+        an_ifc_type_index base = get_ifc_base(ide);
+        if (is_null_index(base)) {
+          a_string err_msg("Unexpected missing enumeration base for ",
+                           index_to_str(decl_idx));
+
+          ifc_unexpected(module_of(decl_idx), err_msg);
           goto invalid;
+        } else {
+          dps.type = type_for_type_index(base);
+          if (is_error_type(dps.type)) {
+            goto invalid;
+          }  /* if */
         }  /* if */
+        apply_linkage(&dps, ide);
+        apply_storage_class(&dps, ide);
+        apply_attributes(&dps, ide);
+        apply_source_position(&dps, ide);
+
+        an_ifc_expr_index  alignment = get_ifc_alignment(ide);
+        if (!is_null_index(alignment)) {
+          /* Not all cases use alignment (e.g., functions). */
+          an_integer_value alignment_value;
+          a_boolean        err;
+
+          unsigned_integer_for_expr_index(alignment, &alignment_value);
+          dps.alignment = (a_targ_alignment)unsigned_value_of_integer_value(
+                                                           &alignment_value,
+                                                           /*is_signed=*/FALSE,
+                                                           &err);
+          if (err) {
+            a_string err_msg("Failed to load IFC declaration alignment "
+                             "information ", index_to_str(decl_idx));
+
+            ifc_unexpected(module_of(decl_idx), err_msg.as_temp_characters());
+            goto invalid;
+          }  /* if */
+        }  /* if */
+
+        /* Update the scope stack. */
+        an_ifc_basic_specifiers_bitfield
+                           specifiers = get_ifc_specifiers(ide);
+        an_il_linkage_swap linkage_swap(specifiers);
+        an_ifc_access_sort access = get_ifc_access(ide);
+        an_il_access_swap  access_swap(access);
 
         a_decl_pos_block decl_pos_block;
         clear_decl_pos_block(&decl_pos_block);
@@ -12973,7 +13043,6 @@ strongly preferred over calling this function directly.
         if (is_scoped_enum) {
           pop_scope();
         }  /* if */
-        restore_partial_scope_stack_if_necessary(&psss);
       }
       break;
     case ifc_ds_decl_enumerator:
