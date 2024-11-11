@@ -1,5 +1,21 @@
 Version 6.7
 
+11/11/24 [EDGcpfe/27706]
+Performance regression with hashing of dependent member names
+
+The changes for EDGcpfe/22821,EDGcpfe/27314,EDGcpfe/27438 (not in a release but
+distributed to some customers as a patch) introduced a problem with the way
+dependent member names in nontype template arguments were hashed, causing a
+performance issue with programs that make use of a large number of such
+constructs.  For example:
+
+  template<int> struct C;
+  template<int> struct D { };
+  template<int X, int Y>
+  void f(D<C<X>::v> d1,   // Previously, the same hash value was used for both
+         D<C<Y>::v> d2);  // "C<X>::v" and "C<Y>::v".
+
+
 11/8/24  [EDGcpfe/26834]
 Overflow in integer arithmetic involving constants
 
