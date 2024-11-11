@@ -12082,7 +12082,8 @@ Change the IL access level of the scope at scope_stack[decl_scope_level] to
 the IL access level corresponding to the given IFC access sort.
 */
   : modified_scope(decl_scope_level),
-    previous_value(scope_stack[decl_scope_level].current_access)
+    previous_value(
+             (an_access_specifier)scope_stack[decl_scope_level].current_access)
 {
   an_access_specifier new_access = as_public;
 
