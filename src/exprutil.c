@@ -19688,10 +19688,10 @@ Called when an lvalue is going to be used: the left side of assignment
 operators, the operand of increment/decrement operators, the left operand of
 the "." operator, and when an lvalue is converted to an rvalue.  This routine
 checks that the address indicated by the lvalue is valid; specifically, it
-checks for actually using the element just past the end of an array.  It also
-ensures that variable template specializations are instantiated if needed.
-It's okay to take the address of that element, but it's not okay to actually
-reference it.  "operand" can also be an xvalue.
+checks for actually using the element just past the end of an array.  It's
+okay to take the address of that element, but it's not okay to actually
+reference it.  This routine also ensures that variable template
+specializations are instantiated if needed.  "operand" can also be an xvalue.
 */
 {
   
