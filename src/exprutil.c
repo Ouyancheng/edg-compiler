@@ -26156,38 +26156,202 @@ Return a hash value for a constraint test description.
 }  /* hash_ptr */
 
 
-struct a_test_subst_result {
-  /* A structure describing a previously substituted constraint expression. */
-  enum {
-    tsrk_none,		/* This represents the null (default) value. */
-    tsrk_pending,	/* Substitution has started but not completed.  This
-			   result is updated when substitution completes. */
-    tsrk_expr,		/* Substitution yielded an expression. */
-    tsrk_constant	/* Substitution yielded a constant. */
-  } kind;
-			/* The kind of result encapsulated by this object. */
-  union {
-    /* When kind == tsrk_expr: */
-    an_expr_node_ptr
-		expr;
-			/* Substituted expression. */
-    /* When kind == tsrk_constant: */
-    a_constant_ptr
-		constant;
-			/* Substituted constant. */
-  }; 
+enum class a_test_constraint_result {
+  /* An enumeration describing a previously substituted and evaluated
+     constraint expression. */
+  none,			/* This represents the null (default) value. */
+  pending,		/* Satisfaction checking has started but not completed.
+			   This result is updated when satisfaction checking
+			   completes. */
+  subst_failed,		/* Substitution has failed. */
+  eval_failed,		/* Evaluation has failed. */
+  nonbool_result,	/* Evaluation yielded a non-boolean result. */
+  not_satisfied,	/* Constraint is not satisfied. */
+  satisfied		/* Constraint is satisfied. */
 };
 
 
-using a_constraint_subst_cache = Ptr_map<a_constraint_test,
-                                         a_test_subst_result>;
-			/* The type of a map that caches the substitutions of
-			   constraint tests. */
+using a_constraint_satisfaction_cache = Ptr_map<a_constraint_test,
+                                                     a_test_constraint_result>;
+			/* The type of a map that caches the satisfaction of
+			   constraints. */
 
-STATIC_THREAD a_constraint_subst_cache
-		*constraint_subst_cache;
+STATIC_THREAD a_constraint_satisfaction_cache
+		*constraint_satisfaction_cache;
 			/* A map from constraint test descriptions to
-			   substitution results. */
+			   satisfaction results. */
+
+
+a_boolean is_concept_satisfied(an_expr_node_ptr           constraint,
+                               a_template_arg_ptr         args,
+                               a_diag_list_ptr            diag_list,
+                               a_ctws_options_set         options,
+                               a_ctws_state_ptr           ctws_state,
+                               a_boolean                  *p_fatal)
+/*
+Return TRUE if the given concept is satisfied by the given template arguments.
+Otherwise, return FALSE and:
+  - if diag_list is non-NULL, update diag_list with notes describing the reason
+    for the failure, and
+  - if the failure is not subject to SFINAE, set *p_fatal to TRUE.
+options is a set of substitution options.  ctws_state is a substitution state
+block pointer.
+*/
+{
+  a_boolean            result = FALSE, do_not_cache_result = FALSE;
+  a_diagnostic_ptr     prev_diags = NULL;
+  a_template_ptr       templ = constraint->variant.concept_id.concept_template;
+  a_symbol_ptr         sym = symbol_for(templ);
+  a_template_param_ptr params = sym->variant.template_info
+                                   ->cache.decl_info->parameters;
+  an_expr_node_ptr     expr = templ->prototype_instantiation.constraint;
+  a_constraint_test    test = { constraint, params, args };
+  uintptr_t            hash = hash_ptr(test);
+  a_test_constraint_result
+                       cached_result;
+
+  /* First check for a cached result. */
+  cached_result = constraint_satisfaction_cache->get_with_hash(test, hash);
+  if (cached_result == a_test_constraint_result::not_satisfied &&
+      diag_list != NULL) {
+    /* Do not use a negative cached result if the caller has passed in a
+       diagnostics list. */
+    prev_diags = diag_list->tail;
+    cached_result = a_test_constraint_result::none;
+    do_not_cache_result = TRUE;
+  }  /* if */
+  switch (cached_result) {
+    case a_test_constraint_result::satisfied:
+      result = TRUE;
+      break;
+    case a_test_constraint_result::not_satisfied:
+      result = FALSE;
+      break;
+    case a_test_constraint_result::none:
+      { /* Evaluate the resulting constraint. */
+        a_diag_list  concept_diag_list;
+        if (diag_list == NULL) {
+          clear_diag_list(&concept_diag_list);
+        }  /* if */
+        push_instantiation_scope_for_rescan(symbol_for(templ));
+        scope_stack_top().in_concept_rescan = TRUE;
+        result = constraint_satisfied(expr, args, params,
+                                      (diag_list != NULL) ? diag_list
+                                                          : &concept_diag_list,
+                                      options, ctws_state, p_fatal);
+        pop_instantiation_scope_for_rescan();
+        if (diag_list == NULL) {
+          discard_more_info_list(&concept_diag_list);
+        }  /* if */
+        if (!do_not_cache_result && in_file_scope(constraint)) {
+          cached_result = result ? a_test_constraint_result::satisfied
+                                 : a_test_constraint_result::not_satisfied;
+          test.template_arg_list = copy_template_arg_list(args);
+          (void)constraint_satisfaction_cache->map_or_replace_with_hash(
+                                                    test, cached_result, hash);
+        }  /* if */
+      }
+      break;
+    default:
+      unexpected_condition();
+  }  /* switch */
+  if (!result && !*p_fatal && diag_list != NULL) {
+    /* Insert a diagnostic before the ones detailing the constraint
+       failure. */
+    a_diag_list  new_diags;
+    clear_diag_list(&new_diags);
+    more_info_tap_diagnostic(ec_concept_failed, &constraint->position,
+                             copy_template_arg_list(args), &new_diags);
+    splice_diag_list(&new_diags, diag_list, prev_diags);
+  }  /* if */
+  return result;
+}  /* is_concept_satisfied */
+
+
+a_boolean is_substituted_concept_satisfied(
+                                       an_expr_node_ptr           constraint,
+                                       a_subst_pairs_array const  &subst_pairs,
+                                       a_diag_list_ptr            diag_list,
+                                       a_ctws_options_set         options,
+                                       a_ctws_state_ptr           ctws_state,
+                                       a_boolean                  *p_fatal)
+/*
+Return TRUE if the given concept is satisfied after its template arguments are
+substituted by the given substitution pairs.
+Otherwise, return FALSE and:
+  - if diag_list is non-NULL, update diag_list with notes describing the reason
+    for the failure, and
+  - if the failure is not subject to SFINAE, set *p_fatal to TRUE.
+options is a set of substitution options.  ctws_state is a substitution state
+block pointer.
+*/
+{
+  a_boolean            result = FALSE, copy_error = FALSE;
+  a_template_ptr       templ = constraint->variant.concept_id.concept_template;
+  a_symbol_ptr         sym = symbol_for(templ);
+  a_template_param_ptr params = sym->variant.template_info
+                                   ->cache.decl_info->parameters;
+  a_template_arg_ptr   old_args = constraint->variant.concept_id.args;
+  an_owned_template_arg_list
+                       new_args;
+
+  /* Substitute the template argument list of the concept, and then check
+     the satisfaction of the concept's constraint expression with that
+     substituted argument list. */
+  if (!subst_pairs.is_empty()) {
+    /* Substitute the dependent arguments of the concept-id. */
+    a_ctws_state_ptr  args_ctws_state = ctws_state;
+    a_ctws_state      new_ctws_state;
+    a_boolean         saved_in_concept_rescan =
+                                        scope_stack_top().in_concept_rescan;
+    scope_stack_top().in_concept_rescan = TRUE;
+    if (args_ctws_state == NULL) {
+      init_ctws_state(&new_ctws_state);
+      if (options & CTWS_SUBST_PARENT_CLASS_ARGS) {
+        new_ctws_state.in_parent_substitution = TRUE;
+      }  /* if */
+      args_ctws_state = &new_ctws_state;
+    }  /* if */
+    /* Substitute the concept-id's original arguments.  We should really
+       only substitute the parameters that are actually referenced by the
+       atomic constraint (presumably, those are those for which
+       param->param_symbol->referenced is TRUE), but for now we substitute
+       them all. */
+    new_args = templ_args_after_substitutions(sym, old_args, params,
+                                              (a_template_param_ptr)NULL,
+                                              subst_pairs,
+                                              &constraint->position,
+                                              options,
+                                              &copy_error,
+                                              args_ctws_state);
+    scope_stack_top().in_concept_rescan = saved_in_concept_rescan;
+  } else {
+    /* The concept-id is already fully non-dependent. */
+    new_args = copy_template_arg_list(old_args);
+  }  /* if */
+  if (copy_error) {
+    if (diag_list != NULL) {
+      /* Substitution errors during parameter mappings are not SFINAE-like if
+         they occur outside atomic constraints.  For example:
+           template<typename T> concept X = sizeof(T) == 1;
+           template<typename T> concept Y = X<T[1]>;
+           template<typename T> requires Y<T&> void f(T) {}
+           void f(...);
+           void g() { f(0); }
+         fails at this stage when forming the invalid type T = "int &[1]" in
+         the parameter mapping for concept X.  (Ordinary SFINAE still applies,
+         however.) */
+      more_info_tap_diagnostic(ec_concept_arg_list_substitution_failed,
+                               &constraint->position,
+                               subst_pairs.front_elem().args, diag_list);
+    }  /* if */
+    result = FALSE;
+  } else {
+    result = is_concept_satisfied(constraint, new_args.raw(), diag_list,
+                                  options, ctws_state, p_fatal);
+  }  /* if */
+  return result;
+}  /* is_substituted_concept_satisfied */
 
 
 a_boolean constraint_satisfied_full(an_expr_node_ptr           constraint,
@@ -26221,84 +26385,9 @@ p_fatal and p_copy_error are NULL by default.
   }  /* if */
   constraint = skip_parens(constraint);
   if (node_is(constraint, enk_concept_id)) {
-    /* Substitute the template argument list of the concept, and then check
-       the satisfaction of the concept's constraint expression with that
-       substituted argument list. */
-    a_template_ptr        templ;
-    a_symbol_ptr          sym;
-    a_template_arg_ptr    old_args;
-    an_owned_template_arg_list
-                          new_args;
-    a_template_param_ptr  params;
-    templ = constraint->variant.concept_id.concept_template;
-    sym = symbol_for(templ);
-    old_args = constraint->variant.concept_id.args;
-    params = sym->variant.template_info->cache.decl_info->parameters;
-    if (!subst_pairs.is_empty()) {
-      /* Substitute the dependent arguments of the concept-id. */
-      a_ctws_state_ptr  args_ctws_state = ctws_state;
-      a_ctws_state      new_ctws_state;
-      a_boolean         saved_in_concept_rescan =
-                                          scope_stack_top().in_concept_rescan;
-      scope_stack_top().in_concept_rescan = TRUE;
-      if (args_ctws_state == NULL) {
-        init_ctws_state(&new_ctws_state);
-        if (options & CTWS_SUBST_PARENT_CLASS_ARGS) {
-          new_ctws_state.in_parent_substitution = TRUE;
-        }  /* if */
-        args_ctws_state = &new_ctws_state;
-      }  /* if */
-      /* Substitute the concept-id's original arguments.  We should really
-         only substitute the parameters that are actually referenced by the
-         atomic constraint (presumably, those are those for which
-         param->param_symbol->referenced is TRUE), but for now we substitute
-         them all. */
-      new_args = templ_args_after_substitutions(sym, old_args, params,
-                                                (a_template_param_ptr)NULL,
-                                                subst_pairs,
-                                                &constraint->position,
-                                                options,
-                                                &copy_error,
-                                                args_ctws_state);
-      scope_stack_top().in_concept_rescan = saved_in_concept_rescan;
-    } else {
-      /* The concept-id is already fully non-dependent. */
-      new_args = old_args;
-    }  /* if */
-    push_instantiation_scope_for_rescan(sym);
-    scope_stack_top().in_concept_rescan = TRUE;
-    if (copy_error) {
-      /* Substitution errors during parameter mappings are not SFINAE-like if
-         they occur outside atomic constraints.  For example:
-           template<typename T> concept X = sizeof(T) == 1;
-           template<typename T> concept Y = X<T[1]>;
-           template<typename T> requires Y<T&> void f(T) {}
-           void f(...);
-           void g() { f(0); }
-         fails at this stage when forming the invalid type T = "int &[1]" in
-         the parameter mapping for concept X.  (Ordinary SFINAE still applies,
-         however.) */
-      more_info_tap_diagnostic(ec_concept_arg_list_substitution_failed,
-                               &constraint->position,
-                               subst_pairs.front_elem().args, diag_list);
-      result = FALSE;
-    } else {
-      a_diagnostic_ptr  prev_diags = diag_list->tail;
-      an_expr_node_ptr  expr = templ->prototype_instantiation.constraint;
-      /* Evaluate the resulting constraint. */
-      result = constraint_satisfied(expr, new_args.raw(), params, diag_list,
-                                    options, NULL, p_fatal);
-      if (!result && !*p_fatal) {
-        /* Insert a diagnostic before the ones detailing the constraint
-           failure. */
-        a_diag_list  new_diags;
-        clear_diag_list(&new_diags);
-        more_info_tap_diagnostic(ec_concept_failed, &constraint->position,
-                                 new_args.release(), &new_diags);
-        splice_diag_list(&new_diags, diag_list, prev_diags);
-      }  /* if */
-    }  /* if */
-    pop_instantiation_scope_for_rescan();
+    result = is_substituted_concept_satisfied(constraint, subst_pairs,
+                                              diag_list, options, ctws_state,
+                                              p_fatal);
   } else if (node_is_operator(constraint, eok_land)) {
     /* Check the two underlying constraints separately.  If the first
        determines the outcome, the second is neither substituted nor
@@ -26326,11 +26415,13 @@ p_fatal and p_copy_error are NULL by default.
     /* An atomic constraint.  First perform substitution (or reuse a cached
        substitution); then evaluate the expression. */
     an_expr_node_ptr  expr = NULL;
+    a_constant_ptr    cp = local_constant();
     a_constant_ptr    allocated_cp = NULL;
+    a_test_constraint_result
+                      constraint_result;
     if (subst_pairs.length() > 1) {
       /* We have nested template arguments.  Perform ordinary expression
          substitutions on all but the last one. */
-      a_constant_ptr       cp = local_constant();
       a_ctws_state_ptr     inner_ctws_state = ctws_state;
       a_ctws_state         new_ctws_state;
       a_subst_pairs_array  new_subst_pairs(subst_pairs.length() - 1);
@@ -26343,15 +26434,12 @@ p_fatal and p_copy_error are NULL by default.
       expr = substitute_expr(constraint, new_subst_pairs,
                              inner_ctws_state, options | CTWS_MAY_BE_RESCANNED,
                              cp, &allocated_cp, &copy_error);
-      if (copy_error || expr != NULL) {
-        release_local_constant(&cp);
-      } else {
+      if (!copy_error && expr == NULL) {
         if (allocated_cp == NULL) {
           /* The constant result was constructed in *cp: Move it to file
              scope memory. */
           allocated_cp = move_local_constant_to_il(&cp);
-        } else {
-          release_local_constant(&cp);
+          cp = local_constant();
         }  /* if */
         expr = alloc_node_for_constant(allocated_cp);
       }  /* if */
@@ -26359,146 +26447,156 @@ p_fatal and p_copy_error are NULL by default.
     } else {
       expr = constraint;
     }  /* if */
-    if (!copy_error && !subst_pairs.is_empty()) {
-      /* Check the cache if it already contains this substitution. */
-      a_template_arg_ptr   template_arg_list = subst_pairs.front_elem().args;
-      a_template_param_ptr template_param_list = subst_pairs.front_elem()
-                                                            .params;
-      a_constraint_test    test = { expr, template_param_list,
-                                    template_arg_list };
-      uintptr_t            hash = hash_ptr(test);
-      a_test_subst_result  cached_subst;
-      /* Check the cache for a substitution. */
-      cached_subst = constraint_subst_cache->get_with_hash(test, hash);
-      if (cached_subst.kind == a_test_subst_result::tsrk_none) {
-        /* This is a new substitution. */
-        a_ctws_state            new_ctws_state;
-        a_source_position       saved_err_pos = error_position;
-        a_constant_ptr          cp = local_constant();
-        a_memory_region_number  region_to_switch_back_to;
-        switch_to_file_scope_region(&region_to_switch_back_to);
-        test.template_arg_list = copy_template_arg_list(template_arg_list);
-        cached_subst.kind = a_test_subst_result::tsrk_pending;
-        (void)constraint_subst_cache->map_or_replace_with_hash(
-                                                    test, cached_subst, hash);
-        if (ctws_state == NULL) {
-          init_ctws_state(&new_ctws_state);
-          if (options & CTWS_SUBST_PARENT_CLASS_ARGS) {
-            new_ctws_state.in_parent_substitution = TRUE;
-          }  /* if */
-          ctws_state = &new_ctws_state;
-        }  /* if */
-        expr = copy_template_param_expr(
-                            expr, template_arg_list, template_param_list,
-                            (a_type_ptr)NULL, &expr->position,
-                            options, &copy_error, ctws_state,
-                            cp, &allocated_cp);
-        /* Store the substitution in the cache. */
-        if (expr != NULL || copy_error) {
-          /* An expression or a substitution failure (which is cached as a
-             NULL expression). */
-          cached_subst.kind = a_test_subst_result::tsrk_expr;
-          cached_subst.expr = copy_error ? (an_expr_node*)NULL : expr;
-          release_local_constant(&cp);
-        } else {
-          if (allocated_cp == NULL) {
-            /* The constant result was constructed in *cp: Move it to file
-               scope memory. */
-            allocated_cp = move_local_constant_to_il(&cp);
-          } else {
-            release_local_constant(&cp);
-          }  /* if */
-          cached_subst.kind = a_test_subst_result::tsrk_constant;
-          cached_subst.constant = allocated_cp;
-        }  /* if */
-        /* In some (error) situations, the call to copy_template_param_expr
-           may have caused the constraint test to be cached already.  We
-           therefore use "map_or_replace" instead of just "map" here. */
-        (void)constraint_subst_cache->map_or_replace_with_hash(
-                                                    test, cached_subst, hash);
-        switch_back_to_original_region(region_to_switch_back_to);
-        error_position = saved_err_pos;
-      } else if (cached_subst.kind == a_test_subst_result::tsrk_expr) {
-        /* The substitution was already in the cache, and it produces an
-           expression.  (A NULL expression corresponds to a substitution
-           failure.) */
-        expr = cached_subst.expr;
-        if (expr == NULL) copy_error = TRUE;
-        allocated_cp = NULL;
-      } else if (cached_subst.kind == a_test_subst_result::tsrk_constant) {
-        /* The substitution was already in the cache, and it produces a
-           constant. */
-        expr = NULL;
-        allocated_cp = cached_subst.constant;
-      } else if (cached_subst.kind == a_test_subst_result::tsrk_pending) {
+    if (!copy_error) {
+      a_constraint_test    test = { expr, NULL, NULL };
+      uintptr_t            hash = 0;
+      a_template_arg_ptr   template_arg_list = NULL;
+      a_template_param_ptr template_param_list = NULL;
+      a_test_constraint_result
+                           cached_result;
+      if (!subst_pairs.is_empty()) {
+        template_arg_list = subst_pairs.front_elem().args;
+        template_param_list = subst_pairs.front_elem().params;
+        test.template_arg_list = template_arg_list;
+        test.template_param_list = template_param_list;
+      }  /* if */
+      hash = hash_ptr(test);
+      /* First check for a cached result. */
+      cached_result = constraint_satisfaction_cache->get_with_hash(test, hash);
+      constraint_result = cached_result;
+      if (constraint_result == a_test_constraint_result::pending) {
         /* This constraint appears to depend on itself. */
-        pos_error(ec_circular_constraint, &constraint->position);
         copy_error = TRUE;
-        *p_fatal = TRUE;
-      } else {
-        unexpected_condition();
-      }  /* if */
-    }  /* if */
-    if (copy_error) {
-      /* Substitution failed. */
-      more_info_diagnostic(ec_atomic_constraint_substitution_failed,
-                           &constraint->position, diag_list);
-      result = FALSE;
-    } else if (expr != NULL) {
-      a_constant_ptr  cp = local_constant();
-      a_type_ptr      ctp = strip_implicit_operations(expr)->type;
-      if (!is_bool_type(ctp)) {
-        /* If the type is not a boolean after substitution, the failure is
-           not SFINAE-like. */
-        *p_fatal = !is_error_type(ctp);
-        result = FALSE;
-        more_info_diagnostic(ec_nonbool_atomic_constraint,
-                             &constraint->position, diag_list);
-      } else {
-        if (is_glvalue_node(expr)) {
-          /* Just setting force_prvalue in the call to interpret_expr below is
-             not sufficient because creating a prvalue may require some
-             instantiations not triggered by the call to interpret_expr.  So
-             we explicitly do the conversion first. */
-          expr = conv_glvalue_expr_to_prvalue(expr, (a_boolean *)NULL,
-                                              (a_constant_ptr *)NULL,
-                                              (a_source_position*)NULL);
-        }  /* if */
-        if (interpret_expr(expr, /*is_constant_evaluated=*/TRUE,
-                           /*force_prvalue=*/TRUE, cp, diag_list)) {
-          result = !is_false_constant(cp);
-          if (!result) {
-            more_info_diagnostic(ec_atomic_constraint_false,
-                                 &constraint->position, diag_list);
+      } else if (constraint_result == a_test_constraint_result::none) {
+        constraint_result = a_test_constraint_result::pending;
+        /* In some (error) situations, the call to copy_template_param_expr may
+           have caused the constraint test to be cached already.  We therefore
+           use "map_or_replace" instead of just "map" here. */
+        test.template_arg_list = copy_template_arg_list(template_arg_list);
+        (void)constraint_satisfaction_cache->map_or_replace_with_hash(
+                                                test, constraint_result, hash);
+        if (!subst_pairs.is_empty()) {
+          /* This is a new substitution. */
+          a_ctws_state            new_ctws_state;
+          a_source_position       saved_err_pos = error_position;
+          a_memory_region_number  region_to_switch_back_to;
+          switch_to_file_scope_region(&region_to_switch_back_to);
+          if (ctws_state == NULL) {
+            init_ctws_state(&new_ctws_state);
+            if (options & CTWS_SUBST_PARENT_CLASS_ARGS) {
+              new_ctws_state.in_parent_substitution = TRUE;
+            }  /* if */
+            ctws_state = &new_ctws_state;
           }  /* if */
+          expr = copy_template_param_expr(expr, template_arg_list,
+                                          template_param_list,
+                                          (a_type_ptr)NULL, &expr->position,
+                                          options, &copy_error, ctws_state,
+                                          cp, &allocated_cp);
+          if (copy_error) {
+            constraint_result = a_test_constraint_result::subst_failed;
+          }  /* if */
+          switch_back_to_original_region(region_to_switch_back_to);
+          error_position = saved_err_pos;
+        }
+      }  /* if */
+      if (!copy_error &&
+          constraint_result == a_test_constraint_result::pending &&
+          expr != NULL) {
+        a_type_ptr      ctp = strip_implicit_operations(expr)->type;
+        if (!is_bool_type(ctp)) {
+          /* If the type is not a boolean after substitution, the failure is
+             not SFINAE-like. */
+          *p_fatal = !is_error_type(ctp);
+          constraint_result = a_test_constraint_result::nonbool_result;
         } else {
-          /* The failure to produce a constant value is not a SFINAE-like
-             error. */
-          *p_fatal = TRUE;
-          more_info_diagnostic(ec_atomic_constraint_evaluation_failed,
-                               &expr->position, diag_list);
-          result = FALSE;
+          a_diag_list  interpret_diag_list;
+          clear_diag_list(&interpret_diag_list);
+          if (is_glvalue_node(expr)) {
+            /* Just setting force_prvalue in the call to interpret_expr below
+               is not sufficient because creating a prvalue may require some
+               instantiations not triggered by the call to interpret_expr.  So
+               we explicitly do the conversion first. */
+            expr = conv_glvalue_expr_to_prvalue(expr, (a_boolean *)NULL,
+                                                (a_constant_ptr *)NULL,
+                                                (a_source_position*)NULL);
+          }  /* if */
+          if (!interpret_expr(expr, /*is_constant_evaluated=*/TRUE,
+                              /*force_prvalue=*/TRUE, cp,
+                              &interpret_diag_list)) {
+            *p_fatal = TRUE;
+            constraint_result = a_test_constraint_result::eval_failed;
+            if (is_empty_diag_list(diag_list)) {
+              *diag_list = interpret_diag_list;
+            } else {
+              splice_diag_list(&interpret_diag_list, diag_list,
+                               diag_list->tail);
+            }  /* if */
+          }  /* if */
         }  /* if */
       }  /* if */
-      release_local_constant(&cp);
+      if (!copy_error &&
+          constraint_result == a_test_constraint_result::pending) {
+        if (allocated_cp == NULL) {
+          allocated_cp = cp;
+        }  /* if */
+        if (!is_bool_type(allocated_cp->type)) {
+          /* If the type is not a boolean after substitution, the failure is
+             not SFINAE-like. */
+          *p_fatal = !is_error_type(allocated_cp->type);
+          constraint_result = a_test_constraint_result::nonbool_result;
+        } else {
+          if (!constant_is(allocated_cp, ck_template_param) &&
+              !is_false_constant(allocated_cp)) {
+            constraint_result = a_test_constraint_result::satisfied;
+          } else {
+            constraint_result = a_test_constraint_result::not_satisfied;
+          }  /* if */
+        }  /* if */
+      }  /* if */
+      if (constraint_result != cached_result) {
+        /* Update the cached result. */
+        (void)constraint_satisfaction_cache->map_or_replace_with_hash(
+                                                test, constraint_result, hash);
+      }  /* if */
     } else {
-      check_assertion(allocated_cp != NULL);
-      if (!is_bool_type(allocated_cp->type)) {
-        /* If the type is not a boolean after substitution, the failure is
-           not SFINAE-like. */
-        *p_fatal = !is_error_type(allocated_cp->type);
+      constraint_result = a_test_constraint_result::subst_failed;
+    }  /* if */
+    switch (constraint_result) {
+      case a_test_constraint_result::pending:
+        pos_error(ec_circular_constraint, &constraint->position);
+        more_info_diagnostic(ec_atomic_constraint_substitution_failed,
+                             &constraint->position, diag_list);
         result = FALSE;
+        *p_fatal = TRUE;
+        break;
+      case a_test_constraint_result::subst_failed:
+        more_info_diagnostic(ec_atomic_constraint_substitution_failed,
+                             &constraint->position, diag_list);
+        result = FALSE;
+        break;
+      case a_test_constraint_result::eval_failed:
+        more_info_diagnostic(ec_atomic_constraint_evaluation_failed,
+                             &constraint->position, diag_list);
+        result = FALSE;
+        break;
+      case a_test_constraint_result::nonbool_result:
         more_info_diagnostic(ec_nonbool_atomic_constraint,
                              &constraint->position, diag_list);
-      } else {
-        result = !constant_is(allocated_cp, ck_template_param) &&
-                 !is_false_constant(allocated_cp);
-        if (!result) {
-          more_info_diagnostic(ec_atomic_constraint_false,
-                               &constraint->position, diag_list);
-        }  /* if */
-      }  /* if */
-    }  /* if */
+        result = FALSE;
+        break;
+      case a_test_constraint_result::not_satisfied:
+        more_info_diagnostic(ec_atomic_constraint_false,
+                             &constraint->position, diag_list);
+        result = FALSE;
+        break;
+      case a_test_constraint_result::satisfied:
+        result = TRUE;
+        break;
+      case a_test_constraint_result::none:
+        unexpected_condition();
+    }  /* switch */
+    release_local_constant(&cp);
   }  /* if */
   if (!result && *p_fatal && diagnose_here) {
     /* A non-SFINAE error occurred, and the caller will not emit the associated
@@ -27072,8 +27170,9 @@ for each compilation.
   construct(constraint_charts, /*mask_width=*/10);
   template_param_objects = alloc_fe_of_type(a_template_param_object_map);
   construct(template_param_objects, /*mask_width=*/10);
-  constraint_subst_cache = alloc_fe_of_type(a_constraint_subst_cache);
-  construct(constraint_subst_cache, /*mask_width=*/10);
+  constraint_satisfaction_cache =
+                             alloc_fe_of_type(a_constraint_satisfaction_cache);
+  construct(constraint_satisfaction_cache, /*mask_width=*/10);
   /* Initialize floating point data. */
   num_mantissa_bits[(int)fk_float16]      = 11;
   num_mantissa_bits[(int)fk_fp16]         = 11;

@@ -1,5 +1,25 @@
 Version 6.7
 
+11/11/24 [EDGcpfe/27714]
+Satisfaction result caching
+
+Consider, in C++20 mode:
+
+  template<typename>
+  constexpr bool f() { return true; }
+  template<typename T>
+  struct B {
+    template<int> static int g() requires (f<T>());
+  };
+  int i = B<int>::g<0>() + B<int>::g<1>();
+
+Here, when checking the associated constraints for "B<int>::g<0>" and
+"B<int>::g<1>", the front end previously only cached the result of substituting
+the template arguments into the atomic constraint (i.e., "f<int>()"), but not
+the final result of satisfaction checking after constant evaluation.  Now, the
+final result is cached, and thus "f<int>()" is only evaluated once.
+
+
 11/11/24 [EDGcpfe/27712]
 SARIF Result Level Incorrect
 

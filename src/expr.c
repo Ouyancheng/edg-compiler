@@ -37756,12 +37756,9 @@ the result is not constant) set *fatal to TRUE.
     val = false;
   } else {
     a_diag_list           diag_list;
-    a_template_param_ptr  param_list;
-    param_list = symbol_for(node->variant.concept_id.concept_template)
-                         ->variant.template_info->cache.decl_info->parameters;
     clear_diag_list(&diag_list);
-    val = constraint_satisfied(node, tap, param_list, &diag_list,
-                               CTWS_NO_OPTIONS, (a_ctws_state_ptr)NULL, fatal);
+    val = is_concept_satisfied(node, tap, &diag_list, CTWS_NO_OPTIONS,
+                               (a_ctws_state_ptr)NULL, fatal);
     if (*fatal) {
       a_diagnostic  *dp = pos_start_error(ec_invalid_concept_id,
                                           &node->position);

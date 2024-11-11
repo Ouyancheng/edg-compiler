@@ -20365,15 +20365,15 @@ options is a set of substitution options.
             expr_copy->variant.concept_id.args = new_args;
           }  /* if */
         } else {
-          a_boolean    val;
-          a_diag_list  diag_list;
-          clear_diag_list(&diag_list);
-          val = constraint_satisfied(expr, template_arg_list,
-                                     template_param_list, &diag_list,
-                                     CTWS_NO_OPTIONS, ctws_state,
-                                     copy_error, copy_error);
+          a_boolean            val;
+          a_subst_pairs_array  subst_pairs(1);
+          subst_pairs.push_back({ template_param_list, template_arg_list,
+                                  FALSE, FALSE, FALSE, FALSE });
+          val = is_substituted_concept_satisfied(expr, subst_pairs,
+                                                 (a_diag_list_ptr)NULL,
+                                                 CTWS_NO_OPTIONS, ctws_state,
+                                                 copy_error);
           make_bool_constant_value(val, constant);
-          discard_more_info_list(&diag_list);
           free_template_arg_list(new_args);
         }  /* if */
       }
