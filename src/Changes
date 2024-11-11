@@ -1,5 +1,25 @@
 Version 6.7
 
+11/11/24 [EDGcpfe/27710]
+C++-generating back end: incorrect dependent name qualifier
+
+In some complex cases in which a dependent type name is used as a name
+qualifier, the C++-generating back end could put out the qualifier as a
+dependent name from an unrelated template.  This is now fixed.  For
+example, with --gnu_version=110200 --c++20:
+
+  template <typename T, typename... Us> using A = typename T::D<Us...>;
+  template <unsigned> struct B;
+  struct C {
+    template <typename... Ts> using D = decltype(B<sizeof...(Ts)>::f);
+  };
+  template <typename... Ts> using E = A<C, Ts...>;
+  template <typename T, typename U> void g(U u) {
+    using F = decltype(+u);
+    using G = typename F::G;   // Previously generated as A<C, T...>::G
+  }
+
+
 11/11/24 [EDGcpfe/27706]
 Performance regression with hashing of dependent member names
 

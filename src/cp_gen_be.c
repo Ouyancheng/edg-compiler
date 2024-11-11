@@ -1933,6 +1933,7 @@ templ, add the corresponding instance typedef to the table as well.
           tp->variant.typeref.extra_info->assoc_template == templ &&
           !target_type_has_circularity(tp)) {
         typedef_to_add = tp;
+        under_type = skip_typerefs(typedef_to_add->variant.typeref.type);
       }  /* if */
     } else {
       /* We are looking for the corresponding member typedef of instances
@@ -1961,15 +1962,21 @@ templ, add the corresponding instance typedef to the table as well.
                             typeref_is_typedef(nested_type));
             if (!target_type_has_circularity(nested_type)) {
               typedef_to_add = nested_type;
+              under_type = skip_typerefs(typedef_to_add->variant.typeref.type);
             }  /* if */
             break;
           }  /* if */
         }  /* for */
       }  /* if */
     }  /* if */
-    if (typedef_to_add != NULL) {
+    if (typedef_to_add != NULL &&
+        !(type_is(under_type, tk_template_param) &&
+          tptk_is(under_type, tptk_unknown))) {
+      /* We must suppress the addition of substitutes where the base type
+         is a tk_template_param/tptk_unknown type.  Such types can be
+         reused in unrelated typedefs and thus can lead to incorrect
+         substitutions. */
       add_typedef_to(accessible_typedef_hash_table, typedef_to_add);
-      under_type = skip_typerefs(typedef_to_add->variant.typeref.type);
       if (is_immediate_class_type(under_type)) {
         /* Also add public bases classes of the underlying class type,
            since the typedef may have been used as a qualifier for a member
