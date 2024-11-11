@@ -4623,23 +4623,25 @@ to the write_diagnositic_buffer.
 
   switch (reported_severity) {
     case es_remark:
-      add_string_to_text_buffer(write_diagnostic_buffer, "\"remark\"");
+      add_string_to_text_buffer(write_diagnostic_buffer, "\"note\"");
       break;
+    case es_command_line_warning:
     case es_warning:
       add_string_to_text_buffer(write_diagnostic_buffer, "\"warning\"");
       break;
-    case es_error:
+    case es_catastrophe:
+    case es_command_line_error:
     case es_discretionary_error:
+    case es_error:
+    case es_internal_error:
       add_string_to_text_buffer(write_diagnostic_buffer, "\"error\"");
       break;
-    case es_catastrophe:
-      add_string_to_text_buffer(write_diagnostic_buffer, "\"catastrophe\"");
-      break;
-    case es_internal_error:
-      add_string_to_text_buffer(write_diagnostic_buffer, "\"internal_error\"");
-      break;
-    default:
-      unexpected_condition_str("determine_severity_code: bad severity");
+    case es_default:
+    case es_more_info:
+    case es_none:
+    case es_once:
+      unexpected_condition_str("write_sarif_level: unexpected severity");
+    default_is_unexpected();
   }  /* switch */
 }  /* write_sarif_level */
 

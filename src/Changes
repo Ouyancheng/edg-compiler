@@ -1,5 +1,13 @@
 Version 6.7
 
+11/11/24 [EDGcpfe/27712]
+SARIF Result Level Incorrect
+
+Previously, the front end would emit a non-standard SARIF level property value
+("catastrophe") for catastrophic errors.  The closest corresponding standard
+value ("error") is now used.
+
+
 11/11/24 [EDGcpfe/27710]
 C++-generating back end: incorrect dependent name qualifier
 
