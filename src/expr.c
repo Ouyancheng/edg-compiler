@@ -29304,6 +29304,7 @@ freed by this routine.
     if (aggr_init) {
       /* The parentheses introduce C++20-style parenthesized aggregate
          initialization. */
+      a_constant_ptr  aggr_con;
       scan_braced_init_list_cast(type_cast_to, csf_functional,
                                  supplied_arg_list, result);
       if (arg_list_supplied) {
@@ -29312,6 +29313,11 @@ freed by this routine.
       }  /* if */
       free_arg_list(supplied_arg_list);
       supplied_arg_list = NULL;
+      aggr_con = get_aggr_cast_constant_if_any(result);
+      if (aggr_con != NULL) {
+        aggr_con->explicit_braces_on_aggregate = FALSE;
+        aggr_con->explicit_parentheses_on_aggregate = TRUE;
+      }  /* if */
     } else {
       /* The parentheses correspond to the invocation of a trivial copy
          constructor and not an aggregate initialization. */
