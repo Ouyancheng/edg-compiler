@@ -1,14 +1,5 @@
 Version 6.7
 
-11/11/24 [EDGcpfe/27715]
-Fix eccp default argument processing
-
-Previously, eccp would incorrectly prefer arguments specified in
-EDG_CPFE_DEFAULT_OPTIONS over those specified explicitly on the command line.
-In practice, this resulted in any option present in EDG_CPFE_DEFAULT_OPTIONS
-being the only option eccp would accept.  Now fixed.
-
-
 10/9/24  [EDGcpfe/27569]
 Cfront ABI: read past end of buffer when demangling some invalid identifiers
 
