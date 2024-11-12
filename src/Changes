@@ -21,7 +21,7 @@ final result is cached, and thus "f<int>()" is only evaluated once.
 
 
 11/11/24 [EDGcpfe/27712]
-SARIF Result Level Incorrect
+SARIF result level incorrect
 
 Previously, the front end would emit a non-standard SARIF level property value
 ("catastrophe") for catastrophic errors.  The closest corresponding standard
