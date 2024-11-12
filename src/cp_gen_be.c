@@ -21963,7 +21963,8 @@ Output the initializer, if any, for the indicated variable.
             write_tok_ch('{');
           } else if (parenthesized_init && con->explicit_braces_on_aggregate) {
             write_tok_ch('(');
-          } else if (!con->explicit_parentheses_on_aggregate) {
+          } else if (!con->explicit_parentheses_on_aggregate ||
+                     con->explicit_cast_applied) {
             write_tok_str(" = ");
           }  /* if */
           gen_initializer_constant(con, var->type,
