@@ -1978,7 +1978,7 @@ templ, add the corresponding instance typedef to the table as well.
          substitutions. */
       add_typedef_to(accessible_typedef_hash_table, typedef_to_add);
       if (is_immediate_class_type(under_type)) {
-        /* Also add public bases classes of the underlying class type,
+        /* Also add public base classes of the underlying class type,
            since the typedef may have been used as a qualifier for a member
            of a base class.  If so, we need to find this typedef in order
            to substitute it for the (inaccessible) base class qualifier. */
