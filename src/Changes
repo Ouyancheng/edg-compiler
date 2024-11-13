@@ -1,5 +1,14 @@
 Version 6.7
 
+11/13/24 [EDGcpfe/27723]
+C++-generating back end: segfault in get_param_for_param_ref
+
+In certain complex cases involving templates in which a type operator such
+as decltype is applied to a function template function parameter, the
+C++-generating back end could terminate with a segfault in
+get_param_for_param_ref.  This is now fixed.
+
+
 11/11/24 [EDGcpfe/27714]
 Satisfaction result caching
 
