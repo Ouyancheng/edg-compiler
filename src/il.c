@@ -21065,7 +21065,17 @@ copy_template_param_con for the meaning of the remaining parameters.
                                              copy_error, ctws_state);
     if (*copy_error) goto done;
     if (sym != NULL) {
-      if (sym->kind == sk_constant) {
+      if (sym->kind == sk_member_function &&
+          sym_parent_class(sym)->variant.class_struct_union.is_nonreal_class) {
+        /* We still have a dependent parent class after substitution. */
+        other_con = alloc_constant(ck_address);
+        other_con->variant.address.kind = abk_routine;
+        other_con->variant.address.variant.routine = sym->variant.routine.ptr;
+        other_con->type = make_pointer_type(sym->variant.routine.ptr->type);
+        make_template_param_cast_constant(other_con, constant, other_con->type,
+                                          /*is_explicit=*/FALSE);
+        goto done;
+      } else if (sym->kind == sk_constant) {
         other_con = sym->variant.constant;
       } else {
         other_con = alloc_constant(ck_address);
