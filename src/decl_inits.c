@@ -8034,17 +8034,19 @@ cases, array_type is NULL).
       scan_ctor_args_or_paren_aggr_init(dest_tp, /*rcblock=*/NULL,
                                         /*arg_list_supplied=*/FALSE,
                                         &arg_list, &aggr_init);
-      if (array_type != NULL && arg_list != NULL) aggr_init = TRUE;
-      if (aggr_init && arg_list != NULL) {
-        is.paren_as_aggregate_init = TRUE;
-        prep_aggr_initializer(arg_list, &dest_tp, &is,
-                              (struct an_arg_match_summary*)NULL,
-                              /*fill_in_dtor=*/exceptions_enabled);
-        processed = TRUE;
-      }  /* if */
       pop_expr_stack_for_initializer(saved_expr_stack, /*is_full_expr=*/TRUE,
                                      (a_decl_parse_state*)NULL, &is);
+      if (array_type != NULL && arg_list != NULL) aggr_init = TRUE;
+      if (aggr_init && arg_list != NULL) {
+        /* Process this as aggregate initialization. */
+        is.paren_as_aggregate_init = TRUE;
+        braced_initializer(dest_tp, arg_list, &is, /*dps=*/NULL,
+                           /*fill_in_dtor=*/exceptions_enabled,
+                           (an_init_component**)NULL, &lparen_pos);
+        processed = TRUE;
+      }  /* if */
       if (!aggr_init && cssp != NULL && cssp->constructor != NULL) {
+        /* Process this as constructor initialization. */
         scan_class_parenthesized_initializer(
                                     init_type, object_class_type, &lparen_pos,
                                     /*fill_in_dtor=*/exceptions_enabled,
