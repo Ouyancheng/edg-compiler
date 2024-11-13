@@ -660,8 +660,6 @@ extern a_string module_full_name_of(a_module_ptr mod);
 
 extern a_string_view header_unit_name_of(a_module_ptr mod);
 
-extern a_string module_unit_identifier_of(a_module_ptr mod);
-
 /*
 Return TRUE if a dynamic_initializer is of a given kind.
 */

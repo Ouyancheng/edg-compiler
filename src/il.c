@@ -31689,19 +31689,6 @@ the angle brackets or quotes.
 }  /* header_unit_name_of */
 
 
-a_string module_unit_identifier_of(a_module_ptr mod)
-{
-  a_string result;
-
-  if (mod->kind == mk_header_unit) {
-    result = header_unit_name_of(mod);
-  } else {
-    result = module_full_name_of(mod);
-  }  /* if */
-  return result;
-}
-
-
 /*
 Helper macro used by type_is_nonreal.  Return TRUE if type is a nonreal
 class, nonreal alias template instantiation, or template parameter type.

@@ -2068,22 +2068,42 @@ a_string s_db_module(a_module_ptr mod)
 Return a string containing debug information about the given module.
 */
 {
-  a_string      result = "";
+  a_string      result = "kind: ";
   a_module_kind m_kind = mk_none;
+
   if (mod != NULL) {
     m_kind = mod->kind;
   }  /* if */
-  result.append("module name: ", module_unit_identifier_of(mod));
-  result.append(", kind: ");
   switch (m_kind) {
     case mk_header_unit:
-      result.append("Header Unit");
+      { a_boolean     is_sys_include = mod->variant.header_unit.is_sys_include;
+        a_string_view header_name = header_unit_name_of(mod);
+
+        result.append("Header Unit, id: ");
+        if (is_sys_include) {
+          result.append("<");
+        } else {
+          result.append("\"");
+        }  /* if */
+        result.append(header_name);
+        if (is_sys_include) {
+          result.append(">");
+        } else {
+          result.append("\"");
+        }  /* if */
+      }
       break;
     case mk_unit:
-      result.append("Module Unit");
+      { a_string mod_name = module_full_name_of(mod);
+
+        result.append("Module Unit, id: \"", mod_name, "\"");
+      }
       break;
     case mk_unit_partition:
-      result.append("Module Unit (Partition)");
+      { a_string mod_name = module_full_name_of(mod);
+
+        result.append("Module Unit (Partition), id: \"", mod_name, "\"");
+      }
       break;
     default:
       result.append("UNKNOWN");
