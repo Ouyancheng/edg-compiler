@@ -20046,7 +20046,7 @@ Generate a module import directive.
     case mk_unit_partition:
       { a_string mod_name = module_full_name_of(mod);
 
-        write_tok_str(mod_name);
+        write_tok_str(mod_name.as_temp_characters());
       }
       break;
     default_is_unexpected();
