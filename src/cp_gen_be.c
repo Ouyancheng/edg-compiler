@@ -20029,7 +20029,6 @@ Generate a module import directive.
       { a_boolean     is_sys_include = mod->variant.header_unit.is_sys_include;
         a_string_view header_name = header_unit_name_of(mod);
 
-        add_string_to_text_buffer(format_file_name_buffer, "header unit ");
         if (is_sys_include) {
           write_tok_ch('<');
         } else {
