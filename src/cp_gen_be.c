@@ -20013,6 +20013,7 @@ Generate a module import directive.
 {
   a_module_import_decl_ptr midp = ss_entry_ptr(curr_source_sequence_entry,
                                                a_module_import_decl_ptr);
+  a_module_ptr             mod = midp->module_info;
 
   /* Advance past the source sequence entry for the import declaration. */
   adv_curr_source_sequence_entry();
