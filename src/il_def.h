@@ -18054,11 +18054,11 @@ enum a_module_file_kind : a_byte {
 };
 
 /*
-Information about a module.
+Information about a named module, named module partition, or imported header
+unit.
 */
 typedef struct a_module {
-  a_module_kind	kind;	/* The kind of module file. */
-  a_const_char	*name;	/* The name (as written) of the module file. */
+  a_module_kind	kind;	/* The kind of module unit. */
   /* FIXME: Remove this cached information from the IL.  We should be able to
      collect it in one read (currently every import requires several file
      reads). */
@@ -18074,7 +18074,7 @@ typedef struct a_module {
 			   made use of a feature of its binary module format
 			   that EDG knows about but does not yet support). */
   union {
-    /* When kind == mk_none or mk_unit, no variant fields. */
+    /* When kind == mk_none, no variant fields. */
     /* When kind == mk_header_unit: */
     struct {
       a_bit_field
@@ -18092,11 +18092,22 @@ typedef struct a_module {
 			   transitively imported via another non-header-unit
 			   module. */
       a_const_char
+		*name;
+			/* The header unit name as spelled. */
+      a_const_char
 		*resolved_header;
 			/* The resolved header path. */
     } header_unit;
+    /* When kind == mk_unit: */
+    struct {
+      a_const_char
+		*name;	/* The name of the module. */
+    } unit;
     /* When kind == mk_unit_partition: */
     struct {
+      a_const_char
+		*name;	/* The name of the module partition (e.g., "B" in
+			   "A:B"). */
       a_module_ptr
 		unit;	/* The module unit of which this is a partition. */
     } unit_partition;

@@ -5959,20 +5959,22 @@ Allocate and return an IL entry for a module.
   a_module_ptr mod = alloc_il_of_type(a_module);
 
   mod->kind = kind;
-  mod->name = NULL;
   mod->resolved_file = NULL;
   mod->file_kind = mfk_unknown;
   mod->contains_unsupported_constructs = FALSE;
   switch (mod->kind) {
     case mk_none:
     case mk_unit:
+      mod->variant.unit.name = NULL;
       break;
     case mk_header_unit:
       mod->variant.header_unit.is_sys_include = FALSE;
       mod->variant.header_unit.suppress_macro_export = FALSE;
+      mod->variant.header_unit.name = NULL;
       mod->variant.header_unit.resolved_header = NULL;
       break;
     case mk_unit_partition:
+      mod->variant.unit_partition.name = NULL;
       mod->variant.unit_partition.unit = NULL;
       break;
     default_is_unexpected();

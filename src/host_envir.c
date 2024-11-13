@@ -5214,9 +5214,11 @@ appropriate.
 
   a_boolean display_module_info = (sfp->assoc_module != NULL);
   if (display_module_info) {
+    a_string module_name = module_unit_identifier_of(sfp->assoc_module);
+
     add_string_to_text_buffer(format_file_name_buffer, "module \"");
     add_string_to_text_buffer(format_file_name_buffer,
-                              sfp->assoc_module->name);
+                              module_name.as_temp_characters());
     add_string_to_text_buffer(format_file_name_buffer, "\" (");
     quote_file_name = TRUE;
   }  /* if */

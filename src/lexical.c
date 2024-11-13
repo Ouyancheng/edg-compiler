@@ -28487,44 +28487,47 @@ host-target conversions are performed.
 }  /* init_name_linkage_constants */
 
 
-static void validate_module_name(a_symbol_ptr mod)
+static inline void check_module_name_part(a_string_view         str,
+                                          a_source_position_ptr pos)
 /*
-Given a module symbol (for either the primary name or partition name), scan it
-for disallowed names and issue a diagnostic, if appropriate.
+Given a component of a module name (for either the primary name or partition
+name) at the given position, scan it for disallowed names and issue a
+diagnostic, if appropriate.
 */
 {
-  for (; mod != NULL; mod = mod->next) {
-    a_const_char          *id = mod->header->identifier;
-    sizeof_t              len = mod->header->identifier_length;
-    a_source_position_ptr pos = &mod->decl_position;
-
-    /* Both "import" and "module" have 6 characters.  Any identifier with fewer
-       than 6 characters is not a match. */
-    if (mod->header->identifier_length < 6) continue;
-    if (strncmp(id, "import", len) == 0) {
+  /* Both "import" and "module" have 6 characters.  Any identifier with fewer
+     than 6 characters is not a match. */
+  if (str.length() >= 6) {
+    if (str == "import") {
       pos_error(ec_import_name_not_allowed, pos);
-    } else if (strncmp(id, "module", len) == 0) {
+    } else if (str == "module") {
       pos_error(ec_module_name_not_allowed, pos);
     }  /* if */
-  }  /* for */
-}  /* validate_module_name */
+  }  /* if */
+}  /* check_module_name_part */
 
 
-static a_symbol_ptr scan_module_qualified_name()
+static a_string scan_module_qualified_name()
 /*
 Scan a qualified module name portion (either the primary name or the partition
-name) and return the head of the symbol list, or NULL if the list is empty.
-curr_token refers to the first qualifier in the module name portion being
-scanned (a tok_identifier if the name is non-empty).
+name) and return a string containing the name.  curr_token refers to the first
+qualifier in the module name portion being scanned (a tok_identifier if the
+name is non-empty).
 */
 {
-  a_symbol_ptr result = NULL, *next_sym = &result;
+  a_string result;
 
   while (curr_token == tok_identifier) {
-    (*next_sym) = alloc_symbol((a_symbol_kind)sk_undefined,
-                               locator_for_curr_id.symbol_header,
-                               &pos_curr_token);
-    next_sym = &(*next_sym)->next;
+    a_symbol_header_ptr sym_hdr = locator_for_curr_id.symbol_header;
+    a_string_view       sym_text(sym_hdr->identifier,
+                                 sym_hdr->identifier_length);
+
+    check_module_name_part(sym_text, &pos_curr_token);
+    if (result.is_empty()) {
+      result.append(sym_text);
+    } else {
+      result.append(".", sym_text);
+    }  /* if */
     (void)get_token(); /* Advance past the identifier. */
     if (curr_token == tok_period) {
       /* This was a qualifier - we expect a tok_identifier to come next. */
@@ -28534,20 +28537,18 @@ scanned (a tok_identifier if the name is non-empty).
       }  /* if */
     }  /* if */
   }  /* while */
-  validate_module_name(result);
   return result;
 }  /* scan_module_qualified_name */
 
 
-void scan_module_name(a_symbol_ptr *primary_name,
-                      a_symbol_ptr *partition_name)
+void scan_module_name(a_string *primary_name,
+                      a_string *partition_name)
 /*
 Scan a module name, including its partition (if present) into the provided
 symbol pointers.  A module or partition name can have any number of qualifiers,
 e.g., "A.B.C:D.E.F".
 */
 {
-  *partition_name = NULL;
   add_stop_token(tok_semicolon);
   add_stop_token(tok_colon);
   if (curr_token != tok_colon) {

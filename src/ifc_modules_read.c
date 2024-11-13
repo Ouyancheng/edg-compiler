@@ -377,7 +377,9 @@ does not compile with a possibly-misinterpreted IFC import).
   check_assertion(module_entity_stack != NULL &&
                   !module_entity_stack->is_empty());
   if (!condition) {
-    a_diagnostic_ptr diag = start_error(ec_ifc_requirement_failure, mod->name);
+    a_string         mod_id = module_unit_identifier_of(mod);
+    a_diagnostic_ptr diag = start_error(ec_ifc_requirement_failure,
+                                        mod_id.as_temp_characters());
 
 #if DEBUG
     add_diag_info(diag, ec_ifc_requirement_failure_fill_in,
@@ -802,7 +804,8 @@ lifetime of this object expires (whichever is sooner).
       /* The IFC gave us a null source location locus value, emit a remark. */
       an_ifc_partition_kind kind = to_partition_kind(idx.sort);
       a_string              dbg_msg("ignoring null source location value in ",
-                                    "module ", module_of(idx)->name,
+                                    "module ",
+                                    module_unit_identifier_of(module_of(idx)),
                                     " from locus of partition ",
                                     get_partition_name_from_kind(kind),
                                     " element ",
@@ -1275,11 +1278,8 @@ optional.
 
       ifc_unexpected(module_of(decl_idx), err_msg.as_temp_characters());
     } else {
-      a_symbol_locator locator;
-
-      clear_locator(&locator, &null_source_position);
-      result = find_symbol_header(decl_name.as_temp_characters(),
-                                  decl_name.length(), &locator);
+      result = find_il_symbol_header(decl_name.as_temp_characters(),
+                                     decl_name.length());
     }  /* if */
   }  /* if */
   return result;
@@ -1310,13 +1310,10 @@ Given a scope reference find and return the associated module entity scope.
     if (decl_name.is_empty()) {
       result = get_module_entity_scope(/*name=*/NULL, mesp);
     } else {
-      a_symbol_locator locator;
-
-      clear_locator(&locator, &null_source_position);
-
-      a_symbol_header_ptr   decl_name_sym = find_symbol_header(
+      a_symbol_header_ptr decl_name_sym = find_il_symbol_header(
                                                 decl_name.as_temp_characters(),
-                                                decl_name.length(), &locator);
+                                                decl_name.length());
+
       result = get_module_entity_scope(decl_name_sym, mesp);
     }  /* if */
   }  /* if */
@@ -2307,9 +2304,8 @@ Given a module reference, import the referenced module.
       a_string part_name = get_string_at_offset(partition);
 
       midp->module_info = alloc_module(mk_header_unit);
-      midp->module_info->name = copy_string_to_region(
-                                               FILE_SCOPE_REGION_NUMBER,
-                                               part_name.as_temp_characters());
+      midp->module_info->variant.header_unit.name =
+                          part_name.to_allocated_storage(IL_allocator<char>());
 
       /* A non-header-unit module cannot leak macros, but may transitively
          import a header unit.  Ensure that the transitive import does not leak
@@ -2321,14 +2317,10 @@ Given a module reference, import the referenced module.
       }  /* if */
       import_header_module(midp);
     } else {
-      a_string     prim_name = get_string_at_offset(owner);
-      a_string     part_name = get_string_at_offset(partition);
-      a_const_char *prim_name_chars = !prim_name.is_empty() ?
-                             prim_name.as_temp_characters() : NULL;
-      a_const_char *part_name_chars = !part_name.is_empty() ?
-                             part_name.as_temp_characters() : NULL;
-      a_symbol_ptr module_sym = make_module_symbol(prim_name_chars,
-                                                   part_name_chars,
+      a_string     primary_name = get_string_at_offset(owner);
+      a_string     partition_name = get_string_at_offset(partition);
+      a_symbol_ptr module_sym = make_module_symbol(primary_name,
+                                                   partition_name,
                                                    /*is_interface=*/TRUE,
                                                    &null_source_position);
 
@@ -3388,7 +3380,10 @@ unsupported IFC nodes.
 */
 {
   if (!mod->contains_unsupported_constructs) {
-    error(ec_module_file_contains_unsupported_constructs, mod->name);
+    a_string mod_id = module_unit_identifier_of(mod);
+
+    error(ec_module_file_contains_unsupported_constructs,
+          mod_id.as_temp_characters());
     mod->contains_unsupported_constructs = TRUE;
   }  /* if */
   pos_error(ec_unhandled_ifc_construct, pos, node);
@@ -7216,9 +7211,10 @@ from a tok_ifc_entity_ref or tok_ifc_decl_ref).
 */
 {
   a_module_ptr      mod = module_of(idx);
+  a_string          mod_id = module_unit_identifier_of(mod);
   a_source_position pos = pos_curr_token;
   a_diagnostic_ptr  diag = pos_start_error(ec_ifc_entity_ref_failure, &pos,
-                                           mod->name);
+                                           mod_id.as_temp_characters());
 
   add_partition_element_diag_info(diag, ec_ifc_entity_ref_failure_info, idx);
   end_diagnostic(diag);
@@ -14806,11 +14802,13 @@ diagnostics if issue_diag is TRUE.
           an_ifc_line_number_storage used_line_number = line_number;
 
           if (used_line_number > MODULE_MAX_LINE_NUMBER) {
+            a_string mod_id = module_unit_identifier_of(
+                                               this->import_decl->module_info);
+
             static_assert(MODULE_MAX_LINE_NUMBER < MAX_LINE_NUMBER,
                           "the module maximum line number is limited by "
                           "the general front end maximum line number");
-            warning(ec_ifc_line_number_overflow,
-                    this->import_decl->module_info->name,
+            warning(ec_ifc_line_number_overflow, mod_id.as_temp_characters(),
                     used_line_number, MODULE_MAX_LINE_NUMBER);
             used_line_number = MODULE_MAX_LINE_NUMBER;
           }  /* if */
@@ -17004,8 +17002,9 @@ the template argument list; otherwise, return FALSE.
     result = TRUE;
   } else {
     a_module_ptr     mod = module_of(expr_idx);
+    a_string         mod_id = module_unit_identifier_of(mod);
     a_diagnostic_ptr diag = start_error(ec_ifc_too_many_template_args,
-                                        mod->name);
+                                        mod_id.as_temp_characters());
 
     add_partition_element_diag_info(diag,
                                     ec_ifc_too_many_template_args_info,
@@ -17727,8 +17726,9 @@ template corresponding to the given symbol.
       state.finalize();
       if (state.curr_param() != NULL) {
         a_module_ptr     mod = module_of(arguments);
+        a_string         mod_id = module_unit_identifier_of(mod);
         a_diagnostic_ptr diag = start_error(ec_ifc_too_few_template_args,
-                                            mod->name);
+                                            mod_id.as_temp_characters());
 
         add_partition_element_diag_info(diag,
                                         ec_ifc_too_few_template_args_info,
@@ -29884,9 +29884,11 @@ Given the associated module and validation trace, emit a diagnostic for an
 encountered invalid sort value.
 */
 {
+  a_module_ptr     mod = file->get_read_state().input_state->import_decl->
+                                                                   module_info;
+  a_string         mod_id = module_unit_identifier_of(mod);
   a_diagnostic_ptr diag_ptr = start_error(ec_invalid_ifc_sort_value,
-                                          file->get_read_state().input_state->
-                                               import_decl->module_info->name);
+                                          mod_id.as_temp_characters());
 
   add_backtrace(diag_ptr, trace);
   end_diagnostic(diag_ptr);
@@ -29900,9 +29902,11 @@ Given the associated module and validation trace, emit a diagnostic for an
 encountered invalid partition.
 */
 {
+  a_module_ptr     mod = file->get_read_state().input_state->import_decl->
+                                                                   module_info;
+  a_string         mod_id = module_unit_identifier_of(mod);
   a_diagnostic_ptr diag_ptr = start_error(ec_invalid_ifc_partition,
-                                          file->get_read_state().input_state->
-                                               import_decl->module_info->name);
+                                          mod_id.as_temp_characters());
 
   add_backtrace(diag_ptr, trace);
   end_diagnostic(diag_ptr);
@@ -29919,8 +29923,11 @@ partition.
 */
 {
   a_string_view    part_name = get_partition_name_from_kind(part_kind);
+  a_string         mod_id = module_unit_identifier_of(mod);
   a_diagnostic_ptr diag_ptr = start_error(ec_undefined_ifc_partition,
-                                          mod->name, part_name);
+                                          mod_id.as_temp_characters(),
+                                          part_name);
+
   add_backtrace(diag_ptr, trace);
   end_diagnostic(diag_ptr);
 }  /* diag_undefined_partition */
@@ -29937,9 +29944,11 @@ handle failure and diagnostics for an encountered undefined partition.
 */
 {
   a_string_view    part_name = get_partition_name_from_kind(part_kind);
+  a_string         mod_id = module_unit_identifier_of(mod);
   a_diagnostic_ptr diag_ptr = start_error(
-                                       ec_invalid_unrepresentable_ifc_position,
-                                       mod->name, part_name, idx);
+                                     ec_invalid_unrepresentable_ifc_position,
+                                     mod_id.as_temp_characters(), part_name,
+                                     idx);
 
   add_backtrace(diag_ptr, trace);
   end_diagnostic(diag_ptr);
@@ -29961,8 +29970,11 @@ partition.
 */
 {
   a_string_view    part_name = get_partition_name_from_kind(part_kind);
-  a_diagnostic_ptr diag_ptr = start_error(error_code, mod->name, part_name,
-                                          file_offset, relative_offset);
+  a_string         mod_id = module_unit_identifier_of(mod);
+  a_diagnostic_ptr diag_ptr = start_error(error_code,
+                                          mod_id.as_temp_characters(),
+                                          part_name, file_offset,
+                                          relative_offset);
   add_backtrace(diag_ptr, trace);
   end_diagnostic(diag_ptr);
 }  /* diag_partition_position */
@@ -30034,9 +30046,11 @@ validation trace, emit a diagnostic for an index that couldn't be converted to
 a partition index.
 */
 {
+  a_module_ptr     mod = file->get_read_state().input_state->import_decl->
+                                                                   module_info;
+  a_string         mod_id = module_unit_identifier_of(mod);
   a_diagnostic_ptr diag_ptr = start_error(ec_unknown_ifc_partition_conversion,
-                                          file->get_read_state().input_state->
-                                                import_decl->module_info->name,
+                                          mod_id.as_temp_characters(),
                                           sort_name, index);
 
   add_backtrace(diag_ptr, trace);
@@ -30440,7 +30454,7 @@ been confirmed to exist and the path stored in midp.
                 input_state = new_fe<an_ifc_input_state>(
                                                  midp->module_info->file_kind);
 
-  check_assertion(mod->name != NULL && mod->resolved_file != NULL);
+  check_assertion(mod->resolved_file != NULL);
   if (input_state->open_and_map_ifc_module_file(midp, /*issue_diag=*/TRUE)) {
     result = input_state->initialize_members_from_ifc_module_file(
                                                           midp,
@@ -30486,23 +30500,26 @@ processing of the imported module entities for this module.
       unsigned long errors = input_state->suppressed_diagnostics.errors;
       unsigned long warnings = input_state->suppressed_diagnostics.warnings;
 
-      if (errors > 0) {
-        a_boolean plural = errors > 1;
+      if (errors > 0 || warnings > 0) {
+        a_module_ptr  mod = input_state->import_decl->module_info;
+        a_string      mod_id = module_unit_identifier_of(mod);
 
-        st_num_diagnostic(es_error,
-                          (plural ? ec_suppressed_module_errors_diag
-                                  : ec_suppressed_module_error_diag),
-                          input_state->import_decl->module_info->name,
-                          errors);
-      }  /* if */
-      if (warnings > 0) {
-        a_boolean plural = warnings > 1;
+        if (errors > 0) {
+          a_boolean plural = errors > 1;
 
-        st_num_diagnostic(es_warning,
-                          (plural ? ec_suppressed_module_warnings_diag
-                                  : ec_suppressed_module_warning_diag),
-                          input_state->import_decl->module_info->name,
-                          warnings);
+          error((plural ? ec_suppressed_module_errors_diag
+                        : ec_suppressed_module_error_diag),
+                mod_id.as_temp_characters(),
+                errors);
+        }  /* if */
+        if (warnings > 0) {
+          a_boolean plural = warnings > 1;
+
+          warning((plural ? ec_suppressed_module_warnings_diag
+                          : ec_suppressed_module_warning_diag),
+                  mod_id.as_temp_characters(),
+                  warnings);
+        }  /* if */
       }  /* if */
     }  /* for */
   }  /* if */

@@ -652,6 +652,16 @@ Macro to determine whether an entity was imported from a module.
   (scp_is_module_imported(&(entry)->source_corresp))
 
 
+extern a_string_view module_name_of(a_module_ptr mod);
+
+extern a_string_view module_partition_name_of(a_module_ptr mod);
+
+extern a_string module_full_name_of(a_module_ptr mod);
+
+extern a_string_view header_unit_name_of(a_module_ptr mod);
+
+extern a_string module_unit_identifier_of(a_module_ptr mod);
+
 /*
 Return TRUE if a dynamic_initializer is of a given kind.
 */
