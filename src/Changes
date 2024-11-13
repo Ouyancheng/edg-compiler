@@ -1,5 +1,23 @@
 Version 6.7
 
+11/13/24 [EDGcpfe/27726]
+C++-generating back end: missing type name in deduced-type initializer
+
+In some cases in which the type of a variable is deduced from an
+initializer consisting of an explicit cast, the C++-generating back end
+only put out the operand of the cast instead of the cast expression.  This
+is now fixed.  For example:
+
+  struct A {
+    int i;
+  };
+  struct B {
+    B(A) {}
+  };
+  auto a{ A{35} };   // Previously generated as "auto a{35};"
+  B b(a);
+
+
 11/13/24 [EDGcpfe/27723]
 C++-generating back end: segfault in get_param_for_param_ref
 
