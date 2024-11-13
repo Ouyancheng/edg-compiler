@@ -189,12 +189,45 @@ Display the source-sequence entry pointed to by ssep, for debugging purposes.
       cmfp = (a_cli_metadata_file_ptr)ssep->entity.ptr;
       fprintf(f_debug, " (at %lu) ", (unsigned long)cmfp->position.seq);
       fprintf(f_debug, "#using <%s>", cmfp->name_as_written);
-    } else if (kind == (an_il_entry_kind)iek_module_import_decl) {
-      a_module_import_decl_ptr midp;
-      midp = (a_module_import_decl_ptr)ssep->entity.ptr;
-      fprintf(f_debug, " (at %lu) ", (unsigned long)midp->position.seq);
-      fprintf(f_debug, "import %s", midp->module_info->name);
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
+    } else if (kind == (an_il_entry_kind)iek_module_import_decl) {
+      a_module_import_decl_ptr midp =
+                                    (a_module_import_decl_ptr)ssep->entity.ptr;
+      a_module_ptr             mod = midp->module_info;
+
+      fprintf(f_debug, " (at %lu) import", (unsigned long)midp->position.seq);
+      switch (mod->kind) {
+        case mk_none:
+          break;
+        case mk_header_unit:
+          { a_boolean     is_sys_include =
+                                       mod->variant.header_unit.is_sys_include;
+            a_string_view header_name = header_unit_name_of(mod);
+
+            if (is_sys_include) {
+              fputc('<', f_debug);
+            } else {
+              fputc('"', f_debug);
+            }  /* if */
+            fputs(header_name.start(), f_debug);
+            if (is_sys_include) {
+              fputc('>', f_debug);
+            } else {
+              fputc('"', f_debug);
+            }  /* if */
+          }
+          break;
+        case mk_unit:
+        case mk_unit_partition:
+          { a_string mod_name = module_full_name_of(mod);
+
+            fputc('"', f_debug);
+            print(mod_name, f_debug, /*end=*/"");
+            fputc('"', f_debug);
+          }
+          break;
+        default_is_unexpected();
+      }  /* switch */
     } else if (kind == (an_il_entry_kind)iek_lambda) {
       a_lambda_ptr  lambda = ss_entry_ptr(ssep, a_lambda_ptr);
       fprintf(f_debug, " (at %lu)", (unsigned long)lambda->start_position.seq);
