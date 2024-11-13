@@ -2415,7 +2415,7 @@ operators.)
 a_boolean is_const_default_constructible(a_type_ptr  tp)
 /*
 Return TRUE if the given type is a const-default-constructible class type or an
-array thereof.
+array thereof.  Also return TRUE for dependent class types and error types.
 */
 {
   a_boolean  result, error_detected, err;
@@ -2423,7 +2423,7 @@ array thereof.
   tp = skip_array_types(tp);
   tp = skip_typerefs(tp);
   if (!is_immediate_class_type(tp)) {
-    result = FALSE;
+    result = could_be_dependent_class_type(tp) || is_error_type(tp);
   } else if (select_default_constructor_full(tp, &error_position, tp,
                                              /*declarative_context=*/FALSE,
                                              /*evaluated=*/FALSE,

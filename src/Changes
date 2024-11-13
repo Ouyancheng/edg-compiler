@@ -1,5 +1,18 @@
 Version 6.7
 
+11/13/24 [EDGcpfe/27718]
+Spurious error on const static member without initializer in a template
+
+Consider:
+
+  template<typename T> struct S {
+    static inline T const sm;
+  };
+
+Previously, this triggered an error about a missing initializer for the static
+member.  That is now fixed.
+
+
 11/13/24 [EDGcpfe/27726]
 C++-generating back end: missing type name in deduced-type initializer
 
