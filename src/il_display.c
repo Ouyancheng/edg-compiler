@@ -981,43 +981,12 @@ Display information about the indicated module.
 */
 {
   // FIXME: Make sure all fields are printed
-  if (ptr->resolved_file != NULL) {
-    disp_string_ptr("resolved_file", ptr->resolved_file, iek_other_text,
-                    (sizeof_t)0);
+  if (ptr->name != NULL) {
+    disp_string_ptr("name", ptr->name, iek_id_name, (sizeof_t)0);
   }  /* if */
-  disp_name("kind");
-  switch (ptr->kind) {
-    case mk_none:
-      (void)printf("mk_none\n");
-      break;
-    case mk_header_unit:
-      (void)printf("mk_header_unit\n");
-      disp_boolean("variant.header_unit.is_sys_include",
-                   ptr->variant.header_unit.is_sys_include);
-      disp_boolean("variant.header_unit.suppress_macro_export",
-                   ptr->variant.header_unit.suppress_macro_export);
-      disp_string_ptr("variant.header_unit.name",
-                      ptr->variant.header_unit.name,
-                      iek_other_text, (sizeof_t)0);
-      disp_string_ptr("variant.header_unit.resolved_header",
-                      ptr->variant.header_unit.resolved_header,
-                      iek_other_text, (sizeof_t)0);
-      break;
-    case mk_unit:
-      (void)printf("mk_unit\n");
-      disp_string_ptr("variant.unit.name", ptr->variant.unit.name,
-                      iek_other_text, (sizeof_t)0);
-      break;
-    case mk_unit_partition:
-      (void)printf("mk_unit_partition\n");
-      disp_string_ptr("variant.unit_partition.name",
-                      ptr->variant.unit_partition.name,
-                      iek_other_text, (sizeof_t)0);
-      disp_ptr("variant.unit_partition.unit",
-               (char*)ptr->variant.unit_partition.unit, iek_module);
-      break;
-    default_is_unexpected();
-  }  /* switch */
+  if (ptr->resolved_file != NULL) {
+    disp_string_ptr("resolved_file", ptr->name, iek_id_name, (sizeof_t)0);
+  }  /* if */
 }  /* disp_module */
 
 

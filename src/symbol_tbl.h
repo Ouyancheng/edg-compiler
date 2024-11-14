@@ -494,7 +494,7 @@ enum a_symbol_kind : a_byte {
 		        /* Projection of a member of a namespace into another
 			   scope (either through a using-declaration or as a
 			   by-product of a lookup). */
-  sk_named_module,      /* A C++ named module. */
+  sk_module,            /* A C++ module. */
 #if NAMED_ADDRESS_SPACES_ALLOWED
   sk_named_address_space,
                         /* Embedded C (TR 18037) named address space. */
@@ -4037,17 +4037,27 @@ typedef struct a_symbol {
 			/* If TRUE this projection symbol represents a
 			   using-declaration. */
     } namespace_projection;
-    /* When kind == sk_named_module: */
+    /* When kind == sk_module: */
     struct {
-      a_symbol_header_ptr
+      a_symbol_ptr
 		primary_name;
-			/* The symbol header representing the named module's
-			   name. */
-      a_symbol_header_ptr
+			/* Pointer to a list of sk_undefined symbols that
+			   represent the qualified module name.  For example,
+			   given a module declaration "module A.B.C", "A" and
+			   "B" are qualifiers of the name, and the symbol list
+			   would be sym_for_A -> sym_for_B -> sym_for_C.  Can
+			   be NULL if no name preceded the partition (see
+			   partition_name below). */
+      a_symbol_ptr
 		partition_name;
-			/* If this symbol is representing a named module
-			   partition, this is the symbol header representing
-			   the name of the partition; otherwise, NULL. */
+			/* Pointer to a list of sk_undefined symbols that
+			   represent the qualified partition name, in the same
+			   manner as primary_name above.  A module partition
+			   may follow a module name and is indicated with a
+			   ":".  For example, given a module declaration
+			   "module A.B.C:D.E.F", "A.B.C" is the qualified
+			   module name and "D.E.F" is the qualified partition
+			   name. */
       a_bit_field
 		is_interface_unit:1;
 			/* TRUE if this is a module interface unit. */
@@ -5198,8 +5208,13 @@ extern
 a_symbol_ptr make_unnamed_symbol(a_symbol_kind		kind,
 				 a_source_position	*pos);
 
-extern a_symbol_ptr make_module_symbol(const a_string    &primary_name,
-                                       const a_string    &partition_name,
+extern a_symbol_ptr make_module_symbol(a_symbol_ptr      primary_name,
+                                       a_symbol_ptr      partition_name,
+                                       a_boolean         is_interface,
+                                       a_source_position *pos);
+
+extern a_symbol_ptr make_module_symbol(a_const_char      *primary_name,
+                                       a_const_char      *partition_name,
                                        a_boolean         is_interface,
                                        a_source_position *pos);
 
@@ -6563,10 +6578,6 @@ extern a_symbol_ptr find_macro_symbol_by_name(a_const_char     *identifier,
 extern a_symbol_header_ptr find_symbol_header(a_const_char     *identifier,
 					      sizeof_t         length,
 					      a_symbol_locator	*locator);
-
-
-extern a_symbol_header_ptr find_il_symbol_header(a_const_char     *identifier,
-						 sizeof_t         length);
 
 
 template<typename a_Type>

@@ -408,7 +408,6 @@ extern void check_expected_errors(void);
 
 /* Forward declare some IL and front end types to avoid having to
    include symbol_tbl.h and il_def.h in this file. */
-struct a_module;
 struct a_symbol;
 struct a_type;
 struct a_reflection_value;
@@ -1088,15 +1087,6 @@ struct Fill_in<char*> {
   static void add(a_diagnostic_ptr diag,
                   a_const_char     *value)
     { Fill_in<a_const_char*>::add(diag, value); }
-};  /* Fill_in */
-
-/*
-A diagnostic fill-in for modules.
-*/
-template<>
-struct Fill_in<a_module*> {
-  static void add(a_diagnostic_ptr diag,
-                  a_module         *mod);
 };  /* Fill_in */
 
 /*

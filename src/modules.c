@@ -57,33 +57,36 @@ constexpr a_module_file_suffix module_file_suffixes[] = {
   { "ifc", mfk_ms_ifc }
 };
 
-a_text_buffer_ptr module_search_buffer;
+a_text_buffer_ptr module_search_buffer, module_file_name_buffer;
+a_text_buffer_ptr module_primary_name_buffer, module_partition_name_buffer;
 
 }  /* namespace */
 
-static a_boolean module_has_interface_dependency(a_symbol_ptr module_sym,
-                                                 a_symbol_ptr interface_sym)
+static a_boolean same_module_name(a_symbol_ptr module_name,
+                                  a_symbol_ptr other_module_name)
 /*
-Return TRUE if the given module symbol depends on the given interface symbol;
-otherwise, return FALSE.
+Determine whether two modules have the same name.
 */
 {
-  check_assertion(module_sym->kind == sk_named_module &&
-                  (interface_sym == NULL ||
-                   interface_sym->kind == sk_named_module));
-  a_boolean result = TRUE;
+  a_boolean result = FALSE;
 
-  if (interface_sym == NULL) {
-    result = FALSE;
-  } else if (!module_sym->variant.module_info.is_interface_unit &&
-             (module_partition_implicitly_imports_self ||
-              module_sym->variant.module_info.partition_name == NULL)) {
-    result = FALSE;
-  } else if (module_sym->header != interface_sym->header) {
-    result = FALSE;
-  }  /* if */
+  if (module_name == other_module_name) {
+    result = TRUE;
+  } else if (module_name == NULL || other_module_name == NULL) {
+    /* result = FALSE */
+  } else if (module_name->header->identifier_length !=
+             other_module_name->header->identifier_length) {
+    /* result = FALSE */
+  } else if (strncmp(module_name->header->identifier,
+                     other_module_name->header->identifier,
+                     module_name->header->identifier_length) != 0) {
+    /* result = FALSE */
+  } else {
+    /* This portion of the name was the same - check the rest. */
+    result = same_module_name(module_name->next, other_module_name->next);
+  }
   return result;
-}  /* module_has_interface_dependency */
+}  /* same_module_name */
 
 
 a_boolean check_module_has_interface_dependency(
@@ -100,7 +103,14 @@ any).  Return TRUE if there exists an interface dependency, FALSE otherwise.
 
   /* The easy case of a module importing itself.  The only exception is an
      implementation unit which imports its own primary interface unit. */
-  if (module_has_interface_dependency(module_sym, interface_sym)) {
+  if (interface_sym != NULL &&
+      (module_sym->variant.module_info.is_interface_unit ||
+       (!module_partition_implicitly_imports_self &&
+        module_sym->variant.module_info.partition_name != NULL)) &&
+      same_module_name(module_sym->variant.module_info.primary_name,
+                       interface_sym->variant.module_info.primary_name) &&
+      same_module_name(module_sym->variant.module_info.partition_name,
+                       interface_sym->variant.module_info.partition_name)) {
     pos_error(ec_module_cannot_depend_on_itself, pos);
     result = TRUE;
   }
@@ -117,14 +127,27 @@ STATIC_THREAD a_module_name_map
                            module IL entry. */
 
 
-static void init_named_module(a_module_ptr mod,
-                              a_const_char *name)
+static a_module_ptr find_or_create_module(a_string_view module_sym_id,
+                                          a_module_kind module_kind)
 /*
-Initialize a named module with the given module name.
+Find or create an IL module entity corresponding to the given module symbol
+identifier and module kind.
+
+Note: module_sym_id must be backed by long term storage and null-terminated;
+this function does not create its own copy of the module symbol identifier.
 */
 {
-  mod->variant.unit.name = name;
-}  /* init_named_module */
+  /* Ensure the modules system is fully loaded. */
+  require_modules();
+
+  a_module_ptr  result = known_modules->get(module_sym_id);
+  if (result == NULL) {
+    result = alloc_module(module_kind);
+    result->name = module_sym_id.start();
+    known_modules->map(module_sym_id, result);
+  }  /* if */
+  return result;
+}  /* find_or_create_module */
 
 
 a_module_ptr find_or_create_module(a_symbol_ptr module_sym)
@@ -132,44 +155,102 @@ a_module_ptr find_or_create_module(a_symbol_ptr module_sym)
 Find or create an IL module entity corresponding to the given module symbol.
 */
 {
-  /* Ensure the modules system is fully loaded. */
-  require_modules();
-  /* Ensure a module symbol was given. */
-  check_assertion(module_sym->kind == sk_named_module);
+  check_assertion(module_sym->kind == sk_module);
   a_string_view module_sym_id(module_sym->header->identifier,
                               module_sym->header->identifier_length);
-  a_module_ptr  result = known_modules->get(module_sym_id);
-
-  if (result == NULL) {
-    a_symbol_header_ptr unit_hdr =
-                                  module_sym->variant.module_info.primary_name;
-    a_symbol_header_ptr partition_hdr =
+  a_symbol_ptr  partition_name =
                                 module_sym->variant.module_info.partition_name;
-    a_module_kind       module_kind =
-                                     partition_hdr == NULL ? mk_unit
-                                                           : mk_unit_partition;
+  a_module_kind module_kind = partition_name == NULL ? mk_unit
+                                                     : mk_unit_partition;
+  a_module_ptr  result = find_or_create_module(module_sym_id, module_kind);
 
-    /* Allocate the new module. */
-    result = alloc_module(module_kind);
-    known_modules->map(module_sym_id, result);
-    if (module_kind == mk_unit) {
-      init_named_module(result, unit_hdr->identifier);
-    } else {
-      a_string_view unit_sym_id(unit_hdr->identifier,
-                                unit_hdr->identifier_length);
-      a_module_ptr  unit_module = known_modules->get(unit_sym_id);
+  if (result->kind == mk_unit_partition &&
+      result->variant.unit_partition.unit == NULL) {
+    a_symbol_ptr unit_sym = module_sym->variant.module_info.primary_name;
 
-      if (unit_module == NULL) {
-        unit_module = alloc_module(mk_unit);
-        known_modules->map(unit_sym_id, unit_module);
-        init_named_module(unit_module, unit_hdr->identifier);
-      }  /* if */
-      result->variant.unit_partition.name = partition_hdr->identifier;
-      result->variant.unit_partition.unit = unit_module;
+    check_assertion_or_expect_error(unit_sym != NULL);
+    if (unit_sym != NULL) {
+      a_string_view unit_sym_id(unit_sym->header->identifier,
+                                unit_sym->header->identifier_length);
+
+      result->variant.unit_partition.unit =
+                                   find_or_create_module(unit_sym_id, mk_unit);
     }  /* if */
   }  /* if */
   return result;
 }  /* find_or_create_module */
+
+
+static a_const_char *get_module_primary_name(a_const_char *name)
+/*
+Get just the module primary name from the given module's name (i.e., remove the
+partition if it's present) and return it.  If no name is present, return an
+empty string.  Note that the name will be stored in reuseable memory and
+should be copied if it's wanted to be kept long-term.
+*/
+{
+  sizeof_t     name_len = strlen(name);
+
+  reset_text_buffer(module_primary_name_buffer);
+  for (sizeof_t idx = 0; idx < name_len; ++idx) {
+    if (name[idx] == ':') {
+      name_len = idx;
+      break;
+    }  /* if */
+  }  /* for */
+  add_to_text_buffer(module_primary_name_buffer, name, name_len);
+  add_char_to_text_buffer(module_primary_name_buffer, '\0');
+  return module_primary_name_buffer->buffer;
+}  /* get_module_primary_name */
+
+
+static a_const_char *get_module_partition_name(a_const_char *name)
+/*
+Get just the module partition name from the given module's name (if present)
+and return it.  If no name is present, return an empty string.  Note that the
+name will be stored in reuseable memory and should be copied if it's wanted to
+be kept long-term.
+*/
+{
+  sizeof_t     name_len = 0;
+
+  reset_text_buffer(module_partition_name_buffer);
+  for (; *name != '\0'; ++name) {
+    if (*name == ':') {
+      ++name; /*lint !e850*/
+      name_len = strlen(name);
+      break;
+    }  /* if */
+  }  /* for */
+  add_to_text_buffer(module_partition_name_buffer, name, name_len);
+  add_char_to_text_buffer(module_partition_name_buffer, '\0');
+  return module_partition_name_buffer->buffer;
+}  /* get_module_partition_name */
+
+
+static a_const_char *get_module_file_base_name(a_const_char *name)
+/*
+Get the base name of the module file for the given module name.  A module name
+takes the form <primary>[:<partition>], and the resulting base name is
+<primary>[-<partition>].  Note that the name will be stored in reuseable memory
+and should be copied if it's wanted to be kept long-term.
+*/
+{
+  reset_text_buffer(module_file_name_buffer);
+  (void)get_module_primary_name(name);
+  (void)get_module_partition_name(name);
+  add_to_text_buffer(module_file_name_buffer,
+                     module_primary_name_buffer->buffer,
+                     module_primary_name_buffer->size);
+  if (module_partition_name_buffer->size > 1) {
+    remove_null_terminator_from_text_buffer(module_file_name_buffer);
+    add_char_to_text_buffer(module_file_name_buffer, '-');
+    add_to_text_buffer(module_file_name_buffer,
+                       module_partition_name_buffer->buffer,
+                       module_partition_name_buffer->size);
+  }  /* if */
+  return module_file_name_buffer->buffer;
+}  /* get_module_file_base_name */
 
 
 static a_module_file_kind determine_module_file_kind(FILE *file)
@@ -407,12 +488,10 @@ not already been found - deferring diagnostics related to failing to find the
 module file to the caller.
 */
 {
-  a_boolean     found = FALSE;
-  a_string      mod_name_str = module_full_name_of(mod);
-  a_string_view mod_name(mod_name_str.as_temp_characters(),
-                         mod_name_str.length());
-  a_const_char  *module_path = mod_map->get(mod_name);
+  a_boolean    found = FALSE;
+  a_const_char *module_path;
 
+  module_path = mod_map->get(mod->name);
   /* FIXME: This emulates our previous behavior.  If we fail to find an element
      in the map, we process the entire lazy mod map array (with diagnostics for
      duplicates). */
@@ -420,7 +499,7 @@ module file to the caller.
     while (!lazy_mod_map_arr->is_empty()) {
       resolve_lazy_mod_map_element();
     }  /* while */
-    module_path = mod_map->get(mod_name);
+    module_path = mod_map->get(mod->name);
   }  /* if */
   if (module_path != NULL) {
     if (check_module_file(module_path, &mod->file_kind)) {
@@ -449,7 +528,7 @@ module file to the caller.
 
   /* The module must be a header unit module to use this search function. */
   check_assertion(mod->kind == mk_header_unit);
-  module_path = resolve_header_in_map(mod->variant.header_unit.name,
+  module_path = resolve_header_in_map(mod->name,
                                       mod->variant.header_unit.resolved_header,
                                       mod->variant.header_unit.is_sys_include);
   if (module_path != NULL) {
@@ -476,11 +555,12 @@ module file to the caller.
 {
   a_boolean                  found = FALSE;
   a_directory_name_entry_ptr dir = module_search_path;
-  a_string_view              mod_name = module_name_of(mod);
+  a_const_char               *module_name;
 
+  module_name = get_module_file_base_name(mod->name);
   for (; !found && dir != NULL; dir = dir->next) {
     /* combine_dir_and_file_name clears the buffer for us. */
-    (void)combine_dir_and_file_name(dir->dir_name, mod_name.start(),
+    (void)combine_dir_and_file_name(dir->dir_name, module_name,
                                     module_search_buffer);
     /* Add an arbitrary extension to prevent replace_file_name_suffix from
        replacing part of the actual module name. */
@@ -524,8 +604,7 @@ file.  Return TRUE if a module file was found, FALSE otherwise.
     Value_saver<a_boolean> backslash_saver(&backslash_is_also_dir_separator,
                                            TRUE);
     a_const_char           *header_path;
-    a_const_char           *header_name = mod->variant.header_unit.name;
-    a_const_char           *name_for_search = header_name;
+    a_const_char           *name_for_search = mod->name;
 
     if (ignore_absolute_paths_for_header_units &&
         is_absolute_file_name(name_for_search)) {
@@ -536,8 +615,8 @@ file.  Return TRUE if a module file was found, FALSE otherwise.
                                  /*is_include_next=*/FALSE,
                                  /*suppress_diagnostics=*/FALSE);
     if (header_path == NULL) {
-      pos_catastrophe(ec_cannot_find_header_for_import, &error_position,
-                      header_name);
+      pos_st_catastrophe(ec_cannot_find_header_for_import, &error_position,
+                         mod->name);
     } else {
       mod->variant.header_unit.resolved_header = header_path;
       found = find_header_unit_in_map(mod);
@@ -547,15 +626,10 @@ file.  Return TRUE if a module file was found, FALSE otherwise.
     if (!found) {
       found = find_module_file_in_dirs(mod);
     }  /* if */
-
-    a_string mod_name = module_full_name_of(mod);
     if (!found) {
-      pos_catastrophe(ec_module_file_not_found, &error_position,
-                      mod_name.as_temp_characters());
-    } else if (!module_file_matches(mod_name.as_temp_characters(),
-                                    mod->resolved_file)) {
-      pos_catastrophe(ec_module_file_mismatch, &error_position,
-                      mod_name.as_temp_characters());
+      pos_st_catastrophe(ec_module_file_not_found, &error_position, mod->name);
+    } else if (!module_file_matches(mod->name, mod->resolved_file)) {
+      pos_st_catastrophe(ec_module_file_mismatch, &error_position, mod->name);
     }  /* if */
   }  /* if */
 done:
@@ -1661,30 +1735,22 @@ declaration.  Otherwise, return FALSE and leave *midp unmodified.
 
   for (a_module_import_decl_ptr ptr = il_header.imported_modules;
        ptr != NULL; ptr = ptr->next) {
-    a_module_ptr other_mod = ptr->module_info;
+    a_boolean    same_name, same_file;
 
-    if (other_mod->kind != mod->kind) {
-      continue;
+    /* Check both the name of the module and the resolved module file (a header
+       unit could possibly reference the same module file from multiple
+       paths). */
+    same_name = (strcmp(ptr->module_info->name, mod->name) == 0);
+    same_file = (mod->resolved_file != NULL &&
+                 (strcmp(ptr->module_info->resolved_file,
+                         mod->resolved_file) == 0));
+    if (same_name || same_file) {
+      pos_st_remark(ec_module_already_imported, &midp->module_name_position,
+                    mod->name);
+      *midp = *ptr;
+      already_imported = TRUE;
+      break;
     }  /* if */
-
-    /* For header units (which could possibly reference the same module file
-       from multiple paths) ensure the same file was not found.  For named
-       modules, simply ensure the same named module isn't resolved (as there is
-       only one module object per module). */
-    if (mod->kind == mk_header_unit) {
-      a_boolean same_file = (mod->resolved_file != NULL &&
-                             (strcmp(ptr->module_info->resolved_file,
-                                     mod->resolved_file) == 0));
-      if (!same_file) {
-        continue;
-      }  /* if */
-    } else if (mod != other_mod) {
-      continue;
-    }  /* if */
-    pos_remark(ec_module_already_imported, &midp->module_name_position, mod);
-    *midp = *ptr;
-    already_imported = TRUE;
-    break;
   }  /* for */
   return already_imported;
 }  /* check_module_already_imported */
@@ -1692,7 +1758,7 @@ declaration.  Otherwise, return FALSE and leave *midp unmodified.
 
 void import_header_module(a_module_import_decl_ptr midp)
 /*
-Import the given header unit.
+Import the given header module.
 */
 {
   /* See if there's a known module file for the imported header and import
@@ -1708,13 +1774,13 @@ Import the given header unit.
     }  /* if */
   } else if (skip_module_imports) {
     /* For testing purposes, this import was skipped.  Issue a warning. */
-    pos_warning(ec_import_skipped, &midp->module_name_position,
-                midp->module_info->variant.header_unit.name);
+    pos_st_warning(ec_import_skipped, &midp->module_name_position,
+                   midp->module_info->name);
   } else {
     /* The set of importable headers is implementation-defined.  Currently no
        headers are importable. */
-    pos_catastrophe(ec_header_not_importable, &midp->module_name_position,
-                    midp->module_info->variant.header_unit.name);
+    pos_st_catastrophe(ec_header_not_importable, &midp->module_name_position,
+                       midp->module_info->name);
   }  /* if */
 }  /* import_header_module */
 
@@ -2068,42 +2134,27 @@ a_string s_db_module(a_module_ptr mod)
 Return a string containing debug information about the given module.
 */
 {
-  a_string      result = "kind: ";
+  a_string      result = "";
   a_module_kind m_kind = mk_none;
-
   if (mod != NULL) {
     m_kind = mod->kind;
   }  /* if */
+  result.append("module name: ");
+  if (mod != NULL && mod->name != NULL) {
+    result.append(mod->name);
+  } else {
+    result.append("<NULL>");
+  }  /* if */
+  result.append(", kind: ");
   switch (m_kind) {
     case mk_header_unit:
-      { a_boolean     is_sys_include = mod->variant.header_unit.is_sys_include;
-        a_string_view header_name = header_unit_name_of(mod);
-
-        result.append("Header Unit, id: ");
-        if (is_sys_include) {
-          result.append("<");
-        } else {
-          result.append("\"");
-        }  /* if */
-        result.append(header_name);
-        if (is_sys_include) {
-          result.append(">");
-        } else {
-          result.append("\"");
-        }  /* if */
-      }
+      result.append("Header Unit");
       break;
     case mk_unit:
-      { a_string mod_name = module_full_name_of(mod);
-
-        result.append("Module Unit, id: \"", mod_name, "\"");
-      }
+      result.append("Module Unit");
       break;
     case mk_unit_partition:
-      { a_string mod_name = module_full_name_of(mod);
-
-        result.append("Module Unit (Partition), id: \"", mod_name, "\"");
-      }
+      result.append("Module Unit (Partition)");
       break;
     default:
       result.append("UNKNOWN");
@@ -2279,6 +2330,9 @@ Do one-time initialization of static variables defined in this file.
     register_pch_saved_variables(saved_vars);
   }  /* if */
   module_search_buffer = alloc_text_buffer(256);
+  module_file_name_buffer = alloc_text_buffer(64);
+  module_primary_name_buffer = alloc_text_buffer(64);
+  module_partition_name_buffer = alloc_text_buffer(64);
   ifc_modules_one_time_init();
   /* Register variables that have distinct copies for distinct translation
      units. */

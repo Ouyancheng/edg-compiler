@@ -110,8 +110,6 @@ enum a_diag_fill_in_kind {
 			/* A template argument list. */
   dfk_reflection,
 			/* A reflection. */
-  dfk_module,
-			/* A module. */
 			/*lint -esym(749,*a_diag_fill_in_kind::dfk_last)*/
   dfk_last		/* Must be last. */
 };
@@ -212,11 +210,6 @@ typedef struct a_diag_fill_in {
     /* When kind == dfk_reflection. */
     a_reflection_value
 		reflection;
-			/* The reflection value to be included in the
-			   diagnostic. */
-    /* When kind == dfk_module. */
-    a_module_ptr
-		mod;	/* The module to be included in the diagnostic. */
   } variant;
 } a_diag_fill_in;
 
@@ -1075,12 +1068,8 @@ is specified by "kind".
       dfip->variant.reflection.entity.kind = iek_none;
       dfip->variant.reflection.entity.ptr = NULL;
       break;
-    case dfk_module:
-      dfip->variant.mod = NULL;
-      break;
-    case dfk_last:
+    default:
       unexpected_condition();
-    default_is_unexpected();
   }  /* switch */
   return dfip;
 }  /* alloc_diag_fill_in */
@@ -4036,55 +4025,6 @@ buffer.
 }  /* form_reflection */
 
 
-static void form_module(a_diag_fill_in_ptr	dfip)
-/*
-Format a string that represents the module value dfip into the message buffer.
-*/
-{
-  a_module_ptr mod = dfip->variant.mod;
-
-  /* FIXME: We probably want to add error codes to aid in translation. */
-  switch (mod->kind) {
-    case mk_none:
-      add_string_to_text_buffer(msg_buffer, "unknown module");
-      break;
-    case mk_header_unit:
-      { a_boolean     is_sys_include = mod->variant.header_unit.is_sys_include;
-        a_string_view header_name = header_unit_name_of(mod);
-
-        add_string_to_text_buffer(msg_buffer, "header unit ");
-        annotate_diagnostic(msg_buffer, da_quote);
-        if (is_sys_include) {
-          add_char_to_text_buffer(msg_buffer, '<');
-        } else {
-          add_char_to_text_buffer(msg_buffer, '"');
-        }  /* if */
-        add_string_to_text_buffer(msg_buffer, header_name.start());
-        if (is_sys_include) {
-          add_char_to_text_buffer(msg_buffer, '>');
-        } else {
-          add_char_to_text_buffer(msg_buffer, '"');
-        }  /* if */
-        annotate_diagnostic(msg_buffer, da_reset);
-      }
-      break;
-    case mk_unit:
-    case mk_unit_partition:
-      { a_string mod_name = module_full_name_of(mod);
-
-        add_string_to_text_buffer(msg_buffer, "module ");
-        annotate_diagnostic(msg_buffer, da_quote);
-        add_char_to_text_buffer(msg_buffer, '"');
-        add_string_to_text_buffer(msg_buffer, mod_name.as_temp_characters());
-        add_char_to_text_buffer(msg_buffer, '"');
-        annotate_diagnostic(msg_buffer, da_reset);
-      }
-      break;
-    default_is_unexpected();
-  }  /* switch */
-}  /* form_module */
-
-
 static void process_fill_in(a_diagnostic_ptr	dp,
 			    char		fill_in_char,
 			    char		*options,
@@ -4113,7 +4053,6 @@ null-terminated.
     case 't': kind = dfk_type;            break;
     case 'T': kind = dfk_template_args;   break;
     case 'r': kind = dfk_reflection;      break;
-    case 'm': kind = dfk_module;          break;
     default:
       unexpected_condition_str2("process_fill_in:", "bad fill-in kind");
   }  /* switch */
@@ -4241,10 +4180,6 @@ null-terminated.
     case dfk_reflection:
       /* A reflection fill-in. */
       form_reflection(dfip);
-      break;
-    case dfk_module:
-      /* A module fill-in. */
-      form_module(dfip);
       break;
     default:
       break;
@@ -8493,20 +8428,6 @@ specified by diag.
 */
 {
   add_string_fill_in(diag, value);
-}  /* Fill_in<a_const_char*>::add */
-
-
-void Fill_in<a_module*>::add(a_diagnostic_ptr diag,
-                             a_module         *value)
-/*
-Add a string fill-in entry for the given module (value) to the diagnostic
-specified by diag.
-*/
-{
-  a_diag_fill_in_ptr dfip = alloc_diag_fill_in(dfk_module);
-
-  dfip->variant.mod = value;
-  add_fill_in_to_diagnostic(diag, dfip);
 }  /* Fill_in<a_const_char*>::add */
 
 

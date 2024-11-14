@@ -17,10 +17,10 @@ modules.h -- Declarations related to module handling.
 #ifndef MODULES_H
 #define MODULES_H 1
 
+#if !STANDALONE_UTILITY_PROGRAM
+
 /* Conditionally open the "edg" namespace. */
 BEGIN_EDG_NAMESPACE
-
-#if !STANDALONE_UTILITY_PROGRAM
 
 /*
 The following structure is associated with every entity in a module file that
@@ -124,7 +124,6 @@ Otherwise, return FALSE.
   return result;
 }  /* is_module_entity_globally_visible */
 
-#endif /* !STANDALONE_UTILITY_PROGRAM */
 
 inline a_module_ptr skip_module_partitions(a_module_ptr mod)
 /*
@@ -139,7 +138,6 @@ Return the module unit skipping over any module partition unit.
   return result;
 }  /* skip_module_partitions */
 
-#if !STANDALONE_UTILITY_PROGRAM
 
 inline a_module *lookup_module_for_mep(a_module_entity_ptr mep)
 /*
@@ -851,10 +849,10 @@ extern void modules_cleanup();
 
 extern void modules_write_out();
 
-#endif /* !STANDALONE_UTILITY_PROGRAM */
-
 /* Conditionally close the "edg" namespace. */
 END_EDG_NAMESPACE
+
+#endif /* !STANDALONE_UTILITY_PROGRAM */
 
 #endif /* ifndef MODULES_H */
 

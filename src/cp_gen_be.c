@@ -20016,45 +20016,21 @@ Generate a module import directive.
 {
   a_module_import_decl_ptr midp = ss_entry_ptr(curr_source_sequence_entry,
                                                a_module_import_decl_ptr);
-  a_module_ptr             mod = midp->module_info;
 
   /* Advance past the source sequence entry for the import declaration. */
   adv_curr_source_sequence_entry();
   set_output_position(&midp->position);
   /* Write out the import declaration. */
   write_tok_str("import ");
-  switch (mod->kind) {
-    case mk_none:
-      /* If this condition was reached, an incomplete module incorrectly made
-         it to codegen. */
-      unexpected_condition();
-    case mk_header_unit:
-      { a_boolean     is_sys_include = mod->variant.header_unit.is_sys_include;
-        a_string_view header_name = header_unit_name_of(mod);
-
-        if (is_sys_include) {
-          write_tok_ch('<');
-        } else {
-          write_tok_ch('"');
-        }  /* if */
-        write_tok_str(header_name.start());
-        if (is_sys_include) {
-          write_tok_ch('>');
-        } else {
-          write_tok_ch('"');
-        }  /* if */
-      }
-      break;
-    case mk_unit:
-    case mk_unit_partition:
-      { a_string mod_name = module_full_name_of(mod);
-
-        write_tok_str(mod_name.as_temp_characters());
-      }
-      break;
-    default_is_unexpected();
-  }  /* switch */
-  write_tok_ch(' ');
+  if (midp->module_info->kind == mk_header_unit) {
+    write_tok_ch(midp->module_info->variant.header_unit.is_sys_include ?
+                                                                   '<' : '"');
+  }  /* if */
+  write_tok_str(midp->module_info->name);
+  if (midp->module_info->kind == mk_header_unit) {
+    write_tok_str(midp->module_info->variant.header_unit.is_sys_include ?
+                                                                 "> " : "\" ");
+  }  /* if */
   gen_attributes(midp->attributes, al_module, /*primary_only=*/FALSE);
   write_tok_ch(';');
 }  /* gen_module_import_decl */

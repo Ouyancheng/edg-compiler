@@ -1438,9 +1438,9 @@ pass_stdarg_references_to_generated_code.
       midp->position = pos_curr_token;
       midp->module_name_position = pos_curr_token;
       midp->module_info = alloc_module(mk_header_unit);
+      midp->module_info->name = name_start_pos;
       midp->module_info->variant.header_unit.is_sys_include =
                                                              is_system_include;
-      midp->module_info->variant.header_unit.name = name_start_pos;
       /* Move past the header name. */
       (void)get_token();
       /* Ignore trailing junk on the line.  Do this before pushing the new

@@ -4103,27 +4103,8 @@ handle_class_type_supplement_for_class:
       {
 #define eptr ((a_module_ptr)entry_ptr)
         /* FIXME: make sure all fields are walked appropriately. */
+        walk_string_ptr(eptr->name, iek_other_text, 0);
         walk_string_ptr(eptr->resolved_file, iek_other_text, 0);
-        switch (eptr->kind) {
-          case mk_none:
-            break;
-          case mk_header_unit:
-            walk_string_ptr(eptr->variant.header_unit.name,
-                            iek_other_text, 0);
-            walk_string_ptr(eptr->variant.header_unit.resolved_header,
-                            iek_other_text, 0);
-            break;
-          case mk_unit:
-            walk_string_ptr(eptr->variant.unit.name, iek_other_text, 0);
-            break;
-          case mk_unit_partition:
-            walk_string_ptr(eptr->variant.unit_partition.name, iek_other_text,
-                            0);
-            walk_ptr(eptr->variant.unit_partition.unit, a_module_ptr,
-                     iek_module);
-            break;
-          default_is_unexpected();
-        }  /* switch */
 #undef eptr
       }
       break;
