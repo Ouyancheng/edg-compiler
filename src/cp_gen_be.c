@@ -8670,13 +8670,16 @@ associated with the argument should be reactivated in such cases.
          Just put out the underlying type since the operator cannot be
          reconstructed. */
       operator_suppressed = TRUE;
-    } else if (in_template_argument_list && expr_has_enk_param_ref(expr)) {
-      /* The expression argument refers to function parameters but the
+    } else if (in_template_argument_list &&
+               !in_prototype_instantiation_context &&
+               expr_has_enk_param_ref(expr)) {
+      /* The expression argument refers to a function parameter but the
          reference appears in a template argument.  Since template
          arguments are captured at the point of instantiation but the
          instance can be referred to later from a context in which the
          function parameters are not available, such references are not
-         safe.  Just put out the underlying type. */
+         safe.  (References within a template definition to parameters of
+         that template are okay.)  Just put out the underlying type. */
       operator_suppressed = TRUE;
     } else if (!tp->variant.typeref.is_dependent_type_operator &&
                expr_is_unusable(expr)) {
