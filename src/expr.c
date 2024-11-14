@@ -50640,12 +50640,12 @@ is TRUE if the expression is the immediate operand of an "&" operator.
                                                         &is_template_id,
                                                         &expl_templ_arg_list);
         if (is_template_id && sym != NULL) {
+          a_boolean     err = FALSE;
           a_symbol_ptr  fund_sym = fundamental_symbol_of(sym);
           if (symbol_is(fund_sym, sk_variable_template)) {
             /* If con represented a variable template reference with associated
                explicit template arguments, resolve the associated variable
                template instance. */
-            a_boolean  err = FALSE;
             if (expl_templ_arg_list != NULL) {
               /* Ensure the explicit template arguments are themselves
                  substituted. */
@@ -50667,6 +50667,30 @@ is TRUE if the expression is the immediate operand of an "&" operator.
                                            /*prototype_allowed=*/FALSE,
                                            /*is_use=*/TRUE,
                                            /*diagnose=*/FALSE);
+            }  /* if */
+          } else if (is_nontype_template_param_symbol(fund_sym)) {
+            /* A dependent construct.  Represent it generically with a
+               tpck_template_ref constant. */
+            expl_templ_arg_list =
+              copy_template_arg_list_with_substitution_rebuilding_arg_operands(
+                                             fund_sym, expl_templ_arg_list,
+                                             (a_template_param_ptr)NULL,
+                                             rcblock->template_arg_list,
+                                             rcblock->template_param_list,
+                                             &eriep->saved_operand.position,
+                                             rcblock->options, &err,
+                                             rcblock->ctws_state);
+            if (!err) {
+              con = fs_constant(ck_template_param);
+              set_template_param_constant_kind(con, tpck_template_ref);
+              con->variant.template_param.variant.template_ref.con =
+                                                         sym->variant.constant;
+              con->variant.template_param.variant.template_ref.arg_list =
+                                                           expl_templ_arg_list;
+              con->type = type_of_unknown_templ_param_nontype;
+              sym = alloc_symbol(sk_constant, sym->header,
+                                 &sym->decl_position);
+              sym->variant.constant = con;
             }  /* if */
           }  /* if */
         }  /* if */
