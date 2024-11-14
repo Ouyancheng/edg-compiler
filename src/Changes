@@ -1,5 +1,27 @@
 Version 6.7
 
+11/13/24 [EDGcpfe/27709]
+Abort in get_innermost_function_scope while substituting member alias
+
+Consider:
+
+  template<int N> using Arr = char*[N+1];
+  template<typename> constexpr int vt = 0;
+  struct X {
+    template<int N> using MA = Arr<N>;
+    template <class T> static void f() {
+      constexpr int n = vt<T>;
+      MA<n>{};
+    }
+  };
+  void g() {
+    X::f<Arr<0>>();
+  }
+
+This previously aborted in get_innermost_function_scope() (scope_stk.c).
+That is now fixed.
+
+
 11/13/24 [EDGcpfe/27718]
 Spurious error on const static member without initializer in a template
 
