@@ -26498,7 +26498,7 @@ p_fatal and p_copy_error are NULL by default.
           }  /* if */
           switch_back_to_original_region(region_to_switch_back_to);
           error_position = saved_err_pos;
-        }
+        }  /* if */
       }  /* if */
       if (!copy_error &&
           constraint_result == a_test_constraint_result::pending &&
