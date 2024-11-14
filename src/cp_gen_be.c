@@ -8678,8 +8678,9 @@ associated with the argument should be reactivated in such cases.
          arguments are captured at the point of instantiation but the
          instance can be referred to later from a context in which the
          function parameters are not available, such references are not
-         safe.  (References within a template definition to parameters of
-         that template are okay.)  Just put out the underlying type. */
+         safe.  (References within a template definition to dependent
+         parameters of that template are okay and necessary.)  Just put out
+         the underlying type. */
       operator_suppressed = TRUE;
     } else if (!tp->variant.typeref.is_dependent_type_operator &&
                expr_is_unusable(expr)) {
