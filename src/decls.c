@@ -20097,6 +20097,8 @@ An export declaration can take the following forms:
     if (entered_export_block) {
       a_decl_sequence_number old_decl_seq_counter = decl_seq_counter;
       a_source_position      lbrace_pos = pos_curr_token;
+      a_diag_count_snapshot  counter_snapshot;
+
       /* Advance past the "{". */
       add_stop_token(tok_rbrace);
       (void)get_token();
@@ -20112,7 +20114,11 @@ An export declaration can take the following forms:
       remove_stop_token(tok_rbrace);
       (void)required_token(tok_rbrace, ec_exp_rbrace, ec_matching_lbrace,
                            &lbrace_pos);
-      if (decl_seq_counter == old_decl_seq_counter) {
+      /* If no declarations were introduced and no errors were introduced:
+         emit a diagnostic for the empty export block. */
+      if (decl_seq_counter == old_decl_seq_counter &&
+          (counter_snapshot.captured_total_state.all_error_types() ==
+           diagnostic_counters.total.all_error_types())) {
         pos_error(ec_export_must_introduce_name, &export_pos);
       }  /* if */
       scope_stack_top().in_export_block = saved_in_export_block;
@@ -20186,6 +20192,7 @@ preceded by an export-keyword.
     midp->position = pos_curr_token;
     if (scope_stack_top().in_export_block) {
       pos_error(ec_export_cannot_contain_import, &pos_curr_token);
+      err = TRUE;
     }  /* if */
     check_assertion(!in_preprocessing_directive && !fetch_pp_tokens);
     /* Scan the header name (if there is one).  Note that no get_token is
@@ -20195,32 +20202,43 @@ preceded by an export-keyword.
     if (curr_token == tok_header_name) {
       midp->module_name_position = pos_curr_token;
       midp->module_info = alloc_module(mk_header_unit);
-      midp->module_info->name = copy_header_name(/*process_escapes=*/FALSE);
       midp->module_info->variant.header_unit.is_sys_include =
                                                  (*start_of_curr_token == '<');
+      midp->module_info->variant.header_unit.name =
+                                   copy_header_name(/*process_escapes=*/FALSE);
       (void)get_token();
     } else {
-      a_symbol_ptr      primary_name, partition_name;
+      a_string          primary_name;
+      a_string          partition_name;
       a_source_position pos = pos_curr_token;
+
       scan_module_name(&primary_name, &partition_name);
       if (locator_for_curr_id.is_error) {
         err = TRUE;
       }  /* if */
-      if (primary_name == NULL && partition_name != NULL &&
+      if (primary_name.is_empty() && !partition_name.is_empty() &&
           curr_module_sym != NULL) {
-        primary_name = curr_module_sym->variant.module_info.primary_name;
+        a_symbol_header_ptr primary_name_sym =
+                             curr_module_sym->variant.module_info.primary_name;
+        a_string_view       curr_module_primary_name(
+                                          primary_name_sym->identifier,
+                                          primary_name_sym->identifier_length);
+
+        primary_name = curr_module_primary_name;
       }  /* if */
-      if (!err && primary_name == NULL) {
+      if (!err && primary_name.is_empty()) {
         /* Trying to import a module with no name.  Either something like
            "import :foo" without a current module unit, or the module unit was
            declared without a name (already diagnosed). */
         pos_error(ec_cannot_import_module_with_no_name, &pos);
         err = TRUE;
       }  /* if */
-      module_sym = make_module_symbol(primary_name, partition_name,
-                                      /*is_interface=*/TRUE, &pos);
-      midp->module_name_position = pos;
-      midp->module_info = find_or_create_module(module_sym);
+      if (!err) {
+        module_sym = make_module_symbol(primary_name, partition_name,
+                                        /*is_interface=*/TRUE, &pos);
+        midp->module_name_position = pos;
+        midp->module_info = find_or_create_module(module_sym);
+      }  /* if */
     }  /* if */
     if (!err) {
       attributes = scan_attributes(al_module);
@@ -20299,11 +20317,12 @@ left unchanged.
 */
 {
   a_source_position module_pos = pos_curr_token;
-  a_symbol_ptr      primary_name, partition_name;
+  a_string          primary_name;
+  a_string          partition_name;
   a_boolean         err = FALSE;
-  
+
   scan_module_name(&primary_name, &partition_name);
-  if (primary_name == NULL) {
+  if (primary_name.is_empty()) {
     pos_error(ec_module_req_primary_name, &module_pos);
     err = TRUE;
   }  /* if */
@@ -20326,17 +20345,23 @@ left unchanged.
     if (severity != es_warning) err = TRUE;
   }
   if (!err) {
-    if (curr_module_sym == NULL) {
+    if (curr_module_sym == NULL && !primary_name.is_empty()) {
       curr_module_sym = make_module_symbol(primary_name, partition_name,
                                            is_interface, &module_pos);
+    }  /* if */
+    if (curr_module_sym != NULL) {
       trans_unit_module = find_or_create_module(curr_module_sym);
       set_tu_stage(tud_module_unit);
       if (!is_interface && (module_partition_implicitly_imports_self ||
-                            partition_name == NULL)) {
+                            partition_name.is_empty())) {
         /* A non-interface module declaration with no partition implicitly
            imports its own primary interface unit. */
         import_curr_module();
       }  /* if */
+    } else {
+      /* At this point either an error should have been emitted or a module
+         symbol should be present. */
+      expect_error();
     }  /* if */
   }  /* if */
 }  /* decl_module */

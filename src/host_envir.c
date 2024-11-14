@@ -5214,10 +5214,47 @@ appropriate.
 
   a_boolean display_module_info = (sfp->assoc_module != NULL);
   if (display_module_info) {
-    add_string_to_text_buffer(format_file_name_buffer, "module \"");
-    add_string_to_text_buffer(format_file_name_buffer,
-                              sfp->assoc_module->name);
-    add_string_to_text_buffer(format_file_name_buffer, "\" (");
+    a_module_ptr mod = sfp->assoc_module;
+
+    /* FIXME: We probably want to add error codes to aid in translation. */
+    switch (mod->kind) {
+      case mk_none:
+        add_string_to_text_buffer(format_file_name_buffer, "unknown module");
+        break;
+      case mk_header_unit:
+        { a_boolean     is_sys_include =
+                                       mod->variant.header_unit.is_sys_include;
+          a_string_view header_name = header_unit_name_of(mod);
+
+          add_string_to_text_buffer(format_file_name_buffer, "header unit ");
+          if (is_sys_include) {
+            add_char_to_text_buffer(format_file_name_buffer, '<');
+          } else {
+            add_char_to_text_buffer(format_file_name_buffer, '"');
+          }  /* if */
+          add_string_to_text_buffer(format_file_name_buffer,
+                                    header_name.start());
+          if (is_sys_include) {
+            add_char_to_text_buffer(format_file_name_buffer, '>');
+          } else {
+            add_char_to_text_buffer(format_file_name_buffer, '"');
+          }  /* if */
+        }
+        break;
+      case mk_unit:
+      case mk_unit_partition:
+        { a_string mod_name = module_full_name_of(mod);
+
+          add_string_to_text_buffer(format_file_name_buffer, "module ");
+          add_char_to_text_buffer(format_file_name_buffer, '"');
+          add_string_to_text_buffer(format_file_name_buffer,
+                                    mod_name.as_temp_characters());
+          add_char_to_text_buffer(format_file_name_buffer, '"');
+        }
+        break;
+      default_is_unexpected();
+    }  /* switch */
+    add_string_to_text_buffer(format_file_name_buffer, " (");
     quote_file_name = TRUE;
   }  /* if */
   if (quote_file_name) {

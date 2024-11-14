@@ -26,6 +26,7 @@ il.c -- Construction of intermediate language trees.
 #include "exprutil.h"
 #include "folding.h"
 #include "il_walk.h"
+#include "modules.h"
 #if STANDALONE_IL_DISPLAY || \
     (NONCLASS_TEMPLATE_INSTANTIATIONS_IN_SOURCE_SEQUENCE_LISTS && \
      IL_SHOULD_BE_WRITTEN_TO_FILE)
@@ -31634,6 +31635,59 @@ is found in check_operation_node_consistency.)
 }  /* check_result_not_used_flag */
 
 #endif /* CHECKING */
+
+a_string_view module_name_of(a_module_ptr mod)
+/*
+Given a named module, return the module name (excluding the partition if any).
+*/
+{
+  /* If this assertion fails, the given module is not a named module or a
+     partition thereof. */
+  check_assertion(mod->kind == mk_unit || mod->kind == mk_unit_partition);
+  return skip_module_partitions(mod)->variant.unit.name;
+}  /* module_name_of */
+
+
+a_string_view module_partition_name_of(a_module_ptr mod)
+/*
+Given a named module partition, return the module partition name.
+*/
+{
+  /* If this assertion fails, the given module is not a named module
+     partition. */
+  check_assertion(mod->kind == mk_unit_partition);
+  return mod->variant.unit_partition.name;
+}  /* module_partition_name_of */
+
+
+a_string module_full_name_of(a_module_ptr mod)
+/*
+Given a named module or named module partition, return the full name of the
+module including any partition name.
+*/
+{
+  /* If this assertion fails, the given module is not a named module or a
+     partition thereof. */
+  check_assertion(mod->kind == mk_unit || mod->kind == mk_unit_partition);
+  a_string result = module_name_of(mod);
+
+  if (mod->kind == mk_unit_partition) {
+    result.append(":", module_partition_name_of(mod));
+  }  /* if */
+  return result;
+}  /* module_full_name_of */
+
+
+a_string_view header_unit_name_of(a_module_ptr mod)
+/*
+Given a module header unit, return the name of the header as spelled between
+the angle brackets or quotes.
+*/
+{
+  check_assertion(mod->kind == mk_header_unit);
+  return mod->variant.header_unit.name;
+}  /* header_unit_name_of */
+
 
 /*
 Helper macro used by type_is_nonreal.  Return TRUE if type is a nonreal

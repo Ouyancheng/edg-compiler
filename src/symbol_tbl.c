@@ -1323,7 +1323,7 @@ do_variable:
       break;
     case sk_namespace_projection:
       break;
-    case sk_module:
+    case sk_named_module:
       break;
 #if NAMED_ADDRESS_SPACES_ALLOWED
     case sk_named_address_space:
@@ -4237,7 +4237,7 @@ state.
       sym_ptr->variant.namespace_projection.access = as_public;
       sym_ptr->variant.namespace_projection.is_using_decl = FALSE;
       break;
-    case sk_module:
+    case sk_named_module:
       sym_ptr->variant.module_info.primary_name = NULL;
       sym_ptr->variant.module_info.partition_name = NULL;
       sym_ptr->variant.module_info.is_interface_unit = FALSE;
@@ -8240,128 +8240,41 @@ into the symbol table.  Each unnamed symbol is given a unique symbol header.
 }  /* make_unnamed_symbol */
 
 
-static sizeof_t module_name_length(a_symbol_ptr name,
-                                   a_boolean    is_partition)
-/*
-Return the length of the given qualified module name portion.  is_partition is
-TRUE when the name portion is the module partition name.
-*/
-{
-  sizeof_t len = 0;
-
-  if (name != NULL && is_partition) ++len; /* Count the ":". */
-  for (; name != NULL; name = name->next) {
-    len += name->header->identifier_length;
-    if (name->next != NULL) ++len; /* Count the ".". */
-  }  /* for */
-  return len;
-}  /* module_name_length */
-
-
-static sizeof_t copy_module_name_into_string(char         *str,
-                                             a_symbol_ptr name,
-                                             a_boolean    is_partition,
-                                             sizeof_t     max_length)
-/*
-Fill the provided string with the given qualified module name portion.
-is_partition is TRUE when the name portion is the module partition name.
-max_length is the maximum number of characters (counting the terminating
-NULL) that can fit in the string.
-*/
-{
-  sizeof_t n_written = 0;
-
-  /* Write the leading ":" if this is the partition name. */
-  if (is_partition && name != NULL && max_length > 1) {
-    str[0] = ':';
-    ++n_written;
-  }  /* if */
-  for (; name != NULL && n_written < max_length - 1; name = name->next) {
-    n_written += snprintf(str + n_written, max_length - n_written,
-                          name->next == NULL ? "%s" : "%s.",
-                          name->header->identifier);
-  }  /* for */
-  return n_written;
-}  /* copy_module_name_into_string */
-
-
-a_symbol_ptr make_module_symbol(a_symbol_ptr      primary_name,
-                                a_symbol_ptr      partition_name,
+a_symbol_ptr make_module_symbol(const a_string    &primary_name,
+                                const a_string    &partition_name,
                                 a_boolean         is_interface,
                                 a_source_position *pos)
 /*
-Create a symbol to represent a module.  Synthesize the identifier in the
-symbol header from the primary and partition names.  primary_name is the
-primary name of the module and partition_name is the partition name of the
-module.  is_interface is TRUE if the module is an interface unit.  pos is the
-position where the module name started.
+Create a symbol to represent a module.  primary_name is the primary name of the
+module and partition_name is the partition name of the module.  is_interface is
+TRUE if the module is an interface unit.  pos is the position where the module
+name started.
 */
 {
-  a_symbol_ptr        sym;
-  a_symbol_header_ptr sym_hdr;
-  sizeof_t            id_len;
+  /* A module symbol must have a non-empty primary name. */
+  check_assertion(!primary_name.is_empty());
+  a_string combined_name;
 
-  id_len = module_name_length(primary_name, /*is_partition=*/FALSE) +
-           module_name_length(partition_name, /*is_partition=*/TRUE);
-  if (id_len == 0) {
-    /* No names found. */
-    sym_hdr = make_unnamed_symbol_header();
+  if (partition_name.is_empty()) {
+    combined_name = primary_name;
   } else {
-    char     *str;
-    sizeof_t n_written;
-    sym_hdr = alloc_symbol_header();
-    sym_hdr->identifier = str =
-                             alloc_primary_file_scope_il((sizeof_t)id_len + 1);
-    n_written = copy_module_name_into_string(str, primary_name,
-                                             /*is_partition=*/FALSE,
-                                             id_len + 1);
-    n_written += copy_module_name_into_string(str + n_written, partition_name,
-                                              /*is_partition=*/TRUE,
-                                              id_len + 1 - n_written);
-    /* The number of characters written should equal the length we calculated
-       earlier. */
-    check_assertion(n_written == id_len);
-    /* Add a NULL terminator just in case it somehow didn't get added. */
-    str[id_len] = '\0';
-    sym_hdr->identifier_length = id_len;
+    combined_name.reset_to(primary_name, ":", partition_name);
   }  /* if */
-  sym = alloc_symbol((a_symbol_kind)sk_module, sym_hdr, pos);
-  sym->variant.module_info.primary_name = primary_name;
-  sym->variant.module_info.partition_name = partition_name;
+
+  a_symbol_header_ptr sym_hdr = find_il_symbol_header(
+                                            combined_name.as_temp_characters(),
+                                            combined_name.length());
+  a_symbol_ptr        sym = alloc_symbol(sk_named_module, sym_hdr, pos);
+  sym->variant.module_info.primary_name =
+                       find_il_symbol_header(primary_name.as_temp_characters(),
+                                             primary_name.length());
+  if (!partition_name.is_empty()) {
+    sym->variant.module_info.partition_name =
+                     find_il_symbol_header(partition_name.as_temp_characters(),
+                                           partition_name.length());
+  }  /* if */
   sym->variant.module_info.is_interface_unit = is_interface;
   return sym;
-}  /* make_module_symbol */
-
-
-a_symbol_ptr make_module_symbol(a_const_char      *primary_name,
-                                a_const_char      *partition_name,
-                                a_boolean         is_interface,
-                                a_source_position *pos)
-/*
-Convenience wrapper for "make_module_symbol" that takes the primary and
-partition names as strings, creates the appropriate symbols for these names,
-and calls "make_module_symbol" with those symbols.  Return the result of that
-call.  One of primary_name and partition_name can be NULL, but not both.
-is_interface is TRUE if the module is an interface unit.  pos is the position
-where the module name started.
-*/
-{
-  a_symbol_ptr primary_sym = NULL, partition_sym = NULL;
-
-  check_assertion(primary_name != NULL || partition_name != NULL);
-  if (primary_name != NULL) {
-    a_symbol_locator loc;
-    (void)find_symbol(primary_name, (sizeof_t)strlen(primary_name), &loc);
-    primary_sym = alloc_symbol((a_symbol_kind)sk_undefined, loc.symbol_header,
-                               &null_source_position);
-  }  /* if */
-  if (partition_name != NULL) {
-    a_symbol_locator loc;
-    (void)find_symbol(partition_name, (sizeof_t)strlen(partition_name), &loc);
-    partition_sym = alloc_symbol((a_symbol_kind)sk_undefined,
-                                 loc.symbol_header, &null_source_position);
-  }  /* if */
-  return make_module_symbol(primary_sym, partition_sym, is_interface, pos);
 }  /* make_module_symbol */
 
 #if MICROSOFT_EXTENSIONS_ALLOWED
@@ -10909,7 +10822,8 @@ a_symbol_header_ptr find_symbol_header(a_const_char     *identifier,
 				       sizeof_t         length,
 				       a_symbol_locator	*locator)
 /*
-Return the symbol header for the specified identifier.
+Return the symbol header for the specified identifier.  The given locator
+will have its symbol_header set to the resulting symbol header.
 */
 {
   a_symbol_header_ptr	sym_hdr;
@@ -10918,6 +10832,22 @@ Return the symbol header for the specified identifier.
   sym_hdr = locator->symbol_header;
   return sym_hdr;
 }  /* find_symbol_header */
+
+
+a_symbol_header_ptr find_il_symbol_header(a_const_char     *identifier,
+					  sizeof_t         length)
+/*
+Return the symbol header for the specified identifier.  This function should be
+preferred in contexts where there is no reasonable locator to populate;
+otherwise, prefer find_symbol_header.
+*/
+{
+  a_symbol_locator locator;
+
+  clear_locator(&locator, &null_source_position);
+  return find_symbol_header(identifier, length, &locator);
+}  /* find_il_symbol_header */
+
 
 #if MICROSOFT_EXTENSIONS_ALLOWED
 
@@ -19169,7 +19099,7 @@ are handled in symbol_tbl_init.)
   name_space_for_symbol_kind[(int)sk_concept_template]    = nsk_other;
   name_space_for_symbol_kind[(int)sk_namespace]           = nsk_other;
   name_space_for_symbol_kind[(int)sk_namespace_projection] = nsk_other;
-  name_space_for_symbol_kind[(int)sk_module]              = nsk_other;
+  name_space_for_symbol_kind[(int)sk_named_module]        = nsk_other;
 #if NAMED_ADDRESS_SPACES_ALLOWED
   name_space_for_symbol_kind[(int)sk_named_address_space] = nsk_other;
 #endif /* NAMED_ADDRESS_SPACES_ALLOWED */
