@@ -6555,23 +6555,23 @@ extern a_boolean is_local_symbol(a_symbol_ptr sym);
 
 extern a_boolean is_block_extern_symbol(a_symbol_ptr sym);
 
-extern void determine_operator_lookup_namespaces(a_type_ptr	class_type);
+extern void determine_operator_lookup_namespaces(a_type_ptr class_type);
 
-extern a_symbol_ptr find_label_symbol(a_symbol_header_ptr	sym_hdr);
+extern a_symbol_ptr find_label_symbol(a_symbol_header_ptr sym_hdr);
 
-extern a_symbol_ptr find_macro_symbol(a_symbol_header_ptr	sym_hdr);
+extern a_symbol_ptr find_macro_symbol(a_symbol_header_ptr sym_hdr);
 
 extern a_symbol_ptr find_macro_symbol_by_name(a_const_char     *identifier,
-					      sizeof_t         length,
-					      a_symbol_locator	*locator);
+                                              sizeof_t         length,
+                                              a_symbol_locator *locator);
 
 extern a_symbol_header_ptr find_symbol_header(a_const_char     *identifier,
-					      sizeof_t         length,
-					      a_symbol_locator	*locator);
+                                              sizeof_t         length,
+                                              a_symbol_locator *locator);
 
 
-extern a_symbol_header_ptr find_il_symbol_header(a_const_char     *identifier,
-						 sizeof_t         length);
+extern a_symbol_header_ptr find_il_symbol_header(a_const_char *identifier,
+                                                 sizeof_t     length);
 
 
 template<typename a_Type>

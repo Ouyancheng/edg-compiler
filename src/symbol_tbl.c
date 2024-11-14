@@ -10819,8 +10819,8 @@ of the entity being declared by the identifier.
 
 
 a_symbol_header_ptr find_symbol_header(a_const_char     *identifier,
-				       sizeof_t         length,
-				       a_symbol_locator	*locator)
+                                       sizeof_t         length,
+                                       a_symbol_locator *locator)
 /*
 Return the symbol header for the specified identifier.  The given locator
 will have its symbol_header set to the resulting symbol header.
@@ -10834,8 +10834,8 @@ will have its symbol_header set to the resulting symbol header.
 }  /* find_symbol_header */
 
 
-a_symbol_header_ptr find_il_symbol_header(a_const_char     *identifier,
-					  sizeof_t         length)
+a_symbol_header_ptr find_il_symbol_header(a_const_char *identifier,
+                                          sizeof_t     length)
 /*
 Return the symbol header for the specified identifier.  This function should be
 preferred in contexts where there is no reasonable locator to populate;
@@ -10847,7 +10847,6 @@ otherwise, prefer find_symbol_header.
   clear_locator(&locator, &null_source_position);
   return find_symbol_header(identifier, length, &locator);
 }  /* find_il_symbol_header */
-
 
 #if MICROSOFT_EXTENSIONS_ALLOWED
 
