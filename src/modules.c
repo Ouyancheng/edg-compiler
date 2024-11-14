@@ -463,6 +463,26 @@ module file to the caller.
 }  /* find_header_unit_in_map */
 
 
+static a_string module_file_name_of(a_module_ptr mod)
+/*
+Given a named module or named module partition, return the expected "bare" file
+name of the corresponding module file.  This is almost the same as
+module_full_name_of, however instead of a colon a dash is used to separate the
+module name from the module partition.
+*/
+{
+  /* If this assertion fails, the given module is not a named module or a
+     partition thereof. */
+  check_assertion(mod->kind == mk_unit || mod->kind == mk_unit_partition);
+  a_string result = module_name_of(mod);
+
+  if (mod->kind == mk_unit_partition) {
+    result.append("-", module_partition_name_of(mod));
+  }  /* if */
+  return result;
+}  /* module_file_name_of */
+
+
 static a_boolean find_module_file_in_dirs(a_module_ptr mod)
 /*
 Find the module file associated with mod in the module search paths and update
@@ -476,11 +496,12 @@ module file to the caller.
 {
   a_boolean                  found = FALSE;
   a_directory_name_entry_ptr dir = module_search_path;
-  a_string_view              mod_name = module_name_of(mod);
+  a_string                   bare_file_name = module_file_name_of(mod);
 
   for (; !found && dir != NULL; dir = dir->next) {
     /* combine_dir_and_file_name clears the buffer for us. */
-    (void)combine_dir_and_file_name(dir->dir_name, mod_name.start(),
+    (void)combine_dir_and_file_name(dir->dir_name,
+                                    bare_file_name.as_temp_characters(),
                                     module_search_buffer);
     /* Add an arbitrary extension to prevent replace_file_name_suffix from
        replacing part of the actual module name. */
