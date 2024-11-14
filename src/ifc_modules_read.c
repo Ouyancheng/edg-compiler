@@ -30483,14 +30483,14 @@ processing of the imported module entities for this module.
 
           error((plural ? ec_suppressed_module_errors_diag
                         : ec_suppressed_module_error_diag),
-                mod, errors);
+                errors, mod);
         }  /* if */
         if (warnings > 0) {
           a_boolean plural = warnings > 1;
 
           warning((plural ? ec_suppressed_module_warnings_diag
                           : ec_suppressed_module_warning_diag),
-                  mod, warnings);
+                  warnings, mod);
         }  /* if */
       }  /* if */
     }  /* for */
