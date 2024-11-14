@@ -8671,7 +8671,7 @@ associated with the argument should be reactivated in such cases.
          reconstructed. */
       operator_suppressed = TRUE;
     } else if (in_template_argument_list &&
-               !in_prototype_instantiation_context &&
+               !tp->variant.typeref.is_dependent_type_operator &&
                expr_has_enk_param_ref(expr)) {
       /* The expression argument refers to a function parameter but the
          reference appears in a template argument.  Since template
