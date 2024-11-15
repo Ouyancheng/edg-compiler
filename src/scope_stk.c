@@ -13903,11 +13903,11 @@ a local class or substituting an alias template).
         if (scope_is(ssep-1, sck_template_instantiation)) {
           ssep -= 1;
         }  /* if */
-      }  /* if */
+      }  /* while */
       check_assertion(scope_is(ssep-1, sck_instantiation_context));
       ssep -= 2;
       scopes_skipped = TRUE;
-    }  /* if */
+    }  /* while */
     if (scopes_skipped || inside_local_class) {
       for (; ssep != &scope_stack[DEPTH_OF_FILE_SCOPE];
                                              ssep = previous_scope_of(ssep)) {
