@@ -156,7 +156,6 @@ of the host system.
 #define MSVC_TARGET_VERSION_NUMBER 1923
 
 #define DEFAULT_TYPE_INFO_IN_NAMESPACE_STD 1
-#define MICROSOFT_MODE_TYPE_INFO_IN_NAMESPACE_STD 1
 #define PRAGMA_DEFINE_TYPE_INFO_IS_REQUIRED 1
 
 #define USE_VIRTUAL_FUNCTIONS 1
@@ -2792,19 +2791,6 @@ Enable recognition of Microsoft attributes for internal versions.
 #ifndef SUPPRESS_MICROSOFT_ATTRIBUTE_PROCESSING
 #define SUPPRESS_MICROSOFT_ATTRIBUTE_PROCESSING 0
 #endif /* ifndef SUPPRESS_MICROSOFT_ATTRIBUTE_PROCESSING */
-
-/*
-For test versions, eschew the Microsoft approach to predeclaring type_info
-in the global namespace since that doesn't match the EDG run-time support
-library.
-*/
-#ifndef MICROSOFT_MODE_TYPE_INFO_IN_NAMESPACE_STD
-#if defined(EDG_TEST_VERSION) || defined(MACOSX_TEST_VERSION) || \
-    defined(LINUX_TEST_VERSION)
-#define MICROSOFT_MODE_TYPE_INFO_IN_NAMESPACE_STD 1
-#endif /* defined(EDG_TEST_VERSION) || defined(MACOSX_TEST_VERSION) || ... */
-#endif /* ifndef MICROSOFT_MODE_TYPE_INFO_IN_NAMESPACE_STD */
-
 
 #ifndef LOWER_FIXED_POINT
 #ifndef EMBEDDED_C_ALLOWED

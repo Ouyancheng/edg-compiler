@@ -122,14 +122,10 @@ STATIC_THREAD a_boolean
 			/* TRUE if old-style preprocessing should be
 			   used in ANSI C or C++ mode. */
 
-#if MICROSOFT_EXTENSIONS_ALLOWED
-static a_boolean
-                force_ms_type_info_not_in_namespace_std;
-                        /* Used as the target of a --set_flag command-line
-                           option to force type_info_in_namespace_std to a
-                           value of FALSE. */
-#endif /* MICROSOFT_EXTENSIONS_ALLOWED */
-
+static LOCAL_UNUSED a_boolean
+                deprecated;
+                        /* A boolean used only to "deprecate" unused
+                           set_flag command-line options. */
 
 static void add_config_dependent_option_description(
 				an_option_kind		kind,
@@ -1740,6 +1736,13 @@ Initialize the option information table.
                          /*arg_required=*/FALSE, pchek_command_line);
   add_option_description(optk_incognito, "no_incognito", '\0', /*value=*/FALSE,
                          /*arg_required=*/FALSE, pchek_command_line);
+  add_option_description(optk_type_info_in_namespace_std,
+                         "type_info_in_namespace_std", '\0', /*value=*/TRUE,
+                         /*arg_required=*/FALSE, pchek_command_line);
+  add_option_description(optk_type_info_in_namespace_std,
+                         "no_type_info_in_namespace_std", '\0',
+                         /*value=*/FALSE, /*arg_required=*/FALSE,
+                         pchek_command_line);
 }  /* initialize_option_descriptions */
 
 
@@ -2352,8 +2355,8 @@ static a_flag_name
     &generic_arity_overload_allowed },
   { "no_ms_nonreal_base_classes",
     &no_ms_nonreal_base_classes },
-  { "force_ms_type_info_not_in_namespace_std",
-    &force_ms_type_info_not_in_namespace_std },
+  /* This option has been replaced by --[no_]type_info_in_namespace_std. */
+  { "force_ms_type_info_not_in_namespace_std", &deprecated },
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
   { "terse_range_based_for_enabled", &terse_range_based_for_enabled },
   { "relaxed_constexpr", &relaxed_constexpr_enabled },
@@ -2632,10 +2635,8 @@ option values if they were not already set by a command line option.
          but that can be overridden using the /permissive flag. */
         ms_permissive = FALSE;
     }  /* if */
-    if (force_ms_type_info_not_in_namespace_std) {
+    if (!option_kind_used[(int)optk_type_info_in_namespace_std]) {
       type_info_in_namespace_std = FALSE;
-    } else {
-      type_info_in_namespace_std = MICROSOFT_MODE_TYPE_INFO_IN_NAMESPACE_STD;
     }  /* if */
     if (!type_info_in_namespace_std) {
       /* We will presumably want to pick ::type_info from the Microsoft
@@ -8336,11 +8337,6 @@ file.
 #else /* !defined(MICROSOFT_EXTENSIONS_ALLOWED) */
   comment_undefined_macro_name(MICROSOFT_EXTENSIONS_ALLOWED);
 #endif /* defined(MICROSOFT_EXTENSIONS_ALLOWED) */
-#if defined(MICROSOFT_MODE_TYPE_INFO_IN_NAMESPACE_STD)
-  define_numeric_valued_macro(MICROSOFT_MODE_TYPE_INFO_IN_NAMESPACE_STD);
-#else /* !defined(MICROSOFT_MODE_TYPE_INFO_IN_NAMESPACE_STD) */
-  comment_undefined_macro_name(MICROSOFT_MODE_TYPE_INFO_IN_NAMESPACE_STD);
-#endif /* defined(MICROSOFT_MODE_TYPE_INFO_IN_NAMESPACE_STD) */
 #if defined(MINIMAL_INLINING)
   define_numeric_valued_macro(MINIMAL_INLINING);
 #else /* !defined(MINIMAL_INLINING) */
@@ -11755,6 +11751,9 @@ enable_microsoft_mode:
       case optk_incognito:
         incognito = opt_value;
         break;
+      case optk_type_info_in_namespace_std:
+        type_info_in_namespace_std = opt_value;
+        break;
      default:
         /* It should not be possible to get here. */
         unexpected_condition();
@@ -13171,7 +13170,6 @@ variables declared in cmd_line.h.
   pending_generic_constraint_specifier_enabled = FALSE;
   msvc_lang = NULL;
   ms_cplusplus_std_value = FALSE;
-  force_ms_type_info_not_in_namespace_std = FALSE;
 #if WRITE_CPPCLI_PORTABLE_ASSEMBLIES
   generate_portable_assemblies = FALSE;
 #endif /* WRITE_CPPCLI_PORTABLE_ASSEMBLIES */

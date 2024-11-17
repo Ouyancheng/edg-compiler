@@ -377,6 +377,7 @@ enum an_option_kind {
   optk_dump_command_options,
   optk_output_mode,
   optk_incognito,
+  optk_type_info_in_namespace_std,
   optk_last		/* Must be last. */
 };
 
