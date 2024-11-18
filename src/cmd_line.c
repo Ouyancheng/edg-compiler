@@ -122,7 +122,7 @@ STATIC_THREAD a_boolean
 			/* TRUE if old-style preprocessing should be
 			   used in ANSI C or C++ mode. */
 
-static LOCAL_UNUSED a_boolean
+LOCAL_UNUSED static a_boolean
                 deprecated;
                         /* A boolean used only to "deprecate" unused
                            set_flag command-line options. */
