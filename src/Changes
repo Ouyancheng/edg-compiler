@@ -1,34 +1,5 @@
 Version 6.7
 
-11/17/24  [EDGcpfe/27176,EDGcpfe/27361]
-Microsoft compatibility: class type_info predeclaration
-
-Unlike other compilers, Visual Studio defines the type_info class in the
-global namespace and more recent versions add (in the <typeinfo> header) a
-using-declaration to make ::type_info available as std::type_info.
-Additionally, Visual Studio also predeclares (without defining) ::type_info.
-
-Changes have been made to more closely emulate this behavior in Microsoft
-emulation mode as well as Clang emulation mode when either --ms_compatibility
-and/or --ms_extensions are specified as command-line options.
-
-The EDG version of <typeinfo> defines only std::type_info and the EDG
-runtime library expects that type_info will reside in the std namespace and
-not the global namespace.
-
-The new --[no_]type_info_in_namespace_std command-line option has been
-added to allow the user to dictate whether type_info is in the global namespace
-(default for Microsoft mode and when --ms_extensions or --ms_compatibility are
-specified in clang mode) or in the std namespace (default for all other
-modes).  If using the EDG version of <typeinfo> in Microsoft emulation mode,
---type_info_in_namespace_std will need to be specified.
-
-Coincident with this change, the MICROSOFT_MODE_TYPE_INFO_IN_NAMESPACE_STD
-configuration macro is removed and the force_ms_type_info_not_in_namespace_std
---set_flag option is deprecated (still accepted on the command-line, but has
-no effect).
-
-
 11/13/24 [EDGcpfe/27709]
 Abort in get_innermost_function_scope while substituting member alias
 
@@ -269,6 +240,19 @@ elements.  For example, with --c++11:
   template<typename... Ts>
   typename A<int, Ts...>::type f();
   int i = f<>();
+
+
+11/4/24  [EDGcpfe/27176,EDGcpfe/27361]
+Microsoft compatibility: class type_info predeclaration
+
+Previously, the front end predeclared class type_info only if ms_extensions
+was TRUE.  Now, only ms_compat needs to be TRUE.  In addition, this behavior
+is only emulated when type_info is configured to be declared in the global
+namespace rather than in namespace std, e.g. with the command-line option
+--set_flag=force_ms_type_info_not_in_namespace_std (previously, it was
+predeclared in namespace std in some Clang modes).  Furthermore, when
+ms_compat is TRUE, the typeid operator is accepted even when no complete
+class type_info is available (i.e., the program did not include <typeinfo>).
 
 
 11/1/24  [EDGcpfe/27696]

@@ -1005,7 +1005,6 @@ check_abbreviation()
 --no_thread_local_storage
 --no_token_separators_in_pp_output
 --no_trigraphs
---no_type_info_in_namespace_std
 --no_type_traits_helpers
 --no_typename
 --no_uliterals
@@ -1103,7 +1102,6 @@ check_abbreviation()
 --trace_includes
 --trans_unit_test_mode
 --trigraphs
---type_info_in_namespace_std
 --type_traits_helpers
 --typename
 --uliterals
@@ -1797,9 +1795,7 @@ process_option()
          --add_match_notes | \
          --no_add_match_notes | \
          --incognito | \
-         --no_incognito | \
-         --type_info_in_namespace_std | \
-         --no_type_info_in_namespace_std)
+         --no_incognito)
 #     Options that require additional processing
       case $arg in
         -m | --c | --c89 | --c99 | --no_c99 | --c11 | --c18 | --c17 | --c23 | \

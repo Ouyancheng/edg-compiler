@@ -3284,26 +3284,25 @@ for the same purpose.
 Flag that is TRUE if the runtime library defines class type_info in the
 "std" namespace.  Usually this should be set to the same value as
 RUNTIME_USES_NAMESPACES.  This flag is used to initialize global variable
-type_info_in_namespace_std in non-Microsoft modes.
+type_info_in_namespace_std in non-Microsoft modes.  (See also the description
+of MICROSOFT_MODE_TYPE_INFO_IN_NAMESPACE_STD below.)
 */
 #ifndef DEFAULT_TYPE_INFO_IN_NAMESPACE_STD
 #define DEFAULT_TYPE_INFO_IN_NAMESPACE_STD RUNTIME_USES_NAMESPACES
 #endif /* ifndef DEFAULT_TYPE_INFO_IN_NAMESPACE_STD */
 
 /*
-In Microsoft modes, type_info is declared in the global namespace by default
-(and that can be overridden with command-line options).  Previously, the front
-end could be configured to force type_info to be declared in namespace std in
-Microsoft modes, but that caused confusion (because actual code for MSVC
-assumes that that is not the case).  Issue an error for configurations that
-set that old macro to TRUE (setting it to FALSE corresponds to MSVC-compatible
-behavior).
+Flag that is FALSE if in Microsoft mode type_info should be predeclared in
+the global namespace.  This is usually desirable since it is what Microsoft
+compilers (and their associated run-time support library) do.  However, if
+the front end is paired with a run-time support library that places type_info
+in namespace std (as per the C++ standard), linker errors will ensue.  This
+macro is the initial value of type_info_in_namespace_std in Microsoft mode.
+(See also DEFAULT_TYPE_INFO_IN_NAMESPACE_STD above.)
 */
-#ifdef MICROSOFT_MODE_TYPE_INFO_IN_NAMESPACE_STD
-#if MICROSOFT_MODE_TYPE_INFO_IN_NAMESPACE_STD
- #error -- MICROSOFT_MODE_TYPE_INFO_IN_NAMESPACE_STD is no longer supported
-#endif /* MICROSOFT_MODE_TYPE_INFO_IN_NAMESPACE_STD */
-#endif /* ifdef MICROSOFT_MODE_TYPE_INFO_IN_NAMESPACE_STD */
+#ifndef MICROSOFT_MODE_TYPE_INFO_IN_NAMESPACE_STD
+#define MICROSOFT_MODE_TYPE_INFO_IN_NAMESPACE_STD FALSE
+#endif /* ifndef MICROSOFT_MODE_TYPE_INFO_IN_NAMESPACE_STD */
 
 
 
