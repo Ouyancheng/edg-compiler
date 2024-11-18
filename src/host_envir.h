@@ -990,11 +990,7 @@ of the predeclared class "type_info".  This is the initial value of the global
 variable pragma_define_type_info_is_required.
 */
 #ifndef PRAGMA_DEFINE_TYPE_INFO_IS_REQUIRED
-#if BACK_END_IS_CP_GEN_BE
 #define PRAGMA_DEFINE_TYPE_INFO_IS_REQUIRED FALSE  /* You can change this. */
-#else /* !BACK_END_IS_CP_GEN_BE */
-#define PRAGMA_DEFINE_TYPE_INFO_IS_REQUIRED TRUE   /* You can change this. */
-#endif /* BACK_END_IS_CP_GEN_BE */
 #endif /* ifndef PRAGMA_DEFINE_TYPE_INFO_IS_REQUIRED */
 
 /*

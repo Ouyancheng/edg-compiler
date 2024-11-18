@@ -18,10 +18,10 @@ not the global namespace.
 
 The new --[no_]type_info_in_namespace_std command-line option has been
 added to allow the user to dictate whether type_info is in the global namespace
-(default for Microsoft mode and when --ms_extensions or --ms_compatibility) or
-in the std namespace (default for all other modes).  If using the EDG version
-of <typeinfo> in Microsoft emulation mode, --type_info_in_namespace_std will
-need to be specified.
+(default for Microsoft mode and when --ms_extensions or --ms_compatibility are
+specified in clang mode) or in the std namespace (default for all other
+modes).  If using the EDG version of <typeinfo> in Microsoft emulation mode,
+--type_info_in_namespace_std will need to be specified.
 
 Coincident with this change, the MICROSOFT_MODE_TYPE_INFO_IN_NAMESPACE_STD
 configuration macro is removed and the force_ms_type_info_not_in_namespace_std
