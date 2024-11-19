@@ -9594,6 +9594,11 @@ typedef struct a_type {
 			   uses of type operators, indicating that the
 			   underlying type should be put out instead of
 			   the type operator. */
+  a_bit_field	force_typename_kwd:1;
+			/* If TRUE, the name of this type must be preceded
+			   with the "typename" keyword to avoid a g++ bug,
+			   even though it is not dependent.  Set and used
+			   only in the C++-generating back end. */
 #endif /* BACK_END_IS_CP_GEN_BE */
   a_bit_field	alignment_set_explicitly:1;
 			/* TRUE if this type differs from the type it

@@ -2392,6 +2392,7 @@ variant fields to default values.
   pte->explicit_specialization_suppressed = FALSE;
 #endif /* TEMPLATE_INSTANTIATIONS_IN_SOURCE_SEQUENCE_LISTS */
   pte->suppress_operator = FALSE;
+  pte->force_typename_kwd = FALSE;
 #endif /* BACK_END_IS_CP_GEN_BE */
   pte->alignment_set_explicitly = FALSE;
 #if GNU_EXTENSIONS_ALLOWED
