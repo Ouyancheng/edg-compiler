@@ -465,7 +465,7 @@ enter_system_specific_predeclared_symbols; see sys_predef.c.)
     if (ms_compat) {
       /* Microsoft compilers (and Clang, with -fms-compatibility) make the
          (incomplete) class type_info visible in the global namespace.  We
-         emulate this only if type_info is configured to inhabit in the global
+         emulate this only if type_info is configured to reside in the global
          namespace. */
       if (!type_info_in_namespace_std || ignore_std_namespace) {
         enter_predeclared_class(type_of_type_info, DEPTH_OF_FILE_SCOPE,

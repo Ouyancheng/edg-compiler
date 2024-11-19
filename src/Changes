@@ -246,13 +246,14 @@ elements.  For example, with --c++11:
 Microsoft compatibility: class type_info predeclaration
 
 Previously, the front end predeclared class type_info only if ms_extensions
-was TRUE.  Now, only ms_compat needs to be TRUE.  In addition, this behavior
-is only emulated when type_info is configured to be declared in the global
-namespace rather than in namespace std, e.g. with the command-line option
---set_flag=force_ms_type_info_not_in_namespace_std (previously, it was
-predeclared in namespace std in some Clang modes).  Furthermore, when
-ms_compat is TRUE, the typeid operator is accepted even when no complete
-class type_info is available (i.e., the program did not include <typeinfo>).
+was TRUE, but it now depends on the value of ms_compat instead.  In addition,
+this behavior is only emulated when type_info is configured to be declared
+in the global namespace rather than in namespace std, e.g. with the
+command-line option --set_flag=force_ms_type_info_not_in_namespace_std
+(previously, it was predeclared in namespace std in some Clang modes).
+Furthermore, when ms_compat is TRUE, the typeid operator is accepted even
+when no complete class type_info is available (i.e., the program did not
+include <typeinfo>).
 
 
 11/1/24  [EDGcpfe/27696]
