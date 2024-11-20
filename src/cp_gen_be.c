@@ -8770,9 +8770,12 @@ tag, a typedef, or a dependent type.  A reference is not the definition.
         options = GN_DEPENDENT;
       }  /* if */
     } else if (type_is(type, tk_typeref) &&
-               type->variant.typeref.extra_info->template_arg_list != NULL) {
+               type->variant.typeref.extra_info->template_arg_list != NULL &&
+               !(type->source_corresp.is_class_member &&
+                 parent_class_of(type)->
+                                variant.class_struct_union.is_nonreal_class)) {
       /* Alias template specializations do not require a "typename"
-         prefix. */
+         prefix unless they are members of dependent classes. */
     } else {
       /* Nonreal class types are dependent and must be prefixed by the
          "typename" keyword. */
