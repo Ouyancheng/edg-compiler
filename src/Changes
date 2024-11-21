@@ -1,5 +1,21 @@
 Version 6.7
 
+11/21/24 [EDGcpfe/24986]
+Incorrect diagnostic for imaginary long integer literal
+
+The front end does not support complex integral types.  However, in clang
+mode, it incorrectly treated an imaginary long integer literal suffix as a
+user-defined literal suffix, resulting in either an incorrect diagnostic or
+an unintended invocation of a user-defined literal operator.  This is now
+fixed.  For example, with --clang_version=110000:
+
+  void f() {
+    2il;   // Previously incorrectly diagnosed as a missing user-defined
+           // literal operator; now correctly reports that complex integral
+           // types are not supported.
+  }
+
+
 11/13/24 [EDGcpfe/27709]
 Abort in get_innermost_function_scope while substituting member alias
 
