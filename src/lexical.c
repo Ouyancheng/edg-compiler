@@ -12056,12 +12056,16 @@ convert_literal_value:
               case 'L':
               case 'l':
                 /* "L", "LL", "LU", or "LLU" are permitted. */
-                if (id_len == 3) {
+                if (id_len == 2) {
+                  is_imaginary_suffix = TRUE;
+                } else if (id_len == 3) {
                   is_imaginary_suffix = (rest[1] == 'U' || rest[1] == 'u' ||
                                          rest[1] == rest[0]);
-                } else {
+                } else if (id_len == 4) {
                   is_imaginary_suffix = (rest[1] == rest[0] &&
                                          (rest[2] == 'U' || rest[2] == 'u'));
+                } else {
+                  is_imaginary_suffix = FALSE;
                 }  /* if */
                 break;
               default:
