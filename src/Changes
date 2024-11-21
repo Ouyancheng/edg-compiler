@@ -671,7 +671,8 @@ C++-generating back end, GNU compatibility: use of "typename" keyword
 G++ has two bugs involving the "typename" keyword that result in spurious
 errors that could be triggered by the code emitted by the C++-generating
 back end.  One bug occurs when the "typename" keyword is used preceding a
-dependent reference to an alias template specialization, such as:
+reference to an alias template specialization that is not a member of a
+dependent class type, such as:
 
   struct A {
     template<typename T, typename> using type = T;
