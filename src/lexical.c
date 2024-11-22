@@ -11973,7 +11973,7 @@ convert_literal_value:
                                                     ud_lit_type_for_curr_token,
                                                     /*from_cache=*/FALSE,
                                                     (a_diagnostic_ptr)NULL);
-      if (ud_lit_op_sym_for_curr_token == NULL && id_len <= 4 &&
+      if (ud_lit_op_sym_for_curr_token == NULL && id_len <= 5 &&
           gnu_imaginary_literals_allowed && prefer_udl_over_imag_suffix) {
         /* g++ and clang treat something like 0.5il as a user-defined
            literal if the corresponding literal operator has been declared
@@ -12017,15 +12017,33 @@ convert_literal_value:
         }  /* if */
         if (is_imaginary_suffix && id_len > 1) {
           if (kind == k_float) {
-            /* There can be at most one other character in the suffix, and,
-               if present, it must be one of the permissible floating point
-               suffixes. */
-            if (id_len > 2 ||
-                strchr("FfLlWwQq", *rest) == NULL ||
-                (!float80_enabled && (*rest == 'W' || *rest == 'w')) ||
-                (!float128_enabled && (*rest == 'Q' || *rest == 'q'))) {
-              /* The remainder of the suffix is not compatible with use of
-                 'i' or 'j' to designate an imaginary literal. */
+            /* Check that the rest of the suffix satisfies the grammar for
+               floating-point-suffix. */
+            if (id_len == 2) {
+              if (strchr("FfLlWwQq", *rest) == NULL ||
+                  (!float80_enabled && (*rest == 'W' || *rest == 'w')) ||
+                  (!float128_enabled && (*rest == 'Q' || *rest == 'q'))) {
+                is_imaginary_suffix = FALSE;
+              }  /* if */
+            } else if (id_len == 4) {
+              if (!(extended_float_types &&
+                    (*rest == 'f' || *rest == 'F') &&
+                    ((rest[1] == '1' && rest[2] == '6') ||
+                     (rest[1] == '3' && rest[2] == '2') ||
+                     (rest[1] == '6' && rest[2] == '4')))) {
+                is_imaginary_suffix = FALSE;
+              }  /* if */
+            } else if (id_len == 5) {
+              if (!((extended_float_types || accept_bf16_suffix) &&
+                    ((rest[0] == 'b' && rest[1] == 'f') ||
+                     (rest[0] == 'B' && rest[1] == 'F')) &&
+                    rest[2] == '1' && rest[3] == '6') &&
+                  !(extended_float_types && float128_enabled &&
+                    (*rest == 'f' || *rest == 'F') &&
+                    rest[1] == '1' && rest[2] == '2' && rest[3] == '8')) {
+                is_imaginary_suffix = FALSE;
+              }  /* if */
+            } else {
               is_imaginary_suffix = FALSE;
             }  /* if */
           } else {
