@@ -675,7 +675,12 @@ A null follows the last sequence and ends the repl_text string.  The
 sequences are:
 */
 enum a_repl_text_seq_kind {
-  rt_null,      	/* Equivalent to '\0' (null), marks end of string. */
+  rt_unused,
+			/* Equivalent to '\0' (null); unused to avoid
+			   confusion with LE_ESCAPE in a replacement
+			   text. */
+  rt_end,
+			/* Marks the end of the replacement text. */
   rt_text,
 			/* Raw text.  Followed by 3 bytes containing a
 			   character count, and then that many characters

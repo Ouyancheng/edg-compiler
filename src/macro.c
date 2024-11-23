@@ -4221,7 +4221,7 @@ tracking macro positions; its value is otherwise unused.
   a_boolean       add_escape;
   a_macro_arg_ptr map;
 
-  for (; *rtp != (int)rt_null;) {
+  for (; *rtp != (int)rt_end;) {
     sizeof_t             sect_len, rts_number;
     a_repl_text_seq_kind rts_kind = (a_repl_text_seq_kind)*(rtp++);
     /* Extract the section length or argument number. */
@@ -7595,7 +7595,7 @@ end_arg_expansion:;
     *next_avail_in_macro_buffer++ = LE_ESCAPE;
     *next_avail_in_macro_buffer++ = LE_END_OF_TOP_LEVEL_EXPANSION;
   } else if (ms_compat && !ms_std_preproc && mdp->variadic &&
-             repl_text_len == 0 && *mdp->repl_text != (int)rt_null) {
+             repl_text_len == 0 && *mdp->repl_text != (int)rt_end) {
     /* In the traditional Microsoft preprocessor, a variadic macro whose
        expansion is empty has the effect of deleting a preceding comma from
        the expansion of a containing macro.  (Note, however, that this
@@ -7647,7 +7647,7 @@ end_arg_expansion:;
     first_text_map_entry = macro_text_map.num_entries;
     next_targ_offset = next_avail_in_macro_buffer - rescan_loc;
 #endif /* FULLY_RESOLVED_MACRO_POSITIONS */
-    for (rtp = repl_text; *rtp != (int)rt_null;) {
+    for (rtp = repl_text; *rtp != (int)rt_end;) {
       is_va_arg_substitution = FALSE;
       map = NULL;
       rts_kind = (a_repl_text_seq_kind)*(rtp++);
@@ -8580,7 +8580,7 @@ macro described by macro_sym, i.e., "#define <name> <replacement>".
     put_ch_to_temp_text_buffer(' ');
     /* Put out the macro body, converting from the internal form to a plain
        string. */
-    for (ptr = mdp->repl_text; *ptr != (int)rt_null;) {
+    for (ptr = mdp->repl_text; *ptr != (int)rt_end;) {
       if (ptr == end_of_optional_text) {
         /* This is the end of a __VA_OPT__ operand. */
         put_ch_to_temp_text_buffer(')');
@@ -8778,7 +8778,7 @@ beginning of the encoding of the replacement list.
       }  /* for */
     }  /* if */
     fprintf(f_debug, "replacement text:\n");
-    for (temp_ptr = buffer_start; *temp_ptr != (int)rt_null;) {
+    for (temp_ptr = buffer_start; *temp_ptr != (int)rt_end;) {
       rts_kind = (a_repl_text_seq_kind)*(temp_ptr++);
       /* Extract the section length or argument number. */
       get_macro_repl_text_number(rts_number, temp_ptr);
@@ -8838,7 +8838,7 @@ static a_boolean equiv_replacement_text(char		*repl_text,
 Return TRUE if the replacement text specified by repl_text, with a length
 of repl_text_length, is the same as that of the macro definition mdp,
 ignoring extra LE_END_OF_TOKEN escapes appearing in repl_text.  Note that
-repl_text_length does not include the rt_null terminator.
+repl_text_length does not include the rt_end terminator.
 */
 {
   a_boolean	result = FALSE;
@@ -8905,7 +8905,7 @@ repl_text_length does not include the rt_null terminator.
       }  /* if */
     }  /* for */
     result = (!mismatch_seen &&
-              mdp->repl_text[orig_idx] == (char)rt_null);
+              mdp->repl_text[orig_idx] == (char)rt_end);
   }  /* if */
   return result;
 }  /* equiv_replacement_text */
@@ -9666,7 +9666,7 @@ process_ordinary_token:
       start_of_va_opt_text = NULL;
     }  /* if */
     /* Store final terminator.  We've ensured that there is room for this. */
-    *next_avail_in_macro_buffer = (char)rt_null;
+    *next_avail_in_macro_buffer = (char)rt_end;
     /* Not inside a cpp string.  Could still be set if there is an 
        unclosed string. */
     end_of_cpp_string = NULL;
@@ -9825,7 +9825,7 @@ process_ordinary_token:
     macro_definition_space += (unsigned long)(repl_text_len+1);
 #endif /* DEBUG */
     (void)memcpy(repl_text, buffer_start, size_t_arg(repl_text_len));
-    repl_text[repl_text_len] = (char)rt_null;
+    repl_text[repl_text_len] = (char)rt_end;
     if (assoc_symbol != NULL) {
       /* Allocate and fill the macro definition block. */
       if (mdp == NULL) {
@@ -10456,7 +10456,7 @@ repl_text_length is not NULL.
   sizeof_t repl_text_len, overhead;
 
   repl_text_len = (repl_text != NULL) ? strlen(repl_text) : 0;
-  /* There is always an rt_null at the end of the string.  If the text is
+  /* There is always an rt_end at the end of the string.  If the text is
      not empty, there is also a header before it. */
   overhead = 1;
   if (repl_text_len > 0) {
@@ -10474,7 +10474,7 @@ repl_text_length is not NULL.
     rtp += repl_text_len;
   }  /* if */
   /* Put the terminator on the string. */
-  *rtp = (char)rt_null;
+  *rtp = (char)rt_end;
   /* Return the length of the repl_text_string including the encoded
      information in the "overhead" area. */
   if (repl_text_length != NULL) *repl_text_length = repl_text_len + overhead;
@@ -10517,7 +10517,7 @@ pointer to the symbol entry is returned.
   if (sym_ptr != NULL) {
     /* Make sure that the replacement text is the same.  The "-1" is
        needed because the length returned by make_repl_text includes the
-       rt_null terminator. */
+       rt_end terminator. */
     if (!equiv_replacement_text(repl_text, repl_text_length - 1,
                                  sym_ptr->variant.macro_def)) {
       /* The macro definition is not the same as the previous one. */
