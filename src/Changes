@@ -1,7 +1,11 @@
 Version 6.7
 
-11/22/24 [EDGcpfe/27746]
-Clang compatibility: imaginary extended floating point suffixes
+11/22/24 [EDGcpfe/27746,EDGcpfe/27747]
+Clang compatibility: "std::float16_t _Complex" types
+
+Support has been added for "std::float16_t _Complex" types.  Such types
+are now lowered (when LOWER_COMPLEX is TRUE) and mangled just as
+"_Float16 _Complex" types are.
 
 The front end previously failed to accept the clang extension in which an
 'i' precedes an extended floating point literal suffix to designate the
