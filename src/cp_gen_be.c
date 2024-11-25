@@ -22719,7 +22719,8 @@ a constructor.
               type->source_corresp.qualification_needed = FALSE;
               type->source_corresp.visible_as_unqualified_name = TRUE;
             }  /* if */
-            gen_type_name(type);
+            gen_name(&type->source_corresp, iek_type, GN_BASE_SPECIFIER,
+                     (a_boolean *)NULL);
             type->source_corresp.qualification_needed =
                                                     saved_qualification_needed;
             type->source_corresp.visible_as_unqualified_name =
@@ -22738,7 +22739,8 @@ a constructor.
               type->variant.class_struct_union.proxy_class) {
             type = class_type_supp(type)->proxy_of_type;
           }  /* if */
-          gen_type_name(type);
+          gen_name(&type->source_corresp, iek_type, GN_BASE_SPECIFIER,
+                   (a_boolean *)NULL);
           break;
         case cik_field:
           /* Initializing a nonstatic data member. */
