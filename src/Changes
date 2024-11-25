@@ -1,19 +1,10 @@
 Version 6.7
 
-11/22/24 [EDGcpfe/27746,EDGcpfe/27747]
-Clang compatibility: "std::float16_t _Complex" types
+11/24/24 [EDGcpfe/27747]
+Mangling the std::float16_t _Complex type
 
-Support has been added for "std::float16_t _Complex" types.  Such types
-are now lowered (when LOWER_COMPLEX is TRUE) and mangled just as
-"_Float16 _Complex" types are.
-
-The front end previously failed to accept the clang extension in which an
-'i' precedes an extended floating point literal suffix to designate the
-floating-point literal as an imaginary complex value.  This is now fixed.
-For example, with --clang_version=190000 --c++23:
-
-  auto cf32 = 0.0if32;   // Previously reported a missing literal operator,
-                         // now accepted.
+Support for mangling the std::float16_t _Complex type was inadvertently
+omitted.  This has now been fixed.
 
 
 11/21/24 [EDGcpfe/24986]
