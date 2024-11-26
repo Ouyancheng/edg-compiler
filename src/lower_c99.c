@@ -4906,6 +4906,7 @@ Replace the imaginary and complex C99 types by their lowered representations.
   lower_c99_complex_type((a_float_kind)fk_long_double, "_Complex_long_double");
   lower_c99_complex_type((a_float_kind)fk_float80, "_Complex_float80");
   lower_c99_complex_type((a_float_kind)fk_float128, "_Complex_float128");
+  lower_c99_complex_type((a_float_kind)fk_std_float16, "_Complex_float16");
   lower_c99_complex_type((a_float_kind)fk_std_float32, "_Complex_float");
   lower_c99_complex_type((a_float_kind)fk_std_float64, "_Complex_double");
   lower_c99_complex_type((a_float_kind)fk_std_float128, "_Complex_float128");
