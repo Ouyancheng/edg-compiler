@@ -1,5 +1,29 @@
 Version 6.7
 
+11/25/24 [EDGcpfe/27749]
+C++-generating back end: explicit template arguments and ADL
+
+Prior to C++20, the name of a function template in a call in which the
+template's declaration is found only via argument-dependent lookup (ADL)
+could not have explicit template arguments because the name is not declared
+as a template in the scope of the call, so the introductory '<' of such an
+argument list would be interpreted as a less-than operator.  C++20 relaxed
+that restriction; however, the C++-generating back end still suppressed
+such template arguments, regardless of the language level.  As a result,
+when an explicit template argument is required in an ADL-only call for a
+non-deduced template parameter, the generated code could not be compiled.
+This is now fixed, and function template argument lists are emitted in
+ADL-only calls when adl_for_non_visible_templates is TRUE, as is the case
+in C++20 and later modes.  For example, with --c++20:
+
+  namespace N {
+    template<int, typename T> int f(T) { return 0; }
+    struct S{};
+  }
+  auto g() { return N::S{}; }
+  auto x = f<0>(g());   // Previously omitted "<0>"
+
+
 11/24/24 [EDGcpfe/27747]
 Mangling the std::float16_t _Complex type
 
