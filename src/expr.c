@@ -20275,13 +20275,13 @@ indication in *rcblock).
         /* Casting to void * is okay. */
         cast_type_okay = TRUE;
         void_star_case = TRUE;
-      } else if (is_template_param_type(underlying_cast_type)) {
+      } else if (is_template_param_or_proxy_type(underlying_cast_type)) {
         /* Casting to a pointer or reference to a template parameter type
            is okay in a prototype instantiation. */
         cast_type_okay = TRUE;
         template_param_case = TRUE;
       }  /* if */
-    } else if (is_template_param_type(cast_type)) {
+    } else if (is_template_param_or_proxy_type(cast_type)) {
       /* Casting to a template parameter type is okay in a prototype
          instantiation (it might be a pointer or reference type). */
       cast_type_okay = TRUE;
