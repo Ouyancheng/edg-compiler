@@ -6849,15 +6849,13 @@ qualified is TRUE, force the generation of a qualified name.
     /* The function call was marked as only having been found through
        argument-dependent lookup, so we must avoid using a qualified name,
        which would suppress argument-dependent lookup. */
-    if (rout->source_corresp.parent_scope != NULL &&
-        !scope_is_in_name_context_stack(rout->source_corresp.parent_scope) &&
-        !adl_for_non_visible_templates) {
+    if (rout->source_corresp.parent_scope != NULL && !cpp20_mode &&
+        !scope_is_in_name_context_stack(rout->source_corresp.parent_scope)) {
       /* In general, a function is marked as having been found only through
          argument-dependent because it is a member of a namespace and not
          visible at the point of the call.  In that case, we cannot use a
          template argument list because the function name is not known to
-         be a template (this restriction is relaxed in C++20, as indicated
-         by adl_for_non_visible_templates). */
+         be a template (this restriction is relaxed in C++20). */
       gen_bare_name(&rout->source_corresp, iek_routine);
     } else {
       /* This case can arise when source sequence entries for nonclass
