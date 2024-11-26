@@ -62,7 +62,6 @@ using-directive if the EDG code is in the edg namespace.
 */
 USING_NAMESPACE_EDG
 
-
 NORETURN static void cfe_main(int argc, char *argv[])
 /*
 This routine does the actual work to perform a compilation.  This is

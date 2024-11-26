@@ -1,0 +1,188 @@
+/******************************************************************************
+*                                                             \  ___  /       *
+*                                                               /   \         *
+* Edison Design Group C++/C Front End                        - | \^/ | -      *
+*                                                               \   /         *
+* Proprietary information of Edison Design Group Inc.         /  | |  \       *
+* Copyright 2024 Edison Design Group Inc.                        [_]          *
+*                                                                             *
+******************************************************************************/
+/*
+
+cfe_daemon_client.c -- Unix socket based client for the C++/C front end daemon.
+
+This file is provided as an example of using the front end as a library to
+build a multi-threaded client/server C++/C compiler front end.
+
+This client and its corresponding daemon are not (currently) production grade
+and are intended for exposition only.
+
+*/
+
+#include "basics.h"
+
+/* Common daemon code. */
+#include "cfe_daemon_common.h"
+
+/* C standard library headers used to implement the daemon client. */
+#include <cstdlib>
+#include <cstdio>
+
+/* Unix headers used to implement the daemon client. */
+#include <sys/socket.h>
+#include <sys/un.h>
+
+/*
+Note that the EDG namespace is not opened here.  Instead we do a
+using-directive if the EDG code is in the edg namespace.
+*/
+USING_NAMESPACE_EDG
+
+static a_const_char* allocating_cwd()
+/*
+Return a pointer to a null-terminated buffer containing the current working
+directory.  The caller is responsible for freeing the buffer.
+*/
+{
+  auto apply_cwd = [](char *buf, size_t buf_size) -> a_boolean {
+    return getcwd(buf, buf_size) != NULL;
+  };
+  return doubling_buffer(apply_cwd);
+}  /* allocating_cwd */
+
+
+static void error_str(a_const_char *str)
+/*
+Emit C++/C client an error string with the given context.
+*/
+{
+  fprintf(stderr, "C++/C DAEMON CLIENT ERROR: %s\n", str);
+}  /* error_str */
+
+
+int main(int argc, char *argv[])
+/*
+The main routine for the front end Unix socket client.
+*/
+{
+  int          return_value = rc_daemon_error;
+  a_const_char *socket_address = allocating_socket_file_name();
+
+  {
+    int client_socket_fd = socket(AF_UNIX, SOCK_STREAM, 0);
+    if (client_socket_fd == -1) {
+      goto socket_set_up_error;
+    }  /* if */
+
+    /* Construct the client address structure. */
+    sockaddr_un client_socket_addr = {};
+    client_socket_addr.sun_family = AF_UNIX;
+    strncpy(client_socket_addr.sun_path, socket_address,
+            strlen(socket_address));
+
+    int connect_result = connect(client_socket_fd,
+                                 (const sockaddr*)&client_socket_addr,
+                                 sizeof(client_socket_addr));
+    if (connect_result == -1) {
+      goto connection_set_up_error;
+    }  /* if */
+    /* Inform the daemon this is an execution request. */
+    write(client_socket_fd, exec_request_bytes, strlen(exec_request_bytes));
+    write(client_socket_fd, end_of_message_bytes,
+          strlen(end_of_message_bytes));
+
+#if DEBUG
+    /* In DEBUG builds capture the value of EDG_TRANSLATION_UNIT_TAG which will
+       be set to the thread-local trans_unit_tag in the daemon. */
+    a_const_char *tu_tag = getenv("EDG_TRANSLATION_UNIT_TAG");
+    if (tu_tag == NULL) {
+      /* Fall back to an empty string. */
+      tu_tag = "";
+    }  /* if */
+    write(client_socket_fd, tu_tag, strlen(tu_tag));
+    write(client_socket_fd, end_of_message_bytes,
+          strlen(end_of_message_bytes));
+#endif /* DEBUG */
+
+    /* Write the number of arguments (+1 to account for the --wdir argument
+       added by this function). */
+    constexpr unsigned buffer_size = 100;
+    char buffer[buffer_size];
+    int  bytes_written = snprintf(buffer, buffer_size, "%d", argc + 1);
+    write(client_socket_fd, buffer, bytes_written + 1);
+
+    /* Write argv[0] to pass along the process name in the correct position. */
+    write(client_socket_fd, argv[0], strlen(argv[0]) + 1);
+
+    /* Write the implicit --wdir value to communicate the location where this
+       process was invoked. */
+    constexpr const char *wdir_flag_name = "--wdir=";
+    a_const_char *wdir = allocating_cwd();
+    write(client_socket_fd, wdir_flag_name, strlen(wdir_flag_name));
+    write(client_socket_fd, wdir, strlen(wdir) + 1);
+    delete [] wdir;
+    /* Write the arguments given to this process. */
+    for (int i = 1; i < argc; ++i) {
+      write(client_socket_fd, argv[i], strlen(argv[i]) + 1);
+    }  /* for */
+    write(client_socket_fd, end_of_message_bytes,
+          strlen(end_of_message_bytes));
+
+    /* Read the output. */
+    a_socket_reader reader(client_socket_fd);
+    auto            print_contents = [](const char *msg, size_t msg_len) {
+      fprintf(stderr, "%.*s", (int)msg_len, msg);
+    };
+    if (!reader.read_message_parts(print_contents)) {
+      goto unexpected_hang_up;
+    }  /* if */
+
+    /* Read the exit code. */
+    constexpr unsigned max_exit_code_len = 3;
+    char     exit_code_buffer[max_exit_code_len + 1] = {};
+    unsigned exit_code_len = 0;
+    auto     update_exit_code = [&exit_code_buffer, &exit_code_len]
+                                            (const char *msg, size_t msg_len) {
+      for (size_t i = 0; i < msg_len; ++i) {
+        if (exit_code_len < max_exit_code_len) {
+          exit_code_buffer[exit_code_len] = msg[i];
+        }  /* if */
+        ++exit_code_len;
+      }  /* for */
+    };
+    if (!reader.read_message_parts(update_exit_code)) {
+      goto unexpected_hang_up;
+    }  /* if */
+    if (exit_code_len > max_exit_code_len) {
+      goto exit_code_overflow;
+    }  /* if */
+    return_value = atoi(exit_code_buffer);
+  }
+  goto done;
+socket_set_up_error:
+  error_str("Unix socket set up failed.");
+  goto done;
+connection_set_up_error:
+  error_str("Unix socket connection failed; is the daemon running?");
+  goto done;
+unexpected_hang_up:
+  error_str("Unexpected socket shutdown.");
+  goto done;
+exit_code_overflow:
+  error_str("Exit code buffer overflow.");
+  goto done;
+done:
+  delete [] socket_address;
+  return return_value;
+}  /* main */
+
+
+/******************************************************************************
+*                                                             \  ___  /       *
+*                                                               /   \         *
+* Edison Design Group C++/C Front End                        - | \^/ | -      *
+*                                                               \   /         *
+* Proprietary information of Edison Design Group Inc.         /  | |  \       *
+* Copyright 2024 Edison Design Group Inc.                        [_]          *
+*                                                                             *
+******************************************************************************/
