@@ -10443,42 +10443,45 @@ must have an extra blank at the end, as in
 #endif /* ATT_PREPROCESSING_EXTENSIONS_ALLOWED */
 
 
-static char *make_repl_text(a_const_char *repl_text,
+static char *make_repl_text(a_const_char *raw_text,
                             sizeof_t     *repl_text_length)
 /*
-Make a replacement text string for a macro, corresponding to the raw text
-given by repl_text.  repl_text == NULL implies an empty replacement string.
-The length of the repl_text string is returned in *repl_text_length if
+Make a replacement text string for a macro, corresponding to the specified
+raw text.  raw_text == NULL implies an empty replacement string.  The
+length of the repl_text string is returned in *repl_text_length if
 repl_text_length is not NULL.
 */
 {
-  char     *repl_text_copy, *rtp;
-  sizeof_t repl_text_len, overhead;
+  char     *repl_text, *rtp;
+  sizeof_t raw_text_len, overhead;
 
-  repl_text_len = (repl_text != NULL) ? strlen(repl_text) : 0;
-  /* There is always an rt_end at the end of the string.  If the text is
-     not empty, there is also a header before it. */
+  raw_text_len = (raw_text != NULL) ? strlen(raw_text) : 0;
+  /* There will always be an rt_end at the end of the replacement text, so
+     the overhead will be at least 1 byte.  If the text is not empty, there
+     will also be a header before it. */
   overhead = 1;
-  if (repl_text_len > 0) {
-    overhead += 1+NUM_BYTES_IN_MULTI_BYTE_REPL_TEXT_NUMBER;
+  if (raw_text_len > 0) {
+    overhead += 1 + NUM_BYTES_IN_MULTI_BYTE_REPL_TEXT_NUMBER;
   }  /* if */
-  rtp = repl_text_copy = alloc_fe((sizeof_t)(repl_text_len+overhead));
-  if (repl_text_len > 0) {
+  rtp = repl_text = alloc_fe((sizeof_t)(raw_text_len + overhead));
+  if (raw_text_len > 0) {
     /* Put the kind -- raw text -- in the header. */
     *rtp++ = (char)rt_text;
     /* Put the length in the header. */
-    put_macro_repl_text_number(repl_text_len, rtp);
+    put_macro_repl_text_number(raw_text_len, rtp);
     /* Copy the text itself. */
     /*lint -e{668,670}*/
-    (void)memcpy(rtp, repl_text, size_t_arg(repl_text_len));
-    rtp += repl_text_len;
+    (void)memcpy(rtp, raw_text, size_t_arg(raw_text_len));
+    rtp += raw_text_len;
   }  /* if */
   /* Put the terminator on the string. */
   *rtp = (char)rt_end;
-  /* Return the length of the repl_text_string including the encoded
-     information in the "overhead" area. */
-  if (repl_text_length != NULL) *repl_text_length = repl_text_len + overhead;
-  return(repl_text_copy);
+  /* Return the length of the replacement text string (including the
+     overhead). */
+  if (repl_text_length != NULL) {
+    *repl_text_length = raw_text_len + overhead;
+  }  /* if */
+  return repl_text;
 }  /* make_repl_text */
 
 
