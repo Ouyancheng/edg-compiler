@@ -246,7 +246,8 @@ static an_attr_descr known_attr_table[] = {
   { "fallthrough", "", "c+(201703-|M(1910-))", ak_fallthrough },
   { "likely", "", "c+(202002-|G(80300-))", ak_likely },
   { "unlikely", "", "c+(202002-|G(80300-))", ak_unlikely },
-  { "no_unique_address", "", "c+(202002-|G(80300-))", ak_no_unique_address },
+  { "no_unique_address", "", "c+(202002-|G(80300-)|C(90000-))",
+    ak_no_unique_address },
 
   /* C standard attributes (C23 and later).  Also accepted by default when
      gnu_version >= 100000 or microsoft_version >= 1934 (see the setting of

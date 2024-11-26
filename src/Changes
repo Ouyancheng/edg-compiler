@@ -1,5 +1,12 @@
 Version 6.7
 
+11/26/24 [EDGcpfe/27759]
+Clang compatibility: [[no_unique_address]]
+
+The no_unique_address standard attribute is accepted in C++20 emulation modes
+and is now also accepted when clang_version >= 90000.
+
+
 11/25/24 [EDGcpfe/27749]
 C++-generating back end: explicit template arguments and ADL
 
