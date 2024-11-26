@@ -2634,7 +2634,7 @@ option values if they were not already set by a command line option.
     }  /* if */
     if (force_ms_type_info_not_in_namespace_std) {
       type_info_in_namespace_std = FALSE;
-    } else {
+    } else if (ms_compat) {
       type_info_in_namespace_std = MICROSOFT_MODE_TYPE_INFO_IN_NAMESPACE_STD;
     }  /* if */
     if (!type_info_in_namespace_std) {
