@@ -822,7 +822,7 @@ of the resulting diagnostic.
     kind = (a_float_kind)float_kind_for_float128;
     --actual_end;
   } else if (extended_float_types || gcc_version_is(>= 70000) ||
-             gpp_version_is(>= 130000)) {
+             gpp_version_is(>= 130000) || clang_version_is(>= 150000)) {
     /* Default to double if none of the extended float suffixes match. */
     kind = fk_double;
     if (actual_end > start_of_curr_token + 3 &&
@@ -861,9 +861,10 @@ of the resulting diagnostic.
         switch (actual_end[-1]) {
           case '1':
             if (*actual_end == '6') {
-              if (cpp23_mode || (gnu_mode && gnu_version >= 130000)) {
-                /* Recent versions of gcc make _Float16 and std::float16_t
-                   synonyms. */
+              if (cpp23_mode || gnu_version_is(>= 130000) ||
+                  clang_version_is(>= 150000)) {
+                /* Recent versions of gcc and clang make _Float16 and
+                   std::float16_t synonyms. */
                 kind = fk_std_float16;
               } else {
                 /* Use the pre-C++23 _Float16 type. */
