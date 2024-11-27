@@ -1159,7 +1159,7 @@ unsigned 128-bit integer types, respectively.
 /*
 Descriptor for a floating-point NEON vector element type.
 */
-typedef struct a_float_vector_type_descr *a_float_vector_type_descr_ptr;
+typedef struct a_float_vector_type_descr const *a_float_vector_type_descr_ptr;
 typedef struct a_float_vector_type_descr {
   a_float_kind	float_kind;
 			/* Float kind of the vector element. */
@@ -1174,7 +1174,7 @@ typedef struct a_float_vector_type_descr {
 /*
 Table of all floating-point NEON vector element types for 64-bit platforms.
 */
-static a_float_vector_type_descr
+static constexpr a_float_vector_type_descr
 		float_neon_vector_types_64bit[] = {
   {fk_std_bfloat16, 4, {"__Bfloat16x4_t", "__Bfloat16x8_t"}},
   {fk_fp16,         4, {"__Float16x4_t",  "__Float16x8_t"}},
@@ -1186,7 +1186,7 @@ static a_float_vector_type_descr
 /*
 Table of all floating-point NEON vector element types for 32-bit platforms.
 */
-static a_float_vector_type_descr
+static constexpr a_float_vector_type_descr
 		float_neon_vector_types_32bit[] = {
   {fk_std_bfloat16, 4, {"__simd64_bfloat16_t", "__simd128_bfloat16_t"}},
   {fk_fp16,         4, {"__simd64_float16_t",  "__simd128_float16_t"}},
@@ -1197,7 +1197,8 @@ static a_float_vector_type_descr
 /*
 Descriptor for an integer NEON vector or polyvector element type.
 */
-typedef struct an_integer_vector_type_descr *an_integer_vector_type_descr_ptr;
+typedef struct an_integer_vector_type_descr const *
+                                              an_integer_vector_type_descr_ptr;
 typedef struct an_integer_vector_type_descr {
   an_integer_kind
 		int_kind;
@@ -1213,7 +1214,7 @@ typedef struct an_integer_vector_type_descr {
 /*
 Table of all integer NEON vector element types for 64-bit platforms.
 */
-static an_integer_vector_type_descr
+static constexpr an_integer_vector_type_descr
 		integer_neon_vector_types_64bit[] = {
   {ik_signed_char,    8, {"__Int8x8_t",   "__Int8x16_t"}},
   {ik_unsigned_char,  8, {"__Uint8x8_t",  "__Uint8x16_t"}},
@@ -1229,7 +1230,7 @@ static an_integer_vector_type_descr
 /*
 Table of all integer NEON vector element types for 32-bit platforms.
 */
-static an_integer_vector_type_descr
+static constexpr an_integer_vector_type_descr
 		integer_neon_vector_types_32bit[] = {
   {ik_signed_char,         8, {"__simd64_int8_t",   "__simd128_int8_t"}},
   {ik_unsigned_char,       8, {"__simd64_uint8_t",  "__simd128_uint8_t"}},
@@ -1245,7 +1246,7 @@ static an_integer_vector_type_descr
 /*
 Table of all integer NEON polyvector element types for 64-bit platforms.
 */
-static an_integer_vector_type_descr
+static constexpr an_integer_vector_type_descr
 		integer_neon_polyvector_types_64bit[] = {
   {ik_unsigned_char,  8, {"__Poly8x8_t",  "__Poly8x16_t"}},
   {ik_unsigned_short, 4, {"__Poly16x4_t", "__Poly16x8_t"}},
@@ -1256,7 +1257,7 @@ static an_integer_vector_type_descr
 /*
 Table of all integer NEON polyvector element types for 32-bit platforms.
 */
-static an_integer_vector_type_descr
+static constexpr an_integer_vector_type_descr
 		integer_neon_polyvector_types_32bit[] = {
   {ik_signed_char, 8, {"__simd64_poly8_t",  "__simd128_poly8_t"}},
   {ik_short,       4, {"__simd64_poly16_t", "__simd128_poly16_t"}},
@@ -1267,7 +1268,8 @@ static an_integer_vector_type_descr
 /*
 Descriptor for a NEON builtin vector type.
 */
-typedef struct a_builtin_vector_type_descr *a_builtin_vector_type_descr_ptr;
+typedef struct a_builtin_vector_type_descr const *
+                                               a_builtin_vector_type_descr_ptr;
 typedef struct a_builtin_vector_type_descr {
   an_integer_kind
 		int_kind;
@@ -1280,7 +1282,7 @@ typedef struct a_builtin_vector_type_descr {
 /*
 Table of all NEON builtin vector types for 32-bit platforms.
 */
-static a_builtin_vector_type_descr
+static constexpr a_builtin_vector_type_descr
 		integer_builtin_neon_vector_types_32bit[] = {
   {ik_long_long,          2, "__builtin_neon_ti"},
   {ik_long_long,          3, "__builtin_neon_ei"},
@@ -1293,7 +1295,7 @@ static a_builtin_vector_type_descr
 /*
 Table of all NEON builtin vector types for 64-bit platforms.
 */
-static a_builtin_vector_type_descr
+static constexpr a_builtin_vector_type_descr
 		integer_builtin_neon_vector_types_64bit[] = {
 #if INT128_EXTENSIONS_ALLOWED
   {ik_int128, 2, "__builtin_aarch64_simd_oi"},
@@ -1879,7 +1881,7 @@ portion of a mangled name (see target_distinction).  Note that these aren't
 all one-to-one mappings: the names in the latter two cases are massaged as
 necessary to match GNU's behavior.
 */
-static a_const_char *target_attributes[] = {
+static constexpr a_const_char *target_attributes[] = {
   NULL,               /* mvak_unknown */
   "arch=bdver1",      /* mvak_cpu_bdver1 */
   "arch=bdver2",      /* mvak_cpu_bdver2 */
@@ -1914,7 +1916,7 @@ static a_const_char *target_attributes[] = {
 GNU's mangled names for ISA architectures are emitted in alphabetical order
 so this table lists the ISA architectures in that order.
 */
-static a_multiversion_arch_kind isa_alphabetic_order[] = {
+static constexpr a_multiversion_arch_kind isa_alphabetic_order[] = {
   (a_multiversion_arch_kind)mvak_isa_aes,
   (a_multiversion_arch_kind)mvak_isa_avx,
   (a_multiversion_arch_kind)mvak_isa_avx2,

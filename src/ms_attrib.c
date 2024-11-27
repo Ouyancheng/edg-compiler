@@ -39,17 +39,17 @@ BEGIN_EDG_NAMESPACE
 /*
 Counts of tables allocated, to track total use of memory.
 */
-static unsigned long
+STATIC_THREAD unsigned long
 		num_ms_attribute_kind_descrs_allocated,
 		num_ms_attribute_params_allocated;
 #endif /* DEBUG */
 
-static a_text_buffer_ptr
+STATIC_THREAD a_text_buffer_ptr
 		ms_attr_buffer;
 			/* A text buffer used to create temporary copies of
 			   attribute argument values. */
 
-static a_boolean
+STATIC_THREAD a_boolean
 		scan_misc_attributes_as_unrecognized;
 			/* TRUE if most recognized attributes should be scanned
 			   as "unrecognized" attributes.  This means that the
@@ -60,26 +60,26 @@ static a_boolean
 			   some attributes, such as uuid, will still be
 			   processed normally). */
 
-static an_ms_attribute_kind_descr_ptr
+STATIC_THREAD an_ms_attribute_kind_descr_ptr
 		unrecognized_attribute;
 			/* A special attribute kind entry that represents
 			   an unrecognized attribute.  This is used even when
 			   unrecognized attributes are not accepted, for
 			   error recovery purposes. */
 
-static an_ms_attribute_kind_descr_ptr
+STATIC_THREAD an_ms_attribute_kind_descr_ptr
 		custom_attribute;
 			/* A special attribute kind entry that represents
 			   a custom attribute. */
 
-static an_ms_attribute_kind_descr_ptr
+STATIC_THREAD an_ms_attribute_kind_descr_ptr
 		curr_attribute_descr;
 			/* Pointer to an attribute description that is in the
 			   process of being defined.  This is set by
 			   make_attribute_description and is used by
 			   add_attribute_parameter. */
 
-static a_token_cache
+STATIC_THREAD a_token_cache
 		attribute_cache;
 			/* Token cache containing the tokens of the current
 			   attribute block. */
@@ -88,7 +88,7 @@ static a_token_cache
 			/* The number of buckets in the template lookup table.
 			   This number should be prime. */
 
-static an_ms_attribute_kind_descr_ptr
+STATIC_THREAD an_ms_attribute_kind_descr_ptr
 		attribute_lookup_table[ATTRIBUTE_LOOKUP_TABLE_SIZE];
 			/* Table used to determine the attribute kind for a
 			   given attribute name.  Each element of the
@@ -1392,7 +1392,7 @@ target bit set.
 {
   unsigned               i;
   an_ms_attribute_target msat = msat_invalid;
-  static const struct an_enumerator_map {
+  constexpr struct an_enumerator_map {
     a_cli_attribute_target cliat;
     an_ms_attribute_target msat;
   } enumerator_map[] = {
@@ -1473,7 +1473,7 @@ target bit set.
 {
   unsigned               i;
   an_ms_attribute_target msat = msat_invalid;
-  static const struct an_enumerator_map {
+  constexpr struct an_enumerator_map {
     a_cppcx_attribute_target cppcxat;
     an_ms_attribute_target   msat;
   } enumerator_map[] = {

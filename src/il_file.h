@@ -85,7 +85,7 @@ typedef off_t	a_file_position;
 #define set_file_position(file, offset, origin) fseek(file, offset, origin)
 #endif /* LARGE_IL_FILE_SUPPORT */
 
-EXTERN a_file_position
+EXTERN_THREAD a_file_position
 		*index_for_il_file /* = NULL */;
 			/* Parallel array to mem_region_table.
 			   index_for_il_file[i] contains the file offset of

@@ -219,7 +219,7 @@ handle variably modified types, as well as stmk_set_vla_size and stmk_vla_decl
 statements, and enk_vla_dealloc nodes (when VLA_DEALLOCATIONS_IN_IL is TRUE).
 */
 
-static a_type_list_entry_ptr
+STATIC_THREAD a_type_list_entry_ptr
 		vla_types;
 			/* A list of all the VLA type entries.  The types are
 			   collected as we traverse the IL for lowering.  The
@@ -626,7 +626,8 @@ the expression type is ptrdiff_t.
 }  /* vla_size_expr */
 
 
-static a_routine_ptr  vla_alloc_routine;
+STATIC_THREAD a_routine_ptr
+                vla_alloc_routine;
 
 
 static an_expr_node_ptr make_vla_allocation_expr(a_variable_ptr  vla_var)
@@ -722,7 +723,8 @@ memory for it.
 }  /* lower_vla_decl */
 
 
-static a_routine_ptr  vla_dealloc_routine;
+STATIC_THREAD a_routine_ptr
+                vla_dealloc_routine;
 
 
 void lower_vla_dealloc(an_expr_node_ptr  expr)
@@ -1244,8 +1246,9 @@ _Complex/__complex__ type specifiers.)
 
 typedef a_const_char *a_library_name_array[NUM_COMPLEX_FLOAT_KINDS];
 
-static a_const_char* select_name_from_float_kind(a_float_kind         fkind,
-                                                 a_library_name_array names)
+static a_const_char* select_name_from_float_kind(
+                                              a_float_kind               fkind,
+                                              const a_library_name_array names)
 /*
 Return names[fkind] (a string naming the given floating-point precision).
 */
@@ -1430,15 +1433,17 @@ STATIC_THREAD a_routine_ptr
 STATIC_THREAD a_routine_ptr
                 cast_long_double_routine[NUM_COMPLEX_FLOAT_KINDS];
 #if FLOAT80_ENABLING_POSSIBLE
-static a_routine_ptr  cast_float80_routine[NUM_COMPLEX_FLOAT_KINDS];
+STATIC_THREAD a_routine_ptr
+                cast_float80_routine[NUM_COMPLEX_FLOAT_KINDS];
 #endif /* FLOAT80_ENABLING_POSSIBLE */
 #if FLOAT128_ENABLING_POSSIBLE
-static a_routine_ptr  cast_float128_routine[NUM_COMPLEX_FLOAT_KINDS];
+STATIC_THREAD a_routine_ptr
+                cast_float128_routine[NUM_COMPLEX_FLOAT_KINDS];
 #endif /* FLOAT128_ENABLING_POSSIBLE */
 
 
 /* Imaginary to complex library routines. */
-static a_library_name_array itoc_routine_name = {
+static constexpr a_library_name_array itoc_routine_name = {
                                           "__c99_ifloat16_to_cfloat16",
                                           NULL, /* fk_fp16 */
                                           "__c99_ifloat_to_cfloat",
@@ -1451,7 +1456,7 @@ static a_library_name_array itoc_routine_name = {
                                           "__c99_ibfloat16_to_cbfloat16"};
 
 /* Complex to imaginary library routines. */
-static a_library_name_array ctoi_routine_name = {
+static constexpr a_library_name_array ctoi_routine_name = {
                                           "__c99_cfloat16_to_ifloat16",
                                           NULL, /* fk_fp16 */
                                           "__c99_cfloat_to_ifloat",
@@ -1464,7 +1469,7 @@ static a_library_name_array ctoi_routine_name = {
                                           "__c99_cbfloat16_to_ibfloat16"};
 
 /* Floating-point to complex library routines. */
-static a_library_name_array rtoc_routine_name = {
+static constexpr a_library_name_array rtoc_routine_name = {
                                           "__c99_float16_to_cfloat16",
                                           NULL, /* fk_fp16 */
                                           "__c99_float_to_cfloat",
@@ -1477,7 +1482,7 @@ static a_library_name_array rtoc_routine_name = {
                                           "__c99_bfloat16_to_cbfloat16"};
 
 /* Complex to floating-point to library routines. */
-static a_library_name_array ctor_routine_name = {
+static constexpr a_library_name_array ctor_routine_name = {
                                           "__c99_cfloat16_to_float16",
                                           NULL, /* fk_fp16 */
                                           "__c99_cfloat_to_float",
@@ -1490,7 +1495,7 @@ static a_library_name_array ctor_routine_name = {
                                           "__c99_cbfloat16_to_bfloat16"};
 
 /* Library routines for complex casts. */
-static a_library_name_array cast_float16_routine_name = {
+static constexpr a_library_name_array cast_float16_routine_name = {
                                           NULL,
                                           NULL, /* fk_fp16 */
                                           "__c99_cfloat16_to_cfloat",
@@ -1501,7 +1506,7 @@ static a_library_name_array cast_float16_routine_name = {
                                           "__c99_cfloat16_to_cfloat80",
                                           "__c99_cfloat16_to_cfloat128",
                                           "__c99_cfloat16_to_cbfloat16"};
-static a_library_name_array cast_bfloat16_routine_name = {
+static constexpr a_library_name_array cast_bfloat16_routine_name = {
                                           "__c99_cbfloat16_to_cfloat16",
                                           "__c99_cbfloat16_to_cfloat16",
                                           "__c99_cbfloat16_to_cfloat",
@@ -1512,7 +1517,7 @@ static a_library_name_array cast_bfloat16_routine_name = {
                                           "__c99_cbfloat16_to_cfloat80",
                                           "__c99_cbfloat16_to_cfloat128",
                                           NULL};
-static a_library_name_array cast_float_routine_name = {
+static constexpr a_library_name_array cast_float_routine_name = {
                                           "__c99_cfloat_to_cfloat16",
                                           NULL, /* fk_fp16 */
                                           NULL,
@@ -1524,7 +1529,7 @@ static a_library_name_array cast_float_routine_name = {
                                           "__c99_cfloat_to_cfloat128",
                                           "__c99_cfloat_to_cbfloat16"};
 
-static a_library_name_array cast_double_routine_name = {
+static constexpr a_library_name_array cast_double_routine_name = {
                                           "__c99_cdouble_to_cfloat16",
                                           NULL, /* fk_fp16 */
                                           "__c99_cdouble_to_cfloat",
@@ -1536,7 +1541,7 @@ static a_library_name_array cast_double_routine_name = {
                                           "__c99_cdouble_to_cfloat128",
                                           "__c99_cdouble_to_cbfloat16"};
 
-static a_library_name_array cast_long_double_routine_name = {
+static constexpr a_library_name_array cast_long_double_routine_name = {
                                           "__c99_clong_double_to_cfloat16",
                                           NULL, /* fk_fp16 */
                                           "__c99_clong_double_to_cfloat",
@@ -1549,7 +1554,7 @@ static a_library_name_array cast_long_double_routine_name = {
                                           "__c99_clong_double_to_cbfloat16"};
 
 #if FLOAT80_ENABLING_POSSIBLE
-static a_library_name_array cast_float80_routine_name = {
+static constexpr a_library_name_array cast_float80_routine_name = {
                                           "__c99_cfloat80_to_cfloat16",
                                           NULL, /* fk_fp16 */
                                           "__c99_cfloat80_to_cfloat",
@@ -1563,7 +1568,7 @@ static a_library_name_array cast_float80_routine_name = {
 #endif /* FLOAT80_ENABLING_POSSIBLE */
 
 #if FLOAT128_ENABLING_POSSIBLE
-static a_library_name_array cast_float128_routine_name = {
+static constexpr a_library_name_array cast_float128_routine_name = {
                                           "__c99_cfloat128_to_cfloat16",
                                           NULL, /* fk_fp16 */
                                           "__c99_cfloat128_to_cfloat",
@@ -1577,7 +1582,7 @@ static a_library_name_array cast_float128_routine_name = {
 #endif /* FLOAT128_ENABLING_POSSIBLE */
 
 /* Names of the complex negate runtime routines. */
-static a_library_name_array xnegate_routine_name = {
+static constexpr a_library_name_array xnegate_routine_name = {
                                           "__c99_complex_float16_negate",
                                           NULL, /* fk_fp16 */
                                           "__c99_complex_float_negate",
@@ -1613,7 +1618,7 @@ with C89).
 
 
 /* Names of the complex add runtime routines. */
-static a_library_name_array xadd_routine_name = {
+static constexpr a_library_name_array xadd_routine_name = {
                                                "__c99_complex_float16_add",
                                                NULL, /* fk_fp16 */
                                                "__c99_complex_float_add",
@@ -1649,7 +1654,7 @@ Transform the given complex expression ("z1+z2") into a function call
 
 
 /* Names of the complex subtract runtime routines. */
-static a_library_name_array xsubtract_routine_name = {
+static constexpr a_library_name_array xsubtract_routine_name = {
                                          "__c99_complex_float16_subtract",
                                          NULL, /* fk_fp16 */
                                          "__c99_complex_float_subtract",
@@ -1685,7 +1690,7 @@ Transform the given complex expression ("z1-z2") into a function call
 
 
 /* Names of the complex multiply runtime routines. */
-static a_library_name_array xmultiply_routine_name = {
+static constexpr a_library_name_array xmultiply_routine_name = {
                                          "__c99_complex_float16_multiply",
                                          NULL, /* fk_fp16 */
                                          "__c99_complex_float_multiply",
@@ -1721,7 +1726,7 @@ Transform the given complex expression ("z1*z2") into a function call
 
 
 /* Names of the complex divide runtime routines. */
-static a_library_name_array xdivide_routine_name = {
+static constexpr a_library_name_array xdivide_routine_name = {
                                            "__c99_complex_float16_divide",
                                            NULL, /* fk_fp16 */
                                            "__c99_complex_float_divide",
@@ -1757,7 +1762,8 @@ Transform the given complex expression ("z1/z2") into a function call
 
 
 /* Names of the complex == runtime routines. */
-static a_library_name_array xeq_routine_name = {"__c99_complex_float16_eq",
+static constexpr a_library_name_array xeq_routine_name = {
+                                                "__c99_complex_float16_eq",
                                                 NULL, /* fk_fp16 */
                                                 "__c99_complex_float_eq",
                                                 "__c99_complex_double_eq",
@@ -1793,7 +1799,8 @@ Transform the given complex expression ("z1==z2") into a function call
 
 
 /* Names of the complex != runtime routines. */
-static a_library_name_array xne_routine_name = {"__c99_complex_float16_ne",
+static constexpr a_library_name_array xne_routine_name = {
+                                                "__c99_complex_float16_ne",
                                                 NULL, /* fk_fp16 */
                                                 "__c99_complex_float_ne",
                                                 "__c99_complex_double_ne",
@@ -1845,7 +1852,7 @@ is used for the increment/decrement).
   a_boolean             is_post_op = FALSE, temp_init_used;
   a_type_ptr            return_type = skip_typerefs(expr->type);
   a_const_char          *rout_name;
-  a_const_char          **routine_names = NULL;
+  a_const_char* const   *routine_names = NULL;
   a_routine_ptr         *routines = NULL;
   a_float_kind          fkind;
   a_constant_ptr        con = local_constant();
@@ -2140,7 +2147,7 @@ STATIC_THREAD a_routine_ptr
                 xconj_routine[NUM_COMPLEX_FLOAT_KINDS];
 
 /* Names of the complex conjugation runtime routines. */
-static a_library_name_array xconj_routine_name = {
+static constexpr a_library_name_array xconj_routine_name = {
                                              "__c99_complex_float16_conj",
                                              NULL, /* fk_fp16 */
                                              "__c99_complex_float_conj",
@@ -2238,9 +2245,9 @@ Transform the given complex cast expression into a function call
   } else if (is_complex_type(dst_type)) {
     if (is_complex_type(src_type)) {
       /* A change in floating-point precision, complex to complex. */
-      a_library_name_array *library_routine_name =
+      const a_library_name_array *library_routine_name =
                                       /*lint -e(545)*/&cast_float_routine_name;
-      a_routine_ptr        *routine_ptr = cast_float_routine;
+      a_routine_ptr              *routine_ptr = cast_float_routine;
       check_assertion(src_type->variant.float_kind !=
                       dst_type->variant.float_kind);
       switch (src_type->variant.float_kind) {
@@ -2633,13 +2640,13 @@ to the fixed-point runtime routines.
 Runtime routine for fixed-point conversions (including integral
 source or destination).
 */
-static a_routine_ptr fixed_conv_routine;
+STATIC_THREAD a_routine_ptr fixed_conv_routine;
 /*
 Runtime routines for conversions between floating point and fixed point.  Note
 that there are no conversion routines from _Float16, __fp16, __float80, or
 __float128.
 */
-static a_library_name_array float_fixed_conv_routine_name = {
+static constexpr a_library_name_array float_fixed_conv_routine_name = {
                                                          NULL,
                                                          NULL, /* fk_fp16 */
                                                          "_Fixed_from_float",
@@ -2650,8 +2657,10 @@ static a_library_name_array float_fixed_conv_routine_name = {
                                                          NULL,
                                                          NULL,
                                                          NULL};
-static a_routine_ptr float_fixed_conv_routine[NUM_COMPLEX_FLOAT_KINDS];
-static a_library_name_array fixed_float_conv_routine_name = {
+STATIC_THREAD a_routine_ptr
+                float_fixed_conv_routine[NUM_COMPLEX_FLOAT_KINDS];
+
+static constexpr a_library_name_array fixed_float_conv_routine_name = {
                                                            NULL,
                                                            NULL, /* fk_fp16 */
                                                            "_Fixed_to_float",
@@ -2662,7 +2671,8 @@ static a_library_name_array fixed_float_conv_routine_name = {
                                                            NULL,
                                                            NULL,
                                                            NULL};
-static a_routine_ptr fixed_float_conv_routine[NUM_COMPLEX_FLOAT_KINDS];
+STATIC_THREAD a_routine_ptr
+                fixed_float_conv_routine[NUM_COMPLEX_FLOAT_KINDS];
 
 
 static void lower_c99_fixed_point_cast(an_expr_node_ptr expr)
@@ -2910,7 +2920,7 @@ Transform the given cast expression into a function call (compatible with C89).
 /*
 Runtime routines for fixed-point operations.
 */
-static a_routine_ptr
+STATIC_THREAD a_routine_ptr
 		fixed_negate_routine,
 		fixed_eq_routine,
 		fixed_ne_routine,

@@ -1593,7 +1593,7 @@ kind.
 #if BACK_END_IS_C_GEN_BE
 #if LONG_DOUBLE_AS_DOUBLE_IN_GENERATED_C
 #if ISSUE_WARNING_ON_LONG_DOUBLE_AS_DOUBLE
-static a_boolean double_for_long_double_warning_issued;
+STATIC_THREAD a_boolean double_for_long_double_warning_issued;
 #endif /* ISSUE_WARNING_ON_LONG_DOUBLE_AS_DOUBLE */
 #endif /* LONG_DOUBLE_AS_DOUBLE_IN_GENERATED_C */
 #endif /* BACK_END_IS_C_GEN_BE */
@@ -1930,17 +1930,17 @@ typedef struct a_saved_template_param_mapping {
 } a_saved_template_param_mapping;
 
 
-static a_saved_template_param_mapping_ptr
+STATIC_THREAD a_saved_template_param_mapping_ptr
 		saved_template_param_mappings;
 			/* Template parameter mappings to be restored by
 			   restore_template_param_mapping. */
 
-static a_saved_template_param_mapping_ptr
+STATIC_THREAD a_saved_template_param_mapping_ptr
 		avail_template_param_mappings;
 			/* Free template parameter mappings that are
 			   available for reuse. */
 
-static a_boolean
+STATIC_THREAD a_boolean
 		saving_template_param_mappings;
 			/* When TRUE, remap_template_param will save the
 			   existing mapping before overwriting it with the

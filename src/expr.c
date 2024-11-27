@@ -31326,7 +31326,7 @@ represented by *result are reversed.  For example, "x <=> y" might be rewritten
 as "0 <=> operator<=>(y, x)".
 */
 {
-  static unsigned long  n_active_rewrites = 0;
+  STATIC_THREAD unsigned long  n_active_rewrites = 0;
 
   n_active_rewrites += 1;
   if (call_node != NULL) {
@@ -36543,11 +36543,12 @@ is an lvalue.
                                  (an_arg_list_elem_ptr)NULL, &e_opnd,
                                  operand_of_arg_list_elem(*p_icp));
     } else {
-      STATIC_THREAD a_token_cache   expr_tokens;
-      static a_boolean       expr_tokens_ready = FALSE;
-      int                    saved_n_internal_opnds = n_internal_opnds;
-      an_operand_ptr         *saved_internal_opnd_array = internal_opnd_array;
-      an_operand_ptr         opnds[2];
+      STATIC_THREAD a_token_cache expr_tokens;
+      STATIC_THREAD a_boolean     expr_tokens_ready = FALSE;
+      int                         saved_n_internal_opnds = n_internal_opnds;
+      an_operand_ptr              *saved_internal_opnd_array =
+                                                           internal_opnd_array;
+      an_operand_ptr              opnds[2];
       if (!expr_tokens_ready) {
         clear_token_cache(&expr_tokens, /*reusable=*/TRUE);
         cache_tokens_from_string("__edg_opnd__(0).get<__edg_opnd__(1)>();",

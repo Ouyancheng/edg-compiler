@@ -28,7 +28,7 @@ c_gen_be.h - Declarations related to c_gen_be.c (C-generating back end
 BEGIN_EDG_NAMESPACE
 
 #if !C_GEN_BE_GENERATES_ANSI_C
-EXTERN a_const_char
+EXTERN_THREAD a_const_char
 		*module_list_for_union_init /* = NULL */;
 			/* The operand of the command-line "-i" option,
 			   a comma-separated list of modules to be linked

@@ -99,11 +99,12 @@ enum a_type_mode_kind : a_byte {
 
 #endif /* !GNU_EXTENSIONS_ALLOWED */
 
-static FILE	*f_C_output;
+STATIC_THREAD FILE
+		*f_C_output;
 			/* File to which the output is written. */
 #define MAX_OUTPUT_LINE_SIZE 300 /* Arbitrary. */
 			/* Maximum allowable output line size. */
-static unsigned int
+STATIC_THREAD unsigned int
 		line_wrapping_disabled;
 			/* If 0, output lines will be wrapped to keep them
 			   within MAX_OUTPUT_LINE_SIZE if possible. */
@@ -111,44 +112,45 @@ static unsigned int
 #define disable_line_wrapping() (line_wrapping_disabled++)
 #define enable_line_wrapping() (line_wrapping_disabled--)
 
-static uint32_t	disable_line_wrapping_until_column;
+STATIC_THREAD uint32_t
+		disable_line_wrapping_until_column;
 			/* If non-zero, output line wrapping is disabled
 			   until the indicated column is reached. */
 
 /* Current output position -- file, line, sequence number, column: */
-static a_source_file_ptr
+STATIC_THREAD a_source_file_ptr
 		curr_output_file;
-static a_line_number
+STATIC_THREAD a_line_number
 		curr_output_line;
-static uint32_t
+STATIC_THREAD uint32_t
 		curr_output_column;
 			/* The number of characters written to the current
 			   line of output.  Zero means nothing has been
 			   written so far. */
-static a_boolean
+STATIC_THREAD a_boolean
 		curr_output_pos_known;
 			/* TRUE if the current output position is known. */
-static a_boolean
+STATIC_THREAD a_boolean
 		output_position_is_pending;
 			/* TRUE if desired_output_position has been set to
 			   an output position but nothing has been output
 			   yet so the output stream has not been adjusted
 			   yet. */
-static a_source_position
+STATIC_THREAD a_source_position
 		desired_output_position;
 			/* See comment above. */
 
-static an_il_to_str_output_control_block
+STATIC_THREAD an_il_to_str_output_control_block
 		octl;	/* Output control block for interface to il_to_str
 			   routines. */
 
-static a_boolean
+STATIC_THREAD a_boolean
 		in_template_argument_list;
 			/* TRUE if we are currently processing template
                            arguments.  Used to suppress typedefs in template
                            arguments in is_typedef_invisible_in_cp_gen_be. */
 
-static a_boolean
+STATIC_THREAD a_boolean
 		in_parameter_pack_declaration;
 			/* TRUE if we are currently processing the
 			   declaration of a function parameter that is a
@@ -165,16 +167,16 @@ static a_boolean
 			   allowing it to be used as a type in a function
 			   parameter pack. */
 
-static a_boolean
+STATIC_THREAD a_boolean
 		in_prototype_instantiation_context;
 			/* TRUE if we are currently generating a template
 			   definition from its prototype instantiation
 			   IL. */
 
-static a_source_sequence_entry_ptr
+STATIC_THREAD a_source_sequence_entry_ptr
 		curr_source_sequence_entry;
 			/* The current source sequence entry. */
-static a_source_sequence_entry_ptr
+STATIC_THREAD a_source_sequence_entry_ptr
 		sublist_parent_source_sequence_entry;
 			/* If non-NULL, a source sequence sublist in the file
 			   scope memory region is being visited, and this
@@ -192,32 +194,32 @@ sublist header, i.e., it has kind iek_src_seq_sublist.
 The following variables indicate the context in which a name or expression
 is being generated.
 */
-static a_boolean
+STATIC_THREAD a_boolean
 		in_friend_declaration;
 			/* TRUE if the name being generated appears within
 			   a friend declaration's parameter list. */
-static a_boolean
+STATIC_THREAD a_boolean
 		friend_is_class_member;
 			/* TRUE if the friend being declared is a class
 			   member function (only valid when
 			   in_friend_declaration is TRUE). */
-static a_boolean
+STATIC_THREAD a_boolean
 		in_ctor_default_argument;
 			/* TRUE if the expression being generated appears
 			   in the default argument of a constructor
 			   parameter (needed to work around a Microsoft 6.0
 			   bug). */
-static a_boolean
+STATIC_THREAD a_boolean
 		in_generated_instance;
 			/* TRUE if the expression being generated appears
 			   in a generated instance of a function template. */
 
-static a_boolean
+STATIC_THREAD a_boolean
 		in_gnu_extension;
 			/* TRUE if the expression being generated has been
 			   marked with the GNU __extension__ keyword. */
 
-static a_boolean
+STATIC_THREAD a_boolean
 		is_generated_explicit_specialization;
 			/* TRUE in configurations with
 			   TEMPLATE_INSTANTIATIONS_IN_SOURCE_SEQUENCE_LISTS
@@ -248,7 +250,7 @@ typedef struct a_hidden_name_fixup {
 } a_hidden_name_fixup;
 
 
-static a_hidden_name_fixup_ptr
+STATIC_THREAD a_hidden_name_fixup_ptr
 		avail_hidden_name_fixups;
 			/* List of hidden-name-fixup entries that have been
 			   freed and are available for reuse. */
@@ -296,13 +298,13 @@ typedef struct an_entity_for_decltype {
 A list of entities that can be used in decltype-specifiers to refer to
 unnamed class or enumeration types.
 */
-static an_entity_for_decltype_ptr
+STATIC_THREAD an_entity_for_decltype_ptr
 		entities_for_decltype;
 
 /*
 A list of available (used and freed) entity for decltype entries.
 */
-static an_entity_for_decltype_ptr
+STATIC_THREAD an_entity_for_decltype_ptr
 		avail_entities_for_decltype;
 
 
@@ -457,16 +459,16 @@ typedef struct a_name_context {
 			   otherwise. */
 } a_name_context;
 
-static a_name_context_ptr
+STATIC_THREAD a_name_context_ptr
 		curr_name_context;
 			/* Current name context stack. */
 
-static a_name_context_ptr
+STATIC_THREAD a_name_context_ptr
 		avail_name_contexts;
 			/* List of name context entries that have been freed
 			   and are available for reuse. */
 
-static a_boolean
+STATIC_THREAD a_boolean
 		in_class_scope_with_dependent_base;
 			/* TRUE if there is a prototype instantiation class
 			   on the stack that has a dependent base.  Used so
@@ -570,14 +572,14 @@ typedef int a_gen_name_options_set;
 The alignment specified by the most recent #pragma pack directive (0
 indicates the default value).
 */
-static a_targ_alignment
+STATIC_THREAD a_targ_alignment
 		curr_pack_alignment;
 /*
 The following variable is TRUE if a #pragma pack directive was constructed for
 a particular class definition and indicates that the previous alignment must
 be restored.
 */
-static a_boolean
+STATIC_THREAD a_boolean
 		need_pragma_pack_restore;
 
 #if GENERATE_LINKAGE_SPEC_BLOCKS
@@ -585,7 +587,7 @@ static a_boolean
 A variable that reflects the current default name linkage ("C++" by default
 in C++ mode, and modified when extern "..." { ... } blocks are emitted).
 */
-static a_name_linkage_kind
+STATIC_THREAD a_name_linkage_kind
 		curr_default_name_linkage;
 #endif /* GENERATE_LINKAGE_SPEC_BLOCKS */
 
@@ -826,7 +828,7 @@ gen_expr_with_parens to generate the expression containing the operator.  If
 a given operator may be generated in different forms, this table should
 reflect the one with the lowest precedence.
 */
-static a_byte generated_precedence[(int)eok_last+1] = {
+static constexpr a_byte generated_precedence[(int)eok_last+1] = {
   PREC_PREFIX,		/* eok_address_of */
   PREC_LOWEST,		/* eok_reference_to */
   PREC_PREFIX,		/* eok_handle_to */
@@ -1607,7 +1609,8 @@ exclude dependent bases from unqualified name lookup.
 }  /* entity_is_member_of_current_instantiation */
 
 #if CLASS_TEMPLATE_INSTANTIATIONS_IN_SOURCE_SEQUENCE_LISTS
-static int	traversal_size;
+STATIC_THREAD int
+		traversal_size;
 			/* Counter of the number of type entries visited
 			   during the type tree traversal.  When generated
 			   instances are included in the source sequence
@@ -1620,7 +1623,7 @@ static int	traversal_size;
 #define MAX_TYPE_TRAVERSAL 4000
 #endif /* CLASS_TEMPLATE_INSTANTIATIONS_IN_SOURCE_SEQUENCE_LISTS */
 
-static a_type_ptr
+STATIC_THREAD a_type_ptr
 		type_to_match;
 			/* Type set by target_type_has_circularity for use
 			   by ttt_check_type_match. */
@@ -1743,7 +1746,7 @@ with a given underlying type.
 A hash table for accessible typedefs whose underlying types are
 inaccessible.
 */
-static a_typedef_hash_entry
+STATIC_THREAD a_typedef_hash_entry
                  accessible_typedef_hash_table[BUCKETS_FOR_TYPEDEF_HASH_TABLE];
 #if PROTOTYPE_INSTANTIATIONS_IN_IL
 /*
@@ -1752,7 +1755,7 @@ of a class template and whose underlying types are dependent; used to work
 around a problem that causes the Microsoft compiler to issue spurious
 errors in some cases when the dependent types are used directly.
 */
-static a_typedef_hash_entry
+STATIC_THREAD a_typedef_hash_entry
           proto_inst_member_typedef_hash_table[BUCKETS_FOR_TYPEDEF_HASH_TABLE];
 #endif /* PROTOTYPE_INSTANTIATIONS_IN_IL */
 
@@ -2162,7 +2165,8 @@ typedef struct a_function_state {
   a_scope_ptr	innermost_function_scope;
 } a_function_state;
 
-static a_function_state null_function_state = {
+STATIC_THREAD a_function_state
+		null_function_state = {
   NULL
 };
 
@@ -2199,7 +2203,8 @@ typedef struct a_source_sequence_scan_state {
 		sublist_parent_source_sequence_entry;
 } a_source_sequence_scan_state;
 
-static a_source_sequence_scan_state null_source_sequence_scan_state = {
+STATIC_THREAD a_source_sequence_scan_state
+		null_source_sequence_scan_state = {
   NULL, NULL
 };
 
@@ -2434,13 +2439,13 @@ typedef struct an_access_cache_entry {
 } an_access_cache_entry;
 
 #define BUCKETS_FOR_ACCESS_CACHE 16383
-static an_access_cache_entry
+STATIC_THREAD an_access_cache_entry
 		access_cache[BUCKETS_FOR_ACCESS_CACHE];
 
 /*
 A list of free access cache entries available for reuse.
 */
-static an_access_cache_entry_ptr
+STATIC_THREAD an_access_cache_entry_ptr
 		avail_access_cache_entries;
 
 
@@ -4805,7 +4810,8 @@ gen_name.  See gen_name for the meaning of need_closing_paren.
 {
 #if EXPENSIVE_CHECKING
   a_qualifier_recursion_check            this_recursion_check;
-  static a_qualifier_recursion_check_ptr recursion_check_stack_top;
+  STATIC_THREAD a_qualifier_recursion_check_ptr
+                                         recursion_check_stack_top;
 #endif /* EXPENSIVE_CHECKING */
   a_type_ptr                             actual_type_used;
   a_boolean                              saved_suppress_template_args =
@@ -5516,7 +5522,7 @@ The base/derived hash table.  See the comments for
 accessible_typedef_hash_table above for details on the organization.
 */
 #define BUCKETS_FOR_DERIVED_HASH_TABLE 16383
-static a_derived_hash_entry
+STATIC_THREAD a_derived_hash_entry
 		derived_hash_table[BUCKETS_FOR_DERIVED_HASH_TABLE];
 
 static void add_bases_to_hash_table(a_type_ptr derived_class);
@@ -5724,8 +5730,10 @@ in its scope without qualification.
 Variables used for passing state across recursions of
 get_template_arg_nesting below.
 */
-static int curr_tpl_nesting;
-static int max_tpl_nesting;
+STATIC_THREAD int
+		curr_tpl_nesting;
+STATIC_THREAD int
+		max_tpl_nesting;
 
 
 static void get_template_arg_nesting(a_source_correspondence *scp,
@@ -11903,13 +11911,15 @@ typedef struct a_type_scan_record {
 The head of a singly-linked list of type scan records for types that have
 already been seen during the current scan.
 */
-static a_type_scan_record_ptr scanned_types;
+STATIC_THREAD a_type_scan_record_ptr
+		scanned_types;
 
 /*
 The head of a singly-linked list of type scan records that are available
 for reuse.
 */
-static a_type_scan_record_ptr available_type_scan_records;
+STATIC_THREAD a_type_scan_record_ptr
+		available_type_scan_records;
 
 static a_boolean i_is_or_uses_unnameable_class_type(a_type_ptr type)
 /*
@@ -13802,7 +13812,8 @@ case, is passed along to gen_expr.
 /*
 Variable set by the following traverse_expr processing routine.
 */
-static an_expr_node_ptr temp_init_node;
+STATIC_THREAD an_expr_node_ptr
+		temp_init_node;
 
 
 static void find_temp_init(an_expr_node_ptr                    expr,
@@ -14836,7 +14847,7 @@ operators to this list and are uncertain about the precedence to use, it is
 always safe to use PREC_LOWEST, which effectively results in use of
 gen_expr_with_parens to generate the expression containing the operator.
 */
-static a_byte overloadable_operator_precedence[] = {
+static constexpr a_byte overloadable_operator_precedence[] = {
   PREC_LOWEST,		/* onk_none */
   PREC_LOWEST,		/* onk_new */
   PREC_LOWEST,		/* onk_delete */
@@ -15400,14 +15411,14 @@ analyze_decomposed_compound_operation, set during the traversal of the
 expression by find_pieces_of_decomposed_compound_operation, and then
 queried after the traversal by analyze_decomposed_compound_operation.
 */
-static a_const_char
+STATIC_THREAD a_const_char
 		*compound_operation_string;
 			/* Set to point to a string containing the compound
 			   operator corresponding to the simple operator
 			   into which the source expression was
 			   decomposed. */
 
-static an_expr_node_ptr
+STATIC_THREAD an_expr_node_ptr
 		opnd2_of_simple_operation;
 			/* Set to the second operand of the simple
 			   operation in the decomposed tree -- e.g., if the
@@ -15415,7 +15426,7 @@ static an_expr_node_ptr
 			   will be p = p + 1 and this pointer will be set
 			   to point to the 1. */
 
-static an_expr_node_ptr
+STATIC_THREAD an_expr_node_ptr
 		static_object_expression;
 			/* In a static property reference that was written
 			   with an object expression, the object expression
@@ -15430,7 +15441,7 @@ static an_expr_node_ptr
 A variable set by analyze_decomposed_compound_operation prior to the call
 to traverse_expr to control the traversal.
 */
-static a_boolean
+STATIC_THREAD a_boolean
 		tree_is_from_operator_synthesis;
 			/* Will be TRUE if the rewritten tree resulted from
 			   operator synthesis, i.e., if the right-hand side

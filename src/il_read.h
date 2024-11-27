@@ -38,7 +38,8 @@ il_read.h -- Declarations relating to il_read.c (having to do with
 BEGIN_EDG_NAMESPACE
 
 #if ALTERNATE_IL_FILE_FORMAT
-EXTERN char	*entry_array_base_array[(int)iek_last],
+EXTERN_THREAD char
+		*entry_array_base_array[(int)iek_last],
 		*fs_entry_array_base_array[(int)iek_last];
 			/* For each IL entry kind, a pointer to an array
 			   of entries of that kind, which is the full
@@ -48,12 +49,14 @@ EXTERN char	*entry_array_base_array[(int)iek_last],
 			   from this array.  The "fs_" array is for the file
 			   scope, the other is for a function scope. */
 
-EXTERN sizeof_t	entry_length_with_prefix[(int)iek_last],
+EXTERN_THREAD sizeof_t
+		entry_length_with_prefix[(int)iek_last],
 		fs_entry_length_with_prefix[(int)iek_last];
 			/* The each IL entry kind, the length of the IL
 			   entry including any prefix, in function scopes
 			   and (the fs_ version) in the file scope. */
-EXTERN sizeof_t	length_of_entry_prefix[(int)iek_last],
+EXTERN_THREAD sizeof_t
+		length_of_entry_prefix[(int)iek_last],
 		fs_length_of_entry_prefix[(int)iek_last];
 			/* For each IL entry kind, the length of the prefix
 			   preceding the entry, in function scopes and

@@ -408,7 +408,7 @@ Display the source-sequence entry pointed to by ssep, for debugging purposes.
   }  /* if */
 }  /* db_source_sequence_entry */
 
-static unsigned ss_list_count;
+STATIC_THREAD unsigned ss_list_count;
 		/* Variable used to count the number of entries output by
 		   db_ss_list (to limit the output in case of loops). */
 

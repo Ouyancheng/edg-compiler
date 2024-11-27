@@ -272,8 +272,8 @@ and routine initializations).
 STATIC_THREAD an_output_file_position
 		primary_output_position;
 #if !C_GEN_BE_GENERATES_ANSI_C
-static an_output_file_position
-			file_scope_inits_output_position;
+STATIC_THREAD an_output_file_position
+		file_scope_inits_output_position;
 #endif /* !C_GEN_BE_GENERATES_ANSI_C */
 STATIC_THREAD an_output_file_position
 		rout_dynamic_inits_output_position;
@@ -284,7 +284,8 @@ Temporary files used for initialization code that must be rendered as
 assignment statements:
 */
 #if !C_GEN_BE_GENERATES_ANSI_C
-static FILE	*f_file_scope_inits;
+STATIC_THREAD FILE
+		*f_file_scope_inits;
 			/* Static initializations at the file scope. */
 #endif /* !C_GEN_BE_GENERATES_ANSI_C */
 STATIC_THREAD FILE
@@ -308,13 +309,14 @@ STATIC_THREAD a_boolean
 			   implicitly declared old-style parameters). */
 #endif /* ASM_FUNCTION_ALLOWED */
 #if C_GEN_BE_NEEDS_MODULE_ID
-static a_const_char
+STATIC_THREAD a_const_char
 		*module_id;
-static char	*module_init_id;
+STATIC_THREAD char
+		*module_init_id;
 			/* Seed for module-unique names. */
 #endif /* C_GEN_BE_NEEDS_MODULE_ID */
 #if !C_GEN_BE_GENERATES_ANSI_C
-static a_boolean
+STATIC_THREAD a_boolean
 		file_scope_init_routine_called;
 			/* TRUE if a file-scope initialization routine has
 			   been called. */
@@ -366,7 +368,7 @@ STATIC_THREAD a_variable_ptr
 			   master_routine_return_variable (passing the returned
 			   value back to the alternate entry point that
 			   is calling the master routine). */
-static a_const_char
+STATIC_THREAD a_const_char
 		*end_of_master_routine_label = "__L_end_of_master_routine";
 			/* Label used to indicate the end of a master routine.
 			   Used as a target for "inlined" returns from the
@@ -413,19 +415,19 @@ STATIC_THREAD a_stdc_pragma_value
 			   emitted so far). */
 
 #if FIXED_POINT_ALLOWED && !LOWER_FIXED_POINT
-static a_stdc_pragma_value
+STATIC_THREAD a_stdc_pragma_value
 		curr_default_fx_full_precision;
 			/* The value of the last STDC FX_FULL_PRECISION pragma
 			   emitted in file scope (stdc_pv_default if none was
 			   emitted so far). */
 
-static a_stdc_pragma_value
+STATIC_THREAD a_stdc_pragma_value
 		curr_default_fx_fract_overflow;
 			/* The value of the last STDC FX_FRACT_OVERFLOW pragma
 			   emitted in file scope (stdc_pv_default if none was
 			   emitted so far). */
 
-static a_stdc_pragma_value
+STATIC_THREAD a_stdc_pragma_value
 		curr_default_fx_accum_overflow;
 			/* The value of the last STDC FX_ACCUM_OVERFLOW pragma
 			   emitted in file scope (stdc_pv_default if none was
@@ -433,7 +435,7 @@ static a_stdc_pragma_value
 #endif /* FIXED_POINT_ALLOWED && !LOWER_FIXED_POINT */
 
 #if UPC_EXTENSIONS_ALLOWED
-static a_upc_access_method
+STATIC_THREAD a_upc_access_method
 		curr_default_upc_access_method;
 			/* The UPC access method as set by the last UPC
 			   pragma.  If no pragma has been emitted yet,

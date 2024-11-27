@@ -68,10 +68,10 @@ externally.
 #define STATIC static
 #endif /* FP_UNIT_TESTING */
 
-static a_const_char *lc_inf = "infinity";
-static a_const_char *uc_inf = "INFINITY";
-static a_const_char *lc_nan = "nan";
-static a_const_char *uc_nan = "NAN";
+static constexpr a_const_char *lc_inf = "infinity";
+static constexpr a_const_char *uc_inf = "INFINITY";
+static constexpr a_const_char *lc_nan = "nan";
+static constexpr a_const_char *uc_nan = "NAN";
 
 
 static int match(a_const_char *str,
@@ -890,10 +890,12 @@ val.  Does not handle overflow sensibly.
 #endif /* FP_USE_EMULATION || FP_UNIT_TESTING */
 
 /* a_bigint objects */
-static a_bigint bigints[NUM_BIGINTS];
+STATIC_THREAD a_bigint
+                bigints[NUM_BIGINTS];
                         /* A statically allocated list of a_bigint temporary
                            locations used for the conversion routines. */
-static a_bigint *bigint_head;
+STATIC_THREAD a_bigint
+                *bigint_head;
                         /* A list of bigints that are "free". */
 
 
@@ -1315,14 +1317,17 @@ Return *left * *right.
 
 
 /* Storage for large powers of 5, for use in bigint_5_2_n. */
-static a_bigint large_fives[FIVE_TWO_CACHE_SIZE];
+STATIC_THREAD a_bigint
+                large_fives[FIVE_TWO_CACHE_SIZE];
                         /* A cache for 5^2^n values.  These values are
                            computed when needed and stored here for future
                            use. */
-static int      large_fives_inited;
+STATIC_THREAD int
+                large_fives_inited;
                         /* The number of entries in large_fives that have
                            valid values. */
-static a_bigint large_fives_static;
+STATIC_THREAD a_bigint
+                large_fives_static;
                         /* A static a_bigint object returned by bigint_5_2_n
                            when the requested value is larger than one
                            found in the cache. */
@@ -1371,7 +1376,7 @@ this routine is called subsequently).
 
 
 /* Small powers of 5, for use in bigint_do_mult_pow5. */
-static int pow5s[] =
+static constexpr int pow5s[] =
 {
   1,
   5,
@@ -2601,7 +2606,8 @@ Returns: fp_ret_valid if successful, fp_ret_too_small if size is too small.
 }  /* n_strcpy */
 
 
-static char     zeros[] = "00000000";
+static constexpr a_const_char
+                zeros[] = "00000000";
                         /* Used for formatting below. */
 
 

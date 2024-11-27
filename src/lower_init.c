@@ -7023,10 +7023,10 @@ dealt with).
 
 #if USE_PATCH_INIT_STARTUP
 
-/*
-Pointer to the struct type for the __linkl structure.  NULL until created.
-*/
-static a_type_ptr linkl_type;
+STATIC_THREAD a_type_ptr
+		linkl_type;
+			/* Pointer to the struct type for the __linkl
+			   structure.  NULL until created. */
 
 
 static a_type_ptr make_linkl_type(void)
@@ -7789,14 +7789,14 @@ STATIC_THREAD a_routine_ptr
 
 #if IA64_ABI
 
-static a_routine_ptr
+STATIC_THREAD a_routine_ptr
 		guard_acquire_routine,
 		guard_release_routine;
 
 /*
 Pointer to the variable entry for __dso_handle.
 */
-static a_variable_ptr
+STATIC_THREAD a_variable_ptr
 		dso_handle_var;
 
 #endif /* IA64_ABI */
@@ -18667,13 +18667,13 @@ in all dynamic initializations under it.
 
 
 #if SEPARATE_ROUTINES_FOR_FILE_SCOPE_DYNAMIC_INITS
-static a_routine_list_entry_ptr
+STATIC_THREAD a_routine_list_entry_ptr
                 file_scope_dynamic_init_routines_tail;
                         /* Points to the last entry on the list of routine
                            entries pointed to by
                            il_header.file_scope_dynamic_init_routines. */
 #if !USE_LAZY_INITIALIZATION_FOR_THREAD_LOCAL_VARIABLES
-static a_routine_list_entry_ptr
+STATIC_THREAD a_routine_list_entry_ptr
                 thread_local_dynamic_init_routines_tail;
                         /* Points to the last entry on the list of routine
                            entries pointed to by
@@ -19504,12 +19504,12 @@ need to be modified if changes are made here.
 Pointer to the struct type for the Microsoft _GUID, once it is created.
 NULL until created.
 */
-static a_type_ptr
+STATIC_THREAD a_type_ptr
 		guid_type;
-static a_type_ptr
+STATIC_THREAD a_type_ptr
 		guid_array_type;
 			/* Array type for the Data4 member of _GUID. */
-static a_variable_ptr
+STATIC_THREAD a_variable_ptr
 		null_guid_variable;
 			/* Variable for a NULL GUID, once created. */
 

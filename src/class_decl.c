@@ -346,7 +346,7 @@ using an_abbr_mem_func_templ_map = Ptr_map<a_token_sequence_number,
 			   token sequence number of the abbreviated member
 			   function template declaration. */
 
-an_abbr_mem_func_templ_map
+STATIC_THREAD an_abbr_mem_func_templ_map
 		*abbr_mem_func_templates;
 			/* A map from token sequence numbers of member
 			   declarations to associated "auto" parameter
@@ -1065,11 +1065,12 @@ typedef struct a_quasi_override_descr {
 			   (it is not treated as an override). */
 } a_quasi_override_descr;
 
-/* Available list of "quasi-override" descriptions. */
-static a_quasi_override_descr_ptr avail_quasi_override_descrs;
+STATIC_THREAD a_quasi_override_descr_ptr
+		avail_quasi_override_descrs;
+			/* Available list of "quasi-override" descriptions. */
 
 #if DEBUG
-static unsigned long
+STATIC_THREAD unsigned long
 		num_quasi_override_descrs_allocated;
 
 unsigned long db_show_quasi_override_descrs_used(unsigned long grand_total)
@@ -1654,15 +1655,16 @@ list and free that list.
 
 #if IA64_ABI
 
-/* Available list of covariant override entries. */
-static a_covariant_override_ptr  avail_covariant_overrides;
+STATIC_THREAD a_covariant_override_ptr
+		avail_covariant_overrides;
+			/* Available list of covariant override entries. */
 
 #if DEBUG
 
 /*
 Counter to track total use of memory.
 */
-static unsigned long
+STATIC_THREAD unsigned long
 		num_covariant_overrides_allocated;
 
 unsigned long db_show_covariant_overrides_used(unsigned long grand_total)

@@ -1851,7 +1851,7 @@ Double the number of entries in the given map.  This requires rehashing.
 
 #ifdef TRACE_INTERPRETER_MAP
 
-static a_byte
+STATIC_THREAD a_byte
 		*traced_iptr = NULL;
 			/* Pointer that is checked for mapping activity.
 			   Intended to be set from within a debugger and
@@ -3339,11 +3339,11 @@ indicated storage, because that result could set the active field.)
 
 #if DEBUG && TRACK_INTERPRETER_ALLOCATIONS
 
-static a_data_map
+STATIC_THREAD a_data_map
 		object_alloc_map;
 			/* Map tracking allocations of complete objects. */
 
-static a_byte_count
+STATIC_THREAD a_byte_count
 		object_alloc_to_intercept;
 			/* The allocation number to intercept (0 if none). */
 
@@ -3368,9 +3368,9 @@ db_object_alloc_num and can be assigned to object_alloc_to_intercept when the
 front end starts up to find where the object is originally allocated.
 */
 {
-  static a_boolean     map_ready = FALSE;
-  static a_byte_count  alloc_num = 0;
-  a_byte_count         prev_num;
+  STATIC_THREAD a_boolean     map_ready = FALSE;
+  STATIC_THREAD a_byte_count  alloc_num = 0;
+  a_byte_count                prev_num;
 
   if (!map_ready) {
     init_data_map(&object_alloc_map, /*mask_width=*/5U);
@@ -4159,8 +4159,8 @@ static void db_object(a_byte      *addr,
 Output the contents of the interpreted object of type tp stored at addr.
 */
 {
-  a_boolean  not_initialized = FALSE;
-  static int indent = 0;
+  a_boolean         not_initialized = FALSE;
+  STATIC_THREAD int indent = 0;
 
   db_indent(indent);
   if (complete_object == NULL) {
@@ -10282,7 +10282,7 @@ See do_constexpr_intrinsic_call for the meaning of the parameters.
     a_constant_ptr          init_cp, result_cp;
     a_symbol_ptr            sym;
     a_symbol_locator        loc;
-    static long             n = 0;
+    STATIC_THREAD long      n = 0;
     get_array_pos(ips, cap, elem_type, &len, &pos, &elem_size,
                   &result);
     if (!result) goto done;

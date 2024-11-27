@@ -232,7 +232,7 @@ STATIC_THREAD sizeof_t
 			   (e.g., Intel long doubles use 10 bytes of the
 			   12 bytes of allocated space). */
 
-static a_boolean
+STATIC_THREAD a_boolean
 		long_double_has_no_implicit_bit = FALSE;
 			/* TRUE if the long double floating point type does
 			   not make use of an implicit mantissa bit. */
@@ -272,13 +272,13 @@ typedef union softfloat64_t {
   double        hard;
 } softfloat64_t;
 
-static float16_t
+STATIC_THREAD float16_t
 		f16_zero;
 			/* The value 0.0F16. */
-static float32_t
+STATIC_THREAD float32_t
 		f32_zero;
 			/* The value 0.0F. */
-static float64_t
+STATIC_THREAD float64_t
 		f64_zero;
 			/* The value 0.0. */
 
@@ -784,7 +784,7 @@ underflow.  If the conversion can be done, return the result in "result".
 #if CAN_DO_FLT_MAX_TEST
   /* We can test for conversion overflow before doing the actual conversion,
      as outlined above. */
-  static a_boolean		init_done = FALSE;
+  STATIC_THREAD a_boolean	init_done = FALSE;
   STATIC_THREAD a_host_fp_value	host_fp_flt_max;
   STATIC_THREAD float			float_flt_max;
   /* Initialize host_fp_flt_max to FLT_MAX converted as a_host_fp_value.  This
@@ -1078,7 +1078,7 @@ underflow.  If the conversion can be done, return the result in "result".
   /* DBL_MAX is available, so we can use it to test for overflow.  We do
      this before converting to double in case an overflow on such a
      conversion would cause a float exception. */
-  static a_boolean		init_done = FALSE;
+  STATIC_THREAD a_boolean	init_done = FALSE;
   STATIC_THREAD a_host_fp_value	host_fp_dbl_max;
   STATIC_THREAD double			double_dbl_max;
   /* Initialize host_fp_dbl_max to DBL_MAX converted as a_host_fp_value.

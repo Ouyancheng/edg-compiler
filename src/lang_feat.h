@@ -1171,7 +1171,7 @@ The global variable sun_mode is defined here (rather than in cmd_line.h) so
 that it can be available to standalone utilities.
 */
 #if SUN_EXTENSIONS_ALLOWED || defined(_lint)
-EXTERN a_boolean
+EXTERN_THREAD a_boolean
                 sun_mode;
                         /* Accept C language features supported by Sun C++ 5.x
                            compilers. */
@@ -1183,7 +1183,7 @@ EXTERN a_boolean
 #endif /* SUN_EXTENSIONS_ALLOWED || defined(_lint) */
 
 #if SUN_EXTENSIONS_ALLOWED
-EXTERN a_boolean
+EXTERN_THREAD a_boolean
                 sun_linker_scope_allowed;
                         /* TRUE if Sun C++ 5.5 linker scope specifiers
                            (__global, __symbolic, __hidden) should be
@@ -1249,44 +1249,44 @@ Global variables related to Microsoft compatibility mode are defined here
 utilities.
 */
 #if MICROSOFT_EXTENSIONS_ALLOWED
-EXTERN a_boolean
+EXTERN_THREAD a_boolean
 		microsoft_mode;
 			/* TRUE if a particular version (as given by
 			   microsoft_version) of the Microsoft compiler is
 			   being emulated.  When this is TRUE, ms_compat and
 			   ms_extensions will also be TRUE. */
 
-EXTERN a_boolean
+EXTERN_THREAD a_boolean
 		ms_extensions;
 			/* TRUE if Microsoft extensions (as defined by clang's
 			   -fms-extensions command-line option) are allowed.
 			   Always TRUE when microsoft_mode is TRUE. */
 
-EXTERN a_boolean
+EXTERN_THREAD a_boolean
 		ms_compat;
 			/* TRUE if Microsoft "compatibility" (as defined by
 			   clang's -fms-compatibility command-line option) is
 			   enabled.  Always TRUE when microsoft_mode is
 			   TRUE. */
 
-EXTERN a_boolean
+EXTERN_THREAD a_boolean
 		microsoft_bugs;
 			/* TRUE if Microsoft bugs are to be emulated. */
 
-EXTERN a_boolean
+EXTERN_THREAD a_boolean
 		cppcli_enabled;
 			/* TRUE if C++/CLI features should be accepted. */
 
-EXTERN a_boolean
+EXTERN_THREAD a_boolean
 		cppcx_enabled;
 			/* TRUE if C++/CX features should be accepted. */
 
-EXTERN a_boolean
+EXTERN_THREAD a_boolean
 		cli_or_cx_enabled;
 			/* TRUE if either cppcli_enabled or cppcx_enabled is
 			   TRUE. */
 
-EXTERN a_boolean 
+EXTERN_THREAD a_boolean
 		scanning_generated_code_from_metadata;
 			/* TRUE if we are scanning code generated from
 			   metadata. */
@@ -1297,23 +1297,23 @@ EXTERN a_boolean
    some useless code when the front-end itself is compiled. */
 #if defined(_lint) || defined(__COVERITY__)
 /* When static analysis is used, avoid warnings about dead code. */
-EXTERN a_boolean
+EXTERN_THREAD a_boolean
 		microsoft_mode;
-EXTERN a_boolean
+EXTERN_THREAD a_boolean
 		ms_extensions;
-EXTERN a_boolean
+EXTERN_THREAD a_boolean
 		ms_compat;
-EXTERN a_boolean
+EXTERN_THREAD a_boolean
 		microsoft_bugs;
-EXTERN a_boolean
+EXTERN_THREAD a_boolean
 		ms_permissive;
-EXTERN a_boolean
+EXTERN_THREAD a_boolean
 		cppcli_enabled;
-EXTERN a_boolean
+EXTERN_THREAD a_boolean
 		cppcx_enabled;
-EXTERN a_boolean
+EXTERN_THREAD a_boolean
 		cli_or_cx_enabled;
-EXTERN a_boolean 
+EXTERN_THREAD a_boolean
 		scanning_generated_code_from_metadata;
 #else /* !(defined(_lint) || defined(__COVERITY__) */
 #define microsoft_mode FALSE

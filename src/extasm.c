@@ -41,7 +41,7 @@ struct name_to_reg {
 /*
 Extra named registers, in addition to the canonical names in il_def.h.
 */
-static struct name_to_reg extra_reg_names[] = {
+STATIC_THREAD struct name_to_reg extra_reg_names[] = {
 #if GNU_X86_ASM_EXTENSIONS_ALLOWED
   /* x86 integer registers, common set, other possible names... */
   { "al",  (a_named_register)anr_a  },
@@ -739,7 +739,7 @@ typedef struct single_register_constraint {
 } single_register_constraint;
 
 
-static single_register_constraint single_register_constraints[] = {
+STATIC_THREAD single_register_constraint single_register_constraints[] = {
 #if GNU_X86_ASM_EXTENSIONS_ALLOWED
   { (an_asm_operand_constraint_kind)aoc_reg_a, (a_named_register)anr_a },
   { (an_asm_operand_constraint_kind)aoc_reg_b, (a_named_register)anr_b },
@@ -756,7 +756,7 @@ static single_register_constraint single_register_constraints[] = {
 
 #endif /* !RECORD_RAW_ASM_OPERAND_DESCRIPTIONS */
 
-static a_named_register fixed_registers[] = {
+STATIC_THREAD a_named_register fixed_registers[] = {
 #if GNU_X86_ASM_EXTENSIONS_ALLOWED
   (a_named_register)anr_bp, (a_named_register)anr_sp,
 #endif /* GNU_X86_ASM_EXTENSIONS_ALLOWED */

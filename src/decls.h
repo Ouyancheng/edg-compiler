@@ -64,7 +64,7 @@ EXTERN_THREAD a_boolean
     any_decls_seen_this_stage = FALSE;                                        \
   }
 
-extern EDG_THREAD a_symbol_ptr
+EXTERN_THREAD a_symbol_ptr
                 curr_module_sym;
                         /* When compiling a module unit, the symbol for the
                            module. */

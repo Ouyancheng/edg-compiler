@@ -164,7 +164,7 @@ STATIC_THREAD a_memory_allocation_set
 #ifdef USING_PURIFY
 #include "purify.h"
 
-static a_boolean
+STATIC_THREAD a_boolean
 		purify_is_active;
 			/* TRUE when a purify'd version of the executable
 			   is being used.  This causes the memory allocation
@@ -616,11 +616,11 @@ PCH was created.
 
 #else /* !USE_MMAP_FOR_MEMORY_REGIONS */
 
-static a_boolean
+STATIC_THREAD a_boolean
 		additional_allocation_needed;
 			/* TRUE when an allocation has been done that
 			   cannot be satisfied by the pre-allocated memory. */
-			
+
 
 a_void_ptr alloc_new_mem_block(sizeof_t size)
 /*

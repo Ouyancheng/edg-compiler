@@ -89,7 +89,7 @@ STATIC_THREAD char
 			   line modification at the time that macro_buffer is
 			   reallocated. */
 #if FULLY_RESOLVED_MACRO_POSITIONS
-static a_macro_text_map
+STATIC_THREAD a_macro_text_map
 		macro_text_map;
 			/* Map from text in macro_buffer to the original
 			   source locations from which the text came, i.e.,
@@ -115,36 +115,36 @@ static a_macro_text_map
 #endif /* FULLY_RESOLVED_MACRO_POSITIONS */
 
 #if RECORD_MACRO_INVOCATIONS
-static a_macro_invocation_record_block_ptr
+STATIC_THREAD a_macro_invocation_record_block_ptr
 		last_macro_invocation_record_block;
 			/* Pointer to the macro invocation record block
 			   containing the record with the largest index so
 			   far. */
-static a_macro_invocation_record_block_ptr
+STATIC_THREAD a_macro_invocation_record_block_ptr
 		ckpt_last_macro_invocation_record_block;
 			/* Shadow copy of preceding for checkpoint/revert. */
-static a_macro_invocation_record_block_ptr
+STATIC_THREAD a_macro_invocation_record_block_ptr
 		saved_next_macro_invocation_record_block;
 			/* If reverting a macro invocation moves
 			   last_macro_invocation_record_block to the
 			   preceding block, the newly-emptied block is
 			   pointed to by this so it can be reused for
 			   succeeding macro invocation records. */
-static a_macro_invocation_record_index
+STATIC_THREAD a_macro_invocation_record_index
 		num_macro_invocation_records;
 			/* The total number of macro invocation records used
 			   so far. */
-static a_macro_invocation_record_index
+STATIC_THREAD a_macro_invocation_record_index
 		ckpt_num_macro_invocation_records;
 			/* Shadow copy of preceding for checkpoint/revert. */
-static unsigned long
+STATIC_THREAD unsigned long
 		max_macro_invocation_depth;
 			/* The largest number of levels that have been pushed
 			   onto the macro invocation stack. */
-static unsigned long
+STATIC_THREAD unsigned long
 		ckpt_max_macro_invocation_depth;
 			/* Shadow copy of preceding for checkpoint/revert. */
-static unsigned long
+STATIC_THREAD unsigned long
 		depth_of_curr_macro_invocation_record;
 			/* The macro invocation stack depth of the current
 			   macro invocation record.  Note that this differs
@@ -154,7 +154,7 @@ static unsigned long
 			   depth_of_curr_macro_invocation_record takes into
 			   account macro invocations occurring during the
 			   rescan of macro expansions. */
-static unsigned long
+STATIC_THREAD unsigned long
 		ckpt_depth_of_curr_macro_invocation_record;
 			/* Shadow copy of preceding for checkpoint/revert. */
 #endif /* RECORD_MACRO_INVOCATIONS */
@@ -176,7 +176,7 @@ STATIC_THREAD char
 			/* Pointer to just after the end of
 			   aux_buffer_for_pcc_macros. */
 #if FULLY_RESOLVED_MACRO_POSITIONS
-static a_macro_text_map
+STATIC_THREAD a_macro_text_map
 		aux_text_map_for_pcc_macros;
 			/* Map from offsets into aux_buffer_for_pcc_macros to
 			   the original source locations from which the text
@@ -513,7 +513,7 @@ STATIC_THREAD a_const_char
 
 
 STATIC_THREAD a_symbol_ptr
-	       	date_macro_symbol,
+		date_macro_symbol,
 		time_macro_symbol;
 			/* Pointers to the symbol entries for the special
 			   macros "__DATE__" and "__TIME__". */
@@ -567,7 +567,7 @@ typedef struct a_text_map_position_tracker {
 			   added. */
 } a_text_map_position_tracker;
 
-static a_text_map_position_tracker_ptr
+STATIC_THREAD a_text_map_position_tracker_ptr
 		active_text_map_position_trackers;
 			/* Pointer to a list of all active position trackers,
 			   so they can be updated appropriately after a
@@ -3920,9 +3920,10 @@ nothing.
 
 #if MICROSOFT_EXTENSIONS_ALLOWED
 
-static a_token_kind func_name_token[] = {tok_function_name,
-                                         tok_decorated_function_name,
-                                         tok_pretty_function_name};
+static constexpr a_token_kind
+                func_name_token[] = {tok_function_name,
+                                     tok_decorated_function_name,
+                                     tok_pretty_function_name};
 
 static a_boolean is_microsoft_function_name_paste(a_macro_arg_ptr map,
                                                   a_const_char    *prev_text,
@@ -4661,7 +4662,7 @@ with bsearch when the __has_feature or __has_extension macro is
 encountered.  The current contents reflect WG21 N4842 and the clang 6
 documentation at clang.llvm.org/docs/LanguageExtensions.html.
 */
-static a_feature_support feature_support_list[] = {
+STATIC_THREAD a_feature_support feature_support_list[] = {
   { "",
     0,
     &aggregate_classes_can_have_bases,
@@ -5213,7 +5214,7 @@ to facilitate emulation of a potential future version of clang that does
 implement the documented distinction.  This list reflects clang version
 3.5.
 */
-static a_const_char *clang_type_traits_helpers[] = {
+static constexpr a_const_char *clang_type_traits_helpers[] = {
   "has_nothrow_assign",
   "has_nothrow_constructor",
   "has_nothrow_copy",
@@ -5307,7 +5308,7 @@ am extension in the current emulation.  The entries are sorted by the token
 spelling so the table can be used with bsearch.
 */
 
-static an_attribute_support attribute_support_list[] = {
+static constexpr an_attribute_support attribute_support_list[] = {
   /* attribute name          C++ value     C value
      --------------          ---------     ------- */
   { "carries_dependency",    "200809L",    "1"       },
@@ -8980,7 +8981,8 @@ Scan and process a #define directive.
                   start_pos;
   a_boolean       need_end_of_token_marker;
   a_token_kind    prev_token = tok_error;
-  static char     str_end_of_token_marker[LE_ESCAPE_LEN] =
+  STATIC_THREAD char
+                  str_end_of_token_marker[LE_ESCAPE_LEN] =
                                                 { LE_ESCAPE, LE_END_OF_TOKEN };
 #if RECORD_MACROS_IN_IL && EXTRA_SOURCE_POSITIONS_IN_IL
   a_macro_ptr     mp;
@@ -11183,7 +11185,8 @@ to "value".
 }  /* set_predef_macro_mode */
 
 
-static unsigned int last_mode_index = 0;
+STATIC_THREAD unsigned int
+                last_mode_index = 0;
                         /* Keep track of the index of the last predefined
                            macro mode (since it's likely that the next
                            predefined macro will have the same mode). */

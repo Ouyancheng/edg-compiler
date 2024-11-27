@@ -18476,7 +18476,7 @@ typedef struct an_il_header {
 			/* A list of module import declarations. */
 } an_il_header;
 
-EXTERN an_il_header il_header;
+EXTERN_THREAD an_il_header il_header;
 
 
 #if NEAR_AND_FAR_ALLOWED

@@ -34,10 +34,11 @@ il_write.h -- Declarations relating to il_write.c (having to do with
 /* Conditionally open the "edg" namespace. */
 BEGIN_EDG_NAMESPACE
 
-EXTERN FILE	*f_il_output /* = NULL */;
+EXTERN_THREAD FILE
+		*f_il_output /* = NULL */;
 			/* File to which the intermediate language is 
 			   written.  NULL if file should not be written. */
-EXTERN a_const_char
+EXTERN_THREAD a_const_char
 		*il_file_name /* = NULL */;
 			/* Name of the IL file, NULL if there isn't one or
 			   it's a temporary file. */

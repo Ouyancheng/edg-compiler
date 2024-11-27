@@ -652,7 +652,7 @@ extern void db_binary_float128(unsigned char *val);
 #endif /* FLOAT128_ENABLING_POSSIBLE */
 #endif /* DEBUG */
 
-EXTERN a_boolean
+EXTERN_THREAD a_boolean
                 floating_init_called;
                         /* TRUE once floating_init is called. */
 

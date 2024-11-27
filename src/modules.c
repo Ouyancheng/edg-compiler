@@ -57,9 +57,14 @@ constexpr a_module_file_suffix module_file_suffixes[] = {
   { "ifc", mfk_ms_ifc }
 };
 
-a_text_buffer_ptr module_search_buffer;
-
 }  /* namespace */
+
+STATIC_THREAD a_text_buffer_ptr
+                module_search_buffer;
+                        /* A buffer used during the search for the binary
+                           module interface file associated with a given
+                           module. */
+
 
 static a_boolean module_has_interface_dependency(a_symbol_ptr module_sym,
                                                  a_symbol_ptr interface_sym)

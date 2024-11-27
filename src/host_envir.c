@@ -385,23 +385,23 @@ STATIC_THREAD a_text_buffer_ptr
 
 #if NATIVE_MULTIBYTE_CHARS_SUPPORTED_WITH_UNICODE
 
-static a_text_buffer_ptr
+STATIC_THREAD a_text_buffer_ptr
 		utf8_buffer;
 			/* A text buffer used by multibyte_chars_to_utf8 to
 			   hold the UTF-8 result. */
 
-static a_text_buffer_ptr
+STATIC_THREAD a_text_buffer_ptr
 		mbc_buffer;
 			/* A text buffer used by utf8_to_multibyte_char
 			   to hold the native character result. */
 
 #if EDG_WIN32
-static a_text_buffer_ptr
+STATIC_THREAD a_text_buffer_ptr
 		locale_name_buffer;
 			/* A text buffer used by
 			   get_system_default_locale_name. */
 
-static _locale_t
+STATIC_THREAD _locale_t
 		system_default_locale;
 			/* The locale object for the Windows system default
 			   locale.  This is the default locale used for
@@ -412,7 +412,7 @@ static _locale_t
 
 #if !STANDALONE_UTILITY_PROGRAM
 #if EDG_WIN32
-static a_text_buffer_ptr
+STATIC_THREAD a_text_buffer_ptr
 		conv_utf8_buffer;
 			/* A text buffer used by conv_wide_to_utf8. */
 #endif /* EDG_WIN32 */
@@ -1659,7 +1659,8 @@ typedef struct a_temp_file_name {
   char		*name;	/* Null-terminated file name string. */
   FILE		*file;	/* File pointer. */
 } a_temp_file_name;
-static a_temp_file_name_ptr
+
+STATIC_THREAD a_temp_file_name_ptr
 		open_temp_files;
 			/* List of all temp files currently open. */
 #endif /* __MICROSOFT_OS__ */
@@ -2320,7 +2321,7 @@ Write the "epilogue" for the front end's execution.
 
 #if MAKE_FRONT_END_CALLABLE
 
-static a_boolean
+STATIC_THREAD a_boolean
 		signal_caught = FALSE;
 			/* Set to TRUE if a signal has been caught.  We
 			   should really exit the compilation in such cases. */
@@ -3069,10 +3070,10 @@ char *get_file_name_from_dir(a_boolean	  first,
 			     a_const_char *suffix,
 			     a_const_char *curr_dir_name)
 {
-  static intptr_t            handle;
-  static struct _tfinddata_t fileinfo;
-  char                       *result;
-  static char                pattern[10];
+  STATIC_THREAD intptr_t            handle;
+  STATIC_THREAD struct _tfinddata_t fileinfo;
+  char                              *result;
+  STATIC_THREAD char                pattern[10];
 
   if (dir_name != NULL) {
     chdir_with_check(dir_name);
@@ -3130,9 +3131,9 @@ char *get_file_name_from_dir(a_boolean	first,
 See comment above.
 */
 {
-  static struct _find_t   fileinfo;
-  char                    *result;
-  static char             pattern[10];
+  STATIC_THREAD struct _find_t fileinfo;
+  char                         *result;
+  STATIC_THREAD char           pattern[10];
 
   if (dir_name != NULL) {
     chdir_with_check(dir_name);
@@ -3658,7 +3659,8 @@ Produce a hash value for the unique file identifier "id".
 
 #if EDG_WIN32
 
-static HANDLE	f_mmap_file;
+STATIC_THREAD HANDLE
+		f_mmap_file;
 			/* The file handle for the mapped IL file. */
 
 NORETURN static void str_GetLastError_catastrophe(an_error_code error_code,
@@ -5976,17 +5978,17 @@ typedef struct a_portable_assembly_entry {
                            portable assembly. */
 } a_portable_assembly_entry;
 
-static a_portable_assembly_entry
-                *portable_assembly_table; 
+STATIC_THREAD a_portable_assembly_entry
+                *portable_assembly_table;
                         /* A dynamically-allocated table with information
                            about each portable assembly that is currently
                            available.  Note that entry zero in this table is
                            unused. */
-static an_assembly_index
+STATIC_THREAD an_assembly_index
                 pa_table_entries;
                         /* Contains the number of entries allocated for
                            portable_assembly_table. */
-static an_assembly_index
+STATIC_THREAD an_assembly_index
                 pa_cur_table_entry;
                         /* An index into portable_assembly_table that
                            represents the last entry in use (with the exception
@@ -6395,8 +6397,8 @@ One time initialization that must take place early on in the front end.
 This is done before command line processing.
 */
 {
-  a_const_char		*ptr;
-  static a_boolean	first_time = TRUE;
+  a_const_char            *ptr;
+  STATIC_THREAD a_boolean first_time = TRUE;
 
   if (first_time) {
     /* Set handlers for unusual abort signals.  This is only done on the

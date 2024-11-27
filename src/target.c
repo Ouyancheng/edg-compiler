@@ -165,7 +165,7 @@ Define a macro to initialize an a_target_configuration entry
 This array contains an entry for each target configuration defined when the
 front end is built.  The legacy configuration is always the first entry.
 */
-static a_target_configuration target_configurations[] = {
+STATIC_THREAD a_target_configuration target_configurations[] = {
   { LEGACY_TARGET_CONFIGURATION_NAME, /* A name for the legacy config. */
     set_legacy_target_config,
 #if DUMP_CONFIG_ENABLED

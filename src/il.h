@@ -211,7 +211,7 @@ EXTERN_THREAD a_memory_region_number
 		curr_il_region_number;
 
 /* A dummy name for placeholders. */
-EXTERN a_const_char
+EXTERN_THREAD a_const_char
 		*routine_move_placeholder_name
 #if VAR_INITIALIZERS
                          = "<routine move placeholder>"
@@ -350,11 +350,11 @@ EXTERN_THREAD a_type_ptr
 			/* Points to the definition of std::align_val_t. */
 
 #if MICROSOFT_EXTENSIONS_ALLOWED
-EXTERN a_type_ptr
+EXTERN_THREAD a_type_ptr
 		type_of_guid;
 			/* Points to the definition of the _GUID struct. */
 
-EXTERN a_boolean
+EXTERN_THREAD a_boolean
 		in_microsoft_implementation_key_mapping_region;
 			/* Indicates whether the source being parsed is inside
 			   a region of code delimited by "#pragma
@@ -394,19 +394,19 @@ EXTERN_THREAD a_stdc_pragma_value
 
 #if FIXED_POINT_ALLOWED
 
-EXTERN a_stdc_pragma_value
+EXTERN_THREAD a_stdc_pragma_value
 		curr_fx_full_precision_state;
 			/* Used to reflect the current setting of the
 			   fx_full_precision state, which is set using the
 			   STDC FX_FULL_PRECISION pragma. */
 
-EXTERN a_stdc_pragma_value
+EXTERN_THREAD a_stdc_pragma_value
 		curr_fx_fract_overflow_state;
 			/* Used to reflect the current setting of the
 			   fx_fract_overflow state, which is set using the
 			   STDC FX_FRACT_OVERFLOW pragma. */
 
-EXTERN a_stdc_pragma_value
+EXTERN_THREAD a_stdc_pragma_value
 		curr_fx_accum_overflow_state;
 			/* Used to reflect the current setting of the
 			   fx_accum_overflow state, which is set using the
@@ -416,7 +416,7 @@ EXTERN a_stdc_pragma_value
 
 #if UPC_EXTENSIONS_ALLOWED
 
-EXTERN a_upc_access_method
+EXTERN_THREAD a_upc_access_method
 		curr_upc_access_method;
 			/* Used in UPC mode to reflect the last setting of
 			   the UPC access mode through the UPC pragma. */

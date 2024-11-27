@@ -15640,7 +15640,7 @@ completed.
 
 /* A pointer to the specific class type to be found by
    ttt_is_or_is_member_of_specific_class_type. */
-static a_type_ptr
+STATIC_THREAD a_type_ptr
 		specific_class_type;
 
 static a_boolean ttt_is_or_is_member_of_specific_class_type
@@ -17443,8 +17443,7 @@ effects does not itself create a side effect at the point of reference.
 A variable tracking the strictest ELF visibility during a type traversal with
 ttt_ELF_visibility_of_type.
 */
-static
-	an_ELF_visibility_kind
+STATIC_THREAD an_ELF_visibility_kind
 		strictest_ELF_visibility_in_traversal;
 
 

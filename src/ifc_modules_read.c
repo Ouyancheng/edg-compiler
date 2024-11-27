@@ -3342,7 +3342,7 @@ done:
 
 #if EXPENSIVE_CHECKING
 
-static a_boolean
+STATIC_THREAD a_boolean
                 in_get_home_scope = FALSE;
                         /* Flag set while evaluating a call to get_home_scope.
                            This is used for eager loading mode to avoid

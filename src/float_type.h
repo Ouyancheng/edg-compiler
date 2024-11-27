@@ -843,19 +843,20 @@ type.
 #endif /* FPT_MAX_10_EXP... */
 #define N_BIG_TENS (TENS_BASE - EXP_SHIFT)
 
-static an_fp_floating_point_type
+STATIC_THREAD an_fp_floating_point_type
                 SMALL_TENS[N_SMALL_TENS];
                         /* Table of 10^i for fast conversion, approximation. */
 
-static an_fp_floating_point_type
+STATIC_THREAD an_fp_floating_point_type
                 BIG_TENS[N_BIG_TENS > 0 ? N_BIG_TENS : 1];
                         /* Table of 10^(2^(i+EXP_SHIFT)) for fast conversion,
                            approximation. */
 
-static char     ONE[] = "1";
+static constexpr char
+                ONE[] = "1";
                         /* Used below to create fake decimal input. */
 
-static an_fp_decimal_input
+STATIC_THREAD an_fp_decimal_input
                 DEC = { fpt_approx, 0, (1 << EXP_SHIFT) + 1,
                         ONE, ONE + 1, ONE, ONE, 1 };
                         /* Fake decimal input for cleaning up values generated

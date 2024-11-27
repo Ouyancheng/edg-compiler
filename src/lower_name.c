@@ -559,7 +559,8 @@ substitutions with the same hash value.  An entity may be on this list multiple
 times (because of different values for a_substitution::is_pack_expansion).
 */
 #define SUBSTITUTION_CACHE_SIZE 0x100
-static a_substitution_ptr substitution_cache[SUBSTITUTION_CACHE_SIZE];
+STATIC_THREAD a_substitution_ptr
+		substitution_cache[SUBSTITUTION_CACHE_SIZE];
 
 /* Hash function for a substitutable entity. */
 #define subst_hash(ptr)                                                      \
@@ -893,7 +894,7 @@ STATIC_THREAD an_active_parent_map
                            */
 
 #if EXPENSIVE_CHECKING && IA64_ABI && ABI_COMPATIBILITY_VERSION >= 405
-static a_boolean
+STATIC_THREAD a_boolean
                 skip_substitution_check;
                         /* Skips the IA-64 ABI substitution check when TRUE. */
 #endif /* EXPENSIVE_CHECKING && IA64_ABI && ABI_COMPATIBILITY_VERSION >= 405 */
@@ -1011,10 +1012,11 @@ entry.
 }  /* canonical_substitution_entity */
 
 
-static char base_36_digits[37] = "0123456789ABCDEFGHIJKLMNOPQRSTUVWXYZ";
+static constexpr char
+                base_36_digits[37] = "0123456789ABCDEFGHIJKLMNOPQRSTUVWXYZ";
 
 /* Pointer to a list of available (freed) substitutions. */
-static a_substitution_ptr
+STATIC_THREAD a_substitution_ptr
 		avail_substitutions;
 
 
@@ -7643,7 +7645,7 @@ functions with the same signature).
    (!(type)->source_corresp.is_local_to_function ||                     \
     (type)->source_corresp.is_class_member))
 
-static a_const_char
+STATIC_THREAD a_const_char
 		*placeholder_name = "";
                         /* A character string that is returned in place of a
                            module id, namespace name, or type name when no

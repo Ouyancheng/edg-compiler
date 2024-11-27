@@ -346,7 +346,7 @@ STATIC_THREAD a_decl_parse_state_ptr
 			/* Pointer to state entries available for reuse. */
 
 #if DEBUG
-static unsigned long
+STATIC_THREAD unsigned long
 		num_decl_parse_states_allocated = 0;
 #endif /* DEBUG */
 
@@ -460,7 +460,7 @@ STATIC_THREAD a_decl_parse_callback_ptr
 			/* Pointer to callback entries available for reuse. */
 
 #if DEBUG
-static unsigned long
+STATIC_THREAD unsigned long
 		num_decl_parse_callbacks_allocated = 0;
 #endif /* DEBUG */
 
@@ -570,7 +570,7 @@ STATIC_THREAD an_auto_param_descr_ptr
 			   available for reuse. */
 
 #if DEBUG
-static unsigned long
+STATIC_THREAD unsigned long
 		num_auto_param_descriptions_allocated = 0;
 #endif /* DEBUG */
 

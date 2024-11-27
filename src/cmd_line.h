@@ -516,11 +516,11 @@ EXTERN_THREAD a_boolean
 			   processing. */
 #endif /* NEED_IL_DISPLAY */
 #if IL_SHOULD_BE_WRITTEN_TO_FILE
-EXTERN a_boolean
+EXTERN_THREAD a_boolean
 		suppress_il_file_write;
 			/* TRUE if the writing of the IL file should be
 			   suppressed. */
-EXTERN a_boolean
+EXTERN_THREAD a_boolean
 		skip_il_read;
 			/* TRUE if reading back of the IL file should be
 			   suppressed.  This can be useful for debugging
@@ -1115,7 +1115,7 @@ EXTERN_THREAD a_boolean
 			   (aka. "Embedded C") should be accepted. */
 
 #if NAMED_ADDRESS_SPACES_ALLOWED
-EXTERN a_boolean
+EXTERN_THREAD a_boolean
 		named_address_spaces_enabled;
 			/* TRUE if the extension of ISO TR 18037 (aka.
 			   "Embedded C") for named address spaces should be
@@ -1123,7 +1123,7 @@ EXTERN a_boolean
 #endif /* NAMED_ADDRESS_SPACES_ALLOWED */
 
 #if NAMED_REGISTERS_ALLOWED
-EXTERN a_boolean
+EXTERN_THREAD a_boolean
 		named_registers_enabled;
 			/* TRUE if the extension of ISO TR 18037 (aka.
 			   "Embedded C") for named-register storage classes
@@ -1387,7 +1387,8 @@ EXTERN_THREAD a_boolean
 			   suppressed. */
 
 #if !USE_MMAP_FOR_MEMORY_REGIONS
-EXTERN sizeof_t	pch_mem_size;
+EXTERN_THREAD sizeof_t
+		pch_mem_size;
 			/* Size of the preallocated PCH memory area. */
 #endif /* !USE_MMAP_FOR_MEMORY_REGIONS */
 
@@ -1819,12 +1820,12 @@ EXTERN_THREAD a_calling_convention
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED || GNU_X86_ATTRIBUTES_ALLOWED */
 
 #if MICROSOFT_EXTENSIONS_ALLOWED
-EXTERN a_boolean
+EXTERN_THREAD a_boolean
 		microsoft_64bit_pointer_extensions_enabled;
 			/* TRUE if 64-bit pointer extensions (__ptr32/__ptr64
 			   and __sptr/__uptr) should be accepted in Microsoft
 			   modes. */
-EXTERN a_const_char
+EXTERN_THREAD a_const_char
 		*mscorlib_file_name;
 			/* If non-NULL, the name of the file to be used
 			   to load mscorlib instead of using the normal
@@ -1833,24 +1834,24 @@ EXTERN a_const_char
 			   be used.  If this is not an absolute path name,
 			   it will be searched for using the normal
 			   assembly search path mechanism. */
-EXTERN a_const_char
+EXTERN_THREAD a_const_char
 		*vcmeta_directory_name;
 			/* If non-NULL, the name of the directory in which the
 			   vcmeta.dll file is to be found.  When NULL,
 			   vcmeta.dll is searched for in the same directory
 			   as the module that contains the front end. */
-EXTERN a_boolean
+EXTERN_THREAD a_boolean
 		using_framework_directory;
 			/* TRUE if assemblies should be searched for in the
 			   directory .NET is installed in. */
 #if WRITE_CPPCLI_PORTABLE_ASSEMBLIES
-EXTERN a_boolean
+EXTERN_THREAD a_boolean
 		generate_portable_assemblies;
 			/* TRUE if generating portable assemblies for use
 			   in testing C++/CLI on non-Windows platforms. */
 #endif /* WRITE_CPPCLI_PORTABLE_ASSEMBLIES */
 
-EXTERN a_boolean
+EXTERN_THREAD a_boolean
 		generic_arity_overload_allowed;
 			/* TRUE if C++/CLI generic classes with different arity
 			   (number of generic parameters) can exist in the
@@ -1860,13 +1861,13 @@ EXTERN a_boolean
 			   imported from metadata.  This controls the
 			   availability of the feature as a source feature. */
 
-EXTERN a_boolean
+EXTERN_THREAD a_boolean
 		disable_access_checking_in_microsoft_enum_bases;
 			/* TRUE if in Microsoft mode, the front end should
 			   emulate the Microsoft behavior of not performing
 			   access checking on enum base specifiers. */
 
-EXTERN a_boolean
+EXTERN_THREAD a_boolean
 		pending_generic_constraint_specifier_enabled;
 			/* TRUE if in C++/CLI mode, constraint clauses for a
 			   generic class declaration can be replaced by "..."
@@ -1875,11 +1876,11 @@ EXTERN a_boolean
 			   while processing code generated from metadata, but
 			   is enabled more widely for internal testing. */
 
-EXTERN a_const_char
+EXTERN_THREAD a_const_char
                 *msvc_lang;
                         /* The value for the _MSVC_LANG predefined macro. */
 
-EXTERN a_boolean
+EXTERN_THREAD a_boolean
                 ms_cplusplus_std_value;
                         /* TRUE if the __cplusplus macro should be defined to
                            the value implied by the C++ Standard version
@@ -1887,14 +1888,14 @@ EXTERN a_boolean
                            C++14).  This is the same value as the _MSVC_LANG
                            macro. */
 
-EXTERN a_boolean
+EXTERN_THREAD a_boolean
 		ms_permissive;
 			/* TRUE if the Microsoft "permissive" mode is being
 			   emulated.  Default value is specified by
 			   DEFAULT_MS_PERMISSIVE.  Can be used with C, C++,
 			   C++/CLI, and C++/CX modes. */
 
-EXTERN a_boolean
+EXTERN_THREAD a_boolean
 		for_each_statement_enabled;
 			/* TRUE if the Microsoft "for each" statement is
 			   enabled.  Typically enabled in C++ mode when
@@ -1902,13 +1903,13 @@ EXTERN a_boolean
 			   C++/CLI, and C++/CX modes.  Disabled when
 			   ms_permissive is FALSE.  */
 
-EXTERN a_boolean
+EXTERN_THREAD a_boolean
 		ms_treat_copy_init_as_direct_init;
 			/* TRUE if MSVC's behavior of often treating copy
 			   initialization as direct initialization should be
 			   emulated. */
 
-EXTERN a_boolean
+EXTERN_THREAD a_boolean
 		ms_stdc;
 			/* TRUE if __STDC__ should be defined.  Set via the
 			   --ms_stdc command-line option (or the
@@ -2284,7 +2285,7 @@ EXTERN_THREAD unsigned long
 			   loop-back branch. */
 
 #if MICROSOFT_EXTENSIONS_ALLOWED
-EXTERN a_const_char
+EXTERN_THREAD a_const_char
 		*import_dir_name;
 			/* The name of the directory in which files should be
 			   sought for the Microsoft #import directive. */
@@ -2292,7 +2293,7 @@ EXTERN a_const_char
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
 
 #if GENERATE_MICROSOFT_IF_EXISTS_ENTRIES
-EXTERN a_boolean
+EXTERN_THREAD a_boolean
 		create_microsoft_if_exists_entries;
 			/* TRUE if IL entries should be created for Microsoft
 			   __if_exist directives in certain contexts. */
@@ -2313,7 +2314,7 @@ EXTERN_THREAD a_boolean
 
 #if GENERATE_SOURCE_SEQUENCE_LISTS
 #if TEMPLATE_INSTANTIATIONS_IN_SOURCE_SEQUENCE_LISTS
-EXTERN a_boolean
+EXTERN_THREAD a_boolean
 	       instantiations_permitted_in_class_src_seq_list;
 			/* Flag that indicates whether a source sequence
 			   entry representing a template instantiation is
@@ -2423,7 +2424,7 @@ EXTERN_THREAD a_boolean
 			   C99 mode). */
 
 #if INT128_EXTENSIONS_ALLOWED
-EXTERN a_boolean
+EXTERN_THREAD a_boolean
 		int128_extensions_enabled;
 			/* TRUE if the front end supports 128-bit integer
 			   types.  Currently only meaningful in GNU modes. */
@@ -2513,26 +2514,26 @@ EXTERN_THREAD a_boolean
 #endif /* DEBUG */
 
 #if IA64_ABI
-EXTERN a_boolean
+EXTERN_THREAD a_boolean
 		emulate_gnu_abi_bugs;
 			/* TRUE if the IA-64 ABI implementation should be
 			   modified to emulate early GNU implementations of
 			   that ABI. */
 
-EXTERN a_boolean
+EXTERN_THREAD a_boolean
 		emulate_unsafe_gnu_abi_bugs;
 			/* TRUE if the IA-64 ABI implementation should
 			   emulate potentially dangerous GNU implementation
 			   bugs.  If TRUE, emulate_gnu_abi_bugs must also be
 			   TRUE. */
 
-EXTERN unsigned long
+EXTERN_THREAD unsigned long
 		gnu_abi_version;
 			/* The version of GNU C++ whose ABI is to be
 			   emulated.  This value must be at least 30200
 			   (i.e., g++ version 3.2). */
 
-EXTERN a_boolean
+EXTERN_THREAD a_boolean
 		warn_about_tail_padding_use;
 			/* TRUE if a warning should be emitted when a field
 			   of a derived class is placed in the tail padding
@@ -2551,11 +2552,11 @@ EXTERN_THREAD a_boolean
 
 #if UPC_EXTENSIONS_ALLOWED
 
-EXTERN a_boolean
+EXTERN_THREAD a_boolean
 		upc_mode;
 			/* TRUE if UPC extensions are to be accepted. */
 
-EXTERN a_host_large_integer
+EXTERN_THREAD a_host_large_integer
 		upc_num_threads;
 			/* Indicates the compile-time number of threads.
 			   If zero, indicates the number is determined at
@@ -2564,14 +2565,14 @@ EXTERN a_host_large_integer
 #endif /* UPC_EXTENSIONS_ALLOWED */
 
 #if GNU_VISIBILITY_ATTRIBUTE_ALLOWED
-EXTERN a_boolean
+EXTERN_THREAD a_boolean
 		gnu_visibility_attribute_enabled;
 			/* TRUE if the GNU "visibility" attribute should be
 			   accepted. */
 #endif /* GNU_VISIBILITY_ATTRIBUTE_ALLOWED */
 
 #if GNU_VECTOR_TYPES_ALLOWED
-EXTERN a_boolean
+EXTERN_THREAD a_boolean
 		permissive_gnu_vector_conversions_enabled;
 			/* TRUE if certain implicit conversions between
 			   incompatible vector types should be accepted. */
@@ -2830,7 +2831,7 @@ EXTERN_THREAD a_boolean
 			   allowed in the current mode. */
 
 #if UNICODE_VULNERABILITY_DETECTION_SUPPORTED
-EXTERN a_boolean
+EXTERN_THREAD a_boolean
 		check_unicode_security;
 			/* TRUE if UTF-encoded Unicode source should be
 			   checked for security vulnerabilities as

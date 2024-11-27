@@ -77,7 +77,7 @@ static a_boolean check_narrowing_conversion(an_operand  *source_operand,
 
 
 #if DEBUG
-static unsigned long
+STATIC_THREAD unsigned long
 		n_viability_checks = 0,
 		n_viability_failures = 0,
 		n_explicit_arg_viability_checks = 0,
@@ -10751,7 +10751,7 @@ an applicable candidate (one entry for each overload resolution context).  In
 specific cases, select_overloaded_function (see below) may select a different
 error code from the ones in this table.
 */
-static an_error_code default_none_applies_code[(int)oc_last] = {
+static constexpr an_error_code default_none_applies_code[(int)oc_last] = {
   ec_no_matching_function,                   /* oc_default */
   ec_no_matching_function,                   /* oc_deferred */
   ec_no_matching_constructor,                /* oc_constructor */
@@ -10774,7 +10774,7 @@ A table of error codes to use by default when overload resolution finds more
 than one applicable candidate (one entry for each overload resolution context).
 Currently, the default is always used.
 */
-static an_error_code default_ambiguous_code[(int)oc_last] = {
+static constexpr an_error_code default_ambiguous_code[(int)oc_last] = {
   ec_ambiguous_overloaded_function,          /* oc_default */
   ec_ambiguous_overloaded_function,          /* oc_deferred */
   ec_ambiguous_constructor,                  /* oc_constructor */
@@ -10797,7 +10797,7 @@ A table of error codes to use by default when the symbol provided to overload
 resolution is undefined (one entry for each overload resolution context).
 Currently, the default is always used.
 */
-static an_error_code default_undefined_code[(int)oc_last] = {
+static constexpr an_error_code default_undefined_code[(int)oc_last] = {
   ec_undefined_identifier,                   /* oc_default */
   ec_undefined_identifier,                   /* oc_deferred */
   ec_undefined_identifier,                   /* oc_constructor */

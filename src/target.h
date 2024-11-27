@@ -180,13 +180,13 @@ EXTERN_THREAD a_targ_alignment
 			   default value but reconfigurable. */
 #endif /* LONG_LONG_ALLOWED */
 #if INT128_EXTENSIONS_ALLOWED
-EXTERN a_targ_size_t
+EXTERN_THREAD a_targ_size_t
 		targ_sizeof_int128;
 			/* Size of a 128-bit integer type.  Initialized to the
 			   default value but reconfigurable (in practice, this
 			   almost certainly equals 16). */
 
-EXTERN a_targ_alignment
+EXTERN_THREAD a_targ_alignment
 		targ_alignof_int128;
 			/* Alignment of a 128-bit integer type.  Initialized to
 			   the default value but reconfigurable (in practice,
@@ -206,47 +206,47 @@ EXTERN_THREAD a_targ_size_t
 #endif /* GNU_EXTENSIONS_ALLOWED */
 
 #if MICROSOFT_EXTENSIONS_ALLOWED
-EXTERN a_boolean
+EXTERN_THREAD a_boolean
 		is_64bit_target;
 			/* TRUE if the target platform is a 64-bit target;
 			   i.e., TRUE if size_t is 64 bits wide. */
 
-EXTERN an_integer_kind
+EXTERN_THREAD an_integer_kind
 		targ_int8_int_kind;
 			/* Integer kind associated with __int8.  Initialized
 			   to ik_none and reset later. */
 
-EXTERN an_integer_kind
+EXTERN_THREAD an_integer_kind
 		targ_unsigned_int8_int_kind;
 			/* Integer kind associated with unsigned __int8.
 			   Initialized to ik_none and reset later. */
 
-EXTERN an_integer_kind
+EXTERN_THREAD an_integer_kind
 		targ_int16_int_kind;
 			/* Integer kind associated with __int16.  Initialized
 			   to ik_none and reset later. */
 
-EXTERN an_integer_kind
+EXTERN_THREAD an_integer_kind
 		targ_unsigned_int16_int_kind;
 			/* Integer kind associated with unsigned __int16.
 			   Initialized to ik_none and reset later. */
 
-EXTERN an_integer_kind
+EXTERN_THREAD an_integer_kind
 		targ_int32_int_kind;
 			/* Integer kind associated with __int32.  Initialized
 			   to ik_none and reset later. */
 
-EXTERN an_integer_kind
+EXTERN_THREAD an_integer_kind
 		targ_unsigned_int32_int_kind;
 			/* Integer kind associated with unsigned __int32.
 			   Initialized to ik_none and reset later. */
 
-EXTERN an_integer_kind
+EXTERN_THREAD an_integer_kind
 		targ_int64_int_kind;
 			/* Integer kind associated with __int64.  Initialized
 			   to ik_none and reset later. */
 
-EXTERN an_integer_kind
+EXTERN_THREAD an_integer_kind
 		targ_unsigned_int64_int_kind;
 			/* Integer kind associated with unsigned __int64.
 			   Initialized to ik_none and reset later. */
@@ -476,27 +476,27 @@ EXTERN_THREAD a_targ_alignment
 			   targ_all_pointers_same_size is FALSE. */
 
 #if NEAR_AND_FAR_ALLOWED
-EXTERN a_targ_size_t
+EXTERN_THREAD a_targ_size_t
 		targ_sizeof_far_pointer;
 			/* Size of a far pointer.  Initialized to the default
 			   value but reconfigurable.  Used only when support
 			   for near and far is enabled (e.g., in 16-bit
 			   Microsoft mode). */
 
-EXTERN a_targ_alignment
+EXTERN_THREAD a_targ_alignment
 		targ_alignof_far_pointer;
 			/* Alignment of a far pointer.  Initialized to the
 			   default value but reconfigurable.  Used only when
 			   support for near and far is enabled (e.g., in
 			   16-bit Microsoft mode). */
-EXTERN a_targ_size_t
+EXTERN_THREAD a_targ_size_t
 		targ_sizeof_near_pointer;
 			/* Size of a near pointer.  Initialized to the default
 			   value but reconfigurable.  Used only when support
 			   for near and far is enabled (e.g., in 16-bit
 			   Microsoft mode). */
 
-EXTERN a_targ_alignment
+EXTERN_THREAD a_targ_alignment
 		targ_alignof_near_pointer;
 			/* Alignment of a near pointer.  Initialized to the
 			   default value but reconfigurable.  Used only when
@@ -535,7 +535,7 @@ EXTERN_THREAD an_integer_kind
 /*
 Fixed-point types:
 */
-EXTERN a_targ_size_t
+EXTERN_THREAD a_targ_size_t
 	targ_sizeof_fixed_point[/*is_unsigned*/2]
 	                       [(int)fpp_last]
 	                       [/*is_fract*/2]
@@ -555,7 +555,7 @@ EXTERN a_targ_size_t
 #endif /* VAR_INITIALIZERS */
 		                                             ;
 
-EXTERN a_targ_alignment
+EXTERN_THREAD a_targ_alignment
 	targ_alignof_fixed_point[/*is_unsigned*/2]
 	                        [(int)fpp_last]
 	                        [/*is_fract*/2]
@@ -575,7 +575,7 @@ EXTERN a_targ_alignment
 #endif /* VAR_INITIALIZERS */
 		                                              ;
 
-EXTERN a_targ_alignment
+EXTERN_THREAD a_targ_alignment
 	targ_fractional_bits_for_fixed_point[/*is_unsigned*/2]
 	                                    [(int)fpp_last]
 	                                    [/*is_fract*/2]
@@ -594,7 +594,7 @@ EXTERN a_targ_alignment
 		        TARG_FRACTIONAL_BITS_FOR_UNSIGNED_LONG_FRACT } } }
 #endif /* VAR_INITIALIZERS */
 		                                                          ;
-EXTERN a_targ_size_t
+EXTERN_THREAD a_targ_size_t
 		targ_sizeof_largest_fixed_point;
                         /* Size of the longest fixed point type in the
                            configuration.  Must be no larger than
@@ -655,7 +655,7 @@ EXTERN_THREAD a_targ_alignment
 			/* Alignment of a __float128.  Initialized to the
 			   default value but reconfigurable. */
 
-EXTERN a_float_kind
+EXTERN_THREAD a_float_kind
 		float_kind_for_float80
 #if VAR_INITIALIZERS
 			= (a_float_kind)DEFAULT_FLOAT_KIND_FOR_FLOAT80
@@ -665,7 +665,7 @@ EXTERN a_float_kind
 			   be its own type (fk_float80), or it may be a
 			   synonym for another type (e.g., fk_long_double). */
 
-EXTERN a_float_kind
+EXTERN_THREAD a_float_kind
 		float_kind_for_float128
 #if VAR_INITIALIZERS
 			= (a_float_kind)DEFAULT_FLOAT_KIND_FOR_FLOAT128
@@ -734,7 +734,7 @@ EXTERN_THREAD a_targ_alignment
 #endif /* LONG_LONG_ALLOWED */
 
 #if INT128_EXTENSIONS_ALLOWED
-EXTERN a_targ_alignment
+EXTERN_THREAD a_targ_alignment
 		targ_int128_field_alignment;
 			/* Default alignment for fields of the 128-bit integer
 			   type. */
@@ -1060,7 +1060,7 @@ EXTERN_THREAD a_boolean
 			   defined in cmd_line.h.) */
 
 #if BACK_END_IS_CP_GEN_BE
-EXTERN a_boolean
+EXTERN_THREAD a_boolean
 		old_specializations_for_generated_instances;
 			/* If TRUE, specializations for generated template
 			   instances in generated code (C++-generating back
@@ -1115,7 +1115,7 @@ EXTERN_THREAD a_boolean
 			   compiler. */
 
 #ifdef SUN_TARGET_VERSION_NUMBER
-EXTERN unsigned long
+EXTERN_THREAD unsigned long
 		sun_target_version_number;
 			/* The version number of the Sun compiler being
 			   targeted (e.g., 0x530 for version 5.3). */
@@ -1177,7 +1177,7 @@ EXTERN_THREAD a_boolean
 
 #if BACK_END_IS_CP_GEN_BE
 
-EXTERN a_boolean
+EXTERN_THREAD a_boolean
 		cp_gen_be_target_matches_source_dialect;
 			/* Flag that indicates that the C++-generating back
 			   end should assume the target dialect is the same
@@ -1204,7 +1204,7 @@ EXTERN_THREAD an_integer_kind
 #endif /* !IA64_ABI */
 
 #if IA64_ABI
-EXTERN a_boolean
+EXTERN_THREAD a_boolean
 		targ_reuse_tail_padding;
 			/* TRUE if the IA-64 ABI can reuse tail-padding from
 			   base classes for other subobjects of the derived
@@ -1259,7 +1259,7 @@ EXTERN_THREAD a_boolean
                            variant of the IA-64 ABI.  */
 
 #if IA64_ABI
-EXTERN a_boolean
+EXTERN_THREAD a_boolean
                 targ_ia64_abi_use_guard_acquire_release;
                         /* TRUE if code should be generated to call the runtime
                            guard acquire/release/abort routines in
@@ -1267,7 +1267,7 @@ EXTERN a_boolean
                            flag is FALSE, the guard variables are tested/set by
                            inline code.  TRUE allows a thread-safe solution in
                            the runtime. */
-EXTERN a_boolean
+EXTERN_THREAD a_boolean
                 targ_ia64_abi_use_int_static_init_guard;
                         /* TRUE to use ARM EABI semantics for static
                            initialization guard variables (see section 4.4.2 of
@@ -1276,7 +1276,7 @@ EXTERN a_boolean
                            is "int"-sized, and the least significant bit of the
                            guard variable (rather than the first byte) is used
                            for the guard test. */
-EXTERN a_boolean
+EXTERN_THREAD a_boolean
                 targ_ia64_abi_use_variant_array_cookies;
                         /* TRUE to use the variant representation of array
                            cookies with the IA-64 ABI.  The variant form uses a
@@ -1284,11 +1284,11 @@ EXTERN a_boolean
                            standard IA-64 ABI.  This variant version is used
                            for the ARM architecture.  See 3.2.2.1 in the ARM
                            EABI document. */
-EXTERN a_boolean
+EXTERN_THREAD a_boolean
                 targ_ia64_abi_use_variant_ptr_to_member_function_repr;
                         /* TRUE to use the variant representation of pointers
                            to member functions with the IA-64 ABI. */
-EXTERN a_boolean
+EXTERN_THREAD a_boolean
                 targ_ia64_abi_variant_ctors_and_dtors_return_this;
                         /* TRUE to make constructors and destructors return the
                            "this" value in a variant of the IA-64 ABI.  This is
@@ -1296,13 +1296,13 @@ EXTERN a_boolean
                            to class", and destructors return "void *", except
                            deleting destructors, which return the standard
                            "void". */
-EXTERN a_boolean
+EXTERN_THREAD a_boolean
                 targ_ia64_abi_variant_key_function;
                         /* TRUE to select the variant rule for determining the
                            key function (decider function) for virtual function
                            tables in the IA-64 ABI.  See 3.1 in the ARM EABI
                            document. */
-EXTERN an_integer_kind
+EXTERN_THREAD an_integer_kind
 		targ_ia64_vtable_entry_int_kind;
                         /* Integer kind used for the size of a vtable entry in
                            the IA-64 ABI. */

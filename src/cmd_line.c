@@ -123,7 +123,7 @@ STATIC_THREAD a_boolean
 			   used in ANSI C or C++ mode. */
 
 #if MICROSOFT_EXTENSIONS_ALLOWED
-static a_boolean
+STATIC_THREAD a_boolean
                 force_ms_type_info_not_in_namespace_std;
                         /* Used as the target of a --set_flag command-line
                            option to force type_info_in_namespace_std to a
@@ -2318,7 +2318,7 @@ typedef struct a_flag_name {
 /*
 Array of flag names that may be set on the command-line.
 */
-static a_flag_name
+STATIC_THREAD a_flag_name
 		flag_names[] = {
   { "suppress_inline_corresp_check", &suppress_inline_corresp_check },
   { "allow_anon_types_in_anon_unions", &allow_anon_types_in_anon_unions },

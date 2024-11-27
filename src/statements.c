@@ -102,12 +102,12 @@ STATIC_THREAD a_control_flow_descr_ptr
   (scope_stack[depth_innermost_function_scope].curr_scope_object_lifetime)
 
 #if UPC_EXTENSIONS_ALLOWED
-static a_statement_ptr
+STATIC_THREAD a_statement_ptr
 		affinity_forall_loop;
 			/* The enclosing UPC forall loop with an affinity.
 			   NULL if there is no such loop. */
 
-static a_statement_ptr
+STATIC_THREAD a_statement_ptr
 		innermost_forall_loop;
 			/* The innermost enclosing UPC forall loop (with or
 			   without an affinity).  NULL if there is no such

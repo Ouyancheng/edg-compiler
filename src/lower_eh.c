@@ -231,7 +231,7 @@ STATIC_THREAD a_type_ptr
 
 #if IA64_ABI
 
-static a_class_list_entry_ptr
+STATIC_THREAD a_class_list_entry_ptr
 		vmi_class_types;
 			/* Various vmi_class_type_info types (derived classes
 			   of the typeinfo type for multiple-inheritance
@@ -2342,7 +2342,7 @@ end_of_routine:
 Pointer to the routine entry for the runtime routine __cxa_bad_typeid.
 NULL until created.
 */
-static a_routine_ptr
+STATIC_THREAD a_routine_ptr
 		bad_typeid_routine;
 
 #else /* !IA64_ABI */
@@ -5919,7 +5919,8 @@ is not passed through).
 /* Routines to build an access string for a throw, using the temp_text
    buffer. */
 
-static sizeof_t	curr_size_access_string_buffer;
+STATIC_THREAD sizeof_t
+		curr_size_access_string_buffer;
 			/* Number of characters currently used in
 			   temp_text_buffer. */
 

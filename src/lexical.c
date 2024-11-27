@@ -161,7 +161,7 @@ the XID_Start and XID_Continue Derived Properties in
 www.unicode.org/Public/UCD/latest/ucd/DerivedCoreProperties.txt for Unicode
 version 16.0.0, dated 2024-05-31.
 */
-static a_UCN_range
+static constexpr a_UCN_range
 		UCN_table[] = {
   { 0x000a8, 0x000a8,   _   |  _  | CPP11 |   _  ,   _   |   _   |   _   },
   { 0x000aa, 0x000aa,   _   | C99 | CPP11 | UAX44,   _   |   _   |   _   },
@@ -2257,7 +2257,7 @@ STATIC_THREAD a_boolean
 			   like after_end_of_all_source. */
 
 #if UNICODE_SOURCE_SUPPORTED
-static a_getc_source_state
+STATIC_THREAD a_getc_source_state
 		curr_file_getc_source_state;
 			/* State indication for getc_source for the current
 			   input file. */
@@ -2352,13 +2352,13 @@ STATIC_THREAD a_source_position
 			   from a string. */
 
 #if GET_DEFINITION_OF_CLASS_NEEDED
-static a_text_buffer_ptr
+STATIC_THREAD a_text_buffer_ptr
 		class_def_buffer;
 			/* A buffer used by get_definition_of_class */
 #endif /* GET_DEFINITION_OF_CLASS_NEEDED */
 
 #if MICROSOFT_EXTENSIONS_ALLOWED
-static a_text_buffer_ptr
+STATIC_THREAD a_text_buffer_ptr
 		metadata_import_buffer;
 			/* Text buffer used by 
 			   generate_top_level_metadata_code. */
@@ -2598,10 +2598,10 @@ Pointer to a table of the canonical spellings of whitespace keywords,
 indexed by the token kind (offset by tok_first_white_space_token).  It is
 initialized by init_whitespace_keywords.
 */
-static a_whitespace_keyword_ptr
+STATIC_THREAD a_whitespace_keyword_ptr
 		whitespace_keywords;
 
-static a_boolean
+STATIC_THREAD a_boolean
 		scanning_for_whitespace_keyword;
 			/* TRUE when skip_white_space() is being called to
 			   find the second word in a potential whitespace
@@ -10206,13 +10206,13 @@ struct a_pending_bidi_control {
 			   this entry refers. */
 };  /* a_pending_bidi_control */
 
-static a_pending_bidi_control_ptr
+STATIC_THREAD a_pending_bidi_control_ptr
 		pending_bidi_controls;
 			/* The top of a stack (linked on the "next" field)
 			   of not-yet-terminated bidirectional control
 			   characters. */
 
-static a_pending_bidi_control_ptr
+STATIC_THREAD a_pending_bidi_control_ptr
 		avail_pending_bidi_controls;
 			/* List (linked on the "next" field) of
 			   bidirectional control character entries that are
@@ -11121,11 +11121,11 @@ end_skip:
 Valid characters (depending on the kind of number being scanned) that can
 follow a digit separator (apostrophe).
 */
-static a_const_char *dig_or_nondig =
+static constexpr a_const_char *dig_or_nondig =
              "0123456789ABCDEFGHIJKLMNOPQRSTUVWXYZ_abcdefghijklmnopqrstuvwxyz";
-static a_const_char *binary_dig = "01";
-static a_const_char *decimal_dig = "0123456789";
-static a_const_char *hex_dig = "0123456789ABCDEFabcdef";
+static constexpr a_const_char *binary_dig = "01";
+static constexpr a_const_char *decimal_dig = "0123456789";
+static constexpr a_const_char *hex_dig = "0123456789ABCDEFabcdef";
 
 static a_token_kind scan_number(void)
 /*
@@ -16188,8 +16188,8 @@ struct a_spelling_storage_buffer {
 /*
 The start and end of the linked list of chunks of memory.
 */
-static a_spelling_storage_buffer_ptr spelling_storage_buffer_head;
-static a_spelling_storage_buffer_ptr spelling_storage_buffer_tail;
+STATIC_THREAD a_spelling_storage_buffer_ptr spelling_storage_buffer_head;
+STATIC_THREAD a_spelling_storage_buffer_ptr spelling_storage_buffer_tail;
 
 static a_spelling_storage_buffer_ptr alloc_spelling_storage_buffer(
                                                                  sizeof_t size)
@@ -16286,16 +16286,16 @@ struct an_id_representation {
 			   this value and does not recompute it. */
 };  /* an_id_representation */
 
-static a_hash_table_ptr
+STATIC_THREAD a_hash_table_ptr
 		id_representation_map;
 			/* Hash table containing an_id_representation
 			   entries for all identifiers encountered in the
 			   current translation unit. */
-static a_text_buffer_ptr
+STATIC_THREAD a_text_buffer_ptr
 		src_spelling;
 			/* Text buffer for accumulating the source
 			   spelling of an identifier. */
-static a_text_buffer_ptr
+STATIC_THREAD a_text_buffer_ptr
 		prototyped_spelling;
 			/* Text buffer for accumulating the prototyped
 			   spelling of an identifier. */
@@ -26582,7 +26582,7 @@ STATIC_THREAD a_boolean
 			   should be preserved in the string, including
 			   newlines for line breaks. */
 #if MICROSOFT_EXTENSIONS_ALLOWED
-static a_boolean
+STATIC_THREAD a_boolean
 		suppress_identifier_wrapping_in_token_string;
 			/* If TRUE, suppress wrapping of identifiers with
 			   the Microsoft __identifier(...) construct when
@@ -29102,7 +29102,7 @@ of the front end.
     unsigned long	last_end = 0;
     unsigned int	i;
     for (i = 0; i < sizeof(UCN_table) / sizeof(a_UCN_range); i++) {
-      a_UCN_range_ptr	p = &UCN_table[i];
+      const a_UCN_range *p = &UCN_table[i];
       check_assertion_str2(p->start <= p->end && p->start > last_end,
                            "lexical_init:",
                            "UCN_table is not sorted properly");

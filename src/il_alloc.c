@@ -121,7 +121,7 @@ STATIC_THREAD unsigned long
 		num_subobject_paths_allocated,
 		num_static_assertions;
 #if GENERATE_SOURCE_SEQUENCE_LISTS
-static unsigned long
+STATIC_THREAD unsigned long
 		num_source_sequence_entries_allocated,
 		num_src_seq_secondary_decls_allocated,
 		num_src_seq_end_of_constructs_allocated,
@@ -140,7 +140,7 @@ STATIC_THREAD unsigned long
 		num_scope_orphaned_list_headers_allocated;
 #endif /* SCOPE_ORPHANED_LIST_PROCESSING_NEEDED */
 #if RECORD_HIDDEN_NAMES_IN_IL
-static unsigned long
+STATIC_THREAD unsigned long
 		num_hidden_names_allocated;
 #endif /* RECORD_HIDDEN_NAMES_IN_IL */
 STATIC_THREAD unsigned long
@@ -155,11 +155,11 @@ STATIC_THREAD unsigned long
 		num_name_references_allocated,
                 num_name_qualifiers_allocated;
 #if RECORD_MACROS_IN_IL
-static unsigned long
+STATIC_THREAD unsigned long
 		num_macros_allocated;
 #endif /* RECORD_MACROS_IN_IL */
 #if RECORD_MACRO_INVOCATIONS
-static unsigned long
+STATIC_THREAD unsigned long
 		num_macro_invocation_record_blocks_allocated;
 #endif /* RECORD_MACRO_INVOCATIONS */
 STATIC_THREAD unsigned long
@@ -391,7 +391,8 @@ the debugger using the db_prefix debug function.
 void *trace_alloc_ptr = NULL;
 
 #if MAINTAIN_ALLOCATION_SEQUENCE_NUMBER
-static unsigned long trace_seq_number = 0;
+STATIC_THREAD unsigned long
+		trace_seq_number = 0;
 #endif /* MAINTAIN_ALLOCATION_SEQUENCE_NUMBER */
 
 static void alloc_intercept(void *ptr)

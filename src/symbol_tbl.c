@@ -70,14 +70,14 @@ STATIC_THREAD a_boolean
 			   created as a result of an include of stdarg.h. */
 
 #if NAMED_ADDRESS_SPACES_ALLOWED
-static a_named_address_space_id
+STATIC_THREAD a_named_address_space_id
 		next_named_address_space_id;
 			/* The next unused id for named address spaces.  The
 			   first id is one. */
 #endif /* NAMED_ADDRESS_SPACES_ALLOWED */
 
 #if NAMED_REGISTERS_ALLOWED
-static a_named_register_id
+STATIC_THREAD a_named_register_id
 		next_named_register_id;
 			/* The next unused id for named registers.  The
 			   first id is one. */
@@ -233,12 +233,12 @@ STATIC_THREAD a_saved_macro_state_ptr
 
 #if MICROSOFT_EXTENSIONS_ALLOWED
 
-static a_hide_by_sig_list_entry_ptr
+STATIC_THREAD a_hide_by_sig_list_entry_ptr
 		avail_hide_by_sig_list_entries;
 			/* List of hide-by-sig list entries freed and
 			   available for reuse. */
 
-static a_hash_table_ptr
+STATIC_THREAD a_hash_table_ptr
 		prop_or_event_accessor_header_hash_table;
 			/* A hash table used to find previously created
 			   symbol header entries that represent a combination
@@ -3188,8 +3188,10 @@ using a_template_cache_segment_table = Ptr_map<a_token_range,
 			   template cache segments. */
 
 
-a_template_cache_segment_table
+STATIC_THREAD a_template_cache_segment_table
 		*template_cache_segment_table;
+			/* A map from token ranges to corresponding template
+			   cache segment structures. */
 
 
 a_template_cache_segment_ptr alloc_template_cache_segment(
@@ -4308,7 +4310,7 @@ using an_allocated_symbols_list = Dyn_array<a_symbol_ptr>;
                         /* The type for a list of symbols allocated in the
                            current translation unit. */
 
-static an_allocated_symbols_list
+STATIC_THREAD an_allocated_symbols_list
                 *allocated_symbols;
                         /* The symbols allocated in the current translation
                            unit.  This is used for post-memory region and
@@ -11137,12 +11139,11 @@ typedef struct an_ms_attr_alt_name_entry {
 } an_ms_attr_alt_name_entry;
 
 
-/*
-List of symbol header entries that are used to look up Microsoft attributes
-with an alternate name that includes an "Attribute" suffix.
-*/
-static an_ms_attr_alt_name_entry_ptr
+STATIC_THREAD an_ms_attr_alt_name_entry_ptr
 		ms_attr_alt_name_entry_list;
+			/* List of symbol header entries that are used to look
+			   up Microsoft attributes with an alternate name that
+			   includes an "Attribute" suffix. */
 
 
 static an_ms_attr_alt_name_entry_ptr alloc_ms_attr_alt_name_entry(void)
@@ -11363,12 +11364,13 @@ ud_suffix (of length ud_suffix_len).  Use pos as the source position
 }  /* make_literal_opname_locator */
 
 
-static unsigned long
+STATIC_THREAD unsigned long
 		sb_counter = 0;
 			/* Counter used to give a unique name to structured
 			   binding containers (the name is only used while
 			   the container is being declared; eventually, the
 			   container variable is unnamed). */
+
 
 void make_struct_binding_container_locator(a_symbol_locator  *locator,
                                            a_source_position *pos)
@@ -18126,7 +18128,7 @@ Select the hash table size to be used to hold "num_of_entries" hash
 table entries.  Return the value to be used.
 */
 {
-  static a_hash_table_size	sizes[] = {
+  static constexpr a_hash_table_size sizes[] = {
 	1,	5,
 	11,	17,	29,	41,	59,	83,	127,	179,
 	251,	353,	499,	701,	983,	1381,	1949,	2729,
@@ -18575,7 +18577,7 @@ associated symbol table entries are flagged so other identifiers can avoid
 special checks.  (Additional identifiers are flagged via other tables, such
 as constexpr_intrinsic_descriptions and type_transform_names below).
 */
-static a_const_char* intrinsic_names[] = {
+static constexpr a_const_char* intrinsic_names[] = {
   "main",
   "__is_signed",
 #if MICROSOFT_EXTENSIONS_ALLOWED
@@ -18618,7 +18620,7 @@ front end recognizes for potential evaluation by the interpreter.  The table
 is produced by expanding the macro NS_scope_constexpr_intrinsics (see
 interpret.h).
 */
-static struct {
+STATIC_THREAD struct {
   a_const_char	*name;	/* The name of a function known to the interpreter. */
   a_constexpr_intrinsic_descr
 		descr;	/* Information characterizing the function beyond its
@@ -18642,7 +18644,7 @@ using a_constexpr_intrinsic_descr_table =
 			   table but which don't match the description will
 			   not be handled specially by the interpreter.) */
 
-a_constexpr_intrinsic_descr_table
+STATIC_THREAD a_constexpr_intrinsic_descr_table
 		*constexpr_intrinsic_descr_table;
 			/* A map from symbol headers for names of functions
 			   that the interpreter might know to descriptions
@@ -18937,7 +18939,7 @@ Like intrinsic_names, these are names of interest to the front end, but they
 should also be associated with token kinds (for context-sensitive promotion to
 keywords).
 */
-static struct {
+static constexpr struct {
   a_token_kind	token_kind;
 			/* Token representation of the name. */ 
   a_const_char	*str;
@@ -18968,12 +18970,12 @@ using a_type_transform_name_table = Ptr_map<a_symbol_header*, a_token_kind>;
 			/* The type of a table that maps intrinsic identifiers
 			   to corresponding token kinds. */
 
-a_type_transform_name_table 
+STATIC_THREAD a_type_transform_name_table
 		*type_transform_name_table;
 			/* A map from symbol headers for type transform
 			   operators to the keyword the associated identifier
 			   promotes to in some contexts. */
-			   
+
 
 static void init_type_transform_names(void)
 /*

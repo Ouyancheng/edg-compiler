@@ -80,7 +80,7 @@ STATIC_THREAD a_pack_instantiation_descr_ptr
 
 #if GENERATE_SOURCE_SEQUENCE_LISTS
 #if DO_IL_LOWERING && !PRESERVE_SOURCE_SEQUENCE_LISTS_WITH_IL_LOWERING
-static a_boolean
+STATIC_THREAD a_boolean
 		any_lowering_being_done;
 			/* TRUE if C99 lowering or C++ lowering is being
 			   done. */
@@ -99,7 +99,7 @@ STATIC_THREAD unsigned long
 		num_function_shareable_constants_tables_allocated;
 
 #if DO_IL_LOWERING && ASSIGN_STRING_LITERAL_SEQUENCE_NUMBERS
-static unsigned long
+STATIC_THREAD unsigned long
 		num_string_literal_table_entries_allocated,
 		num_string_literal_tables_allocated;
 #endif /* DO_IL_LOWERING && ASSIGN_STRING_LITERAL_SEQUENCE_NUMBERS */
@@ -422,12 +422,12 @@ debugging).
 
 #endif /* EXTRA_SOURCE_POSITIONS_IN_IL */
 
-static a_scope_depth
+STATIC_THREAD a_scope_depth
 		max_depth_scope_stack = 0;
 			/* A variable tracking the maximum depth of the
 			   scope stack. */
 
-static unsigned long
+STATIC_THREAD unsigned long
 		scope_kind_stats[1+(int)sck_none] = { 0 };
 
 void db_scope_stack_stats(void)
@@ -1060,11 +1060,13 @@ typedef struct a_string_literal_table {
 } a_string_literal_table;
 
 
-static a_string_literal_table_ptr avail_string_literal_tables;
+STATIC_THREAD a_string_literal_table_ptr
+		avail_string_literal_tables;
 			/* A list of string literal tables that have been
 			   freed and are available for reuse. */
 
-static a_string_literal_table_entry_ptr avail_string_literal_table_entries;
+STATIC_THREAD a_string_literal_table_entry_ptr
+		avail_string_literal_table_entries;
 			/* A list of string literal table entries that have
 			   been freed and are available for reuse. */
 

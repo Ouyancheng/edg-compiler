@@ -41,17 +41,17 @@ il_write.c -- Write the intermediate language to a file.
 /* Conditionally open the "edg" namespace. */
 BEGIN_EDG_NAMESPACE
 
-static a_boolean
+STATIC_THREAD a_boolean
 		writing_file_scope_il;
 			/* TRUE if writing the file-scope IL, FALSE if writing
 			   IL for a function scope. */
 
-static a_file_position
+STATIC_THREAD a_file_position
 		il_header_pos;
 			/* Position where the IL header was written. */
 
 #if ALTERNATE_IL_FILE_FORMAT
-static an_il_entry_number
+STATIC_THREAD an_il_entry_number
 		entry_numbers_array[(int)iek_last],
 		fs_entry_numbers_array[(int)iek_last];
 			/* Arrays giving the number of entries of each
@@ -60,7 +60,7 @@ static an_il_entry_number
 			   of that kind.  Used to track the number of entries
 			   and also to assign entry numbers.  Each table
 			   type has entry numbers starting from 1. */
-static an_il_entry_number
+STATIC_THREAD an_il_entry_number
 		max_entry_number;
 			/* Maximum allowed entry number, used for overflow
 			   checking. */
@@ -90,16 +90,16 @@ static an_il_entry_number
    The contents of the IL entry and its position on the IL tree as shown
    by the stack trace can help to determine the cause of the error.
 */
-static a_memory_region_number
+STATIC_THREAD a_memory_region_number
 		trace_memory_region_number;
 			/* Memory region of the omitted IL entry. */
-static an_il_entry_kind
+STATIC_THREAD an_il_entry_kind
 		trace_entry_kind;
 			/* IL entry kind of the omitted IL entry. */
-static an_il_entry_number
+STATIC_THREAD an_il_entry_number
 		trace_entry_number;
 			/* IL entry number of the omitted IL entry. */
-static a_memory_region_number
+STATIC_THREAD a_memory_region_number
 		trace_region_being_written;
 			/* Variable used by write_memory_region()
 			   to record the memory region number currently

@@ -72,12 +72,15 @@ STATIC_THREAD a_type_ptr
 STATIC_THREAD a_type_ptr
                 signed_int_types[(int)ik_last];
 #if MICROSOFT_EXTENSIONS_ALLOWED
-static a_type_ptr microsoft_sized_int_types[(int)ik_last];
-static a_type_ptr microsoft_sized_signed_int_types[(int)ik_last];
+STATIC_THREAD a_type_ptr
+                microsoft_sized_int_types[(int)ik_last];
+STATIC_THREAD a_type_ptr
+                microsoft_sized_signed_int_types[(int)ik_last];
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
 #if FIXED_POINT_ALLOWED
-static a_type_ptr fixed_point_types[(int)fpp_last][/*is_unsigned*/2]
-                                   [/*is_fract*/2][/*saturating*/2];
+STATIC_THREAD a_type_ptr
+                fixed_point_types[(int)fpp_last][/*is_unsigned*/2]
+                                 [/*is_fract*/2][/*saturating*/2];
 #endif /* FIXED_POINT_ALLOWED */
 STATIC_THREAD a_type_ptr
                 float_types[(int)fk_last];
@@ -7284,7 +7287,8 @@ returns cc_default if the target is a 64-bit x86 platform.
 /*
 Variable set by the following traverse_expr processing routine.
 */
-static a_hash_value expr_hash_value = 0;
+STATIC_THREAD a_hash_value
+                expr_hash_value = 0;
 
 
 static void hash_expr_node(an_expr_node_ptr                    expr,
@@ -8088,10 +8092,10 @@ options is a set of flags that control the way in which certain comparisons
 are done.
 */
 {
-  a_boolean        eq = FALSE;
-  an_itf_flag_set  itf_options;
+  a_boolean         eq = FALSE;
+  an_itf_flag_set   itf_options;
 #if DEBUG
-  static int       db_level = 0;
+  STATIC_THREAD int db_level = 0;
   db_level++;
 #endif /* DEBUG */
 
@@ -11221,8 +11225,8 @@ it's to be moved to another position in the list.
 
 #if NAMED_REGISTERS_ALLOWED
 
-static a_variable_ptr
-	named_register_variables[NUM_NAMED_REGISTERS+1];
+STATIC_THREAD a_variable_ptr
+		named_register_variables[NUM_NAMED_REGISTERS+1];
 
 void record_named_register_storage_class(a_variable_ptr       var,
                                          a_named_register_id  register_id,
@@ -12548,7 +12552,6 @@ done:
   return result;
 }  /* check_consistent_string_view_type */
 
-
 namespace {
 
 /*
@@ -12567,18 +12570,21 @@ struct a_gnu_source_location_field_set {
                            number. */
 };  /* a_gnu_source_location_field_set */
 
-a_type_ptr      il_source_location_impl_type;
+}  /* namespace */
+
+STATIC_THREAD a_type_ptr
+                il_source_location_impl_type;
                         /* A pointer to the GNU libstdc++ standard library's
                            std::source_location::__impl type. */
 
-a_gnu_source_location_field_set
+STATIC_THREAD a_gnu_source_location_field_set
                 il_source_location_fields;
                         /* A collection of cached pointers to the fields of the
                            GNU libstdc++ standard library's
                            std::source_location::__impl type. */
 
-  
-a_boolean map_to_gnu_source_location_field(
+
+static a_boolean map_to_gnu_source_location_field(
                                        a_field_ptr                     input,
                                        a_type_ptr                      cstr_ty,
                                        a_gnu_source_location_field_set *fields)
@@ -12617,7 +12623,7 @@ field cache; otherwise, return FALSE.
 }  /* map_to_gnu_source_location_field */
 
 
-a_boolean check_gnu_source_location_impl_type(
+static a_boolean check_gnu_source_location_impl_type(
                                      a_type_ptr                      impl_type,
                                      a_gnu_source_location_field_set *fields)
 /*
@@ -12685,7 +12691,6 @@ compatibility.  Additionally, map processed fields to the field info cache
   return valid;
 }  /* check_gnu_source_location_impl_type */
 
-}  /* namespace */
 
 a_type_ptr gnu_source_location_impl_type(void)
 /*
@@ -13703,7 +13708,9 @@ and reuse an existing entry if possible.
 }  /* make_cppcx_box_type */
 
 
-static a_routine_ptr idisposable_dispose_routine;
+STATIC_THREAD a_routine_ptr
+		idisposable_dispose_routine;
+
 
 a_routine_ptr get_idisposable_dispose_routine(void)
 /*
@@ -13741,7 +13748,8 @@ Return the routine entry for "System::IDisposable::Dispose".
 }  /* get_idisposable_dispose_routine */
 
 
-static a_routine_ptr object_finalize_routine;
+STATIC_THREAD a_routine_ptr
+                object_finalize_routine;
 
 a_routine_ptr get_object_finalize_routine(void)
 /*

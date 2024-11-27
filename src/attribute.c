@@ -110,7 +110,7 @@ since attributes usually do not create new entries).
 /* Conditionally open the "edg" namespace. */
 BEGIN_EDG_NAMESPACE
 
-typedef struct an_attr_descr *an_attr_descr_ptr;
+typedef struct an_attr_descr const *an_attr_descr_ptr;
 typedef struct an_attr_descr {
   /* Data structure describing the name and kind of an attribute, the form
      of its arguments if any (i.e., its "signature"), and the modes in which
@@ -227,7 +227,7 @@ attribute [[noreturn]] and the GNU attribute __attribute((noreturn)) have
 separate entries).
 See also the complementary table known_attr_appl_table below.
 */
-static an_attr_descr known_attr_table[] = {
+static constexpr an_attr_descr known_attr_table[] = {
   /* C++ standard attributes (C++11 and later).  Note the use of "c+" to
      indicate these are valid in C++ modes only. */
   { "align", "(ct)", "c+", ak_align },
@@ -678,7 +678,7 @@ same table entry (and the table must match the enumeration order of
 an_attribute_kind).
 See also the complementary table known_attr_table above.
 */
-static an_attr_appl_descr known_attr_appl_table[(int)ak_last+1] = {
+STATIC_THREAD an_attr_appl_descr known_attr_appl_table[(int)ak_last+1] = {
   { ak_unrecognized, "", NO_APPL_FN },
   { ak_empty_attr, "", NO_APPL_FN },
   { ak_attr_using_prefix, "", NO_APPL_FN },
@@ -876,7 +876,7 @@ typedef struct an_attr_corresp_descr {
 } an_attr_corresp_descr;
 
 
-static an_attr_corresp_descr attr_corresp_table[] = {
+STATIC_THREAD an_attr_corresp_descr attr_corresp_table[] = {
   { ak_align, af_last, iek_last, ACF_MATCH_OPTIONAL | ACF_ALWAYS_TRANS_COPY,
     NO_CHECKING_FN },
   { ak_noreturn, af_std, iek_last, ACF_STRICT_MATCH, NO_CHECKING_FN },
@@ -938,7 +938,7 @@ static an_attr_corresp_descr attr_corresp_table[] = {
 /*
 A list of attribute namespaces that are known to the front end.
 */
-static a_const_char *valid_attribute_namespaces[] = {
+static constexpr a_const_char *valid_attribute_namespaces[] = {
   "clang",
   "gnu",
   "__gnu__",
@@ -1059,8 +1059,8 @@ namespace.  If non-zero, length represents the number of characters in name
 (used when name is not NULL-terminated).
 */
 {
-  a_boolean    result = FALSE;
-  a_const_char **np;
+  a_boolean            result = FALSE;
+  a_const_char * const *np;
 
   if (length == 0) {
     length = strlen(name);
@@ -6200,7 +6200,7 @@ Apply the GNU "fastcall" attribute to the given entity and return that entity.
 
 #endif /* GNU_X86_ATTRIBUTES_ALLOWED */
 
-static struct {
+static constexpr struct {
   /* Data structure for table entries mapping the argument to a GNU "format"
      attribute to the equivalent EDG pragma.  This is used by the function
      apply_format_attr below. */
@@ -8050,18 +8050,18 @@ typedef struct an_ELF_visibility_stack_entry {
 } an_ELF_visibility_stack_entry;
 
 
-static an_ELF_visibility_stack_entry_ptr
+STATIC_THREAD an_ELF_visibility_stack_entry_ptr
 		ELF_visibility_stack;
 			/* Pointer to the topmost entry of the ELF visibility
 			   stack (or NULL if the stack is empty). */
 
-static an_ELF_visibility_stack_entry_ptr
+STATIC_THREAD an_ELF_visibility_stack_entry_ptr
 		avail_ELF_visibility_stack_entries;
 			/* List of entries popped from the ELF visibility
 			   stack, and available for reuse. */
 
 #if DEBUG
-static unsigned long
+STATIC_THREAD unsigned long
 		num_ELF_visibility_stack_entries_allocated;
 			/* Number of ELF visibility stack entries allocated,
 			   to track total use of memory. */

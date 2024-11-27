@@ -4726,7 +4726,7 @@ EXTERN_THREAD sizeof_t
 
 #if MICROSOFT_EXTENSIONS_ALLOWED
 /* Header for the contextual keyword "safe_cast" used in C++/CLI. */
-EXTERN a_symbol_header_ptr
+EXTERN_THREAD a_symbol_header_ptr
 		safe_cast_symbol_header;
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
 
@@ -4885,7 +4885,7 @@ typedef struct an_exception_spec_error_descr {
 } an_exception_spec_error_descr;
 
 #if CFRONT_GLOBAL_VS_MEMBER_NAME_LOOKUP_BUG
-EXTERN a_symbol_ptr
+EXTERN_THREAD a_symbol_ptr
 		last_ctor_or_dtor_sym;
 			/* The last constructor or destructor
 			   with a definition outside of a class
@@ -5264,7 +5264,7 @@ extern void enter_symbol_for_namespace_std(a_symbol_locator  *locator);
 extern void enter_symbol_for_namespace_std_meta(a_symbol_locator  *locator);
 
 #if IA64_ABI
-EXTERN a_symbol_ptr
+EXTERN_THREAD a_symbol_ptr
 		symbol_for_namespace_abi;
 			/* Analogous, but for the namespace used in
 			   the IA-64 ABI for the derived classes of
@@ -5390,7 +5390,7 @@ enum a_cli_symbol_kind : a_byte {
 };
 
 
-EXTERN a_symbol_ptr
+EXTERN_THREAD a_symbol_ptr
 		cli_symbols[(int)csk_last];
 			/* Contains pointers to various well-known C++/CLI
 			   symbols (e.g. System::Object, System::Int) and is
@@ -5398,7 +5398,7 @@ EXTERN a_symbol_ptr
 			   the a_cli_symbol_kind enumeration for more
 			   information. */
 
-EXTERN a_cli_symbol_kind cli_fallback_symbols[]
+EXTERN_THREAD a_cli_symbol_kind cli_fallback_symbols[]
 /*
 The csk_none-terminated set of symbols to perform "dual-lookup" on
 in C++/CLI mode.
@@ -5878,7 +5878,7 @@ extern void make_global_operator_new_or_delete_symbol(
 
 extern void make_predeclared_alloca_symbol(void);
 
-EXTERN a_symbol_ptr
+EXTERN_THREAD a_symbol_ptr
 		predeclared_size_t_symbol;
 			/* Symbol for predeclared "size_t", in microsoft
 			   mode.*/

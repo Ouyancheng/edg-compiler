@@ -44,15 +44,16 @@ il_read.c -- Read the intermediate language.
 /* Conditionally open the "edg" namespace. */
 BEGIN_EDG_NAMESPACE
 
-static FILE	*f_il_input;
+STATIC_THREAD FILE
+		*f_il_input;
 			/* Intermediate language file. */
 
-static a_boolean
+STATIC_THREAD a_boolean
 		reading_file_scope_il;
 			/* TRUE if reading IL for the file scope, FALSE if
 			   reading IL for a function scope. */
 #if ALTERNATE_IL_FILE_FORMAT
-static an_il_entry_number
+STATIC_THREAD an_il_entry_number
 		entry_count_array[(unsigned int)iek_last],
 		fs_entry_count_array[(unsigned int)iek_last];
 			/* Array giving, for each IL entry kind, the number
@@ -61,7 +62,8 @@ static an_il_entry_number
 			   The "fs_" array is for the file scope, the other is
 			   for a function scope. */
 #if CHECKING && DEBUG
-static a_byte	*entry_read_array[(unsigned int)iek_last];
+STATIC_THREAD a_byte
+		*entry_read_array[(unsigned int)iek_last];
 			/* Array of pointers, for each IL entry kind,
 			   pointing to a boolean array denoting which
 			   entries of that kind have been read. */
@@ -95,7 +97,7 @@ typedef struct a_block_remap_entry {
 		*new_start_addr;
 } a_block_remap_entry;
 
-static a_block_remap_entry_ptr
+STATIC_THREAD a_block_remap_entry_ptr
 		block_remap_list,
 		fs_block_remap_list;
 			/* List of entries that give the old and new

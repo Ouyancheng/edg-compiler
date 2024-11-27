@@ -2176,7 +2176,7 @@ specified.  FIXED_ADDRESS_FOR_MMAP is used to provide the default address
 #endif /* ifndef FIXED_ADDRESS_FOR_MMAP */
 
 #if USE_FIXED_ADDRESS_FOR_MMAP
-EXTERN a_const_char
+EXTERN_THREAD a_const_char
 		*fixed_address_for_mmap;
 			/* The fixed address to use for mmap calls;
 			   initially set to FIXED_ADDRESS_FOR_MMAP and may be
@@ -2618,7 +2618,7 @@ Unicode.  MSVC compatibility requires usk_none.
 #define DEFAULT_UNICODE_SOURCE_KIND usk_none
 #endif /* DEFAULT_UNICODE_SOURCE_KIND */
 
-EXTERN a_unicode_source_kind
+EXTERN_THREAD a_unicode_source_kind
 		default_unicode_source_kind;
 			/* The kind of Unicode encoding to be assumed for a
 			   source file that has no initial byte order mark.
@@ -2645,7 +2645,7 @@ source files.
 #endif /* DEFAULT_CHECK_FOR_BYTE_ORDER_MARK && !UNICODE_SOURCE_SUPPORTED */
 
 #if UNICODE_SOURCE_SUPPORTED
-EXTERN a_boolean
+EXTERN_THREAD a_boolean
 		check_for_byte_order_mark;
 			/* TRUE if, when reading the first line of a source
 			   file, the front end should check for the presence
@@ -2654,7 +2654,7 @@ EXTERN a_boolean
 extern wchar_t *translate_filename_to_wchar(a_const_char *filename);
 extern wchar_t *conv_utf8_to_wchar(a_const_char *buffer);
 
-EXTERN a_text_buffer_ptr
+EXTERN_THREAD a_text_buffer_ptr
 		wchar_translation_buffer;
 			/* Text buffer used by translate_filename_to_wchar
 			   and conv_utf8_to_wchar. */
@@ -2877,7 +2877,7 @@ int unicode_to_multibyte_char(unsigned long uc,
 
 #if EDG_WIN32
 
-EXTERN _locale_t
+EXTERN_THREAD _locale_t
 		native_multibyte_locale;
 			/* The locale object to be used for converting
 			   multibyte characters to UTF-8. */
@@ -3096,21 +3096,22 @@ Primary source file name, as given on the command line.  FILE_NAME_FOR_STDIN
 if the primary source file is stdin.  The string is allocated in general
 storage, not IL storage.
 */
-EXTERN a_const_char
+EXTERN_THREAD a_const_char
 		*primary_source_file_name;
 
-EXTERN char	*dir_name_of_primary_source_file;
+EXTERN_THREAD char
+		*dir_name_of_primary_source_file;
 			/* The directory name of the primary source file.
                            This is set by the command line processing routines
                            when the primary source file is set. */
 #if COMPILE_MULTIPLE_SOURCE_FILES
-EXTERN a_boolean
+EXTERN_THREAD a_boolean
 		more_than_one_source_file /* = FALSE */;
 			/* TRUE if more than one primary source file appears
 			   on the command line. */
 #endif /* COMPILE_MULTIPLE_SOURCE_FILES */
 
-EXTERN a_boolean
+EXTERN_THREAD a_boolean
 		more_than_one_non_export_translation_unit /* = FALSE */;
 			/* TRUE if more than one translation unit appears
 			   on the command line. */
@@ -3124,14 +3125,14 @@ the other preincludes.  When multiple source files are compiled,
 this is included at the beginning of each compilation.  The list is
 allocated in general storage, not IL storage.
 */
-EXTERN struct a_preinclude_file
+EXTERN_THREAD struct a_preinclude_file
 		*preinclude_file_list,
 		*macro_preinclude_file_list;
 
 /*
 Pointer to the end of each of the preinclude lists.
 */
-EXTERN struct a_preinclude_file
+EXTERN_THREAD struct a_preinclude_file
 		*preinclude_file_tail,
 		*macro_preinclude_file_tail;
 
@@ -3140,7 +3141,7 @@ EXTERN struct a_preinclude_file
 If non-NULL, a list of entries that describe metadata files to be imported
 at the beginning of the compilation.
 */
-EXTERN struct a_preinclude_file
+EXTERN_THREAD struct a_preinclude_file
                 *preusing_file_list,
                 *preusing_file_tail;
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
@@ -3166,7 +3167,8 @@ Object file name, usually derived from the primary source file name.
 Really used only in generating makefile dependency information.
 The string is allocated in general storage, not IL storage.
 */
-EXTERN char	*object_file_name;
+EXTERN_THREAD char
+		*object_file_name;
 
 EXTERN char	*current_directory_name;
 			/* String containing the current directory name. */
@@ -3193,7 +3195,7 @@ typedef struct a_directory_name_entry {
 /*
 Search path for include files.
 */
-EXTERN a_directory_name_entry_ptr
+EXTERN_THREAD a_directory_name_entry_ptr
 		incl_search_path,
 		end_incl_search_path;
 			/* Beginning and end pointers for the list.
@@ -3203,7 +3205,7 @@ EXTERN a_directory_name_entry_ptr
 Search path for module files.  Each path is a directory to be searched for
 files.
 */
-EXTERN a_directory_name_entry_ptr
+EXTERN_THREAD a_directory_name_entry_ptr
                 module_search_path,
                 end_module_search_path;
                         /* Beginning and end pointers for the list.
@@ -3213,7 +3215,7 @@ EXTERN a_directory_name_entry_ptr
 /*
 Search path for #using files.
 */
-EXTERN a_directory_name_entry_ptr
+EXTERN_THREAD a_directory_name_entry_ptr
                 assembly_search_path,
                 end_assembly_search_path;
                         /* Beginning and end pointers for the list.
@@ -3233,22 +3235,22 @@ application configuration file.
 /*
 Search path for <...> include files (the tail of incl_search_path).
 */
-EXTERN a_directory_name_entry_ptr
+EXTERN_THREAD a_directory_name_entry_ptr
 		sys_incl_search_path;
 			/* The name strings are in general storage. */
 
-EXTERN a_boolean
+EXTERN_THREAD a_boolean
 		put_dir_of_each_opened_source_file_on_incl_search_path;
 			/* If TRUE, the directory of each source file opened
 			   is put on the include search path.  Set FALSE
 			   by the "-I-" option. */
 
-EXTERN a_directory_name_entry_ptr
+EXTERN_THREAD a_directory_name_entry_ptr
 		template_search_path;
 			/* Search path to find exported templates.
 			   The name strings are in general storage. */
 
-EXTERN a_directory_name_entry_ptr
+EXTERN_THREAD a_directory_name_entry_ptr
 		dir_name_list_il;
 			/* List of all directory name strings used that have
 			   been allocated in IL memory.  Used so that the
@@ -3320,10 +3322,12 @@ END_EDG_NAMESPACE  /* Conditionally close the "edg" namespace. */
 #include <setjmp.h> 
 BEGIN_EDG_NAMESPACE  /* Conditionally open the "edg" namespace. */
 
-EXTERN int	exit_status;
+EXTERN_THREAD int
+		exit_status;
 			/* The status value to be returned to the caller. */
 
-EXTERN jmp_buf	edg_main_setjmp_buffer;
+EXTERN_THREAD jmp_buf
+		edg_main_setjmp_buffer;
 			/* The setjmp buffer used to transfer control back
 			   to the main routine in the event of an error. */
 #endif /* MAKE_FRONT_END_CALLABLE */
@@ -3366,7 +3370,7 @@ extern void remove_duplicate_include_dirs(
 			a_boolean			sys_includes_only);
 #endif /* !STANDALONE_UTILITY_PROGRAM */
 
-EXTERN a_boolean
+EXTERN_THREAD a_boolean
 		stack_referenced_include_directories;
 			/* If TRUE a stack model is used to manage the include
 			   search list and FALSE if some other model (by
@@ -3441,12 +3445,12 @@ handling code to be tested on a non-Microsoft system.
 #endif /* !BACKSLASH_IS_ALSO_DIR_SEPARATOR */
 #endif /* WINDOWS_PATHS_ALLOWED */
 
-EXTERN a_boolean
+EXTERN_THREAD a_boolean
 		backslash_is_also_dir_separator;
 			/* Initialized to BACKSLASH_IS_ALSO_DIR_SEPARATOR but
 			   may be changed during execution. */
 
-EXTERN a_boolean
+EXTERN_THREAD a_boolean
 		windows_paths_allowed;
 			/* Initialized to WINDOWS_PATHS_ALLOWED but may be
 			   changed during execution. */
@@ -4040,18 +4044,18 @@ extern void set_cpu_time_limit(int	seconds);
 extern void db_incl_search_path(void);
 #endif /* DEBUG */
 
-EXTERN a_boolean
+EXTERN_THREAD a_boolean
 		prototype_instantiations_in_il;
 			/* If TRUE, prototype instantiations are recorded
 			   in the IL tree. */
 
-EXTERN a_boolean
+EXTERN_THREAD a_boolean
 		all_template_info_in_il;
 			/* If TRUE complete information about templates is
 			   provided in the il.  See ALL_TEMPLATE_INFO_IN_IL
 			   for more information. */
 
-EXTERN a_boolean
+EXTERN_THREAD a_boolean
 		in_front_end;
 			/* TRUE while in the front end, FALSE elsewhere (e.g.,
 			   in the C-generating back end).  TRUE in IL lowering,
@@ -4059,30 +4063,30 @@ EXTERN a_boolean
 			   before the front end starts up.  Stays FALSE in
 			   a standalone utility program. */
 
-EXTERN a_boolean
+EXTERN_THREAD a_boolean
 		pragma_define_type_info_is_required;
 			/* TRUE if "#pragma define_type_info" is required
 			   before a declaration of the standard class
 			   "type_info". */
 
-EXTERN a_boolean
+EXTERN_THREAD a_boolean
 		host_little_endian;
 			/* TRUE if the host system uses little-endian
 			   byte ordering. */
 
-EXTERN a_const_char
+EXTERN_THREAD a_const_char
 		*edg_base_directory;
 			/* The directory in which to find files needed by
 			   the front end at execution time (e.g., the
 			   predefined macro table). */
 
-EXTERN a_boolean
+EXTERN_THREAD a_boolean
 		use_predefined_macro_file;
 			/* TRUE if the file specified by
 			   PREDEFINED_MACRO_FILE_NAME should be used to
 			   predefine macros at the start of compilation. */
 
-EXTERN a_boolean
+EXTERN_THREAD a_boolean
 		create_template_deduction_name_references;
 			/* TRUE if name references should be created in
 			   template deduction contexts. */
@@ -4103,7 +4107,7 @@ enum a_predef_macro_mode {
   pmm_last
 };
 
-EXTERN a_boolean
+EXTERN_THREAD a_boolean
 		predef_macro_mode_values[(int)pmm_last];
 			/* TRUE if a given predefined macro mode should be
 			   considered to be in effect. */
@@ -4130,7 +4134,7 @@ EXTERN_CONSTINIT_ARRAY(a_const_char*, predef_macro_mode_names, pmm_last + 1)
 #endif /* VAR_INITIALIZERS */
 EXTERN_CONSTINIT_ARRAY_END(predef_macro_mode_names)
 
-EXTERN a_boolean
+EXTERN_THREAD a_boolean
 		lowering_normalizes_boolean_controlling_expressions
 #if VAR_INITIALIZERS
                          = LOWERING_NORMALIZES_BOOLEAN_CONTROLLING_EXPRESSIONS
@@ -4139,7 +4143,7 @@ EXTERN a_boolean
 			/* TRUE if IL lowering should normalize boolean
 			   controlling expressions to always produce 0/1. */
 
-EXTERN a_boolean
+EXTERN_THREAD a_boolean
 		record_unrecognized_attributes
 #if VAR_INITIALIZERS
                          = RECORD_UNRECOGNIZED_ATTRIBUTES
@@ -4209,7 +4213,7 @@ unmodified) value.
 
 #endif /* USE_ENUMS_IN_BITFIELDS */
 
-EXTERN a_boolean
+EXTERN_THREAD a_boolean
 		add_match_notes;
 			/* TRUE if notes should be added to error messages
 			   describing failures to match overload sets. */

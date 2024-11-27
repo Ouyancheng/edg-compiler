@@ -386,7 +386,7 @@ typedef struct a_label_fill_in_entry {
 } a_label_fill_in_entry;
 
 /* Define the label fill-ins: */
-static a_label_fill_in_entry label_fill_ins[] = {
+STATIC_THREAD a_label_fill_in_entry label_fill_ins[] = {
   { "managed",       &use_cppcli_fill_ins, ec_managed,      ec_cppcx },
   { "C++/CLI",       &use_cppcli_fill_ins, ec_cppcli,       ec_cppcx_mapping },
   { "default",       &use_cppcli_fill_ins, ec_default,      ec_cli_mapping },

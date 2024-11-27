@@ -125,7 +125,8 @@ STATIC_THREAD int
 		depth_debug_stack;
 			/* The current depth of the debug stack. */
 
-static sizeof_t	debug_stack_size = 0;
+STATIC_THREAD sizeof_t
+		debug_stack_size = 0;
 			/* The allocated size of the debug stack. */
 
 

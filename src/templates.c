@@ -124,7 +124,7 @@ enum a_template_info_line_type {
 The template information line type string to be written to the
 file for the various line type kinds.
 */
-static a_const_char
+static constexpr a_const_char
 		*template_info_line_type_names[(int)tilt_last+1] = {
   /* tilt_command_line */		"cmd",
   /* tilt_curr_dir */			"dir",
@@ -159,7 +159,7 @@ The template information line type string to be written to the
 file for the various line type kinds.  The routines that read the
 exported template file require that the names be three characters long.
 */
-static a_const_char
+static constexpr a_const_char
 		*exported_template_line_type_names[(int)etlt_last+1] = {
   /* etlt_none */			NULL,
   /* etlt_file_name */			"fnm",
@@ -425,11 +425,11 @@ STATIC_THREAD a_variadic_param_info_ptr
 			/* Previously allocated entries available for reuse. */
 
 #if MICROSOFT_EXTENSIONS_ALLOWED
-static a_deferred_constraint_check_ptr
+STATIC_THREAD a_deferred_constraint_check_ptr
 		avail_deferred_constraint_checks;
 			/* Previously allocated entries available for reuse. */
 
-static a_boolean
+STATIC_THREAD a_boolean
 		do_strict_constraint_checking;
 			/* TRUE if constraints should be checked according
 			   to ECMA-372 instead of the more lax checking
