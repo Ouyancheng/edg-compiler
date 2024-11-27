@@ -20275,15 +20275,21 @@ indication in *rcblock).
         /* Casting to void * is okay. */
         cast_type_okay = TRUE;
         void_star_case = TRUE;
-      } else if (is_template_param_or_proxy_type(underlying_cast_type)) {
+      } else if (is_template_param_or_proxy_type(underlying_cast_type) &&
+                 is_template_dependent_context()) {
         /* Casting to a pointer or reference to a template parameter type
-           is okay in a prototype instantiation. */
+           is okay in a prototype instantiation.  (The test for
+           is_template_dependent_context() allows C++/CLI generics to be
+           handled as non-template cases.) */
         cast_type_okay = TRUE;
         template_param_case = TRUE;
       }  /* if */
-    } else if (is_template_param_or_proxy_type(cast_type)) {
+    } else if (is_template_param_or_proxy_type(cast_type) &&
+               is_template_dependent_context()) {
       /* Casting to a template parameter type is okay in a prototype
-         instantiation (it might be a pointer or reference type). */
+         instantiation (it might be a pointer or reference type).  (The test
+         for is_template_dependent_context() allows C++/CLI generics to be
+         handled as non-template cases.) */
       cast_type_okay = TRUE;
       template_param_case = TRUE;
       underlying_cast_type = type_of_unknown_templ_param_nontype;
