@@ -1518,6 +1518,11 @@ beginning with "**BAD" for a bad float kind.
 {
   a_const_char *p;
 
+  if (clang_version_is(any_version)) {
+    /* The standard extended floating point typedefs are (as of version
+       19.1.0) not supported by clang. */
+    use_C_form = TRUE;
+  }  /* if */
   switch (kind) {
     case fk_float16:      p = "_Float16";           break;
     case fk_fp16:         p = "__fp16";             break;
@@ -1532,7 +1537,7 @@ beginning with "**BAD" for a bad float kind.
 #if !STANDALONE_UTILITY_PROGRAM
                                || !extended_float_types
 #endif /* !STANDALONE_UTILITY_PROGRAM */
-                               )
+                                                       )
                             ? "__bf16"
                             : "std::bfloat16_t";    break;
     case fk_std_float16:  p = use_C_form
