@@ -19,13 +19,13 @@ that restriction; however, the C++-generating back end still suppressed
 such template arguments, regardless of the language level.  As a result,
 when an explicit template argument is required in an ADL-only call for a
 non-deduced template parameter, the generated code could not be compiled.
-This is now fixed, and function template argument lists are emitted in
-ADL-only calls when adl_for_non_visible_templates is TRUE, as is the case
-in C++20 and later modes.  For example, with --c++20:
+This is now fixed, and function template argument lists are emitted as
+needed in ADL-only calls in C++20 and later modes.  For example, with
+--c++20:
 
   namespace N {
-    template<int, typename T> int f(T) { return 0; }
-    struct S{};
+    template<int /* non-deduced */, typename T> int f(T) { return 0; }
+    struct S { };
   }
   auto g() { return N::S{}; }
   auto x = f<0>(g());   // Previously omitted "<0>"
