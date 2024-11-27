@@ -86,15 +86,15 @@ MAKE_FRONT_END_CALLABLE is TRUE.
 #endif /* BACK_END_SHOULD_BE_CALLED */
   a_timer	    end_time;
 
-#if DEBUG
-  /* Initialize the file variable used for debug output.  This should be
-     done before anything else that could potentially produce debug output. */
-  f_debug = stderr;
-#endif /* DEBUG */
   /* Initialize the file variable used for error output.  This should be
      done before anything else that could potentially produce error output
      (including an internal error). */
-  f_error = stderr;
+  f_error = default_error_file();
+#if DEBUG
+  /* Initialize the file variable used for debug output.  This should be
+     done before anything else that could potentially produce debug output. */
+  f_debug = f_error;
+#endif /* DEBUG */
   /* Do early (before command-line processing) initialization. */
   fe_early_init();
   /* Get the execution starting time.  Do this unconditionally because the

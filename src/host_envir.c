@@ -6250,6 +6250,22 @@ FALSE otherwise).
 }  /* strtoul_interface */
 
 #endif /* BUILTIN_FUNCTIONS_ENABLED */
+#if !CUSTOM_DEFAULT_ERROR_FILE
+
+FILE* default_error_file()
+/*
+This function should return the file that should be used for error output.
+
+This is the default implementation of the default_error_file function.  When
+CUSTOM_DEFAULT_ERROR_FILE is TRUE it's expected that an alternative
+implementation is provided by another file (usually outside of the standard EDG
+C++/C front end source file set).
+*/
+{
+  return stderr;
+}  /* default_error_file */
+
+#endif /* !CUSTOM_DEFAULT_ERROR_FILE */
 
 void host_envir_one_time_init(void)
 /*

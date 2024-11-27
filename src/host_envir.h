@@ -3766,6 +3766,8 @@ extern unsigned long extract_character_from_string(a_const_char  *str,
 extern int ucn_to_utf16(unsigned long   ucn,
                         unsigned short  *encoding);
 
+extern FILE* default_error_file();
+
 extern void host_envir_one_time_init(void);
 
 extern void host_envir_trans_unit_init(void);

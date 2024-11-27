@@ -8271,6 +8271,28 @@ processed.
 }  /* end_command_line_error */
 
 
+static void reset_f_error()
+/*
+Reset the error output FILE* (f_error).  In DEBUG configurations, additionally
+reset the associated debug output FILE* (f_debug).
+*/
+{
+#if MAKE_FRONT_END_CALLABLE
+  if (f_error != stderr
+#if DIRECT_ERROR_OUTPUT_TO_STDOUT
+                        && f_error != stdout
+#endif /* DIRECT_ERROR_OUTPUT_TO_STDOUT */
+                                            ) {
+    close_file_if_open(&f_error);
+  }  /* if */
+#endif /* MAKE_FRONT_END_CALLABLE */
+  f_error = default_error_file();
+#if DEBUG
+  f_debug = f_error;
+#endif /* DEBUG */
+}  /* reset_f_error */
+
+
 void error_early_init(void)
 /*
 Do initialization that needs to be done very early, specifically before command
@@ -8280,12 +8302,9 @@ line processing is done.
 #if CHECKING
   internal_error_loop = FALSE;
 #endif /* CHECKING */
-  /* The initialization of f_error is also done in cfe.c, but is done here
-     also so that it will be reset if the front end is reinitialized. */
-  f_error = stderr;
-#if DEBUG
-  f_debug = stderr;
-#endif /* DEBUG */
+  /* The initialization of f_error is also done in cfe.c, but is reset here so
+     in case the front end is reinitialized outside of cfe_main. */
+  reset_f_error();
   diag_memory_region = FRONT_END_REGION_NUMBER;
   diagnostic_line_length = MAX_ERROR_OUTPUT_LINE_LENGTH;
   msg_buffer = NULL;
@@ -8689,17 +8708,7 @@ the point at which the compilation was terminated.
   /* Reset f_error so that an internal error during initialization will
      be directed to stderr, not wherever the previous compilation directed
      error output. */
-  if (f_error != stderr
-#if DIRECT_ERROR_OUTPUT_TO_STDOUT
-                        && f_error != stdout
-#endif /* DIRECT_ERROR_OUTPUT_TO_STDOUT */
-                                            ) {
-    close_file_if_open(&f_error);
-  }  /* if */
-  f_error = stderr;
-#if DEBUG
-  f_debug = stderr;
-#endif /* DEBUG */
+  reset_f_error();
 }  /* error_cleanup */
 
 #endif /* MAKE_FRONT_END_CALLABLE */
