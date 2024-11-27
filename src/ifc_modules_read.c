@@ -14526,7 +14526,8 @@ the current contents of the given IFC module file; otherwise, return FALSE.
 }  /* verify_checksum */
 
 
-using a_token_name_map = Ptr_map<a_string_view, a_token_kind>;
+using a_token_name_map = Ptr_map<a_string_view, a_token_kind,
+                                 General_allocator>;
                         /* The type used for a mapping from a token's name
                            to its token kind. */
 
@@ -14545,7 +14546,7 @@ can be found, return tok_error.
   if (tok_name_map == NULL) {
     /* The token name map has not been used previously in this process.
        Initialize it now. */
-    tok_name_map = new_fe<a_token_name_map>(/*mask_width=*/10);
+    tok_name_map = new_general<a_token_name_map>(/*mask_width=*/10);
     for (size_t i = 0; i < tok_last; ++i){
       a_token_kind  tok_kind = (a_token_kind)i;
       a_string_view tok_name_as_str(ifc_token_name_of(tok_kind));
@@ -30705,11 +30706,12 @@ translation unit.  See ifc_modules_trans_unit_wrapup for more information.
 
 void ifc_modules_read_cleanup()
 /*
-Perform any cleanup operations related to reading IFC modules in the current
-translation unit.  See ifc_modules_cleanup for more information.
+This routine is called at the end of compilation, or if compilation is
+terminated prematurely for some reason.  See ifc_modules_cleanup for more
+information.
 */
 {
-  delete_fe(&tok_name_map);
+  delete_general(&tok_name_map);
   delete_general(&bad_operator_name_encodings);
 }  /* ifc_modules_read_cleanup */
 
