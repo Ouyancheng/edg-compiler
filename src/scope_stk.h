@@ -123,6 +123,9 @@ typedef int a_push_scope_options_set;
 			/* TRUE for a template declaration scope pushed for the
 			   template parameters of a template template
 			   parameter. */
+#define PS_IS_DEFAULT_TEMPLATE_ARG	0x1000000
+			/* TRUE for an instantiation of a default template
+			   argument. */
 #define SIZE_FUNCTION_SHAREABLE_CONSTANTS_TABLE 31
 			/* Size of the shareable constants hash table for
 			   a function. */
@@ -811,6 +814,9 @@ typedef struct a_scope_stack_entry {
   a_bit_field	exception_specification:1;
 			/* TRUE if this is a scope within the instantiation
 			   of an exception specification. */
+  a_bit_field	is_default_template_arg:1;
+			/* TRUE if this is a scope within the instantiation
+			   of a default template argument. */
 #if MICROSOFT_EXTENSIONS_ALLOWED
   a_bit_field	instantiation_from_metadata:1;
 			/* TRUE for instantiation scopes for C++/CLI generic
@@ -2020,6 +2026,17 @@ is_template_dependent_context, but excludes nonreal instantiations.
 #define is_prototype_instantiation_context()				\
   (depth_template_declaration_scope != NO_SCOPE_DEPTH ||		\
    scope_stack[depth_scope_stack].in_prototype_instantiation)
+
+/*
+TRUE if we are in an uninstantiated pack expansion context.  This is either a
+prototype instantiation context or a nonreal instantiation of a default
+template argument that is enclosed by a prototype instantiation context.
+*/
+#define is_uninstantiated_pack_expansion_context()			\
+  (is_prototype_instantiation_context() ||				\
+   (scope_stack[depth_scope_stack].in_nonreal_instantiation &&		\
+    scope_stack[depth_scope_stack].is_default_template_arg &&		\
+    enclosing_scope_is_prototype_instantiation_context()))
 
 /*
 TRUE if we are in a template prototype instantiation context but not

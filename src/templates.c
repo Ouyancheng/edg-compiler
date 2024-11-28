@@ -28044,6 +28044,7 @@ the resulting constant is stored in the pointer pointed to by "constant".
        instantiation. */
     ps_options |= PS_NONREAL_INSTANTIATION | PS_DEDUCTION_CONTEXT;
   }  /* if */
+  if (do_default_arg) ps_options |= PS_IS_DEFAULT_TEMPLATE_ARG;
   if (type_involves_template_param) {
     if (pending_nontype_param_instantiations == max_pending_instantiations) {
       pos_error(ec_recursive_inst_of_templ_default_arg, &error_position);
@@ -28320,6 +28321,7 @@ existing type is simply used.
       if (microsoft_bugs && scope_stack_top().is_rescan) {
         ps_options |= PS_IS_RESCAN;
       }  /* if */
+      ps_options |= PS_IS_DEFAULT_TEMPLATE_ARG;
       /* Push the template instantiation scope.  Note that the instance symbol
          passed to push_scope is NULL because we don't yet know which instance
          is being instantiated.  Also note that a class type is not being
@@ -28397,6 +28399,7 @@ existing type is simply used.
     if (dependent_arg_list) {
       ps_options |= PS_NONREAL_INSTANTIATION | PS_DEDUCTION_CONTEXT;
     }  /* if */
+    ps_options |= PS_IS_DEFAULT_TEMPLATE_ARG;
     push_instantiation_scope_for_templ_param_rescan(
 				      tcp->decl_info,
                                       (a_type_ptr)NULL,

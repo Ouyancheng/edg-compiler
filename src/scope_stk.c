@@ -3202,6 +3202,8 @@ the scope being pushed.
                                    (options & PS_NONREAL_INSTANTIATION) != 0;
       ssep->in_generic_definition = (options & PS_GENERIC_DEFINITION) != 0;
       ssep->exception_specification = (options & PS_EXCEPTION_SPEC) != 0;
+      ssep->is_default_template_arg =
+                                   (options & PS_IS_DEFAULT_TEMPLATE_ARG) != 0;
       if (template_sym != NULL && !ssep->is_rescan) {
         /* Determine whether this is an instantiation of a variadic
            template. */
@@ -3242,6 +3244,7 @@ the scope being pushed.
         ssep->in_variadic_template = FALSE;
         ssep->in_generic_definition = FALSE;
         ssep->exception_specification = FALSE;
+        ssep->is_default_template_arg = FALSE;
 #if MICROSOFT_EXTENSIONS_ALLOWED
         ssep->instantiation_from_metadata = FALSE;
         ssep->in_generic_instantiation = FALSE;
@@ -3255,6 +3258,8 @@ the scope being pushed.
                                           (ssep-1)->in_generic_definition;
         ssep->exception_specification =
                                           (ssep-1)->exception_specification;
+        ssep->is_default_template_arg =
+                                          (ssep-1)->is_default_template_arg;
         ssep->in_variadic_template =
                                           (ssep-1)->in_variadic_template;
         ssep->is_rescan =
@@ -12641,7 +12646,7 @@ that *p_pedp is set even when FALSE is returned.
   pedp = get_pack_expansion_for_curr_context();
   *p_pedp = pedp;
   if (pedp != NULL) {
-    if (!is_prototype_instantiation_context() &&
+    if (!is_uninstantiated_pack_expansion_context() &&
         !in_ms_nonreal_class_instantiation()) {
       result = TRUE;
     } else if (pedp->uses_only_enclosing_packs &&
@@ -12851,7 +12856,7 @@ suppression is on the stack.
       if (!is_lookahead) skip_pack_expansion_tokens(pedp);
       any_args = FALSE;
     }  /* if */
-  } else if (is_prototype_instantiation_context() ||
+  } else if (is_uninstantiated_pack_expansion_context() ||
              in_ms_nonreal_class_instantiation()) {
     any_args = TRUE;
     pesep = push_pack_expansion_stack();
@@ -13200,6 +13205,12 @@ by prp.
        Any actual missing expansions will have been diagnosed in the original
        prototype instantiations, so avoid issuing any potentially incorrect
        diagnostics here. */
+  } else if (scope_stack_top().in_nonreal_instantiation &&
+             scope_stack_top().is_default_template_arg &&
+             enclosing_scope_is_prototype_instantiation_context()) {
+    /* Similarly, a nonreal instantiation of a default template argument that
+       is enclosed by a prototype instantiation context might result in a pack
+       that is only expanded in an outer context. */
   } else if (scope_stack_top().in_disambiguation) {
     /* We are in disambiguation, so pack references are not being recorded. */
   } else {
@@ -13597,7 +13608,7 @@ form.
   /* It is only possible to reference a pack expansion in a template
      definition context.  Don't record pack references during rescans -- just
      use the pack references from the definition. */
-  if (is_prototype_instantiation_context() &&
+  if (is_uninstantiated_pack_expansion_context() &&
       !(pack_expansion_stack != NULL &&
        pack_expansion_stack->instantiation_descr != NULL) &&
       (pack_expansion_stack == NULL || !pack_expansion_stack->is_rescan ||
@@ -13783,7 +13794,7 @@ ellipsis describes the expansion of a potential pack before and after the
 ellipsis, and calling this routine directly is more appropriate.
 */
 {
-  if (is_prototype_instantiation_context()) {
+  if (is_uninstantiated_pack_expansion_context()) {
     if (pack_expansion_stack == NULL) {
       pos_error(ec_expansion_contains_no_packs, ellipsis_pos);
     } else {
