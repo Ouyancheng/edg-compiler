@@ -25708,14 +25708,15 @@ copy_attributes is TRUE).
 
   decl_pos = locator_for_curr_id.source_position;
   if (!have_access_to_symbol_full(sym, /*ignore_func_templ=*/FALSE) &&
-      !(ms_compat &&
-        sym->kind == (a_symbol_kind)sk_projection &&
-        is_function_or_template_symbol(fund_sym))) {
+      !(ms_compat && is_function_or_template_symbol(fund_sym) &&
+        (symbol_is(sym, sk_projection) ||
+         symbol_is(declared_sym, sk_projection)))) {
     /* The specified symbol (either the explicitly declared symbol or
        a member of the overload set the symbol refers to) is inaccessible.
        Issue an error instead of creating the projection symbol. */
-    /* MSVC doesn't seem to check access on using-declarations for
-       functions. */
+    /* MSVC doesn't seem to check access on using-declarations for functions if
+       the using-declaration either names another using-declaration or a
+       function in an indirect base class. */
     pos_sy_error(ec_no_access_to_name, &decl_pos, sym);
   } else if (sym->kind == (a_symbol_kind)sk_member_function &&
              sym->variant.routine.ptr->compiler_generated &&
