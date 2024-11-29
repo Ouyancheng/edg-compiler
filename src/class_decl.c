@@ -33004,6 +33004,7 @@ classes.
         /* Clear the base-classes (and related) fields to avoid problems down
            the line. */
         ctsp->base_classes = NULL;
+        ctsp->direct_base_classes = NULL;
 #if IA64_ABI
         ctsp->primary_base_class = NULL;
 #endif /* IA64_ABI */
