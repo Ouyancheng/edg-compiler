@@ -26094,7 +26094,10 @@ struct a_constraint_test {
      and template arguments to substitute in that expression. */
   an_expr_node_ptr
 		constraint;
-			/* The expression being substituted. */
+			/* The unsubstituted constraint expression. */
+  an_expr_node_ptr
+		expr;	/* The partially-substituted expression being
+			   checked for satisfaction. */
   a_template_param_ptr
 		template_param_list;
 			/* The template parameters for the substitution. */
@@ -26112,10 +26115,12 @@ Return TRUE if the given constraint tests are equivalent.
 {
   a_boolean  result;
 
-  if (ct1.template_param_list != ct2.template_param_list) {
+  if (ct1.constraint != ct2.constraint) {
     result = FALSE;
-  } else if (ct1.constraint != ct2.constraint &&
-             !compare_expressions(ct1.constraint, ct2.constraint,
+  } else if (ct1.template_param_list != ct2.template_param_list) {
+    result = FALSE;
+  } else if (ct1.expr != ct2.expr &&
+             !compare_expressions(ct1.expr, ct2.expr,
                                   (CC_STRICTLY_IDENTICAL |
                                    CC_EXACT_EQUIVALENCE |
                                    CC_EXACT_DECLTYPE_EXPR_MATCH_REQUIRED))) {
@@ -26149,8 +26154,9 @@ static inline uintptr_t hash_ptr(a_constraint_test  ct)
 Return a hash value for a constraint test description.
 */
 {
-  uintptr_t  result = 17*31 + hash_ptr((void*)ct.template_param_list);
-  result = result*31 + (uintptr_t)hash_expr(ct.constraint);
+  uintptr_t  result = 17*31 + hash_ptr((void*)ct.constraint);
+  result = result*31 + hash_ptr((void*)ct.template_param_list);
+  result = result*31 + (uintptr_t)hash_expr(ct.expr);
   result = result*31 + (uintptr_t)hash_template_arg_list(ct.template_arg_list);
   return result;
 }  /* hash_ptr */
@@ -26205,7 +26211,7 @@ block pointer.
   a_template_param_ptr params = sym->variant.template_info
                                    ->cache.decl_info->parameters;
   an_expr_node_ptr     expr = templ->prototype_instantiation.constraint;
-  a_constraint_test    test = { constraint, params, args };
+  a_constraint_test    test = { constraint, constraint, params, args };
   uintptr_t            hash = hash_ptr(test);
   a_test_constraint_result
                        cached_result;
@@ -26448,7 +26454,7 @@ p_fatal and p_copy_error are NULL by default.
       expr = constraint;
     }  /* if */
     if (!copy_error) {
-      a_constraint_test    test = { expr, NULL, NULL };
+      a_constraint_test    test = { constraint, expr, NULL, NULL };
       uintptr_t            hash = 0;
       a_template_arg_ptr   template_arg_list = NULL;
       a_template_param_ptr template_param_list = NULL;
