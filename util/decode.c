@@ -3141,6 +3141,8 @@ to the character position following what was demangled.
               s = "_Float16";
             } else if (ch == '4') {
               s = "_Float32x";
+            } else if (ch == '6') {
+              s = "__fp16";
             } else if (ch == '8') {
               s = "_Float64x";
             } else {
@@ -5359,11 +5361,14 @@ demangled as part of the template function instead).
                   break;
               }  /* switch */
             } else if (*p == '_') {
+              /* The front end mangles _FloatX and std::floatX_t with the same
+                 encodings.  Prefer the _FloatX demanglings (as that seems to
+                 be what GNU/Clang prefer). */
               switch (num) {
-                case 16:    s = "std::float16_t";   break; /* Also _Float16. */
-                case 32:    s = "std::float32_t";   break;
-                case 64:    s = "std::float64_t";   break;
-                case 128:   s = "std::float128_t";  break;
+                case 16:    s = "_Float16";   break; /* Also std::float16_t */
+                case 32:    s = "_Float32";   break; /* Also std::float32_t */
+                case 64:    s = "_Float64";   break; /* Also std::float64_t */
+                case 128:   s = "_Float128";  break; /* Also std::float128_t */
                 default:
                   bad_mangled_name(dctl);
                   break;
