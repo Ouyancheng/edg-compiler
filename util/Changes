@@ -1,5 +1,14 @@
 Version 6.7
 
+12/2/24  [EDGcpfe/27746]
+Floating-point demangling changes
+
+In the Cfront ABI, clang's __fp16 type is now recognized and demangled.
+
+In the IA-64 ABI, the demangled names for the std::floatN_t types have been
+changed to _FloatN (to better match the demangled names from GNU and clang).
+
+
 11/11/24 [EDGcpfe/27715]
 Fix eccp default argument processing
 
