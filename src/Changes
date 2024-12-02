@@ -1,5 +1,24 @@
 Version 6.7
 
+12/2/24  [EDGcpfe/27729]
+Abort on partial specialization declaration with dependent non-type template
+parameter
+
+The changes for [EDGcpfe/19237,EDGcpfe/25886,EDGcpfe/26582] (in version 6.6)
+introduced a null pointer indirection in some cases where a primary template
+with a dependent non-type template parameter is partially specialized.  For
+example, with --c++11:
+
+  template<typename T>
+  struct D {
+    using type = T;
+  };
+  template<typename T, typename U, typename D<T>::type>
+  struct C;
+  template<typename U>
+  struct C<int, U, 0>;  // Previously aborted, now okay.
+
+
 11/29/24 [EDGcpfe/27629]
 Assertion failure in make_projection_symbol
 

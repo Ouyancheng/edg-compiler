@@ -23373,7 +23373,8 @@ list and template argument list of a partial specialization are valid.
              have a dependent type after substitution. */
           init_ctws_state(&ctws_state);
           type = copy_type_with_substitution(type, templ_arg_list,
-                                             primary_templ_param_list, NULL,
+                                             primary_templ_param_list,
+                                             &sym->decl_position,
                                              CTWS_NO_OPTIONS, &copy_error,
                                              &ctws_state);
           depends_on_templ_param = !copy_error &&
