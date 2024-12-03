@@ -29081,7 +29081,7 @@ it in the IL template entry.
       a_template_ptr	definition_templ;
       templ = tssp->il_template_entry;
       check_assertion(templ != NULL);
-      definition_templ = templ->definition_template;
+      definition_templ = templ->canonical_template->definition_template;
       check_assertion(definition_templ != NULL);
       definition_templ->cache_checksum = (uint32_t)cache_value;
     }
@@ -32199,8 +32199,9 @@ parameter lists that were scanned.
            attributes that will need to be applied during instantiation. */
         if (tssp != NULL) {
           if (symbol_is(sym, sk_variable_template)) {
-            if (!tssp->variant.variable.prototype_variable->
-                                                        initializer_in_class) {
+            if (tssp->variant.variable.prototype_variable->
+                                                        initializer_in_class ||
+                decl_state->defines_something) {
               /* Include an out-of-class initializer, if any, if none was
                  specified in the in-class declaration. */
               p_template_body_cache = &tssp->cache.tokens;

@@ -1,5 +1,16 @@
 Version 6.7
 
+13/3/24  [EDGcpfe/27770]
+Internal error on variable template in multi-trans-unit mode
+
+When compiling multiple translation units, an internal error could occur
+(in record_cache_checksum) if a variable template was declared extern.
+Now fixed.  This test case would cause the internal error if compiled with
+an empty second translation unit.
+
+  template <typename T> extern const bool v;
+
+
 12/3/24  [EDGcpfe/27555]
 Cross-translation-unit of diagnose_if attribute
 
