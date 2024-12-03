@@ -5,9 +5,9 @@ Abort on partial specialization declaration with dependent non-type template
 parameter
 
 The changes for [EDGcpfe/19237,EDGcpfe/25886,EDGcpfe/26582] (in version 6.6)
-introduced a null pointer indirection in some cases where a primary template
-with a dependent non-type template parameter is partially specialized.  For
-example, with --c++11:
+introduced a null pointer indirection in look_up_member_in_substituted_parent
+in some cases where a primary template with a dependent non-type template
+parameter is partially specialized.  For example, with --c++11:
 
   template<typename T>
   struct D {
