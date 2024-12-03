@@ -1,6 +1,6 @@
 Version 6.7
 
-12/2/24  [EDGcpfe/27729]
+12/2/24  [EDGcpfe/27326,EDGcpfe/27729]
 Abort on partial specialization declaration with dependent non-type template
 parameter
 
