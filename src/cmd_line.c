@@ -9887,6 +9887,11 @@ file.
 #else /* !defined(USE_HOST_FP_CONVERSION_ROUTINES) */
   comment_undefined_macro_name(USE_HOST_FP_CONVERSION_ROUTINES);
 #endif /* defined(USE_HOST_FP_CONVERSION_ROUTINES) */
+#if defined(USE_HOST_TMPFILE_FACILITIES)
+  define_numeric_valued_macro(USE_HOST_TMPFILE_FACILITIES);
+#else /* !defined(USE_HOST_TMPFILE_FACILITIES) */
+  comment_undefined_macro_name(USE_HOST_TMPFILE_FACILITIES);
+#endif /* defined(USE_HOST_TMPFILE_FACILITIES) */
 #if defined(USE_INIT_SECTION_IN_GENERATED_C)
   define_numeric_valued_macro(USE_INIT_SECTION_IN_GENERATED_C);
 #else /* !defined(USE_INIT_SECTION_IN_GENERATED_C) */

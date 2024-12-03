@@ -1664,14 +1664,334 @@ static a_temp_file_name_ptr
 			/* List of all temp files currently open. */
 #endif /* __MICROSOFT_OS__ */
 
-/*
-Static variables used by open_temp_file.
-*/
 STATIC_THREAD a_const_char
                 *temp_dir;
+                        /* The cached temporary directory value. */
+
+STATIC_THREAD size_t
+                temp_dir_len;
+                        /* The cached temporary directory length. */
+
+constexpr int   temp_file_tries = 20;
+                        /* The maximum number of tries when opening a temporary
+                           file. */
+
+using a_temp_file_name_buffer = Small_string<150>;
+                        /* The type used for a temporary file name buffer. */
+
+#if EDG_WIN32
+
+static inline a_string get_temp_dir_from_win32()
+/*
+Return a string containing the temporary directory using the Win32 API.
+*/
+{
+  a_string result;
+#if UNICODE_SOURCE_ENABLED
+  wchar_t  buffer[MAX_PATH];
+  DWORD    path_len = GetTempPath2W(MAX_PATH, buffer);
+#else /* !UNICODE_SOURCE_ENABLED */
+  char     buffer[MAX_PATH];
+  DWORD    path_len = GetTempPath2A(MAX_PATH, buffer);
+#endif /* UNICODE_SOURCE_ENABLED */
+
+  if (path_len > (MAX_PATH - 14) || path_len == 0) {
+    /* GetTempPath2 failed to retrieve a valid temporary path; fallback to the
+       binary's default temporary directory.  Note that the Win32 API specifies
+       that GetTempFileNameA fails if the string is longer than MAX_PATH - 14
+       characters. */
+    result.reset_to(DEFAULT_TMPDIR);
+  } else {
+    /* Use the path from GetTempPath2 (converting from utf-16 to utf-8 if
+       necessary). */
+#if UNICODE_SOURCE_ENABLED
+    result.reset_to(conv_wide_to_utf8(buffer));
+#else /* !UNICODE_SOURCE_ENABLED */
+    result.reset_to(a_string_view(buffer, path_len));
+#endif /* UNICODE_SOURCE_ENABLED */
+  }  /* if */
+  return result;
+}  /* get_temp_dir_from_win32 */
+
+#else /* !EDG_WIN32 */
+
+static inline a_string get_temp_dir_from_env()
+/*
+Return a string containing the temporary directory querying common environment
+variables.
+*/
+{
+  a_string result;
+  char     *temp_dir_env;
+
+#if __MICROSOFT_OS__
+  /* On a Microsoft OS, first use the TMP environment variable, if set. */
+  temp_dir_env = getenv("TMP");
+#else /* !__MICROSOFT_OS__ */
+  /* On a Unix OS, use the TMPDIR environment variable, if set. */
+  temp_dir_env = getenv("TMPDIR");
+#endif /* __MICROSOFT_OS__ */
+  if (temp_dir_env == NULL || strlen(temp_dir_env) == 0) {
+    /* Fallback to the default temporary directory (one could not be found in
+       the environment variable). */
+    result.reset_to(DEFAULT_TMPDIR);
+  } else {
+    /* Use the temporary directory from the environment variable. */
+    result.reset_to(temp_dir_env);
+  }  /* if */
+  return result;
+}  /* get_temp_dir_from_env */
+
+#endif /* EDG_WIN32 */
+
+static inline void resolve_temp_dir()
+/*
+Initialize temp_dir if not already initialized.
+*/
+{
+  /* Get the value of the "TMPDIR" environment variable, the directory to
+     be used for temporary files.  Get it only once (temp_dir is static). */
+  if (temp_dir == NULL) {
+    /* If this a relatively modern Windows system, use the Win32 API to
+       determine the correct temporary path directory. */
+    a_string tmp_buffer =
+#if EDG_WIN32
+                          get_temp_dir_from_win32();
+#else /* !EDG_WIN32 */
+                          get_temp_dir_from_env();
+#endif /* EDG_WIN32 */
+
+    /* Ensure there's a directory separator on the end of the path. */
+    a_boolean need_slash = FALSE;
+    if (!tmp_buffer.is_empty()) {
+      char last_char = tmp_buffer[tmp_buffer.length() - 1];
+
+      if (last_char != DIRECTORY_SEPARATOR) {
+        need_slash = TRUE;
+      }  /* if */
+#if __MICROSOFT_OS__
+      /* Under MS-DOS we don't need to add a slash if the path already ends
+         with a backslash. */
+      if (need_slash && last_char == '\\') {
+        need_slash = FALSE;
+      }  /* if */
+#endif /* __MICROSOFT_OS__ */
+    }  /* if */
+    if (need_slash) {
+      tmp_buffer.append(DIRECTORY_SEPARATOR_STRING);
+    }  /* if */
+    /* Move the computed temporary directory to general memory for use during
+       the rest of the compilation. */
+    temp_dir = tmp_buffer.to_allocated_storage(General_allocator<char>());
+    temp_dir_len = tmp_buffer.length();
+  }  /* if */
+}  /* resolve_temp_dir */
+
+#if __MICROSOFT_OS__
+
+static inline register_temp_file_for_removal(
+                                         const a_temp_file_name_buffer &buffer)
+/*
+On Windows temporary files cannot be unlinked from the file system ahead of
+time; instead, add the file to a list of files to be cleaned up later.
+*/
+{
+  /* Use general storage for the allocation, because it may have to survive
+     into a back end called in the same program as the front end. */
+  a_temp_file_name_ptr new_entry =
+                 (a_temp_file_name_ptr)alloc_general(sizeof(a_temp_file_name));
+  new_entry->name = buffer.to_allocated_storage(General_allocator<char>());
+  new_entry->file = temp_file;
+  new_entry->next = open_temp_files;
+  open_temp_files = new_entry;
+}  /* register_temp_file_for_removal */
+
+#endif /* __MICROSOFT_OS__ */
+#if USE_HOST_TMPFILE_FACILITIES
+#if EDG_WIN32
+
+static inline FILE *open_win32_temp_file(a_boolean binary_file)
+/*
+Open a temporary text file using the operating system's secure temporary file
+creation methods, and return a pointer to its file block.  The file should be a
+binary file if binary_file is TRUE.
+*/
+{
+  FILE                    *result = NULL;
+  a_temp_file_name_buffer file_name;
+
+  for (int try_number = 0; try_number < temp_file_tries; ++try_number) {
+#if UNICODE_SOURCE_SUPPORTED
+    wchar_t *wide_temp_dir = translate_filename_to_wchar(temp_dir);
+
+    if (wide_temp_dir != NULL) {
+      wchar_t  win_buffer[MAX_PATH];
+      unsigned path_found = GetTempFileNameW(wide_temp_dir,
+                                             TEXT("edg"),
+                                             0,
+                                             win_buffer);
+      if (path_found == 0) {
+        /* A suitable file name was not discovered; try again. */
+        continue;
+      }  /* if */
+      /* Convert back to UTF-8. */
+      file_name.reset_to(conv_wide_to_utf8(win_buffer));
+    } else
+#endif /* UNICODE_SOURCE_SUPPORTED */
+    /* Do not add code here. */
+    {
+      char_t   win_buffer[MAX_PATH];
+      unsigned path_found = GetTempFileNameA(temp_dir,
+                                             TEXT("edg"),
+                                             0,
+                                             win_buffer);
+      if (path_found == 0) {
+        /* A suitable file name was not discovered; try again. */
+        continue;
+      }  /* if */
+      /* Move the result to the primary buffer. */
+      file_name.reset_to(win_buffer);
+    }  /* if */
+#if DEBUG
+    if (debug_level >= 4) {
+      fprintf(f_debug, "Opening temporary file %s\n",
+              file_name.as_temp_characters());
+    }  /* if */
+#endif /* DEBUG */
+
+    /* A temporary file path has been computed, attempt to open the file. */
+    char *mode = (char *)(binary_file ? FOPEN_MODE_FOR_BINARY_UPDATE
+                                      : FOPEN_MODE_FOR_UPDATE);
+    result = fopen_interface(file_name.as_temp_characters(), mode);
+    if (result != NULL) goto have_file;
+  }  /* for */
+  output_file_open_error(/*bad_name=*/FALSE, ec_temporary,
+                         file_name.as_temp_characters(),
+                         es_catastrophe);
+  /* This function does not return from the above call. */
+have_file:;
+  /* The file cannot be deleted now, so add it to the list of files to be
+     cleaned up. */
+  register_temp_file_for_removal(file_name);
+  return result;
+}  /* open_win32_temp_file */
+
+#else /* !EDG_WIN32 */
+
+static inline FILE *open_unix_temp_file(a_boolean binary_file)
+/*
+Open a temporary text file using the operating system's secure temporary file
+creation strategy, and return a pointer to its file block.  The file should be
+a binary file if binary_file is TRUE.  The file is unlinked from its associated
+file system path immediately after creation and will be destroyed upon close of
+the returned file.
+*/
+{
+  FILE                    *result;
+  constexpr a_const_char  *pattern_str = "edg.XXXXXXXX";
+  constexpr size_t        pattern_str_len = strlen(pattern_str);
+  a_temp_file_name_buffer file_name(a_string_view(temp_dir, temp_dir_len));
+  int                     tmp_fd = -1;
+
+  for (int try_number = 0; try_number < temp_file_tries; ++try_number) {
+    /* Append the template pattern (this is reset between loop iterations as
+       mkstemp may have replaced it with a concrete file name on the last
+       try). */
+    file_name.append(a_string_view(pattern_str, pattern_str_len));
+    tmp_fd = mkstemp((char*)file_name.as_temp_characters());
+    if (tmp_fd != -1) {
+      break;
+    }  /* if */
+    file_name.truncate_to(temp_dir_len);
+  }  /* for */
+  if (tmp_fd == -1) {
+    /* The template pattern has been truncated when leaving the retry loop
+       above; add the template back for the error. */
+    file_name.append(a_string_view(pattern_str, pattern_str_len));
+    output_file_open_error(/*bad_name=*/FALSE, ec_temporary,
+                           file_name.as_temp_characters(),
+                           es_catastrophe);
+    /* This function does not return from the above call. */
+  }  /* if */
+#if DEBUG
+  if (debug_level >= 4) {
+    fprintf(f_debug, "Opened temporary file %s\n",
+            file_name.as_temp_characters());
+  }  /* if */
+#endif /* DEBUG */
+
+  /* Create a FILE from the file descriptor. */
+  char *mode = (char *)(binary_file ? FOPEN_MODE_FOR_BINARY_UPDATE
+                                    : FOPEN_MODE_FOR_UPDATE);
+  result = fdopen(tmp_fd, mode);
+  /* Delete the file now, so it will disappear when closed. */
+  (void)unlink(file_name.as_temp_characters());
+  return result;
+}  /* open_unix_temp_file */
+
+#endif /* EDG_WIN32 */
+#else /* !USE_HOST_TMPFILE_FACILITIES */
+
 STATIC_THREAD unsigned long
                 temp_seed;
+                        /* A seed value to reduce collisions when using
+                           open_legacy_temp_file. */
 
+
+static FILE *open_legacy_temp_file(a_boolean binary_file)
+/*
+Open a temporary text file using an EDG algorithm to compute a temporary file
+name, and return a pointer to its file block.  The file should be a binary file
+if binary_file is TRUE.
+*/
+{
+  FILE                    *result = NULL;
+  a_temp_file_name_buffer file_name;
+
+  for (int try_number = 0; try_number < temp_file_tries; ++try_number) {
+    /* Put together the name dir + "/edg" + seed + "_" + process id. */
+    file_name.reset_to(a_string_view(temp_dir, temp_dir_len),
+                       "edg", temp_seed++, "_", (long)getpid());
+#if DEBUG
+    if (debug_level >= 4) {
+      fprintf(f_debug, "Opening temporary file %s\n",
+              file_name.as_temp_characters());
+    }  /* if */
+#endif /* DEBUG */
+
+    /* Check to see if the file exists already.  If so, go on to the next
+       seed value. */
+    struct stat buf;
+    if (stat(file_name.as_temp_characters(), &buf) == 0) {
+      /* The file exists already. */
+    } else {
+      /* The file does not exist.  Try opening it. */
+      char *mode = (char *)(binary_file ? FOPEN_MODE_FOR_BINARY_UPDATE
+                                        : FOPEN_MODE_FOR_UPDATE);
+
+      result = fopen_interface(file_name.as_temp_characters(), mode);
+      if (result != NULL) goto have_file;
+    }  /* if */
+    /* Retry with incremented file names a certain number of times.  After
+       that, give up (the problem may be that the directory name is bad). */
+  }  /* for */
+  output_file_open_error(/*bad_name=*/FALSE, ec_temporary,
+                         file_name.as_temp_characters(),
+                         es_catastrophe);
+  /* This function does not return from the above call. */
+have_file:;
+#if __MICROSOFT_OS__
+  /* The file cannot be deleted now, so add it to the list of files to be
+     cleaned up. */
+  register_temp_file_for_removal(file_name);
+#else /* !__MICROSOFT_OS__ */
+  /* Delete the file now, so it will disappear when closed. */
+  (void)unlink(file_name.as_temp_characters());
+#endif /* __MICROSOFT_OS__ */
+  return result;
+}  /* open_legacy_temp_file */
+
+#endif /* USE_HOST_TMPFILE_FACILITIES */
 
 FILE *open_temp_file(a_boolean binary_file)
 /*
@@ -1679,99 +1999,26 @@ Open a temporary text file, and return a pointer to its file block.  The
 file should be a binary file if binary_file is TRUE.
 */
 {
-  Small_string<150> buffer;
-#if EDG_WIN32 && UNICODE_SOURCE_ENABLED
-  wchar_t     *wide_temp_dir;
-#endif /* EDG_WIN32 && UNICODE_SOURCE_ENABLED */
-  a_boolean   need_slash;
-  sizeof_t    dir_len;
-  FILE        *temp_file = NULL;
-  int         retry_count = 20;
-  struct stat buf;
+  FILE *result;
 
-  /* Get the value of the "TMPDIR" environment variable, the directory to
-     be used for temporary files.  Get it only once (temp_dir is static). */
-  if (temp_dir == NULL) {
-#if EDG_WIN32 && UNICODE_SOURCE_ENABLED
-#if __MICROSOFT_OS__
-    /* On a Microsoft OS, first use the TMP environment variable, if set. */
-    /* coverity[+taint_source] */ /* coverity[var_assign] */
-    wide_temp_dir = _wgetenv(L"TMP");
-#endif /* __MICROSOFT_OS__ */
-    /* coverity[+taint_source] */ /* coverity[var_assign] */
-    if (wide_temp_dir == NULL) wide_temp_dir = _wgetenv(L"TMPDIR");
-    if (wide_temp_dir != NULL && wcslen(wide_temp_dir) != 0) {
-      temp_dir = conv_wide_to_utf8(wide_temp_dir);
-    } else {
-      temp_dir = DEFAULT_TMPDIR;
-    }  /* if */
-#else /* !(EDG_WIN32 && UNICODE_SOURCE_ENABLED) */
-#if __MICROSOFT_OS__
-    /* On a Microsoft OS, first use the TMP environment variable, if set. */
-    /* coverity[+taint_source] */ /* coverity[var_assign] */
-    temp_dir = getenv("TMP");
-#endif /* __MICROSOFT_OS__ */
-    /* coverity[+taint_source] */ /* coverity[var_assign] */
-    if (temp_dir == NULL) temp_dir = getenv("TMPDIR");
-    if (temp_dir == NULL || strlen(temp_dir) == 0) temp_dir = DEFAULT_TMPDIR;
-#endif /* EDG_WIN32 && UNICODE_SOURCE_ENABLED */
-  }  /* if */
-  dir_len = strlen(temp_dir);
-  /* See if a slash must be added to the directory name. */
-  need_slash = (temp_dir[dir_len-1] != DIRECTORY_SEPARATOR);
-#if __MICROSOFT_OS__
-  /* Under MS-DOS we don't need to add a slash if the path already ends with
-     a backslash. */
-  if (need_slash && temp_dir[dir_len-1] == '\\') need_slash = FALSE;
-#endif /* __MICROSOFT_OS__ */
-  do {
-    /* Put together the name dir + "/edg" + seed + "_" + process id.  See if
-       that will fit in the buffer. */
-    buffer.append(temp_dir, need_slash ? DIRECTORY_SEPARATOR_STRING : "",
-                  temp_seed++, (long)getpid());
-#if DEBUG
-    if (debug_level >= 4) {
-      fprintf(f_debug, "Opening temporary file %s\n",
-              buffer.as_temp_characters());
-    }  /* if */
-#endif /* DEBUG */
-    /* Check to see if the file exists already.  If so, go on to the next
-       seed value. */
-    if (stat(buffer.as_temp_characters(), &buf) == 0) {
-      /* The file exists already. */
-    } else {
-      /* The file does not exist.  Try opening it. */
-      char *mode = (char *)(binary_file ? FOPEN_MODE_FOR_BINARY_UPDATE
-                                        : FOPEN_MODE_FOR_UPDATE);
-      /* coverity[toctou] */
-      temp_file = fopen_interface(buffer.as_temp_characters(), mode);
-      if (temp_file != NULL) goto have_file;
-    }  /* if */
-    /* Retry with incremented file names a certain number of times.  After
-       that, give up (the problem may be that the directory name is bad). */
-  } while (retry_count-- > 0);
-  output_file_open_error(/*bad_name=*/FALSE, ec_temporary,
-                         buffer.as_temp_characters(),
-                         es_catastrophe);
-have_file:;
-#if __MICROSOFT_OS__
-  /* Can't delete the file now, so add it to the list of files to be cleaned
-     up. */
-  /* Use general storage for the allocation, because it may have to survive
-     into a back end called in the same program as the front end. */
-  { a_temp_file_name_ptr new_entry =
-                 (a_temp_file_name_ptr)alloc_general(sizeof(a_temp_file_name));
-    new_entry->name = buffer.to_allocated_storage(General_allocator<char>());
-    new_entry->file = temp_file;
-    new_entry->next = open_temp_files;
-    open_temp_files = new_entry;
-  }
-#else /* !__MICROSOFT_OS__ */
-  /* Delete the file now, so it will disappear when closed. */
-  /* coverity[toctou] */
-  (void)unlink(buffer.as_temp_characters());
-#endif /* __MICROSOFT_OS__ */
-  return(temp_file);
+  /* Resolve the temporary directory if not already resolved (temp_dir). */
+  resolve_temp_dir();
+  /* If this assertion fails, resolve_temp_dir failed to correctly populate
+     the temp_dir (and needs to be corrected). */
+  check_assertion(temp_dir != NULL && strlen(temp_dir) > 0 &&
+                  strlen(temp_dir) == temp_dir_len);
+  /* Use configured strategy to open the temporary file in the resolved
+     temporary directory. */
+#if USE_HOST_TMPFILE_FACILITIES
+#if EDG_WIN32
+  result = open_win32_temp_file(binary_file);
+#else /* !EDG_WIN32 */
+  result = open_unix_temp_file(binary_file);
+#endif /* EDG_WIN32 */
+#else /* !USE_HOST_TMPFILE_FACILITIES */
+  result = open_legacy_temp_file(binary_file);
+#endif /* USE_HOST_TMPFILE_FACILITIES */
+  return result;
 }  /* open_temp_file */
 
 #if MAKE_FRONT_END_CALLABLE
@@ -5400,11 +5647,11 @@ in a temporary buffer.
     sizeof_t      wide_buffer_size = wcslen(wide_str) + 1;
     sizeof_t      utf8_buffer_size = wide_buffer_size * 4;
 
-    conv_utf8_buffer = alloc_text_buffer(utf8_buffer_size > 1024 ? 
-                                                      utf8_buffer_size : 1024);
+    conv_utf8_buffer = alloc_text_buffer(utf8_buffer_size > 1024 ?
+                                                utf8_buffer_size : 1024);
   } else {
     reset_text_buffer(conv_utf8_buffer);
-      }  /* if */
+  }  /* if */
   while (*ptr) {
     /* Convert the Unicode value to UTF-8. */
     if (*ptr <= 0x7f) {
@@ -6171,7 +6418,10 @@ This is done before command line processing.
   open_temp_files = NULL;
 #endif /* __MICROSOFT_OS__ */
   temp_dir = NULL;
+  temp_dir_len = 0;
+#if !USE_HOST_TMPFILE_FACILITIES
   temp_seed = 0;
+#endif /* !USE_HOST_TMPFILE_FACILITIES */
 #if MODULE_ID_NEEDED
   module_id = NULL;
 #endif /* MODULE_ID_NEEDED */

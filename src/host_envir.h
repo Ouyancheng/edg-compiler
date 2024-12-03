@@ -2000,6 +2000,14 @@ otherwise, FALSE.
 #endif /* ifndef HOST_HAS_INT128_EXTENSIONS */
 
 /*
+Flag that is TRUE if the host system provides functions for creating temporary
+files that should be used instead of the EDG temporary file creation algorithm.
+*/
+#ifndef USE_HOST_TMPFILE_FACILITIES
+#define USE_HOST_TMPFILE_FACILITIES TRUE
+#endif /* ifndef USE_HOST_TMPFILE_FACILITIES */
+
+/*
 Flag that is TRUE if a template information file should be created for
 information such as instantiation files (in one instantiation per object
 file mode), or to contain template instantiation flags. 

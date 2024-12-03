@@ -1,5 +1,14 @@
 Version 6.7
 
+12/4/24  [EDGcpfe/27777]
+Modernize temporary file creation
+
+The front end by default now uses operating system provided APIs to assist in
+the creation of temporary files.  If such APIs are unavailable the previous
+behavior can be restored by setting USE_HOST_TMPFILE_FACILITIES (a new
+configuration macro) to FALSE.
+
+
 12/3/24  [EDGcpfe/27774]
 Clang compatibility: changing the encoding of a function name operator string
 
