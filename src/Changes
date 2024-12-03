@@ -1,5 +1,13 @@
 Version 6.7
 
+12/3/24  [EDGcpfe/27555]
+Cross-translation-unit of diagnose_if attribute
+
+The front end is now more lenient in multi-translation-unit modes when matching
+declarations that include the Clang diagnose_if attribute (see the entry for
+EDGcpfe/19533,EDGcpfe/22944,EDGcpfe/26974).
+
+
 12/2/24  [EDGcpfe/27326,EDGcpfe/27729]
 Abort on partial specialization declaration with dependent non-type template
 parameter

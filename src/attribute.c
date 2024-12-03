@@ -928,6 +928,7 @@ static an_attr_corresp_descr attr_corresp_table[] = {
   { ak_uuid, af_ms_declspec, iek_last, ACF_STRICT_MATCH_OR_VOID,
             NO_CHECKING_FN },
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
+  { ak_diagnose_if, af_last, iek_last, ACF_MATCH_OPTIONAL, NO_CHECKING_FN },
   { ak_last, af_last, iek_last, ACF_NO_FLAGS, NO_CHECKING_FN }
 };
 
