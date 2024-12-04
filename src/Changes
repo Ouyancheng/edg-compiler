@@ -45,7 +45,7 @@ same.  For example, with --clang_version=160000:
   static_assert(same_type<decltype(cf), _Float16>::val,
                 "wrong type");   // Previously failed, now okay
 
-2. The front end incorrectly treated the gnu and clang extended floating
+2. The front end incorrectly treated the GNU and clang extended floating
 point imaginary suffixes if16, if32, if64, if128, and ibf16 as user-defined
 literal suffixes.  This is now fixed in the appropriate emulation modes.
 (Note that g++ also treats these suffixes as user-defined literal suffixes
