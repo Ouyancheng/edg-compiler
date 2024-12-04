@@ -1,5 +1,24 @@
 Version 6.7
 
+12/3/24  [EDGcpfe/27774]
+Clang compatibility: converting function name operator to wide characters
+
+With the -fms-extensions command-line option, the clang compiler emulates
+MSVC in allowing character string prefixes like 'L' to be applied to the
+function name operators to create a wide-character version of the function
+name.  However, the front end only enabled this functionality in Microsoft
+mode, not in clang mode with --ms_extensions.  This is now fixed.  For
+example, with --clang_version=170000 --ms_extensions:
+
+  #define M(X) L ## X
+  #define N(X) M(X)
+
+  void f() {
+    N(__FUNCTION__);   // Previously resulted in an error that __LPREFIX is
+                       // undefined; now equivalent to L"f"
+  }
+
+
 12/3/24  [EDGcpfe/27746]
 GNU and clang compatibility: _Float16 and complex floating point types
 
