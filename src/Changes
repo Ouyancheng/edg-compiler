@@ -1,7 +1,7 @@
 Version 6.7
 
 12/3/24  [EDGcpfe/27774]
-Clang compatibility: converting function name operator to wide characters
+Clang compatibility: changing the encoding of a function name operator string
 
 With the -fms-extensions command-line option, the clang compiler emulates
 MSVC in allowing character string encoding prefixes like 'L' to be applied
@@ -12,7 +12,6 @@ For example, with --clang_version=170000 --ms_extensions:
 
   #define M(X) L ## X
   #define N(X) M(X)
-
   void f() {
     N(__FUNCTION__);   // Previously resulted in an error that __LPREFIX is
                        // undefined; now equivalent to L"f"
