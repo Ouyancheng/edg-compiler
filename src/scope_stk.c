@@ -13907,8 +13907,10 @@ a local class or substituting an alias template).
     while (scope_is(ssep, sck_template_instantiation) &&
            ssep->instance_sym != NULL &&
            symbol_is(ssep->instance_sym, sk_type)) {
-      /* Skip enclosing class reactivations. */
-      while (scope_is(ssep-1, sck_class_reactivation)) {
+      /* Skip enclosing class and namespace reactivations. */
+      while (scope_is(ssep-1, sck_class_reactivation) ||
+             scope_is(ssep-1, sck_namespace_reactivation) ||
+             scope_is(ssep-1, sck_namespace_extension)) {
         ssep -= 1;
         /* This may be an instantiated class reactivation: */
         if (scope_is(ssep-1, sck_template_instantiation)) {
