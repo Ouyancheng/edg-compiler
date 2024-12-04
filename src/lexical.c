@@ -12025,22 +12025,36 @@ convert_literal_value:
                   (!float128_enabled && (*rest == 'Q' || *rest == 'q'))) {
                 is_imaginary_suffix = FALSE;
               }  /* if */
-            } else if (id_len == 4) {
-              if (!(extended_float_types &&
-                    (*rest == 'f' || *rest == 'F') &&
-                    ((rest[1] == '1' && rest[2] == '6') ||
-                     (rest[1] == '3' && rest[2] == '2') ||
-                     (rest[1] == '6' && rest[2] == '4')))) {
+            } else if (id_len == 4 && (*rest == 'f' || *rest == 'F')) {
+              if (rest[1] == '1' && rest[2] == '6') {
+                /* IF16 */
+                is_imaginary_suffix =
+                                  (gcc_version_is(>= 120000) ||
+                                   clang_version_is(>= 150000) ||
+                                   (gpp_version_is(>= 130000) && !strict_gnu));
+              } else if ((rest[1] == '3' && rest[2] == '2') ||
+                         (rest[1] == '6' && rest[2] == '4')) {
+                /* IF32, IF64 */
+                  is_imaginary_suffix =
+                                  (gcc_version_is(>= 70000) ||
+                                   (gpp_version_is(>= 130000) && !strict_gnu));
+              } else {
                 is_imaginary_suffix = FALSE;
               }  /* if */
             } else if (id_len == 5) {
-              if (!((extended_float_types || accept_bf16_suffix) &&
-                    ((rest[0] == 'b' && rest[1] == 'f') ||
-                     (rest[0] == 'B' && rest[1] == 'F')) &&
-                    rest[2] == '1' && rest[3] == '6') &&
-                  !(extended_float_types && float128_enabled &&
-                    (*rest == 'f' || *rest == 'F') &&
-                    rest[1] == '1' && rest[2] == '2' && rest[3] == '8')) {
+              if (((rest[0] == 'b' && rest[1] == 'f') ||
+                   (rest[0] == 'B' && rest[1] == 'F')) &&
+                  rest[2] == '1' && rest[3] == '6') {
+                /* IBF16 */
+                is_imaginary_suffix = accept_bf16_suffix;
+              } else if ((rest[0] == 'f' || rest[1] == 'F') &&
+                         rest[1] == '1' && rest[2] == '2' && rest[3] == '8') {
+                /* IF128 */
+                is_imaginary_suffix =
+                                (float128_enabled &&
+                                 (gcc_version_is(>= 70000) ||
+                                  (gpp_version_is(>= 130000) && !strict_gnu)));
+              } else {
                 is_imaginary_suffix = FALSE;
               }  /* if */
             } else {
