@@ -75,7 +75,7 @@ an empty second translation unit.
 
 
 12/3/24  [EDGcpfe/27555]
-Cross-translation-unit of diagnose_if attribute
+Cross-translation-unit handling of diagnose_if attribute
 
 The front end is now more lenient in multi-translation-unit modes when matching
 declarations that include the Clang diagnose_if attribute (see the entry for
