@@ -1,5 +1,24 @@
 Version 6.7
 
+12/4/24  [EDGcpfe/26220,EDGcpfe/26230,EDGcpfe/27764]
+Spurious error on non-constexpr defaulted operator<=>
+
+Consider:
+
+  #include <compare>
+  template<typename> struct X {};
+  template<typename T>
+    std::strong_ordering operator<=> (X<T> const&, X<T> const&);
+  struct S {
+    X<int> xi;
+    friend auto operator<=>(S, S) = default;
+  };
+
+Previously, the front end issued a spurious error on the defaulted operator<=>
+claiming it is a constexpr function calling the non-constexpr operator<=>
+template.  That is now fixed.
+
+
 12/4/24  [EDGcpfe/27777]
 Modernize temporary file creation
 

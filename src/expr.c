@@ -31831,14 +31831,14 @@ set_return_type:
   set_deduced_return_type(return_tp, &srp->source_corresp.decl_position, srp);
   if (!srp->is_deleted) {
     if (nonconstexpr_rout != NULL) {
-      if (srp->is_constexpr && !srp->compiler_generated) {
+      if (srp->is_declared_constexpr || srp->is_consteval) {
         if (!rout_is_template_instance(srp)) {
           pos_sy_error(ec_constexpr_comparison_calls_nonconstexpr_function,
                        &srp->source_corresp.decl_position,
                        symbol_for(nonconstexpr_rout));
         }  /* if */
-        srp->is_constexpr = FALSE;
       }  /* if */
+      srp->is_constexpr = FALSE;
     } else {
       srp->is_constexpr = TRUE;
     }  /* if */
