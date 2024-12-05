@@ -977,6 +977,7 @@ of the front end are called.
   trans_unit_var_block_size = 0;
   is_primary_translation_unit = FALSE;
   trans_unit_file_name = NULL;
+  trans_unit_module = NULL;
   avail_translation_unit_stack_entries = NULL;
   avail_export_template_translation_unit_stack_entries = NULL;
   avail_trans_unit_corresps = NULL;
