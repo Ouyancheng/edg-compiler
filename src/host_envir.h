@@ -3170,8 +3170,9 @@ The string is allocated in general storage, not IL storage.
 EXTERN_THREAD char
 		*object_file_name;
 
-EXTERN char	*current_directory_name;
-			/* String containing the current directory name. */
+/* Control the current working directory. */
+extern void set_working_directory(a_const_char *dir_name);
+extern a_const_char *get_working_directory();
 
 /*
 Data structure that defines a list of directory names (as for a search
@@ -3494,8 +3495,6 @@ extern char *get_file_modification_time_string(a_const_char	*file_name,
 
 /* Is the specified file a regular (e.g., not directory) file. */
 extern a_boolean is_regular_file(a_const_char *file_name);
-
-extern void change_directory(a_const_char *dir_name);
 
 /* Is the specified file a directory. */
 extern a_boolean is_directory(a_const_char *file_name);

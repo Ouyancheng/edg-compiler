@@ -1565,7 +1565,7 @@ current point.
   flag_position = ftell(f_pch_output);
   pch_write_value(is_complete);
   /* Current directory name. */
-  pch_write_string(current_directory_name);
+  pch_write_string(get_working_directory());
   /* The directory name associated with the primary source file. */
   pch_write_string(directory_of(primary_source_file_name));
   /* Write the event list that will be used for PCH file matching. */
@@ -1804,7 +1804,7 @@ the current directory.
   char		*ptr;
   a_boolean	result;
   ptr = pch_read_string();
-  result = strcmp(ptr, current_directory_name) == 0;
+  result = strcmp(ptr, get_working_directory()) == 0;
   if (!result) {
     mismatch_reason = ec_pch_curr_directory_changed;
   }  /* if */
@@ -2084,7 +2084,7 @@ directory.  Return TRUE if an applicable PCH was found.
          call of this routine (i.e., the directory must be opened). */
       file_name = get_file_name_from_dir(first_from_dir, pch_dir_name,
                                          PCH_FILE_SUFFIX,
-                                         current_directory_name);
+                                         get_working_directory());
       first_from_dir = FALSE;
     }  /* if */
     /* A NULL pointer indicates there are no more matching file names. */

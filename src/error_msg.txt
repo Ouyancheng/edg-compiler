@@ -3529,6 +3529,7 @@ ec_ext_vector_type_requires_bool_integral_floating_type;;"the \"ext_vector_type\
 ec_multiple_union_designators;;"multiple designators into the same union are not permitted"
 ec_debug_show_location;;"test message"
 ec_microsoft_version_doesnt_support_cpp23_mode;;"the version of Microsoft being emulated must be at least 1943 to use \"--ms_c++23\""
+ec_cl_invalid_cwd;;"invalid current working directory: %s"
 ###############################################################################
 #                                                             \  ___  /       #
 #                                                               /   \         #

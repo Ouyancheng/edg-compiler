@@ -36577,10 +36577,11 @@ Compile the translation unit described by etfp for the purpose of defining
 the exported templates in that file.
 */
 {
-  a_translation_unit_ptr	saved_tup = curr_translation_unit;
+  a_string               saved_cwd(get_working_directory());
+  a_translation_unit_ptr saved_tup = curr_translation_unit;
 
   /* Go to the directory containing the file. */
-  change_directory(etfp->directory_name);
+  set_working_directory(etfp->directory_name);
   /* Compile the specified translation unit. */
   process_translation_unit(etfp->source_file_name, /*is_primary=*/FALSE, etfp);
   /* Consider the exported template file to be in instantiation wrapup at
@@ -36589,7 +36590,7 @@ the exported templates in that file.
   /* Switch back to the previous translation unit. */
   switch_translation_unit(saved_tup);
   /* Go back to the original directory. */
-  change_directory(current_directory_name);
+  set_working_directory(saved_cwd.as_temp_characters());
 }  /* load_exported_template_file */
 
 
@@ -37825,7 +37826,7 @@ compilation can be looked up to find the corresponding definition.
       char	*file_name;
       file_name = get_file_name_from_dir(first, dnep->dir_name,
                                          EXPORTED_TEMPLATE_FILE_SUFFIX,
-                                         current_directory_name);
+                                         get_working_directory());
       /* A NULL pointer indicates there are no more matching file names. */
       if (file_name == NULL) break;
       /* Read the contents of the file. */

@@ -1210,6 +1210,66 @@ necessary.  This routine may be called iteratively.
 #endif /* !STANDALONE_UTILITY_PROGRAM */
 
 
+STATIC_THREAD char
+		*current_directory_name;
+			/* String containing the front end's current working
+			   directory. */
+
+
+void set_working_directory(a_const_char *dir_name)
+/*
+dir_name is the null-terminated name of the new current working directory
+override in the internal encoding.  Update the current working directory value
+appropriately.
+*/
+{
+  dir_name = file_name_in_external_encoding(dir_name);
+  if (current_directory_name != NULL) {
+    free_general(current_directory_name, strlen(current_directory_name) + 1);
+  }  /* if */
+
+  size_t dir_name_len = strlen(dir_name);
+  current_directory_name = (char *)alloc_general(dir_name_len + 1);
+  (void)strncpy(current_directory_name, dir_name, dir_name_len);
+  current_directory_name[dir_name_len] = '\0';
+}  /* set_working_directory */
+
+
+a_const_char *get_working_directory()
+/*
+Return a null-terminated string containing the current working directory name.
+Note the string returned by this function is deleted by any subsequent calls to
+set_working_directory.
+*/
+{
+  if (current_directory_name == NULL) {
+#if USE_GETCWD
+    /* The temporary buffer may not be allocated yet.  Make sure there
+       is some space allocated. */
+    ensure_temp_text_buffer_space(256);
+    for (;;) {
+      if (getcwd(temp_text_buffer, (int)size_temp_text_buffer) == NULL) {
+        if (errno == ERANGE) {
+          /* We know the buffer is too small, but we don't know how much
+             more space we need.  Add a little space and try again. */
+          ensure_temp_text_buffer_space(size_temp_text_buffer + 256);
+          continue;
+        }  /* if */
+      }  /* if */
+      break;
+    }  /* for */
+#else /* !USE_GETCWD */
+    /* Make sure there is enough space for the largest path name that can
+       be returned. */
+    ensure_temp_text_buffer_space(MAXPATHLEN);
+    (void)getwd(temp_text_buffer);
+#endif /* USE_GETCWD */
+    set_working_directory(temp_text_buffer);
+  }  /* if */
+  return current_directory_name;
+}  /* get_working_directory */
+
+
 static FILE *fopen_interface(a_const_char *filename,
                              a_const_char *mode)
 /*
@@ -1217,9 +1277,10 @@ Interface to the standard fopen routine.  If multibyte characters are
 supported in the file name, handle that specially.
 */
 {
-  FILE    *file;
+  FILE         *file;
+  a_const_char *abs_file_name = normalize_file_name(filename);
 #if EDG_WIN32 && UNICODE_SOURCE_SUPPORTED
-  wchar_t *wide_filename = translate_filename_to_wchar(filename);
+  wchar_t      *wide_filename = translate_filename_to_wchar(abs_file_name);
 
   if (wide_filename != NULL) {
     /* The filename has embedded non-ASCII characters, so we need to use
@@ -1241,7 +1302,7 @@ supported in the file name, handle that specially.
   }  /* if */
 #else /* !(EDG_WIN32 && UNICODE_SOURCE_SUPPORTED) */
   /* Translate the file name into the form used by the file system. */
-  filename = file_name_in_external_encoding(filename);
+  filename = file_name_in_external_encoding(abs_file_name);
   file = fopen(filename, mode);
 #endif /* EDG_WIN32 && UNICODE_SOURCE_SUPPORTED */
   return file;
@@ -1259,10 +1320,11 @@ The string returned is the static buffer returned by the ctime function,
 which will be overwritten when ctime is called again.
 */
 {
-  time_t	mod_time;
-  char		*time_str = NULL;
+  time_t       mod_time;
+  char         *time_str = NULL;
+  a_const_char *abs_file_name = normalize_file_name(file_name);
 
-  if (get_file_modification_time(file_name, &mod_time)) {
+  if (get_file_modification_time(abs_file_name, &mod_time)) {
     time_str = ctime(&mod_time);
     if (strip_newline) {
       char *ptr;
@@ -1281,7 +1343,9 @@ Return TRUE if the specified file is a regular file (i.e., not a
 directory or some other kind of special file).
 */
 {
-  return get_file_modification_time(file_name, (time_t *)NULL);
+  a_const_char *abs_file_name = normalize_file_name(file_name);
+
+  return get_file_modification_time(abs_file_name, (time_t *)NULL);
 }  /* is_regular_file */
 
 
@@ -1613,11 +1677,13 @@ void delete_file(a_const_char *file_name)
 Delete the file with the indicated name.  It shouldn't be open currently.
 */
 {
-  int status;
+  int          status;
+  a_const_char *abs_file_name = normalize_file_name(file_name);
 
   errno = 0;
 #if EDG_WIN32 && UNICODE_SOURCE_SUPPORTED
-  { wchar_t *wide_file_name = translate_filename_to_wchar(file_name);
+  { wchar_t *wide_file_name = translate_filename_to_wchar(abs_file_name);
+
     if (wide_file_name != NULL) {
       /* The filename has embedded non-ASCII characters, so we need to use
          the _wremove routine. */
@@ -1629,14 +1695,14 @@ Delete the file with the indicated name.  It shouldn't be open currently.
   }
 #else /* !(EDG_WIN32 && UNICODE_SOURCE_SUPPORTED) */
   /* Translate the file name into the form used by the file system. */
-  file_name = file_name_in_external_encoding(file_name);
+  a_const_char *ext_file_name = file_name_in_external_encoding(abs_file_name);
 #if __ANSIC__
-  status = remove(file_name);
+  status = remove(ext_file_name);
 #else /* __ANSIC__ */
 #if __VMS__
-  status = delete(file_name);
+  status = delete(ext_file_name);
 #else /* !__VMS__ */
-  status = unlink(file_name);
+  status = unlink(ext_file_name);
 #endif /* __VMS__ */
 #endif /* __ANSIC__ */
 #endif /* EDG_WIN32 && UNICODE_SOURCE_SUPPORTED */
@@ -2851,44 +2917,6 @@ is returned. If no conversion is required, the original string is returned.
 }  /* file_name_in_external_encoding */
 
 
-static void chdir_with_check(a_const_char *dir_name)
-/*
-Change to the specified directory, make sure the operation succeeded.
-*/
-{
-  a_boolean	failed = FALSE;
-#if EDG_WIN32 && UNICODE_SOURCE_SUPPORTED
-  wchar_t *wide_dir_name = translate_filename_to_wchar(dir_name);
-
-  if (wide_dir_name != NULL) {
-    /* The directory name has embedded non-ASCII characters, so we need to use
-       the _wchdir routine. */
-    failed = _wchdir(wide_dir_name) != 0;
-  } else {
-    /* The file name contained no special characters.  Just do a normal
-       chdir. */
-    failed = chdir(dir_name) != 0;
-  }  /* if */
-#else /* !(EDG_WIN32 && UNICODE_SOURCE_SUPPORTED) */
-  /* Translate the file name into the form used by the file system. */
-  dir_name = file_name_in_external_encoding(dir_name);
-  failed = chdir(dir_name) != 0;
-#endif /* EDG_WIN32 && UNICODE_SOURCE_SUPPORTED */
-  if (failed) {
-    str_catastrophe(ec_cannot_chdir, dir_name);
-  }  /* if */
-}  /* chdir_with_check */
-
-
-void change_directory(a_const_char *dir_name)
-/*
-Change to the directory specified by "dir_name".
-*/
-{
-  chdir_with_check(dir_name);
-}  /* change_directory */
-
-
 /* Header comment for is_directory */
 /*
 Determine whether the specified path name is the name of a valid
@@ -2961,8 +2989,42 @@ a_boolean is_directory(a_const_char *file_name)
 
 #endif /* defined(S_ISDIR) || defined(S_IFDIR) */
 #endif /* EDG_WIN32 */
-
 #ifndef IS_DIRECTORY_DEFINED
+
+#if MULTIPLE_THREAD_COMPILATION
+ #error -- The fallback is_directory implementation is incompatible with \
+           MULTIPLE_THREAD_COMPILATION
+#endif /* MULTIPLE_THREAD_COMPILATION */
+
+static void chdir_with_check(a_const_char *dir_name)
+/*
+Change to the specified directory, make sure the operation succeeded.
+*/
+{
+  a_boolean	failed = FALSE;
+#if EDG_WIN32 && UNICODE_SOURCE_SUPPORTED
+  wchar_t *wide_dir_name = translate_filename_to_wchar(dir_name);
+
+  if (wide_dir_name != NULL) {
+    /* The directory name has embedded non-ASCII characters, so we need to use
+       the _wchdir routine. */
+    failed = _wchdir(wide_dir_name) != 0;
+  } else {
+    /* The file name contained no special characters.  Just do a normal
+       chdir. */
+    failed = chdir(dir_name) != 0;
+  }  /* if */
+#else /* !(EDG_WIN32 && UNICODE_SOURCE_SUPPORTED) */
+  /* Translate the file name into the form used by the file system. */
+  dir_name = file_name_in_external_encoding(dir_name);
+  failed = chdir(dir_name) != 0;
+#endif /* EDG_WIN32 && UNICODE_SOURCE_SUPPORTED */
+  if (failed) {
+    str_catastrophe(ec_cannot_chdir, dir_name);
+  }  /* if */
+}  /* chdir_with_check */
+
+
 a_boolean is_directory(a_const_char *file_name)
 /*
 This is a portable version of is_directory that should work on any
@@ -2977,9 +3039,10 @@ system that supports chdir.
     result = TRUE;
   }  /* if */
   /* Return to the original directory. */
-  chdir_with_check(current_directory_name);
+  chdir_with_check(get_working_directory());
   return result;
 }  /* is_directory */
+
 #endif /* ifndef IS_DIRECTORY_DEFINED */
 
 
@@ -3065,19 +3128,23 @@ END_EDG_NAMESPACE  /* Conditionally close the "edg" namespace. */
 #include <io.h>
 BEGIN_EDG_NAMESPACE  /* Conditionally open the "edg" namespace. */
 
-char *get_file_name_from_dir(a_boolean	  first,
-			     a_const_char *dir_name,
-			     a_const_char *suffix,
-			     a_const_char *curr_dir_name)
-{
-  STATIC_THREAD intptr_t            handle;
-  STATIC_THREAD struct _tfinddata_t fileinfo;
-  char                              *result;
-  STATIC_THREAD char                pattern[10];
+static char *normalize_file_name_in_dir(a_const_char		*dir_name,
+                                        a_const_char		*file_name);
 
-  if (dir_name != NULL) {
-    chdir_with_check(dir_name);
-  }  /* if */
+
+char *get_file_name_from_dir(a_boolean	             first,
+			     a_const_char            *dir_name,
+			     a_const_char            *suffix,
+			     ARG_UNUSED a_const_char *curr_dir_name)
+{
+  char                           *result;
+  STATIC_THREAD HANDLE           handle;
+  STATIC_THREAD WIN32_FIND_DATAA find_file_data;
+#if UNICODE_SOURCE_SUPPORTED
+  STATIC_THREAD WIN32_FIND_DATAW wide_find_file_data;
+  STATIC_THREAD a_boolean        using_wide_char;
+#endif /* UNICODE_SOURCE_SUPPORTED */
+
   if (first) {
     /* Convert the suffix (e.g., ".xxx" into a pattern for use by the
        Windows-NT routine (e.g., "*.xxx"). */
@@ -3088,28 +3155,69 @@ char *get_file_name_from_dir(a_boolean	  first,
        that is used on subsequent calls to get the remaining directory
        entries. */
     Small_string<10> tmp_pattern("*", suffix);
-    tmp_pattern.write_to_buffer(pattern, sizeof(pattern));
-    handle = _tfindfirst(pattern, &fileinfo);
-    if (handle < 0) {
+    char             *normalized_name = normalize_file_name_in_dir(
+                                             dir_name,
+                                             tmp_pattern.as_temp_characters());
+#if UNICODE_SOURCE_SUPPORTED
+    wchar_t          *wide_name = translate_filename_to_wchar(normalized_name);
+    using_wide_char = FALSE;
+    if (wide_name != NULL) {
+      /* The directory name has embedded non-ASCII characters, so we need to
+         use the wide character version of the FindFirstFileW routine. */
+      handle = FindFirstFileW(wide_name, &wide_find_file_data);
+      using_wide_char = TRUE;
+    } else
+#endif /* UNICODE_SOURCE_SUPPORTED */
+    /* Do not add code here. */
+    {
+      /* The file name contained no special characters.  Just use the normal
+         FindFirstFileA function. */
+      handle = FindFirstFileA(normalized_name, &find_file_data);
+    }
+    if (handle == INVALID_HANDLE_VALUE) {
       /* Directory could not be opened, or is empty. */
       result = NULL;
     } else {
-      result = fileinfo.name;
+#if UNICODE_SOURCE_SUPPORTED
+      if (using_wide_char) {
+        result = conv_wide_to_utf8(wide_find_file_data.cFileName);
+      } else
+#endif /* UNICODE_SOURCE_SUPPORTED */
+      /* Do not add code here. */
+      {
+        result = find_file_data.cFileName;
+      }  /* if */
     }  /* if */
   } else {
-    /* On subsequent calls, use _findnext to find the next file that
+    /* On subsequent calls, use FindNextFileA to find the next file that
        matches the pattern. */
-    if (_tfindnext(handle, &fileinfo) < 0) {
-      /* Returns -1 when there are no more files. */
+    int find_result;
+
+#if UNICODE_SOURCE_SUPPORTED
+    if (using_wide_char) {
+      find_result = FindNextFileW(handle, &wide_find_file_data);
+    } else
+#endif /* UNICODE_SOURCE_SUPPORTED */
+    /* Do not add code here. */
+    {
+      find_result = FindNextFileA(handle, &find_file_data);
+    }  /* if */
+    if (find_result == 0) {
+      /* Returns 0 when there are no more files. */
       result = NULL;
       /* Release the handle used to read the directory. */
-      _findclose(handle);
+      FindClose(handle);
     } else {
-      result = fileinfo.name;
+#if UNICODE_SOURCE_SUPPORTED
+      if (using_wide_char) {
+        result = conv_wide_to_utf8(wide_find_file_data.cFileName);
+      } else
+#endif /* UNICODE_SOURCE_SUPPORTED */
+      /* Do not add code here. */
+      {
+        result = find_file_data.cFileName;
+      }  /* if */
     }  /* if */
-  }  /* if */
-  if (dir_name != NULL) {
-    chdir_with_check(curr_dir_name);
   }  /* if */
   return result;
 }  /* get_file_name_from_dir */
@@ -3122,6 +3230,11 @@ DOS version.
 END_EDG_NAMESPACE  /* Conditionally close the "edg" namespace. */
 #include <dos.h>
 BEGIN_EDG_NAMESPACE  /* Conditionally open the "edg" namespace. */
+
+#if MULTIPLE_THREAD_COMPILATION
+ #error -- The DOS get_file_name_from_dir implementation is incompatible with \
+           MULTIPLE_THREAD_COMPILATION
+#endif /* MULTIPLE_THREAD_COMPILATION */
 
 char *get_file_name_from_dir(a_boolean	first,
 			     char	*dir_name,
@@ -3284,39 +3397,8 @@ capable.
   return result;
 }  /* terminal_is_color_capable */
 
-
-static a_const_char *get_curr_dir_name(void)
-/*
-Get the current directory name and return it in the temporary string
-buffer.
-*/
-{
-#if USE_GETCWD
-  /* The temporary buffer may not be allocated yet.  Make sure there
-     is some space allocated. */
-  ensure_temp_text_buffer_space(256);
-  for (;;) {
-    if (getcwd(temp_text_buffer, (int)size_temp_text_buffer) == NULL) {
-      if (errno == ERANGE) {
-        /* We know the buffer is too small, but we don't know how much
-           more space we need.  Add a little space and try again. */
-        ensure_temp_text_buffer_space(size_temp_text_buffer + 256);
-        continue;
-      }  /* if */
-    }  /* if */
-    break;
-  }  /* for */
-#else /* !USE_GETCWD */
-  /* Make sure there is enough space for the largest path name that can
-     be returned. */
-  ensure_temp_text_buffer_space(MAXPATHLEN);
-  (void)getwd(temp_text_buffer);
-#endif /* USE_GETCWD */
-  return file_name_in_internal_encoding(temp_text_buffer);
-}  /* get_curr_dir_name */
-
-
 #if MODULE_ID_NEEDED
+
 /*
 Routines used by lower_init.c and c_gen_be.c to generate module IDs
 used to create unique external names.
@@ -3401,7 +3483,7 @@ Set module_id to the string and return it.
       str1 = get_file_modification_time_string(file_name,
                                                /*strip_newline=*/FALSE);
       if (str1 == NULL) str1 = il_header.time_of_compilation;
-      str2 = current_directory_name;
+      str2 = get_working_directory();
     } else {
       str1 = external_name;
       str2 = NULL;
@@ -4946,7 +5028,6 @@ of the encoding: Target-size issues (such as endianness) are handled elsewhere
   return result;
 }  /* ucn_to_utf16 */
 
-#if !STANDALONE_UTILITY_PROGRAM
 
 static void append_dir_name(a_text_buffer_ptr	buf,
 			    a_const_char	*dir_name)
@@ -5036,19 +5117,21 @@ is_partial_file_name is TRUE if the file names are not known to be relative
 to the current directory.
 */
 {
+  a_const_char *cwd = get_working_directory();
+
   reset_text_buffer(buf);
   if (!is_absolute_file_name(dir_name)) {
     if (!is_partial_file_name) {
       /* A relative file name.  Start with the current directory name. */
-      append_dir_name(buf, current_directory_name);
+      append_dir_name(buf, cwd);
     }  /* if */
   } else {
 #if __MICROSOFT_OS__
     /* If the path is absolute, but lacks a drive specification, use the
        drive from the current directory name. */
     if (!has_drive_specification(dir_name)) {
-      check_assertion(has_drive_specification(current_directory_name));
-      add_to_text_buffer(buf, current_directory_name, 2);
+      check_assertion(has_drive_specification(cwd));
+      add_to_text_buffer(buf, cwd, 2);
     }  /* if */
 #endif /* __MICROSOFT_OS__ */
   }  /* if */
@@ -5120,7 +5203,7 @@ Normalize "file_name" by converting it into a canonical form.  For
 example, if the file name is "/a/b/../c", the normalized name will
 be "/a/c".  The string returned points to the contents of a text
 buffer.  The buffer will be overwritten by subsequent calls of
-this routine or compare_dir_names.
+this routine, compare_dir_names, or normalize_file_name_in_dir.
 */
 {
   char	*result;
@@ -5130,10 +5213,45 @@ this routine or compare_dir_names.
     dir_buffer1 = alloc_text_buffer(128);
   }  /* if */
   result = normalize_dir_name(file_name, dir_buffer1,
-                              /*is_partial_file_name*/FALSE);
+                              /*is_partial_file_name=*/FALSE);
   return result;
 }  /* normalize_file_name */
 
+#if EDG_WIN32
+
+char *normalize_file_name_in_dir(a_const_char *dir_name,
+                                 a_const_char *file_name)
+/*
+Normalize "file_name" by converting it into a canonical form in the given
+directory.  For example, if the file name is "c" in "b/../" and the current
+working directory is "/a", the normalized name will be "/a/c".  The string
+returned points to the contents of a text buffer.  The buffer will be
+overwritten by subsequent calls of this routine, compare_dir_names, or
+normalize_file_name.
+*/
+{
+  char *result;
+
+  /* The first time this routine is called, allocate text buffers used
+     to construct the normalized file name. */
+  if (dir_buffer1 == NULL) {
+    dir_buffer1 = alloc_text_buffer(128);
+  }  /* if */
+  if (dir_buffer2 == NULL) {
+    dir_buffer2 = alloc_text_buffer(128);
+  }  /* if */
+  /* Append the file to the directory information in buffer1. */
+  reset_text_buffer(dir_buffer1);
+  append_dir_name(dir_buffer1, dir_name);
+  append_dir_name(dir_buffer1, file_name);
+  /* Normalize the (possibly relative) path in buffer1 into buffer2. */
+  result = normalize_dir_name(dir_buffer1->buffer, dir_buffer2,
+                              /*is_partial_file_name=*/FALSE);
+  return result;
+}  /* normalize_file_name_in_dir */
+
+#endif /* EDG_WIN32 */
+#if !STANDALONE_UTILITY_PROGRAM
 
 int f_compare_file_names(a_const_char	*file1,
 	 		 a_const_char	*file2,
@@ -5838,7 +5956,7 @@ will include, in this order:
   char       *env_path;
 
   /* The current directory is the first place we search, so prepend it. */
-  add_to_front_of_include_search_path(current_directory_name,
+  add_to_front_of_include_search_path(get_working_directory(),
                                       &module_search_path,
                                       &end_module_search_path);
   env_path = getenv("EDG_MODULES_PATH");
@@ -5894,7 +6012,7 @@ final search path will include, in this order:
   }  /* if */
 #endif /* EDG_WIN32 && CPPCLI_ENABLING_POSSIBLE */
   /* The current directory is the first place we search, so prepend it. */
-  add_to_front_of_include_search_path(current_directory_name,
+  add_to_front_of_include_search_path(get_working_directory(),
                                       &assembly_search_path,
                                       &end_assembly_search_path);
 #if READ_CPPCLI_PORTABLE_ASSEMBLIES
@@ -6397,7 +6515,6 @@ One time initialization that must take place early on in the front end.
 This is done before command line processing.
 */
 {
-  a_const_char            *ptr;
   STATIC_THREAD a_boolean first_time = TRUE;
 
   if (first_time) {
@@ -6447,10 +6564,7 @@ This is done before command line processing.
   if (setlocale(LC_NUMERIC, "C") == NULL) {
     unexpected_condition_str("could not set LC_NUMERIC locale");
   }  /* if */
-  /* Get the current directory name. */
-  ptr = get_curr_dir_name();
-  current_directory_name = (char *)alloc_general((sizeof_t)strlen(ptr) + 1);
-  (void)strcpy(current_directory_name, ptr);
+  current_directory_name = NULL;
   /* Get the name of the EDG_BASE directory.  This may be overridden by
      a command-line option.  If the environment variable is not set, use
      a built-time default value. */
@@ -6512,10 +6626,8 @@ This is done before command line processing.
 #if MODULE_ID_NEEDED
   module_id = NULL;
 #endif /* MODULE_ID_NEEDED */
-#if !STANDALONE_UTILITY_PROGRAM
   dir_buffer1 = NULL;
   dir_buffer2 = NULL;
-#endif /* !STANDALONE_UTILITY_PROGRAM */
   primary_source_file_name = NULL;
   dir_name_of_primary_source_file = NULL;
 #if COMPILE_MULTIPLE_SOURCE_FILES

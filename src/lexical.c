@@ -6896,7 +6896,7 @@ list, we process the normal (non-macro-only) preincludes.
     file_name = next_preinclude_file->file_name;
     if (put_dir_of_each_opened_source_file_on_incl_search_path &&
         compare_dir_names(dir_name_of_primary_source_file,
-                          current_directory_name,
+                          get_working_directory(),
                           /*is_partial_file_name=*/FALSE) != 0 &&
         !microsoft_mode) {
       /* Update the first entry of the include file search list that
@@ -6906,7 +6906,7 @@ list, we process the normal (non-macro-only) preincludes.
          primary source file even when processing preinclude files.
          This is only done if the current directory is different than
          the directory of the primary source file. */
-      change_primary_include_search_dir(current_directory_name);
+      change_primary_include_search_dir(get_working_directory());
     }  /* if */
     open_file_and_push_input_stack(
                  strcpy(alloc_primary_file_scope_il(
@@ -7227,7 +7227,7 @@ is set to indicate whether or not the returned entry is a newly created one.
   /* Create an include search entry that describes the entry to be found.
      This is the key used for the hash table lookup. */
   clear_include_search_result(&isr);
-  isr.current_directory = current_directory_name;
+  isr.current_directory = get_working_directory();
   isr.dir_name = dir_name;
   isr.file_name = file_name;
   isrp_in_table = (an_include_search_result_ptr*)hash_find(
@@ -7399,7 +7399,7 @@ is TRUE, and search_path is empty.
         if (microsoft_mode && microsoft_version >= 1300 && *dir_name == '\0') {
           /* The Microsoft compiler uses a full path name when looking in the
              current directory for a file. */
-          dir_name = current_directory_name;
+          dir_name = get_working_directory();
         }  /* if */
         buffer = combine_dir_and_file_name(
                                       dir_name,
@@ -7745,7 +7745,7 @@ a catastrophic error is not issued, FALSE is returned.
       /* Create a path name from the current directory and the file name
          specified on the command line. */
       buffer = combine_dir_and_file_name(
-                                      current_directory_name,
+                                      get_working_directory(),
                                       file_name, (a_text_buffer_ptr)NULL);
       /* Eliminate any relative components of the path name. */
       temp = normalize_file_name(buffer->buffer);
@@ -8336,9 +8336,9 @@ at the next level down.
           stack_referenced_include_directories) {
         if (is_end_of_preinclude && !microsoft_mode &&
             compare_dir_names(dir_name_of_primary_source_file,
-                              current_directory_name,
+                              get_working_directory(),
                               /*is_partial_file_name=*/FALSE) != 0) {
-          prev_dir_name = current_directory_name;
+          prev_dir_name = get_working_directory();
         } else if (microsoft_mode && microsoft_version >= 1300 &&
                    curr_ise->assoc_actual_il_file->top_level_file) {
           prev_dir_name = dir_name_of_primary_source_file;

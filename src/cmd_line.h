@@ -120,6 +120,7 @@ enum an_option_kind {
   optk_pch_mem,
 #endif /* !USE_MMAP_FOR_MEMORY_REGIONS */
   optk_pch_dir,
+  optk_wdir,
   optk_create_module_header_unit,
   optk_map_module_header_unit,
   optk_restrict,

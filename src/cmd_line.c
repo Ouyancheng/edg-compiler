@@ -492,6 +492,9 @@ Initialize the option information table.
   add_option_description(optk_pch_dir, "pch_dir",
                          '\0', /*value=*/TRUE, /*arg_required=*/TRUE,
                          pchek_command_line);
+  add_option_description(optk_wdir, "wdir",
+                         '\0', /*value=*/TRUE, /*arg_required=*/TRUE,
+                         pchek_command_line);
   add_option_description(optk_create_module_header_unit, "create_header_unit",
                          '\0', /*value=*/TRUE, /*arg_required=*/TRUE,
                          pchek_none);
@@ -10122,8 +10125,6 @@ Process the arguments on the command line that invoked the compiler.
   /* Some messages have their severity overridden by default.  Set those
      values now. */
   set_default_message_severities();
-  /* Put the current directory on the template search path. */
-  add_to_template_search_path(current_directory_name);
   /* Scan the command-line options. */
   while ((odp = get_option(argc, argv)) != NULL) {
     an_option_kind	kind = odp->kind;
@@ -10746,6 +10747,16 @@ Process the arguments on the command line that invoked the compiler.
         }  /* if */
         break;
 #endif /* USE_FIXED_ADDRESS_FOR_MMAP */
+      case optk_wdir:
+        { a_const_char *wdir = file_name_from_opt_arg(opt_arg);
+
+          if (is_directory(wdir)) {
+            set_working_directory(wdir);
+          } else {
+            str_command_line_error(ec_cl_invalid_cwd, wdir);
+          }  /* if */
+        }
+        break;
       case optk_create_module_header_unit:
         /* Create a module header unit file as part of this compilation. */
         create_module_header_unit = TRUE;
