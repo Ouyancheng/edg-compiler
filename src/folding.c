@@ -7780,6 +7780,10 @@ backing expression for the returned constant will be set as well.
         /* Microsoft appears to treat conversions from functions and arrays as
            conversions from lvalue references to those types. */
         type1 = make_reference_type(type1);
+      } else if (!force_array_to_reference && is_array_type(type1) &&
+                 is_pointer_type(type2)) {
+        /* __is_convertible_to(int[], int*) is true. */
+        type1 = type_after_array_to_pointer_transformation(type1);
       }  /* if */
       if (force_array_to_reference && is_array_type(type2)) {
         /* Microsoft appears to treat a conversion to an array type as a

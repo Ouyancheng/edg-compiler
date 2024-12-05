@@ -1,5 +1,14 @@
 Version 6.7
 
+12/5/24  [EDGcpfe/21420,EDGcpfe/27767]
+__is_convertible_to and array decay
+
+The front end previously did not consider array decay when evaluating the type
+trait helper __is_convertible_to.  That is now fixed.  For example:
+
+  static_assert(__is_convertible_to(int[], int*));  // Now accepted.
+
+
 12/5/24  [EDGcpfe/27784]
 Custom default error file implementation support
 
