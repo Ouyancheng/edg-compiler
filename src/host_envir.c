@@ -1666,11 +1666,12 @@ static a_temp_file_name_ptr
 
 STATIC_THREAD a_const_char
                 *temp_dir;
-                        /* The cached temporary directory value. */
+                        /* The cached temporary directory name. */
 
 STATIC_THREAD size_t
                 temp_dir_len;
-                        /* The cached temporary directory length. */
+                        /* The length of the cached temporary directory
+                           name (temp_dir). */
 
 constexpr int   temp_file_tries = 20;
                         /* The maximum number of tries when opening a temporary
@@ -1683,7 +1684,7 @@ using a_temp_file_name_buffer = Small_string<150>;
 
 static inline a_string get_temp_dir_from_win32()
 /*
-Return a string containing the temporary directory using the Win32 API.
+Return a string containing the temporary directory name using the Win32 API.
 */
 {
   a_string result;
@@ -1717,8 +1718,8 @@ Return a string containing the temporary directory using the Win32 API.
 
 static inline a_string get_temp_dir_from_env()
 /*
-Return a string containing the temporary directory querying common environment
-variables.
+Return a string containing the temporary directory name by querying common
+environment variables.
 */
 {
   a_string result;
@@ -1732,8 +1733,8 @@ variables.
   temp_dir_env = getenv("TMPDIR");
 #endif /* __MICROSOFT_OS__ */
   if (temp_dir_env == NULL || strlen(temp_dir_env) == 0) {
-    /* Fallback to the default temporary directory (one could not be found in
-       the environment variable). */
+    /* Fallback to the default temporary directory name (one could not be found
+       in the environment variable). */
     result.reset_to(DEFAULT_TMPDIR);
   } else {
     /* Use the temporary directory from the environment variable. */
@@ -1780,8 +1781,8 @@ Initialize temp_dir if not already initialized.
     if (need_slash) {
       tmp_buffer.append(DIRECTORY_SEPARATOR_STRING);
     }  /* if */
-    /* Move the computed temporary directory to general memory for use during
-       the rest of the compilation. */
+    /* Move the computed temporary directory name to general memory for use
+       during the rest of the compilation. */
     temp_dir = tmp_buffer.to_allocated_storage(General_allocator<char>());
     temp_dir_len = tmp_buffer.length();
   }  /* if */
@@ -1814,9 +1815,9 @@ time; instead, add the file to a list of files to be cleaned up later.
 
 static inline FILE *open_win32_temp_file(a_boolean binary_file)
 /*
-Open a temporary text file using the operating system's secure temporary file
-creation methods, and return a pointer to its file block.  The file should be a
-binary file if binary_file is TRUE.
+Open a temporary file using the operating system's temporary file creation
+methods, and return a pointer to its file block.  The created file is opened in
+binary mode if binary_file is TRUE; otherwise, the file is opened textually.
 */
 {
   FILE                    *result = NULL;
@@ -1882,11 +1883,12 @@ have_file:;
 
 static inline FILE *open_unix_temp_file(a_boolean binary_file)
 /*
-Open a temporary text file using the operating system's secure temporary file
-creation strategy, and return a pointer to its file block.  The file should be
-a binary file if binary_file is TRUE.  The file is unlinked from its associated
-file system path immediately after creation and will be destroyed upon close of
-the returned file.
+Open a temporary file using the operating system's secure temporary file
+creation strategy, and return a pointer to its file block.  The created file is
+opened in binary mode if binary_file is TRUE; otherwise, the file is opened
+textually.  The file is unlinked from its associated file system path
+immediately after creation and will be destroyed upon close of the returned
+file.
 */
 {
   FILE                    *result;
@@ -1942,9 +1944,9 @@ STATIC_THREAD unsigned long
 
 static FILE *open_legacy_temp_file(a_boolean binary_file)
 /*
-Open a temporary text file using an EDG algorithm to compute a temporary file
-name, and return a pointer to its file block.  The file should be a binary file
-if binary_file is TRUE.
+Open a temporary file using an EDG algorithm to compute a temporary file name,
+and return a pointer to its file block.  The created file is opened in binary
+mode if binary_file is TRUE; otherwise, the file is opened textually.
 */
 {
   FILE                    *result = NULL;
@@ -1997,8 +1999,9 @@ have_file:;
 
 FILE *open_temp_file(a_boolean binary_file)
 /*
-Open a temporary text file, and return a pointer to its file block.  The
-file should be a binary file if binary_file is TRUE.
+Open a temporary file, and return a pointer to its file block.  The created
+file is opened in binary mode if binary_file is TRUE; otherwise, the file is
+opened textually.
 */
 {
   FILE *result;
@@ -2009,7 +2012,7 @@ file should be a binary file if binary_file is TRUE.
      the temp_dir (and needs to be corrected). */
   check_assertion(temp_dir != NULL && strlen(temp_dir) > 0 &&
                   strlen(temp_dir) == temp_dir_len);
-  /* Use configured strategy to open the temporary file in the resolved
+  /* Use the configured strategy to open the temporary file in the resolved
      temporary directory. */
 #if USE_HOST_TMPFILE_FACILITIES
 #if EDG_WIN32
