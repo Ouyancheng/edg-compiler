@@ -15423,6 +15423,7 @@ std::bit_cast.
   if (is_error_type(type_arg) || is_error_operand(&op2)) {
     err = TRUE;
   } else {
+    complete_type_is_needed(type_arg);
     do_operand_transformations(&op2,
                                TOPT_SUPPRESS_ARRAY_TO_POINTER_CONVERSION);
     if (is_error_operand(&op2)) {
