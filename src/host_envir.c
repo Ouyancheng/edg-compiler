@@ -1789,8 +1789,9 @@ Initialize temp_dir if not already initialized.
 
 #if __MICROSOFT_OS__
 
-static inline register_temp_file_for_removal(
-                                         const a_temp_file_name_buffer &buffer)
+static inline void register_temp_file_for_removal(
+                                      const a_temp_file_name_buffer &file_name,
+                                      FILE                          *file)
 /*
 On Windows temporary files cannot be unlinked from the file system ahead of
 time; instead, add the file to a list of files to be cleaned up later.
@@ -1800,8 +1801,9 @@ time; instead, add the file to a list of files to be cleaned up later.
      into a back end called in the same program as the front end. */
   a_temp_file_name_ptr new_entry =
                  (a_temp_file_name_ptr)alloc_general(sizeof(a_temp_file_name));
+
   new_entry->name = buffer.to_allocated_storage(General_allocator<char>());
-  new_entry->file = temp_file;
+  new_entry->file = file;
   new_entry->next = open_temp_files;
   open_temp_files = new_entry;
 }  /* register_temp_file_for_removal */
@@ -1827,7 +1829,7 @@ binary file if binary_file is TRUE.
     if (wide_temp_dir != NULL) {
       wchar_t  win_buffer[MAX_PATH];
       unsigned path_found = GetTempFileNameW(wide_temp_dir,
-                                             TEXT("edg"),
+                                             L"edg",
                                              0,
                                              win_buffer);
       if (path_found == 0) {
@@ -1840,9 +1842,9 @@ binary file if binary_file is TRUE.
 #endif /* UNICODE_SOURCE_SUPPORTED */
     /* Do not add code here. */
     {
-      char_t   win_buffer[MAX_PATH];
+      char     win_buffer[MAX_PATH];
       unsigned path_found = GetTempFileNameA(temp_dir,
-                                             TEXT("edg"),
+                                             "edg",
                                              0,
                                              win_buffer);
       if (path_found == 0) {
@@ -1872,7 +1874,7 @@ binary file if binary_file is TRUE.
 have_file:;
   /* The file cannot be deleted now, so add it to the list of files to be
      cleaned up. */
-  register_temp_file_for_removal(file_name);
+  register_temp_file_for_removal(file_name, result);
   return result;
 }  /* open_win32_temp_file */
 
@@ -1983,7 +1985,7 @@ have_file:;
 #if __MICROSOFT_OS__
   /* The file cannot be deleted now, so add it to the list of files to be
      cleaned up. */
-  register_temp_file_for_removal(file_name);
+  register_temp_file_for_removal(file_name, result);
 #else /* !__MICROSOFT_OS__ */
   /* Delete the file now, so it will disappear when closed. */
   (void)unlink(file_name.as_temp_characters());
