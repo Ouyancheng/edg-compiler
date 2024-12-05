@@ -32199,8 +32199,9 @@ parameter lists that were scanned.
            attributes that will need to be applied during instantiation. */
         if (tssp != NULL) {
           if (symbol_is(sym, sk_variable_template)) {
-            if (tssp->variant.variable.prototype_variable->
-                                                        initializer_in_class ||
+            if ((decl_state->is_member_decl &&
+                 tssp->variant.variable.prototype_variable->
+                                                       initializer_in_class) ||
                 decl_state->defines_something) {
               /* Include an out-of-class initializer, if any, if none was
                  specified in the in-class declaration. */
