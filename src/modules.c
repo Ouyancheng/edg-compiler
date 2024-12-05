@@ -117,13 +117,14 @@ STATIC_THREAD a_module_name_map
                            module IL entry. */
 
 
-static void init_named_module(a_module_ptr mod,
-                              a_const_char *name)
+static void init_named_module(a_module_ptr        mod,
+                              a_symbol_header_ptr name_sym)
 /*
-Initialize a named module with the given module name.
+Initialize a named module with the module name specified by the given symbol
+header.
 */
 {
-  mod->variant.unit.name = name;
+  mod->variant.unit.name = name_sym->identifier;
 }  /* init_named_module */
 
 
@@ -153,7 +154,7 @@ Find or create an IL module entity corresponding to the given module symbol.
     result = alloc_module(module_kind);
     known_modules->map(module_sym_id, result);
     if (module_kind == mk_unit) {
-      init_named_module(result, unit_hdr->identifier);
+      init_named_module(result, unit_hdr);
     } else {
       a_string_view unit_sym_id(unit_hdr->identifier,
                                 unit_hdr->identifier_length);
@@ -162,7 +163,7 @@ Find or create an IL module entity corresponding to the given module symbol.
       if (unit_module == NULL) {
         unit_module = alloc_module(mk_unit);
         known_modules->map(unit_sym_id, unit_module);
-        init_named_module(unit_module, unit_hdr->identifier);
+        init_named_module(unit_module, unit_hdr);
       }  /* if */
       result->variant.unit_partition.name = partition_hdr->identifier;
       result->variant.unit_partition.unit = unit_module;

@@ -4114,10 +4114,10 @@ handle_class_type_supplement_for_class:
                             iek_other_text, 0);
             break;
           case mk_unit:
-            walk_string_ptr(eptr->variant.unit.name, iek_other_text, 0);
+            walk_string_ptr(eptr->variant.unit.name, iek_id_name, 0);
             break;
           case mk_unit_partition:
-            walk_string_ptr(eptr->variant.unit_partition.name, iek_other_text,
+            walk_string_ptr(eptr->variant.unit_partition.name, iek_id_name,
                             0);
             walk_ptr(eptr->variant.unit_partition.unit, a_module_ptr,
                      iek_module);
