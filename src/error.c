@@ -1955,7 +1955,7 @@ symbol_name:
            symbol to produce the appropriate template arguments.  Otherwise,
            use the symbol whose name was output above. */
         if (corresp_template_sym != NULL) {
-          templ_arg_sym = fund_sym;
+          templ_arg_sym = originator_symbol_of(fund_sym);
         } else {
           templ_arg_sym = sym_to_display;
         }  /* if */

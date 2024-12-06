@@ -14064,7 +14064,7 @@ diagnostic would actually be an error.
 {
   a_boolean issue_diagnostics = (error_detected == NULL);
 
-  sym = fundamental_symbol_of(sym);
+  sym = originator_symbol_of(sym);
   if (error_code != ec_no_error) {
     /* The error code and severity were provided by the caller. */
     if (issue_diagnostics) {
