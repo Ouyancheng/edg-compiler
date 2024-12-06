@@ -2066,7 +2066,7 @@ Close and delete the indicated temporary file.
       if (tfnp->file == temp_file) {
         /* Found it; delete the file and remove the entry from the list.
            The space for the entry is just lost, but that's not a big issue. */
-        (void)remove(tfnp->name);
+        (void)delete_file(tfnp->name);
         if (prev_tfnp == NULL) {
           /* First entry on list. */
           open_temp_files = tfnp->next;

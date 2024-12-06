@@ -63,6 +63,9 @@ the creation of temporary files.  If such APIs are unavailable the previous
 behavior can be restored by setting USE_HOST_TMPFILE_FACILITIES (a new
 configuration macro) to FALSE.
 
+This change also resolves an issue where temporary files with paths that
+include unicode characters were not deleted on Windows systems.
+
 
 12/3/24  [EDGcpfe/27774]
 Clang compatibility: changing the encoding of a function name operator string
