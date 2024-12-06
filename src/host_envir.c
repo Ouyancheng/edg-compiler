@@ -1680,7 +1680,7 @@ constexpr int   temp_file_tries = 20;
 using a_temp_file_name_buffer = Small_string<150>;
                         /* The type used for a temporary file name buffer. */
 
-#if EDG_WIN32
+#if EDG_WIN32 && USE_HOST_TMPFILE_FACILITIES
 
 static inline a_string get_temp_dir_from_win32()
 /*
@@ -1714,7 +1714,7 @@ Return a string containing the temporary directory name using the Win32 API.
   return result;
 }  /* get_temp_dir_from_win32 */
 
-#else /* !EDG_WIN32 */
+#else /* !(EDG_WIN32 && USE_HOST_TMPFILE_FACILITIES) */
 
 static inline a_string get_temp_dir_from_env()
 /*
@@ -1743,7 +1743,7 @@ environment variables.
   return result;
 }  /* get_temp_dir_from_env */
 
-#endif /* EDG_WIN32 */
+#endif /* EDG_WIN32 && USE_HOST_TMPFILE_FACILITIES */
 
 static inline void resolve_temp_dir()
 /*
