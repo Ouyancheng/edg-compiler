@@ -13229,6 +13229,7 @@ variables declared in cmd_line.h.
   extended_friends_enabled = FALSE;
   mixed_string_concat_enabled = FALSE;
   static_assert_enabled = FALSE;
+  terse_static_assert_enabled = FALSE;
   auto_type_specifier_enabled = DEFAULT_AUTO_TYPE_SPECIFIER_ENABLED;
   auto_storage_class_specifier_enabled =
                                  DEFAULT_AUTO_STORAGE_CLASS_SPECIFIER_ENABLED;
