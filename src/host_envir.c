@@ -1689,21 +1689,42 @@ Return a string containing the temporary directory name using the Win32 API.
 {
   a_string result;
 #if UNICODE_SOURCE_ENABLED
+  typedef DWORD (WINAPI *GTP2W)(DWORD, LPWSTR);
   wchar_t  buffer[MAX_PATH];
-  DWORD    path_len = GetTempPath2W(MAX_PATH, buffer);
-#else /* !UNICODE_SOURCE_ENABLED */
-  char     buffer[MAX_PATH];
-  DWORD    path_len = GetTempPath2A(MAX_PATH, buffer);
-#endif /* UNICODE_SOURCE_ENABLED */
+  DWORD    path_len;
+  GTP2W    new_tmp_path_func = (GTP2W)GetProcAddress(
+                                             GetModuleHandleW(L"kernel32.dll"),
+                                             "GetTempPath2W");
 
+  if (new_tmp_path_func != NULL) {
+    /* GetTempPath2W is present in this kernel version, make use of it. */
+    path_len = new_tmp_path_func(MAX_PATH, buffer);
+  } else {
+    path_len = GetTempPathW(MAX_PATH, buffer);
+  }  /* if */
+#else /* !UNICODE_SOURCE_ENABLED */
+  typedef DWORD (WINAPI *GTP2A)(DWORD, LPSTR);
+  char     buffer[MAX_PATH];
+  DWORD    path_len;
+  GTP2A    new_tmp_path_func = (GTP2A)GetProcAddress(
+                                              GetModuleHandleA("kernel32.dll"),
+                                              "GetTempPath2A");
+
+  if (new_tmp_path_func != NULL) {
+    /* GetTempPath2A is present in this kernel version, make use of it. */
+    path_len = new_tmp_path_func(MAX_PATH, buffer);
+  } else {
+    path_len = GetTempPathA(MAX_PATH, buffer);
+  }  /* if */
+#endif /* UNICODE_SOURCE_ENABLED */
   if (path_len > (MAX_PATH - 14) || path_len == 0) {
-    /* GetTempPath2 failed to retrieve a valid temporary path; fallback to the
+    /* GetTempPath failed to retrieve a valid temporary path; fallback to the
        binary's default temporary directory.  Note that the Win32 API specifies
-       that GetTempFileNameA fails if the string is longer than MAX_PATH - 14
+       that GetTempFileName fails if the string is longer than MAX_PATH - 14
        characters. */
     result.reset_to(DEFAULT_TMPDIR);
   } else {
-    /* Use the path from GetTempPath2 (converting from utf-16 to utf-8 if
+    /* Use the path from GetTempPath (converting from utf-16 to utf-8 if
        necessary). */
 #if UNICODE_SOURCE_ENABLED
     result.reset_to(conv_wide_to_utf8(buffer));
