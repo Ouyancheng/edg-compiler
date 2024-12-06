@@ -1803,7 +1803,7 @@ time; instead, add the file to a list of files to be cleaned up later.
   a_temp_file_name_ptr new_entry =
                  (a_temp_file_name_ptr)alloc_general(sizeof(a_temp_file_name));
 
-  new_entry->name = buffer.to_allocated_storage(General_allocator<char>());
+  new_entry->name = file_name.to_allocated_storage(General_allocator<char>());
   new_entry->file = file;
   new_entry->next = open_temp_files;
   open_temp_files = new_entry;
