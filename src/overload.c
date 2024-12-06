@@ -25398,9 +25398,13 @@ the conversion.
                !(allow_anachronisms ||
                  any_cfront_mode() ||
                  (microsoft_bugs &&
-                  microsoft_can_bind_ref_to_rvalue(source_operand)))) {
+                  microsoft_can_bind_ref_to_rvalue(source_operand)) ||
+                 ((microsoft_mode || gpp_version_is(any_version)) &&
+                  is_prototype_instantiation_context() &&
+                  !expr_stack->template_deduction_context))) {
       /* A temporary cannot be used when binding a reference to non-const,
-         except as an anachronism. */
+         except as an anachronism, or in some template contexts in Microsoft
+         and GNU modes. */
       /* Use a different message for the case where the operand is
          an rvalue. */
       if (operand_was_rvalue) {
@@ -25502,7 +25506,13 @@ the conversion.
         } else {
           /* Allowed as an anachronism. */
           an_error_severity severity;
-          if (microsoft_mode) {
+          if ((gpp_version_is(any_version) || microsoft_mode) &&
+              is_prototype_instantiation_context()) {
+            /* Do not issue an error in template contexts in GNU and
+               Microsoft modes.  E.g., "template<int> int &r = 42;" is accepted
+               by GCC and MSVC. */
+            severity = es_none;
+          } else if (microsoft_mode) {
             severity = es_warning;
           } else {
             check_assertion(allow_anachronisms);

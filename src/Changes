@@ -1,5 +1,18 @@
 Version 6.7
 
+12/6/24  [EDGcpfe/27765]
+Microsoft/GCC compatibility: Reference bindings in templates
+
+MSVC and GCC accept cases such as:
+
+  template<int> int &r = 42;  // Ordinarily an error.  Now okay in Microsoft
+                              // and GNU modes.
+
+even though binding a prvalue to a reference to non-const value type is
+nonstandard.  The front end now matches that behavior in Microsoft and GNU
+modes.
+
+
 12/5/24  [EDGcpfe/27781]
 Spurious error on __builtin_bit_cast with class template instance
 
