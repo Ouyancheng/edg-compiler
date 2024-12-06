@@ -1756,11 +1756,11 @@ Initialize temp_dir if not already initialized.
     /* If this a relatively modern Windows system, use the Win32 API to
        determine the correct temporary path directory. */
     a_string tmp_buffer =
-#if EDG_WIN32
+#if EDG_WIN32 && USE_HOST_TMPFILE_FACILITIES
                           get_temp_dir_from_win32();
-#else /* !EDG_WIN32 */
+#else /* !(EDG_WIN32 && USE_HOST_TMPFILE_FACILITIES) */
                           get_temp_dir_from_env();
-#endif /* EDG_WIN32 */
+#endif /* EDG_WIN32 && USE_HOST_TMPFILE_FACILITIES */
 
     /* Ensure there's a directory separator on the end of the path. */
     a_boolean need_slash = FALSE;
