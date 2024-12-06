@@ -3766,6 +3766,15 @@ extern unsigned long extract_character_from_string(a_const_char  *str,
 extern int ucn_to_utf16(unsigned long   ucn,
                         unsigned short  *encoding);
 
+/*
+If defined to TRUE, an alternative definition of default_error_file should
+be provided.  See the default implementation of default_error_file in
+host_envir.c for more information.
+*/
+#ifndef CUSTOM_DEFAULT_ERROR_FILE
+#define CUSTOM_DEFAULT_ERROR_FILE FALSE
+#endif /* CUSTOM_DEFAULT_ERROR_FILE */
+
 extern FILE* default_error_file();
 
 extern void host_envir_one_time_init(void);
