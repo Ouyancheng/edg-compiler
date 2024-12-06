@@ -127,7 +127,7 @@ result in assertion failures in, e.g., dump_initializer_part in C-generating
 back end configurations.
 
 
-13/3/24  [EDGcpfe/27770]
+12/3/24  [EDGcpfe/27770]
 Internal error on variable template in multi-trans-unit mode
 
 When compiling multiple translation units, an internal error could occur
