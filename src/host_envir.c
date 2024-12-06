@@ -1902,6 +1902,16 @@ file.
        mkstemp may have replaced it with a concrete file name on the last
        try). */
     file_name.append(a_string_view(pattern_str, pattern_str_len));
+    /* Versions of glibc before 2.7 (released in 2007) incorrectly used 0666
+       permissions for mkstemp.  POSIX.1-2008 adds a requirement that the file
+       be created with mode 0600.  Coverity suggests using a umask in this
+       situation to avoid the possibility that mode 0666 is successfully
+       applied.  This adds significant application complexity particularly for
+       multi-threaded builds as umask is a process level setting.  Given the
+       age of the problem (at the time of writing nearly two decades) and the
+       implementation complexity to take the Coverity suggestion, the warning
+       is thus suppressed. */
+    /* coverity[secure_temp] */
     tmp_fd = mkstemp((char*)file_name.as_temp_characters());
     if (tmp_fd != -1) {
       break;
