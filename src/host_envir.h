@@ -1988,26 +1988,6 @@ recompiled, such as the include search paths to be used.
 #endif /* ifndef EXPORT_INFO_FILE_NAME */
 
 /*
-Flag that is TRUE if the host has the __int128 and __uint128 extensions;
-otherwise, FALSE.
-*/
-#ifndef HOST_HAS_INT128_EXTENSIONS
-#if defined(__SIZEOF_INT128__)
-#define HOST_HAS_INT128_EXTENSIONS TRUE
-#else /* !defined(__SIZEOF_INT128__) */
-#define HOST_HAS_INT128_EXTENSIONS FALSE
-#endif /* defined(__SIZEOF_INT128__) */
-#endif /* ifndef HOST_HAS_INT128_EXTENSIONS */
-
-/*
-Flag that is TRUE if the host system provides functions for creating temporary
-files that should be used instead of the EDG temporary file creation algorithm.
-*/
-#ifndef USE_HOST_TMPFILE_FACILITIES
-#define USE_HOST_TMPFILE_FACILITIES TRUE
-#endif /* ifndef USE_HOST_TMPFILE_FACILITIES */
-
-/*
 Flag that is TRUE if a template information file should be created for
 information such as instantiation files (in one instantiation per object
 file mode), or to contain template instantiation flags. 
@@ -2099,6 +2079,26 @@ that is associated with a given instantiation header file.
 #endif /* __MICROSOFT_OS__ */
 #endif /* ifndef DEFAULT_INSTANTIATION_FILE_SUFFIX_LIST */
 #endif /* INSTANTIATION_BY_IMPLICIT_INCLUSION */
+
+/*
+Flag that is TRUE if the host has the __int128 and __uint128 extensions;
+otherwise, FALSE.
+*/
+#ifndef HOST_HAS_INT128_EXTENSIONS
+#if defined(__SIZEOF_INT128__)
+#define HOST_HAS_INT128_EXTENSIONS TRUE
+#else /* !defined(__SIZEOF_INT128__) */
+#define HOST_HAS_INT128_EXTENSIONS FALSE
+#endif /* defined(__SIZEOF_INT128__) */
+#endif /* ifndef HOST_HAS_INT128_EXTENSIONS */
+
+/*
+Flag that is TRUE if the host system provides functions for creating temporary
+files that should be used instead of the EDG temporary file creation algorithm.
+*/
+#ifndef USE_HOST_TMPFILE_FACILITIES
+#define USE_HOST_TMPFILE_FACILITIES TRUE
+#endif /* ifndef USE_HOST_TMPFILE_FACILITIES */
 
 /*
 The suffixes to be used when searching for an include file name specified
