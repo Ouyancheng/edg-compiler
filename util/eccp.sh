@@ -176,14 +176,15 @@ use_default_instantiation_dir=1
 #
 export TMPDIR
 TMPDIR=${TMPDIR-/tmp}
-eccp_tmp_subdir=eccp$$
-eccp_tmpdir=$TMPDIR/$eccp_tmp_subdir
-rm -rf $eccp_tmpdir
-mkdir $eccp_tmpdir
+eccp_tmpdir=$(mktemp -d "${TMPDIR}/eccp.XXXXXXXX")
 if [ $? -ne 0 ] ; then
   echo eccp: could not create temporary directory $eccp_tmpdir.
 fi
 eccp_tmpdir=`native_path "$eccp_tmpdir"`
+#
+# Extracted pattern portion of the tmpdir string.
+#
+eccp_tmp_pattern=${eccp_tmpdir##*.}
 #
 # Suffix to be applied to the standard C++ library (libC.a) to select a
 # special version.
@@ -630,7 +631,7 @@ compile_int_c()
   if [ -s $cc_tmp_file -a $suppress_c_to_object_diagnostics -eq 0 -a \
        $unimportant_output -eq 0 ] ; then
     echo $driver_name: diagnostics generated from compilation of $int_c_diag_name: >&2
-    sed -e "s/$eccp_tmp_subdir/eccptmp/g" $cc_tmp_file >&2
+    sed -e "s/eccp\.$eccp_tmp_pattern/eccptmp/g" $cc_tmp_file >&2
     echo $driver_name: end of diagnostics from compilation of $int_c_diag_name >&2
   fi
 #

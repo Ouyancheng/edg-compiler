@@ -1,5 +1,12 @@
 Version 6.7
 
+12/9/24  [EDGcpfe/27786]
+Modernize temporary file creation
+
+eccp now uses mktemp to create temporary directories instead of the PID
+(process identifier).
+
+
 12/2/24  [EDGcpfe/27746]
 Floating-point demangling changes
 
