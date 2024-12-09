@@ -6285,7 +6285,8 @@ FALSE otherwise).
 
 FILE* default_error_file()
 /*
-This function should return the file that should be used for error output.
+This function returns the default FILE* that should be used for error output
+(i.e., stderr).
 
 This is the default implementation of the default_error_file function.  When
 CUSTOM_DEFAULT_ERROR_FILE is TRUE it's expected that an alternative

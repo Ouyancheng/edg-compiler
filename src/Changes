@@ -62,11 +62,12 @@ trait helper __is_convertible_to.  That is now fixed.  For example:
 12/5/24  [EDGcpfe/27784]
 Custom default error file implementation support
 
-When using MAKE_FRONT_END_CALLABLE it is sometimes desirable to change the
-front end's default error output file.  A new configuration macro has been
-added (CUSTOM_DEFAULT_ERROR_FILE).  When set to TRUE a custom implementation of
-the function default_error_file() can be provided without maintaining a
-dedicated source patch.
+By default, the front end uses stderr for error output; error output can be
+redirected (after command-line processing is complete) via the --error_output
+command-line option.  A new configuration option, CUSTOM_DEFAULT_ERROR_FILE,
+can now be used to override this default.  When this option is TRUE, customers
+can (and must) provide a function, default_error_file(), that returns the file
+handle to be used instead of stderr.
 
 
 12/4/24  [EDGcpfe/26220,EDGcpfe/26230,EDGcpfe/27764]

@@ -3767,8 +3767,8 @@ extern int ucn_to_utf16(unsigned long   ucn,
                         unsigned short  *encoding);
 
 /*
-If defined to TRUE, an alternative definition of default_error_file should
-be provided.  See the default implementation of default_error_file in
+If defined to TRUE, an alternative definition of default_error_file must be
+provided.  See the default implementation of default_error_file() in
 host_envir.c for more information.
 */
 #ifndef CUSTOM_DEFAULT_ERROR_FILE
