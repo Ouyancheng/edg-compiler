@@ -1,5 +1,15 @@
 Version 6.7
 
+12/9/24  [EDGcpfe/27785]
+Avoid stack overflow on non-mangled Cfront names with multiple underscores
+
+Demangling strings in the Cfront ABI that contain "__" can cause the demangler
+to assume that the strings are mangled identifiers when they aren't.  In the
+case of a string like "x__update", the demangler had mistakenly tried to
+demangle the identifier, resulting in a stack overflow.  That has now been
+fixed.
+
+
 12/9/24  [EDGcpfe/27786]
 Modernize temporary file creation
 

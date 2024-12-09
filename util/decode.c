@@ -1303,7 +1303,9 @@ even when need_parens is TRUE).
     } else {
       bad_mangled_name(dctl);
     }  /* if */
-    p = demangle_expression(p, /*need_parens=*/FALSE, dctl);
+    if (!dctl->err_in_id) {
+      p = demangle_expression(p, /*need_parens=*/FALSE, dctl);
+    }  /* if */
   } else {
     /* Used to demangle literals as well as template parameters, operations.
        Within an expression, suppress implicit "&"s during the demangling. */
