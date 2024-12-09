@@ -1,5 +1,25 @@
 Version 6.7
 
+12/9/24  [EDGcpfe/27566]
+Abort on inaccessible inherited constructor
+
+Previously, the front end could abort with a failed assertion in
+form_template_arg_info when attempting to use an inaccessible inherited
+constructor, where the base class is a specialization of a class template with
+a different template parameter list than that of the derived class.  For
+example, with --c++11:
+
+  template<int, typename>
+  class A {
+    A(int);
+  };
+  template<typename T>
+  struct B : A<0, T> {
+    using A<0, T>::A;
+  };
+  B<int> b(1);  // Previously aborted, now an ordinary error.
+
+
 12/6/24  [EDGcpfe/27765]
 Microsoft/GCC compatibility: Reference bindings in templates
 
