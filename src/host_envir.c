@@ -1697,7 +1697,7 @@ Return a string containing the temporary directory name using the Win32 API.
                                              "GetTempPath2W");
 
   if (new_tmp_path_func != NULL) {
-    /* GetTempPath2W is present in this kernel version, make use of it. */
+    /* GetTempPath2W is present in this kernel version: make use of it. */
     path_len = new_tmp_path_func(MAX_PATH, buffer);
   } else {
     path_len = GetTempPathW(MAX_PATH, buffer);
@@ -1711,14 +1711,14 @@ Return a string containing the temporary directory name using the Win32 API.
                                               "GetTempPath2A");
 
   if (new_tmp_path_func != NULL) {
-    /* GetTempPath2A is present in this kernel version, make use of it. */
+    /* GetTempPath2A is present in this kernel version: make use of it. */
     path_len = new_tmp_path_func(MAX_PATH, buffer);
   } else {
     path_len = GetTempPathA(MAX_PATH, buffer);
   }  /* if */
 #endif /* UNICODE_SOURCE_ENABLED */
   if (path_len > (MAX_PATH - 14) || path_len == 0) {
-    /* GetTempPath failed to retrieve a valid temporary path; fallback to the
+    /* GetTempPath failed to retrieve a valid temporary path; fall back to the
        binary's default temporary directory.  Note that the Win32 API specifies
        that GetTempFileName fails if the string is longer than MAX_PATH - 14
        characters. */
@@ -1754,8 +1754,8 @@ environment variables.
   temp_dir_env = getenv("TMPDIR");
 #endif /* __MICROSOFT_OS__ */
   if (temp_dir_env == NULL || strlen(temp_dir_env) == 0) {
-    /* Fallback to the default temporary directory name (one could not be found
-       in the environment variable). */
+    /* Fall back to the default temporary directory name (one could not be
+       found in the environment variable). */
     result.reset_to(DEFAULT_TMPDIR);
   } else {
     /* Use the temporary directory from the environment variable. */
