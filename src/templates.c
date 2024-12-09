@@ -32202,7 +32202,9 @@ parameter lists that were scanned.
             if ((decl_state->is_member_decl &&
                  tssp->variant.variable.prototype_variable->
                                                        initializer_in_class) ||
-                decl_state->defines_something) {
+                (!tssp->variant.variable.prototype_variable->
+                                                       initializer_in_class &&
+                 decl_state->defines_something)) {
               /* Include an out-of-class initializer, if any, if none was
                  specified in the in-class declaration. */
               p_template_body_cache = &tssp->cache.tokens;
