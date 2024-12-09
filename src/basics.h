@@ -679,11 +679,12 @@ BEGIN_EDG_NAMESPACE  /* Conditionally open the "edg" namespace. */
 #define DEBUG TRUE
 #endif /* ifndef DEBUG */
 #if DEBUG
-EXTERN_THREAD int	debug_level /* = 0 */;
+EXTERN_THREAD int
+		debug_level;
 			/* Debug level.  0 means no debug output, 1 - 5
                             means increasing amounts. */
 EXTERN_THREAD a_boolean
-		db_active /* = FALSE */;
+		db_active;
 			/* TRUE if debug_level is currently non-zero, or
 			   if there is the potential for it becoming
 			   non-zero (because there is a debug list). */

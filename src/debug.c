@@ -823,6 +823,9 @@ must not make use of anything initialized there.
   debug_stack = NULL;
   depth_debug_stack = -1;
   debug_stack_size = 0;
+  /* Make sure the db_active flag is reset. */
+  db_active = FALSE;
+  debug_level = 0;
 }  /* debug_early_init */
 
 /* Conditionally close the "edg" namespace. */
