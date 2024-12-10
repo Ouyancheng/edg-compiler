@@ -1617,7 +1617,7 @@ Open the preprocessing output file.
 {
   if (pp_file_name == NULL) {
     /* If no name was specified, default is stdout. */
-    f_pp_output = stdout;
+    f_pp_output = default_preproc_output_file();
   } else {
     /* An explicit name was specified. */
     f_pp_output = open_output_file_with_error_handling(

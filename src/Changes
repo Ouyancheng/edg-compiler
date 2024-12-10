@@ -69,14 +69,21 @@ trait helper __is_convertible_to.  That is now fixed.  For example:
 
 
 12/5/24  [EDGcpfe/27784]
-Custom default error file implementation support
+Custom default output file implementation support
 
 By default, the front end uses stderr for error output; error output can be
 redirected (after command-line processing is complete) via the --error_output
-command-line option.  A new configuration option, CUSTOM_DEFAULT_ERROR_FILE,
-can now be used to override this default.  When this option is TRUE, customers
-can (and must) provide a function, default_error_file(), that returns the file
-handle to be used instead of stderr.
+command-line option.
+
+Similarly, by default, the front end uses stdout for preprocessor output;
+preprocessor output can be redirected (after command-line processing is
+complete) via the --output or -o command-line options.
+
+A new configuration option, CUSTOM_DEFAULT_OUTPUT_FILES, can now be used to
+override this default.  When this option is TRUE, customers can (and must)
+provide the functions, default_error_output_file() and
+default_preproc_output_file(), that returns the file handle to be used for the
+respective category of output.
 
 
 12/4/24  [EDGcpfe/26220,EDGcpfe/26230,EDGcpfe/27764]

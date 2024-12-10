@@ -6281,15 +6281,15 @@ FALSE otherwise).
 }  /* strtoul_interface */
 
 #endif /* BUILTIN_FUNCTIONS_ENABLED */
-#if !CUSTOM_DEFAULT_ERROR_FILE
+#if !CUSTOM_DEFAULT_OUTPUT_FILES
 
-FILE* default_error_file()
+FILE* default_error_output_file()
 /*
 This function returns the default FILE* that should be used for error output
 (i.e., stderr).
 
 This is the default implementation of the default_error_file function.  When
-CUSTOM_DEFAULT_ERROR_FILE is TRUE it's expected that an alternative
+CUSTOM_DEFAULT_OUTPUT_FILES is TRUE it's expected that an alternative
 implementation is provided by another file (usually outside of the standard EDG
 C++/C front end source file set).
 */
@@ -6297,7 +6297,22 @@ C++/C front end source file set).
   return stderr;
 }  /* default_error_file */
 
-#endif /* !CUSTOM_DEFAULT_ERROR_FILE */
+
+FILE* default_preproc_output_file()
+/*
+This function returns the default FILE* that should be used for preprocessor
+output (i.e., stdout).
+
+This is the default implementation of the default_error_file function.  When
+CUSTOM_DEFAULT_OUTPUT_FILES is TRUE it's expected that an alternative
+implementation is provided by another file (usually outside of the standard EDG
+C++/C front end source file set).
+*/
+{
+  return stdout;
+}  /* default_preproc_output_file */
+
+#endif /* !CUSTOM_DEFAULT_OUTPUT_FILES */
 
 void host_envir_one_time_init(void)
 /*

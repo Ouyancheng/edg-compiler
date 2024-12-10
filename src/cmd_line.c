@@ -8266,11 +8266,11 @@ file.
 #else /* !defined(MAKE_FRONT_END_CALLABLE) */
   comment_undefined_macro_name(MAKE_FRONT_END_CALLABLE);
 #endif /* defined(MAKE_FRONT_END_CALLABLE) */
-#if defined(CUSTOM_DEFAULT_ERROR_FILE)
-  define_numeric_valued_macro(CUSTOM_DEFAULT_ERROR_FILE);
-#else /* !defined(CUSTOM_DEFAULT_ERROR_FILE) */
-  comment_undefined_macro_name(CUSTOM_DEFAULT_ERROR_FILE);
-#endif /* defined(CUSTOM_DEFAULT_ERROR_FILE) */
+#if defined(CUSTOM_DEFAULT_OUTPUT_FILES)
+  define_numeric_valued_macro(CUSTOM_DEFAULT_OUTPUT_FILES);
+#else /* !defined(CUSTOM_DEFAULT_OUTPUT_FILES) */
+  comment_undefined_macro_name(CUSTOM_DEFAULT_OUTPUT_FILES);
+#endif /* defined(CUSTOM_DEFAULT_OUTPUT_FILES) */
 #if defined(MANGLE_ALL_NAMES)
   define_numeric_valued_macro(MANGLE_ALL_NAMES);
 #else /* !defined(MANGLE_ALL_NAMES) */

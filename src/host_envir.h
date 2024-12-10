@@ -3767,15 +3767,22 @@ extern int ucn_to_utf16(unsigned long   ucn,
                         unsigned short  *encoding);
 
 /*
-If defined to TRUE, an alternative definition of default_error_file must be
-provided.  See the default implementation of default_error_file() in
-host_envir.c for more information.
+If defined to TRUE, an alternative definition of default_error_output_file(),
+and default_preproc_output_file() must be provided.  See the default
+implementations of the respective functions in host_envir.c for more
+information.
 */
-#ifndef CUSTOM_DEFAULT_ERROR_FILE
-#define CUSTOM_DEFAULT_ERROR_FILE FALSE
-#endif /* CUSTOM_DEFAULT_ERROR_FILE */
+#ifndef CUSTOM_DEFAULT_OUTPUT_FILES
+#define CUSTOM_DEFAULT_OUTPUT_FILES FALSE
+#endif /* CUSTOM_DEFAULT_OUTPUT_FILES */
 
-extern FILE* default_error_file();
+extern FILE* default_error_output_file();
+
+extern FILE* default_preproc_output_file();
+
+#if NEED_IL_DISPLAY
+extern FILE* default_il_display_output_file();
+#endif /* NEED_IL_DISPLAY */
 
 extern void host_envir_one_time_init(void);
 

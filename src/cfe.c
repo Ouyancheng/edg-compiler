@@ -89,7 +89,7 @@ MAKE_FRONT_END_CALLABLE is TRUE.
   /* Initialize the file variable used for error output.  This should be
      done before anything else that could potentially produce error output
      (including an internal error). */
-  f_error = default_error_file();
+  f_error = default_error_output_file();
 #if DEBUG
   /* Initialize the file variable used for debug output.  This should be
      done before anything else that could potentially produce debug output. */

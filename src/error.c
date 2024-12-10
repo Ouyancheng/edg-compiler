@@ -8286,7 +8286,7 @@ reset the associated debug output FILE* (f_debug).
     close_file_if_open(&f_error);
   }  /* if */
 #endif /* MAKE_FRONT_END_CALLABLE */
-  f_error = default_error_file();
+  f_error = default_error_output_file();
 #if DEBUG
   f_debug = f_error;
 #endif /* DEBUG */
