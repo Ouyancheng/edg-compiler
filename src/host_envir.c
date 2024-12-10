@@ -2493,6 +2493,12 @@ not return.
   exit_compilation(severity);
 }  /* term_compilation */
 
+/*
+The front end's signal handlers are designed for single-threaded processes.  In
+multi-threaded builds it's expected that signal handlers be installed where
+appropriate by the function/thread in charge of managing spawned threads.
+*/
+#if !MULTIPLE_THREAD_COMPILATION
 
 /*
 In C++, signal handlers must be extern "C".
@@ -2631,6 +2637,7 @@ execution of the front end (for example, SIGINT).
 #endif /* __MICROSOFT_OS__ */
 }  /* set_signal_handlers */
 
+#endif /* !MULTIPLE_THREAD_COMPILATION */
 #ifdef NEED_SIZE_T_ARG_ERROR
 
 /* The extern declaration for this routine is in basics.h. */
@@ -6542,7 +6549,8 @@ One time initialization that must take place early on in the front end.
 This is done before command line processing.
 */
 {
-  STATIC_THREAD a_boolean first_time = TRUE;
+#if !MULTIPLE_THREAD_COMPILATION
+  static a_boolean first_time = TRUE;
 
   if (first_time) {
     /* Set handlers for unusual abort signals.  This is only done on the
@@ -6553,6 +6561,7 @@ This is done before command line processing.
 #endif /* SVR4_TRAP_NULL_POINTER_REFERENCES */
     first_time = FALSE;
   }  /* if */
+#endif /* !MULTIPLE_THREAD_COMPILATION */
   /* The temp_text_buffer is initialized here because it is used by
      get_curr_dir_name on some systems. */
   temp_text_buffer = NULL;
