@@ -1,5 +1,14 @@
 Version 6.7
 
+12/10/24 [EDGcpfe/27788]
+Write IL display to f_display
+
+The front end IL display code now prints the output of IL display to f_display.
+When running as part of the front end, IL display is now printed to f_error
+rather than stdout.  When running as a standalone utility program, IL display
+continues to be printed to stdout.
+
+
 12/9/24  [EDGcpfe/27566]
 Abort on inaccessible inherited constructor
 

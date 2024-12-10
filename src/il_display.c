@@ -60,6 +60,10 @@ STATIC_THREAD a_boolean
 			   FALSE if displaying a function scope memory
 			   region. */
 
+STATIC_THREAD FILE
+		*f_display;
+			/* The file to which IL display output is written. */
+
 STATIC_THREAD an_il_to_str_output_control_block
 		octl;	/* Output control block for interface to il_to_str
 			   routines. */
@@ -81,25 +85,25 @@ static void disp_string(a_const_char *string_ptr,
 Print the string at string_ptr, whose length is string_length.
 */
 {
-  sizeof_t i;
-  char     ch;
-
   if (string_ptr == NULL) {
-    (void)printf("NULL");
+    (void)fprintf(f_display, "NULL");
   } else {
     /* Strings can have unprintable characters, so print them carefully. */
-    (void)printf("\"");
-    for (i = 0; i < string_length; i++) {
-      ch = string_ptr[i];
+    (void)putc('"', f_display);
+    for (sizeof_t i = 0; i < string_length; i++) {
+      char ch = string_ptr[i];
+
       if (isprint((unsigned char)ch)) {
-        if (ch == '"' || ch == '\\') (void)printf("\\");
-        (void)putchar(ch);
+        if (ch == '"' || ch == '\\') {
+          (void)putc('\\', f_display);
+        }  /* if */
+        (void)putc(ch, f_display);
       } else {
-        (void)printf("\\%03o",
-                     (unsigned int)(ch&((1<<targ_host_string_char_bit)-1)));
+        (void)fprintf(f_display, "\\%03o",
+                      (unsigned int)(ch&((1<<targ_host_string_char_bit)-1)));
       }  /* if */
     }  /* for */
-    (void)printf("\"");
+    (void)putc('"', f_display);
   }  /* if */
 }  /* disp_string */
 
@@ -110,23 +114,23 @@ Display the NULL-terminated string at string_ptr.
 */
 {
   if (string_ptr == NULL) {
-    (void)printf("NULL");
+    (void)fprintf(f_display, "NULL");
   } else {
     disp_string(string_ptr, (sizeof_t)strlen(string_ptr));
   }  /* if */
 }  /* disp_null_term_string */
 
 
-static void put_str_to_stdout(
+static void put_str_to_display(
                        a_const_char                                     *str,
                        ARG_UNUSED an_il_to_str_output_control_block_ptr dummy)
 /*
-Output the indicated string to stdout.  This is used as an output routine
+Output the indicated string to f_display.  This is used as an output routine
 when using the il_to_str routines.
 */
 {
-  fputs(str, stdout);
-}  /* put_str_to_stdout */
+  fputs(str, f_display);
+}  /* put_str_to_display */
 
 
 static void summarize_type(a_type *tp)
@@ -158,16 +162,18 @@ kind entry_kind.
 
   /* Print the pointer value. */
   if (entry_ptr == NULL) {
-    (void)printf("NULL");
+    (void)fprintf(f_display, "NULL");
   } else {
     is_file_scope_entry = in_file_scope(entry_ptr);
     if (displaying_file_scope_il && !is_file_scope_entry) {
       /* Reference from file scope to non-file scope pointer. */
-      (void)printf("**NON FILE SCOPE PTR** (%p)", (a_void_ptr)entry_ptr);
+      (void)fprintf(f_display, "**NON FILE SCOPE PTR** (%p)",
+                    (a_void_ptr)entry_ptr);
     } else {
-      (void)printf(is_file_scope_entry ? "file-scope" : "func-scope");
+      (void)fprintf(f_display, is_file_scope_entry ? "file-scope"
+                                                   : "func-scope");
       /* Print the entry kind. */
-      (void)printf(" %s", il_entry_kind_names[(int)entry_kind]);
+      (void)fprintf(f_display, " %s", il_entry_kind_names[(int)entry_kind]);
 #if ALTERNATE_IL_FILE_FORMAT && STANDALONE_IL_DISPLAY
       /* Use entry_number.  After entries are read in, they
          are allocated in an array of entries, so one can determine the
@@ -194,15 +200,15 @@ kind entry_kind.
         entry_number = (an_il_entry_number)(1 + (entry_ptr - prefix_size -
                             entry_array_base_array_ptr[(int)entry_kind]) /
                                                              gross_entry_size);
-        (void)printf("#%ld", (unsigned long)entry_number);
+        (void)fprintf(f_display, "#%ld", (unsigned long)entry_number);
       }
 #else /* !(ALTERNATE_IL_FILE_FORMAT && STANDALONE_IL_DISPLAY) */
       /* Use pointer address. */
 #if defined(_WIN64)
       /* Avoid data loss in casting to unsigned long. */
-      (void)printf("@%p", entry_ptr);
+      (void)printf(f_display, "@%p", entry_ptr);
 #else /* !defined(_WIN64) */
-      (void)printf("@%lx", (unsigned long)entry_ptr);
+      (void)fprintf(f_display, "@%lx", (unsigned long)entry_ptr);
 #endif /* defined(_WIN64) */
 #endif /* !(ALTERNATE_IL_FILE_FORMAT && STANDALONE_IL_DISPLAY) */
     }  /* if */
@@ -219,18 +225,18 @@ no name.
   int name_len;
 
   if (name != NULL) {
-    (void)printf("%s:", name);
+    (void)fprintf(f_display, "%s:", name);
     /* Get the text following indented the same amount regardless of the
        length of the name. */
 #define Label_indent 25
     name_len = (int)(strlen(name) + 1);  /* 1 for the ":". */
     if (name_len >= Label_indent) {
       /* Name is already too long.  Start a new line and indent. */
-      (void)printf("\n");
+      (void)fprintf(f_display, "\n");
       name_len = 0;
     }  /* if */
     /* Print spaces to get the following data in column Label_indent+1. */
-    (void)printf("%*c", Label_indent - name_len, ' ');
+    (void)fprintf(f_display, "%*c", Label_indent - name_len, ' ');
   }  /* if */
 }  /* disp_name */
 
@@ -242,7 +248,7 @@ Display an int32_t value along with a name.
 */
 {
   disp_name(name);
-  (void)printf("%ld\n", (long)value);
+  (void)fprintf(f_display, "%ld\n", (long)value);
 }  /* disp_int32 */
 
 
@@ -253,7 +259,7 @@ Display an uint32_t value along with a name.
 */
 {
   disp_name(name);
-  (void)printf("%lu\n", (unsigned long)value);
+  (void)fprintf(f_display, "%lu\n", (unsigned long)value);
 }  /* disp_uint32 */
 
 
@@ -264,7 +270,7 @@ Display a long value along with a name.
 */
 {
   disp_name(name);
-  (void)printf("%ld\n", value);
+  (void)fprintf(f_display, "%ld\n", value);
 }  /* disp_long */
 
 
@@ -275,7 +281,7 @@ Display an unsigned long value along with a name.
 */
 {
   disp_name(name);
-  (void)printf("%lu\n", value);
+  (void)fprintf(f_display, "%lu\n", value);
 }  /* disp_unsigned_long */
 
 
@@ -288,7 +294,7 @@ Display a host large unsigned value along with a name.
   disp_name(name);
 
   a_number_buffer tmp_str(value);
-  (void)printf("%s\n", tmp_str.as_temp_characters());
+  (void)fprintf(f_display, "%s\n", tmp_str.as_temp_characters());
 }  /* disp_host_large_integer */
 
 
@@ -301,7 +307,7 @@ Display a host large unsigned value along with a name.
   disp_name(name);
 
   a_number_buffer tmp_str(value);
-  (void)printf("%s\n", tmp_str.as_temp_characters());
+  (void)fprintf(f_display, "%s\n", tmp_str.as_temp_characters());
 }  /* disp_host_large_unsigned */
 
 
@@ -313,9 +319,9 @@ Display a boolean value along with a name.
 {
   disp_name(name);
   if (value) {
-    (void)printf("TRUE\n");
+    (void)fprintf(f_display, "TRUE\n");
   } else {
-    (void)printf("FALSE\n");
+    (void)fprintf(f_display, "FALSE\n");
   }  /* if */
 }  /* disp_boolean */
 
@@ -364,36 +370,36 @@ be written.
     if (name != NULL || type_name_type != NULL) {
       /* Entry has a name.  If this is a tag, put "tag" in front of the
          name.  If a label, put "label". */
-      (void)printf(": ");
+      (void)fprintf(f_display, ": ");
       if (type_name_type != NULL) {
         summarize_type(type_name_type);
         if (entry_kind == iek_base_class) {
-          (void)printf(" (in ");
+          (void)fprintf(f_display, " (in ");
           summarize_type(((a_base_class_ptr)entry_ptr)->derived_class);
-          (void)printf(")");
+          (void)fprintf(f_display, ")");
         }  /* if */
       } else {
         if (entry_kind == iek_label) {
-          (void)printf("label ");
+          (void)fprintf(f_display, "label ");
         }  /* if */
-        (void)printf("%s", name);
+        (void)fprintf(f_display, "%s", name);
       }  /* if */
     } else {
       /* Entry is unnamed.  Give short description for some entries. */
       if (entry_kind == iek_constant) {
-        (void)printf(": ");
+        (void)fprintf(f_display, ": ");
         summarize_constant((a_constant_ptr)entry_ptr);
       } else if (entry_kind == iek_type) {
         a_type_ptr type = (a_type_ptr)entry_ptr;
-        (void)printf(": ");
+        (void)fprintf(f_display, ": ");
         summarize_type(type);
       } else if (entry_kind == iek_source_file) {
-        (void)printf(": ");
+        (void)fprintf(f_display, ": ");
         disp_null_term_string(((a_source_file_ptr)entry_ptr)->file_name);
       }  /* if */
     }  /* if */
   }  /* if */
-  (void)printf("\n");
+  (void)fprintf(f_display, "\n");
 }  /* disp_ptr */
 
 
@@ -412,7 +418,7 @@ be written.
   disp_name(ptr_name);
   disp_ptr_value((char *)entry_ptr, entry_kind);
   if (entry_ptr != NULL) {
-    (void)printf(": ");
+    (void)fprintf(f_display, ": ");
     if (entry_kind == iek_string_text) {
       disp_string(entry_ptr, entry_length);
     } else {
@@ -420,7 +426,7 @@ be written.
       disp_null_term_string(entry_ptr);
     }  /* if */
   }  /* if */
-  (void)printf("\n");
+  (void)fprintf(f_display, "\n");
 }  /* disp_string_ptr */
 
 
@@ -437,10 +443,10 @@ Display the indicated entity list and name.
       if (name != NULL) {
         disp_name(name);
       } else {
-        (void)printf("%*c", Label_indent, ' ');
+        (void)fprintf(f_display, "%*c", Label_indent, ' ');
       }  /* if */
       disp_ptr_value(ptr->entity.ptr, (an_il_entry_kind)ptr->entity.kind);
-      (void)printf("\n");
+      (void)fprintf(f_display, "\n");
       /* Only display the list name for the first entry. */
       name = NULL;
     }  /* for */
@@ -461,10 +467,10 @@ Display the indicated variable list and name.
       if (name != NULL) {
         disp_name(name);
       } else {
-        (void)printf("%*c", Label_indent, ' ');
+        (void)fprintf(f_display, "%*c", Label_indent, ' ');
       }  /* if */
       disp_ptr_value((char*)ptr, iek_variable);
-      (void)printf("\n");
+      (void)fprintf(f_display, "\n");
       /* Only display the list name for the first entry. */
       name = NULL;
     }  /* for */
@@ -488,7 +494,7 @@ Display the indicated access specifier with a name.
     case as_inaccessible:   s = "as_inaccessible\n";   break;
     default:                s = "**BAD ACCESS SPECIFIER**\n";
   }  /* switch */  
-  (void)printf("%s", s);
+  (void)fprintf(f_display, "%s", s);
 }  /* disp_access */
 
 #if MICROSOFT_EXTENSIONS_ALLOWED
@@ -508,7 +514,7 @@ Display the indicated assembly visibility with a name.
       case av_private:        s = "av_private\n";        break;
       default:                s = "**BAD ASSEMBLY VISIBILITY**\n";
     }  /* switch */  
-    (void)printf("%s", s);
+    (void)fprintf(f_display, "%s", s);
   }  /* if */
 }  /* disp_assembly_visibility */
 
@@ -531,7 +537,7 @@ Display the indicated C++/CLI class kind with a name.
       case cctk_unresolved:   s = "cctk_unresolved\n";       break;
       default:                s = "**BAD C++/CLI CLASS TYPE KIND**\n";
     }  /* switch */  
-    (void)printf("%s", s);
+    (void)fprintf(f_display, "%s", s);
   }  /* if */
 }  /* disp_cli_class_type_kind */
 
@@ -544,7 +550,7 @@ Display the indicated field name and name linkage kind.
 */
 {
   disp_name(name);
-  (void)printf("%s\n", name_linkage_kind_names[(int)nlk]);
+  (void)fprintf(f_display, "%s\n", name_linkage_kind_names[(int)nlk]);
 }  /* disp_name_linkage */
 
 
@@ -600,7 +606,7 @@ string.
   check_assertion(str != NULL);
   /* Don't put out "null" source-range information. */
   if (range->start.seq != 0 || range->end.seq != 0) {
-    (void)printf("%s\n", str);
+    (void)fprintf(f_display, "%s\n", str);
 
     /* Default indentation is 2, but add any indentation implied by the
        string that is passed in. */
@@ -638,7 +644,7 @@ Display a_name_reference entry.
   } else {
     disp_name("special_kind");
     disp_special_function_kind_name(ptr->special_kind);
-    (void)printf("\n");
+    (void)fprintf(f_display, "\n");
 #if MICROSOFT_EXTENSIONS_ALLOWED && !DO_IL_LOWERING
     if (ptr->variant.property_or_event_descr != NULL) {
       disp_ptr("property_or_event_descr",
@@ -708,7 +714,7 @@ Display the indicated element position entry.
       break;
   }  /* switch */
   disp_name("kind");
-  (void)printf("%s\n", kind_str);
+  (void)fprintf(f_display, "%s\n", kind_str);
   disp_source_position("position", &epp->position);
   disp_ptr("next", (char *)epp->next, iek_element_position);
 }  /* disp_element_position */
@@ -721,7 +727,7 @@ static void disp_source_corresp(a_source_correspondence     *scp,
 Display the indicated source correspondence entry.
 */
 {
-  (void)printf("source_corresp:\n");
+  (void)fprintf(f_display, "source_corresp:\n");
   if (scp->name != NULL) {
     disp_string_ptr("  name", scp->name, iek_id_name, (sizeof_t)0);
   }  /* if */
@@ -867,10 +873,10 @@ Display the indicated source correspondence entry.
         a_byte curr_byte = pinfep->bytes[nbyte];
         int    nbit;
         for (nbit = 0; nbit < CHAR_BIT; nbit++) {
-          (void)printf("%c", ((curr_byte >> nbit)&1) ? '1' : '0');
+          (void)fprintf(f_display, "%c", ((curr_byte >> nbit)&1) ? '1' : '0');
         }  /* for */
       }  /* for */
-      (void)printf("\n");
+      (void)fprintf(f_display, "\n");
     }  /* for */
   }  /* if */
 #endif /* ONE_INSTANTIATION_PER_OBJECT */
@@ -956,7 +962,7 @@ static void disp_subobject_path(a_subobject_path_ptr ptr)
 Display the indicated subobject path.
 */
 {
-  (void)printf("\n");
+  (void)fprintf(f_display, "\n");
   disp_ptr("next", (char *)ptr->next, iek_subobject_path);
   if (ptr->is_offset) {
     disp_boolean("is_offset", TRUE);
@@ -988,10 +994,10 @@ Display information about the indicated module.
   disp_name("kind");
   switch (ptr->kind) {
     case mk_none:
-      (void)printf("mk_none\n");
+      (void)fprintf(f_display, "mk_none\n");
       break;
     case mk_header_unit:
-      (void)printf("mk_header_unit\n");
+      (void)fprintf(f_display, "mk_header_unit\n");
       disp_boolean("variant.header_unit.is_sys_include",
                    ptr->variant.header_unit.is_sys_include);
       disp_boolean("variant.header_unit.suppress_macro_export",
@@ -1004,12 +1010,12 @@ Display information about the indicated module.
                       iek_other_text, (sizeof_t)0);
       break;
     case mk_unit:
-      (void)printf("mk_unit\n");
+      (void)fprintf(f_display, "mk_unit\n");
       disp_string_ptr("variant.unit.name", ptr->variant.unit.name,
                       iek_other_text, (sizeof_t)0);
       break;
     case mk_unit_partition:
-      (void)printf("mk_unit_partition\n");
+      (void)fprintf(f_display, "mk_unit_partition\n");
       disp_string_ptr("variant.unit_partition.name",
                       ptr->variant.unit_partition.name,
                       iek_other_text, (sizeof_t)0);
@@ -1053,16 +1059,16 @@ static void disp_template_param_constant(a_constant *ptr)
 Display a ck_template_param constant.
 */
 {
-  (void)printf("ck_template_param\n");
+  (void)fprintf(f_display, "ck_template_param\n");
   disp_name("kind");
   switch (ptr->variant.template_param.kind) {
     case tpck_param:
-      (void)printf("tpck_param\n");
+      (void)fprintf(f_display, "tpck_param\n");
       disp_template_param_coordinate(
                              &ptr->variant.template_param.variant.coordinates);
       break;
     case tpck_expression:
-      (void)printf("tpck_expression\n");
+      (void)fprintf(f_display, "tpck_expression\n");
 #if PROTOTYPE_INSTANTIATIONS_IN_IL
       if (ptr->variant.template_param.local_expr_ref) {
         disp_boolean("local_expr_ref", TRUE);
@@ -1072,10 +1078,10 @@ Display a ck_template_param constant.
                iek_expr_node);
       break;
     case tpck_member:
-      (void)printf("tpck_member\n");
+      (void)fprintf(f_display, "tpck_member\n");
       break;
     case tpck_unknown_function:
-      (void)printf("tpck_unknown_function\n");
+      (void)fprintf(f_display, "tpck_unknown_function\n");
       if (ptr->variant.template_param.is_qualified_name) {
         disp_boolean("is_qualified_name", TRUE);
       }  /* if */
@@ -1103,7 +1109,7 @@ Display a ck_template_param constant.
         if (opname_kind != (an_opname_kind)onk_none) {
           disp_name("opname_kind");
           disp_opname_kind_name(opname_kind);
-          (void)printf("\n");
+          (void)fprintf(f_display, "\n");
         }  /* if */
       }
 #if MICROSOFT_EXTENSIONS_ALLOWED
@@ -1112,34 +1118,34 @@ Display a ck_template_param constant.
         disp_name("special_kind");
         disp_special_function_kind_name(ptr->variant.template_param.variant.
                                                 unknown_function.special_kind);
-        (void)printf("\n");
+        (void)fprintf(f_display, "\n");
       }  /* if */
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
       /* unknown_function.symbol is front-end-only and is not printed. */
       break;
     case tpck_address:
-      (void)printf("tpck_address\n");
+      (void)fprintf(f_display, "tpck_address\n");
       disp_ptr("constant",
                (char *)ptr->variant.template_param.variant.constant,
                iek_constant);
       break;
     case tpck_sizeof:
-      (void)printf("tpck_sizeof\n");
+      (void)fprintf(f_display, "tpck_sizeof\n");
       goto do_sizeof_cases;
     case tpck_datasizeof:
-      (void)printf("tpck_datasizeof\n");
+      (void)fprintf(f_display, "tpck_datasizeof\n");
       goto do_sizeof_cases;
     case tpck_alignof:
-      (void)printf("tpck_alignof\n");
+      (void)fprintf(f_display, "tpck_alignof\n");
       goto do_sizeof_cases;
     case tpck_uuidof:
-      (void)printf("tpck_uuidof\n");
+      (void)fprintf(f_display, "tpck_uuidof\n");
       goto do_sizeof_cases;
     case tpck_typeid:
-      (void)printf("tpck_typeid\n");
+      (void)fprintf(f_display, "tpck_typeid\n");
       goto do_sizeof_cases;
     case tpck_noexcept:
-      (void)printf("tpck_noexcept\n");
+      (void)fprintf(f_display, "tpck_noexcept\n");
 do_sizeof_cases:
 #if PROTOTYPE_INSTANTIATIONS_IN_IL
       if (ptr->variant.template_param.local_expr_ref) {
@@ -1157,7 +1163,7 @@ do_sizeof_cases:
       }  /* if */
       break;
     case tpck_template_ref:
-      (void)printf("tpck_template_ref\n");
+      (void)fprintf(f_display, "tpck_template_ref\n");
       if (ptr->variant.template_param.is_qualified_name) {
         disp_boolean("is_qualified_name", TRUE);
       }  /* if */
@@ -1172,12 +1178,12 @@ do_sizeof_cases:
                                                         template_ref.arg_list);
       break;
     case tpck_integer_pack:
-      (void)printf("tpck_integer_pack\n");
+      (void)fprintf(f_display, "tpck_integer_pack\n");
       disp_ptr("bound", (char *)ptr->variant.template_param.variant.bound,
                iek_constant);
       break;
     case tpck_destructor:
-      (void)printf("tpck_destructor\n");
+      (void)fprintf(f_display, "tpck_destructor\n");
       disp_ptr("destructor",
                (char*)ptr->variant.template_param.variant.destructor.type,
                iek_type);
@@ -1185,7 +1191,7 @@ do_sizeof_cases:
                    ptr->variant.template_param.variant.destructor.unqualified);
       break;
     default:
-      (void)printf("**BAD TEMPLATE PARAM CONSTANT KIND**\n");
+      (void)fprintf(f_display, "**BAD TEMPLATE PARAM CONSTANT KIND**\n");
       break;
   }  /* switch */    
   if (ptr->variant.template_param.is_pack) {
@@ -1308,42 +1314,54 @@ Display the indicated constant entry.
   disp_name("kind");
   switch (ptr->kind) {
     case ck_error:
-      (void)printf("ck_error\n");
+      (void)fprintf(f_display, "ck_error\n");
       break;
 #if UPC_EXTENSIONS_ALLOWED
     case ck_upc_threads:
-      (void)printf("ck_upc_threads\n");
+      (void)fprintf(f_display, "ck_upc_threads\n");
       goto display_constant_value;
     case ck_upc_mythread:
-      (void)printf("ck_upc_mythread\n");
+      (void)fprintf(f_display, "ck_upc_mythread\n");
       break;
 #endif /* UPC_EXTENSIONS_ALLOWED */
     case ck_integer:
-      (void)printf("ck_integer\n");
+      (void)fprintf(f_display, "ck_integer\n");
       disp_name("integer_value");
       /* Use form_integer_constant directly instead of summarize_constant so
          enumeration constants will show their numeric value and not the
          enumerator name. */
       form_integer_constant(ptr, /*suppress_cast=*/TRUE, /*need_parens=*/FALSE,
                             &octl);
-      (void)printf("\n");
+      (void)fprintf(f_display, "\n");
       break;
 #if FIXED_POINT_ALLOWED
     case ck_fixed_point:
-      (void)printf("ck_fixed_point\n");
+      (void)fprintf(f_display, "ck_fixed_point\n");
       disp_name("fixed_point_value");
       goto display_constant_value;
 #endif /* FIXED_POINT_ALLOWED */
     case ck_string:
-      (void)printf("ck_string\n");
+      (void)fprintf(f_display, "ck_string\n");
       disp_name("character_kind");
       switch(ptr->character_kind) {
-        case chk_char:     (void)printf("char\n");                 break;
-        case chk_wchar_t:  (void)printf("wchar_t\n");              break;
-        case chk_char8_t:  (void)printf("char8_t\n");              break;
-        case chk_char16_t: (void)printf("char16_t\n");             break;
-        case chk_char32_t: (void)printf("char32_t\n");             break;
-        default:           (void)printf("**BAD CHARACTER KIND**");
+        case chk_char:
+          (void)fprintf(f_display, "char\n");
+          break;
+        case chk_wchar_t:
+          (void)fprintf(f_display, "wchar_t\n");
+          break;
+        case chk_char8_t:
+          (void)fprintf(f_display, "char8_t\n");
+          break;
+        case chk_char16_t:
+          (void)fprintf(f_display, "char16_t\n");
+          break;
+        case chk_char32_t:
+          (void)fprintf(f_display, "char32_t\n");
+          break;
+        default:
+          (void)fprintf(f_display, "**BAD CHARACTER KIND**");
+          break;
       }  /* switch */
       disp_host_large_unsigned(
                   "length", (a_host_large_unsigned)ptr->variant.string.length);
@@ -1354,7 +1372,7 @@ Display the indicated constant entry.
       }  /* if */
 #endif /* DO_IL_LOWERING && ASSIGN_STRING_LITERAL_SEQUENCE_NUMBERS */
       disp_name("literal_kind");
-      (void)printf("%s\n",
+      (void)fprintf(f_display, "%s\n",
                    readable_literal_kind(ptr->variant.string.literal_kind));
       if (ptr->variant.string.func_name_tok) {
         disp_boolean("func_name_tok", TRUE);
@@ -1362,80 +1380,80 @@ Display the indicated constant entry.
       disp_name("value");
 display_constant_value:
       summarize_constant(ptr);
-      (void)printf("\n");
+      (void)fprintf(f_display, "\n");
       break;
     case ck_float:
-      (void)printf("ck_float\n");
+      (void)fprintf(f_display, "ck_float\n");
       disp_name("float_value");
       goto display_constant_value;
 #if C99_IL_EXTENSIONS_SUPPORTED
     case ck_complex:
-      (void)printf("ck_complex\n");
+      (void)fprintf(f_display, "ck_complex\n");
       disp_name("complex_value");
       goto display_constant_value;
     case ck_imaginary:
-      (void)printf("ck_imaginary\n");
+      (void)fprintf(f_display, "ck_imaginary\n");
       disp_name("float_value");
       goto display_constant_value;
 #endif /* C99_IL_EXTENSIONS_SUPPORTED */
     case ck_address:
-      (void)printf("ck_address\n");
+      (void)fprintf(f_display, "ck_address\n");
       disp_name("address.kind");
       switch (ptr->variant.address.kind) {
         case abk_routine:
-          (void)printf("abk_routine\n");
+          (void)fprintf(f_display, "abk_routine\n");
           disp_ptr("routine", (char *)ptr->variant.address.variant.routine,
                    iek_routine);
           break;
         case abk_variable:
-          (void)printf("abk_variable\n");
+          (void)fprintf(f_display, "abk_variable\n");
           disp_ptr("variable", (char *)ptr->variant.address.variant.variable,
                    iek_variable);
           break;
         case abk_constant:
-          (void)printf("abk_constant\n");
+          (void)fprintf(f_display, "abk_constant\n");
           disp_ptr("constant", (char *)ptr->variant.address.variant.constant,
                    iek_constant);
           break;
         case abk_temporary:
-          (void)printf("abk_temporary\n");
+          (void)fprintf(f_display, "abk_temporary\n");
           disp_ptr("temporary", (char *)ptr->variant.address.variant.constant,
                    iek_constant);
           break;
         case abk_uuidof:
-          (void)printf("abk_uuidof\n");
+          (void)fprintf(f_display, "abk_uuidof\n");
           disp_ptr("type", (char *)ptr->variant.address.variant.type,
                    iek_type);
           break;
         case abk_typeid:
-          (void)printf("abk_typeid\n");
+          (void)fprintf(f_display, "abk_typeid\n");
           disp_ptr("type", (char *)ptr->variant.address.variant.type,
                    iek_type);
           break;
 #if MICROSOFT_EXTENSIONS_ALLOWED
         case abk_cli_typeid:
-          (void)printf("abk_cli_typeid\n");
+          (void)fprintf(f_display, "abk_cli_typeid\n");
           disp_ptr("type", (char *)ptr->variant.address.variant.type,
                    iek_type);
           break;
         case abk_cli_array:
-          (void)printf("abk_cli_array\n");
+          (void)fprintf(f_display, "abk_cli_array\n");
           /* No variant fields. */
           break;
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
         case abk_label:
-          (void)printf("abk_label\n");
+          (void)fprintf(f_display, "abk_label\n");
           disp_ptr("label", (char *)ptr->variant.address.variant.label,
                    iek_label);
           break;
         case abk_param_ref:
-          (void)printf("abk_param_ref\n");
+          (void)fprintf(f_display, "abk_param_ref\n");
           disp_unsigned_long(
              "param_num",
              (unsigned long)ptr->variant.address.variant.param_ref.param_num);
           break;
         default:
-          (void)printf("**BAD ADDRESS CONSTANT KIND**\n");
+          (void)fprintf(f_display, "**BAD ADDRESS CONSTANT KIND**\n");
       }  /* switch */
       disp_ptr("subobject_path", (char *)ptr->variant.address.subobject_path,
                iek_subobject_path);
@@ -1443,7 +1461,7 @@ display_constant_value:
           "address.offset", (a_host_large_integer)ptr->variant.address.offset);
       break;
     case ck_ptr_to_member:
-      (void)printf("ck_ptr_to_member\n");
+      (void)fprintf(f_display, "ck_ptr_to_member\n");
       disp_ptr("casting_base_class",
                (char *)ptr->variant.ptr_to_member.casting_base_class,
                iek_base_class);
@@ -1464,7 +1482,7 @@ display_constant_value:
       break;
 #if GNU_EXTENSIONS_ALLOWED
     case ck_label_difference:
-      (void)printf("ck_label_difference\n");
+      (void)fprintf(f_display, "ck_label_difference\n");
       disp_ptr("from_address",
                (char*)ptr->variant.label_difference.from_address,
                iek_constant);
@@ -1474,7 +1492,7 @@ display_constant_value:
 #endif /* GNU_EXTENSIONS_ALLOWED */
 #if DO_IL_LOWERING && GENERATE_EH_TABLES && !DO_FULL_PORTABLE_EH_LOWERING
     case ck_stack_offset:
-      (void)printf("ck_stack_offset\n");
+      (void)fprintf(f_display, "ck_stack_offset\n");
       disp_ptr("variable",
                (char *)ptr->variant.stack_offset.variable,
                iek_variable);
@@ -1483,12 +1501,12 @@ display_constant_value:
       break;
 #endif /* DO_IL_LOWERING && ... */
     case ck_dynamic_init:
-      (void)printf("ck_dynamic_init\n");
+      (void)fprintf(f_display, "ck_dynamic_init\n");
       disp_ptr("dynamic_init", (char *)ptr->variant.dynamic_init.ptr,
                iek_dynamic_init);
       break;
     case ck_aggregate:
-      (void)printf("ck_aggregate\n");
+      (void)fprintf(f_display, "ck_aggregate\n");
       disp_ptr("first_constant", (char *)ptr->variant.aggregate.first_constant,
                iek_constant);
       disp_ptr("last_constant", (char *)ptr->variant.aggregate.last_constant,
@@ -1498,7 +1516,7 @@ display_constant_value:
       }  /* if */
       break;
     case ck_init_repeat:
-      (void)printf("ck_init_repeat\n");
+      (void)fprintf(f_display, "ck_init_repeat\n");
       disp_ptr("constant", (char *)ptr->variant.init_repeat.constant,
                iek_constant);
       disp_host_large_unsigned(
@@ -1508,7 +1526,7 @@ display_constant_value:
       }  /* if */
       break;
     case ck_designator:
-      (void)printf("ck_designator\n");
+      (void)fprintf(f_display, "ck_designator\n");
       if (ptr->variant.designator.is_field_designator) {
         disp_boolean("is_field_designator", TRUE);
       }  /* if */
@@ -1547,7 +1565,7 @@ display_constant_value:
       }  /* if */
       break;
     case ck_reflection:
-      (void)printf("ck_reflection\n");
+      (void)fprintf(f_display, "ck_reflection\n");
       disp_ptr("entity", (char *)ptr->variant.reflection.entity.ptr,
                (an_il_entry_kind)ptr->variant.reflection.entity.kind);
       disp_int32("local_scope_number",
@@ -1557,10 +1575,10 @@ display_constant_value:
       disp_template_param_constant(ptr);
       break;
     case ck_void:
-      (void)printf("ck_void\n");
+      (void)fprintf(f_display, "ck_void\n");
       break;
     default:
-      printf("**BAD CONSTANT KIND**\n");
+      fprintf(f_display, "**BAD CONSTANT KIND**\n");
   }  /* switch */
 }  /* disp_constant */
 
@@ -1622,7 +1640,7 @@ Display a_param_type entry.
     form_type_qualifier((a_type_qualifier_set)ptr->qualifiers,
                         UPC_BLOCK_SIZE_NONE,
                         /*need_trailing_space=*/FALSE, &octl);
-    (void)printf("\n");
+    (void)fprintf(f_display, "\n");
   }  /* if */
 #if GNU_EXTENSIONS_ALLOWED
   if (ptr->is_transparent) {
@@ -1679,7 +1697,7 @@ used in the #pragma directive) is displayed.
   a_const_char *s;
 
   s = pragma_ids[(int)kind];
- (void) printf("%s\n", s);
+  (void)fprintf(f_display, "%s\n", s);
 }  /* disp_pragma_kind_name */
 
 
@@ -1783,7 +1801,8 @@ Display a_routine_type_supplement.
 #endif /* GNU_EXTENSIONS_ALLOWED */
 #if MICROSOFT_EXTENSIONS_ALLOWED || GNU_X86_ATTRIBUTES_ALLOWED
   disp_name("calling_convention");
-  (void)printf("%s\n", calling_convention_names[(int)ptr->calling_convention]);
+  (void)fprintf(f_display, "%s\n",
+                calling_convention_names[(int)ptr->calling_convention]);
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED || GNU_X86_ATTRIBUTES_ALLOWED */
   if (ptr->this_class != NULL) {
     disp_ptr("this_class", (char *)ptr->this_class, iek_type);
@@ -1791,19 +1810,25 @@ Display a_routine_type_supplement.
   if (ptr->qualifiers != TQ_NONE) {
     disp_name("qualifiers");
     disp_type_qualifiers(ptr->qualifiers);
-    (void)printf("\n");
+    (void)fprintf(f_display, "\n");
   }  /* if */
   if (ptr->this_qualifiers != TQ_NONE) {
     disp_name("this_qualifiers");
     disp_type_qualifiers(ptr->this_qualifiers);
-    (void)printf("\n");
+    (void)fprintf(f_display, "\n");
   }  /* if */
   if (ptr->ref_qualifiers != (a_ref_qualifier_kind)rqk_default) {
     disp_name("ref_qualifiers");
     switch (ptr->ref_qualifiers) {
-      case rqk_lvalue: printf("&\n");                          break;
-      case rqk_rvalue: printf("&&\n");                         break;
-      default:         printf("**BAD REF-QUALIFIER KIND**\n"); break;
+      case rqk_lvalue:
+        fprintf(f_display, "&\n");
+        break;
+      case rqk_rvalue:
+        fprintf(f_display, "&&\n");
+        break;
+      default:
+        fprintf(f_display, "**BAD REF-QUALIFIER KIND**\n");
+        break;
     }  /* switch */
   }  /* if */
   if (ptr->prototype_scope != NULL) {
@@ -1827,7 +1852,7 @@ Display the indicated based type list.
     disp_ptr("based_types", (char *)ptr, iek_based_type_list_member);
   } else {
     disp_name("based_types");
-    (void)printf("\n");
+    (void)fprintf(f_display, "\n");
     for (; ptr != NULL; ptr = ptr->next) {
       switch (ptr->kind) {
         case btk_qualified:      kind_str = "  qualified";               break;
@@ -1888,7 +1913,7 @@ Display the indicated generic constraint.
     default:                   kind_str = "**BAD CONSTRAINT KIND**";
   }  /* switch */
   disp_name("kind");
-  (void)printf("%s\n", kind_str);
+  (void)fprintf(f_display, "%s\n", kind_str);
   if (ptr->implicit_constraint) {
     disp_boolean("implicit_constraint", TRUE);
   }  /* if */
@@ -2097,7 +2122,7 @@ Display an ELF_visibility field.
     case evk_default:     str = "evk_default";                 break;
     default:              str = "**BAD ELF VISIBILITY KIND**";
   }  /* switch */
-  (void)printf("%s\n", str);
+  (void)fprintf(f_display, "%s\n", str);
 }  /* disp_ELF_visibility_kind */
 
 #endif /* GNU_VISIBILITY_ATTRIBUTE_ALLOWED */
@@ -2143,7 +2168,7 @@ Display a typeref kind.
     case trk_remove_volatile:          str = "remove_volatile";          break;
     default:                           str = "**BAD TYPEREF KIND**";     break;
   }  /* switch */
-  (void)printf("%s\n", str);
+  (void)fprintf(f_display, "%s\n", str);
 }  /* disp_typeref_kind */
 
 
@@ -2227,12 +2252,12 @@ Display the indicated type entry.
   }  /* if */
 #endif /* DO_IL_LOWERING */
   disp_name("kind");
-  (void)printf("%s\n", type_kind_string(ptr->kind));
+  (void)fprintf(f_display, "%s\n", type_kind_string(ptr->kind));
   /* Display variant fields (if applicable). */
   switch (ptr->kind) {
     case tk_integer:
       disp_name("int_kind");
-      (void)printf("%s\n", int_type_name(ptr));
+      (void)fprintf(f_display, "%s\n", int_type_name(ptr));
       if (ptr->variant.integer.explicitly_signed) {
         disp_boolean("explicitly_signed", TRUE);
       }  /* if */
@@ -2316,11 +2341,11 @@ Display the indicated type entry.
       {
         a_fixed_point_precision  prec = ptr->variant.fixed_point.precision;
         disp_name("precision");
-        printf("%s\n",
-               (prec == (a_fixed_point_precision)fpp_short)   ? "short" :
-               (prec == (a_fixed_point_precision)fpp_default) ? "default" :
-               (prec == (a_fixed_point_precision)fpp_long)    ? "long" :
-                                                                "*ERROR*");
+        fprintf(f_display, "%s\n",
+                (prec == (a_fixed_point_precision)fpp_short)   ? "short" :
+                (prec == (a_fixed_point_precision)fpp_default) ? "default" :
+                (prec == (a_fixed_point_precision)fpp_long)    ? "long" :
+                                                                 "*ERROR*");
         disp_boolean("is_unsigned",
                      (a_boolean)ptr->variant.fixed_point.is_unsigned);
         disp_boolean("is_fract_type",
@@ -2336,7 +2361,7 @@ Display the indicated type entry.
     case tk_complex:
 #endif /* C99_IL_EXTENSIONS_SUPPORTED */
       disp_name("float_kind");
-      (void)printf("%s\n", float_kind_name(ptr->variant.float_kind,
+      (void)fprintf(f_display, "%s\n", float_kind_name(ptr->variant.float_kind,
                                            /*use_C_form=*/TRUE));
       break;
     case tk_pointer:
@@ -2379,7 +2404,7 @@ Display the indicated type entry.
       if (ptr->variant.array.qualifiers != TQ_NONE) {
         disp_name("qualifiers");
         disp_type_qualifiers(ptr->variant.array.qualifiers);
-        (void)printf("\n");
+        (void)fprintf(f_display, "\n");
       }  /* if */
       if (ptr->variant.array.is_static) {
         disp_boolean("is_static", TRUE);
@@ -2427,7 +2452,7 @@ Display the indicated type entry.
                  iek_class_type_supplement);
       } else {
         disp_name("extra_info");
-        printf("**BAD (MISSING) CLASS TYPE SUPPLEMENT**\n");
+        fprintf(f_display, "**BAD (MISSING) CLASS TYPE SUPPLEMENT**\n");
       }  /* if */
 #if MICROSOFT_EXTENSIONS_ALLOWED
       if (ptr->variant.class_struct_union.is_interface) {
@@ -2593,7 +2618,7 @@ Display the indicated type entry.
       if (ptr->variant.typeref.qualifiers != TQ_NONE) {
         disp_name("qualifiers");
         disp_type_qualifiers(ptr->variant.typeref.qualifiers);
-        (void)printf("\n");
+        (void)fprintf(f_display, "\n");
       }  /* if */
       disp_typeref_kind(ptr->variant.typeref.kind);
       if (ptr->variant.typeref.predeclared) disp_boolean("predeclared", TRUE);
@@ -2655,10 +2680,18 @@ Display the indicated type entry.
     case tk_template_param:
       disp_name("kind");
       switch (ptr->variant.template_param.kind) {
-        case tptk_param:    (void)printf("tptk_param\n");    break;
-        case tptk_member:   (void)printf("tptk_member\n");   break;
-        case tptk_unknown:  (void)printf("tptk_unknown\n");  break;
-        default:           (void)printf("**BAD TEMPLATE PARAM TYPE KIND**\n");
+        case tptk_param:
+          (void)fprintf(f_display, "tptk_param\n");
+          break;
+        case tptk_member:
+          (void)fprintf(f_display, "tptk_member\n");
+          break;
+        case tptk_unknown:
+          (void)fprintf(f_display, "tptk_unknown\n");
+          break;
+        default:
+          (void)fprintf(f_display, "**BAD TEMPLATE PARAM TYPE KIND**\n");
+          break;
       }  /* switch */
       if (ptr->variant.template_param.is_pack) {
         disp_boolean("is_pack", TRUE);
@@ -2722,7 +2755,7 @@ Display a STDC pragma value along with a name.
     case stdc_pv_default: s = "default";                   break;
     default:              s = "**BAD STDC PRAGMA VALUE**"; break;
   }  /* switch */
-  (void)printf("%s\n", s);
+  (void)fprintf(f_display, "%s\n", s);
 }  /* disp_stdc_pragma_value */
 
 
@@ -2744,7 +2777,7 @@ Display the name for the indicated storage class.
     case sc_asm:          s = "sc_asm";                break;
     default:              s = "**BAD STORAGE CLASS**"; break;
   }  /* switch */
-  (void)printf("%s\n", s);
+  (void)fprintf(f_display, "%s\n", s);
 }  /* disp_storage_class_name */
 
 #if DECL_MODIFIERS_IN_USE
@@ -2801,7 +2834,7 @@ in configurations that perform lowering.
   disp_name("init_kind");
   switch (kind) {
     case initk_none:
-      (void)printf ("initk_none\n");
+      (void)fprintf(f_display, "initk_none\n");
 #if DO_IL_LOWERING
       if (is_member_constant) {
         disp_ptr("constant", (char *)ptr->constant, iek_constant);
@@ -2809,25 +2842,25 @@ in configurations that perform lowering.
 #endif /* DO_IL_LOWERING */
       break;
     case initk_static:
-      (void)printf("initk_static\n");
+      (void)fprintf(f_display, "initk_static\n");
       disp_ptr("constant", (char *)ptr->constant, iek_constant);
       break;
     case initk_dynamic:
-      (void)printf("initk_dynamic\n");
+      (void)fprintf(f_display, "initk_dynamic\n");
       disp_ptr("dynamic", (char *)ptr->dynamic, iek_dynamic_init);
       break;
     case initk_zero:
-      (void)printf ("initk_zero\n");
+      (void)fprintf(f_display, "initk_zero\n");
       break;
     case initk_function_local:
-      (void)printf ("initk_function_local\n");
+      (void)fprintf(f_display, "initk_function_local\n");
       break;
     case initk_binding:
-      (void)printf ("initk_binding\n");
+      (void)fprintf(f_display, "initk_binding\n");
       disp_ptr("binding", (char *)ptr->bound_expr, iek_expr_node);
       break;
     default:
-      (void)printf("**BAD INITIALIZATION KIND**\n");
+      (void)fprintf(f_display, "**BAD INITIALIZATION KIND**\n");
   }  /* switch */
 }  /* disp_initializer */
 
@@ -2843,7 +2876,7 @@ field storing the register.
   a_const_char *s;
 
   disp_name(field_name);
-  (void)printf(": ");
+  (void)fprintf(f_display, ": ");
   switch (reg) {
     case anr_invalid: s ="anr_invalid";  break;
 #if GNU_X86_ASM_EXTENSIONS_ALLOWED
@@ -2901,7 +2934,7 @@ field storing the register.
 #endif /* GNU_X86_ASM_EXTENSIONS_ALLOWED */
     default: s = "**BAD REGISTER KIND**";
   }  /* switch */
-  (void)printf("%s\n", s);
+  (void)fprintf(f_display, "%s\n", s);
 }  /* disp_named_register */
 
 #endif /* GNU_EXTENSIONS_ALLOWED */
@@ -2960,7 +2993,7 @@ Display the indicated variable.
     if (asm_name_valid && named_register_storage_class) {
       /* A GNU asm alias and an Embedded C named-register storage class are
          mutually exclusive. */
-      (void)printf("**BAD IL: %s %s**\n",
+      (void)fprintf(f_display, "**BAD IL: %s %s**\n",
                    "asm_name_is_valid and has_named_register_storage_class",
                    "both TRUE");
 #if GNU_EXTENSIONS_ALLOWED || REDEFINE_EXTNAME_PRAGMA_ENABLED
@@ -2975,7 +3008,7 @@ Display the indicated variable.
       a_const_char *name =
                   named_register_storage_classes[ptr->asm_name_or_reg.id].name;
       disp_name("register_id");
-      (void)printf("%s\n", name);
+      (void)fprintf(f_display, "%s\n", name);
 #endif /* NAMED_REGISTERS_ALLOWED */
 #if GNU_EXTENSIONS_ALLOWED
     } else {
@@ -3418,7 +3451,7 @@ Print the name of a special function kind.
 #endif /* BUILTIN_FUNCTIONS_ENABLED */
     default:                     s = "**BAD SPECIAL FUNCTION KIND**";
   }  /* switch */
-  (void)printf("%s", s);
+  (void)fprintf(f_display, "%s", s);
 }  /* disp_special_function_kind_name */
 
 
@@ -3478,7 +3511,7 @@ Print the name of the C++ operator kind.
     case onk_gnu_max:             s = "onk_gnu_max";               break;
     default:                      s = "**BAD OPERATOR NAME KIND**";
   }  /* switch */
-  (void)printf("%s", s);
+  (void)fprintf(f_display, "%s", s);
 }  /* disp_opname_kind_name */
 
 
@@ -3494,7 +3527,7 @@ Display the indicated class list and name.
     disp_ptr(name, (char *)ptr, iek_class_list_entry);
   } else {
     disp_name(name);
-    (void)printf("\n");
+    (void)fprintf(f_display, "\n");
     for (; ptr != NULL; ptr = ptr->next) {
       switch (ptr->class_type->kind) {
         case tk_class:     type_string = "  tk_class";     break;
@@ -3518,7 +3551,7 @@ Display the indicated routine list and name.
     disp_ptr(name, (char *)ptr, iek_routine_list_entry);
   } else {
     disp_name(name);
-    (void)printf("\n");
+    (void)fprintf(f_display, "\n");
     for (; ptr != NULL; ptr = ptr->next) {
       disp_ptr("  routine", (char *)ptr->routine, iek_routine);
     }  /* for */
@@ -3536,13 +3569,13 @@ Display the indicated name and template arg list.
     disp_ptr(name, (char *)ptr, iek_template_arg);
   } else {
     disp_name(name);
-    (void)printf("\n");
+    (void)fprintf(f_display, "\n");
     for (; ptr != NULL; ptr = ptr->next) {
       if (is_type_templ_arg(ptr)) {
         disp_ptr("  type", (char *)ptr->variant.type, iek_type);
       } else if (is_nontype_templ_arg(ptr)) {
         if (ptr->is_array_bound_of_unknown_type) {
-          printf("**BAD is_array_bound_of_unknown_type**");
+          fprintf(f_display, "**BAD is_array_bound_of_unknown_type**");
         } else {
           disp_ptr("  constant", (char *)ptr->variant.constant, iek_constant);
         }  /* if */
@@ -3551,10 +3584,10 @@ Display the indicated name and template arg list.
         disp_ptr("  template", (char *)ptr->variant.templ.ptr, iek_template);
       } else if (is_start_of_pack_expansion_templ_arg(ptr)) {
         disp_name("  pack exp placeholder");
-        (void)printf("\n");
+        (void)fprintf(f_display, "\n");
       } else {
         disp_name("  **BAD TMP ARG KIND**");
-        (void)printf("\n");
+        (void)fprintf(f_display, "\n");
       }  /* if */
       if (ptr->is_array_bound_of_unknown_type) {
         disp_boolean("  is_array_bound_of_unknown_type", TRUE);
@@ -3610,7 +3643,7 @@ Display the name of the indicated constructor or destructor kind.
     case cdk_delegation:s = "delegation";                break;
     default:            s = "**BAD CTOR OR DTOR KIND**"; break;
   }  /* switch */
-  (void)printf("%s", s);
+  (void)fprintf(f_display, "%s", s);
 }  /* disp_ctor_or_dtor_kind_name */
 
 #endif /* DO_IL_LOWERING && IA64_ABI */
@@ -3636,12 +3669,12 @@ Display the indicated routine.
   if (!special_kind_is(ptr, sfk_none)) {
     disp_name("special_kind");
     disp_special_function_kind_name(ptr->special_kind);
-    (void)printf("\n");
+    (void)fprintf(f_display, "\n");
   }  /* if */
   if (special_kind_is(ptr, sfk_operator)) {
     disp_name("opname_kind");
     disp_opname_kind_name(ptr->variant.opname_kind);
-    (void)printf("\n");
+    (void)fprintf(f_display, "\n");
   } else if (special_kind_is(ptr, sfk_lambda_entry_point)) {
     disp_ptr("lambda_call_operator",
              (char *)ptr->variant.lambda_call_operator, iek_routine);
@@ -3664,7 +3697,8 @@ Display the indicated routine.
              ptr->variant.builtin_function_kind != 
                                            (a_builtin_function_kind)bfk_none) {
     disp_name("builtin_function_kind");
-    (void)printf("%s\n",unmangled_or_fabricated_name_of(&ptr->source_corresp));
+    (void)fprintf(f_display, "%s\n",
+                  unmangled_or_fabricated_name_of(&ptr->source_corresp));
 #endif /* BUILTIN_FUNCTIONS_ENABLED */
   }  /* if */
   if (ptr->address_taken) {
@@ -3975,7 +4009,7 @@ Display the indicated routine.
     disp_name("ctor_dtor_kind");
     disp_ctor_or_dtor_kind_name(
                           enum_cast<a_ctor_or_dtor_kind>(ptr->ctor_dtor_kind));
-    (void)printf("\n");
+    (void)fprintf(f_display, "\n");
   }  /* if */
   if (ptr->is_alias_entry) {
     disp_boolean("is_alias_entry", TRUE);
@@ -4380,7 +4414,7 @@ Display the name of an expression operator.
     case eok_error:             s = "eok_error";                  break;
     default:                    s = "**BAD EXPR OPERATOR KIND**"; break;
   }  /* switch */
-  (void)printf("%s", s);
+  (void)fprintf(f_display, "%s", s);
 }  /* disp_expr_operator_name */
 
 
@@ -4442,7 +4476,7 @@ Display the indicated accessible base class entry.
              iek_accessible_base_class);
   } else {
     disp_name("accessible_base_classes");
-    (void)printf("\n");
+    (void)fprintf(f_display, "\n");
     for (; abcp != NULL; abcp = abcp->next) {
       disp_ptr("  base_class", (char *)abcp->base_class, iek_base_class);
     }  /* for */
@@ -4511,29 +4545,29 @@ local) memory region.
   switch (ptr->kind) {
 #if PROTOTYPE_INSTANTIATIONS_IN_IL
     case lerk_generic_sizeof:
-      (void)printf("generic-sizeof");
+      (void)fprintf(f_display, "generic-sizeof");
       break;
     case lerk_tpl_param_expr:
-      (void)printf("tpl-param-expr");
+      (void)fprintf(f_display, "tpl-param-expr");
       break;
 #endif /* PROTOTYPE_INSTANTIATIONS_IN_IL */
     case lerk_array_bound:
-      (void)printf("array-bound");
+      (void)fprintf(f_display, "array-bound");
       break;
     case lerk_dep_array_bound:
-      (void)printf("dep-array-bound");
+      (void)fprintf(f_display, "dep-array-bound");
       break;
     case lerk_decltype:
-      (void)printf("decltype");
+      (void)fprintf(f_display, "decltype");
       break;
     case lerk_bit_field_width:
-      (void)printf("bit-field-width");
+      (void)fprintf(f_display, "bit-field-width");
       break;
     case lerk_constant_expr:
-      (void)printf("constant-expr");
+      (void)fprintf(f_display, "constant-expr");
       break;
     default:
-      (void)printf("**BAD LOCAL-EXPR-NODE-REF KIND**");
+      (void)fprintf(f_display, "**BAD LOCAL-EXPR-NODE-REF KIND**");
   }  /* switch */
   disp_ptr(" referrer", (char*)ptr->referrer.ptr,
            (an_il_entry_kind)ptr->referrer.kind);
@@ -4628,15 +4662,16 @@ Display the indicated expression node.
   disp_name("kind");
   switch (ptr->kind) {
     case enk_error:
-      (void)printf("enk_error\n");
+      (void)fprintf(f_display, "enk_error\n");
       break;
     case enk_operation:
-      (void)printf("enk_operation\n");
+      (void)fprintf(f_display, "enk_operation\n");
       disp_name("operation.kind");
       disp_expr_operator_name(ptr->variant.operation.kind);
-      (void)printf("\n");
+      (void)fprintf(f_display, "\n");
       disp_name("operation.type_kind");
-      (void)printf("%s\n", type_kind_string(ptr->variant.operation.type_kind));
+      (void)fprintf(f_display, "%s\n",
+                    type_kind_string(ptr->variant.operation.type_kind));
       if (ptr->variant.operation.returns_lvalue_instead_of_usual_rvalue) {
         disp_boolean("returns_lvalue_instead_of_usual_rvalue", TRUE);
       }  /* if */
@@ -4700,16 +4735,16 @@ Display the indicated expression node.
         disp_name("rewritten_property_reference_kind");
         switch (ptr->variant.operation.rewritten_property_reference_kind) {
           case rprk_compound_assignment:
-            (void)printf("rprk_compound_assignment\n");
+            (void)fprintf(f_display, "rprk_compound_assignment\n");
             break;
           case rprk_pre_incr_decr:
-            (void)printf("rprk_pre_incr_decr\n");
+            (void)fprintf(f_display, "rprk_pre_incr_decr\n");
             break;
           case rprk_post_incr_decr:
-            (void)printf("rprk_post_incr_decr\n");
+            (void)fprintf(f_display, "rprk_post_incr_decr\n");
             break;
           default:
-            (void)printf("**BAD REWRITTEN PROP REF KIND**\n");
+            (void)fprintf(f_display, "**BAD REWRITTEN PROP REF KIND**\n");
             break;
         }  /* switch */
       }  /* if */
@@ -4732,77 +4767,77 @@ Display the indicated expression node.
                iek_expr_node);
       break;
     case enk_constant:
-      (void)printf("enk_constant\n");
+      (void)fprintf(f_display, "enk_constant\n");
       disp_ptr("constant", (char *)ptr->variant.constant.ptr, iek_constant);
       if (ptr->variant.constant.name_reference != NULL) {
         disp_name_reference(ptr->variant.constant.name_reference);
       }  /* if */
       break;
     case enk_variable:
-      (void)printf("enk_variable\n");
+      (void)fprintf(f_display, "enk_variable\n");
       disp_ptr("variable", (char *)ptr->variant.variable.ptr, iek_variable);
       if (ptr->variant.variable.name_reference != NULL) {
         disp_name_reference(ptr->variant.variable.name_reference);
       }  /* if */
       break;
     case enk_routine:
-      (void)printf("enk_routine\n");
+      (void)fprintf(f_display, "enk_routine\n");
       disp_ptr("routine", (char *)ptr->variant.routine.ptr, iek_routine);
       if (ptr->variant.routine.name_reference != NULL) {
         disp_name_reference(ptr->variant.routine.name_reference);
       }  /* if */
       break;
     case enk_field:
-      (void)printf("enk_field\n");
+      (void)fprintf(f_display, "enk_field\n");
       disp_ptr("field", (char *)ptr->variant.field.ptr, iek_field);
       if (ptr->variant.field.name_reference != NULL) {
         disp_name_reference(ptr->variant.field.name_reference);
       }  /* if */
       break;
     case enk_temp_init:
-      (void)printf("enk_temp_init\n");
+      (void)fprintf(f_display, "enk_temp_init\n");
       disp_ptr("dynamic_init", (char *)ptr->variant.init.dynamic_init,
                iek_dynamic_init);
       disp_ptr("source.type", (char *)ptr->variant.init.source.type, iek_type);
       break;
     case enk_lambda:
-      (void)printf("enk_lambda\n");
+      (void)fprintf(f_display, "enk_lambda\n");
       disp_ptr("dynamic_init", (char *)ptr->variant.init.dynamic_init,
                iek_dynamic_init);
       disp_ptr("source.lambda", (char *)ptr->variant.init.source.lambda,
                iek_lambda);
       break;
     case enk_new_delete:
-      (void)printf("enk_new_delete\n");
+      (void)fprintf(f_display, "enk_new_delete\n");
       disp_new_delete_supplement(ptr->variant.new_delete);
       break;
 #if MICROSOFT_EXTENSIONS_ALLOWED
     case enk_gcnew:
-      (void)printf("enk_gcnew\n");
+      (void)fprintf(f_display, "enk_gcnew\n");
       disp_gcnew_supplement(ptr->variant.gcnew_info);
       break;
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
     case enk_throw:
-      (void)printf("enk_throw\n");
+      (void)fprintf(f_display, "enk_throw\n");
       if (ptr->variant.throw_info != NULL) {
         disp_throw_supplement(ptr->variant.throw_info);
       }  /* if */
       break;
     case enk_condition:
-      (void)printf("enk_condition\n");
+      (void)fprintf(f_display, "enk_condition\n");
       if (ptr->variant.condition != NULL) {
         disp_condition_supplement(ptr->variant.condition);
       }  /* if */
       break;
     case enk_object_lifetime:
-      (void)printf("enk_object_lifetime\n");
+      (void)fprintf(f_display, "enk_object_lifetime\n");
       disp_ptr("expr", (char *)ptr->variant.object_lifetime.expr,
                iek_expr_node);
       disp_ptr("ptr", (char *)ptr->variant.object_lifetime.ptr,
                iek_object_lifetime);
       break;
     case enk_typeid:
-      (void)printf("enk_typeid\n");
+      (void)fprintf(f_display, "enk_typeid\n");
       disp_ptr("type_with_opt_expr",
                (char *)ptr->variant.typeid_info.type_with_opt_expr,
                iek_expr_node);
@@ -4811,13 +4846,13 @@ Display the indicated expression node.
       }  /* if */
       break;
     case enk_alignof:
-      (void)printf("enk_alignof\n");
+      (void)fprintf(f_display, "enk_alignof\n");
       goto sizeof_cases;
     case enk_datasizeof:
-      (void)printf("enk_datasizeof\n");
+      (void)fprintf(f_display, "enk_datasizeof\n");
       goto sizeof_cases;
     case enk_sizeof:
-      (void)printf("enk_sizeof\n");
+      (void)fprintf(f_display, "enk_sizeof\n");
 sizeof_cases:
       disp_boolean("is_type",
                    (a_boolean)ptr->variant.sizeof_info.is_type);
@@ -4832,7 +4867,7 @@ sizeof_cases:
       }  /* if */
       break;
     case enk_sizeof_pack:
-      (void)printf("enk_sizeof_pack\n");
+      (void)fprintf(f_display, "enk_sizeof_pack\n");
       disp_boolean("is_type",
                    (a_boolean)ptr->variant.sizeof_pack.is_type);
       disp_boolean("is_template_template",
@@ -4849,14 +4884,14 @@ sizeof_cases:
       }  /* if */
       break;
     case enk_address_of_ellipsis:
-      (void)printf("enk_address_of_ellipsis\n");
+      (void)fprintf(f_display, "enk_address_of_ellipsis\n");
       break;
     case enk_statement:
-      (void)printf("enk_statement\n");
+      (void)fprintf(f_display, "enk_statement\n");
       disp_ptr("statement", (char *)ptr->variant.statement, iek_statement);
       break;
     case enk_reuse_value:
-      (void)printf("enk_reuse_value\n");
+      (void)fprintf(f_display, "enk_reuse_value\n");
       disp_ptr("reused_value_init", (char *)ptr->variant.reused_value_init,
                iek_dynamic_init);
       break;
@@ -4864,24 +4899,24 @@ sizeof_cases:
     /* Nodes generated by IL lowering for partial lowering of exception
        handling features. */
     case enk_lowered_eh_construct:
-      (void)printf("enk_lowered_eh_construct\n");
+      (void)fprintf(f_display, "enk_lowered_eh_construct\n");
       disp_name("lowered_eh.kind");
       switch (ptr->variant.lowered_eh.kind) {
         case leck_caught_object_address:
-          (void)printf("leck_caught_object_address\n");
+          (void)fprintf(f_display, "leck_caught_object_address\n");
           disp_ptr("caught_object_handler",
                    (char *)ptr->variant.lowered_eh.variant.
                                                          caught_object_handler,
                    iek_handler);
           break;
         case leck_thrown_object_address:
-          (void)printf("leck_thrown_object_address\n");
+          (void)fprintf(f_display, "leck_thrown_object_address\n");
           break;
         case leck_cleanup_state:
-          (void)printf("leck_cleanup_state\n");
+          (void)fprintf(f_display, "leck_cleanup_state\n");
           goto cleanup_state_common;
         case leck_unreachable_cleanup_state:
-          (void)printf("leck_unreachable_cleanup_state\n");
+          (void)fprintf(f_display, "leck_unreachable_cleanup_state\n");
 cleanup_state_common:
 #if GENERATE_EH_TABLES
           disp_long("cleanup_region_number",
@@ -4893,50 +4928,50 @@ cleanup_state_common:
 #endif /* GENERATE_EH_TABLES */
           break;
         case leck_function_prologue:
-          (void)printf("leck_function_prologue\n");
+          (void)fprintf(f_display, "leck_function_prologue\n");
           disp_eh_prologue_supplement(
                                 ptr->variant.lowered_eh.variant.prologue_info);
           break;
         case leck_function_epilogue:
-          (void)printf("leck_function_epilogue\n");
+          (void)fprintf(f_display, "leck_function_epilogue\n");
           disp_ptr("epilogue_routine",
                    (char *)ptr->variant.lowered_eh.variant.epilogue_routine,
                    iek_routine);
           break;
         case leck_catch_epilogue:
-          (void)printf("leck_catch_epilogue\n");
+          (void)fprintf(f_display, "leck_catch_epilogue\n");
           disp_ptr("epilogue_handler",
                    (char *)ptr->variant.lowered_eh.variant.epilogue_handler,
                    iek_handler);
           break;
         case leck_try_epilogue:
-          (void)printf("leck_try_epilogue\n");
+          (void)fprintf(f_display, "leck_try_epilogue\n");
           disp_ptr("epilogue_try_block",
                    (char *)ptr->variant.lowered_eh.variant.epilogue_try_block,
                    iek_try_supplement);
           break;
         case leck_exception_caught:
-          (void)printf("leck_exception_caught\n");
+          (void)fprintf(f_display, "leck_exception_caught\n");
           break;
         case leck_exception_started:
-          (void)printf("leck_exception_started\n");
+          (void)fprintf(f_display, "leck_exception_started\n");
           break;
 #if !GENERATE_EH_TABLES
         case leck_initialization_completed:
-          (void)printf("leck_initialization_completed\n");
+          (void)fprintf(f_display, "leck_initialization_completed\n");
           disp_ptr("dynamic_init",
                    (char *)ptr->variant.lowered_eh.variant.dynamic_init,
                    iek_dynamic_init);
           break;
 #endif /* !GENERATE_EH_TABLES */
         case leck_internal_try:
-          (void)printf("leck_internal_try\n");
+          (void)fprintf(f_display, "leck_internal_try\n");
           disp_ptr("  try_and_catch_expr",
                    (char *)ptr->variant.lowered_eh.variant.try_and_catch_expr,
                    iek_expr_node);
           break;
         default:
-          (void)printf("**BAD LOWERED EH CONSTRUCT KIND**\n");
+          (void)fprintf(f_display, "**BAD LOWERED EH CONSTRUCT KIND**\n");
       }  /* switch */
       break;
 #endif /* DO_IL_LOWERING && !DO_FULL_PORTABLE_EH_LOWERING */
@@ -4945,45 +4980,45 @@ cleanup_state_common:
       /* Node generated as part of the body of an entry function used
          as a wrapper for a call of an overriding virtual function
          with a covariant return type. */
-      (void)printf("enk_result_of_overriding_function\n");
+      (void)fprintf(f_display, "enk_result_of_overriding_function\n");
       break;
 #endif /* DO_IL_LOWERING && ABI_CHANGES_FOR_COVARIANT_VIRTUAL_FUNC_RETURN */
 #if VLA_DEALLOCATIONS_IN_IL
     case enk_vla_dealloc:
-      (void)printf("enk_vla_dealloc\n");
+      (void)fprintf(f_display, "enk_vla_dealloc\n");
       disp_ptr("vla_variable", (char *)ptr->variant.vla_variable,
                iek_variable);
       break;
 #endif /* VLA_DEALLOCATIONS_IN_IL */
     case enk_type_operand:
-      (void)printf("enk_type_operand\n");
+      (void)fprintf(f_display, "enk_type_operand\n");
       disp_ptr("type", (char *)ptr->variant.type_operand.type, iek_type);
       if (ptr->variant.type_operand.name_reference != NULL) {
         disp_name_reference(ptr->variant.type_operand.name_reference);
       }  /* if */
       break;
     case enk_builtin_operation:
-      (void)printf("enk_builtin_operation\n");
+      (void)fprintf(f_display, "enk_builtin_operation\n");
       disp_name("builtin_operation.kind");
-      (void)printf("%s\n", builtin_operation_names[
+      (void)fprintf(f_display, "%s\n", builtin_operation_names[
                                         ptr->variant.builtin_operation.kind]);
       disp_ptr("operands", (char *)ptr->variant.builtin_operation.operands,
                iek_expr_node);
       break;
     case enk_param_ref:
-      (void)printf("enk_param_ref\n");
+      (void)fprintf(f_display, "enk_param_ref\n");
       disp_unsigned_long("param_ref.param_num",
                          (unsigned long)ptr->variant.param_ref.param_num);
       disp_unsigned_long("param_ref.levels_up",
                          (unsigned long)ptr->variant.param_ref.levels_up);
       break;
     case enk_braced_init_list:
-      (void)printf("enk_braced_init_list\n");
+      (void)fprintf(f_display, "enk_braced_init_list\n");
       disp_ptr("braced_init_list", (char *)ptr->variant.braced_init_list,
                iek_expr_node);
       break;
     case enk_c11_generic:
-      (void)printf("enk_c11_generic\n");
+      (void)fprintf(f_display, "enk_c11_generic\n");
       disp_ptr("c11_generic.operands",
                (char *)ptr->variant.c11_generic.operands,
                iek_expr_node);
@@ -4992,7 +5027,7 @@ cleanup_state_common:
       break;
 #if BUILTIN_FUNCTIONS_ENABLED
     case enk_builtin_choose_expr:
-      (void)printf("enk_builtin_choose_expr\n");
+      (void)fprintf(f_display, "enk_builtin_choose_expr\n");
       disp_ptr("builtin_choose_expr.operands",
                (char *)ptr->variant.builtin_choose_expr.operands,
                iek_expr_node);
@@ -5002,8 +5037,8 @@ cleanup_state_common:
 #endif /* BUILTIN_FUNCTIONS_ENABLED */
     case enk_await:
     case enk_yield:
-      (void)printf(ptr->kind == (an_expr_node_kind)enk_await ? "enk_await\n"
-                                                             : "enk_yield\n");
+      (void)fprintf(f_display, ptr->kind == enk_await ? "enk_await\n"
+                                                      : "enk_yield\n");
       disp_ptr("await_info.operand", (char *)ptr->variant.await_info.operand,
                iek_expr_node);
       disp_ptr("await_info.ready_resume_suspend",
@@ -5012,32 +5047,33 @@ cleanup_state_common:
       break;
     case enk_fold:
       disp_name("fold.operator_token");
-      (void)printf("%s\n", token_names[ptr->variant.fold.operator_token]);
+      (void)fprintf(f_display, "%s\n",
+                    token_names[ptr->variant.fold.operator_token]);
       disp_boolean("fold.left_associative",
                    (a_boolean)ptr->variant.fold.left_associative);
       disp_ptr("fold.operands", (char *)ptr->variant.fold.operands,
                iek_expr_node);
       break;
     case enk_initializer:
-      (void)printf("enk_initializer\n");
+      (void)fprintf(f_display, "enk_initializer\n");
       disp_ptr("initializer.dyn_init",
                (char *)ptr->variant.initializer.dyn_init, iek_dynamic_init);
       break;
     case enk_concept_id:
-      (void)printf("enk_concept_id\n");
+      (void)fprintf(f_display, "enk_concept_id\n");
       disp_ptr("concept_id.concept_template",
                (char *)ptr->variant.concept_id.concept_template, iek_template);
       disp_template_arg_list("concept_id.args", ptr->variant.concept_id.args);
       break;
     case enk_requires:
-      (void)printf("enk_requires\n");
+      (void)fprintf(f_display, "enk_requires\n");
       disp_ptr("requires_expr.requirements",
                (char *)ptr->variant.requires_expr.requirements, iek_expr_node);
       disp_ptr("requires_expr.parameters",
                (char *)ptr->variant.requires_expr.parameters, iek_param_type);
       break;
     case enk_compound_req:
-      (void)printf("enk_compound_req\n");
+      (void)fprintf(f_display, "enk_compound_req\n");
       disp_ptr("compound_req.expr_and_constraint",
                (char *)ptr->variant.compound_req.expr_and_constraint,
                iek_expr_node);
@@ -5046,14 +5082,14 @@ cleanup_state_common:
       }  /* if */
       break;
     case enk_nested_req:
-      (void)printf("enk_nested_req\n");
+      (void)fprintf(f_display, "enk_nested_req\n");
       disp_ptr("nested_req.constraint",
                (char *)ptr->variant.nested_req.constraint, iek_expr_node);
       break;
     case enk_const_eval_deferred:
       { auto &deferred_state = ptr->variant.const_eval_deferred;
 
-        (void)printf("enk_const_eval_deferred\n");
+        (void)fprintf(f_display, "enk_const_eval_deferred\n");
         disp_ptr("const_eval_deferred.wrapped", (char *)deferred_state.wrapped,
                  iek_expr_node);
         if (deferred_state.reattempt_state.default_arg) {
@@ -5067,12 +5103,12 @@ cleanup_state_common:
       }
       break;
     case enk_template_name:
-      (void)printf("enk_template_name\n");
+      (void)fprintf(f_display, "enk_template_name\n");
       disp_ptr("template_name", (char *)ptr->variant.template_name,
                iek_template);
       break;
     default:
-      (void)printf("**BAD EXPR NODE KIND**\n");
+      (void)fprintf(f_display, "**BAD EXPR NODE KIND**\n");
   }  /* switch */
 #if EXTRA_SOURCE_POSITIONS_IN_IL
   disp_source_range("expr_range", &ptr->expr_range);
@@ -5277,7 +5313,7 @@ Display a range-based-for statement.
   a_range_based_for_loop_ptr extra_info =
                                   ptr->variant.range_based_for_loop.extra_info;
 
-  (void)printf("stmk_range_based_for\n");
+  (void)fprintf(f_display, "stmk_range_based_for\n");
   disp_ptr("statement",
            (char *)ptr->variant.range_based_for_loop.statement,
            iek_statement);
@@ -5312,7 +5348,7 @@ Display a C++17 constexpr if statement.
 {
   a_constexpr_if_ptr cip = ptr->variant.constexpr_if;
 
-  (void)printf("stmk_constexpr_if\n");
+  (void)fprintf(f_display, "stmk_constexpr_if\n");
   disp_ptr("expr", (char *)ptr->expr, iek_expr_node);
   disp_ptr("then_statement", (char *)cip->then_statement, iek_statement);
   disp_ptr("else_statement", (char *)cip->else_statement, iek_statement);
@@ -5332,7 +5368,7 @@ Display a for-each statement.
 {
   a_for_each_loop_ptr extra_info = ptr->variant.for_each_loop.extra_info;
 
-  (void)printf("stmk_for_each\n");
+  (void)fprintf(f_display, "stmk_for_each\n");
   disp_ptr("statement",
            (char *)ptr->variant.for_each_loop.statement,
            iek_statement);
@@ -5363,13 +5399,13 @@ Display a for-each statement.
   disp_name("for-each pattern kind");
   switch (extra_info->kind) {
     case sfepk_none:
-      (void)printf("sfepk_none\n");
+      (void)fprintf(f_display, "sfepk_none\n");
       break;
     case sfepk_stl_pattern:
-      (void)printf("sfepk_stl_pattern\n");
+      (void)fprintf(f_display, "sfepk_stl_pattern\n");
       goto stl_array_pattern;
     case sfepk_array_pattern:
-      (void)printf("sfepk_array_pattern\n");
+      (void)fprintf(f_display, "sfepk_array_pattern\n");
 stl_array_pattern:
       disp_ptr("end_variable",
                (char *)extra_info->variant.stl_array_pattern.end_variable,
@@ -5382,14 +5418,14 @@ stl_array_pattern:
                iek_expr_node);
       break;
     case sfepk_cli_pattern:
-      (void)printf("sfepk_cli_pattern\n");
+      (void)fprintf(f_display, "sfepk_cli_pattern\n");
       disp_ptr("movenext_call_expression",
                (char *)extra_info->
                                variant.cli_pattern.movenext_call_expression,
                iek_expr_node);
       break;
     case sfepk_cli_array_pattern:
-      (void)printf("sfepk_cli_array_pattern\n");
+      (void)fprintf(f_display, "sfepk_cli_array_pattern\n");
       disp_ptr("upper_bound_vars",
                (char *)extra_info->variant.cli_array_pattern.upper_bound_vars,
                iek_variable);
@@ -5398,7 +5434,7 @@ stl_array_pattern:
                iek_variable);
       break;
     default:
-      (void)printf("**BAD FOR EACH KIND**\n");
+      (void)fprintf(f_display, "**BAD FOR EACH KIND**\n");
       break;
   }  /* switch */
 }  /* disp_for_each_statement */
@@ -5444,14 +5480,14 @@ Display the indicated statement.
   disp_name("kind");
   switch (ptr->kind) {
     case stmk_empty:
-      (void)printf("stmk_empty\n");
+      (void)fprintf(f_display, "stmk_empty\n");
       break;
     case stmk_expr:
-      (void)printf("stmk_expr\n");
+      (void)fprintf(f_display, "stmk_expr\n");
       disp_ptr("expr", (char *)ptr->expr, iek_expr_node);
       break;
     case stmk_return:
-      (void)printf("stmk_return\n");
+      (void)fprintf(f_display, "stmk_return\n");
       disp_ptr("expr", (char *)ptr->expr, iek_expr_node);
       if (ptr->variant.return_dynamic_init != NULL) {
         disp_ptr("return_dynamic_init",
@@ -5459,11 +5495,11 @@ Display the indicated statement.
       }  /* if */
       break;
     case stmk_coroutine_return:
-      (void)printf("stmk_coroutine_return\n");
+      (void)fprintf(f_display, "stmk_coroutine_return\n");
       disp_ptr("expr", (char *)ptr->expr, iek_expr_node);
       break;
     case stmk_coroutine:
-      (void)printf("stmk_coroutine\n");
+      (void)fprintf(f_display, "stmk_coroutine\n");
       if (ptr->variant.coroutine.descr != NULL) {
         disp_coroutine_descr(ptr->variant.coroutine.descr);
       }  /* if */
@@ -5471,7 +5507,7 @@ Display the indicated statement.
     case stmk_if:
     case stmk_if_consteval:
     case stmk_if_not_consteval:
-      (void)printf(
+      (void)fprintf(f_display, 
           ptr->kind == (a_statement_kind)stmk_if ? "stmk_if\n" :
           ptr->kind == (a_statement_kind)stmk_if_consteval ?
                                                    "stmk_if_consteval\n"
@@ -5493,58 +5529,58 @@ Display the indicated statement.
       disp_constexpr_if_statement(ptr);
       break;
     case stmk_while:
-      (void)printf("stmk_while\n");
+      (void)fprintf(f_display, "stmk_while\n");
       goto do_loop;
     case stmk_end_test_while:
-      (void)printf("stmk_end_test_while\n");
+      (void)fprintf(f_display, "stmk_end_test_while\n");
 do_loop:
       disp_ptr("expr", (char *)ptr->expr, iek_expr_node);
       disp_ptr("loop_statement", (char *)ptr->variant.loop_statement,
                iek_statement);
       break;
     case stmk_goto:
-      (void)printf("stmk_goto\n");
+      (void)fprintf(f_display, "stmk_goto\n");
       goto do_label;
     case stmk_label:
-      (void)printf("stmk_label\n");
+      (void)fprintf(f_display, "stmk_label\n");
 do_label:
       disp_ptr("label", (char *)ptr->variant.label.ptr, iek_label);
       disp_ptr("lifetime", (char *)ptr->variant.label.lifetime,
                iek_object_lifetime);
       break;
     case stmk_block:
-      (void)printf("stmk_block\n");
+      (void)fprintf(f_display, "stmk_block\n");
       disp_ptr("statements", (char *)ptr->variant.block.statements,
                iek_statement);
       disp_block(ptr->variant.block.extra_info);
       break;
 #if UPC_EXTENSIONS_ALLOWED
     case stmk_upc_notify:
-      (void)printf("stmk_upc_notify\n");
+      (void)fprintf(f_display, "stmk_upc_notify\n");
       disp_ptr("expr", (char *)ptr->expr, iek_expr_node);
       break;
     case stmk_upc_wait:
-      (void)printf("stmk_upc_wait\n");
+      (void)fprintf(f_display, "stmk_upc_wait\n");
       disp_ptr("expr", (char *)ptr->expr, iek_expr_node);
       break;
     case stmk_upc_barrier:
-      (void)printf("stmk_upc_barrier\n");
+      (void)fprintf(f_display, "stmk_upc_barrier\n");
       disp_ptr("expr", (char *)ptr->expr, iek_expr_node);
       break;
     case stmk_upc_fence:
-      (void)printf("stmk_upc_fence\n");
+      (void)fprintf(f_display, "stmk_upc_fence\n");
       break;
 #endif /* UPC_EXTENSIONS_ALLOWED */
     case stmk_for:
 #if UPC_EXTENSIONS_ALLOWED
     case stmk_upc_forall:
       if (ptr->kind == stmk_upc_forall) {
-        (void)printf("stmk_upc_forall\n");
+        (void)fprintf(f_display, "stmk_upc_forall\n");
       } else
 #endif /* UPC_EXTENSIONS_ALLOWED */
       /* Do not insert code here. */
       {
-        (void)printf("stmk_for\n");
+        (void)fprintf(f_display, "stmk_for\n");
       }  /* if */
       disp_ptr("initialization",
                (char *)ptr->variant.for_loop.extra_info->initialization,
@@ -5577,7 +5613,7 @@ do_label:
       break;
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
     case stmk_switch_case:
-      (void)printf("stmk_switch_case\n");
+      (void)fprintf(f_display, "stmk_switch_case\n");
       disp_ptr("switch_statement",
                (char *)ptr->variant.switch_case.switch_statement,
                iek_statement);
@@ -5585,7 +5621,7 @@ do_label:
                iek_switch_case_entry);
       break;
     case stmk_switch:
-      (void)printf("stmk_switch\n");
+      (void)fprintf(f_display, "stmk_switch\n");
       disp_ptr("expr", (char *)ptr->expr, iek_expr_node);
       disp_ptr("body_statement",
                (char *)ptr->variant.switch_stmt.body_statement, iek_statement);
@@ -5593,51 +5629,51 @@ do_label:
                iek_switch_stmt_descr);
       break;
     case stmk_init:
-      (void)printf("stmk_init\n");
+      (void)fprintf(f_display, "stmk_init\n");
       disp_ptr("expr", (char *)ptr->expr, iek_expr_node);
       disp_ptr("dynamic_init", (char *)ptr->variant.dynamic_init,
                iek_dynamic_init);
       break;
     case stmk_asm:
       /* Asm statement. */
-      (void)printf("stmk_asm\n");
+      (void)fprintf(f_display, "stmk_asm\n");
       disp_ptr("asm_entry", (char *)ptr->variant.asm_entry, iek_asm_entry);
       break;
 #if ASM_FUNCTION_ALLOWED
     case stmk_asm_func_body:
       /* Statement representing an function body. */
-      (void)printf("stmk_asm_func_body\n");
+      (void)fprintf(f_display, "stmk_asm_func_body\n");
       disp_string_ptr("asm_func_body", ptr->variant.asm_func_body,
                       iek_other_text, (sizeof_t)0);
       break;
 #endif /* ASM_FUNCTION_ALLOWED */
     case stmk_try_block:
       /* Try block. */
-      (void)printf("stmk_try_block\n");
+      (void)fprintf(f_display, "stmk_try_block\n");
       disp_try_supplement(ptr->variant.try_block);
       break;
 #if MICROSOFT_EXTENSIONS_ALLOWED
     case stmk_microsoft_try:
       /* Try block. */
-      (void)printf("stmk_microsoft_try\n");
+      (void)fprintf(f_display, "stmk_microsoft_try\n");
       disp_microsoft_try_supplement(ptr->variant.microsoft_try);
       break;
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
     case stmk_decl:
       /* "Decl" pseudo-statement. */
-      (void)printf("stmk_decl\n");
+      (void)fprintf(f_display, "stmk_decl\n");
       disp_entity_list("entities", ptr->variant.decl.entities);
       if (ptr->variant.decl.has_static_or_thread_variable) {
         disp_boolean("decl.has_static_or_thread_variable", TRUE);
       }  /* if */
       break;
     case stmk_set_vla_size:
-      (void)printf("stmk_set_vla_size\n");
+      (void)fprintf(f_display, "stmk_set_vla_size\n");
       disp_ptr("vla_dimension", (char *)ptr->variant.vla_dimension,
                iek_vla_dimension);
       break;
     case stmk_vla_decl:
-      (void)printf("stmk_vla_decl\n");
+      (void)fprintf(f_display, "stmk_vla_decl\n");
       if (ptr->variant.vla.is_typedef_decl) {
         disp_boolean("vla.is_typedef_decl", TRUE);
         disp_ptr("vla.typedef_type",
@@ -5650,12 +5686,12 @@ do_label:
       break;
 #if GNU_EXTENSIONS_ALLOWED
     case stmk_assigned_goto:
-      (void)printf("stmk_assigned_goto\n");
+      (void)fprintf(f_display, "stmk_assigned_goto\n");
       disp_ptr("expr", (char *)ptr->expr, iek_expr_node);
       break;
 #endif /* GNU_EXTENSIONS_ALLOWED */
     case stmk_stmt_expr_result:
-      (void)printf("stmk_stmt_expr_result\n");
+      (void)fprintf(f_display, "stmk_stmt_expr_result\n");
       if (ptr->variant.stmt_expr_result.dynamic_init != NULL) {
         disp_ptr("dynamic_init",
                  (char *)ptr->variant.stmt_expr_result.dynamic_init,
@@ -5665,7 +5701,7 @@ do_label:
       }  /* if */
       break;
     default:
-      (void)printf("**BAD STATEMENT KIND**\n");
+      (void)fprintf(f_display, "**BAD STATEMENT KIND**\n");
   }  /* switch */
 }  /* disp_statement */
 
@@ -5706,7 +5742,7 @@ Display the indicated pragma entry.
 #if MICROSOFT_EXTENSIONS_ALLOWED
   if (ptr->kind == (a_pragma_kind)pk_comment) {
     disp_name("comment.kind");
-    (void)printf("%s\n",
+    (void)fprintf(f_display, "%s\n",
                  microsoft_pragma_comment_ids[(int)ptr->variant.comment.kind]);
     if (ptr->variant.comment.str != NULL) {
       disp_ptr("comment.str", (char *)ptr->variant.comment.str, iek_constant);
@@ -5715,9 +5751,9 @@ Display the indicated pragma entry.
     disp_name("conform.kind");
     if (ptr->variant.conform.kind !=
                              (a_microsoft_pragma_conform_kind)mpck_forScope) {
-      (void)printf("**BAD KIND**\n");
+      (void)fprintf(f_display, "**BAD KIND**\n");
     } else {
-      (void)printf("mpck_forScope\n");
+      (void)fprintf(f_display, "mpck_forScope\n");
       if (ptr->variant.conform.on) {
         disp_boolean("conform.on", TRUE);
       }  /* if */
@@ -5788,10 +5824,10 @@ Display the indicated template parameter.
   disp_name("kind");
   switch (ptr->kind) {
     case tpk_error:
-      (void)printf("tpk_error\n");
+      (void)fprintf(f_display, "tpk_error\n");
       break;
     case tpk_type:
-      (void)printf("tpk_type\n");
+      (void)fprintf(f_display, "tpk_type\n");
       disp_ptr("ptr", (char*)ptr->variant.type.ptr, iek_type);
       if (ptr->variant.type.default_arg_type != NULL) {
         disp_ptr("default_arg_type",
@@ -5799,7 +5835,7 @@ Display the indicated template parameter.
       }  /* if */
       break;
     case tpk_nontype:
-      (void)printf("tpk_nontype\n");
+      (void)fprintf(f_display, "tpk_nontype\n");
       disp_ptr("constant", (char*)ptr->variant.nontype.constant, iek_constant);
       if (ptr->variant.nontype.default_arg_constant != NULL) {
         disp_ptr("default_arg_constant",
@@ -5808,7 +5844,7 @@ Display the indicated template parameter.
       }  /* if */
       break;
     case tpk_template:
-      (void)printf("tpk_template\n");
+      (void)fprintf(f_display, "tpk_template\n");
       disp_ptr("class_template", (char*)ptr->variant.templ.class_template,
                iek_template);
       if (ptr->variant.templ.default_arg_template) {
@@ -5817,7 +5853,7 @@ Display the indicated template parameter.
       }  /* if */
       break;
     default:
-      (void)printf("**BAD KIND**\n");
+      (void)fprintf(f_display, "**BAD KIND**\n");
   }  /* switch */
 }  /* disp_template_parameter */
 
@@ -5874,38 +5910,38 @@ Display the indicated template.
   disp_name("kind");
   switch (ptr->kind) {
     case templk_none:
-      (void)printf("templk_none\n");
+      (void)fprintf(f_display, "templk_none\n");
       break;
     case templk_class:
-      (void)printf("templk_class\n");
+      (void)fprintf(f_display, "templk_class\n");
       break;
     case templk_function:
-      (void)printf("templk_function\n");
+      (void)fprintf(f_display, "templk_function\n");
       break;
     case templk_variable:
-      (void)printf("templk_variable\n");
+      (void)fprintf(f_display, "templk_variable\n");
       break;
     case templk_member_function:
-      (void)printf("templk_member_function\n");
+      (void)fprintf(f_display, "templk_member_function\n");
       break;
     case templk_static_data_member:
-      (void)printf("templk_static_data_member\n");
+      (void)fprintf(f_display, "templk_static_data_member\n");
       break;
     case templk_member_class:
-      (void)printf("templk_member_class\n");
+      (void)fprintf(f_display, "templk_member_class\n");
       break;
     case templk_member_enum:
-      (void)printf("templk_member_enum\n");
+      (void)fprintf(f_display, "templk_member_enum\n");
       break;
     case templk_template_template_param:
-      (void)printf("templk_template_template_param\n");
+      (void)fprintf(f_display, "templk_template_template_param\n");
       disp_template_param_coordinate(&ptr->coordinates);
       break;
     case templk_concept:
-      (void)printf("templk_concept\n");
+      (void)fprintf(f_display, "templk_concept\n");
       break;
     default:
-      (void)printf("**BAD TEMPLATE KIND**\n");
+      (void)fprintf(f_display, "**BAD TEMPLATE KIND**\n");
   }  /* switch */
   if (ptr->is_exported) {
     disp_boolean("is_exported", (a_boolean)ptr->is_exported);
@@ -6238,7 +6274,7 @@ Display the indicated attribute entry.
     default:                     kind_name = "** BAD KIND **";      break;
   }  /* switch */
   disp_name("kind");
-  (void)printf("%s\n", kind_name);
+  (void)fprintf(f_display, "%s\n", kind_name);
   disp_ptr("next", (char *)ap->next, iek_attribute);
   switch (ap->family) {
     case af_internal:            family_name = "internal";          break;
@@ -6249,7 +6285,7 @@ Display the indicated attribute entry.
     default:                     family_name = "** BAD FAMILY **";  break;
   }  /* switch */
   disp_name("family");
-  (void)printf("%s\n", family_name);
+  (void)fprintf(f_display, "%s\n", family_name);
   switch (ap->syntactic_location) {
     case al_implicit:            loc_name = "implicit";             break;
     case al_prefix:              loc_name = "prefix";               break;
@@ -6279,7 +6315,7 @@ Display the indicated attribute entry.
     default:                     loc_name = "** BAD LOCATION **";   break;
   }  /* switch */
   disp_name("syntactic_location");
-  (void)printf("%s\n", loc_name);
+  (void)fprintf(f_display, "%s\n", loc_name);
   if (ap->on_primary_declaration) {
     disp_boolean("on_primary_declaration", TRUE);
   }  /* if */
@@ -6342,7 +6378,7 @@ Display the indicated attribute argument entry.
     default:                     kind_name = "** BAD KIND **";      break;
   }  /* switch */
   disp_name("kind");
-  (void)printf("%s\n", kind_name);
+  (void)fprintf(f_display, "%s\n", kind_name);
   disp_ptr("next", (char *)aap->next, iek_attribute_arg);
   if (aap->is_pack_expansion) {
     disp_boolean("is_pack_expansion", TRUE);
@@ -6354,7 +6390,7 @@ Display the indicated attribute argument entry.
 #endif /* EXTRA_SOURCE_POSITIONS_IN_IL */
   if (aap->token_kind != tok_error) {
     disp_name("token_kind");
-    (void)printf("%s\n", token_names[aap->token_kind]);
+    (void)fprintf(f_display, "%s\n", token_names[aap->token_kind]);
   }  /* if */
   switch (aap->kind) {
     case aak_empty:
@@ -6403,10 +6439,10 @@ Display the indicated Microsoft attribute entry.
 
   disp_name("kind");
   switch (ptr->kind) {
-    case msak_none:         (void)printf("none\n");         break;
-    case msak_unrecognized: (void)printf("unrecognized\n"); break;
-    case msak_custom:       (void)printf("custom\n");       break;
-    default:                (void)printf("other\n");        break;
+    case msak_none:         (void)fprintf(f_display, "none\n");         break;
+    case msak_unrecognized: (void)fprintf(f_display, "unrecognized\n"); break;
+    case msak_custom:       (void)fprintf(f_display, "custom\n");       break;
+    default:                (void)fprintf(f_display, "other\n");        break;
   }  /* switch */
   disp_ptr("next", (char *)ptr->next, iek_ms_attribute);
   disp_ptr("next_in_block", (char *)ptr->next_in_block, iek_ms_attribute);
@@ -6415,30 +6451,74 @@ Display the indicated Microsoft attribute entry.
   if (ptr->is_attribute_attribute) {
     disp_boolean("is_attribute_attribute", TRUE);
   }  /* if */
-  (void)printf("target: ");
+  (void)fprintf(f_display, "target: ");
   switch (ptr->target) {
-    case msat_none:             (void)printf("<none>\n");           break;
-    case msat_assembly:         (void)printf("assembly\n");         break;
-    case msat_module:           (void)printf("module\n");           break;
-    case msat_class:            (void)printf("class\n");            break;
-    case msat_struct:           (void)printf("struct\n");           break;
-    case msat_union:            (void)printf("union\n");            break;
-    case msat_enum:             (void)printf("enum\n");             break;
-    case msat_constructor:      (void)printf("constructor\n");      break;
-    case msat_method:           (void)printf("method\n");           break;
-    case msat_property:         (void)printf("property\n");         break;
-    case msat_field:            (void)printf("field\n");            break;
-    case msat_event:            (void)printf("event\n");            break;
-    case msat_interface:        (void)printf("interface\n");        break;
-    case msat_parameter:        (void)printf("parameter\n");        break;
-    case msat_delegate:         (void)printf("delegate\n");         break;
-    case msat_returnvalue:      (void)printf("returnvalue\n");      break;
-    case msat_genericparameter: (void)printf("genericparameter\n"); break;
-    case msat_typedef:          (void)printf("typedef\n");          break;
-    case msat_variable:         (void)printf("variable\n");         break;
-    case msat_routine:          (void)printf("routine\n");          break;
-    case msat_interfaceimpl:    (void)printf("interfaceimpl\n");    break;
-    default:                    unexpected_condition();             break;
+    case msat_none:
+      (void)fprintf(f_display, "<none>\n");
+      break;
+    case msat_assembly:
+      (void)fprintf(f_display, "assembly\n");
+      break;
+    case msat_module:
+      (void)fprintf(f_display, "module\n");
+      break;
+    case msat_class:
+      (void)fprintf(f_display, "class\n");
+      break;
+    case msat_struct:
+      (void)fprintf(f_display, "struct\n");
+      break;
+    case msat_union:
+      (void)fprintf(f_display, "union\n");
+      break;
+    case msat_enum:
+      (void)fprintf(f_display, "enum\n");
+      break;
+    case msat_constructor:
+      (void)fprintf(f_display, "constructor\n");
+      break;
+    case msat_method:
+      (void)fprintf(f_display, "method\n");
+      break;
+    case msat_property:
+      (void)fprintf(f_display, "property\n");
+      break;
+    case msat_field:
+      (void)fprintf(f_display, "field\n");
+      break;
+    case msat_event:
+      (void)fprintf(f_display, "event\n");
+      break;
+    case msat_interface:
+      (void)fprintf(f_display, "interface\n");
+      break;
+    case msat_parameter:
+      (void)fprintf(f_display, "parameter\n");
+      break;
+    case msat_delegate:
+      (void)fprintf(f_display, "delegate\n");
+      break;
+    case msat_returnvalue:
+      (void)fprintf(f_display, "returnvalue\n");
+      break;
+    case msat_genericparameter:
+      (void)fprintf(f_display, "genericparameter\n");
+      break;
+    case msat_typedef:
+      (void)fprintf(f_display, "typedef\n");
+      break;
+    case msat_variable:
+      (void)fprintf(f_display, "variable\n");
+      break;
+    case msat_routine:
+      (void)fprintf(f_display, "routine\n");
+      break;
+    case msat_interfaceimpl:
+      (void)fprintf(f_display, "interfaceimpl\n");
+      break;
+    default:
+      unexpected_condition();
+      break;
   }  /* switch */
   if (ptr->kind == (an_ms_attribute_kind)msak_custom) {
     a_custom_ms_attribute_arg_ptr named_arg;
@@ -6521,10 +6601,18 @@ Display the indicated property/event description.
 {
   disp_name("kind");
   switch (ptr->kind) {
-    case pek_declspec_property: (void)printf("__declspec property\n"); break;
-    case pek_cli_property:      (void)printf("C++/CLI property\n");    break;
-    case pek_cli_event:         (void)printf("C++/CLI event\n");       break;
-    default:                    (void)printf("** BAD KIND **\n");      break;
+    case pek_declspec_property:
+      (void)fprintf(f_display, "__declspec property\n");
+      break;
+    case pek_cli_property:
+      (void)fprintf(f_display, "C++/CLI property\n");
+      break;
+    case pek_cli_event:
+      (void)fprintf(f_display, "C++/CLI event\n");
+      break;
+    default:
+      (void)fprintf(f_display, "** BAD KIND **\n");
+      break;
   }  /* switch */
   if (ptr->is_trivial) {
     disp_boolean("is_trivial", TRUE);
@@ -6662,7 +6750,7 @@ Display the fields of the specified macro invocation record, which is at
 offset idx.
 */
 {
-  (void)printf("\nmacro_invocation_record#%ld\n", (long)idx);
+  (void)fprintf(f_display, "\nmacro_invocation_record#%ld\n", (long)idx);
   disp_long("parent_macro_index", (long)mirp->parent_macro_index);
   disp_ptr("assoc_macro", (char*)mirp->assoc_macro, iek_macro);
   disp_simple_source_position("start", &mirp->start);
@@ -6724,25 +6812,25 @@ Display the indicated object lifetime.
   disp_name("kind");
   switch (ptr->kind) {
     case olk_global_static:
-      (void)printf("olk_global_static\n");
+      (void)fprintf(f_display, "olk_global_static\n");
       break;
     case olk_block:
-      (void)printf("olk_block\n");
+      (void)fprintf(f_display, "olk_block\n");
       break;
     case olk_block_after_label:
-      (void)printf("olk_block_after_label\n");
+      (void)fprintf(f_display, "olk_block_after_label\n");
       break;
     case olk_function_static:
-      (void)printf("olk_function_static\n");
+      (void)fprintf(f_display, "olk_function_static\n");
       break;
     case olk_expr_temporary:
-      (void)printf("olk_expr_temporary\n");
+      (void)fprintf(f_display, "olk_expr_temporary\n");
       break;
     case olk_try_block:
-      (void)printf("olk_try_block\n");
+      (void)fprintf(f_display, "olk_try_block\n");
       break;
     default:
-      (void)printf("**BAD OBJECT LIFETIME KIND**\n");
+      (void)fprintf(f_display, "**BAD OBJECT LIFETIME KIND**\n");
   }  /* switch */
   if (ptr->has_block_after_label_child_lifetime) {
     disp_boolean("has_block_after_label_child_lifetime", TRUE);
@@ -6782,38 +6870,38 @@ Display the indicated scope.
   disp_name("kind");
   switch (ptr->kind) {
     case sck_file:
-      (void)printf("sck_file\n");
+      (void)fprintf(f_display, "sck_file\n");
       break;
     case sck_block:
-      (void)printf("sck_block\n");
+      (void)fprintf(f_display, "sck_block\n");
       if (ptr->variant.assoc_handler != NULL) {
         disp_ptr("assoc_handler", (char *)ptr->variant.assoc_handler,
                  iek_handler);
       }  /* if */
       break;
     case sck_func_prototype:
-      (void)printf("sck_func_prototype\n");
+      (void)fprintf(f_display, "sck_func_prototype\n");
       goto do_assoc_type;
     case sck_enum:
-      (void)printf("sck_enum\n");
+      (void)fprintf(f_display, "sck_enum\n");
       goto do_assoc_type;
     case sck_class_struct_union:
-      (void)printf("sck_class_struct_union\n");
+      (void)fprintf(f_display, "sck_class_struct_union\n");
 do_assoc_type:
       disp_ptr("assoc_type", (char *)ptr->variant.assoc_type, iek_type);
       break;
     case sck_condition:
-      (void)printf("sck_condition\n");
+      (void)fprintf(f_display, "sck_condition\n");
       disp_ptr("assoc_statement", (char *)ptr->variant.assoc_statement,
                iek_statement);
       break;
     case sck_namespace:
-      (void)printf("sck_namespace\n");
+      (void)fprintf(f_display, "sck_namespace\n");
       disp_ptr("assoc_namespace", (char *)ptr->variant.assoc_namespace,
                iek_namespace);
       break;
     case sck_function:
-      (void)printf("sck_function\n");
+      (void)fprintf(f_display, "sck_function\n");
       disp_ptr("routine.ptr", (char *)ptr->variant.routine.ptr, iek_routine);
       disp_ptr("parameters", (char *)ptr->variant.routine.parameters,
                iek_variable);
@@ -6836,12 +6924,12 @@ do_assoc_type:
       break;
     case sck_template_declaration:
       /* Only present when prototype instantiations are included in the IL. */
-      (void)printf("sck_template_declaration\n");
+      (void)fprintf(f_display, "sck_template_declaration\n");
       break;
     case sck_template_instantiation:
       /* Front end only. */
     default:
-      (void)printf("**BAD SCOPE KIND**\n");
+      (void)fprintf(f_display, "**BAD SCOPE KIND**\n");
   }  /* switch */
   if (ptr->do_not_free_memory_region) {
     disp_boolean("do_not_free_memory_region", TRUE);
@@ -7130,24 +7218,24 @@ Display the indicated dynamic_init structure.
   disp_name("kind");
   switch (ptr->kind) {
     case dik_none:
-      (void)printf("dik_none\n");
+      (void)fprintf(f_display, "dik_none\n");
       break;
     case dik_zero:
-      (void)printf("dik_zero\n");
+      (void)fprintf(f_display, "dik_zero\n");
       break;
     case dik_constant:
-      (void)printf("dik_constant\n");
+      (void)fprintf(f_display, "dik_constant\n");
       goto do_constant;
     case dik_expression:
-      (void)printf("dik_expression\n");
+      (void)fprintf(f_display, "dik_expression\n");
       disp_ptr("expression", (char *)ptr->variant.expression, iek_expr_node);
       break;
     case dik_class_result_via_ctor:
-      (void)printf("dik_class_result_via_ctor\n");
+      (void)fprintf(f_display, "dik_class_result_via_ctor\n");
       disp_ptr("expression", (char *)ptr->variant.expression, iek_expr_node);
       break;
     case dik_constructor:
-      (void)printf("dik_constructor\n");
+      (void)fprintf(f_display, "dik_constructor\n");
       disp_ptr("routine", (char *)ptr->variant.constructor.ptr,
                iek_routine);
       disp_ptr("args", (char *)ptr->variant.constructor.args,
@@ -7162,11 +7250,11 @@ Display the indicated dynamic_init structure.
                    (a_boolean)ptr->variant.constructor.value_initialization);
       break;
     case dik_lambda:
-      (void)printf("dik_lambda\n");
+      (void)fprintf(f_display, "dik_lambda\n");
       disp_ptr("lambda", (char *)ptr->variant.constant.lambda, iek_lambda);
       goto do_constant;
     case dik_nonconstant_aggregate:
-      (void)printf("dik_nonconstant_aggregate\n");
+      (void)fprintf(f_display, "dik_nonconstant_aggregate\n");
 do_constant:
       if (ptr->variant.constant.non_constant) {
         disp_boolean("non_constant", TRUE);
@@ -7174,14 +7262,14 @@ do_constant:
       disp_ptr("constant", (char *)ptr->variant.constant.ptr, iek_constant);
       break;
     case dik_bitwise_copy:
-      (void)printf("dik_bitwise_copy\n");
+      (void)fprintf(f_display, "dik_bitwise_copy\n");
       if (ptr->variant.bitwise_copy.source != NULL) {
         disp_ptr("source", (char *)ptr->variant.bitwise_copy.source,
                  iek_expr_node);
       }  /* if */
       break;
     default:
-      (void)printf("**BAD DYNAMIC INIT KIND**\n");
+      (void)fprintf(f_display, "**BAD DYNAMIC INIT KIND**\n");
   }  /* switch */
 }  /* disp_dynamic_init */
 
@@ -7274,7 +7362,7 @@ Display the indicated derivation step list.
     disp_ptr("path", (char *)NULL, iek_derivation_step);
   } else {
     disp_name("path");
-    (void)printf("\n");
+    (void)fprintf(f_display, "\n");
     for (; ptr != tail->next; ptr = ptr->next) {
       disp_ptr("  base_class", (char *)ptr->base_class, iek_base_class);
     }  /* for */
@@ -7435,16 +7523,24 @@ Display the indicated class type supplement entry.
     a_type_ptr  class_type = ptr->assoc_scope->variant.assoc_type;
     if (class_type != NULL && class_type->kind != ptr->orig_type_kind) {
       disp_name("orig_type_kind");
-      (void)printf("%s\n", type_kind_string(ptr->orig_type_kind));
+      (void)fprintf(f_display, "%s\n", type_kind_string(ptr->orig_type_kind));
     }  /* if */
   }  /* if */
   if (ptr->inheritance_kind != (an_inheritance_kind)ihk_none) {
     disp_name("inheritance_kind");
     switch (ptr->inheritance_kind) {
-      case ihk_single:    (void)printf("ihk_single\n"); break;
-      case ihk_multiple:  (void)printf("ihk_multiple\n"); break;
-      case ihk_virtual:   (void)printf("ihk_virtual\n"); break;
-      default:            (void)printf("**BAD INHERITANCE KIND**\n");
+      case ihk_single:
+        (void)fprintf(f_display, "ihk_single\n");
+        break;
+      case ihk_multiple:
+        (void)fprintf(f_display, "ihk_multiple\n");
+        break;
+      case ihk_virtual:
+        (void)fprintf(f_display, "ihk_virtual\n");
+        break;
+      default:
+        (void)fprintf(f_display, "**BAD INHERITANCE KIND**\n");
+        break;
     }  /* switch */
     disp_boolean("inheritance_kind_is_explicit",
                  (a_boolean)ptr->inheritance_kind_is_explicit);
@@ -7538,18 +7634,18 @@ Display the indicated class type supplement entry.
     disp_name("anonymous_union_kind");
     switch (ptr->anonymous_union_kind) {
       case auk_none:
-        (void)printf("auk_none\n");
+        (void)fprintf(f_display, "auk_none\n");
         break;
       case auk_variable:
-        (void)printf("auk_variable\n");
+        (void)fprintf(f_display, "auk_variable\n");
         break;
       case auk_field:
-        (void)printf("auk_field\n");
+        (void)fprintf(f_display, "auk_field\n");
         disp_ptr("anonymous_union_field", (char *)ptr->anonymous_union_field,
                  iek_field);
         break;
       default:
-        (void)printf("**BAD ANONYMOUS UNION KIND**\n");
+        (void)fprintf(f_display, "**BAD ANONYMOUS UNION KIND**\n");
     }  /* switch */
   }  /* if */
   if (ptr->is_va_list_tag) {
@@ -7687,23 +7783,23 @@ Display the indicated constructor init entry.
   disp_name("kind");
   switch (ptr->kind) {
     case cik_virtual_base_class:
-      (void)printf("cik_virtual_base_class\n");
+      (void)fprintf(f_display, "cik_virtual_base_class\n");
       goto do_base_class;
     case cik_direct_base_class:
-      (void)printf("cik_direct_base_class\n");
+      (void)fprintf(f_display, "cik_direct_base_class\n");
 do_base_class:
       disp_ptr("base_class", (char *)ptr->variant.base_class,
                iek_base_class);
       break;
     case cik_field:
-      (void)printf("cik_field\n");
+      (void)fprintf(f_display, "cik_field\n");
       disp_ptr("field", (char *)ptr->variant.field, iek_field);
       break;
     case cik_delegation:
-      (void)printf("cik_delegation\n");
+      (void)fprintf(f_display, "cik_delegation\n");
       break;
     default:
-      (void)printf("**BAD CONSTRUCTOR INIT KIND**\n");
+      (void)fprintf(f_display, "**BAD CONSTRUCTOR INIT KIND**\n");
   }  /* switch */
   if (ptr->use_field_initializer) {
     disp_boolean("use_field_initializer", TRUE);
@@ -7750,7 +7846,7 @@ Display the indicated asm operand.
     disp_boolean("aom_input", TRUE);
   }  /* if */
   for (c = ptr->constraints; c != NULL; c = c->next) {
-    printf("constraint: %c\n",
+    fprintf(f_display, "constraint: %c\n",
            asm_operand_constraint_letters[(int)c->kind]);
   }  /* for */
 #endif /* RECORD_RAW_ASM_OPERAND_DESCRIPTIONS */
@@ -7765,7 +7861,7 @@ Display the indicated named register list.
 {
   disp_ptr("next", (char *)ptr->next, iek_named_register_list);
   disp_name("reg");
-  (void)printf("%s\n", named_register_names[ptr->reg]);
+  (void)fprintf(f_display, "%s\n", named_register_names[ptr->reg]);
 }  /* disp_named_register_list */
 
 #endif /* GNU_EXTENSIONS_ALLOWED */
@@ -7796,7 +7892,7 @@ Display the indicated asm entry.
   }  /* if */
   disp_ptr("operands", (char *)ptr->operands, iek_asm_operand);
   disp_ptr("clobbers", (char *)ptr->clobbers, iek_named_register_list);
-  (void)putchar('\n');
+  (void)putc('\n', f_display);
 #endif /* GNU_EXTENSIONS_ALLOWED */
 }  /* disp_asm_entry */
 
@@ -8055,9 +8151,9 @@ This routine is called during IL walking.
     case iek_coroutine_descr:
       break;
     default:
-      (void)printf("\n");
+      (void)fprintf(f_display, "\n");
       disp_ptr_value(entry_ptr, entry_kind);
-      (void)printf("\n");
+      (void)fprintf(f_display, "\n");
       switch (entry_kind) {
 #if EXTRA_SOURCE_POSITIONS_IN_IL
         case iek_element_position:
@@ -8299,7 +8395,7 @@ This routine is called during IL walking.
           disp_module_import_decl((a_module_import_decl_ptr)entry_ptr);
           break;
         default:
-          (void)printf("**BAD ENTRY KIND**\n");
+          (void)fprintf(f_display, "**BAD ENTRY KIND**\n");
       }  /* switch */
   }  /* switch */
 }  /* disp_entry */
@@ -8317,7 +8413,7 @@ Display the name for the indicated source language name.
     case sl_C:            s = "sl_C";                    break;
     default:              s = "**BAD SOURCE LANGUAGE**"; break;
   }  /* switch */
-  (void)printf("%s", s);
+  (void)fprintf(f_display, "%s", s);
 }  /* disp_source_language_name */
 
 
@@ -8327,7 +8423,7 @@ Set up for use of the il_to_str routines.
 */
 {
   clear_il_to_str_output_control_block(&octl);
-  octl.output_str = put_str_to_stdout;
+  octl.output_str = put_str_to_display;
   octl.gen_pcc_code = il_header.pcc_compatibility_mode;
 #if DEBUG
   octl.debug_output = TRUE;
@@ -8342,11 +8438,11 @@ Display the IL for the file scope in human-readable form.
 {
   /* Set up for use of the il_to_str routines. */
   init_for_il_to_str_output();
-  (void)printf(
+  (void)fprintf(f_display, 
             "\n\nIntermediate language for memory region 1 (file scope):\n");
 
   displaying_file_scope_il = TRUE;
-  (void)printf("\nil_header:\n");
+  (void)fprintf(f_display, "\nil_header:\n");
   disp_ptr("primary_source_file", (char *)il_header.primary_source_file,
            iek_source_file);
   disp_ptr("primary_scope", (char *)il_header.primary_scope, iek_scope);
@@ -8360,7 +8456,7 @@ Display the IL for the file scope in human-readable form.
   /* region_scope_entry is not displayed. */
   disp_name("source_language");
   disp_source_language_name(il_header.source_language);
-  (void)printf("\n");
+  (void)fprintf(f_display, "\n");
   disp_unsigned_long("std_version", il_header.std_version);
   disp_boolean("pcc_compatibility_mode",
                (a_boolean)il_header.pcc_compatibility_mode);
@@ -8479,7 +8575,7 @@ form.
     }  /* if */
   }  /* if */
   if (fname == NULL) fname = "**NAME UNKNOWN**";
-  (void)printf(
+  (void)fprintf(f_display,
         "\n\nIntermediate language for memory region %ld (function \"%s\"):\n",
         (long)region_number, fname);
   displaying_file_scope_il = FALSE;
@@ -8532,11 +8628,16 @@ it is the name of the file from which the IL was read.
 {
   a_memory_region_number region_number;
 
+#if !STANDALONE_UTILITY_PROGRAM
+  f_display = f_error;
+#endif /* !STANDALONE_UTILITY_PROGRAM */
   if (file_name == NULL) {
-    (void)printf("Display of IL produced by the compilation of \"%s\"\n",
-                 primary_source_file_name);
+    (void)fprintf(f_display,
+                  "Display of IL produced by the compilation of \"%s\"\n",
+                  primary_source_file_name);
   } else {
-    (void)printf(
+    (void)fprintf(
+          f_display,
           "Display of IL file \"%s\", produced by the compilation of \"%s\"\n",
           file_name, primary_source_file_name);
   }  /* if */
@@ -8635,6 +8736,7 @@ where file.cil specifies the IL file.  Output is to stdout.
   /* Complete the initialization (based on il_header contents). */
   standalone_utility_late_init();
   primary_source_file_name = il_header.primary_source_file->file_name;
+  f_display = stdout;
   do_il_display(file_name);
   (void)fclose(f_il_input);
   normal_termination();
