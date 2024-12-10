@@ -8629,7 +8629,7 @@ it is the name of the file from which the IL was read.
   a_memory_region_number region_number;
 
 #if !STANDALONE_UTILITY_PROGRAM
-  f_display = f_error;
+  f_display = default_il_display_output_file();
 #endif /* !STANDALONE_UTILITY_PROGRAM */
   if (file_name == NULL) {
     (void)fprintf(f_display,
@@ -8667,6 +8667,12 @@ it is the name of the file from which the IL was read.
          default constructor). */
     }  /* if */
   }  /* for */
+#if !STANDALONE_UTILITY_PROGRAM
+  if (f_display != stderr && f_display != stdout) {
+    (void)fclose(f_display);
+    f_display = NULL;
+  }  /* if */
+#endif /* !STANDALONE_UTILITY_PROGRAM */
 }  /* do_il_display */
 
 

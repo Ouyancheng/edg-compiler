@@ -6312,6 +6312,23 @@ C++/C front end source file set).
   return stdout;
 }  /* default_preproc_output_file */
 
+#if NEED_IL_DISPLAY
+
+FILE* default_il_display_output_file()
+/*
+This function returns the default FILE* that should be used for IL display
+output (i.e., stdout).
+
+This is the default implementation of the default_il_display_output_file
+function.  When CUSTOM_DEFAULT_OUTPUT_FILES is TRUE it's expected that an
+alternative implementation is provided by another file (usually outside of the
+standard EDG C++/C front end source file set).
+*/
+{
+  return stdout;
+}  /* default_il_display_output_file */
+
+#endif /* NEED_IL_DISPLAY */
 #endif /* !CUSTOM_DEFAULT_OUTPUT_FILES */
 
 void host_envir_one_time_init(void)

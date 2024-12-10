@@ -3,10 +3,11 @@ Version 6.7
 12/10/24 [EDGcpfe/27788]
 Write IL display to f_display
 
-The front end IL display code now prints the output of IL display to f_display.
-When running as part of the front end, IL display is now printed to f_error
-rather than stdout.  When running as a standalone utility program, IL display
-continues to be printed to stdout.
+The front end IL display code now prints the output of IL display to f_display
+(which defaults to stdout).  When running as part of the front end, if
+CUSTOM_DEFAULT_OUTPUT_FILES is TRUE, customers can (and must) provide a
+function, default_il_display_output_file(), that returns the file handle to be
+used instead of stdout.
 
 
 12/9/24  [EDGcpfe/27566]
