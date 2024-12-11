@@ -4033,7 +4033,12 @@ information in the specified id-linkage block.
          external linkage. */
       idlbp->linkage = idl_internal;
       const_variable = TRUE;
-    } else if (cpp11_mode && !microsoft_mode &&
+    } else if (cpp11_mode &&
+               !(microsoft_mode &&
+                 (find_attribute(ak_dllexport,
+                                 dps->prefix_attributes) != NULL ||
+                  find_attribute(ak_dllimport,
+                                 dps->prefix_attributes) != NULL)) &&
                idlbp->within_unnamed_namespace) {
       /* In C++11 (and later) unnamed namespace scopes cause their members to
          have internal linkage. */

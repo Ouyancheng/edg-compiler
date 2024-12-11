@@ -1,5 +1,12 @@
 Version 6.7
 
+12/11/24 [EDGcpfe/27743]
+Handling of members of unnamed namespaces
+
+Previously, members of unnamed namespace did not acquire internal linkage in
+Microsoft mode.  Now they do.
+
+
 12/11/24 [EDGcpfe/27769]
 P1825R0 changes treated as a DR
 
