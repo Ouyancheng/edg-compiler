@@ -25,7 +25,7 @@ BEGIN_EDG_NAMESPACE
 extern void standalone_utility_early_init(void);
 extern void standalone_utility_late_init(void);
 #if CHECKING
-EXTERN a_boolean
+EXTERN_THREAD a_boolean
                 il_header_has_been_read;
                         /* Set to TRUE once the IL header has been read. */
 #endif /* CHECKING */

@@ -1330,7 +1330,7 @@ with static duration.  Also indicates a preference for other expressions,
 like arguments or the source of assignments.  In general, folding to a
 constant is good for code generation and less good for source analysis.
 */
-EXTERN a_boolean
+EXTERN_THREAD a_boolean
 		favor_constant_result_for_nonstatic_init
 #if VAR_INITIALIZERS
                                     = FAVOR_CONSTANT_RESULT_FOR_NONSTATIC_INIT

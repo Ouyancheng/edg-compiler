@@ -31,7 +31,7 @@ types.h -- Declarations related to types.c (having to do with types).
 /* Conditionally open the "edg" namespace. */
 BEGIN_EDG_NAMESPACE
 
-EXTERN a_boolean
+EXTERN_THREAD a_boolean
 		enum_type_is_integral;
 			/* TRUE if an enum type is considered an integral
 			   type.  Typically TRUE in C mode and FALSE in C++

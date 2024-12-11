@@ -1494,7 +1494,7 @@ Macro to initialize the "init state" pointed to by the argument.
 
 #else /* !NULL_POINTER_IS_ZERO */
 
-EXTERN a_decl_parse_state
+EXTERN_THREAD a_decl_parse_state
 		null_decl_parse_state;
 			/* Null "parse state".  Used for initialization by the
 			   init_decl_parse_state macro. */
@@ -1510,7 +1510,7 @@ argument.
 }
 
 
-EXTERN an_init_state
+EXTERN_THREAD an_init_state
 		null_init_state;
 			/* Null "init state".  Used for initialization by the
 			   clear_init_state macro. */

@@ -4663,7 +4663,7 @@ after a call to this routine.
         (options & (IDL_IF_EXISTS_LOOKUP | IDL_LINKAGE_LOOKUP)) == 0) {
       a_symbol_header_ptr sym_hdr = locator_for_curr_id.symbol_header;
       if (sym_hdr != NULL) {
-        a_cli_symbol_kind *p_csk_fallback;
+        const a_cli_symbol_kind *p_csk_fallback;
         p_csk_fallback = cppcx_enabled ? cppcx_fallback_symbols
                                        : cli_fallback_symbols;
         for (; *p_csk_fallback != csk_none; ++p_csk_fallback) {

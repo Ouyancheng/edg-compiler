@@ -287,7 +287,7 @@ Macro used by clear_il_entry_prefix to set the allocation sequence
 number if it exists.
 */
 #if MAINTAIN_ALLOCATION_SEQUENCE_NUMBER
-EXTERN unsigned long
+EXTERN_THREAD unsigned long
 		allocation_sequence_number_seed;
 #define init_alloc_seq_number(epp) \
   ((epp)->alloc_seq_number) = ++allocation_sequence_number_seed;

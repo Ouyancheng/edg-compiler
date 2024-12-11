@@ -50,7 +50,7 @@ enum a_cpp_cli_import_flag {
 
 typedef unsigned int a_cpp_cli_import_flag_set;
 
-EXTERN a_cpp_cli_import_flag_set
+EXTERN_THREAD a_cpp_cli_import_flag_set
                 default_cpp_cli_import_flags
 #if VAR_INITIALIZERS
 			= (a_cpp_cli_import_flag_set)

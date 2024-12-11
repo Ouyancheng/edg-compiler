@@ -5398,28 +5398,24 @@ EXTERN_THREAD a_symbol_ptr
 			   the a_cli_symbol_kind enumeration for more
 			   information. */
 
-EXTERN_THREAD a_cli_symbol_kind cli_fallback_symbols[]
+constexpr a_cli_symbol_kind cli_fallback_symbols[]
 /*
 The csk_none-terminated set of symbols to perform "dual-lookup" on
 in C++/CLI mode.
 */
-#if VAR_INITIALIZERS
 = {
   csk_cli_array,
   csk_interior_ptr,
   csk_pin_ptr,
   csk_none
-}
-#endif /* VAR_INITIALIZERS */
-;
+};
 
 
-EXTERN a_cli_symbol_kind cppcx_fallback_symbols[]
+constexpr a_cli_symbol_kind cppcx_fallback_symbols[]
 /*
 The csk_none-terminated set of symbols to perform "dual-lookup" on in
 C++/CX mode.
 */
-#if VAR_INITIALIZERS
 = {
   csk_system_sbyte,
   csk_system_byte,
@@ -5439,9 +5435,7 @@ C++/CX mode.
   csk_platform_write_only_array,
   csk_cppcx_box,
   csk_none
-}
-#endif /* VAR_INITIALIZERS */
-;
+};
 
 
 /*

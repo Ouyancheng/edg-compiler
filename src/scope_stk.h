@@ -2208,7 +2208,7 @@ EXTERN_THREAD a_scope_depth
 			   access checking cannot be deferred in this scope. */
 
 #if GENERATE_SOURCE_SEQUENCE_LISTS
-EXTERN a_boolean
+EXTERN_THREAD a_boolean
 		source_sequence_entries_disallowed;
 			/* TRUE if the current scope establishes or belongs to
 			   a context in which source sequence entries should

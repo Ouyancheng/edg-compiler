@@ -5504,13 +5504,11 @@ typedef struct a_named_address_space_descr {
 } a_named_address_space_descr;
 
 
+constexpr a_named_address_space_descr named_address_spaces[]
 /*
 A table describing the known named address spaces.  It can be indexed using
-a named address space id.  
+a named address space id.
 */
-EXTERN a_named_address_space_descr
-	named_address_spaces[]
-#if VAR_INITIALIZERS
 = {
 /*  0: */ { "", -1 },	/* Placeholder for the "generic address space." */
 #if INCLUDE_EDG_TEST_NAMED_ADDRESS_SPACES
@@ -5519,9 +5517,7 @@ EXTERN a_named_address_space_descr
 /*  3: */ { "_EDG_NAS_C", -1 }, 
 #endif /* INCLUDE_EDG_TEST_NAMED_ADDRESS_SPACES */
 /*  4: */ { NULL, 0 }	/* End-of-array marker. */
-}
-#endif /* VAR_INITIALIZERS */
-;
+};
 #endif /* NAMED_ADDRESS_SPACES_ALLOWED */
 
 /*
@@ -5564,14 +5560,13 @@ named-register storage classes.
 #define NUM_NAMED_REGISTERS 0
 #endif /* INCLUDE_EDG_TEST_NAMED_REGISTERS */
 
+constexpr a_named_register_storage_class_descr
+		named_register_storage_classes[NUM_NAMED_REGISTERS+2]
 /*
 A table describing the known named-register storage classes.  It can be
 indexed using a named register id.  The first and last entries do not
 correspond to actual registers.
 */
-EXTERN a_named_register_storage_class_descr
-	named_register_storage_classes[NUM_NAMED_REGISTERS+2]
-#if VAR_INITIALIZERS
 = {
 /*  0: */ { "", 0 },	/* Placeholder for "no register." */
 #if INCLUDE_EDG_TEST_NAMED_REGISTERS
@@ -5580,9 +5575,7 @@ EXTERN a_named_register_storage_class_descr
 /*  3: */ { "_EDG_REG_3", TARG_SIZEOF_LONG }, 
 #endif /* INCLUDE_EDG_TEST_NAMED_REGISTERS */
 /*  4: */ { NULL, 0 }	/* End-of-array marker. */
-}
-#endif /* VAR_INITIALIZERS */
-;
+};
 #endif /* NAMED_REGISTERS_ALLOWED */
 
 /*

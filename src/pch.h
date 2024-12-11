@@ -45,19 +45,16 @@ enum a_pch_event_kind {
 };
 
 #if DEBUG
+constexpr a_const_char *pch_event_kind_names[(int)pchek_last+1]
 /*
 Table of names of PCH event kinds.
 */
-EXTERN a_const_char
-		*pch_event_kind_names[(int)pchek_last+1]
-#if VAR_INITIALIZERS
-= { "none",
-    "command_line",
-    "pp_directive",
-    "last"
-  }
-#endif /* VAR_INITIALIZERS */
-;
+= {
+  "none",
+  "command_line",
+  "pp_directive",
+  "last"
+};
 #endif /* DEBUG */
 
 

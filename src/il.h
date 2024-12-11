@@ -4105,12 +4105,8 @@ extern void il_init(void);
 
 extern a_boolean upc_block_size_too_large(a_host_large_unsigned  block_size);
 
-EXTERN a_upc_block_size
-		max_upc_block_size
-#if VAR_INITIALIZERS
-                         = MAX_UPC_BLOCK_SIZE
-#endif /* VAR_INITIALIZERS */
-                                             ;
+constexpr a_upc_block_size
+		max_upc_block_size = MAX_UPC_BLOCK_SIZE;
 			/* The maximum allowable UPC block size. */
 #endif /* UPC_EXTENSIONS_ALLOWED */
 

@@ -275,30 +275,30 @@ EXTERN_THREAD a_mem_alloc_history_ptr
 			/* Number of entries in the fixed size memory
 			   allocation history array. */
 
-EXTERN a_mem_alloc_history
+EXTERN_THREAD a_mem_alloc_history
 		mem_alloc_history[SIZE_OF_MEM_ALLOC_HISTORY];
 			/* Array of memory allocation history entries used
 			   to store the preallocated memory blocks used
 			   for PCH processing. */
 
-EXTERN a_boolean
+EXTERN_THREAD a_boolean
 		exhausted_preallocated_memory;
 			/* TRUE if all of the preallocated PCH memory has
 			   been used, making creation of a PCH impossible. */
 
-EXTERN a_boolean
+EXTERN_THREAD a_boolean
 		large_mem_block_needed;
 			/* TRUE if a PCH file cannot be created because
 			   a memory block that is larger than those
 			   preallocated is needed. */
 
-EXTERN a_source_position
+EXTERN_THREAD a_source_position
 		large_mem_block_error_pos;
 			/* Error position when a large entity was
 			   allocated that prevented generation of a
 			   precompiled header file. */
 
-EXTERN a_mem_alloc_history_number
+EXTERN_THREAD a_mem_alloc_history_number
 		total_mem_blocks_allocated;
 			/* Total number of memory blocks allocated.  This
 			   may be larger than the number of memory history

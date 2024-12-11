@@ -1041,7 +1041,7 @@ predefined named address spaces are configured through the initializer of the
 global array named_address_spaces (see targ_def.h).
 */
 {
-  a_named_address_space_descr  *nas = &named_address_spaces[1];
+  const a_named_address_space_descr  *nas = &named_address_spaces[1];
 
   for (;nas->name != NULL; ++nas) {
 #if CHECKING
@@ -1065,7 +1065,7 @@ predefined named registers are configured through the initializer of the
 global array named_register_storage_classes (see targ_def.h).
 */
 {
-  a_named_register_storage_class_descr  *nr =
+  const a_named_register_storage_class_descr  *nr =
                                           &named_register_storage_classes[1];
 
   for (;nr->name != NULL; ++nr) {

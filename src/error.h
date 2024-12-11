@@ -329,7 +329,7 @@ EXTERN_THREAD a_boolean
 			   typedef. */
 
 #if FULLY_RESOLVED_MACRO_POSITIONS
-EXTERN a_boolean
+EXTERN_THREAD a_boolean
 		macro_positions_in_diagnostics;
 			/* TRUE if diagnostic output referring to text in
 			   macro expansions should display original position

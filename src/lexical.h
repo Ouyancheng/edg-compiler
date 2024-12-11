@@ -998,7 +998,7 @@ EXTERN_THREAD unsigned int
 			   __INCLUDE_LEVEL__ built-in macro. */
 
 #if UNICODE_SOURCE_SUPPORTED
-EXTERN a_unicode_source_kind
+EXTERN_THREAD a_unicode_source_kind
 		curr_file_unicode_source_kind;
 			/* If not usk_none, indicates the kind of Unicode
 			   source characters being read in the current source
@@ -2068,7 +2068,7 @@ EXTERN_THREAD a_boolean
 			   character.  If you need the full set of identifier
 			   characters, see is_identifier_char. */
 #if UNICODE_SOURCE_SUPPORTED
-EXTERN a_boolean
+EXTERN_THREAD a_boolean
 		is_id_char_no_mbc[UCHAR_MAX+1];
 			/* For each character, whether or not it can be a
 			   character after the first in an identifier.

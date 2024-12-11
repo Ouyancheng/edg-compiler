@@ -1804,7 +1804,7 @@ typedef struct a_source_range {
 
 #if EXTRA_SOURCE_POSITIONS_IN_IL || !NULL_POINTER_IS_ZERO
 
-EXTERN a_source_range
+EXTERN_THREAD a_source_range
 		null_source_range
 #if VAR_INITIALIZERS
                                   = {{0, SP_COL_UNKNOWN
@@ -2637,7 +2637,7 @@ typedef struct a_name_reference {
 			   included in the IL. */
 } a_name_reference;
 
-EXTERN a_name_reference null_name_reference
+EXTERN_THREAD a_name_reference null_name_reference
 #if VAR_INITIALIZERS
 = {NULL} /*lint !e785*/
 #endif /* VAR_INITIALIZERS */

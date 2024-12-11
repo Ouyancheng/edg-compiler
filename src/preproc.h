@@ -154,7 +154,7 @@ EXTERN_THREAD a_boolean
 			   TRUE. */
 
 #if MICROSOFT_EXTENSIONS_ALLOWED
-EXTERN a_boolean
+EXTERN_THREAD a_boolean
 		in_microsoft_attribute;
 			/* TRUE if we are scanning the tokens of a Microsoft
 			   attribute. */
@@ -271,12 +271,12 @@ EXTERN_THREAD a_boolean
 			   included. */
 
 #if MICROSOFT_EXTENSIONS_ALLOWED
-EXTERN a_boolean
+EXTERN_THREAD a_boolean
 		processing_vccorlib_header;
 			/* TRUE if currently processing vccorlib.h as part of
 			   C++/CX initialization. */
 
-EXTERN an_assembly_index
+EXTERN_THREAD an_assembly_index
 		curr_assembly_index;
 			/* When scanning imported metadata this is the index
 			   for the assembly being processed; zero otherwise. */
