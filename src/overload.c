@@ -21370,8 +21370,7 @@ other cases, FALSE is returned and the source operand is left unchanged.
       is_expression_operand(source_operand) &&
       !source_operand->pending_capture &&
       (operand_is_lvalue_for_variable(source_operand, &var) ||
-       (cpp20_mode &&
-        operand_is_lvalue_for_rref_variable(source_operand, &var)))) {
+       operand_is_lvalue_for_rref_variable(source_operand, &var))) {
     /* The move constructor optimization might apply here.  Check further.
        (Note that we exclude cases that involve captured variables, since
        those will be rewritten.) */
@@ -21448,9 +21447,8 @@ other cases, FALSE is returned and the source operand is left unchanged.
         a_variable_ptr var2;
         check_assertion((operand_is_lvalue_for_variable(source_operand,
                                                         &var2) ||
-                         (cpp20_mode &&
-                          operand_is_lvalue_for_rref_variable(source_operand,
-                                                              &var2))) &&
+                         operand_is_lvalue_for_rref_variable(source_operand,
+                                                             &var2)) &&
                         var == var2);
       }  /* if */
 #endif /* CHECKING */

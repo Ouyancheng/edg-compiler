@@ -1,5 +1,15 @@
 Version 6.7
 
+12/11/24 [EDGcpfe/27769]
+P1825R0 changes treated as a DR
+
+The Changes for EDGcpfe/21596 (see entry of 8/6/19) implemented the resolution
+of the C++ standardization committee's P1825R0 in C++20 mode only.  However,
+that paper was voted into the standard as a "defect resolution" (DR), which
+implies that it should take effect in all applicable C++ modes.  The front end 
+now enables those changes in all modes that support rvalue references.
+
+
 12/10/24 [EDGcpfe/27788]
 Write IL display to f_display
 
