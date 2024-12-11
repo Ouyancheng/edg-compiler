@@ -4034,11 +4034,13 @@ information in the specified id-linkage block.
       idlbp->linkage = idl_internal;
       const_variable = TRUE;
     } else if (cpp11_mode &&
+#if MICROSOFT_EXTENSIONS_ALLOWED
                !(microsoft_mode &&
                  (find_attribute(ak_dllexport,
                                  dps->prefix_attributes) != NULL ||
                   find_attribute(ak_dllimport,
                                  dps->prefix_attributes) != NULL)) &&
+#endif /* MICROSOFT_EXTENSIONS_ALLOWED */
                idlbp->within_unnamed_namespace) {
       /* In C++11 (and later) unnamed namespace scopes cause their members to
          have internal linkage. */
