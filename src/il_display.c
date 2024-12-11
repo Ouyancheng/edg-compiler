@@ -8588,6 +8588,30 @@ form.
 
 #if !STANDALONE_IL_DISPLAY
 
+static void init_front_end_f_display()
+/*
+Initialize f_display for processing outside of the standalone IL display
+application (i.e., processing performed by the main front end binary itself).
+*/
+{
+  f_display = default_il_display_output_file();
+}  /* init_front_end_f_display */
+
+
+static void clean_up_front_end_f_display()
+/*
+Clean up the f_display value that was initialized for processing outside of the
+standalone IL display application (i.e., processing performed by the main front
+end binary itself).
+*/
+{
+  if (f_display != stderr && f_display != stdout) {
+    (void)fclose(f_display);
+    f_display = NULL;
+  }  /* if */
+}  /* clean_up_front_end_f_display */
+
+
 void pragma_il_display(ARG_UNUSED a_pending_pragma_ptr ppp,
                        ARG_UNUSED a_symbol_ptr         sym_ptr,
                        ARG_UNUSED a_statement_ptr      stmt_ptr)
@@ -8599,6 +8623,7 @@ the IL associated with the entity that was bound to the pragma.
   char             *entry_ptr = NULL;
   an_il_entry_kind kind;
 
+  init_front_end_f_display();
   if (sym_ptr != NULL) {
 #if DEBUG
     db_sym(sym_ptr);
@@ -8616,6 +8641,7 @@ the IL associated with the entity that was bound to the pragma.
     init_for_il_to_str_output();
     disp_entry(entry_ptr, kind);
   }  /* if */
+  clean_up_front_end_f_display();
 }  /* pragma_il_display */
 
 #endif /* !STANDALONE_IL_DISPLAY */
@@ -8629,7 +8655,7 @@ it is the name of the file from which the IL was read.
   a_memory_region_number region_number;
 
 #if !STANDALONE_UTILITY_PROGRAM
-  f_display = default_il_display_output_file();
+  init_front_end_f_display();
 #endif /* !STANDALONE_UTILITY_PROGRAM */
   if (file_name == NULL) {
     (void)fprintf(f_display,
@@ -8668,10 +8694,7 @@ it is the name of the file from which the IL was read.
     }  /* if */
   }  /* for */
 #if !STANDALONE_UTILITY_PROGRAM
-  if (f_display != stderr && f_display != stdout) {
-    (void)fclose(f_display);
-    f_display = NULL;
-  }  /* if */
+  clean_up_front_end_f_display();
 #endif /* !STANDALONE_UTILITY_PROGRAM */
 }  /* do_il_display */
 
