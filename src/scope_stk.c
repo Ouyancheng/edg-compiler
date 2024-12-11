@@ -7071,12 +7071,25 @@ curr_routine points to the routine entry; otherwise, it is NULL.
             }  /* if */
           }  /* if */
         } else if (storage_class != (a_storage_class)sc_extern) {
-          /* A file-scope variable that defines storage and has
+          /* A namespace-scope variable that defines storage and has
              an incomplete type, as in "struct incomplete v;".  Issue an
              error.  Note that arrays like this, except for static arrays,
              were handled above. */
-          pos_st_error(ec_var_retained_incomp_type, &sym->decl_position,
-                       sym->header->identifier);
+          an_error_severity sev = es_discretionary_error;
+          if ((clangcpp_version_is(any_version) ||
+               gpp_version_is(any_version)) &&
+              is_array_with_complete_element_type(var_type) &&
+              is_member_of_unnamed_namespace(&var_ptr->source_corresp)) {
+            /* Clang and GCC accept:
+                 namespace {
+                   extern int x[];
+                   int f() { return x[0]; }
+                 }
+               even if x is never defined. */
+            sev = es_warning;
+          }  /* if */
+          pos_st_diagnostic(sev, ec_var_retained_incomp_type,
+                            &sym->decl_position, sym->header->identifier);
         }  /* if */
       }  /* if */
       /* If the storage class remains sc_unspecified, set the

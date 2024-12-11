@@ -1,5 +1,19 @@
 Version 6.7
 
+12/11/24 [EDGcpfe/26819]
+Clang/GCC compatibility: Incomplete arrays in unnamed namespaces
+
+In Clang and GNU C++ modes, the front end now accepts
+
+  namespace {
+    extern int x[];
+    int f() { return x[0]; }
+  }
+
+with a warning (without x ever be defined) to match the behaviors of GCC and
+Clang.
+
+
 12/11/24 [EDGcpfe/27743]
 Handling of members of unnamed namespaces
 
