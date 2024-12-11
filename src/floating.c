@@ -2011,7 +2011,8 @@ Seminumerical Algorithms (3rd edition).
   int           d;
   int           b = BYTE_MAX + 1;
   unsigned char *v = den->frac;
-  unsigned char shifted_den[MAX_FRAC_BYTES] = { 0 };
+  unsigned char copied_den[MAX_FRAC_BYTES + 1] = { 0 };
+  unsigned char shifted_den[MAX_FRAC_BYTES + 1] = { 0 };
   int           m = BYTE_COUNT(num->precision) + 1;
   int           n = dbytes;
 
@@ -2025,6 +2026,9 @@ Seminumerical Algorithms (3rd edition).
     fp_frac_shift_left(shifted_den, n * BYTE_SIZE,
                        BYTE_SIZE - den->precision % BYTE_SIZE);
     v = shifted_den;
+  } else if (m > n) {
+    memcpy(copied_den, den->frac, MAX_FRAC_BYTES);
+    v = copied_den;
   }  /* if */
   /* D1: Normalize. */
   d = b / (v[n - 1] + 1);
