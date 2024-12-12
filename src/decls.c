@@ -4036,18 +4036,21 @@ information in the specified id-linkage block.
     } else if (cpp11_mode &&
 #if MICROSOFT_EXTENSIONS_ALLOWED
                !(microsoft_mode &&
-                 (find_attribute(ak_dllexport,
+                 (ms_version_is(<1922) ||
+                  find_attribute(ak_dllexport,
                                  dps->prefix_attributes) != NULL ||
                   find_attribute(ak_dllimport,
                                  dps->prefix_attributes) != NULL)) &&
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
                idlbp->within_unnamed_namespace) {
       /* In C++11 (and later) unnamed namespace scopes cause their members to
-         have internal linkage. */
-      if (idlbp->extern_C_name_linkage_specified && gnu_mode) {
-        /* GNU and clang appear to give such entities external linkage
-           (e.g., namespace { extern "C" void f() {} }).  This appears to be
-           contrary to the standard. */
+         have internal linkage.  (This was not the case in earlier Microsoft
+         versions.) */
+      if (idlbp->extern_C_name_linkage_specified &&
+          (gpp_mode || microsoft_mode || clang_mode)) {
+        /* GNU, MSVC, and Clang appear to give such entities external linkage
+           (e.g., namespace { extern "C" void f() {} }), despite the standard
+           specifying internal linkage for their names. */
         idlbp->linkage = idl_external;
       } else {
         idlbp->linkage = idl_internal;
