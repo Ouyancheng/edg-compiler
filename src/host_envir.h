@@ -4035,9 +4035,9 @@ extern a_const_char *generate_instantiation_output_file_name(
                                                    a_const_char *mangled_name);
 #endif /* ONE_INSTANTIATION_PER_OBJECT */
 
-#if !EDG_WIN32
+#if !EDG_WIN32 && !MULTIPLE_THREAD_COMPILATION
 extern void set_cpu_time_limit(int	seconds);
-#endif /* !EDG_WIN32 */
+#endif /* !EDG_WIN32 && !MULTIPLE_THREAD_COMPILATION */
 
 #if DEBUG
 extern void db_incl_search_path(void);

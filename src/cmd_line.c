@@ -412,12 +412,12 @@ Initialize the option information table.
                          pchek_none);
 #endif /* MAINTAIN_ALLOCATION_SEQUENCE_NUMBER */
 #endif /* DEBUG */
-#if !EDG_WIN32
+#if !EDG_WIN32 && !MULTIPLE_THREAD_COMPILATION
   /* This option is only available on Unix. */
   add_option_description(optk_time_limit, "time_limit", '\0',
                          /*value=*/TRUE, /*arg_required=*/TRUE,
                          pchek_none);
-#endif /* !EDG_WIN32 */
+#endif /* !EDG_WIN32 && !MULTIPLE_THREAD_COMPILATION */
   add_option_description(optk_diag_suppress, "diag_suppress", '\0',
                          /*value=*/TRUE, /*arg_required=*/TRUE,
                          pchek_command_line);
@@ -10631,7 +10631,7 @@ Process the arguments on the command line that invoked the compiler.
         break;
 #endif /* MAINTAIN_ALLOCATION_SEQUENCE_NUMBER */
 #endif /* DEBUG */
-#if !EDG_WIN32
+#if !EDG_WIN32 && !MULTIPLE_THREAD_COMPILATION
       case optk_time_limit:
         /* Option to limit the amount of CPU time used during a compilation. */
         { int time_limit;
@@ -10639,7 +10639,7 @@ Process the arguments on the command line that invoked the compiler.
           set_cpu_time_limit(time_limit);
         }
         break;
-#endif /* !EDG_WIN32 */
+#endif /* !EDG_WIN32 && !MULTIPLE_THREAD_COMPILATION */
       case optk_diag_suppress:
       case optk_diag_remark:
       case optk_diag_warning:
