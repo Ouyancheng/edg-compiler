@@ -6305,8 +6305,8 @@ FILE* default_preproc_output_file()
 This function returns the default FILE* that should be used for preprocessor
 output (i.e., stdout).
 
-This is the default implementation of the default_error_file function.  When
-CUSTOM_DEFAULT_OUTPUT_FILES is TRUE it's expected that an alternative
+This is the default implementation of the default_preproc_output_file function.
+When CUSTOM_DEFAULT_OUTPUT_FILES is TRUE it's expected that an alternative
 implementation is provided by another file (usually outside of the standard EDG
 C++/C front end source file set).
 */
