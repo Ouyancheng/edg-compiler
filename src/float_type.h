@@ -675,7 +675,7 @@ Set *bin to the minimum normal value.
   bin->type = fpt_number;
   bin->is_negative = 0;
   bin->exponent = FPT_MIN_EXP;
-  memset(bin->frac, 0, MAX_FRAC_BYTES);
+  memset(bin->frac, 0, MAX_FRAC_BYTES + 1);
   bin->frac[HIGH_FRAC_BYTE] |= HIGH_FRAC_BIT;
   bin->precision = FPT_PRECISION;
 }  /* MAKE_MIN */

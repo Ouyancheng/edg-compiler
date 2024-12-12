@@ -466,9 +466,12 @@ typedef struct an_fp_binary {
   int           exponent;
                         /* Base 2 exponent, with the binary point at the left
                            of frac. */
-  unsigned char frac[MAX_FRAC_BYTES];
-                        /* The binary mantissa, left justified in a field whose
-                           width in bytes is equal to precision. */
+  unsigned char frac[MAX_FRAC_BYTES + 1];
+                        /* The binary mantissa, left justified in a field
+                           whose width in bytes is equal to precision.  The
+                           array contains one extra byte for the
+                           fp_emul_div algorithm that would otherwise
+                           exceed the array bound. */
   int           precision;
                         /* Number of bits in the mantissa.  This is determined
                            by the floating-point type itself, which lets us
