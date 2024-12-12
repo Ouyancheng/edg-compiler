@@ -2026,7 +2026,7 @@ Seminumerical Algorithms (3rd edition).
     fp_frac_shift_left(shifted_den, n * BYTE_SIZE,
                        BYTE_SIZE - den->precision % BYTE_SIZE);
     v = shifted_den;
-  } else if (m > n) {
+  } else if (m > MAX_FRAC_BYTES) {
     memcpy(copied_den, den->frac, MAX_FRAC_BYTES);
     v = copied_den;
   }  /* if */
