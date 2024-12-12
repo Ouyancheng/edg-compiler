@@ -1,5 +1,13 @@
 Version 6.7
 
+12/12/24 [EDGcpfe/27792]
+Clang compatibility: __is_complete_type
+
+The Clang-specific type-trait helper __is_complete_type (which was added by the
+changes for EDGcpfe/12122,EDGcpfe/23794,EDGcpfe/23799) now produces a true
+value for reference types and for function types.
+
+
 12/11/24 [EDGcpfe/26819]
 Clang/GCC compatibility: Incomplete arrays in unnamed namespaces
 

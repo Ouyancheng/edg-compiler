@@ -9126,7 +9126,9 @@ and, if pos is not NULL, an error will be reported.
           result = is_arithmetic_type(type);
           break;
         case bok_is_complete_type:
-          result = is_complete_object_type(type);
+          result = is_complete_object_type(type) ||
+                   is_reference_type(type) ||
+                   is_function_type(type);
           break;
         case bok_is_compound:
           result = !is_fundamental_type(type);
