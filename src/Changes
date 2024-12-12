@@ -26,7 +26,7 @@ Clang.
 Handling of members of unnamed namespaces
 
 Previously, members of unnamed namespaces did not acquire internal linkage in
-Microsoft mode.  Now they do.
+Microsoft mode.  Now they do when microsoft_version >= 1922.
 
 
 12/11/24 [EDGcpfe/27769]
