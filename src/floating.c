@@ -2027,6 +2027,8 @@ Seminumerical Algorithms (3rd edition).
                        BYTE_SIZE - den->precision % BYTE_SIZE);
     v = shifted_den;
   } else if (m > MAX_FRAC_BYTES) {
+    /* Avoid accessing past the end of the den->frac array by copying it to
+       a larger local array and using the copy for the calculations. */
     memcpy(copied_den, den->frac, MAX_FRAC_BYTES);
     v = copied_den;
   }  /* if */
