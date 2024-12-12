@@ -3771,7 +3771,7 @@ extern int ucn_to_utf16(unsigned long   ucn,
                         unsigned short  *encoding);
 
 /*
-If defined to TRUE, an alternative definition of default_error_output_file(),
+If defined to TRUE, alternative definitions of default_error_output_file(),
 default_preproc_output_file(), and (if NEED_IL_DISPLAY is TRUE)
 default_il_display_output_file() must be provided.  See the default
 implementations of the respective functions in host_envir.c for more
