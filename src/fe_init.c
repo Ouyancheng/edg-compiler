@@ -2194,11 +2194,15 @@ when it is a secondary file.
   il_header.max_macro_invocation_depth = 0;
   il_header.root_macro_invocation_record_block = NULL;
 #endif /* MACRO_INVOCATION_TREE_IN_IL */
+#if MULTIPLE_THREAD_COMPILATION
+  abandon_pch_processing();
+#else /* !MULTIPLE_THREAD_COMPILATION */
   /* Suppress PCH processing on secondary translation units. */
   if (!is_primary_translation_unit) {
     abandon_pch_processing();
     using_a_pch_file = FALSE;
   }  /* if */
+#endif /* MULTIPLE_THREAD_COMPILATION */
   /* Initialize the symbol table (keywords and predefined macros).  Note that
      keyword_init is called first, so that predefined macros will have
      priority over keywords.  Also, macro_init must have been called, so
