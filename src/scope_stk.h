@@ -2377,6 +2377,12 @@ extern void push_instantiation_scope_for_rescan(a_symbol_ptr	template_sym);
 
 extern void pop_instantiation_scope_for_rescan(void);
 
+extern void push_enclosing_class_scope_for_rescan(
+                                                a_type_ptr     enclosing_class,
+                                                a_routine_ptr  assoc_routine);
+
+extern void pop_enclosing_class_scope_for_rescan(void);
+
 extern void push_instantiation_scope_for_constraint_type(void);
 
 extern void pop_instantiation_scope_for_constraint_type(void);

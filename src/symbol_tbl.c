@@ -8641,11 +8641,11 @@ if the constraints fails, or FALSE otherwise.
   a_routine_ptr          rp = sym->variant.routine.ptr;
   a_requires_clause_ptr  rcp = rp->trailing_requires_clause;;
   a_subst_pairs_array    subst_pairs(1);
-  a_subst_pairs_descr    top_pair;
   an_expr_node_ptr       constraint;
   a_boolean              err = FALSE;
-  a_type_ptr             enclosing_class, enclosing_template_class;
+  a_type_ptr             enclosing_class;
   a_decl_parse_state     dps;
+  a_diag_list            diag_list;
 
   sym->variant.routine.pending_trailing_requires_clause = FALSE;
   if (symbol_is(sym, sk_member_function)) {
@@ -8657,7 +8657,7 @@ if the constraints fails, or FALSE otherwise.
       goto done;
     }  /* if */
     enclosing_class = sym_parent_class(sym);
-    push_instantiation_scope_for_rescan(symbol_for(rp->assoc_template));
+    push_enclosing_class_scope_for_rescan(enclosing_class, rp);
     init_decl_parse_state(&dps);
     dps.sym = sym;
     dps.type = rp->type;
@@ -8670,64 +8670,26 @@ if the constraints fails, or FALSE otherwise.
     /* A friend function defined in a class template instance. */
     check_assertion(rp->routine_fixup != NULL);
     enclosing_class = class_from_routine_fixup(rp->routine_fixup);
-    enclosing_template_class = enclosing_class;
-    while (class_type_supp(enclosing_template_class)->assoc_template == 0) {
-      enclosing_template_class = parent_class_of(enclosing_template_class);
-    }  /* while */
-    push_class_reactivation_scope(enclosing_class, /*extend_namespace=*/FALSE);
-    push_instantiation_scope_for_rescan(
-       symbol_for(class_type_supp(enclosing_template_class)->assoc_template));
+    push_enclosing_class_scope_for_rescan(enclosing_class, NULL);
   }  /* if */
   /* Identify all the substitutions applicable to the constraint. */
   get_all_class_subst_pairs(enclosing_class, &subst_pairs);
-  /* We are going to substitute the constraint from the outside in.  All but
-     the last substitution are ordinary expression substitutions, and the last
-     one will go through the constraint satisfaction test. */
-  top_pair = subst_pairs.back_elem();
-  subst_pairs.pop_back();
+  clear_diag_list(&diag_list);
   constraint = rcp->constraint;
-  if (subst_pairs.length() != 0) {
-    a_constant_ptr  cp = local_constant(), allocated_cp = NULL;
-    a_ctws_state    ctws_state;
-    init_ctws_state(&ctws_state);
-    constraint = substitute_expr(rcp->constraint, subst_pairs, &ctws_state,
-                                 CTWS_MAY_BE_RESCANNED, cp, &allocated_cp,
-                                 &err);
-    if (err || constraint != NULL) {
-      release_local_constant(&cp);
-    } else {
-      if (allocated_cp == NULL) {
-        /* The constant result was constructed in *cp: Move it to file
-           scope memory. */
-        allocated_cp = move_local_constant_to_il(&cp);
-      } else {
-        release_local_constant(&cp);
-      }  /* if */
-      constraint = alloc_node_for_constant(allocated_cp);
-    }  /* if */
-  }  /* if */
-  if (!err) {
-    a_diag_list  diag_list;
-    clear_diag_list(&diag_list);
-    /* Check the constraint.  Note that CTWS_SUBST_PARENT_CLASS_ARGS is needed
-       to ensure that template parameter packs in the parent class are
-       correctly substituted in the constraint. */
-    if (!constraint_satisfied(constraint, top_pair.args, top_pair.params,
-                              &diag_list, CTWS_SUBST_PARENT_CLASS_ARGS,
-                              (a_ctws_state_ptr)NULL, &err)) {
-      err = TRUE;
-    }  /* if */
+  /* Check the constraint. */
+  if (!constraint_satisfied_full(constraint, subst_pairs, &diag_list,
+                                 CTWS_NO_OPTIONS,
+                                 (a_ctws_state_ptr)NULL, &err)) {
+    err = TRUE;
   }  /* if */
   if (err) {
     rp->is_ineligible = TRUE;
-  }
+  }  /* if */
   if (symbol_is(sym, sk_member_function)) {
+    check_assertion(scope_is(&scope_stack_top(), sck_func_prototype));
     pop_scope();
   }  /* if */
-  pop_instantiation_scope_for_rescan();
-  if (!symbol_is(sym, sk_member_function)) {
-    pop_class_reactivation_scope();
-  }  /* if */
+  pop_enclosing_class_scope_for_rescan();
 done:
   return err;
 }  /* resolve_pending_trailing_requires_clause */

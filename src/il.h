@@ -2731,15 +2731,7 @@ typedef int a_ctws_options_set;
 			   In this case, certain substitutions are not done
 			   (e.g., of the exception specification when it is
 			   part of the type). */
-#define CTWS_SUBST_PARENT_CLASS_ARGS	0x40000
-			/* TRUE if the template arguments of parent templates
-			   must also be substituted.  Often, those will have
-			   been resolved when instantiating from tokens, but
-			   in some cases (like substituting constraints) the
-			   substitution process must deal with these (and
-			   that requires special handling of pack expansions,
-			   in particular). */
-#define CTWS_ALIAS_DEDUCTION_GUIDE	0x80000
+#define CTWS_ALIAS_DEDUCTION_GUIDE	0x40000
 			/* TRUE when doing substitution to create a deduction
 			   guide routine type for an alias template. */
 

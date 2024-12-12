@@ -5777,6 +5777,55 @@ push_instantiation_scope_for_rescan.
 }  /* pop_instantiation_scope_for_rescan */
 
 
+void push_enclosing_class_scope_for_rescan(a_type_ptr     enclosing_class,
+                                           a_routine_ptr  assoc_routine)
+/*
+Push a class reactivation context for the specified enclosing class for
+expression rescan.  assoc_routine is the associated routine and can be NULL.
+*/
+{
+  a_scope_depth  orig_depth = depth_scope_stack;
+  a_scope_depth  orig_access_depth =
+                          depth_of_innermost_scope_that_affects_access_control;
+
+  (void)push_scope(sck_instantiation_context, NO_SCOPE_NUMBER, NULL, NULL);
+  reactivate_class_context(NULL, enclosing_class, NULL, NULL, assoc_routine,
+                           PS_NONREAL_INSTANTIATION | PS_IS_RESCAN);
+  scope_stack_top().in_nonreal_instantiation = TRUE;
+  scope_stack_top().orig_depth = orig_depth;
+  scope_stack_top().saved_innermost_scope_that_affects_access =
+                                                             orig_access_depth;
+  (void)push_scope(sck_function_access, NO_SCOPE_NUMBER, (a_type_ptr)NULL,
+                   assoc_routine);
+  /* Save the innermost scope that affects access control and defer
+     access checks during the rescan. */
+  if (orig_access_depth != NO_SCOPE_DEPTH) {
+    scope_stack_top().orig_access_depth = orig_access_depth;
+    begin_deferral_of_access_checks();
+  }  /* if */
+}  /* push_enclosing_class_scope_for_rescan */
+
+
+void pop_enclosing_class_scope_for_rescan(void)
+/*
+Pop the enclosing class scope pushed by push_enclosing_class_scope_for_rescan.
+*/
+{
+  a_scope_stack_entry_ptr  ssep = &scope_stack_top();
+  a_scope_depth            orig_access_depth = ssep->orig_access_depth;
+  if (orig_access_depth != NO_SCOPE_DEPTH) {
+    /* If an original access checking depth was saved, repeat any access checks
+       that were deferred. */
+    perform_deferred_access_checks_at_depth(depth_scope_stack);
+    depth_of_innermost_scope_that_affects_access_control = orig_access_depth;
+    end_deferral_of_access_checks();
+  }  /* if */
+  check_assertion(scope_is(ssep, sck_function_access));
+  pop_scope();
+  pop_class_reactivation_scope();
+}  /* pop_enclosing_class_scope_for_rescan */
+
+
 void set_template_decl_info_for_class_definition(
 				a_template_decl_info_ptr	tdip,
 				a_type_ptr			class_type)

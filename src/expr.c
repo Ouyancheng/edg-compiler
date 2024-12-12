@@ -2862,8 +2862,7 @@ done.
   check_assertion(expr->is_pack_expansion && pedep != NULL);
   if ((rcblock->options & CTWS_ADJUST_COORDINATES) != 0 ||
       (rcblock->ctws_state->in_parent_substitution &&
-       !pedep->uses_any_enclosing_packs &&
-       !(rcblock->options & CTWS_SUBST_PARENT_CLASS_ARGS))) {
+       !pedep->uses_any_enclosing_packs)) {
     add_expr_copy = TRUE;
   } else {
     Value_saver<a_boolean>  unexpanded_pack_saver(
@@ -9137,10 +9136,28 @@ a left parenthesis in the source.
         }  /* if */
       } else if (is_variable_node(member_op)) {
         /* Static data member. */
-        sym = symbol_for(node_variable(member_op));
+        a_variable_ptr  var = node_variable(member_op);
+        if (var->is_nonreal) {
+          sym = copy_template_variable_with_substitution(
+                                    var, rcblock->template_arg_list,
+                                    rcblock->template_param_list,
+                                    &rcblock->expr->position, rcblock->options,
+                                    err, rcblock->ctws_state);
+        } else {
+          sym = symbol_for(var);
+        }  /* if */
       } else if (is_routine_node(member_op)) {
         /* Static member function. */
-        sym = symbol_for(node_routine(member_op));
+        a_routine_ptr  rp = node_routine(member_op);
+        if (rp->assoc_template != NULL) {
+          sym = copy_template_routine_with_substitution(
+                                    rp, rcblock->template_arg_list,
+                                    rcblock->template_param_list,
+                                    &rcblock->expr->position, rcblock->options,
+                                    err, rcblock->ctws_state);
+        } else {
+          sym = symbol_for(node_routine(member_op));
+        }  /* if */
       } else {
         unexpected_condition();
       }  /* if */
