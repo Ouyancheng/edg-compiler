@@ -10,7 +10,7 @@ In Clang and GNU C++ modes, the front end now accepts
     int f() { return x[0]; }
   }
 
-with a warning (without x ever be defined) to match the behaviors of GCC and
+with a warning (without x ever being defined) to match the behaviors of GCC and
 Clang.
 
 
