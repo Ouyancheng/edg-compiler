@@ -32819,6 +32819,9 @@ of the front end.
   num_based_type_fixups_allocated        = 0;
   num_copy_remap_entries_allocated       = 0;
 #endif /* DEBUG */
+#if UPC_EXTENSIONS_ALLOWED
+  max_upc_block_size = MAX_UPC_BLOCK_SIZE;
+#endif /* UPC_EXTENSIONS_ALLOWED */
   curr_seq_number_lookup_entry = NULL;
   avail_copy_remap_entries = NULL;
   il_alloc_init();
