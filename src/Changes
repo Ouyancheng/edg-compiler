@@ -213,7 +213,7 @@ and with --clang_version=180100:
 
   auto cf16 = 0.0if16;
 
-3. Complex 16-bit floating-point types were not correctly lowered and could
+3. 16-bit complex floating point types were not correctly lowered and could
 result in assertion failures in, e.g., dump_initializer_part in C-generating
 back end configurations.
 
