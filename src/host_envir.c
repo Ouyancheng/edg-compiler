@@ -6297,7 +6297,7 @@ C++/C front end source file set).
 */
 {
   return stderr;
-}  /* default_error_file */
+}  /* default_error_output_file */
 
 
 FILE* default_preproc_output_file()
