@@ -1441,11 +1441,12 @@ a_boolean file_exists(a_const_char  *file_name)
 Return TRUE if the given file exists; otherwise, return FALSE.
 */
 {
-  a_boolean   result = FALSE;
-  struct stat stat_buffer;
+  a_boolean    result = FALSE;
+  struct stat  stat_buffer;
+  a_const_char *abs_file_name = normalize_file_name(file_name);
+  a_const_char *ext_file_name = file_name_in_external_encoding(abs_file_name);
 
-  file_name = file_name_in_external_encoding(file_name);
-  if (stat(file_name, &stat_buffer) == 0) {
+  if (stat(ext_file_name, &stat_buffer) == 0) {
     result = TRUE;
   }  /* if */
   return result;
@@ -1690,7 +1691,7 @@ Delete the file with the indicated name.  It shouldn't be open currently.
       status = _wremove(wide_file_name);
     } else {
       /* The file name contained no special characters. */
-      status = remove(file_name);
+      status = remove(abs_file_name);
     }  /* if */
   }
 #else /* !(EDG_WIN32 && UNICODE_SOURCE_SUPPORTED) */
@@ -2928,11 +2929,12 @@ WIN32 (e.g., Windows-NT) version.
 */
 a_boolean is_directory(a_const_char *file_name)
 {
-  a_boolean	result = FALSE;
-  DWORD		attr;
-
+  a_boolean    result = FALSE;
+  DWORD        attr;
+  a_const_char *abs_file_name = normalize_file_name(filename);
 #if UNICODE_SOURCE_SUPPORTED
-  wchar_t *wide_file_name = translate_filename_to_wchar(file_name);
+  wchar_t      *wide_file_name = translate_filename_to_wchar(abs_file_name);
+
   if (wide_file_name != NULL) {
     /* The file name has embedded non-ASCII characters, so we need to use
        the GetFileAttributesW routine. */
@@ -2940,12 +2942,12 @@ a_boolean is_directory(a_const_char *file_name)
     attr = GetFileAttributesW(wide_file_name);
   } else {
     /* The file name contained no special characters. */
-    attr = GetFileAttributes(file_name);
+    attr = GetFileAttributes(abs_file_name);
   }  /* if */
 #else /* !UNICODE_SOURCE_SUPPORTED */
   /* Translate the file name into the form used by the file system. */
-  file_name = file_name_in_external_encoding(file_name);
-  attr = GetFileAttributes(file_name);
+  a_const_char *ext_file_name = file_name_in_external_encoding(abs_file_name);
+  attr = GetFileAttributes(ext_file_name);
 #endif /* UNICODE_SOURCE_SUPPORTED */
   result = attr != INVALID_FILE_ATTRIBUTES &&
            (attr & FILE_ATTRIBUTE_DIRECTORY) != 0;
@@ -2966,12 +2968,14 @@ a directory.
 */
 a_boolean is_directory(a_const_char *file_name)
 {
-  a_boolean	result = FALSE;
-  struct stat   buf;
+  a_boolean    result = FALSE;
+  a_const_char *abs_file_name = normalize_file_name(file_name);
+  a_const_char *ext_file_name = file_name_in_external_encoding(abs_file_name);
+  struct stat  buf;
 
   /* Check the file type.  Use the stat call instead of fstat because some
      implementations do not have the _file field in the structure. */
-  if (stat(file_name, &buf) == 0) {
+  if (stat(ext_file_name, &buf) == 0) {
     /* Use the POSIX S_ISDIR if it is defined.  Otherwise use the
        non-POSIX test using S_IFDIR. */
 #ifdef S_ISDIR
@@ -3642,15 +3646,16 @@ If an error occurs attempting to get this information, *unique_id is
 left unchanged.
 */
 {
+  a_const_char               *abs_file_name = normalize_file_name(file_name);
 #if EDG_WIN32
-  BY_HANDLE_FILE_INFORMATION	file_info;
-  HANDLE			f_file;
+  BY_HANDLE_FILE_INFORMATION file_info;
+  HANDLE                     f_file;
 
   /* Make sure the unique ID has been initialized. */
   clear_unique_file_id(unique_id);
   /* Open the file so that we can get the file information. */
   f_file = CreateFile_interface(
-                      file_name, GENERIC_READ,
+                      abs_file_name, GENERIC_READ,
                       FILE_SHARE_READ | FILE_SHARE_WRITE | FILE_SHARE_DELETE,
                       (LPSECURITY_ATTRIBUTES)NULL,
                       OPEN_EXISTING, FILE_ATTRIBUTE_NORMAL,
@@ -3667,11 +3672,12 @@ left unchanged.
   }  /* if */
 #else /* !EDG_WIN32 */
 #if STAT_AVAILABLE
-  struct stat   buf;
+  a_const_char *ext_file_name = file_name_in_external_encoding(abs_file_name);
+  struct stat  buf;
 
   /* Make sure the unique ID has been initialized. */
   clear_unique_file_id(unique_id);
-  if (stat(file_name, &buf) == 0) {
+  if (stat(ext_file_name, &buf) == 0) {
     unique_id->st_dev = buf.st_dev;
     unique_id->st_ino = buf.st_ino;
   }  /* if */
