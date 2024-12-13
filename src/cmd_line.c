@@ -13088,6 +13088,7 @@ variables declared in cmd_line.h.
 #if INT128_EXTENSIONS_ALLOWED
   int128_extensions_enabled = FALSE;
 #endif /* INT128_EXTENSIONS_ALLOWED */
+  extended_float_types = FALSE;
   float16_enabled = FALSE;
   float80_enabled = FLOAT80_ENABLING_POSSIBLE;
   float128_enabled = FLOAT128_ENABLING_POSSIBLE;
