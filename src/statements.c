@@ -3657,11 +3657,11 @@ error).
 }  /* record_condition_initializations */
 
 
-/*
-Flag indicating whether a non-standard selection initializer has already been
-diagnosed.
-*/
-static a_boolean already_diagnosed_selection_initializer = FALSE;
+STATIC_THREAD a_boolean
+		already_diagnosed_selection_initializer;
+			/* Flag indicating whether a non-standard selection
+			   initializer has already been diagnosed. */
+
 
 static void scan_structured_control_value(a_statement_ptr    sp,
                                           an_init_component  *cached_expr)
@@ -5352,11 +5352,12 @@ can be NULL.
 }  /* for_init_statement */
 
 
-/*
-Flag indicating whether a non-standard init statement in a range-based for
-statement has already been diagnosed.
-*/
-static a_boolean already_diagnosed_init_in_range_for = FALSE;
+STATIC_THREAD a_boolean
+		already_diagnosed_init_in_range_for;
+			/* Flag indicating whether a non-standard init
+			   statement in a range-based for statement has already
+			   been diagnosed. */
+
 
 static void for_statement(void)
 /*

@@ -78,13 +78,13 @@ STATIC_THREAD a_text_buffer_ptr
 
 #if MICROSOFT_EXTENSIONS_ALLOWED
 
-static a_hash_table_ptr
+STATIC_THREAD a_hash_table_ptr
 		include_alias_hash_table;
 			/* A hash table used to search for include alias
 			   entries.  NULL if no such aliases exist. */
 
 #if DEBUG
-static unsigned long
+STATIC_THREAD unsigned long
 		num_include_aliases_allocated;
 			/* Count of include aliases allocated, for space used
 			   purposes. */
@@ -3713,15 +3713,15 @@ typedef struct a_upc_pragma_stack_entry {
 /*
 Counts of entries allocated, to track total use of memory.
 */
-static unsigned long
+STATIC_THREAD unsigned long
 		num_upc_pragma_stack_entries_allocated;
 #endif /* DEBUG */
 
-static a_upc_pragma_stack_entry_ptr
+STATIC_THREAD a_upc_pragma_stack_entry_ptr
 		upc_coherence_stack;
 			/* Pointer to the top of the UPC pragma stack. */
 
-static a_upc_pragma_stack_entry_ptr
+STATIC_THREAD a_upc_pragma_stack_entry_ptr
 		avail_upc_pragma_stack_entries;
 			/* List of stack entries freed and available
 			   for reuse. */
@@ -4118,16 +4118,16 @@ typedef struct a_forScope_stack_entry {
 } a_forScope_stack_entry;
 
 #if DEBUG
-static unsigned long
+STATIC_THREAD unsigned long
 		num_forScope_stack_entries_allocated;
 #endif /* DEBUG */
 
-static a_forScope_stack_entry_ptr
+STATIC_THREAD a_forScope_stack_entry_ptr
 		forScope_stack;
 			/* Pointer to the top of the stack of forScope
 			   conformance states. */
 
-static a_forScope_stack_entry_ptr
+STATIC_THREAD a_forScope_stack_entry_ptr
 		avail_forScope_stack_entries;
 			/* List of forScope state stack entries that were
 			   freed and are now available for reuse. */
