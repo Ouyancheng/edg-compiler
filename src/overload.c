@@ -21370,7 +21370,9 @@ other cases, FALSE is returned and the source operand is left unchanged.
       is_expression_operand(source_operand) &&
       !source_operand->pending_capture &&
       (operand_is_lvalue_for_variable(source_operand, &var) ||
-       operand_is_lvalue_for_rref_variable(source_operand, &var))) {
+       (operand_is_lvalue_for_rref_variable(source_operand, &var) &&
+        (!(gpp_mode || ms_version_is(<1924) || clang_version_is(<130000)) ||
+         cpp20_mode)))) {
     /* The move constructor optimization might apply here.  Check further.
        (Note that we exclude cases that involve captured variables, since
        those will be rewritten.) */
