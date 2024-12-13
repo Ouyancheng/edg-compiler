@@ -206,7 +206,7 @@ kind entry_kind.
       /* Use pointer address. */
 #if defined(_WIN64)
       /* Avoid data loss in casting to unsigned long. */
-      (void)printf(f_display, "@%p", entry_ptr);
+      (void)fprintf(f_display, "@%p", entry_ptr);
 #else /* !defined(_WIN64) */
       (void)fprintf(f_display, "@%lx", (unsigned long)entry_ptr);
 #endif /* defined(_WIN64) */
