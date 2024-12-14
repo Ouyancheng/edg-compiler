@@ -44116,7 +44116,9 @@ One-time initialization for templates.c static variables.
   register_trans_unit_variable(inline_function_list);
   register_trans_unit_variable(inline_variable_list);
   register_trans_unit_variable(can_instantiate_list);
+#if AUTOMATIC_TEMPLATE_INSTANTIATION
   template_search_path_used = FALSE;
+#endif /* AUTOMATIC_TEMPLATE_INSTANTIATION */
 }  /* templates_one_time_init */
 
 
