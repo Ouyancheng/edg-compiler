@@ -37803,6 +37803,12 @@ the file should be placed.
 }  /* read_export_info_file */
 
 
+STATIC_THREAD a_boolean
+		template_search_path_used;
+			/* Set to TRUE immediately after the first use of the
+			   template search path. */
+
+
 static void find_exported_template_files(void)
 /*
 Go through the template search path and read the exported template files
@@ -37814,6 +37820,12 @@ compilation can be looked up to find the corresponding definition.
   a_boolean			first;
 
   db_enter(2, "find_exported_template_files");
+  if (!template_search_path_used) {
+    /* If this is the first time this function has been called, add the current
+       working directory to the template search path. */
+    template_search_path_used = TRUE;
+    add_to_template_search_path(get_working_directory());
+  }  /* if */
   for (dnep = template_search_path; dnep != NULL; dnep = dnep->next) {
     an_export_info_file	export_info;
     /* Ignore this search path entry if the directory does not exist. */
@@ -44104,6 +44116,7 @@ One-time initialization for templates.c static variables.
   register_trans_unit_variable(inline_function_list);
   register_trans_unit_variable(inline_variable_list);
   register_trans_unit_variable(can_instantiate_list);
+  template_search_path_used = FALSE;
 }  /* templates_one_time_init */
 
 
