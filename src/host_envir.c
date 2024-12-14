@@ -2931,7 +2931,7 @@ a_boolean is_directory(a_const_char *file_name)
 {
   a_boolean    result = FALSE;
   DWORD        attr;
-  a_const_char *abs_file_name = normalize_file_name(filename);
+  a_const_char *abs_file_name = normalize_file_name(file_name);
 #if UNICODE_SOURCE_SUPPORTED
   wchar_t      *wide_file_name = translate_filename_to_wchar(abs_file_name);
 
