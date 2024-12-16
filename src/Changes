@@ -1,5 +1,19 @@
 Version 6.7
 
+12/16/24
+Clang compatibility: __building_module macro operator
+
+The front end now accepts the __building_module macro operator in clang
+emulation mode.  The operator takes a single identifier as its operand and
+expands to the value 1 if it appears in the definition of a module whose
+name matches that identifier and to 0 otherwise.  For example, with
+--clang:
+
+  #if !__building_module(xyz)
+  #error This file should only be used within module xyz.
+  #endif
+
+
 12/12/24 [EDGcpfe/27792]
 Clang compatibility: __is_complete_type
 

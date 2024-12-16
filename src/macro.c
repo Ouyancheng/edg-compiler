@@ -295,7 +295,7 @@ STATIC_THREAD a_symbol_ptr
 STATIC_THREAD a_symbol_ptr
 		is_identifier_symbol;
 			/* Pointer to the symbol entry for the special
-			   macro "__is_identifer", which is used in clang
+			   macro "__is_identifier", which is used in clang
 			   mode and optionally in all modes. */
 
 STATIC_THREAD a_symbol_ptr
@@ -303,6 +303,12 @@ STATIC_THREAD a_symbol_ptr
 			/* Pointer to the symbol entry for the special
 			   macro "__has_warning", which is used in clang
 			   mode. */
+
+STATIC_THREAD a_symbol_ptr
+		building_module_symbol;
+			/* Pointer to the symbol entry for the special
+			   macro "__building_module", which is used in
+			   clang mode. */
 
 STATIC_THREAD a_boolean
 		use_raw_version_of_arg;
@@ -6319,6 +6325,47 @@ make_inert_macro:
           do_string_literal_concatenation = saved_str_lit_concat;
         }  /* if */
         strcpy(repl_text, "0");
+      } else if (macro_symbol == building_module_symbol) {
+        /* The clang __building_module macro.  Takes one identifier as an
+           argument.  The value is 1 if we are currently building a module
+           and the module name matches the argument, 0 otherwise. */
+        a_boolean saved_fetch_pp_tokens = fetch_pp_tokens;
+        a_boolean saved_in_preprocessing_directive =
+                                                    in_preprocessing_directive;
+        a_boolean saved_in_pp_if = in_pp_if_expression;
+        a_boolean module_name_matches = FALSE;
+        if (get_token() != tok_lparen) {
+          /* Unlike normal function-style macros, clang always treats
+             __building_module as a macro even when not followed by a left
+             parenthesis, giving it the value "0" and reporting an
+             error. */
+          pos_error(ec_exp_lparen, &pos_curr_token);
+        } else {
+          expand_macros = FALSE;
+          fetch_pp_tokens = TRUE;
+          in_preprocessing_directive = FALSE;
+          in_pp_if_expression = FALSE;
+          if (get_token() == tok_identifier) {
+            if (trans_unit_module != NULL &&
+                module_name_of(trans_unit_module) ==
+                       a_string_view(start_of_curr_token, len_of_curr_token)) {
+              module_name_matches = TRUE;
+            }  /* if */
+            if (get_token() != tok_rparen) {
+              pos_error(ec_exp_rparen, &pos_curr_token);
+              flush_to_closing_paren();
+            }  /* if */
+          } else {
+            pos_error(ec_exp_identifier, &pos_curr_token);
+            if (curr_token != tok_rparen) {
+              flush_to_closing_paren();
+            }
+          }  /* if */
+          in_preprocessing_directive = saved_in_preprocessing_directive;
+          fetch_pp_tokens = saved_fetch_pp_tokens;
+          in_pp_if_expression = saved_in_pp_if;
+        }  /* if */
+        strcpy(repl_text, module_name_matches ? "1" : "0");
       } else {
         unexpected_condition_str(
                          "macro_invocation: unknown special predefined macro");
@@ -12331,10 +12378,15 @@ command line -D options.
                                             /*ref_suppresses_pch_file=*/FALSE);
   }  /* if */
   if (clang_mode) {
-    /* __has_warning expects exactly one token, a string literal, so normal
-       macro argument processing is not appropriate and it is defined as
+    /* __has_warning expects exactly one token, a string literal;
+       __building_module expects only a single identifier.  Normal macro
+       argument processing is thus not appropriate and they are defined as
        object-like. */
     has_warning_symbol = enter_predef_macro((char *)NULL, "__has_warning",
+                                            /*cannot_be_redefined=*/TRUE,
+                                            /*ref_suppresses_pch_file=*/FALSE);
+    building_module_symbol = enter_predef_macro(
+                                            (char *)NULL, "__building_module",
                                             /*cannot_be_redefined=*/TRUE,
                                             /*ref_suppresses_pch_file=*/FALSE);
   }  /* if */
