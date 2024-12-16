@@ -64,12 +64,15 @@ STATIC_THREAD a_type_ptr
 STATIC_THREAD a_type_ptr
                 canonical_signed_int_types[(int)ik_last];
 #if MICROSOFT_EXTENSIONS_ALLOWED
-static a_type_ptr canonical_microsoft_sized_int_types[(int)ik_last];
-static a_type_ptr canonical_microsoft_sized_signed_int_types[(int)ik_last];
+STATIC_THREAD a_type_ptr
+                canonical_microsoft_sized_int_types[(int)ik_last];
+STATIC_THREAD a_type_ptr
+                canonical_microsoft_sized_signed_int_types[(int)ik_last];
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
 #if FIXED_POINT_ALLOWED
-static a_type_ptr canonical_fixed_point_types[(int)fpp_last][/*is_unsigned*/2]
-                                             [/*is_fract*/2][/*saturating*/2];
+STATIC_THREAD a_type_ptr
+                canonical_fixed_point_types[(int)fpp_last][/*is_unsigned*/2]
+                                           [/*is_fract*/2][/*saturating*/2];
 #endif /* FIXED_POINT_ALLOWED */
 STATIC_THREAD a_type_ptr
                 canonical_float_types[(int)fk_last];

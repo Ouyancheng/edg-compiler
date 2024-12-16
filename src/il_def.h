@@ -5477,7 +5477,7 @@ enum an_integer_kind : a_byte {
 
 
 /* Array that indicates, for each integer kind, whether or not it is signed. */
-EXTERN_CONSTINIT_ARRAY(a_byte_boolean, int_kind_is_signed, ik_last)
+EXTERN_CONSTINIT_ARRAY(EDG_THREAD a_byte_boolean, int_kind_is_signed, ik_last)
 #if VAR_INITIALIZERS
 = {
   FALSE,	/* ik_char -- updated when signedness of plain char is
