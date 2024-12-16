@@ -1270,6 +1270,10 @@ set_working_directory.
 }  /* get_working_directory */
 
 
+static a_const_char* resolve_file_name(a_const_char *file_name,
+                                       a_const_char *dir_name = NULL);
+
+
 static FILE *fopen_interface(a_const_char *filename,
                              a_const_char *mode)
 /*
@@ -1278,7 +1282,7 @@ supported in the file name, handle that specially.
 */
 {
   FILE         *file;
-  a_const_char *abs_file_name = normalize_file_name(filename);
+  a_const_char *abs_file_name = resolve_file_name(filename);
 #if EDG_WIN32 && UNICODE_SOURCE_SUPPORTED
   wchar_t      *wide_filename = translate_filename_to_wchar(abs_file_name);
 
@@ -1322,7 +1326,7 @@ which will be overwritten when ctime is called again.
 {
   time_t       mod_time;
   char         *time_str = NULL;
-  a_const_char *abs_file_name = normalize_file_name(file_name);
+  a_const_char *abs_file_name = resolve_file_name(file_name);
 
   if (get_file_modification_time(abs_file_name, &mod_time)) {
     time_str = ctime(&mod_time);
@@ -1343,7 +1347,7 @@ Return TRUE if the specified file is a regular file (i.e., not a
 directory or some other kind of special file).
 */
 {
-  a_const_char *abs_file_name = normalize_file_name(file_name);
+  a_const_char *abs_file_name = resolve_file_name(file_name);
 
   return get_file_modification_time(abs_file_name, (time_t *)NULL);
 }  /* is_regular_file */
@@ -1443,7 +1447,7 @@ Return TRUE if the given file exists; otherwise, return FALSE.
 {
   a_boolean    result = FALSE;
   struct stat  stat_buffer;
-  a_const_char *abs_file_name = normalize_file_name(file_name);
+  a_const_char *abs_file_name = resolve_file_name(file_name);
   a_const_char *ext_file_name = file_name_in_external_encoding(abs_file_name);
 
   if (stat(ext_file_name, &stat_buffer) == 0) {
@@ -1679,7 +1683,7 @@ Delete the file with the indicated name.  It shouldn't be open currently.
 */
 {
   int          status;
-  a_const_char *abs_file_name = normalize_file_name(file_name);
+  a_const_char *abs_file_name = resolve_file_name(file_name);
 
   errno = 0;
 #if EDG_WIN32 && UNICODE_SOURCE_SUPPORTED
@@ -2931,7 +2935,7 @@ a_boolean is_directory(a_const_char *file_name)
 {
   a_boolean    result = FALSE;
   DWORD        attr;
-  a_const_char *abs_file_name = normalize_file_name(file_name);
+  a_const_char *abs_file_name = resolve_file_name(file_name);
 #if UNICODE_SOURCE_SUPPORTED
   wchar_t      *wide_file_name = translate_filename_to_wchar(abs_file_name);
 
@@ -2969,7 +2973,7 @@ a directory.
 a_boolean is_directory(a_const_char *file_name)
 {
   a_boolean    result = FALSE;
-  a_const_char *abs_file_name = normalize_file_name(file_name);
+  a_const_char *abs_file_name = resolve_file_name(file_name);
   a_const_char *ext_file_name = file_name_in_external_encoding(abs_file_name);
   struct stat  buf;
 
@@ -3132,10 +3136,6 @@ END_EDG_NAMESPACE  /* Conditionally close the "edg" namespace. */
 #include <io.h>
 BEGIN_EDG_NAMESPACE  /* Conditionally open the "edg" namespace. */
 
-static char *normalize_file_name_in_dir(a_const_char		*dir_name,
-                                        a_const_char		*file_name);
-
-
 char *get_file_name_from_dir(a_boolean	             first,
 			     a_const_char            *dir_name,
 			     a_const_char            *suffix,
@@ -3159,11 +3159,11 @@ char *get_file_name_from_dir(a_boolean	             first,
        that is used on subsequent calls to get the remaining directory
        entries. */
     Small_string<10> tmp_pattern("*", suffix);
-    char             *normalized_name = normalize_file_name_in_dir(
-                                             dir_name,
-                                             tmp_pattern.as_temp_characters());
+    a_const_char     *resolved_name = resolve_file_name(
+                                              tmp_pattern.as_temp_characters(),
+                                              dir_name);
 #if UNICODE_SOURCE_SUPPORTED
-    wchar_t          *wide_name = translate_filename_to_wchar(normalized_name);
+    wchar_t          *wide_name = translate_filename_to_wchar(resolved_name);
     using_wide_char = FALSE;
     if (wide_name != NULL) {
       /* The directory name has embedded non-ASCII characters, so we need to
@@ -3176,7 +3176,7 @@ char *get_file_name_from_dir(a_boolean	             first,
     {
       /* The file name contained no special characters.  Just use the normal
          FindFirstFileA function. */
-      handle = FindFirstFileA(normalized_name, &find_file_data);
+      handle = FindFirstFileA(resolved_name, &find_file_data);
     }
     if (handle == INVALID_HANDLE_VALUE) {
       /* Directory could not be opened, or is empty. */
@@ -3646,7 +3646,7 @@ If an error occurs attempting to get this information, *unique_id is
 left unchanged.
 */
 {
-  a_const_char               *abs_file_name = normalize_file_name(file_name);
+  a_const_char               *abs_file_name = resolve_file_name(file_name);
 #if EDG_WIN32
   BY_HANDLE_FILE_INFORMATION file_info;
   HANDLE                     f_file;
@@ -5035,10 +5035,13 @@ of the encoding: Target-size issues (such as endianness) are handled elsewhere
 }  /* ucn_to_utf16 */
 
 
-static void append_dir_name(a_text_buffer_ptr	buf,
-			    a_const_char	*dir_name)
+static inline void append_dir_name(a_text_buffer_ptr buf,
+                                   a_const_char      *dir_name,
+                                   a_boolean         normalize = TRUE)
 /*
-Add "dir_name" to the end of the directory name specified by "buf".
+Add "dir_name" to the end of the directory name specified by "buf".  If
+normalize is true, special handling for the relative path delimiters "." and
+".." is applied to simplify the path.
 */
 {
   a_const_char	*ptr = dir_name;
@@ -5060,9 +5063,9 @@ Add "dir_name" to the end of the directory name specified by "buf".
     /* Find the end of the directory. */
     while (*ptr != '\0' && !is_dir_separator(*ptr)) increment_mbc_ptr(ptr);
     length = (int)(ptr - dir_start);
-    if (length == 1 && *dir_start == '.') {
+    if (normalize && length == 1 && *dir_start == '.') {
       /* "." for the current directory.  Ignore it. */
-    } else if (length == 2 &&
+    } else if (normalize && length == 2 &&
                strncmp(dir_start, "..", 2) == 0) {
       /* ".." (parent directory).  Remove the last directory component from
          the buffer. */
@@ -5203,16 +5206,18 @@ to the current directory.
 }  /* compare_dir_names */
 
 
-char *normalize_file_name(a_const_char	*file_name)
+char *normalize_file_name(a_const_char *file_name)
 /*
 Normalize "file_name" by converting it into a canonical form.  For
 example, if the file name is "/a/b/../c", the normalized name will
-be "/a/c".  The string returned points to the contents of a text
-buffer.  The buffer will be overwritten by subsequent calls of
-this routine, compare_dir_names, or normalize_file_name_in_dir.
+be "/a/c".
+
+The string returned points to the contents of a text buffer.  The buffer will
+be overwritten by subsequent calls of this routine, compare_dir_names, or
+resolve_file_name.
 */
 {
-  char	*result;
+  char *result;
 
   /* Allocate a directory buffer if not already allocated. */
   if (dir_buffer1 == NULL) {
@@ -5223,40 +5228,56 @@ this routine, compare_dir_names, or normalize_file_name_in_dir.
   return result;
 }  /* normalize_file_name */
 
-#if EDG_WIN32
 
-char *normalize_file_name_in_dir(a_const_char *dir_name,
-                                 a_const_char *file_name)
+static a_const_char* resolve_file_name(a_const_char *file_name,
+                     /* Defaulted: */  a_const_char *dir_name)
 /*
-Normalize "file_name" by converting it into a canonical form in the given
-directory.  For example, if the file name is "c" in "b/../" and the current
-working directory is "/a", the normalized name will be "/a/c".  The string
-returned points to the contents of a text buffer.  The buffer will be
-overwritten by subsequent calls of this routine, compare_dir_names, or
+Form an absolute file name using the given file name, directory name, and the
+current working directory.
+
+When dir_name is NULL this differs from normalize_file_name only in that it
+preserves relative path delimiters (e.g., "..") for the operating system to
+resolve.
+
+The string returned may point to the contents of a text buffer.  The buffer
+will be overwritten by subsequent calls of this routine, compare_dir_names, or
 normalize_file_name.
 */
 {
-  char *result;
+  a_const_char *result;
 
-  /* The first time this routine is called, allocate text buffers used
-     to construct the normalized file name. */
-  if (dir_buffer1 == NULL) {
-    dir_buffer1 = alloc_text_buffer(128);
+  /* If the given file name is not an absolute path: prepend either the current
+     working directory or the specified root directory. */
+  if (!is_absolute_file_name(file_name)) {
+    /* Allocate a directory buffer if not already allocated. */
+    if (dir_buffer1 == NULL) {
+      dir_buffer1 = alloc_text_buffer(128);
+    }  /* if */
+    /* Append the file to the directory information in buffer1. */
+    reset_text_buffer(dir_buffer1);
+    if (dir_name == NULL || !is_absolute_file_name(dir_name)) {
+      /* Prepend the current working directory if no directory name was given
+         or if the directory name given is itself relative to the current
+         working directory. */
+      append_dir_name(dir_buffer1, get_working_directory(),
+                      /*normalize=*/FALSE);
+    }  /* if */
+    if (dir_name != NULL) {
+      /* Append the provided directory information.  At this point the buffer
+         should contain nothing if the directory name is an absolute path;
+         otherwise, it should contain the current working directory. */
+      append_dir_name(dir_buffer1, dir_name, /*normalize=*/FALSE);
+    }  /* if */
+    append_dir_name(dir_buffer1, file_name, /*normalize=*/FALSE);
+    /* Terminate the string. */
+    add_char_to_text_buffer(dir_buffer1, '\0');
+    result = dir_buffer1->buffer;
+  } else {
+    result = file_name;
   }  /* if */
-  if (dir_buffer2 == NULL) {
-    dir_buffer2 = alloc_text_buffer(128);
-  }  /* if */
-  /* Append the file to the directory information in buffer1. */
-  reset_text_buffer(dir_buffer1);
-  append_dir_name(dir_buffer1, dir_name);
-  append_dir_name(dir_buffer1, file_name);
-  /* Normalize the (possibly relative) path in buffer1 into buffer2. */
-  result = normalize_dir_name(dir_buffer1->buffer, dir_buffer2,
-                              /*is_partial_file_name=*/FALSE);
   return result;
-}  /* normalize_file_name_in_dir */
+}  /* resolve_file_name */
 
-#endif /* EDG_WIN32 */
 #if !STANDALONE_UTILITY_PROGRAM
 
 int f_compare_file_names(a_const_char	*file1,
