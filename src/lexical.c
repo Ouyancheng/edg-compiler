@@ -7997,6 +7997,8 @@ used to find this file.
        format_file_name returns a pointer to a static text buffer. */
     fprintf(f_pp_output, "%s:", format_file_name(object_file_name));
     fprintf(f_pp_output, " %s\n", format_file_name(curr_ise->file_name));
+    /* Force a flush to prevent output ordering inconsistencies. */
+    (void)fflush(f_pp_output);
   }  /* if */
   /* If generating a list of include files (-H option), put out the
      file name.  Do not put out the name of the primary source file. */
