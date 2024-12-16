@@ -3944,27 +3944,39 @@ block_statement, or NULL if there are no statements in the block.
 
 #if REWRITE_UCN_ESCAPE_CHAR_IN_LOWERING
 
+static void rewrite_ucns(a_const_char **name)
+/*
+Rewrite any UCNs (universal character names, e.g., \uxxxx) in the string
+pointed to by *name.  A copy of the name is made (and *name updated to point to
+it) in cases where a rewrite is needed.
+*/
+{
+  check_assertion(name != NULL);
+  char *p = (char *)*name;
+  if (p != NULL && strchr(p, '\\') != NULL) {
+    /* There's at least one UCN in the name; make a copy of the name before
+       modifying it (it might be shared with other symbols). */
+    *name = (a_const_char*)alloc_lowered_name(*name);
+    p = (char *)*name;
+    while ((p = strchr(p, '\\')) != NULL) {
+      *p++ = UCN_ESCAPE_REWRITE_CHAR;
+    }  /* while */
+  }  /* if */
+}  /* rewrite_ucns */
+
+
 void rewrite_ucns_in_name(a_source_correspondence *source_corresp)
 /*
 Rewrite any UCNs (universal character names, e.g., \uxxxx) in the name
-in the given source correspondence entry.
+in the given source correspondence entry.  A copy of the names(s) are made in
+cases where a rewrite is needed.
 */
 {
   if (il_header.UCN_identifiers_used) {
-    /* Rewrite the escape character in UCNs. */
-    char *p;
-    p = (char *)source_corresp->name;
-    if (p != NULL) {
-      while ((p = strchr(p, '\\')) != NULL) {
-        *p++ = UCN_ESCAPE_REWRITE_CHAR;
-      }  /* while */
-    }  /* if */
-    p = (char *)source_corresp->unmangled_name_or_mangled_encoding;
-    if (p != NULL) {
-      while ((p = strchr(p, '\\')) != NULL) {
-        *p++ = UCN_ESCAPE_REWRITE_CHAR;
-      }  /* while */
-    }  /* if */
+    /* Rewrite the escape character in UCNs in both the name and the
+       mangled name. */
+    rewrite_ucns(&source_corresp->name);
+    rewrite_ucns(&source_corresp->unmangled_name_or_mangled_encoding);
   }  /* if */
 }  /* rewrite_ucns_in_name */
 
@@ -9472,6 +9484,9 @@ Do IL lowering of the indicated type and everything under it.
                previously visited. */
             if (!visited_yet(ptp)) {
               mark_as_visited(ptp);
+#if REWRITE_UCN_ESCAPE_CHAR_IN_LOWERING
+              rewrite_ucns(&ptp->name);
+#endif /* REWRITE_UCN_ESCAPE_CHAR_IN_LOWERING */
               lower_type(ptp->type);
               /* If the parameter must be passed using a copy constructor,
                  change its type to pointer-to-class. */

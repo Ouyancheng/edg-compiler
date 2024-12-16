@@ -1,5 +1,25 @@
 Version 6.7
 
+12/16/24 [EDGcpfe/19393,EDGcpfe/27724]
+Compilation issues when rewriting Universal Character Names (UCNs)
+
+In configurations that do lowering and have REWRITE_UCN_ESCAPE_CHAR_IN_LOWERING
+set to TRUE, the act of rewriting these UCNs (e.g., replacing '\' with '_')
+had inadvertently overwritten the names used by the symbol table, resulting
+in spurious errors in some cases.  For example, with --unicode=UTF-8 --c++20:
+
+  auto f(double α, auto β) {
+    return α*β;
+  }
+  int main(int argc, char** argv) {
+      double α = 1.0;
+      double β = 2.0;
+      double x = f(α, β);
+      double y = f(α, β);
+      return 0;
+  }
+
+
 12/16/24
 Clang compatibility: __building_module macro operator
 
