@@ -15352,6 +15352,13 @@ new_type is not NULL, *new_type is set to NULL.
     /* GCC versions prior to 11.x fail to substitute a parent type that is a
        prototype instantiation in a function call context. */
     subst_fail(*copy_error);
+  } else if (orig_is_prototype &&
+             nesting_depth_of_template_param(tpp) !=
+                           nesting_depth_of_template_param(templ_param_list)) {
+    /* For a prototype instantiation we only need to do any substitution if the
+       template parameters are at the same nesting depth. */
+    new_sym = orig_sym;
+    goto done;
   } else {
     /* Make a copy of the template argument list, doing substitution. */
     new_list = copy_template_arg_list_with_substitution(
@@ -15414,17 +15421,6 @@ new_type is not NULL, *new_type is set to NULL.
       /* Constraints were not satisfied. */
       new_sym = NULL;
       subst_fail(*copy_error);
-    } else if (orig_is_prototype &&
-               equiv_template_arg_lists(
-                                new_list, tap,
-                                (eta_options_for_template(template_sym, tssp) |
-                                 ETA_EXACT_DECLTYPE_EXPR_MATCH_REQUIRED))) {
-      /* If we have a prototype instantiation and the template argument list
-         hasn't changed, we can simply use the existing symbol.  This is
-         actually important in cases where there are multiple partial
-         specializations that only differ in their constraints, as we can't
-         perform constraint matching during substitution. */
-      new_sym = orig_sym;
     } else {
       new_sym = find_template_class(template_sym, &new_list, orig_is_prototype,
                                     (a_symbol_ptr)NULL,
@@ -15433,6 +15429,7 @@ new_type is not NULL, *new_type is set to NULL.
                                     /*in_substitution=*/TRUE);
     }  /* if */
   }  /* if */
+done:
   return new_sym;
 }  /* copy_template_class_reference_with_substitution */
 
