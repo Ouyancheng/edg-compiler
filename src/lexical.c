@@ -7248,8 +7248,9 @@ is set to indicate whether or not the returned entry is a newly created one.
     *isrp_in_table = isrp;
     /* Copy the key entry created above into the new entry. */
     *isrp = isr;
-    isrp->file_name = (char*)alloc_general((sizeof_t)strlen(file_name) + 1);
-    (void)strcpy((char *)isrp->file_name, file_name);
+    isrp->current_directory = new_copy_of_string(isr.current_directory,
+                                                 General_allocator<char>());
+    isrp->file_name = new_copy_of_string(file_name, General_allocator<char>());
     *is_new_entry = TRUE;
   }  /* if */
   return isrp;
