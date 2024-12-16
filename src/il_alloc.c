@@ -563,19 +563,16 @@ Make a copy of the specified string in the memory region indicated by
 NO_MEMORY_REGION_NUMBER for general memory).
 */
 {
-  sizeof_t	length;
-  char		*new_string;
+  char *new_string;
 
-  length = strlen(string);
   if (region == FRONT_END_REGION_NUMBER) {
-    new_string = (char *)alloc_fe(length+1);
+    new_string = new_copy_of_string(string, FE_allocator<char>());
   } else if (region == file_scope_region_number) {
-    new_string = alloc_il(length+1);
+    new_string = new_copy_of_string(string, IL_allocator<char>());
   } else {
     check_assertion(region == NO_MEMORY_REGION_NUMBER);
-    new_string = alloc_general(length+1);
+    new_string = new_copy_of_string(string, General_allocator<char>());
   }  /* if */
-  (void)strcpy(new_string, string);
   return new_string;
 }  /* copy_string_to_region */
 
