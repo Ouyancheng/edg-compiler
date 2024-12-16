@@ -20,7 +20,7 @@ in spurious errors in some cases.  For example, with --unicode=UTF-8 --c++20:
   }
 
 
-12/16/24
+12/16/24 [EDGcpfe/23392,EDGcpfe/26778,EDGcpfe/27039]
 Clang compatibility: __building_module macro operator
 
 The front end now accepts the __building_module macro operator in clang
