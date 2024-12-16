@@ -1613,13 +1613,7 @@ Dyn_array<an_Elem, Allocator>::to_allocated_storage(
 Given an allocator, allocate and return a new array of the contained elements.
 */
 {
-  size_t        num_elems = this->length();
-  typename Elem_allocator<an_Elem>::an_allocation
-                allocation = allocator.alloc(num_elems);
-  char          *result = allocation.start;
-
-  copy_elements<an_Elem>(result, *this, num_elems);
-  return result;
+  return new_copy_of_elements(*this, this->length(), allocator);
 }  /* Dyn_array::to_allocated_storage */
 
 
