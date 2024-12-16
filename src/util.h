@@ -639,6 +639,42 @@ as contiguous memory blocks to use this interface.
 }  /* copy_elements */
 
 
+template<typename an_Object_type, typename an_Array,
+         template<typename> class Allocator>
+inline an_Object_type* new_copy_of_elements(
+                                         const an_Array            &src_array,
+                                         size_t                    num_to_copy,
+                                         Allocator<an_Object_type> a)
+/*
+Copy the given number of elements from the source array-like type to a new
+dynamically allocated array allocated via the given allocator.  Return the
+newly allocated array.
+
+Note: the source array must represent all elements to be copied as contiguous
+memory blocks to use this interface.
+*/
+{
+  an_Object_type *dest_array = a.alloc(num_to_copy).start;
+
+  copy_elements<an_Object_type>(dest_array, src_array, num_to_copy);
+  return dest_array;
+}  /* new_copy_of_elements */
+
+
+template<template<typename> class Allocator>
+inline char* new_copy_of_string(a_const_char    *src_str,
+                                Allocator<char> a)
+/*
+Copy the given null-terminated string to a new dynamically allocated array
+allocated via the given allocator.  Return the newly allocated string.
+*/
+{
+  size_t str_len = strlen(src_str);
+
+  return new_copy_of_elements(src_str, str_len + 1, a);
+}  /* new_copy_of_string */
+
+
 template<typename an_Object_type, typename an_Array>
 inline Enable_if<!Is_trivially_destructible<an_Object_type>::value, void>
 destroy_elements(an_Array &array,
