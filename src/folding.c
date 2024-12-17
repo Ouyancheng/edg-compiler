@@ -2884,9 +2884,11 @@ Do the negate operation on all types of integers.
   if (is_signed) {
     /* Negation of a signed integer. */
     if (err) {
-      /* Folding error. */
-      /* Suppress this error for non-arithmetic constants in K&R mode. */
-      if (C_dialect != C_dialect_pcc || !constant->non_arithmetic) {
+      /* Folding error.  Adjust the severity to an error in various modes. */
+      if (C_dialect == C_dialect_pcc && !constant->non_arithmetic) {
+        /* Do not make this an error for non-arithmetic constants in K&R
+           mode. */
+      } else {
         *err_code = ec_integer_overflow;
         *err_severity = ES_INT_OVERFLOW;
       }  /* if */
@@ -2902,7 +2904,10 @@ Do the negate operation on all types of integers.
   trunc_and_set_integer(&result_value, result, /*check_overflow=*/is_signed,
                         /*saturate_on_overflow=*/FALSE,
                         err_code, err_severity);
-
+  if ((microsoft_mode || gnu_mode) && *err_code != ec_no_error) {
+    /* Do not make this an error in Microsoft and GNU modes. */
+    *err_severity = es_warning;
+  }  /* if */
 #if DEBUG
   db_unary_operation("i-", constant, result, *err_code);
 #endif /* DEBUG */
