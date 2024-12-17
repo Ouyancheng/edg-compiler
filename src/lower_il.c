@@ -3973,8 +3973,8 @@ cases where a rewrite is needed.
 */
 {
   if (il_header.UCN_identifiers_used) {
-    /* Rewrite the escape character in UCNs in both the name and the
-       mangled name. */
+    /* Rewrite the escape character in UCNs in both the mangled name and its
+       original source form. */
     rewrite_ucns(&source_corresp->name);
     rewrite_ucns(&source_corresp->unmangled_name_or_mangled_encoding);
   }  /* if */
