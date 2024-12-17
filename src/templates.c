@@ -15416,6 +15416,8 @@ new_type is not NULL, *new_type is set to NULL.
       subst_fail(*copy_error);
     } else if (template_has_constraints(tssp->il_template_entry) &&
                !template_arg_list_is_dependent(new_list) &&
+               (!template_sym->is_class_member ||
+                !is_template_dependent_type(template_sym->parent.class_type))&&
                !check_template_constraints(template_sym, new_list,
                                            /*diagnose=*/FALSE)) {
       /* Constraints were not satisfied. */
