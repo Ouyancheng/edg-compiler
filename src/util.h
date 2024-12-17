@@ -647,8 +647,8 @@ inline an_Object_type* new_copy_of_elements(
                                          Allocator<an_Object_type> a)
 /*
 Copy the given number of elements from the source array-like type to a new
-dynamically allocated array allocated via the given allocator.  Return the
-newly allocated array.
+dynamically-allocated array allocated via the given allocator.  Return the
+newly-allocated array.
 
 Note: the source array must represent all elements to be copied as contiguous
 memory blocks to use this interface.
@@ -665,8 +665,8 @@ template<template<typename> class Allocator>
 inline char* new_copy_of_string(a_const_char    *src_str,
                                 Allocator<char> a)
 /*
-Copy the given null-terminated string to a new dynamically allocated array
-allocated via the given allocator.  Return the newly allocated string.
+Copy the given null-terminated string to a new dynamically-allocated array
+allocated via the given allocator.  Return the newly-allocated string.
 */
 {
   size_t str_len = strlen(src_str);
