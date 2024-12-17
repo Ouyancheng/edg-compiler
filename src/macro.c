@@ -6359,7 +6359,7 @@ make_inert_macro:
             pos_error(ec_exp_identifier, &pos_curr_token);
             if (curr_token != tok_rparen) {
               flush_to_closing_paren();
-            }
+            }  /* if */
           }  /* if */
           in_preprocessing_directive = saved_in_preprocessing_directive;
           fetch_pp_tokens = saved_fetch_pp_tokens;
