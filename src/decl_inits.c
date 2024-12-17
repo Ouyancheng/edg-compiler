@@ -8051,6 +8051,9 @@ cases, array_type is NULL).
                                     init_type, object_class_type, &lparen_pos,
                                     /*fill_in_dtor=*/exceptions_enabled,
                                     /*args_supplied=*/TRUE, arg_list, &is);
+#if EXTRA_SOURCE_POSITIONS_IN_IL
+        curr_construct_end_position = end_pos_curr_token;
+#endif /* EXTRA_SOURCE_POSITIONS_IN_IL */
         processed = TRUE;
       }  /* if */
       if (processed) {
@@ -8108,7 +8111,7 @@ cases, array_type is NULL).
     }  /* if */
     dip = alloc_dynamic_init(init_kind);
 #if EXTRA_SOURCE_POSITIONS_IN_IL
-    curr_construct_end_position = pos_curr_token;
+    curr_construct_end_position = end_pos_curr_token;
 #endif /* EXTRA_SOURCE_POSITIONS_IN_IL */
     /* Bypass the right paren. */
     (void)get_token();
@@ -8220,7 +8223,7 @@ cases, array_type is NULL).
     }  /* if */
 consume_right_paren:
 #if EXTRA_SOURCE_POSITIONS_IN_IL
-    curr_construct_end_position = pos_curr_token;
+    curr_construct_end_position = end_pos_curr_token;
 #endif /* EXTRA_SOURCE_POSITIONS_IN_IL */
     (void)required_token(tok_rparen, ec_exp_rparen);
   }  /* if */
