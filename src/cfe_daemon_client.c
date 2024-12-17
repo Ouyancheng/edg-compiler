@@ -60,6 +60,57 @@ Emit C++/C client an error string with the given context.
 }  /* error_str */
 
 
+static void print_message(const char *msg, size_t msg_len)
+/*
+This function perform an optimized print of the given message of the given
+length (possibly containing internal null-characters).
+
+This function takes advantage of the fact that fprintf of a string of a given
+length is significantly faster than individual putc calls to minimize the
+number of system calls and maximize printing performance.
+*/
+{
+  size_t str_len = 0;
+
+  /* Calculate the string length terminating if a null character is encountered
+     before the full string length.  Note that the message is not guaranteed to
+     be null-terminated so strlen cannot be used here. */
+  for (size_t i = 0; i != msg_len; ++i) {
+    if (msg[i] == '\0') {
+      break;
+    }  /* if */
+    ++str_len;
+  }  /* for */
+  if (str_len == msg_len) {
+    /* The message contained no null characters; this is the optimal (and
+       common case). */
+    fprintf(stderr, "%.*s", (int)msg_len, msg);
+  } else {
+    /* Internal null characters need to be printed.  The optimal fprintf call
+       will short circuit on the null character before it reaches msg_len
+       characters.  Thus, we print what fprintf can print, the null
+       character(s), and then recurse if there's any remaining content. */
+    fprintf(stderr, "%.*s", (int)str_len, msg);
+
+    size_t num_nulls = 0;
+    for (; num_nulls != msg_len; ++num_nulls) {
+      char curr_char = msg[str_len + num_nulls];
+
+      if (curr_char != '\0') {
+        break;
+      }  /* if */
+      fputc(curr_char, stderr);
+    }  /* for */
+    size_t chars_printed = str_len + num_nulls;
+    if (chars_printed < msg_len) {
+      /* There are characters that still remain: recurse to finish printing the
+         message. */
+      print_message(msg + chars_printed, msg_len - chars_printed);
+    }  /* if */
+  }  /* if */
+}  /* print_message */
+
+
 int main(int argc, char *argv[])
 /*
 The main routine for the front end Unix socket client.
@@ -130,10 +181,7 @@ The main routine for the front end Unix socket client.
 
     /* Read the output. */
     a_socket_reader reader(client_socket_fd);
-    auto            print_contents = [](const char *msg, size_t msg_len) {
-      fprintf(stderr, "%.*s", (int)msg_len, msg);
-    };
-    if (!reader.read_message_parts(print_contents)) {
+    if (!reader.read_message_parts(print_message)) {
       goto unexpected_hang_up;
     }  /* if */
 
