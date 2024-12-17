@@ -26892,11 +26892,19 @@ subst_pairs is successful.  ctws_state is a substitution state block pointer
                 if (!is_top_level_nonreal) {
                   scope_stack_top().in_nonreal_instantiation = TRUE;
                 }  /* if */
-                for (int k = 0; k < levels - 1; ++k) {
+                for (int k = levels - 1; k >= 0; --k) {
+                  a_subst_pairs_descr const  *spd = &subst_pairs[k];
+                  a_ctws_options_set         options = CTWS_MAY_BE_RESCANNED;
+                  if (spd->adjust_coordinates) {
+                    options |= CTWS_ADJUST_COORDINATES;
+                  }  /* if */
+                  if (spd->alias_deduction_guide) {
+                    options |= CTWS_ALIAS_DEDUCTION_GUIDE;
+                  }  /* if */
                   expr = copy_expr_with_substitutions(expr,
-                                                      subst_pairs[k].args,
-                                                      subst_pairs[k].params,
-                                                      CTWS_MAY_BE_RESCANNED,
+                                                      spd->args,
+                                                      spd->params,
+                                                      options,
                                                       &copy_error,
                                                       ctws_state);
                   if (copy_error) break;
@@ -26911,8 +26919,8 @@ subst_pairs is successful.  ctws_state is a substitution state block pointer
               /* Check constraint satisfaction for the top-level
                  substitution. */
               error_position = req->position;
-              templ_params = subst_pairs.back_elem().params;
-              templ_args = subst_pairs.back_elem().args;
+              templ_params = subst_pairs.front_elem().params;
+              templ_args = subst_pairs.front_elem().args;
               result = constraint_satisfied(
                                   expr, templ_args, templ_params, &diag_list,
                                   CTWS_NO_OPTIONS, ctws_state);
