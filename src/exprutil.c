@@ -11864,7 +11864,11 @@ operand through *p_operation_type.
 
 #if TARG_HAS_IEEE_FLOATING_POINT
 
-static a_constant_ptr nan_constant = (a_constant_ptr)NULL;
+STATIC_THREAD a_constant_ptr
+                nan_constant;
+                        /* The floating point __NAN__ constant (initialized
+                           lazily by make_nan_operand). */
+
 
 void make_nan_operand(an_operand  *result)
 /*
@@ -11885,7 +11889,11 @@ expands to this value.
 }  /* make_nan_operand */
 
 
-static a_constant_ptr infinity_constant = (a_constant_ptr)NULL;
+STATIC_THREAD a_constant_ptr
+                infinity_constant;
+                        /* The floating point __INFINITY__ constant
+                           (initialized lazily by make_infinity_operand). */
+
 
 void make_infinity_operand(an_operand  *result)
 /*
@@ -11907,7 +11915,11 @@ macro INFINITY that expands to this value.
 #endif /* TARG_HAS_IEEE_FLOATING_POINT */
 #if C99_IL_EXTENSIONS_SUPPORTED
 
-static a_constant_ptr  imaginary_unit = (a_constant_ptr)NULL;
+STATIC_THREAD a_constant_ptr
+                imaginary_unit;
+                        /* The floating point __I__ constant (initialized
+                           lazily by make_imaginary_unit_operand). */
+
 
 void make_imaginary_unit_operand(an_operand  *result)
 /*
@@ -27180,6 +27192,13 @@ for each compilation.
   construct(constraint_charts, /*mask_width=*/10);
   template_param_objects = alloc_fe_of_type(a_template_param_object_map);
   construct(template_param_objects, /*mask_width=*/10);
+#if TARG_HAS_IEEE_FLOATING_POINT
+  nan_constant = NULL;
+  infinity_constant = NULL;
+#endif /* TARG_HAS_IEEE_FLOATING_POINT */
+#if C99_IL_EXTENSIONS_SUPPORTED
+  imaginary_unit = NULL;
+#endif /* C99_IL_EXTENSIONS_SUPPORTED */
   constraint_satisfaction_cache =
                              alloc_fe_of_type(a_constraint_satisfaction_cache);
   construct(constraint_satisfaction_cache, /*mask_width=*/10);
