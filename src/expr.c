@@ -50149,7 +50149,6 @@ point call free_arg_operand_list to free the entry.
   an_arg_operand_ptr     arg_operand;
   an_expr_stack_entry    expr_stack_entry;
   an_object_lifetime     *saved_curr_object_lifetime = curr_object_lifetime;
-  a_memory_region_number region_to_switch_back_to;
   an_operand             *opnd;
   a_constant_ptr         con = NULL;
 
@@ -50159,7 +50158,6 @@ point call free_arg_operand_list to free the entry.
                   /*force_object_lifetime=*/FALSE,
                   /*suppress_object_lifetime=*/FALSE);
   expr_stack_entry.is_template_arg_expression = TRUE;
-  switch_to_file_scope_region(&region_to_switch_back_to);
   /* Adjust the object lifetime to avoid error recovery problems. */
   curr_object_lifetime = il_header.primary_scope->lifetime;
   /* Scan the constant expression. */
@@ -50205,7 +50203,6 @@ point call free_arg_operand_list to free the entry.
     db_operand(opnd);
   }  /* if */
 #endif /* DEBUG */
-  switch_back_to_original_region(region_to_switch_back_to);
   curr_object_lifetime = saved_curr_object_lifetime;
   db_exit();
   return arg_operand;
@@ -50294,15 +50291,20 @@ type will be obtained from the arg_operand.
 {
   an_operand             operand;
   an_expr_stack_entry    expr_stack_entry;
-  a_memory_region_number region_to_switch_back_to;
+  a_memory_region_number region_to_switch_back_to = curr_il_region_number;
 
   db_enter(3, "conv_nontype_template_arg_to_param_type");
   check_assertion(constant != NULL && in_file_scope(constant));
+  if (scope_is(&scope_stack_top(), sck_function_access)) {
+    a_scope_depth  sd = scope_stack_top().orig_access_depth;
+    if (sd != NO_SCOPE_DEPTH) {
+      switch_il_region(scope_stack[sd].il_memory_region);
+    }  /* if */
+  }  /* if */
   push_expr_stack((an_expression_kind)ek_template_arg, &expr_stack_entry,
                   /*force_object_lifetime=*/FALSE,
                   /*suppress_object_lifetime=*/FALSE);
   expr_stack_entry.is_template_arg_expression = TRUE;
-  switch_to_file_scope_region(&region_to_switch_back_to);
   if (is_error_operand(&arg_operand->operand) ||
       (param_type != NULL && is_error_type(param_type))) {
     set_error_constant(constant);
@@ -50324,8 +50326,10 @@ type will be obtained from the arg_operand.
   }  /* if */
   wrap_up_constant_full_expression(constant);
   pop_expr_stack();
-  switch_back_to_original_region(region_to_switch_back_to);
-
+  if (region_to_switch_back_to != curr_il_region_number) {
+    switch_il_region(region_to_switch_back_to);
+  }  /* if */
+  do_fs_constant_fixup(constant);
 #if DEBUG
   if (debug_level >= 3) {
     db_constant(constant);

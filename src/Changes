@@ -1,5 +1,24 @@
 Version 6.7
 
+12/17/24 [EDGcpfe/27697]
+Memory region violation with nontype template argument of class type
+
+Consider, in C++20 mode:
+
+  struct S {};
+  template<S> void f() {}
+  int main() {
+    constexpr S s;
+    f<s>();
+  }
+
+In some configurations, this example triggered an abort in the front end (e.g.,
+while reading the corresponding IL file) due to a violation of the rule that
+file-scope IL entries (in this case, the template argument in f<s>) cannot
+contain pointers to function-scope IL entries (in this case, the a_variable
+entry representing s).  That is now fixed.
+
+
 12/17/24 [EDGcpfe/27805]
 Makefile dependencies output is sometimes delayed
 

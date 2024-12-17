@@ -9364,6 +9364,11 @@ at the file scope (it would contain a pointer down into a function scope).
 #endif /* DO_IL_LOWERING && ASSIGN_STRING_LITERAL_SEQUENCE_NUMBERS */
       break;
     case ck_address:
+      if (cp->variant.address.subobject_path != NULL &&
+          !in_file_scope(cp->variant.address.subobject_path)) {
+        has_nfs_ref = TRUE;
+        break;
+      }  /* if */
       switch (cp->variant.address.kind) {
         case abk_routine:
           /* Routines are always in the file scope. */
