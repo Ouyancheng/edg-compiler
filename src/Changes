@@ -1,5 +1,18 @@
 Version 6.7
 
+12/18/24 [EDGcpfe/27806]
+IL allocation tracking fixes
+
+In DEBUG builds the front end keeps track of the number of IL entries allocated
+for each IL entry kind.  Several IL entry kinds were not properly being
+tracked; this has been fixed and the underlying code has been simplified.
+
+As a result of these changes, the IL table use report (shown when using -d1 or
+higher, -d-space_used, or --set_flag=space_used) has been updated to exclude IL
+entry kinds that have no associated allocations, use the names specified by
+il_entry_kind_names, and the ordering specified by the an_il_entry_kind enum.
+
+
 12/17/24 [EDGcpfe/27697]
 Memory region violation with nontype template argument of class type
 

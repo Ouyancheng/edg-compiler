@@ -132,77 +132,198 @@ canonical IL entity.
 }  /* canonicalize_tagged_ptr */
 
 
+/*
+This function returns the corresponding IL entry kind for the IL entry type
+specializing it.
+
+The map_il_type_to_kind macro is used to set up the specializations serving as
+implementation details.  There should be a macro invocation for each IL entry
+type and its corresponding IL entry kind.
+*/
 template<typename an_IL_type>
-inline a_tagged_pointer make_tagged_ptr(an_IL_type val) DELETED_FN_DEF
+constexpr an_il_entry_kind type_to_il_entry_kind()
+#if HOST_SUPPORTS_DELETED_FUNCTION_TEMPLATES
+                                                   = delete;
+#else /* !HOST_SUPPORTS_DELETED_FUNCTION_TEMPLATES */
+  { return iek_none; }
+#endif /* HOST_SUPPORTS_DELETED_FUNCTION_TEMPLATES */
+
+#define map_il_type_to_kind(type, kind)                                       \
+  template<>                                                                  \
+  constexpr an_il_entry_kind type_to_il_entry_kind<type>() { return kind; }
+
+map_il_type_to_kind(a_source_file, iek_source_file)
+map_il_type_to_kind(a_constant, iek_constant)
+map_il_type_to_kind(a_param_type, iek_param_type)
+map_il_type_to_kind(a_routine_type_supplement, iek_routine_type_supplement)
+map_il_type_to_kind(a_based_type_list_member, iek_based_type_list_member)
+map_il_type_to_kind(a_type, iek_type)
+map_il_type_to_kind(a_variable, iek_variable)
+map_il_type_to_kind(a_field, iek_field)
+map_il_type_to_kind(an_exception_specification, iek_exception_specification)
+map_il_type_to_kind(an_exception_specification_type,
+                    iek_exception_specification_type)
+map_il_type_to_kind(a_routine, iek_routine)
+map_il_type_to_kind(a_label, iek_label)
+map_il_type_to_kind(an_expr_node, iek_expr_node)
+map_il_type_to_kind(a_for_loop, iek_for_loop)
+map_il_type_to_kind(a_range_based_for_loop, iek_range_based_for_loop)
+#if MICROSOFT_EXTENSIONS_ALLOWED
+map_il_type_to_kind(a_for_each_loop, iek_for_each_loop)
+#endif /* MICROSOFT_EXTENSIONS_ALLOWED */
+map_il_type_to_kind(a_switch_case_entry, iek_switch_case_entry)
+map_il_type_to_kind(a_switch_stmt_descr, iek_switch_stmt_descr)
+map_il_type_to_kind(a_handler, iek_handler)
+map_il_type_to_kind(a_try_supplement, iek_try_supplement)
+#if MICROSOFT_EXTENSIONS_ALLOWED
+map_il_type_to_kind(a_microsoft_try_supplement, iek_microsoft_try_supplement)
+#endif /* MICROSOFT_EXTENSIONS_ALLOWED */
+map_il_type_to_kind(a_block, iek_block)
+map_il_type_to_kind(a_statement, iek_statement)
+map_il_type_to_kind(an_object_lifetime, iek_object_lifetime)
+map_il_type_to_kind(a_scope, iek_scope)
+#if C99_IL_EXTENSIONS_SUPPORTED
+map_il_type_to_kind(an_internal_complex_value, iek_internal_complex_value)
+#endif /* C99_IL_EXTENSIONS_SUPPORTED */
+map_il_type_to_kind(a_namespace, iek_namespace)
+map_il_type_to_kind(a_using_decl, iek_using_decl)
+map_il_type_to_kind(a_dynamic_init, iek_dynamic_init)
+map_il_type_to_kind(a_local_static_variable_init,
+                    iek_local_static_variable_init)
+map_il_type_to_kind(a_vla_dimension, iek_vla_dimension)
+#if DO_IL_LOWERING && IA64_ABI
+map_il_type_to_kind(a_vcall_offset_entry , iek_vcall_offset_entry)
+#endif /* DO_IL_LOWERING && IA64_ABI */
+#if MICROSOFT_EXTENSIONS_ALLOWED
+map_il_type_to_kind(a_partial_class_body, iek_partial_class_body)
+#endif /* MICROSOFT_EXTENSIONS_ALLOWED */
+map_il_type_to_kind(an_overriding_virtual_function,
+                    iek_overriding_virtual_function)
+map_il_type_to_kind(a_derivation_step, iek_derivation_step)
+map_il_type_to_kind(a_base_class_derivation, iek_base_class_derivation)
+map_il_type_to_kind(a_base_class, iek_base_class)
+map_il_type_to_kind(a_class_list_entry, iek_class_list_entry)
+map_il_type_to_kind(a_routine_list_entry, iek_routine_list_entry)
+map_il_type_to_kind(a_variable_list_entry, iek_variable_list_entry)
+map_il_type_to_kind(a_constant_list_entry, iek_constant_list_entry)
+map_il_type_to_kind(a_class_type_supplement, iek_class_type_supplement)
+map_il_type_to_kind(a_template_param_type_supplement,
+                    iek_template_param_type_supplement)
+map_il_type_to_kind(a_constructor_init, iek_constructor_init)
+map_il_type_to_kind(an_asm_entry, iek_asm_entry)
+#if GNU_EXTENSIONS_ALLOWED
+map_il_type_to_kind(an_asm_operand, iek_asm_operand)
+#if !RECORD_RAW_ASM_OPERAND_DESCRIPTIONS
+map_il_type_to_kind(an_asm_operand_constraint, iek_asm_operand_constraint)
+#endif /* !RECORD_RAW_ASM_OPERAND_DESCRIPTIONS */
+map_il_type_to_kind(a_named_register_list, iek_named_register_list)
+map_il_type_to_kind(a_label_list, iek_label_list)
+#endif /* GNU_EXTENSIONS_ALLOWED */
+map_il_type_to_kind(a_template_arg, iek_template_arg)
+map_il_type_to_kind(a_new_delete_supplement, iek_new_delete_supplement)
+#if MICROSOFT_EXTENSIONS_ALLOWED
+map_il_type_to_kind(a_gcnew_supplement, iek_gcnew_supplement)
+#endif /* MICROSOFT_EXTENSIONS_ALLOWED */
+map_il_type_to_kind(a_throw_supplement, iek_throw_supplement)
+map_il_type_to_kind(a_condition_supplement, iek_condition_supplement)
+#if !ABI_CHANGES_FOR_RTTI
+map_il_type_to_kind(an_accessible_base_class, iek_accessible_base_class)
+#endif /* !ABI_CHANGES_FOR_RTTI */
+#if DO_IL_LOWERING && !DO_FULL_PORTABLE_EH_LOWERING
+map_il_type_to_kind(an_eh_prologue_supplement, iek_eh_prologue_supplement)
+#endif /* DO_IL_LOWERING && !DO_FULL_PORTABLE_EH_LOWERING */
+#if GENERATE_SOURCE_SEQUENCE_LISTS
+map_il_type_to_kind(a_source_sequence_entry, iek_source_sequence_entry)
+map_il_type_to_kind(a_src_seq_secondary_decl, iek_src_seq_secondary_decl)
+map_il_type_to_kind(a_src_seq_end_of_construct, iek_src_seq_end_of_construct)
+map_il_type_to_kind(a_src_seq_sublist, iek_src_seq_sublist)
+map_il_type_to_kind(an_instantiation_directive, iek_instantiation_directive)
+#endif /* GENERATE_SOURCE_SEQUENCE_LISTS */
+#if SCOPE_ORPHANED_LIST_PROCESSING_NEEDED
+map_il_type_to_kind(a_scope_orphaned_list_header,
+                    iek_scope_orphaned_list_header)
+#endif /* SCOPE_ORPHANED_LIST_PROCESSING_NEEDED */
+#if RECORD_HIDDEN_NAMES_IN_IL
+map_il_type_to_kind(a_hidden_name, iek_hidden_name)
+#endif /* RECORD_HIDDEN_NAMES_IN_IL */
+map_il_type_to_kind(a_pragma, iek_pragma)
+map_il_type_to_kind(a_template, iek_template)
+#if RECORD_MACROS_IN_IL
+map_il_type_to_kind(a_macro, iek_macro)
+#endif /* RECORD_MACROS_IN_IL */
+#if ONE_INSTANTIATION_PER_OBJECT
+map_il_type_to_kind(a_per_instantiation_needed_flags_entry,
+                    iek_per_instantiation_needed_flags_entry)
+#endif /* ONE_INSTANTIATION_PER_OBJECT */
+#if EXTRA_SOURCE_POSITIONS_IN_IL
+map_il_type_to_kind(an_element_position, iek_element_position)
+map_il_type_to_kind(a_decl_position_supplement, iek_decl_position_supplement)
+#endif /* EXTRA_SOURCE_POSITIONS_IN_IL */
+map_il_type_to_kind(a_template_decl, iek_template_decl)
+map_il_type_to_kind(a_requires_clause, iek_requires_clause)
+map_il_type_to_kind(a_template_parameter, iek_template_parameter)
+map_il_type_to_kind(a_name_reference, iek_name_reference)
+map_il_type_to_kind(a_name_qualifier, iek_name_qualifier)
+#if MICROSOFT_EXTENSIONS_ALLOWED
+map_il_type_to_kind(an_ms_attribute, iek_ms_attribute)
+map_il_type_to_kind(an_ms_attribute_arg, iek_ms_attribute_arg)
+map_il_type_to_kind(a_custom_ms_attribute_arg, iek_custom_ms_attribute_arg)
+map_il_type_to_kind(a_property_index_type, iek_property_index_type)
+map_il_type_to_kind(a_property_or_event_descr, iek_property_or_event_descr)
+map_il_type_to_kind(a_generic_constraint_clause, iek_generic_constraint_clause)
+map_il_type_to_kind(a_generic_constraint, iek_generic_constraint)
+#endif /* MICROSOFT_EXTENSIONS_ALLOWED */
+map_il_type_to_kind(a_seq_number_lookup_entry, iek_seq_number_lookup_entry)
+#if RECORD_MACRO_INVOCATIONS
+map_il_type_to_kind(a_macro_invocation_record_block,
+                    iek_macro_invocation_record_block)
+#endif /* RECORD_MACRO_INVOCATIONS */
+#if GENERATE_MICROSOFT_IF_EXISTS_ENTRIES
+map_il_type_to_kind(an_ms_if_exists, iek_ms_if_exists)
+#endif /* GENERATE_MICROSOFT_IF_EXISTS_ENTRIES */
+map_il_type_to_kind(a_local_expr_node_ref, iek_local_expr_node_ref)
+map_il_type_to_kind(a_static_assertion, iek_static_assertion)
+#if GENERATE_SOURCE_SEQUENCE_LISTS
+#if GENERATE_LINKAGE_SPEC_BLOCKS
+map_il_type_to_kind(a_linkage_spec_block, iek_linkage_spec_block)
+#endif /* GENERATE_LINKAGE_SPEC_BLOCKS */
+#endif /* GENERATE_SOURCE_SEQUENCE_LISTS */
+map_il_type_to_kind(a_local_scope_ref, iek_local_scope_ref)
+map_il_type_to_kind(an_il_entity_list_entry, iek_il_entity_list_entry)
+map_il_type_to_kind(a_lambda, iek_lambda)
+map_il_type_to_kind(a_lambda_capture, iek_lambda_capture)
+map_il_type_to_kind(an_attribute, iek_attribute)
+map_il_type_to_kind(an_attribute_arg, iek_attribute_arg)
+map_il_type_to_kind(an_attribute_group, iek_attribute_group)
+map_il_type_to_kind(a_typeref_type_supplement, iek_typeref_type_supplement)
+map_il_type_to_kind(an_integer_type_supplement, iek_integer_type_supplement)
+#if MICROSOFT_EXTENSIONS_ALLOWED
+map_il_type_to_kind(a_cli_metadata_file, iek_cli_metadata_file)
+#endif /* MICROSOFT_EXTENSIONS_ALLOWED */
+#if GNU_EXTENSIONS_ALLOWED || REDEFINE_EXTNAME_PRAGMA_ENABLED
+map_il_type_to_kind(a_gnu_routine_supplement, iek_gnu_routine_supplement)
+#endif /* GNU_EXTENSIONS_ALLOWED || REDEFINE_EXTNAME_PRAGMA_ENABLED */
+map_il_type_to_kind(a_coroutine_descr, iek_coroutine_descr)
+map_il_type_to_kind(a_variable_template_info, iek_variable_template_info)
+#if MICROSOFT_EXTENSIONS_ALLOWED
+map_il_type_to_kind(an_event_interface, iek_event_interface)
+#endif /* MICROSOFT_EXTENSIONS_ALLOWED */
+map_il_type_to_kind(a_subobject_path, iek_subobject_path)
+map_il_type_to_kind(a_constexpr_if, iek_constexpr_if)
+map_il_type_to_kind(a_module, iek_module)
+map_il_type_to_kind(a_module_import_decl, iek_module_import_decl)
+map_il_type_to_kind(a_token_sequence, iek_token_sequence)
+map_il_type_to_kind(a_token_sequence_entry, iek_token_sequence_entry)
 
 
-template<>
-inline a_tagged_pointer make_tagged_ptr(a_field_ptr val)
+template<typename an_IL_type>
+inline a_tagged_pointer make_tagged_ptr(an_IL_type *val)
 /*
-Convert the given IL field pointer into a tagged pointer.
+Convert the given IL entity pointer into a tagged pointer.
 */
 {
-  return canonicalize_tagged_ptr(iek_field, (char*)val);
-}  /* make_tagged_ptr */
-
-
-template<>
-inline a_tagged_pointer make_tagged_ptr(a_namespace_ptr val)
-/*
-Convert the given IL namespace pointer into a tagged pointer.
-*/
-{
-  return canonicalize_tagged_ptr(iek_namespace, (char*)val);
-}  /* make_tagged_ptr */
-
-
-template<>
-inline a_tagged_pointer make_tagged_ptr(a_routine_ptr val)
-/*
-Convert the given IL routine pointer into a tagged pointer.
-*/
-{
-  return canonicalize_tagged_ptr(iek_routine, (char*)val);
-}  /* make_tagged_ptr */
-
-
-template<>
-inline a_tagged_pointer make_tagged_ptr(a_scope_ptr val)
-/*
-Convert the given IL scope pointer into a tagged pointer.
-*/
-{
-  return canonicalize_tagged_ptr(iek_scope, (char*)val);
-}  /* make_tagged_ptr */
-
-
-template<>
-inline a_tagged_pointer make_tagged_ptr(a_template_ptr val)
-/*
-Convert the given IL template pointer into a tagged pointer.
-*/
-{
-  return canonicalize_tagged_ptr(iek_template, (char*)val);
-}  /* make_tagged_ptr */
-
-
-template<>
-inline a_tagged_pointer make_tagged_ptr(a_type_ptr val)
-/*
-Convert the given IL type pointer into a tagged pointer.
-*/
-{
-  return canonicalize_tagged_ptr(iek_type, (char*)val);
-}  /* make_tagged_ptr */
-
-
-template<>
-inline a_tagged_pointer make_tagged_ptr(a_variable_ptr val)
-/*
-Convert the given IL variable pointer into a tagged pointer.
-*/
-{
-  return canonicalize_tagged_ptr(iek_variable, (char*)val);
+  return canonicalize_tagged_ptr(type_to_il_entry_kind<an_IL_type>(),
+                                 (char*)val);
 }  /* make_tagged_ptr */
 
 
@@ -1224,12 +1345,16 @@ typedef struct a_decl_pos_block {
 extern void clear_decl_pos_block(a_decl_pos_block_ptr  decl_pos_block);
 #endif /* NULL_POINTER_IS_ZERO */
 
+#if EXTRA_SOURCE_POSITIONS_IN_IL
 extern void f_add_element_position(an_element_position_kind  kind,
                                    a_source_position         *pos,
                                    an_element_position_ptr   *p_epp);
 
 #define add_element_position(kind, pos, p_epp)                             \
   (f_add_element_position((an_element_position_kind)(kind), (pos), (p_epp)))
+#else /* !EXTRA_SOURCE_POSITIONS_IN_IL */
+#define add_element_position(kind, pos, p_epp) /* nothing */
+#endif /* EXTRA_SOURCE_POSITIONS_IN_IL */
 
 #if EXTRA_SOURCE_POSITIONS_IN_IL
 

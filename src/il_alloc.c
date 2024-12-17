@@ -32,150 +32,89 @@ BEGIN_EDG_NAMESPACE
 
 #if !STANDALONE_UTILITY_PROGRAM
 #if DEBUG
-/*
-Counts of tables allocated, to track total use of memory.
-*/
-STATIC_THREAD unsigned long
-		num_source_files_allocated,
-		num_constants_allocated,
-		num_param_types_allocated,
-		num_routine_type_supplements_allocated,
-		num_based_type_list_members_allocated,
-		num_class_type_supplements_allocated,
-		num_class_list_entries_allocated,
-		num_routine_list_entries_allocated,
-		num_variable_list_entries_allocated,
-		num_constant_list_entries_allocated,
-		num_overriding_virtual_functions_allocated,
-		num_derivation_steps_allocated,
-		num_base_class_derivations_allocated,
-		num_base_classes_allocated,
-		num_template_args_allocated,
-		num_template_param_type_supplements_allocated,
-		num_typeref_type_supplements_allocated,
-		num_integer_type_supplements_allocated,
-		num_types_allocated,
-		num_dynamic_inits_allocated,
-		num_local_static_variable_inits_allocated,
-		num_vla_dimensions_allocated,
-		num_variables_allocated,
-		num_variable_template_infos_allocated,
-		num_fields_allocated,
-		num_routines_allocated,
-		num_exception_specifications_allocated,
-		num_exception_specification_types_allocated,
-		num_asm_entries_allocated,
-		num_labels_allocated,
-		num_expr_nodes_allocated,
-		num_fs_expr_nodes_allocated,
-		num_rescan_fs_expr_nodes_allocated,
-		num_new_delete_supplements_allocated,
-#if MICROSOFT_EXTENSIONS_ALLOWED
-		num_gcnew_supplements_allocated,
-#endif /* MICROSOFT_EXTENSIONS_ALLOWED */
-		num_throw_supplements_allocated,
-		num_condition_supplements_allocated,
-#if !ABI_CHANGES_FOR_RTTI
-		num_accessible_base_classes_allocated,
-#endif /* !ABI_CHANGES_FOR_RTTI */
-#if DO_IL_LOWERING && !DO_FULL_PORTABLE_EH_LOWERING
-		num_eh_prologue_supplements_allocated,
-#endif /* DO_IL_LOWERING && !DO_FULL_PORTABLE_EH_LOWERING */
-		num_switch_case_entries_allocated,
-                num_switch_stmt_descriptions_allocated,
-		num_handlers_allocated,
-		num_try_supplements_allocated,
-#if MICROSOFT_EXTENSIONS_ALLOWED
-		num_microsoft_try_supplements_allocated,
-		num_ms_attributes_allocated,
-		num_ms_attribute_args_allocated,
-		num_custom_ms_attribute_args_allocated,
-		num_property_index_types_allocated,
-		num_property_or_event_descriptions_allocated,
-		num_generic_constraints_allocated,
-		num_generic_constraint_clauses_allocated,
-#endif /* MICROSOFT_EXTENSIONS_ALLOWED */
-#if GENERATE_MICROSOFT_IF_EXISTS_ENTRIES
-		num_ms_if_exists_allocated,
-#endif /* GENERATE_MICROSOFT_IF_EXISTS_ENTRIES */
-		num_blocks_allocated,
-		num_coroutine_descriptions_allocated,
-		num_for_loops_allocated,
-		num_statements_allocated,
-		num_constructor_inits_allocated,
-		num_pragmas_allocated,
-		num_object_lifetimes_allocated,
-		num_namespaces_allocated,
-		num_using_decls_allocated,
-		num_scopes_allocated,
-		num_local_scope_refs_allocated,
-		num_il_entry_prefixes_allocated,
-		string_literal_text_space_allocated,
-		num_seq_number_lookup_entries_allocated,
-		num_trans_unit_copy_address_pointers_allocated,
-		num_il_entity_list_entries_allocated,
-		num_attributes_allocated,
-		num_attribute_args_allocated,
-		num_attribute_groups_allocated,
-		num_constexpr_ifs_allocated,
-		num_subobject_paths_allocated,
-		num_static_assertions;
-#if GENERATE_SOURCE_SEQUENCE_LISTS
-STATIC_THREAD unsigned long
-		num_source_sequence_entries_allocated,
-		num_src_seq_secondary_decls_allocated,
-		num_src_seq_end_of_constructs_allocated,
-		num_src_seq_sublists_allocated,
-#if GENERATE_LINKAGE_SPEC_BLOCKS
-		num_linkage_spec_blocks,
-#endif /* GENERATE_LINKAGE_SPEC_BLOCKS */
-		num_instantiation_directives_allocated;
-#endif /* GENERATE_SOURCE_SEQUENCE_LISTS */
+
+using an_allocation_counter = unsigned long;
+		/* The type used for an allocation count. */
+
+STATIC_THREAD an_allocation_counter
+		string_literal_text_space_allocated;
+			/* The number of bytes allocated for string
+			   literals. */
+
+STATIC_THREAD an_allocation_counter
+		num_il_entry_prefixes_allocated;
+			/* The number of IL entry prefixes allocated (this
+			   should be equivalent to the number of IL entries
+			   allocated). */
+
+STATIC_THREAD an_allocation_counter
+		num_fs_expr_nodes_allocated;
+			/* The number of expression nodes that have been
+			   allocated in file scope. */
+
+STATIC_THREAD an_allocation_counter
+		num_rescan_fs_expr_nodes_allocated;
+			/* The number of file scope expression nodes that have
+			   been allocated while doing expression rescanning. */
+
+STATIC_THREAD an_allocation_counter
+		num_trans_unit_copy_address_pointers_allocated;
+			/* The number of copy address pointers (there should be
+			   one for each IL entry in any secondary translation
+			   units when doing multi-translation unit
+			   compilation). */
+
 #if ORPHAN_PROCESSING_NEEDED
-STATIC_THREAD unsigned long
+
+STATIC_THREAD an_allocation_counter
 		num_fs_orphan_pointers_allocated;
+			/* The number of orphan pointers (there should be one
+			   for each IL entry in file scope when orphan
+			   processing is enabled). */
+
 #endif /* ORPHAN_PROCESSING_NEEDED */
-#if SCOPE_ORPHANED_LIST_PROCESSING_NEEDED
-STATIC_THREAD unsigned long
-		num_scope_orphaned_list_headers_allocated;
-#endif /* SCOPE_ORPHANED_LIST_PROCESSING_NEEDED */
-#if RECORD_HIDDEN_NAMES_IN_IL
-STATIC_THREAD unsigned long
-		num_hidden_names_allocated;
-#endif /* RECORD_HIDDEN_NAMES_IN_IL */
-STATIC_THREAD unsigned long
-		num_template_decls_allocated;
-STATIC_THREAD unsigned long
-		num_requires_clauses_allocated;
-STATIC_THREAD unsigned long
-		num_template_parameters_allocated;
-STATIC_THREAD unsigned long
-		num_templates_allocated;
-STATIC_THREAD unsigned long
-		num_name_references_allocated,
-                num_name_qualifiers_allocated;
-#if RECORD_MACROS_IN_IL
-STATIC_THREAD unsigned long
-		num_macros_allocated;
-#endif /* RECORD_MACROS_IN_IL */
-#if RECORD_MACRO_INVOCATIONS
-STATIC_THREAD unsigned long
-		num_macro_invocation_record_blocks_allocated;
-#endif /* RECORD_MACRO_INVOCATIONS */
-STATIC_THREAD unsigned long
-		num_element_positions_allocated;
-#if EXTRA_SOURCE_POSITIONS_IN_IL
-STATIC_THREAD unsigned long
-		num_decl_position_supplements_allocated;
-#endif /* EXTRA_SOURCE_POSITIONS_IN_IL */
-#if ONE_INSTANTIATION_PER_OBJECT
-STATIC_THREAD unsigned long
-		num_per_instantiation_needed_flags_entries_allocated;
-#endif /* ONE_INSTANTIATION_PER_OBJECT */
 #if ASM_SUPPORT_NEEDED
-STATIC_THREAD unsigned long
+
+STATIC_THREAD an_allocation_counter
 		asm_function_body_space_allocated;
+			/* The number of bytes allocated for storing asm
+			   function bodies. */
+
 #endif /* ASM_SUPPORT_NEEDED */
+
+STATIC_THREAD an_allocation_counter
+		il_allocation_counter[iek_last];
+			/* An array of counters keeping track of the number of
+			   IL entries that have been allocated for each of the
+			   respective IL entry kinds.
+
+			   Some IL entries kinds are untracked (this is done to
+			   simplify indexing into the array at a trivial cost
+			   of extra memory in DEBUG builds); see is_tallied for
+			   the logic specifying which IL entry kinds are
+			   tracked. */
+
+
+static inline a_boolean is_tallied(an_il_entry_kind kind)
+/*
+Return TRUE if the given IL entry kind is tallied in the il_allocation_counter
+array; otherwise, return FALSE.
+*/
+{
+  return kind != iek_none && kind != iek_last && !is_string_entry_kind(kind);
+}  /* is_tallied */
+
+
+void f_tally_alloc(an_il_entry_kind kind)
+/*
+Track an allocation of an IL entry with the given IL entry kind.
+*/
+{
+  /* This function should only be called on IL entry kinds that are tallied. */
+  check_assertion(is_tallied(kind));
+  ++il_allocation_counter[kind];
+}  /* f_tally_alloc */
+
 #endif /* DEBUG */
 
 /* Static variable and macro for quickly initializing the source_corresp
@@ -615,11 +554,7 @@ routine and scope number, and return a pointer to it.
 {
   a_scope_orphaned_list_header_ptr solhp;
 
-  solhp = (a_scope_orphaned_list_header_ptr)
-                                alloc_il(sizeof(a_scope_orphaned_list_header));
-#if DEBUG
-  num_scope_orphaned_list_headers_allocated++;
-#endif /* DEBUG */
+  solhp = alloc_il_of_type(a_scope_orphaned_list_header);
   solhp->assoc_routine = assoc_routine;
   solhp->scope_number = scope_number;
   solhp->orphaned_types = NULL;
@@ -646,7 +581,7 @@ Allocate a source file entry, initialize it, and return a pointer to it.
      translation unit file scope memory region. */
   sfp = (a_source_file_ptr)alloc_primary_file_scope_il(sizeof(a_source_file));
 #if DEBUG
-  num_source_files_allocated++;
+  f_tally_alloc(iek_source_file);
 #endif /* DEBUG */
   sfp->file_name        = NULL;
   sfp->full_name        = NULL;
@@ -726,7 +661,7 @@ region if at_file_scope is TRUE.
                      alloc_cil(sizeof(a_per_instantiation_needed_flags_entry));
   }  /* if */
 #if DEBUG
-  num_per_instantiation_needed_flags_entries_allocated++;
+  f_tally_alloc(iek_per_instantiation_needed_flags_entry);
 #endif /* DEBUG */
   pinfep->next = NULL;
   memzero((char *)pinfep->bytes, sizeof(pinfep->bytes));
@@ -743,10 +678,7 @@ is allocated in the current memory region.
 {
   a_subobject_path_ptr  entry;
 
-  entry = (a_subobject_path_ptr)alloc_cil(sizeof(a_subobject_path));
-#if DEBUG
-  ++num_subobject_paths_allocated;
-#endif /* DEBUG */
+  entry = alloc_cil_of_type(a_subobject_path);
   entry->next = NULL;
   entry->is_offset = FALSE;
   entry->is_base_class = FALSE;
@@ -765,9 +697,6 @@ is allocated in the current memory region.
   a_constexpr_if_ptr  entry;
 
   entry = alloc_cil_of_type(a_constexpr_if);
-#if DEBUG
-  ++num_constexpr_ifs_allocated;
-#endif /* DEBUG */
   entry->then_statement = NULL;  
   entry->else_statement = NULL;  
 #if EXTRA_SOURCE_POSITIONS_IN_IL
@@ -904,10 +833,9 @@ fields to default values.
     case ck_complex:
       /* The entire float_value must be zeroed to allow use of memcmp
          and the like on the field. */
-      cp->variant.complex_value = (an_internal_complex_value_ptr)
-                                 alloc_il(sizeof(*cp->variant.complex_value));
+      cp->variant.complex_value = alloc_il_of_type(an_internal_complex_value);
       memzero((char *)cp->variant.complex_value,
-              sizeof(*cp->variant.complex_value));
+              sizeof(an_internal_complex_value));
       break;
 #endif /* C99_IL_EXTENSIONS_SUPPORTED */
     case ck_address:
@@ -1059,10 +987,7 @@ values, and return a pointer to it.
 
   db_enter(5, "alloc_constant");
 
-  cp = (a_constant_ptr)alloc_cil(sizeof(a_constant));
-#if DEBUG
-  num_constants_allocated++;
-#endif /* DEBUG */
+  cp = alloc_cil_of_type(a_constant);
   clear_constant(cp, kind);
 
   db_exit();
@@ -1217,10 +1142,7 @@ in the file scope memory region.
     ptp = avail_param_types;
     avail_param_types = avail_param_types->next;
   } else {
-    ptp = (a_param_type_ptr)alloc_il(sizeof(a_param_type));
-#if DEBUG
-    num_param_types_allocated++;
-#endif /* DEBUG */
+    ptp = alloc_il_of_type(a_param_type);
   }  /* if */
   ptp->next = NULL;
   ptp->type = type;
@@ -1292,10 +1214,7 @@ Allocate and initialize a derivation step entry and return a pointer to it.
 
   db_enter(5, "alloc_derivation_step");
 
-  dsp = (a_derivation_step_ptr)alloc_il(sizeof(a_derivation_step));
-#if DEBUG
-  num_derivation_steps_allocated++;
-#endif /* DEBUG */
+  dsp = alloc_il_of_type(a_derivation_step);
   dsp->next       = NULL;
   dsp->prev       = NULL;
   dsp->base_class = NULL;
@@ -1314,11 +1233,7 @@ to it.
   a_base_class_derivation_ptr  bcdp;
 
   db_enter(5, "alloc_base_class_derivation");
-  bcdp = (a_base_class_derivation_ptr)
-                              alloc_il(sizeof(a_base_class_derivation));
-#if DEBUG
-  num_base_class_derivations_allocated++;
-#endif /* DEBUG */
+  bcdp = alloc_il_of_type(a_base_class_derivation);
   bcdp->next       = NULL;
   bcdp->path       = NULL;
   bcdp->path_tail  = NULL;
@@ -1339,7 +1254,7 @@ it.
 {
   a_vcall_offset_entry_ptr voep;
 
-  voep = (a_vcall_offset_entry_ptr)alloc_il(sizeof(a_vcall_offset_entry));
+  voep = alloc_il_of_type(a_vcall_offset_entry);
   voep->next               = NULL;
   voep->routine            = NULL;
   voep->base_class         = NULL;
@@ -1359,11 +1274,7 @@ return a pointer to it.
 {
   an_overriding_virtual_function_ptr ovfp;
 
-  ovfp = (an_overriding_virtual_function_ptr)alloc_il(
-                                     sizeof(an_overriding_virtual_function));
-#if DEBUG
-  num_overriding_virtual_functions_allocated++;
-#endif /* DEBUG */
+  ovfp = alloc_il_of_type(an_overriding_virtual_function);
   ovfp->next                         = NULL;
   ovfp->overriding_function          = NULL;
   ovfp->primary_function             = NULL;
@@ -1393,9 +1304,6 @@ allocated.
     avail_template_args = avail_template_args->next;
   } else {
     tap = alloc_il_of_type(a_template_arg);
-#if DEBUG
-    num_template_args_allocated++;
-#endif /* DEBUG */
   }  /* if */
   tap->next = NULL;
   tap->kind = kind;
@@ -1465,11 +1373,7 @@ and return a pointer to it.
 {
   a_template_param_type_supplement_ptr tptsp;
 
-  tptsp = (a_template_param_type_supplement_ptr)alloc_il(
-                                     sizeof(a_template_param_type_supplement));
-#if DEBUG
-  num_template_param_type_supplements_allocated++;
-#endif /* DEBUG */
+  tptsp = alloc_il_of_type(a_template_param_type_supplement);
   tptsp->class_type = NULL;
   tptsp->orig_nested_type = NULL;
   tptsp->template_symbol = NULL;
@@ -1492,11 +1396,7 @@ a pointer to it.
 {
   a_typeref_type_supplement_ptr ttsp;
 
-  ttsp = (a_typeref_type_supplement_ptr)alloc_il(
-                                            sizeof(a_typeref_type_supplement));
-#if DEBUG
-  num_typeref_type_supplements_allocated++;
-#endif /* DEBUG */
+  ttsp = alloc_il_of_type(a_typeref_type_supplement);
 #if UPC_EXTENSIONS_ALLOWED
   ttsp->upc_block_size = UPC_BLOCK_SIZE_NONE;
 #endif /* UPC_EXTENSIONS_ALLOWED */
@@ -1522,11 +1422,7 @@ a pointer to it.
 {
   an_integer_type_supplement_ptr  itsp;
 
-  itsp = (an_integer_type_supplement_ptr)alloc_il(
-                                          sizeof(an_integer_type_supplement));
-#if DEBUG
-  num_integer_type_supplements_allocated++;
-#endif /* DEBUG */
+  itsp = alloc_il_of_type(an_integer_type_supplement);
   itsp->enumerator_list_seen = FALSE;
   itsp->has_nodiscard_attribute = FALSE;
 #if GNU_EXTENSIONS_ALLOWED
@@ -1559,7 +1455,7 @@ a pointer to it.
 {
   a_partial_class_body_ptr  pcbp;
 
-  pcbp = (a_partial_class_body_ptr)alloc_il(sizeof(a_partial_class_body));
+  pcbp = alloc_il_of_type(a_partial_class_body);
   pcbp->next = NULL;
   pcbp->start_position = null_source_position;
   pcbp->end_position = null_source_position;
@@ -1578,11 +1474,7 @@ to it.
 {
   a_base_class_ptr bcp;
 
-  bcp = (a_base_class_ptr)alloc_il(sizeof(a_base_class));
-
-#if DEBUG
-  num_base_classes_allocated++;
-#endif /* DEBUG */
+  bcp = alloc_il_of_type(a_base_class);
   bcp->next                            = NULL;
   bcp->next_direct                     = NULL;
 #if IA64_ABI
@@ -1664,7 +1556,7 @@ otherwise, allocate it in the current file-scope memory region.
                                                    scp,
                                                    sizeof(a_class_list_entry));
 #if DEBUG
-  num_class_list_entries_allocated++;
+  f_tally_alloc(iek_class_list_entry);
 #endif /* DEBUG */
   clep->next  = NULL;
   clep->class_type = NULL;
@@ -1690,10 +1582,7 @@ to it.
 {
   a_routine_list_entry_ptr rlep;
 
-  rlep = (a_routine_list_entry_ptr)alloc_il(sizeof(a_routine_list_entry));
-#if DEBUG
-  num_routine_list_entries_allocated++;
-#endif /* DEBUG */
+  rlep = alloc_il_of_type(a_routine_list_entry);
   rlep->next  = NULL;
   rlep->routine = NULL;
 
@@ -1710,9 +1599,6 @@ to it.
   a_variable_list_entry_ptr vlep;
 
   vlep = alloc_il_of_type(a_variable_list_entry);
-#if DEBUG
-  num_variable_list_entries_allocated++;
-#endif /* DEBUG */
   vlep->next  = NULL;
   vlep->variable = NULL;
 
@@ -1736,9 +1622,6 @@ return a pointer to it.
 
   if (avail_constant_list_entries == NULL) {
     clep = alloc_il_of_type(a_constant_list_entry);
-#if DEBUG
-    num_constant_list_entries_allocated++;
-#endif /* DEBUG */
   } else {
     clep = avail_constant_list_entries;
     avail_constant_list_entries = clep->next;
@@ -1784,7 +1667,7 @@ base_type, because base_type will point to the entry.
                                              &base_type->source_corresp,
                                              sizeof(a_based_type_list_member));
 #if DEBUG
-  num_based_type_list_members_allocated++;
+  f_tally_alloc(iek_based_type_list_member);
 #endif /* DEBUG */
   btlmp->next = NULL;
   btlmp->based_type = NULL;
@@ -2178,11 +2061,7 @@ to default values.
       /* Allocate the class type supplement. */
       {
         a_class_type_supplement_ptr  ctsp;
-        ctsp = (a_class_type_supplement_ptr)alloc_il(
-                                             sizeof(a_class_type_supplement));
-#if DEBUG
-        num_class_type_supplements_allocated++;
-#endif /* DEBUG */
+        ctsp = alloc_il_of_type(a_class_type_supplement);
         clear_class_type_supplement(ctsp);
         pte->variant.class_struct_union.extra_info = ctsp;
 #if MICROSOFT_EXTENSIONS_ALLOWED
@@ -2193,11 +2072,7 @@ to default values.
     case tk_routine:
       pte->variant.routine.return_type = NULL;
       pte->variant.routine.extra_info = rtsp =
-           (a_routine_type_supplement_ptr)alloc_il(
-                                           sizeof(a_routine_type_supplement));
-#if DEBUG
-      num_routine_type_supplements_allocated++;
-#endif /* DEBUG */
+                                   alloc_il_of_type(a_routine_type_supplement);
 #if DO_IL_LOWERING
       pte->variant.routine.unlowered_type = NULL;
 #endif /* DO_IL_LOWERING */
@@ -2442,10 +2317,7 @@ associated variant fields to default values.
   a_type_ptr tp;
 
   db_enter(5, "alloc_type");
-  tp = (a_type_ptr)alloc_il(sizeof(a_type));
-#if DEBUG
-  num_types_allocated++;
-#endif /* DEBUG */
+  tp = alloc_il_of_type(a_type);
   clear_type(tp, kind);
   db_exit();
   return tp;
@@ -2565,10 +2437,7 @@ its kind to kind, and return a pointer to it.
 
   db_enter(5, "alloc_dynamic_init");
 
-  dip = (a_dynamic_init_ptr)alloc_cil(sizeof(a_dynamic_init));
-#if DEBUG
-  num_dynamic_inits_allocated++;
-#endif /* DEBUG */
+  dip = alloc_cil_of_type(a_dynamic_init);
   clear_dynamic_init(dip, kind);
 
   db_exit();
@@ -2585,11 +2454,7 @@ return a pointer to it.
   a_local_static_variable_init_ptr lsvip;
 
   db_enter(5, "alloc_local_static_variable_init");
-  lsvip = (a_local_static_variable_init_ptr)alloc_cil(
-                                        sizeof(a_local_static_variable_init));
-#if DEBUG
-  num_local_static_variable_inits_allocated++;
-#endif /* DEBUG */
+  lsvip = alloc_cil_of_type(a_local_static_variable_init);
   lsvip->next = NULL;
   lsvip->variable = NULL;
   lsvip->init_kind = (an_init_kind)initk_none;
@@ -2608,10 +2473,7 @@ pointer to it.
   a_vla_dimension_ptr vdp;
 
   db_enter(5, "alloc_vla_dimension");
-  vdp = (a_vla_dimension_ptr)alloc_cil(sizeof(a_vla_dimension));
-#if DEBUG
-  num_vla_dimensions_allocated++;
-#endif /* DEBUG */
+  vdp = alloc_cil_of_type(a_vla_dimension);
   vdp->next = NULL;
   vdp->type = NULL;
   vdp->dimension_expr = NULL;
@@ -2814,9 +2676,6 @@ return a pointer to it.
   /* The associated variable is template-based, which means it must have
      been allocated in the file scope memory region. */
   vtip = alloc_il_of_type(a_variable_template_info);
-#if DEBUG
-  num_variable_template_infos_allocated++;
-#endif /* DEBUG */
   vtip->template_arg_list = NULL;
   vtip->partial_spec_template_arg_list = NULL;
   vtip->assoc_template = NULL;
@@ -2837,13 +2696,10 @@ to it.
   if (is_static_or_thread_storage_duration_storage_class(storage_class)) {
     /* Variable that will have static or thread storage duration should always
        be allocated in the file scope memory region. */
-    vp = (a_variable_ptr)alloc_il(sizeof(a_variable));
+    vp = alloc_il_of_type(a_variable);
   } else {
-    vp = (a_variable_ptr)alloc_cil(sizeof(a_variable));
+    vp = alloc_cil_of_type(a_variable);
   }  /* if */
-#if DEBUG
-  num_variables_allocated++;
-#endif /* DEBUG */
   clear_variable(vp);
   vp->storage_class = storage_class;
   db_exit();
@@ -2861,10 +2717,7 @@ to it.
 
   db_enter(5, "alloc_field");
 
-  fp = (a_field_ptr)alloc_il(sizeof(a_field));
-#if DEBUG
-  num_fields_allocated++;
-#endif /* DEBUG */
+  fp = alloc_il_of_type(a_field);
   set_default_source_corresp(&fp->source_corresp);
   fp->next                 = NULL;
   fp->type                 = NULL;
@@ -2934,11 +2787,7 @@ region.
 {
   an_exception_specification_ptr  esp;
 
-  esp = (an_exception_specification_ptr)alloc_il(
-                                          sizeof(an_exception_specification));
-#if DEBUG
-  num_exception_specifications_allocated++;
-#endif /* DEBUG */
+  esp = alloc_il_of_type(an_exception_specification);
   esp->is_noexcept = FALSE;
   esp->indeterminate = FALSE;
   esp->throw_any = FALSE;
@@ -2965,11 +2814,7 @@ region.
 {
   an_exception_specification_type_ptr  estp;
 
-  estp = (an_exception_specification_type_ptr)alloc_il(
-                                   sizeof(an_exception_specification_type));
-#if DEBUG
-  num_exception_specification_types_allocated++;
-#endif /* DEBUG */
+  estp = alloc_il_of_type(an_exception_specification_type);
   estp->next = NULL;
   estp->type = NULL;
   estp->redundant = FALSE;
@@ -3049,10 +2894,7 @@ to it.  The entry is allocated in the file scope memory region.
 
   db_enter(5, "alloc_routine");
 
-  rp = (a_routine_ptr)alloc_il(sizeof(a_routine));
-#if DEBUG
-  num_routines_allocated++;
-#endif /* DEBUG */
+  rp = alloc_il_of_type(a_routine);
   set_default_source_corresp(&rp->source_corresp);
   rp->next                        = NULL;
   rp->type                        = NULL;
@@ -3304,8 +3146,7 @@ ensure_gnu_routine_supp for the typical invocation.
 {
   a_gnu_routine_supplement_ptr grsp;
   check_assertion(rp->gnu_extra_info == NULL);
-  rp->gnu_extra_info = grsp = (a_gnu_routine_supplement_ptr)
-                                    alloc_il(sizeof(a_gnu_routine_supplement));
+  rp->gnu_extra_info = grsp = alloc_il_of_type(a_gnu_routine_supplement);
   grsp->section              = NULL;
   grsp->aliased_routine      = NULL;
 #if LOWER_IFUNC
@@ -3343,10 +3184,7 @@ to it.
   an_asm_entry_ptr ap;
 
   db_enter(5, "alloc_asm_entry");
-  ap = (an_asm_entry_ptr)alloc_cil(sizeof(an_asm_entry));
-#if DEBUG
-  num_asm_entries_allocated++;
-#endif /* DEBUG */
+  ap = alloc_cil_of_type(an_asm_entry);
   set_default_source_corresp(&ap->source_corresp);
   ap->next = NULL;
   ap->asm_string = NULL;
@@ -3393,8 +3231,7 @@ Allocate space for an asm operand constraint and return a pointer to it.
 {
   an_asm_operand_constraint_ptr aocp;
 
-  aocp = (an_asm_operand_constraint_ptr)
-                                 alloc_cil(sizeof(an_asm_operand_constraint));
+  aocp = alloc_cil_of_type(an_asm_operand_constraint);
   aocp->kind = ck;
   aocp->next = NULL;
 
@@ -3408,8 +3245,7 @@ an_asm_operand_ptr alloc_asm_operand(void)
 Allocate space for an asm operand and return a pointer to it.
 */
 {
-  an_asm_operand_ptr  aop = (an_asm_operand_ptr)
-                                            alloc_cil(sizeof(an_asm_operand));
+  an_asm_operand_ptr  aop = alloc_cil_of_type(an_asm_operand);
 
   aop->next = NULL;
   aop->name = NULL;
@@ -3432,8 +3268,7 @@ Allocate space for a named register list and return a pointer to
 it.
 */
 {
-  a_named_register_list_ptr  nrl = (a_named_register_list_ptr)
-                                     alloc_cil(sizeof(a_named_register_list));
+  a_named_register_list_ptr  nrl = alloc_cil_of_type(a_named_register_list);
 
   nrl->next = NULL;
   nrl->reg = (a_named_register)anr_invalid;
@@ -3446,7 +3281,7 @@ a_label_list_ptr alloc_label_list(void)
 Allocate space for a label list and return a pointer to it.
 */
 {
-  a_label_list_ptr  ll = (a_label_list_ptr)alloc_cil(sizeof(a_label_list));
+  a_label_list_ptr  ll = alloc_cil_of_type(a_label_list);
 
   ll->next = NULL;
   ll->label = NULL;
@@ -3467,10 +3302,7 @@ to it.
 
   /* Labels should always be allocated in a function scope memory region. */
   check_assertion(curr_il_region_number != file_scope_region_number);
-  lp = (a_label_ptr)alloc_cil(sizeof(a_label));
-#if DEBUG
-  num_labels_allocated++;
-#endif /* DEBUG */
+  lp = alloc_cil_of_type(a_label);
   set_default_source_corresp(&lp->source_corresp);
   lp->source_corresp.is_local_to_function = TRUE;
   lp->next = NULL;
@@ -3507,7 +3339,7 @@ node, initialize it, and return a pointer to it.
 {
   a_local_expr_node_ref_ptr  ptr;
 
-  ptr = (a_local_expr_node_ref_ptr)alloc_cil(sizeof(a_local_expr_node_ref));
+  ptr = alloc_cil_of_type(a_local_expr_node_ref);
   ptr->next = NULL;
   ptr->expr = NULL;
   ptr->kind = (a_local_expr_node_ref_kind)lerk_none;
@@ -3637,12 +3469,8 @@ fields to default values.
 #else /* !STANDALONE_UTILITY_PROGRAM */
       /* Allocate the supplement for new/delete. */
       { a_new_delete_supplement_ptr ndsp =
-         (a_new_delete_supplement_ptr)alloc_cil(
-                                              sizeof(a_new_delete_supplement));
+                                    alloc_cil_of_type(a_new_delete_supplement);
         node->variant.new_delete = ndsp;
-#if DEBUG
-        num_new_delete_supplements_allocated++;
-#endif /* DEBUG */
         ndsp->is_new                          = TRUE;
         ndsp->placement_new                   = FALSE;
         ndsp->aligned_version                 = FALSE;
@@ -3669,11 +3497,8 @@ fields to default values.
          programs. */
       node->variant.gcnew_info = NULL;
 #else /* !STANDALONE_UTILITY_PROGRAM */
-      gnsp = (a_gcnew_supplement_ptr)alloc_cil(sizeof(a_gcnew_supplement));
+      gnsp = alloc_cil_of_type(a_gcnew_supplement);
       node->variant.gcnew_info = gnsp;
-#if DEBUG
-      num_gcnew_supplements_allocated++;
-#endif /* DEBUG */
       gnsp->has_new_initializer         = FALSE;
       gnsp->is_cli_array                = FALSE;
       gnsp->type                        = NULL;
@@ -3689,12 +3514,8 @@ fields to default values.
       node->variant.throw_info = NULL;
 #else /* !STANDALONE_UTILITY_PROGRAM */
       /* Allocate the supplement for a throw. */
-      {  a_throw_supplement_ptr tsp =
-                 (a_throw_supplement_ptr)alloc_cil(sizeof(a_throw_supplement));
+      { a_throw_supplement_ptr tsp = alloc_cil_of_type(a_throw_supplement);
         node->variant.throw_info = tsp;
-#if DEBUG
-        num_throw_supplements_allocated++;
-#endif /* DEBUG */
         tsp->type         = NULL;
         tsp->dynamic_init = NULL;
 #if DO_IL_LOWERING && !DO_FULL_PORTABLE_EH_LOWERING
@@ -3714,11 +3535,8 @@ fields to default values.
       node->variant.condition = NULL;
 #else /* !STANDALONE_UTILITY_PROGRAM */
       { a_condition_supplement_ptr csp =
-         (a_condition_supplement_ptr)alloc_cil(sizeof(a_condition_supplement));
+                                     alloc_cil_of_type(a_condition_supplement);
         node->variant.condition = csp;
-#if DEBUG
-        num_condition_supplements_allocated++;
-#endif /* DEBUG */
         csp->scope          = NULL;
         csp->dynamic_init   = NULL;
         csp->expr           = NULL;
@@ -3911,10 +3729,9 @@ Allocate and initialize an expression node.
       avail_fs_nodes = ptr->extra.next_avail;
       trace_alloc_check(ptr);
     } else {
-      ptr = (an_expr_node_ptr)alloc_il(sizeof(an_expr_node));
+      ptr = alloc_il_of_type(an_expr_node);
 #if DEBUG
       num_fs_expr_nodes_allocated += 1;
-      num_expr_nodes_allocated += 1;
       { /* Increment num_rescan_fs_expr_nodes_allocated if we're in an
            expression rescan context (this is approximate). */
         /*lint -e2701 -e1798*/
@@ -3924,10 +3741,7 @@ Allocate and initialize an expression node.
 #endif /* DEBUG */
     }  /* if */
   } else {
-    ptr = (an_expr_node_ptr)alloc_cil(sizeof(an_expr_node));
-#if DEBUG
-    num_expr_nodes_allocated += 1;
-#endif /* DEBUG */
+    ptr = alloc_cil_of_type(an_expr_node);
   }  /* if */
   clear_expr_node(ptr, kind);
 
@@ -3979,12 +3793,9 @@ to kind, and set dependent variant fields to default values.
 #endif /* GENERATE_EH_TABLES */
       break;
     case leck_function_prologue:
-      { an_eh_prologue_supplement_ptr psp = (an_eh_prologue_supplement_ptr)
-                                  alloc_cil(sizeof(an_eh_prologue_supplement));
+      { an_eh_prologue_supplement_ptr psp =
+                                  alloc_cil_of_type(an_eh_prologue_supplement);
         node->variant.lowered_eh.variant.prologue_info = psp;
-#if DEBUG
-        num_eh_prologue_supplements_allocated++;
-#endif /* DEBUG */
         psp->routine = NULL;
 #if GENERATE_EH_TABLES
         psp->region_table = NULL;
@@ -4120,7 +3931,7 @@ values, and return a pointer to it.
 {
   a_switch_case_entry_ptr  entry;
 
-  entry = (a_switch_case_entry_ptr)alloc_cil(sizeof(a_switch_case_entry));
+  entry = alloc_cil_of_type(a_switch_case_entry);
   entry->stmt = NULL;
   entry->case_value = NULL;
 #if GNU_EXTENSIONS_ALLOWED
@@ -4134,9 +3945,6 @@ values, and return a pointer to it.
   entry->colon_position = null_source_position;
 #endif /* EXTRA_SOURCE_POSITIONS_IN_IL */
   entry->reachable_by_fall_through = TRUE;
-#if DEBUG
-  num_switch_case_entries_allocated++;
-#endif /* DEBUG */
   return entry;
 }  /* alloc_switch_case_entry */
 
@@ -4149,13 +3957,10 @@ default values, and return a pointer to it.
 {
   a_switch_stmt_descr_ptr  descr;
 
-  descr = (a_switch_stmt_descr_ptr)alloc_cil(sizeof(a_switch_stmt_descr));
+  descr = alloc_cil_of_type(a_switch_stmt_descr);
   descr->cases = NULL;
   descr->default_case = NULL;
   descr->sorted_cases = NULL;
-#if DEBUG
-  num_switch_stmt_descriptions_allocated++;
-#endif /* DEBUG */
   return descr;
 }  /* alloc_switch_stmt_descr */
 
@@ -4169,11 +3974,7 @@ base class to bcp, and return a pointer to it.
 {
   an_accessible_base_class_ptr abcp;
 
-  abcp = (an_accessible_base_class_ptr)alloc_cil(
-                                            sizeof(an_accessible_base_class));
-#if DEBUG
-  num_accessible_base_classes_allocated++;
-#endif /* DEBUG */
+  abcp = alloc_cil_of_type(an_accessible_base_class);
   abcp->next       = NULL;
   abcp->base_class = bcp;
 
@@ -4189,10 +3990,7 @@ Allocate a handler, clear it to default values, and return a pointer to it.
 {
   a_handler_ptr hp;
 
-  hp = (a_handler_ptr)alloc_cil(sizeof(a_handler));
-#if DEBUG
-  num_handlers_allocated++;
-#endif /* DEBUG */
+  hp = alloc_cil_of_type(a_handler);
   hp->next         = NULL;
   hp->parameter    = NULL;
   hp->statement    = NULL;
@@ -4231,9 +4029,6 @@ a pointer to it.
   cdp->error_descr = FALSE;
   cdp->has_return_void = FALSE;
   cdp->body_generated = FALSE;
-#if DEBUG
-  num_coroutine_descriptions_allocated++;
-#endif /* DEBUG */
 
   return cdp;
 }  /* alloc_coroutine_descr */
@@ -4295,9 +4090,6 @@ fields to default values.
     case stmk_for:
       sp->variant.for_loop.statement = NULL;
       sp->variant.for_loop.extra_info = flip = alloc_cil_of_type(a_for_loop);
-#if DEBUG
-      num_for_loops_allocated++;
-#endif /* DEBUG */
       flip->initialization = NULL;
       flip->increment = NULL;
       flip->for_init_scope = NULL;
@@ -4315,7 +4107,7 @@ fields to default values.
     case stmk_for_each:
       sp->variant.for_each_loop.statement = NULL;
       sp->variant.for_each_loop.extra_info = felp =
-                      (a_for_each_loop_ptr)alloc_cil(sizeof(a_for_each_loop));
+                                            alloc_cil_of_type(a_for_each_loop);
       clear_for_each_loop(felp, (a_for_each_pattern_kind)sfepk_none);
       break;
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
@@ -4340,11 +4132,7 @@ fields to default values.
       break;
     case stmk_block:
       sp->variant.block.statements = NULL;
-      sp->variant.block.extra_info = bp =
-                        (a_block_ptr)alloc_cil(sizeof(a_block));
-#if DEBUG
-      num_blocks_allocated++;
-#endif /* DEBUG */
+      sp->variant.block.extra_info = bp = alloc_cil_of_type(a_block);
       bp->final_position = null_source_position;
       bp->assoc_scope            = NULL;
       bp->lifetime               = NULL;
@@ -4367,11 +4155,7 @@ fields to default values.
       break;
 #endif /* ASM_FUNCTION_ALLOWED */
     case stmk_try_block:
-      sp->variant.try_block = tsp =
-                  (a_try_supplement_ptr)alloc_cil(sizeof(a_try_supplement));
-#if DEBUG
-      num_try_supplements_allocated++;
-#endif /* DEBUG */
+      sp->variant.try_block = tsp = alloc_cil_of_type(a_try_supplement);
       tsp->is_function_try_block = FALSE;
       tsp->statement         = NULL;
       tsp->handlers          = NULL;
@@ -4382,12 +4166,9 @@ fields to default values.
       break;
 #if MICROSOFT_EXTENSIONS_ALLOWED
     case stmk_microsoft_try:
-      { a_microsoft_try_supplement_ptr mtsp = (a_microsoft_try_supplement_ptr)
-                                 alloc_cil(sizeof(a_microsoft_try_supplement));
+      { a_microsoft_try_supplement_ptr mtsp =
+                                 alloc_cil_of_type(a_microsoft_try_supplement);
         sp->variant.microsoft_try = mtsp;
-#if DEBUG
-        num_microsoft_try_supplements_allocated++;
-#endif /* DEBUG */
         mtsp->guarded_statement = NULL;
         mtsp->except_expr       = NULL;
         mtsp->cleanup_statement = NULL;
@@ -4427,10 +4208,7 @@ to it.  The statement kind is set as indicated.
 
   db_enter(5, "alloc_statement");
 
-  sp = (a_statement_ptr)alloc_cil(sizeof(a_statement));
-#if DEBUG
-  num_statements_allocated++;
-#endif /* DEBUG */
+  sp = alloc_cil_of_type(a_statement);
   sp->position = null_source_position;
 #if EXTRA_SOURCE_POSITIONS_IN_IL
   sp->end_position = null_source_position;
@@ -4461,10 +4239,7 @@ pointer to it.
 {
   a_constructor_init_ptr  cip;
 
-  cip = (a_constructor_init_ptr)alloc_cil(sizeof(a_constructor_init));
-#if DEBUG
-  num_constructor_inits_allocated++;
-#endif /* DEBUG */
+  cip = alloc_cil_of_type(a_constructor_init);
   cip->next = NULL;
   cip->kind = kind;
   cip->compiler_generated = FALSE;
@@ -4513,10 +4288,7 @@ Allocate a pragma entry of the required kind, initialize it, and return a
 pointer to it.
 */
 {
-  a_pragma_ptr pp = (a_pragma_ptr)alloc_cil(sizeof(a_pragma));
-#if DEBUG
-  num_pragmas_allocated++;
-#endif /* DEBUG */
+  a_pragma_ptr pp = alloc_cil_of_type(a_pragma);
   pp->next                  = NULL;
   pp->kind                  = kind;
   pp->ignore_in_back_end    = FALSE;
@@ -4690,10 +4462,7 @@ to it.
     *avail_list_ptr = olp->next;
   } else {
     /* Allocate a new entry. */
-    olp = (an_object_lifetime_ptr)alloc_cil(sizeof(an_object_lifetime));
-#if DEBUG
-    num_object_lifetimes_allocated++;
-#endif /* DEBUG */
+    olp = alloc_cil_of_type(an_object_lifetime);
   }  /* if */
   /* Set the fields to default values. */
   clear_tagged_ptr(olp->entity);
@@ -4754,10 +4523,7 @@ creating an entry for a local namespace alias).
   a_namespace_ptr nsp;
 
   db_enter(5, "alloc_namespace");
-  nsp = (a_namespace_ptr)alloc_il(sizeof(a_namespace));
-#if DEBUG
-  num_namespaces_allocated++;
-#endif /* DEBUG */
+  nsp = alloc_il_of_type(a_namespace);
   clear_namespace(nsp, is_alias);
   db_exit();
   return nsp;
@@ -4772,10 +4538,7 @@ Allocate a using-decl entry, initialize its fields, and return a pointer to it.
   a_using_decl_ptr  udp;
 
   db_enter(5, "alloc_using_decl");
-  udp = (a_using_decl_ptr)alloc_cil(sizeof(a_using_decl));
-#if DEBUG
-  num_using_decls_allocated++;
-#endif /* DEBUG */
+  udp = alloc_cil_of_type(a_using_decl);
   udp->next                  = NULL;
   udp->position              = null_source_position;
   clear_tagged_ptr(udp->entity);
@@ -4862,10 +4625,7 @@ points to the associated routine if the kind is sck_function.
 
   db_enter(5, "alloc_scope");
 
-  sp = (a_scope_ptr)alloc_cil(sizeof(a_scope));
-#if DEBUG
-  num_scopes_allocated++;
-#endif /* DEBUG */
+  sp = alloc_cil_of_type(a_scope);
   sp->next   = NULL;
   sp->prev    = NULL;
   sp->parent = NULL;
@@ -4943,10 +4703,7 @@ initialize it, and return a pointer to it.
 {
   a_local_scope_ref_ptr  ptr;
 
-  ptr = (a_local_scope_ref_ptr)alloc_cil(sizeof(a_local_scope_ref));
-#if DEBUG
-  num_local_scope_refs_allocated++;
-#endif /* DEBUG */
+  ptr = alloc_cil_of_type(a_local_scope_ref);
   ptr->next = NULL;
   ptr->scope = NULL;
   clear_tagged_ptr(ptr->referrer);
@@ -4964,9 +4721,6 @@ pointer to it.
 
   db_enter(5, "alloc_static_assertion");
   entry = alloc_cil_of_type(a_static_assertion);
-#if DEBUG
-  num_static_assertions++;
-#endif /* DEBUG */
   entry->condition = NULL;
   entry->string_literal = NULL;
   entry->position = null_source_position;
@@ -5005,11 +4759,7 @@ to it.
     trace_alloc_check(ssep);
     *avail_list_ptr = ssep->next;
   } else {
-    ssep = (a_source_sequence_entry_ptr)
-                                   alloc_cil(sizeof(a_source_sequence_entry));
-#if DEBUG
-    num_source_sequence_entries_allocated++;
-#endif /* DEBUG */
+    ssep = alloc_cil_of_type(a_source_sequence_entry);
   }  /* if */
   /* Initialize the fields. */
   ssep->next        = NULL;
@@ -5028,11 +4778,7 @@ and return a pointer to it.
 {
   a_src_seq_secondary_decl_ptr  sssdp;
 
-  sssdp = (a_src_seq_secondary_decl_ptr)
-                                  alloc_cil(sizeof(a_src_seq_secondary_decl));
-#if DEBUG
-  num_src_seq_secondary_decls_allocated++;
-#endif /* DEBUG */
+  sssdp = alloc_cil_of_type(a_src_seq_secondary_decl);
   sssdp->decl_position               = null_source_position;
 #if EXTRA_SOURCE_POSITIONS_IN_IL
   sssdp->decl_pos_info               = NULL;
@@ -5072,11 +4818,7 @@ return a pointer to it.
 {
   a_src_seq_end_of_construct_ptr  sseocp;
 
-  sseocp = (a_src_seq_end_of_construct_ptr)alloc_cil(
-                                           sizeof(a_src_seq_end_of_construct));
-#if DEBUG
-  num_src_seq_end_of_constructs_allocated++;
-#endif /* DEBUG */
+  sseocp = alloc_cil_of_type(a_src_seq_end_of_construct);
   sseocp->position    = null_source_position;
   clear_tagged_ptr(sseocp->entity);
 
@@ -5092,10 +4834,7 @@ a pointer to it.
 {
   a_src_seq_sublist_ptr  sssp;
 
-  sssp = (a_src_seq_sublist_ptr)alloc_il(sizeof(a_src_seq_sublist));
-#if DEBUG
-  num_src_seq_sublists_allocated++;
-#endif /* DEBUG */
+  sssp = alloc_il_of_type(a_src_seq_sublist);
   sssp->next = NULL;
   sssp->source_sequence_list = NULL;
   sssp->last_source_sequence_entry = NULL;
@@ -5112,11 +4851,7 @@ a pointer to it.
 {
   an_instantiation_directive_ptr  idp;
 
-  idp = (an_instantiation_directive_ptr)alloc_il(
-                                          sizeof(an_instantiation_directive));
-#if DEBUG
-  num_instantiation_directives_allocated++;
-#endif /* DEBUG */
+  idp = alloc_il_of_type(an_instantiation_directive);
   idp->position    = null_source_position;
   clear_tagged_ptr(idp->entity);
   idp->do_not_instantiate = FALSE;
@@ -5140,9 +4875,6 @@ and return a pointer to it.
 
   db_enter(5, "alloc_linkage_spec_block");
   entry = alloc_cil_of_type(a_linkage_spec_block);
-#if DEBUG
-  num_linkage_spec_blocks++;
-#endif /* DEBUG */
   entry->name_string = NULL;
   entry->name_linkage = (a_name_linkage_kind)nlk_none;
   entry->position = null_source_position;
@@ -5163,10 +4895,7 @@ fields, and return a pointer to it.
 {
   a_hidden_name_ptr  hnp;
 
-  hnp = (a_hidden_name_ptr)alloc_cil(sizeof(a_hidden_name));
-#if DEBUG
-  num_hidden_names_allocated++;
-#endif /* DEBUG */
+  hnp = alloc_cil_of_type(a_hidden_name);
   hnp->next                             = NULL;
   clear_tagged_ptr(hnp->entity);
   hnp->qualification_needed             = FALSE;
@@ -5193,10 +4922,7 @@ initialize its fields, and return a pointer to it.
 {
   a_template_parameter_ptr  tpp;
 
-  tpp = (a_template_parameter_ptr)alloc_il(sizeof(a_template_parameter));
-#if DEBUG
-  num_template_parameters_allocated++;
-#endif /* DEBUG */
+  tpp = alloc_il_of_type(a_template_parameter);
   set_default_source_corresp(&tpp->source_corresp);
   tpp->next = NULL;
   tpp->kind = (a_template_parameter_kind)tpk_error;
@@ -5214,10 +4940,7 @@ initialize its fields, and return a pointer to it.
 {
   a_requires_clause_ptr  rcp;
 
-  rcp = (a_requires_clause_ptr)alloc_il(sizeof(a_requires_clause));
-#if DEBUG
-  ++num_requires_clauses_allocated;
-#endif /* DEBUG */
+  rcp = alloc_il_of_type(a_requires_clause);
   rcp->constraint = NULL;
   rcp->requires_pos = null_source_position;
   return rcp; 
@@ -5232,10 +4955,7 @@ initialize its fields, and return a pointer to it.
 {
   a_template_decl_ptr  tdp;
 
-  tdp = (a_template_decl_ptr)alloc_il(sizeof(a_template_decl));
-#if DEBUG
-  num_template_decls_allocated++;
-#endif /* DEBUG */
+  tdp = alloc_il_of_type(a_template_decl);
   tdp->parent = NULL;
   tdp->param_list = NULL;
   tdp->constraint.requires_clause = NULL;
@@ -5259,10 +4979,7 @@ fields, and return a pointer to it.
 {
   a_template_ptr  tp;
 
-  tp = (a_template_ptr)alloc_il(sizeof(a_template));
-#if DEBUG
-  num_templates_allocated++;
-#endif /* DEBUG */
+  tp = alloc_il_of_type(a_template);
   set_default_source_corresp(&tp->source_corresp);
   tp->next = NULL;
   tp->kind = (a_template_kind)templk_none;
@@ -5306,10 +5023,7 @@ fields, and return a pointer to it.
 {
   a_macro_ptr  mp;
 
-  mp = (a_macro_ptr)alloc_il(sizeof(a_macro));
-#if DEBUG
-  num_macros_allocated++;
-#endif /* DEBUG */
+  mp = alloc_il_of_type(a_macro);
   set_default_source_corresp(&mp->source_corresp);
   mp->next = NULL;
   mp->is_undef = FALSE;
@@ -5338,11 +5052,7 @@ region, initialize the fields, and return a pointer to it.
   int                                 i;
 #endif /* !NULL_POINTER_IS_ZERO */
 
-  mirbp = (a_macro_invocation_record_block_ptr)
-                             alloc_il(sizeof(a_macro_invocation_record_block));
-#if DEBUG
-  num_macro_invocation_record_blocks_allocated++;
-#endif /* DEBUG */
+  mirbp = alloc_il_of_type(a_macro_invocation_record_block);
 #if NULL_POINTER_IS_ZERO
   /* We can use memzero to clear the block efficiently.  Note that this
      depends on NO_PARENT_MACRO_INVOCATION and SP_COL_UNKNOWN both having
@@ -5369,7 +5079,9 @@ region, initialize the fields, and return a pointer to it.
 #endif /* NULL_POINTER_IS_ZERO */
   return mirbp;
 }  /* alloc_macro_invocation_record_block */
+
 #endif /* RECORD_MACRO_INVOCATIONS */
+#if EXTRA_SOURCE_POSITIONS_IN_IL
 
 an_element_position_ptr alloc_element_position(void)
 /*
@@ -5379,17 +5091,13 @@ its fields, and return a pointer to it.
 {
   an_element_position_ptr  epp;
 
-  epp = (an_element_position_ptr)alloc_cil(sizeof(an_element_position));
-#if DEBUG
-  num_element_positions_allocated++;
-#endif /* DEBUG */
+  epp = alloc_cil_of_type(an_element_position);
   epp->next = NULL;
   epp->position = null_source_position;
   epp->kind = (an_element_position_kind)epk_error;
   return epp;
 }  /* alloc_element_position */
 
-#if EXTRA_SOURCE_POSITIONS_IN_IL
 
 void clear_decl_position_supplement(a_decl_position_supplement_ptr  dpsp)
 /*
@@ -5413,15 +5121,10 @@ initialize its fields, and return a pointer to it.
   a_decl_position_supplement_ptr  dpsp;
 
   if (at_file_scope) {
-    dpsp = (a_decl_position_supplement_ptr)alloc_il(
-                                     sizeof(a_decl_position_supplement));
+    dpsp = alloc_il_of_type(a_decl_position_supplement);
   } else {
-    dpsp = (a_decl_position_supplement_ptr)alloc_cil(
-                                     sizeof(a_decl_position_supplement));
+    dpsp = alloc_cil_of_type(a_decl_position_supplement);
   }  /* if */
-#if DEBUG
-  num_decl_position_supplements_allocated++;
-#endif /* DEBUG */
   clear_decl_position_supplement(dpsp);
   return dpsp;
 }  /* alloc_decl_position_supplement */
@@ -5438,9 +5141,6 @@ to it.
   a_name_qualifier_ptr nqp;
 
   nqp = alloc_il_of_type(a_name_qualifier);
-#if DEBUG
-  num_name_qualifiers_allocated++;
-#endif /* DEBUG */
   nqp->next = NULL;
   nqp->qualifier.class_type = NULL;
   nqp->qualifier.namespace_ptr = NULL;
@@ -5481,9 +5181,6 @@ to it.
   a_name_reference_ptr nrp;
 
   nrp = alloc_il_of_type(a_name_reference);
-#if DEBUG
-  num_name_references_allocated++;
-#endif /* DEBUG */
   clear_name_reference(nrp);
   return nrp;
 }  /* alloc_name_reference */
@@ -5508,7 +5205,7 @@ a pointer to it.
 #if EXPENSIVE_CHECKING
   snlep->is_marked_for_recycle = FALSE;
 #endif /* EXPENSIVE_CHECKING */
-  num_seq_number_lookup_entries_allocated++;
+  f_tally_alloc(iek_seq_number_lookup_entry);
 #endif /* DEBUG */
   return snlep;
 }  /* alloc_seq_number_lookup_entry */
@@ -5524,9 +5221,6 @@ and return a pointer to it.
   an_ms_if_exists_ptr msiep;
 
   msiep = alloc_cil_of_type(an_ms_if_exists);
-#if DEBUG
-  num_ms_if_exists_allocated++;
-#endif /* DEBUG */
   msiep->next = NULL;
   clear_tagged_ptr(msiep->entity);
   msiep->position = null_source_position;
@@ -5550,9 +5244,6 @@ and return a pointer to it.
   an_ms_attribute_ptr msap;
 
   msap = alloc_cil_of_type(an_ms_attribute);
-#if DEBUG
-  num_ms_attributes_allocated++;
-#endif /* DEBUG */
   msap->kind = kind;
   msap->next = NULL;
   msap->next_in_block = NULL;
@@ -5587,9 +5278,6 @@ values, and return a pointer to it.
   an_ms_attribute_arg_ptr msaap;
 
   msaap = alloc_cil_of_type(an_ms_attribute_arg);
-#if DEBUG
-  num_ms_attribute_args_allocated++;
-#endif /* DEBUG */
   msaap->kind = kind;
   msaap->next = NULL;
   msaap->param_name = NULL;
@@ -5630,9 +5318,6 @@ default values, and return a pointer to it.
   a_custom_ms_attribute_arg_ptr arg;
 
   arg = alloc_cil_of_type(a_custom_ms_attribute_arg);
-#if DEBUG
-  num_custom_ms_attribute_args_allocated++;
-#endif /* DEBUG */
   arg->next = NULL;
   arg->field = NULL;
   arg->expression = NULL;
@@ -5646,11 +5331,7 @@ Allocate a property index type entry, clear it to default values, and return a
 pointer to it.
 */
 {
-  a_property_index_type_ptr  pitp = (a_property_index_type_ptr)
-                                      alloc_il(sizeof(a_property_index_type));
-#if DEBUG
-  num_property_index_types_allocated++;
-#endif /* DEBUG */
+  a_property_index_type_ptr  pitp = alloc_il_of_type(a_property_index_type);
   pitp->next = NULL;
   pitp->type = NULL;
   pitp->position = null_source_position;
@@ -5668,9 +5349,6 @@ values, and return a pointer to it.
   a_property_or_event_descr_ptr  pdp;
 
   pdp = alloc_il_of_type(a_property_or_event_descr);
-#if DEBUG
-  num_property_or_event_descriptions_allocated++;
-#endif /* DEBUG */
   pdp->kind = kind;
   pdp->is_trivial = FALSE;
   pdp->is_default_indexed = FALSE;
@@ -5718,9 +5396,6 @@ pointer to it.
   a_generic_constraint_ptr	gcp;
 
   gcp = alloc_il_of_type(a_generic_constraint);
-#if DEBUG
-  num_generic_constraints_allocated++;
-#endif /* DEBUG */
   gcp->kind = (a_generic_constraint_kind)gck_none;
   gcp->implicit_constraint = FALSE;
   gcp->next = NULL;
@@ -5756,9 +5431,6 @@ pointer to it.
   a_generic_constraint_clause_ptr	gccp;
 
   gccp = alloc_il_of_type(a_generic_constraint_clause);
-#if DEBUG
-  num_generic_constraint_clauses_allocated++;
-#endif /* DEBUG */
   clear_generic_constraint_clause(gccp);
   return gccp;
 }  /* alloc_generic_constraint_clause */
@@ -5786,7 +5458,7 @@ Allocate an entry describing a C++11 lambda and return a pointer to it.  The
 entry is allocated in the current memory region.
 */
 {
-  a_lambda_ptr  entry = (a_lambda_ptr)alloc_cil(sizeof(a_lambda));
+  a_lambda_ptr  entry = alloc_cil_of_type(a_lambda);
 
   entry->capture_list = NULL;
   entry->closure_class = NULL;
@@ -5817,8 +5489,7 @@ captured by a C++11 lambda and return a pointer to it.  The entry is allocated
 in the current memory region.
 */
 {
-  a_lambda_capture_ptr  entry = (a_lambda_capture_ptr)
-                                           alloc_cil(sizeof(a_lambda_capture));
+  a_lambda_capture_ptr  entry = alloc_cil_of_type(a_lambda_capture);
 
   entry->next = NULL;
   entry->captured.initializer = NULL;
@@ -5856,11 +5527,7 @@ it.  The entry is allocated in the current memory region.
 {
   an_il_entity_list_entry_ptr  entry;
 
-  entry = (an_il_entity_list_entry_ptr)
-                                  alloc_cil(sizeof(an_il_entity_list_entry));
-#if DEBUG
-  ++num_il_entity_list_entries_allocated;
-#endif /* DEBUG */
+  entry = alloc_cil_of_type(an_il_entity_list_entry);
   entry->next = NULL;
   clear_tagged_ptr(entry->entity);
   return entry;
@@ -5899,9 +5566,6 @@ Allocate an attribute in file scope memory and return a pointer to it.
   ap->end_position = null_source_position;
 #endif /* EXTRA_SOURCE_POSITIONS_IN_IL */
   ap->pack_expansion_descr = NULL;
-#if DEBUG
-  ++num_attributes_allocated;
-#endif /* DEBUG */
   return ap;
 }  /* alloc_attribute */
 
@@ -5924,9 +5588,6 @@ Allocate an attribute argument in file scope memory and return a pointer to it.
   aap->end_position = null_source_position;
 #endif /* EXTRA_SOURCE_POSITIONS_IN_IL */
   aap->variant.token = NULL;
-#if DEBUG
-  ++num_attribute_args_allocated;
-#endif /* DEBUG */
   return aap;
 }  /* alloc_attribute_arg */
 
@@ -5943,9 +5604,6 @@ Allocate an attribute group in file scope memory and return a pointer to it.
 #if EXTRA_SOURCE_POSITIONS_IN_IL
   agp->end_position = null_source_position;
 #endif /* EXTRA_SOURCE_POSITIONS_IN_IL */
-#if DEBUG
-  ++num_attribute_groups_allocated;
-#endif /* DEBUG */
   return agp;
 }  /* alloc_attribute_group */
 
@@ -6011,241 +5669,52 @@ Display and return the amount of space used for various IL tables.
 
   db_space_used_header("IL table use:");
 
-  db_space_used("source file", num_source_files_allocated, a_source_file);
-  db_space_used("seq number lookup entries",
-                num_seq_number_lookup_entries_allocated,
-                a_seq_number_lookup_entry);
-  db_space_used("constant", num_constants_allocated, a_constant);
-  db_space_used("subobject paths", num_subobject_paths_allocated,
-                a_subobject_path);
-  db_space_used("String literal text", string_literal_text_space_allocated,
-                char);
-  db_space_used("IL entity list entries", num_il_entity_list_entries_allocated,
-                an_il_entity_list_entry);
-  db_space_used("param type", num_param_types_allocated, a_param_type);
-  db_space_used("routine type supplement",
-                num_routine_type_supplements_allocated,
-                a_routine_type_supplement);
-  db_space_used("based type list member",
-                num_based_type_list_members_allocated,
-                a_based_type_list_member);
-  db_space_used("class type supplement", num_class_type_supplements_allocated,
-                a_class_type_supplement);
-  db_space_used("class list entry", num_class_list_entries_allocated,
-                a_class_list_entry);
-  db_space_used("routine list entry", num_routine_list_entries_allocated,
-                a_routine_list_entry);
-  db_space_used("variable list entry", num_variable_list_entries_allocated,
-                a_variable_list_entry);
-  db_space_used("constant list entry", num_constant_list_entries_allocated,
-                a_constant_list_entry);
-  db_space_used("overriding virtual func",
-                num_overriding_virtual_functions_allocated,
-                an_overriding_virtual_function);
-  db_space_used("derivation steps", num_derivation_steps_allocated,
-                a_derivation_step);
-  db_space_used("base class derivations", num_base_class_derivations_allocated,
-                a_base_class_derivation);
-  db_space_used("base class", num_base_classes_allocated, a_base_class);
-  db_space_used("template args", num_template_args_allocated, a_template_arg);
-  db_space_used("templ param supplement",
-                num_template_param_type_supplements_allocated,
-                a_template_param_type_supplement);
-  db_space_used("typeref type supplement",
-                num_typeref_type_supplements_allocated,
-                a_typeref_type_supplement);
-  db_space_used("integer type supplement",
-                num_integer_type_supplements_allocated,
-                an_integer_type_supplement);
-  db_space_used("type", num_types_allocated, a_type);
-  db_space_used("dynamic init", num_dynamic_inits_allocated, a_dynamic_init);
-  db_space_used("local static var inits",
-                num_local_static_variable_inits_allocated,
-                a_local_static_variable_init);
-  db_space_used("vla dimensions", num_vla_dimensions_allocated,
-                a_vla_dimension);
-  db_space_used("variable", num_variables_allocated, a_variable);
-  db_space_used("variable template info",
-                num_variable_template_infos_allocated,
-                a_variable_template_info);
-  db_space_used("field", num_fields_allocated, a_field);
-  db_space_used("routine", num_routines_allocated, a_routine);
-  db_space_used("exception specification",
-                num_exception_specifications_allocated,
-                an_exception_specification);
-  db_space_used("exception spec type",
-                num_exception_specification_types_allocated,
-                an_exception_specification_type);
-  db_space_used("asm entry", num_asm_entries_allocated, an_asm_entry);
-  db_space_used("label", num_labels_allocated, a_label);
-  db_space_used("expr node", num_expr_nodes_allocated, an_expr_node);
-  /* Report some more specific numbers. */
-  fprintf(f_debug, "%25s %8lu %8u %8lu\n", "(fs expr node)",
-          num_fs_expr_nodes_allocated, (unsigned)sizeof(an_expr_node), 
-          (unsigned long)(num_fs_expr_nodes_allocated*sizeof(an_expr_node)));
-  { unsigned long     num_avail_fs_nodes = 0;
-    an_expr_node_ptr  node = avail_fs_nodes;
-    for (; node != NULL; node = node->extra.next_avail) {
-      num_avail_fs_nodes += 1;
-    }  /* for */
-    fprintf(f_debug, "%25s %8lu %8u %8lu\n", "(avail. fs expr node)",
-            num_avail_fs_nodes, (unsigned)sizeof(an_expr_node), 
-            (unsigned long)(num_avail_fs_nodes*sizeof(an_expr_node)));
-  }
-  fprintf(f_debug, "%25s %8lu %8u %8lu\n", "(fs rescan expr node)",
-          num_rescan_fs_expr_nodes_allocated, (unsigned)sizeof(an_expr_node), 
-          (unsigned long)(num_rescan_fs_expr_nodes_allocated*
+  for (unsigned iek = ((unsigned)iek_none) + 1; iek < (unsigned)iek_last;
+       ++iek) {
+    if (!is_tallied((an_il_entry_kind)iek)) {
+      continue;
+    }  /* if */
+    if (il_allocation_counter[iek] == 0) {
+      continue;
+    }  /* if */
+    db_space_used_nontype(il_entry_kind_names[iek], il_allocation_counter[iek],
+                          sizeof_il_entry[iek]);
+    if (iek == iek_expr_node) {
+      /* Report some more specific numbers for expression nodes. */
+      fprintf(f_debug, "%25s %8lu %8u %8lu\n", "(fs expr node)",
+              num_fs_expr_nodes_allocated, (unsigned)sizeof(an_expr_node),
+              (unsigned long)(num_fs_expr_nodes_allocated *
+                              sizeof(an_expr_node)));
+
+      unsigned long     num_avail_fs_nodes = 0;
+      an_expr_node_ptr  node = avail_fs_nodes;
+      for (; node != NULL; node = node->extra.next_avail) {
+        num_avail_fs_nodes += 1;
+      }  /* for */
+      fprintf(f_debug, "%25s %8lu %8u %8lu\n", "(avail. fs expr node)",
+              num_avail_fs_nodes, (unsigned)sizeof(an_expr_node),
+              (unsigned long)(num_avail_fs_nodes*sizeof(an_expr_node)));
+      fprintf(f_debug, "%25s %8lu %8u %8lu\n", "(fs rescan expr node)",
+          num_rescan_fs_expr_nodes_allocated, (unsigned)sizeof(an_expr_node),
+          (unsigned long)(num_rescan_fs_expr_nodes_allocated *
                           sizeof(an_expr_node)));
-  db_space_used("new/delete supplement", num_new_delete_supplements_allocated,
-                a_new_delete_supplement);
-#if MICROSOFT_EXTENSIONS_ALLOWED
-  db_space_used("gcnew supplement", num_gcnew_supplements_allocated,
-                a_gcnew_supplement);
-#endif /* MICROSOFT_EXTENSIONS_ALLOWED */
-  db_space_used("throw supplement", num_throw_supplements_allocated,
-                a_throw_supplement);
-  db_space_used("condition supplement", num_condition_supplements_allocated,
-                a_condition_supplement);
-#if !ABI_CHANGES_FOR_RTTI
-  db_space_used("accessible base class", num_accessible_base_classes_allocated,
-                an_accessible_base_class);
-#endif /* !ABI_CHANGES_FOR_RTTI */
-#if DO_IL_LOWERING && !DO_FULL_PORTABLE_EH_LOWERING
-  db_space_used("eh prologue supplement",
-                num_eh_prologue_supplements_allocated,
-                an_eh_prologue_supplement);
-#endif /* DO_IL_LOWERING && !DO_FULL_PORTABLE_EH_LOWERING */
-  db_space_used("switch case entry",
-                num_switch_case_entries_allocated, a_switch_case_entry);
-  db_space_used("switch stmt descr",
-                num_switch_stmt_descriptions_allocated, a_switch_stmt_descr);
-  db_space_used("handler", num_handlers_allocated, a_handler);
-  db_space_used("try supplement", num_try_supplements_allocated,
-                a_try_supplement);
-#if MICROSOFT_EXTENSIONS_ALLOWED
-  db_space_used("Microsoft try supplement",
-                num_microsoft_try_supplements_allocated,
-                a_microsoft_try_supplement);
-  db_space_used("Microsoft attributes",
-                num_ms_attributes_allocated,
-                an_ms_attribute);
-  db_space_used("Microsoft attribute args",
-                num_ms_attribute_args_allocated,
-                an_ms_attribute_arg);
-  db_space_used("custom Microsoft attribute args",
-                num_custom_ms_attribute_args_allocated,
-                a_custom_ms_attribute_arg);
-  db_space_used("property index types", num_property_index_types_allocated,
-                a_property_index_type);
-  db_space_used("property/event descrs",
-                num_property_or_event_descriptions_allocated,
-                a_property_or_event_descr);
-  db_space_used("generic constraint",
-                num_generic_constraints_allocated,
-                a_generic_constraint);
-  db_space_used("generic constraint clause",
-                num_generic_constraint_clauses_allocated,
-                a_generic_constraint_clause);
-#endif /* MICROSOFT_EXTENSIONS_ALLOWED */
-#if GENERATE_MICROSOFT_IF_EXISTS_ENTRIES
-  db_space_used("Microsoft __if_exists",
-                num_ms_if_exists_allocated,
-                an_ms_if_exists);
-#endif /* GENERATE_MICROSOFT_IF_EXISTS_ENTRIES */
-  db_space_used("block", num_blocks_allocated, a_block);
-  db_space_used("for_loop", num_for_loops_allocated, a_for_loop);
-  db_space_used("coroutine_descr", num_coroutine_descriptions_allocated,
-                a_coroutine_descr);
-  db_space_used("statement", num_statements_allocated, a_statement);
-  db_space_used("constexpr if", num_constexpr_ifs_allocated, a_constexpr_if);
-  db_space_used("constructor init", num_constructor_inits_allocated,
-                a_constructor_init);
-  db_space_used("pragma", num_pragmas_allocated, a_pragma);
-  db_space_used("object lifetime", num_object_lifetimes_allocated,
-                an_object_lifetime);
-  db_space_used("namespace", num_namespaces_allocated, a_namespace);
-  db_space_used("using-decl", num_using_decls_allocated, a_using_decl);
-  db_space_used("scope", num_scopes_allocated, a_scope);
-  db_space_used("local-scope-refs", num_local_scope_refs_allocated,
-                a_local_scope_ref);
-  db_space_used("static-assertion", num_static_assertions, a_static_assertion);
-#if GENERATE_SOURCE_SEQUENCE_LISTS
-  db_space_used("source sequence entry", num_source_sequence_entries_allocated,
-                a_source_sequence_entry);
-  db_space_used("src-seq secondary decl",
-                num_src_seq_secondary_decls_allocated,
-                a_src_seq_secondary_decl);
-  db_space_used("src-seq end of construct",
-                num_src_seq_end_of_constructs_allocated,
-                a_src_seq_end_of_construct);
-  db_space_used("src-seq sublist", num_src_seq_sublists_allocated,
-                a_src_seq_sublist);
-  db_space_used("instantiation_directive",
-                num_instantiation_directives_allocated,
-                an_instantiation_directive);
-#if GENERATE_LINKAGE_SPEC_BLOCKS
-  db_space_used("linkage-spec-blocks", num_linkage_spec_blocks,
-                a_linkage_spec_block);
-#endif /* GENERATE_LINKAGE_SPEC_BLOCKS */
-#endif /* GENERATE_SOURCE_SEQUENCE_LISTS */
-#if RECORD_HIDDEN_NAMES_IN_IL
-  db_space_used("hidden names", num_hidden_names_allocated, a_hidden_name);
-#endif /* RECORD_HIDDEN_NAMES_IN_IL */
-  db_space_used("template_parameters", num_template_parameters_allocated,
-                a_template_parameter);
-  db_space_used("requires_clauses", num_requires_clauses_allocated,
-                a_requires_clause);
-  db_space_used("template_decls", num_template_decls_allocated,
-                a_template_decl);
-  db_space_used("templates", num_templates_allocated, a_template);
-  db_space_used("name references", num_name_references_allocated,
-                a_name_reference);
-  db_space_used("name qualifiers", num_name_qualifiers_allocated,
-                a_name_qualifier);
-#if RECORD_MACROS_IN_IL
-  db_space_used("macros", num_macros_allocated, a_macro);
-#endif /* RECORD_MACROS_IN_IL */
-#if RECORD_MACRO_INVOCATIONS
-  db_space_used("macro_invocation_record_blocks",
-                num_macro_invocation_record_blocks_allocated,
-                a_macro_invocation_record_block);
-#endif /* RECORD_MACRO_INVOCATIONS */
-  db_space_used("element-positions",
-                num_element_positions_allocated,
-                an_element_position);
-#if EXTRA_SOURCE_POSITIONS_IN_IL
-  db_space_used("decl-position supplement",
-                num_decl_position_supplements_allocated,
-                a_decl_position_supplement);
-#endif /* EXTRA_SOURCE_POSITIONS_IN_IL */
-#if ONE_INSTANTIATION_PER_OBJECT
-  db_space_used("per inst needed flags",
-                num_per_instantiation_needed_flags_entries_allocated,
-                a_per_instantiation_needed_flags_entry);
-#endif /* ONE_INSTANTIATION_PER_OBJECT */
-#if SCOPE_ORPHANED_LIST_PROCESSING_NEEDED
-  db_space_used("orphaned list headers",
-                num_scope_orphaned_list_headers_allocated,
-                a_scope_orphaned_list_header);
-#endif /* SCOPE_ORPHANED_LIST_PROCESSING_NEEDED */
+    }  /* if */
+  }  /* for */
+  db_space_used("string literal text", string_literal_text_space_allocated,
+                char);
+  db_space_used("IL entry prefix", num_il_entry_prefixes_allocated,
+                an_il_entry_prefix);
+  db_space_used_nontype("trans. unit copy addr.",
+                        num_trans_unit_copy_address_pointers_allocated,
+                        SPACE_FOR_TRANS_UNIT_COPY_ADDRESS_POINTER);
 #if ORPHAN_PROCESSING_NEEDED
   db_space_used_nontype("fs orphan pointers", num_fs_orphan_pointers_allocated,
                         SPACE_FOR_FS_ORPHAN_POINTER);
 #endif /* ORPHAN_PROCESSING_NEEDED */
-  db_space_used_nontype("trans. unit copy addr.",
-                        num_trans_unit_copy_address_pointers_allocated,
-                        SPACE_FOR_TRANS_UNIT_COPY_ADDRESS_POINTER);
-  db_space_used("IL entry prefix", num_il_entry_prefixes_allocated,
-                an_il_entry_prefix);
 #if ASM_SUPPORT_NEEDED
   db_space_used_other("asm function bodies",
                       asm_function_body_space_allocated, "");
 #endif /* ASM_SUPPORT_NEEDED */
-  db_space_used("attribute", num_attributes_allocated, an_attribute);
-  db_space_used("attribute arg", num_attribute_args_allocated,
-                an_attribute_arg);
-  db_space_used("attribute group", num_attribute_groups_allocated,
-                an_attribute_group);
 
   db_space_used_total();
 
@@ -6429,132 +5898,19 @@ in il_alloc_init.)
       pch_saved_var_array_elem(avail_constant_list_entries),
 #endif /* NEED_NAME_MANGLING */
 #if DEBUG
-#if !ABI_CHANGES_FOR_RTTI
-      pch_saved_var_array_elem(num_accessible_base_classes_allocated),
-#endif /* !ABI_CHANGES_FOR_RTTI */
-#if DO_IL_LOWERING && !DO_FULL_PORTABLE_EH_LOWERING
-      pch_saved_var_array_elem(num_eh_prologue_supplements_allocated),
-#endif /* DO_IL_LOWERING && !DO_FULL_PORTABLE_EH_LOWERING */
-      pch_saved_var_array_elem(num_asm_entries_allocated),
-      pch_saved_var_array_elem(num_base_class_derivations_allocated),
-      pch_saved_var_array_elem(num_base_classes_allocated),
-      pch_saved_var_array_elem(num_based_type_list_members_allocated),
-      pch_saved_var_array_elem(num_blocks_allocated),
-      pch_saved_var_array_elem(num_class_list_entries_allocated),
-      pch_saved_var_array_elem(num_class_type_supplements_allocated),
-      pch_saved_var_array_elem(num_constants_allocated),
-      pch_saved_var_array_elem(num_constructor_inits_allocated),
-      pch_saved_var_array_elem(num_derivation_steps_allocated),
-      pch_saved_var_array_elem(num_dynamic_inits_allocated),
-      pch_saved_var_array_elem(num_local_static_variable_inits_allocated),
-      pch_saved_var_array_elem(num_vla_dimensions_allocated),
-      pch_saved_var_array_elem(num_exception_specification_types_allocated),
-      pch_saved_var_array_elem(num_exception_specifications_allocated),
-      pch_saved_var_array_elem(num_expr_nodes_allocated),
+      pch_saved_var_array_elem(string_literal_text_space_allocated),
+      pch_saved_var_array_elem(num_il_entry_prefixes_allocated),
       pch_saved_var_array_elem(num_fs_expr_nodes_allocated),
       pch_saved_var_array_elem(num_rescan_fs_expr_nodes_allocated),
-      pch_saved_var_array_elem(num_fields_allocated),
-      pch_saved_var_array_elem(num_coroutine_descriptions_allocated),
-      pch_saved_var_array_elem(num_for_loops_allocated),
-      pch_saved_var_array_elem(num_handlers_allocated),
-      pch_saved_var_array_elem(num_try_supplements_allocated),
-#if MICROSOFT_EXTENSIONS_ALLOWED
-      pch_saved_var_array_elem(num_microsoft_try_supplements_allocated),
-      pch_saved_var_array_elem(num_ms_attributes_allocated),
-      pch_saved_var_array_elem(num_ms_attribute_args_allocated),
-      pch_saved_var_array_elem(num_custom_ms_attribute_args_allocated),
-      pch_saved_var_array_elem(num_property_index_types_allocated),
-      pch_saved_var_array_elem(num_property_or_event_descriptions_allocated),
-      pch_saved_var_array_elem(num_generic_constraints_allocated),
-      pch_saved_var_array_elem(num_generic_constraint_clauses_allocated),
-#endif /* MICROSOFT_EXTENSIONS_ALLOWED */
-#if GENERATE_MICROSOFT_IF_EXISTS_ENTRIES
-      pch_saved_var_array_elem(num_ms_if_exists_allocated),
-#endif /* GENERATE_MICROSOFT_IF_EXISTS_ENTRIES */
-      pch_saved_var_array_elem(num_seq_number_lookup_entries_allocated),
-      pch_saved_var_array_elem(num_il_entry_prefixes_allocated),
-      pch_saved_var_array_elem(num_labels_allocated),
-      pch_saved_var_array_elem(num_new_delete_supplements_allocated),
-#if MICROSOFT_EXTENSIONS_ALLOWED
-      pch_saved_var_array_elem(num_gcnew_supplements_allocated),
-#endif /* MICROSOFT_EXTENSIONS_ALLOWED */
-      pch_saved_var_array_elem(num_overriding_virtual_functions_allocated),
-      pch_saved_var_array_elem(num_param_types_allocated),
-      pch_saved_var_array_elem(num_pragmas_allocated),
-      pch_saved_var_array_elem(num_routine_list_entries_allocated),
-      pch_saved_var_array_elem(num_variable_list_entries_allocated),
-      pch_saved_var_array_elem(num_constant_list_entries_allocated),
-      pch_saved_var_array_elem(num_routine_type_supplements_allocated),
-      pch_saved_var_array_elem(num_routines_allocated),
-      pch_saved_var_array_elem(num_object_lifetimes_allocated),
-      pch_saved_var_array_elem(num_namespaces_allocated),
-      pch_saved_var_array_elem(num_using_decls_allocated),
-      pch_saved_var_array_elem(num_scopes_allocated),
-      pch_saved_var_array_elem(num_source_files_allocated),
-      pch_saved_var_array_elem(num_statements_allocated),
-      pch_saved_var_array_elem(num_switch_case_entries_allocated),
-      pch_saved_var_array_elem(num_switch_stmt_descriptions_allocated),
-      pch_saved_var_array_elem(num_template_args_allocated),
-      pch_saved_var_array_elem(num_template_param_type_supplements_allocated),
-      pch_saved_var_array_elem(num_typeref_type_supplements_allocated),
-      pch_saved_var_array_elem(num_integer_type_supplements_allocated),
-      pch_saved_var_array_elem(num_throw_supplements_allocated),
-      pch_saved_var_array_elem(num_condition_supplements_allocated),
-      pch_saved_var_array_elem(num_types_allocated),
-      pch_saved_var_array_elem(num_variables_allocated),
-      pch_saved_var_array_elem(num_variable_template_infos_allocated),
-      pch_saved_var_array_elem(string_literal_text_space_allocated),
-      pch_saved_var_array_elem(num_static_assertions),
-#if GENERATE_SOURCE_SEQUENCE_LISTS
-      pch_saved_var_array_elem(num_source_sequence_entries_allocated),
-      pch_saved_var_array_elem(num_src_seq_secondary_decls_allocated),
-      pch_saved_var_array_elem(num_src_seq_end_of_constructs_allocated),
-      pch_saved_var_array_elem(num_src_seq_sublists_allocated),
-      pch_saved_var_array_elem(num_instantiation_directives_allocated),
-#if GENERATE_LINKAGE_SPEC_BLOCKS
-      pch_saved_var_array_elem(num_linkage_spec_blocks),
-#endif /* GENERATE_LINKAGE_SPEC_BLOCKS */
-#endif /* GENERATE_SOURCE_SEQUENCE_LISTS */
       pch_saved_var_array_elem(num_trans_unit_copy_address_pointers_allocated),
 #if ORPHAN_PROCESSING_NEEDED
       pch_saved_var_array_elem(num_fs_orphan_pointers_allocated),
 #endif /* ORPHAN_PROCESSING_NEEDED */
-#if SCOPE_ORPHANED_LIST_PROCESSING_NEEDED
-      pch_saved_var_array_elem(num_scope_orphaned_list_headers_allocated),
-#endif /* SCOPE_ORPHANED_LIST_PROCESSING_NEEDED */
-#if RECORD_HIDDEN_NAMES_IN_IL
-      pch_saved_var_array_elem(num_hidden_names_allocated),
-#endif /* RECORD_HIDDEN_NAMES_IN_IL */
-      pch_saved_var_array_elem(num_template_parameters_allocated),
-      pch_saved_var_array_elem(num_requires_clauses_allocated),
-      pch_saved_var_array_elem(num_template_decls_allocated),
-      pch_saved_var_array_elem(num_templates_allocated),
-      pch_saved_var_array_elem(num_name_references_allocated),
-      pch_saved_var_array_elem(num_name_qualifiers_allocated),
-#if RECORD_MACROS_IN_IL
-      pch_saved_var_array_elem(num_macros_allocated),
-#endif /* RECORD_MACROS_IN_IL */
-#if RECORD_MACRO_INVOCATIONS
-      pch_saved_var_array_elem(num_macro_invocation_record_blocks_allocated),
-#endif /* RECORD_MACRO_INVOCATIONS */
-      pch_saved_var_array_elem(num_element_positions_allocated),
-#if EXTRA_SOURCE_POSITIONS_IN_IL
-      pch_saved_var_array_elem(num_decl_position_supplements_allocated),
-#endif /* EXTRA_SOURCE_POSITIONS_IN_IL */
-#if ONE_INSTANTIATION_PER_OBJECT
-      pch_saved_var_array_elem(
-                         num_per_instantiation_needed_flags_entries_allocated),
-#endif /* ONE_INSTANTIATION_PER_OBJECT */
 #if ASM_SUPPORT_NEEDED
       pch_saved_var_array_elem(asm_function_body_space_allocated),
 #endif /* ASM_SUPPORT_NEEDED */
-      pch_saved_var_array_elem(num_il_entity_list_entries_allocated),
-      pch_saved_var_array_elem(num_attributes_allocated),
-      pch_saved_var_array_elem(num_attribute_args_allocated),
-      pch_saved_var_array_elem(num_attribute_groups_allocated),
-      pch_saved_var_array_elem(num_subobject_paths_allocated),
-      pch_saved_var_array_elem(num_constexpr_ifs_allocated),
-#endif /* if DEBUG */
+      pch_array_saved_var_array_elem(il_allocation_counter),
+#endif /* DEBUG */
       pch_saved_var_array_terminating_elem()
     };
     register_pch_saved_variables(saved_vars);
@@ -6637,137 +5993,20 @@ initializations that are done for each compilation.
   /* Static variables. */
   available_local_constants              = NULL;
 #if DEBUG
-  num_source_files_allocated             = 0;
-  num_constants_allocated                = 0;
-  num_param_types_allocated              = 0;
-  num_routine_type_supplements_allocated = 0;
-  num_based_type_list_members_allocated  = 0;
-  num_class_type_supplements_allocated   = 0;
-  num_class_list_entries_allocated       = 0;
-  num_routine_list_entries_allocated     = 0;
-  num_variable_list_entries_allocated    = 0;
-  num_constant_list_entries_allocated    = 0;
-  num_overriding_virtual_functions_allocated
-                                         = 0;
-  num_derivation_steps_allocated         = 0;
-  num_base_class_derivations_allocated   = 0;
-  num_base_classes_allocated             = 0;
-  num_template_args_allocated            = 0;
-  num_template_param_type_supplements_allocated
-                                         = 0;
-  num_typeref_type_supplements_allocated = 0;
-  num_integer_type_supplements_allocated = 0;
-  num_types_allocated                    = 0;
-  num_dynamic_inits_allocated            = 0;
-  num_local_static_variable_inits_allocated
-                                         = 0;
-  num_vla_dimensions_allocated           = 0;
-  num_variables_allocated                = 0;
-  num_variable_template_infos_allocated  = 0;
-  num_fields_allocated                   = 0;
-  num_routines_allocated                 = 0;
-  num_exception_specifications_allocated = 0;
-  num_exception_specification_types_allocated
-                                         = 0;
-  num_asm_entries_allocated              = 0;
-  num_labels_allocated                   = 0;
-  num_expr_nodes_allocated               = 0;
+  string_literal_text_space_allocated    = 0;
+  num_il_entry_prefixes_allocated        = 0;
   num_fs_expr_nodes_allocated            = 0;
   num_rescan_fs_expr_nodes_allocated     = 0;
-  num_new_delete_supplements_allocated   = 0;
-#if MICROSOFT_EXTENSIONS_ALLOWED
-  num_gcnew_supplements_allocated        = 0;
-#endif /* MICROSOFT_EXTENSIONS_ALLOWED */
-  num_throw_supplements_allocated        = 0;
-  num_condition_supplements_allocated    = 0;
-#if !ABI_CHANGES_FOR_RTTI
-  num_accessible_base_classes_allocated  = 0;
-#endif /* !ABI_CHANGES_FOR_RTTI */
-#if DO_IL_LOWERING && !DO_FULL_PORTABLE_EH_LOWERING
-  num_eh_prologue_supplements_allocated  = 0;
-#endif /* DO_IL_LOWERING && !DO_FULL_PORTABLE_EH_LOWERING */
-  num_switch_case_entries_allocated      = 0;
-  num_switch_stmt_descriptions_allocated = 0;
-  num_handlers_allocated                 = 0;
-  num_try_supplements_allocated          = 0;
-#if MICROSOFT_EXTENSIONS_ALLOWED
-  num_microsoft_try_supplements_allocated= 0;
-  num_ms_attributes_allocated            = 0;
-  num_ms_attribute_args_allocated        = 0;
-  num_custom_ms_attribute_args_allocated = 0;
-  num_property_index_types_allocated     = 0;
-  num_property_or_event_descriptions_allocated
-                                         = 0;
-  num_generic_constraints_allocated      = 0;
-  num_generic_constraint_clauses_allocated
-                                         = 0;
-#endif /* MICROSOFT_EXTENSIONS_ALLOWED */
-#if GENERATE_MICROSOFT_IF_EXISTS_ENTRIES
-  num_ms_if_exists_allocated             = 0;
-#endif /* GENERATE_MICROSOFT_IF_EXISTS_ENTRIES */
-  num_seq_number_lookup_entries_allocated
-                                         = 0;
-  num_blocks_allocated                   = 0;
-  num_coroutine_descriptions_allocated   = 0;
-  num_for_loops_allocated                = 0;
-  num_statements_allocated               = 0;
-  num_constructor_inits_allocated        = 0;
-  num_pragmas_allocated                  = 0;
-  num_object_lifetimes_allocated         = 0;
-  num_namespaces_allocated               = 0;
-  num_using_decls_allocated              = 0;
-  num_scopes_allocated                   = 0;
-  num_local_scope_refs_allocated         = 0;
-  num_il_entry_prefixes_allocated        = 0;
-  string_literal_text_space_allocated    = 0;
-  num_static_assertions                  = 0;
-#if GENERATE_SOURCE_SEQUENCE_LISTS
-  num_source_sequence_entries_allocated  = 0;
-  num_src_seq_secondary_decls_allocated  = 0;
-  num_src_seq_end_of_constructs_allocated
-                                         = 0;
-  num_src_seq_sublists_allocated         = 0;
-  num_instantiation_directives_allocated = 0;
-#if GENERATE_LINKAGE_SPEC_BLOCKS
-  num_linkage_spec_blocks                = 0;
-#endif /* GENERATE_LINKAGE_SPEC_BLOCKS */
-#endif /* GENERATE_SOURCE_SEQUENCE_LISTS */
   num_trans_unit_copy_address_pointers_allocated = 0;
 #if ORPHAN_PROCESSING_NEEDED
   num_fs_orphan_pointers_allocated       = 0;
 #endif /* ORPHAN_PROCESSING_NEEDED */
-#if SCOPE_ORPHANED_LIST_PROCESSING_NEEDED
-  num_scope_orphaned_list_headers_allocated = 0;
-#endif /* SCOPE_ORPHANED_LIST_PROCESSING_NEEDED */
-#if RECORD_HIDDEN_NAMES_IN_IL
-  num_hidden_names_allocated             = 0;
-#endif /* RECORD_HIDDEN_NAMES_IN_IL */
-  num_template_parameters_allocated      = 0;
-  num_requires_clauses_allocated         = 0;
-  num_template_decls_allocated           = 0;
-  num_templates_allocated                = 0;
-  num_name_references_allocated          = 0;
-  num_name_qualifiers_allocated          = 0;
-#if RECORD_MACROS_IN_IL
-  num_macros_allocated                   = 0;
-#endif /* RECORD_MACROS_IN_IL */
-#if RECORD_MACRO_INVOCATIONS
-  num_macro_invocation_record_blocks_allocated
-                                         = 0;
-#endif /* RECORD_MACRO_INVOCATIONS */
-  num_element_positions_allocated = 0;
-#if EXTRA_SOURCE_POSITIONS_IN_IL
-  num_decl_position_supplements_allocated = 0;
-#endif /* EXTRA_SOURCE_POSITIONS_IN_IL */
-#if ONE_INSTANTIATION_PER_OBJECT
-  num_per_instantiation_needed_flags_entries_allocated = 0;
-#endif /* ONE_INSTANTIATION_PER_OBJECT */
 #if ASM_SUPPORT_NEEDED
   asm_function_body_space_allocated      = 0;
 #endif /* ASM_SUPPORT_NEEDED */
-  num_il_entity_list_entries_allocated   = 0;
-  num_subobject_paths_allocated          = 0;
-  num_constexpr_ifs_allocated            = 0;
+  for (unsigned iek = (unsigned)iek_none; iek < (unsigned)iek_last; ++iek) {
+    il_allocation_counter[iek] = 0;
+  }  /* for */
 #endif /* DEBUG */
 #if CHECKING
   local_constants_in_use                 = 0;

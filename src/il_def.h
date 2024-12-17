@@ -585,10 +585,13 @@ EXTERN_CONSTINIT_ARRAY(a_const_char*, name_linkage_kind_names, nlk_last + 1)
 EXTERN_CONSTINIT_ARRAY_END(name_linkage_kind_names)
 
 /*
-List of all IL entry kinds:
-*/
-/* If you change this, also change il_entry_kind_names and sizeof_il_entry
-   in this file. */
+List of all IL entry kinds.
+
+If you change this, also change:
+  - il_entry_kind_names (in this file)
+  - sizeof_il_entry (in this file)
+  - type_to_il_entry_kind (in il.h)
+ */
 enum an_il_entry_kind : a_byte {
   iek_none,		/* Skip zero value; it's used as a marker. */
   iek_source_file,	/* a_source_file */
@@ -645,6 +648,9 @@ enum an_il_entry_kind : a_byte {
   iek_vcall_offset_entry,
 			/* a_vcall_offset_entry */ 
 #endif /* DO_IL_LOWERING && IA64_ABI */
+#if MICROSOFT_EXTENSIONS_ALLOWED
+  iek_partial_class_body,
+#endif /* MICROSOFT_EXTENSIONS_ALLOWED */
   iek_overriding_virtual_function,
 			/* an_overriding_virtual_function */
   iek_derivation_step,  /* a_derivation_step */
@@ -654,6 +660,10 @@ enum an_il_entry_kind : a_byte {
   iek_class_list_entry, /* a_class_list_entry */
   iek_routine_list_entry,
                         /* a_routine_list_entry */
+  iek_variable_list_entry,
+                        /* a_variable_list_entry */
+  iek_constant_list_entry,
+                        /* a_constant_list_entry */
   iek_class_type_supplement,
 			/* a_class_type_supplement */
   iek_template_param_type_supplement,
@@ -850,12 +860,17 @@ EXTERN_CONSTINIT_ARRAY(a_const_char*, il_entry_kind_names, iek_last + 1)
 #if DO_IL_LOWERING && IA64_ABI
 /* iek_vcall_offset_entry */		"vcall-offset-entry",
 #endif /* DO_IL_LOWERING && IA64_ABI */
+#if MICROSOFT_EXTENSIONS_ALLOWED
+/* iek_partial_class_body */		"partial-class-body",
+#endif /* MICROSOFT_EXTENSIONS_ALLOWED */
 /* iek_overriding_virtual_function */	"overriding-virtual-function",
 /* iek_derivation_step */		"derivation-step",
 /* iek_base_class_derivation */		"base-class-derivation",
 /* iek_base_class */			"base-class",
 /* iek_class_list_entry */		"class-list-entry",
 /* iek_routine_list_entry */		"routine-list-entry",
+/* iek_variable_list_entry */		"variable-list-entry",
+/* iek_constant_list_entry */		"constant-list-entry",
 /* iek_class_type_supplement */		"class-type-supplement",
 /* iek_template_param_type_supplement */"template_param_type_supplement",
 /* iek_constructor_init */		"constructor-init",
@@ -917,7 +932,7 @@ EXTERN_CONSTINIT_ARRAY(a_const_char*, il_entry_kind_names, iek_last + 1)
 /* iek_ms_attribute_arg */		"ms-attribute-arg",
 /* iek_custom_ms_attribute_arg */	"custom-ms-attribute-arg",
 /* iek_property_index_type */		"property-index-type",
-/* iek_property_descr */		"property-descr",
+/* iek_property_or_event_descr */	"property-or-event-descr",
 /* iek_generic_constraint_clause */	"generic-constraint-clause",
 /* iek_generic_constraint */		"generic-constraint",
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
@@ -18715,12 +18730,17 @@ EXTERN_CONSTINIT_ARRAY(sizeof_t, sizeof_il_entry, iek_last)
 #if DO_IL_LOWERING && IA64_ABI
   sizeof(a_vcall_offset_entry),
 #endif /* DO_IL_LOWERING && IA64_ABI */
+#if MICROSOFT_EXTENSIONS_ALLOWED
+  sizeof(a_partial_class_body),
+#endif /* MICROSOFT_EXTENSIONS_ALLOWED */
   sizeof(an_overriding_virtual_function),
   sizeof(a_derivation_step),
   sizeof(a_base_class_derivation),
   sizeof(a_base_class),
   sizeof(a_class_list_entry),
   sizeof(a_routine_list_entry),
+  sizeof(a_variable_list_entry),
+  sizeof(a_constant_list_entry),
   sizeof(a_class_type_supplement),
   sizeof(a_template_param_type_supplement),
   sizeof(a_constructor_init),

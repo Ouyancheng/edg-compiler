@@ -384,10 +384,10 @@ extern a_macro_ptr alloc_macro(void);
 extern a_macro_invocation_record_block_ptr alloc_macro_invocation_record_block(
                                                                          void);
 #endif /* RECORD_MACRO_INVOCATIONS */
+#if EXTRA_SOURCE_POSITIONS_IN_IL
 
 extern an_element_position_ptr alloc_element_position(void);
 
-#if EXTRA_SOURCE_POSITIONS_IN_IL
 extern void clear_decl_position_supplement(a_decl_position_supplement *dpsp);
 
 extern a_decl_position_supplement_ptr alloc_decl_position_supplement
@@ -440,17 +440,26 @@ extern void il_alloc_init(void);
 void trace_alloc_check(void *ptr);
 #endif /* TRACE_ALLOC */
 
+#if !STANDALONE_UTILITY_PROGRAM && DEBUG
+void f_tally_alloc(an_il_entry_kind kind);
+#define tally_alloc(type) f_tally_alloc(type_to_il_entry_kind<type>())
+#else /* !(!STANDALONE_UTILITY_PROGRAM && DEBUG) */
+#define tally_alloc(type) 0
+#endif /* !STANDALONE_UTILITY_PROGRAM && DEBUG */
+
 /*
 Macro that allocates an entry for the specified type in the file scope
 memory region.
 */
-#define alloc_il_of_type(type) (type*)alloc_il(sizeof(type))
+#define alloc_il_of_type(type) \
+  (tally_alloc(type), (type*)alloc_il(sizeof(type)))
 
 /*
 Macro that allocates an entry for the specified type in the current
 memory region.
 */
-#define alloc_cil_of_type(type) (type*)alloc_cil(sizeof(type))
+#define alloc_cil_of_type(type) \
+  (tally_alloc(type), (type*)alloc_cil(sizeof(type)))
 
 #else /* STANDALONE_UTILITY_PROGRAM */
 

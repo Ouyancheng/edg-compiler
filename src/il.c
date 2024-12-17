@@ -3276,6 +3276,7 @@ Initialize the fields of the specified decl-pos block.
 }  /* clear_decl_pos_block */
 
 #endif /* !NULL_POINTER_IS_ZERO */
+#if EXTRA_SOURCE_POSITIONS_IN_IL
 
 void f_add_element_position(an_element_position_kind  kind,
                             a_source_position         *pos,
@@ -3294,7 +3295,6 @@ element.
   *p_epp = new_epp;
 }  /* f_add_element_position */
 
-#if EXTRA_SOURCE_POSITIONS_IN_IL
 
 a_decl_position_supplement_ptr make_decl_pos_supplement(
                                         a_boolean             at_file_scope,

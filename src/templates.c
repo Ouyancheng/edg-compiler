@@ -35577,10 +35577,8 @@ of the "auto" parameters.
       /* A full specialization cannot be exported. */
       pos_error(ec_bad_decl_for_export, export_pos);
     }  /* if */
-#if EXTRA_SOURCE_POSITIONS_IN_IL
     add_element_position(epk_specialization_header, &header_pos,
                          &dps->extra_positions);
-#endif /* EXTRA_SOURCE_POSITIONS_IN_IL */
     /* The background cache is not needed for a full specialization. */
     end_caching_template_decl(decl_state);
     full_specialization(decl_state);
