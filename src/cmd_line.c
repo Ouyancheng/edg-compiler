@@ -413,7 +413,8 @@ Initialize the option information table.
 #endif /* MAINTAIN_ALLOCATION_SEQUENCE_NUMBER */
 #endif /* DEBUG */
 #if !EDG_WIN32 && !MULTIPLE_THREAD_COMPILATION
-  /* This option is only available on Unix. */
+  /* This option is only available on Unix and only works at the process
+     level. */
   add_option_description(optk_time_limit, "time_limit", '\0',
                          /*value=*/TRUE, /*arg_required=*/TRUE,
                          pchek_none);
