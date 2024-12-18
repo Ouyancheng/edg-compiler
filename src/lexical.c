@@ -5910,7 +5910,6 @@ is TRUE.
     /* Make sure this line is written only once. */
     init_do_not_put_curr_line_in_pp_output = TRUE;
     do_not_put_curr_line_in_pp_output = TRUE;
-    fflush(f_pp_output);
   }  /* if */
 }  /* gen_pp_output_for_curr_line */
 

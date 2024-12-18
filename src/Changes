@@ -1,15 +1,5 @@
 Version 6.7
 
-12/18/24 [EDGcpfe/27805]
-Preprocessor output is sometimes delayed
-
-Previously, a call to fflush was missing when printing preprocessor output for
-the current line (e.g., using the -E option).  This resulted in preprocessor
-output appearing in different places in the output stream depending on the
-underlying buffer flushing behavior of the preprocessor file output performed
-by fprintf.  This is now fixed.
-
-
 12/18/24 [EDGcpfe/27810]
 Routine special function kind corruption
 
