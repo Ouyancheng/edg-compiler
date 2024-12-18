@@ -2278,6 +2278,23 @@ for suppressed errors while processing the module.
 }  /* modules_check_for_suppressed_errors */
 
 
+void modules_early_init()
+/*
+One time initialization that must take place early on in the front end.
+This is done before command line processing.
+*/
+{
+#if DEBUG
+  /* These are initialized per-translation unit.  However, in case of command
+     line error these must be reinitialized to prevent -d-module_report from
+     reporting "declarations processed" frond end invocations on the current
+     thread. */
+  num_module_decls_attempted = 0;
+  num_module_decls_failed = 0;
+#endif /* DEBUG */
+}  /* modules_early_init */
+
+
 STATIC_THREAD a_boolean
         modules_initialized_for_curr_tu;
                 /* TRUE if modules related variables have been fully

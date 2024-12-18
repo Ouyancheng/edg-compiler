@@ -1721,6 +1721,7 @@ line processing is done.
   cmd_line_early_init();
   error_early_init();
   pch_early_init();
+  modules_early_init();
 #if IL_SHOULD_BE_WRITTEN_TO_FILE
   il_write_early_init();
 #endif /* IL_SHOULD_BE_WRITTEN_TO_FILE */

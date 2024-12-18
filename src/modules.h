@@ -835,6 +835,8 @@ extern void modules_pch_reset();
 
 extern void modules_check_for_suppressed_errors();
 
+extern void modules_early_init();
+
 extern void modules_one_time_init();
 
 extern void require_modules();
