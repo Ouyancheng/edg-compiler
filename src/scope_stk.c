@@ -5814,7 +5814,7 @@ Pop the enclosing class scope pushed by push_enclosing_class_scope_for_rescan.
   a_scope_stack_entry_ptr  ssep = &scope_stack_top();
   a_scope_depth            orig_access_depth = ssep->orig_access_depth;
   if (orig_access_depth != NO_SCOPE_DEPTH) {
-    /* If an original access checking depth was saved, repeat any access checks
+    /* If an original access-checking depth was saved, repeat any access checks
        that were deferred. */
     perform_deferred_access_checks_at_depth(depth_scope_stack);
     depth_of_innermost_scope_that_affects_access_control = orig_access_depth;
