@@ -53,7 +53,7 @@ directory.  The caller is responsible for freeing the buffer.
 
 static void error_str(a_const_char *str)
 /*
-Emit C++/C client an error string with the given context.
+Emit a C++/C client an error with the given error message string.
 */
 {
   fprintf(stderr, "C++/C DAEMON CLIENT ERROR: %s\n", str);
@@ -62,8 +62,8 @@ Emit C++/C client an error string with the given context.
 
 static void print_message(const char *msg, size_t msg_len)
 /*
-This function perform an optimized print of the given message of the given
-length (possibly containing internal null-characters).
+This function performs an optimized print of the given message of the given
+length (possibly containing internal null characters).
 
 This function takes advantage of the fact that fprintf of a string of a given
 length is significantly faster than individual putc calls to minimize the
@@ -72,9 +72,9 @@ number of system calls and maximize printing performance.
 {
   size_t str_len = 0;
 
-  /* Calculate the string length terminating if a null character is encountered
-     before the full string length.  Note that the message is not guaranteed to
-     be null-terminated so strlen cannot be used here. */
+  /* Calculate the string length, terminating if a null character is
+     encountered before the full string length.  Note that the message is not
+     guaranteed to be null-terminated so strlen cannot be used here. */
   for (size_t i = 0; i != msg_len; ++i) {
     if (msg[i] == '\0') {
       break;
@@ -83,7 +83,7 @@ number of system calls and maximize printing performance.
   }  /* for */
   if (str_len == msg_len) {
     /* The message contained no null characters; this is the optimal (and
-       common case). */
+       common) case. */
     fprintf(stderr, "%.*s", (int)msg_len, msg);
   } else {
     /* Internal null characters need to be printed.  The optimal fprintf call
@@ -93,7 +93,7 @@ number of system calls and maximize printing performance.
     fprintf(stderr, "%.*s", (int)str_len, msg);
 
     size_t num_nulls = 0;
-    for (; num_nulls != msg_len; ++num_nulls) {
+    for (; str_len + num_nulls != msg_len; ++num_nulls) {
       char curr_char = msg[str_len + num_nulls];
 
       if (curr_char != '\0') {
@@ -143,8 +143,8 @@ The main routine for the front end Unix socket client.
           strlen(end_of_message_bytes));
 
 #if DEBUG
-    /* In DEBUG builds capture the value of EDG_TRANSLATION_UNIT_TAG which will
-       be set to the thread-local trans_unit_tag in the daemon. */
+    /* In DEBUG builds capture the value of EDG_TRANSLATION_UNIT_TAG, which
+       will be set to the thread-local trans_unit_tag in the daemon. */
     a_const_char *tu_tag = getenv("EDG_TRANSLATION_UNIT_TAG");
     if (tu_tag == NULL) {
       /* Fall back to an empty string. */

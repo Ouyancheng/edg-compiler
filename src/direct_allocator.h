@@ -61,7 +61,7 @@ inline auto Direct_allocator<an_Elem>::realloc(an_allocation a,
 /*
 Replace the given allocation -- which was allocated by the same allocator -- by
 a new one with at least new_capacity elements.  The first n_to_move elements in
-the original allocation are initialized and should therefore be moved to the
+the original allocation must be initialized and are moved to the start of the
 new allocation.
 */
 {

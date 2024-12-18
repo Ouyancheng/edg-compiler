@@ -38,8 +38,8 @@ constexpr int   rc_daemon_error = 9;
 
 constexpr a_const_char
                 *exec_request_bytes = "exec";
-                        /* The bytes indicating that tag a connection request
-                           as an execution request. */
+                        /* The connection request tag bytes that indicate the
+                           requested action is a front end execution. */
 constexpr a_const_char
                 *end_of_message_bytes = "7ef77b7a-cd45-4b2e-9498-5e999bb07a06";
                         /* The magic byte sequence used to indicate the end of
@@ -101,7 +101,7 @@ freeing the buffer.
 
 
 /*
-A type which encapsulates a buffered read from a Unix socket.
+A type that encapsulates a buffered read from a Unix socket.
 */
 struct a_socket_reader {
   a_socket_reader(int socket_fd_val)

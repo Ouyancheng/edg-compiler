@@ -204,7 +204,7 @@ invocation ticket.
     if (*opt_request_tag == exec_request_bytes) {
       /* This is the usual case, executing the front end. */
     } else if (*opt_request_tag == "ping") {
-      /* The connected client is just check to make sure the daemon is
+      /* The connected client is just checking to make sure the daemon is
          alive; discard the ticket. */
       goto done;
     } else {
@@ -292,14 +292,13 @@ Run a front end thread that waits for work from the any_work pthread condition.
     int acquired_lock = pthread_mutex_lock(&next_ticket_lock);
 
     if (acquired_lock != 0) {
-      /* FIXME: TODO. */
+      goto terminate_thread;
     }  /* if */
     /* Wait on the ticket becoming available. */
     while (next_ticket == NULL) {
       int wait_error = pthread_cond_wait(&any_work, &next_ticket_lock);
       if (wait_error != 0) {
-        /* FIXME: TODO -- documentation says this is never non-zero on
-           Linux. */
+        goto terminate_thread;
       }  /* if */
     }  /* while */
     /* Take the ticket. */
@@ -309,10 +308,12 @@ Run a front end thread that waits for work from the any_work pthread condition.
     /* Release the lock so more work can be assigned to other threads. */
     int released_lock = pthread_mutex_unlock(&next_ticket_lock);
     if (released_lock != 0) {
-      /* FIXME: TODO. */
+      goto terminate_thread;
     }  /* if */
     process_ticket(current_ticket);
   }  /* while */
+terminate_thread:
+  fputs("Thread shutting down.\n", stderr);
   return NULL;
 }  /* run_front_end_thread */
 
@@ -326,7 +327,7 @@ host system has.
 {
   long num_processors = sysconf(_SC_NPROCESSORS_ONLN);
 
-  /* Include an extra thread so that when clients assigning one front end
+  /* Include an extra thread so that when clients assign one front end
      execution per system thread there is a thread available to answer
      pings. */
   return ((int)num_processors) + 1;
@@ -350,7 +351,9 @@ The main routine for the front end Unix socket daemon.
   int          max_threads = determine_parallelism();
   pthread_t    *threads = new pthread_t[max_threads];
   a_const_char *socket_address = allocating_socket_file_name();
+  int          init_progress = 0;
 
+  next_ticket = NULL;
   { /* Create the threads that wait for work on a shared condition (any_work);
        this is done ahead of time to allow for threads to be reused rather than
        creating a new thread for each invocation and/or "searching" for the
@@ -361,12 +364,13 @@ The main routine for the front end Unix socket daemon.
     if (next_ticket_lock_set_up != 0) {
       goto threading_set_up_error;
     }  /* if */
-    next_ticket = NULL;
+    ++init_progress;
 
     int any_work_set_up = pthread_cond_init(&any_work, /*attr=*/NULL);
     if (any_work_set_up != 0) {
       goto threading_set_up_error;
     }  /* if */
+    ++init_progress;
 
     /* Set up the threading attributes. */
     pthread_attr_t thread_attr;
@@ -439,10 +443,10 @@ The main routine for the front end Unix socket daemon.
         int acquired_lock = pthread_mutex_lock(&next_ticket_lock);
 
         if (acquired_lock != 0) {
-          /* FIXME: TODO. */
+          goto coordination_lock_error;
         }  /* if */
         if (next_ticket == NULL) {
-          /* Allocate a new ticket, it will be freed by the thread that accepts
+          /* Allocate a new ticket; it will be freed by the thread that accepts
              the work. */
           next_ticket = new_direct<an_invocation_ticket>();
           next_ticket->communication_fd = accept_socket_fd;
@@ -454,22 +458,32 @@ The main routine for the front end Unix socket daemon.
 
         int released_lock = pthread_mutex_unlock(&next_ticket_lock);
         if (released_lock != 0) {
-          /* FIXME: TODO. */
+          goto coordination_lock_error;
         }  /* if */
       } while (try_again);
     }  /* while */
   }
   goto done;
 threading_set_up_error:
-  /* FIXME: Add error. */
+  fputs("Thread set up failed.\n", stderr);
   return_value = 1;
   goto done;
 socket_set_up_error:
-  /* FIXME: Add error. */
+  fputs("Socket set up failed.\n", stderr);
+  return_value = 1;
+  goto done;
+coordination_lock_error:
+  fputs("Coordination lock failure.\n", stderr);
   return_value = 1;
   goto done;
 done:
-  /* FIXME: Teardown global variables. */
+  if (init_progress > 1) {
+    pthread_cond_destroy(&any_work);
+  }  /* if */
+  if (init_progress > 0) {
+    pthread_mutex_destroy(&next_ticket_lock);
+  }  /* if */
+  delete next_ticket;
   delete [] threads;
   delete [] socket_address;
   return return_value;
