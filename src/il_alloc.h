@@ -443,23 +443,31 @@ void trace_alloc_check(void *ptr);
 #if !STANDALONE_UTILITY_PROGRAM && DEBUG
 void f_tally_alloc(an_il_entry_kind kind);
 #define tally_alloc(type) f_tally_alloc(type_to_il_entry_kind<type>())
-#else /* !(!STANDALONE_UTILITY_PROGRAM && DEBUG) */
-#define tally_alloc(type) 0
 #endif /* !STANDALONE_UTILITY_PROGRAM && DEBUG */
 
 /*
 Macro that allocates an entry for the specified type in the file scope
 memory region.
 */
+#if !STANDALONE_UTILITY_PROGRAM && DEBUG
 #define alloc_il_of_type(type) \
   (tally_alloc(type), (type*)alloc_il(sizeof(type)))
+#else /* !(!STANDALONE_UTILITY_PROGRAM && DEBUG) */
+#define alloc_il_of_type(type) \
+  ((type*)alloc_il(sizeof(type)))
+#endif /* !STANDALONE_UTILITY_PROGRAM && DEBUG */
 
 /*
 Macro that allocates an entry for the specified type in the current
 memory region.
 */
+#if !STANDALONE_UTILITY_PROGRAM && DEBUG
 #define alloc_cil_of_type(type) \
   (tally_alloc(type), (type*)alloc_cil(sizeof(type)))
+#else /* !(!STANDALONE_UTILITY_PROGRAM && DEBUG) */
+#define alloc_il_of_type(type) \
+  ((type*)alloc_cil(sizeof(type)))
+#endif /* !STANDALONE_UTILITY_PROGRAM && DEBUG */
 
 #else /* STANDALONE_UTILITY_PROGRAM */
 
