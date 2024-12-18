@@ -2904,7 +2904,7 @@ Do the negate operation on all types of integers.
   trunc_and_set_integer(&result_value, result, /*check_overflow=*/is_signed,
                         /*saturate_on_overflow=*/FALSE,
                         err_code, err_severity);
-  if ((microsoft_mode || gnu_mode) && *err_code != ec_no_error) {
+  if (microsoft_mode && *err_code != ec_no_error) {
     /* Do not make this an error in Microsoft and GNU modes. */
     *err_severity = es_warning;
   }  /* if */
