@@ -53,7 +53,7 @@ directory.  The caller is responsible for freeing the buffer.
 
 static void error_str(a_const_char *str)
 /*
-Emit a C++/C client an error with the given error message string.
+Emit a C++/C client error with the given error message string.
 */
 {
   fprintf(stderr, "C++/C DAEMON CLIENT ERROR: %s\n", str);

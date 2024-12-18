@@ -3,7 +3,7 @@ Version 6.7
 12/17/24 [EDGcpfe/27800]
 Multi-threaded POSIX front end daemon
 
-Two new utility programs cfe_daemon.c (a POSIX compatible multi-threaded front
+Two new utility programs cfe_daemon.c (a POSIX-compatible multi-threaded front
 end daemon implementation) and cfe_daemon_client.c (the corresponding client
 implementation for interacting with the daemon) have been added.
 
