@@ -3385,33 +3385,21 @@ unsupported IFC nodes.
 }  /* issue_unsupported_construct_error */
 
 
-static a_const_char* make_ifc_temporary_unique_id(an_ifc_unique_id id)
+using a_temp_id_string = Small_string<20>;
+                        /* The type used for a temporary variable name
+                           identifier derived from an IFC unique id. */
+
+
+static a_temp_id_string make_ifc_temporary_unique_id(an_ifc_unique_id id)
 /*
 Given a unique ID associated with a temporary, return a string that is the
-identifier for that temporary.  The string must be used before any further
-changes to temp_text_buffer occur, otherwise the result may be wiped out.
-Note: This routine should not interfere with any string that's in the process
-of being constructed in temp_text_buffer.
+identifier for that temporary.
 */
 {
   Value_saver<sizeof_t> pos_saver(&pos_in_temp_text_buffer);
   uint32_t              raw_id = id;
-  a_const_char          *result;
+  a_temp_id_string      result("__ifc_temp_", raw_id);
 
-  /* Index to where the string will be added to the text buffer. */
-  result = temp_text_buffer + pos_in_temp_text_buffer;
-  put_str_to_temp_text_buffer("__ifc_temp_");
-  /* Similar to itoa, except puts characters directly to the temp text buffer,
-     which will ensure enough space exists.  This will actually put out the
-     value in reverse - which is incorrect for a true itoa, but sufficient for
-     the purposes of creating a unique ID. */
-  while (raw_id >= 10) {
-    put_ch_to_temp_text_buffer((raw_id % 10) + '0');
-    raw_id /= 10;
-  }  /* while */
-  check_assertion(raw_id < 10);
-  put_ch_to_temp_text_buffer(raw_id + '0');
-  put_ch_to_temp_text_buffer('\0');
   return result;
 }  /* make_ifc_temporary_unique_id */
 
@@ -28061,7 +28049,10 @@ tuple elements by '::' instead of ','.
         if (cinfo.possible_temporary_decl) {
           cache_type(cache, get_ifc_type(iet), cinfo);
         }  /* if */
-        cache_identifier(cache, make_ifc_temporary_unique_id(get_ifc_id(iet)));
+
+        an_ifc_unique_id unique_id = get_ifc_id(iet);
+        a_temp_id_string tmp_str = make_ifc_temporary_unique_id(unique_id);
+        cache_identifier(cache, tmp_str.as_temp_characters());
       }
       break;
     case ifc_es_expr_call:
