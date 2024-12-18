@@ -38,8 +38,8 @@ Makefile dependencies output is sometimes delayed
 Previously, a call to fflush was missing when printing Makefile dependencies
 (using the -M or --dependencies option).  This resulted in Makefile
 dependencies appearing in different places in the output stream depending on
-the underlying buffer flushing behavior of the preprocessor file output perform
-by fprintf.  This is now fixed.
+the underlying buffer flushing behavior of the preprocessor file output
+performed by fprintf.  This is now fixed.
 
 
 12/17/24 [EDGcpfe/27505]
