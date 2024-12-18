@@ -8641,6 +8641,7 @@ the IL associated with the entity that was bound to the pragma.
     init_for_il_to_str_output();
     disp_entry(entry_ptr, kind);
   }  /* if */
+  fflush(f_display);
   clean_up_front_end_f_display();
 }  /* pragma_il_display */
 
@@ -8693,6 +8694,7 @@ it is the name of the file from which the IL was read.
          default constructor). */
     }  /* if */
   }  /* for */
+  fflush(f_display);
 #if !STANDALONE_UTILITY_PROGRAM
   clean_up_front_end_f_display();
 #endif /* !STANDALONE_UTILITY_PROGRAM */

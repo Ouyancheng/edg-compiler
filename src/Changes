@@ -160,6 +160,11 @@ configurations that set CUSTOM_DEFAULT_OUTPUT_FILES to TRUE, can (and must) now
 provide a function, default_il_display_output_file(), that returns the file
 handle to be used.
 
+Additionally, IL display output is now flushed immediately.  This fixes issues
+with IL output appearing in different places in the output stream depending on
+the underlying buffer flushing behavior of the preprocessor file output
+performed by fprintf.
+
 
 12/9/24  [EDGcpfe/27566]
 Abort on inaccessible inherited constructor
