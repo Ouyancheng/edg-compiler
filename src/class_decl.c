@@ -14813,7 +14813,7 @@ the member function is an accessor for the property (if the accessor is valid).
                       &dps->declarator_pos,
                       &pdp->get_routine.ptr->source_corresp.decl_position);
     } else {
-      rp->special_kind = (a_special_function_kind)sfk_property_get;
+      set_routine_special_kind(rp, sfk_property_get);
     }  /* if */
   } else if (strcmp(rp->source_corresp.name, "set") == 0) {
     if (pdp->set_routine.ptr != NULL) {
@@ -14821,7 +14821,7 @@ the member function is an accessor for the property (if the accessor is valid).
                       &dps->declarator_pos,
                       &pdp->set_routine.ptr->source_corresp.decl_position);
     } else {
-      rp->special_kind = (a_special_function_kind)sfk_property_set;
+      set_routine_special_kind(rp, sfk_property_set);
     }  /* if */
   } else {
     /* We already ensured earlier that the accessor name is valid. */
@@ -15013,7 +15013,7 @@ the member function is an accessor for the event (if the accessor is valid).
                       &dps->declarator_pos,
                       &pdp->add_routine->source_corresp.decl_position);
     } else {
-      rp->special_kind = (a_special_function_kind)sfk_event_add;
+      set_routine_special_kind(rp, sfk_event_add);
     }  /* if */
   } else if (strcmp(rp->source_corresp.name, "remove") == 0) {
     if (pdp->set_routine.ptr != NULL) {
@@ -15021,7 +15021,7 @@ the member function is an accessor for the event (if the accessor is valid).
                       &dps->declarator_pos,
                       &pdp->remove_routine->source_corresp.decl_position);
     } else {
-      rp->special_kind = (a_special_function_kind)sfk_event_remove;
+      set_routine_special_kind(rp, sfk_event_remove);
     }  /* if */
   } else if (strcmp(rp->source_corresp.name, "raise") == 0) {
     if (pdp->set_routine.ptr != NULL) {
@@ -15029,7 +15029,7 @@ the member function is an accessor for the event (if the accessor is valid).
                       &dps->declarator_pos,
                       &pdp->raise_routine->source_corresp.decl_position);
     } else {
-      rp->special_kind = (a_special_function_kind)sfk_event_raise;
+      set_routine_special_kind(rp, sfk_event_raise);
     }  /* if */
   } else {
     /* We already ensured earlier that the accessor name is valid. */

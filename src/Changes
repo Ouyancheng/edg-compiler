@@ -1,5 +1,14 @@
 Version 6.7
 
+12/18/24 [EDGcpfe/27810]
+Routine special function kind corruption
+
+Previously, the front end improperly set the routine special kind on some
+a_routine objects.  This could (as an example) manifest as a crash when
+traversing alternative entry points for a constructor or destructor (due to the
+value of alternate_entry_points being effectively uninitialized).
+
+
 12/18/24 [EDGcpfe/27806]
 IL allocation tracking fixes
 

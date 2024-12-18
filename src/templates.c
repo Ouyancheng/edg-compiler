@@ -43250,7 +43250,7 @@ return the symbol pointer for the guide.  Otherwise, return NULL.
   rtsp->this_class = proto_type;
   rtsp->has_this_param = TRUE;
   rtsp->prototyped = TRUE;
-  rout->special_kind = (a_special_function_kind)sfk_constructor;
+  set_routine_special_kind(rout, sfk_constructor);
   ctor_sym->variant.routine.ptr = rout;
   /* Transform the constructor into an implicit deduction guide. */
   a_symbol_ptr  pct_sym = prototype_template_of(ct_sym);

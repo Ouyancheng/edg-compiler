@@ -7381,7 +7381,7 @@ attributes in C mode).
   target_routine->storage_class = representative->storage_class;
   target_routine->source_corresp.name_linkage =
                                    representative->source_corresp.name_linkage;
-  target_routine->special_kind = representative->special_kind;
+  set_routine_special_kind(target_routine, representative->special_kind);
   if (special_kind_is(target_routine, sfk_operator)) {
     target_routine->variant.opname_kind = representative->variant.opname_kind;
   }  /* if */

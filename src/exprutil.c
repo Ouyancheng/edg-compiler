@@ -23642,9 +23642,9 @@ If get_routine is non-NULL, *get_routine is set to a pointer to the
           check_assertion(pedp != NULL);
           routine_node->variant.routine.name_reference = nrp;
           nrp->variant.property_or_event_descr = pedp;
-          nrp->special_kind = (put_operand == NULL) ?
-                                    (a_special_function_kind)sfk_property_get :
-                                    (a_special_function_kind)sfk_property_set;
+          set_routine_special_kind(nrp, ((put_operand == NULL) ?
+                                              sfk_property_get :
+                                              sfk_property_set));
 #endif /* !DO_IL_LOWERING */
 #if EXTRA_SOURCE_POSITIONS_IN_IL
           /* The processing above left the starting source position of the
@@ -23819,7 +23819,7 @@ to TRUE and *result becomes an error operand.
             opnd->variant.routine.name_reference = nrp;
             nrp->variant.property_or_event_descr =
                                            rp->variant.property_or_event_descr;
-            nrp->special_kind = rp->special_kind;
+            set_routine_special_kind(nrp, rp->special_kind);
           }  /* if */
         }  /* if */
 #endif /* !DO_IL_LOWERING */
@@ -23896,7 +23896,7 @@ selector expression used to designate the event.
       a_name_reference_ptr  nrp = alloc_name_reference();
       routine_node->variant.routine.name_reference = nrp;
       nrp->variant.property_or_event_descr = pedp;
-      nrp->special_kind = (a_special_function_kind)sfk_event_raise;
+      set_routine_special_kind(nrp->special_kind, sfk_event_raise);
     }  /* if */
 #endif /* !DO_IL_LOWERING */
     if (selector != NULL) {
