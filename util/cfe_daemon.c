@@ -148,12 +148,17 @@ static FILE* get_new_output_file_for_thread()
 Return a new output FILE for the current thread.
 */
 {
-  int fd;
+  FILE *result;
+  int  fd;
 
   do {
     fd = dup(fd_thread_output);
   } while (fd == -1);
-  return fdopen(fd, "w");
+  result = fdopen(fd, "w");
+  /* Do not buffer output; this ensures output writing is immediately
+     forwarded without explicit fflush. */
+  setbuf(result, NULL);
+  return result;
 }  /* get_new_output_file_for_thread */
 
 
