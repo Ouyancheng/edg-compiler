@@ -465,7 +465,7 @@ memory region.
 #define alloc_cil_of_type(type) \
   (tally_alloc(type), (type*)alloc_cil(sizeof(type)))
 #else /* !(!STANDALONE_UTILITY_PROGRAM && DEBUG) */
-#define alloc_il_of_type(type) \
+#define alloc_cil_of_type(type) \
   ((type*)alloc_cil(sizeof(type)))
 #endif /* !STANDALONE_UTILITY_PROGRAM && DEBUG */
 
