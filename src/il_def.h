@@ -646,10 +646,11 @@ enum an_il_entry_kind : a_byte {
   iek_vla_dimension,    /* a_vla_dimension */
 #if DO_IL_LOWERING && IA64_ABI
   iek_vcall_offset_entry,
-			/* a_vcall_offset_entry */ 
+			/* a_vcall_offset_entry */
 #endif /* DO_IL_LOWERING && IA64_ABI */
 #if MICROSOFT_EXTENSIONS_ALLOWED
   iek_partial_class_body,
+			/* a_partial_class_body */
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
   iek_overriding_virtual_function,
 			/* an_overriding_virtual_function */
