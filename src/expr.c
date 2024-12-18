@@ -54920,11 +54920,11 @@ selector is returned through bound_function_selector.
 }  /* perform_right_fold */
 
 
-/*
-Flag indicating whether a non-standard fold expression has already been
-diagnosed.
-*/
-static a_boolean already_diagnosed_fold = FALSE;
+STATIC_THREAD a_boolean
+		already_diagnosed_fold;
+			/* Flag indicating whether a non-standard fold
+			   expression has already been diagnosed. */
+
 
 static void assemble_fold_expression_operand(
                          an_operand                   *result,

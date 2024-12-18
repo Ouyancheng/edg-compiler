@@ -2600,11 +2600,12 @@ performs no action.
 }  /* make_attribute_group */
 
 
-/*
-Flag indicating whether a non-standard attribute-using-prefix has already been
-diagnosed.
-*/
-static a_boolean already_diagnosed_using = FALSE;
+STATIC_THREAD a_boolean
+		already_diagnosed_using;
+			/* Flag indicating whether a non-standard
+			   attribute-using-prefix has already been
+			   diagnosed. */
+
 
 static an_attribute_ptr scan_std_attribute_group(an_attribute_location  loc)
 /*
