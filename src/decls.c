@@ -15591,17 +15591,16 @@ alias declaration in the source sequence list (if applicable).
 }  /* make_namespace_alias */
 
 
-/*
-Flag indicating whether a non-standard nested namespace declaration has already
-been diagnosed.
-*/
-static a_boolean already_diagnosed_nested_namespace = FALSE;
+STATIC_THREAD a_boolean
+		already_diagnosed_nested_namespace;
+			/* Flag indicating whether a non-standard nested
+			   namespace declaration has already been diagnosed. */
 
-/*
-Flag indicating whether a non-standard nested inline namespace declaration has
-already been diagnosed.
-*/
-static a_boolean already_diagnosed_nested_inline_namespace = FALSE;
+STATIC_THREAD a_boolean
+		already_diagnosed_nested_inline_namespace;
+			/* Flag indicating whether a non-standard nested inline
+			   namespace declaration has already been diagnosed. */
+
 
 static void namespace_declaration(a_token_kind      *final_token,
                                   a_boolean         in_nested_namespace_decl,
