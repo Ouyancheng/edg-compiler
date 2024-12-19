@@ -3205,6 +3205,9 @@ option values if they were not already set by a command line option.
           explicit_this_param_enabled = TRUE;
         }  /* if */
       }  /* if */
+      if (microsoft_version >= 1940 && ms_cpp23_mode) {
+        elifdef_enabled = TRUE;
+      }  /* if */
       if (microsoft_version >= 1943) {
         if (ms_cpp23_mode) {
           /* These C++23 features are enabled in this mode. */
@@ -3558,7 +3561,7 @@ Set the various flags appropriate to C99 mode or later standard modes.
     if (!option_kind_used[(int)optk_digit_separators]) {
       digit_separators_enabled = TRUE;
     }  /* if */
-    elifdef_enabled = TRUE;
+    elifdef_enabled = (!microsoft_mode || ms_version_is(>=1940));
     terse_static_assert_enabled = TRUE;
     if (!option_kind_used[(int)optk_nullptr]) {
       nullptr_enabled = TRUE;

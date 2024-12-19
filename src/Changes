@@ -1,5 +1,26 @@
 Version 6.7
 
+12/19/24 [EDGcpfe/27808]
+Microsoft compatibility: #elifdef/#elifndef preprocessor directives
+
+MSVC added support for the #elifdef and #elifndef preprocessor directives
+in version 1940 (only with /std:c++latest and, beginning with version 1943,
+with /std:c++23 and /std:c23 command-line options).  The front end now
+supports those directives in the corresponding Microsoft versions and
+language modes.  For example, with --microsoft_version=1940 --ms_c++latest:
+
+  #ifdef A
+  #define N 1
+  #elifndef B
+  #define N 2
+  #else
+  #define N 3
+  #endif
+  #if N != 2
+  #error Feature not supported
+  #endif
+
+
 12/18/24 [EDGcpfe/27790]
 GNU/Clang C compatibility: Address constant initializers
 
