@@ -180,9 +180,8 @@ read_message_parts for more information about the callback).  If a complete
 message was found, return TRUE; otherwise, return FALSE.
 */
 {
-  /* This is the next needed matching character to terminate output. */
-  int       num_matches_needed = strlen(end_of_message_bytes);
   a_boolean result = false;
+  int       num_matches_needed = strlen(end_of_message_bytes);
   int       end_of_message_part = this->num_buffer_chars;
 
   for (int i = offset; i < this->num_buffer_chars; ++i) {
