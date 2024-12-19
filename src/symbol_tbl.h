@@ -7340,15 +7340,37 @@ constructor symbols.
    (sym)->variant.constant != NULL &&					\
    (sym)->variant.constant->kind == (a_constant_repr_kind)ck_template_param)
 
+
+inline a_type_ptr type_symbol_type(a_symbol_ptr sym)
 /*
-Extract the type from a type symbol (one for which is_type_symbol is TRUE).
+Extract and return the type from a type symbol (one for which is_type_symbol is
+TRUE).
 */
-#define type_symbol_type(sym)                                         \
-  ((sym)->kind == (a_symbol_kind)sk_type ?                            \
-    (sym)->variant.type.ptr :                                         \
-    (((sym)->kind == (a_symbol_kind)sk_enum_tag) ?                    \
-      (sym)->variant.enumeration.type :                               \
-      (sym)->variant.class_struct_union.type))
+{
+  /* If this assertion fails, this is not a type symbol and the caller has a
+     bad result. */
+  check_assertion(is_type_symbol(sym));
+  a_type_ptr result = NULL;
+
+  switch (sym->kind) {
+    case sk_type:
+      result = sym->variant.type.ptr;
+      break;
+    case sk_enum_tag:
+      result = sym->variant.enumeration.type;
+      break;
+    case sk_class_or_struct_tag:
+    case sk_union_tag:
+      result = sym->variant.class_struct_union.type;
+      break;
+    default:
+      /* If this is reached, a case is presumably missing or is_type_symbol
+         returned TRUE when it should not have. */
+      unexpected_condition();
+  }  /* switch */
+  return result;
+}  /* type_symbol_type */
+
 
 /*
 Extract the routine type from the routine associated with an sk_routine

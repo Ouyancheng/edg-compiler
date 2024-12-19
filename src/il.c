@@ -12420,7 +12420,7 @@ included) and return an error type.  name should normally be one of:
   a_symbol_ptr  sym = look_up_name_string_in_std(name);
   a_type_ptr    result;
 
-  if (sym == NULL || is_enum_symbol(sym)) {
+  if (sym == NULL || !is_type_symbol(sym) || is_enum_symbol(sym)) {
     expr_pos_st_error(ec_bad_ordering_type, &error_position, name);
     result = error_type();
   } else {
