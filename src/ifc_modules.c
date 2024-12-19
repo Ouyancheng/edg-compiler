@@ -112,15 +112,16 @@ Close the module file.
     }  /* if */
     this->f_module = NULL;
 #if USE_MMAP_FOR_MEMORY_REGIONS
-#if EDG_WIN32
     if (this->for_read) {
       an_ifc_module_file_read_state &rs_ref = this->read_state;
 
+      unmap_memory(rs_ref.mmap_addr, rs_ref.mmap_size);
+#if EDG_WIN32
       close_mapped_input_file(rs_ref.mapped_input, rs_ref.map_object);
       rs_ref.mapped_input = NULL;
       rs_ref.map_object = NULL;
-    }  /* if */
 #endif /* EDG_WIN32 */
+    }  /* if */
 #endif /* USE_MMAP_FOR_MEMORY_REGIONS */
   }  /* if */
 }  /* an_ifc_module_file::close */
