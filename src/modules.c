@@ -2240,24 +2240,6 @@ Display debug information about a module entity.
 
 #endif /* DEBUG */
 
-void modules_pch_prepare()
-/*
-Called when a PCH file is about to be written to prepare the modules system
-for the PCH write.
-*/
-{
-  /* Module files must be reopened by the new process.
-
-     Note that we cannot free instances of the module interface an_ifc_module
-     prior to PCH writing as the address of the an_ifc_module::file member is
-     required for various internal IFC module Ptr_map keys to work (e.g.,
-     various Ptr_maps use Index_entity values as keys, these values use
-     an_ifc_module_file* pointer values for hashing and equality
-     operations). */
-  ifc_modules_close_read_files();
-}  /* modules_pch_prepare */
-
-
 void modules_pch_reset()
 /*
 Called when a PCH file has just been read to re-open any module files that
