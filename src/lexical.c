@@ -5526,6 +5526,19 @@ token and not part of another, then no space is needed.
   prev_ch = ch;                                                           \
 }  /* token_separator_blank_if_needed */
 
+namespace {
+
+/*
+This type is used to store invalid characters and their positions for delayed
+diagnosis.
+*/
+struct a_bad_unicode_char {
+  unsigned long ch;     /* The invalid character bytes. */
+  a_source_position
+                pos;    /* The position of the invalid character. */
+};  /* a_bad_unicode_char */
+
+}  /* namespace */
 
 void gen_pp_output_for_curr_line(void)
 /*
@@ -5534,14 +5547,15 @@ necessary.  This routine should be called only if generate_pp_output
 is TRUE.
 */
 {
-  a_const_char            *loc_in_line;
-  char                    ch;
-  a_source_line_modif_ptr slmp;
-  a_source_line_modif_ptr ins_slmp;
-  char                    prev_ch;
-  char                    prev_prev_ch;
-  a_boolean               token_start;
-  an_orig_line_modif_ptr  next_raw_string_modif;
+  a_const_char                           *loc_in_line;
+  char                                   ch;
+  a_source_line_modif_ptr                slmp;
+  a_source_line_modif_ptr                ins_slmp;
+  char                                   prev_ch;
+  char                                   prev_prev_ch;
+  a_boolean                              token_start;
+  an_orig_line_modif_ptr                 next_raw_string_modif;
+  Small_dyn_array<a_bad_unicode_char, 3> bad_chars_in_line;
 
 #if UNICODE_SOURCE_SUPPORTED
   /* Determine whether the Unicode encoding of the current file matches the
@@ -5867,11 +5881,10 @@ is TRUE.
                 if (err) {
                   /* The code point could not be converted to a suitable
                      representation above. Issue a diagnostic. */
-                  a_number_buffer num_buff{hex_view_of(wc)};
-
                   conv_line_loc_to_source_pos(loc_in_line, &error_position);
-                  pos_warning(ec_bad_unicode_char_in_pp_output,
-                              &error_position, num_buff.as_temp_characters());
+
+                  a_bad_unicode_char bad_char{wc, error_position};
+                  bad_chars_in_line.push_back(bad_char);
                 }  /* if */
               }  /* if */
               loc_in_line += remaining_mbc_len;
@@ -5911,6 +5924,13 @@ is TRUE.
     init_do_not_put_curr_line_in_pp_output = TRUE;
     do_not_put_curr_line_in_pp_output = TRUE;
     fflush(f_pp_output);
+    /* Issue diagnostics after the line is fully printed. */
+    for (a_bad_unicode_char &bad_ch : bad_chars_in_line) {
+      a_number_buffer num_buff{hex_view_of(bad_ch.ch)};
+
+      pos_warning(ec_bad_unicode_char_in_pp_output,
+                  &bad_ch.pos, num_buff.as_temp_characters());
+    }  /* for */
   }  /* if */
 }  /* gen_pp_output_for_curr_line */
 
