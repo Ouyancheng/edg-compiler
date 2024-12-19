@@ -271,7 +271,6 @@ invocation ticket.
     }  /* for */
 
     int exit_code = EDG_MAIN(argc, argv.begin());
-    fdatasync(ticket->communication_fd);
     /* Signal the end of output. */
     write(ticket->communication_fd, end_of_message_bytes,
           strlen(end_of_message_bytes));
