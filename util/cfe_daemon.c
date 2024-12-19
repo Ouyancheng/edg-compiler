@@ -424,10 +424,13 @@ The main routine for the front end Unix socket daemon.
 
     /* Bind the socket (so that the client can find it) and begin listening for
        connections. */
+    size_t      socket_path_bytes = strlen(socket_address) + 1;
     sockaddr_un server_socket_addr = {};
+    if (socket_path_bytes > sizeof(server_socket_addr.sun_path)) {
+      goto socket_path_too_long_error;
+    }  /* if */
     server_socket_addr.sun_family = AF_UNIX;
-    strncpy(server_socket_addr.sun_path, socket_address,
-            strlen(socket_address));
+    memcpy(server_socket_addr.sun_path, socket_address, socket_path_bytes);
 
     int bind_result = bind(server_socket_fd,
                            (const sockaddr*)&server_socket_addr,
@@ -484,7 +487,11 @@ threading_set_up_error:
   return_value = 1;
   goto done;
 socket_set_up_error:
-  fputs("Socket set up failed.\n", stderr);
+  fputs("Unix socket set up failed.\n", stderr);
+  return_value = 1;
+  goto done;
+socket_path_too_long_error:
+  fprintf(stderr, "Unix socket path (\"%s\") is too long.\n", socket_address);
   return_value = 1;
   goto done;
 coordination_lock_error:

@@ -51,12 +51,17 @@ directory.  The caller is responsible for freeing the buffer.
 }  /* allocating_cwd */
 
 
+constexpr a_const_char
+                *error_prefix = "C++/C DAEMON CLIENT ERROR: ";
+                        /* The common prepended to error messages. */
+
+
 static void error_str(a_const_char *str)
 /*
 Emit a C++/C client error with the given error message string.
 */
 {
-  fprintf(stderr, "C++/C DAEMON CLIENT ERROR: %s\n", str);
+  fprintf(stderr, "%s%s\n", error_prefix, str);
 }  /* error_str */
 
 
@@ -127,10 +132,13 @@ The main routine for the front end Unix socket client.
     }  /* if */
 
     /* Construct the client address structure. */
+    size_t      socket_path_bytes = strlen(socket_address) + 1;
     sockaddr_un client_socket_addr = {};
+    if (socket_path_bytes > sizeof(client_socket_addr.sun_path)) {
+      goto socket_path_too_long_error;
+    }  /* if */
     client_socket_addr.sun_family = AF_UNIX;
-    strncpy(client_socket_addr.sun_path, socket_address,
-            strlen(socket_address));
+    memcpy(client_socket_addr.sun_path, socket_address, socket_path_bytes);
 
     int connect_result = connect(client_socket_fd,
                                  (const sockaddr*)&client_socket_addr,
@@ -210,6 +218,11 @@ The main routine for the front end Unix socket client.
   goto done;
 socket_set_up_error:
   error_str("Unix socket set up failed.");
+  goto done;
+socket_path_too_long_error:
+  fprintf(stderr, "%sUnix socket path (\"%s\") is too long.\n", error_prefix,
+          socket_address);
+  return_value = 1;
   goto done;
 connection_set_up_error:
   error_str("Unix socket connection failed; is the daemon running?");
