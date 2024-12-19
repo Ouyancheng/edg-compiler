@@ -5081,7 +5081,6 @@ region, initialize the fields, and return a pointer to it.
 }  /* alloc_macro_invocation_record_block */
 
 #endif /* RECORD_MACRO_INVOCATIONS */
-#if EXTRA_SOURCE_POSITIONS_IN_IL
 
 an_element_position_ptr alloc_element_position(void)
 /*
@@ -5098,6 +5097,7 @@ its fields, and return a pointer to it.
   return epp;
 }  /* alloc_element_position */
 
+#if EXTRA_SOURCE_POSITIONS_IN_IL
 
 void clear_decl_position_supplement(a_decl_position_supplement_ptr  dpsp)
 /*

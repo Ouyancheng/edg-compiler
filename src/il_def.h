@@ -725,8 +725,8 @@ enum an_il_entry_kind : a_byte {
   iek_per_instantiation_needed_flags_entry,
 			/* a_per_instantiation_needed_flags_entry */
 #endif /* ONE_INSTANTIATION_PER_OBJECT */
-#if EXTRA_SOURCE_POSITIONS_IN_IL
   iek_element_position,	/* an_element_position */
+#if EXTRA_SOURCE_POSITIONS_IN_IL
   iek_decl_position_supplement,
 			/* a_decl_position_supplement */
 #endif /* EXTRA_SOURCE_POSITIONS_IN_IL */
@@ -919,8 +919,8 @@ EXTERN_CONSTINIT_ARRAY(a_const_char*, il_entry_kind_names, iek_last + 1)
 /* iek_per_instantiation_needed_flags_entry */
 					"per-instantiation-needed-flags-entry",
 #endif /* ONE_INSTANTIATION_PER_OBJECT */
-#if EXTRA_SOURCE_POSITIONS_IN_IL
 /* iek_element_position */		"element-position",
+#if EXTRA_SOURCE_POSITIONS_IN_IL
 /* iek_decl_position_supplement */	"decl-position-supplement",
 #endif /* EXTRA_SOURCE_POSITIONS_IN_IL */
 /* iek_template_decl */			"template-decl",
@@ -18788,8 +18788,8 @@ EXTERN_CONSTINIT_ARRAY(sizeof_t, sizeof_il_entry, iek_last)
 #if ONE_INSTANTIATION_PER_OBJECT
   sizeof(a_per_instantiation_needed_flags_entry),
 #endif /* ONE_INSTANTIATION_PER_OBJECT */
-#if EXTRA_SOURCE_POSITIONS_IN_IL
   sizeof(an_element_position),
+#if EXTRA_SOURCE_POSITIONS_IN_IL
   sizeof(a_decl_position_supplement),
 #endif /* EXTRA_SOURCE_POSITIONS_IN_IL */
   sizeof(a_template_decl),

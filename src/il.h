@@ -255,8 +255,8 @@ map_il_type_to_kind(a_macro, iek_macro)
 map_il_type_to_kind(a_per_instantiation_needed_flags_entry,
                     iek_per_instantiation_needed_flags_entry)
 #endif /* ONE_INSTANTIATION_PER_OBJECT */
-#if EXTRA_SOURCE_POSITIONS_IN_IL
 map_il_type_to_kind(an_element_position, iek_element_position)
+#if EXTRA_SOURCE_POSITIONS_IN_IL
 map_il_type_to_kind(a_decl_position_supplement, iek_decl_position_supplement)
 #endif /* EXTRA_SOURCE_POSITIONS_IN_IL */
 map_il_type_to_kind(a_template_decl, iek_template_decl)
@@ -1345,16 +1345,12 @@ typedef struct a_decl_pos_block {
 extern void clear_decl_pos_block(a_decl_pos_block_ptr  decl_pos_block);
 #endif /* NULL_POINTER_IS_ZERO */
 
-#if EXTRA_SOURCE_POSITIONS_IN_IL
 extern void f_add_element_position(an_element_position_kind  kind,
                                    a_source_position         *pos,
                                    an_element_position_ptr   *p_epp);
 
 #define add_element_position(kind, pos, p_epp)                             \
   (f_add_element_position((an_element_position_kind)(kind), (pos), (p_epp)))
-#else /* !EXTRA_SOURCE_POSITIONS_IN_IL */
-#define add_element_position(kind, pos, p_epp) /* nothing */
-#endif /* EXTRA_SOURCE_POSITIONS_IN_IL */
 
 #if EXTRA_SOURCE_POSITIONS_IN_IL
 

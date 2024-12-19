@@ -384,9 +384,10 @@ extern a_macro_ptr alloc_macro(void);
 extern a_macro_invocation_record_block_ptr alloc_macro_invocation_record_block(
                                                                          void);
 #endif /* RECORD_MACRO_INVOCATIONS */
-#if EXTRA_SOURCE_POSITIONS_IN_IL
 
 extern an_element_position_ptr alloc_element_position(void);
+
+#if EXTRA_SOURCE_POSITIONS_IN_IL
 
 extern void clear_decl_position_supplement(a_decl_position_supplement *dpsp);
 
