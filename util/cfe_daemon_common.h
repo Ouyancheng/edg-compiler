@@ -181,7 +181,7 @@ message was found, return TRUE; otherwise, return FALSE.
 */
 {
   /* This is the next needed matching character to terminate output. */
-  unsigned  num_matches_needed = strlen(end_of_message_bytes);
+  int       num_matches_needed = strlen(end_of_message_bytes);
   a_boolean result = false;
   int       end_of_message_part = this->num_buffer_chars;
 
