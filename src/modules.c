@@ -291,11 +291,11 @@ module file exists but cannot be opened.
     (void)fclose(file);
     if (!is_module_kind_available(*file_kind)) {
       str_catastrophe(ec_ms_ifc_unavailable, module_file);
-      /* This function should not continue following the end of the
+      /* This function should not continue following the catastrophic
          diagnostic. */
     }  /* if */
     result = TRUE;
-  } /* if */
+  }  /* if */
   return result;
 }  /* check_module_file */
 
