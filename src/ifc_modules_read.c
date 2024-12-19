@@ -14237,6 +14237,8 @@ struct an_ifc_error_severity_checker {
     { return this->severity_level != es_none; }
   a_boolean is_error() const
     { return this->severity_level >= es_error; }
+  a_boolean is_catastrophe() const
+    { return this->severity_level >= es_catastrophe; }
 private:
   a_boolean     invalid_version_is_warning;
                         /* TRUE if an invalid IFC version is only considered
@@ -14671,10 +14673,12 @@ diagnostics if issue_diag is TRUE.
                                                    mod->resolved_file);
 
       check_ifc_compatibility(this->header, &diagnostic);
-      /* Explicitly delete the file to free the file handle (this is necessary
-         as the diagnostic might be a catastrophic resulting in a longjmp in
-         MAKE_FRONT_END_CALLABLE configurations). */
-      delete_fe(&this->file);
+      if (checker.is_catastrophe()) {
+        /* Explicitly delete the file to free the file handle (this is
+           necessary as the diagnostic might be a catastrophic resulting in a
+           longjmp in MAKE_FRONT_END_CALLABLE configurations). */
+        delete_fe(&this->file);
+      }  /* if */
       diagnostic.emit_diagnostic();
       if (checker.is_error()) {
         goto invalid;
