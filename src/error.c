@@ -8271,10 +8271,9 @@ processed.
 }  /* end_command_line_error */
 
 
-static void reset_f_error()
+static void close_f_error_if_open()
 /*
-Reset the error output FILE* (f_error).  In DEBUG configurations, additionally
-reset the associated debug output FILE* (f_debug).
+Close the f_error FILE it's open and possible.
 */
 {
 #if MAKE_FRONT_END_CALLABLE
@@ -8286,6 +8285,16 @@ reset the associated debug output FILE* (f_debug).
     close_file_if_open(&f_error);
   }  /* if */
 #endif /* MAKE_FRONT_END_CALLABLE */
+}  /* close_f_error_if_open */
+
+
+static void reset_f_error()
+/*
+Reset the error output FILE* (f_error).  In DEBUG configurations, additionally
+reset the associated debug output FILE* (f_debug).
+*/
+{
+  close_f_error_if_open();
   f_error = default_error_output_file();
 #if DEBUG
   f_debug = f_error;
@@ -8710,6 +8719,15 @@ the point at which the compilation was terminated.
      error output. */
   reset_f_error();
 }  /* error_cleanup */
+
+
+void error_late_cleanup()
+/*
+Perform final cleanup and shut down error output.
+*/
+{
+  close_f_error_if_open();
+}  /* error_late_cleanup */
 
 #endif /* MAKE_FRONT_END_CALLABLE */
 

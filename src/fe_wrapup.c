@@ -911,6 +911,8 @@ memory used by the compilation.
   if (cli_or_cx_enabled) ms_metadata_cleanup();
 #endif /* CPPCLI_ENABLING_POSSIBLE */
   mem_manage_wrapup();
+  /* This should remain the final clean up operation. */
+  error_late_cleanup();
 }  /* fe_cleanup */
 
 #endif /* MAKE_FRONT_END_CALLABLE */

@@ -424,6 +424,7 @@ extern void error_trans_unit_init(void);
 extern void clear_file_index_list(void);
 #if MAKE_FRONT_END_CALLABLE
 extern void error_cleanup(void);
+extern void error_late_cleanup();
 #endif /* MAKE_FRONT_END_CALLABLE */
 
 extern a_line_number initialize_file_index(struct a_source_file *src_file);
