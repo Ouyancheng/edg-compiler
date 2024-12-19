@@ -300,8 +300,6 @@ static void *run_front_end_thread(void*)
 Run a front end thread that waits for work from the any_work pthread condition.
 */
 {
-  an_owned_invocation_ticket_ptr current_ticket;
-
   while (TRUE) {
     /* Acquire the any work lock and wait to be signaled that there's new
        work. */
@@ -317,8 +315,9 @@ Run a front end thread that waits for work from the any_work pthread condition.
         goto terminate_thread;
       }  /* if */
     }  /* while */
+
     /* Take the ticket. */
-    current_ticket = next_ticket;
+    an_owned_invocation_ticket_ptr current_ticket = next_ticket;
     next_ticket = NULL;
 
     /* Release the lock so more work can be assigned to other threads. */
