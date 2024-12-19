@@ -283,20 +283,19 @@ module file exists but cannot be opened.
     }  /* for */
     /* Emit the diagnostic. */
     end_diagnostic(dp);
-    goto done;
-  }  /* if */
-  { /* We've found a file - determine what kind it is. */
+    /* This function should not continue following the end of the
+       (catastrophic) diagnostic. */
+  } else {
+    /* We've found a file - determine what kind it is. */
     *file_kind = determine_module_file_kind(file);
-
+    (void)fclose(file);
     if (!is_module_kind_available(*file_kind)) {
       str_catastrophe(ec_ms_ifc_unavailable, module_file);
+      /* This function should not continue following the end of the
+         diagnostic. */
     }  /* if */
-  }
-  result = TRUE;
-done:
-  if (file != NULL) {
-    (void)fclose(file);
-  }  /* if */
+    result = TRUE;
+  } /* if */
   return result;
 }  /* check_module_file */
 

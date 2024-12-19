@@ -14646,6 +14646,10 @@ diagnostics if issue_diag is TRUE.
     goto invalid;
   }  /* if */
   if (!verify_checksum(this->file, this->header)) {
+    /* Explicitly delete the file to free the file handle (this is necessary as
+       pos_catastrophe might be a longjmp in MAKE_FRONT_END_CALLABLE
+       configurations). */
+    delete_fe(&this->file);
     pos_catastrophe(ec_cannot_import_module_bad_checksum,
                     &midp->module_name_position, mod->resolved_file);
     goto invalid;
@@ -14667,6 +14671,10 @@ diagnostics if issue_diag is TRUE.
                                                    mod->resolved_file);
 
       check_ifc_compatibility(this->header, &diagnostic);
+      /* Explicitly delete the file to free the file handle (this is necessary
+         as the diagnostic might be a catastrophic resulting in a longjmp in
+         MAKE_FRONT_END_CALLABLE configurations). */
+      delete_fe(&this->file);
       diagnostic.emit_diagnostic();
       if (checker.is_error()) {
         goto invalid;
