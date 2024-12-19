@@ -280,7 +280,8 @@ client_read_failure:
 
     write(ticket->communication_fd, read_failure, strlen(read_failure));
   }
-done:;
+done:
+  close(ticket->communication_fd);
 }  /* process_ticket */
 
 

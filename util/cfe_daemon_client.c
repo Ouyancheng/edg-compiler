@@ -118,9 +118,10 @@ The main routine for the front end Unix socket client.
 {
   int          return_value = rc_daemon_error;
   a_const_char *socket_address = allocating_socket_file_name();
+  int          client_socket_fd = -1;
 
   {
-    int client_socket_fd = socket(AF_UNIX, SOCK_STREAM, 0);
+    client_socket_fd = socket(AF_UNIX, SOCK_STREAM, 0);
     if (client_socket_fd == -1) {
       goto socket_set_up_error;
     }  /* if */
@@ -220,6 +221,9 @@ exit_code_overflow:
   error_str("Exit code buffer overflow.");
   goto done;
 done:
+  if (client_socket_fd != -1) {
+    close(client_socket_fd);
+  }  /* if */
   delete [] socket_address;
   return return_value;
 }  /* main */
