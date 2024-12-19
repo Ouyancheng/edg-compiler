@@ -14675,8 +14675,8 @@ diagnostics if issue_diag is TRUE.
       check_ifc_compatibility(this->header, &diagnostic);
       if (checker.is_catastrophe()) {
         /* Explicitly delete the file to free the file handle (this is
-           necessary as the diagnostic might be a catastrophic resulting in a
-           longjmp in MAKE_FRONT_END_CALLABLE configurations). */
+           necessary as a catastrophic error results in a longjmp in
+           MAKE_FRONT_END_CALLABLE configurations). */
         delete_fe(&this->file);
       }  /* if */
       diagnostic.emit_diagnostic();
