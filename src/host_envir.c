@@ -1985,7 +1985,7 @@ file.
 */
 {
   FILE                    *result;
-  constexpr a_const_char  *pattern_str = "edg.XXXXXXXX";
+  constexpr a_const_char  *pattern_str = "edg.XXXXXX";
   size_t                  pattern_str_len = strlen(pattern_str);
   a_temp_file_name_buffer file_name(a_string_view(temp_dir, temp_dir_len));
   int                     tmp_fd = -1;
