@@ -57,7 +57,19 @@ struct an_invocation_ticket {
   int           communication_fd;
                         /* The file descriptor identifier used to communicate
                            with the client associated with this thread. */
+  ~an_invocation_ticket();
 };  /* an_invocation_ticket */
+
+
+an_invocation_ticket::~an_invocation_ticket()
+/*
+Deconstruct the invocation ticket.
+*/
+{
+  if (this->communication_fd != -1) {
+    close(this->communication_fd);
+  }  /* if */
+}  /* an_invocation_ticket::~an_invocation_ticket */
 
 }  /* namespace */
 
@@ -280,8 +292,7 @@ client_read_failure:
 
     write(ticket->communication_fd, read_failure, strlen(read_failure));
   }
-done:
-  close(ticket->communication_fd);
+done:;
 }  /* process_ticket */
 
 
