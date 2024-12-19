@@ -170,12 +170,6 @@ Move from the given IFC string table, returning self.
 
 /*
 This structure represents the state associated with an IFC file input.
-
-Note that IFC input states and objects they own (while conceptually limited to
-a single translation unit) are allocated to general memory.  This is done to
-allow for the front end to correctly reclaim the files IFC input states own
-(even if the front end exits via a longjmp, as it does in
-MAKE_FRONT_END_CALLABLE configurations).
 */
 struct an_ifc_input_state {
   /* A local type used as an array (indexed by a file index) to provide
@@ -286,8 +280,7 @@ an_ifc_input_state::an_ifc_input_state(a_module_file_kind mk)
 Construct a new IFC module with the given module file kind.
 */
   : mod_kind(mk),
-    partitions((an_ifc_partition_metadata*)alloc_general(
-                                                        sizeof_part_metadata)),
+    partitions((an_ifc_partition_metadata*)alloc_fe(sizeof_part_metadata)),
     referenced_modules(/*mask_width=*/4)
 {
   memset((char *)this->partitions, 0x0, sizeof_part_metadata);
@@ -299,16 +292,12 @@ an_ifc_input_state::~an_ifc_input_state()
 Destroy the given IFC module interface.
 */
 {
-  /* When updating this destructor, note that it can be called after front end
-     memory has been freed (see the header comment on an_ifc_input_state for
-     more information). */
-  free_general(this->partitions, sizeof_part_metadata);
-  delete_general(&this->file);
+  free_fe(this->partitions, sizeof_part_metadata);
+  delete_fe(&this->file);
 }  /* an_ifc_input_state::~an_ifc_input_state */
 
 
-using an_ifc_module_input_state_list = Dyn_array<an_ifc_input_state*,
-                                                 General_allocator>;
+using an_ifc_module_input_state_list = Dyn_array<an_ifc_input_state*>;
                         /* The type used to track the IFC input states
                            allocated for this translation unit. */
 
@@ -14934,7 +14923,7 @@ issue_diag == TRUE) otherwise.
   if (opt_file.has_value()) {
     /* Establish the association between the IFC file and the IFC module
        interface. */
-    this->file = new_general<an_ifc_module_file>(move_from(&(*opt_file)));
+    this->file = new_fe<an_ifc_module_file>(move_from(&(*opt_file)));
     this->file->get_read_state().input_state = this;
   } else if (issue_diag) {
     /* FIXME: perhaps better error messages here. */
@@ -30432,7 +30421,7 @@ been confirmed to exist and the path stored in midp.
   a_module_ptr  mod = midp->module_info;
   a_boolean     result = FALSE;
   Owning_ptr<an_ifc_input_state>
-                input_state = new_general<an_ifc_input_state>(
+                input_state = new_fe<an_ifc_input_state>(
                                                  midp->module_info->file_kind);
 
   check_assertion(mod->resolved_file != NULL);
@@ -30531,9 +30520,9 @@ Clean up the IFC modules input states.
 {
   if (ifc_input_states != NULL) {
     for (an_ifc_input_state *input_state : *ifc_input_states) {
-      delete_general(&input_state);
+      delete_fe(&input_state);
     }  /* for */
-    delete_general(&ifc_input_states);
+    delete_fe(&ifc_input_states);
   }  /* if */
 }  /* ifc_modules_clear_input_states */
 
@@ -30670,7 +30659,7 @@ translation unit that are delayed until at least one IFC module is actually
 imported.
 */
 {
-  ifc_input_states = new_general<an_ifc_module_input_state_list>();
+  ifc_input_states = new_fe<an_ifc_module_input_state_list>();
   entity_lookup_cache = new_fe<an_ifc_module_entity_lookup>(/*mask_width=*/10);
   ifc_parameterized_entities = new_fe<an_ifc_parameterized_entity_map>(
                                                             /*mask_width=*/10);
