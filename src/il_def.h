@@ -591,7 +591,7 @@ If you change this, also change:
   - il_entry_kind_names (in this file)
   - sizeof_il_entry (in this file)
   - type_to_il_entry_kind (in il.h)
- */
+*/
 enum an_il_entry_kind : a_byte {
   iek_none,		/* Skip zero value; it's used as a marker. */
   iek_source_file,	/* a_source_file */
