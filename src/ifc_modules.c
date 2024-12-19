@@ -284,6 +284,7 @@ Do one-time initialization of static variables defined in this file.
      units. */
   register_trans_unit_variable(ifc_modules_initialized_for_curr_tu);
   ifc_modules_read_one_time_init();
+  ifc_modules_write_one_time_init();
 }  /* ifc_modules_one_time_init */
 
 
@@ -330,6 +331,7 @@ terminated prematurely for some reason.
 */
 {
   ifc_modules_read_cleanup();
+  ifc_modules_write_cleanup();
 }  /* ifc_modules_cleanup */
 
 #endif /* MAKE_FRONT_END_CALLABLE */

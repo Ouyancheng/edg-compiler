@@ -464,9 +464,13 @@ extern void ifc_modules_read_trans_unit_init();
 
 extern void ifc_modules_read_trans_unit_wrapup();
 
+extern void ifc_modules_write_one_time_init();
+
 #if MAKE_FRONT_END_CALLABLE
 
 extern void ifc_modules_read_cleanup();
+
+extern void ifc_modules_write_cleanup();
 
 #endif /* MAKE_FRONT_END_CALLABLE */
 

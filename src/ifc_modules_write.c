@@ -5685,6 +5685,26 @@ returned.
 }  /* create_output_file */
 
 
+STATIC_THREAD an_ifc_module_file
+                *output_module_file;
+                        /* The IFC module file being written to.  This is
+                           exposed as a global variable so that its can be
+                           properly destroyed in the event a catastrophic error
+                           occurs (resulting in a longjmp back to EDG_MAIN in
+                           MAKE_FRONT_END_CALLABLE configurations) while
+                           writing the file.  This is important as otherwise
+                           the associated file descriptor is leaked. */
+
+
+void ifc_modules_write_one_time_init()
+/*
+Do one-time initialization of static variables defined in this file.
+*/
+{
+  output_module_file = NULL;
+}  /* ifc_modules_write_one_time_init */
+
+
 void ifc_modules_write_out()
 /*
 Write out the module files for the current translation unit in the EDG flavor
@@ -5697,19 +5717,45 @@ of the IFC format.
                                                      ec_edg_ifc_header_unit);
 
   if (opt_module_file.has_value()) {
-    an_ifc_module_file  module_file = move_from(&(*opt_module_file));
-    an_ifc_output_state output_state(&module_file);
+    /* Verify that there's not already an IFC module file in the process of
+       being written.  If multiple IFC modules are intentionally being written
+       at the same time, output_module_file should be updated to be a list of
+       modules being written out. */
+    check_assertion(output_module_file == NULL);
+    /* Move the output module file to output_module_file (see
+       output_module_file for more information). */
+    output_module_file = new_general<an_ifc_module_file>(
+                                               move_from(&(*opt_module_file)));
+
+    an_ifc_output_state output_state(output_module_file);
     an_ifc_il_map       il_map(&output_state);
     a_scope_ptr         scope = il_header.primary_scope;
     an_ifc_scope_offset ifc_global_scope = il_map.enter_scope(scope);
-
     output_state.set_global_scope(ifc_global_scope);
     dump_scope_recursively(&il_map, scope);
     complete_scope_info(&output_state, &il_map);
     output_state.sort_traits();
     output_state.write();
+    /* Free the output module file. */
+    delete_general(&output_module_file);
   }  /* if */
 }  /* ifc_modules_write_out */
+
+#if MAKE_FRONT_END_CALLABLE
+
+void ifc_modules_write_cleanup()
+/*
+This routine is called at the end of compilation, or if compilation is
+terminated prematurely for some reason.  See ifc_modules_cleanup for more
+information.
+*/
+{
+  /* Clean up the IFC output module file if it exists (this can happen when a
+     catastrophic error occurs and we longjmp back to EDG_MAIN). */
+  delete_general(&output_module_file);
+}  /* ifc_modules_write_cleanup */
+
+#endif /* MAKE_FRONT_END_CALLABLE */
 
 /* Conditionally close the "edg" namespace. */
 END_EDG_NAMESPACE
