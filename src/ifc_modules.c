@@ -116,6 +116,8 @@ Close the module file.
       an_ifc_module_file_read_state &rs_ref = this->read_state;
 
       unmap_memory(rs_ref.mmap_addr, rs_ref.mmap_size);
+      rs_ref.mmap_addr = NULL;
+      rs_ref.mmap_size = 0;
 #if EDG_WIN32
       close_mapped_input_file(rs_ref.mapped_input, rs_ref.map_object);
       rs_ref.mapped_input = NULL;

@@ -246,8 +246,6 @@ the data structures that will be written out.
   perform_scheduled_routine_moves();
   /* Ensure that any pending deferred access checks have been performed. */
   end_deferral_of_access_checks();
-  /* Run cleanup to prepare the modules system for reuse within a PCH. */
-  modules_pch_prepare();
 }  /* prepare_to_write_precompiled_header_file */
 
 
