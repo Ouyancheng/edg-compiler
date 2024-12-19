@@ -171,8 +171,6 @@ extern a_boolean import_ifc_module_file(a_module_import_decl_ptr midp);
 
 extern void ifc_modules_report_suppressed_diagnostics();
 
-extern void ifc_modules_close_read_files();
-
 extern void ifc_modules_pch_read_reset();
 
 extern void ifc_modules_one_time_init();

@@ -132,6 +132,11 @@ template<typename a_Type>
 struct Is_trivially_copyable_edg_impl : Integral_constant<bool, false> {
 };  /* Is_trivially_copyable_edg_impl */
 
+template<typename a_Type>
+struct Is_trivially_copyable_edg_impl<a_Type*> :
+                                                Integral_constant<bool, true> {
+};  /* Is_trivially_copyable_edg_impl */
+
 #define MARK_TRIVIALLY_COPYABLE(type)                                         \
   template<>                                                                  \
   struct Is_trivially_copyable_edg_impl<type> :                               \
