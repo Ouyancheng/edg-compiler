@@ -17333,7 +17333,7 @@ be returned for a C mode const variable.
            of the same constant if that helps optimization) and
            cases specified as constant variables (for which back ends are
            required to use the same constant for every reference). */
-        if (!gpp_mode ||
+        if (!gnu_mode ||
             (address_base_is(con_val, abk_constant) &&
              constant_is(con_val->variant.address.variant.constant,
                          ck_string))) {
