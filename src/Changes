@@ -14,6 +14,17 @@ specialization where a concept was used instead of a name, e.g.:
 This is now fixed.
 
 
+12/20/24 [EDGcpfe/27817]
+Sporadic crash when parsing std ordering types
+
+Previously, the front end could crash when parsing a standard library strong
+ordering type that wasn't actually a type:
+
+namespace std { int strong_ordering; }
+
+This is now fixed.
+
+
 12/20/24 [EDGcpfe/27798]
 Correspondence issues with constrained templates
 
