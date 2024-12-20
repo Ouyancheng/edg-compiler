@@ -1,5 +1,19 @@
 Version 6.7
 
+12/20/24 [EDGcpfe/27821]
+Sporadic crash when parsing class template specialization
+
+Previously, the front end could crash when parsing a class template
+specialization where a concept was used instead of a name, e.g.:
+
+  template<class T>
+  concept C = true;
+  template<class T>
+  class C<int> {};
+
+This is now fixed.
+
+
 12/20/24 [EDGcpfe/27798]
 Correspondence issues with constrained templates
 
