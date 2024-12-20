@@ -1906,6 +1906,49 @@ time; instead, add the file to a list of files to be cleaned up later.
 #if USE_HOST_TMPFILE_FACILITIES
 #if EDG_WIN32
 
+static inline a_temp_file_name_buffer get_win32_temp_file_name()
+/*
+Return a file name for a new temporary file.
+*/
+{
+  a_temp_file_name_buffer result;
+#if UNICODE_SOURCE_SUPPORTED
+  wchar_t                 *wide_temp_dir =
+                                         translate_filename_to_wchar(temp_dir);
+
+  if (wide_temp_dir != NULL) {
+    wchar_t  win_buffer[MAX_PATH];
+    unsigned path_found = GetTempFileNameW(wide_temp_dir,
+                                           L"edg",
+                                           0,
+                                           win_buffer);
+    if (path_found == 0) {
+      /* A suitable file name was not discovered; try again. */
+      goto done;
+    }  /* if */
+    /* Convert back to UTF-8. */
+    result.reset_to(conv_wide_to_utf8(win_buffer));
+  } else
+#endif /* UNICODE_SOURCE_SUPPORTED */
+  /* Do not add code here. */
+  {
+    char     win_buffer[MAX_PATH];
+    unsigned path_found = GetTempFileNameA(temp_dir,
+                                           "edg",
+                                           0,
+                                           win_buffer);
+    if (path_found == 0) {
+      /* A suitable file name was not discovered; try again. */
+      goto done;
+    }  /* if */
+    /* Move the result to the primary buffer. */
+    result.reset_to(win_buffer);
+  }  /* if */
+done:
+  return result;
+}  /* get_win32_temp_file_name */
+
+
 static inline FILE *open_win32_temp_file(a_boolean binary_file)
 /*
 Open a temporary file using the operating system's temporary file creation
@@ -1917,36 +1960,9 @@ binary mode if binary_file is TRUE; otherwise, the file is opened textually.
   a_temp_file_name_buffer file_name;
 
   for (int try_number = 0; try_number < temp_file_tries; ++try_number) {
-#if UNICODE_SOURCE_SUPPORTED
-    wchar_t *wide_temp_dir = translate_filename_to_wchar(temp_dir);
-
-    if (wide_temp_dir != NULL) {
-      wchar_t  win_buffer[MAX_PATH];
-      unsigned path_found = GetTempFileNameW(wide_temp_dir,
-                                             L"edg",
-                                             0,
-                                             win_buffer);
-      if (path_found == 0) {
-        /* A suitable file name was not discovered; try again. */
-        continue;
-      }  /* if */
-      /* Convert back to UTF-8. */
-      file_name.reset_to(conv_wide_to_utf8(win_buffer));
-    } else
-#endif /* UNICODE_SOURCE_SUPPORTED */
-    /* Do not add code here. */
-    {
-      char     win_buffer[MAX_PATH];
-      unsigned path_found = GetTempFileNameA(temp_dir,
-                                             "edg",
-                                             0,
-                                             win_buffer);
-      if (path_found == 0) {
-        /* A suitable file name was not discovered; try again. */
-        continue;
-      }  /* if */
-      /* Move the result to the primary buffer. */
-      file_name.reset_to(win_buffer);
+    file_name = get_win32_temp_file_name();
+    if (file_name.is_empty()) {
+      continue
     }  /* if */
 #if DEBUG
     if (debug_level >= 4) {
@@ -3599,20 +3615,20 @@ file_name.
   } else {
     /* The file name contained no special characters.  Just do a normal
        open. */
-    f_file = CreateFile(file_name, dwDesiredAccess, dwShareMode,
-                        lpSecurityAttributes,
-                        dwCreationDisposition,
-                        dwFlagsAndAttributes,
-                        hTemplateFile);
+    f_file = CreateFileA(file_name, dwDesiredAccess, dwShareMode,
+                         lpSecurityAttributes,
+                         dwCreationDisposition,
+                         dwFlagsAndAttributes,
+                         hTemplateFile);
   }  /* if */
 #else /* !UNICODE_SOURCE_SUPPORTED */
   /* Translate the file name into the form used by the file system. */
   file_name = file_name_in_external_encoding(file_name);
-  f_file = CreateFile(file_name, dwDesiredAccess, dwShareMode,
-                      lpSecurityAttributes,
-                      dwCreationDisposition,
-                      dwFlagsAndAttributes,
-                      hTemplateFile);
+  f_file = CreateFileA(file_name, dwDesiredAccess, dwShareMode,
+                       lpSecurityAttributes,
+                       dwCreationDisposition,
+                       dwFlagsAndAttributes,
+                       hTemplateFile);
 #endif /* UNICODE_SOURCE_SUPPORTED */
   return f_file;
 }  /* CreateFile_interface */
@@ -3789,16 +3805,15 @@ Open a temporary file to be used for allocation of file mapped
 memory for IL memory blocks.
 */
 {
-  char		win_temp_dir[MAX_PATH];
-  char		temp_file_name[MAX_PATH];
+  a_temp_file_name_buffer file_name = get_win32_temp_file_name();
 
   db_enter(3, "open_mapped_il_temp_file");
-  if (GetTempPath(MAX_PATH, win_temp_dir) == 0 ||
-      GetTempFileName(win_temp_dir, "edg", 0, temp_file_name) == 0) {
+  if (file_name.is_empty()) {
     catastrophe(ec_cannot_build_temp_file_name);
   }  /* if */
   f_mmap_file = CreateFile_interface(
-                           temp_file_name, GENERIC_READ | GENERIC_WRITE,
+                           file_name.as_temp_characters(),
+                           GENERIC_READ | GENERIC_WRITE,
                            /*fdwShareMode=*/0, (LPSECURITY_ATTRIBUTES)NULL,
                            CREATE_ALWAYS,
                            FILE_ATTRIBUTE_TEMPORARY |
@@ -3806,7 +3821,7 @@ memory for IL memory blocks.
                            (HANDLE)NULL);
   if (f_mmap_file == INVALID_HANDLE_VALUE) {
     str_GetLastError_catastrophe(ec_cannot_open_temp_file_reason,
-                                 temp_file_name);
+                                 file_name.as_temp_characters());
   }  /* if */
   db_exit();
 }  /* open_mapped_il_temp_file */
