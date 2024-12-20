@@ -1222,9 +1222,8 @@ need to be determined.
         scp = (a_source_correspondence_ptr)il_entry_for_symbol_null_okay(
                                                                    sym, &kind);
         if (scp != NULL &&
-            (scp->name_linkage == (a_name_linkage_kind)nlk_external ||
-             scp->name_linkage ==
-                                (a_name_linkage_kind)nlk_cplusplus_external)) {
+            (scp->name_linkage == nlk_external ||
+             scp->name_linkage == nlk_cplusplus_external)) {
           result = TRUE;
         } else {
           result = FALSE;
@@ -1241,6 +1240,7 @@ need to be determined.
     case sk_static_data_member:
     case sk_variable:
     case sk_variable_template:
+    case sk_concept_template:
       {
         /* These entities can have correspondences if they have external
            linkage. */
@@ -1249,9 +1249,8 @@ need to be determined.
         scp = (a_source_correspondence_ptr)il_entry_for_symbol_null_okay(
                                                                    sym, &kind);
         if (scp != NULL &&
-            (scp->name_linkage == (a_name_linkage_kind)nlk_external ||
-             scp->name_linkage ==
-                                (a_name_linkage_kind)nlk_cplusplus_external)) {
+            (scp->name_linkage == nlk_external ||
+             scp->name_linkage == nlk_cplusplus_external)) {
           result = TRUE;
         } else {
           result = FALSE;
@@ -1271,9 +1270,8 @@ need to be determined.
           scp = &sym->variant.extern_symbol_descr
                     ->variant.variable->source_corresp;
         }  /* if */
-        if ((scp->name_linkage == (a_name_linkage_kind)nlk_external ||
-             scp->name_linkage ==
-                                (a_name_linkage_kind)nlk_cplusplus_external)) {
+        if ((scp->name_linkage == nlk_external ||
+             scp->name_linkage == nlk_cplusplus_external)) {
           result = TRUE;
         } else {
           result = FALSE;
@@ -2030,6 +2028,8 @@ all_instantiations list of the associated template symbol supplement.
         }  /* if */
       }  /* if */
     }  /* for */
+  } else if (symbol_is(templ_sym, sk_concept_template)) {
+    /* Concept templates have no associated instantiations.  Nothing to do. */
   } else {
     /* A function template. */
     a_template_instance_ptr  inst = tssp->variant.function.instantiations;
@@ -6346,6 +6346,8 @@ of templ may be templ itself and therefore unusable).
         clear_trans_unit_corresp(iek_variable, proto, /*visited=*/TRUE);
       }  /* if */
     }  /* if */
+  } else if (symbol_is(templ_sym, sk_concept_template)) {
+    /* Concept templates do not have instantiations.  Nothing more to do. */
   } else {
     unexpected_condition();
   }  /* if */
@@ -6361,11 +6363,13 @@ its subordinate symbols when looking up a correspondence: if none is found,
 return NULL.
 */
 {
-  a_template_ptr  corresp_templ = NULL;
-  a_symbol_ptr    templ_sym = (a_symbol_ptr)templ->source_corresp.assoc_info;
+  a_template_ptr         corresp_templ = NULL;
+  a_symbol_ptr           templ_sym = symbol_for(templ);
   a_template_symbol_supplement_ptr
-                  tssp = template_supplement_for_symbol(templ_sym),
-                  corresp_tssp = template_supplement_for_symbol(sym);
+                         tssp = template_supplement_for_symbol(templ_sym),
+                         corresp_tssp = template_supplement_for_symbol(sym);
+  a_template_decl_ptr    tdp = templ->template_decl;
+  a_requires_clause_ptr  rcp = tdp->constraint.requires_clause;
 
   /* The symbol "sym" always corresponds to a primary symbol. */
   check_assertion(corresp_tssp->primary_template_sym == NULL);
@@ -6388,13 +6392,18 @@ return NULL.
       for (sym = corresp_tssp->partial_specializations;
            sym != NULL;
            sym = sym->next) {
+        a_template_decl_ptr    corresp_tdp;
+        a_requires_clause_ptr  corresp_rcp;
         corresp_tssp = template_supplement_for_symbol(sym);
+        corresp_tdp = corresp_tssp->il_template_entry->template_decl;
+        corresp_rcp = corresp_tdp->constraint.requires_clause;
         if (equiv_template_param_lists(
                                     corresp_tssp->cache.decl_info->parameters,
                                     tssp->cache.decl_info->parameters,
                                     /*issue_errors=*/FALSE,
                                     ETP_NO_OPTIONS,
-                                    &templ_sym->decl_position, es_error)) {
+                                    &templ_sym->decl_position, es_error) &&
+            equiv_requires_clauses(corresp_rcp, rcp)) {
           /* The template parameters correspond; now check the arguments: they
              are attached to the prototype instantiation. */
           a_symbol_ptr  proto, corresp_proto;
@@ -6402,10 +6411,9 @@ return NULL.
           corresp_proto =
                  corresp_tssp->variant.class_template.prototype_instantiation;
           if (equiv_template_arg_lists(
-                  type_symbol_type(proto)->
-                     variant.class_struct_union.extra_info->template_arg_list,
-                  type_symbol_type(corresp_proto)->
-                     variant.class_struct_union.extra_info->template_arg_list,
+                  class_type_supp(type_symbol_type(proto))->template_arg_list,
+                  class_type_supp(type_symbol_type(corresp_proto))
+                                                          ->template_arg_list,
                   ETA_NO_OPTIONS)) {
             corresp_templ = corresp_tssp->il_template_entry;
             break;
@@ -6415,11 +6423,16 @@ return NULL.
     }  /* if */
   } else {
     /* This is a primary template: the template parameters must match. */
+    a_template_decl_ptr    corresp_tdp;
+    a_requires_clause_ptr  corresp_rcp;
+    corresp_tdp = corresp_tssp->il_template_entry->template_decl;
+    corresp_rcp = corresp_tdp->constraint.requires_clause;
     if (equiv_template_param_lists(corresp_tssp->cache.decl_info->parameters,
                                    tssp->cache.decl_info->parameters,
                                    /*issue_errors=*/TRUE,
                                    ETP_NO_OPTIONS,
-                                   &templ_sym->decl_position, es_error)) {
+                                   &templ_sym->decl_position, es_error) &&
+        equiv_requires_clauses(corresp_rcp, rcp)) {
       corresp_templ = corresp_tssp->il_template_entry;
     }  /* if */
   }  /* if */
@@ -6435,11 +6448,13 @@ given variable template templ.  However, only consider sym and its subordinate
 symbols when looking up a correspondence: if none is found, return NULL.
 */
 {
-  a_template_ptr  corresp_templ = NULL;
-  a_symbol_ptr    templ_sym = symbol_for(templ);
+  a_template_ptr         corresp_templ = NULL;
+  a_symbol_ptr           templ_sym = symbol_for(templ);
   a_template_symbol_supplement_ptr
-                  tssp = template_supplement_for_symbol(templ_sym),
-                  corresp_tssp = template_supplement_for_symbol(sym);
+                         tssp = template_supplement_for_symbol(templ_sym),
+                         corresp_tssp = template_supplement_for_symbol(sym);
+  a_template_decl_ptr    tdp = templ->template_decl;
+  a_requires_clause_ptr  rcp = tdp->constraint.requires_clause;
 
   /* The symbol "sym" always corresponds to a primary symbol. */
   check_assertion(corresp_tssp->primary_template_sym == NULL);
@@ -6459,13 +6474,17 @@ symbols when looking up a correspondence: if none is found, return NULL.
       for (sym = corresp_tssp->partial_specializations;
            sym != NULL;
            sym = sym->next) {
+        a_requires_clause_ptr  corresp_rcp;
         corresp_tssp = template_supplement_for_symbol(sym);
+        corresp_rcp = corresp_tssp->il_template_entry->template_decl
+                                  ->constraint.requires_clause;
         if (equiv_template_param_lists(
                                     corresp_tssp->cache.decl_info->parameters,
                                     tssp->cache.decl_info->parameters,
                                     /*issue_errors=*/FALSE,
                                     ETP_NO_OPTIONS,
-                                    &templ_sym->decl_position, es_error)) {
+                                    &templ_sym->decl_position, es_error) &&
+            equiv_requires_clauses(rcp, corresp_rcp)) {
           /* The template parameters correspond; now check the arguments: they
              are attached to the prototype instantiation. */
           a_variable_ptr  proto, corresp_proto;
@@ -6495,6 +6514,35 @@ symbols when looking up a correspondence: if none is found, return NULL.
 }  /* find_corresp_var_template */
 
 
+static a_template_ptr find_corresp_concept_template(a_template_ptr  templ,
+                                                    a_symbol_ptr    sym)
+/*
+Find a variable template from another translation unit corresponding to the
+given variable template templ.  However, only consider sym and its subordinate
+symbols when looking up a correspondence: if none is found, return NULL.
+*/
+{
+  a_symbol_ptr    templ_sym = symbol_for(templ);
+  a_template_symbol_supplement_ptr
+                  tssp = template_supplement_for_symbol(templ_sym),
+                  corresp_tssp = template_supplement_for_symbol(sym);
+  a_template_ptr  corresp_templ = corresp_tssp->il_template_entry;
+  a_requires_clause_ptr
+                  rcp = templ->template_decl->constraint.requires_clause,
+                  corresp_rcp = corresp_templ->template_decl
+                                             ->constraint.requires_clause;
+
+  if (!equiv_template_param_lists(corresp_tssp->cache.decl_info->parameters,
+                                  tssp->cache.decl_info->parameters,
+                                  /*issue_errors=*/TRUE, ETP_NO_OPTIONS,
+                                  &templ_sym->decl_position, es_error) ||
+      !equiv_requires_clauses(rcp, corresp_rcp)) {
+    corresp_templ = NULL;
+  }  /* if */
+  return corresp_templ;
+}  /* find_corresp_concept_template */
+
+
 static a_template_ptr find_corresp_function_template(a_template_ptr  templ,
                                                      a_symbol_ptr    sym)
 /*
@@ -6504,29 +6552,37 @@ symbols when looking up a correspondence: if none is found, return NULL.
 */
 {
   a_template_ptr  corresp_templ = NULL;
-  a_boolean       is_list =
-                         (sym->kind == (a_symbol_kind)sk_overloaded_function);
+  a_boolean       is_list = symbol_is(sym, sk_overloaded_function);
   a_symbol_ptr    sub_sym = is_list ? sym->variant.overloaded_function.symbols
                                     : sym;
-  a_symbol_ptr    templ_sym = (a_symbol_ptr)templ->source_corresp.assoc_info;
+  a_symbol_ptr    templ_sym = symbol_for(templ);
   a_template_symbol_supplement_ptr
                   tssp = template_supplement_for_symbol(templ_sym),
                   corresp_tssp;
   a_routine_ptr   routine = tssp->variant.function.routine,
                   corresp_routine;
+  a_template_decl_ptr
+                  tdp = templ->template_decl, corresp_tdp;
+  a_requires_clause_ptr
+                  rcp = tdp->constraint.requires_clause, corresp_rcp;
 
   /* If necessary, iterate over every overloaded function template. */
   for (; sub_sym != NULL; sub_sym = is_list ? sub_sym->next : NULL) {
     if (sub_sym->kind != (a_symbol_kind)sk_function_template) continue;
     corresp_tssp = template_supplement_for_symbol(sub_sym);
     corresp_routine = corresp_tssp->variant.function.routine;
+    corresp_tdp = corresp_tssp->il_template_entry->template_decl;
+    corresp_rcp = corresp_tdp->constraint.requires_clause;
     if (equiv_template_param_lists(templ_params_of(sub_sym),
                                    templ_params_of(templ_sym),
                                    /*issue_errors=*/FALSE,
                                    ETP_NO_OPTIONS,
                                    &templ_sym->decl_position, es_error) &&
+        equiv_requires_clauses(corresp_rcp, rcp) &&
         identical_types_full(routine->type, corresp_routine->type,
                              ITF_EXACT_DECLTYPE_EXPR_MATCH_REQUIRED) &&
+        equiv_requires_clauses(routine->trailing_requires_clause,
+                               corresp_routine->trailing_requires_clause) &&
         equiv_template_arg_lists(routine->template_arg_list,
                                  corresp_routine->template_arg_list,
                                  ETA_NO_OPTIONS)) {
@@ -6622,6 +6678,7 @@ returned.
   } else {
     a_boolean    class_template = is_class_template_symbol(templ_sym);
     a_boolean    var_template = symbol_is(templ_sym, sk_variable_template);
+    a_boolean    concept_template = symbol_is(templ_sym, sk_concept_template);
     a_symbol_ptr sym = corresp_symbol_list(templ_sym);
 
     for (; sym != NULL; sym = sym->next) {
@@ -6632,7 +6689,8 @@ returned.
          name: they should probably match up. */
       if ((is_template_symbol(sym) &&
            is_class_template_symbol(sym) == class_template &&
-           symbol_is(sym, sk_variable_template) == var_template) ||
+           symbol_is(sym, sk_variable_template) == var_template &&
+           symbol_is(sym, sk_concept_template) == concept_template) ||
           (symbol_is(sym, sk_overloaded_function) &&
            !class_template && !var_template)) {
         a_template_ptr  candidate;
@@ -6641,6 +6699,8 @@ returned.
           candidate = find_corresp_class_template(templ, sym);
         } else if (var_template) {
           candidate = find_corresp_var_template(templ, sym);
+        } else if (concept_template) {
+          candidate = find_corresp_concept_template(templ, sym);
         } else {
           candidate = find_corresp_function_template(templ, sym);
         }  /* if */

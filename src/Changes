@@ -1,5 +1,15 @@
 Version 6.7
 
+12/20/24 [EDGcpfe/27798]
+Correspondence issues with constrained templates
+
+When support for C++20 constrained templates was added to the front end, we
+failed to add corresponding support for cross-translation unit correspondence
+checking.  This could result in spurious correspondence errors and even
+internal errors (e.g., in function may_have_correspondence in trans_corresp.c).
+Support for constrained template correspondence checking as now been added.
+
+
 12/19/24 [EDGcpfe/27808]
 Microsoft compatibility: #elifdef/#elifndef preprocessor directives
 

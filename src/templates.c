@@ -21854,11 +21854,11 @@ old_list can match zero or more parameters from new_list.
           err = !(new_constraint == NULL && old_constraint == NULL);
         } else {
           /* Compare the concept template and its arguments. */
-          check_assertion(
-                  new_constraint->kind == (an_expr_node_kind)enk_concept_id &&
-                  old_constraint->kind == (an_expr_node_kind)enk_concept_id);
-          err = new_constraint->variant.concept_id.concept_template !=
-                        old_constraint->variant.concept_id.concept_template ||
+          check_assertion(new_constraint->kind == enk_concept_id &&
+                          old_constraint->kind == enk_concept_id);
+          err = !same_entities(
+                       new_constraint->variant.concept_id.concept_template,
+                       old_constraint->variant.concept_id.concept_template) ||
                 !equiv_template_arg_lists(
                                       new_constraint->variant.concept_id.args,
                                       old_constraint->variant.concept_id.args,

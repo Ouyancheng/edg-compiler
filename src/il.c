@@ -8405,8 +8405,8 @@ are done.
         }
         break;
       case enk_concept_id:
-        eq = (node1->variant.concept_id.concept_template ==
-                               node2->variant.concept_id.concept_template) &&
+        eq = same_entities(node1->variant.concept_id.concept_template,
+                           node2->variant.concept_id.concept_template) &&
              equiv_template_arg_lists(node1->variant.concept_id.args,
                                       node2->variant.concept_id.args,
                                       (ETA_IS_NONREAL_MEMBER |
