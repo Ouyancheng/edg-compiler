@@ -53,7 +53,7 @@ directory.  The caller is responsible for freeing the buffer.
 
 constexpr a_const_char
                 *error_prefix = "C++/C DAEMON CLIENT ERROR: ";
-                        /* The common prepended to error messages. */
+                        /* The common string prepended to error messages. */
 
 
 static void error_str(a_const_char *str)
