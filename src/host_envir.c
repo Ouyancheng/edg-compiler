@@ -3161,10 +3161,9 @@ char *get_file_name_from_dir(a_boolean	             first,
        Windows-NT routine (e.g., "*.xxx"). */
     check_assertion(strlen(suffix) <= 8);
 
-    /* On the first call, use the _findfirst call that specifies which
-       files are to be returned.  "handle" is saved in a static variable
-       that is used on subsequent calls to get the remaining directory
-       entries. */
+    /* On the first call, use the FindFirstFile call that specifies which files
+       are to be returned.  "handle" is saved in a static variable that is used
+       on subsequent calls to get the remaining directory entries. */
     Small_string<10> tmp_pattern("*", suffix);
     a_const_char     *resolved_name = resolve_file_name(
                                               tmp_pattern.as_temp_characters(),
