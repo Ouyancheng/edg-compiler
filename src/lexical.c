@@ -5539,6 +5539,19 @@ struct a_bad_unicode_char {
 };  /* a_bad_unicode_char */
 
 }  /* namespace */
+namespace detail {
+
+/*
+The following specialization provides Is_trivially_destructible support for
+a_bad_unicode_char.
+*/
+
+template<>
+struct Is_trivially_destructible_edg_impl<a_bad_unicode_char> :
+                                                Integral_constant<bool, true> {
+};  /* Is_trivially_destructible_edg_impl */
+
+}  /* detail */
 
 void gen_pp_output_for_curr_line(void)
 /*
