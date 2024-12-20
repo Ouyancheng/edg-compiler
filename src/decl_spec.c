@@ -5091,6 +5091,33 @@ typerefs are dropped from *p_base_type.
 
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
 
+static an_integer_kind kind_of_explicit_enumeration_base(
+                                                      a_type_ptr explicit_base)
+/*
+Return the integer kind associated with the given explicit base type of an
+enumeration.  If the explicit base is NULL, return ik_none.
+*/
+{
+  an_integer_kind result;
+
+  if (explicit_base == NULL) {
+    result = ik_none;
+  } else if (is_template_dependent_type(explicit_base) ||
+             is_error_type(explicit_base)) {
+    /* Assume largest_enum_int_kind as the underlying integer kind. */
+    result = largest_enum_int_kind;
+  } else {
+    a_type_ptr underlying_type = skip_typerefs(explicit_base);
+
+    /* If this assertion fails, an integer was expected but an non-integer
+       explicit base was used. */
+    check_assertion(underlying_type->kind == tk_integer);
+    result = underlying_type->variant.integer.int_kind;
+  }  /* if */
+  return result;
+}  /* kind_of_explicit_enumeration_base */
+
+
 static an_integer_kind scan_explicit_enum_base_type(
                                                a_type_ptr         *p_base_type,
                                                a_source_position  *pos_type)
@@ -5105,8 +5132,6 @@ scanned if it is valid.  If no base type was specified, ik_none is returned
 and *p_base_type is left unchanged.
 */
 {
-  an_integer_kind  result = (an_integer_kind)ik_none;
-
   if (curr_token == tok_colon && explicit_enum_base_enabled) {
     a_type_ptr  base_type = NULL;
     if (report_explicit_enum_base_as_nonstandard) {
@@ -5137,9 +5162,7 @@ and *p_base_type is left unchanged.
       a_type_ptr  orig_base_type = base_type;
       if (is_template_dependent_type(base_type)) {
         /* Return orig_base_type to be recorded in the IL as the explicit base
-           type, but proceed with largest_enum_int_kind as the underlying
-           integer kind. */
-        result = largest_enum_int_kind;
+           type. */
 #if MICROSOFT_EXTENSIONS_ALLOWED
       } else if (cli_or_cx_enabled) {
         /* C++/CLI allows a specific list of integral types and is therefore
@@ -5149,10 +5172,8 @@ and *p_base_type is left unchanged.
         }  /* if */
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
       } else if (is_error_type(base_type)) {
-        /* An error has presumably already been emitted.  Proceed assuming
-           the largest underlying enum integer kind. */
+        /* An error has presumably already been emitted. */
         expect_error();
-        result = largest_enum_int_kind;
       } else if (!is_integral_type(base_type)) {
         pos_error(ec_enum_base_type_must_be_integral, pos_type);
         base_type = NULL;
@@ -5165,13 +5186,10 @@ and *p_base_type is left unchanged.
       }  /* if */
       if (base_type != NULL) {
         *p_base_type = orig_base_type;
-        if (result == (an_integer_kind)ik_none) {
-          result = skip_typerefs(base_type)->variant.integer.int_kind;
-        }  /* if */
       }  /* if */
     }  /* if */
   }  /* if */
-  return result;
+  return kind_of_explicit_enumeration_base(*p_base_type);
 }  /* scan_explicit_enum_base_type */
 
 
@@ -5411,17 +5429,9 @@ Return the integer kind associated with the given enumeration's explicit base.
 If no explicit base was specified, return ik_none.
 */
 {
-  an_integer_kind result;
-  a_type_ptr      explicit_base = integer_type_supp(enum_type)->base_type;
+  a_type_ptr explicit_base = integer_type_supp(enum_type)->base_type;
 
-  if (explicit_base == NULL) {
-    result = ik_none;
-  } else if (is_template_dependent_type(explicit_base)) {
-    result = largest_enum_int_kind;
-  } else {
-    result = skip_typerefs(explicit_base)->variant.integer.int_kind;
-  }  /* if */
-  return result;
+  return kind_of_explicit_enumeration_base(explicit_base);
 }  /* explicit_base_kind_of_enumeration */
 
 

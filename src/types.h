@@ -456,11 +456,16 @@ Return TRUE if tp is a partial class.
 
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
 
+
+inline an_integer_type_supplement_ptr integer_type_supp(a_type_ptr tp)
 /*
 Return a pointer to the associated integer type supplement.
 */
-#define integer_type_supp(tp)                                        \
-  ((tp)->variant.integer.extra_info)
+{
+  check_assertion(tp->kind == tk_integer);
+  return tp->variant.integer.extra_info;
+}  /* integer_type_supp */
+
 
 /*
 Return TRUE if a type is a direct enum type (i.e., not a typeref on top of
