@@ -7347,9 +7347,6 @@ Extract and return the type from a type symbol (one for which is_type_symbol is
 TRUE).
 */
 {
-  /* If this assertion fails, this is not a type symbol and the caller has a
-     bad result. */
-  check_assertion(is_type_symbol(sym));
   a_type_ptr result = NULL;
 
   switch (sym->kind) {
