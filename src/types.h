@@ -139,9 +139,9 @@ extern a_boolean is_nonreal_floating_type(a_type_ptr tp);
 extern a_boolean is_imaginary_type(a_type_ptr tp);
 extern a_boolean is_complex_type(a_type_ptr tp);
 
-/* Macro to test whether a type kind is tk_float or tk_imaginary. */
+/* Macro to test whether a type kind is a floating point type kind. */
 #define type_kind_is_float_like(tkind)                                       \
-  ((tkind) == (a_type_kind)tk_float || (tkind) == (a_type_kind)tk_imaginary)
+  ((tkind) == tk_float || (tkind) == tk_imaginary || (tkind) == tk_complex)
 #else /* !C99_IL_EXTENSIONS_SUPPORTED */
 #define is_real_floating_type(tp) is_floating_type(tp)
 #define type_kind_is_float_like(tkind) ((tkind) == (a_type_kind)tk_float)

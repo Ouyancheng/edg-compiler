@@ -16155,6 +16155,9 @@ __builtin_complex construct.
       result_type = type_of_unknown_templ_param_nontype;
     } else {
       do_operand_transformations(&op1, TOPT_NO_OPTIONS);
+      if (is_error_operand(&op1)) {
+        result_type = error_type();
+      }  /* if */
     }  /* if */
     node1 = make_node_from_operand(&op1);
     arg_list = node1;
@@ -16163,6 +16166,9 @@ __builtin_complex construct.
       result_type = type_of_unknown_templ_param_nontype;
     } else {
       do_operand_transformations(&op2, TOPT_NO_OPTIONS);
+      if (is_error_operand(&op2)) {
+        result_type = error_type();
+      }  /* if */
     }  /* if */
     node2 = make_node_from_operand(&op2);
     arg_list->next =  node2;
@@ -16171,6 +16177,7 @@ __builtin_complex construct.
          result type is a complex floating-point type corresponding to the
          floating-point type of the operands. */
       check_assertion(op1_is_real && op2_is_real);
+      check_assertion(type_is_float_like(op1.type));
       result_type = complex_type(skip_typerefs(op1.type)->variant.float_kind);
     }  /* if */
     expr = alloc_expr_node((an_expr_node_kind)enk_builtin_operation);
