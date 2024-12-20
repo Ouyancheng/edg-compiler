@@ -1962,7 +1962,7 @@ binary mode if binary_file is TRUE; otherwise, the file is opened textually.
   for (int try_number = 0; try_number < temp_file_tries; ++try_number) {
     file_name = get_win32_temp_file_name();
     if (file_name.is_empty()) {
-      continue
+      continue;
     }  /* if */
 #if DEBUG
     if (debug_level >= 4) {
