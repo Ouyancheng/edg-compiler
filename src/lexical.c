@@ -5447,6 +5447,7 @@ else.  This routine should only be called when generate_pp_output is TRUE.
     }  /* if */
 #endif /* GEN_EXTRA_LINE_ID_INFO */
     fputc('\n', f_pp_output);
+    (void)fflush(f_pp_output);
     /* Remember the sequence number associated with the current pp output
        position.  When the current logical source line is continued using
        backslashes, curr_seq_number gives the sequence number of the
@@ -5936,7 +5937,7 @@ is TRUE.
     /* Make sure this line is written only once. */
     init_do_not_put_curr_line_in_pp_output = TRUE;
     do_not_put_curr_line_in_pp_output = TRUE;
-    fflush(f_pp_output);
+    (void)fflush(f_pp_output);
     /* Issue diagnostics after the line is fully printed. */
     for (a_bad_unicode_char &bad_ch : bad_chars_in_line) {
       a_number_buffer num_buff{hex_view_of(bad_ch.ch)};
