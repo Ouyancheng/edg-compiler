@@ -1908,7 +1908,8 @@ time; instead, add the file to a list of files to be cleaned up later.
 
 static inline a_temp_file_name_buffer get_win32_temp_file_name()
 /*
-Return a file name for a new temporary file.
+Return a file name for a new temporary file.  If a temporary file name
+cannot be acquired, instead return an empty string.
 */
 {
   a_temp_file_name_buffer result;
@@ -1923,7 +1924,7 @@ Return a file name for a new temporary file.
                                            0,
                                            win_buffer);
     if (path_found == 0) {
-      /* A suitable file name was not discovered; try again. */
+      /* A suitable file name was not discovered; return nothing. */
       goto done;
     }  /* if */
     /* Convert back to UTF-8. */
@@ -1938,7 +1939,7 @@ Return a file name for a new temporary file.
                                            0,
                                            win_buffer);
     if (path_found == 0) {
-      /* A suitable file name was not discovered; try again. */
+      /* A suitable file name was not discovered; return nothing. */
       goto done;
     }  /* if */
     /* Move the result to the primary buffer. */
