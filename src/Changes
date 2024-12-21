@@ -27,7 +27,7 @@ This is now fixed.
 
 
 12/20/24 [EDGcpfe/27818]
-Sporadic crash when enumeration base is an error type
+Sporadic crash with an invalid enumeration base
 
 Previously, the front end could crash when parsing an enumeration with an
 explicit base type that was parsed to be an IL error type.  This is now fixed.

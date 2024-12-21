@@ -5109,7 +5109,7 @@ enumeration.  If the explicit base is NULL, return ik_none.
   } else {
     a_type_ptr underlying_type = skip_typerefs(explicit_base);
 
-    /* If this assertion fails, an integer was expected but an non-integer
+    /* If this assertion fails, an integer was expected but a non-integer
        explicit base was used. */
     check_assertion(underlying_type->kind == tk_integer);
     result = underlying_type->variant.integer.int_kind;
