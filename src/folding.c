@@ -2905,7 +2905,7 @@ Do the negate operation on all types of integers.
                         /*saturate_on_overflow=*/FALSE,
                         err_code, err_severity);
   if (microsoft_mode && *err_code != ec_no_error) {
-    /* Do not make this an error in Microsoft and GNU modes. */
+    /* Do not make this an error in Microsoft mode. */
     *err_severity = es_warning;
   }  /* if */
 #if DEBUG
