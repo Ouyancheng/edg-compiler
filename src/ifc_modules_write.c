@@ -5688,7 +5688,7 @@ returned.
 STATIC_THREAD an_ifc_module_file
                 *output_module_file;
                         /* The IFC module file being written to.  This is
-                           exposed as a global variable so that its can be
+                           exposed as a global variable so that it can be
                            properly destroyed in the event a catastrophic error
                            occurs (resulting in a longjmp back to EDG_MAIN in
                            MAKE_FRONT_END_CALLABLE configurations) while

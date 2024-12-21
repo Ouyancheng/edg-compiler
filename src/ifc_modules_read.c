@@ -14638,7 +14638,7 @@ returned.  Otherwise, if the initialization fails return FALSE, and issue
 diagnostics if issue_diag is TRUE.
 
 Note that the input state must be on the list of ifc_input_states before
-calling this function otherwise file descriptor leaks may occur.
+calling this function; otherwise, file descriptor leaks may occur.
 */
 {
   a_module_ptr mod = midp->module_info;
