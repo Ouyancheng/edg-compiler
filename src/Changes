@@ -15,7 +15,7 @@ This is now fixed.
 
 
 12/20/24 [EDGcpfe/27820]
-Sporadic crash when parsing __builtin_complex with a non-constant operands
+Sporadic crash when parsing __builtin_complex with a non-constant operand
 
 Previously, the front end could crash when parsing __builtin_complex with
 at least one non-constant operand, e.g.:
