@@ -2268,7 +2268,7 @@ This is done before command line processing.
 #if DEBUG
   /* These are initialized per-translation unit.  However, in case of a command
      line error these must be reinitialized to prevent -d-module_report from
-     reporting "declarations processed" by the previous frond end
+     reporting "declarations processed" by the previous front end
      invocation. */
   num_module_decls_attempted = 0;
   num_module_decls_failed = 0;
