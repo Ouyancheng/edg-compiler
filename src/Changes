@@ -30,7 +30,12 @@ This is now fixed.
 Sporadic crash with an invalid enumeration base
 
 Previously, the front end could crash when parsing an enumeration with an
-explicit base type that was parsed to be an IL error type.  This is now fixed.
+invalid explicit base type, e.g.:
+
+  template<typename> struct S { };
+  enum E : S<> { zero; };
+
+This is now fixed.
 
 
 12/20/24 [EDGcpfe/27817]
