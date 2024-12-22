@@ -1,10 +1,10 @@
 Version 6.7
 
 12/20/24 [EDGcpfe/27821]
-Sporadic crash when parsing class template specialization
+Sporadic crash when parsing an invalid class template specialization
 
 Previously, the front end could crash when parsing a class template
-specialization where a concept was used instead of a name, e.g.:
+specialization where a concept was named in place of a template, e.g.:
 
   template<class T>
   concept C = true;
