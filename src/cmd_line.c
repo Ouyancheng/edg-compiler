@@ -2582,9 +2582,11 @@ option values if they were not already set by a command line option.
       /* Visual Studio version 16.8. */
       /* Currently equivalent to --ms_c11. */
     }  /* if */
-    if (ms_c23 && microsoft_version >= 1935) {
-      /* Visual Studio version 17.5. */
-      /* Currently equivalent to --ms_c11. */
+    if (ms_c23 && microsoft_version < 1940) {
+      /* MSVC only began supporting #elifdef/#elifndef in version 1940.
+         However, check_and_set_new_c_mode_coptions set the corresponding
+         global flag to TRUE.  Clear it now. */
+      elifdef_enabled = FALSE;
     }  /* if */
     if (microsoft_version >= 1934) {
       std_attributes_enabled = TRUE;
@@ -3561,7 +3563,7 @@ Set the various flags appropriate to C99 mode or later standard modes.
     if (!option_kind_used[(int)optk_digit_separators]) {
       digit_separators_enabled = TRUE;
     }  /* if */
-    elifdef_enabled = (!microsoft_mode || ms_version_is(>=1940));
+    elifdef_enabled = TRUE;
     terse_static_assert_enabled = TRUE;
     if (!option_kind_used[(int)optk_nullptr]) {
       nullptr_enabled = TRUE;
