@@ -6517,8 +6517,8 @@ symbols when looking up a correspondence: if none is found, return NULL.
 static a_template_ptr find_corresp_concept_template(a_template_ptr  templ,
                                                     a_symbol_ptr    sym)
 /*
-Find a variable template from another translation unit corresponding to the
-given variable template templ.  However, only consider sym and its subordinate
+Find a concept template from another translation unit corresponding to the
+given concept template templ.  However, only consider sym and its subordinate
 symbols when looking up a correspondence: if none is found, return NULL.
 */
 {
