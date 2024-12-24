@@ -2584,7 +2584,7 @@ option values if they were not already set by a command line option.
     }  /* if */
     if (ms_c23 && microsoft_version < 1940) {
       /* MSVC only began supporting #elifdef/#elifndef in version 1940.
-         However, check_and_set_new_c_mode_coptions set the corresponding
+         However, check_and_set_new_c_mode_options set the corresponding
          global flag to TRUE.  Clear it now. */
       elifdef_enabled = FALSE;
     }  /* if */
