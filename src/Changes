@@ -1,5 +1,24 @@
 Version 6.7
 
+12/24/24 [EDGcpfe/24533,EDGcpfe/24622,EDGcpfe/25528,EDGcpfe/27754]
+Microsoft compatibility: Direct reference-binding via user-defined conversion
+
+Consider, in a Microsoft mode with microsoft_version >= 1900:
+
+  struct S {
+    operator C&();
+    operator const C&() const;
+    void g() {
+      C const& c(*this);  // Previously ambiguous.  Now okay.
+    }
+  };
+
+The front end emulates an old Microsoft-mode reference binding bug that makes
+the example above ambiguous.  However, MSVC has since fixed that nonstandard
+behavior and the front end now restores the corresponding standard behavior
+when microsoft_version >= 1900.
+
+
 12/20/24 [EDGcpfe/27821]
 Sporadic crash when parsing an invalid class template specialization
 

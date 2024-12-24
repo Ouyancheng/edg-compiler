@@ -2598,7 +2598,8 @@ is_potential_conv_function_source as the appropriate guard function.
   *ambiguous = FALSE;
   check_assertion(is_any_reference_type(dest_type));
   base_dest_type = type_pointed_to(dest_type);
-  do_ms_quirk = (microsoft_bugs && microsoft_version >= 1310 &&
+  do_ms_quirk = (microsoft_bugs &&
+                 microsoft_version >= 1310 && microsoft_version < 1900 &&
                  !question_conv && is_const_qualified_type(base_dest_type));
   if (microsoft_bugs && microsoft_version < 1700 &&
       is_rvalue_reference_type(dest_type)) {
@@ -8835,10 +8836,8 @@ is a constructor.
   if (sym1 != NULL && sym2 != NULL &&
       sym1->is_class_member &&
       is_managed_class_type(sym_parent_class(sym1)) &&
-      special_function_kind_for_symbol(sym1) ==
-                                    (a_special_function_kind)sfk_conversion &&
-      special_function_kind_for_symbol(sym2) ==
-                                    (a_special_function_kind)sfk_constructor) {
+      special_function_kind_for_symbol(sym1) == sfk_conversion &&
+      special_function_kind_for_symbol(sym2) == sfk_constructor) {
     result = TRUE;
   }  /* if */
   return result;
@@ -22468,7 +22467,7 @@ the temporary.
       temp_init_from_operand_full(operand, dest_type,
                                   /*result_is_lvalue=*/FALSE);
     }  /* if */
-  } else if (conversion_routine->special_kind == sfk_conversion) {
+  } else if (special_kind_is(conversion_routine, sfk_conversion)) {
     /* Conversion function. */
     an_expr_node_ptr conv_function_call_node;
 
@@ -23432,13 +23431,9 @@ happen only in C++ mode.
         elision_source_type = class_type;
       }  /* if */
     } else {
-#if CHECKING
-      if (conversion_routine->special_kind !=
-                                     (a_special_function_kind)sfk_conversion) {
-        internal_error(
-                    "determine_dynamic_init_for_class_init: bad special kind");
-      }  /* if */
-#endif /* CHECKING */
+      check_assertion_str(
+                   special_kind_is(conversion_routine, sfk_conversion),
+                   "determine_dynamic_init_for_class_init: bad special kind");
       /* The routine is a conversion function.  Do the conversion and then
          try to find a copy constructor that can copy the result of the
          conversion for the caller. */
@@ -23922,8 +23917,7 @@ must be considered.  Only used in C++.  This is copy-initialization.
     is_explicit_cast = TRUE;
     conversion->is_explicit_cast = FALSE;
     if (conversion->routine != NULL &&
-        conversion->routine->special_kind ==
-                                     (a_special_function_kind)sfk_conversion) {
+        special_kind_is(conversion->routine, sfk_conversion)) {
       a_type_ptr conversion_type = return_type_of(conversion->routine->type);
       if (identical_types(conversion_type, dest_type)) {
         /* The conversion function returns the right type. */
