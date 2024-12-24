@@ -62,9 +62,9 @@ Support for constrained template correspondence checking as now been added.
 12/19/24 [EDGcpfe/27808]
 Microsoft compatibility: #elifdef/#elifndef preprocessor directives
 
-MSVC added support for the #elifdef and #elifndef preprocessor directives
-in version 1940 (only with /std:c++latest and, beginning with version 1943,
-with /std:c++23 and /std:c23 command-line options).  The front end now
+MSVC added support for the #elifdef and #elifndef preprocessor directives in
+version 1940 (only with the /std:c++latest, /std:clatest, and, beginning
+with version 1943, the /std:c++23 command-line options).  The front end now
 supports those directives in the corresponding Microsoft versions and
 language modes.  For example, with --microsoft_version=1940 --ms_c++latest:
 
