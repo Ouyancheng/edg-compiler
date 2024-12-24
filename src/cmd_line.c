@@ -6316,11 +6316,6 @@ file.
 #else /* !defined(ASSUME_LITTLE_ENDIAN_IFC_MODULES) */
   comment_undefined_macro_name(ASSUME_LITTLE_ENDIAN_IFC_MODULES);
 #endif /* defined(ASSUME_LITTLE_ENDIAN_IFC_MODULES) */
-#if defined(MODULE_MAX_LINE_NUMBER)
-  define_numeric_valued_macro(MODULE_MAX_LINE_NUMBER);
-#else /* !defined(MODULE_MAX_LINE_NUMBER) */
-  comment_undefined_macro_name(MODULE_MAX_LINE_NUMBER);
-#endif /* defined(MODULE_MAX_LINE_NUMBER) */
 #if defined(ASSUME_REFERENCES_CANNOT_BE_NULL)
   define_numeric_valued_macro(ASSUME_REFERENCES_CANNOT_BE_NULL);
 #else /* !defined(ASSUME_REFERENCES_CANNOT_BE_NULL) */
@@ -6436,6 +6431,16 @@ file.
 #else /* !defined(CHECK_SWITCH_DEFAULT_UNEXPECTED) */
   comment_undefined_macro_name(CHECK_SWITCH_DEFAULT_UNEXPECTED);
 #endif /* defined(CHECK_SWITCH_DEFAULT_UNEXPECTED) */
+#if defined(CLANG_IS_GENERATED_CODE_TARGET)
+  define_numeric_valued_macro(CLANG_IS_GENERATED_CODE_TARGET);
+#else /* !defined(CLANG_IS_GENERATED_CODE_TARGET) */
+  comment_undefined_macro_name(CLANG_IS_GENERATED_CODE_TARGET);
+#endif /* defined(CLANG_IS_GENERATED_CODE_TARGET) */
+#if defined(CLANG_TARGET_VERSION_NUMBER)
+  define_numeric_valued_macro(CLANG_TARGET_VERSION_NUMBER);
+#else /* !defined(CLANG_TARGET_VERSION_NUMBER) */
+  comment_undefined_macro_name(CLANG_TARGET_VERSION_NUMBER);
+#endif /* defined(CLANG_TARGET_VERSION_NUMBER) */
 #if defined(CLANG_VERSION_STRING)
 #if !defined(_lint) && !(defined(_MSC_VER) && _MSC_VER < 1300)
   /* Microsoft version 6.0 and some lint versions have a preprocessor bug
@@ -6478,11 +6483,16 @@ file.
 #else /* !defined(COMPOUND_LITERAL_ENABLING_POSSIBLE) */
   comment_undefined_macro_name(COMPOUND_LITERAL_ENABLING_POSSIBLE);
 #endif /* defined(COMPOUND_LITERAL_ENABLING_POSSIBLE) */
-#if defined(CP_GEN_BE_TARGET_MATCHES_SOURCE_DIALECT)
-  define_numeric_valued_macro(CP_GEN_BE_TARGET_MATCHES_SOURCE_DIALECT);
-#else /* !defined(CP_GEN_BE_TARGET_MATCHES_SOURCE_DIALECT) */
-  comment_undefined_macro_name(CP_GEN_BE_TARGET_MATCHES_SOURCE_DIALECT);
-#endif /* defined(CP_GEN_BE_TARGET_MATCHES_SOURCE_DIALECT) */
+#if defined(COROUTINE_ENABLING_POSSIBLE)
+  define_numeric_valued_macro(COROUTINE_ENABLING_POSSIBLE);
+#else /* !defined(COROUTINE_ENABLING_POSSIBLE) */
+  comment_undefined_macro_name(COROUTINE_ENABLING_POSSIBLE);
+#endif /* defined(COROUTINE_ENABLING_POSSIBLE) */
+#if defined(CPP11_IL_EXTENSIONS_SUPPORTED)
+  define_numeric_valued_macro(CPP11_IL_EXTENSIONS_SUPPORTED);
+#else /* !defined(CPP11_IL_EXTENSIONS_SUPPORTED) */
+  comment_undefined_macro_name(CPP11_IL_EXTENSIONS_SUPPORTED);
+#endif /* defined(CPP11_IL_EXTENSIONS_SUPPORTED) */
 #if defined(CPPCLI_ENABLING_POSSIBLE)
   define_numeric_valued_macro(CPPCLI_ENABLING_POSSIBLE);
 #else /* !defined(CPPCLI_ENABLING_POSSIBLE) */
@@ -6503,11 +6513,16 @@ file.
 #else /* !defined(CPPCX_INCLUDE_PATH) */
   comment_undefined_macro_name(CPPCX_INCLUDE_PATH);
 #endif /* defined(CPPCX_INCLUDE_PATH) */
-#if defined(CPP11_IL_EXTENSIONS_SUPPORTED)
-  define_numeric_valued_macro(CPP11_IL_EXTENSIONS_SUPPORTED);
-#else /* !defined(CPP11_IL_EXTENSIONS_SUPPORTED) */
-  comment_undefined_macro_name(CPP11_IL_EXTENSIONS_SUPPORTED);
-#endif /* defined(CPP11_IL_EXTENSIONS_SUPPORTED) */
+#if defined(CP_GEN_BE_TARGET_MATCHES_SOURCE_DIALECT)
+  define_numeric_valued_macro(CP_GEN_BE_TARGET_MATCHES_SOURCE_DIALECT);
+#else /* !defined(CP_GEN_BE_TARGET_MATCHES_SOURCE_DIALECT) */
+  comment_undefined_macro_name(CP_GEN_BE_TARGET_MATCHES_SOURCE_DIALECT);
+#endif /* defined(CP_GEN_BE_TARGET_MATCHES_SOURCE_DIALECT) */
+#if defined(CUSTOM_DEFAULT_OUTPUT_FILES)
+  define_numeric_valued_macro(CUSTOM_DEFAULT_OUTPUT_FILES);
+#else /* !defined(CUSTOM_DEFAULT_OUTPUT_FILES) */
+  comment_undefined_macro_name(CUSTOM_DEFAULT_OUTPUT_FILES);
+#endif /* defined(CUSTOM_DEFAULT_OUTPUT_FILES) */
 #if defined(CUSTOM_NAME_LINKAGE_KINDS)
   /* We cannot conveniently display the value of CUSTOM_NAME_LINKAGE_KINDS
      because it contains embedded commas (it's inserted into the middle of
@@ -6544,21 +6559,6 @@ file.
 #else /* !defined(C_GEN_BE_GENERATES_ANSI_C) */
   comment_undefined_macro_name(C_GEN_BE_GENERATES_ANSI_C);
 #endif /* defined(C_GEN_BE_GENERATES_ANSI_C) */
-#if defined(CLANG_IS_GENERATED_CODE_TARGET)
-  define_numeric_valued_macro(CLANG_IS_GENERATED_CODE_TARGET);
-#else /* !defined(CLANG_IS_GENERATED_CODE_TARGET) */
-  comment_undefined_macro_name(CLANG_IS_GENERATED_CODE_TARGET);
-#endif /* defined(CLANG_IS_GENERATED_CODE_TARGET) */
-#if defined(CLANG_TARGET_VERSION_NUMBER)
-  define_numeric_valued_macro(CLANG_TARGET_VERSION_NUMBER);
-#else /* !defined(CLANG_TARGET_VERSION_NUMBER) */
-  comment_undefined_macro_name(CLANG_TARGET_VERSION_NUMBER);
-#endif /* defined(CLANG_TARGET_VERSION_NUMBER) */
-#if defined(COROUTINE_ENABLING_POSSIBLE)
-  define_numeric_valued_macro(COROUTINE_ENABLING_POSSIBLE);
-#else /* !defined(COROUTINE_ENABLING_POSSIBLE) */
-  comment_undefined_macro_name(COROUTINE_ENABLING_POSSIBLE);
-#endif /* defined(COROUTINE_ENABLING_POSSIBLE) */
 #if defined(DEBUG)
   define_numeric_valued_macro(DEBUG);
 #else /* !defined(DEBUG) */
@@ -6712,26 +6712,11 @@ file.
 #else /* !defined(DEFAULT_CONTEXT_LIMIT) */
   comment_undefined_macro_name(DEFAULT_CONTEXT_LIMIT);
 #endif /* defined(DEFAULT_CONTEXT_LIMIT) */
-#if defined(DEFAULT_CPPCLI_ENABLED)
-  define_numeric_valued_macro(DEFAULT_CPPCLI_ENABLED);
-#else /* !defined(DEFAULT_CPPCLI_ENABLED) */
-  comment_undefined_macro_name(DEFAULT_CPPCLI_ENABLED);
-#endif /* defined(DEFAULT_CPPCLI_ENABLED) */
-#if defined(DEFAULT_CPPCX_ENABLED)
-  define_numeric_valued_macro(DEFAULT_CPPCX_ENABLED);
-#else /* !defined(DEFAULT_CPPCX_ENABLED) */
-  comment_undefined_macro_name(DEFAULT_CPPCX_ENABLED);
-#endif /* defined(DEFAULT_CPPCX_ENABLED) */
 #if defined(DEFAULT_CPP11_DEPENDENT_NAME_PROCESSING)
   define_numeric_valued_macro(DEFAULT_CPP11_DEPENDENT_NAME_PROCESSING);
 #else /* !defined(DEFAULT_CPP11_DEPENDENT_NAME_PROCESSING) */
   comment_undefined_macro_name(DEFAULT_CPP11_DEPENDENT_NAME_PROCESSING);
 #endif /* defined(DEFAULT_CPP11_DEPENDENT_NAME_PROCESSING) */
-#if defined(DEFAULT_CPP_MODE)
-  define_numeric_valued_macro(DEFAULT_CPP_MODE);
-#else /* !defined(DEFAULT_CPP_MODE) */
-  comment_undefined_macro_name(DEFAULT_CPP_MODE);
-#endif /* defined(DEFAULT_CPP_MODE) */
 #if defined(DEFAULT_CPP11_SFINAE_ENABLED)
   define_numeric_valued_macro(DEFAULT_CPP11_SFINAE_ENABLED);
 #else /* !defined(DEFAULT_CPP11_SFINAE_ENABLED) */
@@ -6742,16 +6727,31 @@ file.
 #else /* !defined(DEFAULT_CPP11_SFINAE_IGNORE_ACCESS) */
   comment_undefined_macro_name(DEFAULT_CPP11_SFINAE_IGNORE_ACCESS);
 #endif /* defined(DEFAULT_CPP11_SFINAE_IGNORE_ACCESS) */
-#if defined(DEFAULT_C_AND_CPP_FUNCTION_TYPES_ARE_DISTINCT)
-  define_numeric_valued_macro(DEFAULT_C_AND_CPP_FUNCTION_TYPES_ARE_DISTINCT);
-#else /* !defined(DEFAULT_C_AND_CPP_FUNCTION_TYPES_ARE_DISTINCT) */
-  comment_undefined_macro_name(DEFAULT_C_AND_CPP_FUNCTION_TYPES_ARE_DISTINCT);
-#endif /* defined(DEFAULT_C_AND_CPP_FUNCTION_TYPES_ARE_DISTINCT) */
 #if defined(DEFAULT_CPPCLI_CPPCX_VERSION)
   define_numeric_valued_macro(DEFAULT_CPPCLI_CPPCX_VERSION);
 #else /* !defined(DEFAULT_CPPCLI_CPPCX_VERSION) */
   comment_undefined_macro_name(DEFAULT_CPPCLI_CPPCX_VERSION);
 #endif /* defined(DEFAULT_CPPCLI_CPPCX_VERSION) */
+#if defined(DEFAULT_CPPCLI_ENABLED)
+  define_numeric_valued_macro(DEFAULT_CPPCLI_ENABLED);
+#else /* !defined(DEFAULT_CPPCLI_ENABLED) */
+  comment_undefined_macro_name(DEFAULT_CPPCLI_ENABLED);
+#endif /* defined(DEFAULT_CPPCLI_ENABLED) */
+#if defined(DEFAULT_CPPCX_ENABLED)
+  define_numeric_valued_macro(DEFAULT_CPPCX_ENABLED);
+#else /* !defined(DEFAULT_CPPCX_ENABLED) */
+  comment_undefined_macro_name(DEFAULT_CPPCX_ENABLED);
+#endif /* defined(DEFAULT_CPPCX_ENABLED) */
+#if defined(DEFAULT_CPP_MODE)
+  define_numeric_valued_macro(DEFAULT_CPP_MODE);
+#else /* !defined(DEFAULT_CPP_MODE) */
+  comment_undefined_macro_name(DEFAULT_CPP_MODE);
+#endif /* defined(DEFAULT_CPP_MODE) */
+#if defined(DEFAULT_C_AND_CPP_FUNCTION_TYPES_ARE_DISTINCT)
+  define_numeric_valued_macro(DEFAULT_C_AND_CPP_FUNCTION_TYPES_ARE_DISTINCT);
+#else /* !defined(DEFAULT_C_AND_CPP_FUNCTION_TYPES_ARE_DISTINCT) */
+  comment_undefined_macro_name(DEFAULT_C_AND_CPP_FUNCTION_TYPES_ARE_DISTINCT);
+#endif /* defined(DEFAULT_C_AND_CPP_FUNCTION_TYPES_ARE_DISTINCT) */
 #if defined(DEFAULT_DEPENDENT_LOOKUP_FINDS_STATIC_FUNCTIONS)
   define_numeric_valued_macro(DEFAULT_DEPENDENT_LOOKUP_FINDS_STATIC_FUNCTIONS);
 #else /* !defined(DEFAULT_DEPENDENT_LOOKUP_FINDS_STATIC_FUNCTIONS) */
@@ -6892,16 +6892,6 @@ file.
 #else /* !defined(DEFAULT_FIXED_POINT_ENABLED) */
   comment_undefined_macro_name(DEFAULT_FIXED_POINT_ENABLED);
 #endif /* defined(DEFAULT_FIXED_POINT_ENABLED) */
-#if defined(DEFAULT_FLOAT_KIND_FOR_FLOAT80)
-  define_string_valued_macro(DEFAULT_FLOAT_KIND_FOR_FLOAT80);
-#else /* !defined(DEFAULT_FLOAT_KIND_FOR_FLOAT80) */
-  comment_undefined_macro_name(DEFAULT_FLOAT_KIND_FOR_FLOAT80);
-#endif /* defined(DEFAULT_FLOAT_KIND_FOR_FLOAT80) */
-#if defined(DEFAULT_FLOAT_KIND_FOR_FLOAT128)
-  define_string_valued_macro(DEFAULT_FLOAT_KIND_FOR_FLOAT128);
-#else /* !defined(DEFAULT_FLOAT_KIND_FOR_FLOAT128) */
-  comment_undefined_macro_name(DEFAULT_FLOAT_KIND_FOR_FLOAT128);
-#endif /* defined(DEFAULT_FLOAT_KIND_FOR_FLOAT128) */
 #if defined(DEFAULT_FLOATING_POINT_TEMPLATE_PARAMETERS_ALLOWED)
   define_numeric_valued_macro(
                            DEFAULT_FLOATING_POINT_TEMPLATE_PARAMETERS_ALLOWED);
@@ -6909,6 +6899,16 @@ file.
   comment_undefined_macro_name(
                            DEFAULT_FLOATING_POINT_TEMPLATE_PARAMETERS_ALLOWED);
 #endif /* defined(DEFAULT_FLOATING_POINT_TEMPLATE_PARAMETERS_ALLOWED) */
+#if defined(DEFAULT_FLOAT_KIND_FOR_FLOAT128)
+  define_string_valued_macro(DEFAULT_FLOAT_KIND_FOR_FLOAT128);
+#else /* !defined(DEFAULT_FLOAT_KIND_FOR_FLOAT128) */
+  comment_undefined_macro_name(DEFAULT_FLOAT_KIND_FOR_FLOAT128);
+#endif /* defined(DEFAULT_FLOAT_KIND_FOR_FLOAT128) */
+#if defined(DEFAULT_FLOAT_KIND_FOR_FLOAT80)
+  define_string_valued_macro(DEFAULT_FLOAT_KIND_FOR_FLOAT80);
+#else /* !defined(DEFAULT_FLOAT_KIND_FOR_FLOAT80) */
+  comment_undefined_macro_name(DEFAULT_FLOAT_KIND_FOR_FLOAT80);
+#endif /* defined(DEFAULT_FLOAT_KIND_FOR_FLOAT80) */
 #if defined(DEFAULT_FRIEND_INJECTION)
   define_numeric_valued_macro(DEFAULT_FRIEND_INJECTION);
 #else /* !defined(DEFAULT_FRIEND_INJECTION) */
@@ -6986,6 +6986,11 @@ file.
 #else /* !defined(DEFAULT_INCLUDE_FILE_SUFFIX_LIST) */
   comment_undefined_macro_name(DEFAULT_INCLUDE_FILE_SUFFIX_LIST);
 #endif /* defined(DEFAULT_INCLUDE_FILE_SUFFIX_LIST) */
+#if defined(DEFAULT_INCOGNITO)
+  define_numeric_valued_macro(DEFAULT_INCOGNITO);
+#else /* !defined(DEFAULT_INCOGNITO) */
+  comment_undefined_macro_name(DEFAULT_INCOGNITO);
+#endif /* defined(DEFAULT_INCOGNITO) */
 #if defined(DEFAULT_INLINE_STATEMENT_LIMIT)
   define_numeric_valued_macro(DEFAULT_INLINE_STATEMENT_LIMIT);
 #else /* !defined(DEFAULT_INLINE_STATEMENT_LIMIT) */
@@ -7085,16 +7090,16 @@ file.
 #else /* !defined(DEFAULT_MODULE_IMPORT_DIAG_ENABLED) */
   comment_undefined_macro_name(DEFAULT_MODULE_IMPORT_DIAG_ENABLED);
 #endif /* defined(DEFAULT_MODULE_IMPORT_DIAG_ENABLED) */
-#if defined(DEFAULT_MS_PERMISSIVE)
-  define_numeric_valued_macro(DEFAULT_MS_PERMISSIVE);
-#else /* !defined(DEFAULT_MS_PERMISSIVE) */
-  comment_undefined_macro_name(DEFAULT_MS_PERMISSIVE);
-#endif /* defined(DEFAULT_MS_PERMISSIVE) */
 #if defined(DEFAULT_MSVC_EXECUTION_CHARACTER_SET)
   define_string_valued_macro(DEFAULT_MSVC_EXECUTION_CHARACTER_SET);
 #else /* !defined(DEFAULT_MSVC_EXECUTION_CHARACTER_SET) */
   comment_undefined_macro_name(DEFAULT_MSVC_EXECUTION_CHARACTER_SET);
 #endif /* defined(DEFAULT_MSVC_EXECUTION_CHARACTER_SET) */
+#if defined(DEFAULT_MS_PERMISSIVE)
+  define_numeric_valued_macro(DEFAULT_MS_PERMISSIVE);
+#else /* !defined(DEFAULT_MS_PERMISSIVE) */
+  comment_undefined_macro_name(DEFAULT_MS_PERMISSIVE);
+#endif /* defined(DEFAULT_MS_PERMISSIVE) */
 #if defined(DEFAULT_MULTIBYTE_CHARS_IN_SOURCE_ENABLED)
   define_numeric_valued_macro(DEFAULT_MULTIBYTE_CHARS_IN_SOURCE_ENABLED);
 #else /* !defined(DEFAULT_MULTIBYTE_CHARS_IN_SOURCE_ENABLED) */
@@ -7179,11 +7184,6 @@ file.
 #else /* !defined(DEFAULT_OUTPUT_MODE) */
   comment_undefined_macro_name(DEFAULT_OUTPUT_MODE);
 #endif /* defined(DEFAULT_OUTPUT_MODE) */
-#if defined(DEFAULT_INCOGNITO)
-  define_numeric_valued_macro(DEFAULT_INCOGNITO);
-#else /* !defined(DEFAULT_INCOGNITO) */
-  comment_undefined_macro_name(DEFAULT_INCOGNITO);
-#endif /* defined(DEFAULT_INCOGNITO) */
 #if defined(DEFAULT_PASS_STDARG_REFERENCES_TO_GENERATED_CODE)
   define_numeric_valued_macro(
                              DEFAULT_PASS_STDARG_REFERENCES_TO_GENERATED_CODE);
@@ -7395,11 +7395,6 @@ file.
 #else /* !defined(DEFAULT_WCHAR_T_IS_KEYWORD) */
   comment_undefined_macro_name(DEFAULT_WCHAR_T_IS_KEYWORD);
 #endif /* defined(DEFAULT_WCHAR_T_IS_KEYWORD) */
-#if defined(DEFINE_MACRO_WHEN_ARRAY_NEW_AND_DELETE_ENABLED)
-  define_numeric_valued_macro(DEFINE_MACRO_WHEN_ARRAY_NEW_AND_DELETE_ENABLED);
-#else /* !defined(DEFINE_MACRO_WHEN_ARRAY_NEW_AND_DELETE_ENABLED) */
-  comment_undefined_macro_name(DEFINE_MACRO_WHEN_ARRAY_NEW_AND_DELETE_ENABLED);
-#endif /* defined(DEFINE_MACRO_WHEN_ARRAY_NEW_AND_DELETE_ENABLED) */
 #if defined(DEFINE_FEATURE_TEST_MACRO_OPERATORS_IN_ALL_MODES)
   define_numeric_valued_macro(
                              DEFINE_FEATURE_TEST_MACRO_OPERATORS_IN_ALL_MODES);
@@ -7407,6 +7402,11 @@ file.
   comment_undefined_macro_name(
                              DEFINE_FEATURE_TEST_MACRO_OPERATORS_IN_ALL_MODES);
 #endif /* defined(DEFINE_FEATURE_TEST_MACRO_OPERATORS_IN_ALL_MODES) */
+#if defined(DEFINE_MACRO_WHEN_ARRAY_NEW_AND_DELETE_ENABLED)
+  define_numeric_valued_macro(DEFINE_MACRO_WHEN_ARRAY_NEW_AND_DELETE_ENABLED);
+#else /* !defined(DEFINE_MACRO_WHEN_ARRAY_NEW_AND_DELETE_ENABLED) */
+  comment_undefined_macro_name(DEFINE_MACRO_WHEN_ARRAY_NEW_AND_DELETE_ENABLED);
+#endif /* defined(DEFINE_MACRO_WHEN_ARRAY_NEW_AND_DELETE_ENABLED) */
 #if defined(DEFINE_MACRO_WHEN_BOOL_IS_KEYWORD)
   define_numeric_valued_macro(DEFINE_MACRO_WHEN_BOOL_IS_KEYWORD);
 #else /* !defined(DEFINE_MACRO_WHEN_BOOL_IS_KEYWORD) */
@@ -7454,16 +7454,16 @@ file.
 #else /* !defined(DEFINE_STDC_IN_MICROSOFT_MODE) */
   comment_undefined_macro_name(DEFINE_STDC_IN_MICROSOFT_MODE);
 #endif /* defined(DEFINE_STDC_IN_MICROSOFT_MODE) */
-#if defined(DELETE_CAN_BE_FOLDED_INTO_DTOR)
-  define_numeric_valued_macro(DELETE_CAN_BE_FOLDED_INTO_DTOR);
-#else /* !defined(DELETE_CAN_BE_FOLDED_INTO_DTOR) */
-  comment_undefined_macro_name(DELETE_CAN_BE_FOLDED_INTO_DTOR);
-#endif /* defined(DELETE_CAN_BE_FOLDED_INTO_DTOR) */
 #if defined(DELETED_COPY_FUNCTION_CLEARS_BITWISE_COPY_FLAG)
   define_numeric_valued_macro(DELETED_COPY_FUNCTION_CLEARS_BITWISE_COPY_FLAG);
 #else /* !defined(DELETED_COPY_FUNCTION_CLEARS_BITWISE_COPY_FLAG) */
   comment_undefined_macro_name(DELETED_COPY_FUNCTION_CLEARS_BITWISE_COPY_FLAG);
 #endif /* defined(DELETED_COPY_FUNCTION_CLEARS_BITWISE_COPY_FLAG) */
+#if defined(DELETE_CAN_BE_FOLDED_INTO_DTOR)
+  define_numeric_valued_macro(DELETE_CAN_BE_FOLDED_INTO_DTOR);
+#else /* !defined(DELETE_CAN_BE_FOLDED_INTO_DTOR) */
+  comment_undefined_macro_name(DELETE_CAN_BE_FOLDED_INTO_DTOR);
+#endif /* defined(DELETE_CAN_BE_FOLDED_INTO_DTOR) */
 #if defined(DEMO_VERSION_ID)
   define_string_valued_macro(DEMO_VERSION_ID);
 #else /* !defined(DEMO_VERSION_ID) */
@@ -7673,11 +7673,6 @@ file.
 #else /* !defined(FORCE_VARIABLE_DEFINITION_VIA_ZEROING) */
   comment_undefined_macro_name(FORCE_VARIABLE_DEFINITION_VIA_ZEROING);
 #endif /* defined(FORCE_VARIABLE_DEFINITION_VIA_ZEROING) */
-#if defined(FREE_MEMORY_REGIONS_EARLY)
-  define_numeric_valued_macro(FREE_MEMORY_REGIONS_EARLY);
-#else /* !defined(FREE_MEMORY_REGIONS_EARLY) */
-  comment_undefined_macro_name(FREE_MEMORY_REGIONS_EARLY);
-#endif /* defined(FREE_MEMORY_REGIONS_EARLY) */
 #if defined(FP_HAS_LONG_DOUBLE)
   define_numeric_valued_macro(FP_HAS_LONG_DOUBLE);
 #else /* !defined(FP_HAS_LONG_DOUBLE) */
@@ -7703,6 +7698,11 @@ file.
 #else /* !defined(FP_USE_EMULATION) */
   comment_undefined_macro_name(FP_USE_EMULATION);
 #endif /* defined(FP_USE_EMULATION) */
+#if defined(FREE_MEMORY_REGIONS_EARLY)
+  define_numeric_valued_macro(FREE_MEMORY_REGIONS_EARLY);
+#else /* !defined(FREE_MEMORY_REGIONS_EARLY) */
+  comment_undefined_macro_name(FREE_MEMORY_REGIONS_EARLY);
+#endif /* defined(FREE_MEMORY_REGIONS_EARLY) */
 #if defined(FRIEND_AND_MEMBER_DEFINITIONS_MAY_BE_MOVED_OUT_OF_CLASS)
   define_numeric_valued_macro(
                       FRIEND_AND_MEMBER_DEFINITIONS_MAY_BE_MOVED_OUT_OF_CLASS);
@@ -7715,11 +7715,6 @@ file.
 #else /* !defined(FULLY_RESOLVED_MACRO_POSITIONS) */
   comment_undefined_macro_name(FULLY_RESOLVED_MACRO_POSITIONS);
 #endif /* defined(FULLY_RESOLVED_MACRO_POSITIONS) */
-#if defined(FUNC_AVAILABLE)
-  define_numeric_valued_macro(FUNC_AVAILABLE);
-#else /* !defined(FUNC_AVAILABLE) */
-  comment_undefined_macro_name(FUNC_AVAILABLE);
-#endif /* defined(FUNC_AVAILABLE) */
 #if defined(FUNCTION_PROTOTYPE_INSTANTIATION_DEFERRAL_ALLOWED)
   define_numeric_valued_macro(
                             FUNCTION_PROTOTYPE_INSTANTIATION_DEFERRAL_ALLOWED);
@@ -7727,6 +7722,11 @@ file.
   comment_undefined_macro_name(
                             FUNCTION_PROTOTYPE_INSTANTIATION_DEFERRAL_ALLOWED);
 #endif /* defined(FUNCTION_PROTOTYPE_INSTANTIATION_DEFERRAL_ALLOWED) */
+#if defined(FUNC_AVAILABLE)
+  define_numeric_valued_macro(FUNC_AVAILABLE);
+#else /* !defined(FUNC_AVAILABLE) */
+  comment_undefined_macro_name(FUNC_AVAILABLE);
+#endif /* defined(FUNC_AVAILABLE) */
 #if defined(GCC_BUILTIN_VARARGS)
   define_numeric_valued_macro(GCC_BUILTIN_VARARGS);
 #else /* !defined(GCC_BUILTIN_VARARGS) */
@@ -7772,16 +7772,16 @@ file.
 #else /* !defined(GENERATE_SOURCE_SEQUENCE_LISTS) */
   comment_undefined_macro_name(GENERATE_SOURCE_SEQUENCE_LISTS);
 #endif /* defined(GENERATE_SOURCE_SEQUENCE_LISTS) */
-#if defined(GEN_C_FILE_SUFFIX)
-  define_string_valued_macro(GEN_C_FILE_SUFFIX);
-#else /* !defined(GEN_C_FILE_SUFFIX) */
-  comment_undefined_macro_name(GEN_C_FILE_SUFFIX);
-#endif /* defined(GEN_C_FILE_SUFFIX) */
 #if defined(GEN_CPP_FILE_SUFFIX)
   define_string_valued_macro(GEN_CPP_FILE_SUFFIX);
 #else /* !defined(GEN_CPP_FILE_SUFFIX) */
   comment_undefined_macro_name(GEN_CPP_FILE_SUFFIX);
 #endif /* defined(GEN_CPP_FILE_SUFFIX) */
+#if defined(GEN_C_FILE_SUFFIX)
+  define_string_valued_macro(GEN_C_FILE_SUFFIX);
+#else /* !defined(GEN_C_FILE_SUFFIX) */
+  comment_undefined_macro_name(GEN_C_FILE_SUFFIX);
+#endif /* defined(GEN_C_FILE_SUFFIX) */
 #if defined(GEN_EXTRA_LINE_ID_INFO)
   define_numeric_valued_macro(GEN_EXTRA_LINE_ID_INFO);
 #else /* !defined(GEN_EXTRA_LINE_ID_INFO) */
@@ -7877,11 +7877,6 @@ file.
 #else /* !defined(HOST_ALLOCATION_INCREMENT) */
   comment_undefined_macro_name(HOST_ALLOCATION_INCREMENT);
 #endif /* defined(HOST_ALLOCATION_INCREMENT) */
-#if defined(HOST_IL_ENTRY_PREFIX_ALIGNMENT)
-  define_numeric_valued_macro(HOST_IL_ENTRY_PREFIX_ALIGNMENT);
-#else /* !defined(HOST_IL_ENTRY_PREFIX_ALIGNMENT) */
-  comment_undefined_macro_name(HOST_IL_ENTRY_PREFIX_ALIGNMENT);
-#endif /* defined(HOST_IL_ENTRY_PREFIX_ALIGNMENT) */
 #if defined(HOST_FP_VALUE_IS_128BIT)
   define_numeric_valued_macro(HOST_FP_VALUE_IS_128BIT);
 #else /* !defined(HOST_FP_VALUE_IS_128BIT) */
@@ -7897,16 +7892,21 @@ file.
 #else /* !defined(HOST_HAS_INT128_EXTENSIONS) */
   comment_undefined_macro_name(HOST_HAS_INT128_EXTENSIONS);
 #endif /* defined(HOST_HAS_INT128_EXTENSIONS) */
-#if defined(HOST_TARGET_ENDIAN_MISMATCH_OKAY)
-  define_numeric_valued_macro(HOST_TARGET_ENDIAN_MISMATCH_OKAY);
-#else /* !defined(HOST_TARGET_ENDIAN_MISMATCH_OKAY) */
-  comment_undefined_macro_name(HOST_TARGET_ENDIAN_MISMATCH_OKAY);
-#endif /* defined(HOST_TARGET_ENDIAN_MISMATCH_OKAY) */
+#if defined(HOST_IL_ENTRY_PREFIX_ALIGNMENT)
+  define_numeric_valued_macro(HOST_IL_ENTRY_PREFIX_ALIGNMENT);
+#else /* !defined(HOST_IL_ENTRY_PREFIX_ALIGNMENT) */
+  comment_undefined_macro_name(HOST_IL_ENTRY_PREFIX_ALIGNMENT);
+#endif /* defined(HOST_IL_ENTRY_PREFIX_ALIGNMENT) */
 #if defined(HOST_POINTER_ALIGNMENT)
   define_numeric_valued_macro(HOST_POINTER_ALIGNMENT);
 #else /* !defined(HOST_POINTER_ALIGNMENT) */
   comment_undefined_macro_name(HOST_POINTER_ALIGNMENT);
 #endif /* defined(HOST_POINTER_ALIGNMENT) */
+#if defined(HOST_TARGET_ENDIAN_MISMATCH_OKAY)
+  define_numeric_valued_macro(HOST_TARGET_ENDIAN_MISMATCH_OKAY);
+#else /* !defined(HOST_TARGET_ENDIAN_MISMATCH_OKAY) */
+  comment_undefined_macro_name(HOST_TARGET_ENDIAN_MISMATCH_OKAY);
+#endif /* defined(HOST_TARGET_ENDIAN_MISMATCH_OKAY) */
 #if defined(IA64_ABI)
   define_numeric_valued_macro(IA64_ABI);
 #else /* !defined(IA64_ABI) */
@@ -7959,6 +7959,11 @@ file.
 #else /* !defined(IL_WALK_NEEDED) */
   comment_undefined_macro_name(IL_WALK_NEEDED);
 #endif /* defined(IL_WALK_NEEDED) */
+#if defined(IMPLEMENTATION_SUPPORTS_MULTIPLE_THREADS)
+  define_numeric_valued_macro(IMPLEMENTATION_SUPPORTS_MULTIPLE_THREADS);
+#else /* !defined(IMPLEMENTATION_SUPPORTS_MULTIPLE_THREADS) */
+  comment_undefined_macro_name(IMPLEMENTATION_SUPPORTS_MULTIPLE_THREADS);
+#endif /* defined(IMPLEMENTATION_SUPPORTS_MULTIPLE_THREADS) */
 #if defined(IMPL_CONV_BETWEEN_C_AND_CPP_FUNCTION_PTRS_POSSIBLE)
   define_numeric_valued_macro(
                            IMPL_CONV_BETWEEN_C_AND_CPP_FUNCTION_PTRS_POSSIBLE);
@@ -7966,11 +7971,6 @@ file.
   comment_undefined_macro_name(
                            IMPL_CONV_BETWEEN_C_AND_CPP_FUNCTION_PTRS_POSSIBLE);
 #endif /* defined(IMPL_CONV_BETWEEN_C_AND_CPP_FUNCTION_PTRS_POSSIBLE) */
-#if defined(IMPLEMENTATION_SUPPORTS_MULTIPLE_THREADS)
-  define_numeric_valued_macro(IMPLEMENTATION_SUPPORTS_MULTIPLE_THREADS);
-#else /* !defined(IMPLEMENTATION_SUPPORTS_MULTIPLE_THREADS) */
-  comment_undefined_macro_name(IMPLEMENTATION_SUPPORTS_MULTIPLE_THREADS);
-#endif /* defined(IMPLEMENTATION_SUPPORTS_MULTIPLE_THREADS) */
 #if defined(INCLUDE_COMMENTS_IN_ASM_FUNC_BODY)
   define_numeric_valued_macro(INCLUDE_COMMENTS_IN_ASM_FUNC_BODY);
 #else /* !defined(INCLUDE_COMMENTS_IN_ASM_FUNC_BODY) */
@@ -8105,6 +8105,20 @@ file.
 #else /* !defined(LONG_LONG_ALLOWED) */
   comment_undefined_macro_name(LONG_LONG_ALLOWED);
 #endif /* defined(LONG_LONG_ALLOWED) */
+#if defined(LOWERING_NORMALIZES_BOOLEAN_CONTROLLING_EXPRESSIONS)
+  define_numeric_valued_macro(
+                         LOWERING_NORMALIZES_BOOLEAN_CONTROLLING_EXPRESSIONS);
+#else /* !defined(LOWERING_NORMALIZES_BOOLEAN_CONTROLLING_EXPRESSIONS) */
+  comment_undefined_macro_name(
+                         LOWERING_NORMALIZES_BOOLEAN_CONTROLLING_EXPRESSIONS);
+#endif /* defined(LOWERING_NORMALIZES_BOOLEAN_CONTROLLING_EXPRESSIONS) */
+#if defined(LOWERING_REMOVES_UNNEEDED_CONSTRUCTIONS_AND_DESTRUCTIONS)
+  define_numeric_valued_macro(
+                    LOWERING_REMOVES_UNNEEDED_CONSTRUCTIONS_AND_DESTRUCTIONS);
+#else /* !defined(LOWERING_REMOVES_UNNEEDED_CONSTRUCTIONS_AND_DESTRUCTIONS) */
+  comment_undefined_macro_name(
+                    LOWERING_REMOVES_UNNEEDED_CONSTRUCTIONS_AND_DESTRUCTIONS);
+#endif /* defined(LOWERING_REMOVES_UNNEEDED_CONSTRUCTIONS_AND_DESTRUCTIONS) */
 #if defined(LOWER_CLASS_RVALUE_ADJUST)
   define_numeric_valued_macro(LOWER_CLASS_RVALUE_ADJUST);
 #else /* !defined(LOWER_CLASS_RVALUE_ADJUST) */
@@ -8155,20 +8169,6 @@ file.
 #else /* !defined(LOWER_VARIABLE_LENGTH_ARRAYS) */
   comment_undefined_macro_name(LOWER_VARIABLE_LENGTH_ARRAYS);
 #endif /* defined(LOWER_VARIABLE_LENGTH_ARRAYS) */
-#if defined(LOWERING_NORMALIZES_BOOLEAN_CONTROLLING_EXPRESSIONS)
-  define_numeric_valued_macro(
-                         LOWERING_NORMALIZES_BOOLEAN_CONTROLLING_EXPRESSIONS);
-#else /* !defined(LOWERING_NORMALIZES_BOOLEAN_CONTROLLING_EXPRESSIONS) */
-  comment_undefined_macro_name(
-                         LOWERING_NORMALIZES_BOOLEAN_CONTROLLING_EXPRESSIONS);
-#endif /* defined(LOWERING_NORMALIZES_BOOLEAN_CONTROLLING_EXPRESSIONS) */
-#if defined(LOWERING_REMOVES_UNNEEDED_CONSTRUCTIONS_AND_DESTRUCTIONS)
-  define_numeric_valued_macro(
-                    LOWERING_REMOVES_UNNEEDED_CONSTRUCTIONS_AND_DESTRUCTIONS);
-#else /* !defined(LOWERING_REMOVES_UNNEEDED_CONSTRUCTIONS_AND_DESTRUCTIONS) */
-  comment_undefined_macro_name(
-                    LOWERING_REMOVES_UNNEEDED_CONSTRUCTIONS_AND_DESTRUCTIONS);
-#endif /* defined(LOWERING_REMOVES_UNNEEDED_CONSTRUCTIONS_AND_DESTRUCTIONS) */
 #if defined(MACRO_DEFINED_WHEN_ARRAY_NEW_AND_DELETE_ENABLED)
   define_string_valued_macro(MACRO_DEFINED_WHEN_ARRAY_NEW_AND_DELETE_ENABLED);
 #else /* !defined(MACRO_DEFINED_WHEN_ARRAY_NEW_AND_DELETE_ENABLED) */
@@ -8275,11 +8275,6 @@ file.
 #else /* !defined(MAKE_FRONT_END_CALLABLE) */
   comment_undefined_macro_name(MAKE_FRONT_END_CALLABLE);
 #endif /* defined(MAKE_FRONT_END_CALLABLE) */
-#if defined(CUSTOM_DEFAULT_OUTPUT_FILES)
-  define_numeric_valued_macro(CUSTOM_DEFAULT_OUTPUT_FILES);
-#else /* !defined(CUSTOM_DEFAULT_OUTPUT_FILES) */
-  comment_undefined_macro_name(CUSTOM_DEFAULT_OUTPUT_FILES);
-#endif /* defined(CUSTOM_DEFAULT_OUTPUT_FILES) */
 #if defined(MANGLE_ALL_NAMES)
   define_numeric_valued_macro(MANGLE_ALL_NAMES);
 #else /* !defined(MANGLE_ALL_NAMES) */
@@ -8365,6 +8360,11 @@ file.
 #else /* !defined(MIN_GNU_VERSION) */
   comment_undefined_macro_name(MIN_GNU_VERSION);
 #endif /* defined(MIN_GNU_VERSION) */
+#if defined(MODULE_MAX_LINE_NUMBER)
+  define_numeric_valued_macro(MODULE_MAX_LINE_NUMBER);
+#else /* !defined(MODULE_MAX_LINE_NUMBER) */
+  comment_undefined_macro_name(MODULE_MAX_LINE_NUMBER);
+#endif /* defined(MODULE_MAX_LINE_NUMBER) */
 #if defined(MSVC_IS_GENERATED_CODE_TARGET)
   define_numeric_valued_macro(MSVC_IS_GENERATED_CODE_TARGET);
 #else /* !defined(MSVC_IS_GENERATED_CODE_TARGET) */
@@ -8663,16 +8663,16 @@ file.
 #else /* !defined(REDUCE_BACKING_EXPRESSION_USE) */
   comment_undefined_macro_name(REDUCE_BACKING_EXPRESSION_USE);
 #endif /* defined(REDUCE_BACKING_EXPRESSION_USE) */
-#if defined(REF_DESTRUCTORS_FOR_PARAMETER_VARIABLES)
-  define_numeric_valued_macro(REF_DESTRUCTORS_FOR_PARAMETER_VARIABLES);
-#else /* !defined(REF_DESTRUCTORS_FOR_PARAMETER_VARIABLES) */
-  comment_undefined_macro_name(REF_DESTRUCTORS_FOR_PARAMETER_VARIABLES);
-#endif /* defined(REF_DESTRUCTORS_FOR_PARAMETER_VARIABLES) */
 #if defined(REFLECTION_ENABLING_POSSIBLE)
   define_numeric_valued_macro(REFLECTION_ENABLING_POSSIBLE);
 #else /* !defined(REFLECTION_ENABLING_POSSIBLE) */
   comment_undefined_macro_name(REFLECTION_ENABLING_POSSIBLE);
 #endif /* defined(REFLECTION_ENABLING_POSSIBLE) */
+#if defined(REF_DESTRUCTORS_FOR_PARAMETER_VARIABLES)
+  define_numeric_valued_macro(REF_DESTRUCTORS_FOR_PARAMETER_VARIABLES);
+#else /* !defined(REF_DESTRUCTORS_FOR_PARAMETER_VARIABLES) */
+  comment_undefined_macro_name(REF_DESTRUCTORS_FOR_PARAMETER_VARIABLES);
+#endif /* defined(REF_DESTRUCTORS_FOR_PARAMETER_VARIABLES) */
 #if defined(REMOVE_INLINE_BODIES_FROM_CLASS_TEMPLATE_DEFINITIONS)
   define_numeric_valued_macro(
                          REMOVE_INLINE_BODIES_FROM_CLASS_TEMPLATE_DEFINITIONS);
@@ -9017,11 +9017,6 @@ file.
 #else /* !defined(TARG_BOOL_INT_KIND) */
   comment_undefined_macro_name(TARG_BOOL_INT_KIND);
 #endif /* defined(TARG_BOOL_INT_KIND) */
-#if defined(TARG_C_BOOL_INT_KIND)
-  define_string_valued_macro(TARG_C_BOOL_INT_KIND);
-#else /* !defined(TARG_C_BOOL_INT_KIND) */
-  comment_undefined_macro_name(TARG_C_BOOL_INT_KIND);
-#endif /* defined(TARG_C_BOOL_INT_KIND) */
 #if defined(TARG_CARR_RETURN_CHAR)
   define_string_valued_macro(TARG_CARR_RETURN_CHAR);
 #else /* !defined(TARG_CARR_RETURN_CHAR) */
@@ -9059,6 +9054,11 @@ file.
   comment_undefined_macro_name(
                        TARG_CPP_COMPILER_DOES_NOT_VISIBLY_INJECT_FRIEND_NAMES);
 #endif /* defined(TARG_CPP_COMPILER_DOES_NOT_VISIBLY_INJECT_FRIEND_NAMES) */
+#if defined(TARG_C_BOOL_INT_KIND)
+  define_string_valued_macro(TARG_C_BOOL_INT_KIND);
+#else /* !defined(TARG_C_BOOL_INT_KIND) */
+  comment_undefined_macro_name(TARG_C_BOOL_INT_KIND);
+#endif /* defined(TARG_C_BOOL_INT_KIND) */
 #if defined(TARG_DBL_MANT_DIG)
   define_numeric_valued_macro(TARG_DBL_MANT_DIG);
 #else /* !defined(TARG_DBL_MANT_DIG) */
@@ -9124,11 +9124,6 @@ file.
 #else /* !defined(TARG_FIELD_ALLOC_SEQUENCE_EQUALS_DECL_SEQUENCE) */
   comment_undefined_macro_name(TARG_FIELD_ALLOC_SEQUENCE_EQUALS_DECL_SEQUENCE);
 #endif /* defined(TARG_FIELD_ALLOC_SEQUENCE_EQUALS_DECL_SEQUENCE) */
-#if defined(TARG_FLOAT_FIELD_ALIGNMENT)
-  define_numeric_valued_macro(TARG_FLOAT_FIELD_ALIGNMENT);
-#else /* !defined(TARG_FLOAT_FIELD_ALIGNMENT) */
-  comment_undefined_macro_name(TARG_FLOAT_FIELD_ALIGNMENT);
-#endif /* defined(TARG_FLOAT_FIELD_ALIGNMENT) */
 #if defined(TARG_FLOAT128_FIELD_ALIGNMENT)
   define_numeric_valued_macro(TARG_FLOAT128_FIELD_ALIGNMENT);
 #else /* !defined(TARG_FLOAT128_FIELD_ALIGNMENT) */
@@ -9139,21 +9134,11 @@ file.
 #else /* !defined(TARG_FLOAT80_FIELD_ALIGNMENT) */
   comment_undefined_macro_name(TARG_FLOAT80_FIELD_ALIGNMENT);
 #endif /* defined(TARG_FLOAT80_FIELD_ALIGNMENT) */
-#if defined(TARG_FLT_MANT_DIG)
-  define_numeric_valued_macro(TARG_FLT_MANT_DIG);
-#else /* !defined(TARG_FLT_MANT_DIG) */
-  comment_undefined_macro_name(TARG_FLT_MANT_DIG);
-#endif /* defined(TARG_FLT_MANT_DIG) */
-#if defined(TARG_FLT_MAX_EXP)
-  define_numeric_valued_macro(TARG_FLT_MAX_EXP);
-#else /* !defined(TARG_FLT_MAX_EXP) */
-  comment_undefined_macro_name(TARG_FLT_MAX_EXP);
-#endif /* defined(TARG_FLT_MAX_EXP) */
-#if defined(TARG_FLT_MIN_EXP)
-  define_numeric_valued_macro(TARG_FLT_MIN_EXP);
-#else /* !defined(TARG_FLT_MIN_EXP) */
-  comment_undefined_macro_name(TARG_FLT_MIN_EXP);
-#endif /* defined(TARG_FLT_MIN_EXP) */
+#if defined(TARG_FLOAT_FIELD_ALIGNMENT)
+  define_numeric_valued_macro(TARG_FLOAT_FIELD_ALIGNMENT);
+#else /* !defined(TARG_FLOAT_FIELD_ALIGNMENT) */
+  comment_undefined_macro_name(TARG_FLOAT_FIELD_ALIGNMENT);
+#endif /* defined(TARG_FLOAT_FIELD_ALIGNMENT) */
 #if defined(TARG_FLT128_MANT_DIG)
   define_numeric_valued_macro(TARG_FLT128_MANT_DIG);
 #else /* !defined(TARG_FLT128_MANT_DIG) */
@@ -9184,6 +9169,21 @@ file.
 #else /* !defined(TARG_FLT80_MIN_EXP) */
   comment_undefined_macro_name(TARG_FLT80_MIN_EXP);
 #endif /* defined(TARG_FLT80_MIN_EXP) */
+#if defined(TARG_FLT_MANT_DIG)
+  define_numeric_valued_macro(TARG_FLT_MANT_DIG);
+#else /* !defined(TARG_FLT_MANT_DIG) */
+  comment_undefined_macro_name(TARG_FLT_MANT_DIG);
+#endif /* defined(TARG_FLT_MANT_DIG) */
+#if defined(TARG_FLT_MAX_EXP)
+  define_numeric_valued_macro(TARG_FLT_MAX_EXP);
+#else /* !defined(TARG_FLT_MAX_EXP) */
+  comment_undefined_macro_name(TARG_FLT_MAX_EXP);
+#endif /* defined(TARG_FLT_MAX_EXP) */
+#if defined(TARG_FLT_MIN_EXP)
+  define_numeric_valued_macro(TARG_FLT_MIN_EXP);
+#else /* !defined(TARG_FLT_MIN_EXP) */
+  comment_undefined_macro_name(TARG_FLT_MIN_EXP);
+#endif /* defined(TARG_FLT_MIN_EXP) */
 #if defined(TARG_FORCE_ONE_BIT_BIT_FIELD_TO_BE_UNSIGNED)
   define_numeric_valued_macro(TARG_FORCE_ONE_BIT_BIT_FIELD_TO_BE_UNSIGNED);
 #else /* !defined(TARG_FORCE_ONE_BIT_BIT_FIELD_TO_BE_UNSIGNED) */
@@ -9313,16 +9313,16 @@ file.
 #else /* !defined(TARG_IA64_VTABLE_ENTRY_INT_KIND) */
   comment_undefined_macro_name(TARG_IA64_VTABLE_ENTRY_INT_KIND);
 #endif /* defined(TARG_IA64_VTABLE_ENTRY_INT_KIND) */
-#if defined(TARG_INT_FIELD_ALIGNMENT)
-  define_numeric_valued_macro(TARG_INT_FIELD_ALIGNMENT);
-#else /* !defined(TARG_INT_FIELD_ALIGNMENT) */
-  comment_undefined_macro_name(TARG_INT_FIELD_ALIGNMENT);
-#endif /* defined(TARG_INT_FIELD_ALIGNMENT) */
 #if defined(TARG_INT128_FIELD_ALIGNMENT)
   define_numeric_valued_macro(TARG_INT128_FIELD_ALIGNMENT);
 #else /* !defined(TARG_INT128_FIELD_ALIGNMENT) */
   comment_undefined_macro_name(TARG_INT128_FIELD_ALIGNMENT);
 #endif /* defined(TARG_INT128_FIELD_ALIGNMENT) */
+#if defined(TARG_INT_FIELD_ALIGNMENT)
+  define_numeric_valued_macro(TARG_INT_FIELD_ALIGNMENT);
+#else /* !defined(TARG_INT_FIELD_ALIGNMENT) */
+  comment_undefined_macro_name(TARG_INT_FIELD_ALIGNMENT);
+#endif /* defined(TARG_INT_FIELD_ALIGNMENT) */
 #if defined(TARG_JMP_BUF_ELEMENTS_ARE_FLOAT)
   define_numeric_valued_macro(TARG_JMP_BUF_ELEMENTS_ARE_FLOAT);
 #else /* !defined(TARG_JMP_BUF_ELEMENTS_ARE_FLOAT) */
@@ -9343,11 +9343,6 @@ file.
 #else /* !defined(TARG_JMP_BUF_NUM_ELEMENTS) */
   comment_undefined_macro_name(TARG_JMP_BUF_NUM_ELEMENTS);
 #endif /* defined(TARG_JMP_BUF_NUM_ELEMENTS) */
-#if defined(TARG_SETJMP_FUNC)
-  define_string_valued_macro(TARG_SETJMP_FUNC);
-#else /* !defined(TARG_SETJMP_FUNC) */
-  comment_undefined_macro_name(TARG_SETJMP_FUNC);
-#endif /* defined(TARG_SETJMP_FUNC) */
 #if defined(TARG_LDBL_MANT_DIG)
   define_numeric_valued_macro(TARG_LDBL_MANT_DIG);
 #else /* !defined(TARG_LDBL_MANT_DIG) */
@@ -9503,6 +9498,11 @@ file.
 #else /* !defined(TARG_RUNTIME_ELEM_COUNT_INT_KIND) */
   comment_undefined_macro_name(TARG_RUNTIME_ELEM_COUNT_INT_KIND);
 #endif /* defined(TARG_RUNTIME_ELEM_COUNT_INT_KIND) */
+#if defined(TARG_SETJMP_FUNC)
+  define_string_valued_macro(TARG_SETJMP_FUNC);
+#else /* !defined(TARG_SETJMP_FUNC) */
+  comment_undefined_macro_name(TARG_SETJMP_FUNC);
+#endif /* defined(TARG_SETJMP_FUNC) */
 #if defined(TARG_SHORT_FIELD_ALIGNMENT)
   define_numeric_valued_macro(TARG_SHORT_FIELD_ALIGNMENT);
 #else /* !defined(TARG_SHORT_FIELD_ALIGNMENT) */
@@ -9528,16 +9528,16 @@ file.
 #else /* !defined(TARG_SIZEOF_FLOAT) */
   comment_undefined_macro_name(TARG_SIZEOF_FLOAT);
 #endif /* defined(TARG_SIZEOF_FLOAT) */
-#if defined(TARG_SIZEOF_FLOAT80)
-  define_numeric_valued_macro(TARG_SIZEOF_FLOAT80);
-#else /* !defined(TARG_SIZEOF_FLOAT80) */
-  comment_undefined_macro_name(TARG_SIZEOF_FLOAT80);
-#endif /* defined(TARG_SIZEOF_FLOAT80) */
 #if defined(TARG_SIZEOF_FLOAT128)
   define_numeric_valued_macro(TARG_SIZEOF_FLOAT128);
 #else /* !defined(TARG_SIZEOF_FLOAT128) */
   comment_undefined_macro_name(TARG_SIZEOF_FLOAT128);
 #endif /* defined(TARG_SIZEOF_FLOAT128) */
+#if defined(TARG_SIZEOF_FLOAT80)
+  define_numeric_valued_macro(TARG_SIZEOF_FLOAT80);
+#else /* !defined(TARG_SIZEOF_FLOAT80) */
+  comment_undefined_macro_name(TARG_SIZEOF_FLOAT80);
+#endif /* defined(TARG_SIZEOF_FLOAT80) */
 #if defined(TARG_SIZEOF_INT)
   define_numeric_valued_macro(TARG_SIZEOF_INT);
 #else /* !defined(TARG_SIZEOF_INT) */
@@ -9548,16 +9548,16 @@ file.
 #else /* !defined(TARG_SIZEOF_INT128) */
   comment_undefined_macro_name(TARG_SIZEOF_INT128);
 #endif /* defined(TARG_SIZEOF_INT128) */
-#if defined(TARG_SIZEOF_LARGEST_FIXED_POINT)
-  define_numeric_valued_macro(TARG_SIZEOF_LARGEST_FIXED_POINT);
-#else /* !defined(TARG_SIZEOF_LARGEST_FIXED_POINT) */
-  comment_undefined_macro_name(TARG_SIZEOF_LARGEST_FIXED_POINT);
-#endif /* defined(TARG_SIZEOF_LARGEST_FIXED_POINT) */
 #if defined(TARG_SIZEOF_LARGEST_ATOMIC)
   define_numeric_valued_macro(TARG_SIZEOF_LARGEST_ATOMIC);
 #else /* !defined(TARG_SIZEOF_LARGEST_ATOMIC) */
   comment_undefined_macro_name(TARG_SIZEOF_LARGEST_ATOMIC);
 #endif /* defined(TARG_SIZEOF_LARGEST_ATOMIC) */
+#if defined(TARG_SIZEOF_LARGEST_FIXED_POINT)
+  define_numeric_valued_macro(TARG_SIZEOF_LARGEST_FIXED_POINT);
+#else /* !defined(TARG_SIZEOF_LARGEST_FIXED_POINT) */
+  comment_undefined_macro_name(TARG_SIZEOF_LARGEST_FIXED_POINT);
+#endif /* defined(TARG_SIZEOF_LARGEST_FIXED_POINT) */
 #if defined(TARG_SIZEOF_LARGEST_INTEGER)
   define_numeric_valued_macro(TARG_SIZEOF_LARGEST_INTEGER);
 #else /* !defined(TARG_SIZEOF_LARGEST_INTEGER) */
@@ -9683,21 +9683,21 @@ file.
 #else /* !defined(TARG_SSIZE_T_INT_KIND) */
   comment_undefined_macro_name(TARG_SSIZE_T_INT_KIND);
 #endif /* defined(TARG_SSIZE_T_INT_KIND) */
-#if defined(TARG_SUPPORTS_X86_64)
-  define_numeric_valued_macro(TARG_SUPPORTS_X86_64);
-#else /* !defined(TARG_SUPPORTS_X86_64) */
-  comment_undefined_macro_name(TARG_SUPPORTS_X86_64);
-#endif /* defined(TARG_SUPPORTS_X86_64) */
-#if defined(TARG_SUPPORTS_ARM64)
-  define_numeric_valued_macro(TARG_SUPPORTS_ARM64);
-#else /* !defined(TARG_SUPPORTS_ARM64) */
-  comment_undefined_macro_name(TARG_SUPPORTS_ARM64);
-#endif /* defined(TARG_SUPPORTS_ARM64) */
 #if defined(TARG_SUPPORTS_ARM32)
   define_numeric_valued_macro(TARG_SUPPORTS_ARM32);
 #else /* !defined(TARG_SUPPORTS_ARM32) */
   comment_undefined_macro_name(TARG_SUPPORTS_ARM32);
 #endif /* defined(TARG_SUPPORTS_ARM32) */
+#if defined(TARG_SUPPORTS_ARM64)
+  define_numeric_valued_macro(TARG_SUPPORTS_ARM64);
+#else /* !defined(TARG_SUPPORTS_ARM64) */
+  comment_undefined_macro_name(TARG_SUPPORTS_ARM64);
+#endif /* defined(TARG_SUPPORTS_ARM64) */
+#if defined(TARG_SUPPORTS_X86_64)
+  define_numeric_valued_macro(TARG_SUPPORTS_X86_64);
+#else /* !defined(TARG_SUPPORTS_X86_64) */
+  comment_undefined_macro_name(TARG_SUPPORTS_X86_64);
+#endif /* defined(TARG_SUPPORTS_X86_64) */
 #if defined(TARG_TOO_LARGE_SHIFT_COUNT_IS_TAKEN_MODULO_SIZE)
   define_numeric_valued_macro(TARG_TOO_LARGE_SHIFT_COUNT_IS_TAKEN_MODULO_SIZE);
 #else /* !defined(TARG_TOO_LARGE_SHIFT_COUNT_IS_TAKEN_MODULO_SIZE) */
