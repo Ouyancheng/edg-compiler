@@ -8273,15 +8273,12 @@ processed.
 
 static void close_f_error_if_open()
 /*
-Close the f_error FILE it's open and possible.
+Close the error output FILE* (f_error) if it's open (and not a standard output
+stream).
 */
 {
 #if MAKE_FRONT_END_CALLABLE
-  if (f_error != stderr
-#if DIRECT_ERROR_OUTPUT_TO_STDOUT
-                        && f_error != stdout
-#endif /* DIRECT_ERROR_OUTPUT_TO_STDOUT */
-                                            ) {
+  if (f_error != stderr && f_error != stdout) {
     close_file_if_open(&f_error);
   }  /* if */
 #endif /* MAKE_FRONT_END_CALLABLE */
