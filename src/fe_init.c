@@ -2196,6 +2196,8 @@ when it is a secondary file.
   il_header.root_macro_invocation_record_block = NULL;
 #endif /* MACRO_INVOCATION_TREE_IN_IL */
 #if MULTIPLE_THREAD_COMPILATION
+  /* In multi-threaded environments consistent memory addresses cannot be
+     reliably acquired, so PCH processing is immediately abandoned. */
   abandon_pch_processing();
 #else /* !MULTIPLE_THREAD_COMPILATION */
   /* Suppress PCH processing on secondary translation units. */
