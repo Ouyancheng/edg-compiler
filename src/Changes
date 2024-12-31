@@ -6,6 +6,7 @@ Microsoft compatibility: Direct reference-binding via user-defined conversion
 Consider, in a Microsoft mode with microsoft_version >= 1900:
 
   struct S {
+    struct C {};
     operator C&();
     operator const C&() const;
     void g() {
