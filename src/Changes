@@ -1,5 +1,24 @@
 Version 6.7
 
+1/2/25  [EDGcpfe/27814]
+Handling of [[hiding]] attribute
+
+Consider:
+
+  struct B { virtual void f() const {} };
+  struct D {
+    using B::B;
+    [[hiding]] virtual void f() {}
+  };
+
+This previously aborted in find_unhiding_using_decl() (class_decl.c) due to an
+unexpected interaction between the handling of the [[hiding]] attribute and
+inheriting constructors.  That is now fixed.  Furthermore, the [[hiding]]
+attribute now also inhibits the warning about the virtual function in the
+derived class not overriding the virtual function of the same name in the base
+class.
+
+
 1/2/25  [EDGcpfe/27800]
 Multi-threaded POSIX front end daemon
 

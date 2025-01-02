@@ -6661,6 +6661,11 @@ dependent on the use of the C++11 attributes "base_check" and "hiding".)
         } else {
           a_symbol_list_entry_ptr  slep = orep->override_failures;
           for (; slep != NULL; slep = slep->next) {
+            a_routine_ptr  rp = func_sym_routine(slep->symbol);
+            if (find_attribute(ak_hiding, rp->source_corresp.attributes)
+                                                                    != NULL) {
+              continue;
+            }  /* if */
             pos_sy2_warning(ec_virtual_function_decl_hidden,
                             &slep->symbol->decl_position,
                             slep->symbol, orep->overridden_sym);
@@ -31276,9 +31281,10 @@ associated with that using declaration.  Otherwise, return NULL.
   for (; udp != NULL; udp = udp->next) {
     a_source_correspondence  *scp;
     check_assertion(udp->is_class_member);
-    scp = source_corresp_for_il_entry(udp->entity.ptr,
-                                      (an_il_entry_kind)udp->entity.kind);
-    if (((a_symbol_ptr)scp->assoc_info)->header == hdr) break;
+    scp = source_corresp_for_il_entry(udp->entity.ptr, udp->entity.kind);
+    if (scp != NULL && ((a_symbol_ptr)scp->assoc_info)->header == hdr) {
+      break;
+    }  /* if */
   }  /* for */
   return udp;
 }  /* find_unhiding_using_decl */
