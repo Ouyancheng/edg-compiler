@@ -19171,9 +19171,9 @@ can be fully determined.
         tqs &= ~TQ_CONST;
       }  /* if */
       btype = make_qualified_type(btype, tqs);
-      if ((gpp_version_is(<80000) || clang_mode || ms_version_is(<1915)) ?
-              fp->source_corresp.access != (an_access_specifier)as_public
-            : !have_access_to_symbol(symbol_for(fp))) {
+      if ((clang_version_is(<80000) || gpp_version_is(any_version) ||
+           ms_version_is(<1915)) ?  fp->source_corresp.access != as_public
+                                 : !have_access_to_symbol(symbol_for(fp))) {
         /* The original specification for structured bindings only permitted
            binding public members.  P0969R0 changed the rule to just requiring
            that the members be accessible. */
