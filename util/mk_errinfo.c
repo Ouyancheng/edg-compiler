@@ -693,6 +693,9 @@ static void me_create_doc_fillin(a_const_char **ptr_to_ptr)
       case 't':
         output_doc_string("\"type\"", 0, fk_em);
         break;
+      case 'm':
+        output_doc_string("module \"module name\"", 0, fk_em);
+        break;
       case 'T':
         output_doc_string("\"<templ-args>\"", 0, fk_em);
         break;
