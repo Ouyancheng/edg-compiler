@@ -80,7 +80,7 @@ client <-> daemon Unix socket can be found.  The caller is responsible for
 freeing the buffer.
 */
 {
-  a_const_char *tmp_dir = getenv("TMP");
+  a_const_char *tmp_dir = getenv("TMPDIR");
 
   if (tmp_dir == NULL) {
     /* Fall back to a predefined temporary directory. */
