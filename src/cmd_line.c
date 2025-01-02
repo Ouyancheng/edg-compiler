@@ -7710,6 +7710,11 @@ file.
   comment_undefined_macro_name(
                       FRIEND_AND_MEMBER_DEFINITIONS_MAY_BE_MOVED_OUT_OF_CLASS);
 #endif /* defined(FRIEND_AND_MEMBER_DEFINITIONS_MAY_BE_MOVED_OUT_OF_CLASS) */
+#if defined(FRONT_END_IS_DAEMON)
+  define_numeric_valued_macro(FRONT_END_IS_DAEMON);
+#else /* !defined(FRONT_END_IS_DAEMON) */
+  comment_undefined_macro_name(FRONT_END_IS_DAEMON);
+#endif /* defined(FRONT_END_IS_DAEMON) */
 #if defined(FULLY_RESOLVED_MACRO_POSITIONS)
   define_numeric_valued_macro(FULLY_RESOLVED_MACRO_POSITIONS);
 #else /* !defined(FULLY_RESOLVED_MACRO_POSITIONS) */

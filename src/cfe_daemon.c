@@ -22,14 +22,14 @@ and are intended for exposition only.
 /* Header files common to all files. */
 #include "fe_common.h"
 
+/* See if this code is needed at all. */
+#if FRONT_END_IS_DAEMON
+
 /* Verify the configuration is compatible with the multi-threaded driver
    code. */
 #if !MAKE_FRONT_END_CALLABLE
  #error -- The mutli-threaded C++/C-daemon requires MAKE_FRONT_END_CALLABLE
 #endif /* !MAKE_FRONT_END_CALLABLE */
-#if !MULTIPLE_THREAD_COMPILATION
- #error -- The multi-threaded C++/C-daemon requires MULTIPLE_THREAD_COMPILATION
-#endif /* !MULTIPLE_THREAD_COMPILATION */
 #if !CUSTOM_DEFAULT_OUTPUT_FILES
  #error -- The multi-threaded C++/C-daemon requires CUSTOM_DEFAULT_OUTPUT_FILES
 #endif /* !CUSTOM_DEFAULT_OUTPUT_FILES */
@@ -340,12 +340,16 @@ implementation, this is always the number of processors (i.e., threads) the
 host system has.
 */
 {
+#if MULTIPLE_THREAD_COMPILATION
   long num_processors = sysconf(_SC_NPROCESSORS_ONLN);
 
   /* Include an extra thread so that when clients assign one front end
      execution per system thread there is a thread available to answer
      pings. */
   return ((int)num_processors) + 1;
+#else /* !MULTIPLE_THREAD_COMPILATION */
+  return 1;
+#endif /* MULTIPLE_THREAD_COMPILATION */
 }  /* determine_parallelism */
 
 /* Conditionally close the "edg" namespace. */
@@ -511,6 +515,7 @@ done:
   return return_value;
 }  /* main */
 
+#endif /* FRONT_END_IS_DAEMON */
 
 /******************************************************************************
 *                                                             \  ___  /       *

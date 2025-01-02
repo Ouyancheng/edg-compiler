@@ -400,6 +400,14 @@ Microsoft compiler outputs diagnostics).
 #endif /* ifndef DIRECT_ERROR_OUTPUT_TO_STDOUT */
 
 /*
+Enable the daemon front end implementation instead of the traditional single
+process implementation.
+*/
+#ifndef FRONT_END_IS_DAEMON
+#define FRONT_END_IS_DAEMON FALSE
+#endif /* ifndef FRONT_END_IS_DAEMON */
+
+/*
 Is the C-generating back end being used as the back end?
 See also C_GEN_BE_GENERATES_ANSI_C et al. in targ_def.h.
 Note that this means we're using the C-generating back end,
