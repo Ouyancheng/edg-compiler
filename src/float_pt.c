@@ -4140,8 +4140,9 @@ result in result.  The result has kind "kind".  If there is any error, set
 *depends_on_fp_mode is returned TRUE (*result is set anyway).
 */
 {
-  a_boolean                op_err, accum_err, depends_on_mode;
-  an_internal_float_value  temp_value;
+  a_boolean                  op_err, accum_err, depends_on_mode;
+  an_internal_float_value    temp_value;
+  an_internal_complex_value  result_value;
 
 #if 0
   /* This is an oversimplified algorithm that can exhibit dynamic range
@@ -4149,7 +4150,7 @@ result in result.  The result has kind "kind".  If there is any error, set
 #endif /* 0 */
   /* (a1 + b1*i) * (a2 + b2*i) = (a1a2 - b1b2) + (b1a2 + a1b2)i */
   /* Compute the real part of the result. */
-  fp_multiply(kind, &value_1->real, &value_2->real, &result->real,
+  fp_multiply(kind, &value_1->real, &value_2->real, &result_value.real,
               &op_err, &depends_on_mode);
   accum_err = op_err;
   *depends_on_fp_mode = depends_on_mode;
@@ -4157,12 +4158,12 @@ result in result.  The result has kind "kind".  If there is any error, set
               &op_err, &depends_on_mode);
   accum_err |= op_err;
   *depends_on_fp_mode |= depends_on_mode;
-  fp_subtract(kind, &result->real, &temp_value, &result->real,
+  fp_subtract(kind, &result_value.real, &temp_value, &result_value.real,
               &op_err, &depends_on_mode);
   accum_err |= op_err;
   *depends_on_fp_mode |= depends_on_mode;
   /* Compute the imaginary part of the result. */
-  fp_multiply(kind, &value_1->real, &value_2->imag, &result->imag,
+  fp_multiply(kind, &value_1->real, &value_2->imag, &result_value.imag,
               &op_err, &depends_on_mode);
   accum_err |= op_err;
   *depends_on_fp_mode |= depends_on_mode;
@@ -4170,8 +4171,9 @@ result in result.  The result has kind "kind".  If there is any error, set
               &op_err, &depends_on_mode);
   accum_err |= op_err;
   *depends_on_fp_mode |= depends_on_mode;
-  fp_add(kind, &result->imag, &temp_value, &result->imag,
+  fp_add(kind, &result_value.imag, &temp_value, &result_value.imag,
          &op_err, &depends_on_mode);
+  *result = result_value;
   accum_err |= op_err;
   *err = accum_err;
   *depends_on_fp_mode |= depends_on_mode;
@@ -4214,38 +4216,40 @@ result in result.  The result has kind "kind".  If there is any error, set
       fp_is_zero_constant(kind, &quad_norm)) {
     *err = TRUE;
   } else {
+    an_internal_complex_value  result_value;
     /* Compute the real part of the result. */
     fp_multiply(kind, &value_1->real, &value_2->real,
-                &result->real, &op_err, &depends_on_mode);
+                &result_value.real, &op_err, &depends_on_mode);
     accum_err |= op_err;
     *depends_on_fp_mode |= depends_on_mode;
     fp_multiply(kind, &value_1->imag, &value_2->imag,
                 &temp_value, &op_err, &depends_on_mode);
     accum_err |= op_err;
     *depends_on_fp_mode |= depends_on_mode;
-    fp_add(kind, &result->real, &temp_value,
-           &result->real, &op_err, &depends_on_mode);
+    fp_add(kind, &result_value.real, &temp_value,
+           &result_value.real, &op_err, &depends_on_mode);
     accum_err |= op_err;
     *depends_on_fp_mode |= depends_on_mode;
-    fp_divide(kind, &result->real, &quad_norm,
-              &result->real, &op_err, &depends_on_mode);
+    fp_divide(kind, &result_value.real, &quad_norm,
+              &result_value.real, &op_err, &depends_on_mode);
     accum_err |= op_err;
     *depends_on_fp_mode |= depends_on_mode;
     /* Compute the imaginary part of the result. */
     fp_multiply(kind, &value_1->real, &value_2->imag,
-                &result->imag, &op_err, &depends_on_mode);
+                &result_value.imag, &op_err, &depends_on_mode);
     accum_err |= op_err;
     *depends_on_fp_mode |= depends_on_mode;
     fp_multiply(kind, &value_1->imag, &value_2->real,
                 &temp_value, &op_err, &depends_on_mode);
     accum_err |= op_err;
     *depends_on_fp_mode |= depends_on_mode;
-    fp_subtract(kind, &temp_value, &result->imag,
-                &result->imag, &op_err, &depends_on_mode);
+    fp_subtract(kind, &temp_value, &result_value.imag,
+                &result_value.imag, &op_err, &depends_on_mode);
     accum_err |= op_err;
     *depends_on_fp_mode |= depends_on_mode;
-    fp_divide(kind, &result->imag, &quad_norm,
-              &result->imag, &op_err, &depends_on_mode);
+    fp_divide(kind, &result_value.imag, &quad_norm,
+              &result_value.imag, &op_err, &depends_on_mode);
+    *result = result_value;
     accum_err |= op_err;
     *err = accum_err;
     *depends_on_fp_mode |= depends_on_mode;
