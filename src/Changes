@@ -1,6 +1,6 @@
 Version 6.7
 
-1/2/25 [EDGcpfe/27826]
+1/2/25  [EDGcpfe/27826]
 GCC/Clang compatibility: Structured bindings and member accessibility
 
 The changes for EDGcpfe/19601,EDGcpfe/20108 implemented the revised member
