@@ -24698,12 +24698,12 @@ Generate C++ or C from the intermediate language.
   close_output_file_with_error_handling(&f_C_output, ec_generated_c_plus_plus);
 }  /* cp_gen_be */
 
+#if MAKE_FRONT_END_CALLABLE
 
 STATIC_THREAD a_boolean
 		back_end_initialized;
 			/* TRUE if the back end was actually initialized. */
 
-#if MAKE_FRONT_END_CALLABLE
 
 void cp_gen_be_early_init()
 /*
