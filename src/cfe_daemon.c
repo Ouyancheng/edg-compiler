@@ -492,6 +492,7 @@ threading_set_up_error:
   goto done;
 socket_set_up_error:
   fputs("Unix socket set up failed.\n", stderr);
+  fprintf(stderr, "Attempting to use socket: %s\n", socket_address);
   return_value = 1;
   goto done;
 socket_path_too_long_error:
