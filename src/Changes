@@ -27,7 +27,7 @@ invoked).  In configurations with CHECKING set to TRUE, this results in an
 assertion failure in free_general.  This is now fixed.
 
 
-1/2/25  [EDGcpfe/27826]
+1/2/25   [EDGcpfe/27826]
 GCC/Clang compatibility: Structured bindings and member accessibility
 
 The changes for EDGcpfe/19601,EDGcpfe/20108 implemented the revised member
