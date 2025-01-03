@@ -24698,23 +24698,6 @@ Generate C++ or C from the intermediate language.
   close_output_file_with_error_handling(&f_C_output, ec_generated_c_plus_plus);
 }  /* cp_gen_be */
 
-#if MAKE_FRONT_END_CALLABLE
-
-STATIC_THREAD a_boolean
-		back_end_initialized;
-			/* TRUE if the back end was actually initialized. */
-
-
-void cp_gen_be_early_init()
-/*
-Perform early initialization for the C++/C-generating back end.  This
-initialization is performed even if the back end isn't used.
-*/
-{
-  back_end_initialized = FALSE;
-}  /* cp_gen_be_early_init */
-
-#endif /* MAKE_FRONT_END_CALLABLE */
 
 static void init_cp_gen_be(void)
 /*
@@ -24926,6 +24909,24 @@ from the primary source file name in the IL information.
 BEGIN_EDG_NAMESPACE
 
 #else /* !STANDALONE_CP_GEN_BE */
+
+#if MAKE_FRONT_END_CALLABLE
+
+STATIC_THREAD a_boolean
+		back_end_initialized;
+			/* TRUE if the back end was actually initialized. */
+
+
+void cp_gen_be_early_init()
+/*
+Perform early initialization for the C++/C-generating back end.  This
+initialization is performed even if the back end isn't used.
+*/
+{
+  back_end_initialized = FALSE;
+}  /* cp_gen_be_early_init */
+
+#endif /* MAKE_FRONT_END_CALLABLE */
 
 void back_end(void)
 /*
