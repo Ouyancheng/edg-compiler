@@ -99,7 +99,7 @@ MAKE_FRONT_END_CALLABLE is TRUE.
 #if BACK_END_SHOULD_BE_CALLED && BACK_END_IS_CP_GEN_BE && \
     MAKE_FRONT_END_CALLABLE
   /* When using the C++-generating back end with the front end as a library,
-     ensure that early initialization of the back end occurs.  The in turn
+     ensure that early initialization of the back end occurs.  This in turn
      ensures that the back end can be cleaned up properly in fe_cleanup (even
      if it wasn't invoked during this compilation). */
   cp_gen_be_early_init();
