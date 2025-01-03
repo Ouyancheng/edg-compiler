@@ -96,6 +96,14 @@ MAKE_FRONT_END_CALLABLE is TRUE.
 #endif /* DEBUG */
   /* Do early (before command-line processing) initialization. */
   fe_early_init();
+#if BACK_END_SHOULD_BE_CALLED && BACK_END_IS_CP_GEN_BE && \
+    MAKE_FRONT_END_CALLABLE
+  /* When using the C++-generating back end with the front end as a library,
+     insure that early initialization of the back end occurs.  The in turn
+     ensures that the back end can be cleaned up properly in fe_cleanup (even
+     if it wasn't invoked during this compilation). */
+  cp_gen_be_early_init();
+#endif /* BACK_END_SHOULD_BE_CALLED && BACK_END_IS_CP_GEN_BE && ... */
   /* Get the execution starting time.  Do this unconditionally because the
      timing command line option will not have been processed yet.  This must
      be done after the early initialization done above. */

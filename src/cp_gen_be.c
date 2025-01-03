@@ -24699,6 +24699,23 @@ Generate C++ or C from the intermediate language.
 }  /* cp_gen_be */
 
 
+STATIC_THREAD a_boolean
+		back_end_initialized;
+			/* TRUE if the back end was actually initialized. */
+
+#if MAKE_FRONT_END_CALLABLE
+
+void cp_gen_be_early_init()
+/*
+Perform early initialization for the C++/C-generating back end.  This
+initialization is performed even if the back end isn't used.
+*/
+{
+  back_end_initialized = FALSE;
+}  /* cp_gen_be_early_init */
+
+#endif /* MAKE_FRONT_END_CALLABLE */
+
 static void init_cp_gen_be(void)
 /*
 Initialize for the C++/C-generating back end.
@@ -24824,17 +24841,11 @@ Initialize for the C++/C-generating back end.
   available_type_scan_records = NULL;
 #endif /* TEMPLATE_INSTANTIATIONS_IN_SOURCE_SEQUENCE_LISTS */
   avail_access_cache_entries = NULL;
-  if (var_init_map != NULL) {
-    /* Free the entries from the previous translation unit. */
-    var_init_map->~a_var_initializer_map();
-  } else {
-    var_init_map = alloc_general_of_type(a_var_initializer_map);
-  }  /* if */
   /* We don't expect many entries in the variable initializer map, since
      they are only recorded for constexpr local variables defined in scopes
      in which local expr ref nodes exist, so start out with a small table
      size. */
-  construct(var_init_map, /*mask_width=*/6);
+  var_init_map = new_general<a_var_initializer_map>(/*mask_width=*/6);
 }  /* init_cp_gen_be */
 
 #if STANDALONE_CP_GEN_BE
@@ -24954,11 +24965,9 @@ required.  In particular, it closes any files that may have been open at
 the point at which the compilation was terminated.
 */
 {
-  close_file_if_open(&f_C_output);
-  if (var_init_map != NULL) {
-    var_init_map->~a_var_initializer_map();
-    free_general(var_init_map, sizeof(a_var_initializer_map));
-    var_init_map = NULL;
+  if (back_end_initialized) {
+    close_file_if_open(&f_C_output);
+    delete_general(&var_init_map);
   }  /* if */
 }  /* cp_gen_be_cleanup */
 

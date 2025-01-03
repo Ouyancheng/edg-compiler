@@ -31,7 +31,8 @@ extern void back_end(void);
 #endif /* !STANDALONE_UTILITY_PROGRAM */
 
 #if MAKE_FRONT_END_CALLABLE
-extern void cp_gen_be_cleanup(void);
+extern void cp_gen_be_early_init();
+extern void cp_gen_be_cleanup();
 #endif /* MAKE_FRONT_END_CALLABLE */
 
 extern a_boolean expr_has_comma_operation(an_expr_node_ptr expr);
