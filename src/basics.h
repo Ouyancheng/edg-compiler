@@ -241,13 +241,18 @@ been specified (via the EDG_MAIN macro).
 
 /*
 TRUE if the front end can use multiple threads to support concurrent
-compilations within a single process.  Each thread acts is if it were
-a separate invocation of the front end.  This is only allowed supported
-when MAKE_FRONT_END_CALLABLE is TRUE.
+compilations within a single process.  Each thread acts as if it were a
+separate invocation of the front end.  This is only allowed when
+MAKE_FRONT_END_CALLABLE is TRUE.
 */
 #ifndef MULTIPLE_THREAD_COMPILATION
 #define MULTIPLE_THREAD_COMPILATION FALSE
 #endif /* MULTIPLE_THREAD_COMPILATION */
+
+#if MULTIPLE_THREAD_COMPILATION && !MAKE_FRONT_END_CALLABLE
+ #error -- MAKE_FRONT_END_CALLABLE must be TRUE when \
+           MULTIPLE_THREAD_COMPILATION is TRUE.
+#endif /* MULTIPLE_THREAD_COMPILATION && !MAKE_FRONT_END_CALLABLE */
 
 /*
 EXTERN is defined usually as "extern"; in the translation unit that
@@ -260,10 +265,12 @@ occur and also causes inclusion of initializers for those variables.
 */
 #ifndef VAR_INITIALIZERS
 #define VAR_INITIALIZERS 0
-#define EXTERN extern
-#else /* !VAR_INITIALIZERS */
-#define EXTERN /*empty*/
 #endif /* ifndef VAR_INITIALIZERS */
+#if VAR_INITIALIZERS
+#define EXTERN /* nothing */
+#else /* !VAR_INITIALIZERS */
+#define EXTERN extern
+#endif /* VAR_INITIALIZERS */
 
 /*
 EDG_THREAD is used to provide either the thread_local keyword or nothing
@@ -292,7 +299,6 @@ variables thread-local.
 /*
 STATIC_THREAD is similar to EXTERN_THREAD but is used to make file scope
 or function scope variables optionally thread-local.
-variables thread-local.
 */
 #ifndef STATIC_THREAD
 #if MULTIPLE_THREAD_COMPILATION
