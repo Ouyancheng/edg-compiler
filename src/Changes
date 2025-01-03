@@ -5,13 +5,20 @@ GCC/Clang compatibility: Structured bindings and member accessibility
 
 The changes for EDGcpfe/19601,EDGcpfe/20108 implemented the revised member
 accessibility constraints for structured bindings as updated through the
-standardization committee's paper P0969R0.  It also intended to keep the old
-behavior in emulation modes that correspond to compilers that do not implement
-P0969R0.  Unfortunately, the behaviors of GCC and Clang were accidentally
-inverted,  Previously, the new rules applied in GNU C++ modes with gnu_version
->= 80000 and not at all in Clang C++ modes.  Now, the new rules apply in Clang
-C++ modes with clang_version >= 80000 and not at all in (non-Clang) GNU C++
-modes.
+standardization committee's paper P0969R0.  The revised rules now also apply
+in Clang C++ modes with clang_version >= 80000.  Furthermore, in GNU C++ modes
+protected member access is sometimes withheld.  For example:
+
+  struct B {
+  protected:
+    int i, j;
+  };
+  struct D: B {
+    int g() const {
+      auto [x, y] = *this;  // Previously an error in all Clang modes.
+      return x+y;           // Now an error in all GCC modes, but accepted
+    }                       // in Clang modes with clang_version >= 80000.
+  };
 
 
 1/2/25  [EDGcpfe/27814]

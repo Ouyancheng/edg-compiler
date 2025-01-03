@@ -19171,12 +19171,17 @@ can be fully determined.
         tqs &= ~TQ_CONST;
       }  /* if */
       btype = make_qualified_type(btype, tqs);
-      if ((clang_version_is(<80000) || gpp_version_is(any_version) ||
-           ms_version_is(<1915)) ?  fp->source_corresp.access != as_public
-                                 : !have_access_to_symbol(symbol_for(fp))) {
+      if ((clang_version_is(<80000) || gpp_version_is(<80000) ||
+           ms_version_is(<1915)) ? fp->source_corresp.access != as_public
+                                 : !have_access_to_symbol(symbol_for(fp)) ||
+          (gpp_version_is(any_version) &&
+           fp->source_corresp.access == as_protected &&
+           !have_member_access_privilege(parent_class_of(fp)))) {
         /* The original specification for structured bindings only permitted
            binding public members.  P0969R0 changed the rule to just requiring
-           that the members be accessible. */
+           that the members be accessible.  GCC and Clang both added support
+           for this change in their version 8.x, but GCC appears to have
+           excluded protected member access. */
         pos_sy_error(ec_struct_binding_private_member,
                      &vp->source_corresp.decl_position, symbol_for(fp));
         err = TRUE;
