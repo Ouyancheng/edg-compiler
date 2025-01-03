@@ -48,7 +48,7 @@ protected member access is sometimes withheld.  For example:
   };
 
 
-1/2/25  [EDGcpfe/27814]
+1/2/25   [EDGcpfe/27814]
 Handling of [[hiding]] attribute
 
 Consider:
