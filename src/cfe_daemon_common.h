@@ -80,20 +80,17 @@ client <-> daemon Unix socket can be found.  The caller is responsible for
 freeing the buffer.
 */
 {
-  a_const_char *tmp_dir = getenv("TMPDIR");
+  a_const_char *daemon_id = getenv("EDG_DAEMON_ID");
 
-  if (tmp_dir == NULL) {
-    /* Fall back to a predefined temporary directory. */
-#if defined(DEFAULT_TMPDIR)
-    tmp_dir = DEFAULT_TMPDIR;
-#else /* !defined(DEFAULT_TMPDIR) */
-    tmp_dir = "/tmp";
-#endif /* defined(DEFAULT_TMPDIR) */
+  if (daemon_id == NULL) {
+    /* Fall back to the default daemon id. */
+    daemon_id = "0";
   }  /* if */
 
-  auto apply_file_name = [tmp_dir](char *buf, size_t buf_size) -> a_boolean {
-    int chars_written = snprintf(buf, buf_size, "%s/cpfe-daemon-%lld.sock",
-                                 tmp_dir, (long long)geteuid());
+  auto apply_file_name = [daemon_id](char *buf, size_t buf_size) -> a_boolean {
+    int chars_written = snprintf(buf, buf_size,
+                                 "/var/run/user/%lld/cpfe-daemon-%s.sock",
+                                 (long long)geteuid(), daemon_id);
     return chars_written >= 0 && ((size_t)chars_written) <= buf_size;
   };
   return doubling_buffer(apply_file_name);
