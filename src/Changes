@@ -33,18 +33,22 @@ derived class not overriding the virtual function of the same name in the base
 class.
 
 
-1/2/25  [EDGcpfe/27800]
+1/2/25   [EDGcpfe/27800]
 Multi-threaded POSIX front end daemon
 
 A new POSIX-compatible multi-threaded front-end daemon implementation has been
 added and can be enabled using FRONT_END_IS_DAEMON=1.  A corresponding client
-program has also been added for interacting with the daemon (see the utility
-program changes for more information).
+program has also been added for interacting with the daemon (see the Changes
+files in the util directory for more information).
 
 These were created primarily for internal testing and are initially released on
 an "exposition only" basis to provide an example of what is possible with a
 front end configuration where MAKE_FRONT_END_CALLABLE,
 MULTIPLE_THREAD_COMPILATION, and CUSTOM_DEFAULT_OUTPUT_FILES are all TRUE.
+
+Additionally, the daemon can be run with MULTIPLE_THREAD_COMPILATION set to
+FALSE as an example of the front end being used in a background thread of a
+single threaded process.
 
 
 12/24/24 [EDGcpfe/24533,EDGcpfe/24622,EDGcpfe/25528,EDGcpfe/27754]

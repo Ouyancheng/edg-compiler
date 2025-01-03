@@ -400,12 +400,13 @@ Microsoft compiler outputs diagnostics).
 #endif /* ifndef DIRECT_ERROR_OUTPUT_TO_STDOUT */
 
 /*
-Enable the daemon front end implementation instead of the traditional single
-process implementation.
+Enable the EDG front end daemon implementation code instead of the traditional
+single process implementation.  This configuration is intended primarily for
+internal testing and as a demo of a possible deployment of the front end.
 */
-#ifndef FRONT_END_IS_DAEMON
-#define FRONT_END_IS_DAEMON FALSE
-#endif /* ifndef FRONT_END_IS_DAEMON */
+#ifndef EDG_FRONT_END_DAEMON
+#define EDG_FRONT_END_DAEMON FALSE
+#endif /* ifndef EDG_FRONT_END_DAEMON */
 
 /*
 Is the C-generating back end being used as the back end?
