@@ -7543,6 +7543,11 @@ file.
 #else /* !defined(EDG_AUXILIARY_INFO_DIR_NAME) */
   comment_undefined_macro_name(EDG_AUXILIARY_INFO_DIR_NAME);
 #endif /* defined(EDG_AUXILIARY_INFO_DIR_NAME) */
+#if defined(EDG_FRONT_END_DAEMON)
+  define_numeric_valued_macro(EDG_FRONT_END_DAEMON);
+#else /* !defined(EDG_FRONT_END_DAEMON) */
+  comment_undefined_macro_name(EDG_FRONT_END_DAEMON);
+#endif /* defined(EDG_FRONT_END_DAEMON) */
 #if defined(EDG_MAIN)
   define_string_valued_macro(EDG_MAIN);
 #else /* !defined(EDG_MAIN) */
@@ -7710,11 +7715,6 @@ file.
   comment_undefined_macro_name(
                       FRIEND_AND_MEMBER_DEFINITIONS_MAY_BE_MOVED_OUT_OF_CLASS);
 #endif /* defined(FRIEND_AND_MEMBER_DEFINITIONS_MAY_BE_MOVED_OUT_OF_CLASS) */
-#if defined(FRONT_END_IS_DAEMON)
-  define_numeric_valued_macro(FRONT_END_IS_DAEMON);
-#else /* !defined(FRONT_END_IS_DAEMON) */
-  comment_undefined_macro_name(FRONT_END_IS_DAEMON);
-#endif /* defined(FRONT_END_IS_DAEMON) */
 #if defined(FULLY_RESOLVED_MACRO_POSITIONS)
   define_numeric_valued_macro(FULLY_RESOLVED_MACRO_POSITIONS);
 #else /* !defined(FULLY_RESOLVED_MACRO_POSITIONS) */

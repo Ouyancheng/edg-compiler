@@ -44,7 +44,7 @@ class.
 Multi-threaded POSIX front end daemon
 
 A new POSIX-compatible multi-threaded front-end daemon implementation has been
-added and can be enabled using FRONT_END_IS_DAEMON=1.  A corresponding client
+added and can be enabled using EDG_FRONT_END_DAEMON=1.  A corresponding client
 program has also been added for interacting with the daemon (see the Changes
 files in the util directory for more information).
 

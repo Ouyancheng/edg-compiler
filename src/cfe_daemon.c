@@ -23,7 +23,7 @@ and are intended for exposition only.
 #include "fe_common.h"
 
 /* See if this code is needed at all. */
-#if FRONT_END_IS_DAEMON
+#if EDG_FRONT_END_DAEMON
 
 /* Verify the configuration is compatible with the multi-threaded driver
    code. */
@@ -515,7 +515,7 @@ done:
   return return_value;
 }  /* main */
 
-#endif /* FRONT_END_IS_DAEMON */
+#endif /* EDG_FRONT_END_DAEMON */
 
 /******************************************************************************
 *                                                             \  ___  /       *
