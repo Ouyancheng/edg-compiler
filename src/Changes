@@ -17,12 +17,12 @@ situation arose with compound assignments.  For example (in GNU C++14 mode):
 This is now fixed.
 
 
-1/3/25  [EDGcpfe/27830]
+1/3/25   [EDGcpfe/27830]
 C++-generating back end: free on uninitialized address
 
 Previously, in a configuration where BACK_END_IS_CP_GEN_BE and
 MAKE_FRONT_END_CALLABLE are both TRUE, calling fe_cleanup could free an
-uninitialized address (if it was called without the back_end first being
+uninitialized address (if it was called without the back end first being
 invoked).  In configurations with CHECKING set to TRUE, this results in an
 assertion failure in free_general.  This is now fixed.
 
