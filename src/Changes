@@ -1,6 +1,6 @@
 Version 6.7
 
-1/3/25  [EDGcpfe/26231,EDGcpfe/27027,EDGcpfe/27828]
+1/3/25   [EDGcpfe/26231,EDGcpfe/27027,EDGcpfe/27828]
 Evaluation of complex multiplication and division
 
 The functions cx_multiply and cx_divide in float_pt.c yielded incorrect
