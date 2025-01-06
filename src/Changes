@@ -1,5 +1,13 @@
 Version 6.7
 
+1/6/25   [EDGcpfe/27804]
+Variable initialization bugs
+
+Previously, in configurations with MAKE_FRONT_END_CALLABLE set to TRUE, several
+variables were not always properly reinitialized resulting in previous
+invocations affecting future front end behavior.  This is now fixed.
+
+
 1/6/25   [EDGcpfe/26448]
 Sporadic crash when forming a module id on a routine declared via typedef
 
