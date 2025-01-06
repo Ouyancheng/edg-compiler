@@ -9,7 +9,7 @@
 ******************************************************************************/
 /*
 
-cfe_daemon_common.c -- Common code for the C++/C front end daemon
+cfe_daemon_common.h -- Common code for the C++/C front end daemon
                        (cfe_daemon.c) and its corresponding client
                        (cfe_daemon_client.c).
 

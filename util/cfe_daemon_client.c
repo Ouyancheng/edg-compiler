@@ -138,7 +138,8 @@ The main routine for the front end Unix socket client.
       goto socket_path_too_long_error;
     }  /* if */
     client_socket_addr.sun_family = AF_UNIX;
-    memcpy(client_socket_addr.sun_path, socket_address, socket_path_bytes);
+    (void)memcpy(client_socket_addr.sun_path, socket_address,
+                 socket_path_bytes);
 
     int connect_result = connect(client_socket_fd,
                                  (const sockaddr*)&client_socket_addr,
