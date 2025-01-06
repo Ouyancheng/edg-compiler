@@ -1,5 +1,17 @@
 Version 6.7
 
+1/6/25   [EDGcpfe/26448]
+Sporadic crash when forming a module id on a routine declared via typedef
+
+Previously, in configurations where MODULE_ID_NEEDED and NEAR_AND_FAR_ALLOWED
+are TRUE, the front end could crash in is_auto_type when a __far function is the
+first defined function in the translation unit:
+
+  void __far f() {}
+
+This is now fixed.
+
+
 1/6/25   [EDGcpfe/26442]
 Sporadic crash when parsing function template declared via typedef
 

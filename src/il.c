@@ -32156,7 +32156,7 @@ be used, but there are exceptions.
                can depend on their use, making them poor candidates for basing
                a module id on). */
 #endif /* GNU_FUNCTION_MULTIVERSIONING */
-          } else if (is_auto_type(routine->type->variant.routine.return_type)){
+          } else if (is_auto_type(return_type_of(routine->type))) {
             /* The return type for this routine has not yet been determined
                (so its mangled name cannot be determined yet). */
           } else {

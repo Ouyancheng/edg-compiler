@@ -9053,8 +9053,8 @@ be lowered as soon as a module id becomes available (and TRUE is returned).
        finish_processing_for_function_bodies. */
     delay_lowering = TRUE;
   } else if (routine->source_corresp.is_class_member &&
-             routine->type->variant.routine.extra_info->this_class == NULL &&
-             is_incomplete_type(parent_class_of(routine))) {
+             (rout_type_supp(skip_typerefs(routine->type))->this_class ==
+              NULL) && is_incomplete_type(parent_class_of(routine))) {
     /* A member function of a class that is currently being defined.  This
        should only occur for constexpr functions or functions with deduced
        return types. */
