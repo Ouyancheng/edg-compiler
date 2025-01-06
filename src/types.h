@@ -383,11 +383,15 @@ extern a_boolean check_for_vla_in_pointer_to_member(a_type_ptr         type,
 
 extern a_type_ptr type_specifier_of_type(a_type_ptr type);
 
+
+inline a_routine_type_supplement_ptr rout_type_supp(a_type_ptr type)
 /*
-Return a pointer to the associated routine type supplement.
+Give a routine type, return the corresponding routine type supplement pointer.
 */
-#define rout_type_supp(tp)                                                   \
-  ((tp)->variant.routine.extra_info)
+{
+  check_assertion(type->kind == tk_routine);
+  return type->variant.routine.extra_info;
+}  /* rout_type_supp */
 
 
 inline a_boolean is_fundamental_type(a_type_ptr  type)

@@ -1,5 +1,17 @@
 Version 6.7
 
+1/6/25   [EDGcpfe/26442]
+Sporadic crash when parsing function template declared via typedef
+
+Previously, the front end could crash when parsing a function template declared
+via typedef:
+
+  typedef void void_fn();
+  template<typename> void_fn x;
+
+This is now fixed.
+
+
 1/3/25   [EDGcpfe/26231,EDGcpfe/27027,EDGcpfe/27828]
 Evaluation of complex multiplication and division
 

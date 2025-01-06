@@ -11214,7 +11214,7 @@ definition of a member function of a class template.
       /* Declaring a default argument on a function template redeclaration is
          nonstandard.  Issue at least a warning, and always an error if the
          template has already been instantiated. */
-      for (ptp = function_type_params(type_ptr);
+      for (ptp = function_type_params(skip_typerefs(type_ptr));
            ptp != NULL;
            ptp = ptp->next) {
         if (ptp->has_default_arg) {
