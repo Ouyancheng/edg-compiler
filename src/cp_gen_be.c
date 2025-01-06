@@ -659,7 +659,7 @@ A map associating local constexpr variables with their initializers.
 typedef
 Ptr_map<a_variable_ptr, a_constexpr_initializer_ptr, General_allocator>
 		a_var_initializer_map;
-a_var_initializer_map
+STATIC_THREAD a_var_initializer_map
 		*var_init_map;
 
 
