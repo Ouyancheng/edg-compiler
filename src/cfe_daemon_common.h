@@ -63,7 +63,7 @@ containing the daemon level command they would like execute.
       translation unit tag (see trans_unit_tag in cfe_daemon.c for more
       information).
    3. The client sends a message containing the number of front end command
-      line arguments (i.e., the argc value for EDG_MAIN) as an
+      line arguments (i.e., the argc value for EDG_MAIN) as a
       textually-represented integer followed by a null terminator.  This is
       then followed (in the same message) by n null-terminated strings (one per
       command line argument).
