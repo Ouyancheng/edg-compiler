@@ -4,8 +4,8 @@ Version 6.7
 Sporadic crash when forming a module id on a routine declared via typedef
 
 Previously, in configurations where MODULE_ID_NEEDED and NEAR_AND_FAR_ALLOWED
-are TRUE, the front end could crash in is_auto_type when a __far function is the
-first defined function in the translation unit:
+are TRUE, the front end could crash in is_auto_type when a __far function is
+the first defined function in the translation unit:
 
   void __far f() {}
 
