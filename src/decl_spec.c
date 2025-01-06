@@ -2315,7 +2315,7 @@ it returns FALSE.
 /*
 Pointer to a hash table recording unresolved types.
 */
-static a_hash_table_ptr
+STATIC_THREAD a_hash_table_ptr
 		unresolved_type_map;
 
 /*
