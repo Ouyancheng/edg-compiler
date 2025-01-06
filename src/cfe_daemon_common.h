@@ -39,10 +39,13 @@ containing the daemon level command they would like execute.
 
 1. Ping Command
 
-   The ping daemon command is very simple (and not implemented in the provided
-   client).  This command is only for checking that the socket is still alive
-   (i.e., the daemon is still running) without the added weight of a front end
-   invocation.
+   The ping daemon command is a very simple command for testing whether the
+   socket, and thus daemon, is still alive (and not implemented in
+   cfe_daemon_client.c).  This command avoids the added weight and complexity
+   of using a front end invocation to test whether the daemon is still alive.
+   It is particularly useful for software that queues work to be executed by
+   the daemon and needs to keep tabs on whether it's still running (e.g., a
+   test driver).
 
    1. The client immediately upon connecting sends a message containing the
       ping_request_bytes.
@@ -51,7 +54,8 @@ containing the daemon level command they would like execute.
 
 2. Exec Command
 
-   The exec daemon command is what is implemented by cfe_daemon_client.
+   This command is used to execute the front end (and is what is implemented by
+   cfe_daemon_client.c).
 
    1. The client immediately upon connecting sends a message containing the
       exec_request_bytes.
