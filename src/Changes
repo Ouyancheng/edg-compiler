@@ -15,8 +15,8 @@ This is now fixed.
 1/6/25   [EDGcpfe/26442]
 Sporadic crash when parsing function template declared via typedef
 
-Previously, the front end could crash when parsing a function template declared
-via typedef:
+Previously, the front end could crash in decl_function_template when parsing a
+function template declared via typedef:
 
   typedef void void_fn();
   template<typename> void_fn x;
