@@ -17,6 +17,7 @@ build a multi-threaded client/server C++/C compiler front end.
 This client and its corresponding daemon are not (currently) production grade
 and are intended for exposition only.
 
+See cfe_daemon_common.h for documentation on the daemon protocol.
 */
 
 #include "basics.h"

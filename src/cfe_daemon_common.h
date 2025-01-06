@@ -16,9 +16,59 @@ cfe_daemon_common.h -- Common code for the C++/C front end daemon
 This file is provided as an example of using the front end as a library to
 build a multi-threaded client/server C++/C compiler front end.
 
-This client and its corresponding daemon are not (currently) production grade
+The client and its corresponding daemon are not (currently) production grade
 and are intended for exposition only.
+*/
 
+/*
+Protocol Documentation
+
+The daemon protocol operates over Unix domain sockets.  The daemon binds and
+listens to a two-way socket located at the path computed by
+allocating_socket_file_name (see this function for more information about the
+exact path of the socket).
+
+The daemon protocol uses a series of bytes (the end_of_message_bytes) below to
+delimit the end of messages.  For the purpose of brevity, when this
+documentation states that the client or daemon "sends a message containing X"
+that means the respective program sends the bytes "X" followed by the
+end_of_message_bytes to signal the end of the message.
+
+Clients begin using the daemon by first connecting and then sending a message
+containing the daemon level command they would like execute.
+
+1. Ping Command
+
+   The ping daemon command is very simple (and not implemented in the provided
+   client).  This command is only for checking that the socket is still alive
+   (i.e., the daemon is still running) without the added weight of a front end
+   invocation.
+
+   1. The client immediately upon connecting sends a message containing the
+      ping_request_bytes.
+   2. The daemon accepts this, sends nothing back, and closes the socket.
+   3. The client closes its socket.
+
+2. Exec Command
+
+   The exec daemon command is what is implemented by cfe_daemon_client.
+
+   1. The client immediately upon connecting sends a message containing the
+      exec_request_bytes.
+   2. If built using DEBUG: the client then sends a message containing the
+      translation unit tag (see trans_unit_tag in cfe_daemon.c for more
+      information).
+   3. The client sends a message containing the number of front end command
+      line arguments (i.e., the argc value for EDG_MAIN) as an
+      textually-represented integer followed by a null terminator.  This is
+      then followed (in the same message) by n null-terminated strings (one per
+      command line argument).
+   4. The daemon then invokes the front end and sends a message containing the
+      textual output of the front end invocation (i.e., what would in most
+      conventional configurations be printed to stderr).
+   5. The daemon then sends a message containing the textually-represented exit
+      code and closes the socket.
+   6. The client closes its socket.
 */
 
 #ifndef EDG_DAEMON_COMMON_H
@@ -41,6 +91,11 @@ constexpr a_const_char
                         /* The connection request tag bytes that indicate the
                            requested action is a front end execution. */
 constexpr a_const_char
+                *ping_request_bytes = "ping";
+                        /* The connection request tag bytes that indicate the
+                           requested action is a ping (to check to see if the
+                           daemon is alive). */
+constexpr a_const_char
                 *end_of_message_bytes = "7ef77b7a-cd45-4b2e-9498-5e999bb07a06";
                         /* The magic byte sequence used to indicate the end of
                            a message over the socket. */
@@ -51,7 +106,8 @@ inline char* doubling_buffer(a_Func func)
 /*
 Allocate a character buffer using operator new[] and pass it to the given
 function.  If the buffer is sufficiently sized, the function should return
-TRUE; otherwise, the function should return FALSE.
+TRUE; otherwise, the function should return FALSE.  The function will be
+reinvoked with an increasingly large buffer until it returns TRUE.
 
 Once a sufficiently sized buffer has been created, the buffer will be returned.
 The caller is responsible for freeing the buffer.
@@ -139,7 +195,7 @@ complete message has been read without any errors, return TRUE; otherwise,
 return FALSE.
 */
 {
-  a_boolean result = false;
+  a_boolean result = FALSE;
 
   if (this->unprocessed_bytes_start != -1) {
     /* Reset the unprocessed byte start and then process the remaining bytes
@@ -152,7 +208,7 @@ return FALSE.
       goto complete_message;
     }  /* if */
   }  /* if */
-  while (true) {
+  while (TRUE) {
     this->num_buffer_chars = read(this->socket_fd, this->buffer, buffer_size);
     if (this->num_buffer_chars <= 0) {
       break;
@@ -163,7 +219,7 @@ return FALSE.
   }  /* while */
   goto done;
 complete_message:
-  result = true;
+  result = TRUE;
 done:
   return result;
 }  /* a_socket_reader::read_message_parts */
@@ -177,7 +233,7 @@ read_message_parts for more information about the callback).  If a complete
 message was found, return TRUE; otherwise, return FALSE.
 */
 {
-  a_boolean result = false;
+  a_boolean result = FALSE;
   int       num_matches_needed = strlen(end_of_message_bytes);
   int       end_of_message_part = this->num_buffer_chars;
 
@@ -218,7 +274,7 @@ message was found, return TRUE; otherwise, return FALSE.
     callback_fn(this->buffer + offset, (size_t)num_chars_to_forward);
   }  /* if */
   if (this->eom_matches == num_matches_needed) {
-    result = true;
+    result = TRUE;
     this->eom_matches = 0;
   }  /* if */
   return result;

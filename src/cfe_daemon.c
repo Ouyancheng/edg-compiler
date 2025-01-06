@@ -17,6 +17,7 @@ build a multi-threaded client/server C++/C compiler front end.
 This daemon and its corresponding client are not (currently) production grade
 and are intended for exposition only.
 
+See cfe_daemon_common.h for documentation on the daemon protocol.
 */
 
 /* Header files common to all files. */
@@ -161,11 +162,12 @@ Return a new output FILE for the current thread.
 */
 {
   FILE *result;
-  int  fd;
+  int  fd = dup(fd_thread_output);
 
-  do {
-    fd = dup(fd_thread_output);
-  } while (fd == -1);
+  if (fd == -1) {
+    fputs("The daemon has run out of available file descriptors.\n", stderr);
+    exit(RC_CATASTROPHE);
+  }  /* if */
   result = fdopen(fd, "w");
   /* Do not buffer output; this ensures output is immediately forwarded without
      explicit fflush calls. */
@@ -220,7 +222,7 @@ invocation ticket.
     }  /* if */
     if (*opt_request_tag == exec_request_bytes) {
       /* This is the usual case, executing the front end. */
-    } else if (*opt_request_tag == "ping") {
+    } else if (*opt_request_tag == ping_request_bytes) {
       /* The connected client is just checking to make sure the daemon is
          alive; discard the ticket. */
       goto done;
@@ -286,11 +288,7 @@ unknown_request_tag:
           opt_request_tag->as_temp_characters());
   goto done;
 client_read_failure:
-  {
-    constexpr a_const_char *read_failure = "Message not received.\n";
-
-    write(ticket->communication_fd, read_failure, strlen(read_failure));
-  }
+  fputs("Received incomplete message from client.\n", stderr);
 done:;
 }  /* process_ticket */
 
@@ -335,9 +333,13 @@ terminate_thread:
 
 static int determine_parallelism()
 /*
-Return the maximum number of threads to run in the daemon; for ease of
-implementation, this is always the number of processors (i.e., threads) the
-host system has.
+Return the maximum number of threads to run in the daemon.
+
+When MULTIPLE_THREAD_COMPILATION is TRUE: (for ease of implementation) this is
+always the number of processors (i.e., threads) the host system has.
+
+When MULTIPLE_THREAD_COMPILATION is FALSE: this is always one (to ensure only
+one front end invocation occurs at a time within this process).
 */
 {
 #if MULTIPLE_THREAD_COMPILATION
