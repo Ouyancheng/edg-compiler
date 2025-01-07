@@ -6591,8 +6591,7 @@ represented by hdr was declared with the C++11 attribute "hiding".
                                 : msym;
         for (; sym != NULL; sym = ovl ? sym->next : NULL) {
           a_source_correspondence  *scp = source_corresp_entry_for_symbol(sym);
-          if (scp != NULL &&
-              find_attribute(ak_hiding, scp->attributes) != NULL) {
+          if (scp != NULL && has_attr(ak_hiding, scp->attributes)) {
             result = TRUE;
             goto done;
           }  /* if */
@@ -6662,8 +6661,7 @@ dependent on the use of the C++11 attributes "base_check" and "hiding".)
           a_symbol_list_entry_ptr  slep = orep->override_failures;
           for (; slep != NULL; slep = slep->next) {
             a_routine_ptr  rp = func_sym_routine(slep->symbol);
-            if (find_attribute(ak_hiding, rp->source_corresp.attributes)
-                                                                    != NULL) {
+            if (has_attr(ak_hiding, rp->source_corresp.attributes)) {
               continue;
             }  /* if */
             pos_sy2_warning(ec_virtual_function_decl_hidden,
