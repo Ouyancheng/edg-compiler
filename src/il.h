@@ -4100,19 +4100,7 @@ extern a_boolean variable_should_be_externalized_for_exported_templates(
 extern a_boolean routine_might_exist_in_multiple_copies(a_routine_ptr rout);
 #endif /* DO_IL_LOWERING || NEED_NAME_MANGLING */
 
-
-inline a_param_type_ptr get_routine_param_types(a_routine_ptr rt)
-/*
-Give a routine type, return the list of parameter types.
-*/
-{
-  a_type_ptr                    routine_type = rt->type;
-  a_routine_type_supplement_ptr routine_type_sup =
-                                      routine_type->variant.routine.extra_info;
-
-  return routine_type_sup->param_type_list;
-}  /* get_routine_param_types */
-
+extern a_param_type_ptr get_routine_param_types(a_routine_ptr rp);
 
 /*
 Given a namespace pointer, return a pointer to the actual namespace,

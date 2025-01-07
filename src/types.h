@@ -386,7 +386,7 @@ extern a_type_ptr type_specifier_of_type(a_type_ptr type);
 
 inline a_routine_type_supplement_ptr rout_type_supp(a_type_ptr type)
 /*
-Give a routine type, return the corresponding routine type supplement pointer.
+Given a routine type, return the corresponding routine type supplement pointer.
 */
 {
   check_assertion(type->kind == tk_routine);

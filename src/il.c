@@ -30742,7 +30742,19 @@ is instantiated in more than one translation unit.
 
 #endif /* DO_IL_LOWERING || NEED_NAME_MANGLING */
 
+a_param_type_ptr get_routine_param_types(a_routine_ptr rp)
+/*
+Given a routine pointer, return the list of parameter types.
+*/
+{
+  a_type_ptr                    rtp = skip_typerefs(rp->type);
+  a_routine_type_supplement_ptr rtp_sup = rout_type_supp(rtp);
+
+  return rtp_sup->param_type_list;
+}  /* get_routine_param_types */
+
 #if DEBUG
+
 unsigned long show_il_space_used(void)
 /*
 Display and return the amount of space used for various IL tables.
@@ -30779,8 +30791,8 @@ Display and return the amount of space used for various IL tables.
 
   return grand_total;
 }  /* show_il_space_used */
-#endif /* DEBUG */
 
+#endif /* DEBUG */
 #if UPC_EXTENSIONS_ALLOWED
 
 a_boolean upc_block_size_too_large(a_host_large_unsigned  block_size)
