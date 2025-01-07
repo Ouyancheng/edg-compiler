@@ -589,6 +589,47 @@ grep_f()
 
 
 #
+# Function used to handle optional path mappings (e.g.,
+#  "--foo files/abc.h=files/abc.h.ifc" or "--foo files/abc.h").
+#
+# The first argument is the option name (e.g., "--foo") and the second is the
+# path mapping or path (e.g., "files/abc.h=files/abc.h.ifc" or "files/abc.h"
+# respectively).
+#
+resolve_path_mapping()
+{
+  # Need to split on the '=' and convert the appropriate paths.
+  arg1=`expr "$2" : '\(.*\)=.*'`
+  arg2=`expr "$2" : '.*=\(.*\)'`
+  if [ "${2#*=}" != "$2" ] ; then
+    # This is a mapping of two different paths separated by an equals sign.
+    if [ $1 != "--ms_mod_file_map" ] ; then
+      arg1=$(native_path "$arg1")
+    fi
+    arg2=$(native_path "$arg2")
+    echo "$arg1=$arg2"
+  else
+    # This is a single path.
+    echo $(native_path "$2")
+  fi
+}  # resolve_path_mapping
+
+
+#
+# Function called when an option that requires the creation of a header unit is
+# specified.
+#
+mark_create_header_unit_specified()
+{
+  if [ $header_unit_specified -ne 0 ] ; then
+    echo "$driver_name: cannot create multiple header unit files."
+    eccp_exit 1
+  fi
+  header_unit_specified=1
+}  # mark_create_header_unit_specified
+
+
+#
 # Function that compiles a generated C file
 #
 compile_int_c()
@@ -754,6 +795,7 @@ check_abbreviation()
 --cppcli
 --cppcx
 --create_pch
+--create_header_unit
 --db
 --db_alloc_seq
 --db_name
@@ -1916,6 +1958,7 @@ process_option()
          --default_calling_convention | \
          --dump_legacy_as_target | \
          --target | \
+         --create_header_unit | \
          --output_mode | \
          --wdir)
       used_two_params=1
@@ -1947,22 +1990,14 @@ process_option()
         --ms_header_unit | \
         --ms_header_unit_angle | \
         --ms_header_unit_quote)
-          # Need to split on the '=' and convert the appropriate paths.
-          arg1=`expr "$curr_param" : '\(.*\)=.*'`
-          arg2=`expr "$curr_param" : '.*=\(.*\)'`
-          if [ -z "$arg1" -o -z "$arg2" ] ; then
-            curr_param=`native_path "$curr_param"`
-          else
-            if [ $arg != "--ms_mod_file_map" ] ; then
-              arg1=`native_path "$arg1"`
-            fi
-            arg2=`native_path "$arg2"`
-            curr_param="$arg1=$arg2"
-          fi
+          curr_param=$(resolve_path_mapping "$arg" "$curr_param")
           ;;
         --target)
           # Capture the specified target configuration.
           target="$curr_param"
+          ;;
+        --create_header_unit)
+          mark_create_header_unit_specified
           ;;
       esac
       feoptions=$feoptions" $curr_arg `escape_if_needed "$curr_param"`"
@@ -2090,18 +2125,8 @@ process_option()
           # Need to split on the '=' and convert the appropriate paths.
           opt_arg=`expr $arg : '[^=]*=\(.*\)'`  # Get the string after the =
           opt_name=`expr $arg : '\([^=]*\)=.*'` # Get the string before the =
-          arg1=`expr $opt_arg : '\(.*\)=.*'`
-          arg2=`expr $opt_arg : '.*=\(.*\)'`
-          if [ -z "$arg1" -o -z "$arg2" ] ; then
-            opt_arg=`native_path "$opt_arg"`
-            curr_arg="$opt_name=$opt_arg"
-          else
-            if [ $opt_name != "--ms_mod_file_map" ] ; then
-              arg1=`native_path "$arg1"`
-            fi
-            arg2=`native_path "$arg2"`
-            curr_arg="$opt_name=$arg1=$arg2"
-          fi
+          opt_arg_mapped=$(resolve_path_mapping "$opt_name" "$opt_arg")
+          curr_arg="$opt_name=$opt_arg_mapped"
           ;;
         --target=*)
           # Capture the specified target configuration.
@@ -2109,11 +2134,7 @@ process_option()
           target=$arg_value
           ;;
         --create_header_unit=*)
-          if [ $header_unit_specified -ne 0 ] ; then
-            echo "$driver_name: cannot create multiple header unit files."
-            eccp_exit 1
-          fi
-          header_unit_specified=1
+          mark_create_header_unit_specified
           ;;
       esac
       feoptions=$feoptions" `escape_if_needed "$curr_arg"`"
