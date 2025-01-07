@@ -24919,7 +24919,7 @@ STATIC_THREAD a_boolean
 
 void cp_gen_be_early_init()
 /*
-Perform early initialization for the C++/C-generating back end.  This
+Perform early initialization for the C++-generating back end.  This
 initialization is performed even if the back end isn't used.
 */
 {
