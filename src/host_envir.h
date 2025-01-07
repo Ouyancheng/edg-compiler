@@ -3180,6 +3180,7 @@ EXTERN_THREAD char
 		*object_file_name;
 
 /* Control the current working directory. */
+extern void reset_working_directory();
 extern void set_working_directory(a_const_char *dir_name);
 extern a_const_char *get_working_directory();
 

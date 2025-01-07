@@ -1216,6 +1216,18 @@ STATIC_THREAD char
 			   directory. */
 
 
+void reset_working_directory()
+/*
+Reset the current working directory to the process's working directory.
+*/
+{
+  if (current_directory_name != NULL) {
+    free_general(current_directory_name, strlen(current_directory_name) + 1);
+    current_directory_name = NULL;
+  }  /* if */
+}  /* reset_working_directory */
+
+
 void set_working_directory(a_const_char *dir_name)
 /*
 dir_name is the null-terminated name of the new current working directory
@@ -1223,10 +1235,7 @@ override in the internal encoding.  Update the current working directory value
 appropriately.
 */
 {
-  dir_name = file_name_in_external_encoding(dir_name);
-  if (current_directory_name != NULL) {
-    free_general(current_directory_name, strlen(current_directory_name) + 1);
-  }  /* if */
+  reset_working_directory();
 
   size_t dir_name_len = strlen(dir_name);
   current_directory_name = (char *)alloc_general(dir_name_len + 1);

@@ -10761,6 +10761,7 @@ Process the arguments on the command line that invoked the compiler.
       case optk_wdir:
         { a_const_char *wdir = file_name_from_opt_arg(opt_arg);
 
+          reset_working_directory();
           if (is_directory(wdir)) {
             set_working_directory(wdir);
           } else {
