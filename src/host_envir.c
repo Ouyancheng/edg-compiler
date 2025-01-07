@@ -3030,7 +3030,7 @@ a_boolean is_directory(a_const_char *file_name)
 
 static void chdir_with_check(a_const_char *dir_name)
 /*
-Change to the specified directory, make sure the operation succeeded.
+Change to the specified directory and make sure the operation succeeded.
 */
 {
   a_boolean	failed = FALSE;
@@ -5061,9 +5061,9 @@ static inline void append_dir_name(a_text_buffer_ptr buf,
                                    a_const_char      *dir_name,
                                    a_boolean         normalize = TRUE)
 /*
-Add "dir_name" to the end of the directory name specified by "buf".  If
-normalize is true, special handling for the relative path delimiters "." and
-".." is applied to simplify the path.
+Add dir_name to the end of the directory name specified by buf.  If normalize
+is true, special handling for the relative path delimiters "." and ".." is
+applied to simplify the path.
 */
 {
   a_const_char	*ptr = dir_name;
@@ -5268,14 +5268,14 @@ normalize_file_name.
 {
   a_const_char *result;
 
-  /* If the given file name is not an absolute path: prepend either the current
+  /* If the given file name is not an absolute path, prepend either the current
      working directory or the specified root directory. */
   if (!is_absolute_file_name(file_name)) {
     /* Allocate a directory buffer if not already allocated. */
     if (dir_buffer1 == NULL) {
       dir_buffer1 = alloc_text_buffer(128);
     }  /* if */
-    /* Append the file to the directory information in buffer1. */
+    /* Append the file to the directory information in dir_buffer1. */
     reset_text_buffer(dir_buffer1);
     if (dir_name == NULL || !is_absolute_file_name(dir_name)) {
       /* Prepend the current working directory if no directory name was given
