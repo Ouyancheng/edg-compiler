@@ -1128,6 +1128,7 @@ check_abbreviation()
 --version
 --vla
 --wchar_t_keyword
+--wdir
 --wrap_diagnostics
 --xref
 END_OF_INPUT
@@ -1915,7 +1916,8 @@ process_option()
          --default_calling_convention | \
          --dump_legacy_as_target | \
          --target | \
-         --output_mode)
+         --output_mode | \
+         --wdir)
       used_two_params=1
 #     See if an instantiation mode was specified
       case $arg in
@@ -2034,6 +2036,7 @@ process_option()
           --dump_legacy_as_target=* | \
           --target=* | \
           --output_mode=* | \
+          --wdir=* | \
           --create_header_unit=*)
 #     See if an instantiation mode was specified
       case $arg in
