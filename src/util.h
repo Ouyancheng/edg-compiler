@@ -5050,7 +5050,7 @@ template<typename a_Ptr_key, typename a_Value,
          template<typename> class Allocator>
 void Ptr_map<a_Ptr_key, a_Value, Allocator>::make_space_for_colliding_key(
                                                      size_t         idx,
-                                                     const a_key    &new_key)
+                                          ARG_UNUSED const a_key    &new_key)
 /*
 The given key has a hash value that collides with an existing mapping.
 Rearrange the current elements so that the given index can be used for a new
