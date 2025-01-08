@@ -605,9 +605,12 @@ Display a long double, for debugging purposes.
 }  /* db_long_double */
 #endif /* DEBUG */
 
-#if USE_HOST_FP_CONVERSION_ROUTINES && !APPROXIMATE_QUADMATH
+#endif /* USE_LONG_DOUBLE_FOR_HOST_FP_VALUE || APPROXIMATE_QUADMATH */
 
-static long double str_to_long_double(a_const_char * str)
+#if USE_HOST_FP_CONVERSION_ROUTINES
+#if USE_LONG_DOUBLE_FOR_HOST_FP_VALUE
+
+static long double str_to_long_double(a_const_char *str)
 /*
 Convert a string to a long double.  Note that this routine uses host routines
 sscanf/snprintf/sprintf_s to do the floating-point conversion and these library
@@ -654,9 +657,8 @@ the radix point (set in host_envir_early_init).
   return temp;
 }  /* str_to_long_double */
 
-#endif /* USE_HOST_FP_CONVERSION_ROUTINES && !APPROXIMATE_QUADMATH */
-#endif /* USE_LONG_DOUBLE_FOR_HOST_FP_VALUE || APPROXIMATE_QUADMATH */
-#if USE_FLOAT128_FOR_HOST_FP_VALUE && USE_HOST_FP_CONVERSION_ROUTINES
+#endif /* USE_LONG_DOUBLE_FOR_HOST_FP_VALUE */
+#if USE_FLOAT128_FOR_HOST_FP_VALUE
 
 static __float128 str_to_float128(a_const_char *str)
 /*
@@ -711,8 +713,29 @@ floating point routines (when USE_QUADMATH_LIBRARY is FALSE).
   return result;
 }  /* str_to_float128 */
 
-#endif /* USE_FLOAT128_FOR_HOST_FP_VALUE && USE_HOST_FP_CONVERSION_ROUTINES */
+#endif /* USE_FLOAT128_FOR_HOST_FP_VALUE */
 
+static void str_to_host_float(a_const_char    *str,
+                              a_host_fp_value *value)
+/*
+Convert the given string to a host floating point value (stored in *value).
+*/
+{
+#if USE_FLOAT128_FOR_HOST_FP_VALUE
+  *value = str_to_float128(str);
+#else /* !USE_FLOAT_128_FOR_HOST_FP_VALUE */
+#if USE_LONG_DOUBLE_FOR_HOST_FP_VALUE
+  /* Clear temp: Don't use assignment because on some platforms the
+     non-significant bytes wouldn't be cleared. */
+  memzero((char *)value, sizeof(a_host_fp_value));
+  *value = str_to_long_double(str);
+#else /* !USE_LONG_DOUBLE_FOR_HOST_FP_VALUE */
+  *value = strtod_interface(str);
+#endif /* USE_LONG_DOUBLE_FOR_HOST_FP_VALUE */
+#endif /* USE_FLOAT128_FOR_HOST_FP_VALUE */
+}  /* str_to_host_float */
+
+#endif /* USE_HOST_FP_CONVERSION_ROUTINES */
 #if DEBUG
 
 void db_internal_float_value(an_internal_float_value *ifv)
@@ -1123,7 +1146,7 @@ underflow.  If the conversion can be done, return the result in "result".
     /* Make sure str_dbl_max is something that sscanf will parse. */
     check_assertion(isdigit((unsigned char)str_dbl_max[0]));
 #if USE_HOST_FP_CONVERSION_ROUTINES
-    host_fp_dbl_max = str_to_long_double(str_dbl_max);
+    str_to_host_float(str_dbl_max, &host_fp_dbl_max);
     check_assertion_str2(errno == 0, "conv_host_fp_to_double:",
                          "error on conversion of DBL_MAX");
 #else /* !USE_HOST_FP_CONVERSION_ROUTINES */
@@ -2764,18 +2787,7 @@ before setting it if there are unused bits.
   a_host_fp_value	temp;
 
   /* Convert the number to a host floating-point value first. */
-#if USE_FLOAT128_FOR_HOST_FP_VALUE
-  temp = str_to_float128(str);
-#else /* !USE_FLOAT_128_FOR_HOST_FP_VALUE */
-#if USE_LONG_DOUBLE_FOR_HOST_FP_VALUE
-  /* Clear temp: Don't use assignment because on some platforms the
-     non-significant bytes wouldn't be cleared. */
-  memzero((char *)&temp, sizeof(a_host_fp_value));
-  temp = str_to_long_double(str);
-#else /* !USE_LONG_DOUBLE_FOR_HOST_FP_VALUE */
-  temp = strtod_interface(str);
-#endif /* USE_LONG_DOUBLE_FOR_HOST_FP_VALUE */
-#endif /* USE_FLOAT128_FOR_HOST_FP_VALUE */
+  str_to_host_float(str, &temp);
   if (errno == ERANGE) {
     if (gnu_mode) {
       errno = 0;
