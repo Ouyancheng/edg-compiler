@@ -399,10 +399,11 @@ The main routine for the front end Unix socket daemon.
       goto threading_set_up_error;
     }  /* if */
 
-    /* Set the thread's stack to 10MB, the normal stack size on most Linux main
-       threads.  Some operating systems (e.g., MacOS) mandate that the thread
-       stack size is a multiple of the page size; thus, this is adjusted to
-       be a multiple of the page remainder. */
+    /* Set the thread's stack to approximately 10MB (the normal stack size on
+       most Linux main threads).  Some operating systems (e.g., MacOS) mandate
+       that the thread stack size is a multiple of the page size; thus, the
+       10MB starting point is adjusted so as to be a multiple of the page
+       size. */
     size_t stack_size = 10 * 1000 * 1000;
     size_t page_size = getpagesize();
     size_t page_remainder = stack_size % page_size;
