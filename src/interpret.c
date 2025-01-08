@@ -24498,8 +24498,11 @@ the value representation of the integer value.
             break;
           case eok_call:
             /* Calls are handled separately.  We should not get here. */
+#if CHECKING
             unexpected_condition();
+#else /* !CHECKING */
             FALLTHROUGH
+#endif /* CHECKING */
           default:
             do_constexpr_fail(result);
             info_with_pos(ec_constexpr_expression_cannot_be_interpreted,
