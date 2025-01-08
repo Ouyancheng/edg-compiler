@@ -3,18 +3,9 @@ Version 6.7
 1/2/25   [EDGcpfe/27800]
 Multi-threaded POSIX front end daemon
 
-A new multi-threaded daemon has been implemented (see the Changes file in the
-src directory for more information).  A corresponding new utility program
-(cfe_daemon_client.c) has been added.
-
-These were created primarily for internal testing and are initially released on
-an "exposition only" basis to provide an example of what is possible with a
-front end configuration where MAKE_FRONT_END_CALLABLE,
-MULTIPLE_THREAD_COMPILATION, and CUSTOM_DEFAULT_OUTPUT_FILES are all TRUE.
-
-Additionally, the daemon can be run with MULTIPLE_THREAD_COMPILATION set to
-FALSE as an example of the front end being used in a background thread of a
-single-threaded process.
+A new multi-threaded daemon has been implemented and a corresponding new
+utility program (cfe_daemon_client.c) has been added (see the Changes file in
+the src directory for more information).
 
 
 12/9/24  [EDGcpfe/27785]
