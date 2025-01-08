@@ -400,8 +400,16 @@ The main routine for the front end Unix socket daemon.
     }  /* if */
 
     /* Set the thread's stack to 10MB, the normal stack size on most Linux main
-       threads. */
-    constexpr size_t stack_size = 10 * 1000 * 1000;
+       threads.  Some operating systems (e.g., MacOS) mandate that the thread
+       stack size is a multiple of the page size; thus, this is adjusted to
+       be a multiple of the page remainder. */
+    size_t stack_size = 10 * 1000 * 1000;
+    size_t page_size = getpagesize();
+    size_t page_remainder = stack_size % page_size;
+    if (page_remainder != 0) {
+      stack_size -= page_remainder;
+      stack_size += page_size;
+    }  /* if */
     if (pthread_attr_setstacksize(&thread_attr, stack_size) != 0) {
       goto threading_set_up_error;
     }  /* if */

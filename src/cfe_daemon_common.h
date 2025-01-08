@@ -148,8 +148,15 @@ freeing the buffer.
   }  /* if */
 
   auto apply_file_name = [daemon_id](char *buf, size_t buf_size) -> a_boolean {
+    /* For Linux use the directory specified by the Filesystem Hierarchy
+       Standard; otherwise, fallback to using /tmp for maximum
+       compatibility. */
     int chars_written = snprintf(buf, buf_size,
+#if __linux__
                                  "/var/run/user/%lld/cpfe-daemon-%s.sock",
+#else /* !__linux__ */
+                                 "/tmp/cpfe-daemon-%lld-%s.sock",
+#endif /* __linux__*/
                                  (long long)geteuid(), daemon_id);
     return chars_written >= 0 && ((size_t)chars_written) <= buf_size;
   };
