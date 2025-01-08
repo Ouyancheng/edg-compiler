@@ -551,7 +551,7 @@ try_debug_driver()
 {
   if [ $driver_debug -ne 0 ] ; then
     if [ $verbose_driver_debug -ne 0 ] ; then
-      echo -n "driver debug: "
+      printf "driver debug: "
     fi
     echo $1
   fi
