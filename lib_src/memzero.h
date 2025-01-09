@@ -4,7 +4,7 @@
 * Edison Design Group C++ Runtime                            - | \^/ | -      *
 *                                                               \   /         *
 *                                                             /  | |  \       *
-* Copyright 1992-2023 Edison Design Group Inc.                   [_]          *
+* Copyright 1992-2025 Edison Design Group Inc.                   [_]          *
 *                                                                             *
 ******************************************************************************/
 /*
@@ -40,6 +40,6 @@ EXTERN_C void __memzero(void    *buffer,
 * Edison Design Group C++ Runtime                            - | \^/ | -      *
 *                                                               \   /         *
 *                                                             /  | |  \       *
-* Copyright 1992-2023 Edison Design Group Inc.                   [_]          *
+* Copyright 1992-2025 Edison Design Group Inc.                   [_]          *
 *                                                                             *
 ******************************************************************************/

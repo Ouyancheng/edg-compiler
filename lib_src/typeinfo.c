@@ -4,7 +4,7 @@
 * Edison Design Group C++ Runtime                            - | \^/ | -      *
 *                                                               \   /         *
 *                                                             /  | |  \       *
-* Copyright 1992-2023 Edison Design Group Inc.                   [_]          *
+* Copyright 1992-2025 Edison Design Group Inc.                   [_]          *
 *                                                                             *
 ******************************************************************************/
 /*
@@ -175,7 +175,7 @@ no additional information is available.
 */
 {
   return "";
-}  /* bad_cast::~bad_cast */
+}  /* bad_cast::what */
 
 
 bad_typeid::bad_typeid() THROW_NOTHING()
@@ -220,7 +220,7 @@ no additional information is available.
 */
 {
   return "";
-}  /* bad_typeid::~bad_typeid */
+}  /* bad_typeid::what */
 
 #endif /* EXCEPTION_HANDLING */
 
@@ -395,6 +395,6 @@ called.
 * Edison Design Group C++ Runtime                            - | \^/ | -      *
 *                                                               \   /         *
 *                                                             /  | |  \       *
-* Copyright 1992-2023 Edison Design Group Inc.                   [_]          *
+* Copyright 1992-2025 Edison Design Group Inc.                   [_]          *
 *                                                                             *
 ******************************************************************************/

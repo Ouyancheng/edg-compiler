@@ -4,7 +4,7 @@
 * Edison Design Group C++ Runtime                            - | \^/ | -      *
 *                                                               \   /         *
 *                                                             /  | |  \       *
-* Copyright 1992-2023 Edison Design Group Inc.                   [_]          *
+* Copyright 1992-2025 Edison Design Group Inc.                   [_]          *
 *                                                                             *
 ******************************************************************************/
 /*
@@ -255,6 +255,6 @@ typedef an_ia64_guard *an_ia64_guard_ptr;
 * Edison Design Group C++ Runtime                            - | \^/ | -      *
 *                                                               \   /         *
 *                                                             /  | |  \       *
-* Copyright 1992-2023 Edison Design Group Inc.                   [_]          *
+* Copyright 1992-2025 Edison Design Group Inc.                   [_]          *
 *                                                                             *
 ******************************************************************************/

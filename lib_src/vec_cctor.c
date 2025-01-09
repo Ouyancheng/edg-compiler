@@ -4,7 +4,7 @@
 * Edison Design Group C++ Runtime                            - | \^/ | -      *
 *                                                               \   /         *
 *                                                             /  | |  \       *
-* Copyright 1992-2023 Edison Design Group Inc.                   [_]          *
+* Copyright 1992-2025 Edison Design Group Inc.                   [_]          *
 *                                                                             *
 ******************************************************************************/
 /*
@@ -52,7 +52,7 @@ of member arrays, the number_of_elements can never be zero.
       (*ctor)((void *)arr_ptr, (void *)src_arr);
     }  /* for */
   }  /* if */
-}  /* __vec_ctor */
+}  /* __vec_cctor */
 #endif /* ifndef __EDG_IA64_ABI */
 
 /******************************************************************************
@@ -61,6 +61,6 @@ of member arrays, the number_of_elements can never be zero.
 * Edison Design Group C++ Runtime                            - | \^/ | -      *
 *                                                               \   /         *
 *                                                             /  | |  \       *
-* Copyright 1992-2023 Edison Design Group Inc.                   [_]          *
+* Copyright 1992-2025 Edison Design Group Inc.                   [_]          *
 *                                                                             *
 ******************************************************************************/

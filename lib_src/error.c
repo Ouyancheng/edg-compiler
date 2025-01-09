@@ -4,7 +4,7 @@
 * Edison Design Group C++ Runtime                            - | \^/ | -      *
 *                                                               \   /         *
 *                                                             /  | |  \       *
-* Copyright 1992-2023 Edison Design Group Inc.                   [_]          *
+* Copyright 1992-2025 Edison Design Group Inc.                   [_]          *
 *                                                                             *
 ******************************************************************************/
 /*
@@ -117,7 +117,7 @@ EXTERN_C NORETURN void __abort_execution(an_error_code	err_code)
   /* Not all system headers have abort() marked as "noreturn", so suppress
      any warning that might be generated. */
 #pragma diag_suppress noreturn_function_does_return
-}  /* abort_execution */
+}  /* __abort_execution */
 
 
 /******************************************************************************
@@ -126,6 +126,6 @@ EXTERN_C NORETURN void __abort_execution(an_error_code	err_code)
 * Edison Design Group C++ Runtime                            - | \^/ | -      *
 *                                                               \   /         *
 *                                                             /  | |  \       *
-* Copyright 1992-2023 Edison Design Group Inc.                   [_]          *
+* Copyright 1992-2025 Edison Design Group Inc.                   [_]          *
 *                                                                             *
 ******************************************************************************/

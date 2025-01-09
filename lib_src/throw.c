@@ -4,7 +4,7 @@
 * Edison Design Group C++ Runtime                            - | \^/ | -      *
 *                                                               \   /         *
 *                                                             /  | |  \       *
-* Copyright 1992-2023 Edison Design Group Inc.                   [_]          *
+* Copyright 1992-2025 Edison Design Group Inc.                   [_]          *
 *                                                                             *
 ******************************************************************************/
 /*
@@ -1228,7 +1228,7 @@ and the copy that is integrated into the evaluation.
   tsep->throw_marker.next = __curr_eh_stack_entry;
   __curr_eh_stack_entry = &tsep->throw_marker;
   tsep->object_evaluation_complete = TRUE;
-}  /* exception_started */
+}  /* __exception_started */
 
 
 EXTERN_C void __exception_caught(void)
@@ -2067,6 +2067,6 @@ built without exception handling support.  This version does nothing.
 * Edison Design Group C++ Runtime                            - | \^/ | -      *
 *                                                               \   /         *
 *                                                             /  | |  \       *
-* Copyright 1992-2023 Edison Design Group Inc.                   [_]          *
+* Copyright 1992-2025 Edison Design Group Inc.                   [_]          *
 *                                                                             *
 ******************************************************************************/
