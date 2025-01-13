@@ -13737,15 +13737,16 @@ points to the template parameter list.
     type_kind = type->kind;
     /* Normalize the type kinds so that class and struct are treated as the
        same kind. */
-    if (templ_type_kind == (a_type_kind)tk_struct) {
-      templ_type_kind = (a_type_kind)tk_class;
+    if (templ_type_kind == tk_struct) {
+      templ_type_kind = tk_class;
     }  /* if */
-    if (type_kind == (a_type_kind)tk_struct) {
-      type_kind = (a_type_kind)tk_class;
+    if (type_kind == tk_struct) {
+      type_kind = tk_class;
     }  /* if */
     if (templ_type_kind != type_kind &&
-        !(templ_type_kind == (a_type_kind)tk_class &&
-         type_kind == (a_type_kind)tk_union)) {
+        !(templ_type_kind == tk_class && type_kind == tk_union) &&
+        !(type_kind == tk_typeref &&
+          (get_type_qualifiers(type) & ~TRANSPARENT_QUALIFIERS) == TQ_NONE)) {
       /* Stop early if the type kinds don't match.  An exception is made
          for a class/union mismatch that can be valid if the template
          type is based on a template template parameter. */
@@ -13825,8 +13826,11 @@ points to the template parameter list.
             /* Qualifiers match.  See if the underlying types do, too. */
             tp = skip_typerefs_not_dependent_decltypes(
                                                    type->variant.typeref.type);
-            ttp = skip_typerefs_not_dependent_decltypes(
-                                             templ_type->variant.typeref.type);
+            ttp = templ_type;
+            if (templ_type_kind == tk_typeref) {
+              ttp = skip_typerefs_not_dependent_decltypes(
+                                                   ttp->variant.typeref.type);
+            }  /* if */
             match = matches_template_type(tp, ttp, templ_arg_list,
                                           templ_param_list,
                                           new_flags);

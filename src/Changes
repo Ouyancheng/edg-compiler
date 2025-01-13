@@ -1,5 +1,22 @@
 Version 6.7
 
+1/13/25  [EDGcpfe/27831]
+Clang compatibility: Deduction from _Nullable types
+
+Consider, in Clang mode:
+
+  int g(char *_Nullable *p);
+  template <typename T> int f(int (*pf)(T**)) {
+    return pf(nullptr);
+  }
+  int x = f(&g);  // Previously failed deduction.  Now okay.
+
+Previously, this failed template deduction because the front end expected the
+_Nullable qualifier in the parameter type of g(...) to match a qualifier in
+the parameter of pf (which doesn't actually include any qualifier).  That is
+now fixed.
+
+
 1/6/25   [EDGcpfe/27804]
 Variable initialization bugs
 
