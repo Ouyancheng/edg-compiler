@@ -975,7 +975,7 @@ entry.
 {
   char *entity = (char*)type;
 
-  if (type->kind == (a_type_kind)tk_class &&
+  if (type_is(type, tk_class) &&
       type->variant.class_struct_union.proxy_class) {
     /* If this class is a proxy class for a template parameter, use the
        template parameter as the entity. */
@@ -990,7 +990,7 @@ entry.
       entity = (char *)type;
 #endif /* ABI_COMPATIBILITY_VERSION >= 414 */
     }  /* if */
-  } else if (type->kind == (a_type_kind)tk_typeref) {
+  } else if (type_is(type, tk_typeref)) {
 #if ABI_COMPATIBILITY_VERSION >= 402
     if (emulate_gnu_abi_bugs &&
         is_typeref_kind(type, trk_is_decltype) &&
@@ -1005,7 +1005,21 @@ entry.
 #endif /* ABI_COMPATIBILITY_VERSION >= 402 */
     /* Do not insert code here. */
     {
-      entity = (char*)skip_typedefs_not_dependent_decltypes(type);
+      type = skip_typedefs_not_dependent_decltypes(type);
+      if (type_is(type, tk_typeref)) {
+        a_type_qualifier_set  tqs = type->variant.typeref.qualifiers;
+        if ((tqs & TRANSPARENT_QUALIFIERS) != TQ_NONE) {
+          /* Ignore any "transparent" type qualifiers; i.e., qualifiers that
+             are only meant as information to a back end but do not affect the
+             type itself. */
+          type = type->variant.typeref.type;
+          tqs = tqs & ~TRANSPARENT_QUALIFIERS;
+          if (tqs != TQ_NONE) {
+            type = make_qualified_type(type, tqs);
+          }  /* if */
+        }  /* if */
+      }  /* if */
+      entity = (char*)type;
     }  /* if */
   }  /* if */
   return entity;
@@ -10458,7 +10472,7 @@ as needed.
 #endif /* ABI_COMPATIBILITY_VERSION < 230 */
   a_const_char *s = NULL;
   a_type_qualifier_set
-               qualifiers;
+               qualifiers = TQ_NONE;
 #if IA64_ABI
   a_type_ptr   qualified_type = type;
   a_boolean    saved_force_dependent_array_mangling;
@@ -10482,15 +10496,13 @@ as needed.
      and skip down to the "real" underlying type.  decltype and typeof typerefs
      are handled here.  Template alias typerefs are stripped here so that the
      underlying type is mangled. */
-  qualifiers = 0;
   /*lint --e{446} type modified in loop (LINTBUG) */
-  for (; type->kind == (a_type_kind)tk_typeref;
-       type = type->variant.typeref.type) {
+  for (; type_is(type, tk_typeref); type = type->variant.typeref.type) {
 #if IA64_ABI && ABI_COMPATIBILITY_VERSION >= 402
 top_of_loop:
 #endif /* IA64_ABI && ABI_COMPATIBILITY_VERSION >= 402 */
     /* Remember type qualifiers encountered. */
-    qualifiers |= type->variant.typeref.qualifiers;
+    qualifiers |= (type->variant.typeref.qualifiers & ~TRANSPARENT_QUALIFIERS);
 #if ABI_COMPATIBILITY_VERSION < 230
     /* Remember the bottommost named typedef encountered. */
     if (has_name(type)) named_typedef = type;
@@ -10536,7 +10548,7 @@ top_of_loop:
               goto end_of_routine;
             }  /* if */
 #endif /* ABI_COMPATIBILITY_VERSION >= 405 */
-            if (type->kind == (a_type_kind)tk_typeref) {
+            if (type_is(type, tk_typeref)) {
               /* The type is a typeref of sorts; jump to the top of this
                  loop to process it. */
               goto top_of_loop;
