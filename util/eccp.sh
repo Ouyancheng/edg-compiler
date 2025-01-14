@@ -846,6 +846,9 @@ check_abbreviation()
 --g++
 --gcc
 --gcc89_inlining
+--gen_c_clang_version
+--gen_c_gnu_version
+--gen_c_msvc_version
 --gen_move_operations
 --gnu_version
 --guiding_decls
@@ -883,10 +886,9 @@ check_abbreviation()
 --microsoft_build_number
 --microsoft_version
 --mmap_address
+--module_import_diagnostics
 --module_init
 --modules
---module_import_diagnostics
---no_module_import_diagnostics
 --modules_directory
 --ms_await
 --ms_await_strict
@@ -914,6 +916,7 @@ check_abbreviation()
 --ms_strict_ternary
 --ms_translate_include
 --mscorlib_file_name
+--msvc_target_version
 --multibyte_chars
 --multi_trans_unit
 --munch
@@ -994,18 +997,20 @@ check_abbreviation()
 --no_lambdas
 --no_line_commands
 --no_long_preserving_rules
+--no_lossy_conversion_warning
 --no_macro_positions_in_diagnostics
 --no_microsoft
 --no_microsoft_bugs
+--no_module_import_diagnostics
 --no_modules
 --no_ms_compatibility
---no_ms_std_preprocessor
 --no_ms_cplusplus_std_value
 --no_ms_extensions
 --no_ms_internal_partition
 --no_ms_mod_interface
 --no_ms_permissive
 --no_ms_rvalue_cast
+--no_ms_std_preprocessor
 --no_ms_stdc
 --no_ms_strict_ternary
 --no_ms_translate_include
@@ -1013,7 +1018,6 @@ check_abbreviation()
 --no_named_address_spaces
 --no_named_registers
 --no_namespaces
---no_lossy_conversion_warning
 --no_nonconst_ref_anachronism
 --no_nonstd_anonymous_unions
 --no_nonstd_default_arg_deduction
@@ -1037,9 +1041,9 @@ check_abbreviation()
 --no_short_enums
 --no_special_subscript_cost
 --no_standard_includes
+--no_std_libs
 --no_stdarg_builtin
 --no_stdc_zero_in_system_headers
---no_std_libs
 --no_strict_gnu
 --no_sun
 --no_sun_linker_scope
@@ -1935,6 +1939,10 @@ process_option()
          --ms_header_unit_quote | \
          --gnu_version | \
          --clang_version | \
+         --gen_c_clang_version | \
+         --gen_c_gnu_version | \
+         --gen_c_msvc_version | \
+         --msvc_target_version | \
 	 --definition_list_file | \
          --pending_instantiations | \
          --preinclude | \
@@ -2047,6 +2055,10 @@ process_option()
           --ms_header_unit_quote=* | \
           --gnu_version=* | \
           --clang_version=* | \
+          --gen_c_clang_version=* | \
+          --gen_c_gnu_version=* | \
+          --gen_c_msvc_version=* | \
+          --msvc_target_version=* | \
           --pending_instantiations=* | \
           --preinclude=* | \
           --preinclude_macros=* | \
