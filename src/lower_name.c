@@ -1009,7 +1009,7 @@ entry.
       if (type_is(type, tk_typeref)) {
         a_type_qualifier_set  tqs = type->variant.typeref.qualifiers;
         if ((tqs & TRANSPARENT_QUALIFIERS) != TQ_NONE) {
-          /* Ignore any "transparent" type qualifiers; i.e., qualifiers that
+          /* Ignore any "transparent" type qualifiers, i.e., qualifiers that
              are only meant as information to a back end but do not affect the
              type itself. */
           type = type->variant.typeref.type;
