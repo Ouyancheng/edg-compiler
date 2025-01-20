@@ -1312,22 +1312,21 @@ being formed and is used to eliminate redundant file names in a diagnostic.
 }  /* form_source_position */
 
 
-static void form_function_template_param_list(a_symbol_ptr	sym)
+static void form_function_template_param_list(a_symbol_ptr sym)
 /*
 Display the parameter list of the function template specified by sym.
 */
 {
-  a_template_symbol_supplement_ptr	tssp;
-  a_template_param_ptr			tpp;
-  a_template_decl_info_ptr		decl_info;
+  check_assertion(sym->kind == sk_function_template);
+  a_template_symbol_supplement_ptr tssp = sym->variant.template_info;
 
-  check_assertion(sym->kind == (a_symbol_kind)sk_function_template);
-  tssp = sym->variant.template_info;
   /* Only display the parameter list if the function template makes use
      of template parameters that are not part of the function signature. */
   if (tssp->variant.function.template_param_not_in_function_type) {
-    decl_info = tssp->variant.function.decl_cache.decl_info;
-    tpp = decl_info->parameters;
+    a_template_decl_info_ptr decl_info = tssp->variant.function.decl_cache->
+                                                                     decl_info;
+    a_template_param_ptr     tpp = decl_info->parameters;
+
     if (tpp != NULL) {
       add_string_to_text_buffer(msg_buffer, "<");
       for (; tpp != NULL; tpp = tpp->next) {
@@ -1413,10 +1412,11 @@ level.
       case sk_class_or_struct_tag:
       case sk_union_tag:
         {
-          a_type_ptr	tp = sym->variant.class_struct_union.type;
+          a_type_ptr tp = sym->variant.class_struct_union.type;
+
           sym_is_specialized = tp->variant.class_struct_union.is_specialized;
           tap = templ_arg_list_for_class(tp);
-          decl_info = tssp->cache.decl_info;
+          decl_info = tssp->cache->decl_info;
         }
         break;
       case sk_routine:
@@ -1425,15 +1425,16 @@ level.
           a_routine_ptr	rp = sym->variant.routine.ptr;
           if (!rp->is_prototype_instantiation) {
             tap = rp->template_arg_list;
-            decl_info = tssp->variant.function.decl_cache.decl_info;
+            decl_info = tssp->variant.function.decl_cache->decl_info;
           }  /* if */
         }
         break;
       case sk_static_data_member:
       case sk_variable:
         {
-          a_variable_ptr	vp = variable_for_symbol(sym);
-          decl_info = tssp->variant.variable.decl_cache.decl_info;
+          a_variable_ptr vp = variable_for_symbol(sym);
+
+          decl_info = tssp->variant.variable.decl_cache->decl_info;
           tap = vp->template_info->template_arg_list;
         }
         break;
@@ -8589,14 +8590,14 @@ the diagnostic specified by diag.
 
 #endif /* !STANDALONE_UTILITY_PROGRAM */
 
-void Fill_in<a_source_position*>::add(a_diagnostic_ptr  diag,
-                                      a_source_position *value)
+void Fill_in<const a_source_position*>::add(a_diagnostic_ptr        diag,
+                                            const a_source_position *value)
 /*
 Add a position fill-in entry for the given source position (value) to the
 diagnostic specified by diag.
 */
 {
-  add_position_fill_in(diag, value);
+  add_position_fill_in(diag, const_cast<a_source_position*>(value));
 }  /* Fill_in<a_source_position*>::add */
 
 

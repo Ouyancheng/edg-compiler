@@ -4697,7 +4697,7 @@ succeeds, FALSE if it fails.
     goto end_of_routine;
   }  /* if */
   templ_params = template_supplement_for_symbol(template_sym)
-                          ->variant.function.decl_cache.decl_info->parameters;
+                          ->variant.function.decl_cache->decl_info->parameters;
   if (ptp != NULL && ptp->is_parameter_pack) {
     /* For a parameter pack, we'll be iterating over several arguments
        that match the same parameter. */
@@ -4876,7 +4876,7 @@ deduction failed.
              mess up the deduced template argument list. */
           a_template_param_ptr templ_params =
                         template_supplement_for_symbol(template_sym)
-                           ->variant.function.decl_cache.decl_info->parameters;
+                          ->variant.function.decl_cache->decl_info->parameters;
           if (is_expression_component(alep) &&
               tentatively_matches_template_type(
                                           operand_of_arg_list_elem(alep)->type,
@@ -16136,7 +16136,7 @@ not_direct_binding_case:
                                                   return_type :
                                                   skip_typerefs(return_type),
                                 &template_arg_list,
-                                tssp->variant.function.decl_cache.
+                                tssp->variant.function.decl_cache->
                                                          decl_info->parameters,
                                 MTT_NO_FLAGS)) {
         /* Match. */
@@ -16144,7 +16144,7 @@ not_direct_binding_case:
                                  eff_dest_type,
                                  return_type,
                                  &template_arg_list,
-                                 tssp->variant.function.decl_cache.
+                                 tssp->variant.function.decl_cache->
                                                          decl_info->parameters,
                                  MTT_IS_CONVERSION_TEMPLATE |
                                    MTT_ALLOW_STRICTER_NOEXCEPT)) {
@@ -16156,7 +16156,7 @@ not_direct_binding_case:
                   matches_template_type(eff_dest_type,
                                         return_type,
                                         &template_arg_list,
-                                        tssp->variant.function.decl_cache.
+                                        tssp->variant.function.decl_cache->
                                                          decl_info->parameters,
                                         MTT_NO_FLAGS))) {
         /* Match with added cv-qualification under reference. */

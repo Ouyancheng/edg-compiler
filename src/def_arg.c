@@ -76,7 +76,8 @@ entry and initialize it.
   /* Clear the entity. */
   daefp->next = NULL;
   daefp->param_type = NULL;
-  clear_template_cache(&daefp->cache, /*reusable=*/FALSE);
+  new (&daefp->cache) a_template_cache();
+  clear_template_cache(&daefp->cache);
   daefp->param_number = 0;
 
   return daefp;
@@ -114,6 +115,7 @@ available-list.
 */
 {
   if (daefp != NULL) {
+    daefp->cache.~a_template_cache();
     free_def_arg_expr_fixup(daefp->next);
     daefp->next = avail_def_arg_expr_fixup;
     avail_def_arg_expr_fixup = daefp;
@@ -158,7 +160,6 @@ is_function_template or is_template_param are FALSE.
   }  /* if */
   incr_token_set_array_element(stop_tokens, tok_rparen);
   incr_token_set_array_element(stop_tokens, tok_semicolon);
-  clear_token_cache(token_cache, /*reusable=*/TRUE);
   /* When scanning a template default argument add ">" to the stop tokens. */
   if (is_template_param) {
     incr_token_set_array_element(stop_tokens, tok_gt);
@@ -197,11 +198,6 @@ is_function_template or is_template_param are FALSE.
                          /*include_last_token=*/
                                                curr_token == tok_end_of_source,
                          token_cache);
-  /* Normally tokens are cached directly into a reusable cache or are
-     moved from one reusable cache to another.  In this case, however,
-     the tokens are being copied from one reusable cache to another.
-     Update the token handles to refer to the copy of the cached token. */
-  adjust_token_handles(token_cache);
   ssep = &scope_stack[depth_scope_stack];
   dps = ssep->decl_parse_state;
   if (!is_template_param &&
@@ -227,7 +223,7 @@ is_function_template or is_template_param are FALSE.
                    first_tsn, last_tsn);
     tcsp->is_default_arg = TRUE;
     /* Check for the case where the cache is empty. */
-    tcsp->expression_missing = token_cache->first_token == NULL;
+    tcsp->expression_missing = token_cache->is_empty();
   }  /* if */
   /* Note that the terminating token (comma, rparen, etc.) is not added to
      the cache. */
@@ -250,23 +246,18 @@ position of the parameter in the parameter list.  If list or ptp is NULL,
 scan the default argument expression but discard the token cache.
 */
 {
-  a_def_arg_expr_fixup_ptr  new_daefp, daefp;
-  a_token_cache             token_cache;
+  a_def_arg_expr_fixup_ptr new_daefp, daefp;
+  a_scanning_token_cache   token_cache(/*is_reusable=*/TRUE);
 
   db_enter(3, "prescan_default_function_arg_expr");
   /* Scan the default argument expression. */
-  prescan_default_argument(&token_cache, /*is_template_param=*/FALSE,
+  prescan_default_argument(token_cache.ptr(), /*is_template_param=*/FALSE,
                            is_function_template, is_friend_decl);
-  if (list == NULL || ptp == NULL) {
-    /* Either no list pointer, or no param type pointer was passed by
-       the caller.  This indicates that the argument information should
-       simply be discarded. */
-    discard_token_cache(&token_cache);
-  } else {
+  if (list != NULL && ptp != NULL) {
     /* Allocate a default arg expr fixup entry. */
     new_daefp = alloc_def_arg_expr_fixup();
     new_daefp->param_type = ptp;
-    new_daefp->cache.tokens = token_cache;
+    new_daefp->cache.tokens = shared_obj<a_token_cache>(*token_cache);
     new_daefp->param_number = param_number;
     /* Add the entry to the end of the list of default arg expr fixup entries
        for the current routine fixup. */

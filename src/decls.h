@@ -1959,8 +1959,8 @@ void update_variable_decl_modifiers(a_decl_parse_state  *dps);
 #define update_variable_decl_modifiers(a) /* nothing */
 #endif /* !DECL_MODIFIERS_IN_USE */
 
-extern void check_default_args_for_param_type(a_param_type_ptr  ptp,
-                                              a_source_position *pos);
+extern void check_default_args_for_param_type(a_param_type_ptr        ptp,
+                                              const a_source_position *pos);
 
 extern a_boolean deleted_or_defaulted_def_next(a_boolean  *defaulted);
 

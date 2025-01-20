@@ -749,9 +749,9 @@ NORETURN extern void str_errno_catastrophe(an_error_code error_code,
                                            a_const_char  *error_string,
                                            int           errno_value);
 /* Interfaces for producing multiple message diagnostics. */
-extern a_diagnostic_ptr pos_start_diagnostic(an_error_severity  error_severity,
-                                             an_error_code      error_code,
-                                             a_source_position  *error_pos);
+extern a_diagnostic_ptr pos_start_diagnostic(an_error_severity error_severity,
+                                             an_error_code     error_code,
+                                             a_source_position *error_pos);
 extern a_diagnostic_ptr pos_ty_start_diagnostic(
                                     an_error_severity  error_severity,
                                     an_error_code      error_code,
@@ -1074,12 +1074,22 @@ struct Fill_in<unsigned> : Fill_in<unsigned long long> {
 #endif /* !STANDALONE_UTILITY_PROGRAM */
 
 /*
+A diagnostic fill-in for const source positions.
+*/
+template<>
+struct Fill_in<const a_source_position*> {
+  static void add(a_diagnostic_ptr        diag,
+                  const a_source_position *value);
+};  /* Fill_in */
+
+/*
 A diagnostic fill-in for source positions.
 */
 template<>
 struct Fill_in<a_source_position*> {
   static void add(a_diagnostic_ptr  diag,
-                  a_source_position *value);
+                  a_source_position *value)
+    { Fill_in<const a_source_position*>::add(diag, value); }
 };  /* Fill_in */
 
 /*
@@ -1159,19 +1169,21 @@ extern void append_to_diag_list(a_diag_list_ptr  diag_list,
 }  /* detail */
 
 template<typename... a_Fill_in_type>
-inline a_diagnostic_ptr pos_start_diagnostic(an_error_severity error_severity,
-                                             an_error_code     error_code,
-                                             a_source_position *error_pos,
-                                             a_Fill_in_type... fill_ins)
+inline a_diagnostic_ptr pos_start_diagnostic(
+                                        an_error_severity       error_severity,
+                                        an_error_code           error_code,
+                                        const a_source_position *error_pos,
+                                        a_Fill_in_type...       fill_ins)
 /*
 Begin a multiple message diagnostic with the specified severity, error code,
 source position, and fill-ins.  Return a pointer to the diagnostic entry that
 will be passed in for the subsequent messages.
 */
 {
-  a_diagnostic_ptr diag = detail::create_primary_diagnostic(error_code,
-                                                            error_pos,
-                                                            error_severity);
+  a_diagnostic_ptr diag = detail::create_primary_diagnostic(
+                                     error_code,
+                                     const_cast<a_source_position*>(error_pos),
+                                     error_severity);
 
   /* The following expression is expanded to effectively evaluate as:
 
@@ -1311,10 +1323,10 @@ the subsequent messages.
 
 
 template<typename... a_Fill_in_type>
-inline void pos_diagnostic(an_error_severity error_severity,
-                           an_error_code     error_code,
-                           a_source_position *error_pos,
-                           a_Fill_in_type... fill_ins)
+inline void pos_diagnostic(an_error_severity       error_severity,
+                           an_error_code           error_code,
+                           const a_source_position *error_pos,
+                           a_Fill_in_type...       fill_ins)
 /*
 Report the indicated diagnostic with the specified error severity, error code,
 source position, and fill-ins.
@@ -1328,9 +1340,9 @@ source position, and fill-ins.
 
 
 template<typename... a_Fill_in_type>
-inline void pos_remark(an_error_code     error_code,
-                       a_source_position *error_pos,
-                       a_Fill_in_type... fill_ins)
+inline void pos_remark(an_error_code           error_code,
+                       const a_source_position *error_pos,
+                       a_Fill_in_type...       fill_ins)
 /*
 Report the indicated remark with the specified error code, source position, and
 fill-ins.
@@ -1341,9 +1353,9 @@ fill-ins.
 
 
 template<typename... a_Fill_in_type>
-inline void pos_warning(an_error_code     error_code,
-                        a_source_position *error_pos,
-                        a_Fill_in_type... fill_ins)
+inline void pos_warning(an_error_code           error_code,
+                        const a_source_position *error_pos,
+                        a_Fill_in_type...       fill_ins)
 /*
 Report the indicated warning with the specified error code, source position,
 and fill-ins.
@@ -1354,9 +1366,9 @@ and fill-ins.
 
 
 template<typename... a_Fill_in_type>
-inline void pos_error(an_error_code     error_code,
-                      a_source_position *error_pos,
-                      a_Fill_in_type... fill_ins)
+inline void pos_error(an_error_code           error_code,
+                      const a_source_position *error_pos,
+                      a_Fill_in_type...       fill_ins)
 /*
 Report the indicated error with the specified error code, source position, and
 fill-ins.
@@ -1367,9 +1379,9 @@ fill-ins.
 
 
 template<typename... a_Fill_in_type>
-inline void pos_catastrophe(an_error_code     error_code,
-                            a_source_position *error_pos,
-                            a_Fill_in_type... fill_ins)
+inline void pos_catastrophe(an_error_code           error_code,
+                            const a_source_position *error_pos,
+                            a_Fill_in_type...       fill_ins)
 /*
 Report the indicated catastrophe with the specified error code, source
 position, and fill-ins.

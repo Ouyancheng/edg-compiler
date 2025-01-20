@@ -81,7 +81,7 @@ extern void field_initializer(a_decl_parse_state  *dps);
 
 extern a_field_ptr curr_initializer_field(void);
 
-extern a_token_cache_ptr cache_inclass_initializer(a_symbol_ptr  sym);
+extern a_shared_token_cache cache_inclass_initializer(a_symbol_ptr  sym);
 
 #if NEED_NAME_MANGLING
 extern a_discriminator get_discriminator_for_field_initializer(void);

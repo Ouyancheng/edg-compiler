@@ -2803,7 +2803,7 @@ there.
      position associated with the token string. */
   init_token_string(&ppp->id_position, /*keep_spacing=*/FALSE,
                     /*suppress_identifier_wrapping=*/FALSE);
-  add_token_cache_to_string(&ppp->token_cache);
+  add_token_cache_to_string(ppp->token_cache.ptr());
   /* Copy the string to IL memory. */
   ppp->pragma_text = make_copy_of_token_string();
 #if DEBUG
@@ -2816,7 +2816,7 @@ there.
 
 
 static void cache_pragma_tokens(
-		a_pending_pragma_ptr		ppp,
+		a_token_cache                   *token_cache,
 		a_pragma_kind_description_ptr	pkdp,
 		a_boolean			is_microsoft_pragma_operator)
 /*
@@ -2834,7 +2834,7 @@ Microsoft __pragma operator.*/
   a_boolean	save_in_preprocessing_directive;
 
   /* Cache the pragma identifier. */
-  cache_curr_token(&ppp->token_cache);
+  cache_curr_token(token_cache);
   /* Save the current value of the lexical scanning mode flags. */
   save_expand_macros = expand_macros;
   save_caching_pragma_tokens = caching_pragma_tokens;
@@ -2862,18 +2862,18 @@ Microsoft __pragma operator.*/
     incr_token_set_array_element(stop_tokens, tok_newline);
     incr_token_set_array_element(stop_tokens, tok_end_of_source);
     incr_token_set_array_element(stop_tokens, tok_rparen);
-    cache_token_stream(&ppp->token_cache, stop_tokens);
+    cache_token_stream(token_cache, stop_tokens);
   } else {
     /* A normal #pragma or C99-style _Pragma.  Cache the tokens until an
        end-of-line is found. */
     for (;;) {
       if (curr_token == tok_newline || curr_token == tok_end_of_source) break;
-      cache_curr_token(&ppp->token_cache);
+      cache_curr_token(token_cache);
       (void)get_token();
     }  /* for */
   }  /* if */
   /* Terminate the token cache. */
-  terminate_token_cache(&ppp->token_cache);
+  terminate_token_cache(token_cache);
   /* Restore the previous values. */
   expand_macros = save_expand_macros;
   caching_pragma_tokens = save_caching_pragma_tokens;
@@ -2952,17 +2952,22 @@ or __pragma, but not #pragma).
 #endif /* DEBUG */
     }  /* if */
   } else {
-    /* Cache the tokens that make up the pragma directive. */
-    if (pkdp->read_string_as_header_name) {
-      /* The pragma may have a string in which escape sequences are to be
-         ignored (e.g., a Windows-style path name with backslash as the
-         directory separator).  Scan such strings as header names. */
-      exp_header_name = TRUE;
-      cache_pragma_tokens(ppp, pkdp, is_microsoft_pragma_operator);
-      exp_header_name = FALSE;
-    } else {
-      cache_pragma_tokens(ppp, pkdp, is_microsoft_pragma_operator);
-    }  /* if */
+    a_scanning_token_cache scanning_cache(/*reusable=*/TRUE);
+
+    { Value_saver<a_boolean> saed_expr_header_name(&exp_header_name);
+
+      /* Cache the tokens that make up the pragma directive. */
+      if (pkdp->read_string_as_header_name) {
+        /* The pragma may have a string in which escape sequences are to be
+           ignored (e.g., a Windows-style path name with backslash as the
+           directory separator).  Scan such strings as header names. */
+        exp_header_name = TRUE;
+      }  /* if */
+      cache_pragma_tokens(scanning_cache.ptr(), pkdp,
+                          is_microsoft_pragma_operator);
+    }
+    /* Copy from the scan cache into a persistent cache. */
+    ppp->token_cache = shared_obj<a_token_cache>(*scanning_cache);
     if (pkdp->record_pragma_text) {
       /*  The character string representation is usually used for pragmas that
           are to be passed to the C or C++ generating back end, but may be
@@ -2974,9 +2979,7 @@ or __pragma, but not #pragma).
        reasons, the cache does not include the pragma identifier, but
        it must be cached initially so that it can be included in the
        pragma string when making text, not tokens. */
-    remove_token_from_cache(ppp->token_cache.first_token,
-                            &ppp->token_cache.first_token,
-                            &ppp->token_cache);
+    ppp->token_cache->remove_first_token();
   }  /* if */
   if (pkdp->binding_kind == pbk_preproc_immediate) {
     /* Process a "preprocessing immediate" pragma.  Such pragmas are
@@ -3650,17 +3653,22 @@ If there are any current token pragmas that are C99 predefined pragmas
 (or predefined fixed-point pragmas), process them now.
 */
 {
-  a_pending_pragma_ptr	ppp;
-  a_pending_pragma_ptr	prev_ppp = NULL;
-  a_pending_pragma_ptr	next_ppp;
+  /* Swap out the current token pragmas so that calls to process_stdc_pragma do
+     not attempt to save the current token's pragmas (which this function is
+     manipulating). */
+  a_pending_pragma_ptr ppp_start = curr_token_pragmas;
+  a_pending_pragma_ptr ppp = ppp_start;
+  a_pending_pragma_ptr prev_ppp = NULL;
+  a_pending_pragma_ptr next_ppp;
 
-  for (ppp = curr_token_pragmas; ppp != NULL; ppp = next_ppp) {
+  curr_token_pragmas = NULL;
+  for (; ppp != NULL; ppp = next_ppp) {
     next_ppp = ppp->next;
     if (ppp->descr_ptr->kind == (a_pragma_kind)pk_stdc) {
       process_stdc_pragma(ppp);
       /* Unlink this entry from the list of current token pragmas. */
       if (prev_ppp == NULL) {
-        curr_token_pragmas = ppp->next;
+        ppp_start = ppp->next;
       } else {
         prev_ppp->next = ppp->next;
       }  /* if */
@@ -3669,6 +3677,7 @@ If there are any current token pragmas that are C99 predefined pragmas
       prev_ppp = ppp;
     }  /* if */
   }  /* for */
+  curr_token_pragmas = ppp_start;
 }  /* check_for_stdc_pragmas */
 
 #if GNU_EXTENSIONS_ALLOWED
@@ -4385,24 +4394,42 @@ process them now.  sp should point to the block statement in which the
 pragma appears.
 */
 {
+  a_pending_pragma_ptr  upc_ppp = NULL;
+  a_pending_pragma_ptr  upc_ppp_tail = NULL;
   a_pending_pragma_ptr  ppp;
   a_pending_pragma_ptr  prev_ppp = NULL;
   a_pending_pragma_ptr  next_ppp;
 
+  /* Extract the upc pragmas from the current token pragmas.  This prevents
+     modifications to the curr_token_pragmas list that occur during processing
+     from causing bugs. */
   for (ppp = curr_token_pragmas; ppp != NULL; ppp = next_ppp) {
     next_ppp = ppp->next;
     if (ppp->descr_ptr->kind == (a_pragma_kind)pk_upc) {
-      process_upc_pragma(ppp, sp);
       /* Unlink this entry from the list of current token pragmas. */
       if (prev_ppp == NULL) {
         curr_token_pragmas = ppp->next;
       } else {
         prev_ppp->next = ppp->next;
       }  /* if */
-      free_pending_pragma(ppp);
+      ppp->next = NULL;
+      /* Link this entry into a new list of upc pragmas. */
+      if (upc_ppp == NULL)  {
+        upc_ppp = ppp;
+      }  /* if */
+      if (upc_ppp_tail != NULL) {
+        upc_ppp_tail->next = ppp;
+      }  /* if */
+      upc_ppp_tail = ppp;
     } else {
       prev_ppp = ppp;
     }  /* if */
+  }  /* for */
+  /* Process and free the UPC pragmas. */
+  for (ppp = upc_ppp; ppp != NULL; ppp = next_ppp) {
+    next_ppp = ppp->next;
+    process_upc_pragma(ppp, sp);
+    free_pending_pragma(ppp);
   }  /* for */
 }  /* check_for_upc_pragmas */
 

@@ -660,7 +660,6 @@ resulting type.  See also scan_top_level_generated_code (which is similar).
   push_lexical_state_stack();
   /* Inject an end-of-source token into the token stream to prevent
      reading past the end. */
-  clear_token_cache(&cache, /*reusable=*/FALSE);
   terminate_token_cache(&cache);
   rescan_cached_tokens(&cache);
   /* Insert the builtin function type into the token stream. */

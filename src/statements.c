@@ -254,7 +254,6 @@ next token is a right brace.  In GNU C++ mode, empty statements are not skipped
   a_boolean      result = FALSE, semicolon_seen = FALSE;
   a_token_cache  cache;
 
-  clear_token_cache(&cache, /*reusable=*/FALSE);
   for (;;) {
     switch (curr_token) {
       case tok_rbrace:
@@ -3961,18 +3960,18 @@ Return TRUE if the current token sequence starts with "using <id> =".
   a_boolean  result = FALSE;
 
   if (curr_token == tok_using) {
-    a_token_cache  cache;
-    clear_token_cache(&cache, /*reusable=*/FALSE);
-    cache_curr_token(&cache);
+    a_tiny_scanning_token_cache  cache(/*reusable=*/FALSE);
+
+    cache_curr_token(cache.ptr());
     (void)get_token();
     if (curr_token == tok_identifier) {
-      cache_curr_token(&cache);
+      cache_curr_token(cache.ptr());
       (void)get_token();
       if (curr_token == tok_assign) {
         result = TRUE;
       }  /* if */
     }  /* if */
-    rescan_cached_tokens(&cache);
+    rescan_cached_tokens(cache.ptr());
   }  /* if */
   return result;
 }  /* alias_decl_next */
@@ -4267,7 +4266,6 @@ The syntax is:
              constexpr ifs in the prototype instantiation.  A copy will be made
              when this is added to the hash table. */
           cicip_to_create = &local_cici;
-          clear_constexpr_if_cache_info(cicip_to_create);
           cicip_to_create->token_cache = get_token_cache_being_scanned();
         }  /* if */
       } else {
@@ -4283,8 +4281,9 @@ The syntax is:
            currently being scanned. */
         cicip_to_use = check_constexpr_if_cache_hash_table(start_tsn);
         check_assertion(cicip_to_use == NULL ||
-                        cicip_to_use->ending_handle->token_sequence_number >
-                                                   curr_token_sequence_number);
+                        ((*(cicip_to_use->end_start_it))->
+                                                   get_starting_seq_number() >
+                                                  curr_token_sequence_number));
       }  /* if */
       cip->value_known = value_known;
       cip->value = expr_is_true;
@@ -4310,11 +4309,11 @@ The syntax is:
     (void)select_curr_construct_pragmas(/*add_to_list=*/FALSE);
     discard_curr_construct_pragmas();
     if (cicip_to_use != NULL &&
-        skip_to_token_handle_location(cicip_to_use->token_cache,
-                                      cicip_to_use->else_handle !=
-                                                         NO_CACHED_TOKEN_HANDLE
-                                              ? cicip_to_use->else_handle
-                                              : cicip_to_use->ending_handle)) {
+        skip_to_token_handle_location(cicip_to_use->token_cache.ptr(),
+                                      cicip_to_use->else_start_it !=
+                                                       a_token_cache_iterator()
+                                              ? cicip_to_use->else_start_it
+                                              : cicip_to_use->end_start_it)) {
       /* We were able to skip directly to the "else" or final token of a
          constexpr if. */
     } else {
@@ -4363,7 +4362,7 @@ The syntax is:
     if (cicip_to_create != NULL) {
       /* Record the cached token handle of the start of the "else"
          clause (for a constexpr if). */
-      cicip_to_create->else_handle = curr_cached_token_handle;
+      cicip_to_create->else_start_it = find_iter_for_curr_rescan_token();
     }  /* if */
     (void)get_token();
     if (is_if_consteval) {
@@ -4392,8 +4391,8 @@ The syntax is:
       (void)select_curr_construct_pragmas(/*add_to_list=*/FALSE);
       discard_curr_construct_pragmas();
       if (cicip_to_use != NULL &&
-          skip_to_token_handle_location(cicip_to_use->token_cache,
-                                        cicip_to_use->ending_handle)) {
+          skip_to_token_handle_location(cicip_to_use->token_cache.ptr(),
+                                        cicip_to_use->end_start_it)) {
         /* We were able to skip directly to the final token of a constexpr
            if. */
       } else {
@@ -4430,7 +4429,7 @@ The syntax is:
       /* The caching mechanism cannot be used if immediately followed by
          a pragma. */
     } else {
-      cicip_to_create->ending_handle = curr_cached_token_handle;
+      cicip_to_create->end_start_it = find_iter_for_curr_rescan_token();
       add_to_constexpr_if_cache_hash_table(cicip_to_create, start_tsn);
     }  /* if */
   }  /* if */
@@ -8262,7 +8261,7 @@ is being parsed within the context of the __extension__ keyword.
            for the next one now. */
         an_il_entity_list_entry  *ielep = scope_stack_top().injections;
         a_token_sequence         *tsp = (a_token_sequence*)ielep->entity.ptr;
-        rescan_reusable_cache((a_token_cache*)tsp->token_cache);
+        rescan_persistent_reusable_cache((a_token_cache*)tsp->token_cache);
         scope_stack_top().injections = ielep->next;
         injected_stmt = TRUE;
       }  /* if */

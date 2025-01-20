@@ -1016,15 +1016,15 @@ type-constraint followed by "auto" or, if decltype_auto_okay is TRUE, by
 "decltype(auto)".  (decltype_auto_okay defaults to FALSE.)
 */
 {
-  a_boolean      result, discard_curr_token = FALSE;
-  a_token_cache  cache;
+  a_boolean               result;
+  a_boolean               discard_curr_token = FALSE;
+  a_scanning_token_cache  cache;
 
-  clear_token_cache(&cache, /*reusable=*/FALSE);
   /* Cache and skip the concept name.  Note that it may be a qualified name
      that has been coalesced already.  So that part should not be handled by
      the background caching approach used to cache the optional argument list
      that follows. */
-  cache_curr_token(&cache);
+  cache_curr_token(cache.ptr());
   (void)get_token();
   if (curr_token == tok_lt) {
     a_token_sequence_number  start_tsn = curr_token_sequence_number;
@@ -1048,13 +1048,13 @@ type-constraint followed by "auto" or, if decltype_auto_okay is TRUE, by
     end_caching_fetched_tokens();
     copy_tokens_from_cache(curr_lexical_state_cache(), start_tsn,
                            last_token_sequence_number_of_token,
-                           /*include_last_token=*/TRUE, &cache);
+                           /*include_last_token=*/TRUE, cache.ptr());
     discard_curr_token = (curr_token != tok_end_of_source);
   }  /* if */
   result = (curr_token == tok_auto ||
             (decltype_auto_okay && curr_token == tok_decltype &&
              decltype_auto_tokens_next()));
-  f_rescan_cached_tokens(&cache, discard_curr_token);
+  rescan_cached_tokens(cache.ptr(), discard_curr_token);
   return  result;
 }  /* type_constraint_followed_by_auto */
 
@@ -1394,12 +1394,12 @@ of declarations that are permitted.
     /* The __extension__ keyword could be followed by an arbitrary expression
        or declaration.  Cache the token and recursively examine what
        follows. */
-    a_token_cache  cache;
-    clear_token_cache(&cache, /*reusable=*/FALSE);
-    cache_curr_token(&cache);
+    a_tiny_scanning_token_cache  cache;
+
+    cache_curr_token(cache.ptr());
     (void)get_token();
     is_start = is_decl_start(options);
-    rescan_cached_tokens(&cache);
+    rescan_cached_tokens(cache.ptr());
 #if SUN_EXTENSIONS_ALLOWED
   } else if (is_sun_link_scope_specifier()) {
     is_start = TRUE;
@@ -3769,7 +3769,7 @@ when the declaration is a friend declaration within a class.
             a_template_decl_ptr               tdp;
             a_requires_clause_ptr             old_rcp;
             tssp = fund_other_decl->variant.template_info;
-            tdip = tssp->variant.function.decl_cache.decl_info;
+            tdip = tssp->variant.function.decl_cache->decl_info;
             rp = tssp->variant.function.routine;
             tdp = tdip->template_decl;
 #if MICROSOFT_EXTENSIONS_ALLOWED
@@ -5673,8 +5673,8 @@ is the position of a previous declaration.
 }  /* check_for_linkage_conflict */
 
 
-void check_default_args_for_param_type(a_param_type_ptr  ptp,
-                                       a_source_position *pos)
+void check_default_args_for_param_type(a_param_type_ptr        ptp,
+                                       const a_source_position *pos)
 /*
 Given a param type pointer, make sure that any parameter with a default
 argument value is followed only by other parameters with defaults or by a
@@ -8771,7 +8771,7 @@ given position is non-NULL, issue one or more errors as appropriate.
     }  /* if */
     result = FALSE;
   }  /* if */
-  tpp = tssp->variant.function.decl_cache.decl_info->parameters;
+  tpp = tssp->variant.function.decl_cache->decl_info->parameters;
   check_assertion(tpp != NULL);
   if (symbol_is(tpp->param_symbol, sk_type) &&
       string_literal_operator_template_allowed) {
@@ -11260,7 +11260,7 @@ definition of a member function of a class template.
       tssp->is_variadic = decl_state->is_variadic;
       tssp->has_variadic_template_params =
                                       decl_state->has_variadic_template_params;
-      if (tssp->variant.function.decl_cache.decl_info == NULL) {
+      if (tssp->variant.function.decl_cache->decl_info == NULL) {
         /* If this is the initial declaration of this template, set the
            template cache information to point to the template declaration
            information that was passed in.  This must be done now so that
@@ -11268,8 +11268,8 @@ definition of a member function of a class template.
            other routines that are called below.  This includes the
            diagnostic routines that make use of the template parameter
            list in diagnostic output. */
-        set_template_cache_info(&tssp->variant.function.decl_cache,
-                                (a_token_cache_ptr)NULL,
+        set_template_cache_info(tssp->variant.function.decl_cache,
+                                a_reusable_token_cache(),
                                 templ_decl_info);
       }  /* if */
       rout_ptr = NULL;
@@ -11554,7 +11554,7 @@ definition of a member function of a class template.
       a_type_ptr          new_type;
       new_type = substitute_template_arguments(
                       sym, locator->template_arg_list, &new_arg_list,
-                      tssp->variant.function.decl_cache.decl_info->parameters,
+                      tssp->variant.function.decl_cache->decl_info->parameters,
                       CTWS_NO_OPTIONS);
       template_args_okay = new_type != NULL;
       free_template_arg_list(new_arg_list);
@@ -14173,7 +14173,8 @@ generated code) not delimited by braces.
          for the next one now. */
       an_il_entity_list_entry  *ielep = scope_stack_top().injections;
       a_token_sequence         *tsp = (a_token_sequence*)ielep->entity.ptr;
-      rescan_reusable_cache((a_token_cache*)tsp->token_cache);
+
+      rescan_persistent_reusable_cache(((a_token_cache*)tsp->token_cache));
       scope_stack_top().injections = ielep->next;
       injected_decl = TRUE;
     }  /* if */
@@ -16871,10 +16872,10 @@ there are attributes in that position.
             /* There might be attributes following the name.  Those attributes
                can affect whether an undefined name is valid.  So cache the
                current identifier and prescan any such attributes first. */
-            a_token_cache     cache;
-            an_attribute_ptr  attributes;
-            clear_token_cache(&cache, /*reusable=*/FALSE);
-            cache_curr_token(&cache);
+            a_tiny_scanning_token_cache cache;
+            an_attribute_ptr            attributes;
+
+            cache_curr_token(cache.ptr());
             (void)get_token();
             attributes = scan_attributes(al_post_using_declarator);
             if (attributes != NULL) {
@@ -16886,7 +16887,7 @@ there are attributes in that position.
               unscan_attributes(attributes);
             }  /* if */
             /* Restore the identifier token for lookup. */
-            rescan_cached_tokens(&cache);
+            rescan_cached_tokens(cache.ptr());
           }  /* if */
           if (has_if_exists) {
             /* The Clang attribute "using_if_exists" is present either as a
@@ -17996,9 +17997,9 @@ routine also works in Microsoft modes that do not have a keyword "default".
         defaulted_special_members_enabled) {
       /* "default" is not a keyword: Use an explicit token cache to examine
          the spelling of the second token if necessary. */
-      a_token_cache  cache;
-      clear_token_cache(&cache, /*reusable=*/FALSE);
-      cache_curr_token(&cache);
+      a_tiny_scanning_token_cache  cache;
+
+      cache_curr_token(cache.ptr());
       (void)get_token();
       if (deleted_functions_enabled && curr_token == tok_delete) {
         result = TRUE;
@@ -18009,7 +18010,7 @@ routine also works in Microsoft modes that do not have a keyword "default".
         result = TRUE;
         *defaulted = TRUE;
       }  /* if */
-      rescan_cached_tokens(&cache);
+      rescan_cached_tokens(cache.ptr());
     } else {
       /* Both "delete" and "default" are keywords: Just call next_token() to
          examine the token that follows the "=". */
@@ -18033,18 +18034,17 @@ Return TRUE if the upcoming tokens in the token stream are "decltype(auto)".
 The caller already ensured the current token is "decltype".
 */
 {
-  a_boolean      result = FALSE;
-  a_token_cache  cache;
+  a_boolean                    result = FALSE;
+  a_tiny_scanning_token_cache  cache;
 
   check_assertion(curr_token == tok_decltype);
-  clear_token_cache(&cache, /*reusable=*/FALSE);
-  cache_curr_token(&cache);
+  cache_curr_token(cache.ptr());
   (void)get_token();
   if (curr_token == tok_lparen) {
-    cache_curr_token(&cache);
+    cache_curr_token(cache.ptr());
     (void)get_token();
     if (curr_token == tok_auto) {
-      cache_curr_token(&cache);
+      cache_curr_token(cache.ptr());
       (void)get_token();
       if (curr_token == tok_rparen) {
         result = TRUE;
@@ -18052,7 +18052,7 @@ The caller already ensured the current token is "decltype".
     }  /* if */
   }  /* if */
   /* Restore the token state. */
-  rescan_cached_tokens(&cache);
+  rescan_cached_tokens(cache.ptr());
   return result;
 }  /* decltype_auto_tokens_next */
 
@@ -18895,10 +18895,10 @@ errors occur, return an error type.
        the integer kind for the index. */
     a_template_symbol_supplement_ptr
                           tssp = te_sym->variant.template_info;
-    a_template_param_ptr  tpp;
+    a_template_param_ptr  tpp = tssp->variant.class_template.
+                                     initial_decl_cache->decl_info->parameters;
     a_type_ptr            n_type;
-    tpp = tssp->variant.class_template.initial_decl_cache.decl_info
-              ->parameters;
+
     if (tpp == NULL || !symbol_is(tpp->param_symbol, sk_constant)) {
       if (diag_pos != NULL) {
         pos_error(ec_missing_std_tuple_element, diag_pos);
@@ -19214,8 +19214,7 @@ early so that cases like "auto [x] = x;" are diagnosed.
   }  /* if */
 #endif /* CHECKING */
   flush_past_token_cache_terminator();
-  free_token_cache(dps->variant.struct_bindings_cache);
-  dps->variant.struct_bindings_cache = NULL;
+  delete_fe(&dps->variant.struct_bindings_cache);
   if (switched_region) {
     switch_back_to_original_region(region_to_switch_back_to);
   }  /* if */
@@ -20802,20 +20801,20 @@ to be present (without actually parsing the attributes).
       if (!attributes_on_using_declarations) {
         result = TRUE;
       } else {
-        a_token_cache  cache;
+        a_scanning_token_cache cache;
+
         has_attribute = TRUE;
-        clear_token_cache(&cache, /*reusable=*/FALSE);
-        cache_curr_token(&cache);
+        cache_curr_token(cache.ptr());
         /* Skip past tok_identifier. */
         (void)get_token();
         add_stop_token(tok_semicolon);
         /* Skip attributes. */
-        cache_attributes(&cache);
+        cache_attributes(cache.ptr());
         if (curr_token == tok_assign) {
           result = TRUE;
         }  /* if */
         remove_stop_token(tok_semicolon);
-        rescan_cached_tokens(&cache);
+        rescan_cached_tokens(cache.ptr());
       }  /* if */
     }  /* if */
   }  /* if */
@@ -20867,10 +20866,10 @@ to:
      we see a token sequence number previously encountered, the token cache
      containing the rewritten code of the original encounter is reused. */
   if (rewritten_code == NULL) {
-    a_source_position  start_pos = pos_curr_token;
-    a_token_kind       prev_token;
+    a_source_position start_pos = pos_curr_token;
+    a_token_kind      prev_token;
 
-    rewritten_code = alloc_token_cache(/*reusable=*/TRUE);
+    rewritten_code = new_fe<a_token_cache>(/*reusable=*/TRUE);
     (void)consteval_blocks->map(curr_token_sequence_number, rewritten_code);
     insert_string_into_token_stream("static_assert(([]() consteval->void ",
                                     /*insert_after=*/TRUE,
@@ -20934,7 +20933,7 @@ to:
       (void)get_token();
     }  /* while */
   }  /* if */
-  rescan_reusable_cache(rewritten_code);
+  rescan_persistent_reusable_cache(rewritten_code);
 }  /* rewrite_consteval_block */
 
 
@@ -21184,19 +21183,19 @@ processing should proceed after the call.
                              !state->function_definition_allowed;
     end_potential_abbr_func_templ_caching(state);
     if (!is_asm_decl) {
-      a_token_cache  cache;
-      clear_token_cache(&cache, /*reusable=*/FALSE);
-      cache_curr_token(&cache);
+      a_tiny_scanning_token_cache  cache;
+
+      cache_curr_token(cache.ptr());
       (void)get_token();
       if (curr_token == tok_lparen) {
         is_asm_decl = TRUE;
       } else if (gnu_mode && curr_token == tok_volatile) {
         /* GNU compilers permit "asm volatile (...)". */
-        cache_curr_token(&cache);
+        cache_curr_token(cache.ptr());
         (void)get_token();
         if (curr_token == tok_lparen) is_asm_decl = TRUE;
       }  /* if */
-      rescan_cached_tokens(&cache);
+      rescan_cached_tokens(cache.ptr());
     }  /* if */
     if (is_asm_decl) {
       /* Scan the asm declaration. */
@@ -21959,6 +21958,7 @@ statement.  Return TRUE if the expected declaration that follows has the
   if (curr_token == tok_identifier) {
     a_token_cache            cache;
     a_token_sequence_number  start_tsn = curr_token_sequence_number;
+
     begin_caching_fetched_tokens(/*include_curr_token=*/TRUE);
     (void)get_token();
     if (curr_token == tok_lbracket) {
@@ -21968,13 +21968,12 @@ statement.  Return TRUE if the expected declaration that follows has the
     }  /* if */
     result = curr_token == tok_colon;
     end_caching_fetched_tokens();
-    clear_token_cache(&cache, /*reusable=*/FALSE);
     /* Get the tokens that were fetched by this routine from the cache
        that has been accumulated and rescan them. */
     copy_tokens_from_cache(curr_lexical_state_cache(), start_tsn,
                            last_token_sequence_number_of_token,
                            /*include_last_token=*/TRUE, &cache);
-    f_rescan_cached_tokens(
+    rescan_cached_tokens(
                &cache, /*discard_curr_token=*/curr_token != tok_end_of_source);
   }  /* if */
   return result;
@@ -22580,7 +22579,6 @@ scanning C++/CLI and C++/CX generics, and is FALSE when scanning builtin
 templates (e.g., __make_integer_seq).
 */
 {
-  a_token_cache     cache;
 #if MICROSOFT_EXTENSIONS_ALLOWED
   a_boolean         saved_scanning_generated_code_from_metadata;
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
@@ -22621,9 +22619,10 @@ templates (e.g., __make_integer_seq).
        NULL source position. */
     insert_position = null_source_position;
   }  /* if */
+
   /* Inject an end-of-source token into the token stream to prevent
      any over reading the token stream. */
-  clear_token_cache(&cache, /*reusable=*/FALSE);
+  a_token_cache cache;
   terminate_token_cache(&cache);
   rescan_cached_tokens(&cache);
   /* Insert the generated code into the token stream. */

@@ -246,14 +246,16 @@ typedef struct a_tmpl_decl_state {
 			/* When the template definition appears in a class
 			   scope, this points to the class type of the
 			   enclosing class, otherwise contains NULL. */
-  a_token_cache	param_list_cache;
+  a_shared_token_cache
+		param_list_cache;
 			/* Token cache containing the template parameter
 			   list(s). */
   a_token_sequence_number
 		first_decl_cache_tsn;
 			/* The token sequence number of the first token that
 			   should be included in the decl_token_cache. */
-  a_token_cache	decl_token_cache;
+  a_shared_token_cache
+		decl_token_cache;
 			/* Token cache containing the template declaration
 			   (the portion that follows the template parameter
 			   list(s)). */
@@ -570,11 +572,11 @@ Return the list of template parameters for the given template.
                         tssp = template_sym->variant.template_info;
 
   if (symbol_is(template_sym, sk_function_template)) {
-    params = tssp->variant.function.decl_cache.decl_info->parameters;
+    params = tssp->variant.function.decl_cache->decl_info->parameters;
   } else if (symbol_is(template_sym, sk_variable_template)) {
-    params = tssp->variant.variable.decl_cache.decl_info->parameters;
+    params = tssp->variant.variable.decl_cache->decl_info->parameters;
   } else {
-    params = tssp->cache.decl_info->parameters;
+    params = tssp->cache->decl_info->parameters;
   }  /* if */
   return params;
 }  /* templ_params_of */
@@ -1224,8 +1226,6 @@ extern void scan_lambda_template_param_list(a_tmpl_decl_state   *templ_state,
 extern
 void set_up_generic_lambda_declarator_scan(a_decl_parse_state  *dps,
                                            a_tmpl_decl_state   *templ_state);
-
-extern void wrap_up_generic_lambda_scan(a_tmpl_decl_state   *templ_state);
 #endif /* !STANDALONE_UTILITY_PROGRAM */
 
 extern void update_friend_info_for_specialization(a_type_ptr	class_type);

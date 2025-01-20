@@ -816,18 +816,16 @@ the token that represents the beginning of a class body: tok_lbrace in the
 normal case, and tok_end_of_source during template prescanning.
 */
 {
-  a_token_cache  orig_token_cache;
-  a_token_cache  transformed_token_cache;
-  a_token_kind   tok;
-  a_token_kind   orig_next_tok;
-  a_boolean      valid = FALSE;
-  a_boolean      transformed_cache_used = FALSE;
-  a_boolean      identifier_cached = FALSE;
+  a_scanning_token_cache      transformed_token_cache;
+  a_tiny_scanning_token_cache orig_token_cache(/*reusable=*/TRUE);
+  a_token_kind                tok;
+  a_token_kind                orig_next_tok;
+  a_boolean                   valid = FALSE;
+  a_boolean                   identifier_cached = FALSE;
 
   check_assertion(curr_token == tok_identifier);
-  clear_token_cache(&orig_token_cache, /*reusable=*/TRUE);
   /* Cache the first identifier. */
-  cache_curr_token(&orig_token_cache);
+  cache_curr_token(orig_token_cache.ptr());
   if (!tag_name_first) {
     identifier_cached = TRUE;
   }  /* if */
@@ -835,10 +833,10 @@ normal case, and tok_end_of_source during template prescanning.
   /* Cache additional identifiers (if any). */
   while (tok == tok_identifier) {
     identifier_cached = TRUE;
-    cache_curr_token(&orig_token_cache);
+    cache_curr_token(orig_token_cache.ptr());
     tok = get_token();
   }  /* while */
-  terminate_token_cache(&orig_token_cache);
+  terminate_token_cache(orig_token_cache.ptr());
   if (identifier_cached &&
       (tok == body_start || tok == tok_colon ||
        tok == tok_removed_template_body)) {
@@ -846,19 +844,17 @@ normal case, and tok_end_of_source during template prescanning.
        context-sensitive keywords.  Make an additional pass over the
        cached tokens, turning the identifiers into keywords when
        possible.  Construct a new cache containing the new tokens. */
-    rescan_reusable_cache(&orig_token_cache);
+    rescan_shared_reusable_cache(shared_obj<a_token_cache>(*orig_token_cache));
     *next_tok = tok;
-    clear_token_cache(&transformed_token_cache, /*reusable=*/FALSE);
     if (tag_name_first) {
-      cache_curr_token(&transformed_token_cache);
-      transformed_cache_used = TRUE;
+      cache_curr_token(transformed_token_cache.ptr());
       (void)get_token();
     }  /* if */
     for (; curr_token != tok_end_of_source; (void)get_token()) {
       if (check_context_sensitive_keyword(tok_final, "final") ||
           ((gpp_version_is(>= 40700) || clang_mode) &&
            check_context_sensitive_keyword(tok_final, "__final"))) {
-        cache_curr_token(&transformed_token_cache);
+        cache_curr_token(transformed_token_cache.ptr());
         /* If we found any context-sensitive keywords, we should use the
            transformed cache. */
         valid = TRUE;
@@ -867,7 +863,7 @@ normal case, and tok_end_of_source during template prescanning.
                  (microsoft_version >= 1400 || cli_or_cx_enabled) &&
                  (check_context_sensitive_keyword(tok_abstract, "abstract") ||
                   check_context_sensitive_keyword(tok_sealed, "sealed"))) {
-        cache_curr_token(&transformed_token_cache);
+        cache_curr_token(transformed_token_cache.ptr());
         /* If we found any context-sensitive keywords, we should use the
            transformed cache. */
         valid = TRUE;
@@ -882,16 +878,11 @@ normal case, and tok_end_of_source during template prescanning.
      scanning the original token stream. */
   if (valid) {
     *next_tok = tok;
-    rescan_cached_tokens(&transformed_token_cache);
+    rescan_cached_tokens(transformed_token_cache.ptr());
   } else {
     *next_tok = orig_next_tok;
-    rescan_copy_of_cache(&orig_token_cache);
-    if (transformed_cache_used) {
-      /* Free any cached tokens in the transformed cache. */
-      discard_token_cache(&transformed_token_cache);
-    }  /* if */
+    rescan_copy_of_cache(orig_token_cache.ptr());
   }  /* if */
-  discard_token_cache(&orig_token_cache);
 }  /* check_for_class_modifiers */
 
 
@@ -928,13 +919,13 @@ lambda, not the definition of X).
     } else if (explicit_enum_base_enabled) {
       /* An enum type with an explicit base, or a bit field declaration of
          enum type.  More lookahead is required to distinguish the two. */
-      a_token_cache  cache;
-      clear_token_cache(&cache, /*reusable=*/FALSE);
+      a_scanning_token_cache  cache;
+
       /* Skip past the colon.  (Since next_tok == tok_colon, we know that
          either the current token or one that follows soon after the current
          token is a colon.) */
       for (;;) {
-        cache_curr_token(&cache);
+        cache_curr_token(cache.ptr());
         if (curr_token == tok_colon) break;
         check_assertion(curr_token != tok_end_of_source);
         (void)get_token();
@@ -945,7 +936,7 @@ lambda, not the definition of X).
       result = is_decl_not_expr(DFS_ABSTRACT_DECLARATOR_ALLOWED |
                                 DFS_SINGLE_TYPE_REQUIRED |
                                 DFS_POSSIBLE_ENUM_BASE);
-      rescan_cached_tokens(&cache);
+      rescan_cached_tokens(cache.ptr());
     } else {
       result = FALSE;
     }  /* if */
@@ -6028,22 +6019,25 @@ is updated to reflect relevant positions of this definition.
     tcsp = get_template_cache_segment(tag_sym, tssp, first_tsn,
                                       curr_token_sequence_number);
     end_caching_fetched_tokens();
+    if (tssp->cache->tokens.ptr() == NULL) {
+      tssp->cache->tokens = shared_obj<a_token_cache>(/*is_reusable=*/TRUE);
+    }  /* if */
     copy_tokens_from_cache(curr_lexical_state_cache(),
                            tcsp->first_token_number,
                            curr_token_sequence_number,
                            /*include_last_token=*/TRUE,
-                           &tssp->cache.tokens);
+                           tssp->cache->tokens.ptr());
     if (is_scoped_enum) {
       /* Scoped enums are instantiated when needed.  Unscoped enums are
          instantiated when their declaration is encountered in the
          instantiation of the enclosing class.  For the latter case we
          don't add a cache terminator as the tokens will appear to occur
          as part of the enum declaration in class instantiations. */
-      terminate_token_cache(&tssp->cache.tokens);
+      terminate_token_cache(tssp->cache->tokens.ptr());
     }  /* if */
     /* Update the template decl info based on the parent class. */
-    set_template_cache_info(&tssp->cache, (a_token_cache_ptr)NULL,
-                            class_tssp->cache.decl_info);
+    set_template_cache_info(tssp->cache, a_reusable_token_cache(),
+                            class_tssp->cache->decl_info);
   }  /* if */
   /* Check for and pass over the closing "}". */
   (void)required_token(tok_rbrace, ec_exp_rbrace, ec_matching_lbrace,
@@ -6833,8 +6827,8 @@ template.  dsi_flags is the set of input flags passed to decl_specifiers.
            if the enumeration were defined inside the class. */
         a_template_cache_ptr			tcp;
         tcp = cache_for_template(tssp);
-        if (tcp->tokens.first_token != NULL) {
-          rescan_reusable_cache(&tcp->tokens);
+        if (!tcp->tokens.is_empty()) {
+          rescan_reusable_cache(tcp->tokens);
           is_definition = TRUE;
           /* Save the position of the reference that caused the
              instantiation. */
@@ -7285,15 +7279,14 @@ the current declaration is that of a constructor (possibly, a C++/CLI static
 constructor).
 */
 {
-  a_boolean          is_constructor = FALSE;
-  a_symbol_ptr       tag_sym, sym;
-  a_symbol_ptr       ctor_type_sym;
-  a_symbol_ptr       fund_ctor_type_sym = NULL;
-  a_token_cache      cache;
-  a_boolean          cache_in_use = FALSE;
-  a_source_position  pos;
-  a_boolean          name_match = FALSE;
-  a_boolean          type_mismatch = FALSE;
+  a_boolean              is_constructor = FALSE;
+  a_symbol_ptr           tag_sym, sym;
+  a_symbol_ptr           ctor_type_sym;
+  a_symbol_ptr           fund_ctor_type_sym = NULL;
+  a_source_position      pos;
+  a_boolean              name_match = FALSE;
+  a_boolean              type_mismatch = FALSE;
+  a_scanning_token_cache scanning_cache;
 
   db_enter(4, "is_constructor_decl");
   if (ms_extensions &&
@@ -7305,10 +7298,8 @@ constructor).
         class_type->kind == (a_type_kind)tk_union))) {
     /* In Microsoft mode it is possible to use an elaborated type name to
        declare a constructor.  E.g. "struct S { struct S(); };". */
-    clear_token_cache(&cache, /*reusable=*/FALSE);
-    cache_in_use = TRUE;
     /* Put the current token in the cache. */
-    cache_curr_token(&cache);
+    cache_curr_token(scanning_cache.ptr());
     (void)get_token();
   }  /* if */
   /* See whether the name of the current identifier token is the same as
@@ -7385,28 +7376,24 @@ constructor).
     if ((!locator_for_curr_id.is_qualified_name || ms_extensions) &&
         !locator_for_curr_id.is_conversion_name &&
         !locator_for_curr_id.is_operator_name) {
-      if (!cache_in_use) {
-        clear_token_cache(&cache, /*reusable=*/FALSE);
-        cache_in_use = TRUE;
-      }  /* if */
       /* Put the current token in the cache. */
-      cache_curr_token(&cache);
+      cache_curr_token(scanning_cache.ptr());
       (void)get_token();
       /* If standard attributes are next, cache them. */
       while (std_attribute_tokens_next()) {
-        cache_std_attribute_group(&cache);
+        cache_std_attribute_group(scanning_cache.ptr());
       }  /* while */
       /* Skip right parentheses that may enclose the declarator---e.g.,
          "struct S { (((S)))(); };"---and advance to what may be a left
          parenthesis: */
       while (curr_token == tok_rparen) {
-        cache_curr_token(&cache);
+        cache_curr_token(scanning_cache.ptr());
         (void)get_token();
       }  /* while */
       /* A left parenthesis presumably starts a parameter declaration list: */
       if (curr_token == tok_lparen) {
         /* Cache the left parenthesis. */
-        cache_curr_token(&cache);
+        cache_curr_token(scanning_cache.ptr());
         /* Advance past it.  If the next token is a right paren or
            the start of a parameter declaration, this must be a
            constructor. */
@@ -7445,9 +7432,7 @@ constructor).
          resetting the current token state to what it was before token caching
          was started.  So the current token should again be the name of the
          class being defined. */
-      check_assertion(cache_in_use);
-      rescan_cached_tokens(&cache);
-      cache_in_use = FALSE;
+      rescan_cached_tokens(scanning_cache.ptr());
     }  /* if */
 #if MICROSOFT_EXTENSIONS_ALLOWED
     if (!name_match && is_constructor) {
@@ -7522,9 +7507,9 @@ constructor).
                               &locator_for_curr_id, &pos, is_cli_static_ctor);
     }  /* if */
   }  /* if */
-  if (cache_in_use) {
+  if (!scanning_cache->is_empty()) {
     /* If we haven't done so yet, reset the token stream. */
-    rescan_cached_tokens(&cache);
+    rescan_cached_tokens(scanning_cache.ptr());
   }  /* if */
   if (is_constructor && type_mismatch) {
     /* The type used to declare the constructor does not match the type
@@ -8520,16 +8505,15 @@ behavior of Microsoft compilers, and also enables better error recovery in
 other modes.
 */
 {
-  a_boolean      result = FALSE;
-  a_token_cache  cache;
+  a_boolean                   result = FALSE;
+  a_tiny_scanning_token_cache cache;
 
-  clear_token_cache(&cache, /*reusable=*/FALSE);
   /* Cache the identifier. */
   check_assertion(curr_token == tok_identifier && !C_mode());
-  cache_curr_token(&cache);
+  cache_curr_token(cache.ptr());
   (void)get_token();
   if (curr_token == tok_lparen) {
-    cache_curr_token(&cache);
+    cache_curr_token(cache.ptr());
     (void)get_token();
     if (!is_declarator_start() && !is_ptr_to_member_declarator_start()) {
       /* We're not dealing with a construct of the form
@@ -8540,7 +8524,7 @@ other modes.
     }  /* if */
   }  /* if */
   /* Restore the token state. */
-  rescan_cached_tokens(&cache);
+  rescan_cached_tokens(cache.ptr());
   return result;
 }  /* looks_like_member_function_declarator */
 
@@ -9702,14 +9686,13 @@ The caller has determined that the current token is "auto".  Return TRUE if it
 appears to be the introducer for a trailing return type.
 */
 {
-  a_boolean      result;
-  a_token_cache  cache;
+  a_boolean               result;
+  a_scanning_token_cache  cache;
 
-  clear_token_cache(&cache, /*is_reusable=*/FALSE);
   /* Cache the "auto" token. */
-  cache_curr_token(&cache);
+  cache_curr_token(cache.ptr());
   (void)get_token();
-  cache_attributes(&cache);
+  cache_attributes(cache.ptr());
   if (curr_token == tok_lparen) {
     /* A left parenthesis can be:
          (a) the start of a function declarator,
@@ -9731,14 +9714,15 @@ appears to be the introducer for a trailing return type.
     */        
     result = FALSE;
     for (int n = 0; n<2; ++n) {
-      if (cache_token_stream_until_matching_token(&cache, CTS_NO_OPTIONS)) {
+      if (cache_token_stream_until_matching_token(cache.ptr(),
+                                                  CTS_NO_OPTIONS)) {
         /* Did not find a matching tok_rparen. */
         break;
       } else  {
         /* Put the current token (tok_rparen) in the cache. */
-        cache_curr_token(&cache);
+        cache_curr_token(cache.ptr());
         (void)get_token();
-        cache_attributes(&cache);
+        cache_attributes(cache.ptr());
         if (curr_token == tok_arrow) {
           result = TRUE;
           break;
@@ -9751,17 +9735,18 @@ appears to be the introducer for a trailing return type.
     /* This identifier could be the name of a function/parameter, followed by
        a parenthesized parameter list, followed by a trailing return type. */
     /* Put the identifier in the cache. */
-    cache_curr_token(&cache);
+    cache_curr_token(cache.ptr());
     (void)get_token();
-    cache_attributes(&cache);
+    cache_attributes(cache.ptr());
     if (curr_token == tok_lparen) {
       result = FALSE;
-      if (!cache_token_stream_until_matching_token(&cache, CTS_NO_OPTIONS)) {
+      if (!cache_token_stream_until_matching_token(cache.ptr(),
+                                                   CTS_NO_OPTIONS)) {
         /* Found a matching tok_rparen: Cache it to see if it is followed by
            a "->" token. */
-        cache_curr_token(&cache);
+        cache_curr_token(cache.ptr());
         (void)get_token();
-        cache_attributes(&cache);
+        cache_attributes(cache.ptr());
         if (curr_token == tok_arrow) {
           result = TRUE;
         }  /* if */
@@ -9773,7 +9758,7 @@ appears to be the introducer for a trailing return type.
   } else {
     result = FALSE;
   }  /* if */
-  rescan_cached_tokens(&cache);
+  rescan_cached_tokens(cache.ptr());
   return result;
 }  /* auto_for_trailing_return_type */
 
@@ -10541,12 +10526,11 @@ or a storage class specifier.  Return TRUE if the tokens ahead might include a
 type name (if not, we can conclude that "auto" is a type specifier).
 */
 {
-  a_boolean      result = TRUE;
-  a_token_cache  cache;
+  a_boolean              result = TRUE;
+  a_scanning_token_cache cache;
 
-  clear_token_cache(&cache, /*is_reusable=*/FALSE);
   for (;;) {
-    cache_curr_token(&cache);
+    cache_curr_token(cache.ptr());
     (void)get_token();
     if (curr_token == tok_lparen || curr_token == tok_lbrace ||
         curr_token == tok_assign || curr_token == tok_star ||
@@ -10576,7 +10560,7 @@ type name (if not, we can conclude that "auto" is a type specifier).
     }  /* if */
   }  /* for */
 done:
-  rescan_cached_tokens(&cache);
+  rescan_cached_tokens(cache.ptr());
   return result;
 }  /* potential_type_ahead_heuristic */
 
@@ -12553,11 +12537,10 @@ general_identifier_case:
              is the start of a declarator, we may plausibly have something
              like "extern x y" or static x *z", where x can be interpreted
              as a type name. */
-          a_token_cache  cache;
+          a_tiny_scanning_token_cache  cache;
 
-          clear_token_cache(&cache, /*reusable=*/FALSE);
           /* Put the current token in the cache. */
-          cache_curr_token(&cache);
+          cache_curr_token(cache.ptr());
           /* Advance to next token. */
           (void)get_token();
           /* Check next token for start of a declarator.  "(" may be part
@@ -12568,7 +12551,7 @@ general_identifier_case:
             bad_type_name_error = TRUE;
           }  /* if */
           /* Restore the token state. */
-          rescan_cached_tokens(&cache);
+          rescan_cached_tokens(cache.ptr());
         }  /* if */
         if (bad_type_name_error) {
           report_bad_type_name(input_flags);

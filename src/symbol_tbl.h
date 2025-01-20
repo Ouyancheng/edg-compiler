@@ -70,6 +70,7 @@ typedef struct a_def_arg_expr_fixup *a_def_arg_expr_fixup_ptr;
    itself is defined in pragma.h.  This allows the pointer to be made
    available to symbol_tbl.h without creating recursive reference problems. */
 typedef struct a_pending_pragma *a_pending_pragma_ptr;
+typedef struct a_pending_pragma const* const a_const_pending_pragma_list;
 
 /* The pointer to a_translation_unit is declared here even though the struct
    itself is defined in trans_unit.h.  This allows the pointer to be made
@@ -1582,7 +1583,7 @@ typedef struct a_field_symbol_supplement {
 			/* This is used to match find the initializer from
 			   a prototype instantiation for a field in a
 			   real instantiation. */
-  a_token_cache_ptr
+  a_shared_token_cache
 		token_cache;
 			/* For a field that is a member of a template class
 			   (including prototype and real instantiations)
@@ -1636,18 +1637,19 @@ typedef struct a_static_data_member_supplement {
 			/* This is used to find the initializer from a
 			   prototype instantiation for a member in a real
 			   instantiation. */
-  a_token_cache_ptr
+  a_shared_token_cache
 		token_cache;
 			/* For a member of a template class (including
-			   prototype and real instantiations) this points to
-			   the cache containing the initializer, if any.  For
-			   real instantiations, this is copied from the entry
-			   from the prototype instantiation to the entry for
-			   the real instantiation when the real instantiation
-			   of the enclosing class is done.  NULL if there is no
-			   initializer, for members of non-template classes,
-			   and for members of template classes if an
-			   instantiation has been done. */
+			   prototype and real instantiations) this is the cache
+			   containing the initializer, if any.  For real
+			   instantiations, this is copied from the entry from
+			   the prototype instantiation to the entry for the
+			   real instantiation when the real instantiation of
+			   the enclosing class is done.  This is the default
+			   (empty) Shared_obj state if there is no initializer,
+			   for members of non-template classes, and for members
+			   of template classes if an instantiation has been
+			   done. */
   a_symbol_ptr
 		prototype_member;
 			/* For a member of an instance of a class template or
@@ -2031,21 +2033,21 @@ statements to permit the discarded parts of a template cache to be
 quickly skipped.
 */
 typedef struct a_constexpr_if_cache_info *a_constexpr_if_cache_info_ptr;
-typedef struct a_constexpr_if_cache_info {
-  a_token_cache_ptr
+struct a_constexpr_if_cache_info {
+  a_reusable_token_cache
 		token_cache;
 			/* Pointer to the token cache containing the
 			   tokens of the function containing the
 			   constexpr if. */
-  a_cached_token_handle
-		else_handle;
+  a_token_cache_iterator
+		else_start_it;
 			/* The cached token handle of the first token of
 			   the "else" of the constexpr if. */
-  a_cached_token_handle
-		ending_handle;
+  a_token_cache_iterator
+		end_start_it;
 			/* The cached token handle of the closing brace of
 			   constexpr if. */
-} a_constexpr_if_cache_info;
+};  /* a_constexpr_if_cache_info */
 
 
 /*
@@ -2140,8 +2142,8 @@ part of a template, and the information needed to recreate the context
 in which the tokens should be rescanned.
 */
 typedef struct a_template_cache {
-  a_token_cache	tokens;
-			/* The token cache containing the tokens. */
+  a_reusable_token_cache
+		tokens; /* A reusable token cache containing the tokens. */
   a_template_decl_info_ptr
 		decl_info;
 			/* Pointer to the template declaration information
@@ -2596,10 +2598,6 @@ functions of a class template definition.  This information is used
 to extract the member bodies from the enclosing token cache.
 */
 typedef struct a_template_cache_segment {
-  a_template_cache_segment_ptr
-		next;
-			/* Pointer to the next entry in a list of template
-			   cache segments. */
   a_symbol_ptr	symbol;
 			/* Pointer to the symbol entry for the member
 			   associated with this entry. */
@@ -2615,18 +2613,10 @@ typedef struct a_template_cache_segment {
 		last_token_number;
 			/* Token sequence number of the last token in
 			   the definition of the template. */
-  a_cached_token_ptr
-		before_first_token;
-			/* Pointer to the token before the first token of
-			   the cache.  This is initially set to NULL.
-			   Then, a pass is made through the enclosing
-			   token cache and the first and last token
-			   pointers in all of the associated template
-			   cache segment entries are updated. */
-  a_cached_token_ptr
-		last_token;
-			/* Pointer to the last token of the cache.  See
-			   first_token above. */
+  a_token_cache_ptr
+		source_cache;
+			/* The cache associated with the iterators
+			   before_first_token and last_token. */
   a_byte_boolean
 		is_friend;
 			/* TRUE if this entry represents a friend function. */
@@ -2702,13 +2692,12 @@ typedef struct an_out_of_class_partial_spec {
 typedef struct a_template_symbol_supplement {
   /* Additional information about a C++ class or function template
      supplementing the information residing in the class's symbol entry. */
-  a_template_cache
-		cache;
-                        /* The tokens comprising the template are cached
-                           in order to be rescanned later during
-                           instantiation.  Typically begins with the left
-			   brace that begins the class or function body and
-                           extends to the right brace; for constructors it
+  a_template_cache_ptr
+		cache;	/* The tokens comprising the template are cached
+			   in order to be rescanned later during
+			   instantiation.  Typically begins with the left
+			   brace that begins the class or function body	and
+			   extends to the right	brace; for constructors	it
 			   may begin at a colon.  For templates for static
 			   data members it embraces the initializer
 			   expression, if any. */
@@ -2920,7 +2909,7 @@ typedef struct a_template_symbol_supplement {
 			/* The C++17 deduction guides for a given primary class
 			   template.  Multiple guides are grouped in an
 			   overload set. */
-      a_template_cache
+      a_template_cache_ptr
 		initial_decl_cache;
 			/* For class templates, this represents the initial
 			   declaration of the class template.  If the
@@ -3120,7 +3109,7 @@ typedef struct a_template_symbol_supplement {
 			   this template declaration.  For a subordinate
 			   template this points to the default argument
 			   list of the prototype template. */
-      a_template_cache
+      a_template_cache_ptr
 		decl_cache;
 			/* A cache of the tokens that comprise the function
 			   declaration.  These are rescanned later to create
@@ -3130,7 +3119,7 @@ typedef struct a_template_symbol_supplement {
 			   closing ">" of the template parameter list) and
 			   ends with the last token of the function
 			   declarator. */
-      a_template_cache
+      a_template_cache_ptr
 		exception_spec_arg_cache;
 			/* Cache for the exception specification argument, to
 			   be instantiated when needed. */
@@ -3246,7 +3235,7 @@ typedef struct a_template_symbol_supplement {
 			/* Pointer to the variable for the prototype
 			   instantiation of a variable template or template
 			   static data member. */
-      a_template_cache
+      a_template_cache_ptr
 		decl_cache;
 			/* A cache of the tokens that comprise the out-of-class
 			   definition of the static data member.  This cache
@@ -5116,14 +5105,11 @@ extern void record_nondependent_call(
 
 extern a_templ_friend_info_ptr alloc_templ_friend_info(void);
 
-extern
-void clear_template_cache(a_template_cache_ptr	tcp,
-                          a_boolean		is_reusable);
+extern void clear_template_cache(a_template_cache_ptr tcp);
 
-extern
-void set_template_cache_info(a_template_cache_ptr	tcp,
-			     a_token_cache_ptr		tokens,
-			     a_template_decl_info_ptr	tdip);
+extern void set_template_cache_info(a_template_cache_ptr     tcp,
+                                    a_reusable_token_cache   tokens,
+                                    a_template_decl_info_ptr tdip);
 
 extern a_template_symbol_supplement_ptr alloc_template_symbol_supplement(
                                                          a_symbol_kind  kind);
@@ -6622,8 +6608,6 @@ extern void free_list_of_type_list_entries(a_type_list_entry_ptr slep);
 extern a_namespace_list_entry_ptr alloc_namespace_list_entry(void);
 extern
 void free_list_of_namespace_list_entries(a_namespace_list_entry_ptr nlep);
-extern
-void clear_constexpr_if_cache_info(a_constexpr_if_cache_info_ptr	cicip);
 extern a_template_param_ptr alloc_template_param(a_symbol_ptr sym);
 extern a_template_param_ptr make_copy_of_template_param_based_on_new_symbol(
 					a_template_param_ptr	orig_tpp,

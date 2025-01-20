@@ -62,24 +62,9 @@ EXTERN_THREAD a_token_sequence_number
 			/* The counter used to assign token sequence
 			   numbers. */
 
-#define NO_TOKEN_SEQUENCE_NUMBER (0)
+#define NO_TOKEN_SEQUENCE_NUMBER ((a_token_sequence_number)0)
 			/* The value used to indicate that no sequence number
 			   is present. */
-
-/*
-A type used to represent a token from a reusable cache.
-*/
-typedef a_cached_token_ptr a_cached_token_handle;
-
-EXTERN_THREAD a_cached_token_handle
-		curr_cached_token_handle;
-			/* If the current token originated from a reusable
-			   token cache, this is a handle that can be used
-			   to access that token from the reusable cache.
-			   It will be NO_CACHED_TOKEN_HANDLE if the token did
-			   not originate from a reusable cache. */
-
-#define NO_CACHED_TOKEN_HANDLE ((a_cached_token_handle)NULL)
 
 /* These declarations are placed here so that they will be defined before
    symbol_tbl.h is included. */
@@ -261,37 +246,1071 @@ enum an_identifier_lookup_mode {
   ilm_last
 };
 
+extern a_constant_ptr alloc_cached_constant();
+extern void free_cached_token_constant(a_constant_ptr cp);
 
-typedef struct a_token_cache {
-  /* Data structure used to hold a token cache, i.e., some number of
-     tokens that are being saved for later rescanning. */
+/* Forward declaration of make_fresh_copy_of_pragmas_on_list and
+   free_pending_pragma_list (defined in pragma.c). */
+extern a_pending_pragma_ptr make_copy_of_pragma_list(
+                                       a_pending_pragma const* const old_list);
+extern void free_pending_pragma_list(a_pending_pragma_ptr ppp);
 
-  inline a_boolean is_empty() const
-    { return this->first_token == NULL; }
-  a_token_cache_ptr
-		next;
-			/* Pointer to the next entry on the available list
-			   of freed entries. */
-  a_cached_token_ptr
-		first_token,
-		last_token;
-			/* First and last tokens on the list, or both NULL
-			   if the list is empty. */
+/*
+Forward declaration of types of extra information associated with a token
+(defined later in this file).
+*/
+struct a_pp_token_descr;
+struct an_extracted_template_descr;
+struct a_removed_expr_descr;
+struct a_ud_literal_descr;
+struct a_lexical_ifc_index_reference;
+
+/*
+Data structure used to save information about a token so that the token
+can be cached and then rescanned.  Note that this is never done with
+pp-tokens.  See cache_curr_token et al.
+*/
+enum a_token_extra_info_kind : a_byte {
+  /* Kind of additional information saved in a cached token entry. */
+  teik_none,            /* No extra information, i.e., normal token. */
+  teik_identifier,      /* Extra information for an identifier. */
+  teik_constant,        /* Extra information for a literal constant. */
+  teik_pragma,          /* Extra information for a pragma. */
+  teik_pp_token,        /* Extra information for a pp token. */
+  teik_extracted_body,  /* Extra information for an extracted template body. */
+  teik_removed_expr,    /* Extra information for a removed expression. */
+  teik_asm_string,      /* Extra information for a Microsoft asm block. */
+  teik_insert_string,   /* Extra information for an inserted token string. */
+  teik_ud_lit,          /* Extra information for a user-defined literal. */
+  teik_ifc_index        /* Extra information for a pseudo-token referring to a
+                           an IFC module node. */
+};
+
+/*
+Structure used to record information about a pp token in a token cache.
+*/
+struct a_pp_token_descr {
+  char		*token_start;
+			/* Pointer to the first character of the token. */
+  char		*token_end;
+			/* Pointer to the last character of the token.
+			   The last character will be followed by a null
+			   terminator. */
+};  /* a_pp_token_descr */
+using a_pp_token_descr_ptr = a_pp_token_descr*;
+
+/*
+Structure used to record information about a template body that has been
+extracted from the enclosing cache.  This is used to mark the body of a member
+function or member class template that has been extracted from its enclosing
+class template.  This is also used when creating template strings so that the
+nested template body can be put out as part of the template string for the
+enclosing template.
+*/
+struct an_extracted_template_descr {
+  a_symbol_ptr	symbol;
+			/* The symbol associated with the extracted body. */
   a_byte_boolean
-		is_reusable;
+		semicolon_inserted;
+			/* TRUE if the token with which this body is associated
+			   is a semicolon that was inserted after the body
+			   was removed. */
+};  /* an_extracted_template_descr */
+
+/*
+Structure used to record information about a tok_removed_expr token.
+*/
+struct a_removed_expr_descr {
+  inline a_removed_expr_descr();
+  inline ~a_removed_expr_descr();
+  a_token_cache  *cache;
+			/* A cache containing the removed tokens.  */
+};  /* a_removed_expr_descr */
+
+/*
+Structure used to record information about a user-defined literal token.
+*/
+struct a_ud_literal_descr {
+  a_constant_ptr
+		value_con;
+			/* Pointer to a constant entry (in front end
+			   storage) giving the value to be passed as the
+			   first argument to the literal operator
+			   designated by ud_lit_op_sym. */
+  a_constant_ptr
+		spelling_con;
+			/* Pointer to a ck_string constant entry (in front
+			   end storage) containing the characters of the
+			   token spelling with which the raw literal
+			   operator is to be invoked or the literal
+			   operator template is to be instantiated. */
+  a_symbol_ptr
+		op_sym;	/* The literal operator or literal operator template
+			   selected to produce the value of the literal, if
+			   any; otherwise, NULL. */
+  a_const_char
+		*suffix;
+			/* The identifier portion of the literal operator
+			   or literal operator template name (this is needed
+			   when a user-defined literal is used to declare
+			   the first literal operator or literal operator
+			   template with that name and thus there is no
+			   existing symbol for ud_lit_op_sym). */
+  a_type_ptr
+		type;	/* The type of the literal, to be passed to
+			   find_literal_operator when repeating the operator
+			   lookup for a cached token. */
+};  /* a_ud_literal_descr */
+
+
+/*
+A kind enum representing the possible indexes types represented by an instance
+of the a_lexical_ifc_index_reference.
+*/
+enum a_lexical_ifc_index_kind {
+  liik_decl_index,      /* IFC DeclIndex. */
+  liik_expr_index       /* IFC ExprIndex. */
+};
+
+/*
+Information on an IFC index to be used in conjunction with a_cached_token
+below, saved for later rescanning.  Separated from a_cached_token to allow for
+making this information available upon rescanning (see
+ifc_index_for_curr_token).
+*/
+struct a_lexical_ifc_index_reference {
+  uint32_t      sort;
+			/* The index sort in the IFC file used to address the
+			   node being referred to. */
+  uint32_t      index;
+			/* The index in the IFC file used to address the node
+			   being referred to. */
+  const void    *file;
+			/* An opaque pointer to the IFC module file
+			   (an_ifc_module_file) containing this declaration. */
+#if DEBUG
+  a_lexical_ifc_index_kind
+		reference_kind;
+			/* The kind of IFC index being referenced. */
+#endif /* DEBUG */
+};  /* a_lexical_ifc_index_reference */
+
+namespace detail {
+
+/*
+The base implementation for a_cached_token and an_immutable_cached_token.
+*/
+struct a_cached_token_base {
+  INLINE a_cached_token_base()
+    : a_cached_token_base(tok_error)
+    {}
+  INLINE a_cached_token_base(a_token_kind kind)
+    : a_cached_token_base(kind, null_source_position, NO_TOKEN_SEQUENCE_NUMBER)
+    {}
+  INLINE a_cached_token_base(a_token_kind            kind,
+                             const a_source_position &pos,
+                             a_token_sequence_number seq)
+    : a_cached_token_base(kind, pos, pos, seq, seq)
+    {}
+  INLINE a_cached_token_base(a_token_kind       kind,
+                        const a_source_position &pos,
+                        a_token_sequence_number start_seq,
+                        a_token_sequence_number end_seq)
+    : a_cached_token_base(kind, pos, pos, start_seq, end_seq)
+    {}
+  INLINE a_cached_token_base(a_token_kind                       kind,
+                             const a_source_position            &start_pos,
+                             ARG_UNUSED const a_source_position &end_pos,
+                             a_token_sequence_number            start_seq,
+                             a_token_sequence_number            end_seq)
+    : token(kind), source_position(start_pos),
+  #if EXTRA_SOURCE_POSITIONS_IN_IL
+      end_source_position(end_pos),
+  #endif /* EXTRA_SOURCE_POSITIONS_IN_IL */
+      token_sequence_number(start_seq), ending_token_sequence_number(end_seq),
+      extra_info_kind(teik_none)
+    {}
+  INLINE a_cached_token_base(const a_cached_token_base &other);
+  INLINE a_cached_token_base(a_cached_token_base &&other);
+  INLINE ~a_cached_token_base();
+
+  INLINE a_token_kind get_kind() const
+    { return this->token; }
+  INLINE a_token_extra_info_kind get_extra_kind() const
+    { return this->extra_info_kind; }
+
+  INLINE a_boolean is(a_token_kind tok_kind) const
+    { return this->token == tok_kind; }
+  INLINE a_boolean is(a_token_extra_info_kind tok_kind) const
+    { return this->extra_info_kind == tok_kind; }
+
+  INLINE a_boolean is_basic() const
+    { return this->is(teik_none); }
+  INLINE a_boolean is_identifier() const
+    { return this->is(teik_identifier); }
+  INLINE a_boolean is_constant() const
+    { return this->is(teik_constant); }
+  INLINE a_boolean is_pp_token() const
+    { return this->is(teik_pp_token); }
+  INLINE a_boolean is_pragma() const
+    { return this->is(teik_pragma); }
+  INLINE a_boolean is_string_literal() const
+    { return this->is(tok_string_literal) && this->is_constant(); }
+  INLINE a_boolean is_extracted_template_body() const
+    { return this->is(teik_extracted_body); }
+  INLINE a_boolean is_ud_literal() const
+    { return this->is(teik_ud_lit); }
+  INLINE a_boolean is_asm_string() const
+    { return this->is(teik_asm_string); }
+  INLINE a_boolean is_insert_string() const
+    { return this->is(teik_insert_string); }
+  INLINE a_boolean is_ifc_reference() const
+    { return this->is(teik_ifc_index); }
+
+  INLINE const a_source_position* get_source_position() const
+    { return &this->source_position; }
+#if EXTRA_SOURCE_POSITIONS_IN_IL
+  INLINE const a_source_position* get_starting_source_position() const
+    { return &this->source_position; }
+  INLINE const a_source_position* get_ending_source_position() const
+    { return &this->end_source_position; }
+#endif /* EXTRA_SOURCE_POSITIONS_IN_IL */
+  INLINE a_token_sequence_number get_starting_seq_number() const
+    { return this->token_sequence_number; }
+  INLINE a_token_sequence_number get_ending_seq_number() const
+    { return this->ending_token_sequence_number; }
+
+  INLINE a_symbol_locator& get_locator()
+    { return this->extra_info.locator; }
+  INLINE const a_symbol_locator& get_locator() const
+    { return this->extra_info.locator; }
+  INLINE a_constant* get_constant()
+    { return this->extra_info.constant; }
+  INLINE const a_constant* get_constant() const
+    { return this->extra_info.constant; }
+  INLINE a_symbol_locator* get_symbol_locator()
+    { return &this->extra_info.locator; }
+  INLINE const a_symbol_locator* get_symbol_locator() const
+    { return &this->extra_info.locator; }
+  INLINE a_pending_pragma** get_pragma_list()
+    { return &this->extra_info.pragmas; }
+  INLINE a_const_pending_pragma_list* get_pragma_list() const
+    { return &this->extra_info.pragmas; }
+  INLINE a_pp_token_descr* get_pp_token_descr()
+    { return &this->extra_info.pp_token_descr; }
+  INLINE const a_pp_token_descr* get_pp_token_descr() const
+    { return &this->extra_info.pp_token_descr; }
+  INLINE an_extracted_template_descr* get_extracted_template_descr()
+    { return &this->extra_info.extracted_template; }
+  INLINE const an_extracted_template_descr*
+  get_extracted_template_descr() const
+    { return &this->extra_info.extracted_template; }
+  INLINE const a_token_cache* get_removed_expression() const
+    { return this->extra_info.removed_expr.cache; }
+  INLINE a_ud_literal_descr* get_ud_literal_descr()
+    { return &this->extra_info.ud_lit; }
+  INLINE const a_ud_literal_descr* get_ud_literal_descr() const
+    { return &this->extra_info.ud_lit; }
+  INLINE char* get_asm_string()
+    { return this->extra_info.asm_string; }
+  INLINE a_const_char* get_asm_string() const
+    { return this->extra_info.asm_string; }
+  INLINE a_lexical_ifc_index_reference get_ifc_index() const
+    { return this->extra_info.ifc_index; }
+
+  uintptr_t hash_code() const;
+
+  INLINE a_cached_token_base& operator=(const a_cached_token_base &other);
+  INLINE a_cached_token_base& operator=(a_cached_token_base &&other);
+protected:
+  a_token_kind  token;
+			/* The token kind (e.g., tok_identifier).  Not valid
+			   when extra_info is present and
+			   extra_info->kind == teik_pragma.  */
+  a_source_position
+		source_position;
+			/* Source position of the token. */
+#if EXTRA_SOURCE_POSITIONS_IN_IL
+  a_source_position
+		end_source_position;
+			/* The end position of the current token -- that is,
+			   the source position of the last character of the
+			   token. */
+#endif /* EXTRA_SOURCE_POSITIONS_IN_IL */
+  a_token_sequence_number
+		token_sequence_number;
+			/* The sequence number associated with this token. */
+  a_token_sequence_number
+		ending_token_sequence_number;
+			/* The ending sequence number of this token (different
+			   from token_sequence_number for coalesced
+			   identifiers). */
+  a_token_extra_info_kind
+		extra_info_kind;
+			/* Indication of the type of extra information about
+			   the token provided below. */
+  union a_variant {
+    inline a_variant()
+      {}
+    inline ~a_variant()
+      {}
+    /* When extra_info_kind == teik_none, no variant fields. */
+    /* When extra_info_kind == teik_identifier: */
+    a_symbol_locator
+		locator;
+			/* Symbol locator for the identifier. */
+    /* When extra_info_kind == teik_constant: */
+    a_constant_ptr
+		constant;
+			/* Pointer to a constant entry (in front end storage)
+			   giving the value for the literal constant. */
+    /* When extra_info_kind == teik_pragma: */
+    struct a_pending_pragma
+		*pragmas;
+			/* A list of pragmas associated with the next token
+			   in the cache. */
+    /* When extra_info_kind == teik_pp_token: */
+    a_pp_token_descr
+		pp_token_descr;
+			/* When a pp token is cached a copy of the string
+			   that represents the token is saved as part of
+			   the cache. */
+    /* When extra_info_kind == teik_extracted_body: */
+    an_extracted_template_descr
+		extracted_template;
+			/* When a template body is removed from a token
+			   cache, the semicolon after the member declaration
+			   is annotated with an extract template descriptor. */
+    /* When extra_info_kind == teik_removed_expr: */
+    a_removed_expr_descr
+		removed_expr;
+			/* When an expression is removed from a token cache, a
+			   tok_removed_expr token is injected in its place with
+			   the extracted expression tokens accessible via this
+			   member. */
+    /* When extra_info_kind == teik_asm_string: */
+    char	*asm_string;
+			/* The string representing a Microsoft asm block. */
+    /* When extra_info_kind == teik_ud_lit: */
+    a_ud_literal_descr
+		ud_lit; /* The extra information required to reconstruct a
+			   user-defined literal token. */
+    /* When extra_info_kind == teik_ifc_index: */
+    a_lexical_ifc_index_reference
+		ifc_index;
+			/* An index into the IFC module containing additional
+			   information. */
+  } extra_info;
+private:
+  /* Friend to allow construction to be performed optimally without exposing
+     implementation details. */
+  friend struct a_token_factory;
+};  /* a_cached_token_base */
+
+
+a_cached_token_base::a_cached_token_base(const a_cached_token_base &other)
+/*
+Copy construct a new cached token base object from the given cached token base.
+*/
+  : token(other.token), source_position(other.source_position),
+#if EXTRA_SOURCE_POSITIONS_IN_IL
+    end_source_position(other.end_source_position),
+#endif /* EXTRA_SOURCE_POSITIONS_IN_IL */
+    token_sequence_number(other.token_sequence_number),
+    ending_token_sequence_number(other.ending_token_sequence_number),
+    extra_info_kind(other.extra_info_kind)
+{
+  switch (this->extra_info_kind) {
+    case teik_none:
+    case teik_insert_string:
+      break;
+    case teik_identifier:
+      new (&this->extra_info.locator) a_symbol_locator(
+                                                     other.extra_info.locator);
+      break;
+    case teik_constant:
+      { a_constant_ptr new_const = alloc_cached_constant();
+
+        copy_constant(other.extra_info.constant, new_const);
+        this->extra_info.constant = new_const;
+      }
+      break;
+    case teik_pragma:
+      this->extra_info.pragmas = make_copy_of_pragma_list(
+                                                     other.extra_info.pragmas);
+      break;
+    case teik_pp_token:
+      new (&this->extra_info.pp_token_descr) a_pp_token_descr(
+                                              other.extra_info.pp_token_descr);
+      break;
+    case teik_extracted_body:
+      new (&this->extra_info.extracted_template) an_extracted_template_descr(
+                                          other.extra_info.extracted_template);
+      break;
+    case teik_removed_expr:
+      new (&this->extra_info.removed_expr) a_removed_expr_descr(
+                                                other.extra_info.removed_expr);
+      break;
+    case teik_asm_string:
+      this->extra_info.asm_string = other.extra_info.asm_string;
+      break;
+    case teik_ud_lit:
+      this->extra_info.ud_lit.value_con = alloc_cached_constant();
+      this->extra_info.ud_lit.spelling_con = alloc_cached_constant();
+      this->extra_info.ud_lit.op_sym = other.extra_info.ud_lit.op_sym;
+      this->extra_info.ud_lit.suffix = other.extra_info.ud_lit.suffix;
+      this->extra_info.ud_lit.type = other.extra_info.ud_lit.type;
+      copy_constant(other.extra_info.ud_lit.value_con,
+                    this->extra_info.ud_lit.value_con);
+      copy_constant(other.extra_info.ud_lit.spelling_con,
+                    this->extra_info.ud_lit.spelling_con);
+      break;
+    case teik_ifc_index:
+      new (&this->extra_info.ifc_index) a_lexical_ifc_index_reference(
+                                                   other.extra_info.ifc_index);
+      break;
+    default_is_unexpected();
+  }  /* switch */
+}  /* a_cached_token_base::a_cached_token_base */
+
+
+a_cached_token_base::a_cached_token_base(a_cached_token_base &&other)
+/*
+Move construct a new cached token base object from the given cached token base.
+*/
+  : token(other.token), source_position(other.source_position),
+#if EXTRA_SOURCE_POSITIONS_IN_IL
+    end_source_position(other.end_source_position),
+#endif /* EXTRA_SOURCE_POSITIONS_IN_IL */
+    token_sequence_number(other.token_sequence_number),
+    ending_token_sequence_number(other.ending_token_sequence_number),
+    extra_info_kind(other.extra_info_kind)
+{
+  switch (this->extra_info_kind) {
+    case teik_none:
+    case teik_insert_string:
+      break;
+    case teik_identifier:
+      new (&this->extra_info.locator) a_symbol_locator(
+                                         move_from(&other.extra_info.locator));
+      break;
+    case teik_constant:
+      this->extra_info.constant = other.extra_info.constant;
+      break;
+    case teik_pragma:
+      this->extra_info.pragmas = other.extra_info.pragmas;
+      break;
+    case teik_pp_token:
+      new (&this->extra_info.pp_token_descr) a_pp_token_descr(
+                                  move_from(&other.extra_info.pp_token_descr));
+      break;
+    case teik_extracted_body:
+      new (&this->extra_info.extracted_template) an_extracted_template_descr(
+                              move_from(&other.extra_info.extracted_template));
+      break;
+    case teik_removed_expr:
+      new (&this->extra_info.removed_expr) a_removed_expr_descr(
+                                    move_from(&other.extra_info.removed_expr));
+      break;
+    case teik_asm_string:
+      this->extra_info.asm_string = other.extra_info.asm_string;
+      break;
+    case teik_ud_lit:
+      this->extra_info.ud_lit.value_con = other.extra_info.ud_lit.value_con;
+      this->extra_info.ud_lit.spelling_con =
+                                          other.extra_info.ud_lit.spelling_con;
+      this->extra_info.ud_lit.op_sym = other.extra_info.ud_lit.op_sym;
+      this->extra_info.ud_lit.suffix = other.extra_info.ud_lit.suffix;
+      this->extra_info.ud_lit.type = other.extra_info.ud_lit.type;
+      break;
+    case teik_ifc_index:
+      new (&this->extra_info.ifc_index) a_lexical_ifc_index_reference(
+                                       move_from(&other.extra_info.ifc_index));
+      break;
+    default_is_unexpected();
+  }  /* switch */
+  other.extra_info_kind = teik_none;
+}  /* a_cached_token_base::a_cached_token_base */
+
+
+a_cached_token_base::~a_cached_token_base()
+/*
+Destroy the current cached token base object.
+*/
+{
+  switch (this->extra_info_kind) {
+    case teik_none:
+    case teik_insert_string:
+      break;
+    case teik_identifier:
+      this->extra_info.locator.~a_symbol_locator();
+      break;
+    case teik_constant:
+      free_cached_token_constant(this->extra_info.constant);
+      break;
+    case teik_pragma:
+      free_pending_pragma_list(this->extra_info.pragmas);
+      break;
+    case teik_pp_token:
+      this->extra_info.pp_token_descr.~a_pp_token_descr();
+      break;
+    case teik_extracted_body:
+      this->extra_info.extracted_template.~an_extracted_template_descr();
+      break;
+    case teik_removed_expr:
+      this->extra_info.removed_expr.~a_removed_expr_descr();
+      break;
+    case teik_asm_string:
+      break;
+    case teik_ud_lit:
+      free_cached_token_constant(this->extra_info.ud_lit.value_con);
+      free_cached_token_constant(this->extra_info.ud_lit.spelling_con);
+      break;
+    case teik_ifc_index:
+      this->extra_info.ifc_index.~a_lexical_ifc_index_reference();
+      break;
+    default_is_unexpected();
+  }  /* switch */
+}  /* a_cached_token_base::~a_cached_token_base */
+
+
+a_cached_token_base& a_cached_token_base::operator=(
+                                        const a_cached_token_base &other)
+/*
+Copy assign the given cached token's state into this token.
+*/
+{
+  if (this != &other) {
+    destroy(this);
+    construct(this, other);
+  }  /* if */
+  return *this;
+}  /* a_cached_token_base::operator= */
+
+
+a_cached_token_base& a_cached_token_base::operator=(
+                                             a_cached_token_base &&other)
+/*
+Move assign the given cached token's state into this token.
+*/
+{
+  if (this != &other) {
+    destroy(this);
+    construct(this, move_from(&other));
+  }  /* if */
+  return *this;
+}  /* a_cached_token_base::operator= */
+
+}  /* detail */
+
+#if EXTRA_SOURCE_POSITIONS_IN_IL
+#define extra_il_src_pos(pos) pos
+#else /* !EXTRA_SOURCE_POSITIONS_IN_IL */
+#define extra_il_src_pos(pos) a_source_position()
+#endif /* EXTRA_SOURCE_POSITIONS_IN_IL */
+
+/*
+Information on a single token, saved for later rescanning of the token.
+*/
+struct an_immutable_cached_token : public detail::a_cached_token_base {
+  using detail::a_cached_token_base::a_cached_token_base;
+
+  INLINE an_immutable_cached_token(const detail::a_cached_token_base &val)
+    : detail::a_cached_token_base(val)
+    {}
+  INLINE an_immutable_cached_token(detail::a_cached_token_base &&val)
+    : detail::a_cached_token_base(move_from(&val))
+    {}
+  INLINE ~an_immutable_cached_token() = default;
+};  /* an_immutable_cached_token */
+
+/*
+Information on a single token, saved for later rescanning of the token.
+*/
+struct a_cached_token : public detail::a_cached_token_base {
+  using detail::a_cached_token_base::a_cached_token_base;
+
+  INLINE a_cached_token(const detail::a_cached_token_base &val)
+    : detail::a_cached_token_base(val)
+    {}
+  INLINE a_cached_token(detail::a_cached_token_base &&val)
+    : detail::a_cached_token_base(move_from(&val))
+    {}
+  INLINE ~a_cached_token() = default;
+
+  INLINE void set_kind(a_token_kind kind)
+    { this->token = kind; }
+  INLINE void set_source_position(const a_source_position &pos)
+    { this->source_position = pos; }
+#if EXTRA_SOURCE_POSITIONS_IN_IL
+  INLINE void set_starting_source_position(const a_source_position &pos)
+    { this->source_position = pos; }
+  INLINE void set_ending_source_position(const a_source_position &pos)
+    { this->end_source_position = pos; }
+#endif /* EXTRA_SOURCE_POSITIONS_IN_IL */
+  INLINE void set_seq_number(a_token_sequence_number num)
+    { this->set_seq_number(num, num); }
+  INLINE void set_seq_number(a_token_sequence_number starting_num,
+                             a_token_sequence_number ending_num);
+  INLINE void set_constant(a_constant_ptr new_constant)
+    { this->extra_info.constant = new_constant; }
+};  /* a_cached_token */
+
+
+using a_shared_token_ctrl_block =
+                   detail::Shared_obj_control_block<an_immutable_cached_token>;
+
+EXTERN_THREAD Dyn_array<a_shared_token_ctrl_block*>
+		*avail_token_ctrl_blocks;
+			/* A list of available memory allocations that can be
+			   used to quickly construct a new shared token. */
+
+#if DEBUG
+EXTERN_THREAD unsigned long
+		num_shared_token_states_allocated;
+			/* Counts of the number of a_shared_token_ctrl_block
+			   values allocated. */
+#endif /* DEBUG */
+
+/*
+Specialize the allocator for shared token control blocks to improve
+performance.
+*/
+template<>
+struct FE_allocator<a_shared_token_ctrl_block> {
+  typedef a_shared_token_ctrl_block an_elem;
+  typedef Allocation<an_elem> an_allocation;
+  typedef FE_allocator<an_elem> an_allocator;
+  typedef FE_allocator<an_elem> a_deallocator;
+  static void reserve_block();
+  INLINE static auto alloc(size_t n) -> an_allocation;
+  INLINE static void dealloc(an_allocation allocation);
+};  /* FE_allocator */
+
+
+auto FE_allocator<a_shared_token_ctrl_block>::alloc(size_t n) -> an_allocation
+/*
+Allocate or reuse a shared token control block and return the resulting
+allocation.
+*/
+{
+  /* Only one shared token control block can be allocated at a time. */
+  check_assertion(n == 1);
+  if (avail_token_ctrl_blocks->is_empty()) {
+    FE_allocator<a_shared_token_ctrl_block>::reserve_block();
+  }  /* if */
+
+  an_elem *elem = avail_token_ctrl_blocks->back_elem();
+  avail_token_ctrl_blocks->pop_back();
+  return an_allocation{ elem, 1 };
+}  /* FE_allocator::alloc */
+
+
+void FE_allocator<a_shared_token_ctrl_block>::dealloc(an_allocation a)
+/*
+Release the given allocation -- which was allocated by the same allocator.
+The caller is responsible for ensuring the allocation contains no live
+objects.
+*/
+{
+  /* Note that FE_allocator will normally correctly handle a null or
+     multi-element allocation.  This specialization diverges slightly given its
+     limited scope of use. */
+  check_assertion(a.start != NULL &&
+                  a.n_bytes_allocated == sizeof(a_shared_token_ctrl_block));
+  avail_token_ctrl_blocks->push_back(a.start);
+}  /* FE_allocator::dealloc */
+
+
+using a_shared_token = Shared_obj<an_immutable_cached_token>;
+			/* The type of an immutable token shared in multiple
+			   places. */
+
+namespace detail {
+
+/*
+An iterator for traversing tokens in a token cache.
+*/
+template<typename a_Derived_type>
+struct a_token_cache_iterator_base {
+  INLINE a_token_cache_iterator_base(a_token_cache *cache_val,
+                                     int           offset_val)
+    : cache(cache_val), offset(offset_val)
+    {}
+  INLINE ~a_token_cache_iterator_base() = default;
+
+  INLINE a_Derived_type operator++();
+  INLINE a_Derived_type operator--();
+  INLINE a_Derived_type operator+(int adjustment);
+  INLINE a_Derived_type operator-(int adjustment);
+
+  template<typename a_Type>
+  INLINE sizeof_t operator-(a_token_cache_iterator_base<a_Type> other);
+
+  template<typename a_Type>
+  INLINE
+  a_boolean operator==(const a_token_cache_iterator_base<a_Type>& other) const;
+  template<typename a_Type>
+  INLINE
+  a_boolean operator!=(const a_token_cache_iterator_base<a_Type>& other) const
+    { return !(*this == other); }
+protected:
+  a_token_cache *cache; /* The cache being read from. */
+  int           offset; /* The offset from the start of the token cache for the
+			   token represented by this iterator. */
+  friend struct EDG_PREFIX::a_token_cache;
+};  /* a_token_cache_iterator_base */
+
+
+template<typename a_Derived_type>
+template<typename a_Type>
+sizeof_t a_token_cache_iterator_base<a_Derived_type>::operator-(
+                                     a_token_cache_iterator_base<a_Type> other)
+/*
+Return the number of elements between this iterator and the given iterator.
+This iterator's offset must be greater than or equal to the other iterator's
+offset.  Additionally, both iterators must point to the same cache.
+*/
+{
+  check_assertion(this->cache == other.cache && this->offset >= other.offset);
+  return (sizeof_t)(this->offset - other.offset);
+}  /* a_token_cache_iterator_base::operator- */
+
+}  /* detail */
+
+/*
+An iterator for traversing tokens in a token cache.
+*/
+struct a_token_cache_iterator :
+                  detail::a_token_cache_iterator_base<a_token_cache_iterator> {
+  INLINE a_token_cache_iterator()
+    : a_token_cache_iterator_base(NULL, 0)
+    {}
+  INLINE a_token_cache_iterator(a_token_cache *cache_val,
+                         int           offset_val)
+    : a_token_cache_iterator_base(cache_val, offset_val)
+    {}
+  INLINE a_token_cache_iterator(const a_token_cache_iterator&) = default;
+  INLINE ~a_token_cache_iterator() = default;
+
+  INLINE a_shared_token& operator*() const;
+
+  friend struct a_const_token_cache_iterator;
+#if DEBUG
+  friend void db_tokens(a_token_cache_iterator it);
+#endif /* DEBUG */
+};  /* a_token_cache_iterator */
+
+
+/*
+An iterator for traversing const tokens in a const token cache.
+*/
+struct a_const_token_cache_iterator :
+            detail::a_token_cache_iterator_base<a_const_token_cache_iterator> {
+  INLINE a_const_token_cache_iterator()
+    : a_token_cache_iterator_base(NULL, 0)
+    {}
+  INLINE a_const_token_cache_iterator(const a_token_cache *cache_val,
+                                      int                 offset_val)
+    : a_token_cache_iterator_base(const_cast<a_token_cache*>(cache_val),
+                                  offset_val)
+    {}
+  INLINE a_const_token_cache_iterator(const a_token_cache_iterator &it)
+    : a_token_cache_iterator_base(it.cache, it.offset)
+    {}
+  INLINE a_const_token_cache_iterator(
+                                const a_const_token_cache_iterator&) = default;
+  INLINE ~a_const_token_cache_iterator() = default;
+
+  INLINE const a_shared_token& operator*() const;
+#if DEBUG
+  friend void db_tokens(a_const_token_cache_iterator it);
+#endif /* DEBUG */
+};  /* a_const_token_cache_iterator */
+
+
+using a_reverse_token_cache_iterator = Reverse_iter<a_token_cache_iterator>;
+			/* The type for a reversed a_token_cache_iterator. */
+
+using a_reverse_const_token_cache_iterator =
+                                    Reverse_iter<a_const_token_cache_iterator>;
+			/* The type for a reversed
+			   a_const_token_cache_iterator. */
+
+
+template<>
+INLINE sizeof_t distance(a_token_cache_iterator begin,
+                         a_token_cache_iterator end)
+/*
+Return the number of elements in the range [begin, end).
+*/
+{
+  return end - begin;
+}  /* distance */
+
+
+template<>
+INLINE sizeof_t distance(a_const_token_cache_iterator begin,
+                         a_const_token_cache_iterator end)
+/*
+Return the number of elements in the range [begin, end).
+*/
+{
+  return end - begin;
+}  /* distance */
+
+
+/*
+Data structure used to hold a token cache, i.e., some number of tokens that are
+being saved for later rescanning.
+*/
+struct a_token_cache {
+  INLINE a_token_cache(a_boolean is_reusable_val = FALSE,
+                       size_t    initial_capacity = 0)
+    : is_reusable(is_reusable_val), tokens(initial_capacity)
+    {}
+  INLINE a_token_cache(const a_token_cache &other) = default;
+  INLINE a_token_cache(a_token_cache &&other) = default;
+  ~a_token_cache() = default;
+
+  INLINE a_boolean is_empty() const
+    { return this->tokens.is_empty(); }
+  INLINE size_t length() const
+    { return this->tokens.length(); }
+  INLINE size_t capacity() const
+    { return this->tokens.capacity(); }
+
+  INLINE void append_token(const a_cached_token &token);
+  INLINE void append_token(a_cached_token &&token);
+  INLINE void append_token(const a_shared_token &token);
+  INLINE void append_token(a_shared_token &&token);
+  INLINE void insert_token(a_token_cache_iterator it,
+                           const a_cached_token   &tok);
+  INLINE void insert_token(a_token_cache_iterator it,
+                           a_cached_token         &&tok);
+  INLINE void insert_token(a_token_cache_iterator it,
+                           const a_shared_token   &tok);
+  INLINE void insert_token(a_token_cache_iterator it,
+                           a_shared_token         &&tok);
+  INLINE void move_copy_tokens(a_token_cache_iterator it,
+                               a_token_cache_iterator end_it);
+  INLINE void remove_token_range(a_token_cache_iterator it,
+                                 a_token_cache_iterator end_it);
+
+  INLINE const a_shared_token& get_first_token() const;
+  INLINE const a_shared_token& get_last_token() const;
+
+  INLINE void find_first_and_last(
+                                a_token_sequence_number first_token_number,
+                                a_token_sequence_number last_token_number,
+                                a_token_cache_iterator  *before_first_token_it,
+                                a_token_cache_iterator  *last_token_it);
+  INLINE void find_first_and_last(
+                           a_token_sequence_number      first_token_number,
+                           a_token_sequence_number      last_token_number,
+                           a_const_token_cache_iterator *before_first_token_it,
+                           a_const_token_cache_iterator *last_token_it) const;
+
+  INLINE a_token_cache_iterator get_last_token_iter()
+    { return a_token_cache_iterator(this, (int)(this->length() - 1)); }
+  INLINE a_const_token_cache_iterator get_last_token_iter() const
+    { return a_const_token_cache_iterator(this, (int)(this->length() - 1)); }
+
+  INLINE void remove_first_token();
+  INLINE void remove_token(a_token_cache_iterator it);
+  INLINE void remove_tokens(a_token_cache_iterator it);
+  INLINE void remove_non_pragma_tokens_after(a_token_cache_iterator it);
+  INLINE void clear()
+    { this->tokens.clear(); }
+
+  INLINE void reserve(size_t amt)
+    { this->tokens.reserve(amt); }
+
+  INLINE a_token_cache_iterator begin()
+    { return a_token_cache_iterator(this, 0); }
+  INLINE a_token_cache_iterator end()
+    { return a_token_cache_iterator(this, (int)this->length()); }
+  INLINE a_const_token_cache_iterator begin() const
+    { return a_const_token_cache_iterator(this, 0); }
+  INLINE a_const_token_cache_iterator end() const
+    { return a_const_token_cache_iterator(this, (int)this->tokens.length()); }
+
+  INLINE a_reverse_token_cache_iterator rbegin()
+    { return {a_token_cache_iterator(this, (int)(this->length() - 1))}; }
+  INLINE a_reverse_token_cache_iterator rend()
+    { return {a_token_cache_iterator(this, -1)}; }
+  INLINE a_reverse_const_token_cache_iterator rbegin() const
+    { return {a_const_token_cache_iterator(this, (int)(this->length() - 1))}; }
+  INLINE a_reverse_const_token_cache_iterator rend() const
+    { return {a_const_token_cache_iterator(this, -1)}; }
+
+  INLINE a_shared_token& operator[](size_t idx)
+    { return this->tokens[idx]; }
+  INLINE const a_shared_token& operator[](size_t idx) const
+    { return this->tokens[idx]; }
+
+  INLINE a_token_cache& operator=(const a_token_cache &other) = default;
+  INLINE a_token_cache& operator=(a_token_cache &&other) = default;
+
+  a_bit_field   is_reusable : 1;
 			/* TRUE if this cache will be reused (e.g.,
 			   for a template cache).  This should be TRUE if
 			   there is any possibility that the cache may
 			   be reused. */
-#if DEBUG
-  unsigned long	token_count;
-			/* The number of tokens in this cache.  Used for
-			   tracking memory usage. */
-  unsigned long	pragma_count;
-			/* The number of pragma entries pointed to by tokens
-			   in this cache.  Used for tracking memory usage. */
-#endif /* DEBUG */
-} a_token_cache;
+private:
+  Dyn_array<a_shared_token>
+		tokens;
+			/* The list of tokens. */
+  inline void check_iterator(a_token_cache_iterator it);
+  friend void rescan_cached_tokens(a_token_cache *cache,
+                  /* Defaulted: */ a_boolean     discard_curr_token);
+};  /* a_token_cache */
+
+using a_shared_token_cache = Shared_obj<a_token_cache>;
+			/* The type used for shared token caches. */
+
+EXTERN_THREAD Dyn_array<a_token_cache*>
+		*avail_scanning_token_caches;
+
+EXTERN_THREAD Dyn_array<a_token_cache*>
+		*avail_tiny_scanning_token_caches;
+
+/*
+This is a specialized token cache used for temporary scanning of tokens.
+
+If the token cache is guaranteed to be very small (practically always less than
+10 tokens), consider using a_tiny_scanning_token_cache.
+*/
+struct a_scanning_token_cache {
+  INLINE a_scanning_token_cache(a_boolean is_reusable = FALSE);
+  a_scanning_token_cache(const a_scanning_token_cache&) = delete;
+  INLINE a_scanning_token_cache(a_scanning_token_cache &&other);
+  INLINE ~a_scanning_token_cache();
+
+  INLINE a_token_cache& operator*() const
+    { return *this->backing_cache; }
+  INLINE a_token_cache* operator->() const
+    { return this->backing_cache; }
+  INLINE a_token_cache* ptr() const
+    { return this->backing_cache; }
+
+  INLINE a_scanning_token_cache& operator=(a_scanning_token_cache &&other);
+private:
+  a_token_cache *backing_cache;
+			/* The token cache backing the scanning token cache. */
+};  /* a_scanning_token_cache */
+
+
+/*
+This is a specialized token cache used for temporary scanning of a very small
+numbers of tokens (ideally guaranteed to be less than 10 tokens).
+*/
+struct a_tiny_scanning_token_cache {
+  INLINE a_tiny_scanning_token_cache(a_boolean is_reusable = FALSE);
+  a_tiny_scanning_token_cache(const a_tiny_scanning_token_cache&) = delete;
+  a_tiny_scanning_token_cache(a_tiny_scanning_token_cache&&) = delete;
+  INLINE ~a_tiny_scanning_token_cache();
+
+  INLINE a_token_cache& operator*() const
+    { return *this->backing_cache; }
+  INLINE a_token_cache* operator->() const
+    { return this->backing_cache; }
+  INLINE a_token_cache* ptr() const
+    { return this->backing_cache; }
+private:
+  a_token_cache *backing_cache;
+			/* The token cache backing the scanning token cache. */
+};  /* a_tiny_scanning_token_cache */
+
+
+a_scanning_token_cache::a_scanning_token_cache(a_boolean is_reusable)
+/*
+Construct a new scanning token cache.  If is_reusable is TRUE, the backing
+cache will be marked as reusable.
+*/
+{
+  if (avail_scanning_token_caches->is_empty()) {
+    this->backing_cache = new_fe<a_token_cache>(is_reusable,
+                                                /*capacity=*/50u);
+  } else {
+    this->backing_cache = avail_scanning_token_caches->back_elem();
+    this->backing_cache->is_reusable = is_reusable;
+    avail_scanning_token_caches->pop_back();
+  }  /* if */
+}  /* a_scanning_token_cache::a_scanning_token_cache */
+
+
+a_scanning_token_cache::a_scanning_token_cache(a_scanning_token_cache &&other)
+/*
+Move-construct a new scanning token cache.
+*/
+  : backing_cache(other.backing_cache)
+{
+  other.backing_cache = NULL;
+}  /* a_scanning_token_cache::a_scanning_token_cache */
+
+
+a_scanning_token_cache::~a_scanning_token_cache()
+/*
+Destroy the current scanning token cache releasing the underlying cache
+back to the list of available scanning token caches.
+*/
+{
+  if (this->backing_cache != NULL) {
+    size_t insertion_point = avail_scanning_token_caches->length();
+
+    this->backing_cache->clear();
+    for (; insertion_point != 0; --insertion_point) {
+      if ((*avail_scanning_token_caches)[insertion_point - 1]->capacity() <=
+          this->backing_cache->capacity()) {
+        break;
+      }  /* if */
+    }  /* for */
+    avail_scanning_token_caches->insert(insertion_point,
+                                        this->backing_cache);
+  }  /* if */
+}  /* a_scanning_token_cache::~a_scanning_token_cache */
+
+
+a_scanning_token_cache& a_scanning_token_cache::operator=(
+                                                a_scanning_token_cache &&other)
+/*
+Move assign the backing cache from the given scanning token cache to this token
+cache.  The caches are swapped to ensure no scanning token cache may be
+permanently lost.
+*/
+{
+  swap_at(&this->backing_cache, &other.backing_cache);
+  return *this;
+}  /* a_scanning_token_cache::operator= */
+
+
+a_tiny_scanning_token_cache::a_tiny_scanning_token_cache(a_boolean is_reusable)
+/*
+Construct a new tiny scanning token cache.  If is_reusable is TRUE, the backing
+cache will be marked as reusable.
+*/
+{
+  if (avail_tiny_scanning_token_caches->is_empty()) {
+    this->backing_cache = new_fe<a_token_cache>(is_reusable,
+                                                /*capacity=*/10u);
+  } else {
+    this->backing_cache = avail_tiny_scanning_token_caches->back_elem();
+    this->backing_cache->is_reusable = is_reusable;
+    avail_tiny_scanning_token_caches->pop_back();
+  }  /* if */
+}  /* a_tiny_scanning_token_cache::a_tiny_scanning_token_cache */
+
+
+a_tiny_scanning_token_cache::~a_tiny_scanning_token_cache()
+/*
+Destroy the current tiny scanning token cache releasing the underlying cache
+back to the list of available scanning token caches.
+*/
+{
+  this->backing_cache->clear();
+  avail_tiny_scanning_token_caches->push_back(this->backing_cache);
+}  /* a_tiny_scanning_token_cache::~a_tiny_scanning_token_cache */
 
 
 /* These includes are placed here so that a_token_cache will be defined
@@ -1825,7 +2844,7 @@ Variables pertaining to the current token:
 rest of the compiler.)
 See also the related variables in symbol_tbl.h.
 If new variables are added here, be sure to put them also into
-cache_curr_token, get_token_from_cached_token_rescan_list, and
+cache_curr_token, get_token_from_cached_token_rescan_stack, and
 get_token_from_reusable_cache_stack.
 */
 EXTERN_THREAD a_token_kind
@@ -1943,6 +2962,11 @@ EXTERN_THREAD a_type_ptr
 			   find_literal_operator to look up the associated
 			   literal operator or literal operator
 			   template. */
+EXTERN_THREAD a_lexical_ifc_index_reference
+		ifc_index_for_curr_token;
+			/* If the current token is a pseudotoken indicating an
+			   index into an IFC module (i.e., extra_info_kind is
+			   teik_ifc_index), this is the associated index. */
 EXTERN_THREAD an_error_code
 		err_code_for_error_token;
 			/* If the current token is tok_error, this is the
@@ -2143,9 +3167,10 @@ typedef struct a_lexical_state_stack_entry {
 		error_position;
 			/* The saved value of error_position when the state
 			   stack was pushed. */
-  a_token_cache	cache;
+  Opt<a_scanning_token_cache>
+		cache;
 			/* The cache used to save tokens when cache_tokens is
-			   TRUE. */
+			   non-zero. */
   a_bit_field	next_token_is_top_level_decl_start:1;
 			/* The saved value of
 			   next_token_is_top_level_decl_start when the state
@@ -2165,12 +3190,16 @@ EXTERN_THREAD a_lexical_state_stack_entry_ptr
 		curr_lexical_state_stack_entry;
 			/* Pointer to the current lexical state stack entry. */
 
+inline a_token_cache_ptr curr_lexical_state_cache()
 /*
 Return a pointer to the token cache associated with the current lexical
 state stack entry.
 */
-#define curr_lexical_state_cache() \
-  (&curr_lexical_state_stack_entry->cache)
+{
+  /* This function assumes that the caller knows a cache is present. */
+  check_assertion(curr_lexical_state_stack_entry->cache.has_value());
+  return curr_lexical_state_stack_entry->cache->ptr();
+}  /* curr_lexical_state_cache */
 
 /*
 Other general variables:
@@ -2215,218 +3244,137 @@ EXTERN_THREAD a_boolean
 			   in the d-char-sequence of a raw string
 			   literal. */
 
-/*
-Structure used to record information about a pp token in a token cache.
-*/
-typedef struct a_pp_token_descr *a_pp_token_descr_ptr;
-typedef struct a_pp_token_descr {
-  char		*token_start;
-			/* Pointer to the first character of the token. */
-  char		*token_end;
-			/* Pointer to the last character of the token.
-			   The last character will be followed by a null
-			   terminator. */
-} a_pp_token_descr;
-
+using a_token_stack = Dyn_array<a_shared_token>;
+			/* The type used for a stack of tokens. */
 
 /*
-Structure used to record information about a template body that has been
-extracted from the enclosing cache.  This is used to mark the body of a member
-function or member class template that has been extracted from its enclosing
-class template.  This is also used when creating template strings so that the
-nested template body can be put out as part of the template string for the
-enclosing template.
+Structure used to represent a reusable token cache that is either allocated
+into persistent front end memory (i.e., will not be freed until the front end
+wraps up) or shared (i.e., with a lifetime managed via an instance of
+a_shared_token_cache).
 */
-typedef struct an_extracted_template_descr {
-  a_symbol_ptr	symbol;
-			/* The symbol associated with the extracted body. */
+struct a_reusable_token_cache {
+  INLINE a_reusable_token_cache()
+    : a_reusable_token_cache(NULL)
+    {}
+  INLINE explicit a_reusable_token_cache(a_token_cache *persistent_cache)
+    : shared_token_cache(FALSE)
+    { this->variant.persistent = persistent_cache; }
+  INLINE explicit a_reusable_token_cache(
+                                      const a_shared_token_cache &shared_cache)
+    : shared_token_cache(TRUE)
+    { new (&this->variant.shared) a_shared_token_cache(shared_cache); }
+  INLINE explicit a_reusable_token_cache(a_shared_token_cache &&shared_cache);
+  INLINE a_reusable_token_cache(const a_reusable_token_cache &other);
+  INLINE ~a_reusable_token_cache();
+
+  INLINE a_token_cache& operator*() const
+    { check_assertion(this->ptr() != NULL); return *this->ptr(); }
+  INLINE a_token_cache* operator->() const
+    { check_assertion(this->ptr() != NULL); return this->ptr(); }
+
+  INLINE a_token_cache* ptr() const;
+
+  INLINE a_boolean is_empty() const
+    { return this->ptr() == NULL || (*this)->is_empty(); }
+
+  INLINE a_reusable_token_cache &operator=(a_token_cache *persistent_cache)
+    { return (*this) = a_reusable_token_cache(persistent_cache); }
+  INLINE a_reusable_token_cache &operator=(
+                                     const a_shared_token_cache &shared_cache)
+    { return (*this) = a_reusable_token_cache(shared_cache); }
+  INLINE a_reusable_token_cache &operator=(
+                                          const a_reusable_token_cache &other);
+private:
   a_byte_boolean
-		semicolon_inserted;
-			/* TRUE if the token with which this body is associated
-			   is a semicolon that was inserted after the body
-			   was removed. */
-  a_cached_token_ptr
-		next_in_token_string;
-			/* This field is used only for extracted body entries
-			   associated with friend functions whose bodies are
-			   not actually removed from the token cache, but
-			   should be skipped when creating a token string.
-			   It is also used for the opposite purpose for
-			   default arguments.  Default arguments are skipped
-			   for normal processing, but are included when
-			   generating template strings. */
-} an_extracted_template_descr;
-
-
-/*
-Data structure used to save information about a token so that the token
-can be cached and then rescanned.  Note that this is never done with
-pp-tokens.  See cache_curr_token et al.
-*/
-enum a_token_extra_info_kind : a_byte {
-  /* Kind of additional information saved in a cached token entry. */
-  teik_none,		/* No extra information, i.e., normal token. */
-  teik_identifier,	/* Extra information for an identifier. */
-  teik_constant,	/* Extra information for a literal constant. */
-  teik_pragma,		/* Extra information for a pragma. */
-  teik_pp_token,        /* Extra information for a pp token. */
-  teik_extracted_body,  /* Extra information for an extracted template body. */
-  teik_asm_string,	/* Extra information for a Microsoft asm block. */
-  teik_insert_string,   /* Extra information for an inserted token string. */
-  teik_ud_lit,          /* Extra information for a user-defined literal. */
-  teik_ifc_index        /* Extra information for a pseudo-token referring to a
-                           an IFC module node. */
-};
-
-
-/*
-A kind enum representing the possible indexes types represented by an instance
-of the a_lexical_ifc_index_reference.
-*/
-enum a_lexical_ifc_index_kind {
-  liik_decl_index,      /* IFC DeclIndex. */
-  liik_expr_index       /* IFC ExprIndex. */
-};
-
-
-typedef struct a_lexical_ifc_index_reference {
-  /* Information on an IFC index to be used in conjunction with a_cached_token
-     below, saved for later rescanning.  Separated from a_cached_token to allow
-     for making this information available upon rescanning (see
-     ifc_index_for_curr_token). */
-  uint32_t      sort;
-			/* The index sort in the IFC file used to address the
-			   node being referred to. */
-  uint32_t      index;
-			/* The index in the IFC file used to address the node
-			   being referred to. */
-  const void    *file;
-			/* An opaque pointer to the IFC module file
-			   (an_ifc_module_file) containing this declaration. */
-#if DEBUG
-  a_lexical_ifc_index_kind
-		reference_kind;
-			/* The kind of IFC index being referenced. */
-#endif /* DEBUG */
-} a_lexical_ifc_index_reference;
-
-EXTERN_THREAD a_lexical_ifc_index_reference
-		ifc_index_for_curr_token;
-			/* If the current token is a pseudotoken indicating an
-			   index into an IFC module (i.e., extra_info_kind is
-			   teik_ifc_index), this is the associated index. */
-
-
-typedef struct a_cached_token {
-  /* Information on a single token, saved for later rescanning of the
-     token. */
-  a_cached_token_ptr
-		next;	/* Next cached token on the list, NULL if none. */
-  a_source_position
-		source_position;
-			/* Source position of the token. */
-#if EXTRA_SOURCE_POSITIONS_IN_IL
-  a_source_position
-		end_source_position;
-			/* The end position of the current token -- that is,
-			   the source position of the last character of the
-			   token. */
-#endif /* EXTRA_SOURCE_POSITIONS_IN_IL */
-  a_token_kind
-		token;
-			/* The token kind (e.g., tok_identifier).  Not valid
-			   when extra_info_kind == teik_pragma. */
-  a_token_extra_info_kind
-		extra_info_kind;
-			/* Indication of the type of extra information about
-			   the token provided below. */
-  a_token_sequence_number
-		token_sequence_number;
-			/* The sequence number associated with this token. */
-  a_token_sequence_number
-		ending_token_sequence_number;
-			/* The ending sequence number of this token (different
-			   from token_sequence_number for coalesced
-			   identifiers). */
-  a_cached_token_handle
-		token_handle;
-			/* For tokens from reusable caches, this identifies the
-			   token entry from the reusable cache.  This is used
-			   for variadic templates to allow an arbitrary
-			   set of tokens from a cache to be rescanned.  If
-			   a token from a reusable cache is later placed in
-			   a non-reusable one, this still refers to the
-			   entry in the reusable cache. */
-  union {
-    /* When extra_info_kind == teik_none, no variant fields. */
-    /* When extra_info_kind == teik_identifier: */
-    a_symbol_locator
-		locator;
-			/* Symbol locator for the identifier. */
-    /* When extra_info_kind == teik_constant: */
-    a_constant_ptr
-		constant;
-			/* Pointer to a constant entry (in front end storage)
-			   giving the value for the literal constant. */
-    /* When extra_info_kind == teik_pragma: */
-    struct a_pending_pragma
-		*pragmas;
-			/* A list of pragmas associated with the next token
-			   in the cache. */
-    /* When extra_info_kind == teik_pp_token: */
-    a_pp_token_descr
-		pp_token_descr;
-			/* When a pp token is cached a copy of the string
-			   that represents the token is saved as part of
-			   the cache. */
-    /* When extra_info_kind == teik_extracted_body: */
-    an_extracted_template_descr
-		extracted_template;
-			/* When a template body is removed from a token
-			   cache, the semicolon after the member declaration
-			   is annotated with an extract template descriptor. */
-    /* When extra_info_kind == teik_asm_string: */
-    char	*asm_string;
-			/* The string representing a Microsoft asm block. */
-    /* When extra_info_kind == teik_ud_lit: */
-    struct {
-      a_constant_ptr
-		value_con;
-			/* Pointer to a constant entry (in front end
-			   storage) giving the value to be passed as the
-			   first argument to the literal operator
-			   designated by ud_lit_op_sym. */
-      a_constant_ptr
-		spelling_con;
-			/* Pointer to a ck_string constant entry (in front
-			   end storage) containing the characters of the
-			   token spelling with which the raw literal
-			   operator is to be invoked or the literal
-			   operator template is to be instantiated. */
-      a_symbol_ptr
-		op_sym;	/* The literal operator or literal operator template
-			   selected to produce the value of the literal, if
-			   any; otherwise, NULL. */
-      a_const_char
-		*suffix;
-			/* The identifier portion of the literal operator
-			   or literal operator template name (this is needed
-			   when a user-defined literal is used to declare
-			   the first literal operator or literal operator
-			   template with that name and thus there is no
-			   existing symbol for ud_lit_op_sym). */
-      a_type_ptr
-		type;	/* The type of the literal, to be passed to
-			   find_literal_operator when repeating the operator
-			   lookup for a cached token. */
-    } ud_lit;
-    /* When extra_info_kind == teik_ifc_index: */
-    a_lexical_ifc_index_reference
-		ifc_index;
-			/* An index into the IFC module containing additional
-			   information. */
+		shared_token_cache;
+			/* TRUE if variant should use the shared_token_cache;
+			   otherwise, FALSE. */
+  union a_token_cache_union {
+    inline a_token_cache_union()
+      {}
+    inline ~a_token_cache_union()
+      {}
+    /* When shared_token_cache is FALSE: */
+    a_token_cache
+		*persistent;
+			/* The persistent backing token cache. */
+    /* When shared_token_cache is TRUE: */
+    a_shared_token_cache
+		shared; /* The shared backing token cache. */
   } variant;
-} a_cached_token;
+};  /* a_reusable_token_cache */
+
+
+a_reusable_token_cache::a_reusable_token_cache(
+                                           a_shared_token_cache &&shared_cache)
+/*
+Move-construct a new reusable token cache object from the given shared token
+cache.
+*/
+  : shared_token_cache(TRUE)
+{
+  new (&this->variant.shared) a_shared_token_cache(move_from(&shared_cache));
+}  /* a_reusable_token_cache::a_reusable_token_cache */
+
+
+a_reusable_token_cache::a_reusable_token_cache(
+                                           const a_reusable_token_cache &other)
+/*
+Copy construct the reusable token cache.
+*/
+  : shared_token_cache(other.shared_token_cache)
+{
+  if (this->shared_token_cache) {
+    new (&this->variant.shared) a_shared_token_cache(other.variant.shared);
+  } else {
+    this->variant.persistent = other.variant.persistent;
+  }  /* if */
+}  /* a_reusable_token_cache::a_reusable_token_cache */
+
+
+a_reusable_token_cache::~a_reusable_token_cache()
+/*
+Destroy the reusable token cache.
+*/
+{
+  if (this->shared_token_cache) {
+    this->variant.shared.~Shared_obj<a_token_cache>();
+  }  /* if */
+}  /* a_reusable_token_cache::~a_reusable_token_cache */
+
+
+a_token_cache* a_reusable_token_cache::ptr() const
+/*
+Return a pointer to the underlying token cache object (if any).
+*/
+{
+  a_token_cache *result;
+
+  if (this->shared_token_cache) {
+BEGIN_DISABLE_GCC_WARNING_MAYBE_UNITIALIZED
+    result = this->variant.shared.ptr();
+END_DISABLE_GCC_WARNING_MAYBE_UNITIALIZED
+  } else {
+    result = this->variant.persistent;
+  }  /* if */
+  return result;
+}  /* a_reusable_token_cache::ptr */
+
+
+a_reusable_token_cache &a_reusable_token_cache::operator=(
+                                           const a_reusable_token_cache &other)
+/*
+Copy-assign from the given reusable token cache.
+*/
+{
+  if (this != &other) {
+    destroy(this);
+    construct(this, other);
+  }  /* if */
+  return *this;
+}  /* a_reusable_token_cache::operator= */
+
 
 /*
 The token cache stack is used to manipulate persistent token caches
@@ -2434,34 +3382,22 @@ used for template instantiations.
 */
 typedef struct a_reusable_cache_entry *a_reusable_cache_entry_ptr;
 typedef struct a_reusable_cache_entry {
+  a_boolean has_next_token()
+    { return this->next_token != a_token_cache_iterator(); }
   a_reusable_cache_entry_ptr
-                next;
-                        /* Pointer to the next entry on the stack. */
-  a_cached_token_ptr
-                previous_token_rescan_list;
-                        /* Contains a pointer to the token rescan list at
-                           the time the new persistent cache was pushed
-                           onto the stack. */
-  a_cached_token_ptr
-                next_cached_token;
-                        /* Points to the next token in the persistent cache
-                           to be rescanned. */
-  a_token_cache_ptr
+		next;
+			/* Pointer to the next entry on	the stack. */
+  a_token_stack *previous_token_rescan_stack;
+			/* Contains a pointer to the token rescan stack	at
+			   the time the	new persistent cache was pushed
+			   onto	the stack. */
+  a_token_cache_iterator
+		next_token;
+			/* The current iterator position in the token cache. */
+  a_reusable_token_cache
 		token_cache;
-			/* Points to the token cache from which the token
-			   list was obtained. */
-  a_token_cache
-		copy_of_token_cache;
-			/* A copy of the token cache from which the token
-			   list was obtained.  This is used when
-			   discard_cache_when_done is set below.  The
-			   token_cache pointer is used to recognize that
-			   the cache associated with this entry is being
-			   discarded, but a copy of that entry must be made
-			   to be able to discard it later because token_cache
-			   could point to an entry that no longer exists
-			   at the point at which the cache is actually
-			   discarded. */
+			/* The token cache from which the token list was
+			   obtained. */
   uint32_t
 		dependent_scans;
 			/* Non-zero if calls to get_token that would walk off
@@ -2469,15 +3405,9 @@ typedef struct a_reusable_cache_entry {
 			   of source token.  This is used in cases where the
 			   cache may otherwise be inadvertently popped during
 			   error recovery. */
-  a_byte_boolean
-		discard_cache_when_done;
-			/* TRUE if token_cache should be freed when the
-			   rescan is complete.  This is set if an attempt
-			   is made to discard the cache while it is still
-			   being scanned. */
 } a_reusable_cache_entry;
 
-		
+
 /*
 Bit vector used to pass flags into the cache token stream routines.
 */
@@ -2523,74 +3453,557 @@ sequence number information.
 {
   curr_token_sequence_number = assign_new_token_sequence_number();
   last_token_sequence_number_of_token = curr_token_sequence_number;
-  curr_cached_token_handle = NO_CACHED_TOKEN_HANDLE;
 }  /* assign_curr_token_sequence_number */
 
 
-/* Initialize a token cache. */
-extern void clear_token_cache(a_token_cache *cache,
-			      a_boolean     reusable);
-/* Discard the contents of a token cache. */
-extern void discard_token_cache(a_token_cache *cache);
 /* Save an end-of-source token in the token cache. */
 extern void terminate_token_cache(a_token_cache *cache);
 /* Create a token cache entry for a given token kind. */
-extern
-a_cached_token_ptr build_cached_token(a_token_kind	      kind,
-                                      a_token_sequence_number sequence_number,
-                                      a_source_position	      *position);
+extern a_shared_token build_cached_token(
+                                       a_token_kind            kind,
+                                       a_token_sequence_number sequence_number,
+                                       const a_source_position *position);
 
-inline void cache_token(a_token_cache_ptr     cache,
-                        a_token_kind          tok,
-                        a_source_position_ptr pos)
+
+a_removed_expr_descr::a_removed_expr_descr()
+  : cache(NULL)
+/*
+Construct a removed expression descriptor.
+*/
+{
+}  /* a_removed_expr_descr::a_removed_expr_descr */
+
+
+a_removed_expr_descr::~a_removed_expr_descr()
+/*
+Destroy the current removed expression descriptor.
+*/
+{
+  delete_fe(&this->cache);
+}  /* a_removed_expr_descr::~a_removed_expr_descr */
+
+namespace detail {
+
+template<typename a_Derived_type>
+a_Derived_type a_token_cache_iterator_base<a_Derived_type>::operator++()
+/*
+Increment the current iterator and return the iterator state.
+*/
+{
+  ++this->offset;
+  return *static_cast<a_Derived_type*>(this);
+}  /* a_token_cache_iterator_base::operator++ */
+
+
+template<typename a_Derived_type>
+a_Derived_type a_token_cache_iterator_base<a_Derived_type>::operator--()
+/*
+Decrement the current iterator and return the iterator state.
+*/
+{
+  --this->offset;
+  return *static_cast<a_Derived_type*>(this);
+}  /* a_token_cache_iterator_base::operator-- */
+
+
+template<typename a_Derived_type>
+a_Derived_type a_token_cache_iterator_base<a_Derived_type>::operator+(
+                                                                 int increment)
+/*
+Increment the current iterator by the given value and return a new iterator
+state.
+*/
+{
+  /* This function currently only supports moving the iterator forward. */
+  check_assertion(increment > 0);
+
+  a_Derived_type new_it(*static_cast<a_Derived_type*>(this));
+  new_it.offset += increment;
+  return new_it;
+}  /* a_token_cache_iterator_base::operator+ */
+
+
+template<typename a_Derived_type>
+a_Derived_type a_token_cache_iterator_base<a_Derived_type>::operator-(
+                                                                 int increment)
+/*
+Increment the current iterator by the given value and return a new iterator
+state.
+*/
+{
+  /* This function currently only supports moving the iterator backwards. */
+  check_assertion(increment > 0);
+
+  a_Derived_type new_it(*static_cast<a_Derived_type*>(this));
+  new_it.offset -= increment;
+  return new_it;
+}  /* a_token_cache_iterator_base::operator- */
+
+
+template<typename a_Derived_type>
+template<typename a_Type>
+a_boolean a_token_cache_iterator_base<a_Derived_type>::operator==(
+                        const a_token_cache_iterator_base<a_Type> &other) const
+/*
+Return TRUE if the given token cache iterator represents the same position (in
+the same cache) as this iterator; otherwise, return FALSE.
+*/
+{
+  a_boolean result = TRUE;
+
+  if (this->offset != other.offset) {
+    result = FALSE;
+  } else if (this->cache != other.cache) {
+    result = FALSE;
+  }  /* if */
+  return result;
+}  /* a_token_cache_iterator::operator== */
+
+}  /* detail */
+
+a_shared_token& a_token_cache_iterator::operator*() const
+/*
+Return the current iterator value.
+*/
+{
+  return (*this->cache)[(size_t)this->offset];
+}  /* a_token_cache_iterator::operator* */
+
+
+const a_shared_token& a_const_token_cache_iterator::operator*() const
+/*
+Return the current iterator value.
+*/
+{
+  return (*this->cache)[(size_t)this->offset];
+}  /* a_const_token_cache_iterator::operator* */
+
+
+void a_token_cache::append_token(const a_cached_token &tok)
+/*
+Append the given token to this token cache.
+*/
+{
+  this->tokens.emplace_back(tok);
+}  /* a_token_cache::append_token */
+
+
+void a_token_cache::append_token(a_cached_token &&tok)
+/*
+Append the given token to this token cache.
+*/
+{
+  this->tokens.emplace_back(move_from(&tok));
+}  /* a_token_cache::append_token */
+
+
+void a_token_cache::append_token(const a_shared_token &tok)
+/*
+Append the given token to this token cache.
+*/
+{
+  this->tokens.emplace_back(tok);
+}  /* a_token_cache::append_token */
+
+
+void a_token_cache::append_token(a_shared_token &&tok)
+/*
+Append the given token to this token cache.
+*/
+{
+  this->tokens.emplace_back(move_from(&tok));
+}  /* a_token_cache::append_token */
+
+
+void a_token_cache::insert_token(a_token_cache_iterator it,
+                                 const a_cached_token   &tok)
+/*
+Insert the given token to this token cache at the given iterator position.
+*/
+{
+  this->check_iterator(it);
+  this->tokens.insert((size_t)it.offset,
+                      shared_obj<an_immutable_cached_token>(tok));
+}  /* a_token_cache::insert_token */
+
+
+void a_token_cache::insert_token(a_token_cache_iterator it,
+                                 a_cached_token         &&tok)
+/*
+Insert the given token to this token cache at the given iterator position.
+*/
+{
+  this->check_iterator(it);
+  this->tokens.insert((size_t)it.offset,
+                      shared_obj<an_immutable_cached_token>(move_from(&tok)));
+}  /* a_token_cache::insert_token */
+
+
+void a_token_cache::insert_token(a_token_cache_iterator it,
+                                 const a_shared_token   &tok)
+/*
+Insert the given token to this token cache at the given iterator position.
+*/
+{
+  this->check_iterator(it);
+  this->tokens.insert((size_t)it.offset, tok);
+}  /* a_token_cache::insert_token */
+
+
+void a_token_cache::insert_token(a_token_cache_iterator it,
+                                 a_shared_token         &&tok)
+/*
+Insert the given token to this token cache at the given iterator position.
+*/
+{
+  this->check_iterator(it);
+  this->tokens.insert((size_t)it.offset, move_from(&tok));
+}  /* a_token_cache::insert_token */
+
+
+void a_token_cache::move_copy_tokens(a_token_cache_iterator it,
+                                     a_token_cache_iterator end_it)
+/*
+Perform a non-destructive move of the tokens in the range [it, end_it) into
+this token cache.  The tokens moved into this token cache are appended to the
+end of the token cache as they are moved.
+*/
+{
+  sizeof_t num_elems = distance(it, end_it);
+
+  /* Add the token range from src_cache to this token cache. */
+  this->tokens.reserve(this->tokens.length() + num_elems);
+  for (; it != end_it; ++it) {
+    this->tokens.emplace_back(move_from(&(*it)));
+  }  /* if */
+}  /* a_token_cache::move_copy_tokens */
+
+
+void a_token_cache::remove_token_range(a_token_cache_iterator it,
+                                       a_token_cache_iterator end_it)
+/*
+Remove the tokens in the range [it, end_it).
+*/
+{
+  this->check_iterator(it);
+  this->check_iterator(end_it);
+
+  sizeof_t num_elems = distance(it, end_it);
+  this->tokens.remove_many((size_t)it.offset, num_elems);
+}  /* a_token_cache::remove_token_range */
+
+
+void a_token_cache::remove_first_token()
+/*
+Remove the first token in the token cache.
+*/
+{
+  this->remove_token(this->begin());
+}  /* a_token_cache::remove_first_token */
+
+
+void a_token_cache::remove_token(a_token_cache_iterator it)
+/*
+Remove the token at the given iterator position.
+*/
+{
+  this->tokens.remove((size_t)it.offset);
+}  /* a_token_cache::remove_token */
+
+
+void a_token_cache::remove_tokens(a_token_cache_iterator it)
+/*
+Remove all tokens in the range [it, this->end()).
+*/
+{
+  this->remove_token_range(it, this->end());
+}  /* a_token_cache::remove_tokens */
+
+
+void a_token_cache::check_iterator(a_token_cache_iterator it)
+/*
+Validate that the given iterator is associated with this token cache and that
+it is within the range [this->begin(), this->end()).
+*/
+{
+#if EXPENSIVE_CHECKING
+  a_token_cache_iterator it_end = this->end();
+  if (it == it_end) {
+    /* Okay */
+  } else {
+    a_token_cache_iterator curr_it = this->begin();
+
+    for (; curr_it != it_end; ++curr_it) {
+      if (curr_it == it) {
+        break;
+      }  /* if */
+    }  /* for */
+    /* If this assertion fails, the iterator was not part of the token
+       cache. */
+    check_assertion(curr_it != this->end());
+  }  /* if */
+#endif /* EXPENSIVE_CHECKING */
+}  /* a_token_cache::check_iterator */
+
+
+void a_token_cache::remove_non_pragma_tokens_after(a_token_cache_iterator it)
+/*
+Remove all non-pragma tokens in the range (it, this->end()).  The token at *it
+will have its end position updated to include the end position of the last
+token removed.
+*/
+{
+#if EXTRA_SOURCE_POSITIONS_IN_IL
+  a_token_cache_iterator last_non_pragma_it = it;
+#endif /* EXTRA_SOURCE_POSITIONS_IN_IL */
+  a_token_cache_iterator end_it = this->end();
+
+  for (a_token_cache_iterator lookahead_it = it + 1; lookahead_it != end_it;
+       ++lookahead_it) {
+    const a_shared_token& tok = *lookahead_it;
+
+    if (!tok->is_pragma()) {
+#if EXTRA_SOURCE_POSITIONS_IN_IL
+      /* Update the end of token position of the resulting string with the
+         end position of the subsequent segment that is about to be freed.
+         This results in the ending position of the last string segment
+         being used as the ending position of the concatenated string. */
+      a_cached_token replacement_tok = **last_non_pragma_it;
+
+      replacement_tok.set_ending_source_position(
+                                           *tok->get_ending_source_position());
+      *last_non_pragma_it = move_from(&replacement_tok);
+#endif /*  EXTRA_SOURCE_POSITIONS_IN_IL */
+    }  /* if */
+  }  /* for */
+
+  auto is_not_pragma = [](const a_shared_token &tok) -> a_boolean {
+    return !tok->is_pragma();
+  };
+  this->tokens.remove_if((size_t)(it.offset + 1), is_not_pragma);
+}  /* a_token_cache::remove_non_pragma_tokens_after */
+
+
+const a_shared_token& a_token_cache::get_first_token() const
+/*
+Return a reference to the first token in the cache.
+*/
+{
+  check_assertion(!this->is_empty());
+  return this->tokens[0];
+}  /* a_token_cache::get_first_token */
+
+
+const a_shared_token& a_token_cache::get_last_token() const
+/*
+Return a reference to the last token in the cache.
+*/
+{
+  check_assertion(!this->is_empty());
+  return this->tokens[this->tokens.length() - 1];
+}  /* a_token_cache::get_last_token */
+
+namespace detail {
+
+template<typename a_Cache_type, typename an_Iterator_type>
+INLINE void find_first_and_last_impl(
+                                a_Cache_type            *cache,
+                                a_token_sequence_number first_token_number,
+                                a_token_sequence_number last_token_number,
+                                an_Iterator_type        *before_first_token_it,
+                                an_Iterator_type        *last_token_it)
+/*
+This function sets *before_first_token_it to the token immediately proceeding
+the first token with a starting token sequence number greater than or equal to
+first_token_number.  *last_token_number is set to the last token in the cache
+with an ending token sequence number equal to or less than
+last_token_number.
+
+If first_token_number is NO_TOKEN_SEQUENCE_NUMBER *before_first_token_it is set
+to the position immediately before the first token in the cache.  If
+last_token_it is NO_TOKEN_SEQUENCE_NUMBER *last_token_it is set to the last
+token in the cache.
+*/
+{
+  check_assertion(first_token_number <= last_token_number ||
+                  first_token_number == NO_TOKEN_SEQUENCE_NUMBER ||
+                  last_token_number == NO_TOKEN_SEQUENCE_NUMBER);
+  *before_first_token_it = an_Iterator_type(cache, -1);
+  *last_token_it = cache->get_last_token_iter();
+  if (first_token_number != NO_TOKEN_SEQUENCE_NUMBER) {
+    auto      get_tsn = [cache](size_t idx) -> a_token_sequence_number {
+      return (*cache)[idx]->get_starting_seq_number();
+    };
+    ptrdiff_t first_idx = lower_bound(cache->length(),
+                                      first_token_number,
+                                      get_tsn);
+
+    if (first_idx == -1) {
+      first_idx = (ptrdiff_t)(cache->length() - 1);
+    }  /* if */
+
+    a_token_sequence_number curr_tsn = first_token_number;
+    for (; first_idx != -1; --first_idx) {
+      const a_shared_token &tok = (*cache)[(size_t)first_idx];
+
+      curr_tsn = tok->get_starting_seq_number();
+      if (tok->is_pragma()) {
+        continue;
+      }  /* if */
+
+      if (curr_tsn < first_token_number) {
+        *before_first_token_it = an_Iterator_type(cache, (int)first_idx);
+        break;
+      }  /* if */
+    }  /* for */
+    check_assertion_or_expect_error_str(
+                      first_idx != -1 || curr_tsn == first_token_number,
+                      "a_token_cache::find_first_and_last: first_tsn missing");
+  }  /* if */
+  if (last_token_number != NO_TOKEN_SEQUENCE_NUMBER) {
+    auto      get_tsn = [cache](size_t idx) -> a_token_sequence_number {
+      return (*cache)[idx]->get_ending_seq_number();
+    };
+    ptrdiff_t last_idx = lower_bound(cache->length(),
+                                     last_token_number + 1,
+                                     get_tsn);
+
+    if (last_idx == -1) {
+      last_idx = (ptrdiff_t)(cache->length() - 1);
+    }  /* if */
+    for (; last_idx != -1; --last_idx) {
+      const a_shared_token &tok = (*cache)[(size_t)last_idx];
+
+      if (tok->is_pragma()) {
+        continue;
+      }  /* if */
+
+      a_token_sequence_number curr_tsn = tok->get_starting_seq_number();
+      if (curr_tsn <= last_token_number) {
+        *last_token_it = an_Iterator_type(cache, (int)last_idx);
+        break;
+      }  /* if */
+    }  /* if */
+    check_assertion_or_expect_error_str(
+                       last_idx != -1,
+                       "a_token_cache::find_first_and_last: last_tsn missing");
+  }  /* if */
+}  /* find_first_and_last_impl */
+
+}  /* detail */
+
+void a_token_cache::find_first_and_last(
+                                a_token_sequence_number first_token_number,
+                                a_token_sequence_number last_token_number,
+                                a_token_cache_iterator  *before_first_token_it,
+                                a_token_cache_iterator  *last_token_it)
+/*
+This is an interface to find_first_and_last_impl that uses non-constant
+iterators.  See find_first_and_last_impl for more information.
+*/
+{
+  detail::find_first_and_last_impl(this, first_token_number, last_token_number,
+                                   before_first_token_it, last_token_it);
+}  /* a_token_cache::find_first_and_last */
+
+
+void a_token_cache::find_first_and_last(
+                           a_token_sequence_number      first_token_number,
+                           a_token_sequence_number      last_token_number,
+                           a_const_token_cache_iterator *before_first_token_it,
+                           a_const_token_cache_iterator *last_token_it) const
+/*
+This is an interface to find_first_and_last_impl that uses constant iterators.
+See find_first_and_last_impl for more information.
+*/
+{
+  detail::find_first_and_last_impl(this, first_token_number, last_token_number,
+                                   before_first_token_it, last_token_it);
+}  /* a_token_cache::find_first_and_last */
+
+
+void a_cached_token::set_seq_number(a_token_sequence_number starting_num,
+                                    a_token_sequence_number ending_num)
+/*
+This function updates the sequence numbers of the current token with the
+given starting and ending numbers.
+*/
+{
+  this->token_sequence_number = starting_num;
+  this->ending_token_sequence_number = ending_num;
+}  /* a_cached_token::set_seq_number */
+
+
+INLINE void cache_token(a_token_cache_ptr       cache,
+                        a_token_kind            tok,
+                        const a_source_position *pos)
 /*
 Add tok to cache.  pos is the position of the token.
 */
 {
-  a_cached_token_ptr      ctp;
   a_token_sequence_number seq = NO_TOKEN_SEQUENCE_NUMBER;
 
   if (tok != tok_error) {
     seq = assign_new_token_sequence_number();
   }  /* if */
-  ctp = build_cached_token(tok, seq, pos);
-  if (cache->first_token == NULL) {
-    cache->first_token = ctp;
-  } else {
-    cache->last_token->next = ctp;
-  }  /* if */
-  cache->last_token = ctp;
-#if DEBUG
-  cache->token_count++;
-#endif /* DEBUG */
+  cache->append_token(build_cached_token(tok, seq, pos));
 }  /* cache_token */
 
 
-extern void cache_string_as_identifier(a_token_cache_ptr     cache,
-                                       a_const_char          *str,
-                                       a_targ_size_t         len,
-                                       a_source_position_ptr pos);
+extern a_shared_token build_tok_constant(
+                              a_constant_ptr          cp,
+                              const a_source_position *pos,
+                              a_token_kind            kind = tok_gen_constant);
 
-extern void cache_general_constant(a_token_cache_ptr     cache,
-                                   a_constant_ptr        cp,
-                                   a_source_position_ptr pos);
+extern a_shared_token build_tok_body_replacement(
+                                    a_token_kind            token,
+                                    a_token_sequence_number start_seq,
+                                    a_token_sequence_number end_seq,
+                                    a_symbol_ptr            symbol,
+                                    a_boolean               semicolon_inserted,
+                                    const a_source_position *pos);
 
-extern void cache_resolved_type_token(a_token_cache_ptr     cache,
-                                      a_type_ptr            type,
-                                      a_source_position_ptr pos);
 
-#if DEBUG
-extern void add_to_pragmas_in_reuseable_cache_count(unsigned long count);
-#else /* !DEBUG */
-#define add_to_pragmas_in_reuseable_cache_count(count) /* nothing */
-#endif /* DEBUG */
+extern a_shared_token build_tok_removed_expr(a_token_sequence_number start_seq,
+                                             const a_source_position *pos,
+                                             a_token_cache_iterator  begin,
+                                             a_token_cache_iterator  end);
+
+extern a_shared_token build_tok_pragma(a_token_sequence_number seq,
+                                       const a_source_position *pos);
+
+extern a_shared_token build_tok_pp(char                    *text,
+                                   a_targ_size_t           len,
+                                   const a_source_position *pos);
+
+extern a_shared_token build_tok_identifier(a_const_char            *str,
+                                           a_targ_size_t           len,
+                                           const a_source_position *pos);
+
+extern a_shared_token build_tok_ifc_ref(a_token_kind                  kind,
+                                        a_lexical_ifc_index_reference ref,
+                                        const a_source_position       *pos);
+
+extern a_shared_token build_tok_ud_literal(
+                                          a_constant_ptr          str_constant,
+                                          a_const_char            *suffix,
+                                          const a_source_position *pos);
+
+extern a_shared_token build_tok_ud_literal(
+                                     a_constant_ptr          value_constant,
+                                     a_constant_ptr          spelling_constant,
+                                     a_const_char            *suffix,
+                                     a_type_ptr              type,
+                                     const a_source_position *pos);
+
+extern a_shared_token build_tok_resolved_type(a_type_ptr              type,
+                                              const a_source_position *pos);
+
 /* Save the current token in a token cache. */
 extern void cache_curr_token(a_token_cache *cache);
 /* Save a token stream in a token cache. */
 extern void cache_token_stream(a_token_cache      *cache,
                                a_token_set_array  stop_tokens);
-
-extern void adjust_token_handles(a_token_cache *cache);
 
 extern
 void cache_token_stream_coalesce_identifiers(a_token_cache_ptr  cache,
@@ -2604,64 +4017,69 @@ extern void cache_std_attribute(a_token_cache	*cache,
                                 a_boolean	add_tokens_to_cache);
 
 extern a_boolean cache_token_stream_until_matching_token(
-				a_token_cache		*cache,
-				a_cts_flag_set		options);
-
-extern
-void remove_token_from_cache(a_cached_token_ptr	ctp,
-			     a_cached_token_ptr	*prev_ptr,
-			     a_token_cache_ptr	cache);
+                                a_token_cache           *cache,
+                                a_cts_flag_set          options);
 
 extern a_token_kind get_token_to_be_cached(void);
 /* Put some cached tokens on the get_token rescan list. */
-extern void rescan_cached_tokens(a_token_cache *cache);
-extern void f_rescan_cached_tokens(a_token_cache *cache,
-                                   a_boolean	  discard_curr_token);
-/* Push a reusable cache on to the reusable cache stack. */
-extern void rescan_reusable_cache(a_token_cache *cache);
-/* Rescan a copy of a token cache. */
+extern void rescan_cached_tokens(a_token_cache *cache,
+                                 a_boolean     discard_curr_token = FALSE);
 extern void rescan_copy_of_cache(a_token_cache *cache);
+/* Push a reusable cache on to the reusable cache stack. */
+extern void rescan_reusable_cache(const a_reusable_token_cache &cache);
 
-extern void free_tokens_from_reusable_cache(a_cached_token_ptr	ctp,
-					    a_token_cache	*cache);
 
-extern void begin_caching_fetched_tokens(a_boolean	include_curr_token);
+INLINE void rescan_persistent_reusable_cache(a_token_cache *cache)
+/*
+This is a convenience wrapper function around rescan_reusable_cache for
+persistent reusable caches (see a_reusable_token_cache for more information
+about persistent reusable caches).
+*/
+{
+  rescan_reusable_cache(a_reusable_token_cache(cache));
+}  /* rescan_persistent_reusable_cache */
 
+
+INLINE void rescan_shared_reusable_cache(a_shared_token_cache cache)
+/*
+This is a convenience wrapper function around rescan_reusable_cache for
+shared reusable caches (see a_reusable_token_cache for more information
+about shared reusable caches).
+*/
+{
+  rescan_reusable_cache(a_reusable_token_cache(move_from(&cache)));
+}  /* rescan_shared_reusable_cache */
+
+
+extern void begin_caching_fetched_tokens(a_boolean include_curr_token);
 extern void end_caching_fetched_tokens(void);
 
 extern
-void copy_tokens_from_cache(a_token_cache_ptr	       src_cache,
-                            a_token_sequence_number    first_tsn,
-                            a_token_sequence_number    last_tsn,
-			    a_boolean                  include_last_token,
-                            a_token_cache_ptr	       dest_cache);
+void copy_tokens_from_cache(const a_token_cache     *src_cache,
+                            a_token_sequence_number first_tsn,
+                            a_token_sequence_number last_tsn,
+                            a_boolean               include_last_token,
+                            a_token_cache_ptr       dest_cache);
 
 extern
-a_boolean skip_to_token_handle_location(a_token_cache_ptr	cache,
-					a_cached_token_handle	token_handle);
+a_boolean skip_to_token_handle_location(a_token_cache_ptr      cache,
+                                        a_token_cache_iterator it);
 
 extern a_boolean scanning_from_token_cache(void);
 
-extern a_token_cache_ptr get_token_cache_being_scanned(void);
+extern a_reusable_token_cache get_token_cache_being_scanned(void);
 
 extern
 void split_token_cache(a_token_cache	       *cache1,
                        a_token_cache	       *cache2,
                        a_token_sequence_number split_location,
                        a_boolean	       include_prev_token,
-                       a_boolean	       okay_if_not_found,
-                       a_boolean               update_cache_being_scanned);
+                       a_boolean	       okay_if_not_found);
 
-/* Move a list of tokens from one cache to another. */
-extern
-void move_cached_tokens(a_cached_token_ptr	first_token,
-			a_token_cache		*from_cache,
-                        a_token_cache		*to_cache);
-
+extern a_token_cache_iterator find_iter_for_curr_rescan_token();
 
 extern
-void update_reusable_cache_rescan_location(
-					a_cached_token_handle	token_handle);
+void update_reusable_cache_rescan_location(a_token_cache_iterator it);
 
 extern void increment_dependent_scans_for_reusable_cache(void);
 
@@ -3091,8 +4509,6 @@ utilities that do not have memory management code.
 
 extern a_string_or_char_literal_kind scan_encoding_prefix(a_const_char *loc);
 
-extern a_constant_ptr alloc_cached_constant();
-
 extern a_boolean accum_quoted_string(
                   unsigned long                 *num_chars,
                   a_boolean                     is_header_name,
@@ -3384,9 +4800,10 @@ extern void insert_string_into_token_stream(
                                         a_boolean         suppress_caching,
                                         a_source_position position_for_tokens);
 
-extern void cache_tokens_from_string(a_const_char       *string,
-                                     a_token_cache_ptr  cache,
-                                     a_source_position  *position_for_tokens);
+extern void cache_tokens_from_string(
+                                 a_const_char            *string,
+                                 a_token_cache_ptr       cache,
+                                 const a_source_position *position_for_tokens);
 
 #if CHECKING
 void check_all_stop_token_entries_are_reset(a_token_set_array stop_tokens);
@@ -3423,24 +4840,26 @@ extern void lexical_cleanup(void);
   }
 
 extern a_string token_to_string(
-                               a_cached_token_ptr token,
-                               a_boolean          expand_pseudo_tokens = TRUE);
+                             const a_shared_token &token,
+                             a_boolean            expand_pseudo_tokens = TRUE);
 
 extern
-void add_cached_tokens_to_string(a_cached_token_ptr      first_token,
-                                 a_token_sequence_number start_tsn,
-                                 a_token_sequence_number end_tsn);
+void add_cached_tokens_to_string(a_const_token_cache_iterator begin,
+                                 a_const_token_cache_iterator end,
+                                 a_token_sequence_number      start_tsn,
+                                 a_token_sequence_number      end_tsn);
 
 extern
-void add_token_cache_segment_to_string(a_token_cache_ptr	cache,
-				       a_token_sequence_number	start_tsn,
-				       a_token_sequence_number	end_tsn);
+void add_token_cache_segment_to_string(const a_token_cache      *cache,
+                                       a_token_sequence_number  start_tsn,
+                                       a_token_sequence_number  end_tsn);
 
-extern void add_token_cache_to_string(a_token_cache_ptr	cache);
+extern void add_token_cache_to_string(const a_token_cache *cache);
 
-extern void init_token_string(a_source_position *pos,
-                              a_boolean         keep_spacing,
-                              a_boolean         suppress_identifier_wrapping);
+extern void init_token_string(
+                         const a_source_position *pos,
+                         a_boolean               keep_spacing,
+                         a_boolean               suppress_identifier_wrapping);
 
 extern char *make_copy_of_token_string(void);
 
@@ -3502,22 +4921,24 @@ and all entities declared in functions.
 /* Show space used in the lexical routines, for debugging purposes. */
 extern unsigned long show_lexical_space_used(void);
 
-extern a_cached_token_ptr get_cache_token(a_token_cache_ptr       cache,
-                                          a_token_sequence_number seq_number);
+extern a_shared_token get_cache_token(a_token_cache_ptr       cache,
+                                      a_token_sequence_number seq_number);
 
-extern void db_rescan_list(void);
+extern void db_rescan_stack(void);
 
-extern void db_token_cache(a_token_cache *cache,
-                           a_const_char	 *cache_name);
+extern void db_token_cache(const a_token_cache *cache,
+                           a_const_char        *cache_name);
 
-extern void db_diff_token_caches(a_token_cache *cache_a,
-                                 a_token_cache *cache_b);
+extern void db_diff_token_caches(const a_token_cache *cache_a,
+                                 const a_token_cache *cache_b);
 
-extern void db_source_position(a_source_position  *pos);
+extern void db_source_position(const a_source_position *pos);
 
-extern void db_tokens(a_cached_token_ptr  first_token);
-
-extern void db_tokens(a_token_cache  *cache);
+extern void db_tokens(const a_token_cache *cache);
+extern void db_tokens(const a_shared_token_cache &cache);
+extern void db_tokens(const a_reusable_token_cache &cache);
+extern void db_tokens(a_token_cache_iterator it);
+extern void db_tokens(a_const_token_cache_iterator it);
 
 extern void db_stop_tokens(void);
 #endif /* DEBUG */
@@ -3683,8 +5104,6 @@ extern void init_whitespace_keywords(void);
 
 extern char *generate_top_level_metadata_code(an_assembly_index index);
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
-extern a_token_cache_ptr alloc_token_cache(a_boolean  reusable = FALSE);
-extern void free_token_cache(a_token_cache_ptr tcp);
 
 extern a_hash_value hash_include_file_history(a_void_ptr	key);
 extern a_boolean compare_include_file_history(a_void_ptr	entry,

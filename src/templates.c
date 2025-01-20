@@ -507,7 +507,7 @@ static void complete_il_template_entry(a_tmpl_decl_state_ptr  decl_state,
                                        a_symbol_ptr           sym);
 
 
-void init_templ_decl_state(a_tmpl_decl_state_ptr	tdsp,
+void init_templ_decl_state(a_tmpl_decl_state_ptr tdsp,
                            a_decl_parse_state    *dps)
 /*
 Initialize a template declaration state block.
@@ -567,9 +567,9 @@ Initialize a template declaration state block.
   tdsp->number_of_template_param_clauses = 0;
   tdsp->enclosing_scope = NULL;
   tdsp->class_declared_in = NULL;
-  clear_token_cache(&tdsp->param_list_cache, /*reusable=*/TRUE);
+  tdsp->param_list_cache = a_shared_token_cache();
   tdsp->first_decl_cache_tsn = NO_TOKEN_SEQUENCE_NUMBER;
-  clear_token_cache(&tdsp->decl_token_cache, /*reusable=*/TRUE);
+  tdsp->decl_token_cache = a_shared_token_cache();
   tdsp->decl_token_cache_used = FALSE;
   tdsp->pragmas_bound_to_template = NULL;
   tdsp->il_template_entry = NULL;
@@ -593,20 +593,6 @@ Initialize a template declaration state block.
   tdsp->cli_visibility_pos = null_source_position;
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
 }  /* init_templ_decl_state */
-
-
-static void wrapup_templ_decl_state(a_tmpl_decl_state_ptr decl_state)
-/*
-Free the token caches that were used while processing a template declaration.
-*/
-{
-  /* If the declaration token cache is not needed, discard it. */
-  if (!decl_state->decl_token_cache_used) {
-    discard_token_cache(&decl_state->decl_token_cache);
-  }  /* if */
-  /* Discard the token cache used to store the template parameter list. */
-  discard_token_cache(&decl_state->param_list_cache);
-}  /* wrapup_templ_decl_state */
 
 
 void init_ctws_state(a_ctws_state_ptr	csp)
@@ -741,8 +727,6 @@ the appropriate size, copy the contents of the buffer into it, and update
 the "text" field of *template_ptr to point to it.
 */
 {
-  a_token_cache         *cache;
-
   db_enter(3, "make_template_string");
   /* Initialize the buffer that will be used to build the token string.  Use
      the position of the template declaration as the starting position of
@@ -750,30 +734,21 @@ the "text" field of *template_ptr to point to it.
   init_token_string(&template_ptr->source_corresp.decl_position,
                     /*keep_spacing=*/TRUE,
                     /*suppress_identifier_wrapping=*/FALSE);
-  /* The outer loop goes though the three token caches in order, beginning
-     with "template < ... >". */
-  cache = template_param_list_cache;
-  for (;;) {
-    check_assertion(cache != NULL);
-    /* Add the tokens from this cache to the template string. */
-    add_token_cache_to_string(cache);
-    /* Advance to the next token cache. */
-    if (cache == template_param_list_cache) {
-      cache = template_decl_cache;
-    } else if (cache == template_decl_cache) {
-      cache = template_body_cache;
-      /* There will be no cache for the token body if no body was declared --
-         in which case, terminate the loop. */
-      if (cache == NULL || cache->first_token == NULL) break;
-    } else {
-      /* All done. */
-      break;
+
+  /* Cache the three token caches in order, beginning with
+     "template < ... >". */
+  auto cache_if_content = [](a_token_cache_ptr cache) {
+    if (cache != NULL && !cache->is_empty()) {
+      add_token_cache_to_string(cache);
     }  /* if */
-  }  /* for */
+  };
+  cache_if_content(template_param_list_cache);
+  cache_if_content(template_decl_cache);
+  cache_if_content(template_body_cache);
   if ((template_body_cache != NULL &&
-       template_body_cache->first_token != NULL) &&
-      (template_ptr->kind == (a_template_kind)templk_function ||
-       template_ptr->kind == (a_template_kind)templk_member_function)) {
+       !template_body_cache->is_empty()) &&
+      (template_ptr->kind == templk_function ||
+       template_ptr->kind == templk_member_function)) {
     /* Function template definition -- no semicolon needed. */
   } else {
     /* Terminate the string with a semicolon (which will not have been
@@ -794,19 +769,16 @@ the "text" field of *template_ptr to point to it.
   db_exit();
 }  /* make_template_string */
 
-static void make_member_function_template_string(
-					a_symbol_ptr		sym)
+
+static void make_member_function_template_string(a_symbol_ptr sym)
 /*
 Create a template string for the member function specified by "sym".  Save
 the string in the IL template entry associated with the member function.
 */
 {
-  a_template_symbol_supplement_ptr	tssp;
-  a_template_ptr			template_ptr;
-  a_token_cache_ptr			cache;
+  a_template_symbol_supplement_ptr tssp = template_supplement_for_symbol(sym);
+  a_template_ptr                   template_ptr = tssp->il_template_entry;
 
-  tssp = template_supplement_for_symbol(sym);
-  template_ptr = tssp->il_template_entry;
   template_ptr = template_ptr->canonical_template->definition_template;
   /* Initialize the buffer that will be used to build the token string.  Use
      the position of the template declaration as the starting position of
@@ -814,10 +786,11 @@ the string in the IL template entry associated with the member function.
   init_token_string(&template_ptr->source_corresp.decl_position,
                     /*keep_spacing=*/TRUE,
                     /*suppress_identifier_wrapping=*/FALSE);
-  cache = &tssp->cache.tokens;
-  check_assertion(cache != NULL);
+
+  a_reusable_token_cache cache = tssp->cache->tokens;
+  check_assertion(cache.ptr() != NULL);
   /* Add the tokens from this cache to the template string. */
-  add_token_cache_to_string(cache);
+  add_token_cache_to_string(cache.ptr());
   /* Copy the string into IL memory. */
   template_ptr->text = make_copy_of_token_string();
 #if DEBUG
@@ -1432,10 +1405,8 @@ Otherwise, set *p_t_params and *p_t_args to NULL.
     a_symbol_ptr  proto_sym = cssp->corresp_prototype_sym;
     *p_t_args = templ_arg_list_for_class(class_type);
     check_assertion(*p_t_args != NULL && proto_sym != NULL);
-    *p_t_params = proto_sym->variant.class_struct_union.extra_info
-                           ->template_info
-                           ->cache.decl_info
-                           ->parameters;
+    *p_t_params = proto_sym->variant.class_struct_union.extra_info->
+                                   template_info->cache->decl_info->parameters;
   } else {
     *p_t_args = NULL;
     *p_t_params = NULL;
@@ -1463,7 +1434,7 @@ enclosing template class types, if any (starting from the outermost).
         a_symbol_ptr  proto_sym = symbol_supplement_for_class(class_type)
                                                        ->corresp_prototype_sym;
         check_assertion(proto_sym != NULL);
-        tdip = class_symbol_supp(proto_sym)->template_info->cache.decl_info;
+        tdip = class_symbol_supp(proto_sym)->template_info->cache->decl_info;
       }  /* if */
       p_array->push_back(a_subst_pairs_descr{ tdip->parameters, templ_args,
                                               FALSE, FALSE, FALSE, FALSE });
@@ -1583,9 +1554,9 @@ instantiation.
 
   if (tssp->prototype_template != NULL && !tssp->is_specific_definition) {
     /* Use the cache from the original template. */
-    tcp = &tssp->prototype_template->variant.template_info->cache;
+    tcp = tssp->prototype_template->variant.template_info->cache;
   } else {
-    tcp = &tssp->cache;
+    tcp = tssp->cache;
   }  /* if */
   return tcp;
 }  /* cache_for_template */
@@ -1605,15 +1576,15 @@ instantiation.
 
   if (tssp->prototype_template != NULL && !tssp->is_specific_definition) {
     /* Use the cache from the original template. */
-    tcp = &tssp->prototype_template->variant.template_info
-                                   ->variant.variable.decl_cache;
+    tcp = tssp->prototype_template->variant.template_info->
+                                                   variant.variable.decl_cache;
   } else {
-    tcp = &tssp->variant.variable.decl_cache;
+    tcp = tssp->variant.variable.decl_cache;
   }  /* if */
-  if (tcp->decl_info == NULL && tssp->cache.decl_info != NULL) {
+  if (tcp->decl_info == NULL && tssp->cache->decl_info != NULL) {
     /* In error cases, the only valid cache may be tssp->cache. */
     expect_error();
-    tcp = &tssp->cache;
+    tcp = tssp->cache;
   }  /* if */
   return tcp;
 }  /* decl_cache_for_variable_template */
@@ -1633,10 +1604,10 @@ instantiation.
 
   if (tssp->prototype_template != NULL && !tssp->is_specific_definition) {
     /* Use the cache from the original template. */
-    tcp = &tssp->prototype_template->variant.template_info
-                                   ->variant.function.decl_cache;
+    tcp = tssp->prototype_template->variant.template_info->
+                                                   variant.function.decl_cache;
   } else {
-    tcp = &tssp->variant.function.decl_cache;
+    tcp = tssp->variant.function.decl_cache;
   }  /* if */
   /* If the decl_cache is not filled in, fall back to the primary cache. */
   if (tcp->decl_info == NULL) {
@@ -1662,7 +1633,7 @@ represented by the given symbol.
     tcp = decl_cache_for_variable_template(tssp);
   } else {
     check_assertion(symbol_is(sym, sk_class_template));
-    tcp = &tssp->cache;
+    tcp = tssp->cache;
   }  /* if */
   return tcp;
 }  /* decl_cache_for_template */
@@ -1855,7 +1826,7 @@ corresponds to field_sym in an actual instantiation.
     orig_fssp = sym->variant.field.extra_info;
     if (orig_fssp->token_sequence_number == curr_token_sequence_number) {
       fssp->token_cache = orig_fssp->token_cache;
-      check_assertion(fssp->token_cache != NULL);
+      check_assertion(fssp->token_cache != a_shared_token_cache());
       fssp->prototype_field = orig_fssp;
     } else {
       /* Some error occurred that caused us to be in an unexpected location.
@@ -1902,7 +1873,7 @@ sdm_sym.  This is currently only used in GNU mode.
     check_assertion(proto_sdmsp != NULL);
     if (proto_sdmsp->token_sequence_number == curr_token_sequence_number) {
       sdmsp->token_cache = proto_sdmsp->token_cache;
-      if (proto_sdmsp->token_cache != NULL) {
+      if (proto_sdmsp->token_cache != a_shared_token_cache()) {
         sdmsp->prototype_member = sym;
       } else {
         expect_error();
@@ -2395,8 +2366,8 @@ compatibility checking.
   sym->decl_scope = il_header.primary_scope->number;
   tssp = sym->variant.template_info;
   tdip = alloc_template_decl_info();
-  tssp->cache.decl_info = tdip;
-  tssp->variant.class_template.initial_decl_cache.decl_info = tdip;
+  tssp->cache->decl_info = tdip;
+  tssp->variant.class_template.initial_decl_cache->decl_info = tdip;
   tdip->parameters = templ_param_list;
   tssp->variant.class_template.type_kind = (a_type_kind)tk_class;
   tssp->variant.class_template.invented_template = TRUE;
@@ -2434,8 +2405,8 @@ compatibility checking.
   sym->decl_scope = il_header.primary_scope->number;
   tssp = sym->variant.template_info;
   tdip = alloc_template_decl_info();
-  tssp->cache.decl_info = tdip;
-  tssp->variant.function.decl_cache.decl_info = tdip;
+  tssp->cache->decl_info = tdip;
+  tssp->variant.function.decl_cache->decl_info = tdip;
   tdip->parameters = templ_param_list;
   rout = alloc_routine();
   rout_type = alloc_type((a_type_kind)tk_routine);
@@ -2475,7 +2446,7 @@ This routine does the C++17 "at least as specialized" checking (see N4849,
      do this if the argument template is nonreal (because it won't have
      a template parameter list). */
   param_tssp = template_supplement_for_template(param_template);
-  param_list_for_param = param_tssp->cache.decl_info->parameters;
+  param_list_for_param = param_tssp->cache->decl_info->parameters;
   arg_tssp = template_supplement_for_template(arg_template);
   arg_templ_sym = symbol_for(arg_template);
   if (arg_tssp->is_nonreal_member) {
@@ -2499,7 +2470,7 @@ This routine does the C++17 "at least as specialized" checking (see N4849,
     a_template_arg_ptr		param_tap;
     /* Create an invented class template based on the template parameters
        of the argument template. */
-    param_list_for_arg = arg_tssp->cache.decl_info->parameters;
+    param_list_for_arg = arg_tssp->cache->decl_info->parameters;
     invented_templ_sym = make_invented_class_template(param_list_for_arg);
     invented_templ_sym->variant.template_info
                       ->has_template_param_constraint =
@@ -2589,8 +2560,8 @@ checking.
                   tssp1 = template_supplement_for_template(param_template);
     a_template_symbol_supplement_ptr
                   tssp2 = template_supplement_for_template(arg_template);
-    if (equiv_template_param_lists(tssp1->cache.decl_info->parameters,
-                                   tssp2->cache.decl_info->parameters,
+    if (equiv_template_param_lists(tssp1->cache->decl_info->parameters,
+                                   tssp2->cache->decl_info->parameters,
                                    /*issue_errors=*/FALSE,
                                    ETP_TEMPLATE_TEMPLATE_PARAM_MATCH,
                                    (a_source_position*)NULL, es_error)) {
@@ -2725,10 +2696,10 @@ Return TRUE if there is a match, FALSE otherwise.
     a_template_symbol_supplement_ptr	param_tssp;
     a_template_symbol_supplement_ptr	arg_template;
     param_tssp = template_supplement_for_template(param_template);
-    param_list_for_param = param_tssp->cache.decl_info->parameters;
+    param_list_for_param = param_tssp->cache->decl_info->parameters;
     arg_template = template_supplement_for_template(tap->variant.templ.ptr);
     if (!arg_template->is_nonreal_member) {
-     param_list_for_arg = arg_template->cache.decl_info->parameters;
+     param_list_for_arg = arg_template->cache->decl_info->parameters;
      if (involves_template_param && is_deduction) {
        /* If we are checking for a matching template template parameter
           and the template template parameter involves other template
@@ -2906,7 +2877,7 @@ Otherwise it is zero.
     /* The decl_info pointer can be NULL if the template parameter list is
        missing (in an error case), and the template declaration information
        has not yet been filled in. */
-    tdip = tssp->variant.function.decl_cache.decl_info;
+    tdip = tssp->variant.function.decl_cache->decl_info;
     templ_param_list = tdip != NULL ? tdip->parameters : NULL;
   }  /* if */
   /* Make an initial pass through the argument list to see if all of the
@@ -3103,7 +3074,8 @@ Otherwise it is zero.
   tssp = template_supplement_for_symbol(rout_templ_sym);
   if (templ_param_list == NULL) {
     /* Get the template parameter list, if one was not passed in. */
-    templ_param_list = tssp->variant.function.decl_cache.decl_info->parameters;
+    templ_param_list =
+                      tssp->variant.function.decl_cache->decl_info->parameters;
   }  /* if */
   /* If there is no template argument list yet, create it now.  This can
      occur if all of the template arguments are from default arguments
@@ -3758,8 +3730,10 @@ CFT_ENTIRE_TYPE flag is FALSE.
   rtsp2 = rout_type2->variant.routine.extra_info;
   /* Get the parameter list to be deduced.  This is the one for the second
      template. */
-  templ_param_list1 = tssp2->variant.function.decl_cache.decl_info->parameters;
-  templ_param_list2 = tssp1->variant.function.decl_cache.decl_info->parameters;
+  templ_param_list1 =
+                     tssp2->variant.function.decl_cache->decl_info->parameters;
+  templ_param_list2 =
+                     tssp1->variant.function.decl_cache->decl_info->parameters;
   is_conversion_operator = is_conversion_function_symbol(templ_sym1);
   push_instantiation_scope_for_rescan(templ_sym1);
   entire_type = (cft_flags & CFT_ENTIRE_TYPE) != 0;
@@ -4143,17 +4117,18 @@ determine the partial order among matching partial specializations.
   if (symbol_is(template_sym, sk_class_template)) {
     prototype_sym = tssp->variant.class_template.prototype_instantiation;
     templ_param_list = tssp->
-               variant.class_template.initial_decl_cache.decl_info->parameters;
+              variant.class_template.initial_decl_cache->decl_info->parameters;
     primary_templ_param_list = primary_tssp->
-               variant.class_template.initial_decl_cache.decl_info->parameters;
+              variant.class_template.initial_decl_cache->decl_info->parameters;
   } else {
     a_variable_ptr	prototype_var;
     check_assertion(symbol_is(template_sym, sk_variable_template));
     prototype_var = variable_for_symbol(template_sym);
     prototype_sym = symbol_for(prototype_var);
-    templ_param_list = tssp->variant.variable.decl_cache.decl_info->parameters;
+    templ_param_list =
+                      tssp->variant.variable.decl_cache->decl_info->parameters;
     primary_templ_param_list =
-               primary_tssp->variant.variable.decl_cache.decl_info->parameters;
+              primary_tssp->variant.variable.decl_cache->decl_info->parameters;
   }  /* if */
   /* If no template argument list was provided by the caller, use a local
      one.  This is the case when the caller doesn't care about the
@@ -4797,7 +4772,7 @@ the template declaration information of the partial specialization.
   tdsp->template_decl = decl_info->template_decl;
   tdsp->out_of_class_instantiation = TRUE;
   tdsp->out_of_class_prototype_sym = oocpsp->symbol;
-  tdsp->decl_token_cache = oocpsp->cache.tokens;
+  tdsp->decl_token_cache = *oocpsp->cache.tokens;
 }  /* create_decl_state_for_partial_spec_rescan */
 
 
@@ -4829,7 +4804,7 @@ with "instance_sym".
 
   ps_sym = oocpsp->symbol;
   ps_tssp = ps_sym->variant.template_info;
-  decl_info = ps_tssp->cache.decl_info;
+  decl_info = ps_tssp->cache->decl_info;
   parent_decl_info = decl_info->enclosing_template_decl;
   (void)push_template_instantiation_scope(parent_decl_info,
 		 		          class_type,
@@ -4852,7 +4827,7 @@ with "instance_sym".
   /* Reactivate any pragmas that should be bound to the generated
      instance. */
   reactivate_curr_construct_pragmas(ps_tssp->pragmas_bound_to_template);
-  rescan_reusable_cache(&oocpsp->cache.tokens);
+  rescan_reusable_cache(oocpsp->cache.tokens);
   if (symbol_is(ooc_sym, sk_class_template) ||
       is_class_struct_union_symbol(ooc_sym)) {
     class_template_declaration(&decl_state, &new_sym, &resolution,
@@ -4944,8 +4919,8 @@ Instantiate the C++/CLI generic delegate specified by class_type.
 #if EXTRA_SOURCE_POSITIONS_IN_IL
     saved_curr_construct_end_position = curr_construct_end_position;
 #endif /* EXTRA_SOURCE_POSITIONS_IN_IL */
-    body_cache = &tssp->cache;
-    if (body_cache->tokens.first_token == NULL) {
+    body_cache = tssp->cache;
+    if (body_cache->tokens->is_empty()) {
       /* The template definition is missing.  This should only occur in error
          cases.  Leave the type incomplete. */
       check_assertion(is_at_least_one_error());
@@ -4995,7 +4970,7 @@ Instantiate the C++/CLI generic delegate specified by class_type.
          instance. */
       reactivate_curr_construct_pragmas(tssp->pragmas_bound_to_template);
       /* Rescan the tokens of the alias. */
-      rescan_reusable_cache(&body_cache->tokens);
+      rescan_reusable_cache(body_cache->tokens);
       record_symbol_declaration(SRK_DEFINITION | SRK_TEMPLATE_INSTANTIATION,
                                 instance_sym, &instance_sym->decl_position,
                                 (a_source_sequence_entry_ptr)NULL);
@@ -5315,7 +5290,7 @@ be completed here.
        it may need to be revised if the instantiation is generated from
        a partial specialization. */
     cssp->corresp_prototype_sym = prototype_instantiation_sym;
-    if (body_cache->tokens.first_token == NULL) {
+    if (body_cache->tokens.is_empty()) {
       /* The template itself has not yet been defined.  The caller will
          issue an incomplete-type error. */
     } else if (!tssp_of_prototype->variant.class_template.
@@ -5486,7 +5461,7 @@ be completed here.
         ap = copy_of_attributes_with_substitution(
                    tssp_of_prototype->attributes, /*primary_only=*/TRUE,
                    template_sym,
-                   tssp_of_prototype->cache.decl_info->parameters,
+                   tssp_of_prototype->cache->decl_info->parameters,
                    template_arg_list, parent_class_or_null(class_type),
                    /*is_partial_instantiation=*/FALSE,
                    (a_boolean*)NULL);
@@ -5510,7 +5485,8 @@ be completed here.
       /* The tokens of the template definition have been cached away.
          Activate the cache so that they can be rescanned in light of
          the new values associated with the template parameters. */
-      rescan_reusable_cache(&body_cache->tokens);
+      rescan_reusable_cache(body_cache->tokens);
+      increment_dependent_scans_for_reusable_cache();
 #if CHECKING
       if (curr_token != tok_lbrace && curr_token != tok_colon) {
         internal_error("f_instantiate_template_class: bad 1st token in cache");
@@ -5584,6 +5560,7 @@ be completed here.
                     (a_decl_pos_block_ptr)NULL);
       curr_class_fixup_header(/*for_instantiation=*/TRUE)->
                                                    pending_class_definitions--;
+      decrement_dependent_scans_for_reusable_cache();
       end_deferral_of_access_checks();
       if (is_nonreal_instantiation) {
         /* Discard pragmas on nonreal instantiations (done in Microsoft
@@ -5699,213 +5676,109 @@ done:;
 }  /* check_for_uninstantiated_template_class */
 
 
+using an_owned_template_cache_segment_ptr =
+                                          Owning_ptr<a_template_cache_segment>;
+			/* The type used for a list of template cache
+			   segments. */
+
 #if DEBUG
-static void db_template_cache_segments(a_template_cache_segment_ptr tcsp)
+
+void db_template_cache_segments(
+                           const a_template_cache_segment_list &cache_segments)
 /*
 Display the contents of list of template cache segment entries.
 */
 {
-  int	count;
-  for (count = 0; tcsp != NULL; tcsp = tcsp->next, count++) {
-    fprintf(f_debug, "Entry %d\n", count);
+  int count = 0;
+
+  for (a_template_cache_segment_ptr tcsp : cache_segments) {
+    fprintf(f_debug, "Entry %d\n", count++);
     fprintf(f_debug, "Symbol: ");
     db_symbol(tcsp->symbol, "", 6);
     fprintf(f_debug, "  first_token_number: %lu\n",
             (unsigned long)tcsp->first_token_number);
     fprintf(f_debug, "  last_token_number: %lu\n",
             (unsigned long)tcsp->last_token_number);
-    fprintf(f_debug, "  before_first_token: %p\n",
-            (void*)tcsp->before_first_token);
-    fprintf(f_debug, "  last_token: %p\n", (void*)tcsp->last_token);
     fprintf(f_debug, "\n");
   }  /* for */
 }  /* db_template_cache_segments */
+
 #endif /* DEBUG */
 
-
-static
-a_template_cache_segment_ptr map_token_numbers_to_cache_pointers(
-			a_template_cache_ptr			tcp,
-			a_template_cache_segment_ptr		cache_segments)
-/*
-The cache segment entries currently contain the starting and ending token
-sequence numbers of the cache segments.  Make a pass through the enclosing
-cache and find the token before the first token and the last token.
-These token pointers are needed to relink the original cache around
-the removed tokens.
-
-The result is a list of cache segments in a different order than the
-list passed in.  The pointer to the start of the list is returned.
-*/
-{
-  a_cached_token_ptr		ctp;
-  a_cached_token_ptr		prev_ctp = NULL;
-  a_cached_token_ptr		next_prev_ctp = NULL;
-  a_template_cache_segment_ptr	start_found_list = NULL;
-  a_template_cache_segment_ptr	complete_list = NULL;
-  a_template_cache_segment_ptr	curr_tcsp = cache_segments;
-
-#if CHECKING
-  /* The entries on the list of cache segments must be in order of
-     first token sequence number.  Make sure that this is the case. */
-  {
-    a_template_cache_segment_ptr	tcsp;
-    a_token_sequence_number		prev_tsn = NO_TOKEN_SEQUENCE_NUMBER;
-    for (tcsp = cache_segments; tcsp != NULL; tcsp = tcsp->next) {
-      check_assertion(tcsp->first_token_number >= prev_tsn);
-      prev_tsn = tcsp->first_token_number;
-    }  /* for */
-  }
-#endif /* CHECKING */
-
-  for (ctp = tcp->tokens.first_token;
-       ctp != NULL; prev_ctp = next_prev_ctp, ctp = ctp->next) {
-    /* Stop searching if there are no more entries to be processed. */
-    if (curr_tcsp == NULL && start_found_list == NULL) break;
-    next_prev_ctp = ctp;
-    if (curr_tcsp != NULL &&
-        ctp->token_sequence_number == curr_tcsp->first_token_number) {
-      /* We've found the first token of the current segment.  Move it to
-         the list of entries for which the start has been found.  It is
-         inserted into the list so that the list is sorted by ending
-         token number. */
-      a_template_cache_segment_ptr	tcsp = start_found_list;
-      a_template_cache_segment_ptr	prev_tcsp = NULL;
-      a_template_cache_segment_ptr	next_tcsp = curr_tcsp->next;
-      curr_tcsp->next = NULL;
-      for (; tcsp != NULL &&
-           tcsp->last_token_number < curr_tcsp->last_token_number;
-           prev_tcsp = tcsp, tcsp = tcsp->next) {}
-      if (prev_tcsp == NULL) {
-        /* Add the entry to the start of the list. */
-        curr_tcsp->next = start_found_list;
-        start_found_list = curr_tcsp;
-      } else {
-        /* Add the entry after the one pointed to by prev_tcsp. */
-        curr_tcsp->next = prev_tcsp->next;
-        prev_tcsp->next = curr_tcsp;
-      }  /* if */
-      /* Update the entry with a pointer to the token that immediately
-         precedes the first token of the segment. */
-      curr_tcsp->before_first_token = prev_ctp;
-      curr_tcsp = next_tcsp;
-#if DEBUG
-      if (db_flag_is_set("map_tokens")) {
-        fprintf(f_debug, "start_found_list after addition:\n");
-        db_template_cache_segments(start_found_list);
-      }  /* if */
-#endif /* DEBUG */
-    }  /* if */
-    if (start_found_list != NULL &&
-        ctp->token != tok_end_of_source &&
-        (ctp->token_sequence_number == start_found_list->last_token_number ||
-         (ctp->next != NULL && ctp->next->token_sequence_number >
-                                      start_found_list->last_token_number) ||
-         start_found_list->last_token_number == NO_TOKEN_SEQUENCE_NUMBER)) {
-      /* We've found the last token of the first entry on the "start found"
-         list.  In addition to checking whether we've found the token number
-         specified by "last_token_number" we also check whether the next
-         token's sequence number is greater than the one we are looking for.
-         This is used when scanning the tokens of a default argument where the
-         last token number is computed, and could represent a preprocessing
-         or pragma token that is not in the cache.
-
-         Now that we've found the end of this entry, we move the entry to the
-         completed list.  The test for NO_TOKEN_SEQUENCE_NUMBER is present
-         for error cases in which the last token of the body was not found. */
-      a_template_cache_segment_ptr	tcsp = start_found_list;
-      start_found_list = tcsp->next;
-      tcsp->next = complete_list;
-      complete_list = tcsp;
-      tcsp->last_token = ctp;
-#if DEBUG
-      if (db_flag_is_set("map_tokens")) {
-        fprintf(f_debug, "complete_list after addition:\n");
-        db_template_cache_segments(complete_list);
-      }  /* if */
-#endif /* DEBUG */
-    }  /* if */
-  }  /* for */
-  check_assertion_or_expect_error(curr_tcsp == NULL &&
-                                  start_found_list == NULL);
-  return complete_list;
-}  /* map_token_numbers_to_cache_pointers */
-
-
-static void remove_body_from_cache(
-			a_template_cache_segment_ptr	tcsp,
-			a_token_kind			repl_token_kind)
+static INLINE void remove_body_from_cache(
+                            a_template_cache_segment_ptr tcsp,
+                            a_token_cache_ptr            cache,
+                            a_token_cache_iterator       before_first_token_it,
+                            a_token_cache_iterator       last_token_it,
+                            a_token_kind                 repl_token_kind,
+                            a_token_cache_ptr            dest_cache)
 /*
 tcsp points to a template cache entry for a member function or member class.
 Remove the body from the cache.  If the body was not already followed by a
-repl_token_kind, add repl_token_kind to the cache.
+repl_token_kind, add repl_token_kind to the cache; otherwise, the existing
+repl_token_kind is updated.
 */
 {
-  a_boolean		insert_token = FALSE;
-  a_cached_token_ptr	before_first_token = tcsp->before_first_token;
-  a_cached_token_ptr	first_token = before_first_token->next;
-  a_cached_token_ptr	last_token = tcsp->last_token;
-  a_cached_token_ptr	ctp;
-  a_cached_token_ptr	body_repl_token = NULL;
+  a_token_cache_iterator cache_end_it = cache->end();
+  a_token_cache_iterator first_token_it = before_first_token_it + 1;
+  a_boolean              semicolon_inserted = repl_token_kind == tok_semicolon;
+
+  /* Skip over any pragmas that precede the first token of the body. */
+  while ((*first_token_it)->is_pragma()) {
+    ++first_token_it;
+  }  /* while */
 
   /* See if the last token in the cache is followed by an optional
      repl_token_kind token.  Only insert one if there is not already one
      there. */
-  ctp = tcsp->last_token->next;
-  if (ctp != NULL) {
-    if (ctp->token != repl_token_kind) {
-      insert_token = TRUE;
-    } else {
-      body_repl_token = ctp;
+  if (last_token_it + 1 != cache_end_it) {
+    const a_shared_token &tok_after_last = *(last_token_it + 1);
+
+    if (tok_after_last->is(repl_token_kind)) {
+      /* The existing replacement token should be replaced. */
+      semicolon_inserted = FALSE;
+      ++last_token_it;
+      /* If there's an existing repl_token_kind, it's assumed it must not
+         already be populated with information about a removed body. */
+      check_assertion((*last_token_it)->is_basic());
     }  /* if */
   }  /* if */
-  /* Skip over any pragmas that precede the first token of the body. */
-  while (first_token->extra_info_kind ==
-                                        (a_token_extra_info_kind)teik_pragma) {
-    first_token = first_token->next;
-  }  /* while */
-  if (insert_token) {
-    /* Make a new cached token entry for the replacement token.  The
-       body will be replaced with the new token.  Give it the same token
-       sequence number as the first token of the body. */
-    a_cached_token_ptr	replacement_token;
-    replacement_token = build_cached_token(repl_token_kind,
-                                           tcsp->first_token_number,
-                                           &first_token->source_position);
-    /* Link the replacement token into the cache in the place of
-       the body. */
-    replacement_token->next = last_token->next;
-    before_first_token->next = replacement_token;
-    body_repl_token = replacement_token;
-  } else {
-    /* No replacement token is needed.  Link the tokens to remove the member
-       body.  Update the token sequence number of the token that now
-       follows the function declarator to have the token sequence number
-       of the opening brace of the function.  This is needed for matching
-       a function declaration in an actual instantiation with the
-       corresponding declaration in the prototype instantiation. */
-    before_first_token->next = last_token->next;
-    last_token->next->token_sequence_number =
-                                       first_token->token_sequence_number;
+
+  /* Make a new replacement token.  The body will be replaced With the new
+     token.  Give it the same token sequence number as the first token of the
+     body. */
+  const a_source_position *first_tok_pos =
+                                      (*first_token_it)->get_source_position();
+  a_token_sequence_number first_tok_seq =
+                                  (*first_token_it)->get_starting_seq_number();
+  a_token_sequence_number last_tok_seq =
+                                     (*last_token_it)->get_ending_seq_number();
+  a_shared_token          replacement_token = build_tok_body_replacement(
+                                                            repl_token_kind,
+                                                            first_tok_seq,
+                                                            last_tok_seq,
+                                                            tcsp->symbol,
+                                                            semicolon_inserted,
+                                                            first_tok_pos);
+  /* If the last token in the cache is an end of source marker, it should
+     remain. */
+  if ((*last_token_it)->get_kind() == tok_end_of_source) {
+    --last_token_it;
   }  /* if */
-  /* Unlink the rest of the cache from the last token of the body. */
-  last_token->next = NULL;
-  /* Update the replacement token with information about the tokens that
-     have been removed. */
-  check_assertion(body_repl_token != NULL);
-  check_assertion(body_repl_token->extra_info_kind ==
-                                           (a_token_extra_info_kind)teik_none);
-  body_repl_token->extra_info_kind =
-                                  (a_token_extra_info_kind)teik_extracted_body;
-  body_repl_token->variant.extracted_template.symbol = tcsp->symbol;
-  body_repl_token->variant.extracted_template.semicolon_inserted =
-                              insert_token && repl_token_kind == tok_semicolon;
-  body_repl_token->variant.extracted_template.next_in_token_string = NULL;
+  /* Link the replacement token into the cache in the place of the body. */
+  if (dest_cache != NULL) {
+    dest_cache->move_copy_tokens(first_token_it, last_token_it + 1);
+  }  /* if */
+  *first_token_it = move_from(&replacement_token);
+  cache->remove_token_range(first_token_it + 1, last_token_it + 1);
 }  /* remove_body_from_cache */
 
 
-static void remove_expression_from_cache(
-					a_template_cache_segment_ptr tcsp)
+static INLINE void remove_expression_from_cache(
+                            a_template_cache_segment_ptr tcsp,
+                            a_token_cache_ptr            cache,
+                            a_token_cache_iterator       before_first_token_it,
+                            a_token_cache_iterator       last_token_it)
 /*
 Remove a default argument, exception specification, or initializer expression
 from a token cache.  Replace it with a special placeholder token.  The
@@ -5914,45 +5787,92 @@ token cache, but are still pointed to by the "next_in_token_string" link
 so that they can still be put in the token string that is generated.
 */
 {
-  a_cached_token_ptr	before_first_token = tcsp->before_first_token;
-  a_cached_token_ptr	first_token = before_first_token->next;
-  a_cached_token_ptr	last_token = tcsp->last_token;
-  a_cached_token_ptr	replacement_token;
-
+  a_token_cache_iterator first_token_it = before_first_token_it + 1;
   /* Make a new cached token entry for a dummy "removed default argument"
      token.  The default argument will be replaced with this token.
      Give it the same token sequence number as the first token of the
      default argument. */
-  replacement_token = build_cached_token(tok_removed_expr,
-                                         tcsp->first_token_number,
-                                         &first_token->source_position);
   if (tcsp->expression_missing) {
-    /* The default argument was empty.  Insert the replacement token. */
-    replacement_token->next = before_first_token->next;
+    a_shared_token replacement_token = build_tok_removed_expr(
+                                     tcsp->first_token_number,
+                                     (*first_token_it)->get_source_position(),
+                                     /*begin=*/a_token_cache_iterator(),
+                                     /*end=*/a_token_cache_iterator());
+
+    cache->insert_token(first_token_it, move_from(&replacement_token));
   } else {
-    /* Link the replacement token into the cache in the place of
-       the default argument. */
-    replacement_token->next = last_token->next;
+    /* Remove the expression tokens moving them into the replacement token's
+       cache. */
+    a_shared_token replacement_token = build_tok_removed_expr(
+                                      tcsp->first_token_number,
+                                      (*first_token_it)->get_source_position(),
+                                      first_token_it,
+                                      last_token_it + 1);
+
+    *first_token_it = move_from(&replacement_token);
+    cache->remove_token_range(first_token_it + 1, last_token_it + 1);
   }  /* if */
-  before_first_token->next = replacement_token;
-  /* Flag the replacement token as representing an extracted body.  This
-     is somewhat redundant as in this particular case the token kind
-     already indicates that. */
-  check_assertion(replacement_token->extra_info_kind ==
-                                           (a_token_extra_info_kind)teik_none);
-  replacement_token->extra_info_kind =
-                                  (a_token_extra_info_kind)teik_extracted_body;
-  replacement_token->variant.extracted_template.symbol = NULL;
-  replacement_token->variant.extracted_template.semicolon_inserted = FALSE;
-  replacement_token->variant.extracted_template.next_in_token_string =
-                                                                   first_token;
 }  /* remove_expression_from_cache */
 
 
-static a_template_cache_segment_ptr extract_member_bodies(
-		a_template_cache_ptr			tcp,
-		a_template_cache_segment_ptr		cache_segments,
-		a_boolean				keep_default_args)
+static INLINE void update_trailing_cache_segments(
+                            a_template_cache_segment_ptr  active_cache_segment,
+                            a_token_cache_ptr             active_source_cache,
+                            a_template_cache_segment_list *cache_segments,
+                            a_token_cache_ptr             dest_cache)
+/*
+The template cache segment active_cache_segment is about to be modified.  Check
+the list of cache segments (cache_segments) to see if the iterators will be
+moved into the given destination cache.  If the iterators are affected, update
+the affected template cache segment to use the dest_cache instead of its
+current token cache value.
+*/
+{
+  for (a_template_cache_segment_ptr tcsp : *cache_segments) {
+    /* Skip token cache segments that are already marked as being part of a
+       different token cache. */
+    if (tcsp->source_cache != NULL &&
+        tcsp->source_cache != active_source_cache) {
+      continue;
+    }  /* if */
+    if (active_cache_segment->first_token_number <= tcsp->first_token_number &&
+        tcsp->last_token_number <= active_cache_segment->last_token_number) {
+      /* The iterators will both be found in the destination cache. */
+      tcsp->source_cache = dest_cache;
+    }  /* if */
+  }  /* for */
+}  /* update_trailing_cache_segments */
+
+
+static INLINE a_boolean is_segment_in_token_cache(
+                                           a_token_cache_ptr            tokens,
+                                           a_template_cache_segment_ptr tcsp)
+/*
+Return TRUE if the given template cache segment is contained within the given
+token cache; otherwise, return FALSE.
+*/
+{
+  a_boolean result = FALSE;
+
+  if (!tokens->is_empty()) {
+    a_token_sequence_number starting_seq_num = tokens->get_first_token()->
+                                                     get_starting_seq_number();
+    a_token_sequence_number ending_seq_number = tokens->get_last_token()->
+                                                     get_starting_seq_number();
+
+    if (starting_seq_num <= tcsp->first_token_number &&
+        tcsp->last_token_number <= ending_seq_number) {
+      result = TRUE;
+    }  /* if */
+  }  /* if */
+  return result;
+}  /* is_segment_in_token_cache */
+
+
+static void extract_member_bodies(
+                               a_template_cache_ptr          tcp,
+                               a_template_cache_segment_list **cache_segments,
+                               a_boolean                     keep_default_args)
 /*
 Go through the member functions and nested classes of the class template
 associated with tcp, and remove the tokens from the token cache.  If
@@ -5960,25 +5880,49 @@ keep_default_args is TRUE, any default argument entries are retained
 and a list of the unprocessed entries is returned to the caller.
 */
 {
-  a_template_cache_segment_ptr		tcsp;
-  a_template_cache_segment_ptr		next_tcsp;
-  a_template_cache_segment_ptr		new_list = NULL;
-
   db_enter(4, "extract_member_bodies");
-  if (cache_segments != NULL && cache_segments->before_first_token == NULL) {
-    /* Get the pointers to the tokens that need to be relinked to remove
-       the member bodies.  This routine may be called more than once, but
-       this operation must only be done the first time it is called because
-       the list is only in the right order for the mapping to be done at
-       the time of the first call. */
-    cache_segments = map_token_numbers_to_cache_pointers(tcp, cache_segments);
-  }  /* if */
-  for (tcsp = cache_segments; tcsp != NULL; tcsp = next_tcsp) {
-    next_tcsp = tcsp->next;
+  a_template_cache_segment_list result;
+  a_token_cache_ptr             primary_source_cache = tcp->tokens.ptr();
+  auto                          cmp_cache_segment =
+                                 [](a_template_cache_segment *a,
+                                    a_template_cache_segment *b) -> a_boolean {
+    return a->last_token_number < b->first_token_number;
+  };
+
+  sort(*cache_segments, cmp_cache_segment);
+  while (!(*cache_segments)->is_empty()) {
+    an_owned_template_cache_segment_ptr tcsp = (*cache_segments)->back_elem();
+
+    (*cache_segments)->pop_back();
     /* A missing last_token_number indicates that an error occurred
        while scanning the class definition and no ending token was found.
-       Don't attempt to remove the body from the template. */ 
-    if (tcsp->last_token_number == NO_TOKEN_SEQUENCE_NUMBER) continue;
+       Don't attempt to remove the body from the template. */
+    if (tcsp->last_token_number == NO_TOKEN_SEQUENCE_NUMBER) {
+      continue;
+    }  /* if */
+
+    a_token_cache_ptr source_cache = primary_source_cache;
+    if (tcsp->source_cache != NULL) {
+      /* If this the sequence of tokens associated with this template cache
+         segment was moved into a secondary cache: remove any member bodies
+         from the secondary cache.  */
+      source_cache = tcsp->source_cache;
+    }  /* if */
+    /* Check that the template cache segment is actually contained by this
+       template cache. */
+    if (!is_segment_in_token_cache(source_cache, tcsp.raw())) {
+      continue;
+    }  /* if */
+
+    a_token_cache_iterator before_first_token_it;
+    a_token_cache_iterator last_token_it;
+    source_cache->find_first_and_last(tcsp->first_token_number,
+                                      tcsp->last_token_number,
+                                      &before_first_token_it,
+                                      &last_token_it);
+#if DEBUG
+    a_boolean removed = FALSE;
+#endif /* DEBUG */
     if (tcsp->is_friend) {
       /* Do nothing: friend function bodies are not removed from the
          cache. */
@@ -5986,13 +5930,17 @@ and a list of the unprocessed entries is returned to the caller.
       if (keep_default_args) {
         /* Add this entry to a new list of entries that still need to
            be processed. */
-        tcsp->next = new_list;
-        new_list = tcsp;
+        result.push_back(tcsp.release());
         continue;
       } else {
         /* A default argument.  Remove the default argument and replace it
            with a "removed default argument" token. */
-        remove_expression_from_cache(tcsp);
+        remove_expression_from_cache(tcsp.raw(), source_cache,
+                                     before_first_token_it,
+                                     last_token_it);
+#if DEBUG
+        removed = TRUE;
+#endif /* DEBUG */
       }  /* if */
     } else if (tcsp->is_exception_specification_arg) {
       if (!tcsp->exception_spec_on_templ_friend) {
@@ -6000,12 +5948,15 @@ and a list of the unprocessed entries is returned to the caller.
            them) by a placeholder token.  For a friend template declaration
            the exception specification is kept and re-cached for each
            instantiation of the class. */
-        remove_expression_from_cache(tcsp);
+        remove_expression_from_cache(tcsp.raw(), source_cache,
+                                     before_first_token_it,
+                                     last_token_it);
+
+#if DEBUG
+        removed = TRUE;
+#endif /* DEBUG */
       }  /* if */
     } else {
-#if DEBUG
-      a_boolean	removed = FALSE;
-#endif /* DEBUG */
       switch (tcsp->symbol->kind) {
         case sk_member_function:
         case sk_class_template:
@@ -6013,13 +5964,15 @@ and a list of the unprocessed entries is returned to the caller.
           /* A separate copy of the token cache is already maintained for
              member functions and member templates.  Just free the
              tokens that were removed from the original cache. */
-          { a_cached_token_ptr	first_token = tcsp->before_first_token->next;
-            a_token_kind	repl_token = tok_semicolon;
+          { a_token_kind repl_token = tok_semicolon;
+
             if (symbol_is(tcsp->symbol, sk_class_template)) {
               repl_token = tok_removed_template_body;
             }  /* if */
-            remove_body_from_cache(tcsp, repl_token);
-            free_tokens_from_reusable_cache(first_token, &tcp->tokens);
+            remove_body_from_cache(tcsp.raw(), source_cache,
+                                   before_first_token_it,
+                                   last_token_it, repl_token,
+                                   /*dest_cache=*/NULL);
 #if RECORD_TEMPLATE_STRINGS
             if (symbol_is(tcsp->symbol, sk_member_function)) {
               /* In some cases, a string version of member functions is
@@ -6037,15 +5990,24 @@ and a list of the unprocessed entries is returned to the caller.
         case sk_enum_tag:
           /* Do not remove the body of anonymous unions. */
           if (!is_unnamed_tag_symbol(tcsp->symbol)) {
-            a_cached_token_ptr	first_token = tcsp->before_first_token->next;
-            /* Replace the body of a nested class by a placeholder token. */
-            remove_body_from_cache(tcsp, tok_removed_template_body);
-            /* Remove the tokens for the nested class from the original
-               cache to the cache for the nested class.  The tokens have
-               actually already been unlinked from the first cache, but
-               information such as token counts must be adjusted. */
-            move_cached_tokens(first_token, &tcp->tokens,
-                               &tcsp->template_info->cache.tokens);
+            /* Replace the body of a nested class by a placeholder token.  The
+               tokens are moved into the cache for the nested class. */
+            a_scanning_token_cache scanning_cache(/*is_reusable=*/TRUE);
+
+            remove_body_from_cache(tcsp.raw(), source_cache,
+                                   before_first_token_it, last_token_it,
+                                   tok_removed_template_body,
+                                   scanning_cache.ptr());
+            terminate_token_cache(scanning_cache.ptr());
+
+            a_shared_token_cache new_cache =
+                                    shared_obj<a_token_cache>(*scanning_cache);
+            tcsp->template_info->cache->tokens = new_cache;
+            update_trailing_cache_segments(tcsp.raw(), source_cache, &result,
+                                           new_cache.ptr());
+            update_trailing_cache_segments(tcsp.raw(), source_cache,
+                                           *cache_segments,
+                                           new_cache.ptr());
 #if DEBUG
             removed = TRUE;
 #endif /* DEBUG */
@@ -6055,7 +6017,9 @@ and a list of the unprocessed entries is returned to the caller.
         case sk_static_data_member:
         case sk_variable_template:
           /* Remove the field initializer expression. */
-          remove_expression_from_cache(tcsp);
+          remove_expression_from_cache(tcsp.raw(), source_cache,
+                                       before_first_token_it,
+                                       last_token_it);
 #if DEBUG
           removed = TRUE;
 #endif /* DEBUG */
@@ -6063,27 +6027,29 @@ and a list of the unprocessed entries is returned to the caller.
         default:
           unexpected_condition();
       }  /* switch */
-#if DEBUG
-      if (removed && db_flag_is_set("emb")) {
-        fprintf(f_debug, "extract_member_bodies: removed ");
-        db_symbol_name(tcsp->symbol);
-        fprintf(f_debug, "\n");
-      }  /* if */
-#endif /* DEBUG */
     }  /* if */
-    /* Free the template cache segment for the member just removed. */
-    free_template_cache_segment(tcsp);
+#if DEBUG
+    if (removed && db_flag_is_set("emb")) {
+      fprintf(f_debug, "extract_member_bodies: removed ");
+      db_symbol_name(tcsp->symbol);
+      fprintf(f_debug, "\n");
+    }  /* if */
+#endif /* DEBUG */
   }  /* for */
   db_exit();
-  return new_list;
+  if (result.is_empty()) {
+    delete_fe(cache_segments);
+  } else {
+    **cache_segments = result;
+  }  /* if */
 }  /* extract_member_bodies */
 
 
 static void instantiate_class_template(
-                                   a_symbol_ptr                 template_sym,
-                                   a_type_ptr                   prototype_type,
-                                   a_template_cache_segment_ptr *tcsp,
-                                   a_tmpl_decl_state_ptr        decl_state)
+                                a_symbol_ptr                  template_sym,
+                                a_type_ptr                    prototype_type,
+                                a_template_cache_segment_list **cache_segments,
+                                a_tmpl_decl_state_ptr         decl_state)
 /*
 This routine is called to do a "prototype instantiation" of a class template,
 namely, to scan the template definition even though the template parameters
@@ -6096,8 +6062,8 @@ functions and static data members, for which template definitions may be
 encountered.
 
 While the prototype instantiation is in progress, a list of the cache segments
-for the member functions and classes defined within the class is maintained.
-A pointer to the head of the list is returned in tcsp.
+(cache_segments) for the member functions and classes defined within the class
+is populated.
 */
 {
   a_template_symbol_supplement_ptr  tssp;
@@ -6115,7 +6081,7 @@ A pointer to the head of the list is returned in tcsp.
   cssp = instance_sym->variant.class_struct_union.extra_info;
   is_class_member = prototype_type->source_corresp.is_class_member;
 #if CHECKING
-  if (tssp->cache.tokens.first_token == NULL) {
+  if (tssp->cache->tokens->is_empty()) {
     /* The template itself has not yet been defined. */
     internal_error("instantiate_class_template: bad cache");
   } else if (cssp->instantiation_in_progress) {
@@ -6156,16 +6122,16 @@ A pointer to the head of the list is returned in tcsp.
      should be visible to the instantiation. */
   if (decl_state->is_specialization) ps_options |= PS_IS_SPECIALIZATION;
   scope_pushed = push_template_instantiation_scope(
-                                    tssp->cache.decl_info,
-				    prototype_type,
-				    (a_routine_ptr)NULL, instance_sym,
-				    template_sym, template_arg_list,
+                                    tssp->cache->decl_info,
+                                    prototype_type,
+                                    (a_routine_ptr)NULL, instance_sym,
+                                    template_sym, template_arg_list,
                                     /*push_lex_state=*/TRUE,
                                     ps_options);
   /* Reactivate any pragmas that should be bound to the generated
      instance. */
   reactivate_curr_construct_pragmas(tssp->pragmas_bound_to_template);
-  rescan_reusable_cache(&tssp->cache.tokens);
+  rescan_reusable_cache(tssp->cache->tokens);
 #if CHECKING
   if (curr_token != tok_lbrace && curr_token != tok_colon) {
     internal_error("instantiate_class_template: bad 1st token in cache");
@@ -6232,8 +6198,8 @@ A pointer to the head of the list is returned in tcsp.
   process_curr_construct_pragmas(instance_sym, (a_statement_ptr)NULL);
   /* Return the pointer to the list of template cache segments associated
      with this prototype instantiation. */
-  *tcsp = scope_stack[depth_innermost_instantiation_scope].
-                                                  first_template_cache_segment;
+  *cache_segments = scope_stack[depth_innermost_instantiation_scope].
+                                                   template_cache_segment_list;
   /* Note that the fixup of inline functions and default arguments is not done
      at this point.  It is deferred until the default arguments have been
      removed from the class template cache. */
@@ -6409,7 +6375,7 @@ user later during real instantiations.
       issue_no_exception_support_diag_on_throw_spec(func_info_ptr);
     }  /* if */
     /* Reactivate the tokens comprising the function body and scan them. */
-    rescan_reusable_cache(&tcp->tokens);
+    rescan_reusable_cache(tcp->tokens);
     scan_function_body(rout_ptr, func_info_ptr,
                        (SFB_NEW_STRUCT_STMT_STACK_REQUIRED |
                         SFB_IS_INSTANTIATION |
@@ -6463,7 +6429,7 @@ user later during real instantiations.
   if (db_flag_is_set("def_arg_proto")) {
     for (daefp = def_arg_list; daefp != NULL; daefp = daefp->next) {
       fprintf(f_debug, "prototype instantiation of default arg:\n");
-      db_token_cache(&daefp->cache.tokens, "default arg");
+      db_token_cache(daefp->cache.tokens.ptr(), "default arg");
     }  /* for */
   }  /* if */
 #endif /* DEBUG */
@@ -6505,7 +6471,7 @@ user later during real instantiations.
       scope_stack_top().implicit_typename = FALSE;
     }  /* if */
     /* Reactivate the tokens comprising the function body and scan them. */
-    rescan_reusable_cache(&daefp->cache.tokens);
+    rescan_reusable_cache(daefp->cache.tokens);
     daefp->param_type->default_being_instantiated = TRUE;
     delayed_scan_of_default_arg_expr(daefp->param_type, rout_sym,
                                      /*check_for_errors=*/FALSE);
@@ -6597,20 +6563,21 @@ declaration (which could be for an explicit specialization, etc.).
 
 
 static
-a_boolean cache_contains_requires_token(a_token_cache  *cache)
+a_boolean cache_contains_requires_token(a_reusable_token_cache  *cache)
 /*
 Return TRUE if the given token cache contains a "requires" token.
 */
 {
-  a_cached_token  *ctp = cache->first_token;
-  a_boolean       result = FALSE;
+  a_boolean result = FALSE;
 
-  for (; ctp != NULL; ctp = ctp->next) {
-    if (ctp->token == tok_requires) {
-      result = TRUE;
-      break;
-    }  /* if */
-  }  /* for */
+  if (cache->ptr() != NULL) {
+    for (const a_shared_token &tok : **cache) {
+      if (tok->get_kind() == tok_requires) {
+        result = TRUE;
+        break;
+      }  /* if */
+    }  /* for */
+  }  /* if */
   return result;
 }  /* cache_contains_requires_token */
 
@@ -6724,7 +6691,7 @@ user later during real instantiations.
                                     /*push_lex_state=*/TRUE,
                                     ps_options);
   }  /* if */
-  if (tssp->cache.tokens.first_token != NULL) {
+  if (!tssp->cache->tokens.is_empty()) {
     /* An initializer was specified in the template declaration. */
     a_boolean	has_parenthesized_initializer;
     a_boolean	saved_has_deduced_type = dps->has_deduced_type;
@@ -6732,7 +6699,7 @@ user later during real instantiations.
 
     is_constant_member = var_ptr->initializer_in_class &&
                          is_const_qualified_type(var_ptr->type);
-    rescan_reusable_cache(&tssp->cache.tokens);
+    rescan_reusable_cache(tssp->cache->tokens);
     /* If the first token is an equals sign or a left brace then this is
        not a parenthesized initializer.   Initializers that begin with an
        invalid token will have already been discarded. */
@@ -7154,7 +7121,7 @@ supplement already associated with ft_symbol.
     tssp->befriending_classes = orig_tssp->befriending_classes;
     /* Get the declaration sequence number from the prototype template. */
     decl_state->decl_info->decl_seq =
-                    orig_tssp->variant.function.decl_cache.decl_info->decl_seq;
+                   orig_tssp->variant.function.decl_cache->decl_info->decl_seq;
     { a_routine_ptr	rp = tssp->variant.function.routine;
       a_routine_ptr	orig_rp = orig_tssp->variant.function.routine;;
       /* Copy the information that determines whether this function is inline
@@ -7543,7 +7510,7 @@ cases).
     issue_no_exception_support_diag_on_throw_spec(func_info_ptr);
   }  /* if */
   /* Reactivate the tokens comprising the function body and scan them. */
-  rescan_reusable_cache(&tcp->tokens);
+  rescan_reusable_cache(tcp->tokens);
   scan_function_body(rout_ptr, func_info_ptr,
                      (SFB_NEW_STRUCT_STMT_STACK_REQUIRED |
                       SFB_IS_INSTANTIATION |
@@ -7711,7 +7678,7 @@ expression context) rather than a declaration.
   proto_var = tssp_of_prototype->variant.variable.prototype_variable;
 #if CHECKING
   if ((!is_var_templ_instance && !template_sym->defined) ||
-      tssp->cache.decl_info->parameters == NULL) {
+      tssp->cache->decl_info->parameters == NULL) {
     internal_error("instantiate_template_variable: undef'd template");
   } else if (var_sym->defined) {
     internal_error("instantiate_template_variable: sym already def'd");
@@ -7860,7 +7827,7 @@ expression context) rather than a declaration.
   }  /* if */
   if ((is_definition ||
        (is_use && var_ptr->init_kind == (an_init_kind)initk_none)) &&
-      body_cache->tokens.first_token != NULL) {
+      !body_cache->tokens.is_empty()) {
     /* An initializer was specified in the template declaration. */
     a_boolean	has_parenthesized_initializer;
     a_boolean	is_constant_member;
@@ -7871,8 +7838,9 @@ expression context) rather than a declaration.
     }  /* if */
     is_constant_member = var_ptr->initializer_in_class &&
                          is_const_qualified_type(var_ptr->type);
-    rescan_reusable_cache(&body_cache->tokens);
-    if (tssp->variant.variable.decl_cache.decl_info != body_cache->decl_info) {
+    rescan_reusable_cache(body_cache->tokens);
+    if (tssp->variant.variable.decl_cache->decl_info !=
+        body_cache->decl_info) {
       /* The decl_info for the declaration and the body are different (i.e.,
          they came from different declarations of the template).  We need
          to push a different instantiation scope to make sure the correct
@@ -8130,10 +8098,10 @@ called from this routine.
     result = tssp1 == tssp2;
   } else {
     result = !compare_parameters ||
-             equiv_template_param_lists(tssp1->cache.decl_info->parameters,
-                                        tssp2->cache.decl_info->parameters,
-				        /*issue_errors=*/FALSE, etp_options,
-				        (a_source_position*)NULL, es_error);
+             equiv_template_param_lists(tssp1->cache->decl_info->parameters,
+                                        tssp2->cache->decl_info->parameters,
+                                        /*issue_errors=*/FALSE, etp_options,
+                                        (a_source_position*)NULL, es_error);
   }  /* if */
   return result;
 }  /* equiv_templates_given_supplement */
@@ -8160,8 +8128,8 @@ template parameter list.
     a_template_param_ptr      templ_params;
     a_template_nesting_depth  initial_depth;
 
-    templ_params = symbol_for(templ)->variant.template_info->cache.decl_info
-                                                           ->parameters;
+    templ_params = symbol_for(templ)->variant.template_info->cache->decl_info->
+                                                                    parameters;
     /* Keep the initial parameter depth as template arguments will need to
        refer to the initial template parameter list. */
     initial_depth = coordinates_of_template_param(templ_params)->depth;
@@ -8195,7 +8163,7 @@ template parameter list.
         break;
       }  /* if */
       aliased_tssp = symbol_for(aliased_templ)->variant.template_info;
-      aliased_tdip = aliased_tssp->cache.decl_info;
+      aliased_tdip = aliased_tssp->cache->decl_info;
       /* The aliased template must not be nested inside another template. */
       if (aliased_tdip == NULL ||
           coordinates_of_template_param(aliased_tdip->parameters)->depth != 1){
@@ -8217,7 +8185,7 @@ template parameter list.
       if (tap == NULL && tpp == NULL) {
         a_template_decl_info_ptr  tdip;
 
-        tdip = symbol_for(templ)->variant.template_info->cache.decl_info;
+        tdip = symbol_for(templ)->variant.template_info->cache->decl_info;
         templ_params = tdip->parameters;
         if (tdip->template_decl->constraint.requires_clause == NULL &&
             equiv_template_param_lists(templ_params, aliased_tdip->parameters,
@@ -9130,7 +9098,7 @@ dependent, A1<A2, A3> is returned.
         a_template_symbol_supplement_ptr tssp;
         a_template_param_ptr tpp;
         tssp = template_supplement_for_template(templ);
-        tpp = tssp->cache.decl_info->parameters;
+        tpp = tssp->cache->decl_info->parameters;
         check_assertion(tpp != NULL);
         if (tpp->next == NULL) {
           /* The template has a single template parameter (typically two
@@ -9356,7 +9324,7 @@ the substitution.
                            ->variant.class_template.prototype_instantiation;
   proto_type = type_symbol_type(proto_sym);
   t_params = type_template->variant.template_info
-                          ->cache.decl_info->parameters;
+                          ->cache->decl_info->parameters;
   t_args = create_initial_template_arg_list(
                                          t_params, t_args,
                                          /*is_templ_templ_param_check=*/FALSE,
@@ -10214,7 +10182,7 @@ specified by arg_list.
          instantiated if a template argument pack is specified for a non-pack
          parameter. */
       a_template_arg_ptr    tap;
-      a_template_param_ptr  tpp = primary_tssp->cache.decl_info->parameters;
+      a_template_param_ptr  tpp = primary_tssp->cache->decl_info->parameters;
 
       begin_template_arg_list_traversal_simple(arg_list, &tap);
       while (result && tap != NULL && tpp != NULL) {
@@ -10419,11 +10387,11 @@ a type in certain ways (see template_arg_list_is_dependent).
     a_decl_parse_state dps_for_alignment;
     init_decl_parse_state(&dps_for_alignment);
     ap = copy_of_attributes_with_substitution(
-            prototype_type->source_corresp.attributes,
-            /*primary_only=*/TRUE, primary_template_sym,
-            proto_template->variant.template_info->cache.decl_info->parameters,
-            template_arg_list, parent_class_or_null(class_type),
-            /*is_partial_instantiation=*/TRUE, (a_boolean*)NULL);
+           prototype_type->source_corresp.attributes,
+           /*primary_only=*/TRUE, primary_template_sym,
+           proto_template->variant.template_info->cache->decl_info->parameters,
+           template_arg_list, parent_class_or_null(class_type),
+           /*is_partial_instantiation=*/TRUE, (a_boolean*)NULL);
     attach_tag_attributes(ap, class_type, &dps_for_alignment,
                           /*is_definition=*/TRUE,
                           /*is_forward_decl=*/FALSE,
@@ -10808,7 +10776,7 @@ error type is used.
         saved_const_with_curr_tok_spelling = const_with_curr_tok_spelling;
       }  /* if */
     }  /* if */
-    if (body_cache->tokens.first_token == NULL) {
+    if (body_cache->tokens->is_empty()) {
       /* The template definition is missing.  This should only occur in error
          cases. */
       check_assertion(is_at_least_one_error());
@@ -10881,7 +10849,7 @@ error type is used.
       Value_saver<a_const_char*>
                       saved_end_of_curr_token(&end_of_curr_token);
       /* Rescan the tokens of the alias. */
-      rescan_reusable_cache(&body_cache->tokens);
+      rescan_reusable_cache(body_cache->tokens);
       record_symbol_declaration(SRK_DEFINITION | SRK_TEMPLATE_INSTANTIATION,
                                 instance_sym, &instance_sym->decl_position,
                                 (a_source_sequence_entry_ptr)NULL);
@@ -10901,7 +10869,7 @@ error type is used.
         dps.id_attributes = copy_of_attributes_with_substitution(
                                  tssp->attributes, /*primary_only=*/FALSE,
                                  template_sym,
-                                 tssp->cache.decl_info->parameters,
+                                 tssp->cache->decl_info->parameters,
                                  template_arg_list, parent_class,
                                  /*is_partial_instantiation=*/FALSE,
                                  (a_boolean*)NULL);
@@ -11051,7 +11019,7 @@ template.
     saved_curr_construct_end_position = curr_construct_end_position;
 #endif /* EXTRA_SOURCE_POSITIONS_IN_IL */
     body_cache = cache_for_template(tssp);
-    if (body_cache->tokens.first_token == NULL) {
+    if (body_cache->tokens.is_empty()) {
       /* The template definition is missing.  This should only occur in error
          cases. */
       check_assertion(is_at_least_one_error());
@@ -11098,7 +11066,7 @@ template.
          instance. */
       reactivate_curr_construct_pragmas(tssp->pragmas_bound_to_template);
       /* Rescan the tokens of the alias. */
-      rescan_reusable_cache(&body_cache->tokens);
+      rescan_reusable_cache(body_cache->tokens);
       record_symbol_declaration(SRK_DEFINITION | SRK_TEMPLATE_INSTANTIATION,
                                 instance_sym, &instance_sym->decl_position,
                                 (a_source_sequence_entry_ptr)NULL);
@@ -12137,7 +12105,7 @@ provided argument list).
                         tssp = class_templ->variant.template_info;
   a_boolean             tap_is_pack = FALSE;
 
-  tpp = tssp->variant.class_template.initial_decl_cache.decl_info->parameters;
+  tpp = tssp->variant.class_template.initial_decl_cache->decl_info->parameters;
   param_list = tpp;
   while (tpp != NULL) {
     if (*tap != NULL) {
@@ -15778,7 +15746,7 @@ new_type is not NULL, *new_type is set to NULL.
   if (template_sym->is_template_param) {
     a_template_ptr	new_templ;
     /* Save the parameter list from the template template parameter. */
-    ttp_param_list = tssp->cache.decl_info->parameters;
+    ttp_param_list = tssp->cache->decl_info->parameters;
     new_templ = template_sym->variant.template_info->il_template_entry;
     new_templ = copy_template_with_substitution(new_templ, templ_arg_list,
                                                 templ_param_list, source_pos,
@@ -15810,7 +15778,7 @@ new_type is not NULL, *new_type is set to NULL.
   if (!is_nonreal_template) {
     /* Except for nonreal templates, get the corresponding template parameter
        list. */
-    tpp = tssp->cache.decl_info->parameters;
+    tpp = tssp->cache->decl_info->parameters;
   }  /* if */
   if (gnu_version_is(<110000) && orig_is_prototype &&
       (options & CTWS_ADJUST_COORDINATES) != 0 &&
@@ -15934,7 +15902,7 @@ template are satisfied (if not, *copy_error is set to TRUE).
   ttsp = orig_type->variant.typeref.extra_info;
   tssp = template_sym->variant.template_info;
   tap = ttsp->orig_template_arg_list;
-  tpp = tssp->cache.decl_info->parameters;
+  tpp = tssp->cache->decl_info->parameters;
   check_assertion(tpp != NULL);
   /* Make a copy of the template argument list, doing substitution. */
   if (tpp == templ_param_list) {
@@ -17840,10 +17808,10 @@ from "tpp".  Return TRUE if the lists match.
       /* A template template parameter. Check its parameter list. */
       check_assertion(sym->kind == (a_symbol_kind)sk_class_template);
       if (!equiv_substituted_templ_param_lists(
-                         tpp->variant.templ->cache.decl_info->parameters,
-                         templ_tpp->variant.templ->cache.decl_info->parameters,
-                         templ_arg_list, templ_param_list,
-                         source_pos, copy_error, ctws_state) || *copy_error) {
+                        tpp->variant.templ->cache->decl_info->parameters,
+                        templ_tpp->variant.templ->cache->decl_info->parameters,
+                        templ_arg_list, templ_param_list,
+                        source_pos, copy_error, ctws_state) || *copy_error) {
         /* The template template parameters do not have matching template
            parameter lists. */
         err = TRUE;
@@ -17896,8 +17864,8 @@ do not match, copy_error is set to TRUE.
     if (tap->template_template_param_checked) continue;
     tap->template_template_param_checked = TRUE;
     arg_template = template_supplement_for_template(tap->variant.templ.ptr);
-    param = arg_template->cache.decl_info->parameters;
-    templ_param = tpp->variant.templ->cache.decl_info->parameters;
+    param = arg_template->cache->decl_info->parameters;
+    templ_param = tpp->variant.templ->cache->decl_info->parameters;
     if (!equiv_substituted_templ_param_lists(param, templ_param,
                                              templ_arg_list, templ_param_list,
                                              source_pos, copy_error,
@@ -18103,7 +18071,8 @@ are flags passed down to the substitution routines.
   tssp = template_supplement_for_symbol(templ_sym);
   if (templ_param_list == NULL) {
     /* Get the template parameter list, if one was not passed in. */
-    templ_param_list = tssp->variant.function.decl_cache.decl_info->parameters;
+    templ_param_list =
+                      tssp->variant.function.decl_cache->decl_info->parameters;
   }  /* if */
   /* The pending deduction count is incremented during the substitution
      process below to detect recursive calls of this routine. */
@@ -18282,7 +18251,7 @@ Do some simple consistency checking on a function template argument list.
   } else {
     tssp = templ_sym->variant.template_info;
   }  /* if */
-  tpp = tssp->variant.function.decl_cache.decl_info->parameters;
+  tpp = tssp->variant.function.decl_cache->decl_info->parameters;
   begin_template_arg_list_traversal(tpp, templ_arg_list,
                                     &tpp, &tap);
   for (; tap != NULL; advance_to_next_template_arg(&tpp, &tap)) {
@@ -18404,7 +18373,7 @@ from template declaration processing, and is NULL otherwise.
       a_push_scope_options_set  ps_options = PS_EXCEPTION_SPEC;
       esp->arg_cached = FALSE;
       esp->variant.token_cache = NULL;
-      es_cache = &tssp->variant.function.exception_spec_arg_cache;
+      es_cache = tssp->variant.function.exception_spec_arg_cache;
       if (es_cache->decl_info == NULL) {
         /* Something went wrong during the caching of the template (possible
            with severe syntax errors).  Don't attempt to instantiate the
@@ -18459,7 +18428,7 @@ from template declaration processing, and is NULL otherwise.
         }  /* if */
         scope_stack_top().param_id_list = param_id_list;
         /* Rescan the exception specification argument from the cache. */
-        delayed_scan_of_exception_spec(rp, &es_cache->tokens);
+        delayed_scan_of_exception_spec(rp, es_cache->tokens);
         /* Pop the reactivated function prototype scope off the stack. */
         pop_scope();
         /* Pop the template instantiation scope. */
@@ -18515,24 +18484,32 @@ declaration.
        temporarily swap the information associated with the new type and its
        exception specification into the existing symbol information (sym and
        its associated template symbol supplement). */
-    a_routine_ptr      proto_rp;
-    a_type_ptr         saved_type;
-    a_template_cache   saved_template_cache;
-    a_boolean          saved_flag;
+    if (is_template_symbol(sym)) {
+      sym = prototype_template_of(sym);
+    }  /* if */
+
     a_template_symbol_supplement_ptr
-                       tssp;
-    if (is_template_symbol(sym)) sym = prototype_template_of(sym);
-    tssp = template_supplement_for_symbol(sym);
-    proto_rp = tssp->variant.function.routine;
-    saved_type = proto_rp->type;
-    saved_template_cache = tssp->variant.function.exception_spec_arg_cache;
-    saved_flag = 
-           tssp->variant.function.exception_spec_prototype_instantiation_done;
+                         tssp = template_supplement_for_symbol(sym);
+    Value_saver<a_template_cache_ptr>
+                         saved_tssp_cache(
+                             &tssp->variant.function.exception_spec_arg_cache);
+    a_routine_ptr        proto_rp = tssp->variant.function.routine;
+    Value_saver<a_type_ptr>
+                         saved_type(&proto_rp->type);
+    a_boolean            saved_flag =
+            tssp->variant.function.exception_spec_prototype_instantiation_done;
     /* Set the type and exception specification cache information for the
        template to that of the new declaration (temporarily). */
+    a_reusable_token_cache
+                         reusable_cache(
+                           rtsp->exception_specification->variant.token_cache);
+    Owning_ptr<a_template_cache>
+                         tmp_tssp_cache = owning_ptr<a_template_cache>(
+                             *tssp->variant.function.exception_spec_arg_cache);
+    tssp->variant.function.exception_spec_arg_cache = tmp_tssp_cache.raw();
     set_template_cache_info(
-                        &tssp->variant.function.exception_spec_arg_cache,
-                        rtsp->exception_specification->variant.token_cache,
+                        tssp->variant.function.exception_spec_arg_cache,
+                        reusable_cache,
                         decl_state->decl_info);
     tssp->variant.function.exception_spec_prototype_instantiation_done = FALSE;
     proto_rp->type = dps->type;
@@ -18540,10 +18517,8 @@ declaration.
     instantiate_exception_spec_if_needed_full(decl_state,
                                               symbol_for(proto_rp));
     /* Restore the original information. */
-    proto_rp->type = saved_type;
     tssp->variant.function.exception_spec_prototype_instantiation_done =
                                                                    saved_flag;
-    tssp->variant.function.exception_spec_arg_cache = saved_template_cache;
   }  /* if */
 }  /* proto_instantiate_exception_spec_redecl */
 
@@ -18561,7 +18536,7 @@ instantiation of a class template or member of class template.
 
   check_assertion(field_sym != NULL);
   fssp = field_sym->variant.field.extra_info;
-  check_assertion_or_expect_error(fssp->token_cache != NULL);
+  check_assertion_or_expect_error(fssp->token_cache != a_shared_token_cache());
   prototype_fssp = fssp->prototype_field;
   check_assertion_or_expect_error(prototype_fssp != NULL);
   if (prototype_fssp == NULL) {
@@ -18640,15 +18615,15 @@ instantiation of a class template or member of class template.
        this shouldn't be needed, but error recovery can cause us to get here
        with a local scope active.) */
     switch_to_file_scope_region(&region_to_switch_back_to);
-    rescan_reusable_cache(fssp->token_cache);
+    rescan_shared_reusable_cache(fssp->token_cache);
     /* Re-create a declaration parsing state before parsing the initializer. */
     init_decl_parse_state(&dps);
     dps.sym = field_sym;
     field_initializer(&dps);
     flush_past_token_cache_terminator();
-    /* Clear the token cache pointer, but don't discard it because the
-       cache is shared with other instances of the field. */
-    fssp->token_cache = NULL;
+    /* Clear the token cache pointer (as this field symbol supplement no longer
+       needs it). */
+    fssp->token_cache = a_shared_token_cache();
     /* Restore the saved position information. */
     error_position = saved_error_position;
     pos_curr_token = saved_pos_curr_token;
@@ -18751,7 +18726,7 @@ argument that is generated.
   }  /* if */
   begin_deferral_of_access_checks();
   /* Rescan the default argument tokens from the cache. */
-  rescan_reusable_cache(&daefp->cache.tokens);
+  rescan_reusable_cache(daefp->cache.tokens);
 #if EXTRA_SOURCE_POSITIONS_IN_IL
   saved_curr_construct_end_position = curr_construct_end_position;
 #endif /* EXTRA_SOURCE_POSITIONS_IN_IL */
@@ -18936,7 +18911,7 @@ instantiated.
     }  /* if */
     begin_deferral_of_access_checks();
     /* Rescan the default argument tokens from the cache. */
-    rescan_reusable_cache(&daefp->cache.tokens);
+    rescan_reusable_cache(daefp->cache.tokens);
 #if EXTRA_SOURCE_POSITIONS_IN_IL
     saved_curr_construct_end_position = curr_construct_end_position;
 #endif /* EXTRA_SOURCE_POSITIONS_IN_IL */
@@ -19190,7 +19165,7 @@ created.
   rout->is_generic_instance = tssp->is_generic;
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
   rout->assoc_template = tssp->il_template_entry;
-  templ_param_list = tssp->variant.function.decl_cache.decl_info->parameters;
+  templ_param_list = tssp->variant.function.decl_cache->decl_info->parameters;
   /* Create an appropriate argument list with empty argument values. */
   rout->template_arg_list = create_initial_template_arg_list(
                                           templ_param_list,
@@ -19563,7 +19538,6 @@ during the re-parsing) and locator describes the associated declarator-id.
 {
   a_tmpl_decl_state   *tmpl_state;
   a_decl_parse_state  *dps;
-  a_token_cache       reparse_cache;
 
   tmpl_state = scope_stack[depth_template_declaration_scope].tmpl_decl_state;
   dps = tmpl_state->decl_parse;
@@ -19616,8 +19590,9 @@ during the re-parsing) and locator describes the associated declarator-id.
   dps->secondary_declarator = FALSE;
   dps->is_abbr_func_template = TRUE;
   clear_func_info(func_info);
+
   /* Create a cache with the declarator tokens. */
-  clear_token_cache(&reparse_cache, /*reusable=*/FALSE);
+  a_token_cache reparse_cache;
   copy_tokens_from_cache(curr_lexical_state_cache(),
                          reparse_tsn, curr_token_sequence_number,
                          /*include_last_token=*/FALSE, &reparse_cache);
@@ -19894,7 +19869,7 @@ by this routine.
   init_decl_parse_state(dps);
   dps->trailing_return_type_allowed = trailing_return_types_enabled;
   dps->sym = sym;
-  rescan_reusable_cache(&decl_cache->tokens);
+  rescan_reusable_cache(decl_cache->tokens);
   scan_template_declaration(dps, /*is_initial_decl=*/FALSE,
                             /*is_member_decl=*/FALSE,
                             tip->template_sym, (a_type_ptr)NULL,
@@ -20093,7 +20068,7 @@ do nothing.
   class_type = class_sym->variant.class_struct_union.type;
   ctsp = class_type->variant.class_struct_union.extra_info;
   templ_arg_list = ctsp->template_arg_list;
-  templ_param_list = class_tssp->cache.decl_info->parameters;
+  templ_param_list = class_tssp->cache->decl_info->parameters;
   /* Create a substituted version of the routine type from the prototype
      instantiation based on the template arguments of the specialization. */
   init_ctws_state(&ctws_state);
@@ -20365,7 +20340,7 @@ mode in-class specialization.
        because the type associated with the symbol is not yet complete
        (it has no routine type).  Using a partially constructed symbol could
        cause problems if errors occur while rescanning the declaration. */
-    tcp = &tssp->variant.function.decl_cache;
+    tcp = tssp->variant.function.decl_cache;
     /* Increment the count of pending instantiations of this template. */
     ++(tssp->variant.function.pending_partial_instantiations);
     /* Deduction guides are considered nonreal instantiations. */
@@ -20399,14 +20374,14 @@ mode in-class specialization.
     saved_curr_construct_end_position = curr_construct_end_position;
 #endif /* EXTRA_SOURCE_POSITIONS_IN_IL */
     begin_deferral_of_access_checks();
-    rescan_reusable_cache(&tcp->tokens);
+    rescan_reusable_cache(tcp->tokens);
     /* Note that is_member_decl is TRUE if the declaration was found in a
        class context, while parent_class contains a pointer to the class of
        which the template is a member.  In other words, is_member_decl will
        also be set for friend declarations for which parent_class is
        either NULL, or refers to some other class. */
     is_member_decl =
-         tssp->variant.function.decl_cache.decl_info->enclosing_scope->kind ==
+         tssp->variant.function.decl_cache->decl_info->enclosing_scope->kind ==
                                           (a_scope_kind)sck_class_struct_union;
 #if DECL_MODIFIERS_IN_USE
     locator_position = pos_curr_token;
@@ -20448,7 +20423,7 @@ mode in-class specialization.
           a_ctws_state          ctws_state;
           a_boolean             scope_pushed = FALSE;
           init_ctws_state(&ctws_state);
-          tpl = tssp->variant.function.decl_cache.decl_info->parameters;
+          tpl = tssp->variant.function.decl_cache->decl_info->parameters;
           /* Ensure there is a function access scope for this template. */
           if (!scope_is(&scope_stack_top(), sck_function_access) ||
               scope_stack_top().template_sym != templ_sym) {
@@ -20483,7 +20458,7 @@ mode in-class specialization.
                                         templ_sym, templ_arg_list, rout_type);
           }  /* if */
         }  /* if */
-        if (tcp->tokens.first_token != NULL) {
+        if (!tcp->tokens.is_empty()) {
           /* Flush to the end of the declaration cache. */
           while (curr_token != tok_end_of_source) (void)get_token();
           /* Skip past the tok_end_of_source. */
@@ -21196,7 +21171,7 @@ created with this call.
   curr_type = skip_typerefs(curr_type);
   templ_sym = fundamental_symbol_of(templ_sym);
   tssp = template_supplement_for_symbol(templ_sym);
-  templ_param_list = tssp->variant.function.decl_cache.decl_info->parameters;
+  templ_param_list = tssp->variant.function.decl_cache->decl_info->parameters;
   *is_new_template_instance = FALSE;
   if (is_match_for_function_template(templ_sym, curr_type,
                                      &templ_arg_list, &sym,
@@ -21257,7 +21232,7 @@ are ignored even in modes where such specifiers are part of that type.
   curr_type = skip_typerefs(curr_type);
   templ_sym = fundamental_symbol_of(templ_sym);
   tssp = template_supplement_for_symbol(templ_sym);
-  templ_param_list = tssp->variant.function.decl_cache.decl_info->parameters;
+  templ_param_list = tssp->variant.function.decl_cache->decl_info->parameters;
   result = is_match_for_function_template(templ_sym, curr_type,
                                           &templ_arg_list, &sym,
                                           templ_param_list,
@@ -21293,7 +21268,7 @@ matches, a new argument list is returned in *new_arg_list.
   /* Get the parameter list of the template. */
   check_assertion(template_sym->kind == (a_symbol_kind)sk_function_template);
   tssp = template_supplement_for_symbol(template_sym);
-  templ_param_list = tssp->variant.function.decl_cache.decl_info->parameters;
+  templ_param_list = tssp->variant.function.decl_cache->decl_info->parameters;
   *new_arg_list = create_initial_template_arg_list(
                                           templ_param_list, templ_arg_list,
                                           /*is_templ_templ_param_check=*/FALSE,
@@ -22295,9 +22270,9 @@ parameter list of the class template pointed to by class_sym and make
 sure that they are at the same nesting depth.  Return TRUE if they are.
 */
 {
-  a_template_param_ptr		class_tpp;
+  a_template_param_ptr class_tpp = class_sym->variant.template_info->cache->
+                                                         decl_info->parameters;
 
-  class_tpp = class_sym->variant.template_info->cache.decl_info->parameters;
   return nesting_depth_of_template_param(param_list) ==
                                   nesting_depth_of_template_param(class_tpp);
 }  /* check_template_param_nesting_depths */
@@ -22603,7 +22578,7 @@ error_severity is the severity at which any diagnostics should be issued.
                                                 decl_state->nesting_depth_err;
 
   new_tpp = param_list;
-  old_tpp = tssp->cache.decl_info->parameters;
+  old_tpp = tssp->cache->decl_info->parameters;
   /* In Microsoft bugs mode, a member of a class template can be declared
      using a template parameter with a type that is different than that of
      the associated class template.  This bug is fixed in version 7.1 of the
@@ -22665,7 +22640,7 @@ error_severity is the severity at which any diagnostics should be issued.
       default_on_member_severity = es_warning;
     }  /* if */
     new_tpp = param_list;
-    old_tpp = tssp->cache.decl_info->parameters;
+    old_tpp = tssp->cache->decl_info->parameters;
     while (new_tpp != NULL && old_tpp != NULL) {
       if (old_tpp->param_symbol->kind == (a_symbol_kind)sk_type) {
         a_type_ptr old_type = old_tpp->variant.type;
@@ -22692,7 +22667,7 @@ error_severity is the severity at which any diagnostics should be issued.
        This is only done if there were no errors in the previous tests so
        we know that the parameter lists match. */
     new_tpp = param_list;
-    old_tpp = tssp->cache.decl_info->parameters;
+    old_tpp = tssp->cache->decl_info->parameters;
     while (new_tpp != NULL && old_tpp != NULL) {
       a_boolean def_arg_involves_template_param;
       a_boolean old_has_default;
@@ -23917,7 +23892,7 @@ list and template argument list of a partial specialization are valid.
   /* Go through the arguments and make sure they are valid. */
   templ_arg_list = class_type_supp(prototype_type)->template_arg_list;
   primary_templ_sym = sym->variant.template_info->primary_template_sym;
-  tdip = primary_templ_sym->variant.template_info->cache.decl_info;
+  tdip = primary_templ_sym->variant.template_info->cache->decl_info;
   /* In some error cases the parameter list of the primary template might not
      be available. */
   if (tdip == NULL) {
@@ -24388,7 +24363,7 @@ may have been present when the enclosing class was declared.
     }  /* if */
     if (decl_state->export_present) new_value = TRUE;
     if (new_value && !tssp->il_template_entry->is_exported &&
-        (tssp->cache.tokens.first_token != NULL &&
+        (!tssp->cache->tokens.is_empty() &&
          !decl_state->defines_something)) {
       /* The export keyword appeared on a declaration after the definition.
          This is not allowed. */
@@ -24469,13 +24444,15 @@ the necessary processing can be done.
     parent_tssp = template_supplement_for_symbol(parent_templ_sym);
     oocpsp = alloc_out_of_class_partial_spec();
     oocpsp->symbol = sym;
-    set_template_cache_info(&oocpsp->cache, &decl_state->decl_token_cache,
-                            decl_state->decl_info);
+    set_template_cache_info(
+                          &oocpsp->cache,
+                          a_reusable_token_cache(decl_state->decl_token_cache),
+                          decl_state->decl_info);
     /* Prevent the declaration token cache from being freed. */
     decl_state->decl_token_cache_used = TRUE;
     /* Save a copy of the template declaration state information. */
     oocpsp->tmpl_decl_state = alloc_fe_of_type(a_tmpl_decl_state);
-    *(oocpsp->tmpl_decl_state) = *decl_state;
+    new (oocpsp->tmpl_decl_state) a_tmpl_decl_state(*decl_state);
     add_partial_spec_to_existing_instantiations(parent_templ_sym, parent_tssp,
                                                 oocpsp);
     /* Add this to the list of out-of-class partial specializations for the
@@ -24621,16 +24598,13 @@ indicates whether last_tsn should be included in dec_cache.
 {
   /* Discard the existing decl_token_cache.  This is used during
      prescans of the template declaration. */
-  if (decl_state->decl_token_cache.first_token != NULL) {
-    discard_token_cache(&decl_state->decl_token_cache);
-  }  /* if */
+  decl_state->decl_token_cache = shared_obj<a_token_cache>(/*reusable=*/TRUE);
   copy_tokens_from_cache(curr_lexical_state_cache(),
                          decl_state->first_decl_cache_tsn,
                          last_tsn,
                          include_last_token,
-                         &decl_state->decl_token_cache);
-  terminate_token_cache(&decl_state->decl_token_cache);
-  adjust_token_handles(&decl_state->decl_token_cache);
+                         decl_state->decl_token_cache.ptr());
+  terminate_token_cache(decl_state->decl_token_cache.ptr());
   end_caching_template_decl(decl_state);
 }  /* make_template_decl_cache */
 
@@ -24938,7 +24912,8 @@ delegate.
   /* Save the information needed to create an instantiation based
      on the definition of the template.  First, save the initializer
      expression. */
-  set_template_cache_info(&tssp->cache, &decl_state->decl_token_cache,
+  set_template_cache_info(tssp->cache,
+                          a_reusable_token_cache(decl_state->decl_token_cache),
                           decl_state->decl_info);
   decl_state->decl_token_cache_used = TRUE;
 #if GENERATE_SOURCE_SEQUENCE_LISTS
@@ -25253,8 +25228,8 @@ thereof.
              clauses. */
           a_template_decl_info_ptr  enclosing_tdip, new_tdip;
           a_template_param_ptr      enclosing_tpp, new_tpp;
-          enclosing_tdip = enclosing_sym->variant.template_info
-                                        ->cache.decl_info;
+          enclosing_tdip = enclosing_sym->variant.template_info->
+                                                              cache->decl_info;
           new_tdip = tmpl_state->decl_info;
           enclosing_tpp = enclosing_tdip->parameters;
           new_tpp = new_tdip->parameters;
@@ -25647,7 +25622,7 @@ redeclaration) and any redeclaration error should be suppressed.
         }  /* for */
       }  /* if */
       if (check_requires_clause) {
-        (void)check_requires_redecl(tssp->cache.decl_info,
+        (void)check_requires_redecl(tssp->cache->decl_info,
                                     decl_state->decl_info, loc, sym);
       }  /* if */
       if (microsoft_bugs && microsoft_version < 1310 && sym->defined) {
@@ -25740,7 +25715,7 @@ base-specifier-list.
     add_stop_token(tok_lbrace);
     /* An instantiation scope is needed to establish the proper context
        if this is a definition outside of the original namespace or class. */
-    (void)push_template_instantiation_scope(tssp->cache.decl_info,
+    (void)push_template_instantiation_scope(tssp->cache->decl_info,
                                             proto_type,
                                             (a_routine_ptr)NULL, proto_sym,
                                             template_sym, template_arg_list,
@@ -25767,7 +25742,6 @@ base-specifier-list.
                            curr_token_sequence_number,
                            /*include_last_token=*/FALSE,
                            cache);
-    adjust_token_handles(cache);
   }  /* if */
 }  /* cache_base_specifier_list */
 
@@ -25887,18 +25861,16 @@ declaration of a partial specialization declared outside of its class.
   a_symbol_locator                  locator;
   a_symbol_ptr                      sym = NULL;
   a_template_symbol_supplement_ptr  tssp = NULL;
-  a_token_cache                     local_token_cache;
   a_type_kind                       type_kind = (a_type_kind)tk_unknown;
   a_source_position                 friend_pos;
-  a_boolean			    friend_token_seen = FALSE;
-  a_boolean			    is_nested_class_definition = FALSE;
-  a_template_decl_info_ptr	    tdip = decl_state->decl_info;
-  a_template_param_ptr		    templ_params = tdip->parameters;
-  a_token_cache_ptr		    definition_token_cache = NULL;
-  a_token_kind			    next_tok;
-  a_boolean			    partial_spec_outside_of_class = FALSE;
-  a_symbol_ptr			    partial_spec_nonreal_sym = NULL;
-  a_token_sequence_number	    tsn_for_class_template =
+  a_boolean                         friend_token_seen = FALSE;
+  a_boolean                         is_nested_class_definition = FALSE;
+  a_template_decl_info_ptr          tdip = decl_state->decl_info;
+  a_template_param_ptr              templ_params = tdip->parameters;
+  a_token_kind                      next_tok;
+  a_boolean                         partial_spec_outside_of_class = FALSE;
+  a_symbol_ptr                      partial_spec_nonreal_sym = NULL;
+  a_token_sequence_number           tsn_for_class_template =
                                                     curr_token_sequence_number;
 #if MICROSOFT_EXTENSIONS_ALLOWED
   an_extended_decl_info_block       extended_decl_info;
@@ -26660,29 +26632,29 @@ friend_template_checks_done:
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
   if (sym != NULL) {
     if (sym->kind == (a_symbol_kind)sk_class_template &&
-        is_definition && tssp->cache.decl_info != NULL) {
+        is_definition && tssp->cache->decl_info != NULL) {
       /* This is a definition of a previously declared template.  Update
          the names of the prototype instantiation arguments to reflect
          the template parameter names used on the definition. */
       rename_prototype_arg_list(tssp, decl_state->decl_info->parameters);
     }  /* if */
-    if (tssp->cache.decl_info == NULL) {
+    if (tssp->cache->decl_info == NULL) {
      /* Save information about the original declaration of the class.
         This is saved separately, because tssp->cache is modified if the
         class is defined later. */
-     set_template_cache_info(&tssp->variant.class_template.initial_decl_cache,
-                             (a_token_cache_ptr)NULL,
+     set_template_cache_info(tssp->variant.class_template.initial_decl_cache,
+                             a_reusable_token_cache(),
                              decl_state->decl_info);
     }  /* if */
-    if (is_definition || tssp->cache.decl_info == NULL) {
+    if (is_definition || tssp->cache->decl_info == NULL) {
       /* Save the information needed to create an instantiation based
          on the definition of the template.  This information is saved
          for the definition and also for the initial declaration.  The
          template decl. info is saved here.  The cache information is updated
          below.  This is done here because the template could be referenced
          when the base-specifiers are cached below. */
-      set_template_cache_info(&tssp->cache, (a_token_cache_ptr)NULL,
-                             decl_state->decl_info);
+      set_template_cache_info(tssp->cache, a_reusable_token_cache(),
+                              decl_state->decl_info);
     }  /* if */
     if (decl_state->is_partial_specialization && !is_redecl &&
         !decl_state->decl_scope_err) {
@@ -26713,21 +26685,16 @@ friend_template_checks_done:
 #endif /* BACK_END_IS_CP_GEN_BE */
   }  /* if */
   if (is_definition) {
-    a_token_sequence_number   first_token_number = curr_token_sequence_number;
-    a_token_sequence_number   last_token_number = NO_TOKEN_SEQUENCE_NUMBER;
-    /* Create a token cache in which to store the tokens that make up the
-       definition of the template.  This cache will be copied to the
-       template supplement later. */
-    clear_token_cache(&local_token_cache, /*reusable=*/TRUE);
-    definition_token_cache = &local_token_cache;
+    a_token_sequence_number first_token_number = curr_token_sequence_number;
+    a_token_sequence_number last_token_number = NO_TOKEN_SEQUENCE_NUMBER;
+    a_scanning_token_cache  scanning_cache(/*is_reusable=*/TRUE);
+    a_shared_token_cache    definition_token_cache;
+
     /* Cache the tokens that make up the class definition. */
-    cache_class_template_body(decl_state, sym, definition_token_cache,
+    cache_class_template_body(decl_state, sym, scanning_cache.ptr(),
                               first_token_number, &last_token_number);
-    if (sym == NULL) {
-      /* An error occurred earlier.  Discard the cached body. */
-      discard_token_cache(definition_token_cache);
-      definition_token_cache = NULL;
-    } else {
+    if (sym != NULL) {
+      definition_token_cache = shared_obj<a_token_cache>(*scanning_cache);
       if (in_prototype_instantiation_or_cli_generic(decl_state) &&
           decl_state->class_declared_in != NULL &&
           !decl_state->class_declared_in->
@@ -26745,10 +26712,11 @@ friend_template_checks_done:
     }  /* if */
     /* Update the template cache information with the definition cache
        information. */
-    set_template_cache_info(&tssp->variant.class_template.initial_decl_cache,
-			    (a_token_cache_ptr)definition_token_cache,
+    set_template_cache_info(tssp->variant.class_template.initial_decl_cache,
+                            a_reusable_token_cache(definition_token_cache),
                             (a_template_decl_info_ptr)NULL);
-    set_template_cache_info(&tssp->cache, definition_token_cache,
+    set_template_cache_info(tssp->cache,
+                            a_reusable_token_cache(definition_token_cache),
                             (a_template_decl_info_ptr)NULL);
   }  /* if */
 #if GENERATE_SOURCE_SEQUENCE_LISTS
@@ -26885,7 +26853,7 @@ nesting depth to be used.
             a_template_nesting_depth		depth;
             tssp = sym->variant.template_info;
             if (!tssp->is_nonreal_member) {
-              tpp = tssp->cache.decl_info->parameters;
+              tpp = tssp->cache->decl_info->parameters;
               depth = nesting_depth_of_template_param(tpp);
               decl_state->friend_depth_known = TRUE;
               decl_state->friend_depth = depth;
@@ -26902,12 +26870,12 @@ nesting depth to be used.
   /* Get the tokens that were fetched by this routine from the cache
      that has been accumulated and rescan them. */
   if (first_tsn != curr_token_sequence_number) {
-    a_token_cache	cache;
-    clear_token_cache(&cache, /*is_reusable=*/FALSE);
+    a_scanning_token_cache cache;
+
     copy_tokens_from_cache(curr_lexical_state_cache(), first_tsn,
                            curr_token_sequence_number,
-                           /*include_last_token=*/FALSE, &cache);
-    rescan_cached_tokens(&cache);
+                           /*include_last_token=*/FALSE, cache.ptr());
+    rescan_cached_tokens(cache.ptr());
   }  /* if */
   decl_state->is_template_friend = is_template_friend;
 }  /* prescan_template_declaration */
@@ -27167,12 +27135,12 @@ the parameter is declared with a C++20 type-constraint, set *p_concept to
 the associated concept; otherwise, set it to NULL.
 */
 {
-  a_symbol_kind			result;
-  a_token_kind			first_token;
-  a_boolean			is_end_of_param;
-  a_token_sequence_number	first_tsn = curr_token_sequence_number;
-  a_token_cache			cache;
-  a_symbol_ptr			concept_templ = NULL;
+  a_symbol_kind           result;
+  a_token_kind            first_token;
+  a_boolean               is_end_of_param;
+  a_token_sequence_number first_tsn = curr_token_sequence_number;
+  a_scanning_token_cache  cache;
+  a_symbol_ptr            concept_templ = NULL;
 
   /* Determine whether this is a "type-argument" (a parameter that
      represents a type) or a "parameter-declaration" (a parameter that
@@ -27188,7 +27156,6 @@ the associated concept; otherwise, set it to NULL.
      concept template name, optionally followed by a template argument list.
      A template template parameter begins with the keyword "template".
      All other cases are considered to be nontype parameters. */
-  clear_token_cache(&cache, /*is_reusable=*/FALSE);
   /* Check for a C++20 type-constraint first. */
   if (concepts_enabled) {
     an_identifier_options_set  gid_options = GID_TEMPLATE_ARGS_OPTIONAL |
@@ -27252,8 +27219,8 @@ done:
   if (curr_token_sequence_number != first_tsn) {
     copy_tokens_from_cache(curr_lexical_state_cache(), first_tsn,
                            curr_token_sequence_number,
-                           /*include_last_token=*/FALSE, &cache);
-    rescan_cached_tokens(&cache);
+                           /*include_last_token=*/FALSE, cache.ptr());
+    rescan_cached_tokens(cache.ptr());
   }  /* if */
   *p_concept = concept_templ;
   return result;
@@ -27558,7 +27525,7 @@ a compound-requirement.
   a_boolean               err = FALSE;
   a_template_symbol_supplement_ptr
                           tssp = concept_templ->variant.template_info;
-  a_template_param_ptr    tpp = tssp->cache.decl_info->parameters;
+  a_template_param_ptr    tpp = tssp->cache->decl_info->parameters;
   a_memory_region_number  region_to_switch_back_to;
 
   if (!for_requirement) {
@@ -27685,8 +27652,9 @@ represents the associated concept template.
   /* Bypass the identifier. */
   if (is_named) (void)get_token();
   if (curr_token == tok_assign) {
-    a_token_cache  def_arg_cache;
-    a_boolean      ignore_default = FALSE;
+    a_scanning_token_cache def_arg_cache(/*is_reusable=*/TRUE);
+    a_boolean              ignore_default = FALSE;
+
     /* Scan the default value for a type argument. */
     if (is_pack) {
       /* A parameter pack cannot have a default argument.  Issue an error and
@@ -27702,7 +27670,7 @@ represents the associated concept template.
     /* Skip past the equals sign. */
     (void)get_token();
     /* Cache the tokens that make up the default argument expression. */
-    prescan_default_argument(&def_arg_cache, /*is_template_param=*/TRUE,
+    prescan_default_argument(def_arg_cache.ptr(), /*is_template_param=*/TRUE,
                              /*is_function_template=*/FALSE,
                              /*is_friend_decl=*/FALSE,
                              /*is_expression=*/FALSE);
@@ -27730,7 +27698,7 @@ represents the associated concept template.
         /* Default arguments of template template parameters need to be
            scanned immediately because they can be used by later
            parameters. */
-        rescan_copy_of_cache(&def_arg_cache);
+        rescan_copy_of_cache(def_arg_cache.ptr());
         scan_type_template_param_default_arg(template_param);
       }  /* if */
     }  /* if */
@@ -27743,8 +27711,10 @@ represents the associated concept template.
     }  /* if */
     /* The default argument cannot be evaluated until later.  Save the
        cache containing the default. */
-    set_template_cache_info(&template_param->default_arg_cache,
-                            &def_arg_cache, decl_state->decl_info);
+    set_template_cache_info(
+             &template_param->default_arg_cache,
+             a_reusable_token_cache(shared_obj<a_token_cache>(*def_arg_cache)),
+             decl_state->decl_info);
   }  /* if */
   /* Mark the symbol as visible now that the default (if any) has been
      scanned. */
@@ -27990,15 +27960,17 @@ depends on a template parameter.
        to be saved as a token cache if the type uses template
        parameters. */
     template_param->variant.constant.type_involves_template_param = TRUE;
-    set_template_cache_info(&template_param->cache, (a_token_cache_ptr)NULL,
+    set_template_cache_info(&template_param->cache, a_reusable_token_cache(),
                             decl_state->decl_info);
     *param_cache_needed = TRUE;
     template_param->is_dependent = TRUE;
   }  /* if */
   if (curr_token == tok_assign) {
     /* Scan the default value. */
-    a_token_cache	def_arg_cache;
-    a_boolean		ignore_default = FALSE;
+    a_shared_token_cache def_arg_cache =
+                               shared_obj<a_token_cache>(/*is_reusable=*/TRUE);
+    a_boolean            ignore_default = FALSE;
+
     if (is_pack) {
       /* A parameter pack cannot have a default argument.  Issue an error and
          ignore the default. */
@@ -28009,7 +27981,7 @@ depends on a template parameter.
     /* Skip past the equals sign. */
     (void)get_token();
     /* Cache the tokens that make up the default argument expression. */
-    prescan_default_argument(&def_arg_cache, /*is_template_param=*/TRUE,
+    prescan_default_argument(def_arg_cache.ptr(), /*is_template_param=*/TRUE,
                              /*is_function_template=*/FALSE,
                              /*is_friend_decl=*/FALSE);
     if (ignore_default) {
@@ -28040,7 +28012,7 @@ depends on a template parameter.
         /* Default arguments of template template parameters need to be
            scanned immediately because they can be used by later
            parameters. */
-        rescan_copy_of_cache(&def_arg_cache);
+        rescan_copy_of_cache(def_arg_cache.ptr());
         scan_nontype_template_param_default_arg(template_param);
       }  /* if */
     } else {
@@ -28056,7 +28028,8 @@ depends on a template parameter.
     /* The default argument cannot be evaluated until later.  Save the
        cache containing the default. */
     set_template_cache_info(&template_param->default_arg_cache,
-                            &def_arg_cache, decl_state->decl_info);
+                            a_reusable_token_cache(def_arg_cache),
+                            decl_state->decl_info);
   }  /* if */
   /* Mark the symbol as visible now that the default (if any) has been
      scanned. */
@@ -28303,8 +28276,7 @@ depends on a another template parameter.
                      scope_stack[decl_scope_level].il_scope);
     add_to_templates_list(templ_ptr, depth_scope_stack);
   }  /* if */
-  set_template_cache_info(&tssp->cache,
-                          (a_token_cache_ptr)NULL,
+  set_template_cache_info(tssp->cache, a_reusable_token_cache(),
                           local_decl_state.decl_info);
   record_template_param_symbol(sym);
 #if EXTRA_SOURCE_POSITIONS_IN_IL
@@ -28329,8 +28301,10 @@ depends on a another template parameter.
     sym->is_pack_expansion = local_decl_state.is_pack_expansion;
   }  /* if */
   if (curr_token == tok_assign) {
-    a_token_cache			def_arg_cache;
-    a_boolean				ignore_default = FALSE;
+    a_shared_token_cache def_arg_cache =
+                               shared_obj<a_token_cache>(/*is_reusable=*/TRUE);
+    a_boolean            ignore_default = FALSE;
+
     /* Scan the default value for a type argument. */
     if (is_pack) {
       /* A parameter pack cannot have a default argument.  Issue an error and
@@ -28342,7 +28316,7 @@ depends on a another template parameter.
     /* Skip past the equals sign. */
     (void)get_token();
     /* Cache the tokens that make up the default argument expression. */
-    prescan_default_argument(&def_arg_cache, /*is_template_param=*/TRUE,
+    prescan_default_argument(def_arg_cache.ptr(), /*is_template_param=*/TRUE,
                              /*is_function_template=*/FALSE,
                              /*is_friend_decl=*/FALSE,
                              /*is_expression=*/FALSE);
@@ -28350,28 +28324,26 @@ depends on a another template parameter.
        should be done later when the template parameter information
        is completed. */
     template_param->do_prototype_instantiation = !ignore_default && !is_rescan;
-    if (ignore_default) {
-      /* Discard the default argument token cache if it is not needed for
-         later use. */
-      discard_token_cache(&def_arg_cache);
-    } else {
+    if (!ignore_default) {
       /* Default arguments of template template parameters need to be
          scanned immediately because they can be used by later
          parameters. */
       if (is_rescan || parent_decl_state->is_template_template_param) {
-        rescan_copy_of_cache(&def_arg_cache);
+        rescan_copy_of_cache(def_arg_cache.ptr());
         scan_template_template_param_default_arg(template_param);
       }  /* if */
       /* The default argument cannot be evaluated until later.  Save the
          cache containing the default. */
       set_template_cache_info(&template_param->default_arg_cache,
-                              &def_arg_cache, parent_decl_state->decl_info);
+                              a_reusable_token_cache(def_arg_cache),
+                              parent_decl_state->decl_info);
     }  /* if */
   }  /* if */
   if (!is_rescan) {
     /* Don't attempt to save the cache information even if, during a rescan,
        the template is still dependent. */
-    set_template_cache_info(&template_param->cache, (a_token_cache_ptr)NULL,
+    set_template_cache_info(&template_param->cache,
+                            a_reusable_token_cache(),
                             parent_decl_state->decl_info);
   }  /* if */
   /* Mark the symbol as visible now that the default (if any) has been
@@ -28525,14 +28497,18 @@ to represent the template parameters.
       }  /* if */
       template_param->param_num = param_state.param_number;
       if (param_cache_needed) {
+        a_reusable_token_cache &cache = template_param->cache.tokens;
+
+        if (cache.ptr() == NULL) {
+          cache = shared_obj<a_token_cache>(/*is_reusable=*/TRUE);
+        }  /* if */
         /* If a template parameter cache is needed, make a copy from the
            token cache that is being accumulated. */
         copy_tokens_from_cache(curr_lexical_state_cache(), first_tsn,
                                curr_token_sequence_number,
                                /*include_last_token=*/FALSE,
-                               &template_param->cache.tokens);
-        terminate_token_cache(&template_param->cache.tokens);
-        adjust_token_handles(&template_param->cache.tokens);
+                               cache.ptr());
+        terminate_token_cache(cache.ptr());
       }  /* if */
       end_caching_fetched_tokens();
       if (!invalid_param) {
@@ -28675,7 +28651,7 @@ the resulting constant is stored in the pointer pointed to by "constant".
 				        template_sym, arg_list,
 				        ps_options);
       /* Rescan the tokens of the function declaration. */
-      rescan_reusable_cache(&param_ptr->cache.tokens);
+      rescan_reusable_cache(param_ptr->cache.tokens);
       /* Scan the declaration specifiers. */
       scan_a_template_parameter_declaration(&param_locator, &constant_type,
                                             (a_boolean*)NULL,
@@ -28715,14 +28691,13 @@ the resulting constant is stored in the pointer pointed to by "constant".
         /* Push the template instantiation scope.  See note above regarding
            the instance symbol and class type. */
         tcp = &param_ptr->default_arg_cache;
-        push_instantiation_scope_for_templ_param_rescan(
-                                          tcp->decl_info,
-					  (a_type_ptr)NULL,
-				  	  (a_routine_ptr)NULL,
-				 	  (a_symbol_ptr)NULL,
-					  template_sym, arg_list,
-					  ps_options);
-        rescan_reusable_cache(&tcp->tokens);
+        push_instantiation_scope_for_templ_param_rescan(tcp->decl_info,
+                                                        (a_type_ptr)NULL,
+                                                        (a_routine_ptr)NULL,
+                                                        (a_symbol_ptr)NULL,
+                                                        template_sym, arg_list,
+                                                        ps_options);
+        rescan_reusable_cache(tcp->tokens);
         arg_pos = pos_curr_token;
         *constant = fs_constant((a_constant_repr_kind)ck_error);
         delayed_scan_of_template_default_arg_expr(constant_type, *constant);
@@ -28771,7 +28746,7 @@ template template parameter.
   init_templ_decl_state(new_state, new_dps);
   ssep = &scope_stack[depth_scope_stack];
   new_state->in_prototype_instantiation = ssep->in_prototype_instantiation;
-  new_state->param_list_cache = param->cache.tokens;
+  new_state->param_list_cache = *param->cache.tokens;
   new_state->is_template_template_param = TRUE;
   new_state->is_template_template_param_rescan = TRUE;
 }  /* set_decl_state_for_template_template_rescan */
@@ -28841,7 +28816,7 @@ template parameters that depend on other template parameters.
 				        template_sym, arg_list,
 				        ps_options);
     /* Rescan the tokens of the template template parameter declaration. */
-    rescan_reusable_cache(&param_ptr->cache.tokens);
+    rescan_reusable_cache(param_ptr->cache.tokens);
     /* Create a template declaration state that can be passed into the
        template template parameter scanning routine. */
     init_decl_parse_state(&parent_dps);
@@ -28947,7 +28922,7 @@ existing type is simply used.
 #if EXTRA_SOURCE_POSITIONS_IN_IL
       saved_curr_construct_end_position = curr_construct_end_position;
 #endif /* EXTRA_SOURCE_POSITIONS_IN_IL */
-      rescan_reusable_cache(&tcp->tokens);
+      rescan_reusable_cache(tcp->tokens);
       tp = delayed_scan_of_template_default_type_arg();
       if (microsoft_bugs &&
           scope_stack_top().is_rescan && scope_stack_top().error_detected) {
@@ -29020,7 +28995,7 @@ existing type is simply used.
 #if EXTRA_SOURCE_POSITIONS_IN_IL
     saved_curr_construct_end_position = curr_construct_end_position;
 #endif /* EXTRA_SOURCE_POSITIONS_IN_IL */
-    rescan_reusable_cache(&tcp->tokens);
+    rescan_reusable_cache(tcp->tokens);
     templ = delayed_scan_of_template_default_template_arg(
                                  param_ptr->variant.templ->il_template_entry,
                                  /*dependent_default=*/FALSE, &pos_curr_token);
@@ -29317,16 +29292,16 @@ is being created.
     }  /* if */
     if (proto_tssp != NULL) {
       if (is_variable_template) {
-        decl_cache = &proto_tssp->variant.variable.decl_cache.tokens;
+        decl_cache = proto_tssp->variant.variable.decl_cache->tokens.ptr();
       } else {
-        decl_cache = &proto_tssp->variant.function.decl_cache.tokens;
+        decl_cache = proto_tssp->variant.function.decl_cache->tokens.ptr();
       }  /* if */
     }  /* if */
   }  /* if */
-  if (decl_cache == NULL) decl_cache = &decl_state->decl_token_cache;
+  if (decl_cache == NULL) decl_cache = decl_state->decl_token_cache.ptr();
   /* Create a new template string from the tokens. */
   make_template_string(decl_state->il_template_entry,
-                       &decl_state->param_list_cache,
+                       decl_state->param_list_cache.ptr(),
                        decl_cache,
                        p_template_body_cache);
 }  /* select_caches_and_make_template_string */
@@ -29621,19 +29596,6 @@ set, and its source sequence entry, if any, has been put out.)
 }  /* complete_il_template_entry */
 
 
-static unsigned long hash_string(a_const_char *str)
-/*
-Compute a hash value for the string "str".
-*/
-{
-  unsigned long value = 0;
-  for (; *str != '\0'; str++) {
-    value = (value << 5) + value + (unsigned long)*str;
-  }  /* for */
-  return value;
-}  /* hash_string */
-
-
 void record_cache_checksum(
 		a_template_symbol_supplement_ptr	tssp,
 		a_token_cache				*p_template_body_cache)
@@ -29648,39 +29610,11 @@ it in the IL template entry.
      multiple translation units. */
   if (p_template_body_cache != NULL &&
       (export_template_allowed || more_than_one_non_export_translation_unit)) {
-    unsigned long	cache_value = 0;
-    a_cached_token_ptr	token;
-    for (token = p_template_body_cache->first_token;
-         token != NULL; token = token->next) {
-      unsigned long	value = 0;
-      /* Ignore pragmas. */
-      if (token->extra_info_kind == (a_token_extra_info_kind)teik_pragma) {
-        continue;
-      }  /* if */
-      switch (token->extra_info_kind) {
-        case teik_identifier:
-          /* Hash the identifier string. */
-          value = hash_string(token->variant.locator.
-                                                    symbol_header->identifier);
-          break;
-        case teik_constant:
-          /* Get a hash value for the constant. */
-          value = (unsigned long)hash_constant(token->variant.constant);
-          break;
-        case teik_asm_string:
-          /* Hash the asm string. */
-          value = hash_string(token->variant.asm_string);
-          break;
-        case teik_ud_lit:
-          /* Get a hash value for the spelling constant. */
-          value =
-              (unsigned long)hash_constant(token->variant.ud_lit.spelling_con);
-          break;
-        default:
-          /* For other tokens, just use the token kind. */
-          value = (unsigned long)token->token;
-          break;
-      }  /* switch */
+    uintptr_t cache_value = 0;
+
+    for (const a_shared_token &token : *p_template_body_cache) {
+      uintptr_t value = token->hash_code();
+
       cache_value = (cache_value * CACHE_HASH_FACTOR) + value;
     }  /* for */
     /* Save the checksum in the definition template entry. */
@@ -29996,8 +29930,7 @@ supplement for this template should be returned to the caller.
 */
 {
   a_boolean                        err = FALSE;
-  a_token_cache                    local_cache;
-  a_token_cache                    *p_token_cache = NULL;
+  a_reusable_token_cache           p_token_cache;
   a_symbol_ptr                     sym;
   a_symbol_ptr                     var_sym = NULL;
   a_boolean                        has_parenthesized_initializer = FALSE;
@@ -30042,7 +29975,7 @@ supplement for this template should be returned to the caller.
       var = tssp->variant.variable.prototype_variable;
       check_assertion(var != NULL);
       var_sym = symbol_for(var);
-      tdip = tssp->variant.variable.decl_cache.decl_info;
+      tdip = tssp->variant.variable.decl_cache->decl_info;
     } else {
       /* tssp should only be NULL in error cases. */
       expect_error();
@@ -30199,18 +30132,20 @@ supplement for this template should be returned to the caller.
     set_to_named_error_locator(*locator);
     sym = create_variable_template_symbol(decl_state, locator,
                                           (a_symbol*)NULL);
-    set_template_cache_info(&sym->variant.template_info->cache,
-                            (a_token_cache*)NULL, decl_state->decl_info);
-    set_template_cache_info(&sym->variant.template_info
-                                ->variant.variable.decl_cache,
-                            (a_token_cache*)NULL, decl_state->decl_info);
+    set_template_cache_info(sym->variant.template_info->cache,
+                            a_reusable_token_cache(),
+                            decl_state->decl_info);
+    set_template_cache_info(sym->variant.template_info->
+                                                   variant.variable.decl_cache,
+                            a_reusable_token_cache(),
+                            decl_state->decl_info);
   } else {
     dps->sym = var_sym;
   }  /* if */
   if (decl_state->out_of_class_instantiation) {
     /* Get the cache that was saved during the out-of-class declaration. */
-    p_token_cache = &decl_state->out_of_class_prototype_sym->
-                                           variant.template_info->cache.tokens;
+    p_token_cache = decl_state->out_of_class_prototype_sym->
+                                          variant.template_info->cache->tokens;
     flush_past_token_cache_terminator();
     rescan_reusable_cache(p_token_cache);
   }  /* if */
@@ -30218,14 +30153,12 @@ supplement for this template should be returned to the caller.
      The initializer may be of the form "= ...;", "(...);", or "{ ... };".
      Anything else will not get cached and an error will be generated
      on this declaration. */
-  clear_token_cache(&local_cache, /*reusable=*/TRUE);
   if (curr_token != tok_end_of_source &&
       (curr_token == tok_assign || has_parenthesized_initializer ||
        (curr_token == tok_lbrace && list_init_enabled))) {
-    a_token_sequence_number	split_location;
-    a_token_cache_ptr		decl_cache;
+    a_token_sequence_number split_location;
+    a_shared_token_cache    &decl_cache = decl_state->decl_token_cache;
     decl_state->decl_pos_block.var_init_range.start = pos_curr_token;
-    decl_cache = &decl_state->decl_token_cache;
     decl_state->defines_something = TRUE;
     dps->has_initializer = TRUE;
     split_location = curr_token_sequence_number;
@@ -30257,34 +30190,35 @@ supplement for this template should be returned to the caller.
                                /*include_last_token=*/FALSE);
       /* Split the cache so that the initialization is removed from the
          declaration cache and placed in the initializer cache. */
-      split_token_cache(decl_cache, &local_cache, split_location,
+      p_token_cache = shared_obj<a_token_cache>(/*reusable=*/TRUE);
+      split_token_cache(decl_cache.ptr(), p_token_cache.ptr(), split_location,
                         /*include_prev_token=*/has_parenthesized_initializer,
-                        /*okay_if_not_found=*/has_parenthesized_initializer,
-                        /*update_cache_being_scanned=*/FALSE);
-      p_token_cache = &local_cache;
+                        /*okay_if_not_found=*/has_parenthesized_initializer);
     }  /* if */
 #if EXTRA_SOURCE_POSITIONS_IN_IL
     /* To find the end position, scan the cache to find the token preceding
        the semicolon (or the end-of-source, if a semicolon was omitted). */
-    { a_cached_token_ptr  ctp = p_token_cache->first_token;
-      a_token_kind        next_tok;
-      a_source_position   end_pos = end_pos_curr_token;
+    { const a_source_position *end_pos = &end_pos_curr_token;
+#if CHECKING
+      a_boolean               found_end_pos = FALSE;
+#endif /* CHECKING */
 
-      check_assertion_or_expect_error(ctp != NULL);
-      for (; ctp != NULL ; ctp = ctp->next) {
-        check_assertion_or_expect_error(ctp->next != NULL);
-        next_tok = (a_token_kind)ctp->next->token;
-        if (next_tok == tok_semicolon || next_tok == tok_end_of_source) {
-          end_pos = ctp->end_source_position;
+      check_assertion_or_expect_error(!p_token_cache->is_empty());
+      for (const a_shared_token &curr_tok : *p_token_cache) {
+        if (curr_tok->is(tok_semicolon) || curr_tok->is(tok_end_of_source)) {
+          end_pos = curr_tok->get_ending_source_position();
+#if CHECKING
+          found_end_pos = TRUE;
+#endif /* CHECKING */
           break;
         }  /* if */
       }  /* for */
-      decl_state->decl_pos_block.var_init_range.end = end_pos;
+      check_assertion_or_expect_error(found_end_pos);
+      decl_state->decl_pos_block.var_init_range.end = *end_pos;
     }
 #endif /* EXTRA_SOURCE_POSITIONS_IN_IL */
     if (err) {
-      discard_token_cache(&local_cache);
-      p_token_cache = NULL;
+      p_token_cache = a_reusable_token_cache();
     }  /* if */
   } else {
     /* There is no initializer.  Stop the background caching and save
@@ -30344,24 +30278,24 @@ supplement for this template should be returned to the caller.
         (var != NULL && !var->initializer_in_class)) {
       /* Don't update the cache if an error occurred above (unless this is
          the initial declaration). */
-      if (tssp->cache.tokens.first_token == NULL || !err) {
-        set_template_cache_info(&tssp->cache, p_token_cache,
+      if (tssp->cache->tokens.is_empty() || !err) {
+        set_template_cache_info(tssp->cache, p_token_cache,
                                 decl_state->decl_info);
       }  /* if */
     }  /* if */
-    adjust_token_handles(&tssp->cache.tokens);
     if (decl_state->defines_something) {
       mark_defined(sym, &locator->source_position);
     } else {
       mark_declared(sym, &locator->source_position);
     }  /* if */
-    if (tssp->variant.variable.decl_cache.tokens.first_token == NULL ||
+    if (tssp->variant.variable.decl_cache->tokens.is_empty() ||
         (!err && !tssp->variant.variable.has_out_of_class_definition)) {
       /* The decl_token_cache is always saved from the initial declaration
          of the template. */
-      set_template_cache_info(&tssp->variant.variable.decl_cache,
-                              &decl_state->decl_token_cache,
-                              decl_state->decl_info);
+      set_template_cache_info(
+                          tssp->variant.variable.decl_cache,
+                          a_reusable_token_cache(decl_state->decl_token_cache),
+                          decl_state->decl_info);
       tssp->variant.variable.declarator_name_tsn = dps->declarator_name_tsn;
       tssp->variant.variable.has_out_of_class_definition = TRUE;
     }  /* if */
@@ -30722,7 +30656,7 @@ a real instantiation.
            the value from the prototype friend declaration. */
         proto_friend_tssp = template_supplement_for_symbol(proto_friend_sym);
         decl_state->decl_info->decl_seq =
-            proto_friend_tssp->variant.function.decl_cache.decl_info->decl_seq;
+           proto_friend_tssp->variant.function.decl_cache->decl_info->decl_seq;
       }  /* if */
     }  /* if */
   }  /* if */
@@ -30869,9 +30803,9 @@ may or may not have been set by a previous declaration.  Update it to
 reflect an export keyword present on the current declaration.
 */
 {
-  a_boolean	is_defined;
+  a_boolean is_defined = (tssp->cache->tokens.ptr() != NULL &&
+                          !tssp->cache->tokens->is_empty());
 
-  is_defined = tssp->cache.tokens.first_token != NULL;
   if (rout_ptr->is_inline) {
     /* An inline function cannot be exported.  Clear the flag if it was
        set earlier. */
@@ -30962,7 +30896,7 @@ generic lambda call operators since they have no declarator-ids).
     a_template_instance_ptr	tip;
     tssp = template_supplement_for_symbol(sym);
     check_assertion(tssp != NULL);
-    first_decl = tssp->cache.decl_info == NULL;
+    first_decl = tssp->cache->decl_info == NULL;
     rout_ptr = tssp->variant.function.routine;
     rout_sym = symbol_for(rout_ptr);
     check_assertion(rout_sym != NULL);
@@ -31020,17 +30954,20 @@ generic lambda call operators since they have no declarator-ids).
     if (rout_ptr->type->kind == (a_type_kind)tk_routine) {
       a_routine_type_supplement_ptr
                             rtsp = rout_ptr->type->variant.routine.extra_info;
-      if (tssp->variant.function.exception_spec_arg_cache.decl_info == NULL &&
+      if (tssp->variant.function.exception_spec_arg_cache->decl_info == NULL &&
           rtsp->exception_specification != NULL &&
           rtsp->exception_specification->arg_cached) {
+        a_token_cache *rtsp_cache =
+                            rtsp->exception_specification->variant.token_cache;
+
         /* The function template has an exception specification whose argument
            is cached.  Record the associated template cache and perform a
            prototype instantiation.  Only set this on the initial
            declaration. */
         set_template_cache_info(
-                        &tssp->variant.function.exception_spec_arg_cache,
-                        rtsp->exception_specification->variant.token_cache,
-                        decl_state->decl_info);
+                              tssp->variant.function.exception_spec_arg_cache,
+                              a_reusable_token_cache(rtsp_cache),
+                              decl_state->decl_info);
         if (decl_state->decl_scope_err) {
           /* Don't attempt a prototype instantiation. */
         } else if (decl_state->class_declared_in != NULL) {
@@ -31084,20 +31021,18 @@ generic lambda call operators since they have no declarator-ids).
                              /*include_last_token=*/FALSE);
   }  /* if */
   if (err) {
-    a_token_cache  local_token_cache;
-    clear_token_cache(&local_token_cache, /*reusable=*/FALSE);
-    cache_function_template_body(decl_state, &local_token_cache,
+    a_scanning_token_cache  local_token_cache;
+
+    cache_function_template_body(decl_state, local_token_cache.ptr(),
                                  /*is_ctor=*/TRUE, decl_pos);
-    discard_token_cache(&local_token_cache);
     decl_state->decl_scope_err = TRUE;
   } else {
-    a_token_cache               local_token_cache;
-    a_token_sequence_number     first_token_number;
-    a_token_sequence_number     last_token_number;
+    a_scanning_token_cache  local_token_cache(/*reusable=*/TRUE);
+    a_token_sequence_number first_token_number;
+    a_token_sequence_number last_token_number;
 
-    clear_token_cache(&local_token_cache, /*reusable=*/TRUE);
     first_token_number = curr_token_sequence_number;
-    cache_function_template_body(decl_state, &local_token_cache,
+    cache_function_template_body(decl_state, local_token_cache.ptr(),
                                  is_constructor_symbol(sym), decl_pos);
     last_token_number = curr_token_sequence_number;
     {
@@ -31140,20 +31075,20 @@ generic lambda call operators since they have no declarator-ids).
                                                          last_token_number);
       }  /* if */
     }  /* if */
-    if (tssp->variant.function.decl_cache.tokens.first_token == NULL) {
+    if (tssp->variant.function.decl_cache->tokens.is_empty()) {
       /* The decl_token_cache is always saved from the initial declaration
          of the template.  Note that this may be different than the one
          for which the func_info block is saved.  This is done so that
          the return type and declarator will be of an appropriate form
          so that partial instantiations of the function can be done in
          the context of the original declaration. */
-      set_template_cache_info(&tssp->variant.function.decl_cache,
-                              &decl_state->decl_token_cache,
-                              decl_state->decl_info);
+      set_template_cache_info(
+                          tssp->variant.function.decl_cache,
+                          a_reusable_token_cache(decl_state->decl_token_cache),
+                          decl_state->decl_info);
       decl_state->decl_token_cache_used = TRUE;
     }  /* if */
-    if (decl_state->defines_something || 
-        tssp->cache.decl_info == NULL) {
+    if (decl_state->defines_something || tssp->cache->decl_info == NULL) {
       /* This is either the defining declaration or the initial declaration
          (or both). */
       if (func_info != NULL) {
@@ -31171,9 +31106,10 @@ generic lambda call operators since they have no declarator-ids).
       /* Save the token cache and associated template declaration
          information.  This is done for the initial declaration and
          is done again if the function is defined later. */
-      set_template_cache_info(&tssp->cache,
-                              &local_token_cache,
-                              decl_state->decl_info);
+      set_template_cache_info(
+         tssp->cache,
+         a_reusable_token_cache(shared_obj<a_token_cache>(*local_token_cache)),
+         decl_state->decl_info);
     }  /* if */
     if (decl_state->class_declared_in != NULL) {
       /* Create a routine fixup entry so that the body of this template
@@ -31268,8 +31204,8 @@ decl_state and locator.
                                      decl_state->has_variadic_template_params;
   tssp->has_template_param_constraint =
                                     decl_state->has_template_param_constraint;
-  set_template_cache_info(&tssp->variant.function.decl_cache,
-                          (a_token_cache_ptr)NULL, decl_state->decl_info);
+  set_template_cache_info(tssp->variant.function.decl_cache,
+                          a_reusable_token_cache(), decl_state->decl_info);
   return sym;
 }  /* make_deduction_guide_template_symbol */
 
@@ -31640,14 +31576,14 @@ updated.
   pop_expansion_suppression(pesep);
   if (first_tsn != curr_token_sequence_number) {
     /* Rescan the tokens that were fetched by the prescan above. */
-    a_token_cache	cache;
-    clear_token_cache(&cache, /*is_reusable=*/FALSE);
+    a_scanning_token_cache cache;
+
     (void)get_token();
     copy_tokens_from_cache(curr_lexical_state_cache(), first_tsn,
                            curr_token_sequence_number,
                            /*include_last_token=*/FALSE,
-                            &cache);
-    rescan_cached_tokens(&cache);
+                           cache.ptr());
+    rescan_cached_tokens(cache.ptr());
   }  /* if */
   return result;
 }  /* is_class_template_decl */
@@ -32131,7 +32067,7 @@ can be diagnosed at template definition time.
      template where the parameter list could be different in some variadic
      cases. */
   scope_pushed = push_template_instantiation_scope(
-                                        tssp->cache.decl_info,
+                                        tssp->cache->decl_info,
  				        (a_type_ptr)NULL, (a_routine_ptr)NULL,
   				        prototype_sym, template_sym,
   				        template_arg_list,
@@ -32142,7 +32078,7 @@ can be diagnosed at template definition time.
      instance. */
   reactivate_curr_construct_pragmas(tssp->pragmas_bound_to_template);
   /* Reactivate the tokens comprising the alias type. */
-  rescan_reusable_cache(&tcp->tokens);
+  rescan_reusable_cache(tcp->tokens);
 #if EXTRA_SOURCE_POSITIONS_IN_IL
   prototype_type->variant.typeref.extra_info->type_id_range.start =
                                                                 pos_curr_token;
@@ -32253,22 +32189,20 @@ Return a pointer to the class template symbol used to represent the template
 alias
 */
 {
-  a_symbol_locator			locator;
-  a_symbol_ptr				sym = NULL, orig_decl_sym = NULL;
-  a_template_symbol_supplement_ptr	tssp, orig_decl_tssp;
-  a_template_decl_info_ptr              tdip, orig_tdip;
-  a_token_cache_ptr			p_token_cache = NULL;
-  a_token_cache				token_cache;
-  an_attribute_ptr			attributes;
-  an_attribute_ptr			*p_attributes = &attributes;
+  a_symbol_locator                 locator;
+  a_symbol_ptr                     sym = NULL, orig_decl_sym = NULL;
+  a_template_symbol_supplement_ptr tssp, orig_decl_tssp;
+  a_template_decl_info_ptr         tdip, orig_tdip;
+  a_reusable_token_cache           p_token_cache;
+  an_attribute_ptr                 attributes;
+  an_attribute_ptr                 *p_attributes = &attributes;
 #if GENERATE_SOURCE_SEQUENCE_LISTS
-  a_boolean				saved_sses_disallowed = FALSE;
+  a_boolean                        saved_sses_disallowed = FALSE;
 #endif /* GENERATE_SOURCE_SEQUENCE_LISTS */
-  a_boolean				keep_token_cache = TRUE;
-  a_boolean				internal_alias;
-  a_boolean				is_redecl = FALSE;
-  a_token_sequence_number		tsn_for_alias =
-                                                    curr_token_sequence_number;
+  a_boolean                        keep_token_cache = TRUE;
+  a_boolean                        internal_alias;
+  a_boolean                        is_redecl = FALSE;
+  a_token_sequence_number          tsn_for_alias = curr_token_sequence_number;
 
   /* Only issue a diagnostic if we're handling actual source code. */
   if (curr_token != tok_internal_alias_decl) {
@@ -32430,7 +32364,7 @@ alias
   orig_decl_tssp = orig_decl_sym->variant.template_info;
   tdip = decl_state->decl_info;
   if (is_redecl) {
-    orig_tdip = orig_decl_tssp->cache.decl_info;
+    orig_tdip = orig_decl_tssp->cache->decl_info;
     (void)check_requires_redecl(orig_tdip, tdip, &locator, orig_decl_sym);
   }  /* if */
   set_membership_of_template(decl_state, sym);
@@ -32457,17 +32391,16 @@ alias
   /* Cache the type-id from the alias. */
   if (curr_token != tok_end_of_source && curr_token != tok_semicolon &&
       curr_token != tok_lbrace) {
-    a_token_set_array		stop_tokens;
-    p_token_cache = &token_cache;
-    clear_token_cache(p_token_cache, /*reusable=*/TRUE);
+    a_token_set_array stop_tokens;
+
+    p_token_cache = shared_obj<a_token_cache>(/*reusable=*/TRUE);
     clear_token_set_array(stop_tokens);
     incr_token_set_array_element(stop_tokens, tok_semicolon);
-    cache_token_stream(p_token_cache, stop_tokens);
+    cache_token_stream(p_token_cache.ptr(), stop_tokens);
     if (keep_token_cache) {
-      terminate_token_cache(p_token_cache);
+      terminate_token_cache(p_token_cache.ptr());
     } else {
-      discard_token_cache(p_token_cache);
-      p_token_cache = NULL;
+      p_token_cache = a_reusable_token_cache();
     }  /* if */
   }  /* if */
   /* Save the IL template entry pointer for this symbol. */
@@ -32475,7 +32408,7 @@ alias
   /* Save the information needed to create an instantiation based
      on the definition of the template.  First, save the initializer
      expression. */
-  set_template_cache_info(&tssp->cache, p_token_cache, tdip);
+  set_template_cache_info(tssp->cache, p_token_cache, tdip);
 #if GENERATE_SOURCE_SEQUENCE_LISTS
   if (prototype_instantiations_in_il) {
     /* Prevent the generation of a source sequence entry for the a_template
@@ -32653,14 +32586,14 @@ parameter lists that were scanned.
   a_symbol_ptr                      sym = NULL;
   a_template_symbol_supplement_ptr  tssp = NULL;
   a_boolean                         tag_resolution = FALSE;
-  a_token_cache                     *p_template_body_cache = NULL;
+  a_reusable_token_cache            p_template_body_cache;
                                     /* Only used in certain configurations. */
                                     /*lint -esym(550,p_template_body_cache)*/
-  a_template_cache_segment_ptr	    class_templ_cache_segments = NULL;
-  a_template_cache_segment_ptr	    function_templ_cache_segments = NULL;
-  a_boolean			    prototype_okay = FALSE;
-  a_boolean			    is_class_template = FALSE;
-  a_boolean			    invalid_decl = FALSE;
+  a_template_cache_segment_list     *class_templ_cache_segments = NULL;
+  a_template_cache_segment_list     *function_templ_cache_segments = NULL;
+  a_boolean                         prototype_okay = FALSE;
+  a_boolean                         is_class_template = FALSE;
+  a_boolean                         invalid_decl = FALSE;
   a_decl_parse_state                *dps = decl_state->decl_parse;
 #if BACK_END_IS_CP_GEN_BE
   a_targ_alignment                  init_max_member_alignment =
@@ -32690,7 +32623,7 @@ parameter lists that were scanned.
     is_class_template = TRUE;
     if (decl_state->defines_something && sym != NULL) {
       /* Save a pointer to the token cache for class template body. */
-      p_template_body_cache = &tssp->cache.tokens;
+      p_template_body_cache = tssp->cache->tokens;
     }  /* if */
 #if MICROSOFT_EXTENSIONS_ALLOWED
   } else if (decl_state->is_delegate) {
@@ -32705,13 +32638,15 @@ parameter lists that were scanned.
     tssp = template_supplement_for_symbol(sym);
     check_assertion(tssp != NULL);
     /* Save a pointer to the token cache for the alias definition. */
-    p_template_body_cache = &cache_for_template(tssp)->tokens;
+    p_template_body_cache = cache_for_template(tssp)->tokens;
   } else if (decl_state->is_enum) {
     /* An enum template declaration. */
     sym = enum_template_declaration(decl_state);
     tssp = sym != NULL ? template_supplement_for_symbol(sym) : NULL;
     /* Save a pointer to the token cache for the enum definition. */
-    p_template_body_cache = &tssp->cache.tokens;
+    if (tssp != NULL) {
+      p_template_body_cache = tssp->cache->tokens;
+    }  /* if */
   } else {
     /* Not a class template declaration or alias template.  Check for a
        function template declaration or a static data member template
@@ -32753,7 +32688,7 @@ parameter lists that were scanned.
              tssp->variant.variable.prototype_variable->
                                                        initializer_in_class) ||
             decl_state->defines_something) {
-          p_template_body_cache = &tssp->cache.tokens;
+          p_template_body_cache = tssp->cache->tokens;
         }  /* if */
       }  /* if */
     } else {
@@ -32817,11 +32752,11 @@ parameter lists that were scanned.
                  decl_state->defines_something)) {
               /* Include an out-of-class initializer, if any, if none was
                  specified in the in-class declaration. */
-              p_template_body_cache = &tssp->cache.tokens;
+              p_template_body_cache = tssp->cache->tokens;
             }  /* if */
           } else if (!symbol_is(sym, sk_static_data_member) ||
                      dps->has_initializer) {
-            p_template_body_cache = &tssp->cache.tokens;
+            p_template_body_cache = tssp->cache->tokens;
           }  /* if */
         }  /* if */
       } else if (is_function_template) {
@@ -32841,7 +32776,9 @@ parameter lists that were scanned.
           if (decl_state->defines_something) {
             /* Save a pointer to the token cache for function body.  tssp may
                be NULL in error cases. */
-            if (tssp != NULL) p_template_body_cache = &tssp->cache.tokens;
+            if (tssp != NULL) {
+              p_template_body_cache = tssp->cache->tokens;
+            }  /* if */
           }  /* if */
         } else {
           sym = deduction_guide_template_declaration(
@@ -32874,9 +32811,9 @@ parameter lists that were scanned.
       /* The default arguments only need to be removed from the function
          template declaration stored in the decl_cache.  If this is not
          the initial declaration, this process need not be done. */
-      a_scope_stack_entry_ptr	ssep;
-      ssep = &scope_stack[depth_scope_stack];
-      function_templ_cache_segments = ssep->first_template_cache_segment;
+      a_scope_stack_entry_ptr ssep = &scope_stack[depth_scope_stack];
+
+      function_templ_cache_segments = ssep->template_cache_segment_list;
     }  /* if */
   }  /* if */
 #if MICROSOFT_EXTENSIONS_ALLOWED
@@ -33011,7 +32948,7 @@ parameter lists that were scanned.
            initial declaration in case the parameter names are different. */
         a_template_symbol_supplement_ptr redecl_tssp =
                   template_supplement_for_symbol(decl_state->new_alias_symbol);
-        p_template_body_cache = &cache_for_template(redecl_tssp)->tokens;
+        p_template_body_cache = cache_for_template(redecl_tssp)->tokens;
         /* For an alias redeclaration, do a prototype instantiation of the
            new declaration so that the types can be compared. */
         alias_prototype_instantiation(decl_state,
@@ -33093,30 +33030,34 @@ parameter lists that were scanned.
   }  /* if */
   /* Extract the bodies of any member functions, nested classes, or
      member templates that were defined within this class template. */
-  if (prototype_okay) {
-    class_templ_cache_segments = extract_member_bodies(
-                                                &tssp->cache,
-                                                class_templ_cache_segments,
-                                                /*keep_default_args=*/TRUE);
+  if (prototype_okay && class_templ_cache_segments != NULL) {
+    extract_member_bodies(tssp->cache, &class_templ_cache_segments,
+                          /*keep_default_args=*/TRUE);
   }  /* if */
   /* Build the template string for this template */
+  /* Disable the GCC maybe uninitialized warning which may falsely flag
+     p_template_body_cache's shared_obj as being potentially used without
+     initialization. */
+BEGIN_DISABLE_GCC_WARNING_MAYBE_UNITIALIZED
 #if RECORD_TEMPLATE_STRINGS
   /* Build the string version of the template.  This must be done after the
      member bodies are extracted above. */
-  record_string_version_of_template(decl_state, sym, p_template_body_cache);
+  record_string_version_of_template(decl_state, sym,
+                                    p_template_body_cache.ptr());
 #endif /* RECORD_TEMPLATE_STRINGS */
-  record_cache_checksum(tssp, p_template_body_cache);
+  record_cache_checksum(tssp, p_template_body_cache.ptr());
+END_DISABLE_GCC_WARNING_MAYBE_UNITIALIZED
   if (class_templ_cache_segments != NULL) {
     /* Remove any default arguments that may remain in the cache. */
-    (void)extract_member_bodies(&tssp->cache, class_templ_cache_segments,
-                                /*keep_default_args=*/FALSE);
+    extract_member_bodies(tssp->cache, &class_templ_cache_segments,
+                          /*keep_default_args=*/FALSE);
   }  /* if */
   if (function_templ_cache_segments != NULL) {
     /* For function templates that are not class members, remove any
        default arguments that may have been specified. */
-    (void)extract_member_bodies(&tssp->variant.function.decl_cache,
-                                function_templ_cache_segments,
-                                /*keep_default_args=*/FALSE);
+    extract_member_bodies(tssp->variant.function.decl_cache,
+                          &function_templ_cache_segments,
+                          /*keep_default_args=*/FALSE);
   }  /* if */
   /* Do the class fixups for this instantiation.  This is done here so
      that it takes place after the default arguments have been removed from
@@ -33252,7 +33193,7 @@ FALSE.
         a_template_symbol_supplement_ptr	tssp;
         a_template_param_ptr		param_list;
         tssp = fund_sym->variant.template_info;
-        param_list = tssp->cache.decl_info->parameters;
+        param_list = tssp->cache->decl_info->parameters;
         depth_of_template = nesting_depth_of_template_param(param_list);
         if (nesting_depth != depth_of_template && (!gpp_mode || any_found)) {
           break;
@@ -33546,9 +33487,8 @@ brace is left for the caller to consume.
 */
 {
   a_decl_parse_state  *dps = decl_state->decl_parse;
-  a_token_cache	      body_cache;
+  a_token_cache       body_cache(/*reusable=*/TRUE);
 
-  clear_token_cache(&body_cache, /*reusable=*/TRUE);
   cache_function_template_body(decl_state, &body_cache,
                                is_constructor_symbol(dps->sym),
                                &dps->declarator_pos);
@@ -35171,7 +35111,7 @@ of the list.
                 is_cli_open_constructed_instance(type)) {
               /* If this is a type like A<T>, save the cached tokens so that
                  it can be rescanned later. */
-              tcp = alloc_token_cache();
+              tcp = new_fe<a_token_cache>();
               copy_tokens_from_cache(curr_lexical_state_cache(), first_tsn,
                                      last_tsn, /*include_last_token=*/TRUE,
                                      tcp);
@@ -35537,13 +35477,15 @@ Extract the tokens that make up the template parameter clauses and
 record them in the template parameter cache.
 */
 {
-  a_token_cache_ptr	p_cache;
+  a_shared_token_cache &cache= decl_state->param_list_cache;
 
-  p_cache = &decl_state->param_list_cache,
+  if (cache.ptr() == NULL) {
+    cache = shared_obj<a_token_cache>(/*is_reusable=*/TRUE);
+  }  /* if */
   copy_tokens_from_cache(curr_lexical_state_cache(),
                          decl_state->starting_token_sequence_number,
                          decl_state->last_token_sequence_number_of_params,
-                         /*include_last_token=*/FALSE, p_cache);
+                         /*include_last_token=*/FALSE, cache.ptr());
 }  /* extract_template_parameter_cache */
 
 
@@ -35588,14 +35530,13 @@ static void type_param_default_arg_prototype_instantiation(
 Do the prototype instantiation of the type template parameter tpp.
 */
 {
-  rescan_reusable_cache(&tpp->default_arg_cache.tokens);
+  rescan_reusable_cache(tpp->default_arg_cache.tokens);
   scan_type_template_param_default_arg(tpp);
   /* Make sure we have scanned to the end of the cache. */
   check_for_valid_end_of_default_arg();
   /* Free the token cache if it is not needed. */
   if (!tpp->def_arg_involves_template_param) {
-    discard_token_cache(&tpp->default_arg_cache.tokens);
-    clear_template_cache(&tpp->default_arg_cache, /*reusable=*/TRUE);
+    clear_template_cache(&tpp->default_arg_cache);
   }  /* if */
 }  /* type_param_default_arg_prototype_instantiation */
 
@@ -35607,14 +35548,13 @@ Do the prototype instantiation of the nontype template parameter tpp.
 */
 {
   /* Scan the default argument expression. */
-  rescan_reusable_cache(&tpp->default_arg_cache.tokens);
+  rescan_reusable_cache(tpp->default_arg_cache.tokens);
   scan_nontype_template_param_default_arg(tpp);
   /* Make sure we have scanned to the end of the cache. */
   check_for_valid_end_of_default_arg();
   /* Free the token cache if it is not needed. */
   if (!tpp->def_arg_involves_template_param) {
-    discard_token_cache(&tpp->default_arg_cache.tokens);
-    clear_template_cache(&tpp->default_arg_cache, /*reusable=*/TRUE);
+    clear_template_cache(&tpp->default_arg_cache);
   }  /* if */
 }  /* nontype_param_default_arg_prototype_instantiation */
 
@@ -35625,14 +35565,13 @@ static void template_template_param_default_arg_prototype_instantiation(
 Do the prototype instantiation of the template template parameter tpp.
 */
 {
-  rescan_reusable_cache(&tpp->default_arg_cache.tokens);
+  rescan_reusable_cache(tpp->default_arg_cache.tokens);
   scan_template_template_param_default_arg(tpp);
   /* Make sure we have scanned to the end of the cache. */
   check_for_valid_end_of_default_arg();
   /* Free the token cache if it is not needed. */
   if (!tpp->def_arg_involves_template_param) {
-    discard_token_cache(&tpp->default_arg_cache.tokens);
-    clear_template_cache(&tpp->default_arg_cache, /*reusable=*/TRUE);
+    clear_template_cache(&tpp->default_arg_cache);
   }  /* if */
 }  /* template_template_param_default_arg_prototype_instantiation */
 
@@ -35661,7 +35600,7 @@ is set to TRUE.
   a_template_symbol_supplement_ptr	tssp;
 
   tssp = tpp->variant.templ;
-  tdip = tssp->cache.decl_info;
+  tdip = tssp->cache->decl_info;
   /* Reenter the parameters of this template template parameter. */
   reactivate_template_declaration_scope(tdip,
                                         /*is_template_template_param=*/TRUE);
@@ -35943,7 +35882,7 @@ following a template parameter clause.  Parse and record the concept.
                                           .il_scope->variant.assoc_namespace);
     }  /* if */
     tssp = sym->variant.template_info;
-    tssp->cache.decl_info = decl_state->decl_info;
+    tssp->cache->decl_info = decl_state->decl_info;
     tssp->is_variadic = decl_state->is_variadic;
     tssp->has_variadic_template_params =
                                      decl_state->has_variadic_template_params;
@@ -35963,7 +35902,6 @@ following a template parameter clause.  Parse and record the concept.
          decl_state->number_of_template_decl_scopes--) {
     pop_scope();
   }  /* for */
-  wrapup_templ_decl_state(decl_state);
 }  /* scan_concept_definition */
 
 
@@ -36224,7 +36162,6 @@ of the "auto" parameters.
     }  /* if */
 #endif /* BACK_END_IS_CP_GEN_BE */
   }  /* if */
-  wrapup_templ_decl_state(decl_state);
   curr_default_args = saved_curr_default_args;
 }  /* template_or_specialization_declaration_full */
 
@@ -36243,6 +36180,7 @@ updated to tok_rbrace.
     /* We have performed a first parse and must still "rewind" to the beginning
        of the declaration. */
     a_token_cache  reparse_cache;
+
 #if GENERATE_SOURCE_SEQUENCE_LISTS
     if (orig_dps->source_sequence_entry != NULL) {
       /* Discard any previously-recorded source sequence entries.  A new one
@@ -36251,7 +36189,6 @@ updated to tok_rbrace.
       orig_dps->source_sequence_entry = NULL;
     }  /* if */
 #endif /* GENERATE_SOURCE_SEQUENCE_LISTS */
-    clear_token_cache(&reparse_cache, /*reusable=*/FALSE);
     copy_tokens_from_cache(curr_lexical_state_cache(),
                            orig_dps->start_tsn, curr_token_sequence_number,
                            /*include_last_token=*/FALSE, &reparse_cache);
@@ -36387,17 +36324,6 @@ parameters described by dps->auto_params.  Update *templ_state accordingly.
   complete_template_decl(template_decl_info->template_decl,
                          template_decl_info->parameters);
 }  /* set_up_generic_lambda_declarator_scan */
-
-
-void wrap_up_generic_lambda_scan(a_tmpl_decl_state   *templ_state)
-/*
-*templ_state describes the declaration of a generic member function template
-for a lambda call operator.  Perform final actions needed for that declaration
-(such as freeing token caches that are no longer needed).
-*/
-{
-  wrapup_templ_decl_state(templ_state);
-}  /* wrap_up_generic_lambda_scan */
 
 
 static a_can_instantiate_entry_ptr alloc_can_instantiate_entry(void)
@@ -36942,7 +36868,7 @@ template entities.
       specialization_defined = specialized && tip->instance_sym->defined;
       template_sym = tip->template_sym;
       tssp = template_supplement_for_symbol(template_sym);
-      template_def = cache_for_template(tssp)->tokens.first_token != NULL ||
+      template_def = !cache_for_template(tssp)->tokens.is_empty() ||
                      exported_definition_is_available(tip) ||
                      rp->is_deleted || rp->is_defaulted ||
                      (tssp->il_template_entry != NULL &&
@@ -36954,7 +36880,7 @@ template entities.
            source file that will provide the definition.  Then check
            again to see if a template definition is present. */
         do_implicit_include_if_needed(tip);
-        template_def = cache_for_template(tssp)->tokens.first_token != NULL;
+        template_def = !cache_for_template(tssp)->tokens->is_empty();
       }  /* if */
 #endif /* INSTANTIATION_BY_IMPLICIT_INCLUSION */
     }  /* if */
@@ -37102,7 +37028,7 @@ this overrides an "extern template" directive.
     a_routine_ptr		      rp;
     rp = tip->instance_sym->variant.routine.ptr;
     specialized = rp->is_specialized;
-    template_def = cache_for_template(tssp)->tokens.first_token != NULL ||
+    template_def = !cache_for_template(tssp)->tokens.is_empty() ||
         (tssp->il_template_entry != NULL &&
          has_pending_template_definition_from_module(tssp->il_template_entry));
     if (!template_def && !specialized && export_template_allowed) {
@@ -37118,7 +37044,7 @@ this overrides an "extern template" directive.
          source file that will provide the definition.  Then check
          again to see if a template definition is present. */
       do_implicit_include_if_needed(tip);
-      template_def = cache_for_template(tssp)->tokens.first_token != NULL;
+      template_def = !cache_for_template(tssp)->tokens->is_empty();
     }  /* if */
 #endif /* INSTANTIATION_BY_IMPLICIT_INCLUSION */
   }  /* if */
@@ -42966,7 +42892,7 @@ that will persist until the checks are actually done.
     goto done;
   }  /* if */
   tssp = template_supplement_for_symbol(generic_sym);
-  generic_param_list = tssp->cache.decl_info->parameters;
+  generic_param_list = tssp->cache->decl_info->parameters;
   /* Go through the list of arguments and compare each one against the
      associated constraints. */
   for (tap = generic_arg_list, tpp = generic_param_list;
@@ -43156,7 +43082,8 @@ the function template, and decl_state tracks its declaration.
   curr_default_args = saved_curr_default_args;
 #if RECORD_TEMPLATE_STRINGS
   /* Record a text version of the generated template body. */
-  record_string_version_of_template(decl_state, sym, &tssp->cache.tokens);
+  record_string_version_of_template(decl_state, sym,
+                                    tssp->cache->tokens.ptr());
 #endif /* RECORD_TEMPLATE_STRINGS */
 }  /* complete_generated_member_template */
 
@@ -43563,15 +43490,15 @@ constructor).
   } else {
     is_hypothetical = TRUE;
   }  /* if */
-  tcp = &ct_tssp->cache;
+  tcp = ct_tssp->cache;
   sym = alloc_symbol((a_symbol_kind)sk_function_template,
                      from_sym->header,
                      &null_source_position);
   sym->decl_scope = orig_ct_sym->decl_scope;
   tssp = sym->variant.template_info;
   tdip = alloc_template_decl_info();
-  tssp->cache.decl_info = tdip;
-  tssp->variant.function.decl_cache.decl_info = tdip;
+  tssp->cache->decl_info = tdip;
+  tssp->variant.function.decl_cache->decl_info = tdip;
   tssp->variant.function.implicit_deduction_guide = TRUE;
   tssp->is_variadic = ct_tssp->is_variadic ||
                       (from_tssp != NULL && from_tssp->is_variadic);
@@ -43659,7 +43586,7 @@ identical).
     ctor_tssp = template_supplement_for_symbol(ctor_sym);
     ctor_rout = ctor_tssp->variant.function.routine;
   }  /* if */
-  tcp = &ct_tssp->cache;
+  tcp = ct_tssp->cache;
   /* A rescan context is needed because nonreal types will be created
      below. */
   push_instantiation_scope_for_rescan(ct_sym);
@@ -43704,7 +43631,7 @@ identical).
   return_type = type_symbol_type(return_type_sym);
   if (ctor_is_template) {
     orig_ctor_templ_params =
-                  ctor_tssp->variant.function.decl_cache.decl_info->parameters;
+                 ctor_tssp->variant.function.decl_cache->decl_info->parameters;
     ctws_state.orig_ctor_templ_params = orig_ctor_templ_params;
     copy_template_params_to_new_list(orig_ctor_templ_params,
                                      &templ_param_list,
@@ -43733,7 +43660,7 @@ identical).
     if (copy_error) goto done;
   }  /* if */
   tssp = sym->variant.template_info;
-  tdip = tssp->cache.decl_info;
+  tdip = tssp->cache->decl_info;
   tdip->parameters = templ_param_list;
   rout = alloc_routine();
   /* Do substitution on the routine type to replace any references to
@@ -44069,8 +43996,8 @@ guide is recorded in the template symbol supplement associated with alias_sym.
   if (symbol_is(guide_sym, sk_function_template)) {
     guide_tssp = template_supplement_for_symbol(guide_sym);
     guide = guide_tssp->variant.function.routine;
-    guide_template_params = guide_tssp->variant.function.decl_cache.decl_info
-                                      ->parameters;
+    guide_template_params = guide_tssp->variant.function.decl_cache->
+                                                         decl_info->parameters;
   } else {
     guide = guide_sym->variant.routine.ptr;
   }  /* if */
@@ -44119,8 +44046,8 @@ guide is recorded in the template symbol supplement associated with alias_sym.
       a_template_symbol_supplement_ptr
                             class_tssp = class_sym->variant.template_info;
       a_template_param_ptr  new_alias_template_params,
-                            alias_template_params = alias_tssp->cache.decl_info
-                                                              ->parameters,
+                            alias_template_params = alias_tssp->cache
+                                                       ->decl_info->parameters,
                             guide_tpp;
       a_template_arg_ptr    alias_proto_args;
       size_t                number_of_guide_params = 0;
@@ -44269,7 +44196,8 @@ guide is recorded in the template symbol supplement associated with alias_sym.
       ctws_state.alias_parameter_pack_mapping = &alias_pack_mapping;
       ctws_state.orig_class_templ_params = alias_template_params;
       ctws_state.new_templ_params = new_template_params;
-      a_template_param_ptr class_tpp = class_tssp->cache.decl_info->parameters;
+      a_template_param_ptr class_tpp =
+                                      class_tssp->cache->decl_info->parameters;
       for (a_template_arg_ptr tap = deduced_guide_args;
            tap != NULL; tap = tap->next) {
         if (!is_start_of_pack_expansion_templ_arg(tap) &&
@@ -44362,14 +44290,14 @@ guide is recorded in the template symbol supplement associated with alias_sym.
                                  sym_parent_namespace(guide_sym));
       }  /* if */
       new_tssp = new_guide->variant.template_info;
-      new_tssp->cache.decl_info->parameters = new_template_params;
+      new_tssp->cache->decl_info->parameters = new_template_params;
       /* Create an expression to check whether the alias template parameters
          are deducible from the return type of the transformed guide. */
       is_deducible_expr = make_builtin_edg_is_deducible_expr(
                                                  alias_tssp->il_template_entry,
                                                  ret_type);
-      guide_template_decl = guide_tssp->variant.function.decl_cache.decl_info
-                                      ->template_decl;
+      guide_template_decl = guide_tssp->variant.function.decl_cache->
+                                                      decl_info->template_decl;
       if (guide_template_decl != NULL) {
         a_template_decl_ptr    new_template_decl = alloc_template_decl();
         a_requires_clause_ptr  guide_rcp;
@@ -44401,8 +44329,8 @@ guide is recorded in the template symbol supplement associated with alias_sym.
           new_template_decl->constraint.requires_clause = rcp;
         }  /* if */
         complete_template_decl(new_template_decl, new_template_params);
-        new_tssp->variant.function.decl_cache.decl_info
-                                           ->template_decl = new_template_decl;
+        new_tssp->variant.function.decl_cache->decl_info->template_decl =
+                                                             new_template_decl;
         new_tssp->il_template_entry->template_decl = new_template_decl;
       }  /* if */
       /* The associated constraints are the conjunction of the associated
@@ -44620,7 +44548,7 @@ deduction succeeds and results in the same type "A<T>".
   a_symbol_ptr          template_sym = symbol_for(templ);
   a_template_symbol_supplement_ptr
                         tssp = template_sym->variant.template_info;
-  a_template_param_ptr  template_params = tssp->cache.decl_info->parameters;
+  a_template_param_ptr  template_params = tssp->cache->decl_info->parameters;
   a_template_arg_ptr    tap = NULL;
   a_boolean             result = FALSE;
 

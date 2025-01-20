@@ -257,7 +257,8 @@ typedef struct a_pending_pragma {
 		descr_ptr;
 			/* Pointer to the structure that describes the
 			   particular kind of pragma being processed. */
-  a_token_cache	token_cache;
+  a_shared_token_cache
+		token_cache;
 			/* The tokens that comprise the body of the pragma.
 			   The first token in the cache is the token
 			   following the identifier(s) used to determine the
@@ -281,11 +282,6 @@ typedef struct a_pending_pragma {
 			   file or function scope relative to other
 			   declarations, statements, comments, etc. */
 #endif /* GENERATE_SOURCE_SEQUENCE_LISTS */
-  a_bit_field	discard_cache_when_done:1;
-			/* TRUE if the token_cache may be discarded when the
-			   pragma entry is discarded.  This will be FALSE when
-			   a pragma entry was created by making a copy of
-			   an entry retrieved from a reusable token cache. */
   a_bit_field	is_microsoft_pragma_operator:1;
 			/* TRUE if the pragma was specified using a Microsoft
 			   __pragma operator. */
@@ -377,8 +373,8 @@ Counts of tables allocated, to track total use of memory.  These are
 initialized and the results reported in lexical.c.
 */
 EXTERN_THREAD unsigned long
-		num_pending_pragmas_allocated,
-                num_pragma_descriptions_allocated;
+		num_pragmas_allocated,
+		num_pragma_descriptions_allocated;
 #endif /* DEBUG */
 
 #if INCLUDE_EDG_TEST_PRAGMAS
@@ -391,8 +387,14 @@ extern void test_next_construct_pragma(a_pending_pragma_ptr  ppp,
 extern a_pending_pragma_ptr alloc_pending_pragma
 					(a_pragma_kind_description_ptr pkdp);
 
-extern a_pending_pragma_ptr make_copy_of_pragma_list
-					(a_pending_pragma_ptr old_list);
+extern a_pending_pragma_ptr make_copy_of_pragma_list(
+                                       a_pending_pragma const* const old_list);
+
+extern a_pending_pragma_ptr make_fresh_copy_of_pragmas_on_list(
+                                       a_pending_pragma const* const old_list);
+
+extern a_pending_pragma_ptr make_copy_of_pending_pragmas_on_list(
+                                       a_pending_pragma const* const old_list);
 
 extern void free_pending_pragma(a_pending_pragma_ptr ppp);
 

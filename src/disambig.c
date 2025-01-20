@@ -144,15 +144,16 @@ Perform any operations that must be done to clean up after disambiguation.
     end_caching_fetched_tokens();
     if (curr_lexical_state_stack_entry->last_tsn_in_cache != dsp->first_tsn ||
         curr_token == tok_end_of_source) {
-      a_token_cache	cache;
-      clear_token_cache(&cache, /*is_reusable=*/FALSE);
+      a_scanning_token_cache cache;
+
       /* Get the tokens that were fetched by this routine from the cache
          that has been accumulated and rescan them. */
       copy_tokens_from_cache(curr_lexical_state_cache(), dsp->first_tsn,
                              last_token_sequence_number_of_token,
-                             /*include_last_token=*/TRUE, &cache);
-      f_rescan_cached_tokens(
-               &cache, /*discard_curr_token=*/curr_token != tok_end_of_source);
+                             /*include_last_token=*/TRUE, cache.ptr());
+      rescan_cached_tokens(
+                       cache.ptr(),
+                       /*discard_curr_token=*/curr_token != tok_end_of_source);
     }   /* if */
   }  /* if */
   /* Mark the end of the prescan context. */
@@ -1646,12 +1647,12 @@ types separated by commas (when single_type_required is FALSE).
     /* The GNU __extension__ keyword can start an expression or a declaration:
        temporarily skip the token, and restart disambiguation from the next
        token. */
-    a_token_cache  cache;
-    clear_token_cache(&cache, /*reusable=*/FALSE);
-    cache_curr_token(&cache);
+    a_tiny_scanning_token_cache cache;
+
+    cache_curr_token(cache.ptr());
     (void)get_token();
     result = is_decl_not_expr(flags);
-    rescan_cached_tokens(&cache);
+    rescan_cached_tokens(cache.ptr());
     goto done;
   }  /* if */
   /* Determine whether the current identifier is a synthesized template
@@ -1675,14 +1676,14 @@ types separated by commas (when single_type_required is FALSE).
   if (microsoft_mode && is_start_of_type && curr_token != tok_identifier &&
       next_tok != tok_lparen && next_tok != tok_declspec &&
       next_tok != tok_alignas) {
-    a_token_cache	cache;
-    a_token_kind	next_2_tok;
-    a_boolean		any_tokens_fetched = FALSE;
-    clear_token_cache(&cache, /*reusable=*/FALSE);
+    a_scanning_token_cache cache;
+    a_token_kind           next_2_tok;
+    a_boolean              any_tokens_fetched = FALSE;
+
     (void)next_two_tokens(next_tok, &next_2_tok);
     while ((is_type_keyword(next_tok) ||
             is_type_qualifier_token(next_tok)) && next_2_tok != tok_lparen) {
-      cache_curr_token(&cache);
+      cache_curr_token(cache.ptr());
       (void)get_token();
       any_tokens_fetched = TRUE;
       next_tok = next_token();
@@ -1706,7 +1707,7 @@ types separated by commas (when single_type_required is FALSE).
       /* Not a case we need to worry about. */
     } else if (next_tok == tok_identifier) {
       /* Check whether the identifier is a type. */
-      cache_curr_token(&cache);
+      cache_curr_token(cache.ptr());
       (void)get_token();
       any_tokens_fetched = TRUE;
       is_start_of_type = is_type_start_full(/*is_expr_context=*/TRUE,
@@ -1714,7 +1715,7 @@ types separated by commas (when single_type_required is FALSE).
                                             IDS_NO_OPTIONS);
     }  /* if */
     next_tok = next_2_tok;
-    if (any_tokens_fetched) rescan_cached_tokens(&cache);
+    if (any_tokens_fetched) rescan_cached_tokens(cache.ptr());
   }  /* if */
   /* The ambiguous cases all begin a type name followed by a left
      parenthesis.   Check for this case first to quickly discard most

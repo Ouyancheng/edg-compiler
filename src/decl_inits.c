@@ -6490,7 +6490,7 @@ actual field).
 }  /* curr_initializer_field */
 
 
-a_token_cache_ptr cache_inclass_initializer(a_symbol_ptr  sym)
+a_shared_token_cache cache_inclass_initializer(a_symbol_ptr  sym)
 /*
 Cache the tokens that make up an in-class initializer for the static data
 member, nonstatic data member, or variable template specified by sym.
@@ -6500,17 +6500,18 @@ static data members of class templates in GNU C++ mode, and static data
 members of managed class types in some Microsoft modes.
 */
 {
-  a_token_cache_ptr        token_cache = alloc_token_cache();
-  a_token_sequence_number  first_tsn;
-  a_token_sequence_number  last_tsn_for_cache;
-  a_token_set_array        stop_tokens;
-  a_boolean                saved_in_disambiguation = FALSE;
-  a_boolean                saved_in_field_initializer = FALSE;
-  a_boolean                is_field = symbol_is(sym, sk_field);
-  a_boolean                is_var_templ = symbol_is(sym, sk_variable_template);
-  a_field_ptr              saved_field = NULL;
-  a_scope_stack_entry_ptr  ssep;
-  a_type_ptr               class_type;
+  a_shared_token_cache    token_cache = shared_obj<a_token_cache>(
+                                                            /*reusable=*/TRUE);
+  a_token_sequence_number first_tsn;
+  a_token_sequence_number last_tsn_for_cache;
+  a_token_set_array       stop_tokens;
+  a_boolean               saved_in_disambiguation = FALSE;
+  a_boolean               saved_in_field_initializer = FALSE;
+  a_boolean               is_field = symbol_is(sym, sk_field);
+  a_boolean               is_var_templ = symbol_is(sym, sk_variable_template);
+  a_field_ptr             saved_field = NULL;
+  a_scope_stack_entry_ptr ssep;
+  a_type_ptr              class_type;
 
   /* Determine the class that is being defined. */
   for (ssep = &scope_stack_top();
@@ -6529,7 +6530,6 @@ members of managed class types in some Microsoft modes.
   }  /* if */
   /* Initialize a local stop token set to cache everything up to a semicolon
      or a comma (outside braces, etc.). */
-  clear_token_cache(token_cache, /*reusable=*/TRUE);
   clear_token_set_array(stop_tokens);
   incr_token_set_array_element(stop_tokens, tok_comma);
   incr_token_set_array_element(stop_tokens, tok_semicolon);
@@ -6554,13 +6554,8 @@ members of managed class types in some Microsoft modes.
   copy_tokens_from_cache(curr_lexical_state_cache(), first_tsn,
                          curr_token_sequence_number,
                          /*include_last_token=*/FALSE,
-                         token_cache);
-  /* Normally tokens are cached directly into a reusable cache or are
-     moved from one reusable cache to another.  In this case, however,
-     the tokens are being copied from one reusable cache to another.
-     Update the token handles to refer to the copy of the cached token. */
-  adjust_token_handles(token_cache);
-  terminate_token_cache(token_cache);
+                         token_cache.ptr());
+  terminate_token_cache(token_cache.ptr());
   end_caching_fetched_tokens();
   scope_stack_top().in_disambiguation = saved_in_disambiguation;
   if (is_field) {
@@ -6588,7 +6583,7 @@ members of managed class types in some Microsoft modes.
                                   sym, (a_template_symbol_supplement_ptr)NULL,
                                   first_tsn, last_tsn);
     /* Check for the case where the cache is empty. */
-    tcsp->expression_missing = token_cache->first_token == NULL;
+    tcsp->expression_missing = token_cache->is_empty();
     if (is_field) {
       sym->variant.field.extra_info->token_cache = token_cache;
     } else if (!is_var_templ) {

@@ -2411,31 +2411,30 @@ is finally known.)
 }  /* conv_string_literal */
 
 
-void concat_string_literals(a_token_cache_ptr cache,
-                            a_character_kind  character_kind,
-          /* Defaulted: */  a_cached_token    *first_token)
+void concat_string_literals(a_token_cache_ptr      cache,
+                            a_character_kind       character_kind,
+          /* Defaulted: */  a_token_cache_iterator *first_token)
 /*
-Concatenate two or more string literals contained in the indicated token
-cache, and replace the constant in the first cached string token with the
-constant for the concatenation.  If first_token is non-NULL, it points to an
-element of the given cache and that is where concatenation starts; otherwise,
-concatenation starts with the first token in the given cache.  (The rest of
-the cached tokens are left as they are; the caller removes and frees them.)
-The result string will have characters of the given kind.  Some of the
-constants may be error constants if there were malformed string literals in
-the input; in that case, the output is an error constant.  Some of the entries
-in the token cache may be for pragmas; they are ignored.  This routine
-implements the lexical concatenation of section 2.1.1.2, phase 6, of the C
-standard.  The nulls from the initial strings are discarded in doing the
-concatenation, and the one from the last string is copied as the final null of
-the concatenated string; see ANSI C 3.1.4.  The cached strings either all have
-the given character kind, or a mix of the given kind and chk_char.
+Concatenate two or more string literals contained in the indicated token cache,
+and replace the constant in the first cached string token with the constant for
+the concatenation.  If opt_first_token is non-NULL, it points to an element of
+the given cache and that is where concatenation starts; otherwise,
+concatenation starts with the first token in the given cache.  (The rest of the
+cached tokens are left as they are; the caller removes and frees them.)  The
+result string will have characters of the given kind.  Some of the constants
+may be error constants if there were malformed string literals in the input; in
+that case, the output is an error constant.  Some of the entries in the token
+cache may be for pragmas; they are ignored.  This routine implements the
+lexical concatenation of section 2.1.1.2, phase 6, of the C standard.  The
+nulls from the initial strings are discarded in doing the concatenation, and
+the one from the last string is copied as the final null of the concatenated
+string; see ANSI C 3.1.4.  The cached strings either all have the given
+character kind, or a mix of the given kind and chk_char.
 */
 {
   a_targ_size_t                 total_len = 0, str_len, null_len;
-  a_cached_token_ptr            ctp, first_string_token = NULL;
+  a_token_cache_iterator        first_string_token = cache->end();
   a_boolean                     produce_error_constant = FALSE;
-  a_constant_ptr                concat_con, con;
   char                          *new_str;
   a_const_char                  *saved_curr_char_loc = curr_char_loc;
   a_string_or_char_literal_kind lit_kind;
@@ -2447,8 +2446,13 @@ the given character kind, or a mix of the given kind and chk_char.
        overflow should be discarded. */
     clear_char_overflows();
   }  /* if */
-  if (first_token == NULL) {
-    first_token = cache->first_token;
+
+  a_token_cache_iterator tok_it;
+  a_token_cache_iterator tok_it_end = cache->end();
+  if (first_token != NULL) {
+    tok_it = *first_token;
+  } else {
+    tok_it = cache->begin();
   }  /* if */
   /* Determine the length of the terminating null on strings.  It's usually 1,
      but it may be bigger for wide string literals. */
@@ -2458,15 +2462,18 @@ the given character kind, or a mix of the given kind and chk_char.
      kind. */
   lit_kind = char_kind_to_str_literal_kind(character_kind);
   /* Determine the length of the concatenation. */
-  for (ctp = first_token; ctp != NULL; ctp = ctp->next) {
+  for (; tok_it != tok_it_end; ++tok_it) {
+    const a_shared_token &tok = *tok_it;
+
     /* Ignore pragma entries. */
-    if (ctp->extra_info_kind == (a_token_extra_info_kind)teik_pragma) continue;
-    check_assertion_str((a_token_kind)ctp->token == tok_string_literal &&
-                        ctp->extra_info_kind ==
-                                        (a_token_extra_info_kind)teik_constant,
+    if (tok->is_pragma()) continue;
+    check_assertion_str(tok->is_string_literal(),
                        "concat_string_literals: cached token is not a string");
-    if (first_string_token == NULL) first_string_token = ctp;
-    con = ctp->variant.constant;
+    if (first_string_token == tok_it_end) {
+      first_string_token = tok_it;
+    }  /* if */
+
+    const a_constant *con = tok->get_constant();
     if (is_error_constant(con)) {
       /* If any constant is an error constant, the overall concatenation
          will be an error constant. */
@@ -2490,7 +2497,7 @@ the given character kind, or a mix of the given kind and chk_char.
       }  /* if */
       /* Except on the last constant, subtract out the space for the
          final null in the string. */
-      if (ctp->next != NULL) str_len -= null_len;
+      if (tok_it + 1 != tok_it_end) str_len -= null_len;
       /* Add the length of this string to the accumulated length. */
       total_len += str_len;
     }  /* if */
@@ -2499,8 +2506,12 @@ the given character kind, or a mix of the given kind and chk_char.
      produce_error_constant is set. */
   /* Build the concatenation and record it in the constant in the first
      string token in the cache. */
-  check_assertion(first_string_token != NULL); /* For Coverity. */
-  concat_con = first_string_token->variant.constant;
+  check_assertion(first_string_token != tok_it_end);
+
+  /* Create a copy of the token and concatenate into the new associated
+     constant. */
+  a_cached_token new_tok = **first_string_token;
+  a_constant     *concat_con = new_tok.get_constant();
   if (produce_error_constant) {
     /* There is at least one error constant in the concatenation or the
        strings were of incompatible kinds (e.g., L"a" U"b"), so return
@@ -2511,13 +2522,18 @@ the given character kind, or a mix of the given kind and chk_char.
     /* Allocate enough space for the concatenation. */
     new_str = alloc_text_of_string_literal((sizeof_t)total_len);
     total_len = 0;
+
     /* Copy the constants into the concatenation. */
-    for (ctp = first_string_token; ctp != NULL; ctp = ctp->next) {
+    a_token_cache_iterator con_tok_it = first_string_token;
+    for (; con_tok_it != tok_it_end; ++con_tok_it) {
+      const a_shared_token &tok = *con_tok_it;
+
       /* Ignore pragma entries. */
-      if (ctp->extra_info_kind == (a_token_extra_info_kind)teik_pragma) {
+      if (tok->is_pragma()) {
         continue;
       }  /* if */
-      con = ctp->variant.constant;
+
+      const a_constant *con = tok->get_constant();
       if (con->character_kind != character_kind) {
         /* A string like "xyz" in L"abc" "xyz" must be rescanned as the
            correct kind of literal, effectively resulting in L"abc" L"xyz".
@@ -2537,7 +2553,7 @@ the given character kind, or a mix of the given kind and chk_char.
       str_len = con->variant.string.length;
       /* Except on the last constant, subtract out the space for the final
          null in the string. */
-      if (ctp->next != NULL) {
+      if ((con_tok_it + 1) != tok_it_end) {
         str_len -= null_len;
       }  /* if */
       /* Copy the string text (including the final null, if that's
@@ -2564,6 +2580,14 @@ the given character kind, or a mix of the given kind and chk_char.
                                            (a_targ_size_t)total_len/null_len);
     concat_con->character_kind = character_kind;
   }  /* if */
+
+  /* Replace the token with the modified copy. */
+  *first_string_token = move_from(&new_tok);
+  /* The constants have been concatenated into the first constant in the
+     token cache (which might not be the first entry in the cache, if there
+     are pragma entries first).  Discard the token cache entries for the
+     string literal tokens after that first one. */
+  cache->remove_non_pragma_tokens_after(first_string_token);
   curr_char_loc = saved_curr_char_loc;
   db_exit();
 }  /* concat_string_literals */

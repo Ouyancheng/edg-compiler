@@ -3374,7 +3374,7 @@ NULL.
       continue;
     }  /* if */
     return_type = rout_type->variant.routine.return_type;
-    param_list = tssp->variant.function.decl_cache.decl_info->parameters;
+    param_list = tssp->variant.function.decl_cache->decl_info->parameters;
 #if DEBUG
     if (db_flag_is_set("conversion_lookup")) {
       fprintf(f_debug, "Looking for conversion template match with:\n");

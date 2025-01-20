@@ -348,17 +348,18 @@ possible.
   } else {
     /* Allocate a new entry. */
     ppp = (a_pending_pragma_ptr)alloc_fe(sizeof(a_pending_pragma));
+    /* Initialize an empty shared token cache.  This is only necessary for
+       fresh allocations as reused pending pragma objects have their token
+       cache reset when freed. */
+    new (&ppp->token_cache) a_shared_token_cache();
 #if DEBUG
-    num_pending_pragmas_allocated++;
+    num_pragmas_allocated++;
 #endif /* DEBUG */
   }  /* if */
   ppp->next = NULL;
-  /* Initialize the token cache as a reusable token cache. */
-  clear_token_cache(&ppp->token_cache, /*reusable=*/TRUE);
   ppp->id_position = null_source_position;
   ppp->pragma_position = null_source_position;
   ppp->descr_ptr = pkdp;
-  ppp->discard_cache_when_done = TRUE;
   ppp->is_microsoft_pragma_operator = FALSE;
   ppp->is_function_style_pragma = FALSE;
   ppp->has_been_processed = FALSE;
@@ -470,8 +471,8 @@ possible.
 }  /* alloc_pending_pragma */
 
 
-static a_pending_pragma_ptr alloc_copy_of_pending_pragma
-                                            (a_pending_pragma_ptr orig_ppp)
+static a_pending_pragma_ptr alloc_copy_of_pending_pragma(
+                                              const a_pending_pragma *orig_ppp)
 /*
 Allocate a pending pragma entry and copy an existing pragma entry into
 it.  Reuse a freed entry if possible.
@@ -487,10 +488,10 @@ it.  Reuse a freed entry if possible.
     /* Allocate a new entry. */
     ppp = (a_pending_pragma_ptr)alloc_fe(sizeof(a_pending_pragma));
 #if DEBUG
-    num_pending_pragmas_allocated++;
+    num_pragmas_allocated++;
 #endif /* DEBUG */
   }  /* if */
-  *ppp = *orig_ppp;
+  new (ppp) a_pending_pragma(*orig_ppp);
   ppp->next = NULL;
 #if GENERATE_SOURCE_SEQUENCE_LISTS
   ppp->source_sequence_entry = NULL;
@@ -499,30 +500,21 @@ it.  Reuse a freed entry if possible.
 }  /* alloc_copy_of_pending_pragma */
 
 
-a_pending_pragma_ptr make_copy_of_pragma_list(a_pending_pragma_ptr old_list)
+a_pending_pragma_ptr make_copy_of_pragma_list(
+                                        a_pending_pragma const* const old_list)
 /*
-Make a copy of a list of pending pragma entries and set the flag in the
-entry that indicates that this is a copy.  This routine is used, for
-example, when rescanning tokens from a reusable cache.  When a token with
-associated pragma entries is rescanned, the pragma entries must be copied
-because the original entries will remain attached to the token in the
-reusable cache and must not be affected by operations performed on the
-copies associated with the token being processed.
+Make an exact copy of a list of pending pragma entries.
 */
 {
-  a_pending_pragma_ptr	new_list = NULL;
-  a_pending_pragma_ptr	new_list_end = NULL;
-  a_pending_pragma_ptr	src_ppp;
-  a_pending_pragma_ptr	dest_ppp;
+  a_pending_pragma_ptr   new_list = NULL;
+  a_pending_pragma_ptr   new_list_end = NULL;
+  const a_pending_pragma *src_ppp;
+  a_pending_pragma_ptr   dest_ppp;
 
   db_enter(4, "make_copy_of_pragma_list");
   src_ppp = old_list;
   while (src_ppp != NULL) {
     dest_ppp = alloc_copy_of_pending_pragma(src_ppp);
-    dest_ppp->discard_cache_when_done = FALSE;
-    /* Clear the flag that indicates the pragma has been processed so that
-       it will be processed again for the cached token. */
-    dest_ppp->has_been_processed = FALSE;
     if (new_list == NULL) new_list = dest_ppp;
     if (new_list_end != NULL) new_list_end->next = dest_ppp;
     new_list_end = dest_ppp;
@@ -531,6 +523,59 @@ copies associated with the token being processed.
   db_exit();
   return new_list;
 }  /* make_copy_of_pragma_list */
+
+
+a_pending_pragma_ptr make_fresh_copy_of_pragmas_on_list(
+                                        a_pending_pragma const* const old_list)
+/*
+Make a copy of a list of pending pragma entries and reset the
+has_been_processed_flag.  This routine is used, for example, when rescanning
+tokens from a reusable cache.  When a token with associated pragma entries is
+rescanned, the pragma entries must be copied because the original entries will
+remain attached to the token in the reusable cache and must not be affected by
+operations performed on the copies associated with the token being processed.
+*/
+{
+  db_enter(4, "make_fresh_copy_of_pragmas_on_list");
+
+  a_pending_pragma_ptr new_list = make_copy_of_pragma_list(old_list);
+  for (a_pending_pragma_ptr ppp = new_list; ppp != NULL; ppp = ppp->next) {
+    /* Clear the flag that indicates the pragma has been processed so that
+       it will be processed again for the cached token. */
+    ppp->has_been_processed = FALSE;
+  }  /* while */
+  db_exit();
+  return new_list;
+}  /* make_fresh_copy_of_pragmas_on_list */
+
+
+a_pending_pragma_ptr make_copy_of_pending_pragmas_on_list(
+                                        a_pending_pragma const* const old_list)
+/*
+Make a copy of a list of pending pragma entries excluding any entry where the
+has_been_processed_flag is TRUE.  This routine is used, for example, when
+rescanning tokens from a non-reusable cache.
+*/
+{
+  a_pending_pragma_ptr   new_list = NULL;
+  a_pending_pragma_ptr   new_list_end = NULL;
+  const a_pending_pragma *src_ppp;
+  a_pending_pragma_ptr   dest_ppp;
+
+  db_enter(4, "make_copy_of_pending_pragmas_on_list");
+  src_ppp = old_list;
+  while (src_ppp != NULL) {
+    if (!src_ppp->has_been_processed) {
+      dest_ppp = alloc_copy_of_pending_pragma(src_ppp);
+      if (new_list == NULL) new_list = dest_ppp;
+      if (new_list_end != NULL) new_list_end->next = dest_ppp;
+      new_list_end = dest_ppp;
+    }  /* if */
+    src_ppp = src_ppp->next;
+  }  /* while */
+  db_exit();
+  return new_list;
+}  /* make_copy_of_pending_pragmas_on_list */
 
 
 void free_pending_pragma(a_pending_pragma_ptr ppp)
@@ -547,11 +592,8 @@ Return a pending pragma entry to the available list.
     ppp->source_sequence_entry = NULL;
   }  /* if */
 #endif /* if GENERATE_SOURCE_SEQUENCE_LISTS */
-  if (ppp->discard_cache_when_done) {
-    /* This pending pragma entry is the primary entry that refers to this
-       token cache and so the token cache should be discarded. */
-    discard_token_cache(&ppp->token_cache);
-  }  /* if */
+  /* Release the reference to the token cache. */
+  ppp->token_cache = a_shared_token_cache();
   ppp->next = avail_pending_pragmas;
   avail_pending_pragmas = ppp;
 }  /* free_pending_pragma */
@@ -1509,7 +1551,7 @@ Restore a list of pragmas as the current token pragmas.
                        "pragma list not already empty");
   /* Make a copy of the list of pragmas associated with this template and
      set this scope's current construct list to point to the new copy. */
-  ppp = make_copy_of_pragma_list(pragma_list);
+  ppp = make_fresh_copy_of_pragmas_on_list(pragma_list);
   *scope_list_addr = ppp;
 #if GENERATE_SOURCE_SEQUENCE_LISTS
   /* The source sequence entries were cleared when the current construct

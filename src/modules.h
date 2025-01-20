@@ -513,9 +513,10 @@ An internal token cache wrapper structure that represents additional state for
 modules.
 */
 struct a_module_token_cache {
-  a_module_token_cache(a_source_position_ptr initial_hint = NULL)
-    : underlying_cache(), valid(TRUE), position_hint(initial_hint)
-    { clear_token_cache(&(this->underlying_cache), /*reusable=*/TRUE); }
+  a_module_token_cache(const a_source_position *initial_hint = NULL)
+    : underlying_cache(/*reusable=*/TRUE), valid(TRUE),
+      position_hint(initial_hint)
+    {}
   a_module_token_cache(const a_module_token_cache&) = delete;
   inline ~a_module_token_cache();
 
@@ -529,14 +530,34 @@ struct a_module_token_cache {
   const a_token_cache* as_canonical() const
     { return &(this->underlying_cache); }
 
-  a_cached_token_ptr get_first_token()
-    { return this->underlying_cache.first_token; }
-  a_cached_token_ptr get_last_token()
-    { return this->underlying_cache.last_token; }
+  a_boolean is_empty() const
+    { return this->underlying_cache.is_empty(); }
 
-  a_source_position_ptr get_position_hint() const
+  void append_token(const a_cached_token &tok)
+    { this->underlying_cache.append_token(tok); }
+  void append_token(a_cached_token &&tok)
+    { this->underlying_cache.append_token(move_from(&tok)); }
+  void append_token(const a_shared_token &tok)
+    { this->underlying_cache.append_token(tok); }
+  void append_token(a_shared_token &&tok)
+    { this->underlying_cache.append_token(move_from(&tok)); }
+
+  const a_shared_token& get_first_token()
+    { return this->underlying_cache.get_first_token(); }
+  const a_shared_token& get_last_token()
+    { return this->underlying_cache.get_last_token(); }
+
+  a_token_cache_iterator get_last_token_iter()
+    { return this->underlying_cache.get_last_token_iter(); }
+
+  a_token_cache_iterator begin()
+    { return this->underlying_cache.begin(); }
+  a_token_cache_iterator end()
+    { return this->underlying_cache.end(); }
+
+  const a_source_position* get_position_hint() const
     { return this->position_hint; }
-  void set_position_hint(a_source_position_ptr new_position_hint)
+  void set_position_hint(const a_source_position *new_position_hint)
     { this->position_hint = new_position_hint; }
   void suggest_source_position(a_source_position_ptr new_position_hint);
 private:
@@ -545,8 +566,8 @@ private:
                         /* The underlying cache to insert tokens into. */
   a_boolean     valid;  /* TRUE if the underlying cache should be parsed after
                            caching; otherwise, FALSE. */
-  a_source_position_ptr
-                position_hint;
+  const a_source_position
+                *position_hint;
                         /* Current source position hint (used for source
                            position inference). */
 };  /* a_module_token_cache */
@@ -560,10 +581,11 @@ recent token in the cache.
 */
 {
   check_assertion(new_position_hint != NULL);
-  if (this->get_last_token() == NULL) {
+  if (this->is_empty()) {
     this->position_hint = new_position_hint;
   } else {
-    a_source_position_ptr last_pos = &this->get_last_token()->source_position;
+    const a_source_position *last_pos =
+                                 this->get_last_token()->get_source_position();
 
     if (last_pos->seq < new_position_hint->seq ||
         (last_pos->seq == new_position_hint->seq &&
@@ -590,9 +612,9 @@ Cleanup after the token cache.
 
 using a_module_token_cache_ptr = a_module_token_cache*;
 
-inline a_source_position_ptr
+inline const a_source_position*
 infer_next_source_position(a_module_token_cache_ptr cache,
-                           a_source_position_ptr    pos = NULL)
+                           const a_source_position  *pos = NULL)
 /*
 Perform source position inference on the given cache.  The inferred position
 should only be requested when gathering the source position for a new token.
@@ -616,15 +638,12 @@ this cache) should take priority.
   if (pos != NULL) {
     goto done;
   }  /* if */
+  if (cache->is_empty()) {
+    pos = &null_source_position;
+  } else {
+    const a_shared_token &last_tok = cache->get_last_token();
 
-  {
-    a_cached_token_ptr last_tok = cache->get_last_token();
-
-    if (last_tok != NULL) {
-      pos = &last_tok->source_position;
-    } else {
-      pos = &null_source_position;
-    }  /* if */
+    pos = last_tok->get_source_position();
   }  /* if */
 done:
   cache->set_position_hint(NULL);
@@ -646,22 +665,19 @@ calls to exit_module_token_rescan automatically upon destruction.
 */
 {
 #if CHECKING
-  {
-    a_cached_token_ptr last_tok = cache->get_last_token();
-
-    check_assertion_str(last_tok != NULL, "the cache cannot be empty");
-    check_assertion_str(last_tok->token != tok_end_of_source,
-                        "the cache cannot be pre-terminated.");
-  }
+  check_assertion_str(!cache->is_empty(), "the cache cannot be empty");
+  check_assertion_str(!cache->get_last_token()->is(tok_end_of_source),
+                      "the cache cannot be pre-terminated.");
 #endif /* CHECKING */
   terminate_token_cache(cache->as_canonical());
 
-  a_cached_token_ptr last_tok = cache->get_last_token();
+  a_shared_token_cache tok_cache(move_from(cache->as_canonical()));
+  const a_shared_token &last_tok = tok_cache->get_last_token();
   push_lexical_state_stack();
   push_stop_token_stack();
-  rescan_reusable_cache(cache->as_canonical());
+  rescan_shared_reusable_cache(tok_cache);
   increment_dependent_scans_for_reusable_cache();
-  return last_tok->token_sequence_number;
+  return last_tok->get_starting_seq_number();
 }  /* enter_module_token_rescan */
 
 

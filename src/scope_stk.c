@@ -4975,7 +4975,8 @@ void inject_tokens_in_namespace(a_token_cache  *tokens,
                                 a_scope        *namespace_scope)
 /*
 Scan the given tokens as a declaration appearing in the given namespace scope
-(which might be the file scope).
+(which might be the file scope).  Note that tokens must be a persistent
+reusable token cache.
 */
 {
   a_scope_depth       orig_depth = depth_scope_stack;
@@ -4993,7 +4994,7 @@ Scan the given tokens as a declaration appearing in the given namespace scope
   curr_object_lifetime =
                   scope_stack[DEPTH_OF_FILE_SCOPE].curr_scope_object_lifetime;
   new_struct_stmt_stack(&saved_sss_state);
-  rescan_reusable_cache(tokens);
+  rescan_persistent_reusable_cache(tokens);
   declaration(/*function_definition_allowed=*/TRUE,
               /*is_old_style_param_decl=*/FALSE,
               /*is_top_level_declaration=*/TRUE,
@@ -5422,7 +5423,7 @@ class to be defined.
     base_template_sym = symbol_for(inh_ctor_orig)->
                                     variant.routine.instance_ptr->template_sym;
     base_tssp = template_supplement_for_symbol(base_template_sym);
-    context_scope = base_tssp->variant.function.decl_cache.decl_info->
+    context_scope = base_tssp->variant.function.decl_cache->decl_info->
                                                                enclosing_scope;
   } else if (is_defined_in_friend_decl) {
     a_template_symbol_supplement_ptr tssp;
@@ -5502,9 +5503,10 @@ class to be defined.
                                   template_supplement_for_symbol(template_sym);
       /* The context includes a variable template instantiation.  Reactivate
          the instantiation scope for the variable template. */
-      reactivate_variable_context(enclosing_variable_tdip,
-                                  tssp->cache.decl_info->variable_instance_sym,
-                                  options);
+      reactivate_variable_context(
+                                 enclosing_variable_tdip,
+                                 tssp->cache->decl_info->variable_instance_sym,
+                                 options);
     }  /* if */
   }  /* if */
   if (is_template) {
@@ -5531,7 +5533,7 @@ class to be defined.
       a_template_symbol_supplement_ptr  tssp =
                                   template_supplement_for_symbol(template_sym);
       scope_stack[depth_scope_stack].decl_seq_for_lookup =
-                                               tssp->cache.decl_info->decl_seq;
+                                              tssp->cache->decl_info->decl_seq;
     }  /* if */
   }  /* if */
   if (!use_existing_context) {
@@ -5710,10 +5712,10 @@ the template that is being rescanned and can be NULL.
     if (template_sym->kind == (a_symbol_kind)sk_function_template ||
         template_sym->kind == (a_symbol_kind)sk_member_function) {
       rp = tssp->variant.function.routine;
-      tdip = tssp->variant.function.decl_cache.decl_info;
+      tdip = tssp->variant.function.decl_cache->decl_info;
     }  /* if */
     if (tdip == NULL) {
-      tdip = tssp->cache.decl_info;
+      tdip = tssp->cache->decl_info;
     }  /* if */
   } else {
     if (template_sym != NULL &&
@@ -6106,7 +6108,7 @@ associated template.
     check_assertion(sym != NULL);
     template_sym = sym->variant.routine.instance_ptr->template_sym;
     tssp = template_supplement_for_symbol(template_sym);
-    result = cache_for_template(tssp)->tokens.first_token != NULL;
+    result = !cache_for_template(tssp)->tokens.is_empty();
 #if GNU_EXTENSIONS_ALLOWED
   } else if (has_gnu_routine_supp(rp) &&
              gnu_routine_supp(rp)->aliased_routine != NULL) {
@@ -6416,7 +6418,7 @@ an unnamed namespace.
         severity = es_warning;
       } else if (gnu_mode) {
         if (sdm_supp(var_sym) != NULL &&
-            sdm_supp(var_sym)->token_cache != NULL) {
+            sdm_supp(var_sym)->token_cache != a_shared_token_cache()) {
           /* In g++ and clang modes, the is_member_constant flag of a
              static data member of a class template instance is only set
              when its initializer is instantiated.  The presence of a token
@@ -11272,7 +11274,7 @@ to it.
   pesep->next = NULL;
   pesep->expansion_descr = NULL;
   pesep->instantiation_descr = NULL;
-  pesep->first_token_handle = NO_CACHED_TOKEN_HANDLE;
+  pesep->first_token_it = a_token_cache_iterator();
   pesep->template_arg_list = NULL;
   pesep->is_rescan = FALSE;
   pesep->is_deduction = FALSE;
@@ -11336,6 +11338,31 @@ Pop the current entry off of the pack expansion stack.
 
 #if DEBUG
 
+static inline a_boolean is_pack_within_cache(a_token_cache_ptr          cache,
+                                             a_pack_expansion_descr_ptr pedp)
+/*
+Return TRUE if the given pack expansion descriptor's token range is contained
+within the given token cache; otherwise, return FALSE.
+*/
+{
+  a_boolean result = TRUE;
+
+  if (cache->is_empty()) {
+    result = FALSE;
+  } else {
+    const a_shared_token &first_tok = cache->get_first_token();
+    const a_shared_token &last_tok = cache->get_last_token();
+
+    if (first_tok->get_starting_seq_number() > pedp->first_token) {
+      result = FALSE;
+    } else if (last_tok->get_starting_seq_number() < pedp->last_token) {
+      result = FALSE;
+    }  /* if */
+  }  /* if */
+  return result;
+}  /* is_pack_within_cache */
+
+
 void db_pack_tokens(a_pack_expansion_descr_ptr	pedp)
 /*
 Display the tokens that make up a pack expansion, for debugging purposes.
@@ -11359,26 +11386,22 @@ Display the tokens that make up a pack expansion, for debugging purposes.
     /* The tokens could come from the body cache or the declaration cache.
        They could presumably also come from something like a default
        argument cache, but that is not supported by this routine. */
-    cache = &tssp->cache.tokens;
-    if (cache->first_token != NULL &&
-        cache->first_token->token_sequence_number <= pedp->first_token &&
-        cache->last_token->token_sequence_number >= pedp->last_token) {
+    cache = tssp->cache->tokens.ptr();
+    if (is_pack_within_cache(cache, pedp)) {
       /* Use this cache. */
       result_cache = cache;
     } else if (is_function_or_template_symbol(template_sym)) {
       /* Try the declaration cache for a function template. */
-      cache = &tssp->variant.function.decl_cache.tokens;
-      if (cache->first_token != NULL &&
-          cache->first_token->token_sequence_number <= pedp->first_token &&
-          cache->last_token->token_sequence_number >= pedp->last_token) {
+      cache = tssp->variant.function.decl_cache->tokens.ptr();
+      if (is_pack_within_cache(cache, pedp)) {
         /* Use this cache. */
         result_cache = cache;
       }  /* if */
     }  /* if */
     if (result_cache != NULL) {
-      init_token_string(&result_cache->first_token->source_position,
-                       /*keep_spacing=*/FALSE,
-                       /*suppress_identifier_wrapping=*/FALSE);
+      init_token_string(result_cache->get_first_token()->get_source_position(),
+                        /*keep_spacing=*/FALSE,
+                        /*suppress_identifier_wrapping=*/FALSE);
       add_token_cache_segment_to_string(result_cache, pedp->first_token,
                                         pedp->last_token);
       fprintf(f_debug, "%s\n", temp_text_buffer);
@@ -12948,9 +12971,8 @@ suppression is on the stack.
     any_args = pesep != NULL;
     if (pesep != NULL && pesep->instantiation_descr != NULL &&
         !pesep->instantiation_descr->is_empty) {
-      check_assertion(curr_cached_token_handle != NO_CACHED_TOKEN_HANDLE);
-      pesep->first_token_handle = curr_cached_token_handle;
       check_assertion(curr_token_sequence_number == pedp->first_token);
+      pesep->first_token_it = find_iter_for_curr_rescan_token();
       /* Mark that the current reusable cache is being used for rescan
          purposes. */
       if (is_lookahead) pesep->is_lookahead = TRUE;
@@ -13610,7 +13632,7 @@ TRUE is returned if there are any more elements in the pack.  FALSE otherwise.
   if (!done) {
     if (!pesep->is_rescan) {
       /* Reset the token position to the start of the pack expansion. */
-      update_reusable_cache_rescan_location(pesep->first_token_handle);
+      update_reusable_cache_rescan_location(pesep->first_token_it);
     }  /* if */
     pesep->instantiation_descr->after_first_element = TRUE;
   } else if (pesep != NULL) {

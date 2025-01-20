@@ -54,6 +54,37 @@ and parsing of them into tokens.
 /* Conditionally open the "edg" namespace. */
 BEGIN_EDG_NAMESPACE
 
+constexpr sizeof_t
+                token_ctrl_block_batch_size =
+                    ((HOST_ALLOCATION_INCREMENT - sizeof(a_mem_block_header)) /
+                                            sizeof(a_shared_token_ctrl_block));
+                        /* The number of tokens to allocate per batch.  This is
+                           sized to consume an entire memory blocks worth of
+                           tokens at a time.
+
+                           Note that for PCH support to function when
+                           USE_MMAP_FOR_MEMORY_REGIONS is FALSE, the total
+                           allocation size cannot exceed
+                           HOST_ALLOCATION_INCREMENT. */
+
+
+void FE_allocator<a_shared_token_ctrl_block>::reserve_block()
+/*
+Allocate a block of address space to token control blocks.
+*/
+{
+  an_elem *elem = (an_elem*)alloc_fe(sizeof(an_elem) *
+                                     token_ctrl_block_batch_size);
+
+  for (size_t i = token_ctrl_block_batch_size; i != 0; --i) {
+    avail_token_ctrl_blocks->push_back(elem + (i - 1));
+  }  /* for */
+#if DEBUG
+  num_shared_token_states_allocated += token_ctrl_block_batch_size;
+#endif /* DEBUG */
+}  /* FE_allocator::reserve_block */
+
+
 /*
 Declarations relating to expansion of #embed directives.
 */
@@ -185,11 +216,12 @@ discard them.
 Macro that determines whether any of the initial special case tests
 at the beginning of get_token need to be done.
 */
-#define recalc_any_initial_get_token_tests_needed()                         \
-  (any_initial_get_token_tests_needed = curr_token_pragmas != NULL ||       \
-                                        cached_token_rescan_list != NULL || \
-                                        reusable_cache_stack != NULL ||     \
-                                        embed_control.in_process)
+#define recalc_any_initial_get_token_tests_needed()                           \
+                                (any_initial_get_token_tests_needed =         \
+                                   (curr_token_pragmas != NULL ||             \
+                                    !cached_token_rescan_stack->is_empty() || \
+                                    reusable_cache_stack != NULL) ||          \
+                                    embed_control.in_process)
 
 
 /* Macro to check prevent calling the error checking function unless some
@@ -2518,25 +2550,20 @@ STATIC_THREAD a_source_line_modif_ptr
 /*
 Information about cached tokens, i.e., tokens saved for later rescanning.
 */
-STATIC_THREAD a_cached_token_ptr
-		cached_token_rescan_list;
-			/* If non-NULL, points to a list of cached tokens
+STATIC_THREAD a_token_stack
+		*cached_token_rescan_stack;
+			/* If non-NULL, points to a stack of cached tokens
 			   that should be rescanned by get_token before going
 			   forward in the input stream. */
-STATIC_THREAD a_cached_token_ptr
-		avail_cached_tokens;
-			/* List of cached token entries (allocated in front
-			   end storage) freed and available for reuse. */
+static constexpr size_t
+		cached_token_rescan_init_capacity = 20;
+			/* The initial capacity of a new token stack to be
+			   added to the cached token rescan stack. */
 STATIC_THREAD a_constant_ptr
 		avail_cached_constants;
 			/* List of constant entries (allocated in front end
 			   storage) for use with token caching entries,
 			   freed and available for reuse. */
-
-STATIC_THREAD a_token_cache_ptr
-		avail_token_cache_entries;
-			/* List of token cache entries that have been freed
-			   and are available for reuse. */
 
 /*
 Information about data structures used for working with persistent token
@@ -2812,9 +2839,6 @@ STATIC_THREAD unsigned long
 		num_orig_line_modifs_allocated,
 		num_source_line_modifs_allocated,
 		num_concatenation_records_allocated,
-		num_cached_tokens_allocated,
-                num_cached_tokens_in_reusable_caches,
-                num_pragmas_in_reusable_caches,
 		num_cached_constants_allocated,
                 num_file_suffixes_allocated,
 		num_include_file_histories_allocated,
@@ -2825,7 +2849,6 @@ STATIC_THREAD unsigned long
                 num_lexical_state_stack_entries_allocated,
 		num_reusable_cache_entries_allocated,
 		num_compares_in_source_line_modif_hash_table,
-		num_token_caches_allocated,
 #if UNICODE_VULNERABILITY_DETECTION_SUPPORTED
 		num_id_representations_allocated,
 		num_spelling_storage_buffers_allocated,
@@ -2919,63 +2942,12 @@ Issue a diagnostic on unimplemented keywords.
 }  /* unimplemented_keyword_diagnostic */
 
 
-void clear_token_cache(a_token_cache *cache,
-		       a_boolean     reusable)
-/*
-Initialize a token cache, presumably so tokens can be added to it.
-*/
-{
-  cache->next = NULL;
-  cache->first_token = NULL;
-  cache->last_token  = NULL;
-  cache->is_reusable = reusable;
-#if DEBUG
-  cache->token_count = 0;
-  cache->pragma_count = 0;
-#endif /* DEBUG */
-}  /* clear_token_cache */
-
-
-a_token_cache_ptr alloc_token_cache(/* Defaulted: */  a_boolean  reusable)
-/*
-Allocate a token cache entry.  Reuse a freed entry if possible.  Make the
-cache reusable if reusable is TRUE (defaults to FALSE).
-*/
-{
-  a_token_cache_ptr	tcp;
-
-  if (avail_token_cache_entries != NULL) {
-    /* Reuse a freed entry. */
-    tcp = avail_token_cache_entries;
-    avail_token_cache_entries = avail_token_cache_entries->next;
-  } else {
-    /* Allocate a new entry. */
-    tcp = alloc_fe_of_type(a_token_cache);
-#if DEBUG
-    num_token_caches_allocated++;
-#endif /* DEBUG */
-  }  /* if */
-  clear_token_cache(tcp, reusable);
-  return tcp;
-}  /* alloc_token_cache */
-
-
-void free_token_cache(a_token_cache_ptr tcp)
-/*
-Free a token cache entry.
-*/
-{
-  discard_token_cache(tcp);
-  tcp->next = avail_token_cache_entries;
-  avail_token_cache_entries = tcp;
-}  /* free_token_cache */
-
-
 static void free_reusable_cache_entry(a_reusable_cache_entry_ptr rsep)
 /*
 Free a token cache stack entry, i.e., put it on the avail list to be reused.
 */
 {
+  rsep->token_cache.~a_reusable_token_cache();
   rsep->next = avail_reusable_cache_entries;
   avail_reusable_cache_entries = rsep;
 }  /* free_reusable_cache_entry */
@@ -2990,13 +2962,10 @@ stack.
 */
 {
   a_reusable_cache_entry_ptr  rcep = reusable_cache_stack;
-  cached_token_rescan_list = rcep->previous_token_rescan_list;
+
+  delete_fe(&cached_token_rescan_stack);
+  cached_token_rescan_stack = rcep->previous_token_rescan_stack;
   reusable_cache_stack = rcep->next;
-  if (rcep->discard_cache_when_done) {
-    /* The cache was discarded while still in use, so the actual discard
-       was deferred until the entry referencing it has been popped. */
-    discard_token_cache(&rcep->copy_of_token_cache);
-  }  /* if */
   free_reusable_cache_entry(rcep);
   recalc_any_initial_get_token_tests_needed();
 }  /* pop_reusable_cache_stack */
@@ -3020,7 +2989,7 @@ Decrement the number of token scans depending on the current reusable cache.
   check_assertion(reusable_cache_stack != NULL);
   check_assertion(reusable_cache_stack->dependent_scans > 0);
   reusable_cache_stack->dependent_scans--;
-  if (reusable_cache_stack->next_cached_token == NULL &&
+  if (!reusable_cache_stack->has_next_token() &&
       reusable_cache_stack->dependent_scans == 0) {
      /* Don't pop this entry off the stack if it is currently being used for a
         variadic template rescan. */
@@ -3028,39 +2997,8 @@ Decrement the number of token scans depending on the current reusable cache.
   }  /* if */
 }  /* decrement_dependent_scans_for_reusable_cache */
 
-
-#if DEBUG
-#define incr_num_cached_tokens_allocated() num_cached_tokens_allocated++
-#else /* !DEBUG */
-#define incr_num_cached_tokens_allocated() /* Nothing */
-#endif /* DEBUG */
-
-/*
-Macro to allocate a cached token entry or, if possible, to reuse a freed
-entry.  Note that some of the fields of the allocated entry are initialized
-by the caller (including token, source_position, and extra_info_kind).
-*/
-#define alloc_cached_token(ctp)                                         \
-{ if (avail_cached_tokens != NULL) {                                    \
-    /* Reuse a freed entry. */                                          \
-    ctp = avail_cached_tokens;                                          \
-    avail_cached_tokens = avail_cached_tokens->next;                    \
-  } else {                                                              \
-    /* Allocate a new entry. */                                         \
-    ctp = (a_cached_token_ptr)alloc_fe(sizeof(a_cached_token));         \
-    incr_num_cached_tokens_allocated();                                 \
-  }  /* if */                                                           \
-  ctp->token_handle = NO_CACHED_TOKEN_HANDLE;                           \
-  ctp->next = NULL;                                                     \
-  ctp->extra_info_kind = (a_token_extra_info_kind)teik_none;            \
-  ctp->token = tok_error;                                               \
-  ctp->token_sequence_number = NO_TOKEN_SEQUENCE_NUMBER;                \
-  ctp->ending_token_sequence_number = NO_TOKEN_SEQUENCE_NUMBER;         \
-  ctp->token_handle = NO_CACHED_TOKEN_HANDLE;                           \
-}  /* alloc_cached_token */
-
-
-static a_reusable_cache_entry_ptr alloc_reusable_cache_entry(void)
+static inline a_reusable_cache_entry_ptr alloc_reusable_cache_entry(
+                                           const a_reusable_token_cache &cache)
 /*
 Allocate a reusable cache entry.  Reuse a freed entry if possible.
 */
@@ -3080,12 +3018,10 @@ Allocate a reusable cache entry.  Reuse a freed entry if possible.
 #endif /* DEBUG */
   }  /* if */
   rsep->next = NULL;
-  rsep->previous_token_rescan_list = NULL;
-  rsep->next_cached_token = NULL;
-  rsep->token_cache = NULL;
-  clear_token_cache(&rsep->copy_of_token_cache, /*is_reusable=*/TRUE);
+  rsep->previous_token_rescan_stack = NULL;
   rsep->dependent_scans = 0;
-  rsep->discard_cache_when_done = FALSE;
+  rsep->next_token = cache->begin();
+  new (&rsep->token_cache) a_reusable_token_cache(cache);
   return rsep;
 }  /* alloc_reusable_cache_entry */
 
@@ -3112,204 +3048,15 @@ Allocate a cached constant entry.  Reuse a freed entry if possible.
 }  /* alloc_cached_constant */
 
 
+void free_cached_token_constant(a_constant_ptr cp)
 /*
-Macro to free a constant used by a cached token, i.e., to put it on the
+Free the given constant used by a cached token, i.e., to put it on the
 avail list to be reused.
 */
-#define free_cached_token_constant(cp) \
-{                                      \
-  (cp)->next = avail_cached_constants; \
-  avail_cached_constants = (cp);       \
+{
+  (cp)->next = avail_cached_constants;
+  avail_cached_constants = (cp);
 }  /* free_cached_token_constant */
-
-
-/*
-Macro used to update the counter of tokens used in reusable caches
-and the number of tokens used in the given cache.
-When debugging code is not being generated the macro expands to nothing.
-*/
-#if DEBUG
-#define incr_tokens_in_cache(cache)					\
-  if (cache->is_reusable) {						\
-    num_cached_tokens_in_reusable_caches++;				\
-  }  /* if */								\
-  cache->token_count++
-#else /* !DEBUG */
-#define incr_tokens_in_cache(cache)  /* */
-#endif /* DEBUG */
-
-#if DEBUG
-#define decr_tokens_in_cache(cache)					\
-  if (cache->is_reusable) {						\
-    num_cached_tokens_in_reusable_caches--;				\
-  }  /* if */								\
-  cache->token_count--
-#else /* !DEBUG */
-#define decr_tokens_in_cache(cache)  /* */
-#endif /* DEBUG */
-
-
-static void add_cached_token_to_cache(a_cached_token_ptr ctp,
-                                      a_token_cache      *cache)
-/*
-Add the cached token pointed to by ctp to the end of the token cache
-pointed to by cache.
-*/
-{
-  if (cache->first_token == NULL) {
-    cache->first_token = ctp;
-  } else {
-    cache->last_token->next = ctp;
-  }  /* if */
-  cache->last_token = ctp;
-  incr_tokens_in_cache(cache);
-}  /* add_cached_token_to_cache */
-
-
-static void add_pragma_entry_to_cache(a_token_cache *cache)
-/*
-Add a pragma entry to the end of the indicated token cache for the pragmas
-associated with the current token.
-*/
-{
-  a_cached_token_ptr ctp;
-
-  alloc_cached_token(ctp);
-  check_assertion(curr_token_pragmas != NULL);
-  ctp->extra_info_kind = (a_token_extra_info_kind)teik_pragma;
-  ctp->variant.pragmas = curr_token_pragmas;
-  ctp->source_position = curr_token_pragmas->pragma_position;
-  if (cache->is_reusable) {
-    /* If the cache is reusable, clear the has_been_processed flag so that
-       any immediate pragmas will be processed again when the cache is
-       rescanned (the flag is not used for other kinds of pragmas). */
-    a_pending_pragma_ptr ppp;
-    for (ppp = curr_token_pragmas; ppp != NULL; ppp = ppp->next) {
-      ppp->has_been_processed = FALSE;
-    }  /* for */
-  }  /* if */
-#if EXTRA_SOURCE_POSITIONS_IN_IL
-  /* An ending position is not maintained for pragmas so the start position
-     is used. */
-  ctp->end_source_position = ctp->source_position;
-#endif /*  EXTRA_SOURCE_POSITIONS_IN_IL */
-  ctp->token = tok_error;
-  ctp->token_sequence_number = NO_TOKEN_SEQUENCE_NUMBER;
-  add_cached_token_to_cache(ctp, cache);
-#if DEBUG
-  /* Increment the number of pragmas in reusable caches and the number of
-     pragmas in this particular cache. */
-  { a_pending_pragma_ptr	ppp = curr_token_pragmas;
-    unsigned long		count = 0;
-    while (ppp != NULL) {
-      count++;
-      ppp = ppp->next;
-    }  /* while */
-    if (cache->is_reusable) num_pragmas_in_reusable_caches += count;
-    cache->pragma_count += count;
-  }
-#endif /* DEBUG */
-}  /* add_pragma_entry_to_cache */
-
-
-/*
-Macro to free a cached token entry, i.e., to put it on the avail list to be
-reused.  If the entry points to one or more cached constant entries, free
-them, too.  It is expected that no pragma entries will be pointed to at the
-time the cached token is freed.
-*/
-#define free_cached_token(ctp)                                               \
-{ if (ctp->extra_info_kind == (a_token_extra_info_kind)teik_constant) {      \
-    free_cached_token_constant(ctp->variant.constant);                       \
-  } else if (ctp->extra_info_kind == (a_token_extra_info_kind)teik_ud_lit) { \
-    free_cached_token_constant(ctp->variant.ud_lit.value_con);               \
-    free_cached_token_constant(ctp->variant.ud_lit.spelling_con);            \
-  }  /* if */                                                                \
-  ctp->next = avail_cached_tokens;                                           \
-  avail_cached_tokens = ctp;                                                 \
-}  /* free_cached_token */
-
-
-static void free_cached_token_from_reusable_cache(
-                               ARG_UNUSED a_token_cache_ptr token_cache,
-                               a_cached_token_ptr           ctp,
-                               a_boolean                    keep_pragma_tokens)
-/*
-Free an individual token from a reusable cache.  keep_pragma_tokens is TRUE
-when the token caches associated with pragma entries should be retained.
-This is needed when freeing tokens from the original copies of member function
-bodies of class templates.
-*/
-{
-  /* Free any pragmas associated with this token.  Cached constants will
-     be freed by free_cached_token. */
-  if (ctp->extra_info_kind == (a_token_extra_info_kind)teik_pragma) {
-    /* Free any pragma entries associated with this token. */
-    a_pending_pragma_ptr	ppp = ctp->variant.pragmas;
-    while (ppp != NULL) {
-      a_pending_pragma_ptr	next_ppp = ppp->next;
-#if DEBUG
-      num_pragmas_in_reusable_caches--;
-#endif /* DEBUG */
-      if (keep_pragma_tokens) ppp->discard_cache_when_done = FALSE;
-      free_pending_pragma(ppp);
-      ppp = next_ppp;
-    }  /* while */
-    ctp->variant.pragmas = NULL;
-  }  /* if */
-  /* Update the counts in the cache. */
-  decr_tokens_in_cache(token_cache);
-  free_cached_token(ctp);
-}  /* free_cached_token_from_reusable_cache */
-
-
-void remove_token_from_cache(a_cached_token_ptr	ctp,
-			     a_cached_token_ptr	*prev_ptr,
-			     a_token_cache_ptr	cache)
-/*
-Remove "ctp" from the token cache "cache".  Update "prev_ptr" to point
-to the correct next token.
-*/
-{
-  /* Update the first and last entries of the cache, if appropriate. */
-  if (cache->last_token == ctp) {
-    check_assertion(ctp->next == NULL);
-    cache->last_token = *prev_ptr;
-    if (cache->last_token != NULL) cache->last_token->next = NULL;
-  }  /* if */
-  if (*prev_ptr == NULL) {
-    check_assertion(cache->first_token == ctp);
-    cache->first_token = ctp->next;
-  }  /* if */
-  /* Unlink the entry. */
-  *prev_ptr = ctp->next;
-  /* Free the token cache entry. */
-  if (cache->is_reusable) {
-    free_cached_token_from_reusable_cache(cache, ctp,
-                                         /*keep_pragma_tokens=*/FALSE);
-  } else {
-    /* Update the counts in the cache.  For reusable caches, the token
-       counts are updated by the free routine. */
-    decr_tokens_in_cache(cache);
-    free_cached_token(ctp);
-  }  /* if */
-}  /* remove_token_from_cache */
-
-
-void free_tokens_from_reusable_cache(a_cached_token_ptr	ctp,
-				     a_token_cache	*cache)
-/*
-Free a list of cached tokens from the reusable cache specified by
-cache.
-*/
-{
-  while (ctp != NULL) {
-    a_cached_token_ptr	next_ctp = ctp->next;
-    free_cached_token_from_reusable_cache(cache, ctp,
-                                         /*keep_pragma_tokens=*/TRUE);
-    ctp = next_ctp;
-  }  /* while */
-}  /* free_tokens_from_reusable_cache */
 
 
 void terminate_token_cache(a_token_cache *cache)
@@ -3317,133 +3064,24 @@ void terminate_token_cache(a_token_cache *cache)
 Save an end-of-source token on the end of the list of tokens saved in *cache.
 */
 {
-  a_cached_token_ptr ctp;
+  a_token_sequence_number seq = NO_TOKEN_SEQUENCE_NUMBER;
 
-  /* Build an entry for the end-of-source token. */
-  alloc_cached_token(ctp);
-  ctp->source_position = pos_curr_token;
-#if EXTRA_SOURCE_POSITIONS_IN_IL
-  ctp->end_source_position = pos_curr_token;
-#endif /*  EXTRA_SOURCE_POSITIONS_IN_IL */
-  ctp->token = tok_end_of_source;
   /* Copy the token sequence number from the final token of the cache into
      the cache terminator. */
-  ctp->token_sequence_number = cache->last_token == NULL
-                                     ? NO_TOKEN_SEQUENCE_NUMBER
-                                    : cache->last_token->token_sequence_number;
-  ctp->ending_token_sequence_number = ctp->token_sequence_number;
-  ctp->extra_info_kind = (a_token_extra_info_kind)teik_none;
+  if (!cache->is_empty()) {
+    const a_shared_token &last_token = cache->get_last_token();
+
+    seq = last_token->get_starting_seq_number();
+  }  /* if */
+
+  /* Build an entry for the end-of-source token. */
+  a_cached_token token(tok_end_of_source, pos_curr_token, seq);
   /* Add the end-of-source token to the end of the cache. */
-  add_cached_token_to_cache(ctp, cache);
+  cache->append_token(token);
 }  /* terminate_token_cache */
 
 
-a_cached_token_ptr build_cached_token(a_token_kind	      kind,
-                                      a_token_sequence_number sequence_number,
-                                      a_source_position	      *position)
-/*
-Create a cached token of the specified token kind, with the specified
-token sequence number and source position.  The token kind must be one
-for which there is no associated extra information.  Return a pointer to
-the newly created token.
-*/
-{
-  a_cached_token_ptr ctp;
-
-  /* Build an entry for the end-of-source token. */
-  alloc_cached_token(ctp);
-  ctp->token = kind;
-  ctp->token_sequence_number = sequence_number;
-  ctp->ending_token_sequence_number = sequence_number;
-  ctp->source_position = *position;
-#if EXTRA_SOURCE_POSITIONS_IN_IL
-  /* This is a synthesized token, for which we are really using the position
-     of another token.  Just use the same position for the start and end. */
-  ctp->end_source_position = *position;
-#endif /*  EXTRA_SOURCE_POSITIONS_IN_IL */
-  ctp->extra_info_kind = (a_token_extra_info_kind)teik_none;
-#if DEBUG
-  /* For accounting purposes, assume that this token will be used in a
-     reusable cache. */
-  num_cached_tokens_in_reusable_caches++;
-#endif /* DEBUG */
-  return ctp;
-}  /* build_cached_token */
-
-
-void cache_string_as_identifier(a_token_cache_ptr     cache,
-                                a_const_char          *str,
-                                a_targ_size_t         len,
-                                a_source_position_ptr pos)
-/*
-Cache an identifier spelled like the given (null-terminated) string, whose
-length is given by len.  pos is the position to record for the identifier.
-*/
-{
-  a_symbol_locator loc;
-
-  clear_locator(&loc, pos);
-  (void)find_symbol(str, (sizeof_t)len, &loc);
-  cache_token(cache, tok_identifier, pos);
-
-  a_cached_token_ptr last_token = cache->last_token;
-  last_token->extra_info_kind = teik_identifier;
-  last_token->variant.locator = loc;
-}  /* cache_string_as_identifier */
-
-
-void cache_general_constant(a_token_cache_ptr     cache,
-                            a_constant_ptr        cp,
-                            a_source_position_ptr pos)
-/*
-Add a tok_gen_constant token with the provided constant and position to the
-given token cache.
-*/
-{
-  cache_token(cache, tok_gen_constant, pos);
-
-  a_cached_token_ptr last_token = cache->last_token;
-  last_token->extra_info_kind = teik_constant;
-  last_token->variant.constant = alloc_cached_constant();
-  copy_constant(cp, last_token->variant.constant);
-}  /* cache_general_constant */
-
-
-void cache_resolved_type_token(a_token_cache_ptr     cache,
-                               a_type_ptr            type,
-                               a_source_position_ptr pos)
-/*
-Add a token representing the given resolved type to the cache.  The type will
-be internally preserved via a decltype construct token.  pos is the position of
-the token.
-*/
-{
-  /* Cache the decltype token */
-  cache_token(cache, tok_decltype_construct, pos);
-  {
-    /* Add the extra data to store the type. */
-    a_cached_token *tok = cache->last_token;
-
-    tok->extra_info_kind = teik_identifier;
-    tok->variant.locator = cleared_locator;
-    tok->variant.locator.variant.decltype_type = type;
-    tok->variant.locator.source_position = *pos;
-  }
-}  /* cache_resolved_type_token */
-
-#if DEBUG
-
-void add_to_pragmas_in_reuseable_cache_count(unsigned long count)
-/*
-Add count to num_pragmas_in_reusable_caches.
-*/
-{
-  num_pragmas_in_reusable_caches += count;
-}  /* add_to_pragmas_in_reuseable_cache_count */
-
-#endif /* DEBUG */
-
-static void make_copy_of_pp_token(a_pp_token_descr_ptr pptdp)
+static inline void make_copy_of_pp_token(a_pp_token_descr_ptr pptdp)
 /*
 Allocates memory and copies the token string indicated by
 start_of_curr_token and end_of_curr_token to the newly allocated
@@ -3473,18 +3111,631 @@ memory.
 }  /* make_copy_of_pp_token */
 
 
-void adjust_token_handles(a_token_cache *cache)
+static unsigned long hash_string(a_const_char *str)
 /*
-Update the token cache specified by cache so that the cached token
-handles point to the tokens in the cache.
+Compute a hash value for the string "str".
 */
 {
-  a_cached_token_ptr	ctp;
-
-  for (ctp = cache->first_token; ctp != NULL; ctp = ctp->next) {
-    ctp->token_handle = ctp;
+  unsigned long value = 0;
+  for (; *str != '\0'; str++) {
+    value = (value << 5) + value + (unsigned long)*str;
   }  /* for */
-}  /* adjust_token_handles */
+  return value;
+}  /* hash_string */
+
+namespace detail {
+
+uintptr_t a_cached_token_base::hash_code() const
+/*
+Compute and return a hash code for the token.
+*/
+{
+  uintptr_t result;
+
+  if (this->is_pragma()) {
+    /* Do not hash pragmas. */
+    result = 0;
+  } else if (this->is_identifier()) {
+    /* Hash the identifier string. */
+    a_string_view str_view(this->get_locator().symbol_header->identifier);
+
+    result = hash_ptr(str_view);
+  } else if (this->is_constant()) {
+    /* Get a hash value for the constant.  For historic reasons, the
+       hash_constant function does not take a const a_constant. */
+    a_constant_ptr cp = const_cast<a_constant_ptr>(this->get_constant());
+
+    result = (uintptr_t)hash_constant(cp);
+  } else if (this->is_asm_string()) {
+    /* Hash the asm string. */
+    result = hash_string(this->get_asm_string());
+  } else if (this->is_ud_literal()) {
+    /* Get a hash value for the spelling constant. */
+    const a_ud_literal_descr *ud_lit_descr = this->get_ud_literal_descr();
+
+    result = (uintptr_t)hash_constant(ud_lit_descr->spelling_con);
+  } else {
+    /* For other tokens, just use the token kind. */
+    result = (uintptr_t)this->get_kind();
+  }  /* if */
+  return result;
+}  /* a_cached_token_base::hash_code */
+
+
+/*
+This class is given special permission to mess with the internals of
+detail::a_cached_token_base for the purposes of optimal construction.
+
+By using special access permissions to directly constructing the extra token
+information in the destination object, these functions are able to
+significantly reduce the instruction count.
+*/
+struct a_token_factory {
+  static INLINE a_shared_token copy_curr_token();
+  static INLINE a_shared_token copy_curr_pragma_as_token(
+                                                       a_boolean for_reusable);
+  static INLINE a_shared_token build_constant(a_constant_ptr          cp,
+                                              const a_source_position *pos,
+                                              a_token_kind            kind);
+  static INLINE a_shared_token build_tok_body_replacement(
+                                    a_token_kind            token,
+                                    a_token_sequence_number start_seq,
+                                    a_token_sequence_number end_seq,
+                                    a_symbol_ptr            symbol,
+                                    a_boolean               semicolon_inserted,
+                                    const a_source_position *pos);
+  static INLINE a_shared_token build_tok_removed_expr(
+                                             a_token_sequence_number start_seq,
+                                             const a_source_position *pos,
+                                             a_token_cache_iterator  begin,
+                                             a_token_cache_iterator  end);
+  static INLINE a_shared_token build_tok_pragma(a_token_sequence_number seq,
+                                                const a_source_position *pos);
+  static INLINE a_shared_token build_tok_pp(char                    *text,
+                                            a_targ_size_t           len,
+                                            const a_source_position *pos);
+  static INLINE a_shared_token build_tok_identifier(
+                                                 a_const_char            *str,
+                                                 a_targ_size_t           len,
+                                                 const a_source_position *pos);
+  static INLINE a_shared_token build_tok_ifc_ref(
+                                           a_token_kind                  kind,
+                                           a_lexical_ifc_index_reference ref,
+                                           const a_source_position       *pos);
+  static INLINE a_shared_token build_tok_ud_literal(
+                                     a_constant_ptr          value_constant,
+                                     a_constant_ptr          spelling_constant,
+                                     a_const_char            *suffix,
+                                     a_type_ptr              type,
+                                     const a_source_position *pos);
+  static INLINE a_shared_token build_tok_resolved_type(
+                                                 a_type_ptr              type,
+                                                 const a_source_position *pos);
+  static INLINE a_shared_token build_tok_insert_string();
+};  /* a_token_factory */
+
+
+a_shared_token a_token_factory::copy_curr_token()
+/*
+Construct and return a shared token representing the current token.
+*/
+{
+  /* Build an entry for the current token itself. */
+  a_shared_token
+                result = shared_obj<an_immutable_cached_token>(
+                                          curr_token, pos_curr_token,
+                                          extra_il_src_pos(end_pos_curr_token),
+                                          curr_token_sequence_number,
+                                          last_token_sequence_number_of_token);
+  auto          &extra_info = result->extra_info;
+
+  if (fetch_pp_tokens) {
+    /* The token being saved is a pp token.  Save this by copying the token
+       string. */
+    result->extra_info_kind = teik_pp_token;
+    make_copy_of_pp_token(&extra_info.pp_token_descr);
+  } else if (curr_token == tok_identifier || curr_token == tok_ptr_to_member ||
+             curr_token == tok_decltype_construct
+             if_microsoft_extensions(|| curr_token == tok_cli_typeid)) {
+    /* Identifier -- save information about it.  The locator is also saved
+       for pointer-to-member and decltype_construct tokens. */
+    result->extra_info_kind = teik_identifier;
+    new (&extra_info.locator) a_symbol_locator(locator_for_curr_id);
+  } else if (curr_token == tok_microsoft_asm) {
+    result->extra_info_kind = teik_asm_string;
+    extra_info.asm_string = curr_token_asm_string;
+  } else if (is_literal_constant_token(curr_token)) {
+    /* Literal constant -- save the constant's value. */
+    result->extra_info_kind = teik_constant;
+    extra_info.constant = alloc_cached_constant();
+    /* Copy the constant.  Note that anything pointed to by the constant
+       (e.g., a string) has been allocated in the file scope and doesn't
+       need to be copied. */
+    copy_constant(&const_for_curr_token, extra_info.constant);
+  } else if (curr_token == tok_pending_ifc_expr ||
+             curr_token == tok_ifc_entity_ref ||
+             curr_token == tok_ifc_decl_ref ||
+             curr_token == tok_ifc_param_ref ||
+             curr_token == tok_ifc_decl) {
+    /* This token has an associated index. */
+    result->extra_info_kind = teik_ifc_index;
+    new (&extra_info.ifc_index) a_lexical_ifc_index_reference(
+                                                     ifc_index_for_curr_token);
+  } else if (curr_token == tok_ud_literal) {
+      /* Save the information needed to restore the user-defined literal
+         from the cache. */
+    result->extra_info_kind = teik_ud_lit;
+    extra_info.ud_lit.value_con = alloc_cached_constant();
+    copy_constant(&const_for_curr_token,
+                  extra_info.ud_lit.value_con);
+    extra_info.ud_lit.spelling_con = alloc_cached_constant();
+    copy_constant(&const_with_curr_tok_spelling,
+                  extra_info.ud_lit.spelling_con);
+    extra_info.ud_lit.op_sym = ud_lit_op_sym_for_curr_token;
+    extra_info.ud_lit.suffix =
+                          ud_suffix_from_literal_operator_id(
+                                locator_for_curr_id.symbol_header->identifier);
+    extra_info.ud_lit.type = ud_lit_type_for_curr_token;
+  } else {
+    /* No extra information needed for this token. */
+  }  /* if */
+  return result;
+}  /* a_token_factory::copy_curr_token */
+
+
+a_shared_token a_token_factory::copy_curr_pragma_as_token(
+                                                        a_boolean for_reusable)
+/*
+Construct and return a shared token representing the current token's pragmas.
+
+If this token is being constructed for a reusable cache, for_reusable should be
+TRUE; otherwise, it should be FALSE.
+*/
+{
+  /* Use the token sequence number information for the current token to
+     maintain ordering of the token sequence. */
+  a_shared_token result = shared_obj<an_immutable_cached_token>(
+                                          tok_error,
+                                          curr_token_pragmas->pragma_position,
+                                          curr_token_pragmas->pragma_position,
+                                          curr_token_sequence_number,
+                                          last_token_sequence_number_of_token);
+  auto           &extra_info = result->extra_info;
+
+  check_assertion(curr_token_pragmas != NULL);
+  result->extra_info_kind = teik_pragma;
+  extra_info.pragmas = curr_token_pragmas;
+  if (for_reusable) {
+    /* If the cache is reusable, clear the has_been_processed flag so that
+       any immediate pragmas will be processed again when the cache is
+       rescanned (the flag is not used for other kinds of pragmas). */
+    a_pending_pragma_ptr ppp;
+    for (ppp = curr_token_pragmas; ppp != NULL; ppp = ppp->next) {
+      ppp->has_been_processed = FALSE;
+    }  /* for */
+  }  /* if */
+
+  /* Clear the current token pragmas. */
+  curr_token_pragmas = NULL;
+  return result;
+}  /* a_token_factory::copy_curr_pragma_as_token */
+
+
+a_shared_token a_token_factory::build_constant(
+                                              a_constant_ptr          cp,
+                                              const a_source_position *pos,
+                                              a_token_kind            kind)
+/*
+This function is an implementation detail of build_tok_constant; prefer that
+function for most use cases and see it function for a description of the
+arguments.
+*/
+{
+  a_shared_token result = build_cached_token(
+                                            kind,
+                                            assign_new_token_sequence_number(),
+                                            pos);
+
+  result->extra_info_kind = teik_constant;
+  result->extra_info.constant = alloc_cached_constant();
+  copy_constant(cp, result->extra_info.constant);
+  return result;
+}  /* a_token_factory::build_constant */
+
+
+a_shared_token a_token_factory::build_tok_body_replacement(
+                                    a_token_kind            token,
+                                    a_token_sequence_number start_seq,
+                                    a_token_sequence_number end_seq,
+                                    a_symbol_ptr            symbol,
+                                    a_boolean               semicolon_inserted,
+                                    const a_source_position *pos)
+/*
+This function is an implementation detail of build_tok_body_replacement; prefer
+that function for most use cases and see it function for a description of the
+arguments.
+*/
+{
+  a_shared_token result = shared_obj<an_immutable_cached_token>(token, *pos,
+                                                                *pos,
+                                                                start_seq,
+                                                                end_seq);
+
+  result->extra_info_kind = teik_extracted_body;
+  result->extra_info.extracted_template.symbol = symbol;
+  result->extra_info.extracted_template.semicolon_inserted =
+                                                            semicolon_inserted;
+  return result;
+}  /* a_token_factory::build_tok_body_replacement */
+
+
+a_shared_token a_token_factory::build_tok_removed_expr(
+                                             a_token_sequence_number start_seq,
+                                             const a_source_position *pos,
+                                             a_token_cache_iterator  begin,
+                                             a_token_cache_iterator  end)
+/*
+This function is an implementation detail of build_tok_removed_expr; prefer
+that function for most use cases and see it function for a description of the
+arguments.
+*/
+{
+  a_shared_token result = build_cached_token(tok_removed_expr, start_seq, pos);
+
+  result->extra_info_kind = teik_removed_expr;
+  new (&result->extra_info.removed_expr) a_removed_expr_descr();
+  if (begin != end) {
+    /* Perform a non-destructive move-copy the tokens. */
+    result->extra_info.removed_expr.cache =
+                                   new_fe<a_token_cache>(/*reusable=*/TRUE,
+                                                         distance(begin, end));
+    result->extra_info.removed_expr.cache->move_copy_tokens(begin, end);
+  }  /* if */
+  return result;
+}  /* a_token_factory::build_tok_removed_expr */
+
+
+a_shared_token a_token_factory::build_tok_pragma(
+                                             a_token_sequence_number seq,
+                                             const a_source_position *pos)
+/*
+This function is an implementation detail of build_tok_pragma; prefer
+that function for most use cases and see it function for a description of the
+arguments.
+*/
+{
+  a_shared_token result = build_cached_token(tok_error, seq, pos);
+
+  result->extra_info_kind = teik_pragma;
+  return result;
+}  /* a_token_factory::build_tok_pragma */
+
+
+a_shared_token a_token_factory::build_tok_pp(char                    *text,
+                                             a_targ_size_t           len,
+                                             const a_source_position *pos)
+/*
+This function is an implementation detail of build_tok_pragma; prefer
+that function for most use cases and see it function for a description of the
+arguments.
+*/
+{
+  check_assertion(text != NULL);
+  a_shared_token result = build_cached_token(
+                                            tok_identifier,
+                                            assign_new_token_sequence_number(),
+                                            pos);
+
+  result->extra_info_kind = teik_pp_token;
+  result->extra_info.pp_token_descr.token_start = text;
+  result->extra_info.pp_token_descr.token_end = text + len;
+  return result;
+}  /* a_token_factory::build_tok_pp */
+
+
+a_shared_token a_token_factory::build_tok_identifier(
+                                                  a_const_char            *str,
+                                                  a_targ_size_t           len,
+                                                  const a_source_position *pos)
+/*
+This function is an implementation detail of build_tok_identifier; prefer
+that function for most use cases and see it function for a description of the
+arguments.
+*/
+{
+  a_shared_token result = build_cached_token(
+                                            tok_identifier,
+                                            assign_new_token_sequence_number(),
+                                            pos);
+
+  result->extra_info_kind = teik_identifier;
+  clear_locator(&result->extra_info.locator, pos);
+  (void)find_symbol(str, len, &result->extra_info.locator);
+  return result;
+}  /* a_token_factory::build_tok_identifier */
+
+
+a_shared_token a_token_factory::build_tok_ifc_ref(
+                                            a_token_kind                  kind,
+                                            a_lexical_ifc_index_reference ref,
+                                            const a_source_position       *pos)
+/*
+This function is an implementation detail of build_tok_ifc_ref; prefer that
+function for most use cases and see it function for a description of the
+arguments.
+*/
+{
+  a_shared_token result = build_cached_token(
+                                            kind,
+                                            assign_new_token_sequence_number(),
+                                            pos);
+
+  result->extra_info_kind = teik_ifc_index;
+  result->extra_info.ifc_index = ref;
+  return result;
+}  /* a_token_factory::build_tok_ifc_ref */
+
+
+a_shared_token a_token_factory::build_tok_ud_literal(
+                                     a_constant_ptr          value_constant,
+                                     a_constant_ptr          spelling_constant,
+                                     a_const_char            *suffix,
+                                     a_type_ptr              type,
+                                     const a_source_position *pos)
+/*
+This function is an implementation detail of build_tok_ud_literal; prefer that
+function for most use cases and see it function for a description of the
+arguments.
+*/
+{
+  a_shared_token result = build_cached_token(
+                                            tok_ud_literal,
+                                            assign_new_token_sequence_number(),
+                                            pos);
+
+  result->extra_info_kind = teik_ud_lit;
+  result->extra_info.ud_lit.value_con = value_constant;
+  result->extra_info.ud_lit.spelling_con = spelling_constant;
+  result->extra_info.ud_lit.type = type;
+
+  a_targ_size_t suffix_len = (a_targ_size_t)(strlen(suffix) + 1);
+  char          *alloc_suffix = alloc_text_of_string_literal(suffix_len);
+  strcpy(alloc_suffix, suffix);
+  result->extra_info.ud_lit.suffix = alloc_suffix;
+  result->extra_info.ud_lit.op_sym = find_literal_operator(
+                                           alloc_suffix,
+                                           suffix_len - 1,
+                                           const_cast<a_source_position*>(pos),
+                                           type,
+                                           /*from_cache=*/FALSE,
+                                           (a_diagnostic_ptr)NULL);
+  return result;
+}  /* a_token_factory::build_tok_ud_literal */
+
+
+a_shared_token a_token_factory::build_tok_resolved_type(
+                                                  a_type_ptr              type,
+                                                  const a_source_position *pos)
+/*
+This function is an implementation detail of build_tok_resolved_type; prefer
+that function for most use cases and see it function for a description of the
+arguments.
+*/
+{
+  a_shared_token result = build_cached_token(
+                                           tok_decltype_construct,
+                                           assign_new_token_sequence_number(),
+                                           pos);
+
+  result->extra_info_kind = teik_identifier;
+  result->extra_info.locator = cleared_locator;
+  result->extra_info.locator.variant.decltype_type = type;
+  result->extra_info.locator.source_position = *pos;
+  return result;
+}  /* a_token_factory::build_tok_resolved_type */
+
+
+a_shared_token a_token_factory::build_tok_insert_string()
+/*
+This function merely constructs a new shared token that is used as a
+placeholder "dummy entry" with the extra info kind set to teik_insert_string.
+
+This function is an implementation detail of push_string_insert_cache_entry see
+that function (and its sister function pop_string_insert_cache_entry) for more
+information.
+*/
+{
+  a_shared_token result = shared_obj<an_immutable_cached_token>(
+                                                     tok_error,
+                                                     null_source_position,
+                                                     null_source_position,
+                                                     NO_TOKEN_SEQUENCE_NUMBER,
+                                                     NO_TOKEN_SEQUENCE_NUMBER);
+
+  result->extra_info_kind = teik_insert_string;
+  return result;
+}  /* a_token_factory::build_tok_insert_string */
+
+}  /* detail */
+
+a_shared_token build_cached_token(a_token_kind            kind,
+                                  a_token_sequence_number sequence_number,
+                                  const a_source_position *position)
+/*
+Construct and return a shared token of the specified token kind, with the
+specified token sequence number and source position.  The token kind must be
+one for which there is no associated extra information.
+*/
+{
+  if (position == NULL) {
+    position = &null_source_position;
+  }  /* if */
+  return shared_obj<an_immutable_cached_token>(kind, *position,
+                                               sequence_number);
+}  /* build_cached_token */
+
+
+a_shared_token build_tok_constant(a_constant_ptr          cp,
+                                  const a_source_position *pos,
+                /* Defaulted: */  a_token_kind            kind)
+/*
+Construct and return a shared token representing the given constant at the
+given position with the given token kind.
+*/
+{
+  return detail::a_token_factory::build_constant(cp, pos, kind);
+}  /* build_tok_constant */
+
+
+a_shared_token build_tok_body_replacement(
+                                    a_token_kind            token,
+                                    a_token_sequence_number start_seq,
+                                    a_token_sequence_number end_seq,
+                                    a_symbol_ptr            symbol,
+                                    a_boolean               semicolon_inserted,
+                                    const a_source_position *pos)
+/*
+Construct and return a shared token representing a template body that has been
+replaced.  The token's starting and ending sequence numbers should span the
+range from the starting token sequence number of the first token that has been
+replaced to the ending sequence number of the last token that has been
+replaced.  Symbol is for the member associated with this body replacement.
+semicolon_inserted should be TRUE if the replacement token is a semicolon that
+was not originally present in the source; otherwise, FALSE.  pos is the
+position of the first token.
+*/
+{
+  return detail::a_token_factory::build_tok_body_replacement(
+                                                            token, start_seq,
+                                                            end_seq, symbol,
+                                                            semicolon_inserted,
+                                                            pos);
+}  /* build_tok_body_replacement */
+
+
+a_shared_token build_tok_removed_expr(a_token_sequence_number start_seq,
+                                      const a_source_position *pos,
+                                      a_token_cache_iterator  begin,
+                                      a_token_cache_iterator  end)
+/*
+Construct and return a shared token representing an expression that will be
+replaced.  start_seq is the token sequence number of the first token that's
+been replaced (or if no tokens have been replaced, the token number
+representing the expected location of the expression).  pos is the position of
+the first token.  If the given iterators are non-default constructed, the token
+iterator range [begin, end) will be non-destructively moved into a cache
+allocated for the token.
+
+It is up to the caller to remove the original moved-from tokens from the cache
+associated with the iterator pair and place the returned token in the
+appropriate position.
+*/
+{
+  return detail::a_token_factory::build_tok_removed_expr(start_seq, pos, begin,
+                                                         end);
+}  /* build_tok_removed_expr */
+
+
+a_shared_token build_tok_pragma(a_token_sequence_number seq,
+                                const a_source_position *pos)
+/*
+Construct and return a new shared token representing a pragma with the given
+sequence number and source position.
+*/
+{
+  return detail::a_token_factory::build_tok_pragma(seq, pos);
+}  /* build_tok_pragma */
+
+
+a_shared_token build_tok_pp(char                    *text,
+                            a_targ_size_t           len,
+                            const a_source_position *pos)
+/*
+Construct and return a new shared token representing a preprocessor token with
+the given textual representation (of the given number of characters) and source
+position.
+*/
+{
+  return detail::a_token_factory::build_tok_pp(text, len, pos);
+}  /* build_tok_pp */
+
+
+a_shared_token build_tok_identifier(a_const_char            *str,
+                                    a_targ_size_t           len,
+                                    const a_source_position *pos)
+/*
+Construct and return a new shared token representing an identifier token with
+the given identifier text (of the given number of characters) and source
+position.
+*/
+{
+  return detail::a_token_factory::build_tok_identifier(str, len, pos);
+}  /* build_tok_identifier */
+
+
+a_shared_token build_tok_ifc_ref(a_token_kind                  kind,
+                                 a_lexical_ifc_index_reference ref,
+                                 const a_source_position       *pos)
+/*
+Construct and return a new shared token of the given kind representing an IFC
+index.  ref is the lexical representation of the IFC index.  source position is
+the source position that should be used for the token.
+*/
+{
+  return detail::a_token_factory::build_tok_ifc_ref(kind, ref, pos);
+}  /* build_tok_ifc_ref */
+
+
+a_shared_token build_tok_ud_literal(a_constant_ptr          str_constant,
+                                    a_const_char            *suffix,
+                                    const a_source_position *pos)
+/*
+This function is a simplification of the build_tok_ud_literal function below.
+The major difference is that the spelling constant and value constant are
+created from the given string constant.  Additionally, the user-defined
+literal's type is derived from the type of the token.  See the below function
+for more information about the parameters.
+*/
+{
+  a_constant_ptr spelling_constant = alloc_cached_constant();
+
+  copy_constant(str_constant, spelling_constant);
+  return build_tok_ud_literal(str_constant, spelling_constant, suffix,
+                              str_constant->type, pos);
+}  /* build_tok_ud_literal */
+
+
+a_shared_token build_tok_ud_literal(a_constant_ptr          value_constant,
+                                    a_constant_ptr          spelling_constant,
+                                    a_const_char            *suffix,
+                                    a_type_ptr              type,
+                                    const a_source_position *pos)
+/*
+Construct and return a new shared token representing a user-defined literal
+token with the given computed constant value, constant representing the
+spelling of the literal, null-terminated suffix string, literal type, and
+source position.
+
+For a more detailed explanation of these parameters, see the a_ud_literal_descr
+type definition in lexical.h.
+*/
+{
+  return detail::a_token_factory::build_tok_ud_literal(value_constant,
+                                                         spelling_constant,
+                                                         suffix, type, pos);
+}  /* build_tok_ud_literal */
+
+
+a_shared_token build_tok_resolved_type(a_type_ptr              type,
+                                       const a_source_position *pos)
+/*
+Construct and return a new shared token representing the given resolved type to
+the cache.  The type will be internally preserved via a decltype construct
+token.  pos is the position of the token.
+*/
+{
+  return detail::a_token_factory::build_tok_resolved_type(type, pos);
+}  /* build_tok_resolved_type */
 
 
 void cache_curr_token(a_token_cache *cache)
@@ -3493,81 +3744,14 @@ Save the current token on the end of the list of tokens saved in *cache.
 This is used to save tokens for later rescanning.
 */
 {
-  a_cached_token_ptr	ctp;
-
   /* If there are any pragmas associated with the current token, create
      a token cache entry to preserve the pragma information before adding
      the token cache entry for the current token. */
   if (curr_token_pragmas != NULL && !suppress_pragma_processing) {
-    add_pragma_entry_to_cache(cache);
-    curr_token_pragmas = NULL;
+    cache->append_token(detail::a_token_factory::copy_curr_pragma_as_token(
+                                                          cache->is_reusable));
   }  /* if */
-  /* Build an entry for the current token itself. */
-  alloc_cached_token(ctp);
-  ctp->token = curr_token;
-  ctp->source_position = pos_curr_token;
-#if EXTRA_SOURCE_POSITIONS_IN_IL
-  ctp->end_source_position = end_pos_curr_token;
-#endif /*  EXTRA_SOURCE_POSITIONS_IN_IL */
-  ctp->token_sequence_number = curr_token_sequence_number;
-  ctp->ending_token_sequence_number = last_token_sequence_number_of_token;
-  if (cache->is_reusable) {
-    /* For reusable caches, save a pointer to the cached token entry as
-       a handle into the cache that can be used to rescan a range of
-       tokens. */
-    ctp->token_handle = ctp;
-  } else {
-    ctp->token_handle = curr_cached_token_handle;
-  }  /* if */
-  if (fetch_pp_tokens) {
-    /* The token being saved is a pp token.  Save this by copying the token
-       string. */
-    ctp->extra_info_kind = (a_token_extra_info_kind)teik_pp_token;
-    make_copy_of_pp_token(&ctp->variant.pp_token_descr);
-  } else if (curr_token == tok_identifier || curr_token == tok_ptr_to_member ||
-             curr_token == tok_decltype_construct
-             if_microsoft_extensions(|| curr_token == tok_cli_typeid)) {
-    /* Identifier -- save information about it.  The locator is also saved
-       for pointer-to-member and decltype_construct tokens. */
-    ctp->extra_info_kind = (a_token_extra_info_kind)teik_identifier;
-    ctp->variant.locator = locator_for_curr_id;
-  } else if (curr_token == tok_microsoft_asm) {
-    ctp->extra_info_kind = (a_token_extra_info_kind)teik_asm_string;
-    ctp->variant.asm_string = curr_token_asm_string;
-  } else if (is_literal_constant_token(curr_token)) {
-    /* Literal constant -- save the constant's value. */
-    ctp->extra_info_kind = (a_token_extra_info_kind)teik_constant;
-    ctp->variant.constant = alloc_cached_constant();
-    /* Copy the constant.  Note that anything pointed to by the constant
-       (e.g., a string) has been allocated in the file scope and doesn't
-       need to be copied. */
-    copy_constant(&const_for_curr_token, ctp->variant.constant);
-  } else if (curr_token == tok_pending_ifc_expr ||
-             curr_token == tok_ifc_entity_ref ||
-             curr_token == tok_ifc_decl_ref ||
-             curr_token == tok_ifc_param_ref ||
-             curr_token == tok_ifc_decl) {
-    /* This token has an associated index. */
-    ctp->extra_info_kind = teik_ifc_index;
-    ctp->variant.ifc_index = ifc_index_for_curr_token;
-  } else if (curr_token == tok_ud_literal) {
-      /* Save the information needed to restore the user-defined literal
-         from the cache. */
-    ctp->extra_info_kind = (a_token_extra_info_kind)teik_ud_lit;
-    ctp->variant.ud_lit.value_con = alloc_cached_constant();
-    copy_constant(&const_for_curr_token, ctp->variant.ud_lit.value_con);
-    ctp->variant.ud_lit.spelling_con = alloc_cached_constant();
-    copy_constant(&const_with_curr_tok_spelling,
-                  ctp->variant.ud_lit.spelling_con);
-    ctp->variant.ud_lit.op_sym = ud_lit_op_sym_for_curr_token;
-    ctp->variant.ud_lit.suffix = ud_suffix_from_literal_operator_id(
-                                locator_for_curr_id.symbol_header->identifier);
-    ctp->variant.ud_lit.type = ud_lit_type_for_curr_token;
-  } else {
-    /* No extra information needed for this token. */
-    ctp->extra_info_kind = (a_token_extra_info_kind)teik_none;
-  }  /* if */
-  add_cached_token_to_cache(ctp, cache);
+  cache->append_token(detail::a_token_factory::copy_curr_token());
 }  /* cache_curr_token */
 
 
@@ -3652,40 +3836,11 @@ qualified name.
 }  /* get_token_and_coalesce_if_needed */
 
 
-static void copy_cached_token(a_cached_token_ptr	from_ctp,
-			      a_cached_token_ptr	to_ctp)
-/*
-Make a copy of a cached token, including any constants or pragmas pointed
-to by the token.
-*/
-{
-  a_token_extra_info_kind	extra_info_kind;
-
-  *to_ctp = *from_ctp;
-  extra_info_kind = from_ctp->extra_info_kind;
-  if (extra_info_kind == (a_token_extra_info_kind)teik_constant) {
-    to_ctp->variant.constant = alloc_cached_constant();
-    copy_constant(from_ctp->variant.constant, to_ctp->variant.constant);
-  } else if (extra_info_kind == (a_token_extra_info_kind)teik_ud_lit) {
-    to_ctp->variant.ud_lit.value_con = alloc_cached_constant();
-    copy_constant(from_ctp->variant.ud_lit.value_con,
-                  to_ctp->variant.ud_lit.value_con);
-    to_ctp->variant.ud_lit.spelling_con = alloc_cached_constant();
-    copy_constant(from_ctp->variant.ud_lit.spelling_con,
-                  to_ctp->variant.ud_lit.spelling_con);
-  } else if (extra_info_kind == (a_token_extra_info_kind)teik_pragma) {
-    to_ctp->variant.pragmas =
-                           make_copy_of_pragma_list(from_ctp->variant.pragmas);
-  }  /* if */
-  to_ctp->next = NULL;
-}  /* copy_cached_token */
-
-
-void copy_tokens_from_cache(a_token_cache_ptr	       src_cache,
-                            a_token_sequence_number    first_tsn,
-                            a_token_sequence_number    last_tsn,
-			    a_boolean                  include_last_token,
-                            a_token_cache_ptr	       dest_cache)
+void copy_tokens_from_cache(const a_token_cache     *src_cache,
+                            a_token_sequence_number first_tsn,
+                            a_token_sequence_number last_tsn,
+                            a_boolean               include_last_token,
+                            a_token_cache_ptr       dest_cache)
 /*
 Copy the tokens from src_cache to dest_cache that are in the range
 of token sequence numbers from first_tsn to last_tsn.  last_tsn
@@ -3693,72 +3848,45 @@ is actually the first token to not be included in the cache.
 If include_last_token is TRUE, last_tsn is included in the cache.
 */
 {
-  a_cached_token_ptr		ctp;
-  a_cached_token_ptr		first_ctp_to_copy;
-  a_cached_token_ptr		last_ctp_to_copy;
-  a_cached_token_ptr		copy_ctp = NULL;
-  a_boolean			adjust_final_token = FALSE;
+  a_const_token_cache_iterator before_start_of_copy_it;
+  a_const_token_cache_iterator end_of_copy_it;
 
-  check_assertion(first_tsn <= last_tsn ||
-                  first_tsn == NO_TOKEN_SEQUENCE_NUMBER ||
-                  last_tsn == NO_TOKEN_SEQUENCE_NUMBER);
-  /* first_ctp_to_copy is set for each non-pragma token in the cache, and
-     points to the cache entry that follows it (which may be a pragma entry
-     the precedes the next token). */
-  first_ctp_to_copy = src_cache->first_token;
-  ctp = first_ctp_to_copy;
-  if (first_tsn != NO_TOKEN_SEQUENCE_NUMBER) {
-    for (; ctp != NULL; ctp = ctp->next) {
-      if (ctp->token_sequence_number == first_tsn) break;
-      if (ctp->extra_info_kind != (a_token_extra_info_kind)teik_pragma) {
-        /* The token sequence looks something like:
-		 pragma-n0 token-n1 pragma-n2 token-n3 token-n4
-           where token-n3 is the first token to be copied.  We also want to
-           copy any pragmas that precede token-n3 to the destination cache.
-           When we break out of the loop first_ctp_to_copy will point to
-           pragma-n2. */
-        first_ctp_to_copy = ctp->next;
-      }  /* if */
-    }  /* for */
-    check_assertion_or_expect_error_str(
-                    ctp != NULL, "copy_tokens_from_cache: first_tsn missing");
-  }  /* if */
-  last_ctp_to_copy = ctp;
-  if (last_tsn != NO_TOKEN_SEQUENCE_NUMBER) {
-    for (; ctp != NULL; ctp = ctp->next) {
-      /* Stop when we find the specified token, or if we reach an end of
-         source token marking the end of the cache. */
-      if (ctp->ending_token_sequence_number >= last_tsn ||
-          (a_token_kind)ctp->token == tok_end_of_source) break;
-      last_ctp_to_copy = ctp->next;
-    }  /* for */
-    check_assertion_or_expect_error_str(
-                     ctp != NULL, "copy_tokens_from_cache: last_tsn missing");
-  }  /* if */
+  src_cache->find_first_and_last(first_tsn, last_tsn,
+                                 &before_start_of_copy_it, &end_of_copy_it);
+
   /* The final token sequence number will be greater than last_tsn if the
      token referred to by last_tsn is the second ">" of a ">>" that was
      split into two tokens.  The code below will copy the ">>" and the copied
      token will then be adjusted to a ">". */
-  adjust_final_token = last_tsn != NO_TOKEN_SEQUENCE_NUMBER &&
-                       ctp != NULL &&
-                       ctp->token_sequence_number == (last_tsn - 1);
+  a_boolean              adjust_final_token =
+             (last_tsn != NO_TOKEN_SEQUENCE_NUMBER &&
+              end_of_copy_it != src_cache->end() &&
+              (*end_of_copy_it)->get_starting_seq_number() == (last_tsn - 1));
   /* Copy the specified range of tokens to the destination cache. */
-  for (ctp = first_ctp_to_copy; ctp != last_ctp_to_copy; ctp = ctp->next) {
-    /* Make a copy of the token to be added. */
-    alloc_cached_token(copy_ctp);
-    copy_cached_token(ctp, copy_ctp);
-    add_cached_token_to_cache(copy_ctp, dest_cache);
-  }  /* for */
-  if (include_last_token && last_ctp_to_copy != NULL) {
-    ctp = last_ctp_to_copy;
-    alloc_cached_token(copy_ctp);
-    copy_cached_token(ctp, copy_ctp);
-    add_cached_token_to_cache(copy_ctp, dest_cache);
+  a_const_token_cache_iterator cpy_it = before_start_of_copy_it;
+  a_const_token_cache_iterator cpy_it_end = end_of_copy_it;
+  if (include_last_token && end_of_copy_it != src_cache->end()) {
+    ++cpy_it_end;
   }  /* if */
-  if (adjust_final_token) {
-    /* Change the last token copied from a ">>" to a ">". */
-    check_assertion((a_token_kind)copy_ctp->token == tok_shift_right);
-    copy_ctp->token = tok_gt;
+  if (before_start_of_copy_it != cpy_it_end) {
+    ++cpy_it;
+  }  /* if */
+
+  if (cpy_it != cpy_it_end) {
+    sizeof_t num_elems = distance(cpy_it, cpy_it_end);
+    dest_cache->reserve(dest_cache->length() + num_elems);
+    for (; cpy_it != cpy_it_end; ++cpy_it) {
+      dest_cache->append_token(*cpy_it);
+    }  /* for */
+    if (adjust_final_token) {
+      a_token_cache_iterator final_tok_it = dest_cache->get_last_token_iter();
+      a_cached_token         final_tok = **final_tok_it;
+
+      /* Change the last token copied from a ">>" to a ">". */
+      check_assertion(final_tok.is(tok_shift_right));
+      final_tok.set_kind(tok_gt);
+      *final_tok_it = move_from(&final_tok);
+    }  /* if */
   }  /* if */
 }  /* copy_tokens_from_cache */
 
@@ -3775,10 +3903,15 @@ Replace the current token with new_token.
   /* If tokens are being cached as they are fetched, and the token being
      updated is at the end of the cache, update the copy in the cache. */
   if (curr_lexical_state_stack_entry->cache_tokens != 0) {
-    a_cached_token_ptr ctp;
-    ctp = curr_lexical_state_stack_entry->cache.last_token;
-    if (ctp->token_sequence_number == curr_token_sequence_number) {
-      ctp->token = new_token;
+    a_token_cache_ptr      curr_cache = curr_lexical_state_cache();
+    a_token_cache_iterator last_tok_it = curr_cache->get_last_token_iter();
+    const a_shared_token   &last_tok = *last_tok_it;
+
+    if (last_tok->get_starting_seq_number() == curr_token_sequence_number) {
+      a_cached_token replacement_tok = *last_tok;
+
+      replacement_tok.set_kind(new_token);
+      *last_tok_it = move_from(&replacement_tok);
     }  /* if */
   }  /* if */
 }  /* replace_curr_token */
@@ -3820,7 +3953,8 @@ cache_template_declaration.
   partial_body->start_position = pos_curr_token;
   if (curr_token == tok_colon) {
     /* This partial body has a base list.  Cache the base list. */
-    a_token_cache_ptr  base_cache = alloc_token_cache();
+    a_token_cache_ptr  base_cache = new_fe<a_token_cache>();
+
     clear_token_set_array(stop_tokens);
     incr_token_set_array_element(stop_tokens, tok_lbrace);
     incr_token_set_array_element(stop_tokens, tok_semicolon);
@@ -3834,7 +3968,7 @@ cache_template_declaration.
   }  /* if */
   /* Cache tokens comprising the partial class body (between the
      '{' and '}'). */
-  partial_body->body_cache = alloc_token_cache();
+  partial_body->body_cache = new_fe<a_token_cache>();
   p_cache = partial_body->body_cache;
   clear_token_set_array(stop_tokens);
   incr_token_set_array_element(stop_tokens, tok_rbrace);
@@ -3859,17 +3993,16 @@ static void replace_right_shift_by_two_closing_angle_brackets(void)
 The current token must be a ">>": Replace it with two ">" tokens.
 */
 {
-  a_token_cache  cache;
+  a_tiny_scanning_token_cache cache;
 
-  clear_token_cache(&cache, /*reusable=*/FALSE);
   replace_curr_token(tok_gt);
-  cache_curr_token(&cache);
+  cache_curr_token(cache.ptr());
   /* Give the second ">" token a new token sequence number.  When the numbers
      were assigned, a slot was reserved so that this number will be known to
      be unique. */
   curr_token_sequence_number++;
   last_token_sequence_number_of_token = curr_token_sequence_number;
-  rescan_cached_tokens(&cache);
+  rescan_cached_tokens(cache.ptr());
 }  /* replace_right_shift_by_two_closing_angle_brackets */
 
 
@@ -4251,8 +4384,40 @@ Interface to get_token that sets the caching_tokens flag.
 }  /* get_token_to_be_cached */
 
 
-void f_rescan_cached_tokens(a_token_cache *cache,
-                            a_boolean	  discard_curr_token)
+static INLINE void push_current_token_to_rescan_stack()
+/*
+This function is called to copy the current token state directly onto the
+cached_token_rescan_stack in an efficient manner.  This is typical used to
+preserve the current token before performing one of several different token
+cache rescan strategies.
+*/
+{
+  a_shared_token pragma_tok;
+
+  /* Create a copy of the current token state so that it is not lost.  The
+     copied token(s) will be pushed onto the current token rescan stack.
+
+     Note that the token rescan stack is -- conceptually -- a non-reusable
+     token cache; thus these copies are not "for_reusable". */
+  if (curr_token_pragmas != NULL && !suppress_pragma_processing) {
+    /* If there are any pragmas associated with the current token, create a
+       token cache entry to preserve the pragma information before adding the
+       token cache entry for the current token. */
+    pragma_tok = detail::a_token_factory::copy_curr_pragma_as_token(
+                                                     /*for_reusable=*/FALSE);
+  }  /* if */
+  cached_token_rescan_stack->emplace_back(
+                               detail::a_token_factory::copy_curr_token());
+  if (pragma_tok.ptr() != NULL) {
+    /* If there is currently a pragma applied to the token, that is pushed
+       last (so that it's processed first). */
+    cached_token_rescan_stack->emplace_back(move_from(&pragma_tok));
+  }  /* if */
+}  /* push_current_token_to_rescan_stack */
+
+
+void rescan_cached_tokens(a_token_cache *cache,
+         /* Defaulted: */ a_boolean     discard_curr_token)
 /*
 Put the tokens saved in *cache onto the rescan list so that they will be
 re-fetched by get_token.  On return, the current token is the first
@@ -4264,7 +4429,7 @@ retained.  If there are no tokens in the cache, nothing is done (except
 that the current token may be discarded).  
 */
 {
-  db_enter(4, "f_rescan_cached_tokens");
+  db_enter(4, "rescan_cached_tokens");
 #if DEBUG
   /* This cache was marked as reusable but is now being destructively
      rescanned.  Update the count of reusable cached tokens. */
@@ -4272,18 +4437,19 @@ that the current token may be discarded).
     /* Reset the flag so that any tokens added to the cache (as is done
        later in this routine) won't be considered reusable. */
     cache->is_reusable = FALSE;
-    num_cached_tokens_in_reusable_caches -= cache->token_count;
-    num_pragmas_in_reusable_caches -= cache->pragma_count;
   }  /* if */
 #endif /* DEBUG */
-  if (cache->first_token != NULL) {
+  if (!cache->is_empty()) {
     /* Add the current token to the cache, so that it is not lost. */
-    if (!discard_curr_token) cache_curr_token(cache);
-    /* Put the tokens in the cache onto the front of the rescan list. */
-    cache->last_token->next = cached_token_rescan_list;
-    cached_token_rescan_list = cache->first_token;
-    /* Clear the cache to be neat. */
-    cache->first_token = cache->last_token = NULL;
+    if (!discard_curr_token) {
+      push_current_token_to_rescan_stack();
+    }  /* if */
+    /* Push the tokens in the cache onto the top of the rescan stack. */
+    while (!cache->is_empty()) {
+      cached_token_rescan_stack->emplace_back(
+                                        move_from(&cache->tokens.back_elem()));
+      cache->tokens.pop_back();
+    }  /* while */
     /* Indicate that the special case code at the beginning of get_token
        is needed to check for cached token rescanning. */
     any_initial_get_token_tests_needed = TRUE;
@@ -4295,20 +4461,43 @@ that the current token may be discarded).
     if (discard_curr_token) (void)get_token();
   }  /* if */
   db_exit();
-}  /* f_rescan_cached_tokens */
-
-
-void rescan_cached_tokens(a_token_cache *cache)
-/*
-Interface to f_rescan_cached_tokens that provides a default value for
-discard_curr_token.
-*/
-{
-  f_rescan_cached_tokens(cache, /*discard_curr_token=*/FALSE);
 }  /* rescan_cached_tokens */
 
 
-void rescan_reusable_cache(a_token_cache	*cache)
+void rescan_copy_of_cache(a_token_cache *cache)
+/*
+This routine copies the tokens from the cache provided by the caller and pushes
+them to the cached_token_rescan_stack.  If the source cache is terminated by a
+tok_end_of_source, it is excluded from the tokens added to the
+cached_token_rescan_stack.  This routine is used to allow a series of tokens to
+be cached into a reusable cache and the rescanned as if part of the original
+source with no need to worry about detection of the tok_end_of_source later.
+*/
+{
+  if (!cache->is_empty()) {
+    /* Add the current token to the cache, so that it is not lost. */
+    push_current_token_to_rescan_stack();
+
+    a_reverse_token_cache_iterator it = cache->rbegin();
+    a_reverse_token_cache_iterator it_end = cache->rend();
+    /* Do not include the end of source token (if any). */
+    if ((*it)->is(tok_end_of_source)) {
+      ++it;
+    }  /* if */
+    /* Push the tokens in the cache onto the top of the rescan stack. */
+    for (; it != it_end; ++it) {
+      cached_token_rescan_stack->push_back(*it);
+    }  /* for */
+    /* Indicate that the special case code at the beginning of get_token
+       is needed to check for cached token rescanning. */
+    any_initial_get_token_tests_needed = TRUE;
+    /* Fetch the first cached token. */
+    (void)get_token();
+  }  /* if */
+}  /* rescan_copy_of_cache */
+
+
+void rescan_reusable_cache(const a_reusable_token_cache &cache)
 /*
 This routine is similar to rescan_cached_tokens except that the token
 cache provided by the caller is not destroyed while it is scanned.
@@ -4321,33 +4510,22 @@ token is cached so that it will be fetched again after the reusable
 tokens have been rescanned.
 */
 {
-  a_token_cache               cache_for_curr_token;
   a_reusable_cache_entry_ptr  rcep;
 
   db_enter(4, "rescan_reusable_cache");
   /* Make sure that this cache is reusable. */
-  check_assertion(cache->is_reusable);
-  if (cache->first_token != NULL) {
-    /* Create a token cache for the current token so that it is
-       not lost. */
-    clear_token_cache(&cache_for_curr_token, /*reusable=*/FALSE);
-    cache_curr_token(&cache_for_curr_token);
-    /* Append the current rescan list to the end of the cache just created
-       for the current token. */
-    cache_for_curr_token.last_token->next = cached_token_rescan_list;
-    cached_token_rescan_list = cache_for_curr_token.first_token;
+  check_assertion(cache.ptr() == NULL || cache->is_reusable);
+  if (!cache.is_empty()) {
+    push_current_token_to_rescan_stack();
     /* Create a new reusable cache entry for the new cache and put on the
        front of the list of active reusable caches. */
-    rcep = alloc_reusable_cache_entry();
+    rcep = alloc_reusable_cache_entry(cache);
     rcep->next = reusable_cache_stack;
     reusable_cache_stack = rcep;
-    rcep->token_cache = cache;
     /* Save and clear the current value of the regular token rescan list. */
-    rcep->previous_token_rescan_list = cached_token_rescan_list;
-    cached_token_rescan_list = NULL;
-    /* Set the next token pointer of the reusable cache entry to the front
-       of the cache. */
-    rcep->next_cached_token = cache->first_token;
+    rcep->previous_token_rescan_stack = cached_token_rescan_stack;
+    cached_token_rescan_stack = new_fe<a_token_stack>(
+                                            cached_token_rescan_init_capacity);
     /* Indicate that the special case code at the beginning of get_token
        is needed to cached token rescanning. */
     any_initial_get_token_tests_needed = TRUE;
@@ -4358,52 +4536,19 @@ tokens have been rescanned.
 }  /* rescan_reusable_cache */
 
 
-void rescan_copy_of_cache(a_token_cache *cache)
+a_reusable_token_cache get_token_cache_being_scanned()
 /*
-This routine makes a copy of the cache provided by the caller and rescans
-the tokens from the copy of the cache.  The source cache must be terminated
-by a tok_end_of_source.  The copy of the cache will not include the
-end of source token.  This routine is used to allow a series of tokens
-to be cached into a reusable cache and the rescanned as if part of
-the original source with no need to worry about detection of the
-tok_end_of_source later.
-*/
-{
-  a_token_cache	      temp_token_cache;
-  a_boolean	      save_caching_tokens = caching_tokens;
-
-  /* Set a flag that indicates that the tokens being scanned are to be
-     cached. */
-  caching_tokens = TRUE;
-  clear_token_cache(&temp_token_cache, /*reusable=*/FALSE);
-  rescan_reusable_cache(cache);
-  while (curr_token != tok_end_of_source) {
-    cache_curr_token(&temp_token_cache);
-    (void)get_token();
-  }  /* while */
-  /* Skip past the end-of-source token. */
-  (void)get_token();
-  /* Rescan the tokens from the temporary cache. */
-  rescan_cached_tokens(&temp_token_cache);
-  /* Clear the flag that indicates that the tokens being scanned are to be
-     cached. */
-  caching_tokens = save_caching_tokens;
-}  /* rescan_copy_of_cache */
-
-
-a_token_cache_ptr get_token_cache_being_scanned(void)
-/*
-Get a pointer to the token cache that is currently being rescanned as
-a reusable cache.  Return NULL if there is no reusable cache being
+Return the reusable token cache that is currently being rescanned.  Return a
+default-constructed reusable token cache if there is no reusable cache being
 scanned.
 */
 {
-  a_token_cache_ptr	cache = NULL;
+  a_reusable_token_cache result;
 
   if (reusable_cache_stack != NULL) {
-    cache = reusable_cache_stack->token_cache;
+    result = reusable_cache_stack->token_cache;
   }  /* if */
-  return cache;
+  return result;
 }  /* get_token_cache_being_scanned */
 
 
@@ -4411,8 +4556,7 @@ void split_token_cache(a_token_cache           *cache1,
                        a_token_cache           *cache2,
                        a_token_sequence_number split_location,
                        a_boolean               include_prev_token,
-                       ARG_UNUSED a_boolean    okay_if_not_found,
-                       a_boolean               update_cache_being_scanned)
+                       ARG_UNUSED a_boolean    okay_if_not_found)
 /*
 Split cache1 into two pieces.  cache1 will contain all the tokens up
 to the one that precedes the token number specified by split location.
@@ -4420,198 +4564,89 @@ cache2 will contain all the tokens that follow.  If incldue_prev_token
 is TRUE, we should include the token before the split location in the tokens
 that are moved to cache2.  okay_if_not_found is TRUE if it is okay
 if the split location is not found.  This suppresses an internal
-error.  If update_cache_being_scanned is TRUE, this routine is being
-called at what will be the new break between cache1 and cache2.  In that
-case, update the reusable cache stack to indicate that we are now scanning
-cache2.
+error.
 */
 {
-  a_cached_token_ptr		ctp;
-  a_cached_token_ptr		first_ctp_to_move = NULL;
-  a_cached_token_ptr		before_first_ctp_to_move = NULL;
-  a_cached_token_ptr		prev_first_ctp_to_move = NULL;
-  a_cached_token_ptr		prev_before_first_ctp_to_move = NULL;
+  a_token_cache_iterator before_first_moved_tok_it;
+  a_token_cache_iterator prev_before_first_moved_tok_it;
 
   check_assertion_str2(cache1->is_reusable && cache2->is_reusable,
                        "split_token_cache:",
                        "cache not reusable");
-  for (ctp = cache1->first_token; ctp != NULL; ctp = ctp->next) {
-    if (ctp->token_sequence_number == split_location) break;
-    if (ctp->extra_info_kind != (a_token_extra_info_kind)teik_pragma) {
+
+  a_token_cache_iterator it = cache1->begin();
+  a_token_cache_iterator it_end = cache1->end();
+  for (; it != it_end; ++it) {
+    const a_shared_token &tok = *it;
+
+    if (tok->get_starting_seq_number() == split_location) {
+      break;
+    }  /* if */
+    if (!tok->is_pragma()) {
       /* The token sequence looks something like:
 		 pragma-n0 token-n1 pragma-n2 token-n3 token-n4
          where token-n3 is the split location.  We also want to move any
          pragma that precede token-n3 to cache 2.  When we break out of
-         the loop first_ctp_to_move will point to pragma-n2 and
-         before_first_ctp_to_move will point to token-n1.  Save the previous
+         the loop first_moved_tok_it will point to pragma-n2 and
+         before_first_moved_tok_it will point to token-n1.  Save the previous
          values of these fields.  If include_prev_token is TRUE we want
          to split the cache before pragma-n0. */
-      prev_first_ctp_to_move = first_ctp_to_move;
-      prev_before_first_ctp_to_move = before_first_ctp_to_move;
-      first_ctp_to_move = ctp->next;
-      before_first_ctp_to_move = ctp;
+      prev_before_first_moved_tok_it = before_first_moved_tok_it;
+      before_first_moved_tok_it = it;
     }  /* if */
   }  /* for */
-  if (ctp == NULL && okay_if_not_found) goto exit;
-  check_assertion_str2(ctp != NULL, "split_token_cache:",
+  if (it == it_end && okay_if_not_found) {
+    goto exit;
+  }  /* if */
+  check_assertion_str2(it != it_end, "split_token_cache:",
                        "specified token not found");
   if (include_prev_token) {
     /* The token before the split location should be the first to be put
        in the new cache. */
-    first_ctp_to_move = prev_first_ctp_to_move;
-    before_first_ctp_to_move = prev_before_first_ctp_to_move;
+    before_first_moved_tok_it = prev_before_first_moved_tok_it;
   }  /* if */
-#if DEBUG
-  /* Adjust the token and pragma counts in the caches. */
-  for (ctp = first_ctp_to_move; ctp != NULL; ctp = ctp->next) {
-    if (ctp->extra_info_kind == (a_token_extra_info_kind)teik_pragma) {
-      /* Adjust the pragma count for the two caches. */
-      a_pending_pragma_ptr	ppp = ctp->variant.pragmas;
-      while (ppp != NULL) {
-        cache1->pragma_count--;
-        cache2->pragma_count++;
-        ppp = ppp->next;
-      }  /* while */
-    }  /* if */
-    /* Adjust the token counts for the two caches. */
-    cache1->token_count--;
-    cache2->token_count++;
-  }  /* for */
-#endif /* DEBUG */
-  /* Set the first and last tokens of cache2 to the appropriate values. */
-  cache2->first_token = first_ctp_to_move;
-  cache2->last_token = cache1->last_token;
-  /* Break the links in cache1. */
-  check_assertion(before_first_ctp_to_move != NULL);
-  cache1->last_token = before_first_ctp_to_move;
-  cache1->last_token->next = NULL;
+  /* Move the tokens from cache1 to cache2
+     (before_first_moved_tok_it, it_end). */
+  cache2->move_copy_tokens(before_first_moved_tok_it + 1, it_end);
+  cache1->remove_token_range(before_first_moved_tok_it + 1, it_end);
   /* Add a new terminator to the end of the original. */
   terminate_token_cache(cache1);
-exit:
-  if (update_cache_being_scanned) {
-    /* We were scanning cache1, but now that we have split the cache we are
-       scanning from cache2.  Update the reusable cache stack accordingly. */
-    if (reusable_cache_stack != NULL &&
-        reusable_cache_stack->token_cache == cache1) {
-      reusable_cache_stack->token_cache = cache2;
-    } else {
-      /* In some cases things like disambiguation can cause us to end up
-         scanning the tokens from a non-reusable cache. */
-    }  /* if */
-  }  /* if */
-  return;
+exit:;
 }  /* split_token_cache */
 
 
-void move_cached_tokens(a_cached_token_ptr	first_token,
-			a_token_cache		*from_cache,
-                        a_token_cache		*to_cache)
+static INLINE void get_token_from_cached_token_rescan_stack(
+                                                 a_boolean *no_tokens_on_stack)
 /*
-Given two token caches, move the specified list of tokens from the
-first token cache to the second.  The list of tokens will already
-have been removed from the list indicated by from_cache, but will
-still be counted in the token and pragma count fields used for
-debugging purposes.  This routine may only be used for reusable token caches.
+Remove the token at the top of the cached_token_rescan_stack and establish it
+as the current token.  This routine and get_token_from_reusable_cache_stack are
+very similar.  If a change is made to one routine the other should be checked
+to see if it needs an equivalent change.  If the rescan list contains only
+pragma entries, it is possible for there to be no actual token.
+*no_tokens_on_stack is set to TRUE in that case, FALSE otherwise.
 */
 {
-  a_cached_token_ptr		ctp;
-  a_cached_token_ptr		last_ctp = NULL;
+  a_shared_token token;
 
-  check_assertion_str2(from_cache->is_reusable && to_cache->is_reusable,
-                       "move_cached_tokens:",
-                       "cache not reusable");
-  to_cache->first_token = first_token;
-  for (ctp = first_token; ctp != NULL; last_ctp = ctp, ctp = ctp->next) {
-#if DEBUG
-    if (ctp->extra_info_kind == (a_token_extra_info_kind)teik_pragma) {
-      /* Adjust the pragma count for the two caches. */
-      a_pending_pragma_ptr	ppp = ctp->variant.pragmas;
-      while (ppp != NULL) {
-        from_cache->pragma_count--;
-        to_cache->pragma_count++;
-        ppp = ppp->next;
-      }  /* while */
-    }  /* if */
-    /* Adjust the token counts for the two caches. */
-    from_cache->token_count--;
-    to_cache->token_count++;
-#endif /* DEBUG */
-  }  /* for */
-  /* Set the last token pointer and terminate the token cache. */
-  to_cache->last_token = last_ctp;
-  terminate_token_cache(to_cache);
-}  /* move_cached_tokens */
-
-
-void discard_token_cache(a_token_cache *cache)
-/*
-The token cache *cache has been built but is not needed; free the cached
-tokens therein and clear the cache.
-*/
-{
-  a_cached_token_ptr		ctp;
-  a_cached_token_ptr		ctp_next;
-  a_reusable_cache_entry_ptr	rcep;
-
-  for (rcep = reusable_cache_stack; rcep != NULL; rcep = rcep->next) {
-    if (rcep->token_cache == cache) break;
-  }  /* for */
-  if (rcep != NULL) {
-    /* The token cache is still being rescanned as a reusable cache.
-       Defer the discarding until the cache has been fully scanned. */
-    rcep->discard_cache_when_done = TRUE;
-    /* Make a copy of the token cache as the original might be freed or on
-       the stack. */
-    rcep->copy_of_token_cache = *cache;
-  } else {
-#if DEBUG
-    /* This cache was marked as reusable but is now being discarded.
-       Update the count of reusable cached tokens. */
-    if (cache->is_reusable) {
-      num_cached_tokens_in_reusable_caches -= cache->token_count;
-      num_pragmas_in_reusable_caches -= cache->pragma_count;
-    }  /* if */
-#endif /* DEBUG */
-    for (ctp = cache->first_token; ctp != NULL; ctp = ctp_next) {
-      ctp_next = ctp->next;
-      free_cached_token(ctp);
-    }  /* for */
-    clear_token_cache(cache, /*reusable=*/(a_boolean)cache->is_reusable);
-  }  /* if */
-}  /* discard_token_cache */
-
-
-static void get_token_from_cached_token_rescan_list(
-					a_boolean	*no_tokens_on_list)
-/*
-Remove the first token from cached_token_rescan_list and establish it as the
-current token.  This routine and get_token_from_reusable_cache_stack are very
-similar.  If a change is made to one routine the other should be checked to see
-if it needs an equivalent change.  If the rescan list contains only pragma
-entries, it is possible for there to be no actual token.  *no_tokens_on_list is
-set to TRUE in that case, FALSE otherwise.
-*/
-{
-  a_cached_token_ptr ctp;
-
-  *no_tokens_on_list = FALSE;
+  *no_tokens_on_stack = FALSE;
   for (;;) {
-    /* Remove the first entry from the list. */
-    ctp = cached_token_rescan_list;
-    cached_token_rescan_list = cached_token_rescan_list->next;
+    /* Pop the top of the stack. */
+    token = move_from(&cached_token_rescan_stack->back_elem());
+    cached_token_rescan_stack->pop_back();
     /* If it is a special entry indicating a pragma, process it and
        take another entry.  Otherwise, exit the loop. */
-    if (ctp->extra_info_kind != (a_token_extra_info_kind)teik_pragma){
+    if (!token->is_pragma()) {
       break;
     }  /* if */
+
     /* Set the current token pragma list to point to the pragmas associated
        with the cached token. */
     check_assertion_str(!suppress_pragma_processing,
                     "get_token_from...: pragma found in suppress_pragma mode");
-    curr_token_pragmas = ctp->variant.pragmas;
-    free_cached_token(ctp);
-    if (cached_token_rescan_list == NULL) {
-      *no_tokens_on_list = TRUE;
+    curr_token_pragmas = make_copy_of_pending_pragmas_on_list(
+                                                    *token->get_pragma_list());
+    if (cached_token_rescan_stack->is_empty()) {
+      *no_tokens_on_stack = TRUE;
       curr_token = tok_error;
       goto done;
     }  /* if */
@@ -4621,40 +4656,40 @@ set to TRUE in that case, FALSE otherwise.
      issue an error at the point at which we resume scanning normal tokens.
      It should not be possible to run out of tokens while flushing the
      pp-tokens. */
-  if (ctp->extra_info_kind == (a_token_extra_info_kind)teik_pp_token &&
-      !fetch_pp_tokens) {
-    while (ctp != NULL &&
-           ctp->extra_info_kind == (a_token_extra_info_kind)teik_pp_token) {
-      ctp = ctp->next;
+  if (token->is_pp_token() && !fetch_pp_tokens) {
+    while (!cached_token_rescan_stack->is_empty() && token->is_pp_token()) {
+      token = move_from(&cached_token_rescan_stack->back_elem());
+      cached_token_rescan_stack->pop_back();
     }  /* while */
-    check_assertion_str2(ctp != NULL, "get_token_from_reusable_cache_stack:",
+    check_assertion_str2(!token->is_pp_token(),
+                         "get_token_from_reusable_cache_stack:",
                          "pp-token flush consumed all tokens");
-    pos_error(ec_end_of_flush, &ctp->source_position);
-    cached_token_rescan_list = ctp->next;
+    pos_error(ec_end_of_flush, token->get_source_position());
   }  /* if */
   /* Entry is for a token (normal case). */
-  curr_token = (a_token_kind)ctp->token;
-  pos_curr_token = ctp->source_position;
+  curr_token = token->get_kind();
+  pos_curr_token = *token->get_source_position();
 #if EXTRA_SOURCE_POSITIONS_IN_IL
-  end_pos_curr_token = ctp->end_source_position;
+  end_pos_curr_token = *token->get_ending_source_position();
 #endif /* EXTRA_SOURCE_POSITIONS_IN_IL */
   error_position = pos_curr_token;
-  curr_token_sequence_number = ctp->token_sequence_number;
-  last_token_sequence_number_of_token = ctp->ending_token_sequence_number;
-  /* Normally tokens in non-reusable caches won't have a token handle,
-     but they could if the token originated from a reusable cache. */
-  curr_cached_token_handle = ctp->token_handle;
+  curr_token_sequence_number = token->get_starting_seq_number();
+  last_token_sequence_number_of_token = token->get_ending_seq_number();
   start_of_curr_token = end_of_curr_token = NULL;
   len_of_curr_token = 0;
-  if (ctp->extra_info_kind == (a_token_extra_info_kind)teik_pp_token) {
+  if (token->is_basic()) {
+    /* This is the most common case, there's nothing special about this
+       token; skip further processing. */
+  } else if (token->is_pp_token()) {
     /* This is a cached pp-token.  Restore the starting and ending token
        positions. */
-    start_of_curr_token = ctp->variant.pp_token_descr.token_start;
-    end_of_curr_token = ctp->variant.pp_token_descr.token_end;
-  } else if (ctp->extra_info_kind ==
-                                    (a_token_extra_info_kind)teik_identifier) {
+    a_pp_token_descr_ptr pp_descr = token->get_pp_token_descr();
+
+    start_of_curr_token = pp_descr->token_start;
+    end_of_curr_token = pp_descr->token_end;
+  } else if (token->is_identifier()) {
     /* For an identifier, restore the locator. */
-    locator_for_curr_id = ctp->variant.locator;
+    locator_for_curr_id = token->get_locator();
 #if BUILTIN_FUNCTIONS_ENABLED
     if (locator_for_curr_id.symbol_header != NULL &&
         builtin_needs_to_be_loaded(locator_for_curr_id.symbol_header)) {
@@ -4664,58 +4699,81 @@ set to TRUE in that case, FALSE otherwise.
       (void)load_matching_builtin_function(locator_for_curr_id.symbol_header);
     }  /* if */
 #endif /* BUILTIN_FUNCTIONS_ENABLED */
-  } else if (ctp->extra_info_kind == 
-                                    (a_token_extra_info_kind)teik_asm_string) {
+  } else if (token->is_asm_string()) {
     /* For a Microsoft asm token, restore the asm string pointer. */
-    curr_token_asm_string = ctp->variant.asm_string;
-  } else if (ctp->extra_info_kind == (a_token_extra_info_kind)teik_constant) {
+    curr_token_asm_string = token->get_asm_string();
+  } else if (token->is_constant()) {
     /* For a literal constant, restore const_for_curr_token. */
-    copy_constant(ctp->variant.constant, &const_for_curr_token);
-  } else if (ctp->extra_info_kind == (a_token_extra_info_kind)teik_ud_lit) {
+    copy_constant(token->get_constant(), &const_for_curr_token);
+  } else if (token->is_ud_literal()) {
     /* Restore const_for_curr_token and const_with_curr_tok_spelling. */
-    copy_constant(ctp->variant.ud_lit.value_con, &const_for_curr_token);
-    copy_constant(ctp->variant.ud_lit.spelling_con,
-                  &const_with_curr_tok_spelling);
-    /* Unlike tokens in reusable caches, tokens in cached_token_rescan_list are
-       intended to be evaluated in the context in which they initially
+    a_ud_literal_descr *ud_descr = token->get_ud_literal_descr();
+
+    copy_constant(ud_descr->value_con, &const_for_curr_token);
+    copy_constant(ud_descr->spelling_con, &const_with_curr_tok_spelling);
+    /* Unlike tokens in reusable caches, tokens in cached_token_rescan_stack
+       are intended to be evaluated in the context in which they initially
        appeared.  As a result, the code below differs from the similar code in
-       get_token_from_reusable_cache in that the result of the original
-       lookup for the literal operator symbol is simply reused rather than
-       repeating the lookup in the current context, which in some cases may be
+       get_token_from_reusable_cache in that the result of the original lookup
+       for the literal operator symbol is simply reused rather than repeating
+       the lookup in the current context, which in some cases may be
        (temporarily) different and thus yield a different result.  We still set
        locator_for_curr_id as if the lookup had occurred, however. */
-    ud_lit_op_sym_for_curr_token = ctp->variant.ud_lit.op_sym;
-    make_literal_opname_locator(ctp->variant.ud_lit.suffix,
-                                strlen(ctp->variant.ud_lit.suffix),
+    ud_lit_op_sym_for_curr_token = ud_descr->op_sym;
+    make_literal_opname_locator(ud_descr->suffix, strlen(ud_descr->suffix),
                                 &locator_for_curr_id, &pos_curr_token);
-    ud_lit_type_for_curr_token = ctp->variant.ud_lit.type;
-  } else if (ctp->extra_info_kind == teik_ifc_index) {
-    ifc_index_for_curr_token = ctp->variant.ifc_index;
+    ud_lit_type_for_curr_token = ud_descr->type;
+  } else if (token->is_ifc_reference()) {
+    ifc_index_for_curr_token = token->get_ifc_index();
   }  /* if */
-  free_cached_token(ctp);
 done:
-  if (cached_token_rescan_list == NULL) {
+  if (cached_token_rescan_stack->is_empty()) {
     recalc_any_initial_get_token_tests_needed();
   }  /* if */
-}  /* get_token_from_cached_token_rescan_list */
+}  /* get_token_from_cached_token_rescan_stack */
 
 
-void update_reusable_cache_rescan_location(
-					a_cached_token_handle	token_handle)
+a_token_cache_iterator find_iter_for_curr_rescan_token()
+/*
+Search the reusable_cache_stack's associated token cache for the first token
+with the lexer's current value of curr_token_sequence_number.  Return an
+iterator to that token if found; otherwise, return a default constructed
+iterator.
+*/
+{
+  a_token_cache_iterator
+                result;
+  a_reusable_token_cache
+                &cache = reusable_cache_stack->token_cache;
+  auto          get_tsn = [&cache](size_t idx) -> a_token_sequence_number {
+    return (*cache)[idx]->get_starting_seq_number();
+  };
+  ptrdiff_t     token_idx = bin_search(cache->length(),
+                                       curr_token_sequence_number,
+                                       get_tsn);
+
+  if (token_idx != -1) {
+    result = a_token_cache_iterator(cache.ptr(), (int)token_idx);
+  }  /* if */
+  return result;
+}  /* find_iter_for_curr_rescan_token */
+
+
+void update_reusable_cache_rescan_location(a_token_cache_iterator it)
 /*
 Update the current reusable token cache information to begin rescanning
-tokens from the token specified by token_handle;
+tokens from the token specified by given iterator;
 */
 {
   /* Discard any tokens on the non-reusable rescan list. */
-  while (cached_token_rescan_list != NULL) (void)get_token();
-  reusable_cache_stack->next_cached_token = token_handle;
+  cached_token_rescan_stack->clear();
+  reusable_cache_stack->next_token = it;
   (void)get_token();
 }  /* update_reusable_cache_rescan_location */
 
 
-a_boolean skip_to_token_handle_location(a_token_cache_ptr	cache,
-					a_cached_token_handle	token_handle)
+a_boolean skip_to_token_handle_location(a_token_cache_ptr      cache,
+                                        a_token_cache_iterator it)
 /*
 This is an interface to update_reusable_cache_rescan_location that
 verifies that the current reusable cache is the same as "cache", and if
@@ -4726,31 +4784,31 @@ the token_handle from being used if some error caused the current token
 cache to have an unexpected value.  Return TRUE if the skip was performed.
 */
 {
-  a_token_cache_ptr	cache_being_scanned;
-  a_boolean		result = FALSE;
+  a_boolean              result = FALSE;
+  a_reusable_token_cache cache_being_scanned = get_token_cache_being_scanned();
 
-  cache_being_scanned = get_token_cache_being_scanned();
-  if (cache_being_scanned == cache) {
-    update_reusable_cache_rescan_location(token_handle);
+  if (cache_being_scanned.ptr() == cache) {
+    update_reusable_cache_rescan_location(it);
     result = TRUE;
   }  /* if */
   return result;
 }  /* skip_to_token_handle_location */
 
 
-static void get_token_from_reusable_cache_stack(void)
+static INLINE void get_token_from_reusable_cache_stack(void)
 /*
 Fetch a token from the current entry on the reusable cache stack and establish
 it as the current token.  This routine and
-get_token_from_cached_token_rescan_list are very similar.  If a change is
+get_token_from_cached_token_rescan_stack are very similar.  If a change is
 made to one routine the other should be checked to see if it needs an
 equivalent change.
 */
 {
-  a_cached_token_ptr ctp;
+  a_token_cache_iterator    end_it = reusable_cache_stack->token_cache->end();
+  an_immutable_cached_token *token;
 
   db_enter(4, "get_token_from_reusable_cache_stack");
-  if (reusable_cache_stack->next_cached_token == NULL) {
+  if (!reusable_cache_stack->has_next_token()) {
     /* We make sure we don't pop a reusable cache if an error occurs
        during a rescan. */
     check_assertion(reusable_cache_stack->dependent_scans > 0);
@@ -4761,11 +4819,14 @@ equivalent change.
   }  /* if */
   for (;;) {
     /* Remove the first entry from the list. */
-    ctp = reusable_cache_stack->next_cached_token;
-    reusable_cache_stack->next_cached_token = ctp->next;
+    token = (*(reusable_cache_stack->next_token)).ptr();
+    ++(reusable_cache_stack->next_token);
+    if (reusable_cache_stack->next_token == end_it) {
+      reusable_cache_stack->next_token = a_token_cache_iterator();
+    }  /* if */
     /* If it is a special entry indicating a pragma, process it and
        take another entry.  Otherwise, exit the loop. */
-    if (ctp->extra_info_kind != (a_token_extra_info_kind)teik_pragma){
+    if (!token->is_pragma()) {
       break;
     }  /* if */
     if (!curr_lexical_state_stack_entry->flushing_tokens) {
@@ -4773,7 +4834,8 @@ equivalent change.
          with the cached token. */
       check_assertion_str(!suppress_pragma_processing,
                     "get_token_from...: pragma found in suppress_pragma mode");
-      curr_token_pragmas = make_copy_of_pragma_list(ctp->variant.pragmas);
+      curr_token_pragmas =
+                 make_fresh_copy_of_pragmas_on_list(*token->get_pragma_list());
     }  /* if */
   }  /* for */
   /* When fetch_pp_tokens is FALSE, make sure that the token being retrieved
@@ -4781,39 +4843,43 @@ equivalent change.
      issue an error at the point at which we resume scanning normal tokens.
      It should not be possible to run out of tokens while flushing the
      pp-tokens. */
-  if (ctp->extra_info_kind == (a_token_extra_info_kind)teik_pp_token &&
-      !fetch_pp_tokens) {
-    while (ctp != NULL &&
-           ctp->extra_info_kind == (a_token_extra_info_kind)teik_pp_token) {
-      ctp = ctp->next;
+  if (token->is_pp_token() && !fetch_pp_tokens) {
+    while (reusable_cache_stack->has_next_token() && token->is_pp_token()) {
+      token = (*(reusable_cache_stack->next_token)).ptr();
+      ++(reusable_cache_stack->next_token);
+      if (reusable_cache_stack->next_token == end_it) {
+        reusable_cache_stack->next_token = a_token_cache_iterator();
+      }  /* if */
     }  /* while */
-    check_assertion_str2(ctp != NULL, "get_token_from_reusable_cache_stack:",
+    check_assertion_str2(!token->is_pp_token(),
+                         "get_token_from_reusable_cache_stack:",
                          "pp-token flush consumed all tokens");
-    pos_error(ec_end_of_flush, &ctp->source_position);
-    reusable_cache_stack->next_cached_token = ctp->next;
+    pos_error(ec_end_of_flush, token->get_source_position());
   }  /* if */
   /* Entry is for a token (normal case). */
-  curr_token = (a_token_kind)ctp->token;
-  pos_curr_token = ctp->source_position;
+  curr_token = token->get_kind();
+  pos_curr_token = *token->get_source_position();
 #if EXTRA_SOURCE_POSITIONS_IN_IL
-  end_pos_curr_token = ctp->end_source_position;
+  end_pos_curr_token = *token->get_ending_source_position();
 #endif /* EXTRA_SOURCE_POSITIONS_IN_IL */
   error_position = pos_curr_token;
-  curr_token_sequence_number = ctp->token_sequence_number;
-  last_token_sequence_number_of_token = ctp->ending_token_sequence_number;
-  curr_cached_token_handle = ctp->token_handle;
-  check_assertion(ctp->token_handle == ctp || ctp->token_handle == NULL);
+  curr_token_sequence_number = token->get_starting_seq_number();
+  last_token_sequence_number_of_token = token->get_ending_seq_number();
   start_of_curr_token = end_of_curr_token = NULL;
   len_of_curr_token = 0;
-  if (ctp->extra_info_kind == (a_token_extra_info_kind)teik_pp_token) {
+  if (token->is_basic()) {
+    /* This is the most common case, there's nothing special about this
+       token; skip further processing. */
+  } else if (token->is_pp_token()) {
     /* This is a cached pp-token.  Restore the starting and ending token
        positions. */
-    start_of_curr_token = ctp->variant.pp_token_descr.token_start;
-    end_of_curr_token = ctp->variant.pp_token_descr.token_end;
-  } else if (ctp->extra_info_kind ==
-                                    (a_token_extra_info_kind)teik_identifier) {
+    const a_pp_token_descr *pp_descr = token->get_pp_token_descr();
+
+    start_of_curr_token = pp_descr->token_start;
+    end_of_curr_token = pp_descr->token_end;
+  } else if (token->is_identifier()) {
     /* For an identifier, restore the locator. */
-    locator_for_curr_id = ctp->variant.locator;
+    locator_for_curr_id = token->get_locator();
 #if BUILTIN_FUNCTIONS_ENABLED
     if (locator_for_curr_id.symbol_header != NULL &&
         builtin_needs_to_be_loaded(locator_for_curr_id.symbol_header)) {
@@ -4823,18 +4889,18 @@ equivalent change.
       (void)load_matching_builtin_function(locator_for_curr_id.symbol_header);
     }  /* if */
 #endif /* BUILTIN_FUNCTIONS_ENABLED */
-  } else if (ctp->extra_info_kind == 
-                                    (a_token_extra_info_kind)teik_asm_string) {
+  } else if (token->is_asm_string()) {
     /* For a Microsoft asm token, restore the asm string pointer. */
-    curr_token_asm_string = ctp->variant.asm_string;
-  } else if (ctp->extra_info_kind == (a_token_extra_info_kind)teik_constant) {
+    curr_token_asm_string = const_cast<char*>(token->get_asm_string());
+  } else if (token->is_constant()) {
     /* For a literal constant, restore const_for_curr_token. */
-    copy_constant(ctp->variant.constant, &const_for_curr_token);
-  } else if (ctp->extra_info_kind == (a_token_extra_info_kind)teik_ud_lit) {
+    copy_constant(token->get_constant(), &const_for_curr_token);
+  } else if (token->is_ud_literal()) {
     /* Restore const_for_curr_token and const_with_curr_tok_spelling. */
-    copy_constant(ctp->variant.ud_lit.value_con, &const_for_curr_token);
-    copy_constant(ctp->variant.ud_lit.spelling_con,
-                  &const_with_curr_tok_spelling);
+    const a_ud_literal_descr *ud_descr = token->get_ud_literal_descr();
+
+    copy_constant(ud_descr->value_con, &const_for_curr_token);
+    copy_constant(ud_descr->spelling_con, &const_with_curr_tok_spelling);
     /* Set up locator_for_curr_id and look up the symbol for the literal
        operator or literal operator template.  (The lookup must be
        repeated here, rather than using the symbol stored with the token,
@@ -4843,17 +4909,17 @@ equivalent change.
        scope that would not have been parsed before the UDL was
        cached.) */
     ud_lit_op_sym_for_curr_token =
-               find_literal_operator(ctp->variant.ud_lit.suffix,
-                                     strlen(ctp->variant.ud_lit.suffix),
-                                     &pos_curr_token, ctp->variant.ud_lit.type,
+               find_literal_operator(ud_descr->suffix,
+                                     strlen(ud_descr->suffix),
+                                     &pos_curr_token, ud_descr->type,
                                      /*from_cache=*/TRUE,
                                      (a_diagnostic_ptr)NULL);
-    ud_lit_type_for_curr_token = ctp->variant.ud_lit.type;
-  } else if (ctp->extra_info_kind == teik_ifc_index) {
-    ifc_index_for_curr_token = ctp->variant.ifc_index;
+    ud_lit_type_for_curr_token = ud_descr->type;
+  } else if (token->is_ifc_reference()) {
+    ifc_index_for_curr_token = token->get_ifc_index();
   }  /* if */
   /* Check whether we have reached the end of this cache. */
-  while (reusable_cache_stack->next_cached_token == NULL &&
+  while (!reusable_cache_stack->has_next_token() &&
          reusable_cache_stack->dependent_scans == 0) {
      /* Don't pop this entry off the stack if it is currently being used for a
         variadic template rescan. */
@@ -4867,8 +4933,8 @@ done:
 /*
 Macro that is TRUE when tokens are being rescanned from a cache.
 */
-#define rescanning_cached_tokens()				\
-  (cached_token_rescan_list != NULL || reusable_cache_stack != NULL)
+#define rescanning_cached_tokens()                                            \
+  (!cached_token_rescan_stack->is_empty() || reusable_cache_stack != NULL)
 
 a_boolean scanning_from_token_cache(void)
 /*
@@ -9095,7 +9161,7 @@ done:
 #endif /* RECORD_MACRO_INVOCATIONS */
 
 
-static inline
+static INLINE
 void macro_line_loc_to_source_pos(a_const_char      *loc_in_line,
                                   a_source_position &position_var)
 /*
@@ -10910,8 +10976,8 @@ closing '}'.  Resume normal processing of the #embed expansion.
      will have been put on the cached token rescan list.  Discard that
      token and restart at the beginning of the current source line when the
      embed data is exhausted. */
-  check_assertion(cached_token_rescan_list != NULL);
-  get_token_from_cached_token_rescan_list(&no_tokens_on_list);
+  check_assertion(!cached_token_rescan_stack->is_empty());
+  get_token_from_cached_token_rescan_stack(&no_tokens_on_list);
   embed_control.eol_loc = curr_source_line;
 }  /* process_embed_data_as_bytes */
 
@@ -15072,10 +15138,10 @@ and do no other processing.  Return TRUE for a Microsoft __asm.
   if (save_token) {
     /* The current token is not part of the asm string.  Cache it so that
        it can will be rescanned after the tok_microsoft_asm is fetched. */
-    a_token_cache	cache;
-    clear_token_cache(&cache, /*reusable=*/FALSE);
-    cache_curr_token(&cache);
-    rescan_cached_tokens(&cache);
+    a_tiny_scanning_token_cache cache;
+
+    cache_curr_token(cache.ptr());
+    rescan_cached_tokens(cache.ptr());
   }  /* if */
   /* Allocate a block of the current IL memory region (the one established
      for the asm function) -- the asm buffer will be copied into it, along
@@ -15221,27 +15287,29 @@ position of the __if_exists or __if_not_exists token.
 }  /* scan_if_exists_identifier */
 
 
-static void cache_if_exists_tokens(a_token_cache_ptr    cache,
-				   ARG_UNUSED a_boolean	is_dependent)
+static a_scanning_token_cache cache_if_exists_tokens(
+                                             ARG_UNUSED a_boolean is_dependent)
 /*
 Cache the tokens between the braces of an __if_exists or __if_not_exists
-directive.
+directive; return the created cache.
 */
 {
+  a_scanning_token_cache cache;
   /* Initialize a local stop token set. */
-  a_token_set_array  stop_tokens;
+  a_token_set_array      stop_tokens;
+
   clear_token_set_array(stop_tokens);
   incr_token_set_array_element(stop_tokens, tok_rbrace);
-  clear_token_cache(cache, /*reusable=*/FALSE);
-  cache_token_stream(cache, stop_tokens);
+  cache_token_stream(cache.ptr(), stop_tokens);
   /* Add a special token to the end of the cache to mark the end of the
      tokens that come from the __if_exists. */
   if (is_dependent) {
     a_token_kind	saved_curr_token = curr_token;
     curr_token = tok_end_of_if_exists;
-    cache_curr_token(cache);
+    cache_curr_token(cache.ptr());
     curr_token = saved_curr_token;
   }  /* if */
+  return cache;
 }  /* cache_if_exists_tokens */
 
 
@@ -15259,7 +15327,6 @@ the cache.
 */
 {
   a_boolean		keep_tokens;
-  a_token_cache		cache;
   a_boolean		is_dependent;
   a_source_position	start_pos;
   a_pending_pragma_ptr	saved_curr_token_pragmas;
@@ -15293,16 +15360,16 @@ the cache.
     /* Bypass the open brace of the directive. */
     (void)get_token();
   }  /* if */
+
   /* Cache tokens up to the matching brace. */
-  cache_if_exists_tokens(&cache, is_dependent);
+  a_scanning_token_cache cache = cache_if_exists_tokens(is_dependent);
   /* If keeping the tokens, rescan the from the cache; otherwise just
      discard the tokens. */
   if (keep_tokens) {
     /* Rescan the tokens.  Discard the current token if it is not
        tok_end_of_source. */
-    f_rescan_cached_tokens(&cache, curr_token != tok_end_of_source);
+    rescan_cached_tokens(cache.ptr(), curr_token != tok_end_of_source);
   } else {
-    discard_token_cache(&cache);
     /* Bypass the closing brace. */
     if (curr_token != tok_end_of_source) (void)get_token();
   }  /* if */
@@ -15752,9 +15819,7 @@ tok_ud_literal; otherwise, return tok_string_literal.
   a_string_or_char_literal_kind lit_kind = SCLK_ORDINARY_STRING_LITERAL;
   a_string_or_char_literal_kind encoding = SCLK_ORDINARY_LITERAL;
   a_boolean                     raw_string_seen = FALSE;
-  a_token_cache                 cache;
-  a_cached_token_ptr            ctp, ctp_next, first_string_token = NULL;
-  a_boolean                     more_than_one_string = FALSE;
+  a_scanning_token_cache        cache;
   a_boolean                     suffix_mismatch = FALSE;
   a_token_kind                  ctoken = tok_string_literal;
 
@@ -15784,7 +15849,6 @@ tok_ud_literal; otherwise, return tok_string_literal.
   raw_string_seen = (lit_kind & SCLK_RAW_STRING_LITERAL) != 0;
   /* Start a token cache in which we will accumulate all the adjacent
      string literals.  Usually, this will be just a single string literal. */
-  clear_token_cache(&cache, /*reusable=*/FALSE);
   if (!function_name_case) {
     /* Set up the first string literal as the current token, so it can be
        cached.  This routine is called from get_token at a point where
@@ -15861,16 +15925,7 @@ tok_ud_literal; otherwise, return tok_string_literal.
     /* Save the current token (a string literal) by adding it to the token
        cache. */
     const_for_curr_token.variant.string.literal_kind = lit_kind;
-    cache_curr_token(&cache);
-    /* Remember the first string token (there may be pragma entries preceding
-       it in the cache). */
-    if (first_string_token == NULL) {
-      first_string_token = cache.last_token;
-    } else {
-      /* There is more than one string literal, so concatenation will have
-         to be done below. */
-      more_than_one_string = TRUE;
-    }  /* if */
+    cache_curr_token(cache.ptr());
     /* Scan the next token.  Suppress string literal concatenation so that
        when scanning something like
          "aaa" "bbb" "ccc"
@@ -15960,46 +16015,10 @@ tok_ud_literal; otherwise, return tok_string_literal.
   }  /* for */
   /* Here, all the adjacent string literals have been captured in a token
      cache.  Concatenate them into a single string literal. */
-  if (!more_than_one_string) {
-    /* The common degenerate case of a single string literal requires no
-       concatenation. */
-  } else {
-    a_cached_token_ptr last_token;
-    /* More than one string literal -- concatenate. */
-    concat_string_literals(&cache, character_kind);
-    /* The constants have been concatenated into the first constant in the
-       token cache (which might not be the first entry in the cache, if there
-       are pragma entries first).  Discard the token cache entries for the
-       string literal tokens after that first one. */
-    last_token = first_string_token;
-    for (ctp = first_string_token->next; ctp != NULL; ctp = ctp_next) {
-      ctp_next = ctp->next;
-      if (ctp->extra_info_kind == (a_token_extra_info_kind)teik_pragma) {
-        /* Keep a pragma entry (this is a pragma entry that appeared between
-           string literals). */
-        last_token->next = ctp;
-        last_token = ctp;
-      } else {
-#if EXTRA_SOURCE_POSITIONS_IN_IL
-        /* Update the end of token position of the resulting string with the
-           end position of the subsequent segment that is about to be freed.
-           This results in the ending position of the last string segment
-           being used as the ending position of the concatenated string. */
-        first_string_token->end_source_position = ctp->end_source_position;
-#endif /*  EXTRA_SOURCE_POSITIONS_IN_IL */
-        /* Free a string literal token entry. */
-        free_cached_token(ctp);
-#if DEBUG
-        cache.token_count--;
-#endif /* DEBUG */
-      }  /* if */
-    }  /* for */
-    last_token->next = NULL;
-    cache.last_token = last_token;
-  }  /* if */
+  concat_string_literals(cache.ptr(), character_kind);
   /* Stick the remaining single string literal back onto the input token
      stream (ahead of the non-string-literal token that stopped the loop). */
-  rescan_cached_tokens(&cache);
+  rescan_cached_tokens(cache.ptr());
   /* Pop the lexical state pushed by this routine. */
   pop_lexical_state_stack();
   if (!is_error_constant(&const_for_curr_token)) {
@@ -16295,13 +16314,20 @@ to make the byte to logical column translation faster.
   set_cached_logical_char_info_entries_used(logical_char_info_entries_used); \
 }  /* record_start_of_curr_token */
 
+static INLINE a_boolean fetching_tokens_from_insert_string()
 /*
 Return TRUE if we are getting tokens from an inserted token string.
 */
-#define fetching_tokens_from_insert_string()				\
-  (cached_token_rescan_list != NULL &&					\
-   cached_token_rescan_list->extra_info_kind ==				\
-                                  (a_token_extra_info_kind)teik_insert_string)
+{
+  a_boolean result = TRUE;
+
+  if (cached_token_rescan_stack->is_empty()) {
+    result = FALSE;
+  } else if (!cached_token_rescan_stack->back_elem()->is_insert_string()) {
+    result = FALSE;
+  }  /* if */
+  return result;
+}  /* fetching_tokens_from_insert_string */
 
 /*
 Macro that is TRUE if digraph tokens should be recognized.
@@ -17236,11 +17262,12 @@ will be processed normally.
 
 If treat_newline_as_token is TRUE, return tok_newline for ends of lines.
 
-If cached_token_rescan_list is non-NULL, it points to a list of cached
-tokens which are to be rescanned; the first token on that list is removed
-and returned.  Otherwise, if reusable_cache_stack is non-NULL, it points
-to a list of reusable cache entries; the next token on that list is
-returned without destroying the reusable cache.
+If cached_token_rescan_stack is non-empty, it contains a stack of cached tokens
+which are to be rescanned; the token at the top of that stack is removed from
+it and returned.  Otherwise, if reusable_cache_stack is non-NULL, the top
+element of that stack points to the next token to be rescanned; that token is
+then returned and the iterator is advanced without modifying the reusable
+cache.
 
 In the case where an invalid token is scanned, tok_error is returned
 and err_code_for_error_token is set to indicate a diagnostic that
@@ -17286,14 +17313,15 @@ to speed in some cases.
     }  /* if */
 restart:
     /* If there are cached tokens to be rescanned, first check the
-       cached_token_rescan_list and take the first token on the list if
-       it is non-NULL, otherwise check the reusable cache stack. */
+       cached_token_rescan_stack and take the first token from the top of the
+       stack (if any); otherwise check the reusable cache stack. */
     /* If there are cached tokens to be rescanned, take the first on the
        list. */
-    if (cached_token_rescan_list != NULL) {
-      a_boolean	no_tokens_on_list;
-      get_token_from_cached_token_rescan_list(&no_tokens_on_list);
-      if (no_tokens_on_list) {
+    if (!cached_token_rescan_stack->is_empty()) {
+      a_boolean no_token_on_stack;
+
+      get_token_from_cached_token_rescan_stack(&no_token_on_stack);
+      if (no_token_on_stack) {
         /* There were only pragma entries on the list.  Go back and check
            for other token sources. */
         goto restart;
@@ -18477,13 +18505,23 @@ check_start_of_pp_directive:
             start_of_directive = pos_curr_token;
             {
 #if CHECKING
-              a_cached_token_ptr curr_cached_token = cached_token_rescan_list;
+              a_shared_token curr_cached_token;
+
+              if (!cached_token_rescan_stack->is_empty()) {
+                curr_cached_token = cached_token_rescan_stack->back_elem();
+              }  /* if */
 #endif /* CHECKING */
               pp_directive();
-              check_assertion_str2(curr_cached_token ==
-                                                    cached_token_rescan_list,
+#if CHECKING
+              a_shared_token final_cached_tok;
+
+              if (!cached_token_rescan_stack->is_empty()) {
+                final_cached_tok = cached_token_rescan_stack->back_elem();
+              }  /* if */
+              check_assertion_str2(curr_cached_token == final_cached_tok,
                                    "get_token: token cache",
                                    "affected by preprocessing directive");
+#endif /* CHECKING */
             }
             /* After the directive has been processed, go scan another
                token. */
@@ -18633,7 +18671,7 @@ return_from_token_scan:
        string that is saved as part of the Microsoft asm token. */
     if (curr_token_sequence_number >
                            curr_lexical_state_stack_entry->last_tsn_in_cache) {
-      cache_curr_token(&curr_lexical_state_stack_entry->cache);
+      cache_curr_token(curr_lexical_state_cache());
       curr_lexical_state_stack_entry->last_tsn_in_cache =
                                                     curr_token_sequence_number;
     }  /* if */
@@ -18999,14 +19037,14 @@ to it.
     /* Allocate a new entry. */
     lssep = alloc_fe_of_type(a_lexical_state_stack_entry);
 #if DEBUG
-   num_lexical_state_stack_entries_allocated++;
+    num_lexical_state_stack_entries_allocated++;
 #endif /* DEBUG */
   }  /* if */
   lssep->next = NULL;
   lssep->cache_tokens = 0;
   lssep->last_tsn_in_cache = NO_TOKEN_SEQUENCE_NUMBER;
   lssep->error_position = null_source_position;
-  clear_token_cache(&lssep->cache, /*is_reusable=*/FALSE);
+  new (&lssep->cache) Opt<a_scanning_token_cache>();
   lssep->caching_tokens = FALSE;
   lssep->suspend_caching_tokens = FALSE;
   lssep->flushing_tokens = FALSE;
@@ -19040,16 +19078,15 @@ is saved for use when the stack is popped.
 }  /* push_lexical_state_stack */
 
 
-static void pop_lexical_state_stack_full(a_boolean	final_pop)
+static INLINE void pop_lexical_state_stack_full(a_boolean final_pop)
 /*
 Pop the current entry off of the lexical state stack.  If final_pop is
 TRUE, this call pops the last entry off of the stack.  This is used
 to alter the consistency check at the end of the routine.
 */
 {
-  a_lexical_state_stack_entry_ptr	lssep;
+  a_lexical_state_stack_entry_ptr lssep = curr_lexical_state_stack_entry;
 
-  lssep = curr_lexical_state_stack_entry;
   /* Unlink this entry from the stack. */
   curr_lexical_state_stack_entry = lssep->next;
   /* Either this is the final pop, and the lexical state stack entry should be
@@ -19064,7 +19101,7 @@ to alter the consistency check at the end of the routine.
   next_token_is_top_level_decl_start =
                                      lssep->next_token_is_top_level_decl_start;
   /* Discard any tokens that may have been cached. */
-  discard_token_cache(&lssep->cache);
+  lssep->cache.~Opt<a_scanning_token_cache>();
   check_assertion_str2(lssep->cache_tokens == 0, "pop_lexical_stack_state:",
                        "cache_tokens not zero");
   avail_lexical_state_stack_entries = lssep;
@@ -19102,14 +19139,25 @@ added to the cache.
   lssep = curr_lexical_state_stack_entry;
   if (lssep->cache_tokens == 0) {
     /* Reset the token cache when starting a new caching region. */
-    discard_token_cache(&lssep->cache);
+    if (lssep->cache.has_value()) {
+      /* A new cache is being started and this lexical state stack entry
+         already has a token cache to use; reuse the existing token cache
+         rather than potentially doing an unnecessary allocation of a new token
+         cache. */
+      (*lssep->cache)->clear();
+    } else {
+      lssep->cache = a_scanning_token_cache();
+    }  /* if */
     lssep->last_tsn_in_cache = NO_TOKEN_SEQUENCE_NUMBER;
-    clear_token_cache(&lssep->cache, /*is_reusable=*/FALSE);
   }  /* if */
   lssep->cache_tokens++;
   if (include_curr_token &&
       last_token_sequence_number_of_token > lssep->last_tsn_in_cache) {
-    cache_curr_token(&lssep->cache);
+    /* There should always be a scanning token cache initialed above and not
+       cleared until this lexical state stack entry is popped off the lexical
+       state stack. */
+    check_assertion(lssep->cache.has_value());
+    cache_curr_token(lssep->cache->ptr());
     lssep->last_tsn_in_cache = last_token_sequence_number_of_token;
   }  /* if */
 }  /* begin_caching_fetched_tokens */
@@ -19578,27 +19626,146 @@ repeated constructs, as in
   return(return_value);
 }  /* loop_token */
 
+namespace {
 
-static a_cached_token_ptr next_cached_token()
 /*
-If the next token is a cached token (either on the cached token rescan list
-or the reusable cache stack), return it; otherwise, return NULL.
+This is an implementation detail of the next_token functions that allows for
+traversal of the cached tokens with state preserving iteration.
+
+Instances of this class should be considered invalidated when either the token
+rescan stack or the reusable cache stack are modified.
+*/
+struct a_cached_token_supplier {
+  INLINE a_cached_token_supplier();
+  INLINE a_cached_token_supplier operator++(int);
+  INLINE an_immutable_cached_token* operator*();
+private:
+  INLINE a_boolean reusable_cache_has_next();
+  INLINE a_boolean is_currently_pragma();
+  INLINE void move_to_next_token();
+  INLINE void skip_pragmas();
+  size_t        rescan_tokens_left;
+			/* The number of tokens left to check on the cached
+			   token rescan stack.  If 0 the reusable_token
+			   iterator should be checked instead. */
+  a_token_cache_iterator
+		reusable_token_iter;
+			/* The token to use in the reusable cache stack. */
+};  /* a_cached_token_supplier */
+
+
+a_cached_token_supplier::a_cached_token_supplier()
+/*
+Construct a new cached token iterator from the current lexical state.
+*/
+  : rescan_tokens_left(cached_token_rescan_stack->length()),
+    reusable_token_iter()
+{
+  if (reusable_cache_stack != NULL) {
+    this->reusable_token_iter =  reusable_cache_stack->next_token;
+  }  /* if */
+  this->skip_pragmas();
+}  /* a_cached_token_supplier::a_cached_token_supplier */
+
+
+a_cached_token_supplier a_cached_token_supplier::operator++(int)
+/*
+Move on to the next non-pragma token and return a copy of the current iterator.
+If no next token exist the next token is a default-constructed a_shared_token.
 */
 {
-  a_cached_token_ptr result;
+  a_cached_token_supplier result = *this;
 
-  if (cached_token_rescan_list != NULL) {
-    /* There are tokens on the non-reusable rescan list. */
-    result = cached_token_rescan_list;
-  } else if (reusable_cache_stack != NULL) {
-    /* There are tokens on the reusable rescan list. */
-    result = reusable_cache_stack->next_cached_token;
-  } else {
-    result = NULL;
+  this->move_to_next_token();
+  this->skip_pragmas();
+  return result;
+}  /* a_cached_token_supplier::operator++ */
+
+
+an_immutable_cached_token* a_cached_token_supplier::operator*()
+/*
+Return a pointer to the token represented by this iterator or NULL if no tokens
+remain.
+*/
+{
+  an_immutable_cached_token *result = NULL;
+
+  if (this->rescan_tokens_left > 0) {
+    result = (*cached_token_rescan_stack)[this->rescan_tokens_left - 1].ptr();
+  } else if (this->reusable_cache_has_next()) {
+    result = (*this->reusable_token_iter).ptr();
   }  /* if */
   return result;
-}  /* next_cached_token */
+}  /* a_cached_token_supplier::operator* */
 
+
+void a_cached_token_supplier::move_to_next_token()
+/*
+Move on to the next token.  If no next token exist the next token is a
+default-constructed a_shared_token.
+*/
+{
+  if (this->rescan_tokens_left > 0) {
+    --this->rescan_tokens_left;
+  } else if (this->reusable_cache_has_next()) {
+    ++this->reusable_token_iter;
+  }  /* if */
+}  /* a_cached_token_supplier::move_to_next_token */
+
+
+a_boolean a_cached_token_supplier::reusable_cache_has_next()
+/*
+Return TRUE if there's another token in the reusable cache; otherwise, return
+FALSE.
+*/
+{
+  return (reusable_cache_stack != NULL &&
+          (this->reusable_token_iter != a_token_cache_iterator()) &&
+          (this->reusable_token_iter !=
+           reusable_cache_stack->token_cache->end()));
+}  /* a_cached_token_supplier::reusable_cache_has_next */
+
+
+a_boolean a_cached_token_supplier::is_currently_pragma()
+/*
+Return TRUE if the result of calling operator* is a pragma token; otherwise,
+return FALSE.
+
+This function is an optimized query of the result of operator* that does not
+require any new a_shared_token objects to be constructed.
+*/
+{
+  a_boolean result = FALSE;
+
+  if (this->rescan_tokens_left > 0) {
+    const a_shared_token &tok =
+                    (*cached_token_rescan_stack)[this->rescan_tokens_left - 1];
+
+    if (tok->is_pragma()) {
+      result = TRUE;
+    }  /* if */
+  } else if (this->reusable_cache_has_next()) {
+    const a_shared_token &tok = *this->reusable_token_iter;
+
+    if (tok->is_pragma()) {
+      result = TRUE;
+    }  /* if */
+  }  /* if */
+  return result;
+}  /* a_cached_token_supplier::is_currently_pragma */
+
+
+void a_cached_token_supplier::skip_pragmas()
+/*
+Move to the next non-pragma token.
+*/
+{
+  while (this->is_currently_pragma()) {
+    this->move_to_next_token();
+  }  /* while */
+}  /* a_cached_token_supplier::skip_pragmas */
+
+}  /* namespace */
 
 a_token_kind next_token_full(a_token_sequence_number *seq,
                              a_symbol_header_ptr     *sym_hdr)
@@ -19612,9 +19779,8 @@ set *sym_hdr to point to the symbol header if the next token is an
 identifier, else to NULL.
 */
 {
-  a_token_cache      cache;
-  a_token_kind       ntoken;
-  a_cached_token_ptr ctp;
+  a_token_kind              ntoken;
+  an_immutable_cached_token *token;
 
   db_enter(5, "next_token_full");
   if (in_preprocessing_directive && curr_token == tok_newline) {
@@ -19633,26 +19799,22 @@ identifier, else to NULL.
      rescanned.  This does not handle some of the more complex cases such as
      when we have to scan over the end of a reusable cache.  In those cases we
      use the more general (and slower) method to fetch the next token. */
-  ctp = next_cached_token();
-  /* Get the next token that is not a pragma state entry. */
-  while (ctp != NULL &&
-         ctp->extra_info_kind == (a_token_extra_info_kind)teik_pragma) {
-    ctp = ctp->next;
-  }  /* while */
+  token = *a_cached_token_supplier();
   /* If there is no cached token or if the token is the end-of-source token
      which is used to terminate the token cache, then disregard this token
      and fetch the next token using the slower method. */
-  if (ctp != NULL && ctp->token != tok_end_of_source) {
+  if (token != NULL) {
     /* There is a cached token from which we can get then token kind. */
-    ntoken = (a_token_kind)ctp->token;
+    ntoken = token->get_kind();
     /* If seq is not NULL, return the sequence number of the next token. */
-    if (seq != NULL) *seq = ctp->token_sequence_number;
+    if (seq != NULL) {
+      *seq = token->get_starting_seq_number();
+    }  /* if */
     /* If sym_hdr is not NULL, return the symbol header pointer if the
        next token is an identifier. */
     if (sym_hdr != NULL) {
-      *sym_hdr = (ntoken == tok_identifier) ?
-                             ctp->variant.locator.symbol_header :
-                             (a_symbol_header *)NULL;
+      *sym_hdr = !token->is_identifier() ?
+                                    NULL : token->get_locator().symbol_header;
     }  /* if */
   } else {
     /* The call to get_token below can change the error_position.  Since this
@@ -19661,9 +19823,10 @@ identifier, else to NULL.
        it after the next token has been fetched. */
     a_source_position  saved_error_position;
     saved_error_position = error_position;
+
     /* Put the current token into a token cache so it can be rescanned. */
-    clear_token_cache(&cache, /*reusable=*/FALSE);
-    cache_curr_token(&cache);
+    a_tiny_scanning_token_cache  cache;
+    cache_curr_token(cache.ptr());
     /* Fetch the next token and remember its kind. */
     ntoken = get_token();
     /* If seq is not NULL, return the sequence number of the next token. */
@@ -19678,7 +19841,7 @@ identifier, else to NULL.
     /* Put the two tokens in the cache (original, next) on the rescan list,
        and refetch the original token.  Note that the "next" token remains on
        the rescan list. */
-    rescan_cached_tokens(&cache);
+    rescan_cached_tokens(cache.ptr());
     error_position = saved_error_position;
   }  /* if */
 done:
@@ -19700,10 +19863,8 @@ fetches the next two tokens instead of only one.  This routine
 cannot be used when fetching raw preprocessing tokens.
 */
 {
-  a_token_cache      cache;
-  a_token_kind       ntoken = tok_error;
-  a_cached_token_ptr ctp;
-  a_boolean          tokens_found = FALSE;
+  a_token_kind ntoken = tok_error;
+  a_boolean    tokens_found = FALSE;
 
   db_enter(3, "next_two_tokens");
   if (in_preprocessing_directive && curr_token == tok_newline) {
@@ -19719,53 +19880,38 @@ cannot be used when fetching raw preprocessing tokens.
      rescanned.  This does not handle some of the more complex cases such as
      when we have to scan over the end of a reusable cache.  In these cases the
      more general (and slower) method is used to fetch the next token. */
-  ctp = next_cached_token();
-  /* Get the next token that is not a pragma entry. */
-  while (ctp != NULL &&
-         ctp->extra_info_kind ==
-                             (a_token_extra_info_kind)teik_pragma) {
-    ctp = ctp->next;
-  }  /* while */
-  /* If there is no cached token or if the token is the end-of-source token
-     which is used to terminate the token cache, then disregard this token
-     and fetch the next token using the slower method. */
-  if (ctp != NULL && ctp->token != tok_end_of_source) {
-    /* There is a cached token from which we can get then token kind. */
-    ntoken = (a_token_kind)ctp->token;
-    if (ntoken != first_token_must_be) {
-      /* The first token indicates that the second token is not needed. */
-      *token_2 = tok_error;
-      tokens_found = TRUE;
-    } else {
-      ctp = ctp->next;
-      /* Get the next token that is not a pragma entry. */
-      while (ctp != NULL &&
-             ctp->extra_info_kind ==
-                                 (a_token_extra_info_kind)teik_pragma) {
-        ctp = ctp->next;
-      }  /* while */
-      if (ctp != NULL && ctp->token != tok_end_of_source) {
-        /* We have found the next token in the cache that can be used to
-           return the value of token_2.  Return the value and set tokens_found
-           to indicate that no further processing is needed. */
-        *token_2 = (a_token_kind)ctp->token;
+  { an_immutable_cached_token *token;
+    a_cached_token_supplier   token_supp;
+
+    token = *(token_supp++);
+    if (token != NULL) {
+      ntoken = token->get_kind();
+      if (ntoken != first_token_must_be) {
+        *token_2 = tok_error;
         tokens_found = TRUE;
+      } else {
+        token = *(token_supp++);
+        if (token != NULL) {
+          *token_2 = token->get_kind();
+          tokens_found = TRUE;
+        }  /* if */
       }  /* if */
     }  /* if */
-  }  /* if */
+  }
   /* The next token information could not be determined just by looking at
      the token cache.  Scan forward by getting and caching the necessary
      tokens. */
   if (!tokens_found) {
+    a_tiny_scanning_token_cache  cache;
+
     /* Put the current token into a token cache so it can be rescanned. */
-    clear_token_cache(&cache, /*reusable=*/FALSE);
-    cache_curr_token(&cache);
+    cache_curr_token(cache.ptr());
     /* Fetch the token or possibly the two next tokens and remember their
        kinds.  If the first token doesn't match the value specified by the
        caller the caller should not use the value in *token_2. */
     ntoken = get_token();
     if (ntoken == first_token_must_be) {
-      cache_curr_token(&cache);
+      cache_curr_token(cache.ptr());
       *token_2 = get_token();
     } else {
       *token_2 = tok_error;
@@ -19773,7 +19919,7 @@ cannot be used when fetching raw preprocessing tokens.
     /* Put the two or three tokens in the cache (original, next 1, and possibly
        next 2) on the rescan list, and refetch the original token.  Note
        that the "next" token remains on the rescan list. */
-    rescan_cached_tokens(&cache);
+    rescan_cached_tokens(cache.ptr());
   }  /* if */
 done:
   db_exit();
@@ -19789,15 +19935,14 @@ token is still the same.  This is intended for use with unusual errors,
 so efficiency is not a prime concern.
 */
 {
-  a_token_cache cache;
+  a_tiny_scanning_token_cache cache;
 
   db_enter(3, "unget_token");
   /* Create a token cache containing a copy of the current token. */
-  clear_token_cache(&cache, /*reusable=*/FALSE);
-  cache_curr_token(&cache);
+  cache_curr_token(cache.ptr());
   /* Push the cache.  This pushes two copies of the original token,
      and fetches one of them as the current token. */
-  rescan_cached_tokens(&cache);
+  rescan_cached_tokens(cache.ptr());
   db_exit();
 }  /* unget_token */
 
@@ -21105,7 +21250,7 @@ the <int> is matched with U and no argument is generated for V.
   scope_stack_top().in_template_arg_list = TRUE;
   *first_defaulted_arg = -1L;
   tssp = template_sym->variant.template_info;
-  decl_info = tssp->cache.decl_info;
+  decl_info = tssp->cache->decl_info;
   param_ptr = decl_info->parameters;
   /* Indicate that this is an error case if the template has any empty
      parameter list. */
@@ -21148,7 +21293,7 @@ the <int> is matched with U and no argument is generated for V.
          list of the template template argument.  The default argument
          information used below is based on the template parameter list of
          the template template parameter (i.e., orig_param_ptr). */
-      param_ptr = subst_param_tssp->cache.decl_info->parameters;
+      param_ptr = subst_param_tssp->cache->decl_info->parameters;
     } else {
       /* For non-dependent argument lists, use the one from the argument
          template for param_ptr (except for error cases).  This is needed
@@ -21161,7 +21306,7 @@ the <int> is matched with U and no argument is generated for V.
          template. */
       if (!subst_param_tssp->is_nonreal_member &&
           !subst_param_tssp->is_error) {
-        param_ptr = subst_param_tssp->cache.decl_info->parameters;
+        param_ptr = subst_param_tssp->cache->decl_info->parameters;
       }  /* if */
     }  /* if */
   }  /* if */
@@ -22979,8 +23124,8 @@ involves a template parameter.
 */
 {
   a_boolean             result = FALSE;
-  a_template_param_ptr  param = template_sym->variant.template_info
-                                            ->cache.decl_info->parameters;
+  a_template_param_ptr  param = template_sym->variant.template_info->
+                                                  cache->decl_info->parameters;
 
   for (; param != NULL; param = param->next) {
     if (symbol_is(param->param_symbol, sk_constant) &&
@@ -24507,17 +24652,16 @@ The current token is "[:".  Return TRUE if the matching ":]" is followed by
 "::".
 */
 {
-  a_boolean      result = FALSE;
-  a_token_cache  cache;
-  
-  clear_token_cache(&cache, /*reusable=*/FALSE);
-  if (!cache_token_stream_until_matching_token(&cache, CTS_NO_OPTIONS)) {
+  a_boolean              result = FALSE;
+  a_scanning_token_cache cache;
+
+  if (!cache_token_stream_until_matching_token(cache.ptr(), CTS_NO_OPTIONS)) {
     check_assertion(curr_token == tok_rsplice);
-    cache_curr_token(&cache);
+    cache_curr_token(cache.ptr());
     (void)get_token();
     result = curr_token == tok_colon_colon;
   }  /* if */
-  rescan_cached_tokens(&cache);
+  rescan_cached_tokens(cache.ptr());
   return result;
 }  /* spliced_name_qualifier_next */
 
@@ -24661,7 +24805,6 @@ selection operator, in which case it points to the type of the left operand.
   a_boolean			qualifier_type_is_class = FALSE;
   a_namespace_ptr		qualifier_namespace = NULL;
   a_token_sequence_number	start_seq_number;
-  a_cached_token_handle		start_cached_token_handle;
   a_boolean			follows_template, is_dtor_name;
   a_boolean			qualifier_is_super = FALSE;
   a_boolean			is_super_qualified = FALSE;
@@ -24699,7 +24842,6 @@ selection operator, in which case it points to the type of the left operand.
   }  /* if */
   start_position = pos_curr_token;
   start_seq_number = curr_token_sequence_number;
-  start_cached_token_handle = curr_cached_token_handle;
   orig_error_position = error_position;
   if (C_dialect != C_dialect_cplusplus) {
     /* Skip qualifier, destructor, finalizer, and operator processing if not
@@ -24835,7 +24977,6 @@ selection operator, in which case it points to the type of the left operand.
       /* Since we're returning a pseudo-token, set pos_curr_token. */
       pos_curr_token = start_position;
       curr_token_sequence_number = start_seq_number;
-      curr_cached_token_handle = start_cached_token_handle;
       /* Restore the original error position. */
       error_position = orig_error_position;
       goto exit;
@@ -25945,7 +26086,6 @@ selection operator, in which case it points to the type of the left operand.
     /* Since we're returning a pseudo-token, set pos_curr_token. */
     pos_curr_token = start_position;
     curr_token_sequence_number = start_seq_number;
-    curr_cached_token_handle = start_cached_token_handle;
     /* Restore the original error position. */
     error_position = orig_error_position;
   } else if (is_identifier) {
@@ -26261,7 +26401,6 @@ wrapup:
     /* The ending position should already be set correctly. */
 #endif /* EXTRA_SOURCE_POSITIONS_IN_IL */
     curr_token_sequence_number = start_seq_number;
-    curr_cached_token_handle = start_cached_token_handle;
     /* Restore the original error position. */
     error_position = orig_error_position;
     /* Perform error checks as specified in "options". */
@@ -27049,20 +27188,16 @@ error cases.
 #if MICROSOFT_EXTENSIONS_ALLOWED
   if (cli_or_cx_enabled && curr_token == tok_rbrace &&
       next_token() == tok_identifier) {
-    a_token_cache aux_cache;
+    a_tiny_scanning_token_cache aux_cache;
 
     /* We create an auxiliary token cache to hold the tok_rbrace as we look
        ahead and determine if the upcoming identifier is "finally". */
-    clear_token_cache(&aux_cache, /*reusable=*/FALSE);
-    cache_curr_token(&aux_cache);
+    cache_curr_token(aux_cache.ptr());
     /* Advance past the tok_rbrace so that locator_for_curr_id points to the
        tok_identifier. */
     (void)get_token();
     if (curr_token_is_identifier_string("finally") &&
         next_token() == tok_lbrace) {
-      /* Discard the tok_rbrace in the auxiliary cache, because it was already
-         cached in p_token_cache. */
-      discard_token_cache(&aux_cache);
       /* Cache and advance past the "finally". */
       cache_curr_token(p_token_cache);
       (void)get_token();
@@ -27073,7 +27208,7 @@ error cases.
          token back on the token stream.  After this, current token will again
          point to the tok_rbrace from the end of the previous compound
          statement.  p_token_cache was not modified. */
-      rescan_cached_tokens(&aux_cache);
+      rescan_cached_tokens(aux_cache.ptr());
     }  /* if */
   }  /* if */
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
@@ -27165,16 +27300,14 @@ Skip over the tokens of a function body.  is_constructor is TRUE if the
 function is a constructor.
 */
 {
-  a_token_cache	cache;
+  a_token_cache cache;
 
-  clear_token_cache(&cache, /*reusable=*/FALSE);
   (void)cache_function_body(&cache, is_constructor,
                             (a_boolean*)NULL,
                             (a_token_sequence_number*)NULL,
                             (a_token_sequence_number*)NULL,
                             (a_source_position*)NULL,
                             (a_source_position*)NULL);
-  discard_token_cache(&cache);
 }  /* skip_function_body */
 
 
@@ -27314,12 +27447,8 @@ Push a dummy entry on the cached token rescan list indicating that
 tokens should be fetched from the insertion string.
 */
 {
-  a_cached_token_ptr	ctp;
-
-  alloc_cached_token(ctp);
-  ctp->extra_info_kind = (a_token_extra_info_kind)teik_insert_string;
-  ctp->next = cached_token_rescan_list;
-  cached_token_rescan_list = ctp;
+  cached_token_rescan_stack->emplace_back(
+                        detail::a_token_factory::build_tok_insert_string());
 }  /* push_string_insert_cache_entry */
 
 
@@ -27329,12 +27458,8 @@ Remove the dummy entry from the cached token rescan list that indicates
 that tokens should be fetched from the insertion string.
 */
 {
-  a_cached_token_ptr	ctp;
-
   check_assertion(fetching_tokens_from_insert_string());
-  ctp = cached_token_rescan_list;
-  cached_token_rescan_list = ctp->next;
-  free_cached_token(ctp);
+  cached_token_rescan_stack->pop_back();
 }  /* pop_string_insert_cache_entry */
 
 namespace {
@@ -27469,9 +27594,9 @@ documentation of start_of_curr_token and end_of_curr_token for more
 information.
 */
 {
-  a_token_cache   cache;
-  a_token_cache   curr_token_cache;
-  a_boolean       save_suspend_caching_tokens =
+  a_scanning_token_cache      cache;
+  a_tiny_scanning_token_cache curr_token_cache;
+  a_boolean                   save_suspend_caching_tokens =
                         curr_lexical_state_stack_entry->suspend_caching_tokens;
 
   { /* Use a_lexical_state_capture to capture and restore the lexer state. */
@@ -27494,7 +27619,6 @@ information.
     in_token_insertion_from_string = TRUE;
     caching_tokens = TRUE;
     expand_macros = p_expand_macros;
-    clear_token_cache(&cache, /*reusable=*/FALSE);
     /* Push a marker into the cached token rescan list indicating that tokens
        should be fetched from the insert string. */
     push_string_insert_cache_entry();
@@ -27503,10 +27627,9 @@ information.
        the cache to be rescanned.  When inserting before the current token we
        create a separate cache containing the current token. */
     if (insert_after) {
-      cache_curr_token(&cache);
+      cache_curr_token(cache.ptr());
     } else {
-      clear_token_cache(&curr_token_cache, /*reusable=*/FALSE);
-      cache_curr_token(&curr_token_cache);
+      cache_curr_token(curr_token_cache.ptr());
     }  /* if */
     /* Fetch tokens from the buffer.  Stop on a newline. */
     for (;;) {
@@ -27517,7 +27640,7 @@ information.
       end_pos_curr_token = position_for_tokens;
 #endif /* EXTRA_SOURCE_POSITIONS_IN_IL */
       if (get_token() == tok_newline) break;
-      cache_curr_token(&cache);
+      cache_curr_token(cache.ptr());
     }  /* for */
   }
   /* Resume fetching tokens from the previous source. */
@@ -27528,28 +27651,28 @@ information.
   if (!insert_after) {
     /* If the string is inserted before the current token, rescan the current
        token. */
-    rescan_cached_tokens(&curr_token_cache);
+    rescan_cached_tokens(curr_token_cache.ptr());
   }  /* if */
   /* Scan the tokens from the cache. */
-  rescan_cached_tokens(&cache);
+  rescan_cached_tokens(cache.ptr());
   /* Restore the original token caching state. */
   curr_lexical_state_stack_entry->suspend_caching_tokens =
                                                    save_suspend_caching_tokens;
 }  /* insert_string_into_token_stream */
 
 
-void cache_tokens_from_string(a_const_char       *string,
-                              a_token_cache_ptr  cache,
-                              a_source_position  *position_for_tokens)
+void cache_tokens_from_string(a_const_char            *string,
+                              a_token_cache_ptr       cache,
+                              const a_source_position *position_for_tokens)
 /*
 Scan "string" as a sequence of tokens and place them in the given cache,
 giving each token the given position (both the start and end position of
 those tokens).  Macros are not expanded.
 */
 {
-  a_const_char    *save_start_of_curr_token = start_of_curr_token;
-  a_const_char    *save_end_of_curr_token = end_of_curr_token;
-  a_token_cache   curr_token_cache;
+  a_const_char                *save_start_of_curr_token = start_of_curr_token;
+  a_const_char                *save_end_of_curr_token = end_of_curr_token;
+  a_tiny_scanning_token_cache curr_token_cache;
 
   { /* Use a_lexical_state_capture to capture and restore the lexer state. */
     a_lexical_state_capture state;
@@ -27557,8 +27680,7 @@ those tokens).  Macros are not expanded.
     /* Adjust the insertion position */
     token_insertion_position = *position_for_tokens;
     /* Cache the current token so it can be restored when we're done. */
-    clear_token_cache(&curr_token_cache, /*reusable=*/FALSE);
-    cache_curr_token(&curr_token_cache);
+    cache_curr_token(curr_token_cache.ptr());
     /* Create a new lexical state for processing of the buffer. */
     push_lexical_state_stack();
     /* Reset the information used by get_token to fetch the tokens from the
@@ -27596,7 +27718,7 @@ those tokens).  Macros are not expanded.
   pop_string_insert_cache_entry();
   /* Rescan the original current token, discarding the current token state
      (which is already copied into the given cache). */
-  f_rescan_cached_tokens(&curr_token_cache, /*discard=*/TRUE);
+  rescan_cached_tokens(curr_token_cache.ptr(), /*discard=*/TRUE);
   /* Restore the start and end of the current token.  This ensures that this
      function doesn't have an observable affect on parsing outside of the
      cached tokens.  This must be done after the rescan as the rescan will wipe
@@ -27621,7 +27743,7 @@ pragma scope to be used while scanning the pragma tokens.
   push_lexical_state_stack();
   /* If the pragma was scanned as pp-tokens, go into pp-token mode now. */
   fetch_pp_tokens = ppp->descr_ptr->fetch_pp_tokens;
-  rescan_reusable_cache(&ppp->token_cache);
+  rescan_shared_reusable_cache(ppp->token_cache);
   /* Push a pragma scope.  This prevents names introduced by the pragma
      processing from polluting the current scope. */
   (void)push_scope((a_scope_kind)sck_pragma, NO_SCOPE_NUMBER, (a_type_ptr)NULL,
@@ -27742,19 +27864,19 @@ below), determine whether or not a preceding space should be added.
 }  /* preceding_space_needed */
 
 
-static void add_token_to_string(a_cached_token_ptr ctp)
+static void add_token_to_string(const a_shared_token &tok)
 /*
-Copy characters representing the token specified by ctp into
-temp_text_buffer, and increase pos_in_temp_text_buffer by the number
-of characters added.
+Copy characters representing the token into temp_text_buffer, and increase
+pos_in_temp_text_buffer by the number of characters added.
 */
 {
   a_seq_number     seq_incr;
   a_column_number  column_incr;
-  a_token_kind	   token = (a_token_kind)ctp->token;
+  a_token_kind	   token = tok->get_kind();
 
   db_enter(5, "add_token_to_string");
-  if (ctp->source_position.seq <= curr_seq) {
+  const a_source_position *src_pos = tok->get_source_position();
+  if (src_pos->seq <= curr_seq) {
     /* We're on the same line as the previous token processed, so just add
        a space (in most cases) to separate the tokens.  (Note: the line for
        the current token may be less than curr_seq when a macro expansion
@@ -27762,8 +27884,7 @@ of characters added.
     if (!preceding_space_needed(token)) {
       column_incr = 0;
     } else {
-      check_assertion(pos_in_temp_text_buffer > 0 ||
-                      curr_seq < ctp->source_position.seq);
+      check_assertion(pos_in_temp_text_buffer > 0 || curr_seq < src_pos->seq);
       /* Add a single space. */
       column_incr = 1;
     }  /* if */
@@ -27771,11 +27892,11 @@ of characters added.
     seq_incr = 0;
   } else {
     /* We've moved to a new line.  Compute the indentation. */
-    column_incr = ctp->source_position.column - 1;
+    column_incr = src_pos->column - 1;
     /* Compute the number of line feed characters to add. */
-    seq_incr =  ctp->source_position.seq - curr_seq;
+    seq_incr =  src_pos->seq - curr_seq;
     /* Reset the current line. */
-    curr_seq = ctp->source_position.seq;
+    curr_seq = src_pos->seq;
   }  /* if */
   /* Add any spaces and line feeds that might be required. */
   if (seq_incr > 0 || column_incr > 0) {
@@ -27786,12 +27907,12 @@ of characters added.
     /* Ignore tok_newline.  It only comes up in Microsoft asm blocks.
        The required number of newline characters will be added when the
        sequence number changes. */
-  } else if (ctp->extra_info_kind == (a_token_extra_info_kind)teik_pp_token) {
+  } else if (tok->is_pp_token()) {
     /* A token that was saved as a pp-token.  This token should be added to
        the string using the start of token pointer.  Note that the
        copy of the token made for a cached pp-token is known to be null
        terminated. */
-    put_str_to_temp_text_buffer(ctp->variant.pp_token_descr.token_start);
+    put_str_to_temp_text_buffer(tok->get_pp_token_descr()->token_start);
   } else if (token == tok_int_constant ||
              token == tok_float_constant ||
              token == tok_string_literal ||
@@ -27799,11 +27920,12 @@ of characters added.
              token == tok_gen_constant ||
              token == tok_ud_literal ||
              is_microsoft_tok_uuid(token)) {
-    a_constant_ptr	constant;
-    constant = token != tok_ud_literal ? ctp->variant.constant
-                                       : ctp->variant.ud_lit.value_con;
+    a_constant *constant = (token != tok_ud_literal
+                              ? const_cast<a_constant_ptr>(tok->get_constant())
+                              : tok->get_ud_literal_descr()->value_con);
+
     /* Write out a string that represents the constant. */
-    if (constant != NULL && constant->kind == (a_constant_repr_kind)ck_error) {
+    if (constant != NULL && constant->kind == ck_error) {
       /* If there was an error in scanning the token, reset the flag to avoid
          an assertion failure in the subroutine.  This means something like
          "<error-const>" will be put out in the template string. */
@@ -27811,23 +27933,25 @@ of characters added.
     }  /* if */
     if (token == tok_ud_literal) {
       /* Put out a user-defined literal. */
-      a_boolean    use_token_spelling = FALSE;
-      a_symbol_ptr ud_lit_op_sym = ctp->variant.ud_lit.op_sym;
+      a_boolean                use_token_spelling = FALSE;
+      const a_ud_literal_descr *ud_lit_descr = tok->get_ud_literal_descr();
+      a_symbol_ptr             ud_lit_op_sym = ud_lit_descr->op_sym;
+
       if (ud_lit_op_sym == NULL) {
         /* The associated symbol was not known when the token was cached. */
       } else if (symbol_is(ud_lit_op_sym, sk_function_template)) {
         /* The literal is associated with a literal operator template, so
            the constant contains the spelling of the literal. */
         use_token_spelling = TRUE;
-        constant = ctp->variant.ud_lit.spelling_con;
+        constant = ud_lit_descr->spelling_con;
       } else if (symbol_is(ud_lit_op_sym, sk_routine)) {
-        a_routine_ptr rout;
-        rout = ud_lit_op_sym->variant.routine.ptr;
+        a_routine_ptr rout = ud_lit_op_sym->variant.routine.ptr;
+
         if (rout->is_raw_literal_operator) {
           /* The literal is associated with a raw literal operator, so the
              constant contains the spelling of the literal. */
           use_token_spelling = TRUE;
-          constant = ctp->variant.ud_lit.spelling_con;
+          constant = ud_lit_descr->spelling_con;
         }  /* if */
       }  /* if */
       if (use_token_spelling) {
@@ -27843,7 +27967,7 @@ of characters added.
         octl.part_of_ud_literal = FALSE;
       }  /* if */
       /* Now put out the ud-suffix. */
-      put_str_to_temp_text_buffer(ctp->variant.ud_lit.suffix);
+      put_str_to_temp_text_buffer(ud_lit_descr->suffix);
       if (octl.pending_right_paren) {
         /* The il_to_str routines preceded the literal portion with a left
            parenthesis.  Close it now. */
@@ -27871,17 +27995,17 @@ of characters added.
 #endif /* CHECKING */
   } else if (token == tok_identifier) {
     /* An identifier. */
+    const a_symbol_locator *sym_loc = tok->get_symbol_locator();
 #if MICROSOFT_EXTENSIONS_ALLOWED
-    a_boolean	microsoft_identifier_used;
-    microsoft_identifier_used = ctp->variant.locator.symbol_header->
-                                                   microsoft_identifier_used &&
-                                !suppress_identifier_wrapping_in_token_string;
+    a_boolean              microsoft_identifier_used =
+                          (sym_loc->symbol_header->microsoft_identifier_used &&
+                                !suppress_identifier_wrapping_in_token_string);
+
     if (microsoft_identifier_used) {
       put_str_to_temp_text_buffer("__identifier(");
     }  /* if */
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
-    put_str_to_temp_text_buffer(ctp->variant.locator.symbol_header->
-                                                               identifier);
+    put_str_to_temp_text_buffer(sym_loc->symbol_header->identifier);
 #if MICROSOFT_EXTENSIONS_ALLOWED
     if (microsoft_identifier_used) {
       put_str_to_temp_text_buffer(")");
@@ -27962,17 +28086,17 @@ of characters added.
 }  /* add_token_to_string */
 
 
-static void add_pragmas_to_string(a_pending_pragma_ptr pragmas)
+static void add_pragmas_to_string(a_const_pending_pragma_list pragmas)
 /*
 If the current token has any pragmas associated with it, add strings to
 represent them to temp_text_buffer.  Note that all pragmas that are
 encountered, whatever their other characteristics, are included.
 */
 {
-  a_pending_pragma_ptr  ppp;
-  a_boolean             is_pseudo_pragma;
-  a_seq_number          seq_incr = 0;
-  a_column_number       column_incr = 0;
+  const a_pending_pragma *ppp;
+  a_boolean              is_pseudo_pragma;
+  a_seq_number           seq_incr = 0;
+  a_column_number        column_incr = 0;
 
   db_enter(5, "add_pragmas_to_string");
   for (ppp = pragmas; ppp != NULL; ppp = ppp->next) {
@@ -28054,9 +28178,10 @@ encountered, whatever their other characteristics, are included.
         put_ch_to_temp_text_buffer('"');
       }  /* if */
       put_str_to_temp_text_buffer(pragma_ids[(int)ppp->descr_ptr->kind]);
-      if (ppp->token_cache.first_token != NULL) {
-	/* Add the tokens from the pragma token cache to the string. */
-        add_token_cache_to_string(&ppp->token_cache);
+      check_assertion(ppp->token_cache.ptr() != NULL);
+      if (!ppp->token_cache->is_empty()) {
+        /* Add the tokens from the pragma token cache to the string. */
+        add_token_cache_to_string(ppp->token_cache.ptr());
       }  /* if */
       if (ppp->is_function_style_pragma &&
           !ppp->is_microsoft_pragma_operator) {
@@ -28093,14 +28218,15 @@ buffer.
 }  /* put_pseudo_token_start_to_temp_text_buffer */
 
 
-static void put_pseudo_token_start_to_temp_text_buffer(a_cached_token_ptr ctp)
+static void put_pseudo_token_start_to_temp_text_buffer(
+                                                     const a_shared_token &tok)
 /*
 Add a starting character sequence, indicating the beginning of a pseudo token
 cached as the given cached token, to the temporary text buffer.
 */
 {
-  put_pseudo_token_start_to_temp_text_buffer(ctp->token,
-                                             ctp->token_sequence_number);
+  put_pseudo_token_start_to_temp_text_buffer(tok->get_kind(),
+                                             tok->get_starting_seq_number());
 }  /* put_pseudo_token_start_to_temp_text_buffer */
 
 
@@ -28137,32 +28263,31 @@ static constexpr unsigned
 
 #endif /* DEBUG */
 
-static void add_cached_token_to_string(a_cached_token_ptr ctp,
-                                       a_boolean          expand_pseudo_tokens)
+static void add_cached_token_to_string(
+                                     const a_shared_token &tok,
+                                     a_boolean            expand_pseudo_tokens)
 /*
 Append the given token as a string to the temp_text_buffer.  If
 expand_pseudo_tokens is TRUE, details of the pseudo token will be included in
 the string.
 */
 {
-  a_token_extra_info_kind teik_kind = ctp->extra_info_kind;
-
-  if (teik_kind == (a_token_extra_info_kind)teik_pragma) {
+  if (tok->is_pragma()) {
     /* This token entry represents one or more pragmas.  Call a routine to add
        the pragmas to the string. */
-    add_pragmas_to_string(ctp->variant.pragmas);
-  } else if (expand_pseudo_tokens &&
-             teik_kind == (a_token_extra_info_kind)teik_extracted_body) {
-    put_pseudo_token_start_to_temp_text_buffer(ctp);
+    add_pragmas_to_string(*tok->get_pragma_list());
+  } else if (expand_pseudo_tokens && (tok->is_extracted_template_body() ||
+                                      tok->is(tok_removed_expr))) {
+    put_pseudo_token_start_to_temp_text_buffer(tok);
     put_pseudo_token_end_to_temp_text_buffer();
-  } else if (expand_pseudo_tokens && teik_kind == teik_ifc_index) {
-    put_pseudo_token_start_to_temp_text_buffer(ctp);
+  } else if (expand_pseudo_tokens && tok->is_ifc_reference()) {
+    put_pseudo_token_start_to_temp_text_buffer(tok);
 #if DEBUG
     {
       put_str_to_temp_text_buffer(" - ");
 
       a_lexical_ifc_index_reference
-                 ifc_idx = ctp->variant.ifc_index;
+                 ifc_idx = tok->get_ifc_index();
       a_string   idx_as_str = s_db_lexical_ifc_index(ifc_idx);
       put_str_to_temp_text_buffer(idx_as_str.as_temp_characters());
     }
@@ -28170,12 +28295,12 @@ the string.
     put_pseudo_token_end_to_temp_text_buffer();
   } else {
     /* A normal token (including, possibly, a pp-token). */
-    if (expand_pseudo_tokens && ctp->token == tok_end_of_source) {
-      put_pseudo_token_start_to_temp_text_buffer(ctp);
+    if (expand_pseudo_tokens && tok->is(tok_end_of_source)) {
+      put_pseudo_token_start_to_temp_text_buffer(tok);
       put_pseudo_token_end_to_temp_text_buffer();
-    } else if (ctp->token == tok_removed_template_body) {
+    } else if (tok->is(tok_removed_template_body)) {
       if (expand_pseudo_tokens) {
-        put_pseudo_token_start_to_temp_text_buffer(ctp);
+        put_pseudo_token_start_to_temp_text_buffer(tok);
         put_pseudo_token_end_to_temp_text_buffer();
       } else {
         /* If a removed template body token is re-cached, it may not have
@@ -28183,20 +28308,20 @@ the string.
         put_ch_to_temp_text_buffer(';');
       }  /* if */
     } else {
-      add_token_to_string(ctp);
+      add_token_to_string(tok);
     }  /* if */
   }  /* if */
-  if (teik_kind == (a_token_extra_info_kind)teik_asm_string) {
+  if (tok->is_asm_string()) {
     /* A Microsoft asm string.  Add the asm string to the buffer. */
     /* Insert a space between the asm token and the asm string. */
     add_whitespace_to_string((a_seq_number)0, (a_column_number)1);
-    put_str_to_temp_text_buffer(ctp->variant.asm_string);
+    put_str_to_temp_text_buffer(tok->get_asm_string());
   }  /* if */
 }  /* add_cached_token_to_string */
 
 
-a_string token_to_string(a_cached_token_ptr ctp,
-       /* Defaulted: */  a_boolean          expand_pseudo_tokens)
+a_string token_to_string(const a_shared_token &tok,
+       /* Defaulted: */  a_boolean            expand_pseudo_tokens)
 /*
 Return the given token as a string.  If expand_pseudo_tokens is TRUE, details
 of the pseudo token will be included in the returned string.
@@ -28204,14 +28329,15 @@ of the pseudo token will be included in the returned string.
 {
   a_temp_text_buffer_swap tmp_buffer_swap;
 
-  add_cached_token_to_string(ctp, expand_pseudo_tokens);
+  add_cached_token_to_string(tok, expand_pseudo_tokens);
   return a_string(a_string_view(temp_text_buffer, pos_in_temp_text_buffer));
 }  /* token_to_string */
 
 
-void add_cached_tokens_to_string(a_cached_token_ptr       first_token,
-                                 a_token_sequence_number  start_tsn,
-                                 a_token_sequence_number  end_tsn)
+void add_cached_tokens_to_string(a_const_token_cache_iterator begin,
+                                 a_const_token_cache_iterator end,
+                                 a_token_sequence_number      start_tsn,
+                                 a_token_sequence_number      end_tsn)
 /*
 Go through a list of cached tokens and add the tokens to the string that is
 being constructed that represents the tokens.  If start_tsn and/or end_tsn are
@@ -28222,90 +28348,102 @@ source token is encountered before end_tsn, this function will stop before the
 end_tsn.
 */
 {
-  a_cached_token_ptr	ctp = first_token;
+  a_const_token_cache_iterator it = begin;
 
   check_assertion(start_tsn <= end_tsn ||
                   start_tsn == NO_TOKEN_SEQUENCE_NUMBER ||
                   end_tsn == NO_TOKEN_SEQUENCE_NUMBER);
   /* Skip any tokens that are before the desired starting point. */
   if (start_tsn != NO_TOKEN_SEQUENCE_NUMBER) {
-    for (; ctp != NULL; ctp = ctp->next) {
-      if (ctp->token_sequence_number >= start_tsn) break;
+    for (; it != end; ++it) {
+      const a_shared_token &tok = *it;
+
+      if (tok->get_starting_seq_number() >= start_tsn) {
+        break;
+      }  /* if */
     }  /* for */
   }  /* if */
-  /*lint --e{850} ctp modified in loop */
-  for (; ctp != NULL; ctp = ctp->next) {
+  for (; it != end; ++it) {
+    const a_shared_token &tok = *it;
+
     /* Stop when we run out of tokens or hit an end-of-source token. */
-    if ((a_token_kind)ctp->token == tok_end_of_source) break;
+    if (tok->is(tok_end_of_source)) {
+      break;
+    }  /* if */
     /* Stop if we've reached the specified ending token sequence number. */
     if (end_tsn != NO_TOKEN_SEQUENCE_NUMBER &&
-        ctp->token_sequence_number >= end_tsn) break;
-    if (ctp->token == tok_removed_expr) {
+        tok->get_starting_seq_number() >= end_tsn) {
+        break;
+    }  /* if */
+    if (tok->is(tok_removed_expr)) {
       /* A special token that indicates the location of a removed
          default argument or exception specification.  The actual default
          argument tokens should still be used for purposes of generating
          the template string. */
-      ctp = ctp->variant.extracted_template.next_in_token_string;
+      const a_token_cache *removed_cache = tok->get_removed_expression();
+
+      if (removed_cache != NULL) {
+        /* Recurse into the removed cache. */
+        add_cached_tokens_to_string(removed_cache->begin(),
+                                    removed_cache->end(),
+                                    start_tsn, end_tsn);
+      } else {
+        /* If the cache is NULL, this is a cache representing a missing
+           expression. */
+      }  /* if */
+      continue;
     }  /* if */
 
-    a_token_extra_info_kind teik_kind = ctp->extra_info_kind;
-    /* Do special processing for teik_extracted_body tokens. */
-    if (teik_kind == (a_token_extra_info_kind)teik_extracted_body) {
-      if (ctp->variant.extracted_template.next_in_token_string == NULL) {
-        a_boolean                        add_orig_token = TRUE;
-        a_boolean                        add_body_string = TRUE;
-        /* A template body was extracted at this location.  Insert the body of
-           the template at this point in the string. */
-        a_symbol_ptr                     sym =
-                                        ctp->variant.extracted_template.symbol;
-        a_template_symbol_supplement_ptr tssp =
-                                           template_supplement_for_symbol(sym);
+    /* Do special processing for extracted body tokens. */
+    if (tok->is_extracted_template_body()) {
+      const an_extracted_template_descr
+                                 *tdescr = tok->get_extracted_template_descr();
+      a_boolean                  add_body_string = TRUE;
+      /* A template body was extracted at this location.  Insert the body of
+         the template at this point in the string. */
+      a_symbol_ptr               sym = tdescr->symbol;
+      a_template_symbol_supplement_ptr
+                                 tssp = template_supplement_for_symbol(sym);
 
 #if NONCLASS_TEMPLATE_INSTANTIATIONS_IN_SOURCE_SEQUENCE_LISTS && \
     REMOVE_INLINE_BODIES_FROM_CLASS_TEMPLATE_DEFINITIONS
-        if (sym->kind == (a_symbol_kind)sk_member_function &&
-            !entity_cannot_be_specialized(sym)) {
-          /* When source sequence entries for nonclass template instantiations
-             are generated, member function bodies of class templates are
-             suppressed because certain compilers don't permit a member
-             function to be both defined in the class and specialized later.
-             (If the member function cannot be specialized, don't suppress the
-             body since it will be needed for instantiations.) */
-          add_body_string = FALSE;
-        }  /* if */
+      if (sym->kind == sk_member_function &&
+          !entity_cannot_be_specialized(sym)) {
+        /* When source sequence entries for nonclass template instantiations
+           are generated, member function bodies of class templates are
+           suppressed because certain compilers don't permit a member
+           function to be both defined in the class and specialized later.
+           (If the member function cannot be specialized, don't suppress the
+           body since it will be needed for instantiations.) */
+        add_body_string = FALSE;
+      }  /* if */
 #endif /* NONCLASS_TEMPLATE_INSTANTIATIONS_IN_SOURCE_SEQUENCE_LISTS && ... */
-        if (add_body_string) { /*lint !e774*/
-          add_cached_tokens_to_string(tssp->cache.tokens.first_token,
-                                      /*start_tsn=*/NO_TOKEN_SEQUENCE_NUMBER,
-                                      /*end_tsn=*/NO_TOKEN_SEQUENCE_NUMBER);
-        }  /* if */
-        /* This semicolon was inserted, and so should be suppressed if the body
-           is output above. */
-        add_orig_token = ctp->token != tok_removed_template_body &&
-          (!add_body_string ||
-           !ctp->variant.extracted_template.semicolon_inserted);
-        if (add_orig_token) {
-          add_token_to_string(ctp);
-        }  /* if */
-      } else {
-        /* A friend function defined in a class template.  Skip over the tokens
-           in the cache that represent the body, and add a semicolon to the
-           string. */
-        ctp = ctp->variant.extracted_template.next_in_token_string;
-        put_ch_to_temp_text_buffer(';');
+      if (add_body_string) { /*lint !e774*/
+        add_cached_tokens_to_string(tssp->cache->tokens->begin(),
+                                    tssp->cache->tokens->end(),
+                                    /*start_tsn=*/NO_TOKEN_SEQUENCE_NUMBER,
+                                    /*end_tsn=*/NO_TOKEN_SEQUENCE_NUMBER);
+      }  /* if */
+
+      /* This semicolon was inserted and so should be suppressed if the body is
+         output above. */
+      a_boolean add_orig_token = !tok->is(tok_removed_template_body) &&
+                           (!add_body_string || !tdescr->semicolon_inserted);
+      if (add_orig_token) {
+        add_token_to_string(tok);
       }  /* if */
     } else {
       /* Otherwise, fallback to the common token printing, ignoring pseudo
          tokens. */
-      add_cached_token_to_string(ctp, /*expand_pseudo_tokens=*/FALSE);
+      add_cached_token_to_string(tok, /*expand_pseudo_tokens=*/FALSE);
     }  /* if */
   }  /* for */
 }  /* add_cached_tokens_to_string */
 
 
-void add_token_cache_segment_to_string(a_token_cache_ptr	cache,
-				       a_token_sequence_number	start_tsn,
-				       a_token_sequence_number	end_tsn)
+void add_token_cache_segment_to_string(const a_token_cache      *cache,
+                                       a_token_sequence_number  start_tsn,
+                                       a_token_sequence_number  end_tsn)
 /*
 Go through a token cache and add the tokens to the string that is
 being constructed that represents the tokens in the cache.  If start_tsn
@@ -28318,11 +28456,12 @@ and < end_tsn are included in the string.
     db_token_cache(cache, "add_token_cache_segment_to_string");
   }  /* if */
 #endif /* DEBUG */
-  add_cached_tokens_to_string(cache->first_token, start_tsn, end_tsn);
+  add_cached_tokens_to_string(cache->begin(), cache->end(),
+                              start_tsn, end_tsn);
 }  /* add_token_cache_segment_to_string */
 
 
-void add_token_cache_to_string(a_token_cache_ptr	cache)
+void add_token_cache_to_string(const a_token_cache *cache)
 /*
 Go through a token cache and add the tokens to the string that is
 being constructed that represents the tokens in the cache.  This
@@ -28337,9 +28476,9 @@ values for the starting/ending token sequence numbers.
 }  /* add_token_cache_to_string */
 
 
-void init_token_string(a_source_position    *pos,
-                       a_boolean            keep_spacing,
-                       ARG_UNUSED a_boolean suppress_identifier_wrapping)
+void init_token_string(const a_source_position *pos,
+                       a_boolean               keep_spacing,
+                       ARG_UNUSED a_boolean    suppress_identifier_wrapping)
 /*
 Prepare to generate a string from one or more token caches.  Initialize
 the string length to zero and set the current sequence number to the
@@ -28399,12 +28538,12 @@ the source form (e.g., digraphs are returned as ordinary tokens).
   } else {
     /* No source characters are (reliably) available.  Create a cache
        containing the current token and recreate the string from that. */
-    a_token_cache cache;
-    clear_token_cache(&cache, /*reusable=*/FALSE);
-    cache_curr_token(&cache);
+    a_tiny_scanning_token_cache cache;
+
+    cache_curr_token(cache.ptr());
     init_token_string(&pos_curr_token, /*keep_spacing=*/FALSE,
                       /*suppress_identifier_wrapping=*/FALSE);
-    add_token_cache_to_string(&cache);
+    add_token_cache_to_string(cache.ptr());
     result = make_copy_of_token_string();
   }  /* if */
   return result;
@@ -28706,113 +28845,138 @@ the caller should copy the contents as needed.
 
 #if DEBUG
 
-static void db_cached_token(a_cached_token_ptr	ctp)
+template<typename Token_type>
+static void db_cached_token(const Token_type &tok)
 /*
 Display a single cached token.
 */
 {
-  fprintf(f_debug, "  kind: %s", token_names[(int)ctp->token]);
-  if ((a_token_kind)ctp->token == (a_token_kind)tok_identifier &&
-      ctp->extra_info_kind == (a_token_extra_info_kind)teik_identifier) {
-    fprintf(f_debug, " %s", ctp->variant.locator.symbol_header->identifier);
+  a_token_kind kind = tok.get_kind();
+
+  fprintf(f_debug, "  kind: %s", token_names[(int)kind]);
+  if (kind == tok_identifier) {
+    const a_symbol_locator* sym_loc = tok.get_symbol_locator();
+    fprintf(f_debug, " %s", sym_loc->symbol_header->identifier);
   }  /* if */
   fprintf(f_debug, "\n");
-  fprintf(f_debug, "  sequence_number: %lu\n",
-          (unsigned long)ctp->token_sequence_number);
-  if (ctp->extra_info_kind != (a_token_extra_info_kind)teik_none &&
-      ctp->extra_info_kind != (a_token_extra_info_kind)teik_identifier) {
-    a_const_char *s = NULL;
-    switch (ctp->extra_info_kind) {
-      case teik_identifier:     s = "identifier"; break; /* not used */
-      case teik_constant:       s = "constant"; break;
-      case teik_pragma:         s = "pragma"; break;
-      case teik_pp_token:       s = "pp_token"; break;
-      case teik_extracted_body: s = "extracted_body"; break;
-      case teik_asm_string:     s = "asm_string"; break;
-      case teik_ud_lit:         s = "ud_lit"; break;
-      case teik_ifc_index:      s = "ifc_index"; break;
-      default:                  unexpected_condition();
-    }  /* switch */
-    fprintf(f_debug, "  extra_info_kind: %s\n", s);
+  if (tok.get_starting_seq_number() == tok.get_ending_seq_number()) {
+    fprintf(f_debug, "  sequence_number: %lu\n",
+            (unsigned long)tok.get_starting_seq_number());
+  } else {
+    fprintf(f_debug, "  sequence_number (start): %lu\n",
+            (unsigned long)tok.get_starting_seq_number());
+    fprintf(f_debug, "  sequence_number (end): %lu\n",
+            (unsigned long)tok.get_ending_seq_number());
   }  /* if */
-  if (ctp->extra_info_kind == (a_token_extra_info_kind)teik_pragma) {
-    a_pending_pragma_ptr	ppp;
-    for (ppp = ctp->variant.pragmas; ppp != NULL; ppp = ppp->next) {
+  if (!tok.is_basic()) {
+    a_const_char *s = NULL;
+
+    if (tok.is_pp_token()) {
+      s = "pp-token";
+    } else if (tok.is_pragma()) {
+      s = "pragma";
+    } else if (tok.is_extracted_template_body()) {
+      s = "extracted-template-body";
+    } else if (tok.is_ud_literal()) {
+      s = "ud-literal";
+    } else if (tok.is_asm_string()) {
+      s = "asm-string";
+    } else if (tok.is_ifc_reference()) {
+      s = "ifc-reference";
+    } else if (tok.is_constant()) {
+      if (tok.is_string_literal()) {
+        s = "string-literal";
+      } else {
+        s = "constant";
+      }  /* if */
+    }  /* if */
+    fprintf(f_debug, "  special kind: %s\n", s);
+  }  /* if */
+  if (tok.is_pragma()) {
+    const a_pending_pragma *ppp;
+
+    for (ppp = *tok.get_pragma_list(); ppp != NULL; ppp = ppp->next) {
       fprintf(f_debug, "  Pragma: %s\n",
               pragma_ids[(int)ppp->descr_ptr->kind]);
     }  /* for */
-  } else if (ctp->extra_info_kind == (a_token_extra_info_kind)teik_ud_lit) {
-    if (ctp->variant.ud_lit.op_sym != NULL) {
-      db_symbol(ctp->variant.ud_lit.op_sym, "  Literal operator: ", 4);
-    } else if (ctp->variant.ud_lit.suffix != NULL) {
+  } else if (tok.is_ud_literal()) {
+    const a_ud_literal_descr *ud_lit_descr = tok.get_ud_literal_descr();
+
+    if (ud_lit_descr->op_sym != NULL) {
+      db_symbol(ud_lit_descr->op_sym, "  Literal operator: ", 4);
+    } else if (ud_lit_descr->suffix != NULL) {
       fprintf(f_debug, "  Literal operator suffix: %s\n",
-              ctp->variant.ud_lit.suffix);
+              ud_lit_descr->suffix);
     }  /* if */
   }  /* if */
 }  /* db_cached_token */
 
 
-a_cached_token_ptr get_cache_token(a_token_cache_ptr       cache,
-                                   a_token_sequence_number seq_number)
+a_shared_token get_cache_token(a_token_cache_ptr       cache,
+                               a_token_sequence_number seq_number)
 /*
-Return the token identified by the given sequence number in the given cache, or
-NULL if not found.
+Return a copy of the token identified by the given sequence number in the given
+cache, or a default initialized cached token if not found.
 
 This function is useful for quickly grabbing a particular cached token for
 inspection in a debugger; not optimized for general usage.
 */
 {
-  a_cached_token_ptr ctp = cache->first_token;
+  a_shared_token result;
 
-  while (ctp != NULL && ctp->token_sequence_number != seq_number) {
-    ctp = ctp->next;
-  }  /* while */
-  return ctp;
+  for (const a_shared_token &tok : *cache) {
+    if (tok->get_starting_seq_number() == seq_number) {
+      result = *tok;
+      break;
+    }  /* if */
+  }  /* for */
+  return result;
 }  /* get_cache_token */
 
 
-void db_rescan_list(void)
+void db_rescan_stack(void)
 /*
-Display the tokens on the cached_token_rescan_list.
+Display the tokens on the cached_token_rescan_stack.
 */
 {
-  a_cached_token_ptr	ctp;
-  unsigned long		count = 0;
+  size_t num_tokens = cached_token_rescan_stack->length();
 
-  for (ctp = cached_token_rescan_list; ctp != NULL; ctp = ctp->next) {
-    if (count != 0) fprintf(f_debug, "\n");
-    fprintf(f_debug, "Token %lu:\n", count++);
-    db_cached_token(ctp);
+  for (size_t i = num_tokens; i != 0; --i) {
+    if (i != num_tokens) {
+      fprintf(f_debug, "\n");
+    }  /* if */
+
+    a_shared_token tok = (*cached_token_rescan_stack)[i - 1];
+    print(a_string("Token ", num_tokens - i, ":"), f_debug);
+    db_cached_token(*tok);
   }  /* for */
-}  /* db_rescan_list */
+}  /* db_rescan_stack */
 
 
-void db_token_cache(a_token_cache *cache,
-                    a_const_char  *cache_name)
+void db_token_cache(const a_token_cache *cache,
+                    a_const_char        *cache_name)
 /*
 Display the contents of a token cache.
 */
 {
-  a_cached_token_ptr	ctp;
-  unsigned long		count = 0;
-
   fprintf(f_debug, "%s token cache at %p\n", cache_name, (void *)cache);
   if (cache != NULL) {
-    fprintf(f_debug, "first_token: %p\n", (void *)cache->first_token);
-    fprintf(f_debug, "last_token: %p\n", (void *)cache->last_token);
-    fprintf(f_debug, "token_count: %lu\n", cache->token_count);
-    fprintf(f_debug, "pragma_count: %lu\n", cache->pragma_count);
-    for (ctp = cache->first_token; ctp != NULL; ctp = ctp->next) {
-      if (count != 0) fprintf(f_debug, "\n");
+    print(a_string("token_count:", cache->length()), f_debug);
+
+    unsigned long count = 0;
+    for (const a_shared_token &tok : *cache) {
+      if (count != 0) {
+        fprintf(f_debug, "\n");
+      }  /* if */
       fprintf(f_debug, "Token %lu:\n", count++);
-      db_cached_token(ctp);
+      db_cached_token(*tok);
     }  /* for */
   }  /* if */
 }  /* db_token_cache */
 
 
-static a_boolean is_tok_equiv(const a_cached_token *tok1,
-                              const a_cached_token *tok2)
+static a_boolean is_tok_equiv(const a_shared_token &tok1,
+                              const a_shared_token &tok2)
 /*
 Return TRUE if the cached token represented by tok1 is approximately the same
 as the cached token represented by tok2; otherwise, return FALSE.
@@ -28823,28 +28987,29 @@ intentionally excludes some factors such as the token's sequence number.
 {
   a_boolean result = TRUE;
 
-  if (tok1->token != tok2->token) {
+  if (tok1->get_kind() != tok2->get_kind()) {
     result = FALSE;
-  } else if (tok1->extra_info_kind != tok2->extra_info_kind) {
+  } else if (tok1->get_extra_kind() != tok2->get_extra_kind()) {
     result = FALSE;
   } else {
-    switch (tok1->extra_info_kind) {
+    switch (tok1->get_extra_kind()) {
       case teik_none:
         break;
       case teik_identifier:
-        { const a_symbol_locator &loc1 = tok1->variant.locator;
-          const a_symbol_locator &loc2 = tok2->variant.locator;
+        { const a_symbol_locator *loc1 = tok1->get_symbol_locator();
+          const a_symbol_locator *loc2 = tok2->get_symbol_locator();
 
-          if (loc1.symbol_header != loc2.symbol_header) {
+          if (loc1->symbol_header != loc2->symbol_header) {
             result = FALSE;
           }  /* if */
         }
         break;
       case teik_constant:
-        { a_constant_ptr const1 = tok1->variant.constant;
-          a_constant_ptr const2 = tok2->variant.constant;
+        { const a_constant *const1 = tok1->get_constant();
+          const a_constant *const2 = tok2->get_constant();
 
-          if (!eq_constants(const1, const2)) {
+          if (!eq_constants(const_cast<a_constant*>(const1),
+                            const_cast<a_constant*>(const2))) {
             result = FALSE;
           }  /* if */
         }
@@ -28852,6 +29017,7 @@ intentionally excludes some factors such as the token's sequence number.
       case teik_pragma:
       case teik_pp_token:
       case teik_extracted_body:
+      case teik_removed_expr:
       case teik_asm_string:
       case teik_insert_string:
       case teik_ud_lit:
@@ -28865,9 +29031,8 @@ intentionally excludes some factors such as the token's sequence number.
 }  /* is_tok_equiv */
 
 
-static a_boolean are_token_caches_equiv(
-                                     const Dyn_array<a_cached_token*> &cache_a,
-                                     const Dyn_array<a_cached_token*> &cache_b)
+static a_boolean are_token_caches_equiv(const a_token_cache &cache_a,
+                                        const a_token_cache &cache_b)
 /*
 Given two token caches, return TRUE if they're equivalent under the rules of
 is_tok_equiv; otherwise, return FALSE.
@@ -28908,7 +29073,7 @@ A class for facilitating printing of token caches with optional comments.
 */
 struct a_commentary_token_printer {
   a_commentary_token_printer()
-    : printed_anything(FALSE), prev_token(NULL), prev_line_num(0),
+    : printed_anything(FALSE), prev_token(), prev_line_num(0),
       curr_column(0), printed_comment(FALSE)
     {}
   inline ~a_commentary_token_printer();
@@ -28916,8 +29081,8 @@ struct a_commentary_token_printer {
   a_boolean last_printed_a_token() const
     { return this->printed_anything && !this->printed_comment; }
 
-  inline void print_token(a_cached_token *tok,
-                          a_const_char   *color_code = NULL);
+  inline void print_token(const a_shared_token &tok,
+                          a_const_char         *color_code = NULL);
   inline void print_comment(const a_string &comment,
                             a_const_char   *color_code = NULL);
 private:
@@ -28925,8 +29090,8 @@ private:
                              a_const_char   *color_code = NULL);
   a_boolean     printed_anything;
                         /* TRUE if anything has been printed. */
-  a_cached_token
-                *prev_token;
+  Opt<a_shared_token>
+                prev_token;
                         /* The most recently printed token. */
   a_line_number prev_line_num;
                         /* The line number of the most recently printed
@@ -28952,17 +29117,17 @@ off the token printing (if the last thing printed was a token cache).
 }  /* a_commentary_token_printer::~a_commentary_token_printer */
 
 
-void a_commentary_token_printer::print_token(a_cached_token *tok,
-                           /* Defaulted: */  a_const_char   *color_code)
+void a_commentary_token_printer::print_token(const a_shared_token &tok,
+                           /* Defaulted: */  a_const_char         *color_code)
 /*
 Given a token, print the token with style hinting based on the source position
 information.  If color_code is not NULL, the given color code will be used for
 the token.
 */
 {
-  a_line_number     line_num;
-  a_boolean         at_end_of_source;
-  a_source_position *pos = &tok->source_position;
+  a_line_number           line_num;
+  a_boolean               at_end_of_source;
+  const a_source_position *pos = tok->get_source_position();
 
   (void)source_file_for_seq(pos->seq, &line_num, &at_end_of_source,
                             /*physical_line=*/TRUE);
@@ -28980,12 +29145,12 @@ the token.
     }  /* if */
     this->prev_line_num = line_num;
   }  /* if */
-  if (tok->source_position.column != 0) {
+  if (pos->column != 0) {
     /* If there's a jump in the token indent in the original source
        information, increase the indent appropriately. */
     a_string        padding_str("");
     a_column_number start = this->curr_column;
-    a_column_number end = tok->source_position.column - 1;
+    a_column_number end = pos->column - 1;
 
     for (a_column_number i = start; i < end; ++i) {
       padding_str.append(" ");
@@ -29048,8 +29213,8 @@ token.
 
 }  /* namespace */
 
-static void print_token_range_summary(a_cached_token_ptr      first_token,
-                                      a_token_sequence_number last_tsn)
+static void print_token_range_summary(a_const_token_cache_iterator begin,
+                                      a_const_token_cache_iterator end)
 /*
 Print a summary including the approximate source position of the given token
 range (starting at the given token and ending inclusively at last_tsn) and the
@@ -29058,66 +29223,56 @@ token sequence number range itself.
 {
   /* If any of the tokens in the cache has an associated position, output a
      description of that position first. */
-  for (a_cached_token *ctp = first_token; ctp != NULL; ctp = ctp->next) {
-    if (ctp->source_position.seq != 0) {
-      if (ctp != first_token) {
+  for (a_const_token_cache_iterator it = begin; it != end; ++it) {
+    const a_shared_token &tok = *it;
+
+    const a_source_position *src_pos = tok->get_source_position();
+    if (src_pos->seq != 0) {
+      if (it != begin) {
         fprintf(f_debug, "(approx.) ");
       }  /* if */
-      db_source_position(&ctp->source_position);
-      fprintf(f_debug, " (seq = %ld) ", (long)ctp->source_position.seq);
+      db_source_position(src_pos);
+      fprintf(f_debug, " (seq = %ld) ", (long)src_pos->seq);
       break;
     }  /* if */
   }  /* for */
 
-  a_token_sequence_number start_tsn = 0;
-  if (first_token != NULL) {
-    start_tsn = first_token->token_sequence_number;
+  /* Then output the token sequence range. */
+  a_token_sequence_number min_tsn = NO_TOKEN_SEQUENCE_NUMBER;
+  a_token_sequence_number max_tsn = NO_TOKEN_SEQUENCE_NUMBER;
+  if (begin != end) {
+    min_tsn = max_tsn = (*begin)->get_starting_seq_number();
+    for (a_const_token_cache_iterator it = begin + 1; it != end; ++it) {
+      a_token_sequence_number tsn = (*it)->get_starting_seq_number();
+
+      if (tsn < min_tsn) {
+        min_tsn = tsn;
+      } else if (tsn > max_tsn) {
+        max_tsn = tsn;
+      }  /* if */
+    }  /* for */
   }  /* if */
-  fprintf(f_debug, "[tsn: %ld - %ld]\n", (long)start_tsn, (long)last_tsn);
+  fprintf(f_debug, "[tsn: %ld - %ld]\n", (long)min_tsn, (long)max_tsn);
 }  /* print_token_range_summary */
 
 
-static void print_token_range_summary(const Dyn_array<a_cached_token*> &tokens)
-/*
-Print a summary including the approximate source position of the given token
-range (for all tokens in the given token array) and the token sequence number
-range itself.
-*/
-{
-  a_cached_token          *first_token = NULL;
-  a_token_sequence_number last_tsn = 0;
-
-  if (!tokens.is_empty()) {
-    first_token = tokens[0];
-    last_tsn = tokens[tokens.length() - 1]->token_sequence_number;
-  }  /* if */
-  print_token_range_summary(first_token, last_tsn);
-}  /* print_token_range_summary */
-
-
-void db_diff_token_caches(a_token_cache *cache_a,
-                          a_token_cache *cache_b)
+void db_diff_token_caches(const a_token_cache *cache_a,
+                          const a_token_cache *cache_b)
 /*
 Given two token caches, compare the two caches for mismatched tokens and write
 a diff-like output to f_debug.
 */
 {
-  Opt<a_string>   result;
-  Dyn_array<a_cached_token*>
-                  cache_a_toks = linked_list_to_ptr_array(cache_a->first_token,
-                                                          /*init_cap=*/10000);
-  Dyn_array<a_cached_token*>
-                  cache_b_toks = linked_list_to_ptr_array(cache_b->first_token,
-                                                          /*init_cap=*/10000);
+  Opt<a_string> result;
 
-  print_token_range_summary(cache_a_toks);
-  print_token_range_summary(cache_b_toks);
+  print_token_range_summary(cache_a->begin(), cache_a->end());
+  print_token_range_summary(cache_b->begin(), cache_b->end());
 
   a_commentary_token_printer printer;
-  if (are_token_caches_equiv(cache_a_toks, cache_b_toks)) {
+  if (are_token_caches_equiv(*cache_a, *cache_b)) {
     /* The token caches are equivalent: just print the tokens. */
     printer.print_comment(a_string("/* TOKENS EQUIVALENT */"));
-    for (a_cached_token *tok : cache_a_toks) {
+    for (const a_shared_token &tok : *cache_a) {
       printer.print_token(tok);
     }  /* for */
   } else {
@@ -29125,14 +29280,14 @@ a diff-like output to f_debug.
        differences. */
     printer.print_comment(a_string("/* TOKENS DIFFER */"));
 
-    Seq_comparator<a_cached_token*>
-                    comparator(cache_a_toks.begin(),
-                               cache_a_toks.length(),
-                               cache_b_toks.begin(),
-                               cache_b_toks.length(),
+    Seq_comparator<const a_shared_token>
+                    comparator(&(*(cache_a->begin())),
+                               cache_a->length(),
+                               &(*(cache_b->begin())),
+                               cache_b->length(),
                                is_tok_equiv);
-    auto            diff_consumer = [&printer](a_cached_token **from_tok,
-                                               a_cached_token **to_tok) {
+    auto            diff_consumer = [&printer](const a_shared_token *from_tok,
+                                               const a_shared_token *to_tok) {
       if (from_tok == NULL || to_tok == NULL) {
         a_const_char *color_code = NULL;
 
@@ -29171,7 +29326,7 @@ a diff-like output to f_debug.
 }  /* db_diff_token_caches */
 
 
-void db_source_position(a_source_position  *pos)
+void db_source_position(const a_source_position *pos)
 /*
 Output the given source position to f_debug, both using a raw sequence number
 and using the associated file name and line number.
@@ -29200,23 +29355,17 @@ and using the associated file name and line number.
 
 
 static void add_cached_tokens_to_string_for_debug(
-                                          a_cached_token_ptr       first_token,
-                                          a_token_sequence_number  end_tsn)
+                                            a_const_token_cache_iterator begin,
+                                            a_const_token_cache_iterator end)
 /*
 Go through a list of cached tokens and add the tokens to the string that is
-being constructed that represents the tokens.  If end_tsn is not
-NO_TOKEN_SEQUENCE_NUMBER only the tokens (exclusively) preceding end_tsn are
-included in the string.
+being constructed that represents the tokens.
 */
 {
-  a_cached_token_ptr ctp = first_token;
-  unsigned           color_idx = 0;
+  unsigned color_idx = 0;
 
-  /*lint --e{850} ctp modified in loop */
-  for (; ctp != NULL; ctp = ctp->next) {
-    /* Stop if we've reached the specified ending token sequence number. */
-    if (end_tsn != NO_TOKEN_SEQUENCE_NUMBER &&
-        ctp->token_sequence_number == end_tsn) break;
+  for (a_const_token_cache_iterator it = begin; it != end; ++it) {
+    const a_shared_token &tok = *it;
 
     /* Add the color rotation if relevant. */
     if (db_color_flag_is_set()) {
@@ -29237,7 +29386,7 @@ included in the string.
       put_str_to_temp_text_buffer(color_code);
       put_ch_to_temp_text_buffer('m');
     }  /* if */
-    add_cached_token_to_string(ctp, /*print_pseudo_tokens=*/TRUE);
+    add_cached_token_to_string(tok, /*print_pseudo_tokens=*/TRUE);
   }  /* for */
   if (db_color_flag_is_set()) {
     put_ch_to_temp_text_buffer('\033');
@@ -29248,49 +29397,25 @@ included in the string.
 }  /* add_cached_tokens_to_string_for_debug */
 
 
-static void db_token_range(a_cached_token_ptr      first_token,
-                           a_token_sequence_number last_tsn)
+static void db_token_range_internal(a_const_token_cache_iterator begin,
+                                    a_const_token_cache_iterator end)
 /*
-Print diagnostics for the range of tokens starting at the given cached token
-pointer, and ending (inclusive) with the token identified by last_tsn.
+This function is an implementation detail of db_token_range.  It prints the
+range of tokens from [begin, end) without any contextual annotation or special
+processing.
 */
 {
   a_temp_text_buffer_swap tmp_buffer_swap;
-  a_token_sequence_number end_tsn = NO_TOKEN_SEQUENCE_NUMBER;
 
-  /* Look for the true end_tsn (as last_tsn is inclusive, and end_tsn is
-     not). */
-  for (a_cached_token *ctp = first_token; ctp != NULL; ctp = ctp->next) {
-    /* If the current token matches the last printed token sequence number, and
-       there's a next token, the next differing token sequence number is
-       considered the end. */
-    if (ctp->token_sequence_number == last_tsn && ctp->next != NULL) {
-      /* Scan ahead for the first token that has a different token sequence
-         number.  This is important as tok_end_of_source tokens share the same
-         token sequence number as their preceding tokens (and other tokens
-         might unintentionally do so as well). */
-      do {
-        ctp = ctp->next;
-      } while (ctp != NULL && ctp->token_sequence_number == last_tsn);
-      if (ctp != NULL) {
-        end_tsn = ctp->token_sequence_number;
-      }  /* if */
-      break;
-    }  /* if */
-  }  /* for */
   /* Print a summary of the token range. */
-  print_token_range_summary(first_token, last_tsn);
+  print_token_range_summary(begin, end);
   /* Print the tokens themselves. */
   if (!db_flag_is_set("old_db_tokens")) {
     a_commentary_token_printer printer;
     unsigned                   color_idx = 0;
 
-    for (a_cached_token *ctp = first_token; ctp != NULL; ctp = ctp->next) {
-      /* Stop if we've reached the specified ending token sequence number. */
-      if (end_tsn != NO_TOKEN_SEQUENCE_NUMBER &&
-          ctp->token_sequence_number == end_tsn) {
-        break;
-      }  /* if */
+    for (a_const_token_cache_iterator it = begin; it != end; ++it) {
+      const a_shared_token &tok = *it;
 
       /* Add the color rotation if relevant. */
       a_const_char *color_code = NULL;
@@ -29306,11 +29431,11 @@ pointer, and ending (inclusive) with the token identified by last_tsn.
           unexpected_condition();
         }  /* if */
       }  /* if */
-      printer.print_token(ctp, color_code);
+      printer.print_token(tok, color_code);
     }  /* for */
   } else {
     /* Add the tokens to the temp_text_buffer. */
-    add_cached_tokens_to_string_for_debug(first_token, end_tsn);
+    add_cached_tokens_to_string_for_debug(begin, end);
 
     sizeof_t k = 0;
     sizeof_t indent = 0;
@@ -29382,46 +29507,78 @@ pointer, and ending (inclusive) with the token identified by last_tsn.
     /* Ensure there's a trailing newline. */
     fprintf(f_debug, "\n");
   }  /* if */
+}  /* db_token_range_internal */
+
+
+static void db_token_range(a_const_token_cache_iterator begin,
+                           a_const_token_cache_iterator end)
+/*
+Print diagnostics for the given range of tokens.
+*/
+{
+  a_const_token_cache_iterator last_print = begin;
+  a_token_sequence_number      highest_prev_range = NO_TOKEN_SEQUENCE_NUMBER;
+  a_const_token_cache_iterator it = begin;
+
+  /* Look out for a decline in the token sequence numbers. */
+  if (it != end) {
+    highest_prev_range = (*it)->get_starting_seq_number();
+  }  /* if */
+  for (; it != end; ++it) {
+    if ((*it)->get_starting_seq_number() < highest_prev_range) {
+      db_token_range_internal(last_print, it);
+      last_print = it;
+    }  /* if */
+  }  /* for */
+  db_token_range_internal(last_print, end);
 }  /* db_token_range */
 
 
-void db_tokens(a_cached_token_ptr  first_token)
-/*
-Display the contents of the given token cache as text, with some simple-minded
-formatting.
-*/
-{
-  a_cached_token_ptr       ctp = first_token;
-  a_cached_token_ptr       start_ctp = first_token;
-  a_token_sequence_number  prev_tsn;
-
-  /* Populate initial last token sequence numbers. */
-  if (first_token != NULL) {
-    prev_tsn = first_token->token_sequence_number;
-  } else {
-    prev_tsn = 0;
-  }  /* if */
-  for (ctp = first_token; ctp != NULL; ctp = ctp->next) {
-    a_token_sequence_number curr_tsn = ctp->token_sequence_number;
-
-    if (curr_tsn < prev_tsn) {
-      db_token_range(start_ctp, prev_tsn);
-      /* Update the range. */
-      start_ctp = ctp;
-    }  /* if */
-    prev_tsn = curr_tsn;
-  }  /* if */
-  db_token_range(start_ctp, prev_tsn);
-}  /* db_tokens */
-
-
-void db_tokens(a_token_cache  *cache)
+void db_tokens(const a_token_cache *cache)
 /*
 Display the contents of the given list of cached tokens as text, with some
 simple-minded formatting.
 */
 {
-  db_tokens(cache->first_token);
+  db_token_range(cache->begin(), cache->end());
+}  /* db_tokens */
+
+
+void db_tokens(const a_shared_token_cache &cache)
+/*
+A wrapper around db_tokens for shared token caches.
+*/
+{
+  db_tokens(cache.ptr());
+}  /* db_tokens */
+
+
+void db_tokens(const a_reusable_token_cache &cache)
+/*
+A wrapper around db_tokens for reusable token caches.
+*/
+{
+  db_tokens(cache.ptr());
+}  /* db_tokens */
+
+
+void db_tokens(a_token_cache_iterator it)
+/*
+A wrapper around db_token_range for printing from a token cache iterator to the
+end of the associated token cache.
+*/
+{
+  db_token_range(it, it.cache->end());
+}  /* db_tokens */
+
+
+void db_tokens(a_const_token_cache_iterator it)
+/*
+A wrapper around db_token_range for printing from a const token cache iterator
+to the end of the associated token cache.
+*/
+{
+  db_token_range(it, it.cache->end());
 }  /* db_tokens */
 
 
@@ -29432,12 +29589,6 @@ Display and return the amount of space used for various lexical tables.
 {
   unsigned long num, size, total, grand_total = 0;
 
-  /* Subtract the number of tokens and pragmas used in reusable caches from
-     the total number allocated.  Reusable cached tokens and pragmas will be
-     reported separately. */
-  num_cached_tokens_allocated -= num_cached_tokens_in_reusable_caches;
-  num_pending_pragmas_allocated -= num_pragmas_in_reusable_caches;
-
   db_space_used_header("Lexical table use:");
 
   db_space_used_lost("orig line modif", avail_orig_line_modifs,
@@ -29447,20 +29598,15 @@ Display and return the amount of space used for various lexical tables.
   db_space_used_lost("concatenation record", avail_concatenation_records,
                      num_concatenation_records_allocated,
                      a_concatenation_record);
-  db_space_used_lost("cached token", avail_cached_tokens,
-                     num_cached_tokens_allocated, a_cached_token);
-  db_space_used("reusable cached token",
-                 num_cached_tokens_in_reusable_caches, a_cached_token);
-  db_space_used("token cache",
-                 num_token_caches_allocated, a_token_cache);
+  db_space_used("shared token (states)", num_shared_token_states_allocated,
+                a_shared_token_ctrl_block);
   db_space_used_lost("cached constant", avail_cached_constants,
                      num_cached_constants_allocated, a_constant);
   db_space_used_lost("cache stack entry", avail_reusable_cache_entries,
                      num_reusable_cache_entries_allocated,
                      a_reusable_cache_entry);
-  db_space_used_lost("pending pragma entry", avail_pending_pragmas,
-                     num_pending_pragmas_allocated,
-                     a_pending_pragma);
+  db_space_used_lost("pragma entries", avail_pending_pragmas,
+                     num_pragmas_allocated, a_pending_pragma);
   db_space_used_lost("stop token stack entry", avail_stop_token_stack_entries,
                      num_stop_token_stack_entries_allocated,
                      a_stop_token_stack_entry);
@@ -29468,8 +29614,6 @@ Display and return the amount of space used for various lexical tables.
                      avail_lexical_state_stack_entries,
                      num_lexical_state_stack_entries_allocated,
                      a_lexical_state_stack_entry);
-  db_space_used("reusable cache pragmas",
-                 num_pragmas_in_reusable_caches, a_pending_pragma);
   db_space_used("pragma kind descriptions", num_pragma_descriptions_allocated,
                 a_pragma_kind_description);
   db_space_used("file suffixes", num_file_suffixes_allocated,
@@ -29520,8 +29664,8 @@ Display and return the amount of space used for various lexical tables.
 
   return (grand_total);
 }  /* show_lexical_space_used */
-#endif /* DEBUG */
 
+#endif /* DEBUG */
 
 static void create_sun_include_file_suffixes(void)
 /*
@@ -29913,13 +30057,14 @@ are handled in lexical_init.)
       pch_saved_var_array_elem(avail_concatenation_records),
       pch_saved_var_array_elem(sequence_id_for_source_line_modifs),
       pch_saved_var_array_elem(last_token_sequence_number_used),
-      pch_saved_var_array_elem(avail_cached_tokens),
       pch_saved_var_array_elem(avail_cached_constants),
       pch_saved_var_array_elem(avail_reusable_cache_entries),
-      pch_saved_var_array_elem(avail_token_cache_entries),
       pch_saved_var_array_elem(avail_pending_pragmas),
       pch_saved_var_array_elem(avail_stop_token_stack_entries),
       pch_saved_var_array_elem(avail_lexical_state_stack_entries),
+      pch_saved_var_array_elem(avail_token_ctrl_blocks),
+      pch_saved_var_array_elem(avail_scanning_token_caches),
+      pch_saved_var_array_elem(avail_tiny_scanning_token_caches),
       pch_saved_var_array_elem(include_file_history_hash_table),
       pch_saved_var_array_elem(name_linkage_constants),
       pch_saved_var_array_elem(curr_stop_token_stack_entry),
@@ -29933,16 +30078,13 @@ are handled in lexical_init.)
       pch_saved_var_array_elem(spelling_storage_buffer_tail),
 #endif /* UNICODE_VULNERABILITY_DETECTION_SUPPORTED */
 #if DEBUG
+      pch_saved_var_array_elem(num_shared_token_states_allocated),
       pch_saved_var_array_elem(num_orig_line_modifs_allocated),
       pch_saved_var_array_elem(num_source_line_modifs_allocated),
       pch_saved_var_array_elem(num_concatenation_records_allocated),
-      pch_saved_var_array_elem(num_cached_tokens_allocated),
-      pch_saved_var_array_elem(num_cached_tokens_in_reusable_caches),
-      pch_saved_var_array_elem(num_pragmas_in_reusable_caches),
       pch_saved_var_array_elem(num_cached_constants_allocated),
       pch_saved_var_array_elem(num_reusable_cache_entries_allocated),
-      pch_saved_var_array_elem(num_token_caches_allocated),
-      pch_saved_var_array_elem(num_pending_pragmas_allocated),
+      pch_saved_var_array_elem(num_pragmas_allocated),
       pch_saved_var_array_elem(num_pragma_descriptions_allocated),
       pch_saved_var_array_elem(num_stop_token_stack_entries_allocated),
       pch_saved_var_array_elem(num_lexical_state_stack_entries_allocated),
@@ -29967,13 +30109,12 @@ are handled in lexical_init.)
   register_trans_unit_variable(start_of_curr_token);
   register_trans_unit_variable(end_of_curr_token);
   register_trans_unit_variable(len_of_curr_token);
-  register_trans_unit_variable(cached_token_rescan_list);
+  register_trans_unit_variable(cached_token_rescan_stack);
   register_trans_unit_variable(reusable_cache_stack);
   register_trans_unit_variable(any_initial_get_token_tests_needed);
   register_trans_unit_variable(treat_newline_as_token);
   register_trans_unit_variable(curr_token_asm_string);
   register_trans_unit_variable(curr_token_sequence_number);
-  register_trans_unit_variable(curr_cached_token_handle);
   include_search_hash_table = alloc_hash_table(NO_MEMORY_REGION_NUMBER,
                                (a_hash_table_size)1024,
                                fn_for_function(hash_include_search_result),
@@ -30035,13 +30176,13 @@ done to determine whether a precompiled header may be used.
   after_end_of_all_source = FALSE;
   init_do_not_put_curr_line_in_pp_output = TRUE;
   curr_raw_listing_line_code = '\0';
-  cached_token_rescan_list = NULL;
+  cached_token_rescan_stack = new_fe<a_token_stack>(
+                                            cached_token_rescan_init_capacity);
   reusable_cache_stack = NULL;
   any_initial_get_token_tests_needed = FALSE;
   treat_newline_as_token = FALSE;
   curr_token_sequence_number = NO_TOKEN_SEQUENCE_NUMBER;
   last_token_sequence_number_of_token = NO_TOKEN_SEQUENCE_NUMBER;
-  curr_cached_token_handle = NO_CACHED_TOKEN_HANDLE;
   any_tokens_fetched_from_curr_input_file = FALSE;
   curr_token_asm_string = NULL;
   scanning_microsoft_asm = FALSE;
@@ -30118,13 +30259,19 @@ of the front end.
   avail_orig_line_modifs = NULL;
   avail_source_line_modifs = NULL;
   avail_concatenation_records = NULL;
+  avail_token_ctrl_blocks = new_fe<Dyn_array<a_shared_token_ctrl_block*>>(
+                                     /*capacity=*/token_ctrl_block_batch_size);
+  FE_allocator<a_shared_token_ctrl_block>::reserve_block();
+  avail_scanning_token_caches = new_fe<Dyn_array<a_token_cache*>>(
+                                                              /*capacity=*/5u);
+  avail_tiny_scanning_token_caches = new_fe<Dyn_array<a_token_cache*>>(
+                                                              /*capacity=*/5u);
   sequence_id_for_source_line_modifs = 0;
   delete_source_from_loc = NULL;
 #if PRESERVE_EMBED_DIRECTIVE_WHEN_OPTIMIZED
   embed_parse_data.directive = NULL;
 #endif /* PRESERVE_EMBED_DIRECTIVE_WHEN_OPTIMIZED */
   /* Static variables in lexical.c: */
-  avail_cached_tokens = NULL;
   avail_cached_constants = NULL;
   avail_reusable_cache_entries = NULL;
   avail_stop_token_stack_entries = NULL;
@@ -30138,7 +30285,6 @@ of the front end.
   scanning_for_whitespace_keyword = FALSE;
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
   ud_lit_suffix_buffer = NULL;
-  avail_token_cache_entries = NULL;
   in_token_insertion_from_string = FALSE;
   token_insertion_position = null_source_position;
   clear_embed_control_block();
@@ -30182,13 +30328,10 @@ of the front end.
   num_orig_line_modifs_allocated = 0;
   num_source_line_modifs_allocated = 0;
   num_concatenation_records_allocated = 0;
-  num_cached_tokens_allocated = 0;
-  num_cached_tokens_in_reusable_caches = 0;
-  num_pragmas_in_reusable_caches = 0;
+  num_shared_token_states_allocated = 0;
   num_cached_constants_allocated = 0;
   num_reusable_cache_entries_allocated = 0;
-  num_token_caches_allocated = 0;
-  num_pending_pragmas_allocated = 0;
+  num_pragmas_allocated = 0;
   num_stop_token_stack_entries_allocated = 0;
   num_lexical_state_stack_entries_allocated = 0;
   num_pragma_descriptions_allocated = 0;

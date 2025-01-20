@@ -27,12 +27,12 @@ a variable whose value is temporarily being changed.
 */
 template<typename a_Var_type>
 struct Value_saver {
-  inline Value_saver(a_Var_type * const var_to_be_saved);
-  inline Value_saver(a_Var_type * const var_to_be_saved,
+  INLINE Value_saver(a_Var_type * const var_to_be_saved);
+  INLINE Value_saver(a_Var_type * const var_to_be_saved,
                      const a_Var_type   &new_value);
-  inline ~Value_saver();
+  INLINE ~Value_saver();
 
-  inline void restore_now() const;
+  INLINE void restore_now() const;
 private:
   a_Var_type *const
                 saved_var;
@@ -46,7 +46,7 @@ private:
 
 
 template<typename a_Var_type>
-inline Value_saver<a_Var_type>::Value_saver(a_Var_type * const var_to_be_saved)
+Value_saver<a_Var_type>::Value_saver(a_Var_type * const var_to_be_saved)
   : saved_var(var_to_be_saved), saved_value(*var_to_be_saved)
 /*
 Save the current value of the given variable (var_to_be_saved).  The saved
@@ -57,8 +57,8 @@ value will be restored upon destruction.
 
 
 template<typename a_Var_type>
-inline Value_saver<a_Var_type>::Value_saver(a_Var_type * const var_to_be_saved,
-                                            const a_Var_type   &new_value)
+Value_saver<a_Var_type>::Value_saver(a_Var_type * const var_to_be_saved,
+                                     const a_Var_type   &new_value)
   : Value_saver(var_to_be_saved)
 /*
 Save the current value of the given variable (var_to_be_saved).  Then, update
@@ -71,7 +71,7 @@ upon destruction.
 
 
 template<typename a_Var_type>
-inline Value_saver<a_Var_type>::~Value_saver()
+Value_saver<a_Var_type>::~Value_saver()
 /*
 Restore the variable given during construction to its saved state.
 */
@@ -81,7 +81,7 @@ Restore the variable given during construction to its saved state.
 
 
 template<typename a_Var_type>
-inline void Value_saver<a_Var_type>::restore_now() const
+void Value_saver<a_Var_type>::restore_now() const
 /*
 Immediately restore the variable given during construction to its saved state.
 */
@@ -101,29 +101,29 @@ doesn't accidentally forget a check.
 */
 template<typename a_Value_type>
 struct Opt {
-  Opt() : storing_value(FALSE)
+  INLINE Opt() : storing_value(FALSE)
     {}
-  Opt(const a_Value_type &value)
+  INLINE Opt(const a_Value_type &value)
     : storing_value(TRUE), stored_value(value)
     {}
-  Opt(a_Value_type &&value)
+  INLINE Opt(a_Value_type &&value)
     : storing_value(TRUE), stored_value(static_cast<a_Value_type &&>(value))
     {}
-  inline Opt(const Opt<a_Value_type> &other);
-  inline Opt(Opt<a_Value_type> &&other);
-  inline ~Opt();
-  a_boolean has_value() const;
+  INLINE Opt(const Opt<a_Value_type> &other);
+  INLINE Opt(Opt<a_Value_type> &&other);
+  INLINE ~Opt();
+  INLINE a_boolean has_value() const;
   /* Value retrieval functions. */
-  inline a_Value_type* operator->();
-  inline const a_Value_type* operator->() const;
-  inline a_Value_type& operator*();
-  inline const a_Value_type& operator*() const;
+  INLINE a_Value_type* operator->();
+  INLINE const a_Value_type* operator->() const;
+  INLINE a_Value_type& operator*();
+  INLINE const a_Value_type& operator*() const;
   /* Value update functions. */
-  inline Opt<a_Value_type>& operator=(const a_Value_type &value);
-  inline Opt<a_Value_type>& operator=(a_Value_type &&value);
-  inline Opt<a_Value_type>& operator=(const Opt<a_Value_type> &other);
-  inline Opt<a_Value_type>& operator=(Opt<a_Value_type> &&other);
-  inline void clear();
+  INLINE Opt<a_Value_type>& operator=(const a_Value_type &value);
+  INLINE Opt<a_Value_type>& operator=(a_Value_type &&value);
+  INLINE Opt<a_Value_type>& operator=(const Opt<a_Value_type> &other);
+  INLINE Opt<a_Value_type>& operator=(Opt<a_Value_type> &&other);
+  INLINE void clear();
 private:
   a_boolean     storing_value;
                         /* TRUE if there is a value stored, FALSE otherwise. */
@@ -150,7 +150,7 @@ private:
 
 
 template<typename a_Value_type>
-inline Opt<a_Value_type>::Opt(const Opt<a_Value_type> &other)
+Opt<a_Value_type>::Opt(const Opt<a_Value_type> &other)
   : storing_value(other.storing_value)
 /*
 Copy construct an optional from another optional.
@@ -164,7 +164,7 @@ Copy construct an optional from another optional.
 
 
 template<typename a_Value_type>
-inline Opt<a_Value_type>::Opt(Opt<a_Value_type> &&other)
+Opt<a_Value_type>::Opt(Opt<a_Value_type> &&other)
   : storing_value(other.storing_value)
 /*
 Move construct an optional from another optional.
@@ -179,7 +179,7 @@ Move construct an optional from another optional.
 
 
 template<typename a_Value_type>
-inline Opt<a_Value_type>::~Opt()
+Opt<a_Value_type>::~Opt()
 /*
 Destruct an optional invoking the destructor for the stored value if there is
 one.
@@ -193,7 +193,7 @@ one.
 
 
 template<typename a_Value_type>
-inline a_boolean Opt<a_Value_type>::has_value() const
+a_boolean Opt<a_Value_type>::has_value() const
 /*
 Return TRUE if this optional is storing a value, otherwise return FALSE.
 */
@@ -208,7 +208,7 @@ Return TRUE if this optional is storing a value, otherwise return FALSE.
 
 
 template<typename a_Value_type>
-inline a_Value_type* Opt<a_Value_type>::operator->()
+a_Value_type* Opt<a_Value_type>::operator->()
 /*
 This function is only valid when the Opt is not empty.  A pointer to the stored
 value is returned.
@@ -223,7 +223,7 @@ value is returned.
 
 
 template<typename a_Value_type>
-inline const a_Value_type* Opt<a_Value_type>::operator->() const
+const a_Value_type* Opt<a_Value_type>::operator->() const
 /*
 This function is only valid when the Opt is not empty.  A pointer to the stored
 value is returned.
@@ -238,7 +238,7 @@ value is returned.
 
 
 template<typename a_Value_type>
-inline a_Value_type& Opt<a_Value_type>::operator*()
+a_Value_type& Opt<a_Value_type>::operator*()
 /*
 This function is only valid when the Opt is not empty.  A reference to the
 stored value is returned.
@@ -253,7 +253,7 @@ stored value is returned.
 
 
 template<typename a_Value_type>
-inline const a_Value_type& Opt<a_Value_type>::operator*() const
+const a_Value_type& Opt<a_Value_type>::operator*() const
 /*
 This function is only valid when the Opt is not empty.  A reference to the
 stored value is returned.
@@ -268,8 +268,7 @@ stored value is returned.
 
 
 template<typename a_Value_type>
-inline Opt<a_Value_type>& Opt<a_Value_type>::operator=(
-                                                     const a_Value_type &value)
+Opt<a_Value_type>& Opt<a_Value_type>::operator=(const a_Value_type &value)
 /*
 Store the given value as the new stored value via a copy.  The updated optional
 is returned.
@@ -289,7 +288,7 @@ is returned.
 
 
 template<typename a_Value_type>
-inline Opt<a_Value_type>& Opt<a_Value_type>::operator=(a_Value_type &&value)
+Opt<a_Value_type>& Opt<a_Value_type>::operator=(a_Value_type &&value)
 /*
 Store the given value as the new stored value via a move.  The updated optional
 is returned.
@@ -309,8 +308,7 @@ is returned.
 
 
 template<typename a_Value_type>
-inline Opt<a_Value_type>& Opt<a_Value_type>::operator=(
-                                                const Opt<a_Value_type> &other)
+Opt<a_Value_type>& Opt<a_Value_type>::operator=(const Opt<a_Value_type> &other)
 /*
 Store the given value as the new stored value via a copy.  The updated optional
 is returned.
@@ -334,8 +332,7 @@ is returned.
 
 
 template<typename a_Value_type>
-inline Opt<a_Value_type>& Opt<a_Value_type>::operator=(
-                                                     Opt<a_Value_type> &&other)
+Opt<a_Value_type>& Opt<a_Value_type>::operator=(Opt<a_Value_type> &&other)
 /*
 Store the given value as the new stored value via a copy.  The updated optional
 is returned.
@@ -359,7 +356,7 @@ is returned.
 
 
 template<typename a_Value_type>
-inline void Opt<a_Value_type>::clear()
+void Opt<a_Value_type>::clear()
 /*
 Reset the optional to an empty state.
 */
@@ -383,20 +380,20 @@ lifetime of the represented string must exceed the lifetime of the string view
 object.
 */
 struct a_string_view {
-  a_string_view()
+  INLINE a_string_view()
     : str_start(""), str_length(0)
     {}
-  a_string_view(a_const_char *start_val)
+  INLINE a_string_view(a_const_char *start_val)
     : str_start((check_assertion(start_val != NULL), start_val)),
       str_length(strlen(start_val))
     {}
-  a_string_view(a_const_char *start_val, size_t length_val)
+  INLINE a_string_view(a_const_char *start_val, size_t length_val)
     : str_start(start_val), str_length(length_val)
     { check_assertion(start_val != NULL); }
 
-  inline a_const_char* start() const
+  INLINE a_const_char* start() const
     { return this->str_start; }
-  inline size_t length() const
+  INLINE size_t length() const
     { return this->str_length; }
 private:
   a_const_char  *str_start;
@@ -407,7 +404,7 @@ private:
 };  /* a_string_view */
 
 
-inline a_boolean operator==(const a_string_view str1,
+INLINE a_boolean operator==(const a_string_view str1,
                             const a_string_view str2)
 /*
 Return TRUE if the string represented by str1 is the same as the string
@@ -426,7 +423,7 @@ are considered the same.
 }  /* operator== */
 
 
-inline a_boolean operator!=(const a_string_view str1,
+INLINE a_boolean operator!=(const a_string_view str1,
                             const a_string_view str2)
 /*
 Return TRUE if the string represented by str1 is not the same as the string
@@ -438,7 +435,7 @@ are considered the same.
 }  /* operator!= */
 
 
-inline a_boolean operator<(const a_string_view str1,
+INLINE a_boolean operator<(const a_string_view str1,
                            const a_string_view str2)
 /*
 Return TRUE if the string represented by str1 comes before str in

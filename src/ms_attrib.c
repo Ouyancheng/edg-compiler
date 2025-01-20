@@ -79,7 +79,7 @@ STATIC_THREAD an_ms_attribute_kind_descr_ptr
 			   make_attribute_description and is used by
 			   add_attribute_parameter. */
 
-STATIC_THREAD a_token_cache
+STATIC_THREAD a_token_cache_ptr
 		attribute_cache;
 			/* Token cache containing the tokens of the current
 			   attribute block. */
@@ -1204,9 +1204,9 @@ cache containing all of the tokens of the attribute block.
   do_string_literal_concatenation = TRUE;
   fetch_pp_tokens = FALSE;
   in_microsoft_attribute = TRUE;
-  clear_token_cache(&attribute_cache, /*reusable=*/TRUE);
+  attribute_cache->clear();
   /* Cache the current token and advance past it. */
-  cache_curr_token(&attribute_cache);
+  cache_curr_token(attribute_cache);
   (void)get_token();
   /* Initialize a local stop token set. */
   clear_token_set_array(stop_tokens);
@@ -1214,12 +1214,12 @@ cache containing all of the tokens of the attribute block.
      brace for error recovery purposes. */
   incr_token_set_array_element(stop_tokens, tok_rbracket);
   incr_token_set_array_element(stop_tokens, tok_rbrace);
-  cache_token_stream(&attribute_cache, stop_tokens);
+  cache_token_stream(attribute_cache, stop_tokens);
   /* Add an end-of-source token to the end of the token cache to
      assure that we don't scan past the end of the cache in the actual
      scan. */
-  terminate_token_cache(&attribute_cache);
-  rescan_copy_of_cache(&attribute_cache);
+  terminate_token_cache(attribute_cache);
+  rescan_copy_of_cache(attribute_cache);
   /* Restore the previous values. */
   expand_macros = save_expand_macros;
   do_string_literal_concatenation = save_do_string_literal_concatenation;
@@ -1841,7 +1841,7 @@ converted into a string.
   /* Don't allow wrapping keyword-like identifiers inside __identifier(...). */
   init_token_string(&start_position, /*keep_spacing=*/FALSE,
                     /*suppress_identifier_wrapping=*/TRUE);
-  add_token_cache_segment_to_string(&attribute_cache, first_token,
+  add_token_cache_segment_to_string(attribute_cache, first_token,
                                     last_token);
   /* Copy the string to IL memory. */
   value = make_copy_of_token_string();
@@ -2399,7 +2399,7 @@ attributes).
          __identifier(...). */
       init_token_string(&start_position, /*keep_spacing=*/FALSE,
                         /*suppress_identifier_wrapping=*/TRUE);
-      add_token_cache_segment_to_string(&attribute_cache, first_token,
+      add_token_cache_segment_to_string(attribute_cache, first_token,
                                         last_token);
       /* Copy the string to IL memory. */
       if (attr != NULL) {
@@ -2469,8 +2469,6 @@ to the attributes).
     } while (loop_token(tok_comma));
     /* Look for the closing right bracket. */
     (void)required_token(tok_rbracket, ec_exp_rbracket);
-    /* Discard the token cache used to create the attribute strings. */
-    discard_token_cache(&attribute_cache);
   }  /* while */
   /* Restore the stop token set as at entry. */
   remove_stop_token(tok_end_of_source);
@@ -3489,6 +3487,7 @@ Microsoft attribute processing.
 #endif /* DEBUG */
   memzero((char *)attribute_lookup_table, sizeof(attribute_lookup_table));
   curr_attribute_descr = NULL;
+  attribute_cache = new_fe<a_token_cache>(/*reusable=*/TRUE);
   /* Build the structure used to describe the various attributes. */
   if (ms_extensions) init_attribute_kinds();
   no_injected_text = FALSE;

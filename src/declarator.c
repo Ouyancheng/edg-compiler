@@ -1518,8 +1518,12 @@ the associated noexcept specifier that needs instantiation.
          declarations). */
       sym->variant.routine.pending_mapped_exc_spec = FALSE;
     }  /* if */
-    delayed_scan_of_exception_spec(rp, cache, esp);
-    free_token_cache(cache);
+
+    a_shared_token_cache shared_cache =
+                                   shared_obj<a_token_cache>(move_from(cache));
+    delayed_scan_of_exception_spec(rp, a_reusable_token_cache(shared_cache),
+                                   esp);
+    delete_fe(&cache);
     noexcept_args->unmap(esp);
     /* Pop the reactivated function prototype scope off the stack. */
     pop_scope();
@@ -1593,8 +1597,7 @@ declaration on which the exception specification appears.
          encountered.  (This avoids having duplicate template cache segment
          entries associated with the current token.) */
       esp->arg_cached = TRUE;
-      esp->variant.token_cache = alloc_token_cache();
-      clear_token_cache(esp->variant.token_cache, /*reusable=*/TRUE);
+      esp->variant.token_cache = new_fe<a_token_cache>(/*reusable=*/TRUE);
       cache_token_stream(esp->variant.token_cache, stop_tokens);
       if (is_template_dependent_context()) {
         a_template_cache_segment_ptr  tcsp;
@@ -1608,8 +1611,7 @@ declaration on which the exception specification appears.
                   first_tsn, last_tsn);
         tcsp->is_exception_specification_arg = TRUE;
         /* Check for the case where the cache is empty. */
-        tcsp->expression_missing = 
-                              (esp->variant.token_cache->first_token == NULL);
+        tcsp->expression_missing = esp->variant.token_cache->is_empty();
         tcsp->exception_spec_on_templ_friend = is_template_friend_decl();
       }  /* if */
       terminate_token_cache(esp->variant.token_cache);
@@ -1644,8 +1646,7 @@ declaration on which the exception specification appears.
       incr_token_set_array_element(stop_tokens, tok_semicolon);
       if (esp != NULL) {
         esp->arg_cached = TRUE;
-        esp->variant.token_cache = alloc_token_cache();
-        clear_token_cache(esp->variant.token_cache, /*reusable=*/TRUE);
+        esp->variant.token_cache = new_fe<a_token_cache>(/*reusable=*/TRUE);
         cache_token_stream(esp->variant.token_cache, stop_tokens);
         terminate_token_cache(esp->variant.token_cache);
         nad.class_type = (ssep-1)->assoc_type;
@@ -1687,9 +1688,9 @@ declaration on which the exception specification appears.
 }  /* scan_noexcept_arg */
 
 
-void delayed_scan_of_exception_spec(a_routine_ptr               rp,
-                                    a_token_cache               *tokens,
-                  /* Defaulted: */  an_exception_specification  *esp)
+void delayed_scan_of_exception_spec(a_routine_ptr              rp,
+                                    a_reusable_token_cache     tokens,
+                  /* Defaulted: */  an_exception_specification *esp)
 /*
 The given routine has an exception specification with an operand that hasn't
 been parsed yet.  The tokens of the operand are described by the given cache.
@@ -5960,10 +5961,10 @@ Microsoft extended decl modifiers are also scanned, but they are ignored
             /* Replace a single "^^" token (accepted when reflection is
                enabled) by two "^" tokens. */
             a_token_cache  two_tokens;
-            clear_token_cache(&two_tokens, /*reusable=*/FALSE);
+
             cache_token(&two_tokens, tok_excl_or, &pos_curr_token);
             cache_token(&two_tokens, tok_excl_or, &pos_curr_token);
-            f_rescan_cached_tokens(&two_tokens, /*discard_curr_token=*/TRUE);
+            rescan_cached_tokens(&two_tokens, /*discard_curr_token=*/TRUE);
           }  /* if */
           if (!check_cli_or_cx_type_pointed_to(temp_type,
                                                curr_token == tok_remainder,
@@ -7249,13 +7250,11 @@ structured bindings list.  Cache the list (including the delimiting brackets)
 and record it in *dps.  Also update positions in decl_pos_block.
 */
 {
-  a_token_cache_ptr  cache = alloc_token_cache();
-  a_boolean          err = FALSE;
+  a_boolean err = FALSE;
 
   check_assertion(curr_token == tok_lbracket);
   decl_pos_block->decl_pos = pos_curr_token;
   dps->declarator_pos = pos_curr_token;
-  
   if (!dps->auto_type_specifier_seen) {
     if (dps->secondary_declarator) {
       expect_error();
@@ -7302,8 +7301,9 @@ and record it in *dps.  Also update positions in decl_pos_block.
     an_error_severity sev = cpp20_mode ? es_warning : es_remark;
     pos_diagnostic(sev, ec_volatile_str_bind_deprecated, &dps->qualifiers_pos);
   }  /* if */
-  clear_token_cache(cache, /*reusable=*/FALSE);
-  if (cache_token_stream_until_matching_token(cache, CTS_NO_OPTIONS)) {
+
+  a_scanning_token_cache cache;
+  if (cache_token_stream_until_matching_token(cache.ptr(), CTS_NO_OPTIONS)) {
     /* A syntax error.  We'll run into it again when we parse the cache
        later on. */
     expect_error();
@@ -7312,16 +7312,12 @@ and record it in *dps.  Also update positions in decl_pos_block.
   decl_pos_block->declarator_range.end = end_pos_curr_token;
   curr_construct_end_position = end_pos_curr_token;
 #endif /* EXTRA_SOURCE_POSITIONS_IN_IL */
-  cache_curr_token(cache);
+  cache_curr_token(cache.ptr());
   (void)get_token();
-  terminate_token_cache(cache);
+  terminate_token_cache(cache.ptr());
   if (!err) {
     dps->is_struct_binding_decl = TRUE;
-    dps->variant.struct_bindings_cache = cache;
-  } else {
-    /* A severe error occurred.  Do not try to treat this as a structured
-       binding definition. */
-    free_token_cache(cache);
+    dps->variant.struct_bindings_cache = new_fe<a_token_cache>(*cache);
   }  /* if */
   if (!dps->range_based_for) {
     /* An initializer should be next. */
@@ -7959,15 +7955,15 @@ etc.).
             /* We know from the prototype instantiation that this is a
                parenthesized initializer. */
           } else if (curr_token == tok_identifier && !gpp_mode) {
-            a_token_cache       cache;
-            clear_token_cache(&cache, /*reusable=*/FALSE);
-            cache_curr_token(&cache);
+            a_scanning_token_cache cache;
+
+            cache_curr_token(cache.ptr());
             /* Advance past all comma-identifier pairs till what should be
                the closing paren. */
             while (get_token() == tok_comma) {
-              cache_curr_token(&cache);
+              cache_curr_token(cache.ptr());
               if (get_token() == tok_identifier) {
-                cache_curr_token(&cache);
+                cache_curr_token(cache.ptr());
               } else {
                 break;
               }  /* if */
@@ -7976,7 +7972,7 @@ etc.).
                start of a declaration or else a left brace introducing the
                function body. */
             if (curr_token == tok_rparen) {
-              cache_curr_token(&cache);
+              cache_curr_token(cache.ptr());
               if (get_token() == tok_lbrace ||
                   is_decl_start(IDS_REAL_DECLARATOR_ALLOWED)) {
                 /* This looks exactly like a function declaration with an
@@ -7984,7 +7980,7 @@ etc.).
                 is_function_decl = TRUE;
               }  /* if */
             }  /* if */
-            rescan_cached_tokens(&cache);
+            rescan_cached_tokens(cache.ptr());
           }  /* if */
           if (!is_function_decl) {
             *output_flags |= DO_PARENTHESIZED_INITIALIZER;
@@ -8857,16 +8853,20 @@ reparse_declarator:
     if (dps->variant.auto_params != NULL) {
       /* At least one "auto" parameter was encountered: Reparse the declarator
          in the corresponding template declaration context. */
-      a_token_cache  reparse_cache;
-      a_lambda_ptr   lambda = func_info->lambda;
-      /* Create a cache with the declarator tokens. */
-      clear_token_cache(&reparse_cache, /*reusable=*/FALSE);
-      copy_tokens_from_cache(curr_lexical_state_cache(),
-                             reparse_tsn, curr_token_sequence_number,
-                             /*include_last_token=*/FALSE, &reparse_cache);
-      end_potential_abbr_func_templ_caching(dps,
+      a_lambda_ptr lambda = func_info->lambda;
+
+      { a_scanning_token_cache  reparse_cache;
+
+        /* Create a cache with the declarator tokens. */
+        copy_tokens_from_cache(curr_lexical_state_cache(),
+                               reparse_tsn, curr_token_sequence_number,
+                               /*include_last_token=*/FALSE,
+                               reparse_cache.ptr());
+        end_potential_abbr_func_templ_caching(
+                                            dps,
                                             /*remove_pack_descriptors=*/TRUE);
-      rescan_cached_tokens(&reparse_cache);
+        rescan_cached_tokens(reparse_cache.ptr());
+      }
       set_up_generic_lambda_declarator_scan(dps, templ_state);
       /* Clear the declaration parse state associated with the declarator.
          This is most easily done by pretending we are about to scan a

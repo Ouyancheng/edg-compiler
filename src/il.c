@@ -6196,8 +6196,8 @@ just copied if those fields should not apply to the copy.
 }  /* clear_source_corresp_for_copy */
 
 
-void copy_constant(a_constant *from,
-                   a_constant *to)
+void copy_constant(const a_constant *from,
+                   a_constant       *to)
 /*
 Copy a constant entry from "from" to "to".
 */
@@ -14731,7 +14731,7 @@ expected to hold a pointer to the expression being searched for.)
 }  /* find_local_expr_node */
 
 
-an_expr_node_ptr expr_node_from_tpck_expression(a_constant_ptr cp)
+an_expr_node_ptr expr_node_from_tpck_expression(const a_constant *cp)
 /*
 Return the expression associated with cp, which must be a
 ck_template_param/tpck_expression constant.

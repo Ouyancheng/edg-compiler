@@ -3679,18 +3679,18 @@ a comma, or if called outside of a variadic template context.
 */
 {
   a_pack_expansion_stack_entry_ptr  pesep;
-  a_token_cache                     cache;
 
   if (curr_token == tok_comma && is_variadic_template_context()) {
-    clear_token_cache(&cache, /*reusable=*/FALSE);
-    cache_curr_token(&cache);
+    a_tiny_scanning_token_cache cache;
+
+    cache_curr_token(cache.ptr());
     do {
       (void)get_token();
       /* Begin the potential pack expansion just to check for an empty
          expansion. */
       if (begin_potential_pack_expansion_context(&pesep)) {
         abandon_potential_pack_expansion_context(pesep);
-        rescan_cached_tokens(&cache);
+        rescan_cached_tokens(cache.ptr());
         break;
       }  /* if */
     } while (curr_token == tok_comma);
@@ -9020,7 +9020,6 @@ modes to handle a missing "template" keyword (as, e.g., in "x.template Y<Z>").
       result = TRUE;
     }  /* if */
   }  /* if */
-  clear_token_cache(&cache, /*reusable=*/FALSE);
   copy_tokens_from_cache(curr_lexical_state_cache(),
                          reparse_tsn, curr_token_sequence_number,
                          /*include_last_token=*/FALSE, &cache);
@@ -9598,17 +9597,16 @@ arguments (argument-dependent lookup may still find a different template).
       /* This is similar to the overloaded function case below. */
       sym = NULL;
     } else {
-      rescan_orig_templ_param_list = sym->variant.template_info
-                                        ->variant.function.decl_cache.decl_info
-                                        ->parameters;
+      rescan_orig_templ_param_list = sym->variant.template_info->variant.
+                                    function.decl_cache->decl_info->parameters;
     }  /* if */
   } else if (symbol_is(sym, sk_variable_template)) {
     rescan_orig_templ_param_list = sym->variant.template_info->variant.
-                                     variable.decl_cache.decl_info->parameters;
+                                    variable.decl_cache->decl_info->parameters;
   } else if (symbol_is(sym, sk_class_template)) {
     if (!sym->variant.template_info->is_nonreal_member) {
       rescan_orig_templ_param_list = sym->variant.template_info->
-                                                   cache.decl_info->parameters;
+                                                  cache->decl_info->parameters;
     }  /* if */
   } else if (symbol_is(sym, sk_overloaded_function)) {
     /* An overload set.  Fail substitution if it does not contain a
@@ -10036,16 +10034,16 @@ followed by a left parenthesis.
   a_boolean  result = FALSE;
 
   if (curr_token == tok_rparen) {
-    a_token_cache  cache;
-    clear_token_cache(&cache, /*reusable=*/FALSE);
+    a_scanning_token_cache  cache;
+
     do {
-      cache_curr_token(&cache);
+      cache_curr_token(cache.ptr());
       (void)get_token();
     } while (curr_token == tok_rparen);
     if (curr_token == tok_lparen) {
       result = TRUE;
     }  /* if */
-    rescan_cached_tokens(&cache);
+    rescan_cached_tokens(cache.ptr());
   }  /* if */
   return result;
 }  /* left_paren_follows_right_parens */
@@ -19023,7 +19021,6 @@ where <typename-or-default> is either a type name or the keyword "default".
   a_token_cache        cache;
 
   check_assertion(curr_token == tok_c11_generic);
-  clear_token_cache(&cache, /*reusable=*/FALSE);
   start_pos = pos_curr_token;
   /* Pass over the _Generic token. */
   (void)get_token();
@@ -19959,7 +19956,6 @@ reparse:
         free_init_component_list(alep);
         pop_expr_stack();
         remove_matching_stop_token(tok_rparen);
-        clear_token_cache(&opnd_tokens, /*reusable=*/FALSE);
         copy_tokens_from_cache(curr_lexical_state_cache(),
                                reparse_tsn, curr_token_sequence_number,
                                /*include_last_token=*/FALSE, &opnd_tokens);
@@ -20168,7 +20164,7 @@ type of the expression is std::meta::info.
   an_expr_node      *interpolations = NULL,
                     **end_interpolations = &interpolations,
                     *token_seq_node;
-  a_token_cache     *cache = alloc_token_cache(/*reusable=*/TRUE);
+  a_token_cache     *cache = new_fe<a_token_cache>(/*reusable=*/TRUE);
   unsigned          num_lbraces = 0;
   a_boolean         err = FALSE, prev_token_is_backslash = FALSE;
 
@@ -29516,7 +29512,6 @@ one argument, return TRUE; otherwise, return FALSE.
   a_boolean      one_arg = FALSE;
   a_token_cache  cache;
 
-  clear_token_cache(&cache, /*reusable=*/FALSE);
   if (curr_token == tok_rparen) {
     /* The argument list is "()", i.e., zero arguments. */
   } else {
@@ -37558,7 +37553,7 @@ function template with a leading nontype template parameter.
     a_symbol_ptr  fund_sym = fundamental_symbol_of(sym);
     if (symbol_is(fund_sym, sk_function_template)) {
       a_template_decl_info_ptr  tdip;
-      tdip = fund_sym->variant.template_info->cache.decl_info;
+      tdip = fund_sym->variant.template_info->cache->decl_info;
       check_assertion(tdip != NULL);
       if (tdip->parameters != NULL &&
           symbol_is(tdip->parameters->param_symbol, sk_constant)) {
@@ -37644,11 +37639,11 @@ is an lvalue.
       an_operand_ptr opnds[2];
 
       if (edg_get_expr_cache == NULL) {
-        edg_get_expr_cache = alloc_token_cache(/*reusable=*/TRUE);
+        edg_get_expr_cache = new_fe<a_token_cache>(/*is_reusable=*/TRUE);
         cache_tokens_from_string("__edg_opnd__(0).get<__edg_opnd__(1)>();",
                                  edg_get_expr_cache, diag_pos);
       }  /* if */
-      rescan_reusable_cache(edg_get_expr_cache);
+      rescan_persistent_reusable_cache(edg_get_expr_cache);
       n_internal_opnds = 2;
       opnds[0] = &e_opnd;
       opnds[1] = &i_opnd;
@@ -40739,10 +40734,10 @@ for the __PRETTY_FUNCTION__ keyword.
     /* First render any template arguments of the routine proper. */
     if (rp->template_arg_list != NULL) {
       add_template_arg_to_decorated_name(
-             rp->template_arg_list,
-             templ_info->variant.function.decl_cache.decl_info->parameters,
-             &first,
-             &octl);
+                rp->template_arg_list,
+                templ_info->variant.function.decl_cache->decl_info->parameters,
+                &first,
+                &octl);
     }  /* if */
     /* Now render template arguments for any enclosing template classes,
        starting with the innermost. */
@@ -40754,8 +40749,8 @@ for the __PRETTY_FUNCTION__ keyword.
         /* This is a template class with its own template arguments. */
         a_symbol_ptr  templ_sym = class_template_for_type(class_type);
         templ_sym = prototype_template_of(templ_sym);
-        tpp = template_supplement_for_symbol(templ_sym)->cache.decl_info
-                                                       ->parameters;
+        tpp = template_supplement_for_symbol(templ_sym)->cache->decl_info->
+                                                                    parameters;
         add_template_arg_to_decorated_name(tap, tpp, &first, &octl);
       }  /* if */
     }  /* while */
@@ -41333,9 +41328,9 @@ token following the operator, and should not be discarded.
       if (next_token() == tok_rparen && !err) {
         /* Everything looks good. */
         /* Save the string literal token so we can restore it below. */
-        a_token_cache cache;
-        clear_token_cache(&cache, /*reusable=*/FALSE);
-        cache_curr_token(&cache);
+        a_tiny_scanning_token_cache cache;
+
+        cache_curr_token(cache.ptr());
         /* Advance past the string literal token, getting the closing paren. */
         (void)get_token();
 #if EXTRA_SOURCE_POSITIONS_IN_IL
@@ -41343,9 +41338,8 @@ token following the operator, and should not be discarded.
 #endif /* EXTRA_SOURCE_POSITIONS_IN_IL */
         /* Discard the closing parenthesis. */
         (void)get_token();
-        rescan_cached_tokens(&cache);
         /* Restore the string literal token as the result. */
-        rescan_cached_tokens(&cache);
+        rescan_cached_tokens(cache.ptr());
         pos_curr_token = start_position;
 #if EXTRA_SOURCE_POSITIONS_IN_IL
         end_pos_curr_token = curr_construct_end_position;
@@ -42434,8 +42428,9 @@ to NULL.
     if (symbol_is(fund_sym, sk_function_template)) {
       a_template_symbol_supplement_ptr
                             tssp = fund_sym->variant.template_info;
-      a_template_param_ptr  tpp = tssp->variant.function.decl_cache.decl_info
-                                      ->parameters;
+      a_template_param_ptr  tpp = tssp->variant.function.decl_cache->
+                                                         decl_info->parameters;
+
       if (cpp20_mode && tpp != NULL && tpp->next == NULL && !tpp->is_pack &&
           symbol_is(tpp->param_symbol, sk_constant) &&
           (is_class_struct_union_type(tpp->variant.constant.ptr->type) ||
@@ -42544,7 +42539,7 @@ issue an error; otherwise, return TRUE.
       check_assertion(symbol_is(ud_lit_op_sym_for_curr_token,
                                 sk_function_template));
       tssp = ud_lit_op_sym_for_curr_token->variant.template_info;
-      tpp = tssp->variant.function.decl_cache.decl_info->parameters;
+      tpp = tssp->variant.function.decl_cache->decl_info->parameters;
       if (symbol_is(tpp->param_symbol, sk_type) ||
           (symbol_is(tpp->param_symbol, sk_constant) &&
            (is_class_struct_union_type(tpp->variant.constant.ptr->type) ||
@@ -42844,21 +42839,20 @@ static a_boolean parenthesized_type_name_next(void)
 Return TRUE if the tokens following the current token are ( <type-id> ).
 */
 {
-  a_boolean      result = FALSE;
-  a_token_cache  cache;
+  a_boolean                   result = FALSE;
+  a_tiny_scanning_token_cache cache;
 
-  clear_token_cache(&cache, /*reusable=*/FALSE);
-  cache_curr_token(&cache);
+  cache_curr_token(cache.ptr());
   (void)get_token();
   if (curr_token == tok_lparen) {
-    cache_curr_token(&cache);
+    cache_curr_token(cache.ptr());
     (void)get_token();
     if (is_decl_not_expr(DFS_IS_SIZEOF |
                          DFS_ABSTRACT_DECLARATOR_ALLOWED)) {
       result = TRUE;
     }  /* if */
   }  /* if */
-  rescan_cached_tokens(&cache);
+  rescan_cached_tokens(cache.ptr());
   return result;
 }  /* parenthesized_type_name_next */
 
@@ -45143,15 +45137,14 @@ It could therefore be a lambda or an array designator.  Return TRUE if it
 looks like the latter.
 */
 {
-  a_boolean      result = FALSE;
-  a_token_cache  cache;
+  a_boolean              result = FALSE;
+  a_scanning_token_cache cache;
 
   check_assertion(lambdas_enabled && curr_token == tok_lbracket);
-  clear_token_cache(&cache, /*reusable=*/FALSE);
   /* Cache up to the matching right bracket. */
-  if (!cache_token_stream_until_matching_token(&cache, CTS_NO_OPTIONS)) {
+  if (!cache_token_stream_until_matching_token(cache.ptr(), CTS_NO_OPTIONS)) {
     /* Put the current token (tok_rbracket) in the cache. */
-    cache_curr_token(&cache);
+    cache_curr_token(cache.ptr());
     (void)get_token();
     /* Assume a designator if the next token is a "=" or if it looks like
        the beginning of another designator.  We don't consider GNU C-style
@@ -45160,7 +45153,7 @@ looks like the latter.
     result = curr_token == tok_assign || curr_token == tok_lbracket ||
              curr_token == tok_period;
   }  /* if */
-  rescan_cached_tokens(&cache);
+  rescan_cached_tokens(cache.ptr());
   return result;
 }  /* designator_not_lambda_next */
 
@@ -52105,9 +52098,9 @@ is TRUE if the expression is the immediate operand of an "&" operator.
             if (expl_templ_arg_list != NULL) {
               /* Ensure the explicit template arguments are themselves
                  substituted. */
-              a_template_param_ptr  params;
-              params = fund_sym->variant.template_info->cache.decl_info
-                                                      ->parameters;
+              a_template_param_ptr  params = fund_sym->variant.template_info->
+                                                  cache->decl_info->parameters;
+
               expl_templ_arg_list = copy_template_arg_list_with_substitution(
                                              fund_sym, expl_templ_arg_list,
                                              params,
@@ -55302,7 +55295,7 @@ operation of the given kind (bok_is_invocable or bok_is_nothrow_invocable).
     }  /* if */
     { /* Process declval<type_1>().*declval<f_type>() and use that as the
          invocation target. */
-      a_token_cache         token_cache;
+      a_token_cache         token_cache(/*reusable=*/FALSE);
       an_arg_list_elem_ptr  obj_alep = NULL;
       an_operand            r_opnd;
       obj_alep = make_declval_arg(type_1);
@@ -55316,7 +55309,6 @@ operation of the given kind (bok_is_invocable or bok_is_nothrow_invocable).
                                               &cache);
       f_alep = NULL;
       expr_stack->initializer_cache = &cache;
-      clear_token_cache(&token_cache, /*reusable=*/FALSE);
       cache_token(&token_cache, tok_period_star, &pos_curr_token);
       rescan_cached_tokens(&token_cache);
       scan_ptr_to_member_operator(operand_of_arg_list_elem(obj_alep),
@@ -55358,7 +55350,7 @@ operation of the given kind (bok_is_invocable or bok_is_nothrow_invocable).
     an_arg_list_elem_ptr  alep;
     an_operand            r_opnd;
     an_expr_node_ptr      argn;
-    a_token_cache         token_cache;
+    a_token_cache         token_cache(/*reusable=*/FALSE);
     expr_stack->initializer_cache = &cache;
     for (argn = args; argn != NULL; argn = argn->next) {
       a_type_ptr typen;
@@ -55380,7 +55372,6 @@ operation of the given kind (bok_is_invocable or bok_is_nothrow_invocable).
     }  /* for */
     /* Pretend we're scanning a function call: Provide delimiters for the
        arguments (which are in expr_stack->initializer_cache). */
-    clear_token_cache(&token_cache, /*reusable=*/FALSE);
     cache_token(&token_cache, tok_lparen, &pos_curr_token);
     cache_token(&token_cache, tok_rparen, &pos_curr_token);
     rescan_cached_tokens(&token_cache);

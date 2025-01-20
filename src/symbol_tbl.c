@@ -129,7 +129,6 @@ STATIC_THREAD unsigned long
 		num_symbol_list_entries_allocated,
 		num_type_list_entries_allocated,
 		num_substituted_type_list_entries_allocated,
-		num_template_cache_segments_allocated,
                 num_out_of_class_partial_specs_allocated,
 		num_template_decl_info_allocated,
 		num_nondependent_call_info_allocated,
@@ -209,11 +208,6 @@ STATIC_THREAD a_type_list_entry_ptr
 STATIC_THREAD a_namespace_list_entry_ptr
 		avail_namespace_list_entries;
 			/* List of namespace list entries freed and available
-			   for reuse. */
-
-STATIC_THREAD a_template_cache_segment_ptr
-		avail_template_cache_segments;
-			/* List of template cache segments freed and available
 			   for reuse. */
 
 STATIC_THREAD a_vla_fixup_ptr
@@ -1137,7 +1131,7 @@ do_variable:
         a_template_decl_info_ptr	  template_decl_info;
 
         tssp = sym->variant.template_info;
-        if (tssp->cache.tokens.first_token != NULL) {
+        if (!tssp->cache->tokens.is_empty()) {
           put_string("template body cached");
         }  /* if */
         if (sym->kind == (a_symbol_kind)sk_class_template) {
@@ -1167,9 +1161,9 @@ do_variable:
         }  /* if */
         /* Output information from the template symbol supplement. */
         if (sym->kind == (a_symbol_kind)sk_function_template) {
-          template_decl_info = tssp->variant.function.decl_cache.decl_info;
+          template_decl_info = tssp->variant.function.decl_cache->decl_info;
         } else {
-          template_decl_info = tssp->cache.decl_info;
+          template_decl_info = tssp->cache->decl_info;
         }  /* if */
         templ_param_list = template_decl_info != NULL ?
                                        template_decl_info->parameters : NULL;
@@ -3214,30 +3208,16 @@ function for which the cache segment entry is being created.  tssp points
 to the symbol supplement associated with sym.
 */
 {
-  a_template_cache_segment_ptr  tcsp;
-  a_scope_stack_entry_ptr	ssep;
-  a_scope_depth			depth_to_use = NO_SCOPE_DEPTH;
-  a_boolean			is_valid_context;
+  a_template_cache_segment_ptr tcsp = new_fe<a_template_cache_segment>();
+  a_scope_stack_entry_ptr      ssep;
+  a_scope_depth                depth_to_use = NO_SCOPE_DEPTH;
+  a_boolean                    is_valid_context;
 
-  if (avail_template_cache_segments != NULL) {
-    /* Reuse an existing entry. */
-    tcsp = avail_template_cache_segments;
-    avail_template_cache_segments = tcsp->next;
-  } else {
-    /* Allocate a new entry. */
-    tcsp = (a_template_cache_segment_ptr)
-                   alloc_fe(sizeof(a_template_cache_segment));
-#if DEBUG
-    num_template_cache_segments_allocated++;
-#endif /* DEBUG */
-  }  /* if */
-  tcsp->next = NULL;
   tcsp->symbol = sym;
   tcsp->template_info = tssp;
   tcsp->first_token_number = NO_TOKEN_SEQUENCE_NUMBER;
   tcsp->last_token_number = NO_TOKEN_SEQUENCE_NUMBER;
-  tcsp->before_first_token = NULL;
-  tcsp->last_token = NULL;
+  tcsp->source_cache = NULL;
   tcsp->is_friend = FALSE;
   tcsp->is_default_arg = FALSE;
   tcsp->expression_missing = FALSE;
@@ -3270,13 +3250,11 @@ to the symbol supplement associated with sym.
   if (is_valid_context) {
     /* Don't add the entry to the scope stack list if it the construct
        appeared in an invalid location as a result of an error. */
-    if (ssep->first_template_cache_segment == NULL) {
-      ssep->first_template_cache_segment = tcsp;
+    if (ssep->template_cache_segment_list == NULL) {
+      ssep->template_cache_segment_list =
+                                       new_fe<a_template_cache_segment_list>();
     }  /* if */
-    if (ssep->last_template_cache_segment != NULL) {
-      ssep->last_template_cache_segment->next = tcsp;
-    }  /* if */
-    ssep->last_template_cache_segment = tcsp;
+    ssep->template_cache_segment_list->push_back(tcsp);
   }  /* if */
   return tcsp;
 }  /* alloc_template_cache_segment */
@@ -3295,8 +3273,7 @@ Free a template cache segment entry and return it to the available list.
     template_cache_segment_table->unmap(
           a_token_range{ tcsp->first_token_number, tcsp->last_token_number });
   }  /* if */
-  tcsp->next = avail_template_cache_segments;
-  avail_template_cache_segments = tcsp;
+  delete_fe(&tcsp);
 }  /* free_template_cache_segment */
 
 
@@ -3342,7 +3319,8 @@ fields, and return a pointer to it.
   oocpsp = alloc_fe_of_type(an_out_of_class_partial_spec);
   oocpsp->next = NULL;
   oocpsp->symbol = NULL;
-  clear_template_cache(&oocpsp->cache, /*is_reusable=*/TRUE);
+  new (&oocpsp->cache) a_template_cache();
+  clear_template_cache(&oocpsp->cache);
 #if DEBUG
   num_out_of_class_partial_specs_allocated++;
 #endif /* DEBUG */
@@ -3353,7 +3331,7 @@ fields, and return a pointer to it.
 
 a_template_decl_info_ptr alloc_template_decl_info(void)
 /*
-Allocate a new template declaration information entry, initialize its
+Allocate a new NULL template decl information entry, initialize its
 fields, and return a pointer to it.  Reuse a freed entry if possible.
 */
 {
@@ -3420,27 +3398,13 @@ fields, and return a pointer to it.
 }  /* alloc_token_sequence_xref */
 
 
-void clear_constexpr_if_cache_info(a_constexpr_if_cache_info_ptr	cicip)
-/*
-Initialize the fields of a constexpr if cache information entry.
-*/
-{
-  cicip->token_cache = NULL;
-  cicip->else_handle = NO_CACHED_TOKEN_HANDLE;
-  cicip->ending_handle = NO_CACHED_TOKEN_HANDLE;
-}  /* clear_constexpr_if_cache_info */
-
-
 static a_constexpr_if_cache_info_ptr alloc_constexpr_if_cache_info(void)
 /*
 Allocate a new constexpr if cache information entry, initialize its
 fields, and return a pointer to it.
 */
 {
-  a_constexpr_if_cache_info_ptr  cicip;
-
-  cicip = alloc_fe_of_type(a_constexpr_if_cache_info);
-  clear_constexpr_if_cache_info(cicip);
+  a_constexpr_if_cache_info_ptr  cicip = new_fe<a_constexpr_if_cache_info>();
 #if DEBUG
   num_constexpr_if_cache_info_allocated++;
 #endif /* DEBUG */
@@ -3720,26 +3684,27 @@ return a pointer to it.
 }  /* alloc_namespace_symbol_supplement */
 
 
-void clear_template_cache(a_template_cache_ptr	tcp,
-                          a_boolean		is_reusable)
+void clear_template_cache(a_template_cache_ptr tcp)
 /*
 Initialize a template cache.
 */
 {
-  clear_token_cache(&tcp->tokens, is_reusable);
+  tcp->tokens = a_reusable_token_cache();
   tcp->decl_info = NULL;
 }  /* clear_template_cache */
 
 
-void set_template_cache_info(a_template_cache_ptr	tcp,
-			     a_token_cache_ptr		tokens,
-			     a_template_decl_info_ptr	tdip)
+void set_template_cache_info(a_template_cache_ptr      tcp,
+                             a_reusable_token_cache    tokens,
+                             a_template_decl_info_ptr  tdip)
 /*
-Set the fields of a template cache entry.  Only set the field if a non-NULL
-value is passed in.
+Set the fields of a template cache entry.  Only set the tokens if a non-empty
+shared object is passed.  Only set the decl_info if a non-NULL value is passed.
 */
 {
-  if (tokens != NULL) tcp->tokens = *tokens;
+  if (tokens.ptr() != NULL) {
+    tcp->tokens = tokens;
+  }  /* if */
   if (tdip != NULL) tcp->decl_info = tdip;
 }  /* set_template_cache_info */
 
@@ -3766,7 +3731,8 @@ and return a pointer to it.
   tssp->invalid_active_instantiation = NULL;
   tssp->pragmas_bound_to_template = NULL;
   tssp->token_sequence_number = NO_TOKEN_SEQUENCE_NUMBER;
-  clear_template_cache(&tssp->cache, /*reusable=*/TRUE);
+  tssp->cache = new_fe<a_template_cache>();
+  clear_template_cache(tssp->cache);
   tssp->befriending_classes = NULL;
   tssp->cache_segment = NULL;
   tssp->prototype_template = NULL;
@@ -3834,8 +3800,9 @@ and return a pointer to it.
       tssp->variant.class_template.argument_template = NULL;
       tssp->variant.class_template.substituted_param_template = NULL;
       tssp->variant.class_template.deduction_guides = NULL;
-      clear_template_cache(&tssp->variant.class_template.initial_decl_cache,
-                           /*reusable=*/TRUE);
+      tssp->variant.class_template.initial_decl_cache =
+                                                    new_fe<a_template_cache>();
+      clear_template_cache(tssp->variant.class_template.initial_decl_cache);
 #if CLASS_TEMPLATE_INSTANTIATIONS_IN_SOURCE_SEQUENCE_LISTS
       tssp->variant.class_template.source_sequence_list = NULL;
 #endif /* CLASS_TEMPLATE_INSTANTIATIONS_IN_SOURCE_SEQUENCE_LISTS */
@@ -3846,10 +3813,11 @@ and return a pointer to it.
       tssp->variant.function.routine = NULL;
       clear_func_info(&tssp->variant.function.func_info);
       tssp->variant.function.def_arg_expr_list = NULL;
-      clear_template_cache(&tssp->variant.function.decl_cache,
-                          /*reusable=*/TRUE);
-      clear_template_cache(&tssp->variant.function.exception_spec_arg_cache,
-                          /*reusable=*/TRUE);
+      tssp->variant.function.decl_cache = new_fe<a_template_cache>();
+      clear_template_cache(tssp->variant.function.decl_cache);
+      tssp->variant.function.exception_spec_arg_cache =
+                                                    new_fe<a_template_cache>();
+      clear_template_cache(tssp->variant.function.exception_spec_arg_cache);
       tssp->variant.function.substituted_types_table = NULL;
       tssp->variant.function.unused_instantiations = 0;
       tssp->variant.function.pending_partial_instantiations = 0;
@@ -3870,8 +3838,8 @@ and return a pointer to it.
       tssp->variant.variable.has_out_of_class_definition = FALSE;
       tssp->variant.variable.instantiations = NULL;
       tssp->variant.variable.prototype_variable = NULL;
-      clear_template_cache(&tssp->variant.variable.decl_cache,
-                          /*reusable=*/TRUE);
+      tssp->variant.variable.decl_cache = new_fe<a_template_cache>();
+      clear_template_cache(tssp->variant.variable.decl_cache);
       tssp->variant.variable.declarator_name_tsn = NO_TOKEN_SEQUENCE_NUMBER;
      break;
     case sk_concept_template:
@@ -3943,7 +3911,7 @@ This function should normally only be called through the macro get_sdm_supp.
   a_static_data_member_supplement_ptr
                     sdmsp = alloc_fe_of_type(a_static_data_member_supplement);
   sdmsp->token_sequence_number = NO_TOKEN_SEQUENCE_NUMBER;
-  sdmsp->token_cache = NULL;
+  new (&sdmsp->token_cache) a_shared_token_cache();
   sdmsp->prototype_member = NULL;
 #if DEBUG
   num_static_data_member_supplements_allocated++;
@@ -4162,7 +4130,7 @@ state.
       { a_field_symbol_supplement  *fssp;
         fssp = alloc_fe_of_type(a_field_symbol_supplement);
         fssp->token_sequence_number = NO_TOKEN_SEQUENCE_NUMBER;
-        fssp->token_cache = NULL;
+        new (&fssp->token_cache) a_shared_token_cache();
         fssp->prototype_field = NULL;
         fssp->pending_instantiations = 0;
         fssp->being_instantiated = FALSE;
@@ -5865,11 +5833,8 @@ number of the "if" of the "if constexpr" and is used as the key to the hash
 table.
 */
 {
-  a_token_sequence_xref_ptr	tsxp;
-  a_token_sequence_xref_ptr	*p_tsxp;
-  a_token_sequence_xref		tsx_key;
-  a_constexpr_if_cache_info_ptr	new_cicip;
-  a_template_decl_info_ptr	tdip;
+  a_token_sequence_xref     tsx_key;
+  a_template_decl_info_ptr  tdip;
 
   /* The hash table is stored in the a_template_decl entry for the
      current template. */
@@ -5885,17 +5850,20 @@ table.
                                  fn_for_function(compare_token_sequence_xref));
   }  /* if */
   tsx_key.token_sequence_number = start_tsn;
-  p_tsxp = (a_token_sequence_xref_ptr*)hash_find(tdip->constexpr_if_hash_table,
+
+  a_token_sequence_xref_ptr *p_tsxp = (a_token_sequence_xref_ptr*)
+                                       hash_find(tdip->constexpr_if_hash_table,
                                                  (a_void_ptr)&tsx_key,
                                                  /*create=*/TRUE);
-  tsxp = *p_tsxp;
+  a_token_sequence_xref_ptr tsxp = *p_tsxp;
   if (tsxp != NULL) {
     /* An existing entry should never be found. */
     unexpected_condition();
   } else {
     tsxp = alloc_token_sequence_xref();
     tsxp->token_sequence_number = start_tsn;
-    new_cicip = alloc_constexpr_if_cache_info();
+
+    a_constexpr_if_cache_info_ptr new_cicip = alloc_constexpr_if_cache_info();
     *new_cicip = *cicip;
     tsxp->entry = (void*)new_cicip;
     *p_tsxp = tsxp;
@@ -5935,8 +5903,9 @@ found, or NULL if no entry is found.
       if (db_flag_is_set("ccicht")) {
         fprintf(f_debug,
                 "Found constexpr_if cache tsn=%lu, else=%d, ending=%d\n",
-                (unsigned long)start_tsn, result->else_handle != NULL,
-                result->ending_handle != NULL);
+                (unsigned long)start_tsn,
+                result->else_start_it != a_token_cache_iterator(),
+                result->end_start_it != a_token_cache_iterator());
       }  /* if */
 #endif /* DEBUG */
     }  /* if */
@@ -7932,9 +7901,9 @@ Return a pointer to an error class template.
     {
       /* Create a template_decl_info entry for the error template for
          error recovery purposes. */
-      a_template_decl_info_ptr	    template_decl_info;
-      template_decl_info = alloc_template_decl_info();
-      tssp->cache.decl_info = template_decl_info;
+      a_template_decl_info_ptr template_decl_info = alloc_template_decl_info();
+
+      tssp->cache->decl_info = template_decl_info;
     }
     error_class_template_symbol = sym;
   }  /* if */
@@ -17093,8 +17062,8 @@ on kind of default argument it has.
     ptr->default_arg.constant = NULL;
   } else {
     ptr->default_arg.templ = NULL;
-  }  /* if */    
-  clear_template_cache(&ptr->default_arg_cache, /*reusable=*/TRUE);
+  }  /* if */
+  clear_template_cache(&ptr->default_arg_cache);
 }  /* clear_template_param_default_arg_info */
 
 
@@ -17148,7 +17117,8 @@ and return a pointer to it.
   check_assertion(sym != NULL);
   ptr->next           = NULL;
   ptr->param_symbol   = sym;
-  clear_template_cache(&ptr->cache, /*reusable=*/TRUE);
+  new (&ptr->cache) a_template_cache();
+  clear_template_cache(&ptr->cache);
   ptr->has_default_arg = FALSE;
   ptr->def_arg_involves_template_param = FALSE;
   ptr->def_arg_has_not_been_scanned = FALSE;
@@ -17172,6 +17142,7 @@ and return a pointer to it.
     ptr->variant.templ = sym->variant.template_info;
   }  /* if */
   ptr->il_template_parameter = NULL;
+  new (&ptr->default_arg_cache) a_template_cache();
   clear_template_param_default_arg_info(ptr);
   ptr->param_num = 0;
   db_exit();
@@ -17567,9 +17538,10 @@ const_for_curr_token.
              is of a kind for which a literal operator template is a
              possible match.  Make a note of it and continue the scan. */
           a_template_symbol_supplement_ptr tssp = sym->variant.template_info;
-          a_template_param_ptr             tpp;
+          a_template_param_ptr             tpp = tssp->variant.function.
+                                             decl_cache->decl_info->parameters;
           a_boolean                        is_string_lit_op_template = FALSE;
-          tpp = tssp->variant.function.decl_cache.decl_info->parameters;
+
           check_assertion(tpp != NULL);
           if (cpp20_mode && tpp->next == NULL && !tpp->is_pack &&
               symbol_is(tpp->param_symbol, sk_constant) &&
@@ -18430,9 +18402,6 @@ for space tracking purposes.
   db_space_used("subst. type list entry",
                 num_substituted_type_list_entries_allocated,
                 a_substituted_type_list_entry);
-  db_space_used_lost("template cache segment", avail_template_cache_segments,
-                     num_template_cache_segments_allocated,
-                     a_template_cache_segment);
   db_space_used("template decl info", num_template_decl_info_allocated,
                 a_template_decl_info);
   db_space_used("out of class partial spec",
@@ -19224,7 +19193,6 @@ are handled in symbol_tbl_init.)
       pch_saved_var_array_elem(avail_symbol_list_entries),
       pch_saved_var_array_elem(avail_type_list_entries),
       pch_saved_var_array_elem(avail_namespace_list_entries),
-      pch_saved_var_array_elem(avail_template_cache_segments),
       pch_saved_var_array_elem(template_cache_segment_table),
       pch_saved_var_array_elem(avail_dependent_type_fixups),
       pch_saved_var_array_elem(avail_template_decl_infos),
@@ -19482,7 +19450,6 @@ of the front end.
   avail_symbol_list_entries = NULL;
   avail_type_list_entries = NULL;
   avail_namespace_list_entries = NULL;
-  avail_template_cache_segments = NULL;
   avail_template_decl_infos = NULL;
   avail_vla_fixups = NULL;
   avail_progenitors = NULL;
@@ -19524,7 +19491,6 @@ of the front end.
   num_symbol_list_entries_allocated             = 0;
   num_type_list_entries_allocated               = 0;
   num_substituted_type_list_entries_allocated   = 0;
-  num_template_cache_segments_allocated         = 0;
   num_template_decl_info_allocated              = 0;
   num_out_of_class_partial_specs_allocated      = 0;
   num_nondependent_call_info_allocated          = 0;

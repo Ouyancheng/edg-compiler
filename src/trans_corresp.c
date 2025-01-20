@@ -6410,8 +6410,8 @@ return NULL.
         corresp_tdp = corresp_tssp->il_template_entry->template_decl;
         corresp_rcp = corresp_tdp->constraint.requires_clause;
         if (equiv_template_param_lists(
-                                    corresp_tssp->cache.decl_info->parameters,
-                                    tssp->cache.decl_info->parameters,
+                                    corresp_tssp->cache->decl_info->parameters,
+                                    tssp->cache->decl_info->parameters,
                                     /*issue_errors=*/FALSE,
                                     ETP_NO_OPTIONS,
                                     &templ_sym->decl_position, es_error) &&
@@ -6439,8 +6439,8 @@ return NULL.
     a_requires_clause_ptr  corresp_rcp;
     corresp_tdp = corresp_tssp->il_template_entry->template_decl;
     corresp_rcp = corresp_tdp->constraint.requires_clause;
-    if (equiv_template_param_lists(corresp_tssp->cache.decl_info->parameters,
-                                   tssp->cache.decl_info->parameters,
+    if (equiv_template_param_lists(corresp_tssp->cache->decl_info->parameters,
+                                   tssp->cache->decl_info->parameters,
                                    /*issue_errors=*/TRUE,
                                    ETP_NO_OPTIONS,
                                    &templ_sym->decl_position, es_error) &&
@@ -6491,8 +6491,8 @@ symbols when looking up a correspondence: if none is found, return NULL.
         corresp_rcp = corresp_tssp->il_template_entry->template_decl
                                   ->constraint.requires_clause;
         if (equiv_template_param_lists(
-                                    corresp_tssp->cache.decl_info->parameters,
-                                    tssp->cache.decl_info->parameters,
+                                    corresp_tssp->cache->decl_info->parameters,
+                                    tssp->cache->decl_info->parameters,
                                     /*issue_errors=*/FALSE,
                                     ETP_NO_OPTIONS,
                                     &templ_sym->decl_position, es_error) &&
@@ -6514,8 +6514,8 @@ symbols when looking up a correspondence: if none is found, return NULL.
     }  /* if */
   } else {
     /* This is a primary template: the template parameters must match. */
-    if (equiv_template_param_lists(corresp_tssp->cache.decl_info->parameters,
-                                   tssp->cache.decl_info->parameters,
+    if (equiv_template_param_lists(corresp_tssp->cache->decl_info->parameters,
+                                   tssp->cache->decl_info->parameters,
                                    /*issue_errors=*/TRUE,
                                    ETP_NO_OPTIONS,
                                    &templ_sym->decl_position, es_error)) {
@@ -6544,8 +6544,8 @@ symbols when looking up a correspondence: if none is found, return NULL.
                   corresp_rcp = corresp_templ->template_decl
                                              ->constraint.requires_clause;
 
-  if (!equiv_template_param_lists(corresp_tssp->cache.decl_info->parameters,
-                                  tssp->cache.decl_info->parameters,
+  if (!equiv_template_param_lists(corresp_tssp->cache->decl_info->parameters,
+                                  tssp->cache->decl_info->parameters,
                                   /*issue_errors=*/TRUE, ETP_NO_OPTIONS,
                                   &templ_sym->decl_position, es_error) ||
       !equiv_requires_clauses(rcp, corresp_rcp)) {

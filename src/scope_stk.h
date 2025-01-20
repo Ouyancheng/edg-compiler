@@ -579,14 +579,14 @@ typedef struct a_pack_expansion_stack_entry {
 			   information about the actual parameter packs being
 			   used for the instantiation.  NULL during prototype
 			   instantiations. */
-  a_cached_token_handle
-		first_token_handle;
-			/* During a real instantiation, this is the token
-			   handle of the start of the pack expansion.  This
-			   is used to reset the token position to scan the
-			   non-initial pack elements.  This is not used
-			   (has the value NO_CACHED_TOKEN_HANDLE) when
-			   is_rescan is TRUE. */
+  a_token_cache_iterator
+		first_token_it;
+			/* During a real instantiation, this is an iterator
+			   point to the token at the start of the pack
+			   expansion.  This is used to reset the token position
+			   to scan the non-initial pack elements.  This is not
+			   used (is a default constructed token cache iterator)
+			   when is_rescan is TRUE.  */
   a_template_arg_ptr
 		template_arg_list;
 			/* In rescan contexts, a copy of the supplied
@@ -714,6 +714,10 @@ typedef struct a_string_literal_table *a_string_literal_table_ptr;
 
 void f_assign_string_literal_sequence_number(void);
 #endif /* DO_IL_LOWERING && ASSIGN_STRING_LITERAL_SEQUENCE_NUMBERS */
+
+using a_template_cache_segment_list = Dyn_array<a_template_cache_segment_ptr>;
+			/* The type used for a list of template cache
+			   segments. */
 
 /* Scope stack, containing an entry for each currently-active scope. */
 typedef struct a_scope_stack_entry *a_scope_stack_entry_ptr;
@@ -1565,20 +1569,13 @@ typedef struct a_scope_stack_entry {
 			   normally used to restore this value are altered
 			   by the routines that create the instantiation
 			   context. */
-  a_template_cache_segment_ptr
-		first_template_cache_segment;
-			/* Pointer to the first template cache segment entry
-			   for a member class or function of the current
-			   prototype instantiation.  Present only for
-			   template instantiation scopes associated with
-			   prototype instantiations. */
-  a_template_cache_segment_ptr
-		last_template_cache_segment;
-			/* Pointer to the last template cache segment entry
-			   for a member class or function of the current
-			   prototype instantiation.  Present only for
-			   template instantiation scopes associated with
-			   prototype instantiations. */
+  a_template_cache_segment_list
+		*template_cache_segment_list;
+			/* A list of template cache segment entry for a member
+			   class or function of the current prototype
+			   instantiation.  Present only for template
+			   instantiation scopes associated with prototype
+			   instantiations. */
   struct a_class_def_state
 		*class_def_state;
 			/* For sck_class_struct_union scopes, pointer to an

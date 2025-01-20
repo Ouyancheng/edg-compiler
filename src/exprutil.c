@@ -18971,14 +18971,13 @@ of the decltype construct (which ensures that no other operation will apply on
 top of the call), and if so return TRUE; otherwise, return FALSE.
 */
 {
-  a_boolean      result = TRUE;  /* Assume for now. */
-  a_token_cache  cache;
-  unsigned long  n_extra_parens;
+  a_boolean              result = TRUE;  /* Assume for now. */
+  a_scanning_token_cache cache;
+  unsigned long          n_extra_parens;
 
   /* Determine the number of extra parentheses around the decltype operand.
      Subtract one for the parentheses of the type operator construct itself. */
   n_extra_parens = expr_stack->nested_construct_depth-1;
-  clear_token_cache(&cache, /*reusable=*/FALSE);
   if (uses_operator_syntax) {
     /* Some operators ([] and postfix ++/--) may have a token left in the
        upcoming token stream. */
@@ -19019,7 +19018,7 @@ top of the call), and if so return TRUE; otherwise, return FALSE.
     if (expected_token != (a_token_kind)tok_error) {
       /* An operator token remains: Skip it (if it is there as expected). */
       if (curr_token == expected_token) {
-        cache_curr_token(&cache);
+        cache_curr_token(cache.ptr());
         (void)get_token();
       } else {
         expect_error();
@@ -19034,7 +19033,7 @@ top of the call), and if so return TRUE; otherwise, return FALSE.
         result = FALSE;
         break;
       }  /* if */
-      cache_curr_token(&cache);
+      cache_curr_token(cache.ptr());
       (void)get_token();
     }  /* while */
     /* Check whether we have reached the end of the type operator operand. */
@@ -19042,7 +19041,7 @@ top of the call), and if so return TRUE; otherwise, return FALSE.
       result = FALSE;
     }  /* if */
   }  /* if */
-  rescan_cached_tokens(&cache);
+  rescan_cached_tokens(cache.ptr());
   return result;
 }  /* type_operator_construct_termination_next */
 
@@ -25887,15 +25886,16 @@ given index in the given constraint chart.
     } else {
       a_ctws_state          ctws_state;
       a_boolean             copy_error = FALSE;
-      a_template_param_ptr  params, parent_params;
-      params = sym->variant.template_info->cache.decl_info->parameters;
+      a_template_param_ptr  params = sym->variant.template_info->cache->
+                                                         decl_info->parameters;
       check_assertion(!constraint->no_link());
       parent_constraint = &array[constraint->link - 1];
       parent_concept_id = parent_constraint->expr;
       parent_templ = parent_concept_id->variant.concept_id.concept_template;
       parent_sym = symbol_for(parent_templ);
-      parent_params = parent_sym->variant.template_info->cache.decl_info
-                                                       ->parameters;
+
+      a_template_param_ptr parent_params = parent_sym->variant.template_info->
+                                                 cache->decl_info->parameters;
       parent_remapped_args = get_remapped_args(chart, constraint->link);
       /* Substitute the dependent arguments of the concept-id. */
       init_ctws_state(&ctws_state);
@@ -26426,8 +26426,8 @@ block pointer.
   a_diagnostic_ptr     prev_diags = NULL;
   a_template_ptr       templ = constraint->variant.concept_id.concept_template;
   a_symbol_ptr         sym = symbol_for(templ);
-  a_template_param_ptr params = sym->variant.template_info
-                                   ->cache.decl_info->parameters;
+  a_template_param_ptr params = sym->variant.template_info->cache->
+                                                         decl_info->parameters;
   an_expr_node_ptr     expr = templ->prototype_instantiation.constraint;
   a_constraint_test    test = { constraint, constraint, params, args };
   uintptr_t            hash = hash_ptr(test);
@@ -26518,8 +26518,8 @@ block pointer.
   a_boolean            result = FALSE, copy_error = FALSE;
   a_template_ptr       templ = constraint->variant.concept_id.concept_template;
   a_symbol_ptr         sym = symbol_for(templ);
-  a_template_param_ptr params = sym->variant.template_info
-                                   ->cache.decl_info->parameters;
+  a_template_param_ptr params = sym->variant.template_info->
+                                                  cache->decl_info->parameters;
   a_template_arg_ptr   old_args = constraint->variant.concept_id.args;
   an_owned_template_arg_list
                        new_args;
@@ -27069,8 +27069,8 @@ non-NULL (it's NULL by default), update *diag_list accordingly.
   a_template_ptr      templ = constraint->variant.concept_id.concept_template;
   a_symbol_ptr        sym = symbol_for(templ);
   a_template_param_ptr
-                      params = sym->variant.template_info->cache.decl_info
-                                                         ->parameters;
+                      params = sym->variant.template_info->cache->decl_info->
+                                                                    parameters;
   a_boolean           saved_in_concept_rescan;
 
   push_instantiation_scope_for_rescan(sym);

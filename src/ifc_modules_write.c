@@ -1442,27 +1442,27 @@ private:
                                   a_template_parameter_ptr templ_param);
 
   /* Functions for entering constants. */
-  an_ifc_edg_constant_index enter_constant(a_constant_ptr cp);
+  an_ifc_edg_constant_index enter_constant(const a_constant *cp);
 
   /* Functions for adding tokens and manipulating token caches. */
   an_ifc_output_token_cache copy_template_body_to_cache(a_template_ptr templ);
   an_ifc_edg_complex_token_index find_or_enter_textual_token(
-                                                  const a_cached_token *token);
+                                                    const a_shared_token &tok);
   void enter_basic_token_to_cache(an_ifc_output_token_cache *ifc_cache,
-                                  a_cached_token            *token);
+                                  const a_shared_token      &tok);
   an_ifc_edg_complex_token_index enter_textual_token(
-                                                  const a_cached_token *token);
+                                                    const a_shared_token &tok);
   void enter_textual_token_to_cache(an_ifc_output_token_cache *ifc_cache,
-                                    a_cached_token            *token);
+                                    const a_shared_token      &tok);
   an_ifc_edg_complex_token_index enter_constant_token(
                                   an_ifc_edg_constant_token_sort token_kind,
                                   an_ifc_edg_constant_index      constant_idx);
   void enter_constant_token_to_cache(an_ifc_output_token_cache *ifc_cache,
-                                     a_cached_token            *token);
+                                     const a_shared_token      &tok);
   void enter_extracted_body_to_cache(an_ifc_output_token_cache *ifc_cache,
-                                     a_cached_token            *token);
+                                     const a_shared_token      &tok);
   void enter_identifier_token_to_cache(an_ifc_output_token_cache *ifc_cache,
-                                       a_cached_token            *token);
+                                       const a_shared_token      &tok);
   void enter_token_cache(an_ifc_output_token_cache *ifc_cache,
                          a_token_cache             *fe_cache);
 
@@ -3201,7 +3201,9 @@ returned.
   a_template_symbol_supplement_ptr
                 tssp = templ_sym->variant.template_info;
 
-  this->enter_token_cache(&result, &tssp->cache.tokens);
+  if (!tssp->cache->tokens.is_empty()) {
+    this->enter_token_cache(&result, tssp->cache->tokens.ptr());
+  }  /* if */
   return result;
 }  /* an_ifc_il_map::copy_template_body_to_cache */
 
@@ -3749,7 +3751,7 @@ template parameter.
 }  /* an_ifc_il_map::set_up_template_type_param */
 
 
-an_ifc_edg_constant_index an_ifc_il_map::enter_constant(a_constant_ptr cp)
+an_ifc_edg_constant_index an_ifc_il_map::enter_constant(const a_constant *cp)
 /*
 For the given constant enter the constant into the IFC output state.  Return
 the expr index for the constant.
@@ -4821,7 +4823,7 @@ EDG IFC constant token kind.
 namespace {
 
 an_ifc_edg_complex_token_index an_ifc_il_map::find_or_enter_textual_token(
-                                                     const a_cached_token *ctp)
+                                                     const a_shared_token &tok)
 /*
 For the given cached token (representing a token with a singular textual
 identity) find or enter the textual token representation into the IFC output
@@ -4830,10 +4832,11 @@ state.  Return the corresponding IFC EDG complex token index.
 {
   an_ifc_edg_complex_token_index
                 result;
-  size_t        textual_token_offset = this->textual_token_map.get(ctp->token);
+  size_t        textual_token_offset =
+                                  this->textual_token_map.get(tok->get_kind());
 
   if (textual_token_offset == 0) {
-    result = this->enter_textual_token(ctp);
+    result = this->enter_textual_token(tok);
   } else {
     result = an_ifc_edg_complex_token_index(this->get_default_file(),
                                             ifc_ects_edg_token_textual,
@@ -4845,16 +4848,17 @@ state.  Return the corresponding IFC EDG complex token index.
 
 void an_ifc_il_map::enter_basic_token_to_cache(
                                          an_ifc_output_token_cache *ifc_cache,
-                                         a_cached_token            *token)
+                                         const a_shared_token      &tok)
 /*
 Add the given cached token (representing a token representable as either a
 basic token or a textual token) to the given token cache.
 */
 {
   an_ifc_edg_basic_token_sort
-                ifc_token = token_to_basic_token_kind(token->token);
+                ifc_token = token_to_basic_token_kind(tok->get_kind());
+
   if (ifc_token == ifc_ebts_complex) {
-    this->enter_textual_token_to_cache(ifc_cache, token);
+    this->enter_textual_token_to_cache(ifc_cache, tok);
   } else {
     ifc_cache->add_basic(ifc_token);
   }  /* if */
@@ -4862,7 +4866,7 @@ basic token or a textual token) to the given token cache.
 
 
 an_ifc_edg_complex_token_index an_ifc_il_map::enter_textual_token(
-                                                     const a_cached_token *ctp)
+                                                     const a_shared_token &tok)
 /*
 For the given cached token (representing a token with a singular textual
 identity) enter the textual token representation into the IFC output state.
@@ -4871,22 +4875,23 @@ Return the corresponding IFC EDG complex token index.
 {
   /* If this assertion fails, this token should not be represented as a textual
      token because it's directly representable as a basic token. */
-  check_assertion(token_to_basic_token_kind(ctp->token) == ifc_ebts_complex);
+  check_assertion(token_to_basic_token_kind(tok->get_kind()) ==
+                  ifc_ebts_complex);
   /* If this assertion fails, this token should not be represented as a textual
      token because it has additional state that needs to be serialized. */
-  check_assertion(ctp->extra_info_kind == teik_none);
+  check_assertion(tok->is_basic());
   /* If this assertion fails, this textual token has already been entered. */
-  check_assertion(this->textual_token_map.get(ctp->token) == 0);
+  check_assertion(this->textual_token_map.get(tok->get_kind()) == 0);
   an_ifc_edg_token_textual
                 textual_token;
   an_ifc_edg_complex_token_index
                 result = this->output_state->alloc_complex_token(
                                                                &textual_token);
 
-  this->textual_token_map.map(ctp->token, result.value + 1);
+  this->textual_token_map.map(tok->get_kind(), result.value + 1);
 
   size_t        token_name_offset = this->output_state->add_to_string_table(
-                                                ifc_token_name_of(ctp->token));
+                                           ifc_token_name_of(tok->get_kind()));
   an_ifc_text_offset
                 ifc_token_name_offset(this->get_default_file(),
                                       token_name_offset);
@@ -4897,15 +4902,15 @@ Return the corresponding IFC EDG complex token index.
 
 void an_ifc_il_map::enter_textual_token_to_cache(
                                           an_ifc_output_token_cache *ifc_cache,
-                                          a_cached_token            *token)
+                                          const a_shared_token      &tok)
 /*
 Add the given cached token (representing a token with a singular textual
 identity) to the given token cache.
 */
 {
-  check_assertion(token->extra_info_kind == teik_none);
+  check_assertion(tok->is_basic());
   an_ifc_edg_complex_token_index
-                complex_token_idx = this->find_or_enter_textual_token(token);
+                complex_token_idx = this->find_or_enter_textual_token(tok);
 
   ifc_cache->add_complex(complex_token_idx);
 }  /* an_ifc_il_map::enter_textual_token_to_cache */
@@ -4934,19 +4939,18 @@ into the IFC output state.  Return the index of the token.
 
 void an_ifc_il_map::enter_constant_token_to_cache(
                                           an_ifc_output_token_cache *ifc_cache,
-                                          a_cached_token            *token)
+                                          const a_shared_token      &tok)
 /*
 Add the given cached token (representing an EDG IFC constant token) to the
 given token cache.
 */
 {
-  check_assertion(token->extra_info_kind == teik_constant);
-  a_constant_ptr
-                constant = token->variant.constant;
+  const a_constant
+                *constant = tok->get_constant();
   an_ifc_edg_constant_index
                 ifc_constant = this->enter_constant(constant);
   an_ifc_edg_constant_token_sort
-                ifc_token_kind = token_to_constant_token_kind(token->token);
+                ifc_token_kind = token_to_constant_token_kind(tok->get_kind());
   an_ifc_edg_complex_token_index
                 complex_token_idx = this->enter_constant_token(ifc_token_kind,
                                                                ifc_constant);
@@ -4957,15 +4961,14 @@ given token cache.
 
 void an_ifc_il_map::enter_extracted_body_to_cache(
                                           an_ifc_output_token_cache *ifc_cache,
-                                          a_cached_token            *token)
+                                          const a_shared_token      &tok)
 /*
 Enter the token cache associated with the given extracted template token into
 the given token cache.
 */
 {
-  check_assertion(token->extra_info_kind == teik_extracted_body);
-  an_extracted_template_descr
-                *extracted_template = &token->variant.extracted_template;
+  const an_extracted_template_descr
+                *extracted_template = tok->get_extracted_template_descr();
   a_symbol_ptr  template_sym = extracted_template->symbol;
 
   switch (template_sym->kind) {
@@ -4975,7 +4978,7 @@ the given token cache.
         a_template_symbol_supplement_ptr
                 tssp = instance_ptr->template_info;
 
-        this->enter_token_cache(ifc_cache, &tssp->cache.tokens);
+        this->enter_token_cache(ifc_cache, tssp->cache->tokens.ptr());
       }
       break;
     default:
@@ -4987,20 +4990,19 @@ the given token cache.
 
 void an_ifc_il_map::enter_identifier_token_to_cache(
                                           an_ifc_output_token_cache *ifc_cache,
-                                          a_cached_token            *token)
+                                          const a_shared_token      &tok)
 /*
 Add the given cached token (representing an EDG IFC identifier token) to the
 given token cache.
 */
 {
-  check_assertion(token->extra_info_kind == teik_identifier);
   an_ifc_edg_token_identifier
                 identifier_token;
   an_ifc_edg_complex_token_index
                 result = this->output_state->alloc_complex_token(
                                                             &identifier_token);
   a_symbol_header_ptr
-                sym_header = token->variant.locator.symbol_header;
+                sym_header = tok->get_locator().symbol_header;
   an_ifc_text_offset
                 ifc_identifier = this->string_as_text_offset(
                                                 sym_header->identifier,
@@ -5011,7 +5013,7 @@ given token cache.
 }  /* an_ifc_il_map::enter_identifier_token_to_cache */
 
 
-static a_boolean should_token_be_simplified(a_cached_token *tok)
+static a_boolean should_token_be_simplified(const a_shared_token &tok)
 /*
 Return TRUE if the given token should be simplified to just its corresponding
 basic token kind.  This occurs for some token kinds (e.g., tok_true) where the
@@ -5021,7 +5023,7 @@ Otherwise, return FALSE.
 {
   a_boolean result = FALSE;
 
-  switch (tok->token) {
+  switch (tok->get_kind()) {
     case tok_true:
     case tok_false:
       result = TRUE;
@@ -5031,7 +5033,7 @@ Otherwise, return FALSE.
   }  /* switch */
   /* Textual tokens cannot currently be simplified tokens. */
   check_assertion(!result ||
-                  token_to_basic_token_kind(tok->token) != ifc_ebts_complex);
+               token_to_basic_token_kind(tok->get_kind()) != ifc_ebts_complex);
   return result;
 }  /* should_token_be_simplified */
 
@@ -5043,16 +5045,18 @@ Add the tokens in the given front end token cache to the given EDG IFC token
 cache.
 */
 {
-  for (a_cached_token *tok = fe_cache->first_token; tok != NULL;
-       tok = tok->next) {
+  a_token_cache_iterator it = fe_cache->begin();
+  a_token_cache_iterator it_end = fe_cache->end();
+
+  for (; it != it_end; ++it) {
+    const a_shared_token &tok = *it;
+
     if (should_token_be_simplified(tok)) {
       this->enter_basic_token_to_cache(ifc_cache, tok);
       continue;
     }  /* if */
 
-    a_token_extra_info_kind
-                extra_info = tok->extra_info_kind;
-    switch (extra_info) {
+    switch (tok->get_extra_kind()) {
       case teik_constant:
         this->enter_constant_token_to_cache(ifc_cache, tok);
         break;
@@ -5063,11 +5067,11 @@ cache.
         this->enter_identifier_token_to_cache(ifc_cache, tok);
         break;
       case teik_none:
-        { if (tok->token == tok_end_of_source) {
+        { if (tok->is(tok_end_of_source)) {
             /* An end of source token should never be followed by another
                token.  If this happens, something is wrong with the token cache
                and the authoring code should be corrected. */
-            check_assertion(tok->next == NULL);
+            check_assertion((it + 1) == it_end);
             break;
           }  /* if */
           this->enter_basic_token_to_cache(ifc_cache, tok);
@@ -5078,6 +5082,7 @@ cache.
       case teik_insert_string:
       case teik_pp_token:
       case teik_pragma:
+      case teik_removed_expr:
       case teik_ud_lit:
         /* FIXME: Implement these. */
         ifc_write_catastrophe();

@@ -11549,8 +11549,8 @@ See do_constexpr_intrinsic_call for the meaning of the parameters.
   if (rvp->entity.kind == iek_token_sequence) {
     a_token_sequence  *seq = (a_token_sequence*)rvp->entity.ptr;
     a_token_cache     *cache = (a_token_cache*)seq->token_cache;
-    answer = cache->first_token == NULL ||
-             cache->first_token->token == tok_end_of_source;
+    answer = cache->is_empty() ||
+             cache->get_first_token()->is(tok_end_of_source);
   }  /* if */
   set_bool_value(answer, result_storage);
   return result;
@@ -14281,9 +14281,9 @@ See do_constexpr_intrinsic_call for the meaning of the parameters.
       }  /* if */
     } else if (templ->kind == templk_concept) {
       a_diag_list       diag_list;
-      a_template_param  *t_params = symbol_for(templ)
-                                                ->variant.template_info
-                                                ->cache.decl_info->parameters;
+      a_template_param  *t_params = symbol_for(templ)->
+                                                  variant.template_info->
+                                                  cache->decl_info->parameters;
       a_boolean         val;
       a_constant        *con = fs_constant(ck_integer);
       clear_diag_list(&diag_list);
@@ -14691,7 +14691,7 @@ See do_constexpr_intrinsic_call for the meaning of the parameters.
 
   seq = (a_token_sequence*)rvp->entity.ptr;
   tokens = (a_token_cache*)seq->token_cache;
-  init_token_string(&tokens->first_token->source_position,
+  init_token_string(tokens->get_first_token()->get_source_position(),
                     /*keep_spacing=*/TRUE,
                     /*suppress_identifier_wrapping=*/FALSE);
   add_token_cache_to_string(tokens);
@@ -15719,17 +15719,21 @@ done:
 }  /* get_string_from_string_view */
 
 
-static inline void freshen_last_cached_token(a_token_cache  *cache)
+static inline void cache_curr_token_fresh(a_token_cache  *cache)
 /*
-Assign a fresh token sequence number to the last token added to the given
-token cache.
+Cache the current token with a fresh token sequence number to the given token
+cache.
 */
 {
-  a_token_sequence_number  tsn = assign_new_token_sequence_number();
+  a_token_sequence_number
+                new_tsn = assign_new_token_sequence_number();
+  Value_saver<a_token_sequence_number>
+                curr_tsn(&curr_token_sequence_number, new_tsn);
+  Value_saver<a_token_sequence_number>
+                curr_last_tsn(&last_token_sequence_number_of_token, new_tsn);
 
-  cache->last_token->token_sequence_number = tsn;
-  cache->last_token->ending_token_sequence_number = tsn;
-}  /* freshen_last_cached_token */
+  cache_curr_token(cache);
+}  /* cache_curr_token_fresh */
 
 
 static a_boolean do_constexpr_eval_token_sequence(
@@ -15774,13 +15778,14 @@ the corresponding reflection value at the location denoted by result_cap.
       }  /* if */
     }  /* for */
     if (result) {
-      size_t  interpolator_num = 0;
-      new_cache = alloc_token_cache(/*reusable=*/TRUE);
-      rescan_reusable_cache((a_token_cache*)orig_tok_seq->token_cache);
+      size_t interpolator_num = 0;
+
+      new_cache = new_fe<a_token_cache>(/*reusable=*/TRUE);
+      rescan_persistent_reusable_cache(
+                                  ((a_token_cache*)orig_tok_seq->token_cache));
       for (; curr_token != tok_end_of_source; (void)get_token()) {
         if (curr_token != tok_backslash) {
-          cache_curr_token(new_cache);
-          freshen_last_cached_token(new_cache);
+          cache_curr_token_fresh(new_cache);
           continue;
         }  /* if */
         /* Skip the backslash. */
@@ -15821,18 +15826,21 @@ the corresponding reflection value at the location denoted by result_cap.
             }  /* while */
             len = full_id.length();
             str = full_id.as_temp_characters();
-            cache_string_as_identifier(new_cache, str, len, &pos_curr_token);
-            freshen_last_cached_token(new_cache);
+
+            a_shared_token new_tok = build_tok_identifier(str, len,
+                                                          &pos_curr_token);
+            new_cache->append_token(move_from(&new_tok));
           } else if (strcmp(id, "tokens") == 0) {
             a_constant  *cp = values[interpolator_num];
             if (constant_is(cp, ck_reflection) &&
                 cp->variant.reflection.entity.kind == iek_token_sequence) {
-              a_token_sequence  *in_seq;
-              in_seq = (a_token_sequence*)cp->variant.reflection.entity.ptr;
-              rescan_reusable_cache((a_token_cache*)in_seq->token_cache);
+              a_token_sequence  *in_seq = (a_token_sequence*)cp->variant.
+                                                         reflection.entity.ptr;
+
+              rescan_persistent_reusable_cache(
+                                        ((a_token_cache*)in_seq->token_cache));
               for (; curr_token != tok_end_of_source; (void)get_token()) {
-                cache_curr_token(new_cache);
-                freshen_last_cached_token(new_cache);
+                cache_curr_token_fresh(new_cache);
               }  /* for */
               flush_past_token_cache_terminator();
             } else {
@@ -15848,9 +15856,10 @@ the corresponding reflection value at the location denoted by result_cap.
           /* An interpolator of the form \(...).  Pass the value of the
              interpolated expression (converted to a prvalue) as a
              pseudo-token representing that constant. */
-          cache_general_constant(new_cache, values[interpolator_num],
-                                 &pos_curr_token);
-          freshen_last_cached_token(new_cache);
+          a_shared_token new_tok = build_tok_constant(values[interpolator_num],
+                                                      &pos_curr_token);
+
+          new_cache->append_token(move_from(&new_tok));
           /* Skip the left parenthesis (the right one is skipped by the
              general loop mechanism). */
           (void)get_token();

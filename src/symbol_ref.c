@@ -1574,7 +1574,7 @@ name table.
         !type->variant.class_struct_union.is_in_class_specialization) {
       a_class_symbol_supplement_ptr  cssp = symbol_supplement_for_class(type);
       check_assertion(cssp != NULL && cssp->template_info != NULL);
-      param = cssp->template_info->cache.decl_info->parameters;
+      param = cssp->template_info->cache->decl_info->parameters;
     }  /* if */
   } else if (sp->kind == (a_scope_kind)sck_function) {
     a_routine_ptr  routine = sp->variant.routine.ptr;
@@ -1593,7 +1593,7 @@ name table.
       a_template_instance_ptr
                     instance = sym->variant.routine.instance_ptr;
       if (instance != NULL && instance->template_info != NULL) {
-        param = instance->template_info->cache.decl_info->parameters;
+        param = instance->template_info->cache->decl_info->parameters;
       }  /* if */
     }  /* if */
   }  /* if */

@@ -190,9 +190,9 @@ extern void conv_string_literal(
                          a_const_char                  **err_pos,
                          a_boolean                     is_rescan = FALSE);
 
-extern void concat_string_literals(a_token_cache_ptr cache,
-                                   a_character_kind  kind,
-                                   a_cached_token    *first_token = NULL);
+extern void concat_string_literals(a_token_cache_ptr      cache,
+                                   a_character_kind       kind,
+                                   a_token_cache_iterator *first_token = NULL);
 
 extern void literals_one_time_init(void);
 

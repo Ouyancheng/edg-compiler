@@ -1887,7 +1887,7 @@ extern an_expr_node_ptr find_local_expr_node_in_scope(
 extern an_expr_node_ptr find_local_expr_node(char  *referrer,
                                              a_local_expr_node_ref_kind  kind);
 
-extern an_expr_node_ptr expr_node_from_tpck_expression(a_constant_ptr cp);
+extern an_expr_node_ptr expr_node_from_tpck_expression(const a_constant *cp);
 
 extern an_expr_node_ptr expr_node_from_constant(a_constant_ptr cp);
 
@@ -2141,8 +2141,8 @@ extern a_scope_ptr new_function_scope(a_scope_number           scope_number,
 
 extern a_subobject_path_ptr copy_subobject_path(a_subobject_path_ptr  path);
 
-extern void copy_constant(a_constant *from,
-                          a_constant *to);
+extern void copy_constant(const a_constant *from,
+                          a_constant       *to);
 
 extern void copy_template(a_template *from,
                           a_template *to);

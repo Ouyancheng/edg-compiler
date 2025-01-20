@@ -191,7 +191,6 @@ STATIC_THREAD unsigned long
 			/* Number of text buffers that have been allocated. */
 #endif /* DEBUG */
 
-
 #if DEBUG
 static void adjust_record_of_total_allocation(long amount)
 /*

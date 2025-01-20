@@ -2048,8 +2048,12 @@ void Dyn_array<an_Elem, Allocator>::clear()
 Remove all the elements in the array.
 */
 {
-  destroy_elements<an_elem>(this->elems, this->n_elems);
-  this->n_elems = 0;
+  /* Due to inlining depth restrictions, checking the size before calling
+     destroy_elements can save time. */
+  if (this->n_elems != 0) {
+    destroy_elements<an_elem>(this->elems, this->n_elems);
+    this->n_elems = 0;
+  }  /* if */
 }  /* Dyn_array::clear */
 
 
