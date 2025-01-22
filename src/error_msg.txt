@@ -4,7 +4,7 @@
 # Edison Design Group C++/C Front End                        - | \^/ | -      #
 #                                                               \   /         #
 # Proprietary information of Edison Design Group Inc.         /  | |  \       #
-# Copyright 1988-2023 Edison Design Group Inc.                   [_]          #
+# Copyright 1988-2025 Edison Design Group Inc.                   [_]          #
 #                                                                             #
 ###############################################################################
 #
@@ -3536,6 +3536,6 @@ ec_cl_invalid_cwd;;"invalid current working directory: %s"
 # Edison Design Group C++/C Front End                        - | \^/ | -      #
 #                                                               \   /         #
 # Proprietary information of Edison Design Group Inc.         /  | |  \       #
-# Copyright 1988-2023 Edison Design Group Inc.                   [_]          #
+# Copyright 1988-2025 Edison Design Group Inc.                   [_]          #
 #                                                                             #
 ###############################################################################
