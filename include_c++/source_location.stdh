@@ -4,7 +4,7 @@
 * Edison Design Group C++ Header Files                       - | \^/ | -      *
 *                                                               \   /         *
 *                                                             /  | |  \       *
-* Copyright 2022-2024 Edison Design Group Inc.                   [_]          *
+* Copyright 2022-2025 Edison Design Group Inc.                   [_]          *
 *                                                                             *
 ******************************************************************************/
 /*
@@ -89,6 +89,6 @@ namespace std {
 * Edison Design Group C++ Header Files                       - | \^/ | -      *
 *                                                               \   /         *
 *                                                             /  | |  \       *
-* Copyright 2022-2024 Edison Design Group Inc.                   [_]          *
+* Copyright 2022-2025 Edison Design Group Inc.                   [_]          *
 *                                                                             *
 ******************************************************************************/
