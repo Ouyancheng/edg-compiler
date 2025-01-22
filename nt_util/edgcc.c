@@ -4,7 +4,7 @@
 * Edison Design Group C++/C Front End                        - | \^/ | -      *
 *                                                               \   /         *
 * Proprietary information of Edison Design Group Inc.         /  | |  \       *
-* Copyright 1988-2023 Edison Design Group Inc.                   [_]          *
+* Copyright 1988-2025 Edison Design Group Inc.                   [_]          *
 *                                                                             *
 ******************************************************************************/
 /*
@@ -696,7 +696,7 @@ Remove a file.
   if (debug) {
     fprintf(stderr, "%s removed\n", file);
   }  /* if */
-}  /* move_file */
+}  /* remove_file */
 
 
 a_boolean read_input_line(FILE* input_file)
@@ -1367,6 +1367,6 @@ int main(int argc, char *argv[])
 * Edison Design Group C++/C Front End                        - | \^/ | -      *
 *                                                               \   /         *
 * Proprietary information of Edison Design Group Inc.         /  | |  \       *
-* Copyright 1988-2023 Edison Design Group Inc.                   [_]          *
+* Copyright 1988-2025 Edison Design Group Inc.                   [_]          *
 *                                                                             *
 ******************************************************************************/
