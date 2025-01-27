@@ -350,7 +350,7 @@ of the current identifier.
 {
   char          buffer[50];
 
-  (void)sprintf(buffer, "%lu", num);
+  (void)snprintf(buffer, sizeof(buffer), "%lu", num);
   write_id_str(buffer, dctl);
 }  /* write_id_number */
 
@@ -365,7 +365,7 @@ of the current identifier.
 {
   char          buffer[50];
 
-  (void)sprintf(buffer, "%ld", num);
+  (void)snprintf(buffer, sizeof(buffer), "%ld", num);
   write_id_str(buffer, dctl);
 }  /* write_id_signed_number */
 
@@ -821,9 +821,9 @@ as indicated.  It's a nontype parameter if nontype is TRUE.
       letter = 'P';
     }  /* if */
     if (letter != '\0') {
-      (void)sprintf(buffer, "%c%lu", letter, position);
+      (void)snprintf(buffer, sizeof(buffer), "%c%lu", letter, position);
     } else {
-      (void)sprintf(buffer, "N_%lu_%lu", depth, position);
+      (void)snprintf(buffer, sizeof(buffer), "N_%lu_%lu", depth, position);
     }  /* if */
   } else {
     /* Normal type parameter. */
@@ -836,9 +836,9 @@ as indicated.  It's a nontype parameter if nontype is TRUE.
       letter = 'V';
     }  /* if */
     if (letter != '\0') {
-      (void)sprintf(buffer, "%c%lu", letter, position);
+      (void)snprintf(buffer, sizeof(buffer), "%c%lu", letter, position);
     } else {
-      (void)sprintf(buffer, "T_%lu_%lu", depth, position);
+      (void)snprintf(buffer, sizeof(buffer), "T_%lu_%lu", depth, position);
     }  /* if */
   }  /* if */
   write_id_str(buffer, dctl);
@@ -1232,10 +1232,10 @@ type) as pointed to by ptr:
       write_id_str("this", dctl);
     } else {
       if (level == 0) {
-        (void)sprintf(buffer, "param#%ld", num);
+        (void)snprintf(buffer, sizeof(buffer), "param#%ld", num);
       } else {
-        (void)sprintf(buffer, "param#%ld[up %ld level%s]", num, level,
-                              level > 1 ? "s" : "");
+        (void)snprintf(buffer, sizeof(buffer), "param#%ld[up %ld level%s]",
+                       num, level, level > 1 ? "s" : "");
       }  /* if */
       write_id_str(buffer, dctl);
     }  /* if */
@@ -5039,7 +5039,7 @@ The syntax is:
     }  /* if */
   }  /* if */
   ptr = advance_past_underscore(ptr, dctl);
-  (void)sprintf(buffer, "T%ld", num);
+  (void)snprintf(buffer, sizeof(buffer), "T%ld", num);
   write_id_str(buffer, dctl);
   return ptr;
 }  /* demangle_template_param */
@@ -5116,13 +5116,13 @@ The syntax is:
     ptr = advance_past_underscore(ptr, dctl);
     write_id_str("param#", dctl);
     if (level == -1) {
-      (void)sprintf(buffer, "%ld", num);
+      (void)snprintf(buffer, sizeof(buffer), "%ld", num);
     } else {
       /* The buffer must be at least 51 characters to hold the maximum of 2
          longs (20-digit), 11 fixed characters, 1 optional character "s", and
          the null character for string termination. */
-      (void)sprintf(buffer, "%ld[up %ld level%s]", num, level,
-                            level > 1 ? "s" : "");
+      (void)snprintf(buffer, sizeof(buffer), "%ld[up %ld level%s]", num, level,
+                     level > 1 ? "s" : "");
     }  /* if */
     write_id_str(buffer, dctl);
   }  /* if */
@@ -6715,7 +6715,7 @@ to the terminating character.
 #else /* !defined(FLT_DIG) */
       ndig = 6;
 #endif /* ifdef FLT_DIG */
-      (void)sprintf(str, "%.*g", ndig, x.f);
+      (void)snprintf(str, sizeof(str), "%.*g", ndig, x.f);
 #if USE_LONG_DOUBLE_FOR_HOST_FP_VALUE
     } else if (i > sizeof(double)) {
 #ifdef LDBL_DIG
@@ -6723,7 +6723,7 @@ to the terminating character.
 #else /* !defined(LDBL_DIG) */
       ndig = 18;
 #endif /* ifdef LDBL_DIG */
-      (void)sprintf(str, "%.*Lg", ndig, x.ld);
+      (void)snprintf(str, sizeof(str), "%.*Lg", ndig, x.ld);
 #endif /* USE_LONG_DOUBLE_FOR_HOST_FP_VALUE */
     } else {
 #ifdef DBL_DIG
@@ -6731,7 +6731,7 @@ to the terminating character.
 #else /* !defined(DBL_DIG) */
       ndig = 15;
 #endif /* ifdef DBL_DIG */
-      (void)sprintf(str, "%.*g", ndig, x.d);
+      (void)snprintf(str, sizeof(str), "%.*g", ndig, x.d);
     }  /* if */
     /* Add trailing ".0" if no decimal point or exponent indication was put out
        and the last character of the string is a digit (i.e., not

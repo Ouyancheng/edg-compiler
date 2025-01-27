@@ -2480,14 +2480,15 @@ that line type.
           add_compilation_dir = TRUE;
         }  /* if */
         i_pofp = alloc_pl_object_file();
-        i_pofp->file_name = (char *)pl_malloc_with_check(
- 		         strlen(info) +
-	                 instantiation_dir_length +
-			 instantiation_suffix_length +
-                         (add_compilation_dir ?  compilation_dir_length : 0) +
-			 extra_space);
+        size_t file_name_size = strlen(info) +
+                                instantiation_dir_length +
+                                instantiation_suffix_length +
+                                (add_compilation_dir ? compilation_dir_length :
+                                                       0) +
+                                extra_space;
+        i_pofp->file_name = (char *)pl_malloc_with_check(file_name_size);
         /* Construct the name of the instantiation object file. */
-        sprintf(i_pofp->file_name, "%s%s%s/%s%s",
+        snprintf(i_pofp->file_name, file_name_size, "%s%s%s/%s%s",
                 add_compilation_dir ? pifp->compilation_directory : "",
                 add_compilation_dir ? "/" : "",
                 pifp->instantiation_directory,
@@ -2896,10 +2897,11 @@ the file is flagged as requiring recompilation.
             /* In one instantiation per object mode, remove the file
                associated with the instantiation that is no longer
                needed. */
-            sprintf(pl_file_name_buffer, "%s/%s%s",
-                    pifp->instantiation_directory,
-                    generate_instantiation_output_file_name(psp->name),
-                    INSTANTIATION_OBJECT_SUFFIX);
+            snprintf(pl_file_name_buffer, sizeof(pl_file_name_buffer),
+                     "%s/%s%s",
+                     pifp->instantiation_directory,
+                     generate_instantiation_output_file_name(psp->name),
+                     INSTANTIATION_OBJECT_SUFFIX);
             unlink(pl_file_name_buffer);
           }  /* if */
 #endif /* ONE_INSTANTIATION_PER_OBJECT */
@@ -3192,8 +3194,8 @@ information.
   } else {
     /* Create a path name consisting of the original directory and the
        file name. */
-    sprintf(pl_file_name_buffer, "%s/%s", pifp->compilation_directory,
-            pifp->compilation_file_name);
+    snprintf(pl_file_name_buffer, sizeof(pl_file_name_buffer), "%s/%s",
+             pifp->compilation_directory, pifp->compilation_file_name);
     free(pifp->compilation_file_name);
     pifp->compilation_file_name = pl_copy_string(pl_file_name_buffer);
   }  /* if */
@@ -3251,7 +3253,7 @@ name to be used for the temporary file.
       tmpdir = "/tmp";
 #endif /* __MICROSOFT_OS__ */
     }  /* if */
-    snprintf(pl_file_name_buffer, FILE_NAME_BUFFER_SIZE, "%s/%0dpltf",
+    snprintf(pl_file_name_buffer, sizeof(pl_file_name_buffer), "%s/%0dpltf",
              tmpdir, getpid());
     temporary_file_name = pl_copy_string(pl_file_name_buffer);
   }  /* if */
@@ -3294,8 +3296,8 @@ like "--definition_list_file=/tmp/something".
     /* The first time this routine is called, create the option name.
        This assumes that the temporary file name does not change from one
        call to the next. */
-    sprintf(pl_file_name_buffer, "--definition_list_file=%s",
-            temporary_file_name);
+    snprintf(pl_file_name_buffer, sizeof(pl_file_name_buffer),
+             "--definition_list_file=%s", temporary_file_name);
     definition_list_option = pl_copy_string(pl_file_name_buffer);
   }  /* if */
   return definition_list_option;

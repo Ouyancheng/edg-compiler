@@ -1,5 +1,12 @@
 Version 6.7, January 27, 2025
 
+1/27/25  [EDGcpfe/27888]
+Replace uses of sprintf with snprintf
+
+Uses of sprintf in the util directory have been replaced by safer calls to
+snprintf.
+
+
 1/2/25   [EDGcpfe/27800]
 Multi-threaded POSIX front end daemon
 
