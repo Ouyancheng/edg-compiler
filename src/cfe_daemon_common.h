@@ -156,7 +156,7 @@ freeing the buffer.
                                  "/var/run/user/%lld/cpfe-daemon-%s.sock",
 #else /* !__linux__ */
                                  "/tmp/cpfe-daemon-%lld-%s.sock",
-#endif /* __linux__*/
+#endif /* __linux__ */
                                  (long long)geteuid(), daemon_id);
     return chars_written >= 0 && ((size_t)chars_written) <= buf_size;
   };
