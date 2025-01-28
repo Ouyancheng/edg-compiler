@@ -1,5 +1,12 @@
 Version 6.7, January 27, 2025
 
+1/28/25  [EDGcpfe/27850]
+GNU compatibility: GCC 15 builtins
+
+The front end has been updated with the latest builtin signatures from
+GCC version 15 (based on the 20250112 pre-release snapshot).
+
+
 1/28/25  [EDGcpfe/27849]
 MSVC compatibility: builtin signatures for ARM32 and ARM64
 
