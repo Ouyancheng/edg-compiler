@@ -10880,30 +10880,8 @@ from the front end to the runtime.
   /* Does the front end support 128-bit integers? */
   enter_predef_num_macro_noredef(INT128_EXTENSIONS_ALLOWED,
                                  "__EDG_INT128_EXTENSIONS_ALLOWED");
-  /* Should the runtime support the bfloat16 type?  Make a reasonable
-     default guess, based on the designated target architecture, but allow
-     the macro to be redefined if the guess is wrong. */
-  a_boolean targ_has_bfloat16 = FALSE;
-#if defined(TARG_HAS_BFLOAT16_TYPE)
-  targ_has_bfloat16 = TARG_HAS_BFLOAT16_TYPE;
-#else /* !defined(TARG_HAS_BFLOAT16_TYPE) */
-#if BACK_END_IS_C_GEN_BE || BACK_END_IS_CP_GEN_BE
-  if (clang_is_generated_code_target) {
-    /* clang supported the bfloat16 type beginning with version 11.0 on
-       ARM architectures and version 15.0 on other platforms. */
-    targ_has_bfloat16 = target_is_arm_based()
-                                     ? (clang_target_version_number >= 110000)
-                                     : (clang_target_version_number >= 150000);
-  } else if (gcc_is_generated_code_target) {
-    /* gcc supported the bfloat16 type beginning with version 10.1.0 on
-       ARM architectures and version 13.1.0 on other platforms. */
-    targ_has_bfloat16 = target_is_arm_based()
-                                       ? (gnu_target_version_number >= 100000)
-                                       : (gnu_target_version_number >= 130000);
-  }  /* if */
-#endif /* BACK_END_IS_C_GEN_BE || BACK_END_IS_CP_GEN_BE */
-#endif /* defined(TARG_HAS_BFLOAT16_TYPE) */
-  enter_predef_num_macro(targ_has_bfloat16,
+  /* Should the runtime support the bfloat16 type? */
+  enter_predef_num_macro(HOST_COMPILER_SUPPORTS_BFLOAT16,
                          "__EDG_BFLOAT16_ENABLING_POSSIBLE");
 }  /* init_runtime_macros */
 

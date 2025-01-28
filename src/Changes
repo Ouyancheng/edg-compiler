@@ -1,5 +1,21 @@
 Version 6.7, January 27, 2025
 
+1/28/25  [EDGcpfe/27889]
+Compilation issues when building the runtime library with bfloat16 support
+
+To support the bfloat16 type, the C-generating back end uses the __bf16 type in
+generated C code.  Support for the __bf16 type varies widely by version and
+architecture and some host compilers support the __bf16 type as a storage type
+but can't perform operations on objects of __bf16 type.  For full support, the
+host-based back end C compiler must be able to perform operations on such
+types.  Setting HOST_COMPILER_SUPPORTS_BFLOAT16 to TRUE indicates that the
+back end C/C++ compiler has full support for the __bf16 type.  Setting
+HOST_COMPILER_SUPPORTS_BFLOAT16 to FALSE will unconditionally disable the
+bfloat16 type support in the EDG runtime library (though not in the front end).
+The default value of HOST_COMPILER_SUPPORTS_BFLOAT16 is set heuristically
+based on the host compiler being used to compile the front end.
+
+
 1/28/25  [EDGcpfe/27850]
 GNU compatibility: GCC 15 builtins
 

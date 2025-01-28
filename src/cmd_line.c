@@ -7882,6 +7882,11 @@ file.
 #else /* !defined(HOST_ALLOCATION_INCREMENT) */
   comment_undefined_macro_name(HOST_ALLOCATION_INCREMENT);
 #endif /* defined(HOST_ALLOCATION_INCREMENT) */
+#if defined(HOST_COMPILER_SUPPORTS_BFLOAT16)
+  define_numeric_valued_macro(HOST_COMPILER_SUPPORTS_BFLOAT16);
+#else /* !defined(HOST_COMPILER_SUPPORTS_BFLOAT16) */
+  comment_undefined_macro_name(HOST_COMPILER_SUPPORTS_BFLOAT16);
+#endif /* defined(HOST_COMPILER_SUPPORTS_BFLOAT16) */
 #if defined(HOST_FP_VALUE_IS_128BIT)
   define_numeric_valued_macro(HOST_FP_VALUE_IS_128BIT);
 #else /* !defined(HOST_FP_VALUE_IS_128BIT) */
@@ -9259,11 +9264,6 @@ file.
 #else /* !defined(TARG_FRACTIONAL_BITS_FOR_UNSIGNED_SHORT_FRACT) */
   comment_undefined_macro_name(TARG_FRACTIONAL_BITS_FOR_UNSIGNED_SHORT_FRACT);
 #endif /* defined(TARG_FRACTIONAL_BITS_FOR_UNSIGNED_SHORT_FRACT) */
-#if defined(TARG_HAS_BFLOAT16_TYPE)
-  define_numeric_valued_macro(TARG_HAS_BFLOAT16_TYPE);
-#else /* !defined(TARG_HAS_BFLOAT16_TYPE) */
-  comment_undefined_macro_name(TARG_HAS_BFLOAT16_TYPE);
-#endif /* defined(TARG_HAS_BFLOAT16_TYPE) */
 #if defined(TARG_HAS_IEEE_FLOATING_POINT)
   define_numeric_valued_macro(TARG_HAS_IEEE_FLOATING_POINT);
 #else /* !defined(TARG_HAS_IEEE_FLOATING_POINT) */

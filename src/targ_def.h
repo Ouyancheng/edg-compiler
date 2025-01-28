@@ -5720,6 +5720,49 @@ creating a link from one to the other).
 #define LEGACY_TARGET_CONFIGURATION_NAME (a_const_char *)NULL
 #endif /* defined(LEGACY_TARGET_CONFIGURATION_NAME) */
 
+/*
+To support the bfloat16 type, the C-generating back end uses the __bf16 type in
+generated C code.  Support for the __bf16 type varies widely by version and
+architecture and some host compilers support the __bf16 type as a storage type
+but can't perform operations on objects of __bf16 type.  For full support, the
+host-based back end C compiler must be able to perform operations on such
+types.  Setting HOST_COMPILER_SUPPORTS_BFLOAT16 to TRUE indicates that the
+back end C/C++ compiler has full support for the __bf16 type.  Setting
+HOST_COMPILER_SUPPORTS_BFLOAT16 to FALSE will unconditionally disable the
+bfloat16 type support in the EDG runtime library (though not in the front end).
+The default value of HOST_COMPILER_SUPPORTS_BFLOAT16 is set heuristically
+based on the host compiler being used to compile the front end.
+*/
+#ifndef HOST_COMPILER_SUPPORTS_BFLOAT16
+#if defined(__clang_major__)
+#if defined(__apple_build_version__) && defined(__arm64)
+/* ARM-based MacOS compilers currently don't fully support __bf16. */
+#define HOST_COMPILER_SUPPORTS_BFLOAT16 FALSE
+#elif (defined(__arm) || defined(__arm64)) && __clang_major__ >= 11
+/* ARM-based clang compilers support __bf16 after version 11. */
+#define HOST_COMPILER_SUPPORTS_BFLOAT16 TRUE
+#elif (defined(__x86_64) || defined(__x86_64__)) && __clang_major__ >= 15
+/* x86-based clang compilers support __bf16 after version 15. */
+#define HOST_COMPILER_SUPPORTS_BFLOAT16 TRUE
+#endif /* defined(__apple_build_version__) && defined(__arm64) */
+#endif /* defined(__clang_major__) */
+#if defined(__GNUC__)
+#if (defined(__arm) || defined(__arm64)) && __GNUC__ >= 10
+/* ARM-based GNU compilers support __bf16 after version 10. */
+#define HOST_COMPILER_SUPPORTS_BFLOAT16 TRUE
+#elif (defined(__x86_64) || defined(__x86_64__)) && __GNUC__ >= 13
+/* x86-based GNU compilers support __bf16 after version 13. */
+#define HOST_COMPILER_SUPPORTS_BFLOAT16 TRUE
+#endif /* (defined(__arm) || defined(__arm64)) && __GNUC__ >= 10 */
+#endif /* defined(__GNUC__) */
+
+#ifndef HOST_COMPILER_SUPPORTS_BFLOAT16
+/* If not set above, assume the host compiler does not have support. */
+#define HOST_COMPILER_SUPPORTS_BFLOAT16 FALSE 
+#endif /* defined(HOST_COMPILER_SUPPORTS_BFLOAT16) */
+
+#endif /* defined(HOST_COMPILER_SUPPORTS_BFLOAT16) */
+
 /* Conditionally close the "edg" namespace. */
 END_EDG_NAMESPACE
 
