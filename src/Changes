@@ -1,5 +1,12 @@
 Version 6.7, January 27, 2025
 
+1/28/25  [EDGcpfe/27891]
+GNU compatibility: Additional type traits
+
+GCC 15 has added the __array_rank, __is_pointer, __is_unbounded_array, and
+__is_volatile type traits which are now enabled when gnu_version >= 150000.
+
+
 1/28/25  [EDGcpfe/27889]
 Compilation issues when building the runtime library with bfloat16 support
 
