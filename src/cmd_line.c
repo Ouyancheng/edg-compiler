@@ -9259,6 +9259,11 @@ file.
 #else /* !defined(TARG_FRACTIONAL_BITS_FOR_UNSIGNED_SHORT_FRACT) */
   comment_undefined_macro_name(TARG_FRACTIONAL_BITS_FOR_UNSIGNED_SHORT_FRACT);
 #endif /* defined(TARG_FRACTIONAL_BITS_FOR_UNSIGNED_SHORT_FRACT) */
+#if defined(TARG_HAS_BFLOAT16_TYPE)
+  define_numeric_valued_macro(TARG_HAS_BFLOAT16_TYPE);
+#else /* !defined(TARG_HAS_BFLOAT16_TYPE) */
+  comment_undefined_macro_name(TARG_HAS_BFLOAT16_TYPE);
+#endif /* defined(TARG_HAS_BFLOAT16_TYPE) */
 #if defined(TARG_HAS_IEEE_FLOATING_POINT)
   define_numeric_valued_macro(TARG_HAS_IEEE_FLOATING_POINT);
 #else /* !defined(TARG_HAS_IEEE_FLOATING_POINT) */

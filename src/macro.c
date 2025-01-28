@@ -10884,6 +10884,9 @@ from the front end to the runtime.
      default guess, based on the designated target architecture, but allow
      the macro to be redefined if the guess is wrong. */
   a_boolean targ_has_bfloat16 = FALSE;
+#if defined(TARG_HAS_BFLOAT16_TYPE)
+  targ_has_bfloat16 = TARG_HAS_BFLOAT16_TYPE;
+#else /* !defined(TARG_HAS_BFLOAT16_TYPE) */
 #if BACK_END_IS_C_GEN_BE || BACK_END_IS_CP_GEN_BE
   if (clang_is_generated_code_target) {
     /* clang supported the bfloat16 type beginning with version 11.0 on
@@ -10899,6 +10902,7 @@ from the front end to the runtime.
                                        : (gnu_target_version_number >= 130000);
   }  /* if */
 #endif /* BACK_END_IS_C_GEN_BE || BACK_END_IS_CP_GEN_BE */
+#endif /* defined(TARG_HAS_BFLOAT16_TYPE) */
   enter_predef_num_macro(targ_has_bfloat16,
                          "__EDG_BFLOAT16_ENABLING_POSSIBLE");
 }  /* init_runtime_macros */
