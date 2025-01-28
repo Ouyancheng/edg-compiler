@@ -1,5 +1,11 @@
 Version 6.7, January 27, 2025
 
+1/28/25  [EDGcpfe/27849]
+MSVC compatibility: builtin signatures for ARM32 and ARM64
+
+Builtin signatures have been added for MSVC on ARM32 and ARM64 architectures.
+
+
 1/13/25  [EDGcpfe/27831]
 Clang compatibility: Deduction from _Nullable types
 
