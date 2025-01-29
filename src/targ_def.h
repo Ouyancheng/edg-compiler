@@ -5739,19 +5739,19 @@ based on the host compiler being used to compile the front end.
 /* ARM-based MacOS compilers currently don't fully support __bf16. */
 #define HOST_COMPILER_SUPPORTS_BFLOAT16 FALSE
 #elif (defined(__arm) || defined(__arm64)) && __clang_major__ >= 11
-/* ARM-based clang compilers support __bf16 after version 11. */
+/* ARM-based clang compilers support __bf16 beginning with version 11. */
 #define HOST_COMPILER_SUPPORTS_BFLOAT16 TRUE
 #elif (defined(__x86_64) || defined(__x86_64__)) && __clang_major__ >= 15
-/* x86-based clang compilers support __bf16 after version 15. */
+/* x86-based clang compilers support __bf16 beginning with version 15. */
 #define HOST_COMPILER_SUPPORTS_BFLOAT16 TRUE
 #endif /* defined(__apple_build_version__) && defined(__arm64) */
 #endif /* defined(__clang_major__) */
 #if defined(__GNUC__)
 #if (defined(__arm) || defined(__arm64)) && __GNUC__ >= 10
-/* ARM-based GNU compilers support __bf16 after version 10. */
+/* ARM-based GNU compilers support __bf16 beginning with version 10. */
 #define HOST_COMPILER_SUPPORTS_BFLOAT16 TRUE
 #elif (defined(__x86_64) || defined(__x86_64__)) && __GNUC__ >= 13
-/* x86-based GNU compilers support __bf16 after version 13. */
+/* x86-based GNU compilers support __bf16 beginning with version 13. */
 #define HOST_COMPILER_SUPPORTS_BFLOAT16 TRUE
 #endif /* (defined(__arm) || defined(__arm64)) && __GNUC__ >= 10 */
 #endif /* defined(__GNUC__) */
