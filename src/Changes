@@ -1,5 +1,12 @@
 Version 6.8
 
+1/30/25  [EDGcpfe/27891]
+GNU compatibility: Additional type traits
+
+GCC 15 has added the __array_rank, __is_pointer, __is_unbounded_array, and
+__is_volatile type traits which are now enabled when gnu_version >= 150000.
+
+
 1/30/25  [EDGcpfe/27898]
 Microsoft compatibility: C++ features enabled by --ms_c++23
 

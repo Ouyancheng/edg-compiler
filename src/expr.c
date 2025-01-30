@@ -41826,6 +41826,17 @@ repeat_switch:
                                          &local_result);
             break;
           }  /* if */
+          if (gnu_version_is(>=150000) &&
+              strcmp(hdr->identifier, "__is_pointer") == 0 &&
+              parenthesized_type_name_next()) {
+            /* GNU headers (up to version 15) used __is_pointer as an
+               identifier but 15 and later use it as a type trait or
+               an identifier.  Clang seems to allow both. */
+            curr_token = tok_is_pointer;
+            scan_unary_type_trait_helper((a_rescan_control_block *)NULL,
+                                         &local_result);
+            break;
+          }  /* if */
 #if MICROSOFT_EXTENSIONS_ALLOWED
           if (microsoft_mode && cli_or_cx_enabled &&
               hdr == safe_cast_symbol_header) {

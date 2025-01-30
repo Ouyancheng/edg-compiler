@@ -18541,7 +18541,8 @@ as constexpr_intrinsic_descriptions and type_transform_names below).
 */
 static constexpr a_const_char* intrinsic_names[] = {
   "main",
-  "__is_signed",
+  "__is_pointer",   /* Type trait or identifier in clang or later GNU modes. */
+  "__is_signed",    /* Type trait or identifier in clang mode. */
 #if MICROSOFT_EXTENSIONS_ALLOWED
   "safe_cast",
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */

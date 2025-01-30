@@ -795,8 +795,14 @@ modes.
     enter_keyword(tok_is_object, "__is_object");
     enter_keyword(tok_is_reference, "__is_reference");
   }  /* if */
-  if (clang_mode) {
+  if (clang_mode || gnu_version_is(>=150000)) {
+    /* Note: tok_is_pointer is handled in a context-sensitive way in expr.c
+       because some GCC headers use it as an ordinary identifier. */
     enter_keyword(tok_array_rank, "__array_rank");
+    enter_keyword(tok_is_unbounded_array, "__is_unbounded_array");
+    enter_keyword(tok_is_volatile, "__is_volatile");
+  }  /* if */
+  if (clang_mode) {
     enter_keyword(tok_array_extent, "__array_extent");
     enter_keyword(tok_is_arithmetic, "__is_arithmetic");
     enter_keyword(tok_is_complete_type, "__is_complete_type");
@@ -812,11 +818,9 @@ modes.
     /* Note: tok_is_signed is handled in a context-sensitive way in expr.c
        because some GCC headers use it as an ordinary identifier. */
     enter_keyword(tok_is_void, "__is_void");
-    enter_keyword(tok_is_volatile, "__is_volatile");
     enter_keyword(tok_is_same_as, "__is_same_as");
     enter_keyword(tok_reference_binds_to_temporary,
                   "__reference_binds_to_temporary");
-    enter_keyword(tok_is_unbounded_array, "__is_unbounded_array");
     enter_keyword(tok_is_referenceable, "__is_referenceable");
     /* These next two are synonyms for existing intrinsics. */
     enter_keyword(tok_is_literal_type, "__is_literal");

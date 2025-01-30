@@ -13996,8 +13996,8 @@ enum a_builtin_operation_kind : a_byte {
                         /* Two pointer-to-member arguments. (GCC) */
   bok_edg_is_deducible, /* A class template operand and a type argument. */
   bok_is_array,		/* __is_array. One type operand. */
-  bok_array_rank,       /* __array_rank (Clang).  One type operand (returns
-                           size_t). */
+  bok_array_rank,       /* __array_rank (GNU, Clang).  One type operand
+                           (returns size_t). */
   bok_array_extent,     /* __array_extent (Clang).  One type operand and one
                            int (returns size_t). */
   bok_is_arithmetic,    /* __is_arithmetic (Clang).  One type operand. */
@@ -14017,7 +14017,7 @@ enum a_builtin_operation_kind : a_byte {
                            operand. */
   bok_is_member_pointer,/* __is_member_pointer (Clang).  One type operand. */
   bok_is_object,        /* __is_object (Clang).  One type operand. */
-  bok_is_pointer,       /* __is_pointer (Clang).  One type operand. */
+  bok_is_pointer,       /* __is_pointer (GNU, Clang).  One type operand. */
   bok_is_reference,     /* __is_reference (Clang).  One type operand. */
   bok_is_rvalue_reference,
                         /* __is_rvalue_reference (Clang).  One type operand. */
@@ -14025,10 +14025,11 @@ enum a_builtin_operation_kind : a_byte {
   bok_is_signed,        /* __is_signed (Clang).  One type operand. */
   bok_is_unsigned,      /* __is_unsigned (Clang).  One type operand. */
   bok_is_void,          /* __is_void (Clang).  One type operand. */
-  bok_is_volatile,      /* __is_volatile (Clang).  One type operand. */
+  bok_is_volatile,      /* __is_volatile (GNU, Clang).  One type operand. */
   bok_is_bounded_array, /* __is_bounded_array (Clang).  One type operand. */
   bok_is_unbounded_array,
-                        /* __is_unbounded_array (Clang).  One type operand. */
+                        /* __is_unbounded_array (GNU, Clang).  One type
+                           operand. */
   bok_is_referenceable, /* __is_referenceable (Clang).  One type operand. */
   bok_is_nothrow_convertible,
 			/* __is_nothrow_convertible.  Two operands, both
