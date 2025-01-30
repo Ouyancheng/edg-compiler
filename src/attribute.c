@@ -275,7 +275,7 @@ static constexpr an_attr_descr known_attr_table[] = {
 #if GNU_X86_ATTRIBUTES_ALLOWED
   { "cdecl", "", "gx", ak_cdecl },
 #endif /* GNU_X86_ATTRIBUTES_ALLOWED */
-  { "cleanup", "(n)", "gc", ak_cleanup },
+  { "cleanup", "(n)", "gx", ak_cleanup },
   { "cold", "", "gx(40300-)", ak_cold },
   { "common", "", "gx", ak_common },
   { "const", "", "gx", ak_const },
@@ -5958,7 +5958,7 @@ attribute to it and return the entity.
   a_symbol_locator      loc;
   /* The table-based configuration ensures that we can make a number of
      assumptions here. */
-  check_assertion(C_mode() && aap != NULL && aap->next == NULL &&
+  check_assertion(aap != NULL && aap->next == NULL &&
                   aap->kind == (an_attribute_arg_kind)aak_token);
   /* First look up and validate the cleanup routine. */
   clear_locator(&loc, &aap->position);

@@ -1,5 +1,23 @@
 Version 6.8
 
+1/30/25  [EDGcpfe/27880]
+GNU compatibility: "cleanup" attribute
+
+The cleanup attribute had been enabled only in GNU C modes and is now enabled
+in GNU C++ modes as well.  Generally speaking it is preferred to use the
+destruction mechanisms built into the C++ language and not the cleanup
+attribute.  For example, with --g++:
+
+  extern "C" int printf(const char *,...);
+  void clean_up(int *x) {
+    printf("cleaned up\n");
+  }
+  int main() {
+    int x __attribute__((__cleanup__(clean_up)));
+    return 0;
+  }
+
+
 1/30/25  [EDGcpfe/27891]
 GNU compatibility: Additional type traits
 

@@ -7745,8 +7745,15 @@ Do the output in the way described by octl.
       if (need_leading_space) octl->output_str(" ", octl);
       need_leading_space = TRUE;
       octl->output_str("__attribute__((cleanup(", octl);
-      form_unqualified_name(&var->cleanup_routine->source_corresp,
-                            iek_routine, octl);
+      a_source_correspondence_ptr cleanup_scp =
+                                         &var->cleanup_routine->source_corresp;
+      if (C_mode()) {
+        form_unqualified_name(cleanup_scp, iek_routine, octl);
+      } else {
+        /* Need mangled name. */
+        check_assertion(cleanup_scp->name_has_been_mangled);
+        octl->output_str(cleanup_scp->name, octl);
+      }  /* if */
       octl->output_str(")))", octl);
     }  /* if */
     form_recorded_gnu_attribute(ak_externally_visible,
