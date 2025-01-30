@@ -1,3 +1,15 @@
+Version 6.8
+
+1/30/25  [EDGcpfe/27898]
+Microsoft compatibility: C++ features enabled by --ms_c++23
+
+The changes for EDGcpfe/27662 (in version 6.6) incorrectly enabled all
+C++23 features when --ms_c++23 is specified on the command line, when it
+should have enabled only those features implemented in the version of MSVC
+corresponding to the value of microsoft_version.  This is now fixed.
+
+
+-------------------------------------------------------------------------------
 Version 6.7, January 29, 2025
 
 1/28/25  [EDGcpfe/27889]

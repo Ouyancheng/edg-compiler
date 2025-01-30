@@ -3103,7 +3103,7 @@ option values if they were not already set by a command line option.
           cpp20_designators_restriction = TRUE;
           aggregate_classes_can_have_user_ctors = FALSE;
           rvalue_allowed_with_const_qual_memptr = TRUE;
-          /* Enable emulation of Visual Studio's /std:c++20 and /std:c++latest
+          /* Enable emulation of Visual Studio's /std:c++23 and /std:c++latest
              command-line options.  Note that internally most C++20 features
              are enabled via global variables, but for those that aren't, set
              std_version to the value for C++20. */
@@ -3215,11 +3215,9 @@ option values if they were not already set by a command line option.
           /* These C++23 features are enabled in this mode. */
           if_consteval_enabled = TRUE;
           explicit_this_param_enabled = TRUE;
-          std_version = 202302;
           msvc_lang = "202302L";
         }  /* if */
         if (ms_cpplatest_mode) {
-          std_version = 202400;
           msvc_lang = "202400L";
         }  /* if */
       }  /* if */
