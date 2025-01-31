@@ -15734,12 +15734,9 @@ being looked up is known to be a type.
     } else {
       an_id_lookup_options_set	lookup_options = IDL_NO_OPTIONS;
       a_boolean			ambiguous = FALSE;
-      /* If the entity being looked up is known the be the parent of another
-         entity, then it must be a class or a namespace.  Otherwise, use the
-         is_type parameter to determine whether a typename lookup is needed. */
-      if (options & CTWS_IS_PARENT) {
-        lookup_options |= IDL_MUST_BE_CLASS_OR_NAMESPACE;
-      } else if (is_type) {
+      /* Use the is_type parameter to determine whether a typename lookup is
+         needed. */
+      if (is_type) {
         a_template_arg_ptr	sym_arg_list = NULL;
         a_type_ptr		orig_type;
         orig_type = type_symbol_type(orig_sym);
@@ -15758,6 +15755,11 @@ being looked up is known to be a type.
         /* If the symbol passed in was for a class template, do a lookup that
            will create a nonreal class template, if needed. */
         lookup_options |= IDL_TREAT_AS_TEMPLATE_ID;
+      }  /* if */
+      /* If the entity being looked up is known the be the parent of another
+         entity, then it must be a class or a namespace. */
+      if (options & CTWS_IS_PARENT) {
+        lookup_options |= IDL_MUST_BE_CLASS_OR_NAMESPACE;
       }  /* if */
       (void)class_qualified_id_lookup(&locator, parent_type, lookup_options);
       new_sym = locator.specific_symbol;
