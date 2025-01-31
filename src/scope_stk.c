@@ -5345,6 +5345,7 @@ class to be defined.
   a_boolean			use_existing_context = FALSE;
   a_boolean			is_lambda_body = FALSE;
   a_boolean			is_real_lambda_instantiation = FALSE;
+  a_boolean			is_defined_in_friend_decl = FALSE;
   a_scope_ptr			lambda_scope = NULL;
   a_scope_ptr			context_scope = NULL;
   a_type_ptr			lambda_class = NULL;
@@ -5388,12 +5389,14 @@ class to be defined.
     enclosing_assoc_routine = assoc_routine;
   }  /* if */
   if (template_sym != NULL && symbol_is(template_sym, sk_function_template)) {
-    /* Determine if this is a generic lambda instantiation. */
+    /* Determine if this is an instantiation of a generic lambda, an inheriting
+       constructor, or a friend function definition. */
     a_template_symbol_supplement_ptr	tssp;
     a_routine_ptr			rout;
     tssp = template_sym->variant.template_info;
     rout = tssp->variant.function.routine;
     is_lambda_body = rout->is_lambda_body;
+    is_defined_in_friend_decl = rout->defined_in_friend_decl;
     if (rout->is_inheriting_ctor) {
       inh_ctor_orig = get_inh_ctor_originator(rout);
     }  /* if */
@@ -5413,6 +5416,10 @@ class to be defined.
     base_tssp = template_supplement_for_symbol(base_template_sym);
     context_scope = base_tssp->variant.function.decl_cache.decl_info->
                                                                enclosing_scope;
+  } else if (is_defined_in_friend_decl) {
+    a_template_symbol_supplement_ptr tssp;
+    tssp = template_supplement_for_symbol(template_sym);
+    context_scope = cache_for_template(tssp)->decl_info->enclosing_scope;
   } else {
     context_scope = decl_info->enclosing_scope;
   }  /* if */

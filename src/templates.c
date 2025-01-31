@@ -7322,7 +7322,15 @@ cases).
   }  /* if */
   ++(tssp->pending_instantiations);
   /* Push the template instantiation scope. */
-  tcp = cache_for_template(tssp);
+  if (tssp->variant.function.prototype_friend_symbol != NULL &&
+      tssp->variant.function.prototype_friend_symbol->defined) {
+    /* Get the template cache from the prototype friend symbol, if there is one
+       and it is a definition. */
+    a_symbol_ptr  friend_sym = tssp->variant.function.prototype_friend_symbol;
+    tcp = cache_for_template(template_supplement_for_symbol(friend_sym));
+  } else {
+    tcp = cache_for_template(tssp);
+  }  /* if */
   if (tssp->is_specific_definition) ps_options |= PS_IS_SPECIALIZATION;
   /* For member functions that are not member templates the argument
      list comes from the enclosing class that is reactivated by
