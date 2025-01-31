@@ -81,7 +81,9 @@ The cleanup attribute had been enabled only in GNU C modes and is now enabled
 in GNU C++ modes as well.  Generally speaking it is preferred to use the
 destruction mechanisms built into the C++ language and not the cleanup
 attribute.  The timing of calls to cleanup routines (e.g., relative to
-destructions) is up to the back end.  For example, with --g++:
+destructions) and interaction with exception handling is left to the back end.
+Additionally, support of the cleanup attribute within a constexpr function
+is not supported at this time.  For example, with --g++:
 
   extern "C" int printf(const char *,...);
   void clean_up(int *x) {

@@ -7747,7 +7747,7 @@ Do the output in the way described by octl.
       octl->output_str("__attribute__((cleanup(", octl);
       a_source_correspondence_ptr cleanup_scp =
                                          &var->cleanup_routine->source_corresp;
-      if (C_mode()) {
+      if (C_mode() || !is_for_c_gen_be(octl)) {
         form_unqualified_name(cleanup_scp, iek_routine, octl);
       } else {
         /* Need mangled name. */

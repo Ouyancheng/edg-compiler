@@ -6005,13 +6005,23 @@ attribute to it and return the entity.
     }  /* if */
   }  /* if */
   /* Next validate the variable. */
-  if (vp->storage_class != (a_storage_class)sc_auto) {
+  if (vp->storage_class != sc_auto) {
     pos_warning(ec_attribute_cleanup_requires_automatic_storage,
                 &ap->position);
     make_attr_unrecognized(ap);
   } else if (vp->is_parameter) {
     pos_warning(ec_attribute_cleanup_for_parameter, &ap->position);
     make_attr_unrecognized(ap);
+  } else if (vp->source_corresp.enclosing_routine != NULL &&
+             vp->source_corresp.enclosing_routine->is_constexpr) {
+    /* Give a discretionary error on use within a constexpr routine as this
+       is not currently supported. */
+    pos_diagnostic(es_discretionary_error,
+                   ec_cleanup_attribute_in_constexpr_function, &ap->position);
+    if (is_effective_error(ec_cleanup_attribute_in_constexpr_function,
+                           es_discretionary_error, &ap->position)) {
+      make_attr_unrecognized(ap);
+    }  /* if */
   }  /* if */
   /* If all went well, record the cleanup routine. */
   if (!is_unrecognized_attr(ap)) {

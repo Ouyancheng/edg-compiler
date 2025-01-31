@@ -3530,6 +3530,7 @@ ec_multiple_union_designators;;"multiple designators into the same union are not
 ec_debug_show_location;;"test message"
 ec_microsoft_version_doesnt_support_cpp23_mode;;"the version of Microsoft being emulated must be at least 1943 to use \"--ms_c++23\""
 ec_cl_invalid_cwd;;"invalid current working directory: %s"
+ec_cleanup_attribute_in_constexpr_function;;"\"cleanup\" attribute within constexpr function is not currently supported"
 ###############################################################################
 #                                                             \  ___  /       #
 #                                                               /   \         #
