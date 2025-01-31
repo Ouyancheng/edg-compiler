@@ -4127,7 +4127,8 @@ The syntax is:
          as needed. */
       an_expr_node_ptr               condition_expr;
       a_struct_stmt_stack_entry_ptr  sssep;
-      a_boolean                      value_known, expr_is_true = FALSE;
+      a_boolean                      value_known, expr_is_true = FALSE,
+                                     in_real_instantiation = FALSE;
       a_constant_ptr                 folded_con = local_constant();
       a_diag_list                    diag_list;
       if (is_condition_decl) {
@@ -4154,30 +4155,22 @@ The syntax is:
       }  /* if */
       discard_more_info_list(&diag_list);
       release_local_constant(&folded_con);
-      if (is_nonspecialized_prototype_instantiation_context()) {
-        /* Clear the local entry used to record the cache positions for
-           constexpr ifs in the prototype instantiation.  A copy will be made
-           when this is added to the hash table. */
-        cicip_to_create = &local_cici;
-        clear_constexpr_if_cache_info(cicip_to_create);
-        cicip_to_create->token_cache = get_token_cache_being_scanned();
-      }  /* if */
       sssep = &struct_stmt_stack[depth_stmt_stack];
       if (is_template_dependent_context()) {
         sssep->dependent_constexpr_if = !value_known;
-        if (value_known) {
-          /* If we are in a (non-prototype) instantiation of an enclosing
-             templated entity, the discarded substatement is not instantiated
-             (see N4659 [stmt.if]/2). */
-          for (a_scope_depth depth = depth_innermost_instantiation_scope;
-               depth > DEPTH_OF_FILE_SCOPE; --depth) {
-            if (scope_stack[depth].kind == sck_template_instantiation &&
-                !scope_stack[depth].in_prototype_instantiation &&
-                !scope_stack[depth].in_nonreal_instantiation) {
-              skip_discarded = TRUE;
-              break;
-            }  /* if */
-          }  /* for */
+        in_real_instantiation = is_nested_in_real_instantiation();
+        /* If we are in a (non-prototype) instantiation of an enclosing
+           templated entity, the discarded substatement is not instantiated
+           (see N4659 [stmt.if]/2). */
+        skip_discarded = value_known && in_real_instantiation;
+        if (is_nonspecialized_prototype_instantiation_context() &&
+            !in_real_instantiation) {
+          /* Clear the local entry used to record the cache positions for
+             constexpr ifs in the prototype instantiation.  A copy will be made
+             when this is added to the hash table. */
+          cicip_to_create = &local_cici;
+          clear_constexpr_if_cache_info(cicip_to_create);
+          cicip_to_create->token_cache = get_token_cache_being_scanned();
         }  /* if */
       } else {
         check_assertion_or_expect_error(value_known);

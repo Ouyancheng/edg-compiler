@@ -2579,6 +2579,8 @@ extern void end_prescan_context(
 
 extern a_boolean in_generic_lambda_in_prototype_instantiation(void);
 
+extern a_boolean is_nested_in_real_instantiation(void);
+
 extern a_boolean begin_potential_pack_expansion_context_full(
 		a_pack_expansion_stack_entry_ptr	*p_pesep,
 		a_pack_expansion_descr_ptr		*p_pedp,

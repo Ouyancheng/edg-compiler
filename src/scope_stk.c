@@ -12652,7 +12652,28 @@ Return TRUE if we are within the prototype instantiation of a generic lambda.
 }  /* in_generic_lambda_in_prototype_instantiation */
 
 
-a_boolean is_alias_prototype_in_real_instantiation(void)
+a_boolean is_nested_in_real_instantiation(void)
+/*
+Return TRUE if we are nested within a real instantiation.
+*/
+{
+  a_boolean  result = FALSE;
+
+  a_scope_stack_entry_ptr  ssep = &scope_stack_top();
+  for (; ssep != NULL; ssep = previous_scope_of(ssep)) {
+    /* Look for a real instantiation. */
+    if (scope_is(ssep, sck_template_instantiation) &&
+        !ssep->in_prototype_instantiation &&
+        !ssep->in_nonreal_instantiation) {
+      result = TRUE;
+      break;
+    }  /* if */
+  }  /* for */
+  return result;
+}  /* is_nested_in_real_instantiation */
+
+
+static a_boolean is_alias_prototype_in_real_instantiation(void)
 /*
 Return TRUE if we are within the prototype instantiation of an alias
 template within a real instantiation of a class.

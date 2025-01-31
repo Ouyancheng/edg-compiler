@@ -1,5 +1,26 @@
 Version 6.8
 
+1/31/25  [EDGcpfe/26709]
+Discarded statement in the prototype instantiation of a constexpr if statement
+
+Previously, when deferring function prototype instantiations (e.g., in GCC or
+Clang mode), the front end sometimes incorrectly skipped the discarded
+statement in the prototype instantiation of a constexpr if statement with a
+non-dependent condition.  For example, with --c++17
+--defer_parse_function_templates -tused:
+
+  template<typename T>
+  struct C {
+    C() { f(); }
+    void f() {
+      if constexpr (false) {
+        undefined_id;  // Previously skipped, now an error.
+      }
+    }
+  };
+  C<int> c;
+
+
 1/30/25  [EDGcpfe/27880]
 GNU compatibility: "cleanup" attribute
 
