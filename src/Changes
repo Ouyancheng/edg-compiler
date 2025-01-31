@@ -1,7 +1,7 @@
 Version 6.8
 
 1/31/25  [EDGcpfe/26806,EDGcpfe/27822]
-Internal error in substitution of dependent template arguments
+Internal error on substitution of dependent template arguments
 
 Previously, the front end failed to substitute dependent template arguments
 into a nested template-id that is itself used as a nested name qualifier.  This
