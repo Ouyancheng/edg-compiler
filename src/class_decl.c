@@ -353,7 +353,7 @@ STATIC_THREAD an_abbr_mem_func_templ_map
 			   descriptions. */
 
 using a_generic_lambda_prototype_map = Ptr_map<a_token_sequence_number,
-					       a_symbol_ptr>;
+                                               a_symbol_ptr>;
 			/* The type of a map that associates prototype
 			   instantiations with the starting token sequence
 			   number of generic lambdas. */
