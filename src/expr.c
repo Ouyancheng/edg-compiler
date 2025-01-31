@@ -41831,7 +41831,9 @@ repeat_switch:
               parenthesized_type_name_next()) {
             /* GNU headers (up to version 15) used __is_pointer as an
                identifier but 15 and later use it as a type trait or
-               an identifier.  Clang seems to allow both. */
+               an identifier.  Clang allows both (but is not handled as
+               an exception here -- the "normal" type trait mechanism is
+               used in this case). */
             curr_token = tok_is_pointer;
             scan_unary_type_trait_helper((a_rescan_control_block *)NULL,
                                          &local_result);

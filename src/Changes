@@ -99,7 +99,7 @@ is not supported at this time.  For example, with --g++:
 GNU compatibility: Additional type traits
 
 GCC 15 has added the __array_rank, __is_pointer, __is_unbounded_array, and
-__is_volatile type traits which are now enabled when gnu_version >= 150000.
+__is_volatile type traits; these are now enabled when gnu_version >= 150000.
 
 
 1/30/25  [EDGcpfe/27898]
