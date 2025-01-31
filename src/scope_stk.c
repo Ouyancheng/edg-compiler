@@ -5490,10 +5490,13 @@ class to be defined.
        is potentially modified below. */
     new_innermost_namespace_scope = definition_depth;
     if (decl_info->variable_instance_sym != NULL) {
+      a_template_symbol_supplement_ptr  tssp =
+                                  template_supplement_for_symbol(template_sym);
       /* The context includes a variable template instantiation.  Reactivate
          the instantiation scope for the variable template. */
       reactivate_variable_context(enclosing_variable_tdip,
-                                  decl_info->variable_instance_sym, options);
+                                  tssp->cache.decl_info->variable_instance_sym,
+                                  options);
     }  /* if */
   }  /* if */
   if (is_template) {
@@ -5517,7 +5520,10 @@ class to be defined.
     if (is_lambda_body) {
       /* Limit the lookup to symbols visible at the point of declaration of
          the lambda. */
-      scope_stack[depth_scope_stack].decl_seq_for_lookup = decl_info->decl_seq;
+      a_template_symbol_supplement_ptr  tssp =
+                                  template_supplement_for_symbol(template_sym);
+      scope_stack[depth_scope_stack].decl_seq_for_lookup =
+                                               tssp->cache.decl_info->decl_seq;
     }  /* if */
   }  /* if */
   if (!use_existing_context) {

@@ -313,8 +313,8 @@ enclosing class or a constraint expression are being rescanned.
 */
 {
   return is_prototype_instantiation_context() &&
-         !is_real_instantiation_context() &&
-         !scope_stack_top().in_concept_rescan;
+         !scope_stack_top().in_concept_rescan &&
+         !is_nested_in_real_instantiation();
 }
 
 

@@ -1685,8 +1685,9 @@ instantiation.
 {
   a_func_info_block	*fibp;
 
-  if (tssp->prototype_template != NULL && !tssp->is_specific_definition) {
-    /* Use the cache from the original template. */
+  if (tssp->prototype_template != NULL && !tssp->is_specific_definition &&
+      tssp->variant.function.func_info.lambda == NULL) {
+    /* Use the cache from the original template, except for generic lambdas. */
     fibp = &tssp->prototype_template->
                            variant.template_info->variant.function.func_info;
   } else {
@@ -17836,7 +17837,7 @@ from template declaration processing, and is NULL otherwise.
                    rtsp = rp->type->variant.routine.extra_info;
     esp = rtsp->exception_specification;
     template_sym = tip->template_sym;
-    if (template_sym->kind == (a_symbol_kind)sk_function_template) {
+    if (symbol_is(template_sym, sk_function_template) && !rp->is_lambda_body) {
       /* When doing the special g++ processing below, use the decl_seq of
          the template. */
       decl_seq_sym = template_sym;

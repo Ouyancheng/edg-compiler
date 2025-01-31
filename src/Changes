@@ -1,5 +1,21 @@
 Version 6.8
 
+1/31/25  [EDGcpfe/27707]
+Non-type template parameter pack expansion in nested generic lambda
+
+Previously, the front end failed to correctly expand non-type template
+parameters in a pack expansion in a generic lambda involving template
+parameters from different template depths.  For example, with --c++20:
+
+  template<int ... Is>
+  constexpr int f() {
+    return []<int ... Js>(auto p) {
+      return ((Is + Js) + ...);
+    }.template operator()<1, 2>(0);
+  };
+  static_assert(f<10, 20>() == 33);  // Previously failed.  Now okay.
+
+
 1/31/25  [EDGcpfe/23305,EDGcpfe/25188,EDGcpfe/27859]
 Non-type template parameter pack expansion in friend function template
 

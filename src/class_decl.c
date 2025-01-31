@@ -352,6 +352,16 @@ STATIC_THREAD an_abbr_mem_func_templ_map
 			   declarations to associated "auto" parameter
 			   descriptions. */
 
+using a_generic_lambda_prototype_map = Ptr_map<a_token_sequence_number,
+					       a_symbol_ptr>;
+			/* The type of a map that associates prototype
+			   instantiations with the starting token sequence
+			   number of generic lambdas. */
+
+STATIC_THREAD a_generic_lambda_prototype_map
+		*generic_lambda_prototype;
+			/* A map from token sequence numbers to associated
+			   generic lambda prototype templates. */
 
 
 static a_param_type_ptr corresponding_param_type(a_type_ptr        type,
@@ -17622,6 +17632,9 @@ decl_member_function_template.
       a_template_symbol_supplement_ptr
                             tssp;
       a_token_kind          final_token = tok_rbrace;
+      a_symbol_ptr          proto_sym;
+      a_token_sequence_number
+                            lambda_tsn;
       templ_state->final_token_ptr = /*lint --e(733)*/ &final_token;
       decl_member_function_template(&loc, templ_param_list, il_template_entry,
                                     func_info, class_state, decl_info);
@@ -17629,6 +17642,14 @@ decl_member_function_template.
                       symbol_is(dps->sym, sk_function_template));
       tssp = dps->sym->variant.template_info;
       check_assertion(tssp != NULL);
+      lambda_tsn = templ_state->starting_token_sequence_number;
+      /* Look up the prototype template for a generic lambda. */
+      proto_sym = generic_lambda_prototype->get(lambda_tsn);
+      if (proto_sym == NULL) {
+        generic_lambda_prototype->map(lambda_tsn, dps->sym);
+      } else {
+        tssp->prototype_template = proto_sym;
+      }  /* if */
       rp = tssp->variant.function.routine;
       rp->is_lambda_body = TRUE;
       rp->type->variant.routine.extra_info->assoc_routine = rp;
@@ -35949,6 +35970,7 @@ One-time initialization for class_decl.c static variables.
       pch_saved_var_array_elem(avail_pending_exception_check_entries),
       pch_saved_var_array_elem(pending_exception_check_entries),
       pch_saved_var_array_elem(abbr_mem_func_templates),
+      pch_saved_var_array_elem(generic_lambda_prototype),
       pch_saved_var_array_elem(avail_initializer_fixup),
 #if MICROSOFT_EXTENSIONS_ALLOWED
       pch_saved_var_array_elem(avail_quasi_override_descrs),
@@ -35977,6 +35999,7 @@ One-time initialization for class_decl.c static variables.
   register_trans_unit_variable(use_deferred_friend_fixup_list);
   register_trans_unit_variable(pending_exception_check_entries);
   register_trans_unit_variable(abbr_mem_func_templates);
+  register_trans_unit_variable(generic_lambda_prototype);
 }  /* class_decl_one_time_init */
 
 
@@ -36033,6 +36056,8 @@ Initializations for class declaration processing.
 #endif /* DEBUG */
   abbr_mem_func_templates = alloc_fe_of_type(an_abbr_mem_func_templ_map);
   construct(abbr_mem_func_templates, /*mask_width=*/10);
+  generic_lambda_prototype = alloc_fe_of_type(a_generic_lambda_prototype_map);
+  construct(generic_lambda_prototype, /*mask_width=*/10);
   return;
 }  /* class_decl_init */
 
