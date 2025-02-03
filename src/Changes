@@ -1,5 +1,13 @@
 Version 6.8
 
+2/3/25   [EDGcpfe/27910]
+Compilation error when building with MSVC version 17.8 or older
+
+EDGcpfe/27255 (in version 6.6) introduced a compilation error when building the
+front end with versions of Microsoft Visual Studio prior to version 17.9.  This
+is now fixed.
+
+
 2/3/25   [EDGcpfe/27907]
 Regression in PCH creation on Windows
 

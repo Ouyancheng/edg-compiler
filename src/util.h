@@ -90,6 +90,17 @@ using Is_same = typename Is_same_helper<a_Type_A, a_Type_B,a_Ret_type>::ret_ty;
 
 
 /*
+A helper class used to determine if an integer type is signed.  If the type is
+signed Is_signed_helper::value will be TRUE; otherwise, it will be FALSE.
+*/
+template<typename an_Integral_type>
+struct Is_signed_helper {
+  static constexpr a_boolean
+                value = (an_Integral_type)-1 < (an_Integral_type)0;
+};  /* Is_signed_helper */
+
+
+/*
 This type is commonly used as a base class for exposing C++ type_traits like
 template details.
 */
@@ -3442,7 +3453,7 @@ appropriate size.
 template<typename an_Integral_type>
 inline constexpr
 Enable_if<sizeof(an_Integral_type) == sizeof(uint32_t) &&
-          (((an_Integral_type)-1) < ((an_Integral_type)0)), int32_t>
+          Is_signed_helper<an_Integral_type>::value, int32_t>
 max_integral_value()
 /*
 Return the maximum value of a 32-bit signed integer.
@@ -3455,7 +3466,7 @@ Return the maximum value of a 32-bit signed integer.
 template<typename an_Integral_type>
 inline constexpr
 Enable_if<sizeof(an_Integral_type) == sizeof(uint64_t) &&
-          (((an_Integral_type)-1) < ((an_Integral_type)0)), int64_t>
+          Is_signed_helper<an_Integral_type>::value, int64_t>
 max_integral_value()
 /*
 Return the maximum value of a 64-bit signed integer.
@@ -3468,7 +3479,7 @@ Return the maximum value of a 64-bit signed integer.
 template<typename an_Integral_type>
 inline constexpr
 Enable_if<sizeof(an_Integral_type) == sizeof(uint32_t) &&
-          !(((an_Integral_type)-1) < ((an_Integral_type)0)), uint32_t>
+          !Is_signed_helper<an_Integral_type>::value, uint32_t>
 max_integral_value()
 /*
 Return the maximum value of a 32-bit unsigned integer.
@@ -3483,7 +3494,7 @@ Return the maximum value of a 32-bit unsigned integer.
 template<typename an_Integral_type>
 inline constexpr
 Enable_if<sizeof(an_Integral_type) == sizeof(uint64_t) &&
-          !(((an_Integral_type)-1) < ((an_Integral_type)0)), uint64_t>
+          !Is_signed_helper<an_Integral_type>::value, uint64_t>
 max_integral_value()
 /*
 Return the maximum value of a 64-bit unsigned integer.
@@ -3495,7 +3506,7 @@ Return the maximum value of a 64-bit unsigned integer.
 
 template<typename an_Integral_type>
 inline constexpr
-Enable_if<(((an_Integral_type)-1) < ((an_Integral_type)0)), size_t>
+Enable_if<Is_signed_helper<an_Integral_type>::value, size_t>
 integral_digits(an_Integral_type value,
                 int              base)
 /*
@@ -3512,7 +3523,7 @@ the negative sign as a digit (i.e., 3 and -3 are both considered 1 digit).
 
 template<typename an_Integral_type>
 inline constexpr
-Enable_if<!(((an_Integral_type)-1) < ((an_Integral_type)0)), size_t>
+Enable_if<!Is_signed_helper<an_Integral_type>::value, size_t>
 integral_digits(an_Integral_type value,
                 unsigned int     base)
 /*
@@ -4572,21 +4583,10 @@ Return a hash value for the given pointer value.
 
 
 template<typename an_Integral_type>
-inline Enable_if<!(((an_Integral_type)-1) < ((an_Integral_type)0)), uintptr_t>
+inline Enable_if<(uintptr_t)((an_Integral_type)1), uintptr_t>
 hash_ptr(an_Integral_type i)
 /*
-Generic version of hash_ptr for unsigned integers.
-*/
-{
-  return (uintptr_t)i;
-}  /* hash_ptr */
-
-
-template<typename an_Integral_type>
-inline Enable_if<(((an_Integral_type)-1) < ((an_Integral_type)0)), uintptr_t>
-hash_ptr(an_Integral_type i)
-/*
-Generic version of hash_ptr for signed integers.
+Generic version of hash_ptr for integers.
 */
 {
   return (uintptr_t)i;
