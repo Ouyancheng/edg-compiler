@@ -3815,9 +3815,11 @@ Open a temporary file to be used for allocation of file mapped
 memory for IL memory blocks.
 */
 {
-  a_temp_file_name_buffer file_name = get_win32_temp_file_name();
-
   db_enter(3, "open_mapped_il_temp_file");
+  /* Resolve the temporary directory if not already resolved (temp_dir). */
+  resolve_temp_dir();
+
+  a_temp_file_name_buffer file_name = get_win32_temp_file_name();
   if (file_name.is_empty()) {
     catastrophe(ec_cannot_build_temp_file_name);
   }  /* if */

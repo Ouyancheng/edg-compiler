@@ -1,5 +1,12 @@
 Version 6.8
 
+2/3/25   [EDGcpfe/27907]
+Regression in PCH creation on Windows
+
+EDGcpfe/27777 (in version 6.6) introduced a crash when creating a PCH on
+Windows.  This is now fixed.
+
+
 1/31/25  [EDGcpfe/27707]
 Non-type template parameter pack expansion in nested generic lambda
 
