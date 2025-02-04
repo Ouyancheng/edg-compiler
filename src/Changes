@@ -1,5 +1,13 @@
 Version 6.8
 
+2/4/25   [EDGcpfe/27864]
+Unbounded loop on complex cases involving friend definitions
+
+In some fairly complex situations, the linked list recording fixups for friend
+definitions could end up with an unintended loop structure.  Subsequent
+processing would then get stuck in an unbounded loop.  That is now fixed.
+
+
 2/3/25   [EDGcpfe/27910]
 Compilation error when building with MSVC version 17.8 or older
 

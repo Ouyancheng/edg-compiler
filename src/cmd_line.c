@@ -2471,7 +2471,6 @@ option values if they were not already set by a command line option.
   stack_referenced_include_directories = (clang_mode ? ms_compat :
                                           gnu_mode ?   FALSE :
                                                        TRUE);
-  defer_friend_instantiation = TRUE;
   allow_nonstandard_anonymous_unions = TRUE;
   if (!option_kind_used[(int)optk_allow_dollar_in_id_chars]) {
     allow_dollar_in_id_chars = TRUE;
@@ -12846,7 +12845,6 @@ variables declared in cmd_line.h.
   stricter_template_checking = FALSE;
   suppress_deferral_on_partial_spec_members =
                              DEFAULT_SUPPRESS_DEFERRAL_ON_PARTIAL_SPEC_MEMBERS;
-  defer_friend_instantiation = TRUE;
   always_delay_field_initializer_processing = FALSE;
   nonstandard_instantiation_lookup_enabled =
                                       DEFAULT_NONSTANDARD_INSTANTIATION_LOOKUP;

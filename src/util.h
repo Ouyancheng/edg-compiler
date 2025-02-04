@@ -585,6 +585,40 @@ a pointer to the last such "next" field (or p_list itself if there are none).
 }  /* get_last_simple_list_link */
 
 
+template<typename a_List_elem>
+a_boolean simple_list_has_cycle(a_List_elem  *list)
+/*
+Return TRUE if the given linked list (whose elements are connected through
+accessible "next" pointer fields) contains a cycle.
+*/
+{
+  a_boolean  result = FALSE;
+
+  if (list != NULL && list->next != NULL) {
+    /* Iterate a "fast" pointer twice as often as a "slow" pointer.  If the
+       list contains a cycle, the former will catch up with the latter.
+       Otherwise, the "fast" pointer will reach NULL first. */
+    a_List_elem  *slow = list, *fast = list->next;
+    for (;;) {
+      fast = fast->next;
+      if (fast == NULL) break;
+      if (fast == slow) {
+        result = TRUE;
+        break;
+      }  /* if */
+      fast = fast->next;
+      if (fast == NULL) break;
+      if (fast == slow) {
+        result = TRUE;
+        break;
+      }  /* if */
+      slow = slow->next;
+    }  /* for */
+  }  /* if */
+  return result;
+}  /* simple_list_has_cycle */
+
+
 template<typename an_Object_type, typename an_Array>
 inline void copy_element(an_Array             &dest_array,
                          const an_Object_type &elem,

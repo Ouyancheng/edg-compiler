@@ -1056,12 +1056,6 @@ EXTERN_THREAD a_boolean
 			   defined and where it is instantiated. */
 
 EXTERN_THREAD a_boolean
-		defer_friend_instantiation;
-			/* TRUE if the semantic analysis of friend functions
-			   of class templates should be deferred until the
-			   function is used. */
-
-EXTERN_THREAD a_boolean
 		nonstandard_using_decl_allowed;
 			/* TRUE if a nonstandard nonmember using-declaration
                            that uses an unqualified name should be accepted. */

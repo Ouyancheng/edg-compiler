@@ -120,6 +120,9 @@ typedef struct a_routine_fixup {
 			/* When TRUE, this is the fixup for an inheriting
 			   constructor that inherits from a copy/move base
 			   class constructor. */
+  a_bit_field	deferred:1;
+			/* TRUE if this is a fixup for a friend function
+			   defined in a class template. */
 } a_routine_fixup;
 
 
@@ -264,6 +267,7 @@ initialize it.
   rfp->process_exception_spec = FALSE;
   rfp->inheriting_ctor = FALSE;
   rfp->inh_copy_move_ctor = FALSE;
+  rfp->deferred = FALSE;
   clear_func_info(&rfp->func_info);
   /* We don't know whether this cache will be reused or not.  Make it
      reusable here.  If it is rescanned as a nonreusable cache we
@@ -286,6 +290,15 @@ pointed to by the rfp->func_info if needed.
     /* For templates, don't free the default argument entries because they
        are pointed to from elsewhere. */
     free_def_arg_expr_fixup(rfp->def_arg_expr_fixup_list);
+  }  /* if */
+  if (rfp->class_type != NULL) {
+    /* Remove the fixup from the associated class symbol supplement if
+       needed. */
+    a_class_symbol_supplement
+                       *cssp = class_symbol_supp(symbol_for(rfp->class_type));
+    if (rfp == cssp->routine_fixup_list) {
+      cssp->routine_fixup_list = rfp->next;
+    }  /* if */
   }  /* if */
   rfp->def_arg_expr_fixup_list = NULL;
   rfp->next = avail_routine_fixup;
@@ -325,16 +338,20 @@ Add a routine fixup entry to the end of the current routine fixup list.
 */
 {
   a_scope_stack_entry  *ssep = scope_stack_entry_for_routine_fixup_list();
+  a_class_symbol_supplement
+                       *cssp = class_symbol_supp(symbol_for(ssep->assoc_type));
 
   check_assertion(rfp->symbol != NULL);
   /* Add the entry to the list. */
   if (ssep->last_routine_fixup == NULL) {
-    a_symbol_ptr  class_sym = symbol_for(ssep->assoc_type);
-    class_symbol_supp(class_sym)->routine_fixup_list = rfp;
+    cssp->routine_fixup_list = rfp;
   } else {
     ssep->last_routine_fixup->next = rfp;
   }  /* if */
   ssep->last_routine_fixup = rfp;
+#if EXPENSIVE_CHECKING
+  check_assertion(!simple_list_has_cycle(cssp->routine_fixup_list));
+#endif /* EXPENSIVE_CHECKING */
 }  /* add_to_routine_fixup_list */
 
 
@@ -500,7 +517,7 @@ the entry pointed to by dps->routine_fixup.
   } else {
     expect_error();
   }  /* if */
-  free_routine_fixup(rfp);
+  if (!rfp->deferred) free_routine_fixup(rfp);
   dps->routine_fixup = NULL;
 #if NEED_NAME_MANGLING
   set_parent_routine_for_closure_types_in_default_args(dps->type, sym);
@@ -642,7 +659,7 @@ the current class.  Otherwise free it for later use.
   }  /* if */
   if (needed) {
     add_to_routine_fixup_list(curr_routine_fixup);
-  } else {
+  } else if (!curr_routine_fixup->deferred) {
     done_with_func_info(curr_routine_fixup->func_info);
     free_routine_fixup(curr_routine_fixup);
   }  /* if */
@@ -3400,6 +3417,7 @@ routine fixup entry for the definition to be deferred.
 */
 {
   rfp->symbol->variant.routine.ptr->routine_fixup = rfp;
+  rfp->deferred = TRUE;
   rfp->next = NULL;
 }  /* defer_routine_fixup_until_use */
 
@@ -3533,7 +3551,7 @@ the end of the translation unit.  This routine is also used for in-class
 member function template specializations.
 */
 {
-  a_routine_ptr                rp = rfp->symbol->variant.routine.ptr;
+  a_routine_ptr  rp = rfp->symbol->variant.routine.ptr;
 
   /* Reset the routine fixup pointer in the routine to prevent this
      process from being attempted again. */
@@ -3550,6 +3568,7 @@ member function template specializations.
        more is to be done. */
   } else if (use_deferred_friend_fixup_list &&
              !rp->is_constexpr && !rp->has_deducible_return_type) {
+    rfp->deferred = TRUE;
     if (deferred_friend_fixup_list == NULL) deferred_friend_fixup_list = rfp;
     if (deferred_friend_fixup_list_tail != NULL) {
       deferred_friend_fixup_list_tail->next = rfp;
@@ -3622,6 +3641,9 @@ nested class.
   /* First go though the routine fixup entries and scan the default
      argument expressions. */
   cssp = symbol_supplement_for_class(class_type);
+#if EXPENSIVE_CHECKING
+  check_assertion(!simple_list_has_cycle(cssp->routine_fixup_list));
+#endif /* EXPENSIVE_CHECKING */
   if (cssp->routine_fixup_list != NULL) {
 #if DEBUG
     if (debug_level >= 3) {
@@ -3813,25 +3835,23 @@ nested class.
              specialized in a class, in_class_specialization handles a
              member function of a class that is specialized in-class. */
           discard_token_cache(&rfp->function_body_token_cache);
-        } else if (defer_friend_instantiation &&
-                   is_real_template_instantiation && !injected &&
+        } else if (is_real_template_instantiation && !injected &&
                    is_function_symbol(sym) &&
                    !(is_friend &&
                     sym->variant.routine.ptr->source_corresp.referenced) &&
                    (is_friend || rfp->is_specialization ||
                     in_class_specialization)) {
-          /* In some modes friend functions defined in a class template
-             are treated much like a member function of such a class.  The
-             body is only processed if needed.  This special treatment is
-             also extended to specializations that are defined within the
-             class.  Note that this processing is only needed for friends
-             and specializations declared within class templates, not for
-             declarations in normal classes.  The rfp->is_specialization
-             handles the case of a function specialized in a class,
-             in_class_specialization handles a member function of a class
-             that is specialized in-class.  If a friend function has
-             already been referenced, handle the fixup now so that the
-             definition will be generated. */
+          /* Friend functions defined in a class template are treated much
+             like a member function of such a class.  The body is only
+             processed if needed.  This special treatment is also extended to
+             specializations that are defined within the class.  This
+             processing is only needed for friends and specializations
+             declared within class templates, not for declarations in normal
+             classes.  The rfp->is_specialization handles the case of a
+             function specialized in a class, in_class_specialization handles
+             a member function of a class that is specialized in-class.  If a
+             friend function has already been referenced, handle the fixup now
+             so that the definition will be generated. */
           if (!sym->variant.routine.ptr->defined) {
             defer_routine_fixup_until_use(rfp);
             /* Set rfp to NULL to prevent it from being freed below. */
@@ -4034,6 +4054,7 @@ nested class.
           /* Keep the token cache for a friend function defined in a class
              template as it will be used later for instantiations. */
           if (!(is_nonreal_template_instantiation && is_friend) &&
+              !rfp->deferred &&
               rfp->function_body_token_cache.is_reusable) {
             discard_token_cache(&rfp->function_body_token_cache);
           }  /* if */
@@ -4079,7 +4100,7 @@ nested class.
       /* Free the current entry, returning it and any expr fixup entries
          attached to it to their respective available-lists.  "rfp" may
          be set to NULL earlier if it should not be freed. */
-      if (rfp != NULL) {
+      if (rfp != NULL && !rfp->deferred) {
         done_with_func_info(rfp->func_info);
         free_routine_fixup(rfp);
       }  /* if */
@@ -12157,7 +12178,7 @@ possibility.
           class_type->source_corresp.is_local_to_function) {
         pos_sy_error(ec_bad_scope_for_definition, &pos_curr_token, sym);
       }  /* if */
-      if (defer_friend_instantiation && !is_template_dependent_context() &&
+      if (!is_template_dependent_context() &&
           class_type->variant.class_struct_union.is_template_class &&
           !class_type->variant.class_struct_union.is_specialized) {
         /* Record the routine fixup in the routine early if this is a friend
@@ -12171,6 +12192,7 @@ possibility.
           sym->variant.routine.ptr->routine_fixup = curr_routine_fixup;
           sym->variant.routine.pending_trailing_requires_clause =
                                       state->pending_trailing_requires_clause;
+          func_info->keep_param_id_list = TRUE;
         }  /* if */
       }  /* if */
       /* If this symbol might not be found because it is invisible, add it
