@@ -419,17 +419,18 @@ EXTERN a_builtin_user_descr builtin_user_table[]
   { "__builtin_sub_overflow", "Lx", "__edg_bool_type__ (...)",
     bfk_sub_overflow },
 
-  /* Clang apparently supports at least some of the overloaded versions of
+  /* Clang and GCC 15+ support at least some of the overloaded versions of
      __builtin_operator_new and __builtin_operator_delete, but the signatures
-     for these have only a single operator.  Add an ellipsis to allow parsing
-     of additional arguments.  Note that there is special processing for these
-     builtins -- they are essentially processed as their corresponding
-     global operator delete/new operators (so they can be overloaded). */
+     for these are missing in GCC and contain only a single operator in Clang.
+     Add an ellipsis to allow parsing of additional arguments.  Note that there
+     is special processing for these builtins -- they are essentially processed
+     as their corresponding global operator delete/new operators (so they can
+     be overloaded). */
   { "__builtin_operator_delete", "L+(-39999)",
     "void (void*,...)", bfk_operator_delete },
-  { "__builtin_operator_delete", "L+(40000-)",
+  { "__builtin_operator_delete", "g+(150000-)L+(40000-)",
     "void (void*,...) __edg_throw__()", bfk_operator_delete },
-  { "__builtin_operator_new", "L+", "void* (__edg_size_type__,...)",
+  { "__builtin_operator_new", "g+(150000-)L+", "void* (__edg_size_type__,...)",
     bfk_operator_new },
 
   /* Clang supports these builtin functions (but they are not reported as

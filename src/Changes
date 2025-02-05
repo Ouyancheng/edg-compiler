@@ -1,5 +1,12 @@
 Version 6.8
 
+2/5/25   [EDGcpfe/27916]
+GNU compatibility: __builtin_operator_new/__builtin_operator_delete
+
+The builtins __builtin_operator_new and __builtin_operator_delete are now
+enabled for GCC 15 and later.
+
+
 2/4/25   [EDGcpfe/27864]
 Unbounded loop on complex cases involving friend definitions
 
