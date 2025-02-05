@@ -26,7 +26,7 @@ is now fixed.
 2/3/25   [EDGcpfe/27907]
 Regression in PCH creation on Windows
 
-EDGcpfe/27777 (in version 6.6) introduced a crash when creating a PCH on
+EDGcpfe/27777 (in version 6.7) introduced a crash when creating a PCH on
 Windows.  This is now fixed.
 
 
