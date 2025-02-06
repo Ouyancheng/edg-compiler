@@ -1,5 +1,12 @@
 Version 6.8
 
+2/6/25   [EDGcpfe/27904]
+Clang compatibility: Clang 20 builtins
+
+The front end has been updated with the latest builtin signatures from Clang
+version 20 (based on the recently-released RC1).
+
+
 2/6/25   [EDGcpfe/27919]
 Clang compatibility: modal 8-bit floating-point type for ARM64 (IL CHANGE)
 
