@@ -2782,7 +2782,7 @@ type.
 #if GNU_VECTOR_TYPES_ALLOWED
         || type_is(skip_typerefs(etype), tk_mfp8)
 #endif /* GNU_VECTOR_TYPES_ALLOWED */
-                                       ) {
+                                                 ) {
       /* The normal case. */
 #if GNU_VECTOR_TYPES_ALLOWED
       /* Element types for NEON vectors have additional restrictions. */
@@ -2901,7 +2901,11 @@ declarations that need to work across compatibility modes).
       a_float_kind  float_kind = utp->variant.float_kind;
       err = float_kind != fk_std_bfloat16 && float_kind != fk_fp16 &&
             float_kind != fk_float && float_kind != fk_double;
-    } else if (!is_bool_type(utp) && !type_is(utp, tk_mfp8)) {
+    } else if (!is_bool_type(utp)
+#if GNU_VECTOR_TYPES_ALLOWED
+               && !type_is(utp, tk_mfp8)
+#endif /* GNU_VECTOR_TYPES_ALLOWED */
+                                        ) {
       /* Other type kinds are invalid. */
       err = TRUE;
     }  /* if */
