@@ -8467,6 +8467,9 @@ use of).
       rp->implicit_alias = FALSE;
     } else if (dps->first_decl && !dps->sym->defined &&
                rtsp->prototyped &&
+               /* In g++ mode, routines that have definitions can't be
+                  aliases. */
+               !(gpp_mode && !clang_mode && dps->is_definition) &&
                (!has_gnu_routine_supp(rp) ||
                 gnu_routine_supp(rp)->aliased_routine == NULL) &&
                rp->source_corresp.name_linkage ==

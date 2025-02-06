@@ -1,5 +1,29 @@
 Version 6.8
 
+2/6/25   [EDGcpfe/27789]
+GNU compatibility: implicit aliases for some builtin routines
+
+For certain routines (namely, "abs", "ceil", and "strlen"), the front end will
+create an implicit alias between these routines and their corresponding
+builtin counterparts and then fold calls to these routines when applicable.
+G++ (but not gcc or clang) apparently doesn't create an implicit alias when
+the routine has a definition.  The front end now emulates that.  For example:
+
+  #ifdef DEFINITION
+  extern "C" double ceil(double) { return 1.0; }
+  #else
+  extern "C" double ceil(double);
+  #endif
+  int main() {
+    return (int)ceil(0.0);
+  }
+
+If DEFINITION is not defined, g++, gcc, and clang all fold the call to
+__builtin_ceil (an implicit alias for ceil).  If DEFINITION is defined, g++
+does not alias the function to the builtin and instead calls the definition
+of ceil.
+
+
 2/6/25   [EDGcpfe/27904]
 Clang compatibility: Clang 20 builtins
 
