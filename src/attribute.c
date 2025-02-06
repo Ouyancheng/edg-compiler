@@ -7787,7 +7787,10 @@ error type.
 #endif /* C99_IL_EXTENSIONS_SUPPORTED */
   } else if (!is_integral_or_enum_type(elem_type) &&
              !is_floating_type(elem_type) &&
-             !is_template_param_type(elem_type)) {
+             (clang_mode || !is_pointer_type(elem_type)) &&
+             !is_or_contains_template_param(elem_type)) {
+    /* GNU allows a pointer type as an argument to the vector_size attribute
+       (clang does not). */
     pos_error(ec_vector_size_attribute_requires_integral_floating_or_enum_type,
               &ap->position);
     err = TRUE;
