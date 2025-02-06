@@ -1756,7 +1756,7 @@ for use by snprintf_impl).
 #endif /* INTEGER_VALUE_REPR_IS_A_HOST_INTEGER */
 
   size_t digits_skipped = 0;
-  int    num_hex_digits_in_repr = (value.size * targ_char_bit) / 4;
+  int    num_hex_digits_in_repr = (int)((value.size * targ_char_bit) / 4);
   if (num_hex_digits_printed > num_hex_digits_in_repr) {
     /* The hex string is longer than what is required to represent the type of
        the integer, probably because it is a negative value and thus padded

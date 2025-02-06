@@ -3550,7 +3550,7 @@ Set module_id to the string and return it.
         }  /* if */
         crc_buf.reset_to(left_pad(8, '0', hex_view_of(crc)));
         str1 = crc_buf.as_temp_characters();
-        len1 = crc_buf.length();
+        len1 = (int)crc_buf.length();
         str2 = NULL;
         len2 = 0;
       }  /* if */

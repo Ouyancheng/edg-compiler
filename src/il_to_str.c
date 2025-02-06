@@ -4185,7 +4185,7 @@ output.
   }  /* if */
   /* Output the character. */
   output_partial_token_str(buffer.as_temp_characters(), octl);
-  return buffer.length();
+  return (int)buffer.length();
 }  /* form_char */
 
 
@@ -4205,7 +4205,7 @@ characters output.
 
   /* Output the character. */
   output_partial_token_str(buffer.as_temp_characters(), octl);
-  return buffer.length();
+  return (int)buffer.length();
 }  /* form_wide_char */
 
 

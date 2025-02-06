@@ -4803,7 +4803,7 @@ private:
   inline void construct_entry_at(size_t        idx,
                                  a_key         &&new_key,
                                  const a_value &new_value);
-  inline void create_table(unsigned n_slots);
+  inline void create_table(size_t n_slots);
   inline void expand_table();
   inline void check_deleted_slot(size_t  idx0);
 };  /* Ptr_map */
@@ -5153,7 +5153,7 @@ Construct a new entry with the given key and value at the given index.
 
 template<typename a_Ptr_key, typename a_Value,
          template<typename> class Allocator>
-void Ptr_map<a_Ptr_key, a_Value, Allocator>::create_table(unsigned n_slots)
+void Ptr_map<a_Ptr_key, a_Value, Allocator>::create_table(size_t n_slots)
 /*
 Create a new table with at least the given number of slots (if the underlying
 allocator hands more memory, the slot count will be updated appropriately).
@@ -5169,7 +5169,7 @@ responsible for deallocating the previous table.
   check_assertion(n_slots <= size_t_arg(allocation.n_allocated));
   n_slots = allocation.n_allocated;
   this->hash_mask = n_slots - 1;
-  for (unsigned i = 0; i < n_slots; ++i) {
+  for (size_t i = 0; i < n_slots; ++i) {
     construct(&this->table[i]);
   }  /* for */
 }  /* Ptr_map::create_table */

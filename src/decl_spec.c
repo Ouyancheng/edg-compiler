@@ -2871,7 +2871,7 @@ irrespective of the configured compatibility mode (e.g., for builtin
 declarations that need to work across compatibility modes).
 */
 {
-  a_type_ptr      etype, vtype;
+  a_type_ptr      etype = NULL, vtype;
   a_boolean       err = FALSE;
 #if GNU_VECTOR_TYPES_ALLOWED
   a_targ_size_t   n_tuple_elems = 0;

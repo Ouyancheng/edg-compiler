@@ -1926,7 +1926,7 @@ templ, add the corresponding instance typedef to the table as well.
 
   for (tp = template_scope->types; tp != NULL; tp = tp->next) {
     a_type_ptr typedef_to_add = NULL;
-    a_type_ptr under_type;
+    a_type_ptr under_type = NULL;
     if (mbr_typedef_name == NULL) {
       /* We are looking for instances of the alias template templ. */
       if (tp->kind == (a_type_kind)tk_typeref &&
