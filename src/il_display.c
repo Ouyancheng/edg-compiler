@@ -2094,6 +2094,9 @@ Return a string corresponding to the indicated type kind.
     case tk_scalable_vector_count:
       str = "tk_scalable_vector_count";
       break;
+    case tk_mfp8:
+      str = "tk_mfp8";
+      break;
 #endif /* GNU_VECTOR_TYPES_ALLOWED */
     case tk_nullptr:
       str = "tk_nullptr";

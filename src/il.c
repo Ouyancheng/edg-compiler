@@ -118,6 +118,8 @@ STATIC_THREAD a_type_ptr
                 il_std_string_view;
 STATIC_THREAD a_type_ptr
                 il_scalable_vector_count_type;
+STATIC_THREAD a_type_ptr
+                il_modal_8bit_floating_point_type;
 
 /* Conditionally close the "edg" namespace. */
 END_EDG_NAMESPACE
@@ -1906,6 +1908,9 @@ Dump the contents of the indicated type entry, for debug purposes.
         break;
       case tk_scalable_vector_count:
         fputs("scalable vector count", f_debug);
+        break;
+      case tk_mfp8:
+        fputs("modal 8-bit floating-point type", f_debug);
         break;
 #endif /* GNU_VECTOR_TYPES_ALLOWED */
       case tk_nullptr:
@@ -10776,6 +10781,26 @@ to it.
   }  /* if */
   return pit;
 }  /* scalable_vector_count_type */
+
+
+a_type_ptr modal_8bit_floating_point_type(void)
+/*
+Make or find a type entry for a modal 8-bit floating-point type and return a
+pointer to it.
+*/
+{
+  a_type_ptr tp;
+
+  if (il_modal_8bit_floating_point_type != NULL) {
+    /* The type has previously been created, and can be reused. */
+    tp = il_modal_8bit_floating_point_type;
+  } else {
+    /* The type must be created. */
+    il_modal_8bit_floating_point_type = tp = alloc_type(tk_mfp8);
+    set_type_size(tp);
+  }  /* if */
+  return tp;
+}  /* modal_8bit_floating_point_type */
 
 
 void eliminate_boolean_vector(a_type_ptr  *p_type)
@@ -32511,6 +32536,7 @@ in il_init.)
       pch_saved_var_array_elem(il_char32_t_type),
       pch_saved_var_array_elem(il_bool_type),
       pch_saved_var_array_elem(il_scalable_vector_count_type),
+      pch_saved_var_array_elem(il_modal_8bit_floating_point_type),
       pch_saved_var_array_elem(il_standard_nullptr_type),
       pch_saved_var_array_elem(il_managed_nullptr_type),
       pch_saved_var_array_elem(il_strong_ordering_type),
@@ -32623,6 +32649,7 @@ in il_init.)
   register_trans_unit_variable(il_char32_t_type);
   register_trans_unit_variable(il_bool_type);
   register_trans_unit_variable(il_scalable_vector_count_type);
+  register_trans_unit_variable(il_modal_8bit_floating_point_type);
   register_trans_unit_variable(il_standard_nullptr_type);
   register_trans_unit_variable(il_managed_nullptr_type);
   register_trans_unit_variable(il_strong_ordering_type),
@@ -32771,6 +32798,7 @@ need initialization for every (primary and secondary) translation unit.
   il_weak_equality_type = NULL;
   il_std_string_view = NULL;
   il_scalable_vector_count_type = NULL;
+  il_modal_8bit_floating_point_type = NULL;
   il_source_location_impl_type = NULL;
   il_source_location_fields = {};
 #if MICROSOFT_EXTENSIONS_ALLOWED

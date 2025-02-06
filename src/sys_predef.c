@@ -1356,6 +1356,12 @@ vector (either vk_neon or vk_neon_poly).
       }  /* if */
       ++integer_types;
     }  /* while */
+  } else if (type_is(element_type, tk_mfp8)) {
+    switch (vector_elements) {
+      case 8:  result = "__Mfloat8x8_t";  break;
+      case 16: result = "__Mfloat16x8_t"; break;
+      default: unexpected_condition();
+    }  /* switch */
   } else {
     unexpected_condition();
   }  /* if */
@@ -1702,6 +1708,15 @@ Enter predeclared symbols as required by the implementation.
                                                                    4));
           (void)enter_predefined_typedef("__SVCount_t",
                                          scalable_vector_count_type());
+        }  /* if */
+        if (clang_version_is(>=200000)) {
+          (void)enter_predefined_typedef("__mfp8",
+                                         modal_8bit_floating_point_type());
+          enter_scalable_vector_types(modal_8bit_floating_point_type(),
+                                      {"__SVMfloat8_t",
+                                       "__clang_svmfloat8x2_t",
+                                       "__clang_svmfloat8x3_t",
+                                       "__clang_svmfloat8x4_t"});
         }  /* if */
       }  /* if */
     }  /* if */

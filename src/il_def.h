@@ -5442,6 +5442,8 @@ enum a_type_kind : a_byte {
 			   but instead of representing a boolean predicate, it
 			   represents a counter predicate (which doesn't have a
 			   corresponding C++ element type). */
+  tk_mfp8,		/* Modal 8-bit floating-point type used by ARM vector
+			   extensions. */
 #endif /* GNU_VECTOR_TYPES_ALLOWED */
   tk_nullptr,		/* Type of the C++ or C++/CLI nullptr and __nullptr
 			   keywords.  There are two nullptr types that have

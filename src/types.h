@@ -150,6 +150,7 @@ extern a_boolean is_complex_type(a_type_ptr tp);
 #if GNU_VECTOR_TYPES_ALLOWED
 extern a_boolean is_vector_type(a_type_ptr tp);
 extern a_boolean is_scalable_type(a_type_ptr tp);
+extern a_boolean is_opaque_type(a_type_ptr tp);
 extern a_boolean is_valid_neon_vector_element_type(a_type_ptr tp);
 extern a_boolean is_valid_neon_polyvector_element_type(a_type_ptr tp);
 #if !STANDALONE_UTILITY_PROGRAM
@@ -158,6 +159,7 @@ extern a_boolean vector_type_is_template_dependent(a_type_ptr  tp);
 #else /* !GNU_VECTOR_TYPES_ALLOWED */
 #define is_vector_type(tp)  (/*lint --e(506)*/FALSE)
 #define is_scalable_type(tp)  (/*lint --e(506)*/FALSE)
+#define is_opaque_type(tp)  (/*lint --e(506)*/FALSE)
 #endif /* GNU_VECTOR_TYPES_ALLOWED */
 extern a_boolean is_arithmetic_or_enum_type(a_type_ptr tp);
 extern a_boolean is_arithmetic_or_unscoped_enum_type(a_type_ptr tp);

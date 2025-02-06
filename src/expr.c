@@ -29477,7 +29477,7 @@ empty_parentheses:
           make_template_param_expr_constant_operand(result);
 #if GNU_VECTOR_TYPES_ALLOWED
         } else if (is_vector_type(type_cast_to) ||
-                   is_scalable_type(type_cast_to)) {
+                   is_opaque_type(type_cast_to)) {
           temp_init_node = alloc_empty_parens_func_cast(
                                                  type_cast_to,
                                                  (a_dynamic_init_kind)dik_zero,

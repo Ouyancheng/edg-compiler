@@ -1163,6 +1163,7 @@ handle_next_entry:
 #endif /* C99_IL_EXTENSIONS_SUPPORTED */
 #if GNU_EXTENSIONS_ALLOWED && GNU_VECTOR_TYPES_ALLOWED
           case tk_scalable_vector_count:
+          case tk_mfp8:
 #endif /* GNU_EXTENSIONS_ALLOWED && GNU_VECTOR_TYPES_ALLOWED */
           case tk_nullptr:
           case tk_reflection:

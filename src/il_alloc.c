@@ -2197,6 +2197,7 @@ to default values.
       pte->variant.scalable_vector.tuple_elements = 0;
       break;
     case tk_scalable_vector_count:
+    case tk_mfp8:
       break;
 #endif /* GNU_VECTOR_TYPES_ALLOWED */
     default:

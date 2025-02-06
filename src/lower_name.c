@@ -112,6 +112,7 @@ BEGIN_EDG_NAMESPACE
 #if GNU_VECTOR_TYPES_ALLOWED
 #define MANGLING_STRING_FOR_VECTOR "U8__vector"
 #define MANGLING_STRING_FOR_SCALABLE_VECTOR_COUNT "u11__SVCount_t"
+#define MANGLING_STRING_FOR_MFP8 "u6__mfp8"
 #endif /* GNU_VECTOR_TYPES_ALLOWED */
 #define MANGLING_STRING_FOR_META_INFO "U10__metainfo"
 #define MANGLING_STRING_FOR_OPERATOR_NEW "nw"
@@ -388,6 +389,7 @@ type in the std namespace.
 #if GNU_VECTOR_TYPES_ALLOWED
 #define MANGLING_STRING_FOR_VECTOR "a"
 #define MANGLING_STRING_FOR_SCALABLE_VECTOR_COUNT "11__SVCount_t"
+#define MANGLING_STRING_FOR_MFP8 "6__mfp8"
 #endif /* GNU_VECTOR_TYPES_ALLOWED */
 #define MANGLING_STRING_FOR_META_INFO "mxi"
 #define MANGLING_STRING_FOR_OPERATOR_NEW "nw"
@@ -10195,6 +10197,9 @@ specified type.  Substitutions are not allocated for <builtin-type>s
          */
       result = TRUE;
       break;
+    case tk_mfp8:
+      result = TRUE;
+      break;
 #endif /* GNU_VECTOR_TYPES_ALLOWED */
     case tk_template_param:
       if (is_auto_type(type)) {
@@ -10445,6 +10450,12 @@ element type and number of tuple elements.
         default:
           unexpected_condition();
       }  /* switch */
+      break;
+    case tk_mfp8:
+      s = choose_scalable_vector_name_for_tuple_elements(
+                                           tuple_elements,
+                                           {"__SVMFloat8_t", "svmfloat8x2_t",
+                                            "svmfloat8x3_t", "svmfloat8x4_t"});
       break;
     default:
       unexpected_condition_str("mangled_scalable_vector_name: bad type kind "
@@ -11030,6 +11041,9 @@ top_of_loop:
 #endif /* ABI_COMPATIBILITY_VERSION >= 415 && IA64_ABI */
           /* More of this below. */
         }  /* if */
+        break;
+      case tk_mfp8:
+        s = MANGLING_STRING_FOR_MFP8;
         break;
       case tk_scalable_vector_count:
         s = MANGLING_STRING_FOR_SCALABLE_VECTOR_COUNT;

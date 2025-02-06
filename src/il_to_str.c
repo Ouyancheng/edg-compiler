@@ -2603,6 +2603,9 @@ by octl.
     case tk_scalable_vector_count:
       octl->output_str("__SVCount_t", octl);
       break;
+    case tk_mfp8:
+      octl->output_str("__mfp8", octl);
+      break;
 #endif /* GNU_VECTOR_TYPES_ALLOWED */
 #if MICROSOFT_EXTENSIONS_ALLOWED
     case tk_pointer:

@@ -946,16 +946,28 @@ consider the underlying type.
 }  /* is_scalable_type */
 
 
+a_boolean is_opaque_type(a_type_ptr  tp)
+/*
+Return TRUE if the given type is either a scalable type or a modal 8-bit
+floating-point type (tk_mfp8).  For typerefs, consider the underlying type.
+*/
+{
+  tp = skip_typerefs(tp);
+  return is_scalable_type(tp) || type_is(tp, tk_mfp8);
+}  /* is_opaque_type */
+
+
 a_boolean is_valid_neon_vector_element_type(a_type_ptr tp)
 /*
 Return TRUE if the given type is valid as a NEON vector element type.  It must
-be a standard integer type or one of the floating point types std::bfloat16,
-__fp16, float, or double.  For typerefs, consider the underlying type.
+be a standard integer type, a modal 8-bit floating-point type, or one of the
+floating-point types std::bfloat16, __fp16, float, or double.  For typerefs,
+consider the underlying type.
 */
 {
   a_boolean  result = FALSE;
   tp = skip_typerefs(tp);
-  if (is_standard_integer_type(tp)) {
+  if (is_standard_integer_type(tp) || type_is(tp, tk_mfp8)) {
     result = TRUE;
   } else if (type_is(tp, tk_float)) {
     a_float_kind  float_kind = tp->variant.float_kind;
@@ -5706,6 +5718,12 @@ set, leave it alone.  Also compute and set the alignment requirement.
 #endif /* GNU_VECTOR_TYPES_ALLOWED */
         /* These stay zero; they have no size directly.  However, a function
            type is considered complete. */
+        break;
+#if GNU_VECTOR_TYPES_ALLOWED
+      case tk_mfp8:
+        size = 1;
+        alignment = 1;
+#endif /* GNU_VECTOR_TYPES_ALLOWED */
         break;
       case tk_integer:
         get_integer_size_and_alignment(type_ptr->variant.integer.int_kind,
@@ -12369,7 +12387,7 @@ See conversion_possible.
        "ext_vector_type". */
     okay = TRUE;
     std_conv->promotion = TRUE;
-  } else if (is_scalable_type(dest_type) &&
+  } else if (is_opaque_type(dest_type) &&
              identical_types(dest_type, source_type)) {
     okay = TRUE;
 #endif /* GNU_VECTOR_TYPES_ALLOWED */
@@ -14619,6 +14637,7 @@ calling disentangle_default_args).
         case tk_vector:
         case tk_scalable_vector:
         case tk_scalable_vector_count:
+        case tk_mfp8:
 #endif /* GNU_VECTOR_TYPES_ALLOWED */
         case tk_nullptr:
           /* Simple types.  The composite type is either of the types. */
@@ -16127,6 +16146,7 @@ return type be examined? what about its parameters?).
 #endif /* C99_IL_EXTENSIONS_SUPPORTED */
 #if GNU_VECTOR_TYPES_ALLOWED
       case tk_scalable_vector_count:
+      case tk_mfp8:
 #endif /* GNU_VECTOR_TYPES_ALLOWED */
       case tk_nullptr:
       case tk_unknown:
