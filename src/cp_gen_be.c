@@ -2844,7 +2844,18 @@ names is not public, set *for_all_scopes to FALSE.
                  marking the name as inaccessible can result in attempting
                  to find an accessible typedef for a template-id referring
                  to an inaccessible name, which in some cases can result in
-                 unbounded recursion.) */
+                 unbounded recursion.  However, if we're processing a
+                 non-type template argument, we can go ahead and check for
+                 accessibility to trigger use of the value of the argument
+                 instead of the expression when that is necessary.)  We set
+                 local_for_all_scopes to FALSE to ensure that the check
+                 will be repeated in future contexts. */
+              if (octl.processing_nontype_template_argument) {
+                is_accessible = template_arg_is_accessible(
+                                                        tap, ignore_context,
+                                                        &local_for_all_scopes);
+              }  /* if */
+              local_for_all_scopes = FALSE;
             }  /* if */
           } else if (!template_arg_is_accessible(tap, ignore_context,
                                                  &local_for_all_scopes)) {

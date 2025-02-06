@@ -1,5 +1,31 @@
 Version 6.8
 
+2/5/25   [EDGcpfe/27890]
+C++-generating back end: use of inaccessible name in template argument
+
+Consider the following example:
+
+  template<int> struct A { };
+  template<int N, const char* s> struct B {
+    static constexpr int v{N * 2};
+    A<v> g() const;
+  };
+  class C {
+    static constexpr char s[] = "FOO";  // private
+  public:
+    B<16, s> f() {   // instantiates A<32>
+      return B<16, s>();
+    }
+  };
+  using D = A<32>;   // Previously generated as A<B<16, C::s>::v>
+
+Because template arguments for a given template instance are recorded at
+the first reference to that instance, "A<32>" in the last line was
+previously put out as "A<B<16, C::s>::v>", even though "C::s" is
+inaccessible at that point.  This is now fixed, and the template argument
+is put out as the value 32 instead of as the original expression.
+
+
 2/5/25   [EDGcpfe/27916]
 GNU compatibility: __builtin_operator_new/__builtin_operator_delete
 
