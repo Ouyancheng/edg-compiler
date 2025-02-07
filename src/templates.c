@@ -32084,6 +32084,10 @@ parameter lists that were scanned.
   a_boolean			    is_class_template = FALSE;
   a_boolean			    invalid_decl = FALSE;
   a_decl_parse_state                *dps = decl_state->decl_parse;
+#if BACK_END_IS_CP_GEN_BE
+  a_targ_alignment                  init_max_member_alignment =
+                                                     curr_max_member_alignment;
+#endif /* BACK_END_IS_CP_GEN_BE */
 
   db_enter(3, "template_declaration");
   dps->is_template_declaration = TRUE;
@@ -32556,12 +32560,14 @@ parameter lists that were scanned.
 #endif /* DEBUG */
   decl_state->sym = sym;
 #if BACK_END_IS_CP_GEN_BE
-  if (tssp != NULL && tssp->il_template_entry != NULL) {
+  if (tssp != NULL && tssp->il_template_entry != NULL &&
+      curr_max_member_alignment != init_max_member_alignment) {
     /* Record the effect of any embedded #pragma pack directives: they will
        be copied into the generated code, but cp_gen_be will be unable to
        track them because they will not have a_pragma entries in the
-       source sequence list. */
-    tssp->il_template_entry->final_alignment = curr_max_member_alignment;
+       source sequence list.  The value is offset by 1 so that the default
+       value, 0, indicates that no #pragma pack directive was seen. */
+    tssp->il_template_entry->final_alignment = curr_max_member_alignment + 1;
   }  /* if */
 #endif /* BACK_END_IS_CP_GEN_BE */
   db_exit();

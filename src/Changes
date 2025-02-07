@@ -1,5 +1,14 @@
 Version 6.8
 
+2/6/25   [EDGcpfe/27868]
+C++-generating back end: incorrect packing alignment
+
+In some complex cases, the code produced by the C++-generating back end
+could include compiler-generated #pragma pack directives that resulted in
+packing alignments in portions of the generated code that differed from
+those in the original source.  This is now fixed
+
+
 2/6/25   [EDGcpfe/27922]
 
 GNU compatibility: vector_size attribute

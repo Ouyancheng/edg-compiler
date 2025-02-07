@@ -11060,6 +11060,7 @@ pragma, construct a #pragma pack with the type's alignment.
          requirements for this struct. */
       begin_pp_directive("#pragma pack(");
       if (pack_alignment != 0) {
+        write_str("push,");
         write_unsigned_num((unsigned long)pack_alignment);
       }  /* if */
       write_str(")");
@@ -19296,9 +19297,13 @@ is the one associated with the template.
       } else {
         adv_curr_source_sequence_entry();
       }  /* if */
-      /* Update the current packing alignment to reflect any #pragma pack
-         directives that were embedded in the template definition string. */
-      curr_pack_alignment = tp->final_alignment;
+      if (tp->final_alignment != 0) {
+        /* Update the current packing alignment to reflect #pragma pack
+           directives that were embedded in the template definition string.
+           (A non-zero value indicates that a directive was seen, with the
+           actual alignment being offset by 1.) */
+        curr_pack_alignment = tp->final_alignment - 1;
+      }  /* if */
       if (tp->kind == (a_template_kind)templk_class &&
           tp->prototype_instantiation.type != NULL &&
           tp->prototype_instantiation.type->kind == (a_type_kind)tk_typeref &&
@@ -24580,6 +24585,8 @@ parameter declarations).
     begin_pp_directive("#pragma pack(");
     if (curr_pack_alignment != 0) {
       write_unsigned_num((unsigned long)curr_pack_alignment);
+    } else {
+      write_str("pop");
     }  /* if */
     write_str(")");
     end_pp_directive();

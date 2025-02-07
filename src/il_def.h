@@ -16765,11 +16765,14 @@ typedef struct a_template {
 			/* The packing alignment at the end of the template
 			   definition.  #pragma pack directives inside the
 			   template definition appear in the generated code
-			   but do not have associated a_pragma IL entries, so
-			   the C++-generating back end cannot track their
-			   effect directly.  This field, set during prototype
-			   instantiation, allows it to re-sync after
-			   inserting the definition into the output. */
+			   but do not have associated a_pragma IL entries,
+			   so the C++-generating back end cannot track
+			   their effect directly.  This field, set during
+			   prototype instantiation, allows it to re-sync
+			   after inserting the definition into the output.
+			   The value is offset by 1 so that the default
+			   value of 0 is available to indicate that no
+			   #pragma pack directive was seen. */
   int32_t	min_template_arguments;
 			/* The number of parameters in this declaration
 			   before the first default argument.  This will
