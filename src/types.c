@@ -5723,8 +5723,8 @@ set, leave it alone.  Also compute and set the alignment requirement.
       case tk_mfp8:
         size = 1;
         alignment = 1;
-#endif /* GNU_VECTOR_TYPES_ALLOWED */
         break;
+#endif /* GNU_VECTOR_TYPES_ALLOWED */
       case tk_integer:
         get_integer_size_and_alignment(type_ptr->variant.integer.int_kind,
                                        &size, &alignment);
