@@ -52,12 +52,12 @@ version 20 (based on the recently-released RC1).
 
 
 2/6/25   [EDGcpfe/27919]
-Clang compatibility: modal 8-bit floating-point type for ARM64 (IL CHANGE)
+GCC/Clang compatibility: modal 8-bit floating-point type for ARM64 (IL CHANGE)
 
 Support for the modal 8-bit floating-point type __mfp8 has been added.  This
 new storage-only type has no built-in arithmetic operations defined and is made
-available on Clang 20+ for ARM64 architectures.  It is represented in the IL as
-tk_mfp8.
+available on GCC 15+ and Clang 20+ for ARM64 architectures.  It is represented
+in the IL as tk_mfp8.
 
 
 2/5/25   [EDGcpfe/27890]

@@ -1359,7 +1359,7 @@ vector (either vk_neon or vk_neon_poly).
   } else if (type_is(element_type, tk_mfp8)) {
     switch (vector_elements) {
       case 8:  result = "__Mfloat8x8_t";  break;
-      case 16: result = "__Mfloat16x8_t"; break;
+      case 16: result = "__Mfloat8x16_t"; break;
       default: unexpected_condition();
     }  /* switch */
   } else {
@@ -1709,7 +1709,7 @@ Enter predeclared symbols as required by the implementation.
           (void)enter_predefined_typedef("__SVCount_t",
                                          scalable_vector_count_type());
         }  /* if */
-        if (clang_version_is(>=200000)) {
+        if (clang_version_is(>=200000) || gnu_version_is(>=150000)) {
           (void)enter_predefined_typedef("__mfp8",
                                          modal_8bit_floating_point_type());
           enter_scalable_vector_types(modal_8bit_floating_point_type(),
@@ -1766,6 +1766,11 @@ Enter predeclared symbols as required by the implementation.
         enter_builtin_integer_neon_vector_types(
                                       integer_builtin_neon_vector_types_32bit);
       } else if (targ_supports_arm64) {
+        if (gnu_version_is(>=150000)) {
+          enter_neon_vector_types(modal_8bit_floating_point_type(), 8,
+                                  {"__Mfloat8x8_t", "__Mfloat8x16_t"},
+                                  vk_neon);
+        }  /* if */
         if (gnu_version_is(>=100000)) {
           (void)enter_predefined_typedef("__builtin_aarch64_simd_bf",
                                          float_type(fk_std_bfloat16));
