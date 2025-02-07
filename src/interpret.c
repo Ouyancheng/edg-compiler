@@ -8343,7 +8343,7 @@ static a_boolean do_constexpr_builtin_strchr(
                                       an_expr_node_ptr        call_node,
                                       a_byte                  *result_storage)
 /*
-Evaluate the strchr/memchr/wcschr/wmemchr family of builtin functions.
+Evaluate the strchr/memchr/wcschr/wmemchr/index family of builtin functions.
 argX_bytes and argX_tp specify the operands and their types (arg3_bytes and
 arg3_tp are NULL in cases where a count argument is not specified).  Place the
 result in *result_storage.  Return FALSE if this fails (e.g., because the
@@ -9588,6 +9588,7 @@ to FALSE and the reason for the failure is recorded in *ips.
     case bufk_u8memchr:
       has_count = TRUE;
       FALLTHROUGH
+    case bfk_index:
     case bfk_strchr:
     case bfk_wcschr:
       {

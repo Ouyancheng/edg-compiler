@@ -1,5 +1,14 @@
 Version 6.8
 
+2/7/25   [EDGcpfe/27860]
+GNU compatibility: __builtin_index is now constexpr
+
+The __builtin_index function is now folded in contexts where it can be
+constant-evaluated.  For example, with --g++:
+
+  static_assert(__builtin_index("xyzzy", 'a') == nullptr);
+
+
 2/6/25   [EDGcpfe/27868]
 C++-generating back end: incorrect packing alignment
 
