@@ -1,5 +1,15 @@
 Version 6.8
 
+2/8/25   [EDGcpfe/27920]
+Microsoft compatibility: build errors in standalone utility programs
+
+Changes in version 6.7 of the front end incorrectly excluded the definition
+of conv_wide_to_utf8 (in host_envir.c) in standalone utility programs like
+edgcpdisp when compiling with MSVC, resulting in a linkage error.  The
+conditional compilation directives in host_envir.c have now been corrected
+and standalone utility programs can once again be built using MSVC.
+
+
 2/8/25   [EDGcpfe/27921]
 Microsoft compatibility: build errors with MSVC and /Zc:wchar_t-
 

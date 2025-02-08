@@ -410,13 +410,11 @@ STATIC_THREAD _locale_t
 #endif /* EDG_WIN32 */
 #endif /* NATIVE_MULTIBYTE_CHARS_SUPPORTED_WITH_UNICODE */
 
-#if !STANDALONE_UTILITY_PROGRAM
 #if EDG_WIN32
 STATIC_THREAD a_text_buffer_ptr
 		conv_utf8_buffer;
 			/* A text buffer used by conv_wide_to_utf8. */
 #endif /* EDG_WIN32 */
-#endif /* !STANDALONE_UTILITY_PROGRAM */
 
 
 STATIC_THREAD a_directory_name_entry_ptr
@@ -5813,8 +5811,9 @@ components.  For a typical U.S. system, this will return
 }  /* get_system_default_locale_name */
 
 #endif /* EDG_WIN32 && NATIVE_MULTIBYTE_CHARS_SUPPORTED_WITH_UNICODE */
-#if !STANDALONE_UTILITY_PROGRAM
+
 #if EDG_WIN32
+#if !STANDALONE_UTILITY_PROGRAM
 
 a_const_char *win32_error_to_str(an_ms_dword err_code)
 /*
@@ -5844,6 +5843,7 @@ so the result must be used before the buffer is reused.
   return result;
 }  /* win32_error_to_str */
 
+#endif /* !STANDALONE_UTILITY_PROGRAM */
 
 char *conv_wide_to_utf8(wchar_t *wide_str)
 /*
@@ -5888,6 +5888,7 @@ in a temporary buffer.
   return conv_utf8_buffer->buffer;
 }  /* conv_wide_to_utf8 */
 
+#if !STANDALONE_UTILITY_PROGRAM
 #if CPPCLI_ENABLING_POSSIBLE
 
 static void get_clr_runtime_directory(wchar_t  *dir_name, 
