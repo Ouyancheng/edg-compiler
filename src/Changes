@@ -1,5 +1,16 @@
 Version 6.8
 
+2/8/25   [EDGcpfe/27921]
+Microsoft compatibility: build errors with MSVC and /Zc:wchar_t-
+
+Version 6.7 of the front end introduced (in util.h) two explicit
+specializations of templates with the wchar_t type.  These explicit
+specializations resulted in build errors when compiled by MSVC with the
+/Zc:wchar_t- command-line option, which causes wchar_t to be treated as a
+typedef for unsigned short instead of being a distinct type.  These build
+errors have now been addressed.
+
+
 2/7/25   [EDGcpfe/27860]
 GNU compatibility: __builtin_index is now constexpr
 

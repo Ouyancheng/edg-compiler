@@ -155,7 +155,13 @@ struct Is_trivially_copyable_edg_impl<a_Type*> :
   };  /* Is_trivially_copyable_edg_impl */
 
 MARK_TRIVIALLY_COPYABLE(bool)
+#if !defined(_MSC_VER) || defined(_NATIVE_WCHAR_T_DEFINED)
+/* MSVC has a mode, enabled via the /Zc:wchar_t- command-line option, in
+   which wchar_t is not a distinct type but is treated as a typedef for
+   unsigned short.  An explicit specialization for wchar_t will conflict
+   with the specialization for unsigned short in that mode. */
 MARK_TRIVIALLY_COPYABLE(wchar_t)
+#endif /* !defined(_MSC_VER) || defined(_NATIVE_WCHAR_T_DEFINED) */
 MARK_TRIVIALLY_COPYABLE(char16_t)
 MARK_TRIVIALLY_COPYABLE(char32_t)
 MARK_TRIVIALLY_COPYABLE(char)
@@ -248,7 +254,13 @@ struct Is_trivially_destructible_edg_impl<a_Type*> :
   };  /* Is_trivially_destructible_edg_impl */
 
 MARK_TRIVIALLY_DESTRUCTIBLE(bool)
+#if !defined(_MSC_VER) || defined(_NATIVE_WCHAR_T_DEFINED)
+/* MSVC has a mode, enabled via the /Zc:wchar_t- command-line option, in
+   which wchar_t is not a distinct type but is treated as a typedef for
+   unsigned short.  An explicit specialization for wchar_t will conflict
+   with the specialization for unsigned short in that mode. */
 MARK_TRIVIALLY_DESTRUCTIBLE(wchar_t)
+#endif /* !defined(_MSC_VER) || defined(_NATIVE_WCHAR_T_DEFINED) */
 MARK_TRIVIALLY_DESTRUCTIBLE(char16_t)
 MARK_TRIVIALLY_DESTRUCTIBLE(char32_t)
 MARK_TRIVIALLY_DESTRUCTIBLE(char)
