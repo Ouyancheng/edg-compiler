@@ -5812,8 +5812,8 @@ components.  For a typical U.S. system, this will return
 
 #endif /* EDG_WIN32 && NATIVE_MULTIBYTE_CHARS_SUPPORTED_WITH_UNICODE */
 
-#if EDG_WIN32
 #if !STANDALONE_UTILITY_PROGRAM
+#if EDG_WIN32
 
 a_const_char *win32_error_to_str(an_ms_dword err_code)
 /*
@@ -5843,7 +5843,10 @@ so the result must be used before the buffer is reused.
   return result;
 }  /* win32_error_to_str */
 
-#endif /* !STANDALONE_UTILITY_PROGRAM */
+#endif /* EDG_WIN32 */
+#endif /* STANDALONE_UTILITY_PROGRAM */
+
+#if EDG_WIN32
 
 char *conv_wide_to_utf8(wchar_t *wide_str)
 /*
@@ -5888,7 +5891,10 @@ in a temporary buffer.
   return conv_utf8_buffer->buffer;
 }  /* conv_wide_to_utf8 */
 
+#endif /* EDG_WIN32 */
+
 #if !STANDALONE_UTILITY_PROGRAM
+#if EDG_WIN32
 #if CPPCLI_ENABLING_POSSIBLE
 
 static void get_clr_runtime_directory(wchar_t  *dir_name, 
