@@ -5812,40 +5812,6 @@ components.  For a typical U.S. system, this will return
 
 #endif /* EDG_WIN32 && NATIVE_MULTIBYTE_CHARS_SUPPORTED_WITH_UNICODE */
 
-#if !STANDALONE_UTILITY_PROGRAM
-#if EDG_WIN32
-
-a_const_char *win32_error_to_str(an_ms_dword err_code)
-/*
-Use the system routine FormatMessageA to get the message for "err_code".  If
-the system routine fails for any reason, return the string "unknown error".
-In non-error cases, this routine returns a pointer to the temp_text_buffer,
-so the result must be used before the buffer is reused.
-*/
-{
-  unsigned long chars_written;
-  a_const_char  *result;
-
-  ensure_temp_text_buffer_space(256);
-  chars_written = FormatMessageA(
-                      FORMAT_MESSAGE_FROM_SYSTEM, /*lpSource=*/NULL, err_code,
-                      MAKELANGID(LANG_NEUTRAL, SUBLANG_DEFAULT), 
-                      temp_text_buffer, /*nSize=*/256, /*Arguments=*/NULL);
-
-  if (chars_written == 0) {
-    /* The err_code may not have an associated message.  Return "unknown
-       error", which is only slightly better than returning nothing. */
-    result = error_text(ec_no_error);
-  } else {
-    result = temp_text_buffer;
-  }  /* if */
-
-  return result;
-}  /* win32_error_to_str */
-
-#endif /* EDG_WIN32 */
-#endif /* STANDALONE_UTILITY_PROGRAM */
-
 #if EDG_WIN32
 
 char *conv_wide_to_utf8(wchar_t *wide_str)
@@ -5895,6 +5861,35 @@ in a temporary buffer.
 
 #if !STANDALONE_UTILITY_PROGRAM
 #if EDG_WIN32
+
+a_const_char *win32_error_to_str(an_ms_dword err_code)
+/*
+Use the system routine FormatMessageA to get the message for "err_code".  If
+the system routine fails for any reason, return the string "unknown error".
+In non-error cases, this routine returns a pointer to the temp_text_buffer,
+so the result must be used before the buffer is reused.
+*/
+{
+  unsigned long chars_written;
+  a_const_char  *result;
+
+  ensure_temp_text_buffer_space(256);
+  chars_written = FormatMessageA(
+                      FORMAT_MESSAGE_FROM_SYSTEM, /*lpSource=*/NULL, err_code,
+                      MAKELANGID(LANG_NEUTRAL, SUBLANG_DEFAULT), 
+                      temp_text_buffer, /*nSize=*/256, /*Arguments=*/NULL);
+
+  if (chars_written == 0) {
+    /* The err_code may not have an associated message.  Return "unknown
+       error", which is only slightly better than returning nothing. */
+    result = error_text(ec_no_error);
+  } else {
+    result = temp_text_buffer;
+  }  /* if */
+
+  return result;
+}  /* win32_error_to_str */
+
 #if CPPCLI_ENABLING_POSSIBLE
 
 static void get_clr_runtime_directory(wchar_t  *dir_name, 
