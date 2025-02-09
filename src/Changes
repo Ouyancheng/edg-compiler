@@ -1,5 +1,13 @@
 Version 6.8
 
+2/8/25   [EDGcpfe/27873]
+Microsoft compatibility: enable C++23 lambda attributes
+
+Lambda attributes (see the Changes entry for EDGcpfe/25076,EDGcpfe/26487) are
+now enabled when microsoft_version >= 1944 and --ms_c++23 or later is
+specified.
+
+
 2/8/25   [EDGcpfe/27920]
 Microsoft compatibility: build errors in standalone utility programs
 

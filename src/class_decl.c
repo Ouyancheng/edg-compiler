@@ -29997,8 +29997,6 @@ discard such attributes).
 {
   an_attribute_ptr  attrs = NULL;
   a_source_position save_pos_curr_token = pos_curr_token;
-  a_boolean         lambda_attributes_allowed =
-          cpp23_mode || gnu_version_is(>=100000) || clang_version_is(>=130000);
 
   attrs = scan_attributes(al_lambda_expression);
   if (attrs != NULL && !lambda_attributes_allowed) {

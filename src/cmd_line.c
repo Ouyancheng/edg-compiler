@@ -3220,6 +3220,12 @@ option values if they were not already set by a command line option.
           msvc_lang = "202400L";
         }  /* if */
       }  /* if */
+      if (microsoft_version >= 1944) {
+        if (ms_cpp23_mode) {
+          /* These C++23 features are enabled in this mode. */
+          lambda_attributes_allowed = TRUE;
+        }  /* if */
+      }  /* if */
     } else {
       /* Disable unrestricted unions because they involve making some special
          member functions "deleted", whereas Microsoft compilers prior to 1900
@@ -4193,6 +4199,7 @@ default mode (e.g., exception handling).
           size_suffix_enabled = TRUE;
           named_unicode_chars_allowed = TRUE;
           delimited_escape_seqs_allowed = TRUE;
+          lambda_attributes_allowed = TRUE;
         }  /* if */
       }  /* if */
     }  /* if */
@@ -5180,6 +5187,7 @@ This function is also called in clang mode.
     if (clang_version >= 130000) {
       /* As of version 13.0.0, clang supports #elifdef/#elifndef. */
       elifdef_enabled = TRUE;
+      lambda_attributes_allowed = TRUE;
     }  /* if */
     if (clang_version < 140000 && !option_kind_used[(int)optk_old_id_chars]) {
       /* Clang implemented Unicode-based identifier characters in version
@@ -5212,6 +5220,9 @@ This function is also called in clang mode.
          (a C++20 feature) is accepted by gcc in both C and C++ modes in
          all standard versions. */
       va_opt_enabled = TRUE;
+    }  /* if */
+    if (gnu_version >= 100000) {
+      lambda_attributes_allowed = TRUE;
     }  /* if */
     if (gnu_version >= 120000) {
       /* As of version 12.1.0, gcc supports #elifdef/#elifndef. */
@@ -13338,6 +13349,7 @@ variables declared in cmd_line.h.
   size_suffix_enabled = FALSE;
   named_unicode_chars_allowed = FALSE;
   delimited_escape_seqs_allowed = FALSE;
+  lambda_attributes_allowed = FALSE;
 }  /* cmd_line_static_var_init */
 
 

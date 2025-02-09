@@ -2885,6 +2885,11 @@ EXTERN_THREAD a_boolean
 			/* TRUE if the "z" integer suffix (a C++23 feature)
 			   is supported. */
 
+EXTERN_THREAD a_boolean
+		lambda_attributes_allowed;
+			/* TRUE if attributes are allowed on a lambda (a C++23
+			   feature. */
+
 /* Process the command line arguments. */
 extern void proc_command_line(int argc, char *argv[]);
 #if COMPILE_MULTIPLE_SOURCE_FILES
