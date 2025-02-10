@@ -2888,7 +2888,7 @@ EXTERN_THREAD a_boolean
 EXTERN_THREAD a_boolean
 		lambda_attributes_allowed;
 			/* TRUE if attributes are allowed on a lambda (a C++23
-			   feature. */
+			   feature). */
 
 /* Process the command line arguments. */
 extern void proc_command_line(int argc, char *argv[]);
