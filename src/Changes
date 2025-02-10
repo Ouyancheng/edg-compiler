@@ -1,5 +1,13 @@
 Version 6.8
 
+2/10/25  [EDGcpfe/27870]
+Microsoft compatibility: enable C++23 size suffixes
+
+The integer literal size suffixes (see the Changes entry for EDGcpfe/23555)
+are now enabled by the --ms_c++23 command-line option when
+microsoft_version is 1943 or greater.
+
+
 2/8/25   [EDGcpfe/27873]
 Microsoft compatibility: enable C++23 lambda attributes
 

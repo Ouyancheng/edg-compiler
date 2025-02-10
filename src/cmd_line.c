@@ -3214,6 +3214,7 @@ option values if they were not already set by a command line option.
           /* These C++23 features are enabled in this mode. */
           if_consteval_enabled = TRUE;
           explicit_this_param_enabled = TRUE;
+          size_suffix_enabled = TRUE;
           msvc_lang = "202302L";
         }  /* if */
         if (ms_cpplatest_mode) {
