@@ -3231,6 +3231,11 @@ minimize the number of operators that need to be implemented.
   check_assertion(!any_out_of_order);
 }  /* validate_elements_in_order */
 
+
+/* Forward declare no_very_expensive_checking. */
+extern EDG_THREAD a_boolean
+                no_very_expensive_checking;
+
 #endif /* EXPENSIVE_CHECKING */
 
 template<typename T, typename a_Value_Fn>
@@ -3251,7 +3256,7 @@ found.
   size_t    curr_size = num_elements;
 
 #if EXPENSIVE_CHECKING
-  if (num_elements >= 2) {
+  if (!no_very_expensive_checking && num_elements >= 2) {
     validate_elements_in_order(num_elements, value_fn);
   }  /* if */
 #endif /* EXPENSIVE_CHECKING */
