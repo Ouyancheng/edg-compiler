@@ -7493,6 +7493,50 @@ done_with_switch:
 }  /* do_constexpr_switch */
 
 
+static a_scope_ptr xyzzy; // FIXME (temporary)
+static a_boolean do_assumption_check(an_attribute_ptr     ap,
+                                     an_interpreter_state *ips)
+/*
+One or more "assume" attributes has been attached to the empty statement
+being interpreted; evaluate the associated expression(s) and issue a
+diagnostic if they are false.
+*/
+{
+  a_boolean            result = TRUE;
+
+  if (clang_mode && ms_compat) {
+    /* Apparently clang doesn't check assumptions at compile time in their
+       Microsoft compatible mode. */
+  } else {
+    a_constant           *cp = local_constant();
+    an_attribute_arg_ptr aap = ap->arguments;
+    an_expr_node_ptr     expr;
+
+    check_assertion(ap->kind == ak_assume && aap->kind == aak_expression);
+    expr = expr_node_from_attribute_arg(aap, xyzzy);
+    if (expr == NULL || is_error_type(expr->type)) {
+      do_constexpr_fail(result);
+    } else if (evaluate_expr(ips, expr, /*force_prvalue=*/TRUE, cp)) {
+      if (is_false_constant(cp)) {
+        // FIXME: Better error diagnostic here?
+        info_with_pos(ec_assumption_failed, &ap->position, ips);
+        do_constexpr_fail(result);
+      }  /* if */
+    } else {
+      do_constexpr_fail(result);
+    }  /* if */
+    release_local_constant(&cp);
+
+    /* Recurse if needed to handle additional assume attributes. */
+    ap = find_attribute(ak_assume, ap->next);
+    if (ap != NULL) {
+      result = (do_assumption_check(ap, ips) && result);
+    }  /* if */
+  }  /* if */
+  return result;
+}  /* do_assumption_check */
+
+
 static a_boolean do_constexpr_statement(an_interpreter_state  *ips,
                                         a_statement_ptr       stmt)
 /*
@@ -7857,7 +7901,16 @@ done_with_return_statement:
       }  /* if */
       break;
     case stmk_empty:
-      /* Nothing to do. */
+      /* An empty statement.  See if it has any assumption checks associated
+         with it. */
+      if (stmt->attributes != NULL) {
+        an_attribute_ptr ap = find_attribute(ak_assume, stmt->attributes);
+        if (ap != NULL) {
+          /* At least one "assume" attribute is attached; verify the
+             assumption(s). */
+          result = do_assumption_check(ap, ips);
+        }  /* if */
+      }  /* if */
       break;
     case stmk_set_vla_size:
     case stmk_vla_decl:
@@ -10010,6 +10063,7 @@ statement.
   if (block_stmt->kind == (a_statement_kind)stmk_try_block) {
     block_stmt = block_stmt->variant.try_block->statement;
   }  /* if */
+xyzzy = callee_scope; // FIXME
   return do_constexpr_block_statement(ips, block_stmt, callee_scope);
 }  /* run_function_body */
 

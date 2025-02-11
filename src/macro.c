@@ -5317,6 +5317,7 @@ spelling so the table can be used with bsearch.
 static constexpr an_attribute_support attribute_support_list[] = {
   /* attribute name          C++ value     C value
      --------------          ---------     ------- */
+  { "assume",                "202207L",    "1"       },
   { "carries_dependency",    "200809L",    "1"       },
   { "deprecated",            "201309L",    "201904L" },
   { "fallthrough",           "201603L",    "201910L" },

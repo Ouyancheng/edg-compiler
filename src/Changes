@@ -1,5 +1,22 @@
 Version 6.8
 
+2/11/25  [EDGcpfe/25517,EDGcpfe/25844]
+C++23 compatibility: "assume" attribute
+
+The "assume" attribute has been introduced in C++23 and is now supported
+in C++23 mode as well as when gnu_version >= 130000 or clang_version >= 190000
+(as well as GNU and clang C modes).  See committee paper P1774R8.  The front
+end checks the value of the expression in constexpr contexts, but any
+additional checking is left to the back end.  For example, this fails at
+compilation time with --c++23:
+
+  constexpr int f(int i) {
+    [[assume(i == 42)]];
+    return i;
+  }
+  constexpr int x = f(44);
+
+
 2/10/25  [EDGcpfe/27870]
 Microsoft compatibility: enable C++23 size suffixes
 

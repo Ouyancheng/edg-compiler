@@ -5583,6 +5583,7 @@ Allocate an attribute argument in file scope memory and return a pointer to it.
   aap->token_kind = tok_error;
   aap->kind = (an_attribute_arg_kind)aak_empty;
   aap->is_pack_expansion = FALSE;
+  aap->local_expr_ref = FALSE;
   aap->pack_expansion_descr = NULL;
   aap->position = null_source_position;
 #if EXTRA_SOURCE_POSITIONS_IN_IL

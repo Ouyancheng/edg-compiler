@@ -2725,6 +2725,13 @@ typedef struct an_attribute_arg {
   a_bit_field	is_pack_expansion:1;
 			/* TRUE if the argument is a variadic template pack
 			   expansion, i.e., it's followed by "...". */
+  a_bit_field	local_expr_ref:1;
+			/* TRUE if the expression normally associated with
+			   an aak_expression is stored in a function scope
+			   memory region while the attribute is stored in the
+			   file scope memory region.  In that case,
+			   variant::expr will be NULL and the expression
+			   can be found using expr_node_from_attribute_arg. */
   struct a_pack_expansion_descr
 		*pack_expansion_descr;
 			/* If non-NULL, the attribute value is a pack
@@ -2882,6 +2889,7 @@ enum an_attribute_kind : a_byte {
      variants). */
   ak_align,		/* "align" (std, ms) or "aligned" (gnu).  Also used
 			   for the C++11 alignas construct. */
+  ak_assume,            /* "assume" (std, C++23). */
   ak_base_check,	/* "base_check" (std). */
   ak_carries_dependency,
 			/* "carries_dependency" (std). */
@@ -14323,7 +14331,9 @@ enum a_local_expr_node_ref_kind : a_byte {
 			   splice, or GNU typeof construct. */
   lerk_bit_field_width,	/* The expression for the width of a bit-field that
 			   refers to a local variable. */
-  lerk_constant_expr	/* The backing expression of a constant entry. */
+  lerk_constant_expr,	/* The backing expression of a constant entry. */
+  lerk_attribute_arg_expr
+			/* The expression for some attribute arguments. */
 };
 
 

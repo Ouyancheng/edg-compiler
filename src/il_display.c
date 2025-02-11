@@ -4569,6 +4569,9 @@ local) memory region.
     case lerk_constant_expr:
       (void)fprintf(f_display, "constant-expr");
       break;
+    case lerk_attribute_arg_expr:
+      (void)fprintf(f_display, "attribute-arg-expr");
+      break;
     default:
       (void)fprintf(f_display, "**BAD LOCAL-EXPR-NODE-REF KIND**");
   }  /* switch */
@@ -6117,6 +6120,7 @@ Display the indicated attribute entry.
     case ak_attr_using_prefix:   kind_name = "\"using\" prefix";    break;
     /* Standard attributes: */
     case ak_align:               kind_name = "align";               break;
+    case ak_assume:              kind_name = "assume";              break;
     case ak_base_check:          kind_name = "base_check";          break;
     case ak_carries_dependency:  kind_name = "carries_dependency";  break;
     case ak_deprecated:          kind_name = "deprecated";          break;
@@ -6385,6 +6389,9 @@ Display the indicated attribute argument entry.
   disp_ptr("next", (char *)aap->next, iek_attribute_arg);
   if (aap->is_pack_expansion) {
     disp_boolean("is_pack_expansion", TRUE);
+  }  /* if */
+  if (aap->local_expr_ref) {
+    disp_boolean("local_expr_ref", TRUE);
   }  /* if */
   /* pack_expansion_descr is not displayed because it is front end only. */
   disp_source_position("position", &aap->position);

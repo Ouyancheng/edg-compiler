@@ -231,6 +231,7 @@ static constexpr an_attr_descr known_attr_table[] = {
   /* C++ standard attributes (C++11 and later).  Note the use of "c+" to
      indicate these are valid in C++ modes only. */
   { "align", "(ct)", "c+", ak_align },
+  { "assume", "(X)", "c+(202302-|G(130000-)|C(190000-))", ak_assume },
   { "base_check", "", "c+", ak_base_check },
   { "carries_dependency", "", "c+", ak_carries_dependency },
   { "deprecated", "?(sx)", "c+(201402-|M(1910-))", ak_deprecated },
@@ -268,6 +269,7 @@ static constexpr an_attr_descr known_attr_table[] = {
 #if GNU_EXTENSIONS_ALLOWED
   /* GNU Attributes. */
   { "alias", "(sn)", "gx", ak_alias },
+  { "assume", "(X)", "gx(130000-)", ak_assume },
   { "aligned", "?(ci)", "gx", ak_align },
   { "alloc_size", "(ci?,ci)", "gx(40200-)", ak_alloc_size },
   { "always_inline", "", "gx", ak_always_inline },
@@ -432,6 +434,7 @@ static constexpr an_attr_descr known_attr_table[] = {
 #endif /* INCLUDE_EDG_TEST_ATTRIBUTES */
 
   /* Clang-specific attributes. */
+  { "assume", "(X)", "lx(190000-)", ak_assume },
   { "availability", "(*)", "lx{clang}", ak_availability },
   { "unavailable", "?(sn)", "lx(30500-)", ak_unavailable },
   { "using_if_exists", "", "l+{clang}", ak_using_if_exists },
@@ -547,6 +550,7 @@ typedef struct an_attr_appl_descr {
 
 /* Application functions for standard attributes. */
 static an_attr_application_fn apply_align_attr;
+static an_attr_application_fn apply_assume_attr;
 static an_attr_application_fn apply_base_check_attr;
 static an_attr_application_fn apply_carries_dependency_attr;
 static an_attr_application_fn apply_deprecated_or_unavailable_attr;
@@ -684,6 +688,7 @@ STATIC_THREAD an_attr_appl_descr known_attr_appl_table[(int)ak_last+1] = {
   { ak_attr_using_prefix, "", NO_APPL_FN },
   /* Standard attributes. */
   { ak_align, "", apply_align_attr },
+  { ak_assume, "s", apply_assume_attr },
   { ak_base_check, "c:+d", apply_base_check_attr },
   { ak_carries_dependency, "r|p", apply_carries_dependency_attr },
   { ak_deprecated, "t|p|c|e|r|v|d|n|E", apply_deprecated_or_unavailable_attr },
@@ -4494,6 +4499,25 @@ and make new_attr unrecognized.
 
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
 
+static void make_local_expr_node_ref_if_needed(an_attribute_arg_ptr aap)
+/*
+In cases where an attribute argument expression is in the function scope,
+use a local expr node reference to "point" to it (because all attributes are
+allocated in the file scope memory region).
+*/
+{
+  an_expr_node_ptr expr = aap->variant.expr;
+
+  check_assertion(aap->kind == aak_expression && expr != NULL);
+  if (!in_file_scope(expr)) {
+    check_assertion(innermost_function_scope != NULL);
+    make_local_expr_node_ref(expr, lerk_attribute_arg_expr,
+                             (char*)aap, innermost_function_scope);
+    aap->variant.expr = NULL;
+  }  /* if */
+}  /* make_local_expr_node_ref_if_needed */
+
+
 static char* apply_align_attr(an_attribute_ptr  ap,
                               char              *entity,
                               an_il_entry_kind  entity_kind)
@@ -4759,6 +4783,46 @@ and C11 _Alignas specifiers.
   }  /* if */
   return entity;
 }  /* apply_align_attr */
+
+
+static char* apply_assume_attr(an_attribute_ptr             ap,
+                               char                         *entity,
+                               ARG_UNUSED an_il_entry_kind  entity_kind)
+/*
+Apply the given "assume" attribute to the null statement (pointed to by
+entity).
+*/
+{
+  an_attribute_arg_ptr  aap = ap->arguments;
+  an_expr_node_ptr      expr;
+  a_statement_ptr       stmt;
+
+  check_assertion(entity_kind == iek_statement &&
+                  aap != NULL &&
+                  aap->kind == aak_expression &&
+                  aap->next == NULL);
+  stmt = (a_statement_ptr)entity;
+  expr = aap->variant.expr;
+  check_assertion(!is_error_node(expr));
+  expr = process_boolean_attribute_expression(expr);
+  aap->variant.expr = expr;
+  /* It's likely that the expression resides in a function scope memory
+     region, so fix that if needed. */
+  make_local_expr_node_ref_if_needed(aap);
+  if (is_error_node(expr)) {
+    /* The expression must be convertible to bool. */
+    make_attr_unrecognized(ap);
+  } else if (stmt->kind != stmk_empty) {
+    /* The attribute should only apply to null statements. */
+    an_error_severity  sev = (gpp_mode && !clang_mode) ? es_warning : es_error;
+    pos_diagnostic(sev, ec_assume_statement_applies_to_null_statements,
+                   &stmt->position);
+    if (sev == es_error) {
+      make_attr_unrecognized(ap);
+    }  /* if */
+  }  /* if */
+  return entity;
+}  /* apply_assume_attr */
 
 
 static void issue_warning_for_removed_attribute(an_attribute_ptr  ap)
@@ -5533,6 +5597,9 @@ to it and return the entity.
   check_assertion(!is_error_node(expr));
   expr = process_boolean_attribute_expression(expr);
   aap->variant.expr = expr;
+  /* It's possible that the expression is in a function scope memory region;
+     if so, use a local_expr_ref for it. */
+  make_local_expr_node_ref_if_needed(aap);
   if (is_error_node(expr)) {
     /* The expression must be convertible to bool. */
     make_attr_unrecognized(ap);

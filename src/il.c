@@ -14531,6 +14531,11 @@ The expression can then be recovered using find_local_expr_node.
       check_assertion(!((a_constant_ptr)referrer)->local_expr_ref);
       ((a_constant_ptr)referrer)->local_expr_ref = TRUE;
       break;
+    case lerk_attribute_arg_expr:
+      new_ref->referrer.kind = iek_attribute_arg;
+      check_assertion(!((an_attribute_arg_ptr)referrer)->local_expr_ref);
+      ((an_attribute_arg_ptr)referrer)->local_expr_ref = TRUE;
+      break;
     default:
       unexpected_condition();
   }  /* switch */
@@ -14713,6 +14718,27 @@ necessary.
   }  /* if */
   return expr;
 }  /* expr_node_from_constant */
+
+
+an_expr_node_ptr expr_node_from_attribute_arg(an_attribute_arg_ptr aap,
+                                              a_scope_ptr          scope)
+/*
+Return the expression associated with the aak_expression attribute argument.
+Scope is the function scope in which the attribute appears (though the
+attribute is allocated in the file scope memory region).  Scope can be NULL
+in cases where the expression is in the file scope memory region.
+*/
+{
+  an_expr_node_ptr result = aap->variant.expr;
+
+  check_assertion(aap->kind == aak_expression);
+  if (aap->local_expr_ref) {
+    check_assertion(result == NULL && scope != NULL);
+    result = find_local_expr_node_in_scope((char*)aap, lerk_attribute_arg_expr,
+                                           scope);
+  }  /* if */
+  return result;
+}  /* expr_node_from_attribute_arg */
 
 #if !STANDALONE_UTILITY_PROGRAM
 
@@ -30916,7 +30942,7 @@ scan_alignof_operator for details).
 
 
 an_attribute_ptr find_attribute(an_attribute_kind  kind,
-                                  an_attribute_ptr   attributes)
+                                an_attribute_ptr   attributes)
 /*
 Return the first attribute of the given kind in the given list of attributes,
 or NULL if there is no such item.
