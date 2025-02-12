@@ -7022,7 +7022,9 @@ Generate the list of arguments for the attribute, surrounded by parentheses.
         gen_type(aap->variant.type);
         break;
       case aak_expression:
-        gen_expression(aap->variant.expr);
+        // FIXME: Check the use of innermost_function_scope here.
+        gen_expression(expr_node_from_attribute_arg(aap,
+                                                    innermost_function_scope));
         break;
       default:
         unexpected_condition();
