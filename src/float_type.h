@@ -1311,13 +1311,18 @@ if the result is negative infinity.
 */
 {
   int ndigits;
+  /* _Float16 and float need the maximum possible number of digits in order
+     to produce decimal values that convert exactly to larger floating
+     point types. */
 #if FPT_DIGITS == 3
-  /* _Float16 needs the maximum possible number of digits in order to
-     convert decimal values exactly to larger floating point types. */
   ndigits = 10;
 #else  /* FPT_DIGITS != 3 */
+#if FPT_DIGITS == 6
+  ndigits = 18;
+#else  /* FPT_DIGITS != 6 */
   /* Other types can use the minimal accurately-rounding value. */
   ndigits = FP_SHORTEST;
+#endif /* FPT_DIGITS == 6 */
 #endif /* FPT_DIGITS == 3 */
   return WRITE_FP_INTERNAL(tgt, size, val, ndigits);
 }  /* WRITE_FN */
