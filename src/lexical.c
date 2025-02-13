@@ -22052,6 +22052,12 @@ indicated by the template argument list.
                                      template_sym, /*type_constraint=*/FALSE,
                                      &any_errors, options,
                                      &first_defaulted_arg);
+      /* Mark all non-default arguments as explicitly specified. */
+      for (a_template_arg_ptr tap = arg_list;
+           tap != NULL && first_defaulted_arg != 0;
+           --first_defaulted_arg, tap = tap->next) {
+        tap->explicitly_specified = TRUE;
+      }  /* for */
     } else {
       /* The template is a member of a proxy or nonreal class.  This occurs
          as a result of constructs like T::A<int>.  In such cases there is

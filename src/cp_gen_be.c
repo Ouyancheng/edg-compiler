@@ -4545,29 +4545,39 @@ defaulted.
           num_arguments = 0;
         }  /* if */
       }  /* if */
-    } else if (entry_kind == iek_routine &&
-               ((a_routine_ptr)scp)->expl_template_arg_list_used &&
-               !args_needed_for_compiler_bugs((a_routine_ptr)scp)) {
-      /* Put out function template arguments if they were explicitly
-         specified anywhere in the translation unit.  The exclusion for
-         template arguments needed to work around compiler bugs ensures
-         that the complete template argument list will be used for the
-         declaration of a generated explicit specialization, even if a
-         shorter list appeared in a reference to the instance at some point
-         in the original source. */
-      begin_template_arg_list_traversal_simple(tap, &argp);
-      for (; argp != NULL && argp->explicitly_specified;
-           advance_to_next_template_arg_simple(&argp)) {
-        prev_argp = argp;
-      }  /* for */
-      if (argp != NULL) {
-        /* We exited the loop early, with argp designating the first
-           argument that was never explicitly specified and, if non-NULL,
-           prev_argp designating the last explicitly-specified argument. */
-        if (prev_argp != NULL) {
-          prev_argp->next = NULL;
-        } else {
-          num_arguments = 0;
+    } else if (entry_kind == iek_routine || entry_kind == iek_variable) {
+      a_boolean scan_for_default_arguments = FALSE;
+      if (entry_kind == iek_routine &&
+          ((a_routine_ptr)scp)->expl_template_arg_list_used &&
+          !args_needed_for_compiler_bugs((a_routine_ptr)scp)) {
+        /* Put out function template arguments if they were explicitly
+           specified anywhere in the translation unit.  The exclusion for
+           template arguments needed to work around compiler bugs ensures
+           that the complete template argument list will be used for the
+           declaration of a generated explicit specialization, even if a
+           shorter list appeared in a reference to the instance at some
+           point in the original source. */
+        scan_for_default_arguments = TRUE;
+      } else if (entry_kind == iek_variable) {
+        /* Always scan for default arguments in variable template
+           instances. */
+        scan_for_default_arguments = TRUE;
+      }  /* if */
+      if (scan_for_default_arguments) {
+        begin_template_arg_list_traversal_simple(tap, &argp);
+        for (; argp != NULL && argp->explicitly_specified;
+             advance_to_next_template_arg_simple(&argp)) {
+          prev_argp = argp;
+        }  /* for */
+        if (argp != NULL) {
+          /* We exited the loop early, with argp designating the first
+             argument that was never explicitly specified and, if non-NULL,
+             prev_argp designating the last explicitly-specified argument. */
+          if (prev_argp != NULL) {
+            prev_argp->next = NULL;
+          } else {
+            num_arguments = 0;
+          }  /* if */
         }  /* if */
       }  /* if */
     }  /* if */

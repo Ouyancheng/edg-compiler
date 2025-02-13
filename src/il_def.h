@@ -7464,13 +7464,14 @@ typedef struct a_template_arg {
 			/* TRUE if the template argument is a deduced array
 			   bound whose type is not yet known. */
   a_bit_field	explicitly_specified:1;
-			/* TRUE, for a function template argument list, if the
-			   argument was explicitly specified.  When a reference
-			   is being processed, this flag is set only for those
-			   arguments that were explicitly specified for that
-			   reference.  For a template argument list associated
-			   with an instance of the function template, this flag
-			   is set if any reference to the template explicitly
+			/* TRUE, for a variable or function template
+			   argument list, if the argument was explicitly
+			   specified.  When a reference is being processed,
+			   this flag is set only for those arguments that
+			   were explicitly specified for that reference.
+			   For a template argument list associated with an
+			   instance of the template, this flag is set if
+			   any reference to the template explicitly
 			   specified the argument. */
   a_bit_field	template_template_param_checked:1;
 			/* TRUE for template template arguments if the template
