@@ -956,7 +956,7 @@ objects.
 
 
 template<typename an_Object, typename ...an_Arg_pack>
-inline an_Object *new_fe(an_Arg_pack ...args)
+inline an_Object *new_fe(an_Arg_pack&& ...args)
 /*
 Allocate in front-end memory and construct an object of type an_Object with
 the constructor arguments specified by args.  Return a pointer to the object.
@@ -1052,7 +1052,7 @@ objects.
 
 
 template<typename an_Object, typename ...an_Arg_pack>
-inline an_Object *new_general(an_Arg_pack ...args)
+inline an_Object *new_general(an_Arg_pack&& ...args)
 /*
 Allocate in general memory and construct an object of type an_Object with
 the constructor arguments specified by args.  Return a pointer to the object.
@@ -1105,7 +1105,7 @@ allocation (which reflects the actual number of allocated elements).
 
 
 template<typename an_Object, typename ...an_Arg_pack>
-inline an_Object *new_il(an_Arg_pack ...args)
+inline an_Object *new_il(an_Arg_pack&& ...args)
 /*
 Allocate in IL memory and construct an object of type an_Object with the
 constructor arguments specified by args.  Return a pointer to the object.
@@ -2143,7 +2143,7 @@ Return TRUE if ptr_a is not a null pointer; otherwise, return FALSE.
 
 
 template<typename an_Object, typename ...an_Arg_pack>
-inline Owning_ptr<an_Object> owning_ptr(an_Arg_pack ...args)
+inline Owning_ptr<an_Object> owning_ptr(an_Arg_pack&& ...args)
 /*
 Convenience function to create an owning pointer to an object allocated in
 front-end memory.
