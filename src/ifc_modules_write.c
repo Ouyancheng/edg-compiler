@@ -4286,6 +4286,7 @@ a_token_kind for more information about IFC token serialization.
     case tok_is_floating_point:
     case tok_is_function:
     case tok_is_fundamental:
+    case tok_is_invocable:
     case tok_is_integral:
 #if MICROSOFT_EXTENSIONS_ALLOWED
     case tok_is_interface_class:
@@ -4300,6 +4301,7 @@ a_token_kind for more information about IFC token serialization.
     case tok_is_nothrow_constructible:
     case tok_is_nothrow_convertible:
     case tok_is_nothrow_destructible:
+    case tok_is_nothrow_invocable:
     case tok_is_object:
     case tok_is_pod:
     case tok_is_pointer:

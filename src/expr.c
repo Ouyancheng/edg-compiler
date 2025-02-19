@@ -14646,6 +14646,33 @@ being checked (and is used only for the error message).
 }  /* type_traits_helper_check */
 
 
+static void scan_is_invocable(a_builtin_operation_kind  kind,
+                              a_rescan_control_block    *rcblock,
+                              an_operand                *result)
+/*
+Scan a constant-expression having one of the following forms:
+      __is_invocable( F , Args... )
+      __is_nothrow_invocable( F , Args... )
+The result is of boolean type and true if a value of type F is "invocable" with
+arguments obtained with std::declval<Args>().  (Being "invocable" is defined
+in [func.require] in N4971, via the INVOKE operation.)
+*/
+{
+  a_type_ptr  result_type;
+
+  result_type = type_traits_helper_check(kind);
+  scan_call_like_builtin_operation(rcblock, kind, result_type,
+                                   bak_type, bak_type, /*arg2_repeats=*/TRUE,
+                                   result);
+  if (!type_traits_helpers_enabled) {
+    /* Turn the operand into an error operand to avoid any surprises later
+       on. */
+    conv_to_error_operand(result);
+  }  /* if */
+}  /* scan_is_invocable */
+
+
+
 static void scan_is_constructible(a_builtin_operation_kind  kind,
                                   a_rescan_control_block    *rcblock,
                                   an_operand                *result)
@@ -32966,6 +32993,8 @@ Return TRUE if the given token kind represents a "trait" name (like
     case tok_has_trivial_move_constructor:
     case tok_has_trivial_move_assign:
     case tok_has_nothrow_move_assign:
+    case tok_is_invocable:
+    case tok_is_nothrow_invocable:
     case tok_is_constructible:
     case tok_is_nothrow_constructible:
     case tok_is_trivially_constructible:
@@ -35802,6 +35831,8 @@ Return TRUE if the indicated token is one that could start an expression.
     case tok_has_trivial_move_constructor:
     case tok_has_trivial_move_assign:
     case tok_has_nothrow_move_assign:
+    case tok_is_invocable:
+    case tok_is_nothrow_invocable:
     case tok_is_constructible:
     case tok_is_nothrow_constructible:
     case tok_is_trivially_constructible:
@@ -41640,8 +41671,7 @@ Return TRUE if the tokens following the current token are ( <type-id> ).
     cache_curr_token(&cache);
     (void)get_token();
     if (is_decl_not_expr(DFS_IS_SIZEOF |
-                         DFS_ABSTRACT_DECLARATOR_ALLOWED |
-                         DFS_SINGLE_TYPE_REQUIRED)) {
+                         DFS_ABSTRACT_DECLARATOR_ALLOWED)) {
       result = TRUE;
     }  /* if */
   }  /* if */
@@ -41826,17 +41856,28 @@ repeat_switch:
                                          &local_result);
             break;
           }  /* if */
-          if (gnu_version_is(>=150000) &&
-              strcmp(hdr->identifier, "__is_pointer") == 0 &&
-              parenthesized_type_name_next()) {
-            /* GNU headers (up to version 15) used __is_pointer as an
-               identifier but 15 and later use it as a type trait or
-               an identifier.  Clang allows both (but is not handled as
+          if (gnu_version_is(>=150000) && parenthesized_type_name_next()) {
+            /* GNU headers (up to version 15) used __is_pointer, etc. as 
+               identifiers but GCC 15 and later use these as intrinsic names
+               (i.e., keyword-like).  Clang allows both (but is not handled as
                an exception here -- the "normal" type trait mechanism is
                used in this case). */
-            curr_token = tok_is_pointer;
-            scan_unary_type_trait_helper((a_rescan_control_block *)NULL,
-                                         &local_result);
+            if (strcmp(hdr->identifier, "__is_pointer") == 0) {
+              curr_token = tok_is_pointer;
+              scan_unary_type_trait_helper((a_rescan_control_block *)NULL,
+                                           &local_result);
+            } else if (strcmp(hdr->identifier, "__is_invocable") == 0) {
+              curr_token = tok_is_invocable;
+              scan_is_invocable(bok_is_invocable,
+                                (a_rescan_control_block *)NULL,
+                                &local_result);
+            } else if (strcmp(hdr->identifier,
+                              "__is_nothrow_invocable") == 0) {
+              curr_token = tok_is_nothrow_invocable;
+              scan_is_invocable(bok_is_nothrow_invocable,
+                                (a_rescan_control_block *)NULL,
+                                &local_result);
+            }  /* if */
             break;
           }  /* if */
 #if MICROSOFT_EXTENSIONS_ALLOWED
@@ -42289,6 +42330,17 @@ handle_identifier:
       /* Various single-type unary traits helpers. */
       scan_unary_type_trait_helper((a_rescan_control_block *)NULL,
                                     &local_result);
+      break;
+    case tok_is_invocable:
+      /* __is_invocable construct: */
+      scan_is_invocable(bok_is_invocable, (a_rescan_control_block *)NULL,
+                        &local_result);
+      break;
+    case tok_is_nothrow_invocable:
+      /* __is_nothrow_invocable construct: */
+      scan_is_invocable(bok_is_nothrow_invocable,
+                        (a_rescan_control_block *)NULL,
+                        &local_result);
       break;
     case tok_is_constructible:
       /* __is_constructible construct: */
@@ -50842,6 +50894,12 @@ TRUE if the operator is a unary operator, FALSE otherwise.
     case bok_intaddr:
       operator_token = tok_intaddr;
       break;
+    case bok_is_invocable:
+      operator_token = tok_is_invocable;
+      break;
+    case bok_is_nothrow_invocable:
+      operator_token = tok_is_nothrow_invocable;
+      break;
     case bok_is_constructible:
       operator_token = tok_is_constructible;
       break;
@@ -51802,6 +51860,14 @@ a enclosing expression).
         break;
       case tok_intaddr:
         scan_intaddr_operator(rcblock, result);
+        break;
+      case tok_is_invocable:
+        /* __is_invocable construct: */
+        scan_is_invocable(bok_is_invocable, rcblock, result);
+        break;
+      case tok_is_nothrow_invocable:
+        /* __is_nothrow_invocable construct: */
+        scan_is_invocable(bok_is_nothrow_invocable, rcblock, result);
         break;
       case tok_is_constructible:
         /* __is_constructible construct: */
@@ -53820,7 +53886,7 @@ Return NULL if tp is an incomplete type or a reference to an incomplete type.
   an_operand            *arg_operand;
 
   complete_type_is_needed(tp);
-  if (is_incomplete_type(tp)) {
+  if (is_incomplete_type(skip_array_types(tp))) {
     /* Invalid type: Return NULL. */
     goto done;
   }  /* if */
@@ -53849,6 +53915,232 @@ Return NULL if tp is an incomplete type or a reference to an incomplete type.
 done:
   return result;
 }  /* make_declval_arg */
+
+
+a_boolean compute_is_invocable(a_builtin_operation_kind kind,
+                               a_type_ptr               f_type,
+                               an_expr_node_ptr         expr)
+/*
+Compute the "is_invocable" type relationship predicate of the C++ standard.
+It determines whether a value of a "function-like" type (f_type) can be
+invoked with arguments of types determined by a (possibly empty) list of type
+operands, and returns TRUE if so.  expr is the node representing the built-in
+operation of the given kind (bok_is_invocable or bok_is_nothrow_invocable).
+*/
+{
+  a_boolean               result = FALSE;
+  an_expr_stack_entry     expr_stack_entry;
+  an_expr_stack_entry_ptr saved_expr_stack;
+  an_arg_list_elem_ptr    f_alep = NULL;
+  an_operand              bnd_func_selector;
+  an_initializer_cache    cache;
+  an_expr_node_ptr        arg0 = expr->variant.builtin_operation.operands,
+                          args = arg0->next;
+  a_type_ptr              uf_type = skip_typerefs(remove_cvref(f_type));
+  a_boolean               saved_defer_access_checks;
+
+  /* Make sure the expr_stack has something on it because we are going to
+     synthesize expressions and process them "as if" they were scanned.  If
+     there is already something on the stack, save it, clear the stack, and
+     restore it later. */
+  save_expr_stack(&saved_expr_stack);
+  push_expr_stack((an_expression_kind)ek_sizeof, &expr_stack_entry,
+                  /*force_object_lifetime=*/FALSE,
+                  /*suppress_object_lifetime=*/TRUE);
+  /* Inhibit diagnostics: If an error were to occur that will result in a
+     FALSE result. */
+  expr_stack->suppress_diagnostics = TRUE;
+  expr_stack->suppress_constexpr_call_folding = TRUE;
+  saved_defer_access_checks = scope_stack_top().defer_access_checks;
+  scope_stack_top().defer_access_checks = FALSE;
+  clear_initializer_cache(&cache);
+  clear_operand(ok_error, &bnd_func_selector);
+  complete_type_is_needed(uf_type);
+  if (type_is(uf_type, tk_ptr_to_member)) {
+    a_type_ptr  c_type = pm_class_type(uf_type),
+                m_type = pm_member_type(uf_type),
+                type_1, utype_1;
+    /* Invocations through pointer-to-member types are treated as if the
+       pointer-to-member were applied to the first argument, with adjustments
+       if that first argument is an instance of std::reference_wrapper or a
+       pointer-like-type (i.e., a type to which the indirection operator can
+       be applied). */
+    a_boolean   is_ptr_to_data_mem = !is_function_type(m_type);
+    /* An invocation through pointer-to-member requires at least the object
+       argument. */
+    if (args == NULL) goto have_result;
+    if (is_ptr_to_data_mem && args->next != NULL) {
+      /* For a pointer-to-data-member, the only argument must be the object
+         argument. */
+      goto have_result;
+    }  /* if */
+    check_assertion(args->kind == enk_type_operand);
+    type_1 = args->variant.type_operand.type;;
+    utype_1 = remove_cvref(type_1);
+    if (is_class_struct_union_type(utype_1) &&
+        is_same_class_or_base_class_thereof(utype_1, c_type)) {
+      /* Keep the types "as is". */
+    } else if (is_std_class(utype_1, "reference_wrapper")) {
+      /* An instance of std::reference_wrapper<T>.  The "invocation" is applied
+         to opnd1.get(), instead, which produces a type T&. */
+      a_template_arg  *tap = class_type_supp(utype_1)->template_arg_list;
+      if (tap->kind != tak_type || tap->variant.type == NULL) {
+        /* Something went wrong, such as an invalid definition of
+           std::reference_wrapper. */
+        goto have_result;
+      }  /* if */
+      /* Continue with the template argument type. */
+      type_1 = tap->variant.type;
+      utype_1 = remove_cvref(type_1);
+      if (!is_class_struct_union_type(utype_1) ||
+          !is_same_class_or_base_class_thereof(utype_1, c_type)) {
+        goto have_result;
+      }  /* if */
+    } else {
+      /* Apply the "invocation" to *opnd1 (i.e., if PM is the pointer-to-member
+         consider (*opnd1).*PM). */
+      if (is_immediate_class_type(utype_1) ||
+          is_immediate_enum_type(utype_1)) {
+        /* A user-declared indirection operator might apply to the first
+           operand. */
+        a_source_position        operator_position;
+        a_boolean                processed = FALSE;
+        an_operand               star_opnd_1;
+        an_arg_list_elem_ptr     arg_list = make_declval_arg(type_1);
+        check_for_operator_overloading(onk_star, /*unary_operator=*/TRUE,
+                                       /*must_be_member_function=*/FALSE,
+                                       /*try_conversions=*/TRUE,
+                                       /*has_predef_meaning=*/FALSE,
+                                       operand_of_arg_list_elem(arg_list),
+                                       (an_operand*)NULL,
+                                       &operator_position,
+                                       curr_token_sequence_number,
+                                       (a_nondependent_call_depth)0,
+                                       (a_source_position*)NULL,
+                                       &star_opnd_1, &processed);
+        free_init_component_list(arg_list);
+        if (expr_stack->any_suppressed_error ||
+            is_error_operand(&star_opnd_1)) {
+          goto have_result;
+        }  /* if */
+        type_1 = star_opnd_1.type;
+        utype_1 = skip_typerefs(type_1);
+      } else if (is_pointer_type(utype_1)) {
+        type_1 = type_pointed_to(utype_1);
+        utype_1 = skip_typerefs(type_1);
+      } else {
+        /* *opnd1 is invalid. */
+        goto have_result;
+      }  /* if */
+      if (!is_immediate_class_type(utype_1) ||
+          !is_same_class_or_base_class_thereof(utype_1, c_type)) {
+        /* The pointer-to-member doesn't match the type of *opnd1. */
+        goto have_result;
+      }  /* if */
+    }  /* if */
+    { /* Process declval<type_1>().*declval<f_type>() and use that as the
+         invocation target. */
+      a_token_cache         token_cache;
+      an_arg_list_elem_ptr  obj_alep = NULL;
+      an_operand            r_opnd;
+      obj_alep = make_declval_arg(type_1);
+      if (obj_alep == NULL) goto have_result;
+      f_alep = make_declval_arg(f_type);
+      if (f_alep == NULL) {
+        free_init_component_list(obj_alep);
+        goto have_result;
+      }  /* if */
+      add_init_component_to_initializer_cache(f_alep, /*to_front=*/FALSE,
+                                              &cache);
+      f_alep = NULL;
+      expr_stack->initializer_cache = &cache;
+      clear_token_cache(&token_cache, /*reusable=*/FALSE);
+      cache_token(&token_cache, tok_period_star, &pos_curr_token);
+      rescan_cached_tokens(&token_cache);
+      scan_ptr_to_member_operator(operand_of_arg_list_elem(obj_alep),
+                                  (a_rescan_control_block*)NULL, 
+                                  /*call_rescan_case=*/FALSE,
+                                  &r_opnd, &bnd_func_selector);
+      free_init_component_list(obj_alep);
+      if (expr_stack->any_suppressed_error || is_error_operand(&r_opnd)) {
+        goto have_result;
+      } else if (is_ptr_to_data_mem) {
+        /* For a pointer-to-data-member, no actual "invocation" is needed: We
+           can return a TRUE result at this point. */
+        result = TRUE;
+        goto have_result;
+      }  /* if */
+      f_alep = alloc_arg_list_elem_for_operand(&r_opnd);
+      /* Since the first operand was used as the selector object for the
+         pointer to member, only pass the remaining arguments to the
+         invocation below. */
+      args = args->next;
+    }
+  } else if (type_is(uf_type, tk_routine) ||
+             (type_is(uf_type, tk_pointer) &&
+              is_function_type(uf_type->variant.pointer.type))) {
+    /* A function type, pointer to function type, or reference to function
+       type may be invocable. */
+    f_alep = make_declval_arg(uf_type);
+  } else if (is_immediate_class_type(uf_type)) {
+    /* Possibly okay via a call or conversion operator. */
+    f_alep = make_declval_arg(f_type);
+  }  /* if */
+  if (f_alep == NULL) {
+    /* Not an invocable type. */
+    goto have_result;
+  } else {
+    /* Make a list of expressions of the required types and place them in
+       an initializer cache that will be considered during the call to
+       scan_function_call below. */
+    an_arg_list_elem_ptr  alep;
+    an_operand            r_opnd;
+    an_expr_node_ptr      argn;
+    a_token_cache         token_cache;
+    expr_stack->initializer_cache = &cache;
+    for (argn = args; argn != NULL; argn = argn->next) {
+      a_type_ptr typen;
+      check_assertion(argn->kind == enk_type_operand);
+      typen = argn->variant.type_operand.type;
+      alep = make_declval_arg(typen);
+      if (alep == NULL) {
+        /* The value creation expression is ill-formed: Return a "false"
+           result. */
+        if ((!gpp_mode  || clang_mode) &&
+            is_incomplete_type(typen) && !is_array_type(typen) &&
+            !is_void_type(typen)) {
+          expr_issue_incomplete_type_diag(&argn->position, typen);
+        }  /* if */
+        result = FALSE;
+        goto have_result;
+      }  /* if */
+      add_init_component_to_initializer_cache(alep, /*to_front=*/FALSE,
+                                              &cache);
+    }  /* for */
+    /* Pretend we're scanning a function call: Provide delimiters for the
+       arguments (which are in expr_stack->initializer_cache). */
+    clear_token_cache(&token_cache, /*reusable=*/FALSE);
+    cache_token(&token_cache, tok_lparen, &pos_curr_token);
+    cache_token(&token_cache, tok_rparen, &pos_curr_token);
+    rescan_cached_tokens(&token_cache);
+    scan_function_call(operand_of_arg_list_elem(f_alep), &bnd_func_selector,
+                       (a_rescan_control_block*)NULL, &r_opnd);
+    result = !expr_stack->any_suppressed_error && !is_error_operand(&r_opnd);
+    if (result && is_expression_operand(&r_opnd)) {
+      an_expr_node_ptr node = r_opnd.variant.expression;
+      if (kind == bok_is_nothrow_invocable) {
+        result = !expr_might_throw(node);
+      }  /* if */
+    }  /* if */
+  }  /* if */
+have_result:
+  flush_initializer_cache(&cache);
+  if (f_alep != NULL) free_init_component_list(f_alep);
+  scope_stack_top().defer_access_checks = saved_defer_access_checks;
+  pop_expr_stack();
+  restore_expr_stack(saved_expr_stack);
+  return result;
+}  /* compute_is_invocable */
 
 
 a_boolean compute_is_convertible(a_type_ptr               src_type,

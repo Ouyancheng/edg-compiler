@@ -1393,6 +1393,8 @@ enum a_token_kind : unsigned short {
   tok_has_trivial_move_constructor,
   tok_has_trivial_move_assign,
   tok_has_nothrow_move_assign,
+  tok_is_invocable,
+  tok_is_nothrow_invocable,
   tok_is_constructible,
   tok_is_nothrow_constructible,
   tok_is_trivially_constructible,
@@ -1660,6 +1662,8 @@ EXTERN_CONSTINIT_ARRAY(a_const_char*, token_names, tok_last + 1)
    "__has_trivial_move_constructor",
    "__has_trivial_move_assign",
    "__has_nothrow_move_assign",
+   "__is_invocable",
+   "__is_nothrow_invocable",
    "__is_constructible",
    "__is_nothrow_constructible",
    "__is_trivially_constructible",
@@ -14061,6 +14065,11 @@ enum a_builtin_operation_kind : a_byte {
   bok_is_trivially_relocatable,
 			/* __is_trivially_relocatable (Clang).  One type
 			   operand. */
+  bok_is_invocable,
+			/* __is_invocable.  One or more operands, all types. */
+  bok_is_nothrow_invocable,
+			/* __is_nothrow_invocable.  One or more operands, all
+			   types. */
   bok_last              /* Marks the end of the list. */
 };
 
@@ -18694,6 +18703,8 @@ EXTERN_CONSTINIT_ARRAY(a_const_char*, builtin_operation_names, bok_last + 1)
   "__is_trivially_equality_comparable",
   "__is_scoped_enum",
   "__is_trivially_relocatable",
+  "__is_invocable",
+  "__is_nothrow_invocable",
   "last"
 }
 #endif /* VAR_INITIALIZERS */

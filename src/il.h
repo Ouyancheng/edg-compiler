@@ -1852,6 +1852,8 @@ extern a_type_ptr make_unqualified_type(
 extern a_type_ptr remove_qualifiers(a_type_ptr           type,
                                     a_type_qualifier_set qualifiers_to_remove);
 
+extern a_type_ptr remove_cvref(a_type_ptr  tp);
+
 extern a_type_ptr prvalue_type(a_type_ptr type);
 
 extern a_type_ptr return_type_of(a_type_ptr routine_type);

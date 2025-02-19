@@ -14327,6 +14327,17 @@ the resulting type.
 }  /* remove_qualifiers */
 
 
+a_type_ptr remove_cvref(a_type_ptr  tp)
+/*
+If tp is a reference type, replace it by the underlying type.  Then, return
+the type obtained by removing top-level const and volatile qualifiers from tp.
+*/
+{
+  if (is_any_reference_type(tp)) tp = type_pointed_to(tp);
+  return remove_qualifiers(tp, TQ_CONST | TQ_VOLATILE);
+}  /* remove_cvref */
+
+
 a_type_ptr prvalue_type(a_type_ptr type)
 /*
 type is the type of a glvalue.  Return the type that the associated prvalue

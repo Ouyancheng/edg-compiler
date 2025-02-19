@@ -7857,6 +7857,65 @@ expression for the returned constant will be set as well.
 }  /* fold_reference_binds_to_temporary */
 
 
+static void fold_is_invocable(an_expr_node_ptr   expr,
+                              a_constant_ptr     constant,
+                              a_boolean          maintain_expression)
+/*
+expr is an enk_builtin_operation node for an __is_invocable or
+__is_nothrow_invocable operation.  Store a boolean constant in *constant
+corresponding to the evaluation of expr.
+
+If any of the operand types is dependent, store a ck_template_param constant
+in *constant.  The constant will be of the tpck_expression variant and will
+point to the given expression.  If maintain_expression is TRUE, the backing
+expression for the returned constant will be set as well.
+*/
+{
+  a_builtin_operation_kind
+                    kind = expr->variant.builtin_operation.kind;
+  an_expr_node_ptr  arg1 = expr->variant.builtin_operation.operands,
+                    argn;
+  a_type_ptr        type1, typen;
+  a_boolean         dependent = FALSE, result;
+
+  /* eok_parens shouldn't appear here, since the construct is generated. */
+  check_assertion(arg1 != NULL && is_type_node(arg1));
+  type1 = type_operand_type(arg1);
+  if (is_template_dependent_type(type1)) {
+    dependent = TRUE;
+  } else {
+    for (argn = arg1->next; argn != NULL; argn = argn->next) {
+      check_assertion(is_type_node(argn));
+      typen = type_operand_type(argn);
+      if (is_template_dependent_type(typen)) {
+        dependent = TRUE;
+        break;
+      }  /* if */
+    }  /* for */
+  }  /* if */
+  if (dependent) {
+    /* One or more of the types is dependent, so the result is still
+       unknown. */
+    clear_constant(constant, (a_constant_repr_kind)ck_template_param);
+    set_template_param_constant_kind(
+                   constant, (a_template_param_constant_kind)tpck_expression);
+    constant->variant.template_param.variant.expr = expr;
+  } else {
+    result = compute_is_invocable(kind, type1, expr);
+    arg1->type_definition_needed = TRUE;
+    for (argn = arg1->next; argn != NULL; argn = argn->next) {
+      check_assertion(is_type_node(argn));
+      argn->type_definition_needed = TRUE;
+    }  /* for */
+    clear_constant(constant, ck_integer);
+    set_integer_value(&constant->variant.integer_value,
+                      (a_host_large_integer)result);
+    if (maintain_expression) constant->expr = expr;
+  }  /* if */
+  constant->type = expr->type;
+}  /* fold_is_invocable */
+
+
 static void fold_is_constructible(an_expr_node_ptr   expr,
                                   a_constant_ptr     constant,
                                   a_boolean          maintain_expression)
@@ -10313,6 +10372,10 @@ constant is set as well.
       case bok_reference_constructs_from_temporary:
       case bok_reference_converts_from_temporary:
         fold_reference_binds_to_temporary(expr, constant, maintain_expression);
+        break;
+      case bok_is_invocable:
+      case bok_is_nothrow_invocable:
+        fold_is_invocable(expr, constant, maintain_expression);
         break;
       case bok_is_constructible:
       case bok_is_nothrow_constructible:

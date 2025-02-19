@@ -1,5 +1,13 @@
 Version 6.8
 
+2/19/25  [EDGcpfe/27970]
+GNU C++ compatibility: __is_invocable and __is_nothrow_invocable
+
+In GNU C++ modes with gnu_version >= 150000 the front end now accepts the
+__is_invocable and __is_nothrow_invocable intrinsics, which much simplify the
+implementation of the std::is_invocable and std::is_nothrow_invocable traits.
+
+
 3/13/25  [EDGcpfe/27940]
 C-, C++-generating back ends: representation of large float literals
 

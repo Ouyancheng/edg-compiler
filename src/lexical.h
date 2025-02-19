@@ -618,6 +618,8 @@ EXTERN_CONSTINIT_ARRAY(an_opname_kind, opname_kind_for_token, tok_last + 1)
    onk_none,          /* tok_has_trivial_move_constructor */
    onk_none,          /* tok_has_trivial_move_assign */
    onk_none,          /* tok_has_nothrow_move_assign */
+   onk_none,          /* tok_is_invocable */
+   onk_none,          /* tok_is_nothrow_invocable */
    onk_none,          /* tok_is_constructible */
    onk_none,          /* tok_is_nothrow_constructible */
    onk_none,          /* tok_is_trivially_constructible */

@@ -18543,6 +18543,9 @@ static constexpr a_const_char* intrinsic_names[] = {
   "main",
   "__is_pointer",   /* Type trait or identifier in clang or later GNU modes. */
   "__is_signed",    /* Type trait or identifier in clang mode. */
+  "__is_invocable", /* Type trait or identifier in some GNU modes. */
+  "__is_nothrow_invocable",
+                    /* Type trait or identifier in some GNU modes. */
 #if MICROSOFT_EXTENSIONS_ALLOWED
   "safe_cast",
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */

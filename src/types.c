@@ -3130,11 +3130,13 @@ TRUE for the prototype instantiation.)
 }  /* is_std_initializer_list_type */
 
 
-static a_boolean is_std_class(a_type_ptr   tp,
-                              a_const_char *name)
+a_boolean is_std_class(a_type_ptr   tp,
+                       a_const_char *name)
 /*
 Return TRUE if the given type refers to a class with the specified name in
-the std namespace.
+the std namespace.  For instances of class templates, the name is that of the
+template (e.g., if type is std::vector<int> this function returns true when
+name points to the string "vector").
 */
 {
   a_boolean  result = FALSE;
@@ -3508,12 +3510,7 @@ diagnostic in error cases.  error_pos is the position to use for diagnostics
       }  /* if */
       break;
     case trk_remove_cvref:
-      if (is_reference_type(tp)) {
-        result = type_pointed_to(tp);
-      } else {
-        result = tp;
-      }  /* if */
-      result = remove_qualifiers(result, TQ_CONST | TQ_VOLATILE);
+      result = remove_cvref(tp);
       break;
     case trk_make_signed:
       if ((is_integral_type(tp) || is_enum_type(tp)) &&
@@ -5215,7 +5212,7 @@ a base class of class_1.  Only called in C++ mode.
   /* Drop typedefs. */
   class_1 = skip_typerefs(class_1);
   class_2 = skip_typerefs(class_2);
-  if (identical_types(class_1, class_2) ||
+  if (same_entities(class_1, class_2) ||
       find_base_class_of(class_1, class_2) != NULL) {
     is_same_or_base = TRUE;
   }  /* if */
