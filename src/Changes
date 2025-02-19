@@ -8,7 +8,7 @@ __is_invocable and __is_nothrow_invocable intrinsics, which much simplify the
 implementation of the std::is_invocable and std::is_nothrow_invocable traits.
 
 
-3/13/25  [EDGcpfe/27940]
+2/13/25  [EDGcpfe/27940]
 C-, C++-generating back ends: representation of large float literals
 
 In configurations with USE_FLOAT128_FOR_HOST_FP_VALUE set to TRUE, the
