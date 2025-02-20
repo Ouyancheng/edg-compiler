@@ -41172,9 +41172,30 @@ done_with_requirements:
       /* Not all template arguments are necessarily known yet.  Just copy the
          original expression and keep track of any non-dependent substitution
          pairs. */
-      an_expr_node_ptr  node = copy_expr_tree(rrd.requires_expr,
-                                              CE_PRESERVE_RESCAN_INFO);
-      requires_expr_substs->map_or_replace(node, get_current_subst_pairs());
+      an_expr_node_ptr     node = copy_expr_tree(rrd.requires_expr,
+                                                 CE_PRESERVE_RESCAN_INFO);
+      a_subst_pairs_array  subst_pairs = get_current_subst_pairs();
+      if (is_template_declaration_context() &&
+          scope_stack[depth_template_declaration_scope].tmpl_decl_state
+                                                        ->is_template_friend) {
+        /* As a template friend is not actually a member of the enclosing
+           class, we need to add an additional substitution pair to adjust the
+           depth of the innermost template parameters. */
+        a_scope_stack_entry_ptr   ssep;
+        a_template_arg_ptr        proto_args;
+        a_template_param_ptr      orig_templ_params, templ_params;
+        a_template_nesting_depth  new_nesting_depth = subst_pairs.length() + 1;
+        ssep = &scope_stack[depth_template_declaration_scope];
+        orig_templ_params = ssep->template_decl_info->parameters;
+        proto_args = create_prototype_arg_list(NULL, orig_templ_params,
+                                               /*add_pack_descr=*/FALSE);
+        templ_params = copy_template_param_list_with_new_depth(
+                                                            orig_templ_params,
+                                                            new_nesting_depth);
+        subst_pairs.insert(0, { templ_params, proto_args,
+                                FALSE, FALSE, TRUE, FALSE });
+      }  /* if */
+      requires_expr_substs->map_or_replace(node, subst_pairs);
       make_expression_operand(node, result);
     } else {
       a_subst_pairs_array  subst_pairs = get_current_subst_pairs();

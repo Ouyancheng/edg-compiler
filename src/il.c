@@ -20481,13 +20481,24 @@ options is a set of substitution options.
           subst_fail(*copy_error);
         }  /* if */
       } else {
-        /* Start with any delayed substitution pairs. */
+        /* Get any delayed substitution pairs. */
         a_subst_pairs_array  subst_pairs = requires_expr_substs->get(expr);
         a_boolean            val;
-        subst_pairs.insert(0, a_subst_pairs_descr{ template_param_list,
-                                                   template_arg_list,
-                                                   FALSE, TRUE, FALSE,
-                                                   FALSE });
+        if (subst_pairs.is_empty() ||
+            subst_pairs.front_elem().args_known_nondependent) {
+          /* If the existing substitution pairs are for non-dependent arguments
+             of enclosing scopes, we need to add the current (innermost)
+             substitution pair to the end. */
+          subst_pairs.push_back(a_subst_pairs_descr{ template_param_list,
+                                                     template_arg_list,
+                                                     FALSE, TRUE, FALSE,
+                                                     FALSE });
+        } else {
+          subst_pairs.insert(0, a_subst_pairs_descr{ template_param_list,
+                                                     template_arg_list,
+                                                     FALSE, TRUE, FALSE,
+                                                     FALSE });
+        }  /* if */
         val = requires_expr_satisfied_full(expr, subst_pairs, ctws_state);
         make_bool_constant_value(val, constant);
       }  /* if */

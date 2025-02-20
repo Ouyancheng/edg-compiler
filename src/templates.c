@@ -484,13 +484,6 @@ static an_equiv_templ_arg_options_set eta_options_for_template(
 			a_symbol_ptr				template_sym,
 			a_template_symbol_supplement_ptr	tssp);
 
-static void copy_template_params_to_new_list(
-			a_template_param_ptr		params_to_add,
-			a_template_param_ptr		*new_list,
-			a_template_param_ptr		*first_added_param,
-			const Dyn_array<a_boolean>	*mask,
-			a_boolean			from_class_template);
-
 static a_pack_expansion_descr_ptr copy_pack_expansion_descr_with_substitution(
 				a_pack_expansion_descr_ptr	pedp,
 				a_ctws_state_ptr		ctws_state);
@@ -1506,7 +1499,9 @@ being instantiated.
       if (scope_is(issep, sck_template_instantiation) &&
           issep->template_arg_list != NULL) {
         a_subst_pairs_descr  spd = { issep->template_decl_info->parameters,
-                                     issep->template_arg_list, FALSE, FALSE,
+                                     issep->template_arg_list, FALSE,
+                                     (!issep->in_prototype_instantiation &&
+                                      !issep->in_nonreal_instantiation),
                                      FALSE, FALSE };
         result.push_back(spd);
       } else if (is_file_or_namespace_scope(issep)) {
@@ -10956,11 +10951,13 @@ is added to the substitution state.
                                                   function_type_params(rtp));
   }  /* if */
   if (template_sym->is_class_member &&
-      (symbol_is(template_sym, sk_function_template) ||
+      ((symbol_is(template_sym, sk_function_template) &&
+        template_sym->variant.template_info
+                    ->variant.function.func_info.lambda == NULL) ||
        symbol_is(template_sym, sk_class_template) ||
        symbol_is(template_sym, sk_variable_template))) {
     /* Add enclosing template arguments for requires clauses of member
-       templates. */
+       templates, except for generic lambdas. */
     get_all_class_subst_pairs(template_sym->parent.class_type, &subst_pairs);
   }  /* if */
   subst_pairs.push_back({ params, args, FALSE, FALSE, FALSE, FALSE });
@@ -35174,19 +35171,16 @@ this routine, *is_dependent is set to TRUE.
                           decl_info->template_decl->constraint.requires_clause;
     if (rcp != NULL) {
       a_template_arg_ptr       proto_args;
-      a_template_param_ptr     orig_templ_params = NULL, first_added_param;
+      a_template_param_ptr     orig_templ_params;
       a_ctws_state             ctws_state;
       an_expr_node_ptr         new_expr;
       a_boolean                copy_error = FALSE;
       /* As we have to adjust nesting depths in the requires-clause, we need a
          copy of the template parameter list with the original nesting
          depths. */
-      copy_template_params_to_new_list(templ_params, &orig_templ_params,
-                                       &first_added_param, NULL,
-                                       /*from_class_template=*/FALSE);
-      for (tpp = orig_templ_params; tpp != NULL; tpp = tpp->next) {
-        *nesting_depth_addr_of_template_param(tpp) = orig_nesting_depth;
-      }  /* for */
+      orig_templ_params = copy_template_param_list_with_new_depth(
+                                                           templ_params,
+                                                           orig_nesting_depth);
       /* Any template parameter referenced in the constraint expression needs
          to be updated to refer to the new template nesting depth.  This is
          done by substituting the constraint expression with the prototype
@@ -42731,6 +42725,25 @@ a class template parameter list.
     if (*first_added_param == NULL) *first_added_param = new_tpp;
   }  /* for */
 }  /* copy_template_params_to_new_list */
+
+
+a_template_param_ptr copy_template_param_list_with_new_depth(
+                                a_template_param_ptr        templ_params,
+                                a_template_nesting_depth    new_nesting_depth)
+/*
+Return a copy of the given template parameter list, with the template nesting
+depth of each template parameter set to new_nesting_depth.
+*/
+{
+  a_template_param_ptr  new_templ_params = NULL, first_added_param, tpp;
+  copy_template_params_to_new_list(templ_params, &new_templ_params,
+                                   &first_added_param, NULL,
+                                   /*from_class_template=*/FALSE);
+  for (tpp = new_templ_params; tpp != NULL; tpp = tpp->next) {
+    *nesting_depth_addr_of_template_param(tpp) = new_nesting_depth;
+  }  /* for */
+  return new_templ_params;
+}  /* copy_template_param_list_with_new_depth */
 
 
 static void replace_args_with_proto_args_for_mask(

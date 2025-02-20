@@ -1546,6 +1546,10 @@ extern a_boolean is_or_derived_from_instance_of_class_template(
 extern a_template_param_ptr copy_template_param_list(
                                                    a_template_param_ptr  tpl);
 
+extern a_template_param_ptr copy_template_param_list_with_new_depth(
+                                a_template_param_ptr        templ_params,
+                                a_template_nesting_depth    new_nesting_depth);
+
 extern void init_tmpl_decl_state_for_generated_member_template(
                                                 a_tmpl_decl_state_ptr  state,
                                                 a_decl_parse_state     *dps);
