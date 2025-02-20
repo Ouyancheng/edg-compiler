@@ -4052,7 +4052,8 @@ error is detected (and is set to FALSE otherwise).
       *result = *value;
       if (unordered) *err = TRUE;
     } else {
-      if (int_value > 0) {
+      a_boolean sign_bit = fp_signbit(kind, value);
+      if (!sign_bit) {
         /* Add one to the integer value (if it won't overflow). */
         if (int_value == MAX_HOST_LARGE_INTEGER) {
           *err = TRUE;
@@ -4062,6 +4063,10 @@ error is detected (and is set to FALSE otherwise).
       }  /* if */
       /* Convert the integer value back to a float. */
       fp_host_large_integer_to_float(kind, int_value, result, err);
+      if (sign_bit && int_value == 0) {
+        /* Make sure the sign bit is correct for negative zeros. */
+        fp_negate(kind, result, result, err, err);
+      }  /* if */
     }  /* if */
   }  /* if */
 }  /* fp_ceil */
