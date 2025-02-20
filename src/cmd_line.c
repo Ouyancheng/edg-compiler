@@ -3215,6 +3215,7 @@ option values if they were not already set by a command line option.
           if_consteval_enabled = TRUE;
           explicit_this_param_enabled = TRUE;
           size_suffix_enabled = TRUE;
+          lambda_declarator_params_optional = TRUE;
           msvc_lang = "202302L";
         }  /* if */
         if (ms_cpplatest_mode) {
@@ -4201,6 +4202,7 @@ default mode (e.g., exception handling).
           named_unicode_chars_allowed = TRUE;
           delimited_escape_seqs_allowed = TRUE;
           lambda_attributes_allowed = TRUE;
+          lambda_declarator_params_optional = TRUE;
         }  /* if */
       }  /* if */
     }  /* if */
@@ -13351,6 +13353,7 @@ variables declared in cmd_line.h.
   named_unicode_chars_allowed = FALSE;
   delimited_escape_seqs_allowed = FALSE;
   lambda_attributes_allowed = FALSE;
+  lambda_declarator_params_optional = FALSE;
 }  /* cmd_line_static_var_init */
 
 

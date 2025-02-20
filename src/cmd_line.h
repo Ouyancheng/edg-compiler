@@ -2894,6 +2894,12 @@ EXTERN_THREAD a_boolean
 			/* TRUE if attributes are allowed on a lambda (a C++23
 			   feature). */
 
+EXTERN_THREAD a_boolean
+		lambda_declarator_params_optional;
+			/* TRUE if a lambda declarator can omit parameters
+			   without omitting the declarator as a whole (a C++23
+			   feature). */
+
 /* Process the command line arguments. */
 extern void proc_command_line(int argc, char *argv[]);
 #if COMPILE_MULTIPLE_SOURCE_FILES

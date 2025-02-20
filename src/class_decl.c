@@ -34419,15 +34419,16 @@ proper.
   check_assertion(dps->prefix_attributes == NULL);
   dps->prefix_attributes = scan_lambda_attributes();
   if (curr_token != tok_lparen && curr_token != tok_lbrace &&
-      (cpp23_mode || gpp_version_is(>= 110000) ||
-       clang_version_is(>=130000))) {
+      (lambda_declarator_params_optional ||
+       gpp_version_is(>= 110000) || clang_version_is(>=130000))) {
     /* In C++23 mode, empty parameter-parentheses can be omitted while still
        specifying something like "mutable" or a trailing return type.  We
        implement this by inserting () in the token stream.  (Recent versions
        of Clang and GCC accept this with a warning in all language modes that
-       accept lambda expressions). */
+       accept lambda expressions.  MSVC added support for this in version
+       1943.) */
     a_token_cache  cache;
-    if (!cpp23_mode) {
+    if (!lambda_declarator_params_optional) {
       pos_warning(ec_lambda_without_parameters_nonstandard, &pos_curr_token);
     }  /* if */
     clear_token_cache(&cache, /*reusable=*/FALSE);

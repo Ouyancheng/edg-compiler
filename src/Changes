@@ -1,5 +1,14 @@
 Version 6.8
 
+2/20/25  [EDGcpfe/27871]
+Microsoft C++23 mode: Optional parameter list in lambda declarator
+
+The C++23 feature that permits the parameter list to be omitted in a lambda
+without entirely omitting that declarator (see the entry for EDGcpfe/23965)
+is now enabled by the --ms_c++23 command-line option when microsoft_version
+is 1943 or greater.
+
+
 2/20/25  [EDGcpfe/27974]
 GNU and Clang C++ compatibility: variable templates in C++11 mode
 
