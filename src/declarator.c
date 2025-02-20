@@ -6411,7 +6411,7 @@ declared entity is known to not be a function.
   if (input_flags & DI_IS_FRIEND_DECL) {
     options |= GID_IS_FRIEND_DECL;
   }  /* if */
-  if (variable_templates_enabled &&
+  if (variable_templates_may_be_enabled &&
       (options & GID_IS_TEMPLATE_DECLARATION) != 0) {
     /* Explicit template arguments are not allowed on most declarators in
        template declarations, but are allowed for variable template partial
@@ -7136,7 +7136,7 @@ result, disambiguation is not necessary.
       /* A template declaration that is not a qualified name.  This can
          only be a function declaration or a variable template, if they
          are enabled. */
-      result = !variable_templates_enabled;
+      result = !variable_templates_may_be_enabled;
     }  /* if */
   } else if (is_real_instantiation_context()) {
     a_scope_stack_entry_ptr	ssep;

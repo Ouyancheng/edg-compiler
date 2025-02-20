@@ -14395,7 +14395,7 @@ also does type name mangling.
 #if GNU_EXTENSIONS_ALLOWED
         gnu_abi_tag_attribute_seen ||
 #endif /* GNU_EXTENSIONS_ALLOWED */
-        variable_templates_enabled) {
+        variable_templates_may_be_enabled) {
       /* Generally, file-scope variables are not mangled, but variable
          templates, variables with the GNU abi_tag attribute, and structured
          bindings require mangling. */

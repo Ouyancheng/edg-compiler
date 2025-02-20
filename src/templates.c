@@ -32211,7 +32211,7 @@ parameter lists that were scanned.
       is_function_template = is_function_type(dps->type);
       loc_sym = locator.specific_symbol;
       if (!is_function_template &&
-          ((loc_sym == NULL && variable_templates_enabled) ||
+          ((loc_sym == NULL && variable_templates_may_be_enabled) ||
            (loc_sym != NULL &&
             (symbol_is(loc_sym, sk_static_data_member) ||
              symbol_is(loc_sym, sk_variable_template) ||
@@ -32219,6 +32219,9 @@ parameter lists that were scanned.
         /* A template static data member or a variable template
            declaration.  The sk_variable case comes up in the initial
            declaration of a partial specialization of a variable template. */
+        if (loc_sym == NULL && ! variable_templates_enabled) {
+          pos_warning(ec_variable_templates_is_cpp14, &pos_curr_token);
+        }  /* if */
         sym = variable_template_declaration(decl_state, &locator, &tssp);
         /* Save a pointer to the token cache for the initializer.  tssp
            may be NULL in error cases.  For GNU modes also save any

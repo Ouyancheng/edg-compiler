@@ -1,5 +1,12 @@
 Version 6.8
 
+2/20/25  [EDGcpfe/27974]
+GNU and Clang C++ compatibility: variable templates in C++11 mode
+
+In GNU and Clang C++11 modes, the front end now accepts variable templates with
+a warning.  Recent GCC libstdc++ headers rely on this extension.
+
+
 2/20/25  [EDGcpfe/27972]
 GNU/Clang compatibility: incorrect results when folding __builtin_ceil
 

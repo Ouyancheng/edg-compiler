@@ -18553,7 +18553,7 @@ template declaration and is NULL otherwise.
   effective_decl_level = class_type_supp(class_type)->assoc_scope
                                                     ->depth_in_scope_stack;
   check_assertion(effective_decl_level != NO_SCOPE_DEPTH);
-  if (!variable_templates_enabled && decl_info->is_member_template) {
+  if (!variable_templates_may_be_enabled && decl_info->is_member_template) {
     set_to_named_error_locator(*locator);
   }  /* if */
   /* If this is a member template declaration, don't add it to the variables
@@ -18640,7 +18640,7 @@ template declaration and is NULL otherwise.
     var_sym = sym;
   }  /* if */
   decl_state->sym = sym;
-  if (!variable_templates_enabled && decl_info->is_member_template) {
+  if (!variable_templates_may_be_enabled && decl_info->is_member_template) {
     pos_sy_error(ec_bad_member_template_sym, &locator->source_position, sym);
     decl_info->invalid_member_template = TRUE;
   }  /* if */

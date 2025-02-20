@@ -3533,6 +3533,7 @@ ec_cl_invalid_cwd;;"invalid current working directory: %s"
 ec_cleanup_attribute_in_constexpr_function;;"\"cleanup\" attribute within a constexpr function is not currently supported"
 ec_assume_statement_applies_to_null_statements;;"the \"assume\" attribute can only apply to a null statement"
 ec_assumption_failed;;"assumption failed"
+ec_variable_templates_is_cpp14;;"variable templates are a C++14 feature"
 ###############################################################################
 #                                                             \  ___  /       #
 #                                                               /   \         #
