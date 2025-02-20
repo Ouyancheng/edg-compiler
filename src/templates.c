@@ -1498,12 +1498,12 @@ being instantiated.
       a_scope_stack_entry_ptr  issep = &scope_stack[idepth];
       if (scope_is(issep, sck_template_instantiation) &&
           issep->template_arg_list != NULL) {
-        a_subst_pairs_descr  spd = { issep->template_decl_info->parameters,
-                                     issep->template_arg_list, FALSE,
-                                     (!issep->in_prototype_instantiation &&
-                                      !issep->in_nonreal_instantiation),
-                                     FALSE, FALSE };
-        result.push_back(spd);
+        a_boolean  known_nondependent = !issep->in_prototype_instantiation &&
+                                        !issep->in_nonreal_instantiation;
+        result.push_back({ issep->template_decl_info->parameters,
+                           issep->template_arg_list,
+                           FALSE, (a_bit_field)known_nondependent,
+                           FALSE, FALSE });
       } else if (is_file_or_namespace_scope(issep)) {
         break;
       }  /* if */
