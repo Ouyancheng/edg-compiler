@@ -54028,6 +54028,10 @@ operation of the given kind (bok_is_invocable or bok_is_nothrow_invocable).
         a_boolean                processed = FALSE;
         an_operand               star_opnd_1;
         an_arg_list_elem_ptr     arg_list = make_declval_arg(type_1);
+        if (arg_list == NULL) {
+          /* An invalid type for std::declval<T> (e.g., "void"). */
+          goto have_result;
+        }  /* if */
         check_for_operator_overloading(onk_star, /*unary_operator=*/TRUE,
                                        /*must_be_member_function=*/FALSE,
                                        /*try_conversions=*/TRUE,
@@ -54132,7 +54136,6 @@ operation of the given kind (bok_is_invocable or bok_is_nothrow_invocable).
             !is_void_type(typen)) {
           expr_issue_incomplete_type_diag(&argn->position, typen);
         }  /* if */
-        result = FALSE;
         goto have_result;
       }  /* if */
       add_init_component_to_initializer_cache(alep, /*to_front=*/FALSE,
