@@ -1795,8 +1795,17 @@ EXTERN_THREAD a_boolean
 
 EXTERN_THREAD a_boolean
 		variable_templates_enabled;
-			/* TRUE if C++14 variable templates are enabled. */
+			/* TRUE if C++14 variable templates are enabled.  In
+			   most situations, the macro
+			   variable_templates_may_be_enabled should be tested
+			   instead. */
 
+/*
+Macro determining whether variable templates should be accepted.  Variable
+templates are a standard feature in C++14 mode (and the global variable
+variable_templates_enabled is TRUE in that case) that is also accepted with a
+warning (triggered by variable_templates_enabled being FALSE) in most GNU and
+Clang C++ modes. */
 #define variable_templates_may_be_enabled                                    \
   (variable_templates_enabled ||                                             \
    (cpp11_mode && (gpp_version_is(>= 50000) || clangcpp_version_is(>=30400))))
