@@ -9,7 +9,7 @@ is now enabled by the --ms_c++23 command-line option when microsoft_version
 is 1943 or greater.
 
 
-2/20/25  [EDGcpfe/27974]
+2/20/25  [EDGcpfe/27938,EDGcpfe/27974]
 GNU and Clang C++ compatibility: variable templates in C++11 mode
 
 In GNU and Clang C++11 modes, the front end now accepts variable templates with
