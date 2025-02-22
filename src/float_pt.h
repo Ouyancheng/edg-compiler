@@ -291,10 +291,8 @@ extern a_boolean cx_equal(a_float_kind              kind,
                           an_internal_complex_value *value_2);
 #endif /* C99_IL_EXTENSIONS_SUPPORTED */
 
-#if BUILTIN_FUNCTIONS_ENABLED
 extern a_boolean fp_signbit(a_float_kind            kind,
                             an_internal_float_value *value);
-#endif /* BUILTIN_FUNCTIONS_ENABLED */
 
 extern a_boolean fp_is_negative(a_float_kind            kind,
                                 an_internal_float_value *value);
