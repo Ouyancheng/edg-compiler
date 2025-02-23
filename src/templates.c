@@ -32219,7 +32219,7 @@ parameter lists that were scanned.
         /* A template static data member or a variable template
            declaration.  The sk_variable case comes up in the initial
            declaration of a partial specialization of a variable template. */
-        if (loc_sym == NULL && ! variable_templates_enabled) {
+        if (loc_sym == NULL && !variable_templates_enabled) {
           pos_warning(ec_variable_templates_is_cpp14, &pos_curr_token);
         }  /* if */
         sym = variable_template_declaration(decl_state, &locator, &tssp);
