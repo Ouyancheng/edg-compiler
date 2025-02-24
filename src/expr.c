@@ -11924,9 +11924,11 @@ error indication in *rcblock).
           if (rcblock == NULL && record_name_references_in_context()) {
             a_constant_ptr  constant = &result->variant.constant;
             if (result->name_reference_set) {
-              constant->variant.ptr_to_member.name_reference =
-                       find_allocated_name_reference(&constant->source_corresp,
-                                                     &result->name_reference);
+              a_name_reference_ptr  nrp = alloc_name_reference();
+              *nrp = result->name_reference;
+              check_assertion(constant->source_corresp.name_references ==NULL);
+              constant->source_corresp.name_references = nrp;
+              constant->variant.ptr_to_member.name_reference = nrp;
             }  /* if */
           }  /* if */
         }  /* if */

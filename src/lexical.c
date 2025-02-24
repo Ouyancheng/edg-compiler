@@ -22831,8 +22831,8 @@ a previously created entry that can be reused.
 #endif /* DEBUG */
   /* Look for a previously-created name reference that matches the information
      in the locator. */
-  if (scp->is_local_to_function || scp->name == NULL) {
-    /* Do a linear search for function-scope or unnamed nodes. */
+  if (!in_file_scope(scp)) {
+    /* Do a linear search for non-file-scope nodes. */
     for (nrp = scp->name_references; nrp != NULL; nrp = nrp->next) {
       if (compare_name_reference(nrp, entry_to_copy)) {
         /* A match was found. */
