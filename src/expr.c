@@ -16206,7 +16206,7 @@ __builtin_complex construct.
          result type is a complex floating-point type corresponding to the
          floating-point type of the operands. */
       check_assertion(op1_is_real && op2_is_real);
-      check_assertion(type_is_float_like(op1.type));
+      check_assertion(type_is_float_like(skip_typerefs(op1.type)));
       result_type = complex_type(skip_typerefs(op1.type)->variant.float_kind);
     }  /* if */
     expr = alloc_expr_node((an_expr_node_kind)enk_builtin_operation);

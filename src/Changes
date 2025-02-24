@@ -1,5 +1,19 @@
 Version 6.8
 
+2/24/25  [EDGcpfe/27977]
+Missing skip_typerefs when scanning __builtin_complex with __fp16 arguments
+
+The changes for EDGcpfe/27820 (in version 6.7) mistakenly omitted a
+skip_typerefs thereby causing a spurious assertion failure in cases like this
+(with --g++ --c++20):
+
+  _Complex __fp16 f(__fp16 x) {
+    return __builtin_complex(x, x);
+  }
+
+Note that lowering of the _Complex __fp16 type is still unsupported.
+
+
 2/24/25  [EDGcpfe/27982]
 C++-generating back end: use of type traits helpers in template arguments
 
