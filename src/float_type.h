@@ -1311,13 +1311,14 @@ if the result is negative infinity.
 */
 {
   int ndigits;
-  /* _Float16 and float need the maximum possible number of digits in order
-     to produce decimal values that convert exactly to larger floating
-     point types. */
+  /* _Float16 (and float, in 128-bit configurations that use this routine
+     instead of the quadmath library) need the maximum possible number of
+     digits in order to produce decimal values that convert exactly to
+     larger floating point types. */
 #if FPT_DIGITS == 3
   ndigits = 10;
 #else  /* FPT_DIGITS != 3 */
-#if FPT_DIGITS == 6
+#if FPT_DIGITS == 6 && USE_FLOAT128_FOR_HOST_FP_VALUE && !USE_QUADMATH_LIBRARY
   ndigits = 18;
 #else  /* FPT_DIGITS != 6 */
   /* Other types can use the minimal accurately-rounding value. */
