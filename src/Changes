@@ -1,5 +1,19 @@
 Version 6.8
 
+2/24/25  [EDGcpfe/27982]
+C++-generating back end: use of type traits helpers in template arguments
+
+The changes for EDGcpfe/25658 (in version 6.7) worked around the inability
+of clang and g++ to mangle non-type template arguments containing an
+invocation of a type traits helper.  However, the changes for EDGcpfe/26872
+(also in version 6.7) introduced additional cases in the IL that could, for
+more complex versions of the example shown in the entry for
+EDGcpfe/25658, result in the C++-generating back end putting out such
+non-type template arguments in spite of the earlier changes.  These
+additional cases have now been addressed, allowing the generated code once
+again to be compiled successfully by clang and g++.
+
+
 2/20/25  [EDGcpfe/27871]
 Microsoft C++23 mode: Optional parameter list in lambda declarator
 

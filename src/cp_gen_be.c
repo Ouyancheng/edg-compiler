@@ -1816,9 +1816,10 @@ otherwise, return NULL.
        result == NULL && entry != NULL && entry->type != NULL;
        entry = entry->next) {
     a_boolean matches =
-         standalone_identical_types(entry->type->variant.typeref.type, type) &&
-                                (entry->fcn_scope == NULL ||
-                                 entry->fcn_scope == innermost_function_scope);
+         standalone_identical_types(
+                     skip_typerefs(entry->type->variant.typeref.type), type) &&
+                     (entry->fcn_scope == NULL ||
+                      entry->fcn_scope == innermost_function_scope);
     if (!matches && is_typeref_kind(entry->type, trk_is_template_alias)) {
       /* Instances of template aliases can also match base classes. */
       a_base_class_ptr bcp = find_base_class_of(
@@ -1908,6 +1909,73 @@ otherwise, return NULL.
 }  /* find_typedef_in */
 
 
+static void check_for_type_traits_helper(
+                                    an_expr_node_ptr                    expr,
+                                    an_expr_or_stmt_traversal_block_ptr tblock)
+/*
+This routine is called by traverse_expr in a top-down traversal of an
+expression tree.  It stops the traversal and sets the result to TRUE if it
+finds a node corresponding to the invocation of a type traits helper.
+*/
+{
+  if (node_is(expr, enk_builtin_operation)) {
+    for (an_expr_node_ptr opnd = expr->variant.builtin_operation.operands;
+         !tblock->result && opnd != NULL; opnd = opnd->next) {
+      if (node_is(opnd, enk_type_operand)) {
+        tblock->result = TRUE;
+        tblock->terminate = TRUE;
+      }  /* if */
+    }  /* for */
+  }  /* if */
+}  /* check_for_type_traits_helper */
+
+
+static a_boolean is_nonreal_with_type_trait_arg(a_type_ptr type)
+/*
+Return TRUE if type (which must be a typeref) is a non-real instance of an
+alias template in which one of the arguments involves a type traits helper.
+This check is needed by add_instances_of_typedef to avoid potentially
+replacing a type reference with a typedef that cannot be processed by g++
+or clang.
+*/
+{
+  a_boolean result = FALSE;
+
+  check_assertion(type_is(type, tk_typeref));
+  if (type->variant.typeref.kind == trk_is_template_alias &&
+      type->variant.typeref.is_nonreal) {
+    a_template_arg_ptr tap;
+    begin_template_arg_list_traversal_simple(
+                    type->variant.typeref.extra_info->template_arg_list, &tap);
+    for (; !result && tap != NULL;
+         advance_to_next_template_arg_simple(&tap)) {
+      if (tap->kind == tak_nontype &&
+          !tap->is_array_bound_of_unknown_type &&
+          tap->variant.constant != NULL &&
+          !has_name_before_mangling(tap->variant.constant)) {
+        a_constant_ptr cp = tap->variant.constant;
+        if (constant_is(cp, ck_template_param) &&
+            tpck_is(cp, tpck_expression)) {
+          /* This is a dependent constant.  Check to see if the expression
+             uses a type traits helper. */
+          an_expr_or_stmt_traversal_block tblock;
+          an_expr_node_ptr                expr = expr_node_from_constant(cp);
+          check_assertion(expr != NULL);
+          clear_expr_or_stmt_traversal_block(&tblock);
+          tblock.process_expr = check_for_type_traits_helper;
+          tblock.process_non_dynamic_constants = TRUE;
+          tblock.process_expressions_for_constants = TRUE;
+          tblock.process_template_parameter_constants_and_expressions = TRUE;
+          traverse_expr(expr, &tblock);
+          result = tblock.result;
+        }  /* if */
+      }  /* if */
+    }  /* for */
+  }  /* if */
+  return result;
+}  /* is_nonreal_with_type_trait_arg */
+
+
 static void add_instances_of_typedef(a_template_ptr templ,
                                      a_const_char   *mbr_typedef_name,
                                      a_scope_ptr    template_scope)
@@ -1972,12 +2040,18 @@ templ, add the corresponding instance typedef to the table as well.
       }  /* if */
     }  /* if */
     if (typedef_to_add != NULL &&
+        !((gcc_is_generated_code_target ||
+           (clang_is_generated_code_target &&
+            clang_target_version_number < 180000)) &&
+          is_nonreal_with_type_trait_arg(typedef_to_add)) &&
         !(type_is(under_type, tk_template_param) &&
           tptk_is(under_type, tptk_unknown))) {
       /* We must suppress the addition of substitutes where the base type
          is a tk_template_param/tptk_unknown type.  Such types can be
          reused in unrelated typedefs and thus can lead to incorrect
-         substitutions. */
+         substitutions.  Also, older versions of clang and all versions of
+         g++ at least through version 14.2.0 cannot mangle expressions
+         containing type traits helpers, so we exclude those. */
       add_typedef_to(accessible_typedef_hash_table, typedef_to_add);
       if (is_immediate_class_type(under_type)) {
         /* Also add public base classes of the underlying class type,
@@ -11873,10 +11947,12 @@ to unusable variables and class members.
     }  /* if */
   } else if (node_is(expr, enk_builtin_operation) &&
              in_template_argument_list &&
-             (clang_is_generated_code_target ||
+             ((clang_is_generated_code_target &&
+               clang_target_version_number < 180000) ||
               gcc_is_generated_code_target)) {
-    /* clang and g++ cannot mangle type traits helpers.  Check to see if this
-       operation has a type operand. */
+    /* Versions of clang before 18.0.0 and all versions of g++ (at least
+       through version 14.2.0) cannot mangle type traits helpers.  Check to
+       see if this operation has a type operand. */
     for (an_expr_node_ptr opnd = expr->variant.builtin_operation.operands;
          !tblock->result && opnd != NULL; opnd = opnd->next) {
       if (node_is(opnd, enk_type_operand)) {
