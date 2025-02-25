@@ -3141,6 +3141,7 @@ interpreter's limits; in that case, *p_result is set to FALSE.
       }  /* if */
     }  /* for */
   }  /* if */
+  do_host_alignment(total_size);
 done:
   map_byte_count(&persistent_map, tp, total_size);
   return total_size;
@@ -3175,6 +3176,7 @@ exceeds the interpreter's limits; in that case, *p_result is set to FALSE.
     if (field_size > max_field_size) max_field_size = field_size;
   }  /* for */
   total_size = prefix_size+max_field_size;
+  do_host_alignment(total_size);
   if (total_size >= MAX_CONSTEXPR_TYPE_SIZE) {
     info_with_pos_type(ec_constexpr_type_too_large, type_pos(tp, ips), tp,
                        ips);

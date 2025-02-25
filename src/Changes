@@ -1,5 +1,14 @@
 Version 6.8
 
+2/25/25  [EDGcpfe/27943]
+Abort on array access during constant evaluation (in some configurations)
+
+The interpreter's object layout algorithm did not correctly account for
+elements juxtaposed in an array.  In configurations where a host integer is
+a 16-byte aligned integer type, this could result in access to misaligned
+integers.  That is now fixed.
+
+
 2/24/24  [EDGcpfe/27985]
 GNU C compatibility: nullptr keyword and type
 
