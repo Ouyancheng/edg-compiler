@@ -115,11 +115,12 @@ implementation of the std::is_invocable and std::is_nothrow_invocable traits.
 2/13/25  [EDGcpfe/27940]
 C-, C++-generating back ends: representation of large float literals
 
-In configurations with USE_FLOAT128_FOR_HOST_FP_VALUE set to TRUE, the
-changes for EDGcpfe/27601 (in version 6.7) resulted in some large float
-literals being rounded to a value that cannot be represented in the float
-type when the literal appeared in the output of the C- and C++-generating
-back ends.  This is now fixed.  For example:
+In configurations with USE_FLOAT128_FOR_HOST_FP_VALUE and
+APPROXIMATE_QUADMATH set to TRUE, the changes for EDGcpfe/27601 (in version
+6.7) resulted in some large float literals being rounded to a value that
+cannot be represented in the float type when the literal appeared in the
+output of the C- and C++-generating back ends.  This is now fixed.  For
+example:
 
   float x = 3.402823466e+38F;   // Previously generated as 3.4028235E38F
 
