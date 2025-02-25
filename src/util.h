@@ -4156,6 +4156,35 @@ DELEGATE_DEC_FORMATTER(__int128_t,  Signed_int_formatter)
 DELEGATE_HEX_FORMATTER(__uint128_t)
 #endif /* HOST_HAS_INT128_EXTENSIONS */
 
+template<typename... a_Text_convertible_type>
+size_t estimate_byte_count_for_init(a_Text_convertible_type... args)
+/*
+Use a detail::String_formatter<a_Text_convertible_type> on each argument
+to return an estimated number of bytes needed for an Allocated_string of the
+given arguments.
+*/
+{
+  /* Gather size estimates of each pack element. */
+  size_t element_sizes [] = {
+    detail::String_formatter<a_Text_convertible_type>::size_hint_of(args)...,
+    /* An additional 0u value is appended to gracefully handle empty packs. */
+    size_t_arg(0)
+  };
+  /* Start at an initial size of 1 to account for the null terminator. */
+  size_t total_size = 1;
+
+  /* Calculate the total size estimate off of the element sizes, and get a
+     backing Dyn_array instance (with the appropriate space reserved based on
+     the estimate). */
+  /* coverity[dead_error_condition] */
+  for (size_t i = 0; i != sizeof...(args); ++i) {
+    /* coverity[dead_error_line] */
+    total_size += element_sizes[i];
+  }  /* for */
+  return total_size;
+}  /* estimate_byte_count_for_init */
+
+
 template<typename a_Reserve_fn, typename... a_Text_convertible_type>
 void append_with_custom_reserve(a_Reserve_fn               reserve_func,
                                 a_Text_convertible_type... args)
@@ -4280,11 +4309,12 @@ inline Allocated_string<Allocator>::Allocated_string(
 Construct a new string using the given allocator.  The passed arguments are
 appended in the fashion described in detail::append_with_custom_reserve.
 */
+  : backing_array(detail::estimate_byte_count_for_init(args...))
 {
-  /* Delay initialization of the backing array until size hints are computed so
-     that only one allocation is performed. */
-  auto reserve_func = [this, &a](size_t total_size) {
-    this->backing_array = {total_size, a};
+  /* The backing array should have been given an appropriate estimate above;
+     verify that. */
+  auto reserve_func = [this](size_t total_size) {
+    check_assertion(this->backing_array.capacity() >= total_size);
     return &this->backing_array;
   };
   detail::append_with_custom_reserve(reserve_func, args...);
