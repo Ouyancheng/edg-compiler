@@ -1,5 +1,18 @@
 Version 6.8
 
+2/24/24  [EDGcpfe/27985]
+GNU C compatibility: nullptr keyword and type
+
+The C23 Standard adds support for the nullptr keyword and nullptr_t type
+(see the entry for EDGcpfe/25950,EDGcpfe/26287,EDGcpfe/27445).  The release
+candidate for gcc 15.1.0 recognizes the nullptr keyword (but defines
+nullptr_t as a typedef in its <stddef.h> header) in non-C23 C modes, and
+the front end has now been changed accordingly when gnu_version is at least
+150000.  For example, with --gcc --gnu_version=150100:
+
+  void *p = nullptr;   // Now accepted in non-C23 GNU C modes
+
+
 2/25/25  [EDGcpfe/27958]
 Abort in gen_expr (cp_gen_be.c) on enk_initializer node
 
