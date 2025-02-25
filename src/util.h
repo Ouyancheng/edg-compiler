@@ -632,9 +632,9 @@ accessible "next" pointer fields) contains a cycle.
 
 
 template<typename an_Object_type, typename an_Array>
-inline void copy_element(an_Array             &dest_array,
-                         const an_Object_type &elem,
-                         size_t               num_copies)
+inline void copy_construct_element(an_Array             &dest_array,
+                                   const an_Object_type &elem,
+                                   size_t               num_copies)
 /*
 Create the given number of copies of the element at the destination.
 
@@ -643,15 +643,15 @@ block to use this interface.
 */
 {
   for (size_t i = 0; i < num_copies; ++i) {
-    dest_array[i] = elem;
+    new (dest_array + i) an_Object_type(elem);
   }  /* for */
-}  /* copy_element */
+}  /* copy_construct_element */
 
 
 template<typename, typename an_Array>
-inline void copy_element(an_Array &dest_array,
-                         char     elem,
-                         size_t   num_copies)
+inline void copy_construct_element(an_Array &dest_array,
+                                   char     elem,
+                                   size_t   num_copies)
 /*
 Create the given number of copies of the given character at the destination.
 
@@ -660,14 +660,14 @@ block to use this interface.
 */
 {
   memset(&(dest_array[0]), elem, num_copies);
-}  /* copy_element */
+}  /* copy_construct_element */
 
 
 template<typename an_Object_type, typename an_Array_A, typename an_Array_B>
 inline Enable_if<!Is_trivially_copyable<an_Object_type>::value, void>
-copy_elements(an_Array_A       &dest_array,
-              const an_Array_B &src_array,
-              size_t           num_to_copy)
+copy_construct_elements(an_Array_A       &dest_array,
+                        const an_Array_B &src_array,
+                        size_t           num_to_copy)
 /*
 Copy the given number of non-trivially copyable elements from the source
 array-like type to the destination array-like type.
@@ -677,16 +677,16 @@ as contiguous memory blocks to use this interface.
 */
 {
   for (size_t i = 0; i < num_to_copy; ++i) {
-    dest_array[i] = src_array[i];
+    new (dest_array + i) an_Object_type(src_array[i]);
   }  /* for */
-}  /* copy_elements */
+}  /* copy_construct_elements */
 
 
 template<typename an_Object_type, typename an_Array_A, typename an_Array_B>
 inline Enable_if<Is_trivially_copyable<an_Object_type>::value, void>
-copy_elements(an_Array_A       &dest_array,
-              const an_Array_B &src_array,
-              size_t           num_to_copy)
+copy_construct_elements(an_Array_A       &dest_array,
+                        const an_Array_B &src_array,
+                        size_t           num_to_copy)
 /*
 Copy the given number of trivially copyable elements from the source array-like
 type to the destination array-like type.
@@ -698,7 +698,7 @@ as contiguous memory blocks to use this interface.
   size_t num_bytes = num_to_copy * sizeof(an_Object_type);
 
   (void)memcpy(&(dest_array[0]), &(src_array[0]), num_bytes);
-}  /* copy_elements */
+}  /* copy_construct_elements */
 
 
 template<typename an_Object_type, typename an_Array,
@@ -718,7 +718,7 @@ memory blocks to use this interface.
 {
   an_Object_type *dest_array = a.alloc(num_to_copy).start;
 
-  copy_elements<an_Object_type>(dest_array, src_array, num_to_copy);
+  copy_construct_elements<an_Object_type>(dest_array, src_array, num_to_copy);
   return dest_array;
 }  /* new_copy_of_elements */
 
@@ -1524,7 +1524,7 @@ managed by the given allocator.  Initialize the first cap elements to v.
 
   /* Copy-construct the element into newly-allocated storage. */
   an_elem *dst_elems = this->elems;
-  copy_element<an_elem>(dst_elems, v, cap);
+  copy_construct_element<an_elem>(dst_elems, v, cap);
 }  /* Dyn_array::Dyn_array */
 
 
@@ -1548,7 +1548,7 @@ Copy constructor.
   an_elem *dst_elems = this->elems;
   an_elem *src_elems = src.elems;
   size_t  new_n = this->n_elems;
-  copy_elements<an_elem>(dst_elems, src_elems, new_n);
+  copy_construct_elements<an_elem>(dst_elems, src_elems, new_n);
 }  /* Dyn_array::Dyn_array */
 
 
@@ -1605,7 +1605,7 @@ Copy assignment operator.
     an_elem *dst_elems = this->elems;
     an_elem *src_elems = b.elems;
 
-    copy_elements<an_elem>(dst_elems, src_elems, new_n);
+    copy_construct_elements<an_elem>(dst_elems, src_elems, new_n);
   } else {
     /* A change in size (and possibly capacity) is needed.  Destroy the
        original elements, and then construct the new ones. */
@@ -1616,7 +1616,7 @@ Copy assignment operator.
 
     an_elem *dst_elems = this->elems;
     an_elem *src_elems = b.elems;
-    copy_elements<an_elem>(dst_elems, src_elems, new_n);
+    copy_construct_elements<an_elem>(dst_elems, src_elems, new_n);
     this->n_elems = new_n;
   }  /* if */
   return *this;
@@ -1827,7 +1827,7 @@ back.
 
   /* Construct the new elements. */
   an_elem *insert_start = arr_elems + i;
-  copy_element<an_elem>(insert_start, value, num_copies);
+  copy_construct_element<an_elem>(insert_start, value, num_copies);
   this->n_elems += num_copies;
 }  /* Dyn_array::insert_many */
 
@@ -1929,7 +1929,7 @@ the given value.
 
     size_t  num_copies = new_n - old_n;
     an_elem *insert_start = this->elems + old_n;
-    copy_element<an_elem>(insert_start, value, num_copies);
+    copy_construct_element<an_elem>(insert_start, value, num_copies);
     this->n_elems += num_copies;
   } else if (new_n < old_n) {
     size_t  num_to_destroy = old_n - new_n;
