@@ -16877,7 +16877,9 @@ dest_type is the type being initialized.
           address_base_is(folded_value, abk_temporary)) &&
         (is_static_init_constant(folded_value) ||
          is_cpp26_local_address_constant(folded_value))) {
-      set_dynamic_init_kind(*p_dip, dik_constant);
+      /* Allocate a new entry, because the original entry may be pointed to
+         indirectly by folded_value. */
+      *p_dip = alloc_dynamic_init(dik_constant);
       set_dynamic_init_constant(*p_dip,
                                 move_local_constant_to_il(&folded_value));
       (*p_dip)->variable = var;

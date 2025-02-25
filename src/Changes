@@ -1,5 +1,24 @@
 Version 6.8
 
+2/25/25  [EDGcpfe/27958]
+Abort in gen_expr (cp_gen_be.c) on enk_initializer node
+
+The C++-generating back end sometimes aborted with an internal error in
+gen_expr (cp_gen_be.c) on an enk_initializer node (which represents a constant-
+folded dynamic initializer).  This was a consequence of constant-folding
+accidentally introducing a loop in the expression structure of a variable
+initializer.  For example:
+
+  struct S {
+    constexpr S(const int&) {}
+  };
+  template<typename> void g() {
+    constexpr S s = S(1);  // Previously triggered an internal error.
+  }
+
+This is now fixed.
+
+
 2/25/25  [EDGcpfe/27960,EDGcpfe/27983]
 Internal error in find_allocated_name_reference
 
