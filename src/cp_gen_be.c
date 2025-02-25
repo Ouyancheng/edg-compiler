@@ -1960,14 +1960,15 @@ or clang.
              uses a type traits helper. */
           an_expr_or_stmt_traversal_block tblock;
           an_expr_node_ptr                expr = expr_node_from_constant(cp);
-          check_assertion(expr != NULL);
-          clear_expr_or_stmt_traversal_block(&tblock);
-          tblock.process_expr = check_for_type_traits_helper;
-          tblock.process_non_dynamic_constants = TRUE;
-          tblock.process_expressions_for_constants = TRUE;
-          tblock.process_template_parameter_constants_and_expressions = TRUE;
-          traverse_expr(expr, &tblock);
-          result = tblock.result;
+          if (expr != NULL) {
+            clear_expr_or_stmt_traversal_block(&tblock);
+            tblock.process_expr = check_for_type_traits_helper;
+            tblock.process_non_dynamic_constants = TRUE;
+            tblock.process_expressions_for_constants = TRUE;
+            tblock.process_template_parameter_constants_and_expressions = TRUE;
+            traverse_expr(expr, &tblock);
+            result = tblock.result;
+          }  /* if */
         }  /* if */
       }  /* if */
     }  /* for */
