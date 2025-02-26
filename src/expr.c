@@ -25285,7 +25285,8 @@ contains something not valid in a constant expression.
     /* Casting to pointer; source must be integer or pointer. */
     if (is_pointer_type(source_type) ||
         is_integral_type(source_type) ||
-        is_template_param_type(source_type)) {
+        is_template_param_type(source_type) ||
+        is_unknown_type(source_type)) {
       /* Okay. */
       valid_in_const_expr = TRUE;
     } else {

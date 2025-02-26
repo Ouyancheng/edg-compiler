@@ -967,6 +967,9 @@ destination type (this comes up in a Microsoft-mode extension).
         sym = fundamental_symbol_of(proj_sym);
         if (symbol_is_invisible_friend(proj_sym)) {
           /* Ignore invisible symbols from friend declarations. */
+        } else if (func_sym_routine(sym)->has_pass_object_size_attr) {
+          /* Functions that include a parameter with the Clang
+             "pass_object_size" attribute cannot have their address taken. */
         } else if (sym->kind == (a_symbol_kind)sk_function_template) {
           /* Function template.  Ignore on this pass, but enable a second pass
              to try matching it. */
@@ -1011,6 +1014,9 @@ destination type (this comes up in a Microsoft-mode extension).
         sym = fundamental_symbol_of(proj_sym);
         if (symbol_is_invisible_friend(proj_sym)) {
           /* Ignore invisible symbols from friend declarations. */
+        } else if (func_sym_routine(sym)->has_pass_object_size_attr) {
+          /* Functions that include a parameter with the Clang
+             "pass_object_size" attribute cannot have their address taken. */
         } else if (sym->kind == (a_symbol_kind)sk_function_template) {
           /* Function template. */
           if (has_matching_template_function(sym, dest_underlying_type,
@@ -1076,6 +1082,9 @@ destination type (this comes up in a Microsoft-mode extension).
         routine_type = NULL;
         if (symbol_is_invisible_friend(proj_sym)) {
           /* Ignore invisible symbols from friend declarations. */
+        } else if (func_sym_routine(sym)->has_pass_object_size_attr) {
+          /* Functions that include a parameter with the Clang
+             "pass_object_size" attribute cannot have their address taken. */
         } else if (sym->kind == (a_symbol_kind)sk_function_template) {
           /* Template.  If we have an explicit template argument list that
              selects a unique instance, use that. */

@@ -23103,6 +23103,11 @@ by an "&" operator and *ampersand_position gives its position.
       if (rout->is_consteval) {
         check_address_of_consteval_function(rout);
       }  /* if */
+      if (rout->has_pass_object_size_attr) {
+        error_in_operand(ec_address_of_function_with_pass_object_size_attr,
+                         operand);
+        goto done;
+      }  /* if */
       if (operand->is_id_expression && 
           (!operand->is_qualified_name || ampersand_position == NULL) &&
           has_explicit_this_parameter(rtp)) {
@@ -23209,6 +23214,7 @@ by an "&" operator and *ampersand_position gives its position.
       }  /* if */
     }  /* if */
   }  /* if */
+done:
   if (ampersand_position != NULL) {
     /* Get the operand start position right (include the "&" operator)
        when we restore it from orig_operand. */

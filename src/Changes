@@ -1,5 +1,18 @@
 Version 6.8
 
+2/25/25  [EDGcpfe/27834,EDGcpfe/27975]
+Clang C compatibility: pass_object_size attribute
+
+Support for the pass_object_size attribute has been improved in Clang C mode,
+including disallowing taking the address of a function with a parameter that
+is declared with the pass_object_size attribute.  For example:
+
+  void f(void *p __attribute__((pass_object_size(0))));
+  int main() {
+    void (*pf)(void *) = f; // Previously aborted in Clang C mode.  Now an
+  }                         // ordinary error.
+
+
 2/25/25  [EDGcpfe/27943]
 Abort on array access during constant evaluation (in some configurations)
 
