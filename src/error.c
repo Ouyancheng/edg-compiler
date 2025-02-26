@@ -654,7 +654,9 @@ struct a_pragma_diag_elem {
     /* When kind == pk_diagnostic: */
     a_ptrdiff   corresponding_push;
                         /* When is_pop is TRUE, this entry is the index into
-                           pragma_diag_list for the corresponding "push". */
+                           pragma_diag_list for the corresponding "push".
+                           For "pop" entries that have no corresponding
+                           "push" entry, -1 is used. */
     /* When kind == pk_diag_*: */
     int         error_number;
                         /* The error number specified by the pragma. */
@@ -3577,12 +3579,18 @@ in the source.
            "diagnostic push". */
         while (TRUE) {
           check_assertion(ptr >= pragma_diag_list->begin() &&
-                          ptr <= pragma_diag_list->end());
+                          ptr < pragma_diag_list->end());
           if (ptr->kind == (a_pragma_kind)pk_diagnostic) {
             if (ptr->is_pop) {
-              /* Skip to the corresponding "push" for this "pop". */
-              ptr = &(*pragma_diag_list)[ptr->variant.corresponding_push];
-              continue;
+              if (ptr->variant.corresponding_push != -1) {
+                /* Skip to the corresponding "push" for this "pop". */
+                ptr = &(*pragma_diag_list)[ptr->variant.corresponding_push];
+                continue;
+              } else {
+                /* There is no corresponding "push" for this "pop" (a warning
+                   has previously been given).  Just ignore it and proceed
+                   towards the top of the list. */
+              }  /* if */
             }  /* if */
           } else if (ptr->variant.error_number == (int)error_code) {
             /* Update the severity according to this pragma. */
@@ -8212,6 +8220,7 @@ parsed except during instantiations).
           pragma_diag_stack->pop_back();
         } else {
           /* There was no "push" associated with this "pop". */
+          ptr->variant.corresponding_push = -1;
           pos_warning(ec_no_corresponding_push, &pos_curr_token);
         }  /* if */
       }  /* if */

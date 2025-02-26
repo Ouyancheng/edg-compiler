@@ -1,5 +1,20 @@
 Version 6.8
 
+2/26/25  [EDGcpfe/27991]
+Infinite loop on code with mismatched "diagnostic push/pop" directives
+
+In code that has mismatched "diagnostic pop" entries (i.e., that don't match
+a preceding "diagnostic push"), an infinite loop could occur when trying to
+determine if a diagnostic should be issued.  For example, with --c++14:
+
+  _Pragma("diagnostic pop");
+  _Pragma("diag_suppress deprecated_entity");
+  struct [[deprecated]] A {
+    _Pragma("diagnostic pop");
+  };
+  A a;
+
+
 2/25/25  [EDGcpfe/27834,EDGcpfe/27975]
 Clang C compatibility: pass_object_size attribute
 
