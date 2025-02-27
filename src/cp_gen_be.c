@@ -2401,6 +2401,14 @@ through to entity_name_is_accessible.
   a_source_correspondence_ptr scp;
   a_constant_ptr              constant;
 
+  if (argp->access_being_checked) {
+    /* This argument is already being checked for accessibility by an
+       earlier invocation.  Avoid an unbounded recursion and simply treat
+       this argument as inaccessible. */
+    is_accessible = FALSE;
+    goto done;
+  }  /* if */
+  argp->access_being_checked = TRUE;
   switch (argp->kind) {
   case tak_type:
     scp = &skip_typerefs_not_typedefs_or_type_operators(argp->variant.type)->
@@ -2486,6 +2494,8 @@ through to entity_name_is_accessible.
   default:
     unexpected_condition();
   }  /* switch */
+  argp->access_being_checked = FALSE;
+done:
   return is_accessible;
 }  /* template_arg_is_accessible */
 

@@ -7533,6 +7533,12 @@ typedef struct a_template_arg {
 			   a parameter whose type is given by
 			   decltype(auto).  Set and used only by the
 			   C++-generating back end. */
+#if BACK_END_IS_CP_GEN_BE
+  a_bit_field	access_being_checked:1;
+			/* Used by the C++-generating back end to prevent
+			   unbounded recursion when checking the
+			   accessibility of a template argument. */
+#endif /* BACK_END_IS_CP_GEN_BE */
   union {
     /* When kind == tak_type. */
     a_type_ptr  type;   /* The type supplied as the argument.  This type can

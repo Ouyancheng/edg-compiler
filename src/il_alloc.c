@@ -1320,6 +1320,9 @@ allocated.
   tap->is_error = FALSE;
   tap->param_is_auto = FALSE;
   tap->param_is_decltype_auto = FALSE;
+#if BACK_END_IS_CP_GEN_BE
+  tap->access_being_checked = FALSE;
+#endif /* BACK_END_IS_CP_GEN_BE */
   switch (kind) {
     case tak_type:
       tap->variant.type = NULL;
