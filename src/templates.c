@@ -19938,14 +19938,26 @@ mode in-class specialization.
           a_template_param_ptr  tpl;
           a_boolean             copy_error = FALSE;
           a_ctws_state          ctws_state;
+          a_boolean             scope_pushed = FALSE;
           init_ctws_state(&ctws_state);
           tpl = tssp->variant.function.decl_cache.decl_info->parameters;
+          /* Ensure there is a function access scope for this template. */
+          if (!scope_is(&scope_stack_top(), sck_function_access) ||
+              scope_stack_top().template_sym != templ_sym) {
+            (void)push_scope(sck_function_access, NO_SCOPE_NUMBER,
+                             (a_type_ptr)NULL, templ_rout);
+            scope_stack_top().template_sym = templ_sym;
+            scope_pushed = TRUE;
+          }  /* if */
           rout_type = copy_type_with_substitution(templ_rout->type,
                                                   templ_arg_list, tpl,
                                                   &templ_sym->decl_position,
                                                   CTWS_IS_OVERLOAD_CANDIDATE,
                                                   &copy_error,
                                                   &ctws_state);
+          if (scope_pushed) {
+            pop_scope();
+          }  /* if */
           if (special_kind_is(templ_rout, sfk_conversion)) {
             if (class_type_supp(parent_class)->is_lambda_closure_class) {
               /* Substitution is not always sufficient for the conversion
