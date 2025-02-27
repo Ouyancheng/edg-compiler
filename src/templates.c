@@ -16925,6 +16925,14 @@ a pointer over a reference type or creating an array of references.
           if (!is_immediate_class_type(new_this_class)) {
             /* The this class type must be a class type. */
             subst_fail(*copy_error);
+          } else if (scope_stack_top().kind == sck_function_access &&
+                     scope_stack_top().assoc_routine != NULL &&
+                     scope_stack_top().assoc_routine->special_kind ==
+                                                         sfk_deduction_guide) {
+            /* Set the substituted this class type as the associated type.
+               This is necessary to grant an implicit deduction guide member
+               access privileges to its class during substitution. */
+            scope_stack_top().assoc_type = new_this_class;
           }  /* if */
         }  /* if */
         if (new_this_class != this_class ||

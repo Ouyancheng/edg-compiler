@@ -1206,7 +1206,9 @@ typedef struct a_scope_stack_entry {
 			   kind == sck_class_struct_union or
 			   kind == sck_class_reactivation, this points to the
 			   class type.  When kind == sck_enum, this points to
-			   the enum type.  This may also be set for
+			   the enum type.  When kind == sck_function_access for
+			   an implicit deduction guide, this points to the
+			   class type.  This may also be set for
 			   sck_template_instantiation scopes when a class type
 			   is instantiated. */
   a_routine_ptr	assoc_routine;

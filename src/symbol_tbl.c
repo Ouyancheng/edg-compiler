@@ -13004,6 +13004,16 @@ functions befriending_list_test and class_scope_test.
          its befriending list. */
       if (kind == (a_scope_kind)sck_function_access) {
         scope_routine = ssep->assoc_routine;
+        if (scope_routine != NULL &&
+            scope_routine->special_kind == sfk_deduction_guide &&
+            ssep->assoc_type != NULL) {
+          /* If the function access scope is for an implicit deduction guide,
+             check if the associated class type passes the test. */
+          if (class_scope_test(class_type, ssep)) {
+            have_member_privilege = TRUE;
+            break;
+          }  /* if */
+        } /* if */
         /* If the function access scope is for a template, get the
            befriending information associated with the template. */
         if (ssep->template_sym != NULL) {
