@@ -790,6 +790,12 @@ static void gen_expr(an_expr_node_ptr expr,
 static void set_decl_position(a_source_correspondence      *scp,
                               a_src_seq_secondary_decl_ptr sec_decl);
 static void gen_variable_name(a_variable_ptr var);
+static a_boolean template_arg_is_accessible(
+                                        a_template_arg_ptr argp,
+                                        a_boolean          ignore_context,
+                                        a_boolean          check_related_types,
+                                        a_boolean          *for_all_scopes);
+
 /* Interfaces to gen_expr for the usual cases. */
 /* Note that gen_expr_with_parens does not force parentheses around the
    expression; it puts them there if there's some possibility of
@@ -1846,7 +1852,21 @@ otherwise, return NULL.
            unrelated templates because such types are identified only by
            their coordinates and not by the template with which they are
            associated.) */
-        result = entry->type;
+        a_boolean          for_all_scopes;
+        a_template_arg_ptr tap;
+        /* Check whether the template arguments are accessible in the
+           current context. */
+        begin_template_arg_list_traversal_simple(
+             entry->type->variant.typeref.extra_info->template_arg_list, &tap);
+        for (; matches && tap != NULL;
+             advance_to_next_template_arg_simple(&tap)) {
+          matches = template_arg_is_accessible(tap, /*ignore_context=*/FALSE,
+                                               /*check_related_types=*/FALSE,
+                                               &for_all_scopes);
+        }  /* for */
+        if (matches) {
+          result = entry->type;
+        }
       } else if (parent_class != NULL &&
                  is_prototype_instantiation_type(parent_class)) {
         /* The typedef is a member of a prototype instantiation, so it can
@@ -2362,14 +2382,19 @@ it finds a node referring to a non-public class member.
 }  /* check_for_inaccessible_member */
 
 
-static a_boolean template_arg_is_accessible(a_template_arg_ptr argp,
-                                            a_boolean          ignore_context,
-                                            a_boolean          *for_all_scopes)
+static a_boolean template_arg_is_accessible(
+                                        a_template_arg_ptr argp,
+                                        a_boolean          ignore_context,
+                                        a_boolean          check_related_types,
+                                        a_boolean          *for_all_scopes)
 /*
 Return TRUE if all names in the template argument are accessible (either
 publicly or in the current context, depending on the value of
-ignore_context) or if the argument contains no names, FALSE otherwise.
-Pass for_all_scopes through to entity_name_is_accessible.
+ignore_context) or if the argument contains no names, FALSE otherwise.  If
+check_related_types is TRUE, the accessibility of the underlying type of an
+inaccessible typedef will be considered, as well as any accessible typedefs
+that can substitute for an inaccessible type argument.  Pass for_all_scopes
+through to entity_name_is_accessible.
 */
 {
   a_boolean                   is_accessible = TRUE;
@@ -2382,7 +2407,7 @@ Pass for_all_scopes through to entity_name_is_accessible.
                                                                 source_corresp;
     is_accessible = entity_name_is_accessible(scp, iek_type, ignore_context,
                                               for_all_scopes);
-    if (!is_accessible) {
+    if (!is_accessible && check_related_types) {
       /* Check to see if this is a typedef whose underlying type is
          accessible.  If so, the underlying type will be used instead of
          the actual argument when putting out the template-id, so the
@@ -2394,7 +2419,7 @@ Pass for_all_scopes through to entity_name_is_accessible.
                                                   for_all_scopes);
       }  /* if */
     }  /* if */
-    if (!is_accessible) {
+    if (!is_accessible && check_related_types) {
       /* Check for an accessible typedef.  If there is one, it will be
          used instead of the actual argument when putting out the
          template-id, so the argument should be considered accessible for
@@ -2890,12 +2915,19 @@ names is not public, set *for_all_scopes to FALSE.
                                     variant.ptr_to_member.type->source_corresp,
                                     iek_type, ignore_context,
                                     &local_for_all_scopes);
-      } else if (is_immediate_class_type(type)) {
+      } else if (is_immediate_class_type(type) ||
+                 (type_is(type, tk_typeref) &&
+                  is_typeref_kind(type, trk_is_template_alias))) {
         /* Check names used in template arguments, if any. */
         a_template_arg_ptr tap;
-        begin_template_arg_list_traversal_simple(type->
-                      variant.class_struct_union.extra_info->template_arg_list,
-                                                 &tap);
+        if (is_immediate_class_type(type)) {
+          begin_template_arg_list_traversal_simple(
+                type->variant.class_struct_union.extra_info->template_arg_list,
+                &tap);
+        } else {
+          begin_template_arg_list_traversal_simple(
+                    type->variant.typeref.extra_info->template_arg_list, &tap);
+        }  /* if */
         for (; is_accessible && tap != NULL;
              advance_to_next_template_arg_simple(&tap)) {
           if (tap->kind == tak_nontype &&
@@ -2927,12 +2959,14 @@ names is not public, set *for_all_scopes to FALSE.
                  will be repeated in future contexts. */
               if (octl.processing_nontype_template_argument) {
                 is_accessible = template_arg_is_accessible(
-                                                        tap, ignore_context,
-                                                        &local_for_all_scopes);
+                                                  tap, ignore_context,
+                                                  /*check_related_types=*/TRUE,
+                                                  &local_for_all_scopes);
               }  /* if */
               local_for_all_scopes = FALSE;
             }  /* if */
           } else if (!template_arg_is_accessible(tap, ignore_context,
+                                                 /*check_related_types=*/TRUE,
                                                  &local_for_all_scopes)) {
             is_accessible = FALSE;
           }  /* if */
@@ -4605,6 +4639,7 @@ defaulted.
               entry_kind == iek_type ||
 #endif /* !CLASS_TEMPLATE_INSTANTIATIONS_IN_SOURCE_SEQUENCE_LISTS */
               !template_arg_is_accessible(argp, /*ignore_context=*/FALSE,
+                                          /*check_related_types=*/TRUE,
                                           &for_all_scopes)) {
             break;
           }  /* if */
@@ -12391,6 +12426,7 @@ instantiations are only permitted in namespace scope).
     while (tap != NULL && !result) {
       a_boolean for_all_scopes;
       result = !template_arg_is_accessible(tap, /*ignore_context=*/FALSE,
+                                           /*check_related_types=*/TRUE,
                                            &for_all_scopes);
       if (!result) {
         /* Check that the template argument is not a member of a

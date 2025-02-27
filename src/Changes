@@ -1,5 +1,14 @@
 Version 6.8
 
+2/26/25  [EDGcpfe/27854]
+C++-generating back end: unbounded recursion with inaccessible template args
+
+In some complex cases involving templates instantiated with inaccessible
+type template arguments, the C++-generating back end could enter an
+unbounded recursion attempting to put out such a template argument.  This
+is now fixed.
+
+
 2/26/25  [EDGcpfe/27991]
 Infinite loop on code with mismatched "diagnostic push/pop" directives
 
