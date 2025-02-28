@@ -1430,14 +1430,15 @@ Casts are not needed for pointer to member function types.
 extern a_boolean expr1_could_affect_expr2(an_expr_node_ptr expr1,
                                           an_expr_node_ptr expr2);
 
-#endif /* DO_IL_LOWERING */
-#endif /* NEED_NAME_MANGLING */
-
 extern void overwrite_type_with_new_type(a_type_ptr type,
                                          a_type_ptr new_type);
 
+#endif /* DO_IL_LOWERING */
+
 /* Conditionally close the "edg" namespace. */
 END_EDG_NAMESPACE
+
+#endif /* NEED_NAME_MANGLING */
 
 #endif /* ifndef LOWER_IL_H */
 
