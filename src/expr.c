@@ -41904,11 +41904,15 @@ repeat_switch:
             }  /* if */
             break;
           }  /* if */
-          if (gcc_version_is(>=150000) &&
+          if (gcc_version_is(>=150000) && !strict_gnu &&
               strcmp(hdr->identifier, "nullptr") == 0) {
-            /* gcc version 15.1.0 unconditionally supports the C23 "nullptr"
-               keyword, even in non-C23 modes, if it has not been declared
-               as something else. */
+            /* gcc version 15.1.0 unconditionally supports the C23
+               "nullptr" keyword, even in non-C23 modes, if it has not been
+               declared as something else and if no specific language
+               version was specified on the command line (the "!strict_gnu"
+               case).  (We don't have to check for C23 mode in this test
+               because nullptr is treated as a keyword in C23 mode and will
+               not end up in the tok_identifier case.) */
             a_symbol_locator temp_locator = locator_for_curr_id;
             if (normal_id_lookup(&temp_locator, IDL_NO_OPTIONS) == NULL) {
               curr_token = tok_nullptr;
