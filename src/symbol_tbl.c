@@ -13013,7 +13013,7 @@ functions befriending_list_test and class_scope_test.
             have_member_privilege = TRUE;
             break;
           }  /* if */
-        } /* if */
+        }  /* if */
         /* If the function access scope is for a template, get the
            befriending information associated with the template. */
         if (ssep->template_sym != NULL) {
