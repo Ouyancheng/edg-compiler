@@ -26748,10 +26748,12 @@ Set the assoc_handler field of the current scope.
 a_statement_ptr alloc_expr_statement(an_expr_node_ptr node)
 /*
 Allocate an stmk_expr statement pointing to the indicated expression
-and return a pointer to it.
+and return a pointer to it.  This routine assumes that the statement being
+added is compiler-generated.
 */
 {
-  a_statement_ptr stmt = alloc_statement((a_statement_kind)stmk_expr);
+  a_statement_ptr stmt = alloc_statement(stmk_expr,
+                                         /*compiler_generated=*/TRUE);
 
   stmt->expr = node;
   set_expr_result_not_used(node);
@@ -26762,17 +26764,25 @@ and return a pointer to it.
 void copy_statement(a_statement *from,
                     a_statement *to)
 /*
-Copy a statement entry from "from" to "to".
+Copy a statement entry from "from" to "to", preserving certain fields of the
+original statement.
 */
 {
   a_boolean       has_associated_pragma = to->has_associated_pragma;
+  a_boolean       compiler_generated = to->compiler_generated;
+#if DO_IL_LOWERING
+  a_boolean       lowering_generated = to->lowering_generated;
+#endif /* DO_IL_LOWERING */
   a_statement_ptr to_next = to->next;
 
   *to = *from;
-  /* Preserve the pragma flag in the destination statement. */
-  to->has_associated_pragma = has_associated_pragma;
-  /* Preserve the next pointer of the destination statement. */
+  /* Preserve some of the fields from the destination statement. */
   to->next = to_next;
+  to->has_associated_pragma = has_associated_pragma;
+  to->compiler_generated = compiler_generated;
+#if DO_IL_LOWERING
+  to->lowering_generated = lowering_generated;
+#endif /* DO_IL_LOWERING */
   /* Patch up subordinate parent pointers and similar "back" pointers. */
   switch (to->kind) {
     case stmk_if:
@@ -26887,7 +26897,8 @@ statement that returns a value).  See change_block_into_statement_expression.
   a_statement_ptr stmt_copy;
 
   /* Make a copy of the original statement. */
-  *orig_statement = stmt_copy = alloc_statement(statement->kind);
+  *orig_statement = stmt_copy = alloc_statement(statement->kind,
+                                                /*compiler_generated=*/TRUE);
   copy_statement(statement, stmt_copy);
   /* Turn the statement into a block statement. */
   set_statement_kind(statement, (a_statement_kind)stmk_block);

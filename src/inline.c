@@ -1146,13 +1146,18 @@ the caller as appropriate.  No lowering post pass is performed on any
 expressions contained in the statement.
 */
 {
-  a_statement_ptr new_statement = alloc_statement(statement->kind);
+  a_statement_ptr new_statement = alloc_statement(statement->kind,
+                                                  /*compiler_generated=*/TRUE);
 
   /* This does not use copy_statement, because we don't want to re-set any
      "back" pointers. */
   *new_statement = *statement;
   new_statement->next = NULL;
   new_statement->parent = NULL;
+  new_statement->compiler_generated = TRUE;
+#if DO_IL_LOWERING
+  new_statement->lowering_generated = il_lowering_underway;
+#endif /* DO_IL_LOWERING */
   set_inline_statement_positions(new_statement, statement);
   new_statement->has_associated_pragma = FALSE;
 #if GENERATE_SOURCE_SEQUENCE_LISTS
@@ -1447,7 +1452,8 @@ This is useful in cases where iterative inlining can create huge routines.
                  or "else" statements.  In these cases, turn the "if" statement
                  into an expression statement (to execute the condition). */
               set_expr_result_not_used(stmt_expr);
-              new_statement = alloc_statement((a_statement_kind)stmk_expr);
+              new_statement = alloc_statement(stmk_expr,
+                                              /*compiler_generated=*/TRUE);
               new_statement->expr = stmt_expr;
               set_inline_statement_positions(new_statement, statement);
               insert_statement_full(new_statement, insert_location,
@@ -1466,7 +1472,8 @@ This is useful in cases where iterative inlining can create huge routines.
               /* Insert an "if" statement. */
               if (then_stmt == NULL) {
                 /* Create an empty statement. */
-                then_stmt = alloc_statement((a_statement_kind)stmk_empty);
+                then_stmt = alloc_statement(stmk_empty,
+                                            /*compiler_generated=*/TRUE);
               }  /* if */
               new_statement = copy_inlined_statement(statement,
                                                      insert_location);
@@ -1488,7 +1495,8 @@ This is useful in cases where iterative inlining can create huge routines.
           /* Make and insert a new block statement.  This doesn't use
              copy_statement because that doesn't clone the block
              supplement. */
-          new_statement = alloc_statement((a_statement_kind)stmk_block);
+          new_statement = alloc_statement(stmk_block,
+                                          /*compiler_generated=*/TRUE);
           set_inline_statement_positions(new_statement, statement);
 #if !STATEMENTS_INSERTED_FOR_INLINING_HAVE_INVOCATION_POSITION
           new_statement->variant.block.extra_info->final_position =
@@ -1619,7 +1627,8 @@ This is useful in cases where iterative inlining can create huge routines.
           /* Copy the "for" statement.  This does not use
              copy_inlined_statement because it needs to copy the for loop
              supplement. */
-          new_statement = alloc_statement((a_statement_kind)stmk_for);
+          new_statement = alloc_statement(stmk_for,
+                                          /*compiler_generated=*/TRUE);
           set_inline_statement_positions(new_statement, statement);
           new_statement->expr = stmt_expr;
           new_statement->variant.for_loop.statement = stmt;
@@ -1783,7 +1792,7 @@ detached from the IL (and should therefore no longer be used), FALSE otherwise.
           /* Build the code inside an extra block (even though the top
              statement of the function will be a block) because assignments
              to initialize parameter temporaries may be inserted. */
-          block_stmt = alloc_statement((a_statement_kind)stmk_block);
+          block_stmt = alloc_statement(stmk_block,/*compiler_generated=*/TRUE);
           set_block_start_insert_location(block_stmt, &insert_location);
         } else {
           block_stmt = NULL;

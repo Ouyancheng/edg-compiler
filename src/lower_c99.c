@@ -1080,7 +1080,7 @@ lower_vla_dimensions).
        being called only from lower_statement_list (via lower_statement),
        which has code necessary to avoid lowering a statement twice. */
     check_assertion(!C_mode());
-    new_stmt = alloc_statement((a_statement_kind)stmk_vla_decl);
+    new_stmt = alloc_statement(stmk_vla_decl, /*compiler_generated=*/TRUE);
     copy_statement(stmt, new_stmt);
     new_stmt->next = stmt->next;
     stmt->next = new_stmt;
@@ -3973,7 +3973,7 @@ in C99 mode to represent a compound literal.
     /* If the variable has variably modified type, put out an stmk_vla_decl
        for it. */
     a_statement_ptr stmk_vla_decl_stmt =
-                              alloc_statement((a_statement_kind)stmk_vla_decl);
+                   alloc_statement(stmk_vla_decl, /*compiler_generated=*/TRUE);
     stmk_vla_decl_stmt->variant.vla.is_typedef_decl = FALSE;
     stmk_vla_decl_stmt->variant.vla.variant.variable = var;
     add_to_end_of_pending_stmk_init_statements_list(stmk_vla_decl_stmt);

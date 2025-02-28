@@ -852,16 +852,16 @@ to the "if", and set *else_insert_location to allow insertion in the
   } else {
     /* Insert within a statement sequence.  Allocate an "if" statement with
        a block statement under it. */
-    if_stmt = alloc_statement((a_statement_kind)stmk_if);
+    if_stmt = alloc_statement(stmk_if, /*compiler_generated=*/TRUE);
     if_stmt->expr = test_expr;
     if_stmt->is_initialization_guard = is_initialization_guard;
     insert_statement(if_stmt, insert_location);
     if_stmt->variant.if_stmt.then_statement = block_stmt =
-                                 alloc_statement((a_statement_kind)stmk_block);
+                      alloc_statement(stmk_block, /*compiler_generated=*/TRUE);
     set_block_start_insert_location(block_stmt, then_insert_location);
     if (else_insert_location != NULL) {
       if_stmt->variant.if_stmt.else_statement = else_stmt =
-                                 alloc_statement((a_statement_kind)stmk_block);
+                      alloc_statement(stmk_block, /*compiler_generated=*/TRUE);
       set_block_start_insert_location(else_stmt, else_insert_location);
     }  /* if */
   }  /* if */
@@ -934,10 +934,10 @@ only be used when adding boilerplate code to constructors or destructors.
 {
   a_statement_ptr if_stmt, block_stmt, stmt;
 
-  if_stmt = alloc_statement((a_statement_kind)stmk_if);
+  if_stmt = alloc_statement(stmk_if, /*compiler_generated=*/TRUE);
   if_stmt->expr = if_node;
   if_stmt->variant.if_stmt.then_statement = block_stmt =
-                                 alloc_statement((a_statement_kind)stmk_block);
+                      alloc_statement(stmk_block, /*compiler_generated=*/TRUE);
   /* Make the "if" the top-level statement in the routine, and put the
      original code under the "if". */
   check_assertion_str(scope->assoc_block->kind == (a_statement_kind)stmk_block,
@@ -960,7 +960,7 @@ only be used when adding boilerplate code to constructors or destructors.
      end of the new routine is reachable if the "if" is not taken). */
   if (if_stmt->next == NULL) {
     a_statement_ptr return_stmt =
-                                alloc_statement((a_statement_kind)stmk_return);
+                     alloc_statement(stmk_return, /*compiler_generated=*/TRUE);
     if_stmt->next = return_stmt;
     if (return_var != NULL) return_stmt->expr = var_rvalue_expr(return_var);
     add_to_return_memo_list(return_stmt);
@@ -1009,12 +1009,12 @@ in order to ensure that the "defined" flag is set.
   /* The "defined" flag is set in pop_generated_routine_context. */
   /* Make the top-level block statement. */
   scope->assoc_block = block_stmt =
-                                 alloc_statement((a_statement_kind)stmk_block);
+                      alloc_statement(stmk_block, /*compiler_generated=*/TRUE);
   block_stmt->variant.block.extra_info->end_of_block_reachable = FALSE;
   if (make_return) {
     /* Make a return statement at the end of the block. */
     block_stmt->variant.block.statements =
-                                alloc_statement((a_statement_kind)stmk_return);
+                     alloc_statement(stmk_return, /*compiler_generated=*/TRUE);
   }  /* if */
   switch_il_region(region_to_switch_back_to);
   return scope;
@@ -5069,7 +5069,7 @@ operator of a no-capture lambda.
           /* The object lifetime is to be kept in the IL, so add a block
              statement and bind the lifetime to it. */
           a_statement_ptr block_stmt =
-                                 alloc_statement((a_statement_kind)stmk_block);
+                      alloc_statement(stmk_block, /*compiler_generated=*/TRUE);
           insert_statement(block_stmt, &insert_location);
           set_block_start_insert_location(block_stmt, &insert_location);
           bind_object_lifetime(init_expr_lifetime,
@@ -5320,7 +5320,7 @@ operator of a no-capture lambda.
       pop_context();
     }  /* if */
     /* Add the return statement. */
-    return_stmt = alloc_statement((a_statement_kind)stmk_return);
+    return_stmt = alloc_statement(stmk_return, /*compiler_generated=*/TRUE);
     return_stmt->expr = call_node;
     insert_statement(return_stmt, &insert_location);
     add_to_return_memo_list(return_stmt);
@@ -6382,7 +6382,7 @@ initialization should be inserted at caller_insert_location.
   /* Insert any generated stmk_inits at the previously marked location. */
   insert_pending_stmk_init_statements_at_mark(&insert_location);
   /* Build a loop to initialize the entities. */
-  loop_stmt = alloc_statement((a_statement_kind)stmk_while);
+  loop_stmt = alloc_statement(stmk_while, /*compiler_generated=*/TRUE);
   loop_expr = make_operator_node((an_expr_operator_kind)eok_post_decr,
                             count_type, var_lvalue_expr(count_var));
   loop_stmt->expr = boolean_controlling_expr(loop_expr);
@@ -6485,13 +6485,13 @@ to lower_dynamic_init_aggregate_constant; see their description there.
   /* Insert any generated stmk_inits at the previously marked location. */
   insert_pending_stmk_init_statements_at_mark(&insert_location);
   /* Build a loop to initialize the entities. */
-  loop_stmt = alloc_statement((a_statement_kind)stmk_while);
+  loop_stmt = alloc_statement(stmk_while, /*compiler_generated=*/TRUE);
   insert_statement(loop_stmt, &insert_location);
   expr = make_operator_node((an_expr_operator_kind)eok_post_decr,
                             count_type, var_lvalue_expr(count_var));
   loop_stmt->expr = boolean_controlling_expr(expr);
   loop_stmt->variant.loop_statement =
-                                 alloc_statement((a_statement_kind)stmk_block);
+                      alloc_statement(stmk_block, /*compiler_generated=*/TRUE);
   set_block_start_insert_location(loop_stmt->variant.loop_statement,
                                   &loop_insert_location);
   /* Set ipd to point to the entity being passed in. */
@@ -7462,7 +7462,7 @@ to be inserted, it is inserted at *insert_location.
       init_dip->variant.constant.ptr =
                                     move_local_constant_to_il(&zero_constant);
       /* The dynamic init entry is pointed to by an stmk_init statement. */
-      stmk_init_stmt = alloc_statement((a_statement_kind)stmk_init);
+      stmk_init_stmt = alloc_statement(stmk_init, /*compiler_generated=*/TRUE);
       stmk_init_stmt->variant.dynamic_init = init_dip;
       insert_statement(stmk_init_stmt, insert_location);
     }  /* if */
@@ -8091,7 +8091,7 @@ code for the dynamic initialization.
     /* Add a block and update the caller's insert location to follow the
        block.  Then use an insert location inside the block for the rest
        of the lowering of the initialization. */
-    block_stmt = alloc_statement((a_statement_kind)stmk_block);
+    block_stmt = alloc_statement(stmk_block, /*compiler_generated=*/TRUE);
     insert_statement(block_stmt, insert_location);
     set_block_start_insert_location(block_stmt, insert_location2);
     *eff_insert_location = insert_location2;
@@ -8857,7 +8857,7 @@ of the array.
   if (need_array_count) {
     an_expr_node_ptr  expr;
     /* Build a loop to initialize the entities. */
-    loop_stmt = alloc_statement((a_statement_kind)stmk_while);
+    loop_stmt = alloc_statement(stmk_while, /*compiler_generated=*/TRUE);
     expr = make_operator_node((an_expr_operator_kind)eok_post_decr,
                               count_type, var_lvalue_expr(count_var));
     loop_stmt->expr = boolean_controlling_expr(expr);
@@ -13168,7 +13168,7 @@ Do IL lowering of an enk_temp_init expression node.
         /* If the variable has variably-modified type, put out an stmk_vla_decl
            for it. */
         a_statement_ptr stmk_vla_decl_stmt =
-                              alloc_statement((a_statement_kind)stmk_vla_decl);
+                   alloc_statement(stmk_vla_decl, /*compiler_generated=*/TRUE);
         stmk_vla_decl_stmt->variant.vla.is_typedef_decl = FALSE;
         stmk_vla_decl_stmt->variant.vla.variant.variable = temp_var;
         add_to_end_of_pending_stmk_init_statements_list(stmk_vla_decl_stmt);
@@ -13645,7 +13645,7 @@ the pending_stmk_init_statements list.
 */
 {
   a_statement_ptr  stmk_init_stmt =
-                                 alloc_statement((a_statement_kind)stmk_init);
+                       alloc_statement(stmk_init, /*compiler_generated=*/TRUE);
 
   stmk_init_stmt->variant.dynamic_init = dip;
   /* Put the statement on a list to be inserted when we get back to
@@ -17550,7 +17550,8 @@ insert_dtor_member_and_base_destructions.
   }  /* if */
   /* Create a block unattached to the IL tree, and insert destructions
      inside it. */
-  dtor_info->epilogue_block = alloc_statement((a_statement_kind)stmk_block);
+  dtor_info->epilogue_block = alloc_statement(stmk_block,
+                                              /*compiler_generated=*/TRUE);
   set_block_start_insert_location(dtor_info->epilogue_block, &insert_location);
   /* Generate a destructor call for each data member that appears on the
      ctor_init list. */
@@ -17687,7 +17688,7 @@ statement for the label and insert it at *insert_location.
   a_statement_ptr        label_stmt;
   an_object_lifetime_ptr lifetime;
 
-  label_stmt = alloc_statement((a_statement_kind)stmk_label);
+  label_stmt = alloc_statement(stmk_label, /*compiler_generated=*/TRUE);
   label_stmt->variant.label.ptr = temp_label;
   temp_label->exec_stmt = label_stmt;
   temp_label->source_corresp.referenced = TRUE;
@@ -17763,7 +17764,8 @@ precondition (insert after return) does not match the postcondition
   } else {
     /* We're not adding after/before a return, so add a return at the end. */
     an_insert_location saved_insert_location;
-    top_level_return = alloc_statement((a_statement_kind)stmk_return);
+    top_level_return =
+                     alloc_statement(stmk_return, /*compiler_generated=*/TRUE);
     saved_insert_location = *insert_location;
     insert_statement(top_level_return, insert_location);
     *insert_location = saved_insert_location;
@@ -18624,7 +18626,7 @@ has not yet been defined, it is created here.
     make_call_statement(init_routine, (an_expr_node_ptr)NULL,
                         (an_expr_node_ptr)NULL, call_insert_location);
     /* Return a pointer to the variable. */
-    return_stmt = alloc_statement((a_statement_kind)stmk_return);
+    return_stmt = alloc_statement(stmk_return, /*compiler_generated=*/TRUE);
     return_stmt->expr = var_addr_expr(var);
     if (is_reference_type(var->type)) {
       /* If the variable is a reference, add a cast to the proper type. */
@@ -19908,7 +19910,7 @@ Note: this is called when lowering C and C++.
     call_node = NULL;
   }  /* if */
   /* Add the return statement. */
-  return_stmt = alloc_statement((a_statement_kind)stmk_return);
+  return_stmt = alloc_statement(stmk_return, /*compiler_generated=*/TRUE);
   return_stmt->expr = call_node;
   insert_statement(return_stmt, &insert_location);
   add_to_return_memo_list(return_stmt);
@@ -20181,7 +20183,7 @@ The "ifunc" mechanism is used to associate the resolver routine with
   assign_function_constant(default_routine, temp_var, insert_location);
   /* Add the return statement. */
   temp_var_node = var_rvalue_expr(temp_var);
-  return_stmt = alloc_statement((a_statement_kind)stmk_return);
+  return_stmt = alloc_statement(stmk_return, /*compiler_generated=*/TRUE);
   return_stmt->expr = temp_var_node;
   insert_statement(return_stmt, &block_insert_location);
   add_to_return_memo_list(return_stmt);

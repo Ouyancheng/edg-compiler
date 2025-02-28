@@ -16028,13 +16028,21 @@ typedef struct a_statement {
 			   generating thread-safe code, the "if" and the
 			   first initialization within it should be rendered
 			   as an atomic test-and-set. */
+  a_bit_field  compiler_generated:1;
+			/* TRUE for a statement that has been added by the
+			   front end. */
+#if DO_IL_LOWERING
+  a_bit_field  lowering_generated:1;
+			/* TRUE if this statement has been added during the
+			   lowering process. */
   a_bit_field  is_lowering_boilerplate:1;
-                        /* TRUE if this statement has been added during the
-                           lowering of a constructor or destructor and is
-                           considered "boilerplate", i.e., the statement has
-                           no bearing as to whether the constructor or
-                           destructor has an actual effect (it's present
-                           in all constructors or destructors). */
+			/* TRUE if this statement has been added during the
+			   lowering of a constructor or destructor and is
+			   considered "boilerplate", i.e., the statement has
+			   no bearing as to whether the constructor or
+			   destructor has an actual effect (it's present
+			   in all constructors or destructors). */
+#endif /* DO_IL_LOWERING */
   a_bit_field  is_fallthrough_statement:1;
                         /* TRUE if this is a null statement (i.e., stmk_empty)
                            that has the [[fallthrough]] attribute applied to

@@ -1,5 +1,19 @@
 Version 6.8
 
+2/28/25  [EDGcpfe/27791]
+New compiler_generated field for a_statement
+
+A new field, compiler_generated, has been added to a_statement to indicate that
+a statement is compiler-generated (i.e., does not appear in the source of the
+translation unit).  Often such statements can be identified by a NULL source
+position (except that statements added by lowering are typically given a
+source position).  No position information has been changed.
+
+Additionally, in configurations that do lowering, a new flag,
+lowering_generated, has been added to indicate that a statement was added
+during the lowering process.
+
+
 2/27/25  [EDGcpfe/25300,EDGcpfe/27874]
 Access checking for implicit deduction guides
 

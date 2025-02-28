@@ -1671,7 +1671,7 @@ should be set to TRUE.
       }  /* if */
     } else {
       /* Create a new block to allow additional statements. */
-      ssp = alloc_statement((a_statement_kind)stmk_block);
+      ssp = alloc_statement(stmk_block, /*compiler_generated=*/TRUE);
       /* This doesn't get added to the source sequence list; it's not
          in the source. */
       ssp->variant.block.extra_info->implicit_scope_not_allowed = TRUE;
@@ -1785,7 +1785,7 @@ the current statement sequence.
   }  /* if */
 
   /* Allocate the statement entry. */
-  sp = alloc_statement(kind);
+  sp = alloc_statement(kind, /*compiler_generated=*/FALSE);
   /* Set the position from *stmt_pos. */
   sp->position = *stmt_pos;
 
@@ -3453,7 +3453,7 @@ block under the "try" in a function try block.
   if (is_statement_expr) {
     /* A GNU statement expression.  Do not link the statement into
        the current statement on the statement stack. */
-    block_stmt = alloc_statement((a_statement_kind)stmk_block);
+    block_stmt = alloc_statement(stmk_block, generated_statement);
     block_stmt->variant.block.extra_info->is_statement_expression = TRUE;
     block_stmt->position = pos_curr_token;
   } else {
@@ -3711,7 +3711,8 @@ scope and an enk_condition node (the node is attached to sp).
   node->variant.condition->scope = scope;
   sp->expr = node;
   if (cached_expr != NULL) {
-    a_statement_ptr  expr_sp = alloc_statement((a_statement_kind)stmk_expr);
+    a_statement_ptr  expr_sp = alloc_statement(stmk_expr,
+                                               /*compiler_generated=*/FALSE);
     expr_sp->position = *init_component_pos(cached_expr);
     expr_sp->expr = scan_void_expression(/*repeated_in_loop=*/FALSE,
                                          /*marked_as_gnu_extension=*/FALSE,
@@ -3746,7 +3747,8 @@ scope and an enk_condition node (the node is attached to sp).
         cached_expr == NULL) {
       /* The declaration we just scanned is a C++17-style initializer for a
          selection statement. */
-      a_statement_ptr  decl_sp = alloc_statement((a_statement_kind)stmk_decl);
+      a_statement_ptr  decl_sp = alloc_statement(stmk_decl,
+                                                 /*compiler_generated=*/FALSE);
       decl_sp->position = dps.start_pos;
       node->variant.condition->initialization = decl_sp;
 #if GENERATE_SOURCE_SEQUENCE_LISTS
@@ -4943,13 +4945,14 @@ Create and fill in the contents of the catch block for a coroutine's generated
 try/catch block.  Return the created block.
 */
 {
-  a_statement_ptr block = alloc_statement((a_statement_kind)stmk_block);
+  a_statement_ptr block = alloc_statement(stmk_block,
+                                          /*compiler_generated=*/TRUE);
   a_statement_ptr *handler_stmt = &block->variant.block.statements;
   a_statement_ptr stmt;
 
   block->variant.block.extra_info->assoc_scope = scope_stack_top().il_scope;
   /* Create the if (!initial-await-resume-called) throw; statement. */
-  stmt = alloc_statement((a_statement_kind)stmk_if);
+  stmt = alloc_statement(stmk_if, /*compiler_generated=*/TRUE);
   *handler_stmt = stmt;
   handler_stmt = &stmt->next;
   stmt->parent = block;
@@ -4958,7 +4961,7 @@ try/catch block.  Return the created block.
                     /*is_lvalue=*/FALSE,
                     var_rvalue_expr(cr_desc->init_await_resume));
   stmt->variant.if_stmt.then_statement =
-                                  alloc_statement((a_statement_kind)stmk_expr);
+                       alloc_statement(stmk_expr, /*compiler_generated=*/TRUE);
   stmt = stmt->variant.if_stmt.then_statement;
   stmt->expr = alloc_expr_node((an_expr_node_kind)enk_throw);
   stmt->expr->type = void_type();
@@ -4966,7 +4969,7 @@ try/catch block.  Return the created block.
   stmt->expr->result_is_not_used = TRUE;
   /* Create the unhandled exception call. */
   if (cr_desc->unhandled_exception_call != NULL) {
-    stmt = alloc_statement((a_statement_kind)stmk_expr);
+    stmt = alloc_statement(stmk_expr, /*compiler_generated=*/TRUE);
     *handler_stmt = stmt;
     handler_stmt = &stmt->next;
     stmt->expr = cr_desc->unhandled_exception_call;
@@ -4992,10 +4995,11 @@ Return the statement for the try/catch.
   a_scope_ptr     sp = scope_for_routine(coroutine);
 
   /* Move the function body into the block of the try. */
-  try_catch_stmt = alloc_statement((a_statement_kind)stmk_block);
+  try_catch_stmt = alloc_statement(stmk_block, /*compiler_generated=*/TRUE);
   func_body->parent = try_catch_stmt;
   if (init_suspend != NULL) {
-    a_statement_ptr stmt = alloc_statement((a_statement_kind)stmk_expr);
+    a_statement_ptr stmt = alloc_statement(stmk_expr,
+                                           /*compiler_generated=*/TRUE);
     stmt->expr = init_suspend;
     stmt->parent = try_catch_stmt;
     stmt->next = func_body;
@@ -5004,7 +5008,8 @@ Return the statement for the try/catch.
   try_catch_stmt->variant.block.statements = func_body;
   func_body = try_catch_stmt;
   if (exceptions_enabled) {
-    try_catch_stmt = alloc_statement((a_statement_kind)stmk_try_block);
+    try_catch_stmt = alloc_statement(stmk_try_block,
+                                     /*compiler_generated=*/TRUE);
     try_catch_stmt->variant.try_block->statement = func_body;
     func_body->parent = try_catch_stmt;
     /* Prepare try block scope */
@@ -8006,7 +8011,7 @@ is being parsed within the context of the __extension__ keyword.
     /* Block for a function. */
     set_reachable(curr_reachability);
     control_flow_descr_list = end_of_control_flow_descr_list = NULL;
-    block = alloc_statement((a_statement_kind)stmk_block);
+    block = alloc_statement(stmk_block, /*compiler_generated=*/FALSE);
     block->variant.block.extra_info->end_of_block_reachable = FALSE;
     block->position = pos_curr_token;
     stmt_update_source_sequence_list(block);
@@ -8015,7 +8020,7 @@ is being parsed within the context of the __extension__ keyword.
     /* Push an entry on the structured statement stack. */
     push_stmt_stack(ssk_compound, block, curr_object_lifetime);
   } else if (is_catch_clause) {
-    block = alloc_statement((a_statement_kind)stmk_block);
+    block = alloc_statement(stmk_block, /*compiler_generated=*/FALSE);
     block->position = pos_curr_token;
     stmt_update_source_sequence_list(block);
     /* Issue diagnostics on pragmas that are trying to bind to the catch
@@ -8036,7 +8041,7 @@ is being parsed within the context of the __extension__ keyword.
        not previously pushed. */
     (void)push_scope((a_scope_kind)sck_block, NO_SCOPE_NUMBER,
                      (a_type_ptr)NULL, (a_routine_ptr)NULL);
-    block = alloc_statement((a_statement_kind)stmk_block);
+    block = alloc_statement(stmk_block, /*compiler_generated=*/FALSE);
     block->position = pos_curr_token;
     stmt_update_source_sequence_list(block);
     /* Issue diagnostics on pragmas that are trying to bind to the finally
@@ -8413,7 +8418,7 @@ function try block has to have been established first.
   /* Set the lifetime in the control flow entry. */
   cfdp->variant.block.object_lifetime = curr_object_lifetime;
   add_to_control_flow_descr_list(cfdp);
-  sp = alloc_statement((a_statement_kind)stmk_try_block);
+  sp = alloc_statement(stmk_try_block, /*compiler_generated=*/FALSE);
   sp->variant.try_block->is_function_try_block = TRUE;
   /* Record position information: */
   sp->position = pos_curr_token;

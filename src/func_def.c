@@ -133,7 +133,7 @@ returned to the caller.
   a_statement_ptr    stmt;
 
   db_enter(3, "scan_asm_function_body");
-  stmt = alloc_statement((a_statement_kind)stmk_asm_func_body);
+  stmt = alloc_statement(stmk_asm_func_body, /*compiler_generated=*/FALSE);
   stmt->position = pos_curr_token;
 #if GENERATE_SOURCE_SEQUENCE_LISTS
   add_to_source_sequence_list((char *)stmt, (an_il_entry_kind)iek_statement);
@@ -1167,14 +1167,14 @@ scope that will contain the variable declaration.
     ssep->last_nonstatic_variable = var;
     set_parent_scope(&var->source_corresp, iek_variable, decl_scope);
     /* Allocate the declaration statement. */
-    stmt->next = alloc_statement((a_statement_kind)stmk_decl);
+    stmt->next = alloc_statement(stmk_decl, /*compiler_generated=*/TRUE);
     stmt->next->parent = stmt->parent;
     stmt = stmt->next;
     stmt->variant.decl.entities = alloc_il_entity_list_entry();
     stmt->variant.decl.entities->entity.kind = iek_variable;
     stmt->variant.decl.entities->entity.ptr = (char*)var;
     /* Allocate the initializer statement for the variable. */
-    stmt->next = alloc_statement((a_statement_kind)stmk_init);
+    stmt->next = alloc_statement(stmk_init, /*compiler_generated=*/TRUE);
     stmt->next->parent = stmt->parent;
     stmt = stmt->next;
     stmt->variant.dynamic_init = var->initializer.dynamic;
@@ -1218,7 +1218,7 @@ do nothing and return stmt.
 */
 {
   if (expr != NULL) {
-    stmt->next = alloc_statement((a_statement_kind)stmk_expr);
+    stmt->next = alloc_statement(stmk_expr, /*compiler_generated=*/TRUE);
     stmt->next->parent = stmt->parent;
     stmt = stmt->next;
     stmt->expr = expr;
@@ -1236,7 +1236,7 @@ lifetime, and return that stmt.  If label is NULL, do nothing and return stmt.
 */
 {
   if (label != NULL) {
-    stmt->next = alloc_statement((a_statement_kind)stmk_label);
+    stmt->next = alloc_statement(stmk_label, /*compiler_generated=*/TRUE);
     stmt->next->parent = stmt->parent;
     stmt = stmt->next;
     stmt->variant.label.ptr = label;
@@ -2728,10 +2728,10 @@ routine.
                              make_implicit_this_param_variable(conv_op->type); 
   conv_op->type->variant.routine.extra_info->assoc_routine = conv_op;
   static_entry_pt = get_lambda_static_entry_point(conv_op);
-  return_stmt = alloc_statement((a_statement_kind)stmk_return);
+  return_stmt = alloc_statement(stmk_return, /*compiler_generated=*/TRUE);
   return_stmt->expr = function_addr_expr(static_entry_pt);
   mark_routine_referenced(static_entry_pt);
-  block_stmt = alloc_statement((a_statement_kind)stmk_block);
+  block_stmt = alloc_statement(stmk_block, /*compiler_generated=*/TRUE);
   block_stmt->variant.block.statements = return_stmt;
   block_stmt->variant.block.extra_info->end_of_block_reachable = FALSE;
   fn_scope->assoc_block = block_stmt;
@@ -3115,9 +3115,9 @@ construction (if any is needed).
   }  /* if */
   scope->variant.routine.constructor_inits = cip;
   /* Create a statement block that is empty except for the return statement. */
-  scope->assoc_block = alloc_statement((a_statement_kind)stmk_block);
+  scope->assoc_block = alloc_statement(stmk_block,/*compiler_generated=*/TRUE);
   scope->assoc_block->variant.block.statements =
-          alloc_statement((a_statement_kind)stmk_return);
+                     alloc_statement(stmk_return, /*compiler_generated=*/TRUE);
   /* See if the fact that this constructor is defined forces definition
      of virtual functions of the class. */
   require_definitions_of_virtual_functions_due_to_definition_of(rp);
@@ -3144,9 +3144,9 @@ Create the body for a default destructor.  It will return no value.
   }  /* if */
   /* Create a statement block that is empty except for the return
      statement. */
-  scope->assoc_block = alloc_statement((a_statement_kind)stmk_block);
+  scope->assoc_block = alloc_statement(stmk_block,/*compiler_generated=*/TRUE);
   scope->assoc_block->variant.block.statements =
-          alloc_statement((a_statement_kind)stmk_return);
+                     alloc_statement(stmk_return, /*compiler_generated=*/TRUE);
   /* See if the fact that this destructor is defined forces definition
      of virtual functions of the class. */
   require_definitions_of_virtual_functions_due_to_definition_of(rp);
@@ -3301,7 +3301,7 @@ operator routine or do bitwise assignment.
   err_pos = &class_type->source_corresp.decl_position;
   error_position = *err_pos;
   /* Create the top-level block statement for the function. */
-  top_block = alloc_statement((a_statement_kind)stmk_block);
+  top_block = alloc_statement(stmk_block, /*compiler_generated=*/TRUE);
   scope->assoc_block = top_block;
   /* "head_of_statement_list" is a local statement variable whose only
       interesting property is its "next" field, from which a linked list of
@@ -3462,8 +3462,8 @@ operator routine or do bitwise assignment.
                                          boolean_result_type(),
                                          temp_incr_node);
               /* Make the do-while statement. */
-              sp = sp->next = alloc_statement(
-                                        (a_statement_kind)stmk_end_test_while);
+              sp = sp->next = alloc_statement(stmk_end_test_while,
+                                              /*compiler_generated=*/TRUE);
               sp->parent = top_block;
               sp->expr = compare_node;
               /* Convert the two operands to pointers to the underlying
@@ -3526,7 +3526,7 @@ operator routine or do bitwise assignment.
   }  /* if */
   /* Make the return statement.  A pointer to the variable assigned to is
      the return value. */
-  sp = sp->next = alloc_statement((a_statement_kind)stmk_return);
+  sp = sp->next = alloc_statement(stmk_return, /*compiler_generated=*/TRUE);
   sp->parent = top_block;
   sp->expr = add_reference_to_to_node(
                   add_indirection_to_node(this_param_value_expr()));
@@ -3788,10 +3788,10 @@ where cond is the given expression.
 {
   a_statement_ptr  if_stmt, return_stmt;
 
-  return_stmt = alloc_statement((a_statement_kind)stmk_return);
+  return_stmt = alloc_statement(stmk_return, /*compiler_generated=*/TRUE);
   return_stmt->position = error_position;
   return_stmt->expr = make_zero_expr(boolean_result_type());
-  if_stmt = alloc_statement((a_statement_kind)stmk_if);
+  if_stmt = alloc_statement(stmk_if, /*compiler_generated=*/TRUE);
   if_stmt->position = error_position;
   if_stmt->expr = make_operator_node((an_expr_operator_kind)eok_not,
                                      boolean_result_type(), cond);
@@ -3837,7 +3837,7 @@ given.
 
   error_position = class_type->source_corresp.decl_position;
   /* Create the top-level block statement for the function. */
-  top_block = alloc_statement((a_statement_kind)stmk_block);
+  top_block = alloc_statement(stmk_block, /*compiler_generated=*/TRUE);
   scope->assoc_block = top_block;
   /* "head_of_statement_list" is a local statement variable whose only
       interesting property is its "next" field, from which a linked list of
@@ -3929,7 +3929,8 @@ given.
                                         boolean_result_type(),
                                         temp_incr_node);
       /* Make the do-while statement. */
-      sp->next = alloc_statement((a_statement_kind)stmk_end_test_while);
+      sp->next = alloc_statement(stmk_end_test_while,
+                                 /*compiler_generated=*/TRUE);
       sp = sp->next;
       sp->parent = top_block;
       sp->expr = compare_node;
@@ -3955,7 +3956,7 @@ given.
     }  /* if */
   }  /* for */
   /* Make the final "return true;" statement. */
-  sp->next = alloc_statement((a_statement_kind)stmk_return);
+  sp->next = alloc_statement(stmk_return, /*compiler_generated=*/TRUE);
   sp = sp->next;
   sp->parent = top_block;
   sp->expr = make_one_expr(boolean_result_type());
@@ -3976,13 +3977,13 @@ the operator (which has just been started).
   an_expr_node_ptr  arg1, arg2, cmp;
   a_statement_ptr   top_block, return_stmt;
 
-  top_block = alloc_statement((a_statement_kind)stmk_block);
+  top_block = alloc_statement(stmk_block, /*compiler_generated=*/TRUE);
   scope->assoc_block = top_block;
   make_comparison_args(&arg1, &arg2);
   arg1 = add_indirection_to_node(arg1);
   arg2 = add_indirection_to_node(arg2);
   cmp = make_eq_comparison(arg1, arg2);
-  return_stmt = alloc_statement((a_statement_kind)stmk_return);
+  return_stmt = alloc_statement(stmk_return, /*compiler_generated=*/TRUE);
   return_stmt->position = error_position;
   return_stmt->expr = make_operator_node((an_expr_operator_kind)eok_not,
                                          boolean_result_type(), cmp);
@@ -4017,15 +4018,15 @@ the parent statement for the new statements.  In error cases, return NULL.
     goto done;
   }  /* if */
   /* Allocate the initializer statement for the variable. */
-  init_stmt = alloc_statement((a_statement_kind)stmk_init);
+  init_stmt = alloc_statement(stmk_init, /*compiler_generated=*/TRUE);
   init_stmt->parent = block;
   init_stmt->variant.dynamic_init = vp->initializer.dynamic;
   /* Create the return statement. */
-  return_stmt = alloc_statement((a_statement_kind)stmk_return);
+  return_stmt = alloc_statement(stmk_return, /*compiler_generated=*/TRUE);
   return_stmt->position = error_position;
   return_stmt->expr = var_rvalue_expr(vp);
   /* Place the return statement under an if-statement. */
-  if_stmt = alloc_statement((a_statement_kind)stmk_if);
+  if_stmt = alloc_statement(stmk_if, /*compiler_generated=*/TRUE);
   if_stmt->parent = block;
   if_stmt->position = error_position;
   if_stmt->expr = return_cond;
@@ -4055,7 +4056,7 @@ its associated scope is also given.
 
   error_position = class_type->source_corresp.decl_position;
   /* Create the top-level block statement for the function. */
-  top_block = alloc_statement((a_statement_kind)stmk_block);
+  top_block = alloc_statement(stmk_block, /*compiler_generated=*/TRUE);
   scope->assoc_block = top_block;
   /* "head_of_statement_list" is a local statement variable whose only
       interesting property is its "next" field, from which a linked list of
@@ -4150,7 +4151,8 @@ its associated scope is also given.
                                         boolean_result_type(),
                                         temp_incr_node);
       /* Make the do-while statement. */
-      sp->next = alloc_statement((a_statement_kind)stmk_end_test_while);
+      sp->next = alloc_statement(stmk_end_test_while,
+                                 /*compiler_generated=*/TRUE);
       sp = sp->next;
       sp->parent = top_block;
       sp->expr = compare_node;
@@ -4176,7 +4178,7 @@ its associated scope is also given.
     }  /* if */
   }  /* for */
   /* Make the final return statement, which returns "equal" or "equivalent". */
-  sp->next = alloc_statement((a_statement_kind)stmk_return);
+  sp->next = alloc_statement(stmk_return, /*compiler_generated=*/TRUE);
   sp = sp->next;
   sp->parent = top_block;
   make_defaulted_final_spaceship_return(rtp, sp);
@@ -4198,13 +4200,13 @@ the definition scope of the operator (which has just been started).
   an_expr_node_ptr  arg1, arg2, cmp;
   a_statement_ptr   top_block, return_stmt;
 
-  top_block = alloc_statement((a_statement_kind)stmk_block);
+  top_block = alloc_statement(stmk_block, /*compiler_generated=*/TRUE);
   scope->assoc_block = top_block;
   make_comparison_args(&arg1, &arg2);
   arg1 = add_indirection_to_node(arg1);
   arg2 = add_indirection_to_node(arg2);
   cmp = make_synthesized_rel_op(token_for_rel_op(onk), arg1, arg2);
-  return_stmt = alloc_statement((a_statement_kind)stmk_return);
+  return_stmt = alloc_statement(stmk_return, /*compiler_generated=*/TRUE);
   return_stmt->position = error_position;
   return_stmt->expr = cmp;
   return_stmt->parent = top_block;
@@ -4422,7 +4424,8 @@ is set to TRUE.
     cdp = csp->variant.coroutine.descr;
   } else {
     /* Allocate a new description and associated stmk_coroutine entry. */
-    a_statement_ptr  csp = alloc_statement((a_statement_kind)stmk_coroutine);
+    a_statement_ptr  csp = alloc_statement(stmk_coroutine,
+                                           /*compiler_generated=*/TRUE);
     cdp = alloc_coroutine_descr();
     cdp->position = rp->source_corresp.decl_position;
     csp->variant.coroutine.descr = cdp;

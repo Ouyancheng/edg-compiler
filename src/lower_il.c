@@ -9709,7 +9709,8 @@ local-variable-static-init entry.
                          alloc_dynamic_init((a_dynamic_init_kind)dik_constant);
           dip->variant.constant.ptr = cp;
           dip->variable = variable;
-          stmk_init_stmt = alloc_statement((a_statement_kind)stmk_init);
+          stmk_init_stmt = alloc_statement(stmk_init,
+                                           /*compiler_generated=*/TRUE);
           stmk_init_stmt->variant.dynamic_init = dip;
           add_to_end_of_pending_stmk_init_statements_list(stmk_init_stmt);
         }  /* if */
@@ -16153,7 +16154,8 @@ expression).  This routine is used in lowering both C and C++.
       result_stmt->expr = result_expr;
       /* Allocate a stmk_stmt_expr_result statement for the temporary and
          make it the last statement in the block. */
-      result_stmt = alloc_statement((a_statement_kind)stmk_stmt_expr_result);
+      result_stmt = alloc_statement(stmk_stmt_expr_result,
+                                    /*compiler_generated=*/TRUE);
       result_stmt->expr = var_rvalue_expr(result_var);
       last = last_statement_in_block(block);
       set_insert_location(last, &insert_location);
@@ -18197,7 +18199,7 @@ sure the last expression in the statement expression returns a value:
     expr_type = last_statement->expr->type;
   }  /* if */
   /* Make a copy of the original block. */
-  block_copy = alloc_statement(block->kind);
+  block_copy = alloc_statement(block->kind, /*compiler_generated=*/TRUE);
   copy_statement(block, block_copy);
   /* Turn the original block into an stmk_expr statement. */
   set_statement_kind(block, (a_statement_kind)stmk_expr);
@@ -19198,8 +19200,8 @@ stmk_init statements.
     if (ielep->entity.kind == iek_variable) {
       a_variable_ptr vp = (a_variable_ptr)(ielep->entity.ptr);
       if (vp->init_kind == (an_init_kind)initk_dynamic) {
-        a_statement_ptr init_stmt
-                               = alloc_statement((a_statement_kind)stmk_init);
+        a_statement_ptr init_stmt =
+                       alloc_statement(stmk_init, /*compiler_generated=*/TRUE);
         init_stmt->variant.dynamic_init = vp->initializer.dynamic;
         /* Conservatively set follows_an_exec_statement to TRUE to force
            the initialization to take place immediately before the
@@ -19400,7 +19402,8 @@ statements don't contain an enk_condition).
            before initialization of a condition declaration (if any). */
         an_insert_location  init_block_insert_location;
         a_statement_ptr     init_block_stmt;
-        init_block_stmt = alloc_statement((a_statement_kind)stmk_block);
+        init_block_stmt = alloc_statement(stmk_block,
+                                          /*compiler_generated=*/TRUE);
         insert_statement(init_block_stmt, &insert_location);
         set_block_start_insert_location(init_block_stmt,
                                         &init_block_insert_location);
@@ -19472,13 +19475,13 @@ statements don't contain an enk_condition).
       */
       { a_statement_ptr goto_stmt, if_stmt;
 
-        goto_stmt = alloc_statement((a_statement_kind)stmk_goto);
+        goto_stmt = alloc_statement(stmk_goto, /*compiler_generated=*/TRUE);
         goto_stmt->variant.label.ptr = break_label;
         /* The common lifetime for the goto and label is the lifetime of the
            label. */
         goto_stmt->variant.label.lifetime =
                                 break_label->exec_stmt->variant.label.lifetime;
-        if_stmt = alloc_statement((a_statement_kind)stmk_if);
+        if_stmt = alloc_statement(stmk_if, /*compiler_generated=*/TRUE);
         /* The "if" statement tests the "not" of the value expression. */
         if_stmt->expr = make_operator_node((an_expr_operator_kind)eok_not,
                                          integer_type((an_integer_kind)ik_int),

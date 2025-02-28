@@ -5465,9 +5465,17 @@ Display the indicated statement.
   if (ptr->is_initialization_guard) {
     disp_boolean("is_initialization_guard", TRUE);
   }  /* if */
+  if (ptr->compiler_generated) {
+    disp_boolean("compiler_generated", TRUE);
+  }  /* if */
+#if DO_IL_LOWERING
+  if (ptr->lowering_generated) {
+    disp_boolean("lowering_generated", TRUE);
+  }  /* if */
   if (ptr->is_lowering_boilerplate) {
     disp_boolean("is_lowering_boilerplate", TRUE);
   }  /* if */
+#endif /* DO_IL_LOWERING */
   if (ptr->is_fallthrough_statement) {
     disp_boolean("is_fallthrough_statement", TRUE);
   }  /* if */

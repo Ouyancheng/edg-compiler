@@ -15,6 +15,7 @@ il_alloc.c -- Allocation of intermediate language entries.
 
 /* Header files common to all files. */
 #include "fe_common.h"
+#include "lower_il.h"
 
 #ifdef PCH_PRAGMA_GUARD
 /* Mark the end of the sequence of headers subject to precompiled header
@@ -4202,10 +4203,12 @@ fields to default values.
 }  /* set_statement_kind */
 
 
-a_statement_ptr alloc_statement(a_statement_kind stmt_kind)
+a_statement_ptr alloc_statement(a_statement_kind stmt_kind,
+                                a_boolean        compiler_generated)
 /*
 Allocate a statement entry, clear it to default values, and return a pointer
-to it.  The statement kind is set as indicated.
+to it.  The statement kind is set as indicated, as is the compiler_generated
+flag.
 */
 {
   a_statement_ptr sp;
@@ -4222,7 +4225,12 @@ to it.  The statement kind is set as indicated.
   sp->attributes              = NULL;
   sp->has_associated_pragma   = FALSE;
   sp->is_initialization_guard = FALSE;
+  sp->compiler_generated      = compiler_generated;
+#if DO_IL_LOWERING
+  check_assertion(!(il_lowering_underway && !compiler_generated));
+  sp->lowering_generated      = il_lowering_underway;
   sp->is_lowering_boilerplate = FALSE;
+#endif /* DO_IL_LOWERING */
   sp->is_fallthrough_statement= FALSE;
   sp->is_likely               = FALSE;
   sp->is_unlikely             = FALSE;

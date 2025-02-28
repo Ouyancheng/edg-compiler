@@ -5623,7 +5623,8 @@ be passed down.
 #if FORCE_STORES_OF_VARS_MODIFIED_IN_TRY_BLOCKS
   /* Add a label inside the dependent statement to defeat optimization.
      See comment below. */
-  { a_statement_ptr label_stmt = alloc_statement((a_statement_kind)stmk_label);
+  { a_statement_ptr label_stmt = alloc_statement(stmk_label,
+                                                 /*compiler_generated=*/TRUE);
     label = alloc_label();
     add_to_labels_list(label);
     label_stmt->variant.label.ptr = label;
@@ -5701,7 +5702,7 @@ be passed down.
       compare_node = make_operator_node((an_expr_operator_kind)eok_eq,
                                         catch_clause_number_node->type,
                                         catch_clause_number_node);
-      if_stmt = alloc_statement((a_statement_kind)stmk_if);
+      if_stmt = alloc_statement(stmk_if, /*compiler_generated=*/TRUE);
       if_stmt->position = handler->catch_position;
 #if EXTRA_SOURCE_POSITIONS_IN_IL
       if_stmt->end_position = dep_statement->end_position;
@@ -5769,13 +5770,13 @@ be passed down.
     call_stmt = alloc_expr_statement(call_node);
     /* Add a block statement as the "else" of the last "if" for a catch
        handler. */
-    block_stmt = alloc_statement((a_statement_kind)stmk_block);
+    block_stmt = alloc_statement(stmk_block, /*compiler_generated=*/TRUE);
     prev_if_stmt->variant.if_stmt.else_statement = block_stmt;
     /* Put the call into the block. */
     set_block_start_insert_location(block_stmt, &block_insert_location);
     insert_statement(call_stmt, &block_insert_location);
     /* Put the goto following the call. */
-    goto_stmt = alloc_statement((a_statement_kind)stmk_goto);
+    goto_stmt = alloc_statement(stmk_goto, /*compiler_generated=*/TRUE);
     goto_stmt->variant.label.ptr = label;
     insert_statement(goto_stmt, &block_insert_location);
   }  /* if */

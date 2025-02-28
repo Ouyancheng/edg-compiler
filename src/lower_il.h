@@ -677,6 +677,8 @@ EXTRA_SOURCE_POSITIONS_IN_IL is TRUE.
 #if EXTRA_SOURCE_POSITIONS_IN_IL
 #define set_stmt_pos_to_code_pos_for_lowering(stmt)                       \
 { if ((stmt) != NULL) {                                                   \
+    check_assertion((stmt)->compiler_generated &&                         \
+                    (stmt)->lowering_generated);                          \
     (stmt)->position = code_pos_for_lowering;                             \
     (stmt)->end_position = code_pos_for_lowering;                         \
   }  /* if */                                                             \
@@ -684,6 +686,8 @@ EXTRA_SOURCE_POSITIONS_IN_IL is TRUE.
 #else /* !EXTRA_SOURCE_POSITIONS_IN_IL */
 #define set_stmt_pos_to_code_pos_for_lowering(stmt)                       \
 { if ((stmt) != NULL) {                                                   \
+    check_assertion((stmt)->compiler_generated &&                         \
+                    (stmt)->lowering_generated);                          \
     (stmt)->position = code_pos_for_lowering;                             \
   }  /* if */                                                             \
 }  /* set_stmt_pos_to_code_pos_for_lowering */

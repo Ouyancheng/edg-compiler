@@ -311,7 +311,8 @@ extern a_coroutine_descr_ptr alloc_coroutine_descr(void);
 extern void set_statement_kind(a_statement_ptr  sp,
                                a_statement_kind kind);
 
-extern a_statement_ptr alloc_statement(a_statement_kind stmt_kind);
+extern a_statement_ptr alloc_statement(a_statement_kind stmt_kind,
+                                       a_boolean        compiler_generated);
 
 extern a_constructor_init_ptr alloc_ctor_init(a_constructor_init_kind  kind);
 
