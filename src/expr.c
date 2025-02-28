@@ -34554,7 +34554,7 @@ that case.
           operand_3_is_handle = is_handle_type(operand_3.type);
         }  /* if */
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
-      } else if (nullptr_enabled) {
+      } else if (nullptr_enabled || gcc_version_is(>=150000)) {
         operand_2_is_nullptr = is_nullptr_type(operand_2.type);
         operand_3_is_nullptr = is_nullptr_type(operand_3.type);
       }  /* if */
@@ -41904,6 +41904,17 @@ repeat_switch:
             }  /* if */
             break;
           }  /* if */
+          if (gcc_version_is(>=150000) &&
+              strcmp(hdr->identifier, "nullptr") == 0) {
+            /* gcc version 15.1.0 unconditionally supports the C23 "nullptr"
+               keyword, even in non-C23 modes, if it has not been declared
+               as something else. */
+            a_symbol_locator temp_locator = locator_for_curr_id;
+            if (normal_id_lookup(&temp_locator, IDL_NO_OPTIONS) == NULL) {
+              curr_token = tok_nullptr;
+              goto process_nullptr;
+            }  /* if */
+          }  /* if */
 #if MICROSOFT_EXTENSIONS_ALLOWED
           if (microsoft_mode && cli_or_cx_enabled &&
               hdr == safe_cast_symbol_header) {
@@ -42147,6 +42158,7 @@ handle_identifier:
 #if MICROSOFT_EXTENSIONS_ALLOWED
     case tok_native_nullptr:
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
+process_nullptr:
       { a_type_ptr  tp;
         /* The C++/CLI nullptr keyword has the managed nullptr type; otherwise
            (including the C++/CLI __nullptr keyword and the C++/CX nullptr

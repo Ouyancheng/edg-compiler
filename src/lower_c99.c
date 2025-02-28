@@ -5066,7 +5066,7 @@ Do C99 lowering for a memory region (for the file scope or a function scope).
       lower_c99_fixed_point_types();
     }  /* if */
 #endif /* LOWER_FIXED_POINT */
-    if (nullptr_enabled) {
+    if (nullptr_enabled || gcc_version_is(>=150000)) {
       lower_c99_type(standard_nullptr_type());
     }  /* if */
   }  /* if */

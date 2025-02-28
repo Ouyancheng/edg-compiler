@@ -5330,11 +5330,6 @@ This function is also called in clang mode.
       nodiscard_attribute_enabled = TRUE;
       enumerator_attributes_enabled = TRUE;
     }  /* if */
-    if (gnu_version >= 150000) {
-      /* Note that nullptr_t will only be registered as a keyword in C23
-         mode; gcc 15.1.0's stddef.h defines it as a typedef. */
-      nullptr_enabled = TRUE;
-    }  /* if */
   }  /* if */
 }  /* check_and_set_gcc_mode_options */
 

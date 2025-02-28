@@ -18563,7 +18563,8 @@ static constexpr a_const_char* intrinsic_names[] = {
   "allocate",
   "deallocate",
   "id",
-  "tokens"
+  "tokens",
+  "nullptr"
 };
 
 #define N_INTRINSIC_NAMES \

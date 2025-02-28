@@ -17040,7 +17040,9 @@ point to the character after the pattern.  Otherwise, return FALSE.
         if (!operator_overloading_on_enums_enabled) result = TRUE;
         break;
       case NULLPTR_TYPE_CODE:
-        if (!nullptr_enabled && !clang_mode) result = TRUE;
+        if (!nullptr_enabled && !clang_mode && !gcc_version_is(>150000)) {
+          result = TRUE;
+        }  /* if */
         break;
       case HANDLE_TYPE_CODE:
       case HANDLE_TO_CLI_ARRAY_TYPE_CODE:
