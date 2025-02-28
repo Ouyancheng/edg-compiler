@@ -41916,7 +41916,7 @@ repeat_switch:
             a_symbol_locator temp_locator = locator_for_curr_id;
             if (normal_id_lookup(&temp_locator, IDL_NO_OPTIONS) == NULL) {
               curr_token = tok_nullptr;
-              goto process_nullptr;
+              goto handle_nullptr;
             }  /* if */
           }  /* if */
 #if MICROSOFT_EXTENSIONS_ALLOWED
@@ -42162,7 +42162,7 @@ handle_identifier:
 #if MICROSOFT_EXTENSIONS_ALLOWED
     case tok_native_nullptr:
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
-process_nullptr:
+handle_nullptr:
       { a_type_ptr  tp;
         /* The C++/CLI nullptr keyword has the managed nullptr type; otherwise
            (including the C++/CLI __nullptr keyword and the C++/CX nullptr
