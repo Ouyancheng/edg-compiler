@@ -13708,10 +13708,14 @@ indicated by opstr.
     /* Don't push a scope when the object type is not a class type (it
        might be a dependent type) or when the operator has been changed to
        ",". */
-    if (is_immediate_class_type(operand_1_type) && !use_comma) {
-      push_class_name_context(operand_1_type);
-      curr_name_context->field_selection_context = TRUE;
-      new_name_context = curr_name_context;
+    if (is_immediate_class_type(operand_1_type)) {
+        if (operand_1_type->variant.class_struct_union.proxy_class) {
+          operand_1_type = class_type_supp(operand_1_type)->proxy_of_type;
+        } else if (!use_comma) {
+          push_class_name_context(operand_1_type);
+          curr_name_context->field_selection_context = TRUE;
+          new_name_context = curr_name_context;
+        }  /* if */
     }  /* if */
   }  /* if */
   /* Put out the operator. */

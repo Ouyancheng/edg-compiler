@@ -1,5 +1,20 @@
 Version 6.8
 
+3/1/25   [EDGcpfe/27994]
+C++-generating back end: missing "typename" keyword in dependent conversion
+operator
+
+In configurations in which template definitions are generated from the
+prototype instantiation IL, the C++-generating back end incorrectly omitted
+the "typename" keyword when naming a dependent conversion operator.  This is
+now fixed.  For example, with --strict:
+
+  template<typename T> void f() {
+    T t;
+    t.operator typename T::X();   // Previously generated as t.T::operator X()
+  }
+
+
 2/28/25  [EDGcpfe/27791]
 New compiler_generated field for a_statement
 
