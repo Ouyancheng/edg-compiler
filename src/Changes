@@ -119,7 +119,7 @@ changed accordingly when gnu_version is at least 150000.  For example, with
 
 
 2/25/25  [EDGcpfe/27958]
-Abort in gen_expr (cp_gen_be.c) on enk_initializer node
+C++-generating back end: Abort in gen_expr on enk_initializer node
 
 The C++-generating back end sometimes aborted with an internal error in
 gen_expr (cp_gen_be.c) on an enk_initializer node (which represents a constant-
@@ -134,7 +134,8 @@ initializer.  For example:
     constexpr S s = S(1);  // Previously triggered an internal error.
   }
 
-This is now fixed.
+This regression is now fixed (it was introduced in version 6.7 by the changes
+for EDGcpfe/27456.
 
 
 2/25/25  [EDGcpfe/27960,EDGcpfe/27983]
