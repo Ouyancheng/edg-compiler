@@ -1,12 +1,11 @@
 Version 6.8
 
 3/1/25   [EDGcpfe/27994]
-C++-generating back end: missing "typename" keyword in dependent conversion
-operator
+C++-generating back end: incorrect dependent conversion operator name
 
 In configurations in which template definitions are generated from the
-prototype instantiation IL, the C++-generating back end incorrectly omitted
-the "typename" keyword when naming a dependent conversion operator.  This is
+prototype instantiation IL, the C++-generating back end produced invalid
+output when naming the type in a dependent conversion operator.  This is
 now fixed.  For example, with --strict:
 
   template<typename T> void f() {
