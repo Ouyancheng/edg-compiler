@@ -1,5 +1,12 @@
 Version 6.8
 
+3/3/25   [EDGcpfe/27999]
+GNU C compatibility: default mode is C23
+
+When gnu_version >= 150000, the default version of the C standard emulated
+is now C23 to match a similar change with GNU 15.0.0.
+
+
 3/1/25   [EDGcpfe/27994]
 C++-generating back end: incorrect dependent conversion operator name
 

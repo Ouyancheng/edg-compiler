@@ -3713,7 +3713,9 @@ setting is used, and to set various unmentioned settings as needed.
           std_version = 201112;
         }  /* if */
       } else {
-        if (gnu_version >= 80000) {
+        if (gnu_version >= 150000) {
+          std_version = 202311;
+        } else if (gnu_version >= 80000) {
           std_version = 201710;
         } else if (gnu_version >= 50000) {
           std_version = 201112;
