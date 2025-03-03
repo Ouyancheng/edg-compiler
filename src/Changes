@@ -142,7 +142,7 @@ initializer.  For example:
   }
 
 This regression is now fixed (it was introduced in version 6.7 by the changes
-for EDGcpfe/27456.
+for EDGcpfe/27456).
 
 
 2/25/25  [EDGcpfe/27960,EDGcpfe/27983]
