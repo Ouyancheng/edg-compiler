@@ -35274,8 +35274,10 @@ given name and type in that class.  Return a pointer to the field's IL entry.
 
 a_type_ptr make_va_list_tag_type(void)
 /*
-Create and return the __va_list_tag struct type that is predefined by certain
-64-bit GCC implementations.  The class is defined as follows:
+Create and return the __va_list or __va_list_tag struct type that is predefined
+by certain x86-64 and ARM32/ARM64 GCC implementations.
+
+For x86-64, the class is defined as follows:
 
        struct __va_list_tag {
          unsigned int  gp_offset;
@@ -35284,11 +35286,27 @@ Create and return the __va_list_tag struct type that is predefined by certain
          void          *reg_save_area;
        };
 
+For ARM64, the class is defined as follows:
+
+       struct __va_list {
+         void  *__stack;
+         void  *__gr_top;
+         void  *__vr_top;
+         int   gr_offs;
+         int   vr_offs;
+       };
+
+For ARM32, the class is defined as follows:
+
+       struct __va_list {
+         void  *__ap;
+       };
+
 */
 {
   a_class_def_state              class_state;
   a_symbol_ptr                   sym;
-  a_type_ptr                     type, uint_type, voidptr_type;
+  a_type_ptr                     type, voidptr_type;
   a_class_symbol_supplement_ptr  cssp;
 #if GENERATE_SOURCE_SEQUENCE_LISTS
   a_boolean                      saved_source_sequence_entries_disallowed =
@@ -35300,8 +35318,16 @@ Create and return the __va_list_tag struct type that is predefined by certain
   /* Don't issue source sequence entries for generated entities. */
   source_sequence_entries_disallowed = TRUE;
 #endif /* GENERATE_SOURCE_SEQUENCE_LISTS */
-  /* Create a struct with name __va_list_tag. */
-  type = init_predeclared_class((a_type_kind)tk_struct, "__va_list_tag");
+  if (!C_mode() && target_is_arm_based()) {
+    /* On ARM platforms, the struct is a member of namespace std. */
+    a_namespace_ptr  std_namespace =
+                          symbol_for_namespace_std->variant.namespace_info.ptr;
+    (void)push_namespace_scope(sck_namespace_extension, std_namespace);
+  }  /* if */
+  /* Create a struct with name __va_list or __va_list_tag. */
+  type = init_predeclared_class(tk_struct,
+                                target_is_x86_based() ? "__va_list_tag"
+                                                      : "__va_list");
   enter_predeclared_class(type, DEPTH_OF_FILE_SCOPE, &null_source_position);
   class_type_supp(type)->is_va_list_tag = TRUE;
   sym = symbol_for(type);
@@ -35315,16 +35341,30 @@ Create and return the __va_list_tag struct type that is predefined by certain
                         type, (a_routine_ptr)NULL);
   scope_stack_top().class_def_state = &class_state;
   /* Add the fields. */
-  uint_type = integer_type((an_integer_kind)ik_unsigned_int);
-  (void)add_field_to_generated_type("gp_offset", uint_type);
-  (void)add_field_to_generated_type("fp_offset", uint_type);
   voidptr_type = make_pointer_type(void_type());
-  (void)add_field_to_generated_type("overflow_arg_area", voidptr_type);
-  (void)add_field_to_generated_type("reg_save_area", voidptr_type);
+  if (target_is_x86_based()) {
+    a_type_ptr  uint_type = integer_type(ik_unsigned_int);
+    (void)add_field_to_generated_type("gp_offset", uint_type);
+    (void)add_field_to_generated_type("fp_offset", uint_type);
+    (void)add_field_to_generated_type("overflow_arg_area", voidptr_type);
+    (void)add_field_to_generated_type("reg_save_area", voidptr_type);
+  } else if (target_is_64_bits()) {
+    a_type_ptr  int_type = integer_type(ik_int);
+    (void)add_field_to_generated_type("__stack", voidptr_type);
+    (void)add_field_to_generated_type("__gr_top", voidptr_type);
+    (void)add_field_to_generated_type("__vr_top", voidptr_type);
+    (void)add_field_to_generated_type("__gr_offs", int_type);
+    (void)add_field_to_generated_type("__vr_offs", int_type);
+  } else {
+    (void)add_field_to_generated_type("__ap", voidptr_type);
+  }  /* if */
   /* Wrap up the definition. */
   complete_class_definition(type, DEPTH_OF_FILE_SCOPE, &class_state);
   sym->defined = TRUE;
   pop_scope();
+  if (!C_mode() && target_is_arm_based()) {
+    pop_namespace_scope();
+  }  /* if */
 #if GENERATE_SOURCE_SEQUENCE_LISTS
   /* Restore the previous state wrt. generating source sequence entries. */
   source_sequence_entries_disallowed =

@@ -2006,7 +2006,8 @@ or enum.  This is always a reference/declaration, never a definition.
 #endif /* C_GEN_BE_GENERATES_ANSI_C */
   /* Do not insert code here. */
   if (gcc_or_clang_is_generated_code_target && is_immediate_class_type(type) &&
-      !target_is_32_bit_x86_based() && class_type_supp(type)->is_va_list_tag) {
+      target_is_x86_based() && target_is_64_bits() &&
+      class_type_supp(type)->is_va_list_tag) {
     /* The predefined struct __va_list_tag is necessarily distinct from,
        and hence not compatible with, the type used internally by gcc as
        the base of __builtin_va_list.  Use the typedef that was defined in
@@ -3945,7 +3946,7 @@ pass), dump typedefs, and structs/unions as definitions (if they are defined).
 #endif /* MAINTAIN_NEEDED_FLAGS */
 #if GNU_EXTENSIONS_ALLOWED && GCC_BUILTIN_VARARGS
       if (gcc_or_clang_is_generated_code_target &&
-          !target_is_32_bit_x86_based() &&
+          target_is_x86_based() && target_is_64_bits() &&
           class_type_supp(type)->is_va_list_tag) {
         /* The predeclared struct __va_list_tag is necessarily distinct
            from, and hence not compatible with, the type used internally by

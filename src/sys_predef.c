@@ -1096,7 +1096,10 @@ instead of being mapped on an actual header file.
     /* Use type_underlying_va_list if it has been configured. */
     tp = type_underlying_va_list;
   } else {
-    if (!target_is_32_bit_x86_based() && !ms_compat) {
+    if (target_is_arm_based() && !ms_compat) {
+      /* The ARM __builtin_va_list type is struct __va_list. */
+      tp = make_va_list_tag_type();
+    } else if (!target_is_32_bit_x86_based() && !ms_compat) {
       /* The x86-64 __builtin_va_list type is defined as follows:
            struct __va_list_tag {
              unsigned int  gp_offset;
@@ -1129,9 +1132,10 @@ static void enter_builtin_va_list_type(void)
 Enter a predefined type __builtin_va_list.
 */
 {
-  /* On most 32-bit GCC implementations __builtin_va_list is a type compatible
+  /* On 32-bit x86 GCC implementations, __builtin_va_list is a type compatible
      with char*.  On x86-64 (at least on Linux), __builtin_va_list is an array
-     of one element of struct type. */
+     of one element of struct type, and on ARM32/ARM64, __builtin_va_list is a
+     struct type. */
   builtin_va_list_type = enter_predefined_typedef("__builtin_va_list",
                                                   get_default_va_list_type());
   builtin_va_list_type->is_builtin_va_list = TRUE;
