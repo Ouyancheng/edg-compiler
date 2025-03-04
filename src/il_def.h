@@ -8760,8 +8760,8 @@ typedef struct a_class_type_supplement {
 			   cause a vtable to be emitted in a given translation
 			   unit. */
   a_bit_field   is_va_list_tag:1;
-			/* TRUE if this class is the __va_list_tag class used
-			   to implement __builtin_va_list on some 64-bit
+			/* TRUE if this class is the __va_list_tag or __va_list
+			   class used to implement __builtin_va_list on some
 			   systems.  This class is given special treatment
 			   during name lookup (where it is exempt from
 			   argument-dependent name lookup) and in the

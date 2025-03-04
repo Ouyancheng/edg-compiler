@@ -2006,13 +2006,16 @@ or enum.  This is always a reference/declaration, never a definition.
 #endif /* C_GEN_BE_GENERATES_ANSI_C */
   /* Do not insert code here. */
   if (gcc_or_clang_is_generated_code_target && is_immediate_class_type(type) &&
-      target_is_x86_based() && target_is_64_bits() &&
-      class_type_supp(type)->is_va_list_tag) {
-    /* The predefined struct __va_list_tag is necessarily distinct from,
-       and hence not compatible with, the type used internally by gcc as
-       the base of __builtin_va_list.  Use the typedef that was defined in
-       dump_type_decl in its place. */
-    write_tok_str("__va_list_tag_type");
+      !target_is_32_bit_x86_based() && class_type_supp(type)->is_va_list_tag) {
+    /* The predefined struct __va_list_tag or struct __va_list is necessarily
+       distinct from, and hence not compatible with, the type used internally
+       by gcc as the base of __builtin_va_list.  Use the typedef that was
+       defined in dump_type_decl in its place. */
+    if (target_is_x86_based()) {
+      write_tok_str("__va_list_tag_type");
+    } else {
+      write_tok_str("__va_list_type");
+    }  /* if */
   } else {
     /* Put out a reference to the tag by name.  Note that unnamed tags will
        have been given compiler-generated names so they can be referred to. */
@@ -3946,16 +3949,21 @@ pass), dump typedefs, and structs/unions as definitions (if they are defined).
 #endif /* MAINTAIN_NEEDED_FLAGS */
 #if GNU_EXTENSIONS_ALLOWED && GCC_BUILTIN_VARARGS
       if (gcc_or_clang_is_generated_code_target &&
-          target_is_x86_based() && target_is_64_bits() &&
+          !target_is_32_bit_x86_based() &&
           class_type_supp(type)->is_va_list_tag) {
-        /* The predeclared struct __va_list_tag is necessarily distinct
-           from, and hence not compatible with, the type used internally by
-           gcc as the base of __builtin_va_list.  Define a typedef that
-           refers to the gcc type; it will be used instead of the
-           predeclared struct __va_list_tag. */
+        /* The predeclared struct __va_list_tag or struct __va_list is
+           necessarily distinct from, and hence not compatible with, the type
+           used internally by gcc as the base of __builtin_va_list.  Define a
+           typedef that refers to the gcc type; it will be used instead of the
+           predeclared struct __va_list_tag or struct __va_list. */
         if (pass == 2 && output_defn) {
-          write_tok_str("typedef typeof(((__builtin_va_list*)0)[0][0]) ");
-          write_tok_str("__va_list_tag_type;");
+          if (target_is_x86_based()) {
+            write_tok_str("typedef typeof(((__builtin_va_list*)0)[0][0]) ");
+            write_tok_str("__va_list_tag_type;");
+          } else {
+            write_tok_str("typedef typeof(*(__builtin_va_list*)0) ");
+            write_tok_str("__va_list_type;");
+          }  /* if */
         }  /* if */
       } else
 #endif /* GNU_EXTENSIONS_ALLOWED && GCC_BUILTIN_VARARGS */
