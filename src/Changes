@@ -166,7 +166,7 @@ changed accordingly when gnu_version is at least 150000.  For example, with
   void *p = nullptr;   // Now accepted in non-C23 GNU C modes
 
 
-2/25/25  [EDGcpfe/27958]
+2/25/25  [EDGcpfe/27958,EDGcpfe/27992]
 C++-generating back end: Abort in gen_expr on enk_initializer node
 
 The C++-generating back end sometimes aborted with an internal error in
