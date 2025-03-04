@@ -49887,10 +49887,12 @@ memory region).  Do various error checks.
         if (scope_for_local_ref == NULL &&
             scope_stack_top().kind == sck_function_access) {
           a_scope_depth orig_depth = scope_stack_top().orig_access_depth;
-          a_scope_depth func_depth =
+          if (orig_depth != NO_SCOPE_DEPTH) {
+            a_scope_depth func_depth =
                         scope_stack[orig_depth].depth_innermost_function_scope;
-          if (func_depth != NO_SCOPE_DEPTH) {
-            scope_for_local_ref = scope_stack[func_depth].il_scope;
+            if (func_depth != NO_SCOPE_DEPTH) {
+              scope_for_local_ref = scope_stack[func_depth].il_scope;
+            }  /* if */
           }  /* if */
         }  /* if */
         expr = constant->expr;
