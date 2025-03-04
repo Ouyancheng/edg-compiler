@@ -13709,7 +13709,7 @@ indicated by opstr.
        might be a dependent type) or when the operator has been changed to
        ",". */
     if (is_immediate_class_type(operand_1_type)) {
-      a_boolean use_proxy_type = FALSE;
+      a_boolean use_proxied_type = FALSE;
       if (operand_1_type->variant.class_struct_union.proxy_class) {
         if (is_constant_node(operand_2)) {
           a_constant_ptr cp = node_constant(operand_2);
@@ -13718,12 +13718,17 @@ indicated by opstr.
             a_type_ptr conv_type = cp->variant.template_param.
                                       variant.unknown_function.conversion_type;
             if (conv_type != NULL && type_is(conv_type, tk_template_param)) {
-              use_proxy_type = TRUE;
+              /* For a dependent conversion function, we must use the
+                 original dependent type instead of its proxy class.  If we
+                 use the proxy class, the output will be something like
+                 "t.T::operator U()" instead of the correct form,
+                 "t.T::operator typename T::U()". */
+              use_proxied_type = TRUE;
             }  /* if */
           }  /* if */
         }  /* if */
       }  /* if */
-      if (use_proxy_type) {
+      if (use_proxied_type) {
         operand_1_type = class_type_supp(operand_1_type)->proxy_of_type;
       } else if (!use_comma) {
         push_class_name_context(operand_1_type);
