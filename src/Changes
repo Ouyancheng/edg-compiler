@@ -1,5 +1,22 @@
 Version 6.8
 
+3/3/25   [EDGcpfe/27858]
+C++_generating back end: explicit function template argument with local
+variable
+
+In cases when the first use of an instance of a function template uses an
+explicit template argument that refers to a local variable, the
+C++-generating back end put out the template argument using the value of
+the variable instead of its name.  This is now fixed.  For example, with
+--c++14:
+
+  template <bool a> bool f();
+  void g() {
+    constexpr bool b = false;
+    f<b>();   // Previously generated as f<false>()
+  }
+
+
 3/3/25   [EDGcpfe/27999]
 GNU C compatibility: default mode is C23
 

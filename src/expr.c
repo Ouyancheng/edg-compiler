@@ -49883,20 +49883,30 @@ memory region).  Do various error checks.
         make_error_operand(operand);
         extract_constant_from_operand(operand, constant);
       } else {
+        a_scope_ptr scope_for_local_ref = innermost_function_scope;
+        if (scope_for_local_ref == NULL &&
+            scope_stack_top().kind == sck_function_access) {
+          a_scope_depth orig_depth = scope_stack_top().orig_access_depth;
+          a_scope_depth func_depth =
+                        scope_stack[orig_depth].depth_innermost_function_scope;
+          if (func_depth != NO_SCOPE_DEPTH) {
+            scope_for_local_ref = scope_stack[func_depth].il_scope;
+          }  /* if */
+        }  /* if */
         expr = constant->expr;
         do_fs_constant_fixup(constant);
         if (expr != NULL && !in_file_scope(expr) &&
 #if GENERATE_SOURCE_SEQUENCE_LISTS
             !expr_stack->statement_expression_seen &&
 #endif /* GENERATE_SOURCE_SEQUENCE_LISTS */
-            innermost_function_scope != NULL) {
+            scope_for_local_ref != NULL) {
           /* Refer to the underlying expression indirectly since it lives in
              function scope memory.  (Discard the expression if a statement
              expression and source sequence entries are recorded, because no
              source sequence entries could be recorded for a template
              argument.) */
           make_local_expr_node_ref(expr, lerk_constant_expr, (char*)constant,
-                                   innermost_function_scope);
+                                   scope_for_local_ref);
         }  /* if */
       }  /* if */
     }  /* if */
