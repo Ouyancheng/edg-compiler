@@ -1,5 +1,29 @@
 Version 6.8
 
+3/5/25   [EDGcpfe/28000,EDGcpfe/28002]
+Typedef of unnamed enum accidentally made invisible in Microsoft bugs mode
+
+The changes for EDGcpfe/24484,EDGcpfe/26840 interacted unexpectedly with the
+changes for EDGcpfe/8651, causing a typedef of an unnamed enumeration type to
+become invisible and the enumeration to instead have the name of the typedef.
+For example, this resulted in the following being accidentally accepted in
+Microsoft bugs mode:
+
+  typedef enum {} E;
+  double E = 1.0;  // Should be an error, but accidentally accepted in
+                   // Microsoft bugs mode.
+
+This also resulted in an undesirable IL change in cases like the following:
+
+  typedef enum {} E;
+  E x;
+
+where in Microsoft bugs mode the representation of x pointed to the
+representation of the enumeration type directly, whereas previously it pointed
+to the representation of the typedef type.  This regression (introduced in
+version 6.7 of the front end) is now fixed.
+
+
 3/3/25   [EDGcpfe/27858]
 C++_generating back end: explicit function template argument with local
 variable

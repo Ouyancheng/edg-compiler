@@ -12616,8 +12616,10 @@ symbol entry, and return a pointer to it in state->sym.
            Enumeration types are treated similarly. */
         a_type_ptr  unqual_type = skip_typerefs(type_ptr);
         if (((is_immediate_class_type(unqual_type) &&
-              !unqual_type->variant.class_struct_union.is_template_class) ||
-             is_immediate_enum_type(unqual_type)) &&
+              !unqual_type->variant.class_struct_union.is_template_class &&
+              !unqual_type->variant.class_struct_union.originally_unnamed) ||
+             (is_immediate_enum_type(unqual_type) &&
+              !unqual_type->variant.class_struct_union.originally_unnamed)) &&
             symbol_for(unqual_type)->header == sym->header &&
             symbol_for(unqual_type)->decl_scope == sym->decl_scope &&
             identical_types(tp, unqual_type)) {
