@@ -13709,13 +13709,27 @@ indicated by opstr.
        might be a dependent type) or when the operator has been changed to
        ",". */
     if (is_immediate_class_type(operand_1_type)) {
-        if (operand_1_type->variant.class_struct_union.proxy_class) {
-          operand_1_type = class_type_supp(operand_1_type)->proxy_of_type;
-        } else if (!use_comma) {
-          push_class_name_context(operand_1_type);
-          curr_name_context->field_selection_context = TRUE;
-          new_name_context = curr_name_context;
+      a_boolean use_proxy_type = FALSE;
+      if (operand_1_type->variant.class_struct_union.proxy_class) {
+        if (is_constant_node(operand_2)) {
+          a_constant_ptr cp = node_constant(operand_2);
+          if (constant_is(cp, ck_template_param) &&
+              tpck_is(cp, tpck_unknown_function)) {
+            a_type_ptr conv_type = cp->variant.template_param.
+                                      variant.unknown_function.conversion_type;
+            if (conv_type != NULL && type_is(conv_type, tk_template_param)) {
+              use_proxy_type = TRUE;
+            }  /* if */
+          }  /* if */
         }  /* if */
+      }  /* if */
+      if (use_proxy_type) {
+        operand_1_type = class_type_supp(operand_1_type)->proxy_of_type;
+      } else if (!use_comma) {
+        push_class_name_context(operand_1_type);
+        curr_name_context->field_selection_context = TRUE;
+        new_name_context = curr_name_context;
+      }  /* if */
     }  /* if */
   }  /* if */
   /* Put out the operator. */
