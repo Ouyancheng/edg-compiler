@@ -26699,12 +26699,11 @@ if the caller has determined that reinterpret_cast expressions can be folded
                                      in_file_scope(dip->variant.expression)) {
           result_con->expr = dip->variant.expression;
         } else {
-          a_dynamic_init  *new_dip = alloc_dynamic_init(dip->kind);
-          *new_dip = *dip;
-          result_con->expr = alloc_expr_node(enk_initializer);
+          result_con->expr =
+                          alloc_expr_node((an_expr_node_kind)enk_initializer);
           result_con->expr->type = result_type;
           result_con->expr->position = *pos;
-          result_con->expr->variant.initializer.dyn_init = new_dip;
+          result_con->expr->variant.initializer.dyn_init = dip;
         }  /* if */
         /* Transfer some properties from the dynamic init entry to the constant
            representation. */

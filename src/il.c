@@ -16833,20 +16833,22 @@ constant according to P2686R4 (which is slated for inclusion in C++26).
 }  /* is_cpp26_local_address_constant */
 
 
-static void fold_dynamic_var_init_if_possible(a_dynamic_init_ptr  *p_dip,
-                                              a_type_ptr          dest_type)
+static a_constant_ptr fold_dynamic_var_init_if_possible(
+                                                a_dynamic_init_ptr  dip,
+                                                a_type_ptr          dest_type)
 /*
-If the given dynamic initialization entry can be folded to a constant, replace
-it by a corresponding dik_constant entry.  If the resulting constant is the
-address of a local variable or of a temporary, do not perform the folding.
-This function has no effect if *p_dip already is a dik_constant entry.
-dest_type is the type being initialized.
+If the given dynamic initialization entry can be folded to a constant, return
+a pointer to a constant entry representing the folded value.  Otherwise, return
+NULL.  dest_type is the type being initialized.  If dip points to an entry in
+file-scope memory, the returned constant (if any) is also allocated in
+file-scope memory; otherwise, it is allocated in the current memory region.
 */
 {
-  a_dynamic_init_ptr  dip = *p_dip;
+  a_constant_ptr  result = NULL;
 
-  if (constexpr_enabled && !dyn_init_is(dip, dik_constant) &&
-      !is_template_dependent_type(dest_type)) {
+  if (dyn_init_is(dip, dik_constant)) {
+    result = dip->variant.constant.ptr;
+  } else if (constexpr_enabled && !is_template_dependent_type(dest_type)) {
     a_constant_ptr          folded_value = local_constant();
     a_diag_list             diag_list;
     a_variable_ptr          var = dip->variable;
@@ -16877,10 +16879,9 @@ dest_type is the type being initialized.
           address_base_is(folded_value, abk_temporary)) &&
         (is_static_init_constant(folded_value) ||
          is_cpp26_local_address_constant(folded_value))) {
-      set_dynamic_init_kind(*p_dip, dik_constant);
-      set_dynamic_init_constant(*p_dip,
-                                move_local_constant_to_il(&folded_value));
-      (*p_dip)->variable = var;
+      /* Allocate a new entry, because the original entry may be pointed to
+         indirectly by folded_value. */
+      result = move_local_constant_to_il(&folded_value);
     }  /* if */
     discard_more_info_list(&diag_list);
     if (folded_value != NULL) {
@@ -16894,6 +16895,7 @@ dest_type is the type being initialized.
       var->init_kind = init_kind;
     }  /* if */
   }  /* if */
+  return result;
 }  /* fold_dynamic_var_init_if_possible */
 
 #endif /* !STANDALONE_UTILITY_PROGRAM */
@@ -16910,22 +16912,21 @@ constant; otherwise, return NULL.
 
   /* Get the initializer and check if it is a constant. */
   get_variable_initializer(var, (a_scope_ptr)NULL, &init_kind, &init);
-  if (init_kind == (an_init_kind)initk_static) {
+  if (init_kind == initk_static) {
     /* The variable has a constant initial value. */
     con_val = init->constant;
-  } else if (init_kind == (an_init_kind)initk_dynamic) {
+  } else if (init_kind == initk_dynamic) {
 #if !STANDALONE_UTILITY_PROGRAM
-    fold_dynamic_var_init_if_possible(&init->dynamic, var->type);
+    con_val = fold_dynamic_var_init_if_possible(init->dynamic, var->type);
 #endif /* !STANDALONE_UTILITY_PROGRAM */
-    if (init->dynamic->kind == (a_dynamic_init_kind)dik_constant) {
-      /* The variable is dynamically initialized to a constant. */
-      con_val = init->dynamic->variant.constant.ptr;
+    if (con_val != NULL) {
+      /* We already established the constant value. */
 #if !STANDALONE_UTILITY_PROGRAM
     } else if (var->is_template_variable || is_template_dependent_context()) {
       /* Check for a dependent initialization that might be constant in an
          instantiation. */
       an_expr_node_ptr expr = NULL;
-      if (init->dynamic->kind == (a_dynamic_init_kind)dik_expression) {
+      if (dyn_init_is(init->dynamic, dik_expression)) {
         /* Check for a dependent expression that might be a constant in an
            instantiation. */
         expr = init->dynamic->variant.expression;
@@ -16937,7 +16938,7 @@ constant; otherwise, return NULL.
           /* Not a potential constant expression. */
           expr = NULL;
         }  /* if */
-      } else if (init->dynamic->kind == (a_dynamic_init_kind)dik_constructor &&
+      } else if (dyn_init_is(init->dynamic, dik_constructor) &&
                  is_template_param_or_nonreal_class_type(var->type)) {
         /* A constructor call to a dependent type.  Create an enk_temp_init
            node referring to this dynamic initializer and use that as the
@@ -16955,9 +16956,8 @@ constant; otherwise, return NULL.
       }  /* if */
 #endif /* !STANDALONE_UTILITY_PROGRAM */
     }  /* if */
-  } else if (init_kind == (an_init_kind)initk_binding) {
+  } else if (init_kind == initk_binding) {
     /* Bindings cannot currently produce constant values. */
-    con_val = NULL;
   }  /* if */
   return con_val;
 }  /* initializer_constant */
