@@ -1,5 +1,14 @@
 Version 6.8
 
+3/5/25   [EDGcpfe/27525]
+GCC/Clang compatibility: Support va_list on ARM platforms
+
+Previously, the predefined type used for va_list in GCC/Clang mode on ARM
+platforms mode was the same as that on 64-bit x86 platforms (i.e., a
+one-element array of struct __va_list_tag).  Now, the predefined type used for
+va_list on ARM platforms is struct __va_list.
+
+
 3/5/25   [EDGcpfe/28000,EDGcpfe/28002]
 Typedef of unnamed enum accidentally made invisible in Microsoft bugs mode
 

@@ -35292,8 +35292,8 @@ For ARM64, the class is defined as follows:
          void  *__stack;
          void  *__gr_top;
          void  *__vr_top;
-         int   gr_offs;
-         int   vr_offs;
+         int   __gr_offs;
+         int   __vr_offs;
        };
 
 For ARM32, the class is defined as follows:
