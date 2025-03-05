@@ -1,5 +1,21 @@
 Version 6.8
 
+3/5/25   [EDGcpfe/27989]
+Abort on indirection through pointer outside of array bounds
+
+In some modes and configurations, constant evaluation failed to diagnose
+certain out-of-bound access to array elements.  In turn, this could lead to
+aborts due to invalid memory accesses.  For example, in GNU C++ mode:
+
+  constexpr char str[] = "12345";
+  constexpr char const *p = c;
+  constexpr char c = *(p-1);  // Previously could abort.  Now an error.
+
+This problem was present in the constant evaluator (interpret.c) for a while,
+but changes in version 6.7 of the front end caused different cases to trigger
+this bug, thus making it appear as a regression.  This is now fixed.
+
+
 3/5/25   [EDGcpfe/28009]
 Folding of floating-point builtins had caused undefined behavior
 

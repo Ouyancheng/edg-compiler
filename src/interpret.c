@@ -2415,7 +2415,7 @@ stack.  Use the given types to replace fill-ins.
 
 static void info_with_pos_num(an_error_code         err_code,
                               a_source_position     *pos,
-                              uint32_t              num,
+                              int32_t               num,
                               an_interpreter_state  *ips)
 /*
 Record the given error code at the given position as a diagnostic annotation
@@ -2432,8 +2432,8 @@ stack.
 
 static void info_with_pos_num2(an_error_code         err_code,
                                a_source_position     *pos,
-                               uint32_t              num1,
-                               uint32_t              num2,
+                               int32_t               num1,
+                               int32_t               num2,
                                an_interpreter_state  *ips)
 /*
 Record the given error code at the given position as a diagnostic annotation
@@ -2751,7 +2751,7 @@ describing the problem.
 {
   if (is_array_element(addr)) {
     info_with_pos_num(ec_constexpr_access_one_past_array_end, &expr->position, 
-                      addr->length, ips);
+                      (int32_t)addr->length, ips);
   } else {
     info_with_pos(ec_constexpr_access_past_object, &expr->position, ips);
   }  /* if */
@@ -4965,10 +4965,19 @@ variant path.
       }  /* if */
       check_assertion(result);
       i_offset = (a_byte_count)spp->variant.ptr_offset*elem_size;
-      if (array_size == i_offset) {
-        /* This is a "one past the end" pointer. */
-        cap->flags |= CA_CANNOT_DEREFERENCE;
-        check_assertion(spp->next == NULL);
+      if (i_offset >= array_size || i_offset < 0) {
+        if (i_offset == array_size) {
+          /* This is a "one past the end" pointer. */
+          cap->flags |= CA_CANNOT_DEREFERENCE;
+          check_assertion(spp->next == NULL);
+        } else {
+          /* Out of bounds. */
+          do_constexpr_fail(result);
+          info_with_pos_num2(ec_constexpr_out_of_bounds_array_access,
+                             &ips->position,
+                             (int32_t)spp->variant.ptr_offset,
+                             (int32_t)array_size/elem_size, ips);
+        }  /* if */
       }  /* if */
     } else if (spp->is_base_class) {
       a_base_class_ptr  base_class = spp->variant.base_class;
@@ -10349,8 +10358,8 @@ See do_constexpr_intrinsic_call for the meaning of the parameters.
     if (ovfl || n_elems > (a_host_large_integer)(len-pos)) {
       do_constexpr_fail(result);
       info_with_pos_num2(ec_constexpr_length_too_long_for_make_constexpr_array,
-                         &call_node->position, (a_byte_count)n_elems, len-pos,
-                         ips);
+                         &call_node->position, (int32_t)n_elems,
+                         (int32_t)(len-pos), ips);
       goto done;
     } else if (n_elems == 0) {
       do_constexpr_fail(result);
@@ -14333,7 +14342,7 @@ See do_constexpr_intrinsic_call for the meaning of the parameters.
     if (ovfl || idx > (1<<30)) {
       do_constexpr_fail(result);
       info_with_pos_num(ec_tuple_index_overflow, &call_node->position,
-                        (a_byte_count)idx, ips);
+                        (int32_t)idx, ips);
     } else {
       result_tp = get_tuple_element_type((a_targ_size_t)idx,
                                          (a_type*)rvp->entity.ptr);
@@ -15115,9 +15124,9 @@ dynamic allocations have not been freed.  Record a diagnostic that explains
 the missing allocation.
 */
 {
-  uint32_t  count = 0;
+  int32_t  count = 0;
   a_constexpr_allocation_ptr
-            alloc = ips->dyn_allocations;
+           alloc = ips->dyn_allocations;
 
   for (; alloc != NULL; alloc = alloc->next) ++count;
   if (count > 0) {
@@ -15290,7 +15299,7 @@ where the result should be stored.
   get_int_val_from(p_arg_bytes[1], size_tp, alloc_length, ovflo);
   if (ovflo || alloc_length < 0 || alloc_length > MAX_ARRAY_LENGTH) {
     info_with_pos_num(ec_constexpr_alloc_too_large, &call_node->position,
-                      (a_byte_count)alloc_length, ips);
+                      (int32_t)alloc_length, ips);
     do_constexpr_fail(result);
     goto done;
   }  /* if */
@@ -15428,7 +15437,7 @@ already-evaluated arguments of the call.
   get_int_val_from(p_arg_bytes[2], size_tp, alloc_length, ovflo);
   if (ovflo || alloc_length < 0 || alloc_length > MAX_ARRAY_LENGTH) {
     info_with_pos_num(ec_constexpr_alloc_too_large, &call_node->position,
-                      (a_byte_count)alloc_length, ips);
+                      (int32_t)alloc_length, ips);
     do_constexpr_fail(result);
     goto done;
   }  /* if */
@@ -15466,8 +15475,10 @@ already-evaluated arguments of the call.
   orig_data_size = allocation->total_size - allocation->prefix_size;
   if (total_size != orig_data_size) {
     info_with_pos_num2(ec_constexpr_bad_deallocation_size,
-                       &call_node->position, (a_byte_count)alloc_length,
-                       elem_size == 0 ? 0 : orig_data_size/elem_size, ips);
+                       &call_node->position, (int32_t)alloc_length,
+                       (int32_t)(elem_size == 0 ? 0
+                                                : orig_data_size/elem_size),
+                       ips);
     info_with_pos(ec_constexpr_allocation_pos, &allocation->pos, ips);
     do_constexpr_fail(result);
     goto done;
@@ -19475,7 +19486,7 @@ Evaluate the given new-expression.
     get_int_val_from(length_bytes, length_tp, length, ovflo);
     if (ovflo || length < 0 || length > MAX_ARRAY_LENGTH) {
       info_with_pos_num(ec_constexpr_alloc_too_large, &length_expr->position,
-                        (a_byte_count)length, ips);
+                        (int32_t)length, ips);
       do_constexpr_fail(result);
       goto done;
     }  /* if */
@@ -19580,7 +19591,7 @@ Evaluate the given new-expression.
             if (n_init_elems > orig_alloc_length) {
               info_with_pos_num(ec_constexpr_alloc_too_small,
                                 &length_expr->position,
-                                (a_byte_count)orig_alloc_length, ips);
+                                (int32_t)orig_alloc_length, ips);
               do_constexpr_fail(result);
               goto done;
             }  /* if */
@@ -19881,7 +19892,7 @@ pointed to by complete_object).
                             (a_host_large_integer)(tp->size * targ_char_bit)) {
               do_constexpr_fail(result);
               info_with_pos_num(ec_constexpr_shift_excess, &expr->position,
-                                (uint32_t)host_int_val, ips);
+                                (int32_t)host_int_val, ips);
               break;
             }  /* if */
             *(an_integer_value*)dst = *(an_integer_value*)src1;
@@ -21080,8 +21091,8 @@ the value representation of the integer value.
                       do_constexpr_fail(result);
                       info_with_pos_num2(
                                        ec_constexpr_out_of_bounds_array_access,
-                                       &expr->position, (unsigned long)(pos+1),
-                                       (unsigned long)len, ips);
+                                       &expr->position, (int32_t)(pos+1),
+                                       (int32_t)len, ips);
                     } else {
                       if (is_runtime_data_address(ptr)) {
                         if (!offset_runtime_address(
@@ -21310,8 +21321,8 @@ the value representation of the integer value.
                     /* Out of bounds. */
                     do_constexpr_fail(result);
                     info_with_pos_num2(ec_constexpr_out_of_bounds_array_access,
-                                       &expr->position, (unsigned long)(pos+1),
-                                       (unsigned long)len, ips);
+                                       &expr->position, (int32_t)(pos+1),
+                                       (int32_t)len, ips);
                   } else {
                     if (is_runtime_data_address(ptr)) {
                       if (!offset_runtime_address(
@@ -21759,8 +21770,8 @@ the value representation of the integer value.
                   if (host_int_val > 0) {
                     info_with_pos_num2(ec_constexpr_out_of_bounds_array_access,
                                        &expr->position,
-                                       (uint32_t)(pos+host_int_val),
-                                       (uint32_t)len, ips);
+                                       (int32_t)(pos+host_int_val),
+                                       (int32_t)len, ips);
                   } else {
                     info_with_pos(ec_constexpr_pointer_ahead_of_array,
                                   &expr->position, ips);
@@ -21834,8 +21845,8 @@ the value representation of the integer value.
                   if (host_int_val < 0) {
                     info_with_pos_num2(ec_constexpr_out_of_bounds_array_access,
                                        &expr->position,
-                                       (uint32_t)(pos-host_int_val),
-                                       (uint32_t)len, ips);
+                                       (int32_t)(pos-host_int_val),
+                                       (int32_t)len, ips);
                   } else {
                     info_with_pos(ec_constexpr_pointer_ahead_of_array,
                                   &expr->position, ips);
@@ -23620,7 +23631,7 @@ the value representation of the integer value.
                   } else {
                     info_with_pos_num(ec_constexpr_shift_excess,
                                       &expr->position,
-                                      (uint32_t)host_int_val, ips);
+                                      (int32_t)host_int_val, ips);
                   }  /* if */
                 }  /* if */
                 if (result) {
@@ -23699,7 +23710,7 @@ the value representation of the integer value.
                   } else {
                     info_with_pos_num(ec_constexpr_shift_excess,
                                       &expr->position,
-                                      (uint32_t)host_int_val, ips);
+                                      (int32_t)host_int_val, ips);
                   }  /* if */
                 }  /* if */
                 if (result) {
@@ -23948,8 +23959,8 @@ the value representation of the integer value.
                         info_with_pos_num2(
                                       ec_constexpr_out_of_bounds_array_access,
                                       &expr->position,
-                                      (uint32_t)(pos+host_int_val),
-                                      (uint32_t)len, ips);
+                                      (int32_t)(pos+host_int_val),
+                                      (int32_t)len, ips);
                       } else {
                         info_with_pos(ec_constexpr_pointer_ahead_of_array,
                                       &expr->position, ips);
@@ -24026,8 +24037,8 @@ the value representation of the integer value.
                       info_with_pos_num2(
                                       ec_constexpr_out_of_bounds_array_access,
                                       &expr->position,
-                                      (uint32_t)(pos-host_int_val),
-                                      (uint32_t)len, ips);
+                                      (int32_t)(pos-host_int_val),
+                                      (int32_t)len, ips);
                     } else {
                       info_with_pos(ec_constexpr_pointer_ahead_of_array,
                                     &expr->position, ips);
@@ -24235,8 +24246,8 @@ the value representation of the integer value.
                     do_constexpr_fail(result);
                     info_with_pos_num2(ec_constexpr_out_of_bounds_array_access,
                                        &expr->position,
-                                       (uint32_t)(pos+host_int_val),
-                                       (uint32_t)len, ips);
+                                       (int32_t)(pos+host_int_val),
+                                       (int32_t)len, ips);
                   } else {
                     if (is_runtime_data_address(&result_addr)) {
                       if (!offset_runtime_address(
@@ -24271,8 +24282,8 @@ the value representation of the integer value.
               if (host_int_val < 0 || (int)host_int_val >= len) {
                 do_constexpr_fail(result);
                 info_with_pos_num2(ec_constexpr_out_of_bounds_array_access,
-                                   &expr->position, (uint32_t)host_int_val,
-                                   (uint32_t)len, ips);
+                                   &expr->position, (int32_t)host_int_val,
+                                   (int32_t)len, ips);
                 break;
               }  /* if */
               etp = skip_typerefs(opnd1_type->variant.vector.element_type);
@@ -25924,7 +25935,7 @@ diagnostic in *ips.
                objects, we only care about their own subobjects being
                initialized. */
             info_with_pos_num(ec_array_subobject_not_initialized,
-                              &ips->position, (uint32_t)k, ips);
+                              &ips->position, (int32_t)k, ips);
             do_constexpr_fail(result);
             break;
           }  /* if */
