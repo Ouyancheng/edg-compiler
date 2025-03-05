@@ -10681,42 +10681,37 @@ Otherwise, return FALSE.
   check_assertion(result_type->kind == (a_type_kind)tk_integer);
   if (is_constant_node(arg) && node_constant_is(arg, ck_float)) {
     a_constant_ptr         cp = node_constant(arg);
+    a_float_kind           float_kind =
+                                   skip_typerefs(cp->type)->variant.float_kind;
     a_host_large_unsigned  result = 0;
     switch (rp->variant.builtin_function_kind) {
       case bfk_isnan:
       case bfk_isnanf:
       case bfk_isnanl:
-        result = fp_is_nan(&cp->variant.float_value,
-                           cp->type->variant.float_kind);
+        result = fp_is_nan(&cp->variant.float_value, float_kind);
         break;
       case bfk_isinf:
       case bfk_isinff:
       case bfk_isinfl:
-        result = fp_is_infinity(&cp->variant.float_value,
-                                cp->type->variant.float_kind);
+        result = fp_is_infinity(&cp->variant.float_value, float_kind);
         break;
       case bfk_isfinite:
-        result = !fp_is_infinity(&cp->variant.float_value,
-                                 cp->type->variant.float_kind) &&
-                 !fp_is_nan(&cp->variant.float_value,
-                            cp->type->variant.float_kind);
+        result = !fp_is_infinity(&cp->variant.float_value, float_kind) &&
+                 !fp_is_nan(&cp->variant.float_value, float_kind);
         break;
       case bfk_isnormal:
-        result = fp_is_normalized(&cp->variant.float_value,
-                                  cp->type->variant.float_kind,
+        result = fp_is_normalized(&cp->variant.float_value, float_kind,
                                   &unknown_result);
         break;
       case bfk_signbit:
       case bfk_signbitf:
       case bfk_signbitl:
-        if (fp_is_nan(&cp->variant.float_value,
-                      cp->type->variant.float_kind)) {
+        if (fp_is_nan(&cp->variant.float_value, float_kind)) {
           /* We don't currently attempt to determine the sign bit of a NaN
              value.  (This matches Clang but not GCC.) */
           unknown_result = TRUE;
         } else {
-          result = fp_signbit(cp->type->variant.float_kind,
-                              &cp->variant.float_value);
+          result = fp_signbit(float_kind, &cp->variant.float_value);
         }  /* if */
         break;
       default:
