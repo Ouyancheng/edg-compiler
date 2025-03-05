@@ -11927,7 +11927,14 @@ to unusable variables and class members.
       break;
   }  /* switch */
   if (scp != NULL) {
-    if (scp->is_class_member) {
+    if (kind == iek_variable &&
+        node_variable(expr)->is_template_param_object) {
+      /* A non-type template argument variable is not declared in the
+         generated code and a node referring to it cannot be validly
+         generated. */
+      tblock->result = TRUE;
+      tblock->terminate = TRUE;
+    } else if (scp->is_class_member) {
       a_type_ptr parent = scp_parent_class(scp);
       if (!parent->variant.class_struct_union.is_nonreal_class &&
           ((!(parent->has_been_defined

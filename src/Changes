@@ -1,5 +1,27 @@
 Version 6.8
 
+3/5/25   [EDGcpfe/27915]
+C++-generating back end: decltype involving non-type template parameter
+
+In certain cases in which a type member of a class template is defined using
+a decltype whose operand involves a non-type template parameter, the
+C++-generating back end could put out a use of that member of an instance
+of a class template in a form that referred to an undeclared variable.  This
+is now fixed.  For example, with --c++20:
+
+  struct A { 
+    int operator()() const;
+  }; 
+  template<auto F> struct B { 
+    using type = decltype(F());
+  }; 
+  template<class> struct C { }; 
+  void g() { 
+    C<B<A{}>::type> cba;   // Previously generated using decltype involving
+                           // an undeclared variable name
+  } 
+
+
 3/5/25   [EDGcpfe/27525]
 GCC/Clang compatibility: Support va_list on ARM platforms
 
