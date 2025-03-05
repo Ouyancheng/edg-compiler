@@ -1,5 +1,13 @@
 Version 6.8
 
+3/5/25   [EDGcpfe/28010]
+__builtin_copysign and infinities
+
+The constant evaluator previously treated __builtin_copysign applied to
+infinities as non-constant.  Now, such cases can be successfully constant-
+evaluated.
+
+
 3/5/25   [EDGcpfe/27989]
 Abort on indirection through pointer outside of array bounds
 

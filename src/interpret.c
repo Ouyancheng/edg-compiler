@@ -8242,7 +8242,9 @@ The routine returns FALSE if a negation is required and the negation fails.
     a_boolean err, dep;
     fp_negate(fpkind, fpval1, (an_internal_float_value*)result_storage,
               &err, &dep);
-    if (err || dep) {
+    /* dep is set to TRUE if fpval is an infinity or NaN.  However, that does
+       not cause __builtin_copysign to fail. */
+    if (err) {
       result = FALSE;
     }  /* if */
   }  /* if */
