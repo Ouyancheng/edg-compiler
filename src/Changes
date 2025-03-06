@@ -49,7 +49,7 @@ C++-generating back end: decltype involving non-type template parameter
 In certain cases in which a type member of a class template is defined using
 a decltype whose operand involves a non-type template parameter, the
 C++-generating back end could put out a use of that member of an instance
-of a class template in a form that referred to an undeclared variable.  This
+of the class template in a form that referred to an undeclared variable.  This
 is now fixed.  For example, with --c++20:
 
   struct A { 
