@@ -10590,10 +10590,12 @@ do_assignment:;
           latest_initialization_on_entry = eff_context->latest_initialization;
         }  /* if */
         keep_constant = FALSE;
-        if (dip->is_partially_initialized) {
+        if (dip->is_partially_initialized &&
+            (variable == NULL || !is_vla_type(variable->type))) {
           /* For cases where the initialization only partially covers the
              entity being initialized, initialize the remaining portion
-             of the entity if necessary. */
+             of the entity if necessary.  No need to stretch VLA
+             initialization; the back end will do that. */
           stretch_partial_initialization_if_necessary(dip, ipdp,
                                                       have_complete_object,
                                                       eff_insert_location);

@@ -1,5 +1,21 @@
 Version 6.8
 
+3/6/25   [EDGcpfe/27787]
+C-generating back end: incorrect code generated for initializing VLAs
+
+In configurations where LOWER_VARIABLE_LENGTH_ARRAYS is TRUE, the C-generating
+back end had generated incorrect code when initializing certain VLAs.
+For example, with --g++:
+
+  int f(int n) {
+    int a[n] = { 42, n };
+    return a[0];
+  }
+  int main() {
+    return f(2);  // Had returned 0, now 42.
+  }
+
+
 3/6/25   [EDGcpfe/27908]
 Abort on recursive call of function with deduced return type
 
