@@ -18517,6 +18517,7 @@ This can be a condition declaration or simply an expression.
     }  /* if */
   } else {
     a_statement_ptr  init_stmt = expr->variant.condition->initialization;
+    push_name_context(expr->variant.condition->scope);
     if (init_stmt != NULL) {
       gen_init_statement_or_statement(init_stmt);
     }  /* if */
@@ -18532,6 +18533,7 @@ This can be a condition declaration or simply an expression.
         gen_full_boolean_controlling_expression(expr->variant.condition->expr);
       }  /* if */
     }  /* if */
+    pop_name_context();
   }  /* if */
 }  /* gen_condition */  
 

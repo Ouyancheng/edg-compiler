@@ -1,5 +1,29 @@
 Version 6.8
 
+3/6/25   [EDGcpfe/28011]
+C++-generating back end: conditions with deduced types in template definitions
+
+In some cases in which a condition appearing within a template definition
+is declared with a deduced type, the C++-generating back end could put out
+the name of the condition as the initializer expression cast to "auto",
+instead of the name itself.  This is now fixed.  For example:
+
+  template <typename> struct A {
+    template <int> struct B { };
+    struct C {
+      enum { N };
+    };
+    void f() {
+      if constexpr (constexpr auto v = C::N; v) { // The condition name "v" was
+                                                  // previously put out as
+                                                  // "((auto)((C::N)))"
+        B<1u> b;
+      }
+    }
+  };
+  A<int> ai;
+
+
 3/6/25   [EDGcpfe/27787]
 C-generating back end: incorrect code generated for initializing VLAs
 
