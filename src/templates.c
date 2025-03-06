@@ -38187,8 +38187,7 @@ available, issue an error at the given position.
        will have been set to FALSE by the code below. */
     if (!rp->has_deduced_return_type && rp->has_deducible_return_type &&
         !rp->is_deleted) {
-      check_assertion(!rp->defined &&
-                      rp->type->kind == (a_type_kind)tk_routine);
+      check_assertion(rp->type->kind == tk_routine);
       pos_sy_error(ec_use_of_undefined_function_with_deduced_return_type,
                    diag_pos, symbol_for(rp));
       rp->type->variant.routine.return_type = error_type();
