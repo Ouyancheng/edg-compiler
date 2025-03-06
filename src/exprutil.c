@@ -6270,9 +6270,7 @@ calls to std::is_constant_evaluated should to "true".
   if (constexpr_enabled &&
       (curr_expr_kind_is_const() ||
        (expr_stack->favor_constant_result &&
-        !is_template_dependent_context()) ||
-       (!relaxed_constexpr_enabled &&
-        in_potential_constant_constexpr_context())) &&
+        !is_template_dependent_context())) &&
       (is_constant_evaluated || constexpr_call_folding_should_be_done()) &&
       is_expression_operand(operand) && is_a_prvalue(operand) &&
       fold_constexpr_expr(operand->variant.expression, con,
@@ -13933,7 +13931,7 @@ and TRUE is returned, if we are currently inside a constant expression
 (and the expression is evaluated).
 */
 {
-  a_boolean err = !relaxed_constexpr_enabled &&
+  a_boolean err = !relaxed_constexpr_allowed() &&
                   construct_not_allowed_in_cpp11_constant_expr(
                                                 ec_bad_constant_operator, pos);
   return err;
@@ -19352,7 +19350,7 @@ set to reflect whether the call was folded or not.
            constant-expression is now ruled out. */
         a_boolean  is_consteval, no_diagnostic;
         is_consteval = rout != NULL && rout->is_consteval;
-        no_diagnostic = relaxed_constexpr_enabled &&
+        no_diagnostic = relaxed_constexpr_allowed() &&
                                (!is_consteval || is_consteval_diag_deferred());
         (void)call_did_not_fold_to_constant(rout, result, no_diagnostic,
                                             &diag_list,

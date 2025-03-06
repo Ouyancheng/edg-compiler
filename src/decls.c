@@ -2679,14 +2679,16 @@ the function non-constexpr in that case).
         vp->type = error_type();
       }  /* if */
       rp->is_constexpr = FALSE;
-    } else if (vp->init_kind == (an_init_kind)initk_none && !cpp20_mode &&
+    } else if (vp->init_kind == initk_none && !cpp20_mode &&
                !(is_immediate_class_type(vtp) &&
                  vtp->variant.class_struct_union.is_empty_class &&
-                 !strict_ansi_mode)) {
+                 !strict_ansi_mode) &&
+               !(clang_version_is(>=30300) && in_system_header())) {
       /* Prior to C++20 (i.e., paper P1331R2), variables in constexpr functions
          were required to be explicitly initialized.  However, GCC, Clang, and
          MSVC didn't enforce that for empty class types.  We follow suit in
-         non-strict modes. */
+         non-strict modes.  Clang do not enforce this in system headers
+         either. */
       if ((!rp->is_template_function || rp->is_specialized) &&
           (rp->is_declared_constexpr || rp->is_consteval)) {
         pos_error(ec_uninitialized_var_in_constexpr_function, pos);
@@ -2795,7 +2797,7 @@ is invalid.  Also promote the fields of the union type to the current scope.
   if (unrestricted_unions_enabled) {
     (void)def_initializer(assoc_object_sym, &dps->start_pos);
   }  /* if */
-  if (relaxed_constexpr_enabled && innermost_function_scope != NULL &&
+  if (relaxed_constexpr_allowed() && innermost_function_scope != NULL &&
       innermost_function_scope->variant.routine.ptr->is_constexpr) {
     check_var_in_constexpr_function(vp, &dps->specifiers_pos);
   }  /* if */
@@ -19935,7 +19937,7 @@ if one is present.
                    var_ptr->type);
       var_ptr->type = error_type();
     }  /* if */
-    if (relaxed_constexpr_enabled && innermost_function_scope != NULL &&
+    if (relaxed_constexpr_allowed() && innermost_function_scope != NULL &&
         innermost_function_scope->variant.routine.ptr->is_constexpr &&
         !state->range_based_for) {
       check_var_in_constexpr_function(var_ptr, &locator->source_position);

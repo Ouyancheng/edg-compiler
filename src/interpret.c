@@ -2253,7 +2253,7 @@ result of calls to std::is_constant_evaluated().
   ips->is_variable_initializer = FALSE;
   ips->allow_reinterpret_cast = FALSE;
   ips->static_storage_ready = FALSE;
-  ips->side_effects_disabled = !relaxed_constexpr_enabled;
+  ips->side_effects_disabled = !relaxed_constexpr_allowed();
   ips->suspend_diag_list = FALSE;
   ips->input_error = FALSE;
   ips->call_seen = FALSE;

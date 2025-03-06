@@ -46003,7 +46003,7 @@ FALSE otherwise.
         }  /* if */
         /* Now that we are sure that we know the iterator variable type, check
            any remaining requirements. */
-        if (relaxed_constexpr_enabled && innermost_function_scope != NULL &&
+        if (relaxed_constexpr_allowed() && innermost_function_scope != NULL &&
             innermost_function_scope->variant.routine.ptr->is_constexpr) {
           check_var_in_constexpr_function(
                            iter_var, &iter_var->source_corresp.decl_position);
@@ -49187,7 +49187,7 @@ handle_deduced_return_type:
       if (void_return_case) set_expr_result_not_used(expression);
     }  /* if */
   }  /* if */
-  if (curr_routine->is_constexpr && !relaxed_constexpr_enabled &&
+  if (curr_routine->is_constexpr && !relaxed_constexpr_allowed() &&
       expr_stack->constant_expr_ruled_out) {
     /* If the return of a constexpr function can't be a constant, issue
        an error. */

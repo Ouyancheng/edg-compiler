@@ -1,5 +1,14 @@
 Version 6.8
 
+3/6/25   [EDGcpfe/27948]
+Clang C++11 compatibility: constexpr constraints in system headers
+
+In Clang C++11 mode, the front end now permits constexpr functions defined in
+system headers to adhere to the more relaxed constraints of C++14 (and
+sometimes even allows some C++20 relaxations, such as not requiring
+initializers for local variables).  This matches the behavior of Clang.
+
+
 3/6/25   [EDGcpfe/28011]
 C++-generating back end: conditions with deduced types in template definitions
 

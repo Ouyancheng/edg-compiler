@@ -679,6 +679,15 @@ EXTERN_THREAD a_boolean
 			   by C++14 is enabled (this, e.g., allows loop
 			   constructs in constexpr functions). */
 
+/*
+Macro that determines whether C++14-like constexpr constraint relaxations
+should be permitted.  This is used to emulate Clang, which allows the use of
+C++14 constexpr features in C++11-mode system header files.
+*/
+#define relaxed_constexpr_allowed()                                          \
+  (relaxed_constexpr_enabled ||                                              \
+   (constexpr_enabled && clang_version_is(>=30300) && in_system_header()))
+
 EXTERN_THREAD a_boolean
 		constexpr_virtual_enabled;
 			/* TRUE if constexpr virtual functions (a C++20

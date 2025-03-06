@@ -1009,7 +1009,7 @@ constructor.
     check_assertion(scope->kind == (a_scope_kind)sck_function);
     routine = scope->variant.routine.ptr;
     check_assertion(routine->is_constexpr);
-    if (relaxed_constexpr_enabled) {
+    if (relaxed_constexpr_allowed()) {
       /* C++14 doesn't impose the constraints checked for below. */
       scope->is_constexpr_routine = TRUE;
     } else if (special_kind_is(routine, sfk_constructor)) {

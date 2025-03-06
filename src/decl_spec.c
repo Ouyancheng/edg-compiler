@@ -3918,7 +3918,8 @@ defined.  Detailed position information is recorded in *decl_pos_block.
     if (constexpr_enabled && !relaxed_constexpr_enabled && !gpp_mode &&
         innermost_function_scope != NULL &&
         innermost_function_scope->variant.routine.ptr->is_constexpr) {
-      pos_error(ec_tag_defined_in_constexpr_body, &decl_start_pos);
+      pos_diagnostic(relaxed_constexpr_allowed() ? es_warning : es_error,
+                     ec_tag_defined_in_constexpr_body, &decl_start_pos);
     }  /* if */
   }  /* if */
   if (is_class_definition && is_friend_decl) {
@@ -5624,7 +5625,8 @@ is updated to reflect relevant positions of this definition.
   if (constexpr_enabled && !relaxed_constexpr_enabled && !gpp_mode &&
       innermost_function_scope != NULL &&
       innermost_function_scope->variant.routine.ptr->is_constexpr) {
-    pos_error(ec_tag_defined_in_constexpr_body, &definition_pos);
+    pos_diagnostic(relaxed_constexpr_allowed() ? es_warning : es_error,
+                   ec_tag_defined_in_constexpr_body, &definition_pos);
   }  /* if */
   if (scope_is(&scope_stack_top(), sck_class_reactivation)) {
     reactivated_class_scope_number = scope_stack_top().number;

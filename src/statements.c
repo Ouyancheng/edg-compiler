@@ -1974,7 +1974,7 @@ body of a constexpr function or constructor.
   dps.marked_as_gnu_extension = marked_as_gnu_extension;
   scan_nonmember_declaration(&dps, (a_source_range *)NULL);
   if (p_okay_in_constexpr_body != NULL) {
-    if (!relaxed_constexpr_enabled &&
+    if (!relaxed_constexpr_allowed() &&
         !struct_stmt_stack_top().inside_statement_expr) {
       /* In C++11-style constexpr, the declaration might have made the function
          non-constexpr.  However, those limitations don't apply within GNU
@@ -6663,7 +6663,7 @@ in which such a return is undefined.
           no_returned_value_severity = strict_ansi_discretionary_severity;
         }  /* if */
         release_local_constant(&zero);
-      } else if (rout->is_constexpr && !relaxed_constexpr_enabled) {
+      } else if (rout->is_constexpr && !relaxed_constexpr_allowed()) {
         /* A C++11 constexpr function must return a value (strictly speaking,
            this is undefined behavior, but an error seems warranted) and must
            contain exactly one return statement.  With C++14-style "relaxed"
@@ -7004,7 +7004,8 @@ In C++20, this also handles co_return statements.
       update_source_sequence_list((char*)sp, iek_statement, src_seq_entry);
 #endif /* GENERATE_SOURCE_SEQUENCE_LISTS */
     }  /* if */
-    if (current_routine_entry()->is_constexpr && !relaxed_constexpr_enabled &&
+    if (!relaxed_constexpr_allowed() &&
+        current_routine_entry()->is_constexpr &&
         !special_kind_is(current_routine_entry(), sfk_constructor)) {
       /* A C++11 constexpr function must have exactly one return.  (That
          restriction is lifted in C++14.) */
@@ -7455,10 +7456,9 @@ it is followed by a colon.)
          the current scope.  It's needed to handle backwards gotos to
          the current label. */
       reset_curr_block_object_lifetime(label->exec_stmt);
-      if (!cpp23_mode && relaxed_constexpr_enabled) {
-        /* Prior to C++23, allow labels were not allowed in C++14 constexpr
-           functions (they disqualified a lambda from being considered
-           constexpr). */
+      if (!cpp23_mode && relaxed_constexpr_allowed()) {
+        /* Prior to C++23, labels were not allowed in C++14 constexpr functions
+           (they disqualified a lambda from being considered constexpr). */
         a_routine_ptr  rp = innermost_function_scope->variant.routine.ptr;
         if (rp->is_declared_constexpr || rp->is_consteval) {
           pos_error(ec_label_in_constexpr_function,
@@ -7841,6 +7841,10 @@ expr_statement:
       if (!C_mode()) {
         start_potential_decl_statement(&entity_list);
       }  /* if */
+      if (!can_appear_in_constexpr_body && relaxed_constexpr_allowed()) {
+        /* This can be true in Clang-C++11-mode system headers. */
+        in_constexpr_body_sev = es_warning;
+      }  /* if */
       if (!C_mode() &&
 #if MICROSOFT_EXTENSIONS_ALLOWED
           /* In C++/CLI, a construct like int:: begins an expression. */
@@ -7864,6 +7868,10 @@ expr_statement:
           sssep->prefix_attributes = NULL;
         }  /* if */
         decl_statement(marked_as_gnu_extension, &can_appear_in_constexpr_body);
+        if (!can_appear_in_constexpr_body && relaxed_constexpr_allowed()) {
+          /* This can be true in Clang-C++11-mode system headers. */
+          in_constexpr_body_sev = es_warning;
+        }  /* if */
       } else if (C_mode() &&
                  (is_dependent_statement || prev_was_label) &&
                  is_decl_start(IDS_EXPR_CONTEXT |

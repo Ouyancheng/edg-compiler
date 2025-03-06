@@ -7834,7 +7834,7 @@ constructor.
 {
   if (ctor->is_constexpr) {
     a_boolean  invalid_init;
-    if (relaxed_constexpr_enabled) {
+    if (relaxed_constexpr_allowed()) {
       /* Check whether the initialization calls a non-constexpr
          constructor. */
       if (is->init_dip != NULL &&
@@ -7860,7 +7860,7 @@ constructor.
           ctor->is_constexpr = FALSE;
         }  /* if */
       } else {
-        pos_error(relaxed_constexpr_enabled ?
+        pos_error(relaxed_constexpr_allowed() ?
                      ec_nonconstexpr_mem_init_ctor_for_constexpr_ctor :
                      ec_nonconstant_mem_init_for_constexpr_ctor,
                   diag_pos);
