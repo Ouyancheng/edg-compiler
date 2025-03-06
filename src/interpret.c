@@ -4945,7 +4945,8 @@ variant path.
 
   for (; spp != NULL; spp = spp->next) {
     if (spp->is_offset) {
-      a_byte_count  array_size, elem_size;
+      a_byte_count      array_length, array_size, elem_size;
+      a_targ_ptrdiff_t  signed_offset;
       array_size = value_bytes_for_type(ips, obj_type, &result); 
       if (type_is(obj_type, tk_array)) {
         do {
@@ -4954,7 +4955,8 @@ variant path.
         elem_size = value_bytes_for_type(ips, obj_type, &result); 
         cap->flags |= CA_ARRAY_ELEMENT;
         check_assertion(elem_size != 0);
-        cap->length = array_size/elem_size;
+        array_length = array_size/elem_size;
+        cap->length = array_length;
         if (is_variant_path(cap)) {
           cap->variant.variant_path->base_address = cap->address;
         } else {
@@ -4962,11 +4964,12 @@ variant path.
         }  /* if */
       } else {
         elem_size = array_size;
+        array_length = 1;
       }  /* if */
       check_assertion(result);
-      i_offset = (a_byte_count)spp->variant.ptr_offset*elem_size;
-      if (i_offset >= array_size || i_offset < 0) {
-        if (i_offset == array_size) {
+      signed_offset = spp->variant.ptr_offset*elem_size;
+      if (signed_offset >= array_size || signed_offset < 0) {
+        if (signed_offset == array_size) {
           /* This is a "one past the end" pointer. */
           cap->flags |= CA_CANNOT_DEREFERENCE;
           check_assertion(spp->next == NULL);
@@ -4974,11 +4977,11 @@ variant path.
           /* Out of bounds. */
           do_constexpr_fail(result);
           info_with_pos_num2(ec_constexpr_out_of_bounds_array_access,
-                             &ips->position,
-                             (int32_t)spp->variant.ptr_offset,
-                             (int32_t)array_size/elem_size, ips);
+                             &ips->position, (int32_t)spp->variant.ptr_offset,
+                             (int32_t)array_length, ips);
         }  /* if */
       }  /* if */
+      i_offset = (a_byte_count)signed_offset;
     } else if (spp->is_base_class) {
       a_base_class_ptr  base_class = spp->variant.base_class;
       /* base_class is not necessarily a direct base class, but we only have
