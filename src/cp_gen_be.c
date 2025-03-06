@@ -20283,14 +20283,8 @@ is TRUE, the list is the body of a GNU statement expression.
         break;
       }  /* if */
     } else {
-      if (!(statement->kind == stmk_coroutine_return &&
-            statement->compiler_generated)) {
-        /* A compiler-generated coroutine return does not satisfy the
-           expectations of a user-written coroutine return and cannot be
-           put out explicitly. */
-        gen_statement_full(statement, /*is_stmt_expression=*/FALSE,
-                           is_stmt_expression && statement->next == NULL);
-      }  /* if */
+      gen_statement_full(statement, /*is_stmt_expression=*/FALSE,
+                         is_stmt_expression && statement->next == NULL);
       if (statement->kind == (a_statement_kind)stmk_coroutine_return) {
         /* Skip past the generated "goto final_suspend" statement, as it's
            implied by the co_return statement. */
@@ -20982,8 +20976,10 @@ one that yields the value) of a statement expression.
       break;
     case stmk_coroutine_return:
       /* "co_return" statement in a coroutine: generate "co_return <expr>;" or
-         "co_return ;". */
-      { an_expr_node_ptr  expr = statement->expr;
+         "co_return ;".  Put out nothing for a compiler-generated
+         statement. */
+      if (!statement->compiler_generated) {
+        an_expr_node_ptr  expr = statement->expr;
         write_tok_str("co_return ");
         if (expr != NULL) {
           if (expr->kind == (an_expr_node_kind)enk_object_lifetime) {
