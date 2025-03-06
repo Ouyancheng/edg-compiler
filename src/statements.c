@@ -8288,6 +8288,7 @@ is being parsed within the context of the __extension__ keyword.
           sp = add_statement_at_stmt_pos(
                                        (a_statement_kind)stmk_coroutine_return,
                                        &null_source_position);
+          sp->compiler_generated = TRUE;
           sp->expr = make_coroutine_result_expression(/*alep=*/NULL,
                                                       /*is_yield=*/FALSE,
                                                       sp);

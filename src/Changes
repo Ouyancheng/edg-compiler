@@ -1,5 +1,13 @@
 Version 6.8
 
+3/5/25   [EDGcpfe/27973]
+C++-generating back end: compiler-generated co_return statement
+
+In cases where the front end implicitly adds a compiler-generated co_return
+statement in a coroutine, the C++-generating back end could abort with a
+failed assertion in gen_statement_full.  This is now fixed.
+
+
 3/5/25   [EDGcpfe/28010]
 __builtin_copysign and infinities
 

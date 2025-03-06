@@ -20283,8 +20283,14 @@ is TRUE, the list is the body of a GNU statement expression.
         break;
       }  /* if */
     } else {
-      gen_statement_full(statement, /*is_stmt_expression=*/FALSE,
-                         is_stmt_expression && statement->next == NULL);
+      if (!(statement->kind == stmk_coroutine_return &&
+            statement->compiler_generated)) {
+        /* A compiler-generated coroutine return does not satisfy the
+           expectations of a user-written coroutine return and cannot be
+           put out explicitly. */
+        gen_statement_full(statement, /*is_stmt_expression=*/FALSE,
+                           is_stmt_expression && statement->next == NULL);
+      }  /* if */
       if (statement->kind == (a_statement_kind)stmk_coroutine_return) {
         /* Skip past the generated "goto final_suspend" statement, as it's
            implied by the co_return statement. */
