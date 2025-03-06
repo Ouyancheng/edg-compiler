@@ -25,6 +25,7 @@ ifc_modules_internal.h -- Declarations and forward declarations exposed only to
 /* Conditionally open the "edg" namespace. */
 BEGIN_EDG_NAMESPACE
 
+struct a_module;
 struct an_ifc_input_state;
 
 #if !ASSUME_LITTLE_ENDIAN_IFC_MODULES
@@ -87,6 +88,8 @@ struct an_ifc_module_file_read_state {
 State for an_ifc_module_file when the object represents an IFC file write.
 */
 struct an_ifc_module_file_write_state {
+  a_module      *source_module;
+                        /* The IL module being written. */
   a_const_char  *source_file_name;
                         /* The source file name that was used to build this
                            module file. */

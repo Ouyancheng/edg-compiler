@@ -213,6 +213,16 @@ private:
   an_ifc_output_buffer
                 string_table = {};
                         /* The string table's bytes. */
+  an_ifc_unit_sort
+                unit_sort = ifc_us_header;
+                        /* The module unit kind. */
+  a_boolean     internal_partition = FALSE;
+                        /* TRUE if the module unit is mk_unit_partition and the
+                           partition is an internal partition; otherwise,
+                           FALSE.  */
+  size_t        module_name_offset = 0;
+                        /* The offset into the string table representing
+                           the module name. */
   size_t        source_file_name_offset = 0;
                         /* The offset into the string table representing
                            the source file name. */
@@ -236,6 +246,25 @@ Construct a new IFC output state writing to the given IFC module file.
   /* Add the source file name to the string table. */
   an_ifc_module_file_write_state &write_state =
                                           this->output_file->get_write_state();
+  if (write_state.source_module != NULL) {
+    a_module *src_mod = write_state.source_module;
+
+    if (src_mod->kind == mk_unit) {
+      this->unit_sort = ifc_us_primary;
+    } else if (src_mod->kind == mk_unit_partition) {
+      this->unit_sort = ifc_us_partition;
+    }  /* if */
+    if (src_mod->kind == mk_unit || src_mod->kind == mk_unit_partition) {
+      a_string_view mod_name = module_name_of(src_mod);
+
+      this->module_name_offset = this->add_to_string_table(mod_name);
+    }  /* if */
+    if (src_mod->variant.unit_partition.is_internal) {
+      /* If this IL module represents an internal module partition, mark the
+         output state as that of an internal module partition. */
+      this->internal_partition = TRUE;
+    }  /* if */
+  }  /* if */
   if (write_state.source_file_name != NULL) {
     this->source_file_name_offset = this->add_to_string_table(
                                                  write_state.source_file_name);
@@ -779,6 +808,9 @@ Return the given node's storage as a const byte pointer.
 
 
 static void write_ifc_header(an_ifc_output_stream         *output_stream,
+                             an_ifc_unit_sort             unit_sort,
+                             a_boolean                    is_internal,
+                             size_t                       module_name,
                              size_t                       source_file_name,
                              an_ifc_scope_offset          global_scope,
                              const an_ifc_output_metadata &metadata)
@@ -811,8 +843,7 @@ header into the given output stream.
   set_ifc_string_table_size(&file_header, ifc_string_table_length);
 
   /* Set the unit information. */
-  /* FIXME: For now just assume this is a header unit. */
-  an_ifc_unit_index ifc_unit_idx(file, ifc_us_header, 0);
+  an_ifc_unit_index ifc_unit_idx(file, unit_sort, module_name);
   set_ifc_unit(&file_header, ifc_unit_idx);
 
   /* Set the source path information. */
@@ -831,6 +862,10 @@ header into the given output stream.
                file,
                (an_ifc_cardinality_storage)metadata.used_partitions.length());
   set_ifc_partition_count(&file_header, ifc_partition_count);
+
+  /* Set whether or not this is an internal partition. */
+  an_ifc_bool ifc_is_internal(file, is_internal);
+  set_ifc_internal(&file_header, ifc_is_internal);
   /* Do the append. */
   using a_sha256_storage_type = typename an_ifc_sha256::storage_type;
   using a_header_storage_type = typename an_ifc_file_header::storage_type;
@@ -980,8 +1015,11 @@ output file (i.e., an_ifc_output_state::output_file).
                                                 this->string_table);
 
   write_ifc_magic_bytes(&output_stream);
-  write_ifc_header(&output_stream, this->source_file_name_offset,
-                   this->global_scope, metadata);
+  write_ifc_header(&output_stream, this->unit_sort, this->internal_partition,
+                   this->module_name_offset,
+                   this->source_file_name_offset,
+                   this->global_scope,
+                   metadata);
   for (const an_ifc_output_partition_metadata &part_metadata :
                                                    metadata.used_partitions) {
     an_ifc_output_partition
@@ -1797,7 +1835,7 @@ the declaration index for the entered declaration.
   /* Associate the class scope decl with its contents. */
   a_scope_ptr   class_scope = class_type_supp(type)->assoc_scope;
   a_template    *assoc_templ = class_type_supp(type)->assoc_template;
-  if (assoc_templ == NULL) {
+  if (class_scope != NULL && assoc_templ == NULL) {
     /* This traversal is not performed for class templates.  The class template
        definition will be associated below via a trait. */
     an_ifc_scope_offset
@@ -5658,8 +5696,30 @@ special traversal logic is required to account for all scope members.
 }  /* complete_scope_info */
 
 
-static Opt<an_ifc_module_file> create_output_file(a_const_char  *file_path,
-                                                  an_error_code file_kind)
+static an_error_code module_to_error_code(a_module_ptr mod)
+/*
+Return the error code corresponding to the current output module kind.
+*/
+{
+  an_error_code result;
+
+  if (mod == NULL) {
+    result = ec_edg_ifc_header_unit;
+  } else if (mod->kind == mk_unit) {
+    result = ec_edg_ifc_interface_unit;
+  } else if (mod->kind == mk_unit_partition) {
+    result = ec_edg_ifc_partition_unit;
+  } else {
+    /* This should not be possible as the module writing code should not have
+       been called. */
+    unexpected_condition();
+  }  /* switch */
+  return result;
+}  /* module_to_error_code */
+
+
+static Opt<an_ifc_module_file> create_output_file(a_const_char *file_path,
+                                                  a_module_ptr source_module)
 /*
 Create and return an instance of an IFC module file (with an open file handle
 in binary write mode) intended for writing with the given file path and file
@@ -5670,11 +5730,11 @@ returned.
 */
 {
   FILE *f_handle = open_output_file_with_error_handling(
-                                                 file_path,
-                                                 /*binary_file=*/TRUE,
-                                                 /*update_mode=*/FALSE,
-                                                 /*open_flags=*/OFF_NO_OPTIONS,
-                                                 file_kind);
+                                          file_path,
+                                          /*binary_file=*/TRUE,
+                                          /*update_mode=*/FALSE,
+                                          /*open_flags=*/OFF_NO_OPTIONS,
+                                          module_to_error_code(source_module));
 
   if (f_handle == NULL) {
     return {};
@@ -5686,6 +5746,7 @@ returned.
   result.f_module = f_handle;
 
   an_ifc_module_file_write_state &write_state = result.get_write_state();
+  write_state.source_module = source_module;
   write_state.source_file_name = primary_source_file_name;
   return {move_from(&result)};
 }  /* create_output_file */
@@ -5717,10 +5778,10 @@ Write out the module files for the current translation unit in the EDG flavor
 of the IFC format.
 */
 {
-  a_const_char  *output_file_name = module_header_unit_output_file_name;
+  a_const_char  *output_file_name = module_unit_output_file_name;
   Opt<an_ifc_module_file>
                 opt_module_file = create_output_file(output_file_name,
-                                                     ec_edg_ifc_header_unit);
+                                                     trans_unit_module);
 
   if (opt_module_file.has_value()) {
     /* Verify that there's not already an IFC module file in the process of

@@ -18301,6 +18301,10 @@ typedef struct a_module {
     } unit;
     /* When kind == mk_unit_partition: */
     struct {
+      a_bit_field
+		is_internal:1;
+			/* This is TRUE if this partition is an internal module
+			   partition; otherwise, FALSE. */
       a_const_char
 		*name;	/* The name of the module partition (e.g., "B" in
 			   "A:B"). */

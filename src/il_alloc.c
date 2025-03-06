@@ -5646,6 +5646,7 @@ Allocate and return an IL entry for a module.
       mod->variant.header_unit.resolved_header = NULL;
       break;
     case mk_unit_partition:
+      mod->variant.unit_partition.is_internal = FALSE;
       mod->variant.unit_partition.name = NULL;
       mod->variant.unit_partition.unit = NULL;
       break;

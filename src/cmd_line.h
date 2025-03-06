@@ -123,6 +123,8 @@ enum an_option_kind {
   optk_pch_dir,
   optk_wdir,
   optk_create_module_header_unit,
+  optk_create_module_interface_unit,
+  optk_create_module_internal_unit,
   optk_map_module_header_unit,
   optk_restrict,
   optk_long_lifetime_temps,
@@ -363,11 +365,11 @@ enum an_option_kind {
   optk_ms_header_unit,
   optk_ms_header_unit_quote,
   optk_ms_header_unit_angle,
-  optk_ms_mod_interface,
-  optk_ms_internal_partition,
   optk_ms_mod_translate_include,
   optk_modules,
   optk_module_import_diagnostics,
+  optk_module_interface,
+  optk_module_internal_partition,
   optk_concepts,
   optk_colors,
   optk_keep_restrict_in_signatures,
@@ -1413,12 +1415,22 @@ EXTERN_THREAD a_boolean
 			/* TRUE if support for C11 _Atomic types is enabled. */
 
 EXTERN_THREAD a_boolean
-		create_module_header_unit;
-			/* TRUE if this compilation should create a header
-			   unit. */
+		create_module_unit;
+			/* TRUE if a module unit is being created; otherwise,
+			   FALSE. */
+
+EXTERN_THREAD a_boolean
+		created_module_unit_is_internal;
+			/* TRUE if a module unit is internal; otherwise,
+			   FALSE. */
+
+EXTERN_THREAD a_boolean
+		created_module_unit_is_header;
+			/* TRUE if a module unit is a header unit; otherwise,
+			   FALSE. */
 
 EXTERN_THREAD a_const_char
-		*module_header_unit_output_file_name;
+		*module_unit_output_file_name;
 			/* When create_header_unit is TRUE, this specifies the
 			   name of the header unit file to be created. */
 
@@ -1597,18 +1609,6 @@ EXTERN_THREAD a_boolean
 			   of a module entity should be printed immediately;
 			   otherwise, such diagnostics will be suppressed and
 			   only the number of diagnostics will be reported. */
-
-EXTERN_THREAD a_boolean
-		tu_is_module_interface;
-			/* TRUE if module declarations should be treated as if
-			   they were exported.  This is ignored unless a module
-			   declaration is encountered. */
-
-EXTERN_THREAD a_boolean
-		module_partition_implicitly_imports_self;
-			/* TRUE if module partition units should be treated the
-			   same as primary units (i.e., a non-exported module
-			   declaration implicitly imports itself). */
 
 EXTERN_THREAD a_boolean
 		import_includes_from_header_map;

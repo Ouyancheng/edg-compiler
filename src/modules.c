@@ -81,8 +81,10 @@ otherwise, return FALSE.
   if (interface_sym == NULL) {
     result = FALSE;
   } else if (!module_sym->variant.module_info.is_interface_unit &&
-             (module_partition_implicitly_imports_self ||
-              module_sym->variant.module_info.partition_name == NULL)) {
+             (module_sym->variant.module_info.partition_name != NULL ||
+              microsoft_mode)) {
+    /* See decl_module in decls.c for more information about the above
+       condition. */
     result = FALSE;
   } else if (module_sym->header != interface_sym->header) {
     result = FALSE;
@@ -1745,27 +1747,55 @@ Import the given header unit.
 }  /* import_header_module */
 
 
+void import_module_unchecked(a_module_import_decl_ptr midp)
+/*
+Import the given module without performing any checks that might inhibit the
+import.  In most cases, import_module should be preferred.
+*/
+{
+  if (find_module_file(midp->module_info)) {
+    import_module_file(midp);
+  }  /* if */
+  /* Add this to the list of imported modules regardless of whether the
+     import was successful - future attempts to import the same module
+     aren't likely to succeed if this one failed. */
+  midp->next = il_header.imported_modules;
+  il_header.imported_modules = midp;
+}  /* import_module_unchecked */
+
+
+void import_curr_module()
+/*
+Import the module referred to by the current module unit.  This is called
+immediately after parsing a module declaration where the module interface needs
+to be implicitly imported.
+*/
+{
+  a_module_import_decl_ptr midp;
+
+  check_assertion(in_module_implementation_unit());
+  midp = alloc_module_import_decl();
+  midp->position = curr_module_sym->decl_position;
+  midp->module_name_position = curr_module_sym->decl_position;
+  midp->module_info = trans_unit_module;
+  midp->impl_unit_importing_self = TRUE;
+  import_module_unchecked(midp);
+}  /* import_curr_module */
+
+
 void import_module(a_module_import_decl_ptr midp,
                    a_symbol_ptr             assoc_sym)
 /*
 Import the given module.  assoc_sym is the associated symbol for the module.
 */
 {
-  a_boolean already_imported = FALSE;
+  a_boolean already_imported = check_module_already_imported(midp);
 
   /* See if this module has already been imported.  If so, ignore it. */
-  already_imported = check_module_already_imported(midp);
   if (!already_imported &&
       !check_module_has_interface_dependency(assoc_sym, curr_module_sym,
                                              &midp->module_name_position)) {
-    if (find_module_file(midp->module_info)) {
-      import_module_file(midp);
-    }  /* if */
-    /* Add this to the list of imported modules regardless of whether the
-       import was successful - future attempts to import the same module
-       aren't likely to succeed if this one failed. */
-    midp->next = il_header.imported_modules;
-    il_header.imported_modules = midp;
+    import_module_unchecked(midp);
   }  /* if */
 }  /* import_module */
 

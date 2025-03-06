@@ -502,6 +502,14 @@ Initialize the option information table.
   add_option_description(optk_create_module_header_unit, "create_header_unit",
                          '\0', /*value=*/TRUE, /*arg_required=*/TRUE,
                          pchek_none);
+  add_option_description(optk_create_module_interface_unit,
+                         "create_module_interface",
+                         '\0', /*value=*/TRUE, /*arg_required=*/TRUE,
+                         pchek_none);
+  add_option_description(optk_create_module_internal_unit,
+                         "create_module_internal_partition",
+                         '\0', /*value=*/TRUE, /*arg_required=*/TRUE,
+                         pchek_none);
   add_option_description(optk_map_module_header_unit, "header_unit", '\0',
                          /*value=*/TRUE, /*arg_required=*/TRUE,
                          pchek_command_line);
@@ -1075,18 +1083,6 @@ Initialize the option information table.
   add_option_description(optk_ms_header_unit_angle, "ms_header_unit_angle",
                          '\0', /*value=*/TRUE, /*arg_required=*/TRUE,
                          pchek_command_line);
-  add_option_description(optk_ms_mod_interface, "ms_mod_interface", '\0',
-                         /*value=*/TRUE, /*arg_required=*/FALSE,
-                         pchek_command_line);
-  add_option_description(optk_ms_mod_interface, "no_ms_mod_interface", '\0',
-                         /*value=*/FALSE, /*arg_required=*/FALSE,
-                         pchek_command_line);
-  add_option_description(optk_ms_internal_partition, "ms_internal_partition",
-                         '\0', /*value=*/TRUE, /*arg_required=*/FALSE,
-                         pchek_command_line);
-  add_option_description(optk_ms_internal_partition,"no_ms_internal_partition",
-                         '\0', /*value=*/FALSE, /*arg_required=*/FALSE,
-                         pchek_command_line);
   add_option_description(optk_ms_mod_translate_include, "ms_translate_include",
                          '\0', /*value=*/TRUE, /*arg_required=*/FALSE,
                          pchek_command_line);
@@ -1107,6 +1103,13 @@ Initialize the option information table.
                          "no_module_import_diagnostics",
                          '\0', /*value=*/FALSE, /*arg_required=*/FALSE,
                          pchek_command_line);
+  add_option_description(optk_module_interface, "module_interface",
+                         '\0', /*value=*/TRUE, /*arg_required=*/FALSE,
+                         pchek_none);
+  add_option_description(optk_module_internal_partition,
+                         "module_internal_partition",
+                         '\0', /*value=*/TRUE, /*arg_required=*/FALSE,
+                         pchek_none);
 #if COMPOUND_LITERAL_ENABLING_POSSIBLE
   add_option_description(optk_compound_literals,
                          "compound_literals",
@@ -3260,13 +3263,6 @@ option values if they were not already set by a command line option.
     }  /* if */
     /* Microsoft allows specializations to use inaccessible members. */
     relaxed_specialization_access_checking = TRUE;
-    if (!option_kind_used[optk_ms_internal_partition]) {
-      /* Microsoft treats module partitions differently from the Standard,
-         and has module partitions treated the same as primary partitions
-         (i.e., an implementation partition implicitly imports an interface
-         partition of the same name).  See N4868 [module.unit]p3. */
-      module_partition_implicitly_imports_self = TRUE;
-    }  /* if */
   }  /* if */
   /* In C++ mode, the Microsoft compiler sometimes finds typedefs when
      looking up names in elaborated type specifiers.  This flag causes
@@ -3484,6 +3480,32 @@ If it is not acceptable, issue an error.
                            file_name, es_command_line_error);
   }  /* if */
 }  /* check_module_header_unit_file_name */
+
+
+static void check_module_unit_file_name(a_const_char *file_name)
+/*
+Make sure the specified file name is acceptable as an output file.
+If it is not acceptable, issue an error.
+*/
+{
+  if (!okay_as_output_file(file_name)) {
+    output_file_open_error(/*bad_name=*/TRUE, ec_edg_ifc_interface_unit,
+                           file_name, es_command_line_error);
+  }  /* if */
+}  /* check_module_unit_file_name */
+
+
+static void check_module_unit_partition_file_name(a_const_char *file_name)
+/*
+Make sure the specified file name is acceptable as an output file.
+If it is not acceptable, issue an error.
+*/
+{
+  if (!okay_as_output_file(file_name)) {
+    output_file_open_error(/*bad_name=*/TRUE, ec_edg_ifc_partition_unit,
+                           file_name, es_command_line_error);
+  }  /* if */
+}  /* check_module_unit_partition_file_name */
 
 
 #if COMPILE_MULTIPLE_SOURCE_FILES || COMPILE_MULTIPLE_TRANSLATION_UNITS
@@ -10601,12 +10623,6 @@ Process the arguments on the command line that invoked the compiler.
           }  /* if */
         }
         break;
-      case optk_ms_mod_interface:
-        tu_is_module_interface = opt_value;
-        break;
-      case optk_ms_internal_partition:
-        module_partition_implicitly_imports_self = !opt_value;
-        break;
       case optk_ms_mod_translate_include:
         import_includes_from_header_map = opt_value;
         break;
@@ -10627,6 +10643,20 @@ Process the arguments on the command line that invoked the compiler.
         /* Enable or disable the display of diagnostics issued during module
            import operations. */
         display_module_import_diagnostics = opt_value;
+        break;
+      case optk_module_interface:
+        /* Create a module interface unit file as part of this compilation.
+           The file name will be inferred from the module declaration. */
+        create_module_unit = TRUE;
+        module_unit_output_file_name = NULL;
+        break;
+      case optk_module_internal_partition:
+        /* Create an internal module partition unit file as part of this
+           compilation.  The file name will be inferred from the module
+           declaration. */
+        create_module_unit = TRUE;
+        created_module_unit_is_internal = TRUE;
+        module_unit_output_file_name = NULL;
         break;
       case optk_preinclude:
       case optk_preinclude_macros:
@@ -10844,12 +10874,30 @@ Process the arguments on the command line that invoked the compiler.
         break;
       case optk_create_module_header_unit:
         /* Create a module header unit file as part of this compilation. */
-        create_module_header_unit = TRUE;
-        module_header_unit_output_file_name = file_name_from_opt_arg(opt_arg);
+        create_module_unit = TRUE;
+        created_module_unit_is_header = TRUE;
+        module_unit_output_file_name = file_name_from_opt_arg(opt_arg);
         /* Make sure the specified name is acceptable as a module header unit
            file name. */
-        check_module_header_unit_file_name(
-                                          module_header_unit_output_file_name);
+        check_module_header_unit_file_name(module_unit_output_file_name);
+        break;
+      case optk_create_module_interface_unit:
+        /* Create a module interface unit file as part of this compilation. */
+        create_module_unit = TRUE;
+        module_unit_output_file_name = file_name_from_opt_arg(opt_arg);
+        /* Make sure the specified name is acceptable as a module unit file
+           name. */
+        check_module_unit_file_name(module_unit_output_file_name);
+        break;
+      case optk_create_module_internal_unit:
+        /* Create an internal module partition unit file as part of this
+           compilation. */
+        create_module_unit = TRUE;
+        created_module_unit_is_internal = TRUE;
+        module_unit_output_file_name = file_name_from_opt_arg(opt_arg);
+        /* Make sure the specified name is acceptable as a module unit
+           partition file name. */
+        check_module_unit_partition_file_name(module_unit_output_file_name);
         break;
       case optk_restrict:
         /* Enables or disables recognition of the restrict token. */
@@ -13019,8 +13067,10 @@ variables declared in cmd_line.h.
 #endif /* !USE_MMAP_FOR_MEMORY_REGIONS */
   pch_dir_name = NULL;
   c11_atomic_enabled = FALSE;
-  create_module_header_unit = FALSE;
-  module_header_unit_output_file_name = NULL;
+  create_module_unit = FALSE;
+  created_module_unit_is_internal = FALSE;
+  created_module_unit_is_header = FALSE;
+  module_unit_output_file_name = NULL;
   restrict_enabled = FALSE;
   restrict_keyword_enabled = DEFAULT_RESTRICT_ENABLED;
   noreturn_keyword_enabled = FALSE;
@@ -13412,8 +13462,6 @@ variables declared in cmd_line.h.
   modules_enabled = FALSE;
   display_module_import_diagnostics = DEFAULT_MODULE_IMPORT_DIAG_ENABLED;
   module_keywords_enabled = FALSE;
-  tu_is_module_interface = FALSE;
-  module_partition_implicitly_imports_self = FALSE;
   import_includes_from_header_map = FALSE;
   ignore_absolute_paths_for_header_units = FALSE;
   skip_module_imports = FALSE;

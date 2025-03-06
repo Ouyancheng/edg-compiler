@@ -20188,23 +20188,6 @@ An export declaration can take the following forms:
 }  /* export_declaration */
 
 
-static void import_curr_module()
-/*
-Import the module referred to by the current module unit.
-*/
-{
-  a_module_import_decl_ptr midp;
-
-  check_assertion(in_module_implementation_unit());
-  midp = alloc_module_import_decl();
-  midp->position = curr_module_sym->decl_position;
-  midp->module_name_position = curr_module_sym->decl_position;
-  midp->module_info = trans_unit_module;
-  midp->impl_unit_importing_self = TRUE;
-  import_module(midp, curr_module_sym);
-}  /* import_curr_module */
-
-
 static void import_declaration(void)
 /*
 Process an import declaration.  Module imports can take the following forms:
@@ -20381,6 +20364,20 @@ left unchanged.
        (the caller does that). */
     err = TRUE;
   }  /* if */
+  if (create_module_unit && !created_module_unit_is_header &&
+      module_unit_output_file_name == NULL) {
+    /* If a non-header module unit is being created and there is currently no
+       output file name: create one now derived from the module and partition
+       name. */
+    a_string output_file_name(primary_name);
+
+    if (!partition_name.is_empty()) {
+      output_file_name.append("-", partition_name);
+    }  /* if */
+    output_file_name.append(".eifc");
+    module_unit_output_file_name =
+                   output_file_name.to_allocated_storage(FE_allocator<char>());
+  }  /* if */
   if (!(tu_stage_is(tud_none) || tu_stage_is(tud_global_module_fgmt))) {
     an_error_severity severity = es_discretionary_error;
     an_error_code     err_code = tu_stage_is(tud_module_unit) ?
@@ -20392,6 +20389,23 @@ left unchanged.
     pos_diagnostic(severity, err_code, &module_pos);
     if (severity != es_warning) err = TRUE;
   }
+  if (!err && create_module_unit) {
+    /* A module unit is being created; ensure the creation options are
+       compatible with the module declaration being parsed. */
+    if (created_module_unit_is_internal) {
+      /* A module implementation unit was requested on the command line. */
+      if (is_interface) {
+        pos_error(ec_module_unit_export_unexpected, &module_pos);
+        err = TRUE;
+      }  /* if */
+    } else {
+      /* A module interface unit was requested on the command line. */
+      if (!is_interface) {
+        pos_error(ec_module_unit_export_expected, &module_pos);
+        err = TRUE;
+      }  /* if */
+    }  /* if */
+  }  /* if */
   if (!err) {
     if (curr_module_sym == NULL && !primary_name.is_empty()) {
       curr_module_sym = make_module_symbol(primary_name, partition_name,
@@ -20400,10 +20414,20 @@ left unchanged.
     if (curr_module_sym != NULL) {
       trans_unit_module = find_or_create_module(curr_module_sym);
       set_tu_stage(tud_module_unit);
-      if (!is_interface && (module_partition_implicitly_imports_self ||
-                            partition_name.is_empty())) {
-        /* A non-interface module declaration with no partition implicitly
-           imports its own primary interface unit. */
+      if (!is_interface && (partition_name.is_empty() || microsoft_mode)) {
+        /* Per the C++ standard [module.unit]:
+
+           A module-declaration that contains neither an export-keyword nor a
+           module-partition implicitly imports the primary module interface
+           unit of the module as if by a module-import-declaration.
+
+           Microsoft extends the implicit import behavior to also apply to
+           module-declarations that contain no export-keyword but do contain a
+           module-partition (e.g., "module foo:bar;" implicitly imports
+           "foo-bar.ifc").
+
+           If this condition is updated be sure to update
+           module_has_interface_dependency in modules.c.  */
         import_curr_module();
       }  /* if */
     } else {
@@ -20453,7 +20477,7 @@ tu_stage) to match what has been declared.
       decl_private_module_fragment();
     } else {
       /* A module unit (primary or partition) */
-      decl_module(exported || tu_is_module_interface);
+      decl_module(exported);
     }  /* if */
   }  /* if */
   remove_stop_token(tok_semicolon);

@@ -127,7 +127,7 @@ MAKE_FRONT_END_CALLABLE is TRUE.
     process_translation_unit(primary_source_file_name, /*is_primary=*/TRUE,
                              (an_exported_template_file_ptr)NULL);
     /* Run module generation if required. */
-    if (create_module_header_unit) {
+    if (create_module_unit) {
       if (display_compilation_time) get_timer(&module_start_time);
       modules_write_out();
       if (display_compilation_time) {

@@ -3551,6 +3551,10 @@ ec_setlocale_lc_numeric_failed;;"could not set LC_NUMERIC locale to C"
 ec_elifdef_not_enabled;;"elifdef and elifndef are not enabled in this mode and are ignored in text being skipped"
 ec_nonstandard_alias_declaration_context;;"an alias declaration is nonstandard in this context"
 ec_out_of_order_field_allocation_nonstandard;;"the target ABI may allocate nonstatic members in an order not matching their declaration order, which is nonstandard in C++23 and later"
+ec_edg_ifc_interface_unit;INTERNAL;"EDG IFC module interface unit"
+ec_edg_ifc_partition_unit;INTERNAL;"EDG IFC module partition unit"
+ec_module_unit_export_unexpected;;"the module declaration cannot be exported from this translation unit unless creating a module interface file"
+ec_module_unit_export_expected;;"the module declaration must be exported from this translation unit to create a module interface file"
 ###############################################################################
 #                                                             \  ___  /       #
 #                                                               /   \         #

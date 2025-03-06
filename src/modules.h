@@ -440,6 +440,8 @@ extern a_module_entity_ptr get_deduction_guide_module_entity(
 
 extern void import_header_module(a_module_import_decl_ptr midp);
 
+extern void import_curr_module();
+
 extern void import_module(a_module_import_decl_ptr midp,
                           a_symbol_ptr             assoc_sym);
 
