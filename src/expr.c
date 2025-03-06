@@ -48906,8 +48906,8 @@ This routine frees alep.
   if (!is_yield) {
     a_statement_ptr stmt;
     result = wrap_up_full_expression(result);
-    stmt = add_statement_at_stmt_pos((a_statement_kind)stmk_goto,
-                                     &null_source_position);
+    stmt = add_statement_at_stmt_pos(stmk_goto, &null_source_position,
+                                     /*compiler_generated=*/TRUE);
     stmt->variant.label.ptr = cdp->final_suspend_label;
     if (!curr_routine->is_prototype_instantiation) {
       stmt->variant.label.lifetime = scope_for_routine(curr_routine)->lifetime;

@@ -500,8 +500,10 @@ EXTERN_THREAD int
 
 #define struct_stmt_stack_top()  (struct_stmt_stack[depth_stmt_stack])
 
-extern a_statement_ptr add_statement_at_stmt_pos(a_statement_kind   kind,
-                                                 a_source_position  *stmt_pos);
+extern a_statement_ptr add_statement_at_stmt_pos(
+                                         a_statement_kind  kind,
+                                         a_source_position *stmt_pos,
+                                         a_boolean         compiler_generated);
 
 extern void update_init_statement_control_flow(a_statement_ptr  sp);
 

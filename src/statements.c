@@ -147,7 +147,7 @@ Declarations needed because of forward references:
 static void statement(a_boolean is_dependent_statement,
                       a_boolean marked_as_gnu_extension);
 
-static void empty_statement(void);
+static void empty_statement(a_boolean compiler_generated);
 
 
 static void check_lint_notreached_state(void)
@@ -1753,8 +1753,9 @@ this leads to undefined behavior when executed.)
 
 #endif /* UPC_EXTENSIONS_ALLOWED */
 
-a_statement_ptr add_statement_at_stmt_pos(a_statement_kind   kind,
-                                          a_source_position  *stmt_pos)
+a_statement_ptr add_statement_at_stmt_pos(a_statement_kind  kind,
+                                          a_source_position *stmt_pos,
+                                          a_boolean         compiler_generated)
 /*
 Allocate a statement of the indicated kind, record the statement
 source position specified in *stmt_pos, and link it onto the end of
@@ -1785,7 +1786,7 @@ the current statement sequence.
   }  /* if */
 
   /* Allocate the statement entry. */
-  sp = alloc_statement(kind, /*compiler_generated=*/FALSE);
+  sp = alloc_statement(kind, compiler_generated);
   /* Set the position from *stmt_pos. */
   sp->position = *stmt_pos;
 
@@ -1820,13 +1821,14 @@ the current statement sequence.
 
 /*
 Call add_statement_at_stmt_pos using pos_curr_token as statement source
-position.
+position.  Set the compiler_generated flag as appropriate.
 */
-#define add_statement(kind)                                                  \
+#define add_statement(kind, compiler_generated)                              \
   add_statement_at_stmt_pos((kind),                                          \
                             struct_stmt_stack_top().p_start_pos != NULL ?    \
                                          struct_stmt_stack_top().p_start_pos \
-                                       : &pos_curr_token)
+                                       : &pos_curr_token,                    \
+                            (compiler_generated))
 
 void update_init_statement_control_flow(a_statement_ptr  sp)
 /*
@@ -1955,7 +1957,7 @@ body of a constexpr function or constructor.
   a_struct_stmt_stack_entry_ptr  sssep = &struct_stmt_stack_top();
   an_il_entity_list_entry_ptr    entity_list;
 
-  sp = add_statement((a_statement_kind)stmk_decl);
+  sp = add_statement(stmk_decl, /*compiler_generated=*/FALSE);
   if (!sssep->record_declared_entities) {
     /* The caller didn't set up a list to record declared entities.  Do it
        now. */
@@ -2520,8 +2522,8 @@ expression is to be evaluated to fix the size of the array.
 {
   a_statement_ptr          vla_stmt;
 
-  vla_stmt = add_statement_at_stmt_pos((a_statement_kind)stmk_set_vla_size,
-                                       pos);
+  vla_stmt = add_statement_at_stmt_pos(stmk_set_vla_size, pos,
+                                       /*compiler_generated=*/TRUE);
   vla_stmt->variant.vla_dimension = vdp;
   update_init_statement_control_flow(vla_stmt);
 }  /* set_vla_size_statement */
@@ -2580,8 +2582,9 @@ Put out the definition for the indicated label.  If label == NULL, do nothing.
     label->num_microsoft_trys_inside_of =
               struct_stmt_stack[depth_stmt_stack].num_microsoft_trys_inside_of;
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
-    sp = add_statement_at_stmt_pos((a_statement_kind)stmk_label,
-                                   &label->source_corresp.decl_position);
+    sp = add_statement_at_stmt_pos(stmk_label,
+                                   &label->source_corresp.decl_position,
+                                   /*compiler_generated=*/FALSE);
     label->exec_stmt = sp;
     sp->variant.label.ptr = label;
   }  /* if */
@@ -3372,7 +3375,8 @@ In strict C mode, the variant using "__asm" is accepted.
       asm_declaration(asm_decl_allowed, /*is_asm_statement=*/TRUE,
                       &struct_stmt_stack[depth_stmt_stack].prefix_attributes);
   /* Allocate the statement. */
-  sp = add_statement_at_stmt_pos((a_statement_kind)stmk_asm, &asm_pos);
+  sp = add_statement_at_stmt_pos(stmk_asm, &asm_pos,
+                                 /*compiler_generated=*/FALSE);
   stmt_update_source_sequence_list(sp);
   sp->variant.asm_entry = asm_entry;
 #if EXTRA_SOURCE_POSITIONS_IN_IL
@@ -3458,10 +3462,11 @@ block under the "try" in a function try block.
     block_stmt->position = pos_curr_token;
   } else {
     /* Allocate a block statement and add it to the statements list. */
-    block_stmt = add_statement_at_stmt_pos((a_statement_kind)stmk_block,
+    block_stmt = add_statement_at_stmt_pos(stmk_block,
                                            generated_statement ?
                                                        &null_source_position :
-                                                       &pos_curr_token);
+                                                       &pos_curr_token,
+                                           generated_statement);
   }  /* if */
   stmt_update_source_sequence_list(block_stmt);
   if (!generated_statement) {
@@ -4083,7 +4088,7 @@ The syntax is:
     ssk_kind = ssk_if;
   }  /* if */
   /* Allocate the statement. */
-  sp = add_statement(kind);
+  sp = add_statement(kind, /*compiler_generated=*/FALSE);
   stmt_update_source_sequence_list(sp);
   /* Do processing required for any pragmas that are bound to the current
      statement. */
@@ -4224,7 +4229,7 @@ The syntax is:
     } else {
       flush_if_or_else_statement();
     }  /* if */
-    empty_statement();
+    empty_statement(/*compiler_generated=*/TRUE);
   } else {
     a_boolean  saved_in_consteval_context =
                                        scope_stack_top().in_consteval_context;
@@ -4303,7 +4308,7 @@ The syntax is:
       } else {
         flush_if_or_else_statement();
       }  /* if */
-      empty_statement();
+      empty_statement(/*compiler_generated=*/TRUE);
     } else {
       a_boolean  saved_in_consteval_context =
                                        scope_stack_top().in_consteval_context;
@@ -4387,7 +4392,7 @@ See also 3.6.4.2.
   /* Push a scope in C99 mode. */
   if (c99_mode) push_statement_scope();
   /* Allocate the statement. */
-  sp = add_statement((a_statement_kind)stmk_switch);
+  sp = add_statement(stmk_switch, /*compiler_generated=*/FALSE);
   stmt_update_source_sequence_list(sp);
   /* Do processing required for any pragmas that are bound to the current
      statement. */
@@ -4502,7 +4507,7 @@ See also 3.6.5.1.
   /* Push a scope in C99 mode. */
   if (c99_mode) push_statement_scope();
   /* Allocate the statement. */
-  sp = add_statement((a_statement_kind)stmk_while);
+  sp = add_statement(stmk_while, /*compiler_generated=*/FALSE);
   stmt_update_source_sequence_list(sp);
   /* Do processing required for any pragmas that are bound to the current
      statement. */
@@ -4572,7 +4577,7 @@ See also 3.6.5.2.
   /* Push a scope in C99 mode. */
   if (c99_mode) push_statement_scope();
   /* Allocate the statement. */
-  sp = add_statement((a_statement_kind)stmk_end_test_while);
+  sp = add_statement(stmk_end_test_while, /*compiler_generated=*/FALSE);
   stmt_update_source_sequence_list(sp);
   /* Do processing required for any pragmas that are bound to the current
      statement. */
@@ -4724,7 +4729,7 @@ declared with an explicit return type.
   /* Allocate the statement. */
   if (!is_function_try_block) {
     check_for_unreachable_code();
-    sp = add_statement((a_statement_kind)stmk_try_block);
+    sp = add_statement(stmk_try_block, /*compiler_generated=*/FALSE);
     stmt_update_source_sequence_list(sp);
     start_of_try_block(sp);
   }  /* if */
@@ -4817,7 +4822,7 @@ statement.  Its form is
   db_enter(3, "microsoft_try_statement");
   check_for_unreachable_code();
   /* Allocate the statement. */
-  sp = add_statement((a_statement_kind)stmk_microsoft_try);
+  sp = add_statement(stmk_microsoft_try, /*compiler_generated=*/FALSE);
   stmt_update_source_sequence_list(sp);
   /* Do processing required for any pragmas that are bound to the current
      statement. */
@@ -5039,11 +5044,11 @@ Return the statement for the try/catch.
 }  /* wrap_coroutine_body_in_try_block */
 
 
-static void empty_statement(void)
+static void empty_statement(a_boolean compiler_generated)
 /*
 Do processing appropriate to an empty statement -- typically, just a
 semicolon.  However, this routine is also called for some error cases as
-well.
+well; in that case compiler_generated should be set to TRUE.
 */
 {
   a_statement_ptr  esp;
@@ -5058,7 +5063,7 @@ well.
        current statement. */
     discard_curr_construct_pragmas();
   }  /* if */
-  esp = add_statement((a_statement_kind)stmk_empty);
+  esp = add_statement(stmk_empty, compiler_generated);
   stmt_update_source_sequence_list(esp);
   /* Advance past the semicolon. */
   if (curr_token == tok_semicolon) {
@@ -5094,7 +5099,7 @@ in *goto_stmt.
   if (sssep == NULL) {
     /* Error.  Since no continue statement is actually added to the IL,
        treat this as an empty statement. */
-    empty_statement();
+    empty_statement(/*compiler_generated=*/TRUE);
     sp = NULL;
   } else {
     dest_label = sssep->continue_label;
@@ -5112,7 +5117,7 @@ in *goto_stmt.
       }  /* if */
     }  /* if */
     /* Allocate the goto statement. */
-    sp = add_statement((a_statement_kind)stmk_goto);
+    sp = add_statement(stmk_goto, /*compiler_generated=*/TRUE);
 #if EXTRA_SOURCE_POSITIONS_IN_IL
     curr_construct_end_position = end_pos_curr_token;
 #endif /* EXTRA_SOURCE_POSITIONS_IN_IL */
@@ -5211,7 +5216,7 @@ the statement was preceded by the GNU C __extension__ keyword.
                                     struct_stmt_stack_top().is_statement_expr;
   a_dynamic_init_ptr  dip;
 
-  sp = add_statement((a_statement_kind)stmk_expr);
+  sp = add_statement(stmk_expr, /*compiler_generated=*/FALSE);
   stmt_update_source_sequence_list(sp);
   /* Do processing required for any pragmas that are bound to the current
      statement. */
@@ -5416,7 +5421,7 @@ The affinity can be an expression or the keyword "continue".
   if (curr_token == tok_upc_forall) {
     /* This is a UPC forall statement. */
     processing_upc_forall = TRUE;
-    sp = add_statement((a_statement_kind)stmk_upc_forall);
+    sp = add_statement(stmk_upc_forall, /*compiler_generated=*/FALSE);
   } else
 #endif /* UPC_EXTENSIONS_ALLOWED */
   /* Do not insert code here. */
@@ -5425,7 +5430,7 @@ The affinity can be an expression or the keyword "continue".
        based for loop and they have different statement kinds.  Assume it's
        a "plain old" for statement for now and fix it later if we find that
        it's a range-based for. */
-    sp = add_statement((a_statement_kind)stmk_for);
+    sp = add_statement(stmk_for, /*compiler_generated=*/FALSE);
   }  /* if */
   stmt_update_source_sequence_list(sp);
   /* Do processing required for any pragmas that are bound to the current
@@ -5725,7 +5730,7 @@ Where "in" is a context-sensitive keyword.
   assume_loop_reachable = curr_reachability.reachable ||
                           curr_reachability.suppress_unreachable_warning;
   /* Allocate the "for each" statement. */
-  sp = add_statement((a_statement_kind)stmk_for_each);
+  sp = add_statement(stmk_for_each, /*compiler_generated=*/FALSE);
   felp = sp->variant.for_each_loop.extra_info;
   stmt_update_source_sequence_list(sp);
   /* Do processing required for any pragmas that are bound to the current
@@ -6268,7 +6273,7 @@ GNU allows a syntax similar to Fortran's assigned goto:
   }  /* if */
 #endif /* GNU_EXTENSIONS_ALLOWED */
   /* Allocate the statement. */
-  sp = add_statement(stmk);
+  sp = add_statement(stmk, /*compiler_generated=*/FALSE);
   stmt_update_source_sequence_list(sp);
   /* Do processing required for any pragmas that are bound to the current
      statement. */
@@ -6445,7 +6450,7 @@ give the starting and ending positions of the break statement.
     }  /* if */
   }  /* if */
   /* Allocate the goto statement. */
-  sp = add_statement_at_stmt_pos((a_statement_kind)stmk_goto, pos);
+  sp = add_statement_at_stmt_pos(stmk_goto, pos, /*compiler_generated=*/TRUE);
 #if EXTRA_SOURCE_POSITIONS_IN_IL
   sp->end_position = *end_pos;
 #endif /* EXTRA_SOURCE_POSITIONS_IN_IL */
@@ -6937,7 +6942,8 @@ In C++20, this also handles co_return statements.
                            /*treat_as_potential_prvalue=*/FALSE)) {
       /* Evaluate the return expression in a temporary and return that
          temporary. */
-      a_statement_ptr  eval = add_statement((a_statement_kind)stmk_expr);
+      a_statement_ptr  eval = add_statement(stmk_expr,
+                                            /*compiler_generated=*/FALSE);
       if (is_void_type(return_type)) {
         /* No temporary is needed: just evaluate the expression. */
         eval->expr = return_expr;
@@ -6966,14 +6972,15 @@ In C++20, this also handles co_return statements.
     /* Microsoft or GNU C mode.  A warning was already issued above. Put out
        the expression statement holding the return expression.  The return
        statement will come a little later. */
-    sp = add_statement((a_statement_kind)stmk_expr);
+    sp = add_statement(stmk_expr, /*compiler_generated=*/FALSE);
   } else {
     /* Allocate the return statement. */
     a_statement_kind  kind = (a_statement_kind)stmk_return;
     if (rout->is_coroutine) {
       kind = (a_statement_kind)stmk_coroutine_return;
     }  /* if */
-    sp = add_statement_at_stmt_pos(kind, &return_pos);
+    sp = add_statement_at_stmt_pos(kind, &return_pos,
+                                   /*compiler_generated=*/FALSE);
 #if GENERATE_SOURCE_SEQUENCE_LISTS
     update_source_sequence_list((char*)sp, iek_statement, src_seq_entry);
 #endif /* GENERATE_SOURCE_SEQUENCE_LISTS */
@@ -6991,8 +6998,8 @@ In C++20, this also handles co_return statements.
          function.  The statement already put out is an expression statement.
          Follow it now by a return statement with a null expression. */
       /* coverity[returned_pointer] -- sp unused in some configurations. */
-      sp = add_statement_at_stmt_pos((a_statement_kind)stmk_return,
-                                     &return_pos);
+      sp = add_statement_at_stmt_pos(stmk_return, &return_pos,
+                                     /*compiler_generated=*/FALSE);
 #if GENERATE_SOURCE_SEQUENCE_LISTS
       update_source_sequence_list((char*)sp, iek_statement, src_seq_entry);
 #endif /* GENERATE_SOURCE_SEQUENCE_LISTS */
@@ -7302,8 +7309,8 @@ GNU also allows the "case range" form:
     a_switch_case_entry_ptr  scep = alloc_switch_case_entry();
     /* Reload sssep because the statement stack may have been reallocated. */
     sssep = &struct_stmt_stack[switch_depth];
-    sp = add_statement_at_stmt_pos((a_statement_kind)stmk_switch_case,
-                                   &case_position);
+    sp = add_statement_at_stmt_pos(stmk_switch_case, &case_position,
+                                   /*compiler_generated=*/FALSE);
     stmt_update_source_sequence_list(sp);
     sp->variant.switch_case.switch_statement = sssep->statement;
     sp->variant.switch_case.extra_info = scep;
@@ -7363,8 +7370,8 @@ Scan a default case label definition.  The syntax is:
   if (sssep != NULL) {
     a_statement_ptr          sp;
     a_switch_case_entry_ptr  scep = alloc_switch_case_entry();
-    sp = add_statement_at_stmt_pos((a_statement_kind)stmk_switch_case,
-                                   &label_position);
+    sp = add_statement_at_stmt_pos(stmk_switch_case, &label_position,
+                                   /*compiler_generated=*/FALSE);
     sp->variant.switch_case.switch_statement = sssep->statement;
     sp->variant.switch_case.extra_info = scep;
     scep->stmt = sp;
@@ -7521,7 +7528,7 @@ Each has the form
   }  /* switch */
   check_for_unreachable_code();
   /* Allocate the statement. */
-  sp = add_statement(kind);
+  sp = add_statement(kind, /*compiler_generated=*/FALSE);
   stmt_update_source_sequence_list(sp);
   /* Do processing required for any pragmas that are bound to the current
      statement. */
@@ -7551,7 +7558,7 @@ Parse a statement of the form
 
   check_for_unreachable_code();
   /* Allocate the statement. */
-  sp = add_statement((a_statement_kind)stmk_upc_fence);
+  sp = add_statement(stmk_upc_fence, /*compiler_generated=*/FALSE);
   stmt_update_source_sequence_list(sp);
   /* Do processing required for any pragmas that are bound to the current
      statement. */
@@ -7620,7 +7627,7 @@ rescan_statement:
   switch(curr_token) {
     case tok_semicolon:
       /* Empty statement (part of expression-statement, 3.6.3). */
-      empty_statement();
+      empty_statement(/*compiler_generated=*/FALSE);
       can_appear_in_constexpr_body = TRUE;
       break;
     case tok_lbrace:
@@ -7804,7 +7811,7 @@ default_label_case:
       syntax_error(ec_exp_statement);
       remove_stop_token(tok_semicolon);
       remove_stop_token(tok_rbrace);
-      empty_statement();
+      empty_statement(/*compiler_generated=*/TRUE);
       break;
 #if UPC_EXTENSIONS_ALLOWED
     /* UPC-only constructs. */
@@ -8285,25 +8292,24 @@ is being parsed within the context of the __extension__ keyword.
       if (rp->is_coroutine) {
         a_coroutine_descr_ptr cdp = get_coroutine_descr(rp);
         if (cdp->has_return_void) {
-          sp = add_statement_at_stmt_pos(
-                                       (a_statement_kind)stmk_coroutine_return,
-                                       &null_source_position);
+          sp = add_statement_at_stmt_pos(stmk_coroutine_return,
+                                         &null_source_position,
+                                         /*compiler_generated=*/TRUE);
           sp->compiler_generated = TRUE;
           sp->expr = make_coroutine_result_expression(/*alep=*/NULL,
                                                       /*is_yield=*/FALSE,
                                                       sp);
         }  /* if */
       } else {
-        sp = add_statement_at_stmt_pos((a_statement_kind)stmk_return,
-                                       &null_source_position);
+        sp = add_statement_at_stmt_pos(stmk_return, &null_source_position,
+                                       /*compiler_generated=*/TRUE);
         /* Insert an implied return value if there is one. */
         sp->expr = return_expr;
       }  /* if */
     } else if (implicit_rethrow) {
-      /* Generate a rethrow.  The source position is null to indicate that
-         the statement is compiler generated. */
-      sp = add_statement_at_stmt_pos((a_statement_kind)stmk_expr,
-                                     &null_source_position);
+      /* Generate a rethrow. */
+      sp = add_statement_at_stmt_pos(stmk_expr, &null_source_position,
+                                     /*compiler_generated=*/TRUE);
       sp->expr = alloc_expr_node((an_expr_node_kind)enk_throw);
       /* There is no throw expression (i.e., this is a rethrow), so discard
          the throw supplement. */

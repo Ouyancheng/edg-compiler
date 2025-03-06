@@ -7896,8 +7896,9 @@ for use in generating cross-reference output describing this declaration.
         a_statement_ptr vla_stmt;
 
         variable_ptr->has_variably_modified_type = TRUE;
-        vla_stmt = add_statement_at_stmt_pos((a_statement_kind)stmk_vla_decl,
-                                             &locator->source_position);
+        vla_stmt = add_statement_at_stmt_pos(stmk_vla_decl,
+                                             &locator->source_position,
+                                             /*compiler_generated=*/TRUE);
         vla_stmt->variant.vla.is_typedef_decl = FALSE;
         vla_stmt->variant.vla.variant.variable = variable_ptr;
         check_for_vla_inside_statement_expression(&locator->source_position);
@@ -12673,8 +12674,9 @@ symbol entry, and return a pointer to it in state->sym.
       if (is_variably_modified_type(type_ptr)) {
         a_statement_ptr  sp;
         
-        sp = add_statement_at_stmt_pos((a_statement_kind)stmk_vla_decl,
-                                       &locator->source_position);
+        sp = add_statement_at_stmt_pos(stmk_vla_decl,
+                                       &locator->source_position,
+                                       /*compiler_generated=*/TRUE);
         sp->variant.vla.is_typedef_decl = TRUE;
         sp->variant.vla.variant.typedef_type = tp;
         tp->variant.typeref.has_variably_modified_type = TRUE;

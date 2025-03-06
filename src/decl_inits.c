@@ -462,8 +462,8 @@ recorded in the stmk_init statement.
       }  /* if */
 #endif /* EXTRA_SOURCE_POSITIONS_IN_IL */
     }  /* if */
-    init_stmt = add_statement_at_stmt_pos((a_statement_kind)stmk_init,
-                                          stmt_pos);
+    init_stmt = add_statement_at_stmt_pos(stmk_init, stmt_pos,
+                                          /*compiler_generated=*/FALSE);
 #if EXTRA_SOURCE_POSITIONS_IN_IL
     if (stmt_end_pos != NULL) {
       init_stmt->end_position = *stmt_end_pos;
