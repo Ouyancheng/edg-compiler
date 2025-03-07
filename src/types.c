@@ -12354,10 +12354,11 @@ See conversion_possible.
        equal size (in bytes). */
     if (!type_is(dest_type, tk_vector)) {
       /* okay = FALSE; -- already set. */
-    } else if (identical_types(source_type, dest_type) ||
-               (clang_mode && source_type->size == dest_type->size)) {
+    } else if (identical_types(source_type, dest_type)) {
       okay = TRUE;
       std_conv->nontrivial_conversion = FALSE;
+    } else if (clang_mode && source_type->size == dest_type->size) {
+      okay = TRUE;
     } else {
       a_boolean   same_length = num_vector_elements(source_type) ==
                                                num_vector_elements(dest_type);
