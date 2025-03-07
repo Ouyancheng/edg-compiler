@@ -2628,15 +2628,15 @@ This is an adaptation of the "Heapsort" procedure as described in "Introduction
 To Algorithms" by Cormen, Leiserson, and Rivest (CLR, first edition).
 */
 {
-  size_t  len = last-first;
+  ptrdiff_t len = last - first;
 
   if (len > 1) {
-    build_heap(first, len, cmp);
-    for (size_t i = len; i>1;) {
+    build_heap(first, (size_t)len, cmp);
+    for (ptrdiff_t i = len; i > 1;) {
       --i;
       swap_at(first, first+i);
       --len;
-      heapify(first, len, 0, cmp);
+      heapify(first, (size_t)len, 0, cmp);
     }  /* for */
   }  /* if */
 }  /* heap_sort */
@@ -5545,7 +5545,7 @@ Ptr_map.
   a_hash_value  value = 0;
 
   for (size_t i = 0; i < str.length(); ++i) {
-    value = (value << 5) + value + str.start()[i];
+    value = (value << 5) + value + (a_hash_value)(str.start()[i]);
   }  /* for */
   return value;
 }  /* hash_ptr */

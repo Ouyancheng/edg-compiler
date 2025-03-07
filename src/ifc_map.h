@@ -205,6 +205,13 @@ buffer actually resides in memory).
 
 
 /*
+Convert the given value to the given type.  In checked modes additionally
+ensure the conversion was not lossy.
+*/
+#define checked_ifc_byte_cast(value, from_type, to_type)                \
+  (check_assertion(value == from_type(to_type(value))), (to_type)value)
+
+/*
 An encapsulated representation of an IFC numeric value.
 */
 template<typename an_ifc_Storage_type>
@@ -213,9 +220,11 @@ struct Numeric_entry : public an_ifc_module_entry {
     : an_ifc_module_entry(NULL), value{}
     {}
 
-  Numeric_entry(an_ifc_module_file        *mod_val,
-                 const an_ifc_Storage_type &value_ref)
-    : an_ifc_module_entry(mod_val), value{value_ref}
+  template<typename a_Type>
+  Numeric_entry(an_ifc_module_file *mod_val,
+                a_Type             value_ref)
+    : an_ifc_module_entry(mod_val),
+      value{checked_ifc_byte_cast(value_ref, a_Type, an_ifc_Storage_type)}
     {}
 
   an_ifc_Storage_type
@@ -234,9 +243,11 @@ struct Implicit_numeric_entry : public an_ifc_module_entry {
     : an_ifc_module_entry(NULL), value{}
     {}
 
-  Implicit_numeric_entry(an_ifc_module_file        *mod_val,
-                          const an_ifc_Storage_type &value_ref)
-    : an_ifc_module_entry(mod_val), value{value_ref}
+  template<typename a_Type>
+  Implicit_numeric_entry(an_ifc_module_file *mod_val,
+                         a_Type             value_ref)
+    : an_ifc_module_entry(mod_val),
+      value{checked_ifc_byte_cast(value_ref, a_Type, an_ifc_Storage_type)}
     {}
 
   an_ifc_Storage_type
@@ -258,10 +269,12 @@ struct Index_entry : public an_ifc_module_entry {
     : an_ifc_module_entry(NULL), sort{}, value{}
     {}
 
+  template<typename a_Type>
   Index_entry(an_ifc_module_file *mod_val,
-               an_ifc_Sort_type   sort_val,
-               a_Native_size_type value_val)
-    : an_ifc_module_entry(mod_val), sort{sort_val}, value{value_val}
+              an_ifc_Sort_type   sort_val,
+              a_Type             value_val)
+    : an_ifc_module_entry(mod_val), sort{sort_val},
+      value{checked_ifc_byte_cast(value_val, a_Type, a_Native_size_type)}
     {}
 
   an_ifc_Sort_type
@@ -283,9 +296,11 @@ struct Offset_entry : public an_ifc_module_entry {
     : an_ifc_module_entry(NULL), value{}
     {}
 
+  template<typename a_Type>
   Offset_entry(an_ifc_module_file *mod_val,
-                a_Native_size_type value_val)
-    : an_ifc_module_entry(mod_val), value{value_val}
+               a_Type             value_val)
+    : an_ifc_module_entry(mod_val),
+      value{checked_ifc_byte_cast(value_val, a_Type, a_Native_size_type)}
     {}
 
   a_Native_size_type

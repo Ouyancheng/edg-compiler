@@ -263,7 +263,7 @@ into the string table where the string starts.
 {
   size_t start = this->string_table.length();
 
-  this->string_table.insert(start, bytes, num_bytes);
+  this->string_table.insert(start, (a_byte*)bytes, num_bytes);
   return start;
 }  /* an_ifc_output_state::add_to_string_table */
 
@@ -277,7 +277,7 @@ offset into the string table where the string starts.
   size_t start = this->string_table.length();
   size_t num_bytes = strlen(string_text) + 1;
 
-  this->string_table.insert(start, string_text, num_bytes);
+  this->string_table.insert(start, (a_byte*)string_text, num_bytes);
   return start;
 }  /* an_ifc_output_state::add_to_string_table */
 
@@ -293,7 +293,7 @@ terminates the string table.
 {
   size_t start = this->string_table.length();
 
-  this->string_table.insert(start, str.start(), str.length());
+  this->string_table.insert(start, (a_byte*)str.start(), str.length());
   this->string_table.push_back('\0');
   return start;
 }  /* an_ifc_output_state::add_to_string_table */
@@ -520,8 +520,7 @@ struct an_ifc_output_partition_metadata {
                            used to retrieve the output partition from the array
                            of partitions -- i.e.,
                            an_ifc_output_state::partitions). */
-  an_ifc_byte_offset_storage
-                relative_offset;
+  size_t        relative_offset;
                         /* The byte offset from the start of partition writing.
                            This is different from the byte offset from the
                            start of the file as it does not factor in the size
@@ -560,12 +559,10 @@ struct an_ifc_output_metadata {
                 used_partitions = {};
                         /* The metadata for the partitions that will be written
                            to the IFC file. */
-  an_ifc_byte_offset_storage
-                num_partition_bytes = 0;
+  size_t        num_partition_bytes = 0;
                         /* The total number of bytes used for the partitions
                            that will be written to the IFC file. */
-  an_ifc_cardinality_storage
-                num_string_table_bytes = 0;
+  size_t        num_string_table_bytes = 0;
                         /* The number of bytes used for the string table that
                            will be written to the IFC file. */
 };  /* an_ifc_output_metadata */
@@ -622,7 +619,8 @@ num_bytes bytes following the specified file position.
      the file.  write_bytes should be used for append operations. */
   check_assertion(file_pos + num_bytes < size_t_arg(orig_file_pos));
   { /* Move the cursor to the desired write position. */
-    int seek_result = fseek(this->output_file->f_module, file_pos, SEEK_SET);
+    int seek_result = fseek(this->output_file->f_module,
+                            (long)file_pos, SEEK_SET);
 
     if (seek_result != 0) {
       ifc_write_error();
@@ -715,14 +713,13 @@ Return the IFC architecture sort value corresponding to the current target.
 }  /* get_target_ifc_architecture */
 
 
-static an_ifc_byte_offset_storage get_partitions_start(
-                                       an_ifc_module_file           *file,
-                                       const an_ifc_output_metadata &metadata)
+static size_t get_partitions_start(an_ifc_module_file           *file,
+                                   const an_ifc_output_metadata &metadata)
 /*
 Return the byte offset for the start of the partitions.
 */
 {
-  an_ifc_byte_offset_storage result = 0;
+  size_t result = 0;
 
   /* Add the bytes for the magic numbers. */
   result += sizeof(edg_ifc_magic_numbers);
@@ -732,15 +729,14 @@ Return the byte offset for the start of the partitions.
 }  /* get_partitions_start */
 
 
-static an_ifc_byte_offset_storage get_string_table_start(
-                                       an_ifc_module_file           *file,
-                                       const an_ifc_output_metadata &metadata)
+static size_t get_string_table_start(an_ifc_module_file           *file,
+                                     const an_ifc_output_metadata &metadata)
 /*
 Return the byte offset for the start of the string table given the associated
 module file and output metadata.
 */
 {
-  an_ifc_byte_offset_storage result = 0;
+  size_t result = 0;
 
   /* Add the bytes for the start of the partitions. */
   result += get_partitions_start(file, metadata);
@@ -750,15 +746,14 @@ module file and output metadata.
 }  /* get_string_table_start */
 
 
-static an_ifc_byte_offset_storage get_toc_start(
-                                       an_ifc_module_file           *file,
-                                       const an_ifc_output_metadata &metadata)
+static size_t get_toc_start(an_ifc_module_file           *file,
+                            const an_ifc_output_metadata &metadata)
 /*
 Return the byte offset for the start of the table of contents given the
 associated module file and output metadata.
 */
 {
-  an_ifc_byte_offset_storage result = 0;
+  size_t result = 0;
 
   /* Add the bytes for the start of the string table. */
   result += get_string_table_start(file, metadata);
@@ -779,7 +774,7 @@ Return the given node's storage as a const byte pointer.
 
 
 static void write_ifc_header(an_ifc_output_stream         *output_stream,
-                             an_ifc_text_offset_storage   source_file_name,
+                             size_t                       source_file_name,
                              an_ifc_scope_offset          global_scope,
                              const an_ifc_output_metadata &metadata)
 /*
@@ -871,7 +866,7 @@ stream.
 
 static void write_table_of_contents_entry(
                    an_ifc_output_stream                   *output_stream,
-                   an_ifc_byte_offset_storage             start_of_partitions,
+                   size_t                                 start_of_partitions,
                    const an_ifc_output_partition          &partition,
                    const an_ifc_output_partition_metadata &partition_metadata)
 /*
@@ -897,14 +892,14 @@ associated partition metadata for the partition.
   set_ifc_offset(&toc_entry, ifc_part_offset);
 
   /* Set the number of elements in this partition. */
-  an_ifc_cardinality_storage num_elements = (partition.get_num_bytes() /
-                                             partition.element_size);
-  an_ifc_cardinality         ifc_num_elements(file, num_elements);
+  size_t             num_elements = (partition.get_num_bytes() /
+                                     partition.element_size);
+  an_ifc_cardinality ifc_num_elements(file, num_elements);
   set_ifc_cardinality(&toc_entry, ifc_num_elements);
 
   /* Set the entry size. */
-  an_ifc_entity_size_storage entity_size = partition.element_size;
-  an_ifc_entity_size         ifc_entity_size(file, entity_size);
+  size_t             entity_size = partition.element_size;
+  an_ifc_entity_size ifc_entity_size(file, entity_size);
   set_ifc_entry_size(&toc_entry, ifc_entity_size);
 
   using a_storage_type = typename an_ifc_partition::storage_type;
@@ -938,8 +933,8 @@ Given the array of partitions and string table for an IFC output state,
 return the computed IFC output metadata.
 */
 {
-  an_ifc_output_metadata     result;
-  an_ifc_byte_offset_storage relative_start = 0;
+  an_ifc_output_metadata result;
+  size_t                 relative_start = 0;
 
   for (size_t i = 0; i < IFC_PARTITION_COUNT; ++i) {
     const an_ifc_output_partition *partition = partitions[i];
@@ -991,9 +986,8 @@ output file (i.e., an_ifc_output_state::output_file).
   }  /* for */
   write_string_table(&output_stream, this->string_table);
 
-  an_ifc_byte_offset_storage
-                start_of_partitions = get_partitions_start(this->output_file,
-                                                           metadata);
+  size_t start_of_partitions = get_partitions_start(this->output_file,
+                                                    metadata);
   for (const an_ifc_output_partition_metadata &part_metadata :
                                                    metadata.used_partitions) {
     an_ifc_output_partition
@@ -2118,7 +2112,7 @@ string must be at least as long as the lifetime of the IFC IL map.
   an_ifc_text_offset text_offset = this->string_as_text_offset(str);
 
   return an_ifc_name_index(this->get_default_file(), ifc_ns_text_offset,
-                           text_offset);
+                           (an_ifc_text_offset_storage)text_offset);
 }  /* an_ifc_il_map::string_as_name_index */
 
 
