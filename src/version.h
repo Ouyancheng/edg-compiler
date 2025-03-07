@@ -42,6 +42,11 @@ be defined when fe_init.c is compiled.
 #define __TIME__ "[time unknown]"
 #endif /* ifndef __TIME__ */
 
+#if EDG_WIN32
+#pragma warning( push )
+#pragma warning(disable : 5048 )
+#endif /* EDG_WIN32 */
+
 EXTERN a_const_char
 		*build_date
 #if VAR_INITIALIZERS
@@ -55,6 +60,10 @@ EXTERN a_const_char
 			    = __TIME__
 #endif /* VAR_INITIALIZERS */
                                       ;
+
+#if EDG_WIN32
+#pragma warning( pop )
+#endif /* EDG_WIN32 */
 
 /* Conditionally close the "edg" namespace. */
 END_EDG_NAMESPACE
