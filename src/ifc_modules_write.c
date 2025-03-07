@@ -827,8 +827,9 @@ header into the given output stream.
   set_ifc_toc(&file_header, ifc_toc_start);
 
   /* Set the number of partitions. */
-  an_ifc_cardinality ifc_partition_count(file,
-                                         metadata.used_partitions.length());
+  an_ifc_cardinality ifc_partition_count(
+               file,
+               (an_ifc_cardinality_storage)metadata.used_partitions.length());
   set_ifc_partition_count(&file_header, ifc_partition_count);
   /* Do the append. */
   using a_sha256_storage_type = typename an_ifc_sha256::storage_type;
@@ -959,7 +960,8 @@ return the computed IFC output metadata.
     /* Update the total number of bytes used by all partitions. */
     result.num_partition_bytes += bytes_in_partition;
   }  /* for */
-  result.num_string_table_bytes = string_table.length();
+  result.num_string_table_bytes =
+                            (an_ifc_cardinality_storage)string_table.length();
   return result;
 }  /* make_output_metadata */
 
@@ -2797,9 +2799,9 @@ Return the IFC type index of the parameter types.
                                     heap_start_offset);
     set_ifc_start(&param_tuple_type, ifc_type_heap_start);
 
-    an_ifc_cardinality
-                ifc_param_type_count(param_tuple_type.get_file(),
-                                     param_types.length());
+    an_ifc_cardinality ifc_param_type_count(
+                            param_tuple_type.get_file(),
+                            (an_ifc_cardinality_storage)param_types.length());
     set_ifc_cardinality(&param_tuple_type, ifc_param_type_count);
   }  /* if */
   return result;
@@ -5647,7 +5649,9 @@ special traversal logic is required to account for all scope members.
 
     an_ifc_module_file *file = scope_descr.get_file();
     an_ifc_index       ifc_scope_start(file, scope_start);
-    an_ifc_cardinality ifc_scope_count(file, members.length());
+    an_ifc_cardinality ifc_scope_count(
+                                file,
+                                (an_ifc_cardinality_storage)members.length());
     set_ifc_start(&scope_descr, ifc_scope_start);
     set_ifc_cardinality(&scope_descr, ifc_scope_count);
     scope_start += members.length();

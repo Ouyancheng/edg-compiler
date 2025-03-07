@@ -5662,7 +5662,8 @@ attribute to it and return the entity.
   flags = value_of_integer_constant(arg, &ovflo);
   if (ovflo || flags < 0 || flags > 3) {
     pos_st_num2_diagnostic(es_error, ec_attr_arg_out_of_small_integer_range,
-                           &ap->position, "pass_object_size", flags, 3);
+                           &ap->position, "pass_object_size", (int32_t)flags,
+                           3);
     make_attr_unrecognized(ap);
   } else {
     add_end_of_parse_action(check_pass_object_size_attr,

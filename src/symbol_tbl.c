@@ -18348,7 +18348,7 @@ Produce a hash value for the given pointer (it points to a string of source
 characters).
 */
 {
-  return hash_ptr(a_string_view((char*)key));
+  return (a_hash_value)hash_ptr(a_string_view((char*)key));
 }  /* hash_source_string */
 
 

@@ -13262,7 +13262,7 @@ messages.
           /* A malformed escape sequence will be treated as an ordinary
              sequence of characters (skipping the '\') with no special
              meaning. */
-          nchars += curr_char_loc - escape_start - 1;
+          nchars += (unsigned long)(curr_char_loc - escape_start - 1);
         } else if ((ch == 'U' || (ch == 'u' && is_delimited) || ch == 'N') &&
                    (literal_kind == SCLK_CHAR16_T_LITERAL ||
                     literal_kind == SCLK_WIDE_LITERAL)) {
@@ -13326,7 +13326,7 @@ messages.
                  of the malformed escape sequence (already incremented by
                  one in anticipation of the expected single character
                  result). */
-              nchars += curr_char_loc - escape_start - 1;
+              nchars += (unsigned long)(curr_char_loc - escape_start - 1);
             }  /* if */
           }  /* if */
         } else if (ch == 'x') {
@@ -13347,7 +13347,7 @@ messages.
                  of the malformed escape sequence (already incremented by
                  one in anticipation of the expected single character
                  result). */
-              nchars += curr_char_loc - escape_start - 1;
+              nchars += (unsigned long)(curr_char_loc - escape_start - 1);
             }  /* if */
           }  /* if */
           if (is_delimited && *curr_char_loc == '}') {

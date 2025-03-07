@@ -1414,7 +1414,7 @@ through this function to ensure consistent representation.
     /* Find or create a module entity scope for the given name and parent
        scope. */
     a_module_entity_scope key{name, parent};
-    uint8_t               hashed_key = hash_ptr(key);
+    uintptr_t             hashed_key = hash_ptr(key);
 
     result = module_entity_scope_hash_table->get_with_hash(key, hashed_key);
     if (result == NULL) {
@@ -1982,8 +1982,8 @@ Mark the given locator as the primary locator for the given module entity.
 {
   /* In most cases the locator being marked primary is the most recently
      added locator so traverse in reverse. */
-  for (unsigned k = mep->locators.length(); k > 0; --k) {
-    unsigned               idx = k - 1;
+  for (uint16_t k = (uint16_t)(mep->locators.length()); k > 0; --k) {
+    uint16_t               idx = k - 1;
     a_module_entry_locator &idx_loc = mep->locators[idx];
 
     if (idx_loc == loc) {
@@ -2070,7 +2070,7 @@ void db_mep_stack()
 Print information about the module entity stack.
 */
 {
-  int  size = module_entity_stack->length();
+  int  size = (int)module_entity_stack->length();
   for (int i = size-1; i >= 0; i--) {
     a_module_entity_stack_entry &mese = (*module_entity_stack)[i];
 

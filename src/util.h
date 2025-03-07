@@ -2230,7 +2230,7 @@ Return the next power of two that is greater than or equal to n.
   n |= n >> 8;
   n |= n >> 16;
   n |= n >> 32;
-  return n+1;
+  return (int)(n+1);
 }  /* next_pow2 */
 
 
@@ -2839,7 +2839,7 @@ Uses branchless partitioning.
   }  /* while */
 
   int l_size = 0, r_size = 0,
-      unknown_left = (last-first) - ((num_r || num_l) ? BLOCK_SIZE : 0);
+      unknown_left = (int)(last-first) - ((num_r || num_l) ? BLOCK_SIZE : 0);
   /* Handle a leftover block by assigning the unknown elements to the other
      block. */
   if (num_r) {
