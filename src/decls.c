@@ -12622,7 +12622,7 @@ symbol entry, and return a pointer to it in state->sym.
               !unqual_type->variant.class_struct_union.is_template_class &&
               !unqual_type->variant.class_struct_union.originally_unnamed) ||
              (is_immediate_enum_type(unqual_type) &&
-              !unqual_type->variant.class_struct_union.originally_unnamed)) &&
+              !unqual_type->variant.integer.originally_unnamed)) &&
             symbol_for(unqual_type)->header == sym->header &&
             symbol_for(unqual_type)->decl_scope == sym->decl_scope &&
             identical_types(tp, unqual_type)) {
