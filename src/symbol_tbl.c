@@ -374,7 +374,7 @@ is done according to the output control block octl.
 #define put_buffer_string(buf_str)                              \
 { put_separator(",", (buf_str).length());                       \
   print((buf_str), f_debug, /*end=*/"");                        \
-  col += (buf_str).length();                                    \
+  col += (int)(buf_str).length();                               \
 }  /* put_buffer_string */
 
 
@@ -641,7 +641,7 @@ and indentation is the indentation desired.
 
   if (string != NULL && strlen(string) > 0) {
     fputs(string, f_debug);
-    col += strlen(string);
+    col += (int)strlen(string);
   }  /* if */
 
   if (sym == NULL) {
@@ -687,14 +687,14 @@ and indentation is the indentation desired.
     buffer.reset_to("#", sym->decl_seq);
     put_separator("", buffer.length());
     print(buffer, f_debug, /*end=*/"");
-    col += buffer.length();
+    col += (int)buffer.length();
   }  /* if */
 
   buffer.reset_to("(", sym->decl_position.seq, "/",
                   sym->decl_position.column, ")");
   put_separator("", buffer.length());
   print(buffer, f_debug, /*end=*/"");
-  col += buffer.length();
+  col += (int)buffer.length();
 
   /* If this symbol is for a secondary translation unit, display the
      translation unit. */
@@ -904,7 +904,7 @@ and indentation is the indentation desired.
             }  /* if */
             put_separator(sep, buffer.length());
             print(buffer, f_debug);
-            col += buffer.length();
+            col += (int)buffer.length();
             sep = ",";
             buffer.reset_to();
           } while (friend_sym != NULL);

@@ -110,7 +110,9 @@ extern a_boolean f_db_sym_trace(a_const_char	*flag_name,
 
 
 #define db_space_used_nontype(name, counter, size_arg)                \
-{ num = counter; size = size_arg; total = num*size;                   \
+{ num = (unsigned long)counter;                                       \
+  size = (unsigned long)size_arg;                                     \
+  total = num*size;                                                   \
   fprintf(f_debug, "%25s %8lu %8lu %8lu\n", name, num, size, total);  \
   grand_total += total;                                               \
 }  /* db_space_used_nontype */

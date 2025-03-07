@@ -41263,7 +41263,8 @@ done_with_requirements:
         a_scope_stack_entry_ptr   ssep;
         a_template_arg_ptr        proto_args;
         a_template_param_ptr      orig_templ_params, templ_params;
-        a_template_nesting_depth  new_nesting_depth = subst_pairs.length() + 1;
+        a_template_nesting_depth  new_nesting_depth =
+                            (a_template_nesting_depth)subst_pairs.length() + 1;
         ssep = &scope_stack[depth_template_declaration_scope];
         orig_templ_params = ssep->template_decl_info->parameters;
         proto_args = create_prototype_arg_list(NULL, orig_templ_params,

@@ -1390,7 +1390,7 @@ other mangled names.
 }  /* end_mangling */
 
 
-static void add_number_to_mangled_name(unsigned long            value,
+static void add_number_to_mangled_name(a_host_large_unsigned    value,
                                        a_mangling_control_block *mctl)
 /*
 Add the decimal representation of value to the mangled name.  This is
@@ -1399,7 +1399,7 @@ encoding.
 */
 {
   char     buffer[50];
-  sizeof_t len = unsigned_to_string_buf((a_host_large_unsigned)value, buffer);
+  sizeof_t len = unsigned_to_string_buf(value, buffer);
 
   mctl->length += len;
   add_to_text_buffer(mangling_text_buffer, buffer, len);
@@ -4855,7 +4855,8 @@ do_unknown_function:
                               ap->arguments != NULL &&
                               ap->arguments->kind == aak_constant);
               cp = ap->arguments->variant.constant;
-              add_number_to_mangled_name(unique_id_for_il_pointer(ap), mctl);
+              add_number_to_mangled_name(
+                    (a_host_large_unsigned)unique_id_for_il_pointer(ap), mctl);
               literal_representation(cp, old_form,
                                      /*in_dependent_expr=*/FALSE,
                                      /*suppress_address_of=*/FALSE, mctl);
