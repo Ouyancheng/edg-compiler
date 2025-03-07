@@ -22,8 +22,11 @@ C++-generating back end: conditions with deduced types in template definitions
 
 In some cases in which a condition appearing within a template definition
 is declared with a deduced type, the C++-generating back end could put out
-the name of the condition as the initializer expression cast to "auto",
-instead of the name itself.  This is now fixed.  For example:
+the name of the condition as the initializer expression cast to "auto"
+instead of as the name itself.  (The addition of the cast to "auto" in such
+cases was the result of the change in version 6.7 for EDGcpfe/27425, but
+the incorrect use of the initializer instead of the condition name predated
+that change.)  This is now fixed.  For example, with --c++20:
 
   template <typename> struct A {
     template <int> struct B { };
@@ -31,9 +34,10 @@ instead of the name itself.  This is now fixed.  For example:
       enum { N };
     };
     void f() {
-      if constexpr (constexpr auto v = C::N; v) { // The condition name "v" was
-                                                  // previously put out as
-                                                  // "((auto)((C::N)))"
+      if constexpr (constexpr auto v = C::N; v) {  // The condition name "v"
+                                                   // was put out in 6.7 as
+                                                   // "((auto)((C::N)))" and
+                                                   // previously as "(C::N)"
         B<1u> b;
       }
     }
