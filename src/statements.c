@@ -1759,7 +1759,8 @@ a_statement_ptr add_statement_at_stmt_pos(a_statement_kind  kind,
 /*
 Allocate a statement of the indicated kind, record the statement
 source position specified in *stmt_pos, and link it onto the end of
-the current statement sequence.
+the current statement sequence.  Set the compiler_generated flag as indicated
+by the compiler_generated argument.
 */
 {
   a_statement_ptr  sp;
@@ -5048,7 +5049,8 @@ static void empty_statement(a_boolean compiler_generated)
 /*
 Do processing appropriate to an empty statement -- typically, just a
 semicolon.  However, this routine is also called for some error cases as
-well; in that case compiler_generated should be set to TRUE.
+well.  The statement's compiler_generated flag will be set as indicated by the
+compiler_generated argument.
 */
 {
   a_statement_ptr  esp;
