@@ -42,10 +42,11 @@ be defined when fe_init.c is compiled.
 #define __TIME__ "[time unknown]"
 #endif /* ifndef __TIME__ */
 
-#if EDG_WIN32
+#ifdef _MSC_VER
+/* Suppress MSVC warnings about use of __DATE__ and __TIME__. */
 #pragma warning( push )
 #pragma warning(disable : 5048 )
-#endif /* EDG_WIN32 */
+#endif /* defined(_MSC_VER) */
 
 EXTERN a_const_char
 		*build_date
@@ -61,9 +62,9 @@ EXTERN a_const_char
 #endif /* VAR_INITIALIZERS */
                                       ;
 
-#if EDG_WIN32
+#ifdef _MSC_VER
 #pragma warning( pop )
-#endif /* EDG_WIN32 */
+#endif /* defined(_MSC_VER) */
 
 /* Conditionally close the "edg" namespace. */
 END_EDG_NAMESPACE
