@@ -1,5 +1,13 @@
 Version 6.8
 
+3/7/25   [EDGcpfe/28013]
+Clang compatibility: Additional changes for __builtin_elementwise_* and
+__builtin_reduce_* builtins
+
+Clang 16, 17, 18, 19, and 20 added some new __builtin_elementwise_* and
+__builtin_reduce_* builtins for which special handling is required.
+
+
 3/6/25   [EDGcpfe/27948]
 Clang C++11 compatibility: constexpr constraints in system headers
 

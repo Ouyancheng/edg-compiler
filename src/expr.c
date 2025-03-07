@@ -5716,25 +5716,59 @@ be called to check and adjust the argument and routine types as needed.
       }
       break;
     case bfk_elementwise_abs:
+    case bfk_elementwise_acos:
+    case bfk_elementwise_asin:
+    case bfk_elementwise_atan:
+    case bfk_elementwise_bitreverse:
+    case bfk_elementwise_canonicalize:
     case bfk_elementwise_ceil:
+    case bfk_elementwise_cos:
+    case bfk_elementwise_cosh:
+    case bfk_elementwise_exp:
+    case bfk_elementwise_exp2:
     case bfk_elementwise_floor:
+    case bfk_elementwise_log:
+    case bfk_elementwise_log10:
+    case bfk_elementwise_log2:
+    case bfk_elementwise_nearbyint:
+    case bfk_elementwise_popcount:
+    case bfk_elementwise_rint:
+    case bfk_elementwise_round:
     case bfk_elementwise_roundeven:
+    case bfk_elementwise_sin:
+    case bfk_elementwise_sinh:
+    case bfk_elementwise_sqrt:
+    case bfk_elementwise_tan:
+    case bfk_elementwise_tanh:
     case bfk_elementwise_trunc:
       bcap->n_args = 1;
       bcap->is_elementwise = TRUE;
       bcap->callback = adjust_elementwise_or_reduce_builtin;
       break;
+    case bfk_elementwise_atan2:
+    case bfk_elementwise_copysign:
+    case bfk_elementwise_fmod:
     case bfk_elementwise_max:
+    case bfk_elementwise_maximum:
     case bfk_elementwise_min:
+    case bfk_elementwise_minimum:
     case bfk_elementwise_add_sat:
     case bfk_elementwise_sub_sat:
+    case bfk_elementwise_pow:
       bcap->n_args = 2;
+      bcap->is_elementwise = TRUE;
+      bcap->callback = adjust_elementwise_or_reduce_builtin;
+      break;
+    case bfk_elementwise_fma:
+      bcap->n_args = 3;
       bcap->is_elementwise = TRUE;
       bcap->callback = adjust_elementwise_or_reduce_builtin;
       break;
     case bfk_reduce_and:
     case bfk_reduce_max:
+    case bfk_reduce_maximum:
     case bfk_reduce_min:
+    case bfk_reduce_minimum:
     case bfk_reduce_or:
     case bfk_reduce_xor:
     case bfk_reduce_add:
@@ -6343,8 +6377,7 @@ resulting return type is determined for the routine.
   an_operand    *op1 = NULL, *op2 = NULL;
 
   *arg_list = NULL;
-  check_assertion(rout != NULL &&
-                  (bcap->n_args == 1 || bcap->n_args == 2));
+  check_assertion(rout != NULL && bcap->n_args >= 1 && bcap->n_args <= 3);
   if (args == NULL) {
     /* Must have at least one argument. */
     expr_pos_error(ec_too_few_arguments, closing_paren_position);
@@ -6353,9 +6386,22 @@ resulting return type is determined for the routine.
     /* Must have exactly one argument. */
     expr_pos_error(ec_too_many_arguments, init_component_pos(args->next));
     err = TRUE;
+  } else if (bcap->n_args > 1 && args->next == NULL) {
+    /* Must have more than one argument. */
+    expr_pos_error(ec_too_few_arguments, closing_paren_position);
+    err = TRUE;
   } else if (bcap->n_args == 2 && args->next->next != NULL) {
     /* Must have exactly two arguments. */
     expr_pos_error(ec_too_many_arguments,init_component_pos(args->next->next));
+    err = TRUE;
+  } else if (bcap->n_args > 2 && args->next->next == NULL) {
+    /* Must have more than two arguments. */
+    expr_pos_error(ec_too_few_arguments, closing_paren_position);
+    err = TRUE;
+  } else if (bcap->n_args == 3 && args->next->next->next != NULL) {
+    /* Must have exactly three arguments. */
+    expr_pos_error(ec_too_many_arguments,
+                   init_component_pos(args->next->next->next));
     err = TRUE;
   } else {
     check_arg_list_elem_is_expression(args);
@@ -6425,10 +6471,38 @@ resulting return type is determined for the routine.
           case bfk_elementwise_abs:
             err = !(is_signed_integral_type(type) || is_floating_type(type));
             break;
+          case bfk_elementwise_acos:
+          case bfk_elementwise_asin:
+          case bfk_elementwise_atan:
+          case bfk_elementwise_atan2:
+          case bfk_elementwise_canonicalize:
           case bfk_elementwise_ceil:
+          case bfk_elementwise_copysign:
+          case bfk_elementwise_cos:
+          case bfk_elementwise_cosh:
+          case bfk_elementwise_exp:
+          case bfk_elementwise_exp2:
           case bfk_elementwise_floor:
+          case bfk_elementwise_fma:
+          case bfk_elementwise_fmod:
+          case bfk_elementwise_log:
+          case bfk_elementwise_log10:
+          case bfk_elementwise_log2:
+          case bfk_elementwise_maximum:
+          case bfk_elementwise_minimum:
+          case bfk_elementwise_nearbyint:
+          case bfk_elementwise_pow:
+          case bfk_elementwise_rint:
+          case bfk_elementwise_round:
           case bfk_elementwise_roundeven:
+          case bfk_elementwise_sin:
+          case bfk_elementwise_sinh:
+          case bfk_elementwise_sqrt:
+          case bfk_elementwise_tan:
+          case bfk_elementwise_tanh:
           case bfk_elementwise_trunc:
+          case bfk_reduce_maximum:
+          case bfk_reduce_minimum:
             err = !is_floating_type(type);
             break;
           case bfk_elementwise_max:
@@ -6442,6 +6516,8 @@ resulting return type is determined for the routine.
           case bfk_reduce_xor:
           case bfk_reduce_add:
           case bfk_reduce_mul:
+          case bfk_elementwise_bitreverse:
+          case bfk_elementwise_popcount:
           case bfk_elementwise_add_sat:
           case bfk_elementwise_sub_sat:
             err = !is_integral_type(type);
