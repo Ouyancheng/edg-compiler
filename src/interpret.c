@@ -4287,6 +4287,7 @@ Output the contents of the interpreted object of type tp stored at addr.
             get_mapped_byte_count(&persistent_map, bcp, offset);
             (void)fprintf(f_debug, " (offset %u)= \n", offset);
             if (!subobject_is_initialized(addr+offset, complete_object) ||
+                *(a_base_class_ptr*)(addr+offset) == NULL ||
                 (*(a_base_class_ptr*)(addr+offset))->type != bcp->type) {
               db_indent(indent);
               (void)fprintf(f_debug, " (BAD DERIVED PTR %p)\n",
@@ -6236,7 +6237,14 @@ subobject.
     if (constexpr_copy_object_init_bits(ips, tp, pos,
                                         src_bytes, complete_src,
                                         dst_bytes, complete_dst)) {
-      (void)memcpy(dst_bytes, src_bytes, size_t_arg(n_bytes));
+      a_byte_count  offset = 0;
+      if ((type_is(tp, tk_struct) || type_is(tp, tk_class))) {
+        /* Do not copy the leading metadata pointer that represents the
+           inheritance/structure. */
+        offset = sizeof(a_type_ptr);
+      }  /* if */
+      (void)memcpy(dst_bytes+offset, src_bytes+offset,
+                   size_t_arg(n_bytes)-offset);
     } else {
       result = FALSE;
     }  /* if */

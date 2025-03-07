@@ -1,5 +1,18 @@
 Version 6.8
 
+4/7/25   [EDGcpfe/28016]
+Spurious failure to constant-evaluate base-to-derived casts
+
+In some fairly involved cases, the front end incorrectly updated metadata in
+the constant evaluator's representation of class/struct base subobjects.  That
+could result in the constant evaluation of base-to-derived casts to fail, which
+in turn could result in spurious errors about expressions now being constant
+when they are required to be.  That is now fixed.  Certain changes in version
+6.7 of the front end (e.g., for EDGcpfe/26745,EDGcpfe/26988,EDGcpfe/27516)
+created new circumstances where this bug manifested, thus making it appear as a
+regression.
+
+
 3/7/25   [EDGcpfe/27949,EDGcpfe/28001,EDGcpfe/28013]
 Clang compatibility: Additional changes for __builtin_elementwise_* and
 __builtin_reduce_* builtins
