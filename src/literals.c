@@ -466,14 +466,31 @@ pcc_kind_established:
          interpreted as a larger type, per core issue 2698.  Note that the
          following code relies on these types having adjacent kinds, with
          the unsigned type immediately following the signed type. */
+      an_integer_kind signed_kind;
+      an_integer_kind unsigned_kind;
       if (int_kind_is_signed[(int)targ_size_t_int_kind]) {
-        kind = has_u_suffix ? (an_integer_kind)(targ_size_t_int_kind + 1)
-                            : targ_size_t_int_kind;
+        signed_kind = targ_size_t_int_kind;
+        unsigned_kind = (an_integer_kind)(targ_size_t_int_kind + 1);
       } else {
-        kind = has_u_suffix ? targ_size_t_int_kind
-                            : (an_integer_kind)(targ_size_t_int_kind - 1);
+        signed_kind = (an_integer_kind)(targ_size_t_int_kind - 1);
+        unsigned_kind = targ_size_t_int_kind;
       }  /* if */
-      ovflo = !le_max_integer_value_of_kind(&number, !has_u_suffix, kind);
+      kind = has_u_suffix ? unsigned_kind : signed_kind;
+      if (radix == 10 && !has_u_suffix) {
+        /* The maximum value for a decimal literal with no "u" suffix is
+           that of the signed type. */
+        ovflo = !le_max_integer_value_of_kind(&number, /*is_signed=*/TRUE,
+                                              signed_kind);
+      } else {
+        /* The maximum value for an unsigned literal or for a binary,
+           octal, or hexadecimal literal is that of the unsigned type.  We
+           enable sign extension for the signed type since negative values
+           can be specified via a bit pattern in which the sign bit is
+           '1'. */
+        ovflo = !le_max_integer_value_of_kind(&number, /*is_signed=*/FALSE,
+                                              unsigned_kind);
+        do_sign_extension = !has_u_suffix;
+      }  /* if */
       goto kind_established;
     }  /* if */
 #if LONG_LONG_ALLOWED

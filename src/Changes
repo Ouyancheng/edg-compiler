@@ -1,5 +1,23 @@
 Version 6.8
 
+3/8/25   [EDGcpfe/28021]
+Range check for literals with the signed size_t suffix
+
+The integer literal 'z' suffix without 'u' specifies the signed type
+corresponding to std::size_t (see the entry for EDGcpfe/23555).  The range
+check for such literals restricted the acceptable values to be no larger
+than the maximum positive value of that type.  However, this check was
+incorrect for binary, octal, and hexadecimal literals, which allow a
+negative value to be created via a large unsigned value in which the sign
+bit is '1'.  This is now fixed.  For example, in a configuration in which
+std::size_t is 64 bits and with --c++23:
+
+  // Both literals are 2 to the 63rd power:
+  auto i = 9'223'372'036'854'775'808z;   // error, value too large
+  auto j = 0x8000'0000'0000'0000z;       // okay, specifies the most negative
+                                         // value of the signed type
+
+
 3/7/25   [EDGcpfe/27886]
 Clang C++ compatibility: Vector conversions
 
