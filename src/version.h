@@ -45,7 +45,7 @@ be defined when fe_init.c is compiled.
 #ifdef _MSC_VER
 /* Suppress MSVC warnings about use of __DATE__ and __TIME__. */
 #pragma warning( push )
-#pragma warning(disable : 5048 )
+#pragma warning( disable : 5048 )
 #endif /* defined(_MSC_VER) */
 
 EXTERN a_const_char
