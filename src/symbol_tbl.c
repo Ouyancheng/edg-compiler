@@ -7186,12 +7186,25 @@ the file scope is used.
 
       /* Remove the original symbol from the hash table and add the new one. */
       a_module_ptr     module_ptr = lookup_module_for_symbol(other_sym);
-      a_hash_table_ptr lookup_table = curr_lookup_table(
+      a_hash_table_ptr original_lookup_table = curr_lookup_table(
                                                     pointers_block,
                                                     module_ptr,
                                                     pointers_block_scope_kind);
-      remove_symbol_from_lookup_table(other_sym, lookup_table);
-      add_symbol_to_lookup_table(overload_sym, lookup_table);
+      remove_symbol_from_lookup_table(other_sym, original_lookup_table);
+
+      /* The overload symbol is always entered into the non-module specific
+         lookup table; overload resolution is then responsible for filtering
+         the overload set to only those overload candidates that are currently
+         visible. */
+      a_hash_table_ptr new_lookup_table = original_lookup_table;
+      if (module_ptr != NULL) {
+        /* Only find the lookup table again if the original symbol was actually
+           in a module specific lookup table. */
+        new_lookup_table = curr_lookup_table(pointers_block,
+                                             /*module=*/NULL,
+                                             pointers_block_scope_kind);
+      }  /* if */
+      add_symbol_to_lookup_table(overload_sym, new_lookup_table);
     }  /* if */
     overload_sym->next_in_scope = other_sym->next_in_scope;
     overload_sym->prev_in_scope = other_sym->prev_in_scope;
