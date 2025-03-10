@@ -5125,6 +5125,11 @@ point of call, FALSE otherwise.
     visible = FALSE;
     goto end_of_function;
   }  /* if */
+  /* Ignore symbols that are not accessible from the current module. */
+  if (!is_symbol_currently_lookup_visible(function_symbol)) {
+    visible = FALSE;
+    goto end_of_function;
+  }  /* if */
   /* Remove projection, if any. */
   function_symbol = fundamental_symbol_of(function_symbol);
 #if MICROSOFT_EXTENSIONS_ALLOWED
