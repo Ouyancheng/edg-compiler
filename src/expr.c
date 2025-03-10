@@ -6357,6 +6357,34 @@ be a pointer to a complete type and may not be const-qualified.
 }  /* adjust_builtin_zero_non_value_bits */
 
 
+static a_boolean convert_to_prvalue_and_check_for_identical_types(
+                                                     a_type_ptr            tp,
+                                                     an_arg_list_elem_ptr  arg)
+/*
+Convert the argument to a prvalue (if needed).  Return TRUE if the argument
+type is identical to tp, or if either type is dependent or an error type.
+*/
+{
+  a_boolean       okay = TRUE;
+  an_operand_ptr  op = operand_of_arg_list_elem(arg);
+  a_type_ptr      arg_type = skip_typerefs(op->type);
+  if (is_a_glvalue(op)) {
+    /* A prvalue is needed. */
+    conv_glvalue_to_prvalue(op);
+  }  /* if */
+  if (is_error_type(tp) || is_error_type(arg_type) ||
+      (is_template_dependent_context() &&
+       (is_template_dependent_type(tp) ||
+        is_template_dependent_type(arg_type)))) {
+    /* An error or template dependent argument. */
+  } else if (!identical_types(tp, arg_type)) {
+    /* Both arguments must be the same type. */
+    okay = FALSE;
+  }  /* if */
+  return okay;
+}  /* convert_to_prvalue_and_check_for_identical_types */
+
+
 static a_routine_ptr adjust_elementwise_or_reduce_builtin(
                              an_operand                *target,
                              an_arg_list_elem_ptr      args,
@@ -6371,10 +6399,9 @@ resulting return type is determined for the routine.
 {
   a_boolean     err = FALSE;
   a_type_ptr    return_type = error_type();
-  a_type_ptr    arg1_type = NULL;
-  a_type_ptr    arg2_type = NULL;
+  a_type_ptr    arg_type = NULL;
   a_routine_ptr rout = routine_from_function_operand(target);
-  an_operand    *op1 = NULL, *op2 = NULL;
+  an_operand    *op1 = NULL;
 
   *arg_list = NULL;
   check_assertion(rout != NULL && bcap->n_args >= 1 && bcap->n_args <= 3);
@@ -6410,27 +6437,29 @@ resulting return type is determined for the routine.
       /* A prvalue is needed. */
       conv_glvalue_to_prvalue(op1);
     }  /* if */
-    arg1_type = skip_typerefs(op1->type);
+    arg_type = skip_typerefs(op1->type);
     if (bcap->is_elementwise) {
-      /* __builtin_elementwise_* case (with either one or two arguments).
+      /* __builtin_elementwise_* case (with between one and three arguments).
          The return type is the same as the types of the argument(s). */
-      return_type = arg1_type;
-      if (bcap->n_args == 2) {
-        op2 = operand_of_arg_list_elem(args->next);
-        arg2_type = skip_typerefs(op2->type);
-        if (is_a_glvalue(op2)) {
-          /* A prvalue is needed. */
-          conv_glvalue_to_prvalue(op2);
+      return_type = arg_type;
+      if (bcap->n_args >= 2) {
+        an_arg_list_elem_ptr  arg = args->next;
+        if (!convert_to_prvalue_and_check_for_identical_types(arg_type, arg)) {
+          if (bcap->n_args == 2) {
+            expr_pos_error(ec_both_arguments_must_have_same_type,
+                           init_component_pos(args));
+          } else {
+            expr_pos_error(ec_all_arguments_must_have_same_type,
+                           init_component_pos(arg));
+          }  /* if */
+          err = TRUE;
         }  /* if */
-        if (is_error_type(arg1_type) || is_error_type(arg2_type) ||
-            (is_template_dependent_context() &&
-             (is_template_dependent_type(arg1_type) ||
-              is_template_dependent_type(arg2_type)))) {
-          /* An error or template dependent argument. */
-        } else if (!identical_types(arg1_type, arg2_type)) {
-          /* Both arguments must be the same type. */
-          expr_pos_error(ec_both_arguments_must_have_same_type,
-                         init_component_pos(args));
+      }  /* if */
+      if (!err && bcap->n_args >= 3) {
+        an_arg_list_elem_ptr  arg = args->next->next;
+        if (!convert_to_prvalue_and_check_for_identical_types(arg_type, arg)) {
+          expr_pos_error(ec_all_arguments_must_have_same_type,
+                         init_component_pos(arg));
           err = TRUE;
         }  /* if */
       }  /* if */
@@ -6438,23 +6467,23 @@ resulting return type is determined for the routine.
       /* __builtin_reduce_* case.  The return type is the element type of the
          vector type. */
       check_assertion(bcap->is_reduce);
-      if (is_vector_type(arg1_type)) {
+      if (is_vector_type(arg_type)) {
 #if GNU_VECTOR_TYPES_ALLOWED
-        return_type = skip_typerefs(arg1_type)->variant.vector.element_type;
+        return_type = skip_typerefs(arg_type)->variant.vector.element_type;
 #endif /* GNU_VECTOR_TYPES_ALLOWED */
-      } else if (is_error_type(arg1_type) ||
+      } else if (is_error_type(arg_type) ||
                  (is_template_dependent_context() &&
-                  is_template_dependent_type(arg1_type))) {
-        return_type = arg1_type;
+                  is_template_dependent_type(arg_type))) {
+        return_type = arg_type;
       } else {
         /* Invalid type. */
         expr_pos_ty_error(ec_vector_type_required, init_component_pos(args),
-                          arg1_type);
+                          arg_type);
         err = TRUE;
       }  /* if */
     }  /* if */
     if (!err) {
-      a_type_ptr type = arg1_type;
+      a_type_ptr type = arg_type;
       if (is_error_type(type) || is_template_dependent_type(type)) {
         /* No need to check. */
       } else {
@@ -6534,10 +6563,10 @@ resulting return type is determined for the routine.
     }  /* if */
   }  /* if */
   if (!err) {
-    a_type_ptr rout_type = make_routine_type(return_type, arg1_type, arg2_type,
-                                             (a_type_ptr)NULL,
-                                             (a_type_ptr)NULL,
-                                             (a_type_ptr)NULL);
+    a_type_ptr rout_type = make_routine_type(
+                                        return_type, arg_type,
+                                        (bcap->n_args >= 2) ? arg_type : NULL,
+                                        (bcap->n_args >= 3) ? arg_type : NULL);
     /* Create a routine with the desired type. */
     a_symbol_ptr sym = builtin_with_particular_type(rout, rout_type);
     rout = sym->variant.routine.ptr;
@@ -6557,10 +6586,14 @@ resulting return type is determined for the routine.
                                                   /*will_call=*/TRUE);
     }  /* if */
     /* Convert the argument(s). */
-    *arg_list = make_node_from_operand_for_expr_list(op1);
-    if (op2 != NULL) {
-      (*arg_list)->next = make_node_from_operand_for_expr_list(op2);
-    }  /* if */
+    an_arg_list_elem_ptr  arg = args;
+    an_expr_node_ptr      *tail = arg_list;
+    while (arg != NULL) {
+      an_operand_ptr  op = operand_of_arg_list_elem(arg);
+      *tail = make_node_from_operand_for_expr_list(op);
+      arg = arg->next;
+      tail = &(*tail)->next;
+    }  /* while */
   }  /* if */
   return rout;
 }  /* adjust_elementwise_or_reduce_builtin */
