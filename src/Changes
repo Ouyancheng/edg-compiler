@@ -9,7 +9,7 @@ floating point digits being rendered twice (e.g., 1.0 becomes 11.0, 12.0
 becomes 1212.0, etc).  This regression occurs only when all of the following
 are true:
  - USE_HOST_FP_CONVERSION_ROUTINES is TRUE
- - USE_FLOAT128_FOR_HOST_FP_VALUE is FALSE or USE_QUADMATH_LIBRARY is TRUE
+ - USE_FLOAT128_FOR_HOST_FP_VALUE is FALSE
  - APPROXIMATE_QUADMATH is TRUE
  - USE_DOUBLE_FOR_HOST_FP_VALUE is TRUE
 
