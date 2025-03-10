@@ -35308,6 +35308,7 @@ For ARM32, the class is defined as follows:
   a_symbol_ptr                   sym;
   a_type_ptr                     type, voidptr_type;
   a_class_symbol_supplement_ptr  cssp;
+  a_scope_depth                  scope_depth = DEPTH_OF_FILE_SCOPE;
 #if GENERATE_SOURCE_SEQUENCE_LISTS
   a_boolean                      saved_source_sequence_entries_disallowed =
                                            source_sequence_entries_disallowed;
@@ -35323,12 +35324,13 @@ For ARM32, the class is defined as follows:
     a_namespace_ptr  std_namespace =
                           symbol_for_namespace_std->variant.namespace_info.ptr;
     (void)push_namespace_scope(sck_namespace_extension, std_namespace);
+    scope_depth = depth_innermost_namespace_scope;
   }  /* if */
   /* Create a struct with name __va_list or __va_list_tag. */
   type = init_predeclared_class(tk_struct,
                                 target_is_x86_based() ? "__va_list_tag"
                                                       : "__va_list");
-  enter_predeclared_class(type, DEPTH_OF_FILE_SCOPE, &null_source_position);
+  enter_predeclared_class(type, scope_depth, &null_source_position);
   class_type_supp(type)->is_va_list_tag = TRUE;
   sym = symbol_for(type);
   cssp = sym->variant.class_struct_union.extra_info;
@@ -35359,7 +35361,7 @@ For ARM32, the class is defined as follows:
     (void)add_field_to_generated_type("__ap", voidptr_type);
   }  /* if */
   /* Wrap up the definition. */
-  complete_class_definition(type, DEPTH_OF_FILE_SCOPE, &class_state);
+  complete_class_definition(type, scope_depth, &class_state);
   sym->defined = TRUE;
   pop_scope();
   if (!C_mode() && target_is_arm_based()) {
