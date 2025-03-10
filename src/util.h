@@ -4309,7 +4309,7 @@ inline Allocated_string<Allocator>::Allocated_string(
 Construct a new string using the given allocator.  The passed arguments are
 appended in the fashion described in detail::append_with_custom_reserve.
 */
-  : backing_array(detail::estimate_byte_count_for_init(args...))
+  : backing_array(detail::estimate_byte_count_for_init(args...), a)
 {
   /* The backing array should have been given an appropriate estimate above;
      verify that. */
