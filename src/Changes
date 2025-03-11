@@ -5,8 +5,8 @@ Configuration error checking for QUADMATH options
 
 The front end previously would allow APPROXIMATE_QUADMATH and
 USE_QUADMATH_LIBRARY to be set to TRUE when USE_FLOAT128_FOR_HOST_FP_VALUE is
-FALSE.  This configuration is not valid and is now results in a compile time
-error when building the front end.
+FALSE.  This configuration is not valid and now results in a compile time error
+when building the front end.
 
 
 3/11/25  [EDGcpfe/28018]
