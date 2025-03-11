@@ -7192,14 +7192,14 @@ the file scope is used.
                                                     pointers_block_scope_kind);
       remove_symbol_from_lookup_table(other_sym, original_lookup_table);
 
-      /* The overload symbol is always entered into the non-module specific
+      /* The overload symbol is always entered into the non-module-specific
          lookup table; overload resolution is then responsible for filtering
          the overload set to only those overload candidates that are currently
          visible. */
       a_hash_table_ptr new_lookup_table = original_lookup_table;
       if (module_ptr != NULL) {
         /* Only find the lookup table again if the original symbol was actually
-           in a module specific lookup table. */
+           in a module-specific lookup table. */
         new_lookup_table = curr_lookup_table(pointers_block,
                                              /*module=*/NULL,
                                              pointers_block_scope_kind);
