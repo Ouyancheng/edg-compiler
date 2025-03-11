@@ -13,6 +13,14 @@ behavior on subsequent invocations of the front end as the values of those
 variables from earlier calls would not be reinitialized.  This is now fixed.
 
 
+3/10/25  [EDGcpfe/28015,EDGcpfe/28019]
+Building the front end with Microsoft Visual Studio
+
+A number of diagnostics had been emitted when building the 6.7 front end with
+various versions of Microsoft Visual Studio with various command-line options.
+This change addresses a large number of them.
+
+
 3/10/25  [EDGcpfe/28008]
 Floating point literals duplicate digits
 
