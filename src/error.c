@@ -7871,6 +7871,29 @@ diagnostics pointed to by diag_list.  The given numbers are used for fill-ins
 }  /* more_info_num2_diagnostic */
 
 
+void more_info_st3_diagnostic(an_error_code     error_code,
+                              a_source_position *error_pos,
+                              a_const_char      *str1,
+                              a_const_char      *str2,
+                              a_const_char      *str3,
+                              a_diag_list_ptr   diag_list)
+/*
+Add the indicated diagnostic with the associated position to the list of
+diagnostics pointed to by diag_list.  The given string are used for fill-ins.
+*/
+{
+  a_diagnostic_ptr	dp;
+
+  dp = create_primary_diagnostic(error_code, error_pos, es_more_info);
+  add_string_fill_in(dp, str1);
+  add_string_fill_in(dp, str2);
+  add_string_fill_in(dp, str3);
+  check_assertion(diag_list != NULL);
+  /* Add the diagnostic to the given list. */
+  diag_list->append(dp);
+}  /* more_info_st3_diagnostic */
+
+
 void more_info_sym_num_diagnostic(an_error_code     error_code,
                                   a_source_position *error_pos,
                                   struct a_symbol   *sym,

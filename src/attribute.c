@@ -136,6 +136,7 @@ typedef struct an_attr_descr {
 			     "sn": a narrow string literal is expected
 			     "sx": a string literal is expected (wide/narrow)
 			     "X": an expression
+			     "Xc": a conditional-expression
 			     "*": an arbitrary set of tokens is expected
 			          (this can only be for the last argument)
 			   A code can be followed by a "+" to indicate that
@@ -231,7 +232,7 @@ static constexpr an_attr_descr known_attr_table[] = {
   /* C++ standard attributes (C++11 and later).  Note the use of "c+" to
      indicate these are valid in C++ modes only. */
   { "align", "(ct)", "c+", ak_align },
-  { "assume", "(X)", "c+(202302-|G(130000-)|C(190000-))", ak_assume },
+  { "assume", "(Xc)", "c+(202302-|G(130000-)|C(190000-))", ak_assume },
   { "base_check", "", "c+", ak_base_check },
   { "carries_dependency", "", "c+", ak_carries_dependency },
   { "deprecated", "?(sx)", "c+(201402-|M(1910-))", ak_deprecated },
@@ -1699,18 +1700,19 @@ return a pointer to the argument's representation.
 }  /* scan_attr_type_arg */
 
 
-static an_attribute_arg_ptr scan_attr_expr_arg(an_attribute_ptr  ap)
+static an_attribute_arg_ptr scan_attr_expr_arg(an_attribute_ptr  ap,
+                                               int               precedence)
 /*
-Scan an expression argument for the given attribute.  If an error occurs, set
-ap->kind to ak_unrecognized and return NULL.  Otherwise, return a pointer to
-the argument's representation.
+Scan an expression argument for the given attribute with the given initial
+precedence.  If an error occurs, set ap->kind to ak_unrecognized and return
+NULL.  Otherwise, return a pointer to the argument's representation.
 */
 {
   an_attribute_arg_ptr  aap = NULL;
   a_source_position     arg_pos = pos_curr_token;
   an_expr_node_ptr      expr;
 
-  expr = scan_expr_for_attribute();
+  expr = scan_expr_for_attribute(precedence);
   if (!is_error_node(expr)) {
     aap = alloc_attribute_arg();
     aap->kind = (an_attribute_arg_kind)aak_expression;
@@ -2068,7 +2070,13 @@ ak_unrecognized.
           break;
         case 'X':
           /* Scan an expression. */
-          *p_aap = scan_attr_expr_arg(ap);
+          { int  precedence = PREC_LOWEST;
+            if (*sig == 'c') {
+              precedence = PREC_QUEST_MARK;
+              ++sig;
+            }  /* if */
+            *p_aap = scan_attr_expr_arg(ap, precedence);
+          }  /* if */
           break;
         case '*':
           /* Scan the remaining tokens (including commas) up until an unmatched
@@ -2113,9 +2121,16 @@ ak_unrecognized.
       }  /* if */
       /* Go to next argument. */
       if (*sig == ',') ++sig;
-      if (curr_token == tok_comma && *sig == ')') {
-        /* Something like attribute(0,).  Let the caller issue the error. */
-        goto done;
+      if (*sig == ')') {
+        if (curr_token == tok_comma) {
+          /* Something like attribute(0,).  Let the caller issue the error. */
+          goto done;
+        } else if (any_more) {
+          abandon_potential_pack_expansion_context(pesep);
+          str_error(ec_too_many_arguments_provided_for_attribute,
+                    attribute_display_name(ap));
+          goto done;
+        }  /* if */
       }  /* if */
     }  /* while */
   } while (loop_token(tok_comma));

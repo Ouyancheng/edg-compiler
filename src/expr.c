@@ -33704,7 +33704,7 @@ processed expression.
   push_expr_stack((an_expression_kind)ek_sizeof, &expr_stack_entry,
                   /*force_object_lifetime=*/FALSE,
                   /*suppress_object_lifetime=*/TRUE);
-  make_expression_operand(expr, &operand);
+  make_lvalue_or_rvalue_expression_operand(expr, &operand);
   process_boolean_controlling_expression(&operand);
   expr = make_node_from_operand(&operand);
   pop_expr_stack();
@@ -33713,7 +33713,7 @@ processed expression.
 }  /* process_boolean_attribute_expression */
 
 
-an_expr_node_ptr scan_expr_for_attribute(void)
+an_expr_node_ptr scan_expr_for_attribute(int  precedence)
 /*
 Scan a top-level expression that appears as an argument in an attribute.
 */
@@ -33728,7 +33728,7 @@ Scan a top-level expression that appears as an argument in an attribute.
                   /*force_object_lifetime=*/FALSE,
                   /*suppress_object_lifetime=*/TRUE);
   /* Scan the expression. */
-  scan_expr(&operand, PREC_LOWEST, EOPT_DISALLOW_COMMA_OPERATOR);
+  scan_expr(&operand, precedence, EOPT_DISALLOW_COMMA_OPERATOR);
   eliminate_unusual_operand_kinds(&operand);
   result = make_node_from_operand(&operand);
   result = wrap_up_full_expression(result);

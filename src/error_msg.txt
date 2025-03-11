@@ -3536,6 +3536,8 @@ ec_assumption_failed;;"assumption failed"
 ec_variable_templates_is_cpp14;;"variable templates are a C++14 feature"
 ec_address_of_function_with_pass_object_size_attr;;"cannot take the address of a function with a parameter declared with the \"pass_object_size\" attribute"
 ec_all_arguments_must_have_same_type;;"all arguments must have the same type"
+ec_comparison_details;;"the final comparison was %s1 %s2 %s3"
+ec_too_many_arguments_provided_for_attribute;;"too many arguments for attribute %sq"
 ###############################################################################
 #                                                             \  ___  /       #
 #                                                               /   \         #

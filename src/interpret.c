@@ -7515,45 +7515,93 @@ done_with_switch:
 }  /* do_constexpr_switch */
 
 
-static a_scope_ptr xyzzy; // FIXME (temporary)
-static a_boolean do_assumption_check(an_attribute_ptr     ap,
-                                     an_interpreter_state *ips)
+static void add_failed_comparison_note_if_applicable(
+                                                    an_interpreter_state *ips,
+                                                    an_expr_node         *expr)
 /*
-One or more "assume" attributes has been attached to the empty statement
-being interpreted; evaluate the associated expression(s) and issue a
-diagnostic if they are false.
+The given expression is a boolean constant expression that produced a false
+result.  If the top-level operation is an integer comparison, record in
+ips->diag_list a note describing the failed comparison (e.g., along the lines
+of "the final comparison was 3 < 1").
+*/
+{
+  if (expr != NULL && is_constant_node(expr)) {
+    expr = node_constant(expr)->expr;
+  }  /* if */
+  if (expr != NULL && is_operation_node(expr) &&
+      expr->variant.operation.type_kind == tk_integer &&
+      !ips->suspend_diag_list) {
+    char const  *opstr;
+    switch (expr->variant.operation.kind) {
+      case eok_eq:  opstr = "==";  break;
+      case eok_ne:  opstr = "!=";  break;
+      case eok_gt:  opstr = "<";   break;
+      case eok_lt:  opstr = "<";   break;
+      case eok_ge:  opstr = ">=";  break;
+      case eok_le:  opstr = "<=";  break;
+      default:      opstr = NULL;  break;
+    }  /* switch */
+    if (opstr != NULL) {
+      an_expr_node  *lhs = expr->variant.operation.operands,
+                    *rhs = lhs->next;
+      a_constant  *lhcp = local_constant(), *rhcp = local_constant();
+      if (evaluate_expr(ips, lhs, /*force_prvalue=*/FALSE, lhcp) &&
+          evaluate_expr(ips, rhs, /*force_prvalue=*/FALSE, rhcp)) {
+        more_info_st3_diagnostic(ec_comparison_details, &expr->position,
+                                 decimal_str_for_integer_constant(lhcp)
+                                   .to_allocated_storage(FE_allocator<char>{}),
+                                 opstr, 
+                                 decimal_str_for_integer_constant(rhcp)
+                                   .to_allocated_storage(FE_allocator<char>{}),
+                                 &ips->diag_list);
+      }  /* if */
+      release_local_constant(&lhcp);
+      release_local_constant(&rhcp);
+    }  /* if */
+  }  /* if */
+}  /* add_failed_comparison_note_if_applicable */
+
+
+static a_boolean do_assumption_check(an_interpreter_state *ips,
+                                     an_attribute_ptr     ap)
+/*
+The given attribute has been attached to an empty statement being interpreted.
+Evaluate the associated boolean expression and record a diagnostic if it false.
 */
 {
   a_boolean            result = TRUE;
 
-  if (clang_mode && ms_compat) {
+  if (ms_compat) {
     /* Apparently clang doesn't check assumptions at compile time in their
-       Microsoft compatible mode. */
+       Microsoft compatible mode.  MSVC doesn't either. */
   } else {
     a_constant           *cp = local_constant();
     an_attribute_arg_ptr aap = ap->arguments;
     an_expr_node_ptr     expr;
+    a_call_frame_ptr     frame = ips->curr_call_frame;
+    a_scope_ptr          callee_scope = innermost_function_scope;
 
     check_assertion(ap->kind == ak_assume && aap->kind == aak_expression);
-    expr = expr_node_from_attribute_arg(aap, xyzzy);
+    /* Find the last function scope we entered: */
+    for (; frame != NULL; frame = frame->parent) {
+      if (frame->routine != NULL) {
+        callee_scope = scope_for_routine(frame->routine);
+        break;
+      }  /* if */
+    }  /* for */
+    expr = expr_node_from_attribute_arg(aap, callee_scope);
     if (expr == NULL || is_error_type(expr->type)) {
       do_constexpr_fail(result);
-    } else if (evaluate_expr(ips, expr, /*force_prvalue=*/TRUE, cp)) {
+    } else if (evaluate_expr(ips, expr, /*force_prvalue=*/FALSE, cp)) {
       if (is_false_constant(cp)) {
-        // FIXME: Better error diagnostic here?
-        info_with_pos(ec_assumption_failed, &ap->position, ips);
+        info_with_pos(ec_assumption_failed, &expr->position, ips);
+        add_failed_comparison_note_if_applicable(ips, expr);
         do_constexpr_fail(result);
       }  /* if */
     } else {
       do_constexpr_fail(result);
     }  /* if */
     release_local_constant(&cp);
-
-    /* Recurse if needed to handle additional assume attributes. */
-    ap = find_attribute(ak_assume, ap->next);
-    if (ap != NULL) {
-      result = (do_assumption_check(ap, ips) && result);
-    }  /* if */
   }  /* if */
   return result;
 }  /* do_assumption_check */
@@ -7926,12 +7974,16 @@ done_with_return_statement:
       /* An empty statement.  See if it has any assumption checks associated
          with it. */
       if (stmt->attributes != NULL) {
-        an_attribute_ptr ap = find_attribute(ak_assume, stmt->attributes);
-        if (ap != NULL) {
-          /* At least one "assume" attribute is attached; verify the
-             assumption(s). */
-          result = do_assumption_check(ap, ips);
-        }  /* if */
+        an_attribute_ptr ap = stmt->attributes;
+        do {
+          ap = find_attribute(ak_assume, ap);
+          if (ap != NULL) {
+            /* At least one "assume" attribute is attached; verify the
+               assumption(s). */
+            result = do_assumption_check(ips, ap);
+            ap = ap->next;
+          }  /* if */
+        } while (result && ap != NULL);
       }  /* if */
       break;
     case stmk_set_vla_size:
@@ -10087,7 +10139,6 @@ statement.
   if (block_stmt->kind == (a_statement_kind)stmk_try_block) {
     block_stmt = block_stmt->variant.try_block->statement;
   }  /* if */
-xyzzy = callee_scope; // FIXME
   return do_constexpr_block_statement(ips, block_stmt, callee_scope);
 }  /* run_function_body */
 

@@ -33,61 +33,6 @@ BEGIN_EDG_NAMESPACE
 /* Include of overload.h comes later. */
 
 /*
-The operators and their precedences are:
-
-Operators			Precedence	Associativity
-()				19		N/A	() syntactic grouping
-[] () . -> ++ --		18		L	[] subscripting
-							() function call
-							++ -- postfix
-++ -- & * + - ~ ! sizeof	17		R	Prefix operators
-cast				16		R
-.* ->* (C++ only)		15		L
-* / %				14		L
-+ -				13		L
-<< >>				12		L
-< > <= >=			11		L
-== !=				10		L
-<? >? (GNU min/max)		9		L
-&				8		L
-^				7		L
-|				6		L
-&&				5		L
-||				4		L
-?				3		R
-= += -= *= /= %=
-&= ^= |= <<= >>=		2		R	Assignment operators
-,				1		L
-
-Higher-valued precedence means an operator binds more tightly.
-Precedence level 0 is used to bracket a complete expression.
-*/
-#define LEFT_ASSOC  TRUE
-#define RIGHT_ASSOC FALSE
-#define PREC_PRIMARY    20
-#define PREC_POSTFIX    19
-#define PREC_PREFIX     18
-#define PREC_CAST       17
-#define PREC_PTR_TO_MEMBER 16
-#define PREC_MULT_DIV   15
-#define PREC_PLUS_MINUS 14
-#define PREC_SHIFT      13
-#define PREC_SPACESHIP  12
-#define PREC_RELATIONAL 11
-#define PREC_EQ_NE      10
-#define PREC_GNU_MIN_MAX 9
-#define PREC_AND         8
-#define PREC_EXCL_OR     7
-#define PREC_OR          6
-#define PREC_AND_AND     5
-#define PREC_OR_OR       4
-#define PREC_QUEST_MARK  3
-#define PREC_ASSIGNMENT  2
-#define PREC_COMMA       1
-#define PREC_LOWEST      0
-
-
-/*
 Interfaces to add_stop_token and remove_stop_token to be used for matching
 closing tokens, like ")" for "(".  These mark the beginning and end of
 a nested construct.

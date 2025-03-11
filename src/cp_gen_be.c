@@ -20309,7 +20309,8 @@ Generate the local label declarations (a GNU C extension) of the current scope
   a_src_seq_secondary_decl_ptr  sec_decl;
   a_boolean    local_label_found = FALSE;
 
-  while (curr_src_seq_entry_is_secondary_decl(&sec_decl) &&
+  while (curr_source_sequence_entry != NULL &&
+         curr_src_seq_entry_is_secondary_decl(&sec_decl) &&
          ss_entry_kind(sec_decl) == iek_label) {
     a_label_ptr  label = ss_entry_ptr(sec_decl, a_label_ptr);
     check_assertion(label->locally_declared);
