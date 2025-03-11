@@ -3186,7 +3186,7 @@ number of characters this value might use (plus a temporary null character).
                                       ldbl_digits, fpval);
   }  /* if */
 #endif /* USE_LONG_DOUBLE_FOR_HOST_FP_VALUE || APPROXIMATE_QUADMATH */
-#if USE_DOUBLE_FOR_HOST_FP_VALUE && !APPROXIMATE_QUADMATH
+#if USE_DOUBLE_FOR_HOST_FP_VALUE
   if (kind_is_16bit(float_kind)) {
     detail::append_using_c_formatting("%.8g", underlying_array, size_hint,
                                       value);
@@ -3197,7 +3197,7 @@ number of characters this value might use (plus a temporary null character).
     detail::append_using_c_formatting("%.19g", underlying_array, size_hint,
                                       value);
   }  /* if */
-#endif /* USE_DOUBLE_FOR_HOST_FP_VALUE && !APPROXIMATE_QUADMATH */
+#endif /* USE_DOUBLE_FOR_HOST_FP_VALUE */
 #endif /* USE_FLOAT128_FOR_HOST_FP_VALUE && USE_QUADMATH_LIBRARY */
   /* Add trailing ".0" if no decimal point was put out (meaning the value is a
      whole number). */

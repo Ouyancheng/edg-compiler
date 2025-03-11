@@ -21,20 +21,6 @@ various versions of Microsoft Visual Studio with various command-line options.
 This change addresses a large number of them.
 
 
-3/10/25  [EDGcpfe/28008]
-Floating point literals duplicate digits
-
-A regression in the rendering of floating point literals was introduced in
-version 6.7 by the changes for EDGcpfe/11866.  This regression results in
-floating point digits being rendered twice (e.g., 1.0 becomes 11.0, 12.0
-becomes 1212.0, etc).  This regression occurs only when all of the following
-are true:
- - USE_HOST_FP_CONVERSION_ROUTINES is TRUE
- - USE_FLOAT128_FOR_HOST_FP_VALUE is FALSE
- - APPROXIMATE_QUADMATH is TRUE
- - USE_DOUBLE_FOR_HOST_FP_VALUE is TRUE
-
-
 3/8/25   [EDGcpfe/28021]
 Range check for literals with the signed size_t suffix
 
