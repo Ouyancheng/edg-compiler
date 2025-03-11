@@ -1,5 +1,18 @@
 Version 6.8
 
+3/11/25  [EDGcpfe/28018]
+Missing reinitialization in character overflow handling
+
+The changes for EDGcpfe/26451 in version 6.7 introduced several variables
+in lexical.c used in reporting overflow errors in string literals.
+However, the initialization for those variables in lexical_init() was
+inadvertently placed within conditional compilation for DEBUG and
+UNICODE_VULNERABILITY_DETECTION_SUPPORTED.  In configurations with
+MAKE_FRONT_END_CALLABLE set to TRUE, this error could result in undefined
+behavior on subsequent invocations of the front end as the values of those
+variables from earlier calls would not be reinitialized.  This is now fixed.
+
+
 3/10/25  [EDGcpfe/28008]
 Floating point literals duplicate digits
 

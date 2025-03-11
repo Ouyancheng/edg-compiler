@@ -29100,6 +29100,9 @@ of the front end.
   processing_macro_preincludes = FALSE;
   name_references_map = alloc_fe_of_type(a_name_references_map);
   construct(name_references_map, /*mask_width=*/8);
+  pending_overflow_reports = NULL;
+  last_pending_overflow_report = NULL;
+  available_overflow_reports = NULL;
 #if UNICODE_VULNERABILITY_DETECTION_SUPPORTED
   pending_bidi_controls = NULL;
   avail_pending_bidi_controls = NULL;
@@ -29132,9 +29135,6 @@ of the front end.
   spelling_storage_buffer_space = 0;
   spelling_storage_buffer_head = NULL;
   spelling_storage_buffer_tail = NULL;
-  pending_overflow_reports = NULL;
-  last_pending_overflow_report = NULL;
-  available_overflow_reports = NULL;
 #endif /* UNICODE_VULNERABILITY_DETECTION_SUPPORTED */
 #endif /* DEBUG */
 #if EXPENSIVE_CHECKING
