@@ -3723,10 +3723,12 @@ destructor).  This entails creating a new memory region, a scope, and an
 empty statement block.
 */
 {
-  a_type_ptr  class_type;
-
   db_enter(4, "define_special_member_function");
-  class_type = parent_class_of(rout_ptr);
+
+  /* Push the routine's module entity to the top of the module entity stack so
+     that any generated definition has access to the correct entities. */
+  a_module_entity_stack_state tmp_mod(symbol_for(rout_ptr)->module_entity);
+  a_type_ptr                  class_type = parent_class_of(rout_ptr);
   if (class_type->variant.class_struct_union.is_nonreal_class) {
     /* Don't bother generating the definition for a member of an nonreal
        instantiation of a template class. */
