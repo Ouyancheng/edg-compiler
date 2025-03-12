@@ -1,5 +1,13 @@
 Version 6.8
 
+3/12/25  [EDGcpfe/28027]
+Assertion failure in pop_object_lifetime_full 
+
+In some fairly complex situations, the front end could abort with an assertion
+failure in pop_object_lifetime_full (il.c) while checking whether a requires-
+expression is satisfied.  That is now fixed.
+
+
 3/12/25  [EDGcpfe/27847,EDGcpfe/27867,EDGcpfe/27894]
 Partial-ordering of conditionally-explicit member function template
 

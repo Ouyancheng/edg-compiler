@@ -1943,9 +1943,10 @@ is pushed regardless of any of the other factors.
     /* Full expression in C++ mode.  We may want to start an object
        lifetime.  Do so if the lifetime of temporaries is a full
        expression, or if the caller explicitly requests a lifetime.
-       Don't push a lifetime in a constant expression. */
+       Don't push a lifetime in a constant expression or in an
+       unevaluated expression. */
     if ((!long_lifetime_temps || force_object_lifetime) &&
-        !curr_expr_kind_is_const()) {
+        expression_kind == ek_normal) {
       push_object_lifetime(iek_none, (char *)NULL,
                            (an_object_lifetime_kind)olk_expr_temporary);
       expr_stack->lifetime = curr_object_lifetime;
