@@ -12754,9 +12754,25 @@ global module or it must have been exported from a module (that has been
 imported).  Otherwise, return FALSE.
 */
 {
-  a_module_entity_ptr mep = sym_ptr->module_entity;
-  a_boolean           result = is_module_entity_globally_visible(mep);
+  a_boolean result = FALSE;
 
+  if (sym_ptr->is_class_member) {
+    /* [module.interface] specifies that:
+
+         Class and enumeration member names can be found by name lookup in any
+         context in which a definition of the type is reachable.
+
+       Thus, all class members are treated as globally visible with the
+       visibility check being performed only when the class symbol is involved
+       in the name. */
+    result = TRUE;
+  } else {
+    a_module_entity_ptr mep = sym_ptr->module_entity;
+
+    if (is_module_entity_globally_visible(mep)) {
+      result = TRUE;
+    }  /* if */
+  }  /* if */
   return result;
 }  /* is_symbol_globally_visible */
 
