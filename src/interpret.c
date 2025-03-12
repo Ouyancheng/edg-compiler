@@ -7562,8 +7562,8 @@ of "the final comparison was 3 < 1").
 }  /* add_failed_comparison_note_if_applicable */
 
 
-static a_boolean do_assumption_check(an_interpreter_state *ips,
-                                     an_attribute_ptr     ap)
+static a_boolean do_assumption_check(an_interpreter_state  *ips,
+                                     an_attribute_ptr      ap)
 /*
 The given attribute has been attached to an empty statement being interpreted.
 Evaluate the associated boolean expression and record a diagnostic if it false.
@@ -7580,7 +7580,10 @@ Evaluate the associated boolean expression and record a diagnostic if it false.
     an_expr_node_ptr     expr;
     a_call_frame_ptr     frame = ips->curr_call_frame;
     a_scope_ptr          callee_scope = innermost_function_scope;
+    a_boolean            saved_side_effects_disabled =
+                                                   ips->side_effects_disabled;
 
+    ips->side_effects_disabled = TRUE;
     check_assertion(ap->kind == ak_assume && aap->kind == aak_expression);
     /* Find the last function scope we entered: */
     for (; frame != NULL; frame = frame->parent) {
@@ -7599,9 +7602,11 @@ Evaluate the associated boolean expression and record a diagnostic if it false.
         do_constexpr_fail(result);
       }  /* if */
     } else {
-      do_constexpr_fail(result);
+      /* Failing to evaluate the assumption expression doesn't cause the
+         constant evaluation to fail. */
     }  /* if */
     release_local_constant(&cp);
+    ips->side_effects_disabled = saved_side_effects_disabled;
   }  /* if */
   return result;
 }  /* do_assumption_check */
