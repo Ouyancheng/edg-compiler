@@ -183,7 +183,7 @@ certain out-of-bound access to array elements.  In turn, this could lead to
 aborts due to invalid memory accesses.  For example, in GNU C++ mode:
 
   constexpr char str[] = "12345";
-  constexpr char const *p = c;
+  constexpr char const *p = str;
   constexpr char c = *(p-1);  // Previously could abort.  Now an error.
 
 This problem was present in the constant evaluator (interpret.c) for a while,
