@@ -8,6 +8,10 @@ USE_QUADMATH_LIBRARY to be set to TRUE when USE_FLOAT128_FOR_HOST_FP_VALUE is
 FALSE.  This configuration is not valid and now results in a compile time error
 when building the front end.
 
+In version 6.7 changes made to improve memory safety (EDGcpfe/26704) resulted
+in this invalid configuration printing floating point numbers incorrectly
+(e.g., 1.0 would become 11.0).
+
 
 3/11/25  [EDGcpfe/28018]
 Missing reinitialization in character overflow handling
