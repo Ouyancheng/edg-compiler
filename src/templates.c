@@ -17071,7 +17071,8 @@ make_new_type:
         }  /* if */
         set_routine_calling_method_flag(new_type, &null_source_position);
         set_clrcall_convention_if_needed(new_type);
-        if (rtsp->is_conditionally_explicit) {
+        if (rtsp->is_conditionally_explicit &&
+            !(options & CTWS_IS_PARTIAL_ORDER_CHECK)) {
           /* An internal attribute ak_conditional_explicit is attached to this
              routine type.  Create a copy of it with its operands appropriately
              substituted. */

@@ -1,5 +1,24 @@
 Version 6.8
 
+3/12/25  [EDGcpfe/27847,EDGcpfe/27867,EDGcpfe/27894]
+Partial-ordering of conditionally-explicit member function template
+
+The front end previously often failed to establish partial ordering of member
+templates when one of the templates is conditionally-explicit.  For example:
+
+  template<typename> struct F { static const bool b = false; };
+  template<typename> struct U;
+  struct S {
+    template<int = 0> S(int);  // (1)
+    template<typename ...Ts> explicit(F<U<Ts...>>::b) S(Ts...);
+  };
+  S s(42);  // Previously ambiguous.  Now selects (1).
+
+In this example, the first constructor is "more specialized" than the second,
+but the front end failed to establish that because of the presence of the
+dependent conditional "explicit" specifier.  That is now fixed.
+
+
 3/11/25  [EDGcpfe/28008]
 Configuration error checking for QUADMATH options
 
