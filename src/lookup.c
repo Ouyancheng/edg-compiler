@@ -6679,6 +6679,10 @@ file scope.
         sym = NULL;
         break;
       }  /* if */
+      /* Ignore symbols not visible to the current module. */
+      if (!is_symbol_currently_lookup_visible(sym)) {
+        continue;
+      }  /* if */
       if (file_scope_lookup_opts.accepts(file_scope_to_use, sym, fund_sym)) {
         /* We found a matching symbol.  If this is a type symbol found
            by a must-be-tag lookup, keep searching for a "real" tag in

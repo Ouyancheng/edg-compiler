@@ -10676,7 +10676,13 @@ of the entity being declared by the identifier.
                                esdp;
       /* Ignore symbols not associated with the current file scope.  These
          could be extern entities associated with other translation units. */
-      if (sym->decl_scope != file_scope_number) continue;
+      if (sym->decl_scope != file_scope_number) {
+        continue;
+      }  /* if */
+      /* Ignore symbols not visible to the current module. */
+      if (!is_symbol_currently_lookup_visible(sym)) {
+        continue;
+      }  /* if */
       if (sym->kind == (a_symbol_kind)sk_extern_variable) {
         sym_is_variable = TRUE;
         scp = &sym->variant.extern_symbol_descr->
