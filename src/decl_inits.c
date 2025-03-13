@@ -1500,6 +1500,9 @@ Issue any diagnostics at the given position.
       /* This constructor requires a custom copy of the initializer;
          create that copy now. */
       an_expr_copy_options_set options = CE_COPYING_DEFAULT_MEMBER_INIT;
+      if (is->not_evaluated) {
+        options |= CE_COPY_NOT_EVALUATED;
+      }  /* if */
       dip = copy_dynamic_init(fp->initializer, options);
     } else {
       dip = fp->initializer;
@@ -1560,8 +1563,12 @@ Issue any diagnostics at the given position.
          the initializer already is in the right context in that case (and
          duplicating it would lead to invalid IL). */
       if (!fp->is_init_capture) {
-        dip = copy_dynamic_init(dip, CE_COPIED_CONSTANTS_MAY_BE_SHARED |
-                                     CE_COPYING_DEFAULT_MEMBER_INIT);
+        an_expr_copy_options_set options = CE_COPYING_DEFAULT_MEMBER_INIT |
+                                           CE_COPIED_CONSTANTS_MAY_BE_SHARED;
+        if (is->not_evaluated) {
+          options |= CE_COPY_NOT_EVALUATED;
+        }  /* if */
+        dip = copy_dynamic_init(dip, options);
         if (dip->destructor != NULL) {
           record_partial_aggregate_cleanup_destruction(dip,
                                                        !is->not_evaluated);
@@ -9470,10 +9477,7 @@ initialized.  These are addressed in the course of the processing.
             /* This constructor requires a custom copy of the initializer;
                create that copy now. */
             an_expr_copy_options_set options = CE_COPYING_DEFAULT_MEMBER_INIT;
-            a_dynamic_init_ptr       new_init =
-                                copy_dynamic_init(field->initializer, options);
-
-            cip->initializer = new_init;
+            cip->initializer = copy_dynamic_init(field->initializer, options);
             init_to_use = &cip->initializer;
           } else {
             /* Use the optimized case, this constructor does not get its own
