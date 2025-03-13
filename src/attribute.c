@@ -270,7 +270,7 @@ static constexpr an_attr_descr known_attr_table[] = {
 #if GNU_EXTENSIONS_ALLOWED
   /* GNU Attributes. */
   { "alias", "(sn)", "gx", ak_alias },
-  { "assume", "(X)", "gx(130000-)", ak_assume },
+  { "assume", "(Xc)", "gx(130000-)", ak_assume },
   { "aligned", "?(ci)", "gx", ak_align },
   { "alloc_size", "(ci?,ci)", "gx(40200-)", ak_alloc_size },
   { "always_inline", "", "gx", ak_always_inline },
@@ -435,7 +435,7 @@ static constexpr an_attr_descr known_attr_table[] = {
 #endif /* INCLUDE_EDG_TEST_ATTRIBUTES */
 
   /* Clang-specific attributes. */
-  { "assume", "(X)", "lx(190000-)", ak_assume },
+  { "assume", "(Xc)", "lx(190000-)", ak_assume },
   { "availability", "(*)", "lx{clang}", ak_availability },
   { "unavailable", "?(sn)", "lx(30500-)", ak_unavailable },
   { "using_if_exists", "", "l+{clang}", ak_using_if_exists },
