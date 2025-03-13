@@ -7121,6 +7121,9 @@ precedence confusion.  Do the output in the way described by octl.
         case tpck_sizeof:
           octl->output_str("sizeof(", octl);
           goto do_sizeof_cases;
+        case tpck_datasizeof:
+          octl->output_str("__datasizeof(", octl);
+          goto do_sizeof_cases;
         case tpck_alignof:
           if (use_microsoft_form() || use_sun_form()) {
             octl->output_str("__alignof(", octl);

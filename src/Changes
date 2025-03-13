@@ -1,5 +1,18 @@
 Version 6.8
 
+3/13/25  [EDGcpfe/28031]
+C++-generating back end, clang compatibility: __datasizeof
+
+Version 6.7 added support for the clang __datasizeof operator (see
+EDGcpfe/27080).  However, in cases where the operand of __datasizeof is
+dependent, the C++-generating back end put out an error string instead of
+the original operand.  This is now fixed.  For example, with --c++17
+--clang_version=190000:
+
+  template<typename T> int s = __datasizeof(T);  // Previously put out an
+                                                 // error string instead of T
+
+
 3/12/25  [EDGcpfe/28027]
 Assertion failure in pop_object_lifetime_full 
 
