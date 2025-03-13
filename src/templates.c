@@ -29294,9 +29294,6 @@ and returned.  Otherwise, NULL is returned.
                    pending_entities(&locator->symbol_header
                                             ->deferred_module_entries,
                                     /*new_value=*/NULL);
-#if EXTRA_SOURCE_POSITIONS_IN_IL
-    decl_state->decl_pos_block.identifier_range.start = pos_curr_token;
-#endif /* EXTRA_SOURCE_POSITIONS_IN_IL */
     /* Look up the symbol in the current scope.  To do this we must
        temporarily change the decl_scope_level to the effective
        level for this declaration because decl_scope_level currently
@@ -29304,10 +29301,6 @@ and returned.  Otherwise, NULL is returned.
     decl_scope_level = decl_state->orig_decl_level;
     sym = curr_scope_id_lookup(locator, IDL_NO_OPTIONS);
     decl_scope_level = saved_decl_scope_level;
-#if EXTRA_SOURCE_POSITIONS_IN_IL
-    decl_state->decl_pos_block.identifier_range.end = end_pos_curr_token;
-    decl_state->decl_pos_block.specifiers_range.end = end_pos_curr_token;
-#endif /* EXTRA_SOURCE_POSITIONS_IN_IL */
   }  /* if */
   if (sym != NULL && !symbol_is(sym, sk_variable_template)) {
     /* An invalid redeclaration of some other entity.  This will get an

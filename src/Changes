@@ -1,5 +1,18 @@
 Version 6.8
 
+3/13/25  [EDGcpfe/27887]
+Incorrect source position information for variable templates
+
+When EXTRA_SOURCE_POSITIONS_IN_IL is TRUE, the identifier_range and
+specifiers_range fields for a variable template were not set correctly.  For
+example, with --c++17:
+
+  template<typename T> T v = 0;
+
+In this example, the identifier_range and the specifiers_range end position
+were previously pointing to the "=" token.  That is now fixed.
+
+
 3/13/25  [EDGcpfe/28031]
 C++-generating back end, clang compatibility: __datasizeof
 
