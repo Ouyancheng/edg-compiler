@@ -4969,8 +4969,8 @@ variant path.
       }  /* if */
       check_assertion(result);
       signed_offset = spp->variant.ptr_offset*elem_size;
-      if (signed_offset >= array_size || signed_offset < 0) {
-        if (signed_offset == array_size) {
+      if (signed_offset >= (a_targ_ptrdiff_t)array_size || signed_offset < 0) {
+        if (signed_offset == (a_targ_ptrdiff_t)array_size) {
           /* This is a "one past the end" pointer. */
           cap->flags |= CA_CANNOT_DEREFERENCE;
           check_assertion(spp->next == NULL);
