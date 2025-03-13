@@ -7152,7 +7152,7 @@ Generate the list of arguments for the attribute, surrounded by parentheses.
         gen_type(aap->variant.type);
         break;
       case aak_expression:
-        // FIXME: Check the use of innermost_function_scope here.
+        check_assertion(innermost_function_scope != NULL);
         gen_expression(expr_node_from_attribute_arg(aap,
                                                     innermost_function_scope));
         break;

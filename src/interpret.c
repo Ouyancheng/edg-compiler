@@ -7566,14 +7566,15 @@ static a_boolean do_assumption_check(an_interpreter_state  *ips,
                                      an_attribute_ptr      ap)
 /*
 The given attribute has been attached to an empty statement being interpreted.
-Evaluate the associated boolean expression and record a diagnostic if it false.
+Evaluate the associated boolean expression and record a diagnostic if it
+evaluates to false.
 */
 {
   a_boolean            result = TRUE;
 
   if (ms_compat) {
-    /* Apparently clang doesn't check assumptions at compile time in their
-       Microsoft compatible mode.  MSVC doesn't either. */
+    /* Microsoft (and Clang in Microsoft mode) don't appear to implement this
+       at this time. */
   } else {
     a_constant           *cp = local_constant();
     an_attribute_arg_ptr aap = ap->arguments;

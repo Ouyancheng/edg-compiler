@@ -7879,7 +7879,7 @@ void more_info_st3_diagnostic(an_error_code     error_code,
                               a_diag_list_ptr   diag_list)
 /*
 Add the indicated diagnostic with the associated position to the list of
-diagnostics pointed to by diag_list.  The given string are used for fill-ins.
+diagnostics pointed to by diag_list.  The given strings are used for fill-ins.
 */
 {
   a_diagnostic_ptr	dp;

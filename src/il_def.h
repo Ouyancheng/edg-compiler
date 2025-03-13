@@ -2734,7 +2734,7 @@ typedef struct an_attribute_arg {
 			   an aak_expression is stored in a function scope
 			   memory region while the attribute is stored in the
 			   file scope memory region.  In that case,
-			   variant::expr will be NULL and the expression
+			   variant.expr will be NULL and the expression
 			   can be found using expr_node_from_attribute_arg. */
   struct a_pack_expansion_descr
 		*pack_expansion_descr;
@@ -2893,7 +2893,7 @@ enum an_attribute_kind : a_byte {
      variants). */
   ak_align,		/* "align" (std, ms) or "aligned" (gnu).  Also used
 			   for the C++11 alignas construct. */
-  ak_assume,            /* "assume" (std, C++23). */
+  ak_assume,		/* "assume" (std, C++23). */
   ak_base_check,	/* "base_check" (std). */
   ak_carries_dependency,
 			/* "carries_dependency" (std). */
