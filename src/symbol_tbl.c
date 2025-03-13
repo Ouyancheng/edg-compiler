@@ -351,14 +351,14 @@ is done according to the output control block octl.
    blank if the line still has room for sting_len additional characters;
    otherwise, it puts a new-line character and indents the next line.
    Variable col is updated in both cases. */
-#define put_separator(separator, string_len)                    \
-{ col += (uint32_t)(strlen(separator) + 1);                     \
-  if (col + (string_len) > DEBUG_LINE_LENGTH) {                 \
-    fprintf(f_debug, "%s\n%*s", (separator), indentation, "");  \
-    col = indentation;                                          \
-  } else {                                                      \
-    fprintf(f_debug, "%s ", (separator));                       \
-  }  /* if */                                                   \
+#define put_separator(separator, string_len)                         \
+{ col += (uint32_t)(strlen(separator) + 1);                          \
+  if (col + (string_len) > DEBUG_LINE_LENGTH) {                      \
+    fprintf(f_debug, "%s\n%*s", (separator), (int)indentation, "");  \
+    col = indentation;                                               \
+  } else {                                                           \
+    fprintf(f_debug, "%s ", (separator));                            \
+  }  /* if */                                                        \
 }  /* put_separator */
 
 
@@ -374,7 +374,7 @@ is done according to the output control block octl.
 #define put_buffer_string(buf_str)                              \
 { put_separator(",", (buf_str).length());                       \
   print((buf_str), f_debug, /*end=*/"");                        \
-  col += (int)(buf_str).length();                               \
+  col += (buf_str).length();                                    \
 }  /* put_buffer_string */
 
 
@@ -624,7 +624,7 @@ the translation unit, if not the primary translation unit.
 
 void db_symbol(a_symbol_ptr sym,
                a_const_char *string,
-               int          indentation)
+               size_t       indentation)
 /*
 Write out information on a symbol, for debugging purposes.  sym points to
 the symbol; string is an optional identifying string ("" or NULL if omitted);
@@ -633,7 +633,7 @@ and indentation is the indentation desired.
 {
   a_const_char    *str;
   a_symbol_buffer buffer;
-  int             col = indentation;
+  size_t          col = indentation;
   a_type_ptr      type = NULL;
   a_variable_ptr  var = NULL;
   a_boolean       suppress_newline = FALSE;
@@ -641,7 +641,7 @@ and indentation is the indentation desired.
 
   if (string != NULL && strlen(string) > 0) {
     fputs(string, f_debug);
-    col += (int)strlen(string);
+    col += strlen(string);
   }  /* if */
 
   if (sym == NULL) {
@@ -651,16 +651,16 @@ and indentation is the indentation desired.
   }  /* if */
   str = symbol_kind_names[(int)sym->kind];
   if (col + strlen(str) + 2 > DEBUG_LINE_LENGTH) {
-    fprintf(f_debug, "\n%*s", indentation, "");
+    fprintf(f_debug, "\n%*s", (int)indentation, "");
     col = indentation;
   }  /* if */
   fprintf(f_debug, "<%s>", str);
-  col += (int)(strlen(str) + 2);
+  col += strlen(str) + 2;
 
   str_qualified_name(&buffer, sym);
   put_separator("", buffer.length() + 2);
   fprintf(f_debug, "\"%s\"", buffer.as_temp_characters());
-  col += (int)(buffer.length() + 2);
+  col += buffer.length() + 2;
 
   db_property_or_event_suffix(sym);
   if (sym->kind == sk_projection) {
@@ -671,7 +671,7 @@ and indentation is the indentation desired.
     }  /* if */
     put_separator("", buffer.length() + 6);
     fprintf(f_debug, "(= \"%s\")", buffer.as_temp_characters());
-    col += (int)(buffer.length() + 6);
+    col += buffer.length() + 6;
   } else if (sym->kind == sk_namespace_projection) {
     a_symbol_ptr fsym = sym->variant.namespace_projection.fundamental_symbol;
     if (fsym != NULL) {
@@ -679,7 +679,7 @@ and indentation is the indentation desired.
       str_qualified_name(&buffer, fsym);
       put_separator("", buffer.length() + 6);
       fprintf(f_debug, "(= \"%s\")", buffer.as_temp_characters());
-      col += (int)(buffer.length() + 6);
+      col += buffer.length() + 6;
     }  /* if */
   }  /* if */
 
@@ -687,14 +687,14 @@ and indentation is the indentation desired.
     buffer.reset_to("#", sym->decl_seq);
     put_separator("", buffer.length());
     print(buffer, f_debug, /*end=*/"");
-    col += (int)buffer.length();
+    col += buffer.length();
   }  /* if */
 
   buffer.reset_to("(", sym->decl_position.seq, "/",
                   sym->decl_position.column, ")");
   put_separator("", buffer.length());
   print(buffer, f_debug, /*end=*/"");
-  col += (int)buffer.length();
+  col += buffer.length();
 
   /* If this symbol is for a secondary translation unit, display the
      translation unit. */
@@ -765,7 +765,7 @@ and indentation is the indentation desired.
 
       break;
     case sk_constant:
-      fprintf(f_debug, ",\n%*s", indentation, "");
+      fprintf(f_debug, ",\n%*s", (int)indentation, "");
       db_constant(sym->variant.constant);
       break;
     case sk_type:
@@ -904,7 +904,7 @@ and indentation is the indentation desired.
             }  /* if */
             put_separator(sep, buffer.length());
             print(buffer, f_debug);
-            col += (int)buffer.length();
+            col += buffer.length();
             sep = ",";
             buffer.reset_to();
           } while (friend_sym != NULL);
@@ -1115,7 +1115,7 @@ do_variable:
         a_symbol_ptr  rtn_sym = sym->variant.overloaded_function.symbols;
         put_string("func symbols =\n");
         for (; rtn_sym != NULL; rtn_sym = rtn_sym->next) {
-          fprintf(f_debug, "%*s", indentation, "");
+          fprintf(f_debug, "%*s", (int)indentation, "");
           db_symbol(rtn_sym, "", indentation + 2);
         }  /* for */
         col = 0;
@@ -1172,11 +1172,12 @@ do_variable:
                                        template_decl_info->parameters : NULL;
         put_string("template parameters =\n");
         for (tplep = templ_param_list; tplep != NULL; tplep = tplep->next) {
-          fprintf(f_debug, "%*s", indentation + 2, "");
+          fprintf(f_debug, "%*s", (int)(indentation + 2), "");
           db_symbol(tplep->param_symbol, "", indentation + 4);
           switch (tplep->param_symbol->kind) {
             case sk_type:
-              fprintf(f_debug, "%*sparameter type: ", indentation + 4, "");
+              fprintf(f_debug, "%*sparameter type: ",
+                      (int)(indentation + 4), "");
               /* Display the proxy class type if one exists. */
               if (tplep->variant.type != NULL) {
                 a_type_ptr ptype = tplep->variant.type;
@@ -1187,7 +1188,7 @@ do_variable:
                           ptype->variant.template_param.extra_info->class_type;
                   if (class_type != NULL) {
                     fprintf(f_debug, "\n%*sproxy class: ",
-                            indentation + 6, "");
+                            (int)(indentation + 6), "");
                     db_type(class_type);
                   }  /* if */
                 }  /* if */
@@ -1204,7 +1205,8 @@ do_variable:
 	      }  /* if */
               break;
             case sk_constant:
-              fprintf(f_debug, "%*sparameter constant: ", indentation + 4, "");
+              fprintf(f_debug, "%*sparameter constant: ",
+                      (int)(indentation + 4), "");
               if (tplep->variant.constant.ptr != NULL) {
                 db_constant(tplep->variant.constant.ptr);
               } else {
@@ -1220,7 +1222,8 @@ do_variable:
 	      }  /* if */
               break;
             case sk_class_template:
-              fprintf(f_debug, "%*sparameter template: ", indentation + 4, "");
+              fprintf(f_debug, "%*sparameter template: ",
+                      (int)(indentation + 4), "");
               if (tplep->variant.templ != NULL) {
                 a_template_ptr	templ_ptr;
                 templ_ptr = tplep->variant.templ->il_template_entry;
@@ -1241,23 +1244,25 @@ do_variable:
           /* Display the prototype instantiation. */
           inst_sym = tssp->variant.class_template.prototype_instantiation;
           if (inst_sym != NULL) {
-            fprintf(f_debug, "%*sprototype instantiation:\n", indentation, "");
-            fprintf(f_debug, "%*s", indentation + 2, "");
+            fprintf(f_debug, "%*sprototype instantiation:\n", (int)indentation,
+                    "");
+            fprintf(f_debug, "%*s", (int)(indentation + 2), "");
             db_symbol(inst_sym, "", indentation + 4);
           }  /* if */
           /* Display any partial specializations. */
           inst_sym = tssp->partial_specializations;
           while (inst_sym != NULL) {
-            fprintf(f_debug, "%*spartial specialization:\n", indentation, "");
-            fprintf(f_debug, "%*s", indentation + 2, "");
+            fprintf(f_debug, "%*spartial specialization:\n",
+                    (int)indentation, "");
+            fprintf(f_debug, "%*s", (int)(indentation + 2), "");
             db_symbol(inst_sym, "", indentation + 4);
             inst_sym = inst_sym->next;
           }  /* while */
           /* Display instantiations based on this template. */
           slep = tssp->variant.class_template.instantiations;
           while (slep != NULL) {
-            fprintf(f_debug, "%*sinstantiation:\n", indentation, "");
-            fprintf(f_debug, "%*s", indentation + 2, "");
+            fprintf(f_debug, "%*sinstantiation:\n", (int)indentation, "");
+            fprintf(f_debug, "%*s", (int)(indentation + 2), "");
             db_symbol(slep->symbol, "", indentation + 4);
             slep = slep->next;
           }  /* while */
@@ -1265,7 +1270,7 @@ do_variable:
           a_routine_ptr            routine = tssp->variant.function.routine;
           a_template_instance_ptr  tip;
 
-          fprintf(f_debug, "%*sroutine type: ", indentation, "");
+          fprintf(f_debug, "%*sroutine type: ", (int)indentation, "");
           if (routine != NULL) {
             db_type(tssp->variant.function.routine->type);
           } else {
@@ -1274,7 +1279,7 @@ do_variable:
           fprintf(f_debug, "\n");
           tip = tssp->variant.function.instantiations;
           while (tip != NULL) {
-            fprintf(f_debug, "%*sinstance", indentation, "");
+            fprintf(f_debug, "%*sinstance", (int)indentation, "");
             if (tip->instance_sym == NULL) {
               fputs(": NULL instance sym\n", f_debug);
             } else {
@@ -1299,7 +1304,7 @@ do_variable:
                 fputc(')', f_debug);
               }  /* if */
               fputs(":\n", f_debug);
-              fprintf(f_debug, "%*s", indentation + 2, "");
+              fprintf(f_debug, "%*s", (int)(indentation + 2), "");
               db_symbol(tip->instance_sym, "", indentation + 4);
             }  /* if */
             tip = tip->next;
@@ -1309,8 +1314,9 @@ do_variable:
           var = tssp->variant.variable.prototype_variable;
           inst_sym = symbol_for(var);
           if (inst_sym != NULL) {
-            fprintf(f_debug, "%*sprototype instantiation:\n", indentation, "");
-            fprintf(f_debug, "%*s", indentation + 2, "");
+            fprintf(f_debug, "%*sprototype instantiation:\n", (int)indentation,
+                    "");
+            fprintf(f_debug, "%*s", (int)(indentation + 2), "");
             db_symbol(inst_sym, "", indentation + 4);
           }  /* if */
         } else if (sym->kind == (a_symbol_kind)sk_concept_template) {
@@ -1343,7 +1349,7 @@ do_variable:
         a_symbol_ptr  property_sym = sym->variant.property_info->properties;
         put_string("properties =\n");
         for (; property_sym != NULL; property_sym = property_sym->next) {
-          fprintf(f_debug, "%*s", indentation, "");
+          fprintf(f_debug, "%*s", (int)indentation, "");
           db_symbol(property_sym, "", indentation + 2);
         }  /* for */
         col = 0;
@@ -1366,7 +1372,7 @@ do_variable:
       /* The type may still be under construction (e.g., if this is the symbol
          for an alias template).  Don't try to test the type with functions,
          like is_function_type, that will perform a skip_typerefs. */
-      fprintf(f_debug, ",\n%*stype = ", indentation, "");
+      fprintf(f_debug, ",\n%*stype = ", (int)indentation, "");
     } else if (!space_left(20) ||
                (!space_left(30) && is_array_type(type)) ||
                is_function_type(type) ||
@@ -1374,7 +1380,7 @@ do_variable:
                 ((is_array_type(type_pointed_to(type)) && !space_left(35)) ||
                  is_function_type(type_pointed_to(type)))) ||
                (!space_left(55) && is_template_class_type(type))) {
-      fprintf(f_debug, ",\n%*stype = ", indentation, "");
+      fprintf(f_debug, ",\n%*stype = ", (int)indentation, "");
     } else {
       fputs(", type = ", f_debug);
     }  /* if */
@@ -1388,7 +1394,7 @@ do_variable:
   }  /* if */
   if (apo_sym != NULL) {
     if (!suppress_newline) (void)fputc('\n', f_debug);
-    fprintf(f_debug, "%*s", indentation, "");
+    fprintf(f_debug, "%*s", (int)indentation, "");
     buffer.reset_to("- anon parent object [", (void *)apo_sym, "]: ");
     db_symbol(apo_sym, buffer.as_temp_characters(), indentation + 2);
     suppress_newline = TRUE;
@@ -1418,11 +1424,11 @@ void db_template_parameter(a_template_param_ptr	tpp)
 Display a template parameter, for debugging purposes.
 */
 {
-  int	indentation = 2;
+  size_t indentation = 2;
   db_symbol(tpp->param_symbol, "", indentation + 4);
   switch (tpp->param_symbol->kind) {
     case sk_type:
-      fprintf(f_debug, "%*sparameter type: ", indentation + 4, "");
+      fprintf(f_debug, "%*sparameter type: ", (int)(indentation + 4), "");
       /* Display the proxy class type if one exists. */
       if (tpp->variant.type != NULL) {
         a_type_ptr ptype = tpp->variant.type;
@@ -1433,7 +1439,7 @@ Display a template parameter, for debugging purposes.
                   ptype->variant.template_param.extra_info->class_type;
           if (class_type != NULL) {
             fprintf(f_debug, "\n%*sproxy class: ",
-                    indentation + 6, "");
+                    (int)(indentation + 6), "");
             db_type(class_type);
           }  /* if */
         }  /* if */
@@ -1450,7 +1456,7 @@ Display a template parameter, for debugging purposes.
       }  /* if */
       break;
     case sk_constant:
-      fprintf(f_debug, "%*sparameter constant: ", indentation + 4, "");
+      fprintf(f_debug, "%*sparameter constant: ", (int)(indentation + 4), "");
       if (tpp->variant.constant.ptr != NULL) {
         db_constant(tpp->variant.constant.ptr);
       } else {
@@ -1466,12 +1472,12 @@ Display a template parameter, for debugging purposes.
       }  /* if */
       break;
     case sk_class_template:
-      fprintf(f_debug, "%*sparameter template: ", indentation + 4, "");
+      fprintf(f_debug, "%*sparameter template: ", (int)(indentation + 4), "");
       if (tpp->variant.templ != NULL) {
         a_template_ptr	templ_ptr;
         templ_ptr = tpp->variant.templ->il_template_entry;
-        db_symbol((a_symbol_ptr)templ_ptr->source_corresp.assoc_info,
-                  "", indentation + 4);
+        db_symbol((a_symbol_ptr)templ_ptr->source_corresp.assoc_info, "",
+                  indentation + 4);
       } else {
         fprintf(f_debug, "NULL");
       }  /* if */
@@ -2806,7 +2812,7 @@ caller may have to set it directly.
   a_symbol_header_ptr hdr_ptr;
   a_symbol_header_ptr prev_hdr_ptr;
   a_symbol_ptr        sym_ptr    = NULL;
-  int                 bucket_number;
+  unsigned            bucket_number;
 
   db_enter(4, "find_symbol");
 #if DEBUG
@@ -4497,7 +4503,7 @@ Create the entry if it does not already exist.
   if (pointers_block->module_lookup_table_map == NULL) {
       pointers_block->module_lookup_table_map =
                                    alloc_fe_of_type(a_module_lookup_table_map);
-    construct(pointers_block->module_lookup_table_map, /*mask_width=*/10);
+    construct(pointers_block->module_lookup_table_map, /*mask_width=*/10u);
   }  /* if */
   return pointers_block->module_lookup_table_map;
 }  /* get_module_lookup_table_map */
@@ -18675,7 +18681,7 @@ intrinsically.
 
   constexpr_intrinsic_descr_table =
                           alloc_fe_of_type(a_constexpr_intrinsic_descr_table);
-  construct(constexpr_intrinsic_descr_table, /*mask_width=*/8);
+  construct(constexpr_intrinsic_descr_table, /*mask_width=*/8u);
   for (n = 0; n<N_CONSTEXPR_INTRINSIC_DESCRIPTIONS; ++n) {
     a_symbol_locator  loc;
     a_const_char      *name = constexpr_intrinsic_descriptions[n].name;
@@ -18998,7 +19004,7 @@ recognized during parsing.  Also, record the associated keyword kinds.
   int  n;
 
   type_transform_name_table = alloc_fe_of_type(a_type_transform_name_table);
-  construct(type_transform_name_table, /*mask_width=*/6);
+  construct(type_transform_name_table, /*mask_width=*/6u);
   for (n = 0; n<N_TYPE_TRANSFORM_NAMES; ++n) {
     a_symbol_locator  loc;
     a_const_char      *name = type_transform_names[n].str;
@@ -19483,7 +19489,7 @@ given translation unit.
   next_named_register_id = 1;
 #endif /* NAMED_REGISTERS_ALLOWED */
   template_cache_segment_table =
-                     new_fe<a_template_cache_segment_table>(/*mask_width=*/10);
+                    new_fe<a_template_cache_segment_table>(/*mask_width=*/10u);
 #if EXPENSIVE_CHECKING
   allocated_symbols = new_fe<an_allocated_symbols_list>();
 #endif /* EXPENSIVE_CHECKING */

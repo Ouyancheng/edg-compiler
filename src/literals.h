@@ -76,7 +76,7 @@ typedef struct a_char_conversion_state {
 			   by conv_single_char instead of reading a new
 			   character from the token, in which case
 			   next_mbc_char will be NULL. */
-  char		*next_mbc_char;
+  unsigned char	*next_mbc_char;
 			/* When translating from UTF-8 to multibyte
 			   characters and for universal-character-names
 			   (except when create_surrogate_pairs is TRUE), if
@@ -134,7 +134,7 @@ typedef struct a_char_conversion_state {
 			   that is being rescanned, e.g., to change its
 			   literal kind during string literal
 			   concatenation. */
-char		translated_char[MAX_MULTIBYTE_CHAR_LENGTH];
+  unsigned char	translated_char[MAX_MULTIBYTE_CHAR_LENGTH];
 			/* When translating from UTF-8 to multibyte
 			   characters and for universal-character-names,
 			   contains the translated version of the current

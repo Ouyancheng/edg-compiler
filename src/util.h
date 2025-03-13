@@ -2155,6 +2155,28 @@ front-end memory.
 }  /* owning_ptr */
 
 
+template<unsigned Num_bits>
+inline constexpr unsigned long long bitmask_of_width()
+/*
+Create and return a bitmask of the given width.
+
+For example: Num_bits=0 is equivalent to 0b0, Num_bits=1 is equivalent to 0b1,
+Num_bits=2 is equivalent to 0b11, etc.
+*/
+{
+  return (bitmask_of_width<Num_bits - 1>() << 1) | 0x1;
+}  /* bitmask_of_width */
+
+
+template<>
+inline constexpr unsigned long long bitmask_of_width<0>()
+/*
+This is a specialization of bitmask_of_width to handle the bitmask_of_width<0>
+case which should be 0b0.  See the above template for more information.
+*/
+{
+  return 0;
+}  /* bitmask_of_width */
 
 
 template<typename an_Object>
@@ -2218,7 +2240,7 @@ Return floor(log2(n)), assuming n > 0.
 }  /* floor_log2 */
 
 
-inline int next_pow2(uint64_t n)
+inline unsigned next_pow2(uint64_t n)
 /*
 Return the next power of two that is greater than or equal to n.
 */
@@ -2230,19 +2252,19 @@ Return the next power of two that is greater than or equal to n.
   n |= n >> 8;
   n |= n >> 16;
   n |= n >> 32;
-  return (int)(n+1);
+  return (unsigned)(n+1);
 }  /* next_pow2 */
 
 
 template<typename an_Unsigned_integer>
-int count_ones(an_Unsigned_integer  n)
+size_t count_ones(an_Unsigned_integer  n)
 /*
 Return the number of trailing "ones" in the binary representation of n.
 Note: Recent versions of Clang and GCC optimize this function to just a popcnt
 instruction when targeting x86-64 with SSE4 extensions (option -msse4).
 */
 {
-  int r = 0;
+  size_t r = 0;
 
   while (n != 0) {
     ++r;
@@ -3355,7 +3377,7 @@ or -1 if no such element is found.
 
      Use !(x == y) rather than x != y to simplify implementing wrapper types we
      may want to feed to bin_search. */
-  if (result_idx != -1 && !(value_fn(result_idx) == value)) {
+  if (result_idx != -1 && !(value_fn((size_t)result_idx) == value)) {
     /* The value didn't match so invalidate the result index. */
     result_idx = -1;
   }  /* if */
@@ -3680,11 +3702,11 @@ snprintf_impl).
   check_assertion(chars_written > 0);
   /* Remove any extra characters (including the terminating null character
      added by snprintf_impl). */
-  underlying_array.resize(orig_size + chars_written, '\0');
+  underlying_array.resize(orig_size + (size_t)chars_written, '\0');
 }  /* append_using_c_formatting */
 
 
-template<typename a_Dyn_array, int a_Size>
+template<typename a_Dyn_array, size_t a_Size>
 inline void append_string_literal(a_Dyn_array  &underlying_array,
                                   a_const_char (&text)[a_Size])
 /*
@@ -4092,6 +4114,60 @@ size_hint is the number of digits to represent the given value as a string
     underlying_array[orig_size + (i - 1)] = c;
     value /= a_Base;
   }  /* for */
+}  /* append_into */
+
+
+/*
+A string formatter for double values.
+*/
+template<>
+struct String_formatter<double> {
+  static inline size_t size_hint_of(double value);
+  template<typename a_Dyn_array>
+  static inline void append_into(a_Dyn_array &underlying_array,
+                                 double      value,
+                                 size_t      size_hint);
+};  /* String_formatter */
+
+
+size_t String_formatter<double>::size_hint_of(double value)
+/*
+Return a (possibly overestimated) number of characters to represent the given
+value for the decimal and its precision.
+*/
+{
+  /* The default precision of %f is 6, so start with 8 characters to handle a
+     case like: x.xxxxxx. */
+  size_t chars = 8;
+
+  /* If the floating point value is negative, invert it and add an additional
+     digit for the '-' character. */
+  if (value < 1) {
+    ++chars;
+    value = -value;
+  }  /* if */
+  /* Since the first digit left of the decimal place is already accounted for,
+     check for additional powers of 10.  This considers anything greater than
+     9.999 an additional power of 10 to account for discrepancies in equality
+     when doing floating point arithmetic.  */
+  while (value > 9.999) {
+    value = value / 10;
+    ++chars;
+  }  /* while */
+  return chars;
+}  /* size_hint_of */
+
+
+template<typename a_Dyn_array>
+void String_formatter<double>::append_into(a_Dyn_array &underlying_array,
+                                           double      value,
+                                           size_t      size_hint)
+/*
+Append the characters representing the given double value into the underlying
+array.  size_hint is unused.
+*/
+{
+  append_using_c_formatting("%f", underlying_array, size_hint, value);
 }  /* append_into */
 
 
@@ -5731,23 +5807,25 @@ The provided function will be called as follows:
    other shall be NULL).
 */
 {
-  ptrdiff_t a = this->array_a_len - 1;
-  ptrdiff_t b = this->array_b_len - 1;
+  size_t a = this->array_a_len;
+  size_t b = this->array_b_len;
 
   while (TRUE) {
-    if (a >= 0 && b >= 0 &&
-        (*this->eq_fn)(this->input_a(a), this->input_b(b))) {
+    if (a >= 1 && b >= 1 &&
+        (*this->eq_fn)(this->input_a(a - 1), this->input_b(b - 1))) {
       /* The values at a and b match: reverse the scoring and walk back up and
          to the left to see what comparison led here. */
-      fn(&this->input_a(a--), &this->input_b(b--));
-    } else if (b > 0 && (a == 0 ||
-                         (this->output(a, b - 1) >= this->output(a - 1, b)))) {
+      fn(&this->input_a(--a), &this->input_b(--b));
+    } else if (b > 1 && (a == 1 ||
+                         (this->output(a - 1, b - 2) >=
+                          this->output(a - 2, b - 1)))) {
       /* The left value is scoring better: this is an insertion. */
-      fn(NULL, &this->input_b(b--));
-    } else if (a > 0 && (b == 0 ||
-                         (this->output(a, b - 1) < this->output(a - 1, b)))) {
+      fn(NULL, &this->input_b(--b));
+    } else if (a > 1 && (b == 1 ||
+                         (this->output(a - 1, b - 2) <
+                          this->output(a - 2, b - 1)))) {
       /* The right value is scoring better: this is a deletion. */
-      fn(&this->input_a(a--), NULL);
+      fn(&this->input_a(--a), NULL);
     } else {
       /* The root of the comparison has been reached: stop. */
       break;

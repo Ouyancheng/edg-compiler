@@ -3603,10 +3603,10 @@ padding in the generated code.
       dump_type(prev_field->type, /*add_pointer=*/FALSE);
       write_tok_str(":0;");
     } else {
-      an_offset_bit_remainder dummy_bits = 
-                                      (targ_char_bit -
-                                       (prev_field->offset_bit_remainder +
-                                        prev_field->bit_size)) % targ_char_bit;
+      an_offset_bit_remainder dummy_bits =
+            (an_offset_bit_remainder)((targ_char_bit -
+                                      (prev_field->offset_bit_remainder +
+                                       prev_field->bit_size)) % targ_char_bit);
       if (dummy_bits != 0) {
         /* Make an unnamed bit field to provide the required padding. */
         write_tok_str("unsigned int:");

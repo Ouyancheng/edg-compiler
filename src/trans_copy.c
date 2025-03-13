@@ -2217,7 +2217,9 @@ the secondary translation unit IL).
   primary_var->instantiation_needed_bit_number =
                                          saved_instantiation_needed_bit_number;
 #endif /* ONE_INSTANTIATION_PER_OBJECT */
-  primary_var->address_taken |= saved_address_taken;
+  if (saved_address_taken) {
+    primary_var->address_taken = TRUE;
+  }  /* if */
   establish_as_canonical(&primary_var->source_corresp);
   if (sym != NULL) {
     /* Make the symbol (in a secondary translation unit) point to the
@@ -3410,14 +3412,21 @@ to do the termination test.
 
   if (in_secondary_trans_unit(ptr)) {
     prune = TRUE;
-  } else if (il_entry_prefix_of(ptr).il_walk_flag ==
-                                                  flag_value_meaning_visited) {
-    /* This entry has already been visited on this walk. */
-    prune = TRUE;
   } else {
-    /* This entry has not been visited previously. */
-    il_entry_prefix_of(ptr).il_walk_flag = flag_value_meaning_visited;
-    prune = FALSE;
+    an_il_entry_prefix_ptr prefix = &il_entry_prefix_of(ptr);
+
+    if (prefix->il_walk_flag == flag_value_meaning_visited) {
+      /* This entry has already been visited on this walk. */
+      prune = TRUE;
+    } else {
+      /* This entry has not been visited previously. */
+      if (flag_value_meaning_visited) {
+        prefix->il_walk_flag = TRUE;
+      } else {
+        prefix->il_walk_flag = FALSE;
+      }  /* if */
+      prune = FALSE;
+    }  /* if */
   }  /* if */
   return prune;
 }  /* mark_secondary_termination_test */
@@ -3573,17 +3582,22 @@ rewrite_secondary_trans_unit_IL_entity_pointers_used_in_primary to
 do the termination test.
 */
 {
-  a_boolean prune;
+  an_il_entry_prefix_ptr prefix = &il_entry_prefix_of(ptr);
+  a_boolean              prune;
 
   /* There shouldn't be any secondary translation unit pointers left at
      this point -- the remap routine eliminates them. */
   check_assertion_str(!in_secondary_trans_unit(ptr),
          "rewrite_secondary_termination_test: remaining secondary IL pointer");
-  if (il_entry_prefix_of(ptr).il_walk_flag == flag_value_meaning_visited) {
+  if (prefix->il_walk_flag == flag_value_meaning_visited) {
     /* This entry has already been visited on this walk. */
     prune = TRUE;
   } else {
-    il_entry_prefix_of(ptr).il_walk_flag = flag_value_meaning_visited;
+    if (flag_value_meaning_visited) {
+      prefix->il_walk_flag = TRUE;
+    } else {
+      prefix->il_walk_flag = FALSE;
+    }  /* if */
     prune = FALSE;
     /* Clear befriending lists, which will be rebuilt later. */
     if (kind == iek_class_type_supplement) {

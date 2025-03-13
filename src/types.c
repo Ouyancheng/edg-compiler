@@ -3807,7 +3807,8 @@ Return the number of elements in a vector type.
     a_constant_ptr size_con = vector_type->variant.vector.size_constant;
     if (size_con->kind == ck_integer) {
       a_boolean ovflo = FALSE;
-      num_elements = value_of_integer_constant(size_con, &ovflo);
+      num_elements =
+                    (a_targ_size_t)value_of_integer_constant(size_con, &ovflo);
       check_assertion(!ovflo);
     } else {
       check_assertion(size_con->kind == ck_template_param);
@@ -4409,7 +4410,7 @@ based (through array and pointer constructs only).
         elem_type = underlying_array_element_type(tp);
         if (!upc_dynamic_threads()) {
           /* Make sure the result is rounded up. */
-          num_elements = (num_elements + upc_num_threads - 1)
+          num_elements = (num_elements + (a_targ_size_t)(upc_num_threads - 1))
                                               / (a_targ_size_t)upc_num_threads;
         }  /* if */
       } else {
@@ -4483,22 +4484,25 @@ anything else, returns the regular size.
         "Cannot find local size of indefinite block size ",
         "threads-dimensioned array");
     } else {
+      a_targ_size_t targ_block_size = (a_targ_size_t)block_size;
+
       if (!upc_dynamic_threads()) {
         /* In this case, nelems is the total number of elements, because
            length is the total array length.  Determine how many elements
            do not fit into neat block_size*threads slices.  This will be at
            most one extra block per thread.  */
-        ref_thread_count = upc_num_threads;
+        ref_thread_count = (a_targ_size_t)upc_num_threads;
       } else {
         /* In this case, nelems is the per-thread number of elements, so
            use a thread count of 1 in the calculations. */
         ref_thread_count = 1;
       }  /* if */
-      blocks_per_thread = nelems / (ref_thread_count * block_size);
-      if (nelems - (blocks_per_thread * ref_thread_count * block_size) != 0) {
+      blocks_per_thread = nelems / (ref_thread_count * targ_block_size);
+      if ((nelems - (blocks_per_thread * ref_thread_count *
+                     targ_block_size)) != 0) {
         ++blocks_per_thread;
       }  /* if */
-      nelems = blocks_per_thread * block_size;
+      nelems = blocks_per_thread * targ_block_size;
     }  /* if */
     length = nelems * elem_size;
   }  /* if */
@@ -6986,8 +6990,8 @@ __ptr64 modifier.  On non-64-bit platforms, "equivalent" means "identical".
 */
 {
   if (is_64bit_target) {
-    pms1 &= ~(a_pointer_modifier_set)PM_PTR64;
-    pms2 &= ~(a_pointer_modifier_set)PM_PTR64;
+    pms1 &= (a_pointer_modifier_set)~PM_PTR64;
+    pms2 &= (a_pointer_modifier_set)~PM_PTR64;
   }  /* if */
   return pms1 == pms2;
 }  /* equiv_pointer_modifiers */
@@ -12432,11 +12436,11 @@ See conversion_possible.
         a_targ_size_t src_mant_bits =
                        num_mantissa_bits[(int)source_type->variant.float_kind];
         a_targ_size_t src_max_exponent =
-                            max_exponent[(int)source_type->variant.float_kind];
+             (a_targ_size_t)max_exponent[(int)source_type->variant.float_kind];
         a_targ_size_t dst_mant_bits =
                          num_mantissa_bits[(int)dest_type->variant.float_kind];
         a_targ_size_t dst_max_exponent =
-                              max_exponent[(int)dest_type->variant.float_kind];
+               (a_targ_size_t)max_exponent[(int)dest_type->variant.float_kind];
         if (src_mant_bits > dst_mant_bits ||
             src_max_exponent > dst_max_exponent) {
           if (gnu_mode || building_runtime) {
@@ -18559,7 +18563,7 @@ for each compilation.
 #if !STANDALONE_UTILITY_PROGRAM
   corresponding_base_class_cache = alloc_fe_of_type(
                                                a_corresponding_base_class_map);
-  construct(corresponding_base_class_cache, /*mask_width=*/10);
+  construct(corresponding_base_class_cache, /*mask_width=*/10u);
 #endif /* STANDALONE_UTILITY_PROGRAM */
 }  /* types_init */
 

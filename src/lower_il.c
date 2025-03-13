@@ -108,7 +108,7 @@ to member.
   if (bcp == NULL) {
     offset = 0;
   } else {
-    offset = bcp->offset;
+    offset = (a_targ_ptrdiff_t)bcp->offset;
     if (constant->variant.ptr_to_member.cast_to_base) offset = -offset;
   }  /* if */
   return offset;
@@ -284,7 +284,8 @@ For the IA-64 ABI:
 #else /* IA64_ABI */
     /* In the IA-64 ABI, the offset is the virtual function table offset
        in bytes of the function. */
-    *offset = routine->number.virtual_function * vtbl_entry_size();
+    *offset = (a_targ_ptrdiff_t)(routine->number.virtual_function *
+                                 vtbl_entry_size());
 #if DO_IL_LOWERING
     if (!targ_ia64_abi_use_variant_ptr_to_member_function_repr) {
       /* The low-order bit is 1 to indicate a virtual function. */
@@ -6996,10 +6997,11 @@ yet.
         check_assertion(virtual_bcp->is_virtual);
       }  /* if */
       vbase_index = virtual_bcp->vbase_offset_index;
-      return_delta = rabcp->offset - virtual_bcp->offset;
+      return_delta = ((a_targ_ptrdiff_t)rabcp->offset -
+                      (a_targ_ptrdiff_t)virtual_bcp->offset);
     } else {
       vbase_index = 0;
-      return_delta = rabcp->offset;
+      return_delta = (a_targ_ptrdiff_t)rabcp->offset;
     }  /* if */
   }  /* if */
 #endif /* IA64_ABI */
@@ -7157,7 +7159,6 @@ gives the offset to the virtual base class whose vtable is being made.
   a_base_class_ptr                   overrider_bcp;
   a_class_type_supplement_ptr        ctsp;
   an_overriding_virtual_function_ptr ovfp;
-  a_targ_ptrdiff_t                   offset;
   a_vcall_offset_entry_ptr           voep;
 
   /* Go through the vcall offset entries for vbase, adding them to the 
@@ -7192,10 +7193,14 @@ gives the offset to the virtual base class whose vtable is being made.
         overrider_bcp = corresp_base_class(overrider_bcp, ctor_bcp);
       }  /* if */
     }  /* if */
+
     /* The offset is the offset from vbase to overrider_bcp -- where both are
        considered in the complete object. */
-    offset = ((overrider_bcp != NULL) ? overrider_bcp->offset : 0) -
-                                                                 vbase_offset;
+    a_targ_ptrdiff_t offset = 0;
+    if (overrider_bcp != NULL) {
+      offset = (a_targ_ptrdiff_t)overrider_bcp->offset;
+    }  /* if */
+    offset -= (a_targ_ptrdiff_t)vbase_offset;
 #if DEBUG
     if (debug_level >= 4 || db_flag_is_set("vtbl")) {
       fprintf(f_debug, "  vcall entry (prepend):  ");
@@ -7359,10 +7364,10 @@ save the caller from searching for this routine.
       if (overriding_bcp == NULL) {
         fixed_offset = 0;
       } else {
-        fixed_offset = overriding_bcp->offset;
+        fixed_offset = (a_targ_ptrdiff_t)overriding_bcp->offset;
       }  /* if */
       if (subobject_bcp != NULL) {
-        fixed_offset -= subobject_bcp->offset;
+        fixed_offset -= (a_targ_ptrdiff_t)subobject_bcp->offset;
       }  /* if */
       if (fixed_offset == 0 && adjustment_bcp == NULL) {
         /* The fixed offset is 0, so we can use the function directly
@@ -7421,11 +7426,11 @@ save the caller from searching for this routine.
     /* The function is defined in the most-derived class. */
     *delta = 0;
   } else {
-    *delta = overriding_bcp->offset;
+    *delta = (a_targ_ptrdiff_t)overriding_bcp->offset;
   }  /* if */
   if (overridden_bcp != NULL) {
     /* Subtract the offset of the class whose vtbl we are building. */
-    *delta -= overridden_bcp->offset;
+    *delta -= (a_targ_ptrdiff_t)overridden_bcp->offset;
   }  /* if */
 #if IA64_ABI
 end_of_routine:;
@@ -7567,8 +7572,10 @@ table.
                                                      : class_type,
                                                      imm_bcp->type);
     /* Now, find the offset to imm_bcp_in_complete. */
-    delta = (imm_bcp_in_complete->offset - 
-                              (derived_bcp != NULL ? derived_bcp->offset : 0));
+    delta = (a_targ_ptrdiff_t)imm_bcp_in_complete->offset;
+    if (derived_bcp != NULL) {
+      delta -= (a_targ_ptrdiff_t)derived_bcp->offset;
+    }  /* if */
     /* Create the vtable entry. */
 #if DEBUG
     if (debug_level >= 4 || db_flag_is_set("vtbl")) {
@@ -7933,7 +7940,8 @@ for the same virtual function table variable; see note below.
                                 + 1
 #endif /* CFRONT_OBJECT_CODE_COMPATIBILITY */
 #else /* IA64_ABI */
-                                + num_negative_vtable_entries(class_type, bcp)
+                                + (a_targ_size_t)num_negative_vtable_entries(
+                                                               class_type, bcp)
 #endif /* IA64_ABI */
                                                                               ;
     vtbl_var->type->size = 0;  /* Force recomputation of size. */
@@ -8077,7 +8085,8 @@ for the same virtual function table variable; see note below.
 #endif /* IA64_ABI */
     } else {
       a_base_class_ptr eff_bcp = corresp_base_class(bcp, ctor_bcp);
-      delta = eff_bcp->offset - ctor_bcp->offset;
+      delta = ((a_targ_ptrdiff_t)eff_bcp->offset -
+               (a_targ_ptrdiff_t)ctor_bcp->offset);
     }
 #if IA64_ABI
     /* Under the IA64 ABI, the sign is reversed: the value stored in the
@@ -11269,7 +11278,7 @@ class to the class of node in *offset.
     } else {
       /* Non-virtual base class.  Subtract the offset from the running
          total. */
-      *offset -= bcp->offset;
+      *offset -= (a_targ_ptrdiff_t)bcp->offset;
     }  /* if */
   } else {
     /* Casting from a base class to a derived class. */
@@ -11280,7 +11289,7 @@ class to the class of node in *offset.
     }  /* if */
 #endif /* CHECKING */
     /* Add the offset to the running total. */
-    *offset += bcp->offset;
+    *offset += (a_targ_ptrdiff_t)bcp->offset;
   }  /* if */
 }  /* compute_pm_cast_offset */
 
@@ -13121,7 +13130,8 @@ according to insert_location.
          if there is no padding. */
       if (f->is_bit_field) {
         byte_offset = f->offset + (f->bit_size / targ_char_bit);
-        bit_offset = f->offset_bit_remainder + (f->bit_size % targ_char_bit);
+        bit_offset = (an_offset_bit_remainder)(f->offset_bit_remainder +
+                                               (f->bit_size % targ_char_bit));
         if (bit_offset == targ_char_bit) {
           bit_offset = 0;
           byte_offset++;
@@ -15126,7 +15136,8 @@ tblock is used during the tree traversal and stores the in-progress checksum.
   /* Multiplier used to compute the checksum.  Should be prime. */
 #define CACHE_HASH_FACTOR ((unsigned int)73)
   while (size-- != 0) {
-    tblock->checksum = (tblock->checksum * CACHE_HASH_FACTOR) + *ptr++;
+    tblock->checksum = ((tblock->checksum * CACHE_HASH_FACTOR) +
+                        (unsigned long)*ptr++);
   }  /* while */
 #undef CACHE_HASH_FACTOR
 }  /* checksum_bytes */

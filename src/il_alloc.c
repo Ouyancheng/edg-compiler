@@ -142,26 +142,26 @@ module entity that declared it (if any).
 }  /* set_default_source_corresp */
 
 
-STATIC_THREAD int
+STATIC_THREAD size_t
 		file_scope_entry_prefix_size;
 			/* The size of the entry prefix for IL entries
 			   allocated in the file scope of the current
 			   translation unit. */
 
-STATIC_THREAD int
+STATIC_THREAD size_t
 		file_scope_entry_prefix_alignment_offset;
 			/* The offset from the beginning of the space allocated
 			   for an IL entry to where the prefix actually
 			   begins for file scope allocations.  This is a
 			   translation unit variable. */
 
-STATIC_THREAD int
+STATIC_THREAD size_t
 		non_file_scope_entry_prefix_size;
 			/* The size of the entry prefix for IL entries
 			   not allocated in the file scope.  This is not a
 			   translation unit variable. */
 
-STATIC_THREAD int
+STATIC_THREAD size_t
 		non_file_scope_entry_prefix_alignment_offset;
 			/* The offset from the beginning of the space allocated
 			   for an IL entry to where the prefix actually
@@ -193,9 +193,8 @@ could be determined from region_number, but it happens that it is usually known
 by the caller).
 */
 {
-  char *ptr = alloc_in_region(
-                          region_number,
-                          (sizeof_t)(size + non_file_scope_entry_prefix_size));
+  char *ptr = alloc_in_region(region_number,
+                              size + non_file_scope_entry_prefix_size);
 
   /* There may be padding before the prefix if needed for alignment. */
   ptr += non_file_scope_entry_prefix_alignment_offset;
@@ -268,9 +267,8 @@ entry.  fs_region_number indicates the file scope region number to be used
 (there can be several, when secondary translation units are involved).
 */
 {
-  char *ptr = alloc_in_region(
-          fs_region_number,
-          (sizeof_t)((size) + file_scope_entry_prefix_size));
+  char *ptr = alloc_in_region(fs_region_number,
+                              size + file_scope_entry_prefix_size);
 
   /* There may be padding before the prefix if needed for alignment. */
   ptr += file_scope_entry_prefix_alignment_offset;
@@ -5947,7 +5945,7 @@ translation unit.  On the initial call, also compute the prefix size
 for non-file-scope entities.
 */
 {
-  int	aligned_size;
+  size_t aligned_size;
 
   /* All entries allocated in the file scope have a prefix.  If we are
      doing orphan processing, they also have an orphan pointer.  In
@@ -5963,7 +5961,7 @@ for non-file-scope entities.
   /* Compute the additional space required so that the prefix is a multiple
      of the host alignment that is required. */
   aligned_size = file_scope_entry_prefix_size;
-  do_host_alignment(aligned_size);
+  do_host_alignment(&aligned_size);
   file_scope_entry_prefix_alignment_offset = aligned_size - 
                                              file_scope_entry_prefix_size;
   /* Set the prefix size to the aligned size. */
@@ -5974,9 +5972,9 @@ for non-file-scope entities.
      translation units. */
   if (is_primary_translation_unit) {
     non_file_scope_entry_prefix_size = SPACE_FOR_IL_ENTRY_PREFIX;
-    do_host_alignment(non_file_scope_entry_prefix_size);
+    do_host_alignment(&non_file_scope_entry_prefix_size);
     non_file_scope_entry_prefix_alignment_offset =
-             non_file_scope_entry_prefix_size - (int)SPACE_FOR_IL_ENTRY_PREFIX;
+                  non_file_scope_entry_prefix_size - SPACE_FOR_IL_ENTRY_PREFIX;
   }  /* if */
 }  /* compute_il_prefix_size */
 

@@ -2551,7 +2551,9 @@ return a pointer to the init_component.
   if (expr_stack->constant_expr_ruled_out) {
     icp->constant_expr_ruled_out = TRUE;
   }  /* if */
-  expr_stack->constant_expr_ruled_out |= saved_constant_expr_ruled_out;
+  if (saved_constant_expr_ruled_out) {
+    expr_stack->constant_expr_ruled_out = TRUE;
+  }  /* if */
   return icp;
 }  /* scan_expr_into_new_init_component */
 
@@ -15918,8 +15920,8 @@ __builtin_shuffle or Clang __builtin_shufflevector construct.
          elements. */
       set_integer_constant(max_con,
                            (a_host_large_integer)
-                                             num_vector_elements(p_op1->type) +
-                                             num_vector_elements(p_op2->type),
+                                            (num_vector_elements(p_op1->type) +
+                                             num_vector_elements(p_op2->type)),
                            targ_size_t_int_kind);
       set_integer_constant(minus_one, (a_host_large_integer)-1,
                            targ_ptrdiff_t_int_kind);

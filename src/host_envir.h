@@ -2881,7 +2881,7 @@ BEGIN_EDG_NAMESPACE  /* Conditionally open the "edg" namespace. */
 
 extern
 int unicode_to_multibyte_char(unsigned long uc,
-                              char          chars[MAX_MULTIBYTE_CHAR_LENGTH],
+                              unsigned char chars[MAX_MULTIBYTE_CHAR_LENGTH],
                               a_boolean     *err);
 
 #if EDG_WIN32
@@ -3009,8 +3009,8 @@ only for the purposes of the _MSVC_EXECUTION_CHARACTER_SET predefined macro
 #define DEFAULT_MSVC_EXECUTION_CHARACTER_SET "1252"
 #endif /* DEFAULT_MSVC_EXECUTION_CHARACTER_SET */
 
-extern int unicode_to_utf8(unsigned long uc,
-                           char          chars[4]);
+extern unsigned unicode_to_utf8(unsigned long uc,
+                                unsigned char chars[4]);
 #if UNICODE_SOURCE_SUPPORTED
 /* Data structure used by getc_source and getc_utf16 to hold characters
    queued up as source characters (because a UTF-16 sequence maps into
@@ -3272,30 +3272,30 @@ Flags used to indicate the behavior of the file open routines.  These flags
 are used by routines such as fopen_with_error to determine whether
 an error should be issued, or a NULL file pointer returned.
 */
-typedef int an_open_file_flag_set;
+typedef unsigned an_open_file_flag_set;
 
-#define OFF_NO_OPTIONS		0x0
-#define OFF_OKAY_IF_NOT_FOUND	0x1
+#define OFF_NO_OPTIONS		0x0u
+#define OFF_OKAY_IF_NOT_FOUND	0x1u
 			/* TRUE if a NULL file pointer should be returned if
 			   the file does not exist.  FALSE if an error should
 			   be issued. */
-#define OFF_OKAY_IF_CANNOT_OPEN	0x2
+#define OFF_OKAY_IF_CANNOT_OPEN	0x2u
 			/* TRUE if a NULL file pointer should be returned if
 			   the file exists but cannot be opened.  FALSE if an
 			   error should be issued. */
-#define OFF_OKAY_IF_NOT_REGULAR	0x4
+#define OFF_OKAY_IF_NOT_REGULAR	0x4u
 			/* TRUE if a NULL file pointer should be returned if
 			   the file exists but is not a regular file.  FALSE
 			   if an error should be issued. */
-#define OFF_OKAY_IF_DIRECTORY	0x8
+#define OFF_OKAY_IF_DIRECTORY	0x8u
 			/* TRUE if a NULL file pointer should be returned if
 			   the file names a directory.  FALSE if an error
 			   should be issued. */
-#define OFF_COMMAND_LINE	0x10
+#define OFF_COMMAND_LINE	0x10u
 			/* TRUE if an open failure should be reported as a
 			   command-line error. */
 #if DEBUG
-#define OFF_FORCE_ERROR		0x80000000
+#define OFF_FORCE_ERROR		0x80000000u
 			/* TRUE if the open operation should be considered to
 			   have failed.  For debugging purposes. */
 #endif /* DEBUG */

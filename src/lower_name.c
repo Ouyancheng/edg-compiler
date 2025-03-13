@@ -2746,7 +2746,8 @@ the original expression may have additional flags that might affect mangling
     a_constant_ptr       con = local_constant();
     a_host_large_integer value;
     if (kind == (a_template_param_constant_kind)tpck_sizeof) {
-      value = expr == NULL ? type->size : expr->type->size;
+      value = (a_host_large_integer)(expr == NULL ? type->size
+                                                  : expr->type->size);
     } else {
       check_assertion(kind == (a_template_param_constant_kind)tpck_alignof);
       value = expr == NULL ? type->alignment : expr->type->alignment;
@@ -3172,11 +3173,11 @@ extensions, e.g., Microsoft __is_base_of).
     add_str_to_mangled_name("9builtin", mctl);
   } else {
     add_str_to_mangled_name("10builtin", mctl);
-    add_number_to_mangled_name(((int)kind)/100, mctl);
-    kind = (a_builtin_operation_kind)((int)kind%100);
+    add_number_to_mangled_name(((unsigned)kind) / 100u, mctl);
+    kind = (a_builtin_operation_kind)((unsigned)kind % 100u);
   }  /* if */
-  add_number_to_mangled_name(((int)kind)/10, mctl);
-  add_number_to_mangled_name(((int)kind)%10, mctl);
+  add_number_to_mangled_name(((unsigned)kind) / 10u, mctl);
+  add_number_to_mangled_name(((unsigned)kind) % 10u, mctl);
 #endif /* IA64_ABI */
   for (operand = expr->variant.builtin_operation.operands;
        operand != NULL;
@@ -15907,7 +15908,7 @@ initialized for each compilation.
 #endif /* DEBUG */
 #endif /* !IA64_ABI */
   active_parents = alloc_fe_of_type(an_active_parent_map);
-  construct(active_parents, /*mask_width=*/8);
+  construct(active_parents, /*mask_width=*/8u);
 }  /* lower_name_init */
 
 /* Conditionally close the "edg" namespace. */

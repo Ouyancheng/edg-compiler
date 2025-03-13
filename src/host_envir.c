@@ -901,7 +901,7 @@ memory region (when in_general_memory is FALSE) or in general memory.
     dir_name_length = 0;
   } else {
     /* There is a directory name.  Save its length including punctuation. */
-    dir_name_length = last_slash - file_name + 1;
+    dir_name_length = (size_t)(last_slash - file_name + 1);
   }  /* if */
   /* Look for an existing name on the list that can be reused. */
   /* We assume that a compilation is not going to use a large number of
@@ -996,7 +996,7 @@ be passed to the back end.
   }  /* if */
   /* Copy the base name and suffix into the derived name. */
   suffix_length = strlen(suffix);
-  base_name_length = name_end - name_start + 1;
+  base_name_length = (size_t)(name_end - name_start + 1);
 #if __MICROSOFT_OS__
   /* Microsoft limits the length of file names.  If the base name and suffix
      would be too long, truncate the base name. */
@@ -1255,7 +1255,13 @@ set_working_directory.
        is some space allocated. */
     ensure_temp_text_buffer_space(256);
     for (;;) {
-      if (getcwd(temp_text_buffer, (int)size_temp_text_buffer) == NULL) {
+#if EDG_WIN32
+      using a_cwd_size_arg_type = int;
+#else /* !EDG_WIN32 */
+      using a_cwd_size_arg_type = size_t;
+#endif /* EDG_WIN32 */
+      if (getcwd(temp_text_buffer,
+                 (a_cwd_size_arg_type)size_temp_text_buffer) == NULL) {
         if (errno == ERANGE) {
           /* We know the buffer is too small, but we don't know how much
              more space we need.  Add a little space and try again. */
@@ -2326,7 +2332,7 @@ Only write the signoff if there ARE errors, and if we are supposed to.
 #endif /* DEBUG */
   if (diags_total.all_error_types() > 0) {
     a_diagnostic_counter diags_suppressed = diagnostic_counters.suppressed;
-    unsigned             total_diags_reported = diags_total.all_error_types() -
+    unsigned long        total_diags_reported = diags_total.all_error_types() -
                                             diags_suppressed.all_error_types();
 
     /* Generate the "X errors and Y catastrophic errors" portion of the
@@ -2741,10 +2747,10 @@ since the start of the compilation.  The value is converted to milliseconds.
   cpu_time = clock();
   /* clock() returns a value in units of CLOCKS_PER_SEC.  Convert this value
      to milliseconds. */
-  temp = cpu_time;
+  temp = (double)cpu_time;
   temp = (temp * 1000) / CLOCKS_PER_SEC;
   cpu_time = (clock_t)temp;
-  return cpu_time;
+  return (a_cpu_time)cpu_time;
 #else /* !__ANSIC__ */
   /* This version uses the UNIX routines to get the CPU time. */
   clock_t	cpu_time = 0;
@@ -2797,7 +2803,8 @@ time in seconds.
 #if __ANSIC__
   /* If available, use the ANSI routine to compute the difference between
      the two real times. */
-  *real_time = difftime(end_time->real_time, start_time->real_time);
+  *real_time = difftime((time_t)end_time->real_time,
+                        (time_t)start_time->real_time);
 #else /* !__ANSIC__ */
   /* The real times are assumed to be stored in seconds. */
   *real_time = end_time->real_time - start_time->real_time;
@@ -2849,13 +2856,13 @@ is returned. If no conversion is required, the original string is returned.
        name and check for any characters that must be converted to or
        from Unicode (depending on to_internal).  If it contains any such
        characters, a new copy of the string must be created. */
-    a_boolean		conversion_needed = FALSE;
-    sizeof_t		size_needed = 0;
-    a_const_char	*p;
-    unsigned long	wc;
-    int			in_len;
-    int			out_len;
-    char		arr[4];
+    a_boolean     conversion_needed = FALSE;
+    sizeof_t      size_needed = 0;
+    a_const_char  *p;
+    unsigned long wc;
+    int           in_len;
+    sizeof_t      out_len;
+    unsigned char arr[4];
     /* Look to see whether the string contains any characters that
        require conversion.  Also determine the size needed if we have to
        allocate space for the converted copy. */
@@ -2879,8 +2886,8 @@ is returned. If no conversion is required, the original string is returned.
       char *dest = alloc_general(size_needed+1);
       file_name = dest;
       for (p = orig_name; *p != '\0'; p += in_len) {
-        int		i;
-        a_boolean	err;
+        a_boolean err;
+
         in_len = mbc_to_wide_char(p, &wc, &err, /*is_native=*/to_internal);
         /* If the character could not be converted, substitute a "?". */
         if (err) wc = (unsigned long)'?';
@@ -2890,7 +2897,7 @@ is returned. If no conversion is required, the original string is returned.
             *dest++ = *p;
           } else {
             out_len = unicode_to_utf8(wc, arr);
-            for (i = 0; i < out_len; i++) *dest++ = arr[i];
+            for (sizeof_t i = 0; i < out_len; i++) *dest++ = (char)arr[i];
           }  /* if */
         } else {
           /* Converting from UTF-8 to the external encoding.  This version
@@ -3535,10 +3542,10 @@ Set module_id to the string and return it.
          longer than 8 characters, a CRC of the string is used in place
          of the string.  Non-identifier characters are replaced with
          underscores. */
-      int len1 = (int)strlen(str1);
-      int len2 = str2 == NULL ? 0 : (int)strlen(str2);
+      size_t len1 = strlen(str1);
+      size_t len2 = str2 == NULL ? 0 : strlen(str2);
 
-      if ((len1 + len2 + (int)(len2 != 0)) > 8) {
+      if ((len1 + len2 + (unsigned)(len2 != 0)) > 8) {
         /* The string (not including the file name) is longer than 8
            characters.  Use a CRC of the string instead. */
         unsigned long crc = crc_32(str1, (unsigned long)0);
@@ -3548,7 +3555,7 @@ Set module_id to the string and return it.
         }  /* if */
         crc_buf.reset_to(left_pad(8, '0', hex_view_of(crc)));
         str1 = crc_buf.as_temp_characters();
-        len1 = (int)crc_buf.length();
+        len1 = crc_buf.length();
         str2 = NULL;
         len2 = 0;
       }  /* if */
@@ -3563,7 +3570,8 @@ Set module_id to the string and return it.
       a_number_buffer
                 len_buf("_", file_name_len, "_");
       char      *mod_id = alloc_general(len_buf.length() + file_name_len + 1 +
-                                        len1 + len2 + (int)(len2 != 0) + 1);
+                                        len1 + len2 + (unsigned)(len2 != 0) +
+                                        1);
       (void)strcpy(mod_id, len_buf.as_temp_characters());
       (void)strcat(mod_id, file_name);
       (void)strcat(mod_id, "_");
@@ -4291,8 +4299,10 @@ Return "size" adjusted as needed to be a multiple of the system page size.
     check_assertion_str(HOST_ALLOCATION_INCREMENT % page_size == 0,
                         "invalid HOST_ALLOCATION_INCREMENT for page size");
   }  /* if */
-  size2 = (size / (sizeof_t)(unsigned int)page_size) * page_size;
-  if (size2 < size) size2 += page_size;
+  size2 = (size / (sizeof_t)(unsigned int)page_size) * (sizeof_t)page_size;
+  if (size2 < size) {
+    size2 += (sizeof_t)page_size;
+  }  /* if */
   return size2;
 }  /* do_page_alignment */
 
@@ -4366,7 +4376,7 @@ Used for debugging purposes.
 {
   struct rlimit	limit;
   (void)getrlimit((int)RLIMIT_CPU, &limit);
-  limit.rlim_cur = seconds;
+  limit.rlim_cur = (rlim_t)seconds;
   (void)setrlimit((int)RLIMIT_CPU, &limit);
 }  /* set_cpu_time_limit */
 
@@ -4595,39 +4605,39 @@ are assumed to be Latin-1.
       numch = 1;
       *wc = ch;
     } else {
-      if ((ch & 0xe0) == 0xc0) {
+      if ((ch & 0xe0u) == 0xc0u) {
         /* Top three bits are 110: start of a two-byte sequence.  Second byte
            must have 10 as top two bits. */
-        if (((unsigned char)mb[1] & 0xc0) == 0x80) {
+        if (((unsigned char)mb[1] & 0xc0u) == 0x80u) {
           numch = 2;
-          *wc = (ch & 0x1f) << 6 |
-                ((unsigned char)mb[1] & 0x3f);
+          *wc = (ch & 0x1fu) << 6 |
+                ((unsigned char)mb[1] & 0x3fu);
         } else {
           local_err = TRUE;
         }  /* if */
-      } else if ((ch & 0xf0) == 0xe0) {
+      } else if ((ch & 0xf0u) == 0xe0u) {
         /* Top four bits are 1110: start of a three-byte sequence.  Second and
            third bytes must have 10 as top two bits. */
-        if (((unsigned char)mb[1] & 0xc0) == 0x80 &&
-            ((unsigned char)mb[2] & 0xc0) == 0x80) {
+        if (((unsigned char)mb[1] & 0xc0u) == 0x80u &&
+            ((unsigned char)mb[2] & 0xc0u) == 0x80u) {
           numch = 3;
-          *wc = (ch & 0xf) << 12 |
-                ((unsigned char)mb[1] & 0x3f) << 6 |
-                ((unsigned char)mb[2] & 0x3f);
+          *wc = (ch & 0xfu) << 12 |
+                ((unsigned char)mb[1] & 0x3fu) << 6 |
+                ((unsigned char)mb[2] & 0x3fu);
         } else {
           local_err = TRUE;
         }  /* if */
       } else if ((ch & 0xf8) == 0xf0) {
         /* Top five bits are 11110: start of a four-byte sequence.  Second,
            third, and fourth bytes must have 10 as top two bits. */
-        if (((unsigned char)mb[1] & 0xc0) == 0x80 &&
-            ((unsigned char)mb[2] & 0xc0) == 0x80 &&
-            ((unsigned char)mb[3] & 0xc0) == 0x80) {
+        if (((unsigned char)mb[1] & 0xc0u) == 0x80u &&
+            ((unsigned char)mb[2] & 0xc0u) == 0x80u &&
+            ((unsigned char)mb[3] & 0xc0u) == 0x80u) {
           numch = 4;
-          *wc = (ch & 0x7) << 18 |
-                ((unsigned char)mb[1] & 0x3f) << 12 |
-                ((unsigned char)mb[2] & 0x3f) << 6 |
-                ((unsigned char)mb[3] & 0x3f);
+          *wc = (ch & 0x7u) << 18 |
+                ((unsigned char)mb[1] & 0x3fu) << 12 |
+                ((unsigned char)mb[2] & 0x3fu) << 6 |
+                ((unsigned char)mb[3] & 0x3fu);
         } else {
           local_err = TRUE;
         }  /* if */
@@ -4751,10 +4761,10 @@ calls of this routine.
     ch2 = (unsigned char)ch2;
     if (state->unicode_source_kind == usk_utf16LE) {
       /* Little-endian assembly. */
-      uc = (ch2 << 8) | ch1;
+      uc = (unsigned long)((ch2 << 8) | ch1);
     } else {
       /* Big-endian assembly. */
-      uc = (ch1 << 8) | ch2;
+      uc = (unsigned long)((ch1 << 8) | ch2);
     }  /* if */
     if (uc < 0xd800 || uc >= 0xe000) {
       /* This is a single two-byte UTF-16 character. */
@@ -4778,10 +4788,10 @@ calls of this routine.
       ch2 = (unsigned char)ch2;
       if (state->unicode_source_kind == usk_utf16LE) {
         /* Little-endian assembly. */
-        uc2 = (ch2 << 8) | ch1;
+        uc2 = (unsigned long)((ch2 << 8) | ch1);
       } else {
         /* Big-endian assembly. */
-        uc2 = (ch1 << 8) | ch2;
+        uc2 = (unsigned long)((ch1 << 8) | ch2);
       }  /* if */
       if (uc2 < 0xdc00 || uc2 > 0xdfff) {
         /* Bad second surrogate. */
@@ -4802,25 +4812,25 @@ calls of this routine.
        and go into the pushback queue. */
     if (uc <= 0x7f) {
       /* One byte of UTF-8 is needed. */
-      ch = uc;
+      ch = (int)uc;
     } else if (uc <= 0x7ff) {
       /* Two bytes of UTF-8 are needed. */
       state->chars[0] = (char)((uc & 0x3f) | 0x80);
       state->count = 1;
-      ch = (uc >> 6) | 0xc0;
+      ch = (int)((uc >> 6) | 0xc0);
     } else if (uc <= 0xffff) {
       /* Three bytes of UTF-8 are needed. */
       state->chars[0] = (char)((uc & 0x3f) | 0x80);
       state->chars[1] = (char)(((uc >> 6) & 0x3f) | 0x80);
       state->count = 2;
-      ch = (uc >> 12) | 0xe0;
+      ch = (int)((uc >> 12) | 0xe0);
     } else {
       /* Four bytes of UTF-8 are needed. */
       state->chars[0] = (char)((uc & 0x3f) | 0x80);
       state->chars[1] = (char)(((uc >> 6) & 0x3f) | 0x80);
       state->chars[2] = (char)(((uc >> 12) & 0x3f) | 0x80);
       state->count = 3;
-      ch = ((uc >> 18) & 0x7) | 0xf0;
+      ch = (int)(((uc >> 18) & 0x7) | 0xf0);
     }  /* if */
   }  /* if */
 have_ch:
@@ -4829,37 +4839,37 @@ have_ch:
 
 #endif /* UNICODE_SOURCE_SUPPORTED */
 
-int unicode_to_utf8(unsigned long uc,
-                    char          chars[4])
+unsigned unicode_to_utf8(unsigned long uc,
+                         unsigned char chars[4])
 /*
 Convert the Unicode code point uc to UTF-8.  Put the bytes of the UTF-8
 representation in the array chars, and return the length (1-4).
 */
 {
-  int len;
+  unsigned len;
 
   if (uc <= 0x7f) {
     /* One byte of UTF-8 is needed. */
     len = 1;
-    chars[0] = (char)uc;
+    chars[0] = (unsigned char)uc;
   } else if (uc <= 0x7ff) {
     /* Two bytes of UTF-8 are needed. */
     len = 2;
-    chars[0] = (char)((uc >> 6) | 0xc0);
-    chars[1] = (char)((uc & 0x3f) | 0x80);
+    chars[0] = (unsigned char)((uc >> 6) | 0xc0);
+    chars[1] = (unsigned char)((uc & 0x3f) | 0x80);
   } else if (uc <= 0xffff) {
     /* Three bytes of UTF-8 are needed. */
     len = 3;
-    chars[0] = (char)((uc >> 12) | 0xe0);
-    chars[1] = (char)(((uc >> 6) & 0x3f) | 0x80);
-    chars[2] = (char)((uc & 0x3f) | 0x80);
+    chars[0] = (unsigned char)((uc >> 12) | 0xe0);
+    chars[1] = (unsigned char)(((uc >> 6) & 0x3f) | 0x80);
+    chars[2] = (unsigned char)((uc & 0x3f) | 0x80);
   } else {
     /* Four bytes of UTF-8 are needed. */
     len = 4;
-    chars[0] = (char)(((uc >> 18) & 0x7) | 0xf0);
-    chars[1] = (char)(((uc >> 12) & 0x3f) | 0x80);
-    chars[2] = (char)(((uc >> 6) & 0x3f) | 0x80);
-    chars[3] = (char)((uc & 0x3f) | 0x80);
+    chars[0] = (unsigned char)(((uc >> 18) & 0x7) | 0xf0);
+    chars[1] = (unsigned char)(((uc >> 12) & 0x3f) | 0x80);
+    chars[2] = (unsigned char)(((uc >> 6) & 0x3f) | 0x80);
+    chars[3] = (unsigned char)((uc & 0x3f) | 0x80);
   }  /* if */
   return len;
 }  /* unicode_to_utf8 */
@@ -4890,7 +4900,7 @@ Return TRUE if the locale_name is invalid, FALSE otherwise.
 
 int unicode_to_multibyte_char(
                      ARG_UNUSED unsigned long uc,
-                     char                     chars[MAX_MULTIBYTE_CHAR_LENGTH],
+                     unsigned char            chars[MAX_MULTIBYTE_CHAR_LENGTH],
                      a_boolean                *err)
 /*
 Convert the Unicode code point uc to a multibyte character sequence.  Put
@@ -4910,7 +4920,7 @@ system_default_locale.
 #if EDG_WIN32
   /* Convert the Unicode character to a multibyte character in the specified
      locale. */
-  if (_wctomb_s_l(&len, chars, MAX_MULTIBYTE_CHAR_LENGTH, (wchar_t)uc,
+  if (_wctomb_s_l(&len, (char*)chars, MAX_MULTIBYTE_CHAR_LENGTH, (wchar_t)uc,
                   system_default_locale)) {
     /* The conversion failed.  Return "?". */
     chars[0] = '?';
@@ -4969,12 +4979,9 @@ native_multibyte_locale.
   /* Go through the string and convert each multibyte sequence to a
      wide character.  Then convert each wide character to UTF-8. */
   for (ptr = str_ptr; ptr < after_str_end;) {
-    unsigned long	wc;
-    char		arr[4];
-    int			utflen;
-    int			mbclen;
-    int			i;
-    a_boolean		local_err;
+    unsigned long wc;
+    int           mbclen;
+    a_boolean     local_err;
     mbclen = mbc_to_wide_char(ptr, &wc, &local_err, /*is_native=*/TRUE);
     if (local_err) *err = TRUE;
     ptr += mbclen;
@@ -4982,8 +4989,9 @@ native_multibyte_locale.
       add_char_to_text_buffer(utf8_buffer, (char)wc);
     } else {
       /* Convert the Unicode value to UTF-8. */
-      utflen = unicode_to_utf8(wc, arr);
-      for (i = 0; i < utflen; i++) {
+      unsigned char arr[4];
+      unsigned      utflen = unicode_to_utf8(wc, arr);
+      for (unsigned i = 0; i < utflen; i++) {
         add_char_to_text_buffer(utf8_buffer, arr[i]);
       }  /* for */
     }  /* if */
@@ -5119,7 +5127,7 @@ applied to simplify the path.
           if (is_dir_separator(*ds_ptr)) last_dir_sep = ds_ptr;
         }  /* for */
         if (last_dir_sep != NULL) {
-          buf->size -= buf_end - last_dir_sep + 1;
+          buf->size -= (sizeof_t)(buf_end - last_dir_sep + 1);
         } else {
           /* There was no previous directory separator. */
           buf->size = 0;
@@ -5497,11 +5505,11 @@ be used until that point.
       add_char_to_text_buffer(mbc_buffer, *p);
     } else {
       /* Convert a UTF-8 character into a wide character. */
-      int		mb_len;
-      int		i;
-      a_boolean		err;
-      unsigned long	wc;
-      char		arr[MAX_MULTIBYTE_CHAR_LENGTH];
+      int           mb_len;
+      int           i;
+      a_boolean     err;
+      unsigned long wc;
+      unsigned char arr[MAX_MULTIBYTE_CHAR_LENGTH];
       len = mbc_to_wide_char(p, &wc, (a_boolean*)NULL, /*is_native=*/FALSE);
       /* Convert the Unicode character to a native multibyte
          character sequence.  "?" will be returned in "arr" on error. */
@@ -5842,11 +5850,9 @@ in a temporary buffer.
     if (*ptr <= 0x7f) {
       add_char_to_text_buffer(conv_utf8_buffer, (char)*ptr);
     } else {
-      sizeof_t      utflen, i;
-      char          arr[4];
-
-      utflen = unicode_to_utf8(*ptr, arr);
-      for (i = 0; i < utflen; i++) {
+      unsigned char arr[4];
+      unsigned      utflen = unicode_to_utf8(*ptr, arr);
+      for (unsigned i = 0; i < utflen; i++) {
         add_char_to_text_buffer(conv_utf8_buffer, arr[i]);
       }  /* for */
   }  /* if */
@@ -6216,15 +6222,14 @@ available.
   FILE                      *file;
   an_assembly_index         idx = 0;
   struct stat               stat_buf;
-  unsigned int              i;
-  
+
   /* The full name of the "dll" (really a portable assembly) has been
      supplied. */
   check_assertion(assembly_full_name != NULL);
   /* See if we've opened this portable assembly before. */
   *is_duplicate = FALSE;
   if (portable_assembly_table != NULL) {
-    for (i = 1; i<=pa_cur_table_entry; i++) {
+    for (an_assembly_index i = 1; i<=pa_cur_table_entry; i++) {
       if (strcmp(assembly_full_name, portable_assembly_table[i].name) == 0) {
         /* We've already opened this assembly, return its index along with
            an indication that the assembly has been previously imported. */
@@ -6275,7 +6280,7 @@ available.
                                       sizeof(a_portable_assembly_table_entry));
     /* Read in the table. */
     (void)fseek(file, entry->header.table_offset, SEEK_SET);
-    for (i = 0; i < entry->header.num_entries; i++) {
+    for (an_assembly_index i = 0; i < entry->header.num_entries; i++) {
       if (fscanf(file, PORTABLE_ASSEMBLY_TABLE_FORMAT,
                                                  &entry->table[i].scope_index,
                                                  &entry->table[i].token,

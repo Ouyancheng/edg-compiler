@@ -374,7 +374,7 @@ validated.  This is only a valid operation if has_been_validated returns TRUE.
   uint32_t index = get_partition_index(idx);
   size_t   block = index / 16;
   size_t   bit_index = index % 16;
-  unsigned bit_mask = (0x1 << 16) << bit_index;
+  unsigned bit_mask = (0x1u << 16) << bit_index;
 
   return get_partition_metadata(idx)->format_validated[block] & bit_mask;
 }  /* is_marked_invalid */
@@ -434,7 +434,7 @@ if has_been_validated returns TRUE.
   uint32_t index = get_partition_index(idx);
   size_t   block = index / 16;
   size_t   bit = index % 16;
-  unsigned bit_mask = (0x1 << 16) << bit;
+  unsigned bit_mask = (0x1u << 16) << bit;
 
   get_partition_metadata(idx)->format_validated[block] |= bit_mask;
 }  /* mark_invalid */

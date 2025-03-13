@@ -2323,7 +2323,7 @@ result to an allocated area.
     start = ap->arguments->variant.token + 1;
     end = strchr(start, '"');
     check_assertion(end != NULL);
-    len = end - start;
+    len = (size_t)(end - start);
     if (len >= STATIC_BUFFER_SIZE) goto done;
     memcpy(&buffer[0], start, len);
     buff_idx = len;
@@ -2538,7 +2538,7 @@ Do initialization for each source file.
   memzero((char *)builtin_type_table,
           num_builtin_type_entries * sizeof(a_builtin_function_type));
   loaded_builtin_set = alloc_fe_of_type(a_builtin_func_load_set);
-  construct(loaded_builtin_set, /*mask_width=*/10);
+  construct(loaded_builtin_set, /*mask_width=*/10u);
 #endif /* BUILTIN_FUNCTIONS_ENABLED */
 }  /* sys_predef_trans_unit_init */
 

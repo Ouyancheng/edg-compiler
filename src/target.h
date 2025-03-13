@@ -974,7 +974,7 @@ EXTERN_THREAD an_integer_kind
 #endif /* GENERATE_EH_TABLES */
 #endif /* DO_IL_LOWERING */
 
-EXTERN_THREAD int
+EXTERN_THREAD a_targ_size_t
 		targ_flt_mant_dig;
 			/* The number of bits in the mantissa of a float. */
 
@@ -986,7 +986,7 @@ EXTERN_THREAD int
 		targ_flt_max_exp;
 			/* The maximum exponent value of a float. */
 
-EXTERN_THREAD int
+EXTERN_THREAD a_targ_size_t
 		targ_dbl_mant_dig;
 			/* The number of bits in the mantissa of a double. */
 
@@ -998,7 +998,7 @@ EXTERN_THREAD int
 		targ_dbl_max_exp;
 			/* The maximum exponent value of a double. */
 
-EXTERN_THREAD int
+EXTERN_THREAD a_targ_size_t
 		targ_ldbl_mant_dig;
 			/* The number of bits in the mantissa of a long
                            double. */
@@ -1011,7 +1011,7 @@ EXTERN_THREAD int
 		targ_ldbl_max_exp;
 			/* The maximum exponent value of a long double. */
 
-EXTERN_THREAD int
+EXTERN_THREAD a_targ_size_t
 		targ_flt80_mant_dig;
 			/* The number of bits in the mantissa of a
                            __float80. */
@@ -1024,7 +1024,7 @@ EXTERN_THREAD int
 		targ_flt80_max_exp;
 			/* The maximum exponent value of a __float80. */
 
-EXTERN_THREAD int
+EXTERN_THREAD a_targ_size_t
 		targ_flt128_mant_dig;
 			/* The number of bits in the mantissa of a
                            __float128. */

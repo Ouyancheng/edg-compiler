@@ -2482,7 +2482,7 @@ __has_feature should be enabled in all modes.
 #define DEFINE_FEATURE_TEST_MACRO_OPERATORS_IN_ALL_MODES TRUE
 #endif /* DEFINE_FEATURE_TEST_MACRO_OPERATORS_IN_ALL_MODES */
 
-EXTERN_THREAD int32_t
+EXTERN_THREAD uint32_t
 		std_version;
 			/* A number of the form YYYYmm indicating the version
 			   of the language standard (for C or C++) in effect.

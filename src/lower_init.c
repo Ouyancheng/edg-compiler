@@ -1764,6 +1764,9 @@ initialization (when ipdp->array_element_sequence is TRUE).
       temp_var = assign_expr_to_temp(init_val_node);
       init_val_node = add_address_of_to_node(var_lvalue_expr(temp_var));
     }  /* if */
+    /* If this assertion fails the array element count is unknown and no call
+       to initialize the entity can be formed. */
+    check_assertion(ipdp->array_element_count >= 0);
     if (ipdp->array_element_count == 0) {
       num_elem_node = num_elem_node_if_array(ipdp);
     }  /* if */
@@ -1772,7 +1775,7 @@ initialization (when ipdp->array_element_sequence is TRUE).
                                      have_complete_object,
                                      add_address_of_to_node(entity_node),
                                      num_elem_node,
-                                     ipdp->array_element_count,
+                                     (a_targ_size_t)ipdp->array_element_count,
                                      init_val_node,
                                      insert_location);
   } else if (is_class_struct_union_type(entity_type) &&
@@ -2703,7 +2706,7 @@ ABI, type size_t for the IA-64 ABI.
   a_constant_ptr   num_elem_constant = local_constant();
 
   set_unsigned_integer_constant_with_overflow_check(
-                 num_elem_constant, (a_host_large_integer)array_element_count,
+                 num_elem_constant, array_element_count,
 #if IA64_ABI
                  targ_size_t_int_kind,
 #else /* !IA64_ABI */
@@ -2786,7 +2789,10 @@ all dimensions.
     if (ipdp->array_element_sequence) {
       /* Accessing a sequence of array elements. */
       is_array = TRUE;
-      array_element_count = ipdp->array_element_count;
+      /* If this assertion fails the array element count is unknown and no call
+         to initialize the entity can be formed. */
+      check_assertion(ipdp->array_element_count >= 0);
+      array_element_count = (a_targ_size_t)ipdp->array_element_count;
     } else {
       a_type_ptr entity_type = type_from_init_pos_descr(ipdp);
       if (is_array_type(entity_type)) {
@@ -6773,14 +6779,18 @@ dealt with).
             ipd.num_elem_node = vla_dimension_expr_for_type(aggr_type);
           }  /* if */
           check_assertion(ipd.num_elem_node != NULL);
-          ipd.partial_initialization_starting_element = ipmp->curr_elem;
+          ipd.partial_initialization_starting_element =
+                                         (a_host_large_integer)ipmp->curr_elem;
           if (!is_variably_modified_type(aggr_type) &&
               is_array_type(array_element_type(aggr_type))) {
             /* For the multi-dimensional array case, ensure that the
                starting element takes into account all of the elements
                that have already been initialized. */
-            ipd.partial_initialization_starting_element *=
-                             num_array_elements(array_element_type(aggr_type));
+            a_host_large_integer num_elems =
+                        (a_host_large_integer)num_array_elements(
+                                                array_element_type(aggr_type));
+
+            ipd.partial_initialization_starting_element *= num_elems;
           }  /* if */
         } else {
           if (ipdp->array_element_sequence) {
@@ -6825,8 +6835,8 @@ dealt with).
                                             /*vars_can_change=*/TRUE);
           } else {
             args->next = node_for_host_large_integer(
-                                            con_ptr->variant.init_repeat.count,
-                                            targ_size_t_int_kind);
+                      (a_host_large_integer)con_ptr->variant.init_repeat.count,
+                      targ_size_t_int_kind);
           }  /* if */
           make_call_statement(helper_routine_to_initialize_repeated_constant(
                                                                  repeated_con,
@@ -6871,13 +6881,17 @@ dealt with).
               ipd.num_elem_node = vla_dimension_expr_for_type(aggr_type);
             }  /* if */
             check_assertion(ipd.num_elem_node != NULL);
-            ipd.partial_initialization_starting_element = ipmp->curr_elem;
+            ipd.partial_initialization_starting_element =
+                                         (a_host_large_integer)ipmp->curr_elem;
             if (is_array_type(array_element_type(aggr_type))) {
               /* For the multi-dimensional array case, ensure that the
                  starting element takes into account all of the elements
                  that have already been initialized. */
-              ipd.partial_initialization_starting_element *=
-                             num_array_elements(array_element_type(aggr_type));
+              a_host_large_integer num_elems =
+                        (a_host_large_integer)num_array_elements(
+                                                array_element_type(aggr_type));
+
+              ipd.partial_initialization_starting_element *= num_elems;
             }  /* if */
           } else {
             if (ipdp->array_element_sequence) {
@@ -7147,15 +7161,15 @@ routine is invoked at program startup.
 #endif /* USE_PATCH_INIT_STARTUP */
 
 static a_scope_ptr make_file_scope_init_or_term_routine(
-                                 a_type_ptr                  param1_type,
-                                 ARG_UNUSED unsigned long    needed_bit_number,
-                                 ARG_UNUSED int              init_priority,
-                                 a_const_char                *prefix,
-                                 ARG_UNUSED unsigned long    unique_id,
-                                 a_boolean                   do_thread_local,
-                                 an_insert_location_ptr      insert_location,
-                                 a_memory_region_number      *il_region,
-                                 a_generated_routine_context *grcontext)
+                              a_type_ptr                     param1_type,
+                              ARG_UNUSED unsigned long       needed_bit_number,
+                              ARG_UNUSED a_gnu_init_priority init_priority,
+                              a_const_char                   *prefix,
+                              ARG_UNUSED unsigned long       unique_id,
+                              a_boolean                      do_thread_local,
+                              an_insert_location_ptr         insert_location,
+                              a_memory_region_number         *il_region,
+                              a_generated_routine_context    *grcontext)
 /*
 Make a routine to do file-scope initialization or termination.  param1_type is
 the type of the first parameter, or NULL if there are no parameters.  prefix
@@ -7295,19 +7309,23 @@ can easily access them.
     end += strlen(module_id);
 #if ONE_INSTANTIATION_PER_OBJECT
     if (needed_bit_number != 0) {
-      instant_buffer.write_to_buffer(end, alloc_length - (end - start));
+      instant_buffer.write_to_buffer(end,
+                                     alloc_length - size_t_arg(end - start));
       end += instant_buffer.length();
     }  /* if */
 #endif /* ONE_INSTANTIATION_PER_OBJECT */
 #if GNU_INIT_PRIORITY_ATTRIBUTE_ALLOWED
     if (init_priority != 0) {
-      gnu_init_buffer.write_to_buffer(end, alloc_length - (end - start));
+      gnu_init_buffer.write_to_buffer(end,
+                                      alloc_length - size_t_arg(end - start));
       end += gnu_init_buffer.length();
     }  /* if */
 #endif /* GNU_INIT_PRIORITY_ATTRIBUTE_ALLOWED */
 #if SEPARATE_ROUTINES_FOR_FILE_SCOPE_DYNAMIC_INITS
     if (unique_id != 0) {
-      seperate_rt_buffer.write_to_buffer(end, alloc_length - (end - start));
+      seperate_rt_buffer.write_to_buffer(
+                                       end,
+                                       alloc_length - size_t_arg(end - start));
       end += seperate_rt_buffer.length();
     }  /* if */
 #endif /* SEPARATE_ROUTINES_FOR_FILE_SCOPE_DYNAMIC_INITS */
@@ -7348,7 +7366,7 @@ can easily access them.
 
 static a_scope_ptr file_scope_init_insert_location(
                                  unsigned long               needed_bit_number,
-                                 int                         init_priority,
+                                 a_gnu_init_priority         init_priority,
                                  unsigned long               unique_id,
                                  a_boolean                   do_thread_local,
                                  an_insert_location_ptr      insert_location,
@@ -10319,7 +10337,10 @@ C99 mode for the same reason.
           /* Aggregate.  Use a runtime routine call to zero it. */
           a_targ_size_t array_element_count = 0;
           if (ipdp->array_element_sequence) {
-            array_element_count = ipdp->array_element_count;
+            /* If this assertion fails the array element count is unknown and
+               no call to initialize the entity can be formed. */
+            check_assertion(ipdp->array_element_count >= 0);
+            array_element_count = (a_targ_size_t)ipdp->array_element_count;
             entity_type = ipdp->array_element_type;
           }  /* if */
           entity_node = make_address_of_init_entity_node(ipdp, 
@@ -11225,11 +11246,9 @@ the position to insert the necessary code.
      (targ_size_t_max - sizeof(cookie))/sizeof(array element). */
   elem_size = size_of_type(elem_type);
   check_assertion(elem_size != 0);
-  set_unsigned_integer_constant(elem_size_constant,
-                                (a_host_large_integer)elem_size,
+  set_unsigned_integer_constant(elem_size_constant, elem_size,
                                 targ_size_t_int_kind);
-  set_unsigned_integer_constant(max_elements_constant,
-                                (a_host_large_integer)targ_size_t_max,
+  set_unsigned_integer_constant(max_elements_constant, targ_size_t_max,
                                 targ_size_t_int_kind);
 #if ABI_CHANGES_FOR_PLACEMENT_DELETE
   prefix_size_node = get_prefix_size_node(elem_type, new_routine);
@@ -18687,7 +18706,7 @@ STATIC_THREAD a_routine_list_entry_ptr
 
 static void b_lower_file_scope_dynamic_inits(
                                      unsigned long        needed_bit_number,
-                                     int                  init_priority,
+                                     a_gnu_init_priority  init_priority,
                                      a_boolean            do_single_init,
                                      a_boolean            do_thread_local,
                                      ARG_UNUSED a_boolean *more_matching_inits)
@@ -19070,9 +19089,10 @@ enough to cause the back end to invoke the routine at initialization.
 }  /* b_lower_file_scope_dynamic_inits */
 
 
-static void s_lower_file_scope_dynamic_inits(unsigned long needed_bit_number,
-                                             int           init_priority,
-                                             a_boolean     do_thread_local)
+static void s_lower_file_scope_dynamic_inits(
+                                         unsigned long       needed_bit_number,
+                                         a_gnu_init_priority init_priority,
+                                         a_boolean           do_thread_local)
 /*
 This routine is called to lower file-scope dynamic initializations that
 match the needed_bit_number (in one-instantiation-per-object mode) and/or
@@ -19104,7 +19124,7 @@ dynamic initialization is lowered into its own initialization routine.
 
 #if GNU_INIT_PRIORITY_ATTRIBUTE_ALLOWED
 
-static int first_init_priority(unsigned long needed_bit_number)
+static a_gnu_init_priority first_init_priority(unsigned long needed_bit_number)
 /*
 Return the first non-zero GNU init_priority value in the list of file-scope
 dynamic initializations.  If there is no non-zero value, return zero.
@@ -19112,8 +19132,8 @@ If one-instantiation-per-object mode is enabled, ignore entries whose
 needed bit number does not match needed_bit_number.
 */
 {
-  int                first_priority = 0;
-  a_dynamic_init_ptr dip;
+  a_gnu_init_priority first_priority = 0;
+  a_dynamic_init_ptr  dip;
 
   if (needed_bit_number == 1) needed_bit_number = 0;
   /* init_priority is enabled only in g++ mode. */
@@ -19148,7 +19168,7 @@ s_lower_file_scope_dynamic_inits to generate a routine for each priority
 level.  Only process thread_local initializations when do_thread_local is TRUE.
 */
 {
-  int priority = 0;
+  a_gnu_init_priority priority = 0;
 
 #if GNU_INIT_PRIORITY_ATTRIBUTE_ALLOWED
   /* Note that the last time around processes priority == 0, the
@@ -19584,7 +19604,7 @@ allocated integer constant.
   /* Loop to convert each hexadecimal digit. */
   for (; ndigits > 0; ndigits--) {
     char ch = *local_ptr++;
-    int  intdigit = hexvalue(ch);
+    int  intdigit = hexvalue((unsigned char)ch);
     /* Multiply previous value by 16. */
     shift_left_integer_value(&con->variant.integer_value, 4, &err);
     /* Or in digit. */

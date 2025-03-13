@@ -1171,7 +1171,7 @@ assign one now.
     a_string_literal_table_entry_ptr	sltep;
     a_string_literal_table_entry_ptr	*bucket;
     hash = hash_constant(cp);
-    bucket_number = hash % STRING_LITERAL_TABLE_SIZE;
+    bucket_number = (int)(hash % STRING_LITERAL_TABLE_SIZE);
     bucket = &ssep->string_literal_table->buckets[bucket_number];
     for (sltep = *bucket; sltep != NULL; sltep = sltep->next) {
       if (eq_constants(cp, sltep->constant)) break;
@@ -14237,7 +14237,7 @@ given translation unit.
 #endif /* DO_IL_LOWERING */
 #endif /* GENERATE_SOURCE_SEQUENCE_LISTS */
   call_op_to_lambda_map = alloc_fe_of_type(a_call_op_to_lambda_map);
-  construct(call_op_to_lambda_map, /*mask_width=*/10);
+  construct(call_op_to_lambda_map, /*mask_width=*/10u);
 }  /* scope_stk_trans_unit_init */
 
 

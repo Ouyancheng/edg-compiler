@@ -76,24 +76,22 @@ a remainder operation.
 #endif /* ALIGNMENT_BITS == 0 */
 
 
+template<typename a_Size_type>
+inline void do_host_alignment(ARG_UNUSED a_Size_type *size)
 /*
-Macro that will round up its argument -- if required -- to make it evenly
-divisible by HOST_ALIGNMENT_REQUIRED.
+Round up the given size -- if required -- to make it evenly divisible by
+HOST_ALIGNMENT_REQUIRED.
 */
-#if ALIGNMENT_BITS == 0
+{
+#if ALIGNMENT_BITS != 0
+  a_Size_type excess_bytes = align_expr(*size);
 
-#define do_host_alignment(value) /* Nothing -- no alignment required. */
-
-#else /* ALIGNMENT_BITS != 0 */
-
-#define do_host_alignment(value)                                      \
-{ int excess_bytes = (int)(align_expr(value));                        \
-  if (excess_bytes != 0) {                                            \
-    value += HOST_ALIGNMENT_REQUIRED - excess_bytes;                  \
-  }  /* if */                                                         \
+  if (excess_bytes != 0) {
+    *size += HOST_ALIGNMENT_REQUIRED - excess_bytes;
+  }  /* if */
+#endif /* ALIGNMENT_BITS != 0 */
 }  /* do_host_alignment */
 
-#endif /* ALIGNMENT_BITS == 0 */
 
 /* Allocate space in "general" storage. */
 extern char *alloc_general(sizeof_t size);

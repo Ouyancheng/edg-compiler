@@ -490,7 +490,7 @@ dump_control_flow has been enabled at the command line.
 */
 {
   fprintf(f_debug, "SS-%.4d    %*.10s", (int)pos_curr_token.seq,
-          (int)(strlen(str)+2*depth_stmt_stack), str);
+          (int)strlen(str)+2*depth_stmt_stack, str);
   switch (kind) {
     case ssk_compound:   str = "compound";   break;
     case ssk_if:         str = "if";         break;
@@ -2722,7 +2722,8 @@ struct_stmt_stack_container, and struct_stmt_stack.
      struct_stmt_stack is currently active.  The offset computed is the
      element count from the start of the container to the start of the
      currently active stack. */
-  struct_stmt_stack_offset = struct_stmt_stack - struct_stmt_stack_container;
+  struct_stmt_stack_offset = (sizeof_t)(struct_stmt_stack -
+                                        struct_stmt_stack_container);
   /* Recompute the size of the container. */
   new_size = size_struct_stmt_stack_container +
                                       STRUCT_STMT_STACK_INCREMENTAL_ALLOCATION;

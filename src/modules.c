@@ -959,7 +959,7 @@ struct a_module_entity_deduct_guide_key {
 };  /* a_module_entity_deduct_guide_key */
 
 
-enum a_module_entity_extra_info_kind {
+enum a_module_entity_extra_info_kind : unsigned {
   meeik_none,           /* A basic module entity that doesn't need extra
                            information. */
   meeik_alias,          /* A module entity for an alias. */
@@ -2070,9 +2070,8 @@ void db_mep_stack()
 Print information about the module entity stack.
 */
 {
-  int  size = (int)module_entity_stack->length();
-  for (int i = size-1; i >= 0; i--) {
-    a_module_entity_stack_entry &mese = (*module_entity_stack)[i];
+  for (size_t i = module_entity_stack->length(); i > 0; i--) {
+    a_module_entity_stack_entry &mese = (*module_entity_stack)[i - 1];
 
     db_mep(mese.mep);
   }  /* for */
@@ -2328,10 +2327,10 @@ Perform initialization of modules for the current translation unit.
 */
 {
   module_entity_scope_hash_table =
-                   new_fe<a_module_entity_scope_hash_table>(/*mask_width=*/10);
+                  new_fe<a_module_entity_scope_hash_table>(/*mask_width=*/10u);
   module_entity_hash_table =
-                         new_fe<a_module_entity_hash_table>(/*mask_width=*/10);
-  known_modules = new_fe<a_module_name_map>(/*mask_width=*/10);
+                        new_fe<a_module_entity_hash_table>(/*mask_width=*/10u);
+  known_modules = new_fe<a_module_name_map>(/*mask_width=*/10u);
 }  /* modules_trans_unit_delayed_init */
 
 

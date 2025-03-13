@@ -878,7 +878,7 @@ affect the proper compilation of the program.
       while (*ptr != ' ' && *ptr != '\t' && *ptr != ')' && *ptr != LE_ESCAPE) {
         ptr++;
       }  /* while */
-      id_len = ptr - id_start;
+      id_len = (sizeof_t)(ptr - id_start);
       local_skip_white_space();
       /* Check for a "(". */
       if (*ptr++ == ')') {
@@ -1176,7 +1176,7 @@ E.g., "    stdio   " becomes "stdio" with trim_leading_blanks TRUE.
        if (*ptr != ' ' && *ptr != '\t') last_nonblank = ptr;
     }  /* for */
     /* Trim trailing whitespace. */
-    *len = last_nonblank - *name + 1;
+    *len = (sizeof_t)(last_nonblank - *name + 1);
   }  /* if */
 }  /* trim_leading_and_trailing_blanks_from_header_name */
 
@@ -1242,9 +1242,9 @@ translation of certain characters to UTF-8.
       /* A character in the range 128-255 in a non-Unicode file must be
          converted to 2 bytes of UTF-8.  (This happens, for example, for
          European accented characters.) */
-      char arr[4];
+      unsigned char arr[4];
       (void)unicode_to_utf8(ch, arr);
-      add_char_to_text_buffer(buf, arr[0]);
+      add_char_to_text_buffer(buf, (char)arr[0]);
       ch = arr[1];
     }  /* if */
 #endif /* UNICODE_SOURCE_SUPPORTED &&
@@ -2016,7 +2016,7 @@ and may have extra operands at the end).
       break;
     }  /* if */
     temp_line *= 10;
-    digit = *temp_ptr - '0';
+    digit = (a_line_number)(*temp_ptr - '0');
     if (temp_line > MAX_LINE_NUMBER-digit) {
       bad_line_number = TRUE;
       break;

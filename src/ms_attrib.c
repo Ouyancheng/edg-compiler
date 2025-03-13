@@ -147,8 +147,8 @@ Add "msakdp" to the attribute lookup table.  "name" is the name of the
 attribute.
 */
 {
-  int		bucket;
-  sizeof_t	length = strlen(name);
+  size_t   bucket;
+  sizeof_t length = strlen(name);
 
   bucket = hash_attribute_name(name, length) % ATTRIBUTE_LOOKUP_TABLE_SIZE;
   msakdp->next = attribute_lookup_table[bucket];
@@ -166,8 +166,8 @@ lookup table.  If found, return a pointer to the kind description entry,
 otherwise return NULL.
 */
 {
-  int					bucket;
-  an_ms_attribute_kind_descr_ptr	msakdp;
+  size_t                         bucket;
+  an_ms_attribute_kind_descr_ptr msakdp;
 
   bucket = hash_attribute_name(name, length) % ATTRIBUTE_LOOKUP_TABLE_SIZE;
   for (msakdp = attribute_lookup_table[bucket];
@@ -293,8 +293,8 @@ case.
   if (kind == msaak_enumeration && values != NULL) {
     /* Convert the specified list of values from a comma-separated list into
        an array of acceptable values. */
-    int          num_elements = 1;
-    int          element;
+    size_t       num_elements = 1;
+    size_t       element;
     a_const_char *ptr;
     char         **list;
     /* Find the number of elements. */
@@ -313,7 +313,7 @@ case.
       char         *entry;
       /* If this is the last element, find the end of the string. */
       if (end == NULL) end = &ptr[strlen(ptr)];
-      length = end - ptr;
+      length = (sizeof_t)(end - ptr);
       check_assertion_str2(length > 0, "add_attribute_parameter:",
                            "empty enumeration names not allowed");
       entry = copy_string_of_length_to_region(FRONT_END_REGION_NUMBER,
@@ -1699,7 +1699,7 @@ is set to TRUE.  Note that "err" is not TRUE for an unexpected token kind.
         ch = (char)extract_character_from_string(src,
                                                  (unsigned int)char_size);
       }  /* if */
-      if (is_id_char[ch-CHAR_MIN]) ch = tolower((int)ch);
+      if (is_id_char[ch-CHAR_MIN]) ch = (char)tolower((int)ch);
       add_char_to_text_buffer(ms_attr_buffer, ch);
     }  /* for */
     /* Add a null terminator. */

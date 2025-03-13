@@ -504,7 +504,7 @@ necessary to make it directly accessible in memory.
         /* Except on the last entry, add space for alignment. */
         if ((trimmed_entry_number + entry_length) <=
                                       entry_count_array_ptr[byte_entry_kind]) {
-          do_host_alignment(gross_entry_size);
+          do_host_alignment(&gross_entry_size);
         }  /* if */
         count_of_entries_read[byte_entry_kind] +=
                                           (an_il_entry_number)gross_entry_size;
@@ -851,9 +851,9 @@ Initialization routine for IL reading.
         /* If the entry is in the file scope memory region, it is preceded
            by an orphan pointer. */
         fs_prefix_size = prefix_size + SPACE_FOR_FS_ORPHAN_POINTER;
-        do_host_alignment(entry_size);
-        do_host_alignment(prefix_size);
-        do_host_alignment(fs_prefix_size);
+        do_host_alignment(&entry_size);
+        do_host_alignment(&prefix_size);
+        do_host_alignment(&fs_prefix_size);
       }  /* if */
       entry_length_with_prefix   [entry_kind] = entry_size + prefix_size;
       fs_entry_length_with_prefix[entry_kind] = entry_size + fs_prefix_size;
@@ -1005,22 +1005,22 @@ build the in-memory version.
   if (size_of_mem_region_table < new_size_of_mem_region_table) {
     mem_region_table = (a_mem_block_header_ptr *)
                        realloc_buffer((char *)mem_region_table,
-                                       (sizeof_t)(size_of_mem_region_table*
-                                              sizeof(a_mem_block_header_ptr)),
-                                       (sizeof_t)(new_size_of_mem_region_table*
-                                              sizeof(a_mem_block_header_ptr)));
+                                      (sizeof_t)size_of_mem_region_table *
+                                               sizeof(a_mem_block_header_ptr),
+                                      (sizeof_t)new_size_of_mem_region_table *
+                                               sizeof(a_mem_block_header_ptr));
     il_header.region_scope_entry = (a_scope_ptr *)
                        realloc_buffer((char *)il_header.region_scope_entry,
-                                       (sizeof_t)(size_of_mem_region_table*
-                                                         sizeof(a_scope_ptr)),
-                                       (sizeof_t)(new_size_of_mem_region_table*
-                                                         sizeof(a_scope_ptr)));
+                                      (sizeof_t)size_of_mem_region_table *
+                                                          sizeof(a_scope_ptr),
+                                      (sizeof_t)new_size_of_mem_region_table *
+                                                          sizeof(a_scope_ptr));
     index_for_il_file = (a_file_position *)
                        realloc_buffer((char *)index_for_il_file,
-                                       (sizeof_t)(size_of_mem_region_table*
-                                                     sizeof(a_file_position)),
-                                       (sizeof_t)(new_size_of_mem_region_table*
-                                                     sizeof(a_file_position)));
+                                      (sizeof_t)size_of_mem_region_table *
+                                                      sizeof(a_file_position),
+                                      (sizeof_t)new_size_of_mem_region_table *
+                                                      sizeof(a_file_position));
     size_of_mem_region_table = new_size_of_mem_region_table;
   }  /* if */
   /* Allocate the IL header function definition table, if needed. */
@@ -1028,21 +1028,21 @@ build the in-memory version.
   /* Clear the index tables. */
   /* Depending on NULL represented as zero bits here. */
   memzero((char *)mem_region_table,
-          size_t_arg(size_of_mem_region_table*sizeof(a_mem_block_header_ptr)));
+          (size_t)size_of_mem_region_table * sizeof(a_mem_block_header_ptr));
   memzero((char *)il_header.region_scope_entry,
-          size_t_arg(size_of_mem_region_table*sizeof(a_scope_ptr)));
+          (size_t)size_of_mem_region_table * sizeof(a_scope_ptr));
   memzero((char *)index_for_il_file,
-          size_t_arg(size_of_mem_region_table*sizeof(a_file_position)));
+          (size_t)size_of_mem_region_table * sizeof(a_file_position));
   memzero((char *)il_header.function_def_table,
-          size_t_arg(size_of_function_def_table*sizeof(a_function_def_descr)));
+          (size_t)size_of_function_def_table * sizeof(a_function_def_descr));
   /* Read the file index. */
   if (set_file_position(f_il_input, index_pos, SEEK_SET) != 0) {
     catastrophe(ec_bad_il_file);
   }  /* if */
   /* coverity[+taint_source: arg-0] */
   fread_with_check((char *)&index_for_il_file[FILE_SCOPE_REGION_NUMBER],
-                   (sizeof_t)(sizeof(a_file_position)*
-                              highest_used_region_number));
+                   ((size_t)highest_used_region_number *
+                    sizeof(a_file_position)));
   /* Check that we are now at end of file. */
   if (getc(f_il_input) != EOF) {
     catastrophe(ec_bad_il_file);

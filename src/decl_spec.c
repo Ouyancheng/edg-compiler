@@ -119,7 +119,7 @@ otherwise, set *pstr to NULL.
     *pstr = dst;
     for (; count != 0; count--) {
       char ch = *src++;
-      if (isalpha((unsigned char)ch)) ch = tolower((int)ch);
+      if (isalpha((unsigned char)ch)) ch = (char)tolower((int)ch);
       *dst++ = ch;
     }  /* for */
     *dst = '\0';
@@ -539,7 +539,12 @@ of class_type.  err_pos is a pointer to a source position used for diagnostics.
     a_decl_modifier_set  flags = extended_decl_info->decl_modifiers.flags;
 #endif /* DECL_MODIFIERS_IN_USE */
 #if NEAR_AND_FAR_ALLOWED
-    ctsp->qualifiers = extended_decl_info->qualifiers;
+    /* To suppress compiler warnings about data truncation, explicitly truncate
+       to the appropriate bitwidth. */
+    constexpr a_type_qualifier_set qualifier_bitmask =
+                       ((a_type_qualifier_set)
+                          bitmask_of_width<NUM_BITS_FOR_TYPE_QUALIFIER_SET>());
+    ctsp->qualifiers = extended_decl_info->qualifiers & qualifier_bitmask;
 #endif /* NEAR_AND_FAR_ALLOWED */
 #if DECL_MODIFIERS_IN_USE
 #if MICROSOFT_EXTENSIONS_ALLOWED
@@ -2924,7 +2929,7 @@ declarations that need to work across compatibility modes).
           err = TRUE;
 #if GNU_VECTOR_TYPES_ALLOWED
         } else {
-          n_tuple_elems = val;
+          n_tuple_elems = (a_targ_size_t)val;
 #endif /* GNU_VECTOR_TYPES_ALLOWED */
         }  /* if */
       }  /* if */
@@ -5382,9 +5387,8 @@ no error is issued and implicit_value is TRUE, *constant is incremented.
                            &max_integer_value_of_kind[
                                     unsigned_int_kind_of[underlying_kind]]);
         if (int_kind_is_signed[underlying_kind]) {
-          sign_extend_integer_value(
-                                  &constant->variant.integer_value,
-                                  (int)(underlying_type->size*targ_char_bit));
+          sign_extend_integer_value(&constant->variant.integer_value,
+                                    underlying_type->size * targ_char_bit);
         }  /* if */
       } else {
         pos_ty_error(ec_enum_value_out_of_underlying_range, &error_position,
@@ -8240,6 +8244,12 @@ by *type_ptr.  This function is called from decl_specifiers only.
   a_type_qualifier_set  qualifiers = state->qualifiers;
 
   if (qualifiers != TQ_NONE) {
+    /* To suppress compiler warnings about data truncation, explicitly
+       truncate to the appropriate bitwidth. */
+    constexpr a_type_qualifier_set
+                qualifier_bitmask =
+                       ((a_type_qualifier_set)
+                          bitmask_of_width<NUM_BITS_FOR_TYPE_QUALIFIER_SET>());
     a_type_ptr  type_ptr = *p_type_ptr;
 #if UPC_EXTENSIONS_ALLOWED
     a_type_qualifier_set  new_upc_access = TQ_NONE, old_upc_access = TQ_NONE;
@@ -8261,7 +8271,8 @@ by *type_ptr.  This function is called from decl_specifiers only.
           err = TRUE;
           pos_error(ec_named_address_space_on_function_type,
                     &state->qualifiers_pos);
-          state->qualifiers = qualifiers = simple_qualifiers(qualifiers);
+          qualifiers = simple_qualifiers(qualifiers);
+          state->qualifiers = qualifiers & qualifier_bitmask;
         } else {
           a_type_ptr                tp = type_ptr;
           a_type_qualifier_set      old_quals;
@@ -8283,7 +8294,8 @@ by *type_ptr.  This function is called from decl_specifiers only.
             }  /* if */
             pos_diagnostic(severity, ec_multiple_named_address_spaces,
                            &state->qualifiers_pos);
-            state->qualifiers = qualifiers = simple_qualifiers(qualifiers);
+            qualifiers = simple_qualifiers(qualifiers);
+            state->qualifiers = qualifiers & qualifier_bitmask;
           }  /* if */
         }  /* if */
       }  /* if */
@@ -8425,7 +8437,8 @@ by *type_ptr.  This function is called from decl_specifiers only.
                             eff_quals = qualifiers;
       state->eff_top_level_cv_quals = qualifiers & (TQ_CONST | TQ_VOLATILE);
       if (existing_cv_quals != TQ_NONE) {
-        state->eff_top_level_cv_quals &= ~existing_cv_quals;
+        state->eff_top_level_cv_quals &= (~existing_cv_quals &
+                                          qualifier_bitmask);
         eff_quals &= ~existing_cv_quals;
       }  /* if */
       /* Add the qualifiers if necessary.  make_qualified_type understands
@@ -8436,7 +8449,7 @@ by *type_ptr.  This function is called from decl_specifiers only.
     if (err) {
       /* Some qualifiers were dropped due to errors.  Ignore those from now
          on. */
-      state->qualifiers = qualifiers;
+      state->qualifiers = qualifiers & qualifier_bitmask;
     }  /* if */
     *p_type_ptr = type_ptr;
   }  /* if */
@@ -12875,7 +12888,13 @@ exit_loop:
     pos_diagnostic(sev, delayed_error, &pos_delayed_error);
   }  /* if */
 #endif /* GNU_EXTENSIONS_ALLOWED */
-  state->qualifiers = qualifiers;
+
+  /* To suppress compiler warnings about data truncation, explicitly truncate
+     to the appropriate bitwidth. */
+  constexpr a_type_qualifier_set qualifier_bitmask =
+                       ((a_type_qualifier_set)
+                          bitmask_of_width<NUM_BITS_FOR_TYPE_QUALIFIER_SET>());
+  state->qualifiers = qualifiers & qualifier_bitmask;
   if (!C_mode() && (ms_extensions || sun_mode) &&
       (decl_specifiers_seen & DS_STORAGE_CLASS)) {
     /* Certain Microsoft-mode diagnostics involving storage class specifiers
@@ -13134,8 +13153,14 @@ See decl_specifiers(...) for the meaning of the parameters.
                    DSI_EMPTY_DECL_SPECIFIERS_ALLOWED);
   input_flags |= DSI_MICROSOFT_SECONDARY_SPECIFIERS;
   decl_specifiers(input_flags, state, decl_pos_block);
+
   /* Restore the primary cv-qualifiers: */
-  state->qualifiers = saved_qualifiers;
+  /* To suppress compiler warnings about data truncation, explicitly truncate
+     to the appropriate bitwidth. */
+  constexpr a_type_qualifier_set qualifier_bitmask =
+                       ((a_type_qualifier_set)
+                          bitmask_of_width<NUM_BITS_FOR_TYPE_QUALIFIER_SET>());
+  state->qualifiers = saved_qualifiers & qualifier_bitmask;
   (void)add_type_qualifiers(&state->specifiers_type, state);
   state->type = state->specifiers_type;
   /* Issue a warning in most cases, but if a class or enumeration type was

@@ -262,11 +262,13 @@ statement) or NULL.  When is_label is TRUE, the symbolic name is from a
     check_assertion_or_expect_error(labels != NULL);
     while (labels != NULL) {
       a_const_char *label_name = labels->label->source_corresp.name;
-      if (label_name != NULL &&
-          strncmp(label_name, start, *pc-start) == 0 &&
-          (sizeof_t)strlen(label_name) == (sizeof_t)(*pc-start)) {
-        result = n;
-        break;
+      if (label_name != NULL) {
+        size_t len_from_start = (size_t)((*pc) - start);
+        if (strncmp(label_name, start, len_from_start) == 0 &&
+            strlen(label_name) == len_from_start) {
+          result = n;
+          break;
+        }  /* if */
       }  /* if */
       labels = labels->next;
       ++n;
@@ -274,11 +276,13 @@ statement) or NULL.  When is_label is TRUE, the symbolic name is from a
   } else {
     /* Look for an operand with that name in the list of preceding operands. */
     while (operands != NULL) {
-      if (operands->name != NULL &&
-          strncmp(operands->name, start, *pc-start) == 0 &&
-          (sizeof_t)strlen(operands->name) == (sizeof_t)(*pc-start)) {
-        result = n;
-        break;
+      if (operands->name != NULL) {
+        size_t len_from_start = (size_t)((*pc) - start);
+        if (strncmp(operands->name, start, len_from_start) == 0 &&
+            strlen(operands->name) == len_from_start) {
+          result = n;
+          break;
+        }  /* if */
       }  /* if */
       operands = operands->next;
       ++n;
@@ -343,7 +347,7 @@ either by symbolic reference (e.g., "%l[label]) or by argument number
           size_t operand_num = 0;
           while (*pc >= '0' && *pc <= '9') {
             operand_num *= 10;
-            operand_num += *pc - '0';
+            operand_num += size_t_arg(*pc - '0');
             ++pc;
           }  /* while */
           /* Verify that the (zero-based) operand number refers to a label

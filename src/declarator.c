@@ -2894,14 +2894,20 @@ this is a helper function.
     rtsp->has_this_param = TRUE;
   }  /* if */
   if (!qualifier_err) {
+    /* To suppress compiler warnings about data truncation, explicitly truncate
+       to the appropriate bitwidth. */
+    constexpr a_type_qualifier_set qualifier_bitmask =
+                       ((a_type_qualifier_set)
+                          bitmask_of_width<NUM_BITS_FOR_TYPE_QUALIFIER_SET>());
+
     /* The traditional "const" and "volatile" function qualifiers really apply
        to the object pointed to by the implied "this" parameter.  The
        "restrict" qualifier, on the other hand, applies to the "this" pointer
        itself, and should therefore not affect the type of the function (just
        as would be the case with a top-level "const" or "volatile" qualifier
        on a parameter). */
-    rtsp->qualifiers = (qualifiers & ~TQ_RESTRICT);
-    rtsp->this_qualifiers = (qualifiers & TQ_RESTRICT);
+    rtsp->qualifiers = (qualifiers & ~TQ_RESTRICT) & qualifier_bitmask;
+    rtsp->this_qualifiers = (qualifiers & TQ_RESTRICT) & qualifier_bitmask;
     rtsp->ref_qualifiers = ref_qualifiers;
   }  /* if */
   if (state->is_lambda) {
@@ -3674,11 +3680,17 @@ an error if a default argument expression is encountered.
                                                    TQ_RESTRICT);
           }  /* if */
         }  /* if */
+
+        /* To suppress compiler warnings about data truncation, explicitly
+           truncate to the appropriate bitwidth. */
+        constexpr a_type_qualifier_set qualifier_bitmask =
+                       ((a_type_qualifier_set)
+                          bitmask_of_width<NUM_BITS_FOR_TYPE_QUALIFIER_SET>());
         /* Create a param-type entry and add it to the list of param-types
            associated with the routine type. */
         ptp = make_param_type(param_state.type, &param_type_pos);
         ptp->declared_type = param_state.declared_type;
-        ptp->qualifiers = param_qualifiers;
+        ptp->qualifiers = param_qualifiers & qualifier_bitmask;
         if (param_state.is_explicit_this) {
           /* If the parameter is the explicit object ("this") parameter, mark
              it as such. */
@@ -4516,7 +4528,12 @@ done:
         pip = pip->next;
       }  /* while */
       if (pip != NULL && pip->param_num == ptp->param_num) {
-        ptp->qualifiers &= ~pip->eff_top_level_cv_quals;
+        /* To suppress compiler warnings about data truncation, explicitly
+           truncate to the appropriate bitwidth. */
+        constexpr a_type_qualifier_set qualifier_bitmask =
+                       ((a_type_qualifier_set)
+                          bitmask_of_width<NUM_BITS_FOR_TYPE_QUALIFIER_SET>());
+        ptp->qualifiers &= (~pip->eff_top_level_cv_quals & qualifier_bitmask);
       }  /* if */
     }  /* for */
   }  /* if */
@@ -4870,10 +4887,16 @@ constant.
   if (err) {
     *new_type_ptr = error_type();
   } else {
+    /* To suppress compiler warnings about data truncation, explicitly truncate
+       to the appropriate bitwidth. */
+    constexpr a_type_qualifier_set qualifier_bitmask =
+                       ((a_type_qualifier_set)
+                          bitmask_of_width<NUM_BITS_FOR_TYPE_QUALIFIER_SET>());
+
     *new_type_ptr = alloc_type((a_type_kind)tk_array);
     (*new_type_ptr)->source_corresp.decl_position = start_pos;
     (*new_type_ptr)->variant.array.is_static = static_seen;
-    (*new_type_ptr)->variant.array.qualifiers = qualifiers;
+    (*new_type_ptr)->variant.array.qualifiers = qualifiers & qualifier_bitmask;
     /* Store the array size. */
     if (has_vla_asterisk) {
       /* [*] case (C only).  Since the size of the VLA is not specified,
@@ -6113,8 +6136,16 @@ Microsoft extended decl modifiers are also scanned, but they are ignored
     if (ptr_mods.qualifiers != TQ_NONE) {
       /* Some qualifiers were specified. */
       /* Check for invalid use of the restrict qualifier. */
-      a_type_qualifier_set restrict_bit = (ptr_mods.qualifiers & TQ_RESTRICT);
-      state->qualifiers = ptr_mods.qualifiers;
+      /* To suppress compiler warnings about data truncation, explicitly
+         truncate to the appropriate bitwidth. */
+      constexpr a_type_qualifier_set
+                qualifier_bitmask =
+                       ((a_type_qualifier_set)
+                          bitmask_of_width<NUM_BITS_FOR_TYPE_QUALIFIER_SET>());
+      a_type_qualifier_set
+                restrict_bit = (ptr_mods.qualifiers & TQ_RESTRICT);
+
+      state->qualifiers = ptr_mods.qualifiers & qualifier_bitmask;
       state->eff_top_level_cv_quals =
                                ptr_mods.qualifiers & (TQ_CONST | TQ_VOLATILE);
       if (ptr_mods.qualifiers != restrict_bit) {
@@ -7616,7 +7647,13 @@ etc.).
                  &unbound_qualifiers, p_predeclarator_attributes,
                  declarator_ssep, func_info, decl_pos_block);
     state->in_nested_declarator = saved_in_nested_declarator;
-    state->qualifiers = saved_qualifiers;
+
+    /* To suppress compiler warnings about data truncation, explicitly truncate
+       to the appropriate bitwidth. */
+    constexpr a_type_qualifier_set qualifier_bitmask =
+                       ((a_type_qualifier_set)
+                          bitmask_of_width<NUM_BITS_FOR_TYPE_QUALIFIER_SET>());
+    state->qualifiers = saved_qualifiers & qualifier_bitmask;
     state->qualifiers_pos = saved_qualifiers_pos;
     if (local_do_flags & DO_HAS_PTR_OR_REF_COMPONENT) {
       /* A nested declarator that contained a pointer, pointer-to-member, or
@@ -9018,9 +9055,9 @@ initialization for each compilation.
 */
 {
   abbr_lambda_descrs = alloc_fe_of_type(an_abbr_lambda_descr_map);
-  construct(abbr_lambda_descrs, /*mask_width=*/10);
+  construct(abbr_lambda_descrs, /*mask_width=*/10u);
   noexcept_args = alloc_fe_of_type(a_noexcept_arg_map);
-  construct(noexcept_args, /*mask_width=*/10);
+  construct(noexcept_args, /*mask_width=*/10u);
 }  /* declarator_init */
 
 /* Conditionally close the "edg" namespace. */

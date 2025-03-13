@@ -31,15 +31,15 @@ BEGIN_EDG_NAMESPACE
    that would be shifted in.  C does not guarantee that a right
    shift of a signed quantity will sign extend. */
 #define signed_shift_right(value, bits)                               \
-  (((value) >> bits) |                                                \
+  ((a_signed_integer_value)((an_integer_value)((value) >> bits) |     \
    (((a_signed_integer_value)(value) < 0) ?                           \
-                     ~((~(an_integer_value)0) >> bits) : 0))
+                     ~((~(an_integer_value)0) >> bits) : 0)))
 #else /* !INTEGER_VALUE_REPR_IS_A_HOST_INTEGER */
 /* Do a signed right shift of a host large integer. */
 #define signed_shift_right(value, bits)                               \
-  (((value) >> bits) |                                                \
+  ((a_host_large_integer)(((a_host_large_unsigned)(value) >> bits) |  \
    (((a_host_large_integer)(value) < 0) ?                             \
-                     ~((~(a_host_large_unsigned)0) >> bits) : 0))
+                     ~((~(a_host_large_unsigned)0) >> bits) : 0)))
 #endif /* INTEGER_VALUE_REPR_IS_A_HOST_INTEGER */
 
 /* Return TRUE if the sign of the integer value is negative. */
@@ -97,7 +97,7 @@ BEGIN_EDG_NAMESPACE
    bits.  The high order bit of the field is the sign bit. */
 #define sign_extend_integer_value(value, bits)				\
 {									\
-  int se_shift_bits = ((int)BITS_IN_AN_INTEGER_VALUE - (bits));         \
+  int se_shift_bits = (int)(BITS_IN_AN_INTEGER_VALUE - (bits));         \
   a_signed_integer_value se_work;					\
   se_work = *(value) << se_shift_bits;					\
   *(value) = signed_shift_right(se_work, se_shift_bits);		\
@@ -143,7 +143,7 @@ extern void xor_integer_values(an_integer_value *op_1,
 		               an_integer_value *op_2);
 
 extern void sign_extend_integer_value(an_integer_value *value,
-				      int	        bits);
+                                      size_t            bits);
 
 extern void complement_integer_value(an_integer_value *op_1);
 
@@ -172,7 +172,7 @@ automatically detected).
 
 
 extern void make_integer_value_mask(an_integer_value *mask,
-				    int	      	     bits);
+                                    size_t           bits);
 
 extern a_boolean int_constant_is_signed(a_constant_ptr constant);
 
@@ -223,7 +223,7 @@ extern a_boolean le_max_integer_value_of_kind(an_integer_value *value,
 extern a_boolean is_max_value_for_integer_kind(a_constant      *con,
                                                an_integer_kind ikind);
 
-extern int bits_required_to_represent_integer_constant(a_constant *cp);
+extern size_t bits_required_to_represent_integer_constant(a_constant *cp);
 
 extern a_number_buffer str_for_integer_value(an_integer_value *p_value,
                                              a_boolean        is_signed,
@@ -316,8 +316,8 @@ extern an_integer_kind int_kind_for_size_and_alignment(
                                                 a_targ_alignment alignment,
                                                 a_boolean        is_signed);
 
-extern int f_unsigned_to_string_buf(a_host_large_unsigned val,
-                                    char                  *buf);
+extern unsigned f_unsigned_to_string_buf(a_host_large_unsigned val,
+                                         char                  *buf);
 
 #define unsigned_to_string_buf(val, buf)                                     \
   (((val) < 10) ? ((buf)[0] = (char)('0'+(val)), (buf)[1] = '\0', 1)         \

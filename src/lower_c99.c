@@ -2596,7 +2596,7 @@ pass fixed-point and integral values to and from the fixed-point runtime.
 }  /* fxvalue_type */
 
 
-static int fxcontrol_value(void)
+static unsigned fxcontrol_value(void)
 /*
 Return the "fxcontrol" value for the current location in the
 program.  It describes the current fixed-point pragma state.

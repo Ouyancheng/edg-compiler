@@ -5594,7 +5594,7 @@ is used in the constraint, its evaluation will fail.
        to one of the non-constant arguments). */
     an_arg_match_summary_ptr  arg_match = arg_match_list;
     a_param_type_ptr          ptp;
-    a_ptrdiff                 k = 1;
+    size_t                    k = 1;
     if (arg_match != NULL && arg_match->is_match_for_this_param) {
       /* Ignore the conversion on *this. */
       arg_match = arg_match->next;
@@ -5715,10 +5715,9 @@ record the issue in notes if notes is non-NULL.
         f_instantiate_template_class(tp, &copy_error);
         if (copy_error) {
           if (notes != NULL) {
-            more_info_sym_num_ty_diagnostic(ec_param_cannot_be_completed,
-                                            &function_symbol->decl_position,
-                                            function_symbol, ptp->param_num,
-                                            tp, notes);
+            more_info(notes, ec_param_cannot_be_completed,
+                      &function_symbol->decl_position, function_symbol,
+                      ptp->param_num, tp);
           }  /* if */
           result = FALSE;
           break;
@@ -5726,19 +5725,17 @@ record the issue in notes if notes is non-NULL.
       }  /* if */
       if (tp->incomplete) {
         if (notes != NULL) {
-          more_info_sym_num_ty_diagnostic(ec_param_is_incomplete,
-                                          &function_symbol->decl_position,
-                                          function_symbol, ptp->param_num, tp,
-                                          notes);
+          more_info(notes, ec_param_is_incomplete,
+                    &function_symbol->decl_position, function_symbol,
+                    ptp->param_num, tp);
         }  /* if */
         result = FALSE;
         break;
       } else if (tp->variant.class_struct_union.abstract) {
         if (notes != NULL) {
-          more_info_sym_num_ty_diagnostic(ec_param_is_abstract,
-                                          &function_symbol->decl_position,
-                                          function_symbol, ptp->param_num, tp,
-                                          notes);
+          more_info(notes, ec_param_is_abstract,
+                    &function_symbol->decl_position, function_symbol,
+                    ptp->param_num, tp);
         }  /* if */
         result = FALSE;
         break;

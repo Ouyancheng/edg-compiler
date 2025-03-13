@@ -10285,7 +10285,10 @@ user-defined conversions.
              after a reinterpret_cast still counts as a reinterpret_cast). */
           a_boolean  need_backing_expr = FALSE,
                      same_type = cast_identical_types(operand->type, new_type);
-          local_con->is_reinterpret_cast |= is_reinterpret_cast;
+
+          if (is_reinterpret_cast) {
+            local_con->is_reinterpret_cast = TRUE;
+          }  /* if */
           /* Record the original type if it materially changed. */
           if (local_con->orig_type == NULL && !same_type) {
             if (!prototype_instantiations_in_il &&
@@ -14546,10 +14549,12 @@ array is multi-dimensional.  Return the array type in *array_type.
            in the variable. */
         element_type = skip_typerefs(element_type);
         if (con->variant.address.offset >= 0 &&
-            (sizeof_t)con->variant.address.offset < var_size &&
-            element_type->size <= (var_size - con->variant.address.offset)) {
-          *array_type = var_type;
-          result = TRUE;
+            (sizeof_t)con->variant.address.offset < var_size) {
+          if (element_type->size <=
+              (var_size - (a_targ_size_t)con->variant.address.offset)) {
+            *array_type = var_type;
+            result = TRUE;
+          }  /* if */
         }  /* if */
         break;
       }  /* if */
@@ -21617,7 +21622,7 @@ an extension in both C and C++.
         /* Sign-extend the character if necessary. */
         if (int_kind_is_signed[(int)ikind]) {
           sign_extend_integer_value(&char_con->variant.integer_value,
-                                    (int)targ_char_bit);
+                                    targ_char_bit);
         }  /* if */ 
         result = TRUE;
       }  /* if */
@@ -21676,7 +21681,7 @@ the value there, and return the address of the new constant.
       check_assertion(bcp != NULL);
       /* Make a temporary address so we can use constant_value_at_address. */
       set_temporary_address_constant(node_constant(op1), addr_con);
-      addr_con->variant.address.offset = bcp->offset;
+      addr_con->variant.address.offset = (a_targ_ptrdiff_t)bcp->offset;
       addr_con->type = make_pointer_type(expr->type);
       result = constant_value_at_address(addr_con, alloc_con);
       release_local_constant(&addr_con);
@@ -25086,20 +25091,20 @@ struct a_charted_constraint {
   uint32_t	kind:2;
 			/* The kind of constraint node this represents. */
   uint32_t	link:30;
-			/* For CK_ATOMIC and CK_CONCEPT entries, the index of
-			   the "parent concept" (or -1 if none).  That is used
-			   to compare mappings.
-			   For CK_AND and CK_OR entries, the index of the
-			   second constraint operand. */
-  int32_t	parent_op;
-			/* The index of the parent CK_AND or CK_OR entry (or
-			   -1 if none). */
+			/* For CK_ATOMIC and CK_CONCEPT entries, the 1-based
+			   index of the "parent concept" (or 0 if none).  That
+			   is used to compare mappings.  For CK_AND and CK_OR
+			   entries, the index of the second constraint
+			   operand. */
+  uint32_t	parent_op;
+			/* The 1-based index of the parent CK_AND or CK_OR
+			   entry (or 0 if none). */
   inline a_boolean no_link() const { return this->link == (1<<30)-1; }
 			/* Convenience function to test the absence of a
 			   parent entry. */
   union {
-    int32_t	next;
-			/* For CK_ATOMIC entries, the index of the next
+    uint32_t	next;
+			/* For CK_ATOMIC entries, the 1-based index of the next
 			   CK_ATOMIC entry that points to the same constraint.
 			   (If there is no other such entry, the index of this
 			   entry.) */
@@ -25117,7 +25122,12 @@ struct a_charted_constraint {
   an_expr_node_ptr
 		expr;
 			/* An atomic constraint or an enk_concept_id node. */
-};
+};  /* a_charted_constraint */
+
+static constexpr uint32_t
+		constraint_link_bitmask = (uint32_t)bitmask_of_width<30>();
+			/* The bitmask for setting the link data member of
+			   a_charted_constraint. */
 
 namespace detail {
 
@@ -25134,7 +25144,7 @@ struct Is_trivially_destructible_edg_impl<a_charted_constraint> :
 }  /* detail */
 
 struct a_constraint_chart {
-  inline a_constraint_chart(a_ptrdiff cap)
+  inline a_constraint_chart(size_t cap)
     : constraints_array(cap), not_subsumable(FALSE), not_subsuming(FALSE) {}
   Dyn_array<a_charted_constraint>
 		constraints_array;
@@ -25150,7 +25160,7 @@ struct a_constraint_chart {
 			/* TRUE if the constraints are not subsuming.  This
 			   occurs if at least one of the conjunctive clauses
 			   contains no CK_CONCEPT entry. */
-};
+};  /* a_constraint_chart */
 
 #define UNCONSTRAINED_CHART ((a_constraint_chart*)(uintptr_t)0x1)
 
@@ -25174,21 +25184,21 @@ Output a description of the given constraint chart.
     if (chart->not_subsumable) {
       fprintf(f_debug, "Not subsumable\n");
     }  /* if */
-    for (size_t k = 0; k<array.length(); ++k) {
+    for (size_t i = 0; i<array.length(); ++i) {
       fprintf(f_debug, "[%3d -> %3d] %s ",
-                       (int)k,
-                       array[k].no_link() ? -1 : (int)array[k].link,
-                       names[array[k].kind]);
-      if (array[k].kind == CK_AND || array[k].kind == CK_OR) {
-        fprintf(f_debug, "(flag = %d)\n", (int)array[k].flag);
-      } else if (array[k].kind == CK_ATOMIC) {
+                       (int)i,
+                       array[i].no_link() ? -1 : (int)array[i].link - 1,
+                       names[array[i].kind]);
+      if (array[i].kind == CK_AND || array[i].kind == CK_OR) {
+        fprintf(f_debug, "(flag = %d)\n", (int)array[i].flag);
+      } else if (array[i].kind == CK_ATOMIC) {
         fprintf(f_debug, "(next = %d) %p\n",
-                         (int)array[k].next, (void*)array[k].expr);
+                         (int)array[i].next, (void*)array[i].expr);
       } else {
         fprintf(f_debug, "\n");
       }  /* if */
-      if (array[k].kind == CK_ATOMIC || array[k].kind == CK_CONCEPT) {
-        db_expr_node(array[k].expr, 2);
+      if (array[i].kind == CK_ATOMIC || array[i].kind == CK_CONCEPT) {
+        db_expr_node(array[i].expr, 2);
       }  /* if */
     }  /* for */
   }  /* if */
@@ -25197,9 +25207,9 @@ Output a description of the given constraint chart.
 
 /*lint -esym(714,*db_active_E1_constraint)*/
 void db_active_E1_constraint(a_constraint_chart  *chart,
-                             int                 k = 0)
+                             size_t              k = 1)
 /*
-Output a description of the currently-active E1[k] elements (ANDed atomic
+Output a description of the currently-active E1[k - 1] elements (ANDed atomic
 constraints).
 */
 {
@@ -25210,19 +25220,19 @@ constraints).
   } else {
     Dyn_array<a_charted_constraint>
                   &array = chart->constraints_array;
-    while (array[k].kind == CK_CONCEPT) ++k;
-    if (array[k].kind == CK_AND) {
+    while (array[k - 1].kind == CK_CONCEPT) ++k;
+    if (array[k - 1].kind == CK_AND) {
       db_active_E1_constraint(chart, k+1);
       fprintf(f_debug, "AND &&\n");
-      db_active_E1_constraint(chart, array[k].link);
-    } else if (array[k].kind == CK_OR) {
-      if (array[k].flag) {
-        db_active_E1_constraint(chart, array[k].link);
+      db_active_E1_constraint(chart, array[k - 1].link);
+    } else if (array[k - 1].kind == CK_OR) {
+      if (array[k - 1].flag) {
+        db_active_E1_constraint(chart, array[k - 1].link);
       } else {
         db_active_E1_constraint(chart, k+1);
       }  /* if */
     } else {
-      db_expr_node(array[k].expr, 2);
+      db_expr_node(array[k - 1].expr, 2);
     }  /* if */
   }  /* if */
 }  /* db_active_E1_constraint */
@@ -25230,9 +25240,9 @@ constraints).
 
 /*lint -esym(714,*db_active_E2_constraint)*/
 void db_active_E2_constraint(a_constraint_chart  *chart,
-                             int                 k = 0)
+                             size_t              k = 1)
 /*
-Output a description of the currently-active E2[k] elements (ORed atomic
+Output a description of the currently-active E2[k - 1] elements (ORed atomic
 constraints).
 */
 {
@@ -25243,19 +25253,19 @@ constraints).
   } else {
     Dyn_array<a_charted_constraint>
                   &array = chart->constraints_array;
-    while (array[k].kind == CK_CONCEPT) ++k;
-    if (array[k].kind == CK_OR) {
+    while (array[k - 1].kind == CK_CONCEPT) ++k;
+    if (array[k - 1].kind == CK_OR) {
       db_active_E2_constraint(chart, k+1);
       fprintf(f_debug, "OR ||\n");
-      db_active_E2_constraint(chart, array[k].link);
-    } else if (array[k].kind == CK_AND) {
-      if (array[k].flag) {
-        db_active_E2_constraint(chart, array[k].link);
+      db_active_E2_constraint(chart, array[k - 1].link);
+    } else if (array[k - 1].kind == CK_AND) {
+      if (array[k - 1].flag) {
+        db_active_E2_constraint(chart, array[k - 1].link);
       } else {
         db_active_E2_constraint(chart, k+1);
       }  /* if */
     } else {
-      db_expr_node(array[k].expr, 2);
+      db_expr_node(array[k - 1].expr, 2);
     }  /* if */
   }  /* if */
 }  /* db_active_E2_constraint */
@@ -25278,7 +25288,7 @@ can appear multiple times (with different mappings) in the constraint chart,
 the chart links identical expressions on a circular linked list through the
 "next" field.
 */
-using an_expr_chart_map = Ptr_map<an_expr_node_ptr, int32_t>;
+using an_expr_chart_map = Ptr_map<an_expr_node_ptr, uint32_t>;
 
 #if DEBUG
 
@@ -25292,7 +25302,7 @@ template void Ptr_map<an_expr_node_ptr, int32_t>::db_ptrs() const;
 
 
 struct a_map_check_pair {
-  int32_t	idx1, idx2;
+  uint32_t	idx1, idx2;
 };
 
 namespace detail {
@@ -25311,22 +25321,22 @@ struct Is_trivially_destructible_edg_impl<a_map_check_pair> :
 
 using a_map_check_list = Dyn_array<a_map_check_pair>;
 
-static int32_t first_conjunctive_clause_term(
+static uint32_t first_conjunctive_clause_term(
                                     Dyn_array<a_charted_constraint>  *p_array,
-                                    int32_t                          curr_idx)
+                                    uint32_t                         curr_idx)
 /*
 *p_array is an array representing a flattened constraint whose conjunctive
 clauses (E2[k] in the outline above) we are traversing.  Each such clause
 contains one or more ORed terms.  Identify the first such term in the subtree
-rooted at curr_idx.  I.e., return the index of the atomic constraint selected
-by the "flag" values of AND nodes when always selecting the left subtree of OR
-nodes.
+rooted at curr_idx.  I.e., return the 1-based index of the atomic constraint
+selected by the "flag" values of AND nodes when always selecting the left
+subtree of OR nodes.
 */
 {
   Dyn_array<a_charted_constraint>  &array = *p_array;
 
   for (;;) {
-    a_charted_constraint  *constraint = &array[curr_idx];
+    a_charted_constraint  *constraint = &array[curr_idx - 1];
     switch (constraint->kind) {
       case CK_ATOMIC:
         goto done;
@@ -25339,7 +25349,7 @@ nodes.
       case CK_AND:
         if (constraint->flag) {
           /* Select the right child. */
-          curr_idx = (int32_t)constraint->link;
+          curr_idx = constraint->link;
         } else {
           /* Select the left child. */
           ++curr_idx;
@@ -25354,24 +25364,25 @@ done:
 }  /* first_conjunctive_clause_term */
 
 
-static int32_t next_conjunctive_clause_term(
+static uint32_t next_conjunctive_clause_term(
                                  Dyn_array<a_charted_constraint>  *p_array,
-                                 int32_t                          curr_idx,
+                                 uint32_t                         curr_idx,
                                  a_boolean                        *p_flipping)
 /*
 *p_array is an array representing a flattened constraint whose conjunctive
 clauses (E2[k] in the outline above) we are traversing.  Each such clause
-contains one or more ORed terms and curr_idx is the current term (a CK_ATOMIC
-entry).  Return the index of the next term in the clause or -1 if there is
-none.
+contains one or more ORed terms and curr_idx is the 1-based index of the
+current term (a CK_ATOMIC entry).  Return the 1-based index of the next term in
+the clause or 0 if there
+is none.
 
 If *p_flipping is TRUE, this routine will attempt to "flip" the "flag" fields
 in AND nodes as needed to prepare for the next conjunctive clause.
 */
 {
   Dyn_array<a_charted_constraint>  &array = *p_array;
-  int32_t                          prev_k = curr_idx,
-                                   k = array[curr_idx].parent_op;
+  uint32_t                         prev_k = curr_idx,
+                                   k = array[curr_idx - 1].parent_op;
 
   /* The "next term" is always in the right subtree of an OR node.  The
      algorithm here is to walk up the tree until we reach an OR node from a
@@ -25380,12 +25391,12 @@ in AND nodes as needed to prepare for the next conjunctive clause.
      walking up to the (potential) OR node, the first FALSE-flagged AND node
      is "flipped" to TRUE so that the next term will be selected for that AND
      node during the next clause traversal. */
-  while (k != -1) {
-    a_charted_constraint  *constraint = &array[k];
-    int32_t               right_subtree;
+  while (k != 0) {
+    a_charted_constraint  *constraint = &array[k - 1];
+    uint32_t               right_subtree;
     switch (constraint->kind) {
       case CK_OR:
-        right_subtree = (int32_t)constraint->link;
+        right_subtree = constraint->link;
         if (prev_k < right_subtree) {
           /* We're returning from the left child.  The next term is the first
              term of the right subtree. */
@@ -25424,7 +25435,7 @@ in AND nodes as needed to prepare for the next conjunctive clause.
           *p_flipping = FALSE;
         }  /* if */
         prev_k = k;
-        k = array[k].parent_op;
+        k = array[k - 1].parent_op;
         break;
       default:
         unexpected_condition();
@@ -25448,7 +25459,7 @@ conjunctive clause, and if the last clause was processed return TRUE.
 */
 {
   Dyn_array<a_charted_constraint>  &array = chart->constraints_array;
-  int32_t                          k = 0;
+  uint32_t                         k = 1;
   a_boolean                        flipping = TRUE;
 
   /* array (i.e., chart->constraints_array) contains a flattened representation
@@ -25492,10 +25503,10 @@ conjunctive clause, and if the last clause was processed return TRUE.
      this particular case, but if the right operand of the OR node were more
      complex it would be needed to iterate through the various possible
      combinations. */
-  k = first_conjunctive_clause_term(&array, 0);
+  k = first_conjunctive_clause_term(&array, 1);
   do {
-    a_charted_constraint  *constraint = &array[k];
-    int32_t               idx;
+    a_charted_constraint  *constraint = &array[k - 1];
+    uint32_t              idx;
     check_assertion(constraint->kind == CK_ATOMIC);
     idx = expr_map->get(constraint->expr);
     if (idx != 0) {
@@ -25507,14 +25518,14 @@ conjunctive clause, and if the last clause was processed return TRUE.
       map_checks->push_back(a_map_check_pair{ idx, k });
     }  /* if */
     k = next_conjunctive_clause_term(&array, k, &flipping);
-  } while (k != -1);
+  } while (k != 0);
   return flipping;
 }  /* process_conjunctive_clause */
 
 
-static int32_t first_disjunctive_clause_term(
+static uint32_t first_disjunctive_clause_term(
                                     Dyn_array<a_charted_constraint>  *p_array,
-                                    int32_t                          curr_idx)
+                                    uint32_t                         curr_idx)
 /*
 *p_array is an array representing a flattened constraint whose disjunctive
 clauses (E1[k] in the outline above) we are traversing.  Each such clause
@@ -25527,7 +25538,7 @@ nodes.
   Dyn_array<a_charted_constraint>  &array = *p_array;
 
   for (;;) {
-    a_charted_constraint  *constraint = &array[curr_idx];
+    a_charted_constraint  *constraint = &array[curr_idx - 1];
     switch (constraint->kind) {
       case CK_ATOMIC:
         goto done;
@@ -25540,7 +25551,7 @@ nodes.
       case CK_OR:
         if (constraint->flag) {
           /* Select the right child. */
-          curr_idx = (int32_t)constraint->link;
+          curr_idx = constraint->link;
         } else {
           /* Select the left child. */
           ++curr_idx;
@@ -25555,24 +25566,24 @@ done:
 }  /* first_disjunctive_clause_term */
 
 
-static int32_t next_disjunctive_clause_term(
+static uint32_t next_disjunctive_clause_term(
                                  Dyn_array<a_charted_constraint>  *p_array,
-                                 int32_t                          curr_idx,
+                                 uint32_t                         curr_idx,
                                  a_boolean                        *p_flipping)
 /*
 *p_array is an array representing a flattened constraint whose disjunctive
 clauses (E1[k] in the outline above) we are traversing.  Each such clause
 contains one or more ANDed terms and curr_idx is the current term (a CK_ATOMIC
-entry).  Return the index of the next term in the clause or -1 if there is
-none.
+entry).  Return the 1-based index of the next term in the clause or 0 if there
+is none.
 
 If *p_flipping is TRUE, this routine will attempt to "flip" the "flag" fields
 in OR nodes as needed to prepare for the next conjunctive clause.
 */
 {
   Dyn_array<a_charted_constraint>  &array = *p_array;
-  int32_t                          prev_k = curr_idx,
-                                   k = array[curr_idx].parent_op;
+  uint32_t                         prev_k = curr_idx,
+                                   k = array[curr_idx - 1].parent_op;
 
   /* The "next term" is always in the right subtree of an AND node.  The
      algorithm here is to walk up the tree until we reach an AND node from a
@@ -25581,12 +25592,12 @@ in OR nodes as needed to prepare for the next conjunctive clause.
      walking up to the (potential) AND node, the first FALSE-flagged OR node
      is "flipped" to TRUE so that the next term will be selected for that OR
      node during the next clause traversal. */
-  while (k != -1) {
-    a_charted_constraint  *constraint = &array[k];
-    int32_t               right_subtree;
+  while (k != 0) {
+    a_charted_constraint  *constraint = &array[k - 1];
+    uint32_t              right_subtree;
     switch (constraint->kind) {
       case CK_AND:
-        right_subtree = (int32_t)constraint->link;
+        right_subtree = constraint->link;
         if (prev_k < right_subtree) {
           /* We're returning from the left child.  The next term is the first
              term of the right subtree. */
@@ -25624,7 +25635,7 @@ in OR nodes as needed to prepare for the next conjunctive clause.
           *p_flipping = FALSE;
         }  /* if */
         prev_k = k;
-        k = array[k].parent_op;
+        k = array[k - 1].parent_op;
         break;
       default:
         unexpected_condition();
@@ -25644,7 +25655,7 @@ next clause.  Return TRUE if the last clause was processed.
 */
 {
   Dyn_array<a_charted_constraint>  &array = chart->constraints_array;
-  int32_t                          k = 0;
+  uint32_t                         k = 1;
   a_boolean                        flipping = TRUE;
 
   /* The following loop does two things:
@@ -25657,35 +25668,35 @@ next clause.  Return TRUE if the last clause was processed.
     The iteration over all disjunctive clauses is the exact complement of the
     process in process_conjunctive_clause: See that function for an overview
     of that process. */
-  k = first_disjunctive_clause_term(&array, 0);
+  k = first_disjunctive_clause_term(&array, 1);
   do {
-    a_charted_constraint  *constraint = &array[k];
-    int32_t               prev_k;
+    a_charted_constraint  *constraint = &array[k - 1];
+    uint32_t              prev_k;
     check_assertion(constraint->kind == CK_ATOMIC);
     prev_k = expr_map->map_or_replace(constraint->expr, k);
     if (prev_k != 0) {
       /* This particular atomic constraint appears more than once among the
          terms (possibly with different template parameter mappings).  Link
          the terms in a circular list. */
-      a_charted_constraint  *prev_constraint = &array[prev_k];
+      a_charted_constraint  *prev_constraint = &array[prev_k - 1];
       constraint->next = prev_constraint->next;
       prev_constraint->next = k;
     }  /* if */
     k = next_disjunctive_clause_term(&array, k, &flipping);
-  } while (k != -1);
+  } while (k != 0);
   return flipping;
 }  /* process_disjunctive_clause */
 
 
 static a_template_arg_ptr get_remapped_args(a_constraint_chart  *chart,
-                                            int32_t             idx)
+                                            uint32_t            idx)
 /*
 Return remapped concept-id arguments for the concept-id constraint at the
 given index in the given constraint chart.
 */
 {
   Dyn_array<a_charted_constraint>  &array = chart->constraints_array;
-  a_charted_constraint             *constraint = &array[idx],
+  a_charted_constraint             *constraint = &array[idx - 1],
                                    *parent_constraint;
   a_template_arg_ptr               result = constraint->remapped_args;
 
@@ -25706,7 +25717,7 @@ given index in the given constraint chart.
       a_template_param_ptr  params, parent_params;
       params = sym->variant.template_info->cache.decl_info->parameters;
       check_assertion(!constraint->no_link());
-      parent_constraint = &array[constraint->link];
+      parent_constraint = &array[constraint->link - 1];
       parent_concept_id = parent_constraint->expr;
       parent_templ = parent_concept_id->variant.concept_id.concept_template;
       parent_sym = symbol_for(parent_templ);
@@ -25752,13 +25763,13 @@ parameter mapping.
 
   push_instantiation_scope_for_rescan((a_symbol_ptr)NULL);
   for (a_map_check_pair &p: *map_checks) {
-    int32_t             idx1 = p.idx1, idx2 = p.idx2, orig_idx1 = idx1;
+    uint32_t            idx1 = p.idx1, idx2 = p.idx2, orig_idx1 = idx1;
     a_template_arg_ptr  args1, args2;
-    args2 = get_remapped_args(chart2, array2[idx2].link);
+    args2 = get_remapped_args(chart2, array2[idx2 - 1].link);
     /* Loop through the linked list of identical chart1 atomic constraint
        expressions. */
     do {
-      args1 = get_remapped_args(chart1, array1[idx1].link);
+      args1 = get_remapped_args(chart1, array1[idx1 - 1].link);
       /* We really only should check the arguments used by the atomic
          constraints, but for now we check them all. */
       if (equiv_template_arg_lists(args1, args2,
@@ -25766,7 +25777,7 @@ parameter mapping.
         result = FALSE;
         goto done;
       }  /* if */
-      idx1 = array1[idx1].next;
+      idx1 = array1[idx1 - 1].next;
     } while (idx1 != orig_idx1);
   }  /* for */
 done:
@@ -25789,25 +25800,25 @@ Return FALSE otherwise.
   } else {
     Dyn_array<a_charted_constraint>  &array1 = chart1->constraints_array,
                                      &array2 = chart2->constraints_array;
-    int32_t                          k, len;
+    uint32_t                         i, len;
     /* Clear the CK_OR flags in chart1 and the CK_AND flags in chart2.
        Also initialize the "next" fields for the atomic expressions. */
-    len = (int32_t)array1.length();
-    for (k = 0; k<len; ++k) {
-      a_charted_constraint  *constraint = &array1[k];
+    len = (uint32_t)array1.length();
+    for (i = 0; i<len; ++i) {
+      a_charted_constraint  *constraint = &array1[i];
       if (constraint->kind == CK_OR) {
         constraint->flag = FALSE;
       } else if (constraint->kind == CK_ATOMIC) {
-        constraint->next = k;
+        constraint->next = i + 1;
       }  /* if */
     }  /* if */
-    len = (int32_t)array2.length();
-    for (k = 0; k<len; ++k) {
-      a_charted_constraint  *constraint = &array2[k];
+    len = (uint32_t)array2.length();
+    for (i = 0; i<len; ++i) {
+      a_charted_constraint  *constraint = &array2[i];
       if (constraint->kind == CK_AND) {
         constraint->flag = FALSE;
       } else if (constraint->kind == CK_ATOMIC) {
-        constraint->next = k;
+        constraint->next = i + 1;
       }  /* if */
     }  /* if */
     /* Implement the algorithm:
@@ -25865,32 +25876,34 @@ done:
 
 static void chart_constraint(an_expr_node_ptr    expr,
                              a_constraint_chart  *chart,
-                             int32_t             parent_idx,
-                             int32_t             parent_op,
+                             uint32_t            parent_idx,
+                             uint32_t            parent_op,
                              a_boolean           *not_subsumable,
                              a_boolean           *not_subsuming)
 /*
 Perform a recursive prefix traversal of the given (constraint) expression and
 chart its significant nodes (concept-ids, conjunctions, disjunctions, and
-atomic constraints) into *chart.  parent_idx is the index of the last
-concept-id traversed prior to expr (-1 if there was none).  parent_op is the
-index of the last OR or AND node traversed prior to expr (-1 if there was
-none).  not_subsumable is set to TRUE if an atomic constraint is encountered
-with parent_idx == -1, or if a disjunction is encountered where both
-alternatives recursively produced a not_subsumable == TRUE result.
-not_subsuming is set to FALSE if a concept use is encountered with
-parent_idx == -1 or if a conjunction is encountered where both alternatives
-recursively set not_subsuming to FALSE.
+atomic constraints) into *chart.  parent_idx is the 1-based index of the last
+concept-id traversed prior to expr (0 if there was none).  parent_op is the
+1-based index of the last OR or AND node traversed prior to expr (0 if there
+was none).  not_subsumable is set to TRUE if an atomic constraint is
+encountered with parent_idx == 0, or if a disjunction is encountered where
+both alternatives recursively produced a not_subsumable == TRUE result.
+not_subsuming is set to FALSE if a concept use is encountered with parent_idx
+== 0 or if a conjunction is encountered where both alternatives recursively set
+not_subsuming to FALSE.
 */
 {
   Dyn_array<a_charted_constraint>  &array = chart->constraints_array;
 
   if (node_is(expr, enk_concept_id)) {
-    int32_t  new_parent_idx = (int32_t)array.length();
-    array.push_back(a_charted_constraint{ CK_CONCEPT, (uint32_t)parent_idx,
+    array.push_back(a_charted_constraint{ CK_CONCEPT,
+                                          parent_idx & constraint_link_bitmask,
                                           parent_op, { (uint32_t)0 }, expr });
-    array[new_parent_idx].remapped_args = nullptr;
-    if (parent_idx == -1) {
+
+    uint32_t new_parent_idx = (uint32_t)array.length();
+    array[new_parent_idx - 1].remapped_args = nullptr;
+    if (parent_idx == 0) {
       /* A concept at the top level creates a potential for subsuming another
          template. */
       *not_subsuming = FALSE;
@@ -25900,41 +25913,48 @@ recursively set not_subsuming to FALSE.
          constraint_chart_of, but it should be made implicit again in the
          concept-id node. */
       a_template_arg_ptr  args = expr->variant.concept_id.args;
-      array[new_parent_idx].remapped_args = args;
+      array[new_parent_idx - 1].remapped_args = args;
       if (expr->is_type_constraint) {
         expr->variant.concept_id.args = args->next;
       }  /* if */
     } else {
       /* Remapped arguments will be computed if needed later on. */
-      array[new_parent_idx].remapped_args = nullptr;
+      array[new_parent_idx - 1].remapped_args = nullptr;
     }  /* if */
     chart_constraint(expr->variant.concept_id.concept_template
                          ->prototype_instantiation.constraint,
                      chart, new_parent_idx, parent_op,
                      not_subsumable, not_subsuming);
   } else if (is_operation_node(expr) && node_operator_is(expr, eok_land)) {
-    int32_t    idx = (int32_t)array.length();
     a_boolean  left_not_subsuming = TRUE, right_not_subsuming = TRUE;
-    array.push_back(a_charted_constraint{ CK_AND, (uint32_t)parent_idx,
+    array.push_back(a_charted_constraint{ CK_AND,
+                                          ((uint32_t)parent_idx &
+                                           constraint_link_bitmask),
                                           parent_op, { (uint32_t)0 }, expr });
+
+    uint32_t          idx = (uint32_t)array.length();
     an_expr_node_ptr  opnds = expr->variant.operation.operands;
     chart_constraint(opnds, chart, parent_idx, idx,
                      not_subsumable, &left_not_subsuming);
-    array[idx].link = (int32_t)array.length();
+    array[idx - 1].link = ((uint32_t)(array.length() + 1) &
+                           constraint_link_bitmask);
     chart_constraint(opnds->next, chart, parent_idx, idx,
                      not_subsumable, &right_not_subsuming);
     if (!left_not_subsuming && !right_not_subsuming) {
       *not_subsuming = FALSE;
     }  /* if */
   } else if (is_operation_node(expr) && node_operator_is(expr, eok_lor)) {
-    int32_t   idx = (int32_t)array.length();
     a_boolean  left_not_subsumable = FALSE, right_not_subsumable = FALSE;
-    array.push_back(a_charted_constraint{ CK_OR, (uint32_t)parent_idx,
+    array.push_back(a_charted_constraint{ CK_OR,
+                                          parent_idx & constraint_link_bitmask,
                                           parent_op, { (uint32_t)0 }, expr });
+
+    uint32_t          idx = (uint32_t)array.length();
     an_expr_node_ptr  opnds = expr->variant.operation.operands;
     chart_constraint(opnds, chart, parent_idx, idx,
                      &left_not_subsumable, not_subsuming);
-    array[idx].link = (uint32_t)array.length();
+    array[idx - 1].link = ((uint32_t)(array.length() + 1) &
+                           constraint_link_bitmask);
     chart_constraint(opnds->next, chart, parent_idx, idx,
                      &right_not_subsumable, not_subsuming);
     if (left_not_subsumable && right_not_subsumable) {
@@ -25942,9 +25962,10 @@ recursively set not_subsuming to FALSE.
     }  /* if */
   } else {
     /* An atomic constraint. */
-    array.push_back(a_charted_constraint{ CK_ATOMIC, (uint32_t)parent_idx,
+    array.push_back(a_charted_constraint{ CK_ATOMIC,
+                                          parent_idx & constraint_link_bitmask,
                                           parent_op, { (uint32_t)0 }, expr });
-    if (parent_idx == -1) *not_subsumable = TRUE;
+    if (parent_idx == 0) *not_subsumable = TRUE;
   }  /* if */
 }  /* chart_constraint */
 
@@ -25959,7 +25980,6 @@ generate that chart.
 
   if (result == NULL) {
     Dyn_array<an_expr_node_ptr>  constraints(10);
-    int32_t                      n_constraints;
     if (is_template_symbol(sym)) {
       a_template_symbol_supplement_ptr
                              tssp = sym->variant.template_info;
@@ -26019,31 +26039,32 @@ generate that chart.
     } else {
       unexpected_condition();
     }  /* if */
-    n_constraints = (int32_t)constraints.length();
+
+    uint32_t n_constraints = (uint32_t)constraints.length();
     if (n_constraints == 0) {
       result = UNCONSTRAINED_CHART;
     } else {
       a_boolean  not_subsumable = FALSE, not_subsuming = TRUE;
-      result = alloc_fe_of_type(a_constraint_chart);
-      construct(result, 2*n_constraints);
+      result = new_fe<a_constraint_chart>(2*n_constraints);
       Dyn_array<a_charted_constraint>  &array = result->constraints_array;
-      int32_t  prev_AND_pos = -1;
-      for (auto k = 0; k<n_constraints; ++k) {
-        int32_t  pos = -1;
-        if (k != n_constraints-1) {
+      uint32_t  prev_AND_pos = 0;
+      for (uint32_t i = 0; i<n_constraints; ++i) {
+        uint32_t pos = 0;
+        if (i != n_constraints-1) {
           /* If this is not the last constraint, "and" it with the next one. */
-          pos = (int32_t)array.length();
+          pos = (uint32_t)(array.length() + 1);
           array.push_back(
-                 a_charted_constraint{CK_AND, (uint32_t)0, prev_AND_pos,
+                 a_charted_constraint{CK_AND, (uint32_t)1, prev_AND_pos,
                                       { FALSE }, NULL });
           prev_AND_pos = pos;
         }  /* if */
-        chart_constraint(constraints[k], result, -1, pos,
+        chart_constraint(constraints[i], result, 0, pos,
                          &not_subsumable, &not_subsuming);
-        if (pos != -1) {
+        if (pos != 0) {
           /* This constraint is ANDed with the next.  Update the "link" field
              for the CK_AND entry that was recorded above. */
-          array[pos].link = (uint32_t)array.length();
+          array[pos - 1].link = ((uint32_t)(array.length() + 1) &
+                                 constraint_link_bitmask);
         }  /* if */
       }  /* for */
       if (not_subsumable) {
@@ -26678,14 +26699,14 @@ stage, set *p_err to TRUE.
 */
 {
   a_constant_ptr     allocated_cp = NULL;
-  int                levels = (int)subst_pairs.length();
+  size_t             levels = subst_pairs.length();
   a_source_position  *pos = &expr->position;
   a_boolean          is_top_level_nonreal =
                                     scope_stack_top().in_nonreal_instantiation;
-  for (int k = levels - 1; k >= 0 && !*p_err; --k) {
-    a_subst_pairs_descr const  *spd = &subst_pairs[k];
+  for (size_t k = levels; k > 0 && !*p_err; --k) {
+    a_subst_pairs_descr const  *spd = &subst_pairs[k - 1];
     a_ctws_options_set         all_options = options | CTWS_NON_CONSTANT_EXPR;
-    if (k > 0) {
+    if (k > 1) {
       /* The next iteration may have to rescan the result. */
       all_options |= CTWS_MAY_BE_RESCANNED;
       if (spd->adjust_coordinates) all_options |= CTWS_ADJUST_COORDINATES;
@@ -26901,7 +26922,7 @@ subst_pairs is successful.  ctws_state is a substitution state block pointer
         case enk_nested_req:
           { an_expr_node_ptr  expr = req->variant.nested_req.constraint;
             a_diag_list       diag_list;
-            int               levels = (int)subst_pairs.length();
+            size_t            levels = subst_pairs.length();
             clear_diag_list(&diag_list);
             if (levels != 0) {
               a_template_param_ptr  templ_params;
@@ -26915,8 +26936,8 @@ subst_pairs is successful.  ctws_state is a substitution state block pointer
                 if (!is_top_level_nonreal) {
                   scope_stack_top().in_nonreal_instantiation = TRUE;
                 }  /* if */
-                for (int k = levels - 1; k >= 0; --k) {
-                  a_subst_pairs_descr const  *spd = &subst_pairs[k];
+                for (size_t k = levels; k > 0; --k) {
+                  a_subst_pairs_descr const  *spd = &subst_pairs[k - 1];
                   a_ctws_options_set         options = CTWS_MAY_BE_RESCANNED;
                   if (spd->adjust_coordinates) {
                     options |= CTWS_ADJUST_COORDINATES;
@@ -27162,12 +27183,10 @@ re-initialized for each translation unit.
   internal_opnd_array = NULL;
   n_internal_opnds = 0;
   pending_consteval_failure.routine = NULL;
-  requires_ranges = alloc_fe<a_requires_range_map>();
-  construct(requires_ranges, /*mask_width=*/10);
-  requires_expr_substs = alloc_fe<a_requires_subst_map>();
-  construct(requires_expr_substs, /*mask_width=*/8);
-  vars_being_deduced = alloc_fe<Ptr_map<a_variable_ptr, a_boolean>>();
-  construct(vars_being_deduced, /*mask_width=*/5);
+  requires_ranges = new_fe<a_requires_range_map>(/*mask_width=*/10u);
+  requires_expr_substs = new_fe<a_requires_subst_map>(/*mask_width=*/8u);
+  vars_being_deduced = new_fe<Ptr_map<a_variable_ptr, a_boolean>>(
+                                                            /*mask_width=*/5u);
 }  /* exprutil_trans_unit_init */
 
 
@@ -27199,10 +27218,9 @@ for each compilation.
 #endif /* SEQUENCING_DIAGNOSTICS_ENABLED */
   num_dynamic_init_dtor_fixups_allocated = 0;
 #endif /* DEBUG */
-  constraint_charts = alloc_fe_of_type(a_constraint_charts_map);
-  construct(constraint_charts, /*mask_width=*/10);
-  template_param_objects = alloc_fe_of_type(a_template_param_object_map);
-  construct(template_param_objects, /*mask_width=*/10);
+  constraint_charts = new_fe<a_constraint_charts_map>(/*mask_width=*/10u);
+  template_param_objects =
+                       new_fe<a_template_param_object_map>(/*mask_width=*/10u);
 #if TARG_HAS_IEEE_FLOATING_POINT
   nan_constant = NULL;
   infinity_constant = NULL;
@@ -27211,8 +27229,7 @@ for each compilation.
   imaginary_unit = NULL;
 #endif /* C99_IL_EXTENSIONS_SUPPORTED */
   constraint_satisfaction_cache =
-                             alloc_fe_of_type(a_constraint_satisfaction_cache);
-  construct(constraint_satisfaction_cache, /*mask_width=*/10);
+                   new_fe<a_constraint_satisfaction_cache>(/*mask_width=*/10u);
   /* Initialize floating point data. */
   num_mantissa_bits[(int)fk_float16]      = 11;
   num_mantissa_bits[(int)fk_fp16]         = 11;

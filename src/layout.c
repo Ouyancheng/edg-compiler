@@ -1128,7 +1128,7 @@ returned.
   a_targ_size_t     container_size;
   a_targ_alignment  container_alignment = 1;
   a_boolean         overflow = FALSE;
-  unsigned int      bit_size = (int)field->bit_size;
+  unsigned int      bit_size = field->bit_size;
   a_type_ptr        base_type = skip_typerefs(field->type);
 
   db_enter(4, "align_offsets_for_bit_field");
@@ -1216,7 +1216,7 @@ container when that size is smaller than the alignment.
     if (targ_bit_field_container_size > 0) {
       /* Use a fixed size container.  targ_bit_field_container_size indicates
          the size in bytes. */
-      container_size = targ_bit_field_container_size;
+      container_size = (a_targ_size_t)targ_bit_field_container_size;
       if (container_size == 1) {
         container_alignment = 1;
       } else if (container_size == targ_sizeof_short) {

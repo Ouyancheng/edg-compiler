@@ -1957,16 +1957,13 @@ The complete an_attribute type is defined later.
 */
 typedef struct an_attribute *an_attribute_ptr;
 
-#if GNU_EXTENSIONS_ALLOWED
-#if GNU_INIT_PRIORITY_ATTRIBUTE_ALLOWED
-
 /*
 The type of the integer values used to represent the priority of dynamic
 initialization using GNU attributes.
 */
 typedef unsigned short a_gnu_init_priority;
 
-#endif /* GNU_INIT_PRIORITY_ATTRIBUTE_ALLOWED */
+#if GNU_EXTENSIONS_ALLOWED
 #if GNU_VISIBILITY_ATTRIBUTE_ALLOWED
 
 /*
@@ -6168,6 +6165,10 @@ enum a_upc_access_method : a_byte {
   upc_access_relaxed
 };
 
+/*
+Define a macro for the number of bits for upc access.
+*/
+#define NUM_BITS_FOR_UPC_ACCESS 2
 
 /* Tag values indicating UPC coherence stack operations. */
 enum a_upc_coherence_stack_operation : a_byte {
@@ -12509,7 +12510,7 @@ typedef struct a_routine {
 			   the point that this routine was defined. */
 #endif /* FIXED_POINT_ALLOWED */
 #if UPC_EXTENSIONS_ALLOWED
-  a_bit_field	upc_access_method:2;
+  a_bit_field	upc_access_method:NUM_BITS_FOR_UPC_ACCESS;
 			/* In UPC mode, the UPC access method set at the
 			   point this routine was defined. */
 #endif /* UPC_EXTENSIONS_ALLOWED */
@@ -18278,7 +18279,7 @@ typedef struct an_il_header {
                 source_language;
                         /* Code for the language in which the source program
                            is written. */
-  int32_t
+  uint32_t
 		std_version;
 			/* A number of the form YYYYmm indicating the version
 			   of the language standard (for C or C++) in effect.

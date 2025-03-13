@@ -438,7 +438,7 @@ typedef struct a_rescan_control_block {
 
 /* Floating point type sizes and precisions. */
 
-EXTERN_THREAD int
+EXTERN_THREAD a_targ_size_t
                 num_mantissa_bits[(int)fk_last + 1];
 EXTERN_THREAD a_targ_size_t
                 flt_type_size[(int)fk_last + 1];

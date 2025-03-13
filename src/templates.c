@@ -1509,8 +1509,9 @@ being instantiated.
       }  /* if */
       idepth = issep->previous_scope;
     } while (idepth != NO_SCOPE_DEPTH);
+
     /* If multiple templates were involved, reverse their order. */
-    a_ptrdiff  length = result.length();
+    size_t length = result.length();
     if (length > 1) {
       reverse_array(result.begin(), length);
     }  /* if */
@@ -13079,7 +13080,7 @@ partial specialization.
     if (tap->is_pack) {
       new_flags |= MTT_IS_PACK;
     } else if (tap->is_pack_element) {
-      new_flags &= ~MTT_IS_PACK;
+      new_flags &= ~((an_mtt_flag_set)MTT_IS_PACK);
     }  /* if */
     if (tap->kind != templ_tap->kind) {
       /* The argument kinds do not match */
@@ -14349,8 +14350,9 @@ Otherwise, return the original template.
       result = tap->variant.templ.ptr;
       if (record_used != NULL) {
         /* Set a "used" marker for the position of the template argument. */
-        record_used->resize(max_val<a_ptrdiff>(coordinates->position,
-                                               record_used->length()),
+        check_assertion(coordinates->position > 0);
+        record_used->resize(max_val((size_t)coordinates->position,
+                                    record_used->length()),
                             FALSE);
         (*record_used)[coordinates->position - 1] = TRUE;
       }  /* if */
@@ -16307,7 +16309,13 @@ parameters.
       /* Allocate the param type entry and copy default arg info. */
       new_ptp = make_param_type(tp, &null_source_position);
       new_ptp->declared_type = declared_type;
-      new_ptp->qualifiers = param_qualifiers;
+
+      /* To suppress compiler warnings about data truncation, explicitly
+         truncate to the appropriate bitwidth. */
+      constexpr a_type_qualifier_set qualifier_bitmask =
+                       ((a_type_qualifier_set)
+                          bitmask_of_width<NUM_BITS_FOR_TYPE_QUALIFIER_SET>());
+      new_ptp->qualifiers = param_qualifiers & qualifier_bitmask;
       new_ptp->name = ptp->name;
       new_ptp->param_num = ptp->param_num;
 #if MICROSOFT_EXTENSIONS_ALLOWED
@@ -16626,9 +16634,9 @@ a pointer over a reference type or creating an array of references.
                 if (record_used != NULL) {
                   /* Set a "used" marker for the position of the template
                      argument. */
-                  record_used->resize(max_val<a_ptrdiff>(
-                                                        coordinates->position,
-                                                        record_used->length()),
+                  check_assertion(coordinates->position > 0);
+                  record_used->resize(max_val((size_t)coordinates->position,
+                                              record_used->length()),
                                       FALSE);
                   (*record_used)[coordinates->position - 1] = TRUE;
                 }  /* if */
@@ -17215,15 +17223,13 @@ as described by subst_pairs.  For source_pos, options, copy_error, and
 ctws_state, see copy_type_with_substitution.
 */
 {
-  int  levels = (int)subst_pairs.length();
-
   /* As packs are expanded during the first substitution, it is essential that
      we start substituting from the innermost level.  This ensures that all
      enclosing template argument lists are available during pack expansion. */
-  for (int k = levels - 1; k >= 0 && !*copy_error; --k) {
-    a_subst_pairs_descr const  *spd = &subst_pairs[k];
+  for (size_t i = subst_pairs.length(); i > 0 && !*copy_error; --i) {
+    a_subst_pairs_descr const  *spd = &subst_pairs[i - 1];
     a_ctws_options_set         all_options = options;
-    if (k > 0) all_options |= CTWS_MAY_BE_RESCANNED;
+    if (i > 1) all_options |= CTWS_MAY_BE_RESCANNED;
     if (spd->adjust_coordinates) all_options |= CTWS_ADJUST_COORDINATES;
     if (spd->alias_deduction_guide) all_options |= CTWS_ALIAS_DEDUCTION_GUIDE;
     type = copy_type_with_substitution(type, spd->args, spd->params,
@@ -17247,12 +17253,10 @@ have been substituted as described by subst_pairs.  For source_pos, options,
 copy_error, and ctws_state, see copy_type_with_substitution.
 */
 {
-  int  levels = (int)subst_pairs.length();
-
-  for (int k = levels - 1; k >= 0 && !*copy_error; --k) {
-    a_subst_pairs_descr const  *spd = &subst_pairs[k];
+  for (size_t i = subst_pairs.length(); i > 0 && !*copy_error; --i) {
+    a_subst_pairs_descr const  *spd = &subst_pairs[i - 1];
     a_ctws_options_set         all_options = options;
-    if (k > 0) all_options |= CTWS_MAY_BE_RESCANNED;
+    if (i > 1) all_options |= CTWS_MAY_BE_RESCANNED;
     if (spd->adjust_coordinates) all_options |= CTWS_ADJUST_COORDINATES;
     if (spd->alias_deduction_guide) all_options |= CTWS_ALIAS_DEDUCTION_GUIDE;
     ptp_list = copy_param_type_list_with_substitution(
@@ -17280,14 +17284,14 @@ subst_pairs applied.  For the meaning of the remaining parameters, see
 copy_template_arg_list_with_substitution.
 */
 {
-  int                 levels = (int)subst_pairs.length();
+  size_t              levels = subst_pairs.length();
   a_template_arg_ptr  new_args = NULL;
 
   if (levels != 0) {
-    for (int k = levels - 1; k >= 0 && !*copy_error; --k) {
-      a_subst_pairs_descr const  *spd = &subst_pairs[k];
+    for (size_t i = levels; i > 0 && !*copy_error; --i) {
+      a_subst_pairs_descr const  *spd = &subst_pairs[i - 1];
       a_ctws_options_set         all_options = options;
-      if (k > 0) all_options |= CTWS_MAY_BE_RESCANNED;
+      if (i > 1) all_options |= CTWS_MAY_BE_RESCANNED;
       if (spd->adjust_coordinates) all_options |= CTWS_ADJUST_COORDINATES;
       if (spd->alias_deduction_guide) all_options |=CTWS_ALIAS_DEDUCTION_GUIDE;
       new_args = copy_template_arg_list_with_substitution(
@@ -17295,7 +17299,7 @@ copy_template_arg_list_with_substitution.
                      arg_list_to_copy, param_list_for_copy, ttp_list_for_copy,
                      spd->args, spd->params,
                      source_pos, all_options, copy_error, ctws_state);
-      if (k < levels - 1) {
+      if (i < levels) {
         /* Free intermediate substituted lists. */
         free_template_arg_list(arg_list_to_copy);
       }  /* if */
@@ -28015,7 +28019,7 @@ to represent the template parameters.
     pos_st_catastrophe(ec_templ_param_list_too_long,
                        &decl_state->decl_parse->start_pos, (char*)NULL);
   } else {
-    decl_state->decl_info->n_params = param_state.list_pos;
+    decl_state->decl_info->n_params = (unsigned short)param_state.list_pos;
 #if MICROSOFT_EXTENSIONS_ALLOWED
     if (decl_state->is_generic) {
       decl_state->num_parameters = param_state.list_pos;
@@ -28285,7 +28289,7 @@ template parameters that depend on other template parameters.
                                                 &parent_dps, param_ptr);
     /* Rescan the template template parameter declaration. */
     init_tmpl_param_state(&param_state);
-    param_state.list_pos = param_ptr->variant.templ->
+    param_state.list_pos = (unsigned short)param_ptr->variant.templ->
                                           il_template_entry->coordinates.depth;
     new_param = scan_template_template_param(
                        &parent_decl_state, &param_state,
@@ -29064,7 +29068,7 @@ Compute a hash value for the string "str".
 {
   unsigned long value = 0;
   for (; *str != '\0'; str++) {
-    value = (value << 5) + value + *str;
+    value = (value << 5) + value + (unsigned long)*str;
   }  /* for */
   return value;
 }  /* hash_string */
@@ -32884,9 +32888,9 @@ issued.
                                           ? parent_class_of(parent_tp) : NULL;
     }  /* while */
   }  /* if */
-  if ((unsigned long)(long)depth !=
-                              (decl_state->number_of_template_param_clauses +
-                               decl_state->friend_depth) &&
+  if ((depth != ((a_template_nesting_depth)decl_state->
+                                           number_of_template_param_clauses +
+                decl_state->friend_depth)) &&
       !decl_state->decl_scope_err && !decl_state->friend_depth_known) {
     /* The depths do not match, issue a diagnostic.  Don't set decl_scope_err
        because the message can be issued as a warning in g++ mode or the
@@ -35264,8 +35268,8 @@ instantiations of any template default arguments now.
          depth to the depth of the friend entity found, but subtract out
          the number of template parameter clauses so that the depth will be
          recomputed properly below. */
-      decl_state->nesting_depth = (a_template_nesting_depth)
-                                (decl_state->friend_depth -
+      decl_state->nesting_depth = (decl_state->friend_depth -
+                                                     (a_template_nesting_depth)
                                  decl_state->number_of_template_param_clauses);
       update_nesting_depths = TRUE;
     } else if (!is_nonreal_instantiation_context()) {
@@ -42933,13 +42937,13 @@ of bit flags used to control how names are looked up, if needed.  Set
 substitution may not be completed.
 */
 {
-  int           levels = (int)subst_pairs.length();
+  size_t        levels = subst_pairs.length();
   a_ctws_state  ctws_state;
 
   if (levels != 0) {
     init_ctws_state(&ctws_state);
-    for (int k = levels - 1; k >= 0 && !*copy_error; --k) {
-      a_subst_pairs_descr const  *spd = &subst_pairs[k];
+    for (size_t i = levels; i > 0 && !*copy_error; --i) {
+      a_subst_pairs_descr const  *spd = &subst_pairs[i - 1];
       substitute_template_param_list(template_sym, list_to_subst,
                                      spd->params, spd->args,
                                      options, copy_error, &ctws_state);

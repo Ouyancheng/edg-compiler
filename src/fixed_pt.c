@@ -57,49 +57,51 @@ Initialize the given fixed-point value to zero.
 }  /* fxp_init_value */
 
 
-static int value_bits_for_fixed_point(a_fixed_point_type_descr	*fxp_descr)
+static a_targ_size_t value_bits_for_fixed_point(
+                                           a_fixed_point_type_descr *fxp_descr)
 /*
 Return the number of data bits in a fixed-point value (i.e., the number of
 bits excluding the sign bit).
 */
 {
-  int	bits;
+  a_targ_size_t bits =
+                  targ_sizeof_fixed_point[fxp_descr->is_unsigned]
+                                         [(int)fxp_descr->precision]
+                                         [fxp_descr->is_fract_type] * CHAR_BIT;
 
-  bits = (int)targ_sizeof_fixed_point[fxp_descr->is_unsigned]
-                                     [(int)fxp_descr->precision]
-                                     [fxp_descr->is_fract_type] * CHAR_BIT;
-  if (!fxp_descr->is_unsigned) bits--;
+  if (!fxp_descr->is_unsigned) {
+    check_assertion(bits > 0);
+    bits--;
+  }  /* if */
   return bits;
 }  /* value_bits_for_fixed_point */
 
 
-static int sizeof_fixed_point(a_fixed_point_type_descr	*fxp_descr)
+static a_targ_size_t sizeof_fixed_point(a_fixed_point_type_descr *fxp_descr)
 /*
 Return the number of bytes in a fixed-point value.
 */
 {
-  int	size;
-
-  size = (int)targ_sizeof_fixed_point[fxp_descr->is_unsigned]
-                                     [(int)fxp_descr->precision]
-                                     [fxp_descr->is_fract_type];
-  return size;
+  return targ_sizeof_fixed_point[fxp_descr->is_unsigned]
+                                [(int)fxp_descr->precision]
+                                [fxp_descr->is_fract_type];
 }  /* sizeof_fixed_point */
 
 
-int non_fractional_bits_for_fixed_point(a_fixed_point_type_descr *fxp_descr)
+a_targ_size_t non_fractional_bits_for_fixed_point(
+                                           a_fixed_point_type_descr *fxp_descr)
 /*
 Return the number of bits in the non-fractional part of a fixed-point value.
 The sign bit (if any) is included in the non-fractional bits.
 */
 {
-  int	fract_bits;
-  int	total_bits;
+  a_targ_alignment fract_bits;
+  a_targ_size_t    total_bits;
 
   fract_bits = targ_fractional_bits_for_fixed_point[fxp_descr->is_unsigned]
                                                    [(int)fxp_descr->precision]
                                                    [fxp_descr->is_fract_type];
-  total_bits = (int)targ_sizeof_fixed_point[fxp_descr->is_unsigned]
+  total_bits = targ_sizeof_fixed_point[fxp_descr->is_unsigned]
                                            [(int)fxp_descr->precision]
                                            [fxp_descr->is_fract_type] *
                                                                       CHAR_BIT;
@@ -119,10 +121,10 @@ Return the fixed-point descriptor pointer for the specified constant.
 
 
 static void set_fixed_point_to_saturated_value(
-				a_fixed_point_value		*value,
-				int				value_bits,
-				a_boolean			is_negative,
-				a_fixed_point_type_descr	*fxp_descr)
+                                          a_fixed_point_value      *value,
+                                          a_targ_size_t            value_bits,
+                                          a_boolean                is_negative,
+                                          a_fixed_point_type_descr *fxp_descr)
 /*
 Set value to the representation used for a saturated fixed-point
 value.  is_negative is TRUE if the value should be the saturated negative
@@ -147,7 +149,7 @@ sign bit.
   }  /* if */
   /* Shift the saturated value to just fill the portion of the integer
      value actually used to the representation. */
-  shift_count = (int)BITS_IN_AN_INTEGER_VALUE - value_bits;
+  shift_count = (int)BITS_IN_AN_INTEGER_VALUE - (int)value_bits;
   if (shift_count > 0) {
     shift_right_integer_value(value, shift_count,
                               /*is_signed=*/!fxp_descr->is_unsigned,
@@ -200,14 +202,12 @@ Return the byte offset of a given logical byte of an integer value.
 This is only used on little-endian systems.
 */
 {
-  int		int_value_part;
-  int		offset;
+  long unsigned int_value_part = INT_VALUE_PARTS_PER_INTEGER_VALUE -
+                                            (byte / SIZEOF_INT_VALUE_PART) - 1;
+  long unsigned offset = (int_value_part * SIZEOF_INT_VALUE_PART) +
+                                                (byte % SIZEOF_INT_VALUE_PART);
 
-  int_value_part = INT_VALUE_PARTS_PER_INTEGER_VALUE - 
-                   (byte / SIZEOF_INT_VALUE_PART) - 1;
-  offset = (int_value_part * SIZEOF_INT_VALUE_PART) +
-           (byte % SIZEOF_INT_VALUE_PART);
-  return offset;
+  return (int)offset;
 }  /* byte_offset_in_integer_value */
 
 #endif /* INTEGER_VALUE_REPR_IS_A_HOST_INTEGER */
@@ -222,9 +222,9 @@ Store the value represented by mp in the fixed-point value "value".
 fxp_descr describes the format of the value being stored.
 */
 {
-  unsigned int	parts_to_copy;
-  unsigned int	source_size;
-  unsigned int	part_offset;
+  a_targ_size_t parts_to_copy;
+  a_targ_size_t source_size;
+  a_targ_size_t part_offset;
 
   /* Zero the memory so that all of the space occupied by "value"
      is cleared, even if we are not storing all of the bytes of the value. */
@@ -287,21 +287,21 @@ fxp_descr describes the format of the value being stored.
 }  /* store_hex_fxp_value */
 
 
-static void load_hex_fxp_value(a_fixed_point_value	*value,
-			       a_fixed_point_type_descr	*fxp_descr,
-			       a_mantissa_ptr		mp,
-			       long			*exponent,
-			       a_boolean		*is_negative)
+static void load_hex_fxp_value(a_fixed_point_value      *value,
+                               a_fixed_point_type_descr *fxp_descr,
+                               a_mantissa_ptr           mp,
+                               long                     *exponent,
+                               a_boolean                *is_negative)
 
 /*
 Create mantissa (mp), exponent, and is_negative from a_fixed_point_value
 (value).  fxp_descr describes the format of the fixed-point value.
 */
 {
-  unsigned int		parts_to_copy;
-  unsigned int		dest_size;
-  unsigned int		part_offset;
-  a_fixed_point_value	local_value;
+  a_targ_size_t         parts_to_copy;
+  a_targ_size_t         dest_size;
+  a_targ_size_t         part_offset;
+  a_fixed_point_value   local_value;
 
   init_mantissa(mp);
   *is_negative = !fxp_descr->is_unsigned && fxp_sign_of(*value);
@@ -346,12 +346,12 @@ Create mantissa (mp), exponent, and is_negative from a_fixed_point_value
            size_t_arg(dest_size));
   }  /* if */
   /* The exponent is the number of non-fractional bits of the value. */
-  *exponent = non_fractional_bits_for_fixed_point(fxp_descr);
+  *exponent = (long)non_fractional_bits_for_fixed_point(fxp_descr);
 }  /* load_hex_fxp_value */
 
 
-static void normalize_mantissa(a_mantissa_ptr	mp,
-			       long		*exponent)
+static void normalize_mantissa(a_mantissa_ptr mp,
+                               long           *exponent)
 /*
 Normalize the mantissa value so that it occupies the high-order bits
 of "mp".  Adjust the exponent accordingly.
@@ -371,18 +371,17 @@ of "mp".  Adjust the exponent accordingly.
 }  /* normalize_mantissa */
 
 
-static void make_mantissa_from_integer_value(
-				an_integer_value		*value,
-				a_boolean			is_negative,
-				a_mantissa_ptr			mp,
-				long				*exponent)
+static void make_mantissa_from_integer_value(an_integer_value *value,
+                                             a_boolean        is_negative,
+                                             a_mantissa_ptr   mp,
+                                             long             *exponent)
 /*
 Create a mantissa (mp) and exponent from an_integer_value (value).  If
 value is negative, is_negative will be TRUE.
 */
 {
-  int			parts_to_copy;
-  an_integer_value	local_value;
+  a_targ_size_t    parts_to_copy;
+  an_integer_value local_value;
 
 #if CHECKING
   { /* Make sure an_integer_value can be copied into a_mantissa. */
@@ -429,24 +428,23 @@ value is negative, is_negative will be TRUE.
 }  /* make_mantissa_from_integer_value */
 
 
-static void make_integer_value_from_mantissa(
-				an_integer_value		*value,
-				a_boolean			is_negative,
-				a_mantissa_ptr			mp,
-				long				exponent,
-				a_boolean			*err)
+static void make_integer_value_from_mantissa(an_integer_value *value,
+                                             a_boolean        is_negative,
+                                             a_mantissa_ptr   mp,
+                                             long             exponent,
+                                             a_boolean        *err)
 /*
 Create an_integer_value from a mantissa (mp) and exponent.  If the value is
 negative, is_negative will be TRUE.
 */
 {
-  int	parts_to_copy;
-  int	shift_count;
+  int parts_to_copy;
+  int shift_count;
 
   *err = FALSE;
   /* Compute the number of bits to shift the mantissa so that any fractional
      bits will be discarded. */
-  shift_count = (int)(BITS_IN_AN_INTEGER_VALUE - exponent);
+  shift_count = (int)((long)BITS_IN_AN_INTEGER_VALUE - exponent);
   if (shift_count >= 0) {
     if (shift_count > 0) shift_right_mantissa(mp, shift_count);
   } else {
@@ -464,7 +462,7 @@ negative, is_negative will be TRUE.
       char	*dest;
       char	*source;
       dest = &((char*)value)[byte_offset_in_integer_value(i)];
-      source = (char*)&(mp->parts[(parts_to_copy - 1) -
+      source = (char*)&(mp->parts[(size_t)(parts_to_copy - 1) -
                                   (i / sizeof(an_fp_value_part))]) +
                        (i % sizeof(an_fp_value_part));
        *dest = *source;
@@ -488,16 +486,14 @@ done:
 }  /* make_integer_value_from_mantissa */
 
 
-static void clear_unused_mantissa_bits(a_mantissa_ptr	mp,
-				       int		bits_used)
+static void clear_unused_mantissa_bits(a_mantissa_ptr mp,
+                                       a_targ_size_t  bits_used)
 /*
 Zero any bits in the mantissa that are beyond the first N bits specified by
 bits_used.
 */
 {
-  int	part;
-
-  for (part = 0; part < MANTISSA_PARTS; part++) {
+  for (size_t part = 0; part < MANTISSA_PARTS; part++) {
     if (bits_used >= 32) {
       /* The whole part is used.  Skip to the next part. */
       bits_used -= 32;
@@ -507,8 +503,9 @@ bits_used.
       mp->parts[part] = 0;
     } else {
       /* A portion of the part is used.  Clear the unused part. */
-      int		bits_to_clear = 32 - bits_used;
-      an_fp_value_part	mask;
+      unsigned          bits_to_clear = (unsigned)(32 - bits_used);
+      an_fp_value_part  mask;
+
       mask = 0xffffffff << bits_to_clear;
       mp->parts[part] &= mask;
       bits_used = 0;
@@ -517,15 +514,14 @@ bits_used.
 }  /* clear_unused_mantissa_bits */
 
 
-static void conv_mantissa_to_fixed_point(
-				a_mantissa_ptr			mp,
-				long				exponent,
-				a_boolean			is_negative,
-				a_fixed_point_type_descr	*fxp_descr,
-				a_boolean			overflow,
-				a_fixed_point_value		*value,
-				a_boolean			*err,
-				a_boolean			*inexact)
+static void conv_mantissa_to_fixed_point(a_mantissa_ptr           mp,
+                                         long                     exponent,
+                                         a_boolean                is_negative,
+                                         a_fixed_point_type_descr *fxp_descr,
+                                         a_boolean                overflow,
+                                         a_fixed_point_value      *value,
+                                         a_boolean                *err,
+                                         a_boolean                *inexact)
 /*
 Given a mantissa (mp) and exponent that represent a fixed-point value, check
 that the value is representable in the destination type specified by
@@ -536,11 +532,11 @@ the value is already known to be too large.  Set *err on overflow.  Set
 *inexact if any bits are lost because of scaling or rounding.
 */
 {
-  int		nonfract_bits = 0;
-  int		value_bits = 0;
-  int		shift_count = 0;
-  int		mantissa_bits = 0;
-  int		sign_bits = 0;
+  long          nonfract_bits = 0;
+  long          shift_count = 0;
+  a_targ_size_t value_bits = 0;
+  unsigned      mantissa_bits = 0;
+  unsigned      sign_bits = 0;
 
   *err = FALSE;
   *inexact = FALSE;
@@ -556,12 +552,12 @@ the value is already known to be too large.  Set *err on overflow.  Set
     normalize_mantissa(mp, &exponent);
     /* Compute the number of bits to shift the mantissa so that it contains
        the right number of fractional and non-fractional bits. */
-    nonfract_bits = non_fractional_bits_for_fixed_point(fxp_descr);
+    nonfract_bits = (long)non_fractional_bits_for_fixed_point(fxp_descr);
     value_bits = value_bits_for_fixed_point(fxp_descr);
-    shift_count = (int)(nonfract_bits - exponent);
+    shift_count = nonfract_bits - exponent;
     mantissa_bits = number_of_bits_in_mantissa(mp, /*normalize=*/FALSE);
     sign_bits = fxp_descr->is_unsigned ? 0 : 1;
-    if (shift_count > 0) shift_right_mantissa(mp, shift_count);
+    if (shift_count > 0) shift_right_mantissa(mp, (int)shift_count);
     /* See if the result value has more bits of precision than fit into
        the destination type. */
     if (mantissa_bits > value_bits) *inexact = TRUE;
@@ -573,7 +569,7 @@ the value is already known to be too large.  Set *err on overflow.  Set
        value. */
     clear_unused_mantissa_bits(mp, value_bits + sign_bits);
     /* Recompute the shift count and mantissa bits after rounding. */
-    shift_count = (int)(nonfract_bits - exponent);
+    shift_count = nonfract_bits - exponent;
     mantissa_bits = number_of_bits_in_mantissa(mp, /*normalize=*/TRUE);
     /* A shift count of zero represents an overflow for a signed value because
        the sign bit would be needed for the representation. */
@@ -586,7 +582,7 @@ the value is already known to be too large.  Set *err on overflow.  Set
   if (db_flag_is_set("fxp_conv")) {
     fprintf(f_debug, "fxp hex value: ");
     db_mantissa(mp);
-    fprintf(f_debug, "exponent=%ld, nonfract=%d, shift=%d\n",
+    fprintf(f_debug, "exponent=%ld, nonfract=%ld, shift=%ld\n",
             exponent, nonfract_bits, shift_count);
   }  /* if */
 #endif /* DEBUG */
@@ -646,7 +642,7 @@ to be issued; otherwise set err_code to ec_no_error.
   a_boolean		inexact;
   an_integer_kind	ikind;
   a_boolean		is_signed;
-  int			bit_size;
+  size_t		bit_size;
   a_fixed_point_type_descr
 			*fxp_descr;
 
@@ -706,7 +702,7 @@ to be issued; otherwise set err_code to ec_no_error.
   an_integer_value	int_value;
   an_integer_kind	ikind;
   a_boolean		is_signed;
-  int			bit_size;
+  size_t		bit_size;
 
   check_assertion(old_constant->kind == (a_constant_repr_kind)ck_fixed_point);
   set_constant_kind(new_constant, (a_constant_repr_kind)ck_integer);
@@ -1136,11 +1132,11 @@ Convert the fixed-point fxp_value to a long double, stored into fp_value.
 fxp_descr specifies the format of the fixed-point value.
 */
 {
-  a_mantissa	mantissa;
-  long		exponent;
-  a_boolean	is_negative;
-  a_boolean	err;
-  a_boolean	inexact;
+  a_mantissa mantissa;
+  long       exponent;
+  a_boolean  is_negative;
+  a_boolean  err;
+  a_boolean  inexact;
 
   load_hex_fxp_value(fxp_value, fxp_descr, &mantissa, &exponent, &is_negative);
   conv_mantissa_to_floating_point(&mantissa, &exponent, is_negative,

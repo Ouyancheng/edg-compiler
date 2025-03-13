@@ -1753,11 +1753,11 @@ Initialize any variables that are needed for processing the command line (and
 therefore must be initialized before most initialization occurs).
 */
 {
-  mod_map = new_general<a_module_file_map>(/*mask_width=*/4);
-  lazy_mod_map_arr = new_general<a_lazy_module_file_arr>(/*mask_width=*/4);
-  header_unit_map = new_general<a_header_unit_map>(/*mask_width=*/4);
-  header_unit_quote_map = new_general<a_header_unit_map>(/*mask_width=*/4);
-  header_unit_angle_map = new_general<a_header_unit_map>(/*mask_width=*/4);
+  mod_map = new_general<a_module_file_map>(/*mask_width=*/4u);
+  lazy_mod_map_arr = new_general<a_lazy_module_file_arr>(/*mask_width=*/4u);
+  header_unit_map = new_general<a_header_unit_map>(/*mask_width=*/4u);
+  header_unit_quote_map = new_general<a_header_unit_map>(/*mask_width=*/4u);
+  header_unit_angle_map = new_general<a_header_unit_map>(/*mask_width=*/4u);
 }  /* initialize_command_line_variables */
 
 
@@ -1929,7 +1929,7 @@ The following option formats are supported:
           while (*after_keyword != '\0' && *after_keyword != '=') {
             after_keyword++;
           }  /* while */
-          keyword_length = after_keyword - optchar;
+          keyword_length = (sizeof_t)(after_keyword - optchar);
         }  /* if */
       } else if (*(optchar+1) == '\0') {
         /* The argument is "-", which is used to indicate stdin as a
@@ -2034,28 +2034,38 @@ pointed to by *du_list.  The end of the list is pointed to by
 }  /* add_to_def_undef_list */
 
 
-static long scan_opt_arg_number(a_const_char *optstr)
+template<typename an_Integral_type>
+static void scan_opt_arg_number(an_Integral_type *result,
+                                a_const_char     *optstr)
 /*
-Scan an argument option as a decimal number, and return its value.
+Scan an argument option as a decimal number, check for overflow, and if no
+overflow occurs set *result to the value.
 */
 {
-  a_const_char *arg_ptr;
-  long         result = 0;
-  int          digit;
+  uint64_t curr_total = 0;
+  uint64_t max_value = (uint64_t)max_integral_value<an_Integral_type>();
 
-  for (arg_ptr = optstr; *arg_ptr != '\0'; arg_ptr++) {
-    if (!isdigit((unsigned char)*arg_ptr)) goto number_error;
-    digit = *arg_ptr - '0';
-    if (result > LONG_MAX / 10) goto number_error;
-    result *= 10;
-    if (result > LONG_MAX-digit) goto number_error;
-    result += digit;
+  for (a_const_char *arg_ptr = optstr; *arg_ptr != '\0'; arg_ptr++) {
+    if (!isdigit((unsigned char)*arg_ptr)) {
+      goto number_error;
+    }  /* if */
+    if (!checked_multiplication(&curr_total, curr_total, 10)) {
+      goto number_error;
+    }  /* if */
+
+    uint64_t digit = (uint64_t)(*arg_ptr - '0');
+    if (!checked_addition(&curr_total, curr_total, digit)) {
+      goto number_error;
+    }  /* if */
   }  /* for */
+  if (curr_total > max_value) {
+    goto number_error;
+  }  /* if */
   goto return_point;
 number_error:
   str_command_line_error(ec_cl_invalid_number, optstr);
 return_point:
-  return result;
+  *result = (an_Integral_type)curr_total;
 }  /* scan_opt_arg_number */
 
 #if USE_FIXED_ADDRESS_FOR_MMAP
@@ -2232,7 +2242,9 @@ processing routine to update the severity.
     }  /* if */
 #endif /* DEBUG */
     if (isdigit((unsigned char)*opt_start)) {
-      int error_number = (int)scan_opt_arg_number(opt_start);
+      int error_number;
+
+      scan_opt_arg_number(&error_number, opt_start);
       err = set_severity_for_error_number(error_number, severity,
                                           /*make_default=*/TRUE);
       if (err) {
@@ -10598,7 +10610,7 @@ Process the arguments on the command line that invoked the compiler.
       case optk_set_error_limit:
         /* Set error limit (numbers of errors at which to give up on
            compilation). */
-        error_limit = scan_opt_arg_number(opt_arg);
+        scan_opt_arg_number(&error_limit, opt_arg);
         if (error_limit == 0) {
           str_command_line_error(ec_cl_invalid_error_limit, opt_arg);
         }  /* if */
@@ -10664,7 +10676,7 @@ Process the arguments on the command line that invoked the compiler.
       case optk_time_limit:
         /* Option to limit the amount of CPU time used during a compilation. */
         { int time_limit;
-          time_limit = (int)scan_opt_arg_number(opt_arg);
+          scan_opt_arg_number(&time_limit, opt_arg);
           set_cpu_time_limit(time_limit);
         }
         break;
@@ -10689,18 +10701,18 @@ Process the arguments on the command line that invoked the compiler.
         break;
       case optk_msvc_target_version:
         /* The Microsoft C/C++ compiler being targeted. */
-        msvc_target_version_number = (int)scan_opt_arg_number(opt_arg);
+        scan_opt_arg_number(&msvc_target_version_number, opt_arg);
         microsoft_dialect_is_generated_code_target = TRUE;
         msvc_is_generated_code_target = MSVC_IS_GENERATED_CODE_TARGET;
         break;
       case optk_gnu_target_version:
         /* The GNU C/C++ compiler being targeted. */
-        gnu_target_version_number = (int)scan_opt_arg_number(opt_arg);
+        scan_opt_arg_number(&gnu_target_version_number, opt_arg);
         gcc_is_generated_code_target = TRUE;
         break;
       case optk_clang_target_version:
         /* The clang C/C++ compiler being targeted. */
-        clang_target_version_number = (int)scan_opt_arg_number(opt_arg);
+        scan_opt_arg_number(&clang_target_version_number, opt_arg);
         clang_is_generated_code_target = TRUE;
         break;
 #endif /* BACK_END_IS_C_GEN_BE || BACK_END_IS_CP_GEN_BE */
@@ -10748,9 +10760,11 @@ Process the arguments on the command line that invoked the compiler.
         /* Specify the size of the preallocated memory to be used for
            PCH processing.  The value specified on the command line is
            size in 1k (1024) units to be allocated. */
-        pch_mem_size = scan_opt_arg_number(opt_arg) * 1024;
-        if (pch_mem_size <= 0 ||
-            pch_mem_size > (SIZE_OF_MEM_ALLOC_HISTORY *
+        scan_opt_arg_number(&pch_mem_size, opt_arg);
+        if (!checked_multiplication(&pch_mem_size, pch_mem_size, 1024)) {
+          str_command_line_error(ec_cl_invalid_pch_size, opt_arg);
+        }  /* if */
+        if (pch_mem_size > (SIZE_OF_MEM_ALLOC_HISTORY *
                                                  HOST_ALLOCATION_INCREMENT)) {
           str_command_line_error(ec_cl_invalid_pch_size, opt_arg);
         }  /* if */
@@ -10813,7 +10827,7 @@ Process the arguments on the command line that invoked the compiler.
         goto enable_microsoft_mode;
       case optk_microsoft_version:
         /* The version of the Microsoft compiler being emulated. */
-        microsoft_version = scan_opt_arg_number(opt_arg);
+        scan_opt_arg_number(&microsoft_version, opt_arg);
         if (microsoft_version < 700 || microsoft_version > 3000) {
           str_command_line_error(ec_cl_invalid_microsoft_version, opt_arg);
         }  /* if */
@@ -10828,7 +10842,7 @@ Process the arguments on the command line that invoked the compiler.
         break;
       case optk_microsoft_build_number:
         /* The build number of the Microsoft compiler being emulated. */
-        microsoft_build_number = scan_opt_arg_number(opt_arg);
+        scan_opt_arg_number(&microsoft_build_number, opt_arg);
         opt_value = TRUE;
         goto enable_microsoft_mode;
       case optk_microsoft_mode:
@@ -11000,12 +11014,15 @@ enable_microsoft_mode:
            the member's type.  In effect, the pack alignment value is the
            maximum alignment permitted for a nonstatic data member.  This
            default value may be overridden by #pragma pack. */
-        if (!check_pack_alignment_value(
-                         (a_host_large_integer)scan_opt_arg_number(opt_arg),
-                         &default_max_member_alignment)) {
-          /* Invalid value. */
-          command_line_error(ec_bad_pack_alignment);
-        }  /* if */
+        { a_host_large_integer pack_alignment_arg;
+
+          scan_opt_arg_number(&pack_alignment_arg, opt_arg);
+          if (!check_pack_alignment_value(pack_alignment_arg,
+                                          &default_max_member_alignment)) {
+            /* Invalid value. */
+            command_line_error(ec_bad_pack_alignment);
+          }  /* if */
+        }
         break;
       case optk_alternative_tokens:
         /* Digraphs should or should not be allowed.  This also controls
@@ -11020,7 +11037,7 @@ enable_microsoft_mode:
      case optk_inline_statement_limit:
         /* The maximum number of (lowered) statements to allow in a routine
            that can be inlined. */
-        inline_statement_limit = scan_opt_arg_number(opt_arg);
+        scan_opt_arg_number(&inline_statement_limit, opt_arg);
         break;
 #endif /* MINIMAL_INLINING */
       case optk_SVR4_C_mode:
@@ -11180,7 +11197,7 @@ enable_microsoft_mode:
       case optk_pending_instantiations:
         /* The number of instantiations of a given template that may be in
            progress at any given time, or zero for an unlimited number. */
-        max_pending_instantiations = scan_opt_arg_number(opt_arg);
+        scan_opt_arg_number(&max_pending_instantiations, opt_arg);
         if (max_pending_instantiations == 0) {
           max_pending_instantiations = ULONG_MAX;
         }  /* if */
@@ -11363,7 +11380,7 @@ enable_microsoft_mode:
            without one of the options --gcc, --no_gcc, --g++, or --no_g++,
            then --gcc is implied if --c is specified, and --g++ is implied
            otherwise. */
-        gnu_version = scan_opt_arg_number(opt_arg);
+        scan_opt_arg_number(&gnu_version, opt_arg);
         gnu_mode = TRUE;
         if (gnu_version < MIN_GNU_VERSION || gnu_version > 999999) {
           str_command_line_error(ec_cl_invalid_gnu_version, opt_arg);
@@ -11377,7 +11394,7 @@ enable_microsoft_mode:
            check_dialect_and_language_modes as a consequence of
            optk_clang_version having been used.  Just set the version and
            the dialect flag here. */
-        clang_version = scan_opt_arg_number(opt_arg);
+        scan_opt_arg_number(&clang_version, opt_arg);
         clang_mode = TRUE;
         if (clang_version > 999999) {
           str_command_line_error(ec_cl_invalid_clang_version, opt_arg);
@@ -11408,7 +11425,7 @@ enable_microsoft_mode:
       case optk_context_limit:
         /* Specify the maximum number of instantiation contexts that should be
            displayed as part of a diagnostic message. */
-        context_limit = (int)scan_opt_arg_number(opt_arg);
+        scan_opt_arg_number(&context_limit, opt_arg);
         /* The smallest allowed value is 2.  If 1 is specified, use 2
            instead.  A value of zero is permitted and is interpreted as
            no limit. */
@@ -11435,7 +11452,7 @@ enable_microsoft_mode:
         break;
       case optk_upc_threads:
         /* Set the number of UPC threads at compile time. */
-        upc_num_threads = scan_opt_arg_number(opt_arg);
+        scan_opt_arg_number(&upc_num_threads, opt_arg);
         break;
 #endif /* UPC_EXTENSIONS_ALLOWED */
 #if FIXED_POINT_ALLOWED
@@ -11704,10 +11721,10 @@ enable_microsoft_mode:
         unrestricted_unions_enabled = opt_value;
         break;
       case optk_max_depth_constexpr_call:
-        max_depth_constexpr_call = scan_opt_arg_number(opt_arg);
+        scan_opt_arg_number(&max_depth_constexpr_call, opt_arg);
         break;
       case optk_max_cost_constexpr_call:
-        max_cost_constexpr_call = scan_opt_arg_number(opt_arg);
+        scan_opt_arg_number(&max_cost_constexpr_call, opt_arg);
         break;
       case optk_delegating_constructors:
         delegating_constructors_enabled = opt_value;

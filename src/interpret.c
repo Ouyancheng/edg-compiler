@@ -333,7 +333,7 @@ The complete object flag values.
   (*((a_byte*)obj-sizeof(a_type_ptr)-1) |= flag)
 
 #define clear_complete_obj_flag(obj, flag)                                   \
-  (*((a_byte*)obj-sizeof(a_type_ptr)-1) &= ~flag)
+  (*((a_byte*)obj-sizeof(a_type_ptr)-1) &= (a_byte)~flag)
 
 #define complete_obj_flag(obj, flag)                                         \
   ((*((a_byte*)(obj)-sizeof(a_type_ptr)-1) & flag) != 0)
@@ -539,10 +539,10 @@ static void release_data_map_table(a_data_map  *map)
 Release the storage for the given map's table.
 */
 {
-  a_map_index       mask = map->hash_mask;
-  a_map_index       n_slots = mask+1;
-  a_byte_count      size = (a_byte_count)(n_slots*sizeof(a_data_map_entry));
-  unsigned long     mask_width = count_ones(mask);
+  a_map_index  mask = map->hash_mask;
+  a_map_index  n_slots = mask+1;
+  a_byte_count size = (a_byte_count)(n_slots*sizeof(a_data_map_entry));
+  size_t       mask_width = count_ones(mask);
 
   if (mask_width > MAX_WIDTH_REUSABLE_TABLE) {
     free_general(map->table, size);
@@ -1002,7 +1002,7 @@ Release the storage for the given set's table.
   a_live_set_index  mask = set->hash_mask;
   a_live_set_index  n_slots = mask+1;
   a_byte_count      size = (a_byte_count)(n_slots*sizeof(an_alloc_seq_number));
-  unsigned long     mask_width = count_ones(mask);
+  size_t            mask_width = count_ones(mask);
 
   if (mask_width > MAX_WIDTH_REUSABLE_TABLE) {
     free_general(set->table, size);
@@ -1028,7 +1028,7 @@ Double the number of entries in the given set.  This requires rehashing.
   a_byte_count         old_size = (a_byte_count)
                                          (n_slots*sizeof(an_alloc_seq_number));
   a_byte_count         new_size = 2*old_size;
-  unsigned long        new_width = count_ones(mask)+1, old_width;
+  size_t               new_width = count_ones(mask)+1, old_width;
 
   if (new_width > MAX_WIDTH_REUSABLE_TABLE) {
     new_table = (an_alloc_seq_number*)alloc_general(new_size);
@@ -1071,7 +1071,7 @@ the set already.)
 {                                                                            \
   uintptr_t            hash = hash_alloc_seq_number(alloc_seq);              \
   a_live_set_index     mask = (set)->hash_mask;                              \
-  a_live_set_index     idx = hash & mask;                                    \
+  a_live_set_index     idx = (a_live_set_index)(hash & mask);                \
   an_alloc_seq_number  *table = (set)->table;                                \
   if (table[idx] == 0) {                                                     \
     table[idx] = (alloc_seq);                                                \
@@ -1116,7 +1116,7 @@ at idx.
 {                                                                            \
   uintptr_t            hash = hash_alloc_seq_number(alloc_seq);              \
   a_live_set_index     mask = (set)->hash_mask;                              \
-  a_live_set_index     idx = hash & mask;                                    \
+  a_live_set_index     idx = (a_live_set_index)(hash & mask);                \
   an_alloc_seq_number  *table = (set)->table;                                \
   /* Find the item to delete (we're assuming it exists). */                  \
   while (table[idx] != (alloc_seq)) {                                        \
@@ -1430,7 +1430,7 @@ Initialize stack storage for the given storage stack.
   a_byte        *new_block;
   a_byte_count  ptr_size = sizeof(a_byte*);
 
-  do_host_alignment(ptr_size);
+  do_host_alignment(&ptr_size);
   if (free_stack_blocks == NULL) {
     new_block = (a_byte*)alloc_fe(CONSTEXPR_STACK_BLOCK_SIZE);
   } else {
@@ -1483,7 +1483,7 @@ Release the storage stack pointed to by sss for reuse.
          blocks to those about to be freed. */
       a_byte        *block, *next_block;
       a_byte_count  ptr_size = sizeof(a_byte*);
-      do_host_alignment(ptr_size);
+      do_host_alignment(&ptr_size);
       for (block = first_block; ; block = next_block) {
         next_block = *(a_byte**)(block+ptr_size);
         if (next_block == NULL) break;
@@ -1533,7 +1533,7 @@ Add a block of storage (to parcel out) to the given storage stack.
   a_byte_count  ptr_size = sizeof(a_byte*);
   a_byte        *next_block;
 
-  do_host_alignment(ptr_size);
+  do_host_alignment(&ptr_size);
   /* Record the current stack top in the bookkeeping section. */
   *(a_byte**)(sss->curr_block+2*ptr_size) = sss->top; /*lint !e679*/
   next_block = *(a_byte**)(sss->curr_block+ptr_size);
@@ -1559,7 +1559,7 @@ a previously saved stack state.
       a_byte        *large_block;                                            \
       a_byte_count  hdr_size = sizeof(a_large_block_header), block_size;     \
       check_assertion(n_bytes <= MAX_CONSTEXPR_TYPE_SIZE);                   \
-      do_host_alignment(hdr_size);                                           \
+      do_host_alignment(&hdr_size);                                           \
       block_size = hdr_size+(n_bytes);                                       \
       large_block = (a_byte*)alloc_general(block_size);                      \
       ((a_large_block_header*)large_block)->prev_large_block =               \
@@ -1571,7 +1571,7 @@ a previously saved stack state.
       (storage_ptr) = large_block+hdr_size;                                  \
     } else {                                                                 \
       a_byte_count  size = (n_bytes);                                        \
-      do_host_alignment(size);                                               \
+      do_host_alignment(&size);                                               \
       if (size > stack_bytes_left(sss)) {                                    \
         add_storage_stack_block(sss);                                        \
       }  /* if */                                                            \
@@ -1728,7 +1728,7 @@ given data map.
 {                                                                            \
   uintptr_t         hash = hash_ptr(iptr);                                   \
   a_map_index       msk = (map)->hash_mask;                                  \
-  a_map_index       i = hash & msk;                                          \
+  a_map_index       i = (a_map_index)(hash & msk);                           \
   a_data_map_entry  *tbl = (map)->table;                                     \
   for (;;) {                                                                 \
     a_byte  *tptr = tbl[i].ptr;                                              \
@@ -1753,7 +1753,7 @@ from a given data map.
 {                                                                            \
   uintptr_t         hash = hash_ptr(iptr);                                   \
   a_map_index       mask = (map)->hash_mask;                                 \
-  a_map_index       idx = hash & mask;                                       \
+  a_map_index       idx = (a_map_index)(hash & mask);                        \
   a_data_map_entry  *table = (map)->table;                                   \
   for (;;) {                                                                 \
     a_byte  *tptr = table[idx].ptr;                                          \
@@ -1814,7 +1814,7 @@ Double the number of entries in the given map.  This requires rehashing.
   a_byte_count      old_size =
                               (a_byte_count)(n_slots*sizeof(a_data_map_entry));
   a_byte_count      new_size = 2*old_size;
-  unsigned long     new_width = count_ones(mask)+1, old_width;
+  size_t            new_width = count_ones(mask)+1, old_width;
 
   if (new_width > MAX_WIDTH_REUSABLE_TABLE) {
     new_table = (a_data_map_entry*)alloc_general(new_size);
@@ -1830,7 +1830,7 @@ Double the number of entries in the given map.  This requires rehashing.
   for (k = 0; k<n_slots; ++k) {
     a_byte  *ptr = old_table[k].ptr;
     if (ptr != NULL) {
-      a_map_index  idx = hash_ptr(ptr) & mask;
+      a_map_index  idx = (a_map_index)(hash_ptr(ptr) & mask);
       while (new_table[idx].ptr != NULL) {
         idx = (idx+1) & mask;
       }  /* while */
@@ -1887,7 +1887,7 @@ may not be in the map already.
 {                                                                            \
   uintptr_t    hash = hash_ptr(iptr);                                        \
   a_map_index  mask = (map)->hash_mask;                                      \
-  a_map_index  idx = hash & mask;                                            \
+  a_map_index  idx = (a_map_index)(hash & mask);                             \
   a_data_map_entry  *table = (map)->table;                                   \
   check_traced_iptr(iptr, "mapped");                                         \
   if (table[idx].ptr == NULL) {                                              \
@@ -1910,7 +1910,8 @@ may not be in the map already.
 {                                                                            \
   uintptr_t         hash = hash_ptr(iptr);                                   \
   a_map_index       mask = (map)->hash_mask;                                 \
-  a_map_index       idx = hash & mask, idx0 = idx;                           \
+  a_map_index       idx = (a_map_index)(hash & mask);                        \
+  a_map_index       idx0 = idx;                                              \
   a_data_map_entry  *table = (map)->table;                                   \
   a_byte            *ptr = table[idx].ptr;                                   \
   check_traced_iptr(iptr, "mapped or replaced");                             \
@@ -1956,7 +1957,7 @@ the table).
 {                                                                            \
   uintptr_t         hash = hash_ptr(iptr);                                   \
   a_map_index       mask = (map)->hash_mask;                                 \
-  a_map_index       idx = hash & mask;                                       \
+  a_map_index       idx = (a_map_index)(hash & mask);                        \
   a_data_map_entry  *table = (map)->table;                                   \
   a_byte            *ptr = table[idx].ptr;                                   \
   check_traced_iptr(iptr, "replaced");                                       \
@@ -1979,7 +1980,7 @@ Macro to add a (pointer, byte-count) entry to a data map.
 {                                                                            \
   uintptr_t    hash = hash_ptr(iptr);                                        \
   a_map_index  mask = (map)->hash_mask;                                      \
-  a_map_index  idx = hash & mask;                                            \
+  a_map_index  idx = (a_map_index)(hash & mask);                             \
   a_data_map_entry  *table = (map)->table;                                   \
   a_byte            *cached_ptr = table[idx].ptr;                            \
   check_traced_iptr(iptr, "mapped (bytecount)");                             \
@@ -2037,7 +2038,7 @@ location.
 {                                                                            \
   uintptr_t         hash = hash_ptr(iptr);                                   \
   a_map_index       mask = (map)->hash_mask;                                 \
-  a_map_index       idx = hash & mask;                                       \
+  a_map_index       idx = (a_map_index)(hash & mask);                        \
   a_data_map_entry  *table = (map)->table;                                   \
   check_traced_iptr(iptr, "UNmapped");                                       \
   /* Find the item to delete (we're assuming it exists). */                  \
@@ -2078,7 +2079,7 @@ we know that the subsequent slot is not empty.
   rptr = table[idx].ptr;
   for (;;) {
     for (;;) {
-      ridx = hash_ptr(rptr) & mask;
+      ridx = (a_map_index)(hash_ptr(rptr) & mask);
       /* See if we can move the entry at idx to idx0.  ridx is its "ideal"
          slot: the place from where probing will start.  So we cannot move it
          ahead of there.  I.e., if idx0 lies outside [ridx, idx-1] (considering
@@ -2921,7 +2922,7 @@ redo:
              four integer values of various sizes, we compute a matching
              size. */
           result = sizeof(a_type_ptr);
-          do_host_alignment(result);
+          do_host_alignment(&result);
           result += 4*sizeof(an_integer_value);
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
         } else {
@@ -3074,7 +3075,7 @@ interpreter's limits; in that case, *p_result is set to FALSE.
       /* Ignore fields generated by prelowering. */
       continue;
     }  /* if */
-    do_host_alignment(total_size);
+    do_host_alignment(&total_size);
     map_byte_count(&persistent_map, fp, total_size);
     if (tp->variant.class_struct_union.contains_flexible_array_member &&
         type_is(fp->type, tk_array) && (gnu_mode && !clang_mode)) {
@@ -3082,7 +3083,7 @@ interpreter's limits; in that case, *p_result is set to FALSE.
          but Clang does not.  Treat this as a zero-length field. */
       continue;
     }  /* if */
-    total_size += value_bytes_for_type(ips, fp->type, p_result);
+    total_size += (a_byte_count)value_bytes_for_type(ips, fp->type, p_result);
     if (total_size > MAX_CONSTEXPR_TYPE_SIZE) {
       if (*p_result) {
         info_with_pos_type(ec_constexpr_type_too_large, type_pos(tp, ips), tp,
@@ -3098,7 +3099,7 @@ interpreter's limits; in that case, *p_result is set to FALSE.
     if (bcp->direct && !bcp->is_virtual) {
       a_byte_count  size_without_virtual_bases;
       a_type_ptr    btp = bcp->type;
-      do_host_alignment(total_size);
+      do_host_alignment(&total_size);
       map_byte_count(&persistent_map, bcp, total_size);
       (void)value_bytes_for_type(ips, btp, p_result);
       if (!*p_result) {
@@ -3126,9 +3127,10 @@ interpreter's limits; in that case, *p_result is set to FALSE.
     /* Allocate virtual base classes. */
     for (bcp = bases; bcp != NULL; bcp = bcp->next) {
       if (bcp->is_virtual) {
-        do_host_alignment(total_size);
+        do_host_alignment(&total_size);
         map_byte_count(&persistent_map, bcp, total_size);
-        total_size += value_bytes_for_type(ips, bcp->type, p_result);
+        total_size += (a_byte_count)value_bytes_for_type(ips, bcp->type,
+                                                         p_result);
         if (total_size > MAX_CONSTEXPR_TYPE_SIZE) {
           if (*p_result) {
             info_with_pos_type(ec_constexpr_type_too_large, type_pos(tp, ips),
@@ -3141,7 +3143,7 @@ interpreter's limits; in that case, *p_result is set to FALSE.
       }  /* if */
     }  /* for */
   }  /* if */
-  do_host_alignment(total_size);
+  do_host_alignment(&total_size);
 done:
   map_byte_count(&persistent_map, tp, total_size);
   return total_size;
@@ -3164,7 +3166,7 @@ exceeds the interpreter's limits; in that case, *p_result is set to FALSE.
   /* Determine the size of the prefix indicating which field is active (NULL if
      none). */
   prefix_size += sizeof(a_field_ptr);
-  do_host_alignment(prefix_size);
+  do_host_alignment(&prefix_size);
   /* Determine the size of the largest field and record the field offsets. */
   for (fp = fields_of(tp); fp != NULL; fp = fp->next) {
     a_byte_count  field_size = value_bytes_for_type(ips, fp->type, p_result);
@@ -3176,7 +3178,7 @@ exceeds the interpreter's limits; in that case, *p_result is set to FALSE.
     if (field_size > max_field_size) max_field_size = field_size;
   }  /* for */
   total_size = prefix_size+max_field_size;
-  do_host_alignment(total_size);
+  do_host_alignment(&total_size);
   if (total_size >= MAX_CONSTEXPR_TYPE_SIZE) {
     info_with_pos_type(ec_constexpr_type_too_large, type_pos(tp, ips), tp,
                        ips);
@@ -3218,7 +3220,7 @@ the end" of a field subobject, that field is returned.
     a_byte_count      offset = (a_byte_count)(cap->address - parent_address),
                       sub_offset, type_size;
     sub_offset = sizeof(a_type_ptr);
-    do_host_alignment(sub_offset);
+    do_host_alignment(&sub_offset);
     /* First search through the fields. */
     if (last_fp == NULL) {
       /* There are no allocated fields: Look among the base classes. */
@@ -3443,7 +3445,7 @@ that type.
     bitmap_size = 0;                                                         \
   }  /* if */                                                                \
   prefix_size = 1+sizeof(a_type_ptr)+bitmap_size;                            \
-  do_host_alignment(prefix_size);                                            \
+  do_host_alignment(&prefix_size);                                            \
 }
 
 
@@ -3489,7 +3491,7 @@ area.  The static storage is zeroed.
   data_size = value_bytes_for_type(ips, utp, p_result);                      \
   if (*p_result) {                                                           \
     compute_prefix_size_for_type(utp, data_size, prefix_size);               \
-    do_host_alignment(data_size);                                            \
+    do_host_alignment(&data_size);                                            \
     total_size = prefix_size+data_size+sizeof(a_var_postfix);                \
     alloc_static_bytes(ips, total_size, ptr);                                \
     memzero((char*)ptr, size_t_arg(total_size));                             \
@@ -3601,7 +3603,7 @@ indicated subobject and all its subobject as initialized.
     while (n_bytes != 0) {
       if (bit_pos == 0 && n_bytes >= CHAR_BIT) {
         /* Mark a whole byte at a time. */
-        complete_obj[-(int)byte_pos] = ~(a_byte)0;
+        complete_obj[-(int)byte_pos] = (a_byte)~0;
         byte_pos += 1;
         n_bytes -= CHAR_BIT;
       } else {
@@ -4130,7 +4132,7 @@ Display the indicated variant path.
 
 
 static void db_addr(a_constexpr_address  *cap,
-                    int                  indent)
+                    size_t               indent)
 /*
 Output the given interpreter address.  Indent the output with the given number
 of whitespace characters.
@@ -4162,8 +4164,8 @@ static void db_object(a_byte      *addr,
 Output the contents of the interpreted object of type tp stored at addr.
 */
 {
-  a_boolean         not_initialized = FALSE;
-  STATIC_THREAD int indent = 0;
+  a_boolean            not_initialized = FALSE;
+  STATIC_THREAD size_t indent = 0;
 
   db_indent(indent);
   if (complete_object == NULL) {
@@ -4586,7 +4588,7 @@ is responsible for ensuring that there are such entries.
   vpep->next = free_variant_path_entries;
   free_variant_path_entries = entries;
   n_free_variant_path_entries += n_freed;
-  addr->flags &= ~CA_VARIANT_PATH;
+  addr->flags &= (unsigned char)~CA_VARIANT_PATH;
   addr->variant.base_address = entries->base_address;
 }  /* release_variant_path */
 
@@ -4704,7 +4706,7 @@ TRUE in that case.
       a_byte_count  offset = sizeof(a_type_ptr);
       /* If the newly-active field is a class type, make sure its derivation
          pointer (or its own active field pointer) is cleared. */
-      do_host_alignment(offset);
+      do_host_alignment(&offset);
       if (addr->address == (a_byte*)p_active_field+offset) {
         a_type_ptr  new_ftp = skip_typerefs(selected_field->type);
         mark_complete_class_object_if_needed(new_ftp, addr->address);
@@ -4950,6 +4952,11 @@ variant path.
       a_targ_ptrdiff_t  signed_offset;
       array_size = value_bytes_for_type(ips, obj_type, &result); 
       if (type_is(obj_type, tk_array)) {
+        /* To suppress compiler warnings about data truncation, explicitly
+           truncate to the appropriate bitwidth. */
+        constexpr unsigned long long array_length_bitmask =
+                                        bitmask_of_width<ARRAY_LENGTH_WIDTH>();
+
         do {
           obj_type = skip_typerefs(obj_type->variant.array.element_type);
         } while (type_is(obj_type, tk_array));
@@ -4957,7 +4964,7 @@ variant path.
         cap->flags |= CA_ARRAY_ELEMENT;
         check_assertion(elem_size != 0);
         array_length = array_size/elem_size;
-        cap->length = array_length;
+        cap->length = array_length & array_length_bitmask;
         if (is_variant_path(cap)) {
           cap->variant.variant_path->base_address = cap->address;
         } else {
@@ -5006,7 +5013,7 @@ variant path.
         i_offset += incr;
         obj_type = bcp_step->type;
       }  /* for */
-      cap->flags &= ~CA_ARRAY_ELEMENT;
+      cap->flags &= (unsigned char)(~CA_ARRAY_ELEMENT);
     } else {
       a_field_ptr  fp = spp->variant.field;
       if (type_is(obj_type, tk_union)) {
@@ -5038,7 +5045,7 @@ variant path.
       }  /* if */
       get_mapped_byte_count(&persistent_map, fp, i_offset);
       obj_type = skip_typerefs(fp->type);
-      cap->flags &= ~CA_ARRAY_ELEMENT;
+      cap->flags &= (unsigned char)~CA_ARRAY_ELEMENT;
     }  /* if */
     cap->address += i_offset;
   }  /* for */
@@ -5047,9 +5054,14 @@ variant path.
        Set the CA_ARRAY_ELEMENT flag in the latter case. */
     a_type_ptr  con_addr_type = type_pointed_to(con->type);
     if (!identical_types(obj_type, con_addr_type)) {
+      /* To suppress compiler warnings about data truncation, explicitly
+         truncate to the appropriate bitwidth. */
+      constexpr unsigned long long array_length_bitmask =
+                                        bitmask_of_width<ARRAY_LENGTH_WIDTH>();
       cap->flags |= CA_ARRAY_ELEMENT;
       cap->length =
-             (unsigned int)obj_type->variant.array.variant.number_of_elements;
+            ((unsigned int)obj_type->variant.array.variant.number_of_elements &
+             array_length_bitmask);
       if (is_variant_path(cap)) {
         cap->variant.variant_path->base_address = cap->address;
       } else {
@@ -5100,7 +5112,7 @@ source address of certain nested lambda captures.
   a_byte_count   with_postfix_bytes;
   a_var_postfix  *postfix;
 
-  do_host_alignment(this_n_bytes);
+  do_host_alignment(&this_n_bytes);
   with_postfix_bytes = this_n_bytes+sizeof(a_var_postfix);
   alloc_complete_object(ips, with_postfix_bytes, generic_ptr_type, this_bytes);
   clear_address(this_bytes, object);
@@ -5648,7 +5660,7 @@ END_DISABLE_GCC_WARNING_STR_OVERFLOW
                               (a_host_large_integer)char_val);
             if (int_type_is_signed(etp)) {
               sign_extend_integer_value((an_integer_value*)value,
-                                        (int)(etp->size * targ_char_bit));
+                                        etp->size * targ_char_bit);
             }  /* if */
             char_ptr += char_size;
           }  /* if */
@@ -6273,7 +6285,7 @@ be removed.
        and previous storage pointer (if any) right after the object. */
     a_byte_count   with_postfix_bytes;
     a_var_postfix  *postfix;
-    do_host_alignment(n_bytes);
+    do_host_alignment(&n_bytes);
     with_postfix_bytes = n_bytes+sizeof(a_var_postfix);
     alloc_complete_object(ips, with_postfix_bytes, vtp, var_storage);
     postfix = (a_var_postfix*)(var_storage+n_bytes);
@@ -6302,7 +6314,7 @@ activations of the given variable.
   a_byte        *var_storage;
 
   get_mapped_ptr(&ips->map, vp, var_storage);
-  do_host_alignment(n_bytes);
+  do_host_alignment(&n_bytes);
   for (int k = 0; var_storage != NULL; ++k) {
     a_var_postfix  *postfix;
     postfix = (a_var_postfix*)(var_storage+n_bytes);
@@ -6329,7 +6341,7 @@ mapping if there was one.
     a_type_ptr     vtp = skip_typerefs(vp->type);
     a_byte_count   n_bytes = value_bytes_for_type(ips, vtp, &result);
     a_var_postfix  *postfix;
-    do_host_alignment(n_bytes);
+    do_host_alignment(&n_bytes);
     postfix = (a_var_postfix*)(var_storage+n_bytes);
     if (postfix->alloc_seq_number < ips->curr_call_frame->entry_seq_number) {
       /* The current activation precedes the current call frame.  In other
@@ -6405,10 +6417,15 @@ accordingly.  Associate diagnostics with the given position.
     } while (elem_type->kind == (a_type_kind)tk_array);
     elem_size = value_bytes_for_type(ips, elem_type, &result);
     if (!result) goto done;
+
+    /* To suppress compiler warnings about data truncation, explicitly
+       truncate to the appropriate bitwidth. */
+    constexpr unsigned long long array_length_bitmask =
+                                        bitmask_of_width<ARRAY_LENGTH_WIDTH>();
     /* Decay src_addr from the address of the array to the address of its
        first element. */
     src_addr->flags |= CA_ARRAY_ELEMENT;
-    src_addr->length = (unsigned int)length;
+    src_addr->length = ((unsigned int)length) & array_length_bitmask;
     if (is_variant_path(src_addr)) {
       src_addr->variant.variant_path->base_address = src_addr->address;
     } else {
@@ -6647,7 +6664,7 @@ otherwise, this routine will look up that storage in ips->map.
       a_byte_count         var_size = value_bytes_for_type(ips, tp, &result);
       a_var_postfix        *postfix;
       a_constexpr_address  dst_addr;
-      do_host_alignment(var_size);
+      do_host_alignment(&var_size);
       postfix = (a_var_postfix*)(storage+var_size);
       set_active_address(ips, &dst_addr, storage, storage);
       dst_addr.alloc_seq_number = postfix->alloc_seq_number;
@@ -8056,7 +8073,7 @@ __builtin_bit_cast.
     do_constexpr_fail(result);
   } else {
     a_type_ptr  tp = skip_typerefs(type);
-    a_byte      all_bits_on = ~(a_byte)0;
+    a_byte      all_bits_on = (a_byte)~0;
     switch (tp->kind) {
       case tk_error:
         ips->input_error = TRUE;
@@ -8085,7 +8102,7 @@ __builtin_bit_cast.
                    byte = (int_val & (0xff << bit_shift)) >> bit_shift;
                (assuming all_bits_on == 0xff). */
             set_unsigned_integer_value(&byte_val,
-                                       (a_host_large_integer)all_bits_on);
+                                       (a_host_large_unsigned)all_bits_on);
             shift_left_integer_value(&byte_val, bit_shift, &ovfl);
             check_assertion(!ovfl);
             and_integer_values(&byte_val, &int_val);
@@ -9257,11 +9274,17 @@ any problems are encountered, the pointee of p_result will be set to FALSE.
     }  /* if */
   }  /* if */
   if (result) {
+    /* To suppress compiler warnings about data truncation, explicitly
+       truncate to the appropriate bitwidth. */
+    constexpr unsigned long long array_length_bitmask =
+                                        bitmask_of_width<ARRAY_LENGTH_WIDTH>();
+
     /* Return the result. */
     clear_address(result_storage, string_bytes);
     ((a_constexpr_address*)result_storage)->flags |=
                                            CA_CONST_STORAGE | CA_ARRAY_ELEMENT;
-    ((a_constexpr_address*)result_storage)->length = length;
+    ((a_constexpr_address*)result_storage)->length = (length &
+                                                      array_length_bitmask);
   } else {
     *p_result = FALSE;
   }  /* if */
@@ -9998,7 +10021,7 @@ to FALSE and the reason for the failure is recorded in *ips.
               length_val = MAX_CONSTEXPR_TYPE_SIZE+1;
             }  /* if */
             if (is_wide) {
-              length_val *= wchar_t_type()->size;
+              length_val *= (a_host_large_integer)wchar_t_type()->size;
             }  /* if */
             if (!do_constexpr_memcpy(ips, is_move,
                                      (a_constexpr_address*)arg2_bytes,
@@ -10387,7 +10410,7 @@ the length of the given sequence of reflections.
   {
     a_reflection_value  *rvp = (a_reflection_value*)cap->address;
     a_byte              *array = cap->complete_object;
-    for (int k = 0; k<(int)length; ++k, ++rvp) {
+    for (size_t k = 0; k < length; ++k, ++rvp) {
       *rvp = (*reflections)[k];
       mark_subobject_initialized((a_byte*)rvp, array);
     }  /* if */
@@ -12794,7 +12817,7 @@ string_view object referring to that static array.
     a_byte_count      n_bytes = (length+1)*sizeof(an_integer_value),
                       prefix_size, k;
     prefix_size = 1+sizeof(a_type_ptr)+compute_bitmap_size(n_bytes);
-    do_host_alignment(prefix_size);
+    do_host_alignment(&prefix_size);
     n_bytes += prefix_size;
     alloc_bytes(&persistent_data, n_bytes, chars);
     chars += prefix_size;
@@ -12821,10 +12844,16 @@ string_view object referring to that static array.
     a_byte_count  offset;
     get_mapped_byte_count(&persistent_map, fp, offset);
     if (type_is(ftp, tk_pointer) && !ptr_done) {
+      /* To suppress compiler warnings about data truncation, explicitly
+         truncate to the appropriate bitwidth. */
+      constexpr unsigned long long
+                           array_length_bitmask =
+                                      bitmask_of_width<ARRAY_LENGTH_WIDTH>();
       a_constexpr_address  *cap = (a_constexpr_address*)(subobj+offset);
+
       clear_address(cap, chars);
       cap->flags = CA_ARRAY_ELEMENT | CA_CONST_STORAGE;
-      cap->length = length+1;
+      cap->length = (length + 1) & array_length_bitmask;
       cap->variant.base_address = chars;
       mark_subobject_initialized(subobj+offset, complete_obj);
       ptr_done = TRUE;
@@ -13795,7 +13824,7 @@ See do_constexpr_intrinsic_call for the meaning of the parameters.
   Dyn_array<a_meta_field_descr>
                 field_descrs(0);
   a_type_ptr    callee_type = skip_typerefs(callee->type), class_type;
-  int           n_fields;
+  size_t        n_fields;
   a_param_type_ptr
                 ptp;
 
@@ -13840,7 +13869,7 @@ See do_constexpr_intrinsic_call for the meaning of the parameters.
       info_with_pos(ec_integer_overflow, &call_node->position, ips);
       goto done;
     }  /* if */
-    n_fields = (int)val;
+    n_fields = (size_t)val;
     field_descrs.reserve(n_fields);
   }
   { /* Load the array pointed to by the third argument. */
@@ -13891,7 +13920,7 @@ See do_constexpr_intrinsic_call for the meaning of the parameters.
       goto done;
     }  /* if */
     get_mapped_byte_count(&persistent_map, fp, bit_width_offset);
-    for (int k = 0; k<n_fields; ++k, subobj += descr_size) {
+    for (size_t k = 0; k < n_fields; ++k, subobj += descr_size) {
       a_meta_field_descr   fd = {};
       a_byte_count         name_length;
       a_reflection_value   *ftr = (a_reflection_value*)(subobj+type_offset);
@@ -15398,15 +15427,15 @@ elements in *p_elem_size.
     goto done;
   }  /* if */
   total_size = alloc_length*elem_size;
-  do_host_alignment(total_size);
+  do_host_alignment(&total_size);
   prefix_size = sizeof(a_constexpr_allocation);
-  do_host_alignment(prefix_size);
+  do_host_alignment(&prefix_size);
   header_size = prefix_size;
   /* Add the size of the bookkeeping prefix as if this were an array (see also
      compute_prefix_size_for_type). */
   bitmap_size = compute_bitmap_size(total_size);
-  prefix_size += bitmap_size+1+sizeof(a_type_ptr);
-  do_host_alignment(prefix_size);
+  prefix_size += (a_byte_count)(bitmap_size + 1 + sizeof(a_type_ptr));
+  do_host_alignment(&prefix_size);
   total_size += prefix_size;
   block = (a_byte*)malloc_for_interpreter(total_size);
   if (block == NULL) {
@@ -15435,8 +15464,13 @@ elements in *p_elem_size.
   cap->variant.base_address = cap->address;
   record_complete_object_type(orig_elem_tp, cap->complete_object);
   if (is_array) {
+    /* To suppress compiler warnings about data truncation, explicitly truncate
+       to the appropriate bitwidth. */
+    constexpr unsigned long long array_length_bitmask =
+                                        bitmask_of_width<ARRAY_LENGTH_WIDTH>();
+
     cap->flags |= CA_ARRAY_ELEMENT;
-    cap->length = orig_alloc_length;
+    cap->length = orig_alloc_length & array_length_bitmask;
     if (alloc_length == 0) {
       cap->flags |= CA_CANNOT_DEREFERENCE;
     }  /* if */
@@ -15667,7 +15701,7 @@ already-evaluated arguments of the call.
     goto done;
   }  /* if */
   total_size = (a_byte_count)(alloc_length*elem_size);
-  do_host_alignment(total_size);
+  do_host_alignment(&total_size);
   orig_data_size = allocation->total_size - allocation->prefix_size;
   if (total_size != orig_data_size) {
     info_with_pos_num2(ec_constexpr_bad_deallocation_size,
@@ -16146,7 +16180,7 @@ evaluated before pm() in C++17 mode).
       an_expr_node_ptr  selector_arg = callee_node->next;
       a_type_ptr        tp = skip_typerefs(selector_arg->type);
       a_byte_count      this_n_bytes = sizeof(a_constexpr_address);
-      do_host_alignment(this_n_bytes);
+      do_host_alignment(&this_n_bytes);
       alloc_complete_object(ips, this_n_bytes, generic_ptr_type,
                             *p_pre_evaluated_this_bytes);
       if (!eval_selector_arg(ips, selector_arg, tp,
@@ -16268,7 +16302,7 @@ update *ips accordingly.
     a_type_ptr           tp = skip_typerefs(selector_arg->type);
     a_byte_count         this_n_bytes = sizeof(a_constexpr_address);
     a_constexpr_address  *cap;
-    do_host_alignment(this_n_bytes);
+    do_host_alignment(&this_n_bytes);
     alloc_complete_object(ips, this_n_bytes, generic_ptr_type,
                           pre_evaluated_this_bytes);
     if (!eval_selector_arg(ips, selector_arg, tp,
@@ -16362,7 +16396,7 @@ update *ips accordingly.
       a_byte        *this_bytes;
       a_type_ptr    tp = skip_typerefs(arg->type);
       a_byte_count  this_n_bytes = sizeof(a_constexpr_address);
-      do_host_alignment(this_n_bytes);
+      do_host_alignment(&this_n_bytes);
       *arg_size = this_n_bytes;
       arg_size += 1;
       this_n_bytes += sizeof(a_var_postfix);
@@ -16414,7 +16448,7 @@ update *ips accordingly.
       if (!result) {
         goto done;
       }  /* if */
-      do_host_alignment(n_bytes);
+      do_host_alignment(&n_bytes);
       *arg_size = n_bytes;
       arg_size += 1;
       n_bytes += sizeof(a_var_postfix);
@@ -16931,7 +16965,7 @@ the body of the (constructor) function proper.
          a copy/move constructor, we know it is a constexpr address. */
       a_byte_count  n_bytes = sizeof(a_constexpr_address);
       a_byte        *arg_bytes;
-      do_host_alignment(n_bytes);
+      do_host_alignment(&n_bytes);
       *arg_size = n_bytes;
       arg_size += 1;
       n_bytes += sizeof(a_var_postfix);
@@ -16961,7 +16995,7 @@ the body of the (constructor) function proper.
       }  /* if */
       n_bytes = expr_result_size(ips, arg, tp, &result);
       if (!result) goto done;
-      do_host_alignment(n_bytes);
+      do_host_alignment(&n_bytes);
       *arg_size = n_bytes;
       arg_size += 1;
       n_bytes += sizeof(a_var_postfix);
@@ -17030,7 +17064,7 @@ the body of the (constructor) function proper.
       a_byte_count   this_n_bytes = sizeof(a_constexpr_address);
       a_byte_count   with_postfix_bytes;
       a_var_postfix  *postfix;
-      do_host_alignment(this_n_bytes);
+      do_host_alignment(&this_n_bytes);
       with_postfix_bytes = this_n_bytes+sizeof(a_var_postfix);
       alloc_complete_object(ips, with_postfix_bytes, this_type, this_bytes);
       *(a_constexpr_address*)this_bytes = *cap;
@@ -17395,7 +17429,7 @@ This is similar to do_constexpr_ctor.
        allocation sequence number value. */
     alloc_seq_number = ips->curr_alloc_seq_number++;
     add_to_live_set(&ips->live_set, alloc_seq_number);
-    do_host_alignment(this_n_bytes);
+    do_host_alignment(&this_n_bytes);
     with_postfix_bytes = this_n_bytes+sizeof(a_var_postfix);
     alloc_complete_object(ips, with_postfix_bytes, generic_ptr_type,
                           this_bytes);
@@ -17660,7 +17694,7 @@ return FALSE and record a diagnostic in *ips.
   if (!result) goto done;
   saved_permit_null_pointer_offsets = ips->permit_null_pointer_offsets;
   ips->permit_null_pointer_offsets = TRUE;
-  do_host_alignment(n_bytes);
+  do_host_alignment(&n_bytes);
   alloc_complete_object(ips, n_bytes, tp, opnd_bytes);
   if (do_constexpr_expression(ips, opnd1, opnd_bytes, opnd_bytes)) {
     if (type_is(tp, tk_pointer)) {
@@ -17715,7 +17749,7 @@ cannot be performed.  Used in the implementation of __builtin_bit_cast.
                        ips);
     do_constexpr_fail(result);
   } else {
-    a_byte  all_bits_on = ~(a_byte)0;
+    a_byte  all_bits_on = (a_byte)~0;
     tp = skip_typerefs(type);
     switch (tp->kind) {
       case tk_error:
@@ -17749,7 +17783,7 @@ cannot be performed.  Used in the implementation of __builtin_bit_cast.
             /* The code below effectively does this:
                  int_val |= byte << bit_shift;
             */
-            set_unsigned_integer_value(&byte_val, (a_host_large_integer)byte);
+            set_unsigned_integer_value(&byte_val, (a_host_large_unsigned)byte);
             shift_left_integer_value(&byte_val, bit_shift, &ovfl);
             if (ovfl) {
               info_with_pos_type(ec_constexpr_integer_overflow, &ips->position,
@@ -17760,8 +17794,7 @@ cannot be performed.  Used in the implementation of __builtin_bit_cast.
             or_integer_values(&int_val, &byte_val);
           }  /* for */
           if (int_type_is_signed(tp)) {
-            sign_extend_integer_value(&int_val,
-                                      (int)(tp->size * targ_char_bit));
+            sign_extend_integer_value(&int_val, tp->size * targ_char_bit);
           }  /* if */
           (void)memcpy(dest_storage, (a_byte*)&int_val, sizeof(int_val));
         }
@@ -17954,7 +17987,7 @@ complete_object).  Otherwise, return FALSE and record a diagnostic in *ips.
   if (result) {
     /* Interpret the source of the bit_cast into src_result_storage (which
        is in "interpreter" object format). */
-    do_host_alignment(n_bytes);
+    do_host_alignment(&n_bytes);
     alloc_complete_object(ips, n_bytes, src_type, src_result_storage);
     if (!do_constexpr_expression(ips, object, src_result_storage,
                                  src_result_storage)) {
@@ -18306,7 +18339,7 @@ last (eleventh) value.
       /* Accumulate a value from a hexadecimal digit string.  Stop after two
          digits if we're loading bytes. */
       while (isxdigit(*uuid_str)) {
-        host_val = host_val*16 + hexvalue(*uuid_str);
+        host_val = host_val*16 + hexvalue((unsigned char)*uuid_str);
         ++uuid_str;
         ++n_digits;
         if (n_digits == 2 && load_bytes) break;
@@ -18666,7 +18699,7 @@ interpreter context.
       if (ips->curr_call_frame == NULL) {
         constexpr_extend_lifetime(cap);
       }  /* if */
-      cap->flags &= ~CA_ARRAY_ELEMENT;
+      cap->flags &= (unsigned char)~CA_ARRAY_ELEMENT;
     }  /* if */
   }  /* if */
   return valid;
@@ -19275,7 +19308,7 @@ base subobject corresponding to baseward_bcp.
     subobj_type = bcp->type;
   }  /* for */
   cap->address = subobj;
-  cap->flags &= ~CA_ARRAY_ELEMENT;
+  cap->flags &= (unsigned char)~CA_ARRAY_ELEMENT;
 }  /* adjust_constexpr_address_for_base_class */
 
 
@@ -19373,7 +19406,8 @@ represented by an entry of type a_constant (ck_address or ck_integer).
             if (prev_bcp != NULL) {
               /* Undo the previous cast and find the corresponding baseward
                  base class in the most-derived type. */
-              new_con->variant.address.offset -= prev_bcp->offset;
+              new_con->variant.address.offset -=
+                                            (a_targ_ptrdiff_t)prev_bcp->offset;
               if (baseward_bcp->direct) {
                 /* This can only happen if baseward_bcp == prev_bcp, but we
                    we previously checked for the equal types case. */
@@ -19388,7 +19422,8 @@ represented by an entry of type a_constant (ck_address or ck_integer).
               }  /* if */
             }  /* if */
             spp->variant.base_class = baseward_bcp;
-            new_con->variant.address.offset += baseward_bcp->offset;
+            new_con->variant.address.offset +=
+                                        (a_targ_ptrdiff_t)baseward_bcp->offset;
           }  /* if */
         } else {
           a_base_class_ptr  new_bcp = NULL;
@@ -19419,7 +19454,8 @@ represented by an entry of type a_constant (ck_address or ck_integer).
           } else {
             a_base_class_derivation_ptr  bcdp = prev_bcp->derivation;
             /* Undo the previous cast offset. */
-            new_con->variant.address.offset -= prev_bcp->offset;
+            new_con->variant.address.offset -=
+                                            (a_targ_ptrdiff_t)prev_bcp->offset;
             if (type_is(tp, tk_void) ||
                 same_entities(tp, prev_bcp->derived_class)) {
               /* A cast to the most-derived class (either by casting to void*
@@ -19486,7 +19522,8 @@ represented by an entry of type a_constant (ck_address or ck_integer).
               }  /* if */
             }  /* if */
             spp->variant.base_class = new_bcp;
-            new_con->variant.address.offset += new_bcp->offset;
+            new_con->variant.address.offset +=
+                                             (a_targ_ptrdiff_t)new_bcp->offset;
           }  /* if */
         }  /* if */
         clear_runtime_constant_address(result_storage, new_con);
@@ -20127,7 +20164,7 @@ pointed to by complete_object).
       }  /* switch */
       if (is_signed) {
         sign_extend_integer_value((an_integer_value*)dst,
-                                  (int)(etp->size * targ_char_bit));
+                                  etp->size * targ_char_bit);
       } else {
         and_integer_values((an_integer_value*)dst,
                            &max_integer_value_of_kind[int_kind]);
@@ -20424,8 +20461,9 @@ the value representation of the integer value.
                        when converting an unsigned value to a signed value that
                        is no larger than the unsigned value (e.g.,
                        (int)(unsigned)-1 must be negative). */
-                    int  n_bits = (int)(min_val(opnd1_type->size, tp->size)
-                                                              *targ_char_bit);
+                    size_t n_bits = (min_val(opnd1_type->size, tp->size) *
+                                     targ_char_bit);
+
                     sign_extend_integer_value(r_int, n_bits);
                   }  /* if */
                 } else {
@@ -20758,7 +20796,7 @@ the value representation of the integer value.
               } else {
                 get_mapped_byte_count(&persistent_map, bcp, offset);
                 result_addr->address += offset;
-                result_addr->flags &= ~CA_ARRAY_ELEMENT;
+                result_addr->flags &= (unsigned char)~CA_ARRAY_ELEMENT;
               }  /* if */
               if (tp->kind == (a_type_kind)tk_pointer) {
                 *(a_constexpr_address*)result_storage = *result_addr;
@@ -20947,7 +20985,13 @@ the value representation of the integer value.
               }  /* if */
               length = opnd1_type->variant.array.variant.number_of_elements;
               if (length <= MAX_ARRAY_LENGTH) {
-                result_addr->length = (unsigned int)length;
+                /* To suppress compiler warnings about data truncation,
+                   explicitly truncate to the appropriate bitwidth. */
+                constexpr unsigned long long array_length_bitmask =
+                                        bitmask_of_width<ARRAY_LENGTH_WIDTH>();
+
+                result_addr->length = ((unsigned int)length &
+                                       array_length_bitmask);
                 if (is_variant_path(result_addr)) {
                   result_addr->variant.variant_path->base_address =
                                                          result_addr->address;
@@ -21109,11 +21153,12 @@ the value representation of the integer value.
               a_type  *setp = skip_typerefs(opnd1_type
                                                ->variant.vector.element_type),
                       *detp = skip_typerefs(tp->variant.vector.element_type);
-              int     k, len = tp->size/detp->size;
+              a_targ_size_t
+                      len = tp->size/detp->size;
               a_byte_count
                       sstep = value_bytes_for_type(ips, setp, &result),
                       dstep = value_bytes_for_type(ips, detp, &result);
-              for (k = 0; k<len; ++k) {
+              for (a_targ_size_t k = 0; k < len; ++k) {
                 a_boolean  bool_val;
                 if (check_boolean_condition(ips, src, expr, setp, &bool_val)) {
                   set_bool_value(!bool_val, dst);
@@ -21128,10 +21173,11 @@ the value representation of the integer value.
             break;
           case eok_vector_fill:
             /* Copy the operand to every slot of the result. */
-            { a_type_ptr  etp = skip_typerefs(tp->variant.vector.element_type);
-              int         k, len = tp->size/etp->size;
-              a_byte  *dst = result_storage;
-              for (k = 0; k<len; ++k) {
+            { a_type_ptr    etp =
+                                skip_typerefs(tp->variant.vector.element_type);
+              a_targ_size_t len = tp->size/etp->size;
+              a_byte        *dst = result_storage;
+              for (a_targ_size_t k = 0; k < len; ++k) {
                 (void)memcpy(dst, opnd1_value, opnd_n_bytes);
                 dst += opnd_n_bytes;
               }  /* for */
@@ -21413,7 +21459,7 @@ the value representation of the integer value.
                         ptr->address -= elem_size;
                       }  /* if */
                       if (pos == len) {
-                        ptr->flags &= ~CA_CANNOT_DEREFERENCE;
+                        ptr->flags &= (unsigned char)~CA_CANNOT_DEREFERENCE;
                       }  /* if */
                     }  /* if */
                   }  /* if */
@@ -21649,7 +21695,7 @@ the value representation of the integer value.
                       ptr->address -= elem_size;
                     }  /* if */
                     if (pos == len) {
-                      ptr->flags &= ~CA_CANNOT_DEREFERENCE;
+                      ptr->flags &= (unsigned char)~CA_CANNOT_DEREFERENCE;
                     }  /* if */
                   }  /* if */
                 }  /* if */
@@ -21985,7 +22031,8 @@ the value representation of the integer value.
                   if (pos+host_int_val == len) {
                     result_addr->flags |= CA_CANNOT_DEREFERENCE;
                   } else {
-                    result_addr->flags &= ~CA_CANNOT_DEREFERENCE;
+                    result_addr->flags &=
+                                         (unsigned char)~CA_CANNOT_DEREFERENCE;
                   }  /* if */
                 }  /* if */
               }  /* if */
@@ -22060,7 +22107,8 @@ the value representation of the integer value.
                   if (pos - host_int_val == len) {
                     result_addr->flags |= CA_CANNOT_DEREFERENCE;
                   } else {
-                    result_addr->flags &= ~CA_CANNOT_DEREFERENCE;
+                    result_addr->flags &=
+                                         (unsigned char)~CA_CANNOT_DEREFERENCE;
                   }  /* if */
                 }  /* if */
               }  /* if */
@@ -22180,7 +22228,7 @@ the value representation of the integer value.
                   }  /* if */
                   /* Sign-extend the result. */
                   sign_extend_integer_value((an_integer_value*)opnd1_value,
-                                            (int)(tp->size * targ_char_bit));
+                                            tp->size * targ_char_bit);
                 } else {
                   /* Discard overflowing bit. */
                   and_integer_values((an_integer_value*)opnd1_value,
@@ -24174,7 +24222,8 @@ the value representation of the integer value.
                       if (pos+host_int_val == len) {
                         ptr_val->flags |= CA_CANNOT_DEREFERENCE;
                       } else {
-                        ptr_val->flags &= ~CA_CANNOT_DEREFERENCE;
+                        ptr_val->flags &=
+                                         (unsigned char)~CA_CANNOT_DEREFERENCE;
                       }  /* if */
                     }  /* if */
                   }  /* if */
@@ -24252,7 +24301,7 @@ the value representation of the integer value.
                     if (pos - host_int_val == len) {
                       ptr_val->flags |= CA_CANNOT_DEREFERENCE;
                     } else {
-                      ptr_val->flags &= ~CA_CANNOT_DEREFERENCE;
+                      ptr_val->flags &= (unsigned char)~CA_CANNOT_DEREFERENCE;
                     }  /* if */
                   }  /* if */
                 }  /* if */
@@ -24457,7 +24506,8 @@ the value representation of the integer value.
                     if (pos+host_int_val == len) {
                       result_addr.flags |= CA_CANNOT_DEREFERENCE;
                     } else {
-                      result_addr.flags &= ~CA_CANNOT_DEREFERENCE;
+                      result_addr.flags &=
+                                         (unsigned char)~CA_CANNOT_DEREFERENCE;
                     }  /* if */
                     SET_result_val_from_operand_address(&result_addr);
                   }  /* if */
@@ -24469,13 +24519,14 @@ the value representation of the integer value.
           case eok_vector_subscript:
             /* The first operand is a vector (lvalue or rvalue), and the
                second operand is an integer. */
-            { int           len = opnd1_type->size/tp->size;
-              a_type_ptr    etp;
-              a_byte_count  esize;
+            { a_host_large_integer len =
+                           (a_host_large_integer)(opnd1_type->size / tp->size);
+              a_type_ptr           etp;
+              a_byte_count         esize;
               check_assertion(type_is(opnd1_type, tk_vector) &&
                               type_is(opnd2_type, tk_integer));
               get_int_val_from(opnd2_value, opnd2_type, host_int_val, ovfl);
-              if (host_int_val < 0 || (int)host_int_val >= len) {
+              if (host_int_val < 0 || host_int_val >= len) {
                 do_constexpr_fail(result);
                 info_with_pos_num2(ec_constexpr_out_of_bounds_array_access,
                                    &expr->position, (int32_t)host_int_val,
@@ -24489,7 +24540,7 @@ the value representation of the integer value.
                 a_constexpr_address
                              result_addr = *(a_constexpr_address*)opnd1_value;
                 result_addr.address += host_int_val*esize;
-                result_addr.flags &= ~CA_ARRAY_ELEMENT;
+                result_addr.flags &= (unsigned char)~CA_ARRAY_ELEMENT;
                 SET_result_val_from_operand_address(&result_addr);
               } else {
                 (void)memcpy(result_storage, opnd1_value+host_int_val*esize,
@@ -24595,17 +24646,24 @@ the value representation of the integer value.
                 }  /* if */
                 get_mapped_byte_count(&persistent_map, field, offset);
                 result_addr.address += offset;
-                result_addr.flags &= ~CA_ARRAY_ELEMENT;
+                result_addr.flags &= (unsigned char)~CA_ARRAY_ELEMENT;
                 if (field->is_bit_field) {
+                  /* To suppress compiler warnings about data truncation,
+                     explicitly truncate to the appropriate bitwidth. */
+                  constexpr unsigned long long array_length_bitmask =
+                                        bitmask_of_width<ARRAY_LENGTH_WIDTH>();
+
                   /* Record that the lvalue is that of a bit field.  The
                      length and signedness of the field are encoded in
                      result_addr.length. */
                   result_addr.flags |= CA_BIT_FIELD;
-                  result_addr.length = field->bit_size*2 +
-                                       field->bit_field_is_signed;
+                  result_addr.length =
+                                      ((unsigned)(field->bit_size * 2 +
+                                                  field->bit_field_is_signed) &
+                                       array_length_bitmask);
                 }  /* if */
                 if (field->is_mutable) {
-                  result_addr.flags &= ~CA_CONST_STORAGE;
+                  result_addr.flags &= (unsigned char)~CA_CONST_STORAGE;
                 } else if (is_const_qualified_type(field->type)) {
                   result_addr.flags |= CA_CONST_STORAGE;
                 }  /* if */
@@ -24705,18 +24763,25 @@ the value representation of the integer value.
                 } else {
                   get_mapped_byte_count(&persistent_map, field, offset);
                   result_addr.address += offset;
-                  result_addr.flags &= ~CA_ARRAY_ELEMENT;
+                  result_addr.flags &= (unsigned char)~CA_ARRAY_ELEMENT;
                   if (field->is_bit_field) {
+                    /* To suppress compiler warnings about data truncation,
+                       explicitly truncate to the appropriate bitwidth. */
+                    constexpr unsigned long long array_length_bitmask =
+                                        bitmask_of_width<ARRAY_LENGTH_WIDTH>();
+
                     /* Record that the lvalue is that of a bit field.  The
                        length and signedness of the field are encoded in
                        result_addr.length. */
                     result_addr.flags |= CA_BIT_FIELD;
-                    result_addr.length = field->bit_size*2 +
-                                         field->bit_field_is_signed;
+                    result_addr.length =
+                                      ((unsigned)(field->bit_size * 2 +
+                                                  field->bit_field_is_signed) &
+                                       array_length_bitmask);
                   }  /* if */
                 }  /* if */
                 if (field->is_mutable) {
-                  result_addr.flags &= ~CA_CONST_STORAGE;
+                  result_addr.flags &= (unsigned char)~CA_CONST_STORAGE;
                 } else if (is_const_qualified_type(field->type)) {
                   result_addr.flags |= CA_CONST_STORAGE;
                 }  /* if */
@@ -24932,7 +24997,7 @@ the value representation of the integer value.
             a_byte_count         obj_size;
             obj_size = value_bytes_for_type(ips, tp, &result);
             if (result) {
-              do_host_alignment(obj_size);
+              do_host_alignment(&obj_size);
               clear_address(result_storage, var_bytes);
               /* Record the allocation sequence number for this variable in
                  the address record. */
@@ -25086,10 +25151,16 @@ the value representation of the integer value.
             cap->flags |= CA_CONST_STORAGE;
           }  /* if */
           if (type_is(tp, tk_array)) {
+            /* To suppress compiler warnings about data truncation,
+               explicitly truncate to the appropriate bitwidth. */
+            constexpr unsigned long long array_length_bitmask =
+                                        bitmask_of_width<ARRAY_LENGTH_WIDTH>();
+
             /* We are referring to the array as a whole, not just one element
                of it.  Record the length in case it is needed later on. */
             cap->length =
-                    (unsigned int)tp->variant.array.variant.number_of_elements;
+                      ((unsigned)tp->variant.array.variant.number_of_elements &
+                       array_length_bitmask);
           }  /* if */
           tmp_complete_obj = tmp_bytes;
         } else {
@@ -25399,7 +25470,7 @@ subobject path.
         if (skip_typerefs(tpt) == type) {
           /* The address points one position past the top-level variable and
              therefore not "into" the variable. */
-          con->variant.address.offset = type->size;
+          con->variant.address.offset = (a_targ_ptrdiff_t)type->size;
           path = alloc_subobject_path();
           path->is_offset = TRUE;
           path->variant.ptr_offset = 1;
@@ -25431,13 +25502,13 @@ subobject path.
           path_entry = NULL;
         }  /* if */
         if (fp != NULL) {
-          t_offset += fp->offset;
+          t_offset += (a_targ_ptrdiff_t)fp->offset;
           type = skip_typerefs(fp->type);
           ptr = (void*)fp;
           end_path->variant.field = fp;
         } else {
           check_assertion(bcp != NULL);
-          t_offset += bcp->offset;
+          t_offset += (a_targ_ptrdiff_t)bcp->offset;
           type = bcp->type;
           ptr = (void*)bcp;
           end_path->is_base_class = TRUE;
@@ -25507,7 +25578,7 @@ subobject path.
           check_assertion(okay && elem_size != 0);
           pos = i_offset/elem_size;
           path_entry->variant.ptr_offset = (a_targ_ptrdiff_t)pos;
-          t_offset += pos*type->size;
+          t_offset += pos*(a_targ_ptrdiff_t)type->size;
           i_offset = pos*elem_size;
         }  /* if */
       }  /* if */
@@ -25809,7 +25880,9 @@ diagnostic in *ips.
                 }  /* if */
                 a_byte_count count = value_bytes_for_type(ips, butp, &result);
                 check_assertion(count != 0);
-                con->variant.address.offset = butp->size * (offset/count);
+                con->variant.address.offset =
+                                          (a_targ_ptrdiff_t)(butp->size *
+                                                             (offset / count));
               }  /* if */
             } else {
               base_address = cap->address;

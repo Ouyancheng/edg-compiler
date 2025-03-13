@@ -51,17 +51,17 @@ extern void shift_left_mantissa(a_mantissa_ptr	mp,
 				int		bits);
 
 extern void shift_right_mantissa(a_mantissa_ptr	mp,
-				 int			bits);
+				 int		bits);
 
-extern int number_of_bits_in_mantissa(a_mantissa_ptr	mp,
-				      a_boolean		normalize);
+extern unsigned  number_of_bits_in_mantissa(a_mantissa_ptr mp,
+                                            a_boolean      normalize);
 
-extern void round_hex_fp_value(a_mantissa_ptr	mp,
-			       long		*exponent,
-			       int		value_bits,
-			       a_boolean	is_fixed_point,
-			       a_boolean	is_signed,
-			       a_boolean	*inexact);
+extern void round_hex_fp_value(a_mantissa_ptr mp,
+                               long           *exponent,
+                               a_targ_size_t  value_bits,
+                               a_boolean      is_fixed_point,
+                               a_boolean      is_signed,
+                               a_boolean      *inexact);
 
 #if DEBUG
 extern void db_mantissa(a_mantissa_ptr	mp);

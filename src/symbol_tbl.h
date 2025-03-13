@@ -7561,9 +7561,9 @@ extern void form_symbol_name(a_symbol_ptr                          sym,
 /* Show and return the amount of memory used by symbol table entries. */
 extern unsigned long show_symbol_space_used(void);
 /* Display a symbol table entry. */
-extern void db_symbol(a_symbol_ptr	sym,
-                      a_const_char	*string,
-                      int		indentation);
+extern void db_symbol(a_symbol_ptr sym,
+                      a_const_char *string,
+                      size_t       indentation);
 
 /* Short-hand version of db_symbol. */
 extern void db_sym(a_symbol_ptr  sym);

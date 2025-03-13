@@ -1500,7 +1500,7 @@ following the last copied ATTENTION_MARKER.
   rem_source_line_modif_from_hash_table(slmp);
   slmp->line_loc = this_target;
   add_source_line_modif_to_hash_table(slmp);
-  slmp->num_chars_to_delete = next_avail - this_target;
+  slmp->num_chars_to_delete = (sizeof_t)(next_avail - this_target);
   return next_avail;
 }  /* copy_attention_markers */
 
@@ -1527,8 +1527,8 @@ ensure_macro_buffer_space.
   sizeof_t                num_chars_to_copy;
 
   db_enter(4, "expand_macro_buffer");
-  old_size = after_end_of_macro_buffer - macro_buffer;
-  old_len = next_avail_in_macro_buffer - macro_buffer;
+  old_size = (sizeof_t)(after_end_of_macro_buffer - macro_buffer);
+  old_len = (sizeof_t)(next_avail_in_macro_buffer - macro_buffer);
   if (needed >= ((sizeof_t)-1) - old_len) {
     /* The following calculation of total_needed would overflow, which
        could cause use of a too-short buffer and result in overwriting
@@ -1538,8 +1538,9 @@ ensure_macro_buffer_space.
   total_needed = old_len + needed;
   /* Make sure we ask for enough to satisfy the current request and a
      little bit more. */
-  increment = needed + needed/10 -
-              (after_end_of_macro_buffer - next_avail_in_macro_buffer);
+  increment = (needed + (needed / 10) -
+               (sizeof_t)(after_end_of_macro_buffer -
+                          next_avail_in_macro_buffer));
   if (num_chars_deleted_in_macro_buffer > increment &&
       num_chars_deleted_in_macro_buffer > old_size/4) {
     /* Avoid memory growth by using same size buffer -- there's plenty of
@@ -1715,15 +1716,15 @@ ensure_macro_buffer_space.
       }  /* for */
     }  /* if */
   }  /* for */
-  num_compacted_macro_buffer_chars = dst - new_macro_buffer;
+  num_compacted_macro_buffer_chars = (sizeof_t)(dst - new_macro_buffer);
   if (macro_buffer_region_in_progress != NULL) {
     /* The end of the old buffer contains data that is not referred to by a
        source line modification and thus must be copied specially into the
        new buffer. */
     check_assertion(ptr_in_range(macro_buffer_region_in_progress, macro_buffer,
                                  next_avail_in_macro_buffer + 1));
-    num_chars_to_copy =
-                  next_avail_in_macro_buffer - macro_buffer_region_in_progress;
+    num_chars_to_copy = (sizeof_t)(next_avail_in_macro_buffer -
+                                   macro_buffer_region_in_progress);
     (void)memcpy(dst, macro_buffer_region_in_progress,
                  size_t_arg(num_chars_to_copy));
     (void)adjust_curr_source_line_structure_after_realloc(
@@ -1818,9 +1819,9 @@ the pointer to the next available position in that buffer.
   char     *new_aux_buffer_for_pcc_macros;
 
   db_enter(4, "expand_aux_buffer_for_pcc_macros");
-  old_size = after_end_of_aux_buffer_for_pcc_macros -
-             aux_buffer_for_pcc_macros;
-  old_len = pos_in_aux_buffer - aux_buffer_for_pcc_macros;
+  old_size = (sizeof_t)(after_end_of_aux_buffer_for_pcc_macros -
+                        aux_buffer_for_pcc_macros);
+  old_len = (sizeof_t)(pos_in_aux_buffer - aux_buffer_for_pcc_macros);
   if (needed >= ((sizeof_t)-1) - old_len) {
     /* The following calculation of total_needed would overflow, which
        could cause use of a too-short buffer and result in overwriting
@@ -1830,8 +1831,9 @@ the pointer to the next available position in that buffer.
   total_needed = old_len + needed;
   /* Not enough space; need to expand.  Make sure we ask for enough
      to satisfy the current request and a little bit more. */
-  increment = needed + needed/10 -
-              (after_end_of_aux_buffer_for_pcc_macros - pos_in_aux_buffer);
+  increment = (needed + (needed / 10) -
+               (sizeof_t)(after_end_of_aux_buffer_for_pcc_macros -
+                          pos_in_aux_buffer));
   if (increment < old_size) {
     /* At least double the current allocation. */
     increment = old_size;
@@ -2686,7 +2688,7 @@ with \.  Return the macro argument created.
 #if LE_ESCAPE_LEN != 2
  #error -- LE_ESCAPE_LEN expected to be 2
 #endif /* LE_ESCAPE_LEN != 2 */
-  length = curr_char_loc - start_of_curr_token;
+  length = (sizeof_t)(curr_char_loc - start_of_curr_token);
   map = alloc_macro_arg();
   ensure_arg_raw_text_space(length, map);
   end_of_string = end_of_curr_token;
@@ -2737,7 +2739,7 @@ with \.  Return the macro argument created.
     }  /* for */
     /* Compute the length of the string, not counting the final escape
        sequence. */
-    map->raw_len = dest - map->raw_text;
+    map->raw_len = (sizeof_t)(dest - map->raw_text);
     /* Append an end-of-buffer escape. */
     *dest++ = LE_ESCAPE;
     *dest++ = LE_END_OF_INSERTION;
@@ -3167,7 +3169,7 @@ when the text is copied out of the current line buffer.
       if (reverted_string != NULL) {
         /* Copy the portion of the token from the previous reversion up to
            this point into the buffer. */
-        sizeof_t num_chars = olmp->line_loc - copy_start;
+        sizeof_t num_chars = (sizeof_t)(olmp->line_loc - copy_start);
         memcpy(reverted_string, copy_start, size_t_arg(num_chars));
         reverted_string += num_chars;
         copy_start += num_chars;
@@ -3179,7 +3181,7 @@ when the text is copied out of the current line buffer.
           result += 2;
           if (reverted_string != NULL) {
             memcpy(reverted_string, "?" "?", 2);
-            reverted_string[2] = olmp->variant.orig_char;
+            reverted_string[2] = (char)olmp->variant.orig_char;
             reverted_string += 3;
             copy_start += 1;
           }  /* if */
@@ -3216,7 +3218,7 @@ when the text is copied out of the current line buffer.
              a line splice was omitted from the adjusted token. */
           result += 1;
           if (reverted_string != NULL) {
-            reverted_string[0] = olmp->variant.orig_char;
+            reverted_string[0] = (char)olmp->variant.orig_char;
             ++reverted_string;
           }  /* if */
           break;
@@ -3228,7 +3230,8 @@ when the text is copied out of the current line buffer.
   if (reverted_string != NULL && copy_start <= end_of_curr_token) {
     /* Copy the remaining characters from the original token to the
        reverted string. */
-    memcpy(reverted_string, copy_start, end_of_curr_token - copy_start + 1);
+    memcpy(reverted_string, copy_start,
+           size_t_arg(end_of_curr_token - copy_start + 1));
   }  /* if */
   return result;
 }  /* revert_raw_string_adjustments */
@@ -3670,8 +3673,8 @@ end_loop:
       /* We went off the end of the modification because of an open
          macro argument list.  Adjust the line modification so that the
          additional text is also deleted. */
-      main_slmp->num_chars_to_delete = loc_following_insertion -
-                                       main_slmp->line_loc;
+      main_slmp->num_chars_to_delete = (sizeof_t)(loc_following_insertion -
+                                                  main_slmp->line_loc);
     }  /* if */
   }  /* if */
   if (pcc_preprocessing_mode) {
@@ -3807,7 +3810,7 @@ end_loop:
        now, just make the insertion appear empty, in case this call to
        ensure_macro_buffer_space() causes reallocation. */
     main_slmp->inserted_text = main_slmp->end_inserted_text;
-    len_new = pos_in_aux_buffer - aux_buffer_for_pcc_macros;
+    len_new = (sizeof_t)(pos_in_aux_buffer - aux_buffer_for_pcc_macros);
     ensure_macro_buffer_space(len_new);
     /* Copy the new text into macro_buffer.  This will copy up to and
        including the final lexical escape. */
@@ -3935,7 +3938,7 @@ static a_boolean is_microsoft_function_name_paste(a_macro_arg_ptr map,
                                                   a_const_char    *prev_text,
                                                   sizeof_t        prev_len,
                                                   a_const_char    **tok_text,
-                                                  int             *prefix_len,
+                                                  unsigned        *prefix_len,
                                                   a_const_char    **post_end)
 /*
 We are in Microsoft preprocessor mode and we are doing a token paste in a
@@ -4144,7 +4147,7 @@ FALSE in all other cases.
           back -= LE_ESCAPE_LEN;
         }  /* if */
         if (*back == ',') {
-          *length -= (rtp-back);
+          *length -= (sizeof_t)(rtp - back);
           if (microsoft_mode) {
             /* Leave space for an LE_MICROSOFT_MAGIC_COMMA escape and a
                comma to be inserted and indicate the need to do so. */
@@ -4183,7 +4186,7 @@ length reduced accordingly.
         break;
       }  /* if */
     }  /* while */
-    len = end_of_str - str;
+    len = (sizeof_t)(end_of_str - str);
   }  /* if */
   if (str < end_of_str) {
     ensure_arg_raw_text_space(len, map);
@@ -4383,7 +4386,7 @@ tracking macro positions; its value is otherwise unused.
 #if MICROSOFT_EXTENSIONS_ALLOWED
           { a_const_char *post_end;
             a_const_char *tok_text;
-            int          prefix_len;
+            unsigned     prefix_len;
             /* coverity[var_deref_model] */
             if (ms_extensions && prev_section_is_paste &&
                 is_microsoft_function_name_paste(map,
@@ -4531,7 +4534,7 @@ typedef struct a_feature_support {
   a_const_char
 	*clang_name;	/* The string identifying the feature in the clang
 			   __has_feature and __has_extension macros. */
-  int32_t
+  uint32_t
 	feature_ver;	/* The minimum value of std_version for which the
 			   clang __has_feature macro will return 1.  If the
 			   feature is enabled but std_version is less than
@@ -5577,7 +5580,7 @@ both expansions begin with the name of the same macro, FALSE otherwise.
       }  /* if */
       p += ch_len;
     }  /* while */
-    if ((id_len = p - slmp->inserted_text) > 0) {
+    if ((id_len = (sizeof_t)(p - slmp->inserted_text)) > 0) {
       /* The previous expansion begins with an identifier.  Canonicalize
          the identifier if necessary and look it up to see if it is a macro
          name. */
@@ -5612,7 +5615,7 @@ both expansions begin with the name of the same macro, FALSE otherwise.
       }  /* if */
       p += ch_len;
     }  /* while */
-    if ((id_len = p - str) > 0) {
+    if ((id_len = (sizeof_t)(p - str)) > 0) {
       /* The current expansion also begins with an identifier.
          Canonicalize the identifier if necessary and compare it against
          the name of the macro at the beginning of the previous
@@ -7829,7 +7832,7 @@ end_arg_expansion:;
 #if MICROSOFT_EXTENSIONS_ALLOWED
             { a_const_char *post_end;
               a_const_char *tok_text;
-              int          prefix_len;
+              unsigned     prefix_len;
               if (ms_extensions && prev_section_is_paste &&
                   is_microsoft_function_name_paste(map,
                                                    rescan_loc,
@@ -7851,7 +7854,7 @@ end_arg_expansion:;
                 src_loc += tok_len;
                 *src_loc++ = '(';
                 /* Copy the function-name keyword. */
-                fnk_len = post_end - map->raw_text;
+                fnk_len = (sizeof_t)(post_end - map->raw_text);
 #if FULLY_RESOLVED_MACRO_POSITIONS
                 /* Copy the map entry for the function keyword. */
                 clone_macro_text_map_entries(&map->raw_text_map,
@@ -8104,7 +8107,7 @@ copy_done:
         prev_section_is_paste = TRUE;
       } else {
         prev_section_is_paste = FALSE;
-        prev_sect_len = src_loc - src_loc_before_copy;
+        prev_sect_len = (sizeof_t)(src_loc - src_loc_before_copy);
       }  /* if */
       prev_section_is_va_arg_substitution = is_va_arg_substitution;
       prev_macro_arg = map;
@@ -9347,10 +9350,11 @@ Scan and process a #define directive.
         } else if (curr_token == tok_rparen) {
           if (--open_parens == 0) {
             /* This is the end of the __VA_OPT__ section. */
-            sizeof_t len;
             /* The length does not include the section header, just the
                length of the operand. */
-            len = next_avail_in_macro_buffer - start_of_va_opt_text - 4;
+            sizeof_t len = (sizeof_t)(next_avail_in_macro_buffer -
+                                      start_of_va_opt_text - 4);
+
             num_pos = start_of_va_opt_text + 1;
             put_macro_repl_text_number(len, num_pos);
             start_of_va_opt_text = NULL;
@@ -9741,7 +9745,9 @@ process_ordinary_token:
            i.e., identical to the existing one.  (Redefinitions of
            non-predefined symbols from the command line are always honored,
            so there's no need to check.) */
-        sizeof_t new_length = next_avail_in_macro_buffer - buffer_start;
+        sizeof_t new_length = (sizeof_t)(next_avail_in_macro_buffer -
+                                         buffer_start);
+
         mdp = assoc_symbol->variant.macro_def;
         if ((a_boolean)mdp->object_like != object_like ||
             (a_boolean)mdp->variadic != variadic ||
@@ -9871,7 +9877,7 @@ process_ordinary_token:
       }  /* if */
     }  /* if */
     /* Allocate space for the text, and copy it. */
-    repl_text_len = next_avail_in_macro_buffer - buffer_start;
+    repl_text_len = (sizeof_t)(next_avail_in_macro_buffer - buffer_start);
     repl_text = alloc_fe((sizeof_t)(repl_text_len+1));
 #if DEBUG
     macro_definition_space += (unsigned long)(repl_text_len+1);
@@ -10677,7 +10683,6 @@ a symbol locator in *locator.
 */
 {
   a_boolean         return_value = FALSE;
-  sizeof_t          i;
   a_source_position position;
 
   *assoc_symbol = NULL;
@@ -10689,12 +10694,13 @@ a symbol locator in *locator.
     /* Zero-length identifier is invalid. */
   } else {
     int numch;
-    for (i = 0; i < id_len; i += numch) {
+    for (size_t i = 0; i < id_len; i += (size_t)numch) {
       /* Check each character to see if it is valid. */
       if (!is_identifier_char(id_start+i, &numch,
                               /*is_identifier_start=*/(i == 0))) {
         goto return_point;
       }  /* if */
+      check_assertion(numch >= 0);
     }  /* for */
     /* The identifier is syntactically valid.  Look it up. */
     *assoc_symbol = find_macro_symbol_by_name(id_start, id_len, locator);
@@ -11857,7 +11863,7 @@ command line -D options.
              end.  Define the macro with the appropriate value. */
           a_const_char *macro_value = feature_support_list[i].macro_value;
           if (macro_value != NULL && gpp_mode &&
-              std_version < strtol(macro_value, NULL, 10)) {
+              (long)std_version < strtol(macro_value, NULL, 10)) {
             /* GCC and clang enable some C++ features in earlier modes (e.g.,
                enable a C++17 feature in all modes), but apparently do not
                enable the corresponding feature-test macros, so suppress such

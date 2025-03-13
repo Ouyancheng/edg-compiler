@@ -284,7 +284,7 @@ Register a variable that is specific to a given translation unit.
   }  /* if */
   trans_unit_variables_tail = vrp;
   /* Round the size up to the nearest increment of HOST_ALIGNMENT_REQUIRED. */
-  do_host_alignment(size);
+  do_host_alignment(&size);
   /* Increment the size of the block required to store the translation unit
      variables. */
   trans_unit_var_block_size += size;

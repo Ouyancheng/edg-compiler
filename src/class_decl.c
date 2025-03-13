@@ -11286,6 +11286,11 @@ When templates_only is TRUE, only function templates members are considered.
   a_boolean                      restore_this_param;
   a_type_qualifier_set           new_quals;
   an_exception_specification_ptr orig_esp, new_esp;
+  /* To suppress compiler warnings about data truncation, explicitly
+     truncate to the appropriate bitwidth. */
+  constexpr a_type_qualifier_set qualifier_bitmask =
+                       ((a_type_qualifier_set)
+                          bitmask_of_width<NUM_BITS_FOR_TYPE_QUALIFIER_SET>());
 
   if (other_match != NULL) *other_match = NULL;
   /* Get the symbol list if this is an overloaded function. */
@@ -11320,7 +11325,7 @@ When templates_only is TRUE, only function templates members are considered.
     if (new_may_be_implicitly_const) {
       /* We may have added an implicit qualifier in a previous iteration of
          this loop.  Restore the original type for this iteration. */
-      new_rts->qualifiers = new_quals;
+      new_rts->qualifiers = new_quals & qualifier_bitmask;
       new_rts->this_class = new_this_class;
       new_rts->has_this_param = new_this_class != NULL;
       new_function_is_qualified = (new_quals != TQ_NONE);
@@ -11544,7 +11549,7 @@ When templates_only is TRUE, only function templates members are considered.
   if (new_may_be_implicitly_const && !match) {
     /* We may have added an implicit qualifier in the last iteration of the
        loop.  Restore the original type if it didn't result in a match. */
-    new_rts->qualifiers = new_quals;
+    new_rts->qualifiers = new_quals & qualifier_bitmask;
     new_rts->this_class = new_this_class;
   }  /* if */
 #if MICROSOFT_EXTENSIONS_ALLOWED
@@ -20248,7 +20253,7 @@ must be unsigned.
 {
   a_boolean      use_signed = FALSE, smallest_is_negative;
   a_constant_ptr smallest, largest;
-  unsigned long  bits_needed, bits_needed_largest, bits_needed_smallest;
+  size_t         bits_needed, bits_needed_largest, bits_needed_smallest;
   a_constant_ptr enum_con;
 
   enum_con = enum_constants(bit_field_type);
@@ -30932,7 +30937,13 @@ block of information that is provided if this is a member template declaration.
       run_end_of_parse_actions(dps, /*more_declarators=*/TRUE);
       /* Reset certain fields in the declaration parse state. */
       start_secondary_declarator(dps);
-      dps->qualifiers = saved_qualifiers;
+
+      /* To suppress compiler warnings about data truncation, explicitly
+         truncate to the appropriate bitwidth. */
+      constexpr a_type_qualifier_set qualifier_bitmask =
+                       ((a_type_qualifier_set)
+                          bitmask_of_width<NUM_BITS_FOR_TYPE_QUALIFIER_SET>());
+      dps->qualifiers = saved_qualifiers & qualifier_bitmask;
       dps->qualifiers_pos = saved_qualifiers_pos;
     }  /* if */
     /* Loop for additional declarators. */
@@ -36118,9 +36129,9 @@ Initializations for class declaration processing.
   num_pending_exception_check_entries = 0;
 #endif /* DEBUG */
   abbr_mem_func_templates = alloc_fe_of_type(an_abbr_mem_func_templ_map);
-  construct(abbr_mem_func_templates, /*mask_width=*/10);
+  construct(abbr_mem_func_templates, /*mask_width=*/10u);
   generic_lambda_prototype = alloc_fe_of_type(a_generic_lambda_prototype_map);
-  construct(generic_lambda_prototype, /*mask_width=*/10);
+  construct(generic_lambda_prototype, /*mask_width=*/10u);
   return;
 }  /* class_decl_init */
 

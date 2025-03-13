@@ -694,7 +694,7 @@ is that the caller is about to record that note).
   if (sym_set == NULL) {
     /* The set of candidates is created on-demand. */
     result = FALSE;
-    sym_set = new_fe<Ptr_set<a_symbol_ptr>>(3);
+    sym_set = new_fe<Ptr_set<a_symbol_ptr>>(3u);
     descr->noted_candidates = sym_set;
   } else {
     result = sym_set->contains(sym);

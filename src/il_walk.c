@@ -96,7 +96,7 @@ typedef struct an_il_walk_state {
 		walk_list_remap_func;
   a_boolean	walking_file_scope;
   a_boolean	walking_secondary_trans_unit;
-  int		flag_value_meaning_visited;
+  unsigned	flag_value_meaning_visited;
   a_boolean	clear_fe_pointers_during_walk;
 } an_il_walk_state;
 

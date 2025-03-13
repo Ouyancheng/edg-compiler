@@ -130,7 +130,7 @@ STATIC_THREAD a_mem_alloc_history_ptr
 			/* The memory allocation history information
 			   read from the precompiled header file. */
 
-STATIC_THREAD a_mem_alloc_history_number
+STATIC_THREAD size_t
 		new_alloc_history_entries;
 			/* Number of entries in new_alloc_history. */
 
@@ -213,7 +213,7 @@ Macro to do an fseek on the output file with an error check.
 
 
 #if DEBUG
-STATIC_THREAD long
+STATIC_THREAD unsigned long
 		num_pch_events_allocated;
 #endif /* DEBUG */
 
@@ -1200,9 +1200,12 @@ file.
   db_enter(4, "write_mem_alloc_history");
   pch_write_value(size_of_mem_alloc_history);
   pch_write_value(mem_alloc_history_entries_used);
+  /* If this assertion fails, the count of memory allocation histories
+     used is negative, which should never happen. */
+  check_assertion(mem_alloc_history_entries_used >= 0);
   fwrite_with_check(mem_alloc_history,
                     sizeof(a_mem_alloc_history) *
-                                            mem_alloc_history_entries_used,
+                                        (size_t)mem_alloc_history_entries_used,
                     f_pch_output);
   db_exit();
 }  /* write_mem_alloc_history */
@@ -1218,10 +1221,10 @@ allocation list so that we know we have reserved the memory needed to
 restore the memory regions.
 */
 {
-  a_boolean			successful = TRUE;
-  a_mem_alloc_history_number	new_size;
-  a_mem_alloc_history_number	n;
-  sizeof_t			bytes_in_new_alloc_history;
+  a_boolean                  successful = TRUE;
+  a_mem_alloc_history_number new_size;
+  a_mem_alloc_history_number n;
+  sizeof_t                   bytes_in_new_alloc_history;
 
   db_enter(4, "read_mem_alloc_history");
   check_file_section_id(pfs_mem_alloc_info);
@@ -1343,7 +1346,7 @@ memory region information will be accessed using mmap by the consumer of
 the PCH file.
 */
 {
-  int		   i;
+  size_t           i;
   sizeof_t         offset;
   a_windows_handle map_object = NULL;
 #if EDG_WIN32
@@ -1359,7 +1362,7 @@ the PCH file.
      unmapped so that the address space is available to be remapped. */
   free_mapped_mem_blocks();
   /* Get the current input file position. */
-  offset = ftell(f_pch_input);
+  offset = (sizeof_t)ftell(f_pch_input);
   for (i = 0; i < new_alloc_history_entries; ++i) {
     a_mem_alloc_history_ptr	mahp = &new_alloc_history[i];
     offset = do_page_alignment(offset);
@@ -1423,12 +1426,14 @@ Write the memory region information to the PCH output file.  This includes
 header information about the memory regions such as the mem_region_table.
 */
 {
-  a_memory_region_number	mem_regions_used;
-  a_function_def_number		function_defs_used;
+  size_t mem_regions_used = 0;
+  size_t function_defs_used = 0;
   db_enter(4, "write_memory_regions");
   /* Write a copy of the IL header. */
   pch_write_value(il_header);
-  mem_regions_used = highest_used_region_number + 1;
+  if (highest_used_region_number != NULL_region_number) {
+    mem_regions_used = (size_t)highest_used_region_number + 1;
+  }  /* if */
   /* Write the memory region table and the region_scope_entry table from
      the IL header.  Note that index_for_il_file is not written. */
   pch_write_value(highest_used_region_number);
@@ -1438,7 +1443,9 @@ header information about the memory regions such as the mem_region_table.
   fwrite_with_check(il_header.region_scope_entry,
                     sizeof(a_mem_block_header_ptr) * mem_regions_used,
                     f_pch_output);
-  function_defs_used = highest_used_function_def_number + 1;
+  if (highest_used_function_def_number != NULL_function_def_number) {
+    function_defs_used = (size_t)highest_used_function_def_number + 1;
+  }  /* if */
   pch_write_value(highest_used_function_def_number);
   if (function_defs_used > 1) {
     fwrite_with_check(il_header.function_def_table,
@@ -1478,8 +1485,8 @@ Read the memory region information from the PCH output file.  This includes
 header information about the memory regions such as the mem_region_table.
 */
 {
-  a_memory_region_number	mem_regions_used;
-  a_function_def_number		function_defs_used;
+  size_t mem_regions_used = 0;
+  size_t function_defs_used = 0;
 
   db_enter(4, "read_memory_regions");
   check_file_section_id(pfs_memory_regions);
@@ -1492,7 +1499,9 @@ header information about the memory regions such as the mem_region_table.
   /* Make sure that the tables allocated to store the memory region
      information are large enough. */
   ensure_mem_region_table_space(highest_used_region_number);
-  mem_regions_used = highest_used_region_number + 1;
+  if (highest_used_region_number != NULL_region_number) {
+    mem_regions_used = (size_t)highest_used_region_number + 1;
+  }  /* if */
   fread_with_check(mem_region_table,
                   sizeof(a_mem_block_header_ptr) * mem_regions_used,
                   f_pch_input);
@@ -1500,7 +1509,9 @@ header information about the memory regions such as the mem_region_table.
                    sizeof(a_scope_ptr) * mem_regions_used,
                    f_pch_input);
   pch_read_value(highest_used_function_def_number);
-  function_defs_used = highest_used_function_def_number + 1;
+  if (highest_used_function_def_number != NULL_function_def_number) {
+    function_defs_used = (size_t)highest_used_function_def_number + 1;
+  }  /* if */
   if (function_defs_used > 1) {
     /* Allocate the IL header function definition table, if needed. */
     ensure_function_def_table_space(highest_used_function_def_number);
@@ -2466,9 +2477,9 @@ the symbol table space used routine.  The space used by the PCH
 routines is reported as part of the symbol table memory used.
 */
 {
-  unsigned long	num;
-  unsigned long	size;
-  unsigned long	total;
+  unsigned long num;
+  unsigned long size;
+  unsigned long total;
 
   db_space_used("PCH events", num_pch_events_allocated, a_pch_event);
   return grand_total;

@@ -961,53 +961,53 @@ Bit vector used to pass flags into f_identical_types.
 */
 typedef unsigned int an_itf_flag_set;
 
-#define ITF_NO_FLAGS 0x0
+#define ITF_NO_FLAGS 0x0u
 
-#define ITF_IL_IDENTICAL 0x01
+#define ITF_IL_IDENTICAL 0x01u
 			/* If il_identical is TRUE, check only that the
 			   types are identical from the point of view
 			   of the IL.  Basically, two types are
 			   IL-identical if no cast is needed to assign
 			   a value of one type to an entity of the
 			   other type. */
-#define ITF_UNKNOWN_THIS_CLASS_TYPE 0x02
+#define ITF_UNKNOWN_THIS_CLASS_TYPE 0x02u
 			/* TRUE if the this class type may not
 			   be known yet.  When this flag is set, a
 			   NULL "this" class type is ignored. */
-#define ITF_SEEK_CORRESP 0x04
+#define ITF_SEEK_CORRESP 0x04u
 			/* The given types are expected to be compatible and
 			   if they are, the first type (and its components)
 			   should have its correspondence pointer point to
 			   the corresponding component of the second type
 			   (only applies to enum and struct/union types). */
-#define ITF_IGNORE_NESTING_DEPTH 0x08
+#define ITF_IGNORE_NESTING_DEPTH 0x08u
 			/* TRUE if the nesting depths of template parameters
 			   should be ignored for purposes of this
 			   comparison. */
-#define ITF_EXACT_NESTING_DEPTHS_REQUIRED 0x10
+#define ITF_EXACT_NESTING_DEPTHS_REQUIRED 0x10u
 			/* TRUE if the nesting depths of template parameters
 			   must match exactly.  In that case, constraints on
 			   template parameters must match too. */
-#define ITF_IGNORE_TOP_LEVEL_QUALIFIERS 0x20
+#define ITF_IGNORE_TOP_LEVEL_QUALIFIERS 0x20u
 			/* TRUE if top-level qualifiers do not have to
 			   match.  (In the case of arrays in C++, the top-level
 			   qualifiers are those on the element type.) */
-#define ITF_EXACT_EQUIVALENCE 0x40
+#define ITF_EXACT_EQUIVALENCE 0x40u
 			/* TRUE if the compared types should be fully
 			   equivalent.  In particular, when comparing template
 			   parameters of tptk_param kind, the type pointers
 			   must match, not just the coordinates.  Also,
 			   embedded constants and expressions must be compared
 			   with CC_EXACT_EQUIVALENCE. */
-#define ITF_CHECKING_DEDUCTION_RESULT 0x80
+#define ITF_CHECKING_DEDUCTION_RESULT 0x80u
 			/* We are comparing two types to make sure deduction
 			   worked right and we didn't get a function type where
 			   we expected a non-function, or vice-versa. */
-#define ITF_EXACT_DECLTYPE_EXPR_MATCH_REQUIRED 0x100
+#define ITF_EXACT_DECLTYPE_EXPR_MATCH_REQUIRED 0x100u
 			/* TRUE if, when dependent decltypes appear in the
 			   type trees, they must appear in both types and the
 			   expressions must match. */
-#define ITF_CONTEXTUAL_GENERIC_PARAMETERS 0x200
+#define ITF_CONTEXTUAL_GENERIC_PARAMETERS 0x200u
 			/* TRUE if the comparison of generic parameters should
 			   take into account the relevant context of the
 			   parameters.  Specifically: (a) for generic functions
@@ -1016,21 +1016,21 @@ typedef unsigned int an_itf_flag_set;
 			   generic_param_seq_number of a template parameter
 			   type supplement) is compared instead of the
 			   template parameter coordinates. */
-#define ITF_IGNORE_MS_CALLING_CONVENTION 0x400
+#define ITF_IGNORE_MS_CALLING_CONVENTION 0x400u
 			/* Ignore Microsoft style calling convention (like
 			   "cdecl") specifications. */
-#define ITF_EXACT_DOES_NOT_RETURN_MATCH_REQUIRED 0x800
+#define ITF_EXACT_DOES_NOT_RETURN_MATCH_REQUIRED 0x800u
 			/* TRUE if the does_not_return field must match
 			   when comparing function types. */
-#define ITF_CHECK_DEDUCED_PLACEHOLDER_MATCH 0x1000
+#define ITF_CHECK_DEDUCED_PLACEHOLDER_MATCH 0x1000u
 			/* TRUE if an undeduced "auto"/"decltype(auto)"
 			   placeholder should be considered identical to a
 			   tk_typeref entry indicating a deduced type for such
 			   a placeholder. */
-#define ITF_IGNORE_TOP_LEVEL_NOEXCEPT 0x2000
+#define ITF_IGNORE_TOP_LEVEL_NOEXCEPT 0x2000u
 			/* TRUE if a top-level exception specifier should be
 			   ignored while comparing the types. */
-#define ITF_PLACEHOLDER_CONSTRAINT_MATCH_REQUIRED 0x4000
+#define ITF_PLACEHOLDER_CONSTRAINT_MATCH_REQUIRED 0x4000u
 			/* TRUE if constraints on placeholder types must
 			   match. */
 #define ITF_LAST ITF_PLACEHOLDER_CONSTRAINT_MATCH_REQUIRED
@@ -1105,68 +1105,68 @@ typedef struct a_type_difference_descr {
 /*
 Bit flags for calls of f_types_are_compatible et al.
 */
-#define TCF_ERROR_TYPE_COMPATIBLE_WITH_ANYTHING 0x1
+#define TCF_ERROR_TYPE_COMPATIBLE_WITH_ANYTHING 0x1u
 			/* An error type is considered compatible with
 			   anything. */
-#define TCF_IGNORE_TYPE_QUALIFIERS 0x2
+#define TCF_IGNORE_TYPE_QUALIFIERS 0x2u
 			/* Ignore type qualifiers at the first level.  In C++,
 			   this includes qualifiers on array element types. */
-#define TCF_REDECLARATION 0x4
+#define TCF_REDECLARATION 0x4u
 			/* This is a top-level compatibility check for a
 			   redeclaration.  It's important in C++ because it's
 			   the only context in which known- and unknown-bound
 			   array types are "compatible" (WP 3.5). */
-#define TCF_IGNORE_CALLING_CONVENTIONS 0x8
+#define TCF_IGNORE_CALLING_CONVENTIONS 0x8u
 			/* Ignore the calling conventions implied by name
 			   linkage specified on top-level function types. */
 #if MICROSOFT_EXTENSIONS_ALLOWED || GNU_X86_ATTRIBUTES_ALLOWED
 			/* Also ignore Microsoft style calling convention
 			   specifications. */
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED || GNU_X86_ATTRIBUTES_ALLOWED */
-#define TCF_IMPLICIT_CONVERSION 0x10
+#define TCF_IMPLICIT_CONVERSION 0x10u
 			/* The conversion appears in the context of an
 			   implicit conversion, which (in C++) may affect how
 			   how routine linkage compatibility is determined. */
-#define TCF_DONT_IGNORE_PARAM_TYPE_QUALIFIERS 0x20
+#define TCF_DONT_IGNORE_PARAM_TYPE_QUALIFIERS 0x20u
 			/* Parameter types should be regarded as incompatible
 			   when their top-level type qualifiers differ, even
 			   when remove_qualifiers_from_param_types is TRUE.
 			   This flag is used in Microsoft-bugs mode only,
 			   to deal with a bug in checking for overriding
 			   virtual functions. */
-#define TCF_IGNORE_PTR_TO_MEMBER_CLASS_TYPE 0x40
+#define TCF_IGNORE_PTR_TO_MEMBER_CLASS_TYPE 0x40u
 			/* Two pointer-to-member types are deemed compatible
 			   as long as the member-types match -- no check
 			   should be done for the class-types.  This flag is
 			   used in Microsoft-bugs mode only, to deal with a
 			   bug in redeclaration of static data members. */
-#define TCF_IGNORE_THIS_CLASS_TYPE 0x80
+#define TCF_IGNORE_THIS_CLASS_TYPE 0x80u
 			/* Two function types are deemed compatible even if
 			   the this class types do not match. */
-#define TCF_SEEK_CORRESP 0x100
+#define TCF_SEEK_CORRESP 0x100u
 			/* The given types are expected to be compatible and
 			   if they are, the first type (and its components)
 			   should have its correspondence pointer point to
 			   the corresponding component of the second type
 			   (only applies to enum and struct/union types). */
-#define TCF_NO_DEFAULT_ARG_PROMOTIONS 0x200
+#define TCF_NO_DEFAULT_ARG_PROMOTIONS 0x200u
 			/* The second type has an unprototyped parameter list
 			   (i.e., from an old-style function definition).
 			   Compare the parameter types without the usual
 			   default promotions.  (Used in GNU C mode.) */
-#define TCF_IGNORE_RETURN_TYPE_QUALIFIERS 0x400
+#define TCF_IGNORE_RETURN_TYPE_QUALIFIERS 0x400u
 			/* Ignore qualifiers when testing the return type of
 			   a top-level function type.  (Used in GNU C mode.) */
-#define TCF_CHECKING_DEDUCTION_RESULT 0x800
+#define TCF_CHECKING_DEDUCTION_RESULT 0x800u
 			/* We are comparing two types to make sure deduction
 			   worked right and we didn't get a function type where
 			   we expected a non-function, or vice-versa.
 			   See verify_routine_type_matches_template. */
-#define TCF_EXACT_DECLTYPE_EXPR_MATCH_REQUIRED 0x1000
+#define TCF_EXACT_DECLTYPE_EXPR_MATCH_REQUIRED 0x1000u
 			/* TRUE if, when dependent decltypes appear in the
 			   type trees, they must appear in both types and the
 			   expressions must match. */
-#define TCF_CONTEXTUAL_GENERIC_PARAMETERS 0x2000
+#define TCF_CONTEXTUAL_GENERIC_PARAMETERS 0x2000u
 			/* TRUE if the comparison of generic parameters should
 			   take into account the relevant context of the
 			   parameters.  Specifically: (a) for generic functions
@@ -1175,56 +1175,56 @@ Bit flags for calls of f_types_are_compatible et al.
 			   generic_param_seq_number of a template parameter
 			   type supplement) is compared instead of the
 			   template parameter coordinates. */
-#define TCF_RECORD_DIRECT_CALLING_CONVENTION_DIFFS 0x4000
+#define TCF_RECORD_DIRECT_CALLING_CONVENTION_DIFFS 0x4000u
 			/* Record incompatible Microsoft-style calling
 			   conventions (like __cdecl, or __clrcall) in the
 			   "diffs" parameter (if non-NULL) and do not let them
 			   affect the overall type compatibility outcome.
 			   Only "direct" conventions (i.e., not under a
 			   typedef) are tracked. */
-#define TCF_ALLOW_BASE_DERIVED_THIS_MATCH 0x8000
+#define TCF_ALLOW_BASE_DERIVED_THIS_MATCH 0x8000u
 			/* TRUE if the this class type of the second type
 			   can be a base class of the first.  This is used
 			   to allow a base/derived mismatch in template
 			   function matching. */
-#define TCF_IGNORE_NESTING_DEPTH 0x10000
+#define TCF_IGNORE_NESTING_DEPTH 0x10000u
 			/* TRUE if the nesting depths of template parameters
 			   should be ignored for purposes of this
 			   comparison. */
-#define TCF_CHECK_DEDUCED_PLACEHOLDER_MATCH 0x20000
+#define TCF_CHECK_DEDUCED_PLACEHOLDER_MATCH 0x20000u
 			/* TRUE if an undeduced "auto"/"decltype(auto)"
 			   placeholder should be considered compatible with
 			   a tk_typeref entry indicating a deduced type for
 			   such a placeholder. */
-#define TCF_CHECK_ENABLE_IF_ATTRIBUTES 0x40000
+#define TCF_CHECK_ENABLE_IF_ATTRIBUTES 0x40000u
 			/* TRUE if the Clang enable_if attributes should be
 			   compared. */
-#define TCF_USE_CPP_QUALIFIER_RULES 0x80000
+#define TCF_USE_CPP_QUALIFIER_RULES 0x80000u
 			/* TRUE if even in C mode the C++ rules for
 			   TCF_IGNORE_TYPE_QUALIFIERS should be applied. */
-#define TCF_IGNORE_TOP_LEVEL_NOEXCEPT 0x100000
+#define TCF_IGNORE_TOP_LEVEL_NOEXCEPT 0x100000u
 			/* TRUE if a top-level exception specifier should be
 			   ignored while comparing the types. */
-#define TCF_MEMBER_REDECL_CHECK 0x200000
+#define TCF_MEMBER_REDECL_CHECK 0x200000u
 			/* TRUE when comparing routine types to check for
 			   member redeclaration conflicts. */
-#define TCF_STRICT_EXCEPTION_SPEC 0x400000
+#define TCF_STRICT_EXCEPTION_SPEC 0x400000u
 			/* TRUE if exception specifications on routine types
 			   should match exactly (when exception specifications
 			   are part of routine types).  Requires that the flag
 			   ICF_IMPLICIT_CONVERSION also be TRUE. */
-#define TCF_PLACEHOLDER_CONSTRAINT_MATCH_REQUIRED 0x800000
+#define TCF_PLACEHOLDER_CONSTRAINT_MATCH_REQUIRED 0x800000u
 			/* TRUE if constraints on placeholder types must
 			   match. */
-#define TCF_DISTINCT_DEPENDENT_TYPES 0x1000000
+#define TCF_DISTINCT_DEPENDENT_TYPES 0x1000000u
 			/* TRUE if dependent types should always be considered
 			   to be distinct.  (Used in GCC/Clang mode when
 			   comparing instantiated member function template
 			   declarations.) */
 #define TCF_LAST TCF_DISTINCT_DEPENDENT_TYPES
 			/* Last bit in the bit vector that is in use. */
-#define TCF_NO_FLAGS 0x0
-typedef int a_type_compat_flags_set;
+#define TCF_NO_FLAGS 0x0u
+typedef unsigned a_type_compat_flags_set;
 
 extern a_boolean compatible_enable_if_attributes(a_type_ptr  rtp1,
                                                  a_type_ptr  rtp2);

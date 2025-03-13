@@ -271,7 +271,7 @@ encoded form.
       /* Note that if we were to write the file on one system and read
          it on another system with a different alignment requirement we
          might have a problem. */
-      do_host_alignment(*count_ptr);
+      do_host_alignment(count_ptr);
       *count_ptr += SPACE_FOR_IL_ENTRY_PREFIX;
       num_entries = (an_il_entry_number)entry_length;
       /* Note that no orphan pointer is allocated for strings. */
@@ -282,8 +282,13 @@ encoded form.
     if (*count_ptr > max_entry_number - num_entries) {
       catastrophe(ec_program_too_large);
     }  /* if */
+
+    /* To suppress compiler warnings about data truncation, explicitly
+       truncate to the appropriate bitwidth. */
+    constexpr unsigned long long entry_number_bitmask =
+                                      bitmask_of_width<BITS_IN_ENTRY_NUMBER>();
     /* Use the next entry number for this entry. */
-    epp->entry_number = *count_ptr + 1;
+    epp->entry_number = (*count_ptr + 1) & entry_number_bitmask;
     epp->file_scope = is_file_scope_entry;
     /* Increment the table entry by the right number of logical entries. */
     *count_ptr += num_entries;
@@ -484,8 +489,13 @@ Write the initial information to the IL file, if there is one.
 #if CHECKING
   /* Make sure the entry_number field in the prefix can contain the maximum
      value computed. */
-  { an_il_entry_prefix dummy_prefix;
-    dummy_prefix.entry_number = max_entry_number;
+  { /* To suppress compiler warnings about data truncation, explicitly
+       truncate to the appropriate bitwidth. */
+    constexpr unsigned long long entry_number_bitmask =
+                                      bitmask_of_width<BITS_IN_ENTRY_NUMBER>();
+    an_il_entry_prefix           dummy_prefix;
+
+    dummy_prefix.entry_number = max_entry_number & entry_number_bitmask;
     if (dummy_prefix.entry_number != max_entry_number) {
       internal_error("start_il_file: prefix entry_number is defined wrong");
     }  /* if */
@@ -673,7 +683,7 @@ its length.
                                /*clear_fe_pointers=*/TRUE);
   }  /* if */
   /* Write the entry kind. */
-  byte_entry_kind = (int)entry_kind;
+  byte_entry_kind = (a_byte)entry_kind;
   (void)fwrite((char *)&byte_entry_kind, sizeof(byte_entry_kind), 1,
                f_il_output);
   /* Write the entry number. */

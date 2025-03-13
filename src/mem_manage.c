@@ -182,7 +182,11 @@ and "freed" here mean via malloc/free, not by some mechanism on top of that.
 {
   /* Do "increment" carefully, since one variable is unsigned and the
      other is not. */
-  total_mem_allocated = (long)total_mem_allocated + amount;
+  if (amount >= 0) {
+    total_mem_allocated += (unsigned long)amount;
+  } else {
+    total_mem_allocated -= (unsigned long)-amount;
+  }  /* if */
   /* Keep track of the high-water mark. */
   if (total_mem_allocated > max_mem_allocated) {
     max_mem_allocated = total_mem_allocated;
@@ -324,8 +328,8 @@ Add an entry to the memory allocation history array.
     size_of_mem_alloc_history = new_size;
     mem_alloc_history = (a_mem_alloc_history_ptr)realloc_buffer
                           ((char *)mem_alloc_history,
-	                   (sizeof_t)(old_size * sizeof(a_mem_alloc_history)),
-		           (sizeof_t)(new_size * sizeof(a_mem_alloc_history)));
+	                   (sizeof_t)old_size * sizeof(a_mem_alloc_history),
+		           (sizeof_t)new_size * sizeof(a_mem_alloc_history));
   }  /* if */
 #else /* !USE_MMAP_FOR_MEMORY_REGIONS */
   if (num_of_mem_alloc_history_entries == SIZE_OF_MEM_ALLOC_HISTORY) {
@@ -612,7 +616,8 @@ a smaller-sized block.  Return a pointer to the block header.
          may be pointing to memory that is not allocated, or is part of a
          different allocation. */
       /*SUPPRESS 22*/
-      alloc_size = hdr->after_end_of_block - hdr->start_of_block +
+      check_assertion(hdr->after_end_of_block >= hdr->start_of_block);
+      alloc_size = (sizeof_t)(hdr->after_end_of_block - hdr->start_of_block) +
                    adjusted_header_size;
       if (alloc_size >= needed_size) {
         if (hdr->start_of_block == desired_addr ||
@@ -669,7 +674,7 @@ a smaller-sized block.  Return a pointer to the block header.
   /* Make sure the block size preserves alignment of the end (this is
      just so that we're not allocating space at the end that can hardly 
      ever be used). */
-  do_host_alignment(alloc_size);
+  do_host_alignment(&alloc_size);
 #if STANDALONE_UTILITY_PROGRAM
   alloc_addr = malloc_with_check(alloc_size);
 #else /* !STANDALONE_UTILITY_PROGRAM */
@@ -826,8 +831,9 @@ Free any unallocated space remaining in the indicated memory block.
 
   db_enter(5, "trim_mem_block");
   /* Save the remaining space only if it's big enough. */
-  space_remaining_in_block = hdr->after_end_of_block -
-                             hdr->next_avail_in_block;
+  check_assertion(hdr->after_end_of_block >= hdr->next_avail_in_block);
+  space_remaining_in_block = (sizeof_t)(hdr->after_end_of_block -
+                                        hdr->next_avail_in_block);
   /* The criterion for "big enough" is really not for very much space.
      Even very small blocks can be reused, at a minor cost in
      execution time if the file scope region gets too fragmented. */
@@ -871,13 +877,13 @@ the number of entries indicated by function_def_number.
     size_of_function_def_table = function_def_number + 2048;
     il_header.function_def_table = (a_function_def_descr*)realloc_buffer(
                           (char *)il_header.function_def_table,
-                          (sizeof_t)(old_size*sizeof(a_function_def_descr)),
-                          (sizeof_t)(size_of_function_def_table*
-                                              sizeof(a_function_def_descr)));
+                          (sizeof_t)old_size * sizeof(a_function_def_descr),
+                          ((sizeof_t)size_of_function_def_table *
+                           sizeof(a_function_def_descr)));
     /* Depending on NULL represented as zero bits here. */
     memzero((char *)&il_header.function_def_table[old_size],
-            size_t_arg((size_of_function_def_table-old_size)*
-                       sizeof(a_function_def_descr)));
+            ((size_t)(size_of_function_def_table - old_size) *
+             sizeof(a_function_def_descr)));
   }  /* if */
 }  /* ensure_function_def_table_space */
 
@@ -922,34 +928,34 @@ the number of entries indicated by region_number.
     size_of_mem_region_table = region_number + 2048;
     mem_region_table = (a_mem_block_header_ptr *)realloc_buffer(
                           (char *)mem_region_table,
-                          (sizeof_t)(old_size*sizeof(a_mem_block_header_ptr)),
-                          (sizeof_t)(size_of_mem_region_table*
-                                              sizeof(a_mem_block_header_ptr)));
+                          (sizeof_t)old_size * sizeof(a_mem_block_header_ptr),
+                          (sizeof_t)size_of_mem_region_table *
+                                               sizeof(a_mem_block_header_ptr));
     /* Depending on NULL represented as zero bits here. */
     memzero((char *)&mem_region_table[old_size],
-            size_t_arg((size_of_mem_region_table-old_size)*
-                       sizeof(a_mem_block_header_ptr)));
+            ((size_t)(size_of_mem_region_table - old_size) *
+             sizeof(a_mem_block_header_ptr)));
     /* region_scope_entry is a parallel array to mem_region_table, and must
        be similarly expanded. */
     il_header.region_scope_entry = (a_scope_ptr *)realloc_buffer(
                           (char *)il_header.region_scope_entry,
-                          (sizeof_t)(old_size*sizeof(a_scope_ptr)),
-                          (sizeof_t)(size_of_mem_region_table*
-                                                         sizeof(a_scope_ptr)));
+                          (sizeof_t)old_size * sizeof(a_scope_ptr),
+                          (sizeof_t)size_of_mem_region_table *
+                                                          sizeof(a_scope_ptr));
     /* Depending on NULL represented as zero bits here. */
     memzero((char *)&il_header.region_scope_entry[old_size],
-            size_t_arg((size_of_mem_region_table-old_size)*
-                       sizeof(a_scope_ptr)));
+            ((size_t)(size_of_mem_region_table - old_size) *
+             sizeof(a_scope_ptr)));
 #if IL_SHOULD_BE_WRITTEN_TO_FILE
     /* ... and also index_for_il_file. */
     index_for_il_file = (a_file_position *)realloc_buffer(
                           (char *)index_for_il_file,
-                          (sizeof_t)(old_size*sizeof(a_file_position)),
-                          (sizeof_t)(size_of_mem_region_table*
-                                                    sizeof(a_file_position))); 
+                          (sizeof_t)old_size * sizeof(a_file_position),
+                          (sizeof_t)size_of_mem_region_table *
+                                                      sizeof(a_file_position));
     memzero((char *)&index_for_il_file[old_size],
-            size_t_arg((size_of_mem_region_table-old_size)*
-                       sizeof(a_file_position)));
+            ((size_t)(size_of_mem_region_table - old_size) *
+             sizeof(a_file_position)));
 #endif /* IL_SHOULD_BE_WRITTEN_TO_FILE */
   }  /* if */
 #if DEBUG
@@ -960,14 +966,14 @@ the number of entries indicated by region_number.
   if (size_of_allocated_in_region < size_of_mem_region_table) {
     allocated_in_region = (unsigned long *)realloc_buffer(
                           (char *)allocated_in_region,
-                          (sizeof_t)(size_of_allocated_in_region*
-                                                        sizeof(unsigned long)),
-                          (sizeof_t)(size_of_mem_region_table*
-                                                       sizeof(unsigned long)));
+                          (sizeof_t)size_of_allocated_in_region *
+                                                        sizeof(unsigned long),
+                          (sizeof_t)size_of_mem_region_table *
+                                                        sizeof(unsigned long));
     /* Zero the new entries. */
     memzero((char *)&allocated_in_region[size_of_allocated_in_region],
-            size_t_arg((size_of_mem_region_table-size_of_allocated_in_region)*
-                       sizeof(unsigned long)));
+            ((size_t)(size_of_mem_region_table - size_of_allocated_in_region) *
+             sizeof(unsigned long)));
     size_of_allocated_in_region = size_of_mem_region_table;
   }  /* if */
 #endif /* DEBUG */
@@ -1055,7 +1061,7 @@ is used for allocation of general front end memory (i.e., not IL).
      aside from keeping the data correctly aligned, this also keeps the
      next available address properly aligned, which is important in
      trim_mem_block. */
-  do_host_alignment(size);
+  do_host_alignment(&size);
 
   /* See if enough space remains in the current block.  If not, get
      a new block.  Note that we add the required host alignment to the
@@ -1757,7 +1763,7 @@ will be placed starting at the location specified by pos.
   /* Make sure pos is a valid location in the buffer. */
   check_assertion(buffer->buffer <= pos &&
                   &buffer->buffer[buffer->allocated_size - 1] >= pos);
-  buffer->size = pos - buffer->buffer;
+  buffer->size = (sizeof_t)(pos - buffer->buffer);
 }  /* set_buffer_position */
 
 
@@ -1896,13 +1902,13 @@ is recorded for possible reuse later.
     /* Create the map to the freed memory if it has not already been
        created. */
     if (freed_fe_map == NULL) {
-      freed_fe_map = new_general<a_size_to_ptr_map>(1);
+      freed_fe_map = new_general<a_size_to_ptr_map>(1u);
     }  /* if */
 
     a_dyn_array_of_void_ptrs_ptr freed_blocks = freed_fe_map->get(size);
     if (freed_blocks == NULL) {
       /* Create a new dynamic array and add it to the map. */
-      freed_blocks = new_general<a_dyn_array_of_void_ptrs>(1);
+      freed_blocks = new_general<a_dyn_array_of_void_ptrs>(1u);
       freed_fe_map->map(size, freed_blocks);
     }  /* if */
     /* Add the new entry to the array. */
@@ -2118,10 +2124,10 @@ This is done before command line processing.
 #endif /* !STANDALONE_UTILITY_PROGRAM */
   /* Initialize the general allocator. */
   memory_allocation_map = new_direct<a_memory_allocation_map>(
-                                                            /*mask_width=*/10);
+                                                           /*mask_width=*/10u);
 #if CHECKING
   resizable_memory_allocations = new_direct<a_memory_allocation_set>(
-                                                            /*mask_width=*/10);
+                                                           /*mask_width=*/10u);
 #endif /* CHECKING */
   mem_region_table = NULL;
   size_of_mem_region_table = 0;
@@ -2165,7 +2171,7 @@ must be initialized for each compilation.
        multiple compilations are being processed.  Clear the array of
        values left over from a previous compilation. */
     memzero((char *)index_for_il_file,
-            size_t_arg((size_of_mem_region_table)*sizeof(a_file_position)));
+            (size_t)size_of_mem_region_table * sizeof(a_file_position));
   }  /* if */
 #endif /* IL_SHOULD_BE_WRITTEN_TO_FILE */
   /* Initialize the memory region for general front end storage. */

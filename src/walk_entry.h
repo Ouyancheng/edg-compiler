@@ -728,7 +728,11 @@ handle_next_entry:
             result = TRUE;
           } else {
             /* Set the flag to indicate that this entry has been visited. */
-            epp->il_walk_flag = flag_value_meaning_visited;
+            if (flag_value_meaning_visited) {
+              epp->il_walk_flag = TRUE;
+            } else {
+              epp->il_walk_flag = FALSE;
+            }  /* if */
             result = FALSE;
           }  /* if */
         }  /* if */

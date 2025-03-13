@@ -3361,7 +3361,7 @@ memory.
   /* Compute the length of the string not including a null terminator
      that will be added.  The terminator is not required for most
      processing, but it is used by add_token_to_string. */
-  length = end_of_curr_token - start_of_curr_token + 1;
+  length = (sizeof_t)(end_of_curr_token - start_of_curr_token) + 1;
   /* Allocate the string, adding space for the terminator. */
   new_start = (char *)alloc_fe(length+1);
 #if DEBUG
@@ -5143,7 +5143,7 @@ invocations.
     /* Normal case: line_loc points to the point of insertion.  Save the
        original character, and replace it with a marker that will call
        attention to the source modification. */
-    slmp->orig_char         = *line_loc;
+    slmp->orig_char         = (unsigned char)*line_loc;
     *(char *)line_loc       = ATTENTION_MARKER;
   } else {
     /* Insertion before the first character of curr_source_line. */
@@ -5253,7 +5253,7 @@ source_line_modif_list.  The entry is not freed.
   } else {
     /* Restore the original character (thus removing the attention marker
        character put in when this entry was added). */
-    *(char *)(slmp->line_loc) = slmp->orig_char;
+    *(char *)(slmp->line_loc) = (char)slmp->orig_char;
   }  /* if */
   /* Remove the entry from the hash table used by nested_source_line_modif. */
   rem_source_line_modif_from_hash_table(slmp);
@@ -5859,11 +5859,12 @@ is TRUE.
                                     curr_file_unicode_source_kind == usk_none);
               if (curr_file_unicode_source_kind == usk_none) {
                 /* Convert the wide character to UTF-8. */
-                int	utf_len;
-                int	i;
-                char	arr[4];
-                utf_len = unicode_to_utf8(wc, arr);
-                for (i = 0; i < utf_len; i++) putc(arr[i], f_pp_output);
+                unsigned char arr[4];
+                unsigned      utf_len = unicode_to_utf8(wc, arr);
+
+                for (unsigned i = 0; i < utf_len; i++) {
+                  putc(arr[i], f_pp_output);
+                }  /* for */
                 ch = '\0';  /* Suppress output of ch below. */
               } else {
                 a_boolean	err = FALSE;
@@ -5871,9 +5872,9 @@ is TRUE.
                 /* Change a UTF-8 character to a (possibly multibyte) character
                    because we're outputting non-Unicode.  Give a warning if
                    the character cannot be converted. */
-                int		mb_len;
-                int		i;
-                char		arr[MAX_MULTIBYTE_CHAR_LENGTH];
+                int           mb_len;
+                int           i;
+                unsigned char arr[MAX_MULTIBYTE_CHAR_LENGTH];
                 /* Convert the Unicode character to a multibyte character
                    sequence.  "?" will be returned on error. */
                 mb_len = unicode_to_multibyte_char(wc, arr, &err);
@@ -5909,10 +5910,10 @@ is TRUE.
                      curr_file_unicode_source_kind == usk_none) {
             /* Change a Latin-1 character with value > 0x7f to two bytes
                of UTF-8. */
-            char arr[4];
+            unsigned char arr[4];
             (void)unicode_to_utf8((unsigned long)(unsigned char)ch, arr);
             putc(arr[0], f_pp_output);
-            ch = arr[1];
+            ch = (char)arr[1];
             prev_ch = '\n';
             token_start = FALSE;
 #endif /* UNICODE_SOURCE_SUPPORTED */
@@ -6076,12 +6077,12 @@ reallocate raw_listing_buffer to make it bigger.
   char     *new_raw_listing_buffer;
 
   db_enter(4, "expand_raw_listing_buffer");
-  old_size = after_end_of_raw_listing_buffer - raw_listing_buffer;
+  old_size = (sizeof_t)(after_end_of_raw_listing_buffer - raw_listing_buffer);
   /* Increase the size of raw_listing_buffer. */
   new_size = old_size * 2;
   new_raw_listing_buffer = realloc_buffer(raw_listing_buffer,
                                            old_size, new_size);
-  loc_offset = loc_in_raw_listing_buffer - raw_listing_buffer;
+  loc_offset = (sizeof_t)(loc_in_raw_listing_buffer - raw_listing_buffer);
   raw_listing_buffer = new_raw_listing_buffer;
   after_end_of_raw_listing_buffer = raw_listing_buffer + new_size;
   loc_in_raw_listing_buffer = raw_listing_buffer + loc_offset;
@@ -6533,8 +6534,10 @@ a pointer to an include file history entry.
   for (; *str != '\0'; str++) {
     /* Convert any uppercase characters to lower for hashing purposes.  The
        actual file name comparison may or may not be case sensitive. */
-    char	ch = *str;
-    if (isupper((unsigned char)ch)) ch = tolower((int)ch);
+    unsigned char ch = (unsigned char)*str;
+    if (isupper(ch)) {
+      ch = (unsigned char)tolower((int)ch);
+    }  /* if */
     value = (value * 31) + value + ch;
   }  /* for */
   return value;
@@ -7888,8 +7891,8 @@ used to find this file.
     int new_size = size_input_stack + INPUT_STACK_INCREMENTAL_ALLOCATION;
     input_stack = (an_input_stack_entry_ptr)realloc_buffer(
                    (char *)input_stack,
-                   (sizeof_t)(size_input_stack*sizeof(an_input_stack_entry)),
-                   (sizeof_t)(new_size*sizeof(an_input_stack_entry)));
+                   (sizeof_t)size_input_stack * sizeof(an_input_stack_entry),
+                   (sizeof_t)new_size * sizeof(an_input_stack_entry));
     size_input_stack = new_size;
     if (depth_input_stack >= 0) {
       curr_ise = &input_stack[depth_input_stack];
@@ -8078,11 +8081,11 @@ structure of #line directives, where the actual input file does not change.
   if (depth_input_stack + 1 == size_input_stack) {
     /* Expand the input stack by reallocating it. */
     int      new_size = size_input_stack + INPUT_STACK_INCREMENTAL_ALLOCATION;
-    sizeof_t base_idx = base_ise - input_stack;
+    sizeof_t base_idx = (sizeof_t)(base_ise - input_stack);
     input_stack = (an_input_stack_entry_ptr)realloc_buffer(
                    (char *)input_stack,
-                   (sizeof_t)(size_input_stack * sizeof(an_input_stack_entry)),
-                   (sizeof_t)(new_size * sizeof(an_input_stack_entry)));
+                   (sizeof_t)size_input_stack * sizeof(an_input_stack_entry),
+                   (sizeof_t)new_size * sizeof(an_input_stack_entry));
     size_input_stack = new_size;
     curr_ise = &input_stack[depth_input_stack];
     base_ise = &input_stack[base_idx];
@@ -8534,7 +8537,7 @@ reallocate curr_source_line to make it bigger.
   char     *new_curr_source_line;
 
   db_enter(4, "expand_curr_source_line");
-  old_size = after_end_of_curr_source_line - curr_source_line;
+  old_size = (sizeof_t)(after_end_of_curr_source_line - curr_source_line);
   /* Increase the size of curr_source_line. */
   new_size = old_size * 2;
   /* Allocate two more bytes than required: one at the end so that a pointer
@@ -9480,8 +9483,10 @@ add_newline_and_line_end_and_return:
        immediately, to allow the warning to be suppressed if the non-splice
        backslash occurs within a comment. */
     pending_nonsplice_backslash = TRUE;
-    offset_of_nonsplice_backslash = (loc_in_line - curr_source_line) -
-                         white_space_chars_after_backslash - LE_ESCAPE_LEN - 1;
+    offset_of_nonsplice_backslash = (sizeof_t)(loc_in_line - curr_source_line);
+    offset_of_nonsplice_backslash -= white_space_chars_after_backslash;
+    offset_of_nonsplice_backslash -= LE_ESCAPE_LEN;
+    --offset_of_nonsplice_backslash;
   }  /* if */
 
 return_with_line:
@@ -9717,7 +9722,7 @@ entry_for_possible_trigraph:
               loc_in_line--;
               curr_column++;
               olmp = add_orig_line_modif(olm_trigraph, loc_in_line);
-              olmp->variant.orig_char = next_ch;
+              olmp->variant.orig_char = (unsigned char)next_ch;
             }  /* if */
           }  /* if */
         }  /* if */
@@ -9729,7 +9734,7 @@ entry_for_possible_trigraph:
 entry_for_null_character:
         if (loc_in_line == after_curr_source_line_minus_term) {
           /* The line is too long; the buffer must be expanded. */
-          offset_in_line = loc_in_line - curr_source_line;
+          offset_in_line = (sizeof_t)(loc_in_line - curr_source_line);
           expand_curr_source_line();
           loc_in_line = (char *)curr_source_line + offset_in_line;
           after_curr_source_line_minus_term = after_end_of_curr_source_line -
@@ -9749,7 +9754,7 @@ entry_for_null_character:
       if (loc_in_line == after_curr_source_line_minus_term) {
 entry_for_expand_buffer:
         /* The line is too long; the buffer must be expanded. */
-        offset_in_line = loc_in_line - curr_source_line;
+        offset_in_line = (sizeof_t)(loc_in_line - curr_source_line);
         expand_curr_source_line();
         loc_in_line = (char *)curr_source_line + offset_in_line;
         after_curr_source_line_minus_term = after_end_of_curr_source_line -
@@ -9853,7 +9858,7 @@ entry_for_line_splice:
             /* All the olm_splice_whitespace entries will be associated
                with the location of the backslash. */
             olmp = add_orig_line_modif(olm_splice_whitespace, loc_in_line);
-            olmp->variant.orig_char = loc_in_line[i + 1];
+            olmp->variant.orig_char = (unsigned char)(loc_in_line[i + 1]);
           }  /* for */
           /* coverity[assigned_value] */
           curr_column -= white_space_chars_after_backslash;
@@ -10508,7 +10513,8 @@ end_of_current_line:
         }  /* if */
         if (ch == LE_END_OF_LINE) {
           /* End of the source line. */
-          end_of_line_escape_offset = curr_char_loc - curr_source_line;
+          end_of_line_escape_offset =
+                                  (sizeof_t)(curr_char_loc - curr_source_line);
           /* We have to read a new logical source line now. 
              read_logical_source_line will pop the input stack if end of
              file is encountered.  On the final end of file, TRUE is returned,
@@ -10887,8 +10893,9 @@ normal_comment:
                If a number follows the keyword, it is the number of arguments
                that are fixed and should always be present and checked; 0 is
                assumed if the number is omitted. */
-            int				varargs_count = 0;
-            a_pending_pragma_ptr	ppp;
+            a_lint_varargs_count varargs_count = 0;
+            a_pending_pragma_ptr ppp;
+
             curr_char_loc += 7;
             varargs_count = 0;
             /* Skip any blanks, then scan a decimal number.  lint itself only
@@ -10904,7 +10911,7 @@ normal_comment:
                 varargs_count = 0;
                 break;
               }  /* if */
-              varargs_count += ch - '0';
+              varargs_count += (a_lint_varargs_count)(ch - '0');
               curr_char_loc++;
             }  /* while */
 #if DEBUG
@@ -10914,8 +10921,8 @@ normal_comment:
             }  /* if */
 #endif /* DEBUG */
             determine_comment_pos_if_not_yet_done();
-            ppp = add_curr_token_pseudo_pragma
-		   ((a_pragma_kind)pk_lint_varargs_count, &comment_start_pos);
+            ppp = add_curr_token_pseudo_pragma(pk_lint_varargs_count,
+                                               &comment_start_pos);
             ppp->variant.lint_varargs_count = varargs_count;
           }  /* if */
         }  /* if */
@@ -12519,7 +12526,7 @@ Microsoft mode for non-delimited UCNs and in all modes for delimited UCNs.
       }  /* if */
       break;
     }  /* if */
-    result = (result << 4) | hexvalue(ch);
+    result = (result << 4) | hexvalue((unsigned char)ch);
   }  /* for */
   /* Check whether the specified character is a valid universal character. */
 check_validity:
@@ -12551,9 +12558,13 @@ Return the numeric value of the three bytes at the given offset in
 unicode_name_fsm, interpreted as a big-endian 24-bit unsigned integer.
 */
 {
-  return (unicode_name_fsm[offset] << 16) +
-         (unicode_name_fsm[offset + 1] << 8) +
-         unicode_name_fsm[offset + 2];
+  unsigned long result = unicode_name_fsm[offset];
+
+  result <<= 8;
+  result |= unicode_name_fsm[offset + 1];
+  result <<= 8;
+  result |= unicode_name_fsm[offset + 2];
+  return result;
 }  /* val_from_unicode_name_fsm */
 
 
@@ -12595,7 +12606,7 @@ identifier, respectively.
        character name. */
     int           transition;
     int           num_transitions = unicode_name_fsm[state];
-    unsigned char name_char = *pos++;
+    unsigned char name_char = (unsigned char)*pos++;
     unsigned long trans_offset = state + 1;
     if ((num_transitions & 0x80) != 0) {
       /* This is a multi-character state.  The "num_transitions" value
@@ -12612,7 +12623,7 @@ identifier, respectively.
           transition = 1;
           goto end_of_state_processing;
         }  /* if */
-        name_char = *pos++;
+        name_char = (unsigned char)*pos++;
       }  /* for */
     } else if ((num_transitions & 0x40) != 0) {
       /* This is a range state; the number of ranges is given by the
@@ -12635,9 +12646,9 @@ identifier, respectively.
       --pos;
       for (int i = 0; i < 5; ++i) {
         if (*pos >= '0' && *pos <= '9') {
-          val = (val << 4) + (*pos - '0');
+          val = (val << 4) + ((unsigned char)*pos - '0');
         } else if (*pos >= 'A' && *pos <= 'F') {
-          val = (val << 4) + (*pos - 'A' + 10);
+          val = (val << 4) + ((unsigned char)*pos - 'A' + 10);
         } else {
           break;
         }  /* if */
@@ -12817,11 +12828,10 @@ character.  ucn_value is the value to be put out.  prefix4 and prefix8
 are the prefix characters to be used for 4-digit and 8-digit output.
 */
 {
-  int  ucn_chars = ucn_value > 0xffff ? 8 : 4;
-  char ucn[8] = "";
-  int  i;
+  size_t ucn_chars = ucn_value > 0xffff ? 8 : 4;
+  char   ucn[8] = "";
 
-  for (i = ucn_chars; i > 0; i--) {
+  for (size_t i = ucn_chars; i > 0; i--) {
     int hex_digit = ucn_value & 0xf;
     ucn_value = ucn_value >> 4;
     ucn[i - 1] = "0123456789abcdef"[hex_digit];
@@ -12884,10 +12894,10 @@ IDENTIFIER_STRINGS_ALLOW_MULTIBYTE_CHARS and UNICODE_SOURCE_SUPPORTED.
       if (!force_ucn) {
         /* We can put the UTF-8 for the character directly into the
            identifier string. */
-        char arr[4];
-        int  numch = unicode_to_utf8(ucn_value, arr);
-        int  i;
-        for (i = 0; i < numch; i++) {
+        unsigned char arr[4];
+        unsigned      numch = unicode_to_utf8(ucn_value, arr);
+
+        for (unsigned i = 0; i < numch; i++) {
           add_char_to_text_buffer(ucn_buffer, arr[i]);
         }  /* for */
       } else {
@@ -12928,10 +12938,10 @@ IDENTIFIER_STRINGS_ALLOW_MULTIBYTE_CHARS and UNICODE_SOURCE_SUPPORTED.
 #if UNICODE_SOURCE_SUPPORTED
       if (!force_ucn) {
         /* Put the UTF-8 version of the character into the identifier. */
-        char arr[4];
-        int  utflen = unicode_to_utf8(wc, arr);
-        int  i;
-        for (i = 0; i < utflen; i++) {
+        unsigned char arr[4];
+        unsigned      utflen = unicode_to_utf8(wc, arr);
+
+        for (unsigned i = 0; i < utflen; i++) {
           add_char_to_text_buffer(ucn_buffer, arr[i]);
         }  /* for */
       } else {
@@ -13014,8 +13024,9 @@ null characters in the closing delimiter.
     right_delim_len += 2;
   }  /* if */
   *olm_adjustment = 0;
+  check_assertion(curr_char_loc >= start_of_raw_string_delimiter);
   if (curr_char_loc - start_of_raw_string_delimiter >=
-                   (a_ptrdiff)raw_string_delimiter_len + right_delim_len + 2) {
+                              raw_string_delimiter_len + right_delim_len + 2) {
     /* The total string is long enough to contain both copies of the
        delimiter and the left and right parentheses. */
     a_boolean found_right_paren =
@@ -13041,7 +13052,7 @@ null characters in the closing delimiter.
     if (found_right_paren) {
       if (strncmp(start_of_raw_string_delimiter,
                   curr_char_loc - right_delim_len,
-                  raw_string_delimiter_len) == 0) {
+                  size_t_arg(raw_string_delimiter_len)) == 0) {
         /* The strings compare equal.  Now we need to make sure that they
            both have the same set of modifications, if any. */
         an_orig_line_modif_ptr left_olmp;
@@ -13516,8 +13527,8 @@ normal_char:
              number of code units it will occupy.  (This conversion
              assumes that the source is in Latin-1, whose code points are
              the same as the first 256 code points of Unicode.) */
-          char utf8_char[4];
-          nchars += unicode_to_utf8(ch, utf8_char);
+          unsigned char utf8_char[4];
+          nchars += unicode_to_utf8((unsigned long)ch, utf8_char);
         } else {
           /* The character will occupy one code unit of the target
              string. */
@@ -13551,7 +13562,10 @@ return_point:
   } else if (!is_raw_string) {
     *num_chars += nchars;
   } else {
-    *num_chars += nchars - raw_string_delimiter_len - delim_len_adjustment - 1;
+    *num_chars += nchars;
+    *num_chars -= (unsigned long)raw_string_delimiter_len;
+    *num_chars -= (unsigned long)delim_len_adjustment;
+    *num_chars -= 1;
   }  /* if */
   return unterminated;
 }  /* accum_quoted_string */
@@ -14217,7 +14231,7 @@ non-NULL, also append the characters in the comment, through but not including
        Copy the characters from prev_asm_stop_char through (but not including)
        curr_char into the buffer, and then reset prev_asm_stop_char and
        curr_char to next_char. */
-    if ((len = curr_char - prev_asm_stop_char) != 0) {
+    if ((len = (sizeof_t)(curr_char - prev_asm_stop_char)) != 0) {
       /* Add "len" characters to the buffer, starting at
          prev_asm_stop_char. */
       add_to_asm_func_buffer(prev_asm_stop_char, len);
@@ -14233,7 +14247,7 @@ non-NULL, also append the characters in the comment, through but not including
   if (curr_char > prev_asm_stop_char) {
     /* Copy the characters from prev_asm_stop_char through (but not including)
        curr_char into the buffer. */
-    len = curr_char - prev_asm_stop_char;
+    len = (sizeof_t)(curr_char - prev_asm_stop_char);
     /* Add "len" characters to the buffer, starting at prev_asm_stop_char. */
     add_to_asm_func_buffer(prev_asm_stop_char, len);
     prev_asm_stop_char = curr_char;
@@ -14243,7 +14257,7 @@ non-NULL, also append the characters in the comment, through but not including
     /* Append text of commentary, too. */
     ends_with_newline = FALSE;
     check_assertion(after_comment_stop_char > prev_asm_stop_char);
-    len = after_comment_stop_char - prev_asm_stop_char;
+    len = (sizeof_t)(after_comment_stop_char - prev_asm_stop_char);
     if (len >= LE_ESCAPE_LEN &&
         after_comment_stop_char[-LE_ESCAPE_LEN  ] == LE_ESCAPE &&
         after_comment_stop_char[-LE_ESCAPE_LEN+1] == LE_NEWLINE) {
@@ -15760,7 +15774,7 @@ modification will be added to restore the first token to the current line.
   /* Get the length of the next word. */
   end_of_word = curr_char_loc;
   while (is_id_char[(*end_of_word)-CHAR_MIN]) ++end_of_word;
-  next_word_len = end_of_word - curr_char_loc;
+  next_word_len = (sizeof_t)(end_of_word - curr_char_loc);
   if (end_of_token != NULL) *end_of_token = end_of_word;
   /* Determine if first_word and next_word together make a whitespace
      keyword. */
@@ -15873,7 +15887,7 @@ modification will be added to restore the first token to the current line.
       start_of_curr_token = orig_loc;
       curr_char_loc = end_of_word;
     }  /* if */
-    len_of_curr_token = curr_char_loc - start_of_curr_token;
+    len_of_curr_token = (sizeof_t)(curr_char_loc - start_of_curr_token);
     end_of_curr_token = curr_char_loc - 1;
     if (cppcx_enabled && return_token == tok_ref_new) {
       /* In C++/CX mode, "gcnew" is not a keyword; however, "ref new"
@@ -15900,7 +15914,7 @@ modification will be added to restore the first token to the current line.
     slmp->source_position = start_pos;
     start_of_curr_token = kwd->text;
     curr_char_loc = kwd->end_of_insertion;
-    len_of_curr_token = start_of_curr_token - curr_char_loc;
+    len_of_curr_token = (sizeof_t)(start_of_curr_token - curr_char_loc);
     end_of_curr_token = curr_char_loc - 1;
   } else {
     /* The second word was on the same line, so we just undo the changes
@@ -16385,8 +16399,9 @@ confusable with one already in the hash table.
 Local macro to update the hash code in curr_id_repr with the character ch.
 This uses the same hashing algorithm found in hash_source_string.
 */
-#define update_hash(ch) \
-  curr_id_repr.hash_code += (curr_id_repr.hash_code << 5) + ch
+#define update_hash(ch)                                                       \
+  curr_id_repr.hash_code +=                                                   \
+    (a_hash_value)((curr_id_repr.hash_code << 5) + (ch))
 
   check_assertion(multibyte_chars_in_source_enabled);
   mbc_scan_init();
@@ -16418,13 +16433,11 @@ This uses the same hashing algorithm found in hash_source_string.
     } else {
       /* An extended character.  Convert it to UTF-8, save it, and see if
          it is confusable. */
-      int                       utf_len;
-      int                       i;
-      char                      arr[4];
+      unsigned char             arr[4];
+      unsigned                  utf_len = unicode_to_utf8(ch, arr);
       a_confusable_map_elem_ptr cmep = confusable_char(ch);
 
-      utf_len = unicode_to_utf8(ch, arr);
-      add_to_text_buffer(src_spelling, arr, utf_len);
+      add_to_text_buffer(src_spelling, (a_const_char*)arr, utf_len);
       if (ch >= 0x200b && ch <= 0x200d) {
         /* This is a Unicode zero-width character.  Since it is invisible,
            it makes the identifier confusable but should not be added to
@@ -16433,20 +16446,21 @@ This uses the same hashing algorithm found in hash_source_string.
       } else if (cmep == NULL) {
         /* Not a confusable character.  Add the UTF-8 bytes to the
            prototyped string and update the hash code. */
-        for (i = 0; i < utf_len; ++i) {
-          add_char_to_text_buffer(prototyped_spelling, arr[i]);
-          update_hash(arr[i]);
+        for (unsigned i = 0; i < utf_len; ++i) {
+          add_char_to_text_buffer(prototyped_spelling, (char)arr[i]);
+          update_hash((a_hash_value)arr[i]);
         }  /* for */
       } else {
         /* This character is confusable with another.  Add the prototyped
            spelling of the character to the prototyped string and update
            the hash code. */
         confusable_seen = TRUE;
-        for (i = 0; i < MAX_PROTOTYPE_LENGTH && cmep->prototype[i] != 0; ++i) {
-          utf_len = unicode_to_utf8(cmep->prototype[i], arr);
-          for (int j = 0; j < utf_len; ++j) {
-            add_char_to_text_buffer(prototyped_spelling, arr[j]);
-            update_hash(arr[j]);
+        for (size_t i = 0; i < MAX_PROTOTYPE_LENGTH && cmep->prototype[i] != 0;
+             ++i) {
+          utf_len = unicode_to_utf8((unsigned long)cmep->prototype[i], arr);
+          for (unsigned j = 0; j < utf_len; ++j) {
+            add_char_to_text_buffer(prototyped_spelling, (char)arr[j]);
+            update_hash((a_hash_value)arr[j]);
           }  /* for */
         }  /* for */
       }  /* if */
@@ -17412,7 +17426,7 @@ id_scan:
          even if the identifier is not looked up in the symbol table. */
 end_of_id:
       clear_locator(&locator_for_curr_id, &pos_curr_token);
-      id_length = end_of_curr_token - start_of_curr_token + 1;
+      id_length = (sizeof_t)(end_of_curr_token - start_of_curr_token + 1);
       id_ptr = start_of_curr_token;
 #if MICROSOFT_EXTENSIONS_ALLOWED
       if (cli_or_cx_enabled && scanning_macro_name) {
@@ -17511,7 +17525,7 @@ end_of_id:
             check_for_whitespace_keyword(assoc_symbol, &token_kind)) {
           /* Check the full keyword to see if it's been defined as a
              macro.  If not, we're done. */
-          id_length = end_of_curr_token - start_of_curr_token + 1;
+          id_length = (sizeof_t)(end_of_curr_token - start_of_curr_token + 1);
           sym_hdr = find_symbol_header(start_of_curr_token, id_length,
                                        &locator_for_curr_id);
           assoc_symbol = symbol_list_for_file_scope_symbols(sym_hdr);
@@ -17889,7 +17903,8 @@ return_from_token_scan:
       check_for_invalid_macro_concatenation_if_needed(
                                                   /*end_token_is_valid=*/TRUE);
     }  /* if */
-    len_of_curr_token = end_of_curr_token - start_of_curr_token + 1;
+    len_of_curr_token =
+                       (sizeof_t)(end_of_curr_token - start_of_curr_token + 1);
   }  /* if */
   curr_token_is_inert_macro = is_inert_macro;
   curr_token_is_temporarily_inert_macro = is_temporarily_inert_macro;
@@ -22703,17 +22718,19 @@ a_name_reference_ptr.
 */
 {
   a_name_reference_ptr  nrp = (a_name_reference_ptr)key;
-  a_hash_value          value;
+  a_hash_value          value = 0;
 
-  value = possible_lossy_cast_from_pointer(nrp->qualifier) +
-          nrp->is_global_qualified_name +
-          nrp->is_decltype_qualified * 2 +
-          nrp->is_template_id * 4 +
-          nrp->special_kind * 8 +
-          nrp->is_global_qualified_name * 16 +
-          nrp->from_prototype_instantiation * 32 +
-          nrp->is_super_qualified * 64;
-  if (nrp->is_template_id) value += nrp->num_template_arguments * 128;
+  value += (a_hash_value)possible_lossy_cast_from_pointer(nrp->qualifier);
+  value += nrp->is_global_qualified_name;
+  value += nrp->is_decltype_qualified * 2;
+  value += nrp->is_template_id * 4;
+  value += nrp->special_kind * 8;
+  value += nrp->is_global_qualified_name * 16;
+  value += nrp->from_prototype_instantiation * 32;
+  value += nrp->is_super_qualified * 64;
+  if (nrp->is_template_id) {
+    value += (a_hash_value)(nrp->num_template_arguments * 128);
+  }  /* if */
   return value;
 }  /* hash_name_reference */
 
@@ -25837,9 +25854,9 @@ Allocate a file suffix entry, initialize it, and return a pointer to it.
 }  /* alloc_file_suffix */
 
 
-static void add_to_file_suffix_list(a_file_suffix_ptr	*list_ptr,
-				    a_const_char	*suffix,
-                                    int			length)
+static void add_to_file_suffix_list(a_file_suffix_ptr *list_ptr,
+                                    a_const_char      *suffix,
+                                    sizeof_t          length)
 /*
 Add a new entry to the end of the file suffix list specified by list_ptr.
 If the entry is already on the list the new entry is ignored.
@@ -25913,7 +25930,7 @@ list.
     end = ptr - 1;
     /* Move back past any trailing spaces. */
     while (*end == ' ') end--;
-    add_to_file_suffix_list(&list_fsp, start, (int)(end - start + 1));
+    add_to_file_suffix_list(&list_fsp, start, (sizeof_t)(end - start + 1));
     /* If we haven't reached the end of the string, move the pointer past
        the delimiter. */
     if (*ptr) ptr++;
@@ -28484,8 +28501,7 @@ suffix; the normal include_file_suffix_list is used for unsuffixed files.
   sun_include_file_suffix_list =
                               conv_string_to_file_suffix_list("h.SUNWCCh:h:");
   suffix = "SUNWCCh";
-  add_to_file_suffix_list(&include_file_suffix_list, suffix,
-                          (int)strlen(suffix));
+  add_to_file_suffix_list(&include_file_suffix_list, suffix, strlen(suffix));
 }  /* create_sun_include_file_suffixes */
 
 
@@ -29099,7 +29115,7 @@ of the front end.
   next_preinclude_file = NULL;
   processing_macro_preincludes = FALSE;
   name_references_map = alloc_fe_of_type(a_name_references_map);
-  construct(name_references_map, /*mask_width=*/8);
+  construct(name_references_map, /*mask_width=*/8u);
   pending_overflow_reports = NULL;
   last_pending_overflow_report = NULL;
   available_overflow_reports = NULL;

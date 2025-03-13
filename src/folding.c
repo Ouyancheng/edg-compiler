@@ -314,7 +314,7 @@ pointer type to another and casting integer constants to pointer types.
 void get_integer_attributes(a_constant      *cp,
                             an_integer_kind *ikind,
                             a_boolean       *is_signed,
-                            int             *bit_size)
+                            size_t          *bit_size)
 /*
 For the integer type given by cp->type, return in *ikind the integer kind,
 in *is_signed whether or not the type is signed, and in *bit_size the
@@ -335,7 +335,7 @@ size in bits of the integral type.
 #if CHECKING
   if (size == 0) internal_error("get_integer_attributes: zero-sized integer");
 #endif /* CHECKING */
-  *bit_size = (int)(size * targ_char_bit);
+  *bit_size = size * targ_char_bit;
 }  /* get_integer_attributes */
 
 
@@ -359,7 +359,7 @@ type.
 {
   an_integer_kind  ikind;
   a_boolean        is_signed;
-  int              bit_size;
+  size_t           bit_size;
   an_integer_value mask;
 
   /* Put the integer value into the result constant. */
@@ -417,7 +417,7 @@ type, but it may be an integer cast to a pointer type.
   an_integer_value mask, old_value_copy;
   an_integer_kind  new_ikind, old_ikind;
   a_boolean        new_signed, old_signed;
-  int              new_bit_size, old_bit_size;
+  size_t           new_bit_size, old_bit_size;
   a_boolean        is_sign_change;
 
   *err_code = ec_no_error;
@@ -1638,14 +1638,14 @@ returned TRUE.
     if (casting_base_class == NULL) {
       offset = 0;
     } else {
-      offset = casting_base_class->offset;
+      offset = (a_targ_ptrdiff_t)casting_base_class->offset;
       if (constant->variant.ptr_to_member.cast_to_base) offset = -offset;
     }  /* if */
     /* Add the offset for the new cast. */
     if (cast_to_base) {
-      offset -= bcp->offset;
+      offset -= (a_targ_ptrdiff_t)bcp->offset;
     } else {
-      offset += bcp->offset;
+      offset += (a_targ_ptrdiff_t)bcp->offset;
     }  /* if */
     /* Find the original class of the member. */
     member_class = pm_constant_member_class(constant);
@@ -1999,7 +1999,7 @@ Convert an integer constant to a pointer constant of type as specified by
   /* Mask the integer down to the size of pointer. */
   if (new_constant->kind == (a_constant_repr_kind)ck_integer) {
     make_integer_value_mask(&mask,
-                          (int)(skip_typerefs(new_type)->size*targ_char_bit));
+                            skip_typerefs(new_type)->size * targ_char_bit);
     and_integer_values(&new_constant->variant.integer_value, &mask);
   } else if (!is_label_diff) {
     unexpected_condition_str("conv_integer_to_pointer: not integer constant");
@@ -3735,10 +3735,10 @@ everything went fine.
          the value to be shifted.  This prevents those high order bits from
          being shifted in to the result. */
       if (is_signed && !targ_right_shift_is_arithmetic) {
-        an_integer_kind		tmp_ikind;
-        a_boolean		tmp_is_signed;
-        int			tmp_bit_size;
-        an_integer_value	mask;
+        an_integer_kind  tmp_ikind;
+        a_boolean        tmp_is_signed;
+        size_t           tmp_bit_size;
+        an_integer_value mask;
         /* Determine attributes (size, signedness) of the new integer kind. */
         get_integer_attributes(result, &tmp_ikind, &tmp_is_signed,
                                &tmp_bit_size);
@@ -11518,6 +11518,10 @@ allocated and returned.
       a_boolean        found_value = FALSE;
       a_targ_ptrdiff_t cum_offset = 0;
 
+      /* Define a macro for accessing the current type's size as a signed
+         integer.  This macro is undefined at the end of this scope. */
+#define curr_type_size (a_targ_ptrdiff_t)(curr_type->size)
+
       while (!err && !found_value && result_con != NULL) {
         if (cum_offset == offset &&
             identical_types(target_type, curr_type)) {
@@ -11536,7 +11540,7 @@ allocated and returned.
              within the constant or a character beyond the length of the
              initializer that was implicitly value-initialized. */
           found_value = TRUE;
-          if (offset >= (a_targ_ptrdiff_t)(cum_offset + curr_type->size)) {
+          if (offset >= (cum_offset + curr_type_size)) {
             /* Return a value-initialized constant of the element type. */
             result_con = NULL;
           }  /* if */
@@ -11551,8 +11555,7 @@ allocated and returned.
           a_boolean      may_have_designator =
                                       result_con->uses_designated_initializers;
           a_constant_ptr possible_result_con = NULL;
-          check_assertion(cum_offset + (a_targ_ptrdiff_t)curr_type->size >
-                                                                       offset);
+          check_assertion(cum_offset + curr_type_size > offset);
           result_con = result_con->variant.aggregate.first_constant;
           if (is_array_type(curr_type)) {
             /* Find the element of the array that is at or contains the
@@ -11561,6 +11564,7 @@ allocated and returned.
             a_boolean        found_element = FALSE;
             a_targ_ptrdiff_t array_offset = cum_offset;
             a_targ_ptrdiff_t possible_result_offset = 0;
+
             curr_type = skip_typerefs(curr_type->variant.array.element_type);
             while (result_con != NULL && !found_element) {
               if (result_con->kind == (a_constant_repr_kind)ck_designator) {
@@ -11568,9 +11572,10 @@ allocated and returned.
                    result_con to point to the associated value. */
                 check_assertion(!result_con->
                                        variant.designator.is_field_designator);
-                cum_offset = array_offset +
-                         result_con->variant.designator.variant.array_element *
-                                                               curr_type->size;
+                cum_offset = (array_offset +
+                         ((a_targ_ptrdiff_t)result_con->variant.designator.
+                                                        variant.array_element *
+                                                              curr_type_size));
                 result_con = result_con->next;
               }  /* if */
               if (result_con->kind == (a_constant_repr_kind)ck_init_repeat) {
@@ -11581,14 +11586,14 @@ allocated and returned.
                    rather than the elements of the array at this level, set
                    curr_type to the type of the repeated elements instead
                    of the elements at this level. */
-                a_targ_size_t this_initializer_size;
+                a_targ_ptrdiff_t this_initializer_size;
                 curr_type = skip_typerefs(
                                result_con->variant.init_repeat.constant->type);
                 this_initializer_size =
-                       result_con->variant.init_repeat.count * curr_type->size;
+                    ((a_targ_ptrdiff_t)result_con->variant.init_repeat.count *
+                     curr_type_size);
                 if (cum_offset <= offset &&
-                    (a_targ_ptrdiff_t)(cum_offset + this_initializer_size) >
-                                                                      offset) {
+                    (cum_offset + this_initializer_size) > offset) {
                   /* The offset lies within this repeated group.  Set
                      result_con to that repeated constant and adjust
                      cum_offset to reflect its position in the array. */
@@ -11598,18 +11603,19 @@ allocated and returned.
                        designator. */
                     possible_result_con =
                                       result_con->variant.init_repeat.constant;
-                    possible_result_offset =
-                           cum_offset + ((a_targ_size_t)(offset - cum_offset) /
-                                            curr_type->size) * curr_type->size;
+                    possible_result_offset = (cum_offset +
+                                              (((offset - cum_offset) /
+                                               curr_type_size) *
+                                               curr_type_size));
                     result_con = result_con->variant.init_repeat.constant;
-                    cum_offset += ((a_targ_size_t)(offset - cum_offset) /
-                                            curr_type->size) * curr_type->size;
+                    cum_offset += (((offset - cum_offset) / curr_type_size) *
+                                   curr_type_size);
                   } else {
                     /* This is the result. */
                     found_element = TRUE;
                     result_con = result_con->variant.init_repeat.constant;
-                    cum_offset += ((a_targ_size_t)(offset - cum_offset) /
-                                            curr_type->size) * curr_type->size;
+                    cum_offset += (((offset - cum_offset) / curr_type_size) *
+                                   curr_type_size);
                   }  /* if */
                 } else {
                   /* Skip over this group and continue with the next array
@@ -11618,8 +11624,7 @@ allocated and returned.
                   cum_offset += this_initializer_size;
                 }  /* if */
               } else if (cum_offset <= offset &&
-                         (a_targ_ptrdiff_t)(cum_offset + curr_type->size) >
-                                                                      offset) {
+                         (cum_offset + curr_type_size) > offset) {
                 /* The offset designates this array element or a subobject
                    therein. */
                 if (may_have_designator) {
@@ -11628,14 +11633,14 @@ allocated and returned.
                   possible_result_con = result_con;
                   possible_result_offset = cum_offset;
                   result_con = result_con->next;
-                  cum_offset += curr_type->size;
+                  cum_offset += curr_type_size;
                 } else {
                   found_element = TRUE;
                 }  /* if */
               } else {
                 /* Step to the next element. */
                 result_con = result_con->next;
-                cum_offset += curr_type->size;
+                cum_offset += curr_type_size;
               }  /* if */
             }  /* while */
             if (!found_element && possible_result_con != NULL) {
@@ -11684,10 +11689,10 @@ allocated and returned.
                    the base class list, but we need to check both the
                    starting and ending offsets of the base class object to
                    determine whether the address lies within it or not. */
-                if (offset == (a_targ_ptrdiff_t)(cum_offset + bp->offset) ||
-                    (offset > (a_targ_ptrdiff_t)(cum_offset + bp->offset) &&
-                     offset < (a_targ_ptrdiff_t)(cum_offset + bp->offset +
-                                                 base_class_size))) {
+                if (offset == (cum_offset + (a_targ_ptrdiff_t)bp->offset) ||
+                    (offset > (cum_offset + (a_targ_ptrdiff_t)bp->offset) &&
+                     offset < (cum_offset + (a_targ_ptrdiff_t)bp->offset +
+                               (a_targ_ptrdiff_t)base_class_size))) {
                   if (base_class_size != 0 ||
                       identical_types(base_class, target_type)) {
                     /* The address designates or lies within this base
@@ -11704,7 +11709,7 @@ allocated and returned.
               /* The offset designates or lies within a base class
                  subobject.  Go back through the main loop to examine that
                  class. */
-              cum_offset += bp->offset;
+              cum_offset += (a_targ_ptrdiff_t)bp->offset;
               curr_type = bp->type;
             } else if (result_con != NULL &&
                        result_con->kind ==
@@ -11741,10 +11746,11 @@ allocated and returned.
                   /* We've run out of fields. */
                   break;
                 }  /* if */
-                field_offset = cum_offset + curr_field->offset;
+                field_offset = ((a_targ_ptrdiff_t)curr_field->offset +
+                                cum_offset);
                 if (curr_field->bit_size == 0 && field_offset <= offset &&
-                    (a_targ_ptrdiff_t)(field_offset +
-                                       skip_typerefs(curr_field->type)->size)
+                    (field_offset +
+                       (a_targ_ptrdiff_t)skip_typerefs(curr_field->type)->size)
                                                                     > offset) {
                   /* The specified offset denotes this field or a subobject
                      thereof. */
@@ -11776,11 +11782,12 @@ allocated and returned.
               }  /* if */
               check_assertion(curr_field != NULL);
               curr_type = skip_typerefs(curr_field->type);
-              cum_offset += curr_field->offset;
+              cum_offset += (a_targ_ptrdiff_t)curr_field->offset;
             }  /* if */
           }  /* if */
         }  /* if */
       }  /* while */
+#undef curr_type_size
       if (!err && result_con != NULL && !type_mismatch &&
           !identical_types(target_type, curr_type)) {
         /* The requested offset designates a character within a string. */
@@ -11795,8 +11802,8 @@ allocated and returned.
              string literal, probably as the result of a cast to reference
              type or the like. */
           type_mismatch = TRUE;
-        } else if (offset >= (a_targ_ptrdiff_t)(cum_offset +
-                                        result_con->variant.string.length)) {
+        } else if (offset >= (cum_offset +
+                        (a_targ_ptrdiff_t)result_con->variant.string.length)) {
           /* The requested character is beyond the length of the constant,
              i.e., was implicitly value-initialized.  set result_con to NULL
              so that a zero constant will be synthesized, */

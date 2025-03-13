@@ -169,7 +169,7 @@ extern a_boolean fold_field_selection(a_constant  *constant_1,
 extern void get_integer_attributes(a_constant      *cp,
                                    an_integer_kind *ikind,
                                    a_boolean       *is_signed,
-                                   int             *bit_size);
+                                   size_t          *bit_size);
 
 extern void trunc_and_set_integer(an_integer_value  *result_value,
                                   a_constant        *result,

@@ -1175,7 +1175,7 @@ If tp is a routine type, dump the function parameters, for debug purposes.
 
 
 void db_ctor_init(a_constructor_init_ptr cip,
-                         int                    level)
+                  size_t                 level)
 /*
 Dump information on a constructor initializer, for debug purposes.  level is
 the amount of indentation.
@@ -1222,7 +1222,7 @@ A wrapper for db_ctor_init that uses no initial indentation.
 
 
 void db_ctor_init_list(a_constructor_init_ptr cip_list,
-                              int                    level)
+                       size_t                 level)
 /*
 Dump information on all the constructor initializers in a list, for debug
 purposes.  level is the amount of indentation.
@@ -2038,18 +2038,17 @@ Dump the contents of the indicated variable and its type for debug purposes.
 
 
 void db_expr_node(an_expr_node_ptr node,
-                  int              level)
+                  size_t           level)
 /*
 Dump the contents of the indicated expression node for debug purposes.
 */
 {
   an_expr_node_ptr            operand;
   a_constant_ptr              const_ptr;
-  int                         a;
   a_new_delete_supplement_ptr ndsp;
   a_throw_supplement_ptr      tsp;
 
-  for (a = 0; a < level; a++) fputs(" ", f_debug);
+  db_indent(level);
   if (node == NULL) {
     fprintf(f_debug, "<NULL>\n");
     goto done;
@@ -2135,7 +2134,7 @@ Dump the contents of the indicated expression node for debug purposes.
         db_expr_node(operand, level + 2);
       }  /* for */
       if (ndsp->dynamic_init != NULL) {
-        for (a = 0; a < level; a++) fputs(" ", f_debug);
+        db_indent(level);
         fprintf(f_debug, "dynamic_init: ");
         db_dynamic_initializer(ndsp->dynamic_init, level + 2);
       }  /* if */
@@ -2152,7 +2151,7 @@ Dump the contents of the indicated expression node for debug purposes.
         db_abbreviated_type(gsp->type);
         fputs("\n", f_debug);
         if (gsp->cli_array_dimension_lengths != NULL) {
-          for (a = 0; a < level+2; a++) fputs(" ", f_debug);
+          db_indent(level + 2);
           fprintf(f_debug, "dimension lengths:\n");
           for (operand = gsp->cli_array_dimension_lengths;
                operand != NULL;
@@ -2161,7 +2160,7 @@ Dump the contents of the indicated expression node for debug purposes.
           }  /* for */
         }  /* if */
         if (gsp->dynamic_init != NULL) {
-          for (a = 0; a < level+2; a++) fputs(" ", f_debug);
+          db_indent(level + 2);
           fprintf(f_debug, "dynamic_init: ");
           db_dynamic_initializer(gsp->dynamic_init,
                                  level + 4);
@@ -2382,7 +2381,7 @@ sizeof_cases:
       operand = node->variant.c11_generic.operands;
       while (operand != NULL) {
         if (operand == node->variant.c11_generic.result) {
-          for (a = 0; a < level; a++) fputs(" ", f_debug);
+          db_indent(level);
           fprintf(f_debug, "<result> =\n");
         }  /* if */
         db_expr_node(operand, level + 2);
@@ -2407,7 +2406,7 @@ sizeof_cases:
       fputs(node->kind == (an_expr_node_kind)enk_await ? "await:\n"
                                                        : "yield:\n",
             f_debug);
-      for (a = 0; a < level; a++) fputs(" ", f_debug);
+      db_indent(level);
       fprintf(f_debug, "<operand> =\n");
       db_expr_node(node->variant.await_info.operand, level + 2);
       break;
@@ -2428,7 +2427,7 @@ sizeof_cases:
         }  /* if */
       }  /* if */
       fputs("\n", f_debug);
-      for (a = 0; a < level; a++) fputs(" ", f_debug);
+      db_indent(level);
       fprintf(f_debug, "%s\n", token_names[node->variant.fold.operator_token]);
       operand = node->variant.fold.operands;
       for (; operand != NULL; operand = operand->next) {
@@ -2463,7 +2462,7 @@ sizeof_cases:
       fputs("compound-req\n", f_debug);
       db_expr_node(node->variant.compound_req.expr_and_constraint, level+2);
       if (node->variant.compound_req.expr_and_constraint->next != NULL) {
-        for (a = 0; a < level; a++) fputs(" ", f_debug);
+        db_indent(level);
         fputs("  ->", f_debug);
         db_expr_node(node->variant.compound_req.expr_and_constraint->next,
                      level+6);
@@ -2567,16 +2566,15 @@ entry.
 
 
 static void db_constructor_initializer(a_dynamic_init_ptr  dip,
-                                       int                 level)
+                                       size_t              level)
 /*
 Dump debug information on a dynamic initialization entry of type
 dik_constructor.
 */
 {
-  an_expr_node_ptr  arg;
-  int               a;
+  an_expr_node_ptr arg;
 
-  for (a = 0; a < level; a++) fputs(" ", f_debug);
+  db_indent(level);
   fputs("ctor: ", f_debug);
   if (dip->variant.constructor.value_initialization) {
     fputs("(value initialization) ", f_debug);
@@ -2592,7 +2590,7 @@ dik_constructor.
   }  /* if */
   fputs("\n", f_debug);
   if ((arg = dip->variant.constructor.args) != NULL) {
-    for (a = 0; a < level+2; a++) fputs(" ", f_debug);
+    db_indent(level + 2);
     fputs("ctor args =\n", f_debug);
     for (; arg != NULL; arg = arg->next) {
       db_expr_node(arg, level+4);
@@ -2665,16 +2663,14 @@ Dump a string identifying a constant-representation kind, for debug purposes.
 
 
 static void db_nonconstant_aggregate(a_constant_ptr  con,
-                                     int             level)
+                                     size_t          level)
 /*
 Dump debug information on a dynamic initialization entry of kind
 dik_nonconstant_aggregate.
 */
 {
-  int  a;
-
   for (; con != NULL; con = con->next) {
-    for (a = 0; a < level; a++) fputs(" ", f_debug);
+    db_indent(level);
     db_constant_repr_kind(con->kind);
     if (con->type != NULL) {
       fputs(" (", f_debug);
@@ -2705,7 +2701,7 @@ dik_nonconstant_aggregate.
 
 
 static void db_lambda_initializer(a_dynamic_init_ptr dip,
-                                  int                level)
+                                  size_t             level)
 /*
 Dump debug information on a dynamic initialization entry of kind dik_lambda.
 */
@@ -2713,7 +2709,6 @@ Dump debug information on a dynamic initialization entry of kind dik_lambda.
   a_lambda_ptr         lambda;
   a_lambda_capture_ptr cap;
   a_constant_ptr       cp, field_con;
-  int                  a;
 
   check_assertion(dip->kind == (a_dynamic_init_kind)dik_lambda);
   lambda = dip->variant.constant.lambda;
@@ -2723,7 +2718,7 @@ Dump debug information on a dynamic initialization entry of kind dik_lambda.
   /* Iterate over the captured fields. */
   for (; cap != NULL && field_con != NULL;
         cap = cap->next, field_con = field_con->next) {
-    for (a = 0; a < level; a++) fputs(" ", f_debug);
+    db_indent(level);
     if (cap->is_init_capture) {
       fputs(cap->closure_field->source_corresp.name, f_debug);
     } else if (!cap->is_indirect_init_capture) {
@@ -2748,7 +2743,7 @@ Dump debug information on a dynamic initialization entry of kind dik_lambda.
           !cap->is_indirect_init_capture &&
           cap->captured.variable != NULL) {
         /* Give more information on the implicit source. */
-        for (a = 0; a < level + 2; a++) fputs(" ", f_debug);
+        db_indent(level + 2);
         fputs("implicit source = ", f_debug);
         db_variable(cap->captured.variable);
       }
@@ -2761,15 +2756,13 @@ Dump debug information on a dynamic initialization entry of kind dik_lambda.
 
 
 void db_dynamic_initializer(a_dynamic_init_ptr  dip,
-                            int                 level)
+                            size_t              level)
 /*
 Dump a dynamic initializer entry for debug purposes.
 */
 {
-  int a;
-
   /* Avoid problems on call with missing second argument from debugger: */
-  if (level > 80 || level < 0) level = 0;
+  if (level > 80) level = 0;
   if (dip == NULL) {
     db_indent(level);
     fputs("<null initializer>\n", f_debug);
@@ -2805,7 +2798,7 @@ Dump a dynamic initializer entry for debug purposes.
                                level);
 destructor_on_next_line:
       if (dip->destructor != NULL) {
-        for (a = 0; a < level; a++) fputs(" ", f_debug);
+        db_indent(level);
         db_destructor(dip);
         (void)fputc('\n', f_debug);
       }  /* if */
@@ -2855,15 +2848,13 @@ Convenience function to call db_dynamic_initializer with no indentation.
 
 
 void db_initializer(a_variable_ptr  var,
-                    int             level)
+                    size_t          level)
 /*
 Dump the initializer of a variable for debug purposes.
 */
 {
-  int  a;
-
   if (var->init_kind != (an_init_kind)initk_none) {
-    for (a = 0; a < level; a++) fputs(" ", f_debug);
+    db_indent(level);
     if (var->init_kind == (an_init_kind)initk_function_local) {
       fprintf(f_debug, "local static initialization\n");
     } else if (var->init_kind == (an_init_kind)initk_binding) {
@@ -3072,7 +3063,7 @@ Dump a statement, for debug purposes.
 
 
 void db_statement_list(a_statement_ptr  sp,
-                       int              indent,
+                       size_t           indent,
                        a_const_char     *str,
                        int              how_deep)
 /*
@@ -3083,12 +3074,11 @@ statement.  how_deep is how many levels of recursion to go before terminating
 the dump (this one counts as the first).
 */
 {
-  int            a;
-  a_handler_ptr  hp;
+  a_handler_ptr hp;
 
   if (how_deep > 0) {
     for (; sp != NULL; sp = sp->next) {
-      for (a = 0; a < indent; a++) fputs(" ", f_debug);
+      db_indent(indent);
       fputs(str, f_debug);
       db_statement(sp);
       switch (sp->kind) {
@@ -3111,7 +3101,7 @@ the dump (this one counts as the first).
             }  /* if */
             if (how_deep > 1) {
               if (then_statement == NULL) {
-                for (a = 0; a < indent+2; a++) fputs(" ", f_debug);
+                db_indent(indent + 2);
                 fprintf(f_debug, "then <null>\n");
               } else {
                 db_statement_list(then_statement, indent+2,
@@ -3155,7 +3145,7 @@ the dump (this one counts as the first).
               for (hp = sp->variant.try_block->handlers;
                    hp != NULL;
                    hp = hp->next) {
-                for (a = 0; a < indent+2; a++) fputs(" ", f_debug);
+                db_indent(indent + 2);
                 fprintf(f_debug, "catch%s, at %lu:",
                         hp->parameter == NULL ? " (...)" : "",
                         (unsigned long)hp->catch_position.seq);
@@ -3171,7 +3161,7 @@ the dump (this one counts as the first).
               }  /* for */
 #if MICROSOFT_EXTENSIONS_ALLOWED
               if (sp->variant.try_block->finally_statement != NULL) {
-                for (a = 0; a < indent+2; a++) fputs(" ", f_debug);
+                db_indent(indent + 2);
                 fprintf(f_debug, "finally:\n");
                 db_statement_list(sp->variant.try_block->finally_statement,
                                   indent+4, "", how_deep-1);
@@ -3184,7 +3174,7 @@ the dump (this one counts as the first).
         case stmk_microsoft_try:
           db_statement_list(sp->variant.microsoft_try->guarded_statement,
                             indent+2, "", how_deep-1);
-          for (a = 0; a < indent+2; a++) fputs(" ", f_debug);
+          db_indent(indent + 2);
           if (sp->variant.microsoft_try->except_expr != NULL) {
             fprintf(f_debug, "__except");
             db_expression(sp->variant.microsoft_try->except_expr);
@@ -4228,17 +4218,17 @@ by recording that the last sequence number contained therein is seq_number.
 #endif /* !STANDALONE_UTILITY_PROGRAM */
 
 #if DEBUG
-void db_indent(int indent)
+void db_indent(size_t indent)
 /*
 Indent the current line by "indent" characters.
 */
 {
-  fprintf(f_debug, "%*s", indent, "");
+  fprintf(f_debug, "%*s", (int)indent, "");
 }  /* db_indent */
 
 
 static void db_source_file_seq_info(a_source_file_ptr sfp,
-				    int		      indent)
+                                    size_t            indent)
 /*
 Display the sequence number information associated with a source file.
 */
@@ -4584,8 +4574,9 @@ examine_children:
   }  /* if */
   /* Save information about the file in which this sequence number was found
      so that subsequent lines may be found more quickly. */
-  line_offset = -(long)(curr_file->first_seq_number) + 
-                            curr_file->first_line_number - lines_in_children;
+  line_offset = curr_file->first_line_number;
+  line_offset -= (long)curr_file->first_seq_number;
+  line_offset -= (long)lines_in_children;
   /* Save information about this conversion so that subsequent conversions
      can be done more quickly. */
   seq_cache.first_seq_number = first_seq_for_cache;
@@ -7041,7 +7032,7 @@ Return a hash value developed from the string pointed to by ptr.
   a_const_char          *cptr;
 
   for (cptr = ptr; *cptr != '\0'; cptr++) {
-    hash_value = (hash_value << 5) + hash_value + *cptr;
+    hash_value = (hash_value << 5) + hash_value + (a_hash_value)(*cptr);
   }  /* for */
   return hash_value;
 }  /* hash_string */
@@ -7216,7 +7207,9 @@ again.
   }  /* if */
 #if NEED_NAME_MANGLING
   if (symbol_for(type) != NULL) {
-    hash_value += class_symbol_supp(symbol_for(type))->discriminator;
+    a_class_symbol_supplement_ptr cssp = class_symbol_supp(symbol_for(type));
+
+    hash_value += (a_hash_value)cssp->discriminator;
   }  /* if */
 #endif /* NEED_NAME_MANGLING */
   /* A zero value is used to indicate that the hash has not been computed
@@ -7448,19 +7441,20 @@ to refine the hash value developed in hash_constant.
   }  /* while */
   switch (type->kind) {
     case tk_integer:
-      hash_value += type->variant.integer.int_kind*13 + 53;
+      hash_value += (a_hash_value)((type->variant.integer.int_kind * 13) + 53);
       if (type->variant.integer.enum_type) {
-        hash_value += type->variant.integer.is_scoped_enum*4 + 2;
+        hash_value += (a_hash_value)(
+                               (type->variant.integer.is_scoped_enum * 4) + 2);
         hash_value += hash_name(&type->source_corresp);
       }  /* if */
       break;
 #if FIXED_POINT_ALLOWED
     case tk_fixed_point:
-      hash_value += type->variant.fixed_point.saturating +
-                    type->variant.fixed_point.is_fract_type*2 +
-                    type->variant.fixed_point.is_unsigned*4 +
-                    type->variant.fixed_point.precision*8 +
-                    131;
+      hash_value += type->variant.fixed_point.saturating;
+      hash_value += type->variant.fixed_point.is_fract_type * 2;
+      hash_value += type->variant.fixed_point.is_unsigned * 4;
+      hash_value += type->variant.fixed_point.precision * 8;
+      hash_value += 131;
       break;
 #endif /* FIXED_POINT_ALLOWED */
 #if C99_IL_EXTENSIONS_SUPPORTED
@@ -7542,18 +7536,19 @@ to refine the hash value developed in hash_constant.
       {
         a_template_param_type_supplement_ptr	tpts;
         tpts = type->variant.template_param.extra_info;
-        hash_value += 499 + (int)type->variant.template_param.kind +
+        hash_value += 499 + (unsigned)type->variant.template_param.kind +
                       type->variant.template_param.is_pack;
         /* If the template parameter has a parent scope, include that in the
            hash value. */
         if (type->source_corresp.parent_scope != NULL) {
-          hash_value += type->source_corresp.parent_scope->number;
+          hash_value +=
+                       (a_hash_value)type->source_corresp.parent_scope->number;
         }  /* if */
         hash_value += type->source_corresp.decl_position.seq +
                       type->source_corresp.decl_position.column;
         if (type->variant.template_param.kind ==
                                       (a_template_param_type_kind)tptk_param) {
-          hash_value += (tpts->coordinates.depth << 8) +
+          hash_value += ((a_hash_value)tpts->coordinates.depth << 8) +
                                                     tpts->coordinates.position;
         }  /* if */
       }
@@ -7614,7 +7609,7 @@ Return the hash value for the indicated constant.
       for (length = cp->variant.string.length, p = cp->variant.string.value;
            length > 0;
            length--, p++) {
-        hash_value = (hash_value << 5) + hash_value + *p;
+        hash_value = (hash_value << 5) + hash_value + (a_hash_value)(*p);
       }  /* for */
       break;
     case ck_float:
@@ -8100,7 +8095,7 @@ are done.
   a_boolean         eq = FALSE;
   an_itf_flag_set   itf_options;
 #if DEBUG
-  STATIC_THREAD int db_level = 0;
+  STATIC_THREAD size_t db_level = 0;
   db_level++;
 #endif /* DEBUG */
 
@@ -8501,12 +8496,12 @@ done:
   db_level--;
   if (!eq && db_flag_is_set("compare_expressions") && node1 != NULL) {
     fprintf(f_debug, "compare_expressions:\n");
-    fprintf(f_debug, "\n%*s%s (%lu/%lu)\n", db_level, "", "expr1: ",
+    fprintf(f_debug, "\n%*s%s (%lu/%lu)\n", (int)db_level, "", "expr1: ",
             (unsigned long)node1->position.seq,
             (unsigned long)node1->position.column);
     db_expr_node(node1, db_level);
     if (node2 != NULL) {
-      fprintf(f_debug, "\n%*s%s (%lu/%lu)\n", db_level, "", "expr2: ",
+      fprintf(f_debug, "\n%*s%s (%lu/%lu)\n", (int)db_level, "", "expr2: ",
               (unsigned long)node2->position.seq,
               (unsigned long)node2->position.column);
       db_expr_node(node2, db_level);
@@ -10574,13 +10569,19 @@ needed.
     check_assertion(!C_mode());
     qualifiers = get_type_qualifiers(ptp->type);
     if (qualifiers != TQ_NONE) {
+      /* To suppress compiler warnings about data truncation, explicitly
+         truncate to the appropriate bitwidth. */
+      constexpr a_type_qualifier_set qualifier_bitmask =
+                       ((a_type_qualifier_set)
+                          bitmask_of_width<NUM_BITS_FOR_TYPE_QUALIFIER_SET>());
+
       ptp->type = make_unqualified_type(ptp->type);
       if ((qualifiers & TQ_RESTRICT) && keep_restrict_in_signatures) {
         ptp->type = make_qualified_type(ptp->type, TQ_RESTRICT);
       }  /* if */
       /* Record the top-level type qualifiers that were declared for this
          parameter and then removed. */
-      ptp->qualifiers = qualifiers;
+      ptp->qualifiers = qualifiers & qualifier_bitmask;
     }  /* if */
   }  /* if */
 }  /* update_param_top_level_qualifiers */
@@ -13226,8 +13227,14 @@ and if *p_member_type is a function type, adjust it as follows:
         rtsp->has_this_param = TRUE;
       }  /* if */
       if (qualifiers != TQ_NONE) {
+        /* To suppress compiler warnings about data truncation, explicitly
+           truncate to the appropriate bitwidth. */
+        constexpr a_type_qualifier_set qualifier_bitmask =
+                       ((a_type_qualifier_set)
+                          bitmask_of_width<NUM_BITS_FOR_TYPE_QUALIFIER_SET>());
+
         /* Merge in qualifiers in some Microsoft/GNU instantiation contexts. */
-        rtsp->qualifiers |= qualifiers;
+        rtsp->qualifiers |= qualifiers & qualifier_bitmask;
       }  /* if */
       if (rtsp->routine_name_linkage == (a_name_linkage_kind)nlk_external) {
         /* Change from C linkage to C++ linkage: */
@@ -14204,10 +14211,16 @@ are not already present.
                          qualifiers_to_add, PM_NONE, expl_mem_attr_implicit,
                          /*class_type=*/(a_type_ptr)NULL, upc_block_size);
     if (ptr == NULL) {
+      /* To suppress compiler warnings about data truncation, explicitly
+         truncate to the appropriate bitwidth. */
+      constexpr a_type_qualifier_set qualifier_bitmask =
+                       ((a_type_qualifier_set)
+                          bitmask_of_width<NUM_BITS_FOR_TYPE_QUALIFIER_SET>());
+
       /* No allocated entry, need to allocate one. */
       ptr = alloc_type((a_type_kind)tk_typeref);
       ptr->variant.typeref.type = base_type;
-      ptr->variant.typeref.qualifiers = qualifiers_to_add;
+      ptr->variant.typeref.qualifiers = qualifiers_to_add & qualifier_bitmask;
 #if NEAR_AND_FAR_ALLOWED
       ptr->variant.typeref.explicit_memory_attribute_made_implicit =
                                                         expl_mem_attr_implicit;
@@ -17661,17 +17674,22 @@ Many operations don't specifically apply to a particular type kind; for those
 tk_unknown is returned.
 */
 {
-  a_type_kind      result = (a_type_kind)tk_unknown, expr_kind, operand_kind;
-  an_expr_node_ptr op1;
+  using an_underlying_type_kind = a_byte;
+  /* If this assertion fails the underlying type of the a_type_kind enum has
+     changed and the an_underlying_type_kind type needs to be updated. */
+  static_assert(sizeof(an_underlying_type_kind) == sizeof(a_type_kind),
+                "operand_kind size does not match a_type_kind");
+  check_assertion(expr->kind == enk_operation);
 
-  check_assertion(expr->kind == (an_expr_node_kind)enk_operation);
-  expr_kind = skip_typerefs(expr->type)->kind;
-  op1 = expr->variant.operation.operands;
+  an_underlying_type_kind result = tk_unknown;
+  an_expr_node_ptr        op1 = expr->variant.operation.operands;
+  a_type_kind             expr_kind = skip_typerefs(expr->type)->kind;
+  an_underlying_type_kind operand_kind;
   if (op1 == NULL) {
     /* In some rare cases, the operand is not attached yet when this routine
        is called.  That should only happen when the operand type is not used
        in determining the operation type kind (checked below). */
-#define INVALID_TYPE_KIND ((a_type_kind)~0)
+#define INVALID_TYPE_KIND ((an_underlying_type_kind)~0)
     operand_kind = INVALID_TYPE_KIND;
   } else {
     operand_kind = skip_typerefs(op1->type)->kind;
@@ -17926,7 +17944,7 @@ tk_unknown is returned.
   /* See above for special handling when the operation has no operand.
      Verify that we didn't draw any conclusion from the operand type. */
   check_assertion(result != INVALID_TYPE_KIND);
-  return result;
+  return (a_type_kind)result;
 }  /* operation_type_kind */
 
 #endif /* !STANDALONE_UTILITY_PROGRAM */
@@ -21406,8 +21424,8 @@ options.
               if (record_used != NULL) {
                 /* Set a "used" marker for the position of the template
                    argument. */
-                record_used->resize(max_val<a_ptrdiff>(coordinates->position,
-                                                       record_used->length()),
+                record_used->resize(max_val((size_t)coordinates->position,
+                                            record_used->length()),
                                     FALSE);
                 (*record_used)[coordinates->position - 1] = TRUE;
               }  /* if */
@@ -28369,7 +28387,7 @@ Write out a scope entry for debugging purposes.
 
 
 static void db_type_list(a_type_ptr type_list,
-                         int        indent,
+                         size_t     indent,
                          a_boolean  do_subscopes)
 /*
 Write out a type list, for debugging purposes.  indent is the indentation
@@ -28378,18 +28396,17 @@ as well.
 */
 {
   a_type_ptr type;
-  int        n;
   a_boolean  secondary = FALSE;
 
   if (type_list != NULL) secondary = in_secondary_trans_unit(type_list);
   for (type = type_list; type != NULL; type = type->next) {
     /* Check for a list that switches between translation units. */
     if (secondary != in_secondary_trans_unit(type)) {
-      for (n = 0; n < indent; n++) fputc(' ', f_debug);
+      db_indent(indent);
       (void)fprintf(f_debug, "***switch between translation units***\n");
       secondary = !secondary;
     }  /* if */
-    for (n = 0; n < indent; n++) fputc(' ', f_debug);
+    db_indent(indent);
     db_abbreviated_type(type);
     (void)fprintf(f_debug, "\n");
     if (do_subscopes && is_immediate_class_type(type)) {
@@ -28404,7 +28421,7 @@ as well.
 
 
 void db_scope_type_list(a_scope_ptr scope,
-                        int         indent,
+                        size_t      indent,
                         a_boolean   do_subscopes)
 /*
 Write out the type list for a scope, for debugging purposes.  indent is the
@@ -28412,9 +28429,7 @@ indentation level.  If do_subscopes is TRUE, write out the type lists for
 subscopes as well.
 */
 {
-  int n;
-
-  for (n = 0; n < indent; n++) fputc(' ', f_debug);
+  db_indent(indent);
   (void)fprintf(f_debug, "Type list for ");
   db_scope(scope);
   (void)fprintf(f_debug, ":\n");
@@ -28423,7 +28438,7 @@ subscopes as well.
 
 
 void db_type_lists(a_scope_ptr scope,
-                   int         indent)
+                   size_t      indent)
 /*
 Dump the type lists for the indicated scope and its subscopes, for debug
 purposes.  indent indicates the indentation level.
@@ -30486,7 +30501,7 @@ if appropriate.
         byte = 0;
       } else {
         /* Mask off the bits that have been looked at already. */
-        byte &= (~(a_byte)0) << (bit_number+1);
+        byte &= (a_byte)((~(a_byte)0) << (bit_number+1));
       }  /* if */
     }  /* if */
     /* Advance over bytes with no bits set.  The first time around, this
@@ -30507,8 +30522,9 @@ if appropriate.
       bit_number++;
       if (byte & (((a_byte)1) << bit_number)) {
         /* Found the first set bit. */
-        next_set_bit = first_bit_this_segment + byte_number*CHAR_BIT +
-                       bit_number;
+        next_set_bit = first_bit_this_segment;
+        next_set_bit += (unsigned)byte_number * CHAR_BIT;
+        next_set_bit += (unsigned)bit_number;
         goto end_of_routine;
       }  /* if */
     }  /* if */
@@ -30538,7 +30554,7 @@ number given by global variable needed_flag_bit_number plus bit_offset.
                 ptr;
   unsigned long first_bit_this_segment;
   unsigned long byte_number;
-  unsigned long bit_number = needed_flag_bit_number + bit_offset;
+  unsigned long bit_number = needed_flag_bit_number + (unsigned)bit_offset;
 #define BITS_PER_ENTRY (BYTES_PER_INSTANTIATION_NEEDED_FLAG_ENTRY*CHAR_BIT)
 
   /* Loop through the list of entries to find the one containing the
@@ -30579,7 +30595,7 @@ needed_flag_bit_number plus bit_offset.
                 ptr, prev_ptr;
   unsigned long first_bit_this_segment;
   unsigned long byte_number;
-  unsigned long bit_number = needed_flag_bit_number + bit_offset;
+  unsigned long bit_number = needed_flag_bit_number + (unsigned)bit_offset;
   a_byte        bit;
 #define BITS_PER_ENTRY (BYTES_PER_INSTANTIATION_NEEDED_FLAG_ENTRY*CHAR_BIT)
 
@@ -30616,7 +30632,7 @@ needed_flag_bit_number plus bit_offset.
     bit_number -= first_bit_this_segment;
     byte_number = bit_number / CHAR_BIT;
     bit_number  = bit_number % CHAR_BIT;
-    bit = (unsigned char)1 << bit_number;
+    bit = (a_byte)(1 << bit_number);
     if (new_value != 0) {
       /* Set the bit. */
       ptr->bytes[byte_number] |= bit;

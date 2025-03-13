@@ -6001,8 +6001,14 @@ a copy of the previous type).
             /* Restore the declared type. */
             rout_type_ptp->declared_type = declared_type;
             if (preserve_qualifiers_from_rout_type) {
+              /* To suppress compiler warnings about data truncation,
+                 explicitly truncate to the appropriate bitwidth. */
+              constexpr a_type_qualifier_set qualifier_bitmask =
+                       ((a_type_qualifier_set)
+                          bitmask_of_width<NUM_BITS_FOR_TYPE_QUALIFIER_SET>());
+
               /* Restore the qualifiers as originally declared. */
-              rout_type_ptp->qualifiers = saved_qualifiers;
+              rout_type_ptp->qualifiers = saved_qualifiers & qualifier_bitmask;
             }  /* if */
             /* Restore the name that is associated with the routine type. */
             rout_type_ptp->name = saved_name;
@@ -8089,9 +8095,14 @@ of the given routine.
 #endif /* FIXED_POINT_ALLOWED */
 #if UPC_EXTENSIONS_ALLOWED
   if (upc_mode) {
+    /* To suppress compiler warnings about data truncation,
+       explicitly truncate to the appropriate bitwidth. */
+    constexpr unsigned long long access_bitmask =
+                                   bitmask_of_width<NUM_BITS_FOR_UPC_ACCESS>();
+
     /* Record the current UPC access method for this routine.  This is the
        method last specified by a UPC pragma in file scope. */
-    routine_ptr->upc_access_method = curr_upc_access_method;
+    routine_ptr->upc_access_method = curr_upc_access_method & access_bitmask;
   }  /* if */
 #endif /* UPC_EXTENSIONS_ALLOWED */
 }  /* record_pragma_state_in_routine */
@@ -10292,8 +10303,9 @@ skip_overloading:;
         mark_as_needed((char *)routine_ptr, (an_il_entry_kind)iek_routine);
       }  /* if */
 #endif /* MAINTAIN_NEEDED_FLAGS && !STANDALONE_UTILITY_PROGRAM */
-      routine_ptr->definition_for_inlining_only &=
-                                                  definition_for_inlining_only;
+      if (!definition_for_inlining_only) {
+        routine_ptr->definition_for_inlining_only = FALSE;
+      }  /* if */
     } else {
       routine_ptr->definition_for_inlining_only = definition_for_inlining_only;
     }  /* if */
@@ -22019,13 +22031,19 @@ parameters are scanned by scan_a_template_parameter_declaration.
   do {
     an_il_entity_list_entry_ptr  saved_entities = NULL;
     if (!first_declarator) {
+      constexpr a_type_qualifier_set qualifier_bitmask =
+                       ((a_type_qualifier_set)
+                          bitmask_of_width<NUM_BITS_FOR_TYPE_QUALIFIER_SET>());
+
       /* We've just skipped a comma separating two declarators. */
       /* Before parsing the next declaration, run any end-of-parse actions
          needed for the previous declarator. */
       run_end_of_parse_actions(dps, /*more_declarators=*/TRUE);
       /* Reinitialize the declarator-specific parts of the parse state. */
       start_secondary_declarator(dps);
-      dps->qualifiers = saved_qualifiers;
+      /* To suppress compiler warnings about data truncation, explicitly
+         truncate to the appropriate bitwidth. */
+      dps->qualifiers = saved_qualifiers & qualifier_bitmask;
       dps->qualifiers_pos = saved_qualifiers_pos;
       /* Re-initialize dps->is_old_style_param_decl for every declarator,
          because it might have been modified during the processing of the prior
@@ -22543,8 +22561,7 @@ initialization for each compilation.
   avail_decl_parse_states = NULL;
   avail_decl_parse_callbacks = NULL;
   avail_auto_param_descriptions = NULL;
-  consteval_blocks = alloc_fe_of_type(a_consteval_block_map);
-  construct(consteval_blocks, /*mask_width=*/6);
+  consteval_blocks = new_fe<a_consteval_block_map>(/*mask_width=*/6u);
 }  /* decls_init */
 
 #if DEBUG

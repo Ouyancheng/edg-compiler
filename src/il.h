@@ -3886,7 +3886,7 @@ extern a_scope_ptr scope_for_routine_or_null(a_routine_ptr rout);
 extern a_scope_ptr scope_for_routine(a_routine_ptr rout);
 
 #if DEBUG
-extern void db_indent(int indent);
+extern void db_indent(size_t indent);
 
 extern void db_template_arg_list(a_template_arg_ptr tap);
 
@@ -3941,7 +3941,7 @@ extern void db_abbreviated_type(a_type *tp);
 extern void db_variable(a_variable_ptr var_ptr);
 
 extern void db_expr_node(an_expr_node_ptr node,
-                         int              level);
+                         size_t           level);
 
 extern void db_expression(an_expr_node_ptr node);
 
@@ -3950,29 +3950,29 @@ extern void db_expr_range(an_expr_node_ptr node);
 extern void db_expr_summary(an_expr_node_ptr  node);
 
 extern void db_ctor_init(a_constructor_init_ptr cip,
-                         int                    level);
+                         size_t                 level);
 
 extern void db_cip(a_constructor_init_ptr cip);
 
 extern void db_ctor_init_list(a_constructor_init_ptr cip_list,
-                              int                    level);
+                              size_t                 level);
 
 extern void db_cip_list(a_constructor_init_ptr cip_list);
 
 extern void db_dynamic_initializer(a_dynamic_init_ptr  dip,
-                                   int                 level);
+                                   size_t              level);
 
 extern void db_dip(a_dynamic_init_ptr  dip);
 
 extern void db_initializer(a_variable_ptr  var_ptr,
-                           int             level);
+                           size_t          level);
 
 extern void db_statement_kind(a_statement_kind  kind);
 
 extern void db_statement(a_statement_ptr  sp);
 
 extern void db_statement_list(a_statement_ptr  sp,
-                              int              indent,
+                              size_t           indent,
                               a_const_char     *str,
                               int              how_deep);
 
@@ -3981,11 +3981,11 @@ extern void db_statements(a_statement_ptr statement);
 extern void db_scope(a_scope_ptr sp);
 
 extern void db_scope_type_list(a_scope_ptr scope,
-                               int         indent,
+                               size_t      indent,
                                a_boolean   do_subscopes);
 
 extern void db_type_lists(a_scope_ptr scope,
-                          int         indent);
+                          size_t      indent);
 
 extern void db_destruction(a_dynamic_init_ptr  dip);
 

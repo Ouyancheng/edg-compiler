@@ -450,7 +450,8 @@ fill-in entries are valid.
         } else if (*ptr == '[') {
           end_label = mbc_strchr(ptr+1, ']');
           check_assertion(end_label != NULL);
-          (void)get_label_fill_in_entry(ptr+1, end_label-ptr-1);
+          (void)get_label_fill_in_entry(ptr + 1,
+                                        (sizeof_t)(end_label - ptr - 1));
           ptr = end_label+1;
         }  /* if */
       }  /* if */
@@ -600,7 +601,8 @@ typedef struct an_error_file_index {
   an_error_file_index_ptr
 		next;		/* Pointer to the next an_error_file_index
 				   entry in the doubly linked list. */
-  short		next_index_entry;
+  unsigned short
+		next_index_entry;
 				/* Index of the next available entry in the
 				   line_number and file_position arrays. */
   a_line_number line_number[NUMBER_OF_ERROR_FILE_INDEX_TABLE_ENTRIES];
@@ -807,7 +809,7 @@ set the pointer to NULL and the length to 0.
     if (ptr[len] == '=') {
       ptr += len+1;
       a_const_char *end_ptr = strchr(ptr, ':');
-      len = (end_ptr == NULL) ? strlen(ptr) : end_ptr - ptr;
+      len = (end_ptr == NULL) ? strlen(ptr) : (size_t)(end_ptr - ptr);
       sgr_map[(int)kind].ptr = ptr;
       sgr_map[(int)kind].length = len;
       /* Make sure only valid characters are in the SGR string. */
@@ -2137,7 +2139,7 @@ made is returned.
 */
 {
   an_error_file_index_ptr curr_file;
-  int                     idx, mid_idx;
+  size_t                  idx, mid_idx;
   unsigned long           spacing;
 
   /* Typically the current file being read will be at the head of the list
@@ -2175,8 +2177,8 @@ made is returned.
     (head_of_file_index_list = curr_file)->previous = NULL;
   }  /* if */
   /* Make the new entry. */
-  if ((idx = curr_file->next_index_entry) < 
-                                  NUMBER_OF_ERROR_FILE_INDEX_TABLE_ENTRIES) {
+  idx = curr_file->next_index_entry;
+  if (idx < NUMBER_OF_ERROR_FILE_INDEX_TABLE_ENTRIES) {
     /* Add the file index information into the next available table entry. */
     curr_file->line_number[idx] = physical_line;
     curr_file->file_position[idx] = file_pos;
@@ -2222,7 +2224,7 @@ made is returned.
     fprintf(f_debug, "Updated error file index entries:\n");
     for (idx = 0;
          idx < NUMBER_OF_ERROR_FILE_INDEX_TABLE_ENTRIES; ++idx) {
-      fprintf(f_debug, "entry %d=%5lu\n", idx,
+      fprintf(f_debug, "entry %lu=%5lu\n", (unsigned long)idx,
               (unsigned long)curr_file->line_number[idx]);
     }  /* for */
     fprintf(f_debug, "\n");
@@ -2430,8 +2432,9 @@ form for the file, or usk_none if the file is not Unicode.
           sizeof_t  curr_length, old_size, new_size;
           char      *new_error_source_line;
 
-          curr_length = loc_in_line - error_source_line;
-          old_size = after_end_of_error_source_line - error_source_line;
+          curr_length = (sizeof_t)(loc_in_line - error_source_line);
+          old_size = (sizeof_t)(after_end_of_error_source_line -
+                                error_source_line);
           /* Increase the size of the error_source_line buffer. */
           new_size = old_size + ERROR_SOURCE_LINE_INCREMENTAL_ALLOCATION;
           /* As with the curr_source_line, add one more byte than required,
@@ -2668,7 +2671,7 @@ as appropriate.
              entry and get the original source line character. */
           if (ch == ATTENTION_MARKER) {
             slmp = nested_source_line_modif(loc_in_line);
-            ch = slmp->orig_char;
+            ch = (char)slmp->orig_char;
           }  /* if */
           /* Put out the character, which is possibly a multibyte
              character, and advance loc_in_line to after the character. */
@@ -2679,7 +2682,7 @@ as appropriate.
           case olm_trigraph:
             put_char('?');
             put_char('?');
-            put_char(olmp->variant.orig_char);
+            put_char((char)olmp->variant.orig_char);
             loc_in_line++;
             /* If the trigraph is "? ? /", which turns into "\", and it's at
 	       the end of a line, the "\" will indicate a line splice.  In
@@ -3224,7 +3227,7 @@ message is an additional message, the coded severity is in lower case.
   if (dp->primary_diag != NULL) {
     /* For things that are not top-level diagnostics, the severity is
        put out in lower case. */
-    severity_char = tolower((int)severity_char);
+    severity_char = (char)tolower((int)severity_char);
   }  /* if */
   (void)putc(severity_char, f_raw_listing);
   (void)fputc(' ', f_raw_listing);
@@ -3441,11 +3444,11 @@ to keep track of the desired result.
   a_pragma_diag_elem *p1 = (a_pragma_diag_elem*)key;
   a_pragma_diag_elem *p2 = (a_pragma_diag_elem*)candidate;
 
-  result = p1->spos.seq - p2->spos.seq;
+  result = (int)((long long)p1->spos.seq - (long long)p2->spos.seq);
   if (result > 0) {
     pdl_lower_bound = p2;
   } else if (result == 0) {
-    result = p1->spos.column - p2->spos.column;
+    result = (int)p1->spos.column - (int)p2->spos.column;
     if (result >= 0) {
       pdl_lower_bound = p2;
     }  /* if */
@@ -3584,7 +3587,9 @@ in the source.
             if (ptr->is_pop) {
               if (ptr->variant.corresponding_push != -1) {
                 /* Skip to the corresponding "push" for this "pop". */
-                ptr = &(*pragma_diag_list)[ptr->variant.corresponding_push];
+                size_t push_idx = size_t_arg(ptr->variant.corresponding_push);
+
+                ptr = &(*pragma_diag_list)[push_idx];
                 continue;
               } else {
                 /* There is no corresponding "push" for this "pop" (a warning
@@ -4264,8 +4269,8 @@ null-terminated.
 }  /* process_fill_in */
 
 
-static void format_output_line(int		first_indent,
-			       int		continuation_indent)
+static void format_output_line(sizeof_t first_indent,
+                               sizeof_t continuation_indent)
 /*
 Write the specified diagnostic constructed in prefix_buffer to the
 write_diagnostic_buffer.  Wrap the output unless do_not_wrap_diagnostics
@@ -4330,7 +4335,7 @@ indent subsequent lines when the output wraps to more than one line.
         }  /* if */
         last_space = NULL;
         check_assertion(diagnostic_line_length > (int)indent);
-        chars_left = diagnostic_line_length - indent;
+        chars_left = (sizeof_t)diagnostic_line_length - indent;
         new_line = FALSE;
       }  /* if */
       /* Tentatively add this character to the buffer (it may be "removed"
@@ -4388,10 +4393,9 @@ indent subsequent lines when the output wraps to more than one line.
   } else {
     segment_start = curr_char;
     for (;;) {
-      sizeof_t	segment_length;
       /* Compute the number of characters that will fit on a line taking into
          account any indentation that is required. */
-      usable_line_length = diagnostic_line_length - indent;
+      usable_line_length = (sizeof_t)diagnostic_line_length - indent;
       /* Put out the required indentation. */
       for (i = 0; i < indent; ++i) {
         add_char_to_text_buffer(write_diagnostic_buffer, ' ');
@@ -4400,7 +4404,8 @@ indent subsequent lines when the output wraps to more than one line.
         /* Output as much of the string as will fit on a line.  Wrap
            at a blank, if possible; otherwise, just wrap at the end of the
            line. */
-        segment_length = usable_line_length;
+        sizeof_t segment_length = usable_line_length;
+
         curr_char = segment_start + segment_length - 1;
         /* If the character after the end is a blank, wrap on that one. */
         if (curr_char[1] == ' ') curr_char++;
@@ -4408,7 +4413,9 @@ indent subsequent lines when the output wraps to more than one line.
         while (curr_char > segment_start && *curr_char != ' ') curr_char--;
         /* If we found a blank, compute the length of the string up to the
            character before the blank. */
-        if (*curr_char == ' ') segment_length = curr_char - segment_start;
+        if (*curr_char == ' ') {
+          segment_length = (sizeof_t)(curr_char - segment_start);
+        }  /* if */
         add_to_text_buffer(write_diagnostic_buffer, segment_start,
                            segment_length);
         add_char_to_text_buffer(write_diagnostic_buffer, '\n');
@@ -4434,8 +4441,8 @@ Output the message contained in the message buffer, and to the raw
 listing file (if needed).
 */
 {
-  int		first_indent;
-  int		continuation_indent;
+  sizeof_t first_indent;
+  sizeof_t continuation_indent;
 
   /* Determine the indentation to be used for this message. */
   if (dp->kind == dck_primary) {
@@ -4503,7 +4510,6 @@ to the msg_buffer.
   a_const_char  *curr_char;
   a_const_char  *msg_ptr;
   char          options[max_options];
-  sizeof_t      length;
 
   msg_ptr = error_text(dp->error_code);
   curr_char = msg_ptr;
@@ -4529,7 +4535,7 @@ to the msg_buffer.
     if (segment_end >= segment_start) {
       /* The text segment is non-empty.  Add these characters to the
          message buffer. */
-      length = segment_end - segment_start + 1;
+      sizeof_t length = (sizeof_t)(segment_end - segment_start + 1);
       add_to_text_buffer(msg_buffer, segment_start, length);
     }  /* if */
     /* We have reached the end of the string -- exit the loop. */
@@ -4547,7 +4553,8 @@ to the msg_buffer.
       a_label_fill_in_entry	*lfie;
       label_end = mbc_strchr(curr_char, ']');
       check_assertion(label_end != NULL);
-      lfie = get_label_fill_in_entry(curr_char + 1, label_end - curr_char - 1);
+      lfie = get_label_fill_in_entry(curr_char + 1,
+                                     (sizeof_t)(label_end - curr_char - 1));
       label_text = error_text(*(lfie->test) ? lfie->true_value
                                             : lfie->false_value);
       add_string_to_text_buffer(msg_buffer, label_text);
@@ -8079,7 +8086,7 @@ data type is a Dyn_array.  Return a pointer to the element in the array
         /* Nothing to do; this entry is already on the list. */
       } else {
         /* Insert the element after the one that was found. */
-        int idx = (int)(found - pragma_diag_list->begin())+1;
+        size_t idx = (size_t)(found - pragma_diag_list->begin() + 1);
         pragma_diag_list->insert(idx, elem);
         result = &(*pragma_diag_list)[idx];
       }  /* if */
@@ -8248,7 +8255,8 @@ parsed except during instantiations).
         /* Link to associated "push". */
         ptr->is_pop = TRUE;
         if (!pragma_diag_stack->is_empty()) {
-          ptr->variant.corresponding_push = pragma_diag_stack->back_elem();
+          ptr->variant.corresponding_push =
+                                     (a_ptrdiff)pragma_diag_stack->back_elem();
           pragma_diag_stack->pop_back();
         } else {
           /* There was no "push" associated with this "pop". */
@@ -8439,9 +8447,9 @@ Initialize variables that are specific to a given translation unit.
 {
 #if !STANDALONE_UTILITY_PROGRAM
   pragma_diag_list = alloc_fe_of_type(Dyn_array<a_pragma_diag_elem>);
-  construct(pragma_diag_list, /*cap=*/256);
+  construct(pragma_diag_list, /*cap=*/256u);
   pragma_diag_stack = alloc_fe_of_type(Dyn_array<size_t>);
-  construct(pragma_diag_stack, /*cap=*/16);
+  construct(pragma_diag_stack, /*cap=*/16u);
 #endif /* !STANDALONE_UTILITY_PROGRAM */
 }  /* error_trans_unit_init */
 

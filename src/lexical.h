@@ -89,121 +89,121 @@ EXTERN_THREAD a_cached_token_handle
    generalized identifier routines.  is_generalized_identifier_start
    recognizes only the GID_TEMPLATE_ARGS_OPTIONAL and
    GID_DTOR_RECOGNIZED flags. */
-typedef int an_identifier_options_set;
-#define GID_NO_OPTIONS                0x00
-#define GID_TEMPLATE_ARGS_OPTIONAL    0x01
+typedef unsigned an_identifier_options_set;
+#define GID_NO_OPTIONS                0x00u
+#define GID_TEMPLATE_ARGS_OPTIONAL    0x01u
 			/* Normally if a class template name is seen it must
 			   be followed by a template argument list, otherwise
 			   an error is issued.  This flag allows the
 			   template argument list to be omitted. */
-#define GID_DTOR_RECOGNIZED           0x02
+#define GID_DTOR_RECOGNIZED           0x02u
 			/* Enables recognition of destructor names
 			   ("~" followed by an identifier).  The default
 			   is to not recognize "~" as the start of an
 			   identifier (no error is issued).  Destructor
 			   names are always recognized following qualifiers. */
-#define GID_DISALLOW_QUALIFIED_NAME   0x04
+#define GID_DISALLOW_QUALIFIED_NAME   0x04u
 			/* Causes an error to be issued if the identifier
 			   is a qualified name (either A::B or ::i). */
-#define GID_DISALLOW_GLOBAL_QUALIFIER 0x08
+#define GID_DISALLOW_GLOBAL_QUALIFIER 0x08u
 			/* Causes an error to be issued if the identifier
 			   is a global qualifier (::A::B or ::i). */
-#define GID_DISALLOW_OPERATOR_NAME    0x10
+#define GID_DISALLOW_OPERATOR_NAME    0x10u
 			/* Causes an error to be issued if the identifier
 			   is an operator name of the form "operator =" or
 			   "operator int". */
-#define GID_VACUOUS_DTOR_RECOGNIZED   0x20
+#define GID_VACUOUS_DTOR_RECOGNIZED   0x20u
 			/* Enables recognition of destructor calls, as part
 			   of a qualified name, for non-class types and class
 			   types that have no destructors (e.g., A::~A or
 			   int::~int). */
-#define GID_DTOR_MUST_BE_NONCLASS     0x40
+#define GID_DTOR_MUST_BE_NONCLASS     0x40u
 			/* Enables recognition of destructor calls for
 			   non-class types and class types that have no
 			   destructors that are not part of a qualified name
 			   (e.g., ~A or ~int). */
-#define GID_IS_TEMPLATE_DECLARATION   0x80
+#define GID_IS_TEMPLATE_DECLARATION   0x80u
 			/* If the identifier is a qualified name the
 			   class component must refer to the prototype
 			   instantiation, unless GID_IS_TEMPLATE_SPECIALIZATION
 			   is also set. */
-#define GID_IS_NEW_TYPE_NAME	      0x100
+#define GID_IS_NEW_TYPE_NAME	      0x100u
 			/* Specifies that the name being scanned is the type
 			   name in a new expression.  This causes the check
 			   for an unexpected template argument list to be
 			   suppressed because a new type name may be followed
 			   by a less than sign. */
 #define GID_IS_FIELD_SELECTION_OPERAND \
-				      0x200
+				      0x200u
 			/* Specifies that the name being scanned is the
 			   operand following a "." or "->" operator. */
-#define GID_USE_PROTOTYPE_NOT_NONREAL 0x400
+#define GID_USE_PROTOTYPE_NOT_NONREAL 0x400u
 			/* Specifies that a template reference such as
 			   A<T> should be considered to refer to the
 			   prototype instantiation, not the nonreal
 			   instantiation of the same name. */
-#define GID_IS_TYPENAME	0x800
+#define GID_IS_TYPENAME	0x800u
 			/* Specifies that the name being looked up follows the
 			   typename keyword.  This affects the way that
 			   a qualified name is handled. */
-#define GID_CLASS_TEMPLATE_REQUIRED 0x1000
+#define GID_CLASS_TEMPLATE_REQUIRED 0x1000u
 			/* Specifies that a class template name that is not
 			   followed by an argument list must be returned as
 			   the class template and should not be converted to
 			   the current instantiation of the template, if such
 			   an instantiation is currently in scope. */
-#define GID_IS_TEMPLATE_SPECIALIZATION 0x2000
+#define GID_IS_TEMPLATE_SPECIALIZATION 0x2000u
 			/* If the identifier is a qualified name the
 			   identifier named must be a member template. */
-#define GID_IS_EXPR_CONTEXT 0x4000
+#define GID_IS_EXPR_CONTEXT 0x4000u
 			/* TRUE if the name is being coalesced in a context
 			   that is known to be an expression context.  This
 			   causes a "<" to be treated as a less than sign
 			   and not the start of a template argument list
 			   when it follows a nonreal class member. */
-#define GID_IS_CLASS_TEMPLATE_DECL 0x8000
+#define GID_IS_CLASS_TEMPLATE_DECL 0x8000u
 			/* TRUE if the name being coalesced is the class
 			   template name in a class template declaration. */
-#define GID_IS_TEMPLATE_PRESCAN 0x10000
+#define GID_IS_TEMPLATE_PRESCAN 0x10000u
 			/* TRUE if the name is being coalesced during the
       			   prescan of a template declaration.  This suppresses
 			   certain diagnostics. */
-#define GID_FOLLOWS_TEMPLATE 0x20000
+#define GID_FOLLOWS_TEMPLATE 0x20000u
 			/* TRUE if the name being coalesced follows the
       			   "template" keyword.  This is used is constructs
 			   like "p->template f<x>(1)". */
-#define GID_IMPLICIT_TYPE_CONTEXT 0x40000
+#define GID_IMPLICIT_TYPE_CONTEXT 0x40000u
 			/* TRUE if the name is known to be a type based on
 			   context. */
-#define GID_IN_IF_EXISTS 0x80000
+#define GID_IN_IF_EXISTS 0x80000u
 			/* TRUE when scanning the identifier of a Microsoft
 			   __if_exists or __if_not_exists directive.  Also
 			   when scanning the identifier of a using-declaration
 			   subject to the using_if_exists attribute. */
-#define GID_IS_FRIEND_DECL 0x100000
+#define GID_IS_FRIEND_DECL 0x100000u
 			/* TRUE when scanning the declarator of a friend
 			   function declaration. */
-#define GID_IS_TAG_NAME    0x200000
+#define GID_IS_TAG_NAME    0x200000u
 			/* TRUE when scanning a tag name. */
-#define GID_SIMPLIFY_CURR_CLASS_QUALIFIED_NAME 0x400000
+#define GID_SIMPLIFY_CURR_CLASS_QUALIFIED_NAME 0x400000u
 			/* TRUE if a qualified name of the form Q::X (with no
 			   leading "::") should be treated as just X if Q
 			   denotes the class currently being defined.
 			   Microsoft compilers in particular appear to behave
 			   this way. */
-#define GID_IS_UNKNOWN_TEMPLATE_ARG    0x800000
+#define GID_IS_UNKNOWN_TEMPLATE_ARG    0x800000u
 			/* TRUE when scanning an identifier at the beginning
 			   of a template argument in an unknown template
 			   argument list context. */
-#define GID_IS_BASE_CLASS 0x1000000
+#define GID_IS_BASE_CLASS 0x1000000u
 			/* TRUE when scanning a base class specifier. */
-#define GID_IS_CPPCLI_CONSTRAINT 0x2000000
+#define GID_IS_CPPCLI_CONSTRAINT 0x2000000u
 			/* TRUE when scanning C++/CLI generic constraint. */
-#define GID_IMPLICIT_TYPENAME_CONTEXT 0x4000000
+#define GID_IMPLICIT_TYPENAME_CONTEXT 0x4000000u
 			/* TRUE if this is a context in which a
 			   dependent qualified name is implicitly
 			   treated as a type (a C++20 feature). */
-#define GID_IS_DTOR_NAME 0x8000000
+#define GID_IS_DTOR_NAME 0x8000000u
 			/* TRUE when scanning a destructor or C++/CLI finalizer
 			   name. */
 #define GID_ERROR_FLAGS (GID_DISALLOW_QUALIFIED_NAME |		\
@@ -1424,7 +1424,8 @@ typedef struct an_orig_line_modif {
   union {
     /* When kind == olm_null, no variant fields. */
     /* When kind == olm_trigraph or olm_splice_whitespace: */
-    char	orig_char;
+    unsigned char
+		orig_char;
 			/* For olm_trigraph, the original third character
 			   of the trigraph, for example "=" in "? ? ="
 			   (extra space added so that won't actually be a
@@ -1571,7 +1572,7 @@ typedef struct a_source_line_modif {
 			   determination of whether a comma appearing in a
 			   macro argument should delimit macro arguments
 			   when the expansion is rescanned. */
-  char		orig_char;
+  unsigned char	orig_char;
 			/* The character that was in the source line at
 			   position line_loc (provided so that the original
 			   line can be reconstructed; not needed
@@ -2925,7 +2926,7 @@ utilities that do not have memory management code.
 {
 #define add_str(s) { strcpy(buff + len, s); len += sizeof(s) - 1; }
   STATIC_THREAD char buff[64];
-  int len = 0;
+  size_t len = 0;
 
   if (lit_kind == SCLK_NOT_A_LITERAL) {
     add_str("not a literal");
@@ -3486,11 +3487,22 @@ Also set slmp for use in scanning the line with the "walk_.." macros.
   }  /* if */                                                         \
 }  /* set_up_for_walk_of_source_line */
 
+
+inline unsigned char hexvalue(unsigned char ch)
 /*
 Convert a character hex digit to the associated hex digit value.
 */
-#define hexvalue(ch) ((ch) - (isdigit((unsigned char)ch) ? '0' : \
-                             (islower((unsigned char)ch) ? 'a'-0xa : 'A'-0xA)))
+{
+  if (isdigit(ch)) {
+    ch -= '0';
+  } else if (islower(ch)) {
+    ch -= 'a'-0xa;
+  } else {
+    ch -= 'A'-0xA;
+  }  /* if */
+  return ch;
+}  /* hexvalue */
+
 
 #if GENERATE_MICROSOFT_IF_EXISTS_ENTRIES
 /*

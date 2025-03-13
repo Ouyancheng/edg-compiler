@@ -74,7 +74,7 @@ sign-extension might be needed later on.
   an_integer_value  mask;
 
   get_integer_size_and_alignment(kind, &size, &alignment);
-  make_integer_value_mask(&mask, (int)(size*targ_char_bit));
+  make_integer_value_mask(&mask, size * targ_char_bit);
   and_integer_values(p_value, &mask);
 }  /* trim_integer_value_to_kind */
 
@@ -147,7 +147,7 @@ of the token if digit separators are enabled.
           /* Accumulate the size. */
           do {
             isuffix *= 10;
-            isuffix += *temp_ptr++ - '0';
+            isuffix += (unsigned long)(*temp_ptr++) - (unsigned long)'0';
             ndigits++;
           } while (isdigit((unsigned char)(*temp_ptr)));
           /* Check that the size is valid. */
@@ -231,10 +231,11 @@ of the token if digit separators are enabled.
       /* The value of the literal can be represented without overflow in
          a_host_large_unsigned, so we can use a more efficient loop
          accumulating the literal value. */
-      a_host_large_unsigned lit_val = *start_of_curr_token - '0';
+      a_host_large_unsigned lit_val =
+                                   (unsigned char)(*start_of_curr_token) - '0';
       for (temp_ptr = start_of_curr_token + 1;
            temp_ptr <= real_end_pos; ++temp_ptr) {
-        lit_val = 10 * lit_val + *temp_ptr - '0';
+        lit_val = 10 * lit_val + (unsigned char)(*temp_ptr) - '0';
       }  /* for */
       set_unsigned_integer_value(&number, lit_val);
     } else {
@@ -242,14 +243,14 @@ of the token if digit separators are enabled.
          embedded digit separators, use the constant integer routines to
          calculate the value of the literal. */
       set_unsigned_integer_value(&ten, (a_host_large_unsigned)10);
-      intdigit = *start_of_curr_token - '0';
+      intdigit = (unsigned char)(*start_of_curr_token) - '0';
       set_unsigned_integer_value(&number, (a_host_large_unsigned)intdigit);
       for (temp_ptr = start_of_curr_token+1;
            temp_ptr <= real_end_pos; temp_ptr++) {
         if (*temp_ptr == '\'') {
           /* Digit separator -- ignore. */
         } else {
-          intdigit = *temp_ptr - '0';
+          intdigit = (unsigned char)(*temp_ptr) - '0';
           /* Multiply previous value by 10, checking for overflow. */
           multiply_integer_values(&number, &ten, /*is_signed=*/FALSE, &err);
           if (err) ovflo = TRUE;
@@ -268,7 +269,7 @@ of the token if digit separators are enabled.
       if (*temp_ptr == '\'') {
         /* Digit separator -- ignore. */
       } else {
-        intdigit = *temp_ptr - '0';
+        intdigit = (unsigned char)(*temp_ptr) - '0';
         if (C_dialect != C_dialect_pcc && (intdigit >= 8)) {
           /* Digits 8 and 9 are allowed by K&R/pcc, but not by ANSI. */
           *err_pos = temp_ptr;
@@ -291,7 +292,7 @@ of the token if digit separators are enabled.
       if (*temp_ptr == '\'') {
         /* Digit separator -- ignore. */
       } else {
-        intdigit = *temp_ptr - '0';
+        intdigit = (unsigned char)(*temp_ptr) - '0';
         if (intdigit >= 2) {
           /* Digits over 1 are not allowed. */
           *err_pos = temp_ptr;
@@ -314,7 +315,7 @@ of the token if digit separators are enabled.
       if (*temp_ptr == '\'') {
         /* Digit separator -- ignore. */
       } else {
-        intdigit = hexvalue(*temp_ptr);
+        intdigit = hexvalue((unsigned char)(*temp_ptr));
         /* Multiply previous value by 16, checking for overflow. */
         shift_left_integer_value(&number, 4, &err);
         if (err) ovflo = TRUE;
@@ -434,7 +435,7 @@ pcc_kind_established:
       do_sign_extension = int_kind_is_signed[kind];
       /* Mask off any bits past the end of the largest target integer. */
       make_integer_value_mask(&mask,
-                             (int)(targ_sizeof_largest_integer*targ_char_bit));
+                              targ_sizeof_largest_integer * targ_char_bit);
       and_integer_values(&number, &mask);
       ovflo = FALSE;
     }  /* if */
@@ -657,8 +658,8 @@ kind_established:;
        sign extension. */
     if (do_sign_extension) {
       sign_extend_integer_value(&number,
-                                (int)(const_for_curr_token.type->size *
-                                                               targ_char_bit));
+                                const_for_curr_token.type->size *
+                                                                targ_char_bit);
     }  /* if */
     const_for_curr_token.variant.integer_value = number;
     const_for_curr_token.non_arithmetic        = non_arith;
@@ -1021,7 +1022,7 @@ string literal and is to be converted to UTF-8 rather than being truncated
 to a Latin-1 byte.
 */
 {
-  int           translated_len;
+  unsigned      translated_len;
 #if UNICODE_SOURCE_SUPPORTED
   a_boolean     is_unicode_source =
                                    (curr_file_unicode_source_kind != usk_none);
@@ -1070,7 +1071,7 @@ to a Latin-1 byte.
   }  /* if */
   /* Set up for scanning the remaining translated characters and return the
      first. */
-  state->remaining_char_count = translated_len - 1;
+  state->remaining_char_count = (int)(translated_len - 1);
   state->next_mbc_char = state->translated_char + 1;
   return state->translated_char[0];
 }  /* conv_unicode_literal_char */
@@ -1142,7 +1143,7 @@ state->next_orig_line_modif is advanced to point to the next modification.
   unsigned long targ_ch;
   unsigned char tch;
   a_const_char  *lptr;
-  int           digit;
+  unsigned      digit;
   a_boolean     range_error = FALSE;
   a_boolean     numeric_escape = FALSE;
   a_boolean     unrecognized;
@@ -1384,7 +1385,7 @@ get_another:
              treat the rest of the sequence as having no special
              significance. */
           if (lptr != start_of_escape + 4 || targ_ch != 0) {
-            targ_ch = start_of_escape[1];
+            targ_ch = (unsigned char)start_of_escape[1];
             lptr = start_of_escape + 2;
           }  /* if */
         }  /* if */
@@ -1441,7 +1442,7 @@ get_another:
         targ_ch = 0;
         while (isdigit((unsigned char)*++lptr) &&
                *lptr != '8' && *lptr != '9') {
-          targ_ch = (targ_ch << 3) | (*lptr - '0');
+          targ_ch = (targ_ch << 3) | (unsigned char)(*lptr - '0');
           if (targ_ch > (((unsigned long)LONG_MAX)>>4)) {
             /* Error will be processed below.  We must keep going and take
                all the digits. */
@@ -1469,7 +1470,7 @@ get_another:
              hexadecimal characters, terminated by a '}'. */
           targ_ch = 0;
           while (isxdigit(*++lptr)) {
-            targ_ch = (targ_ch << 4) | hexvalue(*lptr);
+            targ_ch = (targ_ch << 4) | hexvalue((unsigned char)(*lptr));
             if (targ_ch > (((unsigned long)LONG_MAX)>>4)) {
               /* Error will be processed below.  We must keep going and take
                  all the digits. */
@@ -1499,8 +1500,8 @@ get_another:
           targ_ch = (unsigned char)'x';
         } else {
           numeric_escape = TRUE;
-          targ_ch = hexvalue(*lptr);  /* First digit. */
-          while (tch = *(++lptr), isxdigit(tch)) {
+          targ_ch = hexvalue((unsigned char)(*lptr));  /* First digit. */
+          while (tch = (unsigned char)(*(++lptr)), isxdigit(tch)) {
             if (targ_ch > (((unsigned long)LONG_MAX)>>4)) {
               /* Error will be processed below.  We must keep going and take
                  all the digits. */
@@ -1710,7 +1711,7 @@ less than num_chars.  */
   unsigned int            char_size;
   unsigned long           centity_mask;
   a_boolean               centity_is_signed = FALSE;
-  int                     centity_bits = 0;
+  unsigned                centity_bits = 0;
   int                     encoding_length;
   a_character_kind        character_kind = (a_character_kind)ck_last;
   a_char_conversion_state conv_state;
@@ -1933,7 +1934,7 @@ less than num_chars.  */
       if (i == 0 && centity_is_signed) {
         sign_extend_integer_value(&ch_int_val, centity_bits);
       }  /* if */
-      shift_left_integer_value(&number, centity_bits, &err);
+      shift_left_integer_value(&number, (int)centity_bits, &err);
     } else {
       /* 'ab' == 0x6261. */
       /* Do sign extension on the new character if necessary. */
@@ -1945,10 +1946,10 @@ less than num_chars.  */
            first character. */
         if (centity_is_signed) {
           an_integer_value mask;
-          make_integer_value_mask(&mask, (int)i*centity_bits);
+          make_integer_value_mask(&mask, i * centity_bits);
           and_integer_values(&number, &mask);
         }  /* if */
-        shift_left_integer_value(&ch_int_val, (int)i*centity_bits, &err);
+        shift_left_integer_value(&ch_int_val, (int)(i * centity_bits), &err);
       }  /* if */
     }  /* if */
     or_integer_values(&number, &ch_int_val);
@@ -2023,8 +2024,7 @@ less than num_chars.  */
       if (!char_too_wide_for_rep && gnu_mode && i > targ_sizeof_int) {
         /* Truncate the value and warn about discarded characters. */
         an_integer_value int_mask;
-        make_integer_value_mask(&int_mask,
-                                (int)(targ_sizeof_int * targ_char_bit));
+        make_integer_value_mask(&int_mask, targ_sizeof_int * targ_char_bit);
         and_integer_values(&number, &int_mask);
         wcode = ec_leading_character_ignored_in_char_literal;
       }  /* if */
@@ -2304,7 +2304,7 @@ is finally known.)
      be smaller than the original calculated size because of translation of
      universal character names into UTF-8, translation of UTF-8 to a wider
      UTF-encoding or native multibyte characters, etc. */
-  constant_size = pstr - str_start;
+  constant_size = (sizeof_t)(pstr - str_start);
   num_elems = (a_targ_size_t)(constant_size / char_size);
   /* Make the constant entry for the string. */
   clear_constant(&const_for_curr_token, (a_constant_repr_kind)ck_string);

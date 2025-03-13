@@ -4991,7 +4991,8 @@ parentheses are not needed.
         } else {
           /* Add a subscripting operation. */
           a_type_ptr       element_type = array_element_type(unqual_type);
-          a_targ_ptrdiff_t element_size = f_skip_typerefs(element_type)->size;
+          a_targ_ptrdiff_t element_size =
+                         (a_targ_ptrdiff_t)f_skip_typerefs(element_type)->size;
           a_targ_ptrdiff_t idx;
           /* g++ allows zero-length arrays. */
           if (element_size == 0) element_size = 1;
@@ -5352,7 +5353,8 @@ precedence confusion.  Do the output in the way described by octl.
        the addition can be done without going to "char *". */
     need_char_star_cast = TRUE;
     if (!form_lvalue) {
-      a_targ_ptrdiff_t size = f_skip_typerefs(achieved_type)->size;
+      a_targ_ptrdiff_t size =
+                        (a_targ_ptrdiff_t)f_skip_typerefs(achieved_type)->size;
       if (size != 0 && (offset % size) == 0) {
         need_char_star_cast = FALSE;
         offset /= size;
@@ -8271,7 +8273,7 @@ are initializations that must be redone for each generated file.
 #if DEBUG
   unique_id_counter = 0;
   ptr_to_unique_id = alloc_general_of_type(a_ptr_unique_id_map);
-  construct(ptr_to_unique_id, /*mask_width=*/10);
+  construct(ptr_to_unique_id, /*mask_width=*/10u);
 #endif /* DEBUG */
 }  /* il_to_str_back_end_file_init */
 

@@ -1624,7 +1624,8 @@ typeinfo variable in a COMDAT group.
        skip the offset and typeinfo pointer.  (We know that there are no
        virtual bases in the typeinfo class hierarchy, so there are no vbase or
        vcall offsets.) */
-    vptr_con->variant.address.offset = 2 * vtbl_entry_size();
+    vptr_con->variant.address.offset =
+                                     (a_targ_ptrdiff_t)(2 * vtbl_entry_size());
 #endif /* !IA64_ABI */
     /* Do the array --> pointer decay. */
     implicit_cast(vptr_con, pointer_to_vtbl_type());
@@ -1942,8 +1943,10 @@ typeinfo variable in a COMDAT group.
               if (derivation->access == (an_access_specifier)as_public) { 
                 base_flags_value |= BCS_PUBLIC;
               }  /* if */
-              set_integer_constant(offset_con, (offset<<8) | base_flags_value,
-                                   (an_integer_kind)ik_long);
+              set_integer_constant(offset_con,
+                                   ((offset << 8) |
+                                    (a_host_large_integer)base_flags_value),
+                                   ik_long);
               /* Initialize the array entry. */
               base_con->next = offset_con;
               base_info_con = alloc_constant(
@@ -1966,12 +1969,13 @@ typeinfo variable in a COMDAT group.
             }  /* for */
             /* Build the flags initializer. */
             flags_con = alloc_constant((a_constant_repr_kind)ck_integer);
-            set_integer_constant(flags_con, vmi_flags_value, 
-                                 (an_integer_kind)ik_unsigned_int);
+            set_integer_constant(flags_con,
+                                 (a_host_large_integer)vmi_flags_value,
+                                 ik_unsigned_int);
             /* Build the count initializer. */
             count_con = alloc_constant((a_constant_repr_kind)ck_integer);
-            set_integer_constant(count_con, base_count,
-                                 (an_integer_kind)ik_unsigned_int);
+            set_integer_constant(count_con, (a_host_large_integer)base_count,
+                                 ik_unsigned_int);
             /* Set the type of the array. */
             base_array_con->type = array_of(make_base_class_spec_type());
             base_array_con->type->variant.array.variant.number_of_elements =
@@ -3423,7 +3427,7 @@ region description entry).
   } else if (is_array_type(entity_type)) {
     /* The entity is a whole array. */
     elem_type = underlying_array_element_type(entity_type);
-    elem_count = num_array_elements(entity_type);
+    elem_count = (a_targ_ptrdiff_t)num_array_elements(entity_type);
   } else {
     /* Not an array (see header comment above).  Use an element count of 0. */
     elem_type = entity_type;

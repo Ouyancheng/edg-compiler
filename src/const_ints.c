@@ -104,15 +104,16 @@ TRUE if the value cannot be represented in a host large integer (or host
 large unsigned if is_signed is FALSE) otherwise set err to FALSE.
 */
 {
-  int			i;
-  int	        	bits_so_far = 0;
-  int	        	bits_discarded = BITS_IN_AN_INTEGER_VALUE -
-			             (sizeof(a_host_large_integer) * CHAR_BIT);
-  an_int_value_part	this_part;
-  an_int_value_part	empty_bits;
-  a_host_large_unsigned	result = 0;
-  a_boolean		overflow = FALSE;
-  a_boolean		is_negative;
+  int                   i;
+  sizeof_t              bits_so_far = 0;
+  sizeof_t              bits_discarded = BITS_IN_AN_INTEGER_VALUE -
+                                     (sizeof(a_host_large_integer) * CHAR_BIT);
+  an_int_value_part     this_part;
+  an_int_value_part     empty_bits;
+  a_host_large_unsigned result = 0;
+  a_boolean             overflow = FALSE;
+  a_boolean             is_negative;
+
   /* The low order parts will be used to construct the result.  The high
      order bits must be zeros if the number is positive, or ones if the
      number is negative. */
@@ -483,19 +484,17 @@ Increment the integer value *intval.  No overflow checking is done.
 #endif /* !INTEGER_VALUE_REPR_IS_A_HOST_INTEGER */
 
 
-int bits_required_to_represent_integer_constant(a_constant *cp)
+size_t bits_required_to_represent_integer_constant(a_constant *cp)
 /*
 Return the number of bits required to represent the indicated constant.
 */
 {
-#if INTEGER_VALUE_REPR_IS_A_HOST_INTEGER
-  int           	nbits;
-  an_integer_value	mask;
-  an_integer_value	sign_mask;
-  an_integer_value	value;
+  size_t            nbits = 1;
+  an_integer_value  mask;
+  an_integer_value  sign_mask;
+  an_integer_value  value = cp->variant.integer_value;
 
-  value = cp->variant.integer_value;
-  nbits = 1;
+#if INTEGER_VALUE_REPR_IS_A_HOST_INTEGER
   /* mask is a bit mask used to turn off the bottom bits of the value. */
   /* sign_mask is the value we expect after the bottom bits have been
      turned off.  It's the sign bit duplicated across the right number
@@ -516,15 +515,7 @@ Return the number of bits required to represent the indicated constant.
     sign_mask <<= 1;
     nbits++;
   }  /* while */
-  return nbits;
 #else /* !INTEGER_VALUE_REPR_IS_A_HOST_INTEGER */
-  int           	nbits;
-  an_integer_value	mask;
-  an_integer_value	sign_mask;
-  an_integer_value	value;
-
-  value = cp->variant.integer_value;
-  nbits = 1;
   /* mask is a bit mask used to turn off the bottom bits of the value. */
   /* sign_mask is the value we expect after the bottom bits have been
      turned off.  It's the sign bit duplicated across the right number
@@ -552,8 +543,8 @@ Return the number of bits required to represent the indicated constant.
     shift_left_integer_value(&sign_mask, 1, &err);
     nbits++;
   }  /* for */
-  return nbits;
 #endif /* INTEGER_VALUE_REPR_IS_A_HOST_INTEGER */
+  return nbits;
 }  /* bits_required_to_represent_integer_constant */
 
 
@@ -592,7 +583,7 @@ and FALSE otherwise.
     work = (a_host_large_integer)op_1->part[i] +
            (a_host_large_integer)op_2->part[i] + carry;
     if (work > MAX_UINT_VALUE_PART) {
-      work -= INT_VALUE_PART_BASE;
+      work -= (a_host_large_integer)INT_VALUE_PART_BASE;
       carry = 1;
     } else {
       carry = 0;
@@ -676,7 +667,7 @@ err is TRUE if an overflow occurred and FALSE otherwise.
 
 
 void make_integer_value_mask(an_integer_value *mask,
-			     int	      bits)
+                             size_t           bits)
 /*
 Create a mask in which the "bits" low order bits of the integer value
 are set to one.  bits must be at least one.
@@ -685,14 +676,14 @@ are set to one.  bits must be at least one.
 #if !INTEGER_VALUE_REPR_IS_A_HOST_INTEGER
   set_integer_value(mask, (a_host_large_integer)0);
   complement_integer_value(mask);
-  shift_right_integer_value(mask, BITS_IN_AN_INTEGER_VALUE - bits,
+  shift_right_integer_value(mask, (int)(BITS_IN_AN_INTEGER_VALUE - bits),
 			    /*is_signed=*/FALSE, /*sign_extend=*/FALSE);
 #else /* INTEGER_VALUE_REPR_IS_A_HOST_INTEGER */
   /* The version that works on a host type was originally a macro.  It
      was converted to a function to work around a gcc bug that caused
      the macro to fail when an_integer_value was a long long. */
-  int			shift_count = (int)BITS_IN_AN_INTEGER_VALUE - bits;
-  an_integer_value	result = (~(an_integer_value)0);
+  size_t                shift_count = BITS_IN_AN_INTEGER_VALUE - bits;
+  an_integer_value      result = (~(an_integer_value)0);
   result = result >> shift_count;
   *mask = result;
 #endif /* !INTEGER_VALUE_REPR_IS_A_HOST_INTEGER */
@@ -700,14 +691,14 @@ are set to one.  bits must be at least one.
 
 #if !INTEGER_VALUE_REPR_IS_A_HOST_INTEGER
 void sign_extend_integer_value(an_integer_value *value,
-			       int	        bits)
+                               size_t           bits)
 /*
 Sign extend an integer value.  The current value consists of "bits"
 bits.  The high order bit of the field is the sign bit.
 */
 {
-  int		shift_bits = ((int)BITS_IN_AN_INTEGER_VALUE - bits);
-  a_boolean	err;
+  int       shift_bits = (int)(BITS_IN_AN_INTEGER_VALUE - bits);
+  a_boolean err;
   shift_left_integer_value(value, shift_bits, &err);
   shift_right_integer_value(value, shift_bits, /*is_signed=*/TRUE,
                             /*sign_extend=*/TRUE);
@@ -807,7 +798,7 @@ shift count is a legal value.
      bits to be shifted are non-zero we set the overflow flag. */
   part_offset = op_2 / (int)BITS_IN_INT_VALUE_PART;
   first_part_shift = op_2 % (int)BITS_IN_INT_VALUE_PART;
-  second_part_shift = BITS_IN_INT_VALUE_PART - first_part_shift;
+  second_part_shift = (int)(BITS_IN_INT_VALUE_PART) - first_part_shift;
   for (i = 0; i < (int)INT_VALUE_PARTS_PER_INTEGER_VALUE; ++i) {
     a_host_large_unsigned  work;
     an_int_value_part      fill_value = 0;
@@ -860,7 +851,7 @@ shift count is a legal value.
      are ORed together. */
   part_offset = op_2 / (int)BITS_IN_INT_VALUE_PART;
   first_part_shift = op_2 % (int)BITS_IN_INT_VALUE_PART;
-  second_part_shift = BITS_IN_INT_VALUE_PART - first_part_shift;
+  second_part_shift = (int)BITS_IN_INT_VALUE_PART - first_part_shift;
   /* fill_value contains the bits to be shifted in from the left.  It is
      zero for positive numbers and -1 (0xffff...) for negative numbers. */
   if (is_signed && sign_extend) {
@@ -917,7 +908,7 @@ underflow occurred.
     work = (a_host_large_integer)op_1->part[i] -
            (a_host_large_integer)op_2->part[i] - borrow;
     if (work < 0) {
-      work += INT_VALUE_PART_BASE;
+      work += (a_host_large_integer)INT_VALUE_PART_BASE;
       borrow = 1;
     } else {
       borrow = 0;
@@ -1229,22 +1220,22 @@ pointer to its work area which is larger than a normal integer value.
 }  /* divide_by_int_value_part */
 
 
-static void special_subtract(an_int_value_part	*work_area,
-			     an_int_value_part	*subtrahend)
+static void special_subtract(an_int_value_part  *work_area,
+                             an_int_value_part  *subtrahend)
 /*
 A version of the subtract routine that works with a pointer to a
 part of a work area rather than a normal integer value.
 */
 {
-  int			i;
-  a_host_large_unsigned	borrow = 0;
-  
+  int                  i;
+  a_host_large_integer borrow = 0;
+
   for (i = INT_VALUE_PARTS_PER_INTEGER_VALUE; i >= 0; --i) {
     a_host_large_integer work;
     work = (a_host_large_integer)work_area[i] -
            (a_host_large_integer)subtrahend[i] - borrow;
     if (work < 0) {
-      work += INT_VALUE_PART_BASE;
+      work += (a_host_large_integer)INT_VALUE_PART_BASE;
       borrow = 1;
     } else {
       borrow = 0;
@@ -1362,7 +1353,7 @@ are done with op_1.
   for (j = 0; j < (int)INT_VALUE_PARTS_PER_INTEGER_VALUE; ++j) {
     if (op_2.part[j] != 0) {
       op_2_first_part = j;
-      op_2_parts = INT_VALUE_PARTS_PER_INTEGER_VALUE - op_2_first_part;
+      op_2_parts = (int)INT_VALUE_PARTS_PER_INTEGER_VALUE - op_2_first_part;
       break;
     }  /* if */
   }  /* for */
@@ -1370,7 +1361,7 @@ are done with op_1.
   for (i = 0; i <= (int)INT_VALUE_PARTS_PER_INTEGER_VALUE; ++i) {
     if (work_area[i] != 0) {
       wa_first_part = i;
-      wa_parts = INT_VALUE_PARTS_PER_INTEGER_VALUE - wa_first_part + 1;
+      wa_parts = (int)INT_VALUE_PARTS_PER_INTEGER_VALUE - wa_first_part + 1;
       break;
     }  /* if */
   }  /* for */
@@ -1394,7 +1385,7 @@ are done with op_1.
      two operands.  The number of iterations through the loop ends up
      being wa_parts - op_2_parts + 1. */
   v1 = op_2.part[op_2_first_part];
-  quotient_pos = INT_VALUE_PARTS_PER_INTEGER_VALUE -
+  quotient_pos = (int)INT_VALUE_PARTS_PER_INTEGER_VALUE -
                                                 (wa_parts - op_2_parts) - 1;
   for (j = wa_first_part - 1;
        quotient_pos < (int)INT_VALUE_PARTS_PER_INTEGER_VALUE;
@@ -1421,7 +1412,7 @@ are done with op_1.
          that the multiply will not overflow. */
       clear_parts(&temp_product[0], WORK_AREA_PARTS);
       copy_parts(&op_2.part[op_2_first_part], &temp_product[1],
-                 INT_VALUE_PARTS_PER_INTEGER_VALUE - op_2_first_part);
+                 (int)INT_VALUE_PARTS_PER_INTEGER_VALUE - op_2_first_part);
       multiply_by_int_value_part(&temp_product[0],
                                  INT_VALUE_PARTS_PER_INTEGER_VALUE + 1,
                                (an_int_value_part)q);
@@ -1707,7 +1698,7 @@ for use by snprintf_impl).
   size_t size_before_parts = underlying_array.length();
 #if INTEGER_VALUE_REPR_IS_A_HOST_INTEGER
   auto   hex_view = hex_view_of(*value.value);
-  int    num_hex_digits_printed = size_hint - 2;
+  size_t num_hex_digits_printed = size_hint - 2;
   String_formatter<decltype(hex_view)>::append_into(underlying_array,
                                                     hex_view,
                                                     num_hex_digits_printed);
@@ -1715,7 +1706,7 @@ for use by snprintf_impl).
   /* Remove two elements from the size hint to account for the "0x". */
   size_hint -= 2;
 
-  int    num_hex_digits_printed = 0;
+  size_t num_hex_digits_printed = 0;
   size_t extra_space = size_hint + 1;
   /* Create space in the underlying array to write the arguments. */
   underlying_array.resize(size_before_parts + extra_space, '\0');
@@ -1745,7 +1736,7 @@ for use by snprintf_impl).
       }  /* if */
       /* If this assertion fails, there was an error writing the string. */
       check_assertion(chars_written > 0);
-      num_hex_digits_printed += chars_written;
+      num_hex_digits_printed += (size_t)chars_written;
     }  /* if */
   }  /* for */
   if (num_hex_digits_printed == 0) {
@@ -1756,7 +1747,7 @@ for use by snprintf_impl).
 #endif /* INTEGER_VALUE_REPR_IS_A_HOST_INTEGER */
 
   size_t digits_skipped = 0;
-  int    num_hex_digits_in_repr = (int)((value.size * targ_char_bit) / 4);
+  size_t num_hex_digits_in_repr = (value.size * targ_char_bit) / 4;
   if (num_hex_digits_printed > num_hex_digits_in_repr) {
     /* The hex string is longer than what is required to represent the type of
        the integer, probably because it is a negative value and thus padded
@@ -2009,7 +2000,7 @@ into the underlying array.  size_hint is the previously computed size hint.
 
     a_host_large_integer p = parts[i];
     for (size_t k = num_chars_in_part; k > 0;) {
-      underlying_array[relative_start + --k] = '0' + (p % 10);
+      underlying_array[relative_start + --k] = '0' + (char)(p % 10);
       p = p / 10;
     }  /* for */
   }  /* for */
@@ -2206,8 +2197,8 @@ so no checking is done.
 
 #endif /* !INTEGER_VALUE_REPR_IS_A_HOST_INTEGER || FIXED_POINT_ALLOWED */
 
-int f_unsigned_to_string_buf(a_host_large_unsigned val,
-                             char                  *buf)
+unsigned f_unsigned_to_string_buf(a_host_large_unsigned val,
+                                  char                  *buf)
 /*
 Represent val as a sequence of decimal digits followed by a null character
 starting at buf[0].  Return the number of digits output (not including the
@@ -2218,7 +2209,7 @@ final null character).
 
   /* Produce the digits starting with the least significant. */
   do {
-    buf[l] = '0' + val%10;
+    buf[l] = '0' + (char)(val % 10);
     l += 1;
     val /= 10;
   } while (val != 0);
@@ -2231,7 +2222,8 @@ final null character).
     buf[k] = buf[l-k];
     buf[l-k] = t;
   }  /* if */
-  return l+1;
+  check_assertion(l + 1 >= 0);
+  return (unsigned)(l + 1);
 }  /* f_unsigned_to_string_buf */
 
 #if DEBUG
@@ -2433,7 +2425,7 @@ Assumes bytes are 8 bits.
     while (bytes--) {
       one_byte_val = one_byte_mask_val;
       and_integer_values(&one_byte_val, &copy_val);
-      shift_left_integer_value(&one_byte_val, bytes * 8, &err);
+      shift_left_integer_value(&one_byte_val, (int)(bytes * 8), &err);
       check_assertion(!err);
       or_integer_values(swapped, &one_byte_val);
       shift_right_integer_value(&copy_val, 8, /*is_signed=*/FALSE,
@@ -2485,7 +2477,7 @@ for the integer kind ikind.
 */
 {
   a_targ_size_t    size;
-  int              bit_size;
+  size_t           bit_size;
   a_targ_alignment alignment;
   a_boolean	   is_signed;
 
@@ -2495,7 +2487,7 @@ for the integer kind ikind.
      constructing a mask with "bit_size" bits set.  This is the maximum
      value.  We add one to this to get the bit pattern for the
      minimum signed value.  The minimum unsigned value is always zero. */
-  bit_size = (int)(size * targ_char_bit);
+  bit_size = size * targ_char_bit;
   is_signed = int_kind_is_signed[ikind];
   if (is_signed) bit_size--;
   make_integer_value_mask(&max_integer_value_of_kind[ikind], bit_size);

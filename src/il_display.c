@@ -194,12 +194,15 @@ kind entry_kind.
           prefix_size = length_of_entry_prefix[(int)entry_kind];
           entry_array_base_array_ptr = entry_array_base_array;
         }  /* if */
+
         /* Determine the entry number by dividing the offset into the
            area by the size of each entry. */
         /* The first entry in the array is entry 1, therefore "1 +". */
-        entry_number = (an_il_entry_number)(1 + (entry_ptr - prefix_size -
-                            entry_array_base_array_ptr[(int)entry_kind]) /
-                                                             gross_entry_size);
+        a_ptrdiff offset = (entry_ptr - prefix_size -
+                            entry_array_base_array_ptr[(int)entry_kind]);
+        check_assertion(offset >= 0);
+        entry_number = (an_il_entry_number)(1 + ((sizeof_t)offset /
+                                                 gross_entry_size));
         (void)fprintf(f_display, "#%ld", (unsigned long)entry_number);
       }
 #else /* !(ALTERNATE_IL_FILE_FORMAT && STANDALONE_IL_DISPLAY) */
@@ -1943,7 +1946,7 @@ Display the indicated template parameter type supplement.
              iek_generic_constraint);
   }  /* if */
   if (ptr->generic_param_seq_number > 0) {
-    disp_uint32("generic_param_seq_number", ptr->generic_param_seq_number);
+    disp_int32("generic_param_seq_number", ptr->generic_param_seq_number);
   }  /* if */
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
   disp_template_param_coordinate(&ptr->coordinates);

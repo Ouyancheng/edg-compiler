@@ -501,10 +501,10 @@ C99 macro isfinite are not available.
        can assume that a property of a host floating point value applies to
        a long double value too. */
     p += data_size_of_host_fp_value - (sizeof(unsigned char) * 2);
-    exponent = (p[1] << CHAR_BIT) | p[0];
+    exponent = ((unsigned)p[1] << CHAR_BIT) | p[0];
   } else {
     /* Big-endian host. */
-    exponent = (p[0] << CHAR_BIT) | p[1];
+    exponent = ((unsigned)p[0] << CHAR_BIT) | p[1];
   }  /* if */
   /* Drop the sign bit, then all ones in the exponent field means a NaN
      or infinity. */
@@ -1208,7 +1208,7 @@ underflow.  If the conversion can be done, return the result in "result".
          but it's hard to do much here that is portable. */
       double long_double_temp;
       /* Convert back to long double again to see if we get the same thing. */
-      long_double_temp = (long double)double_temp;
+      long_double_temp = (double)(long double)double_temp;
       if (long_double_temp == temp) {
         /* Got the original number back, so everything is okay.  This also
            handles NaNs and infinities in the source long double, so they
@@ -1635,7 +1635,7 @@ of value.
   a_host_fp_value	temp;
 
   temp = fetch_host_fp_value(kind, value);
-  if (is_NaN(temp)) {
+  if (is_NaN((double)temp)) {
     result = TRUE;
   }  /* if */
   return result;
@@ -1791,7 +1791,7 @@ floating-point kind of value.
   a_host_fp_value	temp;
 
   temp = fetch_host_fp_value(kind, value);
-  if (is_NaN(temp) || !is_finite(temp)) {
+  if (is_NaN((double)temp) || !is_finite(temp)) {
     result = TRUE;
   }  /* if */
   return result;
@@ -1979,7 +1979,7 @@ Shift the mantissa in "mp" right by "bits".
 }  /* shift_right_mantissa */
 
 
-static an_fp_value_part get_mask_for_bit(int		bit)
+static an_fp_value_part get_mask_for_bit(a_targ_size_t bit)
 /*
 Return a mask that can be used to test bit number "bit" of a mantissa.
 */
@@ -1988,12 +1988,12 @@ Return a mask that can be used to test bit number "bit" of a mantissa.
 }  /* get_mask_for_bit */
 
 
-void round_hex_fp_value(a_mantissa_ptr	mp,
-		        long		*exponent,
-		        int		value_bits,
-			a_boolean	is_fixed_point,
-			a_boolean	is_signed,
-		        a_boolean	*inexact)
+void round_hex_fp_value(a_mantissa_ptr  mp,
+                        long            *exponent,
+                        a_targ_size_t   value_bits,
+                        a_boolean       is_fixed_point,
+                        a_boolean       is_signed,
+                        a_boolean       *inexact)
 /*
 Round the floating point value specified by "mp" and "exponent" to the
 nearest value that can be represented by "value_bits" bits.  "is_fixed_point"
@@ -2002,12 +2002,12 @@ is TRUE when the value being rounded represents a fixed-point value.
 only used when rounding fixed-point values.
 */
 {
-  an_fp_value_part	part;
-  an_fp_value_part	part_mask;
-  an_fp_value_part	half_way_value;
-  int			half_way_part_number;
-  a_boolean		round_up = FALSE;
-  int			part_number;
+  an_fp_value_part part;
+  an_fp_value_part part_mask;
+  an_fp_value_part half_way_value;
+  a_targ_size_t    half_way_part_number;
+  a_boolean        round_up = FALSE;
+  a_targ_size_t    part_number;
 
   /* Determine whether to round up or down.  First, get the part that
      contains the high order bit on which the rounding begins. */
@@ -2075,7 +2075,7 @@ only used when rounding fixed-point values.
       /* The rounding needs to propagate to the next part.  Note that this
          cannot occur when incrementing the first part because of the
          shift done above. */
-      for (--part_number; part_number >= 0; --part_number) {
+      for (--part_number; part_number > 0; --part_number) {
         part = mp->parts[part_number];
         ++part;
         mp->parts[part_number] = part;
@@ -2099,8 +2099,8 @@ only used when rounding fixed-point values.
 }  /* round_hex_fp_value */
 
 
-int number_of_bits_in_mantissa(a_mantissa_ptr	mp,
-			       a_boolean	normalize)
+unsigned number_of_bits_in_mantissa(a_mantissa_ptr mp,
+                                    a_boolean      normalize)
 /*
 Compute the number of bits actually used to represent the mantissa
 value.  If "normalize" is TRUE, don't count any zero bits before the
@@ -2149,7 +2149,8 @@ first bit that is set.
     }  /* for */
     bits -= first_bit;
   }  /* if */
-  return bits;
+  check_assertion(bits >= 0);
+  return (unsigned)bits;
 }  /* number_of_bits_in_mantissa */
 
 #if FIXED_POINT_ALLOWED
@@ -2190,10 +2191,10 @@ If the number of mantissa bits exceeds the precision of the result
 type, set inexact to TRUE.  If the exponent is out of range, set err to TRUE.
 */
 {
-  int	min_exp = 0;
-  int	max_exp = 0;
-  int	mant_dig = 0;
-  int	bits;
+  int           min_exp = 0;
+  int           max_exp = 0;
+  a_targ_size_t mant_dig = 0;
+  unsigned      bits;
 
   if (long_double_is_double && repr_is_long_double(kind)) {
     /* When long double is mapped onto double, store this value as a double. */
@@ -2212,15 +2213,16 @@ type, set inexact to TRUE.  If the exponent is out of range, set err to TRUE.
   /* If the exponent is too small, see if we can represent the value by
      denormalizing it. */
   if (*exponent < min_exp) {
-    int	bits_needed;
-    int	implicit_bits;
+    long bits_needed, bits_total;
+    int  implicit_bits;
     /* Some long double kinds do not make use of an implicit mantissa bit. */
     implicit_bits = (repr_is_long_double(kind) &&
                      long_double_has_no_implicit_bit) ? 0 : 1;
     /* Compute the number of additional bits needed to represent the value
        in denormalized form. */
-    bits_needed = (int)(min_exp - *exponent);
-    if ((bits_needed + bits + implicit_bits) <= mant_dig) {
+    bits_needed = min_exp - *exponent;
+    bits_total = (bits_needed + bits + implicit_bits);
+    if (bits_total <= (long)mant_dig) {
       /* We can denormalize the number without losing precision.  Do
          the first shift and make the implicit first bit of the mantissa
          explicit. */
@@ -2230,7 +2232,7 @@ type, set inexact to TRUE.  If the exponent is out of range, set err to TRUE.
       }  /* if */
       /* Do the rest of the shift operation. */
       if (bits_needed > implicit_bits) {
-        shift_right_mantissa(mp, bits_needed - implicit_bits);
+        shift_right_mantissa(mp, (int)(bits_needed - implicit_bits));
       }  /* if */
       /* Assign the special exponent used with denormalized values. */
       *exponent = min_exp - 1;
@@ -2240,12 +2242,10 @@ type, set inexact to TRUE.  If the exponent is out of range, set err to TRUE.
      mant_dig includes the implicit bit. */
   {
     /* Some long double kinds do not make use of an implicit mantissa bit. */
-    int	implicit_bits;
-    int	value_bits;
-    implicit_bits = (repr_is_long_double(kind) &&
-                     long_double_has_no_implicit_bit) ? 0 : 1;
-    value_bits = bits + implicit_bits;
-    if (value_bits > mant_dig) *inexact = TRUE;
+    unsigned implicit_bits = (repr_is_long_double(kind) &&
+                              long_double_has_no_implicit_bit) ? 0 : 1;
+    long     value_bits = bits + implicit_bits;
+    if (value_bits > (long)mant_dig) *inexact = TRUE;
   }
   /* Check for a value that cannot be represented.  The "min_exp - 1" is
      used to permit the special denormalized value. */
@@ -2582,7 +2582,7 @@ set to TRUE if the exponent is too large to represent.
          byte. */
       an_fp_value_part	value;
       an_fp_value_part	shifted_value;
-      value = hexvalue(*str);
+      value = hexvalue((unsigned char)(*str));
       /* Shift the value to the appropriate position based on which nibble
          of the part is being processed. */
       shifted_value = value << ((7 - nibble_in_part) * 4);
@@ -2658,9 +2658,9 @@ is TRUE if the value is already known to be too large (i.e., because the
 exponent was out of range).
 */
 {
-  a_boolean	any_digits;
-  int		mant_dig = 0;
-  long		exponent = *p_exponent;
+  a_boolean     any_digits;
+  a_targ_size_t mant_dig = 0;
+  long          exponent = *p_exponent;
 
   *err = FALSE;
   if (long_double_is_double && repr_is_long_double(kind)) {
@@ -2678,8 +2678,8 @@ exponent was out of range).
   }  /* if */
   if (any_digits) {
     /* Round the value to the nearest representable value. */
-    round_hex_fp_value(mp, &exponent, mant_dig, /*is_fixed_point=*/FALSE,
-                       /*is_signed=*/FALSE, inexact);
+    round_hex_fp_value(mp, &exponent, (a_targ_size_t)mant_dig,
+                       /*is_fixed_point=*/FALSE, /*is_signed=*/FALSE, inexact);
     if (!repr_is_long_double(kind) ||
         !long_double_has_no_implicit_bit) {
       /* Shift one bit further to have an implied initial one bit.  This is
@@ -2806,9 +2806,11 @@ before setting it if there are unused bits.
     /* Check for overflow. */
     int exp;
     (void)frexpl(temp, &exp);
+
     /* Check against the maximum and (denormalized) minimum values. */
-    if (exp > max_exponent[(int)kind] ||
-        exp < min_exponent[(int)kind] - num_mantissa_bits[(int)kind] - 1) {
+    int denormalized_min = (min_exponent[(int)kind] -
+                            (int)num_mantissa_bits[(int)kind] - 1);
+    if (exp > max_exponent[(int)kind] || exp < denormalized_min) {
       errno = ERANGE;
     }  /* if */
   }  /* if */
@@ -2964,7 +2966,7 @@ str will be unmodified if the routine returns FALSE.
   if (not_a_number != NULL) *not_a_number = FALSE;
   *temp = fetch_host_fp_value(kind, float_value);
 #if TARG_HAS_IEEE_FLOATING_POINT
-  if (is_NaN(*temp)) {
+  if (is_NaN((double)*temp)) {
     /* Not-a-number. */
     detail::append_string_literal(*str, "NaN");
     if (not_a_number != NULL) *not_a_number = TRUE;
@@ -3262,7 +3264,7 @@ value might use (plus a temporary null character).
 #endif /* DEBUG */
 #if FLOAT80_ENABLING_POSSIBLE
   } else if (value.kind == fk_float80) {
-    res = write_float80(buff_ptr, size_hint, float_as_char);
+    res = write_float80(buff_ptr, (int)size_hint, float_as_char);
 #if DEBUG
     if (db_flag_is_set("fp")) {
       fprintf(f_debug, "write_float80: res=%d\n  ", (int)res);
@@ -3503,7 +3505,7 @@ underlying array using its associated formatting specification.  size_hint is
 an overestimate (i.e., maximum) number of characters this value might use.
 */
 {
-  int data_size;
+  size_t data_size;
 
   /* Determine the size of the data in the floating-point value. */
   if (kind_is_16bit(value.kind)) {
@@ -3517,19 +3519,20 @@ an overestimate (i.e., maximum) number of characters this value might use.
   } else if (value.kind == fk_std_float64) {
     data_size = 8;
   } else {
-    data_size = (int)data_size_of_host_fp_value;
+    data_size = data_size_of_host_fp_value;
   }  /* if */
 #if ABI_COMPATIBILITY_VERSION >= 402
   /* The long double format sometimes contains some unused bytes.
      Put out zeros for the padding space. */
   if (repr_is_long_double(value.kind)) {
-    int pad_size = (int)(sizeof(long double) - data_size);
+    check_assertion(data_size <= sizeof(long double));
+    size_t pad_size = sizeof(long double) - data_size;
     underlying_array.resize(underlying_array.length() + (pad_size * 2), '0');
   }  /* if */
 #endif /* ABI_COMPATIBILITY_VERSION >= 402 */
   /* The IA-64 ABI requires that the output be high-order bytes first,
      and it must use lower-case characters. */
-  for (int j = 0; j < data_size; j++) {
+  for (size_t j = 0; j < data_size; j++) {
     unsigned char byte;
     if (host_little_endian) {
       byte = value.float_value->bytes[data_size-1-j];
@@ -3736,7 +3739,7 @@ the appropriate largest or smallest value for the destination type.
 {
   an_integer_kind  ikind;
   a_boolean        is_signed;
-  int              bit_size;
+  size_t           bit_size;
   a_host_fp_value  temp;
 
   get_integer_attributes(result_constant, &ikind, &is_signed, &bit_size);
@@ -3980,7 +3983,7 @@ values:
   temp2 = fetch_host_fp_value(kind, value_2);
   *unord = FALSE;
 #if TARG_HAS_IEEE_FLOATING_POINT
-  if (is_NaN(temp1) || is_NaN(temp2)) {
+  if (is_NaN((double)temp1) || is_NaN((double)temp2)) {
     *unord = TRUE;
     cmp = 0;
   } else
@@ -4376,7 +4379,7 @@ return FALSE.  Returns FALSE for -0.0 (use fp_signbit to test for this case).
 
   temp = fetch_host_fp_value(kind, value);
 #if TARG_HAS_IEEE_FLOATING_POINT
-  if (is_NaN(temp)) {
+  if (is_NaN((double)temp)) {
   } else
 #endif /* TARG_HAS_IEEE_FLOATING_POINT */
   /* Do not insert code here. */

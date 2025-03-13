@@ -422,7 +422,7 @@ high bit removed if appropriate.
   for (i = FRAC_FIRST_BYTE; i < FRAC_LAST_BYTE; ++i) {
     tgt[BYTE_INDEX(i)] = frac[i - FRAC_FIRST_BYTE];
   }  /* for */
-  tgt[BYTE_INDEX(i)] &= ~FRAC_LAST_MASK;
+  tgt[BYTE_INDEX(i)] &= (unsigned char)~FRAC_LAST_MASK;
 #if FRAC_LAST_BYTE == HIDDEN_BIT_BYTE
   tgt[BYTE_INDEX(i)] |= (frac[i - FRAC_FIRST_BYTE] & FRAC_LAST_MASK) &
                                                                    ~HIDDEN_BIT;
@@ -433,7 +433,7 @@ high bit removed if appropriate.
 
 
 static void SET_BIASED_EXPONENT(unsigned char *tgt,
-                                int           biased_exponent)
+                                unsigned      biased_exponent)
 /*
 Set the biased exponent in *tgt to the value of biased_exponent.
 */
@@ -441,7 +441,7 @@ Set the biased exponent in *tgt to the value of biased_exponent.
   int i;
 
   i = EXP_FIRST_BYTE;
-  tgt[BYTE_INDEX(i)] &= ~EXP_FIRST_MASK;
+  tgt[BYTE_INDEX(i)] &= (unsigned char)~EXP_FIRST_MASK;
   tgt[BYTE_INDEX(i)] |= (biased_exponent << EXP_FIRST_SHIFT) & EXP_FIRST_MASK;
   biased_exponent >>= EXP_FIRST_BITS;
 #if !EXP_SINGLE_BYTE
@@ -450,7 +450,7 @@ Set the biased exponent in *tgt to the value of biased_exponent.
     tgt[BYTE_INDEX(i)] = biased_exponent & BYTE_MASK;
     biased_exponent >>= BYTE_SIZE;
   }  /* for */
-  tgt[BYTE_INDEX(i)] &= ~EXP_LAST_MASK;
+  tgt[BYTE_INDEX(i)] &= (unsigned char)~EXP_LAST_MASK;
   tgt[BYTE_INDEX(i)] |= biased_exponent & EXP_LAST_MASK;
 #endif /* EXP_LAST_BYTE != EXP_FIRST_BYTE */
 }  /* SET_BIASED_EXPONENT */
@@ -508,14 +508,18 @@ Return the biased exponent of val.
   }  /* for */
   biased_exponent <<= EXP_FIRST_BITS;
 #endif /* !EXP_SINGLE_BYTE */
-  biased_exponent |= (val[BYTE_INDEX(i)] & EXP_FIRST_MASK) >> EXP_FIRST_SHIFT;
+  biased_exponent |= (int)((val[BYTE_INDEX(i)] & EXP_FIRST_MASK) >>
+                           EXP_FIRST_SHIFT);
   return biased_exponent;
 }  /* GET_BIASED_EXPONENT */
 
 
-#define SET_SIGN_BIT(tgt) (tgt[BYTE_INDEX(SGN_BYTE)] |= SGN_MASK)
-#define CLEAR_SIGN_BIT(tgt) (tgt[BYTE_INDEX(SGN_BYTE)] &= ~SGN_MASK)
-#define GET_SIGN_BIT(tgt) ((tgt[BYTE_INDEX(SGN_BYTE)] & SGN_MASK) ? 1 : 0)
+#define SET_SIGN_BIT(tgt) \
+  (tgt[BYTE_INDEX(SGN_BYTE)] |= (unsigned char)SGN_MASK)
+#define CLEAR_SIGN_BIT(tgt) \
+  (tgt[BYTE_INDEX(SGN_BYTE)] &= (unsigned char)~SGN_MASK)
+#define GET_SIGN_BIT(tgt) \
+  ((tgt[BYTE_INDEX(SGN_BYTE)] & (unsigned char)SGN_MASK) ? 1 : 0)
 
 STATIC void SPLIT_FN(an_fp_binary  *bin,
                      unsigned char *val)
@@ -557,7 +561,7 @@ Split floating-point value val into broken-down form in bin.
         /* Handle subnormal: remove (maybe) high bit that we inserted earlier,
            then normalize fraction and exponent. */
         int high_bits;
-        bin->frac[HIDDEN_BIT_BYTE] &= ~HIDDEN_BIT;
+        bin->frac[HIDDEN_BIT_BYTE] &= (unsigned char)~HIDDEN_BIT;
         high_bits = fp_frac_high_zero_bits(bin->frac, FPT_PRECISION);
         fp_frac_shift_left(bin->frac, FPT_PRECISION, high_bits);
         biased_exponent -= high_bits;
@@ -595,7 +599,7 @@ as needed.  (This situation arises for _Float16 types.)
       int            num_bits = bin->exponent - FRAC_BITS;
       unsigned short rounding_bit =
                                (unsigned short)(u.val & (1 << (num_bits - 1)));
-      u.val = (u.val + rounding_bit) >> num_bits;
+      u.val = (unsigned short)((u.val + rounding_bit) >> num_bits);
       if ((u.val & mask) != u.val) {
         /* Rounding carried to an extra bit. */
         u.val >>= 1;
@@ -658,7 +662,7 @@ accordingly.
     }  /* switch */
   }  /* if */
   SET_FRACTION(tgt, fraction);
-  SET_BIASED_EXPONENT(tgt, biased_exponent);
+  SET_BIASED_EXPONENT(tgt, (unsigned)biased_exponent);
   if (bin->is_negative == FALSE) {
     CLEAR_SIGN_BIT(tgt);
   } else {
@@ -998,7 +1002,7 @@ for the type.  The value of scale is stored in *pscale.
   /* Set up case c. */
   if (dec->type == fpt_approx) {
     /* Adjust exponents. */
-    first_exp = exp & EXP_MASK;
+    first_exp = (unsigned)exp & EXP_MASK;
     exp -= first_exp;
   }  /* if */
   check_assertion(first_exp <= MAX_FAST_EXP);
@@ -1021,7 +1025,7 @@ for the type.  The value of scale is stored in *pscale.
         digits = 0;
       }  /* if */
       fraction *= 10;
-      fraction += *cur - '0';
+      fraction += (unsigned long)(*cur - '0');
     }  /* for */
     for (cur = dec->first_frac;
          cur != dec->last_frac && sig_dig != 0;
@@ -1034,7 +1038,7 @@ for the type.  The value of scale is stored in *pscale.
         digits = 0;
       }  /* if */
       fraction *= 10;
-      fraction += *cur - '0';
+      fraction += (unsigned long)(*cur - '0');
     }  /* for */
     if (digits != 0) {
       check_assertion(digits < N_SMALL_TENS);
@@ -1160,7 +1164,7 @@ Returns TRUE if the conversion was done, FALSE if it was not.
     res = FALSE;
     goto end_of_routine;
   }  /* if */
-  k = LOG10_2times(bin->exponent);
+  k = (int)LOG10_2times(bin->exponent);
   if (N_SMALL_TENS <= k) {
     /* Exponent too large.  Can't use fast conversion. */
     res = FALSE;
@@ -1197,7 +1201,7 @@ Returns TRUE if the conversion was done, FALSE if it was not.
     fp_emul_div(&tmp, &ds);
     digit = fp_emul_to_int(&tmp);
     fp_emul_copy(&tmp, &ds);
-    fp_emul_mult_int(&tmp, digit);
+    fp_emul_mult_int(&tmp, (unsigned int)digit);
     if (fp_emul_lt(&d, &tmp)) {
       --digit;
       fp_emul_sub(&tmp, &ds);
@@ -1268,7 +1272,7 @@ fp_ret_neg_infinity if the result is negative infinity.
     }  /* if */
     /* If the value is a NaN, an infinity, or a zero, generate the text string
        directly. */
-    res = convert_and_format(tgt, size, &bin);
+    res = convert_and_format(tgt, (size_t)size, &bin);
     if (res == fp_ret_not_formatted) {
       an_fp_decimal dec;
       /* Otherwise, call FAST_BIN2DEC, to try to do the conversion using only
@@ -1286,7 +1290,7 @@ fp_ret_neg_infinity if the result is negative infinity.
       /* In the last two cases, the result is a broken-down decimal
          representation.  The conversion functions then call the function
          "format" to generate a text string. */
-      res = format(tgt, size, &dec);
+      res = format(tgt, (size_t)size, &dec);
     }  /* if */
   }  /* if */
   return res;

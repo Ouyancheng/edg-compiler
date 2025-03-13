@@ -646,8 +646,7 @@ otherwise return FALSE.
      module is imported did not properly account for it. */
   check_assertion(line <= msnmp->max_line_number);
   pos->seq = msnmp->starting_sequence_number + line;
-  /* Add one to map 0-based IFC column numbers to 1-based EDG numbers. */
-  pos->column = column;
+  pos->column = (a_column_number)column;
 #if FULLY_RESOLVED_MACRO_POSITIONS
   pos->orig_seq = pos->seq;
   pos->orig_column = pos->column;
@@ -2419,7 +2418,7 @@ module file if it was successfully opened; otherwise, return an empty optional.
     open_mapped_input_file(file_path, &read_state.mapped_input,
                            &read_state.map_object);
 #endif /* EDG_WIN32 */
-    read_state.mmap_size = stat_buf.st_size;
+    read_state.mmap_size = (size_t)stat_buf.st_size;
     read_state.mmap_addr = map_input_file_to_region(file_handle,
 #if EDG_WIN32
                                                     read_state.map_object,
@@ -2867,7 +2866,7 @@ existed but was invalid.
                                               trait_part_kind);
   /* Provide a value function for retrieving the trait at the given trait
      partition index. */
-  auto            value_lambda = [file, trait_part_kind](ptrdiff_t idx) {
+  auto            value_lambda = [file, trait_part_kind](size_t idx) {
     an_ifc_partition_kind_index part_idx{file, trait_part_kind,
                                          (an_ifc_index_type)idx};
     an_ifc_Node_type            trait;
@@ -2882,7 +2881,7 @@ existed but was invalid.
   an_ifc_encoded_decl_index
                   trait_key = to_encoded(decl.file, decl);
   /* Get the partition index (if any) for decl. */
-  ptrdiff_t       partition_idx = bin_search(num_traits, trait_key,
+  ptrdiff_t       partition_idx = bin_search((size_t)num_traits, trait_key,
                                              value_lambda);
 
   if (partition_idx != -1) {
@@ -2895,7 +2894,7 @@ existed but was invalid.
       result->push_back(Opt<an_ifc_Node_type>());
       construct_node(&result->back_elem(), part_idx);
     } while (++partition_idx < num_traits &&
-             value_lambda(partition_idx) == trait_key);
+             value_lambda((size_t)partition_idx) == trait_key);
   }  /* if */
 }  /* find_traits */
 
@@ -4802,7 +4801,7 @@ Mark the part as uncompletable for the given entity.
   check_assertion(is_at_least_one_error());
   this->remove_from_pending_set(ptr);
   if (this->bad_entities == NULL) {
-    this->bad_entities = new_fe<Ptr_set<a_tagged_pointer>>(/*mask_width=*/10);
+    this->bad_entities = new_fe<Ptr_set<a_tagged_pointer>>(/*mask_width=*/10u);
   }  /* if */
   this->bad_entities->add(ptr);
 }  /* a_lazy_entity_part::mark_failure */
@@ -4824,7 +4823,9 @@ Remove the given entity from the pending set.
 {
   /* Check from back to front as typically the most recently added pending
      entity is the one being referenced. */
-  for (ptrdiff_t i = this->pending_entities.length() - 1; i >= 0; --i) {
+  for (size_t r = this->pending_entities.length(); r > 0; --r) {
+    size_t i = r - 1;
+
     if (this->pending_entities[i] == ptr) {
       this->pending_entities.remove(i);
       break;
@@ -5763,8 +5764,10 @@ more information about detached template parameters.
 
     a_template_param_type_supplement_ptr extra_info =
                                      result->variant.template_param.extra_info;
-    a_template_nesting_depth             pdepth = get_ifc_level(param_decl);
-    a_template_param_list_pos            pnum = get_ifc_position(param_decl);
+    a_template_nesting_depth             pdepth =
+                           (a_template_nesting_depth)get_ifc_level(param_decl);
+    a_template_param_list_pos            pnum =
+                       (a_template_param_list_pos)get_ifc_position(param_decl);
     extra_info->coordinates.depth = pdepth;
     extra_info->coordinates.position = pnum;
 
@@ -5850,8 +5853,10 @@ parameters.
   result->type = type_for_nontype_templ_param(param_decl);
 
   auto                      &extra_info = result->variant.template_param;
-  a_template_nesting_depth  pdepth = get_ifc_level(param_decl);
-  a_template_param_list_pos pnum = get_ifc_position(param_decl);
+  a_template_nesting_depth  pdepth =
+                           (a_template_nesting_depth)get_ifc_level(param_decl);
+  a_template_param_list_pos pnum =
+                       (a_template_param_list_pos)get_ifc_position(param_decl);
   extra_info.variant.coordinates.depth = pdepth;
   extra_info.variant.coordinates.position = pnum;
   extra_info.is_pack = is_parameter_pack(param_decl);
@@ -6070,8 +6075,8 @@ parameters.
   result = create_template_for_template_template_param(
                                       /*decl=*/NULL,
                                       /*locator=*/NULL,
-                                      depth,
-                                      position,
+                                      (a_template_nesting_depth)depth,
+                                      (a_template_param_list_pos)position,
                                       /*is_named=*/FALSE,
                                       /*is_rescan=*/TRUE,
                                       is_pack,
@@ -6555,8 +6560,10 @@ found, return NULL.
 */
 {
   a_symbol_ptr              result = NULL;
-  a_template_nesting_depth  pdepth = get_ifc_level(param_decl);
-  a_template_param_list_pos pnum = get_ifc_position(param_decl);
+  a_template_nesting_depth  pdepth =
+                           (a_template_nesting_depth)get_ifc_level(param_decl);
+  a_template_param_list_pos pnum =
+                       (a_template_param_list_pos)get_ifc_position(param_decl);
   a_scope_depth             sd = depth_scope_stack;
 
   /* We currently have no structure that maps parameter coordinates to the
@@ -7271,12 +7278,14 @@ types that depend on a parameter's type).
     an_expr_node_ptr          node = alloc_expr_node(enk_param_ref);
     an_ifc_decl_parameter     param_decl = *opt_param_decl;
     an_ifc_type_index         type_idx = get_ifc_type(param_decl);
-    a_template_nesting_depth  pdepth = get_ifc_level(param_decl);
-    a_template_param_list_pos pnum = get_ifc_position(param_decl);
+    a_template_nesting_depth  pdepth =
+                          (a_template_nesting_depth)get_ifc_level(param_decl);
+    a_template_param_list_pos pnum =
+                       (a_template_param_list_pos)get_ifc_position(param_decl);
 
     node->type = type_for_type_index(type_idx);
     node->variant.param_ref.param_num = pnum;
-    node->variant.param_ref.levels_up = pdepth;
+    node->variant.param_ref.levels_up = (unsigned int)pdepth;
     node->position = pos_curr_token;
     node->compiler_generated = FALSE;
     make_expression_operand(node, result);
@@ -8823,7 +8832,7 @@ otherwise, NULL is returned.
 
             if (int_type_is_signed(stripped_type)) {
               sign_extend_integer_value(&value,
-                                   (int)(stripped_type->size * targ_char_bit));
+                                        stripped_type->size * targ_char_bit);
               set_integer_constant(result, value,
                                    stripped_type->variant.integer.int_kind);
             } else {
@@ -8854,47 +8863,16 @@ otherwise, NULL is returned.
         static_assert(sizeof(an_ifc_ieeele_float_storage) == sizeof(double),
                       "Float storage bytes were not 64 bits wide.");
         memcpy(&float_value, value.get_storage(), sizeof(double));
-
-        /* Create a relatively small stack buffer to handle common cases, but
-           fallback to a dynamically-allocated full-sized buffer. */
-        constexpr int default_buffer_size = 30;
-        char          stack_buf[default_buffer_size];
-        char          *buf;
-        int           num_written = snprintf(stack_buf, default_buffer_size,
-                                             "%f", float_value);
-        int           num_bytes_allocated = 0;
-        if (num_written < 0) {
-          /* There was an issue with the encoding. */
-          a_string err_msg("bad floating point encoding");
-
-          ifc_unexpected(module_of(lit_index), err_msg);
-          goto invalid;
-        } else if (num_written < default_buffer_size) {
-          /* The stack buffer was sufficient. */
-          buf = stack_buf;
-        } else {
-          /* The stack buffer overflowed. */
-          num_bytes_allocated = num_written + 1;
-          buf = alloc_general(num_bytes_allocated);
-
-          LOCAL_UNUSED int final_count = snprintf(buf, num_bytes_allocated,
-                                                  "%f", float_value);
-          /* At this point, there should be no encoding issues or overflows. */
-          check_assertion(0 <= final_count &&
-                          final_count < num_bytes_allocated);
-        }  /* if */
         /* Allocate the result constant. */
         result = alloc_constant(ck_float);
         result->type = float_type(fk_double);
 
+        /* Convert the float into a string representation. */
+        a_number_buffer buffer(float_value);
         /* Convert the buffer representation of the float into a constant. */
-        a_boolean err = FALSE;
-        fp_string_to_float(fk_double, buf, &result->variant.float_value, &err);
-        /* Free the buffer. */
-        if (num_bytes_allocated != 0) {
-          /* An allocated buffer was used. */
-          free_general(buf, num_bytes_allocated);
-        }  /* if */
+        a_boolean       err = FALSE;
+        fp_string_to_float(fk_double, buffer.as_temp_characters(),
+                           &result->variant.float_value, &err);
         /* Check for any conversion errors. */
         if (err) {
           ifc_unexpected(module_of(lit_index),
@@ -14452,7 +14430,7 @@ the partition could not be found, return ifc_pk_none.
   an_ifc_partition_kind result = ifc_pk_none;
   /* Provide a value function for retrieving the wrapped partition name at the
      given partition map index. */
-  auto value_lambda = [](ptrdiff_t idx) {
+  auto value_lambda = [](size_t idx) {
     return get_partition_name_from_kind((an_ifc_partition_kind)(idx + 1));
   };
   /* Get the partition map index (if any) for the given partition name. */
@@ -14534,7 +14512,7 @@ can be found, return tok_error.
   if (tok_name_map == NULL) {
     /* The token name map has not been used previously in this process.
        Initialize it now. */
-    tok_name_map = new_general<a_token_name_map>(/*mask_width=*/10);
+    tok_name_map = new_general<a_token_name_map>(/*mask_width=*/10u);
     for (size_t i = 0; i < tok_last; ++i){
       a_token_kind  tok_kind = (a_token_kind)i;
       a_string_view tok_name_as_str(ifc_token_name_of(tok_kind));
@@ -14835,7 +14813,7 @@ calling this function; otherwise, file descriptor leaks may occur.
 
       if (deduction_guide_map == NULL) {
         deduction_guide_map = new_fe<a_deduduced_template_map>(
-                                                            /*mask_width=*/10);
+                                                           /*mask_width=*/10u);
       }  /* if */
       for (Indexed<an_ifc_decl_template> indexed_templ : sequence) {
         if (!indexed_templ.has_value()) {
@@ -30592,7 +30570,7 @@ Do one-time initialization of static variables defined in this file.
   tok_name_map = NULL;
   deduction_guide_map = NULL;
   bad_operator_name_encodings =
-              new_general<a_bad_operator_name_encoding_map>(/*mask_width=*/10);
+             new_general<a_bad_operator_name_encoding_map>(/*mask_width=*/10u);
   bad_operator_name_encodings->map("new", onk_new);
   bad_operator_name_encodings->map("delete", onk_delete);
   bad_operator_name_encodings->map("new[]", onk_array_new);
@@ -30660,18 +30638,19 @@ imported.
 */
 {
   ifc_input_states = new_fe<an_ifc_module_input_state_list>();
-  entity_lookup_cache = new_fe<an_ifc_module_entity_lookup>(/*mask_width=*/10);
+  entity_lookup_cache = new_fe<an_ifc_module_entity_lookup>(
+                                                           /*mask_width=*/10u);
   ifc_parameterized_entities = new_fe<an_ifc_parameterized_entity_map>(
-                                                            /*mask_width=*/10);
+                                                           /*mask_width=*/10u);
   ifc_var_inits = new_fe<a_lazy_entity_part>();
   ifc_function_bodies = new_fe<a_lazy_entity_part>();
   ifc_template_definitions = new_fe<a_lazy_entity_part>();
   ifc_template_specializations = new_fe<a_lazy_entity_part>();
   ifc_tag_definitions = new_fe<a_lazy_entity_part>();
-  ifc_decl_lookup_table = new_fe<an_ifc_decl_lookup_table>(/*mask_width=*/10);
+  ifc_decl_lookup_table = new_fe<an_ifc_decl_lookup_table>(/*mask_width=*/10u);
   ifc_decl_template_lookup_table = new_fe<an_ifc_template_lookup_table>(
-                                                            /*mask_width=*/10);
-  ifc_type_cache = new_fe<an_ifc_module_type_cache>(/*mask_width=*/10);
+                                                           /*mask_width=*/10u);
+  ifc_type_cache = new_fe<an_ifc_module_type_cache>(/*mask_width=*/10u);
 }  /* ifc_modules_read_trans_unit_delayed_init */
 
 

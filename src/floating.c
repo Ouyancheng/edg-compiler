@@ -259,9 +259,9 @@ Split an input string [str, end) into parts.
         dec->type = neg ? fpt_underflow : fpt_overflow;
       } else {
         if (neg) {
-          dec->exponent -= tmp;
+          dec->exponent -= (int)tmp;
         } else {
-          dec->exponent += tmp;
+          dec->exponent += (int)tmp;
         }  /* if */
       }  /* if */
       str = str_end;
@@ -316,7 +316,7 @@ Copy low bytes holding width bits from byte array pointed to by
 left to byte array pointed to by right.
 */
 {
-  memcpy(left, right, BYTE_COUNT(width));
+  memcpy(left, right, (size_t)BYTE_COUNT(width));
 }  /* fp_frac_copy */
 
 
@@ -359,7 +359,7 @@ the topmost byte, even if the fraction occupies fewer bits.
   for (i = 0; i < bytes - 1; ++i) {
     frac[i] = 0;
   }  /* for */
-  frac[i] = HIGH_BIT(width);
+  frac[i] = (unsigned char)HIGH_BIT(width);
 }  /* fp_frac_set_to_min */
 
 
@@ -479,7 +479,7 @@ end of frac.
   } else {
     zbits = BYTE_SIZE;
   }  /* if */
-  the_byte = *(pos - 1) & MASK_BITS(zbits);
+  the_byte = *(pos - 1) & (unsigned char)MASK_BITS(zbits);
   while (pos != frac && *--pos == 0) {
     zbits += BYTE_SIZE;
     if (pos != frac) {
@@ -624,7 +624,8 @@ if should_round is TRUE.  Pads with zeros.
     for ( ; src_pos < bytes; ++src_pos, ++tgt_pos) {
       frac[tgt_pos] = frac[src_pos] >> bit_shift;
       if (src_pos < bytes - 1) {
-        frac[tgt_pos] += frac[src_pos + 1] << (BYTE_SIZE - bit_shift);
+        frac[tgt_pos] += (unsigned char)(frac[src_pos + 1] <<
+                                         (BYTE_SIZE - bit_shift));
       }  /* if */
       if (!should_round) {
         /* Nothing to do. */
@@ -691,7 +692,7 @@ Pads with 1.
     tmp = frac[pos];
     frac[pos] = (unsigned char)(tmp >> 1);
   }  /* for */
-  frac[pos - 1] |= HIGH_BIT(width);
+  frac[pos - 1] |= (unsigned char)HIGH_BIT(width);
 }  /* fp_frac_shift_right_with_high_bit */
 
 
@@ -717,13 +718,13 @@ zeros.
     int src_pos = bytes - byte_shift - 1;
     int tgt_pos = bytes - 1;
 
-    frac[tgt_pos] = frac[src_pos] << bit_shift;
+    frac[tgt_pos] = (unsigned char)(frac[src_pos] << bit_shift);
     for ( ; src_pos != 0; ) {
       --src_pos;
       --tgt_pos;
       frac[tgt_pos + 1] |= frac[src_pos] >> (BYTE_SIZE - bit_shift);
       if (tgt_pos >= 0) {
-        frac[tgt_pos] = frac[src_pos] << bit_shift;
+        frac[tgt_pos] = (unsigned char)(frac[src_pos] << bit_shift);
       }  /* if */
     }  /* for */
     for ( ; tgt_pos != 0; ) {
@@ -754,7 +755,7 @@ the result overflowed, otherwise FALSE.
   }  /* for */
   if (carry != 0) {
     carry += HIGH_BYTE_BITS(width) & frac[bytes - 1];
-    frac[bytes - 1] = carry & HIGH_BYTE_BITS(width);
+    frac[bytes - 1] = (unsigned char)(carry & HIGH_BYTE_BITS(width));
     carry &= ~HIGH_BYTE_BITS(width);
   }  /* if */
   return carry != 0 ? TRUE : FALSE;
@@ -780,7 +781,7 @@ the result overflowed, otherwise FALSE.
   }  /* for */
   if (carry != 0) {
     carry += HIGH_BYTE_BITS(width) & frac[bytes - 1];
-    frac[bytes - 1] = carry & HIGH_BYTE_BITS(width);
+    frac[bytes - 1] = (unsigned char)(carry & HIGH_BYTE_BITS(width));
     carry &= ~HIGH_BYTE_BITS(width);
   }  /* if */
   return carry != 0 ? TRUE : FALSE;
@@ -990,14 +991,14 @@ mantissa of a binary floating-point value into a bigint object.
     if ((unsigned int)++cur_byte % BIGINT_WORD_BYTES == 0) {
       tgt->words[cur_word++] = (a_bigint_word)tmp;
       if (tmp != 0) {
-        tgt->num_words = cur_word;
+        tgt->num_words = (unsigned int)cur_word;
       }  /* if */
       tmp = 0;
     }  /* if */
   }  /* for */
   if (tmp != 0) {
     tgt->words[cur_word++] = (a_bigint_word)tmp;
-    tgt->num_words = cur_word;
+    tgt->num_words = (unsigned int)cur_word;
   }  /* if */
   check_assertion(tgt->num_words < BIGINT_WORDS);
 }  /* bigint_from_fp_int */
@@ -1010,8 +1011,8 @@ Compute *tgt *= mult.  Requires: value of mult must fit in one word of
 bigint's internal representation.
 */
 {
-  int           i;
-  int           tnum = tgt->num_words;
+  unsigned int  i;
+  unsigned int  tnum = tgt->num_words;
   a_bigint_word *twords = tgt->words;
   a_bigint_uint tmp = 0;
 
@@ -1024,7 +1025,7 @@ bigint's internal representation.
     /* Nothing to do */
   } else {
     for (i = 0; i < tnum; ++i) {
-      tmp += (a_bigint_uint)twords[i] * mult;
+      tmp += twords[i] * (a_bigint_uint)mult;
       twords[i] = (a_bigint_word)(tmp & BIGINT_WORD_MASK);
       tmp >>= BIGINT_WORD_BITS;
     }  /* for */
@@ -1044,8 +1045,8 @@ STATIC void bigint_add_int(a_bigint      *tgt,
 Compute *tgt += add.
 */
 {
-  int           i;
-  int           tnum = tgt->num_words;
+  unsigned int  i;
+  unsigned int  tnum = tgt->num_words;
   a_bigint_word *twords = tgt->words;
   a_bigint_uint tmp = add;
 
@@ -1086,7 +1087,7 @@ Set *tgt to the value of the mantissa of *dec.
       mult = 1;
     }  /* if */
     dec_fraction *= 10;
-    dec_fraction += *cur - '0';
+    dec_fraction += (a_bigint_word)(*cur - '0');
   }  /* for */
   /* Gather digits from fraction part into tgt, accumulating into
      dec_fraction to avoid large integer math as much as possible. */
@@ -1100,7 +1101,7 @@ Set *tgt to the value of the mantissa of *dec.
       mult = 1;
     }  /* if */
     dec_fraction *= 10;
-    dec_fraction += *cur - '0';
+    dec_fraction += (a_bigint_word)(*cur - '0');
   }  /* for */
   if (mult != 1) {
     bigint_mult_int(tgt, mult);
@@ -1116,7 +1117,7 @@ Return <0, 0, >0 according to whether
 *left < *right, *left == *right, *left > *right.
 */
 {
-  int res = left->num_words - right->num_words;
+  int res = (int)left->num_words - (int)right->num_words;
 
   if (res == 0 && left->num_words != 0) {
     a_bigint_word *lbegin = left->words;
@@ -1177,12 +1178,12 @@ Shift *tgt left by shift bits.  Requires: shift is non-negative.
 {
   if (shift != 0 && tgt->num_words != 0) {
     int offset = shift / BIGINT_WORD_BITS;
-    check_assertion(tgt->num_words + offset <= BIGINT_WORDS);
+    check_assertion(tgt->num_words + (unsigned int)offset <= BIGINT_WORDS);
     if (offset != 0) {
       memmove(&tgt->words[offset], &tgt->words[0],
         tgt->num_words * BIGINT_WORD_STORAGE_BYTES);
-      memset(&tgt->words[0], 0, offset * BIGINT_WORD_STORAGE_BYTES);
-      tgt->num_words += offset;
+      memset(&tgt->words[0], 0, (size_t)offset * BIGINT_WORD_STORAGE_BYTES);
+      tgt->num_words += (unsigned int)offset;
     }  /* if */
     small_shift_left(tgt, shift % BIGINT_WORD_BITS, offset);
   }  /* if */
@@ -1199,7 +1200,7 @@ Requires: shift is non-negative and less than word size.
   check_assertion(0 <= shift && shift < BIGINT_WORD_BITS);
   if (shift != 0 && tgt->num_words != 0) {
     a_bigint_uint tmp = 0;
-    int           pos = tgt->num_words;
+    unsigned int  pos = tgt->num_words;
     while (pos != 0) {
       a_bigint_uint tmp0;
       --pos;
@@ -1226,8 +1227,8 @@ Shift *tgt right by shift bits.  Requires: shift is non-negative.
     check_assertion((unsigned int)offset < tgt->num_words);
     if (offset != 0) {
       memmove(&tgt->words[0], &tgt->words[offset],
-        (tgt->num_words - offset) * BIGINT_WORD_STORAGE_BYTES);
-      tgt->num_words -= offset;
+        (tgt->num_words - (unsigned)offset) * BIGINT_WORD_STORAGE_BYTES);
+      tgt->num_words -= (unsigned)offset;
       while (tgt->num_words != 0 && tgt->words[tgt->num_words -1] == 0) {
         --tgt->num_words;
       }  /* while */
@@ -1256,7 +1257,7 @@ to.  Returns the number of significant words in *twords.
   int           tnum = lnum + rnum;
 
   check_assertion(tnum <= tsize);
-  memset(twords, 0, tnum * BIGINT_WORD_STORAGE_BYTES);
+  memset(twords, 0, (size_t)tnum * BIGINT_WORD_STORAGE_BYTES);
   while (lbegin != lend) {
     a_bigint_uint fact = *lbegin;
     if (fact != 0) {
@@ -1307,10 +1308,12 @@ Return *left * *right.
       left = right;
       right = tmp;
     }  /* if */
-    res->num_words = do_bigint_mult(res->words,
-                                    left->words, left->num_words,
-                                    right->words, right->num_words,
-                                    BIGINT_WORDS);
+    res->num_words = (unsigned int)do_bigint_mult(res->words,
+                                                  left->words,
+                                                  (int)left->num_words,
+                                                  right->words,
+                                                  (int)right->num_words,
+                                                  BIGINT_WORDS);
   }  /* if */
   return res;
 }  /* bigint_mult */
@@ -1478,11 +1481,11 @@ Requires: *sub <= *tgt.
     tmp -= sub->words[i];
     if (tmp < 0) {
       /* Handle underflow by borrowing. */
-      tmp += (BIGINT_WORD_MAX + 1);
+      tmp += (a_bigint_int)(BIGINT_WORD_MAX + 1);
       borrow = -1;
     }  /* if */
     check_assertion(0 <= tmp);
-    tgt->words[i] = (a_bigint_word)(tmp & BIGINT_WORD_MASK);
+    tgt->words[i] = (a_bigint_word)tmp & BIGINT_WORD_MASK;
     tmp >>= BIGINT_WORD_BITS;
     tmp += borrow;
   }  /* for */
@@ -1492,11 +1495,11 @@ Requires: *sub <= *tgt.
     tmp += tgt->words[i];
     if (tmp < 0) {
       /* Handle underflow by borrowing. */
-      tmp += (BIGINT_WORD_MAX + 1);
+      tmp += (a_bigint_int)(BIGINT_WORD_MAX + 1);
       borrow = -1;
     }  /* if */
     check_assertion(0 <= tmp);
-    tgt->words[i] = (a_bigint_word)(tmp & BIGINT_WORD_MASK);
+    tgt->words[i] = (a_bigint_word)tmp & BIGINT_WORD_MASK;
     tmp >>= BIGINT_WORD_BITS;
     tmp += borrow;
   }  /* for */
@@ -1538,9 +1541,9 @@ Compute *tgt / *divisor, returning quotient and putting remainder in *tgt.
 Assumes that quotient will be a small non-negative integer value.
 */
 {
-  unsigned int i;
-  int          trial_quotient;
-  a_bigint_int tmp = 0;
+  unsigned int  i;
+  a_bigint_word trial_quotient;
+  a_bigint_int  tmp = 0;
 
   check_assertion(tgt != divisor);
   check_assertion(divisor->num_words != 0);  /* Don't divide by 0. */
@@ -1566,9 +1569,9 @@ Assumes that quotient will be a small non-negative integer value.
              (a_bigint_int)divisor->words[i] * trial_quotient;
       if (tmp < 0) {
         borrow = -1;
-        tmp += BIGINT_WORD_MAX + 1;
+        tmp += (a_bigint_int)(BIGINT_WORD_MAX + 1);
       }  /* if */
-      tgt->words[i] = (a_bigint_word)(tmp & BIGINT_WORD_MASK);
+      tgt->words[i] = (a_bigint_word)tmp & BIGINT_WORD_MASK;
       tmp >>= BIGINT_WORD_BITS;
       tmp += borrow;
     }  /* for */
@@ -1586,7 +1589,7 @@ Assumes that quotient will be a small non-negative integer value.
   /* Don't need to remove high-order zeros here; main loop did it, or
      bigint_sub did it.  */
 end_of_routine:
-  return trial_quotient;
+  return (int)trial_quotient;
 }  /* bigint_divmod */
 
 
@@ -1898,10 +1901,10 @@ Multiply *left by right and store the result in *left.
   } else if (left->type == fpt_zero) {
     /* Nothing to do. */
   } else {
-    int i;
+    int           i;
     unsigned char accum[MAX_FRAC_BYTES + 1] = { 0 };
-    int bytes = BYTE_COUNT(left->precision);
-    int tmp = 0;
+    int           bytes = BYTE_COUNT(left->precision);
+    unsigned int  tmp = 0;
 
     for (i = 0; i < bytes; ++i) {
       tmp += left->frac[i] * right;
@@ -1928,7 +1931,7 @@ STATIC void fp_emul_mult(an_fp_binary *left,
   int           rbytes = BYTE_COUNT(right->precision);
   int           i;
   int           j;
-  int           tmp;
+  unsigned int  tmp;
 
   if (fp_emul_is_zero(left)) {
     /* Nothing to do. */
@@ -1939,7 +1942,7 @@ STATIC void fp_emul_mult(an_fp_binary *left,
       if (left->frac[i] != 0) {
         tmp = 0;
         for (j = 0; j < rbytes; ++j) {
-          tmp += accum[i + j] + left->frac[i] * right->frac[j];
+          tmp += accum[i + j] + (unsigned int)(left->frac[i] * right->frac[j]);
           accum[i + j] = tmp & BYTE_MASK;
           tmp >>= BYTE_SIZE;
         }  /* for */
@@ -2121,7 +2124,7 @@ STATIC void bigint_div_ceil(a_bigint     *tgt,
 Compute *tgt /= divisor, rounded up.
 */
 {
-  int           i;
+  unsigned int  i;
   a_bigint_uint tmp = 0;
 
   check_assertion(divisor != 0);
@@ -2160,10 +2163,10 @@ being converted is not a zero, an infinity, or a NaN.
   int      digit;
   int      bin_exp;
   int      conv_finished = 0;
-  int      result_scale = 0;
+  long     result_scale = 0;
   int      dig_pos = 0;
   int      adjust_upper_delta = 0;
-  int      r2 = 0, r5 = 0, s2 = 0, s5 = 0;
+  long     r2 = 0, r5 = 0, s2 = 0, s5 = 0;
   int      min_digits = 0;
   a_bigint *residual = new_bigint();
   a_bigint *divisor = new_bigint();
@@ -2222,8 +2225,8 @@ being converted is not a zero, an infinity, or a NaN.
   }  /* if */
   /* Calculate delta = 1/2 ULP.  */
   bigint_from_uint(delta, (an_fp_uint)1);
-  bigint_mult_pow5(delta, r5);
-  bigint_shift_left(delta, r2);
+  bigint_mult_pow5(delta, (int)r5);
+  bigint_shift_left(delta, (int)r2);
   /* Calculate residual = the floating-point value, scaled to match the value
      that we're about to compute for divisor.  Since we've already done the
      powers of ten for delta, we compute this as bin->fraction * delta * 2. */
@@ -2234,8 +2237,8 @@ being converted is not a zero, an infinity, or a NaN.
   residual = tmp;
   /* Calculate divisor. */
   bigint_from_uint(divisor, (an_fp_uint)1);
-  bigint_mult_pow5(divisor, s5);
-  bigint_shift_left(divisor, s2 + 1 + adjust_upper_delta);
+  bigint_mult_pow5(divisor, (int)s5);
+  bigint_shift_left(divisor, (int)(s2 + 1 + adjust_upper_delta));
   /* While residual < divisor/10, adjust residual and lower_limit. */
   bigint_from_bigint(temp0, divisor);
   bigint_div_ceil(temp0, 10);
@@ -2324,7 +2327,7 @@ being converted is not a zero, an infinity, or a NaN.
   }  /* while */
   /* Fill in remaining values. */
   dec->is_negative = bin->is_negative;
-  dec->exponent = result_scale;
+  dec->exponent = (int)result_scale;
   dec->digits[dig_pos] = '\0';
   dec->ndigits = dig_pos;
   delete_bigint(temp1);
@@ -2636,7 +2639,7 @@ buffer is too small.
     }  /* if */
   } else if (0 < dec->exponent && dec->exponent < 8) {
     /* xxxxxxx.xx */
-    size_t nchars;
+    long nchars;
     if (dec->ndigits <= dec->exponent) {
       /* Need room for max(dec->ndigits, dec->exponent) characters
          plus decimal point plus 0 digit after decimal point
@@ -2647,7 +2650,7 @@ buffer is too small.
          plus decimal point plus terminating 0. */
       nchars = dec->ndigits + 2;
     }  /* if */
-    if (size < nchars) {
+    if (size < (size_t)nchars) {
       res = fp_ret_too_small;
     } else {
       int pos;
