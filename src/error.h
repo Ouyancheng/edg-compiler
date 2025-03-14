@@ -1150,6 +1150,9 @@ extern a_diagnostic_ptr create_primary_diagnostic(an_error_code     error_code,
 extern a_diagnostic_ptr create_sub_message(a_diagnostic_ptr primary_dp,
                                            an_error_code    error_code);
 
+extern void append_to_diag_list(a_diag_list_ptr  diag_list,
+                                a_diagnostic_ptr new_diag);
+
 }  /* detail */
 
 template<typename... a_Fill_in_type>
@@ -1392,8 +1395,7 @@ template<typename... a_Fill_in_type>
 inline void remark(an_error_code     error_code,
                    a_Fill_in_type... fill_ins)
 /*
-Report the indicated remark with the specified error severity, error code, and
-fill-ins.
+Report the indicated remark with the specified error code and fill-ins.
 */
 {
   diagnostic(es_remark, error_code, fill_ins...);
@@ -1404,8 +1406,7 @@ template<typename... a_Fill_in_type>
 inline void warning(an_error_code     error_code,
                     a_Fill_in_type... fill_ins)
 /*
-Report the indicated warning with the specified error severity, error code, and
-fill-ins.
+Report the indicated warning with the specified error code and fill-ins.
 */
 {
   diagnostic(es_warning, error_code, fill_ins...);
@@ -1416,8 +1417,7 @@ template<typename... a_Fill_in_type>
 inline void error(an_error_code     error_code,
                   a_Fill_in_type... fill_ins)
 /*
-Report the indicated error with the specified error severity, error code, and
-fill-ins.
+Report the indicated error with the specified error code and fill-ins.
 */
 {
   diagnostic(es_error, error_code, fill_ins...);
@@ -1428,12 +1428,37 @@ template<typename... a_Fill_in_type>
 inline void catastrophe(an_error_code     error_code,
                         a_Fill_in_type... fill_ins)
 /*
-Report the indicated catastrophe with the specified error severity, error code,
-and fill-ins.
+Report the indicated catastrophe with the specified error code and fill-ins.
 */
 {
   diagnostic(es_catastrophe, error_code, fill_ins...);
 }  /* catastrophe */
+
+
+template<typename... a_Fill_in_type>
+inline void more_info(a_diag_list_ptr   diag_list,
+                      an_error_code     error_code,
+                      a_source_position *error_pos,
+                      a_Fill_in_type... fill_ins)
+/*
+Add a new diagnostic to the diagnostic list with the specified error code,
+error position, and fill-ins.
+*/
+{
+  a_diagnostic_ptr diag = detail::create_primary_diagnostic(error_code,
+                                                            error_pos,
+                                                            es_more_info);
+
+  /* The following expression is expanded to effectively evaluate as:
+
+       detail::Fill_in<type_1>::add(diag, arg_1);
+       detail::Fill_in<type_2>::add(diag, arg_2);
+       ...
+       detail::Fill_in<type_n>::add(diag, arg_n);
+   */
+  PACK_EXPAND_VOID_EXPR(detail::Fill_in<a_Fill_in_type>::add(diag, fill_ins))
+  detail::append_to_diag_list(diag_list, diag);
+}  /* more_info */
 
 
 template<typename... a_Fill_in_type>

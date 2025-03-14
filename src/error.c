@@ -5136,6 +5136,22 @@ Create a sub-message for the diagnostic pointed to by "primary_dp".
                                  &null_source_position, es_none);
 }  /* create_sub_message */
 
+
+void append_to_diag_list(a_diag_list_ptr  diag_list,
+                         a_diagnostic_ptr new_diag)
+/*
+Append the given new diagnostic to the given diagnostic list.
+*/
+{
+  if (diag_list->head == NULL) {
+    diag_list->head = new_diag;
+  }  /* if */
+  if (diag_list->tail != NULL) {
+    diag_list->tail->next = new_diag;
+  }  /* if */
+  diag_list->tail = new_diag;
+}  /* append_to_diag_list */
+
 }  /* detail */
 
 using namespace detail;
@@ -6236,14 +6252,7 @@ to the specified list.
   if (dlp == NULL) {
     wrap_up_diagnostic(dp);
   } else {
-    /* Link this entry on the specified list. */
-    if (dlp->head == NULL) {
-      dlp->head = dp;
-    }  /* if */
-    if (dlp->tail != NULL) {
-      dlp->tail->next = dp;
-    }  /* if */
-    dlp->tail = dp;
+    detail::append_to_diag_list(dlp, dp);
   }  /* if */
 }  /* general_diagnostic */
 
