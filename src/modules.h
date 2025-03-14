@@ -110,9 +110,9 @@ symbol to be globally visible to lookup, it must either be part of the global
 module or it must have been exported from a module (that has been imported).
 Otherwise, return FALSE.
 
-Note this function does not account for class membership (as class members do
-not currently have individual module entities).  To account for class
-membership prefer using is_symbol_globally_visible with the appropriate class
+Note that this function does not account for class membership (as class members
+do not currently have individual module entities).  To account for class
+membership, prefer using is_symbol_globally_visible with the appropriate class
 member symbol.
 */
 {
