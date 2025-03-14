@@ -1,5 +1,26 @@
 Version 6.8
 
+3/14/25  [EDGcpfe/27986]
+Overload resolution failure in GNU/Clang modes with synthesized comparisons
+
+In GNU and Clang C++ modes, the changes for EDGcpfe/12414 (implementing a GCC
+overload resolution quirk) interacted erroneously with the various tie-breaking
+overload resolution rules introduced for comparison operators in C++20.  That
+could result in spurious errors, such as in the following case:
+
+  template<typename T1, typename T2> bool operator==(T1 const& , T2 const&);
+  struct S {
+    template <typename > void operator==(S);
+    template <typename U = int> int operator==(S const&) const;
+    template <typename U = int> int operator!=(S const&) const;
+  };
+  S f();
+  auto r = f() != f();  // Previously an error in GNU and Clang C++20 modes.
+
+That is now fixed.  Furthermore, the changes for EDGcpfe/12414 no longer take
+effect in Clang C++ modes (since Clang does not imitate GCC in that respect).
+
+
 3/13/25  [EDGcpfe/27887]
 Incorrect source position information for variable templates
 
