@@ -9254,54 +9254,8 @@ done:
 }  /* check_inheritance_for_ovl_res */
 
 
-struct a_candidate_pair {
-  /* A structure holding two pointers to overload resolution candidates.
-     This is the key type for a local map used to memoize calls to
-     compare_candidate_functions. */
-  a_candidate_function_ptr
-			cfp1, cfp2;
-};
-
-static inline uintptr_t hash_ptr(a_candidate_pair  key)
-/*
-Return a hash value for the given lookup key.
-*/
-{
-  uintptr_t  result = 17;
-
-  result = result*31 + hash_ptr(key.cfp1);
-  result = result*31 + hash_ptr(key.cfp1);
-  return result;
-}  /* hash_ptr */
-
-
-static inline
-a_boolean operator==(const a_candidate_pair &lhs,
-                     const a_candidate_pair &rhs)
-/*
-Return TRUE if the two lookup keys are equal; otherwise, return FALSE.
-*/
-{
-  return lhs.cfp1 == rhs.cfp1 &&
-         lhs.cfp2 == rhs.cfp2;
-}  /* operator== */
-
-
-static inline
-a_boolean operator!=(const a_candidate_pair &lhs,
-                     const a_candidate_pair &rhs)
-/*
-Return TRUE if the two lookup keys are not equal; otherwise, return FALSE.
-*/
-{
-  return !(lhs == rhs);
-}  /* operator!= */
-
-
-static int compare_candidate_functions(
-                                   a_candidate_function_ptr        cfp1,
-                                   a_candidate_function_ptr        cfp2,
-                                   Ptr_map<a_candidate_pair, int>  *ccf_cache)
+static int compare_candidate_functions(a_candidate_function_ptr cfp1,
+                                       a_candidate_function_ptr cfp2)
 /*
 Compare two candidate functions for which the argument matches have been
 determined to be same to see if there is anything about the functions
@@ -9312,9 +9266,6 @@ other.  Return
    0 if cfp1 and cfp2 are equally good, or
   -1 if cfp1 is worse than cfp2.
 
-ccf_cache -- which can be NULL -- is a pointer to a map memoizing prior calls
-to this function for the current overload set (the memoized result is offset
-by 2 to avoid null entries).
 */
 {
   int                  cmp = 0;
@@ -9323,17 +9274,7 @@ by 2 to avoid null entries).
 #if MICROSOFT_EXTENSIONS_ALLOWED
   int                  arg_num1, arg_num2;
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
-  uintptr_t            hash_value;
 
-  if (ccf_cache != NULL) {
-    a_candidate_pair  pair{ cfp1, cfp2 };
-    hash_value = hash_ptr(pair);
-    cmp = ccf_cache->get_with_hash(pair, hash_value);
-    if (cmp != 0) {
-      cmp -= 2;
-      goto done;
-    }  /* if */
-  }  /* if */
   if (cfp1->is_user_conversion) {
     cfp1_type_qualifiers_added = cfp1->conversion.std.type_qualifiers_added;
     cfp2_type_qualifiers_added = cfp2->conversion.std.type_qualifiers_added;
@@ -9471,19 +9412,13 @@ by 2 to avoid null entries).
        considers both in some cases but will prefer the more derived one, all
        other things being equal. */
   }  /* if */
-  if (ccf_cache != NULL) {
-    ccf_cache->map_with_hash(a_candidate_pair{ cfp1, cfp2 },
-                             cmp+2, hash_value);
-  }  /* if */
-done:
   return cmp;
 }  /* compare_candidate_functions */
 
 
 static a_boolean match_is_better_on_at_least_one_arg(
-                                   a_candidate_function_ptr        best_cfp,
-                                   a_candidate_function_ptr        candidates,
-                                   Ptr_map<a_candidate_pair, int>  *ccf_cache)
+                                           a_candidate_function_ptr best_cfp,
+                                           a_candidate_function_ptr candidates)
 /*
 Compare the candidate function best_cfp against all the other candidate
 functions in candidates.  Return TRUE if best_cfp's arguments matches are
@@ -9492,9 +9427,7 @@ functions (not necessarily the same argument for each function).  This is
 the final test required for overload resolution (see ARM 13.2).
 Note that the candidate function can also be ruled better on the basis
 of something based strictly on the function itself or the call context
-(as judged by compare_candidate_functions). ccf_cache -- which can be NULL --
-is a pointer to a map memoizing calls to compare_candidate_functions for the
-current overload set.
+(as judged by compare_candidate_functions).
 */
 {
   a_candidate_function_ptr cfp;
@@ -9534,8 +9467,8 @@ current overload set.
       /* All the argument matches have the same level. */
       /* See if the "best" function is better than the other for some reason
          related to the function instead of the arguments. */
-      { int  cmp = compare_candidate_functions(best_cfp, cfp, ccf_cache);
-        if (cmp > 0) goto check_next_function;
+      if (compare_candidate_functions(best_cfp, cfp) > 0) {
+        goto check_next_function;
       }  /* if */
       /* The chosen function is not any better than this other function. */
       match_is_better = FALSE;
@@ -9995,20 +9928,6 @@ is set to TRUE.
   int                      cmp;
   a_boolean                overall_ambiguity = FALSE, any_error_match = FALSE;
   a_boolean                have_candidates_without_anachronisms = FALSE;
-  /* A pointer to a potential cache memoizing calls to
-     compare_candidate_functions. */
-  Ptr_map<a_candidate_pair, int>
-			   *ccf_cache = NULL;
-  /* Introduce uninitialized storage for caching calls to
-     compare_candidate_functions. */
-  union a_local_cache {
-    inline a_local_cache() {}
-    inline ~a_local_cache() {}
-    Ptr_map<a_candidate_pair, int>
-			map;	/* Memoization map for
-			           compare_candidate_functions. */
-  };
-  a_local_cache            cache_storage;
 
   db_enter(4, "select_best_candidate_functions");
 #if DEBUG
@@ -10214,8 +10133,6 @@ is set to TRUE.
          for all arguments.  See if any of those are better than the others
          for some other reason (for example: one is a function template
          and the other is not). */
-      ccf_cache = &cache_storage.map;
-      construct(ccf_cache, /*mask_width=*/3);
       best_cfp = NULL;
       /*lint --e{850} cfp modified in loop */
       for (cfp = candidates; cfp != NULL; cfp = cfp->next) {
@@ -10227,7 +10144,7 @@ is set to TRUE.
             best_cfp = cfp;
           } else {
             /* Compare the current function against the best so far. */
-            cmp = compare_candidate_functions(cfp, best_cfp, ccf_cache);
+            cmp = compare_candidate_functions(cfp, best_cfp);
             if (cmp < 0) {
               /* The new function is not as good as the best so far.
                  Take it out of the best-match set. */
@@ -10262,8 +10179,7 @@ end_func_winnow:;
       for (best_cfp = candidates;
            !best_cfp->in_best_match_set;
            best_cfp = best_cfp->next) {}
-      if (!match_is_better_on_at_least_one_arg(best_cfp, candidates,
-                                               ccf_cache)) {
+      if (!match_is_better_on_at_least_one_arg(best_cfp, candidates)) {
         /* The chosen function is not better than some other function.
            That means the call is ambiguous. */
         overall_ambiguity = TRUE;
