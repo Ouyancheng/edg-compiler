@@ -1,5 +1,17 @@
 Version 6.8
 
+3/17/25  [EDGcpfe/27950]
+Clang compatibility: Spurious error for scalable vector builtins in C mode
+
+Some builtin definitions for scalable vector types incorrectly used the C++
+bool type, resulting in spurious errors when using such a builtin function in C
+mode.  For example, in an ARM64 configuration with --c --clang_version 180100:
+
+  void f() {
+    __builtin_sve_svundef2_b();  // Previously a spurious error.  Now okay.
+  }
+
+
 3/14/25  [EDGcpfe/27986]
 Overload resolution failure in GNU/Clang modes with synthesized comparisons
 
