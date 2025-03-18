@@ -3538,6 +3538,8 @@ ec_address_of_function_with_pass_object_size_attr;;"cannot take the address of a
 ec_all_arguments_must_have_same_type;;"all arguments must have the same type"
 ec_comparison_details;;"the final comparison was %s1 %s2 %s3"
 ec_too_many_arguments_provided_for_attribute;;"too many arguments for attribute %sq"
+ec_constexpr_bad_mantissa_string;;"mantissa string does not contain a valid number"
+ec_constexpr_float_error;;"floating-point error during constant evaluation"
 ###############################################################################
 #                                                             \  ___  /       #
 #                                                               /   \         #

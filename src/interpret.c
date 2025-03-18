@@ -8274,9 +8274,9 @@ cannot be evaluated, return FALSE.
     case bfk_signbit:
     case bfk_signbitf:
     case bfk_signbitl:
-      if (fp_is_nan(fpval, fpkind)) {
-        /* We don't currently attempt to determine the sign bit of a NaN
-           value.  (This matches Clang but not GCC.) */
+      if (fp_is_nan(fpval, fpkind) && !gnu_version_is(any_version)) {
+        /* GCC allows testing the sign bit of a NaN value, but Clang does
+           not. */
         do_constexpr_fail(result);
       } else {
         val = fp_signbit(fpkind, fpval);
@@ -8321,6 +8321,91 @@ The routine returns FALSE if a negation is required and the negation fails.
 }  /* do_constexpr_builtin_copysign */
 
 #endif /* C99_IL_EXTENSIONS_SUPPORTED && TARG_HAS_IEEE_FLOATING_POINT */
+#if TARG_HAS_IEEE_FLOATING_POINT
+
+static a_boolean do_constexpr_builtin_nan(
+                                     an_interpreter_state     *ips,
+                                     a_byte                   *arg_bytes,
+                                     a_type_ptr               arg_tp,
+                                     an_expr_node_ptr         call_node,
+                                     a_builtin_function_kind  bfk,
+                                     a_byte                   *result_storage)
+/*
+Evaluate a __builtin_nan function variant (of kind bfk) on the operand of type
+arg_tp stored in arg_bytes.  Place the result (an IEEE floating-point value) in
+*result_storage.  Return FALSE if this fails (because the entity pointed to is
+not a null-terminated string) and record a potential diagnostic for the given
+expression node and interpreter state.
+*/
+{
+  a_boolean            result = TRUE;
+  a_type_ptr           tp = skip_typerefs(arg_tp->variant.pointer.type);
+  a_constexpr_address  *addr = (a_constexpr_address*)arg_bytes;
+  an_expr_node         *first_arg = call_node->variant.operation.operands
+                                             ->next;
+
+  check_assertion(type_is(arg_tp, tk_pointer));
+  if (addr->address == NULL) {
+    do_constexpr_fail(result);
+    info_with_pos((is_runtime_data_address(addr) &&
+                   constant_is(addr->variant.addr_con, ck_integer)) ?
+                                        ec_constexpr_null_dereference :
+                                        ec_constexpr_access_to_runtime_storage,
+                  &first_arg->position, ips);
+  } else if (is_array_element(addr) && type_is(tp, tk_integer)) {
+    an_integer_value  *ptr = (an_integer_value*)addr->address;
+    a_byte_count      elem_size, pos, max_len, len = 0;
+    unsigned long     mantissa = 0;
+    get_array_pos(ips, addr, tp, &max_len, &pos, &elem_size, &result);
+    if (result) {
+      Small_dyn_array<char, 20>  mantissa_str;
+      max_len -= pos;
+      for (;;) {
+        a_host_large_integer  char_val;
+        a_boolean             ovfl;
+        get_int_val_from(ptr, tp, char_val, ovfl);
+        check_assertion(!ovfl);
+        mantissa_str.push_back((char)char_val);
+        if (char_val == 0) break;
+        len += 1;
+        ptr += 1;
+        if (len == max_len) {
+          do_constexpr_fail(result);
+          info_with_pos(ec_constexpr_string_not_null_terminated,
+                        &first_arg->position, ips);
+          break;
+        }  /* if */
+      }  /* for */
+      if (result) {
+        a_type_ptr  result_tp = skip_typerefs(call_node->type);
+        a_boolean   signaling = bfk == bfk_nans || bfk == bfk_nansf ||
+                                bfk == bfk_nansl;
+        check_assertion(type_is(result_tp, tk_float));
+        if (mantissa_str.length() > 1) {
+          /* The string specifies the bits that should be used in the mantissa
+             portion of the NaN. */
+          a_boolean  err = FALSE;
+          mantissa = strtoul_interface(&mantissa_str[0], &err);
+          if (err) {
+            do_constexpr_fail(result);
+            info_with_pos(ec_constexpr_bad_mantissa_string,
+                          &first_arg->position, ips);
+          }  /* if */
+        }  /* if */
+        if (result &&
+            !make_fp_nan((an_internal_float_value*)result_storage,
+                         result_tp->variant.float_kind,
+                         signaling, (an_fp_value_part)mantissa)) {
+          do_constexpr_fail(result);
+          info_with_pos(ec_constexpr_float_error, &first_arg->position, ips);
+        }  /* if */
+      }  /* if */
+    }  /* if */
+  }  /* if */
+  return result;
+}  /* do_constexpr_builtin_nan */
+
+#endif /* TARG_HAS_IEEE_FLOATING_POINT */
 
 static a_boolean do_constexpr_builtin_bitcount(a_routine_ptr  callee,
                                                a_byte         *arg_bytes,
@@ -8436,7 +8521,7 @@ state.
                     ips);
     } else if (is_array_element(addr) && tp->kind == (a_type_kind)tk_integer) {
       an_integer_value  *ptr = (an_integer_value*)addr->address;
-      a_byte_count  elem_size, pos, max_len, len = 0;
+      a_byte_count      elem_size, pos, max_len, len = 0;
       get_array_pos(ips, addr, tp, &max_len, &pos, &elem_size, &result);
       if (result) {
         max_len -= pos;
@@ -9639,6 +9724,47 @@ to FALSE and the reason for the failure is recorded in *ips.
       }
       break;
 #endif /* C99_IL_EXTENSIONS_SUPPORTED */
+#if TARG_HAS_IEEE_FLOATING_POINT
+      case bfk_nansf:
+      case bfk_nans:
+      case bfk_nansl:
+      case bfk_nanf:
+      case bfk_nan:
+      case bfk_nanl:
+        /* A signaling or non-signaling (i.e., "quiet") Not-a-Number value. */
+        interpreted = TRUE;
+        if (args == NULL || args->next != NULL) {
+          unexpected_condition();
+        } else {
+          a_type_ptr    tp = skip_typerefs(args->type);
+          a_byte_count  n_bytes = value_bytes_for_type(ips, tp, p_result);
+          if (!*p_result) break;
+          alloc_complete_object(ips, n_bytes, tp, arg1_bytes);
+          if (!do_constexpr_expression(ips, args, arg1_bytes, arg1_bytes) ||
+              !do_constexpr_builtin_nan(ips, arg1_bytes, tp, call_node, 
+                                        kind, result_storage)) {
+            do_constexpr_fail(*p_result);
+          }  /* if */
+        }  /* if */
+        break;
+      case bfk_inff:
+      case bfk_inf:
+      case bfk_infl:
+        /* A positive infinity value. */
+        interpreted = TRUE;
+        if (args != NULL) {
+          unexpected_condition();
+        } else {
+          a_type  *result_tp = skip_typerefs(call_node->type);
+          if (!make_fp_infinity((an_internal_float_value*)result_storage,
+                                result_tp->variant.float_kind)) {
+            do_constexpr_fail(*p_result);
+            info_with_pos(ec_constexpr_float_error, &call_node->position,
+                          ips);
+          }  /* if */
+        }  /* if */
+        break;
+#endif /* TARG_HAS_IEEE_FLOATING_POINT */
     case bfk_ceil:
     case bfk_ceilf:
     case bfk_ceill:
