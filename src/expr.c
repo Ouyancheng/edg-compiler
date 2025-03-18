@@ -39618,6 +39618,7 @@ for the __PRETTY_FUNCTION__ keyword.
   a_boolean                          render_return_type = TRUE;
   a_type_ptr                         type_to_render = rp->type;
   a_source_correspondence_ptr        scp = &rp->source_corresp;
+  a_routine_type_supplement_ptr      rtsp = rout_type_supp(rp->type);
 
   clear_il_to_str_output_control_block(&octl);
   octl.output_str = put_str_to_temp_text_buffer_octl;
@@ -39626,8 +39627,7 @@ for the __PRETTY_FUNCTION__ keyword.
   if (gpp_mode && !clang_mode) {
     /* GCC includes specifiers reflecting whether a function is a static
        member function and/or a constexpr function (in that order). */
-    if (rp->source_corresp.is_class_member &&
-        rp->type->variant.routine.extra_info->this_class == NULL) {
+    if (rp->source_corresp.is_class_member && rtsp->this_class == NULL) {
       put_str_to_temp_text_buffer("static ");
     }  /* if */
     if (rp->is_declared_constexpr) {
@@ -39644,9 +39644,9 @@ for the __PRETTY_FUNCTION__ keyword.
     if (rtp->prototype_template != NULL) {
       rtp = rtp->prototype_template;
     }  /* if */
-    rt_sym = (a_symbol_ptr)rtp->source_corresp.assoc_info;
+    rt_sym = symbol_for(rtp);
     if (rt_sym != NULL) {
-      a_routine_ptr                     generic_rp;
+      a_routine_ptr  generic_rp;
       templ_info = template_supplement_for_symbol(rt_sym);
       /* coverity[var_deref_op] */
       generic_rp = templ_info->variant.function.routine;
@@ -39656,12 +39656,12 @@ for the __PRETTY_FUNCTION__ keyword.
       unexpected_condition();
     }  /* if */
   }  /* if */
-  if (rp->special_kind == (a_special_function_kind)sfk_constructor ||
+  if (special_kind_is(rp, sfk_constructor) ||
 #if MICROSOFT_EXTENSIONS_ALLOWED
-      rp->special_kind == (a_special_function_kind)sfk_static_constructor ||
+      special_kind_is(rp, sfk_static_constructor) ||
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
-      rp->special_kind == (a_special_function_kind)sfk_destructor ||
-      rp->special_kind == (a_special_function_kind)sfk_conversion) {
+      special_kind_is(rp, sfk_destructor) ||
+      special_kind_is(rp, sfk_conversion)) {
     /* Constructors, destructors, and conversion functions have no declared 
        return types. */
     render_return_type = FALSE;
@@ -39671,6 +39671,13 @@ for the __PRETTY_FUNCTION__ keyword.
                                 /*under_lhs_declarator=*/FALSE,
                                 /*need_trailing_space=*/TRUE,
                                 &octl);
+  }  /* if */
+  if (microsoft_mode) {
+    put_str_to_temp_text_buffer(rtsp->calling_convention == cc_default ?
+                                  "__cdecl" :
+                                  calling_convention_names[
+                                                   rtsp->calling_convention]);
+    octl.prefer_void_param_list = TRUE;
   }  /* if */
   form_name(scp, (an_il_entry_kind)iek_routine, &octl);
   if (microsoft_mode && rp->is_template_function) {
@@ -39713,7 +39720,7 @@ for the __PRETTY_FUNCTION__ keyword.
     /* Now render template arguments for any enclosing template classes,
        starting with the innermost. */
     while (sym->is_class_member) {
-      a_type_ptr    class_type = sym_parent_class(sym);
+      a_type_ptr  class_type = sym_parent_class(sym);
       sym = symbol_for(class_type);
       tap = templ_arg_list_for_class(class_type);
       if (tap != NULL) {

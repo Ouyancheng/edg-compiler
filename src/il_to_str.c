@@ -161,6 +161,7 @@ Clear an output control block to default values.
   octl->pending_right_paren       = FALSE;
   octl->suppress_expr_in_nontype_arg = FALSE;
   octl->name_is_dependent_conversion_type_id = FALSE;
+  octl->prefer_void_param_list    = FALSE;
 }  /* clear_il_to_str_output_control_block */
 
 
@@ -3429,7 +3430,8 @@ in the way described by octl.
         if (!rtsp->has_ellipsis) {
           /* The first argument is NULL, so this is a "void" parameter list.
              Write it as void in C, as empty in C++. */
-          if (il_header.source_language == sl_C) {
+          if (il_header.source_language == sl_C ||
+              octl->prefer_void_param_list) {
             octl->output_str("void", octl);
           }  /* if */
         } else {

@@ -1,5 +1,14 @@
 Version 6.8
 
+3/18/25  [EDGcpfe/28035]
+Microsoft compatibility: __FUNCSIG__ format
+
+In Microsoft mode, the front end now emulates MSVC a little more closely when
+generating the string contents of the __FUNCSIG__ construct.  In particular,
+it now includes the calling convention ("__cdecl" by default) and an empty
+parameter list is now rendered as "(void)" instead of "()".
+
+
 3/18/25  [EDGcpfe/27691]
 Spurious "atomic constraint depends on itself" error
 

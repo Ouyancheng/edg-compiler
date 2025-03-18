@@ -406,6 +406,11 @@ typedef struct an_il_to_str_output_control_block {
 			   suppressed.  This information is used by the
 			   C++-generating back end to control qualification
 			   of the conversion-type-id. */
+  a_byte_boolean
+	prefer_void_param_list;
+			/* When TRUE, prefer rendering "(void)" instead of
+			   "()".  Used to more closely match MSVC's
+			   __FUNCSIG__ macro. */
 } an_il_to_str_output_control_block;
 
 /*
