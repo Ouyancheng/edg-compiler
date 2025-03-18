@@ -24351,14 +24351,11 @@ handle_as_definition:
     if (!decl_within_class) {
       /* Don't emit the specifier for out-of-class declarations. */
     } else if (rtsp->is_conditionally_explicit) {
-      /* Retrieve the attribute carrying the boolean expression from the actual
-         routine type (not the "declared type"). */
       an_attribute_ptr  ap;
-      ap = skip_typerefs(rout->type)->source_corresp.attributes;
+      ap = unqual_rout_type->source_corresp.attributes;
       ap = find_attribute(ak_conditional_explicit, ap);
       check_assertion(ap != NULL && ap->arguments != NULL &&
-                      ap->arguments->kind == 
-                                         (an_attribute_arg_kind)aak_constant);
+                      ap->arguments->kind == aak_constant);
       write_tok_str("explicit(");
       gen_constant(ap->arguments->variant.constant, /*need_parens=*/FALSE);
       write_tok_str(") ");

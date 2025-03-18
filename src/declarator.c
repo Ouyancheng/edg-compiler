@@ -8515,10 +8515,21 @@ past_postfix_declarator_operators:
         }  /* if */
       }  /* if */
 #if GENERATE_SOURCE_SEQUENCE_LISTS
-      /* Set the declared type in the func_info block.  Note that further
-         fixup may be required for member functions, since default argument
-         expressions will not have been scanned yet. */
-      func_info->declared_type = form_declared_type(complete_type, func_info);
+      { /* Set the declared type in the func_info block.  Note that further
+           fixup may be required for member functions, since default argument
+           expressions will not have been scanned yet. */
+        a_type  *dtype = form_declared_type(complete_type, func_info);
+        if (state->conditional_explicit_attr) {
+          /* The copied type needs an associated ak_conditional_explicit
+             attribute. */
+          an_attribute  *ap2, *ap1 = find_attribute(ak_conditional_explicit,
+                                                    state->prefix_attributes);
+          check_assertion(ap1 != NULL);
+          copy_attribute(ap1, ap2);
+          *last_attribute_link(&dtype->source_corresp.attributes) = ap2;
+        }  /* if */
+        func_info->declared_type = dtype;
+      }
 #endif /* GENERATE_SOURCE_SEQUENCE_LISTS */
     }  /* if */
   }  /* if */

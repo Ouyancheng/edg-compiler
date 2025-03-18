@@ -1,5 +1,20 @@
 Version 6.8
 
+3/18/25  [EDGcpfe/23696]
+C++-generating back end: Abort on conditional explicit construct
+
+Consider (in C++20 mode):
+
+  struct S {
+    explicit(false) operator int() const;
+  };
+  S::operator int() const { return 42; }
+
+This previously triggered an internal error in the C++-generating back end (in
+function gen_routine_decl) because of a missing pseudo-attribute that must
+describe the operand of the conditional explicit construct.  That is now fixed.
+
+
 3/18/25  [EDGcpfe/28035]
 Microsoft compatibility: __FUNCSIG__ format
 
