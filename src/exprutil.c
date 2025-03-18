@@ -26480,6 +26480,8 @@ p_fatal and p_copy_error are NULL by default.
         test.template_arg_list = template_arg_list;
         test.template_param_list = template_param_list;
       }  /* if */
+      /* Defer instantiations during constraint checking. */
+      defer_instantiations++;
       hash = hash_ptr(test);
       /* First check for a cached result. */
       cached_result = constraint_satisfaction_cache->get_with_hash(test, hash);
@@ -26575,6 +26577,10 @@ p_fatal and p_copy_error are NULL by default.
         /* Update the cached result. */
         (void)constraint_satisfaction_cache->map_or_replace_with_hash(
                                                 test, constraint_result, hash);
+      }  /* if */
+      defer_instantiations--;
+      if (defer_instantiations == 0) {
+        process_deferred_instantiation_requests();
       }  /* if */
     } else {
       constraint_result = a_test_constraint_result::subst_failed;

@@ -1,5 +1,20 @@
 Version 6.8
 
+3/18/25  [EDGcpfe/27691]
+Spurious "atomic constraint depends on itself" error
+
+In some cases, the front end previously issued a spurious "atomic constraint
+depends on itself" error during constraint checking.  For example, with
+--c++20:
+
+  template<typename T> auto f(T t) { t.g(); }
+  template<typename T> requires
+    requires (T t) { f(t); }  // Previously a spurious error.  Now okay.
+  using A = T;
+  template<typename> struct C { void g() { A<C> a; } };
+  A<C<int>> a;
+
+
 3/17/25  [EDGcpfe/27950]
 Clang compatibility: Spurious error for scalable vector builtins in C mode
 
