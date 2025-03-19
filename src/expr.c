@@ -39672,6 +39672,7 @@ for the __PRETTY_FUNCTION__ keyword.
                                 /*need_trailing_space=*/TRUE,
                                 &octl);
   }  /* if */
+#if MICROSOFT_EXTENSIONS_ALLOWED
   if (microsoft_mode) {
     put_str_to_temp_text_buffer(rtsp->calling_convention == cc_default ?
                                   "__cdecl" :
@@ -39680,6 +39681,7 @@ for the __PRETTY_FUNCTION__ keyword.
     put_ch_to_temp_text_buffer(' ');
     octl.prefer_void_param_list = TRUE;
   }  /* if */
+#endif /* MICROSOFT_EXTENSIONS_ALLOWED */
   form_name(scp, (an_il_entry_kind)iek_routine, &octl);
   if (microsoft_mode && rp->is_template_function) {
     /* Put out Microsoft-form template arguments:
