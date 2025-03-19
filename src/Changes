@@ -32,7 +32,7 @@ it now includes the calling convention ("__cdecl" by default) and an empty
 parameter list is now rendered as "(void)" instead of "()".
 
 
-3/18/25  [EDGcpfe/27691]
+3/18/25  [EDGcpfe/26547,EDGcpfe/27691]
 Spurious "atomic constraint depends on itself" error
 
 In some cases, the front end previously issued a spurious "atomic constraint
