@@ -161,7 +161,7 @@ Clear an output control block to default values.
   octl->pending_right_paren       = FALSE;
   octl->suppress_expr_in_nontype_arg = FALSE;
   octl->name_is_dependent_conversion_type_id = FALSE;
-  octl->prefer_void_param_list    = FALSE;
+  octl->use_microsoft_format      = FALSE;
 }  /* clear_il_to_str_output_control_block */
 
 
@@ -1279,9 +1279,11 @@ Output a reference to a tag, doing output in the way described by octl.
   } else {
     /* Default handling. */
     if (il_header.source_language == sl_C ||
-        (type_is_unnamed(type) && !type_is_lambda_closure(type))) {
+        ((type_is_unnamed(type) || octl->use_microsoft_format) &&
+         !type_is_lambda_closure(type))) {
       /* In C, put "struct", "union", or "enum" on tags.  In C++, do it
-         only for unnamed tags (but not lambda closure classes). */
+         only for unnamed tags or when emulating the Microsoft __FUNCSIG__
+         format (but not lambda closure classes). */
       form_tag_kind(type->kind, octl);
       octl->output_str(" ", octl);
     }  /* if */
@@ -3428,10 +3430,11 @@ in the way described by octl.
       param = rtsp->param_type_list;
       if (param == NULL) {
         if (!rtsp->has_ellipsis) {
-          /* The first argument is NULL, so this is a "void" parameter list.
-             Write it as void in C, as empty in C++. */
+          /* The first argument is NULL, so this is a "void" parameter
+             list.  Write it as void in C or when emulating the Microsoft
+             __FUNCSIG__ format and as empty in C++. */
           if (il_header.source_language == sl_C ||
-              octl->prefer_void_param_list) {
+              octl->use_microsoft_format) {
             octl->output_str("void", octl);
           }  /* if */
         } else {

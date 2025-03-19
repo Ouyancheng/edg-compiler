@@ -39679,7 +39679,7 @@ for the __PRETTY_FUNCTION__ keyword.
                                   calling_convention_names[
                                                    rtsp->calling_convention]);
     put_ch_to_temp_text_buffer(' ');
-    octl.prefer_void_param_list = TRUE;
+    octl.use_microsoft_format = TRUE;
   }  /* if */
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
   form_name(scp, (an_il_entry_kind)iek_routine, &octl);

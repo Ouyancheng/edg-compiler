@@ -26,10 +26,20 @@ describe the operand of the conditional explicit construct.  That is now fixed.
 3/18/25  [EDGcpfe/28035]
 Microsoft compatibility: __FUNCSIG__ format
 
-In Microsoft mode, the front end now emulates MSVC a little more closely when
-generating the string contents of the __FUNCSIG__ construct.  In particular,
-it now includes the calling convention ("__cdecl" by default) and an empty
-parameter list is now rendered as "(void)" instead of "()".
+In Microsoft mode, the front end now emulates MSVC more closely when
+generating the string contents of the __FUNCSIG__ construct.  In
+particular, it now includes the calling convention ("__cdecl" by default),
+class and enumeration types are represented as elaborated type specifiers
+(e.g., "class C" and "enum E" instead of simply "C" and "E"), and an empty
+parameter list is rendered as "(void)" instead of "()".  For example, with
+--microsoft:
+
+  template <typename> constexpr auto f() {
+    return __FUNCSIG__;
+  }
+  struct S;
+  const char *p = f<S>();   // Previously equivalent to "auto f<S>()", now
+                            // "auto __cdecl f<struct S>(void)"
 
 
 3/18/25  [EDGcpfe/26547,EDGcpfe/27691]
