@@ -4,8 +4,8 @@ Version 6.8
 Constant-evaluation of __builtin_nan, __builtin_inf, and __builtin_signbit
 
 The front end's constant evaluator has been improved to better handle some
-additional built-in floating-point functions: __builtin_nan (incl. variants
-like __builtin_nansl), __builtin_inf (incl. variants), and __builtin_signbit.
+additional built-in floating-point functions: __builtin_nan, __builtin_inf,
+__builtin_signbit, and their variously-suffixed variants.
 
 
 3/18/25  [EDGcpfe/23696]
