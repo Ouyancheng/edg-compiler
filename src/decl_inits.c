@@ -145,7 +145,9 @@ standard C behavior of trimming the terminating null character if needed),
         break;
       case chk_char8_t:
         err = !(is_char8_t_array_type(*dst_type) ||
-                is_char_array_type(*dst_type));
+                (is_char_array_type(*dst_type) &&
+                 skip_typerefs(array_element_type(*dst_type))->
+                                  variant.integer.int_kind != ik_signed_char));
         break;
       case chk_char16_t:
         err = !is_char16_t_array_type(*dst_type);

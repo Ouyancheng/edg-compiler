@@ -3,11 +3,11 @@ Version 6.8
 3/20/25  [EDGcpfe/25499,EDGcpfe/27995]
 C++23: initializing character arrays with UTF-8 literals
 
-WG21 document P2513R3 changed the rules for initializing a narrow character
-array so that a UTF-8 string literal is an acceptable initializer.  The
-front end has now been updated accordingly.  Because the paper was adopted
-as a defect report, this change applies in all modes that support UTF-8
-string literals.  For example, with --c++23:
+WG21 document P2513R3 changed the rules for initializing an array of char
+or unsigned char so that a UTF-8 string literal is an acceptable
+initializer.  The front end has now been updated accordingly.  Because the
+paper was adopted as a defect report, this change applies in all modes that
+support UTF-8 string literals.  For example, with --c++23:
 
   char s[] = u8"abc";   // Previously an error, now okay
 
