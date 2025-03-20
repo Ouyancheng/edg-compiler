@@ -144,7 +144,8 @@ standard C behavior of trimming the terminating null character if needed),
         err = !is_wchar_t_array_type(*dst_type);
         break;
       case chk_char8_t:
-        err = !is_char8_t_array_type(*dst_type);
+        err = !(is_char8_t_array_type(*dst_type) ||
+                is_char_array_type(*dst_type));
         break;
       case chk_char16_t:
         err = !is_char16_t_array_type(*dst_type);
