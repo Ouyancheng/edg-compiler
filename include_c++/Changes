@@ -1,3 +1,14 @@
+Version 6.8
+3/20/25  [EDGcpfe/28044]
+Version check for <stdfloat> types
+
+The version test for C++23 in stdfloat.stdh was redundant with the feature
+macro tests for each of the <stdfloat> types; furthermore, it prevented use
+of the header in Microsoft mode, since MSVC does not set __cplusplus to the
+value corresponding to the language version.  The test has now been removed.
+
+
+-------------------------------------------------------------------------------
 Version 6.7, January 29, 2025
 
 2/13/24  [EDGcpfe/27005]
