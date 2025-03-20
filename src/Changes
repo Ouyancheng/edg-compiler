@@ -1,5 +1,18 @@
 Version 6.8
 
+3/20/25  [EDGcpfe/28044]
+C++23: feature-test macro for std::bfloat16_t
+
+The changes that enabled support for std::bfloat16_t (see the entry for
+EDGcpfe/26466) inadvertently failed to add the predefined feature-test
+macro, __STDCPP_BFLOAT16_T__.  That is now fixed.  For example, with
+--c++23:
+
+  #ifndef __STDCPP_BFLOAT16_T__
+  #error bfloat16 not supported   // No longer fails
+  #endif
+
+
 3/18/25  [EDGcpfe/28033]
 Constant-evaluation of __builtin_nan, __builtin_inf, and __builtin_signbit
 
