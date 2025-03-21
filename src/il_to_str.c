@@ -162,6 +162,7 @@ Clear an output control block to default values.
   octl->suppress_expr_in_nontype_arg = FALSE;
   octl->name_is_dependent_conversion_type_id = FALSE;
   octl->use_microsoft_format      = FALSE;
+  octl->type_context              = FALSE;
 }  /* clear_il_to_str_output_control_block */
 
 
@@ -3830,11 +3831,14 @@ Output a string for a type.  Do the output in the way described by octl.
     check_assertion(!octl->gen_compilable_code);
     octl->output_str("<null-type>", octl);
   } else {
+    a_boolean saved_type_context = octl->type_context;
+    octl->type_context = TRUE;
     /* Write the specifiers and the first part of the declarator. */
     form_type_first_part_simple(type, /*under_lhs_declarator=*/FALSE,
                                 /*need_trailing_space=*/FALSE, octl);
     /* Write the second part of the declarator. */
     form_type_second_part_simple(type, /*under_lhs_declarator=*/FALSE, octl);
+    octl->type_context = saved_type_context;
   }  /* if */
 }  /* form_type */
 

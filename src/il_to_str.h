@@ -412,6 +412,12 @@ typedef struct an_il_to_str_output_control_block {
 			   __FUNCSIG__ construct (i.e., using elaborated
 			   type specifiers for tag types and "(void)"
 			   instead of "()" for empty parameter lists). */
+  a_byte_boolean
+	type_context;	/* TRUE if we are currently putting out a type.
+			   Used, e.g., by the C++-generating back end to
+			   suppress the "this" keyword of an
+			   explicit-object function parameter that would be
+			   put out in a declaration context. */
 } an_il_to_str_output_control_block;
 
 /*

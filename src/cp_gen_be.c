@@ -9827,7 +9827,7 @@ for_ctor is TRUE, this is the parameter list of a constructor.
   }  /* if */
   for (;;) {
     gen_attributes(param->attributes, al_prefix, /*primary_only=*/FALSE);
-    if (param->is_explicit_this) {
+    if (param->is_explicit_this && !octl.type_context) {
       /* An explicit "this" parameter (C++23). */
       write_tok_str("this ");
     }  /* if */
