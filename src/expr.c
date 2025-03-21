@@ -41409,7 +41409,7 @@ to NULL.
            is_class_template_placeholder_type(
                                           tpp->variant.constant.ptr->type))) {
         /* Push the operator's module entity to the top of the module entity
-           stack so that any deduction has access to the correct entities.  */
+           stack so that any deduction has access to the correct entities. */
         a_module_entity_stack_state tmp_mod(fund_sym->module_entity);
         an_operand                  arg_op;
         a_constant_ptr              class_con = local_constant();
