@@ -2075,10 +2075,10 @@ only used when rounding fixed-point values.
       /* The rounding needs to propagate to the next part.  Note that this
          cannot occur when incrementing the first part because of the
          shift done above. */
-      for (--part_number; part_number > 0; --part_number) {
-        part = mp->parts[part_number];
+      for (; part_number > 0; --part_number) {
+        part = mp->parts[part_number - 1];
         ++part;
-        mp->parts[part_number] = part;
+        mp->parts[part_number - 1] = part;
         if (part != 0) break;
       }  /* for */
     }  /* if */
