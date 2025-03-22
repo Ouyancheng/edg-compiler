@@ -1953,7 +1953,7 @@ the current capacity.
 
   if (new_cap > old_cap) {
     an_allocation  a = this->replace_alloc(an_allocation{ this->elems,
-                                                         old_cap },
+                                                          old_cap },
                                            new_cap, this->n_elems);
     this->elems = a.start;
     this->n_allocated = a.n_allocated;
