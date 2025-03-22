@@ -895,9 +895,9 @@ struct FE_allocator {
   typedef FE_allocator<an_elem> an_allocator;
   typedef FE_allocator<an_elem> a_deallocator;
   inline static auto alloc(size_t n) -> an_allocation;
-  inline static auto realloc(an_allocation  a,
-                             size_t         new_capacity,
-                             size_t         n_to_move)
+  inline static auto replace_alloc(an_allocation  a,
+                                   size_t         new_capacity,
+                                   size_t         n_to_move)
                      -> an_allocation;
   static auto move_alloc(ARG_UNUSED an_allocator  &src,
                          an_allocation            src_alloc,
@@ -920,9 +920,9 @@ allocation (which reflects the actual number of allocated elements).
 
 
 template<typename an_Elem>
-inline auto FE_allocator<an_Elem>::realloc(an_allocation a,
-                                           size_t        new_capacity,
-                                           size_t        n_to_move)
+inline auto FE_allocator<an_Elem>::replace_alloc(an_allocation a,
+                                                 size_t        new_capacity,
+                                                 size_t        n_to_move)
             -> an_allocation
 /*
 Replace the given allocation -- which was allocated by the same allocator -- by
@@ -939,7 +939,7 @@ new allocation.
   }  /* for */
   free_fe((void*)old_start, a.n_allocated*sizeof(an_elem));
   return an_allocation{ new_start, new_capacity };
-}  /* FE_allocator::realloc */
+}  /* FE_allocator::replace_alloc */
 
 
 template<typename an_Elem>
@@ -992,9 +992,9 @@ struct General_allocator {
   typedef General_allocator<an_elem> an_allocator;
   typedef General_allocator<an_elem> a_deallocator;
   inline static auto alloc(size_t n) -> an_allocation;
-  inline static auto realloc(an_allocation  a,
-                             size_t         new_capacity,
-                             size_t         n_to_move)
+  inline static auto replace_alloc(an_allocation  a,
+                                   size_t         new_capacity,
+                                   size_t         n_to_move)
                      -> an_allocation;
   static auto move_alloc(ARG_UNUSED an_allocator  &src,
                          an_allocation            src_alloc,
@@ -1016,9 +1016,10 @@ allocation (which reflects the actual number of allocated elements).
 
 
 template<typename an_Elem>
-inline auto General_allocator<an_Elem>::realloc(an_allocation a,
-                                                size_t        new_capacity,
-                                                size_t        n_to_move)
+inline auto General_allocator<an_Elem>::replace_alloc(
+                                                    an_allocation a,
+                                                    size_t        new_capacity,
+                                                    size_t        n_to_move)
             -> an_allocation
 /*
 Replace the given allocation -- which was allocated by the same allocator -- by
@@ -1035,7 +1036,7 @@ new allocation.
   }  /* for */
   free_general(old_start, a.n_allocated*sizeof(an_elem));
   return an_allocation{ new_start, new_capacity };
-}  /* General_allocator::realloc */
+}  /* General_allocator::replace_alloc */
 
 
 template<typename an_Elem>
@@ -1161,9 +1162,9 @@ struct Buffered_allocator {
     {}
 
   inline auto alloc(size_t n) -> an_allocation;
-  inline auto realloc(an_allocation  a,
-                      size_t         new_capacity,
-                      size_t         n_to_move) -> an_allocation;
+  inline auto replace_alloc(an_allocation  a,
+                            size_t         new_capacity,
+                            size_t         n_to_move) -> an_allocation;
   inline auto move_alloc(an_allocator  &src,
                          an_allocation src_alloc,
                          size_t        n_to_move) -> an_allocation;
@@ -1262,7 +1263,7 @@ template<unsigned a_Capacity,
          template<typename> class a_Fallback_allocator,
          typename an_Elem>
 inline auto
-Buffered_allocator<a_Capacity, a_Fallback_allocator, an_Elem>::realloc(
+Buffered_allocator<a_Capacity, a_Fallback_allocator, an_Elem>::replace_alloc(
                                                    an_allocation  a,
                                                    size_t         new_capacity,
                                                    size_t         n_to_move) ->
@@ -1301,7 +1302,7 @@ new allocation.
     this->dealloc(a);
   }  /* if */
   return an_allocation{new_start, new_num_allocated};
-}  /* Buffered_allocator::realloc */
+}  /* Buffered_allocator::replace_alloc */
 
 
 template<unsigned a_Capacity,
@@ -1951,8 +1952,9 @@ the current capacity.
   size_t  old_cap = this->n_allocated;
 
   if (new_cap > old_cap) {
-    an_allocation  a = this->realloc(an_allocation{ this->elems, old_cap },
-                                     new_cap, this->n_elems);
+    an_allocation  a = this->replace_alloc(an_allocation{ this->elems,
+                                                         old_cap },
+                                           new_cap, this->n_elems);
     this->elems = a.start;
     this->n_allocated = a.n_allocated;
   }  /* if */
@@ -1968,8 +1970,8 @@ Grow the capacity of the array by about half, unless the capacity is less than
 {
   size_t  old_cap = this->n_allocated,
           new_cap = old_cap < 2 ? 2 : old_cap + old_cap/2 + 1;
-  an_allocation  a = this->realloc(an_allocation{ this->elems, old_cap },
-                                   new_cap, this->n_elems);
+  an_allocation  a = this->replace_alloc(an_allocation{ this->elems, old_cap },
+                                         new_cap, this->n_elems);
   this->elems = a.start;
   this->n_allocated = a.n_allocated;
 }  /* Dyn_array::grow */

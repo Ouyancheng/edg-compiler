@@ -30,9 +30,9 @@ struct Direct_allocator {
   typedef Direct_allocator<an_elem> an_allocator;
   typedef Direct_allocator<an_elem> a_deallocator;
   inline static auto alloc(size_t n) -> an_allocation;
-  inline static auto realloc(an_allocation  a,
-                             size_t         new_capacity,
-                             size_t         n_to_move)
+  inline static auto replace_alloc(an_allocation  a,
+                                   size_t         new_capacity,
+                                   size_t         n_to_move)
                      -> an_allocation;
   static auto move_alloc(ARG_UNUSED an_allocator  &src,
                          an_allocation            src_alloc,
@@ -54,9 +54,10 @@ allocation (which reflects the actual number of allocated elements).
 
 
 template<typename an_Elem>
-inline auto Direct_allocator<an_Elem>::realloc(an_allocation a,
-                                               size_t        new_capacity,
-                                               size_t        n_to_move)
+inline auto Direct_allocator<an_Elem>::replace_alloc(
+                                                    an_allocation a,
+                                                    size_t        new_capacity,
+                                                    size_t        n_to_move)
             -> an_allocation
 /*
 Replace the given allocation -- which was allocated by the same allocator -- by
@@ -73,7 +74,7 @@ new allocation.
   }  /* for */
   free(old_start);
   return an_allocation{ new_start, new_capacity };
-}  /* Direct_allocator::realloc */
+}  /* Direct_allocator::replace_alloc */
 
 
 template<typename an_Elem>
