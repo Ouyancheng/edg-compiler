@@ -405,7 +405,7 @@ The main routine for the front end Unix socket daemon.
        10MiB starting point is adjusted so as to be a multiple of the page
        size. */
     size_t stack_size = 10 * 1024 * 1024;
-    size_t page_size = getpagesize();
+    size_t page_size = (size_t)getpagesize();
     size_t page_remainder = stack_size % page_size;
     if (page_remainder != 0) {
       stack_size -= page_remainder;

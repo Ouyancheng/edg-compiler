@@ -183,7 +183,7 @@ private:
                         /* The socket file descriptor to read from. */
   char          buffer[buffer_size] = {};
                         /* The buffer used to read from the file descriptor. */
-  int           num_buffer_chars = 0;
+  ssize_t       num_buffer_chars = 0;
                         /* The number of characters written to the buffer
                            during the last read operation. */
   int           unprocessed_bytes_start = -1;
@@ -246,7 +246,7 @@ message was found, return TRUE; otherwise, return FALSE.
 {
   a_boolean result = FALSE;
   int       num_matches_needed = strlen(end_of_message_bytes);
-  int       end_of_message_part = this->num_buffer_chars;
+  ssize_t   end_of_message_part = this->num_buffer_chars;
 
   for (int i = offset; i < this->num_buffer_chars; ++i) {
     if (this->buffer[i] == end_of_message_bytes[this->eom_matches]) {
@@ -279,7 +279,7 @@ message was found, return TRUE; otherwise, return FALSE.
 
   /* Forward all characters in the buffer that have not yet been forwarded
      and are known to not be part of the end of message bytes. */
-  int num_chars_to_forward = (end_of_message_part -
+  ssize_t num_chars_to_forward = (end_of_message_part -
                                                  (offset + this->eom_matches));
   if (num_chars_to_forward > 0) {
     callback_fn(this->buffer + offset, (size_t)num_chars_to_forward);

@@ -171,7 +171,7 @@ The main routine for the front end Unix socket client.
     constexpr unsigned buffer_size = 100;
     char buffer[buffer_size];
     int  bytes_written = snprintf(buffer, buffer_size, "%d", argc + 1);
-    write(client_socket_fd, buffer, bytes_written + 1);
+    write(client_socket_fd, buffer, (size_t)(bytes_written + 1));
 
     /* Write argv[0] to pass along the process name in the correct position. */
     write(client_socket_fd, argv[0], strlen(argv[0]) + 1);
