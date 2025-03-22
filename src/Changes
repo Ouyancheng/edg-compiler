@@ -14,7 +14,7 @@ This is now fixed.  For example, with --c++23:
   };
   void g() {
     using X = decltype(&S::f);
-    static_assert(v<X>);   // Previously generated as "v<void (*)(this S)"
+    static_assert(v<X>);   // Previously generated as "v<void (*)(this S)>"
   }
 
 
