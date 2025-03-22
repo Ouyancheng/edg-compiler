@@ -68,7 +68,7 @@ extern "C" double strtod(char *, char **);
 #define is_finite(x) (isfinite(x))
 #else /* !defined(__MWERKS__) */
 #include <float.h>
-#define is_NaN(x) (_isnan(x))
+#define is_NaN(x) (_isnan((double)x))
 /* Note that MSVC has long double the same size as double so _finite
    will work for long double also. */
 #if USE_DOUBLE_FOR_HOST_FP_VALUE || \
@@ -111,7 +111,7 @@ extern "C" int finite(double x);
 #define is_NaN(x) (isnan(x))
 #else /* !defined(isnan) */
 #if __linux__
-#define is_NaN(x) (__isnan((x)))
+#define is_NaN(x) (__isnan((double)(x)))
 #else /* !__linux__ */
 #if USE_FLOAT128_FOR_HOST_FP_VALUE && defined(__CYGWIN__)
 /* Cygwin does not have a __float128 version of isnan, so provide our own. */
@@ -1635,7 +1635,7 @@ of value.
   a_host_fp_value	temp;
 
   temp = fetch_host_fp_value(kind, value);
-  if (is_NaN((double)temp)) {
+  if (is_NaN(temp)) {
     result = TRUE;
   }  /* if */
   return result;
@@ -1791,7 +1791,7 @@ floating-point kind of value.
   a_host_fp_value	temp;
 
   temp = fetch_host_fp_value(kind, value);
-  if (is_NaN((double)temp) || !is_finite(temp)) {
+  if (is_NaN(temp) || !is_finite(temp)) {
     result = TRUE;
   }  /* if */
   return result;
@@ -2966,7 +2966,7 @@ str will be unmodified if the routine returns FALSE.
   if (not_a_number != NULL) *not_a_number = FALSE;
   *temp = fetch_host_fp_value(kind, float_value);
 #if TARG_HAS_IEEE_FLOATING_POINT
-  if (is_NaN((double)*temp)) {
+  if (is_NaN(*temp)) {
     /* Not-a-number. */
     detail::append_string_literal(*str, "NaN");
     if (not_a_number != NULL) *not_a_number = TRUE;
@@ -3983,7 +3983,7 @@ values:
   temp2 = fetch_host_fp_value(kind, value_2);
   *unord = FALSE;
 #if TARG_HAS_IEEE_FLOATING_POINT
-  if (is_NaN((double)temp1) || is_NaN((double)temp2)) {
+  if (is_NaN(temp1) || is_NaN(temp2)) {
     *unord = TRUE;
     cmp = 0;
   } else
@@ -4379,7 +4379,7 @@ return FALSE.  Returns FALSE for -0.0 (use fp_signbit to test for this case).
 
   temp = fetch_host_fp_value(kind, value);
 #if TARG_HAS_IEEE_FLOATING_POINT
-  if (is_NaN((double)temp)) {
+  if (is_NaN(temp)) {
   } else
 #endif /* TARG_HAS_IEEE_FLOATING_POINT */
   /* Do not insert code here. */
