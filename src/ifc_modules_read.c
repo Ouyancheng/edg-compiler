@@ -253,7 +253,6 @@ public:
   an_ifc_input_state(a_module_file_kind mk);
   ~an_ifc_input_state();
 
-  a_boolean import(a_module_import_decl_ptr midp);
   a_boolean init_header(a_module_import_decl_ptr midp,
                          a_boolean               issue_diag);
   a_boolean initialize_members_from_ifc_module_file(
