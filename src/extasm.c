@@ -678,8 +678,22 @@ done_with_modifiers:
       case 'Z':
         ck = (an_asm_operand_constraint_kind)aoc_imm_zext32;    
         break;
+      case '@':
+        /* "=@ccCOND" is a special case of "=" that allows you to query the
+           result of a condition code at the end of your assembly statement.  
+           Consume the remaining characters and let the back end determine
+           which condition code was specified. */
+        if (p[1] == 'c' && p[2] == 'c') {
+          ck = aoc_cc;
+          for (p=p+3; *p != '\0'; p++) {}
+        } else {
+          /* Not something we understand. */
+          goto unrecognized;
+        }  /* if */
+        break;
 #endif /* GNU_X86_ASM_EXTENSIONS_ALLOWED */
       default:
+unrecognized:
 #if !ACCEPT_UNRECOGNIZED_GNU_ASM_OPERANDS
         errletter[0] = *p;
         pos_st_error(ispunct((unsigned char)*p) ? 
