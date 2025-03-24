@@ -4669,12 +4669,11 @@ Display the indicated expression node.
     disp_boolean("was_lvalue_temp_initializer", TRUE);
   }  /* if */
   disp_name("kind");
+  (void)fprintf(f_display, "enk_%s\n", expr_node_kind_names[ptr->kind]);
   switch (ptr->kind) {
     case enk_error:
-      (void)fprintf(f_display, "enk_error\n");
       break;
     case enk_operation:
-      (void)fprintf(f_display, "enk_operation\n");
       disp_name("operation.kind");
       disp_expr_operator_name(ptr->variant.operation.kind);
       (void)fprintf(f_display, "\n");
@@ -4776,77 +4775,65 @@ Display the indicated expression node.
                iek_expr_node);
       break;
     case enk_constant:
-      (void)fprintf(f_display, "enk_constant\n");
       disp_ptr("constant", (char *)ptr->variant.constant.ptr, iek_constant);
       if (ptr->variant.constant.name_reference != NULL) {
         disp_name_reference(ptr->variant.constant.name_reference);
       }  /* if */
       break;
     case enk_variable:
-      (void)fprintf(f_display, "enk_variable\n");
       disp_ptr("variable", (char *)ptr->variant.variable.ptr, iek_variable);
       if (ptr->variant.variable.name_reference != NULL) {
         disp_name_reference(ptr->variant.variable.name_reference);
       }  /* if */
       break;
     case enk_routine:
-      (void)fprintf(f_display, "enk_routine\n");
       disp_ptr("routine", (char *)ptr->variant.routine.ptr, iek_routine);
       if (ptr->variant.routine.name_reference != NULL) {
         disp_name_reference(ptr->variant.routine.name_reference);
       }  /* if */
       break;
     case enk_field:
-      (void)fprintf(f_display, "enk_field\n");
       disp_ptr("field", (char *)ptr->variant.field.ptr, iek_field);
       if (ptr->variant.field.name_reference != NULL) {
         disp_name_reference(ptr->variant.field.name_reference);
       }  /* if */
       break;
     case enk_temp_init:
-      (void)fprintf(f_display, "enk_temp_init\n");
       disp_ptr("dynamic_init", (char *)ptr->variant.init.dynamic_init,
                iek_dynamic_init);
       disp_ptr("source.type", (char *)ptr->variant.init.source.type, iek_type);
       break;
     case enk_lambda:
-      (void)fprintf(f_display, "enk_lambda\n");
       disp_ptr("dynamic_init", (char *)ptr->variant.init.dynamic_init,
                iek_dynamic_init);
       disp_ptr("source.lambda", (char *)ptr->variant.init.source.lambda,
                iek_lambda);
       break;
     case enk_new_delete:
-      (void)fprintf(f_display, "enk_new_delete\n");
       disp_new_delete_supplement(ptr->variant.new_delete);
       break;
 #if MICROSOFT_EXTENSIONS_ALLOWED
     case enk_gcnew:
-      (void)fprintf(f_display, "enk_gcnew\n");
       disp_gcnew_supplement(ptr->variant.gcnew_info);
       break;
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
     case enk_throw:
-      (void)fprintf(f_display, "enk_throw\n");
       if (ptr->variant.throw_info != NULL) {
         disp_throw_supplement(ptr->variant.throw_info);
       }  /* if */
       break;
     case enk_condition:
-      (void)fprintf(f_display, "enk_condition\n");
       if (ptr->variant.condition != NULL) {
         disp_condition_supplement(ptr->variant.condition);
       }  /* if */
       break;
     case enk_object_lifetime:
-      (void)fprintf(f_display, "enk_object_lifetime\n");
       disp_ptr("expr", (char *)ptr->variant.object_lifetime.expr,
                iek_expr_node);
       disp_ptr("ptr", (char *)ptr->variant.object_lifetime.ptr,
                iek_object_lifetime);
       break;
     case enk_typeid:
-      (void)fprintf(f_display, "enk_typeid\n");
       disp_ptr("type_with_opt_expr",
                (char *)ptr->variant.typeid_info.type_with_opt_expr,
                iek_expr_node);
@@ -4855,13 +4842,10 @@ Display the indicated expression node.
       }  /* if */
       break;
     case enk_alignof:
-      (void)fprintf(f_display, "enk_alignof\n");
       goto sizeof_cases;
     case enk_datasizeof:
-      (void)fprintf(f_display, "enk_datasizeof\n");
       goto sizeof_cases;
     case enk_sizeof:
-      (void)fprintf(f_display, "enk_sizeof\n");
 sizeof_cases:
       disp_boolean("is_type",
                    (a_boolean)ptr->variant.sizeof_info.is_type);
@@ -4876,7 +4860,6 @@ sizeof_cases:
       }  /* if */
       break;
     case enk_sizeof_pack:
-      (void)fprintf(f_display, "enk_sizeof_pack\n");
       disp_boolean("is_type",
                    (a_boolean)ptr->variant.sizeof_pack.is_type);
       disp_boolean("is_template_template",
@@ -4893,14 +4876,11 @@ sizeof_cases:
       }  /* if */
       break;
     case enk_address_of_ellipsis:
-      (void)fprintf(f_display, "enk_address_of_ellipsis\n");
       break;
     case enk_statement:
-      (void)fprintf(f_display, "enk_statement\n");
       disp_ptr("statement", (char *)ptr->variant.statement, iek_statement);
       break;
     case enk_reuse_value:
-      (void)fprintf(f_display, "enk_reuse_value\n");
       disp_ptr("reused_value_init", (char *)ptr->variant.reused_value_init,
                iek_dynamic_init);
       break;
@@ -4908,7 +4888,6 @@ sizeof_cases:
     /* Nodes generated by IL lowering for partial lowering of exception
        handling features. */
     case enk_lowered_eh_construct:
-      (void)fprintf(f_display, "enk_lowered_eh_construct\n");
       disp_name("lowered_eh.kind");
       switch (ptr->variant.lowered_eh.kind) {
         case leck_caught_object_address:
@@ -4989,25 +4968,21 @@ cleanup_state_common:
       /* Node generated as part of the body of an entry function used
          as a wrapper for a call of an overriding virtual function
          with a covariant return type. */
-      (void)fprintf(f_display, "enk_result_of_overriding_function\n");
       break;
 #endif /* DO_IL_LOWERING && ABI_CHANGES_FOR_COVARIANT_VIRTUAL_FUNC_RETURN */
 #if VLA_DEALLOCATIONS_IN_IL
     case enk_vla_dealloc:
-      (void)fprintf(f_display, "enk_vla_dealloc\n");
       disp_ptr("vla_variable", (char *)ptr->variant.vla_variable,
                iek_variable);
       break;
 #endif /* VLA_DEALLOCATIONS_IN_IL */
     case enk_type_operand:
-      (void)fprintf(f_display, "enk_type_operand\n");
       disp_ptr("type", (char *)ptr->variant.type_operand.type, iek_type);
       if (ptr->variant.type_operand.name_reference != NULL) {
         disp_name_reference(ptr->variant.type_operand.name_reference);
       }  /* if */
       break;
     case enk_builtin_operation:
-      (void)fprintf(f_display, "enk_builtin_operation\n");
       disp_name("builtin_operation.kind");
       (void)fprintf(f_display, "%s\n", builtin_operation_names[
                                         ptr->variant.builtin_operation.kind]);
@@ -5015,19 +4990,16 @@ cleanup_state_common:
                iek_expr_node);
       break;
     case enk_param_ref:
-      (void)fprintf(f_display, "enk_param_ref\n");
       disp_unsigned_long("param_ref.param_num",
                          (unsigned long)ptr->variant.param_ref.param_num);
       disp_unsigned_long("param_ref.levels_up",
                          (unsigned long)ptr->variant.param_ref.levels_up);
       break;
     case enk_braced_init_list:
-      (void)fprintf(f_display, "enk_braced_init_list\n");
       disp_ptr("braced_init_list", (char *)ptr->variant.braced_init_list,
                iek_expr_node);
       break;
     case enk_c11_generic:
-      (void)fprintf(f_display, "enk_c11_generic\n");
       disp_ptr("c11_generic.operands",
                (char *)ptr->variant.c11_generic.operands,
                iek_expr_node);
@@ -5036,7 +5008,6 @@ cleanup_state_common:
       break;
 #if BUILTIN_FUNCTIONS_ENABLED
     case enk_builtin_choose_expr:
-      (void)fprintf(f_display, "enk_builtin_choose_expr\n");
       disp_ptr("builtin_choose_expr.operands",
                (char *)ptr->variant.builtin_choose_expr.operands,
                iek_expr_node);
@@ -5064,25 +5035,21 @@ cleanup_state_common:
                iek_expr_node);
       break;
     case enk_initializer:
-      (void)fprintf(f_display, "enk_initializer\n");
       disp_ptr("initializer.dyn_init",
                (char *)ptr->variant.initializer.dyn_init, iek_dynamic_init);
       break;
     case enk_concept_id:
-      (void)fprintf(f_display, "enk_concept_id\n");
       disp_ptr("concept_id.concept_template",
                (char *)ptr->variant.concept_id.concept_template, iek_template);
       disp_template_arg_list("concept_id.args", ptr->variant.concept_id.args);
       break;
     case enk_requires:
-      (void)fprintf(f_display, "enk_requires\n");
       disp_ptr("requires_expr.requirements",
                (char *)ptr->variant.requires_expr.requirements, iek_expr_node);
       disp_ptr("requires_expr.parameters",
                (char *)ptr->variant.requires_expr.parameters, iek_param_type);
       break;
     case enk_compound_req:
-      (void)fprintf(f_display, "enk_compound_req\n");
       disp_ptr("compound_req.expr_and_constraint",
                (char *)ptr->variant.compound_req.expr_and_constraint,
                iek_expr_node);
@@ -5091,14 +5058,12 @@ cleanup_state_common:
       }  /* if */
       break;
     case enk_nested_req:
-      (void)fprintf(f_display, "enk_nested_req\n");
       disp_ptr("nested_req.constraint",
                (char *)ptr->variant.nested_req.constraint, iek_expr_node);
       break;
     case enk_const_eval_deferred:
       { auto &deferred_state = ptr->variant.const_eval_deferred;
 
-        (void)fprintf(f_display, "enk_const_eval_deferred\n");
         disp_ptr("const_eval_deferred.wrapped", (char *)deferred_state.wrapped,
                  iek_expr_node);
         if (deferred_state.reattempt_state.default_arg) {
@@ -5112,7 +5077,6 @@ cleanup_state_common:
       }
       break;
     case enk_template_name:
-      (void)fprintf(f_display, "enk_template_name\n");
       disp_ptr("template_name", (char *)ptr->variant.template_name,
                iek_template);
       break;

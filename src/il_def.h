@@ -13291,6 +13291,70 @@ enum an_expr_node_kind : a_bit_field {
   enk_last
 };
 
+#if NEED_IL_DISPLAY || DEBUG
+/*
+Display names for expression node kinds.
+*/
+EXTERN_CONSTINIT_ARRAY(a_const_char*, expr_node_kind_names, enk_last + 1)
+#if VAR_INITIALIZERS
+= {
+/* enk_error */				"error",
+/* enk_operation */			"operation",
+/* enk_constant	*/			"constant",
+/* enk_variable	*/			"variable",
+/* enk_field */				"field",
+/* enk_temp_init */			"temp_init",
+/* enk_lambda */			"lambda",
+/* enk_new_delete */			"new_delete",
+#if MICROSOFT_EXTENSIONS_ALLOWED
+/* enk_gcnew */				"gcnew",
+#endif /* MICROSOFT_EXTENSIONS_ALLOWED */
+/* enk_throw */				"throw",
+/* enk_condition */			"condition",
+/* enk_object_lifetime */		"object_lifetime",
+/* enk_typeid */			"typeid",
+/* enk_sizeof */			"sizeof",
+/* enk_sizeof_pack */			"sizeof_pack",
+/* enk_alignof */			"alignof",
+/* enk_datasizeof */			"datasizeof",
+/* enk_address_of_ellipsis */		"address_of_ellipsis",
+/* enk_statement */			"statement",
+/* enk_reuse_value */			"reuse_value",
+#if DO_IL_LOWERING && !DO_FULL_PORTABLE_EH_LOWERING
+/* enk_lowered_eh_construct */		"lowered_eh_construct",
+#endif /* DO_IL_LOWERING && !DO_FULL_PORTABLE_EH_LOWERING */
+#if DO_IL_LOWERING && ABI_CHANGES_FOR_COVARIANT_VIRTUAL_FUNC_RETURN
+/* enk_result_of_overriding_function */	"result_of_overriding_function",
+#endif /* DO_IL_LOWERING && ABI_CHANGES_FOR_COVARIANT_VIRTUAL_FUNC_RETURN */
+/* enk_routine */			"routine",
+#if VLA_DEALLOCATIONS_IN_IL
+/* enk_vla_dealloc */			"vla_dealloc",
+#endif  /* VLA_DEALLOCATIONS_IN_IL */
+/* enk_type_operand */			"type_operand",
+/* enk_builtin_operation */		"builtin_operation",
+/* enk_param_ref */			"param_ref",
+/* enk_braced_init_list	*/		"braced_inint_list",
+/* enk_c11_generic */			"c11_generic",
+#if BUILTIN_FUNCTIONS_ENABLED
+/* enk_builtin_choose_expr */		"builtin_choose_expr",
+#endif /* BUILTIN_FUNCTIONS_ENABLED */
+/* enk_yield */				"yield",
+/* enk_await */				"await",
+/* enk_fold */				"fold",
+/* enk_initializer */			"initializer",
+/* enk_concept_id */			"concept_id",
+/* enk_requires	*/			"requires",
+/* enk_compound_req */			"compound_req",
+/* enk_nested_req */			"nested_req",
+/* enk_const_eval_deferred */		"const_eval_deferred",
+/* enk_template_name */			"template_name",
+/* enk_token_sequence */		"token_sequence",
+/* enk_reclaimed */			"reclaimed",
+/* enk_last */				"last"
+}
+#endif /* VAR_INITIALIZERS */
+EXTERN_CONSTINIT_ARRAY_END(expr_node_kind_names)
+#endif /* NEED_IL_DISPLAY || DEBUG */
 
 #if DO_IL_LOWERING && !DO_FULL_PORTABLE_EH_LOWERING
 /* Modifier for enk_lowered_eh_construct nodes, indicating the kind of
