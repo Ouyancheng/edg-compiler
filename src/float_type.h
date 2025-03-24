@@ -446,13 +446,15 @@ Set the biased exponent in *tgt to the value of biased_exponent.
   biased_exponent >>= EXP_FIRST_BITS;
 #if !EXP_SINGLE_BYTE
   ++i;
+#if EXP_LAST_BYTE > EXP_FIRST_BYTE + 1
   for ( ; i < EXP_LAST_BYTE; ++i) { /*lint !e681*/
     tgt[BYTE_INDEX(i)] = biased_exponent & BYTE_MASK;
     biased_exponent >>= BYTE_SIZE;
   }  /* for */
+#endif /* EXP_LAST_BYTE > EXP_FIRST_BYTE + 1 */
   tgt[BYTE_INDEX(i)] &= (unsigned char)~EXP_LAST_MASK;
   tgt[BYTE_INDEX(i)] |= biased_exponent & EXP_LAST_MASK;
-#endif /* EXP_LAST_BYTE != EXP_FIRST_BYTE */
+#endif /* !EXP_SINGLE_BYTE */
 }  /* SET_BIASED_EXPONENT */
 
 
