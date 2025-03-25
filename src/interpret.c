@@ -414,13 +414,18 @@ typedef struct a_storage_stack_state {
   a_byte	*large_blocks;
 			/* A pointer to the last allocated large block (or NULL
 			   if there is none). */
-  an_alloc_seq_number
-		alloc_seq_number;
-			/* A sequence number used to detect leaks. */
   a_constexpr_destruction
 		*destructions;
 			/* Destructions to perform when this state is
 			   popped. */
+  inline auto alloc_seq() const -> an_alloc_seq_number
+    { return this->alloc_seq_number; }
+  inline void set_alloc_seq(an_alloc_seq_number  num)
+    { this->alloc_seq_number = num; }
+private:
+  an_alloc_seq_number
+		alloc_seq_number;
+			/* A sequence number used to detect leaks. */
 } a_storage_stack_state;
 
 
@@ -756,6 +761,11 @@ typedef struct a_constexpr_address {
 			/* Pointer to the complete object into which this
 			   address is pointing.  This is needed to validate
 			   pointer comparisons (p < q, etc.). */
+  inline a_constexpr_address()
+    { (void)memzero((a_byte*)this, sizeof(*this)); }
+  inline a_constexpr_address(const a_constexpr_address  &orig);
+  inline ~a_constexpr_address();
+  inline void operator=(const a_constexpr_address  &orig);
 } a_constexpr_address;
 
 
@@ -784,6 +794,130 @@ typedef struct a_constexpr_address {
 #define get_base_address(cap)                                                \
   (is_variant_path(cap) ? (cap)->variant.variant_path->base_address          \
                         : (cap)->variant.base_address)
+
+
+static void copy_variant_path(a_constexpr_address  *addr)
+/*
+Replace the variant path pointed to by addr by a copy of that same path.
+(This is used to avoid sharing paths in cases where one will be cleaned up
+soon but the other must persist.  E.g., this happens after copying a variable
+(whose variant path must persist) to temporary expression storage.
+*/
+{
+  a_variant_path_entry_ptr  vpep, *p_vpep;
+
+#if EXPENSIVE_CHECKING
+  check_no_variant_path_cycle(addr->variant.variant_path);
+#endif /* EXPENSIVE_CHECKING */
+  p_vpep = &addr->variant.variant_path;
+  vpep = *p_vpep;
+  do {
+    a_variant_path_entry_ptr  new_entry = alloc_variant_path_entry();
+    *p_vpep = new_entry;
+    new_entry->field = vpep->field;
+    new_entry->base_address = vpep->base_address;
+    p_vpep = &new_entry->next;
+    vpep = vpep->next;
+  } while (vpep != NULL);
+  *p_vpep = NULL;
+}  /* copy_variant_path */
+
+
+static void release_variant_path(a_constexpr_address  *addr)
+/*
+Release the variant path entries associated with the given address.  The caller
+is responsible for ensuring that there are such entries.
+*/
+{
+  a_variant_path_entry_ptr  entries, vpep;
+  unsigned long             n_freed = 2;
+
+  entries = addr->variant.variant_path;
+  /* There are always at least two entries on a variant path (the first of
+     which is a placeholder entry to potentially hold the base address of an
+     array). */
+  vpep = entries->next;
+  while (vpep->next != NULL) {
+    vpep = vpep->next;
+    n_freed += 1;
+  }  /* while */
+  vpep->next = free_variant_path_entries;
+  free_variant_path_entries = entries;
+  n_free_variant_path_entries += n_freed;
+  addr->flags &= (unsigned char)~CA_VARIANT_PATH;
+  addr->variant.base_address = entries->base_address;
+}  /* release_variant_path */
+
+
+/*
+Macro to call release_variant_path if a given address (possibly passed via a
+pointer to bytes representing that address) holds a variant path.
+*/
+#define release_variant_path_if_needed(value)                                 \
+{                                                                             \
+  if (is_variant_path((a_constexpr_address*)(value))) {                       \
+    release_variant_path((a_constexpr_address*)(value));                      \
+  }  /* if */                                                                 \
+}  /* release_variant_path_if_needed */
+
+
+/*
+Macro to release structures allocated for the representation of the result of
+a glvalue or pointer expression (i.e., an a_constexpr_address value).  expr is
+the expression corresponding to the interpreter storage at value and tp is
+the type of expr after applying skip_typerefs.
+*/
+#define release_address_structures(expr, tp, value)                           \
+{                                                                             \
+  if (((expr)->is_lvalue || (expr)->is_xvalue ||                              \
+       (tp)->kind == (a_type_kind)tk_pointer)) {                              \
+    release_variant_path_if_needed(value);                                    \
+  }  /* if */                                                                 \
+}  /* release_address_structures */
+
+
+/*
+For an interpreter value that is known to be an address, copy the associated
+structures (e.g., any variant path) so that they won't be shared with the
+address they were shallowly copied from.
+*/
+#define copy_address_structures(value)                                        \
+{                                                                             \
+  a_constexpr_address  *addr = (a_constexpr_address *)(value);                \
+  if (is_variant_path(addr)) {                                                \
+    copy_variant_path(addr);                                                  \
+  }  /* if */                                                                 \
+}  /* copy_address_structures */
+
+
+inline a_constexpr_address::a_constexpr_address(
+                                             const a_constexpr_address  &orig)
+/*
+Copy constructor.
+*/
+{
+  (void)memcpy((a_byte*)this, (a_byte*)&orig, sizeof(*this));
+  copy_address_structures(this);
+}  /* a_constexpr_address::a_constexpr_address */
+
+
+inline a_constexpr_address::~a_constexpr_address()
+/*
+Destructor.
+*/
+{
+  release_variant_path_if_needed(this);
+}  /* a_constexpr_address::~a_constexpr_address */
+
+
+inline void a_constexpr_address::operator=(const a_constexpr_address  &orig)
+/*
+Copy assignment.
+*/
+{
+  (void)memcpy((a_byte*)this, (a_byte*)&orig, sizeof(*this));
+  copy_address_structures(this);
+}  /* a_constexpr_address::operator= */
 
 
 /*
@@ -1412,7 +1546,7 @@ STATIC_THREAD unsigned long
 			/* The number of interpreter states that have been
 			   initialized but not released. */
 
-#define active_alloc_seq(ips)  ((ips)->storage_stack.alloc_seq_number)
+#define active_alloc_seq(ips)  ((ips)->storage_stack.alloc_seq())
 
 #define cost_exceeded(ips)                                                   \
   (++(ips)->cost > max_cost_constexpr_call)
@@ -1457,7 +1591,7 @@ Initialize the given storage stack.
 {                                                                            \
   (sss)->curr_block = NULL;                                                  \
   alloc_constexpr_stack_block(sss);                                          \
-  (sss)->alloc_seq_number = 1;                                               \
+  (sss)->set_alloc_seq(1);                                                   \
 }
 
 
@@ -1567,7 +1701,7 @@ a previously saved stack state.
                                                         (sss)->large_blocks; \
       ((a_large_block_header*)large_block)->block_size = block_size;         \
       ((a_large_block_header*)large_block)->alloc_seq_number =               \
-                                                    (sss)->alloc_seq_number; \
+                                                         (sss)->alloc_seq(); \
       (sss)->large_blocks = large_block;                                     \
       (storage_ptr) = large_block+hdr_size;                                  \
     } else {                                                                 \
@@ -1601,7 +1735,7 @@ interpreter state.
     /* the associated static storage stack. */                               \
     alloc_constexpr_stack_block(&(ips)->static_storage);                     \
     (ips)->static_storage_ready = TRUE;                                      \
-    (ips)->static_storage.alloc_seq_number = 0;                              \
+    (ips)->static_storage.set_alloc_seq(0);                                  \
   }  /* if */                                                                \
   alloc_bytes(&(ips)->static_storage, n_bytes, storage_ptr);                 \
 }
@@ -1612,7 +1746,7 @@ Macros to save and restore an allocation stack state.
 #define save_storage_stack(ips, state)                                       \
 {                                                                            \
   (state) = (ips)->storage_stack;                                            \
-  (ips)->storage_stack.alloc_seq_number = ++(ips)->curr_alloc_seq_number;    \
+  (ips)->storage_stack.set_alloc_seq(++(ips)->curr_alloc_seq_number);        \
   add_to_live_set(&(ips)->live_set, (ips)->curr_alloc_seq_number);           \
   (ips)->storage_stack.destructions = NULL;                                  \
 }
@@ -1627,7 +1761,7 @@ Macros to save and restore an allocation stack state.
   if ((result_flag)) {                                                       \
     curr_large_blocks = (ips)->storage_stack.large_blocks;                   \
     remove_from_live_set(&(ips)->live_set,                                   \
-                         (ips)->storage_stack.alloc_seq_number);             \
+                         (ips)->storage_stack.alloc_seq());                  \
     (ips)->storage_stack = (state);                                          \
     if (curr_large_blocks != NULL &&                                         \
         curr_large_blocks != (state).large_blocks) {                         \
@@ -1657,7 +1791,7 @@ because of performance concerns).
 #define init_storage_stack_state_to_silence_GCC(sss)                         \
   ((sss).top = (sss).curr_block = (sss).large_blocks = NULL,                 \
    (sss).destructions = NULL,                                                \
-   (sss).alloc_seq_number = 0)
+   (sss).set_alloc_seq(0))
 #else /* !defined(__GNUC__) && ... */
 #define init_storage_stack_state_to_silence_GCC(sss) /* Nothing */
 #endif /* defined(__GNUC__) && ... */
@@ -1686,7 +1820,7 @@ Macros to push and pop call frames.
     (p_frame)->parent = (ips)->curr_call_frame;                              \
     (p_frame)->routine = (rp);                                               \
     (p_frame)->variant.position = (pos);                                     \
-    (p_frame)->result_loc = *(result_cap);                                   \
+    (p_frame)->result_loc = (result_cap);                                    \
     (p_frame)->entry_seq_number = (ips)->curr_alloc_seq_number;              \
     (p_frame)->dest_seq_number_plus_one = 0;                                 \
     (p_frame)->return_active = FALSE;                                        \
@@ -1709,7 +1843,7 @@ call frame).
     (p_frame)->parent = (ips)->curr_call_frame;                              \
     (p_frame)->routine = NULL;                                               \
     (p_frame)->variant.expr = (stmt_expr);                                   \
-    (p_frame)->result_loc = *(result_cap);                                   \
+    (p_frame)->result_loc = (result_cap);                                    \
     (p_frame)->entry_seq_number = (ips)->curr_alloc_seq_number;              \
     (p_frame)->return_active = FALSE;                                        \
     (p_frame)->loop_break_active = FALSE;                                    \
@@ -2943,10 +3077,10 @@ redo:
       break;
     case tk_union:
       get_mapped_byte_count(&persistent_map, tp, result);
-#if DEBUG
-      check_assertion(ips != NULL);
-#endif /* DEBUG */
       if (result == 0) {
+#if DEBUG
+        check_assertion(ips != NULL);
+#endif /* DEBUG */
         if (tp->variant.class_struct_union.is_nonreal_class) {
           info_with_pos_type(ec_constexpr_type_invalid, &ips->position, tp,
                              ips);
@@ -2961,6 +3095,9 @@ redo:
         }  /* if */
       } else if (result > MAX_CONSTEXPR_TYPE_SIZE) {
         a_source_position  *pos = &tp->source_corresp.decl_position;
+#if DEBUG
+        check_assertion(ips != NULL);
+#endif /* DEBUG */
         info_with_pos_type(ec_constexpr_type_too_large, pos, tp, ips);
         do_constexpr_fail(*p_result);
       }  /* if */
@@ -3965,12 +4102,15 @@ interpreter storage.
     /* A null pointer cannot be compared to a non-null pointer. */
     comparable = FALSE;
   } else {
+    /* Search for the nearest enclosing subobject common to both given
+       addresses.  We start with the complete object (which we already
+       established to be common). */
     a_byte*     parent_addr = cap1->complete_object;
     a_type_ptr  parent_type = complete_object_type(parent_addr);
     a_boolean   check_dyn_alloc = TRUE;
     for (;;) {
       a_type_ptr  etp = NULL;
-      if (parent_type->kind == (a_type_kind)tk_array) {
+      if (type_is(parent_type, tk_array)) {
         etp = skip_typerefs(parent_type->variant.array.element_type);
       } else if (complete_obj_flag(parent_addr, COMPLETE_OBJ_DYN_ALLOC) &&
                  check_dyn_alloc) {
@@ -4542,59 +4682,6 @@ done:
 }  /* add_to_variant_path */
 
 
-static void copy_variant_path(a_constexpr_address  *addr)
-/*
-Replace the variant path pointed to by addr by a copy of that same path.
-(This is used to avoid sharing paths in cases where one will be cleaned up
-soon but the other must persist.  E.g., this happens after copying a variable
-(whose variant path must persist) to temporary expression storage.
-*/
-{
-  a_variant_path_entry_ptr  vpep, *p_vpep;
-
-#if EXPENSIVE_CHECKING
-  check_no_variant_path_cycle(addr->variant.variant_path);
-#endif /* EXPENSIVE_CHECKING */
-  p_vpep = &addr->variant.variant_path;
-  vpep = *p_vpep;
-  do {
-    a_variant_path_entry_ptr  new_entry = alloc_variant_path_entry();
-    *p_vpep = new_entry;
-    new_entry->field = vpep->field;
-    new_entry->base_address = vpep->base_address;
-    p_vpep = &new_entry->next;
-    vpep = vpep->next;
-  } while (vpep != NULL);
-  *p_vpep = NULL;
-}  /* copy_variant_path */
-
-
-static void release_variant_path(a_constexpr_address  *addr)
-/*
-Release the variant path entries associated with the given address.  The caller
-is responsible for ensuring that there are such entries.
-*/
-{
-  a_variant_path_entry_ptr  entries, vpep;
-  unsigned long             n_freed = 2;
-
-  entries = addr->variant.variant_path;
-  /* There are always at least two entries on a variant path (the first of
-     which is a placeholder entry to potentially hold the base address of an
-     array). */
-  vpep = entries->next;
-  while (vpep->next != NULL) {
-    vpep = vpep->next;
-    n_freed += 1;
-  }  /* while */
-  vpep->next = free_variant_path_entries;
-  free_variant_path_entries = entries;
-  n_free_variant_path_entries += n_freed;
-  addr->flags &= (unsigned char)~CA_VARIANT_PATH;
-  addr->variant.base_address = entries->base_address;
-}  /* release_variant_path */
-
-
 static a_boolean check_variant_path(an_interpreter_state  *ips,
                                     a_constexpr_address   *addr,
                                     a_source_position     *pos)
@@ -4748,47 +4835,6 @@ done:
 }  /* check_variant_assign */
 
 
-/*
-Macro to call release_variant_path if a given address (possibly passed via a
-pointer to bytes representing that address) holds a variant path.
-*/
-#define release_variant_path_if_needed(value)                                 \
-{                                                                             \
-  if (is_variant_path((a_constexpr_address*)(value))) {                       \
-    release_variant_path((a_constexpr_address*)(value));                      \
-  }  /* if */                                                                 \
-}  /* release_variant_path_if_needed */
-
-
-/*
-Macro to release structures allocated for the representation of the result of
-a glvalue or pointer expression (i.e., an a_constexpr_address value).  expr is
-the expression corresponding to the interpreter storage at value and tp is
-the type of expr after applying skip_typerefs.
-*/
-#define release_address_structures(expr, tp, value)                           \
-{                                                                             \
-  if (((expr)->is_lvalue || (expr)->is_xvalue ||                              \
-       (tp)->kind == (a_type_kind)tk_pointer)) {                              \
-    release_variant_path_if_needed(value);                                    \
-  }  /* if */                                                                 \
-}  /* release_address_structures */
-
-
-/*
-For an interpreter value that is known to be an address, copy the associated
-structures (e.g., any variant path) so that they won't be shared with the
-address they were shallowly copied from.
-*/
-#define copy_address_structures(value)                                        \
-{                                                                             \
-  a_constexpr_address  *addr = (a_constexpr_address *)(value);                \
-  if (is_variant_path(addr)) {                                                \
-    copy_variant_path(addr);                                                  \
-  }  /* if */                                                                 \
-}  /* copy_address_structures */
-
-
 static a_boolean is_integer_address(a_constexpr_address  *cap,
                                     an_integer_value     *val)
 /*
@@ -4826,9 +4872,9 @@ static a_boolean evaluate_expr(an_interpreter_state  *ips,
 static a_boolean do_constexpr_statement(an_interpreter_state  *ips,
                                         a_statement_ptr       stmt);
 
-static a_boolean do_constexpr_expr(an_interpreter_state  *ips,
-                                   an_expr_node_ptr      expr,
-                                   a_constexpr_address   *result_cap);
+static a_boolean do_constexpr_expr(an_interpreter_state       *ips,
+                                   an_expr_node_ptr           expr,
+                                   a_constexpr_address const  &result_cap);
 
 static inline a_boolean do_constexpr_expression(
                                        an_interpreter_state  *ips,
@@ -4844,15 +4890,15 @@ sequence number.
   a_constexpr_address  ce_addr;
 
   set_active_address(ips, &ce_addr, result_storage, complete_object);
-  return do_constexpr_expr(ips, expr, &ce_addr);
+  return do_constexpr_expr(ips, expr, ce_addr);
 }  /* do_constexpr_expression */
 
 
-static a_boolean do_constexpr_ctor(an_interpreter_state  *ips,
-                                   a_dynamic_init_ptr    dip,
-                                   a_source_position     *pos,
-                                   a_constexpr_address   *cap,
-                                   a_constexpr_address   *implied_src);
+static a_boolean do_constexpr_ctor(an_interpreter_state       *ips,
+                                   a_dynamic_init_ptr         dip,
+                                   a_source_position          *pos,
+                                   a_constexpr_address const  &cap,
+                                   a_constexpr_address const  *implied_src);
 
 
 static a_boolean do_constexpr_dtor(an_interpreter_state  *ips,
@@ -4863,11 +4909,11 @@ static a_boolean do_constexpr_dtor(an_interpreter_state  *ips,
                                    a_boolean             nonvirtual);
 
 static a_boolean do_constexpr_dynamic_init(
-                                   an_interpreter_state  *ips,
-                                   a_dynamic_init_ptr    dip,
-                                   a_source_position     *pos,
-                                   a_constexpr_address   *dst_addr,
-                                   a_constexpr_address   *implied_src = NULL);
+                              an_interpreter_state  *ips,
+                              a_dynamic_init_ptr    dip,
+                              a_source_position     *pos,
+                              a_constexpr_address const  &dst_addr,
+                              a_constexpr_address const  *implied_src = NULL);
 
 
 static a_boolean perform_destructions(an_interpreter_state  *ips)
@@ -5179,55 +5225,10 @@ set *p_dbcp to the direct base class for the last step of the derivation path
 
 
 static a_boolean extract_value_from_constant(
-                                    an_interpreter_state  *ips,
-                                    a_constant_ptr        con,
-                                    a_byte                *value,
-                                    a_byte                *complete_object,
-                                    a_constexpr_address   *implied_src = NULL);
-
-static inline a_boolean copy_val_from_constant(
-                                   an_interpreter_state  *ips,
-                                   a_constant_ptr        con,
-                                   a_byte                *value,
-                                   a_byte                *complete_object,
-                                   a_constexpr_address   *implied_src = NULL)
-/*
-Set *value from the value of the specified constant.  Duplicates some cases
-from extract_value_from_constant for performance reasons.  See
-extract_value_from_constant for the meaning of the parameters.
-*/
-{
-  a_boolean  result;
-
-  if (constant_is(con, ck_integer) && !con->implicit_cast) {
-    if (con->is_generic_initializer) {
-      do_constexpr_fail(result);
-    } else {
-      *(an_integer_value *)value = con->variant.integer_value;
-      result = TRUE;
-    }  /* if */
-  } else if (constant_is(con, ck_float)) {
-    if (con->is_generic_initializer) {
-      do_constexpr_fail(result);
-    } else {
-      *fp_value(value) = (con)->variant.float_value;
-      result = TRUE;
-    }  /* if */
-  } else {
-    result = extract_value_from_constant(ips, con,
-                                         value, complete_object,
-                                         implied_src);
-  }  /* if */
-  return result;
-}  /* copy_val_from_constant */
-
-
-static a_boolean extract_value_from_constant(
-                                    an_interpreter_state  *ips,
-                                    a_constant_ptr        con,
-                                    a_byte                *value,
-                                    a_byte                *complete_object,
-                  /* Defaulted: */  a_constexpr_address   *implied_src)
+                               an_interpreter_state       *ips,
+                               a_constant_ptr             con,
+                               a_constexpr_address const  &result_cap,
+             /* Defaulted: */  a_constexpr_address const  *implied_src = NULL)
 /*
 Copy the value of con into the interpreter storage at value, converting
 formats as necessary.  Return FALSE if the constant is an error constant.  If
@@ -5236,6 +5237,8 @@ or move constructor and the source object is stored at the location indicated
 by implied_src.
 */
 {
+  a_byte     *value = result_cap.address,
+             *complete_object = result_cap.complete_object;
   a_boolean  result = TRUE;
 
   if (con->implicit_cast) {
@@ -5249,8 +5252,7 @@ by implied_src.
                !con->is_result_of_constexpr_call &&
                !(constant_is(con, ck_integer) ||
                  (constant_is(con, ck_address) &&
-                  con->variant.address.kind ==
-                                      (an_address_base_kind)abk_temporary))) {
+                  con->variant.address.kind == abk_temporary))) {
       /* If the constant includes a conversion, evaluate the constant through
          the backing expression so that the conversion is correctly applied.
          Do not attempt this if a reinterpret-like cast is involved (which we
@@ -5260,7 +5262,7 @@ by implied_src.
          refer to a mutable temporary: Evaluating the underlying enk_temp_init
          node would make the storage subject to mutation during this evaluation
          and that is not permitted. */
-      if (!do_constexpr_expression(ips, con->expr, value, complete_object)) {
+      if (!do_constexpr_expr(ips, con->expr, result_cap)) {
         result = FALSE;
       }  /* if */
       goto done;
@@ -5278,13 +5280,12 @@ by implied_src.
       break;
     case ck_integer:
       { a_type_ptr  tp = skip_typerefs(con->type);
-        if (tp->kind == (a_type_kind)tk_pointer ||
-            tp->kind == (a_type_kind)tk_nullptr) {
+        if (type_is(tp, tk_pointer) || type_is(tp, tk_nullptr)) {
           /* Various expressions for null pointer constants are expressed as
              ck_integer constants.  They're handled as run-time data constants
              in the interpreter. */
           clear_runtime_constant_address(value, con);
-        } else if (tp->kind == (a_type_kind)tk_integer) {
+        } else if (type_is(tp, tk_integer)) {
           *(an_integer_value*)value = con->variant.integer_value;
         } else {
           unexpected_condition();
@@ -5303,7 +5304,7 @@ by implied_src.
       break;
 #endif /* C99_IL_EXTENSIONS_SUPPORTED */
     case ck_address:
-      if (con->variant.address.kind == (an_address_base_kind)abk_temporary) {
+      if (con->variant.address.kind == abk_temporary) {
         a_constant_ptr  cp = con->variant.address.variant.constant;
         if (!is_const_qualified_type(cp->type)) {
           /* Do not load mutable temporaries (they're runtime entities even
@@ -5405,7 +5406,7 @@ by implied_src.
                         var_addr.alloc_seq_number = 0;
                         var_addr.complete_object = var_bytes;
                         result = do_constexpr_dynamic_init(
-                                         ips, dip, &ips->position, &var_addr);
+                                          ips, dip, &ips->position, var_addr);
                       }  /* if */
                     } else {
                       an_init_kind    init_kind;
@@ -5424,7 +5425,7 @@ by implied_src.
                           var_addr.alloc_seq_number = 0;
                           var_addr.complete_object = var_bytes;
                           result = do_constexpr_dynamic_init(
-                                         ips, dip, &ips->position, &var_addr);
+                                          ips, dip, &ips->position, var_addr);
                         }  /* if */
                       } else {
                         /* In GNU C++ mode, the initializer may not be
@@ -5446,8 +5447,9 @@ by implied_src.
                       }  /* if */
                     }  /* if */
                     if (cp != NULL) {
-                      result = extract_value_from_constant(
-                                               ips, cp, var_bytes, var_bytes);
+                      a_constexpr_address dst_addr;
+                      clear_address(&dst_addr, var_bytes);
+                      result = extract_value_from_constant(ips, cp, dst_addr);
                       if (constant_is(cp, ck_string)) {
                         /* The ck_string case already installed a reverse map
                            from var_bytes to cp. */
@@ -5510,8 +5512,9 @@ END_DISABLE_GCC_WARNING_STR_OVERFLOW
               if (con_bytes == NULL) {
                 alloc_static_object(ips, ctp, con_bytes, &result);
                 if (result) {
-                  result = extract_value_from_constant(ips, cp, con_bytes,
-                                                       con_bytes);
+                  a_constexpr_address dst_addr;
+                  clear_address(&dst_addr, con_bytes);
+                  result = extract_value_from_constant(ips, cp, dst_addr);
                 }  /* if */
                 if (!result) break;
 #if BUILTIN_FUNCTIONS_ENABLED
@@ -5602,11 +5605,9 @@ END_DISABLE_GCC_WARNING_STR_OVERFLOW
       break;
     case ck_dynamic_init:
       {
-        a_constexpr_address  dst_addr;
-        set_active_address(ips, &dst_addr, value, complete_object);
         result = do_constexpr_dynamic_init(ips, con->variant.dynamic_init.ptr,
                                            &con->source_corresp.decl_position,
-                                           &dst_addr, implied_src);
+                                           result_cap, implied_src);
       }
       break;
     case ck_string:
@@ -5674,7 +5675,6 @@ END_DISABLE_GCC_WARNING_STR_OVERFLOW
     case ck_aggregate:
       {
         a_type_ptr  tp = skip_typerefs(con->type);
-        a_byte      *saved_implied_src_address = NULL;
 #if MICROSOFT_EXTENSIONS_ALLOWED || GNU_EXTENSIONS_ALLOWED
         if (con->flexible_array_initializer) {
           do_constexpr_fail(result);
@@ -5683,10 +5683,12 @@ END_DISABLE_GCC_WARNING_STR_OVERFLOW
         }  /* if */
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED || GNU_EXTENSIONS_ALLOWED */
         if (type_is(tp, tk_array)) {
-          a_targ_size_t   n_elems, k, repeat;
-          a_byte_count    elem_size;
-          a_constant_ptr  elem_con;
-          a_type_ptr      etp = tp->variant.array.element_type;
+          a_targ_size_t        n_elems, k, repeat;
+          a_byte_count         elem_size;
+          a_constant_ptr       elem_con;
+          a_type_ptr           etp = tp->variant.array.element_type;
+          a_constexpr_address  elem_dst = result_cap, implied_elem_src,
+                               *p_implied_elem_src = NULL;
           etp = skip_typerefs(etp);
           n_elems = tp->variant.array.variant.number_of_elements;
           elem_size = value_bytes_for_type(ips, etp, &result);
@@ -5697,13 +5699,15 @@ END_DISABLE_GCC_WARNING_STR_OVERFLOW
             init_subobject_to_zero(ips, value, tp, complete_object);
           }  /* if */
           if (implied_src != NULL) {
-            saved_implied_src_address = implied_src->address;
+            implied_elem_src = *implied_src;
+            p_implied_elem_src = &implied_elem_src;
           }  /* if */
           elem_con = con->variant.aggregate.first_constant;
           for (k = 0; k<n_elems;) {
             if (elem_con == NULL) {
               /* Not all elements are covered.  Zero the remainder. */
-              init_subobject_to_zero(ips, value, etp, complete_object);
+              init_subobject_to_zero(ips, elem_dst.address, etp,
+                                     complete_object);
               repeat = 1;
             } else if (constant_is(elem_con, ck_designator) &&
                        !elem_con->variant.designator.is_field_designator &&
@@ -5718,9 +5722,9 @@ END_DISABLE_GCC_WARNING_STR_OVERFLOW
               /* delta_k can be negative.  Be sure to treat elem_size as a
                  signed integer to avoid promoting a negative value to an
                  unsigned value on some platforms. */
-              value += delta_k*(int32_t)elem_size;
+              elem_dst.address += delta_k*(int32_t)elem_size;
               if (implied_src != NULL) {
-                implied_src->address += delta_k*(int32_t)elem_size;
+                implied_elem_src.address += delta_k*(int32_t)elem_size;
               }  /* if */
               continue;
             } else if (gpp_version_is(any_version) &&
@@ -5737,17 +5741,17 @@ END_DISABLE_GCC_WARNING_STR_OVERFLOW
               */
               repeat = 1;
             } else {
-              mark_complete_class_object_if_needed(etp, value);
-              if (!copy_val_from_constant(
-                        ips, elem_con, value, complete_object, implied_src)) {
+              mark_complete_class_object_if_needed(etp, elem_dst.address);
+              if (!extract_value_from_constant(
+                               ips, elem_con, elem_dst, p_implied_elem_src)) {
                 do_constexpr_fail(result);
                 break;
               } else if (constant_is(elem_con, ck_string) &&
-                         etp->kind == (a_type_kind)tk_array) {
+                         type_is(etp, tk_array)) {
                 /* The ck_string contents were copied to a separate array.
                    Undo the mapping of the array storage to the ck_string
                    entry since it is not a persistent association. */
-                unmap_stack_bytes(ips, value);
+                unmap_stack_bytes(ips, elem_dst.address);
               }  /* if */
               if (constant_is(elem_con, ck_init_repeat)) {
                 repeat = elem_con->variant.init_repeat.count;
@@ -5755,17 +5759,15 @@ END_DISABLE_GCC_WARNING_STR_OVERFLOW
                 repeat = 1;
               }  /* if */
               elem_con = elem_con->next;
-              mark_subobject_initialized(value, complete_object);
+              mark_subobject_initialized(elem_dst.address, complete_object);
             }  /* if */
             k += repeat;
-            value += repeat*elem_size;
-            if (implied_src != NULL) implied_src->address += repeat*elem_size;
+            elem_dst.address += repeat*elem_size;
+            if (implied_src != NULL) {
+              implied_elem_src.address += repeat*elem_size;
+            }  /* if */
           }  /* for */
-          if (implied_src != NULL) {
-            implied_src->address = saved_implied_src_address;
-          }  /* if */
-        } else if (tp->kind == (a_type_kind)tk_struct ||
-                   tp->kind == (a_type_kind)tk_class) {
+        } else if (type_is(tp, tk_struct) || type_is(tp, tk_class)) {
           a_field_ptr       fp = fields_of(tp);
           a_base_class_ptr  bcp = base_classes_of(tp);
           a_constant_ptr    elem_con;
@@ -5777,14 +5779,16 @@ END_DISABLE_GCC_WARNING_STR_OVERFLOW
           elem_con = con->variant.aggregate.first_constant;
           /* Initialize base subobjects first. */
           for (;;) {
-            a_byte_count  offset;
+            a_byte_count         offset;
+            a_constexpr_address  sub_addr = result_cap;
             while (bcp != NULL && !bcp->direct) {
               bcp = bcp->next;
             }  /* while */
             if (bcp == NULL) break;
             get_mapped_byte_count(&persistent_map, bcp, offset);
+            sub_addr.address += offset;
             /* Record the derivation step. */
-            record_subobject_derivation(value+offset, bcp);
+            record_subobject_derivation(sub_addr.address, bcp);
             if (elem_con != NULL) {
               if (elem_con->type == tp) {
                 /* This can happen with aggregates created in generic contexts,
@@ -5797,8 +5801,7 @@ END_DISABLE_GCC_WARNING_STR_OVERFLOW
                 do_constexpr_fail(result);
                 goto done;
               }  /* if */
-              if (!copy_val_from_constant(
-                              ips, elem_con, value+offset, complete_object)) {
+              if (!extract_value_from_constant(ips, elem_con, sub_addr)) {
                 do_constexpr_fail(result);
                 break;
               }  /* if */
@@ -5806,10 +5809,10 @@ END_DISABLE_GCC_WARNING_STR_OVERFLOW
             } else {
               /* Either a trivial subobject or an error.  Just initialize
                  the subobject to zero. */
-              init_subobject_to_zero(ips, value+offset, bcp->type,
-                                   complete_object);
+              init_subobject_to_zero(ips, sub_addr.address, bcp->type,
+                                     complete_object);
             }  /* if */
-            mark_subobject_initialized(value+offset, complete_object);
+            mark_subobject_initialized(sub_addr.address, complete_object);
             bcp = bcp->next;
           }  /* for */
           if (!result) break;
@@ -5849,18 +5852,19 @@ END_DISABLE_GCC_WARNING_STR_OVERFLOW
               elem_con = elem_con->next;
               continue;
             } else {
-              a_byte  *this_bytes = NULL, *dst_bytes = value+offset;
+              a_byte               *this_bytes = NULL;
+              a_constexpr_address  dst_addr = result_cap;
+              dst_addr.address += offset;
               if (elem_con->implicit_aggr_element &&
                   con->variant.aggregate.has_dynamic_init_component &&
-                  class_type_supp(tp)->anonymous_union_kind ==
-                                          (an_anonymous_union_kind)auk_none) {
+                  class_type_supp(tp)->anonymous_union_kind == auk_none) {
                 /* This could involve a default member initializer using a
                    "this" pointer.  That pointer refers to the current class:
                    Ensure a mapping is set up for that. */
                 this_bytes = set_up_param_ref_for_this_ptr(
                                                  ips, value, complete_object);
               }  /* if */
-              mark_complete_class_object_if_needed(ftp, dst_bytes);
+              mark_complete_class_object_if_needed(ftp, dst_addr.address);
               if (elem_con->type == tp) {
                 /* This can happen with aggregates created in generic contexts,
                    where braces cannot be matched to destination types and so
@@ -5872,22 +5876,21 @@ END_DISABLE_GCC_WARNING_STR_OVERFLOW
                 do_constexpr_fail(result);
                 goto done;
               }  /* if */
-              if (!copy_val_from_constant(
-                                 ips, elem_con, dst_bytes, complete_object)) {
+              if (!extract_value_from_constant(ips, elem_con, dst_addr)) {
                 do_constexpr_fail(result);
               } else {
                 if (fp->is_bit_field) {
                   /* Fit the value in the bit field width. */
-                  trim_bit_field(dst_bytes, fp->bit_size,
+                  trim_bit_field(dst_addr.address, fp->bit_size,
                                  fp->bit_field_is_signed, ftp);
                 } else if (constant_is(elem_con, ck_string) &&
                            ftp->kind == (a_type_kind)tk_array) {
                   /* The ck_string contents were copied to a separate array.
                      Undo the mapping of the array storage to the ck_string
                      entry since it is not a persistent association. */
-                  unmap_stack_bytes(ips, dst_bytes);
+                  unmap_stack_bytes(ips, dst_addr.address);
                 }  /* if */
-                mark_subobject_initialized(dst_bytes, complete_object);
+                mark_subobject_initialized(dst_addr.address, complete_object);
                 elem_con = elem_con->next;
               }  /* if */
               if (this_bytes != NULL) {
@@ -5900,13 +5903,14 @@ END_DISABLE_GCC_WARNING_STR_OVERFLOW
             fp = fp->next;
           }  /* for */
           mark_subobject_initialized(value, complete_object);
-        } else if (tp->kind == (a_type_kind)tk_union) {
+        } else if (type_is(tp, tk_union)) {
           /* Initialize the first field (unless another field is
              designated). */
-          a_field_ptr     fp;
-          a_constant_ptr  elem_con;
-          a_byte_count    offset;
-          a_byte          *this_bytes, *dst_bytes;
+          a_field_ptr          fp;
+          a_constant_ptr       elem_con;
+          a_byte_count         offset;
+          a_byte               *this_bytes;
+          a_constexpr_address  dst_addr = result_cap;
           elem_con = con->variant.aggregate.first_constant;
           if (elem_con == NULL) {
             fp = fields_of(tp);
@@ -5951,8 +5955,7 @@ END_DISABLE_GCC_WARNING_STR_OVERFLOW
           this_bytes = NULL;
           if (elem_con->implicit_aggr_element &&
               con->variant.aggregate.has_dynamic_init_component &&
-              class_type_supp(tp)->anonymous_union_kind ==
-                                          (an_anonymous_union_kind)auk_none) {
+              class_type_supp(tp)->anonymous_union_kind == auk_none) {
             /* This could involve a default member initializer using a "this"
                pointer.  That pointer refers to the current class: Ensure a
                mapping is set up for that. */
@@ -5960,27 +5963,25 @@ END_DISABLE_GCC_WARNING_STR_OVERFLOW
                                                  ips, value, complete_object);
           }  /* if */
           get_mapped_byte_count(&persistent_map, fp, offset);
-          dst_bytes = value+offset;
-          if (!copy_val_from_constant(
-                              ips, elem_con, dst_bytes, complete_object)) {
+          dst_addr.address += offset;
+          if (!extract_value_from_constant(ips, elem_con, dst_addr)) {
             do_constexpr_fail(result);
           } else {
             if (fp->is_bit_field) {
               /* Fit the value in the bit field width. */
               a_type_ptr  bftp = skip_typerefs(fp->type);
-              trim_bit_field(dst_bytes, fp->bit_size, fp->bit_field_is_signed,
-                             bftp);
+              trim_bit_field(dst_addr.address, fp->bit_size,
+                             fp->bit_field_is_signed, bftp);
             } else if (constant_is(elem_con, ck_string) &&
-                       skip_typerefs(fp->type)->kind ==
-                                                      (a_type_kind)tk_array) {
+                       type_is(skip_typerefs(fp->type), tk_array)) {
               /* The ck_string contents were copied to a separate array.
                  Undo the mapping of the array storage to the ck_string
                  entry since it is not a persistent association. */
-              unmap_stack_bytes(ips, dst_bytes);
+              unmap_stack_bytes(ips, dst_addr.address);
             }  /* if */
             /* Record the active field. */
             *(a_field_ptr*)value = fp;
-            mark_subobject_initialized(dst_bytes, complete_object);
+            mark_subobject_initialized(dst_addr.address, complete_object);
           }  /* if */
           mark_subobject_initialized(value, complete_object);
           if (this_bytes != NULL) {
@@ -5989,33 +5990,37 @@ END_DISABLE_GCC_WARNING_STR_OVERFLOW
             unmap_param_ref_for_this_ptr(ips, this_bytes);
           }  /* if */
 #if GNU_VECTOR_TYPES_ALLOWED
-        } else if (tp->kind == (a_type_kind)tk_vector) {
+        } else if (type_is(tp, tk_vector)) {
           a_constant_ptr  elem_con;
           a_type_ptr      etp = skip_typerefs(tp->variant.vector.element_type);
           a_targ_size_t   k, n_elems = tp->size/etp->size;
           a_byte_count    elem_size = value_bytes_for_type(ips, etp, &result);
+          a_constexpr_address
+                          elem_addr = result_cap;
+          elem_addr.address = value;
           if (!result) break;
           elem_con = con->variant.aggregate.first_constant;
           for (k = 0; k<n_elems; k += 1) {
             if (elem_con == NULL) {
               /* Not all elements are covered.  Zero the remainder. */
-              memzero(value, size_t_arg((n_elems-k)*elem_size));
+              memzero(elem_addr.address, size_t_arg((n_elems-k)*elem_size));
               break;
             }  /* if */
-            if (!copy_val_from_constant(
-                                     ips, elem_con, value, complete_object)) {
+            if (!extract_value_from_constant(ips, elem_con, elem_addr)) {
               do_constexpr_fail(result);
               break;
             }  /* if */
             elem_con = elem_con->next;
-            value += elem_size;
+            elem_addr.address += elem_size;
           }  /* for */
 #endif /* GNU_VECTOR_TYPES_ALLOWED */
 #if C99_IL_EXTENSIONS_SUPPORTED
-        } else if (tp->kind == (a_type_kind)tk_complex) {
-          a_constant_ptr  elem_con;
-          a_targ_size_t   k, n_elems = 2;
-          a_byte_count    elem_size = sizeof(an_internal_float_value);
+        } else if (type_is(tp, tk_complex)) {
+          a_constant_ptr       elem_con;
+          a_targ_size_t        k, n_elems = 2;
+          a_byte_count         elem_size = sizeof(an_internal_float_value);
+          a_constexpr_address  elem_addr = result_cap;
+          elem_addr.address = value;
           elem_con = con->variant.aggregate.first_constant;
           for (k = 0; k<n_elems; k += 1) {
             if (elem_con == NULL) {
@@ -6023,13 +6028,12 @@ END_DISABLE_GCC_WARNING_STR_OVERFLOW
               memzero(value, size_t_arg((n_elems-k)*elem_size));
               break;
             }  /* if */
-            if (!copy_val_from_constant(
-                                     ips, elem_con, value, complete_object)) {
+            if (!extract_value_from_constant(ips, elem_con, elem_addr)) {
               do_constexpr_fail(result);
               break;
             }  /* if */
             elem_con = elem_con->next;
-            value += elem_size;
+            elem_addr.address += elem_size;
           }  /* for */
 #endif /* C99_IL_EXTENSIONS_SUPPORTED */
         } else {
@@ -6049,40 +6053,37 @@ END_DISABLE_GCC_WARNING_STR_OVERFLOW
              The whole copy (including the iteration for each element of the
              array) will be handled by the interpretation of the dynamic
              initializer entry. */
-          a_constexpr_address  dst_addr;
-          set_active_address(ips, &dst_addr, value, complete_object);
           if (!do_constexpr_dynamic_init(
                                       ips, elem_con->variant.dynamic_init.ptr,
                                       &elem_con->source_corresp.decl_position,
-                                      &dst_addr)) {
+                                      result_cap)) {
             do_constexpr_fail(result);
           }  /* if */
         } else {
-          a_type_ptr      etp = skip_typerefs(elem_con->type);
-          a_targ_size_t   n_elems, k;
-          a_byte_count    elem_size;
-          a_byte          *saved_implied_src_address = NULL;
+          a_type_ptr           etp = skip_typerefs(elem_con->type);
+          a_targ_size_t        n_elems, k;
+          a_byte_count         elem_size;
+          a_constexpr_address  elem_addr = result_cap, implied_elem_src,
+                               *p_implied_elem_src = NULL;
           n_elems = con->variant.init_repeat.count;
           elem_size = value_bytes_for_type(ips, etp, &result);
           if (!result) break;
           if (implied_src != NULL) {
-            saved_implied_src_address = implied_src->address;
+            implied_elem_src = *implied_src;
+            p_implied_elem_src = &implied_elem_src;
           }  /* if */
           for (k = 0; k<n_elems;) {
-            mark_complete_class_object_if_needed(etp, value);
-            if (!copy_val_from_constant(ips, elem_con, value,
-                                        complete_object, implied_src)) {
+            mark_complete_class_object_if_needed(etp, elem_addr.address);
+            if (!extract_value_from_constant(ips, elem_con, elem_addr,
+                                             p_implied_elem_src)) {
               do_constexpr_fail(result);
               break;
             }  /* if */
             mark_subobject_initialized(value, complete_object);
             k  += 1;
-            value += elem_size;
-            if (implied_src != NULL) implied_src->address += elem_size;
+            elem_addr.address += elem_size;
+            if (implied_src != NULL) implied_elem_src.address += elem_size;
           }  /* for */
-          if (implied_src != NULL) {
-            implied_src->address = saved_implied_src_address;
-          }  /* if */
         }  /* if */
       }
       break;
@@ -6230,6 +6231,54 @@ done:
 }  /* constexpr_copy_object_init_bits */
 
 
+static void fix_up_address_structures(an_interpreter_state  *ips,
+                                      a_byte                *dst_bytes,
+                                      a_type_ptr            tp)
+/*
+The object at dst_bytes of type tp has just been bitwise copied: Create copies
+of the embedded address structures (variant path entries lists) as needed.
+*/
+{
+  a_byte_count  offset;
+
+  if (type_is(tp, tk_pointer)) {
+    copy_address_structures(dst_bytes);
+  } else if (type_is(tp, tk_struct) || type_is(tp, tk_class)) {
+    a_base_class_ptr  bcp = base_classes_of(tp);
+    a_field_ptr       fp = next_alloc_field(fields_of(tp));
+    for (; bcp != NULL; bcp = bcp->next) {
+      if (!bcp->direct || bcp->is_virtual) continue;
+      get_mapped_byte_count(&persistent_map, bcp, offset);
+      fix_up_address_structures(ips, dst_bytes+offset, bcp->type);
+    }  /* for */
+    for (; fp != NULL; fp = next_alloc_field(fp->next)) {
+      get_mapped_byte_count(&persistent_map, fp, offset);
+      fix_up_address_structures(ips, dst_bytes+offset,
+                                skip_typerefs(fp->type));
+    }  /* for */
+  } else if (type_is(tp, tk_union)) {
+    a_field_ptr  ffp = next_alloc_field(fields_of(tp)),
+                 afp = (a_field_ptr)*(void**)dst_bytes;
+    if (ffp != NULL && afp != NULL) {
+      get_mapped_byte_count(&persistent_map, afp, offset);
+      fix_up_address_structures(ips, dst_bytes+offset,
+                               skip_typerefs(afp->type));
+    }  /* if */
+  } else if (type_is(tp, tk_array)) {
+    a_type_ptr  etp = skip_typerefs(tp->variant.array.element_type);
+    if (type_is(etp, tk_pointer) || type_is(etp, tk_array) ||
+        is_immediate_class_type(etp)) {
+      a_targ_size_t   n_elems = tp->variant.array.variant.number_of_elements;
+      a_boolean       okay;
+      a_byte_count    elem_size = value_bytes_for_type(ips, etp, &okay);
+      for (a_targ_size_t  k = 0; k<n_elems; ++k, dst_bytes += elem_size) {
+        fix_up_address_structures(ips, dst_bytes, etp);
+      }  /* for */
+    }  /* if */
+  }  /* if */
+}  /* fix_up_address_structures */
+
+
 static a_boolean constexpr_copy_object(an_interpreter_state  *ips,
                                        a_type_ptr            tp,
                                        a_source_position     *pos,
@@ -6259,6 +6308,7 @@ subobject.
       }  /* if */
       (void)memcpy(dst_bytes+offset, src_bytes+offset,
                    size_t_arg(n_bytes)-offset);
+      fix_up_address_structures(ips, dst_bytes, tp);
     } else {
       result = FALSE;
     }  /* if */
@@ -6291,7 +6341,7 @@ be removed.
     with_postfix_bytes = n_bytes+sizeof(a_var_postfix);
     alloc_complete_object(ips, with_postfix_bytes, vtp, var_storage);
     postfix = (a_var_postfix*)(var_storage+n_bytes);
-    postfix->alloc_seq_number = ips->storage_stack.alloc_seq_number;
+    postfix->alloc_seq_number = ips->storage_stack.alloc_seq();
     map_or_replace_ptr(&ips->map, vp, var_storage, postfix->prev_storage);
   } else {
     /* The size of the variable is unknown or too large. */
@@ -6360,10 +6410,10 @@ mapping if there was one.
 }  /* do_constexpr_unmap_variable */
 
 
-static a_boolean do_array_constructor_copy(an_interpreter_state  *ips,
-                                           a_dynamic_init_ptr    dip,
-                                           a_source_position     *pos,
-                                           a_constexpr_address   *cap)
+static a_boolean do_array_constructor_copy(an_interpreter_state       *ips,
+                                           a_dynamic_init_ptr         dip,
+                                           a_source_position          *pos,
+                                           a_constexpr_address const  &cap)
 /*
 The given dik_constructor dynamic initialization entry has its is_array_copy
 flag set to TRUE.  Perform the array copy it represents (to storage indicated
@@ -6433,9 +6483,9 @@ accordingly.  Associate diagnostics with the given position.
     } else {
       src_addr->variant.base_address = src_addr->address;
     }  /* if */
-    a_constexpr_address  dst_addr = *cap;
+    a_constexpr_address  dst_addr = cap;
     for (k = 0; k<length; ++k) {
-      if (!do_constexpr_ctor(ips, &dip_copy, pos, &dst_addr, src_addr)) {
+      if (!do_constexpr_ctor(ips, &dip_copy, pos, dst_addr, src_addr)) {
         do_constexpr_fail(result);
         goto done;
       } else {
@@ -6453,19 +6503,18 @@ done:
 
 
 /* Defined later in this file. */
-static a_boolean do_constexpr_lambda(an_interpreter_state *ips,
-                                     a_dynamic_init_ptr   dip,
-                                     a_source_position    *pos,
-                                     a_byte               *result_storage,
-                                     a_byte               *complete_object);
+static a_boolean do_constexpr_lambda(an_interpreter_state       *ips,
+                                     a_dynamic_init_ptr         dip,
+                                     a_source_position          *pos,
+                                     a_constexpr_address const  &dst_addr);
 
 
 static a_boolean do_constexpr_dynamic_init(
-                                        an_interpreter_state  *ips,
-                                        a_dynamic_init_ptr    dip,
-                                        a_source_position     *pos,
-                                        a_constexpr_address   *dst_addr,
-                      /* Defaulted: */  a_constexpr_address   *implied_src)
+                                      an_interpreter_state       *ips,
+                                      a_dynamic_init_ptr         dip,
+                                      a_source_position          *pos,
+                                      a_constexpr_address const  &dst_addr,
+                    /* Defaulted: */  a_constexpr_address const  *implied_src)
 /*
 Evaluate the given dynamic initialization of the storage described by dst_addr.
 ips is the interpreter state and pos the default position for diagnostics.  If
@@ -6479,14 +6528,12 @@ by implied_src.
   switch (dip->kind) {
     case dik_constant:
     case dik_nonconstant_aggregate:
-      result = copy_val_from_constant(ips, dip->variant.constant.ptr,
-                                      dst_addr->address,
-                                      dst_addr->complete_object, implied_src);
+      result = extract_value_from_constant(ips, dip->variant.constant.ptr,
+                                           dst_addr, implied_src);
       break;
     case dik_lambda:
       if (constexpr_lambdas_enabled) {
-        result = do_constexpr_lambda(ips, dip, pos, dst_addr->address,
-                                      dst_addr->complete_object);
+        result = do_constexpr_lambda(ips, dip, pos, dst_addr);
       } else {
         info_with_pos(ec_lambda_not_constant_expr, pos, ips);
         do_constexpr_fail(result);
@@ -6508,12 +6555,12 @@ by implied_src.
         if (source_expr != NULL) {
           a_type_ptr  tp = skip_typerefs(source_expr->type);
           a_boolean   restore_lvalue = FALSE;
-          if (tp->kind == (a_type_kind)tk_array && source_expr->is_lvalue) {
+          if (type_is(tp, tk_array) && source_expr->is_lvalue) {
             restore_lvalue = TRUE;
             source_expr->is_lvalue = FALSE;
           }  /* if */
-          result = do_constexpr_expression(ips, source_expr, dst_addr->address,
-                                           dst_addr->complete_object);
+          result = do_constexpr_expression(ips, source_expr, dst_addr.address,
+                                           dst_addr.complete_object);
           if (restore_lvalue) source_expr->is_lvalue = TRUE;
         } else {
           /* An implicit source: The caller should catch those cases. */
@@ -6532,7 +6579,7 @@ by implied_src.
   if (dip->is_reused_value && result) {
     /* Record the location of a value to reuse. */
     a_byte  *discard;
-    map_or_replace_ptr(&ips->map, dip, dst_addr->address, discard);
+    map_or_replace_ptr(&ips->map, dip, dst_addr.address, discard);
     *(a_byte**)&discard = discard;
                         /* To avoid spurious warnings from certain
                            compilers and tools. */
@@ -6651,7 +6698,7 @@ otherwise, this routine will look up that storage in ips->map.
          pointer to the original stack to allocate the lifetime-extended
          temporary. */
       init_constexpr_stack(&ips->storage_stack);
-      ips->storage_stack.alloc_seq_number = ips->curr_alloc_seq_number;
+      ips->storage_stack.set_alloc_seq(ips->curr_alloc_seq_number);
       ips->extension_state = &saved_stack_for_full_expr;
     }  /* if */
     if (storage == NULL) {
@@ -6674,7 +6721,7 @@ otherwise, this routine will look up that storage in ips->map.
           (type_is(tp, tk_integer) && is_const_qualified_type(vp->type))) {
         ips->is_constant_evaluated = TRUE;
       }  /* if */
-      if (do_constexpr_dynamic_init(ips, dip, pos, &dst_addr)) {
+      if (do_constexpr_dynamic_init(ips, dip, pos, dst_addr)) {
         if (!is_immediate_class_type(tp) && !type_is(tp, tk_array)) {
           mark_complete_object_initialized(storage);
         }  /* if */
@@ -6936,9 +6983,12 @@ be called for the local static variables associated with constructs like
       alloc_static_object(ips, tp, var_bytes, &result);
       if (!result) break;
       map_stack_bytes(ips, vp, var_bytes);
-      result = extract_value_from_constant(ips, vp->initializer.constant,
-                                           var_bytes, var_bytes);
-      if (!result) break;
+      { a_constexpr_address dst_addr;
+        clear_address(&dst_addr, var_bytes);
+        result = extract_value_from_constant(ips, vp->initializer.constant,
+                                             dst_addr);
+        if (!result) break;
+      }
     }  /* if */
   }  /* for */
   return result;
@@ -7272,7 +7322,7 @@ Interpret the given range-based for-statement.
           set_active_address(ips, &var_addr, var_storage[0], var_storage[0]);
           check_assertion(dip != NULL);
           if (!do_constexpr_dynamic_init(ips, dip, &stmt->position,
-                                         &var_addr)) {
+                                         var_addr)) {
             do_constexpr_fail(result);
             break;
           }  /* if */
@@ -7333,6 +7383,7 @@ successfully interpreted, FALSE otherwise.
   a_switch_case_entry_ptr  scep = stmt->variant.switch_stmt.extra_info
                                       ->sorted_cases;
   a_boolean                is_signed, has_cond_var;
+  a_constexpr_address      case_cap;
 
   has_cond_var = node_is(expr, enk_condition);
   if (has_cond_var &&
@@ -7354,10 +7405,11 @@ successfully interpreted, FALSE otherwise.
   /* Search through the ordered list of case labels for the one selected
      by the switch expression. */
   alloc_complete_object(ips, n_bytes, tp, case_value);
+  set_active_address(ips, &case_cap, case_value, case_value);
   for (; scep != NULL; scep = scep->next_on_sorted_list) {
     int             cmp;
     a_constant_ptr  case_con = scep->case_value;
-    result = copy_val_from_constant(ips, case_con, case_value, case_value);
+    result = extract_value_from_constant(ips, case_con, case_cap);
     if (!result) {
       goto done_with_switch;
     }  /* if */
@@ -7372,8 +7424,7 @@ successfully interpreted, FALSE otherwise.
       break;
 #if GNU_EXTENSIONS_ALLOWED
     } else if (scep->range_end != NULL) {
-      result = copy_val_from_constant(
-                                ips, scep->range_end, case_value, case_value);
+      result = extract_value_from_constant(ips, scep->range_end, case_cap);
       if (!result) {
         goto done_with_switch;
       }  /* if */
@@ -7419,9 +7470,9 @@ successfully interpreted, FALSE otherwise.
         if (substmt == stmt) {
           /* We're breaking out of the switch statement itself. */
           goto done_with_switch;
-        } else if (substmt->kind == (a_statement_kind)stmk_while ||
-                   substmt->kind == (a_statement_kind)stmk_end_test_while ||
-                   substmt->kind == (a_statement_kind)stmk_for) {
+        } else if (substmt->kind == stmk_while ||
+                   substmt->kind == stmk_end_test_while ||
+                   substmt->kind == stmk_for) {
           /* We're breaking out of an inner loop.  This completes the
              execution of the break statement. */
           ips->curr_call_frame->loop_break_active = FALSE;
@@ -7436,13 +7487,13 @@ successfully interpreted, FALSE otherwise.
         if (substmt == stmt) {
           /* We're continuing out of the switch statement itself. */
           goto done_with_switch;
-        } else if (substmt->kind == (a_statement_kind)stmk_while ||
-                   substmt->kind == (a_statement_kind)stmk_end_test_while ||
-                   substmt->kind == (a_statement_kind)stmk_for) {
+        } else if (substmt->kind == stmk_while ||
+                   substmt->kind == stmk_end_test_while ||
+                   substmt->kind == stmk_for) {
           /* We're continuing an inner loop.  This completes the
              execution of the continue statement. */
           ips->curr_call_frame->continue_active = FALSE;
-          if (substmt->kind == (a_statement_kind)stmk_for) {
+          if (substmt->kind == stmk_for) {
             result = do_constexpr_for_statement(ips, substmt,
                                                 /*do_continue=*/TRUE);
           } else {
@@ -7472,10 +7523,10 @@ successfully interpreted, FALSE otherwise.
         if (substmt == stmt) {
           /* We're flowing off the switch statement itself. */
           goto done_with_switch;
-        } else if (substmt->kind == (a_statement_kind)stmk_while) {
+        } else if (substmt->kind == stmk_while) {
           /* We jumped into a simple while loop.  Continue the loop. */
           break;
-        } else if (substmt->kind == (a_statement_kind)stmk_end_test_while) {
+        } else if (substmt->kind == stmk_end_test_while) {
           /* We jumped into a do...while loop.  Evaluate the loop condition to
              decide whether the loop should be continued.  Since the condition
              is an integral value (bool), we can reuse the case_value
@@ -7484,8 +7535,7 @@ successfully interpreted, FALSE otherwise.
           a_boolean             ovfl;
           expr = substmt->expr;
           tp = skip_typerefs(expr->type);
-          do_constexpr_full_expression(
-                                   ips, expr, case_value, case_value, result);
+          do_constexpr_full_expr(ips, expr, case_cap, result);
           release_address_structures(expr, tp, case_value);
           if (!result) {
             goto done_with_switch;
@@ -7497,7 +7547,7 @@ successfully interpreted, FALSE otherwise.
           } else {
             /* Keep looking for the next statement to execute. */
           }  /* if */
-        } else if (substmt->kind == (a_statement_kind)stmk_for) {
+        } else if (substmt->kind == stmk_for) {
           /* We jumped into a "for" loop.  Continue the loop, but skip
              its initialization. */
           if (!do_constexpr_for_statement(ips, substmt,
@@ -7509,8 +7559,7 @@ successfully interpreted, FALSE otherwise.
         next_stmt = substmt->next;
         /* Skip over label statements because some compiler-generated labels
            do not have the right parent statement for our purposes. */
-        while (next_stmt != NULL &&
-               next_stmt->kind == (a_statement_kind)stmk_label) {
+        while (next_stmt != NULL && next_stmt->kind == stmk_label) {
           next_stmt = next_stmt->next;
         }  /* if */
         if (next_stmt != NULL) {
@@ -7838,7 +7887,7 @@ successfully interpreted, FALSE otherwise.
           }  /* if */
         }  /* while */
         if (stmt->expr != NULL) {
-          do_constexpr_full_expr(ips, stmt->expr, &frame->result_loc, result);
+          do_constexpr_full_expr(ips, stmt->expr, frame->result_loc, result);
         } else if (stmt->variant.return_dynamic_init != NULL) {
           /* Handle return_dynamic_init case. */
           a_dynamic_init_ptr  dip = stmt->variant.return_dynamic_init;
@@ -7850,7 +7899,7 @@ successfully interpreted, FALSE otherwise.
                                    frame->result_loc.complete_object);
           } else {
             result = do_constexpr_dynamic_init(ips, dip, &stmt->position, 
-                                               &frame->result_loc);
+                                               frame->result_loc);
           }  /* if */
         } else {
           /* Return without a value. */
@@ -7861,7 +7910,7 @@ successfully interpreted, FALSE otherwise.
             if (pos->seq == 0) {
               a_statement_ptr  parent_stmt = stmt->parent;
               for (;;) {
-                if (parent_stmt->kind == (a_statement_kind)stmk_block) {
+                if (parent_stmt->kind == stmk_block) {
                   if (parent_stmt->variant.block.extra_info
                                  ->final_position.seq != 0) {
                     pos = &parent_stmt->variant.block.extra_info
@@ -7886,7 +7935,7 @@ done_with_return_statement:
     case stmk_stmt_expr_result:
       { a_call_frame_ptr  frame = ips->curr_call_frame;
         if (stmt->expr != NULL) {
-          do_constexpr_full_expr(ips, stmt->expr, &frame->result_loc, result);
+          do_constexpr_full_expr(ips, stmt->expr, frame->result_loc, result);
         } else if (stmt->variant.stmt_expr_result.dynamic_init != NULL) {
           /* Handle return_dynamic_init case. */
           a_dynamic_init_ptr  dip;
@@ -7897,7 +7946,7 @@ done_with_return_statement:
                                    frame->result_loc.complete_object);
           } else {
             result = do_constexpr_dynamic_init(ips, dip, &stmt->position, 
-                                               &frame->result_loc);
+                                               frame->result_loc);
           }  /* if */
         }  /* if */
       }
@@ -10702,7 +10751,9 @@ meanings of call_node, result_storage, and complete_obj.
                               &call_node->position);
   }  /* if */
   if (err_code == ec_no_error && !did_not_fold) {
-    extract_value_from_constant(ips, cp, result_storage, complete_obj);
+    a_constexpr_address  dst_addr;
+    set_active_address(ips, &dst_addr, result_storage, complete_obj);
+    extract_value_from_constant(ips, cp, dst_addr);
   } else {
     info_with_pos_type2(ec_incompatible_std_meta_value_of_type,
                         &call_node->position, val_type, cp->type, ips);
@@ -10750,8 +10801,9 @@ See do_constexpr_intrinsic_call for the meaning of the parameters.
       { if (cp == NULL) cp = (a_constant*)rvp->entity.ptr;
         rt = cp->type;
         if (identical_types_ignoring_qualifiers(rt, val_type)) {
-          result = extract_value_from_constant(ips, cp, result_storage,
-                                               complete_obj);
+          a_constexpr_address  dst_addr;
+          set_active_address(ips, &dst_addr, result_storage, complete_obj);
+          result = extract_value_from_constant(ips, cp, dst_addr);
         } else {
            info_with_pos_type2(ec_incompatible_std_meta_value_of_type,
                                &call_node->position, val_type, rt, ips);
@@ -15192,16 +15244,16 @@ token cache.
 
 
 static a_boolean do_constexpr_eval_token_sequence(
-                                           an_interpreter_state  *ips,
-                                           an_expr_node_ptr      tok_seq_node,
-                                           a_constexpr_address   *result_cap)
+                                      an_interpreter_state       *ips,
+                                      an_expr_node_ptr           tok_seq_node,
+                                      a_constexpr_address const  &result_cap)
 /*
 The given expression is an enk_token_sequence node.  Evaluate it and return
 the corresponding reflection value at the location denoted by result_cap.
 */
 {
   a_boolean           result = TRUE;
-  a_reflection_value  *result_rvp = (a_reflection_value*)result_cap->address;
+  a_reflection_value  *result_rvp = (a_reflection_value*)result_cap.address;
   a_token_sequence    *orig_tok_seq, *tok_seq = NULL;
   a_token_cache       *new_cache = NULL;
   Dyn_array<a_constant*>
@@ -15334,8 +15386,7 @@ the corresponding reflection value at the location denoted by result_cap.
     result_rvp->entity.kind = iek_token_sequence;
     result_rvp->entity.ptr = (char*)tok_seq;
     result_rvp->local_scope_number = FILE_SCOPE_NUMBER;
-    mark_subobject_initialized(result_cap->address,
-                               result_cap->complete_object);
+    mark_subobject_initialized(result_cap.address, result_cap.complete_object);
   }  /* if */
 done:
   for (auto cp: values) release_local_constant(&cp);
@@ -16244,9 +16295,9 @@ the arguments.
 }  /* release_address_structures_for_args */
 
 
-static a_boolean do_constexpr_call(an_interpreter_state  *ips,
-                                   an_expr_node_ptr      call_node,
-                                   a_constexpr_address   *result_cap)
+static a_boolean do_constexpr_call(an_interpreter_state       *ips,
+                                   an_expr_node_ptr           call_node,
+                                   a_constexpr_address const  &result_cap)
 /*
 Interpret the given call node and place the result in the storage pointed to
 by *result_cap.  Return TRUE if no error occurred; otherwise, return FALSE and
@@ -16256,8 +16307,8 @@ update *ips accordingly.
   an_expr_node_ptr  callee_node, arg;
   a_routine_ptr     callee = NULL;
   a_boolean         result = TRUE, lambda_entry_case;
-  a_byte            *result_storage = result_cap->address,
-                    *complete_object = result_cap->complete_object,
+  a_byte            *result_storage = result_cap.address,
+                    *complete_object = result_cap.complete_object,
                     *pre_evaluated_this_bytes = NULL;
   a_constexpr_ptr_to_mem
                     *pm_target = NULL;
@@ -16828,11 +16879,11 @@ to 10 nested anonymous unions.
 }  /* anon_union_field_is_active_field */
 
 
-static a_boolean do_constexpr_ctor(an_interpreter_state  *ips,
-                                   a_dynamic_init_ptr    dip,
-                                   a_source_position     *pos,
-                                   a_constexpr_address   *cap,
-                                   a_constexpr_address   *implied_src)
+static a_boolean do_constexpr_ctor(an_interpreter_state       *ips,
+                                   a_dynamic_init_ptr         dip,
+                                   a_source_position          *pos,
+                                   a_constexpr_address const  &cap,
+                                   a_constexpr_address const  *implied_src)
 /*
 Interpret the constructor call represented by the given dynamic initialization
 entry.  Return TRUE if no error occurred; otherwise, return FALSE and update
@@ -16894,8 +16945,8 @@ the body of the (constructor) function proper.
                          &ips->diag_list);
     do_constexpr_fail(result);
   } else {
-    a_byte               *result_storage = cap->address;
-    a_byte               *complete_object = cap->complete_object;
+    a_byte               *result_storage = cap.address;
+    a_byte               *complete_object = cap.complete_object;
     a_scope_ptr          callee_scope = scope_for_routine(callee);
     a_statement_ptr      block_stmt = callee_scope->assoc_block;
     a_call_frame         frame;
@@ -17069,7 +17120,7 @@ the body of the (constructor) function proper.
       do_host_alignment(&this_n_bytes);
       with_postfix_bytes = this_n_bytes+sizeof(a_var_postfix);
       alloc_complete_object(ips, with_postfix_bytes, this_type, this_bytes);
-      *(a_constexpr_address*)this_bytes = *cap;
+      *(a_constexpr_address*)this_bytes = cap;
       mark_complete_object_initialized(this_bytes);
       postfix = (a_var_postfix*)(this_bytes+this_n_bytes);
       postfix->alloc_seq_number = alloc_seq_number;
@@ -17115,7 +17166,7 @@ the body of the (constructor) function proper.
     ctor_init = callee_scope->variant.routine.constructor_inits;
     for (; ctor_init != NULL; ctor_init = ctor_init->next) {
       a_byte_count         offset;
-      a_constexpr_address  dst_addr = *cap;
+      a_constexpr_address  dst_addr = cap;
       a_dynamic_init_ptr   sub_dip;
       a_type_ptr           tp;
       a_boolean            record_param_ref = FALSE,
@@ -17182,7 +17233,7 @@ the body of the (constructor) function proper.
              the innermost anonymous union enclosing fp. */
           get_mapped_byte_count(&persistent_map, orig_fp, offset);
           dst_addr.address += offset;
-          offset = (a_byte_count)(dst_addr.address - cap->address);
+          offset = (a_byte_count)(dst_addr.address - cap.address);
         } else {
           if (type_is(class_type, tk_union)) {
             copy_address_structures(&dst_addr);
@@ -17200,7 +17251,7 @@ the body of the (constructor) function proper.
           *(a_field_ptr*)result_storage = fp;
         }  /* if */
         mark_complete_class_object_if_needed(tp, dst_addr.address);
-      } else if (ctor_init->kind == (a_constructor_init_kind)cik_delegation) {
+      } else if (ctor_init->kind == cik_delegation) {
         result = do_constexpr_dynamic_init(ips, ctor_init->initializer, pos,
                                            cap);
         break;
@@ -17261,7 +17312,7 @@ the body of the (constructor) function proper.
             adjusted_src_addr.address += offset;
             if (!do_constexpr_ctor(ips, sub_dip,
                                    &callee->source_corresp.decl_position,
-                                   &dst_addr, &adjusted_src_addr)) {
+                                   dst_addr, &adjusted_src_addr)) {
               do_constexpr_fail(result);
               break;
             } else {
@@ -17293,7 +17344,7 @@ the body of the (constructor) function proper.
           }  /* if */
           if (!do_constexpr_dynamic_init(ips, sub_dip,
                                          &callee->source_corresp.decl_position,
-                                         &dst_addr, src_addr)) {
+                                         dst_addr, src_addr)) {
             do_constexpr_fail(result);
             break;
           } else {
@@ -17489,7 +17540,7 @@ This is similar to do_constexpr_ctor.
     /*lint -e{733}*/
     a_constexpr_address  ce_addr;
     set_active_address(ips, &ce_addr, result_storage, complete_object);
-    push_call_frame(ips, &frame, callee, pos, &ce_addr);
+    push_call_frame(ips, &frame, callee, pos, ce_addr);
     /* Run the function's top-level block statement. */
     if (!result) {
       /* Something went wrong.  Don't perform additional interpretation. */
@@ -18385,11 +18436,11 @@ return FALSE.
     a_constant_ptr  val_con = local_constant();
     if (constant_value_at_address(addr_con, val_con)) {
       /* Copy the constant value. */
-      result = copy_val_from_constant(ips, val_con,
-                                      result_storage, complete_object);
+      a_constexpr_address  cap;
+      set_active_address(ips, &cap, result_storage, complete_object);
+      result = extract_value_from_constant(ips, val_con, cap);
 #if MICROSOFT_EXTENSIONS_ALLOWED
-    } else if (addr_con->variant.address.kind ==
-                                           (an_address_base_kind)abk_uuidof &&
+    } else if (addr_con->variant.address.kind == abk_uuidof &&
                is_immediate_class_type(tp)) {
       /* Obtain the UUID string associated with the addr_con entry (via the
          type carrying that UUID), and decode it into a sequence of integer
@@ -18749,16 +18800,14 @@ given complete object).  Otherwise, return FALSE and update *ips accordingly.
 }  /* do_constexpr_bound_expr */
 
 
-static a_boolean do_constexpr_lambda(an_interpreter_state *ips,
-                                     a_dynamic_init_ptr   dip,
-                                     a_source_position    *pos,
-                                     a_byte               *result_storage,
-                                     a_byte               *complete_object)
+static a_boolean do_constexpr_lambda(an_interpreter_state       *ips,
+                                     a_dynamic_init_ptr         dip,
+                                     a_source_position          *pos,
+                                     a_constexpr_address const  &dst_addr)
 /*
 Interpret dip, which must be a dik_lambda initializer.  Return TRUE if no error
 occurred; otherwise, return FALSE and update *ips accordingly.  The resulting
-closure object is placed at the location indicated by result_storage, which
-is within the given complete_object.
+closure object is placed at the location indicated by dst_addr.
 */
 {
   a_lambda_ptr          lambda;
@@ -18766,13 +18815,15 @@ is within the given complete_object.
   a_constant_ptr        cp;
   a_constant_ptr        field_con;
   a_boolean             result = TRUE;
+  a_byte                *result_storage = dst_addr.address,
+                        *complete_object = dst_addr.complete_object;
 
   check_assertion(dyn_init_is(dip, dik_lambda));
   lambda = dip->variant.constant.lambda;
   if (!dip->variant.constant.non_constant) {
     /* Simple constant initializer. */
-    result = copy_val_from_constant(ips, dip->variant.constant.ptr,
-                                    result_storage, complete_object);
+    result = extract_value_from_constant(
+                                    ips, dip->variant.constant.ptr, dst_addr);
   } else {
     cp = dip->variant.constant.ptr;
     /* Initialize each field of the closure object from the corresponding
@@ -18783,14 +18834,14 @@ is within the given complete_object.
          cap = cap->next, field_con = field_con->next) {
       a_field_ptr         fp = cap->closure_field;
       a_byte_count        field_offset;
-      a_byte              *dst_bytes;
+      a_byte              *sub_bytes;
       a_dynamic_init_ptr  sub_dip;
       a_type_ptr          ftp = skip_typerefs(fp->type);
       /* Determine the offset of this field within the closure object's
          storage. */
       get_mapped_byte_count(&persistent_map, fp, field_offset);
-      dst_bytes = result_storage+field_offset;
-      mark_complete_class_object_if_needed(ftp, dst_bytes);
+      sub_bytes = result_storage+field_offset;
+      mark_complete_class_object_if_needed(ftp, sub_bytes);
       if (cap->is_init_capture) {
         /* Interpret the initializer for the capture. */
         sub_dip = cap->captured.initializer;
@@ -18798,12 +18849,12 @@ is within the given complete_object.
           /* Just zero the storage (for the dik_zero case) and record the
              derivation structure (which is needed even for the dik_none
              case). */
-          init_subobject_to_zero(ips, dst_bytes, ftp, complete_object);
+          init_subobject_to_zero(ips, sub_bytes, ftp, complete_object);
         } else {
-          a_constexpr_address  dst_addr;
-          set_active_address(ips, &dst_addr, dst_bytes, complete_object);
-          if (do_constexpr_dynamic_init(ips, sub_dip, pos, &dst_addr)) {
-            mark_subobject_initialized(dst_bytes, complete_object);
+          a_constexpr_address  sub_addr = dst_addr;
+          sub_addr.address = sub_bytes;
+          if (do_constexpr_dynamic_init(ips, sub_dip, pos, sub_addr)) {
+            mark_subobject_initialized(sub_bytes, complete_object);
           } else {
             result = FALSE;
           }  /* if */
@@ -18839,17 +18890,17 @@ is within the given complete_object.
           src_bytes = src_addr->address+field_offset;
           if (!constexpr_copy_object(ips, src_fp->type, pos,
                                      src_bytes, src_addr->complete_object,
-                                     dst_bytes, complete_object)) {
+                                     sub_bytes, complete_object)) {
             result = FALSE;
           } else {
-            mark_complete_class_object_if_needed(src_fp->type, dst_bytes);
+            mark_complete_class_object_if_needed(src_fp->type, sub_bytes);
           }  /* if */
         } else {
-          a_constexpr_address  dst_addr;
-          set_active_address(ips, &dst_addr, dst_bytes, complete_object);
-          if (do_constexpr_dynamic_init(ips, sub_dip, pos, &dst_addr)) {
-            mark_subobject_initialized(dst_bytes, complete_object);
-            mark_complete_class_object_if_needed(ftp, dst_bytes);
+          a_constexpr_address  sub_addr = dst_addr;
+          sub_addr.address = sub_bytes;
+          if (do_constexpr_dynamic_init(ips, sub_dip, pos, sub_addr)) {
+            mark_subobject_initialized(sub_bytes, complete_object);
+            mark_complete_class_object_if_needed(ftp, sub_bytes);
           } else {
             result = FALSE;
           }  /* if */
@@ -18890,8 +18941,9 @@ is within the given complete_object.
           if (var_con != NULL) {
             var_storage = do_constexpr_alloc_variable(ips, vp, &result);
             if (result) {
-              result = copy_val_from_constant(ips, var_con, var_storage,
-                                              var_storage);
+              a_constexpr_address  var_cap;
+              set_active_address(ips, &var_cap, var_storage, var_storage);
+              result = extract_value_from_constant(ips, var_con, var_cap);
             }  /* if */
           } else {
             /* The variable does not have a constant value. Report the
@@ -18939,18 +18991,20 @@ is within the given complete_object.
                             var_storage != NULL);
             if (!constexpr_copy_object(ips, ftp, pos,
                                        var_storage, var_addr.complete_object,
-                                       dst_bytes, complete_object)) {
+                                       sub_bytes, complete_object)) {
               do_constexpr_fail(result);
             }  /* if */
           } else if (dyn_init_is(sub_dip, dik_constructor)) {
-            a_constexpr_address  dst_addr;
-            set_active_address(ips, &dst_addr, dst_bytes, complete_object);
-            if (!do_constexpr_ctor(ips, sub_dip, pos, &dst_addr, &var_addr)) {
+            a_constexpr_address  sub_addr = dst_addr;
+            sub_addr.address = sub_bytes;
+            if (!do_constexpr_ctor(ips, sub_dip, pos, sub_addr, &var_addr)) {
               do_constexpr_fail(result);
             }  /* if */
           } else if (dyn_init_is(sub_dip, dik_expression)) {
-            if (!do_constexpr_expression(ips, sub_dip->variant.expression,
-                                         dst_bytes, complete_object)) {
+            a_constexpr_address  sub_addr = dst_addr;
+            sub_addr.address = sub_bytes;
+            if (!do_constexpr_expr(ips, sub_dip->variant.expression,
+                                   sub_addr)) {
               do_constexpr_fail(result);
             }  /* if */
           } else if (dyn_init_is(sub_dip, dik_none) ||
@@ -18964,8 +19018,8 @@ is within the given complete_object.
             unexpected_condition();
           }  /* if */
           if (result) {
-            mark_subobject_initialized(dst_bytes, complete_object);
-            mark_complete_class_object_if_needed(ftp, dst_bytes);
+            mark_subobject_initialized(sub_bytes, complete_object);
+            mark_complete_class_object_if_needed(ftp, sub_bytes);
           }  /* if */
         }  /* if */
       }  /* if */
@@ -19800,8 +19854,9 @@ Evaluate the given new-expression.
     /* Initialize each element. */
     a_dynamic_init_ptr  dip = ndsp->dynamic_init;
     int                 k = 0;
-    a_byte              *elem = cap->address,
-                        *complete_obj = cap->complete_object;
+    a_constexpr_address  elem_cap = *cap;
+    a_byte               *elem = cap->address,
+                         *complete_obj = cap->complete_object;
     if (dyn_init_is(dip, dik_constant) ||
         dyn_init_is(dip, dik_nonconstant_aggregate)) {
       a_constant_ptr  init_cp = dip->variant.constant.ptr;
@@ -19844,16 +19899,17 @@ Evaluate the given new-expression.
                 /* A ck_init_repeat entry with zero count indicates that the
                    remainder of the array should be filled with that
                    initializer. */
+                elem_cap.address = elem;
                 if (!extract_value_from_constant(
                                    ips, elem_cp->variant.init_repeat.constant,
-                                   elem, complete_obj)) {
+                                   elem_cap)) {
                   result = FALSE;
                   goto done;
                 }  /* if */
               } else {
                 /* A normal array element value to evaluate. */
-                if (!extract_value_from_constant(ips, elem_cp, elem,
-                                                 complete_obj)) {
+                elem_cap.address = elem;
+                if (!extract_value_from_constant(ips, elem_cp, elem_cap)) {
                   result = FALSE;
                   goto done;
                 }  /* if */
@@ -19897,11 +19953,8 @@ Evaluate the given new-expression.
       if (dyn_init_is(dip, dik_zero)) {
         init_subobject_to_zero(ips, elem, elem_type, complete_obj);
       } else {
-        a_constexpr_address  dst_addr;
-        clear_address(&dst_addr, elem);
-        dst_addr.alloc_seq_number = cap->alloc_seq_number;
-        dst_addr.complete_object = complete_obj;
-        if (!do_constexpr_dynamic_init(ips, dip, &expr->position, &dst_addr)) {
+        elem_cap.address = elem;
+        if (!do_constexpr_dynamic_init(ips, dip, &expr->position, elem_cap)) {
           result = FALSE;
           break;
         }  /* if */
@@ -20251,9 +20304,9 @@ transformation of the type accordingly.
 
 
 /*lint -efunc(2704,*do_constexpr_expr)*/
-static a_boolean do_constexpr_expr(an_interpreter_state  *ips,
-                                   an_expr_node_ptr      orig_expr,
-                                   a_constexpr_address   *result_cap)
+static a_boolean do_constexpr_expr(an_interpreter_state       *ips,
+                                   an_expr_node_ptr           orig_expr,
+                                   a_constexpr_address const  &result_cap)
 /*
 Interpret the given expression in the given interpreter context.  If
 successful return TRUE and store the result at the address indicated by
@@ -20268,8 +20321,8 @@ Otherwise, return FALSE and update *ips accordingly.
   an_integer_kind      int_kind;
   a_boolean            is_signed;
   a_host_large_integer host_int_val;
-  a_byte               *result_storage = result_cap->address,
-                       *complete_object = result_cap->complete_object;
+  a_byte               *result_storage = result_cap.address,
+                       *complete_object = result_cap.complete_object;
 
   if (type_is(tp, tk_template_param) || expr->do_not_interpret) {
     info_with_pos(ec_constexpr_expression_cannot_be_interpreted,
@@ -20434,7 +20487,7 @@ the value representation of the integer value.
               /* Return the address of the (class) prvalue. */
               clear_address(result_storage, opnd1_value);
               ((a_constexpr_address *)result_storage)->alloc_seq_number =
-                                          ips->storage_stack.alloc_seq_number;
+                                               ips->storage_stack.alloc_seq();
             }  /* if */
             break;
           case eok_indirect:
@@ -20974,10 +21027,8 @@ the value representation of the integer value.
               } else {
                 /* The somewhat unusual case of an array rvalue. */
                 clear_address(result_addr, opnd1_value);
-                result_addr->alloc_seq_number =
-                                          ips->storage_stack.alloc_seq_number;
+                result_addr->alloc_seq_number = ips->storage_stack.alloc_seq();
               }  /* if */
-              result_addr->flags |= CA_ARRAY_ELEMENT;
               /* Check that the array length fits in interpreter limits. */
               if (opnd1_type->variant.array.is_template_dependent_size_array) {
                 info_with_pos(ec_constexpr_dependent_array_size,
@@ -20991,7 +21042,7 @@ the value representation of the integer value.
                    explicitly truncate to the appropriate bitwidth. */
                 constexpr unsigned long long array_length_bitmask =
                                         bitmask_of_width<ARRAY_LENGTH_WIDTH>();
-
+                result_addr->flags |= CA_ARRAY_ELEMENT;
                 result_addr->length = ((unsigned int)length &
                                        array_length_bitmask);
                 if (is_variant_path(result_addr)) {
@@ -22129,7 +22180,7 @@ the value representation of the integer value.
                 a_boolean          did_not_fold;
                 an_error_code      err_code;
                 an_error_severity  sev;
-                clear_constant(diff_con, (a_constant_repr_kind)ck_integer);
+                clear_constant(diff_con, ck_integer);
                 diff_con->type = tp;
                 do_pdiff(addr1->variant.addr_con, addr2->variant.addr_con,
                          diff_con, &did_not_fold, &err_code, &sev);
@@ -22137,8 +22188,8 @@ the value representation of the integer value.
                   do_constexpr_fail(result);
                   info_with_pos(err_code, &expr->position, ips);
                 } else {
-                  result = copy_val_from_constant(
-                               ips, diff_con, result_storage, result_storage);
+                  result = extract_value_from_constant(ips, diff_con,
+                                                       result_cap);
                 }  /* if */
                 release_local_constant(&diff_con);
               } else {
@@ -23010,9 +23061,8 @@ the value representation of the integer value.
                 unexpected_condition();
               }  /* if */
               if (result) {
-                result = copy_val_from_constant(ips, result_con,
-                                                result_storage,
-                                                complete_object);
+                result = extract_value_from_constant(ips, result_con,
+                                                     result_cap);
               }  /* if */
             }
             break;
@@ -24555,7 +24605,7 @@ the value representation of the integer value.
               a_field_ptr          field = node_field(opnd2);
               a_byte_count         offset;
               if (opnd1->is_lvalue || opnd1->is_xvalue ||
-                  opnd1_type->kind == (a_type_kind)tk_pointer) {
+                  type_is(opnd1_type, tk_pointer)) {
                 /* The first operand is already an address. */
                 if (opnd1_type->kind == (a_type_kind)tk_pointer) {
                   opnd1_type = skip_typerefs(opnd1_type->variant.pointer.type);
@@ -24566,8 +24616,7 @@ the value representation of the integer value.
                    it. */
                 mark_complete_object_initialized(opnd1_value);
                 clear_address(&result_addr, opnd1_value);
-                result_addr.alloc_seq_number =
-                                          ips->storage_stack.alloc_seq_number;
+                result_addr.alloc_seq_number = ips->storage_stack.alloc_seq();
               }  /* if */
               if (is_runtime_data_address(&result_addr)) {
                 /* Attempt to compute a new offset for a run-time address
@@ -24636,6 +24685,7 @@ the value representation of the integer value.
                 info_with_pos(ec_constexpr_null_dereference, &expr->position,
                               ips);
               } else {
+                result_addr.flags &= (unsigned char)~CA_ARRAY_ELEMENT;
                 if (type_is(parent_class_of(field), tk_union)) {
                   if (!add_to_variant_path(&result_addr, field, opnd1_type)) {
                     do_constexpr_fail(result);
@@ -24646,7 +24696,6 @@ the value representation of the integer value.
                 }  /* if */
                 get_mapped_byte_count(&persistent_map, field, offset);
                 result_addr.address += offset;
-                result_addr.flags &= (unsigned char)~CA_ARRAY_ELEMENT;
                 if (field->is_bit_field) {
                   /* To suppress compiler warnings about data truncation,
                      explicitly truncate to the appropriate bitwidth. */
@@ -24693,8 +24742,7 @@ the value representation of the integer value.
                    it. */
                 mark_complete_object_initialized(opnd1_value);
                 clear_address(&result_addr, opnd1_value);
-                result_addr.alloc_seq_number =
-                                          ips->storage_stack.alloc_seq_number;
+                result_addr.alloc_seq_number = ips->storage_stack.alloc_seq();
               }  /* if */
               pm_value = (a_constexpr_ptr_to_mem*)opnd2_value;
               field = pm_value->variant.field;
@@ -24748,7 +24796,8 @@ the value representation of the integer value.
                 info_with_pos(ec_constexpr_null_dereference, &expr->position,
                               ips);
               } else {
-                if (parent_class_of(field)->kind == (a_type_kind)tk_union) {
+                result_addr.flags &= (unsigned char)~CA_ARRAY_ELEMENT;
+                if (type_is(parent_class_of(field), tk_union)) {
                   if (!add_to_variant_path(&result_addr, field, opnd1_type)) {
                     do_constexpr_fail(result);
                     info_with_pos(ec_constexpr_too_many_nested_anonymous_types,
@@ -24763,7 +24812,6 @@ the value representation of the integer value.
                 } else {
                   get_mapped_byte_count(&persistent_map, field, offset);
                   result_addr.address += offset;
-                  result_addr.flags &= (unsigned char)~CA_ARRAY_ELEMENT;
                   if (field->is_bit_field) {
                     /* To suppress compiler warnings about data truncation,
                        explicitly truncate to the appropriate bitwidth. */
@@ -24853,23 +24901,24 @@ the value representation of the integer value.
           if (con_bytes == NULL) {
             alloc_static_object(ips, tp, con_bytes, &result);
             if (result) {
+              a_constexpr_address dst_addr;
+              clear_address(&dst_addr, con_bytes);
+              result = extract_value_from_constant(ips, con, dst_addr);
               mark_complete_object_initialized(con_bytes);
               map_ptr(&ips->map, con, con_bytes);
-              result = copy_val_from_constant(ips, con, con_bytes, con_bytes);
             }  /* if */
           }  /* if */
           clear_address(result_storage, con_bytes);
           ((a_constexpr_address*)result_storage)->flags |= CA_CONST_STORAGE;
         } else {
           con_bytes = result_storage;
-          result = copy_val_from_constant(ips, con, con_bytes,
-                                          complete_object);
+          result = extract_value_from_constant(ips, con, result_cap);
           if (constant_is(con, ck_string)) {
             /* An rvalue string constant is rare, but possible with structured
                bindings:
                  auto [sb] = "";
                This initializes the unnamed array variable from an rvalue
-               string constant.  copy_val_from_constant will have mapped
+               string constant.  extract_value_from_constant will have mapped
                con_bytes to con assuming it could reuse those bytes in the
                future, but that is not the case for an rvalue: Undo the
                mapping. */
@@ -24892,7 +24941,7 @@ the value representation of the integer value.
             do_constexpr_fail(result);
           }  /* if */
         }  /* if */
-        if (var->init_kind == (an_init_kind)initk_binding) {
+        if (var->init_kind == initk_binding) {
           /* This variable is an alias for an lvalue expression. */
           if (!do_constexpr_bound_expr(ips, expr, result_storage,
                                        complete_object)) {
@@ -24939,8 +24988,7 @@ the value representation of the integer value.
             if (con != NULL) {
               a_boolean  saved_flag = ips->disallow_mutable_field_load;
               ips->disallow_mutable_field_load = TRUE;
-              result = copy_val_from_constant(ips, con, result_storage,
-                                              result_storage);
+              result = extract_value_from_constant(ips, con, result_cap);
               ips->disallow_mutable_field_load = saved_flag;
             } else if (is_immediate_class_type(tp) &&
                        tp->variant.class_struct_union.is_empty_class &&
@@ -25048,8 +25096,7 @@ the value representation of the integer value.
             }  /* if */
             saved_flag = ips->disallow_mutable_field_load;
             ips->disallow_mutable_field_load = TRUE;
-            result = extract_value_from_constant(
-                                    ips, con, result_storage, result_storage);
+            result = extract_value_from_constant(ips, con, result_cap);
             ips->disallow_mutable_field_load = saved_flag;
           }  /* if */
         }  /* if */
@@ -25111,7 +25158,7 @@ the value representation of the integer value.
             if (ips->extension_state != NULL) {
               alloc_bytes(ips->extension_state, n_bytes+prefix_size,
                           tmp_bytes);
-              alloc_seq_number = ips->extension_state->alloc_seq_number;
+              alloc_seq_number = ips->extension_state->alloc_seq();
               if (dip->destructor != NULL &&
                   !register_extended_destruction(ips, dip, tp,
                                                  tmp_bytes+prefix_size,
@@ -25133,7 +25180,7 @@ the value representation of the integer value.
             }  /* if */
           } else {
             alloc_stack_bytes(ips, n_bytes+prefix_size, tmp_bytes);
-            alloc_seq_number = ips->storage_stack.alloc_seq_number;
+            alloc_seq_number = ips->storage_stack.alloc_seq();
           }  /* if */
           memzero(tmp_bytes, size_t_arg(prefix_size-sizeof(a_type_ptr)));
           tmp_bytes += prefix_size;
@@ -25169,7 +25216,7 @@ the value representation of the integer value.
           tmp_bytes = result_storage;
           tmp_complete_obj = complete_object;
           temp_lifetime = TRUE;
-          alloc_seq_number = ips->storage_stack.alloc_seq_number;
+          alloc_seq_number = ips->storage_stack.alloc_seq();
         }  /* if */
         if (dyn_init_is(dip, dik_zero)) {
           init_subobject_to_zero(ips, tmp_bytes, tp, tmp_complete_obj);
@@ -25179,7 +25226,7 @@ the value representation of the integer value.
           dst_addr.alloc_seq_number = alloc_seq_number;
           dst_addr.complete_object = tmp_complete_obj;
           if (!do_constexpr_dynamic_init(ips, dip, &expr->position,
-                                         &dst_addr)) {
+                                         dst_addr)) {
             do_constexpr_fail(result);
           }  /* if */
         }  /* if */
@@ -25232,8 +25279,8 @@ the value representation of the integer value.
           Dyn_array<a_constant*>
                      *params = (Dyn_array<a_constant*>*)param_table_bytes;
           if (param_num < params->length()) {
-            result = copy_val_from_constant(ips, (*params)[param_num],
-                                            result_storage, complete_object);
+            result = extract_value_from_constant(ips, (*params)[param_num],
+                                                 result_cap);
             if (result_storage == complete_object) {
               mark_complete_object_initialized(complete_object);
             } else {
@@ -25311,7 +25358,7 @@ the value representation of the integer value.
       { a_constexpr_address  dst_addr;
         set_active_address(ips, &dst_addr, result_storage, complete_object);
         if (!do_constexpr_dynamic_init(ips, expr->variant.initializer.dyn_init,
-                                       &expr->position, &dst_addr)) {
+                                       &expr->position, dst_addr)) {
           result = FALSE;
         }  /* if */
       }
@@ -26151,7 +26198,7 @@ diagnostic in *ips.
          is added only if the active field is not the first initializable
          field. */
       { a_field_ptr  fp, afp;
-        set_constant_kind(con, (a_constant_repr_kind)ck_aggregate);
+        set_constant_kind(con, ck_aggregate);
         fp = fields_of(type);
         fp = next_alloc_field(fp);
         if (fp == NULL) {
@@ -26166,7 +26213,7 @@ diagnostic in *ips.
             afp = (a_field_ptr)*(void**)object;
           }  /* if */
           /* afp describes the active field. */
-          elem_con = alloc_constant((a_constant_repr_kind)ck_error);
+          elem_con = alloc_constant(ck_error);
           get_mapped_byte_count(&persistent_map, afp, offset);
           if (!copy_interpreter_object_to_constant(
                                           ips, object+offset, complete_object,
@@ -26660,7 +26707,7 @@ can only be TRUE if the called function is "consteval").
     a_constexpr_address  ce_addr;
     alloc_complete_object(&ips, n_bytes, result_type, result_storage);
     set_active_address(&ips, &ce_addr, result_storage, result_storage);
-    if (!do_constexpr_call(&ips, call_expr, &ce_addr)) {
+    if (!do_constexpr_call(&ips, call_expr, ce_addr)) {
       if (ips.input_error) {
         /* Interpretation failed due to an error node in the IL.  Continue
            with an error constant, but treat interpretation as successful. */
@@ -26896,7 +26943,7 @@ if the caller has determined that reinterpret_cast expressions can be folded
       clear_address(&dst_addr, result_storage);
       dst_addr.alloc_seq_number = 1;
       dst_addr.complete_object = result_storage;
-      if (!do_constexpr_dynamic_init(&ips, dip, pos, &dst_addr)) {
+      if (!do_constexpr_dynamic_init(&ips, dip, pos, dst_addr)) {
         if (ips.input_error) {
           /* Interpretation failed due to an error node in the IL.  Continue
              with an error constant, but treat interpretation as successful. */
@@ -27078,7 +27125,7 @@ position associated with the call.
     clear_address(&dst_addr, result_storage);
     dst_addr.alloc_seq_number = 1;
     dst_addr.complete_object = result_storage;
-    if (!do_constexpr_ctor(&ips, dip, pos, &dst_addr, /*implied_src=*/NULL)) {
+    if (!do_constexpr_ctor(&ips, dip, pos, dst_addr, /*implied_src=*/NULL)) {
       if (ips.input_error) {
         /* Interpretation failed due to an error node in the IL.  Continue
            with an error constant, but treat interpretation as successful. */

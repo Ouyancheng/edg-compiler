@@ -3135,6 +3135,7 @@ compile-time constant.
    is_integral_or_enum_type((constant)->type))
 
 #if GNU_VECTOR_TYPES_ALLOWED
+
 static void decompose_vector_unary_operation(
                                       an_expr_operator_kind op,
                                       a_constant            *constant,
@@ -3162,29 +3163,28 @@ description of the parameters.
   a_type_ptr     result_elem_type;
   sizeof_t       elem_no;
 
-  result_type = skip_typerefs(result_type);
-  check_assertion(result_type->kind == (a_type_kind)tk_vector &&
-                  constant->kind == (a_constant_repr_kind)ck_aggregate);
-  result_elem_type = skip_typerefs(result_type->variant.vector.element_type);
-  num_result_elements = result_type->size / result_elem_type->size;
-  if (op == (an_expr_operator_kind) eok_vector_not) {
-    op = eok_not;
-  }  /* if */
   /* Clone the operand constant and remove the operand elements to form the
      basis for the result. */
   copy_constant(constant, result);
+  result->type = result_type;
   result->variant.aggregate.first_constant = NULL;
   result->variant.aggregate.last_constant = NULL;
+  result_type = skip_typerefs(result_type);
+  check_assertion(type_is(result_type, tk_vector) &&
+                  constant_is(constant, ck_aggregate));
+  result_elem_type = skip_typerefs(result_type->variant.vector.element_type);
+  num_result_elements = result_type->size / result_elem_type->size;
+  if (op == eok_vector_not) {
+    op = eok_not;
+  }  /* if */
   /* Loop over the operand elements, calling unary_operation to compute
      the values of the result elements. */
   opnd_elem = constant->variant.aggregate.first_constant;
-  for (elem_no = 0; elem_no < num_result_elements && !local_not_folded;
-       ++elem_no) {
+  for (elem_no = 0; elem_no < num_result_elements; ++elem_no) {
     /* Allocate the constant for this element of the result.  The constant
        will be overwritten by unary_operation below, so just call it an
        error constant for now to minimize the cost of initialization. */
-    a_constant_ptr result_elem =
-                                alloc_constant((a_constant_repr_kind)ck_error);
+    a_constant_ptr  result_elem = alloc_constant(ck_error);
     if (opnd_elem == NULL) {
       /* A vector aggregate may be partially- or value-initialized.  If so,
          the operand element will be NULL at this point if we've stepped
@@ -3196,9 +3196,16 @@ description of the parameters.
     }  /* if */
     /* Recursively call unary_operation to compute the result for this
        element and add the element to the result aggregate. */
-    unary_operation(op, opnd_elem, opnd_elem->type, result_elem,
+    unary_operation(op, opnd_elem, result_elem_type, result_elem,
                     constant_context, evaluated_context, &local_not_folded,
                     template_constant, error_detected, err_pos);
+    if (local_not_folded) break;
+    if (op == eok_not && !is_zero_constant(result_elem)) {
+      /* Turn "1" into "-1", because that appears to be the behavior of GCC. */
+      check_assertion(constant_is(result_elem, ck_integer));
+      set_integer_value(&result_elem->variant.integer_value,
+                        (a_host_large_integer)-1);
+    }  /* if */
     add_constant_to_aggregate(result_elem, result, (a_base_class_ptr)NULL,
                               (a_field_ptr)NULL);
     /* Step to the next element, unless we already ran off the end of the
@@ -3214,6 +3221,7 @@ description of the parameters.
   /* Propagate the result back to the caller. */
   *did_not_fold = local_not_folded;
 }  /* decompose_vector_unary_operation */
+
 #endif /* GNU_VECTOR_TYPES_ALLOWED */
 
 void unary_operation(an_expr_operator_kind op,
