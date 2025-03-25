@@ -3576,8 +3576,8 @@ is put at the start of either ptp1 or ptp2.
                                        rout_1_is_nonstatic ? *ptp2 : *ptp1)) {
     /* Earlier versions of g++ do not consistently implement core issue 532.
        It is not entirely clear what rules are implemented, but the heuristic
-       of ignoring the resolution of core issue 532 when a parameter type of
-       the non-member function is nondependent seems to emulate GCC in most
+       of ignoring the resolution of core issue 532 if a parameter of the non-
+       member function has a non-dependent type seems to emulate GCC in most
        practical cases. */
   } else if (rout_1_is_nonstatic && !templ_sym2->is_class_member) {
     /* For this case, and the one below, the original wording of core issue
