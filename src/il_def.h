@@ -5771,7 +5771,6 @@ enum an_asm_operand_constraint_kind : a_byte {
   aoc_imm_sse,          /* H: any SSE standard constant */
   aoc_imm_sext32,       /* e: any 32-bit quantity sign extended to 64 bits */
   aoc_imm_zext32,       /* Z: any 32-bit quantity zero extended to 64 bits */
-  aoc_cc,               /* CC: condition code */
 #endif /* GNU_X86_ASM_EXTENSIONS_ALLOWED */
   aoc_last
 };
@@ -5840,7 +5839,6 @@ EXTERN_CONSTINIT_ARRAY(char, asm_operand_constraint_letters, aoc_last + 1)
   /* aoc_imm_sse */             'H',
   /* aoc_imm_sext32 */          'e',
   /* aoc_imm_zext32 */          'Z',
-  /* aoc_cc */                  'C',
 #endif /* GNU_X86_ASM_EXTENSIONS_ALLOWED */
   /* aoc_last */                '~'
 }
