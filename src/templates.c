@@ -3520,6 +3520,8 @@ partial ordering purposes, or return a previously created one.
 
 static a_boolean param_type_list_has_nondependent_entry(a_param_type  *ptp)
 /*
+Return TRUE if any of the parameter types on the this headed by ptp is not
+instantiation-dependent.
 */
 {
   a_boolean  result = FALSE;
@@ -3573,7 +3575,7 @@ is put at the start of either ptp1 or ptp2.
              param_type_list_has_nondependent_entry(
                                        rout_1_is_nonstatic ? *ptp2 : *ptp1)) {
     /* Earlier versions of g++ do not consistently implement core issue 532.
-       It is now entirely clear what rules are implemented, but the heuristic
+       It is not entirely clear what rules are implemented, but the heuristic
        of ignoring the resolution of core issue 532 when a parameter type of
        the non-member function is nondependent seems to emulate GCC in most
        practical cases. */
