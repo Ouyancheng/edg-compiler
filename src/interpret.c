@@ -544,10 +544,10 @@ static void release_data_map_table(a_data_map  *map)
 Release the storage for the given map's table.
 */
 {
-  a_map_index   mask = map->hash_mask;
-  a_map_index   n_slots = mask+1;
-  a_byte_count  size = (a_byte_count)(n_slots*sizeof(a_data_map_entry));
-  unsigned long mask_width = (unsigned long)count_ones(mask);
+  a_map_index  mask = map->hash_mask;
+  a_map_index  n_slots = mask+1;
+  a_byte_count size = (a_byte_count)(n_slots*sizeof(a_data_map_entry));
+  size_t       mask_width = count_ones(mask);
 
   if (mask_width > MAX_WIDTH_REUSABLE_TABLE) {
     free_general(map->table, size);
@@ -1166,7 +1166,7 @@ Release the storage for the given set's table.
   a_live_set_index  mask = set->hash_mask;
   a_live_set_index  n_slots = mask+1;
   a_byte_count      size = (a_byte_count)(n_slots*sizeof(an_alloc_seq_number));
-  unsigned long     mask_width = (unsigned long)count_ones(mask);
+  size_t            mask_width = count_ones(mask);
 
   if (mask_width > MAX_WIDTH_REUSABLE_TABLE) {
     free_general(set->table, size);
@@ -1192,8 +1192,7 @@ Double the number of entries in the given set.  This requires rehashing.
   a_byte_count         old_size = (a_byte_count)
                                          (n_slots*sizeof(an_alloc_seq_number));
   a_byte_count         new_size = 2*old_size;
-  unsigned long        new_width = (unsigned long)count_ones(mask)+1;
-  unsigned long        old_width;
+  size_t               new_width = count_ones(mask)+1, old_width;
 
   if (new_width > MAX_WIDTH_REUSABLE_TABLE) {
     new_table = (an_alloc_seq_number*)alloc_general(new_size);
@@ -1979,8 +1978,7 @@ Double the number of entries in the given map.  This requires rehashing.
   a_byte_count      old_size =
                               (a_byte_count)(n_slots*sizeof(a_data_map_entry));
   a_byte_count      new_size = 2*old_size;
-  unsigned long     new_width = count_ones(mask)+1;
-  unsigned long     old_width;
+  size_t            new_width = count_ones(mask)+1, old_width;
 
   if (new_width > MAX_WIDTH_REUSABLE_TABLE) {
     new_table = (a_data_map_entry*)alloc_general(new_size);
@@ -10462,7 +10460,7 @@ the length of the given sequence of reflections.
   {
     a_reflection_value  *rvp = (a_reflection_value*)cap->address;
     a_byte              *array = cap->complete_object;
-    for (a_byte_count k = 0; k < length; ++k, ++rvp) {
+    for (size_t k = 0; k < length; ++k, ++rvp) {
       *rvp = (*reflections)[k];
       mark_subobject_initialized((a_byte*)rvp, array);
     }  /* if */
@@ -13879,7 +13877,7 @@ See do_constexpr_intrinsic_call for the meaning of the parameters.
   Dyn_array<a_meta_field_descr>
                 field_descrs(0);
   a_type_ptr    callee_type = skip_typerefs(callee->type), class_type;
-  unsigned      n_fields;
+  size_t        n_fields;
   a_param_type_ptr
                 ptp;
 
@@ -13924,7 +13922,7 @@ See do_constexpr_intrinsic_call for the meaning of the parameters.
       info_with_pos(ec_integer_overflow, &call_node->position, ips);
       goto done;
     }  /* if */
-    n_fields = (unsigned)val;
+    n_fields = (size_t)val;
     field_descrs.reserve(n_fields);
   }
   { /* Load the array pointed to by the third argument. */
@@ -13975,7 +13973,7 @@ See do_constexpr_intrinsic_call for the meaning of the parameters.
       goto done;
     }  /* if */
     get_mapped_byte_count(&persistent_map, fp, bit_width_offset);
-    for (unsigned k = 0; k < n_fields; ++k, subobj += descr_size) {
+    for (size_t k = 0; k < n_fields; ++k, subobj += descr_size) {
       a_meta_field_descr   fd = {};
       a_byte_count         name_length;
       a_reflection_value   *ftr = (a_reflection_value*)(subobj+type_offset);
@@ -21207,12 +21205,12 @@ the value representation of the integer value.
               a_type  *setp = skip_typerefs(opnd1_type
                                                ->variant.vector.element_type),
                       *detp = skip_typerefs(tp->variant.vector.element_type);
-              unsigned
-                      len = (unsigned)(tp->size/detp->size);
+              a_targ_size_t
+                      len = tp->size/detp->size;
               a_byte_count
                       sstep = value_bytes_for_type(ips, setp, &result),
                       dstep = value_bytes_for_type(ips, detp, &result);
-              for (unsigned k = 0; k < len; ++k) {
+              for (a_targ_size_t k = 0; k < len; ++k) {
                 a_boolean  bool_val;
                 if (check_boolean_condition(ips, src, expr, setp, &bool_val)) {
                   set_bool_value(!bool_val, dst);
@@ -21227,10 +21225,11 @@ the value representation of the integer value.
             break;
           case eok_vector_fill:
             /* Copy the operand to every slot of the result. */
-            { a_type_ptr etp = skip_typerefs(tp->variant.vector.element_type);
-              unsigned   len = (unsigned)(tp->size/etp->size);
-              a_byte     *dst = result_storage;
-              for (unsigned k = 0; k < len; ++k) {
+            { a_type_ptr    etp =
+                                skip_typerefs(tp->variant.vector.element_type);
+              a_targ_size_t len = tp->size/etp->size;
+              a_byte        *dst = result_storage;
+              for (a_targ_size_t k = 0; k < len; ++k) {
                 (void)memcpy(dst, opnd1_value, opnd_n_bytes);
                 dst += opnd_n_bytes;
               }  /* for */
@@ -24571,9 +24570,10 @@ the value representation of the integer value.
           case eok_vector_subscript:
             /* The first operand is a vector (lvalue or rvalue), and the
                second operand is an integer. */
-            { int32_t      len = (int32_t)(opnd1_type->size / tp->size);
-              a_type_ptr   etp;
-              a_byte_count esize;
+            { a_host_large_integer len =
+                           (a_host_large_integer)(opnd1_type->size / tp->size);
+              a_type_ptr           etp;
+              a_byte_count         esize;
               check_assertion(type_is(opnd1_type, tk_vector) &&
                               type_is(opnd2_type, tk_integer));
               get_int_val_from(opnd2_value, opnd2_type, host_int_val, ovfl);
