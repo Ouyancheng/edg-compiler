@@ -713,6 +713,8 @@ unrecognized:
         /* Copy any condition code into the IL. */
         (*constraint)->cond_code = (a_const_char *)alloc_il(p - cond_code + 1);
         (void)strcpy((char *)(*constraint)->cond_code, cond_code);
+	/* Back the pointer up.*/
+	p--;
       }  /* if */
       constraint = &(*constraint)->next;
     }  /* if */
