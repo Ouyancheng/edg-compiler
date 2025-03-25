@@ -711,7 +711,7 @@ unrecognized:
       *constraint = alloc_asm_operand_constraint(ck);
       if (cond_code != NULL) {
         /* Copy any condition code into the IL. */
-        (*constraint)->cond_code = alloc_il(p - cond_code + 1);
+        (*constraint)->cond_code = (a_const_char *)alloc_il(p - cond_code + 1);
         (void)strcpy((char *)(*constraint)->cond_code, cond_code);
       }  /* if */
       constraint = &(*constraint)->next;

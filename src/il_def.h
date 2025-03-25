@@ -5863,9 +5863,11 @@ typedef struct an_asm_operand_constraint {
   an_asm_operand_constraint_kind
   		kind;	/* The kind of constraint associated with this
 			   operand. */
+#if GNU_X86_ASM_EXTENSIONS_ALLOWED
   a_const_char	*cond_code;
 			/* When kind == aoc_cc, points to a string with the
 			   specific condition code (e.g., "nz" for "=@ccnz").*/
+#endif /* GNU_X86_ASM_EXTENSIONS_ALLOWED */
   an_asm_operand_constraint_ptr
   		next;	/* The next constraint that applies to this
 			   operand, or NULL if this is the last

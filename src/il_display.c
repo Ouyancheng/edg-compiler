@@ -7833,9 +7833,11 @@ Display the indicated asm operand.
   for (c = ptr->constraints; c != NULL; c = c->next) {
     fprintf(f_display, "constraint: %c\n",
             asm_operand_constraint_letters[(int)c->kind]);
+#if GNU_X86_ASM_EXTENSIONS_ALLOWED
     if (c->cond_code != NULL) {
       fprintf(f_display, "cond_code: %s\n", c->cond_code);
     }  /* if */
+#endif /* GNU_X86_ASM_EXTENSIONS_ALLOWED */
   }  /* for */
 #endif /* RECORD_RAW_ASM_OPERAND_DESCRIPTIONS */
   disp_ptr("expr", (char *)ptr->expression, iek_expr_node);

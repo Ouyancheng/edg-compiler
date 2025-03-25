@@ -3611,7 +3611,9 @@ handle_class_type_supplement_for_class:
         remap_next_ptr(eptr->next, an_asm_operand_constraint_ptr,
                        iek_asm_operand_constraint);
 #endif /* !DO_SUBTREE_WALK */
+#if GNU_X86_ASM_EXTENSIONS_ALLOWED
         walk_string_ptr(eptr->cond_code, iek_other_text, 0);
+#endif /* GNU_X86_ASM_EXTENSIONS_ALLOWED */
 #undef eptr
       }
       break;

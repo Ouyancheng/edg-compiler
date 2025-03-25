@@ -3236,7 +3236,9 @@ Allocate space for an asm operand constraint and return a pointer to it.
 
   aocp = alloc_cil_of_type(an_asm_operand_constraint);
   aocp->kind = ck;
+#if GNU_X86_ASM_EXTENSIONS_ALLOWED
   aocp->cond_code = NULL;
+#endif /* GNU_X86_ASM_EXTENSIONS_ALLOWED */
   aocp->next = NULL;
 
   return aocp;
