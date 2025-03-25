@@ -796,6 +796,36 @@ typedef struct a_constexpr_address {
                         : (cap)->variant.base_address)
 
 
+#if EXPENSIVE_CHECKING
+
+static void check_no_variant_path_cycle(a_variant_path_entry_ptr  path)
+/*
+Trigger an internal error if the given path contains a cycle.
+*/
+{
+  if (path != NULL) {
+    a_variant_path_entry_ptr  ahead = path->next;
+    a_variant_path_entry_ptr  it = path;
+    for (;;) {
+      if (ahead == NULL) break;
+      if (it != ahead) {
+        ahead = ahead->next;
+        if (ahead == NULL) break;
+        if (it != ahead) {
+          ahead = ahead->next;
+          it = it->next;
+          continue;
+        }  /* if */
+      }  /* if */
+      /* The "ahead" pointer has caught up with the "path" pointer.  There is
+         therefore a cycle. */
+      unexpected_condition_str("variant path loop");
+    }  /* for */
+  }  /* if */
+}  /* check_no_variant_path_cycle */
+
+#endif /* EXPENSIVE_CHECKING */
+
 static void copy_variant_path(a_constexpr_address  *addr)
 /*
 Replace the variant path pointed to by addr by a copy of that same path.
@@ -4538,35 +4568,6 @@ Return a pointer to the stack storage associated with the given pointer.
 }  /* db_stack_storage */
 
 #endif /* DEBUG */
-#if EXPENSIVE_CHECKING
-
-static void check_no_variant_path_cycle(a_variant_path_entry_ptr  path)
-/*
-Trigger an internal error if the given path contains a cycle.
-*/
-{
-  if (path != NULL) {
-    a_variant_path_entry_ptr  ahead = path->next;
-    a_variant_path_entry_ptr  it = path;
-    for (;;) {
-      if (ahead == NULL) break;
-      if (it != ahead) {
-        ahead = ahead->next;
-        if (ahead == NULL) break;
-        if (it != ahead) {
-          ahead = ahead->next;
-          it = it->next;
-          continue;
-        }  /* if */
-      }  /* if */
-      /* The "ahead" pointer has caught up with the "path" pointer.  There is
-         therefore a cycle. */
-      unexpected_condition_str("variant path loop");
-    }  /* for */
-  }  /* if */
-}  /* check_no_variant_path_cycle */
-
-#endif /* EXPENSIVE_CHECKING */
 
 /*
 Mark the complete object at the given address as fully initialized.
