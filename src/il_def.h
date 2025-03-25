@@ -393,12 +393,17 @@ typedef int	a_scope_depth;
 /*
 Data structures related to variables:
 */
+/*
+Possible storage classes for variables and functions (see 3.5.1).
+
+Note that this represents the C concept of storage class.  In C++, the keyword
+"static" is also used to indicate static members of classes.  That kind of
+"static" is reflected in things other than the storage class, e.g., the
+this_class field for routines.
+
+If you add new storage classes, be sure to update db_storage_class_names.
+*/
 enum a_storage_class : a_byte {
-  /* Possible storage classes for variables and functions (see 3.5.1). */
-  /* Note that this represents the C concept of storage class.  In C++,
-     the keyword "static" is also used to indicate static members of
-     classes.  That kind of "static" is reflected in things other than
-     the storage class, e.g., the this_class field for routines. */
   sc_unspecified,       /* No explicit storage class was given.  This implies
                            an external definition.  Note that an unspecified
                            storage class in the source program will be
@@ -489,16 +494,18 @@ enum an_assembly_visibility : a_byte {
 };
 
 
-/* Kind of name linkage (e.g., external name visibility).  Note that
-   "name linkage" applies to names (in some implementations it controls
-   whether the external name for an entity will be mangled) and also applies
-   to function types (e.g., implying a calling convention in some
-   implementations). */
-/* If you add linkage kinds, be sure to update name_linkage_kind_names and
-   NUM_BITS_FOR_NAME_LINKAGE; you may also need to customize
-   routine_linkages_are_compatible and routine_linkages_are_identical
-   (in types.c) and macros is_custom_name_linkage_kind_for_rout_type
-   and is_name_linkage_kind_subject_to_name_mangling. */
+/*
+Kind of name linkage (e.g., external name visibility).  Note that "name
+linkage" applies to names (in some implementations it controls whether the
+external name for an entity will be mangled) and also applies to function types
+(e.g., implying a calling convention in some implementations).
+
+If you add linkage kinds, be sure to update name_linkage_kind_names and
+NUM_BITS_FOR_NAME_LINKAGE; you may also need to customize
+routine_linkages_are_compatible and routine_linkages_are_identical (in types.c)
+and macros is_custom_name_linkage_kind_for_rout_type and
+is_name_linkage_kind_subject_to_name_mangling.
+*/
 enum a_name_linkage_kind : a_byte {
   nlk_none,		/* No linkage, as for a local variable. */
   nlk_internal,		/* Internal linkage, as for a file-scope static. */
@@ -5645,6 +5652,8 @@ enum a_float_kind : a_byte {
 /*
 Enumeration of type modes, i.e., sizes of types.  Some of these modes
 may not be available on some machines.
+
+If you add new type mode kinds, be sure to update type_mode_kind_names.
 */
 enum a_type_mode_kind : a_byte {
   tmk_error,          /* An erroneous mode. */
@@ -5880,7 +5889,11 @@ enum an_asm_operand_modifier : a_byte {
 
 #endif /* !RECORD_RAW_ASM_OPERAND_DESCRIPTIONS */
 
-/* Enumeration of registers and their names. All machine-specific. */
+/*
+Enumeration of registers and their names. All machine-specific.
+
+If you add new named registers, be sure to update named_register_names.
+*/
 enum a_named_register : a_byte {
   anr_invalid = 0,
   anr_memory,                         /* memory */
@@ -6998,10 +7011,13 @@ typedef struct an_exception_specification {
 #endif /* EXTRA_SOURCE_POSITIONS_IN_IL */
 } an_exception_specification;
 
-/* This type exists even if the Microsoft keywords are not allowed,
-   to permit routines that deal with types to have a predictable number of
-   parameters (they can return a calling convention via a parameter even
-   though it is never used). */
+/*
+This type exists even if the Microsoft keywords are not allowed, to permit
+routines that deal with types to have a predictable number of parameters (they
+can return a calling convention via a parameter even though it is never used).
+
+If you add new calling conventions, be sure to update calling_convention_names.
+*/
 enum a_calling_convention : a_byte {
 /* Microsoft-specific calling convention specifiers. */
   cc_default,		/* Default (unspecified) calling convention, which
@@ -7031,6 +7047,8 @@ EXTERN_CONSTINIT_ARRAY_END(calling_convention_names)
 /*
 Enumeration of declaration modifiers that are accepted.  The enumeration values
 are used to create bit masks that are used to represent the modifiers.
+
+If you add new decl modifiers, be sure to update decl_modifier_names.
 */
 enum a_decl_modifier : a_byte {
 #if MICROSOFT_EXTENSIONS_ALLOWED
@@ -8149,6 +8167,8 @@ enum an_anonymous_union_kind : a_byte {
 Enumeration describing the set of inheritance kinds that can be specified for
 a class, corresponding to different pointer-to-member representations.  The
 order is significant: single < multiple < virtual.
+
+If you add new inheritance kinds, be sure to update inheritance_kind_names.
 */
 enum an_inheritance_kind : a_byte {
   ihk_none,		/* No inheritance kind specified. */
@@ -13161,6 +13181,8 @@ Originally, this enum was declared with the underlying type of a_byte in order
 to control storage size, however, declaring it as a bit field (and then
 constraining the number of bits to 8) results in a better layout with some
 compilers).
+
+If you add new expression kinds, be sure to update expr_node_kind_names.
 */
 #define NUM_BITS_FOR_EXPR_NODE_KIND 8
 enum an_expr_node_kind : a_bit_field {
@@ -13403,48 +13425,50 @@ enum a_lowered_eh_construct_kind : a_byte {
 
 #endif /* DO_IL_LOWERING && !DO_FULL_PORTABLE_EH_LOWERING */
 
+/*
+When the expression node kind is "enk_operation", these are the possible
+operators.
+
+If you add operators to this list, be sure to update:
+     il_def.h (this file):
+         db_operator_names
+     il_display.c:
+         disp_expr_operator_name
+     cp_gen_be.c:
+         generated_precedence
+         gen_expr
+     il.c:
+         lvalue_rvalue_test
+         operation_type_kind
+         operation_has_side_effects (if the operator has side effects)
+         operator_is_foldable
+     expr.c:
+         operator_token_for_expr_rescan
+     exprutil.c:
+         operator_for_opname_kind
+     folding.c:
+         fold_expr
+     interpret.c:
+         do_constexpr_expression
+     lower_name.c:
+         mangled_expr_operator_name
+   If the operator returns an lvalue (is_lvalue is TRUE), see also
+     il.c:
+         is_rvalueable_node
+         node_does_fetch
+         lvalue_rvalue_test
+     exprutil.c:
+         conv_prvalue_expr_to_lvalue
+         conv_glvalue_expr_to_prvalue (if the operator is not "rvalueable"
+           according to is_rvalueable_node)
+   If the operator is an addressing operator, see also
+     folding.c:
+         constant_glvalue_address_full
+         constant_prvalue_pointer_full
+     il_walk.c:
+         traverse_addressing_subtree
+*/
 enum an_expr_operator_kind : a_byte {
-  /* When the expression node kind is "enk_operation", these are the possible
-     operators. */
-  /* If you add operators to this list, be sure to update:
-       il_def.h (this file):
-           db_operator_names
-       il_display.c:
-           disp_expr_operator_name
-       cp_gen_be.c:
-           generated_precedence
-           gen_expr
-       il.c:
-           lvalue_rvalue_test
-           operation_type_kind
-           operation_has_side_effects (if the operator has side effects)
-           operator_is_foldable
-       expr.c:
-           operator_token_for_expr_rescan
-       exprutil.c:
-           operator_for_opname_kind
-       folding.c:
-           fold_expr
-       interpret.c:
-           do_constexpr_expression
-       lower_name.c:
-           mangled_expr_operator_name
-     If the operator returns an lvalue (is_lvalue is TRUE), see also
-       il.c:
-           is_rvalueable_node
-           node_does_fetch
-           lvalue_rvalue_test
-       exprutil.c:
-           conv_prvalue_expr_to_lvalue
-           conv_glvalue_expr_to_prvalue (if the operator is not "rvalueable"
-             according to is_rvalueable_node)
-     If the operator is an addressing operator, see also
-       folding.c:
-           constant_glvalue_address_full
-           constant_prvalue_pointer_full
-       il_walk.c:
-           traverse_addressing_subtree
-  */
   /* The following have 1 operand: */
   eok_address_of,	/* Address-of operator ("&"). */
   eok_reference_to,	/* Turns a glvalue into a reference, i.e., the
@@ -13937,23 +13961,25 @@ enum an_expr_operator_kind : a_byte {
 };
 
 
+/*
+When the expression node kind is "enk_builtin_operation", these are the
+possible operations.
+
+Note that the value of enumerators in this list is used as part of the mangled
+name encoding for builtin operations, so the items on this list should not be
+reordered; if they are, it will cause an ABI incompatibility (in the names of
+templates).  For this same reason, we avoid making any of these enumerators
+configuration-dependent (e.g., the GNU-specific bok_types_compatible is part of
+the list even when GNU_EXTENSIONS_ALLOWED is FALSE).
+
+Additionally note that in some cases the difference between "builtin
+operations" and "builtin functions" can be hazy.  If a builtin takes a type
+argument, it must be a builtin operation, otherwise a builtin function is often
+a better fit.
+
+If you add an operation to this list, be sure to builtin_operation_names.
+*/
 enum a_builtin_operation_kind : a_byte {
-  /* When the expression node kind is "enk_builtin_operation", these are the
-     possible operations. */
-  /* If you add an operation to this list, also update builtin_operation_names
-     in this file. */
-  /* Note that the value of enumerators in this list is used as part of the
-     mangled name encoding for builtin operations, so the items on this list
-     should not be reordered; if they are, it will cause an ABI
-     incompatibility (in the names of templates).  For this same reason, we
-     avoid making any of these enumerators configuration-dependent (e.g.,
-     the GNU-specific bok_types_compatible is part of the list even when
-     GNU_EXTENSIONS_ALLOWED is FALSE).
-     */
-  /* Note that in some cases the difference between "builtin operations" and
-     "builtin functions" can be hazy.  If a builtin takes a type argument, it
-     must be a builtin operation, otherwise a builtin function is often
-     a better fit. */
   bok_offsetof,		/* Builtin offsetof (currently only available in some
 			   GNU modes).  Two operands: A type and a field. */
   bok_has_assign,	/* __has_assign.  One operand: A type. */
