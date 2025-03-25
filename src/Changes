@@ -35,11 +35,11 @@ objects the constant evaluator does not thing are live anymore).  This is now
 fixed.
 
 
-2/24/25  [EDGcpfe/28054]
-GNU compatibility: additional asm output format supported
+3/24/25  [EDGcpfe/28054]
+GNU compatibility: querying condition code in asm functions now supported
 
-GNU's asm syntax apparently allows an output to be specified as "=@ccCOND"
-which is a special case of "= "that allows you to query the result of a
+GNU's asm syntax apparently allows an output to be specified as "=@ccCOND",
+which is a special case of "=" that allows you to query the result of a
 condition code at the end of your assembly statement.  The front end
 now supports this (when GNU_X86_ASM_EXTENSIONS_ALLOWED is TRUE).  For example
 (with --g++):
