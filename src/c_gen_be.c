@@ -8852,10 +8852,12 @@ Dump the GNU C operand descriptions for the given asm entry.
     }  /* if */
     for (c = aop->constraints; c != NULL; c = c->next) {
       m_write_ch(asm_operand_constraint_letters[(int)c->kind]);
+#if GNU_X86_ASM_EXTENSIONS_ALLOWED
       if (c->kind == aoc_cc) {
         m_write_str("cc");
         m_write_str(c->cond_code);
       }  /* if */
+#endif /* GNU_X86_ASM_EXTENSIONS_ALLOWED */
     }  /* for */
     m_write_ch('"');
 #endif /* RECORD_RAW_ASM_OPERAND_DESCRIPTIONS */
