@@ -3518,6 +3518,22 @@ partial ordering purposes, or return a previously created one.
 }  /* get_invented_partial_ordering_param */
 
 
+static a_boolean param_type_list_has_nondependent_entry(a_param_type  *ptp)
+/*
+*/
+{
+  a_boolean  result = FALSE;
+
+  for (; ptp != NULL; ptp = ptp->next) {
+    if (!is_instantiation_dependent_type(ptp->type)) {
+      result = TRUE;
+      break;
+    }  /* if */
+  }  /* for */
+  return result;
+}  /* param_type_list_has_nondependent_entry */
+
+
 static void get_effective_param_type_list_for_templates(
 			a_symbol_ptr				templ_sym1,
 			a_symbol_ptr				templ_sym2,
@@ -3550,11 +3566,17 @@ is put at the start of either ptp1 or ptp2.
   if (!cpp11_mode) {
     /* The ability to order nonstatic vs. nonmember functions was added
        as part of C++11 (core issue 532). */
-  } else if (gpp_mode && !clang_mode) {
-    /* g++ (as of 4.8.2) does not implement core issue 532. */
   } else if (rout_1_is_nonstatic == rout_2_is_nonstatic) {
     /* They are both static/nonmember or nonstatic functions.  Nothing
        needs to be done. */
+  } else if (gpp_version_is(<140000) &&
+             param_type_list_has_nondependent_entry(
+                                       rout_1_is_nonstatic ? *ptp2 : *ptp1)) {
+    /* Earlier versions of g++ do not consistently implement core issue 532.
+       It is now entirely clear what rules are implemented, but the heuristic
+       of ignoring the resolution of core issue 532 when a parameter type of
+       the non-member function is nondependent seems to emulate GCC in most
+       practical cases. */
   } else if (rout_1_is_nonstatic && !templ_sym2->is_class_member) {
     /* For this case, and the one below, the original wording of core issue
        532 suggested that this transformation should be done when comparing

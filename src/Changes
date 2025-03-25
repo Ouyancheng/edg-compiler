@@ -1,5 +1,24 @@
 Version 6.8
 
+3/25/25  [EDGcpfe/21729,EDGcpfe/23795,EDGcpfe/25621,EDGcpfe/27008,
+          EDGcpfe/27617,EDGcpfe/27909]
+GCC compatibility: Core issue 532
+
+The resolution of core issue 532 (originally implemented by the changes for
+EDGcpfe/10974) affects the partial ordering of member and non-member templates
+when they are jointly considered during overload resolution.  The changes for
+EDGcpfe/14616 disabled support for the resolution of this core issue in GNU C++
+modes because tests encountered at the time suggested that GCC behaved in a
+corresponding manner.  However, it appears that
+  (a) GCC 14 fully implements the resolution of core issue 532, and
+  (b) prior versions of GCC implemented a variant of that resolution.
+Regarding (b), it is not entirely clear what specific rules GCC followed prior
+to GCC 14, but we have now implemented a tweaked version of the core issue 532
+rules for GNU C++ modes with gnu_version < 140000: This tweak produces a closer
+emulation of corresponding versions of GCC in practice.  Regarding (a), GNU-C++
+mode now follows standard rules in this regard when gnu_version >= 14000.
+
+
 3/25/25  [EDGcpfe/27990]
 GNU compatibility: GCC 15 builtin updates
 
