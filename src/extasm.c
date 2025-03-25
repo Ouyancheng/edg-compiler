@@ -489,6 +489,7 @@ done_with_modifiers:
   constraint = &operand->constraints;
   /*lint --e{850} p modified in loop */
   for (; *p != '\0'; p++) {
+    a_const_char *cond_code = NULL;
     /* The next thing in the string should be a constraint letter. */
     ck = (an_asm_operand_constraint_kind)aoc_invalid;
     switch (*p) {
@@ -678,8 +679,23 @@ done_with_modifiers:
       case 'Z':
         ck = (an_asm_operand_constraint_kind)aoc_imm_zext32;    
         break;
+      case '@':
+        /* "=@ccCOND" is a special case of "=" that allows you to query the
+           result of a condition code at the end of your assembly statement.
+           Capture COND in a string so it can be used by a back end. */
+        if (p[1] == 'c' && p[2] == 'c') {
+          ck = aoc_cc;
+          cond_code = &p[3];
+          /* Skip over the rest of the string. */
+          for (p=p+3; *p != '\0'; p++) {}
+        } else {
+          /* Not something we understand. */
+          goto unrecognized;
+        }  /* if */
+        break;
 #endif /* GNU_X86_ASM_EXTENSIONS_ALLOWED */
       default:
+unrecognized:
 #if !ACCEPT_UNRECOGNIZED_GNU_ASM_OPERANDS
         errletter[0] = *p;
         pos_st_error(ispunct((unsigned char)*p) ? 
@@ -693,6 +709,11 @@ done_with_modifiers:
     /* Create a new constraint and add it to the list.  */
     if (ck != (an_asm_operand_constraint_kind)aoc_invalid) {
       *constraint = alloc_asm_operand_constraint(ck);
+      if (cond_code != NULL) {
+        /* Copy any condition code into the IL. */
+        (*constraint)->cond_code = alloc_il(p - cond_code + 1);
+        (void)strcpy((char *)(*constraint)->cond_code, cond_code);
+      }  /* if */
       constraint = &(*constraint)->next;
     }  /* if */
   }  /* for */

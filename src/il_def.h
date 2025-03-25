@@ -5771,6 +5771,7 @@ enum an_asm_operand_constraint_kind : a_byte {
   aoc_imm_sse,          /* H: any SSE standard constant */
   aoc_imm_sext32,       /* e: any 32-bit quantity sign extended to 64 bits */
   aoc_imm_zext32,       /* Z: any 32-bit quantity zero extended to 64 bits */
+  aoc_cc,               /* @: condition code */
 #endif /* GNU_X86_ASM_EXTENSIONS_ALLOWED */
   aoc_last
 };
@@ -5839,6 +5840,8 @@ EXTERN_CONSTINIT_ARRAY(char, asm_operand_constraint_letters, aoc_last + 1)
   /* aoc_imm_sse */             'H',
   /* aoc_imm_sext32 */          'e',
   /* aoc_imm_zext32 */          'Z',
+  /* aoc_cc */                  '@',  /* Must be followed by "cc" and the
+                                         contents of the cond_code string. */
 #endif /* GNU_X86_ASM_EXTENSIONS_ALLOWED */
   /* aoc_last */                '~'
 }
@@ -5851,6 +5854,9 @@ typedef struct an_asm_operand_constraint {
   an_asm_operand_constraint_kind
   		kind;	/* The kind of constraint associated with this
 			   operand. */
+  a_const_char	*cond_code;
+			/* When kind == aoc_cc, points to a string with the
+			   specific condition code (e.g., "nz" for "=@ccnz").*/
   an_asm_operand_constraint_ptr
   		next;	/* The next constraint that applies to this
 			   operand, or NULL if this is the last

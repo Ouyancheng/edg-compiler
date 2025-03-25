@@ -3605,14 +3605,15 @@ handle_class_type_supplement_for_class:
       break;
 #if !RECORD_RAW_ASM_OPERAND_DESCRIPTIONS
     case iek_asm_operand_constraint:
-#if !DO_SUBTREE_WALK
       {
 #define eptr ((an_asm_operand_constraint_ptr)entry_ptr)
+#if !DO_SUBTREE_WALK
         remap_next_ptr(eptr->next, an_asm_operand_constraint_ptr,
                        iek_asm_operand_constraint);
+#endif /* !DO_SUBTREE_WALK */
+        walk_string_ptr(eptr->cond_code, iek_other_text, 0);
 #undef eptr
       }
-#endif /* !DO_SUBTREE_WALK */
       break;
 #endif /* !RECORD_RAW_ASM_OPERAND_DESCRIPTIONS */
     case iek_named_register_list:

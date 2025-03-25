@@ -35,6 +35,27 @@ objects the constant evaluator does not thing are live anymore).  This is now
 fixed.
 
 
+2/24/25  [EDGcpfe/28054]
+GNU compatibility: additional asm output format supported
+
+GNU's asm syntax apparently allows an output to be specified as "=@ccCOND"
+which is a special case of "= "that allows you to query the result of a
+condition code at the end of your assembly statement.  The front end
+now supports this (when GNU_X86_ASM_EXTENSIONS_ALLOWED is TRUE).  For example
+(with --g++):
+
+  void f(int &i, bool b) {
+    __asm__ __volatile__ (
+        "lock; incb %[i]\n\t"
+        : [i] "+m" (i), [result] "=@ccnz" (b)
+        :
+        : "memory"
+    );
+  }
+
+This code is derived from one of the Boost library headers.
+
+
 3/21/25  [EDGcpfe/28043]
 C++-generating back end: types of explicit-object member functions
 
