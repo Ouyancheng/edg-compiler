@@ -1,5 +1,12 @@
 Version 6.8
 
+3/25/25  [EDGcpfe/27990]
+GNU compatibility: GCC 15 builtin updates
+
+The builtin signatures for GCC 15 have been updated from the 20250323
+pre-release snapshot.
+
+
 3/25/25  [EDGcpfe/26543,EDGcpfe/27053,EDGcpfe/27851]
 Spurious "expired storage" errors during constant evaluation
 
