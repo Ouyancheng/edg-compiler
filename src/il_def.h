@@ -5892,7 +5892,7 @@ enum an_asm_operand_modifier : a_byte {
 #endif /* !RECORD_RAW_ASM_OPERAND_DESCRIPTIONS */
 
 /*
-Enumeration of registers and their names.  All machine-specific.
+Enumeration of registers and their names (all machine-specific).
 
 If you add new named registers, be sure to update named_register_names.
 */
