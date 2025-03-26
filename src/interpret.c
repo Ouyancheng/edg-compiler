@@ -6268,7 +6268,7 @@ of the embedded address structures (variant path entries lists) as needed.
     if (type_is(etp, tk_pointer) || type_is(etp, tk_array) ||
         is_immediate_class_type(etp)) {
       a_targ_size_t   n_elems = tp->variant.array.variant.number_of_elements;
-      a_boolean       okay;
+      a_boolean       okay = TRUE;
       a_byte_count    elem_size = value_bytes_for_type(ips, etp, &okay);
       for (a_targ_size_t  k = 0; k<n_elems; ++k, dst_bytes += elem_size) {
         fix_up_address_structures(ips, dst_bytes, etp);
@@ -10752,7 +10752,9 @@ meanings of call_node, result_storage, and complete_obj.
   if (err_code == ec_no_error && !did_not_fold) {
     a_constexpr_address  dst_addr;
     set_active_address(ips, &dst_addr, result_storage, complete_obj);
-    extract_value_from_constant(ips, cp, dst_addr);
+    if (!extract_value_from_constant(ips, cp, dst_addr)) {
+      unexpected_condition();
+    }  /* if */
   } else {
     info_with_pos_type2(ec_incompatible_std_meta_value_of_type,
                         &call_node->position, val_type, cp->type, ips);
