@@ -5406,6 +5406,7 @@ static a_builtin_call_adjustment_callback
 		adjust_sync_atomic_builtin,
 		adjust_builtin_zero_non_value_bits,
 		adjust_elementwise_or_reduce_builtin,
+		adjust_type_generic_builtin,
 		adjust_return_type_to_type_of_first_argument,
 		adjust_srcloc_builtin;
 
@@ -5778,6 +5779,17 @@ be called to check and adjust the argument and routine types as needed.
       bcap->n_args = 1;
       bcap->is_reduce = TRUE;
       bcap->callback = adjust_elementwise_or_reduce_builtin;
+      break;
+    case bfk_clzg:
+    case bfk_ctzg:
+      bcap->n_args = 2;
+      bcap->callback = adjust_type_generic_builtin;
+      break;
+    case bfk_ffsg:
+    case bfk_parityg:
+    case bfk_popcountg:
+      bcap->n_args = 1;
+      bcap->callback = adjust_type_generic_builtin;
       break;
     case bfk_preserve_access_index:
       bcap->n_args = 1;
@@ -6588,17 +6600,112 @@ resulting return type is determined for the routine.
                                                   /*will_call=*/TRUE);
     }  /* if */
     /* Convert the argument(s). */
-    an_arg_list_elem_ptr  arg = args;
-    an_expr_node_ptr      *tail = arg_list;
-    while (arg != NULL) {
-      an_operand_ptr  op = operand_of_arg_list_elem(arg);
-      *tail = make_node_from_operand_for_expr_list(op);
-      arg = arg->next;
-      tail = &(*tail)->next;
-    }  /* while */
+    *arg_list = make_expr_list_from_argument_list(
+                                         args, /*dependent_expression=*/FALSE);
   }  /* if */
   return rout;
 }  /* adjust_elementwise_or_reduce_builtin */
+
+
+static a_routine_ptr adjust_type_generic_builtin(
+                             an_operand                *target,
+                             an_arg_list_elem_ptr      args,
+                             a_source_position         *closing_paren_position,
+                             a_builtin_call_adjustment *bcap,
+                             an_expr_node_ptr          *arg_list)
+/*
+Perform special processing for the type-generic gcc __builtin_clzg,
+__builtin_ctzg, __builtin_ffsg, __builtin_parityg, and __builtin_popcountg
+builtins.  Some checking of arguments is performed.
+*/
+{
+  a_boolean     err = FALSE;
+  a_type_ptr    arg1_type = NULL, arg2_type = NULL;
+  a_routine_ptr rout = routine_from_function_operand(target);
+  an_operand    *op;
+
+  *arg_list = NULL;
+  check_assertion(rout != NULL && (bcap->n_args == 1 || bcap->n_args == 2));
+  if (args == NULL) {
+    /* Must have at least one argument. */
+    expr_pos_error(ec_too_few_arguments, closing_paren_position);
+    err = TRUE;
+  } else if (bcap->n_args == 1 && args->next != NULL) {
+    /* Must have exactly one argument. */
+    expr_pos_error(ec_too_many_arguments, init_component_pos(args->next));
+    err = TRUE;
+  } else if (bcap->n_args == 2 && args->next != NULL &&
+             args->next->next != NULL) {
+    /* Must have at most two arguments. */
+    expr_pos_error(ec_too_many_arguments,init_component_pos(args->next->next));
+    err = TRUE;
+  } else {
+    check_arg_list_elem_is_expression(args);
+    op = operand_of_arg_list_elem(args);
+    if (is_a_glvalue(op)) {
+      /* A prvalue is needed. */
+      conv_glvalue_to_prvalue(op);
+    }  /* if */
+    arg1_type = skip_typerefs(op->type);
+    if (args->next != NULL) {
+      check_arg_list_elem_is_expression(args->next);
+      op = operand_of_arg_list_elem(args->next);
+      if (is_a_glvalue(op)) {
+        /* A prvalue is needed. */
+        conv_glvalue_to_prvalue(op);
+      }  /* if */
+      arg2_type = integer_type(ik_int);
+    }  /* if */
+    if (!is_error_type(arg1_type) && !is_template_dependent_type(arg1_type)) {
+      switch (rout->variant.builtin_function_kind) {
+        case bfk_ffsg:
+          err = !is_integral_type(arg1_type) ||
+                !is_signed_integral_type(arg1_type);
+          break;
+        case bfk_clzg:
+        case bfk_ctzg:
+        case bfk_popcountg:
+        case bfk_parityg:
+          err = !is_integral_type(arg1_type) ||
+                is_signed_integral_type(arg1_type);
+          break;
+        default:
+          unexpected_condition_str(
+                     "adjust_type_generic_builtin: bad builtin function kind");
+      }  /* switch */
+      if (err) {
+        expr_pos_ty_error(ec_invalid_type_for_builtin,
+                          init_component_pos(args), arg1_type);
+      }  /* if */
+    }  /* if */
+  }  /* if */
+  if (!err) {
+    a_type_ptr rout_type = make_routine_type(integer_type(ik_int), arg1_type,
+                                             arg2_type);
+    /* Create a routine with the desired type. */
+    a_symbol_ptr sym = builtin_with_particular_type(rout, rout_type);
+    rout = sym->variant.routine.ptr;
+    /* Update the operand: */
+    an_operand orig_operand = *target;
+    make_function_designator_operand(sym, target->is_qualified_name,
+                                     /*compiler_generated=*/FALSE,
+                                     &orig_operand.position,
+                                     end_position_of_operand(&orig_operand),
+                                     target->ref_entries_list, target);
+    if (!is_error_operand(target)) {
+      check_assertion(is_expression_operand(target) &&
+                      is_routine_node(target->variant.expression));
+      conv_function_designator_to_ptr_to_function(target,
+                                                  (a_source_position *)NULL,
+                                                  /*allow_ctor=*/FALSE,
+                                                  /*will_call=*/TRUE);
+    }  /* if */
+    /* Convert the argument(s). */
+    *arg_list = make_expr_list_from_argument_list(
+                                         args, /*dependent_expression=*/FALSE);
+  }  /* if */
+  return rout;
+}  /* adjust_type_generic_builtin */
 
 
 static a_routine_ptr adjust_return_type_to_type_of_first_argument(

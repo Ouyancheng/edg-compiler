@@ -8475,13 +8475,16 @@ expression node and interpreter state.
 #endif /* TARG_HAS_IEEE_FLOATING_POINT */
 
 static a_boolean do_constexpr_builtin_bitcount(a_routine_ptr  callee,
-                                               a_byte         *arg_bytes,
+                                               a_byte         *arg1_bytes,
+                                               a_byte         *arg2_bytes,
                                                a_type_ptr     arg_tp,
                                                a_byte         *result_storage)
 /*
 Evaluate the builtin bit counting function indicated by callee on the operand
-of type arg_tp stored in arg_bytes.  Place the result in *result_storage.
-This function currently always returns TRUE.
+of type arg_tp stored in arg1_bytes.  Place the result in *result_storage.  If
+arg2_bytes is not NULL and the value stored in arg1_bytes is zero, use the
+operand stored in arg2_bytes as the result.  This function currently always
+returns TRUE.
 */
 {
   a_builtin_function_kind  bfk;
@@ -8489,8 +8492,17 @@ This function currently always returns TRUE.
   an_integer_value         arg;
 
   bfk = (a_builtin_function_kind)callee->variant.builtin_function_kind;
-  arg = *(an_integer_value*)arg_bytes;
+  arg = *(an_integer_value*)arg1_bytes;
   check_assertion(arg_tp->kind == (a_type_kind)tk_integer);
+  if (arg2_bytes != NULL) {
+    check_assertion(bfk == bfk_clzg || bfk == bfk_ctzg);
+    if (cmp_integer_values(&arg, /*op_1_signed=*/FALSE,
+                           &zero_int, /*op_2_signed=*/FALSE) == 0) {
+      /* If the first operand is zero, the result is the second operand. */
+      *(an_integer_value*)result_storage = *(an_integer_value*)arg2_bytes;
+      goto done;
+    }  /* if */
+  }  /* if */
   n_bits = arg_tp->size*targ_char_bit;
   for (k = 0; k < n_bits; ++k) {
     a_boolean         bit, ovflo;
@@ -8502,6 +8514,7 @@ This function currently always returns TRUE.
                              &zero_int, /*op_2_signed=*/FALSE) != 0;
     switch (bfk) {
       case bfk_ffs:
+      case bfk_ffsg:
       case bfk_ffsl:
 #if LONG_LONG_ALLOWED
       case bfk_ffsll:
@@ -8513,6 +8526,7 @@ This function currently always returns TRUE.
         }  /* if */
         break;
       case bfk_clz:
+      case bfk_clzg:
       case bfk_clzl:
 #if LONG_LONG_ALLOWED
       case bfk_clzll:
@@ -8521,6 +8535,7 @@ This function currently always returns TRUE.
         count = bit ? 0 : count+1;
         break;
       case bfk_ctz:
+      case bfk_ctzg:
       case bfk_ctzl:
 #if LONG_LONG_ALLOWED
       case bfk_ctzll:
@@ -8533,6 +8548,7 @@ This function currently always returns TRUE.
         }  /* if */
         break;
       case bfk_popcount:
+      case bfk_popcountg:
       case bfk_popcountl:
 #if LONG_LONG_ALLOWED
       case bfk_popcountll:
@@ -8541,6 +8557,7 @@ This function currently always returns TRUE.
         if (bit) count += 1;
         break;
       case bfk_parity:
+      case bfk_parityg:
       case bfk_parityl:
 #if LONG_LONG_ALLOWED
       case bfk_parityll:
@@ -8555,6 +8572,7 @@ This function currently always returns TRUE.
 count_done:
   set_integer_value((an_integer_value*)result_storage,
                     (a_host_large_integer)count);
+done:
   return TRUE;
 }  /* do_constexpr_builtin_bitcount */
 
@@ -9863,14 +9881,19 @@ to FALSE and the reason for the failure is recorded in *ips.
       }
       break;
     case bfk_ffs:
+    case bfk_ffsg:
     case bfk_ffsl:
     case bfk_clz:
+    case bfk_clzg:
     case bfk_clzl:
     case bfk_ctz:
+    case bfk_ctzg:
     case bfk_ctzl:
     case bfk_popcount:
+    case bfk_popcountg:
     case bfk_popcountl:
     case bfk_parity:
+    case bfk_parityg:
     case bfk_parityl:
 #if LONG_LONG_ALLOWED
     case bfk_ffsll:
@@ -9881,16 +9904,29 @@ to FALSE and the reason for the failure is recorded in *ips.
 #endif /* LONG_LONG_ALLOWED */
       {
         interpreted = TRUE;
-        if (args == NULL || args->next != NULL) {
-          unexpected_condition();
+        if (args == NULL) {
+          do_constexpr_fail(*p_result);
         } else {
           a_type_ptr    tp = skip_typerefs(args->type);
           a_byte_count  n_bytes = value_bytes_for_type(ips, tp, p_result);
           if (!*p_result) break;
           alloc_complete_object(ips, n_bytes, tp, arg1_bytes);
+          args2 = args->next;
+          if (args2 != NULL) {
+            /* __builtin_clzg and __builtin_ctzg can have an optional second
+               argument. */
+            a_type_ptr arg2_tp = skip_typerefs(args2->type);
+            n_bytes = value_bytes_for_type(ips, arg2_tp, p_result);
+            if (!*p_result) break;
+            alloc_complete_object(ips, n_bytes, arg2_tp, arg2_bytes);
+          } else {
+            arg2_bytes = NULL;
+          }  /* if */
           if (!do_constexpr_expression(ips, args, arg1_bytes, arg1_bytes) ||
-              !do_constexpr_builtin_bitcount(
-                                    callee, arg1_bytes, tp, result_storage)) {
+              (args2 != NULL &&
+               !do_constexpr_expression(ips, args2, arg2_bytes, arg2_bytes)) ||
+              !do_constexpr_builtin_bitcount(callee, arg1_bytes, arg2_bytes,
+                                             tp, result_storage)) {
             do_constexpr_fail(*p_result);
           }  /* if */
         }  /* if */
