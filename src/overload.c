@@ -19225,7 +19225,7 @@ find_more_operator_candidates:
          covered above. */
       make_opname_locator(kind, &locator, operator_position);
       idl_options = IDL_SKIP_CLASS_SCOPES;
-      if (gpp_mode && gnu_version >= 30400 && dependent_call) {
+      if (gpp_version_is(>= 30400) && gnu_version < 120000 && dependent_call) {
         /* g++ 3.4 has a bug in dependent name lookup that allows
            entities declared after the point of lookup to be found.
            Emulate that. */

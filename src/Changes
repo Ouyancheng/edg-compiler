@@ -1,5 +1,15 @@
 Version 6.8
 
+3/26/25  [EDGcpfe/28066]
+GCC-mode dependent-name lookup
+
+Older versions of GCC consider declarations appearing lexically after the point
+of lookup for dependent-name lookups and the front end emulates that behavior
+(see the Changes entry of 4/19/05).  However, GCC 12 fixed that issue: The
+front end has now been updated to no longer emulate the older GCC behavior in
+GNU C++ modes when gnu_version >= 120000.
+
+
 3/25/25  [EDGcpfe/21729,EDGcpfe/23795,EDGcpfe/25621,EDGcpfe/27008,
           EDGcpfe/27617,EDGcpfe/27909]
 GCC compatibility: Core issue 532
