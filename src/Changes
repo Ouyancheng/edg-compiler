@@ -30,9 +30,9 @@ pre-release snapshot.
 Spurious "expired storage" errors during constant evaluation
 
 In somewhat complex cases involving union values, the front end occasionally
-failed constant evaluation claiming an attempt to "expired storage" (i.e.,
-objects the constant evaluator does not thing are live anymore).  This is now
-fixed.
+failed constant evaluation claiming an attempt to access "expired storage"
+(i.e., objects the constant evaluator does not think are live anymore).  This
+is now fixed.
 
 
 3/24/25  [EDGcpfe/28054]
