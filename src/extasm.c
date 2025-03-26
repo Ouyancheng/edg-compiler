@@ -489,7 +489,9 @@ done_with_modifiers:
   constraint = &operand->constraints;
   /*lint --e{850} p modified in loop */
   for (; *p != '\0'; p++) {
+#if GNU_X86_ASM_EXTENSIONS_ALLOWED
     a_const_char *cond_code = NULL;
+#endif /* GNU_X86_ASM_EXTENSIONS_ALLOWED */
     /* The next thing in the string should be a constraint letter. */
     ck = (an_asm_operand_constraint_kind)aoc_invalid;
     switch (*p) {
@@ -695,7 +697,9 @@ done_with_modifiers:
         break;
 #endif /* GNU_X86_ASM_EXTENSIONS_ALLOWED */
       default:
+#if GNU_X86_ASM_EXTENSIONS_ALLOWED
 unrecognized:
+#endif /* GNU_X86_ASM_EXTENSIONS_ALLOWED */
 #if !ACCEPT_UNRECOGNIZED_GNU_ASM_OPERANDS
         errletter[0] = *p;
         pos_st_error(ispunct((unsigned char)*p) ? 
@@ -709,6 +713,7 @@ unrecognized:
     /* Create a new constraint and add it to the list.  */
     if (ck != (an_asm_operand_constraint_kind)aoc_invalid) {
       *constraint = alloc_asm_operand_constraint(ck);
+#if GNU_X86_ASM_EXTENSIONS_ALLOWED
       if (cond_code != NULL) {
         /* Copy any condition code into the IL. */
         (*constraint)->cond_code =
@@ -717,6 +722,7 @@ unrecognized:
 	/* Back the pointer up.*/
 	p--;
       }  /* if */
+#endif /* GNU_X86_ASM_EXTENSIONS_ALLOWED */
       constraint = &(*constraint)->next;
     }  /* if */
   }  /* for */
