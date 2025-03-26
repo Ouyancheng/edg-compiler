@@ -394,7 +394,7 @@ typedef int	a_scope_depth;
 Data structures related to variables:
 */
 /*
-Possible storage classes for variables and functions (see 3.5.1).
+Possible storage classes for variables and functions.
 
 Note that this represents the C concept of storage class.  In C++, the keyword
 "static" is also used to indicate static members of classes.  That kind of
@@ -5892,7 +5892,7 @@ enum an_asm_operand_modifier : a_byte {
 #endif /* !RECORD_RAW_ASM_OPERAND_DESCRIPTIONS */
 
 /*
-Enumeration of registers and their names. All machine-specific.
+Enumeration of registers and their names.  All machine-specific.
 
 If you add new named registers, be sure to update named_register_names.
 */
@@ -13182,7 +13182,7 @@ Data structures related to expressions:
 Originally, this enum was declared with the underlying type of a_byte in order
 to control storage size, however, declaring it as a bit field (and then
 constraining the number of bits to 8) results in a better layout with some
-compilers).
+compilers.
 
 If you add new expression kinds, be sure to update expr_node_kind_names.
 */
