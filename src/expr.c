@@ -6654,7 +6654,7 @@ builtins.  Some checking of arguments is performed.
         /* A prvalue is needed. */
         conv_glvalue_to_prvalue(op);
       }  /* if */
-      arg2_type = integer_type(ik_int);
+      arg2_type = skip_typerefs(op->type);
     }  /* if */
     if (!is_error_type(arg1_type) && !is_template_dependent_type(arg1_type)) {
       switch (rout->variant.builtin_function_kind) {
@@ -6677,6 +6677,15 @@ builtins.  Some checking of arguments is performed.
         expr_pos_ty_error(ec_invalid_type_for_builtin,
                           init_component_pos(args), arg1_type);
       }  /* if */
+    }  /* if */
+    /* The optional second argument must have type int. */
+    if (!err && arg2_type != NULL && !is_error_type(arg2_type) &&
+        !is_template_dependent_type(arg2_type) &&
+        (!is_integral_type(arg2_type) ||
+         arg2_type->variant.integer.int_kind != ik_int)) {
+      expr_pos_ty_error(ec_invalid_type_for_builtin,
+                        init_component_pos(args->next), arg2_type);
+      err = TRUE;
     }  /* if */
   }  /* if */
   if (!err) {
