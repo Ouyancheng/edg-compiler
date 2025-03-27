@@ -4,8 +4,8 @@ Version 6.8
 GCC compatibility: Constant-evaluation of type-generic bit counting builtins
 
 The front end's constant evaluator now also handles the type-generic bit
-counting builtins __builtin_clzg, __builtin_ctzg, __builtin_ffsg, and
-__builtin_parityg, __builtin_popcountg.
+counting builtins __builtin_clzg, __builtin_ctzg, __builtin_ffsg,
+__builtin_parityg, and __builtin_popcountg.
 
 
 3/26/25  [EDGcpfe/28066]
