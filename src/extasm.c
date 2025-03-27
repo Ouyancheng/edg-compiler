@@ -719,8 +719,8 @@ unrecognized:
         (*constraint)->cond_code =
                          (a_const_char *)alloc_il((size_t)(p - cond_code + 1));
         (void)strcpy((char *)(*constraint)->cond_code, cond_code);
-	/* Back the pointer up.*/
-	p--;
+        /* We're done parsing the string. */
+        break;
       }  /* if */
 #endif /* GNU_X86_ASM_EXTENSIONS_ALLOWED */
       constraint = &(*constraint)->next;
