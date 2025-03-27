@@ -1,5 +1,17 @@
 Version 6.8
 
+3/27/25  [EDGcpfe/28067]
+GNU compatibility: access past the of string in invalid asm
+
+When parsing an invalid asm constraint string, the front end could run past
+the end of the string, resulting in undefined behavior.  For example
+(with --gcc):
+
+  void f(int i) {
+    asm ("foo\n" : "=a" (i) : "[foo" (i));
+  }
+
+
 3/26/25  [EDGcpfe/28045]
 GCC compatibility: Constant-evaluation of type-generic bit counting builtins
 

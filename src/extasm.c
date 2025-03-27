@@ -710,8 +710,13 @@ unrecognized:
 #endif /* !ACCEPT_UNRECOGNIZED_GNU_ASM_OPERANDS */
         break;
     }  /* switch */
-    /* Create a new constraint and add it to the list.  */
-    if (ck != (an_asm_operand_constraint_kind)aoc_invalid) {
+    if (ck == aoc_invalid) {
+      if (*p == '\0') {
+        /* Reached the end of the string; nothing more to do. */
+        break;
+      }  /* if */
+    } else {
+      /* Create a new constraint and add it to the list.  */
       *constraint = alloc_asm_operand_constraint(ck);
 #if GNU_X86_ASM_EXTENSIONS_ALLOWED
       if (cond_code != NULL) {
