@@ -238,7 +238,7 @@ EDG_USE_ABSOLUTE_INCL_DIR_PATHS=${EDG_USE_ABSOLUTE_INCL_DIR_PATHS-0}
 # Other variables used in automatic instantiation mode
 #
 if [ $automatic_instantiation -eq 1 ] ; then
-  compile_command=$0
+  compile_command="$0"
 fi
 #
 # Flag that indicates that the old instantiation information file
@@ -300,9 +300,24 @@ output_file_specified=0
 cfiles=
 more_than_one_c_file=0
 #
-# A list of .h files to compile as header units, separated by blanks.
+# The file to compile as a module unit of the kind specified by
+# module_unit_kind.
 #
-header_unit_files=
+module_unit_src_file=
+#
+# Did the name of the module unit source file imply header unit
+# creation.
+#
+module_unit_src_file_is_header=0
+#
+# The kind of module unit to create:
+#
+# 0 - no module unit
+# 1 - header unit
+# 2 - module interface unit
+# 3 - module partition unit
+#
+module_unit_kind=0
 #
 # A list of the .o files, library files (e.g., .a files) and library 
 # options (e.g., -la) to be passed to the linker.  The list is maintained
@@ -348,13 +363,9 @@ any_l_or_o_files=0
 #
 any_c_files=0
 #
-# Was a destination header unit specified on the command line?
+# Were any module unit files specified on the command line?
 #
-header_unit_specified=0
-#
-# Were any header unit files specified on the command line?
-#
-any_header_unit_files=0
+any_module_unit_src_files=0
 #
 # If --multi_trans_unit mode is used, the secondary files specified on
 # the command line.
@@ -616,21 +627,97 @@ resolve_path_mapping()
 
 
 #
+# Function to report the module unit kind already being created (if any).
+#
+report_conflicting_module_unit_kind()
+{
+  case $module_unit_kind in
+    1)
+      echo "$driver_name: already creating a header unit."
+      ;;
+    2)
+      echo "$driver_name: already creating a module interface."
+      ;;
+    3)
+      echo "$driver_name: already creating an internal module partition."
+      ;;
+  esac
+  eccp_exit 1
+}  # report_conflicting_module_unit_kind
+
+
+#
 # Function called when an option that requires the creation of a header unit is
 # specified.
 #
 mark_create_header_unit_specified()
 {
-  if [ $header_unit_specified -ne 0 ] ; then
-    echo "$driver_name: cannot create multiple header unit files."
+  if [ $module_unit_kind -ne 0 ] ; then
+    report_conflicting_module_unit_kind
+    echo "$driver_name: cannot create an additional header unit."
     eccp_exit 1
   fi
-  header_unit_specified=1
+  module_unit_kind=1
 }  # mark_create_header_unit_specified
 
 
 #
+# Function called when an option that requires the creation of a module
+# interface unit is specified.
+#
+mark_create_module_interface_specified()
+{
+  if [ $module_unit_kind -ne 0 ] ; then
+    report_conflicting_module_unit_kind
+    echo "$driver_name: cannot create an additional module interface."
+    eccp_exit 1
+  fi
+  module_unit_kind=2
+}  # mark_create_module_interface_specified
+
+
+#
+# Function called when an option that requires the creation of a module
+# partition unit is specified.
+#
+mark_create_module_internal_partition_specified()
+{
+  if [ $module_unit_kind -ne 0 ] ; then
+    report_conflicting_module_unit_kind
+    echo "$driver_name: cannot create an additional internal module partition."
+    eccp_exit 1
+  fi
+  module_unit_kind=3
+}  # mark_create_module_internal_partition_specified
+
+
+#
+# Function called when collecting a module unit file.
+#
+collect_module_unit_src_file()
+{
+  arg=`native_path "$1"`
+  # Add the file for building the header unit.
+  if [ $any_module_unit_src_files -ne 0 ] ; then
+    echo "$driver_name: cannot specify multiple module unit source files."
+    eccp_exit 1
+  fi
+  module_unit_src_file="$arg"
+  any_module_unit_src_files=1
+}  # collect_module_unit_src_file
+
+
+#
 # Function that compiles a generated C file
+#
+# The first argument is the C file to compile (e.g., "$eccp_tmpdir/foo.int.c").
+# The second argument is the name of the output file (e.g., "foo.o").  The
+# third argument is a friendly file name for diagnostic purposes (e.g.,
+# "foo.int.c").
+#
+# The fourth argument is optional and is either a true (1) or false (0) value;
+# if true, the output file will be added to the list of object files
+# (object_files).
 #
 compile_int_c()
 {
@@ -638,19 +725,23 @@ compile_int_c()
 # Remove #line directives if requested to do so.
 #
   int_c_file=$1
-  int_c_obj_name=$2
-  int_c_output=$3
-  int_c_diag_name=$4
+  int_c_output=$2
+  int_c_diag_name=$3
+  add_obj_to_object_list=${4-1}
+  cc_tmp_file=$eccp_tmpdir/c_output.txt
   if [ $strip_line_dirs -eq 1 ] ; then
     # Replace the #line directives with blank lines.  Also replace
     # GNU-style line directives with blank lines.
     sed -e "s/#line.*//" -e "s/# [0-9].*//" $int_c_file >$eccp_tmpdir/sld.txt
     mv -f $eccp_tmpdir/sld.txt $int_c_file
   fi
-  command="$cc_command $c_to_obj_options -c $int_c_file"
+  command="$cc_command $c_to_obj_options -o "$int_c_output" -c $int_c_file"
   try_debug_driver "$command"
   $command >$cc_tmp_file 2>&1
   status=$?
+  if [ $status -eq 0 -a $add_obj_to_object_list -eq 1 ] ; then
+    object_files=$object_files" "$int_c_output
+  fi
   # MSVC echoes the filename back to the console.  Check for output that is
   # just the filename given back.
   unimportant_output=0
@@ -694,14 +785,6 @@ compile_int_c()
     fi
     any_errors=1
   else
-#
-#   Rename the object file to the appropriate name
-#
-    if [ $int_c_obj_name != $int_c_output ] ; then
-      command="mv -f $int_c_obj_name $int_c_output"
-      try_debug_driver "$command"
-      $command
-    fi
 #
 #   Add the file to the list of .o files to be removed later.
 #
@@ -796,6 +879,8 @@ check_abbreviation()
 --cppcx
 --create_pch
 --create_header_unit
+--create_module_interface
+--create_module_internal_partition
 --db
 --db_alloc_seq
 --db_name
@@ -889,6 +974,8 @@ check_abbreviation()
 --mmap_address
 --module_import_diagnostics
 --module_init
+--module_interface
+--module_internal_partition
 --modules
 --modules_directory
 --ms_await
@@ -907,9 +994,7 @@ check_abbreviation()
 --ms_header_unit
 --ms_header_unit_angle
 --ms_header_unit_quote
---ms_internal_partition
 --ms_mod_file_map
---ms_mod_interface
 --ms_permissive
 --ms_rvalue_cast
 --ms_std_preprocessor
@@ -1007,8 +1092,6 @@ check_abbreviation()
 --no_ms_compatibility
 --no_ms_cplusplus_std_value
 --no_ms_extensions
---no_ms_internal_partition
---no_ms_mod_interface
 --no_ms_permissive
 --no_ms_rvalue_cast
 --no_ms_std_preprocessor
@@ -1482,17 +1565,10 @@ process_option()
       any_l_or_o_files=1
       add_to_instantiation_command=0
       ;;
-    *\.c | *\.C | *\.cc | *\.cpp | *\.CPP | *\.cxx | *\.CXX | *\.ixx | *\.IXX | *\.s)
+    *\.c | *\.C | *\.cc | *\.cpp | *\.CPP | *\.cxx | *\.CXX | *\.s)
 #     Collect a list of .c files.
       arg=`native_path "$arg"`
       if [ "$cfiles" ]; then more_than_one_c_file=1; fi;
-      if [ $multi_trans_unit -eq 0 -o $any_c_files -eq 0 ] ; then
-        # In --multi_trans_unit mode only include the first object file
-        # name in the list of object_files.
-        # Get basename.o
-        obj_file_name=`expr //$arg : '.*/\(.*\)\.'`.o
-        object_files=$object_files" "$obj_file_name
-      fi
       if [ $multi_trans_unit -ne 0 -a $any_c_files -ne 0 ] ; then
         # In --multi_trans_unit mode, this is a secondary file.  Add it to
         #  the list of secondary files.
@@ -1569,6 +1645,8 @@ process_option()
 	 --microsoft_16 | \
          --modules | \
          --no_modules | \
+         --module_interface | \
+         --module_internal_partition | \
          --module_import_diagnostics | \
          --no_module_import_diagnostics | \
          --ms_await | \
@@ -1591,10 +1669,6 @@ process_option()
          --no_ms_cplusplus_std_value | \
          --ms_extensions | \
          --no_ms_extensions | \
-         --ms_internal_partition | \
-         --no_ms_internal_partition | \
-         --ms_mod_interface | \
-         --no_ms_mod_interface | \
          --ms_permissive | \
          --no_ms_permissive | \
          --ms_rvalue_cast | \
@@ -1847,6 +1921,12 @@ process_option()
          --no_incognito)
 #     Options that require additional processing
       case $arg in
+        -T | --auto_instantiation)
+          automatic_instantiation=1
+          ;;
+        --no_auto_instantiation)
+          automatic_instantiation=0
+          ;;
         -m | --c | --c89 | --c99 | --no_c99 | --c11 | --c18 | --c17 | --c23 | \
         --ms_c11 | --ms_c17 | --ms_c23 | -K | --old_c | --svr4 | --no_svr4 | \
         --gcc | --no_gcc | --upc | --no_upc)
@@ -1870,6 +1950,12 @@ process_option()
           if [ "$EDG_FIXED_POINT_LIB" != "" ] ; then
             EDG_STD_LIBS="$EDG_STD_LIBS:$EDG_FIXED_POINT_LIB"
           fi
+          ;;
+        --module_interface)
+          mark_create_module_interface_specified
+          ;;
+        --module_internal_partition)
+          mark_create_module_internal_partition_specified
           ;;
         --suppress_instantiation_flags)
 #         This should not be included in the command line in the .ii file.
@@ -1969,6 +2055,8 @@ process_option()
          --dump_legacy_as_target | \
          --target | \
          --create_header_unit | \
+         --create_module_interface | \
+         --create_module_internal_partition | \
          --output_mode | \
          --wdir)
       used_two_params=1
@@ -2009,6 +2097,12 @@ process_option()
           ;;
         --create_header_unit)
           mark_create_header_unit_specified
+          ;;
+        --create_module_interface)
+          mark_create_module_interface_specified
+          ;;
+        --create_module_internal_partition)
+          mark_create_module_internal_partition_specified
           ;;
       esac
       feoptions=$feoptions" $curr_arg `escape_if_needed "$curr_param"`"
@@ -2088,7 +2182,9 @@ process_option()
           --target=* | \
           --output_mode=* | \
           --wdir=* | \
-          --create_header_unit=*)
+          --create_header_unit=* | \
+          --create_module_interface=* | \
+          --create_module_internal_partition=*)
 #     See if an instantiation mode was specified
       case $arg in
         --definition_list_file=*)
@@ -2153,6 +2249,12 @@ process_option()
         --create_header_unit=*)
           mark_create_header_unit_specified
           ;;
+        --create_module_interface=*)
+          mark_create_module_interface_specified
+          ;;
+        --create_module_internal_partition=*)
+          mark_create_module_internal_partition_specified
+          ;;
       esac
       feoptions=$feoptions" `escape_if_needed "$curr_arg"`"
       ;;
@@ -2189,15 +2291,13 @@ process_option()
 #
 ###############################################################################
     *\.h | *\.H | *\.hpp | *\.HPP)
-#     Collect a list of .h files.
-      arg=`native_path "$arg"`
-      # Add the file for building the header unit.
-      if [ $any_header_unit_files -ne 0 ] ; then
-        echo "$driver_name: cannot create a header unit from multiple files."
-        eccp_exit 1
-      fi
-      header_unit_files=$header_unit_files" "$arg;
-      any_header_unit_files=1
+#     Collect a list of header files for creating a headere unit.
+      collect_module_unit_src_file "$arg"
+      module_unit_src_file_is_header=1
+      ;;
+    *\.ixx | *\.IXX | *\.cppm | *.CPPM)
+#     Collect a list of normal C++20 module unit files.
+      collect_module_unit_src_file "$arg"
       ;;
 ###############################################################################
     --*)
@@ -2276,6 +2376,56 @@ check_front_end_exit_code()
 
 
 #
+# Determine the file's base name.
+#
+basename_of_file()
+{
+  echo `expr //$1 : '.*/\(.*\)\.'`
+}  # basename_of_file
+
+
+#
+# Function to return the name of the generated C file derived
+# from a source file's base name.
+#
+derive_gen_c_file_name()
+{
+  basefile=$1
+  if [ $keep_int_file -eq 1 -o $gen_c_in_curr_dir -eq 1 ] ; then
+    echo "$basefile$gen_c_suffix"
+  else
+    echo "$eccp_tmpdir/$basefile$gen_c_suffix"
+  fi
+}  # derive_gen_c_file_name
+
+
+#
+# Function to return the display name of the generated C file derived from a
+# source file's base name.
+#
+derive_gen_c_file_disp_name()
+{
+  basefile=$1
+  echo "$basefile$gen_c_suffix"
+}  # derive_gen_c_file_disp_name
+
+
+#
+# Function to return the name of the generated object file derived
+# from a source file's base name.
+#
+derive_gen_obj_file_name()
+{
+  basefile=$1
+  if [ $keep_int_file -eq 1 -o $gen_c_in_curr_dir -eq 1 ] ; then
+    echo "$basefile$gen_o_suffix"
+  else
+    echo "$basefile$gen_o_suffix"
+  fi
+}  # derive_gen_obj_file_name
+
+
+#
 # Go through every argument, identify it, and add it to a list if appropriate.
 #
 while [ -n "$1" ]
@@ -2296,6 +2446,14 @@ do
     shift
   fi
 done
+
+
+#
+# Print a command to create the temporary directory used by eccp.
+#
+try_debug_driver '# Recreate the temporary directory used by eccp'
+try_debug_driver "mkdir -p \"$eccp_tmpdir\""
+
 
 #
 # Use target-specific variable values if --target has been specified or if
@@ -2332,10 +2490,13 @@ fi
 rm -f $cmd_tmp_file
 
 if [ $any_l_or_o_files -eq 0 -a $any_c_files -eq 0 ] ; then
-  if [ $source_file_name_optional -eq 1 -o \
-       $any_header_unit_files -eq 1 ] ; then
-    # For some class of command-line options, no source file is necessary
-    # (but only run the front end in that case).
+  # For some class of command-line options, no source file is necessary
+  # (but only run the front end in that case).
+  if [ $any_module_unit_src_files -eq 1 ] ; then
+    if [ $module_unit_kind -eq 1 ] ; then
+      fe_only=1
+    fi
+  elif [ $source_file_name_optional -eq 1 ] ; then
     fe_only=1
   else
     driver_error "no source, object, or library files were specified"
@@ -2556,6 +2717,37 @@ if [ $compile_as_secondary -ne 0 ] ; then
   fi
 fi
 #
+# Run the creation process for the given module file.
+#
+if [ $any_module_unit_src_files -eq 1 ] ; then
+  if [ -n "$cfiles" ] ; then
+    echo "$driver_name: cannot compile additional non-modules files when" \
+         "compiling a module."
+    eccp_exit
+  fi
+  if [ $module_unit_kind -eq 1 -a \
+       $module_unit_src_file_is_header -eq 0 ] ; then
+    echo "$driver_name: cannot compile a header unit from a non-header file."
+    eccp_exit
+  elif [ $module_unit_kind -ne 1 -a \
+         $module_unit_src_file_is_header -eq 1 ] ; then
+    echo "$driver_name: cannot compile a module unit from a header file."
+    eccp_exit
+  fi
+  basefile=$(basename_of_file "$module_unit_src_file")
+  if [ $module_unit_kind -eq 1 ] ; then
+    # A header unit compilation is requested; compile the header.
+    command="$CPFE $EDG_CPFE_DEFAULT_OPTIONS $feoptions $module_unit_src_file"
+    invoke_front_end 0  # Run front end and keep output
+    check_front_end_exit_code
+  else
+    # Otherwise, treat the module source file as a compiled source file and
+    # run with linking disabled (i.e., cc_only=1).
+    cc_only=1
+    cfiles="$module_unit_src_file"
+  fi
+fi
+#
 # If there are no source files, invoke the front end with the options we
 # have been given.
 #
@@ -2565,45 +2757,21 @@ if [ -z "$cfiles" -a $source_file_name_optional -eq 1 ] ; then
   check_front_end_exit_code
 fi
 #
-# Run through the list of header unit files and create them.
-#
-if [ $any_header_unit_files -eq 1 ] ; then
-  if [ $header_unit_specified -eq 1 ] ; then
-    for hu_file in $header_unit_files
-    do
-      command="$CPFE $EDG_CPFE_DEFAULT_OPTIONS $feoptions $hu_file"
-      invoke_front_end 0  # Run front end and keep output
-      check_front_end_exit_code
-    done
-  else
-    echo "$driver_name: no destination header unit file was specified."
-    eccp_exit
-  fi
-fi
-#
 # Run through the list of .c files and compile.
 #
 for cfile in $cfiles
 do
   instantiation_command_suffix=
-  basefile=`expr //$cfile : '.*/\(.*\)\.'`  # Get basename
+  basefile=$(basename_of_file "$cfile")
   suffix=`expr $cfile : '.*\.\(.*\)'` # Get the file suffix
   if [ $more_than_one_c_file -ne 0 ]
   then
     echo "$cfile:" 1>&2
   fi
-  gen_c_option=
-  if [ $keep_int_file -eq 1 -o $gen_c_in_curr_dir -eq 1 ] ; then
-    gen_c_file_name=$basefile$gen_c_suffix
-    gen_c_obj_name=$basefile$gen_o_suffix
-    if [ $gen_c_suffix != ".int.c" ] ; then
-      gen_c_option=--gen_c_file_name=$gen_c_file_name
-    fi
-  else
-    gen_c_file_name=$eccp_tmpdir/$basefile$gen_c_suffix
-    gen_c_obj_name=$basefile$gen_o_suffix
-    gen_c_option=--gen_c_file_name=$gen_c_file_name
-  fi
+  gen_c_file_name=$(derive_gen_c_file_name "$basefile")
+  gen_c_file_disp_name=$(derive_gen_c_file_disp_name "$basefile")
+  gen_c_obj_name=$(derive_gen_obj_file_name "$basefile")
+  gen_c_option="--gen_c_file_name=$gen_c_file_name"
   if [ $cc_only -eq 1 -a $output_file_specified -eq 1 ] ; then
     # An output file name was specified using the -o option and
     # the -c option (compile only) is also in effect.  Take the
@@ -2623,9 +2791,11 @@ do
   else
     output_file=$basefile.o
   fi
+  gen_c_file_disp_name=$basefile$gen_c_suffix
   # Special handling for .s files
   if [ "$suffix" = "s" ] ; then
-    compile_int_c $cfile $output_file $output_file $basefile$gen_c_suffix
+    try_debug_driver '# Compiling special s suffix case'
+    compile_int_c "$cfile" "$output_file" "$gen_c_file_disp_name"
     continue
   fi
   # Build the name of the .ii file if it was not explicitly specified.  We
@@ -2752,20 +2922,26 @@ do
       # The main reason this is done is that the instantiation directory
       # must come before any of the instantiation file name entries.
       if [ -f $ti_file_name ] ; then
-        ti_tmp=$eccp_tmpdir/temporary_ti.txt
-        echo "cmd:$instantiation_command_line $instantiation_command_suffix" >$ti_tmp
-        echo "dir:$curr_dir" >>$ti_tmp
-        echo "fnm:$cfile" >>$ti_tmp
+        orig_file_content=$(cat "$ti_file_name")
+        echo "cmd:$instantiation_command_line $instantiation_command_suffix" > "$ti_file_name"
+        echo "dir:$curr_dir" >> "$ti_file_name"
+        echo "fnm:$cfile" >> "$ti_file_name"
         if [ $one_instantiation_per_object -ne 0 ] ; then
-          echo "idn:$instantiation_dir" >>$ti_tmp
+          echo "idn:$instantiation_dir" >> "$ti_file_name"
         fi
         if [ $multi_trans_unit -ne 0 ] ; then
-          echo "stu:$secondary_files" >>$ti_tmp
+          echo "stu:$secondary_files" >> "$ti_file_name"
         fi
-        cat $ti_file_name >>$ti_tmp
-        rm -f $ti_file_name
-        cp $ti_tmp $ti_file_name
-        rm -f $ti_tmp
+        printf "%s" "$orig_file_content" >> "$ti_file_name"
+        if [ $driver_debug -ne 0 ] ; then
+          # Create a temporary directory for the debug file.
+          ti_dbg_file_dir=$(mktemp -d '/tmp/eccp-debug.XXXXXXXX')
+          ti_file_basename="$(basename $ti_file_name)"
+          ti_dbg_file="$ti_dbg_file_dir/$ti_file_basename"
+          cp "$ti_file_name" "$ti_dbg_file"
+          try_debug_driver "# Recreate eccp modifications of $ti_file_name"
+          try_debug_driver "cat \"$ti_dbg_file\" > \"$ti_file_name\""
+        fi
       fi
     else
       if [ -f $ii_file_name ] ; then
@@ -2785,6 +2961,15 @@ do
         fi
         cat $ii_tmp_file >>$ii_file_name
         rm -f $ii_tmp_file
+        if [ $driver_debug -ne 0 ] ; then
+          # Create a temporary directory for the debug file.
+          ii_dbg_file_dir=$(mktemp -d '/tmp/eccp-debug.XXXXXXXX')
+          ii_file_basename="$(basename $ii_file_name)"
+          ii_dbg_file="$ii_dbg_file_dir/$ii_file_basename"
+          cp "$ii_file_name" "$ii_dbg_file"
+          try_debug_driver "# Recreate eccp modifications of $ii_file_name"
+          try_debug_driver "cat \"$ii_dbg_file\" > \"$ii_file_name\""
+        fi
       fi
     fi
   fi
@@ -2804,11 +2989,11 @@ do
 #   Execute cc unless explicitly told not to.
 #
   if [ $fe_status -eq 0 ] ; then
-    cc_tmp_file=$eccp_tmpdir/c_output.txt
     if [ $fe_only -ne 1 ]
     then
       # Compile the generate C file.
-      compile_int_c $gen_c_file_name $gen_c_obj_name $output_file $basefile$gen_c_suffix
+      try_debug_driver '# Compiling generated C file'
+      compile_int_c "$gen_c_file_name" "$output_file" "$gen_c_file_disp_name"
     fi
 #
 #   Compile the .int.c files for instantiation files that were generated
@@ -2818,10 +3003,10 @@ do
       do
         inst_file=$inst_base$gen_c_suffix
         inst_int_c=$instantiation_gen_c_dir/$inst_file
-        inst_int_c=$instantiation_gen_c_dir/$inst_base$gen_c_suffix
         inst_int_o=$inst_base$gen_o_suffix
         cd $instantiation_dir
-        compile_int_c $inst_int_c $inst_int_o $inst_int_o $inst_file
+        try_debug_driver '# Compiling generated instantiation file'
+        compile_int_c "$inst_int_c" "$inst_int_o" "$inst_file" 0
         cd $curr_dir
       done
     fi
@@ -2899,7 +3084,7 @@ then
         rm -f $new_obj_list_file
         if [ $driver_debug -ne 0 ] ; then
           if [ "$object_files" != "$new_obj_list_file" ] ; then
-            try_debug_driver "Updating object file list"
+            try_debug_driver 'Updating object file list'
             try_debug_driver "  old list: $object_files"
             try_debug_driver "  new list: $new_list"
           fi
