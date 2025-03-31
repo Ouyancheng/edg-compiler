@@ -46,7 +46,7 @@ Regarding (b), it is not entirely clear what specific rules GCC followed prior
 to GCC 14, but we have now implemented a tweaked version of the core issue 532
 rules for GNU C++ modes with gnu_version < 140000: This tweak produces a closer
 emulation of corresponding versions of GCC in practice.  Regarding (a), GNU-C++
-mode now follows standard rules in this regard when gnu_version >= 14000.
+mode now follows standard rules in this regard when gnu_version >= 140000.
 
 
 3/25/25  [EDGcpfe/27990]
