@@ -13979,7 +13979,8 @@ operations" and "builtin functions" can be hazy.  If a builtin takes a type
 argument, it must be a builtin operation, otherwise a builtin function is often
 a better fit.
 
-If you add an operation to this list, be sure to builtin_operation_names.
+If you add an operation to this list, be sure to update
+builtin_operation_names.
 */
 enum a_builtin_operation_kind : a_byte {
   bok_offsetof,		/* Builtin offsetof (currently only available in some
