@@ -2579,29 +2579,6 @@ check_label_decl_seq:
           }  /* if */
         }  /* if */
         vp->used = TRUE;
-        if (vp->is_inline ||
-            (vp->is_template_variable && !vp->is_specialized &&
-             !vp->is_nonreal)) {
-          /* This is called for inline variables to make sure that we know
-             a definition of the inline instance may be needed. */
-          set_instance_required(sym_ptr, TRUE, SIR_DEFER_INLINE);
-          if (vp->template_info != NULL) {
-            /* Mark the template and its prototype instantiation as
-               referenced as well. */
-            a_template_ptr tplp = vp->template_info->assoc_template;
-            a_variable_ptr proto_tplp = tplp->prototype_instantiation.variable;
-            symbol_for(tplp)->referenced = TRUE;
-            if (update_il_entry) {
-              tplp->source_corresp.referenced = TRUE;
-            }  /* if */
-            if (proto_tplp != NULL) {
-              symbol_for(proto_tplp)->referenced = TRUE;
-              if (update_il_entry) {
-                proto_tplp->source_corresp.referenced = TRUE;
-              }  /* if */
-            }  /* if */
-          }  /* if */
-        }  /* if */
       }  /* if */
     }  /* if */
     /* If this reference involves a modification or, by taking the variable's
@@ -2615,7 +2592,6 @@ check_label_decl_seq:
            the try block, then it may have to be treated as quasi-volatile
            -- it may need to be stored immediately in case an exception is
            thrown. */
-        vp = sym_ptr->variant.variable.ptr;
         if (!vp->source_corresp.is_local_to_function) {
           /* Don't worry about file-scope variables. */
         } else if (vp->modified_within_try_block) {
@@ -2642,6 +2618,31 @@ check_label_decl_seq:
                                    "record_symbol_reference_full:",
                                    "within_try_block not set properly");
             }  /* for */
+          }  /* if */
+        }  /* if */
+      }  /* if */
+    }  /* if */
+    if (kind & (SRK_ALL_REFERENCES | SRK_ERROR)) {
+      if (vp->is_inline ||
+          (vp->is_template_variable && !vp->is_specialized &&
+           !vp->is_nonreal)) {
+        /* This is called for inline variables to make sure that we know a
+           definition of the inline instance may be needed. */
+        set_instance_required(sym_ptr, TRUE, SIR_DEFER_INLINE);
+        if (vp->template_info != NULL) {
+          /* Mark the template and its prototype instantiation as referenced as
+             well. */
+          a_template_ptr tplp = vp->template_info->assoc_template;
+          a_variable_ptr proto_tplp = tplp->prototype_instantiation.variable;
+          symbol_for(tplp)->referenced = TRUE;
+          if (update_il_entry) {
+            tplp->source_corresp.referenced = TRUE;
+          }  /* if */
+          if (proto_tplp != NULL) {
+            symbol_for(proto_tplp)->referenced = TRUE;
+            if (update_il_entry) {
+              proto_tplp->source_corresp.referenced = TRUE;
+            }  /* if */
           }  /* if */
         }  /* if */
       }  /* if */

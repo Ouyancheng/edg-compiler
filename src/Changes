@@ -1,5 +1,19 @@
 Version 6.8
 
+4/2/25   [EDGcpfe/27668]
+Instantiation of variable template definition
+
+The changes for EDGcpfe/20755,EDGcpfe/20905 (in version 6.7) introduced a
+regression that caused a variable template specialization to not be defined
+when that variable template specialization is used only on the left-hand side
+of an assignment operator.  For example, with --c++14 -tused:
+
+  template<int I> int var = I;
+  int main() {
+    var<1> = 1;  // Previously an undefined reference.  Now okay.
+  }
+
+
 3/27/25  [EDGcpfe/28067]
 GNU compatibility: access past the of string in invalid asm
 
