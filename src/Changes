@@ -1,5 +1,16 @@
 Version 6.8
 
+4/2/25   [EDGcpfe/27467]
+Microsoft C++ compatibility: Core issue 1467
+
+The front end previously disabled the resolution of core issue 1467 in
+Microsoft C++ mode (see the entry for EDGcpfe/16802, etc.).  However, it
+appears that MSVC implements a variant of that resolution: Rather than
+universally preferring conversions to std::initializer_list instances, MSVC
+appears to only prefer such conversions over any other user-defined conversion
+sequence.  The front end now emulates that behavior.
+
+
 4/2/25   [EDGcpfe/27668,EDGcpfe/27942]
 Instantiation of variable template definition
 
