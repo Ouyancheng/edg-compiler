@@ -8341,9 +8341,10 @@ cannot be evaluated, return FALSE.
     case bfk_signbit:
     case bfk_signbitf:
     case bfk_signbitl:
-      if (fp_is_nan(fpval, fpkind) && !gnu_version_is(any_version)) {
-        /* GCC allows testing the sign bit of a NaN value, but Clang does
-           not. */
+      if (fp_is_nan(fpval, fpkind) && !gnu_version_is(any_version) &&
+          !clang_version_is(>=200000)) {
+        /* GCC allows testing the sign bit of a NaN value, but early versions
+           of Clang do not. */
         do_constexpr_fail(result);
       } else {
         val = fp_signbit(fpkind, fpval);
