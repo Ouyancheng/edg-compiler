@@ -6332,12 +6332,13 @@ in a new-expression).
         if (routine != NULL && routine->is_inheriting_ctor &&
             narg == 1 && arg_list->next == NULL &&
             is_any_reference_type(param->type)) {
-          /* The resolution of core issue 2356 requires that inheriting
-             constructors with a first reference parameter during overload
-             resolution with a single argument be ignored if the parameter type
-             is reference-related to the destination type and the original
-             inherited constructor's parent type is reference-related to the
-             parameter type.  See [over.match.func.general]/9 in N4971. */
+          /* When performing overload resolution with a single argument, the
+             resolution of core issue 2356 requires that inheriting
+             constructors with a first reference parameter be ignored if the
+             parameter type is reference-related to the destination type and
+             the original inherited constructor's parent type is reference-
+             related to the parameter type.  See [over.match.func.general]/9
+             in N4971. */
           a_type_ptr  p_type, d_type, c_type;
           p_type = skip_typerefs(type_pointed_to(param->type));
           d_type = parent_class_of(routine);
