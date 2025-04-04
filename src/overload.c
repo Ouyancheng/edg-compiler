@@ -5942,11 +5942,10 @@ in a new-expression).
     }  /* if */
     function_symbol = fundamental_symbol_of(proj_function_symbol);
     function_template_case = symbol_is(function_symbol, sk_function_template);
-    routine = func_sym_routine(function_symbol);
-    routine_type = routine->type;
     if (!function_template_case) {
       /* The symbol is not a function template (i.e., it's a normal
          function). */
+      routine = function_symbol->variant.routine.ptr;
       if (is_overloaded_operator && routine->is_defaulted &&
           special_kind_is(routine, sfk_operator) &&
           (opname_kind_is(routine, onk_ne) ||
@@ -5964,6 +5963,7 @@ in a new-expression).
         }  /* if */
         goto reject_function;
       }  /* if */
+      routine_type = routine->type;
     }  /* if */
     if (is_ambiguous_by_inheritance(proj_function_symbol) &&
         !func_sym_routine(function_symbol)->is_inheriting_ctor) {
@@ -5981,6 +5981,8 @@ in a new-expression).
       /* The symbol is a function template. */
       a_template_symbol_supplement_ptr
               tssp = function_symbol->variant.template_info;
+      routine = tssp->variant.function.routine;
+      routine_type = routine->type;
       if (template_arg_list != NULL) {
         a_ctws_options_set  ctws_options = CTWS_IS_OVERLOAD_CANDIDATE;
         /* Substitute the explicitly-specified template arguments into the
@@ -6329,29 +6331,6 @@ in a new-expression).
            so we keep the already-allocated match list intact. */
         if (!first_pass) saved_arg_match_next = arg_match->next;
         /* See how well the argument matches the parameter. */
-        if (routine != NULL && routine->is_inheriting_ctor &&
-            narg == 1 && arg_list->next == NULL &&
-            is_any_reference_type(param->type)) {
-          /* The resolution of core issue 2356 requires that inheriting
-             constructors with a first reference parameter during overload
-             resolution with a single argument be ignored if the parameter type
-             is reference-related to the destination type and the original
-             inherited constructor's parent type is reference-related to the
-             parameter type.  See [over.match.func.general]/9 in N4971. */
-          a_type_ptr  p_type, d_type, c_type;
-          p_type = skip_typerefs(type_pointed_to(param->type));
-          d_type = parent_class_of(routine);
-          c_type = parent_class_of(inh_ctor_inherited_ctor(routine));
-          if (is_same_class_or_base_class_thereof(d_type, p_type) &&
-              is_same_class_or_base_class_thereof(p_type, c_type)) {
-            if (notes != NULL) {
-              more_info_sym_diagnostic(ec_inheriting_ctor_ignored_for_copy,
-                                       &function_symbol->decl_position,
-                                       function_symbol, notes);
-            }  /* if */
-            goto reject_function;
-          }  /* if */
-        }  /* if */
 #if MICROSOFT_EXTENSIONS_ALLOWED
         if (param->is_cli_param_array) {
           /* C++/CLI parameter array. */
@@ -7119,9 +7098,11 @@ retry2:
     }  /* if */
 #endif /* DEBUG */
     function_symbol = fundamental_symbol_of(proj_function_symbol);
-    if (ignore_templates && symbol_is(function_symbol, sk_function_template)) {
-      /* This is a template and we're skipping templates. */
-      continue;
+    if (ignore_templates) {
+      if (symbol_is(function_symbol, sk_function_template)) {
+        /* This is a template and we're skipping templates. */
+        continue;
+      }  /* if */
     }  /* if */
 #if MICROSOFT_EXTENSIONS_ALLOWED
     if (microsoft_mode &&
@@ -29231,11 +29212,6 @@ traversal_start:
         a_param_type_ptr  ptp = function_type_params(rp->type);
         if (ignore_explicit_ctors && rp->is_explicit_constructor) {
           goto next_function;
-        }  /* if */
-        if (rp->is_inheriting_ctor) {
-          /* Core issue 2356 makes inheriting constructors nonviable in this
-             context.  See [over.match.func.general]/9 in N4971. */
-          continue;
         }  /* if */
         if (rp->is_defaulted && rp->is_deleted && ptp != NULL &&
             is_rvalue_reference_type(ptp->type)) {
