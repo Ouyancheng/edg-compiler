@@ -12784,11 +12784,19 @@ implicit "this" is available, e.g., during overload resolution.
      "this" isn't available (and a captured "this" isn't either since it's
      only available in the lambda body).  Similarly, step out of the scope
      of requires-expression parameters. */
-  while (scope_is(ssep, sck_func_prototype)) {
+  while (scope_is(ssep, sck_func_prototype) ||
+         scope_is(ssep, sck_function_access)) {
     if (scope_is(ssep-1, sck_class_struct_union) &&
         type_is_lambda_closure((ssep-1)->assoc_type)) {
       /* A lambda declarator: Skip it and the closure's scope. */
       ssep -= 2;
+    } else if (((scope_is(ssep-1, sck_template_declaration) &&
+                 scope_is(ssep-2, sck_class_struct_union)) ||
+                (scope_is(ssep-1, sck_template_instantiation) &&
+                 scope_is(ssep-2, sck_class_reactivation))) &&
+               type_is_lambda_closure((ssep-2)->assoc_type)) {
+      /* A generic lambda declarator: Skip it and the closure's scope. */
+      ssep -= 3;
     } else if (ssep->decl_parse_state != NULL &&
                ssep->decl_parse_state->for_requires_expr_params) {
       /* A requires-expression. */
