@@ -10545,6 +10545,12 @@ pseudo_call can be NULL if that information is not needed.
       case bfk_copysignf:
       case bfk_copysignl:
       case bfk_nondeterministic_value:
+      case bfk_COLUMN:
+      case bfk_LINE:
+      case bfk_FILE:
+      case bufk_FILE_NAME:
+      case bfk_FUNCTION:
+      case bufk_FUNCSIG:
         result = TRUE;
         break;
       case bfk_assume_aligned:
