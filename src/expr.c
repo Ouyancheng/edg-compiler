@@ -12987,14 +12987,9 @@ switch_back_region_and_lifetime.
 {
   switch_to_scope_region(scope_depth, region_to_switch_back_to);
   *saved_object_lifetime = curr_object_lifetime;
-  if (curr_object_lifetime != NULL) {
-    /* Find the object lifetime for the scope.  Only stop on an object lifetime
-       in the right memory region. */
-    while (scope_stack[scope_depth].curr_scope_object_lifetime == NULL ||
-           scope_stack[scope_depth].il_memory_region != curr_il_region_number){
-      scope_depth = scope_stack[scope_depth].previous_scope;
-      check_assertion(scope_depth != NO_SCOPE_DEPTH);
-    }  /* while */
+  if (curr_object_lifetime != NULL &&
+      scope_stack[scope_depth].kind == sck_function &&
+      scope_stack[scope_depth].curr_scope_object_lifetime != NULL) {
     curr_object_lifetime = scope_stack[scope_depth].curr_scope_object_lifetime;
   }  /* if */
 }  /* switch_to_scope_region_and_lifetime */
@@ -13331,6 +13326,39 @@ Return whether the current expression contains a GNU statement expression.
 #define curr_expr_has_gnu_statement_expression() FALSE
 #endif /* GNU_EXTENSIONS_ALLOWED */
 
+static a_scope_depth scope_depth_to_allocate_unevaluated_operand(void)
+/*
+We are about to scan the argument expression for an unevaluated operand.
+Compute a scope depth from which a memory region for the expression can be
+determined.  Ordinarily, depth_scope_stack will do, but if we are inside a
+local class, we want the expression tree to be stored in the function memory
+region.  For example:
+
+  void f() {
+    int x;
+    struct { decltype(x) m; } y;
+  }      // The struct type is stored in file scope memory, but the decltype
+         // argument must  be able to refer to "x", and must therefore be
+         // stored in f's memory region.
+*/
+{
+  a_scope_depth  result = depth_scope_stack;
+
+  if (depth_innermost_function_scope != NO_SCOPE_DEPTH) {
+    result = depth_innermost_function_scope;
+  } else if (inside_local_class) {
+    a_scope_ptr  sp = get_innermost_function_scope();
+    if (sp != NULL) {
+      result = sp->depth_in_scope_stack;
+    } else {
+      /* This can happen if an instantiation scope for a lambda has been
+         pushed but the function scope for the call operator has not yet. */
+      result = DEPTH_OF_FILE_SCOPE;
+    }  /* if */
+  }  /* if */
+  return result;
+}  /* scope_depth_to_allocate_unevaluated_operand */
+
 
 static void scan_sizeof_operator(a_rescan_control_block *rcblock,
                                  an_operand             *result)
@@ -13474,9 +13502,10 @@ scanned sizeof or __datasizeof expression, and return the result in *result
      memory region because we're scanning something like an array bound,
      switch back.  Any expression nodes allocated must be in the function-scope
      memory region. */
-  switch_to_scope_region_and_lifetime(depth_scope_stack,
-                                      &region_to_switch_back_to,
-                                      &saved_object_lifetime);
+  switch_to_scope_region_and_lifetime(
+                                 scope_depth_to_allocate_unevaluated_operand(),
+                                 &region_to_switch_back_to,
+                                 &saved_object_lifetime);
   push_expr_stack_with_rcblock((an_expression_kind)ek_sizeof,
                                &expr_stack_entry,
                                /*force_object_lifetime=*/FALSE,
@@ -13983,9 +14012,10 @@ standard headers (e.g., to implement <stdarg.h>).
      memory region because we're scanning something like an array bound,
      switch back.  Any expression nodes allocated must be in the function-scope
      memory region. */
-  switch_to_scope_region_and_lifetime(depth_scope_stack,
-                                      &region_to_switch_back_to,
-                                      &saved_object_lifetime);
+  switch_to_scope_region_and_lifetime(
+                                 scope_depth_to_allocate_unevaluated_operand(),
+                                 &region_to_switch_back_to,
+                                  &saved_object_lifetime);
   push_expr_stack_with_rcblock((an_expression_kind)ek_sizeof,
                                &expr_stack_entry,
                                /*force_object_lifetime=*/FALSE,
@@ -16714,51 +16744,6 @@ done:
   return result;
 }  /* decltype_from_operand */
 
-
-static a_scope_depth scope_depth_to_allocate_decltype_expr(void)
-/*
-We are about to scan the argument expression for a C++11 decltype or GNU typeof
-construct.  Compute a scope depth from which a memory region for the
-expression can be determined.  Ordinarily, depth_scope_stack will do, but if
-we are inside a local class, we want the expression tree to be stored in the
-function memory region.  For example:
-
-  void f() {
-    int x;
-    struct { decltype(x) m; } y;
-  }      // The struct type is stored in file scope memory, but the decltype
-         // argument must  be able to refer to "x", and must therefore be
-         // stored in f's memory region.
-*/
-{
-  a_scope_depth  result = depth_scope_stack;
-
-  if (depth_innermost_function_scope != NO_SCOPE_DEPTH) {
-    result = depth_innermost_function_scope;
-  } else if (inside_local_class) {
-    while (result != NO_SCOPE_DEPTH &&
-           scope_stack[result].depth_innermost_function_scope ==
-                                                             NO_SCOPE_DEPTH) {
-      if (scope_is(&scope_stack[result], sck_template_instantiation)) {
-        /* This is presumably a generic lambda instantiation: Skip the whole
-           instantiation (including an sck_instantiation entry and any
-           reactivations on top of that). */
-        result = scope_stack[result].orig_depth;
-      } else {
-        result = scope_stack[result].previous_scope;
-      }  /* if */
-    }  /* while */
-    if (result == NO_SCOPE_DEPTH) {
-      /* This can happen if an instantiation scope for a lambda has been
-         pushed but the function scope for the call operator has not yet. */
-      result = DEPTH_OF_FILE_SCOPE;
-    } else {
-      result = scope_stack[result].depth_innermost_function_scope;
-    }  /* if */
-  }  /* if */
-  return result;
-}  /* scope_depth_to_allocate_decltype_expr */
-
 #if GENERATE_SOURCE_SEQUENCE_LISTS
 
 static a_source_sequence_entry_ptr fs_add_empty_source_sequence_entry(void)
@@ -16868,7 +16853,7 @@ name.  We do not advance to the token after the decltype in this case.
      memory region because we're scanning something like a template argument,
      switch back.  If we're in a function, any expression nodes allocated must
      be in the function-scope memory region. */
-  expr_scope_depth = scope_depth_to_allocate_decltype_expr();
+  expr_scope_depth = scope_depth_to_allocate_unevaluated_operand();
   switch_to_scope_region_and_lifetime(expr_scope_depth,
                                       &region_to_switch_back_to,
                                       &saved_object_lifetime);
@@ -17100,7 +17085,7 @@ This routine can be called from outside of the expression-processing routines.
      memory region because we're scanning something like a template argument,
      switch back.  If we're in a function, any expression nodes allocated must
      be in the function-scope memory region. */
-  expr_scope_depth = scope_depth_to_allocate_decltype_expr();
+  expr_scope_depth = scope_depth_to_allocate_unevaluated_operand();
   switch_to_scope_region_and_lifetime(expr_scope_depth,
                                       &region_to_switch_back_to,
                                       &saved_object_lifetime);
@@ -17682,7 +17667,7 @@ the expression-processing routines.
        memory region because we're scanning something like a template argument,
        switch back.  If we're in a function, any expression nodes allocated
        must be in the function-scope memory region. */
-    expr_scope_depth = scope_depth_to_allocate_decltype_expr();
+    expr_scope_depth = scope_depth_to_allocate_unevaluated_operand();
     switch_to_scope_region_and_lifetime(expr_scope_depth,
                                         &region_to_switch_back_to,
                                         &saved_object_lifetime);
@@ -18721,7 +18706,7 @@ previously-scanned noexcept expression, and return the result in
      memory region because we're scanning something like an array bound,
      switch back.  Any expression nodes allocated must be in the function-scope
      memory region.  This is true even when in local class types. */
-  expr_scope_depth = scope_depth_to_allocate_decltype_expr();
+  expr_scope_depth = scope_depth_to_allocate_unevaluated_operand();
   switch_to_scope_region_and_lifetime(expr_scope_depth,
                                       &region_to_switch_back_to,
                                       &saved_object_lifetime);
