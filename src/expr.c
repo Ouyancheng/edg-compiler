@@ -14595,11 +14595,11 @@ rcblock->argument_list.
           a_decl_parse_state  dps;
           start_position = pos_curr_token;
           init_decl_parse_state(&dps)
-          if (!clang_mode) {
-            /* GCC and MSVC (but not Clang) appear to accept the same type-id
-               forms as would be accepted as a template argument.  In
-               particular, that includes types specific to member functions,
-               such as "int() &". */
+          if (!clang_version_is(<190000)) {
+            /* Most implementations appear to accept the same type-id forms as
+               would be accepted as a template argument.  In particular, that
+               includes types specific to member functions, such as "int() &".
+               (Early versions of Clang did not accept that, however.) */
             dps.is_template_type_argument = TRUE;
           }  /* if */
           type_name_full(&dps);

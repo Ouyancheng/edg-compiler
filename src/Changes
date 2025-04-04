@@ -1,5 +1,18 @@
 Version 6.8
 
+4/4/25   [EDGcpfe/28062]
+Clang compatibility: Type traits helpers and member function types
+
+Clang 19.x accepts member function cv-qualifiers and ref-qualifiers for the
+type operands of type traits helpers.  The front end emulates that in
+corresponding modes (GCC and MSVC had been accepting such constructs already
+and the front end emulated that as well).  For example:
+
+  static_assert(!__is_pod(int() &));  // Previously a syntax error in all
+                                      // Clang modes.  Now okay when
+                                      // clang_version >= 190000.
+
+
 4/4/25   [EDGcpfe/21675,EDGcpfe/21867,EDGcpfe/27856]
 Core issue 2356: Inheriting constructors in copy/move-like operations
 
