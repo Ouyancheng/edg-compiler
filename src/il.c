@@ -10569,19 +10569,13 @@ needed.
     check_assertion(!C_mode());
     qualifiers = get_type_qualifiers(ptp->type);
     if (qualifiers != TQ_NONE) {
-      /* To suppress compiler warnings about data truncation, explicitly
-         truncate to the appropriate bitwidth. */
-      constexpr a_type_qualifier_set qualifier_bitmask =
-                       ((a_type_qualifier_set)
-                          bitmask_of_width<NUM_BITS_FOR_TYPE_QUALIFIER_SET>());
-
       ptp->type = make_unqualified_type(ptp->type);
       if ((qualifiers & TQ_RESTRICT) && keep_restrict_in_signatures) {
         ptp->type = make_qualified_type(ptp->type, TQ_RESTRICT);
       }  /* if */
       /* Record the top-level type qualifiers that were declared for this
          parameter and then removed. */
-      ptp->qualifiers = qualifiers & qualifier_bitmask;
+      copy_qualifiers(qualifiers, ptp->qualifiers);
     }  /* if */
   }  /* if */
 }  /* update_param_top_level_qualifiers */
@@ -13227,14 +13221,8 @@ and if *p_member_type is a function type, adjust it as follows:
         rtsp->has_this_param = TRUE;
       }  /* if */
       if (qualifiers != TQ_NONE) {
-        /* To suppress compiler warnings about data truncation, explicitly
-           truncate to the appropriate bitwidth. */
-        constexpr a_type_qualifier_set qualifier_bitmask =
-                       ((a_type_qualifier_set)
-                          bitmask_of_width<NUM_BITS_FOR_TYPE_QUALIFIER_SET>());
-
         /* Merge in qualifiers in some Microsoft/GNU instantiation contexts. */
-        rtsp->qualifiers |= qualifiers & qualifier_bitmask;
+        copy_qualifiers(rtsp->qualifiers | qualifiers, rtsp->qualifiers);
       }  /* if */
       if (rtsp->routine_name_linkage == (a_name_linkage_kind)nlk_external) {
         /* Change from C linkage to C++ linkage: */
@@ -14211,16 +14199,10 @@ are not already present.
                          qualifiers_to_add, PM_NONE, expl_mem_attr_implicit,
                          /*class_type=*/(a_type_ptr)NULL, upc_block_size);
     if (ptr == NULL) {
-      /* To suppress compiler warnings about data truncation, explicitly
-         truncate to the appropriate bitwidth. */
-      constexpr a_type_qualifier_set qualifier_bitmask =
-                       ((a_type_qualifier_set)
-                          bitmask_of_width<NUM_BITS_FOR_TYPE_QUALIFIER_SET>());
-
       /* No allocated entry, need to allocate one. */
       ptr = alloc_type((a_type_kind)tk_typeref);
       ptr->variant.typeref.type = base_type;
-      ptr->variant.typeref.qualifiers = qualifiers_to_add & qualifier_bitmask;
+      copy_qualifiers(qualifiers_to_add, ptr->variant.typeref.qualifiers);
 #if NEAR_AND_FAR_ALLOWED
       ptr->variant.typeref.explicit_memory_attribute_made_implicit =
                                                         expl_mem_attr_implicit;

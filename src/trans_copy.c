@@ -3420,11 +3420,7 @@ to do the termination test.
       prune = TRUE;
     } else {
       /* This entry has not been visited previously. */
-      if (flag_value_meaning_visited) {
-        prefix->il_walk_flag = TRUE;
-      } else {
-        prefix->il_walk_flag = FALSE;
-      }  /* if */
+      prefix->il_walk_flag = flag_value_meaning_visited;
       prune = FALSE;
     }  /* if */
   }  /* if */
@@ -3593,11 +3589,7 @@ do the termination test.
     /* This entry has already been visited on this walk. */
     prune = TRUE;
   } else {
-    if (flag_value_meaning_visited) {
-      prefix->il_walk_flag = TRUE;
-    } else {
-      prefix->il_walk_flag = FALSE;
-    }  /* if */
+    prefix->il_walk_flag = flag_value_meaning_visited;
     prune = FALSE;
     /* Clear befriending lists, which will be rebuilt later. */
     if (kind == iek_class_type_supplement) {

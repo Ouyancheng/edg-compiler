@@ -25125,7 +25125,7 @@ struct a_charted_constraint {
 };  /* a_charted_constraint */
 
 static constexpr uint32_t
-		constraint_link_bitmask = (uint32_t)bitmask_of_width<30>();
+		constraint_link_bitmask = (uint32_t)bitmask_of_width(30);
 			/* The bitmask for setting the link data member of
 			   a_charted_constraint. */
 

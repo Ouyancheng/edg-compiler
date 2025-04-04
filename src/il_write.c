@@ -282,13 +282,9 @@ encoded form.
     if (*count_ptr > max_entry_number - num_entries) {
       catastrophe(ec_program_too_large);
     }  /* if */
-
-    /* To suppress compiler warnings about data truncation, explicitly
-       truncate to the appropriate bitwidth. */
-    constexpr unsigned long long entry_number_bitmask =
-                                      bitmask_of_width<BITS_IN_ENTRY_NUMBER>();
     /* Use the next entry number for this entry. */
-    epp->entry_number = (*count_ptr + 1) & entry_number_bitmask;
+    copy_to_bitfield((*count_ptr + 1), epp->entry_number,
+                     BITS_IN_ENTRY_NUMBER);
     epp->file_scope = is_file_scope_entry;
     /* Increment the table entry by the right number of logical entries. */
     *count_ptr += num_entries;
@@ -489,13 +485,10 @@ Write the initial information to the IL file, if there is one.
 #if CHECKING
   /* Make sure the entry_number field in the prefix can contain the maximum
      value computed. */
-  { /* To suppress compiler warnings about data truncation, explicitly
-       truncate to the appropriate bitwidth. */
-    constexpr unsigned long long entry_number_bitmask =
-                                      bitmask_of_width<BITS_IN_ENTRY_NUMBER>();
-    an_il_entry_prefix           dummy_prefix;
+  { an_il_entry_prefix dummy_prefix;
 
-    dummy_prefix.entry_number = max_entry_number & entry_number_bitmask;
+    copy_to_bitfield(max_entry_number, dummy_prefix.entry_number,
+                     BITS_IN_ENTRY_NUMBER);
     if (dummy_prefix.entry_number != max_entry_number) {
       internal_error("start_il_file: prefix entry_number is defined wrong");
     }  /* if */

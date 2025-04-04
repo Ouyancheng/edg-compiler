@@ -16333,13 +16333,7 @@ parameters.
       /* Allocate the param type entry and copy default arg info. */
       new_ptp = make_param_type(tp, &null_source_position);
       new_ptp->declared_type = declared_type;
-
-      /* To suppress compiler warnings about data truncation, explicitly
-         truncate to the appropriate bitwidth. */
-      constexpr a_type_qualifier_set qualifier_bitmask =
-                       ((a_type_qualifier_set)
-                          bitmask_of_width<NUM_BITS_FOR_TYPE_QUALIFIER_SET>());
-      new_ptp->qualifiers = param_qualifiers & qualifier_bitmask;
+      copy_qualifiers(param_qualifiers, new_ptp->qualifiers);
       new_ptp->name = ptp->name;
       new_ptp->param_num = ptp->param_num;
 #if MICROSOFT_EXTENSIONS_ALLOWED

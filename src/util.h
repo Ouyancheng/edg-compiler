@@ -2157,28 +2157,23 @@ front-end memory.
 }  /* owning_ptr */
 
 
-template<unsigned Num_bits>
-inline constexpr unsigned long long bitmask_of_width()
 /*
 Create and return a bitmask of the given width.
 
-For example: Num_bits=0 is equivalent to 0b0, Num_bits=1 is equivalent to 0b1,
-Num_bits=2 is equivalent to 0b11, etc.
+For example: bitwidth=0 is equivalent to 0b0, bitwidth=1 is equivalent to 0b1,
+bitwidth=2 is equivalent to 0b11, etc.
 */
-{
-  return (bitmask_of_width<Num_bits - 1>() << 1) | 0x1;
-}  /* bitmask_of_width */
+#define bitmask_of_width(bitwidth) ((1ull << bitwidth) - 1)
 
 
-template<>
-inline constexpr unsigned long long bitmask_of_width<0>()
 /*
-This is a specialization of bitmask_of_width to handle the bitmask_of_width<0>
-case which should be 0b0.  See the above template for more information.
+Copy the given source value to the given destination bitfield (of the given
+bitwidth).
+
+This macro is used to avoid compiler warnings when copying into a bitfield.
 */
-{
-  return 0;
-}  /* bitmask_of_width */
+#define copy_to_bitfield(src_val, dest, bitwidth)                             \
+    (dest) = ((src_val) & bitmask_of_width(bitwidth))
 
 
 template<typename an_Object>
@@ -4143,7 +4138,7 @@ value for the decimal and its precision.
   size_t chars = 8;
 
   /* If the floating point value is negative, invert it and add an additional
-     digit for the '-' character. */
+     character to the count (to account for the '-' character). */
   if (value < 1) {
     ++chars;
     value = -value;

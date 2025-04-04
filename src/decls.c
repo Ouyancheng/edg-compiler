@@ -6001,14 +6001,8 @@ a copy of the previous type).
             /* Restore the declared type. */
             rout_type_ptp->declared_type = declared_type;
             if (preserve_qualifiers_from_rout_type) {
-              /* To suppress compiler warnings about data truncation,
-                 explicitly truncate to the appropriate bitwidth. */
-              constexpr a_type_qualifier_set qualifier_bitmask =
-                       ((a_type_qualifier_set)
-                          bitmask_of_width<NUM_BITS_FOR_TYPE_QUALIFIER_SET>());
-
               /* Restore the qualifiers as originally declared. */
-              rout_type_ptp->qualifiers = saved_qualifiers & qualifier_bitmask;
+              copy_qualifiers(saved_qualifiers, rout_type_ptp->qualifiers);
             }  /* if */
             /* Restore the name that is associated with the routine type. */
             rout_type_ptp->name = saved_name;
@@ -8095,14 +8089,10 @@ of the given routine.
 #endif /* FIXED_POINT_ALLOWED */
 #if UPC_EXTENSIONS_ALLOWED
   if (upc_mode) {
-    /* To suppress compiler warnings about data truncation,
-       explicitly truncate to the appropriate bitwidth. */
-    constexpr unsigned long long access_bitmask =
-                                   bitmask_of_width<NUM_BITS_FOR_UPC_ACCESS>();
-
     /* Record the current UPC access method for this routine.  This is the
        method last specified by a UPC pragma in file scope. */
-    routine_ptr->upc_access_method = curr_upc_access_method & access_bitmask;
+    copy_to_bitfield(curr_upc_access_method, routine_ptr->upc_access_method,
+                     NUM_BITS_FOR_UPC_ACCESS);
   }  /* if */
 #endif /* UPC_EXTENSIONS_ALLOWED */
 }  /* record_pragma_state_in_routine */
@@ -22031,19 +22021,13 @@ parameters are scanned by scan_a_template_parameter_declaration.
   do {
     an_il_entity_list_entry_ptr  saved_entities = NULL;
     if (!first_declarator) {
-      constexpr a_type_qualifier_set qualifier_bitmask =
-                       ((a_type_qualifier_set)
-                          bitmask_of_width<NUM_BITS_FOR_TYPE_QUALIFIER_SET>());
-
       /* We've just skipped a comma separating two declarators. */
       /* Before parsing the next declaration, run any end-of-parse actions
          needed for the previous declarator. */
       run_end_of_parse_actions(dps, /*more_declarators=*/TRUE);
       /* Reinitialize the declarator-specific parts of the parse state. */
       start_secondary_declarator(dps);
-      /* To suppress compiler warnings about data truncation, explicitly
-         truncate to the appropriate bitwidth. */
-      dps->qualifiers = saved_qualifiers & qualifier_bitmask;
+      copy_qualifiers(saved_qualifiers, dps->qualifiers);
       dps->qualifiers_pos = saved_qualifiers_pos;
       /* Re-initialize dps->is_old_style_param_decl for every declarator,
          because it might have been modified during the processing of the prior

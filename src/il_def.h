@@ -6167,6 +6167,16 @@ to represent a type qualifier set.
 */
 #define NUM_BITS_FOR_TYPE_QUALIFIER_SET ((int)tqt_last)
 
+/*
+Copy the qualifiers in the from parameter to the qualifiers stored in the to
+parameter.
+
+This macro is used to avoid compiler warnings when copying qualifiers into a
+bitfield (with a bitwidth of NUM_BITS_FOR_TYPE_QUALIFIER_SET).
+*/
+#define copy_qualifiers(from, to)                                            \
+    copy_to_bitfield(from, to, NUM_BITS_FOR_TYPE_QUALIFIER_SET)
+
 #if UPC_EXTENSIONS_ALLOWED
 
 /*

@@ -269,6 +269,16 @@ that field is defined here.
 #define MAX_ARRAY_LENGTH ((1<<ARRAY_LENGTH_WIDTH) - 1)
 
 /*
+Copy the array length in the from parameter to the array length stored in the
+to parameter.
+
+This macro is used to avoid compiler warnings when copying array length into a
+bitfield (with a bitwidth of ARRAY_LENGTH_WIDTH).
+*/
+#define copy_interpreter_array_length(from, to)                               \
+    copy_to_bitfield(from, to, ARRAY_LENGTH_WIDTH)
+
+/*
 Macro defining the maximum size in bytes of a block allocated to represent
 a dynamic memory allocation.
 */
@@ -4999,11 +5009,6 @@ variant path.
       a_targ_ptrdiff_t  signed_offset;
       array_size = value_bytes_for_type(ips, obj_type, &result); 
       if (type_is(obj_type, tk_array)) {
-        /* To suppress compiler warnings about data truncation, explicitly
-           truncate to the appropriate bitwidth. */
-        constexpr unsigned long long array_length_bitmask =
-                                        bitmask_of_width<ARRAY_LENGTH_WIDTH>();
-
         do {
           obj_type = skip_typerefs(obj_type->variant.array.element_type);
         } while (type_is(obj_type, tk_array));
@@ -5011,7 +5016,7 @@ variant path.
         cap->flags |= CA_ARRAY_ELEMENT;
         check_assertion(elem_size != 0);
         array_length = array_size/elem_size;
-        cap->length = array_length & array_length_bitmask;
+        copy_interpreter_array_length(array_length, cap->length);
         if (is_variant_path(cap)) {
           cap->variant.variant_path->base_address = cap->address;
         } else {
@@ -5101,14 +5106,10 @@ variant path.
        Set the CA_ARRAY_ELEMENT flag in the latter case. */
     a_type_ptr  con_addr_type = type_pointed_to(con->type);
     if (!identical_types(obj_type, con_addr_type)) {
-      /* To suppress compiler warnings about data truncation, explicitly
-         truncate to the appropriate bitwidth. */
-      constexpr unsigned long long array_length_bitmask =
-                                        bitmask_of_width<ARRAY_LENGTH_WIDTH>();
       cap->flags |= CA_ARRAY_ELEMENT;
-      cap->length =
-            ((unsigned int)obj_type->variant.array.variant.number_of_elements &
-             array_length_bitmask);
+      copy_interpreter_array_length(
+              (unsigned int)obj_type->variant.array.variant.number_of_elements,
+              cap->length);
       if (is_variant_path(cap)) {
         cap->variant.variant_path->base_address = cap->address;
       } else {
@@ -6468,15 +6469,10 @@ accordingly.  Associate diagnostics with the given position.
     } while (elem_type->kind == (a_type_kind)tk_array);
     elem_size = value_bytes_for_type(ips, elem_type, &result);
     if (!result) goto done;
-
-    /* To suppress compiler warnings about data truncation, explicitly
-       truncate to the appropriate bitwidth. */
-    constexpr unsigned long long array_length_bitmask =
-                                        bitmask_of_width<ARRAY_LENGTH_WIDTH>();
     /* Decay src_addr from the address of the array to the address of its
        first element. */
     src_addr->flags |= CA_ARRAY_ELEMENT;
-    src_addr->length = ((unsigned int)length) & array_length_bitmask;
+    copy_interpreter_array_length(length, src_addr->length);
     if (is_variant_path(src_addr)) {
       src_addr->variant.variant_path->base_address = src_addr->address;
     } else {
@@ -9343,17 +9339,13 @@ any problems are encountered, the pointee of p_result will be set to FALSE.
     }  /* if */
   }  /* if */
   if (result) {
-    /* To suppress compiler warnings about data truncation, explicitly
-       truncate to the appropriate bitwidth. */
-    constexpr unsigned long long array_length_bitmask =
-                                        bitmask_of_width<ARRAY_LENGTH_WIDTH>();
-
     /* Return the result. */
     clear_address(result_storage, string_bytes);
     ((a_constexpr_address*)result_storage)->flags |=
                                            CA_CONST_STORAGE | CA_ARRAY_ELEMENT;
-    ((a_constexpr_address*)result_storage)->length = (length &
-                                                      array_length_bitmask);
+    copy_interpreter_array_length(
+                               length,
+                               ((a_constexpr_address*)result_storage)->length);
   } else {
     *p_result = FALSE;
   }  /* if */
@@ -12936,16 +12928,11 @@ string_view object referring to that static array.
     a_byte_count  offset;
     get_mapped_byte_count(&persistent_map, fp, offset);
     if (type_is(ftp, tk_pointer) && !ptr_done) {
-      /* To suppress compiler warnings about data truncation, explicitly
-         truncate to the appropriate bitwidth. */
-      constexpr unsigned long long
-                           array_length_bitmask =
-                                      bitmask_of_width<ARRAY_LENGTH_WIDTH>();
-      a_constexpr_address  *cap = (a_constexpr_address*)(subobj+offset);
+      a_constexpr_address *cap = (a_constexpr_address*)(subobj+offset);
 
       clear_address(cap, chars);
       cap->flags = CA_ARRAY_ELEMENT | CA_CONST_STORAGE;
-      cap->length = (length + 1) & array_length_bitmask;
+      copy_interpreter_array_length(length + 1, cap->length);
       cap->variant.base_address = chars;
       mark_subobject_initialized(subobj+offset, complete_obj);
       ptr_done = TRUE;
@@ -15555,13 +15542,8 @@ elements in *p_elem_size.
   cap->variant.base_address = cap->address;
   record_complete_object_type(orig_elem_tp, cap->complete_object);
   if (is_array) {
-    /* To suppress compiler warnings about data truncation, explicitly truncate
-       to the appropriate bitwidth. */
-    constexpr unsigned long long array_length_bitmask =
-                                        bitmask_of_width<ARRAY_LENGTH_WIDTH>();
-
     cap->flags |= CA_ARRAY_ELEMENT;
-    cap->length = orig_alloc_length & array_length_bitmask;
+    copy_interpreter_array_length(orig_alloc_length, cap->length);
     if (alloc_length == 0) {
       cap->flags |= CA_CANNOT_DEREFERENCE;
     }  /* if */
@@ -21076,13 +21058,8 @@ the value representation of the integer value.
               }  /* if */
               length = opnd1_type->variant.array.variant.number_of_elements;
               if (length <= MAX_ARRAY_LENGTH) {
-                /* To suppress compiler warnings about data truncation,
-                   explicitly truncate to the appropriate bitwidth. */
-                constexpr unsigned long long array_length_bitmask =
-                                        bitmask_of_width<ARRAY_LENGTH_WIDTH>();
                 result_addr->flags |= CA_ARRAY_ELEMENT;
-                result_addr->length = ((unsigned int)length &
-                                       array_length_bitmask);
+                copy_interpreter_array_length(length, result_addr->length);
                 if (is_variant_path(result_addr)) {
                   result_addr->variant.variant_path->base_address =
                                                          result_addr->address;
@@ -24737,19 +24714,14 @@ the value representation of the integer value.
                 get_mapped_byte_count(&persistent_map, field, offset);
                 result_addr.address += offset;
                 if (field->is_bit_field) {
-                  /* To suppress compiler warnings about data truncation,
-                     explicitly truncate to the appropriate bitwidth. */
-                  constexpr unsigned long long array_length_bitmask =
-                                        bitmask_of_width<ARRAY_LENGTH_WIDTH>();
-
                   /* Record that the lvalue is that of a bit field.  The
                      length and signedness of the field are encoded in
                      result_addr.length. */
                   result_addr.flags |= CA_BIT_FIELD;
-                  result_addr.length =
-                                      ((unsigned)(field->bit_size * 2 +
-                                                  field->bit_field_is_signed) &
-                                       array_length_bitmask);
+                  copy_interpreter_array_length(
+                                        (unsigned)(field->bit_size * 2 +
+                                                   field->bit_field_is_signed),
+                                        result_addr.length);
                 }  /* if */
                 if (field->is_mutable) {
                   result_addr.flags &= (unsigned char)~CA_CONST_STORAGE;
@@ -24853,19 +24825,14 @@ the value representation of the integer value.
                   get_mapped_byte_count(&persistent_map, field, offset);
                   result_addr.address += offset;
                   if (field->is_bit_field) {
-                    /* To suppress compiler warnings about data truncation,
-                       explicitly truncate to the appropriate bitwidth. */
-                    constexpr unsigned long long array_length_bitmask =
-                                        bitmask_of_width<ARRAY_LENGTH_WIDTH>();
-
                     /* Record that the lvalue is that of a bit field.  The
                        length and signedness of the field are encoded in
                        result_addr.length. */
                     result_addr.flags |= CA_BIT_FIELD;
-                    result_addr.length =
-                                      ((unsigned)(field->bit_size * 2 +
-                                                  field->bit_field_is_signed) &
-                                       array_length_bitmask);
+                    copy_interpreter_array_length(
+                                        (unsigned)(field->bit_size * 2 +
+                                                   field->bit_field_is_signed),
+                                        result_addr.length);
                   }  /* if */
                 }  /* if */
                 if (field->is_mutable) {
@@ -25238,16 +25205,11 @@ the value representation of the integer value.
             cap->flags |= CA_CONST_STORAGE;
           }  /* if */
           if (type_is(tp, tk_array)) {
-            /* To suppress compiler warnings about data truncation,
-               explicitly truncate to the appropriate bitwidth. */
-            constexpr unsigned long long array_length_bitmask =
-                                        bitmask_of_width<ARRAY_LENGTH_WIDTH>();
-
             /* We are referring to the array as a whole, not just one element
                of it.  Record the length in case it is needed later on. */
-            cap->length =
-                      ((unsigned)tp->variant.array.variant.number_of_elements &
-                       array_length_bitmask);
+            copy_interpreter_array_length(
+                        (unsigned)tp->variant.array.variant.number_of_elements,
+                        cap->length);
           }  /* if */
           tmp_complete_obj = tmp_bytes;
         } else {

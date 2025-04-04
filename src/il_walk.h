@@ -65,11 +65,11 @@ by the trans_copy.c code.
 #define REMAP_ONLY_ROUTINES_NEEDED FALSE
 #endif /* IL_SHOULD_BE_WRITTEN_TO_FILE && ... */
 
-EXTERN_THREAD unsigned int
+EXTERN_THREAD a_boolean
 		flag_value_meaning_visited;
 			/* Value to be placed in the il_walk_flag field
 			   to indicate that an entry has been visited.
-			   The value alternates between 0 and 1. */
+			   The value alternates between FALSE and TRUE. */
 
 #if IL_WALK_NEEDED 
 
