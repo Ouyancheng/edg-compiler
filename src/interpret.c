@@ -272,8 +272,8 @@ that field is defined here.
 Copy the array length in the from parameter to the array length stored in the
 to parameter.
 
-This macro is used to avoid compiler warnings when copying array length into a
-bitfield (with a bitwidth of ARRAY_LENGTH_WIDTH).
+This macro is used to avoid compiler warnings when copying an array length into
+a bitfield (with a bitwidth of ARRAY_LENGTH_WIDTH).
 */
 #define copy_interpreter_array_length(from, to)                               \
     copy_to_bitfield(from, to, ARRAY_LENGTH_WIDTH)
