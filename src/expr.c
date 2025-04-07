@@ -13338,7 +13338,7 @@ region.  For example:
     int x;
     struct { decltype(x) m; } y;
   }      // The struct type is stored in file scope memory, but the decltype
-         // argument must  be able to refer to "x", and must therefore be
+         // argument must be able to refer to "x", and must therefore be
          // stored in f's memory region.
 */
 {
@@ -14015,7 +14015,7 @@ standard headers (e.g., to implement <stdarg.h>).
   switch_to_scope_region_and_lifetime(
                                  scope_depth_to_allocate_unevaluated_operand(),
                                  &region_to_switch_back_to,
-                                  &saved_object_lifetime);
+                                 &saved_object_lifetime);
   push_expr_stack_with_rcblock((an_expression_kind)ek_sizeof,
                                &expr_stack_entry,
                                /*force_object_lifetime=*/FALSE,
