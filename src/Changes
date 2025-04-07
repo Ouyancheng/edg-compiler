@@ -6,7 +6,7 @@ GNU/Clang compatibility: pack expansion in "format" attribute
 The GNU/Clang format attribute is used to enable additional checking for
 routines that have printf/scanf-like arguments.  Previously the third argument
 to the format attribute indicated which of the parameters specified an
-ellipses argument, but now that parameter can also be a pack expansion.  For
+ellipsis argument, but now that parameter can also be a pack expansion.  For
 example, with --clang --c++11:
 
   template <class... T>
