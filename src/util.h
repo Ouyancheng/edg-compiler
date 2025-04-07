@@ -3545,6 +3545,21 @@ Return the maximum value of a 64-bit signed integer.
   return INT64_MAX;
 }  /* max_integral_value */
 
+#if HOST_HAS_INT128_EXTENSIONS
+
+template<typename an_Integral_type>
+inline constexpr
+Enable_if<sizeof(an_Integral_type) == sizeof(__int128_t) &&
+          Is_signed_helper<an_Integral_type>::value, __int128_t>
+max_integral_value()
+/*
+Return the maximum value of a 128-bit signed integer.
+*/
+{
+  return ~(__int128_t(1) << 127);
+}  /* max_integral_value */
+
+#endif /* HOST_HAS_INT128_EXTENSIONS */
 
 template<typename an_Integral_type>
 inline constexpr
@@ -3573,6 +3588,21 @@ Return the maximum value of a 64-bit unsigned integer.
   return UINT64_MAX;
 }  /* max_integral_value */
 
+#if HOST_HAS_INT128_EXTENSIONS
+
+template<typename an_Integral_type>
+inline constexpr
+Enable_if<sizeof(an_Integral_type) == sizeof(__uint128_t) &&
+          !Is_signed_helper<an_Integral_type>::value, __uint128_t>
+max_integral_value()
+/*
+Return the maximum value of a 128-bit unsigned integer.
+*/
+{
+  return ~(__uint128_t(0));
+}  /* max_integral_value */
+
+#endif /* HOST_HAS_INT128_EXTENSIONS */
 
 template<typename an_Integral_type>
 inline constexpr
