@@ -5,7 +5,7 @@ Substitution failure for use of enclosing "this" in generic lambda declarator
 
 Previously, a (possibly implicit) reference to an enclosing "this" pointer
 appearing in an unevaluated context of a generic lambda declarator resulted in
-a substitution failure.  For example, with --c++14
+a substitution failure.  For example, with --c++14:
 
   struct A {
     template<typename T> void g(T);
