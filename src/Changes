@@ -1,5 +1,20 @@
 Version 6.8
 
+4/7/25   [EDGcpfe/27961]
+Substitution failure for use of enclosing "this" in generic lambda declarator
+
+Previously, a (possibly implicit) reference to an enclosing "this" pointer
+appearing in an unevaluated context of a generic lambda declarator resulted in
+a substitution failure.  For example, with --c++14
+
+  struct A {
+    template<typename T> void g(T);
+    void f() {
+      [] (auto i) -> decltype(g(i)) { } (1);  // Previously a spurious error.
+    }                                         // Now okay.
+  };
+
+
 4/7/25   [EDGcpfe/20625,EDGcpfe/21181,EDGcpfe/24947,EDGcpfe/26668,
           EDGcpfe/26839]
 Memory region violation for unevaluated operands
