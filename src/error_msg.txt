@@ -1218,7 +1218,7 @@ ec_fixed_register_clobbered;;"register \"%s\" has a fixed purpose and may not be
 ec_empty_clobbers_list;;"an empty clobbers list must be omitted entirely"
 ec_exp_asm_operand;;"expected an asm operand"
 ec_exp_asm_clobber;;"expected a register to clobber"
-ec_format_rout_not_varargs;;"\"format\" attribute requires an ellipsis parameter"
+ec_format_rout_not_varargs;;"\"format\" attribute requires an ellipsis parameter or parameter pack"
 ec_subst_arg_is_not_variable;;"first substitution argument is not the first variable argument"
 ec_fmt_arg_does_not_exist;;"format argument index is greater than number of parameters"
 ec_fmt_arg_is_not_string;;"format argument does not have string type"

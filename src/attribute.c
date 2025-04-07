@@ -6337,9 +6337,9 @@ described by the format string.
   int            k, val[2];
 #define FMT_ARG 0
 #define FIRST_SUBST_ARG 1
-  a_pragma_kind  arg_pragma = (a_pragma_kind)pk_none;
+  a_pragma_kind  arg_pragma = pk_none;
   
-  check_assertion(aap->kind == (an_attribute_arg_kind)aak_token);
+  check_assertion(aap->kind == aak_token);
   format_name = aap->variant.token;
   for (k = 0; k < FORMAT_NAME_MAP_LENGTH; ++k) {
     if (same_string_ignoring_underscores(format_name_map[k].name,
@@ -6356,7 +6356,8 @@ described by the format string.
     known_values = FALSE;
   }  /* if */
   /* Convert the next two attribute arguments to integer values and check some
-     basic range constraints. */
+     basic range constraints.  GNU allows template parameters here but Clang
+     does not (we allow them in both modes). */
   for (k = 0; k<2; ++k) {
     a_host_large_integer  v;
     aap = aap->next;
@@ -6377,16 +6378,9 @@ described by the format string.
          So we silently ignore the attribute in that case (which is achieved
          by setting the substituted argument field to zero). */
       val[FIRST_SUBST_ARG] = 0;
-    } else if (!rtsp->has_ellipsis) {
-      if (val[FIRST_SUBST_ARG] != 0) {
-        /* A function type without an ellipsis cannot have the "format"
-           attribute (unless the substitution argument was specified as
-           zero). */
-        pos_error(ec_format_rout_not_varargs, &ap->position);
-        make_attr_unrecognized(ap);
-      }  /* if */
     } else {
-      int  count = 0;
+      int       count = 0;
+      a_boolean has_pack_expansion = FALSE;
       /* Check to see that the format argument has string type and that the
          substitution argument is the first variable argument. */
       if (rtsp->this_class != NULL) {
@@ -6405,13 +6399,54 @@ described by the format string.
             make_attr_unrecognized(ap);
           }  /* if */
         }  /* if */
+        if (count == val[FIRST_SUBST_ARG]) {
+          if (ptp->pack_expansion_descr != NULL || ptp->is_pack_element) {
+            /* A pack expansion or expanded pack is accepted by Clang.
+               We allow it in GNU mode as well. */
+            has_pack_expansion = TRUE;
+          }  /* if */
+        }  /* if */
       }  /* for */
+      if (!has_pack_expansion && !rtsp->has_ellipsis &&
+          val[FIRST_SUBST_ARG] == count + 1 &&
+          entity_kind == iek_routine) {
+        /* No ellipsis or pack expansion found so far, but look for one
+           additional case. */
+        a_routine_ptr rp = (a_routine_ptr)entity;
+        if (rp->is_template_function && !rp->is_prototype_instantiation) {
+          /* It's possible that this template instantiation has a pack
+             expansion that expanded to zero arguments.  Look through the
+             parameters of the prototype to see if there was originally
+             a pack expansion. */
+          check_assertion(rp->assoc_template != NULL);
+          a_type_ptr proto_type =
+                     rp->assoc_template->prototype_instantiation.routine->type;
+          check_assertion(proto_type->kind == tk_routine);
+          a_routine_type_supplement_ptr  proto_rtsp =
+                                        proto_type->variant.routine.extra_info;
+          for (ptp = proto_rtsp->param_type_list; ptp!=NULL; ptp = ptp->next) {
+            if (ptp->pack_expansion_descr != NULL) {
+              has_pack_expansion = TRUE;
+              break;
+            }  /* if */
+          }  /* for */
+        }  /* if */
+      }  /* if */
       /* If the format argument index is out of range, issue an error. */
       if (count < val[FMT_ARG]) {
         pos_error(ec_fmt_arg_does_not_exist, &ap->arguments->next->position);
         make_attr_unrecognized(ap);
       }  /* if */
-      if (val[FIRST_SUBST_ARG] > 0 && val[FIRST_SUBST_ARG] != count + 1) {
+      if (val[FIRST_SUBST_ARG] != 0 &&
+          !(rtsp->has_ellipsis || has_pack_expansion)) {
+        /* A function type without an ellipsis or a parameter pack cannot have
+           the "format" attribute (unless the substitution argument was
+           specified as zero). */
+        pos_error(ec_format_rout_not_varargs, &ap->position);
+        make_attr_unrecognized(ap);
+      }  /* if */
+      if (val[FIRST_SUBST_ARG] > 0 &&
+          !(has_pack_expansion || val[FIRST_SUBST_ARG] == count + 1)) {
         pos_error(ec_subst_arg_is_not_variable,
                   &ap->arguments->next->next->position);
         make_attr_unrecognized(ap);

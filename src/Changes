@@ -1,5 +1,18 @@
 Version 6.8
 
+4/7/25   [EDGcpfe/28072]
+GNU/Clang compatibility: pack expansion in "format" attribute
+
+The GNU/Clang format attribute is used to enable additional checking for
+routines that have printf/scanf-like arguments.  Previously the third argument
+to the format attribute indicated which of the parameters specified an
+ellipses argument, but now that parameter can also be a pack expansion.  For
+example, with --clang --c++11:
+
+  template <class... T>
+  int myprintf(char const*, T...) __attribute((format(printf, 1, 2)));
+
+
 4/7/25   [EDGcpfe/27961]
 Substitution failure for use of enclosing "this" in generic lambda declarator
 
