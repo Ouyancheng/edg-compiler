@@ -335,7 +335,7 @@ size in bits of the integral type.
 #if CHECKING
   if (size == 0) internal_error("get_integer_attributes: zero-sized integer");
 #endif /* CHECKING */
-  *bit_size = size * targ_char_bit;
+  *bit_size = size_t_arg(size * targ_char_bit);
 }  /* get_integer_attributes */
 
 
@@ -1999,7 +1999,8 @@ Convert an integer constant to a pointer constant of type as specified by
   /* Mask the integer down to the size of pointer. */
   if (new_constant->kind == (a_constant_repr_kind)ck_integer) {
     make_integer_value_mask(&mask,
-                            skip_typerefs(new_type)->size * targ_char_bit);
+                            size_t_arg(skip_typerefs(new_type)->size *
+                                       targ_char_bit));
     and_integer_values(&new_constant->variant.integer_value, &mask);
   } else if (!is_label_diff) {
     unexpected_condition_str("conv_integer_to_pointer: not integer constant");

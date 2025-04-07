@@ -74,7 +74,7 @@ sign-extension might be needed later on.
   an_integer_value  mask;
 
   get_integer_size_and_alignment(kind, &size, &alignment);
-  make_integer_value_mask(&mask, size * targ_char_bit);
+  make_integer_value_mask(&mask, size_t_arg(size * targ_char_bit));
   and_integer_values(p_value, &mask);
 }  /* trim_integer_value_to_kind */
 
@@ -435,7 +435,8 @@ pcc_kind_established:
       do_sign_extension = int_kind_is_signed[kind];
       /* Mask off any bits past the end of the largest target integer. */
       make_integer_value_mask(&mask,
-                              targ_sizeof_largest_integer * targ_char_bit);
+                              size_t_arg(targ_sizeof_largest_integer *
+                                         targ_char_bit));
       and_integer_values(&number, &mask);
       ovflo = FALSE;
     }  /* if */
@@ -2024,7 +2025,8 @@ less than num_chars.  */
       if (!char_too_wide_for_rep && gnu_mode && i > targ_sizeof_int) {
         /* Truncate the value and warn about discarded characters. */
         an_integer_value int_mask;
-        make_integer_value_mask(&int_mask, targ_sizeof_int * targ_char_bit);
+        make_integer_value_mask(&int_mask, size_t_arg(targ_sizeof_int *
+                                                      targ_char_bit));
         and_integer_values(&number, &int_mask);
         wcode = ec_leading_character_ignored_in_char_literal;
       }  /* if */

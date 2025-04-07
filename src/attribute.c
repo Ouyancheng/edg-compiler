@@ -2523,11 +2523,11 @@ that appeared in a previous "using" prefix.  Can return NULL on error.
         } else if (!is_ordinary_string_constant(&const_for_curr_token)) {
            pos_error(ec_wide_string_not_allowed, &pos_curr_token);
         } else {
-          a_string_view
-                const_str(const_for_curr_token.variant.string.value,
-                          const_for_curr_token.variant.string.length - 1);
+          a_string_view const_str(
+                   const_for_curr_token.variant.string.value,
+                   size_t_arg(const_for_curr_token.variant.string.length - 1));
           Small_string<MAX_ATTRIBUTE_NAME_LENGTH + 2>
-                name("\"", const_str, "\"");
+                        name("\"", const_str, "\"");
 
           /* Create a name that includes the quotation characters. */
           (*p_attribute)->name =

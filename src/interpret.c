@@ -15339,7 +15339,7 @@ the corresponding reflection value at the location denoted by result_cap.
               goto done;
             }  /* if */
             /* FIXME: Check that the string is a valid identifier. */
-            full_id.append(a_string_view(str, len));
+            full_id.append(a_string_view(str, size_t_arg(len)));
             while (curr_token == tok_comma) {
               a_constant  *cp = values[++interpolator_num];
               (void)get_token();
@@ -15349,7 +15349,7 @@ the corresponding reflection value at the location denoted by result_cap.
                                         value_of_integer_constant(cp, &ovflo);
                 full_id.append(val);
               } else if (get_string_from_string_view(ips, cp, &str, &len)) {
-                full_id.append(a_string_view(str, len));
+                full_id.append(a_string_view(str, size_t_arg(len)));
               } else {
                 do_constexpr_fail(result);
                 goto done;
@@ -18080,8 +18080,8 @@ complete_object).  Otherwise, return FALSE and record a diagnostic in *ips.
     }  /* if */
     alloc_stack_bytes(ips, (a_byte_count)type_size, target_result_storage);
     alloc_stack_bytes(ips, (a_byte_count)type_size, target_result_bitmap);
-    memzero(target_result_storage, type_size);
-    memzero((char*)target_result_bitmap, type_size);
+    memzero(target_result_storage, size_t_arg(type_size));
+    memzero((char*)target_result_bitmap, size_t_arg(type_size));
     if (!translate_interpreter_object_to_target_bytes(ips, src_type,
                                                       src_result_storage,
                                                       src_result_storage,
@@ -20536,7 +20536,8 @@ the value representation of the integer value.
                        when converting an unsigned value to a signed value that
                        is no larger than the unsigned value (e.g.,
                        (int)(unsigned)-1 must be negative). */
-                    size_t n_bits = (min_val(opnd1_type->size, tp->size) *
+                    size_t n_bits = (min_val(size_t_arg(opnd1_type->size),
+                                             size_t_arg(tp->size)) *
                                      targ_char_bit);
 
                     sign_extend_integer_value(r_int, n_bits);

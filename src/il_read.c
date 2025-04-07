@@ -409,7 +409,8 @@ necessary to make it directly accessible in memory.
     {
       sizeof_t idx, byte_count;
       /* Allocate one bit per entry. */
-      byte_count = (entry_count_array_ptr[byte_entry_kind] / CHAR_BIT) + 1;
+      byte_count =
+           (sizeof_t)((entry_count_array_ptr[byte_entry_kind] / CHAR_BIT) + 1);
       entry_read_array[byte_entry_kind] = (a_byte *)
                                     alloc_in_region(region_number, byte_count);
       /* Clear the array to zero, indicating that no entries have been
@@ -513,7 +514,7 @@ necessary to make it directly accessible in memory.
           /* Record the space for the string entry as having been read.
              Also mark the space for the prefix (preceding the entry) and
              any space for alignment (following the entry). */
-          idx = trimmed_entry_number - SPACE_FOR_IL_ENTRY_PREFIX;
+          idx = (sizeof_t)(trimmed_entry_number - SPACE_FOR_IL_ENTRY_PREFIX);
           for (count = 0; count < gross_entry_size; count++, idx++) {
             set_entry_read_array(byte_entry_kind, idx);
           }  /* for */
@@ -578,14 +579,13 @@ necessary to make it directly accessible in memory.
                         "IL entry write-read difference: region number %3ld\n",
                         (long)region_number);
         }  /* if */
-        
         (void)fprintf(f_debug,
                  "     entry kind =%3ld (%s), written = %ld, read = %ld\n",
                       (long)byte_entry_kind,
                       il_entry_kind_names[byte_entry_kind],
                       (long)entry_count_array_ptr[byte_entry_kind],
                       (long)count_of_entries_read[byte_entry_kind]);
-        entry_count = entry_count_array_ptr[byte_entry_kind];
+        entry_count = (sizeof_t)entry_count_array_ptr[byte_entry_kind];
         if (is_string_entry_kind((an_il_entry_kind)byte_entry_kind)) {
           /* A form of string entry. */
           idx = 1;
@@ -614,7 +614,6 @@ necessary to make it directly accessible in memory.
             }  /* if */
           }  /* for */
         }  /* if */
-           
 #endif /* DEBUG */
         errors = TRUE;
       }  /* if */

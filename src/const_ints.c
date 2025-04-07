@@ -1747,7 +1747,7 @@ for use by snprintf_impl).
 #endif /* INTEGER_VALUE_REPR_IS_A_HOST_INTEGER */
 
   size_t digits_skipped = 0;
-  size_t num_hex_digits_in_repr = (value.size * targ_char_bit) / 4;
+  size_t num_hex_digits_in_repr = (size_t)((value.size * targ_char_bit) / 4);
   if (num_hex_digits_printed > num_hex_digits_in_repr) {
     /* The hex string is longer than what is required to represent the type of
        the integer, probably because it is a negative value and thus padded
@@ -2477,7 +2477,7 @@ for the integer kind ikind.
 */
 {
   a_targ_size_t    size;
-  size_t           bit_size;
+  a_targ_size_t    bit_size;
   a_targ_alignment alignment;
   a_boolean	   is_signed;
 
@@ -2490,7 +2490,8 @@ for the integer kind ikind.
   bit_size = size * targ_char_bit;
   is_signed = int_kind_is_signed[ikind];
   if (is_signed) bit_size--;
-  make_integer_value_mask(&max_integer_value_of_kind[ikind], bit_size);
+  make_integer_value_mask(&max_integer_value_of_kind[ikind],
+                          size_t_arg(bit_size));
   if (is_signed) {
     an_integer_value one;
     a_boolean	   err;

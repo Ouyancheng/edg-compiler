@@ -18548,7 +18548,7 @@ count, construct an internal structure capturing the representation of the IFC
 string.
 */
   : input_state(input_state_val), kind(char_kind), bytes(ifc_str),
-    num_chars(ifc_byte_count / character_size[char_kind])
+    num_chars(size_t_arg(ifc_byte_count / character_size[char_kind]))
 {
   if (ifc_byte_count % character_size[char_kind] != 0) {
     ifc_unexpected(input_state->import_decl->module_info,
@@ -18616,7 +18616,7 @@ null character.
   size_t result = 0;
 
   if (str.num_chars > 0) {
-    size_t char_size = character_size[str.kind];
+    size_t char_size = (size_t)(character_size[str.kind]);
     size_t start_last_char = (str.num_chars - 1) * char_size;
 
     /* The IFC includes the null terminator in its encoding of string
@@ -18629,7 +18629,7 @@ null character.
         break;
       }  /* if */
     }  /* for */
-    result = (str.num_chars - 1) * character_size[str.kind];
+    result = size_t_arg((str.num_chars - 1) * character_size[str.kind]);
   }  /* if */
   return result;
 }  /* size_of_str_lit_bytes */
@@ -18641,7 +18641,7 @@ Given an IFC string literal, return the number of bytes in the corresponding
 string literal constant including the implicit terminating null character.
 */
 {
-  return size_of_str_lit_bytes(str) + character_size[str.kind];
+  return size_of_str_lit_bytes(str) + (size_t)(character_size[str.kind]);
 }  /* size_of_str_lit_constant */
 
 
@@ -18954,7 +18954,7 @@ rules of position inference).
 {
   a_constant_ptr     cp;
   char*              val;
-  a_targ_size_t      suffix_len = (a_targ_size_t)(strlen(suffix) + 1);
+  sizeof_t           suffix_len = strlen(suffix) + 1;
   a_cached_token_ptr ctp;
 
   pos = infer_next_source_position(cache, pos);

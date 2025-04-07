@@ -3287,7 +3287,7 @@ length is given by len.  pos is the position to record for the identifier.
   a_symbol_locator loc;
 
   clear_locator(&loc, pos);
-  (void)find_symbol(str, len, &loc);
+  (void)find_symbol(str, (sizeof_t)len, &loc);
   cache_token(cache, tok_identifier, pos);
 
   a_cached_token_ptr last_token = cache->last_token;

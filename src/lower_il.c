@@ -13115,7 +13115,7 @@ according to insert_location.
         } else {
           check_assertion(f->offset >= byte_offset);
           zero_non_value_bits(expr, original_offset + byte_offset,
-                              f->offset - byte_offset, bit_offset,
+                              size_t_arg(f->offset - byte_offset), bit_offset,
                               insert_location);
         }  /* if */
       }  /* if */
@@ -13129,7 +13129,7 @@ according to insert_location.
       /* Update byte and bit offsets to reflect where next field should start
          if there is no padding. */
       if (f->is_bit_field) {
-        byte_offset = f->offset + (f->bit_size / targ_char_bit);
+        byte_offset = size_t_arg(f->offset + (f->bit_size / targ_char_bit));
         bit_offset = (an_offset_bit_remainder)(f->offset_bit_remainder +
                                                (f->bit_size % targ_char_bit));
         if (bit_offset == targ_char_bit) {
@@ -13138,7 +13138,7 @@ according to insert_location.
         }  /* if */
         check_assertion(bit_offset < targ_char_bit);
       } else {
-        byte_offset = f->offset + field_type->size;
+        byte_offset = size_t_arg(f->offset + field_type->size);
         bit_offset = 0;
       }  /* if */
     }  /* for */
@@ -13149,7 +13149,7 @@ according to insert_location.
       } else {
         check_assertion(type->size >= byte_offset);
         zero_non_value_bits(expr, original_offset + byte_offset,
-                            type->size - byte_offset, bit_offset,
+                            size_t_arg(type->size - byte_offset), bit_offset,
                             insert_location);
       }  /* if */
     }  /* if */

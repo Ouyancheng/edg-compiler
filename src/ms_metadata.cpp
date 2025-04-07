@@ -5426,7 +5426,7 @@ Get all the pertinent information associated with this assembly.
 
   if (alink2_interface != nullptr) {
     if (cppcx_enabled) {
-      const int ofCPPNoTransformElementType = 0x80000000;
+      const unsigned ofCPPNoTransformElementType = 0x80000000;
       dwOpenFlags = ofNoTransform | ofCPPNoTransformElementType;
     } else if (cppcli_enabled) {
       dwOpenFlags = ofReadOnly | ofNoTypeLib;
