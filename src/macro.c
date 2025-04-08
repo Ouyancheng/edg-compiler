@@ -4662,6 +4662,11 @@ STATIC_THREAD a_boolean
 		cpp_static_call_operator_enabled;
 			/* TRUE if operator() can be a static member. */
 
+STATIC_THREAD a_boolean
+		datasizeof_enabled;
+			/* TRUE if the clang datasizeof operator is
+			   enabled. */
+
 /*
 The following array describes all the clang __has_feature/__has_extension
 feature strings and WG21 SG10 feature-test macros (type trait helpers can
@@ -5178,6 +5183,11 @@ STATIC_THREAD a_feature_support feature_support_list[] = {
     &variadic_templates_enabled,
     "__cpp_variadic_templates",
     "200704L" },
+  { "datasizeof",
+    0,
+    &datasizeof_enabled,
+    NULL,
+    NULL },
   { "enumerator_attributes",
     0,
     &enumerator_attributes_enabled,
@@ -11638,6 +11648,7 @@ command line -D options.
   cxx_constexpr_string_builtins =
                    !C_mode() && constexpr_enabled && clang_version_is(>=40000);
   cpp_static_call_operator_enabled = cpp23_mode;
+  datasizeof_enabled = clang_version_is(>= 180000);
   /* __cplusplus is defined to reflect the appropriate variant if we are
      compiling C++, left undefined otherwise.  In most modes, __cplusplus
      can be redefined as this is needed in some environments.  In Microsoft

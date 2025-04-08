@@ -1,5 +1,18 @@
 Version 6.8
 
+4/8/25   [EDGcpfe/28082]
+Clang compatibility: __has_extension(datasizeof)
+
+The changes in version 6.7 that added support for the datasizeof operator
+(see the entry for EDGcpfe/27080) failed to update the __has_extension
+operator accordingly.  This is now fixed.  For example, with
+--clang_version=190000:
+
+  #if !__has_extension(datasizeof)
+  #error datasizeof not supported   // No longer fails
+  #endif
+
+
 4/7/25   [EDGcpfe/28072]
 GNU/Clang compatibility: pack expansion in "format" attribute
 
