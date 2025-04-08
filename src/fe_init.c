@@ -822,7 +822,6 @@ modes.
     enter_keyword(tok_reference_binds_to_temporary,
                   "__reference_binds_to_temporary");
     enter_keyword(tok_is_referenceable, "__is_referenceable");
-    /* These next two are synonyms for existing intrinsics. */
     enter_keyword(tok_is_literal_type, "__is_literal");
     if (clang_version >= 150000) {
       enter_keyword(tok_is_trivially_relocatable,

@@ -7965,6 +7965,7 @@ error type.
     vector_type->source_corresp.decl_position = ap->position;
     vector_type->size = (a_targ_size_t)size;
     vector_type->alignment = (a_targ_alignment)size;
+    vector_type->variant.vector.kind = vk_gnu;
     vector_type->variant.vector.element_type = elem_type;
     vector_type->variant.vector.size_constant = size_con;
     if (dps != NULL) {
