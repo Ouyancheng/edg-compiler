@@ -31550,7 +31550,7 @@ the resulting expression.
     operator_pos = pos_curr_token;
     operator_tok_seq_number = curr_token_sequence_number;
     (void)get_token();
-    scan_expr(&opnd2, PREC_EQ_NE, EOPT_NO_OPTIONS);
+    scan_expr(&opnd2, PREC_SPACESHIP, EOPT_NO_OPTIONS);
   }  /* if */
   process_spaceship_operator(opnd1, &opnd2, &operator_pos,
                              operator_tok_seq_number, 

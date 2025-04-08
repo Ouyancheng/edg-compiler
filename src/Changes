@@ -1,5 +1,12 @@
 Version 6.8
 
+4/8/25   [EDGcpfe/28079]
+Parsing of chained <=> operators
+
+The front end previous parsed x <=> y <=> z as if it were x <=> (y <=> z)
+instead of the correct (x <=> y) <=> z.  That is now fixed.
+
+
 4/8/25   [EDGcpfe/28082]
 Clang compatibility: __has_extension(datasizeof)
 
