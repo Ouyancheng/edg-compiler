@@ -6441,15 +6441,23 @@ described by the format string.
           !(rtsp->has_ellipsis || has_pack_expansion)) {
         /* A function type without an ellipsis or a parameter pack cannot have
            the "format" attribute (unless the substitution argument was
-           specified as zero). */
-        pos_error(ec_format_rout_not_varargs, &ap->position);
-        make_attr_unrecognized(ap);
+           specified as zero).  Clang gives a warning. */
+        an_error_severity  sev = clang_mode ? es_warning : es_error;
+        pos_diagnostic(sev, ec_format_rout_not_varargs, &ap->position);
+        if (sev == es_error) {
+          make_attr_unrecognized(ap);
+        }  /* if */
       }  /* if */
       if (val[FIRST_SUBST_ARG] > 0 &&
           !(has_pack_expansion || val[FIRST_SUBST_ARG] == count + 1)) {
-        pos_error(ec_subst_arg_is_not_variable,
-                  &ap->arguments->next->next->position);
-        make_attr_unrecognized(ap);
+        if (clang_mode && !(val[FIRST_SUBST_ARG] <= val[FMT_ARG])) {
+          /* Clang is silent in most cases, but does complain if the second
+             argument is less than or equal to the first. */
+        } else {
+          pos_error(ec_subst_arg_is_not_variable,
+                    &ap->arguments->next->next->position);
+          make_attr_unrecognized(ap);
+        }  /* if */
       }  /* if */
     }  /* if */
     /* If the "first argument to check" is specified as zero, GNU only checks
