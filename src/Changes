@@ -1,9 +1,10 @@
 Version 6.8
 
-4/8/25   [EDGcpfe/28079]
+4/8/25   [EDGcpfe/23297,EDGcpfe/26242,EDGcpfe/26541,EDGcpfe/27026,
+          EDGcpfe/28079]
 Parsing of chained <=> operators
 
-The front end previous parsed x <=> y <=> z as if it were x <=> (y <=> z)
+The front end previously parsed x <=> y <=> z as if it were x <=> (y <=> z)
 instead of the correct (x <=> y) <=> z.  That is now fixed.
 
 
