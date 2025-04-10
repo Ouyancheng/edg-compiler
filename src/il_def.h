@@ -11381,8 +11381,10 @@ typedef struct a_variable {
   a_bit_field	constant_valued:1;
 			/* TRUE for variables of a const type initialized with
 			   a constant expression so that uses of the variable's
-			   value are permitted in constant-expressions.
-			   Only set in C++. */
+			   value are permitted in constant-expressions.  Also
+			   TRUE for variables that might end up with those
+			   properties after template instantiation.  Only set
+			   in C++. */
   a_bit_field	is_immutable:1;
 			/* TRUE if the variable is of a const type that does
 			   not contain a mutable subobject. */

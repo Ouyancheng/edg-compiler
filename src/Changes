@@ -1,5 +1,17 @@
 Version 6.8
 
+4/10/25  [EDGcpfe/28078]
+a_variable::constant_valued
+
+The member field a_variable::constant_valued is set to TRUE for const variables
+whose values can be used in constant expressions.  It is also set for variables
+with template parameter types that might be const after substitution.
+However, the front end previously also included variables with non-const "auto"
+type appearing in templates in that latter category.  That is now fixed.  Note
+that variables with "decltype(auto)" type are still treated as potentially
+constant-valued since "decltype(auto)" may be deduced to a const type.
+
+
 4/8/25   [EDGcpfe/23297,EDGcpfe/26242,EDGcpfe/26541,EDGcpfe/27026,
           EDGcpfe/28079]
 Parsing of chained <=> operators

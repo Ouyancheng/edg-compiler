@@ -17150,7 +17150,8 @@ initializer, is done in var_constant_value[_full].
   if (((is_integral_or_enum_type(var_type) ||
         (gcc_version_is(>=80000) && gcc_const_variables_allowed)) &&
        is_const_qualified_type(var_type)) ||
-      is_template_param_type(var_type)) {
+      (is_template_param_type(var_type) &&
+       (!is_auto_type(var_type) || is_decltype_auto_type(var_type)))) {
     is_const = TRUE;
   } else if (var->is_constexpr &&
              is_literal_type(var_type)) {
