@@ -1,5 +1,29 @@
 Version 6.8
 
+4/10/25  [EDGcpfe/27839]
+C++-generating back end: Rendering of constant-folded class prvalue
+
+Consider:
+
+  struct A { constexpr explicit A(int) {} };
+  struct B {
+    constexpr explicit B(int) {}
+    constexpr explicit B(const A&) {}
+  };
+  struct S {
+    static constexpr A null_A{0};
+    void f() {
+       B x{0};
+       x = B(null_A);  // Previously rendered as "x = {};".
+    }
+  };
+
+The C++-generating back end previously did not render the assignment
+correctly because the class prvalue "B(null_A)" was folded to a constant
+without a backing expression representing how that constant was produced.
+That is now fixed (a backing expression is now recorded for such cases).
+
+
 4/10/25  [EDGcpfe/28078]
 a_variable::constant_valued
 

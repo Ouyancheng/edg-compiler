@@ -17910,8 +17910,7 @@ successful folding.
 */
 {
   a_boolean          folded = FALSE, checked = FALSE;
-  a_dynamic_init_ptr dip =
-                 alloc_expr_dynamic_init((a_dynamic_init_kind)dik_constructor);
+  a_dynamic_init_ptr dip = alloc_expr_dynamic_init(dik_constructor);
 
   dip->variant.constructor.ptr = ctor_routine;
   if (static_temp) {
@@ -17970,9 +17969,10 @@ successful folding.
                                    folded_con)) {
         /* The constructor is declared constexpr and the construction has
            been folded to a constant. */
+        a_dynamic_init_ptr  orig_dip = dip;
         folded = TRUE;
         if (dest_type != NULL) folded_con->type = dest_type;
-        dip = alloc_expr_dynamic_init((a_dynamic_init_kind)dik_constant);
+        dip = alloc_expr_dynamic_init(dik_constant);
         set_dynamic_init_constant(dip, move_local_constant_to_il(&folded_con));
         folded_con = dip->variant.constant.ptr;
         if (constant_is(folded_con, ck_aggregate) &&
@@ -17985,6 +17985,9 @@ successful folding.
              result constant's substructure into that local memory. */
           (void)copy_constant_full(folded_con, folded_con, CE_NO_OPTIONS);
         }  /* if */
+        folded_con->expr = alloc_temp_init_node(folded_con->type, orig_dip,
+                                                /*is_lvalue=*/FALSE,
+                                                /*is_explicit_cast=*/FALSE);
       } else {
         release_local_constant(&folded_con);
       }  /* if */
@@ -21284,20 +21287,33 @@ necessary, this will involve creating a temporary and initializing it from the
 prvalue.  This routine is used only in C++ mode.
 */
 {
+  a_boolean  fold = FALSE;
 
   if (is_error_operand(operand)) {
     normalize_error_operand(operand);
   } else {
     an_operand        orig_operand = *operand;
     an_expr_node_ptr  node, top_cast = NULL, bottom_cast = NULL;
-    a_boolean         is_expr = is_expression_operand(operand);
+    a_boolean         is_expr;
     /* The operand is a prvalue.  In general, we will have to copy the prvalue
        to a temporary and use the address of the temporary.  However, there
        are some cases that can be optimized. */
     check_assertion(is_a_prvalue(operand) &&
                     (is_class_struct_union_type(operand->type) ||
                      is_template_param_type(operand->type)));
-    node = make_node_from_operand(operand);
+    if (is_constant_operand(operand) &&
+        operand->variant.constant.is_result_of_constexpr_call &&
+        operand->variant.constant.expr != NULL) {
+      /* Start with the backing expression to avoid adding another constant
+         layer that might hide the backing expression of the underlying
+         constant.  We'll fold it back to a constant below. */
+      is_expr = TRUE;
+      node = operand->variant.constant.expr;
+      fold = TRUE;
+    } else {
+      is_expr = is_expression_operand(operand);
+      node = make_node_from_operand(operand);
+    }  /* if */
     if (is_expr) {
       /* Change the prvalue to an lvalue if possible. */
       a_boolean  processed = FALSE;
@@ -21359,6 +21375,9 @@ prvalue.  This routine is used only in C++ mode.
     make_glvalue_expression_operand(node, operand);
 done:
     /* Restore the original source position, etc. */
+    if (fold) {
+      force_operand_to_constant_if_possible(operand);
+    }  /* if */
     restore_operand_details(operand, &orig_operand);
   }  /* if */
 }  /* conv_class_prvalue_operand_to_glvalue */
