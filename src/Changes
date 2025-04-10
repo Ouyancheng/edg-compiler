@@ -25,7 +25,7 @@ That is now fixed (a backing expression is now recorded for such cases).
 
 
 4/10/25  [EDGcpfe/28078]
-a_variable::constant_valued
+a_variable::constant_valued for variables with dependent "auto" type
 
 The member field a_variable::constant_valued is set to TRUE for const variables
 whose values can be used in constant expressions.  It is also set for variables
