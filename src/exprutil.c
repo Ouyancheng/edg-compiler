@@ -1759,6 +1759,7 @@ as in a decltype.
 #endif /* GNU_EXTENSIONS_ALLOWED */
   new_entry->in_coroutine_desc_init |= old_entry->in_coroutine_desc_init;
   new_entry->paren_as_aggregate_init |= old_entry->paren_as_aggregate_init;
+  new_entry->range_based_for_range |= old_entry->range_based_for_range;
   if (direct) {
     new_entry->evaluated = old_entry->evaluated;
     new_entry->potentially_evaluated = old_entry->potentially_evaluated;
@@ -1879,6 +1880,7 @@ is pushed regardless of any of the other factors.
   new_entry->statement_expression_seen = FALSE;
   new_entry->likely_not_evaluated = FALSE;
   new_entry->trace_unevaluated_lambdas = FALSE;
+  new_entry->range_based_for_range = FALSE;
   new_entry->const_eval_reattempt_state = {};
   new_entry->dynamic_init_dtor_fixup_list = NULL;
   new_entry->nested_construct_depth = 0;
@@ -18235,6 +18237,8 @@ If it indicates a destructor, add it to the current object lifetime.
        on the assumption that a back end will generate the dead code, but we
        don't need to put the entry on the destructions list or generate the
        cleanup code. */
+    a_boolean  block_lifetime = expr_stack->range_based_for_range &&
+                                extended_range_based_for_lifetime;
     if (curr_expr_kind_is_const()) {
       /* In constant-expression contexts, we do not have to generate code for
          the destruction either.  (Pre-C++11 that is an error if the
@@ -18249,9 +18253,9 @@ If it indicates a destructor, add it to the current object lifetime.
 #endif /* CHECKING */
     } else if (curr_expr_is_evaluated()) {
       record_end_of_lifetime_destruction(dip, /*static_lifetime=*/FALSE,
-                                         /*block_lifetime=*/FALSE);
+                                         block_lifetime);
     }  /* if */
-    dip->has_temporary_lifetime = TRUE;
+    dip->has_temporary_lifetime = !block_lifetime;
   }  /* if */
 }  /* set_temp_dynamic_init_lifetime */
 

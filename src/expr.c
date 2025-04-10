@@ -48280,12 +48280,23 @@ expression.
   a_variable_ptr      ref_var;
 
   db_enter(3, "scan_range_based_for_expression");
-  /* We should be in the outer scope of the range-based-for at this point. */
+  /* We should be in the outer scope of the range-based-for at this point.
+     C++23 changed the lifetime of temporaries appearing in this expression to
+     extend to the end of the range-based-for scope (the current block scope).
+     So when extended_range_based_for_lifetime is TRUE, we inhibit the
+     temporary object lifetime; set_temp_dynamic_init_lifetime will set the
+     lifetime of any "temporaries" to block lifetime in that case. */
   check_assertion(rbflp->range_based_for_scope == scope_stack_top().il_scope);
   save_expr_stack(&saved_expr_stack);
-  push_expr_stack((an_expression_kind)ek_normal, &expr_stack_entry,
+  push_expr_stack(ek_normal, &expr_stack_entry,
                   /*force_object_lifetime=*/FALSE,
-                  /*suppress_object_lifetime=*/FALSE);
+                  /*suppress_object_lifetime=*/
+                                           extended_range_based_for_lifetime);
+  if (extended_range_based_for_lifetime) {
+    expr_stack->destructions_preceding_expr =
+                                           curr_object_lifetime->destructions;
+  }  /* if */
+  expr_stack_entry.range_based_for_range = TRUE;
   if (curr_token == tok_lbrace && list_init_enabled) {
     /* The "expression" is a braced-init-list. */
     a_type_ptr           auto_type, deduced_type, deduced_auto_type;

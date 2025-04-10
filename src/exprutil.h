@@ -1056,6 +1056,10 @@ typedef struct an_expr_stack_entry {
 			/* TRUE if an unevaluated lambda should be accepted 
 			   but its presence recorded for a potential later
 			   diagnostic. */
+  a_bit_field	range_based_for_range:1;
+			/* TRUE if this is the expression or braced initializer
+			   that determines the range of a range-based-for loop
+			   to iterate over. */
   a_const_eval_reattempt_state
 		const_eval_reattempt_state;
 			/* The current constant evaluation reattempt state

@@ -11926,11 +11926,13 @@ command line -D options.
          specially, as they will have different values depending on whether
          C++11 or C++17 mode is used. */
       if (range_based_for_enabled) {
-        (void)enter_predef_macro(relaxed_range_based_for_enabled ? "201603L" :
+        (void)enter_predef_macro(
+                               extended_range_based_for_lifetime ? "202211L" :
+                                 relaxed_range_based_for_enabled ? "201603L" :
                                                                    "200907L",
-                                 "__cpp_range_based_for",
-                                 /*cannot_be_redefined=*/TRUE,
-                                 /*ref_suppresses_pch_file=*/FALSE);
+                               "__cpp_range_based_for",
+                               /*cannot_be_redefined=*/TRUE,
+                               /*ref_suppresses_pch_file=*/FALSE);
       }  /* if */
       /* __cpp_nontype_template_args must be handled specially since its value
          depends on the mode. */

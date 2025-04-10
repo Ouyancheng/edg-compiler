@@ -3238,6 +3238,9 @@ option values if they were not already set by a command line option.
         if (ms_cpp23_mode) {
           /* These C++23 features are enabled in this mode. */
           lambda_attributes_allowed = TRUE;
+          if (relaxed_range_based_for_enabled) {
+            extended_range_based_for_lifetime = TRUE;
+          }  /* if */
         }  /* if */
       }  /* if */
     } else {
@@ -4217,6 +4220,9 @@ default mode (e.g., exception handling).
           delimited_escape_seqs_allowed = TRUE;
           lambda_attributes_allowed = TRUE;
           lambda_declarator_params_optional = TRUE;
+          if (relaxed_range_based_for_enabled) {
+            extended_range_based_for_lifetime = TRUE;
+          }  /* if */
         }  /* if */
       }  /* if */
     }  /* if */
@@ -13303,6 +13309,7 @@ variables declared in cmd_line.h.
   gnu_c89_inlining = FALSE;
   range_based_for_enabled = DEFAULT_RANGE_BASED_FOR_ENABLED;
   relaxed_range_based_for_enabled = FALSE;
+  extended_range_based_for_lifetime = FALSE;
   terse_range_based_for_enabled = FALSE;
   carriage_return_is_line_terminator = FALSE;
   warning_on_lossy_conversion = DEFAULT_WARNING_ON_LOSSY_CONVERSION;

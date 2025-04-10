@@ -2690,6 +2690,14 @@ EXTERN_THREAD a_boolean
 			   introduced for C++17. */
 
 EXTERN_THREAD a_boolean
+		extended_range_based_for_lifetime;
+			/* TRUE when the lifetime of temporaries produced in
+			   the evaluation of the "range" of a range-based-for
+			   loop should be extended according to C++23 rules.
+			   Requires relaxed_range_based_for_enabled to be TRUE
+			   as well. */
+
+EXTERN_THREAD a_boolean
 		terse_range_based_for_enabled;
 			/* When TRUE, the "terse" form of range-based-for
 			   statement is enabled (e.g., "for (x: v) ...").  This
