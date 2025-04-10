@@ -1,6 +1,6 @@
 Version 6.8
 
-4/10/25  [EDGcpfe/25861,,EDGcpfe/26070,EDGcpfe/27957]
+4/10/25  [EDGcpfe/25861,EDGcpfe/26070,EDGcpfe/27957]
 C++23: Range-based-for loops and temporaries
 
 C++23 made a change that extends the lifetime of temporaries arising in the
