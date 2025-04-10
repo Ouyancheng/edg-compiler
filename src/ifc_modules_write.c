@@ -532,6 +532,11 @@ struct an_ifc_output_partition_metadata {
 namespace detail {
 
 template<>
+struct Is_trivially_copyable_edg_impl<an_ifc_output_partition_metadata> :
+                                                Integral_constant<bool, true> {
+};  /* Is_trivially_copyable_edg_impl */
+
+template<>
 struct Is_trivially_destructible_edg_impl<an_ifc_output_partition_metadata> :
                                                 Integral_constant<bool, true> {
 };  /* Is_trivially_destructible_edg_impl */

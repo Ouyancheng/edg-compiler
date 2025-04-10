@@ -933,10 +933,7 @@ new allocation.
 {
   an_elem  *old_start = a.start,
            *new_start = (an_elem*)alloc_fe(new_capacity*sizeof(an_elem));
-  for (size_t k = 0; k < n_to_move; ++k) {
-    construct(new_start+k, move_from(old_start+k));
-    destroy(old_start+k);
-  }  /* for */
+  move_elements<an_Elem>(new_start, old_start, n_to_move);
   free_fe((void*)old_start, a.n_allocated*sizeof(an_elem));
   return an_allocation{ new_start, new_capacity };
 }  /* FE_allocator::replace_alloc */
@@ -1030,10 +1027,7 @@ new allocation.
 {
   an_elem  *old_start = a.start,
            *new_start = (an_elem*)alloc_general(new_capacity*sizeof(an_elem));
-  for (size_t k = 0; k < n_to_move; ++k) {
-    construct(new_start+k, move_from(old_start+k));
-    destroy(old_start+k);
-  }  /* for */
+  move_elements<an_Elem>(new_start, old_start, n_to_move);
   free_general(old_start, a.n_allocated*sizeof(an_elem));
   return an_allocation{ new_start, new_capacity };
 }  /* General_allocator::replace_alloc */
@@ -1295,10 +1289,7 @@ new allocation.
   /* If we're still within the local capacity old_start will equal new_start,
      and nothing more needs to happen. */
   if (old_start != new_start) {
-    for (size_t k = 0; k < n_to_move; ++k) {
-      construct(new_start + k, move_from(old_start + k));
-      destroy(old_start + k);
-    }  /* for */
+    move_elements<an_Elem>(new_start, old_start, n_to_move);
     this->dealloc(a);
   }  /* if */
   return an_allocation{new_start, new_num_allocated};
@@ -1452,7 +1443,7 @@ struct Dyn_array: private Allocator<an_Elem> {
   inline void remove_if(a_Predicate predicate_fn);
   inline void clear();
   void resize(size_t new_n, const an_elem  &value);
-  void reserve(size_t);
+  inline void reserve(size_t);
   /* Interfaces to allow range-based for loop. */
   /*lint -e{1535}*/
   inline auto begin() -> an_elem*
@@ -1785,19 +1776,19 @@ i through the end of the array are first moved len positions back.
   /* Ensure adequate capacity for the bulk insert operation. */
   this->reserve(orig_count + len);
 
-  an_elem  *arr_elems = this->elems;
+  an_elem *arr_elems = this->elems;
   /* Move the existing elements past the inserted sequence. */
-  an_elem  *move_src = arr_elems + i;
-  an_elem  *move_dest = move_src + len;
-  size_t   num_to_move = orig_count - i;
-  move_elements<an_elem>(move_dest, move_src, num_to_move);
+  size_t  num_to_move = orig_count - i;
+  if (num_to_move != 0) {
+    an_elem *move_src = arr_elems + i;
+    an_elem *move_dest = move_src + len;
+
+    move_elements<an_elem>(move_dest, move_src, num_to_move);
+  }  /* if */
 
   /* Insert the sequence of elements. */
-  an_Input_iterator curr = start;
-  for (size_t k = 0; k < len; ++k) {
-    construct(arr_elems + i + k, *curr);
-    ++curr;
-  }  /* for */
+  an_elem *insert_dest = arr_elems + i;
+  copy_construct_elements<an_elem>(insert_dest, start, len);
   this->n_elems += len;
 }  /* Dyn_array::insert */
 
@@ -3691,7 +3682,7 @@ values to strings.
 
 Each specialization should implement two functions:
 
-  static size_t size_hint_of(a_Type value);
+  static inline size_t size_hint_of(a_Type value);
 
   template<typename a_Dyn_array>
   static inline void append_into(a_Dyn_array &underlying_array,
@@ -3754,7 +3745,7 @@ A string formatter for char* (C-string) values.
 */
 template<>
 struct String_formatter<char*> {
-  static size_t size_hint_of(char *value)
+  static inline size_t size_hint_of(char *value)
     { return strlen(value); }
   template<typename a_Dyn_array>
   static inline void append_into(a_Dyn_array &underlying_array,
@@ -3782,7 +3773,7 @@ A string formatter for a_const_char* (C-string) values.
 */
 template<>
 struct String_formatter<a_const_char*> {
-  static size_t size_hint_of(a_const_char *value)
+  static inline size_t size_hint_of(a_const_char *value)
     { return strlen(value); }
   template<typename a_Dyn_array>
   static inline void append_into(a_Dyn_array  &underlying_array,
@@ -3810,7 +3801,7 @@ A string formatter for Allocated_string values.
 */
 template<template<typename> class Allocator>
 struct String_formatter<Allocated_string<Allocator>> {
-  static size_t size_hint_of(const Allocated_string<Allocator> &str)
+  static inline size_t size_hint_of(const Allocated_string<Allocator> &str)
     { return str.length(); }
 
   template<typename a_Dyn_array>
@@ -3842,7 +3833,7 @@ A string formatter for a_string_view values.
 */
 template<>
 struct String_formatter<a_string_view> {
-  static size_t size_hint_of(a_string_view value)
+  static inline size_t size_hint_of(a_string_view value)
     { return value.length(); }
   template<typename a_Dyn_array>
   static inline void append_into(a_Dyn_array   &underlying_array,
@@ -3871,7 +3862,7 @@ A string formatter for Padded_string values.
 */
 template<typename a_Value_type>
 struct String_formatter<Padded_string<a_Value_type>> {
-  static size_t size_hint_of(const Padded_string<a_Value_type> &value)
+  static inline size_t size_hint_of(const Padded_string<a_Value_type> &value)
     { return value.width; }
   template<typename a_Dyn_array>
   static inline void append_into(
@@ -3927,7 +3918,7 @@ A string formatter for Hex_view<double> values.
 */
 template<>
 struct String_formatter<Hex_view<double>> {
-  static size_t size_hint_of(ARG_UNUSED Hex_view<double> value)
+  static inline size_t size_hint_of(ARG_UNUSED Hex_view<double> value)
     { return 49; }
   template<typename a_Dyn_array>
   static inline void append_into(a_Dyn_array      &underlying_array,
@@ -3956,7 +3947,7 @@ A string formatter for Hex_view<long double> values.
 */
 template<>
 struct String_formatter<Hex_view<long double>> {
-  static size_t size_hint_of(ARG_UNUSED Hex_view<long double> value)
+  static inline size_t size_hint_of(ARG_UNUSED Hex_view<long double> value)
     { return 49; }
   template<typename a_Dyn_array>
   static inline void append_into(a_Dyn_array           &underlying_array,
@@ -3985,7 +3976,7 @@ A string formatter for an_octal_view values.
 */
 template<>
 struct String_formatter<an_octal_view> {
-  static size_t size_hint_of(an_octal_view value)
+  static inline size_t size_hint_of(an_octal_view value)
     { return integral_digits(value.value, 8); }
   template<typename a_Dyn_array>
   static inline void append_into(a_Dyn_array   &underlying_array,
@@ -4014,7 +4005,7 @@ A string formatter for void* values.
 */
 template<>
 struct String_formatter<void*> {
-  static size_t size_hint_of(ARG_UNUSED void *value)
+  static inline size_t size_hint_of(ARG_UNUSED void *value)
     { return 30; }
   template<typename a_Dyn_array>
   static inline void append_into(a_Dyn_array &underlying_array,
@@ -4042,7 +4033,7 @@ formatted with the given base.
 */
 template<typename an_Integral_type, int a_Base>
 struct Unsigned_int_formatter {
-  static size_t size_hint_of(an_Integral_type value)
+  static inline size_t size_hint_of(an_Integral_type value)
     { return integral_digits(value, a_Base); }
   template<typename a_Dyn_array>
   static inline void append_into(a_Dyn_array      &underlying_array,
@@ -4206,7 +4197,7 @@ template<typename an_Integral_type>
 struct Hex_unsigned_int_formatter {
   using Base_ty = Unsigned_int_formatter<an_Integral_type, 16>;
 
-  static size_t size_hint_of(Hex_view<an_Integral_type> value)
+  static inline size_t size_hint_of(Hex_view<an_Integral_type> value)
     { return Base_ty::size_hint_of(value.value); }
   template<typename a_Dyn_array>
   static inline void append_into(a_Dyn_array                &underlying_array,

@@ -4151,15 +4151,16 @@ output.
 #endif /* BACK_END_IS_C_GEN_BE || BACK_END_IS_CP_GEN_BE */
                                                        ) ||
       (ch == '\t' && octl->gen_raw_tab_in_literals)) {
+    a_string_view ch_value(&ch, 1);
+
     /* Escape some characters, e.g., quotes. */
     if (ch == '"' || ch == '\'' || ch == '\\' ||
         /* Avoid accidentally putting out trigraphs by escaping "?". */
         (ch == '?' && octl->gen_compilable_code && !octl->gen_pcc_code)) {
-      buffer.append("\\");
+      buffer.reset_to("\\", ch_value);
+    } else {
+      buffer.reset_to(ch_value);
     }  /* if */
-
-    a_string_view ch_value(&ch, 1);
-    buffer.append(ch_value);
   } else {
     char c = 0;
     /* Look for unprintable characters with specific escape codes. */
@@ -4185,11 +4186,10 @@ output.
       buffer.reset_to("\\", escape_code);
     } else {
       /* Use the \nnn form for other unprintable characters. */
-      unsigned long   octal_value(
+      unsigned long octal_value(
                        (unsigned long)(ch&((1<<targ_host_string_char_bit)-1)));
-      Small_string<4> octal_str(octal_view_of(octal_value));
 
-      buffer.reset_to("\\", left_pad(3, '0', octal_str));
+      buffer.reset_to("\\", left_pad(3, '0', octal_view_of(octal_value)));
     }  /* if */
   }  /* if */
   /* Output the character. */
