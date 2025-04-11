@@ -12806,7 +12806,9 @@ list of a template function.  Returns TRUE if a match is found.
       if (tpck_is(templ_constant, tpck_expression) &&
           is_template_param_cast_constant(
                                       templ_constant, &tcp, &explicit_cast)) {
-        if (is_integral_type(constant->type) &&
+        if ((is_integral_type(constant->type) ||
+             is_pointer_type(constant->type) ||
+             is_ptr_to_member_type(constant->type)) &&
             matches_template_type(constant->type, templ_constant->type,
                                   templ_arg_list, templ_param_list,
                                   MTT_NO_FLAGS)) {

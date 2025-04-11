@@ -1,5 +1,21 @@
 Version 6.8
 
+4/11/25  [EDGcpfe/28075]
+Deduction failure for non-type template parameter of dependent pointer type
+
+Previously, using a nullptr constant as the template argument for a non-type
+template parameter of dependent pointer type could result in a spurious
+deduction failure.  For example, with --c++11:
+
+  template<typename> struct X {
+    using type = int;
+  };
+  template<typename T, typename X<T>::type * = nullptr>
+  struct C { };
+  template<typename T> int f(C<T>);
+  int i = f(C<int>());  // Previously a spurious error.  Now okay.
+
+
 4/10/25  [EDGcpfe/25861,EDGcpfe/26070,EDGcpfe/27957]
 C++23: Range-based-for loops and temporaries
 
