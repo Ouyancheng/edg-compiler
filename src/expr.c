@@ -32661,7 +32661,7 @@ or
   a_boolean            return_by_cctor = func_tp->variant.routine.extra_info
                                                 ->value_returned_by_cctor;
   a_comparison_category_set
-                       ccs = (a_comparison_category_set)ccs_none;
+                       ccs = ccs_none;
 
   update_common_comparison_tag(return_type, &ccs);
   initialize_ordering_constants();
@@ -32685,6 +32685,8 @@ or
       unexpected_condition();
   }  /* switch */
   make_constant_operand(result_con, &result);
+  result.variant.constant.expr = NULL;
+  break_constant_source_corresp(&result.variant.constant);
   save_expr_stack(&saved_expr_stack);
   push_expr_stack((an_expression_kind)ek_sizeof, &expr_stack_entry,
                   /*force_object_lifetime=*/FALSE,

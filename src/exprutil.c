@@ -21307,10 +21307,11 @@ prvalue.  This routine is used only in C++ mode.
                      is_template_param_type(operand->type)));
     if (is_constant_operand(operand) &&
         operand->variant.constant.is_result_of_constexpr_call &&
-        operand->variant.constant.expr != NULL) {
+        operand->variant.constant.expr != NULL &&
+        is_temp_node(operand->variant.constant.expr)) {
       /* Start with the backing expression to avoid adding another constant
          layer that might hide the backing expression of the underlying
-         constant.  We'll fold it back to a constant below. */
+         constant.  We'll attempt to fold it back to a constant below. */
       is_expr = TRUE;
       node = operand->variant.constant.expr;
       fold = TRUE;
