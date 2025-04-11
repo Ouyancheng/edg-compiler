@@ -1798,6 +1798,7 @@ Display a_routine_type_supplement.
   }  /* if */
 #if GNU_EXTENSIONS_ALLOWED
   disp_long("fmt_arg", (long)ptr->fmt_arg);
+  disp_long("format_first_subst_arg", (long)ptr->format_first_subst_arg);
   if (ptr->sentinel_pos != 0) {
     disp_long("sentinel_pos", (long)ptr->sentinel_pos);
   }  /* if */

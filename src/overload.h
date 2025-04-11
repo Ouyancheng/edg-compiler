@@ -821,6 +821,16 @@ typedef struct an_arg_check_block {
 			   containing the format string, or zero if
 			   the format string is the last argument
 			   before the ellipsis. */
+  int		format_first_subst_arg;
+			/* If arg_list_kind is pk_printf_args or
+			   pk_scanf_args), contains the value of the third
+			   argument to "format" (i.e., the argument position
+			   of the start of the actual arguments being used
+			   to fill out the format string).  A value of zero
+			   indicates that the arguments start immediately
+			   after an ellipsis (typically the case when a
+			   pragma has been used instead of the "format"
+			   attribute). */
   int		sentinel_pos;
 			/* Argument position (counted backward from the last
 			   argument, which is number one) of a sentinel: The

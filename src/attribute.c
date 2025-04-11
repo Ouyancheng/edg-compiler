@@ -6467,6 +6467,7 @@ described by the format string.
     if (val[FIRST_SUBST_ARG] > 0 && !is_unrecognized_attr(ap)) {
       rtsp->arg_pragma = arg_pragma;
       rtsp->fmt_arg = val[FMT_ARG];
+      rtsp->format_first_subst_arg = val[FIRST_SUBST_ARG];
     }  /* if */
   }  /* if */
 #undef FMT_ARG
@@ -10112,6 +10113,7 @@ Copy any GNU type properties (set by attributes) in type dst to type src.
           if (src_rtsp->arg_pragma != (a_pragma_kind)pk_none) {
             dst_rtsp->arg_pragma = src_rtsp->arg_pragma;
             dst_rtsp->fmt_arg = src_rtsp->fmt_arg;
+            dst_rtsp->format_first_subst_arg= src_rtsp->format_first_subst_arg;
           }  /* if */
           if (src_rtsp->prototyped && dst_rtsp->prototyped) {
             /* Copy any "nonnull" attributes. */

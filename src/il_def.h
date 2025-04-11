@@ -7423,6 +7423,17 @@ typedef struct a_routine_type_supplement {
 			   argument that will contain the fmt_string
 			   for a routine marked with the "format_arg"
 			   attribute. */
+  int		format_first_subst_arg;
+			/* When the GNU "format" attribute is applied
+			   (resulting in arg_pragma being pk_printf_args or
+			   pk_scanf_args), contains the value of the third
+			   argument to "format" (i.e., the argument position
+			   of the start of the actual arguments being used
+			   to fill out the format string).  A value of zero
+			   indicates that the arguments start immediately
+			   after an ellipsis (typically the case when a
+			   pragma has been used instead of the "format"
+			   attribute). */
   int		sentinel_pos;
 			/* Argument position (counted backward from the last
 			   argument, which is number one) of a sentinel: The

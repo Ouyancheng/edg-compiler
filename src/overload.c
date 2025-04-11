@@ -14227,6 +14227,7 @@ or NULL otherwise (e.g., for a call through a pointer to function).
   arg_block->argument_tail = NULL;
 #if GNU_EXTENSIONS_ALLOWED
   arg_block->fmt_arg = 0;
+  arg_block->format_first_subst_arg = 0;
   arg_block->sentinel_pos = 0;
 #endif /* GNU_EXTENSIONS_ALLOWED */
   arg_block->printf_scanf_args = NULL;
@@ -14253,11 +14254,15 @@ or NULL otherwise (e.g., for a call through a pointer to function).
     arg_block->varargs_count = extra_info->lint_varargs_count;
 #if GNU_EXTENSIONS_ALLOWED
     arg_block->fmt_arg = extra_info->fmt_arg;
+    arg_block->format_first_subst_arg = extra_info->format_first_subst_arg;
     if (extra_info->this_class != NULL) {
       /* For nonstatic member functions, the "this" parameter is number one.
          Since the corresponding argument is not counted, we must adjust
          the numbering of the format argument here. */
       --arg_block->fmt_arg;
+      if (arg_block->format_first_subst_arg != 0) {
+        --arg_block->format_first_subst_arg;
+      }  /* if */
     }  /* if */
     arg_block->sentinel_pos = extra_info->sentinel_pos;
 #endif /* GNU_EXTENSIONS_ALLOWED */
@@ -14714,10 +14719,22 @@ next parameter.
       arg_block->arg_list_kind == (a_pragma_kind)pk_scanf_args) {
     a_boolean  ellipsis_next = (arg_block->have_param_info && 
                                 arg_block->curr_param_type == NULL);
-    if (ellipsis_next) {
+    if (ellipsis_next
+#if GNU_EXTENSIONS_ALLOWED
+        && arg_block->format_first_subst_arg == 0
+#endif /* GNU_EXTENSIONS_ALLOWED */
+                                                 ) {
+      /* If the starting position of the arguments is not explicitly
+         specified by the "format" attribute, assume they start after the
+         ellipsis. */
       arg_block->printf_scanf_args = next_elem(arg_list_elem);
     }  /* if */
 #if GNU_EXTENSIONS_ALLOWED
+    if (arg_block->arg_ctr == arg_block->format_first_subst_arg) {
+      /* The "format" attribute explicitly specified where the argument
+         substitutions are to begin. */
+      arg_block->printf_scanf_args = arg_list_elem;
+    }  /* if */
     if (arg_block->fmt_arg != 0) {
       arg_is_fmt_string = (arg_block->arg_ctr == arg_block->fmt_arg);
     } else

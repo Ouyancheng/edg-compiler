@@ -2113,6 +2113,7 @@ to default values.
       rtsp->arg_pragma               = (a_pragma_kind)pk_none;
 #if GNU_EXTENSIONS_ALLOWED
       rtsp->fmt_arg                  = 0;
+      rtsp->format_first_subst_arg   = 0;
       rtsp->sentinel_pos             = 0;
 #endif /* GNU_EXTENSIONS_ALLOWED */
 #if MICROSOFT_EXTENSIONS_ALLOWED || GNU_X86_ATTRIBUTES_ALLOWED
