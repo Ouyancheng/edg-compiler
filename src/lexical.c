@@ -21714,13 +21714,12 @@ a routine to lookup the appropriate instance (or generate one if needed).
          GID_USE_PROTOTYPE_NOT_NONREAL flag. */
       a_type_ptr  new_tp = type_symbol_type(new_sym);
       if (gpp_version_is(any_version) && type_is(new_tp, tk_typeref) &&
-          scope_stack_top().in_prototype_instantiation &&
-          (!scope_stack_top().in_template_deduction_context ||
-           scope_stack_top().in_base_specifier_list) &&
-          !scope_is(&scope_stack_top(), sck_func_prototype) &&
-          !scope_is(&scope_stack_top(), sck_class_struct_union) &&
+          is_nonspecialized_prototype_instantiation_context() &&
           new_tp->variant.typeref.kind == trk_is_template_alias &&
-          new_tp->variant.typeref.is_dependent) {
+          new_tp->variant.typeref.is_dependent &&
+          !is_template_dependent_type(new_tp) &&
+          (scope_stack_top().in_template_arg_list ||
+           is_class_struct_union_type(new_tp))) {
         /* GCC does not look through alias templates while parsing templates.
            We cannot easily emulate that in contexts that might be redeclared
            later on (most deduction contexts and class member declarations),
