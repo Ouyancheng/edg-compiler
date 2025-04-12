@@ -105,7 +105,7 @@ The GNU/Clang format attribute is used to enable additional checking for
 routines that have printf/scanf-like arguments.  Previously the front end
 checked that the parameter corresponding to the value of the third argument to
 the format attribute referred to an ellipsis parameter.  That check has now
-been removed in Clang mode which allows that parameter to be a pack expansion
+been removed in Clang mode, which allows that parameter to be a pack expansion
 (or other parameter).  For example, with --clang --c++11:
 
   template <class... T>
