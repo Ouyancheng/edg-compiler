@@ -10326,9 +10326,10 @@ typedef struct a_type {
 			   do_not_instantiate"). */
       a_bit_field
 		proxy_class:1;
-			/* TRUE if this is a proxy class associated with
-			   a template parameter.  This is also TRUE for a
-			   C++/CLI constraint type for a generic parameter. */
+			/* TRUE if this is a proxy class associated with a
+			   template parameter or a dependent decltype.  This
+			   is also TRUE for a C++/CLI constraint type for a
+			   generic parameter. */
 #if MAINTAIN_NEEDED_FLAGS
       a_bit_field
 		definition_needed:1;
