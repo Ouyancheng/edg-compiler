@@ -17987,9 +17987,9 @@ successful folding.
              result constant's substructure into that local memory. */
           (void)copy_constant_full(folded_con, folded_con, CE_NO_OPTIONS);
         }  /* if */
-        folded_con->expr = alloc_temp_init_node(folded_con->type, orig_dip,
-                                                /*is_lvalue=*/FALSE,
-                                                /*is_explicit_cast=*/FALSE);
+        if (curr_expr_kind_is_one_in_which_const_exprs_are_recorded()) {
+          add_temp_init_backing_expression(folded_con, orig_dip);
+        }  /* if */
       } else {
         release_local_constant(&folded_con);
       }  /* if */
