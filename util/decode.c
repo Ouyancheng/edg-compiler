@@ -4431,28 +4431,28 @@ typedef struct a_substitution_location {
 			   for other substitution kinds. */
 } a_substitution_location;
 
-static a_substitution_location
+STATIC_THREAD a_substitution_location
 		*substitutions = NULL;
 			/* A dynamically allocated array.  substitutions[n]
 			   gives the meaning of the substitution numbered
 			   "n". */
-static unsigned long
+STATIC_THREAD unsigned long
 		num_substitutions = 0;
 			/* The number of substitutions currently defined, i.e.,
 			   the number of elements of the array that have
 			   been set. */
-static unsigned long
+STATIC_THREAD unsigned long
 		allocated_substitutions = 0;
 			/* The allocated size of the array, as a number of
 			   elements. */
-
-static char     *ud_suffix_buffer = NULL;
-                        /* A dynamically allocated buffer into which
-                           ud-suffixes are copied (when demangling literal
-                           operators). */
-static unsigned long
-                ud_suffix_buffer_length = 0;
-                        /* The allocated length of ud_suffix_buffer. */
+STATIC_THREAD char
+		*ud_suffix_buffer = NULL;
+			/* A dynamically allocated buffer into which
+			   ud-suffixes are copied (when	demangling literal
+			   operators). */
+STATIC_THREAD unsigned long
+		ud_suffix_buffer_length	= 0;
+			/* The allocated length	of ud_suffix_buffer. */
 
 static a_const_char *demangle_type_first_part(
                                a_const_char               *ptr,
@@ -4711,8 +4711,8 @@ type the substitution represents).
     a_const_char   *p;
     ptr++;
     if (ch2 != '_') {
+      constexpr a_const_char digits[] = "0123456789ABCDEFGHIJKLMNOPQRSTUVWXYZ";
       do {
-        static a_const_char digits[] = "0123456789ABCDEFGHIJKLMNOPQRSTUVWXYZ";
         number *= 36;
         if (*ptr == '\0') {
           bad_mangled_name(dctl);
@@ -6307,7 +6307,7 @@ be copied quickly.
                           ^^^-- Operation number
                 ^-------------- Number of operands (<= 9)
           */
-          static char builtin_name[] = "builtin-operation-XXX";
+          STATIC_THREAD char builtin_name[] = "builtin-operation-XXX";
           str = builtin_name;
           *num_operands = ptr[1]-'0';
           if (ptr[2] == '9') {
