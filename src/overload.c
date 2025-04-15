@@ -3376,15 +3376,6 @@ copy-initialization).
         goto have_level;
       }  /* if */
     }  /* if */
-    /* One additional exact match case: __fp16 is considered an exact match
-       for float in overload resolution. */
-    if (!param_is_reference && param_type->kind == tk_float &&
-        param_type->variant.float_kind == fk_float &&
-        arg_type->kind == tk_float &&
-        arg_type->variant.float_kind == fk_fp16) {
-      arg_summary->match_level = aml_exact;
-      goto have_level;
-    }  /* if */
     if (arg_operand != NULL && is_indefinite_function_operand(arg_operand) &&
         (source_can_be_rvalue || is_a_function_designator(arg_operand)) &&
         (!param_is_rvalue_reference || is_an_rvalue(arg_operand))) {
@@ -7959,6 +7950,17 @@ apply that would make one better than the other, and return
         if (arg_match1->conversion.std.flt_identical_representations) {
           cmp = 1;
         } else {
+          cmp = -1;
+        }  /* if */
+      } else if (arg_match1->conversion.std.promotion &&
+                 arg_match2->conversion.std.promotion &&
+                 is_floating_type(param_type1) &&
+                 is_floating_type(param_type2)) {
+        /* Prefer promotion to float (which is currently only possible from
+           type __fp16) over promotion to double. */
+        if (param_type1->variant.float_kind == fk_float) {
+          cmp = 1;
+        } else if (param_type2->variant.float_kind == fk_float) {
           cmp = -1;
         }  /* if */
       } else if (any_cfront_mode()) {

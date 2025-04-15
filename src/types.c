@@ -12516,6 +12516,14 @@ See conversion_possible.
         } else if ((base_type = default_argument_promotion(base_type),
                     types_are_compatible(base_type, dest_type))) {
           std_conv->promotion = TRUE;
+        } else if (is_floating(source_type) &&
+                   dest_type->kind == source_type->kind &&
+                   source_type->variant.float_kind == fk_fp16 &&
+                   (dest_type->variant.float_kind == fk_double ||
+                    dest_type->variant.float_kind == fk_float)) {
+          /* Conversion of __fp16 to float or double are both considered
+             "promotion", but the conversion to float is preferred. */
+          std_conv->promotion = TRUE;
 #if MICROSOFT_EXTENSIONS_ALLOWED
         } else if (microsoft_bugs &&
                    is_integral(source_type) &&

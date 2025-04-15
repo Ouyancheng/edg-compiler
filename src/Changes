@@ -1,5 +1,26 @@
 Version 6.8
 
+4/15/25  [EDGcpfe/28034]
+Overload resolution with __fp16 argument
+
+Consider:
+
+  constexpr int f(float) { return 1; }
+  constexpr int f(__fp16) { return 2; }
+  constexpr __fp16 x = 0.0;
+  static_assert(f(x) == 2);  // Previously ambiguous.  Now okay.
+
+Previously, this was considered ambiguous because the implicit conversion from
+__fp16 to float was treated as an "exact match".  Now, it is treated as a
+promotion, but as a better promotion than promoting from __fp16 to double.
+The latter distinction allows the following variation to still be accepted:
+
+  constexpr int f(double) { return 1; }
+  constexpr int f(float) { return 2; }
+  constexpr __fp16 x = 0.0;
+  static_assert(f(x) == 2);
+
+
 4/15/25  [EDGcpfe/24785,EDGcpfe/25520,EDGcpfe/25858,EDGcpfe/27234,
           EDGcpfe/27348,EDGcpfe/28090]
 C++23: operator[]
