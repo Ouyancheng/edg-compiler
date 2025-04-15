@@ -1,5 +1,13 @@
 Version 6.7, January 27, 2025
 
+4/15/25  [EDGcpfe/28103]
+Thread-safety for the decode program source code
+
+Changes have been made to the decode program to make its source thread-safe
+when compiled with MULTIPLE_THREAD_COMPILATION set to TRUE.  Notably, this
+change does not introduce a multi-threaded version of the decode program.
+
+
 1/27/25  [EDGcpfe/27888]
 Replace uses of sprintf with snprintf
 
