@@ -1052,16 +1052,14 @@ Merge the new reattempt state into the destination state.
 Macro to test an operator routine entry's opname_kind field.
 */
 #define opname_kind_is(rp, onk)                                             \
-  ((rp)->variant.opname_kind == (an_opname_kind)(onk))
+  ((rp)->variant.opname_kind == (onk))
 
 /*
 Macros to test for relational operators.
 */
 #define opname_is_rel_op(opkind)                                            \
-  ((opkind) == (an_opname_kind)onk_lt ||                                    \
-   (opkind) == (an_opname_kind)onk_le ||                                    \
-   (opkind) == (an_opname_kind)onk_gt ||                                    \
-   (opkind) == (an_opname_kind)onk_ge)
+  ((opkind) == onk_lt || (opkind) == onk_le ||                              \
+   (opkind) == onk_gt || (opkind) == onk_ge)
 
 #define opname_kind_is_rel_op(rp)                                           \
   (opname_is_rel_op((rp)->variant.opname_kind))
@@ -1070,8 +1068,7 @@ Macros to test for relational operators.
 Macro to test for equality operators.
 */
 #define opname_is_eq_op(opkind)                                             \
-  ((opkind) == (an_opname_kind)onk_eq ||                                    \
-   (opkind) == (an_opname_kind)onk_ne)
+  ((opkind) == onk_eq || (opkind) == onk_ne)
 
 /*
 Macro to test for comparison operators.
@@ -1079,8 +1076,15 @@ Macro to test for comparison operators.
 #define opname_is_comparison(opkind)                                        \
   (opname_is_eq_op(opkind) ||                                               \
    opname_is_rel_op(opkind) ||                                              \
-   (opkind) == (an_opname_kind)onk_spaceship)
+   (opkind) == onk_spaceship)
 
+/*
+Macro to test for call-like operators: onk_function_call and, in C++23,
+onk_subscript.
+*/
+#define opname_is_call_like(opkind)                                          \
+  ((opkind) == onk_function_call ||                                          \
+   (multi_subscript_enabled && (opkind) == onk_subscript))
 
 /*
 Macro that returns TRUE if a routine has been defined.  The value is

@@ -2808,6 +2808,11 @@ EXTERN_THREAD a_boolean
 			   ("<=>") is enabled. */
 
 EXTERN_THREAD a_boolean
+		multi_subscript_enabled;
+			/* TRUE if the subscript operator can have any number
+			   of operands (a C++23 extension). */
+
+EXTERN_THREAD a_boolean
 		rvalue_allowed_with_const_qual_memptr;
 			/* TRUE if an rvalue object expression can be used
 			   in a member-pointer expression with a pointer to

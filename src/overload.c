@@ -10802,6 +10802,8 @@ static constexpr an_error_code default_none_applies_code[(int)oc_last] = {
   ec_no_matching_constructor,                /* oc_ctad */
   ec_tuple_get_no_matching_overload,         /* oc_tuple_like_binding */
   ec_no_matching_constructor,                /* oc_reversed_cmp_candidate */
+  ec_no_matching_function,                   /* oc_conv_to_class_check */
+  ec_no_matching_function,                   /* oc_multi_subscript */
 };
 
 /*
@@ -10825,6 +10827,8 @@ static constexpr an_error_code default_ambiguous_code[(int)oc_last] = {
   ec_ambiguous_constructor,                  /* oc_ctad */
   ec_ambiguous_overloaded_function,          /* oc_tuple_like_binding */
   ec_ambiguous_overloaded_function,          /* oc_reversed_cmp_candidate */
+  ec_ambiguous_overloaded_function,          /* oc_conv_to_class_check */
+  ec_ambiguous_overloaded_function,          /* oc_multi_subscript */
 };
 
 /*
@@ -10848,6 +10852,8 @@ static constexpr an_error_code default_undefined_code[(int)oc_last] = {
   ec_undefined_identifier,                   /* oc_ctad */
   ec_struct_binding_undefined_identifier,    /* oc_tuple_like_binding */
   ec_undefined_identifier,                   /* oc_reversed_cmp_candidate */
+  ec_undefined_identifier,                   /* oc_conv_to_class_check */
+  ec_undefined_identifier,                   /* oc_multi_subscript */
 };
 
 
@@ -11526,7 +11532,8 @@ in_instantiation:
     } else if (overloaded_function_symbol == NULL) {
       /* Call of class object, no operator() or appropriate conversion
          functions to pointer to function type. */
-      check_assertion(surrogate_function_conv_sym != NULL);
+      check_assertion(surrogate_function_conv_sym != NULL ||
+                      ovl_context == oc_multi_subscript);
 #if MICROSOFT_EXTENSIONS_ALLOWED
       if (cli_or_cx_enabled && have_selector &&
           is_handle_type(bound_function_selector->type)) {
@@ -19071,7 +19078,8 @@ except that it was inaccessible because of hide-by-sig lookup.
                        skip_typerefs(func_sym_routine(function_symbol)->type);
           member_functions_symbol = proj_function_symbol;
           have_selector = routine_type_is_nonstatic_member_function(
-                                                              nondep_fn_type);
+                                                            nondep_fn_type) ||
+                          kind == onk_subscript;
           if (have_selector) {
             operand_1->selector_is_object_pointer = selector_is_handle;
           }  /* if */
@@ -20118,6 +20126,14 @@ no_applicable_operator_function:
                                            arg_match,
                                            &bound_function_selector->position);
               /* The "real" argument list starts with the second argument. */
+              arg_list_elem = next_elem(arg_list_elem);
+              arg_match = arg_match->next;
+            } else if (kind == onk_subscript &&
+                       !has_explicit_this_parameter(routine_type)) {
+              /* A static subscript operator. */
+              check_assertion(is_expression_component(arg_list));
+              bound_function_selector = operand_of_arg_list_elem(arg_list);
+              have_selector = TRUE;
               arg_list_elem = next_elem(arg_list_elem);
               arg_match = arg_match->next;
             }  /* if */

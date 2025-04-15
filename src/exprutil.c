@@ -5146,9 +5146,10 @@ the call, to be converted to operand form later.
   if (operand->bound_function) {
     check_assertion(node_operator_is(expr, eok_call));
   } else {
-    if (!node_operator_is(expr, eok_call)) {
-      /* For calls other than eok_call, rescan the selector and bind it to
-         the function operand. */
+    if (!node_operator_is(expr, eok_call) &&
+        !node_operator_is(expr, eok_subscript)) {
+      /* For calls other than eok_call (and eok_subscript in C++23), rescan
+         the selector and bind it to the function operand. */
       rescan_selector_of_call(rcblock, operand, bound_function_selector);
       args = args->next;
     }  /* if */
@@ -14634,123 +14635,128 @@ the subscript case).
     /* The node is a pointer addition or subscript operation. */
     ptr_node = node->variant.operation.operands;
     sub_node = ptr_node->next;
-    if (is_pointer_type(sub_node->type)) {
-      /* The pointer is the second operand; logically swap the operands. */
-      sub_node = ptr_node;
-      ptr_node = sub_node->next;
-    }  /* if */
-    ptr_node = skip_parens(ptr_node);
-    sub_node = skip_parens(sub_node);
-    if (is_constant_node(sub_node)) {
-      sub_con = node_constant(sub_node);
-      if (constant_is(sub_con, ck_integer)) {
-        /* The subscript is an integer constant.  The other operand should
-           have type "pointer to x" (the test rules out error cases). */
-        ptr_type = ptr_node->type;
-        if (is_pointer_type(ptr_type)) {
-          /* See if we can find the array type "array of x" underneath
-             that. */
-          underlying_type = NULL;
-          if (is_constant_node(ptr_node)) {
-            a_constant_ptr con = node_constant(ptr_node);
-            a_constant_ptr scon;
-            if (constant_is_pointer_to_string_literal(con, &scon)) {
-              /* The constant is a string literal decayed or cast to a
-                 pointer type. */
-              underlying_type = scon->type;
-            } else if (constant_is_pointer_to_array_variable(con,
-                                                           &underlying_type)) {
-              /* The constant is the address of a variable. */
+    if (sub_node != NULL && sub_node->next == NULL) {
+      if (is_pointer_type(sub_node->type)) {
+        /* The pointer is the second operand; logically swap the operands. */
+        sub_node = ptr_node;
+        ptr_node = sub_node->next;
+      }  /* if */
+      ptr_node = skip_parens(ptr_node);
+      sub_node = skip_parens(sub_node);
+      if (is_constant_node(sub_node)) {
+        sub_con = node_constant(sub_node);
+        if (constant_is(sub_con, ck_integer)) {
+          /* The subscript is an integer constant.  The other operand should
+             have type "pointer to x" (the test rules out error cases). */
+          ptr_type = ptr_node->type;
+          if (is_pointer_type(ptr_type)) {
+            /* See if we can find the array type "array of x" underneath
+               that. */
+            underlying_type = NULL;
+            if (is_constant_node(ptr_node)) {
+              a_constant_ptr con = node_constant(ptr_node);
+              a_constant_ptr scon;
+              if (constant_is_pointer_to_string_literal(con, &scon)) {
+                /* The constant is a string literal decayed or cast to a
+                   pointer type. */
+                underlying_type = scon->type;
+              } else if (constant_is_pointer_to_array_variable(
+                                                     con, &underlying_type)) {
+                /* The constant is the address of a variable. */
+              }  /* if */
+            } else if (is_operation_node(ptr_node)) {
+              /* We can get the array if the top operation on the pointer
+                 operand is an array-to-pointer decay. */
+              if (node_operator_is(ptr_node, eok_array_to_pointer)) {
+                an_error_code local_err_code;
+                ptr_node = ptr_node->variant.operation.operands;
+                underlying_type = ptr_node->type;
+                /* Check for a subscript at the next level down (i.e.,
+                   we have multi-dimensional subscripting).  Only at the
+                   end of a string of subscripts can we check the
+                   validity of just-past-the-end subscripts on the
+                   earlier subscripts. */
+                (void)valid_node_if_subscript(ptr_node,
+                                              &prev_subsc_just_past_end,
+                                              &local_err_code);
+              }  /* if */
             }  /* if */
-          } else if (is_operation_node(ptr_node)) {
-            /* We can get the array if the top operation on the pointer
-               operand is an array-to-pointer decay. */
-            if (node_operator_is(ptr_node, eok_array_to_pointer)) {
-              an_error_code local_err_code;
-              ptr_node = ptr_node->variant.operation.operands;
-              underlying_type = ptr_node->type;
-              /* Check for a subscript at the next level down (i.e.,
-                 we have multi-dimensional subscripting).  Only at the
-                 end of a string of subscripts can we check the
-                 validity of just-past-the-end subscripts on the
-                 earlier subscripts. */
-              (void)valid_node_if_subscript(ptr_node,
-                                            &prev_subsc_just_past_end,
-                                            &local_err_code);
-            }  /* if */
-          }  /* if */
-          if (underlying_type != NULL) {
-            /* See if the underlying_type is an array type. */
-            /* Note that is_array_type returns TRUE for incomplete array
-               types.  We can only check the subscript if the array type
-               is complete. */
-            if (is_array_type(underlying_type) &&
-                !is_incomplete_type(underlying_type)) {
-              array_type = skip_typerefs(underlying_type);
-              /* See if the element type of the array type matches the
-                 type pointed to by ptr_type. */
-              ptr_element_type = type_pointed_to(ptr_type);
-              ptr_element_type = skip_typerefs(ptr_element_type);
-              element_type = array_element_type(array_type);
-              element_type = skip_typerefs(element_type);
-              if (identical_types(ptr_element_type, element_type)) {
-                /* Everything's as we want it.  Check the subscript. */
-                a_constant_ptr eff_sub_con = sub_con;
-                a_constant_ptr local_con = local_constant();
-                if (node_operator_is(node, eok_subscript)) {
-                  *err_code = ec_subscript_out_of_range;
-                } else {
-                  *err_code = ec_pointer_outside_base_object;
-                }  /* if */
-                /* For the pointer "-" case negate the constant. */
-                if (node_operator_is(node, eok_psubtract)) {
-                  a_boolean err;
-                  if (!int_constant_is_signed(sub_con)) goto invalid_subscript;
-                  *local_con = *sub_con;
-                  eff_sub_con = local_con;
-                  negate_integer_value(&local_con->variant.integer_value,
-                                       &err);
-                  if (err) goto invalid_subscript;
-                }  /* if */
-                if (sign_of_integer_constant(eff_sub_con) < 0) {
-                  /* Negative subscript (positive for pointer "-"). */
-invalid_subscript:
-                  valid = FALSE;
-                } else if (prev_subsc_just_past_end) {
-                  /* A previous subscript was just past the end. */
-                  if (sign_of_integer_constant(eff_sub_con) == 0) {
-                    /* This one is zero, so we're still just at the end. */
-                    *just_past_end = TRUE;
+            if (underlying_type != NULL) {
+              /* See if the underlying_type is an array type. */
+              /* Note that is_array_type returns TRUE for incomplete array
+                 types.  We can only check the subscript if the array type
+                 is complete. */
+              if (is_array_type(underlying_type) &&
+                  !is_incomplete_type(underlying_type)) {
+                array_type = skip_typerefs(underlying_type);
+                /* See if the element type of the array type matches the
+                   type pointed to by ptr_type. */
+                ptr_element_type = type_pointed_to(ptr_type);
+                ptr_element_type = skip_typerefs(ptr_element_type);
+                element_type = array_element_type(array_type);
+                element_type = skip_typerefs(element_type);
+                if (identical_types(ptr_element_type, element_type)) {
+                  /* Everything's as we want it.  Check the subscript. */
+                  a_constant_ptr eff_sub_con = sub_con;
+                  a_constant_ptr local_con = local_constant();
+                  if (node_operator_is(node, eok_subscript)) {
+                    *err_code = ec_subscript_out_of_range;
                   } else {
-                    /* This one is positive, so we're off the end. */
+                    *err_code = ec_pointer_outside_base_object;
+                  }  /* if */
+                  /* For the pointer "-" case negate the constant. */
+                  if (node_operator_is(node, eok_psubtract)) {
+                    a_boolean err;
+                    if (!int_constant_is_signed(sub_con)) {
+                      goto invalid_subscript;
+                    }  /* if */
+                    *local_con = *sub_con;
+                    eff_sub_con = local_con;
+                    negate_integer_value(&local_con->variant.integer_value,
+                                         &err);
+                    if (err) goto invalid_subscript;
+                  }  /* if */
+                  if (sign_of_integer_constant(eff_sub_con) < 0) {
+                    /* Negative subscript (positive for pointer "-"). */
+invalid_subscript:
                     valid = FALSE;
-                  }  /* if */
-                } else if (vla_enabled && is_vla_type(underlying_type)) {
-                  /* Variable-length arrays cannot be checked for non-negative
-                     subscripts. */
+                  } else if (prev_subsc_just_past_end) {
+                    /* A previous subscript was just past the end. */
+                    if (sign_of_integer_constant(eff_sub_con) == 0) {
+                      /* This one is zero, so we're still just at the end. */
+                      *just_past_end = TRUE;
+                    } else {
+                      /* This one is positive, so we're off the end. */
+                      valid = FALSE;
+                    }  /* if */
+                  } else if (vla_enabled && is_vla_type(underlying_type)) {
+                    /* Variable-length arrays cannot be checked for
+                       non-negative subscripts. */
 #if UPC_EXTENSIONS_ALLOWED
-                } else if (array_type->variant.array.is_threads_dimension) {
-                  /* Do not check subscripts on threads-dimensioned arrays. */
+                  } else if (array_type->variant.array.is_threads_dimension) {
+                    /* Do not check subscripts on threads-dimensioned
+                       arrays. */
 #endif /* UPC_EXTENSIONS_ALLOWED */
-                } else if (array_type->variant.array.
-                                            is_template_dependent_size_array) {
-                  /* Can't check template-dependent-sized arrays. */
-                } else {
-                  check_assertion(!has_unknown_specified_bound(array_type));
-                  num_elements = array_type->
+                  } else if (array_type
+                           ->variant.array.is_template_dependent_size_array) {
+                    /* Can't check template-dependent-sized arrays. */
+                  } else {
+                    check_assertion(!has_unknown_specified_bound(array_type));
+                    num_elements = array_type->
                                      variant.array.variant.number_of_elements;
-                  /* Do not check subscripts on arrays dimensioned as having
-                     size 1, since that's probably a clue that the programmer
-                     is cheating. */
-                  if (num_elements > 1) {
-                    cmp = cmpulit_integer_constant(eff_sub_con,
+                    /* Do not check subscripts on arrays dimensioned as having
+                       size 1, since that's probably a clue that the programmer
+                       is cheating. */
+                    if (num_elements > 1) {
+                      cmp = cmpulit_integer_constant(eff_sub_con,
                                           (a_host_large_unsigned)num_elements);
-                    valid = (cmp <= 0);  /* Subscript <= number of elements */
-                    *just_past_end = (cmp == 0);
+                      valid = (cmp <= 0); /* Subscript <= number of elements */
+                      *just_past_end = (cmp == 0);
                                           /* Subscript == number of elements */
+                    }  /* if */
                   }  /* if */
+                  release_local_constant(&local_con);
                 }  /* if */
-                release_local_constant(&local_con);
               }  /* if */
             }  /* if */
           }  /* if */
@@ -16156,9 +16162,9 @@ a secondary operator (e.g., the "]" of a subscript operation).
                            operator_position_2);
 }  /* template_binary_operation */
 
-#if MICROSOFT_EXTENSIONS_ALLOWED
 
-void template_cli_subscript_operation(
+void template_multi_subscript_operation(
+                               an_expr_operator_kind   op_kind,
                                an_operand              *operand_1,
                                an_arg_list_elem_ptr    subscripts,
                                an_operand              *result,
@@ -16167,8 +16173,8 @@ void template_cli_subscript_operation(
                                a_source_position       *operator_position_2)
 /*
 Similar to template_binary_operation, but used for a template-dependent
-C++/CLI subscript operation, where the second operand is an expression
-list of the subscripts.
+C++/CLI or C++23 subscript operation, where the second operand is a list of
+subscript expression.
 */
 {
   an_expr_node_ptr op_1_expr, subsc_exprs, op_expr;
@@ -16177,20 +16183,17 @@ list of the subscripts.
   op_1_expr = make_node_from_operand(operand_1);
   prep_generic_argument_list(subscripts);
   subsc_exprs = make_expr_list_from_argument_list(
-                                                subscripts,
-                                                /*dependent_expression=*/TRUE);
+                                   subscripts, /*dependent_expression=*/TRUE);
   op_1_expr->next = subsc_exprs;
-  op_expr = make_lvalue_operator_node((an_expr_operator_kind)eok_cli_subscript,
-                                      type_of_unknown_templ_param_nontype,
-                                      op_1_expr);
+  op_expr = make_lvalue_operator_node(
+                     op_kind, type_of_unknown_templ_param_nontype, op_1_expr);
   make_glvalue_expression_operand(op_expr, result);
   rule_out_expr_kinds(ROEK_CONSTANT, result);
   record_operator_position_in_rescan_info(result, operator_position,
                                           operator_tok_seq_number,
                                           operator_position_2);
-}  /* template_cli_subscript_operation */
+}  /* template_multi_subscript_operation */
 
-#endif /* MICROSOFT_EXTENSIONS_ALLOWED */
 
 void do_unary_operation(an_expr_operator_kind   op,
                         an_operand              *operand,
@@ -22010,7 +22013,8 @@ it might produce an error).
           }  /* if */
           break;
         case eok_subscript:
-          if (allow_folding != NULL && !strict_ansi_mode) {
+          if (allow_folding != NULL && !strict_ansi_mode &&
+              op2 != NULL && op2->next == NULL) {
             op1 = skip_parens(op1);
             op2 = skip_parens(op2);
             if (is_constant_node(op1) && is_constant_node(op2)) {

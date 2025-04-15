@@ -106,6 +106,106 @@ static void make_zero_operand(an_operand *opnd,
                  (local_options))
 
 
+a_boolean in_expression_context(void)
+/*
+Return TRUE if we are currently inside an expression context.
+*/
+{
+  return (expr_stack != NULL);
+}  /* in_expression_context */
+
+
+a_boolean operand_is_instantiation_dependent(an_operand_ptr  operand)
+/*
+Return TRUE if the given operand is instantiation-dependent, which
+includes type-dependent cases, value-dependent cases, and cases where
+a template parameter appears somewhere in a subexpression but doesn't
+make the overall result dependent in the other senses.
+*/
+{
+  a_boolean      contains_template_param = FALSE;
+  a_constant_ptr con;
+
+  if (is_expression_operand(operand) &&
+      expr_is_instantiation_dependent(operand->variant.expression)) {
+    contains_template_param = TRUE;
+  } else if (is_constant_operand(operand) &&
+             constant_is_instantiation_dependent(&operand->variant.constant)) {
+    contains_template_param = TRUE;
+  } else if (is_template_dependent_indefinite_function(operand)) {
+    contains_template_param = TRUE;
+  } else if (is_an_lvalue(operand) &&
+             (con = value_of_constant_var_lvalue_operand(operand)) != NULL) {
+    /* A const variable with a dependent initializer is considered
+       dependent. */
+    if (constant_is(con, ck_template_param)) {
+      contains_template_param = TRUE;
+    }  /* if */
+  }  /* if */
+  return contains_template_param;
+}  /* operand_is_instantiation_dependent */
+
+
+a_boolean arg_operand_is_instantiation_dependent(
+                                                an_arg_operand_ptr arg_operand)
+/*
+Return TRUE if the given arg_operand is instantiation-dependent.
+*/
+{
+  a_boolean contains_template_param =
+                     operand_is_instantiation_dependent(&arg_operand->operand);
+
+  return contains_template_param;
+}  /* arg_operand_is_instantiation_dependent */
+
+
+static
+a_boolean arg_list_is_instantiation_dependent(an_arg_list_elem_ptr  alep)
+/*
+Return TRUE if the given list of argument elements contains an instantiation-
+dependent operand.
+*/
+{
+  a_boolean  result = FALSE;
+
+  if (is_template_dependent_context()) {
+    for (; alep != NULL; alep = next_elem(alep)) {
+      an_operand  *opnd = operand_of_arg_list_elem(alep);
+      if (operand_is_instantiation_dependent(opnd)) {
+        result = TRUE;
+        break;
+      }  /* if */
+    }  /* for */
+  }  /* if */
+  return result;
+}  /* arg_list_is_instantiation_dependent */
+
+
+a_boolean arg_operand_involves_error_entity(an_arg_operand_ptr arg_operand)
+/*
+Return TRUE if the given arg_operand makes use of an error type or constant.
+*/
+{
+  a_boolean  contains_error = FALSE;
+  an_operand *operand = &arg_operand->operand;
+
+  if (is_error_operand(operand)) {
+    contains_error = TRUE;
+  } else if (is_expression_operand(operand) &&
+             expr_contains_error(operand->variant.expression)) {
+    contains_error = TRUE;
+  } else if (is_constant_operand(operand) &&
+             constant_contains_error(&operand->variant.constant)) {
+    contains_error = TRUE;
+  } else if (operand->is_template_id &&
+             template_arg_list_involves_error_entity(
+                                                 operand->template_arg_list)) {
+    contains_error = TRUE;
+  }  /* if */
+  return contains_error;
+}  /* arg_operand_involves_error_entity */
+
+
 static void bundle_curr_expr_lifetime(an_arg_list_elem_ptr  alep,
                                       a_boolean             fix_up_dtors)
 /*
@@ -1937,6 +2037,45 @@ subscripts can be applied to that.
 
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
 
+static void reduce_singleton_subscript_list(an_arg_list_elem_ptr  *p_list,
+                                            an_operand            *subscript,
+                                            a_boolean             cli_array,
+                                            a_source_position     *end_pos)
+/*
+If the given list *p_list of subscript arguments contains a single element,
+copy its operand to *subscript.  Otherwise, issue an error.  cli_array is TRUE
+if the subscripting is of a CLI array construct.  end_pos is the end position
+of the subscript operation: That position is used for the diagnostic if *p_list
+is NULL.  In all cases, the list pointed by *p_list is freed and *p_list is set
+to NULL.
+*/
+{
+  if (is_single_elem(*p_list)) {
+    copy_operand(operand_of_arg_list_elem(*p_list), subscript);
+  } else {
+    if (cli_array) {
+      expr_pos_error(ec_comma_operator_in_cli_subscript,
+                     init_component_pos(*p_list));
+    } else {
+      expr_pos_error(*p_list == NULL ? ec_exp_primary_expr
+                                     : ec_too_many_array_bounds,
+                     *p_list == NULL ? end_pos :
+                                       init_component_pos(next_elem(*p_list)));
+    }  /* if */
+    make_error_operand(subscript);
+  }  /* if */
+  free_arg_list(*p_list);
+  *p_list = NULL;
+}  /* reduce_singleton_subscript_list */
+
+
+static void scan_function_call(an_operand             *operand,
+                               an_operand             *bound_function_selector,
+                               a_boolean              is_multi_subscript,
+                               a_rescan_control_block *rcblock,
+                               an_operand             *result,
+                               an_operand             *p_subscript = NULL);
+
 static void scan_subscript_operator(an_operand             *operand_1,
                                     a_boolean              offsetof_case,
                                     a_rescan_control_block *rcblock,
@@ -1955,6 +2094,14 @@ previously-scanned expression, and return the result in *result (or an
 error indication in *rcblock).  operand_1 is expected to be NULL in
 that case.  This routine is also used when scanning __builtin_offsetof
 constructs, in which case offsetof_case is TRUE.
+
+Starting with C++23, multiple subscripts are permitted (and the comma operator
+cannot be used at the top level).  E.g., C++23 allows:
+
+  struct S { int operator[](int, int); } s;
+  int r = s[1, 2];
+
+Those cases are mostly delegated to scan_function_call.
 */
 {
   an_operand           local_operand_1, operand_2;
@@ -1966,11 +2113,8 @@ constructs, in which case offsetof_case is TRUE.
 #if EXTRA_SOURCE_POSITIONS_IN_IL
   a_source_position    end_position;
 #endif /* EXTRA_SOURCE_POSITIONS_IN_IL */
-  a_boolean            err = FALSE, processed = FALSE;
-  a_boolean            subscript_is_expr_list = FALSE;
-#if MICROSOFT_EXTENSIONS_ALLOWED
-  a_boolean            cli_array_case = FALSE;
-#endif /* MICROSOFT_EXTENSIONS_ALLOWED */
+  a_boolean            err = FALSE, processed = FALSE, opnd2_done = FALSE;
+  a_boolean            subscript_is_expr_list = FALSE, cli_array_case = FALSE;
 
   db_enter(4, "scan_subscript_operator");
 
@@ -1980,24 +2124,53 @@ constructs, in which case offsetof_case is TRUE.
     check_assertion(operand_1 == NULL);
     operand_1 = &local_operand_1;
     check_assertion(is_operation_node(rcblock->expr));
-    if (node_operator_is(rcblock->expr, eok_subscript)) {
+    if (node_operator_is(rcblock->expr, eok_subscript) &&
+        !multi_subscript_enabled) {
       make_rescan_operands(rcblock, operand_1, &operand_2, (an_operand *)NULL,
                            &operator_position, &operator_tok_seq_number,
                            &closing_bracket_position);
     } else {
-      /* C++/CLI eok_cli_subscript case. */
-      check_assertion(cli_or_cx_enabled &&
-                      node_operator_is(rcblock->expr, eok_cli_subscript));
-      /* Get the first operand, and then rescan the rest of the
-         operands as a list of expressions. */
+      /* C++23 subscript or C++/CLI eok_cli_subscript case. */
+      /* Get the first operand, and then rescan the rest of the operands as
+         a list of expressions. */
       make_rescan_operands(rcblock, operand_1,
-                           (an_operand *)NULL, (an_operand *)NULL,
+                           (an_operand*)NULL, (an_operand*)NULL,
                            &operator_position, &operator_tok_seq_number,
                            &closing_bracket_position);
       operand_2_list = rescan_expr_list(
                                rcblock->expr->variant.operation.operands->next,
                                rcblock);
-      subscript_is_expr_list = TRUE;
+      if (!node_operator_is(rcblock->expr, eok_cli_subscript)) {
+        /* A C++23 subscript operation. */
+        a_type  *utp = skip_typerefs(operand_1->type);
+        check_assertion(multi_subscript_enabled);
+        if (!is_single_elem(operand_2_list) &&
+            (is_immediate_class_type(utp) ||
+             type_is(utp, tk_template_param))) {
+          /* Delegate the C++23 multi-subscript case to scan_function_call. */
+          rcblock->operator_token = tok_lparen;
+          scan_function_call((an_operand *)NULL, (an_operand *)NULL,
+                             /*is_multi_subscript=*/TRUE,
+                             rcblock, result);
+          goto cleanup_and_done;
+        } else {
+          /* An ordinary "built-in" subscript. */
+          if (is_single_elem(operand_2_list)) {
+            operand_2 = *operand_of_arg_list_elem(operand_2_list);
+          } else {
+            subscript_is_expr_list = TRUE;
+            expr_pos_error(operand_2_list == NULL ?
+                             ec_exp_primary_expr : ec_too_many_array_bounds,
+                           operand_2_list == NULL ?
+                             &closing_bracket_position :
+                             init_component_pos(operand_2_list));
+          }  /* if */
+        }  /* if */
+      } else {
+        /* C++/CLI eok_cli_subscript: */
+        cli_array_case = TRUE;
+        subscript_is_expr_list = TRUE;
+      }  /* if */
     }  /* if */
 #if EXTRA_SOURCE_POSITIONS_IN_IL
     end_position = rcblock->expr->expr_range.end;
@@ -2006,6 +2179,35 @@ constructs, in which case offsetof_case is TRUE.
     /* Normal, non-rescan, processing. */
     operator_position = pos_curr_token;
     operator_tok_seq_number = curr_token_sequence_number;
+    if (std_attributes_enabled && next_token() == tok_lbracket) {
+      /* '[ [' should strictly-speaking introduce a standard attribute, even
+         though it could conceivably be a subscript operation with a lambda
+         expression. */
+      pos_diagnostic(es_discretionary_error, ec_must_introduce_attribute,
+                     &pos_curr_token);
+    }  /* if */
+    if (multi_subscript_enabled) {
+      /* Delegate the C++23 overloaded operator case to scan_function_call.
+         If the delegation is successful, operand_2 will be left unchanged
+         (i.e., it will still be an error operand).  Otherwise, it operand_2
+         will be the single subscript to handle in the traditional way. */
+      a_type  *utp = skip_typerefs(operand_1->type);
+      if (is_immediate_class_type(utp) || type_is(utp, tk_template_param)) {
+        an_operand  bound_function_selector;
+        copy_operand(operand_1, &local_operand_1);
+        clear_operand(ok_error, &operand_2);
+        scan_function_call(&local_operand_1, &bound_function_selector,
+                           /*is_multi_subscript=*/TRUE,
+                           rcblock, result, &operand_2);
+        if (is_error_operand(&operand_2)) {
+          /* scan_function_call fully handled the subscript construct. */
+          goto done;
+        }  /* if */
+        closing_bracket_position = pos_curr_token;
+        add_matching_stop_token(tok_rbracket);
+        opnd2_done = TRUE;
+      }  /* if */
+    }  /* if */
   }  /* if */
 
   if (curr_expr_kind_is_traditional_const()) {
@@ -2071,32 +2273,30 @@ constructs, in which case offsetof_case is TRUE.
     }  /* if */
   }  /* if */
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
-  if (rcblock == NULL) {
+  if (rcblock == NULL && !opnd2_done) {
+    /* Scan the subscript operand if it wasn't already done by the call to
+       scan_function_call above. */
     /* Get past the opening bracket. */
     (void)get_token();
     add_matching_stop_token(tok_rbracket);
     /* Scan the second operand. */
-    if (std_attributes_enabled && curr_token == tok_lbracket) {
-      /* '[ [' should strictly-speaking introduce a standard attribute, even
-         though it could conceivably be a subscript operation with a lambda
-         expression. */
-      pos_diagnostic(es_discretionary_error, ec_must_introduce_attribute,
-                     &pos_curr_token);
-    }  /* if */
-#if MICROSOFT_EXTENSIONS_ALLOWED
-    if (subscript_is_expr_list) {
-      /* The subscript is an expression list in C++/CLI mode.  Top-level commas
-         separate elements of the list. */
+    if (multi_subscript_enabled || subscript_is_expr_list) {
+      /* The subscript is an expression list in C++23 and C++/CLI modes.
+         Top-level commas separate elements of the list. */
       operand_2_list = scan_expr_list(tok_rbracket,
                                       /*is_delegate_init=*/FALSE,
                                       /*is_custom_ms_attr_arg_list=*/FALSE,
                                       /*empty_list_okay=*/FALSE,
                                       /*trailing_comma_okay=*/FALSE,
                                       /*bundle=*/FALSE);
-    } else
-#endif /* MICROSOFT_EXTENSIONS_ALLOWED */
-    /* Do not insert code here. */
-    if (curr_token == tok_lbrace && list_init_enabled) {
+      if (!subscript_is_expr_list) {
+        /* The cases that permit multiple subscripts were already handled by
+           the call to scan_function_call above.  So here we should find only
+           a single operand. */
+        reduce_singleton_subscript_list(&operand_2_list, &operand_2,
+                                        /*cli_array=*/FALSE, &pos_curr_token);
+      }  /* if */
+    } else if (curr_token == tok_lbrace && list_init_enabled) {
       /* In C++11, the expression inside the brackets is allowed to be a
          brace-enclosed list. */
       scan_braced_init_list_as_operand(&operand_2);
@@ -2171,23 +2371,19 @@ constructs, in which case offsetof_case is TRUE.
          also because it simplifies some tests below for __builtin_offsetof
          etc. */
       if (!subscript_is_expr_list) {
-        make_generic_operation_operand((an_opname_kind)onk_subscript,
-                                       /*unary_operator=*/FALSE,
+        make_generic_operation_operand(onk_subscript, /*unary_operator=*/FALSE,
                                        operand_1, &operand_2,
                                        result, &operator_position,
                                        operator_tok_seq_number,
                                        &closing_bracket_position);
       } else {
         /* We have an expression list for operand 2. */
-#if MICROSOFT_EXTENSIONS_ALLOWED
-        check_assertion(cli_or_cx_enabled);
-        template_cli_subscript_operation(operand_1, operand_2_list,
-                                         result, &operator_position,
-                                         operator_tok_seq_number,
-                                         &closing_bracket_position);
-#else /* !MICROSOFT_EXTENSIONS_ALLOWED */
-        unexpected_condition();
-#endif /* MICROSOFT_EXTENSIONS_ALLOWED */
+        template_multi_subscript_operation(cli_or_cx_enabled ?
+                                             eok_cli_subscript : eok_subscript,
+                                           operand_1, operand_2_list,
+                                           result, &operator_position,
+                                           operator_tok_seq_number,
+                                           &closing_bracket_position);
       }  /* if */
       processed = TRUE;
     } else if (!C_mode() &&
@@ -2197,7 +2393,6 @@ constructs, in which case offsetof_case is TRUE.
                                 is_overloadable_type_operand(&operand_2)))) {
       /* Look for C++ operator overloading cases. */
       a_boolean has_predef_meaning = FALSE;
-#if MICROSOFT_EXTENSIONS_ALLOWED
       if (subscript_is_expr_list) {
         /* If we have an expression list, pass the last expression as
            the second operand.  If the list has only one member, that's
@@ -2214,6 +2409,7 @@ constructs, in which case offsetof_case is TRUE.
         check_arg_list_elem_is_expression(alep);
         copy_operand(operand_of_arg_list_elem(alep), &operand_2);
       }  /* if */
+#if MICROSOFT_EXTENSIONS_ALLOWED
       if (cli_or_cx_enabled &&
           (is_class_struct_union_type(operand_1->type) ||
            is_handle_type(operand_1->type))) {
@@ -2389,20 +2585,14 @@ constructs, in which case offsetof_case is TRUE.
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
       if (subscript_is_expr_list) {
         /* If the contents of the [...] were scanned as an expression list,
-           but this did not turn out to be a CLI array case, turn an
-           expression list containing a single expression into just an
-           expression, but issue an error for a list containing multiple
-           expressions. */
-        if (is_last_elem(operand_2_list)) {
-          copy_operand(operand_of_arg_list_elem(operand_2_list), &operand_2);
-        } else {
-          expr_pos_error(ec_comma_operator_in_cli_subscript,
-                         init_component_pos(operand_2_list));
-          make_error_operand(&operand_2);
-        }  /* if */
+           but this did not turn out to be a C++23 multi-subscript or CLI
+           array case, turn an expression list containing a single expression
+           into just an expression, but issue an error for a list containing
+           zero or multiple expressions. */
+        reduce_singleton_subscript_list(&operand_2_list, &operand_2,
+                                        cli_array_case,
+                                        &closing_bracket_position);
         subscript_is_expr_list = FALSE;
-        free_arg_list(operand_2_list);
-        operand_2_list = NULL;
       }  /* if */
       do_operand_transformations(&operand_2, TOPT_NO_OPTIONS);
       /* One of the operands must have type "pointer to object type" and the 
@@ -2442,7 +2632,7 @@ constructs, in which case offsetof_case is TRUE.
                                        result, &operator_position,
                                        operator_tok_seq_number,
                                        &closing_bracket_position);
-        goto done;
+        goto cleanup_and_done;
       } else if (
                  /* One operand must be a pointer to object. */
 #if PTR_TO_INCOMP_ARRAY_ARITHMETIC_ALLOWED
@@ -2481,7 +2671,7 @@ constructs, in which case offsetof_case is TRUE.
       }  /* if */
     }  /* if */
   }  /* if */
-done:
+cleanup_and_done:
   free_arg_list(operand_2_list);
   if (rcblock == NULL) {
 #if EXTRA_SOURCE_POSITIONS_IN_IL
@@ -2495,6 +2685,7 @@ done:
   set_operand_position(result, &operand_1->position,
                        &end_position, &operator_position);
   rule_out_expr_kinds(ROEK_INTEGRAL_CONSTANT, result);
+done:
   db_exit();
 }  /* scan_subscript_operator */
 
@@ -3089,7 +3280,8 @@ provide some additional ones over the basic ones implied for this case.
 static void scan_call_arguments(
                            a_type_ptr               function_type,
                            a_routine_ptr            routine,
-                           a_boolean                already_after_left_paren,
+                           a_token_kind             closing_delim,
+                           a_boolean                already_after_left_delim,
                            an_expr_node_ptr         *p_argument_list,
                            a_boolean                return_raw_arguments,
                            a_boolean                unknown_dependent_function,
@@ -3101,14 +3293,15 @@ static void scan_call_arguments(
                            an_arg_list_elem_ptr     *p_arg_list,
                            an_operand               *single_operand,
                            a_boolean                *single_operand_returned,
-                           a_source_position        *closing_paren_position)
+                           a_source_position        *closing_delim_position)
 /*
-Scan the arguments of a function call and return a list of argument
-expressions in *p_argument_list.  The type of the function being
-called is given by function_type; function_type is NULL if the type is
-not known, or for an overloaded function case.  routine points to the
-routine being called; it's NULL if the specific function being called
-is not known, e.g., when calling through a pointer.
+Scan the arguments of a function call or C++23 subscript construct and return
+a list of argument expressions in *p_argument_list.  The type of the function
+being called is given by function_type; function_type is NULL if the type is
+not known a priori (e.g., for an overloaded function case) or if this is called
+for a C++23 subscript construct (which is treated as an overloaded function
+case).  routine points to the routine being called; it's NULL if the specific
+function being called is not known, e.g., when calling through a pointer.
 unknown_dependent_function is TRUE if the function to be called is not
 known because it is specified by a template-dependent expression.
 args_will_be_discarded is TRUE if the arguments will be discarded,
@@ -3117,24 +3310,24 @@ The arguments are returned anyway, in case one wants to link them
 together in an argument list, but they are not checked nor converted to
 a parameter type, and unusual operand kinds are replaced by error operands.
 If is_custom_ms_attr_arg_list, this call if for the arguments in a Microsoft-
-style bracketed attribute.  The current token is the "(" of the argument list
-if already_after_left_paren is FALSE, or the token following the left
-parenthesis if already_after_left_paren is TRUE.  (The add_stop_token
+style bracketed attribute.  The current token is the "(" or "[" of the argument
+list if already_after_left_delim is FALSE, or the token following the left
+delimiter if already_after_left_delim is TRUE.  (The add_stop_token
 call has not been done in either of those cases.)  On return, the
-current token is the token following the closing ")".  If
+current token is the token following the closing ")" or "]".  If
 return_raw_arguments is TRUE, just scan and return the arguments as an
 argument expression list in *p_arg_list; do not check the
 arguments against any specific parameter list and do not set
 *p_argument_list (this is used, for example, when scanning the
-arguments for an overloaded function).  If closing_paren_position is
-non-NULL, *closing_paren_position is set to the source position of the
-closing parenthesis of the call (but it's not set on a rescan).
+arguments for an overloaded function).  If closing_delim_position is
+non-NULL, *closing_delim_position is set to the source position of the
+closing delimiter of the call (but it's not set on a rescan).
 
 If rcblock is non-NULL, redo semantic analysis on a previously-scanned
 argument list, given by rcblock->argument_list.  The arguments are
 returned in either *p_argument_list or *p_arg_list, as specified
-by return_raw_arguments.  already_after_left_paren is ignored.
-*closing_paren_position is not set or altered.  If arg_list_supplied
+by return_raw_arguments.  already_after_left_delim is ignored.
+*closing_delim_position is not set or altered.  If arg_list_supplied
 is TRUE, a third interface alternative: the possibly-empty list of
 arguments is supplied by supplied_arg_list, and no source is scanned.
 supplied_arg_list is not freed by this routine.
@@ -3189,26 +3382,26 @@ to TRUE.
        expression list had to be previously re-scanned already. */
     arg_list = supplied_arg_list;
     arg_block.closing_paren_position = pos_curr_token;
-    if (rcblock == NULL && closing_paren_position != NULL) {
-      *closing_paren_position = pos_curr_token;
+    if (rcblock == NULL && closing_delim_position != NULL) {
+      *closing_delim_position = pos_curr_token;
     }  /* if */
   } else if (rcblock != NULL) {
     /* Convert the previously-scanned rcblock->argument_list list of
        expressions into an argument list. */
     arg_list = rescan_expr_list(rcblock->argument_list, rcblock);
     arg_list_allocated_locally = TRUE;
-    /* closing_paren_position is deliberately not set.  At this level in the
+    /* closing_delim_position is deliberately not set.  At this level in the
        rescan we only know about the arguments, and not about the surrounding
-       parentheses.  It's not set to NULL because the caller is likely to
+       delimiters.  It's not set to NULL because the caller is likely to
        have set it correctly already. */
   } else {
     /* The argument list needs to be scanned from source. */
-    if (!already_after_left_paren) {
-      /* Get past the opening parenthesis. */
+    if (!already_after_left_delim) {
+      /* Get past the opening delimiter. */
       (void)get_token();
     }  /* if */
     /* Scan the argument list. */  
-    arg_list = scan_expr_list(tok_rparen,
+    arg_list = scan_expr_list(closing_delim,
                               /*is_delegate_init=*/FALSE,
                               is_custom_ms_attr_arg_list,
                               /*empty_list_okay=*/TRUE,
@@ -3217,8 +3410,8 @@ to TRUE.
     arg_list_allocated_locally = TRUE;
     set_err_pos_to_curr_token();
     arg_block.closing_paren_position = pos_curr_token;
-    if (closing_paren_position != NULL) {
-      *closing_paren_position = pos_curr_token;
+    if (closing_delim_position != NULL) {
+      *closing_delim_position = pos_curr_token;
     }  /* if */
   }  /* if */
   if (single_operand != NULL && is_single_elem(arg_list) &&
@@ -3244,9 +3437,9 @@ to TRUE.
 #if EXTRA_SOURCE_POSITIONS_IN_IL
     curr_construct_end_position = end_pos_curr_token;
 #endif /* EXTRA_SOURCE_POSITIONS_IN_IL */
-    if (!is_custom_ms_attr_arg_list) {
-      /* Check for the closing parenthesis. */
-      (void)required_token(tok_rparen, ec_exp_rparen);
+    if (!is_custom_ms_attr_arg_list && closing_delim == tok_rparen) {
+      /* Check for the closing delimiter. */
+      (void)required_token(closing_delim, ec_exp_rparen);
     }  /* if */
   }  /* if */
   /* Restore the previous state wrt. allowing an incomplete return type for
@@ -3292,8 +3485,8 @@ specified, and return *dip set to NULL.
   a_boolean         single_operand_returned;
 
   /* Scan the argument list. */
-  scan_call_arguments((a_type_ptr)NULL, (a_routine_ptr)NULL,
-                      /*already_after_left_paren=*/TRUE,
+  scan_call_arguments((a_type_ptr)NULL, (a_routine_ptr)NULL, tok_rparen,
+                      /*already_after_left_delim=*/TRUE,
                       &expr_arg_list, /*return_raw_arguments=*/FALSE,
                       /*unknown_dependent_function=*/TRUE,
                       /*args_will_be_discarded=*/FALSE,
@@ -3357,8 +3550,8 @@ list given by supplied_arg_list (but do not free the list).
     /* Scan the argument list. */
     an_expr_node_ptr     expr_arg_list;
     an_arg_list_elem_ptr arg_list;
-    scan_call_arguments((a_type_ptr)NULL, (a_routine_ptr)NULL,
-                        /*already_after_left_paren=*/TRUE,
+    scan_call_arguments((a_type_ptr)NULL, (a_routine_ptr)NULL, tok_rparen,
+                        /*already_after_left_delim=*/TRUE,
                         &expr_arg_list,
                         /*return_raw_arguments=*/TRUE,
                         /*unknown_dependent_function=*/FALSE,
@@ -3733,8 +3926,8 @@ will be equal to init_list_ctor_arg_list->variant.braced.list.
   }  /* if */
 
   /* Scan the arguments. */
-  scan_call_arguments(routine_type, routine,
-                      /*already_after_left_paren=*/TRUE,
+  scan_call_arguments(routine_type, routine, tok_rparen,
+                      /*already_after_left_delim=*/TRUE,
                       &arg_expr_list, overloaded_function_case,
                       /*unknown_dependent_function=*/FALSE,
                       /*args_will_be_discarded=*/FALSE,
@@ -6916,19 +7109,27 @@ type itself.
 
 static void scan_function_call(an_operand             *operand,
                                an_operand             *bound_function_selector,
+                               a_boolean              is_multi_subscript,
                                a_rescan_control_block *rcblock,
-                               an_operand             *result)
+                               an_operand             *result,
+             /* Defaulted: */  an_operand             *p_subscript)
 /*
-Scan a function call.  The function to be called is given by *operand,
-modified by *bound_function_selector if the function is bound.  Even
-if the function is not bound, bound_function_selector points to an operand
-that can be filled in if an implicit selector is generated.
-The current token is the "(" of the beginning of the argument list.
-Scan the arguments, make a call expression, and return an operand for
-it in *result.  If rcblock is non-NULL, redo semantic analysis on a
-previously-scanned expression, and return the result in *result (or an
-error indication in *rcblock).  operand and bound_function_selector
-are expected to be NULL in that case.
+Scan a function call (if is_multi_subscript is FALSE) or a C++23 multi-
+subscript construct (if is_multi_subscript is TRUE).  When is_multi_subscript
+is FALSE, the function to be called is given by *operand, modified by
+*bound_function_selector if the unction is bound.  Even if the function is not
+bound, bound_function_selector points to an operand that can be filled in if
+an implicit selector is generated.  When is_multi_subscript is TRUE, operand
+is the expression that is being subscripted (of class type or of a template-
+dependent type).  The current token is the "(" or "[" of the beginning of the
+argument list.  Scan the arguments, make a call expression, and return an
+operand for it in *result, except that when is_multi_subscript is TRUE the
+subscript is either returned to *p_subscript when the subscript operation was
+successfully processed as a member call, or *p_subscript is left unchanged if
+the subscript should be handled the traditional way.  If rcblock is non-NULL,
+redo semantic analysis on a previously-scanned expression, and return the
+result in *result (or an error indication in *rcblock).  operand and
+bound_function_selector are expected to be NULL in that case.
 */
 {
   an_expr_node_ptr  argument_list, expr;
@@ -7122,7 +7323,7 @@ are expected to be NULL in that case.
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
                                                                            )) {
     /* The "called function" is a class object.  Look for operator() and
-       surrogate functions. */
+       surrogate functions, or for operator[] in the multi-subscript case. */
     a_symbol_ptr member_function_symbol;
     a_type_ptr   class_type = handle_case ? type_pointed_to(operand->type) :
                                             operand->type;
@@ -7145,7 +7346,7 @@ are expected to be NULL in that case.
       /* If the class is a template class make sure it is instantiated so its
          operator() functions are visible. */
       instantiate_template_class(class_type);
-      try_surrogate_functions = TRUE;
+      try_surrogate_functions = !is_multi_subscript;
       overloaded_function_case = TRUE;
       /* routine_type = NULL;  -- already set. */
       /* The operand becomes the selector object. */
@@ -7180,27 +7381,26 @@ are expected to be NULL in that case.
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
       /* Do not insert code here. */
       {
-        /* See if the class has an operator(). */
+        /* See if the class has an operator()/operator[]. */
         member_function_symbol = opname_member_function_symbol(
-                                          (an_opname_kind)onk_function_call,
-                                          class_type);
+                                       is_multi_subscript ? onk_subscript
+                                                          : onk_function_call,
+                                       class_type);
       }  /* if */
       if (member_function_symbol != NULL) {
         /* There is an operator() function.  The operand has become
            the selector object, and the function call operator routine
            becomes the operand. */
         has_overloaded_call_operator = TRUE;
-        /* We can use an indefinite function operand whether the operator()
-           function is overloaded or not. */
+        /* We can use an indefinite function operand whether the operator() or
+           operator[] function is overloaded or not. */
         make_indefinite_function_operand(member_function_symbol,
-                                         (a_symbol_locator *)NULL,
-                                         operand);
+                                         (a_symbol_locator*)NULL, operand);
         overloaded_function_symbol = member_function_symbol;
         bind_member_function_operand_to_selector(
-                                          bound_function_selector,
-                                          /*selector_is_object_pointer=*/
-                                                                   handle_case,
-                                          operand);
+                                   bound_function_selector,
+                                   /*selector_is_object_pointer=*/handle_case,
+                                   operand);
       }  /* if */
     }  /* if */
   } else {
@@ -7213,8 +7413,8 @@ are expected to be NULL in that case.
     if (is_sym_for_member_operand(operand) &&
         is_a_function_designator(operand) &&
         !operand->bound_function) {
-      a_symbol_ptr    member_func_sym = operand->symbol;
-      a_type_ptr      this_class = sym_parent_class(member_func_sym);
+      a_symbol_ptr  member_func_sym = operand->symbol;
+      a_type_ptr    this_class = sym_parent_class(member_func_sym);
       if (((gpp_mode && !clang_mode) || microsoft_mode) &&
           expr_stack != NULL && expr_stack->is_default_arg_expression &&
           scope_stack_top().in_prototype_instantiation) {
@@ -7555,14 +7755,22 @@ are expected to be NULL in that case.
   {
     /* Enter a new scope to avoid issues with preceding goto statements. */
     a_boolean  builtin_needs_adjustment = FALSE;
+    a_boolean  return_raw_arguments, generic_array = FALSE;
 
 #if BUILTIN_FUNCTIONS_ENABLED
     builtin_needs_adjustment = bcap != NULL && bcap->callback != NULL;
 #endif /* BUILTIN_FUNCTIONS_ENABLED */
+    if (is_multi_subscript) {
+      overloaded_function_case = TRUE;
+      generic_array = unknown_dependent_function;
+      unknown_dependent_function = FALSE;
+    }  /* if */
+    return_raw_arguments = overloaded_function_case ||
+                           builtin_needs_adjustment;
     scan_call_arguments(orig_routine_type, routine,
+                        is_multi_subscript ? tok_rbracket : tok_rparen,
                         already_after_left_paren, &argument_list,
-                        (overloaded_function_case || builtin_needs_adjustment),
-                        unknown_dependent_function,
+                        return_raw_arguments, unknown_dependent_function,
                         /*args_will_be_discarded=*/is_error_operand(operand),
                         /*is_custom_ms_attr_arg_list=*/FALSE,
                         rcblock,
@@ -7571,6 +7779,30 @@ are expected to be NULL in that case.
                         &arg_list,
                         (an_operand *)NULL, (a_boolean *)NULL,
                         &closing_paren_position);
+    if (is_multi_subscript) {
+      if (p_subscript != NULL && is_single_elem(arg_list) && !generic_array &&
+          is_expression_component(arg_list)) {
+        /* This is a single subscript: Have it handled by the normal subscript
+           processing. */
+        an_operand  *opnd = operand_of_arg_list_elem(arg_list);
+        copy_operand(opnd, p_subscript);
+        /* Any structures owned by the operand are transferred to *p_subscript
+           and should not be freed by this function. */
+        opnd->ref_entries_list = NULL;
+        goto done;
+      } else {
+        if (rcblock == NULL) {
+          (void)required_token(tok_rbracket, ec_exp_rbracket);
+        }  /* if */
+        if (generic_array || arg_list_is_instantiation_dependent(arg_list)) {
+          template_multi_subscript_operation(eok_subscript, operand, arg_list,
+                                             result, &operator_position,
+                                             opening_paren_tok_seq_number,
+                                             &pos_curr_token);
+          goto done;
+        }  /*if */ 
+      }  /* if */
+    }  /* if */
   }
   if (rcblock != NULL &&
       (expr_stack->any_suppressed_error || rcblock->error_detected)) {
@@ -7602,7 +7834,11 @@ are expected to be NULL in that case.
     a_boolean            name_reference_was_saved = FALSE;
     a_name_reference     saved_name_reference = null_name_reference;
     an_overload_context  ovl_context = oc_default;
-    if (operand->is_microsoft_deferred_name) ovl_context = oc_deferred;
+    if (is_multi_subscript) {
+      ovl_context = oc_multi_subscript;
+    } else if (operand->is_microsoft_deferred_name) {
+      ovl_context = oc_deferred;
+    }  /* if */
     orig_operand = *operand;
     if (operand->name_reference_set) {
       /* We have recorded the form of reference of the function name.  Save
@@ -7724,13 +7960,12 @@ are expected to be NULL in that case.
     a_boolean uses_operator_syntax = FALSE;
     routine = routine_from_function_operand(operand);
     if (has_overloaded_call_operator) {
-      if (routine != NULL &&
-          routine->special_kind == (a_special_function_kind)sfk_operator &&
+      if (routine != NULL && special_kind_is(routine, sfk_operator) &&
           routine->variant.opname_kind == (an_opname_kind)onk_function_call) {
-        /* The original "function" was a class object with an operator()
-           member, and the resulting call is to an operator() (as opposed to
-           using a conversion operator to a function pointer): mark the call
-           as using operator syntax so the C++-generating back end can
+        /* The original "function" was a class object with an operator() or
+           operator[] member, and the resulting call is such an operator (as
+           opposed to using a conversion operator to a function pointer): mark
+           the call as using operator syntax so the C++-generating back end can
            reconstruct the original source form (e.g., "x()" instead of
            "x.operator()()"). */
         uses_operator_syntax = TRUE;
@@ -7752,6 +7987,9 @@ are expected to be NULL in that case.
                            &closing_paren_position, result,
                            &call_folded_to_constant, &function_call_node);
     if (function_call_node != NULL) {
+      if (is_multi_subscript) {
+        function_call_node->variant.operation.call_uses_operator_syntax = TRUE;
+      }  /* if */
       record_operator_position_in_expr_rescan_info(function_call_node,
                                                    &operator_position,
                                                   opening_paren_tok_seq_number,
@@ -18875,8 +19113,8 @@ This is allowed in both Microsoft C and C++ modes.
   /* The Microsoft compiler allows __noop by itself. */
   if (curr_token == tok_lparen) {
     /* Scan the argument list and discard it. */
-    scan_call_arguments((a_type_ptr)NULL, (a_routine_ptr)NULL,
-                        /*already_after_left_paren=*/FALSE,
+    scan_call_arguments((a_type_ptr)NULL, (a_routine_ptr)NULL, tok_rparen, 
+                        /*already_after_left_delim=*/FALSE,
                         &arg_list,
                         /*return_raw_arguments=*/FALSE,
                         /*unknown_dependent_function=*/FALSE,
@@ -22251,8 +22489,8 @@ placement and initializer from a rescan block for the operator.
     /* Pick up the placement new argument list. */
     check_assertion(rescan_ndsp != NULL);
     rcblock->argument_list = rescan_ndsp->arg;
-    scan_call_arguments((a_type_ptr)NULL, (a_routine_ptr)NULL,
-                        /*already_after_left_paren=*/TRUE,
+    scan_call_arguments((a_type_ptr)NULL, (a_routine_ptr)NULL, tok_rparen,
+                        /*already_after_left_delim=*/TRUE,
                         &dummy, /*return_raw_arguments=*/TRUE,
                         /*unknown_dependent_function=*/FALSE,
                         /*args_will_be_discarded=*/FALSE,
@@ -22364,8 +22602,8 @@ in parentheses.
         /* Scan the expression list as an argument list for which we do
            not yet know the function.  The argument values are returned
            in a list headed by arg_list. */
-        scan_call_arguments((a_type_ptr)NULL, (a_routine_ptr)NULL,
-                            /*already_after_left_paren=*/TRUE,
+        scan_call_arguments((a_type_ptr)NULL, (a_routine_ptr)NULL, tok_rparen,
+                            /*already_after_left_delim=*/TRUE,
                             &dummy, /*return_raw_arguments=*/TRUE,
                             /*unknown_dependent_function=*/FALSE,
                             /*args_will_be_discarded=*/FALSE,
@@ -23568,8 +23806,8 @@ parenthesized initializer was provided.
        the lengths for each dimension of the array.  In C++/CX mode, if
        an array-init is absent, the new-init operands will be treated as
        constructor arguments. */
-    scan_call_arguments((a_type_ptr)NULL, (a_routine_ptr)NULL,
-                        /*already_after_left_paren=*/TRUE, &dummy,
+    scan_call_arguments((a_type_ptr)NULL, (a_routine_ptr)NULL, tok_rparen,
+                        /*already_after_left_delim=*/TRUE, &dummy,
                         /*return_raw_arguments=*/TRUE,
                         /*unknown_dependent_function=*/FALSE,
                         /*args_will_be_discarded=*/FALSE,
@@ -23701,8 +23939,8 @@ parenthesized initializer was provided.
        instantiation. */
     /* Scan the argument list. */
     nps->templ_init_scanned = TRUE;
-    scan_call_arguments((a_type_ptr)NULL, (a_routine_ptr)NULL,
-                        /*already_after_left_paren=*/TRUE,
+    scan_call_arguments((a_type_ptr)NULL, (a_routine_ptr)NULL, tok_rparen,
+                        /*already_after_left_delim=*/TRUE,
                         &dummy, /*return_raw_arguments=*/TRUE,
                         /*unknown_dependent_function=*/FALSE,
                         /*args_will_be_discarded=*/FALSE,
@@ -41789,7 +42027,8 @@ passed).
        so the original literal is easily recognized as a constant (as opposed
        to being hidden under a cast node, in particular). */
     expr_stack->favor_constant_result = TRUE;
-    scan_call_arguments(rtp, rp, /*already_after_left_paren=*/FALSE,
+    scan_call_arguments(rtp, rp, tok_rparen,
+                        /*already_after_left_delim=*/FALSE,
                         &arg_list, /*return_raw_arguments=*/FALSE,
                         /*unknown_dependent_function=*/FALSE,
                         /*args_will_be_discarded=*/FALSE,
@@ -43288,6 +43527,7 @@ bad_start_of_primary:
         /* Routine call. */
         keep_allow_call_with_incomplete_return_type = TRUE;
         scan_function_call(&operand, &local_bound_function_selector,
+                           /*is_multi_subscript=*/FALSE,
                            (a_rescan_control_block *)NULL, &local_result);
         break;
       case tok_period:
@@ -52030,6 +52270,7 @@ a enclosing expression).
         break;
       case tok_lparen:
         scan_function_call((an_operand *)NULL, (an_operand *)NULL,
+                           /*is_multi_subscript=*/FALSE,
                            rcblock, result);
         break;
       case tok_lbrace:
@@ -53689,84 +53930,6 @@ this routine is called only when microsoft_mode is TRUE.
 
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
 
-a_boolean in_expression_context(void)
-/*
-Return TRUE if we are currently inside an expression context.
-*/
-{
-  return (expr_stack != NULL);
-}  /* in_expression_context */
-
-
-a_boolean operand_is_instantiation_dependent(an_operand_ptr  operand)
-/*
-Return TRUE if the given operand is instantiation-dependent, which
-includes type-dependent cases, value-dependent cases, and cases where
-a template parameter appears somewhere in a subexpression but doesn't
-make the overall result dependent in the other senses.
-*/
-{
-  a_boolean      contains_template_param = FALSE;
-  a_constant_ptr con;
-
-  if (is_expression_operand(operand) &&
-      expr_is_instantiation_dependent(operand->variant.expression)) {
-    contains_template_param = TRUE;
-  } else if (is_constant_operand(operand) &&
-             constant_is_instantiation_dependent(&operand->variant.constant)) {
-    contains_template_param = TRUE;
-  } else if (is_template_dependent_indefinite_function(operand)) {
-    contains_template_param = TRUE;
-  } else if (is_an_lvalue(operand) &&
-             (con = value_of_constant_var_lvalue_operand(operand)) != NULL) {
-    /* A const variable with a dependent initializer is considered
-       dependent. */
-    if (con->kind == (a_constant_repr_kind)ck_template_param) {
-      contains_template_param = TRUE;
-    }  /* if */
-  }  /* if */
-  return contains_template_param;
-}  /* operand_is_instantiation_dependent */
-
-
-a_boolean arg_operand_is_instantiation_dependent(
-                                                an_arg_operand_ptr arg_operand)
-/*
-Return TRUE if the given arg_operand is instantiation-dependent.
-*/
-{
-  a_boolean contains_template_param =
-                     operand_is_instantiation_dependent(&arg_operand->operand);
-
-  return contains_template_param;
-}  /* arg_operand_is_instantiation_dependent */
-
-
-a_boolean arg_operand_involves_error_entity(an_arg_operand_ptr arg_operand)
-/*
-Return TRUE if the given arg_operand makes use of an error type or constant.
-*/
-{
-  a_boolean  contains_error = FALSE;
-  an_operand *operand = &arg_operand->operand;
-
-  if (is_error_operand(operand)) {
-    contains_error = TRUE;
-  } else if (is_expression_operand(operand) &&
-             expr_contains_error(operand->variant.expression)) {
-    contains_error = TRUE;
-  } else if (is_constant_operand(operand) &&
-             constant_contains_error(&operand->variant.constant)) {
-    contains_error = TRUE;
-  } else if (operand->is_template_id &&
-             template_arg_list_involves_error_entity(
-                                                 operand->template_arg_list)) {
-    contains_error = TRUE;
-  }  /* if */
-  return contains_error;
-}  /* arg_operand_involves_error_entity */
-
-
 a_symbol_ptr find_default_constructor(a_type_ptr        class_type,
                                       a_boolean         include_templates,
                                       a_boolean         declarative_context,
@@ -54419,6 +54582,7 @@ operation of the given kind (bok_is_invocable or bok_is_nothrow_invocable).
     cache_token(&token_cache, tok_rparen, &pos_curr_token);
     rescan_cached_tokens(&token_cache);
     scan_function_call(operand_of_arg_list_elem(f_alep), &bnd_func_selector,
+                       /*is_multi_subscript=*/FALSE,
                        (a_rescan_control_block*)NULL, &r_opnd);
     result = !expr_stack->any_suppressed_error && !is_error_operand(&r_opnd);
     if (result && is_expression_operand(&r_opnd)) {

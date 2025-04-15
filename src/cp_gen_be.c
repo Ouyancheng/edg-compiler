@@ -15455,9 +15455,7 @@ return FALSE and let the caller generate the code normally.
       }  /* if */
 
       if (arg != NULL) {
-        if (arg->next == NULL &&
-            op != (an_opname_kind)onk_function_call &&
-            op != (an_opname_kind)onk_arrow) {
+        if (arg->next == NULL && !opname_is_call_like(op) && op != onk_arrow) {
           /* This is a prefix operator, so put the operator name first. */
           write_tok_str(op_name);
         }  /* if */
@@ -15500,15 +15498,15 @@ return FALSE and let the caller generate the code normally.
         }  /* if */
       }  /* if */
 
-      if (arg != NULL || op == (an_opname_kind)onk_function_call) {
-        /* Either there's a second argument or this is a function call
-           operator, so the operator follows the first operand. */
-        a_boolean spaces_needed = (op != (an_opname_kind)onk_function_call &&
-                                   op != (an_opname_kind)onk_subscript &&
-                                   op != (an_opname_kind)onk_plus_plus &&
-                                   op != (an_opname_kind)onk_minus_minus &&
-                                   op != (an_opname_kind)onk_arrow_star);
-        if (spaces_needed && op != (an_opname_kind)onk_comma) {
+      if (arg != NULL || opname_is_call_like(op)) {
+        /* Either there's a second argument or this is a function call or C++23
+           subscript operator, so the operator follows the first operand. */
+        a_boolean spaces_needed = (op != onk_function_call &&
+                                   op != onk_subscript &&
+                                   op != onk_plus_plus &&
+                                   op != onk_minus_minus &&
+                                   op != onk_arrow_star);
+        if (spaces_needed && op != onk_comma) {
           write_space();
         }  /* if */
         write_tok_str(op_name);
@@ -15516,8 +15514,7 @@ return FALSE and let the caller generate the code normally.
           write_space();
         }  /* if */
 
-        if (op != (an_opname_kind)onk_plus_plus &&
-            op != (an_opname_kind)onk_minus_minus) {
+        if (op != onk_plus_plus && op != onk_minus_minus) {
           /* Postfix "++" and "--" have a second argument in the function
              call form, but it doesn't appear in the operator syntax. */
           while (arg != NULL && !arg->generated_default_arg) {
@@ -15540,9 +15537,10 @@ return FALSE and let the caller generate the code normally.
               write_tok_ch('(');
             }  /* if */
             /* Pass FALSE for operator_notation if this is a function-call
-               operator (i.e., treat the argument as an ordinary function
-               argument). */
-            gen_argument(arg, param, op != (an_opname_kind)onk_function_call);
+               operator; i.e., treat the argument as an ordinary function
+               argument. That is also needed for the C++23 multi-subscript
+               operator. */
+            gen_argument(arg, param, !opname_is_call_like(op));
             if (operand_parens_needed) {
               write_tok_ch(')');
             }  /* if */

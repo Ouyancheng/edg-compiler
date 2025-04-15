@@ -4226,6 +4226,7 @@ default mode (e.g., exception handling).
           if (relaxed_range_based_for_enabled) {
             extended_range_based_for_lifetime = TRUE;
           }  /* if */
+          multi_subscript_enabled = TRUE;
         }  /* if */
       }  /* if */
     }  /* if */
@@ -13367,6 +13368,7 @@ variables declared in cmd_line.h.
   auto_template_params_enabled = FALSE;
   string_literal_operator_template_allowed = FALSE;
   spaceship_enabled = FALSE;
+  multi_subscript_enabled = FALSE;
   rvalue_allowed_with_const_qual_memptr = FALSE;
   va_opt_enabled = FALSE;
   char8_t_enabled = FALSE;

@@ -132,6 +132,7 @@ enum an_overload_context {
   oc_conv_to_class_check,      /* Set when doing constructor overload
                                   resolution in a call to function
                                   conversion_to_class_possible. */
+  oc_multi_subscript,          /* A C++23 multi-subscript call. */
   oc_last
 };
 
@@ -3062,16 +3063,15 @@ void template_binary_operation(an_expr_operator_kind   op,
                                a_token_sequence_number operator_tok_seq_number,
                                a_source_position       *operator_position_2);
 
-#if MICROSOFT_EXTENSIONS_ALLOWED
 extern
-void template_cli_subscript_operation(
+void template_multi_subscript_operation(
+                               an_expr_operator_kind   op_kind,
                                an_operand              *operand_1,
                                an_arg_list_elem_ptr    subscripts,
                                an_operand              *result,
                                a_source_position       *operator_position,
                                a_token_sequence_number operator_tok_seq_number,
                                a_source_position       *operator_position_2);
-#endif /* MICROSOFT_EXTENSIONS_ALLOWED */
 
 extern
 void do_unary_operation(an_expr_operator_kind   op,

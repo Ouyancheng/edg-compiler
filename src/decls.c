@@ -1810,10 +1810,11 @@ the position indicated by diag_pos.
   }  /* for */
   if (is_new_operator(opname) ||
       is_delete_operator(opname) ||
-      opname == onk_function_call) {
-    /* Function call and new must usually have one or more arguments. */
+      opname_is_call_like(opname)) {
+    /* Function call (and subscript, starting in C++23) and new must usually
+       have one or more arguments. */
     if (param_count == 0) {
-      if (opname == onk_function_call && !is_nonstatic_member_function) {
+      if (opname_is_call_like(opname) && !is_nonstatic_member_function) {
         /* In C++23, a function call operator can be static and have no
            parameters at all. */
       } else if (rtsp->has_ellipsis) {
@@ -1823,7 +1824,7 @@ the position indicated by diag_pos.
       } else {
         error_code = ec_too_few_args_for_operator;
       }  /* if */
-    } else if (opname != (an_opname_kind)onk_function_call) {
+    } else if (!opname_is_call_like(opname)) {
       ptp = rtsp->param_type_list;
       tp = ptp->type;
       if (!is_error_type(tp)) {
@@ -1956,10 +1957,10 @@ no_parameters_left:
        above) require a specific number of arguments, so ellipsis is not
        allowed. */
     error_code = ec_ellipsis_on_operator_function;
-  } else if (opname == (an_opname_kind)onk_compl ||
-             opname == (an_opname_kind)onk_not ||
-             opname == (an_opname_kind)onk_await ||
-             opname == (an_opname_kind)onk_arrow) {
+  } else if (opname == onk_compl ||
+             opname == onk_not ||
+             opname == onk_await ||
+             opname == onk_arrow) {
     /* Unary operator must have exactly one argument. */
     if (param_count > 1) {
       error_code = ec_too_many_args_for_operator;
@@ -1967,17 +1968,17 @@ no_parameters_left:
       error_code = ec_too_few_args_for_operator;
     }  /* if */
   } else if (param_count == 1 &&
-             (opname == (an_opname_kind)onk_plus ||
-              opname == (an_opname_kind)onk_minus ||
-              opname == (an_opname_kind)onk_star ||
-              opname == (an_opname_kind)onk_ampersand ||
-              opname == (an_opname_kind)onk_plus_plus ||
-              opname == (an_opname_kind)onk_minus_minus)) {
+             (opname == onk_plus || opname == onk_minus ||
+              opname == onk_star || opname == onk_ampersand ||
+              opname == onk_plus_plus || opname == onk_minus_minus ||
+              (opname == onk_subscript && !is_nonstatic_member_function))) {
      /* These operators can be either unary or binary.  It is legal for
-        them to have exactly one argument. */
+        them to have exactly one argument.  This applies also to a "static"
+        subscript operator in modes that don't accept the C++23 multi-
+        subscript operator (in C++23, the subscript operator is handled
+        above because it is considered "call-like"). */
   } else if (param_count == 2 &&
-             (opname == (an_opname_kind)onk_plus_plus ||
-              opname == (an_opname_kind)onk_minus_minus)) {
+             (opname == onk_plus_plus || opname == onk_minus_minus)) {
     /* Extra argument on postfix operator must be of type "int".  (This
        variant is not allowed as a C++/CLI static member operator.) */
     if (cli_or_cx_enabled && class_type != NULL &&
@@ -2035,14 +2036,15 @@ no_parameters_left:
         }  /* if */
       }  /* if */
     }  /* if */
-  } else if (!is_nonstatic_member_function && opname != onk_function_call) {
+  } else if (!is_nonstatic_member_function &&
+             opname != onk_function_call && opname != onk_subscript) {
     /* If the operator function is not a nonstatic member and does not have
        operands of class or enum type (or reference to class or enum type),
        issue an error.  (This restriction does not apply to new and delete,
-       nor to a static operator(), which is permitted in C++23.)  Also, in
-       C++/CLI mode, static member operators of special value class types
-       (like System::Double) that correspond to fundamental types can have
-       those fundamental types as the only parameter types. */
+       nor to a static operator() or operator[], which is permitted in C++23.)
+       Also, in C++/CLI mode, static member operators of special value class
+       types (like System::Double) that correspond to fundamental types can
+       have those fundamental types as the only parameter types. */
     if (!any_class_or_enum_type_params &&
         !any_template_param_type_params && !this_equivalent_seen) {
       if (diag_pos != NULL) {

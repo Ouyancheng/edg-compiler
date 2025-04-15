@@ -1,5 +1,18 @@
 Version 6.8
 
+4/15/25  [EDGcpfe/24785,EDGcpfe/25520,EDGcpfe/25858,EDGcpfe/27234,
+          EDGcpfe/27348,EDGcpfe/28090]
+C++23: operator[]
+
+In C++23 mode, the front end now accepts a number of new features for user-
+defined operator[] declarations:
+  1) the operator can now have zero or more parameters,
+  2) the operator can now be a static member, and
+  3) the operator can now have parameters with default arguments.
+See committee papers P2128R6, P2589R1, and the resolution of Core issue 2507,
+respectively.
+
+
 4/15/25  [EDGcpfe/28108]
 GNU compatibility: Possible hang with _Pragma/#pragma diagnostic
 

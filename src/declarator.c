@@ -3278,11 +3278,11 @@ an error if a default argument expression is encountered.
     uint32_t                          param_number = 0;
     if (any_params && !disallow_default_args) {
       /* In C++ mode a default argument may be declared with the parameter
-         unless the function is a user-defined overloaded operator (except
-         operator()(), for which a default argument is allowed) or a
-         user-defined conversion.  Note that locator may be NULL (e.g., with
-         abstract declarators).  Deduction guides can also have default
-         arguments. */
+         unless the function is a user-defined overloaded operator or a
+         user-defined conversion.  The exceptions are the call operator and
+         the C++23 subscript operator (both tested with opname_is_call_like).
+         Note that locator may be NULL (e.g., with abstract declarators).
+         Deduction guides can also have default arguments. */
       /* operator new(), new[](), delete(), and delete[]() can also take
          default arguments in the second and successive arguments -- this
          is implied by ARM 13.4, which excludes those operators from the
@@ -3296,7 +3296,7 @@ an error if a default argument expression is encountered.
           (!locator->is_template_id ||
            (di_flags & DI_IS_EXPLICIT_INSTANTIATION) != 0) &&
           (!locator->is_operator_name ||
-           locator->variant.opname == (an_opname_kind)onk_function_call)) {
+           opname_is_call_like(locator->variant.opname))) {
         declarator_allows_default_args = TRUE;
       } else if ((di_flags & DI_IS_DEDUCTION_GUIDE) != 0) {
         declarator_allows_default_args = TRUE;
@@ -6339,6 +6339,33 @@ discretionary error, depending on the mode).
 }  /* check_static_call_operator */
 
 
+static a_boolean check_static_subscript_operator(a_symbol_locator  *loc)
+/*
+If loc represents a subscript operator, return TRUE.  This operator is being
+declared "static".  In non-C++23 mode issue a diagnostic (warning or
+discretionary error, depending on the mode).
+*/
+{
+  a_boolean  result = FALSE;
+
+  if (loc->is_operator_name && loc->variant.opname == onk_subscript) {
+    result = TRUE;
+    if (!multi_subscript_enabled) {
+      an_error_severity  sev = es_discretionary_error;
+      if (gpp_version_is(>=130000) || clang_version_is(>=160000) ||
+          ms_version_is(>=1939)) {
+        /* Recent versions of GCC, Clang, and MSVC accept the syntax in
+           pre-C++23 modes. */
+        sev = es_warning;
+      }  /* if */
+      pos_diagnostic(sev, ec_static_member_operator_not_allowed,
+                     &loc->source_position);
+    }  /* if */
+  }  /* if */
+  return result;
+}  /* check_static_subscript_operator */
+
+
 static void scan_real_declarator_id(
                 a_decl_parse_state          *dps,
                 a_decl_flag_set             input_flags,
@@ -6971,6 +6998,7 @@ declared entity is known to not be a function.
                  !is_new_operator(locator->variant.opname) &&
                  !is_delete_operator(locator->variant.opname) &&
                  !check_static_call_operator(locator) &&
+                 !check_static_subscript_operator(locator) &&
                  !is_microsoft_static_operator(locator->variant.opname,
                                                *p_member_parent_type)) {
         /* Most operators cannot be declared to be static members (except in
