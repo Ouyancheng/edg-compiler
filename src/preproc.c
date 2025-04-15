@@ -2190,7 +2190,6 @@ of a file into the token stream one byte at a time as int constants.
 */
 {
   a_source_position     directive_pos = pos_curr_token;
-  a_source_position     error_pos;
   a_const_char          *file_name;
   a_const_char          *prefix_start;
   a_const_char          *after_prefix;
