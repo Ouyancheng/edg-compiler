@@ -55,6 +55,79 @@ and parsing of them into tokens.
 BEGIN_EDG_NAMESPACE
 
 /*
+Declarations relating to expansion of #embed directives.
+*/
+struct an_embed_control_block {
+  unsigned char	*buf;	/* If non-null, points to a buffer allocated in
+			   general memory containing the contents of the
+			   file designated by the current #embed directive;
+			   NULL if we are not currently processing a
+			   #embed.  In addition, if the directive has
+			   prefix, suffix, or if_empty parameters, their
+			   operands will be copied into the buffer and
+			   inserted into the token stream via source
+			   modifications. */
+  size_t	size;	/* The allocated size of the current or most recent
+			   #embed buffer. */
+  a_const_char	*next_byte;
+			/* When reading_from_buffer is TRUE, points to the
+			   next character of buf whose value will be
+			   returned by get_token(); NULL if we are not
+			   currently processing a #embed. */
+  a_const_char	*last_byte;
+			/* Points to the last byte of buf whose value will
+			   be returned by get_token() during #embed
+			   processing; NULL if we are not currently
+			   processing a #embed. */
+  char		char_following_prefix;
+			/* If a prefix parameter was specified, this is the
+			   character following the closing right
+			   parenthesis that was replaced by the second
+			   character of the terminating
+			   LE_END_OF_EMBED_PREFIX lexical escape so it can
+			   be replaced once the prefix operand has been
+			   traversed. */
+  char		char_following_suffix;
+			/* If a suffix or if_empty parameter was specified,
+			   this is the character following the closing
+			   right parenthesis that was replaced by the second
+			   character of the terminating LE_END_OF_EMBED
+			   lexical escape so it can be replaced once that
+			   operand has been traversed. */
+  a_const_char	*suffix_loc;
+			/* Points to the first character of the operand of
+			   the directive's suffix parameter, if one was
+			   specified and the file is not empty, or the
+			   operand of the if_empty parameter if one was
+			   specified and the file is empty.  NULL if
+			   neither condition applies. */
+  a_const_char	*eol_loc;
+			/* The location of the LE_END_OF_LINE lexical
+			   escape ending the #embed directive.  Saved from
+			   curr_char_loc on entry and used to restore that
+			   value when scanning the prefix parameter operand
+			   text, if any, is complete. */
+  a_boolean	reading_from_buffer;
+			/* TRUE if tokens should be taken from the contents
+			   of the embed file; FALSE during processing of
+			   the prefix, suffix, or if_empty parameter
+			   text and if we are not processing a #embed. */
+  a_boolean	comma_is_next;
+			/* While tokens are being taken from the contents
+			   of the embed file, a TRUE value indicates that
+			   get_token() will return the eok_comma that
+			   separates the numeric values of the #embed file,
+			   and FALSE indicates that get_token() will return
+			   the value of *next_byte as a
+			   tok_int_constant. */
+};  /* an_embed_control_block */
+
+STATIC_THREAD an_embed_control_block
+		embed_control;
+			/* Information controlling the expansion of the
+			   current #embed directive, if any. */
+
+/*
 Macro that returns TRUE if tok is tok_uuid.
 */
 #if MICROSOFT_EXTENSIONS_ALLOWED
@@ -90,10 +163,11 @@ discard them.
 Macro that determines whether any of the initial special case tests
 at the beginning of get_token need to be done.
 */
-#define recalc_any_initial_get_token_tests_needed()			\
-  (any_initial_get_token_tests_needed = curr_token_pragmas != NULL ||	\
+#define recalc_any_initial_get_token_tests_needed()			    \
+  (any_initial_get_token_tests_needed = curr_token_pragmas != NULL ||	    \
                                         cached_token_rescan_list != NULL || \
-                                        reusable_cache_stack != NULL)
+                                        reusable_cache_stack != NULL ||     \
+                                        embed_control.buf != NULL)
 
 
 /* Macro to check prevent calling the error checking function unless some
@@ -10386,79 +10460,6 @@ Otherwise, return FALSE.
 
 #endif /* UNICODE_VULNERABILITY_DETECTION_SUPPORTED */
 
-/*
-Declarations relating to expansion of #embed directives.
-*/
-struct an_embed_control_block {
-  unsigned char	*buf;	/* If non-null, points to a buffer allocated in
-			   general memory containing the contents of the
-			   file designated by the current #embed directive;
-			   NULL if we are not currently processing a
-			   #embed.  In addition, if the directive has
-			   prefix, suffix, or if_empty parameters, their
-			   operands will be copied into the buffer and
-			   inserted into the token stream via source
-			   modifications. */
-  size_t	size;	/* The allocated size of the current or most recent
-			   #embed buffer. */
-  a_const_char	*next_byte;
-			/* When reading_from_buffer is TRUE, points to the
-			   next character of buf whose value will be
-			   returned by get_token(); NULL if we are not
-			   currently processing a #embed. */
-  a_const_char	*last_byte;
-			/* Points to the last byte of buf whose value will
-			   be returned by get_token() during #embed
-			   processing; NULL if we are not currently
-			   processing a #embed. */
-  char		char_following_prefix;
-			/* If a prefix parameter was specified, this is the
-			   character following the closing right
-			   parenthesis that was replaced by the second
-			   character of the terminating
-			   LE_END_OF_EMBED_PREFIX lexical escape so it can
-			   be replaced once the prefix operand has been
-			   traversed. */
-  char		char_following_suffix;
-			/* If a suffix or if_empty parameter was specified,
-			   this is the character following the closing
-			   right parenthesis that was replaced by the second
-			   character of the terminating LE_END_OF_EMBED
-			   lexical escape so it can be replaced once that
-			   operand has been traversed. */
-  a_const_char	*suffix_loc;
-			/* Points to the first character of the operand of
-			   the directive's suffix parameter, if one was
-			   specified and the file is not empty, or the
-			   operand of the if_empty parameter if one was
-			   specified and the file is empty.  NULL if
-			   neither condition applies. */
-  a_const_char	*eol_loc;
-			/* The location of the LE_END_OF_LINE lexical
-			   escape ending the #embed directive.  Saved from
-			   curr_char_loc on entry and used to restore that
-			   value when scanning the prefix parameter operand
-			   text, if any, is complete. */
-  a_boolean	reading_from_buffer;
-			/* TRUE if tokens should be taken from the contents
-			   of the embed file; FALSE during processing of
-			   the prefix, suffix, or if_empty parameter
-			   text and if we are not processing a #embed. */
-  a_boolean	comma_is_next;
-			/* While tokens are being taken from the contents
-			   of the embed file, a TRUE value indicates that
-			   get_token() will return the eok_comma that
-			   separates the numeric values of the #embed file,
-			   and FALSE indicates that get_token() will return
-			   the value of *next_byte as a
-			   tok_int_constant. */
-};  /* an_embed_control_block */
-
-STATIC_THREAD an_embed_control_block
-		embed_control;
-			/* Information controlling the expansion of the
-			   current #embed directive, if any. */
-
 static void clear_embed_control_block(void)
 /*
 Set the embed control block values to the default values, i.e., not
@@ -10565,6 +10566,9 @@ clang::offset directive parameter, or 0 if that parameter was omitted.
       ((char *)after_suffix)[1] = LE_END_OF_EMBED;
       embed_control.suffix_loc = suffix_start;
     }  /* if */
+    /* Indicate that the special case code at the beginning of get_token
+       is needed to handle the #embed file contents and prefix. */
+    any_initial_get_token_tests_needed = TRUE;
   } else if (if_empty_start != NULL) {
     /* The file is effectively empty, and an if_empty parameter was
        specified in the directive.  Replace the closing right parenthesis
@@ -16881,22 +16885,27 @@ to speed in some cases.
   a_boolean     id_contains_ucn = FALSE;
 #endif /* UNICODE_VULNERABILITY_DETECTION_SUPPORTED */
 
-  if (embed_control.buf != NULL) {
-    /* We are in the expansion of a #embed directive. */
-    if (!embed_control.reading_from_buffer) {
-      /* We are processing the operand of a prefix, suffix, or if_empty
-         parameter.  Let skip_white_space() determine whether we're at the
-         end of that text and, if so, what processing is next. */
-      skip_white_space();
-    }  /* if */
-    if (embed_control.buf != NULL && embed_control.reading_from_buffer) {
-      /* We're currently reading the contents of the embed file. */
-      get_token_from_embed_file();
-      goto return_curr_token;
-    }  /* if */
-  }  /* if */
   if (any_initial_get_token_tests_needed &&
       !fetching_tokens_from_insert_string()) {
+    if (embed_control.buf != NULL) {
+      /* We are in the expansion of a #embed directive. */
+      if (!embed_control.reading_from_buffer) {
+        /* We are processing the operand of a prefix, suffix, or if_empty
+           parameter.  Let skip_white_space() determine whether we're at
+           the end of that text and, if so, what processing is next. */
+        skip_white_space();
+      }  /* if */
+      if (embed_control.buf != NULL && embed_control.reading_from_buffer) {
+        /* We're currently reading the contents of the embed file. */
+        get_token_from_embed_file();
+        goto return_curr_token;
+      } else {
+        /* We're processing the tokens of the prefix or suffix parameters,
+           or we've finished processing the #embed altogether.  Just do
+           normal token processing. */
+        goto normal_token_processing;
+      }  /* if */
+    }  /* if */
     /* Before fetching a new token, do any processing required for pragmas
        that preceded the current token.  Don't do this when fetching
        preprocessing tokens -- pragmas should only be processed when
@@ -16964,6 +16973,7 @@ restart:
       goto return_from_token_scan;
     }  /* if */
   }  /* if */
+normal_token_processing:
   assign_curr_token_sequence_number();
 rescan_token:
   /* Skip over any initial white space blanks.  These are very common, so
