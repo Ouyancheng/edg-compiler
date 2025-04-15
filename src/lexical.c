@@ -16968,7 +16968,6 @@ restart:
       }  /* if */
     }  /* if */
   }  /* if */
-normal_token_processing:
   assign_curr_token_sequence_number();
 rescan_token:
   /* Skip over any initial white space blanks.  These are very common, so
