@@ -2664,6 +2664,8 @@ extern void insert_embed_contents(a_const_char *file_name,
                                   a_const_char *after_if_empty,
                                   a_host_large_unsigned limit,
                                   a_host_large_unsigned offset);
+/* Retrieve a character replaced in a #embed directive by a lexical escape. */
+extern a_const_char orig_char_from_embed_directive(a_const_char lex_escape);
 /* Get next token. */
 extern a_token_kind get_token(void);
 /* Return whether a token is a keyword token. */

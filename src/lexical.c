@@ -10582,6 +10582,18 @@ clang::offset directive parameter, or 0 if that parameter was omitted.
 }  /* insert_embed_contents */
 
 
+a_const_char orig_char_from_embed_directive(a_const_char lex_escape)
+/*
+Return the original character from the current #embed directive that was
+replaced by the second character of the lexical escape marking the end of a
+prefix, suffix, or if_empty parameter.
+*/
+{
+  return (lex_escape == LE_END_OF_EMBED) ? embed_control.char_following_suffix
+                                         : embed_control.char_following_prefix;
+}  /* orig_char_from_embed_directive */
+
+
 static void get_token_from_embed_file(void)
 /*
 Using the information in embed_control, set curr_token to either

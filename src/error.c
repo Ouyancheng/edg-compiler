@@ -2657,13 +2657,27 @@ as appropriate.
         while (olmp == NULL || loc_in_line != olmp->line_loc) {
           ch = *loc_in_line;
           if (ch == LE_ESCAPE) {
-            /* LE_NULL is handled below (it has an associated modification
-               entry). */
-            /* Exit on the newline at the end of the source line.  (If there
-               wasn't one there originally, one has been added.) */
-            check_assertion_str(loc_in_line[1] == LE_NEWLINE,
-                                "write_orig_source_line: bad lexical escape");
-            goto end_of_loop;
+            if (loc_in_line[1] == LE_END_OF_EMBED_PREFIX ||
+                loc_in_line[1] == LE_END_OF_EMBED) {
+              /* This lexical escape marks the end of a prefix, suffix, or
+                 if_empty parameter in a #embed directive.  The LE_ESCAPE
+                 replaces the ')' and the original character overwritten
+                 by the second byte of the escape is stored in the embed
+                 control block. */
+              put_char_from_line(')', curr_file_unicode_source_kind);
+              ch = orig_char_from_embed_directive(loc_in_line[1]);
+              ++loc_in_line;
+            } else {
+              /* LE_NULL is handled below (it has an associated
+                 modification entry).  No other lexical escapes besides
+                 LE_NEWLINE should be encountered. */
+              /* Exit on the newline at the end of the source line.  (If there
+                 wasn't one there originally, one has been added.) */
+              check_assertion_str(
+                                 loc_in_line[1] == LE_NEWLINE,
+                                 "write_orig_source_line: bad lexical escape");
+              goto end_of_loop;
+            }  /* if */
           }  /* if */
           /* This character of the source line may have been replaced by
              an attention character to indicate that some sort of source
