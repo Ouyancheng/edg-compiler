@@ -16887,25 +16887,6 @@ to speed in some cases.
 
   if (any_initial_get_token_tests_needed &&
       !fetching_tokens_from_insert_string()) {
-    if (embed_control.buf != NULL) {
-      /* We are in the expansion of a #embed directive. */
-      if (!embed_control.reading_from_buffer) {
-        /* We are processing the operand of a prefix, suffix, or if_empty
-           parameter.  Let skip_white_space() determine whether we're at
-           the end of that text and, if so, what processing is next. */
-        skip_white_space();
-      }  /* if */
-      if (embed_control.buf != NULL && embed_control.reading_from_buffer) {
-        /* We're currently reading the contents of the embed file. */
-        get_token_from_embed_file();
-        goto return_curr_token;
-      } else {
-        /* We're processing the tokens of the prefix or suffix parameters,
-           or we've finished processing the #embed altogether.  Just do
-           normal token processing. */
-        goto normal_token_processing;
-      }  /* if */
-    }  /* if */
     /* Before fetching a new token, do any processing required for pragmas
        that preceded the current token.  Don't do this when fetching
        preprocessing tokens -- pragmas should only be processed when
@@ -16971,6 +16952,20 @@ restart:
         assign_string_literal_sequence_number();
       }  /* if */
       goto return_from_token_scan;
+    }  /* if */
+    if (embed_control.buf != NULL) {
+      /* We are in the expansion of a #embed directive. */
+      if (!embed_control.reading_from_buffer) {
+        /* We are processing the operand of a prefix, suffix, or if_empty
+           parameter.  Let skip_white_space() determine whether we're at
+           the end of that text and, if so, what processing is next. */
+        skip_white_space();
+      }  /* if */
+      if (embed_control.buf != NULL && embed_control.reading_from_buffer) {
+        /* We're currently reading the contents of the embed file. */
+        get_token_from_embed_file();
+        goto return_curr_token;
+      }  /* if */
     }  /* if */
   }  /* if */
 normal_token_processing:
