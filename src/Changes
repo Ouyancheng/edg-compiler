@@ -1,5 +1,31 @@
 Version 6.8
 
+4/15/25  [EDGcpfe/28108]
+GNU compatibility: Possible hang with _Pragma/#pragma diagnostic
+
+With a mixture of _Pragma and #pragma diagnostic constructs, it was possible
+to hang the front end.  For example, with --g++ -tused:
+
+  #pragma    diagnostic push
+  #pragma    diag_suppress = implicit_return_from_non_void_function
+  #pragma    diagnostic pop
+  template <class T> struct A {
+    _Pragma("diagnostic push")
+    _Pragma("diagnostic pop")
+  };
+  template <typename T> int foo(T) { } // intentional missing return
+  void bar() {
+    foo(1);
+  }
+  #pragma diagnostic push
+  struct S {
+    A<int> a;
+  };
+  #pragma diagnostic pop
+
+This is now fixed.
+
+
 4/15/25  [EDGcpfe/28105]
 GNU compatibility: GCC 15 builtin updates
 

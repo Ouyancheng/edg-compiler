@@ -659,7 +659,7 @@ struct a_pragma_diag_elem {
                            pragma_diag_list for the corresponding "push".
                            For "pop" entries that have no corresponding
                            "push" entry, -1 is used. */
-    /* When kind == pk_diag_*: */
+    /* When kind != pk_diagnostic: */
     int         error_number;
                         /* The error number specified by the pragma. */
   } variant;
@@ -687,9 +687,10 @@ Constructor for pk_diagnostic entries.
   : kind(_kind)
   , is_pop(FALSE)
 {
+  check_assertion(kind == pk_diagnostic);
   this->spos.seq = pos->seq;
   this->spos.column = pos->column;
-  this->variant.corresponding_push = 0;
+  this->variant.corresponding_push = -1; /* Moot because is_pop is FALSE. */
 }  /* a_pragma_diag_elem::a_pragma_diag_elem */
 
 
@@ -697,11 +698,12 @@ inline a_pragma_diag_elem::a_pragma_diag_elem(a_pragma_kind     _kind,
                                               a_source_position *pos,
                                               int               error_number)
 /*
-Constructor for pk_diag* entries.
+Constructor for pk_diag_* (and pk_none) entries.
 */
   : kind(_kind)
   , is_pop(FALSE)
 {
+  check_assertion(kind != pk_diagnostic);
   this->spos.seq = pos->seq;
   this->spos.column = pos->column;
   this->variant.error_number = error_number;
@@ -711,15 +713,17 @@ Constructor for pk_diag* entries.
 static inline a_boolean operator==(const a_pragma_diag_elem &e1,
                                    const a_pragma_diag_elem &e2)
 /*
-Return TRUE if e1 and e2 have the same values for all non-static data members.
+Return TRUE if e1 and e2 have the same values for all applicable non-static
+data members.
 */
 {
   return (e1.kind == e2.kind &&
           e1.spos.seq == e2.spos.seq &&
           e1.spos.column == e2.spos.column &&
-          (e1.kind == (a_pragma_kind)pk_diagnostic ?
-               e1.variant.corresponding_push == e2.variant.corresponding_push :
-               e1.variant.error_number == e2.variant.error_number));
+          (e1.kind == pk_diagnostic ?
+           (!e1.is_pop ||
+            e1.variant.corresponding_push == e2.variant.corresponding_push) :
+           e1.variant.error_number == e2.variant.error_number));
 }  /* operator== */
 
 
