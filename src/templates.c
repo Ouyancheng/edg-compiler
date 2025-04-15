@@ -35959,6 +35959,7 @@ file we simply return.
                                      /*is_include_next=*/FALSE,
 				     /*is_implicit_include=*/TRUE,
 				     /*is_preinclude=*/FALSE,
+				     /*is_embed=*/FALSE,
 				     /*continue_on_open_failure=*/FALSE,
 				     &full_file_name, &display_name,
 				     &f_source, &suppress_include,

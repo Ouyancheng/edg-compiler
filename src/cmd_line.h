@@ -85,6 +85,7 @@ enum an_option_kind {
   optk_exception_handling,
   optk_suppress_used_before_set_warnings,
   optk_include_directory,
+  optk_embed_dir,
   optk_define_macro,
   optk_undefine_macro,
   optk_set_error_limit,

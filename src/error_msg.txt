@@ -3541,6 +3541,10 @@ ec_too_many_arguments_provided_for_attribute;;"too many arguments for attribute 
 ec_constexpr_bad_mantissa_string;;"mantissa string does not contain a valid number"
 ec_constexpr_float_error;;"floating-point error during constant evaluation"
 ec_inheriting_ctor_ignored_for_copy;;"inheriting constructor %n ignored for copy/move-like operation"
+ec_cannot_get_file_size;;"cannot determine size of file %s"
+ec_cannot_read_file;;"cannot read %s"
+ec_embed;INTERNAL;"embed"
+ec_unrec_embed_param;;"unrecognized parameter name"
 ###############################################################################
 #                                                             \  ___  /       #
 #                                                               /   \         #

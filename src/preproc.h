@@ -58,6 +58,7 @@ enum a_pp_directive_kind {
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
   ppd_include_next,
   ppd_warning,
+  ppd_embed,
   ppd_not_valid
 };
 
@@ -102,6 +103,7 @@ EXTERN_CONSTINIT_ARRAY(a_const_char*, pp_directive_kind_names,
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
     "include_next",
     "warning",
+    "embed",
     "not_valid"
   }
 #endif /* VAR_INITIALIZERS */

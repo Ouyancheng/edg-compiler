@@ -657,6 +657,7 @@ general memory.
   }  /* if */
 #endif /*  DEBUG */
   incl_search_path->dir_name = dir_name;
+  embed_search_path->dir_name = dir_name;
 }  /* change_primary_include_search_dir */
 
 
@@ -692,6 +693,8 @@ stack_referenced_include_directories to TRUE.
          the current one remains in the search path. */
       add_to_front_of_include_search_path(dir_name, &incl_search_path,
                                           &end_incl_search_path);
+      add_to_front_of_include_search_path(dir_name, &embed_search_path,
+                                          &end_embed_search_path);
     } else {
       /* The name in the current primary include search directory (the head of
          list of directory name entries) is simply replaced by dir_name. */
@@ -737,6 +740,11 @@ considered a system include directory.
       incl_search_path = incl_search_path->next;
       check_assertion(incl_search_path != NULL &&
                       (strcmp(incl_search_path->dir_name,dir_name) == 0));
+      free_directory_name_entry(dnep);
+      dnep = embed_search_path;
+      embed_search_path = embed_search_path->next;
+      check_assertion(embed_search_path != NULL &&
+                      (strcmp(embed_search_path->dir_name,dir_name) == 0));
       free_directory_name_entry(dnep);
     } else {
       /* The name in the current primary include search directory (the head of
@@ -1352,6 +1360,34 @@ which will be overwritten when ctime is called again.
   }  /* if */
   return time_str;
 }  /* get_file_modification_time_string */
+
+
+size_t get_file_size(a_const_char *file_name)
+/*
+Return the size in bytes of the file designated by file_name.  The caller
+is responsible for ensuring that the file exists and that the file name is
+properly encoded and normalized.
+*/
+{
+  size_t sz = 0;
+
+#if EDG_WIN32
+  struct _stat stat_buffer;
+  if (_stat(file_name, &stat_buffer) == 0) {
+    sz = (size_t)stat_buffer.st_size;
+  } else {
+    str_catastrophe(ec_cannot_get_file_size, file_name);
+  }  /* if */
+#else /* !EDG_WIN32 */
+  struct stat stat_buffer;
+  if (stat(file_name, &stat_buffer) == 0) {
+    sz = (size_t)stat_buffer.st_size;
+  } else {
+    str_catastrophe(ec_cannot_get_file_size, file_name);
+  }  /* if */
+#endif /* EDG_WIN32 */
+  return sz;
+}  /* get_file_size */
 
 
 a_boolean is_regular_file(a_const_char *file_name)
@@ -6708,6 +6744,8 @@ This is done before command line processing.
      because of command line options, and others will be added as defaults. */
   incl_search_path = NULL;
   end_incl_search_path = NULL;
+  embed_search_path = NULL;
+  end_embed_search_path = NULL;
   sys_incl_search_path = NULL;
   put_dir_of_each_opened_source_file_on_incl_search_path = TRUE;
   stack_referenced_include_directories = STACK_REFERENCED_INCLUDE_DIRECTORIES;

@@ -2708,6 +2708,7 @@ and empty the list.
   }  /* if */
 }  /* report_char_overflows */
 
+
 #if DEBUG
 /*
 Counts of tables allocated, to track total use of memory.
@@ -7042,8 +7043,8 @@ and this include was suppressed, FALSE otherwise.
   file_found = open_file_for_input(file_name, use_search_path, is_include_file,
                                    is_system_include, is_include_next,
                                    /*is_implicit_include=*/FALSE,
-                                   is_preinclude,
-				   continue_on_open_failure,
+                                   is_preinclude, /*is_embed=*/FALSE,
+                                   continue_on_open_failure,
                                    &full_file_name,
                                    &display_name, &input_file,
                                    &suppress_include,
@@ -7663,6 +7664,7 @@ a_boolean open_file_for_input(
 		a_boolean			is_include_next,
 		ARG_UNUSED a_boolean		is_implicit_include,
 		a_boolean			is_preinclude,
+		a_boolean			is_embed,
 		a_boolean			continue_on_open_failure,
 		a_const_char			**full_file_name,
 		a_const_char			**display_name,
@@ -7671,28 +7673,28 @@ a_boolean open_file_for_input(
 		a_unicode_source_kind		*unicode_source_kind,
 		a_directory_name_entry_ptr	*dir_entry)
 /*
-Try to open file_name, and return TRUE if the file was found (the file
-was either opened or a previously included file was found).  If the
-file was opened, the file pointer is returned in new_input_file.  If
-the include is to be suppressed because the file was already included,
-TRUE is returned in suppress_include.  file_name must be allocated in
-IL storage.  use_search_path is TRUE if the search path of include
-directories should be used when trying the open.  is_system_include
-is TRUE if the included file name was specified in <...>.  If the open
-is successful, the full name of the file that is opened is returned
-in *full_file_name, the name intended for use in diagnostics and
-other output is returned in *display_name.  *dir_entry is set to
-point to the entry on the search path in which the file was
-found, or NULL if the search path was not used.  is_include_next is
-TRUE if the file is being opened for an #include_next directive.
-is_implicit_include is TRUE when this routine is used to search for an
-implicitly included template definition file.  When is_implicit_include is
-used, each suffix in the implicit_instantiation_file_suffix_list is
-used to search for a template definition file.  is_preinclude is TRUE
-for files included via the preinclude or preinclude_macros
-command-line options.  *unicode_source_kind is set to indicate the
-Unicode encoding form for the file, or usk_none if the file is not
-Unicode.
+Try to open file_name, and return TRUE if the file was found (the file was
+either opened or a previously included file was found).  If the file was
+opened, the file pointer is returned in new_input_file.  If the include is
+to be suppressed because the file was already included, TRUE is returned in
+suppress_include.  file_name must be allocated in IL storage.
+use_search_path is TRUE if the search path of include/embed directories
+should be used when trying the open.  is_system_include is TRUE if the
+included file name was specified in <...>.  If the open is successful, the
+full name of the file that is opened is returned in *full_file_name, the
+name intended for use in diagnostics and other output is returned in
+*display_name.  *dir_entry is set to point to the entry on the search path
+in which the file was found, or NULL if the search path was not used.
+is_include_next is TRUE if the file is being opened for an #include_next
+directive.  is_implicit_include is TRUE when this routine is used to search
+for an implicitly included template definition file.  When
+is_implicit_include is used, each suffix in the
+implicit_instantiation_file_suffix_list is used to search for a template
+definition file.  is_preinclude is TRUE for files included via the
+preinclude or preinclude_macros command-line options.  is_embed is TRUE if
+the file being opened is for a #embed directive.  *unicode_source_kind is
+set to indicate the Unicode encoding form for the file, or usk_none if the
+file is not Unicode.
 
 When is_implicit_include is FALSE, a catastrophic error is normally issued
 if a file cannot be opened.  But if continue_on_open_failure is TRUE, a
@@ -7715,7 +7717,9 @@ a catastrophic error is not issued, FALSE is returned.
   if (use_search_path) {
     /* Determine the list of directories to be searched when opening
        the file. */
-    if (is_include_next && curr_ise->dir_entry != NULL) {
+    if (is_embed) {
+      search_path = embed_search_path;
+    } else if (is_include_next && curr_ise->dir_entry != NULL) {
       /* For #include_next, start at the search path entry after the one
          in which the current file was found.  If the current file was
          not found via a search path (i.e., the name was specified using
@@ -7768,7 +7772,8 @@ a catastrophic error is not issued, FALSE is returned.
                         &open_result);
       } else {
         file_open_error(is_preinclude ? es_command_line_error : es_catastrophe,
-                        ec_source, file_name, &open_result);
+                        is_embed ? ec_embed : ec_source, file_name,
+                        &open_result);
       }  /* if */
     }  /* if */
   }  /* if */
@@ -8426,10 +8431,10 @@ at the next level down.
                               /*is_include_file=*/TRUE,
                               (a_boolean)sfp->included_by_system_include,
                               /*is_include_next=*/FALSE,
- 			      /*is_implicit_include=*/TRUE,
- 			      /*is_preinclude=*/FALSE,
-			      /*continue_on_open_failure=*/FALSE,
-			      &full_file_name, &display_name,
+                              /*is_implicit_include=*/TRUE,
+                              /*is_preinclude=*/FALSE, /*is_embed=*/FALSE,
+                              /*continue_on_open_failure=*/FALSE,
+                              &full_file_name, &display_name,
                               &f_source, &suppress_include,
                               &unicode_source_kind,
                               &dir_entry);
@@ -10381,6 +10386,235 @@ Otherwise, return FALSE.
 
 #endif /* UNICODE_VULNERABILITY_DETECTION_SUPPORTED */
 
+/*
+Declarations relating to expansion of #embed directives.
+*/
+struct an_embed_control_block {
+  unsigned char	*buf;	/* If non-null, points to a buffer allocated in
+			   general memory containing the contents of the
+			   file designated by the current #embed directive;
+			   NULL if we are not currently processing a
+			   #embed.  In addition, if the directive has
+			   prefix, suffix, or if_empty parameters, their
+			   operands will be copied into the buffer and
+			   inserted into the token stream via source
+			   modifications. */
+  size_t	size;	/* The allocated size of the current or most recent
+			   #embed buffer. */
+  a_const_char	*next_byte;
+			/* When reading_from_buffer is TRUE, points to the
+			   next character of buf whose value will be
+			   returned by get_token(); NULL if we are not
+			   currently processing a #embed. */
+  a_const_char	*last_byte;
+			/* Points to the last byte of buf whose value will
+			   be returned by get_token() during #embed
+			   processing; NULL if we are not currently
+			   processing a #embed. */
+  char		char_following_prefix;
+			/* If a prefix parameter was specified, this is the
+			   character following the closing right
+			   parenthesis that was replaced by the second
+			   character of the terminating
+			   LE_END_OF_EMBED_PREFIX lexical escape so it can
+			   be replaced once the prefix operand has been
+			   traversed. */
+  char		char_following_suffix;
+			/* If a suffix or if_empty parameter was specified,
+			   this is the character following the closing
+			   right parenthesis that was replaced by the second
+			   character of the terminating LE_END_OF_EMBED
+			   lexical escape so it can be replaced once that
+			   operand has been traversed. */
+  a_const_char	*suffix_loc;
+			/* Points to the first character of the operand of
+			   the directive's suffix parameter, if one was
+			   specified and the file is not empty, or the
+			   operand of the if_empty parameter if one was
+			   specified and the file is empty.  NULL if
+			   neither condition applies. */
+  a_const_char	*eol_loc;
+			/* The location of the LE_END_OF_LINE lexical
+			   escape ending the #embed directive.  Saved from
+			   curr_char_loc on entry and used to restore that
+			   value when scanning the prefix parameter operand
+			   text, if any, is complete. */
+  a_boolean	reading_from_buffer;
+			/* TRUE if tokens should be taken from the contents
+			   of the embed file; FALSE during processing of
+			   the prefix, suffix, or if_empty parameter
+			   text and if we are not processing a #embed. */
+  a_boolean	comma_is_next;
+			/* While tokens are being taken from the contents
+			   of the embed file, a TRUE value indicates that
+			   get_token() will return the eok_comma that
+			   separates the numeric values of the #embed file,
+			   and FALSE indicates that get_token() will return
+			   the value of *next_byte as a
+			   tok_int_constant. */
+};  /* an_embed_control_block */
+
+STATIC_THREAD an_embed_control_block
+		embed_control;
+			/* Information controlling the expansion of the
+			   current #embed directive, if any. */
+
+static void clear_embed_control_block(void)
+/*
+Set the embed control block values to the default values, i.e., not
+currently processing a #embed directive.
+*/
+{
+  embed_control.buf = NULL;
+  embed_control.next_byte = NULL;
+  embed_control.last_byte = NULL;
+  embed_control.suffix_loc = NULL;
+  embed_control.eol_loc = NULL;
+  embed_control.reading_from_buffer = FALSE;
+  embed_control.comma_is_next = FALSE;
+}  /* clear_embed_control_block */
+
+
+void insert_embed_contents(a_const_char *file_name,
+                           a_source_position *pos,
+                           a_const_char *prefix_start,
+                           a_const_char *after_prefix,
+                           a_const_char *suffix_start,
+                           a_const_char *after_suffix,
+                           a_const_char *if_empty_start,
+                           a_const_char *after_if_empty,
+                           a_host_large_unsigned limit,
+                           a_host_large_unsigned offset)
+/*
+Set up for inserting the expansion of a #embed directive, appearing in the
+source at *pos and designating file_name as the binary file, into the token
+stream.  The *_start and after_* parameters, if non-null, point to the
+first character and closing parenthesis, respectively, of the operands of
+the prefix, suffix, and if_empty parameters in the directive.  limit is the
+value of the limit directive parameter or (a_host_large_unsigned)-1 if that
+parameter was omitted.  offset is the value of the gnu::offset or
+clang::offset directive parameter, or 0 if that parameter was omitted.
+*/
+{
+  a_const_char               *full_file_name;
+  a_const_char               *display_name;
+  FILE                       *embed_file;
+  a_boolean                  suppress_include;
+  a_unicode_source_kind      unicode_source_kind;
+  a_directory_name_entry_ptr dir_entry;
+  size_t                     file_size;
+
+  (void)open_file_for_input(file_name, /*use_search_path=*/TRUE,
+                            /*is_include_file=*/FALSE,
+                            /*is_system_include=*/FALSE,
+                            /*is_include_next=*/FALSE,
+                            /*is_implicit_include=*/FALSE,
+                            /*is_preinclude=*/FALSE, /*is_embed=*/TRUE,
+                            /*continue_on_open_failure=*/FALSE,
+                            &full_file_name, &display_name, &embed_file,
+                            &suppress_include, &unicode_source_kind,
+                            &dir_entry);
+  /* Computer the effective file size for insertion: the actual file size
+     minus the starting offset, or the value of the limit parameter if it
+     is smaller. */
+  file_size = get_file_size(full_file_name);
+  file_size -= offset;
+  if (limit < file_size) {
+    file_size = limit;
+  }  /* if */
+  if (file_size != 0) {
+    embed_control.buf = (unsigned char *)alloc_general((sizeof_t)file_size);
+    embed_control.size = file_size;
+    embed_control.next_byte = (a_const_char *)embed_control.buf;
+    embed_control.last_byte = (a_const_char *)(embed_control.buf +
+                                               file_size - 1);
+    embed_control.eol_loc = curr_char_loc;
+    embed_control.comma_is_next = FALSE;
+    if (offset != 0) {
+      if (fseek(embed_file, (long int)offset, SEEK_SET) != 0) {
+        str_catastrophe(ec_cannot_read_file, file_name);
+      }  /* if */
+    }  /* if */
+    if (fread((void *)embed_control.buf, size_t_arg(file_size), 1,
+              embed_file) != 1) {
+      str_catastrophe(ec_cannot_read_file, file_name);
+    }  /* if */
+    if (prefix_start != NULL) {
+      /* Replace the closing right parenthesis of the prefix operand by an
+         LE_END_OF_EMBED_PREFIX lexical escape and set curr_char_loc to
+         point to its first character. The LE_END_OF_EMBED_PREFIX lexical
+         escape will result in skip_white_space initiating the processing
+         of the contents of the embed file. */
+      ((char *)after_prefix)[0] = LE_ESCAPE;
+      embed_control.char_following_prefix = after_prefix[1];
+      ((char *)after_prefix)[1] = LE_END_OF_EMBED_PREFIX;
+      curr_char_loc = prefix_start;
+    } else {
+      /* get_token() will immediately start returning the contents of the
+         embedded file. */
+      embed_control.reading_from_buffer = TRUE;
+    }  /* if */
+    if (suffix_start != NULL) {
+      /* Replace the closing right parenthesis of the suffix operand by an
+         LE_END_OF_EMBED_PREFIX lexical escape and set
+         embed_control.suffix_loc to its first character.  The
+         LE_END_OF_EMBED lexical escape will result in skip_white_space
+         setting curr_char_loc to the saved end-of-line sequence. */
+      ((char *)after_suffix)[0] = LE_ESCAPE;
+      embed_control.char_following_suffix = after_suffix[1];
+      ((char *)after_suffix)[1] = LE_END_OF_EMBED;
+      embed_control.suffix_loc = suffix_start;
+    }  /* if */
+  } else if (if_empty_start != NULL) {
+    /* The file is effectively empty, and an if_empty parameter was
+       specified in the directive.  Replace the closing right parenthesis
+       of the operand by an LE_END_OF_EMBED lexical escape, and set
+       curr_char_loc to its first character.  The LE_END_OF_EMBED lexical
+       escape will result in skip_white_space setting curr_char_loc to the
+       saved end-of-line sequence. */
+    embed_control.eol_loc = curr_char_loc;
+    ((char *)after_if_empty)[0] = LE_ESCAPE;
+    embed_control.char_following_suffix = after_if_empty[1];
+    ((char *)after_if_empty)[1] = LE_END_OF_EMBED;
+    curr_char_loc = if_empty_start;
+  }  /* if */
+  (void)fclose(embed_file);
+}  /* insert_embed_contents */
+
+
+static void get_token_from_embed_file(void)
+/*
+Using the information in embed_control, set curr_token to either
+tok_int_constant (with const_for_curr_token containing the value of the
+current byte of the #embed file) or tok_comma.  When the last byte of the
+buffer is processed, free the buffer and restore embed_control to indicate
+that tokens are no longer coming from a #embed directive.
+*/
+{
+  if (embed_control.comma_is_next) {
+    curr_token = tok_comma;
+    embed_control.comma_is_next = FALSE;
+  } else {
+    set_unsigned_integer_value(&const_for_curr_token.variant.integer_value,
+                               *embed_control.next_byte);
+    curr_token = tok_int_constant;
+    if (++embed_control.next_byte > embed_control.last_byte) {
+      if (embed_control.suffix_loc != NULL) {
+        /* Process the suffix parameter operand. */
+        embed_control.reading_from_buffer = FALSE;
+        curr_char_loc = (a_const_char *)embed_control.suffix_loc;
+      } else {
+        curr_char_loc = embed_control.eol_loc;
+        free_general(embed_control.buf, (sizeof_t)embed_control.size);
+        clear_embed_control_block();
+      }  /* if */
+    } else {
+      embed_control.comma_is_next = TRUE;
+    }  /* if */
+  }  /* if */
+}  /* get_token_from_embed_file */
+
+
 void skip_white_space(void)
 /*
 Skip over any white space in the input.  White space includes blanks,
@@ -10533,9 +10767,9 @@ end_of_current_line:
           }  /* if */
           /* Not end of file, keep checking for white space in the new line. */
         } else {
-          /* End of the expansion text for a macro.  Find the character
-             location of the character following the macro invocation, and
-             continue there. */
+          /* End of the expansion text for a macro or a #embed directive.
+             Find the character location of the character following the
+             macro invocation, and continue there. */
           slmp = assoc_source_line_modif(curr_char_loc);
           if (slmp->being_rescanned_for_token_pasting) {
             /* We're rescanning a macro expansion in order to do old-style
@@ -10648,6 +10882,20 @@ end_of_current_line:
            argument. */
         lparen_is_from_argument = TRUE;
         curr_char_loc += LE_ESCAPE_LEN;
+      } else if (ch == LE_END_OF_EMBED_PREFIX) {
+        /* Start processing the embed file contents and restore
+           curr_char_loc to point to the end of the directive. */
+        embed_control.reading_from_buffer = TRUE;
+        *((char *)curr_char_loc + 1) = embed_control.char_following_prefix;
+        goto end_skip;
+      } else if (ch == LE_END_OF_EMBED) {
+        /* Return to normal (non-embed) processing. */
+        *((char *)curr_char_loc + 1) = embed_control.char_following_suffix;
+        curr_char_loc = embed_control.eol_loc;
+        if (embed_control.buf != NULL) {
+          free_general(embed_control.buf, (sizeof_t)embed_control.size);
+        }  /* if */
+        clear_embed_control_block();
       } else {
         unexpected_condition_str("skip_white_space: bad lexical escape");
       }  /* if */
@@ -16613,6 +16861,20 @@ to speed in some cases.
   a_boolean     id_contains_ucn = FALSE;
 #endif /* UNICODE_VULNERABILITY_DETECTION_SUPPORTED */
 
+  if (embed_control.buf != NULL) {
+    /* We are in the expansion of a #embed directive. */
+    if (!embed_control.reading_from_buffer) {
+      /* We are processing the operand of a prefix, suffix, or if_empty
+         parameter.  Let skip_white_space() determine whether we're at the
+         end of that text and, if so, what processing is next. */
+      skip_white_space();
+    }  /* if */
+    if (embed_control.buf != NULL && embed_control.reading_from_buffer) {
+      /* We're currently reading the contents of the embed file. */
+      get_token_from_embed_file();
+      goto return_curr_token;
+    }  /* if */
+  }  /* if */
   if (any_initial_get_token_tests_needed &&
       !fetching_tokens_from_insert_string()) {
     /* Before fetching a new token, do any processing required for pragmas
@@ -16807,6 +17069,11 @@ return_end_of_source_token:
       } else if (ch == LE_LPAREN_FROM_ARGUMENT) {
         /* Marker put into text preceding a left parenthesis that begins a
            macro argument.  Process it as white space. */
+        skip_white_space();
+        goto start_of_token_scan;
+      } else if (ch == LE_END_OF_EMBED_PREFIX || ch == LE_END_OF_EMBED) {
+        /* End of a section of the expansion of a #embed directive.  Let
+           skip_white_space() determine how to proceed. */
         skip_white_space();
         goto start_of_token_scan;
       } else {
@@ -17799,8 +18066,13 @@ check_start_of_pp_directive:
 				   "get_token: token cache",
 				   "affected by preprocessing directive");
 	    }
-	    /* After the directive has been processed, go skip white space and
-	       scan another token. */
+	    /* After the directive has been processed, go scan another
+               token. */
+            if (embed_control.buf != NULL &&
+                embed_control.reading_from_buffer) {
+              get_token_from_embed_file();
+              goto return_curr_token;
+            }  /* if */
 	    skip_white_space();
 	    goto start_of_token_scan;
 	  }  /* if */
@@ -17968,6 +18240,7 @@ return_from_token_scan:
   if (!in_preprocessing_directive) {
     any_tokens_fetched_from_curr_input_file = TRUE;
   }  /* if */
+return_curr_token:
   return curr_token;
 
 two_char_token:
@@ -29106,6 +29379,7 @@ of the front end.
   avail_token_cache_entries = NULL;
   in_token_insertion_from_string = FALSE;
   token_insertion_position = null_source_position;
+  clear_embed_control_block();
 #if !FULLY_RESOLVED_MACRO_POSITIONS
   pos_of_macro_invocation = null_source_position;
 #endif /* FULLY_RESOLVED_MACRO_POSITIONS */

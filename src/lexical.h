@@ -1381,6 +1381,17 @@ escape.
 			   determine whether a comma in a macro argument
 			   delimits macro arguments during rescanning of
 			   the expansion. */
+#define LE_END_OF_EMBED_PREFIX 14
+			/* Terminates the prefix text of a #embed
+			   directive.  Processing this escape results in
+			   beginning to process the contents of the embed
+			   file. */
+#define LE_END_OF_EMBED 15
+			/* Terminates the suffix or if_empty text of a
+			   #embed directive.  This escape functions like
+			   LE_END_OF_INSERTION but with the additional
+			   effect of freeing the buffer in the embed
+			   control block. */
 
 /*
 Modifications made to the current source line.  orig_line_modif holds
@@ -2642,6 +2653,17 @@ extern void clear_char_overflows(void);
 /* Concatenate adjacent string literals in the current string constant. */
 extern a_token_kind concat_adjacent_string_literals(
                                                  a_boolean function_name_case);
+/* Read tokens from a #embed expansion. */
+extern void insert_embed_contents(a_const_char *file_name,
+                                  a_source_position *pos,
+                                  a_const_char *prefix_start,
+                                  a_const_char *after_prefix,
+                                  a_const_char *suffix_start,
+                                  a_const_char *after_suffix,
+                                  a_const_char *if_empty_start,
+                                  a_const_char *after_if_empty,
+                                  a_host_large_unsigned limit,
+                                  a_host_large_unsigned offset);
 /* Get next token. */
 extern a_token_kind get_token(void);
 /* Return whether a token is a keyword token. */
@@ -3122,6 +3144,7 @@ extern a_boolean open_file_for_input(
 		a_boolean			is_include_next,
 		a_boolean			is_implicit_include,
 		a_boolean			is_preinclude,
+		a_boolean			is_embed,
 		a_boolean			continue_on_open_failure,
 		a_const_char			**full_file_name,
 		a_const_char			**display_name,

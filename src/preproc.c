@@ -385,6 +385,9 @@ the "#" the current token (at least logically).
     } else if (curr_id_is("include_next")) {
       /* #include_next directive. */
       kind = ppd_include_next;
+    } else if (curr_id_is("embed")) {
+      /* #embed directive */
+      kind = ppd_embed;
     } else {
       kind = ppd_not_valid;
     }  /* if */
@@ -1950,6 +1953,265 @@ referenced.
 }  /* proc_using */
 
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
+
+static a_boolean scan_balanced_token_sequence(a_boolean    is_directive,
+                                              a_const_char **operand_start,
+                                              a_const_char **closing_rparen)
+/*
+curr_token is a tok_identifer designating a #embed directive parameter name
+appearing in a #embed directive if is_directive is TRUE or in a __has_embed
+operator otherwise.  Enforce that the next token is a left parenthesis,
+then scan to the matching tok_rparen. Return TRUE if a parenthesized list
+was successfully scanned, FALSE otherwise.  If the successful case,
+*operand_start will be set to the first character of the token following
+the left parenthesis and *closing_rparen to the terminating ')'.
+*/
+{
+  a_boolean    result = TRUE;
+  int          paren_count = 0;
+
+  /* Skip the parameter name and the opening parenthesis. */
+  (void)get_token();
+  if (!required_token(tok_lparen, ec_exp_lparen)) {
+    if (is_directive) {
+      flush_to_newline();
+    }  /* if */
+    result = FALSE;
+  } else {
+    *operand_start = start_of_curr_token;
+    for (;;) {
+      if (get_token() == tok_newline) {
+        /* We hit the end of the line without finding the corresponding
+           closing parenthesis. */
+        pos_error(ec_exp_rparen, &pos_curr_token);
+        result = FALSE;
+        break;
+      }  /* if */
+      if (curr_token == tok_lparen) {
+        ++paren_count;
+      } else if (curr_token == tok_rparen && paren_count-- == 0) {
+        *closing_rparen = start_of_curr_token;
+        break;
+      }  /* if */
+    }  /* for */
+  }  /* if */
+  return result;
+}  /* scan_balanced_token_sequence */
+
+
+a_boolean parse_embed(a_boolean             is_directive,
+                      a_const_char          **file_name,
+                      a_const_char          **prefix_start,
+                      a_const_char          **after_prefix,
+                      a_const_char          **suffix_start,
+                      a_const_char          **after_suffix,
+                      a_const_char          **if_empty_start,
+                      a_const_char          **after_if_empty,
+                      a_host_large_unsigned *limit,
+                      a_host_large_unsigned *offset)
+/*
+Parse the text following the #embed in an embed directive (in which case
+is_directive is TRUE) or in the operand of a __has_embed operator (in which
+case is_directive is FALSE), returning TRUE if no syntax errors or
+unrecognized parameter names were encountered and FALSE otherwise.
+Unrecognized parameter names will be reported as errors only if
+is_directive is TRUE.  The "start" and "after" parameters point to pointers
+that will be set to the first character and the closing ')', respectively,
+of the associated directive parameters (the locations will be in the
+current source line or in macro expansions).  *limit will be set to
+(a_host_large_unsigned)-1 if the limit parameter was not specified and to
+the specified value if present.  *offset will be set to 0 or to the
+specified value of the gnu::offset/clang::offset parameter.
+*/
+{
+  a_const_char   *limit_start = NULL;
+  a_const_char   *after_limit = NULL;
+  a_const_char   *offset_start = NULL;
+  a_const_char   *after_offset = NULL;
+  a_boolean      result = TRUE;
+
+  *prefix_start = NULL;
+  *after_prefix = NULL;
+  *suffix_start = NULL;
+  *after_suffix = NULL;
+  *if_empty_start = NULL;
+  *after_if_empty = NULL;
+  *limit = (a_host_large_unsigned)-1;
+  *offset = 0;
+  if (!get_header_name()) {
+    /* Missing file name. */
+    if (is_directive) {
+      catastrophe(ec_exp_file_name);
+    } else {
+      error(ec_exp_file_name);
+    }  /* if */
+    result = FALSE;
+    goto done;
+  }  /* if */
+  /* Allocate space for and copy the file name.  (Note that
+     get_header_name() sets expand_macros to TRUE, so the rest of the
+     text will be scanned with macro expansion enabled. */
+  *file_name = copy_header_name(/*process_escapes=*/FALSE);
+  /* Move past the file name. */
+  (void)get_token();
+  /* Scan for parameters. */
+  while (curr_token != tok_rparen && curr_token != tok_newline) {
+    a_source_position id_pos = pos_curr_token;
+    if (curr_token != tok_identifier) {
+      pos_error(ec_exp_identifier, &pos_curr_token);
+      if (is_directive) {
+        flush_to_newline();
+      }  /* if */
+      result = FALSE;
+      goto done;
+    }  /* if */
+    if ((len_of_curr_token == 6 &&
+         memcmp(start_of_curr_token, "prefix", 6) == 0) ||
+        (len_of_curr_token == 10 &&
+         memcmp(start_of_curr_token, "__prefix__", 10) == 0)) {
+      if (!scan_balanced_token_sequence(is_directive, prefix_start,
+                                        after_prefix)) {
+        result = FALSE;
+        goto done;
+      }  /* if */
+    } else if ((len_of_curr_token == 6 &&
+                memcmp(start_of_curr_token, "suffix", 6) == 0) ||
+               (len_of_curr_token == 10 &&
+                memcmp(start_of_curr_token, "__suffix__", 10) == 0)) {
+      if (!scan_balanced_token_sequence(is_directive, suffix_start,
+                                        after_suffix)) {
+        result = FALSE;
+        goto done;
+      }  /* if */
+    } else if ((len_of_curr_token == 8 &&
+                memcmp(start_of_curr_token, "if_empty", 8) == 0) ||
+               (len_of_curr_token == 12 &&
+                memcmp(start_of_curr_token, "__if_empty__", 12) == 0)) {
+      if (!scan_balanced_token_sequence(is_directive, if_empty_start,
+                                        after_if_empty)) {
+        result = FALSE;
+        goto done;
+      }  /* if */
+    } else if ((len_of_curr_token == 5 &&
+                memcmp(start_of_curr_token, "limit", 5) == 0) ||
+               (len_of_curr_token == 9 &&
+                memcmp(start_of_curr_token, "__limit__", 9) == 0)) {
+      if (!scan_balanced_token_sequence(is_directive, &limit_start,
+                                        &after_limit)) {
+        result = FALSE;
+        goto done;
+      }  /* if */
+    } else if ((gnu_version_is(any_version) && len_of_curr_token == 3 &&
+                memcmp(start_of_curr_token, "gnu", 3) == 0) ||
+               (clang_version_is(any_version) && len_of_curr_token == 5 &&
+                memcmp(start_of_curr_token, "clang", 5) == 0)) {
+      if (get_token() != tok_colon_colon) {
+        pos_error(ec_unrec_embed_param, &id_pos);
+        if (is_directive) {
+          flush_to_newline();
+        }  /* if */
+        result = FALSE;
+        goto done;
+      }  /* if */
+      if (get_token() != tok_identifier) {
+        pos_error(ec_exp_identifier, &pos_curr_token);
+        if (is_directive) {
+          flush_to_newline();
+        }  /* if */
+        result = FALSE;
+        goto done;
+      }  /* if */
+      if ((len_of_curr_token == 6 &&
+           memcmp(start_of_curr_token, "offset", 6) == 0) ||
+          (len_of_curr_token == 10 &&
+           memcmp(start_of_curr_token, "__offset__", 10) == 0)) {
+        if (!scan_balanced_token_sequence(is_directive, &offset_start,
+                                          &after_offset)) {
+          result = FALSE;
+          goto done;
+        }  /* if */
+      } else {
+        pos_error(ec_unrec_embed_param, &id_pos);
+      }  /* if */
+    } else {
+      pos_error(ec_unrec_embed_param, &id_pos);
+      result = FALSE;
+      goto done;
+    }  /* if */
+    /* Advance to the next parameter or the end of the text. */
+    (void)get_token();
+  }  /* while */
+  if (is_directive && curr_token == tok_rparen) {
+    pos_error(ec_exp_identifier, &pos_curr_token);
+    flush_to_newline();
+    result = FALSE;
+  } else if (!is_directive && curr_token == tok_newline) {
+    syntax_error(ec_exp_rparen);
+    result = FALSE;
+  } else if (is_directive) {
+    a_const_char      *eol_loc = curr_char_loc;
+    a_constant_ptr    cp = local_constant();
+    a_boolean         ovflo;
+    a_source_position pos;
+    add_stop_token(tok_rparen);
+    if (limit_start != NULL) {
+      curr_char_loc = limit_start;
+      (void)get_token();
+      scan_integral_constant_expression(cp);
+      *limit = unsigned_value_of_integer_constant(cp, &ovflo);
+      if (ovflo) {
+        conv_line_loc_to_source_pos(limit_start, &pos);
+        pos_error(ec_integer_overflow, &pos);
+      }  /* if */
+    }  /* if */
+    if (offset_start != NULL) {
+      curr_char_loc = offset_start;
+      (void)get_token();
+      scan_integral_constant_expression(cp);
+      *offset = unsigned_value_of_integer_constant(cp, &ovflo);
+      if (ovflo) {
+        conv_line_loc_to_source_pos(offset_start, &pos);
+        pos_error(ec_integer_overflow, &pos);
+      }  /* if */
+    }  /* if */
+    remove_stop_token(tok_rparen);
+    release_local_constant(&cp);
+    flush_to_newline();
+  }  /* if */
+done:
+  return result;
+}  /* parse_embed */
+
+
+static void proc_embed(void)
+/*
+Scan and process a #embed directive.  This directive inserts the contents
+of a file into the token stream one byte at a time as int constants.
+*/
+{
+  a_source_position     directive_pos = pos_curr_token;
+  a_source_position     error_pos;
+  a_const_char          *file_name;
+  a_const_char          *prefix_start;
+  a_const_char          *after_prefix;
+  a_const_char          *suffix_start;
+  a_const_char          *after_suffix;
+  a_const_char          *if_empty_start;
+  a_const_char          *after_if_empty;
+  a_host_large_unsigned limit;
+  a_host_large_unsigned offset;
+
+  if (do_preprocessing_only) {
+    /* Don't process the #embed in this case. */
+  } else if (parse_embed(/*is_directive=*/TRUE, &file_name, &prefix_start,
+                         &after_prefix, &suffix_start, &after_suffix,
+                         &if_empty_start, &after_if_empty, &limit, &offset)) {
+    insert_embed_contents(file_name, &directive_pos, prefix_start,
+                          after_prefix, suffix_start, after_suffix,
+                          if_empty_start, after_if_empty, limit, offset);
+  }  /* if */
+}  /* proc_embed */
+
 
 static void proc_line(a_boolean cpp_output_form)
 /*
@@ -4618,6 +4880,9 @@ preprocessor directives are handled by is_module_pp_directive.
            to a #line directive, but not exactly the same. */
         nonstandard_pp_directive();
         proc_line(/*cpp_output_form=*/TRUE);
+        break;
+      case ppd_embed:
+        proc_embed();
         break;
       default:
         unexpected_condition_str("pp_directive: bad pp directive code");

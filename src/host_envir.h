@@ -3213,6 +3213,15 @@ EXTERN_THREAD a_directory_name_entry_ptr
 			   The name strings are in general storage. */
 
 /*
+Search path for #embed files.
+*/
+EXTERN_THREAD a_directory_name_entry_ptr
+		embed_search_path,
+		end_embed_search_path;
+			/* Beginning and end pointers for the list.
+			   The name strings are in general storage. */
+
+/*
 Search path for module files.  Each path is a directory to be searched for
 files.
 */
@@ -3498,6 +3507,9 @@ BEGIN_EDG_NAMESPACE  /* Conditionally open the "edg" namespace. */
 /* See if a file exists, if it does, return the modification time. */
 extern a_boolean get_file_modification_time(a_const_char *file_name,
 					    time_t       *time);
+
+/* Get the file size. */
+extern size_t get_file_size(a_const_char *file_name);
 
 /* Get the file modification time as a string. */
 extern char *get_file_modification_time_string(a_const_char	*file_name,

@@ -373,6 +373,9 @@ Initialize the option information table.
   add_option_description(optk_include_directory, "include_directory", 'I',
                          /*value=*/TRUE, /*arg_required=*/TRUE,
                          pchek_command_line);
+  add_option_description(optk_embed_dir, "embed_directory", '\0',
+                         /*value=*/TRUE, /*arg_required=*/TRUE,
+                         pchek_command_line);
   add_option_description(optk_define_macro, "define_macro", 'D',
                          /*value=*/TRUE, /*arg_required=*/TRUE,
                          pchek_command_line);
@@ -10484,6 +10487,14 @@ Process the arguments on the command line that invoked the compiler.
                                      kind == optk_system_include_dir);
         }  /* if */
         break;
+      case optk_embed_dir:
+        /* Add the directory to the search path when searching for #embed
+           files. */
+        add_to_specified_include_search_path(file_name_from_opt_arg(opt_arg),
+                                             /*system_dir=*/FALSE,
+                                             &embed_search_path,
+                                             &end_embed_search_path);
+        break;
       case optk_module_dir:
         /* Add the directory to the search path when searching for module
            files. */
@@ -12433,6 +12444,11 @@ enable_microsoft_mode:
     dir_name_of_primary_source_file = dir_name;
     add_to_front_of_include_search_path(dir_name, &incl_search_path,
                                         &end_incl_search_path);
+    add_to_front_of_include_search_path(dir_name, &embed_search_path,
+                                        &end_embed_search_path);
+  } else {
+    add_to_front_of_include_search_path("", &embed_search_path,
+                                        &end_embed_search_path);
   }  /* if */
 #if BACK_END_IS_CP_GEN_BE && AUTOMATIC_TEMPLATE_INSTANTIATION
   /* The C++-generating back end can't handle instantiations of exported
