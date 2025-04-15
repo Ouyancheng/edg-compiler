@@ -2149,7 +2149,6 @@ specified value of the gnu::offset/clang::offset parameter.
     syntax_error(ec_exp_rparen);
     result = FALSE;
   } else if (is_directive) {
-    a_const_char      *eol_loc = curr_char_loc;
     a_constant_ptr    cp = local_constant();
     a_boolean         ovflo;
     a_source_position pos;
