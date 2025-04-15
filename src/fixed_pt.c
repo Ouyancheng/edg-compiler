@@ -573,7 +573,7 @@ the value is already known to be too large.  Set *err on overflow.  Set
     mantissa_bits = number_of_bits_in_mantissa(mp, /*normalize=*/TRUE);
     /* A shift count of zero represents an overflow for a signed value because
        the sign bit would be needed for the representation. */
-    if (shift_count < sign_bits) {
+    if (shift_count < (long)sign_bits) {
       /* We would be shifting bits out of the high end of this mantissa. */
       overflow = TRUE;
     }  /* if */
