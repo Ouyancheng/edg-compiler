@@ -3160,15 +3160,17 @@ extern a_boolean open_file_for_input(
 extern a_const_char *resolve_header(a_const_char *filename,
 				    a_boolean    is_system_include,
 				    a_boolean    is_include_next,
+                                    a_boolean    is_embed,
 				    a_boolean    suppress_diagnostics);
 
 extern a_const_char *resolve_header_in_map(a_const_char *filename,
                                            a_const_char *resolved_header,
                                            a_boolean    is_system_include);
 
-extern a_boolean header_can_be_found(a_const_char *filename,
-                                     a_boolean    is_system_include,
-                                     a_boolean    is_include_next);
+extern a_boolean file_can_be_found(a_const_char *filename,
+                                   a_boolean    is_system_include,
+                                   a_boolean    is_include_next,
+                                   a_boolean    is_embed);
 
 extern void push_input_stack(
 			FILE			    *new_input_file,

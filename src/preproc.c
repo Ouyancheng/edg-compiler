@@ -1360,6 +1360,7 @@ otherwise.  Note that there is no validation performed for the mapping.
   a_const_char *header_path;
 
   header_path = resolve_header(header_name, is_sys_include, is_include_next,
+                               /*is_embed=*/FALSE,
                                /*suppress_diagnostics=*/TRUE);
   if (header_path != NULL) {
     a_const_char  *module_path;
@@ -1970,6 +1971,15 @@ the left parenthesis and *closing_rparen to the terminating ')'.
   a_boolean    result = TRUE;
   int          paren_count = 0;
 
+  if (*operand_start != NULL) {
+    /* The parameter is specified more than once. */
+    error(ec_dupl_embed_param);
+    if (is_directive) {
+      flush_to_newline();
+    }  /* if */
+    result = FALSE;
+    goto done;
+  }  /* if */
   /* Skip the parameter name and the opening parenthesis. */
   (void)get_token();
   if (!required_token(tok_lparen, ec_exp_lparen)) {
@@ -1995,6 +2005,7 @@ the left parenthesis and *closing_rparen to the terminating ')'.
       }  /* if */
     }  /* for */
   }  /* if */
+done:
   return result;
 }  /* scan_balanced_token_sequence */
 
@@ -2014,14 +2025,16 @@ Parse the text following the #embed in an embed directive (in which case
 is_directive is TRUE) or in the operand of a __has_embed operator (in which
 case is_directive is FALSE), returning TRUE if no syntax errors or
 unrecognized parameter names were encountered and FALSE otherwise.
-Unrecognized parameter names will be reported as errors only if
-is_directive is TRUE.  The "start" and "after" parameters point to pointers
-that will be set to the first character and the closing ')', respectively,
-of the associated directive parameters (the locations will be in the
-current source line or in macro expansions).  *limit will be set to
-(a_host_large_unsigned)-1 if the limit parameter was not specified and to
-the specified value if present.  *offset will be set to 0 or to the
-specified value of the gnu::offset/clang::offset parameter.
+curr_token is either the "embed" identifier in the directive or the left
+parenthesis in the operator.  Unrecognized parameter names will be reported
+as errors only if is_directive is TRUE.  The "start" and "after" parameters
+point to pointers that will be set to the first character and the closing
+')', respectively, of the associated directive parameters (the locations
+will be in the current source line or in macro expansions).  If
+is_directive is FALSE or if the corresponding parameters are omitted,
+*limit and *offset are set to default values; otherwise, they are set to
+the values of the operands of the limit and gnu::offset/clang::offset
+parameters, respectively.
 */
 {
   a_const_char   *limit_start = NULL;

@@ -559,7 +559,7 @@ file.  Return TRUE if a module file was found, FALSE otherwise.
     }  /* if */
     header_path = resolve_header(name_for_search,
                                  mod->variant.header_unit.is_sys_include,
-                                 /*is_include_next=*/FALSE,
+                                 /*is_include_next=*/FALSE, /*is_embed=*/FALSE,
                                  /*suppress_diagnostics=*/FALSE);
     if (header_path == NULL) {
       pos_catastrophe(ec_cannot_find_header_for_import, &error_position,

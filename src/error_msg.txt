@@ -3545,6 +3545,8 @@ ec_cannot_get_file_size;;"cannot determine size of file %s"
 ec_cannot_read_file;;"cannot read %s"
 ec_embed;INTERNAL;"embed"
 ec_unrec_embed_param;;"unrecognized parameter name"
+ec_dupl_embed_param;;"parameter specified more than once"
+ec_has_embed_not_in_if;;"__has_embed cannot appear outside #if"
 ###############################################################################
 #                                                             \  ___  /       #
 #                                                               /   \         #

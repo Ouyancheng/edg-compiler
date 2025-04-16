@@ -366,6 +366,18 @@ extern a_const_char *check_for_include_alias(void);
 extern a_const_char *extract_header_name(a_boolean process_escapes,
                                          sizeof_t  *result_length);
 
+extern a_boolean parse_embed(a_boolean             is_directive,
+                             a_const_char          **file_name,
+                             a_const_char          **prefix_start,
+                             a_const_char          **after_prefix,
+                             a_const_char          **suffix_start,
+                             a_const_char          **after_suffix,
+                             a_const_char          **if_empty_start,
+                             a_const_char          **after_if_empty,
+                             a_host_large_unsigned *limit,
+                             a_host_large_unsigned *offset);
+
+
 extern void preproc_one_time_init(void);
 
 extern void preproc_trans_unit_init(void);

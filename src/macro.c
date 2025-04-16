@@ -310,6 +310,11 @@ STATIC_THREAD a_symbol_ptr
 			   macro "__building_module", which is used in
 			   clang mode. */
 
+STATIC_THREAD a_symbol_ptr
+		has_embed_symbol;
+			/* Pointer to the symbol entry for the special
+			   macro "__has_embed". */
+
 STATIC_THREAD a_boolean
 		use_raw_version_of_arg;
 			/* TRUE if the raw version of a macro argument
@@ -5549,12 +5554,45 @@ were __has_include.
         pos_warning(ec_absolute_file_name_in_has_include_next,
                     &error_position);
       }  /* if */
-      file_found = header_can_be_found(filename, is_system_include,
-                                       is_include_next);
+      file_found = file_can_be_found(filename, is_system_include,
+                                     is_include_next, /*is_embed=*/FALSE);
     }  /* if */
   }  /* if */
   return file_found;
 }  /* scan_has_include */
+
+
+static a_boolean scan_has_embed(void)
+/*
+Process the C23/C++26 __has_embed macro and return TRUE if the named file
+can be found and the directive is syntactically correct (including having
+only supported parameter names), FALSE otherwise.
+*/
+{
+  a_boolean             result = FALSE;
+  a_const_char          *file_name;
+  a_const_char          *prefix_start;
+  a_const_char          *after_prefix;
+  a_const_char          *suffix_start;
+  a_const_char          *after_suffix;
+  a_const_char          *if_empty_start;
+  a_const_char          *after_if_empty;
+  a_host_large_unsigned limit;
+  a_host_large_unsigned offset;
+  a_boolean             saved_in_pp_if = in_pp_if_expression;
+
+  in_pp_if_expression = FALSE;
+  if (get_token() != tok_lparen) {
+    pos_error(ec_exp_lparen, &pos_curr_token);
+  } else if (parse_embed(/*is_directive=*/FALSE, &file_name, &prefix_start,
+                         &after_prefix, &suffix_start, &after_suffix,
+                         &if_empty_start, &after_if_empty, &limit, &offset)) {
+    result = file_can_be_found(file_name, /*is_system_include=*/FALSE,
+                               /*is_include_next=*/FALSE, /*is_embed=*/TRUE);
+  }  /* if */
+  in_pp_if_expression = saved_in_pp_if;
+  return result;
+}  /* scan_has_embed */
 
 
 static a_boolean same_macro_at_beginning(a_source_line_modif_ptr slmp,
@@ -6278,6 +6316,26 @@ make_inert_macro:
                      scan_has_include(macro_symbol == has_include_next_symbol);
           --macro_depth;
           strcpy(repl_text, file_found ? "1" : "0");
+        }  /* if */
+      } else if (macro_symbol == has_embed_symbol) {
+        /* The C23/C++26 __has_embed macro.  Has the value 1 if the
+           named file would be found by #embed and the rest of the operand
+           satisfies the syntactic constraints of the #embed directive;
+           otherwise, 0. */
+        if (strict_ansi_mode && !in_pp_if_expression) {
+          /* The C/C++ Standards require that __has_embed appear only in
+             the constant-expression of a #if. */
+          pos_diagnostic(strict_ansi_discretionary_severity,
+                         ec_has_embed_not_in_if, &start_pos);
+          ctoken = tok_identifier;
+          *rescan = FALSE;
+          goto return_point;
+        } else {
+          a_boolean    embed_would_be_okay;
+          ++macro_depth;
+          embed_would_be_okay = scan_has_embed();
+          --macro_depth;
+          strcpy(repl_text, embed_would_be_okay ? "1" : "0");
         }  /* if */
       } else if (macro_symbol == is_identifier_symbol) {
         /* The clang-style __is_identifier macro.  Takes one argument and
@@ -12323,21 +12381,15 @@ command line -D options.
   include_level_symbol = enter_predef_macro((char *)NULL, "__INCLUDE_LEVEL__",
                                             /*cannot_be_redefined=*/TRUE,
                                             /*ref_suppresses_pch_file=*/FALSE);
-  /* The argument to __has_include and __has_include_next is special -- a
-     header file name -- and must be scanned differently from ordinary
-     macro arguments.  In order to suppress the normal macro argument
-     processing, these macros are defined as object-like, not
-     function-like, and the argument is scanned and processed directly by
-     scan_has_include. */
-  if (cpp17_mode || c23_mode || microsoft_mode || clang_mode ||
-      gnu_version_is(>=40902)) {
-    /* __has_include is supported by all emulated compilers and became part
-       of the C++ standard beginning with the C++17 version and the C
-       standard beginning with C23. */
-    has_include_symbol = enter_predef_macro((char *)NULL, "__has_include",
-                                            /*cannot_be_redefined=*/TRUE,
-                                            /*ref_suppresses_pch_file=*/FALSE);
-  }  /* if */
+  /* The argument to __has_embed is special -- a header file name,
+     optionally followed by one or more named parameters -- and must be
+     scanned differently from ordinary macro arguments.  In order to
+     suppress the normal macro argument processing, this macro is
+     defined as object-like, not function-like, and the argument is scanned
+     and processed directly by scan_has_embed. */
+  has_embed_symbol = enter_predef_macro((char *)NULL, "__has_embed",
+                                        /*cannot_be_redefined=*/TRUE,
+                                        /*ref_suppresses_pch_file=*/FALSE);
 #if !DEFINE_FEATURE_TEST_MACRO_OPERATORS_IN_ALL_MODES
   /* Restrict __has_include_next to only those compilers that implement it. */
   if (clang_mode || gnu_version_is(>=40902))
@@ -12579,6 +12631,7 @@ Do one-time initialization of variables related to macro processing.
       pch_saved_var_array_elem(has_extension_symbol),
       pch_saved_var_array_elem(has_include_symbol),
       pch_saved_var_array_elem(has_include_next_symbol),
+      pch_saved_var_array_elem(has_embed_symbol),
       pch_saved_var_array_elem(has_attribute_symbol),
       pch_saved_var_array_elem(has_builtin_symbol),
       pch_saved_var_array_elem(is_identifier_symbol),
@@ -12618,6 +12671,7 @@ Do one-time initialization of variables related to macro processing.
   register_trans_unit_variable(has_extension_symbol);
   register_trans_unit_variable(has_include_symbol);
   register_trans_unit_variable(has_include_next_symbol);
+  register_trans_unit_variable(has_embed_symbol);
   register_trans_unit_variable(has_attribute_symbol);
   register_trans_unit_variable(has_builtin_symbol);
   register_trans_unit_variable(is_identifier_symbol);
@@ -12662,6 +12716,7 @@ after this function.
   has_extension_symbol = NULL;
   has_include_symbol = NULL;
   has_include_next_symbol = NULL;
+  has_embed_symbol = NULL;
   has_attribute_symbol = NULL;
   has_builtin_symbol = NULL;
   is_identifier_symbol = NULL;

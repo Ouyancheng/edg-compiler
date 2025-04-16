@@ -7610,14 +7610,16 @@ is TRUE, and search_path is empty.
 a_const_char *resolve_header(a_const_char *filename,
                              a_boolean    is_system_include,
                              a_boolean    is_include_next,
+                             a_boolean    is_embed,
                              a_boolean    suppress_diagnostics)
 /*
-Determine if filename can be opened as a header file.  Return the resolved
-path to the header file, or NULL if it could not be opened.  If is_include_next
-is TRUE, the search path is the remainder of the list by which the current
-file was found; otherwise, the search path is the one appropriate to the
-value of is_system_include.  If suppress_diagnostics is TRUE, suppress
-diagnostics related to the failure to find the header file.
+Determine if filename can be opened as a header or embed file, depending on
+the value of is_embed.  Return the resolved path to the file, or NULL if it
+could not be opened.  In non-embed cases, if is_include_next is TRUE, the
+search path is the remainder of the list by which the current file was
+found; otherwise, the search path is the one appropriate to the value of
+is_system_include.  If suppress_diagnostics is TRUE, suppress diagnostics
+related to the failure to find the header file.
 */
 {
   a_boolean                  found;
@@ -7629,7 +7631,9 @@ diagnostics related to the failure to find the header file.
   a_directory_name_entry_ptr search_path;
   a_directory_name_entry_ptr dir_entry;
 
-  if (is_include_next && curr_ise->dir_entry != NULL) {
+  if (is_embed) {
+    search_path = embed_search_path;
+  } else if (is_include_next && curr_ise->dir_entry != NULL) {
     /* If this is for __has_include_next and the current file was found
        using a search path, search for the named file using that path,
        beginning with the directory entry following that of the current
@@ -7686,6 +7690,7 @@ is_system_include.
       if (!entry.has_value()) continue;
       resolved_entry = resolve_header(entry.key().ptr, is_system_include,
                                       /*is_include_next=*/FALSE,
+                                      /*is_embed=*/FALSE,
                                       /*suppress_diagnostics=*/TRUE);
       if (header_file == resolved_entry) {
         if (module_path != NULL) {
@@ -7712,22 +7717,26 @@ is_system_include.
 }  /* resolve_header_in_map */
 
 
-a_boolean header_can_be_found(a_const_char *filename,
-                              a_boolean    is_system_include,
-                              a_boolean    is_include_next)
+a_boolean file_can_be_found(a_const_char *filename,
+                            a_boolean    is_system_include,
+                            a_boolean    is_include_next,
+                            a_boolean    is_embed)
 /*
-Return TRUE if filename can be opened as a header file.  If is_include_next
-is TRUE, the search path is the remainder of the list by which the current
+Return TRUE if filename can be opened as a header file or, if is_embed is
+TRUE, as an embed file.  If is_embed is TRUE, is_system_include and
+is_include_next are ignored.  In non-embed cases, if is_include_next is
+TRUE, the search path is the remainder of the list by which the current
 file was found; otherwise, the search path is the one appropriate to the
 value of is_system_include.
 */
 {
-  a_const_char *header_path;
+  a_const_char *file_path;
 
-  header_path = resolve_header(filename, is_system_include, is_include_next,
-                               /*suppress_diagnostics=*/TRUE);
-  return (header_path != NULL);
-}  /* header_can_be_found */
+  file_path = resolve_header(filename, is_system_include, is_include_next,
+                             /*is_embed=*/FALSE,
+                             /*suppress_diagnostics=*/TRUE);
+  return (file_path != NULL);
+}  /* file_can_be_found */
 
 
 a_boolean open_file_for_input(
