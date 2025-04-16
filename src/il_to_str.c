@@ -978,9 +978,6 @@ The output includes template arguments on template classes.
       } else if (type->kind == (a_type_kind)tk_typeref) {
         tap = type->variant.typeref.extra_info->orig_template_arg_list;
       }  /* if */
-#if DEBUG
-    } else if (octl->debug_output && entry_kind == iek_routine) {
-      tap = ((a_routine_ptr)scp)->template_arg_list;
     } else if (entry_kind == iek_variable) {
       a_variable_ptr var_ptr = (a_variable_ptr)scp;
 
@@ -988,6 +985,9 @@ The output includes template arguments on template classes.
           var_ptr->template_info->template_arg_list != NULL) {
         tap = var_ptr->template_info->template_arg_list;
       }  /* if */
+#if DEBUG
+    } else if (octl->debug_output && entry_kind == iek_routine) {
+      tap = ((a_routine_ptr)scp)->template_arg_list;
 #endif /* DEBUG */
     }  /* if */
     if (tap != NULL) {
