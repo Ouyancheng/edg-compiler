@@ -2152,6 +2152,7 @@ specified value of the gnu::offset/clang::offset parameter.
     a_constant_ptr    cp = local_constant();
     a_boolean         ovflo;
     a_source_position pos;
+    fetch_pp_tokens = FALSE;
     add_stop_token(tok_rparen);
     if (limit_start != NULL) {
       curr_char_loc = limit_start;

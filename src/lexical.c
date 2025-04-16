@@ -10619,8 +10619,8 @@ that tokens are no longer coming from a #embed directive.
       const_for_curr_token.type = integer_type(ik_int);
     }  /* if */
     set_unsigned_integer_value(
-                              &const_for_curr_token.variant.integer_value,
-                              (a_host_large_unsigned)*embed_control.next_byte);
+               &const_for_curr_token.variant.integer_value,
+               (a_host_large_unsigned)(unsigned char)*embed_control.next_byte);
     curr_token = tok_int_constant;
     if (++embed_control.next_byte > embed_control.last_byte) {
       if (embed_control.suffix_loc != NULL) {
