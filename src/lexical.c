@@ -10908,12 +10908,14 @@ end_of_current_line:
         curr_char_loc += LE_ESCAPE_LEN;
       } else if (ch == LE_END_OF_EMBED_PREFIX) {
         /* Start processing the embed file contents and restore
-           curr_char_loc to point to the end of the directive. */
+           the characters overwritten by the lexical escape. */
         embed_control.reading_from_buffer = TRUE;
+        *((char *)curr_char_loc) = ')';
         *((char *)curr_char_loc + 1) = embed_control.char_following_prefix;
         goto end_skip;
       } else if (ch == LE_END_OF_EMBED) {
         /* Return to normal (non-embed) processing. */
+        *((char *)curr_char_loc) = ')';
         *((char *)curr_char_loc + 1) = embed_control.char_following_suffix;
         curr_char_loc = embed_control.eol_loc;
         if (embed_control.buf != NULL) {
