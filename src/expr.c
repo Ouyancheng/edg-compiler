@@ -2152,6 +2152,9 @@ Those cases are mostly delegated to scan_function_call.
           scan_function_call((an_operand *)NULL, (an_operand *)NULL,
                              /*is_multi_subscript=*/TRUE,
                              rcblock, result);
+#if EXTRA_SOURCE_POSITIONS_IN_IL
+          end_position = result->end_position;
+#endif /* EXTRA_SOURCE_POSITIONS_IN_IL */
           goto cleanup_and_done;
         } else {
           /* An ordinary "built-in" subscript. */
@@ -7117,19 +7120,19 @@ static void scan_function_call(an_operand             *operand,
 Scan a function call (if is_multi_subscript is FALSE) or a C++23 multi-
 subscript construct (if is_multi_subscript is TRUE).  When is_multi_subscript
 is FALSE, the function to be called is given by *operand, modified by
-*bound_function_selector if the unction is bound.  Even if the function is not
-bound, bound_function_selector points to an operand that can be filled in if
-an implicit selector is generated.  When is_multi_subscript is TRUE, operand
-is the expression that is being subscripted (of class type or of a template-
-dependent type).  The current token is the "(" or "[" of the beginning of the
-argument list.  Scan the arguments, make a call expression, and return an
-operand for it in *result, except that when is_multi_subscript is TRUE the
-subscript is either returned to *p_subscript when the subscript operation was
-successfully processed as a member call, or *p_subscript is left unchanged if
-the subscript should be handled the traditional way.  If rcblock is non-NULL,
-redo semantic analysis on a previously-scanned expression, and return the
-result in *result (or an error indication in *rcblock).  operand and
-bound_function_selector are expected to be NULL in that case.
+*bound_function_selector if the function is bound.  Even if the function is
+not bound, bound_function_selector points to an operand that can be filled in
+if an implicit selector is generated.  When is_multi_subscript is TRUE,
+operand is the expression that is being subscripted (of class type or of a
+template-dependent type).  The current token is the "(" or "[" of the
+beginning of the argument list.  Scan the arguments, make a call expression,
+and return an operand for it in *result, except that when is_multi_subscript
+is TRUE the subscript is either returned to *p_subscript when the subscript
+operation was successfully processed as a member call, or *p_subscript is left
+unchanged if the subscript should be handled the traditional way.  If rcblock
+is non-NULL, redo semantic analysis on a previously-scanned expression, and
+return the result in *result (or an error indication in *rcblock).  operand
+and bound_function_selector are expected to be NULL in that case.
 */
 {
   an_expr_node_ptr  argument_list, expr;

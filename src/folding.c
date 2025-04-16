@@ -6552,6 +6552,12 @@ non-NULL).
     /* The operands are in the order integer + pointer or integer[pointer]. */
     int_op = expr->variant.operation.operands;
     ptr_op = int_op->next;
+  } else if (is_template_param_type(ptr_op->type)) {
+    /* This case cannot be folded and, in C++23, may have ptr_op be a glvalue,
+       which would be unexpected in processing below: Shortcut the folding
+       process. */
+    *template_constant = TRUE;
+    goto done;
   }  /* if */
   /* See if we have or can get a constant for the integer operand. */
   if (constexpr_enabled) {
@@ -6588,6 +6594,7 @@ non-NULL).
       }  /* if */
     }  /* if */
   }  /* if */
+done:
   release_local_constant(&ptr_con);
   release_local_constant(&int_con);
   return is_constant;

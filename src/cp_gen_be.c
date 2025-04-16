@@ -15538,7 +15538,7 @@ return FALSE and let the caller generate the code normally.
             }  /* if */
             /* Pass FALSE for operator_notation if this is a function-call
                operator; i.e., treat the argument as an ordinary function
-               argument. That is also needed for the C++23 multi-subscript
+               argument.  That is also needed for the C++23 multi-subscript
                operator. */
             gen_argument(arg, param, !opname_is_call_like(op));
             if (operand_parens_needed) {

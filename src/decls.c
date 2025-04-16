@@ -1815,8 +1815,8 @@ the position indicated by diag_pos.
        have one or more arguments. */
     if (param_count == 0) {
       if (opname_is_call_like(opname) && !is_nonstatic_member_function) {
-        /* In C++23, a function call operator can be static and have no
-           parameters at all. */
+        /* In C++23, a function call or subscript operator can be static and
+           have no parameters at all. */
       } else if (rtsp->has_ellipsis) {
         /* operator()(...) and operator new(...) are errors, but we do
            allow operator()(T, ...) and operator new(size_t, ...). */
