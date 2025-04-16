@@ -1553,43 +1553,6 @@ process_option()
       c_to_obj_options="$c_to_obj_options $curr_param"
       used_two_params=1
       ;;
-    *\.a)
-#     Collect a list of library archive (.a) files.
-      object_files=$object_files" "$arg
-      any_l_or_o_files=1
-      add_to_instantiation_command=0
-      ;;
-    *\.so | *\.so\.*)
-#     Collect a list of library shared object (.so) files.
-      object_files=$object_files" "$arg
-      any_l_or_o_files=1
-      add_to_instantiation_command=0
-      ;;
-    *\.c | *\.C | *\.cc | *\.cpp | *\.CPP | *\.cxx | *\.CXX | *\.s)
-#     Collect a list of .c files.
-      arg=`native_path "$arg"`
-      if [ "$cfiles" ]; then more_than_one_c_file=1; fi;
-      if [ $multi_trans_unit -ne 0 -a $any_c_files -ne 0 ] ; then
-        # In --multi_trans_unit mode, this is a secondary file.  Add it to
-        #  the list of secondary files.
-        secondary_files=$secondary_files" "$arg;
-      else
-        # A primary source file, or not in --multi_trans_unit mode.
-        cfiles=$cfiles" "$arg;
-      fi
-      any_c_files=1
-      add_to_instantiation_command=0
-      ;;
-    *\.o)
-#     Collect a list of .o files.
-      arg=`native_path "$arg"`
-      object_files=$object_files" "$arg
-      any_l_or_o_files=1
-      add_to_instantiation_command=0
-      if [ ! -f $arg ] ; then
-        driver_error "cannot open object file \"$arg\"."
-      fi
-      ;;
 ###############################################################################
 # Options passed to the front end that take no arguments
 ###############################################################################
@@ -2284,21 +2247,7 @@ process_option()
       feoptions=$feoptions" $curr_arg";
       ;;
 ###############################################################################
-# Header handling logic used by the driver.
-#
-# This logic is declared later to prevent interference with the processing
-# of other command line options that reference a header.
-#
-###############################################################################
-    *\.h | *\.H | *\.hpp | *\.HPP)
-#     Collect a list of header files for creating a headere unit.
-      collect_module_unit_src_file "$arg"
-      module_unit_src_file_is_header=1
-      ;;
-    *\.ixx | *\.IXX | *\.cppm | *.CPPM)
-#     Collect a list of normal C++20 module unit files.
-      collect_module_unit_src_file "$arg"
-      ;;
+# Unrecognized flag handling logic for the driver.
 ###############################################################################
     --*)
       # An invalid keyword option -- this is handled by the caller
@@ -2308,6 +2257,62 @@ process_option()
       driver_error "unknown option: $arg"
       add_to_instantiation_command=0
       ;;
+###############################################################################
+# Input file handling used by the driver.
+#
+# This logic is declared later to prevent interference with the processing
+# of other command line options that reference an input file.
+#
+###############################################################################
+    *\.a)
+#     Collect a list of library archive (.a) files.
+      object_files=$object_files" "$arg
+      any_l_or_o_files=1
+      add_to_instantiation_command=0
+      ;;
+    *\.so | *\.so\.*)
+#     Collect a list of library shared object (.so) files.
+      object_files=$object_files" "$arg
+      any_l_or_o_files=1
+      add_to_instantiation_command=0
+      ;;
+    *\.c | *\.C | *\.cc | *\.cpp | *\.CPP | *\.cxx | *\.CXX | *\.s)
+#     Collect a list of .c files.
+      arg=`native_path "$arg"`
+      if [ "$cfiles" ]; then more_than_one_c_file=1; fi;
+      if [ $multi_trans_unit -ne 0 -a $any_c_files -ne 0 ] ; then
+        # In --multi_trans_unit mode, this is a secondary file.  Add it to
+        #  the list of secondary files.
+        secondary_files=$secondary_files" "$arg;
+      else
+        # A primary source file, or not in --multi_trans_unit mode.
+        cfiles=$cfiles" "$arg;
+      fi
+      any_c_files=1
+      add_to_instantiation_command=0
+      ;;
+    *\.o)
+#     Collect a list of .o files.
+      arg=`native_path "$arg"`
+      object_files=$object_files" "$arg
+      any_l_or_o_files=1
+      add_to_instantiation_command=0
+      if [ ! -f $arg ] ; then
+        driver_error "cannot open object file \"$arg\"."
+      fi
+      ;;
+    *\.h | *\.H | *\.hpp | *\.HPP)
+#     Collect a list of C++20 header unit files.
+      collect_module_unit_src_file "$arg"
+      module_unit_src_file_is_header=1
+      ;;
+    *\.ixx | *\.IXX | *\.cppm | *.CPPM)
+#     Collect a list of normal C++20 module unit files.
+      collect_module_unit_src_file "$arg"
+      ;;
+###############################################################################
+# Fallback unrecognized argument handling logic for the driver.
+###############################################################################
     *)
       driver_error "unrecognizable argument: $arg"
       ;;

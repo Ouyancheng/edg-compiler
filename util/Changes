@@ -1,5 +1,13 @@
 Version 6.7, January 27, 2025
 
+4/16/25  [EDGcpfe/28111]
+Fix eccp overly greedy file collection
+
+Previously, the command line argument parsing in eccp was overly greedy.  This
+could result in an option like --ms_mod_file_map=foo=foo.cpp being treated as a
+cpp file instead of a command line option.
+
+
 4/15/25  [EDGcpfe/28103]
 Thread safety for demangling
 
