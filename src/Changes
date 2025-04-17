@@ -1,5 +1,25 @@
 Version 6.8
 
+4/17/25  [EDGcpfe/25948,EDGcpfe/27967]
+C23, C++26: #embed/__has_embed
+
+The front end now supports the #embed directive and the __has_embed
+preprocessor operator, which were added to C23 by WG14 paper N3017 and have
+been adopted for the upcoming C++26 Standard via WG21 paper P1967R14.  The
+feature is enabled in C23 and C++26 modes, as well as when gnu_version is at
+least 1500000 or clang_version is at least 190000.  In addition to the
+standard #embed parameters, the front end also accepts the clang::offset and
+gnu::offset parameters in clang and GNU modes, respectively.  A new
+command-line option, --embed_directory, has been added to specify the list
+of directories to search for files named in #embed directories; it functions
+essentially equivalently to --include_directory/-I.  For example, assuming a
+file "x" containing the four bytes "abc\n" and with --c++26:
+
+  unsigned char a[] = {
+  #embed "x"   // Equivalent to the list 97, 98, 99, 10
+  };
+
+
 4/17/25  [EDGcpfe/24769,EDGcpfe/28109]
 Clang compatibility: fold expressions
 
