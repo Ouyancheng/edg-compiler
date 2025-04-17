@@ -15455,7 +15455,10 @@ return FALSE and let the caller generate the code normally.
       }  /* if */
 
       if (arg != NULL) {
-        if (arg->next == NULL && !opname_is_call_like(op) && op != onk_arrow) {
+        if (arg->next == NULL &&
+            op != onk_function_call &&
+            op != onk_subscript &&
+            op != onk_arrow) {
           /* This is a prefix operator, so put the operator name first. */
           write_tok_str(op_name);
         }  /* if */
@@ -15498,7 +15501,7 @@ return FALSE and let the caller generate the code normally.
         }  /* if */
       }  /* if */
 
-      if (arg != NULL || opname_is_call_like(op)) {
+      if (arg != NULL || op == onk_function_call || op == onk_subscript) {
         /* Either there's a second argument or this is a function call or C++23
            subscript operator, so the operator follows the first operand. */
         a_boolean spaces_needed = (op != onk_function_call &&
@@ -15540,7 +15543,8 @@ return FALSE and let the caller generate the code normally.
                operator; i.e., treat the argument as an ordinary function
                argument.  That is also needed for the C++23 multi-subscript
                operator. */
-            gen_argument(arg, param, !opname_is_call_like(op));
+            gen_argument(arg, param, op != onk_function_call &&
+                                     op != onk_subscript);
             if (operand_parens_needed) {
               write_tok_ch(')');
             }  /* if */

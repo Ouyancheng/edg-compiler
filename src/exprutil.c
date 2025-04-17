@@ -16187,6 +16187,7 @@ subscript expression.
   op_1_expr->next = subsc_exprs;
   op_expr = make_lvalue_operator_node(
                      op_kind, type_of_unknown_templ_param_nontype, op_1_expr);
+  op_expr->variant.operation.eval_left_to_right = TRUE;
   make_glvalue_expression_operand(op_expr, result);
   rule_out_expr_kinds(ROEK_CONSTANT, result);
   record_operator_position_in_rescan_info(result, operator_position,

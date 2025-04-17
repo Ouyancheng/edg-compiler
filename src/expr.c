@@ -7794,6 +7794,7 @@ and bound_function_selector are expected to be NULL in that case.
         opnd->ref_entries_list = NULL;
         goto done;
       } else {
+        a_source_position  end_pos = pos_curr_token;
         if (rcblock == NULL) {
           (void)required_token(tok_rbracket, ec_exp_rbracket);
         }  /* if */
@@ -7801,7 +7802,9 @@ and bound_function_selector are expected to be NULL in that case.
           template_multi_subscript_operation(eok_subscript, operand, arg_list,
                                              result, &operator_position,
                                              opening_paren_tok_seq_number,
-                                             &pos_curr_token);
+                                             &end_pos);
+          set_operand_position(result, &operand->position, &end_pos,
+                               &operator_position);
           goto done;
         }  /*if */ 
       }  /* if */
