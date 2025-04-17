@@ -1,5 +1,15 @@
 Version 6.8
 
+4/17/25  [EDGcpfe/18917,EDGcpfe/23331,EDGcpfe/26620,EDGcpfe/26654,
+          EDGcpfe/27561]
+GNU/Clang compatibility:  __builtin_add_overflow, etc.
+
+The front end can now fold calls to __builtin_add_overflow,
+__builtin_sub_overflow, and __builtin_mul_overflow, as well as calls to the
+various variants of those functions (like __builtin_add_overflow_p or
+__builtin_umull_overflow).
+
+
 4/17/25  [EDGcpfe/25948,EDGcpfe/27967]
 C23, C++26: #embed/__has_embed
 

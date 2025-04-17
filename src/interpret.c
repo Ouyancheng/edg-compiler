@@ -9588,6 +9588,132 @@ when the expression is being copied to set up a constructor's initializers.
 }  /* do_constexpr_builtin_source_pos_func */
 
 
+static a_boolean do_constexpr_builtin_op_overflow(
+                                     an_interpreter_state     *ips,
+                                     a_builtin_function_kind  kind,
+                                     an_expr_node_ptr         call_node,
+                                     a_byte                   *result_storage,
+                                     a_boolean                *p_result)
+/*
+Evaluate a call to a built-in arithmetic function that reports overflow (like
+__builtin_add_overflow).  See do_constexpr_builtin_function for the meaning of
+the parameters.
+*/
+{
+  a_boolean         interpreted = FALSE, store = TRUE;
+  an_expr_node_ptr  arg, args = call_node->variant.operation.operands->next;
+  a_byte            *arg_bytes[3];
+  int               k = 0;
+  a_type_ptr        int_tp = NULL;
+
+  /* Evaluate the arguments (there should be three of them). */
+  for (arg = args; arg != NULL && k < 3; arg = arg->next, ++k) {
+    a_type_ptr    tp = skip_typerefs(arg->type);
+    a_byte_count  n_bytes = expr_result_size(ips, arg, tp, p_result);
+    if (!*p_result) goto done;
+    alloc_complete_object(ips, n_bytes, tp, arg_bytes[k]);
+    if (!do_constexpr_expression(ips, arg, arg_bytes[k], arg_bytes[k])) {
+      *p_result = FALSE;
+      goto done;
+    }  /* if */
+    if (k == 2) {
+      if (type_is(tp, tk_integer)) {
+        /* An operator like __builtin_mul_overflow_p, which doesn't store the
+           result of the evaluation. */
+        store = FALSE;
+      } else if (!type_is(tp, tk_pointer) ||
+                 is_runtime_data_address(arg_bytes[k]) ||
+                 is_function_address(arg_bytes[k])) {
+        info_with_pos(ec_constexpr_access_to_runtime_storage,
+                      &arg->position, ips);
+        do_constexpr_fail(*p_result);
+        goto done;
+      } else {
+        tp = type_pointed_to(tp);
+      }  /* if */
+      int_tp = skip_typerefs(tp);
+    } else {
+      if (!type_is(tp, tk_integer)) {
+        do_constexpr_fail(*p_result);
+        goto done;
+      }  /* if */
+    }  /* if */
+  }  /* for */
+  if (arg != NULL || k != 3 || (store && !relaxed_constexpr_enabled)) {
+    info_with_pos(ec_constexpr_expression_cannot_be_interpreted,
+                  &call_node->position, ips);
+    do_constexpr_fail(*p_result);
+  } else {
+    an_integer_value  *val = (an_integer_value*)arg_bytes[0];
+    an_integer_kind   int_kind = int_tp->variant.integer.int_kind;
+    a_boolean         is_signed = int_kind_is_signed[int_kind];
+    a_boolean         ovflo = FALSE;
+    switch (kind) {
+      case bfk_add_overflow_p:
+      case bfk_add_overflow:
+      case bfk_uadd_overflow:
+      case bfk_uaddl_overflow:
+      case bfk_uaddll_overflow:
+      case bfk_sadd_overflow:
+      case bfk_saddl_overflow:
+      case bfk_saddll_overflow:
+        add_integer_values(val, (an_integer_value*)arg_bytes[1],
+                           is_signed, &ovflo);
+        break;
+      case bfk_sub_overflow_p:
+      case bfk_sub_overflow:
+      case bfk_ssub_overflow:
+      case bfk_ssubl_overflow:
+      case bfk_ssubll_overflow:
+      case bfk_usub_overflow:
+      case bfk_usubl_overflow:
+      case bfk_usubll_overflow:
+        subtract_integer_values(val, (an_integer_value*)arg_bytes[1],
+                                is_signed, &ovflo);
+        break;
+      case bfk_mul_overflow_p:
+      case bfk_mul_overflow:
+      case bfk_smul_overflow:
+      case bfk_smull_overflow:
+      case bfk_smulll_overflow:
+      case bfk_umul_overflow:
+      case bfk_umull_overflow:
+      case bfk_umulll_overflow:
+        multiply_integer_values(val, (an_integer_value*)arg_bytes[1],
+                                is_signed, &ovflo);
+        break;
+      default:
+        unexpected_condition();
+    }  /* switch */
+    if (!ovflo) {
+      /* Check if the result fits in the destination. */
+      ovflo = cmp_integer_values(val, is_signed,
+                                 &max_integer_value_of_kind[int_kind],
+                                 is_signed) > 0 ||
+              cmp_integer_values(val, is_signed,
+                                 &min_integer_value_of_kind[int_kind],
+                                 is_signed) < 0;
+    }  /* if */
+    *(an_integer_value*)result_storage = ovflo ? one_int : zero_int;
+    if (store) {
+      a_constexpr_address  *cap = (a_constexpr_address*)arg_bytes[2];
+      /* Truncate the value, possibly with sign extension. */
+      if (is_signed) {
+        size_t  n_bits = size_t_arg(int_tp->size) * targ_char_bit;
+        sign_extend_integer_value(val, n_bits);
+      } else {
+        and_integer_values(val, &max_integer_value_of_kind[int_kind]);
+      }  /* if */
+      *int_value_at(cap) = *val;
+      mark_subobject_initialized(cap->address, cap->complete_object);
+    }  /* if */
+    interpreted = TRUE;
+  }  /* if */
+done:
+  return interpreted;
+}  /* do_constexpr_builtin_op_overflow */
+
+
 static a_boolean do_constexpr_builtin_function(
                                         an_interpreter_state  *ips,
                                         a_routine_ptr         callee,
@@ -10352,6 +10478,33 @@ to FALSE and the reason for the failure is recorded in *ips.
           do_constexpr_fail(*p_result);
         }  /* if */
       }  /* if */
+      break;
+    case bfk_add_overflow_p:
+    case bfk_add_overflow:
+    case bfk_uadd_overflow:
+    case bfk_uaddl_overflow:
+    case bfk_uaddll_overflow:
+    case bfk_sadd_overflow:
+    case bfk_saddl_overflow:
+    case bfk_saddll_overflow:
+    case bfk_sub_overflow_p:
+    case bfk_sub_overflow:
+    case bfk_ssub_overflow:
+    case bfk_ssubl_overflow:
+    case bfk_ssubll_overflow:
+    case bfk_usub_overflow:
+    case bfk_usubl_overflow:
+    case bfk_usubll_overflow:
+    case bfk_mul_overflow_p:
+    case bfk_mul_overflow:
+    case bfk_smul_overflow:
+    case bfk_smull_overflow:
+    case bfk_smulll_overflow:
+    case bfk_umul_overflow:
+    case bfk_umull_overflow:
+    case bfk_umulll_overflow:
+      interpreted = do_constexpr_builtin_op_overflow(
+                              ips, kind, call_node, result_storage, p_result);
       break;
     default:
       interpreted = FALSE;

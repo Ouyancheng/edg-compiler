@@ -10559,6 +10559,30 @@ pseudo_call can be NULL if that information is not needed.
       case bufk_FILE_NAME:
       case bfk_FUNCTION:
       case bufk_FUNCSIG:
+      case bfk_add_overflow_p:
+      case bfk_add_overflow:
+      case bfk_uadd_overflow:
+      case bfk_uaddl_overflow:
+      case bfk_uaddll_overflow:
+      case bfk_sadd_overflow:
+      case bfk_saddl_overflow:
+      case bfk_saddll_overflow:
+      case bfk_sub_overflow_p:
+      case bfk_sub_overflow:
+      case bfk_ssub_overflow:
+      case bfk_ssubl_overflow:
+      case bfk_ssubll_overflow:
+      case bfk_usub_overflow:
+      case bfk_usubl_overflow:
+      case bfk_usubll_overflow:
+      case bfk_mul_overflow_p:
+      case bfk_mul_overflow:
+      case bfk_smul_overflow:
+      case bfk_smull_overflow:
+      case bfk_smulll_overflow:
+      case bfk_umul_overflow:
+      case bfk_umull_overflow:
+      case bfk_umulll_overflow:
         result = TRUE;
         break;
       case bfk_assume_aligned:
@@ -11386,6 +11410,11 @@ the folding mechanism is used as a way to validate argument values.
         break;
       default:
         /* Nothing to be done. */
+        { a_diag_list  diag_list;
+          clear_diag_list(&diag_list);
+          folded = interpret_constexpr_call(call_expr, /*is_consteval=*/FALSE,
+                                            result, &diag_list);
+        }
         break;
     }  /* switch */
   }  /* if */
