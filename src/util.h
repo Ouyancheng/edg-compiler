@@ -1322,10 +1322,7 @@ initialized and should therefore be moved to the new allocator.
 
     new_start = alloced.start;
     new_num_allocated = alloced.n_allocated;
-    for (size_t k = 0; k < n_to_move; ++k) {
-      construct(new_start + k, move_from(old_start + k));
-      destroy(old_start + k);
-    }  /* for */
+    move_elements<an_elem>(new_start, old_start, n_to_move);
   } else {
     /* This allocation was created by the fallback allocator of src.  Steal the
        allocation from src's fallback allocator to this allocator's fallback
