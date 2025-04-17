@@ -1568,11 +1568,8 @@ inline Dyn_array<an_Elem, Allocator>::~Dyn_array()
 Destructor.
 */
 {
-  an_elem  *arr_elems = this->elems;
-  size_t   n = this->n_elems;
-
-  destroy_elements<an_elem>(arr_elems, n);
-  this->dealloc(an_allocation{ arr_elems, this->n_allocated });
+  destroy_elements<an_elem>(this->elems, this->n_elems);
+  this->dealloc(an_allocation{ this->elems, this->n_allocated });
   this->elems = NULL;
 }  /* Dyn_array::~Dyn_array */
 
