@@ -1,5 +1,12 @@
 Version 6.8
 
+4/17/25  [EDGcpfe/28109]
+Clang compatibility: fold expressions
+
+"Fold" expressions (a C++17 feature) are now accepted in any C++ language mode
+when clang_version >= 60000.
+
+
 4/17/25  [EDGcpfe/22318,EDGcpfe/24369,EDGcpfe/27900]
 Abort on diagnostic for partially-specialized variable template
 

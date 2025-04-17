@@ -5710,6 +5710,7 @@ before this routine is called.
       /* Enabled by default (with a warning if in non-C++17 mode). */
       using_attribute_namespaces_enabled = TRUE;
       namespace_attributes_enabled = TRUE;
+      fold_expressions_enabled = TRUE;
     }  /* if */
     if (clang_version >= 80000) {
       /* Enabled by default (with a warning if in non-C++20 mode). */
