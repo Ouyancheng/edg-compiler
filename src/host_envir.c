@@ -1369,18 +1369,20 @@ is responsible for ensuring that the file exists and that the file name is
 properly encoded and normalized.
 */
 {
-  size_t sz = 0;
+  size_t       sz = 0;
+  a_const_char *abs_file_name = resolve_file_name(file_name);
+  a_const_char *ext_file_name = file_name_in_external_encoding(abs_file_name);
 
 #if EDG_WIN32
   struct _stat stat_buffer;
-  if (_stat(file_name, &stat_buffer) == 0) {
+  if (_stat(ext_file_name, &stat_buffer) == 0) {
     sz = (size_t)stat_buffer.st_size;
   } else {
     str_catastrophe(ec_cannot_get_file_size, file_name);
   }  /* if */
 #else /* !EDG_WIN32 */
   struct stat stat_buffer;
-  if (stat(file_name, &stat_buffer) == 0) {
+  if (stat(ext_file_name, &stat_buffer) == 0) {
     sz = (size_t)stat_buffer.st_size;
   } else {
     str_catastrophe(ec_cannot_get_file_size, file_name);
