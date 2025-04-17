@@ -1976,6 +1976,8 @@ the left parenthesis and *closing_rparen to the terminating ')'.
     error(ec_dupl_embed_param);
     if (is_directive) {
       flush_to_newline();
+    } else {
+      flush_to_closing_paren();
     }  /* if */
     result = FALSE;
     goto done;
@@ -1985,6 +1987,8 @@ the left parenthesis and *closing_rparen to the terminating ')'.
   if (!required_token(tok_lparen, ec_exp_lparen)) {
     if (is_directive) {
       flush_to_newline();
+    } else {
+      flush_to_closing_paren();
     }  /* if */
     result = FALSE;
   } else {
@@ -2074,6 +2078,8 @@ parameters, respectively.
       pos_error(ec_exp_identifier, &pos_curr_token);
       if (is_directive) {
         flush_to_newline();
+      } else {
+        flush_to_closing_paren();
       }  /* if */
       result = FALSE;
       goto done;
@@ -2122,6 +2128,8 @@ parameters, respectively.
         pos_error(ec_unrec_embed_param, &id_pos);
         if (is_directive) {
           flush_to_newline();
+        } else {
+          flush_to_closing_paren();
         }  /* if */
         result = FALSE;
         goto done;
@@ -2130,6 +2138,8 @@ parameters, respectively.
         pos_error(ec_exp_identifier, &pos_curr_token);
         if (is_directive) {
           flush_to_newline();
+        } else {
+          flush_to_closing_paren();
         }  /* if */
         result = FALSE;
         goto done;
