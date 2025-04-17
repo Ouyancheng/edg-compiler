@@ -823,7 +823,7 @@ typedef struct an_arg_check_block {
 			   before the ellipsis. */
   int		format_first_subst_arg;
 			/* If arg_list_kind is pk_printf_args or
-			   pk_scanf_args), contains the value of the third
+			   pk_scanf_args, contains the value of the third
 			   argument to "format" (i.e., the argument position
 			   of the start of the actual arguments being used
 			   to fill out the format string).  A value of zero
