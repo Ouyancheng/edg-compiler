@@ -825,6 +825,7 @@ check_abbreviation()
 --dollar
 --driver_debug
 --early_tiebreaker
+--embed_directory
 --embedded_c
 --embedded_c++
 --enum_overloading
@@ -1925,6 +1926,7 @@ process_option()
          --diag_warning | \
          --diag_error | \
          --diag_once | \
+         --embed_directory | \
          --header_unit | \
          --inline_statement_limit | \
          --max_cost_constexpr_call | \
@@ -1980,7 +1982,8 @@ process_option()
         -t | --instantiate)
           instantiation_mode_specified=1
           ;;
-        -I | --include_directory | --sys_include | --modules_directory)
+        -I | --include_directory | --sys_include | --modules_directory | \
+             --embed_directory)
           # Convert relative -I paths to absolute ones, if necessary.
           if [ $EDG_USE_ABSOLUTE_INCL_DIR_PATHS -eq 1 -a \
                "$curr_param" != "-" ] ; then
@@ -2035,6 +2038,7 @@ process_option()
     -U* | --undefine_macro=* | \
     -X* | --xref=* | \
           --list=* | \
+          --embed_directory=* | \
           --error_output=* | \
           --diag_suppress=* | \
           --diag_remark=* | \
@@ -2112,7 +2116,8 @@ process_option()
           ;;
         --sys_include=* | \
         --include_directory=* | \
-        --modules_directory=*)
+        --modules_directory=* | \
+        --embed_directory=*)
           # Convert relative --include_directory  paths to absolute ones,
           # if necessary.
           dir_name=`expr $arg : '.*=\(.*\)'`    # Get the string after the =
