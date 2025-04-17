@@ -3591,6 +3591,7 @@ Set the various flags appropriate to C99 mode or later standard modes.
     if (!option_kind_used[(int)optk_nullptr]) {
       nullptr_enabled = TRUE;
     }  /* if */
+    embed_enabled = TRUE;
   }  /* if */
 }  /* check_and_set_new_c_mode_options */
 
@@ -4126,110 +4127,113 @@ default mode (e.g., exception handling).
     variable_templates_enabled = TRUE;
     /* This was added as a DR to C++14. */
     generalized_template_template_matching = TRUE;
-    if (cpp17_mode) {
-      /* Features enabled in C++17 mode. */
-      namespace_attributes_enabled = TRUE;
-      nested_namespace_definitions_enabled = TRUE;
-      enumerator_attributes_enabled = TRUE;
-      terse_static_assert_enabled = TRUE;
-      if (!option_kind_used[(int)optk_utf8_char_literals]) {
-        utf8_char_literals_enabled = TRUE;
-      }  /* if */
-      if (range_based_for_enabled) {
-        relaxed_range_based_for_enabled = TRUE;
-      }  /* if */
-      register_is_disallowed = TRUE;
-      operator_bool_increment_allowed = FALSE;
-      using_attribute_namespaces_enabled = TRUE;
-      nodiscard_attribute_enabled = TRUE;
-      hex_floating_point_constants_allowed = TRUE;
-      struct_bindings_enabled = TRUE;
-      selection_initializers_enabled = TRUE;
-      direct_init_fixed_base_enum_enabled = TRUE;
-      constexpr_if_enabled = TRUE;
-      constexpr_lambdas_enabled = TRUE;
-      capture_star_this_enabled = TRUE;
-      fold_expressions_enabled = TRUE;
-      variadic_using_decls_enabled = TRUE;
-      inline_variables_allowed = TRUE;
-#if EXC_SPEC_IN_FUNC_TYPE_ENABLING_POSSIBLE
-      if (!option_kind_used[(int)optk_exc_spec_in_func_type]) {
-        exc_spec_in_func_type = TRUE;
-      }  /* if */
-#endif /* EXC_SPEC_IN_FUNC_TYPE_ENABLING_POSSIBLE */
-      if (!option_kind_used[(int)optk_aligned_new]) {
-        overaligned_allocation_enabled = TRUE;
-      }  /* if */
-      mandatory_copy_elision = TRUE;
-      generalized_nontype_arguments = TRUE;
-      strict_cpp17_eval_order = TRUE;
-      if (!option_kind_used[(int)optk_trigraphs]) {
-        trigraphs_allowed = FALSE;
-      }  /* if */
-      aggregate_classes_can_have_bases = TRUE;
-      generalized_template_template_matching = TRUE;
-      class_template_arg_deduction_enabled = TRUE;
-      auto_template_params_enabled = TRUE;
-      if (cpp20_mode) {
-        conditional_explicit_enabled = TRUE;
-        constexpr_virtual_enabled = TRUE;
-        constexpr_try_enabled = TRUE;
-        constexpr_dynamic_alloc_enabled = TRUE;
-        consteval_enabled = TRUE;
-        constinit_enabled = TRUE;
-        if (!coroutines_enabled) {
-          /* This may have been enabled already via --set_flag; we don't want
-             to override that. */
-          coroutines_enabled = COROUTINE_ENABLING_POSSIBLE;
-        }  /* if */
-        explicit_copy_this_capture_enabled = TRUE;
-        lambda_template_param_list_enabled = TRUE;
-        lambda_allowed_in_uneval_context = TRUE;
-        aggregate_classes_can_have_user_ctors = FALSE;
-        spaceship_enabled = TRUE;
-        adl_for_non_visible_templates = TRUE;
-        relaxed_typename_enabled = TRUE;
-        relaxed_specialization_access_checking = TRUE;
-        pack_init_capture_enabled = TRUE;
-        using_enum_enabled = TRUE;
-        aggregate_ctad_enabled = TRUE;
-        alias_ctad_enabled = TRUE;
-        rvalue_allowed_with_const_qual_memptr = TRUE;
-        va_opt_enabled = !microsoft_mode || ms_std_preproc;
-        nested_inline_namespace_definitions_enabled = TRUE;
-        allow_parenthesized_aggregate_init = TRUE;
-        init_statement_allowed_in_range_based_for = TRUE;
-        if (!option_kind_used[(int)optk_char8_t]) {
-          char8_t_enabled = TRUE;
-        }  /* if */
-        destroying_operator_delete_enabled = TRUE;
-        if (!option_kind_used[(int)optk_concepts]) {
-          concepts_enabled = TRUE;
-        }  /* if */
-        abbr_func_templates_enabled = TRUE;
-        module_keywords_enabled = TRUE;
-        if (!option_kind_used[(int)optk_modules]) {
-          modules_enabled = DEFAULT_MODULES_ENABLED;
-        }  /* if */
-        export_keyword_enabled = FALSE;
-        floating_point_template_parameters_allowed = TRUE;
-        if (cpp23_mode) {
-          if_consteval_enabled = TRUE;
-          explicit_this_param_enabled = TRUE;
-          extended_float_types = TRUE;
-          elifdef_enabled = TRUE;
-          size_suffix_enabled = TRUE;
-          named_unicode_chars_allowed = TRUE;
-          delimited_escape_seqs_allowed = TRUE;
-          lambda_attributes_allowed = TRUE;
-          lambda_declarator_params_optional = TRUE;
-          if (relaxed_range_based_for_enabled) {
-            extended_range_based_for_lifetime = TRUE;
-          }  /* if */
-          multi_subscript_enabled = TRUE;
-        }  /* if */
-      }  /* if */
+  }  /* if */
+  if (cpp17_mode) {
+    /* Features enabled in C++17 mode. */
+    namespace_attributes_enabled = TRUE;
+    nested_namespace_definitions_enabled = TRUE;
+    enumerator_attributes_enabled = TRUE;
+    terse_static_assert_enabled = TRUE;
+    if (!option_kind_used[(int)optk_utf8_char_literals]) {
+      utf8_char_literals_enabled = TRUE;
     }  /* if */
+    if (range_based_for_enabled) {
+      relaxed_range_based_for_enabled = TRUE;
+    }  /* if */
+    register_is_disallowed = TRUE;
+    operator_bool_increment_allowed = FALSE;
+    using_attribute_namespaces_enabled = TRUE;
+    nodiscard_attribute_enabled = TRUE;
+    hex_floating_point_constants_allowed = TRUE;
+    struct_bindings_enabled = TRUE;
+    selection_initializers_enabled = TRUE;
+    direct_init_fixed_base_enum_enabled = TRUE;
+    constexpr_if_enabled = TRUE;
+    constexpr_lambdas_enabled = TRUE;
+    capture_star_this_enabled = TRUE;
+    fold_expressions_enabled = TRUE;
+    variadic_using_decls_enabled = TRUE;
+    inline_variables_allowed = TRUE;
+#if EXC_SPEC_IN_FUNC_TYPE_ENABLING_POSSIBLE
+    if (!option_kind_used[(int)optk_exc_spec_in_func_type]) {
+      exc_spec_in_func_type = TRUE;
+    }  /* if */
+#endif /* EXC_SPEC_IN_FUNC_TYPE_ENABLING_POSSIBLE */
+    if (!option_kind_used[(int)optk_aligned_new]) {
+      overaligned_allocation_enabled = TRUE;
+    }  /* if */
+    mandatory_copy_elision = TRUE;
+    generalized_nontype_arguments = TRUE;
+    strict_cpp17_eval_order = TRUE;
+    if (!option_kind_used[(int)optk_trigraphs]) {
+      trigraphs_allowed = FALSE;
+    }  /* if */
+    aggregate_classes_can_have_bases = TRUE;
+    generalized_template_template_matching = TRUE;
+    class_template_arg_deduction_enabled = TRUE;
+    auto_template_params_enabled = TRUE;
+  }  /* if */
+  if (cpp20_mode) {
+    conditional_explicit_enabled = TRUE;
+    constexpr_virtual_enabled = TRUE;
+    constexpr_try_enabled = TRUE;
+    constexpr_dynamic_alloc_enabled = TRUE;
+    consteval_enabled = TRUE;
+    constinit_enabled = TRUE;
+    if (!coroutines_enabled) {
+      /* This may have been enabled already via --set_flag; we don't want
+         to override that. */
+      coroutines_enabled = COROUTINE_ENABLING_POSSIBLE;
+    }  /* if */
+    explicit_copy_this_capture_enabled = TRUE;
+    lambda_template_param_list_enabled = TRUE;
+    lambda_allowed_in_uneval_context = TRUE;
+    aggregate_classes_can_have_user_ctors = FALSE;
+    spaceship_enabled = TRUE;
+    adl_for_non_visible_templates = TRUE;
+    relaxed_typename_enabled = TRUE;
+    relaxed_specialization_access_checking = TRUE;
+    pack_init_capture_enabled = TRUE;
+    using_enum_enabled = TRUE;
+    aggregate_ctad_enabled = TRUE;
+    alias_ctad_enabled = TRUE;
+    rvalue_allowed_with_const_qual_memptr = TRUE;
+    va_opt_enabled = !microsoft_mode || ms_std_preproc;
+    nested_inline_namespace_definitions_enabled = TRUE;
+    allow_parenthesized_aggregate_init = TRUE;
+    init_statement_allowed_in_range_based_for = TRUE;
+    if (!option_kind_used[(int)optk_char8_t]) {
+      char8_t_enabled = TRUE;
+    }  /* if */
+    destroying_operator_delete_enabled = TRUE;
+    if (!option_kind_used[(int)optk_concepts]) {
+      concepts_enabled = TRUE;
+    }  /* if */
+    abbr_func_templates_enabled = TRUE;
+    module_keywords_enabled = TRUE;
+    if (!option_kind_used[(int)optk_modules]) {
+      modules_enabled = DEFAULT_MODULES_ENABLED;
+    }  /* if */
+    export_keyword_enabled = FALSE;
+    floating_point_template_parameters_allowed = TRUE;
+  }  /* if */
+  if (cpp23_mode) {
+    if_consteval_enabled = TRUE;
+    explicit_this_param_enabled = TRUE;
+    extended_float_types = TRUE;
+    elifdef_enabled = TRUE;
+    size_suffix_enabled = TRUE;
+    named_unicode_chars_allowed = TRUE;
+    delimited_escape_seqs_allowed = TRUE;
+    lambda_attributes_allowed = TRUE;
+    lambda_declarator_params_optional = TRUE;
+    if (relaxed_range_based_for_enabled) {
+      extended_range_based_for_lifetime = TRUE;
+    }  /* if */
+    multi_subscript_enabled = TRUE;
+  }  /* if */
+  if (cpp26_mode) {
+    embed_enabled = TRUE;
   }  /* if */
   /* Disable "false" as a null pointer constant in C++11 mode (as per Core
      issue 903). */
@@ -5231,6 +5235,10 @@ This function is also called in clang mode.
          language versions. */
       named_unicode_chars_allowed = TRUE;
     }  /* if */
+    if (clang_version >= 190000) {
+      /* As of version 19, clang supports #embed. */
+      embed_enabled = TRUE;
+    }  /* if */
   } else {
 #if USE_LAZY_INITIALIZATION_FOR_THREAD_LOCAL_VARIABLES
     /* GNU produces wrappers only for dynamically-initialized thread_local
@@ -5267,6 +5275,10 @@ This function is also called in clang mode.
       /* As of version 13.1, g++ accepts named Unicode characters in all
          language versions. */
       named_unicode_chars_allowed = TRUE;
+    }  /* if */
+    if (gnu_version >= 150000) {
+      /* As of version 15.1, gcc accepts #embed in all language versions. */
+      embed_enabled = TRUE;
     }  /* if */
   }  /* if */
 }  /* check_and_set_gnu_mode_options */
@@ -13399,6 +13411,7 @@ variables declared in cmd_line.h.
   delimited_escape_seqs_allowed = FALSE;
   lambda_attributes_allowed = FALSE;
   lambda_declarator_params_optional = FALSE;
+  embed_enabled = FALSE;
 }  /* cmd_line_static_var_init */
 
 

@@ -4849,6 +4849,11 @@ STATIC_THREAD a_feature_support feature_support_list[] = {
     "201606L" },
   { "",
     0,
+    &embed_enabled,
+    "__cpp_pp_embed",
+    "202502L" },
+  { "",
+    0,
     &size_suffix_enabled,
     "__cpp_size_t_suffix",
     "202011L" },
@@ -12396,15 +12401,17 @@ command line -D options.
                                             /*cannot_be_redefined=*/TRUE,
                                             /*ref_suppresses_pch_file=*/FALSE);
   }  /* if */
+  if (embed_enabled) {
   /* The argument to __has_embed is special -- a header file name,
      optionally followed by one or more named parameters -- and must be
      scanned differently from ordinary macro arguments.  In order to
-     suppress the normal macro argument processing, this macro is
-     defined as object-like, not function-like, and the argument is scanned
-     and processed directly by scan_has_embed. */
-  has_embed_symbol = enter_predef_macro((char *)NULL, "__has_embed",
-                                        /*cannot_be_redefined=*/TRUE,
-                                        /*ref_suppresses_pch_file=*/FALSE);
+     suppress the normal macro argument processing, this macro is defined
+     as object-like, not function-like, and the argument is scanned and
+     processed directly by scan_has_embed. */
+    has_embed_symbol = enter_predef_macro((char *)NULL, "__has_embed",
+                                          /*cannot_be_redefined=*/TRUE,
+                                          /*ref_suppresses_pch_file=*/FALSE);
+  }  /* if */
 #if !DEFINE_FEATURE_TEST_MACRO_OPERATORS_IN_ALL_MODES
   /* Restrict __has_include_next to only those compilers that implement it. */
   if (clang_mode || gnu_version_is(>=40902))

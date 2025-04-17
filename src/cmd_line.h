@@ -2924,6 +2924,11 @@ EXTERN_THREAD a_boolean
 			   without omitting the declarator as a whole (a C++23
 			   feature). */
 
+EXTERN_THREAD a_boolean
+		embed_enabled;
+			/* TRUE if the C23/C++26 #embed directive is
+			   supported. */
+
 /* Process the command line arguments. */
 extern void proc_command_line(int argc, char *argv[]);
 #if COMPILE_MULTIPLE_SOURCE_FILES

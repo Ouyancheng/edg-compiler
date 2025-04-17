@@ -385,7 +385,7 @@ the "#" the current token (at least logically).
     } else if (curr_id_is("include_next")) {
       /* #include_next directive. */
       kind = ppd_include_next;
-    } else if (curr_id_is("embed")) {
+    } else if (embed_enabled && curr_id_is("embed")) {
       /* #embed directive */
       kind = ppd_embed;
     } else {
@@ -2154,10 +2154,22 @@ parameters, respectively.
           goto done;
         }  /* if */
       } else {
-        pos_error(ec_unrec_embed_param, &id_pos);
+        if (is_directive) {
+          pos_error(ec_unrec_embed_param, &id_pos);
+          flush_to_newline();
+        } else {
+          flush_to_closing_paren();
+        }  /* if */
+        result = FALSE;
+        goto done;
       }  /* if */
     } else {
-      pos_error(ec_unrec_embed_param, &id_pos);
+      if (is_directive) {
+        pos_error(ec_unrec_embed_param, &id_pos);
+        flush_to_newline();
+      } else {
+        flush_to_closing_paren();
+      }  /* if */
       result = FALSE;
       goto done;
     }  /* if */
