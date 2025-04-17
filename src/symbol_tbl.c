@@ -4490,85 +4490,6 @@ Remove a symbol from the symbols_with_no_scope list.
 }  /* remove_symbol_from_no_scope_list */
 
 
-static a_hash_table_ptr create_name_lookup_table(a_scope_kind kind);
-
-
-static inline a_module_lookup_table_map_ptr get_module_lookup_table_map(
-                                     a_scope_pointers_block_ptr pointers_block)
-/*
-Return a pointer to the module lookup table map from pointers_block.
-Create the entry if it does not already exist.
-*/
-{
-  if (pointers_block->module_lookup_table_map == NULL) {
-      pointers_block->module_lookup_table_map =
-                                   alloc_fe_of_type(a_module_lookup_table_map);
-    construct(pointers_block->module_lookup_table_map, /*mask_width=*/10u);
-  }  /* if */
-  return pointers_block->module_lookup_table_map;
-}  /* get_module_lookup_table_map */
-
-
-a_hash_table_ptr curr_lookup_table(
-                              a_scope_pointers_block_ptr pointers_block,
-                              a_module_ptr               module_context,
-                              a_scope_kind               scope_kind,
-            /* Defaulted: */  a_boolean                  create)
-
-/*
-Return a pointer to the lookup table for the given module context and the scope
-associated with pointers_block.  Note that this address could point into a
-Ptr_map, so it is potentially not stable across things like instantiations,
-etc.  When module_context is NULL the lookup_table pointer is used, otherwise a
-map from the module context to a particular lookup table is used.  If create is
-TRUE, a map entry is added for the lookup table for the module_context.
-*/
-{
-  a_hash_table_ptr result;
-
-  if (module_context == NULL || !is_file_or_namespace_scope_kind(scope_kind)) {
-    result = pointers_block->lookup_table;
-    if (result == NULL && create) {
-      result = create_name_lookup_table(scope_kind);
-      pointers_block->lookup_table = result;
-    }  /* if */
-  } else {
-    a_module_lookup_table_map_ptr
-                mltmp = get_module_lookup_table_map(pointers_block);
-
-    module_context = skip_module_partitions(module_context);
-    result = mltmp->get(module_context);
-    if (result == NULL && create) {
-      result = create_name_lookup_table(scope_kind);
-      mltmp->map(module_context, result);
-    }  /* if */
-  }  /* if */
-  return result;
-}  /* curr_lookup_table */
-
-
-a_hash_table_ptr curr_lookup_table(a_scope_stack_entry_ptr ssep,
-                                   a_module_ptr            module_context)
-/*
-Return a pointer to the lookup table for the given module context and the
-specified scope stack entry.  Note that this address could point into a
-Ptr_map, so it is potentially not stable across things like instantiations,
-etc.  The choice of the lookup_table pointer vs. the module map is based on the
-scope kind.
-*/
-{
-  a_hash_table_ptr           result;
-  a_scope_pointers_block_ptr pointers_block = assoc_pointers_block_of(ssep);
-
-  if (is_file_or_namespace_scope(ssep)) {
-    result = curr_lookup_table(pointers_block, module_context, ssep->kind);
-  } else {
-    result = pointers_block->lookup_table;
-  }  /* if */
-  return result;
-}  /* curr_lookup_table */
-
-
 /*
 Entry used to build a hash table for looking up symbols with a given
 symbol header in a scope.
@@ -6056,8 +5977,9 @@ Return TRUE if the key matches the entry.
   return result;
 }  /* compare_symbol_header_lookup_entry */
 
+namespace detail {
 
-static a_hash_table_ptr create_name_lookup_table(a_scope_kind	kind)
+a_hash_table_ptr create_name_lookup_table(a_scope_kind	kind)
 /*
 Create a name lookup table for the specified scope kind.  Return a pointer to
 it.
@@ -6099,6 +6021,32 @@ it.
 }  /* create_name_lookup_table */
 
 
+a_symbol_ptr find_symbol_list_in_non_null_table(a_hash_table_ptr    hash_table,
+                                                a_symbol_header_ptr header)
+/*
+Look up header in hash_table (which must be non-NULL).  Return a pointer to the
+symbol list from the hash table or NULL if no entry was found.
+*/
+{
+  a_symbol_ptr                      result_sym = NULL;
+  a_symbol_header_lookup_entry      shle_key;
+  a_symbol_header_lookup_entry_ptr  *shlep_in_table;
+
+  /* Create an entry to be used as the lookup key. */
+  clear_symbol_header_lookup_entry(&shle_key);
+  shle_key.header = header;
+  shlep_in_table = (a_symbol_header_lookup_entry_ptr*)
+                            hash_find(hash_table,
+                                      (a_void_ptr)&shle_key,
+                                      /*create=*/FALSE);
+  if (shlep_in_table != NULL) {
+    result_sym = (*shlep_in_table)->symbols;
+  }  /* if */
+  return result_sym;
+}  /* find_symbol_list_in_non_null_table  */
+
+}  /* detail */
+
 static void add_symbol_to_lookup_table(a_symbol_ptr     symbol,
                                        a_hash_table_ptr lookup_table)
 /*
@@ -6132,68 +6080,6 @@ Add symbol to the specified lookup table.
   }  /* if */
 }  /* add_symbol_to_lookup_table */
 
-
-a_symbol_ptr find_symbol_list_in_table(a_hash_table_ptr    hash_table,
-                                       a_symbol_header_ptr header)
-/*
-Look up header in hash_table.  Return a pointer to the symbol list from the
-hash table or NULL if no entry was found.
-*/
-{
-  a_symbol_header_lookup_entry_ptr  *shlep_in_table;
-  a_symbol_header_lookup_entry      shle_key;
-  a_symbol_ptr                      result_sym = NULL;
-
-  if (hash_table != NULL) {
-    /* Create an entry to be used as the lookup key. */
-    clear_symbol_header_lookup_entry(&shle_key);
-    shle_key.header = header;
-    shlep_in_table = (a_symbol_header_lookup_entry_ptr*)
-                              hash_find(hash_table,
-                                        (a_void_ptr)&shle_key,
-                                        /*create=*/FALSE);
-    if (shlep_in_table != NULL) result_sym = (*shlep_in_table)->symbols;
-  }  /* if */
-  return result_sym;
-}  /* find_symbol_list_in_table  */
-
-
-a_symbol_ptr find_symbol_list_in_table(
-                                     a_scope_pointers_block_ptr pointers_block,
-                                     a_symbol_header_ptr        header)
-/*
-Look up header in the lookup table of pointers_block.  Return a pointer to
-the symbol list from the hash table or NULL if no entry was found.
-*/
-{
-  a_symbol_ptr      result_sym = NULL;
-  a_hash_table_ptr  hash_table = pointers_block->lookup_table;
-
-  if (hash_table != NULL) {
-    result_sym = find_symbol_list_in_table(hash_table, header);
-  }  /* if */
-  return result_sym;
-}  /* find_symbol_list_in_table  */
-
-
-a_symbol_ptr find_symbol_list_in_table(a_scope_stack_entry_ptr ssep,
-                                       a_module_ptr            module_context,
-                                       a_symbol_header_ptr     header)
-/*
-Look up header in the lookup table specified by ssep and module_context.
-Return a pointer to the symbol list from the hash table or NULL if no
-entry was found.
-*/
-{
-  a_symbol_ptr      result_sym = NULL;
-  a_hash_table_ptr  hash_table;
-
-  hash_table = curr_lookup_table(ssep, module_context);
-  if (hash_table != NULL) {
-    result_sym = find_symbol_list_in_table(hash_table, header);
-  }  /* if */
-  return result_sym;
-}  /* find_symbol_list_in_table  */
 
 
 void add_symbol_to_scope_list(a_symbol_ptr  sym_ptr,

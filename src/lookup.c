@@ -239,8 +239,8 @@ the options being used for the lookup.
 }  /* find_synthesized_projection_symbol */
 
 
-static void load_lazy_symbols_if_needed(a_scope_ptr      scope,
-                                        a_symbol_locator *locator)
+static inline void load_lazy_symbols_if_needed(a_scope_ptr      scope,
+                                               a_symbol_locator *locator)
 /*
 If the kind associated with scope is a namespace or file scope, call a
 routine to see if there are symbols that should be made visible in scope.
