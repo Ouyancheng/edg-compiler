@@ -1,6 +1,6 @@
 Version 6.8
 
-4/17/25  [EDGcpfe/28109]
+4/17/25  [EDGcpfe/24769,EDGcpfe/28109]
 Clang compatibility: fold expressions
 
 "Fold" expressions (a C++17 feature) are now accepted in any C++ language mode
