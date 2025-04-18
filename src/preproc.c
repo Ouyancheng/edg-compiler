@@ -1992,9 +1992,10 @@ the left parenthesis and *closing_rparen to the terminating ')'.
     }  /* if */
     result = FALSE;
   } else {
+    a_boolean empty = TRUE;
     *operand_start = start_of_curr_token;
     for (;;) {
-      if (get_token() == tok_newline) {
+      if (curr_token == tok_newline) {
         /* We hit the end of the line without finding the corresponding
            closing parenthesis. */
         pos_error(ec_exp_rparen, &pos_curr_token);
@@ -2002,10 +2003,17 @@ the left parenthesis and *closing_rparen to the terminating ')'.
         break;
       }  /* if */
       if (curr_token == tok_lparen) {
+        empty = FALSE;
         ++paren_count;
       } else if (curr_token == tok_rparen && paren_count-- == 0) {
-        *closing_rparen = start_of_curr_token;
+        if (empty) {
+          *operand_start = NULL;
+        } else {
+          *closing_rparen = start_of_curr_token;
+        }  /* if */
         break;
+      } else {
+        empty = FALSE;
       }  /* if */
     }  /* for */
   }  /* if */
