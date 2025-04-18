@@ -9600,11 +9600,12 @@ __builtin_add_overflow).  See do_constexpr_builtin_function for the meaning of
 the parameters.
 */
 {
-  a_boolean         interpreted = FALSE, store = TRUE;
+  a_boolean         interpreted = FALSE, store = TRUE, is_signed = FALSE;
   an_expr_node_ptr  arg, args = call_node->variant.operation.operands->next;
   a_byte            *arg_bytes[3];
-  int               k = 0;
+  int               k = 0, bit_length = -1;
   a_type_ptr        int_tp = NULL;
+  an_integer_kind   int_kind;
 
   /* Evaluate the arguments (there should be three of them). */
   for (arg = args; arg != NULL && k < 3; arg = arg->next, ++k) {
@@ -9621,6 +9622,23 @@ the parameters.
         /* An operator like __builtin_mul_overflow_p, which doesn't store the
            result of the evaluation. */
         store = FALSE;
+        int_tp = skip_typerefs(tp);
+        int_kind = int_tp->variant.integer.int_kind;
+        is_signed = int_kind_is_signed[int_kind];
+        /* If arg is a bit field selection, then the bit field length
+           is taken into consideration. */
+        if (node_is_operator(arg, eok_dot_field) ||
+            node_is_operator(arg, eok_points_to_field)) {
+          an_expr_node  *field_node = arg->variant.operation.operands->next;
+          a_field_ptr   fp;
+          check_assertion(field_node != NULL &&
+                          node_is(field_node, enk_field));
+          fp = node_field(field_node);
+          if (fp->is_bit_field) {
+            bit_length = fp->bit_size;
+            is_signed = fp->bit_field_is_signed;
+          }  /* if */
+        }  /* if */
       } else if (!type_is(tp, tk_pointer) ||
                  is_runtime_data_address(arg_bytes[k]) ||
                  is_function_address(arg_bytes[k])) {
@@ -9629,24 +9647,26 @@ the parameters.
         do_constexpr_fail(*p_result);
         goto done;
       } else {
-        tp = type_pointed_to(tp);
+        int_tp = skip_typerefs(type_pointed_to(tp));
+        int_kind = int_tp->variant.integer.int_kind;
+        is_signed = int_kind_is_signed[int_kind];
       }  /* if */
-      int_tp = skip_typerefs(tp);
     } else {
       if (!type_is(tp, tk_integer)) {
+        info_with_pos(ec_constexpr_expression_cannot_be_interpreted,
+                      &call_node->position, ips);
         do_constexpr_fail(*p_result);
         goto done;
       }  /* if */
     }  /* if */
   }  /* for */
-  if (arg != NULL || k != 3 || (store && !relaxed_constexpr_enabled)) {
+  if (arg != NULL || k != 3 || int_tp == NULL || bit_length == 0 ||
+      (store && !relaxed_constexpr_enabled)) {
     info_with_pos(ec_constexpr_expression_cannot_be_interpreted,
                   &call_node->position, ips);
     do_constexpr_fail(*p_result);
   } else {
     an_integer_value  *val = (an_integer_value*)arg_bytes[0];
-    an_integer_kind   int_kind = int_tp->variant.integer.int_kind;
-    a_boolean         is_signed = int_kind_is_signed[int_kind];
     a_boolean         ovflo = FALSE;
     switch (kind) {
       case bfk_add_overflow_p:
@@ -9685,27 +9705,41 @@ the parameters.
       default:
         unexpected_condition();
     }  /* switch */
-    if (!ovflo) {
-      /* Check if the result fits in the destination. */
-      ovflo = cmp_integer_values(val, is_signed,
-                                 &max_integer_value_of_kind[int_kind],
-                                 is_signed) > 0 ||
-              cmp_integer_values(val, is_signed,
-                                 &min_integer_value_of_kind[int_kind],
-                                 is_signed) < 0;
-    }  /* if */
-    *(an_integer_value*)result_storage = ovflo ? one_int : zero_int;
-    if (store) {
-      a_constexpr_address  *cap = (a_constexpr_address*)arg_bytes[2];
-      /* Truncate the value, possibly with sign extension. */
-      if (is_signed) {
-        size_t  n_bits = size_t_arg(int_tp->size) * targ_char_bit;
-        sign_extend_integer_value(val, n_bits);
+    { an_integer_value  bit_max, bit_min;
+      an_integer_value  *p_max = &bit_max, *p_min = &bit_min;
+      if (bit_length == -1) {
+        p_max = &max_integer_value_of_kind[int_kind];
+        p_min = &min_integer_value_of_kind[int_kind];
+        bit_length = (int)(int_tp->size * targ_char_bit);
       } else {
-        and_integer_values(val, &max_integer_value_of_kind[int_kind]);
+        if (is_signed) {
+          a_boolean  err;
+          make_integer_value_mask(&bit_max, (size_t)(bit_length-1));
+          bit_min = bit_max;
+          add_integer_values(&bit_min, &one_int, /*is_signed=*/FALSE, &err);
+          sign_extend_integer_value(&bit_min, (size_t)bit_length);
+        } else {
+          make_integer_value_mask(&bit_max, (size_t)bit_length);
+          p_min = &zero_int;
+        }  /* if */
       }  /* if */
-      *int_value_at(cap) = *val;
-      mark_subobject_initialized(cap->address, cap->complete_object);
+      if (!ovflo) {
+      /* Check if the result fits in the destination. */
+        ovflo = cmp_integer_values(val, is_signed, p_max, is_signed) > 0 ||
+                cmp_integer_values(val, is_signed, p_min, is_signed) < 0;
+      }  /* if */
+      *(an_integer_value*)result_storage = ovflo ? one_int : zero_int;
+      if (store) {
+        a_constexpr_address  *cap = (a_constexpr_address*)arg_bytes[2];
+        /* Truncate the value, possibly with sign extension. */
+        if (is_signed) {
+          sign_extend_integer_value(val, (size_t)bit_length);
+        } else {
+          and_integer_values(val, p_max);
+        }  /* if */
+        *int_value_at(cap) = *val;
+        mark_subobject_initialized(cap->address, cap->complete_object);
+      }  /* if */
     }  /* if */
     interpreted = TRUE;
   }  /* if */
