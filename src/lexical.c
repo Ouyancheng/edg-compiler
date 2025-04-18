@@ -16975,6 +16975,11 @@ restart:
       if (embed_control.buf != NULL && embed_control.reading_from_buffer) {
         /* We're currently reading the contents of the embed file. */
         get_token_from_embed_file();
+        if (curr_lexical_state_stack_entry->cache_tokens) {
+          assign_curr_token_sequence_number();
+          ctoken = curr_token;
+          goto return_from_token_scan;
+        }  /* if */
         goto return_curr_token;
       }  /* if */
     }  /* if */
@@ -18106,6 +18111,11 @@ check_start_of_pp_directive:
             if (embed_control.buf != NULL &&
                 embed_control.reading_from_buffer) {
               get_token_from_embed_file();
+              if (curr_lexical_state_stack_entry->cache_tokens) {
+                assign_curr_token_sequence_number();
+                ctoken = curr_token;
+                goto return_from_token_scan;
+              }  /* if */
               goto return_curr_token;
             }  /* if */
 	    skip_white_space();
