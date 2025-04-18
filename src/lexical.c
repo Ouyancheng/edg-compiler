@@ -62,11 +62,7 @@ struct an_embed_control_block {
 			   general memory containing the contents of the
 			   file designated by the current #embed directive;
 			   NULL if we are not currently processing a
-			   #embed.  In addition, if the directive has
-			   prefix, suffix, or if_empty parameters, their
-			   operands will be copied into the buffer and
-			   inserted into the token stream via source
-			   modifications. */
+			   #embed. */
   size_t	size;	/* The allocated size of the current or most recent
 			   #embed buffer. */
   a_const_char	*next_byte;
@@ -2781,7 +2777,6 @@ and empty the list.
     clear_char_overflows();
   }  /* if */
 }  /* report_char_overflows */
-
 
 #if DEBUG
 /*
