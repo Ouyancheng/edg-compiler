@@ -16502,7 +16502,7 @@ added and result is updated.
   dip_3->destructor = NULL;
   dip_2->inside_conditional_expression = FALSE;
   dip_3->inside_conditional_expression = FALSE;
-  if (strict_ansi_mode) {
+  if (strict_ansi_mode && !mandatory_copy_elision) {
     /* In strict mode, issue an error if the copy constructor that would
        have been called is not accessible. */
     handle_elided_copy_constructor(result->type,

@@ -1,5 +1,14 @@
 Version 6.8
 
+4/18/25  [EDGcpfe/27562]
+Folding of logical and/or operations in C mode
+
+In C++ mode, the front end generally folded expressions of the form
+"0 && expr()" or "true || expr()" when the logical operator is known not to
+be overloaded.  In C mode, however, this was not always the case.  Now, the
+transformation is done more consistently in non-strict C modes.
+
+
 4/17/25  [EDGcpfe/18917,EDGcpfe/23331,EDGcpfe/26620,EDGcpfe/26654,
           EDGcpfe/27561]
 GNU/Clang compatibility:  __builtin_add_overflow, etc.

@@ -33834,7 +33834,7 @@ and whether the operator appears at the top level of a requires clause.
                                            saved_cpp11_constant_expr_ruled_out;
     }  /* if */
 #if GNU_VECTOR_TYPES_ALLOWED
-    if (gnu_mode && !C_mode() &&
+    if (gpp_mode &&
         determine_vector_operation_type(operator_token, operand_1, &operand_2,
                                         &operator_position, &operation_type,
                                         &op)) {
@@ -33876,8 +33876,10 @@ and whether the operator appears at the top level of a requires clause.
            This deals with cases like 0 && 1/0, in which the second operand
            would not be in constant form because it couldn't be folded. */
         reduce = TRUE;
-      } else if (!strict_ansi_mode && expr_stack->favor_constant_result) {
-        /* If we'd prefer a constant result, reduce. */
+      } else if (!strict_ansi_mode || constexpr_enabled) {
+        /* Reduce in all modes but strict C or C++03 modes (in the latter
+           modes the form of the second operand matters even if the first
+           operand determines the result). */
         reduce = TRUE;
       }  /* if */
     }  /* if */

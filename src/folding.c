@@ -2293,16 +2293,40 @@ for any diagnostics issued.
     goto done_with_folding;
   }  /* if */
 #if GNU_VECTOR_TYPES_ALLOWED
-  if (new_type->kind == (a_type_kind)tk_vector ||
-      constant_type->kind == (a_type_kind)tk_vector) {
+  if (type_is(new_type, tk_vector) || type_is(constant_type, tk_vector)) {
     /* A conversion to or from a vector can be folded only if the other type
        is a vector of equal length and whose elements are of the same nature
-       (integer vs. floating-point). */
-    if (new_type->kind != (a_type_kind)tk_vector ||
-        constant_type->kind != (a_type_kind)tk_vector ||
-        skip_typerefs(new_type->variant.vector.element_type)->kind !=
-            skip_typerefs(constant_type->variant.vector.element_type)->kind ||
-        num_vector_elements(new_type) != num_vector_elements(constant_type)) {
+       (integer vs. floating-point).  A conversion from a compatible scalar
+       value acts like a "vector fill" operation. */
+    a_type_ptr  new_etp, old_etp;
+    if (type_is(new_type, tk_vector)) {
+      new_etp = skip_typerefs(new_type->variant.vector.element_type);
+    }  /* if */
+    if (type_is(constant_type, tk_vector)) {
+      old_etp = skip_typerefs(new_type->variant.vector.element_type);
+    }  /* if */
+    if (!type_is(constant_type, tk_vector) &&
+        new_etp->kind == constant_type->kind && !is_reinterpret_cast) {
+      /* Converting a scalar to a vector can be done via an eok_vector_fill
+         operation. */
+      *new_constant = *constant;
+      type_change_constant_full(new_constant, new_etp,
+                                /*is_implicit_cast=*/TRUE,
+                                constant_context, evaluated_context,
+                                fold_constant_addr_exprs,
+                                is_cli_attr_arg_expression, check_cast_access,
+                                check_ambiguity, is_reinterpret_cast,
+                                maintain_expression, did_not_fold,
+                                error_detected, err_pos);
+      if ((error_detected == NULL || !*error_detected) && !*did_not_fold) {
+        an_expr_node  *node = alloc_node_for_constant(new_constant);
+        node = make_operator_node(eok_vector_fill, new_type, node);
+        *did_not_fold = !fold_expr(node, new_constant);
+      }  /* if */
+    } else if (new_type->kind != constant_type->kind ||
+               new_etp->kind != old_etp->kind ||
+               num_vector_elements(new_type) !=
+                                         num_vector_elements(constant_type)) {
       *did_not_fold = TRUE;
     } else {
       copy_constant(constant, new_constant);
