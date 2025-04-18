@@ -5559,22 +5559,22 @@ were __has_include.
         pos_warning(ec_absolute_file_name_in_has_include_next,
                     &error_position);
       }  /* if */
-      file_found = file_can_be_found(filename, is_system_include,
-                                     is_include_next, /*is_embed=*/FALSE);
+      file_found = header_can_be_found(filename, is_system_include,
+                                       is_include_next);
     }  /* if */
   }  /* if */
   return file_found;
 }  /* scan_has_include */
 
 
-static a_boolean scan_has_embed(void)
+static a_const_char *scan_has_embed(void)
 /*
-Process the C23/C++26 __has_embed macro and return TRUE if the named file
-can be found and the directive is syntactically correct (including having
-only supported parameter names), FALSE otherwise.
+Process the C23/C++26 __has_embed macro and return "0" if a similar #embed
+directive would produce an error, "1" if the named file exists and is not
+empty, and 2 if the file exists but is empty.
 */
 {
-  a_boolean             result = FALSE;
+  a_const_char          *result = "0";
   a_const_char          *file_name;
   a_const_char          *prefix_start;
   a_const_char          *after_prefix;
@@ -5586,14 +5586,26 @@ only supported parameter names), FALSE otherwise.
   a_host_large_unsigned offset;
   a_boolean             saved_in_pp_if = in_pp_if_expression;
 
+  /* Ensure that get_token() doesn't turn parameter names into integer 0
+     values, as it otherwise would do for identifiers that are not macro
+     names. */
   in_pp_if_expression = FALSE;
   if (get_token() != tok_lparen) {
     pos_error(ec_exp_lparen, &pos_curr_token);
   } else if (parse_embed(/*is_directive=*/FALSE, &file_name, &prefix_start,
                          &after_prefix, &suffix_start, &after_suffix,
                          &if_empty_start, &after_if_empty, &limit, &offset)) {
-    result = file_can_be_found(file_name, /*is_system_include=*/FALSE,
-                               /*is_include_next=*/FALSE, /*is_embed=*/TRUE);
+    file_name = resolve_header(file_name, /*is_system_include=*/FALSE,
+                               /*is_include_next=*/FALSE, /*is_embed=*/TRUE,
+                               /*suppress_diagnostics=*/TRUE);
+    if (file_name != NULL) {
+      if ((limit - offset) > 0 && get_file_size(file_name) > 0) {
+        result = "1";
+      } else {
+        /* The effective file size is 0. */
+        result = "2";
+      }  /* if */
+    }  /* if */
   }  /* if */
   in_pp_if_expression = saved_in_pp_if;
   return result;
@@ -6323,10 +6335,10 @@ make_inert_macro:
           strcpy(repl_text, file_found ? "1" : "0");
         }  /* if */
       } else if (macro_symbol == has_embed_symbol) {
-        /* The C23/C++26 __has_embed macro.  Has the value 1 if the
-           named file would be found by #embed and the rest of the operand
-           satisfies the syntactic constraints of the #embed directive;
-           otherwise, 0. */
+        /* The C23/C++26 __has_embed macro.  Has the value 0 if a similar
+           #embed directive would produce an error, 1 if the named file
+           exists and is non-empty, and 2 if the file exists but is
+           empty. */
         if (strict_ansi_mode && !in_pp_if_expression) {
           /* The C/C++ Standards require that __has_embed appear only in
              the constant-expression of a #if. */
@@ -6336,11 +6348,11 @@ make_inert_macro:
           *rescan = FALSE;
           goto return_point;
         } else {
-          a_boolean    embed_would_be_okay;
+          a_const_char *has_embed_result;
           ++macro_depth;
-          embed_would_be_okay = scan_has_embed();
+          has_embed_result = scan_has_embed();
           --macro_depth;
-          strcpy(repl_text, embed_would_be_okay ? "1" : "0");
+          strcpy(repl_text, has_embed_result);
         }  /* if */
       } else if (macro_symbol == is_identifier_symbol) {
         /* The clang-style __is_identifier macro.  Takes one argument and
@@ -11675,7 +11687,7 @@ command line -D options.
                                /*ref_suppresses_pch_file=*/FALSE);
     }  /* if */
     if (c99_mode) {
-      /* Includes C11 mode. */
+      /* Includes later C modes. */
       init_new_c_predefined_macros();
     }  /* if */
 #if UPC_EXTENSIONS_ALLOWED
@@ -12085,6 +12097,18 @@ command line -D options.
                                  /*ref_suppresses_pch_file=*/FALSE);
       }  /* if */
     }  /* if */
+  }  /* if */
+  if (embed_enabled) {
+    /* Define the macros for the results of the __has_embed operator. */
+    (void)enter_predef_macro("0", "__STDC_EMBED_NOT_FOUND__",
+                             /*cannot_be_redefined=*/TRUE,
+                             /*ref_suppresses_pch_file=*/FALSE);
+    (void)enter_predef_macro("1", "__STDC_EMBED_FOUND__",
+                             /*cannot_be_redefined=*/TRUE,
+                             /*ref_suppresses_pch_file=*/FALSE);
+    (void)enter_predef_macro("2", "__STDC_EMBED_EMPTY__",
+                             /*cannot_be_redefined=*/TRUE,
+                             /*ref_suppresses_pch_file=*/FALSE);
   }  /* if */
 #if DEFINE_MACRO_WHEN_LONG_LONG_IS_DISABLED
   { a_boolean	long_long_is_disabled = /*lint -e(506)*/!LONG_LONG_ALLOWED;

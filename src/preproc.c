@@ -2183,7 +2183,7 @@ parameters, respectively.
   } else if (!is_directive && curr_token == tok_newline) {
     syntax_error(ec_exp_rparen);
     result = FALSE;
-  } else if (is_directive) {
+  } else {
     a_constant_ptr    cp = local_constant();
     a_boolean         ovflo;
     a_source_position pos;
@@ -2211,7 +2211,11 @@ parameters, respectively.
     }  /* if */
     remove_stop_token(tok_rparen);
     release_local_constant(&cp);
-    flush_to_newline();
+    if (is_directive) {
+      flush_to_newline();
+    } else {
+      flush_to_closing_paren();
+    }  /* if */
   }  /* if */
 done:
   return result;

@@ -1365,8 +1365,7 @@ which will be overwritten when ctime is called again.
 size_t get_file_size(a_const_char *file_name)
 /*
 Return the size in bytes of the file designated by file_name.  The caller
-is responsible for ensuring that the file exists and that the file name is
-properly encoded and normalized.
+is responsible for ensuring that the file exists.
 */
 {
   size_t       sz = 0;

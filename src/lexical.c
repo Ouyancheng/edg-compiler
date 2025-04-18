@@ -7712,15 +7712,12 @@ is_system_include.
 }  /* resolve_header_in_map */
 
 
-a_boolean file_can_be_found(a_const_char *filename,
-                            a_boolean    is_system_include,
-                            a_boolean    is_include_next,
-                            a_boolean    is_embed)
+a_boolean header_can_be_found(a_const_char *filename,
+                              a_boolean    is_system_include,
+                              a_boolean    is_include_next)
 /*
-Return TRUE if filename can be opened as a header file or, if is_embed is
-TRUE, as an embed file.  If is_embed is TRUE, is_system_include and
-is_include_next are ignored.  In non-embed cases, if is_include_next is
-TRUE, the search path is the remainder of the list by which the current
+Return TRUE if filename can be opened as a header file.  If is_include_next
+is TRUE, the search path is the remainder of the list by which the current
 file was found; otherwise, the search path is the one appropriate to the
 value of is_system_include.
 */
@@ -7731,7 +7728,7 @@ value of is_system_include.
                              /*is_embed=*/FALSE,
                              /*suppress_diagnostics=*/TRUE);
   return (file_path != NULL);
-}  /* file_can_be_found */
+}  /* header_can_be_found */
 
 
 a_boolean open_file_for_input(
