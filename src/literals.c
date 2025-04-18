@@ -2070,6 +2070,122 @@ specifies the number of bytes in a wide character.
 }  /* put_wide_char_into_string */
 
 
+template<a_string_or_char_literal_kind a_Prefix_kind>
+static inline void conv_string_literal_chars(
+                        ARG_UNUSED char           **result_str_start,
+                        char                      **result_str_next_ch,
+                        a_const_char              **string_next_char,
+                        a_const_char              **end_of_string_value,
+                        const unsigned int        &char_size,
+                        ARG_UNUSED const sizeof_t &constant_size,
+                        a_char_conversion_state   &conv_state,
+                        unsigned long             centity_mask,
+                        a_boolean                 process_escapes,
+                        a_boolean                 is_raw_string,
+                        int                       raw_str_trigraph_delim_chars)
+/*
+This function exists as an implementation detail of conv_string_literal; it
+should not be used directly outside of the aforementioned function.
+
+The optimization here works by reducing loop complexity for prefix kinds other
+than the one this function was instantiated with (effectively generating an
+optimized version of the conversion loop for each character kind).
+
+The start and end of the result string are represented by *result_str_start and
+*result_str_next_ch respectively.  Similarly, the start and end of the string
+being converted to a string literal are represented by *string_next_char and
+*end_of_string_value respectively.  char_size is the size of a character for
+the current prefix.  constant_size is the maximum number of bytes from
+result_str_start available to write into.  conv_state is the preinitialized
+character conversion state.  centity_mask and processing_escapes are forwarded
+to conv_single_char (see that function for more information).  is_raw_string
+should be TRUE if the full literal kind specified SCLK_RAW_STRING_LITERAL.
+raw_str_trigraph_delim_chars is used to account for extra characters in the
+input string (if any).
+*/
+{
+  a_boolean inside_char = FALSE;
+  /* Check if the loop below should consider character width errors ahead of
+     time as an optimization. */
+  a_boolean consider_char_width = (a_Prefix_kind == SCLK_ORDINARY_LITERAL &&
+                                   !is_raw_string && strict_ansi_mode);
+
+  /* Accumulate the characters.  Loop until we reach the indicated end of
+     the string value.  The loop is extended while characters are pending,
+     either because a multibyte character is in process, or because of the
+     pathological ']' trigraph case mentioned above, or because a raw
+     string literal ended with a line splice that must be expanded. */
+  while ((*string_next_char < (*end_of_string_value +
+                               raw_str_trigraph_delim_chars)) ||
+         conv_state.remaining_char_count > raw_str_trigraph_delim_chars ||
+         (conv_state.next_orig_line_modif != NULL &&
+          (conv_state.next_orig_line_modif->kind == olm_line_splice ||
+           conv_state.next_orig_line_modif->kind == olm_splice_whitespace) &&
+          conv_state.next_orig_line_modif->line_loc == *string_next_char)) {
+    unsigned long ch;
+    check_assertion(*result_str_next_ch < *result_str_start + constant_size);
+    /* Convert one character of the string literal. */
+    switch (a_Prefix_kind) {
+      case SCLK_ORDINARY_LITERAL:
+      case SCLK_UTF8_LITERAL:
+        { a_const_char *char_start = *string_next_char;
+
+          conv_single_char(
+                &conv_state, process_escapes, &ch, centity_mask,
+                /*narrow_literal=*/TRUE, (a_Prefix_kind == SCLK_UTF8_LITERAL));
+          if (consider_char_width && conv_state.remaining_char_count != 0 &&
+              !inside_char) {
+            /* The character is too wide to fit in a single char. */
+            a_source_position pos;
+            conv_line_loc_to_source_pos(char_start, &pos);
+            register_char_overflow(es_discretionary_error,
+                                   ec_char_too_wide_for_rep, &pos);
+          }  /* if */
+          inside_char = (conv_state.remaining_char_count != 0);
+          *(*result_str_next_ch)++ = (char)ch;
+        }
+        break;
+      case SCLK_WIDE_LITERAL:
+      case SCLK_CHAR16_T_LITERAL:
+      case SCLK_CHAR32_T_LITERAL:
+        conv_single_wide_char(&conv_state, process_escapes, &ch, centity_mask);
+        put_wide_char_into_string(ch, result_str_next_ch, char_size);
+        break;
+      default:
+        unexpected_condition();
+    }  /* switch */
+    if (microsoft_mode &&
+        *string_next_char <=
+         *end_of_string_value + raw_str_trigraph_delim_chars - LE_ESCAPE_LEN &&
+        **string_next_char == LE_ESCAPE) {
+      *string_next_char = skip_embedded_null_escapes(
+                          *string_next_char,
+                          *end_of_string_value + raw_str_trigraph_delim_chars);
+    }  /* if */
+  }  /* for */
+  /* Add the final null. */
+  check_assertion(*result_str_next_ch < *result_str_start + constant_size);
+  switch (a_Prefix_kind) {
+    case SCLK_ORDINARY_LITERAL:
+    case SCLK_UTF8_LITERAL:
+      /* Narrow string literal. */
+      *((*result_str_next_ch)++) = '\0';
+      break;
+    case SCLK_WIDE_LITERAL:
+    case SCLK_CHAR16_T_LITERAL:
+    case SCLK_CHAR32_T_LITERAL:
+      /* L"...", u"...", or U"...": */
+      { unsigned long ch = 0;
+
+        put_wide_char_into_string(ch, result_str_next_ch, char_size);
+      }
+      break;
+    default:
+      unexpected_condition();
+  }  /* switch */
+}  /* conv_string_literal_chars */
+
+
 void conv_string_literal(a_const_char                  *start_of_string_value,
                          a_const_char                  *end_of_string_value,
                          a_string_or_char_literal_kind lit_kind,
@@ -2108,12 +2224,7 @@ register_char_overflow, to be processed or discarded once the literal kind
 is finally known.)
 */
 {
-  unsigned long                 i, ch, centity_mask;
-  a_const_char                  *temp_ptr;
-  char                          *pstr;
-  char                          *str_start;
-  sizeof_t                      constant_size;
-  a_targ_size_t                 num_elems;
+  unsigned long                 i, centity_mask;
   unsigned int                  char_size = 0;
   a_character_kind              character_kind = (a_character_kind)ck_last;
   a_char_conversion_state       conv_state;
@@ -2123,14 +2234,7 @@ is finally known.)
   a_boolean                     is_raw_string =
                                      (lit_kind & SCLK_RAW_STRING_LITERAL) != 0;
   a_boolean                     process_escapes = !is_rescan;
-  a_const_char                  *char_start;
-  a_boolean                     inside_char = FALSE;
 
-  /* The number of array elements is one more than the number of characters,
-     to leave space for the terminating null.  (For char16_t strings, this
-     may need to be adjusted below.) */
-  num_elems = (a_targ_size_t)num_chars + 1;
-  temp_ptr = start_of_string_value;
   /* Set the character kind and size. */
   check_assertion(lit_kind & SCLK_STRING_LITERAL);
   switch (prefix_kind) {
@@ -2161,7 +2265,10 @@ is finally known.)
   /* Build a mask used to mask individual characters. */
   centity_mask = (unsigned long)1 << (targ_host_string_char_bit-1);
   centity_mask = centity_mask | (centity_mask-1);
-  constant_size = (sizeof_t)num_elems;
+
+  /* Determine the size of the string literal array (for char16_t strings, this
+     may be an overestimate that's corrected following processing). */
+  sizeof_t constant_size = (sizeof_t)(num_chars + 1);
   if (char_size != 1) {
     constant_size *= char_size;
     /* Replicate the mask for one character as many times as there are chars
@@ -2185,15 +2292,15 @@ is finally known.)
     constant_size *= MAX_MULTIBYTE_CHAR_LENGTH;
 #endif /* NATIVE_MULTIBYTE_CHARS_SUPPORTED_WITH_UNICODE */
   }  /* if */
-  /* Allocate enough space to hold the final string, including the null
-     added to it.  (This may be more than strictly needed in the case of
-     char16_t strings or when translating a string in a Unicode-encoded
-     file to native multibyte characters.) */
-  str_start = pstr = alloc_text_of_string_literal(constant_size);
+
+  /* Allocate enough space to hold the final string based on the constant_size
+     calculation above. */
+  char      *result_str_start = alloc_text_of_string_literal(constant_size);
+  char      *result_str_next_ch = result_str_start;
   /* UTF-8 characters should be translated to multibyte characters only for
-     narrow-character literals in Microsoft mode in non-Unicode source
-     files and only when the literal does not represent a function-name
-     string like __FUNCTION__. */
+     narrow-character literals in Microsoft mode in non-Unicode source files
+     and only when the literal does not represent a function-name string like
+     __FUNCTION__. */
   a_boolean translate_utf8_to_mbc =
                                 (prefix_kind == SCLK_ORDINARY_LITERAL &&
                                  (lit_kind & SCLK_FUNCTION_NAME) == 0 &&
@@ -2202,7 +2309,8 @@ is finally known.)
                                  && curr_file_unicode_source_kind == usk_none
 #endif /* UNICODE_SOURCE_SUPPORTED */
                                                                              );
-  clear_char_conversion_state(&conv_state, &temp_ptr, translate_utf8_to_mbc);
+  clear_char_conversion_state(&conv_state, &start_of_string_value,
+                              translate_utf8_to_mbc);
   conv_state.create_surrogate_pairs = (prefix_kind == SCLK_WIDE_LITERAL ||
                                        prefix_kind == SCLK_CHAR16_T_LITERAL);
   conv_state.force_utf8 = gnu_mode && is_rescan;
@@ -2215,11 +2323,11 @@ is finally known.)
     process_escapes = FALSE;
     /* Set up to reverse any original line modifications (trigraphs, line
        splices) that appear in the raw string. */
-    for (conv_state.next_orig_line_modif = orig_line_modif_list;
-         conv_state.next_orig_line_modif != NULL &&
-                          conv_state.next_orig_line_modif->line_loc < temp_ptr;
-         conv_state.next_orig_line_modif =
-                                      conv_state.next_orig_line_modif->next) {}
+    conv_state.next_orig_line_modif = orig_line_modif_list;
+    while (conv_state.next_orig_line_modif != NULL &&
+           conv_state.next_orig_line_modif->line_loc < start_of_string_value) {
+      conv_state.next_orig_line_modif = conv_state.next_orig_line_modif->next;
+    }  /* while */
     if (*end_of_string_value == ']') {
       /* This is the pathological case in which the two characters
          preceding the terminating ')' of the raw string literal were both
@@ -2229,90 +2337,51 @@ is finally known.)
     }  /* if */
   }  /* if */
   if (microsoft_mode &&
-      temp_ptr <=
+      start_of_string_value <=
           end_of_string_value + raw_str_trigraph_delim_chars - LE_ESCAPE_LEN &&
-      *temp_ptr == LE_ESCAPE) {
-    temp_ptr = skip_embedded_null_escapes(
-                 temp_ptr, end_of_string_value + raw_str_trigraph_delim_chars);
+      *start_of_string_value == LE_ESCAPE) {
+    start_of_string_value = skip_embedded_null_escapes(
+                           start_of_string_value,
+                           end_of_string_value + raw_str_trigraph_delim_chars);
   }  /* if */
-  /* Accumulate the characters.  Loop until we reach the indicated end of
-     the string value.  The loop is extended while characters are pending,
-     either because a multibyte character is in process, or because of the
-     pathological ']' trigraph case mentioned above, or because a raw
-     string literal ended with a line splice that must be expanded. */
-  while (temp_ptr < end_of_string_value + raw_str_trigraph_delim_chars ||
-         conv_state.remaining_char_count > raw_str_trigraph_delim_chars ||
-         (conv_state.next_orig_line_modif != NULL &&
-          (conv_state.next_orig_line_modif->kind == olm_line_splice ||
-           conv_state.next_orig_line_modif->kind == olm_splice_whitespace) &&
-          conv_state.next_orig_line_modif->line_loc == temp_ptr)) {
-    check_assertion(pstr < str_start + constant_size);
-    /* Convert one character of the string literal. */
-    switch (character_kind) {
-      case chk_char:
-      case chk_char8_t:
-        char_start = temp_ptr;
-        conv_single_char(
-                 &conv_state, process_escapes, &ch, centity_mask,
-                 /*narrow_literal=*/TRUE, (prefix_kind == SCLK_UTF8_LITERAL));
-        if (prefix_kind == SCLK_ORDINARY_LITERAL && !is_raw_string &&
-            strict_ansi_mode && conv_state.remaining_char_count != 0 &&
-            !inside_char) {
-          /* The character is too wide to fit in a single char. */
-          a_source_position pos;
-          conv_line_loc_to_source_pos(char_start, &pos);
-          register_char_overflow(es_discretionary_error,
-                                 ec_char_too_wide_for_rep, &pos);
-        }  /* if */
-        inside_char = (conv_state.remaining_char_count != 0);
-        *pstr++ = (char)ch;
-        break;
-      case chk_wchar_t:
-      case chk_char16_t:
-      case chk_char32_t:
-        conv_single_wide_char(&conv_state, process_escapes, &ch, centity_mask);
-        put_wide_char_into_string(ch, &pstr, char_size);
-        break;
-      default:
-        unexpected_condition();
-    }  /* switch */
-    if (microsoft_mode &&
-        temp_ptr <=
-          end_of_string_value + raw_str_trigraph_delim_chars - LE_ESCAPE_LEN &&
-        *temp_ptr == LE_ESCAPE) {
-      temp_ptr = skip_embedded_null_escapes(
-                 temp_ptr, end_of_string_value + raw_str_trigraph_delim_chars);
-    }  /* if */
-  }  /* for */
-  /* Add the final null. */
-  check_assertion(pstr < str_start + constant_size);
-  switch (character_kind) {
-    case chk_char:
-    case chk_char8_t:
-      /* Narrow string literal. */
-      *(pstr++) = '\0';
+  switch (prefix_kind) {
+    /* Define a macro to write the switch cases. */
+#define ADD_SWITCH_CASE(prefix_kind)                                          \
+    case prefix_kind:                                                         \
+      conv_string_literal_chars<prefix_kind>(&result_str_start,               \
+                                             &result_str_next_ch,             \
+                                             &start_of_string_value,          \
+                                             &end_of_string_value,            \
+                                             char_size,                       \
+                                             constant_size,                   \
+                                             conv_state,                      \
+                                             centity_mask,                    \
+                                             process_escapes,                 \
+                                             is_raw_string,                   \
+                                             raw_str_trigraph_delim_chars);   \
       break;
-    case chk_char16_t:
-    case chk_wchar_t:
-    case chk_char32_t:
-      /* L"...", u"...", or U"...": */
-      ch = 0;
-      put_wide_char_into_string(ch, &pstr, char_size);
-      break;
+    /* Add the switch cases. */
+    ADD_SWITCH_CASE(SCLK_ORDINARY_LITERAL);
+    ADD_SWITCH_CASE(SCLK_UTF8_LITERAL);
+    ADD_SWITCH_CASE(SCLK_WIDE_LITERAL);
+    ADD_SWITCH_CASE(SCLK_CHAR32_T_LITERAL);
+    ADD_SWITCH_CASE(SCLK_CHAR16_T_LITERAL);
     default:
       unexpected_condition();
+#undef ADD_SWITCH_CASE
   }  /* switch */
   /* Recalculate the actual final size of the converted constant, which can
      be smaller than the original calculated size because of translation of
      universal character names into UTF-8, translation of UTF-8 to a wider
      UTF-encoding or native multibyte characters, etc. */
-  constant_size = (sizeof_t)(pstr - str_start);
-  num_elems = (a_targ_size_t)(constant_size / char_size);
+  constant_size = (sizeof_t)(result_str_next_ch - result_str_start);
+
+  a_targ_size_t num_elems = (a_targ_size_t)(constant_size / char_size);
   /* Make the constant entry for the string. */
-  clear_constant(&const_for_curr_token, (a_constant_repr_kind)ck_string);
+  clear_constant(&const_for_curr_token, ck_string);
   const_for_curr_token.type = string_literal_type(character_kind, num_elems);
   const_for_curr_token.variant.string.length = (a_targ_size_t)constant_size;
-  const_for_curr_token.variant.string.value  = str_start;
+  const_for_curr_token.variant.string.value = result_str_start;
   const_for_curr_token.character_kind = character_kind;
   /* Currently, no error is returned through err_code or err_pos. */
   *err_code = ec_no_error;
