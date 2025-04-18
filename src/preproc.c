@@ -2187,6 +2187,7 @@ parameters, respectively.
     a_constant_ptr    cp = local_constant();
     a_boolean         ovflo;
     a_source_position pos;
+    a_const_char      *saved_curr_char_loc = curr_char_loc;
     fetch_pp_tokens = FALSE;
     add_stop_token(tok_rparen);
     if (limit_start != NULL) {
@@ -2211,6 +2212,7 @@ parameters, respectively.
     }  /* if */
     remove_stop_token(tok_rparen);
     release_local_constant(&cp);
+    curr_char_loc = saved_curr_char_loc;
     if (is_directive) {
       flush_to_newline();
     } else {
