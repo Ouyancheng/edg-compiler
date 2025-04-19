@@ -5875,6 +5875,12 @@ routine should be called only if generate_pp_output is TRUE.
             loc_in_line += LE_ESCAPE_LEN;
           } else if (ch == LE_END_OF_LINE || ch == LE_END_OF_EMBED_PREFIX ||
                      ch == LE_END_OF_EMBED) {
+            /* If we are putting out a partial line, add a newline. */
+            if (ch != LE_END_OF_LINE) {
+              fputc('\n', f_pp_output);
+              prev_pp_output_line_was_complete = TRUE;
+              ++next_seq_in_pp_output;
+            }  /* if */
             /* End of the output. */
             break;
           } else if (ch == LE_NULL) {
