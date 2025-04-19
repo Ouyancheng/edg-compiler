@@ -9605,7 +9605,7 @@ the parameters.
   a_byte            *arg_bytes[3];
   int               k = 0, bit_length = -1;
   a_type_ptr        int_tp = NULL;
-  an_integer_kind   int_kind;
+  an_integer_kind   int_kind = ik_none;
 
   /* Evaluate the arguments (there should be three of them). */
   for (arg = args; arg != NULL && k < 3; arg = arg->next, ++k) {
@@ -9705,7 +9705,9 @@ the parameters.
       default:
         unexpected_condition();
     }  /* switch */
-    { an_integer_value  bit_max, bit_min;
+    check_assertion(int_kind != ik_none);
+    {
+      an_integer_value  bit_max, bit_min;
       an_integer_value  *p_max = &bit_max, *p_min = &bit_min;
       if (bit_length == -1) {
         p_max = &max_integer_value_of_kind[int_kind];
