@@ -10552,8 +10552,8 @@ clang::offset directive parameter, or 0 if that parameter was omitted.
     embed_control.next_byte = (a_const_char *)embed_control.buf;
     embed_control.last_byte = (a_const_char *)(embed_control.buf +
                                                file_size - 1);
-    check_assertion(*(curr_char_loc - 1) == LE_NEWLINE);
-    embed_control.eol_loc = curr_char_loc - LE_ESCAPE_LEN;
+    check_assertion(curr_char_loc[1] == LE_NEWLINE);
+    embed_control.eol_loc = curr_char_loc;
     embed_control.comma_is_next = FALSE;
     if (offset != 0) {
       if (fseek(embed_file, (long int)offset, SEEK_SET) != 0) {

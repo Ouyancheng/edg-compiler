@@ -5608,6 +5608,8 @@ empty, and 2 if the file exists but is empty.
     }  /* if */
   }  /* if */
   in_pp_if_expression = saved_in_pp_if;
+  /* Skip the closing parenthesis. */
+  (void)get_token();
   return result;
 }  /* scan_has_embed */
 

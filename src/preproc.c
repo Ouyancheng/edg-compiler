@@ -2196,7 +2196,8 @@ parameters, respectively.
     a_constant_ptr    cp = local_constant();
     a_boolean         ovflo;
     a_source_position pos;
-    a_const_char      *saved_curr_char_loc = curr_char_loc;
+    a_const_char      *saved_curr_char_loc = start_of_curr_token;
+    a_token_kind      saved_curr_token = curr_token;
     fetch_pp_tokens = FALSE;
     add_stop_token(tok_rparen);
     if (limit_start != NULL) {
@@ -2222,11 +2223,7 @@ parameters, respectively.
     remove_stop_token(tok_rparen);
     release_local_constant(&cp);
     curr_char_loc = saved_curr_char_loc;
-    if (is_directive) {
-      flush_to_newline();
-    } else {
-      flush_to_closing_paren();
-    }  /* if */
+    curr_token = saved_curr_token;
   }  /* if */
 done:
   return result;
