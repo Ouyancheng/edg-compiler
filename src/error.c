@@ -2660,6 +2660,7 @@ as appropriate.
         while (olmp == NULL || loc_in_line != olmp->line_loc) {
           ch = *loc_in_line;
           if (ch == LE_ESCAPE) {
+overwritten_escape:
             if (loc_in_line[1] == LE_END_OF_EMBED_PREFIX ||
                 loc_in_line[1] == LE_END_OF_EMBED) {
               /* This lexical escape marks the end of a prefix, suffix, or
@@ -2668,8 +2669,10 @@ as appropriate.
                  by the second byte of the escape is stored in the embed
                  control block. */
               put_char_from_line(')', curr_file_unicode_source_kind);
-              ch = orig_char_from_embed_directive(loc_in_line[1]);
-              ++loc_in_line;
+              ch = orig_char_from_embed_directive(*loc_in_line);
+              if (ch == LE_ESCAPE) {
+                goto overwritten_escape;
+              }  /* if */
             } else {
               /* LE_NULL is handled below (it has an associated
                  modification entry).  No other lexical escapes besides

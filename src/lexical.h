@@ -2676,7 +2676,7 @@ extern a_boolean is_keyword_token(a_token_kind	token);
 extern void gen_pp_line_info(char      kind,
 		             a_boolean next_line);
 /* Generate textual preprocessing output for the current line. */
-extern void gen_pp_output_for_curr_line(void);
+extern void gen_pp_output_for_curr_line(a_const_char *start_loc);
 /* Generate a line information record in the raw listing file. */
 extern void gen_rlisting_line_info(char kind);
 /* Generate raw listing output for the macro-expanded form of the current

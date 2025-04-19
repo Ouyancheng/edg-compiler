@@ -90,6 +90,16 @@ struct an_embed_control_block {
 			   character of the terminating LE_END_OF_EMBED
 			   lexical escape so it can be replaced once that
 			   operand has been traversed. */
+  a_const_char	*prefix_loc;
+			/* Points to the first character of the operand of
+			   the directive's prefix parameter, if one was
+			   specified and the file is not empty, and NULL
+			   otherwise. */
+  a_const_char	*after_prefix;
+			/* Points to the closing parenthesis of the
+			   directive's prefix parameter, if one was
+			   specified and the file is not empty, and NULL
+			   otherwise. */
   a_const_char	*suffix_loc;
 			/* Points to the first character of the operand of
 			   the directive's suffix parameter, if one was
@@ -98,11 +108,11 @@ struct an_embed_control_block {
 			   specified and the file is empty.  NULL if
 			   neither condition applies. */
   a_const_char	*eol_loc;
-			/* The location of the LE_END_OF_LINE lexical
-			   escape ending the #embed directive.  Saved from
+			/* The location of the LE_NEWLINE lexical escape
+			   ending the #embed directive.  Saved from
 			   curr_char_loc on entry and used to restore that
-			   value when scanning the prefix parameter operand
-			   text, if any, is complete. */
+			   value when the scanning of the prefix parameter
+			   operand text, if any, is complete. */
   a_boolean	reading_from_buffer;
 			/* TRUE if tokens should be taken from the contents
 			   of the embed file; FALSE during processing of
@@ -5629,11 +5639,12 @@ struct Is_trivially_destructible_edg_impl<a_bad_unicode_char> :
 
 }  /* detail */
 
-void gen_pp_output_for_curr_line(void)
+void gen_pp_output_for_curr_line(a_const_char *start_loc)
 /*
-Write out the current line to f_pp_output (preprocessing output), if
-necessary.  This routine should be called only if generate_pp_output
-is TRUE.
+Write out the portion of the current line beginning with start_loc and up
+to the first LE_END_OF_LINE, LE_END_OF_EMBED_PREFIX, or LE_END_OF_PREFIX
+lexical escape to f_pp_output (preprocessing output), if necessary.  This
+routine should be called only if generate_pp_output is TRUE.
 */
 {
   a_const_char                           *loc_in_line;
@@ -5667,7 +5678,8 @@ is TRUE.
      of a line that is a preprocessing directive.  The flag
      init_do_not_put_curr_line_in_pp_output controls output of the inserted
      text independently. */
-  if (!do_not_put_curr_line_in_pp_output ||
+  if (!do_not_put_curr_line_in_pp_output || embed_control.prefix_loc != NULL ||
+      embed_control.suffix_loc != NULL ||
       (line_start_source_line_modif != NULL &&
        !init_do_not_put_curr_line_in_pp_output)) {
     /* See if the new line immediately follows the line previously written.
@@ -5729,16 +5741,18 @@ is TRUE.
 #if LE_ESCAPE != 0
  #error -- LE_ESCAPE expected to be zero
 #endif /* LE_ESCAPE != 0 */
-      if (fputs(curr_source_line, f_pp_output) == EOF) {
+      if (fputs(start_loc, f_pp_output) == EOF) {
         /* Error in writing the pp output file.  This check is done on 
            most lines and supplements the check done when the file is closed.
            Checking here is so that a disk full error is caught fairly
            quickly. */
         file_write_error(ec_preprocessing_output, errno);
       }  /* if */
-      /* The newline at the end of the source line is represented by
-         an LE_ESCAPE/LE_NEWLINE lexical escape sequence, so no newline
-         was printed.  Print one now. */
+      /* The newline at the end of the source line is represented by an
+         LE_ESCAPE/LE_NEWLINE lexical escape sequence, so no newline was
+         printed.  Also, when printing a partial line, we need to add a
+         newline before the #embed expansion or before we move to the next
+         line following the #embed.  Print one now. */
       putc('\n', f_pp_output);      
       next_seq_in_pp_output++;
       prev_pp_output_line_was_complete = TRUE;
@@ -5752,7 +5766,12 @@ is TRUE.
       /* The logic here is very similar to that in
          gen_expanded_raw_listing_output_for_curr_line.  If you change
          this routine, change the other too. */
-      set_up_for_walk_of_source_line(loc_in_line, slmp);
+      if (start_loc == curr_source_line) {
+        set_up_for_walk_of_source_line(loc_in_line, slmp);
+      } else {
+        loc_in_line = start_loc;
+        slmp = NULL;
+      }  /* if */
       prev_ch = '\n';
       prev_prev_ch = '\0';
       token_start = FALSE;
@@ -5854,8 +5873,9 @@ is TRUE.
             prev_pp_output_line_was_complete = TRUE;
             next_seq_in_pp_output++;
             loc_in_line += LE_ESCAPE_LEN;
-          } else if (ch == LE_END_OF_LINE) {
-            /* End of the whole line. */
+          } else if (ch == LE_END_OF_LINE || ch == LE_END_OF_EMBED_PREFIX ||
+                     ch == LE_END_OF_EMBED) {
+            /* End of the output. */
             break;
           } else if (ch == LE_NULL) {
             /* Null (zero) character in line. */
@@ -7959,7 +7979,7 @@ used to find this file.
   /* If preprocessing output is being generated, force out the previous
      source line before the input stack information is changed. */
   if (generate_pp_output) {
-    gen_pp_output_for_curr_line();
+    gen_pp_output_for_curr_line(curr_source_line);
   }  /* if */
   /* If a raw listing file is being generated, force out the previous
      line before the input stack information is changed. */
@@ -8345,7 +8365,7 @@ at the next level down.
   /* If preprocessing output is being generated, force out the previous
      source line before the input stack information is changed. */
   if (generate_pp_output) {
-    gen_pp_output_for_curr_line();
+    gen_pp_output_for_curr_line(curr_source_line);
   }  /* if */
   /* If a raw listing file is being generated, force out the previous
      line before the input stack information is changed. */
@@ -9313,7 +9333,7 @@ literals in C++11.
      previous line of input (possibly modified since being read in) to the
      preprocessing output file. */
   if (generate_pp_output) {
-    gen_pp_output_for_curr_line();
+    gen_pp_output_for_curr_line(curr_source_line);
   }  /* if */
   /* If a raw listing file is being generated, write out the previous
      line. */
@@ -10470,6 +10490,8 @@ currently processing a #embed directive.
   embed_control.buf = NULL;
   embed_control.next_byte = NULL;
   embed_control.last_byte = NULL;
+  embed_control.prefix_loc = NULL;
+  embed_control.after_prefix = NULL;
   embed_control.suffix_loc = NULL;
   embed_control.eol_loc = NULL;
   embed_control.reading_from_buffer = FALSE;
@@ -10530,7 +10552,8 @@ clang::offset directive parameter, or 0 if that parameter was omitted.
     embed_control.next_byte = (a_const_char *)embed_control.buf;
     embed_control.last_byte = (a_const_char *)(embed_control.buf +
                                                file_size - 1);
-    embed_control.eol_loc = curr_char_loc;
+    check_assertion(*(curr_char_loc - 1) == LE_NEWLINE);
+    embed_control.eol_loc = curr_char_loc - LE_ESCAPE_LEN;
     embed_control.comma_is_next = FALSE;
     if (offset != 0) {
       if (fseek(embed_file, (long int)offset, SEEK_SET) != 0) {
@@ -10543,13 +10566,17 @@ clang::offset directive parameter, or 0 if that parameter was omitted.
     }  /* if */
     if (prefix_start != NULL) {
       /* Replace the closing right parenthesis of the prefix operand by an
-         LE_END_OF_EMBED_PREFIX lexical escape and set curr_char_loc to
-         point to its first character. The LE_END_OF_EMBED_PREFIX lexical
-         escape will result in skip_white_space initiating the processing
-         of the contents of the embed file. */
+         LE_END_OF_EMBED_PREFIX lexical escape and set
+         embed_control.prefix_loc and curr_char_loc to point to its first
+         character. The LE_END_OF_EMBED_PREFIX lexical escape will result
+         in skip_white_space calling gen_pp_output_for_curr_line starting
+         at prefix_start, if preprocessing output is enabled, and
+         initiating the processing of the contents of the embed file. */
       ((char *)after_prefix)[0] = LE_ESCAPE;
       embed_control.char_following_prefix = after_prefix[1];
       ((char *)after_prefix)[1] = LE_END_OF_EMBED_PREFIX;
+      embed_control.prefix_loc = prefix_start;
+      embed_control.after_prefix = after_prefix;
       curr_char_loc = prefix_start;
     } else {
       /* get_token() will immediately start returning the contents of the
@@ -10558,10 +10585,11 @@ clang::offset directive parameter, or 0 if that parameter was omitted.
     }  /* if */
     if (suffix_start != NULL) {
       /* Replace the closing right parenthesis of the suffix operand by an
-         LE_END_OF_EMBED_PREFIX lexical escape and set
-         embed_control.suffix_loc to its first character.  The
-         LE_END_OF_EMBED lexical escape will result in skip_white_space
-         setting curr_char_loc to the saved end-of-line sequence. */
+         LE_END_OF_EMBED lexical escape and set embed_control.suffix_loc to
+         its first character.  The LE_END_OF_EMBED lexical escape will
+         result in skip_white_space calling gen_pp_output_for_curr_line
+         starting at suffix_loc, if preprocessing output is enabled, and
+         then setting curr_char_loc to the saved end-of-line sequence. */
       ((char *)after_suffix)[0] = LE_ESCAPE;
       embed_control.char_following_suffix = after_suffix[1];
       ((char *)after_suffix)[1] = LE_END_OF_EMBED;
@@ -10575,8 +10603,10 @@ clang::offset directive parameter, or 0 if that parameter was omitted.
        specified in the directive.  Replace the closing right parenthesis
        of the operand by an LE_END_OF_EMBED lexical escape, and set
        curr_char_loc to its first character.  The LE_END_OF_EMBED lexical
-       escape will result in skip_white_space setting curr_char_loc to the
-       saved end-of-line sequence. */
+       escape will result in skip_white_space calling
+       gen_pp_output_for_curr_line starting at suffix_loc, if preprocessing
+       output is enabled, and then setting curr_char_loc to the saved
+       end-of-line sequence. */
     embed_control.eol_loc = curr_char_loc;
     ((char *)after_if_empty)[0] = LE_ESCAPE;
     embed_control.char_following_suffix = after_if_empty[1];
@@ -10611,6 +10641,13 @@ that tokens are no longer coming from a #embed directive.
   if (embed_control.comma_is_next) {
     curr_token = tok_comma;
     embed_control.comma_is_next = FALSE;
+    if (generate_pp_output) {
+      fputc(',', f_pp_output);
+      if ((((a_byte *)embed_control.next_byte -
+            (a_byte *)embed_control.buf) % 16) == 0) {
+        fputc('\n', f_pp_output);
+      }  /* if */
+    }  /* if */
   } else {
     if (embed_control.next_byte == (a_const_char *)embed_control.buf) {
       /* Set const_for_curr_token to contain an int value.  We only need
@@ -10618,11 +10655,21 @@ that tokens are no longer coming from a #embed directive.
          efficiency. */
       clear_constant(&const_for_curr_token, ck_integer);
       const_for_curr_token.type = integer_type(ik_int);
+      if (embed_control.prefix_loc != NULL) {
+        /* Set the position of the current token to the closing parenthesis
+           of the prefix parameter for better diagnostics, e.g., a missing
+           comma in an initializer list. */
+        conv_line_loc_to_source_pos(embed_control.after_prefix,
+                                    &pos_curr_token);
+      }  /* if */
     }  /* if */
     set_unsigned_integer_value(
                &const_for_curr_token.variant.integer_value,
                (a_host_large_unsigned)(unsigned char)*embed_control.next_byte);
     curr_token = tok_int_constant;
+    if (generate_pp_output) {
+      fprintf(f_pp_output, "%d", (unsigned char)*embed_control.next_byte);
+    }  /* if */
     if (++embed_control.next_byte > embed_control.last_byte) {
       if (embed_control.suffix_loc != NULL) {
         /* Process the suffix parameter operand. */
@@ -10632,6 +10679,9 @@ that tokens are no longer coming from a #embed directive.
         curr_char_loc = embed_control.eol_loc;
         free_general(embed_control.buf, (sizeof_t)embed_control.size);
         clear_embed_control_block();
+      }  /* if */
+      if (generate_pp_output) {
+        fputc('\n', f_pp_output);
       }  /* if */
     } else {
       embed_control.comma_is_next = TRUE;
@@ -10908,6 +10958,9 @@ end_of_current_line:
         lparen_is_from_argument = TRUE;
         curr_char_loc += LE_ESCAPE_LEN;
       } else if (ch == LE_END_OF_EMBED_PREFIX) {
+        if (generate_pp_output) {
+          gen_pp_output_for_curr_line(embed_control.prefix_loc);
+        }  /* if */
         /* Start processing the embed file contents and restore
            the characters overwritten by the lexical escape. */
         embed_control.reading_from_buffer = TRUE;
@@ -10915,6 +10968,9 @@ end_of_current_line:
         *((char *)curr_char_loc + 1) = embed_control.char_following_prefix;
         goto end_skip;
       } else if (ch == LE_END_OF_EMBED) {
+        if (generate_pp_output) {
+          gen_pp_output_for_curr_line(embed_control.suffix_loc);
+        }  /* if */
         /* Return to normal (non-embed) processing. */
         *((char *)curr_char_loc) = ')';
         *((char *)curr_char_loc + 1) = embed_control.char_following_suffix;

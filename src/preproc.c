@@ -2015,6 +2015,7 @@ the left parenthesis and *closing_rparen to the terminating ')'.
       } else {
         empty = FALSE;
       }  /* if */
+      (void)get_token();
     }  /* for */
   }  /* if */
 done:
@@ -2249,9 +2250,7 @@ of a file into the token stream one byte at a time as int constants.
   a_host_large_unsigned limit;
   a_host_large_unsigned offset;
 
-  if (do_preprocessing_only) {
-    /* Don't process the #embed in this case. */
-  } else if (parse_embed(/*is_directive=*/TRUE, &file_name, &prefix_start,
+  if (parse_embed(/*is_directive=*/TRUE, &file_name, &prefix_start,
                          &after_prefix, &suffix_start, &after_suffix,
                          &if_empty_start, &after_if_empty, &limit, &offset)) {
     insert_embed_contents(file_name, &directive_pos, prefix_start,
@@ -5085,7 +5084,7 @@ is asked to act like cpp.
      preprocessing and/or expanded raw listing output line in that case. */
   if (source_line_modif_list != NULL) {
     if (generate_pp_output) {
-      gen_pp_output_for_curr_line();
+      gen_pp_output_for_curr_line(curr_source_line);
     }  /* if */
     if (f_raw_listing != NULL) {
       gen_expanded_raw_listing_output_for_curr_line(/*do_inserted_text=*/TRUE);
