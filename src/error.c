@@ -5697,77 +5697,80 @@ The message is formatted into text strings and is output.
   can_locate_source_line_info_cached = FALSE;
 #endif /* !STANDALONE_UTILITY_PROGRAM */
   diag_should_be_issued = check_severity(dp);
+  if (in_front_end) {
 #if !STANDALONE_UTILITY_PROGRAM
-  if (diag_should_be_issued) {
-    /* Determine whether this diagnostic should not be issued because
-       of the use of the "once" diagnostic control. */
-    diag_should_be_issued = !diagnostic_already_issued_for_diag_once(dp);
     if (diag_should_be_issued) {
-      /* Suppress the diagnostic if it has already been issued during the
-         prototype instantiation. */
-      diag_should_be_issued = !diagnostic_already_issued_for_prototype(dp);
-    }  /* if */
-    if (!diag_should_be_issued) {
-      an_error_severity reported_severity = determine_reported_severity(dp);
+      /* Determine whether this diagnostic should not be issued because
+         of the use of the "once" diagnostic control. */
+      diag_should_be_issued = !diagnostic_already_issued_for_diag_once(dp);
+      if (diag_should_be_issued) {
+        /* Suppress the diagnostic if it has already been issued during the
+           prototype instantiation. */
+        diag_should_be_issued = !diagnostic_already_issued_for_prototype(dp);
+      }  /* if */
+      if (!diag_should_be_issued) {
+        an_error_severity reported_severity = determine_reported_severity(dp);
 
-      /* Update the repeated diagnostics counter. */
-      update_diagnostic_counter(reported_severity,
-                                &diagnostic_counters.repeated);
-    }  /* if */
-  }  /* if */
-  if (diag_should_be_issued) {
-    /* Check to see if this error occurred while scanning a command-line macro
-       definition.  If so, ignore the original error and issue a general error
-       indicating that the macro definition is invalid. */
-    if (curr_cmd_line_or_predef_macro_def != NULL &&
-        !processing_predefined_macro &&
-        dp->error_code != ec_bad_cmd_line_macro) {
-      str_command_line_error(ec_bad_cmd_line_macro,
-                             curr_cmd_line_or_predef_macro_def);
-      /* This is unreachable, str_command_line_error will terminate
-         compilation. */
-    }  /* if */
-  }  /* if */
-#endif /* !STANDALONE_UTILITY_PROGRAM */
-  if (diag_should_be_issued) {
-    an_error_severity reported_severity = determine_reported_severity(dp);
-
-    /* If there's an instantiation currently on the scope stack, grab the most
-       recent instantiation's associated template.  Then mark the template as
-       having an invalid active instantiation so that further (recursive)
-       instantiations of the template are suspended until the problematic
-       instantiation is popped off the scope stack. */
-    if (depth_innermost_instantiation_scope != NO_SCOPE_DEPTH &&
-        reported_severity >= es_discretionary_error) {
-      a_scope_stack_entry_ptr ssep =
-                             &scope_stack[depth_innermost_instantiation_scope];
-      a_symbol_ptr            templ_sym = ssep->template_sym;
-
-      if (templ_sym != NULL) {
-        a_template_symbol_supplement_ptr supp =
-                                              templ_sym->variant.template_info;
-
-        if (supp->invalid_active_instantiation == NULL) {
-          supp->invalid_active_instantiation = ssep->instance_sym;
-        }  /* if */
+        /* Update the repeated diagnostics counter. */
+        update_diagnostic_counter(reported_severity,
+                                  &diagnostic_counters.repeated);
       }  /* if */
     }  /* if */
-    /* Update the total diagnostics counter. */
-    update_diagnostic_counter(reported_severity, &diagnostic_counters.total);
-    /* When diagnostics are suppressed, suppress all non-catastrophic error
-       types.  Catastrophic error types are excluded from suppression as they
-       require early termination. */
-    if (globally_suppress_diagnostics &&
-        !is_catastrophic_error_severity(reported_severity)) {
-      diag_should_be_issued = FALSE;
-      /* Update the suppressed diagnostics counter. */
-      update_diagnostic_counter(reported_severity,
-                                &diagnostic_counters.suppressed);
+    if (diag_should_be_issued) {
+      /* Check to see if this error occurred while scanning a command-line
+         macro definition.  If so, ignore the original error and issue a
+         general error indicating that the macro definition is invalid. */
+      if (curr_cmd_line_or_predef_macro_def != NULL &&
+          !processing_predefined_macro &&
+          dp->error_code != ec_bad_cmd_line_macro) {
+        str_command_line_error(ec_bad_cmd_line_macro,
+                               curr_cmd_line_or_predef_macro_def);
+        /* This is unreachable, str_command_line_error will terminate
+           compilation. */
+      }  /* if */
     }  /* if */
-    /* Check for a local diagnostic counter.  If said diagnostic counter was
-       set, update it now. */
-    if (diagnostic_counters.local != NULL) {
-      update_diagnostic_counter(reported_severity, diagnostic_counters.local);
+#endif /* !STANDALONE_UTILITY_PROGRAM */
+    if (diag_should_be_issued) {
+      an_error_severity reported_severity = determine_reported_severity(dp);
+
+      /* If there's an instantiation currently on the scope stack, grab the
+         most recent instantiation's associated template.  Then mark the
+         template as having an invalid active instantiation so that further
+         (recursive) instantiations of the template are suspended until the
+         problematic instantiation is popped off the scope stack. */
+      if (depth_innermost_instantiation_scope != NO_SCOPE_DEPTH &&
+          reported_severity >= es_discretionary_error) {
+        a_scope_stack_entry_ptr ssep =
+                             &scope_stack[depth_innermost_instantiation_scope];
+        a_symbol_ptr            templ_sym = ssep->template_sym;
+
+        if (templ_sym != NULL) {
+          a_template_symbol_supplement_ptr supp =
+                                              templ_sym->variant.template_info;
+
+          if (supp->invalid_active_instantiation == NULL) {
+            supp->invalid_active_instantiation = ssep->instance_sym;
+          }  /* if */
+        }  /* if */
+      }  /* if */
+      /* Update the total diagnostics counter. */
+      update_diagnostic_counter(reported_severity, &diagnostic_counters.total);
+      /* When diagnostics are suppressed, suppress all non-catastrophic error
+         types.  Catastrophic error types are excluded from suppression as they
+         require early termination. */
+      if (globally_suppress_diagnostics &&
+          !is_catastrophic_error_severity(reported_severity)) {
+        diag_should_be_issued = FALSE;
+        /* Update the suppressed diagnostics counter. */
+        update_diagnostic_counter(reported_severity,
+                                  &diagnostic_counters.suppressed);
+      }  /* if */
+      /* Check for a local diagnostic counter.  If said diagnostic counter was
+         set, update it now. */
+      if (diagnostic_counters.local != NULL) {
+        update_diagnostic_counter(reported_severity,
+                                  diagnostic_counters.local);
+      }  /* if */
     }  /* if */
   }  /* if */
   if (diag_should_be_issued) {
