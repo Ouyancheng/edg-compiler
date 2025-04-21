@@ -5860,6 +5860,7 @@ routine should be called only if generate_pp_output is TRUE.
             if (slmp == line_start_source_line_modif &&
                 do_not_put_curr_line_in_pp_output) break;
             /* End of a macro.  Pick up after the invocation text. */
+            check_assertion(slmp != NULL);
             walk_out_of_insertion(slmp, loc_in_line);
             token_start = TRUE;
           } else if (ch == LE_NEWLINE) {
