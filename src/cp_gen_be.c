@@ -5451,20 +5451,26 @@ are done in the il_to_str routines before this routine is called.
     /* We want to preserve the original form of prototype instantiations
        when possible, and this typedef appears in a prototype
        instantiation, so leave it as visible. */
-  } else if (in_template_argument_list && !type->variant.typeref.is_dependent
+  } else if (in_template_argument_list &&
+             !type->variant.typeref.is_dependent &&
+             !(type->variant.typeref.extra_info->template_arg_list == NULL &&
+               (!type->source_corresp.is_class_member ||
+                !parent_class_of(type)->
+                                 variant.class_struct_union.is_template_class))
 #if GCC_BUILTIN_VARARGS
-      && !type->is_builtin_va_list
+             && !type->is_builtin_va_list
 #endif /* GCC_BUILTIN_VARARGS */
       ) {
-    /* We would like to treat typedefs in template arguments as invisible,
-       so that we generate "X<int>" instead of "X<Y<...>::_Type>" -- it's
-       shorter and it's less confusing for cases where the source actually
-       has something like X<int> but X<int> was previously instantiated using
-       the long typedef member name.  However, we must be careful to keep a
-       typedef that is needed for accessibility or where it supplies a
-       linkage specification.  The is_dependent flag is set for alias
-       references that include dependent types.  These need to be preserved
-       because they can affect SFINAE processing. */
+    /* We would like to treat complex typedefs in template arguments as
+       invisible, so that we generate "X<int>" instead of
+       "X<Y<...>::_Type>" -- it's shorter and it's less confusing for cases
+       where the source actually has something like X<int> but X<int> was
+       previously instantiated using the long typedef member name.
+       However, we must be careful to keep a typedef that is needed for
+       accessibility or where it supplies a linkage specification.  The
+       is_dependent flag is set for alias references that include dependent
+       types.  These need to be preserved because they can affect SFINAE
+       processing. */
     a_type_ptr underlying_type =
       skip_typerefs_not_typedefs_or_type_operators(type->variant.typeref.type);
     a_boolean  for_all_scopes = TRUE;

@@ -1,5 +1,36 @@
 Version 6.8
 
+4/21/25  [EDGcpfe/28081]
+C++-generating back end: typedefs in template arguments
+
+In order to reduce the volume and complexity of the generated code, the
+C++-generating back end generally replaced typedefs used as type template
+arguments with their underlying types.  This decision was based on the
+common situation where a template instance is often first referred to using
+a member typedef at the end of a long chain of template instantiations that
+simply pass through a type template argument passed to the top-level
+template.  There was no benefit, however, from doing this replacement when
+the typedef involved is not a member or is a member of a non-templated
+class, and in some cases the replacement code could trigger a bug in g++.
+For example, with --g++:
+
+  template<typename> struct C;
+  template<class, template<typename> class> struct U;
+  template<template<typename> class D = C> struct S {
+    using T = U<int, D>;
+  };
+  using M = S<>::T;
+  template<typename> struct O { };
+  struct L {
+    void f(O<M> = O<M>{});   // Previously generated U<int,C> instead of M
+  };
+
+The code using the underlying type, "U<int,C>", resulted in g++ issuing
+a spurious error when compiling the generated code.  This has now been
+fixed, with the C++-generating back end no longer replacing simple typedefs
+with their underlying types.
+
+
 4/21/25  [EDGcpfe/28086]
 Failure to setlocale leads to multiple internal assertions
 
