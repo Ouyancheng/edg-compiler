@@ -1,5 +1,15 @@
 Version 6.8
 
+4/21/25  [EDGcpfe/28086]
+Failure to setlocale leads to multiple internal assertions
+
+Previously, if the front end failed to set the locale of LC_NUMERIC to C an
+internal assertion would be triggered.  Additionally, as the front end was not
+yet fully initialized, this would lead to a subsequent internal assertion
+caused by the first internal assertion.  Both of these errors are now addressed
+and a normal catastrophic error is instead issued.
+
+
 4/18/25  [EDGcpfe/27562]
 Folding of logical and/or operations in C mode
 
