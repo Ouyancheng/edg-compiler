@@ -6668,7 +6668,7 @@ This is done before command line processing.
      ensure that LC_NUMERIC is set to "C" (all programs start off with this
      as the default, but the locale may have been changed by user code). */
   if (setlocale(LC_NUMERIC, "C") == NULL) {
-    unexpected_condition_str("could not set LC_NUMERIC locale");
+    catastrophe(ec_setlocale_lc_numeric_failed);
   }  /* if */
   current_directory_name = NULL;
   /* Get the name of the EDG_BASE directory.  This may be overridden by

@@ -3547,6 +3547,7 @@ ec_embed;INTERNAL;"embed"
 ec_unrec_embed_param;;"unrecognized parameter name"
 ec_dupl_embed_param;;"parameter specified more than once"
 ec_has_embed_not_in_if;;"__has_embed cannot appear outside #if"
+ec_setlocale_lc_numeric_failed;;"could not set LC_NUMERIC locale to C"
 ###############################################################################
 #                                                             \  ___  /       #
 #                                                               /   \         #
