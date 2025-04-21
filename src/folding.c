@@ -2298,12 +2298,12 @@ for any diagnostics issued.
        is a vector of equal length and whose elements are of the same nature
        (integer vs. floating-point).  A conversion from a compatible scalar
        value acts like a "vector fill" operation. */
-    a_type_ptr  new_etp, old_etp;
+    a_type_ptr  new_etp = NULL, old_etp = NULL;
     if (type_is(new_type, tk_vector)) {
       new_etp = skip_typerefs(new_type->variant.vector.element_type);
     }  /* if */
     if (type_is(constant_type, tk_vector)) {
-      old_etp = skip_typerefs(new_type->variant.vector.element_type);
+      old_etp = skip_typerefs(constant_type->variant.vector.element_type);
     }  /* if */
     if (!type_is(constant_type, tk_vector) &&
         new_etp->kind == constant_type->kind && !is_reinterpret_cast) {
