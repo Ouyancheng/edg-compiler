@@ -14028,7 +14028,7 @@ is present when a "=" is not there.
 
 #endif /* C_ANACHRONISMS_ALLOWED */
 
-static void scan_namespace_declaration_list(a_boolean  is_top_level)
+static inline void scan_namespace_declaration_list(a_boolean  is_top_level)
 /*
 Scan a list of declarations in namespace (incl. file) scope.  is_top_level is
 TRUE if this is for translation-unit level declarations (or equivalent
@@ -14055,7 +14055,7 @@ generated code) not delimited by braces.
     }  /* if */
     declaration(/*function_definition_allowed=*/TRUE,
                 /*is_old_style_param_decl=*/FALSE,
-                /*is_top_level_declaration=*/TRUE,
+                /*is_top_level_declaration=*/is_top_level,
                 /*marked_as_gnu_extension=*/FALSE,
                 (a_param_id_ptr)NULL, (a_source_range *)NULL);
     if (injected_decl) {
