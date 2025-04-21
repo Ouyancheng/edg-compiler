@@ -2052,6 +2052,11 @@ to NULL.
 {
   if (is_single_elem(*p_list)) {
     copy_operand(operand_of_arg_list_elem(*p_list), subscript);
+    if (!is_expression_operand(subscript)) {
+      expr_pos_error(ec_braced_init_list_not_allowed,
+                     init_component_pos(*p_list));
+      make_error_operand(subscript);
+    }  /* if */
   } else {
     if (cli_array) {
       expr_pos_error(ec_comma_operator_in_cli_subscript,
