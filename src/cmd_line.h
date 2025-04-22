@@ -690,6 +690,12 @@ C++14 constexpr features in C++11-mode system header files.
    (constexpr_enabled && clang_version_is(>=30300) && in_system_header()))
 
 EXTERN_THREAD a_boolean
+		local_static_constexpr_enabled;
+			/* TRUE if local static variables can be initialized
+			   as part of constant evaluation under certain
+			   circumstances (a C++23 feature). */
+
+EXTERN_THREAD a_boolean
 		constexpr_virtual_enabled;
 			/* TRUE if constexpr virtual functions (a C++20
 			   feature) are enabled. */

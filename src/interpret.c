@@ -6761,7 +6761,7 @@ successful.
 
   save_storage_stack(ips, *vs_state);
   if (init != NULL) {
-    if (init->kind == (a_statement_kind)stmk_decl) {
+    if (init->kind == stmk_decl) {
       /* Allocate storage for any variables. */
       an_il_entity_list_entry_ptr  p = init->variant.decl.entities;
       for (; p != NULL; p = p->next) {
@@ -6771,7 +6771,7 @@ successful.
           if (!result) break;
         }  /* if */
       }  /* for */
-    } else if (init->kind == (a_statement_kind)stmk_expr) {
+    } else if (init->kind == stmk_expr) {
       /* Nothing to allocate just now. */
     } else {
       unexpected_condition();
@@ -6809,7 +6809,7 @@ destructor evaluation).
     do_constexpr_unmap_variable(ips, cond_var);
   }  /* if */
   if (init != NULL) {
-    if (init->kind == (a_statement_kind)stmk_decl) {
+    if (init->kind == stmk_decl) {
       /* Unmap storage for all declared variables. */
       an_il_entity_list_entry_ptr  p = init->variant.decl.entities;
       for (; p != NULL; p = p->next) {
@@ -6849,7 +6849,7 @@ skip_typerefs(expr->type).
     a_statement_ptr             init = csp->initialization;
     if (init != NULL) {
       /* A C++17-style initializer.  E.g., "if (int x = f(); x+1) ...". */
-      if (init->kind == (a_statement_kind)stmk_decl) {
+      if (init->kind == stmk_decl) {
         /* Evaluate the initializer of each variable. */
         an_il_entity_list_entry_ptr  p = init->variant.decl.entities;
         for (; p != NULL; p = p->next) {
@@ -6928,7 +6928,7 @@ loop constructs they may be needed again).
     }  /* if */
   }  /* if */
   if (init != NULL) {
-    if (init->kind == (a_statement_kind)stmk_decl) {
+    if (init->kind == stmk_decl) {
       /* Clean up side structures for any declared variables. */
       an_il_entity_list_entry_ptr  p = init->variant.decl.entities;
       for (; p != NULL; p = p->next) {
@@ -7676,6 +7676,34 @@ evaluates to false.
 }  /* do_assumption_check */
 
 
+static a_boolean decl_stmt_only_has_known_constant_variables(
+                                                        a_statement_ptr  stmt)
+/*
+Return TRUE if no variable associated with the given stmk_decl statement has
+static or thread storage duration and is not usable as a constant expression.
+
+*/
+{
+  a_boolean                    result = TRUE;
+  an_il_entity_list_entry_ptr  p = stmt->variant.decl.entities;
+
+  for (; p != NULL; p = p->next) {
+    if (p->entity.kind == iek_variable) {
+      /* Check if the variable is usable in a constant expression. */
+      a_variable_ptr  vp = (a_variable_ptr)p->entity.ptr;
+      if (var_has_static_or_thread_storage_duration(vp)) {
+        a_constant_ptr  cp = var_constant_value(vp);
+        if (cp == NULL) {
+          result = FALSE;
+          break;
+        }  /* if */
+      }  /* if */
+    }  /* if */
+  }  /* for */
+  return result;
+}  /* decl_stmt_only_has_known_constant_variables */
+
+
 static a_boolean do_constexpr_statement(an_interpreter_state  *ips,
                                         a_statement_ptr       stmt)
 /*
@@ -8033,8 +8061,11 @@ done_with_return_statement:
     case stmk_decl:
       /* Nothing to do; variables are allocated when the scope is opened and
          initialized through stmk_init statements.  However, static-storage
-         variables should not be permitted. */
-      if (stmt->variant.decl.has_static_or_thread_variable) {
+         local variables are only permitted in C++23 mode and only if they can
+         be used as constant expressions. */
+      if (stmt->variant.decl.has_static_or_thread_variable &&
+          !(local_static_constexpr_enabled &&
+            decl_stmt_only_has_known_constant_variables(stmt))) {
         info_with_pos(ec_constexpr_local_static, &stmt->position, ips);
         do_constexpr_fail(result);
       }  /* if */

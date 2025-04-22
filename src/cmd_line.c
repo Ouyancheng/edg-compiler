@@ -4231,6 +4231,9 @@ default mode (e.g., exception handling).
       extended_range_based_for_lifetime = TRUE;
     }  /* if */
     multi_subscript_enabled = TRUE;
+    if (relaxed_constexpr_enabled) {
+      local_static_constexpr_enabled = TRUE;
+    }  /* if */
   }  /* if */
   if (cpp26_mode) {
     embed_enabled = TRUE;

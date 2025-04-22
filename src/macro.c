@@ -11986,7 +11986,9 @@ command line -D options.
          values depending on whether C++11, C++14, C++17, C++20, or C++23
          constexpr features are supported. */
       if (cpp23_mode) {
-        (void)enter_predef_macro("202110L", "__cpp_constexpr",
+        (void)enter_predef_macro(local_static_constexpr_enabled ?
+                                   "202207L" : "202110L",
+                                 "__cpp_constexpr",
                                  /*cannot_be_redefined=*/TRUE,
                                  /*ref_suppresses_pch_file=*/FALSE);
       } else if (cpp20_mode) {
