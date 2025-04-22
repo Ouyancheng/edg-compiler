@@ -2185,12 +2185,15 @@ parameters, respectively.
     /* Advance to the next parameter or the end of the text. */
     (void)get_token();
   }  /* while */
+done:
   if (is_directive && curr_token == tok_rparen) {
     pos_error(ec_exp_identifier, &pos_curr_token);
     flush_to_newline();
+    curr_char_loc = start_of_curr_token;
     result = FALSE;
   } else if (!is_directive && curr_token == tok_newline) {
     syntax_error(ec_exp_rparen);
+    curr_char_loc = start_of_curr_token;
     result = FALSE;
   } else {
     a_constant_ptr    cp = local_constant();
@@ -2225,7 +2228,6 @@ parameters, respectively.
     curr_char_loc = saved_curr_char_loc;
     curr_token = saved_curr_token;
   }  /* if */
-done:
   return result;
 }  /* parse_embed */
 
