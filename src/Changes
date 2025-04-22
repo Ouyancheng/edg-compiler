@@ -56,7 +56,7 @@ Consider in GNU C++ mode:
   }
 
 Previously, the front end erroneously copied an array of one element for the
-member S::i, even though that array has length zero.  This could lead memory
+member S::i, even though that array has length zero.  This could lead to memory
 corruption and/or aborts.  That problem is fixed now.
 
 
