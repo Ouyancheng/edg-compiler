@@ -5770,7 +5770,8 @@ routine should be called only if generate_pp_output is TRUE.
         set_up_for_walk_of_source_line(loc_in_line, slmp);
       } else {
         loc_in_line = start_loc;
-        slmp = NULL;
+        slmp = assoc_source_line_modif_full(start_loc,
+                                            /*failure_allowed=*/TRUE);
       }  /* if */
       prev_ch = '\n';
       prev_prev_ch = '\0';
