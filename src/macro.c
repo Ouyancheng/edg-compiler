@@ -5533,6 +5533,10 @@ were __has_include.
   }  /* if */
   if (get_token() != tok_lparen) {
     pos_error(ec_exp_lparen, &error_position);
+    if (curr_token == tok_newline) {
+      /* Rescan the newline to avoid spurious cascading errors. */
+      curr_char_loc = start_of_curr_token;
+    }  /* if */
   } else if (!get_header_name()) {
     pos_error(ec_exp_file_name, &error_position);
   } else {
@@ -5592,25 +5596,33 @@ empty, and 2 if the file exists but is empty.
   in_pp_if_expression = FALSE;
   if (get_token() != tok_lparen) {
     pos_error(ec_exp_lparen, &pos_curr_token);
-  } else if (parse_embed(/*is_directive=*/FALSE, &file_name, &prefix_start,
-                         &after_prefix, &suffix_start, &after_suffix,
-                         &if_empty_start, &after_if_empty, &limit, &offset)) {
-    file_name = resolve_header(file_name, /*is_system_include=*/FALSE,
-                               /*is_include_next=*/FALSE, /*is_embed=*/TRUE,
-                               /*suppress_diagnostics=*/TRUE);
-    if (file_name != NULL) {
-      if ((limit - offset) > 0 &&
-          (get_file_size(file_name) - offset) > 0) {
-        result = "1";
-      } else {
-        /* The effective file size is 0. */
-        result = "2";
+    if (curr_token == tok_newline) {
+      /* Rescan the newline to avoid spurious cascading errors. */
+      curr_char_loc = start_of_curr_token;
+    }  /* if */
+  } else {
+    if (parse_embed(/*is_directive=*/FALSE, &file_name, &prefix_start,
+                    &after_prefix, &suffix_start, &after_suffix,
+                    &if_empty_start, &after_if_empty, &limit, &offset)) {
+      file_name = resolve_header(file_name, /*is_system_include=*/FALSE,
+                                 /*is_include_next=*/FALSE, /*is_embed=*/TRUE,
+                                 /*suppress_diagnostics=*/TRUE);
+      if (file_name != NULL) {
+        if ((limit - offset) > 0 &&
+            (get_file_size(file_name) - offset) > 0) {
+          result = "1";
+        } else {
+          /* The effective file size is 0. */
+          result = "2";
+        }  /* if */
       }  /* if */
+    }  /* if */
+    if (curr_token == tok_rparen) {
+      /* Skip the closing parenthesis. */
+      (void)get_token();
     }  /* if */
   }  /* if */
   in_pp_if_expression = saved_in_pp_if;
-  /* Skip the closing parenthesis. */
-  (void)get_token();
   return result;
 }  /* scan_has_embed */
 
