@@ -2299,8 +2299,10 @@ for any diagnostics issued.
        (integer vs. floating-point).  A conversion from a compatible scalar
        value acts like a "vector fill" operation. */
     a_type_ptr  new_etp = NULL, old_etp = NULL;
+    a_boolean   boolean = FALSE;
     if (type_is(new_type, tk_vector)) {
       new_etp = skip_typerefs(new_type->variant.vector.element_type);
+      boolean = new_type->variant.vector.is_boolean_vector;
     }  /* if */
     if (type_is(constant_type, tk_vector)) {
       old_etp = skip_typerefs(constant_type->variant.vector.element_type);
@@ -2318,6 +2320,12 @@ for any diagnostics issued.
                                 check_ambiguity, is_reinterpret_cast,
                                 maintain_expression, did_not_fold,
                                 error_detected, err_pos);
+      if (boolean) {
+        /* A boolean vector has elements normalized to "all ones". */
+        an_integer_value  cmpl = new_constant->variant.integer_value;
+        complement_integer_value(&cmpl);
+        xor_integer_values(&new_constant->variant.integer_value, &cmpl);
+      }  /* if */
       if ((error_detected == NULL || !*error_detected) && !*did_not_fold) {
         an_expr_node  *node = alloc_node_for_constant(new_constant);
         node = make_operator_node(eok_vector_fill, new_type, node);

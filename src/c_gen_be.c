@@ -6462,14 +6462,14 @@ process_assignment:
             write_tok_str(" != ");
             write_vector_constant(operand_2->type, "0");
           } else if (!is_vector_type(operand_2->type)) {
-            /* The "v1 || s2" case is rewritten as "v1 != 0 | (s2 ? 1 : 0)".
+            /* The "v1 || s2" case is rewritten as "v1 != 0 | (s2 ? -1 : 0)".
                There is no short-circuit in this case. */
             dump_expression(operand_1);
             write_tok_str(" != ");
             write_vector_constant(operand_1->type, "0");
             write_tok_str(" | (");
             dump_expression(operand_2);
-            write_tok_str(" ? 1 : 0)");
+            write_tok_str(" ? -1 : 0)");
           } else {
             /* If both operands are vectors, rewrite as: "v1 != 0 | v2 != 0"
                instead.  There is no short-circuit in this case. */

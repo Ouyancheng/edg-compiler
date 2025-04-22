@@ -33848,6 +33848,10 @@ and whether the operator appears at the top level of a requires clause.
          the operands.  Note that the operation may have a mix of scalar
          and vector operands (though at least one must be a vector). */
       result_type = make_integer_vector_result_type(operation_type);
+      result_type->variant.vector.is_boolean_vector = TRUE;
+      if (type_is(result_type, tk_vector)) {
+        result_type->variant.vector.is_boolean_vector = TRUE;
+      }  /* if */
     } else
 #endif /* GNU_VECTOR_TYPES_ALLOWED */
     /* Do not insert code here. */
