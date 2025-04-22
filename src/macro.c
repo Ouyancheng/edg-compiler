@@ -5599,7 +5599,8 @@ empty, and 2 if the file exists but is empty.
                                /*is_include_next=*/FALSE, /*is_embed=*/TRUE,
                                /*suppress_diagnostics=*/TRUE);
     if (file_name != NULL) {
-      if ((limit - offset) > 0 && get_file_size(file_name) > 0) {
+      if ((limit - offset) > 0 &&
+          (get_file_size(file_name) - offset) > 0) {
         result = "1";
       } else {
         /* The effective file size is 0. */
