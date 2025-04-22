@@ -1,5 +1,23 @@
 Version 6.8
 
+4/22/25  [EDGcpfe/28123]
+#elifdef/#elifndef in code being skipped
+
+As noted in the entry for EDGcpfe/24782,EDGcpfe/25697,EDGcpfe/25898, the
+#elifdef and #elifndef directives are only supported in certain language
+versions and emulation modes.  In modes in which they are not enabled, they
+have no effect and are simply skipped when processing text being skipped
+by #if, #else, etc.  This behavior can be confusing, however, so the front
+end has now been changed to issue a warning for these directives appearing
+in text being discarded.  For example, with --c++20:
+
+  #ifdef A
+  // The following two lines are skipped and have no effect:
+  #elifndef B   // Previously silent, now elicits a warning
+  #error foo
+  #endif
+
+
 4/22/25  [EDGcpfe/28106]
 Incorrect IL for zero-length array member initialization
 

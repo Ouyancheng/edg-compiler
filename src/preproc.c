@@ -327,12 +327,26 @@ the "#" the current token (at least logically).
     } else if (curr_id_is("elif")) {
       /* #elif directive. */
       kind = ppd_elif;
-    } else if (elifdef_enabled && curr_id_is("elifdef")) {
+    } else if (curr_id_is("elifdef")) {
       /* #elifdef directive. */
-      kind = ppd_elifdef;
-    } else if (elifdef_enabled && curr_id_is("elifndef")) {
+      if (elifdef_enabled) {
+        kind = ppd_elifdef;
+      } else {
+        if (currently_in_pp_if_skip) {
+          pos_warning(ec_elifdef_not_enabled, &pos_curr_token);
+        }  /* if */
+        kind = ppd_not_valid;
+      }  /* if */
+    } else if (curr_id_is("elifndef")) {
       /* #elifndef directive. */
-      kind = ppd_elifndef;
+      if (elifdef_enabled) {
+        kind = ppd_elifndef;
+      } else {
+        if (currently_in_pp_if_skip) {
+          pos_warning(ec_elifdef_not_enabled, &pos_curr_token);
+        }  /* if */
+        kind = ppd_not_valid;
+      }  /* if */
     } else if (curr_id_is("define")) {
       /* #define directive. */
       kind = ppd_define;
