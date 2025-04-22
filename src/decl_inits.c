@@ -43,7 +43,7 @@ BEGIN_EDG_NAMESPACE
 
 #define array_element_count(array_type, elem_type)                      \
   ((array_type)->variant.array.is_variable_size_array ? 0 :             \
-   (array_type)->size == 0 ? 1 :                                        \
+   (array_type)->size == 0 ? 0 :                                        \
    /* else */                (array_type)->size / (elem_type)->size)
 
 
@@ -8457,27 +8457,31 @@ whole array.
 */
 {
   a_dynamic_init_ptr  result;
-  a_type_ptr          etype = underlying_array_element_type(atype);
+  a_type_ptr          etype = skip_typerefs(
+                                        underlying_array_element_type(atype));
+  a_targ_size_t       count = array_element_count(atype, etype);
 
   etype = skip_typerefs(etype);
-  if (dip->kind == (a_dynamic_init_kind)dik_constant &&
-      dip->destructor == NULL) {
-    /* We get here with folded constexpr constructor calls. */
-    a_constant_ptr  econ = dip->variant.constant.ptr, acon;
-    check_assertion(econ->is_result_of_constexpr_call);
-    acon = alloc_constant((a_constant_repr_kind)ck_aggregate);
+  if (count == 0 ||
+      (dyn_init_is(dip, dik_constant) && dip->destructor == NULL)) {
+    /* We get here with folded constexpr constructor calls and with zero-bound
+       arrays. */
+    a_constant_ptr  acon = alloc_constant(ck_aggregate);
     acon->type = atype;
-    add_constant_to_aggregate(
-                      add_repeat_con(econ, array_element_count(atype, etype)),
-                      acon, (a_base_class_ptr)NULL, (a_field_ptr)NULL);
+    if (count == 0) {
+      dip->kind = dik_constant;
+    } else {
+      a_constant_ptr  econ = dip->variant.constant.ptr;
+      check_assertion(econ->is_result_of_constexpr_call);
+      add_constant_to_aggregate(add_repeat_con(econ, count), acon,
+                                (a_base_class_ptr)NULL, (a_field_ptr)NULL);
+    }  /* if */
     dip->variant.constant.ptr = acon;
     result = dip;
   } else {
-    result =
-           alloc_dynamic_init((a_dynamic_init_kind)dik_nonconstant_aggregate);
+    result = alloc_dynamic_init(dik_nonconstant_aggregate);
     /* Build the looping constant entry. */
-    repeat_nonconstant_init(dip, atype, etype, result,
-                            array_element_count(atype, etype));
+    repeat_nonconstant_init(dip, atype, etype, result, count);
     if (dip->destructor != NULL) {
       /* A destructor is recorded in the array element dynamic-init entry.
          This is in case an exception is thrown in the midst of constructing

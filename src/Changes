@@ -1,5 +1,32 @@
 Version 6.8
 
+4/22/25  [EDGcpfe/28106]
+Incorrect IL for zero-length array member initialization
+
+Consider in GNU C++ mode:
+
+  int N = 0;
+  struct I {
+    int x;
+    I(): x(0) {}
+    I(I const &orig): x(orig.x) { N++; }
+  };
+  struct S {
+    int m;
+    I i[0];
+  };
+  int main() {
+    S s;
+    S copy(s);
+    return N != 0;
+  }
+
+Previously, the front end erroneously copied an array of one element for the
+member S::i, even though that array has length zero.  This could lead memory
+corruption and/or aborts.  That problem is fixed now.
+
+
+
 4/21/25  [EDGcpfe/28081]
 C++-generating back end: typedefs in template arguments
 
