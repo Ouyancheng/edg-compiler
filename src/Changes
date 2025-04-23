@@ -93,7 +93,7 @@ non-alias-template typedefs with their underlying types.
 
 
 4/21/25  [EDGcpfe/28086]
-Failure to setlocale leads to multiple internal assertions
+Failure to set the locale leads to multiple internal assertions
 
 Previously, if the front end failed to set the locale of LC_NUMERIC to C an
 internal assertion would be triggered.  Additionally, as the front end was not
