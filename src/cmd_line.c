@@ -3244,6 +3244,7 @@ option values if they were not already set by a command line option.
           if (relaxed_range_based_for_enabled) {
             extended_range_based_for_lifetime = TRUE;
           }  /* if */
+          static_call_operator_enabled = TRUE;
         }  /* if */
       }  /* if */
     } else {
@@ -4234,6 +4235,7 @@ default mode (e.g., exception handling).
     if (relaxed_constexpr_enabled) {
       local_static_constexpr_enabled = TRUE;
     }  /* if */
+    static_call_operator_enabled = TRUE;
   }  /* if */
   if (cpp26_mode) {
     embed_enabled = TRUE;
@@ -13390,6 +13392,7 @@ variables declared in cmd_line.h.
   string_literal_operator_template_allowed = FALSE;
   spaceship_enabled = FALSE;
   multi_subscript_enabled = FALSE;
+  static_call_operator_enabled = FALSE;
   rvalue_allowed_with_const_qual_memptr = FALSE;
   va_opt_enabled = FALSE;
   char8_t_enabled = FALSE;

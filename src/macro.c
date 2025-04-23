@@ -4664,10 +4664,6 @@ STATIC_THREAD a_boolean
 			   __has_feature(cxx_constexpr_string_builtins). */
 
 STATIC_THREAD a_boolean
-		cpp_static_call_operator_enabled;
-			/* TRUE if operator() can be a static member. */
-
-STATIC_THREAD a_boolean
 		datasizeof_enabled;
 			/* TRUE if the clang datasizeof operator is
 			   enabled. */
@@ -4864,7 +4860,7 @@ STATIC_THREAD a_feature_support feature_support_list[] = {
     "201309L" },
   { "",
     0,
-    &cpp_static_call_operator_enabled,
+    &static_call_operator_enabled,
     "__cpp_static_call_operator",
     "202207L" },
   { "",
@@ -11741,7 +11737,6 @@ command line -D options.
                                     std_thread_local_storage_specifier_enabled;
   cxx_constexpr_string_builtins =
                    !C_mode() && constexpr_enabled && clang_version_is(>=40000);
-  cpp_static_call_operator_enabled = cpp23_mode;
   datasizeof_enabled = clang_version_is(>= 180000);
   /* __cplusplus is defined to reflect the appropriate variant if we are
      compiling C++, left undefined otherwise.  In most modes, __cplusplus

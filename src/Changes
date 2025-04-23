@@ -1,5 +1,17 @@
 Version 6.8
 
+4/23/24  [EDGcpfe/27872]
+Microsoft compatibility: Static operator()
+
+The changes for EDGcpfe/25514,EDGcpfe/26992 introduced the ability to declare
+operator() as a static member function in C++23.  This is now also enabled with
+--ms_cpp23 when microsoft_version >= 1944.  Previously, this feature was
+accepted with a warning in non-C++23 Microsoft modes when
+microsoft_version >= 1939; that condition has now been updated to be
+microsoft_version >= 1944 to better match the expected direction of the MSVC
+compiler.
+
+
 4/22/25  [EDGcpfe/25856]
 C++23: Local non-automatic variables in constant evaluation
 

@@ -2690,10 +2690,10 @@ this is a helper function.
           pos_error(ec_static_lambda_with_capture, &pos_curr_token);
         } else {
           state->storage_class = sc_static;
-          if (!cpp23_mode) {
+          if (!static_call_operator_enabled) {
             an_error_severity  sev = es_discretionary_error;
             if (gpp_version_is(>=130000) || clang_version_is(>=160000) ||
-                ms_version_is(>=1939)) {
+                ms_version_is(>=1944)) {
               /* Recent versions of GCC, Clang, and MSVC accept the syntax in
                  pre-C++23 modes. */
               sev = es_warning;
@@ -6323,10 +6323,10 @@ discretionary error, depending on the mode).
 
   if (loc->is_operator_name && loc->variant.opname == onk_function_call) {
     result = TRUE;
-    if (!cpp23_mode) {
+    if (!static_call_operator_enabled) {
       an_error_severity  sev = es_discretionary_error;
       if (gpp_version_is(>=130000) || clang_version_is(>=160000) ||
-          ms_version_is(>=1939)) {
+          ms_version_is(>=1944)) {
         /* Recent versions of GCC, Clang, and MSVC accept the syntax in
            pre-C++23 modes. */
         sev = es_warning;

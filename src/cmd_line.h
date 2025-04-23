@@ -2819,6 +2819,10 @@ EXTERN_THREAD a_boolean
 			   of operands (a C++23 extension). */
 
 EXTERN_THREAD a_boolean
+		static_call_operator_enabled;
+			/* TRUE if the call operator can be a static member. */
+
+EXTERN_THREAD a_boolean
 		rvalue_allowed_with_const_qual_memptr;
 			/* TRUE if an rvalue object expression can be used
 			   in a member-pointer expression with a pointer to
