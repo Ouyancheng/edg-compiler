@@ -5317,9 +5317,7 @@ can be NULL.
   if (!C_mode()) {
     start_potential_decl_statement(&entity_list);
   }  /* if */
-  if ((!C_mode() &&
-       ((cpp23_mode && curr_token == tok_using) ||
-        is_decl_not_expr(DFS_REAL_DECLARATOR_ALLOWED)) ||
+  if ((!C_mode() && is_decl_not_expr(DFS_REAL_DECLARATOR_ALLOWED)) ||
       ((c99_mode ||
         (C_mode() && microsoft_mode && microsoft_version >= 1800)) &&
        is_decl_start(IDS_EXPR_CONTEXT | IDS_REAL_DECLARATOR_ALLOWED))) {
