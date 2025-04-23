@@ -5238,6 +5238,11 @@ This function is also called in clang mode.
          language versions. */
       named_unicode_chars_allowed = TRUE;
     }  /* if */
+    if (clang_version >= 160000) {
+      /* As of version 16, clang can evaluate some local static variables in
+         constexpr/consteval functions. */
+      local_static_constexpr_enabled = TRUE;
+    }  /* if */
     if (clang_version >= 190000) {
       /* As of version 19, clang supports #embed. */
       embed_enabled = TRUE;

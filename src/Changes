@@ -13,7 +13,8 @@ be used as a constant-expression on its own.  For example:
   }
   static_assert(hex_digit(10) == 'A');  // Now accepted in C++23 mode.
 
-See committee paper P2647R1.
+See committee paper P2647R1.  In Clang modes with clang_version >= 16000 this
+feature is accepted with a warning in pre-C++23 modes.
 
 
 4/22/25  [EDGcpfe/28123]
