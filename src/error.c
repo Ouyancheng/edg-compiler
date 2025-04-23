@@ -5697,8 +5697,8 @@ The message is formatted into text strings and is output.
   can_locate_source_line_info_cached = FALSE;
 #endif /* !STANDALONE_UTILITY_PROGRAM */
   diag_should_be_issued = check_severity(dp);
-#if !STANDALONE_UTILITY_PROGRAM
   if (in_front_end) {
+#if !STANDALONE_UTILITY_PROGRAM
     if (diag_should_be_issued) {
       /* Determine whether this diagnostic should not be issued because
          of the use of the "once" diagnostic control. */
@@ -5729,13 +5729,10 @@ The message is formatted into text strings and is output.
            compilation. */
       }  /* if */
     }  /* if */
-  }  /* if */
 #endif /* !STANDALONE_UTILITY_PROGRAM */
-  if (diag_should_be_issued) {
-    an_error_severity reported_severity = determine_reported_severity(dp);
+    if (diag_should_be_issued) {
+      an_error_severity reported_severity = determine_reported_severity(dp);
 
-#if !STANDALONE_UTILITY_PROGRAM
-    if (in_front_end) {
       /* If there's an instantiation currently on the scope stack, grab the
          most recent instantiation's associated template.  Then mark the
          template as having an invalid active instantiation so that further
@@ -5756,25 +5753,24 @@ The message is formatted into text strings and is output.
           }  /* if */
         }  /* if */
       }  /* if */
-    }  /* if */
-#endif /* !STANDALONE_UTILITY_PROGRAM */
-    /* Update the total diagnostics counter. */
-    update_diagnostic_counter(reported_severity, &diagnostic_counters.total);
-    /* When diagnostics are suppressed, suppress all non-catastrophic error
-       types.  Catastrophic error types are excluded from suppression as they
-       require early termination. */
-    if (globally_suppress_diagnostics &&
-        !is_catastrophic_error_severity(reported_severity)) {
-      diag_should_be_issued = FALSE;
-      /* Update the suppressed diagnostics counter. */
-      update_diagnostic_counter(reported_severity,
-                                &diagnostic_counters.suppressed);
-    }  /* if */
-    /* Check for a local diagnostic counter.  If said diagnostic counter was
-       set, update it now. */
-    if (diagnostic_counters.local != NULL) {
-      update_diagnostic_counter(reported_severity,
-                                diagnostic_counters.local);
+      /* Update the total diagnostics counter. */
+      update_diagnostic_counter(reported_severity, &diagnostic_counters.total);
+      /* When diagnostics are suppressed, suppress all non-catastrophic error
+         types.  Catastrophic error types are excluded from suppression as they
+         require early termination. */
+      if (globally_suppress_diagnostics &&
+          !is_catastrophic_error_severity(reported_severity)) {
+        diag_should_be_issued = FALSE;
+        /* Update the suppressed diagnostics counter. */
+        update_diagnostic_counter(reported_severity,
+                                  &diagnostic_counters.suppressed);
+      }  /* if */
+      /* Check for a local diagnostic counter.  If said diagnostic counter was
+         set, update it now. */
+      if (diagnostic_counters.local != NULL) {
+        update_diagnostic_counter(reported_severity,
+                                  diagnostic_counters.local);
+      }  /* if */
     }  /* if */
   }  /* if */
   if (diag_should_be_issued) {
