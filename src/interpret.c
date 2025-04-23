@@ -7681,7 +7681,6 @@ static a_boolean decl_stmt_only_has_known_constant_variables(
 /*
 Return TRUE if every static or thread-storage duration variable associated
 with the given stmk_decl statement is usable as a constant expression.
-
 */
 {
   a_boolean                    result = TRUE;
