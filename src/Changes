@@ -22,7 +22,7 @@ See committee paper P2647R1.
 As noted in the entry for EDGcpfe/24782,EDGcpfe/25697,EDGcpfe/25898, the
 #elifdef and #elifndef directives are only supported in certain language
 versions and emulation modes.  In modes in which they are not enabled, they
-have no effect and are simply skipped when processing text being skipped
+have no effect and are simply ignored when processing text being skipped
 by #if, #else, etc.  This behavior can be confusing, however, so the front
 end has now been changed to issue a warning for these directives appearing
 in text being discarded.  For example, with --c++20:
