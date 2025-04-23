@@ -71,8 +71,9 @@ common situation where a template instance is often first referred to using
 a member typedef at the end of a long chain of template instantiations that
 simply pass through a type template argument passed to the top-level
 template.  There was no benefit, however, from doing this replacement when
-the typedef involved is not a class member, and in some cases the
-replacement code could trigger a bug in g++.  For example, with --g++:
+the typedef involved is not a class member and is not an instance of an
+alias template, and in some cases the replacement code could trigger a bug
+in g++.  For example, with --g++:
 
   template<typename> struct C;
   template<class, template<typename> class> struct U;
@@ -87,8 +88,8 @@ replacement code could trigger a bug in g++.  For example, with --g++:
 
 The code using the underlying type, "U<int,C>", resulted in g++ issuing a
 spurious error when compiling the generated code.  This has now been fixed,
-with the C++-generating back end no longer replacing non-member typedefs
-with their underlying types.
+with the C++-generating back end no longer replacing non-member
+non-alias-template typedefs with their underlying types.
 
 
 4/21/25  [EDGcpfe/28086]
