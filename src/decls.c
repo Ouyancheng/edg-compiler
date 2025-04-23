@@ -22299,9 +22299,8 @@ copy.
     pdps->is_old_style_param_decl = TRUE;
     pdps->variant.param_id_list = param_id_list;
   }  /* if */
-  if (is_top_level_declaration &&
-      (is_file_or_namespace_scope(&scope_stack_top()) ||
-       scope_is(&scope_stack_top(), sck_instantiation_context))) {
+  if (is_file_or_namespace_scope(&scope_stack_top()) ||
+      scope_is(&scope_stack_top(), sck_instantiation_context)) {
     /* decl-specifiers of namespace scope declarations are an implicit
        type context in C++20. */
     pdps->is_implicit_type_context = TRUE;
