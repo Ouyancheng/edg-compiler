@@ -2110,12 +2110,11 @@ input string (if any).
   a_boolean consider_char_width = (a_Prefix_kind == SCLK_ORDINARY_LITERAL &&
                                    !is_raw_string && strict_ansi_mode);
 
-  /* Accumulate the characters.  Loop until we reach the indicated end of the
-     string value.  The loop is extended while characters are pending, either
-     because a multibyte character is in process, or because of the
-     pathological ']' trigraph case mentioned in conv_string_literal, or
-     because a raw string literal ended with a line splice that must be
-     expanded. */
+  /* Accumulate the characters.  Loop until we reach the indicated end of
+     the string value.  The loop is extended while characters are pending,
+     either because a multibyte character is in process, or because of the
+     pathological ']' trigraph case mentioned above, or because a raw
+     string literal ended with a line splice that must be expanded. */
   while ((*string_next_char < (*end_of_string_value +
                                raw_str_trigraph_delim_chars)) ||
          conv_state.remaining_char_count > raw_str_trigraph_delim_chars ||
@@ -2134,9 +2133,6 @@ input string (if any).
           conv_single_char(
                 &conv_state, process_escapes, &ch, centity_mask,
                 /*narrow_literal=*/TRUE, (a_Prefix_kind == SCLK_UTF8_LITERAL));
-          /* Coverity: coverity picks up on the dead code elimination that is
-             the goal of the optimization described above. */
-          /* coverity[dead_error_line] */ /* coverity[dead_error_condition] */
           if (consider_char_width && conv_state.remaining_char_count != 0 &&
               !inside_char) {
             /* The character is too wide to fit in a single char. */
