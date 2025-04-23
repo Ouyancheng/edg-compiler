@@ -7679,8 +7679,8 @@ evaluates to false.
 static a_boolean decl_stmt_only_has_known_constant_variables(
                                                         a_statement_ptr  stmt)
 /*
-Return TRUE if no variable associated with the given stmk_decl statement has
-static or thread storage duration and is not usable as a constant expression.
+Return TRUE if every static or thread-storage duration variable associated
+with the given stmk_decl statement is usable as a constant expression.
 
 */
 {
