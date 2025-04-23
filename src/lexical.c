@@ -10546,11 +10546,15 @@ clang::offset directive parameter, or 0 if that parameter was omitted.
                             &full_file_name, &display_name, &embed_file,
                             &suppress_include, &unicode_source_kind,
                             &dir_entry);
-  /* Computer the effective file size for insertion: the actual file size
+  /* Compute the effective file size for insertion: the actual file size
      minus the starting offset, or the value of the limit parameter if it
      is smaller. */
   file_size = get_file_size(full_file_name);
-  file_size -= offset;
+  if (file_size > offset) {
+    file_size -= offset;
+  } else {
+    file_size = 0;
+  }  /* if */
   if (limit < file_size) {
     file_size = limit;
   }  /* if */
