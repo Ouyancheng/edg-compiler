@@ -2955,10 +2955,27 @@ bit field in the generated code.
   /* Note, however, that we do not put out enum types; for those,
      we put out the underlying integer type.  Typedefs are
      dropped too, but that's just what falls out. */
-  { a_type_ptr      base_type = skip_typerefs(field->type);
-    an_integer_kind base_ikind;
+  { a_type_ptr        base_type = skip_typerefs(field->type);
+    an_integer_kind   base_ikind;
+    a_targ_alignment  type_alignment = alignment_of_type(field->type);
 
-    check_assertion(base_type->kind == (a_type_kind)tk_integer);
+    if (field->alignment == 0 && type_alignment != base_type->alignment) {
+      /* The alignment of the type used to declare the bit field is different
+         from the underlying type (e.g., because the original type is a typedef
+         with an alignment attribute).  Compensate by issuing an explicit
+         alignment attribute on the field declaration. */
+#if MICROSOFT_EXTENSIONS_ALLOWED
+      dump_microsoft_align_declspec(type_alignment);
+#endif /* MICROSOFT_EXTENSIONS_ALLOWED */
+#if GNU_EXTENSIONS_ALLOWED
+      if (gcc_or_clang_is_generated_code_target) {
+        write_tok_str("__attribute((packed,aligned(");
+        write_unsigned_num((a_host_large_unsigned)type_alignment);
+        write_tok_str("))) ");
+      }  /* if */
+#endif /* GNU_EXTENSIONS_ALLOWED */
+    }  /* if */
+    check_assertion(type_is(base_type, tk_integer));
     base_ikind = base_type->variant.integer.int_kind;
 #if !C_GEN_BE_GENERATES_ANSI_C
     if (base_ikind == (an_integer_kind)ik_signed_char) {
@@ -3386,8 +3403,7 @@ padding in the generated code.
       a_targ_size_t                  offset_after_fields;
       a_type_ptr                     field_type = skip_typerefs(field->type);
       if (field->has_no_unique_address_attribute) {
-        a_class_type_supplement_ptr ctsp =
-                                    class_type_supp(skip_typerefs(field_type));
+        a_class_type_supplement_ptr ctsp = class_type_supp(field_type);
         if (ctsp->has_subobject_type) {
           /* Use the subobject type, which doesn't have the padding member
              at the end. */
