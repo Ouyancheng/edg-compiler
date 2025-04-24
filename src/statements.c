@@ -1988,17 +1988,26 @@ body of a constexpr function or constructor.
   /* Re-load sssep since the call to scan_nonmember_declaration may have
      caused the statement stack to be reallocated. */
   sssep = &struct_stmt_stack_top();
+  if (sssep->for_init) {
+    if (dps.specifiers_type == NULL) {
+      /* If dps.specifiers_type is NULL, the declaration we just scanned
+         was not a "simple-declaration" (i.e., a declaration consisting of
+         some optional attributes, followed by decl-specifiers, and
+         optionally followed by a declarator) nor an alias-declaration. */
+      pos_error(ec_invalid_init_statement, &dps.start_pos);
+    }  /* if */
 #if GENERATE_SOURCE_SEQUENCE_LISTS
-  if (sssep->for_init && !source_sequence_entries_disallowed) {
-    /* Add a source sequence entry marking the end of the for-init
-       declaration.  This marker is necessary in case what immediately
-       follows in the source sequence list is an entry for a condition
-       declaration.  E.g., without the marker, there would be no distinction
-       between "for (int i = 0; int j = 3; --j);" and
-       "for (int i = 0, j = 3; ; --j);". */
-    add_end_of_construct_source_sequence_entry((char*)sp, iek_statement);
-  }  /* if */
+    if (!source_sequence_entries_disallowed) {
+      /* Add a source sequence entry marking the end of the for-init
+         declaration.  This marker is necessary in case what immediately
+         follows in the source sequence list is an entry for a condition
+         declaration.  E.g., without the marker, there would be no distinction
+         between "for (int i = 0; int j = 3; --j);" and
+         "for (int i = 0, j = 3; ; --j);". */
+      add_end_of_construct_source_sequence_entry((char*)sp, iek_statement);
+    }  /* if */
 #endif /* GENERATE_SOURCE_SEQUENCE_LISTS */
+  }  /* if */
   if (*sssep->p_declared_entities != NULL) {
     an_il_entity_list_entry_ptr  ielep = *sssep->p_declared_entities;
     sssep->p_declared_entities = NULL;
@@ -3781,7 +3790,7 @@ scope and an enk_condition node (the node is attached to sp).
         /* If dps.specifiers_type is NULL, the declaration we just scanned
            was not a "simple-declaration" (i.e., a declaration consisting of
            some optional attributes, followed by decl-specifiers, and
-           optionally followed by a declarator). */
+           optionally followed by a declarator) nor an alias-declaration. */
         pos_error(ec_invalid_init_statement, &dps.start_pos);
       }  /* if */
     }  /* if */
@@ -3895,6 +3904,31 @@ Do processing required when done with a block scope.
 }  /* finish_block_scope_for_enhanced_for */
 
 
+static a_boolean alias_decl_next(void)
+/*
+Return TRUE if the current token sequence starts with "using <id> =".
+*/
+{
+  a_boolean  result = FALSE;
+
+  if (curr_token == tok_using) {
+    a_token_cache  cache;
+    clear_token_cache(&cache, /*reusable=*/FALSE);
+    cache_curr_token(&cache);
+    get_token();
+    if (curr_token == tok_identifier) {
+      cache_curr_token(&cache);
+      get_token();
+      if (curr_token == tok_assign) {
+        result = TRUE;
+      }  /* if */
+    }  /* if */
+    rescan_cached_tokens(&cache);
+  }  /* if */
+  return result;
+}  /* alias_decl_next */
+
+
 static void scan_condition(a_statement_ptr  sp,
                            a_boolean        *p_is_condition_decl)
 /*
@@ -3920,11 +3954,14 @@ in C++.
     potential_decl_stmt = TRUE;
   }  /* if */
   if (!C_mode() &&
-      (is_decl_not_expr(flags) ||
+      (alias_decl_next() || is_decl_not_expr(flags) ||
        (curr_token == tok_semicolon && potential_decl_stmt))) {
     /* A condition declaration.  Start a scope for the variable declared in
        the condition and scan the declaration. */
     is_condition_decl = TRUE;
+    if (curr_token == tok_using && !cpp23_mode) {
+      pos_warning(ec_nonstandard_alias_declaration_context, &pos_curr_token);
+    }  /* if */
     scan_structured_control_value(sp, (an_init_component*)NULL);
   } else {
     is_condition_decl = FALSE;
@@ -5317,7 +5354,9 @@ can be NULL.
   if (!C_mode()) {
     start_potential_decl_statement(&entity_list);
   }  /* if */
-  if ((!C_mode() && is_decl_not_expr(DFS_REAL_DECLARATOR_ALLOWED)) ||
+  if ((!C_mode() &&
+       (alias_decl_next() ||
+        is_decl_not_expr(DFS_REAL_DECLARATOR_ALLOWED))) ||
       ((c99_mode ||
         (C_mode() && microsoft_mode && microsoft_version >= 1800)) &&
        is_decl_start(IDS_EXPR_CONTEXT | IDS_REAL_DECLARATOR_ALLOWED))) {
@@ -5326,6 +5365,9 @@ can be NULL.
        statements, so it is not necessary to push another scope here. */
     if (!C_mode()) {
       /* C++. */
+      if (curr_token == tok_using && !cpp23_mode) {
+        pos_warning(ec_nonstandard_alias_declaration_context, &pos_curr_token);
+      }  /* if */
       /* Unless the old-style scoping is required, push a block scope to
          contain the for-init declaration.  (Old-style scoping means the
          declaration occurs in the scope to which the for-statement itself

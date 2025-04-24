@@ -1,5 +1,23 @@
 Version 6.8
 
+4/24/25  [EDGcpfe/24783,EDGcpfe/27875,EDGcpfe/28091]
+C++23: alias-declarations as init-statements
+
+The front end now accepts alias-declarations as init-statements in C++23 modes,
+as specified by the committee's paper P2360R0.  This feature is also accepted
+with a warning in pre-C++23 modes (which matches existing practice by GCC and
+Clang).  The following example is therefore accepted in C++23 mode:
+
+  int main() {
+    float x[3] = { 1, 2, 3 };
+    for (using I = int; I p: x) {}
+    if (using I = int; I n = 1);
+    switch (using I = int; I n = 3) {
+      default:;
+    }
+  }
+
+
 4/23/25  [EDGcpfe/28104]
 C-generating back end: Bit field with explicitly-aligned typedef types
 
