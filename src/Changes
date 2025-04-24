@@ -18,13 +18,13 @@ Consider, e.g., in GNU C mode:
   }
 
 The front end correctly computes the layout of struct S, but the C-generating
-back end has to drop the typedef name on bit field x.  Did cause the front end
-to previously render the bit field declaration as "signed int x : 25;", which
-isn't equivalent with the original because it loses the reduced alignment
-requirement that was carried by the typedef.  On many platforms that caused the
-program to print "8" instead of (the correct) "5".  This is now fixed when the
-target C compiler is GCC, Clang, or MSVC: An explicit attribute is added to
-forced the alignment of the field in those cases.
+back end has to drop the typedef name on bit field x.  This caused the front
+end to previously render the bit field declaration as "signed int x : 25;",
+which isn't equivalent to the original because it loses the reduced alignment
+requirement that was carried by the typedef.  On many platforms, that caused
+the program to print "8" instead of (the correct) "5".  This is now fixed when
+the target C compiler is GCC, Clang, or MSVC: An explicit attribute is added
+to force the alignment of the field in those cases.
 
 
 4/23/24  [EDGcpfe/27872]
