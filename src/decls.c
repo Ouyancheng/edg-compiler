@@ -2654,9 +2654,15 @@ the function non-constexpr in that case).
   if (cpp23_mode || clang_version_is(>=150000)) {
     /* No constraints to check at declaration time.  Instead, the interpreter
        is responsible for catching attempts to evaluate invalid cases. */
-    if (!cpp23_mode && var_has_static_or_thread_storage_duration(vp)) {
+    if (!cpp23_mode && var_has_static_or_thread_storage_duration(vp) &&
+        vp->storage_class != sc_extern) {
       /* Newer Clang versions accept this with a warning in pre-C++23 modes. */
       pos_warning(ec_nonautomatic_var_in_constexpr_function, pos);
+      if (!rp->is_declared_constexpr && !rp->is_consteval) {
+        /* In a lambda that is not explicit declared constexpr/consteval, this
+           still makes the lambda non-constexpr. */
+        rp->is_constexpr = FALSE;
+      }  /* if */
     }  /* if */
   } else if (var_has_static_or_thread_storage_duration(vp)) {
     if (rp->is_declared_constexpr || rp->is_consteval) {

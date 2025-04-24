@@ -7688,9 +7688,11 @@ with the given stmk_decl statement is usable as a constant expression.
 
   for (; p != NULL; p = p->next) {
     if (p->entity.kind == iek_variable) {
-      /* Check if the variable is usable in a constant expression. */
+      /* Check if this is a local static or thread-local variable that is
+         usable in a constant expression. */
       a_variable_ptr  vp = (a_variable_ptr)p->entity.ptr;
-      if (var_has_static_or_thread_storage_duration(vp)) {
+      if (var_has_static_or_thread_storage_duration(vp) &&
+          vp->storage_class != sc_extern) {
         a_constant_ptr  cp = var_constant_value(vp);
         if (cp == NULL) {
           result = FALSE;
