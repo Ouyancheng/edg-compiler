@@ -27200,6 +27200,7 @@ routine.
       } else {
         pos_warning(ec_useless_decl, err_pos);
       }  /* if */
+      decl_state->is_empty_decl = TRUE;
     } else {
       /* A case like "int;" or "enum ::E;": Issue an error. */
       an_error_severity  sev = es_error;
@@ -27227,6 +27228,7 @@ routine.
          the attributes. */
       pos_warning(ec_attributes_with_no_decl,
                   &decl_state->prefix_attributes->position);
+      decl_state->is_empty_decl = TRUE;
     } else {
       /* Issue a warning (or error in -A mode) on the useless declaration. */
       pos_diagnostic(strict_ansi_mode ?

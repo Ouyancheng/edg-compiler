@@ -276,6 +276,7 @@ be restored).
     dps->next = NULL;
     dps->type_constraint = NULL;
     dps->is_exported = FALSE;
+    dps->is_empty_decl = FALSE;
   } else {
     /* Set field values specifically for a secondary declarator. */
     dps->secondary_declarator = TRUE;
@@ -21000,6 +21001,8 @@ processing should proceed after the call.
       attach_decl_attributes(state, /*primary_decl=*/FALSE);
       if (scope_stack_top().exporting_decl) {
         pos_error(ec_export_must_introduce_name, &pos_curr_token);
+      } else {
+        state->is_empty_decl = TRUE;
       }  /* if */
       end_of_decl_action = eoda_check_semicolon;
     } else if (check_for_overload_anachronism()) {

@@ -1957,6 +1957,7 @@ body of a constexpr function or constructor.
   a_statement_ptr                sp;
   a_struct_stmt_stack_entry_ptr  sssep = &struct_stmt_stack_top();
   an_il_entity_list_entry_ptr    entity_list;
+  a_boolean                      is_static_assert;
 
   sp = add_statement(stmk_decl, /*compiler_generated=*/FALSE);
   if (!sssep->record_declared_entities) {
@@ -1973,6 +1974,7 @@ body of a constexpr function or constructor.
 #endif /* GENERATE_SOURCE_SEQUENCE_LISTS */
   init_decl_parse_state(&dps);
   dps.marked_as_gnu_extension = marked_as_gnu_extension;
+  is_static_assert = curr_token == tok_static_assert;
   scan_nonmember_declaration(&dps, (a_source_range *)NULL);
   if (p_okay_in_constexpr_body != NULL) {
     if (!relaxed_constexpr_allowed() &&
@@ -1989,11 +1991,16 @@ body of a constexpr function or constructor.
      caused the statement stack to be reallocated. */
   sssep = &struct_stmt_stack_top();
   if (sssep->for_init) {
-    if (dps.specifiers_type == NULL) {
-      /* If dps.specifiers_type is NULL, the declaration we just scanned
-         was not a "simple-declaration" (i.e., a declaration consisting of
-         some optional attributes, followed by decl-specifiers, and
-         optionally followed by a declarator) nor an alias-declaration. */
+    if (dps.specifiers_type == NULL &&
+        !(dps.is_empty_decl && !strict_ansi_mode) &&
+        !(gcc_mode && is_static_assert)) {
+      /* If dps.specifiers_type is NULL, the declaration we just scanned was
+         not a "simple-declaration" (i.e., a declaration consisting of some
+         optional attributes, followed by decl-specifiers, and optionally
+         followed by a declarator) nor an alias-declaration.  As an extension,
+         we also accept an empty declaration (with attributes) here in
+         nonstrict modes.  GNU C (but not GNU C++, nor Clang) accepts a
+         static assertion declaration here as well. */
       pos_error(ec_invalid_init_statement, &dps.start_pos);
     }  /* if */
 #if GENERATE_SOURCE_SEQUENCE_LISTS
@@ -3960,7 +3967,10 @@ in C++.
        the condition and scan the declaration. */
     is_condition_decl = TRUE;
     if (curr_token == tok_using && !cpp23_mode) {
-      pos_warning(ec_nonstandard_alias_declaration_context, &pos_curr_token);
+      pos_diagnostic(strict_ansi_mode ? strict_ansi_discretionary_severity
+                                      : es_warning,
+                     ec_nonstandard_alias_declaration_context,
+                     &pos_curr_token);
     }  /* if */
     scan_structured_control_value(sp, (an_init_component*)NULL);
   } else {
@@ -5355,7 +5365,7 @@ can be NULL.
     start_potential_decl_statement(&entity_list);
   }  /* if */
   if ((!C_mode() &&
-       (alias_decl_next() ||
+       (//alias_decl_next() ||
         is_decl_not_expr(DFS_REAL_DECLARATOR_ALLOWED))) ||
       ((c99_mode ||
         (C_mode() && microsoft_mode && microsoft_version >= 1800)) &&

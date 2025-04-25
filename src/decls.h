@@ -1246,6 +1246,9 @@ typedef struct a_decl_parse_state {
 			   the parenthesized parameter list. */
   a_bit_field   is_exported:1;
 			/* TRUE if this is a module-exported declaration. */
+  a_bit_field   is_empty_decl:1;
+			/* TRUE if this is an empty declaration (possibly
+			   with some attributes). */
   an_init_state
 		init_state;
 			/* Information about the initializer (if any)
