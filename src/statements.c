@@ -5365,7 +5365,7 @@ can be NULL.
     start_potential_decl_statement(&entity_list);
   }  /* if */
   if ((!C_mode() &&
-       (//alias_decl_next() ||
+       (alias_decl_next() ||
         is_decl_not_expr(DFS_REAL_DECLARATOR_ALLOWED))) ||
       ((c99_mode ||
         (C_mode() && microsoft_mode && microsoft_version >= 1800)) &&
