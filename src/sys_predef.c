@@ -1798,6 +1798,7 @@ to the output buffer of size buf_size.
   /* Skip the leading "__" and look for the next '_'. */
   base_name = strchr(elem_name + 2, '_');
   check_assertion(base_name != NULL);
+  ++base_name;
   len = strlen(base_name);
   check_assertion(buf_size >= len + 3);
   (void)strcpy(buf, base_name);
@@ -1862,7 +1863,7 @@ is the declaration position to be used for the declarations.
                                                  vk_neon);
       build_arm_32_neon_vector_type_name(name_buf, sizeof(name_buf),
                                          int_types->names[i],
-                                         int_types->elements);
+                                         (i + 1)*int_types->elements);
       (void)enter_predefined_typedef(name_buf, vector_type);
       enter_struct_array_types(name_buf, vector_type,
                                build_arm_32_neon_array_type_name, decl_pos);
@@ -1880,7 +1881,7 @@ is the declaration position to be used for the declarations.
                                                  vk_neon);
       build_arm_32_neon_vector_type_name(name_buf, sizeof(name_buf),
                                          float_types->names[i],
-                                         float_types->elements);
+                                         (i + 1)*float_types->elements);
       (void)enter_predefined_typedef(name_buf, vector_type);
       enter_struct_array_types(name_buf, vector_type,
                                build_arm_32_neon_array_type_name, decl_pos);
