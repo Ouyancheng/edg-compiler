@@ -1,5 +1,14 @@
 Version 6.8
 
+4/25/25  [EDGcpfe/24249,EDGcpfe/27959,EDGcpfe/28098]
+GNU compatibility: "#pragma GCC arm" and "#pragma GCC aarch64"
+
+Some of the ARM-specific header files shipped by GCC don't contain the
+declarations in their source code, but instead rely on pragmas to inject those
+declarations.  The front end now supports "#pragma GCC aarch64" and "#pragma
+GCC arm" constructs.
+
+
 4/24/25  [EDGcpfe/24783,EDGcpfe/27875,EDGcpfe/28091]
 C++23: alias-declarations as init-statements
 
