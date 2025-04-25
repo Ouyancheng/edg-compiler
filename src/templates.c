@@ -3518,22 +3518,45 @@ partial ordering purposes, or return a previously created one.
 }  /* get_invented_partial_ordering_param */
 
 
-static a_boolean param_type_list_has_nondependent_entry(a_param_type  *ptp)
+static a_boolean early_gcc_ignores_core532_resolution(
+                                            a_boolean     rout_1_is_nonstatic,
+                                            a_param_type  *ptp1,
+                                            a_param_type  *ptp2)
 /*
-Return TRUE if any of the parameter types on the this headed by ptp is not
-instantiation-dependent.
+The lists headed by ptp1 and ptp2 are parameter lists of function templates
+one of which is a nonstatic member and the other not (rout_1_is_nonstatic
+indicates whether the first list is associated with the nonstatic member).
+Return whether in GNU C++ mode with gnu_version < 140000 the resolution of
+core issue 532 should be ignored.  The corresponding versions of GCC do not
+consistently apply that resolution, but the exact criteria followed by GCC
+are unclear.  This function appears to approximate the GCC behavior fairly
+well: The decision is made based on the parameter types (whether they are
+template dependent and whether they're simple template parameters or
+references thereto).
 */
 {
-  a_boolean  result = FALSE;
+  a_boolean         result = FALSE;
 
-  for (; ptp != NULL; ptp = ptp->next) {
-    if (!is_instantiation_dependent_type(ptp->type)) {
-      result = TRUE;
-      break;
+  if (ptp1 != NULL && ptp2 != NULL) {
+    /* Ensure that ptp1 points to the nonstatic member parameters, and skip
+       the first parameter of the non-member. */
+    if (!rout_1_is_nonstatic) {
+      swap_at(&ptp1, &ptp2);
     }  /* if */
-  }  /* for */
+    ptp2 = ptp2->next;
+    while (ptp1 != NULL && ptp2 != NULL) {
+      if ((is_template_param_type(skip_reference_type(ptp2->type)) &&
+           is_instantiation_dependent_type(ptp1->type)) ||
+          is_template_param_type(skip_reference_type(ptp1->type))) {
+        result = TRUE;
+        break;
+      }  /* if */
+      ptp1 = ptp1->next;
+      ptp2 = ptp2->next;
+    }  /* while */
+  }  /* if */
   return result;
-}  /* param_type_list_has_nondependent_entry */
+}  /* early_gcc_ignores_core532_resolution */
 
 
 static void get_effective_param_type_list_for_templates(
@@ -3572,8 +3595,8 @@ is put at the start of either ptp1 or ptp2.
     /* They are both static/nonmember or nonstatic functions.  Nothing
        needs to be done. */
   } else if (gpp_version_is(<140000) &&
-             param_type_list_has_nondependent_entry(
-                                       rout_1_is_nonstatic ? *ptp2 : *ptp1)) {
+             early_gcc_ignores_core532_resolution(
+                                       rout_1_is_nonstatic, *ptp1, *ptp2)) {
     /* Earlier versions of g++ do not consistently implement core issue 532.
        It is not entirely clear what rules are implemented, but the heuristic
        of ignoring the resolution of core issue 532 if a parameter of the non-
