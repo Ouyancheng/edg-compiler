@@ -2126,6 +2126,7 @@ input string (if any).
     unsigned long ch;
     check_assertion(*result_str_next_ch < *result_str_start + constant_size);
     /* Convert one character of the string literal. */
+    /* coverity[switch_selector_expr_is_constant] */
     switch (a_Prefix_kind) {
       case SCLK_ORDINARY_LITERAL:
       case SCLK_UTF8_LITERAL:
@@ -2169,6 +2170,7 @@ input string (if any).
   }  /* for */
   /* Add the final null. */
   check_assertion(*result_str_next_ch < *result_str_start + constant_size);
+  /* coverity[switch_selector_expr_is_constant] */
   switch (a_Prefix_kind) {
     case SCLK_ORDINARY_LITERAL:
     case SCLK_UTF8_LITERAL:
