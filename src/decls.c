@@ -3415,10 +3415,11 @@ internal linkage).
 static a_boolean is_overloadable_c_sym(a_symbol_ptr         sym,
                                        an_id_linkage_block  *idlbp)
 /*
-Return TRUE if the given symbol or the current declaration is declared with
-the Clang attribute "overloadable".  If the given symbol is an overload set,
-also return TRUE (at least one of the constituent functions will necessarily
-have been declared with "overloadable" also).  Only called in Clang C mode.
+Return TRUE if the given symbol or the current declaration is declared with the
+Clang attribute "overloadable" or is an overloadable GCC builtin.  If the given
+symbol is an overload set, also return TRUE (at least one of the constituent
+functions will necessarily have been declared with "overloadable" also).  Only
+called in GCC/Clang C mode.
 E.g.:
   __attribute((overloadable)) void f(int);
   __attribute((overloadable)) void f(double);
@@ -3429,14 +3430,14 @@ represent an overload set).
 {
   a_boolean  result = FALSE;
 
-  check_assertion(clang_mode);
+  check_assertion(gnu_mode);
   if (symbol_is(sym, sk_overloaded_function)) {
     /* We already overloaded this function name. */
     result = TRUE;
   } else if (idlbp->c_overload) {
     /* The "overloadable" attribute is specified on the new declaration. */
     result = TRUE;
-  } else if (symbol_is(sym, sk_routine)) {
+  } else if (clang_mode && symbol_is(sym, sk_routine)) {
     a_routine_ptr     rp = sym->variant.routine.ptr;
     an_attribute_ptr  attributes = rp->source_corresp.attributes;
     if (find_attribute(ak_overloadable, attributes) != NULL) {
@@ -3656,9 +3657,8 @@ when the declaration is a friend declaration within a class.
        sk_routine symbol, we may want to overload the two functions. */
     if (is_function && kind != sk_variable &&
         (!C_mode() ||
-         (clang_mode &&
-          (is_overloadable_c_sym(other_decl, idlbp) ||
-           find_decl_attribute(ak_overloadable, dps) != NULL)))) {
+         (gnu_mode && is_overloadable_c_sym(other_decl, idlbp)) ||
+         (clang_mode && find_decl_attribute(ak_overloadable, dps) != NULL))) {
       /* C++ function or function template -- type compatibility check is
          required. */
       a_template_param_ptr   params = NULL;
@@ -8374,7 +8374,9 @@ new declaration is a friend declaration.
     overload_set_is_invisible = TRUE;
   }  /* if */
 #if BUILTIN_FUNCTIONS_ENABLED
-  if (homonym_symbol->kind == (a_symbol_kind)sk_routine) {
+  if (locator->symbol_header != NULL &&
+      !locator->symbol_header->is_builtin_overloadable &&
+      homonym_symbol->kind == sk_routine) {
     a_routine_ptr  rp = homonym_symbol->variant.routine.ptr;
     if (is_gnu_builtin_function(rp)) {
       /* This declaration overloads a predeclared function: Issue a warning. */
@@ -9203,6 +9205,13 @@ for use in generating cross-reference output describing this declaration.
       (dps->prefix_attributes != NULL || dps->id_attributes != NULL)) {
     check_clang_c_overload(dps, &idlb);
   }  /* if */
+#if BUILTIN_FUNCTIONS_ENABLED
+  if (C_mode() && locator->symbol_header != NULL &&
+      locator->symbol_header->is_builtin_function &&
+      locator->symbol_header->is_builtin_overloadable) {
+    idlb.c_overload = TRUE;
+  }  /* if */
+#endif /* BUILTIN_FUNCTIONS_ENABLED */
   set_linkage_environment(&idlb, decl_scope_level);
   check_assertion(idlb.is_friend_decl == ((srk_flags & SRK_FRIEND) != 0) ||
                   is_or_contains_error_type(type_ptr));

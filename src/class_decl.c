@@ -35380,6 +35380,54 @@ For ARM32, the class is defined as follows:
 }  /* make_va_list_tag_type */
 
 
+a_type_ptr make_single_field_struct_type(a_const_char       *name,
+                                         a_type_ptr         field_type,
+                                         a_const_char       *field_name,
+                                         a_source_position  *decl_pos)
+/*
+Create a struct type with the given name and add a single field of field_type
+with name field_name.  Return a pointer to the struct type.  decl_pos is the
+declaration position to be used for the struct type declaration.
+*/
+{
+  a_class_def_state  class_state;
+  a_symbol_ptr       sym;
+  a_type_ptr         type;
+  a_scope_depth      scope_depth = DEPTH_OF_FILE_SCOPE;
+#if GENERATE_SOURCE_SEQUENCE_LISTS
+  a_boolean          saved_source_sequence_entries_disallowed =
+                                            source_sequence_entries_disallowed;
+#endif /* GENERATE_SOURCE_SEQUENCE_LISTS */
+
+#if GENERATE_SOURCE_SEQUENCE_LISTS
+  /* Don't issue source sequence entries for generated entities. */
+  source_sequence_entries_disallowed = TRUE;
+#endif /* GENERATE_SOURCE_SEQUENCE_LISTS */
+  type = init_predeclared_class(tk_struct, name);
+  enter_predeclared_class(type, scope_depth, decl_pos);
+  sym = symbol_for(type);
+  /* Start the class definition (and associated class scope). */
+  initialize_class_def_state(type, &class_state);
+  class_state.access = as_public;
+  class_type_supp(type)->assoc_scope = push_scope(sck_class_struct_union,
+                                                  NO_SCOPE_NUMBER,
+                                                  type, (a_routine_ptr)NULL);
+  scope_stack_top().class_def_state = &class_state;
+  /* Add the field. */
+  (void)add_field_to_generated_type(field_name, field_type);
+  /* Wrap up the definition. */
+  complete_class_definition(type, scope_depth, &class_state);
+  sym->defined = TRUE;
+  pop_scope();
+#if GENERATE_SOURCE_SEQUENCE_LISTS
+  /* Restore the previous state wrt. generating source sequence entries. */
+  source_sequence_entries_disallowed =
+                                     saved_source_sequence_entries_disallowed;
+#endif /* GENERATE_SOURCE_SEQUENCE_LISTS */
+  return type;
+}  /* make_single_field_struct_type */
+
+
 void synth_class_definition(a_type_ptr                     class_type,
                             Dyn_array<a_meta_field_descr>  *descr_array,
                             a_source_position              *diag_pos)

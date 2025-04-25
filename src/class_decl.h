@@ -412,6 +412,12 @@ extern void f_consume_any_stray_microsoft_rparen(void);
 
 extern a_type_ptr make_va_list_tag_type(void);
 
+extern a_type_ptr make_single_field_struct_type(a_const_char       *name,
+                                                a_type_ptr         elem_type,
+                                                a_const_char       *elem_name,
+                                                a_source_position  *decl_pos);
+
+
 /*
 Description of a field synthesized through reflection.  This type participates
 in the implementation of std::meta::define_class.

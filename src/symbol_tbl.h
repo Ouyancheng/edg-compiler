@@ -4588,6 +4588,8 @@ typedef struct a_symbol_header {
   a_bit_field	is_builtin_function:1;
                         /* TRUE if this symbol header is for a builtin
                            function (which may or may not have been loaded). */
+  a_bit_field	is_builtin_overloadable:1;
+                        /* TRUE if this is a builtin that may be overloaded. */
   a_bit_field	builtin_has_been_loaded:1;
                         /* TRUE if this is a builtin (i.e., is_builtin_function
                            is TRUE) and the builtin has been loaded.  Relevant

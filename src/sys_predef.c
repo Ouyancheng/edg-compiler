@@ -309,14 +309,18 @@ function.
     (void)find_symbol(name, (sizeof_t)strlen(name), &local_loc);
     loc = &local_loc;
   }  /* if */
-  /* Builtin functions have extern "C" name linkage by default. */
-  scope_stack[decl_scope_level].default_name_linkage =
-                                            (a_name_linkage_kind)nlk_external;
+  if (!loc->symbol_header->is_builtin_overloadable) {
+    /* Non-overloadable builtin functions have extern "C" name linkage by
+       default. */
+    scope_stack[decl_scope_level].default_name_linkage = nlk_external;
+  }  /* if */
   sym = make_predeclared_function_symbol(loc, rout_type);
-  check_assertion(sym->variant.routine.ptr->source_corresp.name_linkage
-                                         == (a_name_linkage_kind)nlk_external);
-  check_assertion(rout_type->variant.routine.extra_info->routine_name_linkage
-                                         == (a_name_linkage_kind)nlk_external);
+  if (!loc->symbol_header->is_builtin_overloadable) {
+    check_assertion(sym->variant.routine.ptr->source_corresp.name_linkage
+                                                              == nlk_external);
+    check_assertion(rout_type->variant.routine.extra_info->routine_name_linkage
+                                                              == nlk_external);
+  }  /* if */
   /* Restore the previous default name linkage. */
   scope_stack[decl_scope_level].default_name_linkage = saved_name_linkage;
   sym->explicit_linkage_specifier = !C_mode();
@@ -507,33 +511,16 @@ present in the condition (indicating that a secondary declaration is allowed).
 }  /* builtin_enabled */
 
 
-static a_boolean builtin_restrictions_met(a_symbol_header *sym_hdr,
-                                          a_boolean       issue_error)
+static a_boolean check_restrictions_met(a_const_char  *restrictions,
+                                        a_boolean     issue_error)
 /*
-Returns TRUE if the builtin function referred to by sym_hdr has no restrictions
-or those restrictions are met in the current configuration.  If FALSE is
-returned an error is issued (only if issue_error is TRUE).
+Returns TRUE if the specified restrictions are met in the current configuration
+(or restrictions is NULL).  If FALSE is returned an error is issued (only if
+issue_error is TRUE).
 */
 {
-  a_boolean     result = TRUE;
-  a_const_char  *restrictions = NULL;
+  a_boolean  result = TRUE;
 
-  if (sym_hdr->builtin_function_category == bfc_user) {
-    /* For a user-defined builtin function, re-parse the condition string to
-       see if there are any restrictions. */
-    a_boolean primary_enabled = FALSE, secondary_enabled = FALSE;
-    a_builtin_user_descr_ptr budp =
-                          &builtin_user_table[sym_hdr->builtin_function_index];
-    builtin_condition_enabled(budp->cond, &primary_enabled, &secondary_enabled,
-                              &restrictions);
-  } else {
-    /* The restriction string (if any) has already been found for non-user
-       defined builtins. */
-    a_builtin_descr *bdp;
-    bdp = builtin_tables[sym_hdr->builtin_function_category] +
-                                               sym_hdr->builtin_function_index;
-    restrictions = builtin_condition_table[bdp->cond_index].restrictions;
-  }  /* if */
   if (restrictions != NULL) {
     while (*restrictions != ']' && *restrictions != '\0') {
       switch (*restrictions) {
@@ -591,12 +578,44 @@ returned an error is issued (only if issue_error is TRUE).
       }  /* switch */
       restrictions++;
     }  /* while */
-    if (!result && issue_error) {
-      /* Prevent cascading errors for this builtin function. */
-      check_assertion(locator_for_curr_id.symbol_header == sym_hdr);
-      curr_token = tok_identifier;
-      make_specific_symbol_error_locator(&locator_for_curr_id);
-    }  /* if */
+  }  /* if */
+  return result;
+}  /* check_restrictions_met */
+
+
+static a_boolean builtin_restrictions_met(a_symbol_header *sym_hdr,
+                                          a_boolean       issue_error)
+/*
+Returns TRUE if the builtin function referred to by sym_hdr has no restrictions
+or those restrictions are met in the current configuration.  If FALSE is
+returned an error is issued (only if issue_error is TRUE).
+*/
+{
+  a_boolean     result = TRUE;
+  a_const_char  *restrictions = NULL;
+
+  if (sym_hdr->builtin_function_category == bfc_user) {
+    /* For a user-defined builtin function, re-parse the condition string to
+       see if there are any restrictions. */
+    a_boolean primary_enabled = FALSE, secondary_enabled = FALSE;
+    a_builtin_user_descr_ptr budp =
+                          &builtin_user_table[sym_hdr->builtin_function_index];
+    builtin_condition_enabled(budp->cond, &primary_enabled, &secondary_enabled,
+                              &restrictions);
+  } else {
+    /* The restriction string (if any) has already been found for non-user
+       defined builtins. */
+    a_builtin_descr *bdp;
+    bdp = builtin_tables[sym_hdr->builtin_function_category] +
+                                               sym_hdr->builtin_function_index;
+    restrictions = builtin_condition_table[bdp->cond_index].restrictions;
+  }  /* if */
+  result = check_restrictions_met(restrictions, issue_error);
+  if (!result && issue_error) {
+    /* Prevent cascading errors for this builtin function. */
+    check_assertion(locator_for_curr_id.symbol_header == sym_hdr);
+    curr_token = tok_identifier;
+    make_specific_symbol_error_locator(&locator_for_curr_id);
   }  /* if */
   return result;
 }  /* builtin_restrictions_met */
@@ -920,6 +939,34 @@ current emulation mode.
 }  /* preload_builtin_symbols */
 
 
+void load_overloadable_builtin_symbols(a_builtin_function_category  bfc)
+/*
+Loop through each builtin declaration for the specified function category and
+declare each function that is enabled in the current emulation mode as an
+overloadable builtin function.
+*/
+{
+  a_builtin_descr              *bdp;
+
+  for (bdp = builtin_tables[bfc]; bdp->name != NULL; bdp++) {
+    if (builtin_enabled(bdp->cond_index, NULL, /*is_secondary=*/FALSE)) {
+      a_symbol_locator  loc;
+      a_const_char      *restrictions;
+      clear_locator(&loc, &null_source_position);
+      (void)find_symbol(bdp->name, (sizeof_t)strlen(bdp->name), &loc);
+      loc.symbol_header->is_builtin_function = TRUE;
+      loc.symbol_header->is_builtin_overloadable = TRUE;
+      restrictions = builtin_condition_table[bdp->cond_index].restrictions;
+      if (check_restrictions_met(restrictions, /*issue_error=*/FALSE)) {
+        a_type_ptr  builtin_type =
+                              builtin_function_type_for_index(bdp->type_index);
+        (void)enter_builtin_function(bdp->name, builtin_type, bdp->kind, &loc);
+      }  /* if */
+    }  /* if */
+  }  /* for */
+}  /* load_overloadable_builtin_symbols */
+
+
 using a_builtin_func_load_set = Ptr_set<a_symbol_header*>;
                         /* The type of a set that contains the symbols
                            of all loaded builtin functions. */
@@ -962,19 +1009,30 @@ Mark the given builtin as loaded in the current translation unit.
 
 #endif /* BUILTIN_FUNCTIONS_ENABLED */
 
-static void enter_predefined_type(a_type_ptr   type,
-                                  a_const_char *name)
+static a_type_ptr enter_typedef(a_const_char *name,
+                                a_type_ptr   type,
+                                a_boolean    is_predeclared)
 /*
-Enter a predefined type.
+Create a type entry and associated symbol for a typedef of the given name with
+the given underlying type.  If is_predeclared is TRUE, mark the type as being a
+predeclared typedef.  Enter these in the file scope and return the type entry.
 */
 {
-  a_symbol_ptr sym_ptr;
+  a_type_ptr        result = alloc_type(tk_typeref);
+  a_symbol_locator  location;
+  a_symbol_ptr      sym_ptr;
 
-  sym_ptr = full_enter_symbol(name, (sizeof_t)(strlen(name)),
-                              (a_symbol_kind)sk_type, DEPTH_OF_FILE_SCOPE);
-  sym_ptr->variant.type.ptr = type;
-  set_source_corresp(&type->source_corresp, sym_ptr);
-}  /* enter_predefined_type */
+  result->variant.typeref.type = type;
+  result->variant.typeref.predeclared = is_predeclared;
+  add_to_types_list(result, DEPTH_OF_FILE_SCOPE);
+  clear_locator(&location, &null_source_position);
+  (void)find_symbol(name, (sizeof_t)(strlen(name)), &location);
+  sym_ptr = enter_symbol(sk_type, &location, DEPTH_OF_FILE_SCOPE,
+                         !is_predeclared);
+  sym_ptr->variant.type.ptr = result;
+  set_source_corresp(&result->source_corresp, sym_ptr);
+  return result;
+}  /* enter_typedef */
 
 
 static a_type_ptr enter_predefined_typedef(a_const_char *name,
@@ -985,14 +1043,7 @@ the given underlying type.  Mark the type as being a predeclared typedef.
 Enter these in the file scope and return the type entry.
 */
 {
-  a_type_ptr  result = alloc_type((a_type_kind)tk_typeref);
-
-  result->variant.typeref.type = type;
-  result->variant.typeref.predeclared = TRUE;
-  add_to_types_list(result, DEPTH_OF_FILE_SCOPE);
-  /* enter_predefined_type also sets the name of the type. */
-  enter_predefined_type(result, name);
-  return result;
+  return enter_typedef(name, type, /*is_predeclared=*/TRUE);
 }  /* enter_predefined_typedef */
 
 #if UPC_EXTENSIONS_ALLOWED
@@ -1474,26 +1525,529 @@ Enter predefined typedefs for NEON builtin vectors specified in the table types
 
 
 static void enter_scalable_vector_types(
-                                 a_type_ptr                       element_type,
-                                 const a_const_char_ptr_array<4>  &names)
+                a_type_ptr                       element_type,
+                const a_const_char_ptr_array<4>  &names,
+                a_boolean                        enter_single_tuple_element,
+                a_boolean                        enter_multiple_tuple_elements,
+                a_boolean                        strip_clang_prefix)
 /*
 Enter predefined typedefs for scalable vector types of the specified element
-type.  A typedef for tuple size 1 is always entered, typedefs for tuple sizes
-between 2 and 4 are only entered for Clang versions 11.0 and higher.  The
-typedef name is supplied for each tuple size in the array names.
+type.  If enter_single_tuple_element is TRUE, a typedef for tuple size 1 is
+entered.  If enter_multiple_tuple_elements is TRUE, typedefs for tuple sizes
+between 2 and 4 are entered.  The typedef name is supplied for each tuple size
+in the array names.  If strip_clang_prefix is TRUE, a "__clang_" prefix is
+stripped from the typedef name.
 */
 {
-  (void)enter_predefined_typedef(names[0],
-                                 make_scalable_vector_type(element_type, 1));
-  if (clang_version_is(>=110000)) {
+  if (enter_single_tuple_element && names[0] != NULL) {
+    (void)enter_predefined_typedef(names[0],
+                                   make_scalable_vector_type(element_type, 1));
+  }  /* if */
+  if (enter_multiple_tuple_elements) {
     for (uint8_t  tuple_elements = 2; tuple_elements <= 4; ++tuple_elements) {
       a_const_char  *name = names[tuple_elements - 1];
-      a_type_ptr    vector_type = make_scalable_vector_type(element_type,
+      if (name != NULL) {
+        a_type_ptr  vector_type = make_scalable_vector_type(element_type,
                                                             tuple_elements);
-      (void)enter_predefined_typedef(name, vector_type);
+        if (strip_clang_prefix) {
+          const char    clang_prefix[] = "__clang_";
+          const size_t  prefix_len = sizeof(clang_prefix) - 1;
+          check_assertion(strncmp(name, clang_prefix, prefix_len) == 0);
+          name = name + prefix_len;
+        }  /* if */
+        (void)enter_predefined_typedef(name, vector_type);
+      }  /* if */
     }  /* for */
   }  /* if */
 }  /* enter_scalable_vector_types */
+
+
+static void enter_all_scalable_vector_types(
+                                      a_boolean  enter_single_tuple_element,
+                                      a_boolean  enter_multiple_tuple_elements,
+                                      a_boolean  strip_name_prefix)
+/*
+Enter predefined typedefs for all scalable vector types.  See
+enter_scalable_vector_types for a description of the flags.
+*/
+{
+  auto enter_types = [=] (a_type_ptr                       element_type,
+                          const a_const_char_ptr_array<4>  &names) {
+                            enter_scalable_vector_types(
+                                                 element_type, names,
+                                                 enter_single_tuple_element,
+                                                 enter_multiple_tuple_elements,
+                                                 strip_name_prefix);
+                          };
+
+  enter_types(integer_type(ik_signed_char),
+              {"__SVInt8_t",         "__clang_svint8x2_t",
+               "__clang_svint8x3_t", "__clang_svint8x4_t"});
+  enter_types(integer_type(ik_unsigned_char),
+              {"__SVUint8_t",         "__clang_svuint8x2_t",
+               "__clang_svuint8x3_t", "__clang_svuint8x4_t"});
+  enter_types(integer_type(ik_short),
+              {"__SVInt16_t",         "__clang_svint16x2_t",
+               "__clang_svint16x3_t", "__clang_svint16x4_t"});
+  enter_types(integer_type(ik_unsigned_short),
+              {"__SVUint16_t",         "__clang_svuint16x2_t",
+               "__clang_svuint16x3_t", "__clang_svuint16x4_t"});
+  enter_types(integer_type(ik_int),
+              {"__SVInt32_t",         "__clang_svint32x2_t",
+               "__clang_svint32x3_t", "__clang_svint32x4_t"});
+  enter_types(integer_type(ik_unsigned_int),
+              {"__SVUint32_t",         "__clang_svuint32x2_t",
+               "__clang_svuint32x3_t", "__clang_svuint32x4_t"});
+  enter_types(integer_type(ik_long),
+              {"__SVInt64_t",         "__clang_svint64x2_t",
+               "__clang_svint64x3_t", "__clang_svint64x4_t"});
+  enter_types(integer_type(ik_unsigned_long),
+              {"__SVUint64_t",         "__clang_svuint64x2_t",
+               "__clang_svuint64x3_t", "__clang_svuint64x4_t"});
+  enter_types(float_type(fk_fp16),
+              {"__SVFloat16_t",         "__clang_svfloat16x2_t",
+               "__clang_svfloat16x3_t", "__clang_svfloat16x4_t"});
+  enter_types(float_type(fk_std_bfloat16),
+              {clang_version_is(<180000) ? "__SVBFloat16_t" : "__SVBfloat16_t",
+               "__clang_svbfloat16x2_t",
+               "__clang_svbfloat16x3_t", "__clang_svbfloat16x4_t"});
+  enter_types(float_type(fk_float),
+              {"__SVFloat32_t",         "__clang_svfloat32x2_t",
+               "__clang_svfloat32x3_t", "__clang_svfloat32x4_t"});
+  enter_types(float_type(fk_double),
+              {"__SVFloat64_t",         "__clang_svfloat64x2_t",
+               "__clang_svfloat64x3_t", "__clang_svfloat64x4_t"});
+
+  if (enter_single_tuple_element) {
+    (void)enter_predefined_typedef("__SVBool_t",
+                                   make_scalable_vector_type(bool_type(),
+                                                             1));
+  }  /* if */
+  if (clang_version_is(>=170000) || gnu_version_is(>=150000)) {
+    enter_types(bool_type(),
+                {NULL, "__clang_svboolx2_t",
+                 NULL, "__clang_svboolx4_t"});
+  }  /* if */
+  if (clang_version_is(>=200000) || gnu_version_is(>=150000)) {
+    enter_types(modal_8bit_floating_point_type(),
+                {"__SVMfloat8_t",         "__clang_svmfloat8x2_t",
+                 "__clang_svmfloat8x3_t", "__clang_svmfloat8x4_t"});
+  }  /* if */
+}  /* enter_scalable_vector_types */
+
+
+using a_build_array_type_name_fn = a_boolean(char *, sizeof_t, a_const_char *,
+                                             unsigned);
+			/* Type of a function to build the name of an array
+			   type. */
+
+
+static void enter_struct_array_types(
+                            a_const_char                *base_name,
+                            a_type_ptr                  base_type,
+                            a_build_array_type_name_fn  *build_array_type_name,
+                            a_source_position           *decl_pos)
+/*
+Create a number of struct types with a single field "val" of array type of the
+specified base type.  The type name is generated by build_array_type_name from
+from the specified base_name and the array bound.  This is done for array bound
+from 2 to 4.  decl_pos is the declaration position to be used for the
+declarations.
+*/
+{
+  char  name_buf[16];
+
+  for (unsigned array_elements = 2; array_elements <= 4; ++array_elements) {
+    if (build_array_type_name(name_buf, sizeof(name_buf), base_name,
+                              array_elements)) {
+      a_type_ptr  struct_type, typedef_type;
+      a_type_ptr  field_type = alloc_type(tk_array);
+
+      field_type->variant.array.element_type = base_type;
+      field_type->variant.array.variant.number_of_elements = array_elements;
+      set_type_size(field_type);
+      struct_type = make_single_field_struct_type(name_buf, field_type, "val",
+                                                  decl_pos);
+      typedef_type = enter_typedef(name_buf, struct_type,
+                                   /*is_predeclared=*/FALSE);
+      typedef_type->source_corresp.decl_position = *decl_pos;
+    }  /* if */
+  }  /* for */
+}  /* enter_struct_array_types */
+
+
+static a_type_ptr enter_unscoped_enum(a_const_char       *name,
+                                      a_source_position  *decl_pos)
+/*
+Create an unscoped enumeration type and enter it with the specified name in
+file scope.  Also enter a typedef to that enumeration type with the same name.
+Return a pointer to the enumeration type.  decl_pos is the declaration position
+to be used for the declarations.
+*/
+{
+  a_symbol_ptr      sym;
+  a_type_ptr        type, typedef_type;
+  a_symbol_locator  loc;
+
+  type = alloc_type(tk_enum);
+  type->variant.integer.enum_type = TRUE;
+  if (!C_mode()) {
+    type->source_corresp.name_linkage = nlk_cplusplus_external;
+  }  /* if */
+  clear_locator(&loc, &null_source_position);
+  (void)find_symbol(name, (sizeof_t)strlen(name), &loc);
+  sym = alloc_symbol(sk_enum_tag, loc.symbol_header, decl_pos);
+  sym->variant.enumeration.type = type;
+  sym->decl_position = *decl_pos;
+  reenter_symbol(sym, DEPTH_OF_FILE_SCOPE, /*suppress_error=*/FALSE);
+  set_source_corresp(&(type->source_corresp), sym);
+  set_namespace_membership(sym, &(type->source_corresp), NULL);
+  /* The referenced flag may have been reset by set_source_corresp. */
+  type->source_corresp.referenced = sym->referenced;
+  add_to_types_list(type, DEPTH_OF_FILE_SCOPE);
+  typedef_type = enter_typedef(name, type, /*is_predeclared=*/FALSE);
+  typedef_type->source_corresp.decl_position = *decl_pos;
+  return type;
+}  /* enter_unscoped_enum */
+
+
+/*
+Descriptor for enumerator constants.
+*/
+typedef struct an_enumerator_descr {
+  const char	*name;
+			/* Name of the enumerator. */
+  int		value;
+			/* Integer value of the enumerator. */
+} an_enumerator_descr;
+
+static void enter_unscoped_enumerators(a_type_ptr                 enum_type,
+                                       const an_enumerator_descr  *enumerators,
+                                       a_source_position          *decl_pos)
+/*
+Enter a list of enumerators (terminated by an entry with a NULL name) for the
+specified enum type.  decl_pos is the declaration position to be used for the
+declarations.
+*/
+{
+  a_type_ptr      enum_con_type;
+  a_symbol_ptr    enum_con_sym;
+  a_constant_ptr  constant = local_constant();
+  a_constant_ptr  constant_list = NULL;
+  a_constant_ptr  end_of_constant_list = NULL;
+  a_scope_ptr     parent_scope = scope_stack[decl_scope_level].il_scope;
+
+  if (C_mode()) {
+    enum_con_type = alloc_type(tk_integer);
+    enum_con_type->variant.integer.int_kind = ik_int;
+    enum_con_type->variant.integer.enum_type = FALSE;
+    enum_con_type->variant.integer.enum_info.affiliated_type = enum_type;
+    set_type_size(enum_con_type);
+  } else {
+    enum_con_type = enum_type;
+  }  /* if */
+  for (const an_enumerator_descr *iter = enumerators;
+       iter->name != NULL;
+       ++iter) {
+    a_symbol_locator  loc;
+    a_constant_ptr    enum_con;
+
+    clear_locator(&loc, &null_source_position);
+    (void)find_symbol(iter->name, (sizeof_t)strlen(iter->name), &loc);
+    enum_con_sym = alloc_symbol(sk_constant, loc.symbol_header, decl_pos);
+    reenter_symbol(enum_con_sym, DEPTH_OF_FILE_SCOPE,
+                   /*suppress_error=*/FALSE);
+    set_integer_constant(constant, (a_host_large_integer)iter->value, ik_int);
+    enum_con = alloc_unshared_constant(constant);
+    enum_con->is_named_constant_definition = TRUE;
+    set_source_corresp(&(enum_con->source_corresp), enum_con_sym);
+    enum_con->source_corresp.parent_scope = parent_scope;
+    enum_con->source_corresp.name_linkage =
+                                        enum_type->source_corresp.name_linkage;
+    enum_con->type = enum_con_type;
+    enum_con_sym->variant.constant = enum_con;
+    set_namespace_membership(enum_con_sym, &enum_con->source_corresp, NULL);
+    if (constant_list == NULL) {
+      constant_list = enum_con;
+    } else {
+      end_of_constant_list->next = enum_con;
+    }  /* if */
+    end_of_constant_list = enum_con;
+  }  /* for */
+  enum_type->variant.integer.enum_info.constant_list = constant_list;
+  integer_type_supp(enum_type)->enumerator_list_seen = TRUE;
+  integer_type_supp(enum_type)->underlying_type_should_use_unsigned = TRUE;
+  release_local_constant(&constant);
+}  /* enter_unscoped_enumerators */
+
+
+static void build_arm_32_neon_vector_type_name(char           *buf,
+                                               size_t         buf_size,
+                                               a_const_char   *elem_name,
+                                               a_targ_size_t  vector_elements)
+/*
+Build the name for the user-visible vector type from the builtin type name
+passed in elem_name with the specified number of vector elements.  *buf points
+to the output buffer of size buf_size.
+*/
+{
+  a_const_char  *base_name;
+  size_t        len;
+
+  check_assertion(elem_name[0] == '_' && elem_name[1] == '_');
+  /* Skip the leading "__" and look for the next '_'. */
+  base_name = strchr(elem_name + 2, '_');
+  check_assertion(base_name != NULL);
+  len = strlen(base_name);
+  check_assertion(buf_size >= len + 3);
+  (void)strcpy(buf, base_name);
+  /* Overwrite the trailing "_t" with an indicator for the number of vector
+     elements and array elements. */
+  buf += len - 2;
+  buf_size -= len - 2;
+  (void)snprintf(buf, buf_size, "x%u_t", (unsigned)vector_elements);
+}  /* build_arm_32_neon_vector_type_name */
+
+
+static a_boolean build_arm_32_neon_array_type_name(char         *buf,
+                                                   size_t       buf_size,
+                                                   a_const_char *elem_name,
+                                                   unsigned     array_elements)
+/*
+Build the name for an array type from the builtin type name passed in elem_name
+with the specified number of array elements.  *buf points to the output buffer
+of size buf_size.  Return TRUE if the number of array elements is supported.
+*/
+{
+  a_boolean  result = TRUE;
+  if (array_elements != 3) {
+    size_t  len = strlen(elem_name);
+    check_assertion(buf_size >= len + 3);
+    (void)strcpy(buf, elem_name);
+    /* Overwrite the trailing "_t" with an indicator for the number of array
+       elements. */
+    buf += len - 2;
+    buf_size -= len - 2;
+    (void)snprintf(buf, buf_size, "x%u_t", array_elements);
+  } else {
+    /* ARM 32-bit doesn't define array types with 3 elements. */
+    result = FALSE;
+  }  /* if */
+  return result;
+}  /* build_arm_32_neon_array_type_name */
+
+
+void enter_arm_32_mve_predeclared_types(a_source_position *decl_pos)
+/*
+Enter predeclared types for the ARM 32-bit "arm_mve.h" header file.  decl_pos
+is the declaration position to be used for the declarations.
+*/
+{
+  char          name_buf[16];
+  a_type_ptr    tp;
+  an_integer_vector_type_descr_ptr
+                int_types;
+  a_float_vector_type_descr_ptr
+                float_types;
+
+  tp = enter_typedef("mve_pred16_t", integer_type(ik_unsigned_short), FALSE);
+  tp->source_corresp.decl_position = *decl_pos;
+  for (int_types = integer_neon_vector_types_32bit;
+       int_types->int_kind != ik_none;
+       ++int_types) {
+    a_type_ptr  base_type = integer_type(int_types->int_kind);
+    for (unsigned i = 0; i < 2; ++i) {
+      a_type_ptr  vector_type = make_vector_type(base_type,
+                                                 (i + 1)*int_types->elements,
+                                                 vk_neon);
+      build_arm_32_neon_vector_type_name(name_buf, sizeof(name_buf),
+                                         int_types->names[i],
+                                         int_types->elements);
+      (void)enter_predefined_typedef(name_buf, vector_type);
+      enter_struct_array_types(name_buf, vector_type,
+                               build_arm_32_neon_array_type_name, decl_pos);
+    }  /* for */
+  }  /* for */
+  for (float_types = float_neon_vector_types_32bit;
+       float_types->float_kind != fk_last;
+       ++float_types) {
+    /* There are no corresponding array types for __bf16. */
+    if (float_types->float_kind == fk_std_bfloat16) continue;
+    a_type_ptr  base_type = float_type(float_types->float_kind);
+    for (unsigned i = 0; i < 2; ++i) {
+      a_type_ptr  vector_type = make_vector_type(base_type,
+                                                 (i + 1)*float_types->elements,
+                                                 vk_neon);
+      build_arm_32_neon_vector_type_name(name_buf, sizeof(name_buf),
+                                         float_types->names[i],
+                                         float_types->elements);
+      (void)enter_predefined_typedef(name_buf, vector_type);
+      enter_struct_array_types(name_buf, vector_type,
+                               build_arm_32_neon_array_type_name, decl_pos);
+    }  /* for */
+  }  /* for */
+}  /* enter_arm_32_mve_predeclared_types */
+
+
+void enter_arm_64_acle_predeclared_types(a_source_position  *decl_pos)
+/*
+Enter predeclared types for the ARM 64-bit "arm_acle.h" header file.  decl_pos
+is the declaration position to be used for the declarations.
+*/
+{
+  a_const_char  *name = "__arm_data512_t";
+  a_type_ptr    typedef_type, struct_type;
+  a_type_ptr    field_type = alloc_type(tk_array);
+
+  field_type->variant.array.element_type = integer_type(ik_unsigned_long);
+  field_type->variant.array.variant.number_of_elements = 8;
+  set_type_size(field_type);
+  struct_type = make_single_field_struct_type(name, field_type, "val",
+                                              decl_pos);
+  typedef_type = enter_typedef(name, struct_type, /*is_predeclared=*/FALSE);
+  typedef_type->source_corresp.decl_position = *decl_pos;
+}  /* enter_arm_64_acle_predeclared_types */
+
+
+static a_boolean build_arm_64_neon_array_type_name(char         *buf,
+                                                   size_t       buf_size,
+                                                   a_const_char *elem_name,
+                                                   unsigned     array_elements)
+/*
+Build the name for an array type from the builtin type name passed in elem_name
+with the specified number of array elements.  *buf points to the output buffer
+of size buf_size.  Return TRUE if the number of array elements is supported.
+*/
+{
+  a_const_char  *base_name;
+  size_t        len;
+
+  check_assertion(elem_name[0] == '_' && elem_name[1] == '_');
+  /* Skip the leading "__" and convert the first character to lowercase. */
+  base_name = elem_name + 2;
+  len = strlen(base_name);
+  check_assertion(buf_size >= len + 3);
+  (void)strcpy(buf, base_name);
+  buf[0] = (char)tolower(buf[0]);
+  /* Overwrite trailing "_t" with indication for the number of array
+     elements. */
+  buf += len - 2;
+  buf_size -= len - 2;
+  (void)snprintf(buf, buf_size, "x%u_t", array_elements);
+  return TRUE;
+}  /* build_arm_64_neon_array_type_name */
+
+
+void enter_arm_64_neon_predeclared_types(a_source_position  *decl_pos)
+/*
+Enter predeclared types for the ARM 64-bit "arm_neon.h" header file.  decl_pos
+is the declaration position to be used for the declarations.
+*/
+{
+  const an_integer_vector_type_descr  *int_types;
+  const a_float_vector_type_descr     *float_types;
+
+  for (int_types = integer_neon_vector_types_64bit;
+       int_types->int_kind != ik_none;
+       ++int_types) {
+    a_type_ptr  base_type = integer_type(int_types->int_kind);
+    for (unsigned i = 0; i < 2; ++i) {
+      a_type_ptr  vector_type = make_vector_type(base_type,
+                                                 (i + 1)*int_types->elements,
+                                                 vk_neon);
+      enter_struct_array_types(int_types->names[i], vector_type,
+                               build_arm_64_neon_array_type_name, decl_pos);
+    }  /* for */
+  }  /* for */
+  for (int_types = integer_neon_polyvector_types_64bit;
+       int_types->int_kind != ik_none;
+       ++int_types) {
+    a_type_ptr  base_type = integer_type(int_types->int_kind);
+    for (unsigned i = 0; i < 2; ++i) {
+      a_type_ptr  vector_type = make_vector_type(base_type,
+                                                 (i + 1)*int_types->elements,
+                                                 vk_neon_poly);
+      enter_struct_array_types(int_types->names[i], vector_type,
+                               build_arm_64_neon_array_type_name, decl_pos);
+    }  /* for */
+  }  /* for */
+  for (float_types = float_neon_vector_types_64bit;
+       float_types->float_kind != fk_last;
+       ++float_types) {
+    a_type_ptr  base_type = float_type(float_types->float_kind);
+    for (unsigned i = 0; i < 2; ++i) {
+      a_type_ptr  vector_type = make_vector_type(base_type,
+                                                 (i + 1)*float_types->elements,
+                                                 vk_neon);
+      enter_struct_array_types(float_types->names[i], vector_type,
+                               build_arm_64_neon_array_type_name, decl_pos);
+    }  /* for */
+  }  /* for */
+  enter_struct_array_types("__Mfloat8x8_t",
+                           make_vector_type(modal_8bit_floating_point_type(),
+                                            8, vk_neon),
+                           build_arm_64_neon_array_type_name, decl_pos);
+  enter_struct_array_types("__Mfloat8x16_t",
+                           make_vector_type(modal_8bit_floating_point_type(),
+                                            16, vk_neon),
+                           build_arm_64_neon_array_type_name, decl_pos);
+}  /* enter_arm_64_neon_predeclared_types */
+
+
+void enter_arm_64_sve_predeclared_types(a_source_position *decl_pos)
+/*
+Enter predeclared types for the ARM 64-bit "arm_sve.h" header file.  decl_pos
+is the declaration position to be used for the declarations.
+*/
+{
+  a_type_ptr  svpattern_type;
+  static constexpr an_enumerator_descr
+              svpattern_enumerators[] = {
+                {"SV_POW2",   0},
+                {"SV_VL1",    1},
+                {"SV_VL2",    2},
+                {"SV_VL3",    3},
+                {"SV_VL4",    4},
+                {"SV_VL5",    5},
+                {"SV_VL6",    6},
+                {"SV_VL7",    7},
+                {"SV_VL8",    8},
+                {"SV_VL16",   9},
+                {"SV_VL32",  10},
+                {"SV_VL64",  11},
+                {"SV_VL128", 12},
+                {"SV_VL256", 13},
+                {"SV_MUL4",  29},
+                {"SV_MUL3",  30},
+                {"SV_ALL",   31},
+                {NULL,       -1}
+  };
+  a_type_ptr  svprfop_type;
+  static constexpr an_enumerator_descr
+              svprfop_enumerators[] = {
+                {"SV_PLDL1KEEP",  0},
+                {"SV_PLDL1STRM",  1},
+                {"SV_PLDL2KEEP",  2},
+                {"SV_PLDL2STRM",  3},
+                {"SV_PLDL3KEEP",  4},
+                {"SV_PLDL3STRM",  5},
+                {"SV_PSTL1KEEP",  8},
+                {"SV_PSTL1STRM",  9},
+                {"SV_PSTL2KEEP", 10},
+                {"SV_PSTL2STRM", 11},
+                {"SV_PSTL3KEEP", 12},
+                {"SV_PSTL3STRM", 13},
+                {NULL,           -1}
+  };
+
+  svpattern_type = enter_unscoped_enum("svpattern", decl_pos);
+  enter_unscoped_enumerators(svpattern_type, svpattern_enumerators, decl_pos);
+  svprfop_type = enter_unscoped_enum("svprfop", decl_pos);
+  enter_unscoped_enumerators(svprfop_type, svprfop_enumerators, decl_pos);
+  enter_all_scalable_vector_types(/*enter_single_tuple_element=*/FALSE,
+                                  /*enter_multiple_tuple_elements=*/TRUE,
+                                  /*strip_name_prefix=*/TRUE);
+}  /* enter_arm_64_sve_predeclared_types */
 
 #endif /* GNU_EXTENSIONS_ALLOWED && GNU_VECTOR_TYPES_ALLOWED */
 
@@ -1639,88 +2193,16 @@ Enter predeclared symbols as required by the implementation.
         /* Both Clang and GNU have added support for scalable vector types on
            ARM64 starting with version 10.x.  Clang 11.x and later also
            predefine scalable vector types with 2, 3, and 4 tuple elements. */
-        enter_scalable_vector_types(integer_type(ik_signed_char),
-                                    {"__SVInt8_t",
-                                     "__clang_svint8x2_t",
-                                     "__clang_svint8x3_t",
-                                     "__clang_svint8x4_t"});
-        enter_scalable_vector_types(integer_type(ik_unsigned_char),
-                                    {"__SVUint8_t",
-                                     "__clang_svuint8x2_t",
-                                     "__clang_svuint8x3_t",
-                                     "__clang_svuint8x4_t"});
-        enter_scalable_vector_types(integer_type(ik_short),
-                                    {"__SVInt16_t",
-                                     "__clang_svint16x2_t",
-                                     "__clang_svint16x3_t",
-                                     "__clang_svint16x4_t"});
-        enter_scalable_vector_types(integer_type(ik_unsigned_short),
-                                    {"__SVUint16_t",
-                                     "__clang_svuint16x2_t",
-                                     "__clang_svuint16x3_t",
-                                     "__clang_svuint16x4_t"});
-        enter_scalable_vector_types(integer_type(ik_int),
-                                    {"__SVInt32_t",
-                                     "__clang_svint32x2_t",
-                                     "__clang_svint32x3_t",
-                                     "__clang_svint32x4_t"});
-        enter_scalable_vector_types(integer_type(ik_unsigned_int),
-                                    {"__SVUint32_t",
-                                     "__clang_svuint32x2_t",
-                                     "__clang_svuint32x3_t",
-                                     "__clang_svuint32x4_t"});
-        enter_scalable_vector_types(integer_type(ik_long),
-                                    {"__SVInt64_t",
-                                     "__clang_svint64x2_t",
-                                     "__clang_svint64x3_t",
-                                     "__clang_svint64x4_t"});
-        enter_scalable_vector_types(integer_type(ik_unsigned_long),
-                                    {"__SVUint64_t",
-                                     "__clang_svuint64x2_t",
-                                     "__clang_svuint64x3_t",
-                                     "__clang_svuint64x4_t"});
-        enter_scalable_vector_types(float_type(fk_fp16),
-                                    {"__SVFloat16_t",
-                                     "__clang_svfloat16x2_t",
-                                     "__clang_svfloat16x3_t",
-                                     "__clang_svfloat16x4_t"});
-        enter_scalable_vector_types(float_type(fk_std_bfloat16),
-                                    {clang_version_is(<180000) ?
-                                           "__SVBFloat16_t" : "__SVBfloat16_t",
-                                     "__clang_svbfloat16x2_t",
-                                     "__clang_svbfloat16x3_t",
-                                     "__clang_svbfloat16x4_t"});
-        enter_scalable_vector_types(float_type(fk_float),
-                                    {"__SVFloat32_t",
-                                     "__clang_svfloat32x2_t",
-                                     "__clang_svfloat32x3_t",
-                                     "__clang_svfloat32x4_t"});
-        enter_scalable_vector_types(float_type(fk_double),
-                                    {"__SVFloat64_t",
-                                     "__clang_svfloat64x2_t",
-                                     "__clang_svfloat64x3_t",
-                                     "__clang_svfloat64x4_t"});
-        (void)enter_predefined_typedef("__SVBool_t",
-                                       make_scalable_vector_type(bool_type(),
-                                                                 1));
-        if (clang_version_is(>=170000)) {
-          (void)enter_predefined_typedef("__clang_svboolx2_t",
-                                         make_scalable_vector_type(bool_type(),
-                                                                   2));
-          (void)enter_predefined_typedef("__clang_svboolx4_t",
-                                         make_scalable_vector_type(bool_type(),
-                                                                   4));
+        enter_all_scalable_vector_types(/*enter_single_tuple_element=*/TRUE,
+                                        clang_version_is(>=110000),
+                                        /*strip_name_prefix=*/FALSE);
+        if (clang_version_is(>=170000) || gnu_version_is(>=140000)) {
           (void)enter_predefined_typedef("__SVCount_t",
                                          scalable_vector_count_type());
         }  /* if */
         if (clang_version_is(>=200000) || gnu_version_is(>=150000)) {
           (void)enter_predefined_typedef("__mfp8",
                                          modal_8bit_floating_point_type());
-          enter_scalable_vector_types(modal_8bit_floating_point_type(),
-                                      {"__SVMfloat8_t",
-                                       "__clang_svmfloat8x2_t",
-                                       "__clang_svmfloat8x3_t",
-                                       "__clang_svmfloat8x4_t"});
         }  /* if */
       }  /* if */
     }  /* if */

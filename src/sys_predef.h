@@ -472,6 +472,8 @@ extern a_boolean builtin_needs_to_be_loaded_in_secondary_translation_unit(
 extern void mark_builtin_loaded_in_secondary_translation_unit(
                                                      a_symbol_header *sym_hdr);
 
+extern void load_overloadable_builtin_symbols(a_builtin_function_category bfc);
+
 #endif /* BUILTIN_FUNCTIONS_ENABLED */
 
 extern a_type_ptr get_default_va_list_type(void);
@@ -628,6 +630,11 @@ extern void validate_target_argument(a_const_char         *str,
                                      a_boolean            *error_issued);
 
 #if GNU_VECTOR_TYPES_ALLOWED
+extern void enter_arm_32_mve_predeclared_types(a_source_position *decl_pos);
+extern void enter_arm_64_acle_predeclared_types(a_source_position *decl_pos);
+extern void enter_arm_64_neon_predeclared_types(a_source_position *decl_pos);
+extern void enter_arm_64_sve_predeclared_types(a_source_position *decl_pos);
+
 extern a_const_char *get_predefined_name_for_neon_vector_type(
                                                 a_type_ptr     element_type,
                                                 a_targ_size_t  vector_elements,

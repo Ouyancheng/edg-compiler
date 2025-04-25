@@ -3708,9 +3708,77 @@ Handle
   (void)get_token();
   if (curr_token != tok_end_of_source) {
     pos_warning(ec_extra_text_in_pp_directive, &error_position);
+
   }  /* if */
 }  /* process_gnu_system_header_pragma */
 
+#if GNU_VECTOR_TYPES_ALLOWED && BUILTIN_FUNCTIONS_ENABLED
+
+static void process_gnu_aarch64_pragma(a_pending_pragma_ptr  ppp)
+/*
+Handle
+   #pragma GCC aarch64 "hdr.h"
+*/
+{
+  /* Skip the "aarch64" identifier. */
+  (void)get_token();
+  if (curr_token == tok_string_literal &&
+      is_normal_character_kind(const_for_curr_token.character_kind)) {
+    a_const_char  *header_name = const_for_curr_token.variant.string.value;
+    if (strcmp(header_name, "arm_acle.h") == 0) {
+      enter_arm_64_acle_predeclared_types(&ppp->pragma_position);
+      load_overloadable_builtin_symbols(bfc_arm_64_acle);
+    } else if (strcmp(header_name, "arm_neon.h") == 0) {
+      enter_arm_64_neon_predeclared_types(&ppp->pragma_position);
+      load_overloadable_builtin_symbols(bfc_arm_64_neon);
+    } else if (strcmp(header_name, "arm_neon_sve_bridge.h") == 0) {
+      load_overloadable_builtin_symbols(bfc_arm_64_neon_sve_bridge);
+    } else if (strcmp(header_name, "arm_sme.h") == 0) {
+      load_overloadable_builtin_symbols(bfc_arm_64_sme);
+    } else if (strcmp(header_name, "arm_sve.h") == 0) {
+      enter_arm_64_sve_predeclared_types(&ppp->pragma_position);
+      load_overloadable_builtin_symbols(bfc_arm_64_sve);
+    } else {
+      pos_warning(ec_unrecognized_gcc_pragma, &error_position);
+    }  /* if */
+  }  /* if */
+  (void)get_token();
+  if (curr_token != tok_end_of_source) {
+    pos_warning(ec_extra_text_in_pp_directive, &error_position);
+  }  /* if */
+}  /* process_gnu_aarch64_pragma */
+
+
+static void process_gnu_arm_pragma(a_pending_pragma_ptr  ppp)
+/*
+Handle
+   #pragma GCC arm "hdr.h" [flag]
+*/
+{
+  /* Skip the "arm" identifier. */
+  (void)get_token();
+  if (curr_token == tok_string_literal &&
+      is_normal_character_kind(const_for_curr_token.character_kind)) {
+    a_const_char  *header_name = const_for_curr_token.variant.string.value;
+    if (strcmp(header_name, "arm_mve.h") == 0) {
+      load_overloadable_builtin_symbols(bfc_arm_32_mve);
+    } else if (strcmp(header_name, "arm_mve_types.h") == 0) {
+      enter_arm_32_mve_predeclared_types(&ppp->pragma_position);
+    } else {
+      pos_warning(ec_unrecognized_gcc_pragma, &error_position);
+    }  /* if */
+  }  /* if */
+  (void)get_token();
+  if (curr_token != tok_end_of_source) {
+    /* Skip the optional flag. */
+    (void)get_token();
+  }  /* if */
+  if (curr_token != tok_end_of_source) {
+    pos_warning(ec_extra_text_in_pp_directive, &error_position);
+  }  /* if */
+}  /* process_gnu_arm_pragma */
+
+#endif /* GNU_VECTOR_TYPES_ALLOWED && BUILTIN_FUNCTIONS_ENABLED */
 
 /* An entry on the GCC pragma options stack. */
 typedef struct a_gcc_pragma_options_entry {
@@ -3989,6 +4057,14 @@ Process a "#pragma GCC ..." construct.
       process_gnu_options_pragma(ppp, (a_gcc_pragma_kind)gcc_pk_pop_options);
     } else if (gnu_version >= 40400 && strcmp(str, "reset_options") == 0) {
       process_gnu_options_pragma(ppp, (a_gcc_pragma_kind)gcc_pk_reset_options);
+#if GNU_VECTOR_TYPES_ALLOWED && BUILTIN_FUNCTIONS_ENABLED
+    } else if (target_is_arm_based() && target_is_64_bits() &&
+               strcmp(str, "aarch64") == 0) {
+      process_gnu_aarch64_pragma(ppp);
+    } else if (target_is_arm_based() && !target_is_64_bits() &&
+               strcmp(str, "arm") == 0) {
+      process_gnu_arm_pragma(ppp);
+#endif /* GNU_VECTOR_TYPES_ALLOWED && BUILTIN_FUNCTIONS_ENABLED */
     } else {
       recognized = FALSE;
     }  /* if */

@@ -11812,7 +11812,17 @@ enum a_builtin_function_category : a_byte {
 			   architectures. */
   bfc_arm,		/* ARM specific builtin function. */
   bfc_arm_32,		/* 32-bit ARM specific builtin function. */
+  bfc_arm_32_mve,	/* 32-bit ARM specific builtin function (arm_mve.h). */
   bfc_arm_64,		/* 64-bit ARM specific builtin function. */
+  bfc_arm_64_acle,	/* 64-bit ARM specific builtin function
+			   (arm_acle.h). */
+  bfc_arm_64_neon,	/* 64-bit ARM specific builtin function
+			   (arm_neon.h). */
+  bfc_arm_64_neon_sve_bridge,
+			/* 64-bit ARM specific builtin function
+			   (arm_neon_sve_bridge.h). */
+  bfc_arm_64_sme,	/* 64-bit ARM specific builtin function (arm_sme.h). */
+  bfc_arm_64_sve,	/* 64-bit ARM specific builtin function (arm_sve.h). */
   bfc_x86,		/* x86 specific builtin function. */
   bfc_x86_32,		/* 32-bit x86 specific builtin function. */
   bfc_x86_64,		/* 64-bit x86 specific builtin function. */
