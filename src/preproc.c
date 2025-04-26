@@ -1976,10 +1976,12 @@ static a_boolean scan_balanced_token_sequence(a_boolean    is_directive,
 curr_token is a tok_identifer designating a #embed directive parameter name
 appearing in a #embed directive if is_directive is TRUE or in a __has_embed
 operator otherwise.  Enforce that the next token is a left parenthesis,
-then scan to the matching tok_rparen. Return TRUE if a parenthesized list
-was successfully scanned, FALSE otherwise.  If the successful case,
-*operand_start will be set to the first character of the token following
-the left parenthesis and *closing_rparen to the terminating ')'.
+then scan to the matching tok_rparen.  Return TRUE if a parenthesized list
+was successfully scanned, FALSE otherwise.  In the successful case, if the
+list was not empty, *operand_start will be set to the first character of
+the token following the left parenthesis and *closing_rparen to the
+terminating ')', or both will be set to NULL if the list was empty (since
+the effect of an empty parameter is as if the parameter were omitted).
 */
 {
   a_boolean    result = TRUE;

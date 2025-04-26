@@ -739,12 +739,12 @@ considered a system include directory.
       dnep = incl_search_path;
       incl_search_path = incl_search_path->next;
       check_assertion(incl_search_path != NULL &&
-                      (strcmp(incl_search_path->dir_name,dir_name) == 0));
+                      (strcmp(incl_search_path->dir_name, dir_name) == 0));
       free_directory_name_entry(dnep);
       dnep = embed_search_path;
       embed_search_path = embed_search_path->next;
       check_assertion(embed_search_path != NULL &&
-                      (strcmp(embed_search_path->dir_name,dir_name) == 0));
+                      (strcmp(embed_search_path->dir_name, dir_name) == 0));
       free_directory_name_entry(dnep);
     } else {
       /* The name in the current primary include search directory (the head of

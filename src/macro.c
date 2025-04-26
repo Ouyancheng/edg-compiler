@@ -5571,7 +5571,7 @@ static a_const_char *scan_has_embed(void)
 /*
 Process the C23/C++26 __has_embed macro and return "0" if a similar #embed
 directive would produce an error, "1" if the named file exists and is not
-empty, and 2 if the file exists but is empty.
+empty, and "2" if the file exists but is empty.
 */
 {
   a_const_char          *result = "0";

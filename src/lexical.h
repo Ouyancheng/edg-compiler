@@ -1388,10 +1388,10 @@ escape.
 			   file. */
 #define LE_END_OF_EMBED 15
 			/* Terminates the suffix or if_empty text of a
-			   #embed directive.  This escape functions like
-			   LE_END_OF_INSERTION but with the additional
-			   effect of freeing the buffer in the embed
-			   control block. */
+			   #embed directive.  Processing this escape
+			   results in ending the expansion of the #embed
+			   (moving to the next line) and freeing the buffer
+			   in the embed control block. */
 
 /*
 Modifications made to the current source line.  orig_line_modif holds
@@ -2656,14 +2656,14 @@ extern void clear_char_overflows(void);
 extern a_token_kind concat_adjacent_string_literals(
                                                  a_boolean function_name_case);
 /* Read tokens from a #embed expansion. */
-extern void insert_embed_contents(a_const_char *file_name,
-                                  a_source_position *pos,
-                                  a_const_char *prefix_start,
-                                  a_const_char *after_prefix,
-                                  a_const_char *suffix_start,
-                                  a_const_char *after_suffix,
-                                  a_const_char *if_empty_start,
-                                  a_const_char *after_if_empty,
+extern void insert_embed_contents(a_const_char          *file_name,
+                                  a_source_position     *pos,
+                                  a_const_char          *prefix_start,
+                                  a_const_char          *after_prefix,
+                                  a_const_char          *suffix_start,
+                                  a_const_char          *after_suffix,
+                                  a_const_char          *if_empty_start,
+                                  a_const_char          *after_if_empty,
                                   a_host_large_unsigned limit,
                                   a_host_large_unsigned offset);
 /* Retrieve a character replaced in a #embed directive by a lexical escape. */
@@ -3158,10 +3158,10 @@ extern a_boolean open_file_for_input(
 		a_directory_name_entry_ptr	*dir_entry);
 
 extern a_const_char *resolve_header(a_const_char *filename,
-				    a_boolean    is_system_include,
-				    a_boolean    is_include_next,
+                                    a_boolean    is_system_include,
+                                    a_boolean    is_include_next,
                                     a_boolean    is_embed,
-				    a_boolean    suppress_diagnostics);
+                                    a_boolean    suppress_diagnostics);
 
 extern a_const_char *resolve_header_in_map(a_const_char *filename,
                                            a_const_char *resolved_header,

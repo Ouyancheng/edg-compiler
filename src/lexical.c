@@ -111,8 +111,7 @@ struct an_embed_control_block {
 			/* The location of the LE_NEWLINE lexical escape
 			   ending the #embed directive.  Saved from
 			   curr_char_loc on entry and used to restore that
-			   value when the scanning of the prefix parameter
-			   operand text, if any, is complete. */
+			   value when the #embed expansion is complete. */
   a_boolean	reading_from_buffer;
 			/* TRUE if tokens should be taken from the contents
 			   of the embed file; FALSE during processing of
@@ -169,8 +168,8 @@ discard them.
 Macro that determines whether any of the initial special case tests
 at the beginning of get_token need to be done.
 */
-#define recalc_any_initial_get_token_tests_needed()			    \
-  (any_initial_get_token_tests_needed = curr_token_pragmas != NULL ||	    \
+#define recalc_any_initial_get_token_tests_needed()                         \
+  (any_initial_get_token_tests_needed = curr_token_pragmas != NULL ||       \
                                         cached_token_rescan_list != NULL || \
                                         reusable_cache_stack != NULL ||     \
                                         embed_control.buf != NULL)
@@ -5642,7 +5641,7 @@ struct Is_trivially_destructible_edg_impl<a_bad_unicode_char> :
 void gen_pp_output_for_curr_line(a_const_char *start_loc)
 /*
 Write out the portion of the current line beginning with start_loc and up
-to the first LE_END_OF_LINE, LE_END_OF_EMBED_PREFIX, or LE_END_OF_PREFIX
+to the first LE_END_OF_LINE, LE_END_OF_EMBED_PREFIX, or LE_END_OF_EMBED
 lexical escape to f_pp_output (preprocessing output), if necessary.  This
 routine should be called only if generate_pp_output is TRUE.
 */
@@ -10507,14 +10506,14 @@ currently processing a #embed directive.
 }  /* clear_embed_control_block */
 
 
-void insert_embed_contents(a_const_char *file_name,
-                           a_source_position *pos,
-                           a_const_char *prefix_start,
-                           a_const_char *after_prefix,
-                           a_const_char *suffix_start,
-                           a_const_char *after_suffix,
-                           a_const_char *if_empty_start,
-                           a_const_char *after_if_empty,
+void insert_embed_contents(a_const_char          *file_name,
+                           a_source_position     *pos,
+                           a_const_char          *prefix_start,
+                           a_const_char          *after_prefix,
+                           a_const_char          *suffix_start,
+                           a_const_char          *after_suffix,
+                           a_const_char          *if_empty_start,
+                           a_const_char          *after_if_empty,
                            a_host_large_unsigned limit,
                            a_host_large_unsigned offset)
 /*
@@ -18148,25 +18147,25 @@ check_start_of_pp_directive:
 	  } else {
 	    ctoken = tok_sharp;
 	  }  /* if */
-	} else if (!any_tokens_gotten_from_curr_source_line &&
+        } else if (!any_tokens_gotten_from_curr_source_line &&
                    (!pcc_preprocessing_mode || no_chars_before_sharp) &&
                    !in_token_insertion_from_string) {
           /* A sharp that is the first thing on a line (optionally preceded
              by white space, except in pcc_preprocessing_mode) -- This is a
              preprocessing directive. */
-	  if (!currently_in_pp_if_skip) {
-	    remember_token_start(); /* For the "#" pseudo-token. */
-	    {
+          if (!currently_in_pp_if_skip) {
+            remember_token_start(); /* For the "#" pseudo-token. */
+            {
 #if CHECKING
-	      a_cached_token_ptr curr_cached_token = cached_token_rescan_list;
+              a_cached_token_ptr curr_cached_token = cached_token_rescan_list;
 #endif /* CHECKING */
-	      pp_directive();
-	      check_assertion_str2(curr_cached_token ==
-				                    cached_token_rescan_list,
-				   "get_token: token cache",
-				   "affected by preprocessing directive");
-	    }
-	    /* After the directive has been processed, go scan another
+              pp_directive();
+              check_assertion_str2(curr_cached_token ==
+                                                    cached_token_rescan_list,
+                                   "get_token: token cache",
+                                   "affected by preprocessing directive");
+            }
+            /* After the directive has been processed, go scan another
                token. */
             if (embed_control.buf != NULL &&
                 embed_control.reading_from_buffer) {
@@ -18178,26 +18177,26 @@ check_start_of_pp_directive:
               }  /* if */
               goto return_curr_token;
             }  /* if */
-	    skip_white_space();
-	    goto start_of_token_scan;
-	  }  /* if */
-	  /* Skipping because of an #if or the like, just return this
-	     as a token for further checking. */
-	  ctoken = tok_sharp;
-	} else {
-	  /* "#" outside of a preprocessing directive, and not at the
+            skip_white_space();
+            goto start_of_token_scan;
+          }  /* if */
+          /* Skipping because of an #if or the like, just return this
+             as a token for further checking. */
+          ctoken = tok_sharp;
+        } else {
+          /* "#" outside of a preprocessing directive, and not at the
              start of a line; don't know what it means. */
-	  err_code_for_error_token = ec_bad_use_of_sharp;
-	  if (!fetch_pp_tokens) {
-	    error_at_line_pos(err_code_for_error_token, start_of_curr_token);
-	  }  /* if */
-	  ctoken = tok_error;
-	}  /* if */
+          err_code_for_error_token = ec_bad_use_of_sharp;
+          if (!fetch_pp_tokens) {
+            error_at_line_pos(err_code_for_error_token, start_of_curr_token);
+          }  /* if */
+          ctoken = tok_error;
+        }  /* if */
       }
       /* When we reach this point, curr_char_loc should have already been
          advanced past the characters that make up this token (unlike
-	 most cases in which curr_char_loc still points to the final
-	 character of the token). */
+         most cases in which curr_char_loc still points to the final
+         character of the token). */
       goto save_end_position;
       /* No break needed. */
     default:
