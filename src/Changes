@@ -1,5 +1,36 @@
 Version 6.8
 
+4/27/25  [EDGcpfe/28095]
+C++-generating back end: out-of-scope constexpr nontype template arguments
+
+As described in the entry for EDGcpfe/26339, when a template is
+instantiated using a local constexpr variable in a nontype template
+argument and that instance is later referenced outside the scope of that
+variable, the C++-generating back end often replaces the name of the
+variable with its initializer expression in the subsequent reference.  This
+replacement could lead to syntactic errors in the generated code if the
+initializer is enclosed in braces.  For example, with --c++11:
+
+  template <unsigned long> struct S;
+  void f() {
+    constexpr unsigned long f_num{64};   // #1
+    using sf = S<f_num>;                 // #2
+  }
+  void g() {
+    constexpr unsigned long g_num{64};
+    using sg = S<g_num>;                 // #3
+  }
+
+In this example, the code at #2 instantiates S<64ul> using the local
+variable f_num.  The code at #3 refers to S<64UL> but the expression
+recorded at its instantiation involves the out-of-scope variable f_num,
+so the C++-generating back end substitutes the variable's initializer from
+#1.  However, because the initializer was brace-enclosed, the reference was
+previously put out as "S<unsigned long{64}>", which is syntactically
+incorrect.  This is now fixed, and the C++-generating back end now uses a
+C-style cast for the value: "S<(unsigned long)64>".
+
+
 4/25/25  [EDGcpfe/24249,EDGcpfe/27959,EDGcpfe/28098]
 GNU compatibility: "#pragma GCC arm" and "#pragma GCC aarch64"
 
