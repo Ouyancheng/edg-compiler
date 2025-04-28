@@ -86,7 +86,7 @@ the target C compiler is GCC, Clang, or MSVC: An explicit attribute is added
 to force the alignment of the field in those cases.
 
 
-4/23/24  [EDGcpfe/27872]
+4/23/25  [EDGcpfe/27872]
 Microsoft compatibility: Static operator()
 
 The changes for EDGcpfe/25514,EDGcpfe/26992 introduced the ability to declare
