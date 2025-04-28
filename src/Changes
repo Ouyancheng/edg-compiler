@@ -31,7 +31,7 @@ incorrect.  This is now fixed, and the C++-generating back end now uses a
 C-style cast for the value: "S<(unsigned long)64>".
 
 
-4/25/25  [EDGcpfe/24249,EDGcpfe/27959,EDGcpfe/28098]
+4/25/25  [EDGcpfe/24249,EDGcpfe/27959,EDGcpfe/28098,EDGcpfe/28134]
 GNU compatibility: "#pragma GCC arm" and "#pragma GCC aarch64"
 
 Some of the ARM-specific header files shipped by GCC don't contain the
