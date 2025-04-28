@@ -22,7 +22,7 @@ initializer is enclosed in braces.  For example, with --c++11:
   }
 
 In this example, the code at #2 instantiates S<64ul> using the local
-variable f_num.  The code at #3 refers to S<64UL> but the expression
+variable f_num.  The code at #3 refers to S<64UL> but the template argument
 recorded at its instantiation involves the out-of-scope variable f_num,
 so the C++-generating back end substitutes the variable's initializer from
 #1.  However, because the initializer was brace-enclosed, the reference was

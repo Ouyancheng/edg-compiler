@@ -18102,7 +18102,7 @@ done_with_operation_after_parens:
              type may have been implicit in the actual initialization, so
              we need to ensure that an explicit cast is used here).
              Whether the initializer was braced or not in the variable
-             declaration is immaterial here, so we make sure it is not
+             declaration is irrelevant here, so we make sure it is not
              braced here in order to avoid putting out something like
              "unsigned long{5}".  We also copy the value category of the
              enk_variable node we are replacing. */
