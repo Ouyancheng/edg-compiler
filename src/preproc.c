@@ -3710,7 +3710,6 @@ Handle
   (void)get_token();
   if (curr_token != tok_end_of_source) {
     pos_warning(ec_extra_text_in_pp_directive, &error_position);
-
   }  /* if */
 }  /* process_gnu_system_header_pragma */
 

@@ -3661,8 +3661,8 @@ when the declaration is a friend declaration within a class.
         (!C_mode() ||
          (gnu_mode && is_overloadable_c_sym(other_decl, idlbp)) ||
          (clang_mode && find_decl_attribute(ak_overloadable, dps) != NULL))) {
-      /* C++ function or function template -- type compatibility check is
-         required. */
+      /* C++ function, function template, or overloadable C function -- type
+         compatibility check is required. */
       a_template_param_ptr   params = NULL;
       unsigned short         n_params = 0;
       a_requires_clause_ptr  new_rcp = NULL;

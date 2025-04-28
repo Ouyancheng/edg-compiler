@@ -35,9 +35,10 @@ C-style cast for the value: "S<(unsigned long)64>".
 GNU compatibility: "#pragma GCC arm" and "#pragma GCC aarch64"
 
 Some of the ARM-specific header files shipped by GCC don't contain the
-declarations in their source code, but instead rely on pragmas to inject those
-declarations.  The front end now supports "#pragma GCC aarch64" and "#pragma
-GCC arm" constructs.
+declarations of the functions and types to be made available by those headers
+in their source code, but instead rely on pragmas to inject those declarations.
+The front end now supports "#pragma GCC aarch64" and "#pragma GCC arm"
+constructs.
 
 
 4/24/25  [EDGcpfe/24783,EDGcpfe/27875,EDGcpfe/28091]
