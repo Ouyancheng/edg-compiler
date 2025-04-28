@@ -4626,14 +4626,9 @@ information about the parameters.
     }  /* if */
     if ((options & PS_EXCEPTION_SPEC) != 0) ps_options |= PS_EXCEPTION_SPEC;
     template_arg_list = templ_arg_list_for_class(class_type);
-    (void)push_scope_full((a_scope_kind)sck_template_instantiation,
-                          decl_info->declaration_scope, assoc_type,
-                          assoc_routine, (a_namespace_ptr)NULL,
-                          instance_sym, template_sym, template_arg_list,
-                          decl_info,
-                          (an_object_lifetime_ptr)NULL,
-                          (a_scope_ptr)NULL, (a_scope_pointers_block_ptr)NULL,
-                          ps_options);
+    push_simple_instantiation_scope(decl_info, assoc_type, assoc_routine,
+                                    instance_sym, template_sym,
+                                    template_arg_list, ps_options);
   }  /* if */
   /* Reactivate the enclosing class scope. */
   push_single_class_reactivation_scope(class_type, options);
