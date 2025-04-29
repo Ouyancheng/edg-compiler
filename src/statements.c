@@ -3925,7 +3925,7 @@ Return TRUE if the current token sequence starts with "using <id> =".
     (void)get_token();
     if (curr_token == tok_identifier) {
       cache_curr_token(&cache);
-      get_token();
+      (void)get_token();
       if (curr_token == tok_assign) {
         result = TRUE;
       }  /* if */
