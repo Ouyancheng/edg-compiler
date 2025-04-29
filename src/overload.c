@@ -18897,25 +18897,29 @@ operators.
 
 
 static inline
-a_boolean same_candidate_types(a_candidate_function_ptr  cfp1,
-                               a_candidate_function_ptr  cfp2)
+a_boolean same_comparison_candidate_types(a_candidate_function_ptr  cfp1,
+                                          a_candidate_function_ptr  cfp2)
 /*
-Return TRUE if the given candidates have the same type and the same value
-for the is_function_template flag.
+Return TRUE if the given candidates have the same type, the same value for the
+is_function_template flag, and are both ordinary operators (as opposed to,
+e.g., conversion functions).
 */
 {
-  a_boolean  result = cfp1->is_function_template == cfp2->is_function_template;
+  a_boolean  result = FALSE;
 
-  if (result &&
+  if (cfp1->is_function_template == cfp2->is_function_template &&
       cfp1->function_symbol != NULL && cfp2->function_symbol != NULL) {
-    a_symbol_ptr  sym1 = fundamental_symbol_of(cfp1->function_symbol),
-                  sym2 = fundamental_symbol_of(cfp2->function_symbol);
-    a_type_ptr    rtp1 = func_sym_routine(sym1)->type,
-                  rtp2 = func_sym_routine(sym2)->type;
-    result = identical_types(rtp1, rtp2);
+    a_symbol_ptr   sym1 = fundamental_symbol_of(cfp1->function_symbol),
+                   sym2 = fundamental_symbol_of(cfp2->function_symbol);
+    a_routine_ptr  rp1 = func_sym_routine(sym1),
+                   rp2 = func_sym_routine(sym2);
+    if (special_kind_is(rp1, sfk_operator) &&
+        special_kind_is(rp2, sfk_operator)) {
+      result = identical_types(rp1->type, rp2->type);
+    }  /* if */
   }  /* if */
   return result;
-}  /* same_candidate_types */
+}  /* same_comparison_candidate_types */
 
 
 static a_candidate_function_ptr select_overloaded_operator(
@@ -19455,7 +19459,7 @@ find_more_operator_candidates:
             for (cfp2 = saved_candidate_functions;
                  cfp2 != NULL;
                  cfp2 = cfp2->next) {
-              if (same_candidate_types(cfp, cfp2)) {
+              if (same_comparison_candidate_types(cfp, cfp2)) {
                 /* The rewritten candidate has the same type as a non-
                    rewritten candidate.  Discard the rewritten candidate. */
                 cfp_to_delete = cfp;
@@ -19506,8 +19510,8 @@ select_best_function:
         candidate_functions->function_symbol != NULL &&
         candidate_functions->function_symbol->is_class_member &&
         candidate_functions->arg_matches != NULL &&
-        ((same_candidate_types(candidate_functions,
-                               candidate_functions->next) &&
+        ((same_comparison_candidate_types(candidate_functions,
+                                          candidate_functions->next) &&
           identical_types_ignoring_qualifiers(operand_1->type,
                                               operand_2->type)) ||
          ((gpp_version_is(any_version) || ms_version_is(any_version)) &&
