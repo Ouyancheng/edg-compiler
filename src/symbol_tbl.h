@@ -4990,7 +4990,7 @@ hash table or NULL if no entry was found.
                                                             header);
   }  /* if */
   return result_sym;
-}  /* find_symbol_list_in_table  */
+}  /* find_symbol_list_in_table */
 
 
 inline a_symbol_ptr find_symbol_list_in_table(
@@ -5008,7 +5008,7 @@ the symbol list from the hash table or NULL if no entry was found.
     result_sym = find_symbol_list_in_table(hash_table, header);
   }  /* if */
   return result_sym;
-}  /* find_symbol_list_in_table  */
+}  /* find_symbol_list_in_table */
 
 
 inline a_symbol_ptr find_symbol_list_in_table(
@@ -5029,7 +5029,7 @@ entry was found.
     result_sym = find_symbol_list_in_table(hash_table, header);
   }  /* if */
   return result_sym;
-}  /* find_symbol_list_in_table  */
+}  /* find_symbol_list_in_table */
 
 
 extern void add_symbol_to_scope_list(a_symbol_ptr  sym_ptr,

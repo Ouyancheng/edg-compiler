@@ -6044,7 +6044,7 @@ symbol list from the hash table or NULL if no entry was found.
     result_sym = (*shlep_in_table)->symbols;
   }  /* if */
   return result_sym;
-}  /* find_symbol_list_in_non_null_table  */
+}  /* find_symbol_list_in_non_null_table */
 
 }  /* detail */
 

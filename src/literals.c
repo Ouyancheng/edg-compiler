@@ -2167,7 +2167,7 @@ input string (if any).
                           *string_next_char,
                           *end_of_string_value + raw_str_trigraph_delim_chars);
     }  /* if */
-  }  /* for */
+  }  /* while */
   /* Add the final null. */
   check_assertion(*result_str_next_ch < *result_str_start + constant_size);
   /* coverity[switch_selector_expr_is_constant] */
