@@ -5513,20 +5513,18 @@ call, and rcblock->argument_list to the previously-scanned argument list.
            equal to 0 when we are in a constant expression but none of the
            other conditions apply, but we've decided that's an aberration. */
         {
-          a_boolean  result_value = operand_is_string_literal(&arg) ||
-                                    (is_constant_operand(&arg) &&
-                                     arg.variant.constant.kind !=
-                                             (a_constant_repr_kind)ck_address);
-          if (result_value || innermost_function_scope == NULL ||
-              (always_fold_calls_to_builtin_constant_p &&
-               !in_potential_constant_constexpr_context()) ||
-              in_constant_expression) {
-            set_integer_constant(result, (a_host_large_integer)result_value,
-                                 result_type->variant.integer.int_kind);
-            make_constant_operand(result, result_op);
-          } else {
-            /* Leave an actual call in the IL.  (The usual transformations --
-               including promotion -- are needed.) */
+          a_boolean  result_value, fold;
+          result_value = operand_is_string_literal(&arg) ||
+                         (is_constant_operand(&arg) &&
+                          !constant_is(&arg.variant.constant, ck_address));
+          fold = result_value || innermost_function_scope == NULL ||
+                 (always_fold_calls_to_builtin_constant_p &&
+                  !in_potential_constant_constexpr_context()) ||
+                 in_constant_expression;
+          if (!fold ||
+              curr_expr_kind_is_one_in_which_const_exprs_are_recorded()) {
+            /* Represent an actual call in the IL.  (The usual transformations,
+               including promotion, are needed.) */
             do_operand_transformations(operand, TOPT_NO_OPTIONS);
             change_some_ref_kinds(operand->ref_entries_list, SRK_ADDRESS_TAKEN,
                                   SRK_REFERENCE);
@@ -5548,6 +5546,16 @@ call, and rcblock->argument_list to the previously-scanned argument list.
                                    result_op,
                                    /*p_folded=*/(a_boolean*)NULL,
                                    (an_expr_node_ptr *)NULL);
+          }  /* if */
+          if (fold) {
+            an_expr_node  *backing_expr = NULL;
+            if (curr_expr_kind_is_one_in_which_const_exprs_are_recorded()) {
+              backing_expr = make_node_from_operand(result_op);
+            }  /* if */
+            set_integer_constant(result, (a_host_large_integer)result_value,
+                                 result_type->variant.integer.int_kind);
+            make_constant_operand(result, result_op);
+            result_op->variant.constant.expr = backing_expr;
           }  /* if */
         }
         break;

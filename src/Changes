@@ -1,5 +1,13 @@
 Version 6.8
 
+4/29/25  [EDGcpfe/28130]
+Backing expressions for folded __builtin_constant_p invocations
+
+Folded __builtin_constant_p invocations previously did not include a backing
+expression (causing, e.g., the C++-generating back end not to render them
+other than as a constant result).  Now they do.
+
+
 4/29/25  [EDGcpfe/28131]
 Abort in find_innermost_namespace_scope_depth (in some configurations)
 
