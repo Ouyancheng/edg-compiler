@@ -1,5 +1,25 @@
 Version 6.8
 
+4/29/25  [EDGcpfe/28131]
+Abort in find_innermost_namespace_scope_depth (in some configurations)
+
+In configurations with
+NONCLASS_TEMPLATE_INSTANTIATIONS_IN_SOURCE_SEQUENCE_LISTS set to TRUE, the
+changes for EDGcpfe/27505 (in version 6.7) introduced a regression that could
+trigger an internal error due to a failed assertion in
+find_innermost_namespace_scope_depth when a trailing requires clause of a
+templated member function triggered the instantiation of a variable template.
+For example, with --c++20:
+
+  template<typename T> constexpr bool v = true;
+  template<typename T> struct C {
+    static int f() requires v<T>;
+  };
+  namespace ns {
+    int j = C<int>::f();  // Previously triggered an internal error.  Now okay.
+  }
+
+
 4/28/25  [EDGcpfe/27411,EDGcpfe/27612,EDGcpfe/28129]
 Spurious ambiguity between built-in and user-declared comparison operators
 
