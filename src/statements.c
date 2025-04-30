@@ -1993,14 +1993,14 @@ body of a constexpr function or constructor.
   if (sssep->for_init) {
     if (dps.specifiers_type == NULL &&
         !(dps.is_empty_decl && !strict_ansi_mode) &&
-        !(C_mode() && is_static_assert && !clang_mode)) {
+        !(C_mode() && is_static_assert)) {
       /* If dps.specifiers_type is NULL, the declaration we just scanned was
          not a "simple-declaration" (i.e., a declaration consisting of some
          optional attributes, followed by decl-specifiers, and optionally
          followed by a declarator) nor an alias-declaration.  As an extension,
          we also accept an empty declaration (with attributes) here in
-         nonstrict modes.  C (but not Clang C) allows a static assertion
-         declaration here as well. */
+         nonstrict modes.  C allows a static assertion declaration here as
+         well. */
       pos_error(ec_invalid_init_statement, &dps.start_pos);
     }  /* if */
 #if GENERATE_SOURCE_SEQUENCE_LISTS
