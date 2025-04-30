@@ -4313,7 +4313,7 @@ hdr_ptr == NULL indicates that an error symbol should be constructed.
 
 #if EXPENSIVE_CHECKING
 
-using an_allocated_symbols_list = Dyn_array<a_symbol_ptr>;
+using an_allocated_symbols_list = Dyn_array<a_symbol_ptr, General_allocator>;
                         /* The type for a list of symbols allocated in the
                            current translation unit. */
 
@@ -19380,7 +19380,7 @@ given translation unit.
   template_cache_segment_table =
                     new_fe<a_template_cache_segment_table>(/*mask_width=*/10u);
 #if EXPENSIVE_CHECKING
-  allocated_symbols = new_fe<an_allocated_symbols_list>();
+  allocated_symbols = new_general<an_allocated_symbols_list>();
 #endif /* EXPENSIVE_CHECKING */
 }  /* symbol_tbl_trans_unit_init */
 
@@ -19574,7 +19574,7 @@ unit.
     check_assertion_str(!any_errors,
                         "at least one symbol has the incorrect "
                         "translation unit information");
-    delete_fe(&allocated_symbols);
+    delete_general(&allocated_symbols);
   }  /* if */
 }  /* symbol_table_trans_unit_validate */
 
