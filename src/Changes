@@ -1,5 +1,14 @@
 Version 6.8
 
+4/30/25  [EDGcpfe/28084,EDGcpfe/28144]
+Variables in symbol_tbl.c mistakenly not recorded for PCH restoration
+
+The variables template_cache_segment_table and constexpr_intrinsic_descr_table
+defined with static lifetime in symbol_tbl.c were previously not recorded as
+variables that need adjustments when loading precompiled headers.  This could
+lead to memory corruption when loading precompiled headers.
+
+
 4/29/25  [EDGcpfe/28085]
 IA-64 ABI: Tail-padding optimization with user-declared trivial special members
 
