@@ -19158,6 +19158,7 @@ are handled in symbol_tbl_init.)
       pch_saved_var_array_elem(avail_type_list_entries),
       pch_saved_var_array_elem(avail_namespace_list_entries),
       pch_saved_var_array_elem(avail_template_cache_segments),
+      pch_saved_var_array_elem(template_cache_segment_table),
       pch_saved_var_array_elem(avail_dependent_type_fixups),
       pch_saved_var_array_elem(avail_template_decl_infos),
       pch_saved_var_array_elem(avail_param_ids),
@@ -19180,6 +19181,7 @@ are handled in symbol_tbl_init.)
       pch_saved_var_array_elem(symbol_for_namespace_std_entered),
       pch_saved_var_array_elem(symbol_for_namespace_std_meta),
       pch_saved_var_array_elem(symbol_for_namespace_std_meta_entered),
+      pch_saved_var_array_elem(constexpr_intrinsic_descr_table),
 #if MICROSOFT_EXTENSIONS_ALLOWED
       pch_array_saved_var_array_elem(cli_symbols),
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
