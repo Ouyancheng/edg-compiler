@@ -30509,7 +30509,7 @@ block of information that is provided if this is a member template declaration.
         }  /* if */
         if ((decl_info.is_constructor &&
              ((!aggregate_classes_can_have_user_ctors ||
-              (!func_info.is_defaulted && !func_info.is_deleted )))) ||
+              (!func_info.is_defaulted && !func_info.is_deleted)))) ||
             (dso_flags & DSO_VIRTUAL)) {
           /* Before C++20, a class with a user-provided constructor or a
              virtual function cannot be an "aggregate" [dcl.init.aggr].  A
