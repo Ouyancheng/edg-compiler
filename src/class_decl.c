@@ -19778,6 +19778,7 @@ nonstandard anonymous unions is_nonstd is TRUE.
                          sym, class_type, &new_apo_sym_list, assoc_object_sym,
                          assoc_object_access, reuse_symbol, is_nonstd);
         if (sym->variant.field.ptr->has_initializer && class_type != NULL) {
+          a_class_def_state_ptr  cdsp = scope_stack_top().class_def_state;
           if (class_type->kind == (a_type_kind)tk_union &&
               class_type_supp(class_type)->has_field_initializer) {
             diagnose_duplicate_union_field_init(parent_cssp, sym,
@@ -19790,10 +19791,10 @@ nonstandard anonymous unions is_nonstd is TRUE.
                aren't aggregate types in C++11 (but they are in C++14).  We
                take the view here that promoted fields also make the parent
                class a non-aggregate. */
-            a_class_def_state_ptr  cdsp = scope_stack_top().class_def_state;
             check_assertion(cdsp != NULL);
             cdsp->class_aggregate_ruled_out = TRUE;
           }  /* if */
+          cdsp->cpp03_POD_ruled_out = TRUE;
         }  /* if */
         break;
       case sk_member_function:
@@ -23378,12 +23379,28 @@ record that fact in *gsfd.
       check_suppressed_default_ctor(class_type, /*check_bases=*/TRUE, gsfd);
       result = TRUE;
     }  /* if */
+#if ABI_COMPATIBILITY_VERSION < 608
   } else if (!cssp->has_user_declared_default_constructor) {
-    /* This class has a user-declared or nontrivial constructor (since
-       cssp->constructor != NULL), but no user-declared default constructor
-       (and hence no explicitly-defaulted default constructor).  So it cannot
-       be a "trivial class" and therefore it cannot be POD. */ 
-    class_state->cpp03_POD_ruled_out = TRUE;
+     /* This class has a user-declared or nontrivial constructor (since
+        cssp->constructor != NULL), but no user-declared default constructor
+        (and hence no explicitly-defaulted default constructor).  So it cannot
+        be a "trivial class" and therefore it cannot be POD.  However, to be
+        a POD for layout purposes is possible even if there isn't a defaulted
+        trivial default constructor.  For example:
+           struct B {
+             B(B const&) = default;
+             B(B&&) = default;
+             B& operator=(B&&) = default;
+             int a;
+             char b;
+           };
+           struct D: B { char c; };
+        Here, B is still considered a POD for layout purposes in the IA-64 ABI
+        and thus we do not want to systematically set cpp03_POD_ruled out to
+        TRUE.  We nevertheless do so when strict ABI compatibility is needed
+        with versions of the front end prior to 6.8. */
+     class_state->cpp03_POD_ruled_out = TRUE;
+#endif /* ABI_COMPATIBILITY_VERSION < 608 */
   }  /* if */
 done:
   return result;
@@ -26052,6 +26069,7 @@ Otherwise, *result will be NULL.
 #endif /* GENERATE_SOURCE_SEQUENCE_LISTS */
       cdsp->has_inheriting_constructors = TRUE;
       cdsp->class_aggregate_ruled_out = TRUE;
+      cdsp->cpp03_POD_ruled_out = TRUE;
       cannot_bind_to_curr_construct();
       report_gnu_cpp11_extension_if_needed(
                                      pos, ec_inheriting_constructor_is_cpp11);
@@ -30490,8 +30508,8 @@ block of information that is provided if this is a member template declaration.
           dps->storage_class = (a_storage_class)sc_unspecified;
         }  /* if */
         if ((decl_info.is_constructor &&
-            ((!aggregate_classes_can_have_user_ctors ||
-             (!func_info.is_defaulted && !func_info.is_deleted )))) ||
+             ((!aggregate_classes_can_have_user_ctors ||
+              (!func_info.is_defaulted && !func_info.is_deleted )))) ||
             (dso_flags & DSO_VIRTUAL)) {
           /* Before C++20, a class with a user-provided constructor or a
              virtual function cannot be an "aggregate" [dcl.init.aggr].  A
@@ -30499,7 +30517,9 @@ block of information that is provided if this is a member template declaration.
              class is not considered "user-provided".  After C++20, any
              user-declared constructor makes the class not an aggregate. */
           class_state->class_aggregate_ruled_out = TRUE;
-          class_state->cpp03_POD_ruled_out = TRUE;
+          if (!func_info.is_defaulted || (dso_flags & DSO_VIRTUAL)) {
+            class_state->cpp03_POD_ruled_out = TRUE;
+          }  /* if */
         } else if (decl_info.is_destructor && !func_info.is_defaulted &&
                    !func_info.is_deleted) {
         /* A POD may not have a user-provided destructor, either. */
@@ -30645,6 +30665,7 @@ block of information that is provided if this is a member template declaration.
           if (decl_info.is_constructor) {
             rout_sym->variant.routine.ptr->is_explicit_constructor = TRUE;
             class_state->class_aggregate_ruled_out = TRUE;
+            class_state->cpp03_POD_ruled_out = TRUE;
           } else if (locator.is_conversion_name &&
                      explicit_conversion_functions_enabled) {
             if (cli_or_cx_enabled &&
@@ -32446,10 +32467,14 @@ wrap_up_class_definition.
       }  /* if */
     }  /* if */
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
-    if (cssp->is_class_aggregate && !class_state->cpp03_POD_ruled_out) {
-      /* It was intentional to wait until check_special_member_functions
-         was called to set the is_cpp03_POD flag -- the check for copy
-         assignment operator was needed first. */
+    if ((ABI_COMPATIBILITY_VERSION >= 608 || cssp->is_class_aggregate) &&
+        !class_state->cpp03_POD_ruled_out) {
+      /* It was intentional to wait until check_special_member_functions was
+         called to set the is_cpp03_POD flag -- the check for copy assignment
+         operator was needed first.  The is_class_aggregate test is not quite
+         right (for certain classes with trivial defaulted special members),
+         but is needed if strict ABI compatibility is needed with versions of
+         the front end prior to 6.8. */
       cssp->is_cpp03_POD = TRUE;
     }  /* if */
     /* Set shares_virtual_function_info for a base class of class_type, if

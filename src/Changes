@@ -1,5 +1,37 @@
 Version 6.8
 
+4/29/25  [EDGcpfe/28085]
+IA-64 ABI: Tail-padding optimization with used-declared trivial special members
+
+Consider:
+
+  struct B {
+    B(B const&) = default;
+    B(B&&) = default;
+    B& operator=(B&&) = default;
+    int a;
+    char b;
+  };
+  struct D: B {
+    char c;
+  };
+  static_assert(sizeof(D) == (3*sizeof(int)));  // Previously failed.
+                                                // Now okay.
+
+The IA-64 ABI "reuses" tail padding of a base class for derived class fields
+if the base class is not a C++03 "POD" type.  C++03, however, didn't support
+"= default" definitions, which originally made it unclear whether B in the
+example above is a POD type.  However, the consensus since then appears to be
+that "= default" trivial special members should not make a class non-POD for
+layout purposes, and the front end now implements that rule: The tail padding
+of B above is no longer reused to allocate the member D::c, thus forcing the
+size of D to be larger than just two int fields.  This change introduces an
+ABI incompatibility and therefore requires ABI_COMPATIBILITY_VERSION >= 608.
+(Recent versions of GCC accidentally fail the test above in C++20 mode, thus
+causing an ABI break.  This has been reported to GCC maintainers who have
+indicated they intend to restore the pre-C++20 behavior in all modes.)
+
+
 4/29/25  [EDGcpfe/28130]
 Backing expressions for folded __builtin_constant_p invocations
 
