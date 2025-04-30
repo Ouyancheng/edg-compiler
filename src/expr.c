@@ -5400,7 +5400,7 @@ call, and rcblock->argument_list to the previously-scanned argument list.
                                  /*suppress_object_lifetime=*/FALSE,
                                  rcblock);
     saved_favor_constant_result = expr_stack->favor_constant_result;
-    if (bfk == (a_builtin_function_kind)bfk_constant_p) {
+    if (bfk == bfk_constant_p) {
       expr_stack->favor_constant_result = TRUE;
       if (!always_fold_calls_to_builtin_constant_p &&
           !in_constant_expression &&
@@ -5410,6 +5410,7 @@ call, and rcblock->argument_list to the previously-scanned argument list.
            must therefore be treated as "potentially evaluated". */
         expr_stack->potentially_evaluated = TRUE;
       }  /* if */
+      expr_stack->unevaluated_expr_will_be_kept_in_il = TRUE;
     }  /* if */
     if (rcblock == NULL) {
       /* Parse the pseudo-call argument.  GNU compilers accept multiple
