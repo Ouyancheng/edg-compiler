@@ -14150,7 +14150,7 @@ get to the expression that will appear, and return that.
     } else if ((expr_from_const = assoc_expr_if_constant(node)) != node) {
       node = expr_from_const;
       node_changed = TRUE;
-    } else if (node->kind == (an_expr_node_kind)enk_temp_init) {
+    } else if (node_is(node, enk_temp_init)) {
       a_dynamic_init_ptr dip = node->variant.init.dynamic_init;
       while (dip->is_creation_of_initializer_list_object) {
         dip = effective_dynamic_init_for_initializer_list_object(
@@ -14159,12 +14159,20 @@ get to the expression that will appear, and return that.
       }  /* while */
       if (!is_generated_dynamic_init(dip)) {
         /* Not implicit, e.g., an explicit cast. */
-      } else if (dip->kind == (a_dynamic_init_kind)dik_expression ||
-                 dip->kind == (a_dynamic_init_kind)dik_class_result_via_ctor) {
+      } else if (dyn_init_is(dip, dik_expression) ||
+                 dyn_init_is(dip, dik_class_result_via_ctor)) {
         node = dip->variant.expression;
         node_changed = TRUE;
-      } else if (dip->kind == (a_dynamic_init_kind)dik_constructor) {
+      } else if (dyn_init_is(dip, dik_constructor)) {
         node = dip->variant.constructor.args;
+        node_changed = TRUE;
+      }  /* if */
+    } else if (node->compiler_generated && is_call_node(node)) {
+      an_expr_node_ptr  rout_node = node->variant.operation.operands;
+      if (node_is(rout_node, enk_routine) &&
+          special_kind_is(node_routine(rout_node), sfk_conversion)) {
+        /* An implicit conversion through a conversion function. */
+        node = rout_node->next;
         node_changed = TRUE;
       }  /* if */
     }  /* if */
