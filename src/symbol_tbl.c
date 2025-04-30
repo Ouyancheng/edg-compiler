@@ -18556,7 +18556,7 @@ STATIC_THREAD a_constexpr_intrinsic_descr_table
 			   that decide whether an appropriately named function
 			   should be handled intrinsically. */
 
-static void init_constexpr_instrinsic_descriptions(void)
+static void init_constexpr_intrinsic_descriptions(void)
 /*
 Pre-enter symbol headers for some function names so they can efficiently be
 recognized during parsing.  Also, record associated information in a Ptr_map
@@ -18578,7 +18578,7 @@ intrinsically.
                loc.symbol_header, &constexpr_intrinsic_descriptions[n].descr);
                                         
   }  /* for */
-}  /* init_constexpr_instrinsic_descriptions */
+}  /* init_constexpr_intrinsic_descriptions */
 
 
 static
@@ -18952,7 +18952,7 @@ recognized during parsing.
     (void)find_symbol(name, strlen(name), &loc);
     loc.symbol_header->has_intrinsic_name = TRUE;
   }  /* for */
-  init_constexpr_instrinsic_descriptions();
+  init_constexpr_intrinsic_descriptions();
   init_type_transform_names();
 }  /* init_intrinsic_symbol_headers */
 
