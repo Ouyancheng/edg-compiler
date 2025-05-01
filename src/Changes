@@ -1,5 +1,21 @@
 Version 6.8
 
+5/1/25   [EDGcpfe/28094]
+Lambda expression and multi-translation unit mode 
+
+When simultaneously compiling multiple translation units with a secondary
+unit containing a lambda expression, it was possible to trigger an internal
+error in check_correspondences (trans_copy.c).  For example:
+
+  // TU1.cpp
+  void g() {}
+
+  // TU2.cpp
+  auto lm = [](auto x, auto y) { return x+y; };
+
+This is now fixed.
+
+
 4/30/25  [EDGcpfe/28084,EDGcpfe/28144]
 Variables in symbol_tbl.c mistakenly not recorded for PCH restoration
 

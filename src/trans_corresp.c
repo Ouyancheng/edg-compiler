@@ -5428,13 +5428,25 @@ involved in the declaration of an entity with linkage).
 {
   a_type_ptr  type;
 
-  for (type = skip_generated_type(scope->types);
-       type != NULL;
-       type = skip_generated_type(type->next)) {
-    a_trans_unit_corresp_ptr  tucp = trans_unit_corresp_of(type);
+  for (type = scope->types; type != NULL; type = type->next) {
+    a_trans_unit_corresp_ptr  tucp;
+    a_boolean                 is_closure = FALSE;
+    /* Skip most "generated" types, but not closure types since those may
+       have linkage.  (I.e., do not use skip_generated_type here.) */
+    if (is_generated_type(type)) {
+      if (is_immediate_class_type(type) &&
+          class_type_supp(type)->is_lambda_closure_class) {
+        is_closure = TRUE;
+      } else {
+        continue;
+      }  /* if */
+    }  /* if */
+    tucp = trans_unit_corresp_of(type);
     if (tucp == NULL) {
-      a_symbol_ptr  type_sym = (a_symbol_ptr)type->source_corresp.assoc_info;
-      if (!C_mode() && type_sym != NULL && may_have_correspondence(type_sym)) {
+      a_symbol_ptr  type_sym = symbol_for(type);
+      if (!C_mode() &&
+          ((type_sym != NULL && may_have_correspondence(type_sym)) ||
+            is_closure)) {
         /* Some types may not have a correspondence yet.  (Note that in C types
            do not have linkage and therefore do not need a correspondence
            unless they participate in the type of an entity with linkage.) */
