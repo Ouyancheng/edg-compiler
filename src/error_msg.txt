@@ -3550,6 +3550,7 @@ ec_has_embed_not_in_if;;"__has_embed cannot appear outside #if"
 ec_setlocale_lc_numeric_failed;;"could not set LC_NUMERIC locale to C"
 ec_elifdef_not_enabled;;"elifdef and elifndef are not enabled in this mode and are ignored in text being skipped"
 ec_nonstandard_alias_declaration_context;;"an alias declaration is nonstandard in this context"
+ec_out_of_order_field_allocation_nonstandard;;"the target ABI may allocate nonstatic members in an order not matching their declaration order, which is nonstandard in C++23 and later"
 ###############################################################################
 #                                                             \  ___  /       #
 #                                                               /   \         #

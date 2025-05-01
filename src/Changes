@@ -1,5 +1,19 @@
 Version 6.8
 
+5/1/25   [EDGcpfe/24779]
+C++23: TARG_FIELD_ALLOC_SEQUENCE_EQUALS_DECL_SEQUENCE
+
+The Cfront-based ABI version supported by the front end include a relatively
+obscure option enabled by setting the configuration macro
+TARG_FIELD_ALLOC_SEQUENCE_EQUALS_DECL_SEQUENCE to FALSE: When that is the
+case, nonstatic data members are not always allocated in the order in which
+they are declared, but instead they are grouped by accessibility (a suggestion
+that was made in the "C++ Annotated Reference Manual", by Stroustrup & Ellis).
+C++23 has made that option nonstandard and the front end now issues a
+discretionary command-line error if a C++23 (or later) mode is enabled in such
+a configuration.  See committee paper P1847R4.
+
+
 5/1/25   [EDGcpfe/28094]
 Lambda expression and multi-translation unit mode 
 
