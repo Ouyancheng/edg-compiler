@@ -1,5 +1,14 @@
 Version 6.8
 
+5/2/25   [EDGcpfe/28076]
+GNU compatibility: "malloc" attribute and multi-translation mode
+
+The changes for EDGcpfe/24729 overlooked special treatment needed for the
+"malloc" attribute when the attribute appears on corresponding declarations
+across translation units in multi-translation unit mode.  Such situations then
+triggered spurious correspondence errors.  That is now fixed.
+
+
 5/1/25   [EDGcpfe/24779]
 C++23: TARG_FIELD_ALLOC_SEQUENCE_EQUALS_DECL_SEQUENCE
 
