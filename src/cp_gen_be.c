@@ -14165,6 +14165,13 @@ get to the expression that will appear, and return that.
       } else if (dyn_init_is(dip, dik_constructor)) {
         node = dip->variant.constructor.args;
         node_changed = TRUE;
+      } else if (dyn_init_is(dip, dik_constant)) {
+        a_constant_ptr    cp = dip->variant.constant.ptr;
+        an_expr_node_ptr  expr = assoc_expr_for_constant(cp);
+        if (expr != NULL) {
+          node = expr;
+          node_changed = TRUE;
+        }  /* if */
       }  /* if */
     } else if (node->compiler_generated && is_call_node(node)) {
       an_expr_node_ptr  rout_node = node->variant.operation.operands;
@@ -22136,6 +22143,7 @@ Output the initializer, if any, for the indicated variable.
     a_boolean          restore_init = FALSE;
     a_boolean          context_pop_required = FALSE;
     a_constant_ptr     folded_constant_to_restore = NULL;
+    a_type_ptr         init_type = var->type;
 
     get_variable_initializer(var, curr_name_context->assoc_scope,
                              &init_kind, &initializer);
@@ -22185,12 +22193,13 @@ Output the initializer, if any, for the indicated variable.
         con = initializer->constant;
         if (constant_should_be_put_out_as_expr(con)) {
           expr = con->expr;
-          if (expr->kind != (an_expr_node_kind)enk_temp_init) {
+          if (!node_is(expr, enk_temp_init)) {
             expr = skip_implicit_steps(con->expr);
           }  /* if */
         }  /* if */
-        if (expr != NULL && expr->kind == (an_expr_node_kind)enk_temp_init) {
+        if (expr != NULL && node_is(expr, enk_temp_init)) {
           dip = expr->variant.init.dynamic_init;
+          init_type = expr->type;
           goto handle_dynamic_init;
         } else if (con->explicit_parentheses_on_aggregate &&
                    con->variant.aggregate.first_constant == NULL) {
@@ -22284,8 +22293,7 @@ handle_dynamic_init:
             write_tok_str(" = ");
             if (var->declared_with_decltype_auto &&
                 dip->kind == (a_dynamic_init_kind)dik_expression &&
-                dip->variant.expression->kind !=
-                                             (an_expr_node_kind)enk_variable) {
+                !node_is(dip->variant.expression, enk_variable)) {
               /* Add parens for a case like
                    decltype(auto) x = (y);
                  where omitting the parens would give the wrong type. */
@@ -22294,7 +22302,12 @@ handle_dynamic_init:
             if (need_parens) {
               write_tok_ch('(');
             }  /* if */
-            gen_dynamic_init(dip, var->type, (an_expr_node_ptr)NULL,
+            /* Note the use of init_type rather than var->type: dip might
+               represent the initializer of an enk_temp_init node to which an
+               implicit conversion is applied.  E.g., if X is convertible to
+               int, an initialization like "int r = X("");" should not be
+               rendered as "int r = int("");". */
+            gen_dynamic_init(dip, init_type, (an_expr_node_ptr)NULL,
                              /*avoid_top_level_comma=*/TRUE,
                              /*obj_expr_of_mfunc_operator=*/FALSE);
             if (need_parens) {
