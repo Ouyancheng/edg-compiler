@@ -22178,8 +22178,9 @@ a routine to lookup the appropriate instance (or generate one if needed).
     }  /* if */
     arg_list_coalesced = TRUE;
     type = type_symbol_type(new_sym);
-    p_min_template_arguments = min_template_arguments_for_type(type);
-    if (first_defaulted_arg >= 0 &&
+    p_min_template_arguments = min_template_arguments_for_type(type,
+                                                               template_sym);
+    if (p_min_template_arguments != NULL && first_defaulted_arg >= 0 &&
         (*p_min_template_arguments == -1 ||
          *p_min_template_arguments > first_defaulted_arg)) {
       /* Record the number of arguments used in this reference. */

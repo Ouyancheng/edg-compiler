@@ -18335,19 +18335,32 @@ from the same class as the one with which vbcp is associated.
 }  /* virtual_base_class_is_indirect */
 
 
-int32_t *min_template_arguments_for_type(a_type_ptr	tp)
+int32_t *min_template_arguments_for_type(a_type_ptr   tp,
+                                         a_symbol_ptr template_sym)
 /*
 Return a pointer to the min_template_arguments field for tp, or NULL if tp
-does not have such a field.
+does not have such a field or if the type's associated template is not the
+one designated by template_sym.  (The latter case can arise when the
+instantiation is done via a template template argument.)
 */
 {
-  int32_t	*result = NULL;
+  int32_t       *result = NULL;
+  a_symbol_ptr  assoc_template_sym = NULL;
 
-  if (tp->kind == (a_type_kind)tk_typeref) {
-    result = &tp->variant.typeref.extra_info->min_template_arguments;
+  if (type_is(tp, tk_typeref)) {
+    if (typeref_supp(tp)->assoc_template != NULL) {
+      assoc_template_sym = symbol_for(typeref_supp(tp)->assoc_template);
+    }  /* if */
+    if (assoc_template_sym == template_sym) {
+      result = &typeref_supp(tp)->min_template_arguments;
+    }  /* if */
   } else if (is_immediate_class_type(tp)) {
-    result = &tp->variant.class_struct_union.extra_info->
-                                                        min_template_arguments;
+    if (class_type_supp(tp)->assoc_template != NULL) {
+      assoc_template_sym = symbol_for(class_type_supp(tp)->assoc_template);
+    }  /* if */
+    if (assoc_template_sym == template_sym) {
+      result = &class_type_supp(tp)->min_template_arguments;
+    }  /* if */
   }  /* if */
   return result;
 }  /* min_template_arguments_for_type */

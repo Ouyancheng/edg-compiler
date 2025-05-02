@@ -5453,8 +5453,7 @@ are done in the il_to_str routines before this routine is called.
        instantiation, so leave it as visible. */
   } else if (in_template_argument_list &&
              !type->variant.typeref.is_dependent &&
-             (parent_class_or_null(type) != NULL ||
-              type->variant.typeref.extra_info->template_arg_list != NULL)
+             parent_class_or_null(type) != NULL
 #if GCC_BUILTIN_VARARGS
              && !type->is_builtin_va_list
 #endif /* GCC_BUILTIN_VARARGS */
