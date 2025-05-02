@@ -694,21 +694,23 @@ resulting type.  See also scan_top_level_generated_code (which is similar).
 }  /* builtin_function_type */
 
 
-static a_type_ptr builtin_function_type_for_index(unsigned short type_index)
+static a_type_ptr builtin_function_type_for_index(
+                                               a_builtin_type_index type_index)
 /*
 Return the type associated with the specified builtin function type index.
 Parse the specified type if it has not been parsed yet.
 */
 {
-  a_builtin_function_type *bftp = &builtin_type_table[type_index];
+  a_type_ptr tp = builtin_type_table->get(type_index);
 
   check_assertion(type_index < (unsigned short)bfti_last);
-  if (bftp->type == NULL) {
-    bftp->type = builtin_function_type(builtin_type_strings[type_index],
-                                       &pos_curr_token);
+  if (tp == NULL) {
+    tp = builtin_function_type(builtin_type_strings[type_index],
+                               &pos_curr_token);
+    builtin_type_table->map(type_index, tp);
   }  /* if */
-  check_assertion(bftp->type != NULL && !is_error_type(bftp->type));
-  return bftp->type;
+  check_assertion(tp != NULL && !is_error_type(tp));
+  return tp;
 }  /* builtin_function_type_for_index */
 
 
@@ -3014,14 +3016,8 @@ Do initialization for each source file.
 */
 {
 #if BUILTIN_FUNCTIONS_ENABLED
-  /* Allocate the array to hold builtin function types that are referenced
-     in this translation unit. */
-  builtin_type_table = (a_builtin_function_type*)alloc_fe(
-                   num_builtin_type_entries * sizeof(a_builtin_function_type));
-  memzero((char *)builtin_type_table,
-          num_builtin_type_entries * sizeof(a_builtin_function_type));
-  loaded_builtin_set = alloc_fe_of_type(a_builtin_func_load_set);
-  construct(loaded_builtin_set, /*mask_width=*/10u);
+  builtin_type_table = new_fe<a_builtin_type_map>(/*mask_width=*/10u);
+  loaded_builtin_set = new_fe<a_builtin_func_load_set>(/*mask_width=*/10u);
 #endif /* BUILTIN_FUNCTIONS_ENABLED */
 }  /* sys_predef_trans_unit_init */
 
