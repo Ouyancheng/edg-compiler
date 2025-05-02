@@ -906,6 +906,8 @@ STATIC_THREAD an_attr_corresp_descr attr_corresp_table[] = {
   { ak_init_priority, af_gnu, iek_last, ACF_STRICT_MATCH_OR_VOID,
             NO_CHECKING_FN },
 #endif /* GNU_INIT_PRIORITY_ATTRIBUTE_ALLOWED */
+  { ak_malloc, af_gnu, iek_last, ACF_MATCH_OPTIONAL | ACF_ALWAYS_TRANS_COPY,
+    NO_CHECKING_FN },
   { ak_mode, af_gnu, iek_last, ACF_MATCH_OPTIONAL, NO_CHECKING_FN },
   { ak_nocommon, af_gnu, iek_last, ACF_MATCH_OPTIONAL, NO_CHECKING_FN },
   { ak_nonnull, af_gnu, iek_last, ACF_MATCH_OPTIONAL, NO_CHECKING_FN },
