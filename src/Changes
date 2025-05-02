@@ -3,7 +3,7 @@ Version 6.8
 5/1/25   [EDGcpfe/24779]
 C++23: TARG_FIELD_ALLOC_SEQUENCE_EQUALS_DECL_SEQUENCE
 
-The Cfront-based ABI version supported by the front end include a relatively
+The Cfront-based ABI version supported by the front end includes a relatively
 obscure option enabled by setting the configuration macro
 TARG_FIELD_ALLOC_SEQUENCE_EQUALS_DECL_SEQUENCE to FALSE: When that is the
 case, nonstatic data members are not always allocated in the order in which
