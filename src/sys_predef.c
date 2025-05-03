@@ -701,13 +701,13 @@ Return the type associated with the specified builtin function type index.
 Parse the specified type if it has not been parsed yet.
 */
 {
-  a_type_ptr tp = builtin_type_table->get(type_index);
+  a_type_ptr tp = builtin_type_table->get(type_index + 1);
 
   check_assertion(type_index < (unsigned short)bfti_last);
   if (tp == NULL) {
     tp = builtin_function_type(builtin_type_strings[type_index],
                                &pos_curr_token);
-    builtin_type_table->map(type_index, tp);
+    builtin_type_table->map(type_index + 1, tp);
   }  /* if */
   check_assertion(tp != NULL && !is_error_type(tp));
   return tp;
