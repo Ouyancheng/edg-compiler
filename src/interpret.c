@@ -3069,6 +3069,7 @@ redo:
     case tk_struct:
       get_mapped_byte_count(&persistent_map, tp, result);
       if (result == 0) {
+        /* This class type does not have an interpreter layout yet. */
 #if DEBUG
         check_assertion(ips != NULL);
 #endif /* DEBUG */
@@ -3100,16 +3101,19 @@ redo:
           result += 4*sizeof(an_integer_value);
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
         } else {
-          info_with_pos_type(ec_constexpr_type_too_large, type_pos(tp, ips),
-                             tp, ips);
+#if DEBUG
+          check_assertion(ips != NULL);
+#endif /* DEBUG */
+          info_with_pos_type(ec_constexpr_incomplete_type,
+                             type_pos(tp, ips), tp, ips);
           do_constexpr_fail(*p_result);
         }  /* if */
       } else if (result > MAX_CONSTEXPR_TYPE_SIZE) {
-        a_source_position  *pos = &tp->source_corresp.decl_position;
 #if DEBUG
         check_assertion(ips != NULL);
 #endif /* DEBUG */
-        info_with_pos_type(ec_constexpr_incomplete_type, pos, tp, ips);
+        info_with_pos_type(ec_constexpr_type_too_large, type_pos(tp, ips),
+                           tp, ips);
         do_constexpr_fail(*p_result);
       }  /* if */
       break;
@@ -3234,7 +3238,7 @@ ips is used to record an interpretation failure if the size exceeds the
 interpreter's limits; in that case, *p_result is set to FALSE.
 */
 {
-  a_byte_count      total_size = 0;
+  a_byte_count      total_size = 0, sub_size;
   a_field_ptr       fp;
   a_base_class_ptr  bcp, bases = base_classes_of(tp);
   a_boolean         any_virtual_bases =
@@ -3260,7 +3264,8 @@ interpreter's limits; in that case, *p_result is set to FALSE.
          but Clang does not.  Treat this as a zero-length field. */
       continue;
     }  /* if */
-    total_size += (a_byte_count)value_bytes_for_type(ips, fp->type, p_result);
+    sub_size = value_bytes_for_type(ips, fp->type, p_result);
+    total_size += sub_size;
     if (total_size > MAX_CONSTEXPR_TYPE_SIZE) {
       if (*p_result) {
         info_with_pos_type(ec_constexpr_type_too_large, type_pos(tp, ips), tp,
@@ -3321,8 +3326,8 @@ interpreter's limits; in that case, *p_result is set to FALSE.
     }  /* for */
   }  /* if */
   do_host_alignment(&total_size);
-done:
   map_byte_count(&persistent_map, tp, total_size);
+done:
   return total_size;
 }  /* lay_out_class_type */
 
@@ -3362,8 +3367,8 @@ exceeds the interpreter's limits; in that case, *p_result is set to FALSE.
     *p_result = TRUE;
     total_size = MAX_CONSTEXPR_TYPE_SIZE+1;
   }  /* if */
-done:
   map_byte_count(&persistent_map, tp, total_size);
+done:
   return total_size;
 }  /* lay_out_union_type */
 
@@ -6037,6 +6042,7 @@ END_DISABLE_GCC_WARNING_STR_OVERFLOW
           }  /* for */
 #endif /* C99_IL_EXTENSIONS_SUPPORTED */
         } else {
+          if (type_is(tp, tk_error)) ips->input_error = TRUE;
           do_constexpr_fail(result);
         }  /* if */
       }

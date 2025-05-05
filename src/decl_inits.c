@@ -4633,6 +4633,9 @@ initializer, already copied and substituted.
          the source form. */
       is_aggregate = TRUE;
       aggr_init_generic_element(icp, dtype, is, &is->init_con);
+      if (type_is(dtype, tk_error)) {
+        is->init_con->is_generic_initializer = FALSE;
+      }  /* if */
       break;
     case tk_array:
       /* Arrays are aggregates. */
