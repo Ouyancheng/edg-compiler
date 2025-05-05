@@ -38,6 +38,20 @@ mem_manage.c -- Memory management routines.
 /* Conditionally open the "edg" namespace. */
 BEGIN_EDG_NAMESPACE
 
+/*
+Define a macro that is TRUE in configurations that need the
+memory_allocation_map to be tracked (to ensure all general allocation is freed
+or for checking purposes); otherwise, this macro is false and any non-reclaimed
+general allocation is reclaimed when the process exits.
+*/
+#if MAKE_FRONT_END_CALLABLE || CHECKING
+#define TRACK_GENERAL_ALLOCATION TRUE
+#else  /* !(MAKE_FRONT_END_CALLABLE || CHECKING) */
+#define TRACK_GENERAL_ALLOCATION FALSE
+#endif /* MAKE_FRONT_END_CALLABLE || CHECKING */
+
+#if TRACK_GENERAL_ALLOCATION
+
 using a_memory_allocation_map = Ptr_map<void*, sizeof_t, Direct_allocator>;
                         /* The type for a memory allocation map used for
                            internal tracking of allocated memory. */
@@ -48,6 +62,7 @@ STATIC_THREAD a_memory_allocation_map
 			   This is used to free the blocks at the end of
 			   compilation. */
 
+#endif /* TRACK_GENERAL_ALLOCATION */
 #if CHECKING
 
 using a_memory_allocation_set = Ptr_set<void*, Direct_allocator>;
@@ -1137,7 +1152,9 @@ free_general will be reclaimed upon mem_manage_wrapup.
 {
   char *ptr = malloc_with_check(size);
 
+#if TRACK_GENERAL_ALLOCATION
   memory_allocation_map->map(ptr, size);
+#endif /* TRACK_GENERAL_ALLOCATION */
 #if DEBUG
   total_general_mem_allocated += (unsigned long)size;
 #endif /* DEBUG */
@@ -1157,14 +1174,18 @@ Free a tracked block of memory to general storage.
        the size wrong. */
     check_assertion(size == 0);
   } else {
+#if TRACK_GENERAL_ALLOCATION
     /* Check to ensure the specified amount to free matches the allocated
        amount. */
     check_assertion(memory_allocation_map->get(ptr) == size);
+#endif /* TRACK_GENERAL_ALLOCATION */
     /* Update internal memory tracking. */
 #if DEBUG
     total_general_mem_allocated -= (unsigned long)size;
 #endif /* DEBUG */
+#if TRACK_GENERAL_ALLOCATION
     memory_allocation_map->unmap(ptr);
+#endif /* TRACK_GENERAL_ALLOCATION */
 #if CHECKING
     if (resizable_memory_allocations->contains(ptr)) {
       resizable_memory_allocations->remove(ptr);
@@ -1213,9 +1234,11 @@ acts like alloc_resizable_buffer.
        resizable buffer. */
     check_assertion(resizable_memory_allocations->contains(old_ptr));
     ptr = realloc_with_check(old_ptr, old_size, new_size);
+#if TRACK_GENERAL_ALLOCATION
     /* Update the internal bookkeeping. */
     memory_allocation_map->unmap(old_ptr);
     memory_allocation_map->map(ptr, new_size);
+#endif /* TRACK_GENERAL_ALLOCATION */
 #if CHECKING
     resizable_memory_allocations->remove(old_ptr);
     resizable_memory_allocations->add(ptr);
@@ -2123,8 +2146,10 @@ This is done before command line processing.
   mem_alloc_history_entries_used = 0;
 #endif /* !STANDALONE_UTILITY_PROGRAM */
   /* Initialize the general allocator. */
+#if TRACK_GENERAL_ALLOCATION
   memory_allocation_map = new_direct<a_memory_allocation_map>(
                                                            /*mask_width=*/10u);
+#endif /* TRACK_GENERAL_ALLOCATION */
 #if CHECKING
   resizable_memory_allocations = new_direct<a_memory_allocation_set>(
                                                            /*mask_width=*/10u);
