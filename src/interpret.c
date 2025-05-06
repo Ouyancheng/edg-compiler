@@ -3326,8 +3326,12 @@ interpreter's limits; in that case, *p_result is set to FALSE.
     }  /* for */
   }  /* if */
   do_host_alignment(&total_size);
-  map_byte_count(&persistent_map, tp, total_size);
 done:
+  /* Note that we must record a nonzero size even in case of failure, since
+     otherwise the process may be repeated, which could lead to erroneously
+     recording two offsets for a given field or base (which in turn would
+     trigger an internal error). */
+  map_byte_count(&persistent_map, tp, total_size);
   return total_size;
 }  /* lay_out_class_type */
 
@@ -3367,8 +3371,8 @@ exceeds the interpreter's limits; in that case, *p_result is set to FALSE.
     *p_result = TRUE;
     total_size = MAX_CONSTEXPR_TYPE_SIZE+1;
   }  /* if */
-  map_byte_count(&persistent_map, tp, total_size);
 done:
+  map_byte_count(&persistent_map, tp, total_size);
   return total_size;
 }  /* lay_out_union_type */
 
