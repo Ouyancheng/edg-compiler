@@ -44,11 +44,11 @@ memory_allocation_map to be tracked (to ensure all general allocation is freed
 or for checking purposes); otherwise, this macro is false and any non-reclaimed
 general allocation is reclaimed when the process exits.
 */
-#if MAKE_FRONT_END_CALLABLE || CHECKING
+#if MAKE_FRONT_END_CALLABLE || EXPENSIVE_CHECKING
 #define TRACK_GENERAL_ALLOCATION TRUE
-#else  /* !(MAKE_FRONT_END_CALLABLE || CHECKING) */
+#else  /* !(MAKE_FRONT_END_CALLABLE || EXPENSIVE_CHECKING) */
 #define TRACK_GENERAL_ALLOCATION FALSE
-#endif /* MAKE_FRONT_END_CALLABLE || CHECKING */
+#endif /* MAKE_FRONT_END_CALLABLE || EXPENSIVE_CHECKING */
 
 #if TRACK_GENERAL_ALLOCATION
 
@@ -63,7 +63,7 @@ STATIC_THREAD a_memory_allocation_map
 			   compilation. */
 
 #endif /* TRACK_GENERAL_ALLOCATION */
-#if CHECKING
+#if EXPENSIVE_CHECKING
 
 using a_memory_allocation_set = Ptr_set<void*, Direct_allocator>;
                         /* The type for a memory allocation set used for
@@ -76,7 +76,7 @@ STATIC_THREAD a_memory_allocation_set
 			   sure only blocks that were marked resizable can be
 			   resized. */
 
-#endif /* CHECKING */
+#endif /* EXPENSIVE_CHECKING */
 
 #ifdef USING_PURIFY
 #include "purify.h"
@@ -1186,11 +1186,11 @@ Free a tracked block of memory to general storage.
 #if TRACK_GENERAL_ALLOCATION
     memory_allocation_map->unmap(ptr);
 #endif /* TRACK_GENERAL_ALLOCATION */
-#if CHECKING
+#if EXPENSIVE_CHECKING
     if (resizable_memory_allocations->contains(ptr)) {
       resizable_memory_allocations->remove(ptr);
     }  /* if */
-#endif /* CHECKING */
+#endif /* EXPENSIVE_CHECKING */
     /* Release the memory. */
     free(ptr);
   }  /* if */
@@ -1207,9 +1207,9 @@ that the memory can be freed when the front end is reset.
 {
   char *ptr = alloc_general(size);
 
-#if CHECKING
+#if EXPENSIVE_CHECKING
   resizable_memory_allocations->add(ptr);
-#endif /* CHECKING */
+#endif /* EXPENSIVE_CHECKING */
   return ptr;
 }  /* alloc_resizable_buffer */
 
@@ -1230,19 +1230,21 @@ acts like alloc_resizable_buffer.
   if (old_ptr == NULL) {
     ptr = alloc_resizable_buffer(new_size);
   } else {
+#if EXPENSIVE_CHECKING
     /* If this assertion fails, the given pointer was not allocated as a
        resizable buffer. */
     check_assertion(resizable_memory_allocations->contains(old_ptr));
+#endif /* EXPENSIVE_CHECKING */
     ptr = realloc_with_check(old_ptr, old_size, new_size);
 #if TRACK_GENERAL_ALLOCATION
     /* Update the internal bookkeeping. */
     memory_allocation_map->unmap(old_ptr);
     memory_allocation_map->map(ptr, new_size);
 #endif /* TRACK_GENERAL_ALLOCATION */
-#if CHECKING
+#if EXPENSIVE_CHECKING
     resizable_memory_allocations->remove(old_ptr);
     resizable_memory_allocations->add(ptr);
-#endif /* CHECKING */
+#endif /* EXPENSIVE_CHECKING */
   }  /* if */
 #if DEBUG
   total_general_mem_allocated -= (unsigned long)old_size;
@@ -2150,10 +2152,10 @@ This is done before command line processing.
   memory_allocation_map = new_direct<a_memory_allocation_map>(
                                                            /*mask_width=*/10u);
 #endif /* TRACK_GENERAL_ALLOCATION */
-#if CHECKING
+#if EXPENSIVE_CHECKING
   resizable_memory_allocations = new_direct<a_memory_allocation_set>(
                                                            /*mask_width=*/10u);
-#endif /* CHECKING */
+#endif /* EXPENSIVE_CHECKING */
   mem_region_table = NULL;
   size_of_mem_region_table = 0;
   size_of_function_def_table = 0;
@@ -2243,9 +2245,9 @@ very end of processing.
   free_mapped_mem_blocks();
 #endif /* USE_MMAP_FOR_MEMORY_REGIONS */
 #endif /* !STANDALONE_UTILITY_PROGRAM */
-#if CHECKING
+#if EXPENSIVE_CHECKING
   delete_direct(&resizable_memory_allocations);
-#endif /* CHECKING */
+#endif /* EXPENSIVE_CHECKING */
   free_general_memory(&memory_allocation_map);
 }  /* mem_manage_wrapup */
 
