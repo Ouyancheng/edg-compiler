@@ -1,5 +1,17 @@
 Version 6.8
 
+5/4/25   [EDGcpfe/28147]
+Interpreter object layout diagnostics
+
+The interpreter uses a custom object layout model, and in some cases will
+report layout failure diagnostics.  These diagnostics were sometimes wrong;
+e.g., the diagnostic out an incomplete class and that for a class that is too
+large for the interpreter were interchanged.  In other cases, the diagnostic
+was unhelpful because it was a side effect of an earlier error that made
+constant-evaluation impossible: In some of those cases, the additional error
+is now inhibited.
+
+
 5/2/25   [EDGcpfe/28076]
 GNU compatibility: "malloc" attribute and multi-translation mode
 
