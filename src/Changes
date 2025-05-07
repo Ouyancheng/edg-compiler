@@ -1,5 +1,22 @@
 Version 6.8
 
+5/7/25   [EDGcpfe/28156]
+Failure to update the type of a variable template instance with a deduced type
+
+Consider, in GNU C++20 mode with gnu_version >= 110000:
+
+  template<typename T> int v;
+  template<typename T> auto v<T&> = 42;
+  template<typename T, typename U> constexpr same_types = __is_same(T, U);
+  static_assert(same_types<decltype(v<int&>), int>);
+
+Previously, the static assertion failed because decltype applied to a
+variable template specialization that is partially specialized with a deduced
+type failed to instantiate the variable to actually deduce its type.  This is
+a regression introduced in version 6.7 of the front end through the changes
+for EDGcpfe/20755,EDGcpfe/20905.  That is now fixed.
+
+
 5/4/25   [EDGcpfe/28147]
 Interpreter object layout diagnostics
 

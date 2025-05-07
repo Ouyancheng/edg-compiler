@@ -1767,6 +1767,8 @@ extern a_boolean entities_are_recorded_for_current_expression(void);
 extern void rule_out_expr_kinds(a_ruled_out_expr_kind_set ruled_out_set,
                                 an_operand                *operand);
 
+extern void instantiate_template_var_if_applicable(a_variable  *vp);
+
 extern an_expr_node_ptr wrap_up_full_expression(an_expr_node_ptr expr);
 
 extern void discard_curr_expr_object_lifetime(void);

@@ -3245,6 +3245,27 @@ consteval function, which would be folded by now).
 }  /* diag_invalid_consteval_func_in_dyn_init */
 
 
+void instantiate_template_var_if_applicable(a_variable  *vp)
+/*
+If the given variable is a template specialization that hasn't been
+instantiated yet, instantiate it now.  (This might update the variable's
+type if it has a deduced type.)
+*/
+{
+  if (!vp->used && vp->template_info != NULL && !vp->is_nonreal &&
+      vp->template_info->template_arg_list != NULL && !vp->is_specialized) {
+    a_template_instance  *tip = template_instance_for_symbol(symbol_for(vp));
+    a_template_symbol_supplement
+                         *tssp = tip->template_sym->variant.template_info;
+    if (tip->master_instance != NULL &&
+        tssp->cache.tokens.first_token != NULL &&
+        !master_instance_of(tip)->already_instantiated) {
+      instantiate_template_variable(tip, /*is_new=*/FALSE, /*is_use=*/TRUE);
+    }  /* if */
+  }  /* if */
+}  /* instantiate_template_var_if_applicable */
+
+
 an_expr_node_ptr wrap_up_full_expression(an_expr_node_ptr expr)
 /*
 Do any processing required at the end of a "full expression" that is expr.
@@ -3302,17 +3323,7 @@ the expr_stack).
              void g() { x<int>; }
            should trigger the instantiation of the variable (an error in this
            example), but it appears to be common practice to do so. */
-        a_variable  *vp = node_variable(node);
-        if (!vp->used && vp->template_info != NULL && !vp->is_nonreal &&
-            vp->template_info->template_arg_list != NULL &&
-            !vp->is_specialized) {
-          a_template_instance  *tip;
-          tip = template_instance_for_symbol(symbol_for(vp));
-          if (!master_instance_of(tip)->already_instantiated) {
-            instantiate_template_variable(tip, /*is_new=*/FALSE,
-                                          /*is_use=*/TRUE);
-          }  /* if */
-        }  /* if */
+        instantiate_template_var_if_applicable(node_variable(node));
       }  /* if */
     }  /* if */
   }  /* if */
@@ -19729,19 +19740,8 @@ specializations are instantiated if needed.  "operand" can also be an xvalue.
     if (is_variable_node(node)) {
       /* If this is a reference to a variable template specialization, make
          sure the specialization is instantiated. */
-      a_variable  *vp = node_variable(node);
-      if (curr_expr_is_potentially_evaluated() &&
-          !vp->used && vp->is_template_variable && !vp->is_nonreal &&
-          vp->template_info->template_arg_list != NULL &&
-          !vp->is_specialized) {
-        a_template_instance  *tip;
-        tip = template_instance_for_symbol(symbol_for(vp));
-        if (tip->master_instance != NULL &&
-            tip->template_sym->defined &&
-            !master_instance_of(tip)->already_instantiated) {
-          instantiate_template_variable(tip, /*is_new=*/FALSE,
-                                        /*is_use=*/TRUE);
-        }  /* if */
+      if (curr_expr_is_potentially_evaluated()) {
+        instantiate_template_var_if_applicable(node_variable(node));
       }  /* if */
     } else {
       /* Check for a subscript just past the end of an array. */

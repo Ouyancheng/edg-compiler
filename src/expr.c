@@ -16902,6 +16902,10 @@ id_case:
           result = make_unqualified_type(vp->type);
         } else {
           result = vp->type;
+          if (is_auto_type(result)) {
+            instantiate_template_var_if_applicable(vp);
+            result = vp->type;
+          }  /* if */
         }  /* if */
       } else if (is_routine_node(expr)) {
         result = node_routine(expr)->type;
