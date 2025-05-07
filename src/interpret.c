@@ -428,7 +428,7 @@ typedef struct a_storage_stack_state {
 		*destructions;
 			/* Destructions to perform when this state is
 			   popped. */
-  inline auto alloc_seq() const -> an_alloc_seq_number
+  INLINE auto alloc_seq() const -> an_alloc_seq_number
     { return this->alloc_seq_number; }
   inline void set_alloc_seq(an_alloc_seq_number  num)
     { this->alloc_seq_number = num; }
@@ -3109,10 +3109,13 @@ redo:
           do_constexpr_fail(*p_result);
         }  /* if */
       } else if (result > MAX_CONSTEXPR_TYPE_SIZE) {
+        /* This type previously ran into a layout problem.  Treat this as
+           an IL error. */
 #if DEBUG
         check_assertion(ips != NULL);
 #endif /* DEBUG */
-        info_with_pos_type(ec_constexpr_type_too_large, type_pos(tp, ips),
+        ips->input_error = TRUE;
+        info_with_pos_type(ec_constexpr_type_invalid, type_pos(tp, ips),
                            tp, ips);
         do_constexpr_fail(*p_result);
       }  /* if */
