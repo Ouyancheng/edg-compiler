@@ -41,7 +41,7 @@ BEGIN_EDG_NAMESPACE
 /*
 Define a macro that is TRUE in configurations that need the
 memory_allocation_map to be tracked (to ensure all general allocation is freed
-or for checking purposes); otherwise, this macro is false and any non-reclaimed
+or for checking purposes); otherwise, this macro is FALSE and any non-reclaimed
 general allocation is reclaimed when the process exits.
 */
 #if MAKE_FRONT_END_CALLABLE || EXPENSIVE_CHECKING
