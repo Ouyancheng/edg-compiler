@@ -1957,8 +1957,9 @@ error code.
       *err_severity = es_error;
     }  /* if */
   } else {
-    unexpected_condition_str(
-                    "conv_ptr_to_member_to_ptr_to_member: unrelated classes");
+    *err_severity = es_error;
+    *err_code = ec_bad_cast;
+    expect_error();
   }  /* if */
 }  /* conv_ptr_to_member_to_ptr_to_member */
 
