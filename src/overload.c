@@ -1237,12 +1237,15 @@ is_ambiguous:
         /* The exception specifications can't be converted. */
         std_conv->exception_spec_incompatibility = TRUE;
         *match_level = aml_none;
-      } else if (type_has_less_restrictive_exception_spec(dest_underlying_type,
+      } else if (exc_spec_in_func_type &&
+                 type_has_less_restrictive_exception_spec(dest_underlying_type,
                                                           routine_type)) {
         /* Binding to a less-restrictive exception specification is permitted
            (N4868 [conv.fctptr]), but it is considered a "qualification
            adjustment" for the purposes of ranking conversions during overload
-           resolution (N4868 [over.ics.scs]/3). */
+           resolution (N4868 [over.ics.scs]/3).  This only applies in C++17
+           and later (where exception specifications are part of the function
+           type). */
         std_conv->type_qualifiers_added = TRUE;
       }  /* if */
     }  /* if */

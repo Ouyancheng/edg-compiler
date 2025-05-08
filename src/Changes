@@ -1,5 +1,25 @@
 Version 6.8
 
+
+5/7/25   [EDGcpfe/28145]
+C++14-mode matching of pointer to function types
+
+Consider:
+
+  template<class F> int g(F f) = delete;         // (1)
+  template<class R, class P> int g(R (*f)(P));   // (2)
+  template<class T> void ft(T) throw();
+  using F = void(int const&);
+  int r =  g(&ft<F>);  // Previously an error in C++14 mode.  Now okay.
+
+In C++17, exception specifications are part of function types and the call
+g(&ft<F>) therefore prefers (1) over (2), because (2) requires an adjustment
+for the exception specification.  The front end previously also erroneously
+applied that distinction in C++14.  Now, instead, the exception specification
+does not affect the exact match, and (2) is preferred because it is the more
+specialized template.
+
+
 5/7/25   [EDGcpfe/28156]
 Failure to update the type of a variable template instance with a deduced type
 
