@@ -3257,7 +3257,9 @@ type if it has a deduced type.)
     a_template_instance  *tip = template_instance_for_symbol(symbol_for(vp));
     a_template_symbol_supplement
                          *tssp = tip->template_sym->variant.template_info;
-    if (tip->master_instance != NULL && tip->template_sym->defined &&
+    if (tip->master_instance != NULL &&
+        (tip->template_sym->defined ||
+         (vp->initializer_in_class && vp->init_kind == initk_none)) &&
         tssp->cache.tokens.first_token != NULL &&
         !master_instance_of(tip)->already_instantiated) {
       instantiate_template_variable(tip, /*is_new=*/FALSE, /*is_use=*/TRUE);
