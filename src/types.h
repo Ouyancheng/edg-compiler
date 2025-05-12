@@ -37,7 +37,7 @@ EXTERN_THREAD a_boolean
 			   type.  Typically TRUE in C mode and FALSE in C++
 			   mode. */
 
-INLINE a_type_ptr skip_typerefs(a_type_ptr type_ptr)
+inline a_type_ptr skip_typerefs(a_type_ptr type_ptr)
 /*
 Strip any typeref entries off the given type to get to the real type, and
 return a pointer to that.  Note that the typeref may have some type
@@ -73,7 +73,7 @@ extern a_type_ptr skip_typerefs_not_typedefs_or_type_operators(
                                                          a_type_ptr type_ptr);
 extern a_type_ptr skip_nontemplate_typerefs(a_type_ptr type_ptr);
 
-INLINE a_boolean is_error_type(a_type_ptr tp)
+inline a_boolean is_error_type(a_type_ptr tp)
 /*
 Return TRUE if the given type is an error type.
 */
@@ -87,7 +87,7 @@ It is now defined as a synonym of is_error_type for compatibility purposes.
 */
 #define m_is_error_type is_error_type
 
-INLINE a_boolean is_immediate_error_type(a_type_ptr tp)
+inline a_boolean is_immediate_error_type(a_type_ptr tp)
 /*
 Return TRUE if a type is a direct error type (i.e., not a typeref on
 top of such a type).
@@ -388,12 +388,12 @@ extern a_boolean check_for_vla_in_pointer_to_member(a_type_ptr         type,
 extern a_type_ptr type_specifier_of_type(a_type_ptr type);
 
 
-INLINE a_routine_type_supplement_ptr rout_type_supp(a_type_ptr type)
+inline a_routine_type_supplement_ptr rout_type_supp(a_type_ptr type)
 /*
 Given a routine type, return the corresponding routine type supplement pointer.
 */
 {
-  check_assertion(type_is(type, tk_routine));
+  check_assertion(type->kind == tk_routine);
   return type->variant.routine.extra_info;
 }  /* rout_type_supp */
 
@@ -408,19 +408,24 @@ Return TRUE if a type is a fundamental type.
 }  /* is_fundamental_type */
 
 
+inline a_boolean is_immediate_class_type(a_type_ptr  type)
 /*
 Return TRUE if a type is a direct class type (i.e., not a typeref on
 top of a class type).
 */
-#define is_immediate_class_type(type)                                 \
-  (type_is((type), tk_class) || type_is((type), tk_struct) ||         \
-   type_is((type), tk_union))
+{
+  return type_is(type, tk_class) || type_is(type, tk_struct) ||
+         type_is(type, tk_union);
+}  /* is_immediate_class_type */
 
+
+inline a_boolean is_class_or_struct(a_type_ptr  type)
 /*
 Return TRUE if a type is a direct non-union class type.
 */
-#define is_class_or_struct(type)                                      \
-  (type_is((type), tk_class) || type_is((type), tk_struct))
+{
+  return type_is(type, tk_class) || type_is(type, tk_struct);
+}  /* is_class_or_struct */
 
 
 /*
@@ -460,12 +465,12 @@ Return TRUE if tp is a partial class.
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
 
 
-INLINE an_integer_type_supplement_ptr integer_type_supp(a_type_ptr tp)
+inline an_integer_type_supplement_ptr integer_type_supp(a_type_ptr tp)
 /*
 Return a pointer to the associated integer type supplement.
 */
 {
-  check_assertion(type_is(tp, tk_integer));
+  check_assertion(tp->kind == tk_integer);
   return tp->variant.integer.extra_info;
 }  /* integer_type_supp */
 
@@ -551,7 +556,7 @@ Return a pointer to the associated typeref type supplement.
   ((tp)->variant.typeref.extra_info)
 
 
-INLINE a_boolean typeref_is_typedef(a_type_ptr  tp)
+inline a_boolean typeref_is_typedef(a_type_ptr  tp)
 /*
 Return TRUE if a tk_typeref type represents a typedef-name.
 
@@ -633,7 +638,7 @@ Return TRUE if tp represents a dependent type-transforming intrinsic.
 }  /* type_is_dependent_type_transforming_intrinsic */
 
 
-INLINE a_boolean type_is_typedef(a_type_ptr  tp)
+inline a_boolean type_is_typedef(a_type_ptr  tp)
 /*
 Return TRUE if the given type represents a typedef-name.
 

@@ -958,7 +958,7 @@ Functions and macros to test whether a routine is a GNU built-in function.
 */
 #if BUILTIN_FUNCTIONS_ENABLED
 
-INLINE a_boolean is_gnu_builtin_function(a_routine_ptr  rp)
+inline a_boolean is_gnu_builtin_function(a_routine_ptr  rp)
 /*
 Return TRUE if and only if the given routine represents a GNU-style built-in
 function.
@@ -969,7 +969,7 @@ function.
 }  /* is_gnu_builtin_function */
 
 
-INLINE a_boolean is_specific_builtin(a_routine_ptr            rp,
+inline a_boolean is_specific_builtin(a_routine_ptr            rp,
                                      a_builtin_function_kind  bfk)
 /*
 Return TRUE if and only if the given routine represents a GNU-style built-in
@@ -3523,7 +3523,7 @@ node) is "op".
   ((node)->variant.operation.kind == (an_expr_operator_kind)(op))
 
 
-INLINE a_boolean node_is_operator(an_expr_node_ptr       node,
+inline a_boolean node_is_operator(an_expr_node_ptr       node,
                                   an_expr_operator_kind  kind)
 /*
 Return TRUE if (and only if) the given node is an enk_operator node for the
@@ -4173,7 +4173,7 @@ extern a_boolean compare_expressions(an_expr_node_ptr                node1,
                                      a_compare_constants_options_set options);
 
 
-INLINE a_requires_clause_ptr trailing_requires_clause(a_routine_ptr  rp)
+inline a_requires_clause_ptr trailing_requires_clause(a_routine_ptr  rp)
 /*
 Return the trailing requires-clause associated with rp, if any.
 */

@@ -28,19 +28,6 @@ host_envir.h -- Declarations relating to host_envir.c (having to do with
 /* Conditionally open the "edg" namespace. */
 BEGIN_EDG_NAMESPACE
 
-#if defined(EDG_REDEFINE_NULL)
-/*
-GCC #defines NULL as __null, which allows it to distinguish the null pointer
-constant "intention" even in modes that don't support nullptr.  Unfortunately,
-gdb appears not to know about __null (or nullptr), which makes macros that
-use NULL unusable from within gdb.  If EDG_REDEFINE_NULL is defined, we
-redefine NULL to simply be 0, which improves the experience in gdb.
-*/
-#undef NULL
-typedef decltype(nullptr) nullptr_type;
-#define NULL 0
-#endif /* defined(EDG_REDEFINE_NULL) */
-
 /* Forward declaration of a_text_buffer_ptr. */
 typedef struct a_text_buffer *a_text_buffer_ptr;
 
