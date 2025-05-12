@@ -309,6 +309,27 @@ or function scope variables optionally thread-local.
 #endif /* STATIC_THREAD */
 
 /*
+INLINE is intended to mark a function as "inline", but with a platform-
+specific notation that increases the likelihood of actually inlining calls to
+that function.  This definition works for MSVC, GCC, and Clang.  On other
+platforms, INLINE expands by default to just inline.  To disable the increased
+likelihood of inlining on MSVC, GCC, and Clang, add
+  #define INLINE inline
+to the front end configuration.
+*/
+#ifndef INLINE
+#if defined(__GNUC__)
+#define INLINE __attribute((always_inline)) inline
+#else /* !defined(__GNUC__) */
+#if defined(__MSC__)
+#define INLINE __forceinline
+#else /* !defined(__MSC__) */
+#define INLINE inline
+#endif /* defined(__MSC__) */
+#endif /* defined(__GNUC__) */
+#endif /* INLINE */
+
+/*
 USING_ISO_C is TRUE if the compiler being used to build the front end
 is an ISO C compiler or C++ compiler.  This is used to determine whether
 certain language features and preprocessing features are available.
