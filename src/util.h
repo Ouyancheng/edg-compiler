@@ -4530,13 +4530,15 @@ The string is reset to an empty state and the passed arguments are appended in
 the fashion described in detail::append_with_custom_reserve.
 */
 {
+  Dyn_array<char, Allocator>  *backing = &this->backing_array;
+
   /* Remove the null terminator. */
-  check_assertion(this->backing_array.back_elem() == '\0');
-  this->backing_array.clear();
+  check_assertion(backing->back_elem() == '\0');
+  backing->clear();
   /* Append the new characters. */
-  auto reserve_func = [this](size_t total_size) {
-    this->backing_array.reserve(total_size);
-    return &this->backing_array;
+  auto reserve_func = [backing](size_t total_size) {
+    backing->reserve(total_size);
+    return backing;
   };
   detail::append_with_custom_reserve(reserve_func, args...);
 }  /* Allocated_string::reset_to */
