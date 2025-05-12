@@ -1,5 +1,18 @@
 Version 6.8
 
+5/12/25  [EDGcpfe/28165]
+Qualified-type array prvalues
+
+The front end previously erroneously accepted the following example
+
+  using T = int[3];
+  using CT = const int[3];
+  T &&t = CT{ 1, 2, 3 };  // Previously accepted.  Now an error.
+
+because it dropped the "const" qualification on the array prvalue that is
+"CT{ 1, 2, 3}".  That is now fixed: The "const" qualification is preserved and
+an error issue issued on the attempted reference binding.
+
 
 5/7/25   [EDGcpfe/28145]
 C++14-mode matching of pointer to function types

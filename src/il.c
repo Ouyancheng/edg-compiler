@@ -14340,15 +14340,20 @@ would have.  That is, drop type qualifiers as appropriate.  Array-to-pointer
 and function-to-pointer decay are not considered.
 */
 {
-  /* In C++, class prvalues can have cv-qualified type, so the cv-qualifiers
-     are kept.  In all other cases, they are removed. */
-  if (C_mode() ||
+  a_type_ptr  utp = skip_typerefs(type);
+
+  if (type != utp) {
+    /* In C++, class and array prvalues can have cv-qualified type (see
+       [expr.type]/2 in N5008), so the cv-qualifiers are kept.  In all other
+       cases, they are removed. */
+    if (C_mode() ||
 #if DO_IL_LOWERING
-      /* Force C semantics for things created by IL lowering. */
-      il_lowering_underway ||
+        /* Force C semantics for things created by IL lowering. */
+        il_lowering_underway ||
 #endif /* DO_IL_LOWERING */
-      !is_class_struct_union_type(type)) {
-    type = make_unqualified_type(type);
+        !(is_immediate_class_type(utp) || is_array_type(utp))) {
+      type = make_unqualified_type(type);
+    }  /* if */
   }  /* if */
   return type;
 }  /* prvalue_type */

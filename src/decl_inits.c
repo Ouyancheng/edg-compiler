@@ -1939,7 +1939,7 @@ the position at which diagnostics should be issued.
   a_boolean  partial_init_flag = TRUE, nontrivial = FALSE;
 
   etype = skip_typerefs(etype);
-  if (etype->kind == (a_type_kind)tk_array) {
+  if (type_is(etype, tk_array)) {
     /* The element is a sub-array.  Create a single potentially-repeated
        initializer for all array levels. */
     if (!etype->variant.array.is_vla) {
@@ -1992,8 +1992,8 @@ the position at which diagnostics should be issued.
         remainder_con->implicit_aggr_element = TRUE;
         /* Add the constant entry to the list of constants, but add a
            ck_repeat_init on top of it if needed. */
-        check_assertion(array_con->type->kind == (a_type_kind)tk_array &&
-                        array_con->kind == (a_constant_repr_kind)ck_aggregate);
+        check_assertion(type_is(skip_typerefs(array_con->type), tk_array) &&
+                        constant_is(array_con, ck_aggregate));
         if (is->variable_size_array && !is->non_top_level_aggregate) {
           /* Something like "new T[x]{...}" where x is a run-time value.
              We don't know a priori how many default initializations are
@@ -2234,20 +2234,22 @@ static void aggr_init_array(an_init_component_ptr  *p_icp,
                             a_type_ptr             *p_array_type,
                             an_init_state          *is,
                             a_source_position      *diag_pos,
-                            a_constant_ptr         *init_con)
+                            a_constant_ptr         *init_con,
+                            a_type_ptr             orig_type = NULL)
 /*
 Produce an aggregate constant (in *init_con) for the initialization of an
-object or subobject of the array type given by *p_array_type.  The initializer
-is described by *p_icp, and that value is updated to the next initializer to be
-considered by the caller (if the initializer is braced, just one initializer is
-"consumed", but otherwise an arbitrary number may be used for this array
-initialization).  *is describes the initialization as a whole.
+object or subobject of the array type given by *p_array_type (if orig_type is
+non-NULL, it is the original specified type, including typedefs).  The
+initializer is described by *p_icp, and that value is updated to the next
+initializer to be considered by the caller (if the initializer is braced, just 
+one initializer is "consumed", but otherwise an arbitrary number may be used
+for this array initialization).  *is describes the initialization as a whole.
 */
 {
   an_init_component_ptr  icp = *p_icp;
   a_type_ptr             atype = skip_typerefs(*p_array_type);
 
-  check_assertion(atype->kind == (a_type_kind)tk_array);
+  check_assertion(type_is(atype, tk_array));
   if (try_string_literal_init(icp, p_array_type, is, init_con)) {
     /* A string literal initializer.  Nothing more to be done. */
     *p_icp = next_elem(icp);
@@ -2269,8 +2271,8 @@ initialization).  *is describes the initialization as a whole.
     if (is->check_validity_only) {
       *init_con = NULL;
     } else {
-      *init_con = alloc_constant((a_constant_repr_kind)ck_aggregate);
-      (*init_con)->type = atype;
+      *init_con = alloc_constant(ck_aggregate);
+      (*init_con)->type = orig_type != NULL ? orig_type : atype;
       (*init_con)->source_corresp.decl_position = *init_component_pos(icp);
 #if EXTRA_SOURCE_POSITIONS_IN_IL
       if (!is_designator_component(icp)) {
@@ -4343,7 +4345,7 @@ the type pointed to is opaque to declaration processing.
       /* Arrays are aggregates. */
       unknown_bound_array = is_incomplete_array_type(dtype);
       is->initializer_can_dimension_array = TRUE;
-      aggr_init_array(&icp, &dtype, is, diag_pos, &is->init_con);
+      aggr_init_array(&icp, &dtype, is, diag_pos, &is->init_con, orig_dtype);
       if (is_error_type(dtype)) {
         is->init_error = TRUE;
         if (!is->no_diagnostics) expect_error();
