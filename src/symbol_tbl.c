@@ -18523,7 +18523,9 @@ struct a_constexpr_intrinsic_descr {
 A table of entries describing characteristics of a constexpr function that the
 front end recognizes for potential evaluation by the interpreter.  The table
 is produced by expanding the macro NS_scope_constexpr_intrinsics (see
-interpret.h).
+interpret.h).  The entry at index zero is a dummy entry that is never used
+(it exists because index zero is used as an indication that that a name is not
+associated with any intrinsic).
 */
 STATIC_THREAD struct {
   a_const_char	*name;	/* The name of a function known to the interpreter. */
@@ -18531,6 +18533,7 @@ STATIC_THREAD struct {
 		descr;	/* Information characterizing the function beyond its
 			   name. */
 } constexpr_intrinsic_descriptions[] = {
+  { NULL, {} },
 #define CIT_descr(ns, name, signature) \
   { #name, { cit_##ns##_##name, &symbol_for_namespace_##ns, signature } },
   NS_scope_constexpr_intrinsics(CIT_descr)
@@ -18542,9 +18545,10 @@ STATIC_THREAD struct {
                               /sizeof(constexpr_intrinsic_descriptions[0])))
 
 using a_constexpr_intrinsic_descr_table =
-		Ptr_map<a_symbol_header*, a_constexpr_intrinsic_descr*>;
+		Ptr_map<a_symbol_header*, int>;
 			/* The type of a table that maps intrinsic identifiers
-			   to descriptions of functions that the interpreter
+			   to the index (in constexpr_intrinsic_descriptions)
+			   of descriptions of functions that the interpreter
 			   knows how to evaluate.  (Functions with names in the
 			   table but which don't match the description will
 			   not be handled specially by the interpreter.) */
@@ -18569,14 +18573,14 @@ intrinsically.
   constexpr_intrinsic_descr_table =
                           alloc_fe_of_type(a_constexpr_intrinsic_descr_table);
   construct(constexpr_intrinsic_descr_table, /*mask_width=*/8u);
-  for (n = 0; n<N_CONSTEXPR_INTRINSIC_DESCRIPTIONS; ++n) {
+  /* Note that we start at index 1 since index 0 is used as an indication
+     that there is no corresponding intrinsic. */
+  for (n = 1; n<N_CONSTEXPR_INTRINSIC_DESCRIPTIONS; ++n) {
     a_symbol_locator  loc;
     a_const_char      *name = constexpr_intrinsic_descriptions[n].name;
     (void)find_symbol(name, strlen(name), &loc);
     loc.symbol_header->has_intrinsic_name = TRUE;
-    constexpr_intrinsic_descr_table->map(
-               loc.symbol_header, &constexpr_intrinsic_descriptions[n].descr);
-                                        
+    constexpr_intrinsic_descr_table->map(loc.symbol_header, n);
   }  /* for */
 }  /* init_constexpr_intrinsic_descriptions */
 
@@ -18823,11 +18827,11 @@ a "constexpr intrinsic" (i.e., a function handled specially by the constexpr
 interpreter) and if so mark it as such.
 */
 {
-  a_constexpr_intrinsic_descr
-		*descr;
+  int  n = constexpr_intrinsic_descr_table->get(sym_hdr);
 
-  descr = constexpr_intrinsic_descr_table->get(sym_hdr);
-  if (descr != NULL) {
+  if (n != 0) {
+    a_constexpr_intrinsic_descr  *descr;
+    descr = &constexpr_intrinsic_descriptions[n].descr;
     check_assertion(descr->kind != cit_error);
     if (is_namespace_member(rp) && *descr->p_namespace_sym != NULL &&
         is_member_of_namespace(symbol_for(rp), *descr->p_namespace_sym)) {

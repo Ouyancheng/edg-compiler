@@ -107,7 +107,10 @@ Variables in symbol_tbl.c mistakenly not recorded for PCH restoration
 The variables template_cache_segment_table and constexpr_intrinsic_descr_table
 defined with static lifetime in symbol_tbl.c were previously not recorded as
 variables that need adjustments when loading precompiled headers.  This could
-lead to memory corruption when loading precompiled headers.
+lead to memory corruption when loading precompiled headers.  An additional
+change was also made to have constexpr_intrinsic_descr_table (a hash table)
+not contain direct pointers into constexpr_intrinsic_descriptions (a static
+table) and instead use indices to link the two data structures.
 
 
 4/29/25  [EDGcpfe/28085]
