@@ -9981,6 +9981,11 @@ file.
 #else /* !defined(USE_FLOAT128_FOR_HOST_FP_VALUE) */
   comment_undefined_macro_name(USE_FLOAT128_FOR_HOST_FP_VALUE);
 #endif /* defined(USE_FLOAT128_FOR_HOST_FP_VALUE) */
+#if defined(USE_FORCED_INLINE)
+  define_numeric_valued_macro(USE_FORCED_INLINE);
+#else /* !defined(USE_FORCED_INLINE) */
+  comment_undefined_macro_name(USE_FORCED_INLINE);
+#endif /* defined(USE_FORCED_INLINE) */
 #if defined(USE_HEX_FP_CONSTANTS_IN_GENERATED_CODE)
   define_numeric_valued_macro(USE_HEX_FP_CONSTANTS_IN_GENERATED_CODE);
 #else /* !defined(USE_HEX_FP_CONSTANTS_IN_GENERATED_CODE) */
