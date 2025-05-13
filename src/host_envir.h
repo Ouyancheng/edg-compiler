@@ -41,6 +41,37 @@ typedef decltype(nullptr) nullptr_type;
 #define NULL 0
 #endif /* defined(EDG_REDEFINE_NULL) */
 
+/*
+If USE_FORCED_INLINE is configured to FALSE, the INLINE macro expands to just
+inline.  Otherwise, INLINE is intended to mark a function as "inline", but
+with a platform-specific notation that increases the likelihood of actually
+inlining calls to that function.  The definition of INLINE below (which only
+activates if INLINE is not already defined) works for MSVC, GCC, and Clang.
+
+Using USE_FORCED_INLINE is not expected to noticeably improve the front end's
+performance, but it can affect the debugger behavior.
+*/
+#ifndef USE_FORCED_INLINE
+#define USE_FORCED_INLINE FALSE
+#undef INLINE
+#endif /* ifndef USE_FORCED_INLINE */
+
+#if USE_FORCED_INLINE
+#ifndef INLINE
+#if defined(__GNUC__)
+#define INLINE __attribute((always_inline)) inline
+#else /* !defined(__GNUC__) */
+#if defined(__MSC__)
+#define INLINE __forceinline
+#else /* !defined(__MSC__) */
+#define INLINE inline
+#endif /* defined(__MSC__) */
+#endif /* defined(__GNUC__) */
+#endif /* ifndef INLINE */
+#else /* !USE_FORCED_INLINE */
+#define INLINE inline
+#endif /* USE_FORCED_INLINE */
+
 /* Forward declaration of a_text_buffer_ptr. */
 typedef struct a_text_buffer *a_text_buffer_ptr;
 
