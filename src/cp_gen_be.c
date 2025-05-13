@@ -22199,8 +22199,19 @@ Output the initializer, if any, for the indicated variable.
         }  /* if */
         if (expr != NULL && node_is(expr, enk_temp_init)) {
           dip = expr->variant.init.dynamic_init;
-          init_type = expr->type;
-          goto handle_dynamic_init;
+          if (dip->is_explicit_cast && (parenthesized_init || braced_init)) {
+            /* Something like "X x{Y{y}};" where dip represents "Y{y}" and not
+               the initializer of x as a whole.  Put out the delimiters of the
+               variable initialization, and then render the delimited
+               expression. */
+            write_tok_ch(braced_init ? '{' : '(');
+            gen_expression(expr);
+            write_tok_ch(braced_init ? '}' : ')');
+          } else {
+            dip = expr->variant.init.dynamic_init;
+            init_type = expr->type;
+            goto handle_dynamic_init;
+          }  /* if */
         } else if (con->explicit_parentheses_on_aggregate &&
                    con->variant.aggregate.first_constant == NULL) {
           /* An empty C++20 parenthesized aggregate initializer may be the
