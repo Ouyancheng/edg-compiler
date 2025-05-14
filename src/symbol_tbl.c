@@ -18524,7 +18524,7 @@ A table of entries describing characteristics of a constexpr function that the
 front end recognizes for potential evaluation by the interpreter.  The table
 is produced by expanding the macro NS_scope_constexpr_intrinsics (see
 interpret.h).  The entry at index zero is a dummy entry that is never used
-(it exists because index zero is used as an indication that that a name is not
+(it exists because index zero is used as an indication that a name is not
 associated with any intrinsic).
 */
 STATIC_THREAD struct {
