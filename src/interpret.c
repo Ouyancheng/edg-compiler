@@ -25809,7 +25809,8 @@ subobject path.
             if (bcp->is_virtual) {
               /* For virtual base classes, look for a virtual base with a
                  matching type. */
-              for (; full_bcp != NULL; full_bcp = full_bcp->next) {
+              for (;; full_bcp = full_bcp->next) {
+                check_assertion(full_bcp != NULL);
                 if (full_bcp->type == bcp->type && full_bcp->is_virtual) {
                   break;
                 }  /* if */
@@ -25818,7 +25819,8 @@ subobject path.
               /* For nonvirtual base classes, a matching type is not
                  sufficient: Make sure its parent base class is
                  prev_full_bcp. */
-              for (; full_bcp != NULL; full_bcp = full_bcp->next) {
+              for (;; full_bcp = full_bcp->next) {
+                check_assertion(full_bcp != NULL);
                 if (full_bcp->type == bcp->type && !full_bcp->is_virtual) {
                   a_derivation_step_ptr  dsp = full_bcp->derivation->path_tail;
                   /* Since this is not the first derivation step nor a virtual
