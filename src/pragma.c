@@ -1661,7 +1661,23 @@ void pragma_init(void)
 Initialize the pragma description table.
 */
 {
-  int	i;
+  int       i;
+  a_boolean ignore_diag_pragma_in_be =
+#if BACK_END_IS_C_GEN_BE || BACK_END_IS_CP_GEN_BE
+    /* The GNU, clang, Microsoft, and Sun compilers do not recognize the
+       EDG-specific diagnostic pragmas, so they should not be emitted in
+       generated code intended for those compilers.  Other targets may or
+       may not have processing for these pragmas, so it's best to include
+       them. */
+    (gcc_is_generated_code_target || clang_is_generated_code_target ||
+     microsoft_dialect_is_generated_code_target ||
+     sun_is_generated_code_target);
+#else /* !(BACK_END_IS_C_GEN_BE || BACK_END_IS_CP_GEN_BE) */
+    /* We don't know whether the back end will have processing for the
+       diagnostic pragmas, so it's safest not to flag them as being
+       ignored. */
+    FALSE;
+#endif /* BACK_END_IS_C_GEN_BE || BACK_END_IS_CP_GEN_BE */
   db_enter(3, "pragma_init");
   /* Clear the array used to get a pragma description pointer based on a
      pragma kind. */
@@ -2015,7 +2031,7 @@ Initialize the pragma description table.
                  /*expand_macros=*/FALSE,
                  /*processing_C_code=*/FALSE,
                  /*fetch_pp_tokens=*/FALSE,
-                 /*ignore_in_back_end=*/TRUE,
+                 /*ignore_in_back_end=*/ignore_diag_pragma_in_be,
                  /*il_info_is_complete=*/FALSE,
                  /*read_string_as_header_name=*/FALSE,
                  es_error);
@@ -2028,7 +2044,7 @@ Initialize the pragma description table.
                  /*expand_macros=*/FALSE,
                  /*processing_C_code=*/FALSE,
                  /*fetch_pp_tokens=*/FALSE,
-                 /*ignore_in_back_end=*/TRUE,
+                 /*ignore_in_back_end=*/ignore_diag_pragma_in_be,
                  /*il_info_is_complete=*/FALSE,
                  /*read_string_as_header_name=*/FALSE,
                  es_error);
@@ -2041,7 +2057,7 @@ Initialize the pragma description table.
                  /*expand_macros=*/FALSE,
                  /*processing_C_code=*/FALSE,
                  /*fetch_pp_tokens=*/FALSE,
-                 /*ignore_in_back_end=*/TRUE,
+                 /*ignore_in_back_end=*/ignore_diag_pragma_in_be,
                  /*il_info_is_complete=*/FALSE,
                  /*read_string_as_header_name=*/FALSE,
                  es_error);
@@ -2054,7 +2070,7 @@ Initialize the pragma description table.
                  /*expand_macros=*/FALSE,
                  /*processing_C_code=*/FALSE,
                  /*fetch_pp_tokens=*/FALSE,
-                 /*ignore_in_back_end=*/TRUE,
+                 /*ignore_in_back_end=*/ignore_diag_pragma_in_be,
                  /*il_info_is_complete=*/FALSE,
                  /*read_string_as_header_name=*/FALSE,
                  es_error);
@@ -2067,7 +2083,7 @@ Initialize the pragma description table.
                  /*expand_macros=*/FALSE,
                  /*processing_C_code=*/FALSE,
                  /*fetch_pp_tokens=*/FALSE,
-                 /*ignore_in_back_end=*/TRUE,
+                 /*ignore_in_back_end=*/ignore_diag_pragma_in_be,
                  /*il_info_is_complete=*/FALSE,
                  /*read_string_as_header_name=*/FALSE,
                  es_error);
@@ -2080,7 +2096,7 @@ Initialize the pragma description table.
                  /*expand_macros=*/FALSE,
                  /*processing_C_code=*/FALSE,
                  /*fetch_pp_tokens=*/FALSE,
-                 /*ignore_in_back_end=*/FALSE,
+                 /*ignore_in_back_end=*/ignore_diag_pragma_in_be,
                  /*il_info_is_complete=*/FALSE,
                  /*read_string_as_header_name=*/FALSE,
                  es_error);
@@ -2093,7 +2109,7 @@ Initialize the pragma description table.
                  /*expand_macros=*/FALSE,
                  /*processing_C_code=*/FALSE,
                  /*fetch_pp_tokens=*/FALSE,
-                 /*ignore_in_back_end=*/FALSE,
+                 /*ignore_in_back_end=*/ignore_diag_pragma_in_be,
                  /*il_info_is_complete=*/FALSE,
                  /*read_string_as_header_name=*/FALSE,
                  es_error);
