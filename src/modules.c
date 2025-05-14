@@ -2460,7 +2460,17 @@ instantiations, etc.) has been done.
   Value_saver<a_boolean> in_front_end_saved(&in_front_end,
                                             /*new_value=*/FALSE);
 
-  ifc_modules_write_out();
+  if (!is_at_least_one_error()) {
+    /* Only emit the module declaration missing diagnostic if no other errors
+       were emitted. */
+    if (!created_module_unit_is_header && trans_unit_module == NULL) {
+      error(ec_cannot_write_module_none_declared);
+    }  /* if */
+  }  /* if */
+  if (!is_at_least_one_error()) {
+    /* Only attempt module writing when there aren't any errors. */
+    ifc_modules_write_out();
+  }  /* if */
 }  /* modules_write_out */
 
 
