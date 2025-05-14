@@ -2092,7 +2092,7 @@ parameters, respectively.
   }  /* if */
   /* Allocate space for and copy the file name.  (Note that
      get_header_name() sets expand_macros to TRUE, so the rest of the
-     text will be scanned with macro expansion enabled. */
+     text will be scanned with macro expansion enabled.) */
   *file_name = copy_header_name(/*process_escapes=*/FALSE);
   /* Move past the file name. */
   (void)get_token();

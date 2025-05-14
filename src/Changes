@@ -418,7 +418,7 @@ The front end now supports the #embed directive and the __has_embed
 preprocessor operator, which were added to C23 by WG14 paper N3017 and have
 been adopted for the upcoming C++26 Standard via WG21 paper P1967R14.  The
 feature is enabled in C23 and C++26 modes, as well as when gnu_version is at
-least 1500000 or clang_version is at least 190000.  In addition to the
+least 150000 or clang_version is at least 190000.  In addition to the
 standard #embed parameters, the front end also accepts the clang::offset and
 gnu::offset parameters in clang and GNU modes, respectively.  A new
 command-line option, --embed_directory, has been added to specify the list

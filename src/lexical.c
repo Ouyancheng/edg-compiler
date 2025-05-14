@@ -121,10 +121,9 @@ struct an_embed_control_block {
 			/* While tokens are being taken from the contents
 			   of the embed file, a TRUE value indicates that
 			   get_token() will return the eok_comma that
-			   separates the numeric values of the #embed file,
+			   separates the numeric values of the embed file,
 			   and FALSE indicates that get_token() will return
-			   the value of *next_byte as a
-			   tok_int_constant. */
+			   the value of *next_byte as a tok_int_constant. */
 };  /* an_embed_control_block */
 
 STATIC_THREAD an_embed_control_block
@@ -7635,10 +7634,10 @@ a_const_char *resolve_header(a_const_char *filename,
                              a_boolean    is_embed,
                              a_boolean    suppress_diagnostics)
 /*
-Determine if filename can be opened as a header or embed file, depending on
-the value of is_embed.  Return the resolved path to the file, or NULL if it
-could not be opened.  In non-embed cases, if is_include_next is TRUE, the
-search path is the remainder of the list by which the current file was
+Determine if filename can be opened as a header or #embed file, depending
+on the value of is_embed.  Return the resolved path to the file, or NULL if
+it could not be opened.  In non-embed cases, if is_include_next is TRUE,
+the search path is the remainder of the list by which the current file was
 found; otherwise, the search path is the one appropriate to the value of
 is_system_include.  If suppress_diagnostics is TRUE, suppress diagnostics
 related to the failure to find the header file.
@@ -10607,7 +10606,7 @@ clang::offset directive parameter, or 0 if that parameter was omitted.
       embed_control.suffix_loc = suffix_start;
     }  /* if */
     /* Indicate that the special case code at the beginning of get_token
-       is needed to handle the #embed file contents and prefix. */
+       is needed to handle the embed file contents and prefix. */
     any_initial_get_token_tests_needed = TRUE;
   } else if (if_empty_start != NULL) {
     /* The file is effectively empty, and an if_empty parameter was
@@ -10644,7 +10643,7 @@ static void get_token_from_embed_file(void)
 /*
 Using the information in embed_control, set curr_token to either
 tok_int_constant (with const_for_curr_token containing the value of the
-current byte of the #embed file) or tok_comma.  When the last byte of the
+current byte of the embed file) or tok_comma.  When the last byte of the
 buffer is processed, free the buffer and restore embed_control to indicate
 that tokens are no longer coming from a #embed directive.
 */
