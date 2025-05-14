@@ -1,5 +1,24 @@
 Version 6.8
 
+5/14/25  [EDGcpfe/19259,EDGcpfe/28050]
+Assertion failure in lower_dynamic_init
+
+Some initializations that involved the question mark operator had produced
+an assertion error (in lower_dynamic_init) when lowered.  For example,
+with --c++11:
+
+  struct A {
+    int y, z;
+  };
+  struct B {
+    A a;
+  };
+  int f(int i) {
+    B b{i > 2 ? A{1, i} : A{}};     // No longer fails an assertion.
+    return b.a.z;
+  }
+
+
 5/12/25  [EDGcpfe/28165]
 Qualified-type array prvalues
 

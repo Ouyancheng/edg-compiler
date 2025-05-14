@@ -10004,6 +10004,7 @@ C99 mode for the same reason.
                      ctor_init = NULL;
   a_dynamic_init_kind
                      orig_dip_kind = dip->kind;
+  a_type_ptr         temp_type = NULL;
 
   saved_code_pos = code_pos_for_lowering;
   saved_error_position = error_position;
@@ -10622,17 +10623,33 @@ do_assignment:;
                                                       eff_insert_location);
         }  /* if */
         if (variable == NULL && dip->master_entry != NULL) {
-          /* Speculatively add an assignment of master_entry->variable to
+          an_expr_node_ptr init_entity_expr;
+          /* Speculatively add an assignment of the entity being initialized to
              itself.  This assignment will either be adjusted so that the
              source of the operation is a temporary or the entire operation
              will be effectively removed.  This effectively marks a place
              in the IL before dynamic lowering is performed so that it can be
              fixed up later if necessary.  See uses of master_entry_assignment
              below for more information on why this is needed. */
+          if (dip->master_entry->variable != NULL) {
+            /* Typical case: a variable is being initialized. */
+            init_entity_expr = var_lvalue_expr(dip->master_entry->variable);
+            temp_type = dip->master_entry->variable->type;
+          } else if (dip->master_entry->init_destination != NULL) {
+            /* Initializing something more complicated; perhaps a field of
+               an aggregate. */
+            init_entity_expr = make_init_entity_node(
+                                           dip->master_entry->init_destination,
+                                           /*result_is_lvalue=*/TRUE,
+                                           /*using_as_dest=*/TRUE);
+            temp_type = init_entity_expr->type;
+          } else {
+            unexpected_condition();
+          }  /* if */
           master_entry_assignment = make_assignment_expr(
-                                 var_lvalue_expr(dip->master_entry->variable),
-                                 (an_expr_operator_kind)eok_bassign,
-                                 var_lvalue_expr(dip->master_entry->variable));
+                                            init_entity_expr,
+                                            (an_expr_operator_kind)eok_bassign,
+                                            copy_node(init_entity_expr));
           insert_expr(master_entry_assignment, eff_insert_location);
         }  /* if */
         lower_dynamic_init_aggregate_constant(dip->variant.constant.ptr, ipdp,
@@ -10670,11 +10687,8 @@ do_keep_constant:
                  variable (so that it occurs before any dynamic
                  initialization). */
               a_variable_ptr  temp;
-              a_type_ptr      temp_type;
-              check_assertion(dip->master_entry != NULL);
-              temp_type = make_qualified_type(
-                                             dip->master_entry->variable->type,
-                                             TQ_CONST);
+              check_assertion(dip->master_entry != NULL && temp_type != NULL);
+              temp_type = make_qualified_type(temp_type, TQ_CONST);
               /* Create a static temporary with the value of the constant. */
               temp = make_unnamed_local_static_variable(temp_type,
                                                    /*in_function_scope=*/TRUE);
@@ -13145,7 +13159,6 @@ Do IL lowering of an enk_temp_init expression node.
       dest_expr = make_init_entity_node(&ipd, result_is_lvalue,
                                         /*using_as_dest=*/FALSE);
       overwrite_node(expr, dest_expr);
-      dip->master_entry = NULL;
     } else {
       /* Normal case (not return). */
       dip->variable = temp_var;
