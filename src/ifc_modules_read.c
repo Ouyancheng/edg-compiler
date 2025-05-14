@@ -3790,17 +3790,19 @@ Map an IFC Operator to an_opname_kind.
 
 
 enum an_operator_kind : uint8_t {
-  opkind_basic,     /* A basic operator (e.g., +, &&). */
-  opkind_post,      /* An operator that follows the argument(s) (e.g., x++). */
-  opkind_func_like, /* A function-like operator (e.g., is_assignable). */
-  opkind_c_cast,    /* A C-style cast (e.g., (X*)Y). */
-  opkind_cpp_cast,  /* A C++-style cast (e.g., reinterpret_cast<X*>Y). */
-  opkind_new,       /* A new-expression operator. */
-  opkind_annotative,/* An operator representing an annotative characteristic,
-                       e.g., that the IFC generating compiler was unsure of the
-                       expression's dependence. */
-  opkind_other,     /* Something else. */
-  opkind_error      /* Invalid/error operator value. */
+  opkind_basic,      /* A basic operator (e.g., +, &&). */
+  opkind_post,       /* An operator that follows the argument(s)
+                        (e.g., x++). */
+  opkind_func_like,  /* A function-like operator (e.g., is_assignable). */
+  opkind_array_like, /* An array-like operator (e.g., x[y]). */
+  opkind_c_cast,     /* A C-style cast (e.g., (X*)Y). */
+  opkind_cpp_cast,   /* A C++-style cast (e.g., reinterpret_cast<X*>Y). */
+  opkind_new,        /* A new-expression operator. */
+  opkind_annotative, /* An operator representing an annotative characteristic,
+                        e.g., that the IFC generating compiler was unsure of
+                        the expression's dependence.  */
+  opkind_other,      /* Something else. */
+  opkind_error       /* Invalid/error operator value. */
 };
 
 
@@ -4022,9 +4024,11 @@ Return the kind of operator described by op in the context of the given module.
     case ifc_dos_dynamic_cast:
       kind = opkind_cpp_cast;
       break;
+    case ifc_dos_index:
+      kind = opkind_array_like;
+      break;
     case ifc_dos_curry:
     case ifc_dos_apply:
-    case ifc_dos_index:
     case ifc_dos_default_at:
     case ifc_dos_destruct:
     case ifc_dos_destruct_at:
@@ -27798,6 +27802,7 @@ tuple elements by '::' instead of ','.
         an_operator_kind opkind = get_operator_kind(module_of(expr), assoc);
         switch (opkind) {
           case opkind_error:
+          case opkind_array_like:
           case opkind_c_cast:
           case opkind_cpp_cast:
           case opkind_new:
@@ -27895,6 +27900,12 @@ tuple elements by '::' instead of ','.
             case opkind_other:
               ifc_unexpected(module_of(expr), "Unexpected operator kind");
               goto invalid;
+            case opkind_array_like:
+              cache_expr(cache, arg_0, cinfo);
+              cache_token(cache, tok_lbracket);
+              cache_expr(cache, arg_1, cinfo);
+              cache_token(cache, tok_rbracket);
+              break;
             case opkind_basic:
               { an_ifc_cache_info  cache_info = cinfo;
 
