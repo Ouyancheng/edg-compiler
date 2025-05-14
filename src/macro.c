@@ -12671,7 +12671,7 @@ Do one-time initialization of variables related to macro processing.
   /* Save variables from macro.h and macro.c that are needed for
      precompiled headers */
   if (precompiled_header_processing_required) {
-    static a_pch_saved_variable saved_vars[] = {
+    STATIC_THREAD a_pch_saved_variable saved_vars[] = {
       pch_saved_var_array_elem(line_macro_symbol),
       pch_saved_var_array_elem(file_macro_symbol),
       pch_saved_var_array_elem(defined_macro_symbol),

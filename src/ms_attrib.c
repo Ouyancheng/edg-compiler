@@ -3456,7 +3456,7 @@ One-time initialization for ms_attrib.c static variables.
   ms_attr_buffer = NULL;
   /* Save variables that are needed for precompiled headers */
   if (precompiled_header_processing_required) {
-    static a_pch_saved_variable saved_vars[] = {
+    STATIC_THREAD a_pch_saved_variable saved_vars[] = {
       pch_array_saved_var_array_elem(attribute_lookup_table),
       pch_saved_var_array_elem(unrecognized_attribute),
       pch_saved_var_array_elem(custom_attribute),

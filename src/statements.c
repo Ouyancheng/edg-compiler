@@ -8617,7 +8617,7 @@ One-time initialization for statements.c static variables.
 {
   /* Save variables that are needed for precompiled headers */
   if (precompiled_header_processing_required) {
-    static a_pch_saved_variable saved_vars[] = {
+    STATIC_THREAD a_pch_saved_variable saved_vars[] = {
       pch_saved_var_array_elem(avail_control_flow_descrs),
 #if DEBUG
       pch_saved_var_array_elem(num_control_flow_descrs_allocated),

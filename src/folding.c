@@ -12213,7 +12213,7 @@ in folding_init.)
 {
   /* Save variables that are needed for precompiled headers */
   if (precompiled_header_processing_required) {
-    static a_pch_saved_variable saved_vars[] = {
+    STATIC_THREAD a_pch_saved_variable saved_vars[] = {
       pch_saved_var_array_terminating_elem()
     };
     register_pch_saved_variables(saved_vars);

@@ -10519,7 +10519,7 @@ attributes.
   /* Save variables from attribute.h and attribute.c that are needed for
      precompiled headers */
   if (precompiled_header_processing_required) {
-    static a_pch_saved_variable saved_vars[] = {
+    STATIC_THREAD a_pch_saved_variable saved_vars[] = {
 #if GNU_EXTENSIONS_ALLOWED
 #if GNU_VISIBILITY_ATTRIBUTE_ALLOWED
       pch_saved_var_array_elem(ELF_visibility_stack),

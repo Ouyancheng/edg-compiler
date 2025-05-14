@@ -2038,7 +2038,7 @@ are handled in inline_init.)
   /* Save variables from inline.h and inline.c that are needed for
      precompiled headers */
   if (precompiled_header_processing_required) {
-    static a_pch_saved_variable saved_vars[] = {
+    STATIC_THREAD a_pch_saved_variable saved_vars[] = {
       pch_saved_var_array_elem(avail_variable_remappings_for_inlining),
 #if DEBUG
       pch_saved_var_array_elem(num_variable_remappings_for_inlining),

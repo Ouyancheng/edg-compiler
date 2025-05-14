@@ -15878,7 +15878,7 @@ Do one-time initialization of variables related to name mangling.
   /* Save variables from lower_name.c that are needed for precompiled
      headers. */
   if (precompiled_header_processing_required) {
-    static a_pch_saved_variable saved_vars[] = {
+    STATIC_THREAD a_pch_saved_variable saved_vars[] = {
       pch_saved_var_array_elem(unnamed_type_seed),
       pch_saved_var_array_elem(unnamed_member_variable_name_seed),
       pch_saved_var_array_elem(active_parents),

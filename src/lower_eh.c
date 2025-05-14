@@ -6441,7 +6441,7 @@ involved in exception handling.
   /* Save variables from lower_eh.h and lower_eh.c that are needed for
      precompiled headers */
   if (precompiled_header_processing_required) {
-    static a_pch_saved_variable saved_vars[] = {
+    STATIC_THREAD a_pch_saved_variable saved_vars[] = {
       pch_array_saved_var_array_elem(typeinfo_types),
       pch_saved_var_array_elem(base_class_spec_type),
 #if ABI_CHANGES_FOR_RTTI

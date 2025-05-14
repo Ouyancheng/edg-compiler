@@ -13172,7 +13172,7 @@ decl-specifiers.
   /* Save variables from decl_spec.c that are needed for precompiled
      headers */
   if (precompiled_header_processing_required) {
-    static a_pch_saved_variable saved_vars[] = {
+    STATIC_THREAD a_pch_saved_variable saved_vars[] = {
 #if MICROSOFT_EXTENSIONS_ALLOWED
       pch_saved_var_array_elem(unresolved_type_map),
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */

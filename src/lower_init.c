@@ -20246,7 +20246,7 @@ Do one-time initialization of static variables declared in lower_init.c.
   /* Save variables from lower_init.c that are needed for precompiled
      headers */
   if (precompiled_header_processing_required) {
-    static a_pch_saved_variable saved_vars[] = {
+    STATIC_THREAD a_pch_saved_variable saved_vars[] = {
       pch_saved_var_array_elem(vec_new_routine),
 #if !IA64_ABI
       pch_saved_var_array_elem(vec_new_eh_routine),

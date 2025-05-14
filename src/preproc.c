@@ -5232,7 +5232,7 @@ One-time initialization for preproc.c and preproc.h variables.
 {
   /* Save variables that are needed for precompiled headers */
   if (precompiled_header_processing_required) {
-    static a_pch_saved_variable saved_vars[] = {
+    STATIC_THREAD a_pch_saved_variable saved_vars[] = {
 #if UPC_EXTENSIONS_ALLOWED
       pch_saved_var_array_elem(avail_upc_pragma_stack_entries),
 #if DEBUG

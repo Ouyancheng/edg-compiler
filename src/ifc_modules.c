@@ -274,7 +274,7 @@ Do one-time initialization of static variables defined in this file.
   /* Save variables from ifc_modules.h and ifc_modules.c that are needed for
      precompiled headers */
   if (precompiled_header_processing_required) {
-    static a_pch_saved_variable saved_vars[] = {
+    STATIC_THREAD a_pch_saved_variable saved_vars[] = {
       pch_saved_var_array_elem(ifc_modules_initialized_for_curr_tu),
       pch_saved_var_array_terminating_elem()
     };

@@ -5086,7 +5086,7 @@ Do one-time initialization of variables related to C99 IL lowering.
 {
   /* Save variables from lower_c99.c that are needed for precompiled headers */
   if (precompiled_header_processing_required) {
-    static a_pch_saved_variable saved_vars[] = {
+    STATIC_THREAD a_pch_saved_variable saved_vars[] = {
 #if LOWER_COMPLEX
       pch_saved_var_array_elem(lowered_complex_float16),
       pch_saved_var_array_elem(lowered_complex_bfloat16),

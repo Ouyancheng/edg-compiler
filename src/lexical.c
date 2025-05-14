@@ -29250,7 +29250,7 @@ are handled in lexical_init.)
   /* Save variables from lexical.h and lexical.c that are needed for
      precompiled headers */
   if (precompiled_header_processing_required) {
-    static a_pch_saved_variable saved_vars[] = {
+    STATIC_THREAD a_pch_saved_variable saved_vars[] = {
       pch_saved_var_array_elem(curr_seq_number),
       pch_saved_var_array_elem(seq_number_last_read),
       pch_saved_var_array_elem(avail_orig_line_modifs),

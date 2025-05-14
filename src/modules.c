@@ -2319,7 +2319,7 @@ Do one-time initialization of static variables defined in this file.
   /* Save variables from ifc_modules.h and ifc_modules.c that are needed for
      precompiled headers */
   if (precompiled_header_processing_required) {
-    static a_pch_saved_variable saved_vars[] = {
+    STATIC_THREAD a_pch_saved_variable saved_vars[] = {
       pch_saved_var_array_elem(curr_module_sym),
       pch_saved_var_array_elem(lazy_symbols_may_be_visible),
       pch_saved_var_array_elem(module_entity_scope_hash_table),

@@ -22561,7 +22561,7 @@ Do one-time initialization of static variables defined in this file.
                                 /*secondary_declarator=*/FALSE);
 #endif /* !NULL_POINTER_IS_ZERO */
   if (precompiled_header_processing_required) {
-    static a_pch_saved_variable saved_vars[] = {
+    STATIC_THREAD a_pch_saved_variable saved_vars[] = {
       pch_saved_var_array_elem(avail_decl_parse_states),
       pch_saved_var_array_elem(avail_decl_parse_callbacks),
       pch_saved_var_array_elem(avail_auto_param_descriptions),

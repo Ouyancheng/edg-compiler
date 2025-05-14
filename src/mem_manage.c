@@ -2063,7 +2063,7 @@ Do one-time initialization of variables related to the mem_manage routines.
   /* Save variables from mem_manage.h and mem_manage.c that are needed for
      precompiled headers */
   if (precompiled_header_processing_required) {
-    static a_pch_saved_variable saved_vars[] = {
+    STATIC_THREAD a_pch_saved_variable saved_vars[] = {
     /* highest_used_region_number is saved directly in the PCH file, and
        therefore doesn't need to be saved here. */
       pch_saved_var_array_elem(reusable_blocks_list),

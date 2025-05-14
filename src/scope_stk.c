@@ -14139,7 +14139,7 @@ are handled in scope_stk_init.)
   /* Save variables from scope_stk.h and scope_stk.c that are needed for
      precompiled headers */
   if (precompiled_header_processing_required) {
-    static a_pch_saved_variable saved_vars[] = {
+    STATIC_THREAD a_pch_saved_variable saved_vars[] = {
       pch_saved_var_array_elem(num_classes_on_scope_stack),
       pch_saved_var_array_elem(avail_names_hidden_by_old_for_init),
       pch_saved_var_array_elem(name_linkage_stack),

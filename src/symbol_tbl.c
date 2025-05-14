@@ -19141,7 +19141,7 @@ are handled in symbol_tbl_init.)
   /* Save variables from symbol_tbl.h and symbol_tbl.c that are needed for
      precompiled headers */
   if (precompiled_header_processing_required) {
-    static a_pch_saved_variable saved_vars[] = {
+    STATIC_THREAD a_pch_saved_variable saved_vars[] = {
       pch_saved_var_array_elem(conversion_header_list),
       pch_saved_var_array_elem(literal_operator_header_list),
 #if MICROSOFT_EXTENSIONS_ALLOWED

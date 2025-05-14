@@ -36100,7 +36100,7 @@ One-time initialization for class_decl.c static variables.
 {
   /* Save variables that are needed for precompiled headers */
   if (precompiled_header_processing_required) {
-    static a_pch_saved_variable saved_vars[] = {
+    STATIC_THREAD a_pch_saved_variable saved_vars[] = {
       pch_saved_var_array_elem(avail_routine_fixup),
       pch_saved_var_array_elem(avail_class_fixup),
       pch_saved_var_array_elem(avail_derivation_steps),
