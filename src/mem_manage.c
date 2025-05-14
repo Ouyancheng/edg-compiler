@@ -1565,8 +1565,7 @@ memory or with an IL file.
     for (sp = scope; sp != NULL; sp = sp->next) {
       a_routine_ptr	rp = sp->variant.routine.ptr;
       check_assertion(rp != NULL);
-      if (
-          memory_region_should_be_kept_for_routine(rp, sp)) {
+      if (memory_region_should_be_kept_for_routine(rp, sp)) {
         keep_memory = TRUE;
         break;
       }  /* if */
