@@ -22203,9 +22203,13 @@ Output the initializer, if any, for the indicated variable.
             /* Something like "X x{Y{y}};" where dip represents "Y{y}" and not
                the initializer of x as a whole.  Put out the delimiters of the
                variable initialization, and then render the delimited
-               expression. */
+               expression (with parentheses if there is a risk of triggering
+               "the most vexing parse"; i.e., something like "X x(Y());" is
+               treated as a function declaration if X and Y are type names,
+               but "X x((Y()));" has the intended meaning). */
             write_tok_ch(braced_init ? '{' : '(');
-            gen_expression(expr);
+            gen_expr(expr, /*need_parens=*/!braced_init,
+                     /*obj_expr_of_mfunc_operator=*/FALSE);
             write_tok_ch(braced_init ? '}' : ')');
           } else {
             dip = expr->variant.init.dynamic_init;
