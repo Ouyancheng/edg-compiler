@@ -10772,7 +10772,8 @@ Otherwise, return FALSE.
       case bfk_isinf:
       case bfk_isinff:
       case bfk_isinfl:
-        result = fp_is_infinity(&cp->variant.float_value, float_kind);
+        result = fp_is_infinity(&cp->variant.float_value, float_kind) &&
+                 !fp_is_nan(&cp->variant.float_value, float_kind);
         break;
       case bfk_isfinite:
         result = !fp_is_infinity(&cp->variant.float_value, float_kind) &&
