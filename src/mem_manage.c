@@ -1451,6 +1451,11 @@ memory because of the properties of rout.  scope is the scope of rout
     /* Keep the region for an inline function so it can be used to
        do inlining. */
     keep_memory = TRUE;
+  } else if (rout->contains_local_class_type) {
+    /* Local class types may have generated special members that need to be
+       defined because of later instantiations.  Those definitions may need
+       access to the enclosing function scope. */
+    keep_memory = TRUE;
 #if DO_IL_LOWERING
   } else if (parent_is_lambda_closure(rout, &closure_class) &&
              class_type_supp(closure_class)->has_lambda_conversion_function) {
@@ -1560,7 +1565,8 @@ memory or with an IL file.
     for (sp = scope; sp != NULL; sp = sp->next) {
       a_routine_ptr	rp = sp->variant.routine.ptr;
       check_assertion(rp != NULL);
-      if (memory_region_should_be_kept_for_routine(rp, sp)) {
+      if (
+          memory_region_should_be_kept_for_routine(rp, sp)) {
         keep_memory = TRUE;
         break;
       }  /* if */
