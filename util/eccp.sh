@@ -708,7 +708,6 @@ collect_module_unit_src_file()
 
 
 #
-#
 # Determine the file's base name.
 #
 basename_of_file()
@@ -754,6 +753,7 @@ derive_gen_obj_file_name()
 }  # derive_gen_obj_file_name
 
 
+#
 # Function that compiles a generated C file
 #
 # The first argument is the C file to compile (e.g., "$eccp_tmpdir/foo.int.c").
