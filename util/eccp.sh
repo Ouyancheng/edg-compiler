@@ -708,16 +708,58 @@ collect_module_unit_src_file()
 
 
 #
+#
+# Determine the file's base name.
+#
+basename_of_file()
+{
+  echo `expr //$1 : '.*/\(.*\)\.'`
+}  # basename_of_file
+
+
+#
+# Function to return the name of the generated C file derived
+# from a source file's base name.
+#
+derive_gen_c_file_name()
+{
+  basefile=$1
+  if [ $keep_int_file -eq 1 -o $gen_c_in_curr_dir -eq 1 ] ; then
+    echo "$basefile$gen_c_suffix"
+  else
+    echo "$eccp_tmpdir/$basefile$gen_c_suffix"
+  fi
+}  # derive_gen_c_file_name
+
+
+#
+# Function to return the display name of the generated C file derived from a
+# source file's base name.
+#
+derive_gen_c_file_disp_name()
+{
+  basefile=$1
+  echo "$basefile$gen_c_suffix"
+}  # derive_gen_c_file_disp_name
+
+
+#
+# Function to return the name of the generated object file derived
+# from a source file's base name.
+#
+derive_gen_obj_file_name()
+{
+  basefile=$1
+  echo "$basefile$gen_o_suffix"
+}  # derive_gen_obj_file_name
+
+
 # Function that compiles a generated C file
 #
 # The first argument is the C file to compile (e.g., "$eccp_tmpdir/foo.int.c").
 # The second argument is the name of the output file (e.g., "foo.o").  The
 # third argument is a friendly file name for diagnostic purposes (e.g.,
 # "foo.int.c").
-#
-# The fourth argument is optional and is either a true (1) or false (0) value;
-# if true, the output file will be added to the list of object files
-# (object_files).
 #
 compile_int_c()
 {
@@ -739,9 +781,6 @@ compile_int_c()
   try_debug_driver "$command"
   $command >$cc_tmp_file 2>&1
   status=$?
-  if [ $status -eq 0 -a $add_obj_to_object_list -eq 1 ] ; then
-    object_files=$object_files" "$int_c_output
-  fi
   # MSVC echoes the filename back to the console.  Check for output that is
   # just the filename given back.
   unimportant_output=0
@@ -2280,6 +2319,14 @@ process_option()
 #     Collect a list of .c files.
       arg=`native_path "$arg"`
       if [ "$cfiles" ]; then more_than_one_c_file=1; fi;
+      if [ $multi_trans_unit -eq 0 -o $any_c_files -eq 0 ] ; then
+        # In --multi_trans_unit mode only include the first object file
+        # name in the list of object_files.
+        # Get basename.o
+        basename=$(basename_of_file "$arg")
+        obj_file_name="$basename.o"
+        object_files=$object_files" "$obj_file_name
+      fi
       if [ $multi_trans_unit -ne 0 -a $any_c_files -ne 0 ] ; then
         # In --multi_trans_unit mode, this is a secondary file.  Add it to
         #  the list of secondary files.
@@ -2378,56 +2425,6 @@ check_front_end_exit_code()
     any_errors=1
   fi
 }  # check_front_end_exit_code
-
-
-#
-# Determine the file's base name.
-#
-basename_of_file()
-{
-  echo `expr //$1 : '.*/\(.*\)\.'`
-}  # basename_of_file
-
-
-#
-# Function to return the name of the generated C file derived
-# from a source file's base name.
-#
-derive_gen_c_file_name()
-{
-  basefile=$1
-  if [ $keep_int_file -eq 1 -o $gen_c_in_curr_dir -eq 1 ] ; then
-    echo "$basefile$gen_c_suffix"
-  else
-    echo "$eccp_tmpdir/$basefile$gen_c_suffix"
-  fi
-}  # derive_gen_c_file_name
-
-
-#
-# Function to return the display name of the generated C file derived from a
-# source file's base name.
-#
-derive_gen_c_file_disp_name()
-{
-  basefile=$1
-  echo "$basefile$gen_c_suffix"
-}  # derive_gen_c_file_disp_name
-
-
-#
-# Function to return the name of the generated object file derived
-# from a source file's base name.
-#
-derive_gen_obj_file_name()
-{
-  basefile=$1
-  if [ $keep_int_file -eq 1 -o $gen_c_in_curr_dir -eq 1 ] ; then
-    echo "$basefile$gen_o_suffix"
-  else
-    echo "$basefile$gen_o_suffix"
-  fi
-}  # derive_gen_obj_file_name
 
 
 #
@@ -3011,7 +3008,7 @@ do
         inst_int_o=$inst_base$gen_o_suffix
         cd $instantiation_dir
         try_debug_driver '# Compiling generated instantiation file'
-        compile_int_c "$inst_int_c" "$inst_int_o" "$inst_file" 0
+        compile_int_c "$inst_int_c" "$inst_int_o" "$inst_file"
         cd $curr_dir
       done
     fi
