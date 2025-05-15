@@ -12,18 +12,19 @@ with --g++:
 
 
 5/14/25  [EDGcpfe/28174]
-C++-generating back end: diagnostic pragmas
+C- and C++-generating back ends: diagnostic pragmas
 
 The changes for EDGcpfe/27667 (in version 6.7) caused some (but not all) of
 the EDG-specific diagnostic pragmas to be preserved in the code generated
-by the C++-generating back end, even when the generated code target is a
-compiler that does not recognize those pragmas.  This has now been
+by the C- and C++-generating back ends, even when the generated code target
+is a compiler that does not recognize those pragmas.  This has now been
 addressed by setting the "ignore_in_back_end" flag to TRUE in the pragma
 descriptions for the pk_diag* pragmas when gcc_is_generated_code_target,
 clang_is_generated_code_target, microsoft_dialect_is_generated_code_target,
-or sun_is_generated_code_target is TRUE, causing the C++-generating back
-end to omit the pragma in its output.  For example, in a configuration with
-GCC_IS_GENERATED_CODE_TARGET set to TRUE:
+or sun_is_generated_code_target is TRUE, causing the C- and C++-generating
+back ends to omit the pragma in their output.  For example, in a
+C++-generating back end configuration with GCC_IS_GENERATED_CODE_TARGET set
+to TRUE:
 
   int f(void)
   #pragma diag_default = 123   // No longer appears in the generated code
