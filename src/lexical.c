@@ -26081,13 +26081,10 @@ scanned is, in fact, an identifier).
     make_error_locator(&locator_for_curr_id);
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
   } else {
-#if CHECKING
-    if (curr_token != tok_identifier) {
-      internal_error
-               ("coalesce_and_lookup_generalized_identifier: not identifier");
-    }  /* if */
-#endif /* CHECKING */
     /* Normal identifier -- look it up. */
+    check_assertion_str(
+                curr_token == tok_identifier,
+                "coalesce_and_lookup_generalized_identifier: not identifier");
     /* Translate the general identifier options into ID lookup options. */
     idl_options = idl_options_for_lookup_mode[(int)ilm];
 #if MICROSOFT_EXTENSIONS_ALLOWED
@@ -26160,8 +26157,25 @@ scanned is, in fact, an identifier).
          For the variable case, an error will result (from the missing
          argument list). */
       if (treat_as_unknown_func) {
-        symbol = coalesce_template_function_reference(symbol, next_token(),
-                                                      &templ_err);
+        if (locator_for_curr_id.is_template_id) {
+          /* The template argument list was previously coalesced.  Create a
+             tpck_template_ref entry on top of the tpck_unknown_function entry
+             to record the template arguments. */
+          a_constant  *cp = fs_constant(ck_template_param),
+                      *fcp = symbol->variant.constant;
+          symbol = alloc_symbol(sk_constant, locator_for_curr_id.symbol_header,
+                                &locator_for_curr_id.source_position);
+          symbol->variant.constant = cp;
+          *cp = *fcp;
+          cp->source_corresp.assoc_info = (char*)symbol;
+          cp->variant.template_param.kind = tpck_template_ref;
+          cp->variant.template_param.variant.template_ref.con = fcp;
+          cp->variant.template_param.variant.template_ref.arg_list =
+                                        locator_for_curr_id.template_arg_list;
+        } else {
+          symbol = coalesce_template_function_reference(symbol, next_token(),
+                                                        &templ_err);
+        }  /* if */
       } else if (is_var_templ) {
         symbol = coalesce_template_variable_reference(
                                             symbol, curr_token_sequence_number,
