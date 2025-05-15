@@ -1,6 +1,6 @@
 Version 6.8
 
-5/14/25  [EDGcpfe/28176]
+5/14/25  [EDGcpfe/20880,EDGcpfe/28176]
 GNU/Clang compatibility: __builtin_isinf* builtins and NaNs
 
 The __builtin_isinf* builtins had incorrectly returned true when presented

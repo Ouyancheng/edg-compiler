@@ -483,7 +483,8 @@ static a_boolean host_fp_value_is_finite(a_host_fp_value  value)
 /*
 Test a floating-point value (long double or __float128) to see whether it is
 finite (i.e., not a NaN or infinity).  Used when standard approaches like the
-C99 macro isfinite are not available.
+C99 macro isfinite are not available.  Note that if this routine returns
+FALSE, it does not necessarily mean the value is infinite (it could be a NaN).
 */
 {
   a_boolean     ld_finite;
@@ -1652,9 +1653,13 @@ value.
   a_boolean		result = FALSE;
   a_host_fp_value	temp;
 
-  temp = fetch_host_fp_value(kind, value);
-  if (!is_finite(temp)) {
-    result = TRUE;
+  if (fp_is_nan(value, kind)) {
+    result = FALSE;
+  } else {
+    temp = fetch_host_fp_value(kind, value);
+    if (!is_finite(temp)) {
+      result = TRUE;
+    }  /* if */
   }  /* if */
   return result;
 }  /* fp_is_infinity */
