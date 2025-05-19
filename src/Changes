@@ -14,23 +14,6 @@ in an abort due to a null pointer indirection.  For example, with --c++20:
   int i = f(1);
 
 
-5/17/25  [EDGcpfe/28161]
-Incorrect values for long double constant values in some configurations
-
-In configurations in which USE_FLOAT128_FOR_HOST_FP_VALUE and
-USE_HOST_FP_CONVERSION_ROUTINES are TRUE, USE_QUADMATH_LIBRARY is FALSE,
-APPROXIMATE_QUADMATH is TRUE, and the underlying architecture uses an
-80-bit representation for long double values, textual representations of
-long double constant values (e.g., in the code put out by the
-C++-generating back end) could be incorrect.  This is now fixed.  For
-example, with a C++-generating back end configuration:
-
-  int main() {
-    // Previously put out as 2.07919475102443881777749E-4942L:
-    double dddd = ((double)1.79769313486231570814527423731704357e+308L);
-  }
-
-
 5/15/25  [EDGcpfe/28160]
 Bad representation of variable template use in some GNU C++ modes
 

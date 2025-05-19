@@ -3292,18 +3292,6 @@ value might use (plus a temporary null character).
   } else {
 #if FP_HAS_LONG_DOUBLE
     check_assertion(repr_is_long_double(value.kind));
-#if USE_FLOAT128_FOR_HOST_FP_VALUE && !USE_QUADMATH_LIBRARY
-    a_host_fp_value host_val;
-    if (sizeof(long double) == sizeof(a_host_fp_value)) {
-      /* A long double may have the same size as _Float128 but use fewer
-         bits in the internal float value storage.  The code invoked by
-         write_long_double will assume the _Float128 representation if the
-         size of long double is 16 bytes.  Make sure the value is in the
-         correct format. */
-      host_val = *(long double *)float_as_char;
-      float_as_char = (unsigned char *)&host_val;
-    }  /* if */
-#endif /* USE_FLOAT128_FOR_HOST_FP_VALUE && !USE_QUADMATH_LIBRARY */
     res = write_long_double(buff_ptr, (int)size_hint, float_as_char);
 #if DEBUG
     if (db_flag_is_set("fp")) {
