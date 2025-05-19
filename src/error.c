@@ -3593,7 +3593,7 @@ in the source.
         ptr = &pragma_diag_list->back_elem();
       } else {
         /* Find the appropriate location in pragma_diag_list. */
-        ptr = pragma_diag_list_lower_bound({(a_pragma_kind)pk_none, pos, 0});
+        ptr = pragma_diag_list_lower_bound({pk_none, pos, 0});
       }  /* if */
       if (ptr != NULL) {
         /* Search backwards (i.e., towards the beginning of the list) to see
@@ -3603,7 +3603,7 @@ in the source.
         while (TRUE) {
           check_assertion(ptr >= pragma_diag_list->begin() &&
                           ptr < pragma_diag_list->end());
-          if (ptr->kind == (a_pragma_kind)pk_diagnostic) {
+          if (ptr->kind == pk_diagnostic) {
             if (ptr->is_pop) {
               if (ptr->variant.corresponding_push != -1) {
                 /* Skip to the corresponding "push" for this "pop". */
@@ -8184,7 +8184,7 @@ as _Pragma that are not parsed except during instantiations).
       /* Note that the severity for this error code has been modified in some
          fashion. */
       error_codes[(int)error_number].severity_changed_by_pragma = TRUE;
-      if (kind == (a_pragma_kind)pk_diag_once) {
+      if (kind == pk_diag_once) {
         /* diag_once pragmas are not queued on the list and are instead
            acted upon immediately. */
         err = set_severity_for_error_number((int)error_number, es_once,
@@ -8204,8 +8204,8 @@ as _Pragma that are not parsed except during instantiations).
         } else {
           /* Add the #pragma to the list.  #pragmas are generally encountered
              only once, but in the case of deferred class fixups, may be
-             encountered more than once.  In that case duplicates are
-             discarded. */
+             encountered more than once.  In that case this entry is
+             effectively discarded (as it's already on the list). */
           (void)insert_into_pragma_diag_list({kind, &pos, (int)error_number});
         }  /* if */
       }  /* if */
@@ -8258,32 +8258,33 @@ parsed except during instantiations).
          no action is needed during instantiations, but that's not the
          case for function-like pragmas (e.g., _Pragma), so insert those
          now.  Subsequent instantiations will find the previous entries
-         (they are not duplicated). */
+         (they are not duplicated and ptr will be NULL). */
       if (ppp->is_function_style_pragma) {
-        ptr = insert_into_pragma_diag_list(
-                              {(a_pragma_kind)pk_diagnostic, &pos_curr_token});
+        ptr = insert_into_pragma_diag_list({pk_diagnostic, &pos_curr_token});
       }  /* if */
     } else {
       /* Add the #pragma to the list.  #pragmas are generally encountered
          only once, but in the case of deferred class fixups, may be
-         encountered more than once.  In that case duplicates are
-         discarded. */
-      (void)insert_into_pragma_diag_list(
-                              {(a_pragma_kind)pk_diagnostic, &pos_curr_token});
-      ptr = &pragma_diag_list->back_elem();
+         encountered more than once.  In that case this entry will not be
+         inserted (and ptr will be NULL). */
+      ptr = insert_into_pragma_diag_list({pk_diagnostic, &pos_curr_token});
     }  /* if */
     if (ptr != NULL) {
       if (is_push) {
         /* Push the index onto a stack so it can be associated with a later
            "pop". */
         check_assertion(pragma_diag_list->length() > 0);
-        pragma_diag_stack->push_back(pragma_diag_list->length() - 1);
+        size_t ptr_index = ptr - &(*pragma_diag_list)[0];
+        pragma_diag_stack->push_back(ptr_index);
       } else {
         /* Link to associated "push". */
         ptr->is_pop = TRUE;
         if (!pragma_diag_stack->is_empty()) {
-          ptr->variant.corresponding_push =
-                                     (a_ptrdiff)pragma_diag_stack->back_elem();
+          size_t last_push = pragma_diag_stack->back_elem();
+          check_assertion((*pragma_diag_list)[last_push].kind ==
+                                                               pk_diagnostic &&
+                          !(*pragma_diag_list)[last_push].is_pop);
+          ptr->variant.corresponding_push = (a_ptrdiff)last_push;
           pragma_diag_stack->pop_back();
         } else {
           /* There was no "push" associated with this "pop". */

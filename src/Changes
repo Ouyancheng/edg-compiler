@@ -1,5 +1,22 @@
 Version 6.8
 
+5/19/25  [EDGcpfe/28184]
+Hang on #pragma diagnostic
+
+In certain cases, the use of #pragma diagnostic had caused the front end to
+hang.  That is now fixed.  For example:
+
+  #pragma diag_warning code_is_unreachable
+  struct S {
+    void f(int x) {
+  #pragma diagnostic push
+  #pragma diagnostic pop
+      return;
+      x = 10;
+    }
+  };
+
+
 5/19/25  [EDGcpfe/28181]
 Abort on unnamed function parameter pack
 
