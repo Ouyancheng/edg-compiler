@@ -11816,6 +11816,7 @@ Return the number of actual arguments in *elements.
     for (vpip = ctws_state->variadic_param_info; vpip != NULL;
          vpip = vpip->next) {
       if (vpip->orig_param_type->param_num == param_num &&
+          vpip->orig_param_type->name != NULL &&
           strcmp(vpip->orig_param_type->name,
                  prp->symbol->header->identifier) == 0) {
         result_vpip = vpip;
