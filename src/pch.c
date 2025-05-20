@@ -332,7 +332,8 @@ macros.
 Dynamically allocated buffer used to contain string that are used
 during precompiled header prefix comparisons.
 */
-static char	*pch_buffer = NULL;
+STATIC_THREAD char
+		*pch_buffer = NULL;
 			/* Not allocated on a per-file basis. */
 
 STATIC_THREAD sizeof_t
