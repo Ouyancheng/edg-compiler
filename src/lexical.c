@@ -12333,9 +12333,7 @@ convert_literal_value:
             end_of_curr_token = start_of_invalid_suffix - 1;
           }  /* if */
           conv_float_literal(is_hex_fp_value, &err_code, &err_pos, &sev);
-          if (start_of_invalid_suffix != 0) {
-            end_of_curr_token = saved_token_end;
-          }  /* if */
+          end_of_curr_token = saved_token_end;
           ctoken = tok_float_constant;
         }
         break;
