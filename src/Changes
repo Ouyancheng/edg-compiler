@@ -1,5 +1,16 @@
 Version 6.8
 
+5/20/25  [EDGcpfe/28161]
+Enforcing 80-bit long double on Intel-based platforms
+
+Typically the representation of a long double on an Intel-based platform is
+an 80-bit floating point number.  This architecture is reflected in the
+front end configuration by setting FP_LONG_DOUBLE_IS_80BIT_EXTENDED to TRUE.
+The front end has now been changed to check that this option is correctly
+configured for the host environment and abort with an assertion failure (in
+float_pt_init) if an incorrect setting is detected.
+
+
 5/19/25  [EDGcpfe/28166]
 Assertion failure with invalid fixed/floating point suffix
 

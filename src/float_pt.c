@@ -4517,6 +4517,17 @@ Initialize static variables related to float_pt.c.
                        "unsupported long double mantissa size");
 #else /* !USE_LONG_DOUBLE_FOR_HOST_FP_VALUE */
   data_size_of_host_fp_value = sizeof(a_host_fp_value);
+#if USE_FLOAT128_FOR_HOST_FP_VALUE && FP_HAS_LONG_DOUBLE && \
+    !FP_LONG_DOUBLE_IS_80BIT_EXTENDED &&                    \
+    !FP_LONG_DOUBLE_IS_BINARY64
+  /* Presumably this configuration means that long double is binary128.
+     Check to make sure we're not on a platform that uses an 80-bit
+     representation for long double. */
+  long double     ld = 1234.5678L;
+  a_host_fp_value f128 = ld;
+  check_assertion_str(memcmp(&ld, &f128, sizeof(f128)) == 0,
+                      "FP_LONG_DOUBLE_IS_80BIT_EXTENDED should be TRUE");
+#endif /* USE_FLOAT128_FOR_HOST_FP_VALUE && ... */
 #endif /* USE_LONG_DOUBLE_FOR_HOST_FP_VALUE */
   /* At least on Intel implementations, 80-bit floating-point values do not
      have an implicit mantissa bit. */
