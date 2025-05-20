@@ -1,7 +1,7 @@
 Version 6.8
 
 5/19/25  [EDGcpfe/28166]
-Assertion failure in with invalid fixed/floating point suffix
+Assertion failure with invalid fixed/floating point suffix
 
 In configurations in which USE_FLOAT128_FOR_HOST_FP_VALUE and
 APPROXIMATE_QUADMATH are set to TRUE, the changes for EDGcpfe/27601 (in
