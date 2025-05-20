@@ -8274,7 +8274,7 @@ parsed except during instantiations).
         /* Push the index onto a stack so it can be associated with a later
            "pop". */
         check_assertion(pragma_diag_list->length() > 0);
-        size_t ptr_index = ptr - &(*pragma_diag_list)[0];
+        size_t ptr_index = (size_t)(ptr - &(*pragma_diag_list)[0]);
         pragma_diag_stack->push_back(ptr_index);
       } else {
         /* Link to associated "push". */
