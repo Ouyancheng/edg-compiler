@@ -11571,6 +11571,7 @@ the kind of token.
                                    gpp_version_is(>= 130000));
   a_boolean     accept_bf16_suffix = gnu_version_is(>= 130000);
   int           char_bytes;
+  a_const_char  *start_of_invalid_suffix = NULL;
 
 /*
 Macro to skip over an optional C++14 digit separator (apostrophe).  Reports
@@ -12069,7 +12070,8 @@ end_float_accum:
 fixed_point_suffix:
 #if FIXED_POINT_ALLOWED
   if (fixed_point_enabled && !fixed_point_ruled_out) {
-    a_boolean  h_suffix_seen = FALSE;
+    a_const_char *start_of_fixed_suffix = curr_char_loc;
+    a_boolean    h_suffix_seen = FALSE;
     /* Check for a fixed-point constant suffix, which must be of the following
        general form ([] = optional, {} = required):
            [ u | U ]  [ h | H | l | L ]  { k | K | r | R }
@@ -12115,6 +12117,7 @@ fixed_point_suffix:
     if (kind == k_float && (u_suffix_seen || h_suffix_seen) &&
         !fetch_pp_tokens) {
       error_at_line_pos(ec_bad_float_or_fixed_suffix, start_of_curr_token);
+      start_of_invalid_suffix = start_of_fixed_suffix;
     }  /* if */
   }  /* if */
 #endif /* FIXED_POINT_ALLOWED */
@@ -12318,12 +12321,23 @@ convert_literal_value:
         break;
 #endif /* FIXED_POINT_ALLOWED */
       case k_float:
-        if (is_hex_fp_value && !local_allow_hex_fp_constants) {
-          diagnostic_at_line_pos(strict_ansi_error_severity,
-                                 ec_hex_fp_constant, start_of_curr_token);
-        }  /* if */
-        conv_float_literal(is_hex_fp_value, &err_code, &err_pos, &sev);
-        ctoken = tok_float_constant;
+        { a_const_char *saved_token_end = end_of_curr_token;
+          if (is_hex_fp_value && !local_allow_hex_fp_constants) {
+            diagnostic_at_line_pos(strict_ansi_error_severity,
+                                   ec_hex_fp_constant, start_of_curr_token);
+          }  /* if */
+          if (start_of_invalid_suffix != NULL) {
+            /* An invalid floating-point suffix after the literal could
+               cause problems when converting the value, so temporarily
+               exclude it from the current token. */
+            end_of_curr_token = start_of_invalid_suffix - 1;
+          }  /* if */
+          conv_float_literal(is_hex_fp_value, &err_code, &err_pos, &sev);
+          if (start_of_invalid_suffix != 0) {
+            end_of_curr_token = saved_token_end;
+          }  /* if */
+          ctoken = tok_float_constant;
+        }
         break;
       default:
         unexpected_condition_str("scan_number: bad kind");
