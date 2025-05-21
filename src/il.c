@@ -16898,6 +16898,26 @@ file-scope memory; otherwise, it is allocated in the current memory region.
   return result;
 }  /* fold_dynamic_var_init_if_possible */
 
+
+a_constant_ptr template_arg_operand_constant(a_template_arg  *tap)
+/*
+*tap is a nontype template argument represented through an_arg_operand.  If
+that operand embed an a_constant entry, return a locally-allocated copy of
+that entry (the called is responsible for freeing it).  Otherwise, return NULL.
+*/
+{
+  a_constant  *result = NULL;
+  an_operand  *opnd;
+
+  check_assertion(tap->arg_operand != NULL && tap->variant.constant == NULL);
+  opnd = &tap->arg_operand->operand;
+  if (is_constant_operand(opnd)) {
+    result = local_constant();
+    copy_constant(&opnd->variant.constant, result);
+  }  /* if */
+  return result;
+}  /* template_arg_operand_constant */
+
 #endif /* !STANDALONE_UTILITY_PROGRAM */
 
 a_constant_ptr initializer_constant(a_variable_ptr var)

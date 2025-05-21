@@ -562,13 +562,19 @@ struct an_ovl_resolution_descr {
   a_bit_field   in_comparison_rewrite:1;
                         /* TRUE if we are completing a "comparison rewrite"
                            (which inhibits recursive rewrites). */
-  size_t        candidate_count = 0;
-                        /* Number of candidates found. */
-private:
+  a_bit_field	constraint_failure:1;
+                        /* TRUE if we encountered a constraint failure while
+			   recording notes (reset once the associated
+			   candidate is rejected). */
+  a_symbol_ptr  curr_candidate = NULL;
   a_diag_list   notes = { NULL, NULL };
                         /* Notes attached to the principal diagnostic
                            adding details about various failures. */
-  friend a_diag_list* current_ovl_res_notes();
+  a_diagnostic_ptr
+		curr_diagnostic = NULL;
+			/* A pointer into notes (or NULL) to indicate where
+			   bottom-up notes should be spliced in. */
+private:
   Ptr_set<a_symbol_ptr>
                 *noted_candidates = NULL;
                         /* The set of candidates that have notes associated
@@ -583,7 +589,7 @@ Constructor for an_ovl_resolution_descr.
 */
   : emit_note_diagnostics(FALSE)
   , in_comparison_rewrite(FALSE)
-  , candidate_count(0)
+  , constraint_failure(FALSE)
   , notes{ NULL, NULL }
 {
 }  /* an_ovl_resolution_descr::an_ovl_resolution_descr */
@@ -614,8 +620,6 @@ struct an_ovl_res_stack {
 
   a_boolean is_empty() const
     { return this->underlying_array.length() == 0; }
-  void increase_candidate_count()
-    { this->top().candidate_count++; }
   size_t overload_level() const
     { return this->underlying_array.length(); }
   a_boolean has_multiple_levels() const
@@ -663,7 +667,21 @@ of overload.
 }  /* note_reporting_pass_needed */
 
 
-extern an_ovl_res_stack *ovl_res_stack();
+extern an_ovl_res_stack* ovl_res_stack();
+
+inline an_ovl_resolution_descr* ovl_res_descr()
+/*
+Return the current overload resolution description or NULL if there is none.
+*/
+{
+  an_ovl_resolution_descr  *result = NULL;
+  an_ovl_res_stack         *stack = ovl_res_stack();
+
+  if (stack != NULL && !stack->is_empty()) {
+    result = &stack->top();
+  }  /* if */
+  return result;
+}  /* ovl_res_descr */
 
 extern void push_new_ovl_res_stack();
 

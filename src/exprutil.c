@@ -26329,13 +26329,18 @@ block pointer.
       unexpected_condition();
   }  /* switch */
   if (!result && !*p_fatal && diag_list != NULL) {
+    an_ovl_resolution_descr  *descr = ovl_res_descr();
+    if (descr != NULL) {
+      /* A caller will add a note if needed. */
+    } else {
     /* Insert a diagnostic before the ones detailing the constraint
        failure. */
-    a_diag_list  new_diags;
-    clear_diag_list(&new_diags);
-    more_info_tap_diagnostic(ec_concept_failed, &constraint->position,
-                             copy_template_arg_list(args), &new_diags);
-    splice_diag_list(&new_diags, diag_list, prev_diags);
+      a_diag_list  new_diags;
+      clear_diag_list(&new_diags);
+      more_info_tap_diagnostic(ec_concept_failed, &constraint->position,
+                               copy_template_arg_list(args), &new_diags);
+      splice_diag_list(&new_diags, diag_list, prev_diags);
+    }  /* if */
   }  /* if */
   return result;
 }  /* is_concept_satisfied */
@@ -26458,6 +26463,21 @@ p_fatal and p_copy_error are NULL by default.
     result = is_substituted_concept_satisfied(constraint, subst_pairs,
                                               diag_list, options, ctws_state,
                                               p_fatal);
+    if (!result) {
+      an_ovl_resolution_descr  *descr = ovl_res_descr();
+      if (descr != NULL && descr->emit_note_diagnostics &&
+          !subst_pairs.is_empty()) {
+        a_template_arg_ptr  t_args = subst_pairs.front_elem().args;
+        a_diag_list         new_note = { NULL, NULL },
+                            *notes = &descr->notes;
+        more_info_tap_diagnostic(ec_concept_not_satisfied,
+                                 &constraint->position,
+                                 copy_template_arg_list(t_args), &new_note);
+        splice_diag_list(&new_note, notes, 
+                         descr->curr_diagnostic != NULL ?
+                                        descr->curr_diagnostic : notes->tail);
+      }  /* if */
+    }  /* if */
   } else if (node_is_operator(constraint, eok_land)) {
     /* Check the two underlying constraints separately.  If the first
        determines the outcome, the second is neither substituted nor
@@ -26476,19 +26496,46 @@ p_fatal and p_copy_error are NULL by default.
     an_expr_node_ptr  opnds = constraint->variant.operation.operands;
     result = constraint_satisfied_full(opnds, subst_pairs,
                                        diag_list, options,
-                                       ctws_state, p_fatal, &copy_error) ||
-             (!*p_fatal &&
-              constraint_satisfied_full(opnds->next, subst_pairs,
-                                        diag_list, options,
-                                        ctws_state, p_fatal, &copy_error));
+                                       ctws_state, p_fatal, &copy_error);
+    if (!result && !*p_fatal) {
+      /* Evaluate the right side of the disjunction.  This is an independent
+         evaluation that should have its own notes sequence if needed. */
+      an_ovl_resolution_descr  *descr = ovl_res_descr();
+      a_boolean                notes_pass = FALSE;
+      a_diagnostic_ptr         saved_curr_diagnostic;
+      if (descr != NULL && descr->emit_note_diagnostics) {
+        notes_pass = TRUE;
+        saved_curr_diagnostic = descr->curr_diagnostic;
+        descr->curr_diagnostic = descr->notes.tail;
+      }  /* if */
+      result = constraint_satisfied_full(opnds->next, subst_pairs,
+                                         diag_list, options,
+                                         ctws_state, p_fatal, &copy_error);
+      if (notes_pass) {
+        ovl_res_descr()->curr_diagnostic = saved_curr_diagnostic;
+      }  /* if */
+    }  /* if */
   } else {
     /* An atomic constraint.  First perform substitution (or reuse a cached
        substitution); then evaluate the expression. */
-    an_expr_node_ptr  expr = NULL;
-    a_constant_ptr    cp = local_constant();
-    a_constant_ptr    allocated_cp = NULL;
+    an_expr_node_ptr    expr = NULL;
+    a_constant_ptr      cp = local_constant();
+    a_constant_ptr      allocated_cp = NULL;
     a_test_constraint_result
-                      constraint_result;
+                        constraint_result;
+    an_ovl_res_stack    *ovl_stack = ovl_res_stack();
+    a_boolean           note_pass = FALSE;
+    a_template_arg_ptr  template_arg_list = NULL;
+    a_diag_list         interpret_diag_list = { NULL, NULL };
+    if (ovl_stack != NULL && !ovl_stack->is_empty() &&
+        ovl_stack->top().emit_note_diagnostics) {
+      /* Overload resolution failed and we are repeating constraint checking
+         to collect diagnostic notes. */
+      note_pass = TRUE;
+    }  /* if */
+    if (!subst_pairs.is_empty()) {
+      template_arg_list = subst_pairs.front_elem().args;
+    }  /* if */
     if (subst_pairs.length() > 1) {
       /* We have nested template arguments.  Perform ordinary expression
          substitutions on all but the last one. */
@@ -26520,22 +26567,27 @@ p_fatal and p_copy_error are NULL by default.
     if (!copy_error) {
       a_constraint_test    test = { constraint, expr, NULL, NULL };
       uintptr_t            hash = 0;
-      a_template_arg_ptr   template_arg_list = NULL;
       a_template_param_ptr template_param_list = NULL;
       a_test_constraint_result
                            cached_result;
       if (!subst_pairs.is_empty()) {
-        template_arg_list = subst_pairs.front_elem().args;
         template_param_list = subst_pairs.front_elem().params;
         test.template_arg_list = template_arg_list;
         test.template_param_list = template_param_list;
       }  /* if */
       /* Defer instantiations during constraint checking. */
       defer_instantiations++;
-      hash = hash_ptr(test);
-      /* First check for a cached result. */
-      cached_result = constraint_satisfaction_cache->get_with_hash(test, hash);
-      constraint_result = cached_result;
+      if (note_pass) {
+        /* Re-evaluate the constraint (even if it was cached before) because
+           we want to record a note for the one that failed. */
+        constraint_result = a_test_constraint_result::none;
+      } else {
+        hash = hash_ptr(test);
+        /* First check for a cached result. */
+        cached_result = constraint_satisfaction_cache
+                                                  ->get_with_hash(test, hash);
+        constraint_result = cached_result;
+      }  /* if */
       if (constraint_result == a_test_constraint_result::pending) {
         /* This constraint appears to depend on itself. */
         copy_error = TRUE;
@@ -26579,8 +26631,6 @@ p_fatal and p_copy_error are NULL by default.
           *p_fatal = !is_error_type(ctp);
           constraint_result = a_test_constraint_result::nonbool_result;
         } else {
-          a_diag_list  interpret_diag_list;
-          clear_diag_list(&interpret_diag_list);
           if (is_glvalue_node(expr)) {
             /* Just setting force_prvalue in the call to interpret_expr below
                is not sufficient because creating a prvalue may require some
@@ -26595,12 +26645,6 @@ p_fatal and p_copy_error are NULL by default.
                               &interpret_diag_list)) {
             *p_fatal = TRUE;
             constraint_result = a_test_constraint_result::eval_failed;
-            if (is_empty_diag_list(diag_list)) {
-              *diag_list = interpret_diag_list;
-            } else {
-              splice_diag_list(&interpret_diag_list, diag_list,
-                               diag_list->tail);
-            }  /* if */
           }  /* if */
         }  /* if */
       }  /* if */
@@ -26623,7 +26667,7 @@ p_fatal and p_copy_error are NULL by default.
           }  /* if */
         }  /* if */
       }  /* if */
-      if (constraint_result != cached_result) {
+      if (constraint_result != cached_result && !note_pass) {
         /* Update the cached result. */
         (void)constraint_satisfaction_cache->map_or_replace_with_hash(
                                                 test, constraint_result, hash);
@@ -26651,6 +26695,8 @@ p_fatal and p_copy_error are NULL by default.
       case a_test_constraint_result::eval_failed:
         more_info_diagnostic(ec_atomic_constraint_evaluation_failed,
                              &constraint->position, diag_list);
+        /* Append the failure notes produced by the interpreter. */
+        splice_diag_list(&interpret_diag_list, diag_list, diag_list->tail);
         result = FALSE;
         break;
       case a_test_constraint_result::nonbool_result:
@@ -26671,6 +26717,28 @@ p_fatal and p_copy_error are NULL by default.
         unexpected_condition_str2("constraint_satisfied_full:",
                                   "unexpected result");
     }  /* switch */
+    if (!result && note_pass) {
+      an_ovl_resolution_descr  *ovl_descr = &ovl_stack->top();
+      a_diag_list              *notes = &ovl_descr->notes;
+      if (!ovl_descr->constraint_failure) {
+        /* This is the first constraint failure reported for the current
+           candidate (or, possibly, the first constraint failure after
+           starting the processing of the right side of a disjunction).
+           Record an introductory note. */
+        a_symbol_ptr  cand = ovl_descr->curr_candidate;
+        more_info_sym_tap_diagnostic(ec_candidate_constraints_failed,
+                                     &cand->decl_position, cand,
+                                     copy_template_arg_list(template_arg_list),
+                                     notes);
+        ovl_descr->constraint_failure = TRUE;
+      }  /* if */
+      /* Additional "bottom-up" notes (i.e., notes indicating which concepts
+         led to the constraint failure, if any) should be spliced before the
+         constraint failure notes about to be appended to diag_list. */
+      ovl_descr->curr_diagnostic = notes->tail;
+      splice_diag_list(diag_list, notes, notes->tail);
+      clear_diag_list(diag_list);
+    }  /* if */
     release_local_constant(&cp);
   }  /* if */
   if (!result && *p_fatal && diagnose_here) {
@@ -26872,6 +26940,23 @@ non-NULL (it's NULL by default), update *diag_list accordingly.
     /* Evaluate the constraint. */
     result = constraint_satisfied(expr, new_args, params, diag_list);
   }  /* if */
+  if (!result) {
+    an_ovl_resolution_descr  *descr = ovl_res_descr();
+    if (descr != NULL && descr->emit_note_diagnostics &&
+        !subst_pairs.is_empty()) {
+      /* Overload resolution failed and we are repeating constraint checking
+         to collect diagnostic notes. */
+      a_diag_list  new_note = { NULL, NULL }, *notes = &descr->notes;
+      more_info_tap_diagnostic(ec_concept_not_satisfied,
+                               &constraint->position,
+                               copy_template_arg_list(
+                                           copy_error ? first_arg : new_args),
+                               &new_note);
+      splice_diag_list(&new_note, notes, 
+                       descr->curr_diagnostic != NULL ?
+                                        descr->curr_diagnostic : notes->tail);
+    }  /* if */
+  }  /* if */
   scope_stack_top().in_concept_rescan = saved_in_concept_rescan;
   pop_instantiation_scope_for_rescan();
   return result;
@@ -26894,7 +26979,16 @@ subst_pairs is successful.  ctws_state is a substitution state block pointer
   int32_t           saved_routine_type_levels;
   a_variadic_param_info_ptr
                     saved_variadic_param_info_tail;
+  an_ovl_res_stack  *ovl_stack = ovl_res_stack();
 
+  if (ovl_stack) {
+    /* If this is called as part of overload resolution, push a new level of
+       overload resolution so that diagnostics from failures in individual
+       requirements are not recorded.  This will likely change in the future,
+       but requires a more sophisticated mechanism to order any recorded
+       diagnostics. */
+   ovl_stack->push();
+  }  /* if */
   /* Adjust the levels of enclosing parameter pack entries. */
   for (a_variadic_param_info_ptr vpip = ctws_state->variadic_param_info;
        vpip != NULL;
@@ -27045,6 +27139,9 @@ subst_pairs is successful.  ctws_state is a substitution state block pointer
     ctws_state->variadic_param_info_tail = saved_variadic_param_info_tail;
   }  /* if */
   ctws_state->routine_type_levels = saved_routine_type_levels;
+  if (ovl_stack) {
+    ovl_res_stack()->pop();
+  }  /* if */
   return result;
 }  /* requires_expr_satisfied_full */
 

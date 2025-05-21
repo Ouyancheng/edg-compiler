@@ -5842,6 +5842,7 @@ in a new-expression).
   a_boolean                allocated_this_param = FALSE;
   a_boolean                gpp_init_list_ctor_param_case = FALSE;
   an_operand               dummy_operand;
+  an_ovl_res_stack         *ovl_stack = ovl_res_stack();
   a_diag_list_ptr          notes = NULL;
 
   *discarded_because_post_decl = FALSE;
@@ -5858,10 +5859,20 @@ in a new-expression).
     function_symbol = fundamental_symbol_of(proj_function_symbol);
     routine_type = func_sym_routine(function_symbol)->type;
   }  /* if */
-  if (ovl_res_stack()->top().emit_note_diagnostics &&
-      function_symbol != NULL && !candidate_already_noted(function_symbol)) {
-    /* Prepare to record notes explaining why this candidate is not viable. */
-    notes = current_ovl_res_notes();
+  if (ovl_stack->top().emit_note_diagnostics &&
+      function_symbol != NULL) {
+    if (candidate_already_noted(function_symbol)) {
+      /* Candidates sometimes appear twice (e.g., via normal and argument-
+         dependent lookups).  No need to record another set of notes. */
+      goto reject_function;
+    } else {
+      /* Prepare to record notes explaining why this candidate is not
+         viable. */
+      an_ovl_resolution_descr  *descr = &ovl_stack->top();
+      descr->curr_candidate = function_symbol;
+      notes = &descr->notes;
+      descr->curr_diagnostic = notes->tail;
+    }  /* if */
   }  /* if */
   if (has_explicit_this_parameter(skip_typerefs(routine_type))) {
     /* If this is a function with an explicit "this" parameter, we need to add
@@ -6040,15 +6051,15 @@ in a new-expression).
           n_explicit_arg_viability_failures += 1;
 #endif /* DEBUG */
           if (notes != NULL) {
-            /* Ideally, we'd want to know why the substitution failed.
-               For now, we just leave it at this.  Note that we pushed an
-               instantiation context, so we must use "notes" and not
-               current_ovl_res_notes(). */
-            more_info_sym_tap_diagnostic(
+            if (!ovl_stack->top().constraint_failure) {
+              /* Ideally, we'd want to know why the substitution failed.
+                 For now, we just leave it at this. */
+              more_info_sym_tap_diagnostic(
                                      ec_candidate_expl_templ_arg_subst_failed,
                                      &function_symbol->decl_position,
                                      function_symbol, template_arg_list,
                                      notes);
+            }  /* if */
           }  /* if */
           goto reject_function;
         } else {
@@ -6530,9 +6541,11 @@ next_argument:
       n_deduction_viability_failures += 1;
 #endif /* DEBUG */
       if (notes != NULL) {
-        more_info_sym_diagnostic(ec_deduction_failed,
-                                 &function_symbol->decl_position,
-                                 function_symbol, notes);
+        if (!ovl_stack->top().constraint_failure) {
+          more_info_sym_diagnostic(ec_deduction_failed,
+                                   &function_symbol->decl_position,
+                                   function_symbol, notes);
+        }  /* if */
       }  /* if */
       goto reject_function;
     } else if (depth_innermost_instantiation_scope != NO_SCOPE_DEPTH) {
@@ -6595,11 +6608,6 @@ next_argument:
                                       local_template_arg_list,
                                       /*diagnose=*/FALSE)) {
         --(tssp->variant.function.pending_deductions);
-        if (notes != NULL) {
-          more_info_sym_diagnostic(ec_candidate_failed_constraint,
-                                   &function_symbol->decl_position,
-                                   function_symbol, notes);
-        }  /* if */
         goto reject_function;
       }  /* if */
       --(tssp->variant.function.pending_deductions);
@@ -6865,6 +6873,11 @@ accept_function:
 #endif /* BACK_END_IS_CP_GEN_BE */
   goto end_of_routine;
 reject_function:
+  if (notes != NULL) {
+    an_ovl_resolution_descr  *descr = &ovl_res_stack()->top();
+    descr->constraint_failure = FALSE;
+    descr->curr_diagnostic = NULL;
+  }  /* if */
   /* The function is not suitable. */
 #if DEBUG
   n_viability_failures += 1;
@@ -11491,7 +11504,7 @@ in_instantiation:
   *arg_match_list = NULL;
   if (undecidable_because_of_error) {
     /* There was some previous error, so do not put out an error message. */
-  } else if (ovl_res_stack()->emit_note_diagnostics()) {
+  } else if (ovl_res_stack()->top().emit_note_diagnostics) {
     /* We've just completed the note processing pass; no need to generate
        errors (they've already been emitted). */
   } else if (candidate_functions == NULL) {

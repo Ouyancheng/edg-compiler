@@ -1,5 +1,18 @@
 Version 6.8
 
+5/21/25  [EDGcpfe/27180]
+Diagnostic improvements for constraint failures during overload resolution
+
+The front end now provides more details about the nature of constraint
+failures when overload resolution fails and some candidates were discarded
+due to constraint violations.  As part of these improvements, some template
+arguments that were previously rendered as "<expression>" in diagnostics are
+now rendered with a more specific form (most often, integer values).  Finally,
+the position of the "requires" keyword in a requires-clause was previously
+incorrectly recorded: This is now fixed, and affects the position of some
+diagnostics.
+
+
 5/20/25  [EDGcpfe/27316,EDGcpfe/28183]
 GNU/Clang compatibility: __FILE_NAME__ predefined macro
 

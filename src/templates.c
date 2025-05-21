@@ -10976,7 +10976,7 @@ TRUE, function parameters are in scope and parameter pack information for these
 is added to the substitution state.
 */
 {
-  a_boolean             result = TRUE, fatal = FALSE;
+  a_boolean             result = TRUE, fatal = FALSE, scope_pushed;
   an_expr_node_ptr      constraint = rcp->constraint;
   a_template_param_ptr  params = templ_params_of(template_sym);
   a_diag_list           diag_list;
@@ -10984,7 +10984,12 @@ is added to the substitution state.
   a_ctws_state          ctws_state;
   a_subst_pairs_array   subst_pairs;
 
-  push_instantiation_scope_for_rescan(template_sym);
+  scope_pushed = !(scope_is(&scope_stack_top(), sck_function_access) &&
+                   scope_stack_top().is_rescan &&
+                   scope_stack_top().template_sym == template_sym);
+  if (scope_pushed) {
+    push_instantiation_scope_for_rescan(template_sym);
+  }  /* if */
   clear_diag_list(&diag_list);
   init_ctws_state(&ctws_state);
   if (is_trailing_requires_clause &&
@@ -11013,8 +11018,8 @@ is added to the substitution state.
                                  CTWS_NO_OPTIONS, &ctws_state, &fatal)) {
     if (!is_empty_diag_list(&diag_list)) {
       if (diagnose || (fatal && !clang_mode)) {
-        a_diagnostic_ptr  dp;
-        a_diag_list       lead_note;
+        a_diagnostic_ptr   dp;
+        a_diag_list        lead_note;
         clear_diag_list(&lead_note);
         more_info_tap_diagnostic(
                               ec_requires_clause_arg_list_substitution_failed,
@@ -11031,7 +11036,9 @@ is added to the substitution state.
     result = FALSE;
   }  /* if */
   free_list_of_variadic_param_info(ctws_state.variadic_param_info);
-  pop_instantiation_scope_for_rescan();
+  if (scope_pushed) {
+    pop_instantiation_scope_for_rescan();
+  }  /* if */
   return result;
 }  /* requires_constraint_satisfied */
 

@@ -534,6 +534,13 @@ Output the indicated template argument in the way described by octl.
       } else {
         a_constant_ptr   con = tap->variant.constant;
         an_expr_node_ptr compiler_generated_node = NULL;
+        a_boolean        release_con = FALSE;
+#if !STANDALONE_UTILITY_PROGRAM
+        if (tap->arg_operand != NULL && con == NULL) {
+          con = template_arg_operand_constant(tap);
+          release_con = con != NULL;
+        }  /* if */
+#endif /* !STANDALONE_UTILITY_PROGRAM */
         if (tap->arg_operand != NULL && con == NULL) {
           /* The template argument is given by an expression operand (front
              end only). */
@@ -629,6 +636,7 @@ Output the indicated template argument in the way described by octl.
           /* Restore the compiler_generated flag that was reset above. */
           compiler_generated_node->compiler_generated = TRUE;
         }  /* if */
+        if (release_con) release_local_constant(&con);
       }
       octl->processing_nontype_template_argument = FALSE;
       break;

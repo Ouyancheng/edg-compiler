@@ -3036,8 +3036,13 @@ the scope being pushed.
     /* When an instantiation context is pushed, the previous scope is the
        file scope. */
     ssep->previous_scope = DEPTH_OF_FILE_SCOPE;
-    /* Store the previous state, and initialize a new ovl_res_stack. */
-    push_new_ovl_res_stack();
+    if (!(options & PS_IS_RESCAN)) {
+      /* Store the previous state, and initialize a new ovl_res_stack.
+         (Instantiation contexts pushed for rescanning are associated with the
+         current overload resolution and therefore should not trigger the
+         initialization of a new stack.) */
+      push_new_ovl_res_stack();
+    }  /* if */
     if ((options & PS_NEW_INSTANTIATION_CONTEXT) != 0) {
       depth_innermost_instantiation_scope = NO_SCOPE_DEPTH;
       depth_template_declaration_scope = NO_SCOPE_DEPTH;
@@ -9339,7 +9344,7 @@ new top-of-stack entry with information from the entry that has been popped.
 #endif /* TEMPLATE_INSTANTIATIONS_IN_SOURCE_SEQUENCE_LISTS */
     }  /* if */
 #endif /* GENERATE_SOURCE_SEQUENCE_LISTS */
-    if (ssep->kind == (a_scope_kind)sck_instantiation_context) {
+    if (ssep->kind == sck_instantiation_context && !ssep->is_rescan) {
       /* Restore previous overload resolution stack.  */
       pop_cur_ovl_res_stack();
     }  /* if */

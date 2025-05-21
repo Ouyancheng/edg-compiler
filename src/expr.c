@@ -50991,6 +50991,7 @@ If discard is FALSE, return a pointer to the scanned representation.
   a_requires_clause_ptr    rcp = NULL;
   a_token_sequence_number  requires_tsn = curr_token_sequence_number;
   a_requires_range_descr   rrd;
+  a_source_position        requires_pos = pos_curr_token;
 
   check_assertion(curr_token == tok_requires);
   (void)get_token();
@@ -51013,7 +51014,7 @@ If discard is FALSE, return a pointer to the scanned representation.
        typename" guidance. */
     scope_stack_top().implicit_typename = FALSE;
     rcp = alloc_requires_clause();
-    rcp->requires_pos = pos_curr_token;
+    rcp->requires_pos = requires_pos;
     save_expr_stack(&saved_expr_stack);
     push_expr_stack((an_expression_kind)ek_sizeof, &expr_stack_entry,
                     /*force_object_lifetime=*/FALSE,
