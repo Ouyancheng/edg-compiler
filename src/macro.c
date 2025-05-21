@@ -11289,6 +11289,11 @@ Enter symbols for the predefined macros of GNU/clang C and C++.
        __GNUC_PATCHLEVEL__, __GNUG__, and __VERSION__ but those are static (and
        based on a GNU version of 4.2.1) and aren't defined here (they can be
        defined in a predefined_macros.txt file if so desired). */
+    if (char8_t_enabled && clang_version >= 80000) {
+      (void)enter_predef_macro("2", "__GCC_ATOMIC_CHAR8_T_LOCK_FREE",
+                               /*cannot_be_redefined=*/TRUE,
+                               /*ref_suppresses_pch_file=*/FALSE);
+    }  /* if */
   } else {
     enter_predef_num_macro(major_num, "__GNUC__");
     enter_predef_num_macro(minor_num, "__GNUC_MINOR__");
@@ -11298,6 +11303,14 @@ Enter symbols for the predefined macros of GNU/clang C and C++.
                              "__VERSION__",
                              /*cannot_be_redefined=*/TRUE,
                              /*ref_suppresses_pch_file=*/FALSE);
+    if (char8_t_enabled && gnu_version >= 90000) {
+      (void)enter_predef_macro("unsigned char", "__CHAR8_TYPE__",
+                               /*cannot_be_redefined=*/TRUE,
+                               /*ref_suppresses_pch_file=*/FALSE);
+      (void)enter_predef_macro("2", "__GCC_ATOMIC_CHAR8_T_LOCK_FREE",
+                               /*cannot_be_redefined=*/TRUE,
+                               /*ref_suppresses_pch_file=*/FALSE);
+    }  /* if */
   }  /* if */
   if (gnu_version >= 40400) {
     (void)enter_predef_macro(int_kind_name(targ_char16_t_int_kind),

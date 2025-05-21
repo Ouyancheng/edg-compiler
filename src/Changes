@@ -1,5 +1,22 @@
 Version 6.8
 
+5/20/25  [EDGcpfe/28180]
+GNU/Clang compatibility: __CHAR8_TYPE__ and __GCC_ATOMIC_CHAR8_T_LOCK_FREE
+predefined macros
+
+The front end has been updated to predefine the macros
+__GCC_ATOMIC_CHAR8_T_LOCK_FREE in clang and gcc emulations and, for gcc
+only, __CHAR8_TYPE, when the C++20 char8_t type is supported and either
+clang_version is at least 80000 or gnu_version is at least 90000.  For
+example, the following code compiles without error with --c++20
+--gnu_version=90100:
+
+  #if !defined(__CHAR8_TYPE__) || \
+      !defined(__GCC_ATOMIC_CHAR8_T_LOCK_FREE)
+  #error Macros not defined
+  #endif
+
+
 5/20/25  [EDGcpfe/28161]
 Enforcing 80-bit long double on Intel-based platforms
 
