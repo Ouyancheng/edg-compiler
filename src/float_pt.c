@@ -4520,9 +4520,9 @@ Initialize static variables related to float_pt.c.
 #if USE_FLOAT128_FOR_HOST_FP_VALUE && FP_HAS_LONG_DOUBLE && \
     !FP_LONG_DOUBLE_IS_80BIT_EXTENDED &&                    \
     !FP_LONG_DOUBLE_IS_BINARY64
-  /* Presumably this configuration means that long double is binary128.
-     Check to make sure we're not on a platform that uses an 80-bit
-     representation for long double. */
+  /* Presumably this configuration means that long double and
+     a_host_fp_value are both binary128.  Check to make sure we're not on a
+     platform that uses an 80-bit representation for long double. */
   long double     ld = 1234.5678L;
   a_host_fp_value f128 = ld;
   check_assertion_str(memcmp(&ld, &f128, sizeof(f128)) == 0,
