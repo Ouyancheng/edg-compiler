@@ -90,6 +90,11 @@ EXTERN_THREAD a_symbol_ptr
 			/* Pointer to the symbol entry for the special
 			   GNU macro __BASE_FILE__. */
 
+EXTERN_THREAD a_symbol_ptr
+	       	file_name_macro_symbol;
+			/* Pointer to the symbol entry for the special
+			   GNU/clang macro __FILE_NAME__. */
+
 EXTERN_THREAD a_boolean
 		scanning_macro_name;
 			/* TRUE if the token about to be scanned is the

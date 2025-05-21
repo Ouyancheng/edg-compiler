@@ -332,8 +332,9 @@ STATIC_THREAD a_source_line_modif_ptr
 
 STATIC_THREAD a_text_buffer_ptr
 		file_name_text_buffer;
-			/* A buffer to hold the results of the __FILE__ and
-			   __BASE_FILE__ predefined macros. */
+			/* A buffer to hold the results of the __FILE__,
+			   __FILE_NAME__, and __BASE_FILE__ predefined
+			   macros. */
 
 /*
 Maximum nesting depth of calls of a single macro in pcc mode.  Used to
@@ -6193,26 +6194,33 @@ make_inert_macro:
                                   repl_text,
                                   remaining_raw_text_space(special_macro_arg));
       } else if (macro_symbol == file_macro_symbol ||
+                 macro_symbol == file_name_macro_symbol ||
                  macro_symbol == base_file_macro_symbol) {
         /* __FILE__.  Make and return a string for a string literal 
           indicating the current file name. */
-        /* Also GNU __BASE_FILE__. */
+        /* Also GNU __BASE_FILE__ and GNU/clang __FILE_NAME__. */
+        a_const_char *result_name;
         if (macro_symbol == base_file_macro_symbol) {
           /* __BASE_FILE__.  Use the primary source file name. */
-          file_name = curr_translation_unit->source_file->file_name;
+          result_name = curr_translation_unit->source_file->file_name;
         } else {
-          /* __FILE__.  Use the current source file name. */
+          /* __FILE__ or __FILE_NAME__.  Use the current source file name. */
           /* Convert the sequence number to a file name. */
           (void)conv_seq_to_file_and_line(start_pos.seq, &file_name,
                                           &full_name, &line_number,
                                           &at_end_of_source);
+          if (macro_symbol == file_macro_symbol) {
+            result_name = file_name;
+          } else {
+            result_name = start_of_file_name(file_name);
+          }  /* if */
         }  /* if */
         if (file_name_text_buffer == NULL) {
           file_name_text_buffer = alloc_text_buffer(256);
         }  /* if */
         reset_text_buffer(file_name_text_buffer);
         add_to_text_buffer(file_name_text_buffer, "\"", 1);
-        write_file_name_to_text_buffer(file_name, file_name_text_buffer,
+        write_file_name_to_text_buffer(result_name, file_name_text_buffer,
                                        /*process_escapes=*/TRUE,
                                        /*escape_nonprintable=*/FALSE);
         add_to_text_buffer(file_name_text_buffer, "\"", 2);
@@ -8840,7 +8848,7 @@ preprocessing output file.
         sym->variant.macro_def->repl_text != NULL &&
         !sym->variant.macro_def->ref_suppresses_pch_file &&
         sym != line_macro_symbol && sym != file_macro_symbol &&
-        sym != base_file_macro_symbol) {
+        sym != file_name_macro_symbol && sym != base_file_macro_symbol) {
       /* Create a string version of the macro and display it to the
          preprocessing output file. */
       make_definition_string(sym);
@@ -12391,6 +12399,12 @@ command line -D options.
   base_file_macro_symbol = enter_predef_macro((char *)NULL, "__BASE_FILE__",
                                             /*cannot_be_redefined=*/TRUE,
                                             /*ref_suppresses_pch_file=*/FALSE);
+  if (gnu_version_is(>= 120000) || clang_version_is(>= 90000)) {
+    file_name_macro_symbol = enter_predef_macro(
+                                            (char *)NULL, "__FILE_NAME__",
+                                            /*cannot_be_redefined=*/TRUE,
+                                            /*ref_suppresses_pch_file=*/FALSE);
+  }  /* if */
   if (pragma_operator_allowed) {
     /* Like the special macros defined above, _Pragma is entered as a
        predefined macro but is handled specially during replacement. */
@@ -12696,6 +12710,7 @@ Do one-time initialization of variables related to macro processing.
       pch_saved_var_array_elem(date_macro_symbol),
       pch_saved_var_array_elem(time_macro_symbol),
       pch_saved_var_array_elem(base_file_macro_symbol),
+      pch_saved_var_array_elem(file_name_macro_symbol),
       pch_saved_var_array_elem(stdc_macro_symbol),
       pch_saved_var_array_elem(has_feature_symbol),
       pch_saved_var_array_elem(has_extension_symbol),
@@ -12736,6 +12751,7 @@ Do one-time initialization of variables related to macro processing.
   register_trans_unit_variable(date_macro_symbol);
   register_trans_unit_variable(time_macro_symbol);
   register_trans_unit_variable(base_file_macro_symbol);
+  register_trans_unit_variable(file_name_macro_symbol);
   register_trans_unit_variable(stdc_macro_symbol);
   register_trans_unit_variable(has_feature_symbol);
   register_trans_unit_variable(has_extension_symbol);
@@ -12776,6 +12792,7 @@ after this function.
   date_macro_symbol = NULL;
   time_macro_symbol = NULL;
   base_file_macro_symbol = NULL;
+  file_name_macro_symbol = NULL;
   scanning_macro_name = FALSE;
   scanning_module_macro = FALSE;
   macro_arg_list = NULL;
