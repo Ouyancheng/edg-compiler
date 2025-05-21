@@ -20367,7 +20367,7 @@ left unchanged.
   if (create_module_unit && !created_module_unit_is_header &&
       module_unit_output_file_name == NULL) {
     /* If a non-header module unit is being created and there is currently no
-       output file name: create one now derived from the module and partition
+       output file name, create one now derived from the module and partition
        name. */
     a_string output_file_name(primary_name);
 

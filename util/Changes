@@ -1,9 +1,9 @@
 Version 6.7, January 27, 2025
 
 5/20/25  [EDGcpfe/28025]
-Add supporting flags for writing named modules
+Add supporting command-line options for writing named modules
 
-The front end now supports the following modules related options:
+The front end now supports the following modules-related options:
 
   --create_module_interface file
   Create an EDG IFC module file at the given file path for a module interface
@@ -21,10 +21,10 @@ The front end now supports the following modules related options:
   Create an EDG IFC module file for a module implementation unit in the current
   working directory.
 
-The following options have been removed --ms_mod_interface,
+The following options have been removed: --ms_mod_interface,
 --no_ms_mod_interface, --ms_internal_partition, --no_ms_internal_partition.
 The new options are only required if creating an EDG IFC module file is
-desired; parsing no longer ties semantics to these command line flags.
+desired.
 
 
 4/16/25  [EDGcpfe/28111]

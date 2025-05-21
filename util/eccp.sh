@@ -305,7 +305,7 @@ more_than_one_c_file=0
 #
 module_unit_src_file=
 #
-# Did the name of the module unit source file imply header unit
+# When set to 1, the name of the module unit source file implies header unit
 # creation.
 #
 module_unit_src_file_is_header=0
