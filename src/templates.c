@@ -3055,6 +3055,12 @@ Otherwise it is zero.
                                           /*is_templ_templ_param_check=*/FALSE,
                                           &rout_templ_sym->decl_position);
   }  /* if */
+  { /* If we are doing overload resolution, record the completed argument
+       list in the overload resolution stack, so constraint checking can
+       output them in diagnostics if needed. */
+    an_ovl_resolution_descr  *descr = ovl_res_descr();
+    if (descr != NULL) descr->curr_template_args = *templ_arg_list;
+  }
   if (wrapup_template_argument_deduction(
                                *templ_arg_list, rout_templ_sym,
                                templ_param_list, ctws_options, param_count)) {

@@ -3133,7 +3133,7 @@ ec_invalid_concept_redecl;;"invalid redeclaration of %nd"
 ec_concept_arg_list_substitution_failed;;"substitution of arguments %T for concept-id failed"
 ec_concept_failed;;"concept is false for arguments %T"
 ec_trailing_requires_clause_not_on_template;;"a requires-clause is not allowed here (not a templated function)"
-ec_concept_template;INTERNAL;"concept template"
+ec_concept_template;INTERNAL;"concept"
 ec_requires_incompatible_with_previous_decl;;"requires-clause incompatible with %nfd"
 ec_expected_an_attribute;;"expected an attribute"
 REMOVED;ec_invalid_start_of_requirement;;"invalid start of requirement"
@@ -3557,7 +3557,7 @@ ec_module_unit_export_unexpected;;"the module declaration cannot be exported fro
 ec_module_unit_export_expected;;"the module declaration must be exported from this translation unit to create a module interface file"
 ec_cannot_write_module_none_declared;;"module file generation was requested but no module was declared in the translation unit"
 ec_candidate_constraints_failed;;"substituting %T for %n failed constraints"
-ec_concept_not_satisfied;;"concept not satisfied for %T"
+ec_concept_not_satisfied;;"%n not satisfied for %T"
 ###############################################################################
 #                                                             \  ___  /       #
 #                                                               /   \         #

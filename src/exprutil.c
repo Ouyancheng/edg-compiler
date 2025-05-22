@@ -26372,6 +26372,8 @@ block pointer.
   a_template_arg_ptr   old_args = constraint->variant.concept_id.args;
   an_owned_template_arg_list
                        new_args;
+  an_ovl_resolution_descr
+                       *descr;
 
   /* Substitute the template argument list of the concept, and then check
      the satisfaction of the concept's constraint expression with that
@@ -26404,6 +26406,7 @@ block pointer.
     /* The concept-id is already fully non-dependent. */
     new_args = copy_template_arg_list(old_args);
   }  /* if */
+  descr = ovl_res_descr();
   if (copy_error) {
     if (diag_list != NULL) {
       /* Substitution errors during parameter mappings are not SFINAE-like if
@@ -26418,12 +26421,32 @@ block pointer.
          however.) */
       more_info_tap_diagnostic(ec_concept_arg_list_substitution_failed,
                                &constraint->position,
-                               subst_pairs.front_elem().args, diag_list);
+                               copy_template_arg_list(
+                                               subst_pairs.front_elem().args),
+                               diag_list);
+      if (descr != NULL && descr->emit_note_diagnostics) {
+        splice_diag_list(diag_list, &descr->notes,
+                         descr->curr_diagnostic != NULL ?
+                                  descr->curr_diagnostic : descr->notes.tail);
+        clear_diag_list(diag_list);
+      }  /* if */
     }  /* if */
     result = FALSE;
   } else {
     result = is_concept_satisfied(constraint, new_args.raw(), diag_list,
                                   options, ctws_state, p_fatal);
+    if (!result) {
+      if (descr != NULL && descr->emit_note_diagnostics) {
+        a_diag_list  new_note = { NULL, NULL }, *notes = &descr->notes;
+        more_info_sym_tap_diagnostic(ec_concept_not_satisfied,
+                                     &constraint->position, sym,
+                                     copy_template_arg_list(new_args.raw()),
+                                     &new_note);
+        splice_diag_list(&new_note, notes, 
+                         descr->curr_diagnostic != NULL ?
+                                        descr->curr_diagnostic : notes->tail);
+      }  /* if */
+    }  /* if */
   }  /* if */
   return result;
 }  /* is_substituted_concept_satisfied */
@@ -26463,21 +26486,6 @@ p_fatal and p_copy_error are NULL by default.
     result = is_substituted_concept_satisfied(constraint, subst_pairs,
                                               diag_list, options, ctws_state,
                                               p_fatal);
-    if (!result) {
-      an_ovl_resolution_descr  *descr = ovl_res_descr();
-      if (descr != NULL && descr->emit_note_diagnostics &&
-          !subst_pairs.is_empty()) {
-        a_template_arg_ptr  t_args = subst_pairs.front_elem().args;
-        a_diag_list         new_note = { NULL, NULL },
-                            *notes = &descr->notes;
-        more_info_tap_diagnostic(ec_concept_not_satisfied,
-                                 &constraint->position,
-                                 copy_template_arg_list(t_args), &new_note);
-        splice_diag_list(&new_note, notes, 
-                         descr->curr_diagnostic != NULL ?
-                                        descr->curr_diagnostic : notes->tail);
-      }  /* if */
-    }  /* if */
   } else if (node_is_operator(constraint, eok_land)) {
     /* Check the two underlying constraints separately.  If the first
        determines the outcome, the second is neither substituted nor
@@ -26722,13 +26730,12 @@ p_fatal and p_copy_error are NULL by default.
       a_diag_list              *notes = &ovl_descr->notes;
       if (!ovl_descr->constraint_failure) {
         /* This is the first constraint failure reported for the current
-           candidate (or, possibly, the first constraint failure after
-           starting the processing of the right side of a disjunction).
-           Record an introductory note. */
+           candidate.  Record an introductory note. */
         a_symbol_ptr  cand = ovl_descr->curr_candidate;
         more_info_sym_tap_diagnostic(ec_candidate_constraints_failed,
                                      &cand->decl_position, cand,
-                                     copy_template_arg_list(template_arg_list),
+                                     copy_template_arg_list(
+                                               ovl_descr->curr_template_args),
                                      notes);
         ovl_descr->constraint_failure = TRUE;
       }  /* if */
@@ -26947,11 +26954,11 @@ non-NULL (it's NULL by default), update *diag_list accordingly.
       /* Overload resolution failed and we are repeating constraint checking
          to collect diagnostic notes. */
       a_diag_list  new_note = { NULL, NULL }, *notes = &descr->notes;
-      more_info_tap_diagnostic(ec_concept_not_satisfied,
-                               &constraint->position,
-                               copy_template_arg_list(
+      more_info_sym_tap_diagnostic(ec_concept_not_satisfied,
+                                   &constraint->position, sym,
+                                   copy_template_arg_list(
                                            copy_error ? first_arg : new_args),
-                               &new_note);
+                                   &new_note);
       splice_diag_list(&new_note, notes, 
                        descr->curr_diagnostic != NULL ?
                                         descr->curr_diagnostic : notes->tail);

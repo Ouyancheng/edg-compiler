@@ -6039,6 +6039,10 @@ in a new-expression).
 #if DEBUG
         n_explicit_arg_viability_checks += 1;
 #endif /* DEBUG */
+        if (notes != NULL) {
+          an_ovl_resolution_descr  *descr = &ovl_stack->top();
+          descr->curr_template_args = template_arg_list;
+        }  /* if */
         routine_type = substitute_template_arguments(
                          function_symbol, template_arg_list,
                          &local_template_arg_list, (a_template_param_ptr)NULL,
@@ -6602,6 +6606,9 @@ next_argument:
                                                  max_pending_instantiations) {
         report_excessive_rescan_depth();
         goto reject_function;
+      } else if (notes != NULL) {
+        an_ovl_resolution_descr  *descr = ovl_res_descr();
+        if (descr != NULL) descr->curr_template_args = local_template_arg_list;
       }  /* if */
       ++(tssp->variant.function.pending_deductions);
       if (!check_template_constraints(originator_symbol_of(function_symbol),
@@ -6877,6 +6884,8 @@ reject_function:
     an_ovl_resolution_descr  *descr = &ovl_res_stack()->top();
     descr->constraint_failure = FALSE;
     descr->curr_diagnostic = NULL;
+    descr->curr_candidate = NULL;
+    descr->curr_template_args = NULL;
   }  /* if */
   /* The function is not suitable. */
 #if DEBUG
