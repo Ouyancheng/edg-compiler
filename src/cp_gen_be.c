@@ -1498,21 +1498,24 @@ if there is none.
 static a_boolean class_is_in_name_context_stack(
                                    a_type_ptr class_type,
                                    a_boolean  include_base_classes,
-                                   a_boolean  ignore_field_selection_contexts)
+                                   a_boolean  ignore_field_selection_contexts,
+                                   a_boolean  is_access_check = FALSE)
 /*
 Return TRUE if the indicated class is currently on the name context stack.
 If include_base_classes is TRUE, bases of classes in the name context stack
 are also considered to be on the stack.  If ignore_field_slection_contexts
 is TRUE, entries that were pushed for field selection purposes are not
-considered.
+considered.  If is_access_check is TRUE, the caller is testing access, not
+visibility, so the ignore_lexical_context_for_friend_decl flag is
+irrelevant.
 */
 {
   a_boolean          class_in_stack = FALSE;
   a_name_context_ptr ncp;
 
   for (ncp = curr_name_context;
-       ncp != NULL && !ncp->ignore_lexical_context_for_friend_decl &&
-                                                               !class_in_stack;
+       ncp != NULL && (!ncp->ignore_lexical_context_for_friend_decl ||
+                       is_access_check) && !class_in_stack;
        ncp = ncp->next) {
     if (ncp->class_type == class_type) {
       class_in_stack = !(ncp->field_selection_context &&
@@ -2889,7 +2892,8 @@ names is not public, set *for_all_scopes to FALSE.
          Include base classes if the member has protected access. */
       is_accessible = (class_is_in_name_context_stack(
                                   parent_class, scp->access == as_protected,
-                                  /*ignore_field_selection_contexts=*/FALSE) ||
+                                  /*ignore_field_selection_contexts=*/FALSE,
+                                  /*is_access_check=*/TRUE) ||
                        (curr_name_context != NULL &&
                         curr_name_context->class_type_for_access_not_naming ==
                                                                 parent_class));
