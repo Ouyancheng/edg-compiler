@@ -6,7 +6,7 @@ Add supporting command-line options for writing named modules
 The front end now supports the following modules-related options:
 
   --create_module_interface file
-  Write an EDG IFC module file for a module implementation unit to file.
+  Write an EDG IFC module file for a module interface unit to file.
 
   --create_module_internal_partition file
   Write an EDG IFC module file for a module implementation unit to file.
