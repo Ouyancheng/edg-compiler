@@ -26588,6 +26588,7 @@ p_fatal and p_copy_error are NULL by default.
       if (note_pass) {
         /* Re-evaluate the constraint (even if it was cached before) because
            we want to record a note for the one that failed. */
+        cached_result = a_test_constraint_result::none;
         constraint_result = a_test_constraint_result::none;
       } else {
         hash = hash_ptr(test);
