@@ -17437,7 +17437,7 @@ return_end_of_source_token:
           goto two_char_token;
         }  /* if */
 #if GNU_EXTENSIONS_ALLOWED
-      } else if (ch == '?' && gpp_mode) {
+      } else if (ch == '?' && gpp_version_is(<40300)) {
         ctoken = tok_gnu_min;
         goto two_char_token;
 #endif /* GNU_EXTENSIONS_ALLOWED */
@@ -17459,7 +17459,7 @@ return_end_of_source_token:
         ctoken = tok_ge;
         goto two_char_token;
 #if GNU_EXTENSIONS_ALLOWED
-      } else if (ch == '?' && gpp_mode) {
+      } else if (ch == '?' && gpp_version_is(<40300)) {
         ctoken = tok_gnu_max;
         goto two_char_token;
 #endif /* GNU_EXTENSIONS_ALLOWED */

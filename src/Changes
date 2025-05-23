@@ -1,5 +1,16 @@
 Version 6.8
 
+5/23/25  [EDGcpfe/26619,EDGcpfe/27100,EDGcpfe/27117,EDGcpfe/28102]
+GNU C++ compatibility: removal of GNU min/max operators
+
+Previously, the front end recognized the binary operators "<?" (min) and ">?"
+(max) in GNU C++ mode.  However, g++ removed support for these operators in
+version 4.3.  For example, with --c++14 --gnu_version=50500:
+
+  template<int> bool b = false;
+  template<int I> int v = b<I>?1:2;  // Previously a spurious error.  Now okay.
+
+
 5/22/25  [EDGcpfe/28155]
 C++-generating back end: unbounded recursion with friend function declaration
 
