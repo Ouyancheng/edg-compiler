@@ -1,5 +1,22 @@
 Version 6.8
 
+5/23/25  [EDGcpfe/28199]
+Type of nontype template argument deduced from array bound
+
+Consider (in C++20 mode):
+
+  template<typename T, bool B> int f(T(*)[B]) requires false;
+  int arr[42][true];
+  int r = f(arr);
+
+The front end previously deduced a template argument type of a non-bool
+integer type for B while resolving the call f(arr) (the erroneously deduced
+type was the underlying integer type for bool, usually char).  In the example
+above, with the changes for EDGcpfe/27180, this was visible in the diagnostic
+output (which, e.g., rendered the template as "'\001'" instead of as "true").
+This is now fixed.
+
+
 5/23/25  [EDGcpfe/26619,EDGcpfe/27100,EDGcpfe/27117,EDGcpfe/28102]
 GNU C++ compatibility: removal of GNU min/max operators
 

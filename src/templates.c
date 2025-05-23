@@ -12953,6 +12953,7 @@ of types after all of the function arguments have been processed.
         set_unsigned_integer_constant(
                    constant, (a_host_large_unsigned)elements,
                    skip_typerefs(constant_type)->variant.integer.int_kind);
+        constant->type = constant_type;
         tap->variant.constant = constant;
         tap->is_array_bound_of_unknown_type = FALSE;
         match = TRUE;
