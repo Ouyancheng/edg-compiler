@@ -1391,6 +1391,7 @@ private:
   an_ifc_edg_constant_index enter_constant(a_constant_ptr cp);
 
   /* Functions for adding tokens and manipulating token caches. */
+  an_ifc_output_token_cache copy_template_body_to_cache(a_template_ptr templ);
   an_ifc_edg_complex_token_index find_or_enter_textual_token(
                                                   const a_cached_token *token);
   void enter_basic_token_to_cache(an_ifc_output_token_cache *ifc_cache,
@@ -1422,6 +1423,7 @@ private:
 
   /* Functions for entering declarations that are invoked by proxy (e.g.,
      enter_typedef is called when needed by enter_type). */
+  an_ifc_decl_index enter_alias_template(a_template_ptr templ);
   an_ifc_decl_index enter_class_template(a_template_ptr templ);
   an_ifc_decl_index enter_constructor(a_routine_ptr rp);
   an_ifc_decl_index enter_destructor(a_routine_ptr rp);
@@ -1873,13 +1875,8 @@ the declaration index for the entered declaration.
 
     /* Create a token cache representation of the initializing constant. */
     an_ifc_output_token_cache
-                init_token_cache;
-    a_symbol_ptr
-                templ_sym = symbol_for(assoc_templ);
-    a_template_symbol_supplement_ptr
-                tssp = templ_sym->variant.template_info;
-    this->enter_token_cache(&init_token_cache, &tssp->cache.tokens);
-
+                init_token_cache = this->copy_template_body_to_cache(
+                                                                  assoc_templ);
     an_ifc_edg_token_cache_offset
                 token_cache_offset = this->output_state->alloc_token_cache(
                                                              init_token_cache);
@@ -2073,6 +2070,20 @@ output state.  Return the declaration index for the template.
 }  /* an_ifc_il_map::find_or_enter_template */
 
 
+static inline a_boolean is_alias_template(a_template_ptr templ)
+/*
+Return TRUE if the given template is an alias template; otherwise, return
+FALSE.
+*/
+{
+  a_symbol_ptr          template_sym = symbol_for(templ);
+  a_template_symbol_supplement_ptr
+                        tssp = template_sym->variant.template_info;
+
+  return tssp->variant.class_template.is_alias_template;
+}  /* is_alias_template */
+
+
 an_ifc_decl_index an_ifc_il_map::enter_template(a_template_ptr templ)
 /*
 For the given template enter the template declaration into the IFC output
@@ -2083,7 +2094,11 @@ state.  Return the declaration index for the template.
 
   switch (templ->kind) {
     case templk_class:
-      result = this->enter_class_template(templ);
+      if (is_alias_template(templ)) {
+        result = this->enter_alias_template(templ);
+      } else {
+        result = this->enter_class_template(templ);
+      }  /* if */
       break;
     case templk_concept:
       header_unit_catastrophe();
@@ -2980,6 +2995,25 @@ for the void type.
   set_ifc_basis(&fund_type, ifc_tbs_void);
   return result;
 }  /* an_ifc_il_map::enter_void_type */
+
+
+an_ifc_output_token_cache an_ifc_il_map::copy_template_body_to_cache(
+                                                          a_template_ptr templ)
+/*
+This is a utility function for creating an IFC output token cache representing
+the body of the given template.  The created IFC output token cache is
+returned.
+*/
+{
+  an_ifc_output_token_cache
+                result;
+  a_symbol_ptr  templ_sym = symbol_for(templ);
+  a_template_symbol_supplement_ptr
+                tssp = templ_sym->variant.template_info;
+
+  this->enter_token_cache(&result, &tssp->cache.tokens);
+  return result;
+}  /* an_ifc_il_map::copy_template_body_to_cache */
 
 
 static a_constant_ptr enumerator_constants_for_type(a_type_ptr type)
@@ -4991,6 +5025,76 @@ fundamental type.
 }  /* an_ifc_il_map::find_or_enter_unscoped_enum_type */
 
 
+an_ifc_decl_index an_ifc_il_map::enter_alias_template(a_template_ptr templ)
+/*
+Enter the given alias template (templ) into the IFC output state.  Return the
+declaration index of the alias template declaration.
+*/
+{
+  an_ifc_decl_alias
+                alias_templ;
+  an_ifc_decl_index
+                result = this->map_new_decl(templ, &alias_templ);
+
+  /* Set the name information. */
+  an_ifc_text_offset
+                ifc_name_offset = this->entity_name_as_text_offset(templ);
+  set_ifc_name(&alias_templ, ifc_name_offset);
+
+  /* Set the source location information. */
+  an_ifc_source_location
+                ifc_src_pos = this->find_or_enter_entity_pos(templ);
+  set_ifc_locus(&alias_templ, ifc_src_pos);
+
+  /* Set the for-all type describing the parameters. */
+  an_ifc_type_forall
+                forall_type;
+  an_ifc_type_index
+                type_idx = this->output_state->alloc_type(&forall_type);
+  an_ifc_chart_index
+                param_chart = this->enter_template_params(templ);
+  set_ifc_chart(&forall_type, param_chart);
+  set_ifc_subject(&forall_type, this->find_or_enter_alias_typedef_type());
+  set_ifc_type(&alias_templ, type_idx);
+
+  /* Set the scope information. */
+  an_ifc_decl_index
+                scope_decl_idx = this->associate_entity_home_scope(templ);
+  set_ifc_home_scope(&alias_templ, scope_decl_idx);
+
+  /* Set the aliasee information. */
+  an_ifc_type_syntactic
+                syntactic_type;
+  an_ifc_type_index
+                subject_type_idx = this->output_state->alloc_type(
+                                                              &syntactic_type);
+  /* Create a token cache representation of the initializing constant. */
+  an_ifc_output_token_cache
+                init_token_cache = this->copy_template_body_to_cache(templ);
+  an_ifc_expr_index
+                aliasee_expr_idx = this->output_state->alloc_token_cache_expr(
+                                                             init_token_cache);
+  an_ifc_type_forall
+                aliasee_type;
+  an_ifc_type_index
+                aliasee_type_idx = this->output_state->alloc_type(
+                                                                &aliasee_type);
+  set_ifc_expr(&syntactic_type, aliasee_expr_idx);
+  set_ifc_chart(&aliasee_type, param_chart);
+  set_ifc_subject(&aliasee_type, subject_type_idx);
+  set_ifc_aliasee(&alias_templ, aliasee_type_idx);
+
+  /* FIXME: Set specifiers. */
+
+  /* Set the access specifier. */
+  an_ifc_access_sort
+                ifc_access = access_specifier_of(templ);
+  set_ifc_access(&alias_templ, ifc_access);
+  /* FIXME: Set properties. */
+  return result;
+}  /* an_ifc_il_map::enter_alias_template */
+
+
 an_ifc_decl_index an_ifc_il_map::enter_class_template(a_template_ptr templ)
 /*
 Enter the given class template (templ) into the IFC output state.  Return the
@@ -5233,19 +5337,14 @@ declaration index of the free function declaration.
   if (rp->assoc_template != NULL) {
     an_ifc_edg_trait_function_definition
                 def_trait;
+
     this->output_state->alloc_decl_trait(result, &def_trait);
 
     /* Create a token cache representation of the initializing constant. */
-    an_ifc_output_token_cache
-                init_token_cache;
     a_template_ptr
                 templ = rp->assoc_template;
-    a_symbol_ptr
-                templ_sym = symbol_for(templ);
-    a_template_symbol_supplement_ptr
-                tssp = templ_sym->variant.template_info;
-    this->enter_token_cache(&init_token_cache, &tssp->cache.tokens);
-
+    an_ifc_output_token_cache
+                init_token_cache = this->copy_template_body_to_cache(templ);
     an_ifc_edg_token_cache_offset
                 token_cache_offset = this->output_state->alloc_token_cache(
                                                              init_token_cache);
@@ -5577,7 +5676,7 @@ Add all the types in the given scope to the given IL -> IFC mapping.
 */
 {
   for (a_type_ptr type = scope->types; type != NULL; type = type->next) {
-    if (is_template_class_type(type)) {
+    if (is_template_class_type(type) || is_template_alias_type(type)) {
       /* Skip template types (these will be handled by
          dump_scope_templates). */
       continue;

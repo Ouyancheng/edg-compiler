@@ -3246,6 +3246,16 @@ a C++/CLI generic parameter type.
 
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
 
+a_boolean is_template_alias_type(a_type_ptr tp)
+/*
+Return TRUE if the given type is a template alias type.
+*/
+{
+  return tp->kind == tk_typeref && typeref_is_typedef(tp) &&
+         tp->variant.typeref.kind == trk_is_template_alias;
+}  /* is_template_alias_type */
+
+
 a_boolean is_template_class_type(a_type_ptr tp)
 /*
 Return TRUE if the given type is a template class type -- an instance
