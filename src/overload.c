@@ -6588,37 +6588,6 @@ next_argument:
       }  /* if */
       goto reject_function;
     }  /* if */
-    if (concepts_enabled &&
-        (ms_version_is(any_version) || clang_version_is(any_version))) {
-      /* Core issue 2369 clarified that constraints must be checked as soon as
-         template arguments are deduced, which means that it should happen even
-         before the deduced arguments are substituted throughout the routine
-         type.  That is normally done in substitute_template_arguments, just
-         after the template argument list is completed (e.g., with default
-         argument values) and before actual function type substitution.
-         However, MSVC (as of version 19.33) and Clang (as of version 15) do
-         not yet implement that resolution.  For the corresponding modes, we
-         check the constraints here. */
-      /* First check for runaway substitution. */
-      a_template_symbol_supplement_ptr
-              tssp = function_symbol->variant.template_info;
-      if (tssp->variant.function.pending_deductions >
-                                                 max_pending_instantiations) {
-        report_excessive_rescan_depth();
-        goto reject_function;
-      } else if (notes != NULL) {
-        an_ovl_resolution_descr  *descr = ovl_res_descr();
-        if (descr != NULL) descr->curr_template_args = local_template_arg_list;
-      }  /* if */
-      ++(tssp->variant.function.pending_deductions);
-      if (!check_template_constraints(originator_symbol_of(function_symbol),
-                                      local_template_arg_list,
-                                      /*diagnose=*/FALSE)) {
-        --(tssp->variant.function.pending_deductions);
-        goto reject_function;
-      }  /* if */
-      --(tssp->variant.function.pending_deductions);
-    }  /* if */
     routine_type = skip_typerefs(routine_type);
     rtsp = routine_type->variant.routine.extra_info;
     if ((effects_copy_initialization ||
@@ -29066,6 +29035,13 @@ source_is_rvalue.
         !is_any_reference_type(param_type)) {
       goto reject_function;
     }  /* if */
+    if (routine->special_kind == sfk_constructor &&
+        type_is_actual_template_parameter(skip_typerefs(param_type)))
+    {
+      /* For a constructor, we can also exclude an actual template parameter
+         type. */
+      goto reject_function;
+    }  /* if */
     if (!deduce_one_parameter(ptp, (a_type_ptr)NULL,
                               (an_arg_list_elem **)NULL, arg_type,
                               sym, template_arg_list)) {
@@ -29108,16 +29084,6 @@ source_is_rvalue.
     check_assertion(special_kind_is(routine, sfk_operator));
     assign_case = TRUE;
 #endif /* CHECKING */
-  }  /* if */
-  /* Core issue 2369 clarified that template constraints must be checked during
-     template argument deduction.  However, MSVC (as of version 19.33) and
-     Clang (as of version 15) do not yet implement that resolution.  For the
-     corresponding modes, we check the constraints here. */
-  if (concepts_enabled && symbol_is(sym, sk_function_template) &&
-      (clang_version_is(any_version) || ms_version_is(any_version)) &&
-      !check_template_constraints(originator_symbol_of(sym),
-                                  *template_arg_list, /*diagnose=*/FALSE)) {
-    goto reject_function;
   }  /* if */
   /* This is an appropriate function that can be called with a single
      argument.  See if the argument matches. */

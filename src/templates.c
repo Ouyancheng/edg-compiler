@@ -17007,6 +17007,18 @@ a pointer over a reference type or creating an array of references.
              type, so a new routine type will be required. */
           goto make_new_type;
         }  /* if */
+        if (!is_partial_order_check && rtsp->is_conditionally_explicit) {
+          an_attribute_ptr  ap = type->source_corresp.attributes;
+          ap = find_attribute(ak_conditional_explicit, ap);
+          check_assertion(ap != NULL && ap->arguments != NULL &&
+                          ap->arguments->kind == aak_constant);
+          if (constant_is(ap->arguments->variant.constant,
+                          ck_template_param)) {
+            /* A type with a dependent "explicit( <bool-expr> )" attached to
+               it.  The boolean expression must be substituted. */
+            goto make_new_type;
+          }  /* if */
+        }  /* if */
         /* Now examine each of the parameters. */
         for (ptp = rtsp->param_type_list; ptp != NULL; ptp = ptp->next) {
           a_type_ptr ptype;
@@ -17052,19 +17064,6 @@ a pointer over a reference type or creating an array of references.
             goto make_new_type;
           }  /* if */
         }  /* if */
-        if (rtsp->is_conditionally_explicit) {
-          an_attribute_ptr  ap = type->source_corresp.attributes;
-          ap = find_attribute(ak_conditional_explicit, ap);
-          check_assertion(ap != NULL && ap->arguments != NULL &&
-                          ap->arguments->kind == 
-                                         (an_attribute_arg_kind)aak_constant);
-          if (constant_is(ap->arguments->variant.constant,
-                          ck_template_param)) {
-            /* A type with a dependent "explicit( <bool-expr> )" attached to
-               it.  The boolean expression must be substituted. */
-            goto make_new_type;
-          }  /* if */
-        }  /* if */
 #if DEBUG && EXPENSIVE_CHECKING
         /* The return type is not substituted when doing partial ordering. */
         if (!is_partial_order_check && !rtsp->trailing_return_type) {
@@ -17104,6 +17103,34 @@ make_new_type:
         new_rtsp->this_class = new_this_class;
         new_rtsp->has_this_param = (new_this_class != NULL);
         new_rtsp->prototype_scope = NULL;
+        if (!is_partial_order_check && rtsp->is_conditionally_explicit) {
+          /* An internal attribute ak_conditional_explicit is attached to this
+             routine type.  Create a copy of it and, unless substitution should
+             be delayed, substitute its operand. */
+          an_attribute_ptr  ap = type->source_corresp.attributes,
+                            new_ap;
+          ap = find_attribute(ak_conditional_explicit, ap);
+          check_assertion(ap != NULL && ap->arguments != NULL &&
+                          ap->arguments->kind == aak_constant);
+          copy_attribute(ap, new_ap);
+          new_ap->arguments = alloc_attribute_arg();
+          *new_ap->arguments = *ap->arguments;
+          /* MSVC and Clang 18+ delay substitution into the constant-expression
+             of an explicit-specifier. */
+          if (!(ms_version_is(any_version) || clang_version_is(>=180000)) ||
+              ((options & (CTWS_ADJUST_COORDINATES |
+                           CTWS_ALIAS_DEDUCTION_GUIDE)) != 0)) {
+            a_constant_ptr  new_arg;
+            new_arg = copy_template_param_con_with_substitution(
+                                ap->arguments->variant.constant,
+                                templ_arg_list, templ_param_list, bool_type(),
+                                source_pos, options, copy_error, ctws_state);
+            new_ap->arguments->variant.constant = new_arg;
+          }  /* if */
+          new_rtsp->is_conditionally_explicit = TRUE;
+          new_ap->next = new_type->source_corresp.attributes;
+          new_type->source_corresp.attributes = new_ap;
+        }  /* if */
         new_rtsp->param_type_list = copy_param_type_list_with_substitution(
                                         rtsp->param_type_list,
                                         templ_arg_list, templ_param_list,
@@ -17136,30 +17163,6 @@ make_new_type:
         }  /* if */
         set_routine_calling_method_flag(new_type, &null_source_position);
         set_clrcall_convention_if_needed(new_type);
-        if (rtsp->is_conditionally_explicit &&
-            !(options & CTWS_IS_PARTIAL_ORDER_CHECK)) {
-          /* An internal attribute ak_conditional_explicit is attached to this
-             routine type.  Create a copy of it with its operands appropriately
-             substituted. */
-          an_attribute_ptr  ap = type->source_corresp.attributes,
-                            new_ap;
-          a_constant_ptr    new_arg;
-          ap = find_attribute(ak_conditional_explicit, ap);
-          check_assertion(ap != NULL && ap->arguments != NULL &&
-                          ap->arguments->kind == 
-                                         (an_attribute_arg_kind)aak_constant);
-          copy_attribute(ap, new_ap);
-          new_ap->arguments = alloc_attribute_arg();
-          *new_ap->arguments = *ap->arguments;
-          new_arg = copy_template_param_con_with_substitution(
-                                ap->arguments->variant.constant,
-                                templ_arg_list, templ_param_list, bool_type(),
-                                source_pos, options, copy_error, ctws_state);
-          new_ap->arguments->variant.constant = new_arg;
-          new_rtsp->is_conditionally_explicit = TRUE;
-          new_ap->next = new_type->source_corresp.attributes;
-          new_type->source_corresp.attributes = new_ap;
-        }  /* if */
         /* Decrement the number of routine types whose substitution is in
            progress. */
         ctws_state->routine_type_levels--;
@@ -17749,7 +17752,7 @@ are flags passed down to the substitution routines.
            order of processing was clarified by the resolution of Core issue
            2369.  MSVC (as of version 19.33) and Clang (as of version 15) do
            not yet implement that resolution.  For the corresponding modes,
-           the constraints are checked in determine_function_viability. */
+           the constraints are checked below after substitution. */
         (!concepts_enabled ||
          ms_version_is(any_version) || clang_version_is(any_version) ||
          (ctws_options & CTWS_IS_PARTIAL_ORDER_CHECK) ||
@@ -17781,6 +17784,43 @@ are flags passed down to the substitution routines.
 	       					    &templ_sym->decl_position,
 						    ctws_options,
 						    &copy_error, &ctws_state);
+      if (!(ctws_options & CTWS_IS_PARTIAL_ORDER_CHECK)) {
+        if (concepts_enabled && !copy_error &&
+            (ms_version_is(any_version) || clang_version_is(any_version)) &&
+            new_arg_list == NULL) {
+          /* MSVC and Clang check the template constraints after
+             substitution. */
+          if (!check_template_constraints(originator_symbol_of(templ_sym),
+                                          templ_arg_list,
+                                          /*diagnose=*/FALSE)) {
+            copy_error = TRUE;
+          }  /* if */
+        }  /* if */
+        if (!copy_error &&
+            (ms_version_is(any_version) || clang_version_is(>=180000)) &&
+            templ_rout_type->variant.routine.extra_info
+                           ->is_conditionally_explicit) {
+          /* MSVC and Clang 18+ substitute into the constant-expression of an
+             explicit-specifier after checking template constraints. */
+          an_attribute_ptr  ap = templ_rout_type->source_corresp.attributes;
+          ap = find_attribute(ak_conditional_explicit, ap);
+          check_assertion(ap != NULL && ap->arguments != NULL &&
+                          ap->arguments->kind == aak_constant);
+          if (constant_is(ap->arguments->variant.constant,
+                          ck_template_param)) {
+            /* We have already created a copy of the attribute, so we can just
+               replace the argument with the substituted constant. */
+            a_constant_ptr new_arg = copy_template_param_con_with_substitution(
+                                               ap->arguments->variant.constant,
+                                               templ_arg_list,
+                                               templ_param_list, bool_type(),
+                                               &templ_sym->decl_position,
+                                               ctws_options, &copy_error,
+                                               &ctws_state);
+            ap->arguments->variant.constant = new_arg;
+          }  /* if */
+        }  /* if */
+      }  /* if */
       if (scope_pushed) {
         pop_scope();
       }  /* if */
