@@ -17103,34 +17103,6 @@ make_new_type:
         new_rtsp->this_class = new_this_class;
         new_rtsp->has_this_param = (new_this_class != NULL);
         new_rtsp->prototype_scope = NULL;
-        if (!is_partial_order_check && rtsp->is_conditionally_explicit) {
-          /* An internal attribute ak_conditional_explicit is attached to this
-             routine type.  Create a copy of it and, unless substitution should
-             be delayed, substitute its operand. */
-          an_attribute_ptr  ap = type->source_corresp.attributes,
-                            new_ap;
-          ap = find_attribute(ak_conditional_explicit, ap);
-          check_assertion(ap != NULL && ap->arguments != NULL &&
-                          ap->arguments->kind == aak_constant);
-          copy_attribute(ap, new_ap);
-          new_ap->arguments = alloc_attribute_arg();
-          *new_ap->arguments = *ap->arguments;
-          /* MSVC and Clang 18+ delay substitution into the constant-expression
-             of an explicit-specifier. */
-          if (!(ms_version_is(any_version) || clang_version_is(>=180000)) ||
-              ((options & (CTWS_ADJUST_COORDINATES |
-                           CTWS_ALIAS_DEDUCTION_GUIDE)) != 0)) {
-            a_constant_ptr  new_arg;
-            new_arg = copy_template_param_con_with_substitution(
-                                ap->arguments->variant.constant,
-                                templ_arg_list, templ_param_list, bool_type(),
-                                source_pos, options, copy_error, ctws_state);
-            new_ap->arguments->variant.constant = new_arg;
-          }  /* if */
-          new_rtsp->is_conditionally_explicit = TRUE;
-          new_ap->next = new_type->source_corresp.attributes;
-          new_type->source_corresp.attributes = new_ap;
-        }  /* if */
         new_rtsp->param_type_list = copy_param_type_list_with_substitution(
                                         rtsp->param_type_list,
                                         templ_arg_list, templ_param_list,
@@ -17163,6 +17135,34 @@ make_new_type:
         }  /* if */
         set_routine_calling_method_flag(new_type, &null_source_position);
         set_clrcall_convention_if_needed(new_type);
+        if (!is_partial_order_check && rtsp->is_conditionally_explicit) {
+          /* An internal attribute ak_conditional_explicit is attached to this
+             routine type.  Create a copy of it and, unless substitution should
+             be delayed, substitute its operand. */
+          an_attribute_ptr  ap = type->source_corresp.attributes,
+                            new_ap;
+          ap = find_attribute(ak_conditional_explicit, ap);
+          check_assertion(ap != NULL && ap->arguments != NULL &&
+                          ap->arguments->kind == aak_constant);
+          copy_attribute(ap, new_ap);
+          new_ap->arguments = alloc_attribute_arg();
+          *new_ap->arguments = *ap->arguments;
+          /* MSVC and Clang 18+ delay substitution into the constant-expression
+             of an explicit-specifier. */
+          if (!(ms_version_is(any_version) || clang_version_is(>=180000)) ||
+              ((options & (CTWS_ADJUST_COORDINATES |
+                           CTWS_ALIAS_DEDUCTION_GUIDE)) != 0)) {
+            a_constant_ptr  new_arg;
+            new_arg = copy_template_param_con_with_substitution(
+                                ap->arguments->variant.constant,
+                                templ_arg_list, templ_param_list, bool_type(),
+                                source_pos, options, copy_error, ctws_state);
+            new_ap->arguments->variant.constant = new_arg;
+          }  /* if */
+          new_rtsp->is_conditionally_explicit = TRUE;
+          new_ap->next = new_type->source_corresp.attributes;
+          new_type->source_corresp.attributes = new_ap;
+        }  /* if */
         /* Decrement the number of routine types whose substitution is in
            progress. */
         ctws_state->routine_type_levels--;
