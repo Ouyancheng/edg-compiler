@@ -10487,6 +10487,27 @@ Otherwise, return FALSE.
 
 #endif /* UNICODE_VULNERABILITY_DETECTION_SUPPORTED */
 
+void clear_embed_parse_data(void)
+/*
+Set the values of embed_parse_data to default values.
+*/
+{
+  embed_parse_data.file_name = NULL;
+  embed_parse_data.prefix_start = NULL;
+  embed_parse_data.after_prefix = NULL;
+  embed_parse_data.suffix_start = NULL;
+  embed_parse_data.after_suffix = NULL;
+  embed_parse_data.if_empty_start = NULL;
+  embed_parse_data.after_if_empty = NULL;
+  embed_parse_data.limit = (a_host_large_unsigned)-1;
+  embed_parse_data.offset = 0;
+  embed_parse_data.num_prefix_elems = 0;
+  embed_parse_data.num_suffix_elems = 0;
+  embed_parse_data.prefix_is_value_list = TRUE;
+  embed_parse_data.suffix_is_value_list = TRUE;
+}  /* clear_embed_parse_data */
+
+
 static void clear_embed_control_block(void)
 /*
 Set the embed control block values to the default values, i.e., not
@@ -10505,25 +10526,69 @@ currently processing a #embed directive.
 }  /* clear_embed_control_block */
 
 
-void insert_embed_contents(a_const_char          *file_name,
-                           a_source_position     *pos,
-                           a_const_char          *prefix_start,
-                           a_const_char          *after_prefix,
-                           a_const_char          *suffix_start,
-                           a_const_char          *after_suffix,
-                           a_const_char          *if_empty_start,
-                           a_const_char          *after_if_empty,
-                           a_host_large_unsigned limit,
-                           a_host_large_unsigned offset)
+static a_boolean copy_embed_parameter_to_result(a_const_char  *opnd,
+                                                a_const_char  *after_opnd,
+                                                a_boolean     leading_comma,
+                                                unsigned char *buf,
+                                                unsigned      num_elems)
+/*
+If the embed parameter operand contained between opnd and after_opnd
+consists of a comma-separated list of length num_elems, consisting of
+character literals or integer literals with values that can be represented
+in an unsigned char, preceded or followed by a comma as indicated by
+leading_comma, copy the values into buf[0] through buf[num_elems - 1] and
+return TRUE.  Otherwise, return FALSE.  (Note that the list of elements
+was verified to be syntactically correct by parse_embed, but the appearance
+of object-like macros in the list could result in syntactic variation and/or
+more elements than were originally counted.  This is not an error but
+simply results in returning FALSE.)
+*/
+{
+  a_boolean            result = TRUE;
+  a_host_large_integer min_signed_val = (signed char)(1 << (CHAR_BIT - 1));
+  a_host_large_integer max_unsigned_val = (unsigned char)((1 << CHAR_BIT) - 1);
+
+  curr_char_loc = opnd;
+  if (leading_comma && get_token() != tok_comma) {
+    result = FALSE;
+  } else {
+    for (int i = 0; i < num_elems; ++i) {
+      a_boolean            ovflo;
+      a_host_large_integer val;
+      (void)get_token();
+      if (curr_token != tok_char_constant && curr_token != tok_int_constant) {
+        result = FALSE;
+        goto done;
+      }  /* if */
+      val = value_of_integer_constant(&const_for_curr_token, &ovflo);
+      if (ovflo || val < min_signed_val || val > max_unsigned_val) {
+        result = FALSE;
+        goto done;
+      }  /* if */
+      buf[i] = (unsigned char)val;
+      (void)get_token();
+    }  /* for */
+    if (!leading_comma) {
+      if (curr_token != tok_comma) {
+        result = FALSE;
+        goto done;
+      }  /* if */
+      (void)get_token();
+    }  /* if */
+    if (start_of_curr_token != after_opnd) {
+      result = FALSE;
+    }  /* if */
+  }  /* if */
+done:
+  return result;
+}  /* copy_embed_parameter_to_result */
+
+
+void insert_embed_contents(a_source_position     *pos)
 /*
 Set up for inserting the expansion of a #embed directive, appearing in the
-source at *pos and designating file_name as the binary file, into the token
-stream.  The *_start and after_* parameters, if non-null, point to the
-first character and closing parenthesis, respectively, of the operands of
-the prefix, suffix, and if_empty parameters in the directive.  limit is the
-value of the limit directive parameter or (a_host_large_unsigned)-1 if that
-parameter was omitted.  offset is the value of the gnu::offset or
-clang::offset directive parameter, or 0 if that parameter was omitted.
+source at *pos, into the token
+stream.  Information from the directive is in embed_parse_data.
 */
 {
   a_const_char               *full_file_name;
@@ -10534,7 +10599,8 @@ clang::offset directive parameter, or 0 if that parameter was omitted.
   a_directory_name_entry_ptr dir_entry;
   size_t                     file_size;
 
-  (void)open_file_for_input(file_name, /*use_search_path=*/TRUE,
+  (void)open_file_for_input(embed_parse_data.file_name,
+                            /*use_search_path=*/TRUE,
                             /*is_include_file=*/FALSE,
                             /*is_system_include=*/FALSE,
                             /*is_include_next=*/FALSE,
@@ -10548,33 +10614,80 @@ clang::offset directive parameter, or 0 if that parameter was omitted.
      minus the starting offset, or the value of the limit parameter if it
      is smaller. */
   file_size = get_file_size(full_file_name);
-  if (file_size > offset) {
-    file_size -= offset;
+  if (file_size > embed_parse_data.offset) {
+    file_size -= embed_parse_data.offset;
   } else {
     file_size = 0;
   }  /* if */
-  if (limit < file_size) {
-    file_size = limit;
+  if (embed_parse_data.limit < file_size) {
+    file_size = embed_parse_data.limit;
   }  /* if */
   if (file_size != 0) {
-    embed_control.buf = (unsigned char *)alloc_general((sizeof_t)file_size);
-    embed_control.size = file_size;
-    embed_control.next_byte = (a_const_char *)embed_control.buf;
-    embed_control.last_byte = (a_const_char *)(embed_control.buf +
-                                               file_size - 1);
+    size_t        buffer_size = file_size;
+    unsigned char *loc_file_contents;
+    if (embed_parse_data.prefix_is_value_list &&
+        embed_parse_data.suffix_is_value_list) {
+      buffer_size += embed_parse_data.num_prefix_elems +
+                                             embed_parse_data.num_suffix_elems;
+    }  /* if */
+    embed_control.buf = (unsigned char *)alloc_general((sizeof_t)buffer_size);
+    embed_control.size = buffer_size;
     check_assertion(curr_char_loc[1] == LE_NEWLINE);
     embed_control.eol_loc = curr_char_loc;
+    if (buffer_size != file_size) {
+      a_boolean     merged = TRUE;
+      unsigned char *loc_suffix_data =
+             embed_control.buf + embed_parse_data.num_prefix_elems + file_size;
+      if (embed_parse_data.num_suffix_elems != 0 &&
+          !copy_embed_parameter_to_result(embed_parse_data.suffix_start,
+                                          embed_parse_data.after_suffix,
+                                          /*leading_comma=*/TRUE,
+                                          loc_suffix_data,
+                                          embed_parse_data.num_suffix_elems)) {
+        merged = FALSE;
+      }  /* if */
+      if (merged && embed_parse_data.num_prefix_elems != 0 &&
+          !copy_embed_parameter_to_result(embed_parse_data.prefix_start,
+                                          embed_parse_data.after_prefix,
+                                          /*leading_comma=*/FALSE,
+                                          embed_control.buf,
+                                          embed_parse_data.num_prefix_elems)) {
+        merged = FALSE;
+      }  /* if */
+      if (merged) {
+        embed_parse_data.prefix_start = NULL;
+        embed_parse_data.after_prefix = NULL;
+        embed_parse_data.suffix_start = NULL;
+        embed_parse_data.after_suffix = NULL;
+        loc_file_contents = embed_control.buf +
+                                             embed_parse_data.num_prefix_elems;
+        embed_control.last_byte =
+                         (a_const_char *)(embed_control.buf + buffer_size - 1);
+      } else {
+        loc_file_contents = embed_control.buf;
+        embed_control.last_byte =
+                           (a_const_char *)(embed_control.buf + file_size - 1);
+      }  /* if */
+      curr_char_loc = embed_control.eol_loc;
+      curr_token = tok_newline;
+    } else {
+      loc_file_contents = embed_control.buf;
+      embed_control.last_byte =
+                           (a_const_char *)(embed_control.buf + file_size - 1);
+    }  /* if */
+    embed_control.next_byte = (a_const_char *)embed_control.buf;
     embed_control.comma_is_next = FALSE;
-    if (offset != 0) {
-      if (fseek(embed_file, (long int)offset, SEEK_SET) != 0) {
-        str_catastrophe(ec_cannot_read_file, file_name);
+    if (embed_parse_data.offset != 0) {
+      if (fseek(embed_file, (long int)embed_parse_data.offset,
+                SEEK_SET) != 0) {
+        str_catastrophe(ec_cannot_read_file, embed_parse_data.file_name);
       }  /* if */
     }  /* if */
-    if (fread((void *)embed_control.buf, size_t_arg(file_size), 1,
+    if (fread((void *)loc_file_contents, size_t_arg(file_size), 1,
               embed_file) != 1) {
-      str_catastrophe(ec_cannot_read_file, file_name);
+      str_catastrophe(ec_cannot_read_file, embed_parse_data.file_name);
     }  /* if */
-    if (prefix_start != NULL) {
+    if (embed_parse_data.prefix_start != NULL) {
       /* Replace the closing right parenthesis of the prefix operand by an
          LE_END_OF_EMBED_PREFIX lexical escape and set
          embed_control.prefix_loc and curr_char_loc to point to its first
@@ -10582,33 +10695,33 @@ clang::offset directive parameter, or 0 if that parameter was omitted.
          in skip_white_space calling gen_pp_output_for_curr_line starting
          at prefix_start, if preprocessing output is enabled, and
          initiating the processing of the contents of the embed file. */
-      ((char *)after_prefix)[0] = LE_ESCAPE;
-      embed_control.char_following_prefix = after_prefix[1];
-      ((char *)after_prefix)[1] = LE_END_OF_EMBED_PREFIX;
-      embed_control.prefix_loc = prefix_start;
-      embed_control.after_prefix = after_prefix;
-      curr_char_loc = prefix_start;
+      ((char *)embed_parse_data.after_prefix)[0] = LE_ESCAPE;
+      embed_control.char_following_prefix = embed_parse_data.after_prefix[1];
+      ((char *)embed_parse_data.after_prefix)[1] = LE_END_OF_EMBED_PREFIX;
+      embed_control.prefix_loc = embed_parse_data.prefix_start;
+      embed_control.after_prefix = embed_parse_data.after_prefix;
+      curr_char_loc = embed_parse_data.prefix_start;
     } else {
       /* get_token() will immediately start returning the contents of the
          embedded file. */
       embed_control.reading_from_buffer = TRUE;
     }  /* if */
-    if (suffix_start != NULL) {
+    if (embed_parse_data.suffix_start != NULL) {
       /* Replace the closing right parenthesis of the suffix operand by an
          LE_END_OF_EMBED lexical escape and set embed_control.suffix_loc to
          its first character.  The LE_END_OF_EMBED lexical escape will
          result in skip_white_space calling gen_pp_output_for_curr_line
          starting at suffix_loc, if preprocessing output is enabled, and
          then setting curr_char_loc to the saved end-of-line sequence. */
-      ((char *)after_suffix)[0] = LE_ESCAPE;
-      embed_control.char_following_suffix = after_suffix[1];
-      ((char *)after_suffix)[1] = LE_END_OF_EMBED;
-      embed_control.suffix_loc = suffix_start;
+      ((char *)embed_parse_data.after_suffix)[0] = LE_ESCAPE;
+      embed_control.char_following_suffix = embed_parse_data.after_suffix[1];
+      ((char *)embed_parse_data.after_suffix)[1] = LE_END_OF_EMBED;
+      embed_control.suffix_loc = embed_parse_data.suffix_start;
     }  /* if */
     /* Indicate that the special case code at the beginning of get_token
        is needed to handle the embed file contents and prefix. */
     any_initial_get_token_tests_needed = TRUE;
-  } else if (if_empty_start != NULL) {
+  } else if (embed_parse_data.if_empty_start != NULL) {
     /* The file is effectively empty, and an if_empty parameter was
        specified in the directive.  Replace the closing right parenthesis
        of the operand by an LE_END_OF_EMBED lexical escape, and set
@@ -10618,10 +10731,10 @@ clang::offset directive parameter, or 0 if that parameter was omitted.
        output is enabled, and then setting curr_char_loc to the saved
        end-of-line sequence. */
     embed_control.eol_loc = curr_char_loc;
-    ((char *)after_if_empty)[0] = LE_ESCAPE;
-    embed_control.char_following_suffix = after_if_empty[1];
-    ((char *)after_if_empty)[1] = LE_END_OF_EMBED;
-    curr_char_loc = if_empty_start;
+    ((char *)embed_parse_data.after_if_empty)[0] = LE_ESCAPE;
+    embed_control.char_following_suffix = embed_parse_data.after_if_empty[1];
+    ((char *)embed_parse_data.after_if_empty)[1] = LE_END_OF_EMBED;
+    curr_char_loc = embed_parse_data.if_empty_start;
   }  /* if */
   (void)fclose(embed_file);
 }  /* insert_embed_contents */

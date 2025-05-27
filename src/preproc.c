@@ -1969,9 +1969,13 @@ referenced.
 
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
 
-static a_boolean scan_balanced_token_sequence(a_boolean    is_directive,
-                                              a_const_char **operand_start,
-                                              a_const_char **closing_rparen)
+static a_boolean scan_balanced_token_sequence(a_boolean      is_directive,
+                                              a_const_char   **operand_start,
+                                              a_const_char   **closing_rparen,
+                                              a_boolean      *is_valid_list,
+                                              unsigned short *num_elems,
+                                              a_boolean      *leading_comma,
+                                              a_boolean      *trailing_comma)
 /*
 curr_token is a tok_identifer designating a #embed directive parameter name
 appearing in a #embed directive if is_directive is TRUE or in a __has_embed
@@ -1982,11 +1986,23 @@ list was not empty, *operand_start will be set to the first character of
 the token following the left parenthesis and *closing_rparen to the
 terminating ')', or both will be set to NULL if the list was empty (since
 the effect of an empty parameter is as if the parameter were omitted).
+Also, if the operand consists solely of a comma-separated list of
+identifiers, character literals, or integer literals, optionally with a
+leading and/or trailing comma, set *is_valid_list to TRUE and *num_elems to
+the number of values in the list; *leading_comma and *trailing_comma will
+reflect the presence or absence of the leading and final commas.
 */
 {
-  a_boolean    result = TRUE;
-  int          paren_count = 0;
+  a_boolean result = TRUE;
+  int       paren_count = 0;
+  a_boolean comma_is_next = FALSE;
+  a_boolean value_is_next = TRUE;
+  a_boolean first_token = TRUE;
 
+  *is_valid_list = TRUE;
+  *num_elems = 0;
+  *leading_comma = FALSE;
+  *trailing_comma = FALSE;
   if (*operand_start != NULL) {
     /* The parameter is specified more than once. */
     error(ec_dupl_embed_param);
@@ -2008,7 +2024,8 @@ the effect of an empty parameter is as if the parameter were omitted).
     }  /* if */
     result = FALSE;
   } else {
-    a_boolean empty = TRUE;
+    a_boolean    empty = TRUE;
+    a_token_kind prev_token = tok_lparen;
     *operand_start = start_of_curr_token;
     for (;;) {
       if (curr_token == tok_newline) {
@@ -2018,19 +2035,45 @@ the effect of an empty parameter is as if the parameter were omitted).
         result = FALSE;
         break;
       }  /* if */
+      if (first_token) {
+        if (curr_token == tok_comma) {
+          *leading_comma = TRUE;
+          (void)get_token();
+        }  /* if */
+        first_token = FALSE;
+      }  /* if */
       if (curr_token == tok_lparen) {
         empty = FALSE;
+        *is_valid_list = FALSE;
+        comma_is_next = FALSE;
+        value_is_next = FALSE;
         ++paren_count;
       } else if (curr_token == tok_rparen && paren_count-- == 0) {
         if (empty) {
           *operand_start = NULL;
         } else {
           *closing_rparen = start_of_curr_token;
+          *trailing_comma = (prev_token == tok_comma);
         }  /* if */
         break;
       } else {
         empty = FALSE;
+        if (comma_is_next && curr_token == tok_comma) {
+          comma_is_next == FALSE;
+          value_is_next = TRUE;
+        } else if (value_is_next && (curr_token == tok_int_constant ||
+                                     curr_token == tok_char_constant ||
+                                     curr_token == tok_identifier)) {
+          value_is_next = FALSE;
+          comma_is_next = TRUE;
+          ++*num_elems;
+        } else {
+          *is_valid_list = FALSE;
+          comma_is_next = FALSE;
+          value_is_next = TRUE;
+        }  /* if */
       }  /* if */
+      prev_token = curr_token;
       (void)get_token();
     }  /* for */
   }  /* if */
@@ -2039,16 +2082,7 @@ done:
 }  /* scan_balanced_token_sequence */
 
 
-a_boolean parse_embed(a_boolean             is_directive,
-                      a_const_char          **file_name,
-                      a_const_char          **prefix_start,
-                      a_const_char          **after_prefix,
-                      a_const_char          **suffix_start,
-                      a_const_char          **after_suffix,
-                      a_const_char          **if_empty_start,
-                      a_const_char          **after_if_empty,
-                      a_host_large_unsigned *limit,
-                      a_host_large_unsigned *offset)
+a_boolean parse_embed(a_boolean             is_directive)
 /*
 Parse the text following the #embed in an embed directive (in which case
 is_directive is TRUE) or in the operand of a __has_embed operator (in which
@@ -2056,14 +2090,8 @@ case is_directive is FALSE), returning TRUE if no syntax errors or
 unrecognized parameter names were encountered and FALSE otherwise.
 curr_token is either the "embed" identifier in the directive or the left
 parenthesis in the operator.  Unrecognized parameter names will be reported
-as errors only if is_directive is TRUE.  The "start" and "after" parameters
-point to pointers that will be set to the first character and the closing
-')', respectively, of the associated directive parameters (the locations
-will be in the current source line or in macro expansions).  If
-is_directive is FALSE or if the corresponding parameters are omitted,
-*limit and *offset are set to default values; otherwise, they are set to
-the values of the operands of the limit and gnu::offset/clang::offset
-parameters, respectively.
+as errors only if is_directive is TRUE.  Information from the parse is
+returned in embed_parse_data.
 */
 {
   a_const_char   *limit_start = NULL;
@@ -2071,15 +2099,12 @@ parameters, respectively.
   a_const_char   *offset_start = NULL;
   a_const_char   *after_offset = NULL;
   a_boolean      result = TRUE;
+  a_boolean      leading_comma;
+  a_boolean      trailing_comma;
+  a_boolean      dummy_is_value_list;
+  unsigned short dummy_num_elements;
 
-  *prefix_start = NULL;
-  *after_prefix = NULL;
-  *suffix_start = NULL;
-  *after_suffix = NULL;
-  *if_empty_start = NULL;
-  *after_if_empty = NULL;
-  *limit = (a_host_large_unsigned)-1;
-  *offset = 0;
+  clear_embed_parse_data();
   if (!get_header_name()) {
     /* Missing file name. */
     if (is_directive) {
@@ -2093,7 +2118,7 @@ parameters, respectively.
   /* Allocate space for and copy the file name.  (Note that
      get_header_name() sets expand_macros to TRUE, so the rest of the
      text will be scanned with macro expansion enabled.) */
-  *file_name = copy_header_name(/*process_escapes=*/FALSE);
+  embed_parse_data.file_name = copy_header_name(/*process_escapes=*/FALSE);
   /* Move past the file name. */
   (void)get_token();
   /* Scan for parameters. */
@@ -2109,46 +2134,54 @@ parameters, respectively.
       result = FALSE;
       goto done;
     }  /* if */
-    if ((len_of_curr_token == 6 &&
-         memcmp(start_of_curr_token, "prefix", 6) == 0) ||
-        (len_of_curr_token == 10 &&
-         memcmp(start_of_curr_token, "__prefix__", 10) == 0)) {
-      if (!scan_balanced_token_sequence(is_directive, prefix_start,
-                                        after_prefix)) {
+    if (curr_id_is("prefix") || curr_id_is("__prefix__")) {
+      if (scan_balanced_token_sequence(is_directive,
+                                       &embed_parse_data.prefix_start,
+                                       &embed_parse_data.after_prefix,
+                                       &embed_parse_data.prefix_is_value_list,
+                                       &embed_parse_data.num_prefix_elems,
+                                       &leading_comma, &trailing_comma)) {
+        if (leading_comma || ! trailing_comma) {
+          embed_parse_data.prefix_is_value_list = FALSE;
+        }  /* if */
+      } else {
         result = FALSE;
         goto done;
       }  /* if */
-    } else if ((len_of_curr_token == 6 &&
-                memcmp(start_of_curr_token, "suffix", 6) == 0) ||
-               (len_of_curr_token == 10 &&
-                memcmp(start_of_curr_token, "__suffix__", 10) == 0)) {
-      if (!scan_balanced_token_sequence(is_directive, suffix_start,
-                                        after_suffix)) {
+    } else if (curr_id_is("suffix") || curr_id_is("__suffix__")) {
+      if (scan_balanced_token_sequence(is_directive,
+                                       &embed_parse_data.suffix_start,
+                                       &embed_parse_data.after_suffix,
+                                       &embed_parse_data.suffix_is_value_list,
+                                       &embed_parse_data.num_suffix_elems,
+                                       &leading_comma, &trailing_comma)) {
+        if (!leading_comma || trailing_comma) {
+          embed_parse_data.suffix_is_value_list = FALSE;
+        }  /* if */
+      } else {
         result = FALSE;
         goto done;
       }  /* if */
-    } else if ((len_of_curr_token == 8 &&
-                memcmp(start_of_curr_token, "if_empty", 8) == 0) ||
-               (len_of_curr_token == 12 &&
-                memcmp(start_of_curr_token, "__if_empty__", 12) == 0)) {
-      if (!scan_balanced_token_sequence(is_directive, if_empty_start,
-                                        after_if_empty)) {
+    } else if (curr_id_is("if_empty") || curr_id_is("__if_empty__")) {
+      if (!scan_balanced_token_sequence(is_directive,
+                                        &embed_parse_data.if_empty_start,
+                                        &embed_parse_data.after_if_empty,
+                                        &dummy_is_value_list,
+                                        &dummy_num_elements,
+                                        &leading_comma, &trailing_comma)) {
         result = FALSE;
         goto done;
       }  /* if */
-    } else if ((len_of_curr_token == 5 &&
-                memcmp(start_of_curr_token, "limit", 5) == 0) ||
-               (len_of_curr_token == 9 &&
-                memcmp(start_of_curr_token, "__limit__", 9) == 0)) {
+    } else if (curr_id_is("limit") || curr_id_is("__limit__")) {
       if (!scan_balanced_token_sequence(is_directive, &limit_start,
-                                        &after_limit)) {
+                                        &after_limit, &dummy_is_value_list,
+                                        &dummy_num_elements, &leading_comma,
+                                        &trailing_comma)) {
         result = FALSE;
         goto done;
       }  /* if */
-    } else if ((gnu_version_is(any_version) && len_of_curr_token == 3 &&
-                memcmp(start_of_curr_token, "gnu", 3) == 0) ||
-               (clang_version_is(any_version) && len_of_curr_token == 5 &&
-                memcmp(start_of_curr_token, "clang", 5) == 0)) {
+    } else if ((gnu_version_is(any_version) && curr_id_is("gnu")) ||
+               (clang_version_is(any_version) && curr_id_is("clang"))) {
       if (get_token() != tok_colon_colon) {
         pos_error(ec_unrec_embed_param, &id_pos);
         if (is_directive) {
@@ -2169,12 +2202,11 @@ parameters, respectively.
         result = FALSE;
         goto done;
       }  /* if */
-      if ((len_of_curr_token == 6 &&
-           memcmp(start_of_curr_token, "offset", 6) == 0) ||
-          (len_of_curr_token == 10 &&
-           memcmp(start_of_curr_token, "__offset__", 10) == 0)) {
+      if (curr_id_is("offset") || curr_id_is("__offset__")) {
         if (!scan_balanced_token_sequence(is_directive, &offset_start,
-                                          &after_offset)) {
+                                          &after_offset, &dummy_is_value_list,
+                                          &dummy_num_elements, &leading_comma,
+                                          &trailing_comma)) {
           result = FALSE;
           goto done;
         }  /* if */
@@ -2223,20 +2255,28 @@ done:
       curr_char_loc = limit_start;
       (void)get_token();
       scan_integral_constant_expression(cp);
-      *limit = unsigned_value_of_integer_constant(cp, &ovflo);
+      embed_parse_data.limit = unsigned_value_of_integer_constant(cp, &ovflo);
       if (ovflo) {
         conv_line_loc_to_source_pos(limit_start, &pos);
         pos_error(ec_integer_overflow, &pos);
+        result = FALSE;
+      } else if (curr_token != tok_rparen) {
+        pos_error(ec_exp_rparen, &pos_curr_token);
+        result = FALSE;
       }  /* if */
     }  /* if */
     if (offset_start != NULL) {
       curr_char_loc = offset_start;
       (void)get_token();
       scan_integral_constant_expression(cp);
-      *offset = unsigned_value_of_integer_constant(cp, &ovflo);
+      embed_parse_data.offset = unsigned_value_of_integer_constant(cp, &ovflo);
       if (ovflo) {
         conv_line_loc_to_source_pos(offset_start, &pos);
         pos_error(ec_integer_overflow, &pos);
+        result = FALSE;
+      } else if (curr_token != tok_rparen) {
+        pos_error(ec_exp_rparen, &pos_curr_token);
+        result = FALSE;
       }  /* if */
     }  /* if */
     remove_stop_token(tok_rparen);
@@ -2255,22 +2295,9 @@ of a file into the token stream one byte at a time as int constants.
 */
 {
   a_source_position     directive_pos = pos_curr_token;
-  a_const_char          *file_name;
-  a_const_char          *prefix_start;
-  a_const_char          *after_prefix;
-  a_const_char          *suffix_start;
-  a_const_char          *after_suffix;
-  a_const_char          *if_empty_start;
-  a_const_char          *after_if_empty;
-  a_host_large_unsigned limit;
-  a_host_large_unsigned offset;
 
-  if (parse_embed(/*is_directive=*/TRUE, &file_name, &prefix_start,
-                         &after_prefix, &suffix_start, &after_suffix,
-                         &if_empty_start, &after_if_empty, &limit, &offset)) {
-    insert_embed_contents(file_name, &directive_pos, prefix_start,
-                          after_prefix, suffix_start, after_suffix,
-                          if_empty_start, after_if_empty, limit, offset);
+  if (parse_embed(/*is_directive=*/TRUE)) {
+    insert_embed_contents(&directive_pos);
   }  /* if */
 }  /* proc_embed */
 

@@ -1111,6 +1111,89 @@ EXTERN_THREAD a_concatenation_record_ptr
 			   freed and are available for reuse. */
 
 /*
+Information relating to the components of a #embed directive or __has_embed
+preprocessor operator.
+
+The following structure is filled in by parse_embed.  Its values are valid
+only for the duration of the processing of the current #embed/__has_embed.
+*/
+struct an_embed_parse_data {
+  a_const_char	*file_name;
+			/* The specified file name, allocated in the
+			   file-scope IL memory. */
+  a_const_char	*prefix_start;
+			/* Points to the first character of the operand of
+			   the prefix parameter; NULL if the parameter is
+			   omitted. */
+  a_const_char	*after_prefix;
+			/* Points to the closing ')' of the prefix
+			   parameter; NULL if the parameter is omitted. */
+  a_const_char	*suffix_start;
+			/* Points to the first character of the operand of
+			   the suffix parameter; NULL if the parameter is
+			   omitted. */
+  a_const_char	*after_suffix;
+			/* Points to the closing ')' of the suffix
+			   parameter; NULL if the parameter is omitted. */
+  a_const_char	*if_empty_start;
+			/* Points to the first character of the operand of
+			   the if_empty parameter; NULL if the parameter is
+			   omitted. */
+  a_const_char	*after_if_empty;
+			/* Points to the closing ')' of the if_empty
+			   parameter; NULL if the parameter is omitted. */
+  a_host_large_unsigned
+		limit;	/* The value of the operand of the limit parameter;
+			   (a_host_large_unsigned)-1 if the parameter is
+			   omitted. */
+  a_host_large_unsigned
+		offset;	/* The value of the gnu::offset or clang::offset
+			   parameter; 0 if the parameter is omitted. */
+  unsigned short
+		num_prefix_elems;
+			/* If prefix_is_value_list is TRUE, the number of
+			   elements contained in the operand of the prefix
+			   parameter, or 0 if the prefix parameter was
+			   omitted or empty.  If prefix_is_value_list is
+			   FALSE, the value is unspecified. */
+  unsigned short
+		num_suffix_elems;
+			/* If suffix_is_value_list is TRUE, the number of
+			   elements contained in the operand of the suffix
+			   parameter, or 0 if the suffix parameter was
+			   omitted or empty.  If suffix_is_value_list is
+			   FALSE, the value is unspecified. */
+  a_boolean	prefix_is_value_list;
+			/* TRUE if the operand of the prefix parameter
+			   consists solely of a list of comma-separated and
+			   terminated identifiers, integer literals, or
+			   character literals or if the prefix parameter
+			   was omitted or empty; FALSE otherwise. */
+  a_boolean	suffix_is_value_list;
+			/* TRUE if the operand of the suffix parameter
+			   consists solely of a list of comma-separated
+			   identifiers, integer literals, or character
+			   literals, introduced by a comma, or if the
+			   suffix parameter was omitted or empty; FALSE
+			   otherwise. */
+};  /* an_embed_parse_data */
+
+EXTERN_THREAD an_embed_parse_data
+		embed_parse_data;
+			/* Information regarding the #embed directive or
+			   __has_embed operator currently being processed;
+			   value unspecified outside those contexts. */
+
+extern void clear_embed_parse_data(void);
+
+EXTERN_THREAD a_boolean
+		next_token_is_start_of_braced_initializer;
+			/* Set by parse_braced_init_list_full to cause a
+			   #embed directive to return a single
+			   tok_embed_expansion token if possible instead of
+			   a token-by-token expansion. */
+
+/*
 Variables pertaining to the current logical source line.  A "logical"
 source line is what results after trigraph characters (see standard,
 2.2.1.1) have been replaced, and lines ending in newline-backslash
@@ -2656,16 +2739,7 @@ extern void clear_char_overflows(void);
 extern a_token_kind concat_adjacent_string_literals(
                                                  a_boolean function_name_case);
 /* Read tokens from a #embed expansion. */
-extern void insert_embed_contents(a_const_char          *file_name,
-                                  a_source_position     *pos,
-                                  a_const_char          *prefix_start,
-                                  a_const_char          *after_prefix,
-                                  a_const_char          *suffix_start,
-                                  a_const_char          *after_suffix,
-                                  a_const_char          *if_empty_start,
-                                  a_const_char          *after_if_empty,
-                                  a_host_large_unsigned limit,
-                                  a_host_large_unsigned offset);
+extern void insert_embed_contents(a_source_position     *pos);
 /* Retrieve a character replaced in a #embed directive by a lexical escape. */
 extern a_const_char orig_char_from_embed_directive(a_const_char lex_escape);
 /* Get next token. */

@@ -5577,14 +5577,6 @@ empty, and "2" if the file exists but is empty.
 {
   a_const_char          *result = "0";
   a_const_char          *file_name;
-  a_const_char          *prefix_start;
-  a_const_char          *after_prefix;
-  a_const_char          *suffix_start;
-  a_const_char          *after_suffix;
-  a_const_char          *if_empty_start;
-  a_const_char          *after_if_empty;
-  a_host_large_unsigned limit;
-  a_host_large_unsigned offset;
   a_boolean             saved_in_pp_if = in_pp_if_expression;
 
   /* Ensure that get_token() doesn't turn parameter names into integer 0
@@ -5598,14 +5590,14 @@ empty, and "2" if the file exists but is empty.
       curr_char_loc = start_of_curr_token;
     }  /* if */
   } else {
-    if (parse_embed(/*is_directive=*/FALSE, &file_name, &prefix_start,
-                    &after_prefix, &suffix_start, &after_suffix,
-                    &if_empty_start, &after_if_empty, &limit, &offset)) {
-      file_name = resolve_header(file_name, /*is_system_include=*/FALSE,
+    if (parse_embed(/*is_directive=*/FALSE)) {
+      file_name = resolve_header(embed_parse_data.file_name,
+                                 /*is_system_include=*/FALSE,
                                  /*is_include_next=*/FALSE, /*is_embed=*/TRUE,
                                  /*suppress_diagnostics=*/TRUE);
       if (file_name != NULL) {
-        if (limit > 0 && get_file_size(file_name) > offset) {
+        if (embed_parse_data.limit > 0 &&
+            get_file_size(file_name) > embed_parse_data.offset) {
           result = "1";
         } else {
           /* The effective file size is 0. */
