@@ -2059,7 +2059,7 @@ reflect the presence or absence of the leading and final commas.
       } else {
         empty = FALSE;
         if (comma_is_next && curr_token == tok_comma) {
-          comma_is_next == FALSE;
+          comma_is_next = FALSE;
           value_is_next = TRUE;
         } else if (value_is_next && (curr_token == tok_int_constant ||
                                      curr_token == tok_char_constant ||

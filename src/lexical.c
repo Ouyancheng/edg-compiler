@@ -10552,7 +10552,7 @@ simply results in returning FALSE.)
   if (leading_comma && get_token() != tok_comma) {
     result = FALSE;
   } else {
-    for (int i = 0; i < num_elems; ++i) {
+    for (unsigned i = 0; i < num_elems; ++i) {
       a_boolean            ovflo;
       a_host_large_integer val;
       (void)get_token();
