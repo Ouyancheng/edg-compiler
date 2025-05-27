@@ -1114,8 +1114,9 @@ EXTERN_THREAD a_concatenation_record_ptr
 Information relating to the components of a #embed directive or __has_embed
 preprocessor operator.
 
-The following structure is filled in by parse_embed.  Its values are valid
-only for the duration of the processing of the current #embed/__has_embed.
+The following structure is populated by parse_embed.  Its values are valid
+only for the duration of the processing of the current #embed/__has_embed
+construct.
 */
 struct an_embed_parse_data {
   a_const_char	*file_name;
@@ -1166,15 +1167,17 @@ struct an_embed_parse_data {
   a_boolean	prefix_is_value_list;
 			/* TRUE if the operand of the prefix parameter
 			   consists solely of a list of comma-separated and
-			   terminated identifiers, integer literals, or
-			   character literals or if the prefix parameter
-			   was omitted or empty; FALSE otherwise. */
+			   terminated identifiers (to allow for object-like
+			   macros), integer literals, or character literals
+			   or if the prefix parameter was omitted or empty;
+			   FALSE otherwise. */
   a_boolean	suffix_is_value_list;
 			/* TRUE if the operand of the suffix parameter
 			   consists solely of a list of comma-separated
-			   identifiers, integer literals, or character
-			   literals, introduced by a comma, or if the
-			   suffix parameter was omitted or empty; FALSE
+			   identifiers (to allow for object-like macros),
+			   integer literals, or character literals,
+			   introduced by a comma, or if the suffix
+			   parameter was omitted or empty; FALSE
 			   otherwise. */
 };  /* an_embed_parse_data */
 
@@ -1182,7 +1185,8 @@ EXTERN_THREAD an_embed_parse_data
 		embed_parse_data;
 			/* Information regarding the #embed directive or
 			   __has_embed operator currently being processed;
-			   value unspecified outside those contexts. */
+			   the value is unspecified outside those
+			   contexts. */
 
 extern void clear_embed_parse_data(void);
 

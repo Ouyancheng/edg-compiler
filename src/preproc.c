@@ -1990,7 +1990,7 @@ Also, if the operand consists solely of a comma-separated list of
 identifiers, character literals, or integer literals, optionally with a
 leading and/or trailing comma, set *is_valid_list to TRUE and *num_elems to
 the number of values in the list; *leading_comma and *trailing_comma will
-reflect the presence or absence of the leading and final commas.
+reflect the presence or absence of the initial and final commas.
 */
 {
   a_boolean result = TRUE;
@@ -2037,6 +2037,7 @@ reflect the presence or absence of the leading and final commas.
       }  /* if */
       if (first_token) {
         if (curr_token == tok_comma) {
+          empty = FALSE;
           *leading_comma = TRUE;
           (void)get_token();
         }  /* if */
@@ -2070,7 +2071,7 @@ reflect the presence or absence of the leading and final commas.
         } else {
           *is_valid_list = FALSE;
           comma_is_next = FALSE;
-          value_is_next = TRUE;
+          value_is_next = FALSE;
         }  /* if */
       }  /* if */
       prev_token = curr_token;
@@ -2141,7 +2142,7 @@ returned in embed_parse_data.
                                        &embed_parse_data.prefix_is_value_list,
                                        &embed_parse_data.num_prefix_elems,
                                        &leading_comma, &trailing_comma)) {
-        if (leading_comma || ! trailing_comma) {
+        if (leading_comma || !trailing_comma) {
           embed_parse_data.prefix_is_value_list = FALSE;
         }  /* if */
       } else {

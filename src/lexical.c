@@ -10532,21 +10532,23 @@ static a_boolean copy_embed_parameter_to_result(a_const_char  *opnd,
                                                 unsigned char *buf,
                                                 unsigned      num_elems)
 /*
-If the embed parameter operand contained between opnd and after_opnd
-consists of a comma-separated list of length num_elems, consisting of
-character literals or integer literals with values that can be represented
-in an unsigned char, preceded or followed by a comma as indicated by
-leading_comma, copy the values into buf[0] through buf[num_elems - 1] and
-return TRUE.  Otherwise, return FALSE.  (Note that the list of elements
-was verified to be syntactically correct by parse_embed, but the appearance
-of object-like macros in the list could result in syntactic variation and/or
-more elements than were originally counted.  This is not an error but
-simply results in returning FALSE.)
+If the embed parameter operand contained between opnd and after_opnd is a
+comma-separated list of length num_elems, consisting of character literals
+or integer literals with values that can be represented in an unsigned
+char, preceded or followed by a comma as indicated by leading_comma, copy
+the values into buf[0] through buf[num_elems - 1] and return TRUE.
+Otherwise, return FALSE.  (Note that the list of elements was verified to
+be syntactically correct by parse_embed, but the appearance of object-like
+macros in the list could result in syntactic variation and/or more elements
+than were originally counted.  This is not an error but simply results in
+returning FALSE.)
 */
 {
   a_boolean            result = TRUE;
   a_host_large_integer min_signed_val = (signed char)(1 << (CHAR_BIT - 1));
   a_host_large_integer max_unsigned_val = (unsigned char)((1 << CHAR_BIT) - 1);
+  a_const_char         *saved_curr_char_loc = curr_char_loc;
+  a_token_kind         saved_curr_token = curr_token;
 
   curr_char_loc = opnd;
   if (leading_comma && get_token() != tok_comma) {
@@ -10567,8 +10569,15 @@ simply results in returning FALSE.)
       }  /* if */
       buf[i] = (unsigned char)val;
       (void)get_token();
+      if (curr_token != tok_comma &&
+          !(curr_token == tok_rparen && i == num_elems - 1)) {
+        result = FALSE;
+        goto done;
+      }  /* if */
     }  /* for */
     if (!leading_comma) {
+      /* If a leading comma is not expected, the list should end with a
+         comma. */
       if (curr_token != tok_comma) {
         result = FALSE;
         goto done;
@@ -10576,10 +10585,15 @@ simply results in returning FALSE.)
       (void)get_token();
     }  /* if */
     if (start_of_curr_token != after_opnd) {
+      /* There are more values than were expected, presumably due to macro
+         expansion, so the full list will not fit into the space allocated
+         in the buffer. */
       result = FALSE;
     }  /* if */
   }  /* if */
 done:
+  curr_char_loc = saved_curr_char_loc;
+  curr_token = saved_curr_token;
   return result;
 }  /* copy_embed_parameter_to_result */
 
@@ -10587,8 +10601,8 @@ done:
 void insert_embed_contents(a_source_position     *pos)
 /*
 Set up for inserting the expansion of a #embed directive, appearing in the
-source at *pos, into the token
-stream.  Information from the directive is in embed_parse_data.
+source at *pos, into the token stream.  Information about the directive is
+in embed_parse_data.
 */
 {
   a_const_char               *full_file_name;
@@ -10627,6 +10641,12 @@ stream.  Information from the directive is in embed_parse_data.
     unsigned char *loc_file_contents;
     if (embed_parse_data.prefix_is_value_list &&
         embed_parse_data.suffix_is_value_list) {
+      /* The prefix and suffix parameters, if any, are syntactically
+         suitable for merging with the data from the file, so allow space
+         for them in the buffer.  If copy_embed_parameter_to_result
+         determines that the operands are not, in fact, suitable, either
+         because of values outside the range of an unsigned char or because
+         of macro expansion, the extra space will simply be ignored. */
       buffer_size += embed_parse_data.num_prefix_elems +
                                              embed_parse_data.num_suffix_elems;
     }  /* if */
@@ -10635,6 +10655,13 @@ stream.  Information from the directive is in embed_parse_data.
     check_assertion(curr_char_loc[1] == LE_NEWLINE);
     embed_control.eol_loc = curr_char_loc;
     if (buffer_size != file_size) {
+      /* The prefix and/or suffix parameters were non-empty and potentially
+         suitable for merging with the file contents.  Attempt to copy the
+         operand(s) to the buffer at the beginning or the end.  If the copy
+         is successful, set the target of the file read to follow the data
+         from the prefix parameter, if any.  Otherwise, just read the file
+         contents into the beginning of the buffer and ignore the extra
+         space at the end. */
       a_boolean     merged = TRUE;
       unsigned char *loc_suffix_data =
              embed_control.buf + embed_parse_data.num_prefix_elems + file_size;
@@ -10655,6 +10682,8 @@ stream.  Information from the directive is in embed_parse_data.
         merged = FALSE;
       }  /* if */
       if (merged) {
+        /* Indicate that the general-case processing of the prefix and
+           suffix parameters is not needed. */
         embed_parse_data.prefix_start = NULL;
         embed_parse_data.after_prefix = NULL;
         embed_parse_data.suffix_start = NULL;
@@ -10668,8 +10697,6 @@ stream.  Information from the directive is in embed_parse_data.
         embed_control.last_byte =
                            (a_const_char *)(embed_control.buf + file_size - 1);
       }  /* if */
-      curr_char_loc = embed_control.eol_loc;
-      curr_token = tok_newline;
     } else {
       loc_file_contents = embed_control.buf;
       embed_control.last_byte =
