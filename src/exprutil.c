@@ -26532,14 +26532,14 @@ p_fatal and p_copy_error are NULL by default.
     a_test_constraint_result
                         constraint_result;
     an_ovl_res_stack    *ovl_stack = ovl_res_stack();
-    a_boolean           note_pass = FALSE;
+    a_boolean           notes_pass = FALSE;
     a_template_arg_ptr  template_arg_list = NULL;
     a_diag_list         interpret_diag_list = { NULL, NULL };
     if (ovl_stack != NULL && !ovl_stack->is_empty() &&
         ovl_stack->top().emit_note_diagnostics) {
       /* Overload resolution failed and we are repeating constraint checking
          to collect diagnostic notes. */
-      note_pass = TRUE;
+      notes_pass = TRUE;
     }  /* if */
     if (!subst_pairs.is_empty()) {
       template_arg_list = subst_pairs.front_elem().args;
@@ -26585,7 +26585,7 @@ p_fatal and p_copy_error are NULL by default.
       }  /* if */
       /* Defer instantiations during constraint checking. */
       defer_instantiations++;
-      if (note_pass) {
+      if (notes_pass) {
         /* Re-evaluate the constraint (even if it was cached before) because
            we want to record a note for the one that failed. */
         cached_result = a_test_constraint_result::none;
@@ -26606,8 +26606,10 @@ p_fatal and p_copy_error are NULL by default.
            have caused the constraint test to be cached already.  We therefore
            use "map_or_replace" instead of just "map" here. */
         test.template_arg_list = copy_template_arg_list(template_arg_list);
-        (void)constraint_satisfaction_cache->map_or_replace_with_hash(
+        if (!notes_pass) {
+          (void)constraint_satisfaction_cache->map_or_replace_with_hash(
                                                 test, constraint_result, hash);
+        }  /* if */
         if (!subst_pairs.is_empty()) {
           /* This is a new substitution. */
           a_ctws_state            new_ctws_state;
@@ -26676,7 +26678,7 @@ p_fatal and p_copy_error are NULL by default.
           }  /* if */
         }  /* if */
       }  /* if */
-      if (constraint_result != cached_result && !note_pass) {
+      if (constraint_result != cached_result && !notes_pass) {
         /* Update the cached result. */
         (void)constraint_satisfaction_cache->map_or_replace_with_hash(
                                                 test, constraint_result, hash);
@@ -26726,7 +26728,7 @@ p_fatal and p_copy_error are NULL by default.
         unexpected_condition_str2("constraint_satisfied_full:",
                                   "unexpected result");
     }  /* switch */
-    if (!result && note_pass) {
+    if (!result && notes_pass) {
       an_ovl_resolution_descr  *ovl_descr = &ovl_stack->top();
       a_diag_list              *notes = &ovl_descr->notes;
       if (!ovl_descr->constraint_failure) {
