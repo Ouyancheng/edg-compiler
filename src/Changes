@@ -1,5 +1,12 @@
 Version 6.8
 
+5/28/25  [EDGcpfe/28204]
+GNU compatibility: Update builtin signatures to 14.3.0
+
+GCC 14.3.0 added some new builtins declared by "#pragma GCC aarch64" for
+"arm_acle.h" and "arm_sve.h".
+
+
 5/26/25  [EDGcpfe/26510,EDGcpfe/26763,EDGcpfe/28158]
 MSVC and Clang compatibility: substitution of conditional explicit specifiers
 
