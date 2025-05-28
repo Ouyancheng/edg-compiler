@@ -2256,28 +2256,38 @@ done:
       curr_char_loc = limit_start;
       (void)get_token();
       scan_integral_constant_expression(cp);
-      embed_parse_data.limit = unsigned_value_of_integer_constant(cp, &ovflo);
-      if (ovflo) {
-        conv_line_loc_to_source_pos(limit_start, &pos);
-        pos_error(ec_integer_overflow, &pos);
+      if (is_error_constant(cp)) {
         result = FALSE;
-      } else if (curr_token != tok_rparen) {
-        pos_error(ec_exp_rparen, &pos_curr_token);
-        result = FALSE;
+      } else {
+        embed_parse_data.limit = unsigned_value_of_integer_constant(cp,
+                                                                    &ovflo);
+        if (ovflo) {
+          conv_line_loc_to_source_pos(limit_start, &pos);
+          pos_error(ec_integer_overflow, &pos);
+          result = FALSE;
+        } else if (curr_token != tok_rparen) {
+          pos_error(ec_exp_rparen, &pos_curr_token);
+          result = FALSE;
+        }  /* if */
       }  /* if */
     }  /* if */
     if (offset_start != NULL) {
       curr_char_loc = offset_start;
       (void)get_token();
       scan_integral_constant_expression(cp);
-      embed_parse_data.offset = unsigned_value_of_integer_constant(cp, &ovflo);
-      if (ovflo) {
-        conv_line_loc_to_source_pos(offset_start, &pos);
-        pos_error(ec_integer_overflow, &pos);
+      if (is_error_constant(cp)) {
         result = FALSE;
-      } else if (curr_token != tok_rparen) {
-        pos_error(ec_exp_rparen, &pos_curr_token);
-        result = FALSE;
+      } else {
+        embed_parse_data.offset = unsigned_value_of_integer_constant(cp,
+                                                                     &ovflo);
+        if (ovflo) {
+          conv_line_loc_to_source_pos(offset_start, &pos);
+          pos_error(ec_integer_overflow, &pos);
+          result = FALSE;
+        } else if (curr_token != tok_rparen) {
+          pos_error(ec_exp_rparen, &pos_curr_token);
+          result = FALSE;
+        }  /* if */
       }  /* if */
     }  /* if */
     remove_stop_token(tok_rparen);
