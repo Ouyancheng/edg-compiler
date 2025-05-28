@@ -10761,6 +10761,7 @@ in embed_parse_data.
     ((char *)embed_parse_data.after_if_empty)[0] = LE_ESCAPE;
     embed_control.char_following_suffix = embed_parse_data.after_if_empty[1];
     ((char *)embed_parse_data.after_if_empty)[1] = LE_END_OF_EMBED;
+    embed_control.suffix_loc = embed_parse_data.if_empty_start;
     curr_char_loc = embed_parse_data.if_empty_start;
   }  /* if */
   (void)fclose(embed_file);
