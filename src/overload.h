@@ -562,7 +562,7 @@ struct an_ovl_resolution_descr {
   a_bit_field   in_comparison_rewrite:1;
                         /* TRUE if we are completing a "comparison rewrite"
                            (which inhibits recursive rewrites). */
-  a_bit_field        constraint_failure:1;
+  a_bit_field   constraint_failure:1;
                         /* TRUE if we encountered a constraint failure while
                            recording notes (reset once the associated
                            candidate is rejected). */
