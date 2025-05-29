@@ -2572,6 +2572,26 @@ previous declaration.
            the earlier declaration came from a system header. */
         severity = pos_adjusted_severity(severity, prev_decl);
       }  /* if */
+      if ((int)severity > (int)es_warning && clang_mode &&
+          rp != NULL && rp->source_corresp.name_linkage == nlk_external &&
+          is_nothrow_spec(old_esp)) {
+        /* Clang exhibits an oddity where several C standard-library functions
+           (like sin or strlen) can be declared non-throwing and then
+           re-declared without an exception specification.  We identify those
+           function by checking if they have a corresponding __builtin_...
+           version. */
+        a_symbol_locator  loc;
+        sizeof_t          name_len = strlen(rp->source_corresp.name),
+                          prefix_len = sizeof("__builtin_")-1;
+        name_len += prefix_len;
+        ensure_temp_text_buffer_space(name_len + 1);
+        strcpy(temp_text_buffer, "__builtin_");
+        strcpy(&temp_text_buffer[prefix_len], rp->source_corresp.name);
+        (void)find_symbol(temp_text_buffer, name_len, &loc);
+        if (loc.symbol_header->is_builtin_function) {
+          severity = es_warning;
+        }  /* if */
+      }  /* if */
       pos_sy_diagnostic(severity,
                         is_redecl?
                           ec_omitted_exception_specification :
@@ -8510,12 +8530,12 @@ use of).
            builtins appears to be too lenient.  Also, the check above covers
            the "family" of builtins (e.g., checking for "ceil" covers "ceilf"
            and "ceill" as well). */
+        a_symbol_locator  loc;
+        a_symbol_ptr      bsym = NULL;
         name_len += 10;
         ensure_temp_text_buffer_space(name_len + 1);
         strcpy(temp_text_buffer, "__builtin_");
         strcpy(&temp_text_buffer[10], rp->source_corresp.name);
-        a_symbol_locator  loc;
-        a_symbol_ptr bsym = NULL;
         bsym = find_symbol(temp_text_buffer, name_len, &loc);
         if (bsym == NULL) {
           /* If no matching symbol was found, it's possible that the underlying
