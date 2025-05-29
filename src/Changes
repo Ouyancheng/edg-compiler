@@ -1,5 +1,20 @@
 Version 6.8
 
+5/29/25  [EDGcpfe/27230,EDGcpfe/28189]
+__cpp_constexpr_in_decltype
+
+The C++ standardization committee's paper P0859R0 introduced very specific
+rules determining when a (constexpr) function template or variable template
+must be instantiated to be available for potential constant evaluation.  Those
+rules, however, introduce incompatibilities by triggering instantiations that
+lead to errors even though the instantiation is not actually used by the
+constant evaluation.  The front end therefore implements a less stringent
+approach to this problem, that avoids unneeded instantiation.  It now
+nonetheless defines the feature macro __cpp_constexpr_in_decltype that
+indicates support for P0859R0 because the front end's approach is a pure
+extension of that paper (and better approximates the behavior of GCC and MSVC).
+
+
 5/29/25  [EDGcpfe/27137]
 static_assert failure details
 

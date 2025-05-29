@@ -12015,6 +12015,18 @@ command line -D options.
                                  /*cannot_be_redefined=*/TRUE,
                                  /*ref_suppresses_pch_file=*/FALSE);
       }  /* if */
+      if (cpp20_mode) {
+        /* __cpp_constexpr_in_decltype is associated with P0859R0, which is a
+           paper that establishes when instantiations need to be produced
+           to enable constant-evaluation.  Those requirements are, however,
+           stricter than what is really needed and stricter than what the
+           front end implements (and what GCC and MSVC appear to implement).
+           Since the front end's behavior is a pure extension of the standard
+           requirements, we nonetheless define the feature macro. */
+        (void)enter_predef_macro("201711L", "__cpp_constexpr_in_decltype",
+                                 /*cannot_be_redefined=*/FALSE,
+                                 /*ref_suppresses_pch_file=*/FALSE);
+      }  /* if */
       if (class_template_arg_deduction_enabled) {
         a_const_char *value;
         if (cpp20_mode) {
