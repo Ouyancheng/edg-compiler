@@ -7616,7 +7616,7 @@ updated with a note indicating which values were compared.
     switch (expr->variant.operation.kind) {
       case eok_eq:  opstr = "==";  break;
       case eok_ne:  opstr = "!=";  break;
-      case eok_gt:  opstr = "<";   break;
+      case eok_gt:  opstr = ">";   break;
       case eok_lt:  opstr = "<";   break;
       case eok_ge:  opstr = ">=";  break;
       case eok_le:  opstr = "<=";  break;
