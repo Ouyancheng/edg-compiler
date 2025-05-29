@@ -7026,12 +7026,12 @@ Interpret the given block statement and its associated scope (if any).
     if (vp != NULL || scope_is(scope, sck_function)) {
       save_storage_stack(ips, saved_stack);
       local_storage = TRUE;
-      for (; vp != NULL; vp = vp->next) {
+      for (; vp != NULL && result; vp = vp->next) {
         /* Ordinarily, local variables are allocated and initialized when
            interpreting their associated stmk_init entry.  In C++20, however,
            uninitialized variables are permitted in constexpr expressions
            (via changes introduced by P1331R2). */
-        if (vp->init_kind == (an_init_kind)initk_none) {
+        if (vp->init_kind == initk_none) {
           (void)do_constexpr_alloc_variable(ips, vp, &result);
         }  /* if */
       }  /* for */
@@ -7591,23 +7591,28 @@ done_with_switch:
 }  /* do_constexpr_switch */
 
 
-static void add_failed_comparison_note_if_applicable(
-                                                    an_interpreter_state *ips,
-                                                    an_expr_node         *expr)
+static a_boolean eval_bool_assertion(an_interpreter_state  *ips,
+                                     an_expr_node          *expr,
+                                     a_boolean             *passed)
 /*
-The given expression is a boolean constant expression that produced a false
-result.  If the top-level operation is an integer comparison, record in
-ips->diag_list a note describing the failed comparison (e.g., along the lines
-of "the final comparison was 3 < 1").
+The given expression produces a boolean value that should evaluate to a true
+value to "pass" (e.g., the condition in a static_assert declaration).
+Evaluate the expression and return TRUE and record its value in *passed if it
+is successfully evaluated.  Otherwise return FALSE.  If *passed is returned
+FALSE and the top-level operation is an integer comparison, diag_list is
+updated with a note indicating which values were compared.
 */
 {
+  a_boolean   result = TRUE;
+  char const  *opstr = NULL;
+
   if (expr != NULL && is_constant_node(expr)) {
-    expr = node_constant(expr)->expr;
+    an_expr_node  *backing_expr = node_constant(expr)->expr;
+    if (backing_expr != NULL) expr = backing_expr;
   }  /* if */
   if (expr != NULL && is_operation_node(expr) &&
       expr->variant.operation.type_kind == tk_integer &&
       !ips->suspend_diag_list) {
-    char const  *opstr;
     switch (expr->variant.operation.kind) {
       case eok_eq:  opstr = "==";  break;
       case eok_ne:  opstr = "!=";  break;
@@ -7615,14 +7620,29 @@ of "the final comparison was 3 < 1").
       case eok_lt:  opstr = "<";   break;
       case eok_ge:  opstr = ">=";  break;
       case eok_le:  opstr = "<=";  break;
-      default:      opstr = NULL;  break;
+      default:                     break;
     }  /* switch */
-    if (opstr != NULL) {
-      an_expr_node  *lhs = expr->variant.operation.operands,
-                    *rhs = lhs->next;
-      a_constant  *lhcp = local_constant(), *rhcp = local_constant();
-      if (evaluate_expr(ips, lhs, /*force_prvalue=*/FALSE, lhcp) &&
-          evaluate_expr(ips, rhs, /*force_prvalue=*/FALSE, rhcp)) {
+  }  /* if */
+  if (opstr != NULL) {
+    an_expr_node  *lhs = expr->variant.operation.operands,
+                  *rhs = lhs->next;
+    a_constant  *lhcp = local_constant(), *rhcp = local_constant();
+    if (evaluate_expr(ips, lhs, /*force_prvalue=*/FALSE, lhcp) &&
+        !ips->input_error &&
+        evaluate_expr(ips, rhs, /*force_prvalue=*/FALSE, rhcp) &&
+        !ips->input_error) {
+      int  cmp = cmp_integer_constants(lhcp, rhcp);
+      switch (expr->variant.operation.kind) {
+        case eok_eq:  *passed = cmp == 0;  break;
+        case eok_ne:  *passed = cmp != 0;  break;
+        case eok_gt:  *passed = cmp > 0;   break;
+        case eok_lt:  *passed = cmp < 0;   break;
+        case eok_ge:  *passed = cmp >= 0;  break;
+        case eok_le:  *passed = cmp <= 0;  break;
+        default:
+          unexpected_condition();
+      }  /* switch */
+      if (!*passed) {
         more_info_st3_diagnostic(ec_comparison_details, &expr->position,
                                  decimal_str_for_integer_constant(lhcp)
                                    .to_allocated_storage(FE_allocator<char>{}),
@@ -7631,11 +7651,22 @@ of "the final comparison was 3 < 1").
                                    .to_allocated_storage(FE_allocator<char>{}),
                                  &ips->diag_list);
       }  /* if */
-      release_local_constant(&lhcp);
-      release_local_constant(&rhcp);
+    } else if (ips->input_error) {
+      *passed = FALSE;
+    } else {
+      result = FALSE;
+      *passed = FALSE;
     }  /* if */
+    release_local_constant(&lhcp);
+    release_local_constant(&rhcp);
+  } else {
+    a_constant  *cp = local_constant();
+    result = evaluate_expr(ips, expr, /*force_prvalue=*/FALSE, cp);
+    *passed = result && !is_zero_constant(cp);
+    release_local_constant(&cp);
   }  /* if */
-}  /* add_failed_comparison_note_if_applicable */
+  return result;
+}  /* eval_bool_assertion */
 
 
 static a_boolean do_assumption_check(an_interpreter_state  *ips,
@@ -7652,13 +7683,14 @@ evaluates to false.
     /* Microsoft (and Clang in Microsoft mode) don't appear to implement this
        at this time. */
   } else {
-    a_constant           *cp = local_constant();
+    a_boolean            assertion_value;
     an_attribute_arg_ptr aap = ap->arguments;
     an_expr_node_ptr     expr;
     a_call_frame_ptr     frame = ips->curr_call_frame;
     a_scope_ptr          callee_scope = innermost_function_scope;
     a_boolean            saved_side_effects_disabled =
                                                    ips->side_effects_disabled;
+    a_diagnostic_ptr     dp = ips->diag_list.tail;
 
     ips->side_effects_disabled = TRUE;
     check_assertion(ap->kind == ak_assume && aap->kind == aak_expression);
@@ -7672,17 +7704,21 @@ evaluates to false.
     expr = expr_node_from_attribute_arg(aap, callee_scope);
     if (expr == NULL || is_error_type(expr->type)) {
       do_constexpr_fail(result);
-    } else if (evaluate_expr(ips, expr, /*force_prvalue=*/FALSE, cp)) {
-      if (is_false_constant(cp)) {
-        info_with_pos(ec_assumption_failed, &expr->position, ips);
-        add_failed_comparison_note_if_applicable(ips, expr);
+    } else if (eval_bool_assertion(ips, expr, &assertion_value)) {
+      if (!assertion_value) {
+        /* Add a new note indicating that the assumption failed.  The call to
+           eval_bool_assertion may have appended a note after dp (indicating
+           the operands of an integer comparison that failed, if applicable).  
+           If so, the new note should be inserted before that. */
+        a_diag_list  note = { NULL, NULL};
+        more_info_diagnostic(ec_assumption_failed, &expr->position, &note);
+        splice_diag_list(&note, &ips->diag_list, dp);
         do_constexpr_fail(result);
       }  /* if */
     } else {
       /* Failing to evaluate the assumption expression doesn't cause the
          constant evaluation to fail. */
     }  /* if */
-    release_local_constant(&cp);
     ips->side_effects_disabled = saved_side_effects_disabled;
   }  /* if */
   return result;
@@ -26802,6 +26838,84 @@ to a prvalue (without changing expr itself).
   }  /* if */
   return result;
 }  /* evaluate_expr */
+
+
+a_boolean interpret_bool_assertion(an_expr_node    *assert_expr,
+                                   a_constant_ptr  result_con,
+                                   a_diag_list     *diag_list)
+/*
+Interpret assert_expr, which should have bool type is non-error cases.  If
+successful return TRUE and place the bool result in *result_con.  In those
+cases, if *result_con represents a false result, *diag_list might include a
+note indicating why a top-level comparison failed.  If unsuccessful, return
+FALSE and record in *diag_list records why interpretation failed.  This is
+primarily an interface to eval_bool_assertion for consumers outside the
+interpreter.
+*/
+{
+  a_boolean             result = TRUE, passed = FALSE;
+  an_expr_node          *expr = skip_parens(assert_expr);
+  an_interpreter_state  ips;
+  a_type_ptr            tp = skip_typerefs(expr->type);
+
+  if (type_is(tp, tk_error)) {
+    set_error_constant(result_con);
+    goto done;
+  }  /* if */
+  if (is_constant_node(expr)) {
+    a_constant_ptr  expr_con = node_constant(expr);
+    if (constant_is(expr_con, ck_template_param)) {
+      /* Do not return a copy of a template-dependent constant since it
+         requires substitution before deciding that it is an actual constant
+         value.  (Also, it may have associated rescan info that would not be
+         equivalent in the copy.) */
+      result = FALSE;
+      goto done;
+    } else if (diag_list != NULL &&
+               expr_con->expr != NULL && is_cmp_node(expr_con->expr) &&
+               expr_con->expr->variant.operation.type_kind == tk_integer &&
+               is_zero_constant(expr_con)) {
+      /* If the expression is an already-folded "false" comparison, re-evaluate
+         it to record the details of the comparison failure. */
+      expr = expr_con->expr;
+    } else {
+      (void)copy_constant_full(expr_con, result_con,
+                               CE_COPYING_FOR_CONSTEXPR_MASTER_EXPR);
+ 
+      goto done;
+    }  /* if */
+  }  /* if */
+  if (!in_front_end
+#if DO_IL_LOWERING
+      || il_lowering_underway
+#endif /* DO_IL_LOWERING */
+                             ) {
+    unexpected_condition();
+  }  /* if */
+  if (trans_unit_initialization_needed) {
+    initialize_interpreter_data();
+    trans_unit_initialization_needed = FALSE;
+  }  /* if */
+  init_interpreter_state(&ips, /*is_constant_evaluated=*/TRUE);
+  ips.position = expr->position;
+  if (eval_bool_assertion(&ips, expr, &passed)) {
+    if (ips.input_error) {
+      set_error_constant(result_con);
+    } else {
+      check_assertion(type_is(tp, tk_integer));
+      set_integer_constant(result_con, (a_host_large_integer)passed,
+                           tp->variant.integer.int_kind);
+    }  /* if */
+    result_con->type = expr->type;
+    result_con->expr = expr;
+  } else {
+    result = FALSE;
+  }  /* if */
+  if (diag_list != NULL) *diag_list = ips.diag_list;
+  release_interpreter_state(&ips);
+done:
+  return result;
+}  /* interpret_bool_assertion */
 
 
 a_boolean interpret_expr(an_expr_node_ptr  expr,

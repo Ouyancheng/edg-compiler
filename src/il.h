@@ -3564,6 +3564,21 @@ Return TRUE if "node" is a vacuous destructor call.
    (node_operator_is((node), eok_dot_vacuous_destructor_call) ||        \
     node_operator_is((node), eok_points_to_vacuous_destructor_call)))
 
+inline a_boolean is_cmp_node(an_expr_node  *node)
+/*
+Return TRUE if "node" is a comparison operation.
+*/
+{
+  node = skip_parens(node);
+  return is_operation_node((node)) &&
+         (node_operator_is((node), eok_eq) ||
+          node_operator_is((node), eok_ne) ||
+          node_operator_is((node), eok_gt) ||
+          node_operator_is((node), eok_lt) ||
+          node_operator_is((node), eok_ge) ||
+          node_operator_is((node), eok_le));
+}  /* is_cmp_node */
+
 
 #if GNU_EXTENSIONS_ALLOWED
 

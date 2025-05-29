@@ -38309,7 +38309,7 @@ the result is not constant) set *fatal to TRUE.
     *fatal = TRUE;
     val = false;
   } else {
-    a_diag_list           diag_list;
+    a_diag_list  diag_list;
     clear_diag_list(&diag_list);
     val = is_concept_satisfied(node, tap, &diag_list, CTWS_NO_OPTIONS,
                                (a_ctws_state_ptr)NULL, fatal);
@@ -44332,16 +44332,21 @@ done:;
 }  /* process_converted_constant_expression */
 
 
-void scan_bool_constant_expression(a_constant *constant)
+void scan_bool_constant_expression(a_constant *constant,
+                 /* Defaulted: */  a_diag_list  *diag_list)
 /*
-Scan a constant-expression that is "contextually converted to bool"
-(C++11 [conv]p4).  Return the result in *constant.  The expression
-is considered a full-expression.
+Scan a constant-expression that is "contextually converted to bool" (C++11
+[conv]p4).  Return the result in *constant.  The expression is considered a
+full-expression  If diag_list is non-NULL (it is NULL by default), record in
+*diag_list a note indicating how a top-level integer comparison produced a
+false result, if applicable.  E.g., if the expression is 5 == 2+2, a note will
+be recorded that the final comparison was 5 == 4.
 */
 {
-  an_operand          result;
-  an_expr_stack_entry *saved_expr_stack;
-  an_expr_stack_entry expr_stack_entry;
+  an_operand           result;
+  an_expr_stack_entry  *saved_expr_stack;
+  an_expr_stack_entry  expr_stack_entry;
+  an_expr_node         *expr;
 
   db_enter(3, "scan_bool_constant_expression");
   save_expr_stack(&saved_expr_stack);
@@ -44350,12 +44355,54 @@ is considered a full-expression.
                   /*force_object_lifetime=*/FALSE,
                   /*suppress_object_lifetime=*/FALSE);
   transfer_expr_context_if_applicable(saved_expr_stack);
-  /* Scan the constant expression. */
+  expr_stack->suppress_constexpr_call_folding = TRUE;
+  expr_stack->consteval_call_need_not_fold = TRUE;
+  /* Scan the expression. */
   scan_expr(&result, PREC_LOWEST, EOPT_DISALLOW_COMMA_OPERATOR);
   /* Convert to bool. */
   process_boolean_controlling_expression(&result);
-  extract_constant_from_operand(&result, constant);
-  wrap_up_constant_full_expression(constant);
+  if (is_template_param_constant_operand(&result)) {
+    /* Handle the template parameter case using the general machinery to
+       ensure that the result is rescannable if needed. */
+    extract_constant_from_operand(&result, constant);
+  } else {
+    /* Use the special-purpose interpret_bool_assertion function in the
+       interpreter, which in some cases will recorded a note with details
+       about why a comparison was evaluated to false.  This can be a
+       valuable diagnostic aid. */
+    a_diag_list  local_diag_list = { NULL, NULL };
+    if (diag_list == NULL) diag_list = &local_diag_list;
+    expr = make_node_from_operand(&result);
+    if (interpret_bool_assertion(expr, constant, diag_list)) {
+      if (!curr_expr_kind_is_one_in_which_const_exprs_are_recorded()) {
+        constant->expr = NULL;
+      }  /* if */
+    } else if ((is_prototype_instantiation_context() ||
+                (microsoft_mode && in_ms_nonreal_class_instantiation()) ||
+                scope_stack_top().alias_in_template_decl ||
+               (scope_stack_top().in_nonreal_instantiation &&
+                 !scope_stack_top().is_rescan)) &&
+               expr_is_instantiation_dependent(expr)) {
+      make_template_param_expr_constant(expr, constant);
+      discard_more_info_list(diag_list);
+      if (expr_stack->possible_rescan_context) {
+        /* Save rescan info if we may rescan this constant later. */
+        constant->rescan_info = save_operand_info_in_rescan_info_entry(
+                                         &result,
+                                         (an_expr_rescan_info_entry_ptr)NULL);
+      }  /* if */
+    } else {
+      if (expr_error_should_be_issued()) {
+        a_diagnostic_ptr  dp;
+        dp = pos_start_error(ec_expr_not_constant, &result.position);
+        add_more_info_list(dp, diag_list);
+        end_diagnostic(dp);
+      }  /* if */
+      discard_more_info_list(diag_list);
+      set_error_constant(constant);
+    }  /* if */
+    wrap_up_constant_full_expression(constant);
+  }  /* if */
   pop_expr_stack();
   restore_expr_stack(saved_expr_stack);
 #if EXTRA_SOURCE_POSITIONS_IN_IL

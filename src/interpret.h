@@ -37,6 +37,10 @@ a_boolean interpret_clang_enable_if_opnd(
 a_boolean is_core_constant_expr(an_expr_node_ptr  expr,
                                 a_diag_list_ptr   diag_list);
 
+a_boolean interpret_bool_assertion(an_expr_node_ptr  expr,
+                                   a_constant_ptr    result_con,
+                                   a_diag_list_ptr   diag_list);
+
 a_boolean interpret_expr(an_expr_node_ptr  expr,
                          a_boolean         is_constant_evaluated,
                          a_boolean         force_prvalue,

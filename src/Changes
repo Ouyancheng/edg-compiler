@@ -1,5 +1,20 @@
 Version 6.8
 
+5/29/25  [EDGcpfe/27137]
+static_assert failure details
+
+When a static_assert declaration fails and the condition is (at the top level)
+a comparison of integer values, the front end now adds a note indicating the
+values involved in that comparison.  For example:
+
+  constexpr int f() { return 42; }
+  static_assert(f() == 8, "");
+
+For the example above, the front end will add to the diagnostic about the
+static assertion having failed a note explaining that the comparison ended up
+as 42 == 8.
+
+
 5/28/25  [EDGcpfe/28204]
 GNU compatibility: Update builtin signatures to 14.3.0
 

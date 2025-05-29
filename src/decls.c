@@ -15242,6 +15242,7 @@ final token.
                      gen_stmt = is_local_scope_kind(scope_stack_top().kind);
   a_static_assertion_ptr
                      entry = NULL;
+  a_diag_list        diag_list = { NULL, NULL };
 
   cannot_bind_to_curr_construct();
   /* Record the construct's position and verify the introductory tokens. */
@@ -15274,7 +15275,7 @@ final token.
   (void)required_token(tok_lparen, ec_exp_lparen);
   /* Scan the first argument, which must be a constant expression convertible
      to bool. */
-  scan_bool_constant_expression(assert_con);
+  scan_bool_constant_expression(assert_con, &diag_list);
   remove_stop_token(tok_comma);
   if (curr_token == tok_rparen) {
     /* This appears to be a terse static_assert (i.e., one with only a
@@ -15326,12 +15327,15 @@ final token.
                     (microsoft_mode &&
                      scope_stack_top().in_nonreal_instantiation)))) {
       /* The assertion failed: Issue an error. */
+      a_diagnostic_ptr  dp;
       if (error_string != NULL) {
         make_static_assert_string_for_output(error_string);
-        pos_st_error(ec_static_assert, &pos, temp_text_buffer);
+        dp = pos_st_start_error(ec_static_assert, &pos, temp_text_buffer);
       } else {
-        pos_error(ec_terse_static_assert, &pos);
+        dp = pos_start_error(ec_terse_static_assert, &pos);
       }  /* if */
+      add_more_info_list(dp, &diag_list);
+      end_diagnostic(dp);
     } else if (entry != NULL) {
       entry->condition = alloc_shareable_constant(assert_con);
       if (error_string != NULL) {
