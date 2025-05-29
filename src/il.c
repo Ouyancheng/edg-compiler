@@ -16902,7 +16902,7 @@ file-scope memory; otherwise, it is allocated in the current memory region.
 a_constant_ptr template_arg_operand_constant(a_template_arg  *tap)
 /*
 *tap is a nontype template argument represented through an_arg_operand.  If
-that operand embed an a_constant entry, return a locally-allocated copy of
+that operand embeds an a_constant entry, return a locally-allocated copy of
 that entry (the called is responsible for freeing it).  Otherwise, return NULL.
 */
 {

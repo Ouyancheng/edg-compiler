@@ -562,25 +562,25 @@ struct an_ovl_resolution_descr {
   a_bit_field   in_comparison_rewrite:1;
                         /* TRUE if we are completing a "comparison rewrite"
                            (which inhibits recursive rewrites). */
-  a_bit_field	constraint_failure:1;
+  a_bit_field        constraint_failure:1;
                         /* TRUE if we encountered a constraint failure while
-			   recording notes (reset once the associated
-			   candidate is rejected). */
+                           recording notes (reset once the associated
+                           candidate is rejected). */
   a_symbol_ptr  curr_candidate = NULL;
-			/* The candidate being considered at this level of
-			   the current overload resolution stack. */
+                        /* The candidate being considered at this level of
+                           the current overload resolution stack. */
   a_template_arg_ptr
-		curr_template_args = NULL;
-			/* When checking for constraints when curr_candidate
-			   is a function template, the template arguments to
-			   be applied to that candidate. */
+                curr_template_args = NULL;
+                        /* When checking for constraints when curr_candidate
+                           is a function template, the template arguments to
+                           be applied to that candidate. */
   a_diag_list   notes = { NULL, NULL };
                         /* Notes attached to the principal diagnostic
                            adding details about various failures. */
   a_diagnostic_ptr
-		curr_diagnostic = NULL;
-			/* A pointer into notes (or NULL) to indicate where
-			   bottom-up notes should be spliced in. */
+                curr_diagnostic = NULL;
+                        /* A pointer into notes (or NULL) to indicate where
+                           bottom-up notes should be spliced in. */
 private:
   Ptr_set<a_symbol_ptr>
                 *noted_candidates = NULL;
