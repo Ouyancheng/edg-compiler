@@ -2572,6 +2572,7 @@ previous declaration.
            the earlier declaration came from a system header. */
         severity = pos_adjusted_severity(severity, prev_decl);
       }  /* if */
+#if BUILTIN_FUNCTIONS_ENABLED
       if ((int)severity > (int)es_warning && clang_mode &&
           rp != NULL && rp->source_corresp.name_linkage == nlk_external &&
           is_nothrow_spec(old_esp)) {
@@ -2598,7 +2599,10 @@ previous declaration.
                           ec_omitted_exception_specification_on_specialization,
                         throw_pos, prev_decl);
       any_difference_seen = TRUE;
-    } else if (is_nothrow_spec(old_esp)) {
+    } else
+#endif /* BUILTIN_FUNCTIONS_ENABLED */
+    /* Do not insert code here. */
+    if (is_nothrow_spec(old_esp)) {
       /* Previous specification asserted that no exceptions will be thrown.
          It is compatible only with another nonthrowing specification on the
          current declaration. */
