@@ -2593,16 +2593,14 @@ previous declaration.
           severity = es_warning;
         }  /* if */
       }  /* if */
+#endif /* BUILTIN_FUNCTIONS_ENABLED */
       pos_sy_diagnostic(severity,
                         is_redecl?
                           ec_omitted_exception_specification :
                           ec_omitted_exception_specification_on_specialization,
                         throw_pos, prev_decl);
       any_difference_seen = TRUE;
-    } else
-#endif /* BUILTIN_FUNCTIONS_ENABLED */
-    /* Do not insert code here. */
-    if (is_nothrow_spec(old_esp)) {
+    } else if (is_nothrow_spec(old_esp)) {
       /* Previous specification asserted that no exceptions will be thrown.
          It is compatible only with another nonthrowing specification on the
          current declaration. */
