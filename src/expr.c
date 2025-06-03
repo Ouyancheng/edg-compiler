@@ -647,7 +647,8 @@ TRUE and FALSE is returned.
                   /*force_object_lifetime=*/FALSE,
                   /*suppress_object_lifetime=*/FALSE);
   expr_stack_entry.is_template_arg_expression = TRUE;
-  expr_stack_entry.consteval_call_need_not_fold = for_template_arg;
+  expr_stack_entry.consteval_call_need_not_fold = for_template_arg &&
+                                                  constexpr_enabled;
   if (scope_stack_top().is_rescan || source_pos == NULL ||
       (is_prototype_instantiation_context() &&
        (microsoft_mode || gpp_version_is(any_version)))) {
@@ -756,7 +757,7 @@ diagnostic is issued if either the resulting type is invalid as a nontype
 parameter, or if an auto type cannot be deduced.  If *p_deduced_type is not
 NULL, it is set to either the deduced type or an error type.  param_list is
 the template parameter list that the auto template parameter is part of, and
-arg_list is` the corresponding list of template arguments that have been
+arg_list is the corresponding list of template arguments that have been
 processed so far.  arg_list and param_list are NULL by default.
 */
 {
@@ -2831,6 +2832,27 @@ given options and PREC_LOWEST precedence.
 }  /* scan_expr_as_init_component */
 
 
+static void fold_noncast_expr_if_possible(an_arg_list_elem_ptr  alep)
+/*
+If alep is an expression component that is not an explicit cast at the top
+level, attempt to fold it.  (This is done to emulate null-pointer-constant
+behavior of MSVC.)
+*/
+{
+  an_operand  *opnd = operand_of_arg_list_elem(alep);
+
+  if (is_expression_operand(opnd)) {
+    an_expr_node_ptr  node = opnd->variant.expression;
+    if (!(node->compiler_generated && is_cast_operation_node(node))) {
+      force_operand_to_constant_if_possible(opnd);
+      if (microsoft_mode && ms_permissive && op_is_zero_constant(opnd)) {
+        opnd->variant.constant.null_pointer_constant_ruled_out = FALSE;
+      }  /* if */
+    }  /* if */
+  }  /* if */
+}  /* fold_noncast_expr_if_possible */
+
+
 static an_arg_list_elem_ptr scan_expr_list(
                                a_token_kind         closing_token,
                                a_boolean            is_delegate_init,
@@ -2866,6 +2888,13 @@ resulting argument list is returned.
     clear_initializer_cache(expr_stack->initializer_cache);
     if (!bundle) {
       unbundle_init_component_list_expressions(expr_list);
+    }  /* if */
+    if (microsoft_mode && ms_permissive) {
+      for (alep = expr_list; alep != NULL; alep = next_elem(alep)) {
+        /* In some cases, we need to treat constant zero values as null pointer
+           constants.  Just in case, attempt to fold the expression. */
+        fold_noncast_expr_if_possible(alep);
+      }  /* for */
     }  /* if */
     after_cached_expr = TRUE;
   }  /* while */
@@ -2921,6 +2950,12 @@ resulting argument list is returned.
             alep = scan_expr_as_init_component(bundle, options);
           } else {
             alep = scan_expr_into_new_init_component(options);
+          }  /* if */
+            /* In some cases, we need to treat constant zero values as null
+               pointer constants.  Just in case, attempt to fold the
+               expression. */
+          if (microsoft_mode && ms_permissive) {
+            fold_noncast_expr_if_possible(alep);
           }  /* if */
         }  /* if */
         /* Add the expression or braced-init-list to the list. */
@@ -44356,7 +44391,7 @@ be recorded that the final comparison was 5 == 4.
                   /*suppress_object_lifetime=*/FALSE);
   transfer_expr_context_if_applicable(saved_expr_stack);
   expr_stack->suppress_constexpr_call_folding = TRUE;
-  expr_stack->consteval_call_need_not_fold = TRUE;
+  expr_stack->consteval_call_need_not_fold = constexpr_enabled;
   /* Scan the expression. */
   scan_expr(&result, PREC_LOWEST, EOPT_DISALLOW_COMMA_OPERATOR);
   /* Convert to bool. */

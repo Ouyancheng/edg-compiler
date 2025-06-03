@@ -1856,10 +1856,11 @@ is pushed regardless of any of the other factors.
   new_entry->traditional_const_expr_required = FALSE;
   new_entry->in_noexcept_operand_expression = FALSE;
   new_entry->suppress_constexpr_call_folding = FALSE;
-  if (expression_kind == ek_integral_constant ||
-      expression_kind == ek_template_arg ||
-      (depth_scope_stack != NO_SCOPE_DEPTH &&
-       scope_stack_top().in_consteval_context)) {
+  if ((expression_kind == ek_integral_constant ||
+       expression_kind == ek_template_arg ||
+       (depth_scope_stack != NO_SCOPE_DEPTH &&
+        scope_stack_top().in_consteval_context)) &&
+       constexpr_enabled) {
     new_entry->consteval_call_need_not_fold = TRUE;
   } else {
     new_entry->consteval_call_need_not_fold = FALSE;
@@ -14673,6 +14674,12 @@ the subscript case).
               } else if (constant_is_pointer_to_array_variable(
                                                      con, &underlying_type)) {
                 /* The constant is the address of a variable. */
+                if (con->variant.address.offset != 0) {
+                  /* The code below does not currently handle cases where we
+                     start with the address of an element that is not at the
+                     start of an array. */
+                  underlying_type = NULL;
+                }  /* if */
               }  /* if */
             } else if (is_operation_node(ptr_node)) {
               /* We can get the array if the top operation on the pointer
@@ -15250,8 +15257,15 @@ of a subscript operation).
              type "int*" because (void*)(2-2) is treated as a null pointer
              constant). */
       try_folding = FALSE;
-    } else if (op == (an_expr_operator_kind)eok_psubtract ||
-               op == (an_expr_operator_kind)eok_padd) {
+    } else if (expr_stack->consteval_call_need_not_fold &&
+               !expr_stack->template_deduction_context) {
+      /* This is a context that will require a constant expression at the top
+         level.  No need to fold intermediate expressions.  Doing so anyway
+         could reduce the quality of diagnostics in some configurations (e.g.,
+         if a static_assert comparison fails, the early folding may prevent
+         a report of the compared values). */
+      try_folding = FALSE;
+    } else if (op == eok_psubtract || op == eok_padd) {
       /* Try folding only if that's desirable in the current expression. */
       try_folding = expr_stack->favor_constant_result;
     } else {
@@ -15276,9 +15290,9 @@ of a subscript operation).
         make_error_operand(result);
         did_not_fold = FALSE;
       } else {
-        clear_operand((an_operand_kind)ok_constant, result);
+        clear_operand(ok_constant, result);
         result->type = result_type;
-        result->state = (an_operand_state)os_prvalue;
+        result->state = os_prvalue;
         /* Fold the operation on constants to produce a constant result. */
         /* In a nonconstant context, reduce any error to a warning
            and leave the operation to be done at runtime. */
@@ -15289,9 +15303,8 @@ of a subscript operation).
                               &did_not_fold, &template_constant,
                               operator_position);
       }  /* if */
-    } else if (constexpr_enabled &&
+    } else if (op == eok_lor && constexpr_enabled &&
                !expr_stack->possible_rescan_context &&
-               op == (an_expr_operator_kind)eok_lor &&
                is_constant_operand(operand_1) &&
                constant_bool_value_known_at_compile_time(
                                                &operand_1->variant.constant) &&
@@ -15301,9 +15314,8 @@ of a subscript operation).
       make_integer_constant_operand(result, (a_host_large_integer)1);
       cast_operand(result_type, result, /*is_implicit_cast=*/TRUE);
       did_not_fold = FALSE;
-    } else if (constexpr_enabled &&
+    } else if (op == eok_land && constexpr_enabled &&
                !expr_stack->possible_rescan_context &&
-               op == (an_expr_operator_kind)eok_land &&
                is_constant_operand(operand_1) &&
                constant_bool_value_known_at_compile_time(
                                                &operand_1->variant.constant) &&
@@ -15314,10 +15326,8 @@ of a subscript operation).
       cast_operand(result_type, result, /*is_implicit_cast=*/TRUE);
       did_not_fold = FALSE;
 #if GNU_EXTENSIONS_ALLOWED
-    } else if (gcc_mode &&
-               (op == (an_expr_operator_kind)eok_pdiff ||
-                op == (an_expr_operator_kind)eok_eq ||
-                op == (an_expr_operator_kind)eok_ne) &&
+    } else if ((op == eok_pdiff || op == eok_eq || op == eok_ne) &&
+               gcc_mode &&
                is_expression_operand(operand_1) &&
                is_expression_operand(operand_2) &&
                is_pointer_type(operand_1->type) &&
@@ -15337,17 +15347,16 @@ of a subscript operation).
       /* gcc allows a pointer difference or equality comparison of two
          pointer values based on addresses of the same local variable to be
          folded to a constant. */
-      clear_operand((an_operand_kind)ok_constant, result);
+      clear_operand(ok_constant, result);
       result->type = result_type;
-      result->state = (an_operand_state)os_prvalue;
+      result->state = os_prvalue;
       expr_binary_operation(op, con_1, con_2,
                             result_type, &result->variant.constant,
                             &did_not_fold, &template_constant,
                             operator_position);
-    } else if ((gcc_version_is(any_version) ||
+    } else if ((op == eok_eq || op == eok_ne) &&
+               (gcc_version_is(any_version) ||
                 (gpp_version_is(<60000) && constexpr_enabled)) &&
-               (op == (an_expr_operator_kind)eok_eq ||
-                op == (an_expr_operator_kind)eok_ne) &&
                operand_is_prvalue_for_variable(operand_1, &vp1) &&
                operand_is_prvalue_for_variable(operand_2, &vp2) &&
                vp1 == vp2 &&
@@ -15358,10 +15367,10 @@ of a subscript operation).
          volatile variables (since different reads can produce different
          values).  GCC prior to version 6.x also does this in C++11 and
          later modes. */
-      clear_operand((an_operand_kind)ok_constant, result);
+      clear_operand(ok_constant, result);
       result->type = result_type;
-      result->state = (an_operand_state)os_prvalue;
-      if (op != (an_expr_operator_kind)eok_eq) {
+      result->state = os_prvalue;
+      if (op != eok_eq) {
         make_zero_of_proper_type(result_type, &result->variant.constant);
       } else {
         make_one_of_proper_type(result_type, &result->variant.constant);

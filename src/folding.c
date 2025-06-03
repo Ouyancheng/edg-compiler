@@ -5428,9 +5428,36 @@ to zero otherwise.
   if (unknown_base) {
     /* This can happen with weak variables. */
     result = FALSE;
-  } else if (constant_is(con1, ck_integer)) {
+  } else if (constant_is(con1, ck_integer) || constant_is(con2, ck_integer)) {
     /* Integers cast to pointer types. */
-    *p_cmp = (int)(cmp_integer_constants(con1, con2) == 0);
+    if (con1->kind == con2->kind) {
+      *p_cmp = (int)(cmp_integer_constants(con1, con2) == 0);
+    } else {
+      if (constant_is(con1, ck_integer)) swap_at(&con1, &con2);
+      if (!is_null_pointer_value(con2)) {
+        result = FALSE;
+      } else {
+        /* We are comparing against the null pointer value.  This is false,
+           unless we're comparing a weak symbol address. */
+        if (con1->variant.address.kind == abk_variable) {
+          if (variable_has_non_null_address(
+                                    con1->variant.address.variant.variable)) {
+            *p_cmp = FALSE;
+          } else {
+            result = FALSE;
+          }  /* if */
+        } else if (con1->variant.address.kind == abk_routine) {
+          if (routine_has_non_null_address(
+                                     con1->variant.address.variant.routine)) {
+            *p_cmp = FALSE;
+          } else {
+            result = FALSE;
+          }  /* if */
+        } else {
+          *p_cmp = FALSE;
+        }  /* if */
+      }  /* if */
+    }  /* if */
   } else if (base_1 != base_2 ||
              con1->variant.address.offset != con2->variant.address.offset) {
     /* If the offsets are different, the addresses are definitely not equal. */
