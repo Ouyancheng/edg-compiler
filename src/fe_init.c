@@ -1220,7 +1220,9 @@ Install the keywords in the symbol table.
   } else if (gpp_mode) {
     enter_keyword((a_token_kind)tok_null, "__null");
   }  /* if */
-  if (gnu_version_is(>= 40000) || ms_version_is(>= 1910) || clang_mode) {
+  if (gnu_version_is(>= 40000) ||
+      (ms_version_is(>= 1910) && !C_mode()) ||
+      clang_mode) {
     /* Enable __builtin_offsetof in various emulation modes. */
     enter_keyword((a_token_kind)tok_builtin_offsetof, "__builtin_offsetof");
   }  /* if */

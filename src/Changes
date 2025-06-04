@@ -1,5 +1,12 @@
 Version 6.8
 
+6/2/25   [EDGcpfe/28215]
+Microsoft compatibility: __builtin_offset not available in C mode
+
+The __builtin_offset builtin is no longer available in C mode when emulating
+Microsoft (it remains available in C++ modes).
+
+
 5/29/25  [EDGcpfe/28195]
 Clang compatibility: Exception specifications on C standard library functions
 
