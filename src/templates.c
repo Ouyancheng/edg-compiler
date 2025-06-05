@@ -42577,15 +42577,14 @@ NULL.
 */
 {
   a_boolean        result = FALSE;
+  a_type_ptr       utp = skip_typerefs(instance_type);
   a_base_class_ptr bcp;
 
-  if (is_immediate_class_type(instance_type)) {
-    result = is_instance_of_class_template(instance_type, template_sym,
-                                           templ_arg_list);
+  if (is_immediate_class_type(utp)) {
+    result = is_instance_of_class_template(utp, template_sym, templ_arg_list);
     if (!result) {
-      complete_type_is_needed(instance_type);
-      for (bcp = base_classes_of(instance_type);
-           bcp != NULL; bcp = bcp->next) {
+      complete_type_is_needed(utp);
+      for (bcp = base_classes_of(utp); bcp != NULL; bcp = bcp->next) {
         if (is_instance_of_class_template(bcp->type, template_sym,
                                           templ_arg_list)) {
           result = TRUE;
