@@ -20208,6 +20208,7 @@ Evaluate the given new-expression.
                 }  /* if */
                 elem_cp = elem_cp->next;
               }  /* if */
+              mark_complete_class_object_if_needed(elem_type, elem);
               mark_subobject_initialized(elem, complete_obj);
             }  /* for */
           } else {
@@ -20860,7 +20861,7 @@ the value representation of the integer value.
                   and_integer_values(r_int,
                                      &max_integer_value_of_kind[int_kind]);
                 }  /* if */
-              } else if (type_is_float_like(tp)) {
+              } else if (type_is_simple_float_like(tp)) {
                 fp_change_kind(fp_value(opnd1_value),
                                opnd1_type->variant.float_kind,
                                fp_value(result_storage),
@@ -21147,10 +21148,18 @@ the value representation of the integer value.
               bcp = find_direct_base_class_of(dtp, btp);
               if (bcp == NULL) {
                 /* bcp can be NULL for indirect virtual base classes (only). */
-                do_constexpr_fail(result);
-                info_with_pos_type(ec_constexpr_virtual_base, &expr->position,
-                                   btp, ips);
-              } else if (is_runtime_data_address(result_addr)) {
+                if (is_runtime_data_address(result_addr) && clang_mode) {
+                  bcp = find_base_class_of(dtp, btp);
+                  if (!bcp->is_virtual) bcp = NULL;
+                }  /* if */
+                if (bcp == NULL) {
+                  do_constexpr_fail(result);
+                  info_with_pos_type(ec_constexpr_virtual_base,
+                                     &expr->position, btp, ips);
+                  break;
+                }  /* if */
+              }  /* if */
+              if (is_runtime_data_address(result_addr)) {
                 /* Attempt a "symbolic" derived-to-base cast using the
                    constant folding routines. */
                 a_constant_ptr  new_con = local_constant(),
@@ -21463,7 +21472,7 @@ the value representation of the integer value.
               is_signed = int_kind_is_signed[int_kind];
               negate_integer_value((an_integer_value *)result_storage, &ovfl);
               CHECK_int_range((an_integer_value *)result_storage, tp);
-            } else if (type_is_float_like(opnd1_type)) {
+            } else if (type_is_simple_float_like(opnd1_type)) {
               err = FALSE;
               fp_negate(opnd1_type->variant.float_kind,
                         fp_value(opnd1_value), fp_value(result_storage),
@@ -21491,7 +21500,7 @@ the value representation of the integer value.
               is_signed = int_kind_is_signed[int_kind];
               ovfl = FALSE;
               CHECK_int_range((an_integer_value *)result_storage, tp);
-            } else if (type_is_float_like(opnd1_type)) {
+            } else if (type_is_simple_float_like(opnd1_type)) {
               *fp_value(result_storage) = *fp_value(opnd1_value);
 #if C99_IL_EXTENSIONS_SUPPORTED
             } else if (opnd1_type->kind == (a_type_kind)tk_complex) {
@@ -21734,7 +21743,7 @@ the value representation of the integer value.
                     CHECK_int_range(ival, tp);
                     trim_bit_field_if_needed(cap, tp);
                   }  /* if */
-                } else if (type_is_float_like(tp)) {
+                } else if (type_is_simple_float_like(tp)) {
                   /* A floating-point type. */
                   fp_add(tp->variant.float_kind,
                          fp_value_at(cap),
@@ -21848,7 +21857,7 @@ the value representation of the integer value.
                                  ival, is_signed, &one_int, is_signed, &ovfl);
                   CHECK_int_range(ival, tp);
                   trim_bit_field_if_needed(cap, tp);
-                } else if (type_is_float_like(tp)) {
+                } else if (type_is_simple_float_like(tp)) {
                   /* A floating-point type. */
                   fp_subtract(tp->variant.float_kind,
                               fp_value_at(cap),
@@ -21967,7 +21976,7 @@ the value representation of the integer value.
                   CHECK_int_range(ival, tp);
                   trim_bit_field_if_needed(cap, tp);
                 }  /* if */
-              } else if (type_is_float_like(tp)) {
+              } else if (type_is_simple_float_like(tp)) {
                 /* A floating-point type. */
                 fp_add(tp->variant.float_kind,
                        fp_value_at(cap),
@@ -22085,7 +22094,7 @@ the value representation of the integer value.
                                  ival, is_signed, &one_int, is_signed, &ovfl);
                 CHECK_int_range(ival, tp);
                 trim_bit_field_if_needed(cap, tp);
-              } else if (type_is_float_like(tp)) {
+              } else if (type_is_simple_float_like(tp)) {
                 /* A floating-point type. */
                 fp_subtract(tp->variant.float_kind,
                             fp_value_at(cap),
@@ -22176,7 +22185,7 @@ the value representation of the integer value.
                                  (an_integer_value*)opnd2_value,
                                  is_signed, &ovfl);
               CHECK_int_range((an_integer_value*)(result_storage), tp);
-            } else if (type_kind_is_float_like(
+            } else if (type_kind_is_simple_float_like(
                                          expr->variant.operation.type_kind)) {
               fp_add(tp->variant.float_kind,
                      fp_value(opnd1_value), fp_value(opnd2_value),
@@ -22222,7 +22231,7 @@ the value representation of the integer value.
                                       (an_integer_value*)opnd2_value,
                                       is_signed, &ovfl);
               CHECK_int_range((an_integer_value*)(result_storage), tp);
-            } else if (type_kind_is_float_like(
+            } else if (type_kind_is_simple_float_like(
                                          expr->variant.operation.type_kind)) {
               fp_subtract(tp->variant.float_kind,
                           fp_value(opnd1_value), fp_value(opnd2_value),
@@ -22269,7 +22278,7 @@ the value representation of the integer value.
                                       (an_integer_value*)opnd2_value,
                                       is_signed, &ovfl);
               CHECK_int_range((an_integer_value*)(result_storage), tp);
-            } else if (type_kind_is_float_like(
+            } else if (type_kind_is_simple_float_like(
                                          expr->variant.operation.type_kind)) {
               fp_multiply(tp->variant.float_kind,
                           fp_value(opnd1_value), fp_value(opnd2_value),
@@ -22317,9 +22326,13 @@ the value representation of the integer value.
                                     is_signed, &ovfl);
               if (ovfl) {
                 do_constexpr_fail(result);
-                info_with_pos(ec_integer_overflow, &expr->position, ips);
+                info_with_pos(cmp_integer_values(
+                                  (an_integer_value*)opnd2_value, is_signed,
+                                  &zero_int, is_signed) == 0 ?
+                                ec_divide_by_zero : ec_integer_overflow,
+                              &expr->position, ips);
               }  /* if */
-            } else if (type_kind_is_float_like(
+            } else if (type_kind_is_simple_float_like(
                                          expr->variant.operation.type_kind)) {
               fp_divide(tp->variant.float_kind,
                         fp_value(opnd1_value), fp_value(opnd2_value),
@@ -22367,7 +22380,11 @@ the value representation of the integer value.
                                        is_signed, &ovfl);
               if (ovfl) {
                 do_constexpr_fail(result);
-                info_with_pos(ec_integer_overflow, &expr->position, ips);
+                info_with_pos(cmp_integer_values(
+                                  (an_integer_value*)opnd2_value, is_signed,
+                                  &zero_int, is_signed) == 0 ?
+                                ec_divide_by_zero : ec_integer_overflow,
+                              &expr->position, ips);
               }  /* if */
 #if GNU_VECTOR_TYPES_ALLOWED
             } else if (expr->variant.operation.type_kind == tk_vector) {
@@ -22663,19 +22680,26 @@ the value representation of the integer value.
               get_int_val_from(opnd2_value, opnd2_type, host_int_val, ovfl);
               if (ovfl) {
                 do_constexpr_fail(result);
-              } else if (host_int_val < 0 ||
-                         host_int_val >=
-                            (a_host_large_integer)(tp->size * targ_char_bit)) {
+              } else if (host_int_val < 0) {
+                info_with_pos(ec_negative_shift_count, &opnd2->position, ips);
                 do_constexpr_fail(result);
+                break;
+              } else if (host_int_val >=
+                            (a_host_large_integer)(tp->size * targ_char_bit)) {
+                info_with_pos(ec_shift_count_too_large, &opnd2->position, ips);
+                do_constexpr_fail(result);
+                break;
               }  /* if */
               if (result) {
                 /* Range checking for the "shift left" operator applied to a
                    signed value is a little peculiar.  Shifting negative values
-                   has undefined behavior (which must be caught during constant
-                   evaluation).  Shifting non-negative values is valid if the
-                   result of the shift operation fits in the corresponding
+                   has undefined behavior prior to C++20 (which must be caught
+                   during constant evaluation; C++20 mandates 2's complement
+                   representation).  Shifting non-negative values is valid if
+                   the result of the shift operation fits in the corresponding
                    unsigned type. */
-                if (is_signed && strict_ansi_mode) {
+                if (is_signed && !cpp20_mode && !gpp_version_is(<60000) &&
+                    !microsoft_mode) {
                   if (sign_of(*(an_integer_value*)opnd1_value)) {
                     info_with_pos(ec_constexpr_shift_negative_value,
                                   &expr->position, ips);
@@ -22736,10 +22760,15 @@ the value representation of the integer value.
               get_int_val_from(opnd2_value, opnd2_type, host_int_val, ovfl);
               if (ovfl) {
                 do_constexpr_fail(result);
-              } else if (host_int_val < 0 ||
-                         host_int_val >=
-                           (a_host_large_integer)(tp->size * targ_char_bit)) {
+              } else if (host_int_val < 0) {
+                info_with_pos(ec_negative_shift_count, &opnd2->position, ips);
                 do_constexpr_fail(result);
+                break;
+              } else if (host_int_val >=
+                            (a_host_large_integer)(tp->size * targ_char_bit)) {
+                info_with_pos(ec_shift_count_too_large, &opnd2->position, ips);
+                do_constexpr_fail(result);
+                break;
               }  /* if */
               if (result) {
                 shift_right_integer_value((an_integer_value *)opnd1_value,
@@ -22837,7 +22866,7 @@ the value representation of the integer value.
             }  /* if */
             break;
           case eok_eq:
-            if (opnd1_type->kind == (a_type_kind)tk_integer) {
+            if (type_is(opnd1_type, tk_integer)) {
               /* Integral operands. */
               int_kind = opnd1_type->variant.integer.int_kind;
               is_signed = int_kind_is_signed[int_kind];
@@ -22849,7 +22878,7 @@ the value representation of the integer value.
               } else {
                 *(an_integer_value *)result_storage = zero_int;
               }  /* if */
-            } else if (type_is_float_like(opnd1_type)) {
+            } else if (type_is_simple_float_like(opnd1_type)) {
               /* Floating-point operands. */
               if (fp_compare(opnd1_type->variant.float_kind,
                              fp_value(opnd1_value),
@@ -22859,7 +22888,7 @@ the value representation of the integer value.
               } else {
                 *(an_integer_value *)result_storage = zero_int;
               }  /* if */
-            } else if (opnd1_type->kind == (a_type_kind)tk_pointer) {
+            } else if (type_is(opnd1_type, tk_pointer)) {
               /* Pointer operands. */
               a_constexpr_address  *ptr1 = (a_constexpr_address*)opnd1_value;
               a_constexpr_address  *ptr2 = (a_constexpr_address*)opnd2_value;
@@ -22910,7 +22939,7 @@ the value representation of the integer value.
               }  /* if */
               release_variant_path_if_needed(ptr1);
               release_variant_path_if_needed(ptr2);
-            } else if (opnd1_type->kind == (a_type_kind)tk_ptr_to_member) {
+            } else if (type_is(opnd1_type, tk_ptr_to_member)) {
               a_constexpr_ptr_to_mem  *pm1, *pm2;
               pm1 = (a_constexpr_ptr_to_mem*)opnd1_value;
               pm2 = (a_constexpr_ptr_to_mem*)opnd2_value;
@@ -22951,9 +22980,9 @@ the value representation of the integer value.
               set_bool_value(compare_reflections(*rvp1, *rvp2, CC_NO_OPTIONS),
                              result_storage);
 #if C99_IL_EXTENSIONS_SUPPORTED
-            } else if (tp->kind == (a_type_kind)tk_complex) {
+            } else if (type_is(opnd1_type, tk_complex)) {
               /* A complex floating-point type. */
-              *(an_integer_value *)result_storage =
+              *(an_integer_value*)result_storage =
                  cx_equal(tp->variant.float_kind,
                           cx_value(opnd1_value), cx_value(opnd2_value)) ?
                                                            one_int : zero_int;
@@ -22963,7 +22992,7 @@ the value representation of the integer value.
             }  /* if */
             break;
           case eok_ne:
-            if (opnd1_type->kind == (a_type_kind)tk_integer) {
+            if (type_is(opnd1_type, tk_integer)) {
               /* Integral operands. */
               int_kind = opnd1_type->variant.integer.int_kind;
               is_signed = int_kind_is_signed[int_kind];
@@ -22975,7 +23004,7 @@ the value representation of the integer value.
               } else {
                 *(an_integer_value *)result_storage = zero_int;
               }  /* if */
-            } else if (type_is_float_like(opnd1_type)) {
+            } else if (type_is_simple_float_like(opnd1_type)) {
               /* Floating-point operands. */
               if (fp_compare(opnd1_type->variant.float_kind,
                              fp_value(opnd1_value),
@@ -22985,7 +23014,7 @@ the value representation of the integer value.
               } else {
                 *(an_integer_value *)result_storage = zero_int;
               }  /* if */
-            } else if (opnd1_type->kind == (a_type_kind)tk_pointer) {
+            } else if (type_is(opnd1_type, tk_pointer)) {
               /* Pointer operands. */
               a_constexpr_address  *ptr1 = (a_constexpr_address*)opnd1_value;
               a_constexpr_address  *ptr2 = (a_constexpr_address*)opnd2_value;
@@ -23036,7 +23065,7 @@ the value representation of the integer value.
               }  /* if */
               release_variant_path_if_needed(ptr1);
               release_variant_path_if_needed(ptr2);
-            } else if (opnd1_type->kind == (a_type_kind)tk_ptr_to_member) {
+            } else if (type_is(opnd1_type, tk_ptr_to_member)) {
               a_constexpr_ptr_to_mem  *pm1, *pm2;
               pm1 = (a_constexpr_ptr_to_mem*)opnd1_value;
               pm2 = (a_constexpr_ptr_to_mem*)opnd2_value;
@@ -23068,7 +23097,7 @@ the value representation of the integer value.
                   *(an_integer_value *)result_storage = one_int;
                 }  /* if */
               }  /* if */
-            } else if (opnd1_type->kind == (a_type_kind)tk_nullptr) {
+            } else if (type_is(opnd1_type, tk_nullptr)) {
               /* Two nullptr values always compare equal. */
               *(an_integer_value *)result_storage = zero_int;
             } else if (type_is(opnd1_type, tk_reflection)) {
@@ -23077,9 +23106,9 @@ the value representation of the integer value.
               set_bool_value(!compare_reflections(*rvp1, *rvp2, CC_NO_OPTIONS),
                              result_storage);
 #if C99_IL_EXTENSIONS_SUPPORTED
-            } else if (tp->kind == (a_type_kind)tk_complex) {
+            } else if (type_is(opnd1_type, tk_complex)) {
               /* A complex floating-point type. */
-              *(an_integer_value *)result_storage =
+              *(an_integer_value*)result_storage =
                  cx_equal(tp->variant.float_kind,
                           cx_value(opnd1_value), cx_value(opnd2_value)) ?
                                                            zero_int : one_int;
@@ -23641,7 +23670,7 @@ the value representation of the integer value.
                     /* The assignment produces an rvalue.  Copy the value. */
                     *(an_integer_value*)result_storage = *int_value_at(dst);
                   }  /* if */
-                } else if (type_kind_is_float_like(
+                } else if (type_kind_is_simple_float_like(
                                          expr->variant.operation.type_kind) &&
                            expr->variant.operation.type_kind == tp->kind) {
                   /* Floating-point += floating-point.  The operation type
@@ -23801,7 +23830,7 @@ the value representation of the integer value.
                     /* The assignment produces an rvalue.  Copy the value. */
                     *(an_integer_value*)result_storage = *int_value_at(dst);
                   }  /* if */
-                } else if (type_kind_is_float_like(
+                } else if (type_kind_is_simple_float_like(
                                          expr->variant.operation.type_kind) &&
                            expr->variant.operation.type_kind == tp->kind) {
                   /* Floating-point -= floating-point.  The operation type

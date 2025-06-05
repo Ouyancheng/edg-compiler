@@ -2047,6 +2047,7 @@ static void issue_folding_diagnostic(an_error_code     err_code,
                                      an_error_severity err_severity,
                                      a_boolean         constant_context,
                                      a_boolean         evaluated_context,
+                                     a_boolean         silence_warning,
                                      a_boolean         *did_not_fold,
                                      an_error_code     *error_detected,
                                      a_source_position *err_pos,
@@ -2056,6 +2057,7 @@ An error or warning has been detected in a folding operation; err_code
 and err_severity indicate what it is.  If not in a constant_context, reduce
 an error to a warning and set *did_not_fold to TRUE.  If not in an
 evaluated_context, throw away the error and set *did_not_fold to TRUE.
+silence_warning indicates that a warning should not be silenced.
 If error_detected is non-NULL, the caller would like to know that an
 error was detected but does not want it issued at this level.  Return
 *error_detected set to the code for the error detected, or ec_no_error
@@ -2101,7 +2103,7 @@ diagnostic is issued, do so with source position *err_pos.  Set
   } else if (error_detected != NULL) {
     /* At most we have a warning, and we're suppressing diagnostics, so
        skip the rest of the checks. */
-  } else if (err_severity == es_warning) {
+  } else if (err_severity == es_warning && !silence_warning) {
     pos_warning(err_code, err_pos);
   }  /* if */
 }  /* issue_folding_diagnostic */
@@ -2675,8 +2677,10 @@ done_with_folding:
   if (err_code != ec_no_error) {
     /* There was an error or warning. */
     issue_folding_diagnostic(err_code, err_severity, constant_context,
-                             evaluated_context, did_not_fold,
-                             error_detected, err_pos, new_constant);
+                             evaluated_context,
+                             /*silence_warning=*/!is_implicit_cast,
+                              did_not_fold,error_detected, err_pos,
+                              new_constant);
     if (err_severity == es_error) depends_on_fp_mode = FALSE;
   }  /* if */
   if (depends_on_fp_mode && !constant_context) {
@@ -3394,8 +3398,8 @@ for any diagnostics issued.
     if (err_code != ec_no_error) {
       /* There was an error or warning. */
       issue_folding_diagnostic(err_code, err_severity, constant_context,
-                               evaluated_context, did_not_fold,
-                               error_detected, err_pos, result);
+                               evaluated_context, /*silence_warning=*/FALSE,
+                               did_not_fold, error_detected, err_pos, result);
       if (err_severity == es_error) depends_on_fp_mode = FALSE;
     }  /* if */
     /* If the source constant was formed using operations that are not allowed
@@ -6388,8 +6392,8 @@ error.  *err_pos is used as the position for any diagnostics issued.
     if (err_code != ec_no_error) {
       /* There was an error or warning. */
       issue_folding_diagnostic(err_code, err_severity, constant_context,
-                               evaluated_context, did_not_fold,
-                               error_detected, err_pos, result);
+                               evaluated_context, /*silence_warning=*/FALSE,
+                               did_not_fold, error_detected, err_pos, result);
       if (err_severity == es_error) depends_on_fp_mode = FALSE;
     }  /* if */
     /* If either constant was formed using operations that are not allowed in

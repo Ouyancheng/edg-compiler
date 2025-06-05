@@ -8265,7 +8265,7 @@ the same constant.
   a_boolean		exact_match_required;
   an_itf_flag_set	itf_options;
   a_compare_constants_options_set
-			cc_options;
+			cc_options = CC_TEMPLATE_ARG;
 
   db_enter(4, "equiv_template_arg_lists");
   is_variadic = (options & ETA_IS_VARIADIC) != 0;
@@ -8285,10 +8285,9 @@ the same constant.
     itf_options |= ITF_EXACT_NESTING_DEPTHS_REQUIRED |
                    ITF_PLACEHOLDER_CONSTRAINT_MATCH_REQUIRED;
   }  /* if */
-  cc_options = exact_match_required
-                         ? (CC_EXACT_EQUIVALENCE |
-                            CC_EXACT_DECLTYPE_EXPR_MATCH_REQUIRED)
-                         : CC_NO_OPTIONS;
+  if (exact_match_required) {
+    cc_options |= CC_EXACT_EQUIVALENCE | CC_EXACT_DECLTYPE_EXPR_MATCH_REQUIRED;
+  }  /* if */
   if (options & ETA_EXACT_DECLTYPE_EXPR_MATCH_REQUIRED) {
     itf_options |= ITF_EXACT_DECLTYPE_EXPR_MATCH_REQUIRED;
     cc_options |= CC_EXACT_DECLTYPE_EXPR_MATCH_REQUIRED;

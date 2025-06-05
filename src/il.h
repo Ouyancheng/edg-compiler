@@ -2298,6 +2298,8 @@ typedef int a_compare_constants_options_set;
 			/* TRUE if constexpr entities that haven't been folded
 			   can be considered equivalent so long as they have
 			   the same name. */
+#define CC_TEMPLATE_ARG 0x40
+			/* TRUE when comparing template nontype arguments. */
 
 extern a_boolean compare_constants(a_constant_ptr                   cp1,
                                    a_constant_ptr                   cp2,

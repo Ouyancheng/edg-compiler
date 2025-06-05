@@ -140,12 +140,18 @@ extern a_boolean is_imaginary_type(a_type_ptr tp);
 extern a_boolean is_complex_type(a_type_ptr tp);
 
 /* Macro to test whether a type kind is a floating point type kind. */
+#define type_kind_is_simple_float_like(tkind)                                \
+  ((tkind) == tk_float || (tkind) == tk_imaginary)
 #define type_kind_is_float_like(tkind)                                       \
   ((tkind) == tk_float || (tkind) == tk_imaginary || (tkind) == tk_complex)
 #else /* !C99_IL_EXTENSIONS_SUPPORTED */
 #define is_real_floating_type(tp) is_floating_type(tp)
+#define type_kind_is_simple_float_like(tkind)                                \
+  ((tkind) == tk_float)
 #define type_kind_is_float_like(tkind) ((tkind) == (a_type_kind)tk_float)
 #endif /* C99_IL_EXTENSIONS_SUPPORTED */
+#define type_is_simple_float_like(tp)                                        \
+  type_kind_is_simple_float_like((tp)->kind)
 #define type_is_float_like(tp)  type_kind_is_float_like((tp)->kind)
 #if GNU_VECTOR_TYPES_ALLOWED
 extern a_boolean is_vector_type(a_type_ptr tp);

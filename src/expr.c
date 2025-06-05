@@ -5424,11 +5424,25 @@ call, and rcblock->argument_list to the previously-scanned argument list.
     a_boolean  in_constant_expression = curr_expr_kind_is_const();
     an_expression_kind
                ek = (an_expression_kind)ek_sizeof;
-    if (bfk == (a_builtin_function_kind)bfk_constant_p &&
-        !always_fold_calls_to_builtin_constant_p &&
-        !in_constant_expression &&
-        innermost_function_scope != NULL) {
-      ek = (an_expression_kind)ek_normal;
+    if (bfk == bfk_constant_p) {
+      if (!always_fold_calls_to_builtin_constant_p &&
+          !in_constant_expression &&
+          innermost_function_scope != NULL) {
+        ek = ek_normal;
+      }  /* if */
+      if (clang_version_is(>= 200000)) {
+        /* Clang 20 has a bizarre behavior that forces aggressive folding
+           not only for the folding of the operand of __builtin_constant_p,
+           but also for subsequent parts of the expression.  For example, it
+           accepts the following even though it involves a reinterpret_cast:
+             int x = 42, y = 42;
+             static_assert(__builtin_constant_p(x) ? (char*)&x != (char*)&y
+                                                   : (char*)&x != (char*)&y);
+           By setting a few flags in the expression stack, we ensure that
+           the casts are folded immediately rather than in the interpreter. */
+        expr_stack->favor_constant_result = TRUE;
+        expr_stack->consteval_call_need_not_fold = FALSE;
+      }  /* if */
     }  /* if */
     push_expr_stack_with_rcblock(ek, &expr_stack_entry,
                                  /*force_object_lifetime=*/FALSE,
@@ -5437,6 +5451,7 @@ call, and rcblock->argument_list to the previously-scanned argument list.
     saved_favor_constant_result = expr_stack->favor_constant_result;
     if (bfk == bfk_constant_p) {
       expr_stack->favor_constant_result = TRUE;
+      expr_stack->consteval_call_need_not_fold = FALSE;
       if (!always_fold_calls_to_builtin_constant_p &&
           !in_constant_expression &&
           innermost_function_scope != NULL) {
@@ -27006,7 +27021,7 @@ indicates which.
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
         } else {
           a_boolean      reinterpret_semantics = FALSE;
-          a_boolean      operand_is_constant;
+          a_boolean      operand_is_constant = FALSE;
           a_constant_ptr operand_con = NULL;
           /* Convert glvalue --> prvalue unless casting to a reference type. */
           if (!cast_to_reference) {
@@ -27018,10 +27033,12 @@ indicates which.
                  back into an lvalue, keep the references. */
               operand->saved_ref_entries_list = ref_entries_list;
             }  /* if */
+            force_operand_to_constant_if_possible(operand);
+            if (is_constant_operand(operand)) {
+              operand_is_constant = TRUE;
+              operand_con = &operand->variant.constant;
+            }  /* if */
           }  /* if */
-          operand_is_constant = is_constant_operand(operand) &&
-                                !cast_to_reference;
-          if (operand_is_constant) operand_con = &operand->variant.constant;
           /* See whether an explicit conversion is possible.  For the
              reference cast case, check whether the corresponding pointer
              cast is valid. */

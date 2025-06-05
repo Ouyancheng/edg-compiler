@@ -1,5 +1,22 @@
 Version 6.8
 
+6/5/25   [EDGcpfe/28206]
+Regressions in constant-evaluation of complex arithmetic
+
+The changes for EDGcpfe/27820 (in version 6.7 of the front end) introduced a
+regression in the constant-evaluation of many complex arithmetic operations.
+For example, in GNU C++20 mode, the following example failed:
+
+  #include <complex>
+  int main() {
+    constexpr std::complex<long double> z1(2.5, 3.5);
+    constexpr std::complex<float> z2(z1);
+    static_assert(z1.imag() == z2.imag());  // Previously failed.  Now okay.
+  }
+
+This is now fixed.
+
+
 6/5/25   [EDGcpfe/24291]
 CTAD from a brace-enclosed, cv-qualified instance of a class template
 

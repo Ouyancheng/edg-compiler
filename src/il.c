@@ -8612,6 +8612,39 @@ the definition of the CC flags in il.h for more information.
 }  /* compare_reflections */
 
 
+static a_boolean equiv_subobject_paths(a_subobject_path  *spp1,
+                                       a_subobject_path  *spp2)
+/*
+Return TRUE if the given subobject paths are equivalent.
+*/
+{
+  a_boolean  result = TRUE;
+
+  while (spp1 != NULL && spp2 != NULL && result) {
+    if (spp1->is_offset != spp2->is_offset ||
+        spp1->is_base_class != spp2->is_base_class) {
+      result = FALSE;
+    } else if (spp1->is_offset) {
+      if (spp1->variant.ptr_offset != spp2->variant.ptr_offset) {
+        result = FALSE;
+      }  /* if */
+    } else if (spp1->is_base_class) {
+      if (!same_base_classes(spp1->variant.base_class,
+                             spp2->variant.base_class)) {
+        result = FALSE;
+      }  /* if */
+    } else {
+      if (!same_entities(spp1->variant.field, spp2->variant.field)) {
+        result = FALSE;
+      }  /* if */
+    }  /* if */
+    spp1 = spp1->next;
+    spp2 = spp2->next;
+  }  /* while */
+  return result;
+}  /* equiv_subobject_paths */
+
+
 a_boolean compare_constants(a_constant_ptr                   cp1,
                             a_constant_ptr                   cp2,
                             a_compare_constants_options_set  options)
@@ -8865,6 +8898,16 @@ definition of the CC flags in il.h for more information.
               unexpected_condition_str(
                                "compare_constants: bad address constant kind");
           }  /* switch */
+          if ((options & CC_TEMPLATE_ARG) && eq) {
+            /* When comparing template arguments, the subobject paths must be
+               equivalent.  For example, with:
+                 struct S { int i, j; } s;
+                 template<int*> struct X;
+               X<&s.i+1> and X<&s.j> are different types (and mangled
+               differently) even though the may involve identical offsets. */
+            eq = equiv_subobject_paths(cp1->variant.address.subobject_path,
+                                       cp2->variant.address.subobject_path);
+          }  /* if */
         }  /* if */
         break;
       case ck_ptr_to_member:
@@ -19713,9 +19756,10 @@ modes, but can be a subobject in C++20 and later.
   }  /* if */
   while (result && path != NULL) {
     if (path->is_offset) {
-      /* Make sure we are pointing to an element of the array/object. */
+      /* Make sure we are pointing to an element of the array/object (or one
+         position past such). */
       result = path->variant.ptr_offset >= 0 &&
-               (a_targ_size_t)path->variant.ptr_offset < num_elements;
+               (a_targ_size_t)path->variant.ptr_offset <= num_elements;
     } else if (path->is_base_class) {
       num_elements = 1;
     } else {

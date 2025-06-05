@@ -6319,6 +6319,8 @@ calls to std::is_constant_evaluated should to "true".
       }  /* if */
       make_constant_operand(conaddr, operand);
       restore_operand_details(operand, &orig_operand);
+      operand->is_simple_string_literal =
+                                        orig_operand.is_simple_string_literal;
     }  /* if */
     release_local_constant(&conaddr);
   }  /* if */
@@ -8854,11 +8856,11 @@ appropriately and error_detected can be NULL.
         new_node = make_operator_node(
                                    (an_expr_operator_kind)eok_base_class_cast,
                                    qual_curr_type, curr_node);
+        new_node->position = *err_pos;
         *p_node = new_node;
         copy_node_value_category(curr_node, new_node);
         if (is_implicit_cast) {
           new_node->compiler_generated = TRUE;
-          new_node->position = *err_pos;
         }  /* if */
         new_node->variant.operation.implicit_in_member_naming =
                                                             implicit_in_naming;
@@ -10274,7 +10276,7 @@ user-defined conversions.
         }  /* if */
         if (did_not_fold) {
           /* Cast of a constant did not fold. */
-          if (curr_expr_kind_is_evaluated_const()) {
+          if (curr_expr_kind_is_evaluated_const() && !constexpr_enabled) {
             error_in_operand(ec_expr_not_constant, operand);
           } else if (is_implicit_cast &&
                      cast_identical_types(operand->type, new_type)) {
@@ -14674,7 +14676,8 @@ the subscript case).
               } else if (constant_is_pointer_to_array_variable(
                                                      con, &underlying_type)) {
                 /* The constant is the address of a variable. */
-                if (con->variant.address.offset != 0) {
+                if (con->variant.address.offset != 0 &&
+                    !is_array_type(underlying_type)) {
                   /* The code below does not currently handle cases where we
                      start with the address of an element that is not at the
                      start of an array. */
