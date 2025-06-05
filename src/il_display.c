@@ -1380,6 +1380,15 @@ Display the indicated constant entry.
       if (ptr->variant.string.func_name_tok) {
         disp_boolean("func_name_tok", TRUE);
       }  /* if */
+      if (ptr->variant.string.embed_expansion) {
+        disp_boolean("embed_expansion", TRUE);
+      }  /* if */
+#if PRESERVE_EMBED_DIRECTIVE_WHEN_OPTIMIZED
+      if (ptr->variant.string.embed_directive != NULL) {
+        disp_string_ptr("embed_directive", ptr->variant.string.embed_directive,
+                        iek_other_text, (sizeof_t)0);
+      }  /* if */
+#endif /* PRESERVE_EMBED_DIRECTIVE_WHEN_OPTIMIZED */
       disp_name("value");
 display_constant_value:
       summarize_constant(ptr);

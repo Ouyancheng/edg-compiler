@@ -131,8 +131,10 @@ standard C behavior of trimming the terminating null character if needed),
      template-dependent array type may end up with an appropriate type
      during a real instantiation. */
   check_assertion(is_string_type(*dst_type) ||
-                  (is_array_type(*dst_type) && is_template_dependent));
-  if (!is_template_dependent) {
+                  (is_array_type(*dst_type) &&
+                   (is_template_dependent ||
+                    string_con->variant.string.embed_expansion)));
+  if (!is_template_dependent && !string_con->variant.string.embed_expansion) {
     /* The constant and the array should have the same underlying character
        element type -- e.g., it's a mismatch if one is a wide string
        and the other a normal string. */
@@ -197,7 +199,8 @@ standard C behavior of trimming the terminating null character if needed),
         /* The string is longer than the array.  Check to see if the
            string will fit if we drop the final null.  See 3.5.7.  In C++
            the truncation of the final null is not supported (ARM 8.4.2). */
-        if (C_mode() && num_elems-1 == array_length) {
+        if (C_mode() && num_elems-1 == array_length &&
+            !string_con->variant.string.embed_expansion) {
           /* In C modes, if the string literal would fit without the final
              null character, that character is just dropped. */
         } else if (excess != NULL) {
@@ -1768,66 +1771,72 @@ bound, replace *p_array_type with an array type corresponding to the string
 size.
 */
 {
-  a_boolean  success = FALSE;
+  a_boolean       success = FALSE;
+  a_constant_ptr  string_constant = NULL;
 
-  if (may_be_string_type(*p_array_type)) {
-    a_constant_ptr  string_constant;
+  if (is_braced_init_component(icp) &&
+      is_single_elem(icp->variant.braced.list)) {
     /* Permit an extra level of braces (but only if the braces enclose a
        single element). */
-    if (is_braced_init_component(icp) &&
-        is_single_elem(icp->variant.braced.list)) {
-      icp = icp->variant.braced.list;
-    }  /* if */
-    if (icp != NULL && is_string_literal_component(icp, &string_constant)) {
-      a_type_ptr  orig_string_type = string_constant->type;
-      a_boolean   excess = FALSE, *p_excess = gcc_mode ? &excess : NULL;
-      success = TRUE;
-      if (check_string_constant_initializer_full(p_array_type, string_constant,
-                                                 p_excess)) {
-        if (!is->check_validity_only) {
-          *result = alloc_unshared_constant(string_constant);
-          (*result)->source_corresp.decl_position = *init_component_pos(icp);
+    icp = icp->variant.braced.list;
+  }  /* if */
+  if (icp != NULL && is_string_literal_component(icp, &string_constant) &&
+      (may_be_string_type(*p_array_type) ||
+       (string_constant != NULL &&
+        string_constant->variant.string.embed_expansion))) {
+    a_type_ptr  orig_string_type = string_constant->type;
+    a_boolean   excess = FALSE, *p_excess = gcc_mode ? &excess : NULL;
+    success = TRUE;
+    if (check_string_constant_initializer_full(p_array_type, string_constant,
+                                               p_excess)) {
+      if (!is->check_validity_only) {
+        *result = alloc_unshared_constant(string_constant);
+        (*result)->source_corresp.decl_position = *init_component_pos(icp);
 #if EXTRA_SOURCE_POSITIONS_IN_IL
-          if (!is_designator_component(icp)) {
-            (*result)->end_position = *init_component_end_pos(icp);
-          }  /* if */
+        if (!is_designator_component(icp)) {
+          (*result)->end_position = *init_component_end_pos(icp);
+        }  /* if */
 #endif /* EXTRA_SOURCE_POSITIONS_IN_IL */
-        }  /* if */
-        is->partial_initializer = string_constant->is_partially_initialized;
-        if (strict_ansi_mode && !list_init_enabled && !is->no_diagnostics &&
-            is_parenthesized_component(icp)) {
-          /* Strictly speaking, the standard doesn't allow parenthesized string
-             literals for aggregate initialization.  However, with C++11-style
-             list initialization that could make overload resolution depend on
-             whether a string literal is parenthesized or not, which is not
-             desirable.  So we impose this only in strict modes that don't
-             permit generalized list initialization (typically, C++03 mode). */
-          pos_diagnostic(strict_ansi_discretionary_severity,
-                         ec_nonstandard_parenthesized_string_initializer,
-                         init_component_pos(icp));
-        } else if (excess && !is->no_diagnostics) {
-          pos_warning(ec_excess_characters_in_literal_ignored,
-                      init_component_pos(icp));
-        }  /* if */
+      }  /* if */
+      is->partial_initializer = string_constant->is_partially_initialized;
+      if (strict_ansi_mode && !list_init_enabled && !is->no_diagnostics &&
+          is_parenthesized_component(icp)) {
+        /* Strictly speaking, the standard doesn't allow parenthesized string
+           literals for aggregate initialization.  However, with C++11-style
+           list initialization that could make overload resolution depend on
+           whether a string literal is parenthesized or not, which is not
+           desirable.  So we impose this only in strict modes that don't
+           permit generalized list initialization (typically, C++03 mode). */
+        pos_diagnostic(strict_ansi_discretionary_severity,
+                       ec_nonstandard_parenthesized_string_initializer,
+                       init_component_pos(icp));
+      } else if (excess && !is->no_diagnostics) {
+        pos_warning(ec_excess_characters_in_literal_ignored,
+                    init_component_pos(icp));
+      }  /* if */
+    } else {
+      if (is->no_diagnostics) {
+        is->init_error = TRUE;
       } else {
-        if (is->no_diagnostics) {
-          is->init_error = TRUE;
+        /* Note: The call to check_string_constant_initializer truncates the
+           string constant if needed.  So we must use the type of the string
+           prior to that call. */
+        if (string_constant->variant.string.embed_expansion) {
+          pos_ty_error(ec_bad_embed_initializer, init_component_pos(icp),
+                       *p_array_type);
         } else {
-          /* Note: The call to check_string_constant_initializer truncates the
-             string constant if needed.  So we must use the type of the string
-             prior to that call. */
           pos_ty2_error(ec_bad_initializer_type, init_component_pos(icp),
                         orig_string_type, *p_array_type);
         }  /* if */
-        if (!is->check_validity_only) {
-          *result = alloc_error_constant();
-        }  /* if */
-        if (is_incomplete_array_type(*p_array_type) && !is->no_diagnostics) {
-          /* An incomplete array initialized by an incompatible string literal.
-             For better error recovery, replace the array type by an error
-             type. */
-          *p_array_type = error_type();
-        }  /* if */
+      }  /* if */
+      if (!is->check_validity_only) {
+        *result = alloc_error_constant();
+      }  /* if */
+      if (is_incomplete_array_type(*p_array_type) && !is->no_diagnostics) {
+        /* An incomplete array initialized by an incompatible string literal.
+           For better error recovery, replace the array type by an error
+           type. */
+        *p_array_type = error_type();
       }  /* if */
     }  /* if */
   }  /* if */

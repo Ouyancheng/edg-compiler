@@ -813,11 +813,15 @@ fields to default values.
     case ck_string:
       cp->variant.string.length = 0;
       cp->variant.string.value = NULL;
+#if PRESERVE_EMBED_DIRECTIVE_WHEN_OPTIMIZED
+      cp->variant.string.embed_directive = NULL;
+#endif /* PRESERVE_EMBED_DIRECTIVE_WHEN_OPTIMIZED */
 #if DO_IL_LOWERING && ASSIGN_STRING_LITERAL_SEQUENCE_NUMBERS
       cp->variant.string.sequence_number = 0;
 #endif /* DO_IL_LOWERING && ASSIGN_STRING_LITERAL_SEQUENCE_NUMBERS */
       cp->variant.string.literal_kind = SCLK_NOT_A_LITERAL;
       cp->variant.string.func_name_tok = FALSE;
+      cp->variant.string.embed_expansion = FALSE;
       break;
     case ck_float:
 #if C99_IL_EXTENSIONS_SUPPORTED

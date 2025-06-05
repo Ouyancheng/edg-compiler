@@ -112,6 +112,16 @@ struct an_embed_control_block {
 			   ending the #embed directive.  Saved from
 			   curr_char_loc on entry and used to restore that
 			   value when the #embed expansion is complete. */
+  a_boolean	in_process;
+			/* TRUE if the next get_token() should return data
+			   from a #embed directive that is currently being
+			   processed.  Set to FALSE when the #embed is
+			   potentially optimizable to allow the next token
+			   to be examined in order to determine if the
+			   optimization can actually be applied, after
+			   which copy_embed_data_to_il or
+			   process_embed_data_as_bytes should be called to
+			   reflect the outcome. */
   a_boolean	reading_from_buffer;
 			/* TRUE if tokens should be taken from the contents
 			   of the embed file; FALSE during processing of
@@ -171,7 +181,7 @@ at the beginning of get_token need to be done.
   (any_initial_get_token_tests_needed = curr_token_pragmas != NULL ||       \
                                         cached_token_rescan_list != NULL || \
                                         reusable_cache_stack != NULL ||     \
-                                        embed_control.buf != NULL)
+                                        embed_control.in_process)
 
 
 /* Macro to check prevent calling the error checking function unless some
@@ -10499,6 +10509,13 @@ Set the values of embed_parse_data to default values.
   embed_parse_data.after_suffix = NULL;
   embed_parse_data.if_empty_start = NULL;
   embed_parse_data.after_if_empty = NULL;
+#if PRESERVE_EMBED_DIRECTIVE_WHEN_OPTIMIZED
+  if (embed_parse_data.directive == NULL) {
+    embed_parse_data.directive = alloc_text_buffer(128);
+  } else {
+    reset_text_buffer(embed_parse_data.directive);
+  }  /* if */
+#endif /* PRESERVE_EMBED_DIRECTIVE_WHEN_OPTIMIZED */
   embed_parse_data.limit = (a_host_large_unsigned)-1;
   embed_parse_data.offset = 0;
   embed_parse_data.num_prefix_elems = 0;
@@ -10521,6 +10538,7 @@ currently processing a #embed directive.
   embed_control.after_prefix = NULL;
   embed_control.suffix_loc = NULL;
   embed_control.eol_loc = NULL;
+  embed_control.in_process = FALSE;
   embed_control.reading_from_buffer = FALSE;
   embed_control.comma_is_next = FALSE;
 }  /* clear_embed_control_block */
@@ -10544,26 +10562,25 @@ than were originally counted.  This is not an error but simply results in
 returning FALSE.)
 */
 {
-  a_boolean            result = TRUE;
-  a_host_large_integer min_signed_val = (signed char)(1 << (CHAR_BIT - 1));
-  a_host_large_integer max_unsigned_val = (unsigned char)((1 << CHAR_BIT) - 1);
-  a_const_char         *saved_curr_char_loc = curr_char_loc;
-  a_token_kind         saved_curr_token = curr_token;
+  a_boolean             result = TRUE;
+  a_host_large_unsigned max_val = (unsigned char)((1 << CHAR_BIT) - 1);
+  a_const_char          *saved_curr_char_loc = curr_char_loc;
+  a_token_kind          saved_curr_token = curr_token;
 
   curr_char_loc = opnd;
   if (leading_comma && get_token() != tok_comma) {
     result = FALSE;
   } else {
     for (unsigned i = 0; i < num_elems; ++i) {
-      a_boolean            ovflo;
-      a_host_large_integer val;
+      a_boolean             ovflo;
+      a_host_large_unsigned val;
       (void)get_token();
       if (curr_token != tok_char_constant && curr_token != tok_int_constant) {
         result = FALSE;
         goto done;
       }  /* if */
-      val = value_of_integer_constant(&const_for_curr_token, &ovflo);
-      if (ovflo || val < min_signed_val || val > max_unsigned_val) {
+      val = unsigned_value_of_integer_constant(&const_for_curr_token, &ovflo);
+      if (ovflo || val > max_val) {
         result = FALSE;
         goto done;
       }  /* if */
@@ -10748,6 +10765,7 @@ in embed_parse_data.
     /* Indicate that the special case code at the beginning of get_token
        is needed to handle the embed file contents and prefix. */
     any_initial_get_token_tests_needed = TRUE;
+    embed_control.in_process = TRUE;
   } else if (embed_parse_data.if_empty_start != NULL) {
     /* The file is effectively empty, and an if_empty parameter was
        specified in the directive.  Replace the closing right parenthesis
@@ -10763,9 +10781,102 @@ in embed_parse_data.
     ((char *)embed_parse_data.after_if_empty)[1] = LE_END_OF_EMBED;
     embed_control.suffix_loc = embed_parse_data.if_empty_start;
     curr_char_loc = embed_parse_data.if_empty_start;
+    embed_control.in_process = TRUE;
   }  /* if */
   (void)fclose(embed_file);
 }  /* insert_embed_contents */
+
+
+static void make_string_constant_for_embed_expansion(a_source_position *pos)
+/*
+A potentially-optimizable #embed directive has been encountered at source
+location *pos.  Set up const_for_curr_token as a special ck_string constant
+to represent the expansion and flag the case for detection by the caller of
+get_token.
+*/
+{
+  a_type_ptr array_type = alloc_type(tk_array);
+
+  check_assertion(embed_control.buf != NULL && embed_control.size != 0);
+  /* Make an array type of the appropriate size of const unsigned char. */
+  array_type->variant.array.element_type =
+                 make_qualified_type(integer_type(ik_unsigned_char), TQ_CONST);
+  array_type->variant.array.variant.number_of_elements = embed_control.size;
+  set_type_size(array_type);
+  /* Set the current token to tok_gen_constant to flag the #embed expansion
+     as optimizable and the position of the current token to the beginning
+     of the directive for use in potential error diagnostics. */
+  curr_token = tok_gen_constant;
+  pos_curr_token = *pos;
+  /* Set up const_for_curr_token to be a string token containing the embed
+     expansion.  Initially the value will point to the buffer allocated in
+     general memory for the #embed expansion, but if the optimization
+     applies, a copy will be made in IL memory by copy_embed_data_to_il. */
+  clear_constant(&const_for_curr_token, ck_string);
+  const_for_curr_token.type = array_type;
+  const_for_curr_token.variant.string.length = embed_control.size;
+  const_for_curr_token.variant.string.value =
+                                             (a_const_char *)embed_control.buf;
+  const_for_curr_token.variant.string.embed_expansion = TRUE;
+  /* Disable processing of the #embed expansion for now (but leave
+     embed_control untouched) so that the caller of get_token can use
+     next_token() to determine whether to apply the optimization or not.
+     If the optimization cannot be applied, the caller will call
+     process_embed_data_as_bytes to resume processing of the embed
+     expansion. */
+  embed_control.in_process = FALSE;
+}  /* make_string_constant_for_embed_expansion */
+
+
+void copy_embed_data_to_il(void)
+/*
+A potentially-optimizable #embed has just been confirmed as actually
+optimizable.  Copy the data from the embed_control buffer to the IL (as the
+data for the const_for_curr_token ck_string constant), free the embed data
+buffer, and clear the embed_control block to allow tokenizing to continue
+after the #embed directive.  In configurations with
+PRESERVE_EMBED_DIRECTIVE_WHEN_OPTIMIZED set to TRUE, also copy the textual
+form of the #embed directive to the IL and add it const_for_curr_token.
+*/
+{
+  check_assertion(const_for_curr_token.kind == ck_string &&
+                  embed_control.buf != NULL);
+  const_for_curr_token.variant.string.value =
+                              alloc_text_of_string_literal(embed_control.size);
+  memcpy((void *)const_for_curr_token.variant.string.value, embed_control.buf,
+         embed_control.size);
+  free_general(embed_control.buf, (sizeof_t)embed_control.size);
+  clear_embed_control_block();
+#if PRESERVE_EMBED_DIRECTIVE_WHEN_OPTIMIZED
+  const_for_curr_token.variant.string.embed_directive =
+                              alloc_il(embed_parse_data.directive->size);
+  memcpy((void *)const_for_curr_token.variant.string.embed_directive,
+         embed_parse_data.directive->buffer,
+         embed_parse_data.directive->size);
+#endif /* PRESERVE_EMBED_DIRECTIVE_WHEN_OPTIMIZED */
+}  /* copy_embed_data_to_il */
+
+
+void process_embed_data_as_bytes(void)
+/*
+A potentially-optimizable #embed has just been determined not to be
+optimizable because a call to next_token() found something other than the
+closing '}'.  Resume normal processing of the embed expansion.
+*/
+{
+  a_boolean no_tokens_on_list;
+
+  embed_control.in_process = TRUE;
+  any_initial_get_token_tests_needed = TRUE;
+  /* The check for the token following the #embed will necessarily have
+     read a new line, so the old eol_loc is now invalid, and that token
+     will have been put on the cached token rescan list.  Discard that
+     token and restart at the beginning of the current source line when the
+     embed data is exhausted. */
+  check_assertion(cached_token_rescan_list != NULL);
+  get_token_from_cached_token_rescan_list(&no_tokens_on_list);
+  embed_control.eol_loc = curr_source_line;
+}  /* process_embed_data_as_bytes */
 
 
 a_const_char orig_char_from_embed_directive(a_const_char lex_escape)
@@ -17175,7 +17286,7 @@ restart:
       }  /* if */
       goto return_from_token_scan;
     }  /* if */
-    if (embed_control.buf != NULL) {
+    if (embed_control.in_process) {
       /* We are in the expansion of a #embed directive. */
       if (!embed_control.reading_from_buffer) {
         /* We are processing the operand of a prefix, suffix, or if_empty
@@ -17183,7 +17294,7 @@ restart:
            the end of that text and, if so, what processing is next. */
         skip_white_space();
       }  /* if */
-      if (embed_control.buf != NULL && embed_control.reading_from_buffer) {
+      if (embed_control.in_process && embed_control.reading_from_buffer) {
         /* We're currently reading the contents of the embed file. */
         get_token_from_embed_file();
         if (curr_lexical_state_stack_entry->cache_tokens) {
@@ -18306,7 +18417,9 @@ check_start_of_pp_directive:
              by white space, except in pcc_preprocessing_mode) -- This is a
              preprocessing directive. */
           if (!currently_in_pp_if_skip) {
+            a_source_position start_of_directive;
             remember_token_start(); /* For the "#" pseudo-token. */
+            start_of_directive = pos_curr_token;
             {
 #if CHECKING
               a_cached_token_ptr curr_cached_token = cached_token_rescan_list;
@@ -18319,13 +18432,25 @@ check_start_of_pp_directive:
             }
             /* After the directive has been processed, go scan another
                token. */
-            if (embed_control.buf != NULL &&
+            if (embed_control.in_process &&
                 embed_control.reading_from_buffer) {
-              get_token_from_embed_file();
-              if (curr_lexical_state_stack_entry->cache_tokens) {
-                assign_curr_token_sequence_number();
-                ctoken = curr_token;
-                goto return_from_token_scan;
+              if (next_token_is_start_of_braced_initializer &&
+                  embed_control.suffix_loc == NULL &&
+                  !curr_lexical_state_stack_entry->cache_tokens) {
+                /* This is a potentially-optimizable #embed directive.  Set
+                   up const_for_curr_token as a ck_string constant with the
+                   data from the #embed and return a tok_gen_constant to
+                   the caller to indicate the situation, suspending normal
+                   processing of the #embed data to allow examination of
+                   the next token following the #embed. */
+                make_string_constant_for_embed_expansion(&start_of_directive);
+              } else {
+                get_token_from_embed_file();
+                if (curr_lexical_state_stack_entry->cache_tokens) {
+                  assign_curr_token_sequence_number();
+                  ctoken = curr_token;
+                  goto return_from_token_scan;
+                }  /* if */
               }  /* if */
               goto return_curr_token;
             }  /* if */
@@ -29632,6 +29757,9 @@ of the front end.
   avail_concatenation_records = NULL;
   sequence_id_for_source_line_modifs = 0;
   delete_source_from_loc = NULL;
+#if PRESERVE_EMBED_DIRECTIVE_WHEN_OPTIMIZED
+  embed_parse_data.directive = NULL;
+#endif /* PRESERVE_EMBED_DIRECTIVE_WHEN_OPTIMIZED */
   /* Static variables in lexical.c: */
   avail_cached_tokens = NULL;
   avail_cached_constants = NULL;

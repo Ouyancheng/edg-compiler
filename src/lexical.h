@@ -1150,6 +1150,12 @@ struct an_embed_parse_data {
   a_host_large_unsigned
 		offset;	/* The value of the gnu::offset or clang::offset
 			   parameter; 0 if the parameter is omitted. */
+#if PRESERVE_EMBED_DIRECTIVE_WHEN_OPTIMIZED
+  a_text_buffer_ptr
+		directive;
+			/* A textual representation of the tokens of the
+			   #embed directive. */
+#endif /* PRESERVE_EMBED_DIRECTIVE_WHEN_OPTIMIZED */
   unsigned short
 		num_prefix_elems;
 			/* If prefix_is_value_list is TRUE, the number of
@@ -1194,8 +1200,12 @@ EXTERN_THREAD a_boolean
 		next_token_is_start_of_braced_initializer;
 			/* Set by parse_braced_init_list_full to cause a
 			   #embed directive to return a single
-			   tok_embed_expansion token if possible instead of
+			   tok_gen_constant token if possible instead of
 			   a token-by-token expansion. */
+
+extern void copy_embed_data_to_il(void);
+
+extern void process_embed_data_as_bytes(void);
 
 /*
 Variables pertaining to the current logical source line.  A "logical"

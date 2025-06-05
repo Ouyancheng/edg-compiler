@@ -6893,7 +6893,9 @@ precedence confusion.  Do the output in the way described by octl.
             output_partial_token_str("\"", octl);
           } else {
             /* Normal (non-wide) string. */
-            if (!constant->variant.string.func_name_tok) {
+            if (constant->variant.string.embed_expansion) {
+              octl->output_str("{ ", octl);
+            } else if (!constant->variant.string.func_name_tok) {
               output_partial_token_str("\"", octl);
             }  /* if */
             for (a = 0; a < len; a++) {
@@ -6903,22 +6905,34 @@ precedence confusion.  Do the output in the way described by octl.
                 output_partial_token_str("...", octl);
                 break;
               }  /* if */
-              if (out_len >= 128 && octl->gen_compilable_code &&
-                  !octl->gen_pcc_code && !octl->suppress_line_breaking) {
-                /* Break long string constants by using concatenation.  This
-                   allows the output routine to begin a new line. */
-                output_partial_token_str("\"", octl);
-                octl->output_str(" ", octl);
-                output_partial_token_str("\"", octl);
-                out_len = 0;
-              }  /* if */
-              ch = str[a];
-              /* Suppress the last character if it is a null. */
-              if (a != (len - 1) || ch != '\0') {
-                out_len += form_char(ch, octl);
+              if (constant->variant.string.embed_expansion) {
+                form_unsigned_num(
+                           (a_host_large_unsigned)(unsigned char)str[a], octl);
+                if (a == len - 1) {
+                  octl->output_str(" }", octl);
+                } else {
+                  octl->output_str(", ", octl);
+                  out_len += 5;
+                }  /* if */
+              } else {
+                if (out_len >= 128 && octl->gen_compilable_code &&
+                    !octl->gen_pcc_code && !octl->suppress_line_breaking) {
+                  /* Break long string constants by using concatenation.
+                     This allows the output routine to begin a new line. */
+                  output_partial_token_str("\"", octl);
+                  octl->output_str(" ", octl);
+                  output_partial_token_str("\"", octl);
+                  out_len = 0;
+                }  /* if */
+                ch = str[a];
+                /* Suppress the last character if it is a null. */
+                if (a != (len - 1) || ch != '\0') {
+                  out_len += form_char(ch, octl);
+                }  /* if */
               }  /* if */
             }  /* for */
-            if (!constant->variant.string.func_name_tok) {
+            if (!constant->variant.string.func_name_tok &&
+                !constant->variant.string.embed_expansion) {
               output_partial_token_str("\"", octl);
             }  /* if */
           }  /* if */

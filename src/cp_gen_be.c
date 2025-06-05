@@ -7794,6 +7794,19 @@ Output the indicated constant.  If need_parens is TRUE, parentheses are
 placed around the constant if there's any possibility of precedence confusion.
 */
 {
+#if PRESERVE_EMBED_DIRECTIVE_WHEN_OPTIMIZED
+  if (constant_is(constant, ck_string) &&
+      constant->variant.string.embed_expansion) {
+    /* This string represents the expansion of a #embed directive.  Put out
+       the textual representation of the #embed directive instead of the
+       list of constants. */
+    write_tok_str("{");
+    begin_pp_directive(constant->variant.string.embed_directive);
+    end_pp_directive();
+    write_tok_ch('}');
+  } else
+#endif /* PRESERVE_EMBED_DIRECTIVE_WHEN_OPTIMIZED */
+  /* Do not insert code here. */
   form_constant(constant, need_parens, &octl);
 }  /* gen_constant */
 
@@ -22235,7 +22248,14 @@ Output the initializer, if any, for the indicated variable.
              was recorded to be a parenthesized aggregate initializer; that
              avoids having to deal with parsing ambiguities. */
           if (braced_init) {
-            write_tok_ch('{');
+            if (constant_is(con, ck_string) &&
+                con->variant.string.embed_expansion) {
+              /* The special handling for optimized #embed expansions will
+                 supply the braces. */
+              braced_init = FALSE;
+            } else {
+              write_tok_ch('{');
+            }  /* if */
           } else if (parenthesized_init && con->explicit_braces_on_aggregate) {
             write_tok_ch('(');
           } else if (!con->explicit_parentheses_on_aggregate ||

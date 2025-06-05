@@ -5772,6 +5772,22 @@ based on the host compiler being used to compile the front end.
 
 #endif /* defined(HOST_COMPILER_SUPPORTS_BFLOAT16) */
 
+#ifndef PRESERVE_EMBED_DIRECTIVE_WHEN_OPTIMIZED
+/*
+When PRESERVE_EMBED_DIRECTIVE_WHEN_OPTIMIZED is TRUE, a ck_string constant
+representing an optimized #embed expansion will include a textual
+representation of the tokens that form the #embed directive, allowing the
+C++-generating back end to put it out in the generated code.  If this macro
+is FALSE, the C++-generating back end will put out the list of integer
+constants of the directive's expansion.
+*/
+#if BACK_END_IS_CP_GEN_BE
+#define PRESERVE_EMBED_DIRECTIVE_WHEN_OPTIMIZED TRUE
+#else /* !BACK_END_IS_CP_GEN_BE*/
+#define PRESERVE_EMBED_DIRECTIVE_WHEN_OPTIMIZED FALSE
+#endif /* BACK_END_IS_CP_GEN_BE */
+#endif /* defined(PRESERVE_EMBED_DIRECTIVE_WHEN_OPTIMIZED */
+
 /* Conditionally close the "edg" namespace. */
 END_EDG_NAMESPACE
 

@@ -1033,7 +1033,10 @@ enum a_token_kind : unsigned short {
   tok_gen_constant,         /* A token representing a general constant.  These
                                cannot always be expressed using ordinary source
                                code, but generated code (from modules or
-                               injection) may produce such tokens. */
+                               injection) may produce such tokens.  Also used
+                               to indicate that a #embed expansion is
+                               suitable for optimization to a single block of
+                               data instead of a byte-by-byte expansion. */
   tok_string_literal,
   tok_ud_literal,
   tok_last_literal_token_kind = tok_ud_literal,
@@ -3547,7 +3550,8 @@ enum a_constant_repr_kind : a_byte {
 #if FIXED_POINT_ALLOWED
   ck_fixed_point,       /* Fixed-point types. */
 #endif /* FIXED_POINT_ALLOWED */
-  ck_string,            /* Character strings. */
+  ck_string,            /* Character strings, as well as optimizable #embed
+			   expansions. */
   ck_float,             /* All sizes of float. */
 #if C99_IL_EXTENSIONS_SUPPORTED
   ck_complex,           /* All sizes of C99's _Complex types. */
@@ -4949,18 +4953,28 @@ typedef struct a_constant {
       a_targ_size_t
                 length;
                         /* Length of the string, in bytes.  Includes the
-                           trailing null, if any.
-                           Be careful: string literals may have more than
-                           one null, or none at all -- use the length. */
+                           trailing null, if any.  (Be careful: string
+                           literals may have more than one null, or none at
+                           all -- use the length.) */
       a_const_char
 		*value;
-                        /* The bytes of the string, in target machine
-                           form as a sequence of bytes, in order of
-                           ascending memory addresses.  The characters
-                           and escape sequences have all been translated
-                           into target computer binary values.  Note that
-                           two or more string constants may point to the
-                           same string text. */
+                        /* The bytes of the string, in target machine form
+                           as a sequence of bytes, in order of ascending
+                           memory addresses.  The characters and escape
+                           sequences have all been translated into target
+                           computer binary values.  Note that two or more
+                           string constants may point to the same string
+                           text.  When embed_expansion is TRUE, the bytes
+                           of the expansion are interpreted as unsigned,
+                           regardless of the signedness of plain char. */
+#if PRESERVE_EMBED_DIRECTIVE_WHEN_OPTIMIZED
+      a_const_char
+		*embed_directive;
+			/* If embed_expansion is TRUE, this points to a
+			   null-terminated string representing the tokens
+			   of the associated #embed directive.  NULL when
+			   embed_expansion is FALSE. */
+#endif /* PRESERVE_EMBED_DIRECTIVE_WHEN_OPTIMIZED */
 #if DO_IL_LOWERING && ASSIGN_STRING_LITERAL_SEQUENCE_NUMBERS
       unsigned long
 		sequence_number;
@@ -4983,7 +4997,8 @@ typedef struct a_constant {
 			   constant represents, if any, as well as whether
 			   it was a raw string literal.  For string
 			   constants that are not associated with string
-			   literals, has the value SCLK_NOT_A_LITERAL. */
+			   literals, including optimizable #embed
+			   expansions, has the value SCLK_NOT_A_LITERAL. */
       a_bit_field
 		func_name_tok:1;
 			/* TRUE if this constant contains the spelling of a
@@ -4993,6 +5008,16 @@ typedef struct a_constant {
 			   reconstructed in its original form instead of
 			   reflecting the generic function name and
 			   parameters. */
+      a_bit_field
+		embed_expansion:1;
+			/* TRUE if this constant is the value of an
+			   optimizable #embed expansion - i.e., a #embed
+			   with either no prefix or suffix parameters or in
+			   which the parameters' operands are lists of
+			   values that can be merged with the file
+			   contents, allowing the expansion to be treated
+			   as a single block and not a sequence of integer
+			   constant tokens. */
     } string;
     /* When kind == ck_float: */
 #if C99_IL_EXTENSIONS_SUPPORTED

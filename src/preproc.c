@@ -1969,6 +1969,32 @@ referenced.
 
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
 
+#if PRESERVE_EMBED_DIRECTIVE_WHEN_OPTIMIZED
+
+static a_token_kind get_embed_token(a_boolean is_directive)
+/*
+Call get_token(); if is_directive is TRUE, add the token's spelling to
+embed_parse_data.directive; and return the value of curr_token.
+*/
+{
+  (void)get_token();
+  if (is_directive) {
+    if (curr_token == tok_newline) {
+      add_char_to_text_buffer(embed_parse_data.directive, '\0');
+    } else {
+      add_char_to_text_buffer(embed_parse_data.directive, ' ');
+      add_to_text_buffer(embed_parse_data.directive, start_of_curr_token,
+                         len_of_curr_token);
+    }  /* if */
+  }  /* if */
+  return curr_token;
+}  /* get_embed_token */
+
+#else /* !PRESERVE_EMBED_DIRECTIVE_WHEN_OPTIMIZED */
+/* Just return the result of get_token() directly. */
+#define get_embed_token(is_directive) get_token()
+#endif /* PRESERVE_EMBED_DIRECTIVE_WHEN_OPTIMIZED */
+
 static a_boolean scan_balanced_token_sequence(a_boolean      is_directive,
                                               a_const_char   **operand_start,
                                               a_const_char   **closing_rparen,
@@ -1986,11 +2012,11 @@ list was not empty, *operand_start will be set to the first character of
 the token following the left parenthesis and *closing_rparen to the
 terminating ')', or both will be set to NULL if the list was empty (since
 the effect of an empty parameter is as if the parameter were omitted).
-Also, if the operand consists solely of a comma-separated list of
-identifiers, character literals, or integer literals, optionally with a
-leading and/or trailing comma, set *is_valid_list to TRUE and *num_elems to
-the number of values in the list; *leading_comma and *trailing_comma will
-reflect the presence or absence of the initial and final commas.
+Also, if the operand consists solely of a comma-separated list of character
+or integer literals, optionally with a leading and/or trailing comma, set
+*is_valid_list to TRUE and *num_elems to the number of values in the list;
+*leading_comma and *trailing_comma will reflect the presence or absence of
+the initial and final commas.
 */
 {
   a_boolean result = TRUE;
@@ -2015,7 +2041,7 @@ reflect the presence or absence of the initial and final commas.
     goto done;
   }  /* if */
   /* Skip the parameter name and the opening parenthesis. */
-  (void)get_token();
+  (void)get_embed_token(is_directive);
   if (!required_token(tok_lparen, ec_exp_lparen)) {
     if (is_directive) {
       flush_to_newline();
@@ -2027,6 +2053,13 @@ reflect the presence or absence of the initial and final commas.
     a_boolean    empty = TRUE;
     a_token_kind prev_token = tok_lparen;
     *operand_start = start_of_curr_token;
+#if PRESERVE_EMBED_DIRECTIVE_WHEN_OPTIMIZED
+    if (is_directive) {
+      add_char_to_text_buffer(embed_parse_data.directive, ' ');
+      add_to_text_buffer(embed_parse_data.directive, start_of_curr_token,
+                         len_of_curr_token);
+    }  /* if */
+#endif  /* PRESERVE_EMBED_DIRECTIVE_WHEN_OPTIMIZED */
     for (;;) {
       if (curr_token == tok_newline) {
         /* We hit the end of the line without finding the corresponding
@@ -2039,7 +2072,7 @@ reflect the presence or absence of the initial and final commas.
         if (curr_token == tok_comma) {
           empty = FALSE;
           *leading_comma = TRUE;
-          (void)get_token();
+          (void)get_embed_token(is_directive);
         }  /* if */
         first_token = FALSE;
       }  /* if */
@@ -2063,8 +2096,7 @@ reflect the presence or absence of the initial and final commas.
           comma_is_next = FALSE;
           value_is_next = TRUE;
         } else if (value_is_next && (curr_token == tok_int_constant ||
-                                     curr_token == tok_char_constant ||
-                                     curr_token == tok_identifier)) {
+                                     curr_token == tok_char_constant)) {
           value_is_next = FALSE;
           comma_is_next = TRUE;
           ++*num_elems;
@@ -2075,7 +2107,7 @@ reflect the presence or absence of the initial and final commas.
         }  /* if */
       }  /* if */
       prev_token = curr_token;
-      (void)get_token();
+      (void)get_embed_token(is_directive);
     }  /* for */
   }  /* if */
 done:
@@ -2083,7 +2115,7 @@ done:
 }  /* scan_balanced_token_sequence */
 
 
-a_boolean parse_embed(a_boolean             is_directive)
+a_boolean parse_embed(a_boolean is_directive)
 /*
 Parse the text following the #embed in an embed directive (in which case
 is_directive is TRUE) or in the operand of a __has_embed operator (in which
@@ -2104,8 +2136,15 @@ returned in embed_parse_data.
   a_boolean      trailing_comma;
   a_boolean      dummy_is_value_list;
   unsigned short dummy_num_elements;
+#if PRESERVE_EMBED_DIRECTIVE_WHEN_OPTIMIZED
+  a_boolean      uses_system_path;
+#endif /* PRESERVE_EMBED_DIRECTIVE_WHEN_OPTIMIZED */
 
   clear_embed_parse_data();
+#if PRESERVE_EMBED_DIRECTIVE_WHEN_OPTIMIZED
+  skip_white_space();
+  uses_system_path = (*curr_char_loc == '<');
+#endif /* PRESERVE_EMBED_DIRECTIVE_WHEN_OPTIMIZED */
   if (!get_header_name()) {
     /* Missing file name. */
     if (is_directive) {
@@ -2118,10 +2157,24 @@ returned in embed_parse_data.
   }  /* if */
   /* Allocate space for and copy the file name.  (Note that
      get_header_name() sets expand_macros to TRUE, so the rest of the
-     text will be scanned with macro expansion enabled.) */
+     text will be scanned with macro expansion enabled.  We also set
+     fetch_pp_tokens to FALSE so that integers in the parameter operands
+     will be scanned as tok_int_constant and not tok_pp_number.) */
   embed_parse_data.file_name = copy_header_name(/*process_escapes=*/FALSE);
+#if PRESERVE_EMBED_DIRECTIVE_WHEN_OPTIMIZED
+  if (is_directive) {
+    add_string_to_text_buffer(embed_parse_data.directive, "#embed ");
+    add_char_to_text_buffer(embed_parse_data.directive,
+                            uses_system_path ? '<' : '\"');
+    add_string_to_text_buffer(embed_parse_data.directive,
+                              embed_parse_data.file_name);
+    add_char_to_text_buffer(embed_parse_data.directive,
+                            uses_system_path ? '>' : '\"');
+  }  /* if */
+#endif /* PRESERVE_EMBED_DIRECTIVE_WHEN_OPTIMIZED */
+  fetch_pp_tokens = FALSE;
   /* Move past the file name. */
-  (void)get_token();
+  (void)get_embed_token(is_directive);
   /* Scan for parameters. */
   while (curr_token != tok_rparen && curr_token != tok_newline) {
     a_source_position id_pos = pos_curr_token;
@@ -2183,7 +2236,7 @@ returned in embed_parse_data.
       }  /* if */
     } else if ((gnu_version_is(any_version) && curr_id_is("gnu")) ||
                (clang_version_is(any_version) && curr_id_is("clang"))) {
-      if (get_token() != tok_colon_colon) {
+      if (get_embed_token(is_directive) != tok_colon_colon) {
         pos_error(ec_unrec_embed_param, &id_pos);
         if (is_directive) {
           flush_to_newline();
@@ -2193,7 +2246,7 @@ returned in embed_parse_data.
         result = FALSE;
         goto done;
       }  /* if */
-      if (get_token() != tok_identifier) {
+      if (get_embed_token(is_directive) != tok_identifier) {
         pos_error(ec_exp_identifier, &pos_curr_token);
         if (is_directive) {
           flush_to_newline();
@@ -2232,7 +2285,7 @@ returned in embed_parse_data.
       goto done;
     }  /* if */
     /* Advance to the next parameter or the end of the text. */
-    (void)get_token();
+    (void)get_embed_token(is_directive);
   }  /* while */
 done:
   if (is_directive && curr_token == tok_rparen) {
@@ -2250,7 +2303,9 @@ done:
     a_source_position pos;
     a_const_char      *saved_curr_char_loc = start_of_curr_token;
     a_token_kind      saved_curr_token = curr_token;
-    fetch_pp_tokens = FALSE;
+    a_boolean         saved_pp_if = in_pp_if_expression;
+
+    in_pp_if_expression = TRUE;
     add_stop_token(tok_rparen);
     if (limit_start != NULL) {
       curr_char_loc = limit_start;
@@ -2294,6 +2349,7 @@ done:
     release_local_constant(&cp);
     curr_char_loc = saved_curr_char_loc;
     curr_token = saved_curr_token;
+    in_pp_if_expression = saved_pp_if;
   }  /* if */
   return result;
 }  /* parse_embed */

@@ -1,5 +1,38 @@
 Version 6.8
 
+6/5/25   [EDGcpfe/28118]
+Optimized processing of #embed
+
+The front end now has special processing for the case when a #embed
+directive (see the entry for EDGcpfe/25948,EDGcpfe/27967) is the complete
+brace-enclosed initializer for a variable of array type, provided that the
+expansion of the #embed consists solely of a comma-separated list of
+integer literals whose values can all be represented in an unsigned char.
+In such cases, the normal scanning and parsing of the expanded list of
+constants is replaced by effectively treating the construct as aggregate
+initialization from a string literal, significantly reducing the processing
+time and IL size.
+
+This optimization involves an IL CHANGE: instead of representing the
+initializer as a ck_aggregate constant with sub-constants for the
+individual values of the expansion, the initializer in such cases is
+represented by a special ck_string constant, identified by the new flag
+variant.string.embed_expansion being TRUE, of type "array of unsigned
+char".  Note that such a ck_string constant can appear as the initializer
+for any numeric array; it is not limited solely to arrays of character
+types.
+
+In a related change, if PRESERVE_EMBED_DIRECTIVE_WHEN_OPTIMIZED is set to
+TRUE (the default for C++-generating back end configurations), the
+embed_expansion constant will contain a pointer,
+variant.string.embed_directive, that points to a textual representation of
+the macro-expanded form of the associated #embed directive, and the
+C++-generating back end will put out the constant as that string.  In
+configurations in which PRESERVE_EMBED_DIRECTIVE_WHEN_OPTIMIZED is FALSE,
+the constant will be put out as the comma-separated list of values of the
+bytes comprising the string value.
+
+
 6/2/25   [EDGcpfe/28215]
 Microsoft compatibility: __builtin_offset not available in C mode
 

@@ -814,6 +814,12 @@ handle_next_entry:
           case ck_string:
             walk_string_ptr(eptr->variant.string.value, iek_string_text,
                             eptr->variant.string.length);
+#if PRESERVE_EMBED_DIRECTIVE_WHEN_OPTIMIZED
+            if (eptr->variant.string.embed_directive != NULL) {
+              walk_string_ptr(eptr->variant.string.embed_directive,
+                              iek_other_text, 0);
+            }  /* if */
+#endif /* PRESERVE_EMBED_DIRECTIVE_WHEN_OPTIMIZED */
             break;
 #if C99_IL_EXTENSIONS_SUPPORTED
           case ck_complex:

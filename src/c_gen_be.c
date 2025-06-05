@@ -7696,10 +7696,14 @@ i.e., instead of "abc" (no final null) dump 'a','b','c'.
   
   len = constant->variant.string.length;
   for (a = 0; a < len; a++) {
-    write_ch('\'');
-    ch = constant->variant.string.value[a];
-    (void)form_char(ch, &octl);
-    write_ch('\'');
+    if (constant->variant.string.embed_expansion) {
+      write_unsigned_num((unsigned char)constant->variant.string.value[a]);
+    } else {
+      write_ch('\'');
+      ch = constant->variant.string.value[a];
+      (void)form_char(ch, &octl);
+      write_ch('\'');
+    }  /* if */
     if (a != len-1) write_tok_ch(',');
   }  /* for */
 }  /* dump_exploded_string */
@@ -7932,8 +7936,9 @@ block with state information for the processing.
         dump_exploded_wide_string(constant);
         write_tok_ch('}');
       } else if (constant->kind == (a_constant_repr_kind)ck_string &&
-                 constant->variant.string.
-                            value[constant->variant.string.length-1] != '\0') {
+                 (constant->variant.string.embed_expansion ||
+                  constant->variant.string.
+                           value[constant->variant.string.length-1] != '\0')) {
         /* If the initial value is a string without the trailing null, the
            individual characters must be dumped, instead of the string
            literal. */
