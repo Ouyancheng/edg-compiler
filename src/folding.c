@@ -6560,8 +6560,9 @@ through the usual interface because a field cannot be passed as a constant.
       /* If the field is not a direct member of the class pointed to (possible
          with pointer-to-member operations), apply a base-class cast first. */
       a_type_ptr  ptr_class = type_pointed_to(constant_1->type),
+                  uptr_class = skip_typerefs(ptr_class),
                   fld_class = parent_class_of(field);
-      if (!same_entities(ptr_class, fld_class)) {
+      if (!same_entities(uptr_class, fld_class)) {
         a_boolean         did_not_fold;
         an_error_code     error_detected;
         a_base_class_ptr  bcp = find_base_class_of(ptr_class, fld_class);
