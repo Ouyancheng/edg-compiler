@@ -1471,6 +1471,10 @@ display_constant_value:
                iek_subobject_path);
       disp_host_large_integer(
           "address.offset", (a_host_large_integer)ptr->variant.address.offset);
+      if (ptr->variant.address.one_past_the_end) {
+        disp_boolean("address.one_past_the_end",
+                     (a_boolean)ptr->variant.address.one_past_the_end);
+      }  /* if */
       break;
     case ck_ptr_to_member:
       (void)fprintf(f_display, "ck_ptr_to_member\n");
