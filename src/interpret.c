@@ -21315,8 +21315,7 @@ the value representation of the integer value.
               } else {
                 mem_scp = &pm_src->variant.field->source_corresp;
               }  /* if */
-              if (find_direct_base_class_of(
-                                       dtp, scp_parent_class(mem_scp)) == 0) {
+              if (find_base_class_of(dtp, scp_parent_class(mem_scp)) == 0) {
                 /* Something like:
                      struct A {}; struct B: A { int i; }; struct C: A {};
                      constexpr int (C::*q) = static_cast<int A::*>(&B::i);

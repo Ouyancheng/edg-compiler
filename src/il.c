@@ -19877,7 +19877,7 @@ done:
 }  /* is_valid_class_templ_arg_constant */
 
 
-static a_boolean is_valid_templ_arg_constant(a_constant_ptr  con)
+a_boolean is_valid_templ_arg_constant(a_constant_ptr  con)
 /*
 Return FALSE if this is a pointer, reference, or pointer-to-member constant
 that is not valid as a template argument, or if it is an aggregate constant

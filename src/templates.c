@@ -2937,6 +2937,9 @@ Otherwise it is zero.
                                                         constant->type);
           }  /* if */
         }  /* if */
+        if (match) {
+          match = is_valid_templ_arg_constant(tap->variant.constant);
+        }  /* if */
       } else if (is_template_templ_arg(tap)) {
         /* Check whether this template template parameter must be rescanned
            because of a dependence on another template argument. */
