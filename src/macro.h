@@ -105,6 +105,11 @@ EXTERN_THREAD a_boolean
 			/* TRUE if the macro about to be scanned comes from a
 			   module (e.g., from a header unit). */
 
+EXTERN_THREAD a_boolean
+		defined_op_not_permitted;
+			/* When TRUE, the "defined" preprocessor operator is
+			   not allowed in the current context. */
+
 #if MACRO_INVOCATION_TREE_IN_IL
 extern void copy_macro_invocation_tree_to_il(void);
 #endif /* MACRO_INVOCATION_TREE_IN_IL */

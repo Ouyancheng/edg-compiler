@@ -2556,9 +2556,12 @@ beyond the operator has not yet been fetched.
 
   db_enter(4, "scan_defined_operator");
   copy_source_position(pos_curr_token, start_position);
-  if (!in_pp_if_expression) {
+  if (!in_pp_if_expression || defined_op_not_permitted) {
     /* If not inside a #if expression, "defined" is just an identifier. */
     ctoken = tok_identifier;
+    if (defined_op_not_permitted) {
+      pos_error(ec_bad_defined_pp_op, &pos_curr_token);
+    }  /* if */
   } else {
     /* Within an #if expression, defined is an operator with a value
        of 0L or 1L (undefined or defined).  Look for a left parenthesis
@@ -12799,6 +12802,7 @@ after this function.
   file_name_macro_symbol = NULL;
   scanning_macro_name = FALSE;
   scanning_module_macro = FALSE;
+  defined_op_not_permitted = FALSE;
   macro_arg_list = NULL;
   end_of_macro_arg_list = NULL;
   stdc_macro_symbol = NULL;
