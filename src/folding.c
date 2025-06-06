@@ -6549,43 +6549,17 @@ through the usual interface because a field cannot be passed as a constant.
   copy_constant(constant_1, result);
   if (is_error_constant(constant_1)) {
     /* An error constant stays the same. */
-  } else if (constant_is(constant_1, ck_template_param)) {
+  } else if (constant_1->kind == (a_constant_repr_kind)ck_template_param) {
     /* A template parameter constant.  This shows up in cases like
          ((T *)0)->x
        which can come up as part of the expansion of offsetof. */
     is_constant = FALSE;
   } else {
-    a_subobject_path_ptr  field_path = NULL, *p_field_path = NULL;
-    if (constant_is(result, ck_address)) {
-      /* If the field is not a direct member of the class pointed to (possible
-         with pointer-to-member operations), apply a base-class cast first. */
-      a_type_ptr  ptr_class = type_pointed_to(constant_1->type),
-                  uptr_class = skip_typerefs(ptr_class),
-                  fld_class = parent_class_of(field);
-      if (!same_entities(uptr_class, fld_class)) {
-        a_boolean         did_not_fold;
-        an_error_code     error_detected;
-        a_base_class_ptr  bcp = find_base_class_of(ptr_class, fld_class);
-        if (bcp == NULL || bcp->ambiguous) {
-          is_constant = FALSE;
-          goto done;
-        }  /* if */
-        fold_base_class_cast(constant_1, bcp, ptr_class, result,
-                             /*check_cast_access=*/FALSE,
-                             /*check_ambiguity=*/FALSE,
-                             /*is_implicit_cast=*/TRUE,
-                             /*is_object_pointer=*/TRUE,
-                             /*omit_backing_expr=*/TRUE,
-                             &did_not_fold, &error_position, &error_detected);
-        if (did_not_fold) {
-          is_constant = FALSE;
-          goto done;
-        }  /* if */
-      }  /* if */
-      p_field_path = &field_path;
-    }  /* if */
+    a_subobject_path_ptr  field_path = NULL, *p_field_path;
+    p_field_path = constant_is(result, ck_address) ?
+                                    &field_path : (a_subobject_path_ptr*)NULL;
     /* Take the pointer offset, ... */
-    get_pointer_offset(result, offset);
+    get_pointer_offset(constant_1, offset);
     /* ... and add the offset of the field. */
     accum_field_offset(offset, field, p_field_path, &err);
     /* Put the offset into the result pointer constant.  Note that no
@@ -6599,7 +6573,6 @@ through the usual interface because a field cannot be passed as a constant.
       *last_subobject_path_link(result) = field_path;
     }  /* if */
   }  /* if */
-done:
 #if DEBUG
   if (debug_level >= 5) {
     fprintf(f_debug, "fold_field_selection: offset = ");
