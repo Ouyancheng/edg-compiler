@@ -23000,7 +23000,7 @@ the value representation of the integer value.
             } else if (type_is(opnd1_type, tk_complex)) {
               /* A complex floating-point type. */
               *(an_integer_value*)result_storage =
-                 cx_equal(tp->variant.float_kind,
+                 cx_equal(opnd1_type->variant.float_kind,
                           cx_value(opnd1_value), cx_value(opnd2_value)) ?
                                                            one_int : zero_int;
 #endif /* C99_IL_EXTENSIONS_SUPPORTED */
@@ -23126,7 +23126,7 @@ the value representation of the integer value.
             } else if (type_is(opnd1_type, tk_complex)) {
               /* A complex floating-point type. */
               *(an_integer_value*)result_storage =
-                 cx_equal(tp->variant.float_kind,
+                 cx_equal(opnd1_type->variant.float_kind,
                           cx_value(opnd1_value), cx_value(opnd2_value)) ?
                                                            zero_int : one_int;
 #endif /* C99_IL_EXTENSIONS_SUPPORTED */
