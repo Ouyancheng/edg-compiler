@@ -843,6 +843,7 @@ fields to default values.
 #endif /* C99_IL_EXTENSIONS_SUPPORTED */
     case ck_address:
       cp->variant.address.kind = (an_address_base_kind)abk_variable;
+      cp->variant.address.one_past_the_end = FALSE;
       cp->variant.address.variant.variable = NULL;
       cp->variant.address.offset = 0;
       cp->variant.address.subobject_path = NULL;

@@ -24792,14 +24792,15 @@ reference type.  Return TRUE if it is acceptable.
   if (constant_is(cp, ck_template_param)) {
     /* A matching nontype template parameter is okay. */
     valid = TRUE;
-  } else if (constant_is(cp, ck_address)) {
-    if (cp->variant.address.kind == (an_address_base_kind)abk_variable &&
+  } else if (constant_is(cp, ck_address) &&
+             !cp->variant.address.one_past_the_end) {
+    if (cp->variant.address.kind == abk_variable &&
         !is_any_reference_type(cp->variant.address.variant.variable->type) &&
         !cp->variant.address.variant.variable->is_struct_binding &&
         is_valid_object_for_nontype_arg(cp)) {
       /* A nonreference variable whose "address" has been folded. */
       valid = TRUE;
-    } else if (cp->variant.address.kind == (an_address_base_kind)abk_routine) {
+    } else if (cp->variant.address.kind == abk_routine) {
       /* A routine whose address has been folded. */
       valid = TRUE;
     } else if (ms_extensions && cp->variant.address.kind == abk_uuidof) {

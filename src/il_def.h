@@ -5038,6 +5038,10 @@ typedef struct a_constant {
     struct {
       an_address_base_kind
                 kind;
+      a_bit_field
+		one_past_the_end:1;
+			/* If TRUE, this address was obtained by going "one
+			   position past the end" of an object or subobject. */
       union {
         /* The entity whose address is the base for this address constant. */
         /* When kind == abk_cli_array, no variant fields. */

@@ -20827,8 +20827,18 @@ the value representation of the integer value.
           case eok_ref_indirect:
             /* The result is either a copy of the operand (which is an
                a_constexpr_address) if the result is a glvalue or the
-               value to which the address points for a prvalue. */
-            SET_result_val_from_operand_address(opnd1_value);
+               value to which the address points for a prvalue.  However,
+               even in the case of a glvalue, the address cannot point "one
+               past the end" of an object (though GCC and MSVC to not seem
+               to enforce that). */
+            if (cannot_dereference(opnd1_value) &&
+                !gpp_version_is(any_version) && !ms_version_is(any_version)) {
+              do_constexpr_fail(result);
+              info_one_past_end_of_array((a_constexpr_address*)opnd1_value,
+                                         expr, ips);
+            } else {
+              SET_result_val_from_operand_address(opnd1_value);
+            }  /* if */
             break;
           case eok_cast:
             if (tp->kind == opnd1_type->kind) {
@@ -26518,6 +26528,9 @@ diagnostic in *ips.
           if (is_subobj_addr) {
             translate_interpreter_offset(ips, cap, con);
           }  /* if */
+        }  /* if */
+        if (cannot_dereference(cap)) {
+          con->variant.address.one_past_the_end = TRUE;
         }  /* if */
         if (is_variant_path(cap)) {
           release_variant_path(cap);
