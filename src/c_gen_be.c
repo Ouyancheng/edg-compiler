@@ -7492,7 +7492,11 @@ described by the list pointed to by "ipdp" to the constant pointed to by
   if (constant->kind == (a_constant_repr_kind)ck_string) {
     /* String -- Generate a move.  Note that the destination of the move is
        always an array of char, so no "&" is needed in front of the variable
-       name (it is implicit). */
+       name (it is implicit).  If the string is the result of an optimized
+       #embed expansion, turn off the identifying flag so that form_constant
+       doesn't render it as a brace-enclosed list of integer literals. */
+    a_boolean saved_embed_expansion = constant->variant.string.embed_expansion;
+    constant->variant.string.embed_expansion = FALSE;
 #if __BSD__
     /* BSD UNIX -- use bcopy. */
     write_tok_str("bcopy((char *)");
@@ -7514,6 +7518,7 @@ described by the list pointed to by "ipdp" to the constant pointed to by
        so the conversion will be implicit. */
     write_unsigned_num((a_host_large_unsigned)constant->variant.string.length);
     write_tok_ch(')');
+    constant->variant.string.embed_expansion = saved_embed_expansion;
   } else {
     /* Normal case (not string); generate an assignment statement. */
     dump_var_for_init(variable, ipdp);
