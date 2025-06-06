@@ -41,13 +41,13 @@ Optimized processing of #embed
 
 The front end now has special processing for the case when a #embed
 directive (see the entry for EDGcpfe/25948,EDGcpfe/27967) is the complete
-brace-enclosed initializer for a variable of array type, provided that the
-expansion of the #embed consists solely of a comma-separated list of
-integer literals whose values can all be represented in an unsigned char.
-In such cases, the normal scanning and parsing of the expanded list of
-constants is replaced by effectively treating the construct as aggregate
-initialization from a string literal, significantly reducing the processing
-time and IL size.
+brace-enclosed initializer for a variable that is an array of an integral
+type, provided that the expansion of the #embed consists solely of a
+comma-separated list of integer literals whose values can all be
+represented in an unsigned char.  In such cases, the normal scanning and
+parsing of the expanded list of constants is replaced by effectively
+treating the construct as aggregate initialization from a string literal,
+significantly reducing the processing time and IL size.
 
 This optimization involves an IL CHANGE: instead of representing the
 initializer as a ck_aggregate constant with sub-constants for the
