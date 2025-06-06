@@ -21298,11 +21298,11 @@ the value representation of the integer value.
             /* Casting from X B::* to X D::*.  Since the same member is
                referred to, but B is at a positive offset from D, the offset
                stored in the pointer-to-member value must increase. */
-            { a_type_ptr           dtp, btp;
-              a_base_class_ptr     bcp;
-              a_byte_count         offset;
-              a_constexpr_ptr_to_mem
-                                   *pm_src, *pm_dst;
+            { a_type_ptr               dtp, btp;
+              a_base_class_ptr         bcp;
+              a_byte_count             offset;
+              a_constexpr_ptr_to_mem   *pm_src, *pm_dst;
+              a_source_correspondence  *mem_scp;
               pm_src = (a_constexpr_ptr_to_mem*)opnd1_value;
               pm_dst = (a_constexpr_ptr_to_mem*)result_storage;
               btp = opnd1_type->variant.ptr_to_member
@@ -21310,6 +21310,24 @@ the value representation of the integer value.
               btp = skip_typerefs(btp);
               dtp = tp->variant.ptr_to_member.class_of_which_a_member;
               dtp = skip_typerefs(dtp);
+              if (pm_src->is_ptr_to_mem_function) {
+                mem_scp = &pm_src->variant.routine->source_corresp;
+              } else {
+                mem_scp = &pm_src->variant.field->source_corresp;
+              }  /* if */
+              if (find_direct_base_class_of(
+                                       dtp, scp_parent_class(mem_scp)) == 0) {
+                /* Something like:
+                     struct A {}; struct B: A { int i; }; struct C: A {};
+                     constexpr int (C::*q) = static_cast<int A::*>(&B::i);
+                   which if invalid since B::i is not a member of C. */
+                do_constexpr_fail(result);
+                info_with_pos_sym_type(ec_ptr_to_mem_to_non_member,
+                                       &expr->position,
+                                       (a_symbol*)mem_scp->assoc_info,
+                                       dtp, ips);
+                break;
+              }  /* if */
               bcp = find_direct_base_class_of(dtp, btp);
               /* Ensure the derived class (and the base class) has been laid
                  out. */
@@ -22709,29 +22727,28 @@ the value representation of the integer value.
                 }  /* if */
                 shift_left_integer_value((an_integer_value*)opnd1_value,
                                          (int)host_int_val, &ovfl);
+                *(an_integer_value *)result_storage =
+                                             *(an_integer_value *)opnd1_value;
+                /* Discard overflowing bits. */
+                and_integer_values((an_integer_value*)result_storage,
+                                   &max_integer_value_of_kind[
+                                             unsigned_int_kind_of[int_kind]]);
                 if (is_signed) {
-                  if ((ovfl ||
+                  if (!cpp20_mode &&
+                      (ovfl ||
                        cmp_integer_values((an_integer_value*)opnd1_value,
                                           /*op1_is_signed=*/FALSE,
-                                          &max_integer_value_of_kind[
-                                              unsigned_int_kind_of[int_kind]],
-                                          /*op2_is_signed=*/FALSE) > 0) &&
-                      strict_ansi_mode) {
+                                          (an_integer_value*)result_storage,
+                                          /*op2_is_signed=*/FALSE) != 0)) {
                     do_constexpr_fail(result);
                     info_with_pos_type(ec_constexpr_integer_overflow,
                                        &expr->position, opnd1_type, ips);
                     break;
                   }  /* if */
                   /* Sign-extend the result. */
-                  sign_extend_integer_value((an_integer_value*)opnd1_value,
+                  sign_extend_integer_value((an_integer_value*)result_storage,
                                             tp->size * targ_char_bit);
-                } else {
-                  /* Discard overflowing bit. */
-                  and_integer_values((an_integer_value*)opnd1_value,
-                                     &max_integer_value_of_kind[int_kind]);
                 }  /* if */
-                *(an_integer_value *)result_storage =
-                                             *(an_integer_value *)opnd1_value;
               } else {
                 info_with_pos(ec_integer_overflow, &expr->position, ips);
               }  /* if */
@@ -25113,7 +25130,9 @@ the value representation of the integer value.
                   if (!fold_field_selection(
                                   addr_con, field,
                                   make_reference_type(expr->type), new_con)) {
-                    unexpected_condition();
+                    do_constexpr_fail(result);
+                    info_with_pos(ec_constexpr_access_to_runtime_storage,
+                                  &expr->position, ips);
                   }  /* if */
                   addr_con->expr = backing_expr;
                   clear_runtime_constant_address(result_storage, new_con);

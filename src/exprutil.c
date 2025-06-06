@@ -9066,15 +9066,19 @@ is implicit.
   /* Iterate backwards over the path.  Add casts to get the type we have to
      the type just below the type we want. */
   for (dsp = path.tail; dsp != path.head->prev; dsp = dsp->prev) {
-    a_type_ptr class_type = dsp == path.head ?
-                            new_class_pointed_to : dsp->prev->base_class->type;
-    a_type_ptr member_type = pm_member_type((*p_node)->type);
+    a_type_ptr    class_type =
+                           dsp == path.head ?
+                           new_class_pointed_to : dsp->prev->base_class->type;
+    a_type_ptr    member_type = pm_member_type((*p_node)->type);
+    an_expr_node  *new_node;
     /* Add the node to do the cast. */
-    *p_node = make_operator_node(eok_pm_derived_class_cast,
-                                 related_ptr_to_member_type(member_type,
-                                                            class_type),
-                                 *p_node);
-    (*p_node)->compiler_generated = is_implicit_cast;
+    new_node = make_operator_node(eok_pm_derived_class_cast,
+                                  related_ptr_to_member_type(member_type,
+                                                             class_type),
+                                  *p_node);
+    new_node->position = (*p_node)->position;
+    new_node->compiler_generated = is_implicit_cast;
+    *p_node = new_node;
     if (dsp != path.head && !is_implicit_cast) {
       check_assertion(is_operation_node(*p_node) &&
                       (*p_node)->variant.operation.kind ==
