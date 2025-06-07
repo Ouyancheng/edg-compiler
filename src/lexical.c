@@ -58,6 +58,14 @@ BEGIN_EDG_NAMESPACE
 Declarations relating to expansion of #embed directives.
 */
 struct an_embed_control_block {
+  a_source_position
+		directive_pos;
+			/* The position of the #embed directive. */
+#if EXTRA_SOURCE_POSITIONS_IN_IL
+  a_source_position
+		directive_end_pos;
+			/* The ending position of the #embed directive. */
+#endif /* EXTRA_SOURCE_POSITIONS_IN_IL */
   unsigned char	*buf;	/* If non-null, points to a buffer allocated in
 			   general memory containing the contents of the
 			   file designated by the current #embed directive;
@@ -10531,6 +10539,10 @@ Set the embed control block values to the default values, i.e., not
 currently processing a #embed directive.
 */
 {
+  embed_control.directive_pos = null_source_position;
+#if EXTRA_SOURCE_POSITIONS_IN_IL
+  embed_control.directive_end_pos = null_source_position;
+#endif /* EXTRA_SOURCE_POSITIONS_IN_IL */
   embed_control.buf = NULL;
   embed_control.next_byte = NULL;
   embed_control.last_byte = NULL;
@@ -10630,6 +10642,10 @@ in embed_parse_data.
   a_directory_name_entry_ptr dir_entry;
   size_t                     file_size;
 
+  embed_control.directive_pos = *pos;
+#if EXTRA_SOURCE_POSITIONS_IN_IL
+  conv_line_loc_to_source_pos(curr_char_loc, &embed_control.directive_end_pos);
+#endif /* EXTRA_SOURCE_POSITIONS_IN_IL */
   (void)open_file_for_input(embed_parse_data.file_name,
                             /*use_search_path=*/TRUE,
                             /*is_include_file=*/FALSE,
@@ -10828,7 +10844,7 @@ get_token.
 }  /* make_string_constant_for_embed_expansion */
 
 
-void copy_embed_data_to_il(void)
+void copy_embed_data_to_il(a_type_ptr elem_type)
 /*
 A potentially-optimizable #embed has just been confirmed as actually
 optimizable.  Copy the data from the embed_control buffer to the IL (as the
@@ -10836,7 +10852,10 @@ data for the const_for_curr_token ck_string constant), free the embed data
 buffer, and clear the embed_control block to allow tokenizing to continue
 after the #embed directive.  In configurations with
 PRESERVE_EMBED_DIRECTIVE_WHEN_OPTIMIZED set to TRUE, also copy the textual
-form of the #embed directive to the IL and add it const_for_curr_token.
+form of the #embed directive to the IL and add it const_for_curr_token.  If
+the specified element type is a signed character type, check the data for
+any values that cannot be represented as a signed char and issue a warning
+(or a narrowing error in strict mode) if any are found.
 */
 {
   check_assertion(const_for_curr_token.kind == ck_string &&
@@ -10845,6 +10864,20 @@ form of the #embed directive to the IL and add it const_for_curr_token.
                               alloc_text_of_string_literal(embed_control.size);
   memcpy((void *)const_for_curr_token.variant.string.value, embed_control.buf,
          embed_control.size);
+  if (is_character_type(elem_type) && is_signed_integral_type(elem_type)) {
+    /* The array element type is a signed character type.  Check the data
+       for any value that cannot be represented as a signed char. */
+    int max_signed_val = (1 << (CHAR_BIT - 1)) - 1;
+    for (unsigned i = 0; i < const_for_curr_token.variant.string.length; ++i) {
+      if ((unsigned char)const_for_curr_token.variant.string.value[i] >
+                                                              max_signed_val) {
+        pos_diagnostic(strict_ansi_mode ? strict_ansi_discretionary_severity
+                                        : es_warning,
+                       ec_embed_narrowing, &embed_control.directive_pos);
+        break;
+      }  /* if */
+    }  /* if */
+  }  /* if */
   free_general(embed_control.buf, (sizeof_t)embed_control.size);
   clear_embed_control_block();
 #if PRESERVE_EMBED_DIRECTIVE_WHEN_OPTIMIZED
@@ -10923,7 +10956,14 @@ that tokens are no longer coming from a #embed directive.
            comma in an initializer list. */
         conv_line_loc_to_source_pos(embed_control.after_prefix,
                                     &pos_curr_token);
+      } else {
+        pos_curr_token = embed_control.directive_pos;
       }  /* if */
+    } else {
+      /* If the current token position was set to the end of the prefix
+         parameter, set it back to the directive position now in case of,
+         e.g., narrowing diagnostics. */
+      pos_curr_token = embed_control.directive_pos;
     }  /* if */
     set_unsigned_integer_value(
                &const_for_curr_token.variant.integer_value,

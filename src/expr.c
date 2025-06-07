@@ -44854,18 +44854,19 @@ suspending a call to parse_braced_init_list_full.
 #define MIN_BRACED_INIT_PARSE_ELEMENT_COUNT 1000
 
 static an_init_component_ptr parse_braced_init_list_full(
-                           a_boolean                       integral_array_init,
-                           a_boolean                       bundle,
-                           a_braced_list_continuation_ptr  *p_continuation)
+                            a_type_ptr                      integral_elem_type,
+                            a_boolean                       bundle,
+                            a_braced_list_continuation_ptr  *p_continuation)
 /*
 Scan a brace-enclosed initializer list, from source and not a cache, and
-return a structure describing it.  integral_array_init is TRUE if the
-initializer list is the initializer for an array of integral elements and
-thus potentially suitable for the #embed optimization that treats the as a
-single ck_string constant instead of a sequence of integer literals.
-bundle is TRUE if expressions should be "bundled," meaning packaged with
-related information so they can be saved off to the side (e.g., in an
-initializer cache) for later restoration and further processing.
+return a structure describing it.  If the initializer list is the
+initializer for an array of an integral type and thus potentially suitable
+for the #embed optimization that treats the expansion as a single ck_string
+constant instead of a sequence of integer literals, integral_elem_type
+designates the element type; otherwise, it is NULL.  bundle is TRUE if
+expressions should be "bundled," meaning packaged with related information
+so they can be saved off to the side (e.g., in an initializer cache) for
+later restoration and further processing.
 
 The parameter p_continuation allows this routine to parse the initializer list
 in parts.  If p_continuation is NULL, the whole initializer list is parsed in
@@ -44918,7 +44919,7 @@ parse) and get_continued_elem (for resuming a suspended parse).
     /* Advance past the opening brace. */
     check_assertion(curr_token == tok_lbrace);
     icp->variant.braced.start_pos = pos_curr_token;
-    if (integral_array_init) {
+    if (integral_elem_type != NULL) {
       /* Enable the potential ck_string optimization. */
       next_token_is_start_of_braced_initializer = TRUE;
     }  /* if */
@@ -44933,7 +44934,7 @@ restart_embed_data:
          encountered. */
       if (next_token() == tok_rbrace) {
         /* The optimization can be performed. */
-        copy_embed_data_to_il();
+        copy_embed_data_to_il(integral_elem_type);
         curr_token = tok_string_literal;
       } else {
         /* There is data following the #embed, so the optimization is not
@@ -44956,7 +44957,7 @@ restart_embed_data:
     continuation_icp = end_icp->next;
     elem_seen = TRUE;
     if (continuation->next != NULL) {
-      elem_icp = parse_braced_init_list_full(/*integral_array_init=*/FALSE,
+      elem_icp = parse_braced_init_list_full(/*integral_elem_type=*/NULL,
                                              bundle, &continuation->next);
       if (is_continuation_elem(elem_icp)) {
         /* The nested brace construct was suspended again.  This level cannot
@@ -45117,7 +45118,7 @@ wrapper for this function, but sets up the expression stack, and handles
 cached initializers).
 */
 {
-  return parse_braced_init_list_full(/*integral_array_init=*/FALSE, bundle,
+  return parse_braced_init_list_full(/*integral_elem_type=*/NULL, bundle,
                                      (a_braced_list_continuation_ptr*)NULL);
 }  /* parse_braced_init_list */
 
@@ -45174,7 +45175,7 @@ free the components prior to prev_icp.
                                   (an_expression_kind)ek_normal,
                                   /*is_full_expr=*/TRUE,
                                   dps, (an_init_state *)NULL);
-  (void)parse_braced_init_list_full(/*integral_array_init=*/FALSE,
+  (void)parse_braced_init_list_full(/*integral_elem_type=*/NULL,
                                     /*bundle=*/TRUE, &continuation);
   pop_expr_stack_for_initializer(saved_expr_stack, /*is_full_expr=*/TRUE,
                                  dps, (an_init_state *)NULL);
@@ -45249,6 +45250,11 @@ a new-initializer).
                     !cached_initializer_present());
   } else {
     /* Scan the braced-init-list from source. */
+    a_type_ptr integral_elem_type = NULL;
+    if (dps != NULL && is_array_type(dps->type) &&
+        is_integral_type(array_element_type(dps->type))) {
+      integral_elem_type = array_element_type(dps->type);
+    }  /* if */
     if (dps != NULL && dps->init_state.resumable) {
       /* In contexts where parsing can be suspended and resumed (to avoid
          keeping too many components allocated at the same time), provide a
@@ -45258,10 +45264,8 @@ a new-initializer).
       p_continuation = &continuation;
       check_assertion(is_full_expr);
     }  /* if */
-    icp = parse_braced_init_list_full(
-                               dps != NULL && is_array_type(dps->type) &&
-                               is_integral_type(array_element_type(dps->type)),
-                               /*bundle=*/is_full_expr, p_continuation);
+    icp = parse_braced_init_list_full(integral_elem_type,
+                                      /*bundle=*/is_full_expr, p_continuation);
   }  /* if */
   pop_expr_stack_for_initializer(saved_expr_stack,
                                  is_full_expr,

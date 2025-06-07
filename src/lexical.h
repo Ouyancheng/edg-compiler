@@ -1203,7 +1203,7 @@ EXTERN_THREAD a_boolean
 			   tok_gen_constant token if possible instead of
 			   a token-by-token expansion. */
 
-extern void copy_embed_data_to_il(void);
+extern void copy_embed_data_to_il(a_type_ptr elem_type);
 
 extern void process_embed_data_as_bytes(void);
 
