@@ -7473,11 +7473,14 @@ file indicated by *prev_f_C_output.
 
 static void dump_init_assignment(a_variable_ptr           variable,
                                  a_gen_init_pos_descr_ptr ipdp,
-                                 a_constant_ptr           constant)
+                                 a_constant_ptr           constant,
+                                 a_boolean                single_elem = FALSE)
 /*
 Generate an assignment statement to set the part of the variable "variable"
 described by the list pointed to by "ipdp" to the constant pointed to by
-"constant".
+"constant".  If single_elem is TRUE, the assignment is from a single element
+of a string representing the expansion of a #embed directive and not the
+entire string.
 */
 {
   FILE *save_f_C_output;
@@ -7489,7 +7492,7 @@ described by the list pointed to by "ipdp" to the constant pointed to by
   /* Generate an assignment.  For string initialization, generate a call
      to memcpy or bcopy instead. */
   set_output_position(&variable->source_corresp.decl_position);
-  if (constant->kind == (a_constant_repr_kind)ck_string) {
+  if (constant->kind == (a_constant_repr_kind)ck_string && !single_elem) {
     /* String -- Generate a move.  Note that the destination of the move is
        always an array of char, so no "&" is needed in front of the variable
        name (it is implicit).  If the string is the result of an optimized
@@ -7523,7 +7526,16 @@ described by the list pointed to by "ipdp" to the constant pointed to by
     /* Normal case (not string); generate an assignment statement. */
     dump_var_for_init(variable, ipdp);
     write_tok_str(" = ");
-    dump_constant(constant);
+    if (single_elem) {
+      /* Initializing a single element of a non-character array from a byte
+         in the expansion of a #embed directive. */
+      check_assertion(constant_is(constant, ck_string) &&
+                      constant->variant.string.embed_expansion);
+      write_unsigned_num(
+               (unsigned char)constant->variant.string.value[ipdp->curr_elem]);
+    } else {
+      dump_constant(constant);
+    }  /* if */
   }  /* if */
   /* Add the final semicolon to the assigning statement. */
   write_tok_ch(';');
@@ -7910,7 +7922,30 @@ block with state information for the processing.
       check_assertion(variable != NULL);
       start_initializer_assignments(variable, icbp);
       if (constant != NULL) {
-        dump_init_assignment(variable, outer_level_pos, constant);
+        if (constant_is(constant, ck_string) &&
+            constant->variant.string.embed_expansion &&
+            type_is(type, tk_array) &&
+            !is_character_type(type->variant.array.element_type)) {
+          /* This is an embed expansion initializing an array of a
+             non-character type, so we have to generate individual
+             assignments for each array element from the corresponding byte
+             of the string value. */
+          ipdp->prev = outer_level_pos;
+          ipdp->next = NULL;
+          ipdp->type = type;
+          ipdp->curr_field = NULL;
+          ipdp->repetition_count = NULL;
+          for (ipdp->curr_elem = 0;
+               ipdp->curr_elem < constant->variant.string.length;
+               ++ipdp->curr_elem) {
+            dump_init_assignment(variable, ipdp, constant,
+                                 /*single_elem=*/TRUE);
+          }  /* for */
+        } else {
+          /* We can handle the entire initialization from this constant
+             with a single assignment. */
+          dump_init_assignment(variable, outer_level_pos, constant);
+        }  /* if */
       }  /* if */
     } else {
       /* Generate a constant in an initializer list. */
