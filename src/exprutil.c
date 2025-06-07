@@ -14663,6 +14663,7 @@ the subscript case).
       if (is_constant_node(sub_node)) {
         sub_con = node_constant(sub_node);
         if (constant_is(sub_con, ck_integer)) {
+          a_targ_ptrdiff_t  offset = 0;
           /* The subscript is an integer constant.  The other operand should
              have type "pointer to x" (the test rules out error cases). */
           ptr_type = ptr_node->type;
@@ -14680,12 +14681,19 @@ the subscript case).
               } else if (constant_is_pointer_to_array_variable(
                                                      con, &underlying_type)) {
                 /* The constant is the address of a variable. */
-                if (con->variant.address.offset != 0 &&
-                    !is_array_type(underlying_type)) {
-                  /* The code below does not currently handle cases where we
-                     start with the address of an element that is not at the
-                     start of an array. */
-                  underlying_type = NULL;
+                offset = con->variant.address.offset;
+                if (offset != 0) {
+                  if (!is_array_type(underlying_type)) {
+                    /* The code below does not currently handle cases where we
+                       start with the address of an element that is not at the
+                       start of an array. */
+                    underlying_type = NULL;
+                  } else {
+                    a_targ_size_t  elem_size =
+                      skip_typerefs(array_element_type(underlying_type))->size;
+                    check_assertion(elem_size != 0);
+                    offset /= (a_targ_ptrdiff_t)elem_size;
+                  }  /* if */
                 }  /* if */
               }  /* if */
             } else if (is_operation_node(ptr_node)) {
@@ -14721,8 +14729,10 @@ the subscript case).
                 element_type = skip_typerefs(element_type);
                 if (identical_types(ptr_element_type, element_type)) {
                   /* Everything's as we want it.  Check the subscript. */
-                  a_constant_ptr eff_sub_con = sub_con;
-                  a_constant_ptr local_con = local_constant();
+                  a_boolean         err;
+                  an_integer_value  offset_int;
+                  a_constant_ptr    eff_sub_con = sub_con;
+                  a_constant_ptr    local_con = local_constant();
                   if (node_operator_is(node, eok_subscript)) {
                     *err_code = ec_subscript_out_of_range;
                   } else {
@@ -14730,7 +14740,6 @@ the subscript case).
                   }  /* if */
                   /* For the pointer "-" case negate the constant. */
                   if (node_operator_is(node, eok_psubtract)) {
-                    a_boolean err;
                     if (!int_constant_is_signed(sub_con)) {
                       goto invalid_subscript;
                     }  /* if */
@@ -14740,7 +14749,11 @@ the subscript case).
                                          &err);
                     if (err) goto invalid_subscript;
                   }  /* if */
-                  if (sign_of_integer_constant(eff_sub_con) < 0) {
+                  set_integer_value(&offset_int, offset);
+                  add_integer_values(&offset_int,
+                                     &eff_sub_con->variant.integer_value,
+                                     /*is_signed=*/TRUE, &err);
+                  if (sign_of(offset_int)) {
                     /* Negative subscript (positive for pointer "-"). */
 invalid_subscript:
                     valid = FALSE;
