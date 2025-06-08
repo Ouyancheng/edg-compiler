@@ -44929,8 +44929,7 @@ restart_embed_data:
     /* Check for an empty list. */
     if (curr_token == tok_rbrace) {
       goto check_for_rbrace;
-    } else if (curr_token == tok_string_literal &&
-               const_for_curr_token.variant.string.embed_expansion) {
+    } else if (curr_token == tok_gen_constant) {
       /* A #embed that is suitable for optimization as a ck_string was
          encountered. */
       if (next_token() == tok_rbrace) {
