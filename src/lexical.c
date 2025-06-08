@@ -10819,10 +10819,10 @@ get_token.
                  make_qualified_type(integer_type(ik_unsigned_char), TQ_CONST);
   array_type->variant.array.variant.number_of_elements = embed_control.size;
   set_type_size(array_type);
-  /* Set the current token to tok_gen_constant to flag the #embed expansion
-     as optimizable and the position of the current token to the beginning
-     of the directive for use in potential error diagnostics. */
-  curr_token = tok_gen_constant;
+  /* Set the current token to tok_string_literal to flag the #embed
+     expansion as optimizable and the position of the current token to the
+     beginning of the directive for use in potential error diagnostics. */
+  curr_token = tok_string_literal;
   pos_curr_token = *pos;
   /* Set up const_for_curr_token to be a string token containing the embed
      expansion.  Initially the value will point to the buffer allocated in
@@ -18479,7 +18479,7 @@ check_start_of_pp_directive:
                   !curr_lexical_state_stack_entry->cache_tokens) {
                 /* This is a potentially-optimizable #embed directive.  Set
                    up const_for_curr_token as a ck_string constant with the
-                   data from the #embed and return a tok_gen_constant to
+                   data from the #embed and return a tok_string_literal to
                    the caller to indicate the situation, suspending normal
                    processing of the #embed data to allow examination of
                    the next token following the #embed. */
