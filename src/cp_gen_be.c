@@ -2199,7 +2199,7 @@ template, add its instances as well in case they may be needed.
        that are members of the class template so they can be used in place
        of the underlying type. */
     a_type_ptr parent_class = parent_class_or_null(type);
-    if (parent_class != NULL &&
+    if (parent_class != NULL && !type->variant.typeref.is_nonreal &&
         parent_class->variant.class_struct_union.is_prototype_instantiation) {
       add_typedef_to(proto_inst_member_typedef_hash_table, type);
     }  /* if */
