@@ -1033,10 +1033,7 @@ enum a_token_kind : unsigned short {
   tok_gen_constant,         /* A token representing a general constant.  These
                                cannot always be expressed using ordinary source
                                code, but generated code (from modules or
-                               injection) may produce such tokens.  Also used
-                               to indicate that a #embed expansion is
-                               suitable for optimization to a single block of
-                               data instead of a byte-by-byte expansion. */
+                               injection) may produce such tokens. */
   tok_string_literal,
   tok_ud_literal,
   tok_last_literal_token_kind = tok_ud_literal,
