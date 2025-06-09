@@ -1242,11 +1242,8 @@ appropriately.
 */
 {
   reset_working_directory();
-
-  size_t dir_name_len = strlen(dir_name);
-  current_directory_name = (char *)alloc_general(dir_name_len + 1);
-  (void)strncpy(current_directory_name, dir_name, dir_name_len);
-  current_directory_name[dir_name_len] = '\0';
+  current_directory_name = new_copy_of_string(dir_name,
+                                              General_allocator<char>());
 }  /* set_working_directory */
 
 
@@ -1258,36 +1255,66 @@ set_working_directory.
 */
 {
   if (current_directory_name == NULL) {
+    /* Determine the best initial capacity for the buffer. */
+#ifdef MAXPATHLEN
+#define CWD_BUFFER_INIT_CAP MAXPATHLEN
+#else /* !defined(MAXPATHLEN) */
+#define CWD_BUFFER_INIT_CAP 256
+#endif /* MAXPATHLEN */
+    /* Determine the buffer type and define the default "zero" value. */
+#if EDG_WIN32 && UNICODE_SOURCE_SUPPORTED
+    using a_buffer_type = Dyn_array<wchar_t, General_allocator>;
+    constexpr wchar_t zero_elem_value = L'\0';
+#else /* !(EDG_WIN32 && UNICODE_SOURCE_SUPPORTED) */
+    using a_buffer_type = Dyn_array<char, General_allocator>;
+    constexpr char    zero_elem_value = '\0';
+#endif /* EDG_WIN32 && UNICODE_SOURCE_SUPPORTED */
+    /* Define a buffer for calls to getcwd or getwd. */
+    a_buffer_type     cwd_buffer(CWD_BUFFER_INIT_CAP, zero_elem_value);
+    a_const_char      *internal_cwd_str;
+
 #if USE_GETCWD
-    /* The temporary buffer may not be allocated yet.  Make sure there
-       is some space allocated. */
-    ensure_temp_text_buffer_space(256);
-    for (;;) {
+    /* Determine the correct getcwd function. */
 #if EDG_WIN32
-      using a_cwd_size_arg_type = int;
+    using a_cwd_size_arg_type = int;
+#if UNICODE_SOURCE_SUPPORTED
+#define CWD_FUNC_NAME _wgetcwd
+#else /* !UNICODE_SOURCE_SUPPORTED */
+#define CWD_FUNC_NAME _getcwd
+#endif /* UNICODE_SOURCE_SUPPORTED */
 #else /* !EDG_WIN32 */
-      using a_cwd_size_arg_type = size_t;
+    using a_cwd_size_arg_type = size_t;
+#define CWD_FUNC_NAME getcwd
 #endif /* EDG_WIN32 */
-      if (getcwd(temp_text_buffer,
-                 (a_cwd_size_arg_type)size_temp_text_buffer) == NULL) {
+    while (TRUE) {
+      if (CWD_FUNC_NAME(cwd_buffer.begin(),
+                        (a_cwd_size_arg_type)cwd_buffer.length()) == NULL) {
         if (errno == ERANGE) {
           /* We know the buffer is too small, but we don't know how much
-             more space we need.  Add a little space and try again. */
-          ensure_temp_text_buffer_space(size_temp_text_buffer + 256);
+             more space we need.  Double the buffer and try again. */
+          cwd_buffer.resize(cwd_buffer.length() * 2, zero_elem_value);
           continue;
         }  /* if */
       }  /* if */
       break;
     }  /* for */
+#if EDG_WIN32 && UNICODE_SOURCE_SUPPORTED
+    internal_cwd_str = conv_wide_to_utf8(cwd_buffer.begin());
+#else /* !EDG_WIN32 && UNICODE_SOURCE_SUPPORTED */
+    internal_cwd_str =
+                     (char*)file_name_in_internal_encoding(cwd_buffer.begin());
+#endif /* EDG_WIN32_UNICODE */
 #else /* !USE_GETCWD */
-    /* Make sure there is enough space for the largest path name that can
-       be returned. */
-    ensure_temp_text_buffer_space(MAXPATHLEN);
-    (void)getwd(temp_text_buffer);
+    (void)getwd(cwd_buffer.begin());
+    internal_cwd_str =
+                     (char*)file_name_in_internal_encoding(cwd_buffer.begin());
 #endif /* USE_GETCWD */
-    set_working_directory(temp_text_buffer);
+    set_working_directory(internal_cwd_str);
   }  /* if */
   return current_directory_name;
+  /* Undefine macros defined in this function. */
+#undef CWD_FUNC_NAME
+#undef CWD_BUFFER_INIT_CAP
 }  /* get_working_directory */
 
 
@@ -1810,7 +1837,7 @@ Return a string containing the temporary directory name using the Win32 API.
 */
 {
   a_string result;
-#if UNICODE_SOURCE_ENABLED
+#if UNICODE_SOURCE_SUPPORTED
   typedef DWORD (WINAPI *GTP2W)(DWORD, LPWSTR);
   wchar_t  buffer[MAX_PATH];
   DWORD    path_len;
@@ -1824,7 +1851,7 @@ Return a string containing the temporary directory name using the Win32 API.
   } else {
     path_len = GetTempPathW(MAX_PATH, buffer);
   }  /* if */
-#else /* !UNICODE_SOURCE_ENABLED */
+#else /* !UNICODE_SOURCE_SUPPORTED */
   typedef DWORD (WINAPI *GTP2A)(DWORD, LPSTR);
   char     buffer[MAX_PATH];
   DWORD    path_len;
@@ -1838,7 +1865,7 @@ Return a string containing the temporary directory name using the Win32 API.
   } else {
     path_len = GetTempPathA(MAX_PATH, buffer);
   }  /* if */
-#endif /* UNICODE_SOURCE_ENABLED */
+#endif /* UNICODE_SOURCE_SUPPORTED */
   if (path_len > (MAX_PATH - 14) || path_len == 0) {
     /* GetTempPath failed to retrieve a valid temporary path; fall back to the
        binary's default temporary directory.  Note that the Win32 API specifies
@@ -1848,11 +1875,11 @@ Return a string containing the temporary directory name using the Win32 API.
   } else {
     /* Use the path from GetTempPath (converting from utf-16 to utf-8 if
        necessary). */
-#if UNICODE_SOURCE_ENABLED
+#if UNICODE_SOURCE_SUPPORTED
     result.reset_to(conv_wide_to_utf8(buffer));
-#else /* !UNICODE_SOURCE_ENABLED */
-    result.reset_to(a_string_view(buffer, path_len));
-#endif /* UNICODE_SOURCE_ENABLED */
+#else /* !UNICODE_SOURCE_SUPPORTED */
+    result.reset_to(file_name_in_internal_encoding(buffer));
+#endif /* UNICODE_SOURCE_SUPPORTED */
   }  /* if */
   return result;
 }  /* get_temp_dir_from_win32 */
@@ -1866,11 +1893,19 @@ environment variables.
 */
 {
   a_string result;
-  char     *temp_dir_env;
+  char     *temp_dir_env = NULL;
 
 #if __MICROSOFT_OS__
   /* On a Microsoft OS, first use the TMP environment variable, if set. */
+#if EDG_WIN32 && UNICODE_SOURCE_SUPPORTED
+  wchar_t *wide_temp_dir_env = _wgetenv(L"TMP");
+
+  if (wide_temp_dir_env != NULL) {
+    temp_dir_env = conv_wide_to_utf8(wide_temp_dir_env);
+  }  /* if */
+#else /* !(EDG_WIN32 && UNICODE_SOURCE_SUPPORTED) */
   temp_dir_env = getenv("TMP");
+#endif /* EDG_WIN32 && UNICODE_SOURCE_SUPPORTED */
 #else /* !__MICROSOFT_OS__ */
   /* On a Unix OS, use the TMPDIR environment variable, if set. */
   temp_dir_env = getenv("TMPDIR");
@@ -1881,7 +1916,11 @@ environment variables.
     result.reset_to(DEFAULT_TMPDIR);
   } else {
     /* Use the temporary directory from the environment variable. */
+#if EDG_WIN32 && UNICODE_SOURCE_SUPPORTED
     result.reset_to(temp_dir_env);
+#else /* !(EDG_WIN32 && UNICODE_SOURCE_SUPPORTED) */
+    result.reset_to(file_name_in_internal_encoding(temp_dir_env));
+#endif /* EDG_WIN32 && UNICODE_SOURCE_SUPPORTED */
   }  /* if */
   return result;
 }  /* get_temp_dir_from_env */

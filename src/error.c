@@ -5863,7 +5863,7 @@ returned by the file open routine.
   }  /* if */
   dp = create_primary_diagnostic(error_code, &local_error_pos, severity);
   add_string_fill_in(dp, error_text(file_kind));
-  add_string_fill_in(dp, file_name);
+  add_string_fill_in(dp, format_file_name(file_name));
   if (reason != NULL) {
     add_string_fill_in(dp, reason);
   }  /* if */
