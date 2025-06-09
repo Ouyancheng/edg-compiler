@@ -22537,7 +22537,9 @@ the value representation of the integer value.
                 a_byte_count  elem_size, pos, len;
                 a_boolean     relaxed = is_runtime_data_address(result_addr) &&
                                         host_int_val > 0 &&
-                                        gnu_version_is(any_version);
+                                        (gnu_version_is(any_version) ||
+                                         (clang_version_is(>=90000) &&
+                                          cpp11_mode && !cpp14_mode));
                 get_array_pos(ips, result_addr, elem_type, &len, &pos,
                               &elem_size, &result);
                 if (!is_array_element(result_addr) && !relaxed &&
@@ -22617,7 +22619,9 @@ the value representation of the integer value.
                 a_byte_count  elem_size, pos, len;
                 a_boolean     relaxed = is_runtime_data_address(result_addr) &&
                                         host_int_val > 0 &&
-                                        gnu_version_is(any_version);
+                                        (gnu_version_is(any_version) ||
+                                         (clang_version_is(>=90000) &&
+                                          cpp11_mode && !cpp14_mode));
                 get_array_pos(ips, result_addr, elem_type, &len, &pos,
                               &elem_size, &result);
                 if (!is_array_element(result_addr) && !relaxed &&
