@@ -22781,7 +22781,7 @@ the value representation of the integer value.
                                    &max_integer_value_of_kind[
                                              unsigned_int_kind_of[int_kind]]);
                 if (is_signed) {
-                  if (!cpp20_mode &&
+                  if (!cpp20_mode && !gpp_version_is(<60000) &&
                       (ovfl ||
                        cmp_integer_values((an_integer_value*)opnd1_value,
                                           /*op1_is_signed=*/FALSE,
