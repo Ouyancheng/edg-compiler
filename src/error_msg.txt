@@ -3558,7 +3558,7 @@ ec_module_unit_export_expected;;"the module declaration must be exported from th
 ec_cannot_write_module_none_declared;;"module file generation was requested but no module was declared in the translation unit"
 ec_candidate_constraints_failed;;"substituting %T for %n failed constraints"
 ec_concept_not_satisfied;;"%n not satisfied for %T"
-ec_bad_embed_initializer;;"the embed expansion is too long to initialize an entity of type %t"
+ec_bad_embed_initializer;;"the #embed expansion is too long to initialize an entity of type %t"
 ec_bad_defined_pp_op;;"the \"defined\" operator is not permitted here"
 ec_ptr_to_mem_to_non_member;;"%n is not a member of %t"
 ec_embed_narrowing;;"narrowing conversion to signed character in #embed data"

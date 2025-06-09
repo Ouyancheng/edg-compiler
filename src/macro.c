@@ -5578,9 +5578,9 @@ directive would produce an error, "1" if the named file exists and is not
 empty, and "2" if the file exists but is empty.
 */
 {
-  a_const_char          *result = "0";
-  a_const_char          *file_name;
-  a_boolean             saved_in_pp_if = in_pp_if_expression;
+  a_const_char *result = "0";
+  a_const_char *file_name;
+  a_boolean    saved_in_pp_if = in_pp_if_expression;
 
   /* Ensure that get_token() doesn't turn parameter names into integer 0
      values, as it otherwise would do for identifiers that are not macro

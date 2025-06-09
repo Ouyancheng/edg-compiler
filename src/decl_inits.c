@@ -137,7 +137,10 @@ standard C behavior of trimming the terminating null character if needed),
   if (!is_template_dependent && !string_con->variant.string.embed_expansion) {
     /* The constant and the array should have the same underlying character
        element type -- e.g., it's a mismatch if one is a wide string
-       and the other a normal string. */
+       and the other a normal string.  (That restriction does not apply for
+       strings that are the optimized expansion of a #embed directive;
+       because they represent a list of integer literals, they can
+       initialize an array of any integral type.) */
     switch (string_con->character_kind) {
       case chk_char:
         err = !is_char_array_type(*dst_type);

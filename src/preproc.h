@@ -366,7 +366,7 @@ extern a_const_char *check_for_include_alias(void);
 extern a_const_char *extract_header_name(a_boolean process_escapes,
                                          sizeof_t  *result_length);
 
-extern a_boolean parse_embed(a_boolean             is_directive);
+extern a_boolean parse_embed(a_boolean is_directive);
 
 extern void preproc_one_time_init(void);
 

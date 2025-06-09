@@ -1199,8 +1199,8 @@ extern void clear_embed_parse_data(void);
 EXTERN_THREAD a_boolean
 		next_token_is_start_of_braced_initializer;
 			/* Set by parse_braced_init_list_full to cause a
-			   #embed directive to return a single
-			   tok_gen_constant token if possible instead of
+			   #embed directive to return a special
+			   tok_string_literal token if possible instead of
 			   a token-by-token expansion. */
 
 extern void copy_embed_data_to_il(a_type_ptr elem_type);
@@ -2753,7 +2753,7 @@ extern void clear_char_overflows(void);
 extern a_token_kind concat_adjacent_string_literals(
                                                  a_boolean function_name_case);
 /* Read tokens from a #embed expansion. */
-extern void insert_embed_contents(a_source_position     *pos);
+extern void insert_embed_contents(a_source_position *pos);
 /* Retrieve a character replaced in a #embed directive by a lexical escape. */
 extern a_const_char orig_char_from_embed_directive(a_const_char lex_escape);
 /* Get next token. */

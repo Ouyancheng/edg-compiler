@@ -3548,7 +3548,7 @@ enum a_constant_repr_kind : a_byte {
   ck_fixed_point,       /* Fixed-point types. */
 #endif /* FIXED_POINT_ALLOWED */
   ck_string,            /* Character strings, as well as optimizable #embed
-			   expansions. */
+                           expansions. */
   ck_float,             /* All sizes of float. */
 #if C99_IL_EXTENSIONS_SUPPORTED
   ck_complex,           /* All sizes of C99's _Complex types. */

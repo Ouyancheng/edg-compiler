@@ -2363,7 +2363,7 @@ Scan and process a #embed directive.  This directive inserts the contents
 of a file into the token stream one byte at a time as int constants.
 */
 {
-  a_source_position     directive_pos = pos_curr_token;
+  a_source_position directive_pos = pos_curr_token;
 
   if (parse_embed(/*is_directive=*/TRUE)) {
     insert_embed_contents(&directive_pos);

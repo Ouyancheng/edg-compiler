@@ -10627,7 +10627,7 @@ done:
 }  /* copy_embed_parameter_to_result */
 
 
-void insert_embed_contents(a_source_position     *pos)
+void insert_embed_contents(a_source_position *pos)
 /*
 Set up for inserting the expansion of a #embed directive, appearing in the
 source at *pos, into the token stream.  Information about the directive is
@@ -10838,7 +10838,7 @@ get_token.
      embed_control untouched) so that the caller of get_token can use
      next_token() to determine whether to apply the optimization or not.
      If the optimization cannot be applied, the caller will call
-     process_embed_data_as_bytes to resume processing of the embed
+     process_embed_data_as_bytes to resume processing of the #embed
      expansion. */
   embed_control.in_process = FALSE;
 }  /* make_string_constant_for_embed_expansion */
@@ -10852,10 +10852,10 @@ data for the const_for_curr_token ck_string constant), free the embed data
 buffer, and clear the embed_control block to allow tokenizing to continue
 after the #embed directive.  In configurations with
 PRESERVE_EMBED_DIRECTIVE_WHEN_OPTIMIZED set to TRUE, also copy the textual
-form of the #embed directive to the IL and add it const_for_curr_token.  If
-the specified element type is a signed character type, check the data for
-any values that cannot be represented as a signed char and issue a warning
-(or a narrowing error in strict mode) if any are found.
+form of the #embed directive to the IL and add it to const_for_curr_token.
+If the specified element type is a signed character type, check the data
+for any values that cannot be represented as a signed char and issue a
+warning (or a narrowing error in strict mode) if any are found.
 */
 {
   check_assertion(const_for_curr_token.kind == ck_string &&
@@ -10894,7 +10894,7 @@ void process_embed_data_as_bytes(void)
 /*
 A potentially-optimizable #embed has just been determined not to be
 optimizable because a call to next_token() found something other than the
-closing '}'.  Resume normal processing of the embed expansion.
+closing '}'.  Resume normal processing of the #embed expansion.
 */
 {
   a_boolean no_tokens_on_list;
@@ -10961,8 +10961,8 @@ that tokens are no longer coming from a #embed directive.
       }  /* if */
     } else {
       /* If the current token position was set to the end of the prefix
-         parameter, set it back to the directive position now in case of,
-         e.g., narrowing diagnostics. */
+         parameter, set it back to the directive position now in case it is
+         needed for, e.g., narrowing diagnostics. */
       pos_curr_token = embed_control.directive_pos;
     }  /* if */
     set_unsigned_integer_value(

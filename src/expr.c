@@ -44920,7 +44920,7 @@ parse) and get_continued_elem (for resuming a suspended parse).
     check_assertion(curr_token == tok_lbrace);
     icp->variant.braced.start_pos = pos_curr_token;
     if (integral_elem_type != NULL) {
-      /* Enable the potential ck_string optimization. */
+      /* Enable the potential #embed ck_string optimization. */
       next_token_is_start_of_braced_initializer = TRUE;
     }  /* if */
 restart_embed_data:
@@ -44938,9 +44938,9 @@ restart_embed_data:
         copy_embed_data_to_il(integral_elem_type);
         curr_token = tok_string_literal;
       } else {
-        /* There is data following the #embed, so the optimization is not
-           possible.  Restart the processing with the first byte of the
-           #embed expansion. */
+        /* The initializer contains something following the #embed, so the
+           optimization is not possible.  Restart the processing with the
+           first byte of the #embed expansion. */
         process_embed_data_as_bytes();
         goto restart_embed_data;
       }  /* if */

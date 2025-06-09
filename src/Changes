@@ -65,18 +65,19 @@ individual values of the expansion, the initializer in such cases is
 represented by a special ck_string constant, identified by the new flag
 variant.string.embed_expansion being TRUE, of type "array of unsigned
 char".  Note that such a ck_string constant can appear as the initializer
-for any numeric array; it is not limited solely to arrays of character
-types.
+for any array of integral type; it is not limited solely to arrays of
+character types.
 
 In a related change, if PRESERVE_EMBED_DIRECTIVE_WHEN_OPTIMIZED is set to
 TRUE (the default for C++-generating back end configurations), the
 embed_expansion constant will contain a pointer,
 variant.string.embed_directive, that points to a textual representation of
 the macro-expanded form of the associated #embed directive, and the
-C++-generating back end will put out the constant as that string.  In
-configurations in which PRESERVE_EMBED_DIRECTIVE_WHEN_OPTIMIZED is FALSE,
-the constant will be put out as the comma-separated list of values of the
-bytes comprising the string value.
+C++-generating back end will put out that string as the value of the
+constant.  In configurations in which
+PRESERVE_EMBED_DIRECTIVE_WHEN_OPTIMIZED is FALSE, the constant will be put
+out as the comma-separated list of values of the bytes comprising the
+string value.
 
 
 6/2/25   [EDGcpfe/28215]

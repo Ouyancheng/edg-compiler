@@ -7494,10 +7494,11 @@ entire string.
   set_output_position(&variable->source_corresp.decl_position);
   if (constant->kind == (a_constant_repr_kind)ck_string && !single_elem) {
     /* String -- Generate a move.  Note that the destination of the move is
-       always an array of char, so no "&" is needed in front of the variable
-       name (it is implicit).  If the string is the result of an optimized
-       #embed expansion, turn off the identifying flag so that form_constant
-       doesn't render it as a brace-enclosed list of integer literals. */
+       always an array of char, so no "&" is needed in front of the
+       variable name (it is implicit).  If the string is the result of an
+       optimized #embed expansion, turn off the identifying flag so that
+       form_constant will put it out as a string and not as a
+       brace-enclosed list of integer literals. */
     a_boolean saved_embed_expansion = constant->variant.string.embed_expansion;
     constant->variant.string.embed_expansion = FALSE;
 #if __BSD__
@@ -7527,8 +7528,8 @@ entire string.
     dump_var_for_init(variable, ipdp);
     write_tok_str(" = ");
     if (single_elem) {
-      /* Initializing a single element of a non-character array from a byte
-         in the expansion of a #embed directive. */
+      /* Initializing a single element of an array from a byte in the
+         expansion of a #embed directive. */
       check_assertion(constant_is(constant, ck_string) &&
                       constant->variant.string.embed_expansion);
       write_unsigned_num(
@@ -7981,7 +7982,8 @@ block with state information for the processing.
                            value[constant->variant.string.length-1] != '\0')) {
         /* If the initial value is a string without the trailing null, the
            individual characters must be dumped, instead of the string
-           literal. */
+           literal.  #embed expansions are not normal character strings but
+           represent lists of integers, so we treat them the same way. */
         write_tok_ch('{');
         dump_exploded_string(constant);
         write_tok_ch('}');
