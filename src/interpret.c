@@ -2309,6 +2309,11 @@ STATIC_THREAD an_integer_value
 		zero_int;
 STATIC_THREAD an_integer_value
 		one_int;
+
+#define is_zero_int(int_val)                                                 \
+  (cmp_integer_values((an_integer_value*)int_val, /*op_1_signed=*/FALSE,     \
+                      &zero_int, /*op_2_signed=*/FALSE) == 0)
+
 STATIC_THREAD an_internal_float_value
 		zero_flt[(int)fk_last];
 STATIC_THREAD an_internal_float_value
@@ -2377,12 +2382,7 @@ representation to fit in the bit field length.  bftp is the underlying type
   if (bftp->variant.integer.bool_type) {
     /* Boolean values aren't really "trimmed": They're just normalized to zero
        or one. */
-    if (cmp_integer_values(field_value, /*op_1_signed=*/FALSE,
-                           &zero_int, /*op_2_signed=*/FALSE) != 0) {
-      *field_value = one_int;
-    } else {
-      *field_value = zero_int;
-    }  /* if */
+    *field_value = is_zero_int(field_value) ? zero_int : one_int;
   } else if (is_signed) {
     sign_extend_integer_value(field_value, length);
   } else {
@@ -2749,10 +2749,7 @@ addressed (with non-array objects treated as arrays of one element).  Set
 
   if (!constant_is(con_addr, ck_address)) {
     check_assertion(constant_is(con_addr, ck_integer));
-    if (cmp_integer_values(&con_addr->variant.integer_value,
-                           /*op_1_signed=*/FALSE,
-                           (an_integer_value *)&zero_int,
-                           /*op_2_signed=*/FALSE) == 0 &&
+    if (is_zero_int(&con_addr->variant.integer_value) &&
         !ips->permit_null_pointer_offsets) {
       /* A null pointer value in a context that does not permit null pointer
          offsets in constant-expressions. */
@@ -8577,8 +8574,7 @@ returns TRUE.
   check_assertion(arg_tp->kind == (a_type_kind)tk_integer);
   if (arg2_bytes != NULL) {
     check_assertion(bfk == bfk_clzg || bfk == bfk_ctzg);
-    if (cmp_integer_values(&arg, /*op_1_signed=*/FALSE,
-                           &zero_int, /*op_2_signed=*/FALSE) == 0) {
+    if (is_zero_int(&arg)) {
       /* If the first operand is zero, the result is the second operand. */
       *(an_integer_value*)result_storage = *(an_integer_value*)arg2_bytes;
       goto done;
@@ -8591,8 +8587,7 @@ returns TRUE.
     shift_left_integer_value(&mask, (int)k, &ovflo);
     check_assertion(!ovflo);
     and_integer_values(&mask, &arg);
-    bit = cmp_integer_values(&mask, /*op_1_signed=*/FALSE,
-                             &zero_int, /*op_2_signed=*/FALSE) != 0;
+    bit = !is_zero_int(&mask);
     switch (bfk) {
       case bfk_ffs:
       case bfk_ffsg:
@@ -8691,9 +8686,7 @@ state.
       get_array_pos(ips, addr, tp, &max_len, &pos, &elem_size, &result);
       if (result) {
         max_len -= pos;
-        while (cmp_integer_values(ptr, /*op_1_signed=*/FALSE,
-                                  (an_integer_value *)&zero_int,
-                                  /*op_2_signed=*/FALSE) != 0) {
+        while (!is_zero_int(ptr)) {
           len += 1;
           ptr += 1;
           if (len == max_len) {
@@ -8787,8 +8780,8 @@ diagnostic for the given expression node and interpreter state.
             check_for_read_past_operand = TRUE;
           }  /* if */
         }  /* if */
-        for (;cmp_integer_values(&len, /*op_1_signed=*/FALSE, eff_max,
-                                 /*op_2_signed=*/FALSE);
+        for (; cmp_integer_values(&len, /*op_1_signed=*/FALSE, eff_max,
+                                  /*op_2_signed=*/FALSE);
              ptr++, incr_integer_value(&len)) {
           if (cmp_integer_values(ptr, /*op_1_signed=*/FALSE,
                                  (an_integer_value *)arg2_bytes,
@@ -8797,9 +8790,7 @@ diagnostic for the given expression node and interpreter state.
             goto return_result;
           }  /* if */
           if (arg3_bytes == NULL) {
-            if (cmp_integer_values(ptr, /*op_1_signed=*/FALSE,
-                                   (an_integer_value *)&zero_int,
-                                   /*op_2_signed=*/FALSE) == 0) {
+            if (is_zero_int(ptr)) {
               /* In the string case, we've found the end of the string, so the
                  item was not found (but this does not result in an error). */
               ptr = NULL;
@@ -9147,10 +9138,7 @@ expression node and interpreter state.
         goto return_result;
       }  /* if */
       /* *ptr1 and *ptr2 have the same value. */
-      if (!is_memcmp &&
-          cmp_integer_values(ptr1, /*op_1_signed=*/FALSE,
-                             (an_integer_value *)&zero_int,
-                             /*op_2_signed=*/FALSE) == 0) {
+      if (!is_memcmp && is_zero_int(ptr1)) {
         /* In the string case, both strings have reached the null terminating
            character (and ret_val == 0). */
         goto return_result;
@@ -18874,13 +18862,7 @@ a diagnostic.
         if (is_runtime_data_address(cap)) {
           a_constant_ptr  addr_con = cap->variant.addr_con;
           if (constant_is(addr_con, ck_integer)) {
-            a_boolean  is_signed = FALSE;
-            if (cmp_integer_values(&addr_con->variant.integer_value, is_signed,
-                                   &zero_int, is_signed) != 0) {
-              *p_cond = TRUE;
-            } else {
-              *p_cond = FALSE;
-            }  /* if */
+            *p_cond = !is_zero_int(&addr_con->variant.integer_value);
           } else {
             if (constant_is(addr_con, ck_address)) {
               /* Check for the case of a (non-weak) variable address: That is
@@ -19878,11 +19860,7 @@ represented by an entry of type a_constant (ck_address or ck_integer).
         clear_runtime_constant_address(result_storage, new_con);
       } else if (constant_is(addr_con, ck_integer)) {
         /* Possibly a null pointer. */
-        if (!pointer_case ||
-            cmp_integer_values(&addr_con->variant.integer_value,
-                               /*op_1_signed=*/FALSE,
-                               (an_integer_value *)&zero_int,
-                               /*op_2_signed=*/FALSE) != 0) {
+        if (!pointer_case || !is_zero_int(&addr_con->variant.integer_value)) {
           /* Either a reference cast (which cannot handle a null address, or
              not an actual null pointer (e.g., a non-zero integer cast to a
              pointer type). */
@@ -20998,10 +20976,7 @@ the value representation of the integer value.
             } else if (type_is(tp, tk_pointer) &&
                        (type_is(opnd1_type, tk_nullptr) ||
                         (type_is(opnd1_type, tk_integer) &&
-                         cmp_integer_values((an_integer_value *)opnd1_value,
-                                            /*op_1_signed=*/FALSE,
-                                            (an_integer_value *)&zero_int,
-                                            /*op_2_signed=*/FALSE) == 0))) {
+                         is_zero_int(opnd1_value)))) {
               /* A null pointer. */
               if (expr->variant.operation.is_reinterpret_like_cast &&
                   strict_ansi_mode) {
@@ -21018,10 +20993,7 @@ the value representation of the integer value.
             } else if (type_is(tp, tk_ptr_to_member) &&
                        (type_is(opnd1_type, tk_nullptr) ||
                         (type_is(opnd1_type, tk_integer) &&
-                         cmp_integer_values((an_integer_value *)opnd1_value,
-                                            /*op_1_signed=*/FALSE,
-                                            (an_integer_value *)&zero_int,
-                                            /*op_2_signed=*/FALSE) == 0))) {
+                         is_zero_int(opnd1_value)))) {
               /* A null pointer-to-member. */
               a_constexpr_ptr_to_mem
                                 *pm = (a_constexpr_ptr_to_mem*)result_storage;
@@ -21578,7 +21550,36 @@ the value representation of the integer value.
             }  /* if */
             break;
           case eok_vector_land:
-            { a_byte  *src1 = opnd1_value, *src2 = opnd2_value,
+            if (type_is(opnd1_type, tk_integer) ||
+                type_is(opnd2_type, tk_integer)) {
+              /* A mixed vector/scalar comparison: The result is either a
+                 vector of zeroes or the vector operand. */
+              a_byte  *scalar, *vector;
+              a_type  *detp = skip_typerefs(tp->variant.vector.element_type);
+              a_targ_size_t
+                      len = tp->size/detp->size;
+              if (type_is(opnd1_type, tk_integer)) {
+                scalar = opnd1_value;
+                vector = opnd2_value;
+              } else {
+                scalar = opnd2_value;
+                vector = opnd1_value;
+              }  /* if */
+              if (is_zero_int(scalar)) {
+                /* The result is a zero-filled vector. */
+                for (a_targ_size_t k = 0; k<len; ++k) {
+                  ((an_integer_value*)result_storage)[k] = zero_int;
+                }  /* for */
+              } else {
+                /* The result is the (normalized) vector operand. */
+                for (a_targ_size_t k = 0; k<len; ++k) {
+                  ((an_integer_value*)result_storage)[k] = 
+                        is_zero_int(&((an_integer_value*)vector)[k]) ?
+                                                           zero_int : one_int;
+                }  /* for */
+              }  /* if */
+            } else {
+              a_byte  *src1 = opnd1_value, *src2 = opnd2_value,
                       *dst = result_storage;
               a_type  *setp = skip_typerefs(opnd1_type
                                                ->variant.vector.element_type),
@@ -21604,7 +21605,36 @@ the value representation of the integer value.
             }
             break;
           case eok_vector_lor:
-            { a_byte  *src1 = opnd1_value, *src2 = opnd2_value,
+            if (type_is(opnd1_type, tk_integer) ||
+                type_is(opnd2_type, tk_integer)) {
+              /* A mixed vector/scalar comparison: The result is either a
+                 vector of ones or the vector operand. */
+              a_byte  *scalar, *vector;
+              a_type  *detp = skip_typerefs(tp->variant.vector.element_type);
+              a_targ_size_t
+                      len = tp->size/detp->size;
+              if (type_is(opnd1_type, tk_integer)) {
+                scalar = opnd1_value;
+                vector = opnd2_value;
+              } else {
+                scalar = opnd2_value;
+                vector = opnd1_value;
+              }  /* if */
+              if (!is_zero_int(scalar)) {
+                /* The result is a one-filled vector. */
+                for (a_targ_size_t k = 0; k<len; ++k) {
+                  ((an_integer_value*)result_storage)[k] = one_int;
+                }  /* for */
+              } else {
+                /* The result is the (normalized) vector operand. */
+                for (a_targ_size_t k = 0; k<len; ++k) {
+                  ((an_integer_value*)result_storage)[k] = 
+                        is_zero_int(&((an_integer_value*)vector)[k]) ?
+                                                           zero_int : one_int;
+                }  /* for */
+              }  /* if */
+            } else {
+              a_byte  *src1 = opnd1_value, *src2 = opnd2_value,
                       *dst = result_storage;
               a_type  *setp = skip_typerefs(opnd1_type
                                                ->variant.vector.element_type),
@@ -22353,10 +22383,8 @@ the value representation of the integer value.
                                     is_signed, &ovfl);
               if (ovfl) {
                 do_constexpr_fail(result);
-                info_with_pos(cmp_integer_values(
-                                  (an_integer_value*)opnd2_value, is_signed,
-                                  &zero_int, is_signed) == 0 ?
-                                ec_divide_by_zero : ec_integer_overflow,
+                info_with_pos(is_zero_int(opnd2_value) ? ec_divide_by_zero
+                                                       : ec_integer_overflow,
                               &expr->position, ips);
               }  /* if */
             } else if (type_kind_is_simple_float_like(
@@ -22407,10 +22435,8 @@ the value representation of the integer value.
                                        is_signed, &ovfl);
               if (ovfl) {
                 do_constexpr_fail(result);
-                info_with_pos(cmp_integer_values(
-                                  (an_integer_value*)opnd2_value, is_signed,
-                                  &zero_int, is_signed) == 0 ?
-                                ec_divide_by_zero : ec_integer_overflow,
+                info_with_pos(is_zero_int(opnd2_value) ?  ec_divide_by_zero
+                                                       : ec_integer_overflow,
                               &expr->position, ips);
               }  /* if */
 #if GNU_VECTOR_TYPES_ALLOWED
@@ -26806,7 +26832,6 @@ FALSE if the evaluation produces a "false" value.
   a_byte                *result_storage;
   a_byte_count          n_bytes;
   a_type_ptr            val_type = skip_typerefs(expr->type);
-  int                   cmp;
   
   if (trans_unit_initialization_needed) {
     initialize_interpreter_data();
@@ -26833,11 +26858,7 @@ FALSE if the evaluation produces a "false" value.
   }  /* if */
   /* Evaluation succeeded: For the attribute constraint to succeed, the result
      must not be a zero constant. */
-  cmp = cmp_integer_values((an_integer_value *)result_storage,
-                           /*op_1_signed=*/FALSE,
-                           (an_integer_value *)&zero_int,
-                           /*op_2_signed=*/FALSE);
-  if (cmp == 0) {
+  if (is_zero_int(result_storage)) {
     *p_value = FALSE;
   }  /* if */
 done:
