@@ -22535,9 +22535,12 @@ the value representation of the integer value.
                               &expr->position, ips);
               } else {
                 a_byte_count  elem_size, pos, len;
+                a_boolean     relaxed = is_runtime_data_address(result_addr) &&
+                                        host_int_val > 0 &&
+                                        gnu_version_is(any_version);
                 get_array_pos(ips, result_addr, elem_type, &len, &pos,
                               &elem_size, &result);
-                if (!is_array_element(result_addr) &&
+                if (!is_array_element(result_addr) && !relaxed &&
                     host_int_val !=
                                  (cannot_dereference(result_addr) ? -1 : 1)) {
                   /* Non-arrays are treated as arrays of length one. */
@@ -22546,8 +22549,9 @@ the value representation of the integer value.
                                 &expr->position, ips);
                 }  /* if */
                 if (!result) break;
-                if (host_int_val > 0 ? (len-pos < (a_byte_count)host_int_val)
-                                     : (pos < (a_byte_count)-host_int_val)) {
+                if ((host_int_val > 0 ? (len-pos < (a_byte_count)host_int_val)
+                                      : (pos < (a_byte_count)-host_int_val)) &&
+                    !relaxed) {
                   /* Out of bounds. */
                   do_constexpr_fail(result);
                   if (host_int_val > 0) {
@@ -22611,9 +22615,12 @@ the value representation of the integer value.
                               &expr->position, ips);
               } else {
                 a_byte_count  elem_size, pos, len;
+                a_boolean     relaxed = is_runtime_data_address(result_addr) &&
+                                        host_int_val > 0 &&
+                                        gnu_version_is(any_version);
                 get_array_pos(ips, result_addr, elem_type, &len, &pos,
                               &elem_size, &result);
-                if (!is_array_element(result_addr) &&
+                if (!is_array_element(result_addr) && !relaxed &&
                     host_int_val !=
                                  (cannot_dereference(result_addr) ? 1 : -1)) {
                   do_constexpr_fail(result);
@@ -22621,9 +22628,10 @@ the value representation of the integer value.
                                 &expr->position, ips);
                 }  /* if */
                 if (!result) break;
-                if (host_int_val > 0 ?
+                if ((host_int_val > 0 ?
                                     (pos < (a_byte_count)host_int_val)
-                                  : (len-pos < (a_byte_count)-host_int_val)) {
+                                  : (len-pos < (a_byte_count)-host_int_val)) &&
+                    !relaxed) {
                   /* Out of bounds. */
                   do_constexpr_fail(result);
                   if (host_int_val < 0) {
