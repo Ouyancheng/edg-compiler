@@ -21029,6 +21029,41 @@ the value representation of the integer value.
               }  /* if */
               cx_value(result_storage)->imag =
                                         zero_flt[(int)tp->variant.float_kind];
+            } else if (type_is(tp, tk_integer) && clang_mode &&
+                       type_is(opnd1_type, tk_complex)) {
+              /* Convert complex floating-point to integer (Clang only). */
+              int_kind = tp->variant.integer.int_kind;
+              is_signed = int_kind_is_signed[int_kind];
+              if (conv_float_value_to_int_value(
+                                            &cx_value(opnd1_value)->real,
+                                            opnd1_type->variant.float_kind,
+                                            (an_integer_value*)result_storage,
+                                            is_signed, &depends_on_fp_mode)) {
+                ovfl = FALSE;
+                CHECK_int_range((an_integer_value*)(result_storage), tp);
+              } else {
+                do_constexpr_fail(result);
+                info_with_pos_type2(ec_constexpr_invalid_type_conversion,
+                                    &expr->position, opnd1_type, tp, ips);
+                break;
+              }  /* if */
+            } else if (type_is(tp, tk_complex) && clang_mode &&
+                       type_is(opnd1_type, tk_integer)) {
+              /* Convert integer to complex floating-point (Clang only). */
+              int_kind = opnd1_type->variant.integer.int_kind;
+              is_signed = int_kind_is_signed[int_kind];
+              conv_integer_value_to_float((an_integer_value*)opnd1_value,
+                                          is_signed,
+                                          &cx_value(result_storage)->real,
+                                          tp->variant.float_kind,
+                                          &err);
+              if (err) {
+                do_constexpr_fail(result);
+                info_with_pos_type2(ec_constexpr_invalid_type_conversion,
+                                    &expr->position, opnd1_type, tp, ips);
+              }  /* if */
+              cx_value(result_storage)->imag =
+                                        zero_flt[(int)tp->variant.float_kind];
             } else if (type_is(tp, tk_complex) &&
                        type_is(opnd1_type, tk_imaginary)) {
               /* Convert imaginary floating-point to complex floating-point. */
