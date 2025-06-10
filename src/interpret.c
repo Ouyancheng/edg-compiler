@@ -25215,6 +25215,8 @@ the value representation of the integer value.
                     do_constexpr_fail(result);
                     info_with_pos(ec_constexpr_access_to_runtime_storage,
                                   &expr->position, ips);
+                    release_local_constant(&new_con);
+                    break;
                   }  /* if */
                   addr_con->expr = backing_expr;
                   clear_runtime_constant_address(result_storage, new_con);
@@ -25320,7 +25322,11 @@ the value representation of the integer value.
                   if (!fold_field_selection(
                                   addr_con, field,
                                   make_reference_type(expr->type), new_con)) {
-                    unexpected_condition();
+                    do_constexpr_fail(result);
+                    info_with_pos(ec_constexpr_access_to_runtime_storage,
+                                  &expr->position, ips);
+                    release_local_constant(&new_con);
+                    break;
                   }  /* if */
                   addr_con->expr = backing_expr;
                   clear_runtime_constant_address(result_storage, new_con);
