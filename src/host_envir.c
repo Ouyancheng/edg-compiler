@@ -5641,6 +5641,8 @@ null-terminated.
     name = buf->buffer;
     is_native = TRUE;
   }  /* if */
+#else /* !NATIVE_MULTIBYTE_CHARS_SUPPORTED_WITH_UNICODE */
+  name = file_name_in_external_encoding(name);
 #endif /* NATIVE_MULTIBYTE_CHARS_SUPPORTED_WITH_UNICODE */
   /*lint --e{850} p modified in loop */
   for (p = name; *p != '\0'; p++) {
