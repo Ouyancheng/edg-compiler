@@ -27015,20 +27015,24 @@ a_pragma_ptr find_assoc_pragma(char          *il_entity,
                                a_type_ptr    class_type,
                                a_pragma_ptr  prev_assoc_pragma)
 /*
-Return a pointer to a pragma that is bound to il_entity (an entry in the IL
-whose kind is not specified because it is not needed to find the pragma).
-The pragma will be on a list pointed to from a scope that is to be
-determined.  prev_assoc_pragma is a (possibly NULL) pointer to another
-pragma that is bound the same IL entity and has already been located.  When
-prev_assoc_pragma is non-NULL, search the remainder of the list it belongs
-to; otherwise, determine the scope whose pragma list is to be searched.
-If class_type is non-NULL, the scope of the class is searched; otherwise,
-if scope is non-NULL, the specified scope is searched (except when the
-specified scope is a function/block scope and the il_entity is in the
-file scope, in which case the file scope is used).  If neither a class_type
-nor a scope is specified, the pragma must be on the file scope's pragma
-list.  A pragma must be found if prev_assoc_pragma is NULL (i.e., if a
-pragma has not yet been found for the given IL entity).
+Return a pointer to a pragma that is bound to il_entity.  prev_assoc_pragma is
+a (possibly NULL) pointer to another pragma that is bound to the same IL entity
+and has already been located (used for iterative calls to find_assoc_pragma and
+is typically the result of the previous (non-NULL) find_assoc_pragma call with
+the same il_entity).
+
+When prev_assoc_pragma is NULL, one of three scopes is searched, in this order:
+
+  1) if class_type is non-NULL, the scope associated with class_type,
+  2) otherwise, if scope is non-NULL, scope is used (except when the specified
+     scope is a function/block scope and the il_entity is in the file scope, in
+     which case the file scope is used),
+  3) otherwise, the file scope is searched.
+
+When prev_assoc_pragma is non-NULL, search the remainder of the list it belongs
+to.  The front end aborts with a failed assertion if prev_assoc_pragma is NULL
+and no pragma is found (i.e., the caller should ensure that at least one pragma
+is bound to the il_entity).
 */
 {
   a_pragma_ptr  assoc_pragma;

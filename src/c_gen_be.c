@@ -2670,7 +2670,7 @@ associated pragmas.
                                  prev_pp)) != NULL) {
     dump_pragma(pp);
     prev_pp = pp;
-  }  /* for */
+  }  /* while */
   /* Make sure we found at least one pragma. */
   check_assertion_str(prev_pp != NULL,
                       "dump_associated_pragmas: assoc pragma not found");
