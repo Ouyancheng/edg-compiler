@@ -2839,14 +2839,15 @@ level, attempt to fold it.  (This is done to emulate null-pointer-constant
 behavior of MSVC.)
 */
 {
-  an_operand  *opnd = operand_of_arg_list_elem(alep);
-
-  if (is_expression_operand(opnd)) {
-    an_expr_node_ptr  node = opnd->variant.expression;
-    if (!(node->compiler_generated && is_cast_operation_node(node))) {
-      force_operand_to_constant_if_possible(opnd);
-      if (microsoft_mode && ms_permissive && op_is_zero_constant(opnd)) {
-        opnd->variant.constant.null_pointer_constant_ruled_out = FALSE;
+  if (is_expression_component(alep)) {
+    an_operand  *opnd = operand_of_arg_list_elem(alep);
+    if (is_expression_operand(opnd)) {
+      an_expr_node_ptr  node = opnd->variant.expression;
+      if (!(node->compiler_generated && is_cast_operation_node(node))) {
+        force_operand_to_constant_if_possible(opnd);
+        if (microsoft_mode && ms_permissive && op_is_zero_constant(opnd)) {
+          opnd->variant.constant.null_pointer_constant_ruled_out = FALSE;
+        }  /* if */
       }  /* if */
     }  /* if */
   }  /* if */
