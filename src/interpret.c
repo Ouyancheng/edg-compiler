@@ -4449,6 +4449,29 @@ Output the contents of the interpreted object of type tp stored at addr.
         (void)fprintf(f_debug, "]\n");
       }
       break;
+#if GNU_VECTOR_TYPES_ALLOWED
+    case tk_vector:
+      { a_type_ptr    etp = skip_typerefs(tp->variant.vector.element_type);
+        a_boolean     dummy = TRUE;
+        a_byte_count  n_bytes = value_bytes_for_type(
+                                    (an_interpreter_state*)NULL, tp, &dummy);
+        a_byte_count  e_bytes = value_bytes_for_type(
+                                    (an_interpreter_state*)NULL, etp, &dummy);
+        a_byte_count  offset;
+        (void)fprintf(f_debug, "<<\n");
+        indent += 2;
+        for (offset = 0; offset < n_bytes; offset += e_bytes) {
+          db_indent(indent-2);
+          check_assertion(e_bytes != 0);
+          (void)fprintf(f_debug, "%u:\n", offset/e_bytes);
+          db_object(addr+offset, etp, complete_object);
+        }  /* for */
+        indent -= 2;
+        db_indent(indent);
+        (void)fprintf(f_debug, ">>\n");
+      }
+      break;
+#endif /* GNU_VECTOR_TYPES_ALLOWED */
     case tk_struct:
     case tk_class:
       {
@@ -20540,22 +20563,22 @@ pointed to by complete_object).
       switch (expr->variant.operation.kind) {
         case eok_add:
           fp_add(etp->variant.float_kind,
-                 fp_value(src1), fp_value(src1), fp_value(dst),
+                 fp_value(src1), fp_value(src2), fp_value(dst),
                  &err, &depends_on_fp_mode);
           break;
         case eok_subtract:
           fp_subtract(etp->variant.float_kind,
-                      fp_value(src1), fp_value(src1), fp_value(dst),
+                      fp_value(src1), fp_value(src2), fp_value(dst),
                       &err, &depends_on_fp_mode);
           break;
         case eok_multiply:
           fp_multiply(etp->variant.float_kind,
-                      fp_value(src1), fp_value(src1), fp_value(dst),
+                      fp_value(src1), fp_value(src2), fp_value(dst),
                       &err, &depends_on_fp_mode);
           break;
         case eok_divide:
           fp_divide(etp->variant.float_kind,
-                    fp_value(src1), fp_value(src1), fp_value(dst),
+                    fp_value(src1), fp_value(src2), fp_value(dst),
                     &err, &depends_on_fp_mode);
           break;
         default:
@@ -20567,7 +20590,6 @@ pointed to by complete_object).
         goto done;
       }  /* if */
     }  /* if */
-    mark_subobject_initialized(dst, complete_object);
     src1 += elem_size;
     src2 += elem_size;
     dst += elem_size;
@@ -22287,8 +22309,7 @@ the value representation of the integer value.
                 info_with_pos(ec_constexpr_fp_error, &expr->position, ips);
               }  /* if */
 #if C99_IL_EXTENSIONS_SUPPORTED
-            } else if (expr->variant.operation.type_kind ==
-                                                    (a_type_kind)tk_complex) {
+            } else if (expr->variant.operation.type_kind == tk_complex) {
               cx_add(tp->variant.float_kind,
                      cx_value(opnd1_value), cx_value(opnd2_value),
                      cx_value(result_storage), &err, &depends_on_fp_mode);
@@ -22298,8 +22319,7 @@ the value representation of the integer value.
               }  /* if */
 #endif /* C99_IL_EXTENSIONS_SUPPORTED */
 #if GNU_VECTOR_TYPES_ALLOWED
-            } else if (expr->variant.operation.type_kind ==
-                                                     (a_type_kind)tk_vector) {
+            } else if (expr->variant.operation.type_kind == tk_vector) {
               if (!do_constexpr_vector_binary_op(
                        ips, expr, tp, opnd1_value, opnd2_value,
                                          result_storage, complete_object)) {
