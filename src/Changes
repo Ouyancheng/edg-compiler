@@ -19,13 +19,16 @@ literals appear in the source.  This is now fixed.  For example, with
 
 
 6/9/25   [EDGcpfe/28201]
-Regression in Unicode file path support on Windows
+Regression in Unicode file path support
 
 In the 6.7 changes adding multi-threading support (EDGcpfe/27800) a regression
 was introduced in the host environment file path processing.  This results in
 the front end not being able to process files when the current working
 directory or the temporary directory contains a Unicode character not
 representable in the current code page.  This is now fixed.
+
+Additionally, an issue where Unicode file names appeared in diagnostics with an
+incorrect encoding has been resolved.
 
 
 6/7/25   [EDGcpfe/28218]
