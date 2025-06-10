@@ -1,5 +1,23 @@
 Version 6.8
 
+6/10/25  [EDGcpfe/28221]
+Microsoft compatibility: user-defined string literals and
+--no_const_string_literals
+
+For compatibility with very old dialects of C++. the
+--no_const_string_literals command-line option (similar to MSVC's
+"/Zc:strictStrings-") causes ordinary narrow string literals to have the
+type "array of char" instead of the standard "array of const char".
+However, the type of the first parameter of a user-defined string literal
+operator must be "pointer to const char", so the front end issued spurious
+"not found" errors with that command-line option when user-defined string
+literals appear in the source.  This is now fixed.  For example, with
+--no_const_string_literals --ms_c++20:
+
+  int operator"" _X(const char *, size_t);
+  int i = "abc"_X;   // Previously a spurious "not found" error, now okay
+
+
 6/9/25   [EDGcpfe/28201]
 Regression in Unicode file path support on Windows
 
