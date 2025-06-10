@@ -2306,13 +2306,12 @@ done:
     a_boolean         saved_pp_if = in_pp_if_expression;
 
     in_pp_if_expression = TRUE;
+    defined_op_not_permitted = TRUE;
     add_stop_token(tok_rparen);
     if (limit_start != NULL) {
       curr_char_loc = limit_start;
-      defined_op_not_permitted = TRUE;
       (void)get_token();
       scan_integral_constant_expression(cp);
-      defined_op_not_permitted = FALSE;
       if (is_error_constant(cp)) {
         result = FALSE;
       } else {
@@ -2352,6 +2351,7 @@ done:
     curr_char_loc = saved_curr_char_loc;
     curr_token = saved_curr_token;
     in_pp_if_expression = saved_pp_if;
+    defined_op_not_permitted = FALSE;
   }  /* if */
   return result;
 }  /* parse_embed */
