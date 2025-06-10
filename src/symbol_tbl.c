@@ -17417,19 +17417,17 @@ const_for_curr_token.
   a_symbol_list_entry_ptr raw_and_template_operators = NULL;
 
   if (literal_type->kind == tk_array &&
-      literal_type->variant.array.element_type->kind == tk_integer &&
-      literal_type->variant.array.element_type->variant.integer.int_kind ==
-                                                                     ik_char) {
+      literal_type->variant.array.element_type->kind == tk_integer) {
     /* When string_literals_are_const is FALSE, the type of a string
-       literal is "array of char" instead of "array of const char".
-       However, the first parameter of a user-defined string literal
-       operator must be "pointer to const char", so the types will not
-       match.  Adjust the type of the literal to the Standard-conforming
-       version before looking for a matching literal operator. */
+       literal is "array of X" instead of "array of const X".  However, the
+       first parameter of a user-defined string literal operator must be
+       "pointer to const X", so the types will not match.  Adjust the
+       type of the literal to the Standard-conforming version before
+       looking for a matching literal operator. */
     a_type_ptr new_type = alloc_type(tk_array);
     check_assertion(!string_literals_are_const);
     new_type->variant.array.element_type =
-                          make_qualified_type(integer_type(ik_char), TQ_CONST);
+       make_qualified_type(literal_type->variant.array.element_type, TQ_CONST);
     new_type->variant.array.variant.number_of_elements =
                         literal_type->variant.array.variant.number_of_elements;
     set_type_size(new_type);
