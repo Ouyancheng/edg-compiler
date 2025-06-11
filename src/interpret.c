@@ -21293,13 +21293,10 @@ the value representation of the integer value.
                 a_base_class_ptr  bcp = *(a_base_class_ptr*)src->address;
                 a_type_ptr        derived_class;
                 if (bcp != NULL) {
-                  derived_class = bcp->derived_class;
-                } else {
-                  if (opnd1_type->kind == (a_type_kind)tk_pointer) {
-                    derived_class =
-                              skip_typerefs(opnd1_type->variant.pointer.type);
+                  if (type_is(tp, tk_pointer)) {
+                    derived_class = skip_typerefs(tp->variant.pointer.type);
                   } else {
-                    derived_class = opnd1_type;
+                    derived_class = tp;
                   }  /* if */
                 }  /* if */
                 if (bcp != NULL && bcp->derived_class == derived_class) {
@@ -21314,9 +21311,12 @@ the value representation of the integer value.
                     *(a_constexpr_address*)result_storage = *src;
                   }  /* if */
                 } else {
+                  a_type_ptr  next_tp = bcp != NULL ? bcp->derived_class
+                                                    : complete_object_type(
+                                                        src->complete_object);
                   do_constexpr_fail(result);
                   info_with_pos_type(ec_constexpr_bad_derived_class_cast,
-                                     &expr->position, derived_class, ips);
+                                     &expr->position, next_tp, ips);
                 }  /* if */
               }  /* if */
             }
