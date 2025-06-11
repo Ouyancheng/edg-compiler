@@ -1370,6 +1370,10 @@ ec_no_error if there was no error.
     an_expr_node_ptr expr = constant_1->expr;
     constant_1->expr = NULL;
     copy_constant(constant_1, result);
+    if (constant_is(result, ck_address)) {
+      result->variant.address.subobject_path =
+                  copy_subobject_path(result->variant.address.subobject_path);
+    }  /* if */
     if (is_null_pointer_value(constant_1)) {
       /* Preserve a NULL pointer. */
     } else {
@@ -6567,6 +6571,8 @@ through the usual interface because a field cannot be passed as a constant.
         ptr_class = type_pointed_to(uptr_class);
         uptr_class = skip_typerefs(ptr_class);
       }  /* if */
+      result->variant.address.subobject_path =
+                  copy_subobject_path(result->variant.address.subobject_path);
       while (class_type_supp(fld_class)->anonymous_union_kind == auk_field) {
         fld_class = parent_class_of(fld_class);
       }  /* while */

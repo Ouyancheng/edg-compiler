@@ -5355,7 +5355,8 @@ by implied_src.
         }  /* if */
       }  /* if */
       {
-        a_type_ptr  obj_type = NULL;
+        a_constexpr_address  *cap = (a_constexpr_address*)value;
+        a_type_ptr           obj_type = NULL;
         if (con->is_reinterpret_like_cast) {
           /* A reinterpret-like cast (e.g., from pointer to integer). */
           /* Reconstruct the original type for the recorded diagnostic. */
@@ -5411,7 +5412,7 @@ by implied_src.
                 break;
               }  /* if */
 #endif /* GNU_EXTENSIONS_ALLOWED */
-              make_function_address(value, rp);
+              make_function_address(cap, rp);
             }
             break;
           case abk_variable:
@@ -5482,7 +5483,7 @@ by implied_src.
                           /* We may get here if a variable's initializer
                              refers to the variable itself.  Create a run-time
                              address. */
-                          clear_runtime_constant_address(value, con);
+                          clear_runtime_constant_address(cap, con);
                           break;
                         }  /* if */
                       }  /* if */
@@ -5528,17 +5529,17 @@ END_DISABLE_GCC_WARNING_STR_OVERFLOW
                     map_stack_bytes(ips, var_bytes, (a_byte*)con);
                   }  /* if */
                 }  /* if */
-                clear_address(value, var_bytes);
+                clear_address(cap, var_bytes);
                 if (is_const_qualified_type(vp->type)) {
-                  ((a_constexpr_address*)value)->flags |= CA_CONST_STORAGE;
+                  cap->flags |= CA_CONST_STORAGE;
                 }  /* if */
                 obj_type = vtp;
               } else {
-                clear_runtime_constant_address(value, con);
+                clear_runtime_constant_address(cap, con);
                 if (type_is(vtp, tk_array) &&
                     (con->variant.address.subobject_path != NULL ||
                      is_pointer_type(con->type))) {
-                  ((a_constexpr_address*)value)->flags |= CA_ARRAY_ELEMENT;
+                  cap->flags |= CA_ARRAY_ELEMENT;
                 }  /* if */
               }  /* if */
             }
@@ -5573,25 +5574,27 @@ END_DISABLE_GCC_WARNING_STR_OVERFLOW
                   map_stack_bytes(ips, con_bytes, (a_byte*)con);
                 }  /* if */
               }  /* if */
-              clear_address(value, con_bytes);
-              ((a_constexpr_address*)value)->flags |= CA_CONST_STORAGE;
-              ((a_constexpr_address*)value)->alloc_seq_number = 0;
+              clear_address(cap, con_bytes);
+              cap->flags |= CA_CONST_STORAGE;
+              cap->alloc_seq_number = 0;
               obj_type = ctp;
             }
             break;
           default:
             { /* Create an a_constexpr_address for the runtime constant. */
-              clear_runtime_constant_address(value, con);
+              clear_runtime_constant_address(cap, con);
             }
             break;
         }  /* switch */
         if (obj_type != NULL &&
             (con->implicit_cast || con->variant.address.offset != 0)) {
-          a_constexpr_address  *cap = (a_constexpr_address*)value;
           result = translate_il_address_offset(ips, con, cap, obj_type);
         } else {
           check_assertion(con->variant.address.offset == 0 ||
-                          is_runtime_data_address(value));
+                          is_runtime_data_address(cap));
+        }  /* if */
+        if (con->variant.address.one_past_the_end) {
+          cap->flags |= CA_CANNOT_DEREFERENCE;
         }  /* if */
       }
       break;
@@ -21314,6 +21317,7 @@ the value representation of the integer value.
                   a_type_ptr  next_tp = bcp != NULL ? bcp->derived_class
                                                     : complete_object_type(
                                                         src->complete_object);
+                  next_tp = skip_typerefs(skip_array_types(next_tp));
                   do_constexpr_fail(result);
                   info_with_pos_type(ec_constexpr_bad_derived_class_cast,
                                      &expr->position, next_tp, ips);
