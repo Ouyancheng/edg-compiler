@@ -1216,6 +1216,8 @@ is (successfully) folded to another error constant.
                           spp = NULL;
         if (constant_is(result, ck_address)) {
           /* Update the subobject path. */
+          result->variant.address.subobject_path =
+                  copy_subobject_path(result->variant.address.subobject_path);
           spp = get_trailing_subobject_path_entry(result, /*is_offset=*/FALSE,
                                                   /*is_base_class=*/TRUE);
           prev_base = spp->variant.base_class;
@@ -1407,7 +1409,7 @@ ec_no_error if there was no error.
           dsp = bcdp->path;
           tail = bcdp->path_tail;
           for (; dsp != tail->next; dsp = dsp->next) {
-            if (identical_types(dsp->base_class->type, new_type)) {
+            if (same_entities(dsp->base_class->type, new_type)) {
               new_base_class = dsp->base_class;
               break;
             }  /* if */
@@ -1415,6 +1417,17 @@ ec_no_error if there was no error.
         }  /* if */
         if (new_base_class != NULL) {
           spp->variant.base_class = new_base_class;
+        } else if (spp->variant.base_class != NULL &&
+                   same_entities(spp->variant.base_class->derived_class,
+                                 derived_class_type)) {
+          /* We're casting back to the most derived class.  Drop any final
+             base-class casts. */
+          a_subobject_path_ptr  *p_spp;
+          p_spp = &result->variant.address.subobject_path;
+          for (spp = *p_spp; spp != NULL; spp = spp->next) {
+            if (!spp->is_base_class) p_spp = &spp->next;
+          }  /* for */
+          *p_spp = NULL;
         } else {
           /* Invalid cast. */
           if (error_detected != NULL) {
@@ -6571,27 +6584,36 @@ through the usual interface because a field cannot be passed as a constant.
         ptr_class = type_pointed_to(uptr_class);
         uptr_class = skip_typerefs(ptr_class);
       }  /* if */
-      result->variant.address.subobject_path =
-                  copy_subobject_path(result->variant.address.subobject_path);
       while (class_type_supp(fld_class)->anonymous_union_kind == auk_field) {
         fld_class = parent_class_of(fld_class);
       }  /* while */
       if (!same_entities(uptr_class, fld_class)) {
+        /* The field is either in a base or in a derived class of the object
+           pointed to.  Apply the needed cast. */
         a_boolean         did_not_fold;
-        an_error_code     error_detected;
+        an_error_code     err_code;
         a_base_class_ptr  bcp = find_base_class_of(ptr_class, fld_class);
-        if (bcp == NULL || bcp->ambiguous) {
-          is_constant = FALSE;
-          goto done;
+        if (bcp != NULL) {
+          fold_base_class_cast(constant_1, bcp, ptr_class, result,
+                               /*check_cast_access=*/FALSE,
+                               /*check_ambiguity=*/TRUE,
+                               /*is_implicit_cast=*/TRUE,
+                               /*is_object_pointer=*/TRUE,
+                               /*omit_backing_expr=*/TRUE,
+                               &did_not_fold, &error_position, &err_code);
+        } else {
+          bcp = find_base_class_of(fld_class, uptr_class);
+          if (bcp == NULL) {
+            is_constant = FALSE;
+            goto done;
+          }  /* if */
+          result->type = make_identically_qualified_type(fld_class, ptr_class);
+          result->type = make_pointer_type(result->type);
+          fold_derived_class_cast(constant_1, bcp, result, &error_position,
+                                  &err_code);
         }  /* if */
-        fold_base_class_cast(constant_1, bcp, ptr_class, result,
-                             /*check_cast_access=*/FALSE,
-                             /*check_ambiguity=*/FALSE,
-                             /*is_implicit_cast=*/TRUE,
-                             /*is_object_pointer=*/TRUE,
-                             /*omit_backing_expr=*/TRUE,
-                             &did_not_fold, &error_position, &error_detected);
-        if (did_not_fold) {
+        if (did_not_fold || err_code != ec_no_error ||
+            constant_is(result, ck_error)) {
           is_constant = FALSE;
           goto done;
         }  /* if */
