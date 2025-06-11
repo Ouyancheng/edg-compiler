@@ -3162,7 +3162,7 @@ redo:
 #if GNU_VECTOR_TYPES_ALLOWED
     case tk_vector:
       { a_type_ptr     etp = skip_typerefs(tp->variant.vector.element_type);
-        a_targ_size_t  n_elems = tp->size/etp->size;
+        a_targ_size_t  n_elems = num_vector_elements(tp);
         result = value_bytes_for_type(ips, etp, p_result);
         if (!*p_result) {
           /* Interpretation failure. */
@@ -3923,7 +3923,7 @@ within the given complete object).
 #if GNU_VECTOR_TYPES_ALLOWED
     case tk_vector:
       { a_type_ptr     etp = skip_typerefs(tp->variant.vector.element_type);
-        a_targ_size_t  k, n_elems = tp->size/etp->size;
+        a_targ_size_t  k, n_elems = num_vector_elements(tp);
         a_boolean      result = TRUE;
         a_byte_count   elem_size = value_bytes_for_type(ips, etp, &result);
         check_assertion(result);
@@ -6034,7 +6034,7 @@ END_DISABLE_GCC_WARNING_STR_OVERFLOW
         } else if (type_is(tp, tk_vector)) {
           a_constant_ptr  elem_con;
           a_type_ptr      etp = skip_typerefs(tp->variant.vector.element_type);
-          a_targ_size_t   k, n_elems = tp->size/etp->size;
+          a_targ_size_t   k, n_elems = num_vector_elements(tp);
           a_byte_count    elem_size = value_bytes_for_type(ips, etp, &result);
           a_constexpr_address
                           elem_addr = result_cap;
@@ -26846,7 +26846,7 @@ diagnostic in *ips.
 #if GNU_VECTOR_TYPES_ALLOWED
     case tk_vector:
       { a_type_ptr      etp = skip_typerefs(type->variant.vector.element_type);
-        a_targ_size_t   k, n_elems = type->size/etp->size;
+        a_targ_size_t   k, n_elems = num_vector_elements(type);
         a_byte_count    elem_size = value_bytes_for_type(ips, etp, &result);
         a_byte          *sub_obj = object;
         if (!result) break;
