@@ -2127,18 +2127,19 @@ as errors only if is_directive is TRUE.  Information from the parse is
 returned in embed_parse_data.
 */
 {
-  a_const_char   *limit_start = NULL;
-  a_const_char   *after_limit = NULL;
-  a_const_char   *offset_start = NULL;
-  a_const_char   *after_offset = NULL;
-  a_boolean      result = TRUE;
-  a_boolean      leading_comma;
-  a_boolean      trailing_comma;
-  a_boolean      dummy_is_value_list;
-  unsigned short dummy_num_elements;
+  a_const_char      *limit_start = NULL;
+  a_const_char      *after_limit = NULL;
+  a_const_char      *offset_start = NULL;
+  a_const_char      *after_offset = NULL;
+  a_boolean         result = TRUE;
+  a_boolean         leading_comma;
+  a_boolean         trailing_comma;
+  a_boolean         dummy_is_value_list;
+  unsigned short    dummy_num_elements;
 #if PRESERVE_EMBED_DIRECTIVE_WHEN_OPTIMIZED
-  a_boolean      uses_system_path;
+  a_boolean         uses_system_path;
 #endif /* PRESERVE_EMBED_DIRECTIVE_WHEN_OPTIMIZED */
+  a_source_position header_pos;
 
   clear_embed_parse_data();
 #if PRESERVE_EMBED_DIRECTIVE_WHEN_OPTIMIZED
@@ -2155,6 +2156,7 @@ returned in embed_parse_data.
     result = FALSE;
     goto done;
   }  /* if */
+  header_pos = pos_curr_token;
   /* Allocate space for and copy the file name.  (Note that
      get_header_name() sets expand_macros to TRUE, so the rest of the
      text will be scanned with macro expansion enabled.  We also set
@@ -2352,6 +2354,10 @@ done:
     curr_token = saved_curr_token;
     in_pp_if_expression = saved_pp_if;
     defined_op_not_permitted = FALSE;
+    if (is_directive) {
+      /* Set the position for a potential "file not found" diagnostic. */
+      error_position = header_pos;
+    }  /* if */
   }  /* if */
   return result;
 }  /* parse_embed */
