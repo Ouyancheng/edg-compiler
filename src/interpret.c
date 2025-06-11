@@ -1546,6 +1546,11 @@ typedef struct an_interpreter_state {
 			   This is the case with nested calls to
 			   evaluate_expr. */
   a_bit_field
+		delay_final_destructions:1;
+			/* TRUE if final destructions should not be run by a
+			   call to evaluate_expr (because another call will
+			   follow in the same context). */
+  a_bit_field
 		static_lifetime_init:1;
 			/* TRUE when interpreting the initializer for a static
 			   lifetime variable. */
@@ -2436,6 +2441,7 @@ result of calls to std::is_constant_evaluated().
   ips->permit_null_pointer_offsets = (gpp_mode && !clang_mode) ||
                                      microsoft_mode;
   ips->permit_leftover_dyn_alloc = FALSE;
+  ips->delay_final_destructions = FALSE;
   ips->static_lifetime_init = FALSE;
   ips->report_started = FALSE;
   ips->disallow_mutable_field_load = FALSE;
@@ -7649,9 +7655,17 @@ updated with a note indicating which values were compared.
   if (opstr != NULL) {
     an_expr_node  *lhs = expr->variant.operation.operands,
                   *rhs = lhs->next;
-    a_constant  *lhcp = local_constant(), *rhcp = local_constant();
-    if (evaluate_expr(ips, lhs, /*force_prvalue=*/FALSE, lhcp) &&
-        !ips->input_error &&
+    a_constant    *lhcp = local_constant(), *rhcp = local_constant();
+    a_boolean     success;
+    /* Evaluate the left hand side without performing pending destructions at
+       the end.  They will be performed at the end of evaluating the right
+       hand side. */
+    ips->delay_final_destructions = TRUE;
+    ips->permit_leftover_dyn_alloc = TRUE;
+    success = evaluate_expr(ips, lhs, /*force_prvalue=*/FALSE, lhcp);
+    ips->permit_leftover_dyn_alloc = FALSE;
+    ips->delay_final_destructions = FALSE;
+    if (success && !ips->input_error &&
         evaluate_expr(ips, rhs, /*force_prvalue=*/FALSE, rhcp) &&
         !ips->input_error) {
       int  cmp = cmp_integer_constants(lhcp, rhcp);
@@ -27090,6 +27104,7 @@ to a prvalue (without changing expr itself).
                                          result_type, result_con)) {
         do_constexpr_fail(result);
       } else if (ips->storage_stack.destructions != NULL &&
+                 !ips->delay_final_destructions &&
                  ((!node_is(expr, enk_object_lifetime) &&
                    !ips->is_constant_evaluated) ||
                   !perform_destructions(ips))) {
