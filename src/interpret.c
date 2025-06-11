@@ -20439,7 +20439,7 @@ pointed to by complete_object).
   check_assertion(result && (is_integer || type_is(etp, tk_float)));
   for (k = 0; k<n_elems; ++k) {
     if (is_integer) {
-      a_boolean  ovflo = FALSE;
+      a_boolean  ovflo = FALSE, err = FALSE;
       switch (expr->variant.operation.kind) {
         case eok_add:
           *(an_integer_value*)dst = *(an_integer_value*)src1;
@@ -20531,36 +20531,42 @@ pointed to by complete_object).
               cmp_integer_values((an_integer_value *)src1, is_signed,
                                  (an_integer_value *)src2, is_signed) == 0 ?
               one_int : zero_int;
+          negate_integer_value((an_integer_value*)dst, &err);
           break;
         case eok_vector_ne:
           *(an_integer_value*)dst = 
               cmp_integer_values((an_integer_value *)src1, is_signed,
                                  (an_integer_value *)src2, is_signed) != 0 ?
               one_int : zero_int;
+          negate_integer_value((an_integer_value*)dst, &err);
           break;
         case eok_vector_lt:
           *(an_integer_value*)dst = 
               cmp_integer_values((an_integer_value *)src1, is_signed,
                                  (an_integer_value *)src2, is_signed) < 0 ?
               one_int : zero_int;
+          negate_integer_value((an_integer_value*)dst, &err);
           break;
         case eok_vector_gt:
           *(an_integer_value*)dst = 
               cmp_integer_values((an_integer_value *)src1, is_signed,
                                  (an_integer_value *)src2, is_signed) > 0 ?
               one_int : zero_int;
+          negate_integer_value((an_integer_value*)dst, &err);
           break;
         case eok_vector_le:
           *(an_integer_value*)dst = 
               cmp_integer_values((an_integer_value *)src1, is_signed,
                                  (an_integer_value *)src2, is_signed) <= 0 ?
               one_int : zero_int;
+          negate_integer_value((an_integer_value*)dst, &err);
           break;
         case eok_vector_ge:
           *(an_integer_value*)dst = 
               cmp_integer_values((an_integer_value *)src1, is_signed,
                                  (an_integer_value *)src2, is_signed) >= 0 ?
               one_int : zero_int;
+          negate_integer_value((an_integer_value*)dst, &err);
           break;
         default:
           unexpected_condition();
