@@ -21314,10 +21314,11 @@ the value representation of the integer value.
                     *(a_constexpr_address*)result_storage = *src;
                   }  /* if */
                 } else {
-                  a_type_ptr  next_tp = bcp != NULL ? bcp->derived_class
-                                                    : complete_object_type(
-                                                        src->complete_object);
-                  next_tp = skip_typerefs(skip_array_types(next_tp));
+                  a_type_ptr  next_tp = bcp != NULL ?
+                               bcp->derived_class : skip_typerefs(opnd1_type);
+                  if (type_is(next_tp, tk_pointer)) {
+                    next_tp = skip_typerefs(next_tp->variant.pointer.type);
+                  }  /* if */
                   do_constexpr_fail(result);
                   info_with_pos_type(ec_constexpr_bad_derived_class_cast,
                                      &expr->position, next_tp, ips);
