@@ -10231,6 +10231,9 @@ ISO C standard.
     case '\n':
       is_nonstd = FALSE;
       break;
+    case '$': case '@': case '`':
+      is_nonstd = !(c23_mode || cpp26_mode);
+      break;
     default:
       is_nonstd = TRUE;
       break;
@@ -12989,16 +12992,12 @@ different.
     } else if (ucn > 0x10ffff) {
       /* Not a valid code point. */
       err_code = ec_UCN_names_invalid_code_point;
+    } else if (ucn <= 255 && !is_nonstandard_character((char)ucn)) {
+      /* A basic character set code. */
+      err_code = ec_UCN_names_basic_char;
     } else if (is_identifier) {
-      /* Other restrictions only apply when the UCN is used in an
-         identifier. */
-      if (ucn <= 255 && !is_nonstandard_character((char)ucn)) {
-        /* A basic character set code. */
-        err_code = ec_UCN_names_basic_char;
-      } else {
-	/* Check whether this is a valid identifier character. */
-	err_code = is_valid_UCN_identifier_char(ucn, is_identifier_start);
-      }  /* if */
+      /* Check whether this is a valid identifier character. */
+      err_code = is_valid_UCN_identifier_char(ucn, is_identifier_start);
     }  /* if */
   } else {
     if (ucn <= 255 && !is_nonstandard_character((char)ucn)) {
@@ -13033,16 +13032,13 @@ Issue a diagnostic if it is not.
 */
 {
   an_error_code	err_code = ec_no_error;
-  if (ucn == '$' && is_identifier && allow_dollar_in_id_chars) {
+  if (ucn == '$' && is_identifier && allow_dollar_in_id_chars && !c23_mode) {
     /* A "$" specified as a UCN when dollar signs are allowed in
        identifiers.  A dollar sign is normally allowed as a UCN in
        C99 mode, but is disallowed when dollar signs are permitted in
-       identifiers. */
+       identifiers and in C23 mode. */
     err_code = ec_UCN_names_basic_char;
-  } else if (ucn < 0xa0 && ucn != 0x24 && ucn != 0x40 && ucn != 0x60) {
-    /* A UCN cannot name a character less than 0xa0 except for
-       "$" (0x24), "@" (0x40), and "`" (0x60).  Note that the dollar
-       sign may be prohibited by the test above. */
+  } else if (ucn <= 255 && !is_nonstandard_character((char)ucn)) {
     err_code = ec_UCN_names_basic_char;
   } else if (ucn >= 0xd800 && ucn <= 0xdfff) {
     /* A UCN cannot name a character in the range of 0xd800-0xdfff (the ISO
@@ -13056,9 +13052,11 @@ Issue a diagnostic if it is not.
     err_code = is_valid_UCN_identifier_char(ucn, is_identifier_start);
   }  /* if */
   if (err_code != ec_no_error) {
+    an_error_severity sev = (macro_depth > 0) ? es_remark
+                                              : strict_ansi_error_severity;
     /* Get the source position that corresponds to this character. */
     conv_line_loc_to_source_pos(*start_pos, &error_position);
-    diagnostic(strict_ansi_error_severity, err_code);
+    diagnostic(sev, err_code);
   }  /* if */
 }  /* check_for_invalid_c99_ucn */
 
