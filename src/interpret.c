@@ -20429,6 +20429,7 @@ pointed to by complete_object).
 */
 {
   a_boolean        result = TRUE, is_integer, is_signed = FALSE;
+  a_boolean        neg_bool = FALSE;
   a_type_ptr       etp = skip_typerefs(tp->variant.vector.element_type);
   a_targ_size_t    k, n_elems = tp->size/etp->size;
   a_byte_count     elem_size = value_bytes_for_type(ips, etp, &result);
@@ -20438,6 +20439,11 @@ pointed to by complete_object).
   if (is_integer) {
     int_kind = etp->variant.integer.int_kind;
     is_signed = int_kind_is_signed[int_kind];
+    /* GCC "vector_size" vectors cannot have bool element types, but the
+       result of comparisons are normalized to 0/~0 instead of 0/1.  Clang
+       "ext_vector_type" vector can have bool element type, and they have
+       underlying 0/1 element values. */
+    neg_bool = !etp->variant.integer.bool_type;
   }  /* if */
   check_assertion(result && (is_integer || type_is(etp, tk_float)));
   for (k = 0; k<n_elems; ++k) {
@@ -20534,42 +20540,42 @@ pointed to by complete_object).
               cmp_integer_values((an_integer_value *)src1, is_signed,
                                  (an_integer_value *)src2, is_signed) == 0 ?
               one_int : zero_int;
-          negate_integer_value((an_integer_value*)dst, &err);
+          if (neg_bool) negate_integer_value((an_integer_value*)dst, &err);
           break;
         case eok_vector_ne:
           *(an_integer_value*)dst = 
               cmp_integer_values((an_integer_value *)src1, is_signed,
                                  (an_integer_value *)src2, is_signed) != 0 ?
               one_int : zero_int;
-          negate_integer_value((an_integer_value*)dst, &err);
+          if (neg_bool) negate_integer_value((an_integer_value*)dst, &err);
           break;
         case eok_vector_lt:
           *(an_integer_value*)dst = 
               cmp_integer_values((an_integer_value *)src1, is_signed,
                                  (an_integer_value *)src2, is_signed) < 0 ?
               one_int : zero_int;
-          negate_integer_value((an_integer_value*)dst, &err);
+          if (neg_bool) negate_integer_value((an_integer_value*)dst, &err);
           break;
         case eok_vector_gt:
           *(an_integer_value*)dst = 
               cmp_integer_values((an_integer_value *)src1, is_signed,
                                  (an_integer_value *)src2, is_signed) > 0 ?
               one_int : zero_int;
-          negate_integer_value((an_integer_value*)dst, &err);
+          if (neg_bool) negate_integer_value((an_integer_value*)dst, &err);
           break;
         case eok_vector_le:
           *(an_integer_value*)dst = 
               cmp_integer_values((an_integer_value *)src1, is_signed,
                                  (an_integer_value *)src2, is_signed) <= 0 ?
               one_int : zero_int;
-          negate_integer_value((an_integer_value*)dst, &err);
+          if (neg_bool) negate_integer_value((an_integer_value*)dst, &err);
           break;
         case eok_vector_ge:
           *(an_integer_value*)dst = 
               cmp_integer_values((an_integer_value *)src1, is_signed,
                                  (an_integer_value *)src2, is_signed) >= 0 ?
               one_int : zero_int;
-          negate_integer_value((an_integer_value*)dst, &err);
+          if (neg_bool) negate_integer_value((an_integer_value*)dst, &err);
           break;
         default:
           unexpected_condition();
