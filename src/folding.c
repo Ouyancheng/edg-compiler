@@ -6590,8 +6590,8 @@ through the usual interface because a field cannot be passed as a constant.
       if (!same_entities(uptr_class, fld_class)) {
         /* The field is either in a base or in a derived class of the object
            pointed to.  Apply the needed cast. */
-        a_boolean         did_not_fold;
-        an_error_code     err_code;
+        a_boolean         did_not_fold = FALSE;
+        an_error_code     err_code = ec_no_error;
         a_base_class_ptr  bcp = find_base_class_of(ptr_class, fld_class);
         if (bcp != NULL) {
           fold_base_class_cast(constant_1, bcp, ptr_class, result,
