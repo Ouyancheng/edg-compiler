@@ -31194,15 +31194,22 @@ describe the location of the operator.
     if (is_vector_type(operation_type)) {
       /* The result of a vector comparison is a vector of integers with the
          same number of elements as the operands. */
-      a_type_ptr  elem_type = skip_typerefs(operation_type);
-      elem_type = skip_typerefs(elem_type->variant.vector.element_type);
-      /* Comparing vector types in GCC results in a vector of signed integers,
-         but that vector type permits more conversions than a similar
-         user-declared vector type.  We emulate that by marking the vector
-         type as representing a "boolean vector". */
-      result_type = make_integer_vector_result_type(operation_type);
-      if (type_is(result_type, tk_vector)) {
-        result_type->variant.vector.is_boolean_vector = TRUE;
+      a_type_ptr  vec_type = skip_typerefs(operation_type), elem_type;
+      elem_type = skip_typerefs(vec_type->variant.vector.element_type);
+      if (is_bool_type(elem_type)) {
+        /* Vector of bool types are a Clang feature (the GCC vector_size
+           attribute doesn't permit bool elements).  The result of comparing
+           them is also a vector of bool type. */
+        result_type = vec_type;
+      } else {
+        /* Comparing vector types in GCC results in a vector of signed
+           integers, but that vector type permits more conversions than a
+           similar user-declared vector type.  We emulate that by marking the
+           vector type as representing a "boolean vector". */
+        result_type = make_integer_vector_result_type(operation_type);
+        if (type_is(result_type, tk_vector)) {
+          result_type->variant.vector.is_boolean_vector = TRUE;
+        }  /* if */
       }  /* if */
     } else
 #endif /* GNU_VECTOR_TYPES_ALLOWED */

@@ -20431,7 +20431,7 @@ pointed to by complete_object).
   a_boolean        result = TRUE, is_integer, is_signed = FALSE;
   a_boolean        neg_bool = FALSE;
   a_type_ptr       etp = skip_typerefs(tp->variant.vector.element_type);
-  a_targ_size_t    k, n_elems = tp->size/etp->size;
+  a_targ_size_t    k, n_elems = num_vector_elements(tp);
   a_byte_count     elem_size = value_bytes_for_type(ips, etp, &result);
   an_integer_kind  int_kind = ik_none;
   
@@ -25165,8 +25165,8 @@ the value representation of the integer value.
           case eok_vector_subscript:
             /* The first operand is a vector (lvalue or rvalue), and the
                second operand is an integer. */
-            { a_host_large_integer len =
-                           (a_host_large_integer)(opnd1_type->size / tp->size);
+            { a_host_large_integer len = (a_host_large_integer)
+                                              num_vector_elements(opnd1_type);
               a_type_ptr           etp;
               a_byte_count         esize;
               check_assertion(type_is(opnd1_type, tk_vector) &&
