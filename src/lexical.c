@@ -13001,10 +13001,10 @@ start or be part of an identifier.
         /* A basic character set code. */
         err_code = ec_UCN_names_basic_char;
       } else if (macro_depth == 0) {
-	/* Check whether this is a valid identifier character.  (If the
+        /* Check whether this is a valid identifier character.  (If the
            character appears in a macro argument, we don't know whether it
            will end up in an identifier or not in the macro expansion.) */
-	err_code = is_valid_UCN_identifier_char(ucn, is_identifier_start);
+        err_code = is_valid_UCN_identifier_char(ucn, is_identifier_start);
       }  /* if */
     }  /* if */
   } else {
