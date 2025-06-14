@@ -12979,7 +12979,9 @@ static void check_for_invalid_cplusplus_ucn(unsigned long ucn,
 /*
 Determine whether "ucn" is a valid universal character name in C++.  Issue
 a diagnostic if it is not.  The rules for C++98/C++03 and for C++11 are
-different.
+different.  The values of is_identifier and is_identifier_start reflect
+the lexical position of the character, i.e., whether the character might
+start or be part of an identifier.
 */
 {
   an_error_code	err_code = ec_no_error;
@@ -12992,12 +12994,18 @@ different.
     } else if (ucn > 0x10ffff) {
       /* Not a valid code point. */
       err_code = ec_UCN_names_invalid_code_point;
-    } else if (ucn <= 255 && !is_nonstandard_character((char)ucn)) {
-      /* A basic character set code. */
-      err_code = ec_UCN_names_basic_char;
     } else if (is_identifier) {
-      /* Check whether this is a valid identifier character. */
-      err_code = is_valid_UCN_identifier_char(ucn, is_identifier_start);
+      /* Other restrictions only apply when the UCN is used in an
+         identifier. */
+      if (ucn <= 255 && !is_nonstandard_character((char)ucn)) {
+        /* A basic character set code. */
+        err_code = ec_UCN_names_basic_char;
+      } else if (macro_depth == 0) {
+	/* Check whether this is a valid identifier character.  (If the
+           character appears in a macro argument, we don't know whether it
+           will end up in an identifier or not in the macro expansion.) */
+	err_code = is_valid_UCN_identifier_char(ucn, is_identifier_start);
+      }  /* if */
     }  /* if */
   } else {
     if (ucn <= 255 && !is_nonstandard_character((char)ucn)) {
@@ -13007,17 +13015,15 @@ different.
     } else if (ucn < 0x20 || (ucn >= 0x7f && ucn <= 0x9f)) {
       /* These characters are disallowed by the standard. */
       err_code = ec_invalid_UCN;
-    } else if (is_identifier) {
+    } else if (is_identifier && macro_depth == 0) {
       /* Check whether this is a valid identifier character. */
       err_code = is_valid_UCN_identifier_char(ucn, is_identifier_start);
     }  /* if */
   }  /* if */
   if (err_code != ec_no_error) {
-    an_error_severity sev = (macro_depth > 0) ? es_remark
-                                              : strict_ansi_error_severity;
     /* Get the source position that corresponds to this character. */
     conv_line_loc_to_source_pos(*start_pos, &error_position);
-    diagnostic(sev, err_code);
+    diagnostic(es_discretionary_error, err_code);
   }  /* if */
 }  /* check_for_invalid_cplusplus_ucn */
 
@@ -13027,18 +13033,18 @@ static void check_for_invalid_c99_ucn(unsigned long	ucn,
 				      a_boolean		is_identifier,
 				      a_boolean		is_identifier_start)
 /*
-Determine whether "ucn" is a valid universal character name in C99.
-Issue a diagnostic if it is not.
+Determine whether "ucn" is a valid universal character name in C99.  Issue
+a diagnostic if it is not.  The values of is_identifier and
+is_identifier_start reflect the lexical position of the character, i.e.,
+whether the character might start or be part of an identifier.
 */
 {
   an_error_code	err_code = ec_no_error;
   if (ucn == '$' && is_identifier && allow_dollar_in_id_chars && !c23_mode) {
     /* A "$" specified as a UCN when dollar signs are allowed in
-       identifiers.  A dollar sign is normally allowed as a UCN in
-       C99 mode, but is disallowed when dollar signs are permitted in
+       identifiers.  A dollar sign is normally allowed as a UCN in C99
+       mode, but is disallowed when dollar signs are permitted in
        identifiers and in C23 mode. */
-    err_code = ec_UCN_names_basic_char;
-  } else if (ucn <= 255 && !is_nonstandard_character((char)ucn)) {
     err_code = ec_UCN_names_basic_char;
   } else if (ucn >= 0xd800 && ucn <= 0xdfff) {
     /* A UCN cannot name a character in the range of 0xd800-0xdfff (the ISO
@@ -13048,15 +13054,21 @@ Issue a diagnostic if it is not.
     /* Not a valid code point. */
     err_code = ec_UCN_names_invalid_code_point;
   } else if (is_identifier) {
-    /* Check whether this is a valid identifier character. */
-    err_code = is_valid_UCN_identifier_char(ucn, is_identifier_start);
+    /* Other restrictions only apply when the UCN is used in an
+       identifier. */
+    if (ucn <= 255 && !is_nonstandard_character((char)ucn)) {
+      err_code = ec_UCN_names_basic_char;
+    } else if (macro_depth == 0) {
+      /* Check whether this is a valid identifier character.  (If the
+         character appears in a macro argument, we don't know whether it
+         will end up in an identifier or not in the macro expansion.) */
+      err_code = is_valid_UCN_identifier_char(ucn, is_identifier_start);
+    }  /* if */
   }  /* if */
   if (err_code != ec_no_error) {
-    an_error_severity sev = (macro_depth > 0) ? es_remark
-                                              : strict_ansi_error_severity;
     /* Get the source position that corresponds to this character. */
     conv_line_loc_to_source_pos(*start_pos, &error_position);
-    diagnostic(sev, err_code);
+    diagnostic(es_discretionary_error, err_code);
   }  /* if */
 }  /* check_for_invalid_c99_ucn */
 
