@@ -13040,11 +13040,18 @@ whether the character might start or be part of an identifier.
 */
 {
   an_error_code	err_code = ec_no_error;
-  if (ucn == '$' && is_identifier && allow_dollar_in_id_chars && !c23_mode) {
-    /* A "$" specified as a UCN when dollar signs are allowed in
-       identifiers.  A dollar sign is normally allowed as a UCN in C99
-       mode, but is disallowed when dollar signs are permitted in
-       identifiers and in C23 mode. */
+  if (ucn == '$' && is_identifier && allow_dollar_in_id_chars) {
+    /* A "$" specified as a UCN in an identifier when dollar signs are
+       allowed in identifiers.  A dollar sign is normally allowed as a UCN
+       in C99 and following modes (including in C23, unlike C++26), but is
+       disallowed when dollar signs are permitted in identifiers. */
+    err_code = ec_UCN_names_basic_char;
+  } else if (ucn < 0xa0 && ucn != 0x24 && ucn != 0x40 && ucn != 0x60) {
+    /* A UCN cannot name a character less than 0xa0 except for "$" (0x24),
+       "@" (0x40), and "`" (0x60).  C23 did not change the status of those
+       three UCNs, unlike C++23, even though it made those characters part
+       of the basic character set.  Note that the dollar sign may be
+       prohibited by the test above. */
     err_code = ec_UCN_names_basic_char;
   } else if (ucn >= 0xd800 && ucn <= 0xdfff) {
     /* A UCN cannot name a character in the range of 0xd800-0xdfff (the ISO
@@ -13053,17 +13060,11 @@ whether the character might start or be part of an identifier.
   } else if (ucn > 0x10ffff) {
     /* Not a valid code point. */
     err_code = ec_UCN_names_invalid_code_point;
-  } else if (is_identifier) {
-    /* Other restrictions only apply when the UCN is used in an
-       identifier. */
-    if (ucn <= 255 && !is_nonstandard_character((char)ucn)) {
-      err_code = ec_UCN_names_basic_char;
-    } else if (macro_depth == 0) {
-      /* Check whether this is a valid identifier character.  (If the
-         character appears in a macro argument, we don't know whether it
-         will end up in an identifier or not in the macro expansion.) */
-      err_code = is_valid_UCN_identifier_char(ucn, is_identifier_start);
-    }  /* if */
+  } else if (is_identifier && macro_depth == 0) {
+    /* Check whether this is a valid identifier character.  (If the UCN
+       appears in a macro argument, we don't know whether it will end up in
+       an identifier or not in the macro expansion. */
+    err_code = is_valid_UCN_identifier_char(ucn, is_identifier_start);
   }  /* if */
   if (err_code != ec_no_error) {
     /* Get the source position that corresponds to this character. */

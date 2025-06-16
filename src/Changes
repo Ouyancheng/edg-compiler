@@ -1,16 +1,16 @@
 Version 6.8
 
-6/12/25  [EDGcpfe/26460,EDGcpfe/26461]
-C23, C++26: '$', '@', and '`' characters
+6/12/25  [EDGcpfe/26460]
+C++26: '$', '@', and '`' characters
 
-C23 (via WG14 paper N2701) and the anticipated C++26 draft (via WG21 paper
-P2558R2) have added the three characters '$', '@', and '`' to the basic
-character set.  This change has little real-word impact, as there are no
-uses of those characters in the grammars of the respective languages, but
-the change means that they are now subject to the restriction that a
-universal-character-name cannot designate a member of the basic character
-set.  The front end has now been updated to implement the new rules in the
-appropriate language versions.  For example, with --c++26 --strict:
+The prospective C++26 draft Standard (as specified in WG21 paper P2558R2)
+has added the three characters '$', '@', and '`' to the basic character
+set.  This change has little real-word impact, as there are no uses of
+those characters in the language grammar, but the change means that they
+are now subject to the restriction that a universal-character-name
+appearing outside a string or character literal cannot designate a member
+of the basic character set.  The front end has now been updated to
+implement the new rules in C++26 mode.  For example, with --c++26 --strict:
 
   #define STR(x) #x
   const char *p = STR(\u0060) STR(\u0024) STR(\u0040);  // Now three errors
