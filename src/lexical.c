@@ -13063,7 +13063,7 @@ whether the character might start or be part of an identifier.
   } else if (is_identifier && macro_depth == 0) {
     /* Check whether this is a valid identifier character.  (If the UCN
        appears in a macro argument, we don't know whether it will end up in
-       an identifier or not in the macro expansion. */
+       an identifier or not in the macro expansion.) */
     err_code = is_valid_UCN_identifier_char(ucn, is_identifier_start);
   }  /* if */
   if (err_code != ec_no_error) {
