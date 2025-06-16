@@ -3704,6 +3704,7 @@ its kind to the indicated kind.
 #endif /* DO_IL_LOWERING */
 #if BACK_END_IS_CP_GEN_BE
   node->keep_as_cast_for_cp_gen_be = FALSE;
+  node->needed_in_cp_gen_be = FALSE;
 #endif /* BACK_END_IS_CP_GEN_BE */
   node->is_parenthesized = FALSE;
   node->type_definition_needed = FALSE;

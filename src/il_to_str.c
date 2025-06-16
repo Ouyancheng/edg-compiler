@@ -553,11 +553,21 @@ Output the indicated template argument in the way described by octl.
           check_assertion(con != NULL);
           saved_expr = con->expr;
           saved_local_expr_ref = con->local_expr_ref;
-          if (octl->suppress_expr_in_nontype_arg) {
+          if (octl->suppress_expr_in_nontype_arg
+#if BACK_END_IS_CP_GEN_BE
+              || (con->expr != NULL && !con->expr->needed_in_cp_gen_be)
+#endif /* BACK_END_IS_CP_GEN_BE */
+                                                             ) {
             /* We should just put out the constant value, not the backing
                expression. */
             con->expr = NULL;
             con->local_expr_ref = FALSE;
+#if BACK_END_IS_CP_GEN_BE
+          } else if (con->expr != NULL) {
+            /* Ensure the backing expression is suppressed in subsequent
+               references. */
+            con->expr->needed_in_cp_gen_be = FALSE;
+#endif /* BACK_END_IS_CP_GEN_BE */
           }  /* if */
           expr = expr_node_from_constant(con);
           while (expr != NULL && is_constant_node(expr) &&

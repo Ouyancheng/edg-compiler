@@ -50495,8 +50495,43 @@ for the converted result in *constant (which must be in the file scope
 memory region).  Do various error checks.
 */
 {
+  a_boolean need_backing_expr;
+
   db_enter(3, "prep_nontype_template_argument_initializer");
   check_assertion(constant != NULL && in_file_scope(constant));
+  /* In general, backing expressions for template arguments are of limited
+     use in the C++-generating back end: references to a given template
+     instance can be written using a variety of expressions that all
+     evaluate to the same constant value, and only the first such
+     expression can be recorded in the IL for that instance; furthermore,
+     that expression may refer to names that are inaccessible or out of
+     scope at the point of subsequent references.  The two exceptions are
+     inside template declarations, because they are needed for name
+     mangling (at least in the IA-64 ABI), and when a given template
+     argument causes another template to be instantiated, because just
+     using the folded constant would likely omit the reference that caused
+     that instantiation.  (See the definition of
+     curr_expr_kind_is_one_in_which_const_exprs_are_recorded() for
+     restrictions on the latter case.)  Note that this mechanism has
+     limitations: as noted above, only one version of a template argument
+     is saved, so subsequent references to the template with different
+     argument expressions that fold to the same constant value will not be
+     saved, even if they cause template instantiations of their own.
+     Nevertheless, we unconditionally record backing expressions for
+     non-type template arguments and mark the ones that should be used in
+     the C++-generating back end output as "needed_in_cp_gen_be" (which
+     will be cleared after the first reference to prevent subsequent
+     use of the backing expression). */
+  need_backing_expr = (depth_template_declaration_scope != NO_SCOPE_DEPTH ||
+                       operand->caused_template_instantiation);
+  if (!need_backing_expr && is_expression_operand(operand) &&
+      is_variable_node(operand->variant.expression) &&
+      node_variable(operand->variant.expression)->is_constexpr) {
+    /* We also need to preserve an expression designating a constexpr
+       variable so the template argument can be determined to refer to it
+       rather than to the folded constant. */
+    need_backing_expr = TRUE;
+  }  /* if */
   if (ms_version_is(<1310) &&
       is_pointer_type(param_type) &&
       is_an_lvalue(operand) && is_expression_operand(operand) &&
@@ -50578,6 +50613,11 @@ memory region).  Do various error checks.
       !gpp_version_is(<60000)) {
     constant->null_pointer_constant_ruled_out = TRUE;
   }  /* if */
+#if BACK_END_IS_CP_GEN_BE
+  if (constant->expr != NULL) {
+    constant->expr->needed_in_cp_gen_be = need_backing_expr;
+  }  /* if */
+#endif /* BACK_END_IS_CP_GEN_BE */
 #if DEBUG
   if (debug_level >= 3) {
     db_constant(constant);
@@ -50664,6 +50704,8 @@ are NULL by default.
   an_operand             result;
   an_expr_stack_entry    expr_stack_entry;
   a_memory_region_number region_to_switch_back_to = NULL_region_number;
+  a_decl_sequence_number inst_seq_on_entry =
+                                           class_instantiation_sequence_number;
   a_boolean              relaxed_ms_case = FALSE;
   a_boolean              id_expr, id_expr_address;
   a_source_position      start_pos = pos_curr_token;
@@ -50741,6 +50783,9 @@ are NULL by default.
       param_type = deduced_type;
       free_arg_operand_list(arg_operand);
     }  /* if */
+  }  /* if */
+  if (class_instantiation_sequence_number != inst_seq_on_entry) {
+    result.caused_template_instantiation = TRUE;
   }  /* if */
   if (!constexpr_enabled && microsoft_mode && param_type != NULL &&
       scope_stack_top().in_prototype_instantiation) {
@@ -50916,12 +50961,16 @@ are NULL by default.
 }  /* scan_template_argument_constant_expression */
 
 
-an_arg_operand_ptr scan_nontype_template_argument(void)
+an_arg_operand_ptr scan_nontype_template_argument(
+                                   a_decl_sequence_number initial_inst_seq_num)
 /*
 Scan a nontype template argument in a template reference.  Allocate an
 arg_operand entry, fill it with information about the template argument,
-and return a pointer to it to the caller.  The caller must at some later
-point call free_arg_operand_list to free the entry.
+and return a pointer to it to the caller.  initial_inst_seq_num is the
+value of class_instantiation_sequence_number before processing this
+argument; if it is now different, set caused_template_instantiation to TRUE
+in the operand.  The caller must at some later point call
+free_arg_operand_list to free the entry.
 */
 {
   an_arg_operand_ptr     arg_operand;
@@ -50982,6 +51031,9 @@ point call free_arg_operand_list to free the entry.
   }  /* if */
 #endif /* DEBUG */
   curr_object_lifetime = saved_curr_object_lifetime;
+  if (class_instantiation_sequence_number != initial_inst_seq_num) {
+    opnd->caused_template_instantiation = TRUE;
+  }  /* if */
   db_exit();
   return arg_operand;
 }  /* scan_nontype_template_argument */

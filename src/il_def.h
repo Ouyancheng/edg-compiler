@@ -14710,6 +14710,15 @@ typedef struct an_expr_node {
 			   lvalue-to-rvalue conversion must be made
 			   explicit, such as for the second or third
 			   operand of a folded conditional operation. */
+  a_bit_field	needed_in_cp_gen_be:1;
+			/* TRUE for the backing expression of a non-type
+			   template argument when it must be emitted in
+			   place of the constant value.  Set to FALSE after
+			   the initial use, so that subsequent references
+			   to the template instance will not run into
+			   issues with access, visibility, or the need for
+			   excessive qualification for names appearing in
+			   the expression. */
 #endif /* BACK_END_IS_CP_GEN_BE */
   a_bit_field	is_parenthesized:1;
 			/* TRUE if the expression was parenthesized in the

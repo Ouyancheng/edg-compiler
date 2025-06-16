@@ -4660,6 +4660,9 @@ Display the indicated expression node.
   if (ptr->keep_as_cast_for_cp_gen_be) {
     disp_boolean("keep_as_cast_for_cp_gen_be", TRUE);
   }  /* if */
+  if (ptr->needed_in_cp_gen_be) {
+    disp_boolean("needed_in_cp_gen_be", TRUE);
+  }  /* if */
 #endif /* BACK_END_IS_CP_GEN_BE */
   if (ptr->is_parenthesized) {
     disp_boolean("is_parenthesized", TRUE);

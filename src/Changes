@@ -1,5 +1,31 @@
 Version 6.8
 
+6/16/25  [EDGcpfe/28225]
+C++-generating back end: expressions for non-type template arguments
+
+The changes for EDGcpfe/27274 (in version 6.7) resulted in unconditionally
+recording a backing expression for every non-type template argument and
+putting out that backing expression (instead of the value of the
+expression) for the template argument in every reference to that instance
+whenever the context permitted.  In some complex cases involving very deep
+nesting of template instantiations, however, the use of these backing
+expressions turned out to have unacceptable effects on the size of the
+generated code and the execution time to emit it, requiring exceedingly
+long qualifiers in the names of entities appearing in the backing
+expressions.  In view of this impact, the C++-generating back end has
+reverted to using only the value of non-type template arguments unless the
+presence of a name in the expression has an effect on the semantics of the
+code (e.g., causing the instantiation of another template).  The
+unconditional recording of backing expressions, however, is unchanged, in
+order to support source analysis applications.  For example, with --c++11:
+
+  constexpr int x = 1, y = 2, z = 3;
+  template<int> struct S { };
+  S<x + y> a; // Previously generated as S<x + y>, now as S<3>
+  S<z> b;     // Previously generated as S<x + x> (i.e., using the backing
+              // from the instance's first reference), now as S<3>
+
+
 6/12/25  [EDGcpfe/26460]
 C++26: '$', '@', and '`' characters
 
