@@ -13023,7 +13023,7 @@ start or be part of an identifier.
   if (err_code != ec_no_error) {
     /* Get the source position that corresponds to this character. */
     conv_line_loc_to_source_pos(*start_pos, &error_position);
-    diagnostic(es_discretionary_error, err_code);
+    diagnostic(strict_ansi_error_severity, err_code);
   }  /* if */
 }  /* check_for_invalid_cplusplus_ucn */
 
@@ -13068,7 +13068,7 @@ whether the character might start or be part of an identifier.
   if (err_code != ec_no_error) {
     /* Get the source position that corresponds to this character. */
     conv_line_loc_to_source_pos(*start_pos, &error_position);
-    diagnostic(es_discretionary_error, err_code);
+    diagnostic(strict_ansi_error_severity, err_code);
   }  /* if */
 }  /* check_for_invalid_c99_ucn */
 
