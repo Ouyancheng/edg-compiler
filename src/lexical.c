@@ -10879,7 +10879,7 @@ warning (or a narrowing error in strict mode) if any are found.
                        ec_embed_narrowing, &embed_control.directive_pos);
         break;
       }  /* if */
-    }  /* if */
+    }  /* for */
   }  /* if */
   free_general(embed_control.buf, (sizeof_t)embed_control.size);
   clear_embed_control_block();
