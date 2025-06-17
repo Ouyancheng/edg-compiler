@@ -1300,10 +1300,10 @@ set_working_directory.
     }  /* for */
 #if EDG_WIN32 && UNICODE_SOURCE_SUPPORTED
     internal_cwd_str = conv_wide_to_utf8(cwd_buffer.begin());
-#else /* !EDG_WIN32 && UNICODE_SOURCE_SUPPORTED */
+#else /* !(EDG_WIN32 && UNICODE_SOURCE_SUPPORTED) */
     internal_cwd_str =
                      (char*)file_name_in_internal_encoding(cwd_buffer.begin());
-#endif /* EDG_WIN32_UNICODE */
+#endif /* EDG_WIN32 && UNICODE_SOURCE_SUPPORTED */
 #else /* !USE_GETCWD */
     (void)getwd(cwd_buffer.begin());
     internal_cwd_str =
