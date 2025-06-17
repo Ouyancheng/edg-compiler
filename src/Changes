@@ -46,7 +46,7 @@ implement the new rules in C++26 mode.  For example, with --c++26 --strict:
 Microsoft compatibility: user-defined string literals and
 --no_const_string_literals
 
-For compatibility with very old dialects of C++. the
+For compatibility with very old dialects of C++, the
 --no_const_string_literals command-line option (similar to MSVC's
 "/Zc:strictStrings-") causes string literals to have the type "array of X"
 instead of the standard "array of const X".  However, the type of the first
