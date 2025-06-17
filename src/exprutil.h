@@ -422,7 +422,7 @@ typedef struct an_operand {
   a_bit_field	name_reference_set:1;
 			/* TRUE if name_reference has been set. */
   a_bit_field	caused_template_instantiation:1;
-			/* TRUE if scanning this operand caused a template
+			/* TRUE if parsing this operand caused a template
 			   to be instantiated. */
 #if MICROSOFT_EXTENSIONS_ALLOWED
   a_bit_field	allow_addr_of_managed_member:1;
