@@ -22,7 +22,7 @@ order to support source analysis applications.  For example, with --c++11:
   constexpr int x = 1, y = 2, z = 3;
   template<int> struct S { };
   S<x + y> a; // Previously generated as S<x + y>, now as S<3>
-  S<z> b;     // Previously generated as S<x + x> (i.e., using the backing
+  S<z> b;     // Previously generated as S<x + y> (i.e., using the backing
               // from the instance's first reference), now as S<3>
 
 
