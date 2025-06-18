@@ -16182,8 +16182,8 @@ static an_expr_node_ptr spaceship_result_constant_expr(int         val,
 Return an enk_constant node that represents the result of a spaceship operator
 returning the given type.  val is the value embedded in that result.  tp is a
 standard comparison type (e.g., std::strong_ordering) and this function
-requires that type to be a class type with a single field of integral type.
-If not, an es_catastrophe diagnostic is issued.
+requires that type to be a class type with a single field of integral or enum
+type.  If not, an es_catastrophe diagnostic is issued.
 */
 {
   a_constant_ptr  aggr = alloc_constant((a_constant_repr_kind)ck_aggregate),
@@ -16195,7 +16195,8 @@ If not, an es_catastrophe diagnostic is issued.
   if (!is_immediate_class_type(tp) ||
       tp->variant.class_struct_union.field_list == NULL ||
       tp->variant.class_struct_union.field_list->next != NULL ||
-      !is_integral_type(tp->variant.class_struct_union.field_list->type)) {
+      !is_integral_or_enum_type(
+                            tp->variant.class_struct_union.field_list->type)) {
     pos_ty_catastrophe(ec_invalid_std_comparison_type, &error_position, tp);
   }  /* if */
   aggr->type = tp;

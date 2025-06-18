@@ -1,5 +1,13 @@
 Version 6.8
 
+6/18/25  [EDGcpfe/28232]
+Clang compatibility: catastrophic error in spaceship_result_constant_expr
+
+When using some Clang system headers a catastrophic error (in
+spaceship_result_constant_expr) had occurred when lowering the C++20
+spaceship operator.  Now fixed.
+
+
 6/16/25  [EDGcpfe/28225]
 C++-generating back end: expressions for non-type template arguments
 
