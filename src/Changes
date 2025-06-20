@@ -1,5 +1,15 @@
 Version 6.8
 
+6/20/25  [EDGcpfe/28210]
+Build error in SSI configurations with no back end
+
+In configurations with the (now-deprecated, see the entry for
+EDGcpfe/25583) NONCLASS_TEMPLATE_INSTANTIATIONS_IN_SOURCE_SEQUENCE_LISTS
+option set to TRUE and BACK_END_SHOULD_BE_CALLED set to FALSE, the front
+end could not be built successfully because of an unresolved reference to
+read_memory_region.  This is now fixed.
+
+
 6/18/25  [EDGcpfe/28232]
 Clang compatibility: catastrophic error in spaceship_result_constant_expr
 
