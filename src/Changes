@@ -1,5 +1,12 @@
 Version 6.8
 
+6/20/25  [EDGcpfe/28241]
+Add USE_EDG_NAMESPACE to the output of --dump_configuration
+
+The USE_EDG_NAMESPACE configuration macro's value is now dumped when
+--dump_configuration is specified.
+
+
 6/20/25  [EDGcpfe/28210]
 Build error in SSI configurations with no back end
 

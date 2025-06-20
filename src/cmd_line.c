@@ -9966,6 +9966,11 @@ file.
 #else /* !defined(USE_DOUBLE_FOR_HOST_FP_VALUE) */
   comment_undefined_macro_name(USE_DOUBLE_FOR_HOST_FP_VALUE);
 #endif /* defined(USE_DOUBLE_FOR_HOST_FP_VALUE) */
+#if defined(USE_EDG_NAMESPACE)
+  define_numeric_valued_macro(USE_EDG_NAMESPACE);
+#else /* !defined(USE_EDG_NAMESPACE) */
+  comment_undefined_macro_name(USE_EDG_NAMESPACE);
+#endif /* defined(USE_EDG_NAMESPACE) */
 #if defined(USE_EMPTY_STRUCT_IN_GENERATED_C)
   define_numeric_valued_macro(USE_EMPTY_STRUCT_IN_GENERATED_C);
 #else /* !defined(USE_EMPTY_STRUCT_IN_GENERATED_C) */
