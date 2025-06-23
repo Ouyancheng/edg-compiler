@@ -1297,7 +1297,7 @@ set_working_directory.
         }  /* if */
       }  /* if */
       break;
-    }  /* for */
+    }  /* while */
 #if EDG_WIN32 && UNICODE_SOURCE_SUPPORTED
     internal_cwd_str = conv_wide_to_utf8(cwd_buffer.begin());
 #else /* !(EDG_WIN32 && UNICODE_SOURCE_SUPPORTED) */
