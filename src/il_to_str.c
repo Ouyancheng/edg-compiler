@@ -6904,7 +6904,11 @@ precedence confusion.  Do the output in the way described by octl.
           } else {
             /* Normal (non-wide) string. */
             if (constant->variant.string.embed_expansion) {
-              octl->output_str("{ ", octl);
+              if (!constant->is_compound_literal) {
+                /* In the compound literal case, the "{" will have already
+                   been put out. */
+                octl->output_str("{ ", octl);
+              }  /* if */
             } else if (!constant->variant.string.func_name_tok) {
               output_partial_token_str("\"", octl);
             }  /* if */
@@ -6946,7 +6950,8 @@ precedence confusion.  Do the output in the way described by octl.
               output_partial_token_str("\"", octl);
             }  /* if */
           }  /* if */
-          if (constant->is_compound_literal && !is_for_c_gen_be(octl)) {
+          if (constant->is_compound_literal && !is_for_c_gen_be(octl) &&
+              !constant->variant.string.embed_expansion) {
             /* The string was originally a compound literal and, except in
                generated C code, should be put out that way. */
             octl->output_str("}", octl);

@@ -7506,7 +7506,7 @@ compound literal.
 */
 {
   a_boolean is_aggregate = FALSE, is_compound_literal_string = FALSE;
-  a_boolean is_embed_expansion = FALSE;
+  a_boolean embed_directive_in_output = FALSE;
 
 #if GNU_EXTENSIONS_ALLOWED
   check_assertion(dip == NULL || dip->is_compound_literal ||
@@ -7539,19 +7539,20 @@ compound literal.
                literal_con->is_compound_literal) {
       /* Something like "(char[]){ "Text" }", which form_constant will
          eventually render as a compound literal, and therefore should not
-         have braces or a cast-like prefix added.  If the string represents
-         an optimized #embed expansion, the cast is needed but form_constant
-         will supply the braces.  (We handle this distinction here instead
-         of in form_constant to allow output of the #embed directive when
-         PRESERVE_EMBED_DIRECTIVE_WHEN_OPTIMIZED is TRUE.) */
+         have braces or a cast-like prefix added. */
       is_compound_literal_string = TRUE;
-      is_embed_expansion = literal_con->variant.string.embed_expansion;
+#if PRESERVE_EMBED_DIRECTIVE_WHEN_OPTIMIZED
+      /* We need to generate the cast-like prefix here when the #embed will
+         be put out in place of the list of integers, as it will not go
+         through the form_constant treatment of compound literals. */
+      embed_directive_in_output = literal_con->variant.string.embed_expansion;
+#endif /* PRESERVE_EMBED_DIRECTIVE_WHEN_OPTIMIZED */
     }  /* if */
   }  /* if */
-  /* In the transparent union and compound-literal string literal cases,
-     omit the cast-like prefix and the surrounding parentheses. */
-  if (!transparent_case &&
-      (!is_compound_literal_string || is_embed_expansion)) {
+  /* In the transparent union and compound-literal string cases, omit the
+     cast-like prefix and the surrounding parentheses. */
+  if ((!transparent_case && !is_compound_literal_string) ||
+    embed_directive_in_output) {
     write_tok_ch('(');
     gen_cast(literal_type);
   }  /* if */
@@ -7591,9 +7592,11 @@ compound literal.
     gen_expr(dip->variant.expression, parens_needed,
              /*obj_expr_of_mfunc_operator=*/FALSE);
   }  /* if */
-  if (!is_aggregate && !is_compound_literal_string) write_tok_ch('}');
-  if (!transparent_case &&
-      (!is_compound_literal_string || is_embed_expansion)) {
+  if (!is_aggregate && !is_compound_literal_string) {
+    write_tok_ch('}');
+  }  /* if */
+  if ((!transparent_case && !is_compound_literal_string) ||
+      embed_directive_in_output) {
     write_tok_ch(')');
   }  /* if */
 }  /* gen_compound_literal */
