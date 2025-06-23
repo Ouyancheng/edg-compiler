@@ -739,7 +739,7 @@ TRUE and FALSE is returned.
   restore_expr_stack(saved_expr_stack);
   if (result && for_template_arg &&
       is_class_struct_union_type(*type_after_deduction)) {
-    /* A class-type template argument is treated deduced via a constexpr
+    /* A class-type template argument is specified in terms of a constexpr
        variable (N5008 [temp.arg.nontype]/3) and thus the corresponding
        template parameter object is implicitly const-qualified). */
     *type_after_deduction = make_qualified_type(*type_after_deduction,
