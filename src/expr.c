@@ -737,14 +737,6 @@ TRUE and FALSE is returned.
   }  /* if */
   pop_expr_stack();
   restore_expr_stack(saved_expr_stack);
-  if (result && for_template_arg &&
-      is_class_struct_union_type(*type_after_deduction)) {
-    /* A class-type template argument is specified in terms of a constexpr
-       variable (N5008 [temp.arg.nontype]/3) and thus the corresponding
-       template parameter object is implicitly const-qualified. */
-    *type_after_deduction = make_qualified_type(*type_after_deduction,
-                                                TQ_CONST);
-  }  /* if */
   return result;
 }  /* deduce_placeholder_type */ 
 
@@ -1083,7 +1075,8 @@ swallowed); otherwise, it's "="-form or "{...}" form.
         !dps->decltype_auto_specifier_seen &&
         !is_const_qualified_type(undeduced_type)) {
       /* constexpr variables are implicitly const. */
-      undeduced_type = make_qualified_type(undeduced_type, TQ_CONST);
+      undeduced_type = make_qualified_type(undeduced_type,
+                                           (a_type_qualifier_set)TQ_CONST);
     }  /* if */
     if (ignore_braces_for_placeholder_deduction(dps, icp,
                                                 parenthesized_init)) {
