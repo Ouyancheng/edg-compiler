@@ -741,7 +741,7 @@ TRUE and FALSE is returned.
       is_class_struct_union_type(*type_after_deduction)) {
     /* A class-type template argument is specified in terms of a constexpr
        variable (N5008 [temp.arg.nontype]/3) and thus the corresponding
-       template parameter object is implicitly const-qualified). */
+       template parameter object is implicitly const-qualified. */
     *type_after_deduction = make_qualified_type(*type_after_deduction,
                                                 TQ_CONST);
   }  /* if */
