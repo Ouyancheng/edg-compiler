@@ -1,5 +1,32 @@
 Version 6.8
 
+6/25/25  [EDGcpfe/28025]
+Add supporting command-line options for writing named modules
+
+The front end now supports the following modules-related options:
+
+  --create_module_interface file
+  Write an EDG IFC module file for a module interface unit to file.
+
+  --create_module_internal_partition file
+  Write an EDG IFC module file for a module implementation unit to file.
+
+  --module_interface
+  Write an EDG IFC module file for a module interface unit in the current
+  working directory; the filename is derived from the parsed module
+  declaration.
+
+  --module_internal_partition
+  Write an EDG IFC module file for a module implementation unit in the current
+  working directory; the filename is derived from the parsed module
+  declaration.
+
+The following options have been removed: --ms_mod_interface,
+--no_ms_mod_interface, --ms_internal_partition, --no_ms_internal_partition.
+The new options are only required if creating an EDG IFC module file is
+desired.
+
+
 6/20/25  [EDGcpfe/28241]
 Add USE_EDG_NAMESPACE to the output of --dump_configuration
 

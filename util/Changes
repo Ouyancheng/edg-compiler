@@ -1,6 +1,6 @@
 Version 6.7, January 27, 2025
 
-5/20/25  [EDGcpfe/28025]
+6/25/25  [EDGcpfe/28025]
 Add supporting command-line options for writing named modules
 
 The front end now supports the following modules-related options:
