@@ -15419,7 +15419,9 @@ the given scope.
     default_is_unexpected();
   }  /* switch */
 invalid:
+#if MICROSOFT_EXTENSIONS_ALLOWED
 done:
+#endif /* MICROSOFT_EXTENSIONS_ALLOWED */
   /* If a scope was pushed, scope popping should always occur. */
   if (scope_push_status != mspk_unattempted) {
     pop_module_declaration_context(scope_push_status);
