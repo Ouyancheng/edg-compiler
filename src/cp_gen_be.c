@@ -7549,10 +7549,11 @@ compound literal.
 #endif /* PRESERVE_EMBED_DIRECTIVE_WHEN_OPTIMIZED */
     }  /* if */
   }  /* if */
-  /* In the transparent union and compound-literal string cases, omit the
-     cast-like prefix and the surrounding parentheses. */
+  /* In the transparent union and compound-literal string cases, including
+     the case when a #embed expansion is not replaced by the directive,
+     omit the cast-like prefix and the surrounding parentheses. */
   if ((!transparent_case && !is_compound_literal_string) ||
-    embed_directive_in_output) {
+      embed_directive_in_output) {
     write_tok_ch('(');
     gen_cast(literal_type);
   }  /* if */
