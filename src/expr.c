@@ -20171,6 +20171,11 @@ ck_reflection) of a special built-in type (of kind tk_reflection).
         an_operand        opnd;
         an_expr_node_ptr  node;
         scan_expr(&opnd, PREC_PREFIX, EOPT_REFLECTION_OP);
+        if (is_indefinite_function_operand(&opnd)) {
+          convert_function_template_to_single_function_if_possible(
+                                                  &opnd, /*will_call=*/FALSE);
+          error_if_indefinite_function(&opnd);
+        }  /* if */
         if (opnd.symbol != NULL) {
           /* Handle some expressions that are unusual in other contexts. */
           if (symbol_is(opnd.symbol, sk_field)) {

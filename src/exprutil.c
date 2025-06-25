@@ -24420,7 +24420,7 @@ selection for the specific function.
 }  /* conv_bound_function_to_static_selection */
 
 
-static void error_if_indefinite_function(an_operand *operand)
+void error_if_indefinite_function(an_operand *operand)
 /*
 If the given operand is an indefinite function, issue an error and
 change the operand to an error operand.

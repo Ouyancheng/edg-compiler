@@ -2038,6 +2038,8 @@ extern a_boolean conv_bound_function_to_static_selection(
                                           an_operand *operand,
                                           an_operand *bound_function_selector);
 
+extern void error_if_indefinite_function(an_operand *operand);
+
 extern void do_operand_transformations(an_operand                   *operand,
                                        a_transformation_options_set options);
 

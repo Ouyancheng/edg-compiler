@@ -7795,8 +7795,13 @@ Return the hash value for the indicated constant.
                          hash_constant((a_constant*)entity->ptr);
             break;
           case iek_type:
-            hash_value = hash_value*31 +
-                         hash_type((a_type*)entity->ptr);
+            { a_type  *tp = (a_type*)entity->ptr;
+              if (type_is_typedef(tp)) {
+                hash_value = hash_value*31 + hash_name(&cp->source_corresp);
+              }  /* if */
+              hash_value = hash_value*31 +
+                           hash_type((a_type*)entity->ptr);
+            }
             break;
           default:
             hash_value = hash_value*31 +
@@ -8597,7 +8602,7 @@ the definition of the CC flags in il.h for more information.
   } else if (rv1.entity.kind == iek_type) {
     a_type_ptr  tp1 = (a_type*)rv1.entity.ptr,
                 tp2 = (a_type*)rv2.entity.ptr;
-    if (type_is_typedef(tp1) && type_is_typedef(tp2)) {
+    if (type_is_typedef(tp1) || type_is_typedef(tp2)) {
       eq = (tp1 == tp2);
     } else {
       eq = identical_types(tp1, tp2);
