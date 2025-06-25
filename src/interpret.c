@@ -21630,6 +21630,7 @@ the value representation of the integer value.
               ovfl = FALSE;
               complement_integer_value((an_integer_value *)result_storage);
               CHECK_int_range((an_integer_value *)result_storage, tp);
+#if GNU_EXTENSIONS_ALLOWED
             } else if (opnd1_type->kind == tk_vector) {
               a_byte     *src = opnd1_value, *dst = result_storage;
               a_type     *etp = skip_typerefs(tp->variant.vector.element_type);
@@ -21657,6 +21658,7 @@ the value representation of the integer value.
                 src += step;
                 dst += step;
               }  /* for */
+#endif /* GNU_EXTENSIONS_ALLOWED */
             } else {
               /* The complement operator only applies to integer types. */
               unexpected_condition();
