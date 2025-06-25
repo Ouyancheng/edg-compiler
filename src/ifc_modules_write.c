@@ -172,6 +172,8 @@ struct an_ifc_output_state {
   inline void alloc_decl_trait(an_ifc_decl_index decl_idx,
                                an_ifc_Node_type  *result);
   template<typename an_ifc_Node_type>
+  inline an_ifc_dir_index alloc_dir(an_ifc_Node_type *result);
+  template<typename an_ifc_Node_type>
   inline an_ifc_type_index alloc_type(an_ifc_Node_type *result);
   template<typename an_ifc_Node_type>
   inline an_ifc_name_index alloc_name(an_ifc_Node_type *result);
@@ -187,6 +189,8 @@ struct an_ifc_output_state {
 
   template<typename an_ifc_Node_type>
   inline void fetch_node(an_ifc_Node_type *result, size_t index);
+  template<typename an_ifc_Node_type>
+  inline void fetch_decl(an_ifc_Node_type *result, an_ifc_decl_index decl_idx);
 
   void set_global_scope(an_ifc_scope_offset scope_offset)
     { this->global_scope = scope_offset; }
@@ -420,6 +424,23 @@ to the allocated node.  Return the node's declaration index.
 
 
 template<typename an_ifc_Node_type>
+an_ifc_dir_index an_ifc_output_state::alloc_dir(an_ifc_Node_type *result)
+/*
+Allocate a directive node in its corresponding output partition.  Set *result
+to the allocated node.  Return the node's directive index.
+*/
+{
+  an_ifc_partition_kind
+                part_kind = get_ifc_partition_kind<an_ifc_Node_type>();
+  size_t        part_offset = this->alloc_node(result);
+  an_ifc_dir_sort
+                dir_sort = to_dir_sort(part_kind);
+
+  return an_ifc_dir_index(result->get_file(), dir_sort, part_offset);
+}  /* an_ifc_output_state::alloc_dir */
+
+
+template<typename an_ifc_Node_type>
 void an_ifc_output_state::alloc_decl_trait(an_ifc_decl_index decl_idx,
                                            an_ifc_Node_type  *result)
 /*
@@ -523,6 +544,21 @@ Fetch a node from its corresponding output partition at the given index.  Set
   an_ifc_Node_type constructed_value(this->output_file, start, byte_offset);
   *result = constructed_value;
 }  /* an_ifc_output_state::fetch_node */
+
+
+template<typename an_ifc_Node_type>
+void an_ifc_output_state::fetch_decl(an_ifc_Node_type  *result,
+                                     an_ifc_decl_index index)
+/*
+Fetch a node from its corresponding output partition at the given index.  Set
+*result to the fetched node.
+*/
+{
+  check_assertion(to_partition_kind(index.sort) ==
+                  get_ifc_partition_kind<an_ifc_Node_type>());
+  this->fetch_node(result, index.value);
+}  /* an_ifc_output_state::fetch_decl */
+
 
 
 void an_ifc_output_state::sort_traits()
@@ -1308,10 +1344,16 @@ struct an_ifc_il_map {
   an_ifc_decl_index enter_class_struct_union(a_type_ptr type);
   an_ifc_decl_index find_or_enter_enum(a_type_ptr type);
   an_ifc_decl_index enter_enum(a_type_ptr type);
+  an_ifc_decl_index find_or_enter_namespace(a_namespace_ptr nsp);
+  an_ifc_decl_index enter_namespace(a_namespace_ptr nsp);
   an_ifc_decl_index find_or_enter_routine(a_routine_ptr rp);
   an_ifc_decl_index enter_routine(a_routine_ptr rp);
   an_ifc_decl_index find_or_enter_template(a_template_ptr templ);
   an_ifc_decl_index enter_template(a_template_ptr templ);
+  an_ifc_decl_index find_or_enter_using_directive(a_using_decl_ptr udp,
+                                                  a_scope_ptr      scope);
+  an_ifc_decl_index enter_using_directive(a_using_decl_ptr udp,
+                                          a_scope_ptr      scope);
 
   /* Functions for retrieving scope member state. */
   size_t get_number_of_scopes() const
@@ -1435,10 +1477,14 @@ private:
   an_ifc_decl_index enter_typedef(a_type_ptr type);
 
   /* Functions associating entities with their corresponding scopes. */
+  an_ifc_decl_index find_or_enter_home_scope(a_scope_ptr scope);
   an_ifc_decl_index enter_home_scope(a_scope_ptr scope);
   void map_scope_member(a_scope_ptr scope, an_ifc_decl_index decl);
   template<typename a_Type>
   an_ifc_decl_index associate_entity_home_scope(a_Type *il_entity);
+  template<typename a_Type>
+  an_ifc_decl_index associate_entity_home_scope(a_Type      *il_entity,
+                                                a_scope_ptr scope);
 
   an_ifc_output_state
                 *output_state;
@@ -1972,6 +2018,68 @@ Return the declaration index for the enumeration.
 }  /* an_ifc_il_map::enter_enum */
 
 
+an_ifc_decl_index an_ifc_il_map::find_or_enter_namespace(a_namespace_ptr nsp)
+/*
+For the given namespace find or enter the respective declaration into the IFC
+output state.  Return the declaration index for the entered declaration.
+*/
+{
+  an_ifc_decl_index result = this->il_entry_to_decl.get(make_tagged_ptr(nsp));
+
+  if (is_null_index(result)) {
+    result = this->enter_namespace(nsp);
+  }  /* if */
+  return result;
+}  /* an_ifc_il_map::find_or_enter_namespace */
+
+
+an_ifc_decl_index an_ifc_il_map::enter_namespace(a_namespace_ptr nsp)
+/*
+For the given namespace enter the respective declaration into the IFC output
+state.  Return the declaration index for the entered declaration.
+*/
+{
+  an_ifc_decl_scope
+                scope_decl;
+  an_ifc_decl_index
+                result = this->map_new_decl(nsp, &scope_decl);
+
+  /* Set the name information. */
+  an_ifc_name_index
+                ifc_name_index = this->entity_name_as_name_index(nsp);
+  set_ifc_name(&scope_decl, ifc_name_index);
+
+  /* Set the source location information. */
+  an_ifc_source_location
+                ifc_src_pos = this->find_or_enter_entity_pos(nsp);
+  set_ifc_locus(&scope_decl, ifc_src_pos);
+
+  /* Set the IFC fundamental type to indicate this is a namespace scope. */
+  an_ifc_type_index
+                ifc_scope_type = this->find_or_enter_namespace_scope_type();
+  set_ifc_type(&scope_decl, ifc_scope_type);
+
+  /* Namespaces do not have a base type, so use a null type. */
+  an_ifc_type_index
+                base_type;
+  set_ifc_base(&scope_decl, base_type);
+
+  /* Set the scope information. */
+  an_ifc_decl_index
+                scope_decl_idx = this->associate_entity_home_scope(nsp);
+  set_ifc_home_scope(&scope_decl, scope_decl_idx);
+  /* FIXME: Set alignment. */
+  /* FIXME: Set pack_size. */
+  /* FIXME: Set specifiers. */
+  /* FIXME: Set traits. */
+
+  /* Set the access specifier. */
+  set_ifc_access(&scope_decl, ifc_as_none);
+  /* FIXME: Set properties. */
+  return result;
+}  /* an_ifc_il_map::enter_namespace */
+
+
 an_ifc_decl_index an_ifc_il_map::find_or_enter_routine(a_routine_ptr rp)
 /*
 For the given routine find or enter the function declaration into the IFC
@@ -2119,6 +2227,76 @@ state.  Return the declaration index for the template.
   }  /* switch */
   return result;
 }  /* an_ifc_il_map::enter_template */
+
+
+an_ifc_decl_index an_ifc_il_map::find_or_enter_using_directive(
+                                                        a_using_decl_ptr udp,
+                                                        a_scope_ptr      scope)
+/*
+For the given using directive find or enter the using directive in the given
+scope into the IFC output state.  Return the declaration index for the using
+directive.
+
+Note this function explicitly requires a scope as using directives do not have
+a source correspondence and thus must explicitly be provided a scope.
+*/
+{
+  a_tagged_pointer  tagged_udp = make_tagged_ptr(udp);
+  an_ifc_decl_index result = this->il_entry_to_decl.get(tagged_udp);
+
+  if (is_null_index(result)) {
+    result = this->enter_using_directive(udp, scope);
+  }  /* if */
+  return result;
+}  /* an_ifc_il_map::find_or_enter_using_directive */
+
+
+an_ifc_decl_index an_ifc_il_map::enter_using_directive(a_using_decl_ptr udp,
+                                                       a_scope_ptr      scope)
+/*
+For the given using directive enter the using directive in the given scope into
+the IFC output state.  Return the declaration index for the using directive.
+
+Note this function explicitly requires a scope as using directives do not have
+a source correspondence and thus must explicitly be provided a scope.
+*/
+{
+  an_ifc_decl_barren
+                barren_decl;
+  an_ifc_decl_index
+                result = this->map_new_decl(udp, &barren_decl);
+  /* Set up the directive. */
+  an_ifc_dir_using
+                using_dir;
+  an_ifc_dir_index
+                using_dir_idx = this->output_state->alloc_dir(&using_dir);
+  /* Set the directive location. */
+  an_ifc_source_location
+                ifc_src_pos = this->find_or_enter_pos(udp->position);
+
+  set_ifc_locus(&using_dir, ifc_src_pos);
+  /* FIXME: Implement the "nominated" (as spelled in source form). */
+
+  /* Set the resolved scope. */
+  /* FIXME: Check the entity type. */
+  an_ifc_decl_index
+                namespace_idx = this->find_or_enter_namespace(
+                                             (a_namespace_ptr)udp->entity.ptr);
+  /* It is expected that the namespace will have already been entered. */
+  check_assertion(!is_null_index(namespace_idx));
+  set_ifc_resolution(&using_dir, namespace_idx);
+  /* Set the directive on the barren declaration. */
+  set_ifc_directive(&barren_decl, using_dir_idx);
+  /* FIXME: Set specifiers. */
+
+  /* Set the access specifier. */
+  an_ifc_access_sort
+                access_sort = convert_access_specifier(udp->access);
+  set_ifc_access(&barren_decl, access_sort);
+  /* Associate the using-directive with its scope. */
+  this->associate_entity_home_scope(udp, scope);
+  return result;
+}  /* an_ifc_il_map::enter_using_directive */
 
 
 an_ifc_text_offset an_ifc_il_map::string_as_text_offset(a_const_char *str,
@@ -5475,54 +5653,25 @@ Return the declaration index of the scope declaration.
   check_assertion(scope->kind == sck_namespace ||
                   scope->kind == sck_namespace_extension ||
                   scope->kind == sck_namespace_reactivation);
-  an_ifc_decl_scope
-                scope_decl;
   a_namespace_ptr
                 nsp = scope->variant.assoc_namespace;
   an_ifc_decl_index
-                result = this->map_new_decl(nsp, &scope_decl);
+                result = this->find_or_enter_namespace(nsp);
 
-  /* Additionally resolve the scope to this DeclIndex to resolve the scope for
-     find_or_enter_home_scope. */
+  /* Resolve the scope to this DeclIndex to resolve the scope for find_
+     functions that utilize the scope. */
   this->il_entry_to_decl.map(make_tagged_ptr(scope), result);
 
-  /* Set the name information. */
-  an_ifc_name_index
-                ifc_name_index = this->entity_name_as_name_index(nsp);
-  set_ifc_name(&scope_decl, ifc_name_index);
-
-  /* Set the source location information. */
-  an_ifc_source_location
-                ifc_src_pos = this->find_or_enter_entity_pos(nsp);
-  set_ifc_locus(&scope_decl, ifc_src_pos);
-
-  /* Set the IFC fundamental type to indicate this is a namespace scope. */
-  an_ifc_type_index
-                ifc_scope_type = this->find_or_enter_namespace_scope_type();
-  set_ifc_type(&scope_decl, ifc_scope_type);
-
-  /* Namespaces do not have a base type, so use a null type. */
-  an_ifc_type_index
-                base_type;
-  set_ifc_base(&scope_decl, base_type);
+  /* Fetch the scope declaration representing the namespace; there is now at
+     least one element that needs to be associated with it. */
+  an_ifc_decl_scope
+		scope_decl;
+  this->output_state->fetch_decl(&scope_decl, result);
 
   /* Associate the namespace scope decl with its contents. */
   an_ifc_scope_offset
                 initializer = this->find_or_enter_scope(scope);
   set_ifc_initializer(&scope_decl, initializer);
-
-  /* Set the scope information. */
-  an_ifc_decl_index
-                scope_decl_idx = this->associate_entity_home_scope(nsp);
-  set_ifc_home_scope(&scope_decl, scope_decl_idx);
-  /* FIXME: Set alignment. */
-  /* FIXME: Set pack_size. */
-  /* FIXME: Set specifiers. */
-  /* FIXME: Set traits. */
-
-  /* Set the access specifier. */
-  set_ifc_access(&scope_decl, ifc_as_none);
-  /* FIXME: Set properties. */
   return result;
 }  /* an_ifc_il_map::enter_namespace */
 
@@ -5573,10 +5722,31 @@ representation of the typedef).
 }  /* an_ifc_il_map::enter_typedef */
 
 
+an_ifc_decl_index an_ifc_il_map::find_or_enter_home_scope(a_scope_ptr scope)
+/*
+For the given scope find or enter the associated scope information into the IFC
+output state.  Return the declaration index for the scope.
+
+Note that this function is typically not what should be used to set an entity's
+home scope as it does not register the entity with the scope.  Instead, prefer
+using associate_entity_home_scope.
+*/
+{
+  a_tagged_pointer
+                tagged_scope = make_tagged_ptr(scope);
+  an_ifc_decl_index
+                result = this->il_entry_to_decl.get(tagged_scope);
+  if (is_null_index(result)) {
+    result = this->enter_home_scope(scope);
+  }  /* if */
+  return result;
+}  /* an_ifc_il_map::find_or_enter_home_scope */
+
+
 an_ifc_decl_index an_ifc_il_map::enter_home_scope(a_scope_ptr scope)
 /*
-For the given scope enter the associated parent scope declaration into the IFC
-output state.  Return the declaration index for the scope.
+For the given scope enter the associated scope information into the IFC output
+state.  Return the declaration index for the scope.
 */
 {
   check_assertion(is_null_index(
@@ -5642,11 +5812,27 @@ declaration in the IFC output state.  Return the declaration index for the
 entity's scope.
 */
 {
-  /* First fetch the entity's IL scope and its IFC DeclIndex.  Then associate
-     the scope and DeclIndex. */
+  a_scope_ptr scope = il_entity->source_corresp.parent_scope;
+
+  return this->associate_entity_home_scope(il_entity, scope);
+}  /* an_ifc_il_map::associate_entity_home_scope */
+
+
+template<typename a_Type>
+an_ifc_decl_index an_ifc_il_map::associate_entity_home_scope(
+                                                        a_Type      *il_entity,
+                                                        a_scope_ptr scope)
+/*
+For the given IL entity associate the parent scope and the corresponding IFC
+declaration in the IFC output state.  Return the declaration index for the
+entity's scope.
+*/
+{
+  /* First fetch the entity's IFC DeclIndex.  Then associate the scope and
+     DeclIndex. */
   a_tagged_pointer
                 tagged_entity = make_tagged_ptr(il_entity);
-  a_scope_ptr   scope = il_entity->source_corresp.parent_scope;
+
   /* Only include the entity in the scope member list if it's "real." */
   if (!entity_is_nonreal(tagged_entity)) {
     an_ifc_decl_index
@@ -5654,17 +5840,9 @@ entity's scope.
 
     this->map_scope_member(scope, entity_idx);
   }  /* if */
-
   /* Finally, enter the home scope declaration itself if not already
      entered. */
-  a_tagged_pointer
-                tagged_scope = make_tagged_ptr(scope);
-  an_ifc_decl_index
-                result = this->il_entry_to_decl.get(tagged_scope);
-  if (is_null_index(result)) {
-    result = this->enter_home_scope(scope);
-  }  /* if */
-  return result;
+  return this->find_or_enter_home_scope(scope);
 }  /* an_ifc_il_map::associate_entity_home_scope */
 
 }  /* namespace */
@@ -5740,6 +5918,19 @@ Add all the namespaces in the given scope to the given IL -> IFC mapping.
 }  /* dump_scope_namespaces */
 
 
+static void dump_scope_using_directives(an_ifc_il_map *il_map,
+                                        a_scope_ptr   scope)
+/*
+Add all the using-directives in the given scope to the given IL -> IFC mapping.
+*/
+{
+  for (a_using_decl_ptr udp = scope->using_directives; udp != NULL;
+       udp = udp->next) {
+    (void)il_map->find_or_enter_using_directive(udp, scope);
+  }  /* for */
+}  /* dump_scope_using_directives */
+
+
 static void dump_scope_recursively(an_ifc_il_map *il_map,
                                    a_scope_ptr   scope)
 /*
@@ -5751,6 +5942,7 @@ IFC mapping.
   dump_scope_templates(il_map, scope);
   dump_scope_routines(il_map, scope);
   dump_scope_namespaces(il_map, scope);
+  dump_scope_using_directives(il_map, scope);
 }  /* dump_scope_recursively */
 
 
