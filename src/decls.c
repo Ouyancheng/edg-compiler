@@ -16429,7 +16429,7 @@ created and activated for the current scope.
       mark_referenced(sym, &locator_for_curr_id.source_position);
       /* Allocate a using-directive entry specifying this namespace and
          activate it. */
-      make_using_directive(sym->variant.namespace_info.ptr, depth_scope_stack,
+      make_using_directive(sym->variant.namespace_info.ptr, decl_scope_level,
                            using_pos, /*compiler_generated=*/FALSE,
                            /*inline_namespace=*/FALSE, attributes);
       if (scope_stack_top().exporting_decl) {

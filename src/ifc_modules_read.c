@@ -11915,14 +11915,15 @@ exists, return the associated symbol; otherwise, return NULL.
                                            /*new_value=*/FALSE);
     a_symbol_locator       locator;
 
-    (void)init_decl_locator(scope_decl, &locator);
-    if (is_std_namespace_scope(scope_decl)) {
-      /* The standard namespace is predeclared. */
-      result = symbol_for_namespace_std;
-      enter_symbol_for_namespace_std(&locator);
-    } else {
-      /* Attempt to find the namespace by name. */
-      result = curr_scope_id_lookup(&locator, IDL_NO_OPTIONS);
+    if (init_decl_locator(scope_decl, &locator)) {
+      if (is_std_namespace_scope(scope_decl)) {
+        /* The standard namespace is predeclared. */
+        result = symbol_for_namespace_std;
+        enter_symbol_for_namespace_std(&locator);
+      } else {
+        /* Attempt to find the namespace by name. */
+        result = curr_scope_id_lookup(&locator, IDL_NO_OPTIONS);
+      }  /* if */
     }  /* if */
   } else {
     /* Attempt to find an existing anonymous namespace in the current scope's
@@ -11944,6 +11945,8 @@ and return the associated symbol.
 The caller is responsible for managing the scope stack, including:
 - Ensuring the scope stack state represents this namespace's enclosing scope.
 - Ensuring the created namespace is pushed to the scope stack.
+
+Note this function may return NULL if the new namespace could not be declared.
 */
 {
   a_symbol_ptr result = NULL;
@@ -11952,7 +11955,9 @@ The caller is responsible for managing the scope stack, including:
   if (decl_is_named) {
     a_symbol_locator locator;
 
-    (void)init_decl_locator(scope_decl, &locator);
+    if (!init_decl_locator(scope_decl, &locator)) {
+      goto invalid;
+    }  /* if */
     check_assertion(!is_std_namespace_scope(scope_decl));
     result = enter_symbol(sk_namespace, &locator, decl_scope_level,
                           /*suppress_redecl_error=*/FALSE);
@@ -11969,24 +11974,27 @@ The caller is responsible for managing the scope stack, including:
                        assoc_pointers_block_of(&scope_stack[decl_scope_level]);
     pointers_block->unnamed_namespace_sym = result;
   }  /* if */
+  {
+    a_namespace_ptr nsp = alloc_namespace(/*is_alias=*/FALSE);
 
-  a_namespace_ptr nsp = alloc_namespace(/*is_alias=*/FALSE);
-  /* Link the namespace symbol to the namespace IL entity. */
-  result->variant.namespace_info.ptr = nsp;
-  /* Update the source correspondence information. */
-  set_source_corresp(&nsp->source_corresp, result);
-  nsp->source_corresp.name_linkage = nlk_cplusplus_external;
-  /* Update the namespace membership information. */
-  set_namespace_membership(result, &nsp->source_corresp,
-                           (a_namespace_ptr)NULL);
+    /* Link the namespace symbol to the namespace IL entity. */
+    result->variant.namespace_info.ptr = nsp;
+    /* Update the source correspondence information. */
+    set_source_corresp(&nsp->source_corresp, result);
+    nsp->source_corresp.name_linkage = nlk_cplusplus_external;
+    /* Update the namespace membership information. */
+    set_namespace_membership(result, &nsp->source_corresp,
+                             (a_namespace_ptr)NULL);
 
-  /* Set the namespace's inline status. */
-  an_ifc_scope_traits_bitfield traits = get_ifc_traits(scope_decl);
-  if (test_bitmask<ifc_stb_inline>(traits)) {
-    nsp->is_inline = TRUE;
-  }  /* if */
-  /* Expose the namespace to relevant lists. */
-  add_to_namespaces_list(nsp);
+    /* Set the namespace's inline status. */
+    an_ifc_scope_traits_bitfield traits = get_ifc_traits(scope_decl);
+    if (test_bitmask<ifc_stb_inline>(traits)) {
+      nsp->is_inline = TRUE;
+    }  /* if */
+    /* Expose the namespace to relevant lists. */
+    add_to_namespaces_list(nsp);
+  }
+invalid:
   return result;
 }  /* declare_new_namespace */
 
@@ -12563,6 +12571,9 @@ strongly preferred over calling this function directly.
               if (existing_sym == NULL) {
                 a_symbol_ptr new_sym = declare_new_namespace(scope_decl);
 
+                if (new_sym == NULL) {
+                  goto invalid;
+                }  /* if */
                 nsp = new_sym->variant.namespace_info.ptr;
                 (void)push_namespace_scope(sck_namespace, nsp);
                 /* Link the scope to the namespace IL entity. */
@@ -13253,6 +13264,11 @@ strongly preferred over calling this function directly.
       /* This should never occur as the module entity should resolve to the
          locator in the file that's referenced. */
       unexpected_condition();
+    case ifc_ds_decl_barren:
+      /* This should never occur as barren declarations are not entities.
+         Attempting to resolve the module entity should have failed making
+         this point unreachable. */
+      unexpected_condition();
     case ifc_ds_decl_bitfield:
     case ifc_ds_decl_constructor:
     case ifc_ds_decl_default_argument:
@@ -13272,7 +13288,6 @@ strongly preferred over calling this function directly.
         ifc_unexpected(module_of(decl_idx), err_msg);
       }
       break;
-    case ifc_ds_decl_barren:
     case ifc_ds_decl_deduction_guide:
     case ifc_ds_decl_expansion:
     case ifc_ds_decl_explicit_instantiation:
@@ -15227,12 +15242,14 @@ to this function.
     case ifc_ds_decl_property:
       /* These entities cannot be deferred (because they cannot be directly
          processed to IL entities). */
+    case ifc_ds_decl_barren:
+      /* These declarations cannot be deferred or immediately processed
+         (because they do not declare entities). */
       { a_string err_msg(index_to_str(decl_idx), " cannot be deferred");
 
         ifc_unexpected(module_of(decl_idx), err_msg);
       }
       goto invalid;
-    case ifc_ds_decl_barren:
     case ifc_ds_decl_deduction_guide:
     case ifc_ds_decl_expansion:
     case ifc_ds_decl_explicit_instantiation:
@@ -15265,12 +15282,157 @@ done:;
 }  /* defer_ifc_declaration */
 
 
+template<typename an_ifc_Node_type>
+static
+a_boolean cache_directive(a_module_token_cache_ptr cache,
+                          const an_ifc_Node_type   &node) DELETED_FN_DEF
+
+template<>
+a_boolean cache_directive(a_module_token_cache_ptr cache,
+                          const an_ifc_dir_using   &using_dir)
+/*
+Add the given using-directive into the cache.  Return TRUE if caching succeeds,
+FALSE otherwise.
+*/
+{
+  an_ifc_decl_index ns_decl_idx = get_ifc_resolution(using_dir);
+
+  cache_token(cache, tok_using);
+  cache_token(cache, tok_namespace);
+  cache_token_with_index(cache, tok_ifc_decl_ref, ns_decl_idx);
+  cache_token(cache, tok_semicolon);
+  return TRUE;
+}  /* cache_directive */
+
+
+static inline a_boolean is_msvc_global_scope(
+                                           const an_ifc_decl_scope &decl_scope)
+/*
+Return TRUE if this is the MSVC scope with the "`global namespace'" name,
+representing the global scope; otherwise, return FALSE.
+*/
+{
+  a_boolean result = FALSE;
+
+  if (is_msvc_authored(decl_scope)) {
+    an_ifc_name_index name_idx = get_ifc_name(decl_scope);
+    Opt<a_string>     opt_name_str = name_from_index(name_idx);
+
+    if (opt_name_str.has_value()) {
+      const a_string &name_str = *opt_name_str;
+      a_const_char   *name_str_chars = name_str.as_temp_characters();
+
+      if (strncmp(name_str_chars, "`global namespace'", 18) == 0) {
+        result = TRUE;
+      }  /* if */
+    }  /* if */
+  }  /* if */
+  return result;
+}  /* is_msvc_global_scope */
+
+#if MICROSOFT_EXTENSIONS_ALLOWED
+
+static inline a_boolean is_broken_reference_to_global_scope(
+                                             const an_ifc_dir_using &using_dir)
+/*
+Given an IFC using-directive representation, return TRUE if the using-directive
+is a reference to a DeclScope with the name "`global namespace'" (which is
+presumed to be the global scope).
+*/
+{
+  a_boolean         result = FALSE;
+  an_ifc_decl_index ns_decl_idx = get_ifc_resolution(using_dir);
+
+  if (ns_decl_idx.sort == ifc_ds_decl_scope) {
+    Opt<an_ifc_decl_scope> opt_scope_decl;
+
+    construct_node(&opt_scope_decl, ns_decl_idx);
+    if (opt_scope_decl.has_value()) {
+      an_ifc_decl_scope scope_decl = *opt_scope_decl;
+
+      if (is_msvc_global_scope(scope_decl)) {
+        result = TRUE;
+      }  /* if */
+    }  /* if */
+  }  /* if */
+  return result;
+}  /* is_broken_reference_to_global_scope */
+
+#endif /* MICROSOFT_EXTENSIONS_ALLOWED */
+
+static void process_ifc_directive(const an_ifc_decl_barren &barren_decl,
+                                  a_scope_ptr              scope)
+/*
+Process an IFC directive (as represented by the given barren declaration) in
+the given scope.
+*/
+{
+  a_module_scope_push_kind scope_push_status = mspk_unattempted;
+  an_ifc_dir_index         dir_idx = get_ifc_directive(barren_decl);
+
+  ensure_module_scope(scope, &scope_push_status);
+  switch (dir_idx.sort) {
+    case ifc_ds_dir_using:
+      { Opt<an_ifc_dir_using> opt_using_dir;
+
+        construct_node(&opt_using_dir, dir_idx);
+        if (!opt_using_dir.has_value()) {
+          goto invalid;
+        }  /* if */
+
+        an_ifc_dir_using  using_dir = *opt_using_dir;
+#if MICROSOFT_EXTENSIONS_ALLOWED
+        if (is_broken_reference_to_global_scope(using_dir)) {
+          goto done;
+        }  /* if */
+#endif /* MICROSOFT_EXTENSIONS_ALLOWED */
+
+        a_source_position dir_pos;
+        source_position_from_locus(&dir_pos, get_ifc_locus(using_dir));
+
+        a_module_token_cache cache(&dir_pos);
+        if (!cache_directive(&cache, using_dir)) {
+          goto invalid;
+        }  /* if */
+
+        a_module_entity_rescan rescan(&cache);
+        declaration(/*function_definition_allowed=*/TRUE,
+                    /*is_old_style_param_decl=*/FALSE,
+                    /*is_top_level_declaration=*/scope->kind == sck_file,
+                    /*marked_as_gnu_extension=*/FALSE,
+                    (a_param_id_ptr)NULL, (a_source_range *)NULL);
+      }
+      break;
+    case ifc_ds_dir_attribute:
+    case ifc_ds_dir_decl_use:
+    case ifc_ds_dir_empty:
+    case ifc_ds_dir_expr:
+    case ifc_ds_dir_pragma:
+    case ifc_ds_dir_specifiers_spread:
+    case ifc_ds_dir_structured_binding:
+    case ifc_ds_dir_tuple:
+    case ifc_ds_dir_vendor_extension:
+      issue_unsupported_construct_error(module_of(barren_decl),
+                                        str_for(dir_idx.sort),
+                                        &error_position);
+      break;
+    default_is_unexpected();
+  }  /* switch */
+invalid:
+done:
+  /* If a scope was pushed, scope popping should always occur. */
+  if (scope_push_status != mspk_unattempted) {
+    pop_module_declaration_context(scope_push_status);
+  }  /* if */
+}  /* process_ifc_directive */
+
+
 static void load_ifc_namespace(an_ifc_scope_offset scope_offset,
                                a_scope_ptr         scope)
 /*
 Process the IFC namespace scope specified by scope_offset in the module file.
 All items in the IFC scope will be members of scope and their definitions will
-be deferred until they are referenced.
+be deferred (if possible) until they are referenced.
 */
 {
   if (scope != NULL && !is_null_index(scope_offset)) {
@@ -15291,13 +15453,17 @@ be deferred until they are referenced.
       an_ifc_scope_member scope_mem = *indexed_scope_mem;
       an_ifc_decl_index   decl_idx = get_ifc_index(scope_mem);
       if (decl_idx.sort == ifc_ds_decl_barren) {
-        /* IFC Barren declarations represent declarations that don't introduce
-           names but instead modify the translation process.
+        Opt<an_ifc_decl_barren> opt_barren_decl;
 
-           FIXME: Not yet implemented. */
+        construct_node(&opt_barren_decl, decl_idx);
+        if (!opt_barren_decl.has_value()) {
+          continue;
+        }  /* if */
+
+        an_ifc_decl_barren barren_decl = *opt_barren_decl;
+        process_ifc_directive(barren_decl, scope);
         continue;
       }  /* if */
-
       if (is_null_index(decl_idx)) {
         error(ec_ifc_unexpected_null_scope_member, scope_offset.value);
         continue;
@@ -26540,16 +26706,8 @@ referencing a reference to a DeclScope with the name "`global namespace'"
     }  /* if */
 
     an_ifc_decl_scope decl_scope = *opt_decl_scope;
-    an_ifc_name_index name_idx = get_ifc_name(decl_scope);
-    Opt<a_string>     opt_name_str = name_from_index(name_idx);
-    if (opt_name_str.has_value()) {
-      const a_string &name_str = *opt_name_str;
-      a_const_char   *name_str_chars = name_str.as_temp_characters();
-
-      if (strncmp(name_str_chars, "`global namespace'", 18) == 0) {
-        result = TRUE;
-        goto done;
-      }  /* if */
+    if (is_msvc_global_scope(decl_scope)) {
+      result = TRUE;
     }  /* if */
   }  /* if */
 done:
