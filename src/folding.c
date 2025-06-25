@@ -3228,8 +3228,14 @@ description of the parameters.
   check_assertion(type_is(result_type, tk_vector) &&
                   constant_is(constant, ck_aggregate));
   result_elem_type = skip_typerefs(result_type->variant.vector.element_type);
-  num_result_elements = result_type->size / result_elem_type->size;
+  num_result_elements = num_vector_elements(result_type);
   if (op == eok_vector_not) {
+    op = eok_not;
+  } else if (op == eok_complement && is_bool_type(result_elem_type)) {
+    /* A normal bool complement operation goes through integral promotion.
+       Thus, ~true is equivalent to ~1, and if converted to bool would produce
+       a true value again.  However, with Clang bool vectors, which represent
+       elements as bits, eok_compl has the same effect as eok_not. */
     op = eok_not;
   }  /* if */
   /* Loop over the operand elements, calling unary_operation to compute
@@ -3255,8 +3261,11 @@ description of the parameters.
                     constant_context, evaluated_context, &local_not_folded,
                     template_constant, error_detected, err_pos);
     if (local_not_folded) break;
-    if (op == eok_not && !is_zero_constant(result_elem)) {
-      /* Turn "1" into "-1", because that appears to be the behavior of GCC. */
+    if (op == eok_not && !is_zero_constant(result_elem) &&
+        !is_bool_type(result_elem_type)) {
+      /* Turn "1" into "-1", because that appears to be the behavior of GCC.
+         Do not do this with Clang "ext_vector_type" vectors of bool (GCC
+         vectors never have bool element type). */
       check_assertion(constant_is(result_elem, ck_integer));
       set_integer_value(&result_elem->variant.integer_value,
                         (a_host_large_integer)-1);

@@ -2476,9 +2476,7 @@ Those cases are mostly delegated to scan_function_call.
       op1_node = make_node_from_operand(operand_1);
       op1_node->next = make_node_from_operand(&operand_2);
       el_type = skip_typerefs(op1_node->type)->variant.vector.element_type;
-      subsc_node = make_operator_node(
-                                  (an_expr_operator_kind)eok_vector_subscript,
-                                  el_type, op1_node);
+      subsc_node = make_operator_node(eok_vector_subscript, el_type, op1_node);
       if (op1_node->is_lvalue) subsc_node->is_lvalue = TRUE;
       make_lvalue_or_rvalue_expression_operand(subsc_node, result);
       if (op1_node->is_lvalue) {
@@ -13124,7 +13122,20 @@ analysis on a previously-scanned expression, and return the result in
              a vector of integers with the same number of elements as the
              operand. */
           op = (an_expr_operator_kind)eok_vector_not;
-          result_type = make_integer_vector_result_type(operand.type);
+          /* The result of this vector operation is a vector of integers with
+             the same number of elements as the operands. */
+          a_type_ptr  vec_type = skip_typerefs(operand.type), elem_type;
+          elem_type = skip_typerefs(vec_type->variant.vector.element_type);
+          if (is_bool_type(elem_type)) {
+            /* Vector of bool types are a Clang feature (the GCC vector_size
+               attribute doesn't permit bool elements).  The result of a "not"
+               operation is also a vector of bool type. */
+            result_type = vec_type;
+          } else {
+            /* "Not" applied to vector types in GCC results in a vector of
+               signed integers. */
+            result_type = make_integer_vector_result_type(operand.type);
+          }  /* if */
         } else
 #endif /* GNU_VECTOR_TYPES_ALLOWED */
         /* Do not insert code here. */
@@ -31447,15 +31458,22 @@ operator_position describe the location of the operator in the token stream.
   if (is_vector_type(operation_type)) {
     /* The result of a vector comparison is a vector of integers with the
        same number of elements as the operands. */
-    a_type_ptr  elem_type = skip_typerefs(operation_type);
-    elem_type = skip_typerefs(elem_type->variant.vector.element_type);
-    result_type = make_integer_vector_result_type(operation_type);
-    /* Comparing vector types in GCC results in a vector of signed integers,
-       but that vector type permits more conversions than a similar
-       user-declared vector type.  We emulate that by marking the vector type
-       as representing a "boolean vector". */
-    if (type_is(result_type, tk_vector)) {
-      result_type->variant.vector.is_boolean_vector = TRUE;
+    a_type_ptr  vec_type = skip_typerefs(operation_type), elem_type;
+    elem_type = skip_typerefs(vec_type->variant.vector.element_type);
+    if (is_bool_type(elem_type)) {
+      /* Vector of bool types are a Clang feature (the GCC vector_size
+         attribute doesn't permit bool elements).  The result of comparing
+         them is also a vector of bool type. */
+      result_type = vec_type;
+    } else {
+      result_type = make_integer_vector_result_type(operation_type);
+      /* Comparing vector types in GCC results in a vector of signed integers,
+         but that vector type permits more conversions than a similar
+         user-declared vector type.  We emulate that by marking the vector type
+         as representing a "boolean vector". */
+      if (type_is(result_type, tk_vector)) {
+        result_type->variant.vector.is_boolean_vector = TRUE;
+      }  /* if */
     }  /* if */
     op = which_binary_operator(operator_token, operation_type);
   } else
@@ -36050,8 +36068,24 @@ assignment was a braced-init-list (allowed in C++11 mode),
 #endif /* GNU_VECTOR_TYPES_ALLOWED */
           FALLTHROUGH
         case tok_remainder_assign:
-          (void)check_integral_or_enum_operand(operand_1);
-          (void)check_integral_or_enum_operand(&operand_2);
+#if GNU_VECTOR_TYPES_ALLOWED
+          if ((gnu_version_is(>=40800) || clang_version_is(>=40000)) &&
+              determine_vector_operation_type(
+                      save_token, operand_1, &operand_2, &operator_position,
+                      &result_type, &op)) {
+            /* Vector types are arithmetic types in some ways, but the rules
+               determining the operation type do not parallel those of the
+               standard arithmetic types. */
+            orig_result_type = operand_1->type;
+            operation_type = prvalue_type(result_type);
+            goto operation_type_determined;
+          } else
+#endif /* GNU_VECTOR_TYPES_ALLOWED */
+          /* Do not insert code here. */
+          {
+            (void)check_integral_or_enum_operand(operand_1);
+            (void)check_integral_or_enum_operand(&operand_2);
+          }  /* if */
           break;
         default:
           unexpected_condition_str(
