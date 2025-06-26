@@ -20133,11 +20133,12 @@ ck_reflection) of a special built-in type (of kind tk_reflection).
 #endif /* EXTRA_SOURCE_POSITIONS_IN_IL */
         (void)get_token();
         handled = TRUE;
-      } else if ((symbol_is(sym, sk_class_template) ||
+      } else if ((next_tok = next_token(),
+                  symbol_is(sym, sk_class_template) ||
                   symbol_is(sym, sk_variable_template) ||
-                  symbol_is(sym, sk_concept_template)) &&
-                 (next_tok = next_token()) != tok_lparen &&
-                 next_tok != tok_lbrace) {
+                  (symbol_is(sym, sk_concept_template) &&
+                   next_tok != tok_lt)) &&
+                 next_tok != tok_lparen && next_tok != tok_lbrace) {
         /* A template name not followed by "<" (since otherwise it would have
            been coalesced), not part of a cast (relying on class template
            argument deduction) or call (since it is not followed by "(" or
@@ -20171,7 +20172,8 @@ ck_reflection) of a special built-in type (of kind tk_reflection).
         an_operand        opnd;
         an_expr_node_ptr  node;
         scan_expr(&opnd, PREC_PREFIX, EOPT_REFLECTION_OP);
-        if (is_indefinite_function_operand(&opnd)) {
+        if (is_indefinite_function_operand(&opnd) &&
+            opnd.template_arg_list != NULL) {
           convert_function_template_to_single_function_if_possible(
                                                   &opnd, /*will_call=*/FALSE);
           error_if_indefinite_function(&opnd);
