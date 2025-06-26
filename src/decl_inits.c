@@ -393,8 +393,7 @@ recorded in the stmk_init statement.
     }  /* if */
     /* Must be the initialization of a local variable. */
     static_lifetime = var_has_static_or_thread_storage_duration(vp);
-    check_assertion(!in_file_scope(dip));
-    check_assertion(in_file_scope(vp) == static_lifetime);
+    check_assertion(!in_file_scope(dip) || in_file_scope(vp));
     if (static_lifetime) {
       /* Dynamic initialization of a local static variable.  Since the dynamic
          init entry is in the function scope memory region, the variable can't

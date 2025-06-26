@@ -1,5 +1,26 @@
 Version 6.8
 
+6/25/25  [EDGcpfe/28237]
+Statement expressions in file-scope memory
+
+Consider, in GNU C11 mode:
+
+  struct S { char *str; } *sptr;
+  void g() {
+    sizeof(struct {
+      _Static_assert(!(__builtin_has_attribute(&({
+                                                   typeof(*sptr) *var = 0;
+                                                   ((typeof(*(sptr)) *)(var));
+                                                 })->str,
+                                               common)),
+                     "unexpected");
+    });
+  }
+
+This previously resulted in an internal error in add_to_variables_list.  That
+is now fixed.
+
+
 6/25/25  [EDGcpfe/20823,EDGcpfe/27477,EDGcpfe/28119]
 Improvements to GNU/Clang vector operations and their constant-evaluation
 

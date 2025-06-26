@@ -17209,9 +17209,11 @@ scope depth.
     } else {
       check_assertion(ssep != NULL);
       /* Variables with nonstatic storage will be allocated in the file scope
-         memory region only when the scope is a function prototype scope (i.e.,
-         in an error case). */
-      check_assertion_str(ssep->kind == (a_scope_kind)sck_func_prototype ||
+         memory region only when the scope is a function prototype scope
+         (i.e., in an error case) or in some cases involving GNU statement
+         expressions. */
+      check_assertion_str(ssep->kind == sck_func_prototype ||
+                          is_local_scope_kind(ssep->kind) ||
                           !in_file_scope(var_ptr),
                           "add_to_variables_list: var in file scope region");
       if (sp->nonstatic_variables == NULL) {
