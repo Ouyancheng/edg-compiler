@@ -13033,10 +13033,11 @@ static void check_for_invalid_c99_ucn(unsigned long	ucn,
 				      a_boolean		is_identifier,
 				      a_boolean		is_identifier_start)
 /*
-Determine whether "ucn" is a valid universal character name in C99.  Issue
-a diagnostic if it is not.  The values of is_identifier and
-is_identifier_start reflect the lexical position of the character, i.e.,
-whether the character might start or be part of an identifier.
+Determine whether "ucn" is a valid universal character name in C99 (and
+subsequent versions).  Issue a diagnostic if it is not.  The values of
+is_identifier and is_identifier_start reflect the lexical position of the
+character, i.e., whether the character might start or be part of an
+identifier.
 */
 {
   an_error_code	err_code = ec_no_error;
