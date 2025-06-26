@@ -13127,9 +13127,10 @@ analysis on a previously-scanned expression, and return the result in
           a_type_ptr  vec_type = skip_typerefs(operand.type), elem_type;
           elem_type = skip_typerefs(vec_type->variant.vector.element_type);
           if (is_bool_type(elem_type)) {
-            /* Vector of bool types are a Clang feature (the GCC vector_size
-               attribute doesn't permit bool elements).  The result of a "not"
-               operation is also a vector of bool type. */
+            /* A vector of bool type (a Clang-only feature -- the GCC
+               vector_size attribute doesn't permit bool elements).  The
+               result of a "not" operation on such a "vector of bool" is
+               also a vector of bool type. */
             result_type = vec_type;
           } else {
             /* "Not" applied to vector types in GCC results in a vector of
