@@ -1,5 +1,20 @@
 Version 6.8
 
+6/26/25  [EDGcpfe/26910,EDGcpfe/28263]
+Segfault in reconcile_template_param_lists on #pragma GCC target
+
+In configurations where GNU_FUNCTION_MULTIVERSIONING is TRUE, the application
+of a GCC "target" pragma to a template member function with an out-of-line
+definition had caused a segfault (in reconcile_template_param_lists).  For
+example (with --g++):
+
+  #pragma GCC target "avx512f"
+  template <class T> struct S {
+    void f();
+  };
+  template <class T> void S<T>::f() {}
+
+
 6/25/25  [EDGcpfe/28237]
 Statement expressions in file-scope memory
 

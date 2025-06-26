@@ -16518,6 +16518,18 @@ implicitly declared member functions.
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
       rtn->is_prototype_instantiation = !tssp->is_generic;
       rtn->is_template_function = TRUE;
+#if GNU_FUNCTION_MULTIVERSIONING
+      if (repr_sym != NULL) {
+        /* The target-specific routine has been updated above; now copy those
+           to the representative routine. */
+        a_routine_ptr repr_rtn = gnu_routine_supp(rtn)->
+                                       mv_info.targeted_version.representative;
+        check_assertion(repr_rtn != NULL);
+        repr_rtn->is_prototype_instantiation = rtn->is_prototype_instantiation;
+        repr_rtn->is_template_function = rtn->is_template_function;
+        repr_sym->variant.routine.instance_ptr = tip;
+      }  /* if */
+#endif /* GNU_FUNCTION_MULTIVERSIONING */
       tip->prototype_scope_symbols = func_info->prototype_scope_symbols;
       func_info->keep_param_id_list = TRUE;
       if (!decl_info->is_trivial_default_constructor) {
