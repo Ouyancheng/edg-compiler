@@ -882,6 +882,11 @@ typedef struct a_decl_parse_state {
 			   calls type_name_full; so is_type_name will also be
 			   TRUE in that case). */
   a_bit_field
+		is_reflected_type:1;
+			/* TRUE if this is a block create for a call to
+			   type_name_full to parse the type-id for a reflection
+			   operator. */
+  a_bit_field
 		is_param_decl:1;
 			/* TRUE if this information block is one created for a
 			   parameter declaration in a function declarator (not

@@ -20160,6 +20160,7 @@ ck_reflection) of a special built-in type (of kind tk_reflection).
                            DFS_IS_REFLECTION_OPND)) {
         a_decl_parse_state  dps;
         init_decl_parse_state(&dps);
+        dps.is_reflected_type = TRUE;
         type_name_full(&dps);
         if (!(gpp_mode && !clang_mode)) {
           check_type_definition_in_type_name(&dps);

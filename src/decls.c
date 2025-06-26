@@ -186,6 +186,7 @@ be restored).
     dps->is_conversion_type_id = FALSE;
     dps->is_alias_template_type = FALSE;
     dps->is_template_type_argument = FALSE;
+    dps->is_reflected_type = FALSE;
     dps->is_param_decl = FALSE;
     dps->is_top_level_param_decl = FALSE;
     dps->trailing_return_type_allowed = FALSE;
