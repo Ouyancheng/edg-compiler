@@ -25792,6 +25792,14 @@ the value representation of the integer value.
                 /* Mark the destination storage as fully initialized. */
                 mark_complete_object_initialized(complete_object);
               }  /* if */
+            } else if (type_is(tp, tk_reflection) &&
+                       var->init_kind == initk_zero) {
+              /* Reflection variables are default initialized to the NULL
+                 reflection. */
+              a_reflection_value  *rvp = (a_reflection_value*)result_storage;
+              rvp->entity.kind = iek_none;
+              rvp->entity.ptr = (char*)NULL;
+              rvp->local_scope_number = FILE_SCOPE_NUMBER;
             } else {
               if (var->is_this_parameter) {
                 if ((clang_mode || gpp_version_is(>= 90000)) &&

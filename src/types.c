@@ -2435,7 +2435,8 @@ array thereof.  Also return TRUE for dependent class types and error types.
   tp = skip_array_types(tp);
   tp = skip_typerefs(tp);
   if (!is_immediate_class_type(tp)) {
-    result = could_be_dependent_class_type(tp) || is_error_type(tp);
+    result = could_be_dependent_class_type(tp) || is_error_type(tp) ||
+             is_reflection_type(tp);
   } else if (select_default_constructor_full(tp, &error_position, tp,
                                              /*declarative_context=*/FALSE,
                                              /*evaluated=*/FALSE,

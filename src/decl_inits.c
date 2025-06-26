@@ -7198,6 +7198,10 @@ FALSE is returned) for non-class objects.
         fputs("\n", f_debug);
       }  /* if */
 #endif /* DEBUG */
+    } else if (is_reflection_type(tp)) {
+      /* Default-initialization for reflection types is zero-initialization. */
+      var->init_kind = initk_zero;
+      def_init_performed = TRUE;
     } else if (could_be_dependent_class_type(tp)) {
       /* An unknown (i.e., template-dependent) type that might instantiate to
          a class type with default initializer.  Set def_init_performed to
