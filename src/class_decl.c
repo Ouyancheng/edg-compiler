@@ -16520,8 +16520,8 @@ implicitly declared member functions.
       rtn->is_template_function = TRUE;
 #if GNU_FUNCTION_MULTIVERSIONING
       if (repr_sym != NULL) {
-        /* The target-specific routine has been updated above; now copy those
-           to the representative routine. */
+        /* Fields in the target-specific routine have been updated above; now
+           copy their values to the representative routine. */
         a_routine_ptr repr_rtn = gnu_routine_supp(rtn)->
                                        mv_info.targeted_version.representative;
         check_assertion(repr_rtn != NULL);
