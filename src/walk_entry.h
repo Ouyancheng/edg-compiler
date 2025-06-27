@@ -3783,7 +3783,8 @@ handle_class_type_supplement_for_class:
 #if GENERATE_LINKAGE_SPEC_BLOCKS
             kind == iek_linkage_spec_block ||
 #endif /* GENERATE_LINKAGE_SPEC_BLOCKS */
-            kind == iek_static_assertion) {
+            kind == iek_static_assertion ||
+            kind == iek_statement) {
           walk_ptr(eptr->entity.ptr, a_char_ptr, kind);
         } else {
           remap_ptr(eptr->entity.ptr, a_char_ptr, kind);

@@ -24827,6 +24827,13 @@ parameter declarations).
       case iek_module_import_decl:
         gen_module_import_decl();
         break;
+      case iek_statement:
+        /* This can happen with GNU statement expressions. */
+        if (curr_src_seq_entry_is_for_statement_expression()) {
+          skip_block_statement();
+          break;
+        }  /* if */
+        FALLTHROUGH
       default:
         unexpected_condition_str(
                         "gen_declaration: bad entity kind on source seq list");
