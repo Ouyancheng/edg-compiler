@@ -357,20 +357,23 @@ recorded in the stmk_init statement.
   a_boolean                at_file_scope;
   a_boolean                in_coroutine_desc_init =
                                            initializing_coroutine_descriptor();
+  a_symbol_ptr             sym = symbol_for(vp);
   a_scope_stack_entry_ptr  ssep = &scope_stack[depth_scope_stack];
 
   db_enter(4, "gen_dynamic_initialization");
+  if (sym != NULL && sym->is_error) {
+    /* Something potentially severe went wrong. */
+    goto done;
+  }  /* if */
   *local_static_var_init = NULL;
   if (p_init_stmt != NULL) *p_init_stmt = NULL;
   at_file_scope = (depth_innermost_function_scope == NO_SCOPE_DEPTH &&
                    !inside_local_class);
   if (!at_file_scope) {
-    check_assertion(ssep->kind == (a_scope_kind)sck_function ||
-                    ssep->kind == (a_scope_kind)sck_block ||
-                    ssep->kind == (a_scope_kind)sck_condition ||
-                    ((a_symbol_ptr)vp->source_corresp.assoc_info)->is_error);
-    check_assertion(!vp->source_corresp.is_class_member ||
-                    ((a_symbol_ptr)vp->source_corresp.assoc_info)->is_error);
+    check_assertion(scope_is(ssep, sck_function) ||
+                    scope_is(ssep, sck_block) ||
+                    scope_is(ssep, sck_condition));
+    check_assertion(!vp->source_corresp.is_class_member);
     /* We are in executable code (i.e., inside a function or block rather
        than at file scope). */
     if (dip->kind != (a_dynamic_init_kind)dik_none &&
@@ -489,6 +492,7 @@ recorded in the stmk_init statement.
      referenced flag unset when the initialization (e.g., by constructor)
      may have side effects. */
   vp->source_corresp.referenced = TRUE;
+done:
   db_exit();
 }  /* gen_dynamic_initialization */
 

@@ -7233,6 +7233,7 @@ and record it in *dps.  Also update positions in decl_pos_block.
 */
 {
   a_token_cache_ptr  cache = alloc_token_cache();
+  a_boolean          err = FALSE;
 
   check_assertion(curr_token == tok_lbracket);
   decl_pos_block->decl_pos = pos_curr_token;
@@ -7243,6 +7244,8 @@ and record it in *dps.  Also update positions in decl_pos_block.
       expect_error();
     } else {
       pos_error(ec_invalid_struct_binding_specifier, &dps->specifiers_pos);
+      dps->specifiers_type = dps->declared_type = dps->type = error_type();
+      err = TRUE;
     }  /* if */
   } else {
     if (!struct_bindings_enabled) {
@@ -7295,8 +7298,14 @@ and record it in *dps.  Also update positions in decl_pos_block.
   cache_curr_token(cache);
   (void)get_token();
   terminate_token_cache(cache);
-  dps->is_struct_binding_decl = TRUE;
-  dps->variant.struct_bindings_cache = cache;
+  if (!err) {
+    dps->is_struct_binding_decl = TRUE;
+    dps->variant.struct_bindings_cache = cache;
+  } else {
+    /* A severe error occurred.  Do not try to treat this as a structured
+       binding definition. */
+    free_token_cache(cache);
+  }  /* if */
   if (!dps->range_based_for) {
     /* An initializer should be next. */
     if (curr_token != tok_assign && curr_token != tok_lbrace &&
