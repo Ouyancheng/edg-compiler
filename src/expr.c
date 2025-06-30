@@ -30401,6 +30401,13 @@ that case.
         determine_vector_operation_type(operator_token, operand_1, &operand_2,
                                         &operator_position,
                                         &result_type, &op)) {
+      a_type  *vtp = skip_typerefs(result_type);
+      if (type_is(vtp, tk_vector) &&
+          is_bool_type(vtp->variant.vector.element_type)) {
+        /* GCC doesn't allow "vector of bool", but Clang does.  However, Clang
+           does not permit "*", "/", or "%" on operands of such types. */
+        expr_pos_error(ec_invalid_vector_of_bool_operator, &operator_position);
+      }  /* if */
     } else
 #endif /* GNU_VECTOR_TYPES_ALLOWED */
     /* Do not insert code here. */
@@ -30721,6 +30728,14 @@ that case.
                                             operand_1, &operand_2,
                                             &operator_position,
                                             &result_type, &op)) {
+          a_type  *vtp = skip_typerefs(result_type);
+          if (type_is(vtp, tk_vector) &&
+              is_bool_type(vtp->variant.vector.element_type)) {
+            /* GCC doesn't allow "vector of bool", but Clang does.  However,
+               Clang does not permit "+" and "-" on operands of such types. */
+            expr_pos_error(ec_invalid_vector_of_bool_operator,
+                           &operator_position);
+          }  /* if */
           operation_type = NULL;
         } else
 #endif /* GNU_VECTOR_TYPES_ALLOWED */
@@ -30877,7 +30892,15 @@ expression, and return the result in *result (or an error indication in
                                         &result_type, &op)) {
       /* GCC accepts any vector type for these operators, even floating-point
          vector types. */
+      a_type  *el_type;
+      el_type = skip_typerefs(result_type)->variant.vector.element_type;
       check_assertion(op == eok_shiftl || op == eok_shiftr || op == eok_error);
+      if (op != eok_error && is_bool_type(el_type)) {
+        /* GCC doesn't allow "vector of bool", but Clang does.  However, Clang
+           does not permit "<<" and ">>" on operands of such types. */
+        expr_pos_error(ec_invalid_vector_of_bool_operator,
+                       &operator_position);
+      }  /* if */
       check_assertion(result_type != NULL);
       goto check_shift_count;
     } else
@@ -33947,8 +33970,16 @@ and whether the operator appears at the top level of a requires clause.
       /* The result is a vector of integers with the same number of elements as
          the operands.  Note that the operation may have a mix of scalar
          and vector operands (though at least one must be a vector). */
+      a_type  *vtp = skip_typerefs(operation_type);
+      if (type_is(vtp, tk_vector) &&
+          is_bool_type(vtp->variant.vector.element_type)) {
+        /* GCC doesn't allow "vector of bool", but Clang does.  However, Clang
+           does not permit "&&" and "||" on operands of such types. */
+        expr_pos_error(ec_invalid_vector_of_bool_operator, &operator_position);
+      }  /* if */
       result_type = make_integer_vector_result_type(operation_type);
       if (type_is(result_type, tk_vector)) {
+        
         result_type->variant.vector.is_boolean_vector = TRUE;
       }  /* if */
     } else
@@ -36191,6 +36222,26 @@ assignment was a braced-init-list (allowed in C++11 mode),
         op = which_binary_operator(operator_token, operation_type);
 #if C99_IL_EXTENSIONS_SUPPORTED || GNU_VECTOR_TYPES_ALLOWED
 operation_type_determined:
+#if GNU_VECTOR_TYPES_ALLOWED
+      if (clang_mode && is_vector_type(operation_type)) {
+        a_type  *vtp = skip_typerefs(operation_type);
+        if (type_is(vtp, tk_vector) &&
+            is_bool_type(vtp->variant.vector.element_type) &&
+            (save_token == tok_times_assign ||
+             save_token == tok_divide_assign ||
+             save_token == tok_plus_assign ||
+             save_token == tok_minus_assign ||
+             save_token == tok_shift_left_assign ||
+             save_token == tok_shift_right_assign ||
+             save_token == tok_remainder_assign)) {
+          /* GCC doesn't allow "vector of bool", but Clang does.  However,
+             Clang does not permit most of the compound-assignment operators
+             on operands of such types. */
+          expr_pos_error(ec_invalid_vector_of_bool_operator,
+                         &operator_position);
+        }  /* if */
+      }
+#endif /* GNU_VECTOR_TYPES_ALLOWED */
 #endif /* C99_IL_EXTENSIONS_SUPPORTED || GNU_VECTOR_TYPES_ALLOWED */
 #if MICROSOFT_EXTENSIONS_ALLOWED
         if (property_ref_case) {

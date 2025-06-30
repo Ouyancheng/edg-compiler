@@ -1,5 +1,17 @@
 Version 6.8
 
+6/30/25  [EDGcpfe/28283]
+Clang compatibility: Operations on ext_vector of bool types
+
+In Clang modes, the front end support types such as
+
+  using Vec8B = bool __attribute((ext_vector_type(16)));
+
+Previously, the front end permitted most arithmetic, shifting, and logical
+operations on such types.  Now such operations are diagnosed as errors to
+match the behavior of Clang.
+
+
 6/26/25  [EDGcpfe/26910,EDGcpfe/28263]
 Segfault in reconcile_template_param_lists on #pragma GCC target
 

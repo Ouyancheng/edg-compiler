@@ -3562,6 +3562,7 @@ ec_bad_embed_initializer;;"the #embed expansion is too long to initialize an ent
 ec_bad_defined_pp_op;;"the \"defined\" operator is not permitted here"
 ec_ptr_to_mem_to_non_member;;"%n is not a member of %t"
 ec_embed_narrowing;;"narrowing conversion to signed character in #embed data"
+ec_invalid_vector_of_bool_operator;;"operator is not permitted for \"vector of bool\" types"
 ###############################################################################
 #                                                             \  ___  /       #
 #                                                               /   \         #
