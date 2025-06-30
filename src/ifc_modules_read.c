@@ -15304,6 +15304,7 @@ FALSE otherwise.
   return TRUE;
 }  /* cache_directive */
 
+#if MICROSOFT_EXTENSIONS_ALLOWED
 
 static inline a_boolean is_msvc_global_scope(
                                            const an_ifc_decl_scope &decl_scope)
@@ -15330,7 +15331,6 @@ representing the global scope; otherwise, return FALSE.
   return result;
 }  /* is_msvc_global_scope */
 
-#if MICROSOFT_EXTENSIONS_ALLOWED
 
 static inline a_boolean is_broken_reference_to_global_scope(
                                              const an_ifc_dir_using &using_dir)
@@ -26675,6 +26675,7 @@ expression being cached.
   }  /* if */
 }  /* cache_args_with_parens */
 
+#if MICROSOFT_EXTENSIONS_ALLOWED
 
 static a_boolean is_broken_reference_to_global_scope(
                                              const an_ifc_expr_path &path_expr)
@@ -26795,6 +26796,7 @@ done:
   return result;
 }  /* is_broken_indirect_reference_to_template_parameter */
 
+#endif /* MICROSOFT_EXTENSIONS_ALLOWED */
 
 static an_edg_token_basic_sequence get_edg_basic_token_sequence(
                                      const an_ifc_edg_token_cache &token_cache)
@@ -27708,6 +27710,7 @@ tuple elements by '::' instead of ','.
 
         an_ifc_expr_literal iel = *opt_iel;
         an_ifc_type_index   type = get_ifc_type(iel);
+#if MICROSOFT_EXTENSIONS_ALLOWED
         if (is_broken_reference_to_template_parameter(iel)) {
           /* Replace the "literal" with a reference to the template
              parameter. */
@@ -27725,7 +27728,10 @@ tuple elements by '::' instead of ','.
 
           an_ifc_expr_index syn_expr = get_ifc_expr(syntactic_type);
           cache_expr(cache, syn_expr, /*cinfo=*/{});
-        } else if (type.sort == ifc_ts_type_decltype) {
+        } else
+#endif /* MICROSOFT_EXTENSIONS_ALLOWED */
+        /* Do not add code here. */
+        if (type.sort == ifc_ts_type_decltype) {
           /* FIXME: We can't support the current version of TypeSort::DeclType
              via a direct to IL type, and corresponding constant; instead, as
              we're in a "cache" operation, cache the tokens. */
@@ -27891,9 +27897,13 @@ tuple elements by '::' instead of ','.
 
         an_ifc_expr_path  iep = *opt_iep;
         an_ifc_expr_index member = get_ifc_member(iep);
+#if MICROSOFT_EXTENSIONS_ALLOWED
         if (is_broken_reference_to_global_scope(iep)) {
           cache_expr(cache, member, cinfo);
-        } else {
+        } else
+#endif /* MICROSOFT_EXTENSIONS_ALLOWED */
+        /* Do not add code here. */
+        {
           /* If this is part of a qualified name, the scope is presumed cached
              already. */
           if (!cinfo.qualified_name) {
