@@ -1,5 +1,17 @@
 Version 6.8
 
+6/30/25  [EDGcpfe/28284]
+C++-generating back end: explicit-object lambdas
+
+Lambda expressions with an explicit "this" parameter were previously
+incorrectly put out by the C++-generating back end with a "static"
+qualifier.  This is now fixed.  For example, with --c++23:
+
+  auto b = [](this auto self, int x) {  // Previously generated as
+                                        // [](this auto self, int x) static {
+    return x;
+  }
+
 6/30/25  [EDGcpfe/28283]
 Clang compatibility: Operations on ext_vector of bool types
 

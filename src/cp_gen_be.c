@@ -10132,7 +10132,11 @@ default arguments should be suppressed (needed for template specializations).
        either TQ_CONST (the default) or TQ_NONE (indicated by the
        mutable keyword). */
     if (rtsp->this_class == NULL) {
-      write_tok_str(" static");
+      if (rtsp->param_type_list != NULL) {
+        check_assertion(rtsp->param_type_list->is_explicit_this);
+      } else {
+        write_tok_str(" static");
+      }  /* if */
     } else if (rtsp->qualifiers == TQ_NONE) {
       write_tok_str(" mutable");
     } else {
