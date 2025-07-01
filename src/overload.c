@@ -26854,6 +26854,14 @@ will be an lvalue instead of the usual prvalue.
       check_assertion(generate_il);
       extract_operand_from_expression_component(icp, &operand,
                                                 /*free_icp=*/FALSE);
+      if (is_arithmetic_type(operand.type)) {
+        /* By folding at this point, we enable some warnings about truncating
+           values or inadvertent sign changes.  Do not opportunistically fold
+           address expressions (which have non-arithmetic type) because
+           force_operand_to_constant_if_possible permits some results that
+           we do not want to accept in this context. */
+        force_operand_to_constant_if_possible(&operand);
+      }  /* if */
       if (check_narrowing &&
           check_narrowing_conversion(&operand,
                                      dest_type,
