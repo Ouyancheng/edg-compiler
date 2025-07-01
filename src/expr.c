@@ -33979,7 +33979,6 @@ and whether the operator appears at the top level of a requires clause.
       }  /* if */
       result_type = make_integer_vector_result_type(operation_type);
       if (type_is(result_type, tk_vector)) {
-        
         result_type->variant.vector.is_boolean_vector = TRUE;
       }  /* if */
     } else
