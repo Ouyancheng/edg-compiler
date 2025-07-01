@@ -1089,7 +1089,7 @@ extern a_boolean equiv_templates_and_arg_lists(
 		a_boolean			exact_decltype_exprs_required,
 		a_boolean			exact_nesting_depths_required);
 
-extern a_boolean template_template_arg_is_compatible_with_param(
+extern a_boolean check_template_template_arg_compatibility(
 				a_template_ptr		arg_template,
 				a_template_ptr		param_template);
 

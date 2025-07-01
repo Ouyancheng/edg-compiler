@@ -2560,6 +2560,58 @@ This routine does the C++17 "at least as specialized" checking (see N4849,
 }  /* template_template_arg_is_compatible_with_param */
 
 
+a_boolean check_template_template_arg_compatibility(
+                                                a_template_ptr  arg_template,
+                                                a_template_ptr  param_template)
+/*
+Return TRUE if the template template argument specified by arg_template can
+be used as an argument to the template template parameter specified by
+param_template.
+
+Depending on the configuration, this routine either performs the old-style
+strict template parameter list matching or the C++17 "at least as specialized"
+checking.
+*/
+{
+  a_boolean       do_old_style_check;
+  a_boolean       old_style_match = FALSE;
+  a_boolean       match = FALSE;
+
+  do_old_style_check = !generalized_template_template_matching ||
+                       /*lint -e(506)*/EXPENSIVE_CHECKING;
+  /* The checking of template template argument compatibility was changed
+     in C++17 (core issue 150/P0522R0).  When EXPENSIVE_CHECKING is used
+     and the new checking is being done, we also do the old checking to
+     make sure the new processing is a superset of the old. */
+  if (do_old_style_check) {
+    a_template_symbol_supplement_ptr
+                  tssp1 = template_supplement_for_template(param_template);
+    a_template_symbol_supplement_ptr
+                  tssp2 = template_supplement_for_template(arg_template);
+    if (equiv_template_param_lists(tssp1->cache.decl_info->parameters,
+                                   tssp2->cache.decl_info->parameters,
+                                   /*issue_errors=*/FALSE,
+                                   ETP_TEMPLATE_TEMPLATE_PARAM_MATCH,
+                                   (a_source_position*)NULL, es_error)) {
+      old_style_match = TRUE;
+    }  /* if */
+  }  /* if */
+  if (generalized_template_template_matching) {
+    if (template_template_arg_is_compatible_with_param(arg_template,
+                                                       param_template)) {
+      match = TRUE;
+    }  /* if */
+    /* In EXPENSIVE_CHECKING configurations we make sure the new checking
+       is a superset of the old. */
+    check_assertion_or_expect_error(!do_old_style_check ||
+                                    (old_style_match ? match : TRUE));
+  } else {
+    match = old_style_match;
+  }  /* if */
+  return match;
+}  /* check_template_template_arg_compatibility */
+
+
 static a_boolean template_has_constraints(
                                        a_template_ptr     il_entry,
                                        a_source_position  **p_diag_pos = NULL)

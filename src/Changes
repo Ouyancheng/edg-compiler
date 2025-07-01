@@ -1,5 +1,20 @@
 Version 6.8
 
+7/1/25   [EDGcpfe/28228]
+GCC compatibility: spurious default template template parameter matching error
+
+Previously, the front end failed to apply the new C++17 "at least as
+specialized" rules when checking whether a default template template argument
+could be used as an argument to a template template parameter in GNU mode.  For
+example, with --c++17 --g++:
+
+  template<typename, typename = int>
+  struct C;
+  template<typename, template<typename> class = C>
+  using A = int;
+  A<int> a;  // Previously a spurious error.  Now okay.
+
+
 6/30/25  [EDGcpfe/28284]
 C++-generating back end: explicit-object lambdas
 

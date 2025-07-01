@@ -20659,38 +20659,9 @@ it is used.
          template template argument until that argument is actually used. */
       tssp1->variant.class_template.def_templ_templ_arg_check_delayed = TRUE;
     } else {
-      a_boolean	do_old_style_check;
-      a_boolean	old_style_match = FALSE;
-      a_boolean	match = FALSE;
-      do_old_style_check = !generalized_template_template_matching ||
-                           /*lint -e(506)*/EXPENSIVE_CHECKING;
-      /* The checking of template template argument compatibility was changed
-         in C++17 (core issue 150/P0522R0).  When EXPENSIVE_CHECKING is used
-         and the new checking is being done, we also do the old checking to
-         make sure the new processing is a superset of the old. */
-      if (do_old_style_check) {
-        if (equiv_template_param_lists(tssp1->cache.decl_info->parameters,
-                                       tssp2->cache.decl_info->parameters,
-                                       /*issue_errors=*/FALSE,
-                                       ETP_TEMPLATE_TEMPLATE_PARAM_MATCH,
-				       (a_source_position*)NULL, es_error)) {
-          old_style_match = TRUE;
-        }  /* if */
-      }  /* if */
-      if (generalized_template_template_matching) {
-        if (template_template_arg_is_compatible_with_param(
-                                               arg_template, param_template)) {
-          match = TRUE;
-        }  /* if */
-        /* In EXPENSIVE_CHECKING configurations we make sure the new checking
-           is a superset of the old. */
-        check_assertion_or_expect_error(!do_old_style_check ||
-                                        (old_style_match ? match : TRUE));
-      } else {
-        match = old_style_match;
-      }  /* if */
-      if (!match) {
-        pos_sy2_error(ec_not_compatible_with_templ_templ_param, err_pos, sym, 
+      if (!check_template_template_arg_compatibility(arg_template,
+                                                     param_template)) {
+        pos_sy2_error(ec_not_compatible_with_templ_templ_param, err_pos, sym,
                       symbol_for(param_template));
         any_errors = TRUE;
       }  /* if */
@@ -21599,19 +21570,17 @@ next_integer_pack_element:
                of the template template parameter until the first use of that
                parameter.  Perform the check now and issue an error if
                appropriate.  (This is a GNU compatibility feature.) */
-            a_symbol_ptr  arg_sym = symbol_for(arg_ptr->variant.templ.ptr);
-            a_symbol_ptr  param_sym = symbol_for(tssp1->il_template_entry);
+            a_symbol_ptr    arg_sym = symbol_for(arg_ptr->variant.templ.ptr);
+            a_symbol_ptr    param_sym = symbol_for(tssp1->il_template_entry);
+            a_template_ptr  arg_template;
             /* Update tssp1 to refer to the (possibly) rescanned template
                parameter created above. */
             tssp1 = template_supplement_for_template(param_template);
             tssp2 = arg_sym->variant.template_info;
+            arg_template = tssp2->il_template_entry;
             if (!tssp2->is_nonreal_member &&
-                !equiv_template_param_lists(
-                                      tssp1->cache.decl_info->parameters,
-                                      tssp2->cache.decl_info->parameters,
-		 		      /*issue_errors=*/FALSE,
-                                      ETP_TEMPLATE_TEMPLATE_PARAM_MATCH,
-				      (a_source_position*)NULL, es_error)) {
+                !check_template_template_arg_compatibility(arg_template,
+                                                           param_template)) {
               pos_sy2_error(ec_not_compatible_with_templ_templ_param,
                             &pos_curr_token, arg_sym, param_sym);
               tssp1->variant.class_template.def_templ_templ_arg_check_delayed =
