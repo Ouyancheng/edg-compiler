@@ -11075,6 +11075,9 @@ operators), 3.3.15 (?: operator), and 3.3.16.1 (simple assignment).
                                      get_type_qualifiers(dest_type_pointed_to);
       a_type_qualifier_set source_type_qualifiers =
                                    get_type_qualifiers(source_type_pointed_to);
+      /* Clang appears to ignore the _Nonnull qualifier (both ways). */
+      dest_type_qualifiers &= ~(TQ_NULLABLE | TQ_NONNULL);
+      source_type_qualifiers &= ~(TQ_NULLABLE | TQ_NONNULL);
 #if MICROSOFT_EXTENSIONS_ALLOWED
       an_error_code ms_qualifier_warning = ec_no_error;
       if (microsoft_mode) {
