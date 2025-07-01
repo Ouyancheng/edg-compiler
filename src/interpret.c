@@ -2777,6 +2777,7 @@ addressed (with non-array objects treated as arrays of one element).  Set
     a_boolean  use_subobject_path = FALSE;
     switch(con_addr->variant.address.kind) {
       case abk_variable:
+      case abk_param_ref:
         use_subobject_path = TRUE;
         break;
       case abk_constant:
@@ -2816,6 +2817,11 @@ addressed (with non-array objects treated as arrays of one element).  Set
       if (address_base_is(con_addr, abk_variable)) {
         atype = skip_typerefs(
                             con_addr->variant.address.variant.variable->type);
+      } else if (address_base_is(con_addr, abk_param_ref)) {
+        /* For the case where spp is NULL, this should not be an array type.
+           For the case where is it non-NULL, any non-array type will do since
+           the loop below will replace atype. */
+        atype = skip_typerefs(skip_reference_type(con_addr->type));
       } else {
         atype = skip_typerefs(
                             con_addr->variant.address.variant.constant->type);
