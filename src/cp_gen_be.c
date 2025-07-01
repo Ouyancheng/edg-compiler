@@ -10131,12 +10131,10 @@ default arguments should be suppressed (needed for template specializations).
     /* This is the type for a lambda's call operator.  The qualifier is
        either TQ_CONST (the default) or TQ_NONE (indicated by the
        mutable keyword). */
-    if (rtsp->this_class == NULL) {
-      if (rtsp->param_type_list != NULL) {
-        check_assertion(rtsp->param_type_list->is_explicit_this);
-      } else {
-        write_tok_str(" static");
-      }  /* if */
+    if (rtsp->this_class == NULL &&
+        !(rtsp->param_type_list != NULL &&
+          rtsp->param_type_list->is_explicit_this)) {
+      write_tok_str(" static");
     } else if (rtsp->qualifiers == TQ_NONE) {
       write_tok_str(" mutable");
     } else {
