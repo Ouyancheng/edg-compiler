@@ -12378,9 +12378,11 @@ a common (unsigned) type.
         case tok_ampersand:
         case tok_excl_or:
         case tok_or:
+        case tok_remainder:
         case tok_and_assign:
         case tok_excl_or_assign:
         case tok_or_assign:
+        case tok_remainder_assign:
           if ((!is_integral_or_enum_type(el1_type) &&
                !is_template_param_type(el1_type)) ||
               (!is_integral_or_enum_type(el2_type) &&
@@ -12450,9 +12452,32 @@ a common (unsigned) type.
       /* The vector and scalar types are compatible.  Convert the scalar
          operand to a vector.  (The "is_a_glvalue" test guards against
          situations like "scalar += vector".) */
+      a_type_ptr el_type = vec_type->variant.vector.element_type;
       make_vector_fill_operand(scalar_opnd, vec_type);
-      *operation_type = vec_type;
-      *op = which_binary_operator(op_token, *operation_type);
+      switch (op_token) {
+        case tok_ampersand:
+        case tok_excl_or:
+        case tok_or:
+        case tok_remainder:
+        case tok_and_assign:
+        case tok_excl_or_assign:
+        case tok_or_assign:
+        case tok_remainder_assign:
+          if ((!is_integral_or_enum_type(el_type) &&
+               !is_template_param_type(el_type)) ||
+              (!is_integral_or_enum_type(scalar_type) &&
+               !is_template_param_type(scalar_type))) {
+            expr_pos_error(ec_vector_operation_requires_integer_vector,
+                           err_pos);
+            *operation_type = error_type();
+            *op = (an_expr_operator_kind)eok_error;
+            break;
+          }  /* if */
+          FALLTHROUGH
+        default:
+          *operation_type = vec_type;
+          *op = which_binary_operator(op_token, *operation_type);
+      }  /* switch */
     } else {
       /* Not an allowed mixed-type operation. */
       expr_pos_error(ec_mixed_vector_scalar_operation, err_pos);

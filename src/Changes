@@ -1,5 +1,19 @@
 Version 6.8
 
+7/2/25   [EDGcpfe/28294]
+Vector operations requiring integer operands
+
+The front end previously failed to diagnose certain vector operations on
+floating-point operands that are required to be integer operands.  For example,
+in Clang mode:
+
+  typedef __attribute__((ext_vector_type(4))) float Vec4;
+  void g() {
+    Vec4 v;
+    (v ^ 4);  // Previously accepted.  Now an error.
+  } 
+
+
 7/1/25   [EDGcpfe/27355]
 Clang compatibility: _Nonnull and _Nullability qualifiers
 
