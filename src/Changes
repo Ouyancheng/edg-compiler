@@ -50,7 +50,7 @@ qualifier.  This is now fixed.  For example, with --c++23:
 6/30/25  [EDGcpfe/28283]
 Clang compatibility: Operations on ext_vector of bool types
 
-In Clang modes, the front end support types such as
+In Clang modes, the front end supports types such as
 
   using Vec8B = bool __attribute((ext_vector_type(16)));
 
