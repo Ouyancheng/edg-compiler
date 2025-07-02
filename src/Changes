@@ -1,5 +1,15 @@
 Version 6.8
 
+7/1/25   [EDGcpfe/27355]
+Clang compatibility: _Nonnull and _Nullability qualifiers
+
+In Clang modes, the front end now ignores the _Nonnull and _Nullability
+qualifiers when considering pointer convertibility.  For example:
+
+ int *_Nonnull *p;
+ int *         *q = p;  // Previously an error.  Now okay.
+
+
 7/1/25   [EDGcpfe/28278]
 Abort on constant-evaluation of decltype operand during template instantiation
 
