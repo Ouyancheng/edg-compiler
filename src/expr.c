@@ -41241,8 +41241,11 @@ fields of the closure object.  Return a pointer to the dynamic init entry.
       }  /* if */
       if (dtor_routine != NULL) {
         if (curr_expr_kind_is_const()) {
-          /* Destructors cannot be invoked in constant-expression contexts. */
-          expect_error();
+          /* Destructors cannot be invoked in constant-expression contexts.
+             This should elicit an error later on, unless perhaps we are in a
+             template-dependent context (where not all semantic constraint
+             violations are diagnosed). */
+          check_assertion_or_expect_error(is_template_dependent_context());
         } else {
           /* Indicate a destructor to be called for cleanup if an exception is
              thrown part-way through the captures. */

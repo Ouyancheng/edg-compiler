@@ -1,5 +1,24 @@
 Version 6.8
 
+7/2/25   [EDGcpfe/18441,EDGcpfe/19893,EDGcpfe/28209]
+Internal error in make_initializer_for_lambda
+
+Consider:
+
+  template<typename T> class X {
+    ~X();
+  };
+  template<typename> void f(X<char> v) {
+    static_assert([v]{return true;}(), "Expected");
+  }
+
+The front end previously aborted with an internal_error originating in
+make_initializer_for_lambda (expr.c).  This is now fixed.  Note that the
+static_assert expression is invalid (since it is non-constant due to the
+capture of a value with nontrivial destruction), and an error will be issued
+when the function is instantiated.
+
+
 7/2/25   [EDGcpfe/28294]
 Vector operations requiring integer operands
 
