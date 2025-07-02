@@ -15257,7 +15257,7 @@ expression is "false".  If leave_semicolon is TRUE, do not consume the
 final token.
 */
 {
-  a_constant_ptr     assert_con = local_constant();
+  a_constant_ptr     assert_con = alloc_constant(ck_error);
   a_source_position  pos;
   a_constant_ptr     error_string = NULL;
   a_boolean          err = FALSE;
@@ -15360,7 +15360,7 @@ final token.
       add_more_info_list(dp, &diag_list);
       end_diagnostic(dp);
     } else if (entry != NULL) {
-      entry->condition = alloc_shareable_constant(assert_con);
+      entry->condition = assert_con;
       if (error_string != NULL) {
         entry->string_literal = alloc_shareable_constant(error_string);
       }  /* if */
@@ -15371,7 +15371,6 @@ final token.
     (void)required_token(tok_semicolon, ec_exp_semicolon);
   }  /* if */
   remove_stop_token(tok_semicolon);
-  release_local_constant(&assert_con);
 }  /* static_assert_declaration */
 
 
