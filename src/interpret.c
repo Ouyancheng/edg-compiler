@@ -20268,6 +20268,7 @@ Evaluate the given new-expression.
       /* Initialize each element individually.  Handle dik_zero entries
          separately since do_constexpr_dynamic_init doesn't have the type
          information for such entries. */
+      mark_complete_class_object_if_needed(elem_type, elem);
       if (dyn_init_is(dip, dik_zero)) {
         init_subobject_to_zero(ips, elem, elem_type, complete_obj);
       } else {
@@ -20278,7 +20279,6 @@ Evaluate the given new-expression.
         }  /* if */
       }  /* if */
       mark_subobject_initialized(elem, complete_obj);
-      mark_complete_class_object_if_needed(elem_type, elem);
     }  /* for */
   } else if (alloc_length != 0) {
     mark_complete_class_object_if_needed(elem_type, cap->complete_object);
