@@ -45,9 +45,9 @@ Consider, in C++20 mode:
 The use of std::construct_at (a type-safe interface to placement-new that can
 be evaluated at compile time) for a union type previously caused the active
 member of the result of that operation to be de-activated.  In the example
-above, that resulted in the static_assert condition "g() == 2" spuriously
-being reported a non-constant.  This is a regression introduced in version 6.7
-of the front end by the changes for EDGcpfe/27588.  That is now fixed.
+above, that resulted in the static_assert condition "g() == 2" spuriously being
+reported as non-constant.  This is a regression introduced in version 6.7 of
+the front end by the changes for EDGcpfe/27588.  That is now fixed.
 
 
 7/2/25   [EDGcpfe/18441,EDGcpfe/19893,EDGcpfe/28209]
