@@ -62,7 +62,7 @@ Consider:
     static_assert([v]{return true;}(), "Expected");
   }
 
-The front end previously aborted with an internal_error originating in
+The front end previously aborted with an internal error originating in
 make_initializer_for_lambda (expr.c).  This is now fixed.  Note that the
 static_assert expression is invalid (since it is non-constant due to the
 capture of a value with nontrivial destruction), and an error will be issued
