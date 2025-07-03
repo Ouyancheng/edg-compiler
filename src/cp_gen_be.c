@@ -4179,7 +4179,22 @@ a name.  Never generate a qualified name.
         m_write_tok_str(name);
       }  /* if */
     } else {
-      m_write_tok_str(name);
+      a_constant_ptr cp = (entry_kind == iek_constant) ? (a_constant_ptr)scp
+                                                       : NULL;
+      if (cp != NULL && constant_is(cp, ck_template_param) &&
+          tpck_is(cp, tpck_unknown_function) &&
+          cp->variant.template_param.variant.unknown_function.conversion_type
+                                                                     != NULL) {
+        /* The name is that of a dependent conversion function.  The source
+           correspondence name could refer to a dependent conversion
+           function from a previous scope, so we must generate the name
+           from the type. */
+        write_tok_str("operator ");
+        gen_type(cp->variant.template_param.variant.unknown_function.
+                                                              conversion_type);
+      } else {
+        m_write_tok_str(name);
+      }  /* if */
     }  /* if */
   }  /* if */
 }  /* gen_bare_name */

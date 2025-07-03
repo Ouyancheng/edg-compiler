@@ -1,5 +1,19 @@
 Version 6.8
 
+7/2/25   [EDGcpfe/28299]
+C++-generating back end: name of dependent conversion operator in using decl
+
+In a using-declaration naming a dependent conversion operator, the
+C++-generating back end previously sometimes put out the conversion type
+referring to an incorrect name.  This is now fixed.  For example, with
+--c++11:
+
+  template <typename a> struct b { operator a &(); };
+  template <typename c> struct d {
+    using c::operator c &;   // Previously generated as "c::operator a &"
+  };
+
+
 7/2/25   [EDGcpfe/28207]
 Constant-evaluation of std::construct_at for a union
 
