@@ -15372,7 +15372,7 @@ the given scope.
       issue_unsupported_construct_error(module_of(barren_decl),
                                         str_for(dir_idx.sort),
                                         &error_position);
-      break;
+      goto invalid;
     default_is_unexpected();
   }  /* switch */
   goto done;
