@@ -1712,6 +1712,10 @@ write out the precompiled header file.
     /* Allow for any work needed to prepare data structures that will be
        recorded in the precompiled header file. */
     prepare_to_write_precompiled_header_file();
+    /* The next token state should not have been modified by PCH
+       preparation.  This is a sign of an underlying issue with the parsing
+       state not being properly preserved by invoked functions.  */
+    check_assertion(next_token_is_top_level_decl_start);
     /* Perform an additional check following the data structure updates.  This
        additional check is performed in case something happened during PCH
        preparation that now disqualifies the PCH from being created (e.g., an

@@ -1,5 +1,15 @@
 Version 6.8
 
+7/7/25   [EDGcpfe/28258]
+Regression preventing some cases of PCH creation
+
+The changes for EDGcpfe/27321 (in 6.7) resulted in a regression where PCH files
+spuriously were not being created with the reason "not between top level
+declarations."  This issue occurred in some cases when using the "all" or
+"used" template instantiation mode (via command line or via the value of
+DEFAULT_INSTANTIATION_MODE).  This is now fixed.
+
+
 7/7/25   [EDGcpfe/25885,EDGcpfe/27661,EDGcpfe/28296]
 Deduction of an auto template parameter from an array bound
 

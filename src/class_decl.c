@@ -3434,6 +3434,11 @@ This routine is also used for in-class member function template
 specializations.
 */
 {
+  /* Save the value of next_token_is_top_level_decl_start; this prevents
+     calling code (like PCH processing) from getting confused about the state
+     of parsing. */
+  Value_saver<a_boolean>       saved_next_tok_is_top_level_decl_start(
+                                          &next_token_is_top_level_decl_start);
   a_routine_ptr                rp = rfp->symbol->variant.routine.ptr;
 #if GENERATE_SOURCE_SEQUENCE_LISTS
 #if NONCLASS_TEMPLATE_INSTANTIATIONS_IN_SOURCE_SEQUENCE_LISTS
