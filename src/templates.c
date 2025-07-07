@@ -2960,11 +2960,15 @@ Otherwise it is zero.
           /* The constant was deduced from an array bound and does not yet
              have a type.  Make sure the declared type is integral, then
              create a constant of the appropriate type. */
-          if (tpp->uses_auto || !is_integral_type(constant_type)) {
+          if (tpp->uses_auto) {
+            /* When auto nontype template parameters are allowed, the deduction
+               from an array bound is considered to deduce the type size_t. */
+            constant_type = integer_type(targ_size_t_int_kind);
+          }  /* if */
+          if (!is_integral_type(constant_type)) {
             match = FALSE;
           } else {
-            a_constant_ptr	constant;
-            constant = fs_constant((a_constant_repr_kind)ck_integer);
+            a_constant_ptr  constant = fs_constant(ck_integer);
             set_unsigned_integer_constant(
                    constant, (a_host_large_unsigned)tap->variant.integer_value,
                    skip_typerefs(constant_type)->variant.integer.int_kind);
@@ -13021,7 +13025,7 @@ of types after all of the function arguments have been processed.
         if (auto_template_params_enabled) {
           /* When auto nontype template parameters are allowed, the deduction
              from an array bound is considered to deduce the type size_t. */
-          a_type_ptr	size_t_type = integer_type(targ_size_t_int_kind);
+          a_type_ptr  size_t_type = integer_type(targ_size_t_int_kind);
           (void)matches_template_type(size_t_type,
                                       templ_constant->type,
                                       templ_arg_list, templ_param_list,

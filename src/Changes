@@ -1,5 +1,23 @@
 Version 6.8
 
+7/7/25   [EDGcpfe/25885,EDGcpfe/27661,EDGcpfe/28296]
+Deduction of an auto template parameter from an array bound
+
+In some cases, an auto template parameter was not correctly deduced from an
+array bound in a reference parameter.  For example:
+
+  template<auto N> struct S {
+    static constexpr auto size = N;
+    constexpr S(const char* str) {}
+  };
+  template<auto N> S(const char(&)[N]) -> S<N>;
+  template<S> int g();  // Class template argument deduction.
+  int r = g<"x">();
+
+Here, deduction of N from the length of "x" previously failed.  That is now
+fixed.
+
+
 7/2/25   [EDGcpfe/28299]
 C++-generating back end: name of dependent conversion operator in using decl
 

@@ -298,7 +298,10 @@ Dump a list of template arguments, enclosed by angle brackets.
       }  /* if */
       if (tap->is_pack_element) fprintf(f_debug, "+");
       if (tap->pack_expansion_descr != NULL) fprintf(f_debug, "...");
-      {
+      if (tap->is_array_bound_of_unknown_type) {
+        fprintf(f_debug, " array-bound ([%lu])",
+                (unsigned long)tap->variant.integer_value);
+      } else {
         a_template_param_coordinate_ptr	coord;
         coord = coordinates_of_template_arg(tap);
         if (coord != NULL) {
@@ -306,7 +309,7 @@ Dump a list of template arguments, enclosed by angle brackets.
                   (unsigned long)(unsigned)coord->depth,
                   (unsigned long)coord->position);
         }  /* if */
-      }
+      }  /* if */
       tap = tap->next;
       if (tap != NULL) fputs(",", f_debug);
     } while (tap != NULL);
