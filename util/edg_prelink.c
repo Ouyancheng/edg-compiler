@@ -595,7 +595,7 @@ Print an error message when an assertion fails.
   (((test)) ? (void)0 :                                                 \
     pl_assertion_failed(__FILE__, __LINE__, "", ""))
 #else /* CHECKING */
-#define check_assertion(test) /* Nothing */
+#define check_assertion(test) ((void)0)
 #endif /* CHECKING */
 
 /*
