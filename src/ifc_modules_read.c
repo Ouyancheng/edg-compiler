@@ -15294,70 +15294,26 @@ Add the given using-directive into the cache.  Return TRUE if caching succeeds,
 FALSE otherwise.
 */
 {
-  an_ifc_decl_index ns_decl_idx = get_ifc_resolution(using_dir);
+  an_ifc_expr_index nominated = get_ifc_nominated(using_dir);
 
   cache_token(cache, tok_using);
   cache_token(cache, tok_namespace);
-  cache_token_with_index(cache, tok_ifc_decl_ref, ns_decl_idx);
+  /* The Microsoft variant of the IFC sometimes uses the IFC "nominated" field
+     to refer to the namespace named by the using-directive (placing the
+     enclosing scope in the "resolution" field).  The EDG IFC instead always
+     uses the "resolution" field to directly reference the corresponding
+     namespace. */
+  if (is_msvc_authored(using_dir) && !is_null_index(nominated)) {
+    cache_expr(cache, nominated, /*cinfo=*/{});
+  } else {
+    an_ifc_decl_index ns_decl_idx = get_ifc_resolution(using_dir);
+
+    cache_token_with_index(cache, tok_ifc_decl_ref, ns_decl_idx);
+  }  /* if */
   cache_token(cache, tok_semicolon);
   return TRUE;
 }  /* cache_directive */
 
-#if MICROSOFT_EXTENSIONS_ALLOWED
-
-static inline a_boolean is_msvc_global_scope(
-                                           const an_ifc_decl_scope &decl_scope)
-/*
-Return TRUE if this is the MSVC scope with the "`global namespace'" name,
-representing the global scope; otherwise, return FALSE.
-*/
-{
-  a_boolean result = FALSE;
-
-  if (is_msvc_authored(decl_scope)) {
-    an_ifc_name_index name_idx = get_ifc_name(decl_scope);
-    Opt<a_string>     opt_name_str = name_from_index(name_idx);
-
-    if (opt_name_str.has_value()) {
-      const a_string &name_str = *opt_name_str;
-      a_const_char   *name_str_chars = name_str.as_temp_characters();
-
-      if (strncmp(name_str_chars, "`global namespace'", 18) == 0) {
-        result = TRUE;
-      }  /* if */
-    }  /* if */
-  }  /* if */
-  return result;
-}  /* is_msvc_global_scope */
-
-
-static inline a_boolean is_broken_reference_to_global_scope(
-                                             const an_ifc_dir_using &using_dir)
-/*
-Given an IFC using-directive representation, return TRUE if the using-directive
-is a reference to a DeclScope with the name "`global namespace'" (which is
-presumed to be the global scope).
-*/
-{
-  a_boolean         result = FALSE;
-  an_ifc_decl_index ns_decl_idx = get_ifc_resolution(using_dir);
-
-  if (ns_decl_idx.sort == ifc_ds_decl_scope) {
-    Opt<an_ifc_decl_scope> opt_scope_decl;
-
-    construct_node(&opt_scope_decl, ns_decl_idx);
-    if (opt_scope_decl.has_value()) {
-      an_ifc_decl_scope scope_decl = *opt_scope_decl;
-
-      if (is_msvc_global_scope(scope_decl)) {
-        result = TRUE;
-      }  /* if */
-    }  /* if */
-  }  /* if */
-  return result;
-}  /* is_broken_reference_to_global_scope */
-
-#endif /* MICROSOFT_EXTENSIONS_ALLOWED */
 
 static void process_ifc_directive(const an_ifc_decl_barren &barren_decl,
                                   a_scope_ptr              scope)
@@ -15388,12 +15344,6 @@ the given scope.
         }  /* if */
 
         an_ifc_dir_using  using_dir = *opt_using_dir;
-#if MICROSOFT_EXTENSIONS_ALLOWED
-        if (is_broken_reference_to_global_scope(using_dir)) {
-          goto done;
-        }  /* if */
-#endif /* MICROSOFT_EXTENSIONS_ALLOWED */
-
         a_source_position dir_pos;
         source_position_from_locus(&dir_pos, get_ifc_locus(using_dir));
 
@@ -26692,6 +26642,32 @@ expression being cached.
 }  /* cache_args_with_parens */
 
 #if MICROSOFT_EXTENSIONS_ALLOWED
+
+static inline a_boolean is_msvc_global_scope(
+                                           const an_ifc_decl_scope &decl_scope)
+/*
+Return TRUE if this is the MSVC scope with the "`global namespace'" name,
+representing the global scope; otherwise, return FALSE.
+*/
+{
+  a_boolean result = FALSE;
+
+  if (is_msvc_authored(decl_scope)) {
+    an_ifc_name_index name_idx = get_ifc_name(decl_scope);
+    Opt<a_string>     opt_name_str = name_from_index(name_idx);
+
+    if (opt_name_str.has_value()) {
+      const a_string &name_str = *opt_name_str;
+      a_const_char   *name_str_chars = name_str.as_temp_characters();
+
+      if (strncmp(name_str_chars, "`global namespace'", 18) == 0) {
+        result = TRUE;
+      }  /* if */
+    }  /* if */
+  }  /* if */
+  return result;
+}  /* is_msvc_global_scope */
+
 
 static a_boolean is_broken_reference_to_global_scope(
                                              const an_ifc_expr_path &path_expr)
