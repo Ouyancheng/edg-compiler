@@ -8086,7 +8086,6 @@ Return TRUE if caching succeeds, FALSE otherwise.
   cache_linkage_specification(cache, using_decl);
 
   Opt<a_string> opt_decl_name = name_from_index(get_ifc_name(using_decl));
-
   if (!opt_decl_name.has_value()) {
     goto invalid;
   }  /* if */
@@ -15370,6 +15369,14 @@ the given scope.
   a_module_scope_push_kind scope_push_status = mspk_unattempted;
   an_ifc_dir_index         dir_idx = get_ifc_directive(barren_decl);
 
+#if DEBUG
+  ++num_module_decls_attempted;
+  if (db_flag_is_set("ifc_idx")) {
+    a_string msg("Directive processing started for ", index_to_str(dir_idx));
+
+    print(msg, f_debug);
+  }  /* if */
+#endif /* DEBUG */
   ensure_module_scope(scope, &scope_push_status);
   switch (dir_idx.sort) {
     case ifc_ds_dir_using:
@@ -15418,14 +15425,23 @@ the given scope.
       break;
     default_is_unexpected();
   }  /* switch */
+  goto done;
 invalid:
-#if MICROSOFT_EXTENSIONS_ALLOWED
+#if DEBUG
+  ++num_module_decls_failed;
+#endif /* DEBUG */
 done:
-#endif /* MICROSOFT_EXTENSIONS_ALLOWED */
   /* If a scope was pushed, scope popping should always occur. */
   if (scope_push_status != mspk_unattempted) {
     pop_module_declaration_context(scope_push_status);
   }  /* if */
+#if DEBUG
+  if (db_flag_is_set("ifc_idx")) {
+    a_string msg("Directive processing done for ", index_to_str(dir_idx));
+
+    print(msg, f_debug);
+  }  /* if */
+#endif /* DEBUG */
 }  /* process_ifc_directive */
 
 
