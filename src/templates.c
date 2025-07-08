@@ -12488,8 +12488,8 @@ match is found.
   a_symbol_ptr				templ_sym;
 
   /* Get the template parameter list associated with the template. */
-  sym = symbol_for(templ);
-  templ_sym = symbol_for(templ_templ);
+  sym = symbol_for(skip_simple_alias_templates(templ));
+  templ_sym = symbol_for(skip_simple_alias_templates(templ_templ));
   if (sym->is_error || templ_sym->is_error) {
     /* If either symbol is an error symbol, there is no match. */
   } else {
