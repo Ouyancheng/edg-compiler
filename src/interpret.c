@@ -7637,7 +7637,7 @@ The given expression produces a boolean value that should evaluate to a true
 value to "pass" (e.g., the condition in a static_assert declaration).
 Evaluate the expression and return TRUE and record its value in *passed if it
 is successfully evaluated.  Otherwise return FALSE.  If *passed is returned
-FALSE and the top-level operation is an integer comparison, diag_list is
+FALSE and the top-level operation is an integer comparison, ips->diag_list is
 updated with a note indicating which values were compared.
 */
 {
@@ -20879,7 +20879,7 @@ the value representation of the integer value.
                a_constexpr_address) if the result is a glvalue or the
                value to which the address points for a prvalue.  However,
                even in the case of a glvalue, the address cannot point "one
-               past the end" of an object (though GCC and MSVC to not seem
+               past the end" of an object (though GCC and MSVC do not seem
                to enforce that). */
             if (cannot_dereference(opnd1_value) &&
                 !gpp_version_is(any_version) && !ms_version_is(any_version)) {
@@ -21416,7 +21416,7 @@ the value representation of the integer value.
                 /* Something like:
                      struct A {}; struct B: A { int i; }; struct C: A {};
                      constexpr int (C::*q) = static_cast<int A::*>(&B::i);
-                   which if invalid since B::i is not a member of C. */
+                   which is invalid since B::i is not a member of C. */
                 do_constexpr_fail(result);
                 info_with_pos_sym_type(ec_ptr_to_mem_to_non_member,
                                        &expr->position,
@@ -27367,7 +27367,7 @@ a_boolean interpret_bool_assertion(an_expr_node    *assert_expr,
                                    a_constant_ptr  result_con,
                                    a_diag_list     *diag_list)
 /*
-Interpret assert_expr, which should have bool type is non-error cases.  If
+Interpret assert_expr, which should have bool type in non-error cases.  If
 successful return TRUE and place the bool result in *result_con.  In those
 cases, if *result_con represents a false result, *diag_list might include a
 note indicating why a top-level comparison failed.  If unsuccessful, return

@@ -2074,7 +2074,7 @@ An error or warning has been detected in a folding operation; err_code
 and err_severity indicate what it is.  If not in a constant_context, reduce
 an error to a warning and set *did_not_fold to TRUE.  If not in an
 evaluated_context, throw away the error and set *did_not_fold to TRUE.
-silence_warning indicates that a warning should not be silenced.
+silence_warning indicates that a warning should not be emitted.
 If error_detected is non-NULL, the caller would like to know that an
 error was detected but does not want it issued at this level.  Return
 *error_detected set to the code for the error detected, or ec_no_error

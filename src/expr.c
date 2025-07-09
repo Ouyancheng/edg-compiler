@@ -44493,7 +44493,7 @@ void scan_bool_constant_expression(a_constant *constant,
 /*
 Scan a constant-expression that is "contextually converted to bool" (C++11
 [conv]p4).  Return the result in *constant.  The expression is considered a
-full-expression  If diag_list is non-NULL (it is NULL by default), record in
+full-expression.  If diag_list is non-NULL (it is NULL by default), record in
 *diag_list a note indicating how a top-level integer comparison produced a
 false result, if applicable.  E.g., if the expression is 5 == 2+2, a note will
 be recorded that the final comparison was 5 == 4.
@@ -44523,9 +44523,9 @@ be recorded that the final comparison was 5 == 4.
     extract_constant_from_operand(&result, constant);
   } else {
     /* Use the special-purpose interpret_bool_assertion function in the
-       interpreter, which in some cases will recorded a note with details
-       about why a comparison was evaluated to false.  This can be a
-       valuable diagnostic aid. */
+       interpreter, which in some cases will record a note with details about
+       why a comparison was evaluated to false.  This can be a valuable
+       diagnostic aid. */
     a_diag_list  local_diag_list = { NULL, NULL };
     if (diag_list == NULL) diag_list = &local_diag_list;
     expr = make_node_from_operand(&result);

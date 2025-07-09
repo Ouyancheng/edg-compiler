@@ -8912,7 +8912,7 @@ definition of the CC flags in il.h for more information.
                  struct S { int i, j; } s;
                  template<int*> struct X;
                X<&s.i+1> and X<&s.j> are different types (and mangled
-               differently) even though the may involve identical offsets. */
+               differently) even though they may involve identical offsets. */
             eq = equiv_subobject_paths(cp1->variant.address.subobject_path,
                                        cp2->variant.address.subobject_path);
           }  /* if */

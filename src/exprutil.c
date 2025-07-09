@@ -15308,10 +15308,11 @@ of a subscript operation).
     } else if (expr_stack->consteval_call_need_not_fold &&
                !expr_stack->template_deduction_context) {
       /* This is a context that will require a constant expression at the top
-         level.  No need to fold intermediate expressions.  Doing so anyway
-         could reduce the quality of diagnostics in some configurations (e.g.,
-         if a static_assert comparison fails, the early folding may prevent
-         a report of the compared values). */
+         level, so there is no need to fold intermediate expressions.  Folding
+         intermediate expressions anyway could reduce the quality of
+         diagnostics in some configurations (e.g., if a static_assert
+         comparison fails, the early folding may prevent a report of the
+         compared values). */
       try_folding = FALSE;
     } else if (op == eok_psubtract || op == eok_padd) {
       /* Try folding only if that's desirable in the current expression. */

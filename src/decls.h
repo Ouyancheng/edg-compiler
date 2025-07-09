@@ -883,7 +883,7 @@ typedef struct a_decl_parse_state {
 			   TRUE in that case). */
   a_bit_field
 		is_reflected_type:1;
-			/* TRUE if this is a block create for a call to
+			/* TRUE if this is a block created for a call to
 			   type_name_full to parse the type-id for a reflection
 			   operator. */
   a_bit_field
