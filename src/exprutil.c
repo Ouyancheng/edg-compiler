@@ -27054,7 +27054,7 @@ subst_pairs is successful.  ctws_state is a substitution state block pointer
        requirements are not recorded.  This will likely change in the future,
        but requires a more sophisticated mechanism to order any recorded
        diagnostics. */
-   ovl_stack->push();
+    ovl_stack->push();
   }  /* if */
   /* Adjust the levels of enclosing parameter pack entries. */
   for (a_variadic_param_info_ptr vpip = ctws_state->variadic_param_info;
