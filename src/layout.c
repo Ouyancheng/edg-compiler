@@ -3259,6 +3259,13 @@ layout block used to track the layout of the current class.
 #if IA64_ABI
       update_curr_base_extent(lob, bcp);
 #endif /* IA64_ABI */
+#if MICROSOFT_EXTENSIONS_ALLOWED
+      if (microsoft_mode && type_contains_explicit_alignment(bcp->type)) {
+        /* Microsoft does not apply packing/alignment directives to subobjects
+           of types with explicit alignment requirements. */
+        ctsp->has_explicitly_aligned_subobject = TRUE;
+      }  /* if */
+#endif /* MICROSOFT_EXTENSIONS_ALLOWED */
       check_base_for_flex_array(lob, bcp);
     }  /* if */
   }  /* for */
