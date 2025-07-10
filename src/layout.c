@@ -3240,14 +3240,14 @@ layout block used to track the layout of the current class.
 */
 {
   a_base_class_ptr            bcp;
-#if IA64_ABI
+#if IA64_ABI || MICROSOFT_EXTENSIONS_ALLOWED
   a_class_type_supplement_ptr ctsp;
-#endif /* IA64_ABI */
+#endif /* IA64_ABI || MICROSOFT_EXTENSIONS_ALLOWED */
 
   db_enter(4, "set_offsets_for_nonvirtual_base_classes");
-#if IA64_ABI
+#if IA64_ABI || MICROSOFT_EXTENSIONS_ALLOWED
   ctsp = lob->class_type->variant.class_struct_union.extra_info;
-#endif /* IA64_ABI */
+#endif /* IA64_ABI || MICROSOFT_EXTENSIONS_ALLOWED */
   /* Traverse the list of base classes. */
   for (bcp = base_classes_of(lob->class_type); bcp != NULL; bcp = bcp->next) {
     if (bcp->direct && !bcp->is_virtual 
