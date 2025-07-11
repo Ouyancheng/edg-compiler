@@ -432,6 +432,7 @@ pcc_kind_established:
       /* Convert the character position into an error position. */
       conv_line_loc_to_source_pos(start_of_curr_token, &error_position);
       pos_warning(ec_integer_too_large, &error_position);
+      non_arith = TRUE;
       do_sign_extension = int_kind_is_signed[kind];
       /* Mask off any bits past the end of the largest target integer. */
       make_integer_value_mask(&mask,
@@ -453,6 +454,7 @@ pcc_kind_established:
         /* Convert the character position into an error position. */
         conv_line_loc_to_source_pos(start_of_curr_token, &error_position);
         pos_warning(ec_integer_too_large, &error_position);
+        non_arith = TRUE;
         /* Mask off any bits past the end of the integer. */
         trim_integer_value_to_kind(&number, kind);
         do_sign_extension = int_kind_is_signed[kind];
@@ -597,6 +599,7 @@ ll_check:
       conv_line_loc_to_source_pos(start_of_curr_token, &error_position);
       pos_warning(ec_c99_constant_in_unsigned_long_long_range,
                   &error_position);
+      non_arith = TRUE;
       kind = (an_integer_kind)ik_unsigned_long_long;
       goto kind_established;
     }  /* if */

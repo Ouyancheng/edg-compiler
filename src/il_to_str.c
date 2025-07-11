@@ -4085,6 +4085,13 @@ precedence confusion.  Do the output in the way described by octl.
           le_max_integer_value_of_kind(&local_con->variant.integer_value,
                                        /*is_signed=*/TRUE, ikind)) {
         /* The negative of the constant is a legal constant. */
+      } else if (constant->non_arithmetic) {
+        /* This constant appeared in the source in a nonstandard way.  Keep
+           a single-token form because using the -INT_MAX-1 trick can lead to
+           errors.  E.g., -9223372036854775808L would be rendered as
+           -(-9223372036854775808L-1) which a constexpr interpreter will
+           diagnose. */
+        is_negative = FALSE;
       } else {
         /* The negative of the constant is not legal.  Use the -INT_MAX-1
            trick. */
