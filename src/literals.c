@@ -470,8 +470,7 @@ pcc_kind_established:
          interpreted as a larger type, per core issue 2698.  Note that the
          following code relies on these types having adjacent kinds, with
          the unsigned type immediately following the signed type. */
-      an_integer_kind signed_kind;
-      an_integer_kind unsigned_kind;
+      an_integer_kind signed_kind, unsigned_kind;
       if (int_kind_is_signed[(int)targ_size_t_int_kind]) {
         signed_kind = targ_size_t_int_kind;
         unsigned_kind = (an_integer_kind)(targ_size_t_int_kind + 1);
@@ -479,22 +478,24 @@ pcc_kind_established:
         signed_kind = (an_integer_kind)(targ_size_t_int_kind - 1);
         unsigned_kind = targ_size_t_int_kind;
       }  /* if */
-      kind = has_u_suffix ? unsigned_kind : signed_kind;
-      if (radix == 10 && !has_u_suffix) {
-        /* The maximum value for a decimal literal with no "u" suffix is
-           that of the signed type. */
-        ovflo = !le_max_integer_value_of_kind(&number, /*is_signed=*/TRUE,
-                                              signed_kind);
+      if (has_u_suffix) {
+        /* UZ (and similar combinations) always leads to type size_t. */
+        kind = unsigned_kind;
       } else {
-        /* The maximum value for an unsigned literal or for a binary,
-           octal, or hexadecimal literal is that of the unsigned type.  We
-           enable sign extension for the signed type since negative values
-           can be specified via a bit pattern in which the sign bit is
-           '1'. */
-        ovflo = !le_max_integer_value_of_kind(&number, /*is_signed=*/FALSE,
-                                              unsigned_kind);
-        do_sign_extension = !has_u_suffix;
+        /* Z without U produces the signed counterpart of size_t if (a) the
+           literal is decimal or (b) if the value fits in that type.
+           Otherwise, the type corresponds to size_t.  GCC appears to have a
+           bug where binary literals with the Z suffix are always signed. */
+        if (radix == 10 || (gnu_version_is(any_version) && radix == 2)) {
+          kind = signed_kind;
+        } else if (le_max_integer_value_of_kind(&number, /*is_signed=*/FALSE,
+                                                signed_kind)) {
+          kind = signed_kind;
+        } else {
+          kind = unsigned_kind;
+        }  /* if */;
       }  /* if */
+      do_sign_extension = kind == signed_kind;
       goto kind_established;
     }  /* if */
 #if LONG_LONG_ALLOWED

@@ -1,5 +1,19 @@
 Version 6.8
 
+7/12/25  [EDGcpfe/28310]
+Signedness of Z-suffix literals
+
+Consider (with a 64-bit size_t type):
+
+  auto r = 0b1111111111111111111111111111111111111111111111111111111111111111z;
+
+Previously, the constant was erroneously given a signed type, but for non-
+decimal literals an unsigned type should used if the signed type corresponding
+to size_t cannot represent the literal (unsigned) value.  In GNU C++ mode, a
+signed type is still produced for the binary case (to emulate a GCC bug in this
+area).
+
+
 7/10/25  [EDGcpfe/28308]
 Microsoft compatibility: Packing and explicitly-aligned types
 

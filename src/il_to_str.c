@@ -4090,7 +4090,7 @@ precedence confusion.  Do the output in the way described by octl.
            a single-token form because using the -INT_MAX-1 trick can lead to
            errors.  E.g., -9223372036854775808L would be rendered as
            -(-9223372036854775808L-1) which a constexpr interpreter will
-           diagnose. */
+           diagnose.  Instead, render it as 0x8000000000000000L. */
         is_negative = FALSE;
       } else {
         /* The negative of the constant is not legal.  Use the -INT_MAX-1
