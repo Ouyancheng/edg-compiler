@@ -485,8 +485,9 @@ pcc_kind_established:
         /* Z without U produces the signed counterpart of size_t if (a) the
            literal is decimal or (b) if the value fits in that type.
            Otherwise, the type corresponds to size_t.  GCC appears to have a
-           bug where binary literals with the Z suffix are always signed. */
-        if (radix == 10 || (gnu_version_is(any_version) && radix == 2)) {
+           bug where literals with the Z suffix but not the U suffix are
+           always signed. */
+        if (radix == 10 || gnu_version_is(any_version)) {
           kind = signed_kind;
         } else if (le_max_integer_value_of_kind(&number, /*is_signed=*/FALSE,
                                                 signed_kind)) {
