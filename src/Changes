@@ -5,7 +5,7 @@ Signedness of Z-suffix literals
 
 Consider (with a 64-bit size_t type):
 
-  auto r = 0bFFFF'FFFF'FFFF'FFFFz;
+  auto r = 0xFFFF'FFFF'FFFF'FFFFz;
 
 Previously, the constant was erroneously given a signed type, but for non-
 decimal literals an unsigned type should used if the signed type corresponding
