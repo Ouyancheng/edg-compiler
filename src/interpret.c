@@ -26540,8 +26540,10 @@ diagnostic in *ips.
       con->variant.integer_value = *(an_integer_value *)object;
       /* In C, any constant expression with value zero can produce a "null
          pointer constant".  In C++, only integer literals of value zero can
-         do so. */
-      con->null_pointer_constant_ruled_out = ips->call_seen || !C_mode();
+         do so, but MSVC appears to use the C rule in pre-C++20 modes. */
+      if ((!C_mode() && !(microsoft_mode && !cpp20_mode)) || ips->call_seen) {
+        con->null_pointer_constant_ruled_out = TRUE;
+      }  /* if */
       break;
     case tk_float:
       set_constant_kind(con, (a_constant_repr_kind)ck_float);
