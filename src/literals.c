@@ -481,6 +481,8 @@ pcc_kind_established:
       if (has_u_suffix) {
         /* UZ (and similar combinations) always leads to type size_t. */
         kind = unsigned_kind;
+        ovflo = !le_max_integer_value_of_kind(&number, /*is_signed=*/FALSE,
+                                              kind);
       } else {
         /* Z without U produces the signed counterpart of size_t if (a) the
            literal is decimal or (b) if the value fits in that type.
@@ -489,11 +491,20 @@ pcc_kind_established:
            always signed. */
         if (radix == 10 || gnu_version_is(any_version)) {
           kind = signed_kind;
+          if (radix == 10) {
+            ovflo = !le_max_integer_value_of_kind(&number, /*is_signed=*/TRUE,
+                                                  kind);
+          } else {
+            ovflo = !le_max_integer_value_of_kind(&number, /*is_signed=*/FALSE,
+                                                  unsigned_kind);
+          }  /* if */
         } else if (le_max_integer_value_of_kind(&number, /*is_signed=*/FALSE,
                                                 signed_kind)) {
           kind = signed_kind;
         } else {
           kind = unsigned_kind;
+          ovflo = !le_max_integer_value_of_kind(&number, /*is_signed=*/FALSE,
+                                                kind);
         }  /* if */;
       }  /* if */
       do_sign_extension = kind == signed_kind;
