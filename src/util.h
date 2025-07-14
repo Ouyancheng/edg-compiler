@@ -1848,19 +1848,21 @@ subsequent values (if any) are first moved by the number of copies back.
 */
 {
   check_assertion(i + num_elements <= this->n_elems);
-  size_t  orig_count = this->n_elems;
-  an_elem *arr_elems = this->elems;
-  an_elem *removal_start = this->elems + i;
+  if (num_elements > 0) {
+    size_t  orig_count = this->n_elems;
+    an_elem *arr_elems = this->elems;
+    an_elem *removal_start = this->elems + i;
 
-  /* Destroy the elements. */
-  destroy_elements<an_elem>(removal_start, num_elements);
+    /* Destroy the elements. */
+    destroy_elements<an_elem>(removal_start, num_elements);
 
-  /* Move any elements past the point of removal back. */
-  an_elem *move_dest = arr_elems + i;
-  an_elem *move_src = move_dest + num_elements;
-  size_t  num_to_move = orig_count - (i + num_elements);
-  move_elements<an_elem>(move_dest, move_src, num_to_move);
-  this->n_elems -= num_elements;
+    /* Move any elements past the point of removal back. */
+    an_elem *move_dest = arr_elems + i;
+    an_elem *move_src = move_dest + num_elements;
+    size_t  num_to_move = orig_count - (i + num_elements);
+    move_elements<an_elem>(move_dest, move_src, num_to_move);
+    this->n_elems -= num_elements;
+  }  /* if */
 }  /* Dyn_array::remove_many */
 
 
