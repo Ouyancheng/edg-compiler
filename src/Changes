@@ -1,5 +1,14 @@
 Version 6.8
 
+7/15/25  [EDGcpfe/28324]
+Possible reference to freed memory with MAKE_FRONT_END_CALLABLE
+
+When using MAKE_FRONT_END_CALLABLE, a very rare occurrence of memory reuse from
+a previous compilation could occur in
+determine_get_call_for_tuple_like_binding.  This could result in an abort or
+some kind of internal error.  Now fixed.
+
+
 7/12/25  [EDGcpfe/28310]
 Signedness of Z-suffix literals
 

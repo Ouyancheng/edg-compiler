@@ -37175,6 +37175,13 @@ function template with a leading nontype template parameter.
 }  /* symbol_is_valid_get_for_struct_binding */
 
 
+STATIC_THREAD a_token_cache_ptr
+		edg_get_expr_cache;
+			/* A cached value that's lazily initialized to
+			   "__edg_opnd__(0).get<__edg_opnd__(1)>();" by
+			   determine_get_call_for_tuple_like_binding. */
+
+
 void determine_get_call_for_tuple_like_binding(
                                            a_variable_ptr     container,
                                            a_type_ptr         tp,
@@ -37236,19 +37243,16 @@ is an lvalue.
                                  (an_arg_list_elem_ptr)NULL, &e_opnd,
                                  operand_of_arg_list_elem(*p_icp));
     } else {
-      STATIC_THREAD a_token_cache expr_tokens;
-      STATIC_THREAD a_boolean     expr_tokens_ready = FALSE;
-      int                         saved_n_internal_opnds = n_internal_opnds;
-      an_operand_ptr              *saved_internal_opnd_array =
-                                                           internal_opnd_array;
-      an_operand_ptr              opnds[2];
-      if (!expr_tokens_ready) {
-        clear_token_cache(&expr_tokens, /*reusable=*/TRUE);
+      int            saved_n_internal_opnds = n_internal_opnds;
+      an_operand_ptr *saved_internal_opnd_array = internal_opnd_array;
+      an_operand_ptr opnds[2];
+
+      if (edg_get_expr_cache == NULL) {
+        edg_get_expr_cache = alloc_token_cache(/*reusable=*/TRUE);
         cache_tokens_from_string("__edg_opnd__(0).get<__edg_opnd__(1)>();",
-                                 &expr_tokens, diag_pos);
-        expr_tokens_ready = TRUE;
+                                 edg_get_expr_cache, diag_pos);
       }  /* if */
-      rescan_reusable_cache(&expr_tokens);
+      rescan_reusable_cache(edg_get_expr_cache);
       n_internal_opnds = 2;
       opnds[0] = &e_opnd;
       opnds[1] = &i_opnd;
@@ -56391,6 +56395,7 @@ Do one-time initialization of variables related to expression processing.
 */
 {
   register_trans_unit_variable(already_diagnosed_fold);
+  edg_get_expr_cache = NULL;
 }  /* expr_one_time_init */
 
 
