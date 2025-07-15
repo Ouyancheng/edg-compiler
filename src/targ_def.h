@@ -3804,6 +3804,22 @@ instead of K&R C.
 #endif /* !defined(C_GEN_BE_GENERATES_ANSI_C) */
 
 /*
+TRUE if the C-generating back end should generate code that is compatible
+with the C23 Standard.
+*/
+#ifndef C_GEN_BE_GENERATES_C23
+#if GCC_IS_GENERATED_CODE_TARGET && GNU_TARGET_VERSION_NUMBER >= 150000
+#define C_GEN_BE_GENERATES_C23 TRUE
+#else /* !(GCC_IS_GENERATED_CODE_TARGET && ...) */
+#define C_GEN_BE_GENERATES_C23 FALSE
+#endif /* GCC_IS_GENERATED_CODE_TARGET && ... */
+#endif /* !defined(C_GEN_BE_GENERATES_C23 */
+
+#if C_GEN_BE_GENERATES_C23 && !C_GEN_BE_GENERATES_ANSI_C
+#error C_GEN_BE_GENERATES_C23 requires C_GEN_BE_GENERATES_ANSI_C
+#endif /* C_GEN_BE_GENERATES_C23 */
+
+/*
 If SUPPRESS_CONST_IN_GENERATED_C is TRUE, "const" will not be put out when
 the C-generating back end generates ANSI C.  (const is never put out when
 generating K&R C.)
@@ -3951,7 +3967,11 @@ C++-generating back end and form_function_declarator in il_to_str.c, where
 the output should reflect the actual source form of the declaration.)
 */
 #ifndef ALLOW_ELLIPSIS_ONLY_PARAM_IN_GENERATED_C
+#if C_GEN_BE_GENERATES_C23
+#define ALLOW_ELLIPSIS_ONLY_PARAM_IN_GENERATED_C TRUE
+#else /* !C_GEN_BE_GENERATES_C23 */
 #define ALLOW_ELLIPSIS_ONLY_PARAM_IN_GENERATED_C FALSE
+#endif /* C_GEN_BE_GENERATES_C23 */
 #endif /* ifndef ALLOW_ELLIPSIS_ONLY_PARAM_IN_GENERATED_C */
 
 /*

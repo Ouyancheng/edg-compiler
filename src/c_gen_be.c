@@ -2164,6 +2164,12 @@ is non-NULL, in which case that is the function scope.
         write_tok_str("va_alist");
       }  /* if */
 #endif /* defined(__hpux) || defined(__sgi) */
+#if C_GEN_BE_GENERATES_C23
+    } else if (rtsp->assoc_routine == NULL) {
+      /* C23 requires function prototypes if arguments are passed.  Put out
+         an ellipsis to allow for that case. */
+      write_tok_str("...");
+#endif /* C_GEN_BE_GENERATES_C23 */
     }  /* if */
   } else {
     /* Prototyped list. */
@@ -2796,10 +2802,19 @@ Print a typedef declaration.
 #endif /* ifdef GUARD_MACRO2_FOR_VA_LIST */
         write_pp_directive("#include <stdarg.h>", (char *)NULL);
       }  /* if */
-    } else if (type->variant.typeref.predeclared) {
+    } else if (type->variant.typeref.predeclared
+#if C_GEN_BE_GENERATES_C23
+               || (type_is(type->variant.typeref.type, tk_integer) &&
+                   type->variant.typeref.type->variant.integer.bool_type &&
+                   strcmp(type->source_corresp.name, "bool") == 0)
+#endif /* C_GEN_BE_GENERATES_C23 */
+                                                                  ) {
       /* Don't render predeclared typedefs since the target compiler will
-         (presumably) also predeclare them.  (The builtin va_list type is an
-         exception in some cases, and therefore handled separately above.) */
+         (presumably) also predeclare them.  (The builtin va_list type is
+         an exception in some cases, and therefore handled separately
+         above.)  Also suppress the declaration if we're generating a
+         typedef for the bool type if we're generating C23 code, since C23
+         has a builtin bool type. */
     } else {
       /* Dump any pragmas associated with the type. */
       dump_decl_associated_pragmas(&type->source_corresp);

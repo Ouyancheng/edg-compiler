@@ -6639,6 +6639,11 @@ file.
 #else /* !defined(C_GEN_BE_GENERATES_ANSI_C) */
   comment_undefined_macro_name(C_GEN_BE_GENERATES_ANSI_C);
 #endif /* defined(C_GEN_BE_GENERATES_ANSI_C) */
+#if defined(C_GEN_BE_GENERATES_C23)
+  define_numeric_valued_macro(C_GEN_BE_GENERATES_C23);
+#else /* !defined(C_GEN_BE_GENERATES_C23) */
+  comment_undefined_macro_name(C_GEN_BE_GENERATES_C23);
+#endif /* defined(C_GEN_BE_GENERATES_C23) */
 #if defined(DEBUG)
   define_numeric_valued_macro(DEBUG);
 #else /* !defined(DEBUG) */
