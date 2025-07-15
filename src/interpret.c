@@ -27404,8 +27404,8 @@ interpreter.
          it to record the details of the comparison failure. */
       expr = expr_con->expr;
     } else {
-      (void)copy_constant_full(expr_con, result_con, CE_NO_OPTIONS);
- 
+      (void)copy_constant_full(expr_con, result_con,
+                               CE_COPYING_FOR_CONSTEXPR_MASTER_EXPR);
       goto done;
     }  /* if */
   }  /* if */
