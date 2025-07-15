@@ -50918,6 +50918,8 @@ are NULL by default.
       extract_constant_from_operand_with_fs_fixup(&result, constant);
     } else if (expr_stack->possible_rescan_context &&
                is_template_param_type(param_type)) {
+      force_operand_to_constant_if_possible_full(
+                                     &result, /*is_constant_evaluated=*/TRUE);
       prep_generic_nontype_template_argument(&result);
       generic_cast_operand(&result, param_type, csf_none,
                            /*is_implicit_cast=*/TRUE);
