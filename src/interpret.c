@@ -327,6 +327,16 @@ request larger chunks are handled in terms of individual calls to alloc_general
 #define CONSTEXPR_STACK_ALLOC_LIMIT (1<<10)
 
 /*
+Macros defining how large locally-allocated objects can be when
+std::is_constant_evaluated() is TRUE (CONSTEVAL_LOCAL_ALLOC_LIMIT) and when it
+is FALSE (CONSTEXPR_LOCAL_ALLOC_LIMIT).  The latter is lower to avoid spending
+undue resources attempting to constant-evaluate expressions that need not be
+constant-expressions.
+*/
+#define CONSTEVAL_LOCAL_ALLOC_LIMIT (1<<30)
+#define CONSTEXPR_LOCAL_ALLOC_LIMIT (1<<16)
+
+/*
 The complete object flag values.
 */
 #define COMPLETE_OBJ_INITIALIZED ((a_byte)0x01)
@@ -1728,119 +1738,6 @@ Add a block of storage (to parcel out) to the given storage stack.
 }  /* add_storage_stack_block */
 
 
-/*
-Macro to allocate bytes in stack storage.  Deallocation is handled by restoring
-a previously saved stack state.
-*/
-#define alloc_bytes(sss, n_bytes, storage_ptr)                               \
-  { if ((n_bytes) > CONSTEXPR_STACK_ALLOC_LIMIT /*lint -e506*/) {            \
-      /* We'll allocate the bytes in a separate general allocation block. */ \
-      a_byte        *large_block;                                            \
-      a_byte_count  hdr_size = sizeof(a_large_block_header), block_size;     \
-      check_assertion(n_bytes <= MAX_CONSTEXPR_TYPE_SIZE);                   \
-      do_host_alignment(&hdr_size);                                           \
-      block_size = hdr_size+(n_bytes);                                       \
-      large_block = (a_byte*)alloc_general(block_size);                      \
-      ((a_large_block_header*)large_block)->prev_large_block =               \
-                                                        (sss)->large_blocks; \
-      ((a_large_block_header*)large_block)->block_size = block_size;         \
-      ((a_large_block_header*)large_block)->alloc_seq_number =               \
-                                                         (sss)->alloc_seq(); \
-      (sss)->large_blocks = large_block;                                     \
-      (storage_ptr) = large_block+hdr_size;                                  \
-    } else {                                                                 \
-      a_byte_count  size = (n_bytes);                                        \
-      do_host_alignment(&size);                                               \
-      if (size > stack_bytes_left(sss)) {                                    \
-        add_storage_stack_block(sss);                                        \
-      }  /* if */                                                            \
-      (storage_ptr) = (sss)->top;                                            \
-      (sss)->top += size;                                                    \
-    }  /* if */                                                              \
-  }
-
-
-/*
-Convenience macro to allocate bytes in the storage stack of an interpreter
-state.
-*/
-#define alloc_stack_bytes(ips, n_bytes, storage_ptr)                         \
-  alloc_bytes(&(ips)->storage_stack, n_bytes, storage_ptr)
-
-
-/*
-Convenience macro to allocate bytes in the static storage area of an
-interpreter state.
-*/
-#define alloc_static_bytes(ips, n_bytes, storage_ptr)                        \
-{                                                                            \
-  if (!(ips)->static_storage_ready) {                                        \
-    /* This is the first time we allocate static storage: Initialize */      \
-    /* the associated static storage stack. */                               \
-    alloc_constexpr_stack_block(&(ips)->static_storage);                     \
-    (ips)->static_storage_ready = TRUE;                                      \
-    (ips)->static_storage.set_alloc_seq(0);                                  \
-  }  /* if */                                                                \
-  alloc_bytes(&(ips)->static_storage, n_bytes, storage_ptr);                 \
-}
-
-/*
-Macros to save and restore an allocation stack state.
-*/
-#define save_storage_stack(ips, state)                                       \
-{                                                                            \
-  (state) = (ips)->storage_stack;                                            \
-  (ips)->storage_stack.set_alloc_seq(++(ips)->curr_alloc_seq_number);        \
-  add_to_live_set(&(ips)->live_set, (ips)->curr_alloc_seq_number);           \
-  (ips)->storage_stack.destructions = NULL;                                  \
-}
-
-
-#define restore_storage_stack(ips, state, result_flag)                       \
-{                                                                            \
-  a_byte  *curr_large_blocks;                                                \
-  if ((ips)->storage_stack.destructions != NULL && (result_flag)) {          \
-    (result_flag) = perform_destructions(ips);                               \
-  }  /* if */                                                                \
-  if ((result_flag)) {                                                       \
-    curr_large_blocks = (ips)->storage_stack.large_blocks;                   \
-    remove_from_live_set(&(ips)->live_set,                                   \
-                         (ips)->storage_stack.alloc_seq());                  \
-    (ips)->storage_stack = (state);                                          \
-    if (curr_large_blocks != NULL &&                                         \
-        curr_large_blocks != (state).large_blocks) {                         \
-      /* Delete large blocks no longer in the live set. */                   \
-      do {                                                                   \
-        a_byte  *large_block = curr_large_blocks;                            \
-        an_alloc_seq_number  seq = ((a_large_block_header*)large_block)      \
-                                                         ->alloc_seq_number; \
-        if (in_live_set(&(ips)->live_set, seq)) break;                       \
-        curr_large_blocks = ((a_large_block_header*)large_block)             \
-                                                        ->prev_large_block;  \
-        free_general(large_block,                                            \
-                     ((a_large_block_header*)large_block)->block_size);      \
-      } while (curr_large_blocks != NULL);                                   \
-      (ips)->storage_stack.large_blocks = curr_large_blocks;                 \
-    }  /* if */                                                              \
-  }  /* if */                                                                \
-}
-
-
-#if defined(__GNUC__) && __GNUC__ == 4 && __GNUC_MINOR__ < 5
-/*
-Some versions of GCC 4.x issue spurious "uninitialized" diagnostics when the
-optimizer is enabled (on code where unneeded initialization is undesirable
-because of performance concerns).
-*/
-#define init_storage_stack_state_to_silence_GCC(sss)                         \
-  ((sss).top = (sss).curr_block = (sss).large_blocks = NULL,                 \
-   (sss).destructions = NULL,                                                \
-   (sss).set_alloc_seq(0))
-#else /* !defined(__GNUC__) && ... */
-#define init_storage_stack_state_to_silence_GCC(sss) /* Nothing */
-#endif /* defined(__GNUC__) && ... */
-
-
 static inline void get_int_val_from(void                  *bytes,
                                     a_type                *tp,
                                     a_host_large_integer  &val,
@@ -2680,6 +2577,141 @@ the diagnostic string.  Also record annotations describing the call stack.
     info_call_stack(ips);
   }  /* if */
 }  /* info_with_pos_sym2 */
+
+
+static inline
+a_boolean alloc_bytes(an_interpreter_state   *ips,
+                      a_storage_stack_state  *sss,
+                      a_byte_count           n_bytes,
+                      a_byte                 *&storage_ptr)
+/*
+Allocate n_bytes for the stack storage state described by sss, and store a
+pointer to the first bytes in storage_ptr.  (Deallocation is handled by
+restoring a previously-saved stack state.)  Return TRUE if successful.
+Otherwise, return FALSE and update ips->diag_list with a note indicating the
+reason for failure (which currently only occurs when n_bytes is too large).
+*/
+{
+  a_boolean  result = TRUE;
+
+  if (n_bytes > CONSTEXPR_STACK_ALLOC_LIMIT /*lint -e506*/) {
+    /* We'll allocate the bytes in a separate general allocation block. */
+    a_byte        *large_block;
+    a_byte_count  hdr_size = sizeof(a_large_block_header), block_size;
+    if (n_bytes > CONSTEXPR_LOCAL_ALLOC_LIMIT &&
+        (!ips->is_constant_evaluated ||
+         n_bytes > CONSTEVAL_LOCAL_ALLOC_LIMIT)) {
+      do_constexpr_fail(result);
+      info_with_pos(ec_constexpr_object_too_large, &ips->position, ips);
+      goto done;
+    }  /* if */
+    do_host_alignment(&hdr_size);
+    block_size = hdr_size+n_bytes;
+    large_block = (a_byte*)alloc_general(block_size);
+    ((a_large_block_header*)large_block)->prev_large_block = sss->large_blocks;
+    ((a_large_block_header*)large_block)->block_size = block_size;
+    ((a_large_block_header*)large_block)->alloc_seq_number = sss->alloc_seq();
+    sss->large_blocks = large_block;
+    storage_ptr = large_block+hdr_size;
+  } else {
+    a_byte_count  size = n_bytes;
+    do_host_alignment(&size);
+    if (size > stack_bytes_left(sss)) {
+      add_storage_stack_block(sss);
+    }  /* if */
+    storage_ptr = sss->top;
+    sss->top += size;
+  }  /* if */
+done:
+  return result;
+}  /* alloc_bytes */
+
+
+/*
+Convenience macro to allocate bytes in the storage stack of an interpreter
+state.
+*/
+#define alloc_stack_bytes(ips, n_bytes, storage_ptr)                         \
+  alloc_bytes(ips, &(ips)->storage_stack, n_bytes, storage_ptr)
+
+
+static inline
+a_boolean alloc_static_bytes(an_interpreter_state   *ips,
+                             a_byte_count           n_bytes,
+                             a_byte                 *&storage_ptr)
+/*
+Allocate n_bytes in the static storage area of the given interpreter state.
+Return TRUE if successful.  Otherwise, return FALSE and update ips->diag_list
+with a note indicating the reason for failure (which currently only occurs
+when n_bytes is too large).
+*/
+{
+  if (!ips->static_storage_ready) {
+    /* This is the first time we allocate static storage: Initialize */
+    /* the associated static storage stack. */
+    alloc_constexpr_stack_block(&(ips)->static_storage);
+    ips->static_storage_ready = TRUE;
+    ips->static_storage.set_alloc_seq(0);
+  }  /* if */
+  return alloc_bytes(ips, &ips->static_storage, n_bytes, storage_ptr);
+}  /* alloc_static_bytes */
+
+
+/*
+Macros to save and restore an allocation stack state.
+*/
+#define save_storage_stack(ips, state)                                       \
+{                                                                            \
+  (state) = (ips)->storage_stack;                                            \
+  (ips)->storage_stack.set_alloc_seq(++(ips)->curr_alloc_seq_number);        \
+  add_to_live_set(&(ips)->live_set, (ips)->curr_alloc_seq_number);           \
+  (ips)->storage_stack.destructions = NULL;                                  \
+}
+
+
+#define restore_storage_stack(ips, state, result_flag)                       \
+{                                                                            \
+  a_byte  *curr_large_blocks;                                                \
+  if ((ips)->storage_stack.destructions != NULL && (result_flag)) {          \
+    (result_flag) = perform_destructions(ips);                               \
+  }  /* if */                                                                \
+  if ((result_flag)) {                                                       \
+    curr_large_blocks = (ips)->storage_stack.large_blocks;                   \
+    remove_from_live_set(&(ips)->live_set,                                   \
+                         (ips)->storage_stack.alloc_seq());                  \
+    (ips)->storage_stack = (state);                                          \
+    if (curr_large_blocks != NULL &&                                         \
+        curr_large_blocks != (state).large_blocks) {                         \
+      /* Delete large blocks no longer in the live set. */                   \
+      do {                                                                   \
+        a_byte  *large_block = curr_large_blocks;                            \
+        an_alloc_seq_number  seq = ((a_large_block_header*)large_block)      \
+                                                         ->alloc_seq_number; \
+        if (in_live_set(&(ips)->live_set, seq)) break;                       \
+        curr_large_blocks = ((a_large_block_header*)large_block)             \
+                                                        ->prev_large_block;  \
+        free_general(large_block,                                            \
+                     ((a_large_block_header*)large_block)->block_size);      \
+      } while (curr_large_blocks != NULL);                                   \
+      (ips)->storage_stack.large_blocks = curr_large_blocks;                 \
+    }  /* if */                                                              \
+  }  /* if */                                                                \
+}
+
+
+#if defined(__GNUC__) && __GNUC__ == 4 && __GNUC_MINOR__ < 5
+/*
+Some versions of GCC 4.x issue spurious "uninitialized" diagnostics when the
+optimizer is enabled (on code where unneeded initialization is undesirable
+because of performance concerns).
+*/
+#define init_storage_stack_state_to_silence_GCC(sss)                         \
+  ((sss).top = (sss).curr_block = (sss).large_blocks = NULL,                 \
+   (sss).destructions = NULL,                                                \
+   (sss).set_alloc_seq(0))
+#else /* !defined(__GNUC__) && ... */
+#define init_storage_stack_state_to_silence_GCC(sss) /* Nothing */
+#endif /* defined(__GNUC__) && ... */
 
 
 static inline void set_active_address(an_interpreter_state  *ips,
@@ -3657,52 +3689,75 @@ that type.
 #endif /* DEBUG */
 
 
-
+static inline
+a_boolean alloc_complete_object(an_interpreter_state   *ips,
+                                a_byte_count           n_bytes,
+                                a_type                 *utp,
+                                a_byte                 *&storage_ptr)
 /*
 Allocate a complete object of type utp and size n_bytes in the interpreter's
 storage stack, including prefix storage to keep bookkeeping information.
 Initialize the prefix and mark the object as being complete (see
 mark_complete_class_object_if_needed above).  n_bytes must be positive.
 storage_ptr is set to the data portion of the allocated storage (i.e., the
-first byte after the prefix).
+first byte after the prefix).  Return TRUE if successful.  Otherwise, return
+FALSE and update ips->diag_list with a note indicating the reason for failure
+(which currently only occurs when n_bytes is too large).
 */
-#define alloc_complete_object(ips, n_bytes, utp, storage_ptr)                \
-{                                                                            \
-  a_byte_count  total_size, prefix_size;                                     \
-  a_byte        *ptr, *data_ptr;                                             \
-  compute_prefix_size_for_type(utp, n_bytes, prefix_size);                   \
-  total_size = prefix_size+n_bytes;                                          \
-  alloc_stack_bytes(ips, total_size, ptr);                                   \
-  memzero((char*)ptr, size_t_arg(prefix_size-sizeof(a_type_ptr)));           \
-  data_ptr = ptr+prefix_size;                                                \
-  debug_scramble(data_ptr, n_bytes);                                         \
-  record_complete_object_type(utp, data_ptr);                                \
-  (storage_ptr) = data_ptr;                                                  \
-  mark_complete_class_object_if_needed(utp, data_ptr);                       \
-}
+{
+  a_boolean     result = TRUE;
+  a_byte_count  total_size, prefix_size;
+  a_byte        *ptr, *data_ptr;
 
+  compute_prefix_size_for_type(utp, n_bytes, prefix_size);
+  total_size = prefix_size+n_bytes;
+  if (alloc_stack_bytes(ips, total_size, ptr)) {
+    memzero((char*)ptr, size_t_arg(prefix_size-sizeof(a_type_ptr)));
+    data_ptr = ptr+prefix_size;
+    debug_scramble(data_ptr, n_bytes);
+    record_complete_object_type(utp, data_ptr);
+    (storage_ptr) = data_ptr;
+    mark_complete_class_object_if_needed(utp, data_ptr);
+  } else {
+    result = FALSE;
+  }  /* if */
+  return result;
+}  /* alloc_complete_object */
+
+
+static inline
+void alloc_static_object(an_interpreter_state   *ips,
+                         a_type                 *utp,
+                         a_byte                 *&storage_ptr,
+                         a_boolean              *p_result)
 /*
 Allocate a complete object of type utp in the interpreter's static storage
-area.  The static storage is zeroed.
+area.  The static storage is zeroed.  If successful, return TRUE and set
+storage_ptr to the first allocated byte.  Otherwise, return FALSE and update
+ips->diag_list with a note indicating the reason for failure (which currently
+only occurs when the allocated object is too large).
 */
-#define alloc_static_object(ips, utp, storage_ptr, p_result)                 \
-{                                                                            \
-  a_byte_count  data_size, total_size, prefix_size;                          \
-  a_byte        *ptr, *data_ptr;                                             \
-  data_size = value_bytes_for_type(ips, utp, p_result);                      \
-  if (*p_result) {                                                           \
-    compute_prefix_size_for_type(utp, data_size, prefix_size);               \
-    do_host_alignment(&data_size);                                            \
-    total_size = prefix_size+data_size+sizeof(a_var_postfix);                \
-    alloc_static_bytes(ips, total_size, ptr);                                \
-    memzero((char*)ptr, size_t_arg(total_size));                             \
-    data_ptr = ptr+prefix_size;                                              \
-    ((a_var_postfix*)(data_ptr+data_size))->alloc_seq_number = 0;            \
-    record_complete_object_type(utp, data_ptr);                              \
-    (storage_ptr) = data_ptr;                                                \
-    mark_complete_class_object_if_needed(utp, data_ptr);                     \
-  }  /* if */                                                                \
-}
+{
+  a_byte_count  data_size, total_size, prefix_size;
+  a_byte        *ptr, *data_ptr;
+
+  data_size = value_bytes_for_type(ips, utp, p_result);
+  if (*p_result) {
+    compute_prefix_size_for_type(utp, data_size, prefix_size);
+    do_host_alignment(&data_size);
+    total_size = prefix_size+data_size+sizeof(a_var_postfix);
+    if (!alloc_static_bytes(ips, total_size, ptr)) {
+      *p_result = FALSE;
+    } else {
+      memzero((char*)ptr, size_t_arg(total_size));
+      data_ptr = ptr+prefix_size;
+      ((a_var_postfix*)(data_ptr+data_size))->alloc_seq_number = 0;
+      record_complete_object_type(utp, data_ptr);
+      (storage_ptr) = data_ptr;
+      mark_complete_class_object_if_needed(utp, data_ptr);
+    }  /* if */
+  }  /* if */
+}  /* alloc_static_object */
 
 #if BUILTIN_FUNCTIONS_ENABLED
 
@@ -5209,7 +5264,10 @@ source address of certain nested lambda captures.
 
   do_host_alignment(&this_n_bytes);
   with_postfix_bytes = this_n_bytes+sizeof(a_var_postfix);
-  alloc_complete_object(ips, with_postfix_bytes, generic_ptr_type, this_bytes);
+  if (!alloc_complete_object(ips, with_postfix_bytes, generic_ptr_type,
+                             this_bytes)) {
+    unexpected_condition();
+  }  /* if */
   clear_address(this_bytes, object);
   ((a_constexpr_address *)this_bytes)->complete_object = complete_object;
   ((a_constexpr_address *)this_bytes)->alloc_seq_number =
@@ -6390,10 +6448,13 @@ be removed.
     a_var_postfix  *postfix;
     do_host_alignment(&n_bytes);
     with_postfix_bytes = n_bytes+sizeof(a_var_postfix);
-    alloc_complete_object(ips, with_postfix_bytes, vtp, var_storage);
-    postfix = (a_var_postfix*)(var_storage+n_bytes);
-    postfix->alloc_seq_number = ips->storage_stack.alloc_seq();
-    map_or_replace_ptr(&ips->map, vp, var_storage, postfix->prev_storage);
+    if (alloc_complete_object(ips, with_postfix_bytes, vtp, var_storage)) {
+      postfix = (a_var_postfix*)(var_storage+n_bytes);
+      postfix->alloc_seq_number = ips->storage_stack.alloc_seq();
+      map_or_replace_ptr(&ips->map, vp, var_storage, postfix->prev_storage);
+    } else {
+      *p_result = FALSE;
+    }  /* if */
   } else {
     /* The size of the variable is unknown or too large. */
     *p_result = FALSE;
@@ -6488,7 +6549,8 @@ accordingly.  Associate diagnostics with the given position.
   }  /* if */
   n_lvalue_bytes = expr_result_size(ips, array_expr, tp, &result); 
   if (!result) goto done;
-  alloc_complete_object(ips, n_lvalue_bytes, tp, lvalue);
+  result = alloc_complete_object(ips, n_lvalue_bytes, tp, lvalue);
+  if (!result) goto done;
   src_addr = (a_constexpr_address*)lvalue;
   if (!do_constexpr_expression(ips, array_expr, lvalue, lvalue)) {
     do_constexpr_fail(result);
@@ -6657,15 +6719,18 @@ stored at complete_obj.  Diagnostics should be associated with pos by default.
     /* Register the destruction in the current storage stack state. */
     a_byte                   *d_bytes;
     a_constexpr_destruction  *destruction;
-    alloc_stack_bytes(ips, sizeof(a_constexpr_destruction), d_bytes);
-    destruction = (a_constexpr_destruction*)d_bytes;
-    destruction->next = ips->storage_stack.destructions;
-    destruction->dip = dip;
-    destruction->type = type;
-    destruction->sub_obj = sub_obj;
-    destruction->complete_obj = complete_obj;
-    destruction->pos = pos;
-    ips->storage_stack.destructions = destruction;
+    if (alloc_stack_bytes(ips, sizeof(a_constexpr_destruction), d_bytes)) {
+      destruction = (a_constexpr_destruction*)d_bytes;
+      destruction->next = ips->storage_stack.destructions;
+      destruction->dip = dip;
+      destruction->type = type;
+      destruction->sub_obj = sub_obj;
+      destruction->complete_obj = complete_obj;
+      destruction->pos = pos;
+      ips->storage_stack.destructions = destruction;
+    } else {
+      result = FALSE;
+    }  /* if */
   }  /* if */
   return result;
 }  /* register_destruction */
@@ -6694,16 +6759,18 @@ at complete_obj).  Diagnostics should be associated with pos by default.
     /* Register the destruction in the extension storage stack state. */
     a_byte                   *d_bytes;
     a_constexpr_destruction  *destruction;
-    alloc_bytes(ips->extension_state, sizeof(a_constexpr_destruction),
-                d_bytes);
-    destruction = (a_constexpr_destruction*)d_bytes;
-    destruction->next = ips->extension_state->destructions;
-    destruction->dip = dip;
-    destruction->type = type;
-    destruction->sub_obj = sub_obj;
-    destruction->complete_obj = complete_obj;
-    destruction->pos = pos;
-    ips->extension_state->destructions = destruction;
+    result = alloc_bytes(ips, ips->extension_state,
+                         sizeof(a_constexpr_destruction), d_bytes);
+    if (result) {
+      destruction = (a_constexpr_destruction*)d_bytes;
+      destruction->next = ips->extension_state->destructions;
+      destruction->dip = dip;
+      destruction->type = type;
+      destruction->sub_obj = sub_obj;
+      destruction->complete_obj = complete_obj;
+      destruction->pos = pos;
+      ips->extension_state->destructions = destruction;
+    }  /* if */
   }  /* if */
   return result;
 }  /* register_extended_destruction */
@@ -7152,7 +7219,8 @@ initialization and execute the increment before the main iteration.
       tp = skip_typerefs(expr->type);
       n_bytes = expr_result_size(ips, expr, tp, &result);
       if (!result) goto unmap_storage;
-      alloc_complete_object(ips, n_bytes, tp, expr_value);
+      result = alloc_complete_object(ips, n_bytes, tp, expr_value);
+      if (!result) goto unmap_storage;
       /* Check if we have to allocate a condition variable. */
       has_cond_var = node_is(expr, enk_condition);
       if (has_cond_var &&
@@ -7172,7 +7240,8 @@ initialization and execute the increment before the main iteration.
       incr_type = skip_typerefs(incr->type);
       n_bytes = expr_result_size(ips, incr, incr_type, &result);
       if (!result) goto unmap_storage;
-      alloc_complete_object(ips, n_bytes, incr_type, incr_value);
+      result = alloc_complete_object(ips, n_bytes, incr_type, incr_value);
+      if (!result) goto unmap_storage;
       if (do_continue) {
         /* This function was called to implement a "continue" statement after
            having jumped into the loop body (through a switch statement). The
@@ -7334,9 +7403,11 @@ Interpret the given range-based for-statement.
     /* Allocate storage for the loop-test result (a boolean) and the
        incrementation result. */
     n_bytes = expr_result_size(ips, expr, tp, &result);
-    alloc_complete_object(ips, n_bytes, tp, expr_value);
+    (void)alloc_complete_object(ips, n_bytes, tp, expr_value);
     n_bytes = expr_result_size(ips, incr, incr_type, &result);
-    alloc_complete_object(ips, n_bytes, incr_type, incr_value);
+    if (!result) goto unmap_storage;
+    result = alloc_complete_object(ips, n_bytes, incr_type, incr_value);
+    if (!result) goto unmap_storage;
     if (vp[0]->init_kind != (an_init_kind)initk_dynamic ||
         vp[0]->initializer.dynamic == NULL) {
       /* This is possible in some error situations. */
@@ -7440,8 +7511,8 @@ successfully interpreted, FALSE otherwise.
   tp = skip_typerefs(expr->type);
   n_bytes = value_bytes_for_type(ips, tp, &result);
   if (result) {
-    alloc_complete_object(ips, n_bytes, tp, expr_value);
-    result = do_constexpr_condition(has_cond_var, ips, expr, tp,
+    result = alloc_complete_object(ips, n_bytes, tp, expr_value) &&
+             do_constexpr_condition(has_cond_var, ips, expr, tp,
                                     expr_value);
   }  /* if */
   if (!result) {
@@ -7450,7 +7521,7 @@ successfully interpreted, FALSE otherwise.
   is_signed = int_type_is_signed(tp);
   /* Search through the ordered list of case labels for the one selected
      by the switch expression. */
-  alloc_complete_object(ips, n_bytes, tp, case_value);
+  (void)alloc_complete_object(ips, n_bytes, tp, case_value);
   set_active_address(ips, &case_cap, case_value, case_value);
   for (; scep != NULL; scep = scep->next_on_sorted_list) {
     int             cmp;
@@ -7825,9 +7896,9 @@ successfully interpreted, FALSE otherwise.
           /* Stop interpretation. */
         } else {
           save_storage_stack(ips, saved_stack);
-          alloc_complete_object(ips, n_bytes, tp, expr_value);
-          if (!do_constexpr_expression(ips, expr, expr_value, expr_value)) {
-            do_constexpr_fail(result);
+          if (!alloc_complete_object(ips, n_bytes, tp, expr_value) ||
+              !do_constexpr_expression(ips, expr, expr_value, expr_value)) {
+            result = FALSE;
           } else {
             release_address_structures(expr, tp, expr_value);
           }  /* if */
@@ -7879,8 +7950,8 @@ successfully interpreted, FALSE otherwise.
           tp = skip_typerefs(expr->type);
           n_bytes = value_bytes_for_type(ips, tp, &result);
           if (result) {
-            alloc_complete_object(ips, n_bytes, tp, expr_value);
-            if (do_constexpr_condition(has_cond_var, ips, expr, tp,
+            if (alloc_complete_object(ips, n_bytes, tp, expr_value) &&
+                do_constexpr_condition(has_cond_var, ips, expr, tp,
                                        expr_value)) {
               /* Evaluation of the test expression succeeded.  Get its value
                  to see which dependent statement should be executed. */
@@ -7924,7 +7995,7 @@ successfully interpreted, FALSE otherwise.
         tp = skip_typerefs(expr->type);
         n_bytes = value_bytes_for_type(ips, tp, &result);
         if (!result) break;
-        alloc_complete_object(ips, n_bytes, tp, expr_value);
+        (void)alloc_complete_object(ips, n_bytes, tp, expr_value);
         do {
           /* Evaluate the test expression. */
           if (cost_exceeded(ips)) {
@@ -8090,7 +8161,7 @@ done_with_return_statement:
         tp = skip_typerefs(expr->type);
         n_bytes = value_bytes_for_type(ips, tp, &result);
         if (!result) break;
-        alloc_complete_object(ips, n_bytes, tp, expr_value);
+        (void)alloc_complete_object(ips, n_bytes, tp, expr_value);
         do {
           /* Execute the dependent statement. */
           result = do_constexpr_statement(ips, stmt->variant.loop_statement);
@@ -9246,8 +9317,11 @@ expression node and interpreter state.
       size2 = (a_byte_count)size_of_type(obj_tp2);
       elem_size2 = size2;
     }  /* if */
-    alloc_stack_bytes(ips, size1, targ_repr1);
-    alloc_stack_bytes(ips, size1, targ_map);
+    if (!alloc_stack_bytes(ips, size1, targ_repr1) ||
+        !alloc_stack_bytes(ips, size1, targ_map)) {
+      result = FALSE;
+      goto done;
+    }  /* if */
     for (a_byte_count k = 0; k<len1; ++k) {
       if (!translate_interpreter_object_to_target_bytes(
                          ips, obj_tp1,
@@ -9257,8 +9331,11 @@ expression node and interpreter state.
         unexpected_condition();
       }  /* if */
     }  /* for */
-    alloc_stack_bytes(ips, size2, targ_repr2);
-    alloc_stack_bytes(ips, size2, targ_map);
+    if (!alloc_stack_bytes(ips, size2, targ_repr2) ||
+        !alloc_stack_bytes(ips, size2, targ_map)) {
+      result = FALSE;
+      goto done;
+    }  /* if */
     for (a_byte_count k = 0; k<len2; ++k) {
       if (!translate_interpreter_object_to_target_bytes(
                          ips, obj_tp2,
@@ -9730,8 +9807,8 @@ the parameters.
     a_type_ptr    tp = skip_typerefs(arg->type);
     a_byte_count  n_bytes = expr_result_size(ips, arg, tp, p_result);
     if (!*p_result) goto done;
-    alloc_complete_object(ips, n_bytes, tp, arg_bytes[k]);
-    if (!do_constexpr_expression(ips, arg, arg_bytes[k], arg_bytes[k])) {
+    if (!alloc_complete_object(ips, n_bytes, tp, arg_bytes[k]) ||
+        !do_constexpr_expression(ips, arg, arg_bytes[k], arg_bytes[k])) {
       *p_result = FALSE;
       goto done;
     }  /* if */
@@ -9931,8 +10008,8 @@ to FALSE and the reason for the failure is recorded in *ips.
           ips->side_effects_disabled = TRUE;
           saved_suspend_diag_list = ips->suspend_diag_list;
           ips->suspend_diag_list = TRUE;
-          alloc_complete_object(ips, n_bytes, arg_type, arg1_bytes);
-          if (do_constexpr_expression(ips, args, arg1_bytes, arg1_bytes)) {
+          if (alloc_complete_object(ips, n_bytes, arg_type, arg1_bytes) &&
+              do_constexpr_expression(ips, args, arg1_bytes, arg1_bytes)) {
             *(an_integer_value*)result_storage = one_int;
           } else {
             *(an_integer_value*)result_storage = zero_int;
@@ -9952,8 +10029,8 @@ to FALSE and the reason for the failure is recorded in *ips.
           a_byte_count  n_bytes = value_bytes_for_type(ips, tp, p_result);
           if (!*p_result) break;
           check_assertion(tp->kind == (a_type_kind)tk_integer);
-          alloc_complete_object(ips, n_bytes, tp, arg1_bytes);
-          if (!do_constexpr_expression(ips, args, arg1_bytes, arg1_bytes)) {
+          if (!alloc_complete_object(ips, n_bytes, tp, arg1_bytes) ||
+              !do_constexpr_expression(ips, args, arg1_bytes, arg1_bytes)) {
             do_constexpr_fail(*p_result);
           } else {
             an_integer_kind  int_kind = tp->variant.integer.int_kind;
@@ -9993,8 +10070,8 @@ to FALSE and the reason for the failure is recorded in *ips.
           a_byte_count  n_bytes = value_bytes_for_type(ips, tp, p_result);
           if (!*p_result) break;
           check_assertion(is_real_floating_type(tp));
-          alloc_complete_object(ips, n_bytes, tp, arg1_bytes);
-          if (do_constexpr_expression(ips, args, arg1_bytes, arg1_bytes)) {
+          if (alloc_complete_object(ips, n_bytes, tp, arg1_bytes) &&
+              do_constexpr_expression(ips, args, arg1_bytes, arg1_bytes)) {
             a_float_kind  fk = tp->variant.float_kind;
             if (fp_signbit(fk, fp_value(arg1_bytes))) {
               fp_negate(fk, fp_value(arg1_bytes), fp_value(result_storage),
@@ -10030,8 +10107,8 @@ to FALSE and the reason for the failure is recorded in *ips.
           a_byte_count  n_bytes = value_bytes_for_type(ips, tp, p_result);
           if (!*p_result) break;
           check_assertion(is_real_floating_type(tp));
-          alloc_complete_object(ips, n_bytes, tp, arg1_bytes);
-          if (do_constexpr_expression(ips, args, arg1_bytes, arg1_bytes)) {
+          if (alloc_complete_object(ips, n_bytes, tp, arg1_bytes) &&
+              do_constexpr_expression(ips, args, arg1_bytes, arg1_bytes)) {
             a_float_kind  fk = tp->variant.float_kind;
             if (!do_constexpr_builtin_fptest(callee, fk, fp_value(arg1_bytes),
                                              result_storage)) {
@@ -10061,13 +10138,13 @@ to FALSE and the reason for the failure is recorded in *ips.
           a_byte_count  n_bytes = value_bytes_for_type(ips, tp, p_result);
           if (!*p_result) break;
           check_assertion(is_real_floating_type(tp));
-          alloc_complete_object(ips, n_bytes, tp, arg1_bytes);
+          (void)alloc_complete_object(ips, n_bytes, tp, arg1_bytes);
           args2 = args->next;
           a_type_ptr arg2_tp = skip_typerefs(args2->type);
           n_bytes = value_bytes_for_type(ips, arg2_tp, p_result);
           if (!*p_result) break;
           check_assertion(is_real_floating_type(arg2_tp));
-          alloc_complete_object(ips, n_bytes, arg2_tp, arg2_bytes);
+          (void)alloc_complete_object(ips, n_bytes, arg2_tp, arg2_bytes);
           if (do_constexpr_expression(ips, args, arg1_bytes, arg1_bytes) &&
               do_constexpr_expression(ips, args2, arg2_bytes, arg2_bytes)) {
             a_float_kind  fk = tp->variant.float_kind;
@@ -10103,8 +10180,8 @@ to FALSE and the reason for the failure is recorded in *ips.
           a_type_ptr    tp = skip_typerefs(args->type);
           a_byte_count  n_bytes = value_bytes_for_type(ips, tp, p_result);
           if (!*p_result) break;
-          alloc_complete_object(ips, n_bytes, tp, arg1_bytes);
-          if (!do_constexpr_expression(ips, args, arg1_bytes, arg1_bytes) ||
+          if (!alloc_complete_object(ips, n_bytes, tp, arg1_bytes) ||
+              !do_constexpr_expression(ips, args, arg1_bytes, arg1_bytes) ||
               !do_constexpr_builtin_nan(ips, arg1_bytes, tp, call_node, 
                                         kind, result_storage)) {
             do_constexpr_fail(*p_result);
@@ -10142,7 +10219,7 @@ to FALSE and the reason for the failure is recorded in *ips.
           a_byte_count  n_bytes = value_bytes_for_type(ips, tp, p_result);
           if (!*p_result) break;
           check_assertion(is_real_floating_type(tp));
-          alloc_complete_object(ips, n_bytes, tp, arg1_bytes);
+          (void)alloc_complete_object(ips, n_bytes, tp, arg1_bytes);
           if (do_constexpr_expression(ips, args, arg1_bytes, arg1_bytes)) {
             fp_ceil(tp->variant.float_kind, fp_value(arg1_bytes),
                     fp_value(result_storage), &err);
@@ -10183,7 +10260,8 @@ to FALSE and the reason for the failure is recorded in *ips.
           a_type_ptr    tp = skip_typerefs(args->type);
           a_byte_count  n_bytes = value_bytes_for_type(ips, tp, p_result);
           if (!*p_result) break;
-          alloc_complete_object(ips, n_bytes, tp, arg1_bytes);
+          *p_result = alloc_complete_object(ips, n_bytes, tp, arg1_bytes);
+          if (!*p_result) break;
           args2 = args->next;
           if (args2 != NULL) {
             /* __builtin_clzg and __builtin_ctzg can have an optional second
@@ -10191,7 +10269,9 @@ to FALSE and the reason for the failure is recorded in *ips.
             a_type_ptr arg2_tp = skip_typerefs(args2->type);
             n_bytes = value_bytes_for_type(ips, arg2_tp, p_result);
             if (!*p_result) break;
-            alloc_complete_object(ips, n_bytes, arg2_tp, arg2_bytes);
+            *p_result = alloc_complete_object(ips, n_bytes, arg2_tp,
+                                              arg2_bytes);
+            if (!*p_result) break;
           } else {
             arg2_bytes = NULL;
           }  /* if */
@@ -10216,7 +10296,8 @@ to FALSE and the reason for the failure is recorded in *ips.
           a_type_ptr    tp = skip_typerefs(args->type);
           a_byte_count  n_bytes = value_bytes_for_type(ips, tp, p_result);
           if (!*p_result) break;
-          alloc_complete_object(ips, n_bytes, tp, arg1_bytes);
+          *p_result = alloc_complete_object(ips, n_bytes, tp, arg1_bytes);
+          if (!*p_result) break;
           if (!do_constexpr_expression(ips, args, arg1_bytes, arg1_bytes) ||
               !do_constexpr_builtin_strlen(ips, arg1_bytes, tp, call_node,
                                            result_storage)) {
@@ -10246,20 +10327,24 @@ to FALSE and the reason for the failure is recorded in *ips.
           a_type_ptr    arg2_tp, arg3_tp, arg1_tp = skip_typerefs(args->type);
           a_byte_count  n_bytes = value_bytes_for_type(ips, arg1_tp, p_result);
           if (!*p_result) break;
-          alloc_complete_object(ips, n_bytes, arg1_tp, arg1_bytes);
+          *p_result = alloc_complete_object(ips, n_bytes, arg1_tp, arg1_bytes);
+          if (!*p_result) break;
           /* Process the second argument. */
           args2 = args->next;
           arg2_tp = skip_typerefs(args2->type);
           n_bytes = value_bytes_for_type(ips, arg2_tp, p_result);
           if (!*p_result) break;
-          alloc_complete_object(ips, n_bytes, arg2_tp, arg2_bytes);
+          *p_result = alloc_complete_object(ips, n_bytes, arg2_tp, arg2_bytes);
+          if (!*p_result) break;
           if (has_count) {
             /* Process optional count argument. */
             args3 = args2->next;
             arg3_tp = skip_typerefs(args3->type);
             n_bytes = value_bytes_for_type(ips, arg3_tp, p_result);
             if (!*p_result) break;
-            alloc_complete_object(ips, n_bytes, arg3_tp, arg3_bytes);
+            *p_result = alloc_complete_object(ips, n_bytes, arg3_tp,
+                                              arg3_bytes);
+            if (!*p_result) break;
           } else {
             args3 = NULL;
             arg3_bytes = NULL;
@@ -10302,20 +10387,24 @@ to FALSE and the reason for the failure is recorded in *ips.
           a_type_ptr    arg2_tp, arg3_tp, arg1_tp = skip_typerefs(args->type);
           a_byte_count  n_bytes = value_bytes_for_type(ips, arg1_tp, p_result);
           if (!*p_result) break;
-          alloc_complete_object(ips, n_bytes, arg1_tp, arg1_bytes);
+          *p_result = alloc_complete_object(ips, n_bytes, arg1_tp, arg1_bytes);
+          if (!*p_result) break;
           /* Process the second argument. */
           args2 = args->next;
           arg2_tp = skip_typerefs(args2->type);
           n_bytes = value_bytes_for_type(ips, arg2_tp, p_result);
           if (!*p_result) break;
-          alloc_complete_object(ips, n_bytes, arg2_tp, arg2_bytes);
+          *p_result = alloc_complete_object(ips, n_bytes, arg2_tp, arg2_bytes);
+          if (!*p_result) break;
           if (has_count) {
             /* Process optional count argument. */
             args3 = args2->next;
             arg3_tp = skip_typerefs(args3->type);
             n_bytes = value_bytes_for_type(ips, arg3_tp, p_result);
             if (!*p_result) break;
-            alloc_complete_object(ips, n_bytes, arg3_tp, arg3_bytes);
+            *p_result = alloc_complete_object(ips, n_bytes, arg3_tp,
+                                              arg3_bytes);
+            if (!*p_result) break;
           } else {
             args3 = NULL;
             arg3_bytes = NULL;
@@ -10346,16 +10435,16 @@ to FALSE and the reason for the failure is recorded in *ips.
           unexpected_condition();
         } else {
           a_type_ptr  arg1_tp = skip_typerefs(args->type);
-          alloc_complete_object(ips, sizeof(a_constexpr_address), arg1_tp,
-                                arg1_bytes);
+          (void)alloc_complete_object(ips, sizeof(a_constexpr_address),
+                                      arg1_tp, arg1_bytes);
           args2 = args->next;
           a_type_ptr  arg2_tp = skip_typerefs(args2->type);
-          alloc_complete_object(ips, sizeof(a_constexpr_address), arg2_tp,
-                                arg2_bytes);
+          (void)alloc_complete_object(ips, sizeof(a_constexpr_address),
+                                      arg2_tp, arg2_bytes);
           args3 = args2->next;
           a_type_ptr  arg3_tp = skip_typerefs(args3->type);
-          alloc_complete_object(ips, sizeof(an_integer_value), arg3_tp,
-                                arg3_bytes);
+          (void)alloc_complete_object(ips, sizeof(an_integer_value), arg3_tp,
+                                      arg3_bytes);
           if (!do_constexpr_expression(ips, args, arg1_bytes, arg1_bytes) ||
               !do_constexpr_expression(ips, args2, arg2_bytes, arg2_bytes) ||
               !do_constexpr_expression(ips, args3, arg3_bytes, arg3_bytes)) {
@@ -10425,7 +10514,7 @@ to FALSE and the reason for the failure is recorded in *ips.
               unexpected_condition();
           }  /* switch */
           check_assertion(type_is(tp, tk_integer));
-          alloc_complete_object(ips, n_bytes, tp, arg1_bytes);
+          (void)alloc_complete_object(ips, n_bytes, tp, arg1_bytes);
           if (!do_constexpr_expression(ips, args, arg1_bytes, arg1_bytes) ||
               !swap_bytes_in_unsigned_integer(bytes,
                                          (an_integer_value *)arg1_bytes,
@@ -10510,8 +10599,9 @@ to FALSE and the reason for the failure is recorded in *ips.
         if (!*p_result) {
           do_constexpr_fail(*p_result);
         } else {
-          alloc_complete_object(ips, n_bytes, tp, arg1_bytes);
-          if (!do_constexpr_expression(ips, args, arg1_bytes, arg1_bytes)) {
+          ;
+          if (!alloc_complete_object(ips, n_bytes, tp, arg1_bytes) ||
+              !do_constexpr_expression(ips, args, arg1_bytes, arg1_bytes)) {
             /* Argument did not have a constexpr value. */
             do_constexpr_fail(*p_result);
           } else {
@@ -13210,7 +13300,8 @@ string_view object referring to that static array.
     prefix_size = 1+sizeof(a_type_ptr)+compute_bitmap_size(n_bytes);
     do_host_alignment(&prefix_size);
     n_bytes += prefix_size;
-    alloc_bytes(&persistent_data, n_bytes, chars);
+    result = alloc_bytes(ips, &persistent_data, n_bytes, chars);
+    check_assertion(result);
     chars += prefix_size;
     map_ptr(&persistent_map, str, chars);
     value = (an_integer_value*)chars;
@@ -16423,8 +16514,9 @@ by this_bytes.
     a_byte_count  n_bytes = value_bytes_for_type(ips, tp, &result);
     a_byte        *class_bytes;
     if (!result) goto done;
-    alloc_complete_object(ips, n_bytes, tp, class_bytes);
-    if (!do_constexpr_expression(ips, arg, class_bytes, class_bytes)) {
+    ;
+    if (!alloc_complete_object(ips, n_bytes, tp, class_bytes) ||
+        !do_constexpr_expression(ips, arg, class_bytes, class_bytes)) {
       do_constexpr_fail(result);
       goto done;
     }  /* if */
@@ -16549,7 +16641,7 @@ evaluated before pm() in C++17 mode).
     a_byte        *pm_bytes;
     a_boolean     result = TRUE;
     a_byte_count  n_pm_bytes = value_bytes_for_type(ips, pm_type, &result);
-    alloc_complete_object(ips, n_pm_bytes, pm_type, pm_bytes);
+    (void)alloc_complete_object(ips, n_pm_bytes, pm_type, pm_bytes);
     *p_pm_target = (a_constexpr_ptr_to_mem*)pm_bytes;
     if (call_node->variant.operation.eval_left_to_right) {
       /* As of C++17, in a call like (f().*pm())() the sub-expression f() must
@@ -16561,8 +16653,8 @@ evaluated before pm() in C++17 mode).
       a_type_ptr        tp = skip_typerefs(selector_arg->type);
       a_byte_count      this_n_bytes = sizeof(a_constexpr_address);
       do_host_alignment(&this_n_bytes);
-      alloc_complete_object(ips, this_n_bytes, generic_ptr_type,
-                            *p_pre_evaluated_this_bytes);
+      (void)alloc_complete_object(ips, this_n_bytes, generic_ptr_type,
+                                  *p_pre_evaluated_this_bytes);
       if (!eval_selector_arg(ips, selector_arg, tp,
                              *p_pre_evaluated_this_bytes)) {
         goto done;
@@ -16577,8 +16669,8 @@ evaluated before pm() in C++17 mode).
   } else {
     /* An indirect call. */
     a_byte  *addr_bytes;
-    alloc_complete_object(ips, sizeof(a_constexpr_address), generic_ptr_type,
-                          addr_bytes);
+    (void)alloc_complete_object(ips, sizeof(a_constexpr_address),
+                                generic_ptr_type, addr_bytes);
     if (do_constexpr_expression(ips, callee_node, addr_bytes, addr_bytes)) {
       a_constexpr_address  *addr = (a_constexpr_address*)addr_bytes;
       if (is_function_address(addr)) {
@@ -16683,8 +16775,8 @@ update *ips accordingly.
     a_byte_count         this_n_bytes = sizeof(a_constexpr_address);
     a_constexpr_address  *cap;
     do_host_alignment(&this_n_bytes);
-    alloc_complete_object(ips, this_n_bytes, generic_ptr_type,
-                          pre_evaluated_this_bytes);
+    (void)alloc_complete_object(ips, this_n_bytes, generic_ptr_type,
+                                pre_evaluated_this_bytes);
     if (!eval_selector_arg(ips, selector_arg, tp,
                            pre_evaluated_this_bytes)) {
       do_constexpr_fail(result);
@@ -16764,9 +16856,13 @@ update *ips accordingly.
     for (arg = callee_node->next; arg != NULL; arg = arg->next) {
       n_args += 1;
     }  /* for */
-    alloc_stack_bytes(ips, (a_byte_count)(n_args*sizeof(a_byte*)), arg_ptrs);
-    alloc_stack_bytes(ips, (a_byte_count)(n_args*sizeof(a_byte_count)),
-                                                                    arg_sizes);
+    if (!alloc_stack_bytes(ips, (a_byte_count)(n_args*sizeof(a_byte*)),
+                           arg_ptrs) ||
+        !alloc_stack_bytes(ips, (a_byte_count)(n_args*sizeof(a_byte_count)),
+                           arg_sizes)) {
+      result = FALSE;
+      goto done;
+    }  /* if */
     /* Phase 1: Allocate and evaluate the arguments. */
     p_arg_ptr = (a_byte**)arg_ptrs;
     arg_size = (a_byte_count*)arg_sizes;
@@ -16780,7 +16876,8 @@ update *ips accordingly.
       *arg_size = this_n_bytes;
       arg_size += 1;
       this_n_bytes += sizeof(a_var_postfix);
-      alloc_complete_object(ips, this_n_bytes, generic_ptr_type, this_bytes);
+      (void)alloc_complete_object(ips, this_n_bytes, generic_ptr_type,
+                                  this_bytes);
       *p_arg_ptr = this_bytes;
       p_arg_ptr += 1;
       if (eval_right_to_left) {
@@ -16832,7 +16929,10 @@ update *ips accordingly.
       *arg_size = n_bytes;
       arg_size += 1;
       n_bytes += sizeof(a_var_postfix);
-      alloc_complete_object(ips, n_bytes, tp, arg_bytes);
+      if (!alloc_complete_object(ips, n_bytes, tp, arg_bytes)) {
+        result = FALSE;
+        goto done;
+      }  /* if */
       *p_arg_ptr = arg_bytes;
       p_arg_ptr += 1;
       /* Evaluate the argument, unless it is the first argument in a call for
@@ -17321,9 +17421,13 @@ the body of the (constructor) function proper.
       n_args += 1;
     }  /* for */
     if (implied_src != NULL) n_args += 1;
-    alloc_stack_bytes(ips, (a_byte_count)(n_args*sizeof(a_byte*)), arg_ptrs);
-    alloc_stack_bytes(ips, (a_byte_count)(n_args*sizeof(a_byte_count)),
-                                                                    arg_sizes);
+    if (!alloc_stack_bytes(ips, (a_byte_count)(n_args*sizeof(a_byte*)),
+                           arg_ptrs) ||
+        !alloc_stack_bytes(ips, (a_byte_count)(n_args*sizeof(a_byte_count)),
+                           arg_sizes)) {
+      result = FALSE;
+      goto done;
+    }  /* if */
     /* Count the parameters (including "this") to make sure there are enough
        arguments for the parameters. */
     for (param = params; param != NULL; param = param->next) {
@@ -17349,7 +17453,9 @@ the body of the (constructor) function proper.
       *arg_size = n_bytes;
       arg_size += 1;
       n_bytes += sizeof(a_var_postfix);
-      alloc_complete_object(ips, n_bytes, params->type, arg_bytes);
+      if (!alloc_complete_object(ips, n_bytes, params->type, arg_bytes)) {
+        goto done;
+      }  /* if */
       *(a_constexpr_address*)arg_bytes = *implied_src;
       mark_complete_object_initialized(arg_bytes);
       *p_arg_ptr = arg_bytes;
@@ -17379,7 +17485,10 @@ the body of the (constructor) function proper.
       *arg_size = n_bytes;
       arg_size += 1;
       n_bytes += sizeof(a_var_postfix);
-      alloc_complete_object(ips, n_bytes, tp, arg_bytes);
+      if (!alloc_complete_object(ips, n_bytes, tp, arg_bytes)) {
+        result = FALSE;
+        goto done;
+      }  /* if */
       *p_arg_ptr = arg_bytes;
       p_arg_ptr += 1;
       if (result) {
@@ -17446,7 +17555,8 @@ the body of the (constructor) function proper.
       a_var_postfix  *postfix;
       do_host_alignment(&this_n_bytes);
       with_postfix_bytes = this_n_bytes+sizeof(a_var_postfix);
-      alloc_complete_object(ips, with_postfix_bytes, this_type, this_bytes);
+      (void)alloc_complete_object(ips, with_postfix_bytes, this_type,
+                                  this_bytes);
       *(a_constexpr_address*)this_bytes = cap;
       mark_complete_object_initialized(this_bytes);
       postfix = (a_var_postfix*)(this_bytes+this_n_bytes);
@@ -17811,8 +17921,8 @@ This is similar to do_constexpr_ctor.
     add_to_live_set(&ips->live_set, alloc_seq_number);
     do_host_alignment(&this_n_bytes);
     with_postfix_bytes = this_n_bytes+sizeof(a_var_postfix);
-    alloc_complete_object(ips, with_postfix_bytes, generic_ptr_type,
-                          this_bytes);
+    (void)alloc_complete_object(ips, with_postfix_bytes, generic_ptr_type,
+                                this_bytes);
     clear_address(this_bytes, result_storage);
     ((a_constexpr_address*)this_bytes)->complete_object = complete_object;
     ((a_constexpr_address*)this_bytes)->alloc_seq_number = alloc_seq_number;
@@ -18004,7 +18114,8 @@ constant null pointer).  If successful, return TRUE and store the result in
       an_integer_value  size_val;
       if (index_val == NULL) {
         a_type_ptr  itp = skip_typerefs(index_expr->type);
-        alloc_complete_object(ips, sizeof(an_integer_value), itp, index_val);
+        (void)alloc_complete_object(ips, sizeof(an_integer_value), itp,
+                                    index_val);
       }  /* if */
       if (!do_constexpr_expression(ips, index_expr, index_val, index_val)) {
         do_constexpr_fail(result);
@@ -18075,8 +18186,8 @@ return FALSE and record a diagnostic in *ips.
   saved_permit_null_pointer_offsets = ips->permit_null_pointer_offsets;
   ips->permit_null_pointer_offsets = TRUE;
   do_host_alignment(&n_bytes);
-  alloc_complete_object(ips, n_bytes, tp, opnd_bytes);
-  if (do_constexpr_expression(ips, opnd1, opnd_bytes, opnd_bytes)) {
+  if (alloc_complete_object(ips, n_bytes, tp, opnd_bytes) &&
+      do_constexpr_expression(ips, opnd1, opnd_bytes, opnd_bytes)) {
     if (type_is(tp, tk_pointer)) {
       /* Do not accept run-time constants that aren't based on a null
          pointer address. */
@@ -18368,8 +18479,8 @@ complete_object).  Otherwise, return FALSE and record a diagnostic in *ips.
     /* Interpret the source of the bit_cast into src_result_storage (which
        is in "interpreter" object format). */
     do_host_alignment(&n_bytes);
-    alloc_complete_object(ips, n_bytes, src_type, src_result_storage);
-    if (!do_constexpr_expression(ips, object, src_result_storage,
+    if (!alloc_complete_object(ips, n_bytes, src_type, src_result_storage) ||
+        !do_constexpr_expression(ips, object, src_result_storage,
                                  src_result_storage)) {
       result = FALSE;
     }  /* if */
@@ -18385,8 +18496,13 @@ complete_object).  Otherwise, return FALSE and record a diagnostic in *ips.
          if necessary. */
       adjust_float16_representation_if_needed(src_result_storage);
     }  /* if */
-    alloc_stack_bytes(ips, (a_byte_count)type_size, target_result_storage);
-    alloc_stack_bytes(ips, (a_byte_count)type_size, target_result_bitmap);
+    if (!alloc_stack_bytes(ips, (a_byte_count)type_size,
+                           target_result_storage) ||
+        !alloc_stack_bytes(ips, (a_byte_count)type_size,
+                           target_result_bitmap)) {
+      result = FALSE;
+      goto done;
+    }  /* if */
     memzero(target_result_storage, size_t_arg(type_size));
     memzero((char*)target_result_bitmap, size_t_arg(type_size));
     if (!translate_interpreter_object_to_target_bytes(ips, src_type,
@@ -18405,12 +18521,12 @@ complete_object).  Otherwise, return FALSE and record a diagnostic in *ips.
                                                       result_storage,
                                                       complete_object)) {
       result = FALSE;
+      goto done;
     }  /* if */
-    if (result) {
-      mark_whole_subobject_initialized(
+    mark_whole_subobject_initialized(
                              ips, result_storage, dst_type, complete_object);
-    }  /* if */
   }  /* if */
+done:
   return result;
 }  /* do_constexpr_builtin_bit_cast */
 
@@ -18459,8 +18575,8 @@ generated by the caller).
       is_class_struct_union_type(tp) &&
       type_is(pm_type, tk_ptr_to_member)) {
     a_byte *arg_bytes;
-    alloc_complete_object(ips, n_bytes, tp, arg_bytes);
-    if (!do_constexpr_expression(ips, pm, arg_bytes, arg_bytes)) {
+    if (!alloc_complete_object(ips, n_bytes, tp, arg_bytes) ||
+        !do_constexpr_expression(ips, pm, arg_bytes, arg_bytes)) {
       /* The argument did not have a constexpr value. */
       result = FALSE;
     } else {
@@ -18549,8 +18665,8 @@ BEGIN_DISABLE_GCC_WARNING_MAYBE_UNITIALIZED
       type_is(pm_type1, tk_ptr_to_member) &&
       type_is(pm_type2, tk_ptr_to_member)) {
     a_byte *pm1_bytes, *pm2_bytes;
-    alloc_complete_object(ips, n_bytes, pm_type1, pm1_bytes);
-    alloc_complete_object(ips, n_bytes, pm_type2, pm2_bytes);
+    (void)alloc_complete_object(ips, n_bytes, pm_type1, pm1_bytes);
+    (void)alloc_complete_object(ips, n_bytes, pm_type2, pm2_bytes);
     if (!do_constexpr_expression(ips, pm1, pm1_bytes, pm1_bytes) ||
         !do_constexpr_expression(ips, pm2, pm2_bytes, pm2_bytes)) {
       /* The arguments did not have a constexpr value. */
@@ -19104,8 +19220,8 @@ given complete object).  Otherwise, return FALSE and update *ips accordingly.
   } else {
     a_type_ptr  tp = skip_typerefs(var_expr->type);
     a_byte      *lvalue;
-    alloc_complete_object(ips, sizeof(a_constexpr_address), tp, lvalue);
-    if (do_constexpr_expression(ips, bound_expr, lvalue, lvalue)) {
+    if (alloc_complete_object(ips, sizeof(a_constexpr_address), tp, lvalue) &&
+        do_constexpr_expression(ips, bound_expr, lvalue, lvalue)) {
       a_byte_count  n_bytes = value_bytes_for_type(ips, tp, &result);
       if (result &&
           !do_glvalue_to_prvalue(ips, var_expr, tp,
@@ -20083,8 +20199,8 @@ Evaluate the given new-expression.
     check_assertion(type_is(length_tp, tk_integer));
     opnd_n_bytes = expr_result_size(ips, length_expr, length_tp, &result);
     if (!result) goto done;
-    alloc_complete_object(ips, opnd_n_bytes, length_tp, length_bytes);
-    if (!do_constexpr_expression(ips, length_expr,
+    if (!alloc_complete_object(ips, opnd_n_bytes, length_tp, length_bytes) ||
+        !do_constexpr_expression(ips, length_expr,
                                  length_bytes, length_bytes)) {
       do_constexpr_fail(result);
       goto done;
@@ -20317,8 +20433,8 @@ Evaluate the given delete-expression.
   }  /* if */
   opnd_n_bytes = expr_result_size(ips, ptr_expr, ptr_tp, &result);
   if (!result) goto done;
-  alloc_complete_object(ips, opnd_n_bytes, ptr_tp, ptr_bytes);
-  if (!do_constexpr_expression(ips, ptr_expr, ptr_bytes, ptr_bytes)) {
+  if (!alloc_complete_object(ips, opnd_n_bytes, ptr_tp, ptr_bytes) ||
+      !do_constexpr_expression(ips, ptr_expr, ptr_bytes, ptr_bytes)) {
     result = FALSE;
     goto done;
   }  /* if */
@@ -20798,7 +20914,9 @@ the value representation of the integer value.
         opnd1_type = skip_typerefs(opnd1->type);
         opnd_n_bytes = expr_result_size(ips, opnd1, opnd1_type, &result);
         if (!result) break;
-        alloc_complete_object(ips, opnd_n_bytes, opnd1_type, opnd1_value);
+        result = alloc_complete_object(ips, opnd_n_bytes, opnd1_type,
+                                       opnd1_value);
+        if (!result) break;
         /* Evaluate the first operand, unless this is an operation that
            requires the second operand to be evaluated first or expr is an
            operator that sometimes does not evaluate its first operand. */
@@ -20835,8 +20953,9 @@ the value representation of the integer value.
           opnd2_type = skip_typerefs(opnd2->type);
           opnd_n_bytes = expr_result_size(ips, opnd2, opnd2_type, &result);
           if (!result) break;
-          alloc_complete_object(ips, opnd_n_bytes, opnd2_type, opnd2_value);
-          if (!do_constexpr_expression(ips, opnd2, opnd2_value, opnd2_value)) {
+          if (!alloc_complete_object(ips, opnd_n_bytes, opnd2_type,
+                                     opnd2_value) ||
+              !do_constexpr_expression(ips, opnd2, opnd2_value, opnd2_value)) {
             do_constexpr_fail(result);
           } else if (expr->variant.operation.eval_right_to_left &&
                      !do_constexpr_expression(ips, opnd1,
@@ -25168,9 +25287,9 @@ the value representation of the integer value.
                   opnd_n_bytes = expr_result_size(ips, opnd2, opnd2_type,
                                                   &result);
                   if (result) {
-                    alloc_complete_object(ips, opnd_n_bytes, opnd2_type,
-                                          opnd2_value);
-                    if (!do_constexpr_expression(
+                    if (!alloc_complete_object(
+                                ips, opnd_n_bytes, opnd2_type, opnd2_value) ||
+                        !do_constexpr_expression(
                                       ips, opnd2, opnd2_value, opnd2_value)) {
                       do_constexpr_fail(result);
                       break;
@@ -25204,9 +25323,9 @@ the value representation of the integer value.
                   opnd_n_bytes = expr_result_size(ips, opnd2, opnd2_type,
                                                   &result);
                   if (result) {
-                    alloc_complete_object(ips, opnd_n_bytes, opnd2_type,
-                                          opnd2_value);
-                    if (!do_constexpr_expression(
+                    if (!alloc_complete_object(
+                                ips, opnd_n_bytes, opnd2_type, opnd2_value) ||
+                        !do_constexpr_expression(
                                       ips, opnd2, opnd2_value, opnd2_value)) {
                       do_constexpr_fail(result);
                       break;
@@ -25958,8 +26077,10 @@ the value representation of the integer value.
                state that was saved at the time the stmk_init statement was
                started. */
             if (ips->extension_state != NULL) {
-              alloc_bytes(ips->extension_state, n_bytes+prefix_size,
-                          tmp_bytes);
+              if (!alloc_bytes(ips, ips->extension_state, n_bytes+prefix_size,
+                               tmp_bytes)) {
+                break;
+              }  /* if */
               alloc_seq_number = ips->extension_state->alloc_seq();
               if (dip->destructor != NULL &&
                   !register_extended_destruction(ips, dip, tp,
@@ -25977,11 +26098,17 @@ the value representation of the integer value.
                  there is no extended-lifetime storage.  Instead, the result
                  will eventually be stored in IL, which is persistent across
                  interpreter invocations. */
-              alloc_static_bytes(ips, n_bytes+prefix_size, tmp_bytes);
+              if (!alloc_static_bytes(ips, n_bytes+prefix_size, tmp_bytes)) {
+                result = FALSE;
+                break;
+              }  /* if */
               alloc_seq_number = 0;
             }  /* if */
           } else {
-            alloc_stack_bytes(ips, n_bytes+prefix_size, tmp_bytes);
+            if (!alloc_stack_bytes(ips, n_bytes+prefix_size, tmp_bytes)) {
+              result = FALSE;
+              break;
+            }  /* if */
             alloc_seq_number = ips->storage_stack.alloc_seq();
           }  /* if */
           memzero(tmp_bytes, size_t_arg(prefix_size-sizeof(a_type_ptr)));
@@ -27164,8 +27291,8 @@ FALSE if the evaluation produces a "false" value.
   }  /* if */
   n_bytes = expr_result_size(&ips, expr, val_type, &result); 
   if (!result) goto done;
-  alloc_complete_object(&ips, n_bytes, val_type, result_storage);
-  if (!do_constexpr_expression(&ips, expr, result_storage, result_storage)) {
+  if (!alloc_complete_object(&ips, n_bytes, val_type, result_storage) ||
+      !do_constexpr_expression(&ips, expr, result_storage, result_storage)) {
     /* The attribute evaluation failed. */
     result = FALSE;
     goto done;
@@ -27226,8 +27353,8 @@ expressions").
     }  /* if */
     /* Nothing more to be done. */
   } else {
-    alloc_complete_object(&ips, n_bytes, result_type, result_storage);
-    if (!do_constexpr_expression(&ips, expr, result_storage, result_storage)) {
+    if (!alloc_complete_object(&ips, n_bytes, result_type, result_storage) ||
+        !do_constexpr_expression(&ips, expr, result_storage, result_storage)) {
       if (ips.input_error) {
         /* Interpretation failed due to an error node in the IL.  Continue
            with an error constant, but treat interpretation as successful. */
@@ -27269,8 +27396,8 @@ to a prvalue (without changing expr itself).
     }  /* if */
     /* Nothing more to be done. */
   } else {
-    alloc_complete_object(ips, n_bytes, val_type, result_storage);
-    if (!do_constexpr_expression(ips, expr, result_storage, result_storage)) {
+    if (!alloc_complete_object(ips, n_bytes, val_type, result_storage) ||
+        !do_constexpr_expression(ips, expr, result_storage, result_storage)) {
       if (ips->input_error) {
         /* Interpretation failed due to an error node in the IL.  Continue
            with an error constant, but treat interpretation as successful. */
@@ -27294,9 +27421,12 @@ to a prvalue (without changing expr itself).
                  an empty object. */
               n_bytes = value_bytes_for_type(ips, val_type, &result);
               check_assertion(result);
-              alloc_complete_object(ips, n_bytes, val_type, result_storage);
-              init_subobject_to_zero(ips, result_storage, val_type,
-                                     result_storage);
+              result = alloc_complete_object(ips, n_bytes, val_type,
+                                            result_storage);
+              if (result) {
+                init_subobject_to_zero(ips, result_storage, val_type,
+                                       result_storage);
+              }  /* if */
             } else {
               info_with_pos(ec_constexpr_access_to_runtime_storage,
                             &expr->position, ips);
@@ -27311,8 +27441,9 @@ to a prvalue (without changing expr itself).
                the glvalue-to-prvalue conversion into it. */
             n_bytes = value_bytes_for_type(ips, val_type, &result);
             check_assertion(result);
-            alloc_complete_object(ips, n_bytes, val_type, result_storage);
-            result = do_glvalue_to_prvalue(ips, expr, val_type, cap,
+            result = alloc_complete_object(ips, n_bytes, val_type,
+                                           result_storage) &&
+                     do_glvalue_to_prvalue(ips, expr, val_type, cap,
                                            n_bytes, result_storage,
                                            result_storage);
             result_type = prvalue_type(result_type);
@@ -27582,9 +27713,9 @@ can only be TRUE if the called function is "consteval").
     /* Nothing more to be done. */
   } else {
     a_constexpr_address  ce_addr;
-    alloc_complete_object(&ips, n_bytes, result_type, result_storage);
+    result = alloc_complete_object(&ips, n_bytes, result_type, result_storage);
     set_active_address(&ips, &ce_addr, result_storage, result_storage);
-    if (!do_constexpr_call(&ips, call_expr, ce_addr)) {
+    if (!result || !do_constexpr_call(&ips, call_expr, ce_addr)) {
       if (ips.input_error) {
         /* Interpretation failed due to an error node in the IL.  Continue
            with an error constant, but treat interpretation as successful. */
@@ -27787,7 +27918,8 @@ if the caller has determined that reinterpret_cast expressions can be folded
     a_byte_count  n_bytes;
     n_bytes = value_bytes_for_type(&ips, result_type, &result); 
     if (result) {
-      alloc_complete_object(&ips, n_bytes, result_type, result_storage);
+      result = alloc_complete_object(&ips, n_bytes, result_type,
+                                     result_storage);
     }  /* if */
   }  /* if */
   if (!result) {
@@ -27997,12 +28129,13 @@ position associated with the call.
          (because it will be a static array). */
       ips.permit_address_of_local_temporary = TRUE;
     }  /* if */
-    alloc_complete_object(&ips, n_bytes, result_type, result_storage);
+    result = alloc_complete_object(&ips, n_bytes, result_type, result_storage);
     a_constexpr_address  dst_addr;
     clear_address(&dst_addr, result_storage);
     dst_addr.alloc_seq_number = 1;
     dst_addr.complete_object = result_storage;
-    if (!do_constexpr_ctor(&ips, dip, pos, dst_addr, /*implied_src=*/NULL)) {
+    if (!result ||
+        !do_constexpr_ctor(&ips, dip, pos, dst_addr, /*implied_src=*/NULL)) {
       if (ips.input_error) {
         /* Interpretation failed due to an error node in the IL.  Continue
            with an error constant, but treat interpretation as successful. */

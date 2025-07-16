@@ -1,5 +1,16 @@
 Version 6.8
 
+7/15/25  [EDGcpfe/28323]
+Excessive memory use during opportunistic constant evaluation
+
+The changes for EDGcpfe/27588 significantly increased the amount of storage
+that could be allocated for constant evaluation.  In some cases, this resulted
+in excessive memory use by the interpreter while attempting to constant-
+evaluate expressions that aren't actually required to produce constant results.
+This has now been addressed, in part by introducing separate allocation limits
+when std::is_constant_evaluated() is TRUE and when it is FALSE.
+
+
 7/15/25  [EDGcpfe/28324]
 Possible reference to freed memory with MAKE_FRONT_END_CALLABLE
 
