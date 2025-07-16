@@ -328,8 +328,8 @@ request larger chunks are handled in terms of individual calls to alloc_general
 
 /*
 Macros defining how large locally-allocated objects can be when
-std::is_constant_evaluated() is TRUE (CONSTEVAL_LOCAL_ALLOC_LIMIT) and when it
-is FALSE (CONSTEXPR_LOCAL_ALLOC_LIMIT).  The latter is lower to avoid spending
+std::is_constant_evaluated() is true (CONSTEVAL_LOCAL_ALLOC_LIMIT) and when it
+is false (CONSTEXPR_LOCAL_ALLOC_LIMIT).  The latter is lower to avoid spending
 undue resources attempting to constant-evaluate expressions that need not be
 constant-expressions.
 */
@@ -2585,8 +2585,8 @@ a_boolean alloc_bytes(an_interpreter_state   *ips,
                       a_byte_count           n_bytes,
                       a_byte                 *&storage_ptr)
 /*
-Allocate n_bytes for the stack storage state described by sss, and store a
-pointer to the first bytes in storage_ptr.  (Deallocation is handled by
+Allocate n_bytes for the storage stack state described by sss, and store a
+pointer to the first byte in storage_ptr.  (Deallocation is handled by
 restoring a previously-saved stack state.)  Return TRUE if successful.
 Otherwise, return FALSE and update ips->diag_list with a note indicating the
 reason for failure (which currently only occurs when n_bytes is too large).
@@ -2647,8 +2647,8 @@ when n_bytes is too large).
 */
 {
   if (!ips->static_storage_ready) {
-    /* This is the first time we allocate static storage: Initialize */
-    /* the associated static storage stack. */
+    /* This is the first time we are allocating static storage: Initialize 
+       the associated static storage stack. */
     alloc_constexpr_stack_block(&(ips)->static_storage);
     ips->static_storage_ready = TRUE;
     ips->static_storage.set_alloc_seq(0);
@@ -3716,10 +3716,11 @@ FALSE and update ips->diag_list with a note indicating the reason for failure
     data_ptr = ptr+prefix_size;
     debug_scramble(data_ptr, n_bytes);
     record_complete_object_type(utp, data_ptr);
-    (storage_ptr) = data_ptr;
+    storage_ptr = data_ptr;
     mark_complete_class_object_if_needed(utp, data_ptr);
   } else {
     result = FALSE;
+    storage_ptr = NULL;
   }  /* if */
   return result;
 }  /* alloc_complete_object */
@@ -10599,7 +10600,6 @@ to FALSE and the reason for the failure is recorded in *ips.
         if (!*p_result) {
           do_constexpr_fail(*p_result);
         } else {
-          ;
           if (!alloc_complete_object(ips, n_bytes, tp, arg1_bytes) ||
               !do_constexpr_expression(ips, args, arg1_bytes, arg1_bytes)) {
             /* Argument did not have a constexpr value. */
@@ -16514,7 +16514,6 @@ by this_bytes.
     a_byte_count  n_bytes = value_bytes_for_type(ips, tp, &result);
     a_byte        *class_bytes;
     if (!result) goto done;
-    ;
     if (!alloc_complete_object(ips, n_bytes, tp, class_bytes) ||
         !do_constexpr_expression(ips, arg, class_bytes, class_bytes)) {
       do_constexpr_fail(result);
@@ -18176,7 +18175,7 @@ return TRUE and store the (integer) result in *result_storage.  Otherwise,
 return FALSE and record a diagnostic in *ips.
 */
 {
-  a_boolean         result = TRUE, saved_permit_null_pointer_offsets ;
+  a_boolean         result = TRUE, saved_permit_null_pointer_offsets;
   an_expr_node_ptr  opnd1 = expr->variant.builtin_operation.operands;
   a_type_ptr        tp = skip_typerefs(opnd1->type);
   a_byte_count      n_bytes = expr_result_size(ips, opnd1, tp, &result);
