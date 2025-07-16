@@ -27535,8 +27535,10 @@ interpreter.
          it to record the details of the comparison failure. */
       expr = expr_con->expr;
     } else {
-      (void)copy_constant_full(expr_con, result_con,
-                               CE_COPYING_FOR_CONSTEXPR_MASTER_EXPR);
+      /* Copy the constant.  Avoid adding options (like
+         CE_COPYING_FOR_CONSTEXPR_MASTER_EXPR) that would cause a backing
+         expression to be lost. */
+      (void)copy_constant_full(expr_con, result_con, CE_NO_OPTIONS);
       goto done;
     }  /* if */
   }  /* if */
