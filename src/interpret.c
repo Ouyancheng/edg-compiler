@@ -5618,6 +5618,16 @@ END_DISABLE_GCC_WARNING_STR_OVERFLOW
               get_stack_bytes(ips, cp, con_bytes);
               if (con_bytes == NULL) {
                 alloc_static_object(ips, ctp, con_bytes, &result);
+                /* Record a two-way mapping to ensure we always use the same
+                   storage, and that we reproduce the original constant if this
+                   becomes part of the interpretation result.  Do this before
+                   calling extract_value_from_constant recursively to avoid
+                   unbounded recursion in some cases. */
+                map_stack_bytes(ips, cp, con_bytes);
+                if (!constant_is(cp, ck_string)) {
+                  /* String entries are already themselves mapped. */
+                  map_stack_bytes(ips, con_bytes, (a_byte*)con);
+                }  /* if */
                 if (result) {
                   a_constexpr_address dst_addr;
                   clear_address(&dst_addr, con_bytes);
@@ -5630,14 +5640,6 @@ END_DISABLE_GCC_WARNING_STR_OVERFLOW
                 }  /* if */
 #endif /* BUILTIN_FUNCTIONS_ENABLED */
                 mark_complete_object_initialized(con_bytes);
-                /* Record a two-way mapping to ensure we always use the same
-                   storage, and that we reproduce the original constant if this
-                   becomes part of the interpretation result. */
-                map_stack_bytes(ips, cp, con_bytes);
-                if (!constant_is(cp, ck_string)) {
-                  /* String entries are already themselves mapped. */
-                  map_stack_bytes(ips, con_bytes, (a_byte*)con);
-                }  /* if */
               }  /* if */
               clear_address(cap, con_bytes);
               cap->flags |= CA_CONST_STORAGE;
