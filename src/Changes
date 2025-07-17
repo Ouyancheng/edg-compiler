@@ -1,5 +1,20 @@
 Version 6.8
 
+7/17/25  [EDGcpfe/27632,EDGcpfe/28224]
+Spurious syntax error on noexcept specifier for generic lambda in template
+
+Consider:
+
+  template<typename T> struct S {
+    static constexpr auto lambda = [](auto) noexcept(true) {};
+  };
+  S<int> s;
+
+Previously, this elicited spurious syntax errors during the instantiation of
+S<int> (the first of which complained about a missing expression).  That is
+now fixed.
+
+
 7/17/25  [EDGcpfe/28309]
 Microsoft compatibility: Interaction between #pragma pack and alignas
 

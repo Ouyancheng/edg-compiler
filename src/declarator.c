@@ -1900,13 +1900,19 @@ actually declares a function, member function, or function template).
       if (is_top_level_declarator &&
           !((dps->dso_flags & DSO_FRIEND) != 0 &&
             !is_template_friend_decl()) &&
-          (!dps->is_lambda || dps->is_abbr_func_template)) {
+          (!dps->is_lambda ||
+           (dps->is_abbr_func_template &&
+            !scope_stack[depth_scope_stack-3].in_prototype_instantiation))) {
         /* A noexcept argument should generally be cached for later
            instantiation if we are in a template or class definition.  However,
            that's not the case if we're in an ordinary friend function
            declaration (not a friend template declaration), nor for nongeneric
-           lambdas (which aren't "members" of any enclosing templates).  It's
-           also not the case for pointers to functions and the like. */
+           lambdas (which aren't "members" of any enclosing templates), nor
+           even for generic lambdas that appear in a template (if this is a
+           generic lambda, scope_stack[depth_scope_stack-1] is its template
+           declaration scope and scope_stack[depth_scope_stack-2] is its
+           closure class scope).  It's also not the case for pointers to
+           functions and the like. */
         may_cache = TRUE;
       }  /* if */
       scan_noexcept_arg(esp, may_cache, dps, func_info);
