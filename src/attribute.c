@@ -4704,13 +4704,23 @@ and C11 _Alignas specifiers.
           dps->alignment = alignment;
           dps->strongest_alignment = ap;
         }  /* if */
+#if MICROSOFT_EXTENSIONS_ALLOWED
+        if (entity_kind == iek_field) {
+          a_type_ptr  class_type = parent_class_of((a_field*)entity);
+          class_type_supp(class_type)->has_explicitly_aligned_subobject = TRUE;
+        }  /* if */
+#endif /* MICROSOFT_EXTENSIONS_ALLOWED */
       } else if (entity_kind == iek_field) {
-        a_field_ptr  fp = (a_field_ptr)entity;
         /* Apply the specified alignment.  This may be an increase or a
            decrease compared to the natural alignment of the type, but a
            lower #pragma pack setting will take precedence in non-Microsoft
            modes. */
+        a_field_ptr       fp = (a_field_ptr)entity;
         a_targ_alignment  eff_alignment = alignment;
+#if MICROSOFT_EXTENSIONS_ALLOWED
+        a_type_ptr        class_type = parent_class_of(fp);
+        class_type_supp(class_type)->has_explicitly_aligned_subobject = TRUE;
+#endif /* MICROSOFT_EXTENSIONS_ALLOWED */
         if (!microsoft_mode && current_pack_pragma_value() != 0 &&
             alignment > current_pack_pragma_value()) {
           eff_alignment = current_pack_pragma_value();
