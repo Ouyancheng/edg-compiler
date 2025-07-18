@@ -12,8 +12,10 @@ changes the output of the C-generating back end in the following ways:
   - A function whose parameter list contains only an ellipsis is declared
     with an ellipsis instead of as a function with no prototype.
 
-  - An implicitly-declared function is declared with a parameter list
-    containing only an ellipsis instead of as a function with no prototype.
+  - A C function that is declared implicitly by a call and that is not
+    defined in the current translation unit is declared with a parameter
+    list containing only an ellipsis instead of as a function with no
+    prototype.
 
   - The code assumes a built-in "bool" type instead of defining a typedef
     for "bool".
