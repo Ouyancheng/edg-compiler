@@ -3981,7 +3981,7 @@ will be equal to init_list_ctor_arg_list->variant.braced.list.
          struct S { S(int); };
          int r = g<S>();
        This is technically invalid because As is empty, so T(As(ps)...) becomes
-       S(), and S() has no default constructor.  However, MSVC, GCC, and Clang
+       S(), and S has no default constructor.  However, MSVC, GCC, and Clang
        all accept such examples.  To emulate that, we'll force overload
        resolution of S() to be treated as dependent in such cases.  We start
        by tentatively setting a flag assuming dependence is needed if we see a
@@ -4071,7 +4071,7 @@ will be equal to init_list_ctor_arg_list->variant.braced.list.
       conv_context |= CCO_IGNORE_EXPLICIT_MEMBERS;
     }  /* if */
     if (force_dependence) {
-      /* We determine above that the constructor invocation should be treated
+      /* We determined above that the constructor invocation should be treated
          as dependent (thereby avoiding diagnostics in prototype instantiations
          that other implementations do not issue). */
       conv_context |= CCO_FORCE_DEPENDENCE;
