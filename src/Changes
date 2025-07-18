@@ -1,5 +1,29 @@
 Version 6.8
 
+7/18/25  [EDGcpfe/28312,EDGcpfe/28318]
+C-generating back end: generated code compatibility with C23 target
+
+The C23 Standard changed the C language in certain ways that are
+incompatible with the code produced by the C-generating back end.  To
+accommodate these changes, a new configuration macro,
+C_GEN_BE_GENERATES_C23, has been introduced.  When set to TRUE, this macro
+changes the output of the C-generating back end in the following ways:
+
+  - A function whose parameter list contains only an ellipsis is declared
+    with an ellipsis instead of as a function with no prototype.
+
+  - An implicitly-declared function is declared with a parameter list
+    containing only an ellipsis instead of as a function with no prototype.
+
+  - The code assumes a built-in "bool" type instead of defining a typedef
+    for "bool".
+
+Because gcc version 15.1.0 defaults to C23 mode, C_GEN_BE_GENERATES_C23
+defaults to TRUE when GCC_IS_GENERATED_CODE_TARGET is TRUE and
+GNU_TARGET_VERSION_NUMBER is at least 150000; otherwise, it defaults to
+FALSE.
+
+
 7/18/25  [EDGcpfe/28261]
 C++-generating back end: incorrect qualification of member function call
 
