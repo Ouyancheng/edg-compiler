@@ -1,5 +1,21 @@
 Version 6.8
 
+7/18/25  [EDGcpfe/28139]
+Spurious error on template-dependent reinterpret_cast
+
+Consider:
+
+  struct S {};
+  extern S *p;
+  template<typename T> T g() {
+    return reinterpret_cast<T>(*p);
+  }
+
+This previously triggered an error during the prototype instantiation of g<T>()
+even though the template is viable (i.e., permits valid instantiations).  That
+is now fixed.
+
+
 7/18/25  [EDGcpfe/28140]
 Constant address of a weak function aliasing a known non-weak function
 

@@ -13458,6 +13458,9 @@ well as C++ mode.
              (dst_is_vec && is_integral_or_enum(source_type));
     }  /* if */
 #endif /* GNU_VECTOR_TYPES_ALLOWED */
+  } else if (is_template_param_or_proxy_type(dest_type)) {
+    /* Assume this we be okay after substitution or instantiation. */
+    okay = TRUE;
   }  /* if */
   if (!okay) {
     /* No normal conversion.  Look for error and template matches. */
