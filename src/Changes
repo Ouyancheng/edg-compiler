@@ -1,5 +1,25 @@
 Version 6.8
 
+7/18/25  [EDGcpfe/28261]
+C++-generating back end: incorrect qualification of member function call
+
+In a call to a member function with a noexcept specifier, the C++-generating
+back end previously sometimes put out a name qualifier used in the noexcept
+specifier for the member function name.  For example, with --c++11:
+
+  struct A {
+    static constexpr bool v = false;
+  };
+  template<typename T> struct B {
+    void g(int) noexcept(A::v);
+  };
+  struct D : B<bool> {
+    void f() {
+      g(1);  // Previously generated as "this->A::g(1)"
+    }
+  };
+
+
 7/17/25  [EDGcpfe/28121,EDGcpfe/28178]
 Relaxed checking of empty pack-expanded argument lists in templates
 

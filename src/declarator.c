@@ -1746,6 +1746,8 @@ specification to parse; otherwise, use the specification recorded in rp->type.
   rescan_reusable_cache(tokens);
   begin_deferral_of_access_checks();
   if (esp->is_noexcept) {
+    Value_saver<a_symbol_locator>  saved_locator_for_curr_id(
+                                                         &locator_for_curr_id);
     scan_noexcept_arg(esp, /*may_cache=*/FALSE, &dps);
   } else {
     /* Delayed instantiation of dynamic exception specifications (which are no
