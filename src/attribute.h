@@ -32,7 +32,8 @@ extern void redefine_extname_pragma(a_pending_pragma_ptr  ppp);
 #endif /* REDEFINE_EXTNAME_PRAGMA_ENABLED */
 
 #if GNU_EXTENSIONS_ALLOWED || REDEFINE_EXTNAME_PRAGMA_ENABLED
-extern void process_alias_fixup_list(void);
+extern void process_alias_fixup_list(a_boolean  early_attr_resolution);
+
 extern unsigned long show_attribute_space_used(void);
 #endif /* GNU_EXTENSIONS_ALLOWED || REDEFINE_EXTNAME_PRAGMA_ENABLED */
 

@@ -5329,6 +5329,32 @@ set *p_dbcp to the direct base class for the last step of the derivation path
   return offset;
 }  /* compute_interpreter_base_offset */
 
+#if GNU_EXTENSIONS_ALLOWED
+
+static a_boolean handle_weak_routine_address(a_routine_ptr  *p_rp)
+/*
+*p_rp points to an entry representing a function with weak linkage.  If the
+entry is known to alias another function non-alias non-weak function, return
+TRUE and replace *p_rp by that other function (i.e., *p_rp now represents a
+function whose address is also the address of the originally "weak" function).
+Otherwise, return FALSE.
+*/
+{
+  a_boolean  result = FALSE;
+  a_routine  *rp = *p_rp;
+  process_alias_fixup_list(/*early_attr_resolution=*/TRUE);
+
+  while (rp != NULL && has_gnu_routine_supp(rp)) {
+    rp = gnu_routine_supp(rp)->aliased_routine;
+  }  /* while */
+  if (rp != NULL && !rp->is_weak) {
+    result = TRUE;
+    *p_rp = rp;
+  }  /* if */
+  return result;
+}  /* handle_weak_routine_address */
+
+#endif /* GNU_EXTENSIONS_ALLOWED */
 
 static a_boolean extract_value_from_constant(
                                an_interpreter_state       *ips,
@@ -5468,7 +5494,7 @@ by implied_src.
           case abk_routine:
             { a_routine_ptr  rp = con->variant.address.variant.routine;
 #if GNU_EXTENSIONS_ALLOWED
-              if (rp->is_weak) {
+              if (rp->is_weak && !handle_weak_routine_address(&rp)) {
                 /* Weakly declared functions have no definite address (they
                    could have a null address). */
                 info_with_pos_sym(ec_constexpr_weak_address,
@@ -26032,7 +26058,7 @@ the value representation of the integer value.
       { a_routine_ptr  rp = node_routine(expr);
         if (rp != NULL && !rp->is_prototype_instantiation) {
 #if GNU_EXTENSIONS_ALLOWED
-          if (rp->is_weak) {
+          if (rp->is_weak && !handle_weak_routine_address(&rp)) {
             /* Weakly declared functions have no definite address (they could
                have a null address). */
             info_with_pos_sym(ec_constexpr_weak_address, &expr->position,

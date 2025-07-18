@@ -9785,10 +9785,12 @@ attribute refers to that name).
 
 #endif /* GNU_EXTENSIONS_ALLOWED */
 
-void process_alias_fixup_list(void)
+void process_alias_fixup_list(a_boolean  early_attr_resolution)
 /*
 Traverse the list of alias fixups and set the alias fields as needed.
-Also used for the GNU ifunc attribute.
+Also used for the GNU ifunc attribute.  If early_attr_resolution is TRUE, 
+this is an early pass to tentatively resolve some attributes.  Another pass
+will be made later on.
 */
 {
   an_alias_fixup_ptr  entries = alias_fixup_list, entry;
@@ -9798,11 +9800,13 @@ Also used for the GNU ifunc attribute.
 
   alias_fixup_list = last_alias_fixup = NULL;
   while (entries != NULL) {
+    a_boolean  keep_entry = early_attr_resolution;
     aliased_sym = NULL;
     entry = entries;
     entries = entries->next;
     if (entry->alias == NULL) {
       /* This entry is the result of a redefine_extname pragma directive. */
+      if (early_attr_resolution) goto next_entry;
       pos = &entry->alias_position;
 #if GNU_EXTENSIONS_ALLOWED
     } else {
@@ -9818,6 +9822,7 @@ Also used for the GNU ifunc attribute.
            variables: They are defined, but they cannot have an initializer.
            GNU also allows ifunc attributes to have a definition (but only
            in C mode); it causes problems later on, so we give an error. */
+        if (early_attr_resolution) goto next_entry;
         pos_error(ec_alias_cannot_have_definition, pos);
       }  /* if */
 #endif /* GNU_EXTENSIONS_ALLOWED */
@@ -9837,6 +9842,7 @@ Also used for the GNU ifunc attribute.
                                        /*create=*/FALSE);
       if (p_sym != NULL && *p_sym != NULL) aliased_sym = *p_sym;
     }  /* if */
+    if (early_attr_resolution && aliased_sym == NULL) goto next_entry;
 #endif /* GNU_EXTENSIONS_ALLOWED */
     if (entry->alias == NULL) {
 #if REDEFINE_EXTNAME_PRAGMA_ENABLED
@@ -9915,6 +9921,7 @@ Also used for the GNU ifunc attribute.
          end can still obtain the name of the alias from the attribute entry).
          No diagnostic is issued if the alias is for a "weakref" attribute. */
       a_boolean  is_weakref = FALSE;
+      if (early_attr_resolution) goto next_entry;
       switch (entry->alias->kind) {
         case sk_routine:
           is_weakref = entry->alias->variant.routine.ptr->is_weakref;
@@ -9936,6 +9943,7 @@ Also used for the GNU ifunc attribute.
                           &entry->alias_position, entry->aliased_name);
       }  /* if */
     } else if (aliased_sym->kind != entry->alias->kind) {
+      if (early_attr_resolution) goto next_entry;
       pos_sy_error(ec_aliased_name_bad_kind,
                    &entry->alias->decl_position, aliased_sym);
     } else if ((entry->alias->kind == (a_symbol_kind)sk_routine &&
@@ -9946,15 +9954,7 @@ Also used for the GNU ifunc attribute.
                 in_secondary_trans_unit(aliased_sym->variant.variable.ptr))) {
       /* We've found a match, but it's in another translation unit.  Put this
          entry back on the list to revisit later. */
-      if (alias_fixup_list == NULL) {
-        alias_fixup_list = entry;
-      } else {
-        last_alias_fixup->next = entry;
-      }  /* if */
-      last_alias_fixup = entry;
-      entry->next = NULL;
-      /* Avoid freeing the entry at the end of this loop. */
-      continue;
+      keep_entry = TRUE;
     } else {
       /* Usual case: An entity declared in this translation unit is aliased
          using the GNU "alias" (or "weakref" or "ifunc") attribute. */
@@ -9970,6 +9970,7 @@ Also used for the GNU ifunc attribute.
                        rtsp = routine_type->variant.routine.extra_info;
             if (!is_pointer_to_function_type(return_type) ||
                 rtsp->param_type_list != NULL) {
+              if (early_attr_resolution) goto next_entry;
               pos_syty_warning(ec_incompatible_ifunc_resolver_type,
                                &entry->alias_position, aliased_sym,
                                routine_type);
@@ -9996,9 +9997,21 @@ Also used for the GNU ifunc attribute.
       record_symbol_reference(SRK_USE | SRK_REFERENCE, aliased_sym,
                               &entry->alias->decl_position,
                               /*update_il_entry=*/TRUE);
+      keep_entry = FALSE;
 #endif /* GNU_EXTENSIONS_ALLOWED */
     }  /* if */
-    free_alias_fixup(entry);
+next_entry:
+    if (keep_entry) {
+      if (alias_fixup_list == NULL) {
+        alias_fixup_list = entry;
+      } else {
+        last_alias_fixup->next = entry;
+      }  /* if */
+      last_alias_fixup = entry;
+      entry->next = NULL;
+    } else {
+      free_alias_fixup(entry);
+    }  /* if */
   }  /* while */
 }  /* process_alias_fixup_list */
 

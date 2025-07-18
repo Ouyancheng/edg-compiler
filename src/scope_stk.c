@@ -7769,7 +7769,7 @@ about the scope being popped.
          those entities are declared.  The actual IL connection is therefore
          set up when all the entities in a translation unit have been seen.
          This must occur before unneeded entities are determined. */
-      process_alias_fixup_list();
+      process_alias_fixup_list(/*early_attr_resolution=*/FALSE);
     }  /* if */
 #endif /* GNU_EXTENSIONS_ALLOWED || REDEFINE_EXTNAME_PRAGMA_ENABLED */
     if (secondary_translation_unit_seen()) {
