@@ -2780,6 +2780,9 @@ typedef int a_conv_context_set;
 			/* Used to indicate that this is a conversion for an
 			   argument that has already been determined to match
 			   its parameter. */
+#define CCO_FORCE_DEPENDENCE ((a_conv_context_set)0x20000000)
+			/* TRUE if overload resolution should treat the call
+			   as dependent in any case. */
 
 
 /*

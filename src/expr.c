@@ -3907,6 +3907,7 @@ will be equal to init_list_ctor_arg_list->variant.braced.list.
   a_boolean           init_list_ctor_case = FALSE;
   a_boolean           saved_allow_call_with_incomplete_return_type;
   a_boolean           saved_in_call_argument;
+  a_boolean           force_dependence = FALSE;
 
   db_enter(4, "scan_ctor_arguments");
 
@@ -3969,6 +3970,25 @@ will be equal to init_list_ctor_arg_list->variant.braced.list.
   }  /* if */
 
   /* Scan the arguments. */
+  if (rcblock == NULL && !arg_list_supplied &&
+      (curr_token != tok_rparen || cached_initializer_present()) &&
+      !strict_ansi_mode && scope_stack_top().in_prototype_instantiation &&
+      scope_stack_top().in_variadic_template) {
+    /* Consider:
+         template<typename T, typename... As> int g() {
+           [](auto...ps) { new T(As(ps)...); }; return 1;
+         }
+         struct S { S(int); };
+         int r = g<S>();
+       This is technically invalid because As is empty, so T(As(ps)...) becomes
+       S(), and S() has no default constructor.  However, MSVC, GCC, and Clang
+       all accept such examples.  To emulate that, we'll force overload
+       resolution of S() to be treated as dependent in such cases.  We start
+       by tentatively setting a flag assuming dependence is needed if we see a
+       syntactically non-empty argument list in a variadic prototype
+       instantiation. */
+    force_dependence = TRUE;
+  }  /* if */
   scan_call_arguments(routine_type, routine, tok_rparen,
                       /*already_after_left_delim=*/TRUE,
                       &arg_expr_list, overloaded_function_case,
@@ -3979,6 +3999,12 @@ will be equal to init_list_ctor_arg_list->variant.braced.list.
                       &arg_list,
                       (an_operand *)NULL, (a_boolean *)NULL,
                       closing_paren_position);
+  if (force_dependence && (arg_list != NULL || arg_expr_list != NULL)) {
+    /* See above for the initial setting of force_dependence.  If actual
+       arguments were determined, this is not an empty pack expansion and
+       we need not force template dependence. */
+    force_dependence = FALSE;
+  }  /* if */
   eff_arg_list = arg_list;
   error_position = *source_pos;
   if (value_initialization_enabled &&
@@ -4043,6 +4069,12 @@ will be equal to init_list_ctor_arg_list->variant.braced.list.
   if (overloaded_function_case) {
     if (!(conv_context & CCO_DIRECT_INITIALIZATION)) {
       conv_context |= CCO_IGNORE_EXPLICIT_MEMBERS;
+    }  /* if */
+    if (force_dependence) {
+      /* We determine above that the constructor invocation should be treated
+         as dependent (thereby avoiding diagnostics in prototype instantiations
+         that other implementations do not issue). */
+      conv_context |= CCO_FORCE_DEPENDENCE;
     }  /* if */
     /* The constructors are overloaded.  Select the proper one. */
     /* Note that a special case allows passing have_selector == TRUE and

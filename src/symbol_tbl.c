@@ -9595,9 +9595,11 @@ member functions), or the default constructor.
     if (expr_stack->any_suppressed_error) {
       dip = NULL;
     } else if (dip != NULL && dip->kind == dik_constructor) {
-      /* Mark the constructor as referenced as scan_ctor_arguments does not do
-         that when suppressing diagnostics. */
-      mark_routine_referenced(dip->variant.constructor.ptr);
+      if (dip->variant.constructor.ptr != NULL) {
+        /* Mark the constructor as referenced as scan_ctor_arguments does not
+           do that when suppressing diagnostics. */
+        mark_routine_referenced(dip->variant.constructor.ptr);
+      }  /* if */
     }  /* if */
   }  /* if */
   if (dip == NULL) {

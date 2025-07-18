@@ -1,5 +1,24 @@
 Version 6.8
 
+7/17/25  [EDGcpfe/28121,EDGcpfe/28178]
+Relaxed checking of empty pack-expanded argument lists in templates
+
+Consider:
+
+  template<typename T, typename... As> int g() {
+    [](auto...ps) { new T(As(ps)...); };
+    return 42;
+  }
+  struct S { S(int); };
+  int r = g<S>();
+
+This previously (justifiably) issued an error: The initialization T(As(ps)...)
+for the call g<S>() expands to S(), which has no match.  However, it appears
+existing practice (by MSVC, GCC, and Clang) is not to diagnose that error
+(presumably because it appears within a template; in this case, a generic
+lambda).  The front end now emulates that.
+
+
 7/17/25  [EDGcpfe/27632,EDGcpfe/28224]
 Spurious syntax error on noexcept specifier for generic lambda in template
 

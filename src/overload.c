@@ -11114,8 +11114,9 @@ reprocess_with_notes:
     a_boolean defer_overload_resolution = FALSE;
     /* In a prototype instantiation.  See whether the call is dependent
        (i.e., has arguments of dependent types). */
-    if (bound_function_selector != NULL &&
-        selector_type_is_dependent(bound_function_selector)) {
+    if ((bound_function_selector != NULL &&
+         selector_type_is_dependent(bound_function_selector)) ||
+        (conv_context & CCO_FORCE_DEPENDENCE)) {
       dependent_call = TRUE;
     } else {
       for (arg_list_elem = arg_list;
