@@ -13459,7 +13459,7 @@ well as C++ mode.
     }  /* if */
 #endif /* GNU_VECTOR_TYPES_ALLOWED */
   } else if (is_template_param_or_proxy_type(dest_type)) {
-    /* Assume this we be okay after substitution or instantiation. */
+    /* Assume this will be okay after substitution or instantiation. */
     okay = TRUE;
   }  /* if */
   if (!okay) {
