@@ -1933,7 +1933,9 @@ process_option()
         --ms_c11 | --ms_c17 | --ms_c23 | -K | --old_c | --svr4 | --no_svr4 | \
         --gcc | --no_gcc | --upc | --no_upc)
           c_mode=1
-          if [ $arg = "--c99" -o $arg = "--c11" ] ; then
+          if [ $arg = "--c99" -o $arg = "--c11" -o $arg = "--c18" -o \
+               $arg = "--c17" -o $arg = "--c23" -o $arg = "--ms_c11" -o \
+               $arg = "--ms_c17" -o $arg = "--ms_c23" ] ; then
             need_c_to_obj_c99_options=1
           fi
           ;;
