@@ -3953,7 +3953,6 @@ empty structs in both 32-bit and 64-bit architectures.
 #define USE_EMPTY_STRUCT_IN_GENERATED_C FALSE
 #endif /* GCC_IS_GENERATED_CODE_TARGET && TARG_SIZEOF_POINTER == 8 || ... */
 #endif /* USE_EMPTY_STRUCT_IN_GENERATED_C */
-#endif /* BACK_END_IS_C_GEN_BE */
 
 /*
 If ALLOW_ELLIPSIS_ONLY_PARAM_IN_GENERATED_C is TRUE, "(...)" will be put
@@ -3973,6 +3972,7 @@ the output should reflect the actual source form of the declaration.)
 #define ALLOW_ELLIPSIS_ONLY_PARAM_IN_GENERATED_C FALSE
 #endif /* C_GEN_BE_GENERATES_C23 */
 #endif /* ifndef ALLOW_ELLIPSIS_ONLY_PARAM_IN_GENERATED_C */
+#endif /* BACK_END_IS_C_GEN_BE */
 
 /*
 When generating C or C++ code, add extra braces around "if" statements
