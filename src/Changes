@@ -1,5 +1,16 @@
 Version 6.8
 
+7/21/25  [EDGcpfe/28338]
+Abort on requires expression in default template argument
+
+With the changes for EDGcpfe/27599 (in version 6.7), the front end could enter
+an unbounded recursion for a requires expression appearing in a default
+template argument.  For example, with --c++20:
+
+  template<typename T, bool = requires { T::v; }>
+  struct A : A<T> { };  // Previously aborted, now okay.
+
+
 7/18/25  [EDGcpfe/28139]
 Spurious error on template-dependent reinterpret_cast
 

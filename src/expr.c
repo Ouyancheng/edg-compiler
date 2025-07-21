@@ -41883,6 +41883,12 @@ done_with_requirements:
         subst_pairs.insert(0, { templ_params, proto_args,
                                 FALSE, FALSE, TRUE, FALSE });
       }  /* if */
+      if (!subst_pairs.is_empty()) {
+        /* Make a copy of the innermost template argument list, as we might not
+           have finished parsing it. */
+        subst_pairs.back_elem().args =
+                          copy_template_arg_list(subst_pairs.back_elem().args);
+      }  /* if */
       requires_expr_substs->map_or_replace(node, subst_pairs);
       make_expression_operand(node, result);
     } else {
