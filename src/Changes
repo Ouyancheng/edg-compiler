@@ -1,5 +1,24 @@
 Version 6.8
 
+7/21/25  [EDGcpfe/28235]
+Type-dependence of decltype-specifier used as nested name specifier
+
+Previously, the front end also considered a decltype-specifier used as a nested
+name specifier to be dependent if its operand was value-dependent.  For
+example, with --c++11:
+
+  struct B {
+    using type = int;
+    int i;
+  };
+  template<int I>
+  void f() {
+    B b{ I };
+    decltype(b)::type t;  // Previously a spurious error.  Now okay.
+  }
+  template void f<0>();
+
+
 7/21/25  [EDGcpfe/28338]
 Abort on requires expression in default template argument
 

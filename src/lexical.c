@@ -24572,8 +24572,7 @@ selection operator, in which case it points to the type of the left operand.
     } else {
       /* The current token is the ")" of the decltype. */
       might_be_qualifier = TRUE;
-      if (tp->kind == (a_type_kind)tk_typeref &&
-          tp->variant.typeref.is_dependent_type_operator) {
+      if (tp->kind == tk_typeref && is_template_dependent_type(tp)) {
         /* For dependent decltypes, use the proxy class of the decltype. */
         tp = proxy_class_for_template_param(tp);
         decltype_type = tp;
