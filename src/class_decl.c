@@ -23211,6 +23211,36 @@ classes in the suppression determination.
           gsfd->suppress_default_ctor = TRUE;
           break;
         }  /* if */
+        if (!clang_mode &&
+            sym->variant.field.extra_info->is_variant_member) {
+          /* The standard rules in N5008 [class.default.ctor]/2 as they apply
+             to variant members appear to be undesirable  when a variant member
+             with a default initializer is involved (see Core issue 1623, which
+             is not yet resolved).  For example:
+               struct X { X(int); }  // No default constructor.
+               struct S {
+                 S() = default;
+                 union { int i = {}; X x; };
+               };
+             By the letter of the standard, the default constructor of S must
+             be deleted, but only Clang enforces that.  By default, we no
+             longer enforce it either (we now only do so in Clang mode). */
+          a_type_ptr  anon_union_type = parent_class_of(field);
+          if (class_type_supp(anon_union_type)->has_field_initializer) {
+            if (!is_const_default_constructible(anon_union_type)) {
+              gsfd->suppress_default_ctor = TRUE;
+              break;
+            }  /* if */
+            if (! sym->variant.field.extra_info->is_last_variant_member) {
+              /* Skip remaining variant members. */
+              do {
+                sym = sym->next_in_scope;
+              } while (!(symbol_is(sym, sk_field) &&
+                       sym->variant.field.extra_info->is_last_variant_member));
+            }  /* if */
+            continue;
+          }  /* if */
+        }  /* if */
         if (is_array_type(tp)) {
           tp = underlying_array_element_type(tp);
         }  /* if */
