@@ -2696,8 +2696,8 @@ done_with_folding:
     issue_folding_diagnostic(err_code, err_severity, constant_context,
                              evaluated_context,
                              /*silence_warning=*/!is_implicit_cast,
-                              did_not_fold,error_detected, err_pos,
-                              new_constant);
+                             did_not_fold,error_detected, err_pos,
+                             new_constant);
     if (err_severity == es_error) depends_on_fp_mode = FALSE;
   }  /* if */
   if (depends_on_fp_mode && !constant_context) {
