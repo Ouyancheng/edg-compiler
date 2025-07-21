@@ -23214,7 +23214,7 @@ classes in the suppression determination.
         if (!clang_mode &&
             sym->variant.field.extra_info->is_variant_member) {
           /* The standard rules in N5008 [class.default.ctor]/2 as they apply
-             to variant members appear to be undesirable  when a variant member
+             to variant members appear to be undesirable when a variant member
              with a default initializer is involved (see Core issue 1623, which
              is not yet resolved).  For example:
                struct X { X(int); }  // No default constructor.
