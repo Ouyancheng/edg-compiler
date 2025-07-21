@@ -1,5 +1,15 @@
 Version 6.8
 
+8/10/25  [EDGcpfe/28386]
+Additional memory management metrics
+
+Additional memory management metrics have been added to the memory usage report
+(-d-space_used command line option).  These metrics provide insight into the
+application's allocation behavior and interactions with malloc and free.
+Additionally, a bug has been fixed resulting in an undercount of the total
+memory used.
+
+
 8/8/25   [EDGcpfe/28384]
 Fixed lexical state corruption
 

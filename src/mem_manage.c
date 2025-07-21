@@ -148,17 +148,50 @@ static sizeof_t adjusted_header_size = (sizeof_t)(sizeof(a_mem_block_header) +
 Record of memory allocated, for space tracking purposes.
 */
 STATIC_THREAD unsigned long
-		total_mem_allocated;
-			/* Total memory allocated via malloc, minus total
-			   memory freed via free. */
-STATIC_THREAD unsigned long
 		max_mem_allocated;
-			/* The high-water mark, the largest value that
-			   total_mem_allocated ever had. */
+			/* The high-water mark, the largest amount of memory
+			   allocated by malloc but not freed during
+			   execution. */
+STATIC_THREAD unsigned long
+		mem_in_use_after_one_time_init;
+			/* This is a snapshot of (num_bytes_allocated -
+			   num_bytes_freed) when one-time initialization has
+			   completed. */
+STATIC_THREAD unsigned long
+		max_mem_in_use_after_tu_init;
+			/* This is a snapshot of the largest value
+			   (num_bytes_allocated - num_bytes_freed) when TU
+			   initialization has completed. */
+STATIC_THREAD unsigned long
+		num_reclaim_attempts;
+			/* Total number of times the reusable_blocks_list was
+			   consulted while non-NULL as part of a
+			   alloc_new_mem_block call. */
+STATIC_THREAD unsigned long
+		num_reclaim_traversals;
+			/* Total number of link entries consulted when
+			   attempting to reuse a block on the
+			   reusable_blocks_list. */
+STATIC_THREAD unsigned long
+		num_reclaim_successes;
+			/* Total number of times a reclaim attempt was made
+			   from the reusable_blocks_list that succeeded. */
+STATIC_THREAD unsigned long
+		num_malloc_calls;
+			/* Total number of calls to malloc. */
+STATIC_THREAD unsigned long
+		num_bytes_allocated;
+			/* Total number of bytes allocated by malloc. */
+STATIC_THREAD unsigned long
+		num_free_calls;
+			/* Total number of calls to free. */
+STATIC_THREAD unsigned long
+		num_bytes_freed;
+			/* Total number of bytes freed by free. */
 STATIC_THREAD unsigned long
 		total_general_mem_allocated;
-			/* The part of total_mem_allocated that was
-			   allocated in general storage, i.e., by
+			/* The amount of memory that was allocated in (but not
+			   freed from) general storage, i.e., by
 			   alloc_general and realloc_general. */
 STATIC_THREAD unsigned long
 		total_mem_used;
@@ -198,13 +231,15 @@ and "freed" here mean via malloc/free, not by some mechanism on top of that.
   /* Do "increment" carefully, since one variable is unsigned and the
      other is not. */
   if (amount >= 0) {
-    total_mem_allocated += (unsigned long)amount;
+    num_bytes_allocated += (unsigned long)amount;
+    ++num_malloc_calls;
   } else {
-    total_mem_allocated -= (unsigned long)-amount;
+    num_bytes_freed += (unsigned long)-amount;
+    ++num_free_calls;
   }  /* if */
   /* Keep track of the high-water mark. */
-  if (total_mem_allocated > max_mem_allocated) {
-    max_mem_allocated = total_mem_allocated;
+  if ((num_bytes_allocated - num_bytes_freed) > max_mem_allocated) {
+    max_mem_allocated = (num_bytes_allocated - num_bytes_freed);
   }  /* if */
 }  /* adjust_record_of_total_allocation */
 #endif /* DEBUG */
@@ -228,7 +263,7 @@ allocation and generates a catastrophic error.
   if (db_flag_is_set("malloc") || debug_level >= 5) {
     fprintf(f_debug, "malloc_with_check: allocating %lu at %p, total = %lu\n",
                      (unsigned long)size, (a_void_ptr)ptr,
-                     (unsigned long)total_mem_allocated);
+                     (unsigned long)(num_bytes_allocated - num_bytes_freed));
   }  /* if */
 #endif /* DEBUG */
   return (ptr);
@@ -253,7 +288,8 @@ a catastrophe.
     if (db_flag_is_set("malloc") || debug_level >= 5) {
       fprintf(f_debug,
               "malloc_for_interpreter: allocating %lu at %p, total = %lu\n",
-              (unsigned long)size, result, (unsigned long)total_mem_allocated);
+              (unsigned long)size, result,
+              (unsigned long)(num_bytes_allocated - num_bytes_freed));
     }  /* if */
   }  /* if */
 #endif /* DEBUG */
@@ -308,9 +344,9 @@ malloc_with_check.  "old_size" is present to help with tracking of space used.
     if (debug_level >= 5) {
       fprintf(f_debug,
          "realloc_with_check: new size = %lu, old size = %lu, total = %lu\n",
-                         (unsigned long)new_size,
-                         (unsigned long)old_size,
-                         (unsigned long)total_mem_allocated);
+                       (unsigned long)new_size,
+                       (unsigned long)old_size,
+                       (unsigned long)(num_bytes_allocated - num_bytes_freed));
     }  /* if */
 #endif /* DEBUG */
   }  /* if */
@@ -622,6 +658,9 @@ a smaller-sized block.  Return a pointer to the block header.
   /* Reuse a previously-allocated piece if possible.  Such a piece was
      the wasted space on the end of a previous block. */
   if (reusable_blocks_list != NULL) {
+#if DEBUG
+    ++num_reclaim_attempts;
+#endif /* DEBUG */
     needed_size = min_size + adjusted_header_size;
     for (prev_hdr = NULL, hdr = reusable_blocks_list;
          hdr != NULL;
@@ -632,6 +671,9 @@ a smaller-sized block.  Return a pointer to the block header.
          different allocation. */
       /*SUPPRESS 22*/
       check_assertion(hdr->after_end_of_block >= hdr->start_of_block);
+#if DEBUG
+      ++num_reclaim_traversals;
+#endif /* DEBUG */
       alloc_size = (sizeof_t)(hdr->after_end_of_block - hdr->start_of_block) +
                    adjusted_header_size;
       if (alloc_size >= needed_size) {
@@ -662,6 +704,7 @@ a smaller-sized block.  Return a pointer to the block header.
         fprintf(f_debug, "alloc_mem_block: reusing block, size = %lu\n",
                          (unsigned long)alloc_size);
       }  /* if */
+      ++num_reclaim_successes;
 #endif /* DEBUG */
       hdr = hdr_found;
       goto have_hdr;
@@ -1715,15 +1758,39 @@ usage counts in other files.
   }  /* for */
   fprintf(f_debug, "%25s %8s %8s %8lu\n", "Avail in used mem blocks", "", "",
                    total_unallocated);
+
   /* Size the memory blocks on the available list. */
+  size_t num_reusable_blocks = 0;
+  size_t num_reusable_block_bytes = 0;
   for (hdr = reusable_blocks_list; hdr != NULL; hdr = hdr->next) {
-    total_in_freed_blocks += (unsigned long)(hdr->after_end_of_block -
-                                             hdr->start_of_block);
+    num_reusable_block_bytes += (unsigned long)(hdr->after_end_of_block -
+                                                hdr->start_of_block);
+    ++num_reusable_blocks;
   }  /* for */
-  fprintf(f_debug, "%25s %8s %8s %8lu\n", "Avail in freed mem blocks", "", "",
-                   total_in_freed_blocks);
-  fprintf(f_debug, "%25s %8s %8s %8lu\n", "Max mem alloc", "", "",
-                   max_mem_allocated);
+  total_in_freed_blocks += num_reusable_block_bytes;
+  fprintf(f_debug, "%25s %26lu\n", "Avail in freed mem blocks",
+          total_in_freed_blocks);
+  /* Print useful metrics about memory management. */
+  fprintf(f_debug, "\nMemory management metrics:\n");
+  fprintf(f_debug, "%25s %26lu\n", "Calls to malloc", num_malloc_calls);
+  fprintf(f_debug, "%25s %26lu\n", "Bytes allocated", num_bytes_allocated);
+  fprintf(f_debug, "%25s %26lu\n", "Calls to free", num_free_calls);
+  fprintf(f_debug, "%25s %26lu\n", "Bytes freed", num_bytes_freed);
+  fprintf(f_debug, "%25s %26lu\n", "Memory reuse attempts",
+          num_reclaim_attempts);
+  fprintf(f_debug, "%25s %26lu\n", "Memory reuse successes",
+          num_reclaim_successes);
+  fprintf(f_debug, "%25s %26.2f\n", "Avg reuse traversals",
+          (double)num_reclaim_traversals / (double)num_reclaim_attempts);
+  fprintf(f_debug, "%25s %26lu\n", "Num reusable blocks", num_reusable_blocks);
+  fprintf(f_debug, "%25s %26lu\n", "Avg reusable block size",
+          num_reusable_block_bytes /
+                                  max_val(num_reusable_blocks, size_t_arg(1)));
+  fprintf(f_debug, "%25s %26lu\n", "Post one-time init size",
+          mem_in_use_after_one_time_init);
+  fprintf(f_debug, "%25s %26lu\n", "Max post trans init alloc",
+          max_mem_in_use_after_tu_init);
+  fprintf(f_debug, "%25s %26lu\n", "Max mem alloc", max_mem_allocated);
 }  /* show_mem_manage_space_used */
 #endif /* !STANDALONE_UTILITY_PROGRAM */
 #endif /* DEBUG */
@@ -2097,9 +2164,6 @@ Do one-time initialization of variables related to the mem_manage routines.
 #if DEBUG
   allocated_in_region = NULL;
   size_of_allocated_in_region = 0;
-  total_mem_allocated = 0;
-  max_mem_allocated = 0;
-  total_general_mem_allocated = 0;
   num_text_buffers_allocated = 0;
 #if USE_MMAP_FOR_MEMORY_REGIONS
   num_mapped_bytes_allocated = 0;
@@ -2120,6 +2184,18 @@ Do one-time initialization of variables related to the mem_manage routines.
   freed_fe_map = NULL;
 }  /* mem_manage_one_time_init */
 
+#if DEBUG
+
+void mem_manage_one_time_init_done()
+/*
+This function is called after translation one-time initialization is complete
+to record the amount of memory that was in use after the initialization phase.
+*/
+{
+  mem_in_use_after_one_time_init = (num_bytes_allocated - num_bytes_freed);
+}  /* mem_manage_one_time_init_done */
+
+#endif /* DEBUG */
 
 void mem_manage_trans_unit_init(void)
 /*
@@ -2140,6 +2216,25 @@ must be initialized for each translation unit.
   curr_translation_unit->file_scope_region_number = file_scope_region_number;
 }  /* mem_manage_trans_unit_init */
 
+#if DEBUG
+
+void mem_manage_trans_unit_init_done()
+/*
+This function is called after translation unit initialization is complete to
+record the amount of memory that was in use after the initialization phase.
+
+If multiple translation units are compiled, this is the largest value of
+any translation unit.
+*/
+{
+  size_t this_tu_init = (num_bytes_allocated - num_bytes_freed);
+
+  if (this_tu_init > max_mem_in_use_after_tu_init) {
+    max_mem_in_use_after_tu_init = this_tu_init;
+  }  /* if */
+}  /* mem_manage_trans_unit_init_done */
+
+#endif /* DEBUG */
 
 void mem_manage_early_init(void)
 /*
@@ -2164,6 +2259,19 @@ This is done before command line processing.
   mem_region_table = NULL;
   size_of_mem_region_table = 0;
   size_of_function_def_table = 0;
+#if DEBUG
+  max_mem_allocated = 0;
+  mem_in_use_after_one_time_init = 0;
+  max_mem_in_use_after_tu_init = 0;
+  num_reclaim_attempts = 0;
+  num_reclaim_traversals = 0;
+  num_reclaim_successes = 0;
+  num_malloc_calls = 0;
+  num_bytes_allocated = 0;
+  num_free_calls = 0;
+  num_bytes_freed = 0;
+  total_general_mem_allocated = 0;
+#endif /* DEBUG */
 }  /* mem_manage_early_init */
 
 

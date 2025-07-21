@@ -207,6 +207,11 @@ extern void mem_manage_one_time_init(void);
 /* Initialize memory management. */
 extern void mem_manage_trans_unit_init(void);
 extern void mem_manage_init(void);
+#if DEBUG
+/* Functions for tracking important high water marks. */
+extern void mem_manage_one_time_init_done();
+extern void mem_manage_trans_unit_init_done();
+#endif /* DEBUG */
 
 #if MAKE_FRONT_END_CALLABLE
 /* Free memory used by the compilation. */

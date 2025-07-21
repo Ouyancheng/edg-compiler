@@ -1831,6 +1831,9 @@ after the command-line processing has been done.
     internal_error("a_function_number is too small");
   }  /* if */
 #endif /* CHECKING */
+#if DEBUG
+  mem_manage_one_time_init_done();
+#endif /* DEBUG */
 }  /* fe_one_time_init */
 
 
@@ -2253,6 +2256,9 @@ when it is a secondary file.
     generate_pp_output = FALSE;
     do_preprocessing_only = FALSE;
   }  /* if */
+#if DEBUG
+  mem_manage_trans_unit_init_done();
+#endif /* DEBUG */
 }  /* fe_translation_unit_init */
 
 #endif /* STANDALONE_UTILITY_PROGRAM */
