@@ -1912,17 +1912,15 @@ of lambda expressions.
   }  /* if */
   if (func_info->lambda != NULL) {
     /* Remove unneeded captures. */
-    if (func_info->lambda != NULL) {
-      a_lambda_capture_ptr  *p_lcp = &func_info->lambda->capture_list;
-      while (*p_lcp != NULL) {
-        if ((*p_lcp)->field_pending) {
-          /* No capture was actually required.  Drop this capture. */
-          *p_lcp = (*p_lcp)->next;
-        } else {
-          p_lcp = &(*p_lcp)->next;
-        }  /* if */
-      }  /* while */
-    }  /* if */
+    a_lambda_capture_ptr  *p_lcp = &func_info->lambda->capture_list;
+    while (*p_lcp != NULL) {
+      if ((*p_lcp)->field_pending) {
+        /* No capture was actually required.  Drop this capture. */
+        *p_lcp = (*p_lcp)->next;
+      } else {
+        p_lcp = &(*p_lcp)->next;
+      }  /* if */
+    }  /* while */
     /* The lambda call operator was made invisible above; make it visible
        again. */
     if (rout_ptr->is_template_function) {
