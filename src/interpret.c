@@ -5339,10 +5339,10 @@ set *p_dbcp to the direct base class for the last step of the derivation path
 static a_boolean handle_weak_routine_address(a_routine_ptr  *p_rp)
 /*
 *p_rp points to an entry representing a function with weak linkage.  If the
-entry is known to alias another function non-alias non-weak function, return
-TRUE and replace *p_rp by that other function (i.e., *p_rp now represents a
-function whose address is also the address of the originally "weak" function).
-Otherwise, return FALSE.
+entry is known to alias a non-alias non-weak function, return TRUE and replace
+*p_rp by that other function (i.e., *p_rp now represents a function whose
+address is also the address of the originally "weak" function).  Otherwise,
+return FALSE.
 */
 {
   a_boolean  result = FALSE;

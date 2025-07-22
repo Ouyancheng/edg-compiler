@@ -84,7 +84,7 @@ is now fixed.
 Constant address of a weak function aliasing a known non-weak function
 
 In modes that accept weak functions (through attributes), the front end
-previously treated the address of such functions a non-constant (because
+previously treated the address of such functions as non-constant (because
 in general that address may be null or the address of an actual function).
 Now, if the weak function is an alias (specified with an attribute like
 "alias" or "weakref") to a known non-weak function, its address is treated
