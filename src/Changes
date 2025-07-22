@@ -1,5 +1,15 @@
 Version 6.8
 
+7/22/25  [EDGcpfe/27876]
+GCC compatibility: spurious error using module as a type name
+
+Previously, the front end would process the identifier "module" as a keyword
+when emulating g++ in C++20 mode or later.  g++ does not enable the module
+keyword in any release version without the use of -fmodules.  The front end now
+requires the --modules command-line option to be passed in g++ emulation mode
+to enable module keywords.
+
+
 7/22/25  [EDGcpfe/22555,EDGcpfe/28231]
 Abort in Clang and Microsoft modes on some CTAD cases
 
