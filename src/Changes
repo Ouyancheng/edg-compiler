@@ -1,5 +1,19 @@
 Version 6.8
 
+7/22/25  [EDGcpfe/28354]
+Array designators for arrays of types with nontrivial construction/destruction
+
+Array designators were previously not permitted in C++ mode if the designated
+elements may involve nontrivial construction or destruction.  GCC also
+disallows such cases, except it permits designators that have no effect (i.e.,
+designators that do not change the index of the next initializer).  The front
+end now emulates that in GNU C++ modes.  For example:
+
+  struct X { ~X(); };
+  X arr[3] = { X{}, [1] = X{} };  // Now okay.  The array designator has no
+                                  // effect.
+
+
 7/22/25  [EDGcpfe/28353]
 Abort on overloaded default constructor
 

@@ -2126,7 +2126,7 @@ available.
 {
   a_boolean              okay, no_bound;
   an_init_component_ptr  icp = *p_icp;
-  a_targ_size_t          repeat_count = 1;
+  a_targ_size_t          repeat_count = 1, orig_idx = *idx;
 
   atype = skip_typerefs(atype);
   check_assertion(atype->kind == (a_type_kind)tk_array);
@@ -2158,12 +2158,17 @@ available.
         !etype->variant.class_struct_union.is_nonreal_class &&
         is_nonPOD_or_has_nontrivial_copy_semantics(etype)) {
       /* Allowing designators in non-POD types (for C++03; classes with
-         non-trivial copy/construction semantics in modern C++) would raise
+         non-trivial copy/construction semantics in modern C++) might raise
          subtle questions about order of initialization and destruction.
-         For now, at least, we disallow such constructs.  (The error is
-         only issued on the first designator if there is a sequence of
-         consecutive designators.) */
-      pos_error(ec_designator_for_non_POD, init_component_pos(icp));
+         GCC only permits them if they are "trivial" (i.e., do not actually
+         change the index of the next initializer) and we emulate that. */
+      an_init_component  *next_icp = next_elem(icp);
+      if (gpp_mode && *idx == orig_idx && !is_designator_component(next_icp)) {
+        pos_warning(ec_no_array_designators_in_cpp_mode,
+                    init_component_pos(icp));
+      } else {
+        pos_error(ec_designator_for_non_POD, init_component_pos(icp));
+      }  /* if */
     }  /* if */
   }  /* if */
   icp = next_elem(icp);
