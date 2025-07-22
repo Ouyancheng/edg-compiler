@@ -2380,6 +2380,15 @@ name is non-NULL.
 #if CHECKING
   validate_type(type);
 #endif /* CHECKING */
+#if C_GEN_BE_GENERATES_C23
+  if (scp != NULL && scp->name != NULL && scp->name[0] == 'b' &&
+      strcmp(scp->name + 1, "ool") == 0) {
+    /* C23 defines a built-in "bool" type, so any declaration of an entity
+       with that name will conflict.  Replace the name with an alternative
+       spelling. */
+    scp->name = "__EDG_user_declared_bool";
+  }  /* if */
+#endif /* C_GEN_BE_GENERATES_C23 */
   if (suppress_const) options = FTO_SUPPRESS_CONST;
 #if GNU_EXTENSIONS_ALLOWED
   if (rout != NULL) {
@@ -10788,6 +10797,16 @@ if this routine has a body (dump nothing if it has no body).
   a_boolean       is_marked_weak = FALSE;
   a_boolean       thread_local_init_case = FALSE;
 
+#if C_GEN_BE_GENERATES_C23
+  if (rout->source_corresp.name != NULL &&
+      rout->source_corresp.name[0] == 'b' &&
+      strcmp(rout->source_corresp.name + 1, "ool") == 0) {
+    /* C23 defines a built-in "bool" type, so any declaration of an entity
+       with that name will conflict.  Replace the name with an alternative
+       spelling. */
+    rout->source_corresp.name = "__EDG_user_declared_bool";
+  }  /* if */
+#endif /* C_GEN_BE_GENERATES_C23 */
   if (rout->suppress_inline_body && has_defn) {
     /* The body is present only to be used for inlining.  This happens
        in C++ when INSTANTIATE_EXTERN_INLINE is enabled, and in C99
