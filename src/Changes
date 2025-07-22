@@ -1,5 +1,19 @@
 Version 6.8
 
+7/22/25  [EDGcpfe/22555,EDGcpfe/28231]
+Abort in Clang and Microsoft modes on some CTAD cases
+
+Consider, in C++17 mode:
+
+  template<typename = int> struct S {};
+  template<typename> void g() {
+    S s;
+  }
+
+During CTAD (class template argument deduction) in Clang or Microsoft mode,
+this trigger a null pointer indirection in the front end.  That is now fixed.
+
+
 7/22/25  [EDGcpfe/28354]
 Array designators for arrays of types with nontrivial construction/destruction
 

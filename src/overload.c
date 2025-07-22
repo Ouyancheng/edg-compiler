@@ -11186,6 +11186,7 @@ reprocess_with_notes:
                   symbol_is(overloaded_function_symbol, sk_undefined) ||
                   !do_arg_dep_lookup))) &&
                !stricter_template_checking &&
+               expr_stack != NULL &&
                !(expr_stack->possible_rescan_context ||
                  expr_stack->template_deduction_context) &&
                (expr_stack->uses_this_operand ||
