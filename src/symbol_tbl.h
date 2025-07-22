@@ -7283,12 +7283,20 @@ Return TRUE if the given symbol is a deduction guide; otherwise, return FALSE.
    that a class could have a defaulted trivial default constructor, and one
    or more nontrivial default constructors that have parameters with default
    arguments.  This macro returns FALSE for such classes; default
-   initialization is ambiguous in such cases.) */
+   initialization may be ambiguous in such cases.) */
 #define has_trivial_default_constructor(cssp)                        \
   (!(cssp)->has_nontrivial_default_constructor &&                    \
    ((cssp)->trivial_default_constructor != NULL ||                   \
     (cssp)->constructor == NULL))
 
+/* Like has_trivial_default_constructor above, but if at least one of the
+   default constructors is trivial but another one is not, this still returns
+   TRUE. */
+#define has_any_trivial_default_constructor(cssp)                    \
+  ((cssp)->trivial_default_constructor != NULL ||                    \
+   (cssp)->constructor == NULL)
+
+/* TRUE if the class has any (trivial or nontrivial) default constructor. */
 #define has_any_default_constructor(cssp)                            \
     ((cssp)->has_nontrivial_default_constructor ||                   \
      (cssp)->trivial_default_constructor != NULL ||                  \

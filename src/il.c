@@ -10323,7 +10323,7 @@ which case the resulting constant is an empty aggregate.
   } else if (is_aggregate_type(utp) || is_vector_type(utp) ||
              (is_immediate_class_type(utp) &&
               (cssp = class_symbol_supp(symbol_for(utp)),
-               has_trivial_default_constructor(cssp)))) {
+               has_any_trivial_default_constructor(cssp)))) {
     return_value = TRUE;
     clear_constant(con, ck_aggregate);
     con->type = type;

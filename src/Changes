@@ -1,5 +1,21 @@
 Version 6.8
 
+7/22/25  [EDGcpfe/28353]
+Abort on overloaded default constructor
+
+Consider, in C++20 mode:
+
+  template <typename... Ts> struct S {
+    constexpr S() = default;
+    constexpr explicit S(Ts...) noexcept requires (sizeof...(Ts) != 0) {}
+  };
+  constexpr S s1;
+  constexpr S s2{};
+
+Depending on the configuration, either or both of the variable declarations
+could trigger assertion failures.  That is now fixed.
+
+
 7/21/25  [EDGcpfe/28340]
 Abort in find_subobject_for_interpreter_address during constant memcpy/memmove
 
