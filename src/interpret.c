@@ -4509,7 +4509,7 @@ Output the contents of the interpreted object of type tp stored at addr.
         for (offset = 0; offset < n_bytes; offset += e_bytes) {
           db_indent(indent-2);
           check_assertion(e_bytes != 0);
-          (void)fprintf(f_debug, "%u:\n", offset/e_bytes);
+          (void)fprintf(f_debug, "%u (%u bytes):\n", offset/e_bytes, offset);
           db_object(addr+offset, etp, complete_object);
         }  /* for */
         indent -= 2;
@@ -4531,7 +4531,7 @@ Output the contents of the interpreted object of type tp stored at addr.
         for (offset = 0; offset < n_bytes; offset += e_bytes) {
           db_indent(indent-2);
           check_assertion(e_bytes != 0);
-          (void)fprintf(f_debug, "%u:\n", offset/e_bytes);
+          (void)fprintf(f_debug, "%u (%u bytes):\n", offset/e_bytes, offset);
           db_object(addr+offset, etp, complete_object);
         }  /* for */
         indent -= 2;
@@ -4545,7 +4545,8 @@ Output the contents of the interpreted object of type tp stored at addr.
       {
         a_field_ptr       fp = fields_of(tp);
         a_base_class_ptr  bcp = base_classes_of(tp);
-        a_byte_count      offset;
+        a_byte_count      offset, size;
+        a_boolean         result = TRUE;
         (void)fprintf(f_debug, "{\n");
         indent += 2;
         /* Output the field values. */
@@ -4560,7 +4561,9 @@ Output the contents of the interpreted object of type tp stored at addr.
           (void)fprintf(f_debug, "field ");
           db_name(&fp->source_corresp);
           get_mapped_byte_count(&persistent_map, fp, offset);
-          (void)fprintf(f_debug, " (offset %u)= \n", offset);
+          size = value_bytes_for_type((an_interpreter_state*)NULL,
+                                      skip_typerefs(fp->type), &result);
+          (void)fprintf(f_debug, " (offset %u, size %u)= \n", offset, size);
           db_object(addr+offset, fp->type, complete_object);
         }  /* for */
         /* Output the base class values. */
@@ -4570,7 +4573,9 @@ Output the contents of the interpreted object of type tp stored at addr.
             (void)fprintf(f_debug, "base ");
             db_type_name(bcp->type);
             get_mapped_byte_count(&persistent_map, bcp, offset);
-            (void)fprintf(f_debug, " (offset %u)= \n", offset);
+            size = value_bytes_for_type((an_interpreter_state*)NULL,
+                                        skip_typerefs(bcp->type), &result);
+            (void)fprintf(f_debug, " (offset %u, size %u)= \n", offset, size);
             if (!subobject_is_initialized(addr+offset, complete_object) ||
                 *(a_base_class_ptr*)(addr+offset) == NULL ||
                 (*(a_base_class_ptr*)(addr+offset))->type != bcp->type) {
@@ -9086,12 +9091,22 @@ address).
 */
 {
   a_boolean   result = TRUE;
-  a_type_ptr  src_tp = obj_type_at_address(ips, src_cap),
-              dst_tp = obj_type_at_address(ips, dst_cap);
+  a_type_ptr  src_tp, dst_tp;
 
   if (n_target_bytes == 0) {
     /* This call is essentially a no-op. */
-  } else if (src_tp != NULL && dst_tp != NULL) {
+    goto done;
+  }  /* if */
+  if (!in_live_set(&ips->live_set, src_cap->alloc_seq_number) ||
+      !in_live_set(&ips->live_set, src_cap->alloc_seq_number)) {
+    do_constexpr_fail(result);
+    info_with_pos(ec_constexpr_access_to_expired_storage, &call_node->position,
+                  ips);
+    goto done;
+  }  /* if */
+  src_tp = obj_type_at_address(ips, src_cap);
+  dst_tp = obj_type_at_address(ips, dst_cap);
+  if (src_tp != NULL && dst_tp != NULL) {
     /* The source and destination point to objects. */
     a_type_ptr  src_etp = skip_typerefs(skip_array_types(src_tp)),
                 dst_etp = skip_typerefs(skip_array_types(dst_tp));
