@@ -10,7 +10,7 @@ member, the front end could abort with an internal error in
 find_subobject_for_interpreter_address (interpret.c).  This is now fixed.
 
 
-7/21/25  [EDGcpfe/27056,EDGcpfe/28185]
+7/21/25  [EDGcpfe/27056,EDGcpfe/28185,EDGcpfe/28343]
 Generated default constructor with default-initialized variant member
 
 Consider, in C++11 (or later) mode:
