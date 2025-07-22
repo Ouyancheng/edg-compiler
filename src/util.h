@@ -1425,6 +1425,8 @@ struct Dyn_array: private Allocator<an_Elem> {
   to_allocated_storage(Elem_allocator<an_elem>  allocator) const;
   inline void push_back(const an_elem  &value);
   inline void push_back(an_elem  &&value);
+  template<typename ...an_Arg_pack>
+  inline void emplace_back(an_Arg_pack&& ...args);
   inline void pop_back()
     { destroy(&((*this)[this->n_elems-1])); --this->n_elems; }
   inline void insert(size_t i, const an_elem  &value);
@@ -1697,6 +1699,24 @@ Allocate new storage if needed.
   construct(this->elems+n, move_from(&value));
   this->n_elems = n+1;
 }  /* Dyn_array::push_back */
+
+
+template<typename an_Elem, template<typename> class Allocator>
+template<typename ...an_Arg_pack>
+inline void Dyn_array<an_Elem, Allocator>::emplace_back(an_Arg_pack&& ...args)
+/*
+Construct in-place a new value after the currently-last element.  The given
+arguments will be forwarded to the constructor.
+*/
+{
+  size_t  n = this->n_elems;
+
+  if (n == this->n_allocated) {
+    this->grow();
+  }  /* if */
+  construct(this->elems+n, fwd<an_Arg_pack>(args)...);
+  this->n_elems = n+1;
+}  /* Dyn_array::emplace_back */
 
 
 template<typename an_Elem, template<typename> class Allocator>
