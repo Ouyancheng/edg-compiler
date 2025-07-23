@@ -26317,7 +26317,7 @@ entity if applicable.
           /* The Clang attribute "using_if_exists" is present either as a
              prefix attribute or as a postfix attribute: Inhibit any lookup
              errors. */
-          idopts |= GID_IN_IF_EXISTS;
+          idopts |= GID_IN_IF_EXISTS | GID_PERMIT_UNKNOWN_QUALIFIER;
         }  /* if */
         sym = coalesce_and_lookup_generalized_identifier(
                                          idopts, ilm_using_declaration, &err);

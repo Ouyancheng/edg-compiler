@@ -206,6 +206,11 @@ typedef unsigned an_identifier_options_set;
 #define GID_IS_DTOR_NAME 0x8000000u
 			/* TRUE when scanning a destructor or C++/CLI finalizer
 			   name. */
+#define GID_PERMIT_UNKNOWN_QUALIFIER 0x10000000u
+			/* TRUE if a name qualifier that is not a type or
+                           namespace (or a known entity at all) should be
+			   permitted.  E.g., X::name where X is not found. */
+
 #define GID_ERROR_FLAGS (GID_DISALLOW_QUALIFIED_NAME |		\
 			 GID_DISALLOW_GLOBAL_QUALIFIER |	\
 			 GID_DISALLOW_OPERATOR_NAME)

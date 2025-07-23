@@ -4153,7 +4153,8 @@ a template argument list or is just a less-than sign.
   if (coalesce_ids) {
     begin_caching_fetched_tokens(/*include_curr_token=*/TRUE);
     /* Attempt to coalesce this token in case it begins an identifier. */
-    an_identifier_options_set  gid_opts = GID_TEMPLATE_ARGS_OPTIONAL;
+    an_identifier_options_set  gid_opts = GID_TEMPLATE_ARGS_OPTIONAL |
+                                          GID_PERMIT_UNKNOWN_QUALIFIER;
     if (is_expr) gid_opts |= GID_IS_EXPR_CONTEXT;
     coalesce_and_scan_concept_args(gid_opts);
   }  /* if */
@@ -15141,10 +15142,12 @@ position of the __if_exists or __if_not_exists token.
     }  /* if */
     /* Bypass the keyword. */
     (void)get_token();
-  } else if (is_generalized_identifier_start(GID_IN_IF_EXISTS)) {
+  } else if (is_generalized_identifier_start(GID_IN_IF_EXISTS |
+                                             GID_PERMIT_UNKNOWN_QUALIFIER)) {
     a_boolean		err;
     sym = coalesce_and_lookup_generalized_identifier(
-                                 GID_IN_IF_EXISTS, ilm_normal, &err);
+                              GID_IN_IF_EXISTS | GID_PERMIT_UNKNOWN_QUALIFIER,
+                              ilm_normal, &err);
     /* Determine whether the symbol refers to a dependent entity.  If the
        symbol is dependent, the tokens are always retained during the
        prototype instantiation. */
@@ -25054,7 +25057,7 @@ selection operator, in which case it points to the type of the left operand.
         if (invalid_qualifier_sym) {
           /* The identifier is followed by a "::" but is not a class symbol. */
           if (!err) {
-            if (in_if_exists) {
+            if (options & GID_PERMIT_UNKNOWN_QUALIFIER) {
               /* Silently ignore the error. */
             } else if (is_vacuous_dtor_or_finalizer) {
               pos_error(ec_id_must_be_class_or_type_name, &error_position);
