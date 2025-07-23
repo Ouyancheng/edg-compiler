@@ -9220,6 +9220,13 @@ interleaved with the variables.
          initializer; putting out a declaration with an initializer would
          be treated as a definition, which would conflict with a real
          definition in another translation unit. */
+#if C_GEN_BE_GENERATES_C23
+    } else if (!dump_initializers && scope->kind == sck_file &&
+               var_ptr->is_thread_local) {
+      /* In C23, a file-scope thread_local declaration is always a
+         definition, so we cannot follow the usual pattern of putting out a
+         non-defining declaration followed by the definition. */
+#endif /* C_GEN_BE_GENERATES_C23 */
     } else {
       dump_variable_decl(var_ptr, dump_vars_without_initializers,
                          dump_initializers);
