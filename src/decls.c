@@ -2385,6 +2385,30 @@ i.e., esp->arg_cached cannot be TRUE).
 }  /* is_template_dependent_noexcept_specification */
 
 
+static a_boolean func_has_builtin_counterpart(a_routine  *rp)
+/*
+Return TRUE if rp is a function with C linkage and a name xyz such that
+__builtin_xyz is a known built-in function name.
+*/
+{
+  a_boolean  result = FALSE;
+
+  if (rp->source_corresp.name_linkage == nlk_external) {
+    a_symbol_locator  loc;
+    sizeof_t          name_len = strlen(rp->source_corresp.name),
+                      prefix_len = sizeof("__builtin_")-1;
+
+    name_len += prefix_len;
+    ensure_temp_text_buffer_space(name_len + 1);
+    strcpy(temp_text_buffer, "__builtin_");
+    strcpy(&temp_text_buffer[prefix_len], rp->source_corresp.name);
+    (void)find_symbol(temp_text_buffer, name_len, &loc);
+    result = loc.symbol_header->is_builtin_function;
+  }  /* if */
+  return result;
+}  /* func_has_builtin_counterpart */
+
+
 a_boolean check_exception_specification(a_type_ptr         new_rout_type,
                                         a_symbol_ptr       prev_decl,
                                         a_source_position  *throw_pos,
@@ -2574,25 +2598,14 @@ previous declaration.
         severity = pos_adjusted_severity(severity, prev_decl);
       }  /* if */
 #if BUILTIN_FUNCTIONS_ENABLED
-      if ((int)severity > (int)es_warning && clang_mode &&
-          rp != NULL && rp->source_corresp.name_linkage == nlk_external &&
-          is_nothrow_spec(old_esp)) {
+      if ((int)severity > (int)es_warning && clang_mode && rp != NULL && 
+          is_nothrow_spec(old_esp) && func_has_builtin_counterpart(rp)) {
         /* Clang exhibits an oddity where several C standard-library functions
            (like sin or strlen) can be declared non-throwing and then
            re-declared without an exception specification.  We identify those
            function by checking if they have a corresponding __builtin_...
            version. */
-        a_symbol_locator  loc;
-        sizeof_t          name_len = strlen(rp->source_corresp.name),
-                          prefix_len = sizeof("__builtin_")-1;
-        name_len += prefix_len;
-        ensure_temp_text_buffer_space(name_len + 1);
-        strcpy(temp_text_buffer, "__builtin_");
-        strcpy(&temp_text_buffer[prefix_len], rp->source_corresp.name);
-        (void)find_symbol(temp_text_buffer, name_len, &loc);
-        if (loc.symbol_header->is_builtin_function) {
-          severity = es_warning;
-        }  /* if */
+        severity = es_warning;
       }  /* if */
 #endif /* BUILTIN_FUNCTIONS_ENABLED */
       pos_sy_diagnostic(severity,
@@ -4524,10 +4537,12 @@ indicating that error recovery should proceed as if no error had occurred
         if (!compat &&
             routine_types_are_redecl_compatible(old_type, type_ptr,
                                                 TCF_NO_FLAGS)) {
+          a_routine_ptr  rp = esdp->variant.routine.ptr;
           if ((gpp_version_is(any_version) ||
                clangcpp_version_is(any_version)) &&
               type_is(old_type, tk_routine) &&
-              seq_is_in_system_header(ext_sym->decl_position.seq) &&
+              (seq_is_in_system_header(ext_sym->decl_position.seq) ||
+               (rp != NULL && func_has_builtin_counterpart(rp))) &&
               f_types_are_compatible(old_type, type_ptr,
                                      TCF_IGNORE_TOP_LEVEL_NOEXCEPT |
                                      TCF_EXACT_DECLTYPE_EXPR_MATCH_REQUIRED |

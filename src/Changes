@@ -1,5 +1,19 @@
 Version 6.8
 
+5/29/25  [EDGcpfe/28195]
+Clang compatibility: Exception specifications on C standard library functions
+
+In Clang C++ mode, the following conflicting declarations
+
+  extern "C" {
+    int xyz(int) throw();
+    int xyz(int);
+  }
+
+are now accepted if __builtin_xyz is the name of a built-in function.
+(Ordinarily, such an exception specification mismatch elicits an error.)
+
+
 7/23/25  [EDGcpfe/28112,EDGcpfe/28246]
 Over-eager instantiation of primary variable template type
 
@@ -779,20 +793,6 @@ Microsoft compatibility: __builtin_offset not available in C mode
 
 The __builtin_offset builtin is no longer available in C mode when emulating
 Microsoft (it remains available in C++ modes).
-
-
-5/29/25  [EDGcpfe/28195]
-Clang compatibility: Exception specifications on C standard library functions
-
-In Clang C++ mode, the following conflicting declarations
-
-  extern "C" {
-    int xyz(int) throw();
-    int xyz(int);
-  }
-
-are now accepted with a warning if __builtin_xyz is the name of a built-in
-function.  (Ordinarily, such a redeclaration is an error.)
 
 
 5/29/25  [EDGcpfe/27230,EDGcpfe/28189]
