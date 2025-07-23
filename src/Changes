@@ -38,7 +38,7 @@ Consider, in C++17 mode:
   }
 
 During CTAD (class template argument deduction) in Clang or Microsoft mode,
-this trigger a null pointer indirection in the front end.  That is now fixed.
+this triggered a null pointer indirection in the front end.  That is now fixed.
 
 
 7/22/25  [EDGcpfe/28354]
