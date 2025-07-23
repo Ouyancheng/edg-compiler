@@ -130,12 +130,6 @@ STATIC_THREAD a_boolean
                            value of FALSE. */
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
 
-STATIC_THREAD a_boolean
-		modules_enabled_on_cli;
-			/* TRUE if modules were explicitly enabled on the
-			   command line.  This is used to allow GNU mode to
-			   force on modules. */
-
 
 static void add_config_dependent_option_description(
 				an_option_kind		kind,
@@ -5818,9 +5812,10 @@ before this routine is called.
     if (gnu_version >= 120000) {
       float16_enabled = TRUE;
     }  /* if */
-    if (!modules_enabled_on_cli) {
+    if (!(option_kind_used[(int)optk_modules] && modules_enabled)) {
       /* No version of g++ supports module keywords by default.  Disable the
-         modules keywords to match g++ parsing. */
+         modules keywords to match g++ parsing unless the modules option was
+         used to enable support for C++20 modules. */
       module_keywords_enabled = FALSE;
     }  /* if */
   }  /* if */
@@ -10659,7 +10654,7 @@ Process the arguments on the command line that invoked the compiler.
         break;
       case optk_modules:
         /* Enable/disable support for modules. */
-        modules_enabled = modules_enabled_on_cli = opt_value;
+        modules_enabled = opt_value;
         if (modules_enabled) {
           if (!option_kind_used[(int)optk_export_template]) {
             /* These are mutually exclusive.  If exported templates was enabled
@@ -13379,7 +13374,6 @@ variables declared in cmd_line.h.
   msvc_lang = NULL;
   ms_cplusplus_std_value = FALSE;
   force_ms_type_info_not_in_namespace_std = FALSE;
-  modules_enabled_on_cli = FALSE;
 #if WRITE_CPPCLI_PORTABLE_ASSEMBLIES
   generate_portable_assemblies = FALSE;
 #endif /* WRITE_CPPCLI_PORTABLE_ASSEMBLIES */
