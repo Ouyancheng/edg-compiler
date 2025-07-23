@@ -2111,6 +2111,15 @@ is non-NULL, in which case that is the function scope.
   /* A routine is put out as unprototyped if its interface is unprototyped
      or if this is the definition and the definition is old-style (i.e.,
      there was a prototyped declaration and then an old-style definition). */
+#if C_GEN_BE_GENERATES_C23
+  if (rtsp->old_style_params_scanned) {
+    /* However, the declaration of a function with parameters cannot be
+       put out as "unprototyped" in C23 since such a declaration will
+       declare a function with no parameters. */
+    rtsp->prototyped = TRUE;
+    rtsp->old_style_params_scanned = FALSE;
+  }  /* if */
+#endif /* C_GEN_BE_GENERATES_C23 */
   /* If the prototype is attached to a function or variable, in C mode,
      its prototype scope if any will have been processed to promote the
      types out into the file scope.  If the prototype appears in some
