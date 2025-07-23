@@ -18,7 +18,11 @@ specialization declaration.  That is now fixed.
 
 
 7/22/25  [EDGcpfe/27876]
-GCC compatibility: spurious error using "module" as a type name
+GCC compatibility: spurious error using "module" as an identifier
+
+Consider the following, with --c++20 --gnu_version=150100:
+
+  int module;   // Previously an error, now okay
 
 Previously, the front end would process the identifier "module" as a keyword
 when emulating g++ in C++20 mode or later.  g++ does not enable the module
