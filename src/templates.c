@@ -7760,8 +7760,11 @@ expression context) rather than a declaration.
        will have an associated initializer. */
     ensure_inclass_static_member_constant_initializer_is_scanned(var_ptr);
   }  /* if */
-  /* If the variable type is a template class, make sure it is instantiated. */
-  complete_type_is_needed(var_ptr->type);
+  if (is_use) {
+    /* If the variable is used and its type is a template class, make sure it
+       is instantiated. */
+    complete_type_is_needed(var_ptr->type);
+  }  /* if */
   if (is_var_templ_instance && is_new) {
     add_to_variables_list(var_ptr, NO_SCOPE_DEPTH);
     /* Copy the in-class initializer flag from the prototype instantiation. */
