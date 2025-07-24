@@ -34,7 +34,7 @@ Consider:
 
 The default argument "P::C" must be cached before it is parsed.  The changes
 for EDGcpfe/27249,EDGcpfe/27478 in version 6.7 caused this caching process to
-verify that validity of qualified names, which in turn caused a spurious error
+verify the validity of qualified names, which in turn caused a spurious error
 in this example because P in P::C is not a valid name qualifier at the point
 where the default argument is cached.  This is now fixed.
 

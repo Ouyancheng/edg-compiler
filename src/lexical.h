@@ -208,8 +208,8 @@ typedef unsigned an_identifier_options_set;
 			   name. */
 #define GID_PERMIT_UNKNOWN_QUALIFIER 0x10000000u
 			/* TRUE if a name qualifier that is not a type or
-                           namespace (or a known entity at all) should be
-			   permitted.  E.g., X::name where X is not found. */
+			   namespace (or a known entity at all) should be
+			   permitted (e.g., X::name where X is not found). */
 
 #define GID_ERROR_FLAGS (GID_DISALLOW_QUALIFIED_NAME |		\
 			 GID_DISALLOW_GLOBAL_QUALIFIER |	\
