@@ -2384,6 +2384,7 @@ i.e., esp->arg_cached cannot be TRUE).
   return result;
 }  /* is_template_dependent_noexcept_specification */
 
+#if BUILTIN_FUNCTIONS_ENABLED
 
 static a_boolean func_has_builtin_counterpart(a_routine  *rp)
 /*
@@ -2408,6 +2409,7 @@ __builtin_xyz is a known built-in function name.
   return result;
 }  /* func_has_builtin_counterpart */
 
+#endif /* BUILTIN_FUNCTIONS_ENABLED */
 
 a_boolean check_exception_specification(a_type_ptr         new_rout_type,
                                         a_symbol_ptr       prev_decl,
