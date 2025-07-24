@@ -1,5 +1,20 @@
 Version 6.8
 
+7/24/25  [EDGcpfe/27654,EDGcpfe/28350]
+Matching of partial specialization with a placeholder for a deduced class type
+
+Previously, the front end failed to match a partial specialization declared
+with a placeholder for a deduced class type.  For example, with --c++20:
+
+  template<int>
+  struct S {
+    char c;
+  };
+  template<typename T, S s> struct N;
+  template<typename T, S s> struct N<T *, s> { };
+  N<int *, S<0>{'a'}> n;  // Previously a spurious error.  Now okay.
+
+
 7/23/25  [EDGcpfe/28169]
 Spurious error on qualified name within a default argument
 

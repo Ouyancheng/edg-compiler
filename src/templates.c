@@ -13713,6 +13713,7 @@ points to the template parameter list.
              in the same expansion. */
           match = templ_type->variant.template_param.is_pack ||
                   is_auto_type(templ_type) ||
+                  is_class_template_placeholder_type(templ_type) ||
                   is_auto_template_param_type(templ_type) ||
                   identical_types(type, templ_type);
         } else {
