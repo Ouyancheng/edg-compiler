@@ -1,5 +1,12 @@
 Version 6.8
 
+7/24/25  [EDGcpfe/28358]
+Clang compatibility: Clang 21 builtins
+
+The front end has been updated with the latest builtin signatures from Clang
+version 21 (based on the recently-released RC1).
+
+
 7/24/25  [EDGcpfe/27654,EDGcpfe/28350]
 Matching of partial specialization with a placeholder for a deduced class type
 
