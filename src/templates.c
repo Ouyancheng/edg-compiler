@@ -33568,6 +33568,7 @@ that follows.
           /* Variable template specializations take the type from the
              specialization. */
           var->type = dps->type;
+          complete_type_is_needed(var->type);
           if (is_invalid_variable_template_type(var, dps, /*is_use=*/TRUE,
                                                 /*issue_error=*/TRUE)) {
             var->type = error_type();
