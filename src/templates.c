@@ -13703,7 +13703,7 @@ points to the template parameter list.
         if (depth_of_template !=
             templ_type->variant.template_param.extra_info->coordinates.depth) {
           /* Template parameters from a different nesting depth.  This can
-             happen for "auto"/"decltype(auto)", which have a dedicated depth
+             happen for placeholder types, which have a dedicated depth
              and are always treated as a match at this point.  Otherwise, this
              should only happen if templ_type is a type from a prototype
              instantiation that includes a template parameter type in the
@@ -13713,8 +13713,8 @@ points to the template parameter list.
              in the same expansion. */
           match = templ_type->variant.template_param.is_pack ||
                   is_auto_type(templ_type) ||
-                  is_class_template_placeholder_type(templ_type) ||
                   is_auto_template_param_type(templ_type) ||
+                  is_class_template_placeholder_type(templ_type) ||
                   identical_types(type, templ_type);
         } else {
           a_template_param_coordinate_ptr  coordinates;
