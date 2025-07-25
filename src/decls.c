@@ -4543,8 +4543,11 @@ indicating that error recovery should proceed as if no error had occurred
           if ((gpp_version_is(any_version) ||
                clangcpp_version_is(any_version)) &&
               type_is(old_type, tk_routine) &&
-              (seq_is_in_system_header(ext_sym->decl_position.seq) ||
-               (rp != NULL && func_has_builtin_counterpart(rp))) &&
+              (
+#if BUILTIN_FUNCTIONS_ENABLED
+               (rp != NULL && func_has_builtin_counterpart(rp)) ||
+#endif /* BUILTIN_FUNCTIONS_ENABLED */
+               seq_is_in_system_header(ext_sym->decl_position.seq)) &&
               f_types_are_compatible(old_type, type_ptr,
                                      TCF_IGNORE_TOP_LEVEL_NOEXCEPT |
                                      TCF_EXACT_DECLTYPE_EXPR_MATCH_REQUIRED |
