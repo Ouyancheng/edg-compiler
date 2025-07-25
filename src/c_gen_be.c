@@ -11225,7 +11225,10 @@ declare_routine:
     }  /* if */
     end_unreferenced_bracket(&rout->source_corresp);
   }  /* if */
+#if C_GEN_BE_GENERATES_C23 && \
+    (GCC_IS_GENERATED_CODE_TARGET || CLANG_IS_GENERATED_CODE_TARGET)
 done:;
+#endif /* C_GEN_BE_GENERATES_C23 && (...) */
 }  /* dump_routine_decl */
 
 
