@@ -1,5 +1,25 @@
 Version 6.8
 
+7/26/25  [EDGcpfe/27137]
+static_assert failure details
+
+When a static_assert declaration fails and the condition is (at the top level)
+a comparison of integer values, the front end now adds a note indicating the
+values involved in that comparison.  For example:
+
+  constexpr int f() { return 42; }
+  static_assert(f() == 8, "");
+
+For the example above, the front end will add to the diagnostic about the
+static assertion having failed a note explaining that the comparison ended up
+as 42 == 8.
+
+This feature required some pervasive changes to the way constant evaluation is
+performed.  In particular, the front end now avoids most early folding of
+constant expressions if it knows that the enclosing full expression is required
+to be constant eventually.  This can be considered an IL Change.
+
+
 7/25/25  [EDGcpfe/27671,EDGcpfe/27945]
 Layout of classes with a base extending beyond direct nonstatic data members
 
@@ -866,21 +886,6 @@ approach to this problem, that avoids unneeded instantiation.  It now
 nonetheless defines the feature macro __cpp_constexpr_in_decltype that
 indicates support for P0859R0 because the front end's approach is a pure
 extension of that paper (and better approximates the behavior of GCC and MSVC).
-
-
-5/29/25  [EDGcpfe/27137]
-static_assert failure details
-
-When a static_assert declaration fails and the condition is (at the top level)
-a comparison of integer values, the front end now adds a note indicating the
-values involved in that comparison.  For example:
-
-  constexpr int f() { return 42; }
-  static_assert(f() == 8, "");
-
-For the example above, the front end will add to the diagnostic about the
-static assertion having failed a note explaining that the comparison ended up
-as 42 == 8.
 
 
 5/28/25  [EDGcpfe/28204]
