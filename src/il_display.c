@@ -390,8 +390,10 @@ be written.
     } else {
       /* Entry is unnamed.  Give short description for some entries. */
       if (entry_kind == iek_constant) {
-        (void)fprintf(f_display, ": ");
-        summarize_constant((a_constant_ptr)entry_ptr);
+        if (!constant_is_recursive((a_constant_ptr)entry_ptr)) {
+           (void)fprintf(f_display, ": ");
+           summarize_constant((a_constant_ptr)entry_ptr);
+        }  /* if */
       } else if (entry_kind == iek_type) {
         a_type_ptr type = (a_type_ptr)entry_ptr;
         (void)fprintf(f_display, ": ");

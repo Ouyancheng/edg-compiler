@@ -2833,6 +2833,7 @@ default values.
   tblock->process_statement = NULL;
   tblock->process_post_statement = NULL;
   tblock->process_type = NULL;
+  tblock->curr_aggregate = NULL;
   tblock->terminate = FALSE;
   tblock->suppress_subtree_walk = FALSE;
   tblock->result = FALSE;
@@ -2841,6 +2842,7 @@ default values.
   tblock->process_template_parameter_constants_and_expressions = FALSE;
   tblock->follow_addressing_path = FALSE;
   tblock->follow_class_rvalue_addressing_path = FALSE;
+  tblock->has_recursive_aggregate_constant = FALSE;
   tblock->set_unordered_on_dynamic_inits = FALSE;
   tblock->relink_dynamic_inits = FALSE;
   tblock->last_relinked_dynamic_init = NULL;
@@ -2915,8 +2917,25 @@ it's the initializer for an aggregate.
   }  /* if */
   switch (constant->kind) {
     case ck_aggregate:
-      traverse_constant_list(constant->variant.aggregate.first_constant,
-                             tblock);
+      { an_aggregate_constant_stack_entry  *cp_stack = tblock->curr_aggregate;
+        for (; cp_stack != NULL; cp_stack = cp_stack->prev) {
+          if (cp_stack->aggr_constant == constant) break;
+        }  /* for */
+        if (cp_stack == NULL) {
+          /* This is the first time we see this ck_aggregate entry. */
+          an_aggregate_constant_stack_entry
+                                 entry = { tblock->curr_aggregate, constant };
+          tblock->curr_aggregate = &entry;
+           
+          traverse_constant_list(constant->variant.aggregate.first_constant,
+                                 tblock);
+          tblock->curr_aggregate = entry.prev;
+        } else {
+          /* This is a recursive case.  Do not traverse the constant again,
+             but note the presence of the cycle. */
+          tblock->has_recursive_aggregate_constant = TRUE;
+        }  /* if */
+      }
       break;
     case ck_init_repeat:
       traverse_constant(constant->variant.init_repeat.constant, tblock);
@@ -2926,23 +2945,19 @@ it's the initializer for an aggregate.
       break;
     case ck_address:
       if (tblock->process_type != NULL) {
-        if (constant->variant.address.kind==(an_address_base_kind)abk_uuidof ||
-            constant->variant.address.kind==(an_address_base_kind)abk_typeid
+        if (constant->variant.address.kind== abk_uuidof ||
 #if MICROSOFT_EXTENSIONS_ALLOWED
-            || constant->variant.address.kind ==
-                                          (an_address_base_kind)abk_cli_typeid
+            constant->variant.address.kind == abk_cli_typeid ||
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
-            ) {
+            constant->variant.address.kind== abk_typeid) {
           tblock->process_type(constant->variant.address.variant.type,
                                tblock);
           if (tblock->terminate) goto end_of_routine;
         }  /* if */
       }  /* if */
       if (tblock->process_non_dynamic_constants) {
-        if (constant->variant.address.kind ==
-                                         (an_address_base_kind)abk_constant ||
-            constant->variant.address.kind ==
-                                         (an_address_base_kind)abk_temporary) {
+        if (constant->variant.address.kind == abk_constant ||
+            constant->variant.address.kind == abk_temporary) {
           /* The address of another constant, e.g., a string, or a
              temporary initialized to a constant. */
           traverse_constant(constant->variant.address.variant.constant,
@@ -3028,6 +3043,19 @@ post_processing:
   }  /* if */
 end_of_routine:;
 }  /* traverse_constant */
+
+
+a_boolean constant_is_recursive(a_constant  *cp)
+/*
+Return TRUE if the given constant contains a cycle in its structure.
+*/
+{
+  an_expr_or_stmt_traversal_block  tblock;
+  clear_expr_or_stmt_traversal_block(&tblock);
+  tblock.process_non_dynamic_constants = TRUE;
+  traverse_constant(cp, &tblock);
+  return tblock.has_recursive_aggregate_constant;
+}  /* constant_is_recursive */
 
 
 void traverse_dynamic_init(a_dynamic_init_ptr                  dip,

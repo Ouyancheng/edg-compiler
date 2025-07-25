@@ -223,6 +223,20 @@ typedef a_traversal_type_process_function
 
 typedef struct a_seq_pt_var_entry a_seq_pt_var_entry_dummy_typedef;
 
+/*
+Structure to track a_constant/ck_aggregate entries being traversed.  It is
+possible, via ck_address/abk_temporary entries, to have cycles in the structure
+of a_constant, and this is used to detect those cycles and avoid runaway
+recursion in traverse_constant. */
+struct an_aggregate_constant_stack_entry {
+  an_aggregate_constant_stack_entry
+		*prev;
+			/* Previously entry on the stack (or NULL, if none). */
+  a_constant	*aggr_constant;
+			/* a_constant entry being traversed. */
+};
+
+
 typedef struct an_expr_or_stmt_traversal_block {
   /* If you add fields here, also add them to
      clear_expr_or_stmt_traversal_block. */
@@ -264,6 +278,10 @@ typedef struct an_expr_or_stmt_traversal_block {
 		process_type;
 			/* Function called for each type, before the
 			   subtree. */
+  an_aggregate_constant_stack_entry
+		*curr_aggregate;
+			/* The current ck_aggregate constant being
+			   traversed. */
   a_boolean	terminate;
 			/* A called routine can set this to TRUE to
 			   terminate the tree walk. */
@@ -301,6 +319,9 @@ typedef struct an_expr_or_stmt_traversal_block {
 			/* If follow_addressing_path is TRUE, then if this
 			   is TRUE the subtree walk should follow class rvalue
 			   objects as part of the addressing walk. */
+  a_boolean	has_recursive_aggregate_constant;
+			/* TRUE if traverse_constant found a recursive
+			   aggregate. */
   /* Fields used by examine_expr_for_unordered_temp_inits: */
   a_boolean	set_unordered_on_dynamic_inits;
 			/* If TRUE, set the "unordered" flag in dynamic
@@ -388,6 +409,8 @@ extern void clear_expr_or_stmt_traversal_block(
 
 extern void traverse_constant(a_constant_ptr                      constant,
                               an_expr_or_stmt_traversal_block_ptr tblock);
+
+extern a_boolean constant_is_recursive(a_constant  *cp);
 
 extern void traverse_dynamic_init(a_dynamic_init_ptr                  dip,
                                   an_expr_or_stmt_traversal_block_ptr tblock);
