@@ -1,5 +1,24 @@
 Version 6.8
 
+7/25/25  [EDGcpfe/27671,EDGcpfe/27945]
+Layout of classes with a base extending beyond direct nonstatic data members
+
+Consider, in an IA-64 ABI configuration and int having size and alignment 4:
+
+  struct E {};
+  struct B {
+    int i;
+    [[no_unique_address]] E e1;
+    [[no_unique_address]] E e2;
+    B() {}
+  };
+  struct D: B {};
+
+sizeof(B) == 8 (4 bytes for B::i and padding for the subsequent (empty) data
+members.  sizeof(D) should therefore also equal 8, but the front end previously
+erroneously recorded a size of 4 for D.  That is now fixed.
+
+
 7/24/25  [EDGcpfe/28358]
 Clang compatibility: Clang 21 builtins
 
