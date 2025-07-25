@@ -17,7 +17,11 @@ as 42 == 8.
 This feature required some pervasive changes to the way constant evaluation is
 performed.  In particular, the front end now avoids most early folding of
 constant expressions if it knows that the enclosing full expression is required
-to be constant eventually.  This can be considered an IL Change.
+to be constant eventually.  This can be considered an IL CHANGE: No a_constant
+entries are created any longer for the intermediate expressions.  These changes
+also revealed some pre-existing shortcomings in the constant evaluation
+interpreter, and those have been fixed (the handling of vector operations was
+improved in particular).
 
 
 7/25/25  [EDGcpfe/27671,EDGcpfe/27945]
