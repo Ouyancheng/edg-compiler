@@ -1,6 +1,6 @@
 Version 6.8
 
-7/26/25  [EDGcpfe/27137]
+7/25/25  [EDGcpfe/27137]
 static_assert failure details
 
 When a static_assert declaration fails and the condition is (at the top level)
