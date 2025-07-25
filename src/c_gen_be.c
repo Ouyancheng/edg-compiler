@@ -11111,6 +11111,27 @@ declare_routine:
 #endif /* GNU_EXTENSIONS_ALLOWED && !LOWER_IFUNC */
     if (!is_definition) {
       /* A declaration of the routine. */
+#if C_GEN_BE_GENERATES_C23 && \
+    (GCC_IS_GENERATED_CODE_TARGET || CLANG_IS_GENERATED_CODE_TARGET)
+      a_routine_type_supplement_ptr rtsp =
+                                        rout->type->variant.routine.extra_info;
+      if (!rtsp->prototyped && rtsp->assoc_routine == NULL) {
+        /* This function may have been implicitly declared, resulting in an
+           unprototyped function type returning int.  If that declaration
+           is for a function for which the target compiler provides a
+           built-in equivalent, we must put out a compatible declaration
+           instead of the one in the IL. */
+        if (rout->source_corresp.name[0] == 'a' &&
+            strcmp(rout->source_corresp.name + 1, "bort") == 0) {
+          write_tok_str("void abort(void);");
+          goto done;
+        } else if (rout->source_corresp.name[0] == 'p' &&
+                   strcmp(rout->source_corresp.name + 1, "rintf") == 0) {
+          write_tok_str("int printf(const char *, ...);");
+          goto done;
+        }  /* if */
+      }  /* if */
+#endif /* C_GEN_BE_GENERATES_C23 && (...) */
       dump_general_declaration_using_type(rout->type, &rout->source_corresp,
                                           NO_VARIABLE, rout, NO_FIELD, NO_TEMP,
                                           NO_NAME, TQ_NONE,
@@ -11204,6 +11225,7 @@ declare_routine:
     }  /* if */
     end_unreferenced_bracket(&rout->source_corresp);
   }  /* if */
+done:;
 }  /* dump_routine_decl */
 
 
