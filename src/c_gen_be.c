@@ -9228,8 +9228,16 @@ interleaved with the variables.
          non-defining declaration followed by the definition. */
 #endif /* C_GEN_BE_GENERATES_C23 */
     } else {
-      dump_variable_decl(var_ptr, dump_vars_without_initializers,
-                         dump_initializers);
+      a_boolean dump_no_init = dump_vars_without_initializers;
+#if C_GEN_BE_GENERATES_C23
+      if (scope->kind == sck_file && var_ptr->is_thread_local) {
+        /* We skipped the "forward declaration" of thread-local variables,
+           so we need to ensure that they are put out in the "definition"
+           pass over the variable list. */
+        dump_no_init = TRUE;
+      }  /* if */
+#endif /* C_GEN_BE_GENERATES_C23 */
+      dump_variable_decl(var_ptr, dump_no_init, dump_initializers);
     }  /* if */
   }  /* for */
   if (interleave_asm_decls) {
