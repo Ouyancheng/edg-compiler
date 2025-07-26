@@ -11130,6 +11130,16 @@ declare_routine:
           write_tok_str("int printf(const char *, ...);");
           goto done;
         }  /* if */
+        if (has_attr(ak_ifunc, rout->source_corresp.attributes)) {
+          /* This function was declared unprototyped, i.e., with the
+             parameter list "()".  In general, unprototyped functions that
+             are not defined will be declared with an ellipsis in case
+             arguments are passed in a call to the function.  However, that
+             declaration is not compatible with the expected type of an
+             indirect function.  Ensure that it is put out with a "(void)"
+             parameter list. */
+          rtsp->prototyped = TRUE;
+        }  /* if */
       }  /* if */
 #endif /* C_GEN_BE_GENERATES_C23 && (...) */
       dump_general_declaration_using_type(rout->type, &rout->source_corresp,
