@@ -50662,12 +50662,15 @@ memory region).  Do various error checks.
      use of the backing expression). */
   need_backing_expr = (depth_template_declaration_scope != NO_SCOPE_DEPTH ||
                        operand->caused_template_instantiation);
-  if (!need_backing_expr && is_expression_operand(operand) &&
-      is_variable_node(operand->variant.expression) &&
-      node_variable(operand->variant.expression)->is_constexpr) {
-    /* We also need to preserve an expression designating a constexpr
-       variable so the template argument can be determined to refer to it
-       rather than to the folded constant. */
+  if (!need_backing_expr &&
+      ((is_expression_operand(operand) &&
+        is_variable_node(operand->variant.expression)) ||
+       (is_constant_operand(operand) &&
+        operand->variant.constant.expr != NULL &&
+        operand->variant.constant.expr->kind == enk_temp_init))) {
+    /* We also need to preserve an expression designating a variable or
+       explicit temporary so the template argument can be determined to
+       refer to it rather than to the folded constant. */
     need_backing_expr = TRUE;
   }  /* if */
   if (ms_version_is(<1310) &&

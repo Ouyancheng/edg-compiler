@@ -1,5 +1,19 @@
 Version 6.8
 
+7/26/25  [EDGcpfe/28359]
+C++-generating back end: non-type template arguments of class type
+
+The C++-generating back end sometimes generated incorrect code when a
+non-type template argument is of class type and constructed via a constexpr
+constructor.  This is now fixed.  For example, with --c++20:
+
+  struct C {
+    constexpr C(char) { }
+  };
+  template<C> struct X { };
+  X<C('a')> x;   // previously generated as X<C{}>
+
+
 7/25/25  [EDGcpfe/28357]
 Traversal of self-referencing aggregate constant entries
 
