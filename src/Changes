@@ -64,8 +64,8 @@ Consider, in an IA-64 ABI configuration and int having size and alignment 4:
   struct D: B {};
 
 sizeof(B) == 8 (4 bytes for B::i and padding for the subsequent (empty) data
-members.  sizeof(D) should therefore also equal 8, but the front end previously
-erroneously recorded a size of 4 for D.  That is now fixed.
+members).  sizeof(D) should therefore also equal 8, but the front end
+previously erroneously recorded a size of 4 for D.  That is now fixed.
 
 
 7/24/25  [EDGcpfe/28358]
