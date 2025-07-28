@@ -231,7 +231,7 @@ recursion in traverse_constant. */
 struct an_aggregate_constant_stack_entry {
   an_aggregate_constant_stack_entry
 		*prev;
-			/* Previously entry on the stack (or NULL, if none). */
+			/* Previous entry on the stack (or NULL, if none). */
   a_constant	*aggr_constant;
 			/* a_constant entry being traversed. */
 };

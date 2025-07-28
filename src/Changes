@@ -17,10 +17,12 @@ constructor.  This is now fixed.  For example, with --c++20:
 7/25/25  [EDGcpfe/28357]
 Traversal of self-referencing aggregate constant entries
 
-Some complex constant evaluations can result in a a_constant/ck_aggregate entry
-X that directly or indirectly contains a ck_address/abk_temporary that points
-back to X.  Traversing X using the traverse_constant function or the machinery
-in il_display.c then resulted in runaway recursion.  That is now fixed.
+Some complex constant evaluations can result in an a_constant/ck_aggregate
+entry X that directly or indirectly contains a ck_address/abk_temporary that
+points back to X.  Traversing X using the traverse_constant function or the
+machinery in il_display.c then resulted in runaway recursion.  That is now
+fixed by having those routines detect such circular references and terminate
+the recursion.
 
 
 7/25/25  [EDGcpfe/27137]

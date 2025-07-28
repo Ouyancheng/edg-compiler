@@ -2945,11 +2945,11 @@ it's the initializer for an aggregate.
       break;
     case ck_address:
       if (tblock->process_type != NULL) {
-        if (constant->variant.address.kind== abk_uuidof ||
+        if (constant->variant.address.kind == abk_uuidof ||
 #if MICROSOFT_EXTENSIONS_ALLOWED
             constant->variant.address.kind == abk_cli_typeid ||
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
-            constant->variant.address.kind== abk_typeid) {
+            constant->variant.address.kind == abk_typeid) {
           tblock->process_type(constant->variant.address.variant.type,
                                tblock);
           if (tblock->terminate) goto end_of_routine;
