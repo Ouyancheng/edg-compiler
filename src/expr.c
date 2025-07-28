@@ -23102,11 +23102,12 @@ Returns the base type for the new statement.
         set_type_size(nps->unqual_new_type);
       }  /* if */
     } else if (is_incomplete_type(nps->new_type)) {
-      /* A case like "new int[]" -- an incomplete array type.  C++20 allows
-         this, provided we have an initializer that we can use to deduce the
-         array size. */
+      /* A case like "new int[]" -- an incomplete array type. This is permitted
+         in C++11 (after a defect report that was resolved with paper P1009R2),
+         provided we have an initializer that we can use to deduce the array
+         size. */
       if ((allow_parenthesized_aggregate_init && nps->has_new_initializer) ||
-          (cpp20_mode && nps->has_braced_initializer)) {
+          (cpp11_mode && nps->has_braced_initializer)) {
         deduce_new_array_size(nps, dps);
 #if MICROSOFT_EXTENSIONS_ALLOWED
       } else if (ms_version_is(<1900) &&
