@@ -4539,7 +4539,9 @@ indicating that error recovery should proceed as if no error had occurred
         if (!compat &&
             routine_types_are_redecl_compatible(old_type, type_ptr,
                                                 TCF_NO_FLAGS)) {
+#if BUILTIN_FUNCTIONS_ENABLED
           a_routine_ptr  rp = esdp->variant.routine.ptr;
+#endif /* BUILTIN_FUNCTIONS_ENABLED */
           if ((gpp_version_is(any_version) ||
                clangcpp_version_is(any_version)) &&
               type_is(old_type, tk_routine) &&
