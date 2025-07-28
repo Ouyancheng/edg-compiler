@@ -1,5 +1,18 @@
 Version 6.8
 
+7/28/25  [EDGcpfe/24181]
+Overload resolution failure for parameters declared using typedef names
+
+Previously, the front end did not always treat a typedef name as
+equivalent to the aliased type during partial ordering, which could lead to
+spurious overload resolution failures.  For example, with --c++11:
+
+  using INT = int;
+  template<typename T> int f(T, INT &&);
+  template<typename T> int f(T *, int &&);
+  int i = f("", 0);  // Previously a spurious error.  Now okay.
+
+
 7/26/25  [EDGcpfe/28359]
 C++-generating back end: non-type template arguments of class type
 

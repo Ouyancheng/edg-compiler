@@ -3452,8 +3452,10 @@ entire_type is FALSE, and must be zero otherwise.
     prev_type2 = param_type2;
     param_type1 = skip_typerefs(param_type1);
     param_type2 = skip_typerefs(param_type2);
-    qualifiers_dropped1 = param_type1 != prev_type1;
-    qualifiers_dropped2 = param_type2 != prev_type2;
+    qualifiers_dropped1 = param_type1 != prev_type1 &&
+                          get_type_qualifiers(prev_type1) != TQ_NONE;
+    qualifiers_dropped2 = param_type2 != prev_type2 &&
+                          get_type_qualifiers(prev_type2) != TQ_NONE;
   } else if (!use_nonstd_partial_ordering) {
     /* Remove any qualifiers that may have been under a reference when
        not both types are references.  This is suppressed when
