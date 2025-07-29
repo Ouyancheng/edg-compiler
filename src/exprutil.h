@@ -1360,31 +1360,22 @@ below.
      innermost_function_scope->expr_node_refs != NULL) ||         \
     depth_template_declaration_scope != NO_SCOPE_DEPTH))
 #else /* !(DO_IL_LOWERING && !RECORD_BACKING_EXPRS_WITH_IL_LOWERING) */
-#if !KEEP_TEMPLATE_ARG_EXPR_THAT_CAUSES_INSTANTIATION || \
+#if !BACKING_EXPR_FOR_NONTYPE_TEMPL_ARG || \
     TEMPLATE_INSTANTIATIONS_IN_SOURCE_SEQUENCE_LISTS
 /* In non-IL-lowering configurations, backing expressions are normally kept
-   for all non-preprocessing constants except non-type template arguments,
-   but even those are kept within template declarations.  (This applies to
-   TEMPLATE_INSTANTIATIONS_IN_SOURCE_SEQUENCE_LISTS configurations as well.
-   Configurations that keep backing expressions for template arguments do
-   so to record the fact that a given template argument caused the implicit
-   instantiation of a template, but with
-   TEMPLATE_INSTANTIATIONS_IN_SOURCE_SEQUENCE_LISTS the instantiations are
-   handled explicitly.) */
+   for all non-preprocessing constants, including non-type template
+   arguments.  Although the latter are required for the C++-generating back
+   end, they can be explicitly suppressed in other configurations. */
 #define curr_expr_kind_is_one_in_which_const_exprs_are_recorded() \
   (!curr_expr_kind_is(ek_pp) &&                                   \
    (depth_template_declaration_scope != NO_SCOPE_DEPTH ||         \
     !curr_expr_kind_is(ek_template_arg)))
-#else /* !(!KEEP_TEMPLATE_ARG_EXPR_THAT_CAUSES_INSTANTIATION || ...) */
-/* When KEEP_TEMPLATE_ARG_EXPR_THAT_CAUSES_INSTANTIATION is TRUE, all
-   non-preprocessing contexts allow backing expressions to be
-   recorded.  Backing expressions for non-type template arguments that
-   do not cause template instantiations are eventually discarded,
-   however; see prep_nontype_template_argument_initializer for
-   details. */
+#else /* !(!BACKING_EXPR_FOR_NONTYPE_TEMPL_ARG || ...) */
+/* When BACKING_EXPR_FOR_NONTYPE_TEMPL_ARG is TRUE, all non-preprocessing
+   contexts allow backing expressions to be recorded. */
 #define curr_expr_kind_is_one_in_which_const_exprs_are_recorded() \
   (!curr_expr_kind_is(ek_pp))
-#endif /* !KEEP_TEMPLATE_ARG_EXPR_THAT_CAUSES_INSTANTIATION || ... */
+#endif /* !BACKING_EXPR_FOR_NONTYPE_TEMPL_ARG || ... */
 #endif /* DO_IL_LOWERING && !RECORD_BACKING_EXPRS_WITH_IL_LOWERING */
 
 /*

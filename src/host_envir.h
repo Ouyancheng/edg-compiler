@@ -1439,39 +1439,38 @@ back end does not understand.
 
 /*
 Flag that is TRUE to indicate that backing expressions should be kept for
-non-type template arguments that cause template instantiations.  Normally
-such backing expressions are not kept because a given template instance can
-be referred to many times using different expressions that fold to the same
-constant value, and only one of those could be kept in the template
-argument.  In some configurations, however, particularly for the
-C++-generating back end, it is desirable to retain the backing expression
-if it causes a template to be instantiated; eliminating the expression
-could cause that template not to be instantiated in the generated code.
-This flag allows the backing expression to be kept in such cases, but only
-for the first reference; because the template argument can reflect only a
-single backing expression, the expressions in subsequent references will be
-discarded, even if they cause other template instantiations.
+non-type template arguments.  Except for C++-generating back end
+configurations, where they are required, such backing expressions are not
+kept because a given template instance can be referred to many times using
+different expressions that fold to the same constant value, and only one of
+those could be kept in the template argument.
 */
-#ifndef KEEP_TEMPLATE_ARG_EXPR_THAT_CAUSES_INSTANTIATION
-#if ALL_TEMPLATE_INFO_IN_IL
-/* It is particularly important when generating template definitions from
-   the prototype instantiation IL to have the backing expression for a
-   non-type template argument; otherwise, the constant might be folded to a
-   form that cannot be used in the generated code, with no way of
-   recovering the original form of the argument.  For example, a constexpr
-   variable's folded form could be an aggregate constant, which cannot be
-   passed to a parameter pack; the original pack expansion naming the
-   variable can only be retrieved from the constant's backing expression. */
-#define KEEP_TEMPLATE_ARG_EXPR_THAT_CAUSES_INSTANTIATION TRUE
-#else /* !ALL_TEMPLATE_INFO_IN_IL */
-#define KEEP_TEMPLATE_ARG_EXPR_THAT_CAUSES_INSTANTIATION FALSE
-#endif /* ALL_TEMPLATE_INFO_IN_IL */
-#endif /* KEEP_TEMPLATE_ARG_EXPR_THAT_CAUSES_INSTANTIATION */
-#if KEEP_TEMPLATE_ARG_EXPR_THAT_CAUSES_INSTANTIATION && DO_IL_LOWERING && \
+#ifdef KEEP_TEMPLATE_ARG_THAT_CAUSES_TEMPLATE_INSTANTIATION
+/* In earlier versions of the front end, this option had a more limited
+   scope and was named accordingly.  Preserve the effect of legacy
+   configurations that use the previous name. */
+#define BACKING_EXPR_FOR_NONTYPE_TEMPL_ARG \
+                           KEEP_TEMPLATE_ARG_THAT_CAUSES_TEMPLATE_INSTANTIATION
+#endif /* defined(KEEP_TEMPLATE_ARG_THAT_CAUSES_TEMPLATE_INSTANTIATION) */
+#ifndef BACKING_EXPR_FOR_NONTYPE_TEMPL_ARG
+#if BACK_END_IS_CP_GEN_BE
+/* The C++-generating back end requires backing expressions for non-type
+   template arguments in order to preserve the correct form and semantics of
+   the original source code. */
+#define BACKING_EXPR_FOR_NONTYPE_TEMPL_ARG TRUE
+#else /* !BACK_END_IS_CP_GEN_BE */
+#define BACKING_EXPR_FOR_NONTYPE_TEMPL_ARG FALSE
+#endif /* BACK_END_IS_CP_GEN_BE */
+#endif /* !defined(BACKING_EXPR_FOR_NONTYPE_TEMPL_ARG) */
+#if BACK_END_IS_CP_GEN_BE && !BACKING_EXPR_FOR_NONTYPE_TEMPL_ARG
+ #error -- C++-generating back end configurations require \
+           BACKING_EXPR_FOR_NONTYPE_TEMPL_ARG to be TRUE
+#endif /* BACK_END_IS_CP_GEN_BE && !BACKING_EXPR_FOR_NONTYPE_TEMPL_ARG */
+#if BACKING_EXPR_FOR_NONTYPE_TEMPL_ARG && DO_IL_LOWERING && \
     !RECORD_BACKING_EXPRS_WITH_IL_LOWERING
- #error -- KEEP_TEMPLATE_ARG_EXPR_THAT_CAUSES_INSTANTIATION requires a \
-           configuration in which backing expressions are recorded
-#endif /* KEEP_TEMPLATE_ARG_EXPR_THAT_CAUSES_INSTANTIATION && ... */
+ #error -- BACKING_EXPR_FOR_NONTYPE_TEMPL_ARG requires a configuration in \
+           which backing expressions are recorded
+#endif /* BACKING_EXPR_FOR_NONTYPE_TEMPL_ARG && ... */
 
 /*
 Flag that is TRUE to cause source-sequence lists to be generated.  These

@@ -6424,6 +6424,11 @@ file.
 #else /* !defined(AUTOMATIC_TEMPLATE_INSTANTIATION) */
   comment_undefined_macro_name(AUTOMATIC_TEMPLATE_INSTANTIATION);
 #endif /* defined(AUTOMATIC_TEMPLATE_INSTANTIATION) */
+#if defined(BACKING_EXPR_FOR_NONTYPE_TEMPL_ARG)
+  define_numeric_valued_macro(BACKING_EXPR_FOR_NONTYPE_TEMPL_ARG);
+#else /* !defined(BACKING_EXPR_FOR_NONTYPE_TEMPL_ARG) */
+  comment_undefined_macro_name(BACKING_EXPR_FOR_NONTYPE_TEMPL_ARG);
+#endif /* defined(BACKING_EXPR_FOR_NONTYPE_TEMPL_ARG) */
 #if defined(BACKSLASH_CAN_OCCUR_AS_PART_OF_MULTIBYTE_CHAR)
   define_numeric_valued_macro(BACKSLASH_CAN_OCCUR_AS_PART_OF_MULTIBYTE_CHAR);
 #else /* !defined(BACKSLASH_CAN_OCCUR_AS_PART_OF_MULTIBYTE_CHAR) */
@@ -8169,13 +8174,6 @@ file.
   comment_undefined_macro_name(
                       KEEP_OBJECT_LIFETIME_INFO_IN_LOWERED_IL_WHEN_EH_ENABLED);
 #endif /* defined(KEEP_OBJECT_LIFETIME_INFO_IN_LOWERED_IL_WHEN_EH_ENABLED) */
-#if defined(KEEP_TEMPLATE_ARG_EXPR_THAT_CAUSES_INSTANTIATION)
-  define_numeric_valued_macro(
-                             KEEP_TEMPLATE_ARG_EXPR_THAT_CAUSES_INSTANTIATION);
-#else /* !defined(KEEP_TEMPLATE_ARG_EXPR_THAT_CAUSES_INSTANTIATION) */
-  comment_undefined_macro_name(
-                             KEEP_TEMPLATE_ARG_EXPR_THAT_CAUSES_INSTANTIATION);
-#endif /* defined(KEEP_TEMPLATE_ARG_EXPR_THAT_CAUSES_INSTANTIATION) */
 #if defined(LARGE_IL_FILE_SUPPORT)
   define_numeric_valued_macro(LARGE_IL_FILE_SUPPORT);
 #else /* !defined(LARGE_IL_FILE_SUPPORT) */

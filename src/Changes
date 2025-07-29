@@ -1,5 +1,25 @@
 Version 6.8
 
+7/29/25  [EDGcpfe/27947]
+C++-generating back end: backing expressions for non-type template arguments
+
+The C++-generating back end relies on the existence of backing expressions
+for non-type template arguments in order to generate correct code that
+accurately reflects the semantics of the original source code.  The
+KEEP_TEMPLATE_ARG_EXPR_THAT_CAUSES_INSTANTIATION configuration option
+controlled whether these backing expressions were preserved; however, that
+option was not required to be TRUE in C++-generating back end
+configurations, resulting in incorrect code generation in some
+configurations.  That is no longer permitted; instead, a build error will
+occur if such a configuration is attempted.
+
+In addition, the name of the configuration option reflected an earlier,
+more limited usage of these backing expressions, so the option has been
+renamed as BACKING_EXPR_FOR_NONTYPE_TEMPL_ARG.  Previous configurations
+that set the option using the old name will continue to work, as the value
+of the new option will be taken from the old setting if it is defined.
+
+
 7/28/25  [EDGcpfe/28361]
 C++-generating back end: new-expression with variadic braced initializer
 
