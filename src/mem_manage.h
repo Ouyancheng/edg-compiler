@@ -104,13 +104,128 @@ extern char *alloc_resizable_buffer(sizeof_t size);
 extern char *realloc_buffer(char     *old_ptr,
                             sizeof_t old_size,
                             sizeof_t new_size);
-/* Allocate space in a given memory region. */
-extern char *alloc_in_region(a_memory_region_number number,
-                             sizeof_t               size);
 
-extern
-a_void_ptr alloc_general_or_in_region(a_memory_region_number	region,
-				      sizeof_t			size);
+constexpr sizeof_t
+		HUGE_FE_MEM_THRESHOLD = (sizeof(a_mem_block_header) +
+					  (10 * sizeof(a_constant)));
+			/* The amount of bytes before a front end allocation is
+			   considered a huge allocation. */
+
+extern a_mem_block_header_ptr alloc_mem_block(
+                                       a_memory_region_number region_number,
+                                       sizeof_t               min_size,
+                                       char                   *desired_addr,
+                                       a_boolean              small_extension);
+
+extern void trim_mem_block(a_mem_block_header_ptr hdr);
+
+#if DEBUG
+extern void track_allocation(a_memory_region_number region_number,
+                             sizeof_t               size,
+                             sizeof_t               orig_size);
+#endif /* DEBUG */
+
+
+inline char *alloc_in_region(a_memory_region_number region_number,
+                             sizeof_t               size)
+/*
+Allocate "size" bytes in memory region "region_number", and return a
+pointer to them.  Generate a catastrophic error and do not return if
+the storage cannot be allocated.  Memory region 0 (NULL_region_number)
+is used for allocation of general front end memory (i.e., not IL).
+*/
+{
+  char                   *temp_ptr;
+  a_mem_block_header_ptr hdr;
+
+  /* Ensure at least one byte is allocated to ensure that zero-sized objects
+     have distinct memory addresses. */
+  size = max_val(size, (sizeof_t)1);
+
+#if DEBUG
+  sizeof_t orig_size = size;
+#endif /* DEBUG */
+  /* Round up the size if necessary to preserve alignment.  Note that
+     aside from keeping the data correctly aligned, this also keeps the
+     next available address properly aligned, which is important in
+     trim_mem_block. */
+  do_host_alignment(&size);
+
+  /* See if enough space remains in the current block.  If not, get
+     a new block.  Note that we add the required host alignment to the
+     requested allocation size.  This is done to ensure that no piece
+     of memory ends precisely at the end of low-level allocation.  On
+     some systems this can cause memory faults by system routines that
+     seem to make the assumption that this won't occur. */
+  hdr = mem_region_table[region_number];
+
+  sizeof_t  true_size = size + HOST_ALIGNMENT_REQUIRED;
+  a_boolean use_dedicated_mem_block = true_size >= HUGE_FE_MEM_THRESHOLD;
+  if (use_dedicated_mem_block) {
+    /* If above the HUGE_FE_MEM_THRESHOLD, a dedicated memory region header is
+       created. */
+    trim_mem_block(hdr);
+    hdr = alloc_mem_block(region_number, true_size, (char*)NULL,
+                          /*small_extension=*/TRUE);
+  } else {
+    /* Suppress the CodeCenter warning caused because after_end_of_block
+       may be point to memory that is not allocated, or is part of a
+       different allocation. */
+    /*SUPPRESS 22*/
+    sizeof_t remaining_space = (sizeof_t)(hdr->after_end_of_block -
+                                          hdr->next_avail_in_block);
+    if (true_size > remaining_space) {
+      /* Not enough space remaining in current block.  Free any unused
+         space at the end of the current last block, and start a new block.
+         If the memory region has already been trimmed, allocate only a
+         small extension.  This comes up when per-instantiation needed flag
+         entries are added to a function after it has been trimmed. */
+      a_boolean small_extension = hdr->trimmed && FALSE;
+      if (!small_extension) trim_mem_block(hdr);
+      hdr = alloc_mem_block(region_number, true_size,
+                            (char *)NULL, small_extension);
+    }  /* if */
+  }  /* if */
+  /* Take the required space out of the current block. */
+  temp_ptr = hdr->next_avail_in_block;
+  hdr->next_avail_in_block += size;
+  if (use_dedicated_mem_block) {
+    /* If forming a dedicated memory region header, consume the rest of the
+       block now that the memory has been taken from it to make sure nothing
+       else is allocated into the same memory region header.  This allows the
+       code in free_fe to act appropriately. */
+    hdr->next_avail_in_block = hdr->after_end_of_block;
+  }  /* if */
+#if DEBUG
+  track_allocation(region_number, size, orig_size);
+#endif /* DEBUG */
+#if !STANDALONE_UTILITY_PROGRAM
+#ifdef TRACE_ALLOC
+  trace_alloc_check(temp_ptr);
+#endif /* TRACE_ALLOC */
+#endif /* !STANDALONE_UTILITY_PROGRAM */
+  return temp_ptr;
+}  /* alloc_in_region */
+
+
+inline a_void_ptr alloc_general_or_in_region(a_memory_region_number region,
+                                              sizeof_t              size)
+/*
+Allocate either general memory or memory from a memory region.  If
+"region" is NO_MEMORY_REGION_NUMBER, general memory is used.  Otherwise,
+memory is allocated in the memory region specified by "region".
+*/
+{
+  a_void_ptr ptr;
+
+  if (region == NO_MEMORY_REGION_NUMBER)  {
+    ptr = alloc_general(size);
+  } else {
+    ptr = alloc_in_region(region, size);
+  }  /* if */
+  return ptr;
+}  /* alloc_general_or_in_region */
+
 
 extern void *malloc_for_interpreter(sizeof_t size);
 
@@ -124,7 +239,131 @@ void ensure_mem_region_table_space(a_memory_region_number region_number);
 extern void ensure_function_def_table_space(
                                     a_function_def_number function_def_number);
 
-extern char *alloc_fe(sizeof_t     size);
+namespace detail {
+
+typedef Ptr_multi_map<sizeof_t, a_void_ptr, 50, General_allocator>
+		a_size_to_ptr_map;
+			/* A map to an array of pointers to blocks of memory
+			   of a given size. */
+
+EXTERN_THREAD a_size_to_ptr_map
+		*freed_fe_map;
+			/* Pointer to a map to freed front end memory entries
+			   of a given size. */
+
+/*
+The type used for tracking a pointer's size for reuse during allocation.
+*/
+struct a_reusable_allocation {
+  a_reusable_allocation(a_void_ptr ptr_val, sizeof_t size_val)
+    : ptr(ptr_val), size(size_val)
+    {}
+  a_void_ptr    ptr;    /* The address of the allocation. */
+  sizeof_t      size;   /* The number of bytes in the allocation. */
+};  /* a_reusable_allocation */
+
+template<>
+struct Is_trivially_copyable_edg_impl<a_reusable_allocation> :
+                                                Integral_constant<bool, true> {
+};  /* Is_trivially_copyable_edg_impl */
+
+template<>
+struct Is_trivially_destructible_edg_impl<a_reusable_allocation> :
+                                                Integral_constant<bool, true> {
+};  /* Is_trivially_copyable_edg_impl */
+
+typedef Dyn_array<a_reusable_allocation, General_allocator>
+		a_reusable_allocation_list;
+			/* A list of allocations that can be reused. */
+
+EXTERN_THREAD a_reusable_allocation_list
+		*reusable_fe_list;
+			/* Pointer to a map to freed front end memory entries
+			   of a given size. */
+
+extern void free_fe_huge(a_void_ptr ptr,
+                         sizeof_t   size);
+
+extern void free_fe_normal(a_void_ptr ptr,
+                           sizeof_t   size);
+
+}  /* detail */
+
+inline char *alloc_fe(sizeof_t     size)
+/*
+Allocate a block of front end memory of the specified size and return
+a pointer.  Look for a previously freed block.  If none is found allocate
+a new block.
+
+If the allocated memory is freed prior to the termination of the front end, the
+free_fe function should be used to free it.
+*/
+{
+  check_assertion_str(in_front_end,
+                      "memory region allocation must not occur after front "
+                      "end processing has ended");
+  void *ptr = NULL;
+
+  /* Ensure at least one byte is allocated to ensure that zero-sized objects
+     have distinct memory addresses. */
+  size = max_val(size, (sizeof_t)1);
+  if (size < HUGE_FE_MEM_THRESHOLD && detail::freed_fe_map != NULL) {
+    /* Look for a previously freed block. */
+    auto freed_blocks = detail::freed_fe_map->get(size);
+    if (freed_blocks != NULL && freed_blocks->length() > 0) {
+      /* Return the entry at the end of the array and remove it. */
+      ptr = freed_blocks->back_elem();
+      freed_blocks->pop_back();
+    }  /* if */
+  }  /* if */
+  if (ptr == NULL) {
+    /* Allocate a new block. */
+    ptr = alloc_in_region(FRONT_END_REGION_NUMBER, size);
+  }   /* if */
+  return (char*)ptr;
+}  /* alloc_fe */
+
+
+inline char *alloc_fe_var_size(sizeof_t size,
+                               sizeof_t *actual_size)
+/*
+Allocate a block of front end memory of the specified size or larger and return
+a pointer.  *actual_size is set to the true size of the allocated memory so the
+extra memory can be used if useful.  Look for a previously freed block.  If
+none is found allocate a new block.
+
+If the allocated memory is freed prior to the termination of the front end, the
+free_fe_var_size function should be used to free it.
+*/
+{
+  check_assertion_str(in_front_end,
+                      "memory region allocation must not occur after front "
+                      "end processing has ended");
+  void *ptr = NULL;
+
+  /* Ensure at least one byte is allocated to ensure that zero-sized objects
+     have distinct memory addresses. */
+  size = max_val(size, (sizeof_t)1);
+  if (size < HUGE_FE_MEM_THRESHOLD && detail::reusable_fe_list != NULL) {
+    /* Look for a previously freed block. */
+    for (size_t i = detail::reusable_fe_list->length(); i != 0; --i) {
+      auto &alloc = (*detail::reusable_fe_list)[i - 1];
+      if (alloc.size >= size) {
+        ptr = alloc.ptr;
+        *actual_size = alloc.size;
+        detail::reusable_fe_list->remove(i - 1);
+        break;
+      }  /* if */
+    }  /* for */
+  }  /* if */
+  if (ptr == NULL) {
+    /* Allocate a new block. */
+    ptr = alloc_in_region(FRONT_END_REGION_NUMBER, size);
+    *actual_size = size;
+  }   /* if */
+  return (char*)ptr;
+}  /* alloc_fe_var_size */
+
 
 template<typename T> inline
 T* alloc_fe(void)
@@ -138,8 +377,45 @@ names containing commas (e.g., "alloc_fe<Ptr_map<int, bool>>()").
 }  /* alloc_fe */
 
 
-extern void free_fe(a_void_ptr   ptr,
-                    sizeof_t     size);
+inline void free_fe(a_void_ptr   ptr,
+                    sizeof_t     size)
+/*
+Free the block of memory (allocated by alloc_fe) pointed to by ptr of the
+specified size.  The block is recorded for possible reuse later.
+*/
+{
+  if (ptr == NULL) {
+    /* If this assertion fails a null block of memory was given with a non-zero
+       size.  Thus, either the caller got the pointer to the block of memory or
+       the size wrong. */
+    check_assertion(size == 0);
+  } else if (size >= HUGE_FE_MEM_THRESHOLD) {
+    detail::free_fe_huge(ptr, size);
+  } else {
+    detail::free_fe_normal(ptr, size);
+  }  /* if */
+}  /* free_fe */
+
+
+inline void free_fe_var_size(a_void_ptr   ptr,
+                             sizeof_t     size)
+/*
+Free the block of memory (allocated by alloc_fe_var_size) pointed to by ptr of
+the specified size.  The block is recorded for possible reuse later.
+*/
+{
+  if (ptr == NULL) {
+    /* If this assertion fails a null block of memory was given with a non-zero
+       size.  Thus, either the caller got the pointer to the block of memory or
+       the size wrong. */
+    check_assertion(size == 0);
+  } else if (size >= HUGE_FE_MEM_THRESHOLD) {
+    detail::free_fe_huge(ptr, size);
+  } else {
+    detail::reusable_fe_list->emplace_back(ptr, size);
+  }  /* if */
+}  /* free_fe_var_size */
+
 
 template<typename a_Type> inline void free_fe(a_Type *ptr)
 /*
@@ -201,11 +477,11 @@ extern void show_mem_manage_space_used(unsigned long total_accounted_for);
 #endif /* DEBUG */
 /* Early initialization of memory management routines. */
 extern void mem_manage_early_init(void);
-extern void mem_manage_reset();
 /* One-time initialization of memory management routines. */
 extern void mem_manage_one_time_init(void);
 /* Initialize memory management. */
 extern void mem_manage_trans_unit_init(void);
+extern void mem_manage_reset(void);
 extern void mem_manage_init(void);
 #if DEBUG
 /* Functions for tracking important high water marks. */

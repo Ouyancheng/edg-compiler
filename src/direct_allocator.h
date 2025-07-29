@@ -49,7 +49,9 @@ Allocate at least n elements of type an_Elem and return the resulting
 allocation (which reflects the actual number of allocated elements).
 */
 {
-  return an_allocation{ (an_elem*)malloc(n*sizeof(an_elem)), n };
+  size_t n_bytes = n * sizeof(an_elem);
+
+  return an_allocation{(an_elem*)malloc(n_bytes), n_bytes};
 }  /* Direct_allocator::alloc */
 
 
@@ -66,14 +68,15 @@ the original allocation must be initialized and are moved to the start of the
 new allocation.
 */
 {
+  size_t   n_bytes = new_capacity * sizeof(an_elem);
   an_elem  *old_start = a.start,
-           *new_start = (an_elem*)malloc(new_capacity * sizeof(an_elem));
+           *new_start = (an_elem*)malloc(n_bytes);
   for (size_t k = 0; k < n_to_move; ++k) {
     construct(new_start + k, move_from(old_start + k));
     destroy(old_start + k);
   }  /* for */
   free(old_start);
-  return an_allocation{ new_start, new_capacity };
+  return an_allocation{ new_start, n_bytes };
 }  /* Direct_allocator::replace_alloc */
 
 
@@ -112,7 +115,9 @@ malloc.  The value of *p will be set to NULL.
 {
   if (*p != NULL) {
     destroy(*p);
-    Direct_allocator<an_Object>::dealloc(Allocation<an_Object>{*p, 1});
+
+    Allocation<an_Object> alloc = {*p, sizeof(an_Object)};
+    Direct_allocator<an_Object>::dealloc(alloc);
     *p = NULL;
   }  /* if */
 }  /* delete_direct */

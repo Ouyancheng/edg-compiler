@@ -104,34 +104,6 @@ STATIC_THREAD a_boolean
 			   mmap memory) is being used for memory region
 			   blocks. */
 
-typedef Dyn_array<a_void_ptr, General_allocator>
-		a_dyn_array_of_void_ptrs;
-			/* A dynamic array of void* pointers. */
-
-typedef a_dyn_array_of_void_ptrs *a_dyn_array_of_void_ptrs_ptr;
-
-typedef Ptr_map<sizeof_t, a_dyn_array_of_void_ptrs_ptr, General_allocator>
-		a_size_to_ptr_map;
-			/* A map to an array of pointers to blocks of memory
-			   of a given size. */
-
-STATIC_THREAD a_size_to_ptr_map
-		*freed_fe_map;
-			/* Pointer to a map to freed front end memory entries
-			   of a given size.  This is NULL until it is first
-			   used. */
-
-#if DEBUG
-
-/*
-Explicitly instantiate "a_size_to_ptr_map"'s db_ptrs function.  Note that,
-grammatically, the type alias a_size_to_ptr_map cannot be used here.
-*/
-template void Ptr_map<sizeof_t, a_dyn_array_of_void_ptrs_ptr,
-                      General_allocator>::db_ptrs() const;
-
-#endif /* DEBUG */
-
 /*
 Size of a_mem_block_header after adjustment so that the storage following
 it will be properly aligned.  This is a constant.
@@ -807,8 +779,6 @@ static void free_mem_block(a_mem_block_header_ptr hdr)
 Free the storage associated with the indicated memory block.
 */
 {
-  a_mem_block_header_ptr test_hdr, prev_hdr;
-
   db_enter(5, "free_mem_block");
 #if OVERWRITE_FREED_MEM_BLOCKS
   /* Overwrite the memory being freed so that any reference to the freed
@@ -829,66 +799,15 @@ Free the storage associated with the indicated memory block.
        can be freed by calling free. */
     free_complete_block(hdr);
   } else {
-    /* Other blocks cannot be freed that way.  Instead, they are put on
-       a linked list of freed blocks.  As blocks are added, they are
-       checked against the existing freed blocks so that adjacent pieces
-       can be reunited.  If pieces reunite into a complete block, the 
-       block can be freed by calling free.  Make sure that the block
-       that is being added is not from a different allocation
-       (e.g., from a different malloc call).  Memory blocks from
-       different low level allocations cannot be merged. */
-    for (prev_hdr = NULL, test_hdr = reusable_blocks_list;
-         test_hdr != NULL;
-         test_hdr = test_hdr->next) {
-      /* Suppress the CodeCenter warning caused because after_end_of_block
-         may be point to memory that is not allocated, or is part of a
-         different allocation. */
-      /*SUPPRESS 29*/
-      if ((test_hdr->after_end_of_block == (char *)hdr &&
-           hdr->malloc_size == 0) ||
-          (hdr->after_end_of_block == (char *)test_hdr &&
-           test_hdr->malloc_size == 0)) {
-        /* The block on the list is adjacent to the new block.  Remove
-           the test_hdr block from the list and join the two blocks together
-           as a bigger block pointed to by hdr.  Also back up the loop 
-           pointers to get the proper next iteration of the loop. */
-        if (prev_hdr == NULL) {
-          reusable_blocks_list = test_hdr->next;
-        } else {
-          prev_hdr->next = test_hdr->next;
-        }  /* if */
-        if (test_hdr->after_end_of_block == (char *)hdr) {
-          /* The new block follows the test_hdr block. */
-          test_hdr->after_end_of_block = hdr->after_end_of_block;
-          hdr = test_hdr;
-        } else {
-          /* The test_hdr block follows the new block. */
-          hdr->after_end_of_block = test_hdr->after_end_of_block;
-        }  /* if */
-        /* Is the aggregate block now a complete block?  If so, free it and
-           leave the loop. */
-        if (hdr->malloc_size > 0 &&
-            hdr->malloc_size ==
-                           (sizeof_t)(hdr->after_end_of_block - (char *)hdr)) {
-          free_complete_block(hdr);
-          goto freed_it;
-        }  /* if */
-        /* prev_hdr must be left as it is for the next iteration. */
-      } else {
-        /* Normal case; block on list is not adjacent to new block. */
-        prev_hdr = test_hdr;        
-      }  /* if */
-    }  /* for */
     /* Add the resulting block to the list. */
     hdr->next = reusable_blocks_list;
     reusable_blocks_list = hdr;
-freed_it:;
   }  /* if */
   db_exit();
 }  /* free_mem_block */
 
 
-static void trim_mem_block(a_mem_block_header_ptr hdr)
+void trim_mem_block(a_mem_block_header_ptr hdr)
 /*
 Free any unallocated space remaining in the indicated memory block.
 */
@@ -905,8 +824,7 @@ Free any unallocated space remaining in the indicated memory block.
   /* The criterion for "big enough" is really not for very much space.
      Even very small blocks can be reused, at a minor cost in
      execution time if the file scope region gets too fragmented. */
-  if (space_remaining_in_block >= sizeof(a_mem_block_header) +
-                                  10*sizeof(a_constant)) {
+  if (space_remaining_in_block >= HUGE_FE_MEM_THRESHOLD) {
     /* Remaining space is "big enough" that it's worth saving.  We know
        next_avail_in_block is properly aligned because of the way that
        alloc_in_region works.  Fabricate a header for the space, then 
@@ -919,8 +837,9 @@ Free any unallocated space remaining in the indicated memory block.
                                   alloc_addr + adjusted_header_size;
     new_hdr->after_end_of_block = alloc_addr + space_remaining_in_block;
     new_hdr->trimmed = FALSE;
-    /* Free the block. */
-    free_mem_block(new_hdr);
+    /* Recycle the block. */
+    new_hdr->next = reusable_blocks_list;
+    reusable_blocks_list = new_hdr;
     /* Trim the original block so it does not include the freed space. */
     hdr->after_end_of_block = alloc_addr;
   }  /* if */
@@ -928,6 +847,26 @@ Free any unallocated space remaining in the indicated memory block.
   db_exit();
 }  /* trim_mem_block */
 
+#if DEBUG
+
+void track_allocation(a_memory_region_number region_number,
+                      sizeof_t               size,
+                      sizeof_t               orig_size)
+/*
+Add the given number of allocated bytes to the total allocation for the given
+region number.  If the original size differs from the allocated size, the extra
+bytes will be added to the total number of bytes allocated for alignment
+purposes.
+*/
+{
+  total_mem_used += (unsigned long)size;
+  num_alignment_bytes_allocated += (unsigned long)(size - orig_size);
+  /* Can't do this conditionally on db_active since db_active is not yet
+     set when command line processing is done. */
+  allocated_in_region[region_number] += (unsigned long)size;
+}  /* track_allocation */
+
+#endif /* DEBUG */
 
 void ensure_function_def_table_space(a_function_def_number function_def_number)
 /*
@@ -1106,95 +1045,6 @@ A new region is used for each function's executable code and data.
 }  /* new_memory_region */
 
 
-char *alloc_in_region(a_memory_region_number region_number,
-                      sizeof_t               size)
-/*
-Allocate "size" bytes in memory region "region_number", and return a
-pointer to them.  Generate a catastrophic error and do not return if
-the storage cannot be allocated.  Memory region 0 (NULL_region_number)
-is used for allocation of general front end memory (i.e., not IL).
-*/
-{
-  char                   *temp_ptr;
-  a_mem_block_header_ptr hdr;
-
-  /* Ensure at least one byte is allocated to ensure that zero-sized objects
-     have distinct memory addresses. */
-  size = max_val(size, (sizeof_t)1);
-
-#if DEBUG
-  sizeof_t orig_size = size;
-#endif /* DEBUG */
-  /* Round up the size if necessary to preserve alignment.  Note that
-     aside from keeping the data correctly aligned, this also keeps the
-     next available address properly aligned, which is important in
-     trim_mem_block. */
-  do_host_alignment(&size);
-
-  /* See if enough space remains in the current block.  If not, get
-     a new block.  Note that we add the required host alignment to the
-     requested allocation size.  This is done to ensure that no piece
-     of memory ends precisely at the end of low-level allocation.  On
-     some systems this can cause memory faults by system routines that
-     seem to make the assumption that this won't occur. */
-  hdr = mem_region_table[region_number];
-  /* Suppress the CodeCenter warning caused because after_end_of_block
-     may be point to memory that is not allocated, or is part of a
-     different allocation. */
-  /*SUPPRESS 22*/
-  if ((size + HOST_ALIGNMENT_REQUIRED) >
-      (sizeof_t)(hdr->after_end_of_block - hdr->next_avail_in_block)) {
-    /* Not enough space remaining in current block.  Free any unused
-       space at the end of the current last block, and start a new block.
-       If the memory region has already been trimmed, allocate only a
-       small extension.  This comes up when per-instantiation needed flag
-       entries are added to a function after it has been trimmed. */
-    a_boolean small_extension = hdr->trimmed;
-    if (!small_extension) trim_mem_block(hdr);
-    hdr = alloc_mem_block(region_number, size + HOST_ALIGNMENT_REQUIRED,
-                          (char *)NULL, small_extension);
-  }  /* if */
-
-  /* Take the required space out of the current block. */
-  temp_ptr = hdr->next_avail_in_block;
-  hdr->next_avail_in_block += size;
-
-#if DEBUG
-  /* Track total allocation. */
-  total_mem_used += (unsigned long)size;
-  num_alignment_bytes_allocated += (unsigned long)(size - orig_size);
-  /* Can't do this conditionally on db_active since db_active is not yet
-     set when command line processing is done. */
-  allocated_in_region[region_number] += (unsigned long)size;
-#endif /* DEBUG */
-#if !STANDALONE_UTILITY_PROGRAM
-#ifdef TRACE_ALLOC
-  trace_alloc_check(temp_ptr);
-#endif /* TRACE_ALLOC */
-#endif /* !STANDALONE_UTILITY_PROGRAM */
-  return temp_ptr;
-}  /* alloc_in_region */
-
-
-a_void_ptr alloc_general_or_in_region(a_memory_region_number	region,
-				      sizeof_t			size)
-/*
-Allocate either general memory or memory from a memory region.  If
-"region" is NO_MEMORY_REGION_NUMBER, general memory is used.  Otherwise,
-memory is allocated in the memory region specified by "region".
-*/
-{
-  a_void_ptr	ptr;
-
-  if (region == NO_MEMORY_REGION_NUMBER)  {
-    ptr = alloc_general(size);
-  } else {
-    ptr = alloc_in_region(region, size);
-  }  /* if */
-  return ptr;
-}  /* alloc_general_or_in_region */
-
-
 char *alloc_general(sizeof_t size)
 /*
 Allocate and return "size" bytes of general storage.  This differs from
@@ -1329,11 +1179,6 @@ needed (e.g., it has been written out to the IL file).
   /* Let the symbol table know the given memory region is being freed. */
   symbol_table_memory_region_wrap_up(region_number);
 #endif /* !STANDALONE_UTILITY_PROGRAM && EXPENSIVE_CHECKING */
-  if (region_number == FRONT_END_REGION_NUMBER && freed_fe_map != NULL) {
-    /* We're about to free the front end memory region.  Also delete the
-       map of reusable entries in that region. */
-    delete_general(&freed_fe_map);
-  }  /* if */
   /* Traverse the list of blocks and free each one. */
   for (hdr = mem_region_table[region_number]; hdr != NULL;) {
     next_hdr = hdr->next;
@@ -1430,11 +1275,6 @@ end memory region.
        First we unlink blocks that don't represent malloc allocations because
        they might be part of a block for which the malloc was done in a
        different memory region. */
-    if (freed_fe_map != NULL) {
-      /* We're about to free the front end memory region.  Also delete the
-         map of reusable entries in that region. */
-      delete_general(&freed_fe_map);
-    }  /* if */
     for (region_number = highest_used_region_number;
          region_number != NULL_region_number;
          region_number--) {
@@ -1770,8 +1610,8 @@ usage counts in other files.
                    total_unallocated);
 
   /* Size the memory blocks on the available list. */
-  size_t num_reusable_blocks = 0;
-  size_t num_reusable_block_bytes = 0;
+  unsigned long num_reusable_blocks = 0;
+  unsigned long num_reusable_block_bytes = 0;
   for (hdr = reusable_blocks_list; hdr != NULL; hdr = hdr->next) {
     num_reusable_block_bytes += (unsigned long)(hdr->after_end_of_block -
                                                 hdr->start_of_block);
@@ -1794,8 +1634,7 @@ usage counts in other files.
           (double)num_reclaim_traversals / (double)num_reclaim_attempts);
   fprintf(f_debug, "%25s %26lu\n", "Num reusable blocks", num_reusable_blocks);
   fprintf(f_debug, "%25s %26lu\n", "Avg reusable block size",
-          num_reusable_block_bytes /
-                                  max_val(num_reusable_blocks, size_t_arg(1)));
+          num_reusable_block_bytes / max_val(num_reusable_blocks, 1lu));
   fprintf(f_debug, "%25s %26lu\n", "Post one-time init size",
           mem_in_use_after_one_time_init);
   fprintf(f_debug, "%25s %26lu\n", "Max post trans init alloc",
@@ -1928,39 +1767,6 @@ text can be added).
   }  /* if */
 }  /* remove_null_terminator_from_text_buffer */
 
-
-char *alloc_fe(sizeof_t     size)
-/*
-Allocate a block of front end memory of the specified size and return
-a pointer.  Look for a previously freed block.  If none is found allocate
-a new block.
-*/
-{
-  check_assertion_str(in_front_end,
-                      "memory region allocation must not occur after front "
-                      "end processing has ended");
-  void  *ptr = NULL;
-
-  /* Ensure at least one byte is allocated to ensure that zero-sized objects
-     have distinct memory addresses. */
-  size = max_val(size, (sizeof_t)1);
-  /* If the freed map exists, look for a previously freed block. */
-  if (freed_fe_map != NULL) {
-    a_dyn_array_of_void_ptrs_ptr freed_blocks = freed_fe_map->get(size);
-
-    if (freed_blocks != NULL && freed_blocks->length() > 0) {
-      /* Return the entry at the end of the array and remove it. */
-      ptr = freed_blocks->back_elem();
-      freed_blocks->pop_back();
-    }  /* if */
-  }  /* if */
-  if (ptr == NULL) {
-    /* Allocate a new block. */
-    ptr = alloc_in_region(NULL_region_number, size);
-  }   /* if */
-  return (char*)ptr;
-}  /* alloc_fe */
-
 #if EXPENSIVE_CHECKING
 
 static a_boolean is_in_memory_region(char                   *ptr,
@@ -1986,43 +1792,68 @@ the memory region blocks; otherwise, return FALSE.
 
 #endif /* EXPENSIVE_CHECKING */
 
-void free_fe(a_void_ptr   ptr,
-             sizeof_t     size)
+namespace detail {
+
+void free_fe_huge(a_void_ptr ptr,
+                  sizeof_t   size)
 /*
-Free the block of memory pointed to by ptr of the specified size.  The block
-is recorded for possible reuse later.
+Free a large (i.e., with a size equal to or greater than HUGE_FE_MEM_THRESHOLD)
+front end allocation (i.e., allocated by alloc_fe) starting at the given
+address of the given size.
+
+The underlying memory block is returned to the reusable block lists for future
+allocations in any memory region.
 */
 {
-  if (ptr == NULL) {
-    /* If this assertion fails a null block of memory was given with a non-zero
-       size.  Thus, either the caller got the pointer to the block of memory or
-       the size wrong. */
-    check_assertion(size == 0);
-  } else {
-    /* All allocations from alloc_fe are at least 1 byte. */
-    size = max_val(size, (sizeof_t)1);
+  check_assertion(size >= HUGE_FE_MEM_THRESHOLD);
+  a_mem_block_header *hdr = mem_region_table[FRONT_END_REGION_NUMBER];
+  a_mem_block_header **prev_next =
+                             &mem_region_table[FRONT_END_REGION_NUMBER];
+#if CHECKING
+  a_boolean          block_found = FALSE;
+#endif /* CHECKING */
+
+  /* Traverse the list of blocks and free each one. */
+  for (; hdr != NULL; hdr = hdr->next) {
+    if (hdr->start_of_block == ptr) {
+      a_mem_block_header_ptr next_hdr = hdr->next;
+
+      /* Recycle the block. */
+      hdr->next = reusable_blocks_list;
+      reusable_blocks_list = hdr;
+#if CHECKING
+      block_found = TRUE;
+#endif /* CHECKING */
+      /* Unlink this memory block. */
+      *prev_next = next_hdr;
+      break;
+    }  /* if */
+    prev_next = &hdr->next;
+  }  /* for */
+  check_assertion(block_found);
+}  /* free_fe_huge */
+
+
+void free_fe_normal(a_void_ptr ptr,
+                    sizeof_t   size)
+/*
+Free the block of memory (allocated by alloc_fe) pointed to by ptr of the
+specified size.  The block is recorded for possible reuse later by alloc_fe.
+*/
+{
+  /* All allocations from alloc_fe are at least 1 byte. */
+  size = max_val(size, (sizeof_t)1);
 #if EXPENSIVE_CHECKING
-    /* Check to ensure that the given pointer with the given size could
-       conceivably fit within the memory region. */
-    check_assertion(is_in_memory_region((char*)ptr, size, NULL_region_number));
+  /* Check to ensure that the given pointer with the given size could
+     conceivably fit within the memory region. */
+  check_assertion(is_in_memory_region((char*)ptr, size,
+                                      FRONT_END_REGION_NUMBER));
 #endif /* EXPENSIVE_CHECKING */
-    /* Create the map to the freed memory if it has not already been
-       created. */
-    if (freed_fe_map == NULL) {
-      freed_fe_map = new_general<a_size_to_ptr_map>(1u);
-    }  /* if */
+  auto freed_blocks = detail::freed_fe_map->get_or_alloc(size);
+  freed_blocks->push_back(ptr);
+}  /* free_fe_normal */
 
-    a_dyn_array_of_void_ptrs_ptr freed_blocks = freed_fe_map->get(size);
-    if (freed_blocks == NULL) {
-      /* Create a new dynamic array and add it to the map. */
-      freed_blocks = new_general<a_dyn_array_of_void_ptrs>(1u);
-      freed_fe_map->map(size, freed_blocks);
-    }  /* if */
-    /* Add the new entry to the array. */
-    freed_blocks->push_back(ptr);
-  }  /* if */
-}  /* free_fe */
-
+}  /* detail */
 #if DEBUG
 
 void db_text_buffer(a_const_char	*prefix,
@@ -2191,7 +2022,6 @@ Do one-time initialization of variables related to the mem_manage routines.
 #endif /* IL_SHOULD_BE_WRITTEN_TO_FILE */
   il_header.region_scope_entry = NULL;
   il_header.function_def_table = NULL;
-  freed_fe_map = NULL;
 }  /* mem_manage_one_time_init */
 
 #if DEBUG
@@ -2290,12 +2120,11 @@ void mem_manage_reset(void)
 Called when a PCH file has just been read to reset the memory management state.
 */
 {
-  /* If there's currently a freed_fe_map, reset it to an empty state.  This
-     prevents issues where the front end memory region has been replaced
-     resulting in alloc_fe handing out memory addresses already in use. */
-  if (freed_fe_map != NULL) {
-    freed_fe_map->clear();
-  }  /* if */
+  /* Reset free_fe_map and reusable_fe_list.  This prevents issues where the
+     front end memory region has been replaced resulting in alloc_fe handing
+     out memory addresses already in use. */
+  detail::freed_fe_map->clear();
+  detail::reusable_fe_list->clear();
 }  /* mem_manage_reset */
 
 
@@ -2328,6 +2157,10 @@ must be initialized for each compilation.
   init_memory_region(NULL_region_number, (sizeof_t)0);
   /* Initialize the memory region for file scope IL information. */
   init_memory_region(FILE_SCOPE_REGION_NUMBER, (sizeof_t)0);
+  /* Initialize the front end memory reuse data structures. */
+  detail::freed_fe_map = new_general<detail::a_size_to_ptr_map>(1u);
+  detail::reusable_fe_list =
+                          new_general<detail::a_reusable_allocation_list>(10u);
 }  /* mem_manage_init */
 
 #if MAKE_FRONT_END_CALLABLE

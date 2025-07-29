@@ -24,10 +24,16 @@ util.h -- General utility components (mostly templates).
 /* Conditionally open the "edg" namespace. */
 BEGIN_EDG_NAMESPACE
 
-extern char *alloc_fe(sizeof_t     size);
+char *alloc_fe(sizeof_t size);
 
-extern void free_fe(a_void_ptr   ptr,
-                    sizeof_t     size);
+char *alloc_fe_var_size(sizeof_t size,
+                        sizeof_t *actual_size);
+
+void free_fe(a_void_ptr   ptr,
+             sizeof_t     size);
+
+void free_fe_var_size(a_void_ptr   ptr,
+                      sizeof_t     size);
 
 extern char *alloc_general(sizeof_t size);
 
@@ -882,10 +888,18 @@ struct Allocation {
 			/* Pointer to the first allocated element.  If NULL,
 			   n_allocated must be zero. */
   const size_t
-		n_allocated;
-			/* Number of allocated elements. */
+		n_bytes_allocated;
+			/* Number of allocated bytes. */
 };  /* Allocation */
 
+namespace detail {
+
+template<typename a_Type>
+struct Is_trivially_copyable_edg_impl<Allocation<a_Type>> :
+                                                Integral_constant<bool, true> {
+};  /* Is_trivially_copyable_edg_impl */
+
+}  /* detail */
 
 /*
 A general allocator for front end memory.
@@ -917,8 +931,16 @@ Allocate at least n elements of type an_Elem and return the resulting
 allocation (which reflects the actual number of allocated elements).
 */
 {
-  return an_allocation{ (an_elem*)alloc_fe(n*sizeof(an_elem)),
-                        n };
+  sizeof_t n_bytes_allocated;
+  char     *addr;
+
+  if (n <= 1) {
+    n_bytes_allocated = sizeof(an_elem);
+    addr = alloc_fe(sizeof(an_elem));
+  } else {
+    addr = alloc_fe_var_size(n * sizeof(an_elem), &n_bytes_allocated);
+  }  /* if */
+  return an_allocation{(an_elem*)addr, n_bytes_allocated};
 }  /* FE_allocator::alloc */
 
 
@@ -934,11 +956,13 @@ the original allocation must be initialized and are moved to the start of the
 new allocation.
 */
 {
-  an_elem  *old_start = a.start,
-           *new_start = (an_elem*)alloc_fe(new_capacity*sizeof(an_elem));
+  an_allocation result = FE_allocator<an_Elem>::alloc(new_capacity);
+  an_elem       *old_start = a.start,
+                *new_start = result.start;
+
   move_elements<an_Elem>(new_start, old_start, n_to_move);
-  free_fe((void*)old_start, a.n_allocated*sizeof(an_elem));
-  return an_allocation{ new_start, new_capacity };
+  FE_allocator<an_Elem>::dealloc(a);
+  return result;
 }  /* FE_allocator::replace_alloc */
 
 
@@ -951,7 +975,11 @@ objects.
 */
 {
   /* Note that free_fe will correctly handle a null allocation. */
-  free_fe((void*)a.start, a.n_allocated*sizeof(an_elem));
+  if (a.start == NULL || a.n_bytes_allocated == sizeof(an_Elem)) {
+    free_fe((void*)a.start, a.n_bytes_allocated);
+  } else {
+    free_fe_var_size(a.start, a.n_bytes_allocated);
+  }  /* if */
 }  /* FE_allocator::dealloc */
 
 
@@ -962,7 +990,8 @@ Allocate in front-end memory and construct an object of type an_Object with
 the constructor arguments specified by args.  Return a pointer to the object.
 */
 {
-  an_Object  *p = FE_allocator<an_Object>::alloc(1).start;
+  an_Object  *p = (an_Object*)alloc_fe(sizeof(an_Object));
+
   construct(p, fwd<an_Arg_pack>(args)...);
   return p;
 }  /* new_fe */
@@ -977,7 +1006,7 @@ memory.  The value of *p will be set to NULL.
 {
   if (*p != NULL) {
     destroy(*p);
-    FE_allocator<an_Object>::dealloc(Allocation<an_Object>{*p, 1});
+    free_fe(*p, sizeof(an_Object));
     *p = NULL;
   }  /* if */
 }  /* delete_fe */
@@ -1030,11 +1059,13 @@ the original allocation must be initialized and are moved to the start of the
 new allocation.
 */
 {
+  sizeof_t n_bytes = new_capacity * sizeof(an_elem);
   an_elem  *old_start = a.start,
-           *new_start = (an_elem*)alloc_general(new_capacity*sizeof(an_elem));
+           *new_start = (an_elem*)alloc_general(n_bytes);
+
   move_elements<an_Elem>(new_start, old_start, n_to_move);
-  free_general(old_start, a.n_allocated*sizeof(an_elem));
-  return an_allocation{ new_start, new_capacity };
+  free_general(old_start, a.n_bytes_allocated);
+  return an_allocation{new_start, n_bytes};
 }  /* General_allocator::replace_alloc */
 
 
@@ -1047,7 +1078,7 @@ objects.
 */
 {
   /* Note that free_fe will correctly handle a null allocation. */
-  free_general(a.start, a.n_allocated*sizeof(an_elem));
+  free_general(a.start, a.n_bytes_allocated);
 }  /* General_allocator::dealloc */
 
 
@@ -1073,7 +1104,9 @@ general memory.  The value of *p will be set to NULL.
 {
   if (*p != NULL) {
     destroy(*p);
-    General_allocator<an_Object>::dealloc(Allocation<an_Object>{*p, 1});
+
+    Allocation<an_Object> alloc = {*p, sizeof(an_Object)};
+    General_allocator<an_Object>::dealloc(alloc);
     *p = NULL;
   }  /* if */
 }  /* delete_general */
@@ -1214,7 +1247,7 @@ number of allocated elements).
   size_t  num_allocated = a_Capacity;
 
   this->local_used = TRUE;
-  return an_allocation{start, num_allocated};
+  return an_allocation{start, num_allocated * sizeof(an_Elem)};
 }  /* Buffered_allocator::local_alloc */
 
 
@@ -1234,7 +1267,7 @@ elements).
 
   an_allocation alloced = this->fallback_allocator.alloc(n);
   an_elem       *start = alloced.start;
-  size_t        num_allocated = alloced.n_allocated;
+  sizeof_t      num_allocated = alloced.n_bytes_allocated;
 
   return an_allocation{start, num_allocated};
 }  /* Buffered_allocator::fallback_alloc */
@@ -1286,12 +1319,12 @@ new allocation.
        allocation was already using the local buffer. */
     this->local_used = TRUE;
     new_start = this->local;
-    new_num_allocated = new_capacity;
+    new_num_allocated = new_capacity * sizeof(an_Elem);
   } else {
     an_allocation alloced = this->fallback_allocator.alloc(new_capacity);
 
     new_start = alloced.start;
-    new_num_allocated = alloced.n_allocated;
+    new_num_allocated = alloced.n_bytes_allocated;
   }  /* if */
   /* If we're still within the local capacity old_start will equal new_start,
      and nothing more needs to happen. */
@@ -1325,10 +1358,10 @@ initialized and should therefore be moved to the new allocator.
   if (old_start == src.local) {
     /* This allocation is owned by the buffer of src.  Steal the allocation
        from src's buffer and move its contents into this allocator's buffer. */
-    an_allocation alloced = this->alloc(src_alloc.n_allocated);
+    an_allocation alloced = this->alloc(n_to_move);
 
     new_start = alloced.start;
-    new_num_allocated = alloced.n_allocated;
+    new_num_allocated = alloced.n_bytes_allocated;
     move_elements<an_elem>(new_start, old_start, n_to_move);
   } else {
     /* This allocation was created by the fallback allocator of src.  Steal the
@@ -1340,7 +1373,7 @@ initialized and should therefore be moved to the new allocator.
                                                         n_to_move);
 
     new_start = alloced.start;
-    new_num_allocated = alloced.n_allocated;
+    new_num_allocated = alloced.n_bytes_allocated;
   }  /* if */
   return an_allocation{new_start, new_num_allocated};
 }  /* Buffered_allocator::move_alloc */
@@ -1527,7 +1560,7 @@ managed by the given allocator.
 {
   an_allocation  allocation = this->alloc(cap);
   this->elems = allocation.start;
-  this->n_allocated = allocation.n_allocated;
+  this->n_allocated = allocation.n_bytes_allocated / sizeof(an_Elem);
 }  /* Dyn_array::Dyn_array */
 
 
@@ -1546,7 +1579,7 @@ managed by the given allocator.  Initialize the first cap elements to v.
 {
   an_allocation  allocation = this->alloc(cap);
   this->elems = allocation.start;
-  this->n_allocated = allocation.n_allocated;
+  this->n_allocated = allocation.n_bytes_allocated / sizeof(an_Elem);
 
   /* Copy-construct the element into newly-allocated storage. */
   an_elem *dst_elems = this->elems;
@@ -1565,9 +1598,9 @@ Copy constructor.
   , n_elems(src.n_elems)
 {
   /* Allocate new storage. */
-  an_allocation  allocation = this->alloc(src.n_allocated);
+  an_allocation  allocation = this->alloc(src.n_elems);
   this->elems = allocation.start;
-  this->n_allocated = allocation.n_allocated;
+  this->n_allocated = allocation.n_bytes_allocated / sizeof(an_Elem);
 
   /* Copy-construct the elements from the source into the newly-allocated
      storage. */
@@ -1588,11 +1621,12 @@ Move constructor.
   , n_allocated()
   , n_elems(src.n_elems)
 {
-  an_allocation src_alloc = an_allocation{src.elems, src.n_allocated};
+  an_allocation src_alloc = an_allocation{src.elems,
+                                          src.n_allocated * sizeof(an_Elem)};
   an_allocation new_alloc = this->move_alloc(src, src_alloc, src.n_elems);
 
   this->elems = new_alloc.start;
-  this->n_allocated = new_alloc.n_allocated;
+  this->n_allocated = new_alloc.n_bytes_allocated / sizeof(an_Elem);
   src.elems = NULL;
   src.n_allocated = 0;
   src.n_elems = 0;
@@ -1606,7 +1640,8 @@ Destructor.
 */
 {
   destroy_elements<an_elem>(this->elems, this->n_elems);
-  this->dealloc(an_allocation{ this->elems, this->n_allocated });
+  this->dealloc(an_allocation{ this->elems,
+                               this->n_allocated * sizeof(an_Elem)});
   this->elems = NULL;
 }  /* Dyn_array::~Dyn_array */
 
@@ -1993,11 +2028,12 @@ the current capacity.
   size_t  old_cap = this->n_allocated;
 
   if (new_cap > old_cap) {
-    an_allocation  a = this->replace_alloc(an_allocation{ this->elems,
-                                                          old_cap },
-                                           new_cap, this->n_elems);
+    an_allocation  a = this->replace_alloc(
+                                      an_allocation{this->elems,
+                                                    old_cap * sizeof(an_Elem)},
+                                      new_cap, this->n_elems);
     this->elems = a.start;
-    this->n_allocated = a.n_allocated;
+    this->n_allocated = a.n_bytes_allocated / sizeof(an_Elem);
   }  /* if */
 }  /* Dyn_array::reserve */
 
@@ -2009,12 +2045,14 @@ Grow the capacity of the array by about half, unless the capacity is less than
 2, in which case the capacity is set to 2.
 */
 {
-  size_t  old_cap = this->n_allocated,
-          new_cap = old_cap < 2 ? 2 : old_cap + old_cap/2 + 1;
-  an_allocation  a = this->replace_alloc(an_allocation{ this->elems, old_cap },
-                                         new_cap, this->n_elems);
+  size_t         old_cap = this->n_allocated,
+                 new_cap = old_cap < 2 ? 2 : old_cap + old_cap/2 + 1;
+  an_allocation  a = this->replace_alloc(
+                                     an_allocation{this->elems,
+                                                   old_cap * sizeof(an_Elem)},
+                                     new_cap, this->n_elems);
   this->elems = a.start;
-  this->n_allocated = a.n_allocated;
+  this->n_allocated = a.n_bytes_allocated / sizeof(an_Elem);
 }  /* Dyn_array::grow */
 
 
@@ -2094,7 +2132,7 @@ pointer to a null value.  Return *this.
 
   if (p != NULL) {
     destroy(p);
-    this->dealloc(an_allocation{ p, 1 });
+    this->dealloc(an_allocation{p, sizeof(an_Object)});
     this->ptr = NULL;
   }  /* if */
   return *this;
@@ -2192,8 +2230,8 @@ Convenience function to create an owning pointer to an object allocated in
 front-end memory.
 */
 {
-  an_Object  *p = FE_allocator<an_Object>::alloc(1).start;
-  construct(p, fwd<an_Arg_pack>(args)...);
+  an_Object *p = new_fe<an_Object>(fwd<an_Arg_pack>(args)...);
+
   return Owning_ptr<an_Object>(p);
 }  /* owning_ptr */
 
@@ -3258,7 +3296,7 @@ Provide a generic printing interface for generic function diagnostics.
 }  /* db_f_print_t */
 
 #endif /* DEBUG */
-#if EXPENSIVE_CHECKING
+#if EXPENSIVE_CHECKING && !STANDALONE_UTILITY_PROGRAM
 
 template<typename a_Value_Fn>
 inline void validate_elements_in_order(size_t     num_elements,
@@ -3296,7 +3334,7 @@ minimize the number of operators that need to be implemented.
 extern EDG_THREAD a_boolean
                 no_very_expensive_checking;
 
-#endif /* EXPENSIVE_CHECKING */
+#endif /* EXPENSIVE_CHECKING && !STANDALONE_UTILITY_PROGRAM */
 
 template<typename T, typename a_Value_Fn>
 inline ptrdiff_t lower_bound(size_t     num_elements,
@@ -3315,11 +3353,11 @@ found.
   size_t    begin_idx = 0;
   size_t    curr_size = num_elements;
 
-#if EXPENSIVE_CHECKING
+#if EXPENSIVE_CHECKING && !STANDALONE_UTILITY_PROGRAM
   if (!no_very_expensive_checking && num_elements >= 2) {
     validate_elements_in_order(num_elements, value_fn);
   }  /* if */
-#endif /* EXPENSIVE_CHECKING */
+#endif /* EXPENSIVE_CHECKING && !STANDALONE_UTILITY_PROGRAM */
   while (curr_size > 0) {
     /* Calculate the current index.  First compute an index relative to the
        amount of data we have.  Then add the relative index to our starting
@@ -5355,10 +5393,6 @@ responsible for deallocating the previous table.
   an_allocation  allocation = this->alloc(n_slots);
 
   this->table = allocation.start;
-  /* Update the slot count based on the allocation.  The allocated space should
-     be at least what's been requested. */
-  check_assertion(n_slots <= size_t_arg(allocation.n_allocated));
-  n_slots = allocation.n_allocated;
   this->hash_mask = n_slots - 1;
   for (size_t i = 0; i < n_slots; ++i) {
     construct(&this->table[i]);
@@ -5394,7 +5428,7 @@ Double the size of the hash table (and rehash entries as needed).
   }  /* for */
   this->table = new_table;
   this->hash_mask = new_mask;
-  this->dealloc(an_allocation{ old_table, old_n_slots });
+  this->dealloc(an_allocation{old_table, old_n_slots * sizeof(an_entry)});
 }  /* Ptr_map::expand_table */
 
 
@@ -5566,10 +5600,6 @@ dynamic array if it does not already exist).
     typename a_value_allocator::an_allocation
                     values_alloc = multi_value_allocator.alloc(1);
 
-    /* It's expected that the allocation only contains one element.  This is
-       important as the count is discarded and deallocation assumes only one
-       element was allocated. */
-    check_assertion(values_alloc.n_allocated == 1);
     values = values_alloc.start;
     construct(values);
     this->backing_map.map(key, values);
@@ -5642,7 +5672,8 @@ Given the multi-value, deconstruct and deallocate the multi-value list.
 {
   destroy(values);
 
-  typename a_value_allocator::an_allocation values_alloc{values, 1};
+  typename a_value_allocator::an_allocation
+                values_alloc{values, sizeof(a_multi_value)};
   this->multi_value_allocator.dealloc(values_alloc);
 }  /* Ptr_multi_map::dealloc */
 
@@ -5867,7 +5898,8 @@ Destroy the Seq_comparator instance and its allocated resources.
 {
   size_t num_elements = this->array_a_len * this->array_b_len;
 
-  this->dealloc(an_allocation{this->lcs_table, num_elements});
+  this->dealloc(an_allocation{this->lcs_table,
+                              num_elements * sizeof(uint32_t)});
 }  /* Seq_comparator_impl::~Seq_comparator_impl */
 
 
